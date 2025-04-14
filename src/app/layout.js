@@ -1,5 +1,6 @@
 import "./globals.css";
 import { Providers } from "./providers";
+import PlausibleProvider from 'next-plausible'
 
 export const metadata = {
   title: "Create Next App",
@@ -9,6 +10,18 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <PlausibleProvider
+          domain="clipify.us"
+          customDomain="https://analytics.thedannicraft.de"
+          selfHosted
+          trackOutboundLinks
+          trackFileDownloads
+          taggedEvents
+          hash
+          enabled
+        />
+      </head>
       <body>
         <Providers>
           {children}

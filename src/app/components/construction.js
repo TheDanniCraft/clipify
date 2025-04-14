@@ -4,9 +4,11 @@ import React, { useEffect, useState } from 'react';
 import { motion } from "motion/react"
 import { Button, Form, Image, Input, Popover, PopoverContent, PopoverTrigger, Spinner } from '@heroui/react';
 import { IconCircleCheckFilled, IconMailFilled, IconSend } from '@tabler/icons-react';
-import { subscribeToNewsletter } from '@actions/newsletter';
+import { subscribeToNewsletter, getEmailProvider } from '@actions/newsletter';
+import { usePlausible } from 'next-plausible'
 
 const Construction = ({ endDate, cta }) => {
+    const plausible = usePlausible()
     const [timeLeft, setTimeLeft] = useState({
         days: '0',
         hours: '0',
@@ -52,8 +54,13 @@ const Construction = ({ endDate, cta }) => {
         await setNewsletterState('loading');
 
         await subscribeToNewsletter(data.email)
-            .then(() => {
+            .then(async () => {
                 setNewsletterState('success');
+                plausible('Newsletter Subscription', {
+                    props: {
+                        emailType: await getEmailProvider(data.email),
+                    },
+                });
             })
             .catch(async (error) => {
                 await setNewsletterState('error');
