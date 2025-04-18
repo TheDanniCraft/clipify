@@ -1,16 +1,6 @@
-const { heroui } = require("@heroui/react");
-/** @type {import('tailwindcss').Config} */
-module.exports = {
-    content: [
-        // ...
-        // make sure it's pointing to the ROOT node_module
-        "./node_modules/@heroui/theme/dist/**/*.{js,ts,jsx,tsx}",
-    ],
-    theme: {
-        extend: {},
-    },
-    darkMode: "class",
-    plugins: [heroui({
+import { heroui } from "@heroui/react";
+
+export default heroui({
         themes: {
             light: {
                 colors: {
@@ -40,19 +30,6 @@ module.exports = {
                         700: "#9B2440",
                         800: "#7F1932",
                         900: "#631127"
-                    },
-                    accent: {
-                        DEFAULT: "#4FB9B8",
-                        50: "#D7F9F9",
-                        100: "#A3F0F0",
-                        200: "#6EE8E8",
-                        300: "#3AC0C0",
-                        400: "#1D9B9B",
-                        500: "#4FB9B8",
-                        600: "#1D8787",
-                        700: "#176666",
-                        800: "#114545",
-                        900: "#0A2C2C"
                     },
                     background: "#f9fafb",
                     foreground: "#1c1c1e"
@@ -88,22 +65,8 @@ module.exports = {
                         800: "#7F1932",
                         900: "#631127"
                     },
-                    accent: {
-                        DEFAULT: "#4FB9B8",
-                        50: "#D7F9F9",
-                        100: "#A3F0F0",
-                        200: "#6EE8E8",
-                        300: "#3AC0C0",
-                        400: "#1D9B9B",
-                        500: "#4FB9B8",
-                        600: "#1D8787",
-                        700: "#176666",
-                        800: "#114545",
-                        900: "#0A2C2C"
-                    },
                     foreground: "#f0f0f4"
                 }
             }
         }
-    })],
-};
+});

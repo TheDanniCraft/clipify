@@ -42,7 +42,7 @@ const providerPatterns = [
     { regex: /@(bellsouth|att)\.net$/i, provider: 'AT&T' },
 ];
 
-export async function subscribeToNewsletter(email) {
+export async function subscribeToNewsletter(email: string) {
     if (!LISTMONK_URL || !LISTMONK_LIST_UUID || !LISTMONK_USERNAME || !LISTMONK_API_KEY) {
         throw new Error("Missing Listmonk configuration in environment variables");
     }
@@ -71,7 +71,7 @@ export async function subscribeToNewsletter(email) {
     }
 }
 
-export async function getEmailProvider(email) {
+export async function getEmailProvider(email : string) {
     const lowerEmail = email.toLowerCase();
     for (const { regex, provider } of providerPatterns) {
         if (regex.test(lowerEmail)) {

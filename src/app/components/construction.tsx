@@ -7,21 +7,33 @@ import { IconCircleCheckFilled, IconMailFilled, IconSend } from '@tabler/icons-r
 import { subscribeToNewsletter, getEmailProvider } from '@actions/newsletter';
 import { usePlausible } from 'next-plausible'
 
-const Construction = ({ endDate, cta }) => {
-    const plausible = usePlausible()
+type Cta = {
+    text: string;
+    icon: React.ReactNode;
+}
+
+type Timer = {
+    days: string;
+    hours: string;
+    minutes: string;
+    seconds: string;
+}
+
+const Construction = ({ endDate, cta }: { endDate?: Date; cta: Cta }) => {
+    const plausible = usePlausible();
     const [timeLeft, setTimeLeft] = useState({
         days: '0',
         hours: '0',
         minutes: '0',
         seconds: '0',
-    });
+    } as Timer);
     const [newsletterState, setNewsletterState] = useState('default');
 
     useEffect(() => {
         if (!endDate) return;
 
         const calculateTimeLeft = () => {
-            const difference = new Date(endDate) - new Date();
+            const difference = new Date(endDate).getTime() - new Date().getTime();
             if (difference > 0) {
                 const days = Math.floor(difference / (1000 * 60 * 60 * 24));
                 const hours = Math.floor((difference / (1000 * 60 * 60)) % 24);
@@ -48,21 +60,21 @@ const Construction = ({ endDate, cta }) => {
         return () => clearInterval(timer);
     }, [endDate]);
 
-    async function subscribe(event) {
+    async function subscribe(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
         const data = Object.fromEntries(new FormData(event.currentTarget));
         await setNewsletterState('loading');
 
-        await subscribeToNewsletter(data.email)
+        await subscribeToNewsletter(data.email as string)
             .then(async () => {
                 setNewsletterState('success');
                 plausible('Newsletter Subscription', {
                     props: {
-                        emailType: await getEmailProvider(data.email),
+                        emailType: await getEmailProvider(data.email as string),
                     },
                 });
             })
-            .catch(async (error) => {
+            .catch(async () => {
                 await setNewsletterState('error');
             });
     }
@@ -104,9 +116,9 @@ const Construction = ({ endDate, cta }) => {
                                     initial={{ scale: 0.8, opacity: 0 }}
                                     animate={{ scale: 1, opacity: 1 }}
                                     transition={{ duration: 0.5 }}
-                                    key={timeLeft[key]} // Re-trigger animation on value change
+                                    key={timeLeft[key as keyof Timer]} // Re-trigger animation on value change
                                 >
-                                    {timeLeft[key]}
+                                    {timeLeft[key as keyof Timer]}
                                 </motion.div>
                                 <p className="text-xs text-default-300 lowercase">{key}</p>
                             </motion.div>
@@ -161,7 +173,7 @@ const Construction = ({ endDate, cta }) => {
                                     name='email'
                                     isDisabled={newsletterState === 'loading' || newsletterState === 'success'}
                                     endContent={
-                                        <Button variant='primary' size='sm' isIconOnly type='submit' disabled={newsletterState === 'loading' || newsletterState === 'success'}>
+                                        <Button color='primary' size='sm' isIconOnly type='submit' disabled={newsletterState === 'loading' || newsletterState === 'success'}>
                                             <IconSend className='text-default-400' />
                                         </Button>
                                     }

@@ -1,13 +1,14 @@
+import type { Metadata } from "next";
 import "./globals.css";
 import { Providers } from "./providers";
-import PlausibleProvider from 'next-plausible'
+import PlausibleProvider from "next-plausible";
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "Clipify.us",
   description: "Clipify your stream!",
 };
 
-export default function RootLayout({ children }) {
+export default function RootLayout({children,}: Readonly<{children: React.ReactNode}>) {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -23,9 +24,7 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body>
-        <Providers>
-          {children}
-        </Providers>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );
