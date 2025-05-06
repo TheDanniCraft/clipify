@@ -22,9 +22,10 @@
       "@/*": ["./src/*"],
       "@components/*": ["./src/app/components/*"],
       "@css/*": ["./src/app/css/*"],
-      "@actions/*" : ["./src/app/actions/*"]
+      "@actions/*" : ["./src/app/actions/*"],
+      "@types" : ["./src/app/lib/types.ts"],
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "src/middleare.js", "src/middleare.js"],
   "exclude": ["node_modules"]
 }
