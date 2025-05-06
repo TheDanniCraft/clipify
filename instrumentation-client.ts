@@ -1,0 +1,9 @@
+import * as Sentry from "@sentry/nextjs";
+
+Sentry.init({
+	dsn: process.env.ERROR_DSN,
+	integrations: [],
+	tracesSampleRate: 0,
+});
+
+export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;

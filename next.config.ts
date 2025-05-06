@@ -1,7 +1,11 @@
 import type { NextConfig } from "next";
+import { withPlausibleProxy } from "next-plausible";
+import { withSentryConfig } from "@sentry/nextjs";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+	/* config options here */
 };
 
-export default nextConfig;
+export default withSentryConfig(withPlausibleProxy()(nextConfig), {
+	tunnelRoute: "/monitor",
+});

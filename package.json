@@ -3,31 +3,42 @@
 	"version": "0.1.0",
 	"private": true,
 	"scripts": {
-		"dev": "infisical run -- next dev",
-		"build": "infisical run -- next build",
-		"start": "infisical run -- next start",
-		"lint": "infisical run -- next lint"
+		"app:dev": "infisical run --env=dev -- next dev",
+		"app:build": "infisical run --env=staging -- next build",
+		"app:start": "infisical run -- next start",
+		"app:lint": "infisical run -- next lint",
+		"db:push": "infisical run --env=dev -- drizzle-kit push",
+		"db:studio": "infisical run --env=dev -- drizzle-kit studio"
 	},
 	"dependencies": {
 		"@heroui/react": "^2.8.0-beta.1",
+		"@sentry/nextjs": "^9.13.0",
 		"@tabler/icons-react": "^3.31.0",
 		"axios": "^1.8.4",
+		"dotenv": "^16.5.0",
+		"drizzle-orm": "^0.42.0",
+		"jsonwebtoken": "^9.0.2",
 		"motion": "^12.6.5",
 		"next": "15.3.1",
 		"next-plausible": "^3.12.4",
 		"next-themes": "^0.4.6",
+		"pg": "^8.14.1",
 		"react": "^19.0.0",
 		"react-dom": "^19.0.0"
 	},
 	"devDependencies": {
-		"typescript": "^5",
+		"@eslint/eslintrc": "^3",
+		"@tailwindcss/postcss": "^4",
 		"@types/node": "^20",
+		"@types/pg": "^8.11.13",
 		"@types/react": "^19",
 		"@types/react-dom": "^19",
-		"@tailwindcss/postcss": "^4",
-		"tailwindcss": "^4",
+		"@types/jsonwebtoken": "^9.0.9",
+		"drizzle-kit": "^0.31.0",
 		"eslint": "^9",
 		"eslint-config-next": "15.3.1",
-		"@eslint/eslintrc": "^3"
+		"tailwindcss": "^4",
+		"tsx": "^4.19.3",
+		"typescript": "^5"
 	}
 }
