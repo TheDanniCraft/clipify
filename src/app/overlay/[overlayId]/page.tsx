@@ -3,7 +3,7 @@ import { getTwitchClips } from "@/app/actions/twitch";
 import OverlayPlayer from "@/app/components/overlayPlayer";
 import type { Overlay } from "@/app/lib/types";
 
-export default async function Overlay({ params }: { params: { overlayId: string } }) {
+export default async function Overlay({ params }: { params: Promise<{ overlayId: string }> }) {
 	const { overlayId } = await params;
 
 	const overlay = (await getOverlay(overlayId)) as Overlay;

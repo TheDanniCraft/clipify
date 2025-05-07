@@ -1,7 +1,7 @@
 import React, { forwardRef, memo } from "react";
 import { cn } from "@heroui/react";
-
-import { statusColorMap, type StatusOptions } from "./data";
+import { StatusOptions } from "@types";
+import { statusColorMap } from "./data";
 
 export interface StatusProps extends React.HTMLAttributes<HTMLDivElement> {
 	className?: string;
