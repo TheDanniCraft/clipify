@@ -1,13 +1,14 @@
 {
 	"phases": {
 		"install": {
-			"cmds": [
-				"bun install",
-				"apt-get update && apt-get install -y bash curl && curl -1sLf 'https://artifacts-cli.infisical.com/setup.deb.sh' | bash && apt-get update && apt-get install -y infisical"
-			]
+			"cmds": ["bun install", "apt-get update && apt-get install -y bash curl && curl -1sLf 'https://artifacts-cli.infisical.com/setup.deb.sh' | bash && apt-get update && apt-get install -y infisical"]
 		},
 		"build": {
 			"cmds": ["infisical run -- next build"]
 		}
+	},
+	"start": {
+		"cmd": "infisical run --env=prod -- next start",
+		"web": true
 	}
 }
