@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
 		const state = url.searchParams.get("state");
 
 		if (!code) {
-			return authUser(request.url, "codeError");
+			return authUser("codeError");
 		}
 
 		const receivedState = Buffer.from(state || "", "base64").toString("utf-8");
@@ -23,12 +23,12 @@ export async function GET(request: NextRequest) {
 		const currentTimestamp = Date.now();
 
 		if (isNaN(stateTimestamp) || currentTimestamp - stateTimestamp > 5 * 60 * 1000) {
-			return authUser(request.url, "stateError");
+			return authUser("stateError");
 		}
 
 		const token = await exchangeAccesToken(code);
 		if (!token || !token.access_token) {
-			return authUser(request.url, "codeError");
+			return authUser("codeError");
 		}
 		const user = await setAccessToken(token);
 
@@ -46,6 +46,6 @@ export async function GET(request: NextRequest) {
 	} catch (error) {
 		const errorCode = await Sentry.captureException(error);
 
-		return authUser(request.url, "serverError", errorCode);
+		return authUser("serverError", errorCode);
 	}
 }
