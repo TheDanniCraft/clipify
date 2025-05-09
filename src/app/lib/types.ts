@@ -39,6 +39,7 @@ export type AuthenticatedUser = {
 	id: string;
 	email: string;
 	username: string;
+	avatar: string;
 	role: Role;
 	plan: Plan;
 };

@@ -6,6 +6,7 @@ export const usersTable = pgTable("users", {
 	id: varchar("id").notNull().primaryKey(),
 	email: varchar("email").notNull(),
 	username: varchar("username").notNull(),
+	avatar: varchar("avatar").notNull(),
 	role: varchar("role").$type<Role>().notNull(),
 	plan: varchar("plan").$type<Plan>().notNull(),
 });

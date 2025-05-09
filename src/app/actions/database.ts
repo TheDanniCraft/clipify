@@ -18,6 +18,7 @@ export async function setUser(user: TwitchUserResponse, token: TwitchTokenRespon
 				id: user.id,
 				username: user.login,
 				email: user.email,
+				avatar: user.profile_image_url,
 				role: "user",
 				plan: plan,
 			})
@@ -26,6 +27,7 @@ export async function setUser(user: TwitchUserResponse, token: TwitchTokenRespon
 				set: {
 					username: user.login,
 					email: user.email,
+					avatar: user.profile_image_url,
 					role: "user",
 					plan: plan,
 				},
