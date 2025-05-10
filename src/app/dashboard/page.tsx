@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getUserFromCoookie } from "@actions/auth";
 import { getUser } from "@actions/database";
 import OverlayTable from "@components/OverlayTable";
+import DashboardNavbar from "@components/dashboardNavbar";
 import { AuthenticatedUser } from "../lib/types";
 
 export default async function Dashboard() {
@@ -20,10 +21,8 @@ export default async function Dashboard() {
 	}
 
 	return (
-		<div className='flex flex-col items-center justify-center w-full h-full'>
-			<h1 className='text-3xl font-bold'>Dashboard</h1>
-			<p className='mt-4 text-lg'>Welcome to the dashboard {user.username}!</p>
+		<DashboardNavbar user={user}>
 			<OverlayTable userid={user.id} />
-		</div>
+		</DashboardNavbar>
 	);
 }

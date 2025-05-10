@@ -1,3 +1,5 @@
+import type { SVGProps } from "react";
+
 export type Cta = {
 	text: string;
 	icon: React.ReactNode;
@@ -8,6 +10,10 @@ export type Timer = {
 	hours: string;
 	minutes: string;
 	seconds: string;
+};
+
+export type IconSvgProps = SVGProps<SVGSVGElement> & {
+	size?: number;
 };
 
 export type TwitchTokenResponse = {

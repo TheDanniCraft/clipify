@@ -3,12 +3,12 @@
 	"version": "0.1.0",
 	"private": true,
 	"scripts": {
-		"app:dev": "infisical run --env=dev --watch -- next dev",
+		"app:dev": "infisical run --env=dev -- next dev",
 		"app:build": "infisical run --env=staging -- next build",
 		"app:start": "infisical run --env=prod -- next start",
 		"app:lint": "infisical run --env=dev -- next lint",
 		"db:push": "infisical run --env=dev -- drizzle-kit push",
-		"db:studio": "infisical run --env=dev --watch -- drizzle-kit studio"
+		"db:studio": "infisical run --env=dev -- drizzle-kit studio"
 	},
 	"dependencies": {
 		"@heroui/react": "^2.8.0-beta.1",
@@ -20,6 +20,7 @@
 		"jsonwebtoken": "^9.0.2",
 		"motion": "^12.6.5",
 		"next": "^15.3.2",
+		"next-navigation-guard": "^0.1.2",
 		"next-plausible": "^3.12.4",
 		"next-themes": "^0.4.6",
 		"pg": "^8.14.1",

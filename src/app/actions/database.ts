@@ -143,7 +143,28 @@ export async function getOverlay(overlayId: string) {
 	}
 }
 
-export async function saveOverlay(overlayId: string, overlay: Overlay) {
+export async function createOverlay(userId: string) {
+	try {
+		const overlay = await db
+			.insert(overlaysTable)
+			.values({
+				id: crypto.randomUUID(),
+				ownerId: userId,
+				name: "New Overlay",
+				status: "active",
+				type: "Featured",
+			})
+			.returning()
+			.then((result) => result[0]);
+
+		return overlay;
+	} catch (error) {
+		console.error("Error creating overlay:", error);
+		throw new Error("Failed to create overlay");
+	}
+}
+
+export async function saveOverlay(overlay: Overlay) {
 	try {
 		await db
 			.insert(overlaysTable)
@@ -166,5 +187,14 @@ export async function saveOverlay(overlayId: string, overlay: Overlay) {
 		console.log(overlay);
 		console.error("Error saving overlay:", error);
 		throw new Error("Failed to save overlay");
+	}
+}
+
+export async function deleteOverlay(overlayId: string) {
+	try {
+		await db.delete(overlaysTable).where(eq(overlaysTable.id, overlayId)).execute();
+	} catch (error) {
+		console.error("Error deleting overlay:", error);
+		throw new Error("Failed to delete overlay");
 	}
 }

@@ -6,12 +6,12 @@ import type { Overlay, StatusOptions } from "@types";
 import type { Key } from "@react-types/shared";
 
 import dynamic from "next/dynamic";
-import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, TableHeader, TableColumn, TableBody, TableRow, TableCell, Input, Button, RadioGroup, Radio, Chip, Pagination, Divider, Tooltip, useButton, Popover, PopoverTrigger, PopoverContent, Spinner } from "@heroui/react";
+import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, TableHeader, TableColumn, TableBody, TableRow, TableCell, Input, Button, RadioGroup, Radio, Chip, Pagination, Divider, Tooltip, Popover, PopoverTrigger, PopoverContent, Spinner, addToast } from "@heroui/react";
 const Table = dynamic(() => import("@heroui/react").then((c) => c.Table), { ssr: false }); // Temp fix for issue 4385
-import React, { useMemo, useRef, useCallback, useState, useEffect } from "react";
+import React, { useMemo, useCallback, useState, useEffect } from "react";
 import { cn } from "@heroui/react";
-import { IconAdjustmentsHorizontal, IconArrowsLeftRight, IconChevronDown, IconChevronUp, IconCirclePlus, IconEyeFilled, IconInfoCircle, IconMenuDeep, IconPencil, IconReload, IconSearch, IconTrash } from "@tabler/icons-react";
-import { getAllOverlays } from "@actions/database";
+import { IconAdjustmentsHorizontal, IconArrowsLeftRight, IconChevronDown, IconChevronUp, IconCirclePlus, IconInfoCircle, IconMenuDeep, IconPencil, IconReload, IconSearch, IconTrash } from "@tabler/icons-react";
+import { createOverlay, deleteOverlay, saveOverlay, getAllOverlays } from "@actions/database";
 
 import { CopyText } from "./copy-text";
 
@@ -29,6 +29,7 @@ export default function OverlayTable({ userid }: { userid: string }) {
 	const [visibleColumns, setVisibleColumns] = useState<Selection>(new Set(INITIAL_VISIBLE_COLUMNS));
 	const [rowsPerPage] = useState(10);
 	const [page, setPage] = useState(1);
+	const [isLoading, setIsLoading] = useState(false);
 	const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
 		column: "memberInfo",
 		direction: "ascending",
@@ -133,12 +134,6 @@ export default function OverlayTable({ userid }: { userid: string }) {
 		return resultKeys;
 	}, [selectedKeys, filteredItems, filterValue]);
 
-	const eyesRef = useRef<HTMLButtonElement | null>(null);
-	const editRef = useRef<HTMLButtonElement | null>(null);
-	const deleteRef = useRef<HTMLButtonElement | null>(null);
-	const { getButtonProps: getEyesProps } = useButton({ ref: eyesRef });
-	const { getButtonProps: getEditProps } = useButton({ ref: editRef });
-	const { getButtonProps: getDeleteProps } = useButton({ ref: deleteRef });
 	const getOverlayInfoProps = useMemoizedCallback(() => ({
 		onClick: handleOverlayClick,
 	}));
@@ -157,9 +152,33 @@ export default function OverlayTable({ userid }: { userid: string }) {
 			case "actions":
 				return (
 					<div className='flex items-center justify-end gap-2'>
-						<IconEyeFilled {...getEyesProps()} className='cursor-pointer text-default-400' height={18} width={18} />
-						<IconPencil {...getEditProps()} className='cursor-pointer text-default-400' height={18} width={18} />
-						<IconTrash {...getDeleteProps()} className='cursor-pointer text-default-400' height={18} width={18} />
+						<IconPencil className='cursor-pointer text-default-400' height={18} width={18} />
+						<IconTrash
+							className='cursor-pointer text-default-400'
+							height={18}
+							width={18}
+							onClick={(event) => {
+								event.stopPropagation();
+
+								deleteOverlay(overlay.id)
+									.then(() => {
+										setOverlays((prev) => (prev ? prev.filter((o) => o.id !== overlay.id) : []));
+
+										addToast({
+											title: "Successfully deleted",
+											description: `Overlay "${overlay.name}" has been deleted.`,
+											color: "success",
+										});
+									})
+									.catch(() => {
+										addToast({
+											title: "Error",
+											description: "An error occurred while deleting the overlay.",
+											color: "danger",
+										});
+									});
+							}}
+						/>
 					</div>
 				);
 			default:
@@ -295,18 +314,79 @@ export default function OverlayTable({ userid }: { userid: string }) {
 								</Button>
 							</DropdownTrigger>
 							<DropdownMenu aria-label='Selected Actions'>
-								<DropdownItem key='send-email'>Delete</DropdownItem>
+								<DropdownItem
+									key='delete'
+									onClick={() => {
+										const selectedOverlays = filterSelectedKeys === "all" ? overlays : filteredItems.filter((item) => filterSelectedKeys.has(String(item.id)));
+
+										const deletePromises = selectedOverlays?.map((overlay) =>
+											deleteOverlay(overlay.id).then(() => {
+												setOverlays((prev) => (prev ? prev.filter((o) => o.id !== overlay.id) : []));
+											})
+										);
+
+										Promise.all(deletePromises ?? [])
+											.then(() => {
+												setSelectedKeys(new Set([]));
+												addToast({
+													title: "Successfully deleted",
+													description: `${selectedOverlays?.length ?? 0} Overlay${(selectedOverlays?.length ?? 0) > 1 ? "s" : ""} have been deleted.`,
+													color: "success",
+												});
+											})
+											.catch(() => {
+												addToast({
+													title: "Error",
+													description: "An error occurred while deleting one or more overlays.",
+													color: "danger",
+												});
+											});
+									}}
+								>
+									Delete
+								</DropdownItem>
+								<DropdownItem
+									key='toggleStatus'
+									onClick={() => {
+										const selectedOverlays = filterSelectedKeys === "all" ? overlays : filteredItems.filter((item) => filterSelectedKeys.has(String(item.id)));
+
+										const toggleStatusPromises = selectedOverlays?.map((overlay) => {
+											const newStatus = overlay.status === "active" ? "paused" : "active";
+											return saveOverlay({ ...overlay, status: newStatus }).then(() => {
+												setOverlays((prev) => (prev ? prev.map((o) => (o.id === overlay.id ? { ...o, status: newStatus } : o)) : []));
+											});
+										});
+
+										Promise.all(toggleStatusPromises ?? [])
+											.then(() => {
+												addToast({
+													title: "Status Updated",
+													description: `${selectedOverlays?.length ?? 0} Overlay${(selectedOverlays?.length ?? 0) > 1 ? "s" : ""} status have been updated.`,
+													color: "success",
+												});
+											})
+											.catch(() => {
+												addToast({
+													title: "Error",
+													description: "An error occurred while updating the status of one or more overlays.",
+													color: "danger",
+												});
+											});
+									}}
+								>
+									Toggle status
+								</DropdownItem>
 							</DropdownMenu>
 						</Dropdown>
 					)}
 				</div>
 			</div>
 		);
-	}, [filterValue, visibleColumns, filterSelectedKeys, headerColumns, sortDescriptor, statusFilter, setStatusFilter, onSearchChange, setVisibleColumns]);
+	}, [filterValue, visibleColumns, filterSelectedKeys, headerColumns, sortDescriptor, statusFilter, setStatusFilter, onSearchChange, setVisibleColumns, filteredItems, overlays]);
 
 	const topBar = useMemo(() => {
 		return (
-			<div className='mb-[18px] flex items-center justify-between'>
+			<div className='mb-[12px] flex items-center justify-between'>
 				<div className='flex w-[226px] items-center gap-2'>
 					<h1 className='text-2xl font-[700] leading-[32px]'>Overlays</h1>
 					<Chip className='hidden items-center text-default-500 sm:flex' size='sm' variant='flat'>
@@ -314,12 +394,23 @@ export default function OverlayTable({ userid }: { userid: string }) {
 					</Chip>
 					<Button isIconOnly size='sm' variant='light' onPress={reloadOverlays} startContent={<IconReload className='text-default-400' width={16} />} />
 				</div>
-				<Button color='primary' endContent={<IconCirclePlus width={20} />}>
+				<Button
+					color='primary'
+					endContent={<IconCirclePlus width={20} />}
+					isLoading={isLoading}
+					onPress={() => {
+						setIsLoading(true);
+
+						createOverlay(userid).then((overlay) => {
+							router.push(`/dashboard/overlay/${overlay.id}`);
+						});
+					}}
+				>
 					Add Overlay
 				</Button>
 			</div>
 		);
-	}, [overlays?.length, reloadOverlays]);
+	}, [overlays?.length, reloadOverlays, router, userid, isLoading]);
 
 	const bottomContent = useMemo(() => {
 		return (
@@ -390,7 +481,7 @@ export default function OverlayTable({ userid }: { userid: string }) {
 						</TableColumn>
 					)}
 				</TableHeader>
-				<TableBody emptyContent={<Spinner label='No overlays found' />} items={sortedItems}>
+				<TableBody emptyContent={overlays === undefined ? <Spinner label='Loading overlays' /> : <div className='text-default-400'>No overlays found</div>} items={sortedItems}>
 					{(item) => <TableRow key={item.id}>{(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}</TableRow>}
 				</TableBody>
 			</Table>

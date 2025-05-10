@@ -16,9 +16,9 @@ export async function getUserFromCoookie(cookie: string) {
 export async function authUser(error?: string, errorCode?: string) {
 	let url = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
 
-	// If we are running inside coolify we need to strip the port
+	// If we are running inside coolify we need to strip the port and append a schemema
 	if (Object.keys(process.env).some((key) => /^COOLIFY_/.test(key))) {
-		url = url.replace(/:\d+/, "");
+		url = `https://${url.replace(/:\d+/, "")}`;
 	}
 
 	const appUrl = new URL("/login", url);
