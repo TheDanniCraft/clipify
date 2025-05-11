@@ -2,3 +2,25 @@
 @plugin '../../hero.ts';
 @source '../../node_modules/@heroui/theme/dist/**/*.{js,ts,jsx,tsx}';
 @custom-variant dark (&:is(.dark *));
+
+@layer base {
+	html,
+	body,
+	input,
+	textarea,
+	select,
+	button,
+	nav,
+	ul,
+	ol,
+	li,
+	div,
+	span,
+	th,
+	td,
+	tr,
+	thead,
+	table {
+		@apply transition-colors duration-250 ease-in-out;
+	}
+}
