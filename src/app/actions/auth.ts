@@ -14,12 +14,7 @@ export async function getUserFromCoookie(cookie: string) {
 }
 
 export async function authUser(error?: string, errorCode?: string) {
-	let url = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
-
-	// If we are running inside coolify we need to strip the port and append a schemema
-	if (Object.keys(process.env).some((key) => /^COOLIFY_/.test(key))) {
-		url = `https://${url.replace(/:\d+/, "")}`;
-	}
+	const url = await getBaseUrl();
 
 	const appUrl = new URL("/login", url);
 	if (error) {
@@ -28,4 +23,20 @@ export async function authUser(error?: string, errorCode?: string) {
 	}
 
 	return NextResponse.redirect(appUrl);
+}
+
+export async function getBaseUrl() {
+	let url = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+
+	if (!/^https?:\/\//.test(url)) {
+		url = `http://${url}`;
+	}
+
+	// If we are running inside coolify we need to strip the port and append a schemema
+	if (Object.keys(process.env).some((key) => /^COOLIFY_/.test(key))) {
+		const hostname = new URL(url).hostname;
+		url = `https://${hostname}`;
+	}
+
+	return url;
 }
