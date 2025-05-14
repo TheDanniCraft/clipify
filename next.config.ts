@@ -6,6 +6,11 @@ const nextConfig: NextConfig = {
 	/* config options here */
 };
 
-export default withSentryConfig(withPlausibleProxy()(nextConfig), {
-	tunnelRoute: "/monitor",
-});
+export default withSentryConfig(
+	withPlausibleProxy({
+		customDomain: "https://analytics.thedannicraft.de",
+	})(nextConfig),
+	{
+		tunnelRoute: "/monitor",
+	}
+);
