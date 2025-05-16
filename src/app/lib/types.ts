@@ -60,7 +60,7 @@ export type Overlay = {
 	type: OverlayType;
 };
 
-export type OverlayType = "1" | "7" | "30" | "90" | "180" | "365" | "Featured";
+export type OverlayType = "1" | "7" | "30" | "90" | "180" | "365" | "Featured" | "All";
 
 export type TwitchClipBody = {
 	broadcaster_id: string;
@@ -87,4 +87,17 @@ export type TwitchClip = {
 	created_at: string;
 	thumbnail_url: string;
 	duration: number;
+};
+
+export type VideoClip = TwitchClip & {
+	mediaUrl: string;
+	brodcasterAvatar: string;
+	game: Game;
+};
+
+export type Game = {
+	id: string;
+	name: string;
+	box_art_url: string;
+	igdb_id: string;
 };

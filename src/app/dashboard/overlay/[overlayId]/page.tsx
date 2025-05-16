@@ -16,7 +16,8 @@ const overlayTypes: { key: OverlayType; label: string }[] = [
 	{ key: "90", label: "Top Clips - Last 90 Days" },
 	{ key: "180", label: "Top Clips - Last 180 Days" },
 	{ key: "365", label: "Top Clips - Last Year" },
-	{ key: "Featured", label: "Top Clips - Featured only" },
+	{ key: "Featured", label: "Featured only" },
+	{ key: "All", label: "All Clips" },
 ];
 
 export default function OverlaySettings() {
@@ -68,6 +69,7 @@ export default function OverlaySettings() {
 
 		if (!overlay) return;
 		await saveOverlay(overlay);
+		setBaseOverlay(overlay);
 	}
 
 	return (
