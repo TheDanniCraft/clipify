@@ -158,7 +158,7 @@ export default function OverlaySettings() {
 				<ModalContent>
 					<ModalHeader>
 						<div className='flex items-center'>
-							<IconAlertTriangle />
+							<IconAlertTriangle className='mr-2' />
 							Unsaved Changes
 						</div>
 					</ModalHeader>
