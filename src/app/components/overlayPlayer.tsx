@@ -15,7 +15,7 @@ export default function OverlayPlayer({ clips }: { clips: TwitchClip[] }) {
 	const getRandomClip = useCallback(() => {
 		let unplayedClips = clips.filter((clip) => !playedClips.includes(clip.id));
 
-		if (unplayedClips.length === 0) {
+		if (unplayedClips.length === 0 && clips.length > 0) {
 			setPlayedClips([]);
 			unplayedClips = clips;
 		}
@@ -27,6 +27,9 @@ export default function OverlayPlayer({ clips }: { clips: TwitchClip[] }) {
 	useEffect(() => {
 		async function fetchVideoSource() {
 			const randomClip = getRandomClip();
+
+			if (!randomClip) return;
+
 			const mediaUrl = await getRawMediaUrl(randomClip?.id);
 
 			const brodcasterAvatar = await getAvatar(randomClip?.broadcaster_id, randomClip?.broadcaster_id);
@@ -43,6 +46,14 @@ export default function OverlayPlayer({ clips }: { clips: TwitchClip[] }) {
 
 		fetchVideoSource();
 	}, [getRandomClip]);
+
+	if (!clips || clips.length === 0) {
+		return (
+			<div className='flex items-center justify-center w-full h-64'>
+				<span className='text-gray-400 text-lg font-semibold'>No clips found</span>
+			</div>
+		);
+	}
 
 	return (
 		<div className='relative inline-block'>
