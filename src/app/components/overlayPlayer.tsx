@@ -1,17 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { TwitchClip } from "@types";
-import { getRawMediaUrl } from "@actions/twitch";
-
-type VideoClip = {
-	id: string;
-	mediaUrl: string;
-};
+import { TwitchClip, VideoClip } from "@types";
+import { getAvatar, getGameDetails, getRawMediaUrl } from "@actions/twitch";
+import PlayerOverlay from "./playerOverlay";
+import { Avatar } from "@heroui/react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function OverlayPlayer({ clips }: { clips: TwitchClip[] }) {
 	const [videoClip, setVideoClip] = useState<VideoClip | null>(null);
 	const [playedClips, setPlayedClips] = useState<string[]>([]);
+	const [showOverlay, setShowOverlay] = useState<boolean>(false);
 
 	const getRandomClip = useCallback(() => {
 		let unplayedClips = clips.filter((clip) => !playedClips.includes(clip.id));
@@ -30,10 +29,15 @@ export default function OverlayPlayer({ clips }: { clips: TwitchClip[] }) {
 			const randomClip = getRandomClip();
 			const mediaUrl = await getRawMediaUrl(randomClip?.id);
 
-			if (mediaUrl)
+			const brodcasterAvatar = await getAvatar(randomClip?.broadcaster_id, randomClip?.broadcaster_id);
+			const game = await getGameDetails(randomClip?.game_id, randomClip?.broadcaster_id);
+
+			if (mediaUrl && randomClip)
 				setVideoClip({
-					id: randomClip.id,
+					...randomClip,
 					mediaUrl,
+					brodcasterAvatar,
+					game,
 				});
 		}
 
@@ -41,26 +45,69 @@ export default function OverlayPlayer({ clips }: { clips: TwitchClip[] }) {
 	}, [getRandomClip]);
 
 	return (
-		<video
-			autoPlay
-			src={videoClip?.mediaUrl}
-			onEnded={() => {
-				async function fetchNewClip() {
-					setPlayedClips((prevPlayedClips) => [...prevPlayedClips, videoClip!.id]);
+		<div className='relative inline-block'>
+			<AnimatePresence mode='wait'>
+				{videoClip?.mediaUrl && (
+					<motion.video
+						key={videoClip.id}
+						autoPlay
+						src={videoClip.mediaUrl}
+						initial={{ opacity: 0 }}
+						animate={{ opacity: 1 }}
+						exit={{ opacity: 0 }}
+						transition={{ duration: 0.5 }}
+						onEnded={() => {
+							async function fetchNewClip() {
+								setShowOverlay(false);
+								setPlayedClips((prevPlayedClips) => [...prevPlayedClips, videoClip!.id]);
 
-					const randomClip = getRandomClip();
-					const mediaUrl = await getRawMediaUrl(randomClip.id);
-					if (mediaUrl) {
-						setVideoClip({
-							id: randomClip.id,
-							mediaUrl,
-						});
-					}
-				}
-				fetchNewClip();
-			}}
-		>
-			Your browser does not support the video tag.
-		</video>
+								const randomClip = getRandomClip();
+								const mediaUrl = await getRawMediaUrl(randomClip.id);
+
+								const brodcasterAvatar = await getAvatar(randomClip?.broadcaster_id, randomClip?.broadcaster_id);
+								const game = await getGameDetails(randomClip?.game_id, randomClip?.broadcaster_id);
+
+								if (mediaUrl) {
+									setVideoClip({
+										...randomClip,
+										mediaUrl,
+										brodcasterAvatar,
+										game,
+									});
+								}
+							}
+							fetchNewClip();
+						}}
+						onPlay={() => {
+							setShowOverlay(true);
+						}}
+						className='block w-full h-auto max-h-full object-cover'
+					>
+						Your browser does not support the video tag.
+					</motion.video>
+				)}
+			</AnimatePresence>
+			<div className='absolute inset-0 flex flex-col justify-between text-xs sm:text-sm md:text-base lg:text-lg'>
+				{showOverlay && (
+					<>
+						<PlayerOverlay left='2%' top='2%'>
+							<div className='flex items-center'>
+								<Avatar size='md' src={videoClip?.brodcasterAvatar} />
+								<div className='flex flex-col justify-center ml-2 text-xs'>
+									<span className='font-semibold'>{videoClip?.broadcaster_name}</span>
+									<span className='text-xs text-gray-400'>Playing {videoClip?.game?.name}</span>
+								</div>
+							</div>
+						</PlayerOverlay>
+						<PlayerOverlay right='2%' bottom='2%'>
+							<div className='flex flex-col items-end text-right'>
+								<span className='font-bold'>{videoClip?.title}</span>
+								<span className='text-xs text-gray-400 mt-1'>clipped by {videoClip?.creator_name}</span>
+							</div>
+						</PlayerOverlay>
+					</>
+				)}
+			</div>
+		</div>
 	);
 }

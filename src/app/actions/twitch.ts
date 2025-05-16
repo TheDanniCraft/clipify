@@ -48,7 +48,7 @@ export async function getUserDetails(accessToken: string): Promise<TwitchUserRes
 	return response.data.data[0];
 }
 
-export async function getSubscriptionStatus(accessToken: string, userId?: string) {
+export async function getSubscriptionStatus(accessToken: string, userId: string) {
 	const url = "https://api.twitch.tv/helix/subscriptions/user";
 
 	const response = await axios.get(url, {
@@ -84,7 +84,7 @@ export async function getTwitchClips(overlay: Overlay) {
 	let fetchCount = 0;
 
 	let endDate = undefined;
-	if (overlay.type !== "Featured") {
+	if (overlay.type !== "Featured" && overlay.type !== "All") {
 		endDate = new Date(Date.now() - Number(overlay.type) * 24 * 60 * 60 * 1000).toISOString();
 	}
 
@@ -97,7 +97,7 @@ export async function getTwitchClips(overlay: Overlay) {
 
 		if (overlay.type === "Featured") {
 			params.is_featured = true;
-		} else {
+		} else if (overlay.type !== "All") {
 			params.started_at = new Date().toISOString();
 			params.ended_at = endDate;
 		}
@@ -142,7 +142,12 @@ export async function getRawMediaUrl(clipId: string) {
 		},
 	});
 
-	const clipData = res.data[0].data.clip;
+	const clipData = res.data[0]?.data?.clip;
+
+	if (!clipData || !clipData.videoQualities || clipData.videoQualities.length === 0) {
+		console.error("Invalid clip data or no video qualities available.");
+		return undefined;
+	}
 
 	const videoQualities = clipData.videoQualities;
 
@@ -155,11 +160,60 @@ export async function getRawMediaUrl(clipId: string) {
 
 	const bestQuality = sortedByQuality[0];
 
+	if (!bestQuality) {
+		console.error("No valid video quality found.");
+		return undefined;
+	}
+
 	const clipsVideoSource = bestQuality.sourceURL;
 	const clipsSignature = clipData.playbackAccessToken.signature;
 	const clipsToken = encodeURIComponent(clipData.playbackAccessToken.value);
 
-	const mp4Url = bestQuality ? `${clipsVideoSource}?sig=${clipsSignature}&token=${clipsToken}` : undefined;
+	const mp4Url = `${clipsVideoSource}?sig=${clipsSignature}&token=${clipsToken}`;
 
 	return mp4Url;
+}
+
+export async function getAvatar(userId: string, authUserId: string) {
+	const url = "https://api.twitch.tv/helix/users";
+
+	const token = await getAccessToken(authUserId);
+
+	if (!token) {
+		return "";
+	}
+
+	const response = await axios.get(url, {
+		headers: {
+			Authorization: `Bearer ${token.access_token}`,
+			"Client-Id": process.env.TWITCH_CLIENT_ID || "",
+		},
+		params: {
+			id: userId,
+		},
+	});
+
+	return response.data.data[0].profile_image_url;
+}
+
+export async function getGameDetails(gameId: string, authUserId: string) {
+	const url = "https://api.twitch.tv/helix/games";
+
+	const token = await getAccessToken(authUserId);
+
+	if (!token) {
+		return "";
+	}
+
+	const response = await axios.get(url, {
+		headers: {
+			Authorization: `Bearer ${token.access_token}`,
+			"Client-Id": process.env.TWITCH_CLIENT_ID || "",
+		},
+		params: {
+			id: gameId,
+		},
+	});
+
+	return response.data.data[0];
 }
