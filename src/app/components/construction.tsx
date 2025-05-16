@@ -55,7 +55,11 @@ const Construction = ({ endDate, cta }: { endDate?: Date; cta: Cta }) => {
 		await setNewsletterState("loading");
 
 		await subscribeToNewsletter(data.email as string)
-			.then(async () => {
+			.then(async (res) => {
+				if (res instanceof Error) {
+					setNewsletterState("rateLimit");
+					return;
+				}
 				setNewsletterState("success");
 				plausible("Newsletter Subscription", {
 					props: {
@@ -112,13 +116,15 @@ const Construction = ({ endDate, cta }: { endDate?: Date; cta: Cta }) => {
 									placeholder='mail@example.com'
 									type='email'
 									labelPlacement='outside'
-									className={newsletterState == "success" ? "text-success" : newsletterState == "error" ? "text-danger" : "text-default-900"}
+									className={newsletterState == "success" ? "text-success" : newsletterState == "error" || newsletterState == "rateLimit" ? "text-danger" : "text-default-900"}
 									description={(() => {
 										switch (newsletterState) {
 											case "loading":
 												return "Subscribing...";
 											case "error":
 												return "An error occurred. Please try again. If the error persists, please contact the team.";
+											case "rateLimit":
+												return "Please wait before trying again.";
 											default:
 												return "";
 										}
@@ -140,7 +146,7 @@ const Construction = ({ endDate, cta }: { endDate?: Date; cta: Cta }) => {
 									isDisabled={newsletterState === "loading" || newsletterState === "success"}
 									endContent={
 										<Button color='primary' size='sm' isIconOnly type='submit' disabled={newsletterState === "loading" || newsletterState === "success"}>
-											<IconSend className='text-default-400' />
+											<IconSend className='text-default-foreground' />
 										</Button>
 									}
 								/>
