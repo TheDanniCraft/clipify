@@ -1,7 +1,7 @@
-import { headers } from "next/headers";
-import { RateLimiterMemory } from "rate-limiter-flexible";
+import { RateLimiterMemory, RateLimiterRes } from "rate-limiter-flexible";
 
 export async function getUserIP() {
+	const { headers } = await import("next/headers");
 	const headersList = await headers();
 
 	const ip = headersList.get("x-forwarded-for")?.split(",")[0] || headersList.get("x-real-ip") || "127.0.0.1"; // Fallback for local development
@@ -23,10 +23,20 @@ export async function tryRateLimit({ points, duration, key }: { points: number; 
 		rateLimiterMap.set(key, rateLimiter);
 	}
 
-	try {
-		await rateLimiter.consume(ip, 1);
-		return { success: true, rateLimiter };
-	} catch (error) {
-		return { success: false, error };
+	return rateLimiter
+		.consume(ip, 1)
+		.then((rateLimiterRes: RateLimiterRes) => {
+			return { success: true, rateLimiterRes };
+		})
+		.catch((rateLimiterRes: RateLimiterRes) => {
+			return { success: false, rateLimiterRes };
+		});
+}
+
+export async function isRatelimitError(error: unknown) {
+	if (error instanceof Error && error.name == "RateLimitError") {
+		return true;
 	}
+
+	return false;
 }

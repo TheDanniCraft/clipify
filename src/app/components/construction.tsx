@@ -1,5 +1,5 @@
 "use client";
-import { Cta, Timer } from "@/app/lib/types";
+import { Cta, Timer } from "@types";
 
 import React, { useEffect, useState } from "react";
 import { motion } from "motion/react";
@@ -7,6 +7,7 @@ import { Button, Form, Image, Input, Popover, PopoverContent, PopoverTrigger, Sp
 import { IconCircleCheckFilled, IconMailFilled, IconSend } from "@tabler/icons-react";
 import { subscribeToNewsletter, getEmailProvider } from "@/app/actions/newsletter";
 import { usePlausible } from "next-plausible";
+import { isRatelimitError } from "@actions/rateLimit";
 
 const Construction = ({ endDate, cta }: { endDate?: Date; cta: Cta }) => {
 	const plausible = usePlausible();
@@ -56,7 +57,7 @@ const Construction = ({ endDate, cta }: { endDate?: Date; cta: Cta }) => {
 
 		await subscribeToNewsletter(data.email as string)
 			.then(async (res) => {
-				if (res instanceof Error) {
+				if (await isRatelimitError(res)) {
 					setNewsletterState("rateLimit");
 					return;
 				}

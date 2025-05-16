@@ -1,5 +1,12 @@
 import type { SVGProps } from "react";
 
+export class RateLimitError extends Error {
+	constructor() {
+		super("Rate limit exceeded");
+		this.name = "RateLimitError";
+	}
+}
+
 export type Cta = {
 	text: string;
 	icon: React.ReactNode;

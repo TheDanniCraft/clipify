@@ -2,6 +2,7 @@
 
 import axios from "axios";
 import { tryRateLimit } from "@/app/actions/rateLimit";
+import { RateLimitError } from "@types";
 
 const LISTMONK_URL = process.env.LISTMONK_URL;
 const LISTMONK_LIST_UUID = process.env.LISTMONK_LIST_UUID;
@@ -49,10 +50,10 @@ export async function subscribeToNewsletter(email: string) {
 	}
 
 	try {
-		const rateLimiter = await tryRateLimit({ key: "newsletter", points: 1, duration: 20 });
+		const rateLimiter = await tryRateLimit({ key: "newsletter", points: 1, duration: 60 });
 
 		if (!rateLimiter.success) {
-			return new Error("RateLimit exceeded");
+			return new RateLimitError();
 		}
 
 		const response = await axios.post(
