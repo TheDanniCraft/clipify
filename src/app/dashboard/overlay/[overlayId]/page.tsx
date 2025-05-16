@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { getOverlay, getUser, saveOverlay } from "@/app/actions/database";
-import { Button, Card, CardBody, CardHeader, Divider, Form, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Select, SelectItem, Snippet, Spinner, Switch } from "@heroui/react";
+import { addToast, Button, Card, CardBody, CardHeader, Divider, Form, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Select, SelectItem, Snippet, Spinner, Switch } from "@heroui/react";
 import { AuthenticatedUser, Overlay, OverlayType } from "@types";
 import { IconAlertTriangle, IconArrowLeft, IconDeviceFloppy, IconPlayerPauseFilled, IconPlayerPlayFilled } from "@tabler/icons-react";
 import DashboardNavbar from "@components/dashboardNavbar";
@@ -66,10 +66,19 @@ export default function OverlaySettings() {
 
 	async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();
+		addToast({
+			title: "Saving...",
+			color: "default",
+		});
 
 		if (!overlay) return;
 		await saveOverlay(overlay);
 		setBaseOverlay(overlay);
+		addToast({
+			title: "Overlay settings saved",
+			description: "Your overlay settings have been saved successfully.",
+			color: "success",
+		});
 	}
 
 	return (
