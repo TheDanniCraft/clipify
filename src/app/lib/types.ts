@@ -23,6 +23,15 @@ export type IconSvgProps = SVGProps<SVGSVGElement> & {
 	size?: number;
 };
 
+export type TwitchApiResponse<T> = {
+	data: T[];
+	pagination?: Pagination;
+};
+
+export type Pagination = {
+	cursor: string;
+};
+
 export type TwitchTokenResponse = {
 	access_token: string;
 	refresh_token: string;
@@ -44,6 +53,58 @@ export type TwitchUserResponse = {
 	created_at: string;
 	email: string;
 };
+
+export type TwitchSubscriptioResponse = {
+	broadcaster_id: string;
+	broadcaster_login: string;
+	broadcaster_name: string;
+	gifter_id?: string;
+	gifter_login?: string;
+	gifter_name?: string;
+	is_gift: boolean;
+	tier: "1000" | "2000" | "3000";
+};
+
+export type TwitchClipResponse = {
+	id: string;
+	url: string;
+	embed_url: string;
+	broadcaster_id: string;
+	broadcaster_name: string;
+	creator_id: string;
+	creator_name: string;
+	video_id: string;
+	game_id: string;
+	language: string;
+	title: string;
+	view_count: number;
+	created_at: string;
+	thumbnail_url: string;
+	duration: number;
+	vod_offset: number | null;
+	is_featured: boolean;
+};
+
+export type TwitchClipVideoQuality = {
+	quality: string;
+	sourceURL: string;
+};
+
+export type TwitchClipPlaybackAccessToken = {
+	signature: string;
+	value: string;
+};
+
+export type TwitchClipGqlData = {
+	videoQualities: TwitchClipVideoQuality[];
+	playbackAccessToken: TwitchClipPlaybackAccessToken;
+};
+
+export type TwitchClipGqlResponse = Array<{
+	data: {
+		clip: TwitchClipGqlData;
+	};
+}>;
 
 export type Role = "user" | "admin";
 export type Plan = "free" | "paid";

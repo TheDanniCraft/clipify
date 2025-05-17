@@ -2,12 +2,13 @@
 
 import { NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
+import { AuthenticatedUser } from "@types";
 
 export async function getUserFromCoookie(cookie: string) {
 	try {
 		const decodedToken = await jwt.verify(cookie, process.env.JWT_SECRET!);
 
-		return decodedToken;
+		return decodedToken as AuthenticatedUser;
 	} catch {
 		return undefined;
 	}

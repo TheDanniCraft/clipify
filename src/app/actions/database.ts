@@ -54,6 +54,9 @@ export async function getUser(id: string): Promise<AuthenticatedUser | null> {
 export async function setAccessToken(token: TwitchTokenResponse): Promise<AuthenticatedUser> {
 	try {
 		const user = await getUserDetails(token.access_token);
+		if (!user) {
+			throw new Error("Failed to get user details");
+		}
 		const dbUser = await setUser(user, token);
 
 		const expiresAt = new Date(Date.now() + token.expires_in * 1000);

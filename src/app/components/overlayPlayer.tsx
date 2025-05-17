@@ -39,8 +39,13 @@ export default function OverlayPlayer({ clips }: { clips: TwitchClip[] }) {
 				setVideoClip({
 					...randomClip,
 					mediaUrl,
-					brodcasterAvatar,
-					game,
+					brodcasterAvatar: brodcasterAvatar ?? "",
+					game: game ?? {
+						id: "",
+						name: "Unknown Game",
+						box_art_url: "",
+						igdb_id: "",
+					},
 				});
 		}
 
@@ -82,8 +87,13 @@ export default function OverlayPlayer({ clips }: { clips: TwitchClip[] }) {
 									setVideoClip({
 										...randomClip,
 										mediaUrl,
-										brodcasterAvatar,
-										game,
+										brodcasterAvatar: brodcasterAvatar ?? "",
+										game: game ?? {
+											id: "",
+											name: "Unknown Game",
+											box_art_url: "",
+											igdb_id: "",
+										},
 									});
 								}
 							}

@@ -1,82 +1,104 @@
 "use server";
 
 import axios from "axios";
-import { Overlay, TwitchClip, TwitchClipBody, TwitchTokenResponse, TwitchUserResponse } from "@types";
+import { Game, Overlay, Plan, TwitchApiResponse, TwitchClip, TwitchClipBody, TwitchClipGqlData, TwitchClipGqlResponse, TwitchClipResponse, TwitchClipVideoQuality, TwitchSubscriptioResponse, TwitchTokenResponse, TwitchUserResponse } from "@types";
 import { getAccessToken } from "@actions/database";
 
-export async function exchangeAccesToken(code: string) {
-	const url = "https://id.twitch.tv/oauth2/token";
-
-	const response = await axios.post(url, null, {
-		params: {
-			client_id: process.env.TWITCH_CLIENT_ID || "",
-			client_secret: process.env.TWITCH_CLIENT_SECRET || "",
-			code: code,
-			grant_type: "authorization_code",
-			redirect_uri: process.env.TWITCH_CALLBACK_URL || "",
-		},
-	});
-
-	return response.data;
-}
-
-export async function refreshAccessToken(refreshToken: string): Promise<TwitchTokenResponse> {
-	const url = "https://id.twitch.tv/oauth2/token";
-
-	const response = await axios.post(url, null, {
-		params: {
-			client_id: process.env.TWITCH_CLIENT_ID || "",
-			client_secret: process.env.TWITCH_CLIENT_SECRET || "",
-			refresh_token: refreshToken,
-			grant_type: "refresh_token",
-		},
-	});
-
-	return response.data;
-}
-
-export async function getUserDetails(accessToken: string): Promise<TwitchUserResponse> {
-	const url = "https://api.twitch.tv/helix/users";
-
-	const response = await axios.get(url, {
-		headers: {
-			Authorization: `Bearer ${accessToken}`,
-			"Client-Id": process.env.TWITCH_CLIENT_ID || "",
-		},
-	});
-
-	return response.data.data[0];
-}
-
-export async function getSubscriptionStatus(accessToken: string, userId: string) {
-	const url = "https://api.twitch.tv/helix/subscriptions/user";
-
-	const response = await axios.get(url, {
-		headers: {
-			Authorization: `Bearer ${accessToken}`,
-			"Client-Id": process.env.TWITCH_CLIENT_ID || "",
-		},
-		params: {
-			broadcaster_id: "274252231",
-			user_id: userId,
-		},
-	});
-
-	if (response.data.data.length > 0) {
-		const subscription = response.data.data[0];
-		if (subscription.tier === "1000" || subscription.tier === "2000" || subscription.tier === "3000") {
-			return "paid";
-		}
+function logTwitchError(context: string, error: unknown) {
+	if (axios.isAxiosError(error) && error.response) {
+		console.error(`${context}:`, error.response.data);
+	} else {
+		console.error(`${context}:`, error);
 	}
-
-	return "free";
 }
 
-export async function getTwitchClips(overlay: Overlay) {
+export async function exchangeAccesToken(code: string): Promise<TwitchTokenResponse | null> {
+	const url = "https://id.twitch.tv/oauth2/token";
+
+	try {
+		const response = await axios.post<TwitchTokenResponse>(url, null, {
+			params: {
+				client_id: process.env.TWITCH_CLIENT_ID || "",
+				client_secret: process.env.TWITCH_CLIENT_SECRET || "",
+				code: code,
+				grant_type: "authorization_code",
+				redirect_uri: process.env.TWITCH_CALLBACK_URL || "",
+			},
+		});
+		return response.data;
+	} catch (error) {
+		logTwitchError("Error exchanging access token", error);
+		return null;
+	}
+}
+
+export async function refreshAccessToken(refreshToken: string): Promise<TwitchTokenResponse | null> {
+	const url = "https://id.twitch.tv/oauth2/token";
+	try {
+		const response = await axios.post<TwitchTokenResponse>(url, null, {
+			params: {
+				client_id: process.env.TWITCH_CLIENT_ID || "",
+				client_secret: process.env.TWITCH_CLIENT_SECRET || "",
+				refresh_token: refreshToken,
+				grant_type: "refresh_token",
+			},
+		});
+		return response.data;
+	} catch (error) {
+		logTwitchError("Error refreshing access token", error);
+		return null;
+	}
+}
+
+export async function getUserDetails(accessToken: string): Promise<TwitchUserResponse | null> {
+	const url = "https://api.twitch.tv/helix/users";
+	try {
+		const response = await axios.get<TwitchApiResponse<TwitchUserResponse>>(url, {
+			headers: {
+				Authorization: `Bearer ${accessToken}`,
+				"Client-Id": process.env.TWITCH_CLIENT_ID || "",
+			},
+		});
+		return response.data.data[0] || null;
+	} catch (error) {
+		logTwitchError("Error fetching user details", error);
+		return null;
+	}
+}
+
+export async function getSubscriptionStatus(accessToken: string, userId: string): Promise<Plan> {
+	const url = "https://api.twitch.tv/helix/subscriptions/user";
+	try {
+		const response = await axios.get<TwitchApiResponse<TwitchSubscriptioResponse>>(url, {
+			headers: {
+				Authorization: `Bearer ${accessToken}`,
+				"Client-Id": process.env.TWITCH_CLIENT_ID || "",
+			},
+			params: {
+				broadcaster_id: "274252231",
+				user_id: userId,
+			},
+		});
+
+		if (response.data.data.length > 0) {
+			const subscription = response.data.data[0];
+			if (subscription.tier === "1000" || subscription.tier === "2000" || subscription.tier === "3000") {
+				return "paid";
+			}
+		}
+		return "free";
+	} catch (error) {
+		logTwitchError("Error fetching subscription status", error);
+		return "free";
+	}
+}
+
+export async function getTwitchClips(overlay: Overlay): Promise<TwitchClip[]> {
 	const url = "https://api.twitch.tv/helix/clips";
 	const token = await getAccessToken(overlay.ownerId);
 
 	if (!token) {
+		console.error("No access token found for ownerId:", overlay.ownerId);
 		return [];
 	}
 	const clips: TwitchClip[] = [];
@@ -102,23 +124,29 @@ export async function getTwitchClips(overlay: Overlay) {
 			params.ended_at = endDate;
 		}
 
-		const response = await axios.get(url, {
-			headers: {
-				Authorization: `Bearer ${token.access_token}`,
-				"Client-Id": process.env.TWITCH_CLIENT_ID || "",
-			},
-			params,
-		});
-
-		clips.push(...response.data.data);
-		cursor = response.data.pagination?.cursor;
+		try {
+			const response = await axios.get<TwitchApiResponse<TwitchClipResponse>>(url, {
+				headers: {
+					Authorization: `Bearer ${token.access_token}`,
+					"Client-Id": process.env.TWITCH_CLIENT_ID || "",
+				},
+				params,
+			});
+			clips.push(...response.data.data);
+			cursor = response.data.pagination?.cursor;
+		} catch (error) {
+			logTwitchError("Error fetching Twitch clips", error);
+			break;
+		}
 		fetchCount++;
 	} while (cursor && fetchCount < 15);
 
 	return clips;
 }
 
-export async function getRawMediaUrl(clipId: string) {
+type VideoQualityWithNumeric = TwitchClipVideoQuality & { numericQuality: number };
+
+export async function getRawMediaUrl(clipId: string): Promise<string | undefined> {
 	const query = [
 		{
 			operationName: "VideoAccessToken_Clip",
@@ -135,85 +163,100 @@ export async function getRawMediaUrl(clipId: string) {
 		},
 	];
 
-	const res = await axios.post("https://gql.twitch.tv/gql", query, {
-		headers: {
-			"Client-Id": "kimne78kx3ncx6brgo4mv6wki5h1ko",
-			"Content-Type": "application/json",
-		},
-	});
+	try {
+		const res = await axios.post<TwitchClipGqlResponse>("https://gql.twitch.tv/gql", query, {
+			headers: {
+				"Client-Id": "kimne78kx3ncx6brgo4mv6wki5h1ko",
+				"Content-Type": "application/json",
+			},
+		});
 
-	const clipData = res.data[0]?.data?.clip;
+		const clipData = res.data[0]?.data?.clip as TwitchClipGqlData | undefined;
 
-	if (!clipData || !clipData.videoQualities || clipData.videoQualities.length === 0) {
-		console.error("Invalid clip data or no video qualities available.");
+		if (!clipData || !clipData.videoQualities || clipData.videoQualities.length === 0) {
+			console.error("Invalid clip data or no video qualities available.");
+			return undefined;
+		}
+
+		const videoQualities: TwitchClipVideoQuality[] = clipData.videoQualities;
+
+		const sortedByQuality: VideoQualityWithNumeric[] = videoQualities
+			.map((v) => ({
+				...v,
+				numericQuality: parseInt(v.quality, 10),
+			}))
+			.sort((a, b) => b.numericQuality - a.numericQuality);
+
+		const bestQuality = sortedByQuality[0];
+
+		if (!bestQuality) {
+			console.error("No valid video quality found.");
+			return undefined;
+		}
+
+		const clipsVideoSource = bestQuality.sourceURL;
+		const clipsSignature = clipData.playbackAccessToken.signature;
+		const clipsToken = encodeURIComponent(clipData.playbackAccessToken.value);
+
+		const mp4Url = `${clipsVideoSource}?sig=${clipsSignature}&token=${clipsToken}`;
+
+		return mp4Url;
+	} catch (error) {
+		logTwitchError("Error fetching raw media URL", error);
 		return undefined;
 	}
-
-	const videoQualities = clipData.videoQualities;
-
-	const sortedByQuality = videoQualities
-		.map((v: { quality: string; sourceURL: string }) => ({
-			...v,
-			numericQuality: parseInt(v.quality, 10),
-		}))
-		.sort((a: { numericQuality: number }, b: { numericQuality: number }) => b.numericQuality - a.numericQuality);
-
-	const bestQuality = sortedByQuality[0];
-
-	if (!bestQuality) {
-		console.error("No valid video quality found.");
-		return undefined;
-	}
-
-	const clipsVideoSource = bestQuality.sourceURL;
-	const clipsSignature = clipData.playbackAccessToken.signature;
-	const clipsToken = encodeURIComponent(clipData.playbackAccessToken.value);
-
-	const mp4Url = `${clipsVideoSource}?sig=${clipsSignature}&token=${clipsToken}`;
-
-	return mp4Url;
 }
 
-export async function getAvatar(userId: string, authUserId: string) {
+export async function getAvatar(userId: string, authUserId: string): Promise<string | undefined> {
 	const url = "https://api.twitch.tv/helix/users";
 
 	const token = await getAccessToken(authUserId);
 
 	if (!token) {
-		return "";
+		console.error("No access token found for authUserId:", authUserId);
+		return undefined;
 	}
 
-	const response = await axios.get(url, {
-		headers: {
-			Authorization: `Bearer ${token.access_token}`,
-			"Client-Id": process.env.TWITCH_CLIENT_ID || "",
-		},
-		params: {
-			id: userId,
-		},
-	});
-
-	return response.data.data[0].profile_image_url;
+	try {
+		const response = await axios.get<TwitchApiResponse<TwitchUserResponse>>(url, {
+			headers: {
+				Authorization: `Bearer ${token.access_token}`,
+				"Client-Id": process.env.TWITCH_CLIENT_ID || "",
+			},
+			params: {
+				id: userId,
+			},
+		});
+		return response.data.data[0]?.profile_image_url || undefined;
+	} catch (error) {
+		logTwitchError("Error fetching avatar", error);
+		return undefined;
+	}
 }
 
-export async function getGameDetails(gameId: string, authUserId: string) {
+export async function getGameDetails(gameId: string, authUserId: string): Promise<Game | null> {
 	const url = "https://api.twitch.tv/helix/games";
 
 	const token = await getAccessToken(authUserId);
 
 	if (!token) {
-		return "";
+		console.error("No access token found for authUserId:", authUserId);
+		return null;
 	}
 
-	const response = await axios.get(url, {
-		headers: {
-			Authorization: `Bearer ${token.access_token}`,
-			"Client-Id": process.env.TWITCH_CLIENT_ID || "",
-		},
-		params: {
-			id: gameId,
-		},
-	});
-
-	return response.data.data[0];
+	try {
+		const response = await axios.get<TwitchApiResponse<Game>>(url, {
+			headers: {
+				Authorization: `Bearer ${token.access_token}`,
+				"Client-Id": process.env.TWITCH_CLIENT_ID || "",
+			},
+			params: {
+				id: gameId,
+			},
+		});
+		return response.data.data[0] || null;
+	} catch (error) {
+		logTwitchError("Error fetching game details", error);
+		return null;
+	}
 }
