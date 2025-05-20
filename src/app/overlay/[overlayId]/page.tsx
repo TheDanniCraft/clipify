@@ -24,8 +24,15 @@ export default async function Overlay({ params }: { params: Promise<{ overlayId:
 	const clips = await getTwitchClips(overlay);
 
 	return (
-		<div className='flex flex-col justify-center items-center h-screen w-screen'>
-			<OverlayPlayer clips={clips} />
-		</div>
+		<>
+			<style>{`
+				html, body {
+					background: transparent !important;
+				}
+			`}</style>
+			<div className='flex flex-col justify-center items-center h-screen w-screen'>
+				<OverlayPlayer clips={clips} />
+			</div>
+		</>
 	);
 }
