@@ -102,7 +102,12 @@ export default function OverlayPlayer({ clips }: { clips: TwitchClip[] }) {
 						onPlay={() => {
 							setShowOverlay(true);
 						}}
-						className='block w-full h-auto max-h-full object-cover'
+						style={{
+							width: "100vw",
+							height: "100vh",
+							aspectRatio: "19 / 9",
+						}}
+						className='block'
 					>
 						Your browser does not support the video tag.
 					</motion.video>
