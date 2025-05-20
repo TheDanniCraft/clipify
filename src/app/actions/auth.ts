@@ -3,6 +3,18 @@
 import { NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
 import { AuthenticatedUser } from "@types";
+import { cookies } from "next/headers";
+
+export async function getCookie(name: string) {
+	const cookieStore = await cookies();
+	const cookie = cookieStore.get(name);
+
+	if (!cookie) {
+		return null;
+	}
+
+	return cookie.value;
+}
 
 export async function getUserFromCoookie(cookie: string) {
 	try {

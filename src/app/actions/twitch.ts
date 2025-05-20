@@ -1,7 +1,7 @@
 "use server";
 
 import axios from "axios";
-import { Game, Overlay, Plan, TwitchApiResponse, TwitchClip, TwitchClipBody, TwitchClipGqlData, TwitchClipGqlResponse, TwitchClipResponse, TwitchClipVideoQuality, TwitchSubscriptioResponse, TwitchTokenResponse, TwitchUserResponse } from "@types";
+import { AuthenticatedUser, Game, Overlay, Plan, TwitchApiResponse, TwitchClip, TwitchClipBody, TwitchClipGqlData, TwitchClipGqlResponse, TwitchClipResponse, TwitchClipVideoQuality, TwitchSubscriptioResponse, TwitchTokenResponse, TwitchUserResponse } from "@types";
 import { getAccessToken } from "@actions/database";
 
 function logTwitchError(context: string, error: unknown) {
@@ -63,6 +63,22 @@ export async function getUserDetails(accessToken: string): Promise<TwitchUserRes
 	} catch (error) {
 		logTwitchError("Error fetching user details", error);
 		return null;
+	}
+}
+
+export async function verifyToken(user: AuthenticatedUser) {
+	const url = "https://id.twitch.tv/oauth2/validate";
+	try {
+		const token = await getAccessToken(user.id);
+
+		await axios.get(url, {
+			headers: {
+				Authorization: `Bearer ${token?.access_token}`,
+			},
+		});
+		return true;
+	} catch {
+		return false;
 	}
 }
 

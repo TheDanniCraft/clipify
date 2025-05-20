@@ -5,6 +5,7 @@ import { getUser } from "@actions/database";
 import OverlayTable from "@components/OverlayTable";
 import DashboardNavbar from "@components/dashboardNavbar";
 import { AuthenticatedUser } from "../lib/types";
+import { verifyToken } from "@actions/twitch";
 
 export default async function Dashboard() {
 	const cookieStore = await cookies();
@@ -18,6 +19,10 @@ export default async function Dashboard() {
 	const user = await getUser(cookieUser.id);
 	if (!user) {
 		return redirect("/login");
+	}
+
+	if (!(await verifyToken(user))) {
+		return redirect("/logout");
 	}
 
 	return (
