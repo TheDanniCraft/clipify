@@ -31,8 +31,8 @@ export default function PlayerOverlay({ children, top, bottom, left, right }: { 
 						bottom,
 						left: left ? 0 : undefined,
 						right: right ? 0 : undefined,
-						paddingLeft: left,
-						paddingRight: right,
+						scale: 2,
+						transformOrigin: `${left ? "left" : right ? "right" : "center"} ${top ? "top" : bottom ? "bottom" : "center"}`,
 					}}
 				>
 					{children}
