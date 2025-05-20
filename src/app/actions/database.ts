@@ -5,10 +5,11 @@ import { tokenTable, usersTable, overlaysTable } from "@/db/schema";
 import { AuthenticatedUser, Overlay, TwitchTokenResponse, TwitchUserResponse } from "@types";
 import { getSubscriptionStatus, getUserDetails, refreshAccessToken } from "@actions/twitch";
 import { eq } from "drizzle-orm";
+import { validateAuth } from "@actions/auth";
 
 const db = drizzle(process.env.DATABASE_URL!);
 
-export async function setUser(user: TwitchUserResponse, token: TwitchTokenResponse): Promise<AuthenticatedUser> {
+async function setUser(user: TwitchUserResponse, token: TwitchTokenResponse): Promise<AuthenticatedUser> {
 	try {
 		const plan = await getSubscriptionStatus(token.access_token, user.id);
 
@@ -42,6 +43,12 @@ export async function setUser(user: TwitchUserResponse, token: TwitchTokenRespon
 
 export async function getUser(id: string): Promise<AuthenticatedUser | null> {
 	try {
+		const isAuthenticated = await validateAuth(true);
+		if (!isAuthenticated || isAuthenticated.id !== id) {
+			console.warn(`Unauthenticated "getUser" API request for user id: ${id}`);
+			return null;
+		}
+
 		const user = await db.select().from(usersTable).where(eq(usersTable.id, id)).limit(1).execute();
 
 		return user[0] || null;
@@ -51,12 +58,13 @@ export async function getUser(id: string): Promise<AuthenticatedUser | null> {
 	}
 }
 
-export async function setAccessToken(token: TwitchTokenResponse): Promise<AuthenticatedUser> {
+export async function setAccessToken(token: TwitchTokenResponse): Promise<AuthenticatedUser | null> {
 	try {
 		const user = await getUserDetails(token.access_token);
 		if (!user) {
 			throw new Error("Failed to get user details");
 		}
+
 		const dbUser = await setUser(user, token);
 
 		const expiresAt = new Date(Date.now() + token.expires_in * 1000);
@@ -126,6 +134,12 @@ export async function getAccessToken(userId: string): Promise<TwitchTokenRespons
 
 export async function getAllOverlays(userId: string) {
 	try {
+		const isAuthenticated = await validateAuth(true);
+		if (!isAuthenticated || isAuthenticated.id !== userId) {
+			console.warn(`Unauthenticated "getAllOverlays" API request for user id: ${userId}`);
+			return null;
+		}
+
 		const overlays = await db.select().from(overlaysTable).where(eq(overlaysTable.ownerId, userId)).execute();
 
 		return overlays;
@@ -169,6 +183,12 @@ export async function createOverlay(userId: string) {
 
 export async function saveOverlay(overlay: Overlay) {
 	try {
+		const isAuthenticated = await validateAuth(true);
+		if (!isAuthenticated || isAuthenticated.id !== overlay.ownerId) {
+			console.warn(`Unauthenticated "saveOverlay" API request for user id: ${overlay.ownerId}`);
+			return null;
+		}
+
 		await db
 			.insert(overlaysTable)
 			.values({
@@ -193,9 +213,15 @@ export async function saveOverlay(overlay: Overlay) {
 	}
 }
 
-export async function deleteOverlay(overlayId: string) {
+export async function deleteOverlay(overlay: Overlay) {
 	try {
-		await db.delete(overlaysTable).where(eq(overlaysTable.id, overlayId)).execute();
+		const isAuthenticated = await validateAuth(true);
+		if (!isAuthenticated || isAuthenticated.id !== overlay.ownerId) {
+			console.warn(`Unauthenticated "deleteOverlay" API request for user id: ${overlay.ownerId}`);
+			return null;
+		}
+
+		await db.delete(overlaysTable).where(eq(overlaysTable.id, overlay.id)).execute();
 	} catch (error) {
 		console.error("Error deleting overlay:", error);
 		throw new Error("Failed to delete overlay");

@@ -38,7 +38,7 @@ export async function authUser(error?: string, errorCode?: string) {
 	return NextResponse.redirect(appUrl);
 }
 
-export async function validateAuth() {
+export async function validateAuth(skipUserCheck = false) {
 	const { getUser } = await import("@actions/database");
 	const { verifyToken } = await import("@actions/twitch");
 
@@ -48,6 +48,10 @@ export async function validateAuth() {
 
 	if (!cookieUser) {
 		return false;
+	}
+
+	if (skipUserCheck) {
+		return cookieUser;
 	}
 
 	const user = await getUser(cookieUser.id);

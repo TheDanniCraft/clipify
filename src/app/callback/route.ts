@@ -32,6 +32,10 @@ export async function GET(request: NextRequest) {
 		}
 		const user = await setAccessToken(token);
 
+		if (!user) {
+			return authUser("userError");
+		}
+
 		const cookieToken = await jwt.sign(user, process.env.JWT_SECRET!, {
 			expiresIn: "1h",
 		});

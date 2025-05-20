@@ -41,7 +41,7 @@ export default function OverlayTable({ userid }: { userid: string }) {
 		const fetchOverlays = async () => {
 			try {
 				const overlaysData = await getAllOverlays(userid);
-				setOverlays(overlaysData);
+				setOverlays(overlaysData ?? undefined);
 			} catch (error) {
 				console.error("Failed to fetch overlays:", error);
 			}
@@ -160,7 +160,7 @@ export default function OverlayTable({ userid }: { userid: string }) {
 							onClick={(event) => {
 								event.stopPropagation();
 
-								deleteOverlay(overlay.id)
+								deleteOverlay(overlay)
 									.then(() => {
 										setOverlays((prev) => (prev ? prev.filter((o) => o.id !== overlay.id) : []));
 
@@ -237,7 +237,8 @@ export default function OverlayTable({ userid }: { userid: string }) {
 	});
 
 	const reloadOverlays = useMemoizedCallback(async () => {
-		setOverlays(await getAllOverlays(userid));
+		const overlaysData = await getAllOverlays(userid);
+		setOverlays(overlaysData ?? undefined);
 	});
 
 	const topContent = useMemo(() => {
@@ -320,7 +321,7 @@ export default function OverlayTable({ userid }: { userid: string }) {
 										const selectedOverlays = filterSelectedKeys === "all" ? overlays : filteredItems.filter((item) => filterSelectedKeys.has(String(item.id)));
 
 										const deletePromises = selectedOverlays?.map((overlay) =>
-											deleteOverlay(overlay.id).then(() => {
+											deleteOverlay(overlay).then(() => {
 												setOverlays((prev) => (prev ? prev.filter((o) => o.id !== overlay.id) : []));
 											})
 										);
