@@ -38,6 +38,30 @@ export async function authUser(error?: string, errorCode?: string) {
 	return NextResponse.redirect(appUrl);
 }
 
+export async function validateAuth() {
+	const { getUser } = await import("@actions/database");
+	const { verifyToken } = await import("@actions/twitch");
+
+	const cookieStore = await cookies();
+	const token = cookieStore.get("token");
+	const cookieUser = token ? ((await getUserFromCoookie(token.value)) as AuthenticatedUser | null) : null;
+
+	if (!cookieUser) {
+		return false;
+	}
+
+	const user = await getUser(cookieUser.id);
+	if (!user) {
+		return false;
+	}
+
+	if (!(await verifyToken(user))) {
+		return false;
+	}
+
+	return user;
+}
+
 export async function getBaseUrl() {
 	let url = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
 

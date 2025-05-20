@@ -8,8 +8,7 @@ import { AuthenticatedUser, Overlay, OverlayType } from "@types";
 import { IconAlertTriangle, IconArrowLeft, IconDeviceFloppy, IconPlayerPauseFilled, IconPlayerPlayFilled } from "@tabler/icons-react";
 import DashboardNavbar from "@components/dashboardNavbar";
 import { useNavigationGuard } from "next-navigation-guard";
-import { getCookie, getUserFromCoookie } from "@/app/actions/auth";
-import { verifyToken } from "@/app/actions/twitch";
+import { validateAuth } from "@/app/actions/auth";
 
 const overlayTypes: { key: OverlayType; label: string }[] = [
 	{ key: "1", label: "Top Clips - Today" },
@@ -35,25 +34,9 @@ export default function OverlaySettings() {
 
 	useEffect(() => {
 		async function checkAuth() {
-			const token = await getCookie("token");
-			if (!token) {
-				router.push("/login");
+			if (!(await validateAuth())) {
+				router.push("/logout");
 				return;
-			}
-
-			const cookieUser = token ? ((await getUserFromCoookie(token)) as AuthenticatedUser | null) : null;
-			if (!cookieUser) {
-				router.push("/login");
-				return;
-			}
-
-			const user = await getUser(cookieUser.id);
-			if (!user) {
-				return router.push("/login");
-			}
-
-			if (!(await verifyToken(user))) {
-				return router.push("/logout");
 			}
 		}
 
