@@ -8,8 +8,18 @@ export default async function Overlay({ params }: { params: Promise<{ overlayId:
 
 	const overlay = (await getOverlay(overlayId)) as Overlay;
 
-	if (!overlay) return <div>Overlay not found</div>;
-	if (overlay.status == "paused") return <div>Overlay paused</div>;
+	if (!overlay)
+		return (
+			<div className='flex justify-center items-center h-screen w-screen'>
+				<span>Overlay not found</span>
+			</div>
+		);
+	if (overlay.status == "paused")
+		return (
+			<div className='flex justify-center items-center h-screen w-screen'>
+				<span>Overlay paused</span>
+			</div>
+		);
 
 	const clips = await getTwitchClips(overlay);
 
