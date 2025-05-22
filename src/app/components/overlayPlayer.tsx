@@ -1,11 +1,75 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { TwitchClip, VideoClip } from "@types";
-import { getAvatar, getGameDetails, getRawMediaUrl } from "@actions/twitch";
+import { TwitchClip, TwitchClipGqlData, TwitchClipGqlResponse, TwitchClipVideoQuality, VideoClip } from "@types";
+import { getAvatar, getGameDetails, logTwitchError } from "@actions/twitch";
 import PlayerOverlay from "./playerOverlay";
 import { Avatar } from "@heroui/react";
 import { motion, AnimatePresence } from "framer-motion";
+import axios from "axios";
+
+type VideoQualityWithNumeric = TwitchClipVideoQuality & { numericQuality: number };
+
+async function getRawMediaUrl(clipId: string): Promise<string | undefined> {
+	const query = [
+		{
+			operationName: "VideoAccessToken_Clip",
+			variables: {
+				platform: "web",
+				slug: clipId,
+			},
+			extensions: {
+				persistedQuery: {
+					version: 1,
+					sha256Hash: "6fd3af2b22989506269b9ac02dd87eb4a6688392d67d94e41a6886f1e9f5c00f",
+				},
+			},
+		},
+	];
+
+	try {
+		const res = await axios.post<TwitchClipGqlResponse>("https://gql.twitch.tv/gql", query, {
+			headers: {
+				"Client-Id": "kimne78kx3ncx6brgo4mv6wki5h1ko",
+				"Content-Type": "application/json",
+			},
+		});
+
+		const clipData = res.data[0]?.data?.clip as TwitchClipGqlData | undefined;
+
+		if (!clipData || !clipData.videoQualities || clipData.videoQualities.length === 0) {
+			console.error("Invalid clip data or no video qualities available.");
+			return undefined;
+		}
+
+		const videoQualities: TwitchClipVideoQuality[] = clipData.videoQualities;
+
+		const sortedByQuality: VideoQualityWithNumeric[] = videoQualities
+			.map((v) => ({
+				...v,
+				numericQuality: parseInt(v.quality, 10),
+			}))
+			.sort((a, b) => b.numericQuality - a.numericQuality);
+
+		const bestQuality = sortedByQuality[0];
+
+		if (!bestQuality) {
+			console.error("No valid video quality found.");
+			return undefined;
+		}
+
+		const clipsVideoSource = bestQuality.sourceURL;
+		const clipsSignature = clipData.playbackAccessToken.signature;
+		const clipsToken = encodeURIComponent(clipData.playbackAccessToken.value);
+
+		const mp4Url = `${clipsVideoSource}?sig=${clipsSignature}&token=${clipsToken}`;
+
+		return mp4Url;
+	} catch (error) {
+		logTwitchError("Error fetching raw media URL", error);
+		return undefined;
+	}
+}
 
 export default function OverlayPlayer({ clips }: { clips: TwitchClip[] }) {
 	const [videoClip, setVideoClip] = useState<VideoClip | null>(null);
