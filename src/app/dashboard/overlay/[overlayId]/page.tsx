@@ -94,7 +94,7 @@ export default function OverlaySettings() {
 	}
 
 	return (
-		<DashboardNavbar user={user!}>
+		<DashboardNavbar user={user!} title='Overlay Settings' tagline='Manage your overlays'>
 			<div className='flex flex-col items-center justify-center w-full p-4'>
 				<Card className='w-full max-w-4xl'>
 					<CardHeader className='justify-between space-x-1'>

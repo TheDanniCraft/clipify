@@ -1,7 +1,7 @@
 "use server";
 
 import axios from "axios";
-import { AuthenticatedUser, Game, Overlay, Plan, TwitchApiResponse, TwitchClip, TwitchClipBody, TwitchClipGqlData, TwitchClipGqlResponse, TwitchClipResponse, TwitchClipVideoQuality, TwitchSubscriptioResponse, TwitchTokenResponse, TwitchUserResponse } from "@types";
+import { AuthenticatedUser, Game, Overlay, Plan, TwitchApiResponse, TwitchClip, TwitchClipBody, TwitchClipGqlData, TwitchClipGqlResponse, TwitchClipResponse, TwitchClipVideoQuality, TwitchSubscriptioResponse, TwitchTokenApiResponse, TwitchUserResponse } from "@types";
 import { getAccessToken } from "@actions/database";
 
 function logTwitchError(context: string, error: unknown) {
@@ -12,11 +12,11 @@ function logTwitchError(context: string, error: unknown) {
 	}
 }
 
-export async function exchangeAccesToken(code: string): Promise<TwitchTokenResponse | null> {
+export async function exchangeAccesToken(code: string): Promise<TwitchTokenApiResponse | null> {
 	const url = "https://id.twitch.tv/oauth2/token";
 
 	try {
-		const response = await axios.post<TwitchTokenResponse>(url, null, {
+		const response = await axios.post<TwitchTokenApiResponse>(url, null, {
 			params: {
 				client_id: process.env.TWITCH_CLIENT_ID || "",
 				client_secret: process.env.TWITCH_CLIENT_SECRET || "",
@@ -32,10 +32,10 @@ export async function exchangeAccesToken(code: string): Promise<TwitchTokenRespo
 	}
 }
 
-export async function refreshAccessToken(refreshToken: string): Promise<TwitchTokenResponse | null> {
+export async function refreshAccessToken(refreshToken: string): Promise<TwitchTokenApiResponse | null> {
 	const url = "https://id.twitch.tv/oauth2/token";
 	try {
-		const response = await axios.post<TwitchTokenResponse>(url, null, {
+		const response = await axios.post<TwitchTokenApiResponse>(url, null, {
 			params: {
 				client_id: process.env.TWITCH_CLIENT_ID || "",
 				client_secret: process.env.TWITCH_CLIENT_SECRET || "",
@@ -73,7 +73,7 @@ export async function verifyToken(user: AuthenticatedUser) {
 
 		await axios.get(url, {
 			headers: {
-				Authorization: `Bearer ${token?.access_token}`,
+				Authorization: `Bearer ${token?.accessToken}`,
 			},
 		});
 		return true;
@@ -143,7 +143,7 @@ export async function getTwitchClips(overlay: Overlay): Promise<TwitchClip[]> {
 		try {
 			const response = await axios.get<TwitchApiResponse<TwitchClipResponse>>(url, {
 				headers: {
-					Authorization: `Bearer ${token.access_token}`,
+					Authorization: `Bearer ${token.accessToken}`,
 					"Client-Id": process.env.TWITCH_CLIENT_ID || "",
 				},
 				params,
@@ -236,7 +236,7 @@ export async function getAvatar(userId: string, authUserId: string): Promise<str
 	try {
 		const response = await axios.get<TwitchApiResponse<TwitchUserResponse>>(url, {
 			headers: {
-				Authorization: `Bearer ${token.access_token}`,
+				Authorization: `Bearer ${token.accessToken}`,
 				"Client-Id": process.env.TWITCH_CLIENT_ID || "",
 			},
 			params: {
@@ -263,7 +263,7 @@ export async function getGameDetails(gameId: string, authUserId: string): Promis
 	try {
 		const response = await axios.get<TwitchApiResponse<Game>>(url, {
 			headers: {
-				Authorization: `Bearer ${token.access_token}`,
+				Authorization: `Bearer ${token.accessToken}`,
 				"Client-Id": process.env.TWITCH_CLIENT_ID || "",
 			},
 			params: {

@@ -2,14 +2,14 @@
 
 import { drizzle } from "drizzle-orm/node-postgres";
 import { tokenTable, usersTable, overlaysTable } from "@/db/schema";
-import { AuthenticatedUser, Overlay, TwitchTokenResponse, TwitchUserResponse } from "@types";
+import { AuthenticatedUser, Overlay, TwitchUserResponse, TwitchTokenApiResponse, UserToken } from "@types";
 import { getSubscriptionStatus, getUserDetails, refreshAccessToken } from "@actions/twitch";
 import { eq } from "drizzle-orm";
 import { validateAuth } from "@actions/auth";
 
 const db = drizzle(process.env.DATABASE_URL!);
 
-async function setUser(user: TwitchUserResponse, token: TwitchTokenResponse): Promise<AuthenticatedUser> {
+async function setUser(user: TwitchUserResponse, token: TwitchTokenApiResponse): Promise<AuthenticatedUser> {
 	try {
 		const plan = await getSubscriptionStatus(token.access_token, user.id);
 
@@ -58,7 +58,7 @@ export async function getUser(id: string): Promise<AuthenticatedUser | null> {
 	}
 }
 
-export async function setAccessToken(token: TwitchTokenResponse): Promise<AuthenticatedUser | null> {
+export async function setAccessToken(token: TwitchTokenApiResponse): Promise<AuthenticatedUser | null> {
 	try {
 		const user = await getUserDetails(token.access_token);
 		if (!user) {
@@ -97,7 +97,7 @@ export async function setAccessToken(token: TwitchTokenResponse): Promise<Authen
 	}
 }
 
-export async function getAccessToken(userId: string): Promise<TwitchTokenResponse | null> {
+export async function getAccessToken(userId: string): Promise<UserToken | null> {
 	try {
 		const token = await db.select().from(tokenTable).where(eq(tokenTable.id, userId)).limit(1).execute();
 
@@ -116,15 +116,23 @@ export async function getAccessToken(userId: string): Promise<TwitchTokenRespons
 			}
 
 			await setAccessToken(newToken);
-			return newToken;
+			return {
+				id: userId,
+				accessToken: newToken.access_token,
+				refreshToken: newToken.refresh_token,
+				expiresAt: new Date(Date.now() + newToken.expires_in * 1000).toISOString(),
+				scope: newToken.scope,
+				tokenType: newToken.token_type,
+			};
 		}
 
 		return {
-			access_token: token[0].accessToken,
-			refresh_token: token[0].refreshToken,
-			expires_in: Math.floor((new Date(token[0].expiresAt).getTime() - Date.now()) / 1000),
+			id: userId,
+			accessToken: token[0].accessToken,
+			refreshToken: token[0].refreshToken,
+			expiresAt: expiresAt.toISOString(),
 			scope: token[0].scope,
-			token_type: token[0].tokenType,
+			tokenType: token[0].tokenType,
 		};
 	} catch (error) {
 		console.error("Error fetching access token:", error);

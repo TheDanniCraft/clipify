@@ -10,7 +10,7 @@ export default async function Dashboard() {
 	}
 
 	return (
-		<DashboardNavbar user={user}>
+		<DashboardNavbar user={user} title='Dashboard' tagline='Manage your overlays'>
 			<OverlayTable userid={user.id} />
 		</DashboardNavbar>
 	);
