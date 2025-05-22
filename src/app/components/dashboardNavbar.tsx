@@ -5,9 +5,11 @@ import { useTheme } from "next-themes";
 import { Avatar, Badge, Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Navbar, NavbarBrand, NavbarContent, NavbarItem, Spacer } from "@heroui/react";
 import { AuthenticatedUser } from "@types";
 import Logo from "@components/logo";
+import { useRouter } from "next/navigation";
 
 export default function DashboardNavbar({ children, user }: { children: React.ReactNode; user: AuthenticatedUser }) {
 	const { theme, setTheme } = useTheme();
+	const router = useRouter();
 
 	return (
 		<>
@@ -52,9 +54,13 @@ export default function DashboardNavbar({ children, user }: { children: React.Re
 									<p className='font-semibold'>Signed in as</p>
 									<p className='font-semibold'>{user?.username}</p>
 								</DropdownItem>
-								<DropdownItem key='settings'>My Settings</DropdownItem>
-								<DropdownItem key='help_and_feedback'>Help & Feedback</DropdownItem>
-								<DropdownItem key='logout' color='danger'>
+								<DropdownItem key='settings' onPress={() => router.push("/dashboard/settings")}>
+									My Settings
+								</DropdownItem>
+								<DropdownItem key='help_and_feedback' onPress={() => router.push("https://chat.cloud.thedannicraft.de/hc/clipify/")}>
+									Help & Feedback
+								</DropdownItem>
+								<DropdownItem key='logout' color='danger' onPress={() => router.push("/logout")}>
 									Log Out
 								</DropdownItem>
 							</DropdownMenu>
