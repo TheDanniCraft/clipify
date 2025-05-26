@@ -23,7 +23,7 @@ const ChatWidget = () => {
 	useEffect(() => {
 		window.chatwootSettings = {
 			hideMessageBubble: false,
-			position: "right",
+			position: "left",
 			locale: "en",
 			type: "expanded_bubble",
 			launcherTitle: "Chat with us",
