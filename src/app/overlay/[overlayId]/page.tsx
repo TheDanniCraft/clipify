@@ -30,6 +30,11 @@ export default async function Overlay({ params }: { params: Promise<{ overlayId:
 					background: transparent !important;
 				}
 			`}</style>
+			<script
+				dangerouslySetInnerHTML={{
+					__html: "window.$chatwoot = window.$chatwoot || {}; window.$chatwoot.disabled = true;",
+				}}
+			/>
 			<div className='flex flex-col justify-center items-center h-screen w-screen'>
 				<OverlayPlayer clips={clips} />
 			</div>
