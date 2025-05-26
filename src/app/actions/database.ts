@@ -58,6 +58,23 @@ export async function getUser(id: string): Promise<AuthenticatedUser | null> {
 	}
 }
 
+export async function deleteUser(id: string): Promise<AuthenticatedUser | null> {
+	try {
+		const isAuthenticated = await validateAuth(true);
+		if (!isAuthenticated || isAuthenticated.id !== id) {
+			console.warn(`Unauthenticated "deleteUser" API request for user id: ${id}`);
+			return null;
+		}
+
+		const user = await db.delete(usersTable).where(eq(usersTable.id, id)).returning().execute();
+
+		return user[0];
+	} catch (error) {
+		console.error("Error deleting user:", error);
+		throw new Error("Failed to delete user");
+	}
+}
+
 export async function setAccessToken(token: TwitchTokenApiResponse): Promise<AuthenticatedUser | null> {
 	try {
 		const user = await getUserDetails(token.access_token);
@@ -228,7 +245,6 @@ export async function deleteOverlay(overlay: Overlay) {
 			console.warn(`Unauthenticated "deleteOverlay" API request for user id: ${overlay.ownerId}`);
 			return null;
 		}
-
 		await db.delete(overlaysTable).where(eq(overlaysTable.id, overlay.id)).execute();
 	} catch (error) {
 		console.error("Error deleting overlay:", error);

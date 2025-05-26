@@ -7,7 +7,7 @@ import { AuthenticatedUser } from "@types";
 import Logo from "@components/logo";
 import { useRouter } from "next/navigation";
 
-export default function DashboardNavbar({ children, user }: { children: React.ReactNode; user: AuthenticatedUser }) {
+export default function DashboardNavbar({ children, user, title, tagline }: { children: React.ReactNode; user: AuthenticatedUser; title: string; tagline: string }) {
 	const { theme, setTheme } = useTheme();
 	const router = useRouter();
 
@@ -73,8 +73,8 @@ export default function DashboardNavbar({ children, user }: { children: React.Re
 					<div className='w-full max-w-[1024px] px-4 lg:px-8'>
 						<header className=' flex w-full items-center justify-between'>
 							<div className='flex flex-col'>
-								<h1 className='text-xl font-bold text-default-900 lg:text-3xl'>Dashboard</h1>
-								<p className='text-small text-default-400 lg:text-medium'>Manage your overlays</p>
+								<h1 className='text-xl font-bold text-default-900 lg:text-3xl'>{title}</h1>
+								<p className='text-small text-default-400 lg:text-medium'>{tagline}</p>
 							</div>
 						</header>
 						{children}
