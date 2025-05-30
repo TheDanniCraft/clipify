@@ -24,3 +24,7 @@
 		@apply transition-colors duration-250 ease-in-out;
 	}
 }
+
+html {
+	scroll-behavior: smooth;
+}

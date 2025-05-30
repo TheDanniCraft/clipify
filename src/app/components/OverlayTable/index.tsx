@@ -10,7 +10,7 @@ import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, TableHeader, Tab
 const Table = dynamic(() => import("@heroui/react").then((c) => c.Table), { ssr: false }); // Temp fix for issue 4385
 import React, { useMemo, useCallback, useState, useEffect } from "react";
 import { cn } from "@heroui/react";
-import { IconAdjustmentsHorizontal, IconArrowsLeftRight, IconChevronDown, IconChevronUp, IconCirclePlus, IconInfoCircle, IconMenuDeep, IconPencil, IconReload, IconSearch, IconTrash } from "@tabler/icons-react";
+import { IconAdjustmentsHorizontal, IconArrowsLeftRight, IconChevronDown, IconChevronUp, IconCirclePlus, IconCircuitChangeover, IconInfoCircle, IconMenuDeep, IconPencil, IconReload, IconSearch, IconTrash } from "@tabler/icons-react";
 import { createOverlay, deleteOverlay, saveOverlay, getAllOverlays } from "@actions/database";
 
 import { CopyText } from "./copy-text";
@@ -316,38 +316,8 @@ export default function OverlayTable({ userid }: { userid: string }) {
 							</DropdownTrigger>
 							<DropdownMenu aria-label='Selected Actions'>
 								<DropdownItem
-									key='delete'
-									onClick={() => {
-										const selectedOverlays = filterSelectedKeys === "all" ? overlays : filteredItems.filter((item) => filterSelectedKeys.has(String(item.id)));
-
-										const deletePromises = selectedOverlays?.map((overlay) =>
-											deleteOverlay(overlay).then(() => {
-												setOverlays((prev) => (prev ? prev.filter((o) => o.id !== overlay.id) : []));
-											})
-										);
-
-										Promise.all(deletePromises ?? [])
-											.then(() => {
-												setSelectedKeys(new Set([]));
-												addToast({
-													title: "Successfully deleted",
-													description: `${selectedOverlays?.length ?? 0} Overlay${(selectedOverlays?.length ?? 0) > 1 ? "s" : ""} have been deleted.`,
-													color: "success",
-												});
-											})
-											.catch(() => {
-												addToast({
-													title: "Error",
-													description: "An error occurred while deleting one or more overlays.",
-													color: "danger",
-												});
-											});
-									}}
-								>
-									Delete
-								</DropdownItem>
-								<DropdownItem
 									key='toggleStatus'
+									startContent={<IconCircuitChangeover />}
 									onClick={() => {
 										const selectedOverlays = filterSelectedKeys === "all" ? overlays : filteredItems.filter((item) => filterSelectedKeys.has(String(item.id)));
 
@@ -376,6 +346,39 @@ export default function OverlayTable({ userid }: { userid: string }) {
 									}}
 								>
 									Toggle status
+								</DropdownItem>
+								<DropdownItem
+									key='delete'
+									color='danger'
+									startContent={<IconTrash className='text-danger-500' width={16} />}
+									onClick={() => {
+										const selectedOverlays = filterSelectedKeys === "all" ? overlays : filteredItems.filter((item) => filterSelectedKeys.has(String(item.id)));
+
+										const deletePromises = selectedOverlays?.map((overlay) =>
+											deleteOverlay(overlay).then(() => {
+												setOverlays((prev) => (prev ? prev.filter((o) => o.id !== overlay.id) : []));
+											})
+										);
+
+										Promise.all(deletePromises ?? [])
+											.then(() => {
+												setSelectedKeys(new Set([]));
+												addToast({
+													title: "Successfully deleted",
+													description: `${selectedOverlays?.length ?? 0} Overlay${(selectedOverlays?.length ?? 0) > 1 ? "s" : ""} have been deleted.`,
+													color: "success",
+												});
+											})
+											.catch(() => {
+												addToast({
+													title: "Error",
+													description: "An error occurred while deleting one or more overlays.",
+													color: "danger",
+												});
+											});
+									}}
+								>
+									Delete
 								</DropdownItem>
 							</DropdownMenu>
 						</Dropdown>
