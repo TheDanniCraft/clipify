@@ -6,12 +6,12 @@ import type { Overlay, StatusOptions } from "@types";
 import type { Key } from "@react-types/shared";
 
 import dynamic from "next/dynamic";
-import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, TableHeader, TableColumn, TableBody, TableRow, TableCell, Input, Button, RadioGroup, Radio, Chip, Pagination, Divider, Tooltip, Popover, PopoverTrigger, PopoverContent, Spinner, addToast } from "@heroui/react";
+import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, TableHeader, TableColumn, TableBody, TableRow, TableCell, Input, Button, RadioGroup, Radio, Chip, Pagination, Divider, Tooltip, Popover, PopoverTrigger, PopoverContent, Spinner, addToast, Link } from "@heroui/react";
 const Table = dynamic(() => import("@heroui/react").then((c) => c.Table), { ssr: false }); // Temp fix for issue 4385
 import React, { useMemo, useCallback, useState, useEffect } from "react";
 import { cn } from "@heroui/react";
 import { IconAdjustmentsHorizontal, IconArrowsLeftRight, IconChevronDown, IconChevronUp, IconCirclePlus, IconCircuitChangeover, IconInfoCircle, IconMenuDeep, IconPencil, IconReload, IconSearch, IconTrash } from "@tabler/icons-react";
-import { createOverlay, deleteOverlay, saveOverlay, getAllOverlays } from "@actions/database";
+import { createOverlay, deleteOverlay, saveOverlay, getAllOverlays, getUserPlan } from "@actions/database";
 
 import { CopyText } from "./copy-text";
 
@@ -402,8 +402,28 @@ export default function OverlayTable({ userid }: { userid: string }) {
 					color='primary'
 					endContent={<IconCirclePlus width={20} />}
 					isLoading={isLoading}
-					onPress={() => {
+					isDisabled={overlays === undefined}
+					onPress={async () => {
 						setIsLoading(true);
+
+						const plan = await getUserPlan(userid);
+						if (plan === "free") {
+							addToast({
+								title: "Upgrade Required",
+								description: (
+									<p>
+										To add an additional overlay, please{" "}
+										<Link color='warning' underline='always' href='/dashboard/settings'>
+											upgrade
+										</Link>{" "}
+										to <strong>Pro</strong>.
+									</p>
+								),
+								color: "warning",
+							});
+							setIsLoading(false);
+							return;
+						}
 
 						createOverlay(userid).then((overlay) => {
 							router.push(`/dashboard/overlay/${overlay.id}`);
@@ -414,7 +434,7 @@ export default function OverlayTable({ userid }: { userid: string }) {
 				</Button>
 			</div>
 		);
-	}, [overlays?.length, reloadOverlays, router, userid, isLoading]);
+	}, [overlays, reloadOverlays, router, userid, isLoading]);
 
 	const bottomContent = useMemo(() => {
 		return (

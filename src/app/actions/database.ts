@@ -58,6 +58,59 @@ export async function getUser(id: string): Promise<AuthenticatedUser | null> {
 	}
 }
 
+export async function getUserPlan(id: string): Promise<string | null> {
+	try {
+		const isAuthenticated = await validateAuth(true);
+		if (!isAuthenticated || isAuthenticated.id !== id) {
+			console.warn(`Unauthenticated "getUserPlan" API request for user id: ${id}`);
+			return null;
+		}
+
+		const user = await db.select().from(usersTable).where(eq(usersTable.id, id)).limit(1).execute();
+
+		if (user.length === 0) {
+			return null;
+		}
+
+		return user[0].plan;
+	} catch (error) {
+		console.error("Error fetching user plan:", error);
+		throw new Error("Failed to fetch user plan");
+	}
+}
+
+export async function setUserPlan(id: string): Promise<AuthenticatedUser | null> {
+	try {
+		const isAuthenticated = await validateAuth(true);
+		if (!isAuthenticated || isAuthenticated.id !== id) {
+			console.warn(`Unauthenticated "setUserPlan" API request for user id: ${id}`);
+			return null;
+		}
+
+		const token = await getAccessToken(id);
+		if (!token) {
+			console.error("No access token found for user:", id);
+			return null;
+		}
+
+		const plan = await getSubscriptionStatus(token.accessToken, id);
+
+		const user = await db
+			.update(usersTable)
+			.set({
+				plan: plan,
+			})
+			.where(eq(usersTable.id, id))
+			.returning()
+			.execute();
+
+		return user[0] || null;
+	} catch (error) {
+		console.error("Error setting user plan:", error);
+		throw new Error("Failed to set user plan");
+	}
+}
+
 export async function deleteUser(id: string): Promise<AuthenticatedUser | null> {
 	try {
 		const isAuthenticated = await validateAuth(true);

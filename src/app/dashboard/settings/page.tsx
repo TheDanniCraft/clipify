@@ -1,18 +1,22 @@
 "use client";
 
 import { validateAuth } from "@/app/actions/auth";
-import { deleteUser } from "@/app/actions/database";
+import { deleteUser, setUserPlan } from "@/app/actions/database";
 import ConfirmModal from "@/app/components/confirmModal";
 import DashboardNavbar from "@/app/components/dashboardNavbar";
 import { AuthenticatedUser } from "@/app/lib/types";
-import { addToast, Avatar, Button, Card, CardBody, CardHeader, Divider, Snippet, Spinner, Tooltip, useDisclosure } from "@heroui/react";
-import { IconInfoCircle, IconTrash } from "@tabler/icons-react";
+import { addToast, Avatar, Button, Card, CardBody, CardHeader, Divider, Modal, ModalBody, ModalContent, ModalHeader, Snippet, Spinner, Tooltip, useDisclosure } from "@heroui/react";
+import { IconArrowLeft, IconBrandTwitch, IconDiamondFilled, IconInfoCircle, IconRefresh, IconTrash } from "@tabler/icons-react";
+import Link from "next/link";
 import { redirect, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 export default function SettingsPage() {
 	const [user, setUser] = useState<AuthenticatedUser | null>(null);
-	const { isOpen, onOpen, onOpenChange } = useDisclosure();
+	const { isOpen: upgradeModalIsOpen, onOpen: upgradeModalOnOpen, onOpenChange: upgradeModalOnOpenChange } = useDisclosure();
+	const { isOpen: deleteModalIsOpen, onOpen: deleteModalOnOpen, onOpenChange: deleteModalOnOpenChange } = useDisclosure();
+	const [timer, setTimer] = useState<number>(0);
+
 	const router = useRouter();
 
 	useEffect(() => {
@@ -28,6 +32,15 @@ export default function SettingsPage() {
 		validateUser();
 	}, []);
 
+	useEffect(() => {
+		if (timer > 0) {
+			const interval = setInterval(() => {
+				setTimer((prev) => prev - 1);
+			}, 1000);
+			return () => clearInterval(interval);
+		}
+	}, [timer]);
+
 	if (!user) {
 		return (
 			<div className='flex items-center justify-center h-screen w-full'>
@@ -41,21 +54,24 @@ export default function SettingsPage() {
 			<DashboardNavbar user={user} title='Settings' tagline='Manage your settings'>
 				<Card className='mt-4'>
 					<CardHeader>
-						<div className='flex items-center gap-2 w-full justify-end'>
-							<div className=' items-center overflow-hidden'>
-								<Snippet
-									size='sm'
-									symbol='User ID:'
-									classNames={{
-										pre: "overflow-hidden whitespace-nowrap",
-									}}
-								>
-									{user.id}
-								</Snippet>
+						<div className='flex items-center gap-2 w-full justify-between'>
+							<Button isIconOnly variant='light' startContent={<IconArrowLeft />} onPress={() => router.back()} />
+							<div className='flex items-center gap-2'>
+								<div className='flex items-center overflow-hidden'>
+									<Snippet
+										size='sm'
+										symbol='User ID:'
+										classNames={{
+											pre: "overflow-hidden whitespace-nowrap",
+										}}
+									>
+										{user.id}
+									</Snippet>
+								</div>
+								<Tooltip content='If you contact support, please specify this user ID.'>
+									<IconInfoCircle size={20} className='text-default-400' />
+								</Tooltip>
 							</div>
-							<Tooltip content='If you contact support, please specify this user ID.'>
-								<IconInfoCircle size={20} className='text-default-400' />
-							</Tooltip>
 						</div>
 					</CardHeader>
 					<CardBody className='pl-4 pr-4 pt-0'>
@@ -68,9 +84,12 @@ export default function SettingsPage() {
 								</p>
 							</div>
 						</div>
-						<Divider />
-						<div className='flex pt-4 gap-2 justify-end'>
-							<Button color='danger' startContent={<IconTrash />} onPress={onOpen}>
+						<Button color='primary' startContent={<IconDiamondFilled />} isDisabled={user.plan != "free"} onPress={upgradeModalOnOpen}>
+							Upgrade Account
+						</Button>
+						<Divider className='my-4' />
+						<div className='flex gap-2 justify-end'>
+							<Button color='danger' startContent={<IconTrash />} onPress={deleteModalOnOpen}>
 								Delete Account
 							</Button>
 						</div>
@@ -78,9 +97,54 @@ export default function SettingsPage() {
 				</Card>
 			</DashboardNavbar>
 
+			<Modal isOpen={upgradeModalIsOpen} onOpenChange={upgradeModalOnOpenChange}>
+				<ModalContent>
+					<ModalHeader>Upgrade Account</ModalHeader>
+					<ModalBody>
+						<p className='text-muted-foreground'>Upgrade your account to unlock advanced features and support the development of Clipify. Your support helps us keep improving the service.</p>
+						<p className='text-xs text-default-400'>Currently, we use Twitch subscriptions for premium access. In the future, we plan to add a payment gateway, which will also help reduce costs for users.</p>
+						<p>
+							Plan: <span className={`${user.plan === "free" ? "text-green-600" : "text-primary-400"} capitalize`}>{user.plan}</span>
+						</p>
+						<Button
+							isDisabled={timer != 0 || user.plan !== "free"}
+							startContent={<IconRefresh />}
+							onPress={async () => {
+								await setTimer(5);
+
+								await addToast({
+									title: "Refreshing Twitch Status",
+									description: "Please wait while we refresh your Twitch subscription status.",
+									color: "foreground",
+								});
+
+								setUserPlan(user.id).then((updatedUser) => {
+									if (updatedUser && updatedUser.plan !== "free") {
+										addToast({
+											title: "Account upgraded!",
+											description: "Your account has been successfully upgraded. Thank you for your support!",
+											color: "success",
+										});
+										setUser(updatedUser);
+									}
+								});
+							}}
+						>
+							Refresh Twitch Status
+							{timer != 0 && <span className='ml-2 text-xs text-default-400'>( 00:0{timer})</span>}
+						</Button>
+
+						<Divider className='my-4' />
+						<Button color='primary' as={Link} href='https://www.twitch.tv/subs/thedannicraft' startContent={<IconBrandTwitch />} target='_blank'>
+							Subscribe to thedannicraft on Twitch
+						</Button>
+					</ModalBody>
+				</ModalContent>
+			</Modal>
+
 			<ConfirmModal
-				isOpen={isOpen}
-				onOpenChange={onOpenChange}
+				isOpen={deleteModalIsOpen}
+				onOpenChange={deleteModalOnOpenChange}
 				keyword={user.username}
 				onConfirm={async () => {
 					addToast({
