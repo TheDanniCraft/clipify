@@ -3,7 +3,7 @@ import { withPlausibleProxy } from "next-plausible";
 import { withSentryConfig } from "@sentry/nextjs";
 
 const nextConfig: NextConfig = {
-	/* config options here */
+	output: "standalone",
 };
 
 export default withSentryConfig(
