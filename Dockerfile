@@ -44,4 +44,4 @@ ENV PORT=3000
 
 ENV HOSTNAME="0.0.0.0"
 
-CMD ["infisical", "run", "--projectId", "4bea168c-8d4c-4086-b755-f04fdc5305a1", "--", "bun", "server.js"]
+CMD ["infisical", "run", "--projectId", "4bea168c-8d4c-4086-b755-f04fdc5305a1", "--command", "bun run db:migrate && bun server.js"]
