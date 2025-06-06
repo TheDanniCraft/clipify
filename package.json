@@ -8,7 +8,7 @@
 		"app:start": "next start",
 		"app:lint": "next lint",
 		"db:push": "infisical run --env=dev -- drizzle-kit push",
-		"db:generate": "infisical run --env=prod -- drizzle-kit generate",
+		"db:generate": "drizzle-kit generate",
 		"db:migrate": "drizzle-kit migrate",
 		"db:studio": "infisical run --env=dev -- drizzle-kit studio"
 	},
@@ -33,11 +33,12 @@
 	"devDependencies": {
 		"@eslint/eslintrc": "^3",
 		"@tailwindcss/postcss": "^4",
+		"@types/jsonwebtoken": "^9.0.9",
 		"@types/node": "^20",
 		"@types/pg": "^8.11.13",
 		"@types/react": "^19",
 		"@types/react-dom": "^19",
-		"@types/jsonwebtoken": "^9.0.9",
+		"@vercel/nft": "^0.29.4",
 		"drizzle-kit": "^0.31.0",
 		"eslint": "^9",
 		"eslint-config-next": "15.3.1",

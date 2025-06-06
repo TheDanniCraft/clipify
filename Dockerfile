@@ -35,6 +35,8 @@ RUN adduser --system --uid 1001 nextjs
 
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/drizzle.config.ts ./
+COPY --from=builder --chown=nextjs:nodejs /app/drizzle ./drizzle
 
 USER nextjs
 
@@ -44,4 +46,4 @@ ENV PORT=3000
 
 ENV HOSTNAME="0.0.0.0"
 
-CMD ["infisical", "run", "--projectId", "4bea168c-8d4c-4086-b755-f04fdc5305a1", "--command", "bun run db:migrate && bun server.js"]
+CMD ["infisical", "run", "--projectId", "4bea168c-8d4c-4086-b755-f04fdc5305a1", "--command", "bun run db:migrate && bun server.js || sleep infinity"]
