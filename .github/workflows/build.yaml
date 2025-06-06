@@ -100,12 +100,21 @@ jobs:
       - name: 📦 Create manifest list and push
         working-directory: /tmp/digests
         run: |
+          TAGS="-t ghcr.io/${{ env.REPO_NAME }}:${{ github.event.release.tag_name }}"
+          if [ "${{ github.event.release.prerelease }}" = "false" ]; then
+            TAGS="$TAGS -t ghcr.io/${{ env.REPO_NAME }}:latest"
+          else
+            TAGS="$TAGS -t ghcr.io/${{ env.REPO_NAME }}:nightly"
+          fi
           docker buildx imagetools create \
-            -t ghcr.io/${{ env.REPO_NAME }}:${{ github.event.release.tag_name }} \
-            -t ghcr.io/${{ env.REPO_NAME }}:latest \
+            $TAGS \
             $(printf 'ghcr.io/${{ env.REPO_NAME }}@sha256:%s ' *)
 
       - name: 🔍 Inspect image
         run: |
           docker buildx imagetools inspect ghcr.io/${{ env.REPO_NAME }}:${{ github.event.release.tag_name }}
-          docker buildx imagetools inspect ghcr.io/${{ env.REPO_NAME }}:latest
+          if [ "${{ github.event.release.prerelease }}" = "false" ]; then
+            docker buildx imagetools inspect ghcr.io/${{ env.REPO_NAME }}:latest
+          else
+            docker buildx imagetools inspect ghcr.io/${{ env.REPO_NAME }}:nightly
+          fi
