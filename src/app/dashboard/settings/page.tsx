@@ -10,6 +10,7 @@ import { IconArrowLeft, IconBrandTwitch, IconDiamondFilled, IconInfoCircle, Icon
 import Link from "next/link";
 import { redirect, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import Footer from "@components/footer";
 
 export default function SettingsPage() {
 	const [user, setUser] = useState<AuthenticatedUser | null>(null);
@@ -157,6 +158,7 @@ export default function SettingsPage() {
 					router.push("/logout");
 				}}
 			/>
+			<Footer />
 		</>
 	);
 }

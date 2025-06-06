@@ -8,6 +8,7 @@ import { IconThumbUp, IconArrowRight, IconPlugConnected, IconLayersDifference, I
 import FeatureCard from "@components/featureCard";
 import TiersComponent from "@components/Pricing";
 import faqs from "@components/LandingPage/faqs";
+import Footer from "@components/footer";
 
 export default function Home() {
 	return (
@@ -188,6 +189,7 @@ export default function Home() {
 					</Accordion>
 				</div>
 			</div>
+			<Footer />
 		</>
 	);
 }

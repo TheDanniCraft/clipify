@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Providers } from "./providers";
 import PlausibleProvider from "next-plausible";
-import Footer from "@components/footer";
 
 export const metadata: Metadata = {
 	title: "Clipify.us",
@@ -17,10 +16,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
 				<meta name='apple-mobile-web-app-title' content='Clipify' />
 			</head>
 			<body>
-				<Providers>
-					{children}
-					<Footer />
-				</Providers>
+				<Providers>{children}</Providers>
 			</body>
 		</html>
 	);
