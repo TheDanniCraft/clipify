@@ -1,4 +1,4 @@
-import { varchar, pgTable } from "drizzle-orm/pg-core";
+import { varchar, pgTable, date } from "drizzle-orm/pg-core";
 import type { Role, Plan, StatusOptions, OverlayType } from "@types";
 import { uuid } from "drizzle-orm/pg-core";
 
@@ -31,4 +31,14 @@ export const overlaysTable = pgTable("overlays", {
 	name: varchar("name").notNull(),
 	status: varchar("status").$type<StatusOptions>().notNull(),
 	type: varchar("type").$type<OverlayType>().notNull(),
+});
+
+export const subscriptionsTable = pgTable("subscriptions", {
+	id: varchar("id")
+		.notNull()
+		.references(() => usersTable.id, { onDelete: "cascade" })
+		.primaryKey(),
+	customerId: varchar("customer_id"),
+	subscriptionId: varchar("subscription_id"),
+	paidUntil: date("paid_until").$type<Date>(),
 });

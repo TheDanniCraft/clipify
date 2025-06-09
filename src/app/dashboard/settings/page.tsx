@@ -6,11 +6,11 @@ import ConfirmModal from "@/app/components/confirmModal";
 import DashboardNavbar from "@/app/components/dashboardNavbar";
 import { AuthenticatedUser } from "@/app/lib/types";
 import { addToast, Avatar, Button, Card, CardBody, CardHeader, Divider, Modal, ModalBody, ModalContent, ModalHeader, Snippet, Spinner, Tooltip, useDisclosure } from "@heroui/react";
-import { IconArrowLeft, IconBrandTwitch, IconDiamondFilled, IconInfoCircle, IconRefresh, IconTrash } from "@tabler/icons-react";
-import Link from "next/link";
+import { IconArrowLeft, IconDiamondFilled, IconInfoCircle, IconRefresh, IconTrash } from "@tabler/icons-react";
 import { redirect, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Footer from "@components/footer";
+import { initSubscription } from "@/app/actions/payments";
 
 export default function SettingsPage() {
 	const [user, setUser] = useState<AuthenticatedUser | null>(null);
@@ -90,7 +90,21 @@ export default function SettingsPage() {
 						</Button>
 						<Divider className='my-4' />
 						<div className='flex gap-2 justify-end'>
-							<Button color='danger' startContent={<IconTrash />} onPress={deleteModalOnOpen}>
+							<Button
+								color='danger'
+								startContent={<IconTrash />}
+								onPress={() => {
+									if (user.plan !== "free") {
+										addToast({
+											title: "Error",
+											description: "You must be on the free plan to delete your account. Cancel your subscription and wait for it to expire before deleting your account.",
+											color: "danger",
+										});
+										return;
+									}
+									deleteModalOnOpen();
+								}}
+							>
 								Delete Account
 							</Button>
 						</div>
@@ -103,7 +117,6 @@ export default function SettingsPage() {
 					<ModalHeader>Upgrade Account</ModalHeader>
 					<ModalBody>
 						<p className='text-muted-foreground'>Upgrade your account to unlock advanced features and support the development of Clipify. Your support helps us keep improving the service.</p>
-						<p className='text-xs text-default-400'>Currently, we use Twitch subscriptions for premium access. In the future, we plan to add a payment gateway, which will also help reduce costs for users.</p>
 						<p>
 							Plan: <span className={`${user.plan === "free" ? "text-green-600" : "text-primary-400"} capitalize`}>{user.plan}</span>
 						</p>
@@ -114,8 +127,8 @@ export default function SettingsPage() {
 								await setTimer(5);
 
 								await addToast({
-									title: "Refreshing Twitch Status",
-									description: "Please wait while we refresh your Twitch subscription status.",
+									title: "Refreshing Subscription Status",
+									description: "Please wait while we refresh your subscription status.",
 									color: "foreground",
 								});
 
@@ -131,13 +144,31 @@ export default function SettingsPage() {
 								});
 							}}
 						>
-							Refresh Twitch Status
+							Refresh Subscription Status
 							{timer != 0 && <span className='ml-2 text-xs text-default-400'>( 00:0{timer})</span>}
 						</Button>
 
-						<Divider className='my-4' />
-						<Button color='primary' as={Link} href='https://www.twitch.tv/subs/thedannicraft' startContent={<IconBrandTwitch />} target='_blank'>
-							Subscribe to thedannicraft on Twitch
+						<Divider className='my-2' />
+						<Button
+							color='primary'
+							className='mb-4'
+							startContent={<IconDiamondFilled />}
+							isDisabled={user.plan !== "free"}
+							onPress={async () => {
+								const payment = await initSubscription(user);
+
+								if (payment) {
+									window.open(payment._links.checkout?.href, "_blank", "noopener,noreferrer,width=600,height=600");
+								} else {
+									addToast({
+										title: "Error",
+										description: "You already have an active subscription or an error occurred while creating the subscription. Try to refresh your subscription status.",
+										color: "danger",
+									});
+								}
+							}}
+						>
+							Subscribe to the Pro Plan
 						</Button>
 					</ModalBody>
 				</ModalContent>

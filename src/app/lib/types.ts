@@ -1,6 +1,6 @@
 import type { SVGProps } from "react";
 import { InferSelectModel } from "drizzle-orm";
-import { overlaysTable, tokenTable, usersTable } from "@/db/schema";
+import { overlaysTable, tokenTable, usersTable, subscriptionsTable } from "@/db/schema";
 
 export class RateLimitError extends Error {
 	constructor() {
@@ -56,17 +56,6 @@ export type TwitchUserResponse = {
 	email: string;
 };
 
-export type TwitchSubscriptioResponse = {
-	broadcaster_id: string;
-	broadcaster_login: string;
-	broadcaster_name: string;
-	gifter_id?: string;
-	gifter_login?: string;
-	gifter_name?: string;
-	is_gift: boolean;
-	tier: "1000" | "2000" | "3000";
-};
-
 export type TwitchClipResponse = {
 	id: string;
 	url: string;
@@ -120,6 +109,8 @@ export type StatusOptions = "active" | "paused";
 export type Overlay = InferSelectModel<typeof overlaysTable>;
 
 export type OverlayType = "1" | "7" | "30" | "90" | "180" | "365" | "Featured" | "All";
+
+export type Subscription = InferSelectModel<typeof subscriptionsTable>;
 
 export type TwitchClipBody = {
 	broadcaster_id: string;

@@ -1,17 +1,19 @@
 "use server";
 
 import { drizzle } from "drizzle-orm/node-postgres";
-import { tokenTable, usersTable, overlaysTable } from "@/db/schema";
-import { AuthenticatedUser, Overlay, TwitchUserResponse, TwitchTokenApiResponse, UserToken } from "@types";
-import { getSubscriptionStatus, getUserDetails, refreshAccessToken } from "@actions/twitch";
+import { tokenTable, usersTable, overlaysTable, subscriptionsTable } from "@/db/schema";
+import { AuthenticatedUser, Overlay, TwitchUserResponse, UserToken, TwitchTokenApiResponse } from "@types";
+import { getUserDetails, refreshAccessToken } from "@actions/twitch";
 import { eq } from "drizzle-orm";
 import { validateAuth } from "@actions/auth";
+import { getSubscription } from "@actions/payments";
+import { Customer, Subscription } from "@mollie/api-client";
 
 const db = drizzle(process.env.DATABASE_URL!);
 
-async function setUser(user: TwitchUserResponse, token: TwitchTokenApiResponse): Promise<AuthenticatedUser> {
+async function setUser(user: TwitchUserResponse): Promise<AuthenticatedUser> {
 	try {
-		const plan = await getSubscriptionStatus(token.access_token, user.id);
+		const plan = await checkSubscriptionStatus(user.id);
 
 		return await db
 			.insert(usersTable)
@@ -58,6 +60,60 @@ export async function getUser(id: string): Promise<AuthenticatedUser | null> {
 	}
 }
 
+export async function getSubscriptionUser(id: string): Promise<AuthenticatedUser | null> {
+	try {
+		const user = await db.select().from(usersTable).where(eq(usersTable.id, id)).limit(1).execute();
+
+		return user[0] || null;
+	} catch (error) {
+		console.error("Error fetching user:", error);
+		throw new Error("Failed to fetch user");
+	}
+}
+
+export async function deleteUser(id: string): Promise<AuthenticatedUser | null> {
+	try {
+		const isAuthenticated = await validateAuth(true);
+		if (!isAuthenticated || isAuthenticated.id !== id) {
+			console.warn(`Unauthenticated "deleteUser" API request for user id: ${id}`);
+			return null;
+		}
+
+		const user = await db.delete(usersTable).where(eq(usersTable.id, id)).returning().execute();
+
+		return user[0];
+	} catch (error) {
+		console.error("Error deleting user:", error);
+		throw new Error("Failed to delete user");
+	}
+}
+
+export async function checkSubscriptionStatus(userId: string) {
+	try {
+		const databaseSubscription = await db.select().from(subscriptionsTable).where(eq(subscriptionsTable.id, userId)).limit(1).execute();
+		const subscriptionData = databaseSubscription[0];
+
+		if (!subscriptionData || !subscriptionData.subscriptionId || !subscriptionData.customerId) {
+			return "free";
+		}
+
+		const subscription = await getSubscription(subscriptionData.subscriptionId, subscriptionData.customerId);
+
+		if (!subscription) {
+			return "free";
+		}
+
+		if (subscription.status === "active") {
+			return "paid";
+		}
+
+		return "free";
+	} catch (error) {
+		console.error("Error fetching user plan:", error);
+		throw new Error("Failed to fetch user plan");
+	}
+}
+
 export async function getUserPlan(id: string): Promise<string | null> {
 	try {
 		const isAuthenticated = await validateAuth(true);
@@ -86,14 +142,7 @@ export async function setUserPlan(id: string): Promise<AuthenticatedUser | null>
 			console.warn(`Unauthenticated "setUserPlan" API request for user id: ${id}`);
 			return null;
 		}
-
-		const token = await getAccessToken(id);
-		if (!token) {
-			console.error("No access token found for user:", id);
-			return null;
-		}
-
-		const plan = await getSubscriptionStatus(token.accessToken, id);
+		const plan = await checkSubscriptionStatus(isAuthenticated.id);
 
 		const user = await db
 			.update(usersTable)
@@ -111,23 +160,6 @@ export async function setUserPlan(id: string): Promise<AuthenticatedUser | null>
 	}
 }
 
-export async function deleteUser(id: string): Promise<AuthenticatedUser | null> {
-	try {
-		const isAuthenticated = await validateAuth(true);
-		if (!isAuthenticated || isAuthenticated.id !== id) {
-			console.warn(`Unauthenticated "deleteUser" API request for user id: ${id}`);
-			return null;
-		}
-
-		const user = await db.delete(usersTable).where(eq(usersTable.id, id)).returning().execute();
-
-		return user[0];
-	} catch (error) {
-		console.error("Error deleting user:", error);
-		throw new Error("Failed to delete user");
-	}
-}
-
 export async function setAccessToken(token: TwitchTokenApiResponse): Promise<AuthenticatedUser | null> {
 	try {
 		const user = await getUserDetails(token.access_token);
@@ -135,7 +167,7 @@ export async function setAccessToken(token: TwitchTokenApiResponse): Promise<Aut
 			throw new Error("Failed to get user details");
 		}
 
-		const dbUser = await setUser(user, token);
+		const dbUser = await setUser(user);
 
 		const expiresAt = new Date(Date.now() + token.expires_in * 1000);
 
@@ -164,6 +196,45 @@ export async function setAccessToken(token: TwitchTokenApiResponse): Promise<Aut
 	} catch (error) {
 		console.error("Error setting access token:", error);
 		throw new Error("Failed to set access token");
+	}
+}
+
+export async function getSubscriptionData(userId: string) {
+	try {
+		const subscription = await db.select().from(subscriptionsTable).where(eq(subscriptionsTable.id, userId)).limit(1).execute();
+
+		if (subscription.length === 0) {
+			return null;
+		}
+
+		return subscription[0];
+	} catch (error) {
+		console.error("Error fetching subscription:", error);
+		throw new Error("Failed to fetch subscription");
+	}
+}
+
+export async function setSubscriptionData(userId: string, customer: Customer, subscription?: Subscription) {
+	try {
+		await db
+			.insert(subscriptionsTable)
+			.values({
+				id: userId,
+				customerId: customer.id,
+				subscriptionId: subscription ? subscription.id : null,
+				paidUntil: subscription?.nextPaymentDate ? new Date(subscription.nextPaymentDate) : null,
+			})
+			.onConflictDoUpdate({
+				target: subscriptionsTable.id,
+				set: {
+					customerId: customer.id,
+					subscriptionId: subscription ? subscription.id : null,
+					paidUntil: subscription?.nextPaymentDate ? new Date(subscription.nextPaymentDate) : null,
+				},
+			});
+	} catch (error) {
+		console.error("Error setting subscription data:", error);
+		throw new Error("Failed to set subscription data");
 	}
 }
 
