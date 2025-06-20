@@ -1,16 +1,16 @@
 "use client";
 
 import { validateAuth } from "@/app/actions/auth";
-import { deleteUser, setUserPlan } from "@/app/actions/database";
+import { deleteUser } from "@/app/actions/database";
 import ConfirmModal from "@/app/components/confirmModal";
 import DashboardNavbar from "@/app/components/dashboardNavbar";
 import { AuthenticatedUser } from "@/app/lib/types";
 import { addToast, Avatar, Button, Card, CardBody, CardHeader, Divider, Modal, ModalBody, ModalContent, ModalHeader, Snippet, Spinner, Tooltip, useDisclosure } from "@heroui/react";
-import { IconArrowLeft, IconBrandTwitch, IconDiamondFilled, IconInfoCircle, IconRefresh, IconTrash } from "@tabler/icons-react";
-import Link from "next/link";
+import { IconArrowLeft, IconCreditCardFilled, IconDiamondFilled, IconInfoCircle, IconTrash } from "@tabler/icons-react";
 import { redirect, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Footer from "@components/footer";
+import { generatePaymentLink, checkIfSubscriptionExists, getPortalLink } from "@/app/actions/subscription";
 
 export default function SettingsPage() {
 	const [user, setUser] = useState<AuthenticatedUser | null>(null);
@@ -85,14 +85,51 @@ export default function SettingsPage() {
 								</p>
 							</div>
 						</div>
-						<Button color='primary' startContent={<IconDiamondFilled />} isDisabled={user.plan != "free"} onPress={upgradeModalOnOpen}>
-							Upgrade Account
-						</Button>
+						{user.plan === "free" && (
+							<Button color='primary' startContent={<IconDiamondFilled />} isDisabled={user.plan != "free"} onPress={upgradeModalOnOpen}>
+								Upgrade Account
+							</Button>
+						)}
+						{user.plan !== "free" && (
+							<Button
+								color='primary'
+								startContent={<IconCreditCardFilled />}
+								onPress={async () => {
+									const link = await getPortalLink(user);
+									if (link) {
+										window.location.href = link;
+									} else {
+										addToast({
+											title: "Error",
+											description: "Failed to generate portal link. Please try again later.",
+											color: "danger",
+										});
+									}
+								}}
+							>
+								Manage Subscription
+							</Button>
+						)}
 						<Divider className='my-4' />
-						<div className='flex gap-2 justify-end'>
-							<Button color='danger' startContent={<IconTrash />} onPress={deleteModalOnOpen}>
+						<div className='flex  flex-col gap-2 justify-end'>
+							<Button
+								color='danger'
+								startContent={<IconTrash />}
+								isDisabled={user.plan !== "free"}
+								onPress={async () => {
+									if (await checkIfSubscriptionExists(user)) {
+										return addToast({
+											title: "Active Subscription",
+											description: "You have an active subscription. Please cancel it before deleting your account.",
+											color: "danger",
+										});
+									}
+									deleteModalOnOpen();
+								}}
+							>
 								Delete Account
 							</Button>
+							{user.plan !== "free" && <span className='text-sm text-gray-500'>You must cancel your subscription and wait for it to expire before deleting your account.</span>}
 						</div>
 					</CardBody>
 				</Card>
@@ -103,41 +140,31 @@ export default function SettingsPage() {
 					<ModalHeader>Upgrade Account</ModalHeader>
 					<ModalBody>
 						<p className='text-muted-foreground'>Upgrade your account to unlock advanced features and support the development of Clipify. Your support helps us keep improving the service.</p>
-						<p className='text-xs text-default-400'>Currently, we use Twitch subscriptions for premium access. In the future, we plan to add a payment gateway, which will also help reduce costs for users.</p>
 						<p>
 							Plan: <span className={`${user.plan === "free" ? "text-green-600" : "text-primary-400"} capitalize`}>{user.plan}</span>
 						</p>
+
+						<Divider />
 						<Button
-							isDisabled={timer != 0 || user.plan !== "free"}
-							startContent={<IconRefresh />}
+							className='mb-2'
+							color='primary'
 							onPress={async () => {
-								await setTimer(5);
+								const link = await generatePaymentLink(user);
 
-								await addToast({
-									title: "Refreshing Twitch Status",
-									description: "Please wait while we refresh your Twitch subscription status.",
-									color: "foreground",
-								});
-
-								setUserPlan(user.id).then((updatedUser) => {
-									if (updatedUser && updatedUser.plan !== "free") {
-										addToast({
-											title: "Account upgraded!",
-											description: "Your account has been successfully upgraded. Thank you for your support!",
-											color: "success",
-										});
-										setUser(updatedUser);
-									}
-								});
+								if (link) {
+									window.location.href = link;
+								} else {
+									addToast({
+										title: "Error",
+										description: "Failed to generate payment link. Please try again later.",
+										color: "danger",
+									});
+								}
 							}}
+							startContent={<IconDiamondFilled />}
+							isDisabled={user.plan !== "free"}
 						>
-							Refresh Twitch Status
-							{timer != 0 && <span className='ml-2 text-xs text-default-400'>( 00:0{timer})</span>}
-						</Button>
-
-						<Divider className='my-4' />
-						<Button color='primary' as={Link} href='https://www.twitch.tv/subs/thedannicraft' startContent={<IconBrandTwitch />} target='_blank'>
-							Subscribe to thedannicraft on Twitch
+							Upgrade to Pro
 						</Button>
 					</ModalBody>
 				</ModalContent>

@@ -9,6 +9,7 @@ export const usersTable = pgTable("users", {
 	avatar: varchar("avatar").notNull(),
 	role: varchar("role").$type<Role>().notNull(),
 	plan: varchar("plan").$type<Plan>().notNull(),
+	stripeCustomerId: varchar("stripe_customer_id"),
 });
 
 export const tokenTable = pgTable("tokens", {

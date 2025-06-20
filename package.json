@@ -28,7 +28,8 @@
 		"pg": "^8.14.1",
 		"rate-limiter-flexible": "^7.1.0",
 		"react": "^19.0.0",
-		"react-dom": "^19.0.0"
+		"react-dom": "^19.0.0",
+		"stripe": "^18.2.1"
 	},
 	"devDependencies": {
 		"@eslint/eslintrc": "^3",

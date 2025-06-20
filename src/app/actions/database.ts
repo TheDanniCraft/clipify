@@ -2,17 +2,15 @@
 
 import { drizzle } from "drizzle-orm/node-postgres";
 import { tokenTable, usersTable, overlaysTable } from "@/db/schema";
-import { AuthenticatedUser, Overlay, TwitchUserResponse, TwitchTokenApiResponse, UserToken } from "@types";
-import { getSubscriptionStatus, getUserDetails, refreshAccessToken } from "@actions/twitch";
+import { AuthenticatedUser, Overlay, TwitchUserResponse, TwitchTokenApiResponse, UserToken, Plan, Role } from "@types";
+import { getUserDetails, refreshAccessToken } from "@actions/twitch";
 import { eq } from "drizzle-orm";
 import { validateAuth } from "@actions/auth";
 
 const db = drizzle(process.env.DATABASE_URL!);
 
-async function setUser(user: TwitchUserResponse, token: TwitchTokenApiResponse): Promise<AuthenticatedUser> {
+async function setUser(user: TwitchUserResponse): Promise<AuthenticatedUser> {
 	try {
-		const plan = await getSubscriptionStatus(token.access_token, user.id);
-
 		return await db
 			.insert(usersTable)
 			.values({
@@ -20,8 +18,8 @@ async function setUser(user: TwitchUserResponse, token: TwitchTokenApiResponse):
 				username: user.login,
 				email: user.email,
 				avatar: user.profile_image_url,
-				role: "user",
-				plan: plan,
+				role: Role.User,
+				plan: Plan.Free,
 			})
 			.onConflictDoUpdate({
 				target: usersTable.id,
@@ -29,8 +27,6 @@ async function setUser(user: TwitchUserResponse, token: TwitchTokenApiResponse):
 					username: user.login,
 					email: user.email,
 					avatar: user.profile_image_url,
-					role: "user",
-					plan: plan,
 				},
 			})
 			.returning()
@@ -79,38 +75,6 @@ export async function getUserPlan(id: string): Promise<string | null> {
 	}
 }
 
-export async function setUserPlan(id: string): Promise<AuthenticatedUser | null> {
-	try {
-		const isAuthenticated = await validateAuth(true);
-		if (!isAuthenticated || isAuthenticated.id !== id) {
-			console.warn(`Unauthenticated "setUserPlan" API request for user id: ${id}`);
-			return null;
-		}
-
-		const token = await getAccessToken(id);
-		if (!token) {
-			console.error("No access token found for user:", id);
-			return null;
-		}
-
-		const plan = await getSubscriptionStatus(token.accessToken, id);
-
-		const user = await db
-			.update(usersTable)
-			.set({
-				plan: plan,
-			})
-			.where(eq(usersTable.id, id))
-			.returning()
-			.execute();
-
-		return user[0] || null;
-	} catch (error) {
-		console.error("Error setting user plan:", error);
-		throw new Error("Failed to set user plan");
-	}
-}
-
 export async function deleteUser(id: string): Promise<AuthenticatedUser | null> {
 	try {
 		const isAuthenticated = await validateAuth(true);
@@ -128,6 +92,36 @@ export async function deleteUser(id: string): Promise<AuthenticatedUser | null> 
 	}
 }
 
+export async function updateUserSubscription(userId: string, customerId: string, plan: Plan): Promise<AuthenticatedUser | null> {
+	try {
+		const user = await db
+			.update(usersTable)
+			.set({
+				plan,
+				stripeCustomerId: customerId,
+			})
+			.where(eq(usersTable.id, userId))
+			.returning()
+			.execute();
+
+		return user[0];
+	} catch (error) {
+		console.error("Error updating user subscription:", error);
+		throw new Error("Failed to update user subscription");
+	}
+}
+
+export async function getUserByCustomerId(customerId: string): Promise<AuthenticatedUser | null> {
+	try {
+		const user = await db.select().from(usersTable).where(eq(usersTable.stripeCustomerId, customerId)).limit(1).execute();
+
+		return user[0] || null;
+	} catch (error) {
+		console.error("Error fetching user by customer ID:", error);
+		return null;
+	}
+}
+
 export async function setAccessToken(token: TwitchTokenApiResponse): Promise<AuthenticatedUser | null> {
 	try {
 		const user = await getUserDetails(token.access_token);
@@ -135,7 +129,7 @@ export async function setAccessToken(token: TwitchTokenApiResponse): Promise<Aut
 			throw new Error("Failed to get user details");
 		}
 
-		const dbUser = await setUser(user, token);
+		const dbUser = await setUser(user);
 
 		const expiresAt = new Date(Date.now() + token.expires_in * 1000);
 

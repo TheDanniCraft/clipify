@@ -56,17 +56,6 @@ export type TwitchUserResponse = {
 	email: string;
 };
 
-export type TwitchSubscriptioResponse = {
-	broadcaster_id: string;
-	broadcaster_login: string;
-	broadcaster_name: string;
-	gifter_id?: string;
-	gifter_login?: string;
-	gifter_name?: string;
-	is_gift: boolean;
-	tier: "1000" | "2000" | "3000";
-};
-
 export type TwitchClipResponse = {
 	id: string;
 	url: string;
@@ -108,8 +97,14 @@ export type TwitchClipGqlResponse = Array<{
 	};
 }>;
 
-export type Role = "user" | "admin";
-export type Plan = "free" | "paid";
+export enum Role {
+	User = "user",
+	Admin = "admin",
+}
+export enum Plan {
+	Free = "free",
+	Pro = "pro",
+}
 
 export type AuthenticatedUser = InferSelectModel<typeof usersTable>;
 

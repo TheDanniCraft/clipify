@@ -1,7 +1,7 @@
 "use server";
 
 import axios from "axios";
-import { AuthenticatedUser, Game, Overlay, Plan, TwitchApiResponse, TwitchClip, TwitchClipBody, TwitchClipResponse, TwitchSubscriptioResponse, TwitchTokenApiResponse, TwitchUserResponse } from "@types";
+import { AuthenticatedUser, Game, Overlay, TwitchApiResponse, TwitchClip, TwitchClipBody, TwitchClipResponse, TwitchTokenApiResponse, TwitchUserResponse } from "@types";
 import { getAccessToken } from "@actions/database";
 
 export async function logTwitchError(context: string, error: unknown) {
@@ -79,33 +79,6 @@ export async function verifyToken(user: AuthenticatedUser) {
 		return true;
 	} catch {
 		return false;
-	}
-}
-
-export async function getSubscriptionStatus(accessToken: string, userId: string): Promise<Plan> {
-	const url = "https://api.twitch.tv/helix/subscriptions/user";
-	try {
-		const response = await axios.get<TwitchApiResponse<TwitchSubscriptioResponse>>(url, {
-			headers: {
-				Authorization: `Bearer ${accessToken}`,
-				"Client-Id": process.env.TWITCH_CLIENT_ID || "",
-			},
-			params: {
-				broadcaster_id: "274252231",
-				user_id: userId,
-			},
-		});
-
-		if (response.data.data.length > 0) {
-			const subscription = response.data.data[0];
-			if (subscription.tier === "1000" || subscription.tier === "2000" || subscription.tier === "3000") {
-				return "paid";
-			}
-		}
-		return "free";
-	} catch (error) {
-		logTwitchError("Error fetching subscription status", error);
-		return "free";
 	}
 }
 
