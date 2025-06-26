@@ -12,9 +12,14 @@ const PRODUCTS = {
 	},
 };
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "");
+let stripe: Stripe | null = null;
 
 export async function getStripe() {
+	if (stripe) {
+		return stripe;
+	}
+	stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "");
+
 	return stripe;
 }
 
@@ -28,6 +33,8 @@ export async function checkIfSubscriptionExists(user: AuthenticatedUser) {
 		return false;
 	}
 
+	const stripe = await getStripe();
+
 	const subscriptions = await stripe.subscriptions.list({
 		customer: user.stripeCustomerId,
 		status: "active",
@@ -38,6 +45,8 @@ export async function checkIfSubscriptionExists(user: AuthenticatedUser) {
 
 export async function generatePaymentLink(user: AuthenticatedUser) {
 	const products = await getPlans();
+
+	const stripe = await getStripe();
 
 	const session = await stripe.checkout.sessions.create({
 		line_items: [{ price: products.id, quantity: 1 }],
@@ -58,6 +67,8 @@ export async function getPortalLink(user: AuthenticatedUser) {
 	if (!user.stripeCustomerId) {
 		throw new Error("User does not have a Stripe customer ID");
 	}
+
+	const stripe = await getStripe();
 
 	const session = await stripe.billingPortal.sessions.create({
 		customer: user.stripeCustomerId,
