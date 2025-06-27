@@ -2,7 +2,7 @@
 
 import { IconMoonFilled, IconSunFilled } from "@tabler/icons-react";
 import { useTheme } from "next-themes";
-import { Avatar, Badge, Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Navbar, NavbarBrand, NavbarContent, NavbarItem, Spacer } from "@heroui/react";
+import { Avatar, Badge, Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Link, Navbar, NavbarBrand, NavbarContent, NavbarItem, Spacer } from "@heroui/react";
 import { AuthenticatedUser } from "@types";
 import Logo from "@components/logo";
 import { useRouter } from "next/navigation";
@@ -22,9 +22,11 @@ export default function DashboardNavbar({ children, user, title, tagline }: { ch
 				height='64px'
 			>
 				<NavbarBrand>
-					<Logo width={30} />
-					<Spacer x={2} />
-					<p className='font-bold text-white'>Clipify</p>
+					<Link href='/dashboard'>
+						<Logo width={30} />
+						<Spacer x={2} />
+						<p className='font-bold text-white'>Clipify</p>
+					</Link>
 				</NavbarBrand>
 				<NavbarContent className='ml-auto h-12 max-w-fit items-center gap-0' justify='end'>
 					<NavbarItem>

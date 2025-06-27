@@ -2,7 +2,7 @@
 
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
-import { getUserByCustomerId, updateUserSubscription } from "@/app/actions/database";
+import { downGradeOverlay, getUserByCustomerId, updateUserSubscription } from "@/app/actions/database";
 import { getPlans, getStripe } from "@/app/actions/subscription";
 import { Plan } from "@/app/lib/types";
 import Stripe from "stripe";
@@ -91,8 +91,10 @@ export async function POST(req: Request) {
 					console.error("No user found for subscription");
 					return NextResponse.json({ error: "No user found for this subscription" });
 				}
-				console.log(user.id, subscription.customer as string, Plan.Free);
+
 				updateUserSubscription(user.id, subscription.customer as string, Plan.Free);
+
+				await downGradeOverlay(user.id);
 
 				break;
 			}

@@ -4,7 +4,7 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { tokenTable, usersTable, overlaysTable } from "@/db/schema";
 import { AuthenticatedUser, Overlay, TwitchUserResponse, TwitchTokenApiResponse, UserToken, Plan, Role } from "@types";
 import { getUserDetails, refreshAccessToken } from "@actions/twitch";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { validateAuth } from "@actions/auth";
 
 const db = drizzle(process.env.DATABASE_URL!);
@@ -250,6 +250,20 @@ export async function createOverlay(userId: string) {
 	} catch (error) {
 		console.error("Error creating overlay:", error);
 		throw new Error("Failed to create overlay");
+	}
+}
+
+export async function downGradeOverlay(userId: string) {
+	const overlays = await db.select().from(overlaysTable).where(eq(overlaysTable.ownerId, userId)).execute();
+
+	if (overlays.length === 0) {
+		return;
+	}
+
+	const overlaysToDeactivate = overlays.slice(1).map((overlay) => overlay.id);
+
+	if (overlaysToDeactivate.length > 0) {
+		await db.delete(overlaysTable).where(inArray(overlaysTable.id, overlaysToDeactivate)).execute();
 	}
 }
 
