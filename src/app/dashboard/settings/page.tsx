@@ -4,7 +4,7 @@ import { validateAuth } from "@/app/actions/auth";
 import { deleteUser } from "@/app/actions/database";
 import ConfirmModal from "@/app/components/confirmModal";
 import DashboardNavbar from "@/app/components/dashboardNavbar";
-import { AuthenticatedUser } from "@/app/lib/types";
+import { AuthenticatedUser, Plan } from "@/app/lib/types";
 import { addToast, Avatar, Button, Card, CardBody, CardHeader, Divider, Modal, ModalBody, ModalContent, ModalHeader, Snippet, Spinner, Tooltip, useDisclosure } from "@heroui/react";
 import { IconArrowLeft, IconCreditCardFilled, IconDiamondFilled, IconInfoCircle, IconTrash } from "@tabler/icons-react";
 import { redirect, useRouter } from "next/navigation";
@@ -81,16 +81,16 @@ export default function SettingsPage() {
 							<div>
 								<p className='text-2xl font-bold'>{user.username}</p>
 								<p className='text-sm font-bold text-muted-foreground'>
-									<span className='text-muted-foreground'>Plan:</span> <span className={`${user.plan === "free" ? "text-green-600" : "text-primary-400"} capitalize`}>{user.plan}</span>
+									<span className='text-muted-foreground'>Plan:</span> <span className={`${user.plan === Plan.Free ? "text-green-600" : "text-primary-400"} capitalize`}>{user.plan}</span>
 								</p>
 							</div>
 						</div>
-						{user.plan === "free" && (
-							<Button color='primary' startContent={<IconDiamondFilled />} isDisabled={user.plan != "free"} onPress={upgradeModalOnOpen}>
+						{user.plan === Plan.Free && (
+							<Button color='primary' startContent={<IconDiamondFilled />} isDisabled={user.plan != Plan.Free} onPress={upgradeModalOnOpen}>
 								Upgrade Account
 							</Button>
 						)}
-						{user.plan !== "free" && (
+						{user.plan !== Plan.Free && (
 							<Button
 								color='primary'
 								startContent={<IconCreditCardFilled />}
@@ -115,7 +115,7 @@ export default function SettingsPage() {
 							<Button
 								color='danger'
 								startContent={<IconTrash />}
-								isDisabled={user.plan !== "free"}
+								isDisabled={user.plan !== Plan.Free}
 								onPress={async () => {
 									if (await checkIfSubscriptionExists(user)) {
 										return addToast({
@@ -129,7 +129,7 @@ export default function SettingsPage() {
 							>
 								Delete Account
 							</Button>
-							{user.plan !== "free" && <span className='text-sm text-gray-500'>You must cancel your subscription and wait for it to expire before deleting your account.</span>}
+							{user.plan !== Plan.Free && <span className='text-sm text-gray-500'>You must cancel your subscription and wait for it to expire before deleting your account.</span>}
 						</div>
 					</CardBody>
 				</Card>
@@ -141,7 +141,7 @@ export default function SettingsPage() {
 					<ModalBody>
 						<p className='text-muted-foreground'>Upgrade your account to unlock advanced features and support the development of Clipify. Your support helps us keep improving the service.</p>
 						<p>
-							Plan: <span className={`${user.plan === "free" ? "text-green-600" : "text-primary-400"} capitalize`}>{user.plan}</span>
+							Plan: <span className={`${user.plan === Plan.Free ? "text-green-600" : "text-primary-400"} capitalize`}>{user.plan}</span>
 						</p>
 
 						<Divider />
@@ -162,7 +162,7 @@ export default function SettingsPage() {
 								}
 							}}
 							startContent={<IconDiamondFilled />}
-							isDisabled={user.plan !== "free"}
+							isDisabled={user.plan !== Plan.Free}
 						>
 							Upgrade to Pro
 						</Button>
@@ -177,7 +177,7 @@ export default function SettingsPage() {
 				onConfirm={async () => {
 					addToast({
 						title: "Deleting...",
-						description: "Your account is being deleted. You will be redirected soonn.",
+						description: "Your account is being deleted. You will be redirected soon.",
 						color: "danger",
 					});
 
