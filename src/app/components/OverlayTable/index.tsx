@@ -407,7 +407,9 @@ export default function OverlayTable({ userid }: { userid: string }) {
 						setIsLoading(true);
 
 						const plan = await getUserPlan(userid);
-						if (plan === "free") {
+						const overlaysCount = overlays?.length ?? 0;
+
+						if (plan === "free" && overlaysCount >= 1) {
 							addToast({
 								title: "Upgrade Required",
 								description: (
