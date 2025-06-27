@@ -1,4 +1,4 @@
-name: Build and Push Docker image to GHCR
+name: 🛠️ Build and Push Docker image to GHCR
 
 on:
   release:

@@ -1,0 +1,26 @@
+name: 🛠️ Generate Migrations
+
+on:
+  push:
+    paths:
+      - "src/db/schema.ts"
+
+jobs:
+  generate-migrations:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: 📥 Check out the repository
+        uses: actions/checkout@v4
+      - name: 🍞 Set up Bun
+        uses: oven-sh/setup-bun@v1
+      - name: 📦 Install dependencies
+        run: bun install
+      - name: 📝 Generate migrations
+        run: bun run db:generate
+      - name: 🚀 Commit and push migrations
+        uses: stefanzweifel/git-auto-commit-action@v6
+        with:
+          commit_message: "🗃️ Update migration files (from ${{ github.event.after}})"
+          file_pattern: drizzle/*
