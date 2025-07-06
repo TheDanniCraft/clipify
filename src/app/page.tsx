@@ -47,9 +47,8 @@ export default function Home() {
 											}}
 										>
 											<div>
-												Let your clips talk.
-												<br />
-												Even when you can’t.
+												<h1>Let your clips talk.</h1>
+												<h1>Even when you can’t.</h1>
 											</div>
 										</motion.div>
 
