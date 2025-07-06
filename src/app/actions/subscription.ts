@@ -58,6 +58,13 @@ export async function generatePaymentLink(user: AuthenticatedUser) {
 		metadata: {
 			userId: user.id,
 		},
+		allow_promotion_codes: true,
+		tax_id_collection: {
+			enabled: true,
+		},
+		subscription_data: {
+			trial_period_days: 3,
+		},
 	});
 
 	return session.url;
