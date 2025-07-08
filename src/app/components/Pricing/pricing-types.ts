@@ -5,10 +5,26 @@ export enum TiersEnum {
 	Pro = "pro",
 }
 
+export enum FrequencyEnum {
+	Yearly = "yearly",
+	Monthly = "monthly",
+}
+
+export type Frequency = {
+	key: FrequencyEnum;
+	label: string;
+	priceSuffix: string;
+};
+
 export type Tier = {
 	key: TiersEnum;
 	title: string;
-	price: string;
+	price:
+		| {
+				[FrequencyEnum.Yearly]: string;
+				[FrequencyEnum.Monthly]: string;
+		  }
+		| string;
 	priceSuffix?: string;
 	description?: string;
 	mostPopular?: boolean;

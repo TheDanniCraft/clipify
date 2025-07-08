@@ -1,6 +1,11 @@
 import type { Tier } from "./pricing-types";
 
-import { TiersEnum } from "./pricing-types";
+import { TiersEnum, Frequency, FrequencyEnum } from "./pricing-types";
+
+export const frequencies: Array<Frequency> = [
+	{ key: FrequencyEnum.Yearly, label: "Pay Yearly", priceSuffix: "per year" },
+	{ key: FrequencyEnum.Monthly, label: "Pay Monthly", priceSuffix: "per month" },
+];
 
 export const tiers: Array<Tier> = [
 	{
@@ -20,7 +25,10 @@ export const tiers: Array<Tier> = [
 		title: "Pro",
 		description: "Unlock advanced features for professional streamers.",
 		mostPopular: true,
-		price: "$1",
+		price: {
+			[FrequencyEnum.Yearly]: "$10",
+			[FrequencyEnum.Monthly]: "$1",
+		},
 		featured: false,
 		features: ["Everything in Free", "Multiple overlays", "Channel points integration (coming soon)", "Priority support", "Support an independent developer"],
 		buttonText: "Get started",
