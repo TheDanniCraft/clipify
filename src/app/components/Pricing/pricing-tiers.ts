@@ -20,7 +20,7 @@ export const tiers: Array<Tier> = [
 		title: "Pro",
 		description: "Unlock advanced features for professional streamers.",
 		mostPopular: true,
-		price: "$5 (Twitch Sub)",
+		price: "$1",
 		featured: false,
 		features: ["Everything in Free", "Multiple overlays", "Channel points integration (coming soon)", "Priority support", "Support an independent developer"],
 		buttonText: "Get started",
