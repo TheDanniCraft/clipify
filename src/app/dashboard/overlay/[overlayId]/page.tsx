@@ -178,7 +178,7 @@ export default function OverlaySettings() {
 						</ModalHeader>
 						<ModalBody>
 							<p className='text-sm text-default-700'>
-								You’ve made changes to your <span className='font-semibold text-default-900'>overlay settings</span> that haven’t been saved. If you go back now, <span className='font-semibold text-danger'>those changes will be lost</span>.
+								You&apos;ve made changes to your <span className='font-semibold text-default-900'>overlay settings</span> that haven&apos;t been saved. If you go back now, <span className='font-semibold text-danger'>those changes will be lost</span>.
 								<br />
 								<br />
 								<span className='font-semibold text-default-900'>Do you want to continue without saving?</span>

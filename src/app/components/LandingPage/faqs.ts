@@ -6,7 +6,7 @@ type Faq = {
 const faqs: Faq[] = [
 	{
 		title: "What is Clipify?",
-		content: "Clipify is a tool that automatically plays your best Twitch clips to keep your channel active and your viewers engaged, even when you’re away.",
+		content: "Clipify is a tool that automatically plays your best Twitch clips to keep your channel active and your viewers engaged, even when you're away.",
 	},
 	{
 		title: "How do I set up Clipify?",

@@ -4,13 +4,13 @@
 
 ## Overview
 
-Clipify automatically plays your best Twitch clips to keep your stream alive and your viewers entertained, even when you’re away. Designed for streamers who want to keep their channel active, Clipify offers an intuitive interface, easy setup, and powerful features to engage your audience at all times.
+Clipify automatically plays your best Twitch clips to keep your stream alive and your viewers entertained, even when you're away. Designed for streamers who want to keep their channel active, Clipify offers an intuitive interface, easy setup, and powerful features to engage your audience at all times.
 
-*❗ **Note:** Clipify is open source, but currently not intended for self-hosting due to the way it is coded and managed. Please use the official hosted version on [clipify.us](https://clipify.us).*
+_❗ **Note:** Clipify is open source, but currently not intended for self-hosting due to the way it is coded and managed. Please use the official hosted version on [clipify.us](https://clipify.us)._
 
 ## Features
 
-- Auto-play Twitch Clips: Keep your stream alive by automatically playing your best clips when you’re AFK.
+- Auto-play Twitch Clips: Keep your stream alive by automatically playing your best clips when you're AFK.
 - Easy to Use: Intuitive interface for effortless setup and management.
 - Plug & Play: Add as a browser source to your streaming software.
 - Player Control: Choose to play clips from today, all-time, or just your featured clips.
@@ -108,16 +108,16 @@ Environment variables are managed via [Infisical](https://infisical.com/).
 
 ## Scripts
 
-| Script         | Description                                 |
-| -------------- | ------------------------------------------- |
-| `app:dev`      | Start development server with Infisical env |
-| `app:build`    | Build Next.js app                           |
-| `app:start`    | Start production server                     |
-| `app:lint`     | Run ESLint                                  |
-| `db:push`      | Push Drizzle schema (with Infisical env)    |
-| `db:generate`  | Generate Drizzle migrations                 |
-| `db:migrate`   | Run Drizzle migrations                      |
-| `db:studio`    | Open Drizzle studio (with Infisical env)    |
+| Script        | Description                                 |
+| ------------- | ------------------------------------------- |
+| `app:dev`     | Start development server with Infisical env |
+| `app:build`   | Build Next.js app                           |
+| `app:start`   | Start production server                     |
+| `app:lint`    | Run ESLint                                  |
+| `db:push`     | Push Drizzle schema (with Infisical env)    |
+| `db:generate` | Generate Drizzle migrations                 |
+| `db:migrate`  | Run Drizzle migrations                      |
+| `db:studio`   | Open Drizzle studio (with Infisical env)    |
 
 ## Tech Stack
 

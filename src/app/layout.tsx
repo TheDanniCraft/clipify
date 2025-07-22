@@ -4,7 +4,7 @@ import { Providers } from "./providers";
 import PlausibleProvider from "next-plausible";
 
 export const metadata: Metadata = {
-	title: "Clipify – Let your clips talk. Even when you can’t.",
+	title: "Clipify – Let your clips talk. Even when you can't.",
 	description: "Clipify automatically plays your best Twitch clips to keep your stream alive and your viewers entertained, even when you're away.",
 	metadataBase: new URL("https://clipify.us"),
 	manifest: "https://clipify.us/manifest.webmanifest",
@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 		canonical: "https://clipify.us",
 	},
 	openGraph: {
-		title: "Clipify – Let your clips talk. Even when you can’t.",
+		title: "Clipify – Let your clips talk. Even when you can't.",
 		description: "Need a break? Clipify got you covered. Auto-play clips while you're away – keep your stream alive and your viewers entertained.",
 		url: "https://clipify.us",
 		siteName: "Clipify",
@@ -29,7 +29,7 @@ export const metadata: Metadata = {
 	},
 	twitter: {
 		card: "summary_large_image",
-		title: "Clipify – Let your clips talk. Even when you can’t.",
+		title: "Clipify – Let your clips talk. Even when you can't.",
 		description: "Auto-play your Twitch clips to keep your stream active and engaging, even when you're away.",
 	},
 };

@@ -48,7 +48,7 @@ export default function Home() {
 										>
 											<div>
 												<h1>Let your clips talk.</h1>
-												<h1>Even when you can’t.</h1>
+												<h1>Even when you can&apos;t.</h1>
 											</div>
 										</motion.div>
 
@@ -130,13 +130,13 @@ export default function Home() {
 							Features
 						</Chip>
 						<h2 className='text-4xl font-bold mb-4'>Play your Twitch clips, keep your stream alive</h2>
-						<p className='text-foreground-500 text-lg max-w-2xl mx-auto'>Clipify automatically plays your best Twitch clips to keep your channel active and your viewers engaged—even when you’re away.</p>
+						<p className='text-foreground-500 text-lg max-w-2xl mx-auto'>Clipify automatically plays your best Twitch clips to keep your channel active and your viewers engaged—even when you&apos;re away.</p>
 					</div>
 					<div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16'>
 						<FeatureCard title='Easy to Use' description='Intuitive interface designed for effortless setup and management.' icon={IconThumbUp} />
-						<FeatureCard title='Plug & Play' description='It’s as easy as adding a browser source to your streaming software.' icon={IconPlugConnected} />
+						<FeatureCard title='Plug & Play' description="It's as easy as adding a browser source to your streaming software." icon={IconPlugConnected} />
 						<FeatureCard title='Control your player' description='Choose to play clips from today, all-time, or just your featured clips.' icon={IconAdjustments} />
-						<FeatureCard title='Keeps Your Stream Entertained' description='Auto-play clips to keep your audience engaged even when you’re away.' icon={IconMoodSmile} />
+						<FeatureCard title='Keeps Your Stream Entertained' description="Auto-play clips to keep your audience engaged even when you're away." icon={IconMoodSmile} />
 						<FeatureCard title='Multiple Overlays' description='Create as many overlays as you like, use them for AFK screens, at the starting or end screens of your stream, or anywhere you want.' icon={IconLayersDifference} />
 						<FeatureCard title='Channel Points Integration' comingSoon description='Let viewers play their favourite clips using Twitch channel points.' icon={IconCoin} />
 					</div>
