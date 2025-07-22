@@ -2,6 +2,8 @@ name: 🛠️ Generate Migrations
 
 on:
   push:
+    branches:
+      - master
     paths:
       - "src/db/schema.ts"
 
