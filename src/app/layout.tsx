@@ -8,6 +8,9 @@ export const metadata: Metadata = {
 	description: "Clipify automatically plays your best Twitch clips to keep your stream alive and your viewers entertained, even when you're away.",
 	metadataBase: new URL("https://clipify.us"),
 	manifest: "https://clipify.us/manifest.webmanifest",
+	alternates: {
+		canonical: "https://clipify.us",
+	},
 	openGraph: {
 		title: "Clipify – Let your clips talk. Even when you can’t.",
 		description: "Need a break? Clipify got you covered. Auto-play clips while you're away – keep your stream alive and your viewers entertained.",
