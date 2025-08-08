@@ -15,6 +15,13 @@
       "when": 1750946403834,
       "tag": "0001_volatile_maestro",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1754692562005,
+      "tag": "0002_volatile_post",
+      "breakpoints": true
     }
   ]
 }
