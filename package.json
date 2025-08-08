@@ -4,6 +4,7 @@
 	"private": true,
 	"scripts": {
 		"app:dev": "infisical run --env=dev -- next dev",
+		"app:webhook": "stripe listen --forward-to localhost:3000/payment/webhook",
 		"app:build": "next build",
 		"app:start": "next start",
 		"app:lint": "next lint",
