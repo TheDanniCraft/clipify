@@ -109,7 +109,9 @@ export default function OverlayTable({ userid }: { userid: string }) {
 				second = b[col];
 			}
 
-			const cmp = first < second ? -1 : first > second ? 1 : 0;
+			const safeFirst = first ?? "";
+			const safeSecond = second ?? "";
+			const cmp = safeFirst < safeSecond ? -1 : safeFirst > safeSecond ? 1 : 0;
 
 			return sortDescriptor.direction === "descending" ? -cmp : cmp;
 		});
