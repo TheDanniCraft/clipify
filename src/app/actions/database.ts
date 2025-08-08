@@ -1,9 +1,9 @@
 "use server";
 
 import { drizzle } from "drizzle-orm/node-postgres";
-import { tokenTable, usersTable, overlaysTable } from "@/db/schema";
+import { tokenTable, usersTable, overlaysTable, queueTable } from "@/db/schema";
 import { AuthenticatedUser, Overlay, TwitchUserResponse, TwitchTokenApiResponse, UserToken, Plan, Role } from "@types";
-import { getUserDetails, refreshAccessToken } from "@actions/twitch";
+import { getUserDetails, refreshAccessToken, subscribeToReward } from "@actions/twitch";
 import { eq, inArray } from "drizzle-orm";
 import { validateAuth } from "@actions/auth";
 
@@ -253,7 +253,7 @@ export async function createOverlay(userId: string) {
 	}
 }
 
-export async function downGradeOverlay(userId: string) {
+export async function downgradeUserPlan(userId: string) {
 	const overlays = await db.select().from(overlaysTable).where(eq(overlaysTable.ownerId, userId)).execute();
 
 	if (overlays.length === 0) {
@@ -265,6 +265,8 @@ export async function downGradeOverlay(userId: string) {
 	if (overlaysToDeactivate.length > 0) {
 		await db.delete(overlaysTable).where(inArray(overlaysTable.id, overlaysToDeactivate)).execute();
 	}
+
+	await db.update(overlaysTable).set({ rewardId: null }).where(eq(overlaysTable.id, overlays[0].id)).execute();
 }
 
 export async function saveOverlay(overlay: Overlay) {
@@ -275,6 +277,8 @@ export async function saveOverlay(overlay: Overlay) {
 			return null;
 		}
 
+		const plan = isAuthenticated.plan;
+
 		await db
 			.insert(overlaysTable)
 			.values({
@@ -283,6 +287,7 @@ export async function saveOverlay(overlay: Overlay) {
 				name: overlay.name,
 				status: overlay.status,
 				type: overlay.type,
+				rewardId: plan === Plan.Free ? null : overlay.rewardId,
 			})
 			.onConflictDoUpdate({
 				target: overlaysTable.id,
@@ -290,8 +295,13 @@ export async function saveOverlay(overlay: Overlay) {
 					name: overlay.name,
 					status: overlay.status,
 					type: overlay.type,
+					rewardId: plan === Plan.Free ? null : overlay.rewardId,
 				},
 			});
+
+		if (overlay.rewardId) {
+			subscribeToReward(overlay.ownerId, overlay.rewardId);
+		}
 	} catch (error) {
 		console.log(overlay);
 		console.error("Error saving overlay:", error);
@@ -310,5 +320,44 @@ export async function deleteOverlay(overlay: Overlay) {
 	} catch (error) {
 		console.error("Error deleting overlay:", error);
 		throw new Error("Failed to delete overlay");
+	}
+}
+
+export async function getOverlayByRewardId(rewardId: string) {
+	try {
+		const overlay = await db.select().from(overlaysTable).where(eq(overlaysTable.rewardId, rewardId)).limit(1).execute();
+		return overlay[0];
+	} catch (error) {
+		console.error("Error validating reward ID:", error);
+		throw new Error("Failed to validate reward ID");
+	}
+}
+
+export async function addToClipQueue(overlayId: string, clipId: string) {
+	try {
+		await db.insert(queueTable).values({ overlayId, clipId }).execute();
+	} catch (error) {
+		console.error("Error adding clip to queue:", error);
+		throw new Error("Failed to add clip to queue");
+	}
+}
+
+export async function getFirstFromClipQueue(overlayId: string) {
+	try {
+		const result = await db.select().from(queueTable).where(eq(queueTable.overlayId, overlayId)).limit(1).execute();
+
+		return result[0] || null;
+	} catch (error) {
+		console.error("Error fetching first clip from queue:", error);
+		throw new Error("Failed to fetch first clip from queue");
+	}
+}
+
+export async function removeFromClipQueue(id: string) {
+	try {
+		await db.delete(queueTable).where(eq(queueTable.id, id)).execute();
+	} catch (error) {
+		console.error("Error removing clip from queue:", error);
+		throw new Error("Failed to remove clip from queue");
 	}
 }

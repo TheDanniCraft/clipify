@@ -3,7 +3,7 @@ import { IconBrandTwitch } from "@tabler/icons-react";
 import ErrorToast from "@components/errorToast";
 
 export default async function Login({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
-	const scopes: string[] = ["user:read:email", "channel:read:redemptions", "channel:manage:redemptions", "user:read:subscriptions"];
+	const scopes: string[] = ["user:read:email", "channel:read:redemptions", "channel:manage:redemptions", "user:read:subscriptions", "user:write:chat", "user:bot", "channel:bot"];
 
 	const state = Buffer.from(new Date().toISOString()).toString("base64");
 

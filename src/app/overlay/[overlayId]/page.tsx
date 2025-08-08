@@ -36,7 +36,7 @@ export default async function Overlay({ params }: { params: Promise<{ overlayId:
 				}}
 			/>
 			<div className='flex flex-col justify-center items-center h-screen w-screen'>
-				<OverlayPlayer clips={clips} />
+				<OverlayPlayer clips={clips} overlay={overlay} />
 			</div>
 		</>
 	);

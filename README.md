@@ -15,7 +15,7 @@ _❗ **Note:** Clipify is open source, but currently not intended for self-hosti
 - Plug & Play: Add as a browser source to your streaming software.
 - Player Control: Choose to play clips from today, all-time, or just your featured clips.
 - Multiple Overlays: Create as many overlays as you like for different stream scenes.
-- Channel Points Integration: (Coming soon) Let viewers play their favourite clips using Twitch channel points.
+- Channel Points Integration: Let viewers play their favourite clips using Twitch channel points.
 - Analytics Integration: Built-in support for Plausible Analytics.
 
 ## Getting Started
@@ -25,7 +25,7 @@ To get started with Clipify, simply visit [https://clipify.us](https://clipify.u
 ## Pricing
 
 - **Free:** Unlimited clips, one overlay, all core features.
-- **Pro:** $1/month – Multiple overlays, channel points integration (coming soon), priority support, and more.
+- **Pro:** $1/month – Multiple overlays, channel points integration, priority support, and more.
 
 You can upgrade to Pro directly on [clipify.us](https://clipify.us).
 

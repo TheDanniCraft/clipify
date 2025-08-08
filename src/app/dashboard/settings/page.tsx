@@ -56,7 +56,7 @@ export default function SettingsPage() {
 				<Card className='mt-4'>
 					<CardHeader>
 						<div className='flex items-center gap-2 w-full justify-between'>
-							<Button isIconOnly variant='light' startContent={<IconArrowLeft />} onPress={() => router.back()} />
+							<Button isIconOnly variant='light' startContent={<IconArrowLeft />} onPress={() => router.push("/dashboard")} />
 							<div className='flex items-center gap-2'>
 								<div className='flex items-center overflow-hidden'>
 									<Snippet

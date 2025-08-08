@@ -1,12 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { TwitchClip, TwitchClipGqlData, TwitchClipGqlResponse, TwitchClipVideoQuality, VideoClip } from "@types";
-import { getAvatar, getGameDetails, logTwitchError } from "@actions/twitch";
+import { Overlay, TwitchClip, TwitchClipGqlData, TwitchClipGqlResponse, TwitchClipVideoQuality, VideoClip } from "@types";
+import { getAvatar, getGameDetails, getTwitchClip, logTwitchError } from "@actions/twitch";
 import PlayerOverlay from "./playerOverlay";
 import { Avatar } from "@heroui/react";
 import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
+import { getFirstFromClipQueue, removeFromClipQueue } from "@actions/database";
 
 type VideoQualityWithNumeric = TwitchClipVideoQuality & { numericQuality: number };
 
@@ -71,12 +72,23 @@ async function getRawMediaUrl(clipId: string): Promise<string | undefined> {
 	}
 }
 
-export default function OverlayPlayer({ clips }: { clips: TwitchClip[] }) {
+export default function OverlayPlayer({ clips, overlay }: { clips: TwitchClip[]; overlay: Overlay }) {
 	const [videoClip, setVideoClip] = useState<VideoClip | null>(null);
 	const [playedClips, setPlayedClips] = useState<string[]>([]);
 	const [showOverlay, setShowOverlay] = useState<boolean>(false);
 
-	const getRandomClip = useCallback(() => {
+	const getRandomClip = useCallback(async (): Promise<TwitchClip> => {
+		const queClip = await getFirstFromClipQueue(overlay.id);
+
+		if (queClip) {
+			const clip = await getTwitchClip(queClip.clipId, overlay.ownerId);
+
+			if (clip != null) {
+				removeFromClipQueue(queClip.id);
+				return clip;
+			}
+		}
+
 		let unplayedClips = clips.filter((clip) => !playedClips.includes(clip.id));
 
 		if (unplayedClips.length === 0 && clips.length > 0) {
@@ -86,11 +98,11 @@ export default function OverlayPlayer({ clips }: { clips: TwitchClip[] }) {
 
 		const randomIndex = Math.floor(Math.random() * unplayedClips.length);
 		return unplayedClips[randomIndex];
-	}, [clips, playedClips]);
+	}, [clips, overlay.id, overlay.ownerId, playedClips]);
 
 	useEffect(() => {
 		async function fetchVideoSource() {
-			const randomClip = getRandomClip();
+			const randomClip = await getRandomClip();
 
 			if (!randomClip) return;
 
@@ -116,10 +128,16 @@ export default function OverlayPlayer({ clips }: { clips: TwitchClip[] }) {
 		fetchVideoSource();
 	}, [getRandomClip]);
 
-	if (!clips || clips.length === 0) {
+	useEffect(() => {
+		if (!clips || clips.length === 0) {
+		}
+	}, [clips, videoClip]);
+
+	if (!clips || clips.length === 0 || videoClip === null) {
 		return (
-			<div className='flex items-center justify-center w-full h-64'>
-				<span className='text-gray-400 text-lg font-semibold'>No clips found</span>
+			<div className='flex flex-col items-center justify-center w-full h-64'>
+				<span className='text-gray-400 text-lg font-semibold'>No clips found, this also pauses the clip queue...</span>
+				<span className='text-gray-400 text-lg font-semibold mt-2'>Refresh to load new clips</span>
 			</div>
 		);
 	}
@@ -141,7 +159,7 @@ export default function OverlayPlayer({ clips }: { clips: TwitchClip[] }) {
 								setShowOverlay(false);
 								setPlayedClips((prevPlayedClips) => [...prevPlayedClips, videoClip!.id]);
 
-								const randomClip = getRandomClip();
+								const randomClip = await getRandomClip();
 								const mediaUrl = await getRawMediaUrl(randomClip.id);
 
 								const brodcasterAvatar = await getAvatar(randomClip?.broadcaster_id, randomClip?.broadcaster_id);

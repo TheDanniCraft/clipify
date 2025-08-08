@@ -26,7 +26,7 @@ const faqs: Faq[] = [
 	},
 	{
 		title: "What are the benefits of the Pro version?",
-		content: "The Pro version includes features like multiple active overlays, channel points integration (coming soon), and priority support.",
+		content: "The Pro version includes features like multiple active overlays, channel points integration, and priority support.",
 	},
 	{
 		title: "Can I use Clipify on multiple channels?",

@@ -1,7 +1,7 @@
 "use server";
 
 import axios from "axios";
-import { AuthenticatedUser, Game, Overlay, TwitchApiResponse, TwitchClip, TwitchClipBody, TwitchClipResponse, TwitchTokenApiResponse, TwitchUserResponse } from "@types";
+import { AuthenticatedUser, Game, Overlay, RewardStatus, TwitchApiResponse, TwitchAppAccessTokenResponse, TwitchClip, TwitchClipBody, TwitchClipResponse, TwitchReward, TwitchRewardResponse, TwitchTokenApiResponse, TwitchUserResponse } from "@types";
 import { getAccessToken } from "@actions/database";
 
 export async function logTwitchError(context: string, error: unknown) {
@@ -50,6 +50,23 @@ export async function refreshAccessToken(refreshToken: string): Promise<TwitchTo
 	}
 }
 
+export async function getAppAccessToken(): Promise<TwitchAppAccessTokenResponse | null> {
+	const url = "https://id.twitch.tv/oauth2/token";
+	try {
+		const response = await axios.post<TwitchAppAccessTokenResponse>(url, null, {
+			params: {
+				client_id: process.env.TWITCH_CLIENT_ID || "",
+				client_secret: process.env.TWITCH_CLIENT_SECRET || "",
+				grant_type: "client_credentials",
+			},
+		});
+		return response.data;
+	} catch (error) {
+		logTwitchError("Error fetching app access token", error);
+		return null;
+	}
+}
+
 export async function getUserDetails(accessToken: string): Promise<TwitchUserResponse | null> {
 	const url = "https://api.twitch.tv/helix/users";
 	try {
@@ -62,6 +79,42 @@ export async function getUserDetails(accessToken: string): Promise<TwitchUserRes
 		return response.data.data[0] || null;
 	} catch (error) {
 		logTwitchError("Error fetching user details", error);
+		return null;
+	}
+}
+
+export async function createChannelReward(userId: string): Promise<TwitchRewardResponse | null> {
+	const url = "https://api.twitch.tv/helix/channel_points/custom_rewards";
+	try {
+		const token = await getAccessToken(userId);
+		if (!token) {
+			console.error("No access token found for userId:", userId);
+			return null;
+		}
+
+		const hash = Math.random().toString(36).substring(2, 8);
+
+		const response = await axios.post<TwitchApiResponse<TwitchRewardResponse>>(
+			url,
+			{
+				broadcaster_id: userId,
+				title: `Clipify Reward - ${hash}`,
+				prompt: "Customize this reward. You can change title, reward cost, and more. This reward requires user input, disabeling will break the functionality.",
+				cost: 1,
+				is_enabled: false,
+				is_user_input_required: true,
+			},
+			{
+				headers: {
+					Authorization: `Bearer ${token.accessToken}`,
+					"Client-Id": process.env.TWITCH_CLIENT_ID || "",
+				},
+			}
+		);
+
+		return response.data.data[0] || null;
+	} catch (error) {
+		logTwitchError("Error fetching channel rewards", error);
 		return null;
 	}
 }
@@ -79,6 +132,37 @@ export async function verifyToken(user: AuthenticatedUser) {
 		return true;
 	} catch {
 		return false;
+	}
+}
+
+export async function getTwitchClip(clipId: string, creatorId: string): Promise<null | TwitchClip> {
+	const url = "https://api.twitch.tv/helix/clips";
+	const token = await getAccessToken(creatorId);
+
+	if (!token) {
+		console.error("No access token found for creatorId:", creatorId);
+		return null;
+	}
+
+	try {
+		const response = await axios.get<TwitchApiResponse<TwitchClipResponse>>(url, {
+			headers: {
+				Authorization: `Bearer ${token.accessToken}`,
+				"Client-Id": process.env.TWITCH_CLIENT_ID || "",
+			},
+			params: {
+				id: clipId,
+			},
+		});
+		const clip = response.data.data[0];
+		if (!clip) {
+			console.error("Clip not found for ID:", clipId);
+			return null;
+		}
+		return clip;
+	} catch (error) {
+		logTwitchError("Error fetching Twitch clip", error);
+		return null;
 	}
 }
 
@@ -184,5 +268,133 @@ export async function getGameDetails(gameId: string, authUserId: string): Promis
 	} catch (error) {
 		logTwitchError("Error fetching game details", error);
 		return null;
+	}
+}
+
+export async function getReward(userId: string, rewardId: string): Promise<TwitchReward | null> {
+	const url = `https://api.twitch.tv/helix/channel_points/custom_rewards`;
+	const token = await getAccessToken(userId);
+
+	if (!token) {
+		console.error("No access token found for userId:", userId);
+		return null;
+	}
+
+	try {
+		const response = await axios.get<TwitchApiResponse<TwitchReward>>(url, {
+			headers: {
+				Authorization: `Bearer ${token.accessToken}`,
+				"Client-Id": process.env.TWITCH_CLIENT_ID || "",
+			},
+			params: {
+				id: rewardId,
+				broadcaster_id: userId,
+			},
+		});
+		return response.data.data[0] || null;
+	} catch (error) {
+		logTwitchError("Error fetching reward", error);
+		return null;
+	}
+}
+
+export async function subscribeToReward(userId: string, rewardId: string): Promise<void> {
+	const url = "https://api.twitch.tv/helix/eventsub/subscriptions";
+	const token = await getAppAccessToken();
+
+	if (!token) {
+		console.error("No app access token found");
+		return;
+	}
+
+	try {
+		await axios.post(
+			url,
+			{
+				type: "channel.channel_points_custom_reward_redemption.add",
+				version: "1",
+				condition: {
+					broadcaster_user_id: userId,
+					reward_id: rewardId,
+				},
+				transport: {
+					method: "webhook",
+					callback: process.env.TWITCH_EVENTSUB_URL,
+					secret: process.env.WEBHOOK_SECRET,
+				},
+			},
+			{
+				headers: {
+					Authorization: `Bearer ${token.access_token}`,
+					"Client-Id": process.env.TWITCH_CLIENT_ID || "",
+				},
+			}
+		);
+	} catch (error) {
+		if (axios.isAxiosError(error) && error.response?.status === 409) {
+			return;
+		}
+		logTwitchError("Error subscribing to reward", error);
+	}
+}
+
+export async function updateRedemptionStatus(userId: string, redemptionId: string, rewardId: string, status: RewardStatus) {
+	const url = "https://api.twitch.tv/helix/channel_points/custom_rewards/redemptions";
+	const token = await getAccessToken(userId);
+
+	if (!token) {
+		console.error("No app access token found");
+		return;
+	}
+
+	try {
+		await axios.patch(
+			url,
+			{
+				status,
+			},
+			{
+				headers: {
+					Authorization: `Bearer ${token.accessToken}`,
+					"Client-Id": process.env.TWITCH_CLIENT_ID || "",
+				},
+				params: {
+					id: redemptionId,
+					broadcaster_id: userId,
+					reward_id: rewardId,
+				},
+			}
+		);
+	} catch (error) {
+		logTwitchError("Error updating redemption status", error);
+	}
+}
+
+export async function sendChatMessage(userId: string, message: string) {
+	const url = "https://api.twitch.tv/helix/chat/messages";
+	const token = await getAppAccessToken();
+
+	if (!token) {
+		console.error("No app access token found");
+		return;
+	}
+
+	try {
+		await axios.post(
+			url,
+			{
+				message,
+				broadcaster_id: userId,
+				sender_id: process.env.TWITCH_USER_ID || "",
+			},
+			{
+				headers: {
+					Authorization: `Bearer ${token.access_token}`,
+					"Client-Id": process.env.TWITCH_CLIENT_ID || "",
+				},
+			}
+		);
+	} catch (error) {
+		logTwitchError("Error sending chat message", error);
 	}
 }

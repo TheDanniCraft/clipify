@@ -32,4 +32,13 @@ export const overlaysTable = pgTable("overlays", {
 	name: varchar("name").notNull(),
 	status: varchar("status").$type<StatusOptions>().notNull(),
 	type: varchar("type").$type<OverlayType>().notNull(),
+	rewardId: varchar("reward_id"),
+});
+
+export const queueTable = pgTable("clipQueue", {
+	id: uuid("id").notNull().defaultRandom().primaryKey(),
+	overlayId: uuid("overlay_id")
+		.notNull()
+		.references(() => overlaysTable.id, { onDelete: "cascade" }),
+	clipId: varchar("clip_id").notNull(),
 });

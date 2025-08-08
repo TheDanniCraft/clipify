@@ -43,7 +43,7 @@ export async function checkIfSubscriptionExists(user: AuthenticatedUser) {
 	return subscriptions.data.length > 0;
 }
 
-export async function generatePaymentLink(user: AuthenticatedUser) {
+export async function generatePaymentLink(user: AuthenticatedUser, returnUrl?: string) {
 	const products = await getPlans();
 
 	const stripe = await getStripe();
@@ -53,7 +53,7 @@ export async function generatePaymentLink(user: AuthenticatedUser) {
 		client_reference_id: user.id,
 		mode: "subscription",
 		success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard/settings`,
-		cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard/settings`,
+		cancel_url: returnUrl || `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard/settings`,
 		...(user.stripeCustomerId ? { customer: user.stripeCustomerId } : { customer_email: user.email }),
 		metadata: {
 			userId: user.id,
@@ -64,6 +64,9 @@ export async function generatePaymentLink(user: AuthenticatedUser) {
 		},
 		subscription_data: {
 			trial_period_days: 3,
+		},
+		customer_update: {
+			name: "auto",
 		},
 	});
 

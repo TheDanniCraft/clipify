@@ -3,13 +3,15 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { getOverlay, getUser, saveOverlay } from "@/app/actions/database";
-import { addToast, Button, Card, CardBody, CardHeader, Divider, Form, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Select, SelectItem, Snippet, Spinner, Switch } from "@heroui/react";
-import { AuthenticatedUser, Overlay, OverlayType } from "@types";
-import { IconAlertTriangle, IconArrowLeft, IconDeviceFloppy, IconPlayerPauseFilled, IconPlayerPlayFilled } from "@tabler/icons-react";
+import { addToast, Button, Card, CardBody, CardHeader, Divider, Form, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Select, SelectItem, Snippet, Spinner, Switch, Tooltip } from "@heroui/react";
+import { AuthenticatedUser, Overlay, OverlayType, Plan } from "@types";
+import { IconAlertTriangle, IconArrowLeft, IconCrown, IconDeviceFloppy, IconInfoCircle, IconPlayerPauseFilled, IconPlayerPlayFilled } from "@tabler/icons-react";
 import DashboardNavbar from "@components/dashboardNavbar";
 import { useNavigationGuard } from "next-navigation-guard";
 import { validateAuth } from "@/app/actions/auth";
 import Footer from "@components/footer";
+import { createChannelReward, getReward } from "@/app/actions/twitch";
+import { generatePaymentLink } from "@/app/actions/subscription";
 
 const overlayTypes: { key: OverlayType; label: string }[] = [
 	{ key: "1", label: "Top Clips - Today" },
@@ -30,6 +32,7 @@ export default function OverlaySettings() {
 	const [baseOverlay, setBaseOverlay] = useState<Overlay | null>(null);
 	const [baseUrl, setBaseUrl] = useState<string | null>(null);
 	const [user, setUser] = useState<AuthenticatedUser>();
+	const [rewardTitle, setRewardTitle] = useState<string>("");
 
 	const navGuard = useNavigationGuard({ enabled: isFormDirty() });
 
@@ -43,6 +46,18 @@ export default function OverlaySettings() {
 
 		checkAuth();
 	}, [router]);
+
+	useEffect(() => {
+		async function fetchRewardTitle() {
+			if (overlay?.rewardId) {
+				const reward = await getReward(overlay.ownerId, overlay.rewardId);
+				setRewardTitle(reward?.title || "");
+			} else {
+				setRewardTitle("");
+			}
+		}
+		fetchRewardTitle();
+	}, [overlay?.rewardId, overlay?.ownerId]);
 
 	useEffect(() => {
 		setBaseUrl(window.location.origin);
@@ -162,6 +177,86 @@ export default function OverlaySettings() {
 											<SelectItem key={type.key}>{type.label}</SelectItem>
 										))}
 									</Select>
+									<Divider className='my-4' />
+									{user?.plan === Plan.Free && (
+										<div className='w-full mb-4'>
+											<Card className='bg-warning-50 border border-warning-200 mb-2'>
+												<CardBody>
+													<div className='flex items-center gap-2 mb-1'>
+														<IconCrown className='text-warning-500' />
+														<span className='text-warning-800 font-semibold text-base'>Premium Feature Locked</span>
+													</div>
+													<p className='text-sm text-warning-700'>
+														Unlock advanced overlay settings with <span className='font-semibold'>Premium</span>.
+													</p>
+													<ul className='list-disc list-inside text-warning-700 text-xs mt-2 ml-1'>
+														<li>Multiple overlay</li>
+														<li>Link custom Twitch rewards</li>
+														<li>Priority support</li>
+													</ul>
+													<Button
+														color='warning'
+														variant='shadow'
+														onPress={async () => {
+															const link = await generatePaymentLink(user, window.location.href);
+
+															if (link) {
+																window.location.href = link;
+															} else {
+																addToast({
+																	title: "Error",
+																	description: "Failed to generate payment link. Please try again later.",
+																	color: "danger",
+																});
+															}
+														}}
+														className='mt-3 w-full font-semibold'
+													>
+														Upgrade for less than $1/month
+													</Button>
+													<p className='text-xs text-warning-600 text-center mt-2'>Enjoy a 7-day free trial. Cancel anytime.</p>
+												</CardBody>
+											</Card>
+										</div>
+									)}
+									<div
+										className='w-full'
+										style={{
+											filter: user?.plan === Plan.Free ? "blur(1.5px)" : "none",
+											pointerEvents: user?.plan === Plan.Free ? "none" : "auto",
+										}}
+									>
+										<div className='flex w-full items-center mb-2 gap-1'>
+											<Button
+												onPress={async () => {
+													const reward = await createChannelReward(overlay.ownerId);
+													if (reward) {
+														setOverlay({ ...overlay, rewardId: reward.id });
+													}
+												}}
+												isDisabled={user?.plan === Plan.Free || !!overlay.rewardId}
+											>
+												Create Reward
+											</Button>
+											<Input
+												isClearable
+												onClear={() => {
+													setOverlay({ ...overlay, rewardId: null });
+												}}
+												value={rewardTitle}
+												placeholder='Reward ID not set'
+											/>
+											<Tooltip
+												content={
+													<div className='px-1 py-2'>
+														<div className='text-tiny'>You can edit the reward through your Twitch dashboard.</div>
+													</div>
+												}
+											>
+												<IconInfoCircle className='text-default-400' />
+											</Tooltip>
+										</div>
+									</div>
 								</Form>
 							</div>
 						</CardBody>

@@ -2,7 +2,7 @@
 
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
-import { downGradeOverlay, getUserByCustomerId, updateUserSubscription } from "@/app/actions/database";
+import { downgradeUserPlan, getUserByCustomerId, updateUserSubscription } from "@/app/actions/database";
 import { getPlans, getStripe } from "@/app/actions/subscription";
 import { Plan } from "@/app/lib/types";
 import Stripe from "stripe";
@@ -94,7 +94,7 @@ export async function POST(req: Request) {
 
 				updateUserSubscription(user.id, subscription.customer as string, Plan.Free);
 
-				await downGradeOverlay(user.id);
+				await downgradeUserPlan(user.id);
 
 				break;
 			}
