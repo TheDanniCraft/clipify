@@ -65,9 +65,7 @@ export async function generatePaymentLink(user: AuthenticatedUser, returnUrl?: s
 		subscription_data: {
 			trial_period_days: 3,
 		},
-		customer_update: {
-			name: "auto",
-		},
+		...(user.stripeCustomerId ? { customer_update: { name: "auto" } } : {}),
 	});
 
 	return session.url;
