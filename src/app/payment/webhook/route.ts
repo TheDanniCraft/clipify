@@ -62,7 +62,7 @@ export async function POST(req: Request) {
 
 				const plans = await getPlans();
 
-				if (plans.id !== priceId) {
+				if (!plans.some((plan: string) => plan === priceId)) {
 					console.error(`No plan found for price ID: ${priceId}`);
 					return NextResponse.json({ error: "No plan found for this price" });
 				}

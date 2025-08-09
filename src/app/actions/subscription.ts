@@ -4,12 +4,8 @@ import Stripe from "stripe";
 import { AuthenticatedUser } from "../lib/types";
 
 const PRODUCTS = {
-	dev: {
-		id: "price_1RaLC2B0sp7KYCWLkJGjDq3q",
-	},
-	prod: {
-		id: "price_1RaJ4ZB0sp7KYCWLOst1iqLA",
-	},
+	dev: ["price_1RaLC2B0sp7KYCWLkJGjDq3q", "price_1Ru0WHB0sp7KYCWLBbdT0ZH7"],
+	prod: ["price_1RaJ4ZB0sp7KYCWLOst1iqLA", "price_1RaJQdB0sp7KYCWLlfTgeJ7Z"],
 };
 
 let stripe: Stripe | null = null;
@@ -49,7 +45,7 @@ export async function generatePaymentLink(user: AuthenticatedUser, returnUrl?: s
 	const stripe = await getStripe();
 
 	const session = await stripe.checkout.sessions.create({
-		line_items: [{ price: products.id, quantity: 1 }],
+		line_items: [{ price: products[0], quantity: 1 }],
 		client_reference_id: user.id,
 		mode: "subscription",
 		success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard/settings`,
@@ -65,7 +61,7 @@ export async function generatePaymentLink(user: AuthenticatedUser, returnUrl?: s
 		subscription_data: {
 			trial_period_days: 3,
 		},
-		...(user.stripeCustomerId ? { customer_update: { name: "auto" } } : {}),
+		...(user.stripeCustomerId ? { customer_update: { name: "auto", address: "auto" } } : {}),
 	});
 
 	return session.url;
