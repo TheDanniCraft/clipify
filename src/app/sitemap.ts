@@ -15,6 +15,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
 			priority: 0.7,
 		},
 		{
+			url: "https://clipify.us/llms.txt",
+			lastModified: new Date(),
+			changeFrequency: "monthly",
+			priority: 0.7,
+		},
+		{
 			url: "https://chat.cloud.thedannicraft.de/hc/clipify/en",
 			lastModified: new Date(),
 			changeFrequency: "weekly",
