@@ -138,7 +138,7 @@ export default function Home() {
 						<FeatureCard title='Control your player' description='Choose to play clips from today, all-time, or just your featured clips.' icon={IconAdjustments} />
 						<FeatureCard title='Keeps Your Stream Entertained' description="Auto-play clips to keep your audience engaged even when you're away." icon={IconMoodSmile} />
 						<FeatureCard title='Multiple Overlays' description='Create as many overlays as you like, use them for AFK screens, at the starting or end screens of your stream, or anywhere you want.' icon={IconLayersDifference} />
-						<FeatureCard title='Channel Points Integration' comingSoon description='Let viewers play their favourite clips using Twitch channel points.' icon={IconCoin} />
+						<FeatureCard title='Channel Points Integration' description='Let viewers play their favourite clips using Twitch channel points.' icon={IconCoin} />
 					</div>
 				</div>
 			</div>
