@@ -17,6 +17,13 @@ export async function POST(request: NextRequest) {
 	const signature = request.headers.get("Twitch-Eventsub-Message-Signature");
 	const messageType = request.headers.get("Twitch-Eventsub-Message-Type");
 
+	console.log("Received Twitch EventSub message:", {
+		messageId,
+		timestamp,
+		signature,
+		messageType,
+	});
+
 	if (!messageId || !timestamp || !signature || !messageType) {
 		console.error("Missing required headers:", {
 			messageId,
