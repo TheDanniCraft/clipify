@@ -133,7 +133,7 @@ export default function OverlayPlayer({ clips, overlay }: { clips: TwitchClip[];
 		}
 	}, [clips, videoClip]);
 
-	if (!clips || clips.length === 0 || videoClip === null) {
+	if (!clips) {
 		return (
 			<div className='flex flex-col items-center justify-center w-full h-64'>
 				<span className='text-gray-400 text-lg font-semibold'>No clips found, this also pauses the clip queue...</span>
