@@ -4,13 +4,13 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { getOverlay, getUser, saveOverlay } from "@/app/actions/database";
 import { addToast, Button, Card, CardBody, CardHeader, Divider, Form, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Select, SelectItem, Snippet, Spinner, Switch, Tooltip } from "@heroui/react";
-import { AuthenticatedUser, Overlay, OverlayType, Plan } from "@types";
+import { AuthenticatedUser, Overlay, OverlayType, Plan, TwitchReward } from "@types";
 import { IconAlertTriangle, IconArrowLeft, IconCrown, IconDeviceFloppy, IconInfoCircle, IconPlayerPauseFilled, IconPlayerPlayFilled } from "@tabler/icons-react";
 import DashboardNavbar from "@components/dashboardNavbar";
 import { useNavigationGuard } from "next-navigation-guard";
 import { validateAuth } from "@/app/actions/auth";
 import Footer from "@components/footer";
-import { createChannelReward, getReward } from "@/app/actions/twitch";
+import { createChannelReward, getReward, removeChannelReward } from "@/app/actions/twitch";
 import { generatePaymentLink } from "@/app/actions/subscription";
 
 const overlayTypes: { key: OverlayType; label: string }[] = [
@@ -32,7 +32,7 @@ export default function OverlaySettings() {
 	const [baseOverlay, setBaseOverlay] = useState<Overlay | null>(null);
 	const [baseUrl, setBaseUrl] = useState<string | null>(null);
 	const [user, setUser] = useState<AuthenticatedUser>();
-	const [rewardTitle, setRewardTitle] = useState<string>("");
+	const [reward, setReward] = useState<TwitchReward | null>(null);
 
 	const navGuard = useNavigationGuard({ enabled: isFormDirty() });
 
@@ -51,9 +51,9 @@ export default function OverlaySettings() {
 		async function fetchRewardTitle() {
 			if (overlay?.rewardId) {
 				const reward = await getReward(overlay.ownerId, overlay.rewardId);
-				setRewardTitle(reward?.title || "");
+				setReward(reward);
 			} else {
-				setRewardTitle("");
+				setReward(null);
 			}
 		}
 		fetchRewardTitle();
@@ -241,9 +241,12 @@ export default function OverlaySettings() {
 											<Input
 												isClearable
 												onClear={() => {
+													if (reward) {
+														removeChannelReward(reward.id, overlay.ownerId);
+													}
 													setOverlay({ ...overlay, rewardId: null });
 												}}
-												value={rewardTitle}
+												value={reward?.title}
 												placeholder='Reward ID not set'
 											/>
 											<Tooltip

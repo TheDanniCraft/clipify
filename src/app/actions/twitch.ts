@@ -119,6 +119,32 @@ export async function createChannelReward(userId: string): Promise<TwitchRewardR
 	}
 }
 
+export async function removeChannelReward(rewardId: string, userId: string): Promise<boolean> {
+	const url = `https://api.twitch.tv/helix/channel_points/custom_rewards`;
+	try {
+		const token = await getAccessToken(userId);
+		if (!token) {
+			console.error("No access token found for userId:", userId);
+			return false;
+		}
+
+		await axios.delete(url, {
+			params: {
+				id: rewardId,
+				broadcaster_id: userId,
+			},
+			headers: {
+				Authorization: `Bearer ${token.accessToken}`,
+				"Client-Id": process.env.TWITCH_CLIENT_ID || "",
+			},
+		});
+		return true;
+	} catch (error) {
+		logTwitchError("Error removing channel reward", error);
+		return false;
+	}
+}
+
 export async function verifyToken(user: AuthenticatedUser) {
 	const url = "https://id.twitch.tv/oauth2/validate";
 	try {
