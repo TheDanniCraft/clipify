@@ -153,7 +153,7 @@ export default function OverlaySettings() {
 												{`${baseUrl}/overlay/${overlayId}`}
 											</Snippet>
 										</div>
-										<Button type='submit' color='primary' isIconOnly isDisabled={!isFormDirty()}>
+										<Button type='submit' color='primary' isIconOnly isDisabled={!isFormDirty()} aria-label='Save Overlay Settings'>
 											<IconDeviceFloppy />
 										</Button>
 									</div>
@@ -283,10 +283,10 @@ export default function OverlaySettings() {
 							</p>
 						</ModalBody>
 						<ModalFooter>
-							<Button variant='light' onPress={navGuard.reject}>
+							<Button variant='light' onPress={navGuard.reject} aria-label='Cancel'>
 								Cancel
 							</Button>
-							<Button color='danger' onPress={navGuard.accept}>
+							<Button color='danger' onPress={navGuard.accept} aria-label='Discard Changes'>
 								Discard changes
 							</Button>
 						</ModalFooter>

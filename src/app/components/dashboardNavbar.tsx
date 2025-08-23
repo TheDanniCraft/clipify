@@ -30,14 +30,14 @@ export default function DashboardNavbar({ children, user, title, tagline }: { ch
 				</NavbarBrand>
 				<NavbarContent className='ml-auto h-12 max-w-fit items-center gap-0' justify='end'>
 					<NavbarItem>
-						<Button isIconOnly radius='full' variant='light' onPress={() => setTheme(theme === "dark" ? "light" : "dark")}>
+						<Button isIconOnly radius='full' variant='light' onPress={() => setTheme(theme === "dark" ? "light" : "dark")} aria-label='Toggle Theme'>
 							{theme === "dark" ? <IconSunFilled className='text-primary-foreground/60' width={24} /> : <IconMoonFilled className='text-primary-foreground/60' width={24} />}
 						</Button>
 					</NavbarItem>
 					<NavbarItem className='px-2'>
 						<Dropdown placement='bottom-end'>
 							<DropdownTrigger>
-								<button className='mt-1 h-8 w-8 transition-transform'>
+								<button className='mt-1 h-8 w-8 transition-transform' aria-label='Open profile menu'>
 									<Badge
 										classNames={{
 											badge: "border-primary",

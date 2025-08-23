@@ -18,7 +18,7 @@ export const tiers: Array<Tier> = [
 		features: ["Unlimited clips", "One overlay", "Plug & Play setup", "Control which clips play", "Keeps your stream entertained"],
 		buttonText: "Start for Free",
 		buttonColor: "default",
-		buttonVariant: "ghost",
+		buttonVariant: "solid",
 	},
 	{
 		key: TiersEnum.Pro,

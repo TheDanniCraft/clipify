@@ -56,7 +56,7 @@ export default function SettingsPage() {
 				<Card className='mt-4'>
 					<CardHeader>
 						<div className='flex items-center gap-2 w-full justify-between'>
-							<Button isIconOnly variant='light' startContent={<IconArrowLeft />} onPress={() => router.push("/dashboard")} />
+							<Button isIconOnly variant='light' startContent={<IconArrowLeft />} onPress={() => router.push("/dashboard")} aria-label='Back to Dashboard' />
 							<div className='flex items-center gap-2'>
 								<div className='flex items-center overflow-hidden'>
 									<Snippet
@@ -86,7 +86,7 @@ export default function SettingsPage() {
 							</div>
 						</div>
 						{user.plan === Plan.Free && (
-							<Button color='primary' startContent={<IconDiamondFilled />} isDisabled={user.plan != Plan.Free} onPress={upgradeModalOnOpen}>
+							<Button color='primary' startContent={<IconDiamondFilled />} isDisabled={user.plan != Plan.Free} onPress={upgradeModalOnOpen} aria-label='Upgrade Account'>
 								Upgrade Account
 							</Button>
 						)}

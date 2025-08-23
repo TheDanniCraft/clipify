@@ -187,7 +187,7 @@ export default function AppScreenshotSkewed({ ...props }: ComponentProps<"svg">)
 				<clipPath id='clip11_3051_12573'>
 					<rect fill='white' height='890' rx='6' transform='matrix(0.965926 -0.258819 0.707107 0.707107 109.154 384.939)' width='1099' />
 				</clipPath>
-				<image height='2500' id='image0_3051_12573' width='3978' xlinkHref='https://cdn.thedannicraft.de/uKLJEcixYebq.png' />
+				<image height='2500' id='image0_3051_12573' width='3978' xlinkHref='https://cdn.thedannicraft.de/iRT1UW2dZnG8.webp' />
 			</defs>
 		</svg>
 	);

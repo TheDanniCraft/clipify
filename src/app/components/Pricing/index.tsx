@@ -77,7 +77,7 @@ export default function TiersComponent() {
 							</ul>
 						</CardBody>
 						<CardFooter>
-							<Button fullWidth as={Link} color={tier.buttonColor} href='/login' variant={tier.buttonVariant}>
+							<Button fullWidth as={Link} color={tier.buttonColor} href='/login' variant={tier.buttonVariant} aria-label={tier.buttonText}>
 								{tier.buttonText}
 							</Button>
 						</CardFooter>

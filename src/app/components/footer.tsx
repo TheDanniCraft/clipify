@@ -19,15 +19,15 @@ export default function Component() {
 			.then((response) => {
 				switch (response.data.status) {
 					case "DOWN":
-						setStatusColor("hsl(var(--heroui-danger)");
+						setStatusColor("hsl(var(--heroui-danger))");
 						setStatusText("Major outage");
 						break;
 					case "UP":
-						setStatusColor("hsl(var(--heroui-success)");
+						setStatusColor("hsl(var(--heroui-success))");
 						setStatusText("All systems operational");
 						break;
 					case "PARTIAL":
-						setStatusColor("hsl(var(--heroui-warning)");
+						setStatusColor("hsl(var(--heroui-warning))");
 						setStatusText("Partial outage");
 						break;
 					case "MAINTENANCE":
@@ -51,10 +51,10 @@ export default function Component() {
 				<div className='mx-auto w-full max-w-7xl px-6 py-12 md:flex md:items-center md:justify-between lg:px-8'>
 					<div className='flex flex-col items-center justify-center gap-2 md:order-2 md:items-end'>
 						<ButtonGroup>
-							<Button isIconOnly onPress={() => setTheme("dark")} color={theme === "dark" ? "primary" : "default"}>
+							<Button isIconOnly onPress={() => setTheme("dark")} color={theme === "dark" ? "primary" : "default"} aria-label='Switch to dark theme'>
 								<IconMoonFilled />
 							</Button>
-							<Button isIconOnly onPress={() => setTheme("light")} color={theme == "light" ? "primary" : "default"}>
+							<Button isIconOnly onPress={() => setTheme("light")} color={theme == "light" ? "primary" : "default"} aria-label='Switch to light theme'>
 								<IconSunFilled />
 							</Button>
 						</ButtonGroup>

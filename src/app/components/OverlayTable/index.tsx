@@ -252,7 +252,7 @@ export default function OverlayTable({ userid }: { userid: string }) {
 						<div>
 							<Popover placement='bottom'>
 								<PopoverTrigger>
-									<Button className='bg-default-100 text-default-800' size='sm' startContent={<IconAdjustmentsHorizontal className='text-default-400' width={16} />}>
+									<Button className='bg-default-100 text-default-800' size='sm' startContent={<IconAdjustmentsHorizontal className='text-default-400' width={16} />} aria-label='Open Filter Options'>
 										Filter
 									</Button>
 								</PopoverTrigger>
@@ -270,7 +270,7 @@ export default function OverlayTable({ userid }: { userid: string }) {
 						<div>
 							<Dropdown>
 								<DropdownTrigger>
-									<Button className='bg-default-100 text-default-800' size='sm' startContent={<IconMenuDeep className='text-default-400' width={16} />}>
+									<Button className='bg-default-100 text-default-800' size='sm' startContent={<IconMenuDeep className='text-default-400' width={16} />} aria-label='Open Sort Options'>
 										Sort
 									</Button>
 								</DropdownTrigger>
@@ -294,7 +294,7 @@ export default function OverlayTable({ userid }: { userid: string }) {
 						<div>
 							<Dropdown closeOnSelect={false}>
 								<DropdownTrigger>
-									<Button className='bg-default-100 text-default-800' size='sm' startContent={<IconArrowsLeftRight className='text-default-400' width={16} />}>
+									<Button className='bg-default-100 text-default-800' size='sm' startContent={<IconArrowsLeftRight className='text-default-400' width={16} />} aria-label='Open Column Options'>
 										Columns
 									</Button>
 								</DropdownTrigger>
@@ -312,7 +312,7 @@ export default function OverlayTable({ userid }: { userid: string }) {
 					{(filterSelectedKeys === "all" || filterSelectedKeys.size > 0) && (
 						<Dropdown>
 							<DropdownTrigger>
-								<Button className='bg-default-100 text-default-800' endContent={<IconChevronDown className='text-default-400' />} size='sm' variant='flat'>
+								<Button className='bg-default-100 text-default-800' endContent={<IconChevronDown className='text-default-400' />} size='sm' variant='flat' aria-label='Open Selected Actions'>
 									Selected Actions
 								</Button>
 							</DropdownTrigger>
@@ -398,7 +398,7 @@ export default function OverlayTable({ userid }: { userid: string }) {
 					<Chip className='hidden items-center text-default-500 sm:flex' size='sm' variant='flat'>
 						{overlays?.length ?? 0}
 					</Chip>
-					<Button isIconOnly size='sm' variant='light' onPress={reloadOverlays} startContent={<IconReload className='text-default-400' width={16} />} />
+					<Button isIconOnly size='sm' variant='light' onPress={reloadOverlays} startContent={<IconReload className='text-default-400' width={16} />} aria-label='Reload Overlays' />
 				</div>
 				<Button
 					color='primary'
@@ -447,10 +447,10 @@ export default function OverlayTable({ userid }: { userid: string }) {
 				<div className='flex items-center justify-end gap-6'>
 					<span className='text-small text-default-400'>{filterSelectedKeys === "all" ? "All items selected" : `${filterSelectedKeys.size} of ${filteredItems.length} selected`}</span>
 					<div className='flex items-center gap-3'>
-						<Button isDisabled={page === 1} size='sm' variant='flat' onPress={onPreviousPage}>
+						<Button isDisabled={page === 1} size='sm' variant='flat' onPress={onPreviousPage} aria-label='Previous Page'>
 							Previous
 						</Button>
-						<Button isDisabled={page === pages} size='sm' variant='flat' onPress={onNextPage}>
+						<Button isDisabled={page === pages} size='sm' variant='flat' onPress={onNextPage} aria-label='Next Page'>
 							Next
 						</Button>
 					</div>

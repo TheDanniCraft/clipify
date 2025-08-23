@@ -105,7 +105,7 @@ const Construction = ({ endDate, cta }: { endDate?: Date; cta: Cta }) => {
 				<motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 + (endDate ? 0.3 : 0), duration: 0.5 }}>
 					<Popover showArrow offset={10} placement='bottom' backdrop='blur'>
 						<PopoverTrigger>
-							<Button variant='faded' size='lg' startContent={cta.icon}>
+							<Button variant='faded' size='lg' startContent={cta.icon} aria-label={cta.text}>
 								{cta.text}
 							</Button>
 						</PopoverTrigger>
@@ -146,7 +146,7 @@ const Construction = ({ endDate, cta }: { endDate?: Date; cta: Cta }) => {
 									name='email'
 									isDisabled={newsletterState === "loading" || newsletterState === "success"}
 									endContent={
-										<Button color='primary' size='sm' isIconOnly type='submit' disabled={newsletterState === "loading" || newsletterState === "success"}>
+										<Button color='primary' size='sm' isIconOnly type='submit' disabled={newsletterState === "loading" || newsletterState === "success"} aria-label='Subscribe to newsletter'>
 											<IconSend className='text-default-foreground' />
 										</Button>
 									}

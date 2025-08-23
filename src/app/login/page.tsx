@@ -1,6 +1,7 @@
 import { Button } from "@heroui/react";
 import { IconBrandTwitch } from "@tabler/icons-react";
 import ErrorToast from "@components/errorToast";
+import Link from "next/link";
 
 export default async function Login({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
 	const scopes: string[] = ["user:read:email", "channel:read:redemptions", "channel:manage:redemptions", "user:write:chat", "user:bot", "channel:bot"];
@@ -21,7 +22,7 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
 			<ErrorToast error={error as string} errorCode={errorCode as string} />
 			<div className='min-h-screen min-w-screen flex items-center justify-center bg-gradient-to-br from-primary-800 to-primary-400'>
 				<div className='flex flex-col items-center'>
-					<Button as='a' href={authLink.toString()} startContent={<IconBrandTwitch color='#8956FB' />} variant='faded' size='lg'>
+					<Button as={Link} href={authLink.toString()} startContent={<IconBrandTwitch color='#8956FB' />} variant='faded' size='lg' color='default' aria-label='Login with Twitch'>
 						Login with Twitch
 					</Button>
 				</div>
