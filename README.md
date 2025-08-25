@@ -71,6 +71,32 @@ bun run app:lint
 npm run app:lint
 ```
 
+### Testing
+
+Run Jest tests:
+
+```sh
+bun run test
+# or
+npm run test
+```
+
+Run tests with coverage:
+
+```sh
+bun run test:coverage
+# or
+npm run test:coverage
+```
+
+Run tests in watch mode:
+
+```sh
+bun run test:watch
+# or
+npm run test:watch
+```
+
 ### Building for Production
 
 ```sh
@@ -108,16 +134,19 @@ Environment variables are managed via [Infisical](https://infisical.com/).
 
 ## Scripts
 
-| Script        | Description                                 |
-| ------------- | ------------------------------------------- |
-| `app:dev`     | Start development server with Infisical env |
-| `app:build`   | Build Next.js app                           |
-| `app:start`   | Start production server                     |
-| `app:lint`    | Run ESLint                                  |
-| `db:push`     | Push Drizzle schema (with Infisical env)    |
-| `db:generate` | Generate Drizzle migrations                 |
-| `db:migrate`  | Run Drizzle migrations                      |
-| `db:studio`   | Open Drizzle studio (with Infisical env)    |
+| Script          | Description                                 |
+| --------------- | ------------------------------------------- |
+| `app:dev`       | Start development server with Infisical env |
+| `app:build`     | Build Next.js app                           |
+| `app:start`     | Start production server                     |
+| `app:lint`      | Run ESLint                                  |
+| `test`          | Run Jest tests                              |
+| `test:watch`    | Run Jest tests in watch mode               |
+| `test:coverage` | Run Jest tests with coverage report        |
+| `db:push`       | Push Drizzle schema (with Infisical env)    |
+| `db:generate`   | Generate Drizzle migrations                 |
+| `db:migrate`    | Run Drizzle migrations                      |
+| `db:studio`     | Open Drizzle studio (with Infisical env)    |
 
 ## Tech Stack
 
@@ -125,6 +154,7 @@ Environment variables are managed via [Infisical](https://infisical.com/).
 - [React](https://react.dev/)
 - [Drizzle ORM](https://orm.drizzle.team/)
 - [Tailwind CSS](https://tailwindcss.com/)
+- [Jest](https://jestjs.io/) (Testing)
 - [Plausible Analytics](https://plausible.io/)
 - [Sentry](https://sentry.io/)
 - [Infisical](https://infisical.com/)
