@@ -6,9 +6,9 @@ import { getAccessToken } from "@actions/database";
 
 export async function logTwitchError(context: string, error: unknown) {
 	if (axios.isAxiosError(error) && error.response) {
-		console.error(`${context}:`, error.response.data);
+		console.error("%s:", context, error.response.data);
 	} else {
-		console.error(`${context}:`, error);
+		console.error("%s:", context, error);
 	}
 }
 
