@@ -1,0 +1,134 @@
+name: 🧪 CI
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  deps:
+    name: ♻️ Prepare dependency cache
+    runs-on: ubuntu-latest
+    outputs:
+      cache-key: ${{ steps.compute-key.outputs.key }}
+      cache-hit: ${{ steps.restore.outputs.cache-hit }}
+    steps:
+      - name: 📥 Check out repository
+        uses: actions/checkout@v4
+
+      - name: 🟢 Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      # compute the cache key once so downstream jobs can reuse it
+      - name: 🔑 Compute cache key
+        id: compute-key
+        run: echo "key=${{ runner.os }}-deps-${{ hashFiles('**/bun.lockb') }}" >> "$GITHUB_OUTPUT"
+
+      # try to restore an existing cache
+      - name: ♻️ Restore Bun & node_modules cache
+        id: restore
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.bun/install/cache
+            ~/.bun/install/global
+            **/node_modules
+          key: ${{ steps.compute-key.outputs.key }}
+
+      # only install if the cache did not exist
+      - name: 📦 Install dependencies
+        if: steps.restore.outputs.cache-hit != 'true'
+        run: bun install --frozen-lockfile
+
+      # save a new cache entry when we had a miss
+      - name: 💾 Save Bun & node_modules cache
+        if: steps.restore.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ~/.bun/install/cache
+            ~/.bun/install/global
+            **/node_modules
+          key: ${{ steps.compute-key.outputs.key }}
+
+  lint:
+    name: 🧹 Lint
+    runs-on: ubuntu-latest
+    needs: deps
+    steps:
+      - name: 📥 Check out repository
+        uses: actions/checkout@v4
+
+      - name: 🟢 Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: ♻️ Restore deps cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.bun/install/cache
+            ~/.bun/install/global
+            **/node_modules
+          key: ${{ needs.deps.outputs.cache-key }}
+
+      - name: 🧹 Run lint
+        run: bun run app:lint
+
+  test:
+    name: 🧪 Test
+    runs-on: ubuntu-latest
+    needs: deps
+    steps:
+      - name: 📥 Check out repository
+        uses: actions/checkout@v4
+
+      - name: 🟢 Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: ♻️ Restore deps cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.bun/install/cache
+            ~/.bun/install/global
+            **/node_modules
+          key: ${{ needs.deps.outputs.cache-key }}
+
+      - name: 🧪 Test (placeholder)
+        run: echo "No tests defined"
+
+  build:
+    name: 🏗️ Build
+    runs-on: ubuntu-latest
+    needs: deps
+    steps:
+      - name: 📥 Check out repository
+        uses: actions/checkout@v4
+
+      - name: 🟢 Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: ♻️ Restore deps cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.bun/install/cache
+            ~/.bun/install/global
+            **/node_modules
+          key: ${{ needs.deps.outputs.cache-key }}
+
+      - name: 🏗️ Run build
+        run: bun run app:build

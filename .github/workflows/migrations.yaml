@@ -1,4 +1,4 @@
-name: 🛠️ Generate Migrations
+name: 🗃️ Generate Migrations
 
 on:
   push:
