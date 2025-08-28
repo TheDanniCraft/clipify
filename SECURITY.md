@@ -2,7 +2,11 @@
 
 ## 🗂️ Supported Versions
 
-Clipify is not intended for self-hosting. We only provide security updates and support for the latest version, which is the one currently deployed on our production server. Older versions do not receive security patches or updates. The latest release can always be found [here](https://github.com/TheDanniCraft/clipify/releases/latest). To ensure you have the latest security fixes, always use the most recent release. 🚀
+- Clipify is not intended for self-hosting.
+- We only provide security updates and support for the latest version, which is the one currently deployed on our production server.
+- Older versions do not receive security patches or updates.
+- The latest release can always be found [here](https://github.com/TheDanniCraft/clipify/releases/latest).
+- To ensure you have the latest security fixes, always use the most recent release. 🚀
 
 ## 🐞 Reporting a Vulnerability
 
