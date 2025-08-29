@@ -13,8 +13,11 @@ jobs:
     permissions:
       contents: write
     steps:
+      # Use deploy key for enabling bypass of branch protection, thanks to https://github.com/sbellone/release-workflow-example
       - name: 📥 Check out the repository
         uses: actions/checkout@v4
+        with:
+          ssh-key: ${{ secrets.DEPLOY_KEY }}
       - name: 🍞 Set up Bun
         uses: oven-sh/setup-bun@v1
       - name: 📦 Install dependencies
