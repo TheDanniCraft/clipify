@@ -13,7 +13,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      # Use deploy key to bypass branch protection, thanks to https://github.com/sbellone/release-workflow-example
+      # Use deploy key for enabling bypass of branch protection, thanks to https://github.com/sbellone/release-workflow-example
       - name: 📥 Check out the repository
         uses: actions/checkout@v4
         with:
