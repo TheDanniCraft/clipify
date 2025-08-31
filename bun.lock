@@ -5,7 +5,7 @@
       "name": "clipify",
       "dependencies": {
         "@heroui/react": "^2.8.2",
-        "@sentry/nextjs": "^10.7.0",
+        "@sentry/nextjs": "^10.8.0",
         "@tabler/icons-react": "^3.34.1",
         "axios": "^1.11.0",
         "dotenv": "^17.2.1",
