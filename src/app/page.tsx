@@ -1,7 +1,7 @@
 "use client";
 
 import BasicNavbar from "@components/LandingPage/basicNavbar";
-import { Accordion, AccordionItem, Button, Chip, Link } from "@heroui/react";
+import { Accordion, AccordionItem, Button, Chip, Image, Link } from "@heroui/react";
 import { LazyMotion, motion, domAnimation, AnimatePresence } from "motion/react";
 import AppScreenshotSkewed from "@components/LandingPage/appScreenshotSkew";
 import { IconThumbUp, IconArrowRight, IconPlugConnected, IconLayersDifference, IconMoodSmile, IconCoin, IconAdjustments, IconChevronDown } from "@tabler/icons-react";
@@ -119,7 +119,7 @@ export default function Home() {
 									type: "spring",
 								}}
 							>
-								<AppScreenshotSkewed className='w-full' />
+								<Image src='./appSkew.webp' alt='App Screenshot' className='w-full' />
 							</motion.div>
 						</AnimatePresence>
 					</LazyMotion>
