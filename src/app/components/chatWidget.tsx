@@ -35,7 +35,6 @@ const ChatWidget = () => {
 		const script = document.createElement("script");
 		script.id = "chatwoot-script";
 		script.src = `${CHATWOOT_BASE_URL}/packs/js/sdk.js`;
-		script.async = true;
 		script.defer = true;
 
 		script.onload = () => {
