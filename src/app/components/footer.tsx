@@ -181,7 +181,7 @@ export default function Component() {
 									}
 								})()}
 								onChange={() => {
-									setNewsletterState("defult");
+									setNewsletterState("default");
 								}}
 								name='email'
 								isDisabled={newsletterState === "loading" || newsletterState === "success"}

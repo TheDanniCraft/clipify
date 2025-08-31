@@ -141,7 +141,7 @@ const Construction = ({ endDate, cta }: { endDate?: Date; cta: Cta }) => {
 										}
 									})()}
 									onChange={() => {
-										setNewsletterState("defult");
+										setNewsletterState("default");
 									}}
 									name='email'
 									isDisabled={newsletterState === "loading" || newsletterState === "success"}
