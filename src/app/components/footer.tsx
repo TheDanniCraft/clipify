@@ -42,6 +42,7 @@ export default function Component() {
 			{ name: "Privacy Policy", href: "https://hub.goadopt.io/document/3852d930-97b9-46c2-950d-823e62515ab4?language=en" },
 			{ name: "Cookie Policy", href: "https://hub.goadopt.io/document/535d4dc1-7b66-4b96-9bff-bc6e0e47587d?language=en" },
 			{ name: "Terms of Service", href: "https://hub.goadopt.io/document/9651af3f-af45-480f-8a4d-2beb6ed68e9b?language=en" },
+			{ name: "Request Data Removal", href: "https://hub.goadopt.io/privacy-hub/07b752d8-6dc2-4831-9c53-b5038623ddf4?language=en&legislation=gdpr&websiteId=b03e3c81-5d51-4e76-8610-8259e1b06086&disclaimerId=792b9b29-57f9-4d92-b5f1-313f94ddfacc&visitorId=9b705dd6-cc3e-4a91-9dad-f7acb8bd6a7c" },
 		],
 	};
 
