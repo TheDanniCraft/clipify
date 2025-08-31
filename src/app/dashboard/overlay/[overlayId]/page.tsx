@@ -9,7 +9,6 @@ import { IconAlertTriangle, IconArrowLeft, IconCrown, IconDeviceFloppy, IconInfo
 import DashboardNavbar from "@components/dashboardNavbar";
 import { useNavigationGuard } from "next-navigation-guard";
 import { validateAuth } from "@/app/actions/auth";
-import Footer from "@components/footer";
 import { createChannelReward, getReward, removeChannelReward } from "@/app/actions/twitch";
 import { generatePaymentLink } from "@/app/actions/subscription";
 
@@ -110,190 +109,187 @@ export default function OverlaySettings() {
 	}
 
 	return (
-		<>
-			<DashboardNavbar user={user!} title='Overlay Settings' tagline='Manage your overlays'>
-				<div className='flex flex-col items-center justify-center w-full p-4'>
-					<Card className='w-full max-w-4xl'>
-						<CardHeader className='justify-between space-x-1'>
-							<div className='flex items-center'>
-								<Button
-									isIconOnly
-									variant='light'
-									onPress={() => {
-										router.push(`${baseUrl}/dashboard`);
+		<DashboardNavbar user={user!} title='Overlay Settings' tagline='Manage your overlays'>
+			<div className='flex flex-col items-center justify-center w-full p-4'>
+				<Card className='w-full max-w-4xl'>
+					<CardHeader className='justify-between space-x-1'>
+						<div className='flex items-center'>
+							<Button
+								isIconOnly
+								variant='light'
+								onPress={() => {
+									router.push(`${baseUrl}/dashboard`);
+								}}
+							>
+								<IconArrowLeft />
+							</Button>
+							<h1 className='text-xl font-bold'>Overlay Settings</h1>
+						</div>
+						<span className='text-sm text-gray-500'>ID: {overlayId}</span>
+					</CardHeader>
+					<Divider />
+					<CardBody>
+						<div className='flex items-center'>
+							<Form className='w-full' onSubmit={handleSubmit}>
+								<div className='flex items-center w-full space-x-4'>
+									<Switch
+										isSelected={overlay.status == "active"}
+										onValueChange={(value) => {
+											setOverlay({ ...overlay, status: value ? "active" : "paused" });
+										}}
+										startContent={<IconPlayerPlayFilled />}
+										endContent={<IconPlayerPauseFilled />}
+									/>
+									<div className='flex-1 overflow-hidden'>
+										<Snippet
+											className='w-full max-w-full'
+											symbol=''
+											classNames={{
+												pre: "overflow-hidden whitespace-nowrap",
+											}}
+										>
+											{`${baseUrl}/overlay/${overlayId}`}
+										</Snippet>
+									</div>
+									<Button type='submit' color='primary' isIconOnly isDisabled={!isFormDirty()} aria-label='Save Overlay Settings'>
+										<IconDeviceFloppy />
+									</Button>
+								</div>
+								<Input
+									value={overlay.name}
+									onValueChange={(value) => {
+										setOverlay({ ...overlay, name: value });
+									}}
+									isRequired
+									label='Overlay Name'
+								/>
+								<Select
+									isRequired
+									selectedKeys={[overlay.type]}
+									onSelectionChange={(value) => {
+										setOverlay({ ...overlay, type: value.currentKey as OverlayType });
+									}}
+									label='Overlay Type'
+								>
+									{overlayTypes.map((type) => (
+										<SelectItem key={type.key}>{type.label}</SelectItem>
+									))}
+								</Select>
+								<Divider className='my-4' />
+								{user?.plan === Plan.Free && (
+									<div className='w-full mb-4'>
+										<Card className='bg-warning-50 border border-warning-200 mb-2'>
+											<CardBody>
+												<div className='flex items-center gap-2 mb-1'>
+													<IconCrown className='text-warning-500' />
+													<span className='text-warning-800 font-semibold text-base'>Premium Feature Locked</span>
+												</div>
+												<p className='text-sm text-warning-700'>
+													Unlock advanced overlay settings with <span className='font-semibold'>Premium</span>.
+												</p>
+												<ul className='list-disc list-inside text-warning-700 text-xs mt-2 ml-1'>
+													<li>Multiple overlay</li>
+													<li>Link custom Twitch rewards</li>
+													<li>Priority support</li>
+												</ul>
+												<Button
+													color='warning'
+													variant='shadow'
+													onPress={async () => {
+														const link = await generatePaymentLink(user, window.location.href);
+
+														if (link) {
+															window.location.href = link;
+														} else {
+															addToast({
+																title: "Error",
+																description: "Failed to generate payment link. Please try again later.",
+																color: "danger",
+															});
+														}
+													}}
+													className='mt-3 w-full font-semibold'
+												>
+													Upgrade for less than $1/month
+												</Button>
+												<p className='text-xs text-warning-600 text-center mt-2'>Enjoy a 7-day free trial. Cancel anytime.</p>
+											</CardBody>
+										</Card>
+									</div>
+								)}
+								<div
+									className='w-full'
+									style={{
+										filter: user?.plan === Plan.Free ? "blur(1.5px)" : "none",
+										pointerEvents: user?.plan === Plan.Free ? "none" : "auto",
 									}}
 								>
-									<IconArrowLeft />
-								</Button>
-								<h1 className='text-xl font-bold'>Overlay Settings</h1>
-							</div>
-							<span className='text-sm text-gray-500'>ID: {overlayId}</span>
-						</CardHeader>
-						<Divider />
-						<CardBody>
-							<div className='flex items-center'>
-								<Form className='w-full' onSubmit={handleSubmit}>
-									<div className='flex items-center w-full space-x-4'>
-										<Switch
-											isSelected={overlay.status == "active"}
-											onValueChange={(value) => {
-												setOverlay({ ...overlay, status: value ? "active" : "paused" });
-											}}
-											startContent={<IconPlayerPlayFilled />}
-											endContent={<IconPlayerPauseFilled />}
-										/>
-										<div className='flex-1 overflow-hidden'>
-											<Snippet
-												className='w-full max-w-full'
-												symbol=''
-												classNames={{
-													pre: "overflow-hidden whitespace-nowrap",
-												}}
-											>
-												{`${baseUrl}/overlay/${overlayId}`}
-											</Snippet>
-										</div>
-										<Button type='submit' color='primary' isIconOnly isDisabled={!isFormDirty()} aria-label='Save Overlay Settings'>
-											<IconDeviceFloppy />
-										</Button>
-									</div>
-									<Input
-										value={overlay.name}
-										onValueChange={(value) => {
-											setOverlay({ ...overlay, name: value });
-										}}
-										isRequired
-										label='Overlay Name'
-									/>
-									<Select
-										isRequired
-										selectedKeys={[overlay.type]}
-										onSelectionChange={(value) => {
-											setOverlay({ ...overlay, type: value.currentKey as OverlayType });
-										}}
-										label='Overlay Type'
-									>
-										{overlayTypes.map((type) => (
-											<SelectItem key={type.key}>{type.label}</SelectItem>
-										))}
-									</Select>
-									<Divider className='my-4' />
-									{user?.plan === Plan.Free && (
-										<div className='w-full mb-4'>
-											<Card className='bg-warning-50 border border-warning-200 mb-2'>
-												<CardBody>
-													<div className='flex items-center gap-2 mb-1'>
-														<IconCrown className='text-warning-500' />
-														<span className='text-warning-800 font-semibold text-base'>Premium Feature Locked</span>
-													</div>
-													<p className='text-sm text-warning-700'>
-														Unlock advanced overlay settings with <span className='font-semibold'>Premium</span>.
-													</p>
-													<ul className='list-disc list-inside text-warning-700 text-xs mt-2 ml-1'>
-														<li>Multiple overlay</li>
-														<li>Link custom Twitch rewards</li>
-														<li>Priority support</li>
-													</ul>
-													<Button
-														color='warning'
-														variant='shadow'
-														onPress={async () => {
-															const link = await generatePaymentLink(user, window.location.href);
-
-															if (link) {
-																window.location.href = link;
-															} else {
-																addToast({
-																	title: "Error",
-																	description: "Failed to generate payment link. Please try again later.",
-																	color: "danger",
-																});
-															}
-														}}
-														className='mt-3 w-full font-semibold'
-													>
-														Upgrade for less than $1/month
-													</Button>
-													<p className='text-xs text-warning-600 text-center mt-2'>Enjoy a 7-day free trial. Cancel anytime.</p>
-												</CardBody>
-											</Card>
-										</div>
-									)}
-									<div
-										className='w-full'
-										style={{
-											filter: user?.plan === Plan.Free ? "blur(1.5px)" : "none",
-											pointerEvents: user?.plan === Plan.Free ? "none" : "auto",
-										}}
-									>
-										<div className='flex w-full items-center mb-2 gap-1'>
-											<Button
-												onPress={async () => {
-													const reward = await createChannelReward(overlay.ownerId);
-													if (reward) {
-														setOverlay({ ...overlay, rewardId: reward.id });
-													}
-												}}
-												isDisabled={user?.plan === Plan.Free || !!overlay.rewardId}
-											>
-												Create Reward
-											</Button>
-											<Input
-												isClearable
-												onClear={() => {
-													if (reward) {
-														removeChannelReward(reward.id, overlay.ownerId);
-													}
-													setOverlay({ ...overlay, rewardId: null });
-												}}
-												value={reward?.title}
-												placeholder='Reward ID not set'
-											/>
-											<Tooltip
-												content={
-													<div className='px-1 py-2'>
-														<div className='text-tiny'>You can edit the reward through your Twitch dashboard.</div>
-													</div>
+									<div className='flex w-full items-center mb-2 gap-1'>
+										<Button
+											onPress={async () => {
+												const reward = await createChannelReward(overlay.ownerId);
+												if (reward) {
+													setOverlay({ ...overlay, rewardId: reward.id });
 												}
-											>
-												<IconInfoCircle className='text-default-400' />
-											</Tooltip>
-										</div>
+											}}
+											isDisabled={user?.plan === Plan.Free || !!overlay.rewardId}
+										>
+											Create Reward
+										</Button>
+										<Input
+											isClearable
+											onClear={() => {
+												if (reward) {
+													removeChannelReward(reward.id, overlay.ownerId);
+												}
+												setOverlay({ ...overlay, rewardId: null });
+											}}
+											value={reward?.title}
+											placeholder='Reward ID not set'
+										/>
+										<Tooltip
+											content={
+												<div className='px-1 py-2'>
+													<div className='text-tiny'>You can edit the reward through your Twitch dashboard.</div>
+												</div>
+											}
+										>
+											<IconInfoCircle className='text-default-400' />
+										</Tooltip>
 									</div>
-								</Form>
-							</div>
-						</CardBody>
-					</Card>
-				</div>
+								</div>
+							</Form>
+						</div>
+					</CardBody>
+				</Card>
+			</div>
 
-				<Modal backdrop='blur' isOpen={navGuard.active} onClose={navGuard.reject}>
-					<ModalContent>
-						<ModalHeader>
-							<div className='flex items-center'>
-								<IconAlertTriangle className='mr-2' />
-								Unsaved Changes
-							</div>
-						</ModalHeader>
-						<ModalBody>
-							<p className='text-sm text-default-700'>
-								You&apos;ve made changes to your <span className='font-semibold text-default-900'>overlay settings</span> that haven&apos;t been saved. If you go back now, <span className='font-semibold text-danger'>those changes will be lost</span>.
-								<br />
-								<br />
-								<span className='font-semibold text-default-900'>Do you want to continue without saving?</span>
-							</p>
-						</ModalBody>
-						<ModalFooter>
-							<Button variant='light' onPress={navGuard.reject} aria-label='Cancel'>
-								Cancel
-							</Button>
-							<Button color='danger' onPress={navGuard.accept} aria-label='Discard Changes'>
-								Discard changes
-							</Button>
-						</ModalFooter>
-					</ModalContent>
-				</Modal>
-			</DashboardNavbar>
-			<Footer />
-		</>
+			<Modal backdrop='blur' isOpen={navGuard.active} onClose={navGuard.reject}>
+				<ModalContent>
+					<ModalHeader>
+						<div className='flex items-center'>
+							<IconAlertTriangle className='mr-2' />
+							Unsaved Changes
+						</div>
+					</ModalHeader>
+					<ModalBody>
+						<p className='text-sm text-default-700'>
+							You&apos;ve made changes to your <span className='font-semibold text-default-900'>overlay settings</span> that haven&apos;t been saved. If you go back now, <span className='font-semibold text-danger'>those changes will be lost</span>.
+							<br />
+							<br />
+							<span className='font-semibold text-default-900'>Do you want to continue without saving?</span>
+						</p>
+					</ModalBody>
+					<ModalFooter>
+						<Button variant='light' onPress={navGuard.reject} aria-label='Cancel'>
+							Cancel
+						</Button>
+						<Button color='danger' onPress={navGuard.accept} aria-label='Discard Changes'>
+							Discard changes
+						</Button>
+					</ModalFooter>
+				</ModalContent>
+			</Modal>
+		</DashboardNavbar>
 	);
 }

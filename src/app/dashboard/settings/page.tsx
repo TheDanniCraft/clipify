@@ -9,7 +9,6 @@ import { addToast, Avatar, Button, Card, CardBody, CardHeader, Divider, Modal, M
 import { IconArrowLeft, IconCreditCardFilled, IconDiamondFilled, IconInfoCircle, IconTrash } from "@tabler/icons-react";
 import { redirect, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import Footer from "@components/footer";
 import { generatePaymentLink, checkIfSubscriptionExists, getPortalLink } from "@/app/actions/subscription";
 
 export default function SettingsPage() {
@@ -185,7 +184,6 @@ export default function SettingsPage() {
 					router.push("/logout");
 				}}
 			/>
-			<Footer />
 		</>
 	);
 }
