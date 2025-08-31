@@ -21,7 +21,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
 			priority: 0.7,
 		},
 		{
-			url: "https://chat.cloud.thedannicraft.de/hc/clipify/en",
+			url: "https://help.clipify.us/",
 			lastModified: new Date(),
 			changeFrequency: "weekly",
 			priority: 0.5,
