@@ -1,6 +1,7 @@
 import { Card, CardBody, CardHeader, Chip, Divider, Image, Link, ScrollShadow } from "@heroui/react";
 import { GithubRelease } from "@types";
 import axios from "axios";
+import xss from "xss";
 
 export default async function ChangelogPage() {
 	async function getReleases(): Promise<GithubRelease[]> {
@@ -38,9 +39,9 @@ export default async function ChangelogPage() {
 												</Chip>
 											</Link>
 											<p
-												className='text-gray-600 text-sm'
+												className='text-sm'
 												dangerouslySetInnerHTML={{
-													__html: release.body.replace(/(?:\r\n|\r|\n)/g, "<br />"),
+													__html: xss(release.body.replace(/(?:\r\n|\r|\n)/g, "<br />")),
 												}}
 											/>
 											<span className='text-xs text-gray-400'>{release.published_at}</span>

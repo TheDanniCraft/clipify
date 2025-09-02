@@ -30,7 +30,8 @@
     "rate-limiter-flexible": "^7.2.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
-    "stripe": "^18.5.0"
+    "stripe": "^18.5.0",
+    "xss": "^1.0.15"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",
