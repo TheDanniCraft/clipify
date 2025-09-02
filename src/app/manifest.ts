@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
 		name: "Clipify",
 		short_name: "Clipify",
 		description: "Clipify automatically plays your best Twitch clips to keep your channel active and your viewers engaged—even when you're away.",
-		start_url: "/",
+		start_url: "https://dashboard.clipify.us",
 		display: "standalone",
 		background_color: "#ffffff",
 		theme_color: "#ffffff",
