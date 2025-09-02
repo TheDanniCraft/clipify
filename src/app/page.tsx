@@ -3,7 +3,6 @@
 import BasicNavbar from "@components/LandingPage/basicNavbar";
 import { Accordion, AccordionItem, Button, Chip, Image, Link } from "@heroui/react";
 import { LazyMotion, motion, domAnimation, AnimatePresence } from "motion/react";
-import AppScreenshotSkewed from "@components/LandingPage/appScreenshotSkew";
 import { IconThumbUp, IconArrowRight, IconPlugConnected, IconLayersDifference, IconMoodSmile, IconCoin, IconAdjustments, IconChevronDown } from "@tabler/icons-react";
 import FeatureCard from "@components/featureCard";
 import TiersComponent from "@components/Pricing";
