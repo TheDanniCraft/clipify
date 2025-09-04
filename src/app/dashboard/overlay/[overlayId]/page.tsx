@@ -11,6 +11,7 @@ import { useNavigationGuard } from "next-navigation-guard";
 import { validateAuth } from "@/app/actions/auth";
 import { createChannelReward, getReward, removeChannelReward } from "@/app/actions/twitch";
 import { generatePaymentLink } from "@/app/actions/subscription";
+import FeedbackWidget from "@components/feedbackWidget";
 
 const overlayTypes: { key: OverlayType; label: string }[] = [
 	{ key: "1", label: "Top Clips - Today" },
@@ -110,6 +111,8 @@ export default function OverlaySettings() {
 
 	return (
 		<DashboardNavbar user={user!} title='Overlay Settings' tagline='Manage your overlays'>
+			<FeedbackWidget />
+
 			<div className='flex flex-col items-center justify-center w-full p-4'>
 				<Card className='w-full max-w-4xl'>
 					<CardHeader className='justify-between space-x-1'>

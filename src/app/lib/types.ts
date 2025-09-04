@@ -1,6 +1,7 @@
 import type { SVGProps } from "react";
 import { InferSelectModel } from "drizzle-orm";
 import { overlaysTable, tokenTable, usersTable } from "@/db/schema";
+import { RatingValueEnum } from "../components/feedback/itemRating";
 
 export class RateLimitError extends Error {
 	constructor() {
@@ -276,4 +277,15 @@ export type GithubRelease = {
 	tarball_url: string;
 	zipball_url: string;
 	body: string;
+};
+
+export type FeedbackType = "feedback" | "bug" | "feature";
+
+export type Feedback = {
+	type: FeedbackType;
+	feedback: {
+		title: string;
+		comment?: string;
+		rating?: RatingValueEnum;
+	};
 };

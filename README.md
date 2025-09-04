@@ -128,6 +128,7 @@ Environment variables are managed via [Infisical](https://infisical.com/).
 - [Plausible Analytics](https://plausible.io/)
 - [Sentry](https://sentry.io/)
 - [Infisical](https://infisical.com/)
+- [Fider](https://fider.io/)
 
 ## License
 

@@ -60,7 +60,7 @@ export default function DashboardNavbar({ children, user, title, tagline }: { ch
 									My Settings
 								</DropdownItem>
 								<DropdownItem key='help_and_feedback' onPress={() => router.push("https://help.clipify.us/")}>
-									Help & Feedback
+									Help
 								</DropdownItem>
 								<DropdownItem key='logout' color='danger' onPress={() => router.push("/logout")}>
 									Log Out
