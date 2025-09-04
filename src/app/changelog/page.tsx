@@ -41,7 +41,7 @@ export default async function ChangelogPage() {
 											<p
 												className='text-sm'
 												dangerouslySetInnerHTML={{
-													__html: xss(release.body.replace(/(?:\r\n|\r|\n)/g, "<br />")),
+													__html: xss(release.body).replace(/(?:\r\n|\r|\n)/g, "<br />"),
 												}}
 											/>
 											<span className='text-xs text-gray-400'>{release.published_at}</span>

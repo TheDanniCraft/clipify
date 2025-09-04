@@ -79,7 +79,7 @@ async function createUser(name: string, email: string, userId: string): Promise<
 
 async function createFeedback(fiderUserId: number, feedback: Feedback): Promise<FiderPost> {
 	try {
-		const randomId = Math.random().toString(36).slice(2, 6);
+		const randomId = crypto.randomUUID().slice(2, 6);
 
 		const response: AxiosResponse<FiderPost> = await axios.post(
 			`${apiUrl}/posts`,

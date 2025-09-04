@@ -37,7 +37,6 @@ export default function FeedbackWidget() {
 
 			setState("success");
 			setResponse(response);
-			console.log("Feedback submitted successfully:", response);
 		} catch (error) {
 			console.error("Error submitting feedback:", error);
 			setState("error");
