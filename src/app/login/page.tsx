@@ -1,19 +1,24 @@
 import { Button, Link } from "@heroui/react";
 import { IconBrandTwitch } from "@tabler/icons-react";
 import ErrorToast from "@components/errorToast";
-import { getBaseUrl } from "@actions/utils";
+import { getBaseUrl, isPreview } from "@actions/utils";
 
 export default async function Login({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
 	const scopes: string[] = ["user:read:email", "channel:read:redemptions", "channel:manage:redemptions", "user:write:chat", "user:bot", "channel:bot"];
 
-	const state = Buffer.from(new Date().toISOString()).toString("base64");
+	let state = Buffer.from(new Date().toISOString()).toString("base64");
 
 	const baseUrl = await getBaseUrl();
-	const callbackUrl = new URL("/callback", baseUrl).toString();
+	let callbackUrl = new URL("/callback", baseUrl);
 
 	const authLink = new URL("https://id.twitch.tv/oauth2/authorize");
+	if ((await isPreview()) && process.env.PREVIEW_CALLBACK_URL) {
+		state = Buffer.from(JSON.stringify({ initiator: callbackUrl, date: new Date().toISOString() })).toString("base64");
+		callbackUrl = new URL(process.env.PREVIEW_CALLBACK_URL);
+	}
+
 	authLink.searchParams.append("client_id", process.env.TWITCH_CLIENT_ID || "");
-	authLink.searchParams.append("redirect_uri", callbackUrl);
+	authLink.searchParams.append("redirect_uri", callbackUrl.toString());
 	authLink.searchParams.append("response_type", "code");
 	authLink.searchParams.append("scope", scopes.join(" "));
 	authLink.searchParams.append("force_verify", "true");

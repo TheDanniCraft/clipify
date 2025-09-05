@@ -3,7 +3,7 @@
 import axios from "axios";
 import { AuthenticatedUser, Game, Overlay, RewardStatus, TwitchApiResponse, TwitchAppAccessTokenResponse, TwitchClip, TwitchClipBody, TwitchClipResponse, TwitchReward, TwitchRewardResponse, TwitchTokenApiResponse, TwitchUserResponse } from "@types";
 import { getAccessToken } from "@actions/database";
-import { getBaseUrl } from "@actions/utils";
+import { getBaseUrl, isPreview } from "@actions/utils";
 
 export async function logTwitchError(context: string, error: unknown) {
 	if (axios.isAxiosError(error) && error.response) {
@@ -17,7 +17,10 @@ export async function exchangeAccesToken(code: string): Promise<TwitchTokenApiRe
 	const url = "https://id.twitch.tv/oauth2/token";
 	const baseUrl = await getBaseUrl();
 
-	const callbackUrl = new URL("/callback", baseUrl).toString();
+	let callbackUrl = new URL("/callback", baseUrl).toString();
+	if ((await isPreview()) && process.env.PREVIEW_CALLBACK_URL) {
+		callbackUrl = new URL(process.env.PREVIEW_CALLBACK_URL).toString();
+	}
 
 	try {
 		const response = await axios.post<TwitchTokenApiResponse>(url, null, {
@@ -339,7 +342,7 @@ export async function subscribeToReward(userId: string, rewardId: string): Promi
 
 	let eventsubCallback = process.env.TWITCH_EVENTSUB_URL;
 
-	if (String(process.env.IS_PREVIEW).toLowerCase() === "true") {
+	if (await isPreview()) {
 		const baseUrl = await getBaseUrl();
 		eventsubCallback = new URL("/eventsub", baseUrl).toString();
 	}

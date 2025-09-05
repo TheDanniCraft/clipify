@@ -1,5 +1,9 @@
 "use server";
 
+export async function isPreview() {
+	return String(process.env.IS_PREVIEW).toLowerCase() === "true";
+}
+
 export async function isCoolify() {
 	return Object.keys(process.env).some((key) => /^COOLIFY_/.test(key));
 }

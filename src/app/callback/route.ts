@@ -20,7 +20,10 @@ export async function GET(request: NextRequest) {
 			return authUser("codeError");
 		}
 
-		const receivedState = Buffer.from(state || "", "base64").toString("utf-8");
+		let receivedState = Buffer.from(state || "", "base64").toString("utf-8");
+
+		// Fix for n8n adding a space at the start of the state
+		receivedState = receivedState.replace(/^ /, "");
 		const stateTimestamp = new Date(receivedState).getTime();
 		const currentTimestamp = Date.now();
 
