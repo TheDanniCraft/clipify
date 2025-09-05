@@ -1,15 +1,19 @@
 import { Button, Link } from "@heroui/react";
 import { IconBrandTwitch } from "@tabler/icons-react";
 import ErrorToast from "@components/errorToast";
+import { getBaseUrl } from "@actions/utils";
 
 export default async function Login({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
 	const scopes: string[] = ["user:read:email", "channel:read:redemptions", "channel:manage:redemptions", "user:write:chat", "user:bot", "channel:bot"];
 
 	const state = Buffer.from(new Date().toISOString()).toString("base64");
 
+	const baseUrl = await getBaseUrl();
+	const callbackUrl = new URL("/callback", baseUrl).toString();
+
 	const authLink = new URL("https://id.twitch.tv/oauth2/authorize");
 	authLink.searchParams.append("client_id", process.env.TWITCH_CLIENT_ID || "");
-	authLink.searchParams.append("redirect_uri", process.env.TWITCH_CALLBACK_URL || "");
+	authLink.searchParams.append("redirect_uri", callbackUrl);
 	authLink.searchParams.append("response_type", "code");
 	authLink.searchParams.append("scope", scopes.join(" "));
 	authLink.searchParams.append("force_verify", "true");

@@ -2,19 +2,23 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Providers } from "./providers";
 import PlausibleProvider from "next-plausible";
+import { getBaseUrl } from "@actions/utils";
+
+const baseUrl = await getBaseUrl();
+const manifestUrl = new URL("manifest.webmanifest", baseUrl);
 
 export const metadata: Metadata = {
 	title: "Clipify – Let your clips talk. Even when you can't.",
 	description: "Clipify automatically plays your best Twitch clips to keep your stream alive and your viewers entertained, even when you're away.",
-	metadataBase: new URL("https://clipify.us"),
-	manifest: "https://clipify.us/manifest.webmanifest",
+	metadataBase: baseUrl,
+	manifest: manifestUrl,
 	alternates: {
-		canonical: "https://clipify.us",
+		canonical: baseUrl,
 	},
 	openGraph: {
 		title: "Clipify – Let your clips talk. Even when you can't.",
 		description: "Need a break? Clipify got you covered. Auto-play clips while you're away – keep your stream alive and your viewers entertained.",
-		url: "https://clipify.us",
+		url: `${baseUrl}`,
 		siteName: "Clipify",
 		images: [
 			{

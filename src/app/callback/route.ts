@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { exchangeAccesToken } from "@actions/twitch";
 import { setAccessToken } from "@actions/database";
-import { authUser, getBaseUrl } from "@actions/auth";
+import { authUser } from "@actions/auth";
+import { getBaseUrl } from "@actions/utils";
+
 import { cookies } from "next/headers";
 import jwt from "jsonwebtoken";
 import * as Sentry from "@sentry/nextjs";
