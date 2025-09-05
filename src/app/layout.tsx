@@ -46,7 +46,6 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
 				<meta name='apple-mobile-web-app-title' content='Clipify' />
 
 				<meta name='adopt-website-id' content='792b9b29-57f9-4d92-b5f1-313f94ddfacc' />
-				<script src='//tag.goadopt.io/injector.js?website_code=792b9b29-57f9-4d92-b5f1-313f94ddfacc' className='adopt-injector' defer></script>
 			</head>
 			<body>
 				<Providers>{children}</Providers>

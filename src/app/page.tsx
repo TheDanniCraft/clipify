@@ -12,6 +12,8 @@ import Footer from "@components/footer";
 export default function Home() {
 	return (
 		<>
+			<script src='//tag.goadopt.io/injector.js?website_code=792b9b29-57f9-4d92-b5f1-313f94ddfacc' className='adopt-injector' defer></script>
+
 			<div className='bg-gradient-to-br from-primary-800 to-primary-400 h-full'>
 				<BasicNavbar />
 				<div id='#' className='relative flex h-screen min-h-dvh w-full flex-col overflow-hidden'>
