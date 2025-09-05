@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 	metadataBase: baseUrl,
 	manifest: manifestUrl,
 	alternates: {
-		canonical: baseUrl,
+		canonical: "https://clipify.us",
 	},
 	openGraph: {
 		title: "Clipify – Let your clips talk. Even when you can't.",
