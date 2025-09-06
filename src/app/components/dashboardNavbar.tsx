@@ -13,6 +13,7 @@ export default function DashboardNavbar({ children, user, title, tagline }: { ch
 
 	return (
 		<>
+			<script src='//tag.goadopt.io/injector.js?website_code=792b9b29-57f9-4d92-b5f1-313f94ddfacc' className='adopt-injector' defer></script>
 			<Navbar
 				classNames={{
 					base: "bg-primary",
@@ -59,8 +60,8 @@ export default function DashboardNavbar({ children, user, title, tagline }: { ch
 								<DropdownItem key='settings' onPress={() => router.push("/dashboard/settings")}>
 									My Settings
 								</DropdownItem>
-								<DropdownItem key='help_and_feedback' onPress={() => router.push("https://chat.cloud.thedannicraft.de/hc/clipify/")}>
-									Help & Feedback
+								<DropdownItem key='help_and_feedback' onPress={() => router.push("https://help.clipify.us/")}>
+									Help
 								</DropdownItem>
 								<DropdownItem key='logout' color='danger' onPress={() => router.push("/logout")}>
 									Log Out

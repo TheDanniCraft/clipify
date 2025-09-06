@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
 import { AuthenticatedUser } from "@types";
 import { cookies } from "next/headers";
+import { getBaseUrl } from "@actions/utils";
 
 export async function getCookie(name: string) {
 	const cookieStore = await cookies();
@@ -64,20 +65,4 @@ export async function validateAuth(skipUserCheck = false) {
 	}
 
 	return user;
-}
-
-export async function getBaseUrl() {
-	let url = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
-
-	if (!/^https?:\/\//.test(url)) {
-		url = `http://${url}`;
-	}
-
-	// If we are running inside coolify we need to strip the port and append a schemema
-	if (Object.keys(process.env).some((key) => /^COOLIFY_/.test(key))) {
-		const hostname = new URL(url).hostname;
-		url = `https://${hostname}`;
-	}
-
-	return url;
 }

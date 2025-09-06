@@ -29,7 +29,7 @@ jobs:
       # compute the cache key once so downstream jobs can reuse it
       - name: 🔑 Compute cache key
         id: compute-key
-        run: echo "key=${{ runner.os }}-deps-${{ hashFiles('**/bun.lockb') }}" >> "$GITHUB_OUTPUT"
+        run: echo "key=${{ runner.os }}-deps-${{ hashFiles('**/bun.lock') }}" >> "$GITHUB_OUTPUT"
 
       # try to restore an existing cache
       - name: ♻️ Restore Bun & node_modules cache

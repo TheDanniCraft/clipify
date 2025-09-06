@@ -72,8 +72,15 @@ export async function subscribeToNewsletter(email: string) {
 		);
 
 		return response.data;
-	} catch (error) {
-		console.error(error);
+	} catch (error: unknown) {
+		if (axios.isAxiosError(error)) {
+			console.error("Axios error:", {
+				message: error.message,
+				response: error.response?.data,
+			});
+		} else {
+			console.error("Unknown error:", error);
+		}
 
 		throw new Error("Failed to subscribe to newsletter");
 	}
