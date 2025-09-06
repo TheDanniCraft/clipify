@@ -39,7 +39,7 @@ export default function Home() {
 											key='hero-section-title'
 											animate={{ filter: "blur(0px)", opacity: 1, x: 0 }}
 											className='text-start text-[clamp(40px,10vw,44px)] font-bold leading-[1.2] tracking-tighter sm:text-[64px] text-white'
-											initial={{ filter: "blur(16px)", opacity: 0, x: 15 + 1 * 2 }}
+											initial={{ filter: "blur(16px)", opacity: 0.1, x: 15 + 1 * 2 }}
 											transition={{
 												bounce: 0,
 												delay: 0.01 * 10,
@@ -60,7 +60,7 @@ export default function Home() {
 											key='hero-section-description'
 											animate={{ filter: "blur(0px)", opacity: 1, x: 0 }}
 											className='text-start font-normal leading-7 text-zinc-300 sm:w-[466px] sm:text-[18px]'
-											initial={{ filter: "blur(16px)", opacity: 0, x: 15 + 1 * 3 }}
+											initial={{ filter: "blur(16px)", opacity: 0.1, x: 15 + 1 * 3 }}
 											transition={{
 												bounce: 0,
 												delay: 0.01 * 30,
@@ -75,7 +75,7 @@ export default function Home() {
 											key='hero-section-buttons'
 											animate={{ filter: "blur(0px)", opacity: 1, x: 0 }}
 											className='flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6'
-											initial={{ filter: "blur(16px)", opacity: 0, x: 15 + 1 * 4 }}
+											initial={{ filter: "blur(16px)", opacity: 0.1, x: 15 + 1 * 4 }}
 											transition={{
 												bounce: 0,
 												delay: 0.01 * 50,
@@ -112,7 +112,7 @@ export default function Home() {
 								key='hero-section-app-screenshot'
 								animate={{ filter: "blur(0px)", opacity: 1, y: 0 }}
 								className='absolute top-[40%] w-full'
-								initial={{ filter: "blur(16px)", opacity: 0, y: 300 }}
+								initial={{ filter: "blur(16px)", opacity: 0.1, y: 300 }}
 								transition={{
 									bounce: 0,
 									delay: 0.01 * 10,
@@ -120,7 +120,7 @@ export default function Home() {
 									type: "spring",
 								}}
 							>
-								<Image src='./appSkew.webp' alt='App Screenshot' className='w-full' />
+								<Image src='./appSkew.webp' alt='App Screenshot' className='w-full' loading='eager' fetchPriority='high' />
 							</motion.div>
 						</AnimatePresence>
 					</LazyMotion>

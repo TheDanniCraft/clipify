@@ -230,8 +230,8 @@ export default function Component() {
 						</div>
 
 						<Tabs onSelectionChange={(key) => setTheme(String(key))} color='primary' selectedKey={theme}>
-							<Tab title={<IconMoonFilled />} key='dark' />
-							<Tab title={<IconSunFilled />} key='light' />
+							<Tab title={<IconMoonFilled />} key='dark' aria-label='Switch to dark theme' />
+							<Tab title={<IconSunFilled />} key='light' aria-label='Switch to light theme' />
 						</Tabs>
 					</div>
 				</div>

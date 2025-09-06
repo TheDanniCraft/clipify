@@ -150,9 +150,9 @@ export default function OverlayPlayer({ clips, overlay }: { clips: TwitchClip[];
 						key={videoClip.id}
 						autoPlay
 						src={videoClip.mediaUrl}
-						initial={{ opacity: 0 }}
+						initial={{ opacity: 0.1 }}
 						animate={{ opacity: 1 }}
-						exit={{ opacity: 0 }}
+						exit={{ opacity: 0.1 }}
 						transition={{ duration: 0.5 }}
 						onEnded={() => {
 							async function fetchNewClip() {
