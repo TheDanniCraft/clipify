@@ -105,8 +105,8 @@ jobs:
             **/node_modules
           key: ${{ needs.deps.outputs.cache-key }}
 
-      - name: 🧪 Test (placeholder)
-        run: echo "No tests defined"
+      - name: 🧪 Test
+        run: bun run test:all
 
   build:
     name: 🏗️ Build
