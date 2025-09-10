@@ -17,7 +17,7 @@ export async function getCookie(name: string) {
 	return cookie.value;
 }
 
-export async function getUserFromCoookie(cookie: string) {
+export async function getUserFromCookie(cookie: string) {
 	try {
 		const decodedToken = await jwt.verify(cookie, process.env.JWT_SECRET!);
 
@@ -45,7 +45,7 @@ export async function validateAuth(skipUserCheck = false) {
 
 	const cookieStore = await cookies();
 	const token = cookieStore.get("token");
-	const cookieUser = token ? ((await getUserFromCoookie(token.value)) as AuthenticatedUser | null) : null;
+	const cookieUser = token ? ((await getUserFromCookie(token.value)) as AuthenticatedUser | null) : null;
 
 	if (!cookieUser) {
 		return false;
