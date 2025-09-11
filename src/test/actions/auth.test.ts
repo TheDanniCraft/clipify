@@ -77,6 +77,15 @@ describe("auth.ts", () => {
 			url.searchParams.set("errorCode", "401");
 			expect(resp).toEqual(NextResponse.redirect(url));
 		});
+
+		it("redirects to /login with error param and empty errorCode if errorCode is undefined", async () => {
+			mockGetBaseUrl.mockResolvedValue(new URL("http://localhost:3000/"));
+			const resp = await auth.authUser("bad");
+			const url = new URL("http://localhost:3000/login");
+			url.searchParams.set("error", "bad");
+			url.searchParams.set("errorCode", "");
+			expect(resp).toEqual(NextResponse.redirect(url));
+		});
 	});
 
 	describe("validateAuth", () => {
