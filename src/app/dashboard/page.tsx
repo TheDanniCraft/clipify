@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import OverlayTable from "@components/OverlayTable";
 import DashboardNavbar from "@components/dashboardNavbar";
-import { validateAuth } from "../actions/auth";
+import { validateAuth } from "@actions/auth";
 import FeedbackWidget from "@components/feedbackWidget";
 
 export default async function Dashboard() {

@@ -1,7 +1,6 @@
 import type { SVGProps } from "react";
 import { InferSelectModel } from "drizzle-orm";
 import { overlaysTable, tokenTable, usersTable } from "@/db/schema";
-import { RatingValueEnum } from "../components/feedback/itemRating";
 
 export class RateLimitError extends Error {
 	constructor() {
@@ -289,3 +288,11 @@ export type Feedback = {
 		rating?: RatingValueEnum;
 	};
 };
+
+export enum RatingValueEnum {
+	BAD = "bad",
+	POOR = "poor",
+	NEUTRAL = "neutral",
+	GREAT = "great",
+	EXCELLENT = "excellent",
+}

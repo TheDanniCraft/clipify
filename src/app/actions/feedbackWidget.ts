@@ -30,6 +30,13 @@ export interface FiderPost {
 }
 
 export async function submitFeedback(feedback: Feedback): Promise<FiderPost | null> {
+	if (!process.env.FIDER_BASE_URL) {
+		throw new Error("FIDER_BASE_URL not set");
+	}
+	if (!process.env.FIDER_API_KEY) {
+		throw new Error("FIDER_API_KEY not set");
+	}
+
 	const isAuthenticated = await validateAuth(true);
 	if (!isAuthenticated) {
 		console.warn(`Unauthenticated feedback submission attempt`);

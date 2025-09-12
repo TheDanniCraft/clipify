@@ -5,14 +5,7 @@ import type { RadioProps } from "@heroui/react";
 import React from "react";
 import { VisuallyHidden, useRadio, useRadioGroupContext } from "@heroui/react";
 import { cn } from "@heroui/react";
-
-export enum RatingValueEnum {
-	BAD = "bad",
-	POOR = "poor",
-	NEUTRAL = "neutral",
-	GREAT = "great",
-	EXCELLENT = "excellent",
-}
+import { RatingValueEnum } from "@types";
 
 const emojis: Record<RatingValueEnum, string> = {
 	[RatingValueEnum.BAD]: "😣",

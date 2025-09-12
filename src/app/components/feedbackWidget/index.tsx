@@ -3,10 +3,11 @@
 import { useState } from "react";
 import { Button, Form, Image, Input, Link, Popover, PopoverContent, PopoverTrigger, RadioGroup, Spinner, Tab, Tabs, Textarea } from "@heroui/react";
 import { IconChevronLeft, IconX } from "@tabler/icons-react";
-import { FiderPost, submitFeedback } from "../actions/feedbackWidget";
-import FeedbackRatingItem, { RatingValueEnum } from "./feedback/itemRating";
-import { RateLimitError } from "../lib/types";
-import { isRatelimitError } from "../actions/rateLimit";
+import { FiderPost, submitFeedback } from "@actions/feedbackWidget";
+import {  RatingValueEnum } from "@types";
+import FeedbackRatingItem from "./itemRating";
+import { RateLimitError } from "@types";
+import { isRatelimitError } from "@actions/rateLimit";
 
 export default function FeedbackWidget() {
 	const [open, setOpen] = useState(false);
