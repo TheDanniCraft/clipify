@@ -2,6 +2,7 @@
 
 import Stripe from "stripe";
 import { AuthenticatedUser } from "../lib/types";
+import { getBaseUrl } from "@actions/utils";
 
 const PRODUCTS = {
 	dev: ["price_1RaLC2B0sp7KYCWLkJGjDq3q", "price_1Ru0WHB0sp7KYCWLBbdT0ZH7"],
@@ -43,13 +44,14 @@ export async function generatePaymentLink(user: AuthenticatedUser, returnUrl?: s
 	const products = await getPlans();
 
 	const stripe = await getStripe();
+	const baseUrl = await getBaseUrl();
 
 	const session = await stripe.checkout.sessions.create({
 		line_items: [{ price: products[0], quantity: 1 }],
 		client_reference_id: user.id,
 		mode: "subscription",
-		success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard/settings`,
-		cancel_url: returnUrl || `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard/settings`,
+		success_url: `${baseUrl}/dashboard/settings`,
+		cancel_url: returnUrl || `${baseUrl}/dashboard/settings`,
 		...(user.stripeCustomerId ? { customer: user.stripeCustomerId } : { customer_email: user.email }),
 		metadata: {
 			userId: user.id,
@@ -73,10 +75,11 @@ export async function getPortalLink(user: AuthenticatedUser) {
 	}
 
 	const stripe = await getStripe();
+	const baseUrl = await getBaseUrl();
 
 	const session = await stripe.billingPortal.sessions.create({
 		customer: user.stripeCustomerId,
-		return_url: `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard/settings`,
+		return_url: `${baseUrl}/dashboard/settings`,
 	});
 
 	return session.url;
