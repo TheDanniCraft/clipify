@@ -213,7 +213,7 @@ export default function OverlaySettings() {
 													}}
 													className='mt-3 w-full font-semibold'
 												>
-													Upgrade for less than $1/month
+													Upgrade for less than 2€/month
 												</Button>
 												<p className='text-xs text-warning-600 text-center mt-2'>Enjoy a 7-day free trial. Cancel anytime.</p>
 											</CardBody>

@@ -6,7 +6,7 @@ import { getBaseUrl } from "@actions/utils";
 
 const PRODUCTS = {
 	dev: ["price_1RaLC2B0sp7KYCWLkJGjDq3q", "price_1Ru0WHB0sp7KYCWLBbdT0ZH7"],
-	prod: ["price_1RaJ4ZB0sp7KYCWLOst1iqLA", "price_1RaJQdB0sp7KYCWLlfTgeJ7Z"],
+	prod: ["price_1S83PSB0sp7KYCWLzhUkxodR", "price_1S83Y2B0sp7KYCWL0YDGoqjG"],
 };
 
 let stripe: Stripe | null = null;
