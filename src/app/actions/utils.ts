@@ -15,7 +15,7 @@ export async function getBaseUrl(): Promise<URL> {
 		url = `http://${url}`;
 	}
 
-	// If we are running inside coolify we need to strip the port and append a schemema
+	// If we are running inside coolify we need to strip the port and append a schema
 	if (await isCoolify()) {
 		const hostname = new URL(url).hostname;
 		url = `https://${hostname}`;
