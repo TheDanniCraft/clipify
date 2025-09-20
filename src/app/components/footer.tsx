@@ -9,7 +9,7 @@ import { useTheme } from "next-themes";
 import axios from "axios";
 import { getEmailProvider, subscribeToNewsletter } from "@actions/newsletter";
 import { usePlausible } from "next-plausible";
-import { isRatelimitError } from "../actions/rateLimit";
+import { isRatelimitError } from "@actions/rateLimit";
 
 export default function Footer() {
 	const { theme, setTheme } = useTheme();
