@@ -36,7 +36,7 @@ const BasicNavbar = React.forwardRef<HTMLElement, NavbarProps>(({ classNames = {
 			shouldHideOnScroll
 		>
 			{/* Left Content */}
-			<NavbarBrand>
+			<NavbarBrand as={Link} href='/'>
 				<div>
 					<Logo size={34} />
 				</div>
