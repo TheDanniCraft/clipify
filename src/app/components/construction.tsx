@@ -147,7 +147,7 @@ const Construction = ({ endDate, cta }: { endDate?: Date; cta: Cta }) => {
 									isDisabled={newsletterState === "loading" || newsletterState === "success"}
 									endContent={
 										<Button color='primary' size='sm' isIconOnly type='submit' disabled={newsletterState === "loading" || newsletterState === "success"} aria-label='Subscribe to newsletter'>
-											<IconSend className='text-default-foreground' />
+											<IconSend className='text-white' />
 										</Button>
 									}
 								/>
