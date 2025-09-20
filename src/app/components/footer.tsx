@@ -11,7 +11,7 @@ import { getEmailProvider, subscribeToNewsletter } from "@actions/newsletter";
 import { usePlausible } from "next-plausible";
 import { isRatelimitError } from "../actions/rateLimit";
 
-export default function Component() {
+export default function Footer() {
 	const { theme, setTheme } = useTheme();
 	const [statusColor, setStatusColor] = useState("#ffffff");
 	const [statusText, setStatusText] = useState("Loading...");
@@ -35,6 +35,7 @@ export default function Component() {
 		],
 		aboutUs: [
 			{ name: "Latest News", href: "/changelog" },
+			{ name: "Roadmap", href: "/roadmap" },
 			{ name: "Collaborations", href: "https://help.clipify.us/hc/clipify/articles/1756597294-collaborations" },
 			{ name: "Checkout the code", href: "https://github.com/TheDanniCraft/clipify" },
 		],
@@ -188,7 +189,7 @@ export default function Component() {
 								isDisabled={newsletterState === "loading" || newsletterState === "success"}
 								endContent={
 									<Button color='primary' size='sm' isIconOnly type='submit' disabled={newsletterState === "loading" || newsletterState === "success"} aria-label='Subscribe to newsletter'>
-										<IconSend className='text-default-foreground' />
+										<IconSend className='text-white' />
 									</Button>
 								}
 							/>
