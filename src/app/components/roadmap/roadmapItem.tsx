@@ -76,7 +76,7 @@ export const RoadmapItem: React.FC<RoadmapItemProps> = ({ icon, color, title, de
 					</div>
 
 					<div className='flex items-center gap-3'>
-						<Chip variant='flat' size='sm' className={`bg-${getChipColor(status)}-100 text-${getChipColor(status)}-700 dark:bg-${getChipColor(status)}-900 dark:text-${getChipColor(status)}-300`}>
+						<Chip variant='flat' size='sm' className={`${getChipColor(status)}`}>
 							{status}
 						</Chip>
 						<span className='text-default-400'>{timeframe}</span>
@@ -114,14 +114,14 @@ function getStatusColor(status: RoadmapStatus): string {
 function getChipColor(status: RoadmapStatus): string {
 	switch (status) {
 		case RoadmapStatus.Shipped:
-			return "green";
+			return "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200";
 		case RoadmapStatus.InDevelopment:
-			return "blue";
+			return "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200";
 		case RoadmapStatus.Planned:
-			return "purple";
+			return "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-200";
 		case RoadmapStatus.Future:
-			return "gray";
+			return "bg-gray-100 text-gray-700 dark:bg-gray-900 dark:text-gray-200";
 		default:
-			return "gray";
+			return "bg-gray-100 text-gray-700 dark:bg-gray-900 dark:text-gray-200";
 	}
 }
