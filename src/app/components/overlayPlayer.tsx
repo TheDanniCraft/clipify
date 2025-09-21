@@ -128,11 +128,6 @@ export default function OverlayPlayer({ clips, overlay }: { clips: TwitchClip[];
 		fetchVideoSource();
 	}, [getRandomClip]);
 
-	useEffect(() => {
-		if (!clips || clips.length === 0) {
-		}
-	}, [clips, videoClip]);
-
 	if (!clips) {
 		return (
 			<div className='flex flex-col items-center justify-center w-full h-64'>
