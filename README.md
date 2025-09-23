@@ -5,6 +5,7 @@
 [![CI](https://img.shields.io/github/actions/workflow/status/TheDanniCraft/clipify/ci.yml?branch=master&label=CI&style=for-the-badge)](https://github.com/TheDanniCraft/clipify/actions)
 [![Version](https://img.shields.io/github/v/release/TheDanniCraft/clipify?label=version&style=for-the-badge)](https://github.com/TheDanniCraft/clipify/releases)
 [![License](https://img.shields.io/github/license/TheDanniCraft/clipify?style=for-the-badge)](https://github.com/TheDanniCraft/clipify/blob/master/LICENSE)
+[![CodeFactor](https://www.codefactor.io/repository/github/thedannicraft/clipify/badge?style=for-the-badge)](https://www.codefactor.io/repository/github/thedannicraft/clipify)
 [![Last Commit](https://img.shields.io/github/last-commit/TheDanniCraft/clipify?label=last%20commit&style=for-the-badge)](https://github.com/TheDanniCraft/clipify/commits/master)
 
 ## Overview
