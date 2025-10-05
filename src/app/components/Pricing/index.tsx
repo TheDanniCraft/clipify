@@ -23,7 +23,6 @@ export default function TiersComponent() {
 				classNames={{
 					tab: "data-[hover-unselected=true]:opacity-90",
 				}}
-				radius='full'
 				size='lg'
 				onSelectionChange={onFrequencyChange}
 			>

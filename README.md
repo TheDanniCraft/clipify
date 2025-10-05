@@ -2,6 +2,12 @@
 
 ![Clipify Image](https://raw.githubusercontent.com/TheDanniCraft/clipify/refs/heads/master/public/og-image.png)
 
+[![CI](https://img.shields.io/github/actions/workflow/status/TheDanniCraft/clipify/ci.yml?branch=master&label=CI&style=for-the-badge)](https://github.com/TheDanniCraft/clipify/actions)
+[![Version](https://img.shields.io/github/v/release/TheDanniCraft/clipify?label=version&style=for-the-badge)](https://github.com/TheDanniCraft/clipify/releases)
+[![License](https://img.shields.io/github/license/TheDanniCraft/clipify?style=for-the-badge)](https://github.com/TheDanniCraft/clipify/blob/master/LICENSE)
+[![CodeFactor](https://www.codefactor.io/repository/github/thedannicraft/clipify/badge?style=for-the-badge)](https://www.codefactor.io/repository/github/thedannicraft/clipify)
+[![Last Commit](https://img.shields.io/github/last-commit/TheDanniCraft/clipify?label=last%20commit&style=for-the-badge)](https://github.com/TheDanniCraft/clipify/commits/master)
+
 ## Overview
 
 Clipify automatically plays your best Twitch clips to keep your stream alive and your viewers entertained, even when you're away. Designed for streamers who want to keep their channel active, Clipify offers an intuitive interface, easy setup, and powerful features to engage your audience at all times.
@@ -25,7 +31,7 @@ To get started with Clipify, simply visit [https://clipify.us](https://clipify.u
 ## Pricing
 
 - **Free:** Unlimited clips, one overlay, all core features.
-- **Pro:** $1/month – Multiple overlays, channel points integration, priority support, and more.
+- **Pro:** 2€/month – Multiple overlays, channel points integration, priority support, and more.
 
 You can upgrade to Pro directly on [clipify.us](https://clipify.us).
 
@@ -127,7 +133,7 @@ Environment variables are managed via [Infisical](https://infisical.com/).
 - [Tailwind CSS](https://tailwindcss.com/)
 - [Plausible Analytics](https://plausible.io/)
 - [Sentry](https://sentry.io/)
-- [Infisical](https://infisical.com/)
+- [Infisical](https://infisical.com/)  
 
 ## License
 

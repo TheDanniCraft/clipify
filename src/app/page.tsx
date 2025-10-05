@@ -1,9 +1,8 @@
 "use client";
 
 import BasicNavbar from "@components/LandingPage/basicNavbar";
-import { Accordion, AccordionItem, Button, Chip, Link } from "@heroui/react";
+import { Accordion, AccordionItem, Button, Chip, Image, Link } from "@heroui/react";
 import { LazyMotion, motion, domAnimation, AnimatePresence } from "motion/react";
-import AppScreenshotSkewed from "@components/LandingPage/appScreenshotSkew";
 import { IconThumbUp, IconArrowRight, IconPlugConnected, IconLayersDifference, IconMoodSmile, IconCoin, IconAdjustments, IconChevronDown } from "@tabler/icons-react";
 import FeatureCard from "@components/featureCard";
 import TiersComponent from "@components/Pricing";
@@ -13,6 +12,8 @@ import Footer from "@components/footer";
 export default function Home() {
 	return (
 		<>
+			<script src='//tag.goadopt.io/injector.js?website_code=792b9b29-57f9-4d92-b5f1-313f94ddfacc' className='adopt-injector' defer></script>
+
 			<div className='bg-gradient-to-br from-primary-800 to-primary-400 h-full'>
 				<BasicNavbar />
 				<div id='#' className='relative flex h-screen min-h-dvh w-full flex-col overflow-hidden'>
@@ -38,7 +39,7 @@ export default function Home() {
 											key='hero-section-title'
 											animate={{ filter: "blur(0px)", opacity: 1, x: 0 }}
 											className='text-start text-[clamp(40px,10vw,44px)] font-bold leading-[1.2] tracking-tighter sm:text-[64px] text-white'
-											initial={{ filter: "blur(16px)", opacity: 0, x: 15 + 1 * 2 }}
+											initial={{ filter: "blur(16px)", opacity: 0.1, x: 15 + 1 * 2 }}
 											transition={{
 												bounce: 0,
 												delay: 0.01 * 10,
@@ -59,7 +60,7 @@ export default function Home() {
 											key='hero-section-description'
 											animate={{ filter: "blur(0px)", opacity: 1, x: 0 }}
 											className='text-start font-normal leading-7 text-zinc-300 sm:w-[466px] sm:text-[18px]'
-											initial={{ filter: "blur(16px)", opacity: 0, x: 15 + 1 * 3 }}
+											initial={{ filter: "blur(16px)", opacity: 0.1, x: 15 + 1 * 3 }}
 											transition={{
 												bounce: 0,
 												delay: 0.01 * 30,
@@ -74,7 +75,7 @@ export default function Home() {
 											key='hero-section-buttons'
 											animate={{ filter: "blur(0px)", opacity: 1, x: 0 }}
 											className='flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6'
-											initial={{ filter: "blur(16px)", opacity: 0, x: 15 + 1 * 4 }}
+											initial={{ filter: "blur(16px)", opacity: 0.1, x: 15 + 1 * 4 }}
 											transition={{
 												bounce: 0,
 												delay: 0.01 * 50,
@@ -105,24 +106,22 @@ export default function Home() {
 							</LazyMotion>
 						</section>
 					</main>
-					<LazyMotion features={domAnimation}>
-						<AnimatePresence mode='wait'>
-							<motion.div
-								key='hero-section-app-screenshot'
-								animate={{ filter: "blur(0px)", opacity: 1, y: 0 }}
-								className='absolute top-[40%] w-full'
-								initial={{ filter: "blur(16px)", opacity: 0, y: 300 }}
-								transition={{
-									bounce: 0,
-									delay: 0.01 * 10,
-									duration: 0.8 + 0.1 * 8,
-									type: "spring",
-								}}
-							>
-								<AppScreenshotSkewed className='w-full' />
-							</motion.div>
-						</AnimatePresence>
-					</LazyMotion>
+					<motion.div
+						key='hero-section-app-screenshot'
+						animate={{ filter: "blur(0px)", opacity: 1, y: 0 }}
+						className='relative h-full flex justify-center'
+						initial={{ filter: "blur(16px)", opacity: 0.1, y: 300 }}
+						transition={{
+							bounce: 0,
+							delay: 0.01 * 10,
+							duration: 0.8 + 0.1 * 8,
+							type: "spring",
+						}}
+					>
+						<div className='aspect-[16/9] w-auto h-full flex justify-center'>
+							<Image src='./appSkew.webp' alt='App Screenshot' className='w-full h-full object-cover' loading='eager' fetchPriority='high' />
+						</div>
+					</motion.div>
 				</div>
 			</div>
 			<div id='features' />
@@ -138,7 +137,7 @@ export default function Home() {
 					<div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16'>
 						<FeatureCard title='Easy to Use' description='Intuitive interface designed for effortless setup and management.' icon={IconThumbUp} />
 						<FeatureCard title='Plug & Play' description="It's as easy as adding a browser source to your streaming software." icon={IconPlugConnected} />
-						<FeatureCard title='Control your player' description='Choose to play clips from today, all-time, or just your featured clips.' icon={IconAdjustments} />
+						<FeatureCard title='Customize your player' description='Choose to play clips from today, all-time, or just your featured clips.' icon={IconAdjustments} />
 						<FeatureCard title='Keeps Your Stream Entertained' description="Auto-play clips to keep your audience engaged even when you're away." icon={IconMoodSmile} />
 						<FeatureCard title='Multiple Overlays' description='Create as many overlays as you like, use them for AFK screens, at the starting or end screens of your stream, or anywhere you want.' icon={IconLayersDifference} />
 						<FeatureCard title='Channel Points Integration' description='Let viewers play their favourite clips using Twitch channel points.' icon={IconCoin} />
