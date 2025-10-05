@@ -106,24 +106,22 @@ export default function Home() {
 							</LazyMotion>
 						</section>
 					</main>
-					<LazyMotion features={domAnimation}>
-						<AnimatePresence mode='wait'>
-							<motion.div
-								key='hero-section-app-screenshot'
-								animate={{ filter: "blur(0px)", opacity: 1, y: 0 }}
-								className='absolute top-[40%] w-full'
-								initial={{ filter: "blur(16px)", opacity: 0.1, y: 300 }}
-								transition={{
-									bounce: 0,
-									delay: 0.01 * 10,
-									duration: 0.8 + 0.1 * 8,
-									type: "spring",
-								}}
-							>
-								<Image src='./appSkew.webp' alt='App Screenshot' className='w-full' loading='eager' fetchPriority='high' />
-							</motion.div>
-						</AnimatePresence>
-					</LazyMotion>
+					<motion.div
+						key='hero-section-app-screenshot'
+						animate={{ filter: "blur(0px)", opacity: 1, y: 0 }}
+						className='relative h-full flex justify-center'
+						initial={{ filter: "blur(16px)", opacity: 0.1, y: 300 }}
+						transition={{
+							bounce: 0,
+							delay: 0.01 * 10,
+							duration: 0.8 + 0.1 * 8,
+							type: "spring",
+						}}
+					>
+						<div className='aspect-[16/9] w-auto h-full flex justify-center'>
+							<Image src='./appSkew.webp' alt='App Screenshot' className='w-full h-full object-cover' loading='eager' fetchPriority='high' />
+						</div>
+					</motion.div>
 				</div>
 			</div>
 			<div id='features' />
