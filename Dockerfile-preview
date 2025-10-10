@@ -1,5 +1,5 @@
 # Base
-FROM oven/bun:1.2.21-slim AS base
+FROM oven/bun AS base
 
 RUN apt-get update && \
     apt-get install -y bash curl gnupg && \
