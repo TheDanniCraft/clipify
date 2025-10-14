@@ -4,7 +4,7 @@ import ErrorToast from "@components/errorToast";
 import { getBaseUrl, isPreview } from "@actions/utils";
 
 export default async function Login({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
-	const scopes: string[] = ["user:read:email", "channel:read:redemptions", "channel:manage:redemptions", "user:write:chat", "user:bot", "channel:bot"];
+	const scopes: string[] = ["user:read:email", "channel:read:redemptions", "channel:manage:redemptions", "user:read:chat", "user:write:chat", "user:bot", "channel:bot"];
 
 	let state = Buffer.from(new Date().toISOString()).toString("base64");
 
