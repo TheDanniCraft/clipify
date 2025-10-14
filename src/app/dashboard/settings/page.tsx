@@ -51,6 +51,8 @@ export default function SettingsPage() {
 
 	return (
 		<>
+			<script src='//tag.goadopt.io/injector.js?website_code=792b9b29-57f9-4d92-b5f1-313f94ddfacc' className='adopt-injector' defer></script>
+
 			<DashboardNavbar user={user} title='Settings' tagline='Manage your settings'>
 				<Card className='mt-4'>
 					<CardHeader>
