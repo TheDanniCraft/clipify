@@ -40,7 +40,7 @@ const BasicNavbar = React.forwardRef<HTMLElement, NavbarProps>(({ classNames = {
 				<div>
 					<Logo size={34} />
 				</div>
-				<span className='ml-2 text-small font-medium text-white'>Clipify</span>
+				<span className='ml-2 text-large font-bold text-white'>Clipify</span>
 			</NavbarBrand>
 
 			{/* Center Content */}

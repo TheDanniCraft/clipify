@@ -25,7 +25,10 @@ export type Tier = {
 				[FrequencyEnum.Monthly]: string;
 		  }
 		| string;
-	priceSuffix?: string;
+	discountedPrice?: {
+		[FrequencyEnum.Yearly]?: string;
+		[FrequencyEnum.Monthly]?: string;
+	};
 	description?: string;
 	mostPopular?: boolean;
 	featured?: boolean;

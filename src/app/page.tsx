@@ -1,7 +1,7 @@
 "use client";
 
 import BasicNavbar from "@components/LandingPage/basicNavbar";
-import { Accordion, AccordionItem, Button, Chip, Image, Link, Card } from "@heroui/react";
+import { Accordion, AccordionItem, Button, Chip, Image, Link, Card, CardHeader, CardBody } from "@heroui/react";
 import { LazyMotion, motion, domAnimation, AnimatePresence } from "motion/react";
 import { IconThumbUp, IconArrowRight, IconPlugConnected, IconLayersDifference, IconMoodSmile, IconCoin, IconAdjustments, IconChevronDown } from "@tabler/icons-react";
 import FeatureCard from "@components/featureCard";
@@ -164,6 +164,32 @@ export default function Home() {
 						</Chip>
 						<h2 className='text-4xl font-bold mb-4'>Complicated pricing? Not with us.</h2>
 						<p className='text-foreground-500 text-lg max-w-2xl mx-auto'>Just two options: free forever, or unlock everything with Pro.</p>
+
+						<div className='mx-auto w-full max-w-md mt-12'>
+							<div className='relative'>
+								{/* Gradient Glow Layer */}
+								<div className='absolute -inset-1 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 blur-2xl opacity-60'></div>
+
+								<Card className='relative bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl shadow-lg'>
+									<CardHeader className='p-4 pb-2'>
+										<div className='flex items-center gap-2 rounded-none'>
+											<Image alt='Launch Icon' className='rounded-none' src='https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Travel%20and%20places/Rocket.png' width={28} />
+											<h2 className='text-[17px] md:text-[18px] font-semibold leading-[1.1] tracking-tight'>Launch Offer</h2>
+										</div>
+									</CardHeader>
+
+									<CardBody className='px-4 pb-4 space-y-3'>
+										<p className='text-base'>
+											Use <span className='font-bold bg-white text-purple-700 px-2 py-0.5 rounded'>EARLYCLIPPY</span> for <strong>50% OFF</strong> your first year.
+										</p>
+
+										<Button as={Link} href='/login' className='w-full bg-white text-purple-700 font-medium py-2 rounded-lg hover:opacity-90 transition'>
+											Register To Claim Offer
+										</Button>
+									</CardBody>
+								</Card>
+							</div>
+						</div>
 					</div>
 				</div>
 				<TiersComponent />
