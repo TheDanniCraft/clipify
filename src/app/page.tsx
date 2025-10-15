@@ -1,18 +1,29 @@
 "use client";
 
 import BasicNavbar from "@components/LandingPage/basicNavbar";
-import { Accordion, AccordionItem, Button, Chip, Image, Link } from "@heroui/react";
+import { Accordion, AccordionItem, Button, Chip, Image, Link, Card } from "@heroui/react";
 import { LazyMotion, motion, domAnimation, AnimatePresence } from "motion/react";
 import { IconThumbUp, IconArrowRight, IconPlugConnected, IconLayersDifference, IconMoodSmile, IconCoin, IconAdjustments, IconChevronDown } from "@tabler/icons-react";
 import FeatureCard from "@components/featureCard";
 import TiersComponent from "@components/Pricing";
 import faqs from "@components/LandingPage/faqs";
 import Footer from "@components/footer";
+import FloatingBanner from "@components/floatingBanner";
 
 export default function Home() {
 	return (
 		<>
 			<script src='//tag.goadopt.io/injector.js?website_code=792b9b29-57f9-4d92-b5f1-313f94ddfacc' className='adopt-injector' defer></script>
+			<FloatingBanner
+				icon={<Image alt='Tada Icon' src='https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Activities/Party%20Popper.png' width='50' height='50' className='mx-auto' />}
+				title="We're launched!"
+				text='50% off for early-bird users'
+				cta={
+					<Button as={Link} href='/#pricing' radius='full' className='h-9 px-4 bg-white text-black'>
+						Claim Offer
+					</Button>
+				}
+			/>
 
 			<div className='bg-gradient-to-br from-primary-800 to-primary-400 h-full'>
 				<BasicNavbar />
