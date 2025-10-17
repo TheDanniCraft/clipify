@@ -34,7 +34,7 @@ export const tiers: Array<Tier> = [
 			[FrequencyEnum.Yearly]: "10€",
 		},
 		featured: false,
-		features: ["Everything in Free", "Multiple overlays", "Channel points integration", "Priority support", "Control your overlay via chat", "Support an independent developer"],
+		features: ["Everything in Free", "Multiple overlays", "Channel points integration", "Priority support", "Control your overlay via chat", "Access to beta features", "Access to all upcoming features", "Support an independent developer"],
 		buttonText: "Get started",
 		buttonColor: "primary",
 		buttonVariant: "shadow",

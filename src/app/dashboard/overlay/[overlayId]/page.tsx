@@ -196,6 +196,7 @@ export default function OverlaySettings() {
 													<ul className='list-disc list-inside text-warning-700 text-xs mt-2 ml-1'>
 														<li>Multiple overlay</li>
 														<li>Link custom Twitch rewards</li>
+														<li>Control your overlay via chat</li>
 														<li>Priority support</li>
 													</ul>
 													<Button
