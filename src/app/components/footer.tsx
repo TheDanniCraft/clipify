@@ -200,7 +200,7 @@ export default function Footer() {
 									<div className='text-success-500 mt-2 text-center'>
 										<Image alt='Tada Icon' src='https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Activities/Party%20Popper.png' width='50' height='50' className='mx-auto' />
 										<p className='text-lg font-bold'>You&apos;re almost there!</p>
-										<p className='text-xs'>We&apos;ve just sent a confirmation email your way. Check your inbox to finish subscribing—and if you don&apos;t see it, be sure to take a quick look in your spam folder too.</p>
+										<p className='text-xs'>We&apos;ve just sent a confirmation email your way. Check your inbox to finish subscribing-and if you don&apos;t see it, be sure to take a quick look in your spam folder too.</p>
 									</div>
 								</div>
 							</ModalContent>

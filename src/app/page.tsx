@@ -143,7 +143,7 @@ export default function Home() {
 							Features
 						</Chip>
 						<h2 className='text-4xl font-bold mb-4'>Play your Twitch clips, keep your stream alive</h2>
-						<p className='text-foreground-500 text-lg max-w-2xl mx-auto'>Clipify automatically plays your best Twitch clips to keep your channel active and your viewers engaged—even when you&apos;re away.</p>
+						<p className='text-foreground-500 text-lg max-w-2xl mx-auto'>Clipify automatically plays your best Twitch clips to keep your channel active and your viewers engaged-even when you&apos;re away.</p>
 					</div>
 					<div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16'>
 						<FeatureCard title='Easy to Use' description='Intuitive interface designed for effortless setup and management.' icon={IconThumbUp} />

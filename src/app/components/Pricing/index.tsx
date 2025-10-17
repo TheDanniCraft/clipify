@@ -70,12 +70,12 @@ export default function TiersComponent() {
 							<p className='flex items-end gap-2 pt-2 tabular-nums'>
 								{typeof tier.price !== "string" && tier.discountedPrice?.[selectedFrequency.key] ? (
 									<>
-										{/* Old price — smaller, muted, clean strike */}
+										{/* Old price - smaller, muted, clean strike */}
 										<span className='inline text-xl md:text-2xl font-medium text-default-500/60 line-through decoration-2 decoration-default-500/50 underline-offset-4' aria-hidden='true'>
 											{tier.price[selectedFrequency.key]}
 										</span>
 
-										{/* New price — bold, tight leading */}
+										{/* New price - bold, tight leading */}
 										<span className='inline text-4xl md:text-5xl font-extrabold leading-none tracking-tight text-secondary'>{tier.discountedPrice[selectedFrequency.key]}</span>
 
 										{/* Suffix */}
