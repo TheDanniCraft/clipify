@@ -16,7 +16,7 @@ export default function FloatingBanner({ icon, title, text, cta }: { icon: React
 	if (isDismissed) return null;
 
 	return (
-		<div className={"pointer-events-none z-20 fixed inset-x-0 bottom-0 px-2 pb-2 sm:flex sm:justify-center sm:px-4 sm:pb-4 lg:px-8 transition-transform duration-300"}>
+		<div className={"pointer-events-none z-20 fixed inset-x-0 bottom-20 px-2 pb-2 sm:flex sm:justify-center sm:px-4 sm:pb-4 md:bottom-0 lg:px-8 transition-transform duration-300"}>
 			<div className='relative pointer-events-auto mx-auto w-auto max-w-4xl px-1'>
 				{/* Gradient Glow Layer */}
 				<div className='absolute -inset-1 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 blur-2xl opacity-60'></div>
