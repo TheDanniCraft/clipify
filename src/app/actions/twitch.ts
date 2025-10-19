@@ -410,6 +410,55 @@ export async function updateRedemptionStatus(userId: string, redemptionId: strin
 	}
 }
 
+export async function subscribeToChat(userId: string) {
+	const url = "https://api.twitch.tv/helix/eventsub/subscriptions";
+	const token = await getAppAccessToken();
+
+	if (!token) {
+		console.error("No app access token found");
+		return;
+	}
+
+	let eventsubCallback = process.env.TWITCH_EVENTSUB_URL;
+
+	if (await isPreview()) {
+		const baseUrl = await getBaseUrl();
+		eventsubCallback = new URL("/eventsub", baseUrl).toString();
+	}
+
+	try {
+		const test = await axios.post(
+			url,
+			{
+				type: "channel.chat.message",
+				version: "1",
+				condition: {
+					broadcaster_user_id: userId,
+					user_id: process.env.TWITCH_USER_ID || "",
+				},
+				transport: {
+					method: "webhook",
+					callback: eventsubCallback,
+					secret: process.env.WEBHOOK_SECRET,
+				},
+			},
+			{
+				headers: {
+					Authorization: `Bearer ${token.access_token}`,
+					"Client-Id": process.env.TWITCH_CLIENT_ID || "",
+				},
+			}
+		);
+
+		console.log(test);
+	} catch (error) {
+		if (axios.isAxiosError(error) && error.response?.status === 409) {
+			return;
+		}
+		logTwitchError("Error subscribing to chat", error);
+	}
+}
+
 export async function sendChatMessage(userId: string, message: string) {
 	const url = "https://api.twitch.tv/helix/chat/messages";
 	const token = await getAppAccessToken();

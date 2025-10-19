@@ -1,8 +1,10 @@
 import { NextRequest } from "next/server";
 import crypto from "crypto";
 import { getTwitchClip, sendChatMessage, updateRedemptionStatus } from "@actions/twitch";
-import { addToClipQueue, getOverlayByRewardId } from "../actions/database";
-import { RewardStatus } from "../lib/types";
+import { addToClipQueue, getOverlayByRewardId } from "@actions/database";
+import { RewardStatus, TwitchMessage } from "@types";
+import { emitToOverlaySubscribers } from "@actions/websocket";
+import { isCommand } from "@actions/commands";
 
 const SECRET = process.env.WEBHOOK_SECRET;
 
@@ -44,7 +46,13 @@ export async function POST(request: NextRequest) {
 
 			switch (notification.subscription.type) {
 				case "channel.chat.message": {
-					// ToDo: Handle chat messages
+					const { broadcaster_user_id, message } = notification.event as TwitchMessage;
+
+					console.log();
+					if (await isCommand(notification.event)) {
+						emitToOverlaySubscribers(broadcaster_user_id, message.text);
+					}
+					break;
 				}
 
 				case "channel.channel_points_custom_reward_redemption.add": {

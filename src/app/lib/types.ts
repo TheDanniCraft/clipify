@@ -204,6 +204,75 @@ export type TwitchClip = {
 	duration: number;
 };
 
+export type TwitchMessageFragment = {
+	type: "text" | "cheermote" | "emote" | "mention" | string;
+	text: string;
+	cheermote?: {
+		prefix: string;
+		bits: number;
+		tier: number;
+	} | null;
+	emote?: {
+		id: string;
+		emote_set_id: string;
+		owner_id: string;
+		format: Array<"animated" | "static">;
+	} | null;
+	mention?: {
+		user_id: string;
+		user_name: string;
+		user_login: string;
+	} | null;
+};
+
+export type TwitchBadge = {
+	set_id: string;
+	id: string;
+	info: string;
+};
+
+export type TwitchCheer = {
+	bits: number;
+};
+
+export type TwitchReply = {
+	parent_message_id: string;
+	parent_message_body: string;
+	parent_user_id: string;
+	parent_user_name: string;
+	parent_user_login: string;
+	thread_message_id: string;
+	thread_user_id: string;
+	thread_user_name: string;
+	thread_user_login: string;
+};
+
+export type TwitchMessage = {
+	broadcaster_user_id: string;
+	broadcaster_user_name: string;
+	broadcaster_user_login: string;
+	chatter_user_id: string;
+	chatter_user_name: string;
+	chatter_user_login: string;
+	message_id: string;
+	message: {
+		text: string;
+		fragments: TwitchMessageFragment[];
+	};
+	message_type: "text" | "channel_points_highlighted" | "channel_points_sub_only" | "user_intro" | "power_ups_message_effect" | "power_ups_gigantified_emote" | string;
+	badges: TwitchBadge[];
+	cheer?: TwitchCheer | null;
+	color: string;
+	reply?: TwitchReply | null;
+	channel_points_custom_reward_id?: string | null;
+	source_broadcaster_user_id?: string | null;
+	source_broadcaster_user_name?: string | null;
+	source_broadcaster_user_login?: string | null;
+	source_message_id?: string | null;
+	source_badges?: TwitchBadge[] | null;
+	is_source_only?: boolean;
+};
+
 export type VideoClip = TwitchClip & {
 	mediaUrl: string;
 	brodcasterAvatar: string;
