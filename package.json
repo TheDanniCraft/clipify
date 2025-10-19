@@ -5,6 +5,7 @@
 	"scripts": {
 		"app:dev": "infisical run --env=dev --watch -- next dev",
 		"app:webhook": "stripe listen --forward-to localhost:3000/payment/webhook",
+		"app:eventsub": "infisical run --env=dev --watch -- whcli forward --target=http://localhost:3000/eventsub",
 		"app:build": "next build",
 		"app:start": "next start",
 		"app:lint": "eslint .",
