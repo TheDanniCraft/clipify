@@ -1,5 +1,5 @@
 import { WebSocket, WebSocketServer } from "ws";
-import { overlaySubscribers as subscribers, removeSubscriber } from "@/app/store/overlaySubscribers";
+import { removeSubscriber } from "@/app/store/overlaySubscribers";
 import { handleMessage } from "@actions/websocket";
 
 let heartbeatInterval: NodeJS.Timeout | null = null;
@@ -55,4 +55,8 @@ export function UPGRADE(client: WebSocket, server: WebSocketServer) {
 	client.once("error", () => {
 		cleanup();
 	});
+}
+
+export async function GET(request: Request) {
+	return new Response(null, { status: 200 });
 }
