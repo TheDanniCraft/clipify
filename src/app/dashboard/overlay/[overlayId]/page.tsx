@@ -9,9 +9,9 @@ import { IconAlertTriangle, IconArrowLeft, IconCrown, IconDeviceFloppy, IconInfo
 import DashboardNavbar from "@components/dashboardNavbar";
 import { useNavigationGuard } from "next-navigation-guard";
 import { validateAuth } from "@/app/actions/auth";
-import Footer from "@components/footer";
 import { createChannelReward, getReward, removeChannelReward } from "@/app/actions/twitch";
 import { generatePaymentLink } from "@/app/actions/subscription";
+import FeedbackWidget from "@components/feedbackWidget";
 
 const overlayTypes: { key: OverlayType; label: string }[] = [
 	{ key: "1", label: "Top Clips - Today" },
@@ -111,7 +111,11 @@ export default function OverlaySettings() {
 
 	return (
 		<>
+			<script src='//tag.goadopt.io/injector.js?website_code=792b9b29-57f9-4d92-b5f1-313f94ddfacc' className='adopt-injector' defer></script>
+
 			<DashboardNavbar user={user!} title='Overlay Settings' tagline='Manage your overlays'>
+				<FeedbackWidget />
+
 				<div className='flex flex-col items-center justify-center w-full p-4'>
 					<Card className='w-full max-w-4xl'>
 						<CardHeader className='justify-between space-x-1'>
@@ -192,6 +196,7 @@ export default function OverlaySettings() {
 													<ul className='list-disc list-inside text-warning-700 text-xs mt-2 ml-1'>
 														<li>Multiple overlay</li>
 														<li>Link custom Twitch rewards</li>
+														<li>Control your overlay via chat</li>
 														<li>Priority support</li>
 													</ul>
 													<Button
@@ -212,7 +217,7 @@ export default function OverlaySettings() {
 														}}
 														className='mt-3 w-full font-semibold'
 													>
-														Upgrade for less than $1/month
+														Upgrade for less than 2€/month
 													</Button>
 													<p className='text-xs text-warning-600 text-center mt-2'>Enjoy a 7-day free trial. Cancel anytime.</p>
 												</CardBody>
@@ -293,7 +298,6 @@ export default function OverlaySettings() {
 					</ModalContent>
 				</Modal>
 			</DashboardNavbar>
-			<Footer />
 		</>
 	);
 }

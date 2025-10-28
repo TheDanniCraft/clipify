@@ -204,6 +204,75 @@ export type TwitchClip = {
 	duration: number;
 };
 
+export type TwitchMessageFragment = {
+	type: "text" | "cheermote" | "emote" | "mention" | string;
+	text: string;
+	cheermote?: {
+		prefix: string;
+		bits: number;
+		tier: number;
+	} | null;
+	emote?: {
+		id: string;
+		emote_set_id: string;
+		owner_id: string;
+		format: Array<"animated" | "static">;
+	} | null;
+	mention?: {
+		user_id: string;
+		user_name: string;
+		user_login: string;
+	} | null;
+};
+
+export type TwitchBadge = {
+	set_id: string;
+	id: string;
+	info: string;
+};
+
+export type TwitchCheer = {
+	bits: number;
+};
+
+export type TwitchReply = {
+	parent_message_id: string;
+	parent_message_body: string;
+	parent_user_id: string;
+	parent_user_name: string;
+	parent_user_login: string;
+	thread_message_id: string;
+	thread_user_id: string;
+	thread_user_name: string;
+	thread_user_login: string;
+};
+
+export type TwitchMessage = {
+	broadcaster_user_id: string;
+	broadcaster_user_name: string;
+	broadcaster_user_login: string;
+	chatter_user_id: string;
+	chatter_user_name: string;
+	chatter_user_login: string;
+	message_id: string;
+	message: {
+		text: string;
+		fragments: TwitchMessageFragment[];
+	};
+	message_type: "text" | "channel_points_highlighted" | "channel_points_sub_only" | "user_intro" | "power_ups_message_effect" | "power_ups_gigantified_emote" | string;
+	badges: TwitchBadge[];
+	cheer?: TwitchCheer | null;
+	color: string;
+	reply?: TwitchReply | null;
+	channel_points_custom_reward_id?: string | null;
+	source_broadcaster_user_id?: string | null;
+	source_broadcaster_user_name?: string | null;
+	source_broadcaster_user_login?: string | null;
+	source_message_id?: string | null;
+	source_badges?: TwitchBadge[] | null;
+	is_source_only?: boolean;
+};
+
 export type VideoClip = TwitchClip & {
 	mediaUrl: string;
 	brodcasterAvatar: string;
@@ -216,3 +285,83 @@ export type Game = {
 	box_art_url: string;
 	igdb_id: string;
 };
+
+export type GithubUser = {
+	login: string;
+	id: number;
+	node_id: string;
+	avatar_url: string;
+	gravatar_id: string;
+	url: string;
+	html_url: string;
+	followers_url: string;
+	following_url: string;
+	gists_url: string;
+	starred_url: string;
+	subscriptions_url: string;
+	organizations_url: string;
+	repos_url: string;
+	events_url: string;
+	received_events_url: string;
+	type: string;
+	user_view_type?: string;
+	site_admin: boolean;
+};
+
+export type GithubAsset = {
+	url: string;
+	id: number;
+	node_id: string;
+	name: string;
+	label: string | null;
+	uploader: GithubUser;
+	content_type: string;
+	state: string;
+	size: number;
+	download_count: number;
+	created_at: string;
+	updated_at: string;
+	browser_download_url: string;
+};
+
+export type GithubRelease = {
+	url: string;
+	assets_url: string;
+	upload_url: string;
+	html_url: string;
+	id: number;
+	author: GithubUser;
+	node_id: string;
+	tag_name: string;
+	target_commitish: string;
+	name: string;
+	draft: boolean;
+	immutable: boolean;
+	prerelease: boolean;
+	created_at: string;
+	updated_at: string;
+	published_at: string;
+	assets: GithubAsset[];
+	tarball_url: string;
+	zipball_url: string;
+	body: string;
+};
+
+export type FeedbackType = "feedback" | "bug" | "feature";
+
+export type Feedback = {
+	type: FeedbackType;
+	feedback: {
+		title: string;
+		comment?: string;
+		rating?: RatingValueEnum;
+	};
+};
+
+export enum RatingValueEnum {
+	BAD = "bad",
+	POOR = "poor",
+	NEUTRAL = "neutral",
+	GREAT = "great",
+	EXCELLENT = "excellent",
+}

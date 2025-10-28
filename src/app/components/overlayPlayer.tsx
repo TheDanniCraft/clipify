@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Overlay, TwitchClip, TwitchClipGqlData, TwitchClipGqlResponse, TwitchClipVideoQuality, VideoClip } from "@types";
-import { getAvatar, getGameDetails, getTwitchClip, logTwitchError } from "@actions/twitch";
+import { getAvatar, getGameDetails, getTwitchClip, logTwitchError, subscribeToChat } from "@actions/twitch";
 import PlayerOverlay from "./playerOverlay";
 import { Avatar } from "@heroui/react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -76,6 +76,54 @@ export default function OverlayPlayer({ clips, overlay }: { clips: TwitchClip[];
 	const [videoClip, setVideoClip] = useState<VideoClip | null>(null);
 	const [playedClips, setPlayedClips] = useState<string[]>([]);
 	const [showOverlay, setShowOverlay] = useState<boolean>(false);
+	const [websocket, setWebsocket] = useState<WebSocket | null>(null);
+
+	useEffect(() => {
+		async function setupWebSocket() {
+			const ws = new WebSocket("/ws");
+			setWebsocket(ws);
+
+			ws.addEventListener("open", () => {
+				ws.send(
+					JSON.stringify({
+						type: "subscribe",
+						data: overlay.id,
+					})
+				);
+			});
+
+			ws.addEventListener("error", (event) => {
+				console.error("WebSocket error:", event);
+				console.log("Reconnecting in 5 seconds...");
+				ws.close();
+
+				setTimeout(() => {
+					console.log("Reconnecting to WebSocket...");
+
+					setupWebSocket();
+				}, 5000);
+			});
+
+			return () => {
+				ws.close();
+			};
+		}
+		setupWebSocket();
+	}, [overlay.id]);
+
+	useEffect(() => {
+		async function setupChat() {
+			if (overlay.ownerId) {
+				try {
+					await subscribeToChat(overlay.ownerId);
+				} catch (error) {
+					logTwitchError("Error subscribing to chat", error);
+				}
+			}
+		}
+
+		setupChat();
+	}, [overlay.ownerId]);
 
 	const getRandomClip = useCallback(async (): Promise<TwitchClip> => {
 		const queClip = await getFirstFromClipQueue(overlay.id);
@@ -128,11 +176,6 @@ export default function OverlayPlayer({ clips, overlay }: { clips: TwitchClip[];
 		fetchVideoSource();
 	}, [getRandomClip]);
 
-	useEffect(() => {
-		if (!clips || clips.length === 0) {
-		}
-	}, [clips, videoClip]);
-
 	if (!clips) {
 		return (
 			<div className='flex flex-col items-center justify-center w-full h-64'>
@@ -150,9 +193,9 @@ export default function OverlayPlayer({ clips, overlay }: { clips: TwitchClip[];
 						key={videoClip.id}
 						autoPlay
 						src={videoClip.mediaUrl}
-						initial={{ opacity: 0 }}
+						initial={{ opacity: 0.1 }}
 						animate={{ opacity: 1 }}
-						exit={{ opacity: 0 }}
+						exit={{ opacity: 0.1 }}
 						transition={{ duration: 0.5 }}
 						onEnded={() => {
 							async function fetchNewClip() {

@@ -9,7 +9,7 @@ import { IconCheck } from "@tabler/icons-react";
 import { FrequencyEnum } from "./pricing-types";
 
 export default function TiersComponent() {
-	const [selectedFrequency, setSelectedFrequency] = useState(frequencies[0]);
+	const [selectedFrequency, setSelectedFrequency] = useState(frequencies.find((f) => f.key === FrequencyEnum.Yearly) ?? frequencies[0]);
 
 	const onFrequencyChange = (selectedKey: React.Key) => {
 		const frequencyIndex = frequencies.findIndex((f) => f.key === selectedKey);
@@ -23,9 +23,9 @@ export default function TiersComponent() {
 				classNames={{
 					tab: "data-[hover-unselected=true]:opacity-90",
 				}}
-				radius='full'
 				size='lg'
 				onSelectionChange={onFrequencyChange}
+				selectedKey={selectedFrequency.key}
 			>
 				<Tab key={FrequencyEnum.Monthly} title='Pay Monthly' />
 				<Tab
@@ -52,7 +52,11 @@ export default function TiersComponent() {
 						})}
 						shadow='md'
 					>
-						{tier.mostPopular ? (
+						{tier.discountedPrice?.[selectedFrequency.key] ? (
+							<Chip className='absolute right-4 top-4' variant='shadow' color='secondary'>
+								Limited offer
+							</Chip>
+						) : tier.mostPopular ? (
 							<Chip className='absolute right-4 top-4 bg-primary' variant='flat'>
 								Most Popular
 							</Chip>
@@ -63,9 +67,26 @@ export default function TiersComponent() {
 						</CardHeader>
 						<Divider />
 						<CardBody className='gap-8'>
-							<p className='flex items-baseline gap-1 pt-2'>
-								<span className='inline text-4xl font-semibold leading-7 tracking-tight'>{typeof tier.price === "string" ? tier.price : tier.price[selectedFrequency.key]}</span>
-								{typeof tier.price !== "string" ? <span className='text-small font-medium text-default-400'>{tier.priceSuffix ? `/${tier.priceSuffix}/${selectedFrequency.priceSuffix}` : `/${selectedFrequency.priceSuffix}`}</span> : null}
+							<p className='flex items-end gap-2 pt-2 tabular-nums'>
+								{typeof tier.price !== "string" && tier.discountedPrice?.[selectedFrequency.key] ? (
+									<>
+										{/* Old price - smaller, muted, clean strike */}
+										<span className='inline text-xl md:text-2xl font-medium text-default-500/60 line-through decoration-2 decoration-default-500/50 underline-offset-4' aria-hidden='true'>
+											{tier.price[selectedFrequency.key]}
+										</span>
+
+										{/* New price - bold, tight leading */}
+										<span className='inline text-4xl md:text-5xl font-extrabold leading-none tracking-tight text-secondary'>{tier.discountedPrice[selectedFrequency.key]}</span>
+
+										{/* Suffix */}
+										<span className='text-small font-medium text-default-400 leading-none'>/{selectedFrequency.priceSuffix}</span>
+									</>
+								) : (
+									<>
+										<span className='inline text-4xl md:text-5xl font-extrabold leading-none tracking-tight'>{typeof tier.price === "string" ? tier.price : tier.price[selectedFrequency.key]}</span>
+										{typeof tier.price !== "string" && <span className='text-small font-medium text-default-400 leading-none'>/{selectedFrequency.priceSuffix}</span>}
+									</>
+								)}
 							</p>
 							<ul className='flex flex-col gap-2'>
 								{tier.features?.map((feature) => (

@@ -9,7 +9,6 @@ import { addToast, Avatar, Button, Card, CardBody, CardHeader, Divider, Modal, M
 import { IconArrowLeft, IconCreditCardFilled, IconDiamondFilled, IconInfoCircle, IconTrash } from "@tabler/icons-react";
 import { redirect, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import Footer from "@components/footer";
 import { generatePaymentLink, checkIfSubscriptionExists, getPortalLink } from "@/app/actions/subscription";
 
 export default function SettingsPage() {
@@ -52,6 +51,8 @@ export default function SettingsPage() {
 
 	return (
 		<>
+			<script src='//tag.goadopt.io/injector.js?website_code=792b9b29-57f9-4d92-b5f1-313f94ddfacc' className='adopt-injector' defer></script>
+
 			<DashboardNavbar user={user} title='Settings' tagline='Manage your settings'>
 				<Card className='mt-4'>
 					<CardHeader>
@@ -185,7 +186,6 @@ export default function SettingsPage() {
 					router.push("/logout");
 				}}
 			/>
-			<Footer />
 		</>
 	);
 }

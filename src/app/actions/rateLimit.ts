@@ -1,3 +1,5 @@
+"use server";
+
 import { RateLimiterMemory, RateLimiterRes } from "rate-limiter-flexible";
 
 export async function getUserIP() {

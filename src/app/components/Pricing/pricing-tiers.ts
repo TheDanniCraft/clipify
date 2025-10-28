@@ -26,11 +26,15 @@ export const tiers: Array<Tier> = [
 		description: "Unlock advanced features for professional streamers.",
 		mostPopular: true,
 		price: {
-			[FrequencyEnum.Yearly]: "$10",
-			[FrequencyEnum.Monthly]: "$1",
+			[FrequencyEnum.Yearly]: "20€",
+			[FrequencyEnum.Monthly]: "2€",
+		},
+		discountedPrice: {
+			[FrequencyEnum.Monthly]: "1€",
+			[FrequencyEnum.Yearly]: "10€",
 		},
 		featured: false,
-		features: ["Everything in Free", "Multiple overlays", "Channel points integration", "Priority support", "Support an independent developer"],
+		features: ["Everything in Free", "Multiple overlays", "Channel points integration", "Priority support", "Control your overlay via chat", "Access to beta features", "Access to all upcoming features", "Support an independent developer"],
 		buttonText: "Get started",
 		buttonColor: "primary",
 		buttonVariant: "shadow",

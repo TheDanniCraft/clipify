@@ -3,6 +3,7 @@
 import axios from "axios";
 import { AuthenticatedUser, Game, Overlay, RewardStatus, TwitchApiResponse, TwitchAppAccessTokenResponse, TwitchClip, TwitchClipBody, TwitchClipResponse, TwitchReward, TwitchRewardResponse, TwitchTokenApiResponse, TwitchUserResponse } from "@types";
 import { getAccessToken } from "@actions/database";
+import { getBaseUrl, isPreview } from "@actions/utils";
 
 export async function logTwitchError(context: string, error: unknown) {
 	if (axios.isAxiosError(error) && error.response) {
@@ -14,6 +15,12 @@ export async function logTwitchError(context: string, error: unknown) {
 
 export async function exchangeAccesToken(code: string): Promise<TwitchTokenApiResponse | null> {
 	const url = "https://id.twitch.tv/oauth2/token";
+	const baseUrl = await getBaseUrl();
+
+	let callbackUrl = new URL("/callback", baseUrl).toString();
+	if ((await isPreview()) && process.env.PREVIEW_CALLBACK_URL) {
+		callbackUrl = new URL(process.env.PREVIEW_CALLBACK_URL).toString();
+	}
 
 	try {
 		const response = await axios.post<TwitchTokenApiResponse>(url, null, {
@@ -22,7 +29,7 @@ export async function exchangeAccesToken(code: string): Promise<TwitchTokenApiRe
 				client_secret: process.env.TWITCH_CLIENT_SECRET || "",
 				code: code,
 				grant_type: "authorization_code",
-				redirect_uri: process.env.TWITCH_CALLBACK_URL || "",
+				redirect_uri: callbackUrl,
 			},
 		});
 		return response.data;
@@ -333,6 +340,13 @@ export async function subscribeToReward(userId: string, rewardId: string): Promi
 		return;
 	}
 
+	let eventsubCallback = process.env.TWITCH_EVENTSUB_URL;
+
+	if (await isPreview()) {
+		const baseUrl = await getBaseUrl();
+		eventsubCallback = new URL("/eventsub", baseUrl).toString();
+	}
+
 	try {
 		await axios.post(
 			url,
@@ -345,7 +359,7 @@ export async function subscribeToReward(userId: string, rewardId: string): Promi
 				},
 				transport: {
 					method: "webhook",
-					callback: process.env.TWITCH_EVENTSUB_URL,
+					callback: eventsubCallback,
 					secret: process.env.WEBHOOK_SECRET,
 				},
 			},
@@ -393,6 +407,55 @@ export async function updateRedemptionStatus(userId: string, redemptionId: strin
 		);
 	} catch (error) {
 		logTwitchError("Error updating redemption status", error);
+	}
+}
+
+export async function subscribeToChat(userId: string) {
+	const url = "https://api.twitch.tv/helix/eventsub/subscriptions";
+	const token = await getAppAccessToken();
+
+	if (!token) {
+		console.error("No app access token found");
+		return;
+	}
+
+	let eventsubCallback = process.env.TWITCH_EVENTSUB_URL;
+
+	if (await isPreview()) {
+		const baseUrl = await getBaseUrl();
+		eventsubCallback = new URL("/eventsub", baseUrl).toString();
+	}
+
+	try {
+		const test = await axios.post(
+			url,
+			{
+				type: "channel.chat.message",
+				version: "1",
+				condition: {
+					broadcaster_user_id: userId,
+					user_id: process.env.TWITCH_USER_ID || "",
+				},
+				transport: {
+					method: "webhook",
+					callback: eventsubCallback,
+					secret: process.env.WEBHOOK_SECRET,
+				},
+			},
+			{
+				headers: {
+					Authorization: `Bearer ${token.access_token}`,
+					"Client-Id": process.env.TWITCH_CLIENT_ID || "",
+				},
+			}
+		);
+
+		console.log(test);
+	} catch (error) {
+		if (axios.isAxiosError(error) && error.response?.status === 409) {
+			return;
+		}
+		logTwitchError("Error subscribing to chat", error);
 	}
 }
 
