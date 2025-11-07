@@ -1,7 +1,7 @@
 "use server";
 
 import axios from "axios";
-import { AuthenticatedUser, Game, Overlay, RewardStatus, TwitchApiResponse, TwitchAppAccessTokenResponse, TwitchClip, TwitchClipBody, TwitchClipResponse, TwitchReward, TwitchRewardResponse, TwitchTokenApiResponse, TwitchUserResponse } from "@types";
+import { AuthenticatedUser, Game, Overlay, OverlayType, RewardStatus, TwitchApiResponse, TwitchAppAccessTokenResponse, TwitchClip, TwitchClipBody, TwitchClipResponse, TwitchReward, TwitchRewardResponse, TwitchTokenApiResponse, TwitchUserResponse } from "@types";
 import { getAccessToken } from "@actions/database";
 import { getBaseUrl, isPreview } from "@actions/utils";
 
@@ -199,9 +199,10 @@ export async function getTwitchClip(clipId: string, creatorId: string): Promise<
 	}
 }
 
-export async function getTwitchClips(overlay: Overlay): Promise<TwitchClip[]> {
+export async function getTwitchClips(overlay: Overlay, type?: OverlayType): Promise<TwitchClip[]> {
 	const url = "https://api.twitch.tv/helix/clips";
 	const token = await getAccessToken(overlay.ownerId);
+	overlay.type = type || overlay.type;
 
 	if (!token) {
 		console.error("No access token found for ownerId:", overlay.ownerId);

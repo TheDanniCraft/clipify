@@ -9,7 +9,7 @@ import { IconAlertTriangle, IconArrowLeft, IconCrown, IconDeviceFloppy, IconInfo
 import DashboardNavbar from "@components/dashboardNavbar";
 import { useNavigationGuard } from "next-navigation-guard";
 import { validateAuth } from "@/app/actions/auth";
-import { createChannelReward, getReward, removeChannelReward } from "@/app/actions/twitch";
+import { createChannelReward, getReward, getTwitchClips, removeChannelReward } from "@/app/actions/twitch";
 import { generatePaymentLink } from "@/app/actions/subscription";
 import FeedbackWidget from "@components/feedbackWidget";
 
@@ -33,6 +33,7 @@ export default function OverlaySettings() {
 	const [baseUrl, setBaseUrl] = useState<string | null>(null);
 	const [user, setUser] = useState<AuthenticatedUser>();
 	const [reward, setReward] = useState<TwitchReward | null>(null);
+	const [clipsPerType, setClipsPerType] = useState<Record<OverlayType, number>>({} as Record<OverlayType, number>);
 
 	const navGuard = useNavigationGuard({ enabled: isFormDirty() });
 
@@ -76,11 +77,17 @@ export default function OverlaySettings() {
 			const fetchedOverlay = await getOverlay(overlayId);
 			setOverlay(fetchedOverlay);
 			setBaseOverlay(fetchedOverlay);
+
+			overlayTypes.forEach(async (type) => {
+				const clips = await getTwitchClips(fetchedOverlay, type.key);
+
+				setClipsPerType((prev) => ({ ...prev, [type.key]: clips.length }));
+			});
 		}
 		fetchOverlay();
 	}, [overlayId]);
 
-	if (!overlayId || !overlay) {
+	if (!overlayId || !overlay || !overlayTypes.every((t) => typeof clipsPerType[t.key] === "number")) {
 		return (
 			<div className='flex flex-col items-center justify-center w-full h-screen'>
 				<Spinner label='Loading overlay' />
@@ -178,7 +185,7 @@ export default function OverlaySettings() {
 										label='Overlay Type'
 									>
 										{overlayTypes.map((type) => (
-											<SelectItem key={type.key}>{type.label}</SelectItem>
+											<SelectItem key={type.key}>{clipsPerType[type.key] != null ? `${type.label}: ${clipsPerType[type.key]}` : type.label}</SelectItem>
 										))}
 									</Select>
 									<Divider className='my-4' />
