@@ -212,6 +212,10 @@ export async function getTwitchClips(overlay: Overlay, type?: OverlayType): Prom
 	let cursor: string | undefined;
 	let fetchCount = 0;
 
+	if (overlay.type === "Queue") {
+		return clips;
+	}
+
 	let endDate = undefined;
 	if (overlay.type !== "Featured" && overlay.type !== "All") {
 		endDate = new Date(Date.now() - Number(overlay.type) * 24 * 60 * 60 * 1000).toISOString();

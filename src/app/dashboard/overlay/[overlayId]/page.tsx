@@ -22,6 +22,7 @@ const overlayTypes: { key: OverlayType; label: string }[] = [
 	{ key: "365", label: "Top Clips - Last Year" },
 	{ key: "Featured", label: "Featured only" },
 	{ key: "All", label: "All Clips" },
+	{ key: "Queue", label: "Clip Queue" },
 ];
 
 export default function OverlaySettings() {
@@ -185,7 +186,7 @@ export default function OverlaySettings() {
 										label='Overlay Type'
 									>
 										{overlayTypes.map((type) => (
-											<SelectItem key={type.key}>{clipsPerType[type.key] != null ? `${type.label}: ${clipsPerType[type.key]}` : type.label}</SelectItem>
+											<SelectItem key={type.key}>{clipsPerType[type.key] != null && type.key !== "Queue" ? `${type.label}: ${clipsPerType[type.key]}` : type.label}</SelectItem>
 										))}
 									</Select>
 									<Divider className='my-4' />

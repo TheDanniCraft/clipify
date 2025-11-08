@@ -175,7 +175,7 @@ export type StatusOptions = "active" | "paused";
 
 export type Overlay = InferSelectModel<typeof overlaysTable>;
 
-export type OverlayType = "1" | "7" | "30" | "90" | "180" | "365" | "Featured" | "All";
+export type OverlayType = "1" | "7" | "30" | "90" | "180" | "365" | "Featured" | "All" | "Queue";
 
 export type TwitchClipBody = {
 	broadcaster_id: string;
