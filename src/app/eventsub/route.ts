@@ -3,7 +3,7 @@ import crypto from "crypto";
 import { getTwitchClip, sendChatMessage, updateRedemptionStatus } from "@actions/twitch";
 import { addToClipQueue, getOverlayByRewardId } from "@actions/database";
 import { RewardStatus, TwitchMessage } from "@types";
-import { emitToOverlaySubscribers } from "@actions/websocket";
+import { sendMessage } from "@actions/websocket";
 import { isCommand } from "@actions/commands";
 
 const SECRET = process.env.WEBHOOK_SECRET;
@@ -48,9 +48,8 @@ export async function POST(request: NextRequest) {
 				case "channel.chat.message": {
 					const { broadcaster_user_id, message } = notification.event as TwitchMessage;
 
-					console.log();
 					if (await isCommand(notification.event)) {
-						emitToOverlaySubscribers(broadcaster_user_id, message.text);
+						sendMessage("chat_message", { broadcasterId: broadcaster_user_id, message: message.text });
 					}
 					break;
 				}
@@ -102,8 +101,9 @@ export async function POST(request: NextRequest) {
 							}
 
 							await addToClipQueue(overlay.id, clip.id);
+							await sendMessage("new_clip_redemption", { clipId: clip.id }, overlay.ownerId);
 
-							await sendChatMessage(reward.broadcaster_user_id, `@${reward.user_name} your clip (${clip.title} has been added to the queue!`);
+							await sendChatMessage(reward.broadcaster_user_id, `@${reward.user_name} your clip (${clip.title}) has been added to the queue!`);
 							await updateRedemptionStatus(reward.broadcaster_user_id, reward.id, overlay.rewardId!, RewardStatus.FULFILLED);
 						}
 					} catch (error) {
