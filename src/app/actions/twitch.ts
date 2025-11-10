@@ -432,7 +432,7 @@ export async function subscribeToChat(userId: string) {
 	}
 
 	try {
-		const test = await axios.post(
+		await axios.post(
 			url,
 			{
 				type: "channel.chat.message",
@@ -454,8 +454,6 @@ export async function subscribeToChat(userId: string) {
 				},
 			}
 		);
-
-		console.log(test);
 	} catch (error) {
 		if (axios.isAxiosError(error) && error.response?.status === 409) {
 			return;
@@ -491,4 +489,38 @@ export async function sendChatMessage(userId: string, message: string) {
 	} catch (error) {
 		logTwitchError("Error sending chat message", error);
 	}
+}
+
+export async function handleClip(input: string, broadcasterId: string) {
+	const twitchClipRegex = /^https?:\/\/(?:www\.)?twitch\.tv\/(\w+)\/clip\/([A-Za-z0-9_-]+)|^https?:\/\/clips\.twitch\.tv\/([A-Za-z0-9_-]+)/;
+	const match = input.match(twitchClipRegex);
+
+	if (!match) {
+		console.error("Invalid Twitch clip URL:", input);
+
+		return { errorCode: 1 };
+	}
+
+	const clipId = match[2] || match[3];
+	if (!clipId) {
+		console.error("Could not extract clip ID from URL:", input);
+
+		return { errorCode: 2 };
+	}
+
+	const clip = await getTwitchClip(clipId, broadcasterId);
+
+	if (!clip) {
+		console.error("Failed to fetch clip", clipId);
+
+		return { errorCode: 3 };
+	}
+
+	if (clip.broadcaster_id !== broadcasterId) {
+		console.error("Clip does not belong to the specified creator:", broadcasterId);
+
+		return { errorCode: 4 };
+	}
+
+	return clip;
 }

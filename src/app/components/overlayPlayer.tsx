@@ -1,13 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Overlay, TwitchClip, TwitchClipGqlData, TwitchClipGqlResponse, TwitchClipVideoQuality, VideoClip } from "@types";
+import { ClipQueueItem, ModQueueItem, Overlay, TwitchClip, TwitchClipGqlData, TwitchClipGqlResponse, TwitchClipVideoQuality, VideoClip } from "@types";
 import { getAvatar, getGameDetails, getTwitchClip, logTwitchError, subscribeToChat } from "@actions/twitch";
 import PlayerOverlay from "./playerOverlay";
 import { Avatar } from "@heroui/react";
 import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
-import { getFirstFromClipQueue, removeFromClipQueue } from "@actions/database";
+import { getFirstFromClipQueue, getFirstFromModQueue, removeFromClipQueue, removeFromModQueue } from "@actions/database";
 
 type VideoQualityWithNumeric = TwitchClipVideoQuality & { numericQuality: number };
 
@@ -76,12 +76,72 @@ export default function OverlayPlayer({ clips, overlay }: { clips: TwitchClip[];
 	const [videoClip, setVideoClip] = useState<VideoClip | null>(null);
 	const [playedClips, setPlayedClips] = useState<string[]>([]);
 	const [showOverlay, setShowOverlay] = useState<boolean>(false);
+	const [paused, setPaused] = useState<boolean>(false);
 	const [websocket, setWebsocket] = useState<WebSocket | null>(null);
+	const playerRef = useRef<HTMLVideoElement | null>(null);
 	const clipRef = useRef<VideoClip | null>(null);
+
+	const getFirstQueClip = useCallback(async (): Promise<ModQueueItem | ClipQueueItem | null> => {
+		const modClip = await getFirstFromModQueue(overlay.ownerId);
+		if (modClip) {
+			return modClip;
+		}
+		const queClip = await getFirstFromClipQueue(overlay.id);
+
+		if (!queClip) {
+			return null;
+		}
+
+		return queClip;
+	}, [overlay]);
+
+	const playNextClip = useCallback(async () => {
+		if (clipRef.current) return;
+
+		const queClip = await getFirstQueClip();
+		if (!queClip) return;
+
+		const clip = await getTwitchClip(queClip.clipId, overlay.ownerId);
+		if (!clip) return;
+
+		// Remove from queues (safe to call both)
+		await Promise.all([removeFromClipQueue(queClip.id), removeFromModQueue(queClip.id)]);
+
+		// Build video data
+		const mediaUrl = await getRawMediaUrl(clip.id);
+		if (!mediaUrl) return;
+
+		const [brodcasterAvatar, game] = await Promise.all([getAvatar(clip.broadcaster_id, clip.broadcaster_id), getGameDetails(clip.game_id, clip.broadcaster_id)]);
+
+		setVideoClip({
+			...clip,
+			mediaUrl,
+			brodcasterAvatar: brodcasterAvatar ?? "",
+			game: game ?? {
+				id: "",
+				name: "Unknown Game",
+				box_art_url: "",
+				igdb_id: "",
+			},
+		});
+	}, [getFirstQueClip, overlay.ownerId]);
 
 	useEffect(() => {
 		clipRef.current = videoClip;
 	}, [videoClip]);
+
+	useEffect(() => {
+		console.log("Paused state changed:", paused);
+		if (playerRef.current) {
+			if (paused) {
+				playerRef.current.pause();
+			} else {
+				playerRef.current.play().catch((error) => {
+					console.error("Error playing the video:", error);
+				});
+			}
+		}
+	}, [paused]);
 
 	useEffect(() => {
 		async function setupWebSocket() {
@@ -119,36 +179,24 @@ export default function OverlayPlayer({ clips, overlay }: { clips: TwitchClip[];
 
 						switch (message.type) {
 							case "new_clip_redemption": {
-								if (clipRef.current) return;
-								const queClip = await getFirstFromClipQueue(overlay.id);
+								await playNextClip();
+								break;
+							}
+							case "command": {
+								const { name, data } = message.data;
+								console.log("Received command via WebSocket:", name);
 
-								if (queClip) {
-									const clip = await getTwitchClip(queClip.clipId, overlay.ownerId);
-
-									if (clip != null) {
-										removeFromClipQueue(queClip.id);
-										if (!clip) return;
-
-										const mediaUrl = await getRawMediaUrl(clip?.id);
-
-										const brodcasterAvatar = await getAvatar(clip?.broadcaster_id, clip?.broadcaster_id);
-										const game = await getGameDetails(clip?.game_id, clip?.broadcaster_id);
-
-										if (mediaUrl && clip)
-											setVideoClip({
-												...clip,
-												mediaUrl,
-												brodcasterAvatar: brodcasterAvatar ?? "",
-												game: game ?? {
-													id: "",
-													name: "Unknown Game",
-													box_art_url: "",
-													igdb_id: "",
-												},
-											});
+								if (name === "play") {
+									if (data) {
+										await playNextClip();
+										break;
+									} else {
+										setPaused(false);
 									}
 								}
-								break;
+								if (name === "pause") {
+									setPaused(true);
+								}
 							}
 						}
 					} catch (error) {
@@ -162,7 +210,7 @@ export default function OverlayPlayer({ clips, overlay }: { clips: TwitchClip[];
 			};
 		}
 		setupWebSocket();
-	}, [overlay.id, overlay.ownerId]);
+	}, [overlay.id, overlay.ownerId, getFirstQueClip]);
 
 	useEffect(() => {
 		async function setupChat() {
@@ -179,12 +227,13 @@ export default function OverlayPlayer({ clips, overlay }: { clips: TwitchClip[];
 	}, [overlay.ownerId]);
 
 	const getRandomClip = useCallback(async (): Promise<TwitchClip> => {
-		const queClip = await getFirstFromClipQueue(overlay.id);
+		const queClip = await getFirstQueClip();
 
 		if (queClip) {
 			const clip = await getTwitchClip(queClip.clipId, overlay.ownerId);
 
 			if (clip != null) {
+				removeFromModQueue(queClip.id);
 				removeFromClipQueue(queClip.id);
 				return clip;
 			}
@@ -247,6 +296,7 @@ export default function OverlayPlayer({ clips, overlay }: { clips: TwitchClip[];
 						animate={{ opacity: 1 }}
 						exit={{ opacity: 0.1 }}
 						transition={{ duration: 0.5 }}
+						ref={playerRef}
 						onEnded={() => {
 							async function fetchNewClip() {
 								setShowOverlay(false);

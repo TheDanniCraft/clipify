@@ -1,10 +1,10 @@
 import { NextRequest } from "next/server";
 import crypto from "crypto";
-import { getTwitchClip, sendChatMessage, updateRedemptionStatus } from "@actions/twitch";
+import { handleClip, sendChatMessage, updateRedemptionStatus } from "@actions/twitch";
 import { addToClipQueue, getOverlayByRewardId } from "@actions/database";
-import { RewardStatus, TwitchMessage } from "@types";
+import { RewardStatus } from "@types";
 import { sendMessage } from "@actions/websocket";
-import { isCommand } from "@actions/commands";
+import { handleCommand, isCommand } from "@actions/commands";
 
 const SECRET = process.env.WEBHOOK_SECRET;
 
@@ -46,10 +46,8 @@ export async function POST(request: NextRequest) {
 
 			switch (notification.subscription.type) {
 				case "channel.chat.message": {
-					const { broadcaster_user_id, message } = notification.event as TwitchMessage;
-
 					if (await isCommand(notification.event)) {
-						sendMessage("chat_message", { broadcasterId: broadcaster_user_id, message: message.text });
+						handleCommand(notification.event);
 					}
 					break;
 				}
@@ -62,49 +60,34 @@ export async function POST(request: NextRequest) {
 						const overlay = await getOverlayByRewardId(reward.reward.id);
 
 						if (overlay) {
-							const twitchClipRegex = /^https?:\/\/(?:www\.)?twitch\.tv\/(\w+)\/clip\/([A-Za-z0-9_-]+)|^https?:\/\/clips\.twitch\.tv\/([A-Za-z0-9_-]+)/;
-							const match = input.match(twitchClipRegex);
+							const clip = await handleClip(input, reward.broadcaster_user_id);
 
-							if (!match) {
-								console.error("Invalid Twitch clip URL:", input);
-
+							if ("errorCode" in clip && (clip.errorCode === 1 || clip.errorCode === 2)) {
 								await sendChatMessage(reward.broadcaster_user_id, `@${reward.user_name} please provide a valid Twitch clip URL. Points have been refunded.`);
 								await updateRedemptionStatus(reward.broadcaster_user_id, reward.id, overlay.rewardId!, RewardStatus.CANCELED);
 								return new Response("Invalid Twitch clip URL", { status: 200 });
 							}
 
-							const clipId = match[2] || match[3];
-							if (!clipId) {
-								console.error("Could not extract clip ID from URL:", input);
-
-								await sendChatMessage(reward.broadcaster_user_id, `@${reward.user_name} please provide a valid Twitch clip URL. Points have been refunded.`);
-								await updateRedemptionStatus(reward.broadcaster_user_id, reward.id, overlay.rewardId!, RewardStatus.CANCELED);
-								return new Response("Invalid Twitch clip URL", { status: 200 });
-							}
-
-							const clip = await getTwitchClip(clipId, reward.broadcaster_user_id);
-
-							if (!clip) {
-								console.error("Failed to fetch clip for reward:", reward.id);
-
+							if ("errorCode" in clip && clip.errorCode === 3) {
 								await sendChatMessage(reward.broadcaster_user_id, `@${reward.user_name} the requested clip could not be found. Points have been refunded.`);
 								await updateRedemptionStatus(reward.broadcaster_user_id, reward.id, overlay.rewardId!, RewardStatus.CANCELED);
 
 								return new Response("Clip not found", { status: 200 });
 							}
 
-							if (clip.broadcaster_id !== reward.broadcaster_user_id) {
-								console.error("Clip does not belong to the specified creator:", reward.broadcaster_user_id);
+							if ("errorCode" in clip && clip.errorCode === 4) {
 								await sendChatMessage(reward.broadcaster_user_id, `@${reward.user_name} you can only use clips taken from this channel. Points have been refunded.`);
 								await updateRedemptionStatus(reward.broadcaster_user_id, reward.id, overlay.rewardId!, RewardStatus.CANCELED);
 								return new Response("Clip does not belong to the specified creator", { status: 200 });
 							}
 
-							await addToClipQueue(overlay.id, clip.id);
-							await sendMessage("new_clip_redemption", { clipId: clip.id }, overlay.ownerId);
+							if (!("errorCode" in clip)) {
+								await addToClipQueue(overlay.id, clip.id);
+								await sendMessage("new_clip_redemption", { clipId: clip.id }, overlay.ownerId);
 
-							await sendChatMessage(reward.broadcaster_user_id, `@${reward.user_name} your clip (${clip.title}) has been added to the queue!`);
-							await updateRedemptionStatus(reward.broadcaster_user_id, reward.id, overlay.rewardId!, RewardStatus.FULFILLED);
+								await sendChatMessage(reward.broadcaster_user_id, `@${reward.user_name} your clip (${clip.title}) has been added to the queue!`);
+								await updateRedemptionStatus(reward.broadcaster_user_id, reward.id, overlay.rewardId!, RewardStatus.FULFILLED);
+							}
 						}
 					} catch (error) {
 						console.error("Error processing reward redemption:", error);

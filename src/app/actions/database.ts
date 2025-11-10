@@ -1,11 +1,12 @@
 "use server";
 
 import { drizzle } from "drizzle-orm/node-postgres";
-import { tokenTable, usersTable, overlaysTable, queueTable } from "@/db/schema";
-import { AuthenticatedUser, Overlay, TwitchUserResponse, TwitchTokenApiResponse, UserToken, Plan, Role } from "@types";
+import { tokenTable, usersTable, overlaysTable, queueTable, settingsTable, modQueueTable } from "@/db/schema";
+import { AuthenticatedUser, Overlay, TwitchUserResponse, TwitchTokenApiResponse, UserToken, Plan, Role, UserSettings } from "@types";
 import { getUserDetails, refreshAccessToken, subscribeToReward } from "@actions/twitch";
 import { eq, inArray } from "drizzle-orm";
 import { validateAuth } from "@actions/auth";
+import { get } from "http";
 
 const db = drizzle(process.env.DATABASE_URL!);
 
@@ -359,5 +360,81 @@ export async function removeFromClipQueue(id: string) {
 	} catch (error) {
 		console.error("Error removing clip from queue:", error);
 		throw new Error("Failed to remove clip from queue");
+	}
+}
+
+export async function clearClipQueue(overlayId: string) {
+	try {
+		await db.delete(queueTable).where(eq(queueTable.overlayId, overlayId)).execute();
+	} catch (error) {
+		console.error("Error clearing clip queue:", error);
+		throw new Error("Failed to clear clip queue");
+	}
+}
+
+export async function addToModQueue(broadcasterId: string, clipId: string) {
+	try {
+		await db.insert(modQueueTable).values({ broadcasterId, clipId }).execute();
+	} catch (error) {
+		console.error("Error adding clip to mod queue:", error);
+		throw new Error("Failed to add clip to mod queue");
+	}
+}
+
+export async function getFirstFromModQueue(broadcasterId: string) {
+	try {
+		const result = await db.select().from(modQueueTable).where(eq(modQueueTable.broadcasterId, broadcasterId)).limit(1).execute();
+		return result[0] || null;
+	} catch (error) {
+		console.error("Error fetching first clip from mod queue:", error);
+		throw new Error("Failed to fetch first clip from mod queue");
+	}
+}
+
+export async function removeFromModQueue(id: string) {
+	try {
+		await db.delete(modQueueTable).where(eq(modQueueTable.id, id)).execute();
+	} catch (error) {
+		console.error("Error removing clip from mod queue:", error);
+		throw new Error("Failed to remove clip from mod queue");
+	}
+}
+
+export async function getSettings(userId: string): Promise<UserSettings> {
+	try {
+		const settings = await db.select().from(settingsTable).where(eq(settingsTable.id, userId)).limit(1).execute();
+
+		if (settings.length === 0) {
+			// Save default settings
+			return saveSettings({
+				id: userId,
+				prefix: "!",
+			}).then(() => getSettings(userId));
+		}
+
+		return settings[0];
+	} catch (error) {
+		console.error("Error fetching settings:", error);
+		throw new Error("Failed to fetch settings");
+	}
+}
+
+export async function saveSettings(settings: UserSettings) {
+	try {
+		await db
+			.insert(settingsTable)
+			.values({
+				id: settings.id,
+				prefix: settings.prefix,
+			})
+			.onConflictDoUpdate({
+				target: settingsTable.id,
+				set: {
+					prefix: settings.prefix,
+				},
+			});
+	} catch (error) {
+		console.error("Error saving settings:", error);
+		throw new Error("Failed to save settings");
 	}
 }

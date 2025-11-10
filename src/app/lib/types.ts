@@ -1,6 +1,6 @@
 import type { SVGProps } from "react";
 import { InferSelectModel } from "drizzle-orm";
-import { overlaysTable, tokenTable, usersTable } from "@/db/schema";
+import { modQueueTable, overlaysTable, settingsTable, tokenTable, usersTable, queueTable } from "@/db/schema";
 
 export class RateLimitError extends Error {
 	constructor() {
@@ -171,9 +171,14 @@ export type AuthenticatedUser = InferSelectModel<typeof usersTable>;
 
 export type UserToken = InferSelectModel<typeof tokenTable>;
 
+export type UserSettings = InferSelectModel<typeof settingsTable>;
+
 export type StatusOptions = "active" | "paused";
 
 export type Overlay = InferSelectModel<typeof overlaysTable>;
+
+export type ClipQueueItem = InferSelectModel<typeof queueTable>;
+export type ModQueueItem = InferSelectModel<typeof modQueueTable>;
 
 export type OverlayType = "1" | "7" | "30" | "90" | "180" | "365" | "Featured" | "All" | "Queue";
 
@@ -205,7 +210,7 @@ export type TwitchClip = {
 };
 
 export type TwitchMessageFragment = {
-	type: "text" | "cheermote" | "emote" | "mention" | string;
+	type: "	" | "cheermote" | "emote" | "mention" | string;
 	text: string;
 	cheermote?: {
 		prefix: string;
