@@ -141,7 +141,7 @@ export default function OverlayPlayer({ clips, overlay }: { clips: TwitchClip[];
 					igdb_id: "",
 				},
 			});
-	}, [getFirstQueClip, overlay.ownerId, getRandomClip]);
+	}, [getRandomClip]);
 
 	useEffect(() => {
 		clipRef.current = videoClip;
@@ -239,7 +239,8 @@ export default function OverlayPlayer({ clips, overlay }: { clips: TwitchClip[];
 			};
 		}
 		setupWebSocket();
-	}, [overlay.id, overlay.ownerId, getFirstQueClip, playNextClip]);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
 
 	useEffect(() => {
 		async function setupChat() {
