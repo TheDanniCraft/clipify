@@ -116,7 +116,13 @@ const commands: Record<string, { description: string; usage: string; execute: (m
 		execute: async (message: TwitchMessage) => {
 			const text = message.message.text;
 			const args = text.split(/\s+/).filter(Boolean).slice(1);
-			console.log(`executed <hide> <[${args.join(", ")}]>`);
+
+			if (args.length === 0) {
+				await sendMessage("command", { name: "hide", data: null }, message.broadcaster_user_id);
+
+				await sendChatMessage(message.broadcaster_user_id, `@${message.chatter_user_name} the player has been hidden!`);
+				return;
+			}
 		},
 	},
 
@@ -126,7 +132,13 @@ const commands: Record<string, { description: string; usage: string; execute: (m
 		execute: async (message: TwitchMessage) => {
 			const text = message.message.text;
 			const args = text.split(/\s+/).filter(Boolean).slice(1);
-			console.log(`executed <show> <[${args.join(", ")}]>`);
+
+			if (args.length === 0) {
+				await sendMessage("command", { name: "show", data: null }, message.broadcaster_user_id);
+
+				await sendChatMessage(message.broadcaster_user_id, `@${message.chatter_user_name} the player has been shown!`);
+				return;
+			}
 		},
 	},
 
@@ -137,16 +149,6 @@ const commands: Record<string, { description: string; usage: string; execute: (m
 			const text = message.message.text;
 			const args = text.split(/\s+/).filter(Boolean).slice(1);
 			console.log(`executed <queue> <[${args.join(", ")}]>`);
-		},
-	},
-
-	addqueue: {
-		description: "Add a clip to the queue",
-		usage: "addqueue <[clip_url]>",
-		execute: async (message: TwitchMessage) => {
-			const text = message.message.text;
-			const args = text.split(/\s+/).filter(Boolean).slice(1);
-			console.log(`executed <addqueue> <[${args.join(", ")}]>`);
 		},
 	},
 

@@ -76,6 +76,7 @@ export default function OverlayPlayer({ clips, overlay }: { clips: TwitchClip[];
 	const [videoClip, setVideoClip] = useState<VideoClip | null>(null);
 	const [playedClips, setPlayedClips] = useState<string[]>([]);
 	const [showOverlay, setShowOverlay] = useState<boolean>(false);
+	const [showPlayer, setShowPlayer] = useState<boolean>(true);
 	const [paused, setPaused] = useState<boolean>(false);
 	const [websocket, setWebsocket] = useState<WebSocket | null>(null);
 	const playerRef = useRef<HTMLVideoElement | null>(null);
@@ -225,6 +226,24 @@ export default function OverlayPlayer({ clips, overlay }: { clips: TwitchClip[];
 										await playNextClip();
 										break;
 									}
+
+									case "hide": {
+										setShowPlayer(false);
+										if (playerRef.current) {
+											playerRef.current.pause();
+										}
+										break;
+									}
+
+									case "show": {
+										setShowPlayer(true);
+										if (playerRef.current) {
+											playerRef.current.play().catch((error) => {
+												console.error("Error playing the video:", error);
+											});
+										}
+										break;
+									}
 								}
 							}
 						}
@@ -300,6 +319,7 @@ export default function OverlayPlayer({ clips, overlay }: { clips: TwitchClip[];
 						src={videoClip.mediaUrl}
 						initial={{ opacity: 0.1 }}
 						animate={{ opacity: 1 }}
+						hidden={!showPlayer}
 						exit={{ opacity: 0.1 }}
 						transition={{ duration: 0.5 }}
 						ref={playerRef}
