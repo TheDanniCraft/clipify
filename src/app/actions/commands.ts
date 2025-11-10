@@ -94,6 +94,22 @@ const commands: Record<string, { description: string; usage: string; execute: (m
 		},
 	},
 
+	skip: {
+		description: "Skip the current clip",
+		usage: "skip",
+		execute: async (message: TwitchMessage) => {
+			const text = message.message.text;
+			const args = text.split(/\s+/).filter(Boolean).slice(1);
+
+			if (args.length === 0) {
+				await sendMessage("command", { name: "skip", data: null }, message.broadcaster_user_id);
+
+				await sendChatMessage(message.broadcaster_user_id, `@${message.chatter_user_name} the current clip has been skipped!`);
+				return;
+			}
+		},
+	},
+
 	hide: {
 		description: "Hide the player",
 		usage: "hide",

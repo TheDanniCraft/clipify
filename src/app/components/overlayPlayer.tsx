@@ -95,36 +95,53 @@ export default function OverlayPlayer({ clips, overlay }: { clips: TwitchClip[];
 		return queClip;
 	}, [overlay]);
 
-	const playNextClip = useCallback(async () => {
-		if (clipRef.current) return;
-
+	const getRandomClip = useCallback(async (): Promise<TwitchClip> => {
 		const queClip = await getFirstQueClip();
-		if (!queClip) return;
 
-		const clip = await getTwitchClip(queClip.clipId, overlay.ownerId);
-		if (!clip) return;
+		if (queClip) {
+			const clip = await getTwitchClip(queClip.clipId, overlay.ownerId);
 
-		// Remove from queues (safe to call both)
-		await Promise.all([removeFromClipQueue(queClip.id), removeFromModQueue(queClip.id)]);
+			if (clip != null) {
+				removeFromModQueue(queClip.id);
+				removeFromClipQueue(queClip.id);
+				return clip;
+			}
+		}
 
-		// Build video data
-		const mediaUrl = await getRawMediaUrl(clip.id);
-		if (!mediaUrl) return;
+		let unplayedClips = clips.filter((clip) => !playedClips.includes(clip.id));
 
-		const [brodcasterAvatar, game] = await Promise.all([getAvatar(clip.broadcaster_id, clip.broadcaster_id), getGameDetails(clip.game_id, clip.broadcaster_id)]);
+		if (unplayedClips.length === 0 && clips.length > 0) {
+			setPlayedClips([]);
+			unplayedClips = clips;
+		}
 
-		setVideoClip({
-			...clip,
-			mediaUrl,
-			brodcasterAvatar: brodcasterAvatar ?? "",
-			game: game ?? {
-				id: "",
-				name: "Unknown Game",
-				box_art_url: "",
-				igdb_id: "",
-			},
-		});
-	}, [getFirstQueClip, overlay.ownerId]);
+		const randomIndex = Math.floor(Math.random() * unplayedClips.length);
+		return unplayedClips[randomIndex];
+	}, [clips, overlay, playedClips, getFirstQueClip]);
+
+	const playNextClip = useCallback(async () => {
+		const randomClip = await getRandomClip();
+
+		if (!randomClip) return;
+
+		const mediaUrl = await getRawMediaUrl(randomClip?.id);
+
+		const brodcasterAvatar = await getAvatar(randomClip?.broadcaster_id, randomClip?.broadcaster_id);
+		const game = await getGameDetails(randomClip?.game_id, randomClip?.broadcaster_id);
+
+		if (mediaUrl && randomClip)
+			setVideoClip({
+				...randomClip,
+				mediaUrl,
+				brodcasterAvatar: brodcasterAvatar ?? "",
+				game: game ?? {
+					id: "",
+					name: "Unknown Game",
+					box_art_url: "",
+					igdb_id: "",
+				},
+			});
+	}, [getFirstQueClip, overlay.ownerId, getRandomClip]);
 
 	useEffect(() => {
 		clipRef.current = videoClip;
@@ -179,6 +196,7 @@ export default function OverlayPlayer({ clips, overlay }: { clips: TwitchClip[];
 
 						switch (message.type) {
 							case "new_clip_redemption": {
+								if (!clipRef.current) return;
 								await playNextClip();
 								break;
 							}
@@ -186,16 +204,27 @@ export default function OverlayPlayer({ clips, overlay }: { clips: TwitchClip[];
 								const { name, data } = message.data;
 								console.log("Received command via WebSocket:", name);
 
-								if (name === "play") {
-									if (data) {
+								switch (name) {
+									case "play": {
+										if (data) {
+											if (!clipRef.current) return;
+											await playNextClip();
+											break;
+										} else {
+											setPaused(false);
+										}
+										break;
+									}
+
+									case "pause": {
+										setPaused(true);
+										break;
+									}
+
+									case "skip": {
 										await playNextClip();
 										break;
-									} else {
-										setPaused(false);
 									}
-								}
-								if (name === "pause") {
-									setPaused(true);
 								}
 							}
 						}
@@ -210,7 +239,7 @@ export default function OverlayPlayer({ clips, overlay }: { clips: TwitchClip[];
 			};
 		}
 		setupWebSocket();
-	}, [overlay.id, overlay.ownerId, getFirstQueClip]);
+	}, [overlay.id, overlay.ownerId, getFirstQueClip, playNextClip]);
 
 	useEffect(() => {
 		async function setupChat() {
@@ -225,30 +254,6 @@ export default function OverlayPlayer({ clips, overlay }: { clips: TwitchClip[];
 
 		setupChat();
 	}, [overlay.ownerId]);
-
-	const getRandomClip = useCallback(async (): Promise<TwitchClip> => {
-		const queClip = await getFirstQueClip();
-
-		if (queClip) {
-			const clip = await getTwitchClip(queClip.clipId, overlay.ownerId);
-
-			if (clip != null) {
-				removeFromModQueue(queClip.id);
-				removeFromClipQueue(queClip.id);
-				return clip;
-			}
-		}
-
-		let unplayedClips = clips.filter((clip) => !playedClips.includes(clip.id));
-
-		if (unplayedClips.length === 0 && clips.length > 0) {
-			setPlayedClips([]);
-			unplayedClips = clips;
-		}
-
-		const randomIndex = Math.floor(Math.random() * unplayedClips.length);
-		return unplayedClips[randomIndex];
-	}, [clips, overlay.id, overlay.ownerId, playedClips]);
 
 	useEffect(() => {
 		async function fetchVideoSource() {

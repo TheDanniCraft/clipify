@@ -6,7 +6,6 @@ import { AuthenticatedUser, Overlay, TwitchUserResponse, TwitchTokenApiResponse,
 import { getUserDetails, refreshAccessToken, subscribeToReward } from "@actions/twitch";
 import { eq, inArray } from "drizzle-orm";
 import { validateAuth } from "@actions/auth";
-import { get } from "http";
 
 const db = drizzle(process.env.DATABASE_URL!);
 
