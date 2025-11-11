@@ -19,6 +19,14 @@ export async function isCommand(message: TwitchMessage): Promise<boolean> {
 	return false;
 }
 
+export async function isMod(message: TwitchMessage): Promise<boolean> {
+	const isBroadcaster = message.chatter_user_id === message.broadcaster_user_id;
+
+	const hasModBadge = message.badges?.some((badge: TwitchBadge) => badge.set_id === "moderator");
+
+	return isBroadcaster || Boolean(hasModBadge);
+}
+
 export async function handleCommand(message: TwitchMessage): Promise<void> {
 	const firstFragment = message.message.fragments[0];
 	const prefix = await getPrefix(message.broadcaster_user_id);

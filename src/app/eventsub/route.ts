@@ -4,7 +4,7 @@ import { handleClip, sendChatMessage, updateRedemptionStatus } from "@actions/tw
 import { addToClipQueue, getOverlayByRewardId } from "@actions/database";
 import { RewardStatus } from "@types";
 import { sendMessage } from "@actions/websocket";
-import { handleCommand, isCommand } from "@actions/commands";
+import { handleCommand, isCommand, isMod } from "@actions/commands";
 
 const SECRET = process.env.WEBHOOK_SECRET;
 
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
 
 			switch (notification.subscription.type) {
 				case "channel.chat.message": {
-					if (await isCommand(notification.event)) {
+					if ((await isCommand(notification.event)) && (await isMod(notification.event))) {
 						handleCommand(notification.event);
 					}
 					break;
