@@ -221,6 +221,17 @@ export async function getAllOverlays(userId: string) {
 	}
 }
 
+export async function getAllOverlayIds(userId: string) {
+	try {
+		const overlays = await db.select().from(overlaysTable).where(eq(overlaysTable.ownerId, userId)).execute();
+
+		return overlays.map((overlay) => overlay.id);
+	} catch (error) {
+		console.error("Error fetching overlays:", error);
+		throw new Error("Failed to fetch overlays");
+	}
+}
+
 export async function getOverlay(overlayId: string) {
 	try {
 		const overlays = await db.select().from(overlaysTable).where(eq(overlaysTable.id, overlayId)).execute();
@@ -342,6 +353,16 @@ export async function addToClipQueue(overlayId: string, clipId: string) {
 	}
 }
 
+export async function getClipQueue(overlayId: string) {
+	try {
+		const result = await db.select().from(queueTable).where(eq(queueTable.overlayId, overlayId)).execute();
+		return result;
+	} catch (error) {
+		console.error("Error fetching clip queue:", error);
+		throw new Error("Failed to fetch clip queue");
+	}
+}
+
 export async function getFirstFromClipQueue(overlayId: string) {
 	try {
 		const result = await db.select().from(queueTable).where(eq(queueTable.overlayId, overlayId)).limit(1).execute();
@@ -380,6 +401,16 @@ export async function addToModQueue(broadcasterId: string, clipId: string) {
 	}
 }
 
+export async function getModQueue(broadcasterId: string) {
+	try {
+		const result = await db.select().from(modQueueTable).where(eq(modQueueTable.broadcasterId, broadcasterId)).execute();
+		return result;
+	} catch (error) {
+		console.error("Error fetching mod queue:", error);
+		throw new Error("Failed to fetch mod queue");
+	}
+}
+
 export async function getFirstFromModQueue(broadcasterId: string) {
 	try {
 		const result = await db.select().from(modQueueTable).where(eq(modQueueTable.broadcasterId, broadcasterId)).limit(1).execute();
@@ -396,6 +427,15 @@ export async function removeFromModQueue(id: string) {
 	} catch (error) {
 		console.error("Error removing clip from mod queue:", error);
 		throw new Error("Failed to remove clip from mod queue");
+	}
+}
+
+export async function clearModQueue(broadcasterId: string) {
+	try {
+		await db.delete(modQueueTable).where(eq(modQueueTable.broadcasterId, broadcasterId)).execute();
+	} catch (error) {
+		console.error("Error clearing mod queue:", error);
+		throw new Error("Failed to clear mod queue");
 	}
 }
 

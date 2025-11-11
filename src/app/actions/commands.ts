@@ -1,9 +1,9 @@
 "use server";
 
-import { TwitchMessage } from "@types";
+import { TwitchBadge, TwitchMessage } from "@types";
 import { sendMessage } from "@actions/websocket";
-import { handleClip, sendChatMessage } from "@actions/twitch";
-import { addToModQueue, getSettings } from "@actions/database";
+import { getTwitchClip, handleClip, sendChatMessage } from "@actions/twitch";
+import { addToModQueue, clearClipQueue, clearModQueue, getAllOverlayIds, getClipQueue, getModQueue, getSettings } from "@actions/database";
 
 async function getPrefix(userId: string): Promise<string | null> {
 	const settings = await getSettings(userId);
@@ -30,7 +30,7 @@ export async function handleCommand(message: TwitchMessage): Promise<void> {
 		if (command) {
 			await command.execute(message, prefix);
 		} else {
-			console.log(`unknown command <${commandName}>`);
+			await sendChatMessage(message.broadcaster_user_id, `@${message.chatter_user_name} unknown command. Use "${prefix}help" to see the list of available commands.`);
 		}
 	}
 }
@@ -148,17 +148,84 @@ const commands: Record<string, { description: string; usage: string; execute: (m
 		execute: async (message: TwitchMessage) => {
 			const text = message.message.text;
 			const args = text.split(/\s+/).filter(Boolean).slice(1);
-			console.log(`executed <queue> <[${args.join(", ")}]>`);
+
+			if (args.length === 0) {
+				const modQue = await getModQueue(message.broadcaster_user_id);
+				const rewardQue = [];
+
+				const overlayIds = await getAllOverlayIds(message.broadcaster_user_id);
+
+				if (overlayIds) {
+					for (const overlayId of overlayIds) {
+						rewardQue.push(...(await getClipQueue(overlayId)));
+					}
+				}
+
+				if (modQue.length === 0 && rewardQue.length === 0) {
+					await sendChatMessage(message.broadcaster_user_id, `@${message.chatter_user_name} the queue is currently empty!`);
+					return;
+				}
+
+				const modQueueReply = modQue.length
+					? `Mod Queue [${(
+							await Promise.all(
+								modQue.map(async (clip) => {
+									const twitchClip = await getTwitchClip(clip.clipId, message.broadcaster_user_id);
+									return twitchClip ? twitchClip.title : "Unknown Clip";
+								})
+							)
+					  ).join(", ")}]`
+					: "Mod Queue [empty]";
+
+				const rewardQueueReply = rewardQue.length
+					? `Reward Queue [${(
+							await Promise.all(
+								rewardQue.map(async (clip) => {
+									const twitchClip = await getTwitchClip(clip.clipId, message.broadcaster_user_id);
+									return twitchClip ? twitchClip.title : "Unknown Clip";
+								})
+							)
+					  ).join(", ")}]`
+					: "Reward Queue [empty]";
+
+				const reply = `${modQueueReply} | ${rewardQueueReply}`;
+
+				await sendChatMessage(message.broadcaster_user_id, `@${message.chatter_user_name} ${reply}`);
+			}
 		},
 	},
 
 	clearqueue: {
 		description: "Clear the queue",
-		usage: "clearqueue",
+		usage: "clearqueue <mod|reward>",
 		execute: async (message: TwitchMessage) => {
 			const text = message.message.text;
 			const args = text.split(/\s+/).filter(Boolean).slice(1);
-			console.log(`executed <clearqueue> <[${args.join(", ")}]>`);
+
+			if (args.length === 0) {
+				await clearClipQueue(message.broadcaster_user_id);
+				await clearModQueue(message.broadcaster_user_id);
+
+				await sendChatMessage(message.broadcaster_user_id, `@${message.chatter_user_name} the queue has been cleared!`);
+				return;
+			}
+
+			switch (args[0].toLowerCase()) {
+				case "mod": {
+					await clearModQueue(message.broadcaster_user_id);
+					await sendChatMessage(message.broadcaster_user_id, `@${message.chatter_user_name} the mod queue has been cleared!`);
+					return;
+				}
+				case "reward": {
+					await clearClipQueue(message.broadcaster_user_id);
+					await sendChatMessage(message.broadcaster_user_id, `@${message.chatter_user_name} the reward queue has been cleared!`);
+					return;
+				}
+				default: {
+					await sendChatMessage(message.broadcaster_user_id, `@${message.chatter_user_name} invalid option. Use "clearqueue mod" or "clearqueue reward".`);
+					return;
+				}
+			}
 		},
 	},
 
