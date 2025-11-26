@@ -1,7 +1,4 @@
-type Faq = {
-	title: string;
-	content: string;
-};
+import { Faq } from "@types";
 
 const faqs: Faq[] = [
 	{

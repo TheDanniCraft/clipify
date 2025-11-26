@@ -63,6 +63,9 @@ export default function DashboardNavbar({ children, user, title, tagline }: { ch
 								<DropdownItem key='help_and_feedback' onPress={() => router.push("https://help.clipify.us/")}>
 									Help
 								</DropdownItem>
+								<DropdownItem key='Refer_a_friend' onPress={() => router.push("/referral-program")}>
+									Refer a Friend
+								</DropdownItem>
 								<DropdownItem key='logout' color='danger' onPress={() => router.push("/logout")}>
 									Log Out
 								</DropdownItem>
@@ -73,7 +76,7 @@ export default function DashboardNavbar({ children, user, title, tagline }: { ch
 			</Navbar>
 			<div className='w-full'>
 				<main className='mt-6 flex w-full flex-col items-center'>
-					<div className='w-full max-w-[1024px] px-4 lg:px-8'>
+					<div className='w-full max-w-5xl px-4 lg:px-8'>
 						<header className=' flex w-full items-center justify-between'>
 							<div className='flex flex-col'>
 								<h1 className='text-xl font-bold text-default-900 lg:text-3xl'>{title}</h1>

@@ -3,6 +3,14 @@
 @source '../../node_modules/@heroui/theme/dist/**/*.{js,ts,jsx,tsx}';
 @custom-variant dark (&:is(.dark *));
 
+@theme {
+	--background-image-hero-section-title: linear-gradient(91deg, #fff 32.88%, rgba(255, 255, 255, 0.65) 99.12%);
+}
+
+@theme {
+	--background-image-hero-vignette: radial-gradient(circle at 50% 25%, black 0%, black 40%, transparent 75%);
+}
+
 @layer base {
 	html,
 	body,

@@ -51,8 +51,6 @@ export default function SettingsPage() {
 			const fetchedSettings = await getSettings(user.id);
 			setSettings(fetchedSettings);
 			setBaseSettings(fetchedSettings);
-
-			console.log("Fetched settings:", fetchedSettings, user);
 		}
 
 		fetchSettings();
@@ -239,7 +237,7 @@ export default function SettingsPage() {
 							className='mb-2'
 							color='primary'
 							onPress={async () => {
-								const link = await generatePaymentLink(user);
+								const link = await generatePaymentLink(user, window.location.href, window.numok.getStripeMetadata());
 
 								if (link) {
 									window.location.href = link;

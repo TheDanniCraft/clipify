@@ -38,6 +38,7 @@ export default function Footer() {
 			{ name: "Roadmap", href: "/roadmap" },
 			{ name: "Collaborations", href: "https://help.clipify.us/hc/clipify/articles/1756597294-collaborations" },
 			{ name: "Checkout the code", href: "https://github.com/TheDanniCraft/clipify" },
+			{ name: "Referral Program", href: "/referral-program" },
 		],
 		legal: [
 			{ name: "Privacy Policy", href: "https://hub.goadopt.io/document/3852d930-97b9-46c2-950d-823e62515ab4?language=en" },

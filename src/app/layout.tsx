@@ -45,6 +45,8 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
 				<PlausibleProvider domain='clipify.us' customDomain='https://analytics.thedannicraft.de' selfHosted trackOutboundLinks trackFileDownloads taggedEvents hash enabled />
 				<meta name='apple-mobile-web-app-title' content='Clipify' />
 				<link rel='preconnect' href='https://goadopt.io' crossOrigin='anonymous' />
+				<link rel='preconnect' href='https://affiliate.thedannicraft.de' crossOrigin='anonymous' />
+				<script async src='https://affiliate.thedannicraft.de/tracking/program-1.js'></script>
 
 				<meta name='adopt-website-id' content='792b9b29-57f9-4d92-b5f1-313f94ddfacc' />
 			</head>

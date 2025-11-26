@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+
 import { useParams, useRouter } from "next/navigation";
 import { getOverlay, getUser, saveOverlay } from "@/app/actions/database";
 import { addToast, Button, Card, CardBody, CardHeader, Divider, Form, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Select, SelectItem, Snippet, Spinner, Switch, Tooltip } from "@heroui/react";
@@ -211,7 +212,7 @@ export default function OverlaySettings() {
 														color='warning'
 														variant='shadow'
 														onPress={async () => {
-															const link = await generatePaymentLink(user, window.location.href);
+															const link = await generatePaymentLink(user, window.location.href, window.numok?.getStripeMetadata());
 
 															if (link) {
 																window.location.href = link;

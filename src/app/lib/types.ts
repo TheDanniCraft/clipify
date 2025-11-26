@@ -363,10 +363,30 @@ export type Feedback = {
 	};
 };
 
+export type Faq = {
+	title: string;
+	content: string;
+};
+
 export enum RatingValueEnum {
 	BAD = "bad",
 	POOR = "poor",
 	NEUTRAL = "neutral",
 	GREAT = "great",
 	EXCELLENT = "excellent",
+}
+
+export type NumokStripeMetadata = {
+	numok_tracking_code: string;
+	numok_sid?: string;
+	numok_sid2?: string;
+	numok_sid3?: string;
+};
+
+declare global {
+	interface Window {
+		numok: {
+			getStripeMetadata(): NumokStripeMetadata;
+		};
+	}
 }

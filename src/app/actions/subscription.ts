@@ -1,7 +1,7 @@
 "use server";
 
 import Stripe from "stripe";
-import { AuthenticatedUser } from "../lib/types";
+import { AuthenticatedUser, NumokStripeMetadata } from "@types";
 import { getBaseUrl } from "@actions/utils";
 
 const PRODUCTS = {
@@ -40,7 +40,7 @@ export async function checkIfSubscriptionExists(user: AuthenticatedUser) {
 	return subscriptions.data.length > 0;
 }
 
-export async function generatePaymentLink(user: AuthenticatedUser, returnUrl?: string) {
+export async function generatePaymentLink(user: AuthenticatedUser, returnUrl?: string, numokMetadata?: NumokStripeMetadata) {
 	const products = await getPlans();
 
 	const stripe = await getStripe();
@@ -55,6 +55,7 @@ export async function generatePaymentLink(user: AuthenticatedUser, returnUrl?: s
 		...(user.stripeCustomerId ? { customer: user.stripeCustomerId } : { customer_email: user.email }),
 		metadata: {
 			userId: user.id,
+			...(numokMetadata || {}),
 		},
 		allow_promotion_codes: true,
 		tax_id_collection: {
