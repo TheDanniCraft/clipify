@@ -42,7 +42,7 @@ export default function AffiliateProgram() {
 						<p className='text-default-500 text-center leading-7 font-normal sm:w-[466px] sm:text-[18px]'>Share our platform with other creators and earn on every paid signup. Simple links, clear tracking and transparent payouts.</p>
 
 						<div className='flex flex-col items-center justify-center gap-6 sm:flex-row'>
-							<Button className='bg-default-foreground text-small text-background h-10 w-[163px] px-[16px] py-[10px] leading-5 font-semibold' radius='full' as={Link} href='https://affiliate.thedannicraft.de/register'>
+							<Button className='bg-default-foreground text-small text-background h-10 w-[163px] px-[16px] py-[10px] leading-5 font-semibold' radius='full' as={Link} href='https://affiliate.clipify.us/register'>
 								Join Now
 							</Button>
 
@@ -87,7 +87,7 @@ export default function AffiliateProgram() {
 			<div className='flex flex-col items-center text-center'>
 				<h3 className='text-2xl font-bold mb-3'>Ready to start earning with Clipify?</h3>
 				<p className='text-default-500 max-w-xl mb-6'>Sign up once, get your referral link instantly and earn recurring commission on every paid subscription you refer.</p>
-				<Button as={Link} href='https://affiliate.thedannicraft.de/register' radius='full' className='bg-default-foreground text-background font-semibold px-10 py-4 text-base'>
+				<Button as={Link} href='https://affiliate.clipify.us/register' radius='full' className='bg-default-foreground text-background font-semibold px-10 py-4 text-base'>
 					Join the Affiliate Program
 				</Button>
 			</div>
