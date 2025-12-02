@@ -3,7 +3,7 @@
 import { TwitchBadge, TwitchMessage } from "@types";
 import { sendMessage } from "@actions/websocket";
 import { getTwitchClip, handleClip, sendChatMessage } from "@actions/twitch";
-import { addToModQueue, clearClipQueue, clearModQueue, getAllOverlayIds, getClipQueue, getModQueue, getSettings } from "@actions/database";
+import { addToModQueue, clearClipQueue, clearModQueue, getAllOverlayIds, getClipQueue, getModQueue, getSettings, getUser } from "@actions/database";
 
 async function getPrefix(userId: string): Promise<string | null> {
 	const settings = await getSettings(userId);
@@ -31,6 +31,11 @@ export async function handleCommand(message: TwitchMessage): Promise<void> {
 	const firstFragment = message.message.fragments[0];
 	const prefix = await getPrefix(message.broadcaster_user_id);
 	if (!prefix) return;
+
+	// ignore commands for free plan users
+	const user = await getUser(message.broadcaster_user_id);
+	if (!user) return;
+	if (user.plan === "free") return;
 
 	if (firstFragment.type === "text" && firstFragment.text.startsWith(prefix)) {
 		const commandName = firstFragment.text.slice(prefix.length).trimStart().split(/\s+/)?.[0]?.toLowerCase();
