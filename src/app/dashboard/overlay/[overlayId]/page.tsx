@@ -228,7 +228,7 @@ export default function OverlaySettings() {
 													>
 														Upgrade for less than 2€/month
 													</Button>
-													<p className='text-xs text-warning-600 text-center mt-2'>Enjoy a 7-day free trial. Cancel anytime.</p>
+													<p className='text-xs text-warning-600 text-center mt-2'>Enjoy a 3-day free trial. Cancel anytime.</p>
 												</CardBody>
 											</Card>
 										</div>
