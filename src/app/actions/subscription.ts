@@ -40,6 +40,36 @@ export async function checkIfSubscriptionExists(user: AuthenticatedUser) {
 	return subscriptions.data.length > 0;
 }
 
+export async function isEligibleForTrial(user: AuthenticatedUser) {
+	if (!user.stripeCustomerId) {
+		return true;
+	}
+
+	const stripe = await getStripe();
+	const tiers = await getPlans();
+
+	const subscriptions = await stripe.subscriptions.list({
+		customer: user.stripeCustomerId,
+		status: "all",
+		expand: ["data.items.data.price"],
+		limit: 100,
+	});
+
+	// any subscription with a trial for one of the current prices
+	const hasTrialForTrackedPrices = subscriptions.data.some((sub) => {
+		const hadTrial = sub.trial_start != null && sub.trial_end != null && sub.trial_end > sub.trial_start;
+
+		if (!hadTrial) return false;
+
+		const hasTrackedPrice = sub.items.data.some((item) => tiers.includes(item.price.id));
+
+		return hasTrackedPrice;
+	});
+
+	// eligible if they have NOT yet trialed any of these prices
+	return !hasTrialForTrackedPrices;
+}
+
 export async function generatePaymentLink(user: AuthenticatedUser, returnUrl?: string, numokMetadata?: NumokStripeMetadata) {
 	const products = await getPlans();
 
@@ -62,7 +92,7 @@ export async function generatePaymentLink(user: AuthenticatedUser, returnUrl?: s
 			enabled: true,
 		},
 		subscription_data: {
-			trial_period_days: 3,
+			...((await isEligibleForTrial(user)) ? { trial_period_days: 3 } : {}),
 		},
 		...(user.stripeCustomerId ? { customer_update: { name: "auto", address: "auto" } } : {}),
 	});
