@@ -383,6 +383,27 @@ export type NumokStripeMetadata = {
 	numok_sid3?: string;
 };
 
+export type EventSubSubscription = {
+	type: string;
+	condition?: Record<string, unknown>;
+	status?: string;
+};
+
+export type EventSubNotification<T = Record<string, unknown>> = {
+	subscription: EventSubSubscription;
+	event: T;
+};
+
+export type RewardRedemptionEvent = {
+	id: string;
+	broadcaster_user_id: string;
+	user_id?: string;
+	user_name: string;
+	user_input?: string;
+	reward: { id: string; title?: string; [k: string]: unknown };
+	[key: string]: unknown;
+};
+
 declare global {
 	interface Window {
 		numok: {

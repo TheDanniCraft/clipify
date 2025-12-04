@@ -2,14 +2,17 @@ import { NextRequest } from "next/server";
 import crypto from "crypto";
 import { handleClip, sendChatMessage, updateRedemptionStatus } from "@actions/twitch";
 import { addToClipQueue, getOverlayByRewardId } from "@actions/database";
-import { RewardStatus } from "@types";
+import { RewardStatus, EventSubNotification, RewardRedemptionEvent, TwitchMessage } from "@types";
 import { sendMessage } from "@actions/websocket";
 import { handleCommand, isCommand, isMod } from "@actions/commands";
 
+function parseEventSub<T = Record<string, unknown>>(body: string): EventSubNotification<T> {
+	return JSON.parse(body) as EventSubNotification<T>;
+}
+
 const SECRET = process.env.WEBHOOK_SECRET;
 
-async function getRequiredHeaders(headers: Headers) {
-	// returns an object with values or a Response to return immediately
+async function getRequiredHeaders(headers: Headers): Promise<{ messageId: string; timestamp: string; signature: string; messageType: string } | { error: Response }> {
 	const messageId = headers.get("Twitch-Eventsub-Message-Id");
 	const timestamp = headers.get("Twitch-Eventsub-Message-Timestamp");
 	const signature = headers.get("Twitch-Eventsub-Message-Signature");
@@ -33,12 +36,12 @@ function isValidSignature(signature: string, timestamp: string, messageId: strin
 		const expBuf = Buffer.from(expectedSignature);
 		if (sigBuf.length !== expBuf.length) return false;
 		return crypto.timingSafeEqual(sigBuf, expBuf);
-	} catch (err) {
+	} catch {
 		return false;
 	}
 }
 
-async function handleRewardRedemption(notification: any): Promise<Response | null> {
+async function handleRewardRedemption(notification: EventSubNotification<RewardRedemptionEvent>): Promise<Response | null> {
 	const reward = notification.event;
 	const input = reward.user_input;
 
@@ -46,6 +49,13 @@ async function handleRewardRedemption(notification: any): Promise<Response | nul
 		const overlay = await getOverlayByRewardId(reward.reward.id);
 
 		if (overlay) {
+			if (!input) {
+				console.error("User input is undefined.");
+				await sendChatMessage(reward.broadcaster_user_id, `@${reward.user_name} no input was provided. Points have been refunded.`);
+				await updateRedemptionStatus(reward.broadcaster_user_id, reward.id, overlay.rewardId!, RewardStatus.CANCELED);
+				return new Response("User input is undefined", { status: 200 });
+			}
+
 			const clip = await handleClip(input, reward.broadcaster_user_id);
 
 			if ("errorCode" in clip && (clip.errorCode === 1 || clip.errorCode === 2)) {
@@ -82,18 +92,21 @@ async function handleRewardRedemption(notification: any): Promise<Response | nul
 }
 
 async function handleNotification(bodyText: string): Promise<Response | null> {
-	const notification = JSON.parse(bodyText);
+	const notification = parseEventSub<Record<string, unknown>>(bodyText);
 
 	switch (notification.subscription.type) {
 		case "channel.chat.message": {
-			if ((await isCommand(notification.event)) && (await isMod(notification.event))) {
-				handleCommand(notification.event);
+			const event = notification.event as TwitchMessage;
+			if ((await isCommand(event)) && (await isMod(event))) {
+				handleCommand(event);
+				handleCommand(notification.event as TwitchMessage);
 			}
 			break;
 		}
 
 		case "channel.channel_points_custom_reward_redemption.add": {
-			const res = await handleRewardRedemption(notification);
+			const rewardNotif = notification as EventSubNotification<RewardRedemptionEvent>;
+			const res = await handleRewardRedemption(rewardNotif);
 			if (res) return res;
 			break;
 		}
@@ -111,11 +124,10 @@ export async function POST(request: NextRequest) {
 	const headersResult = await getRequiredHeaders(request.headers);
 	if ("error" in headersResult) return headersResult.error;
 
-	const { messageId, timestamp, signature, messageType } = headersResult as any;
+	const { messageId, timestamp, signature, messageType } = headersResult;
 
 	const body = await request.text();
 
-	// verify signature
 	if (!isValidSignature(signature, timestamp, messageId, body)) {
 		console.error("Invalid signature:", { signature });
 		return new Response("Invalid signature", { status: 403 });

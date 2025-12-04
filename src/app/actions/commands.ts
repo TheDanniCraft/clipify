@@ -3,7 +3,7 @@
 import { TwitchBadge, TwitchMessage } from "@types";
 import { sendMessage } from "@actions/websocket";
 import { getTwitchClip, handleClip, sendChatMessage } from "@actions/twitch";
-import { addToModQueue, clearClipQueue, clearModQueue, getAllOverlayIds, getClipQueue, getModQueue, getSettings, getUser, getUserPlan } from "@actions/database";
+import { addToModQueue, clearClipQueue, clearModQueue, getAllOverlayIds, getClipQueue, getModQueue, getSettings, getUserPlan } from "@actions/database";
 
 async function getPrefix(userId: string): Promise<string | null> {
 	const settings = await getSettings(userId);
