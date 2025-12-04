@@ -85,15 +85,13 @@ export async function generatePaymentLink(user: AuthenticatedUser, returnUrl?: s
 		...(user.stripeCustomerId ? { customer: user.stripeCustomerId } : { customer_email: user.email }),
 		metadata: {
 			userId: user.id,
-			...(numokMetadata || {}),
+			...numokMetadata,
 		},
 		allow_promotion_codes: true,
 		tax_id_collection: {
 			enabled: true,
 		},
-		subscription_data: {
-			...((await isEligibleForTrial(user)) ? { trial_period_days: 3 } : {}),
-		},
+		subscription_data: (await isEligibleForTrial(user)) ? { trial_period_days: 3 } : {},
 		...(user.stripeCustomerId ? { customer_update: { name: "auto", address: "auto" } } : {}),
 	});
 

@@ -1,5 +1,5 @@
 # Base
-FROM oven/bun AS base
+FROM oven/bun:1 AS base
 
 RUN apt-get update && \
     apt-get install -y bash curl gnupg && \

@@ -56,12 +56,6 @@ export async function getUser(id: string): Promise<AuthenticatedUser | null> {
 
 export async function getUserPlan(id: string): Promise<string | null> {
 	try {
-		const isAuthenticated = await validateAuth(true);
-		if (!isAuthenticated || isAuthenticated.id !== id) {
-			console.warn(`Unauthenticated "getUserPlan" API request for user id: ${id}`);
-			return null;
-		}
-
 		const user = await db.select().from(usersTable).where(eq(usersTable.id, id)).limit(1).execute();
 
 		if (user.length === 0) {
