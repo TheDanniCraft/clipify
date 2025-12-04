@@ -32,7 +32,7 @@ export default function OverlaySettings() {
 
 	const [overlay, setOverlay] = useState<Overlay | null>(null);
 	const [baseOverlay, setBaseOverlay] = useState<Overlay | null>(null);
-	const [baseUrl, setBaseUrl] = useState<string | null>(null);
+	const [baseUrl] = useState<string | null>(typeof window !== "undefined" ? window.location.origin : null);
 	const [user, setUser] = useState<AuthenticatedUser>();
 	const [reward, setReward] = useState<TwitchReward | null>(null);
 	const [clipsPerType, setClipsPerType] = useState<Record<OverlayType, number>>({} as Record<OverlayType, number>);
@@ -63,8 +63,6 @@ export default function OverlaySettings() {
 	}, [overlay?.rewardId, overlay?.ownerId]);
 
 	useEffect(() => {
-		setBaseUrl(window.location.origin);
-
 		if (overlay?.ownerId) {
 			getUser(overlay.ownerId).then((user) => {
 				if (user) {

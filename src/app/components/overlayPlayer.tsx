@@ -78,7 +78,7 @@ export default function OverlayPlayer({ clips, overlay }: { clips: TwitchClip[];
 	const [showOverlay, setShowOverlay] = useState<boolean>(false);
 	const [showPlayer, setShowPlayer] = useState<boolean>(true);
 	const [paused, setPaused] = useState<boolean>(false);
-	const [websocket, setWebsocket] = useState<WebSocket | null>(null);
+	const [, setWebsocket] = useState<WebSocket | null>(null);
 	const playerRef = useRef<HTMLVideoElement | null>(null);
 	const clipRef = useRef<VideoClip | null>(null);
 

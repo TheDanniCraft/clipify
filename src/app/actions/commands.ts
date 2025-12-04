@@ -247,7 +247,7 @@ const commands: Record<string, { description: string; usage: string; execute: (m
 		usage: "help",
 		execute: async (message: TwitchMessage, prefix: string) => {
 			const commandList = Object.entries(commands)
-				.map(([name, { usage, description }]) => `${prefix}${usage}: ${description}`)
+				.map(([, { usage, description }]) => `${prefix}${usage}: ${description}`)
 				.join(" | ");
 
 			await sendChatMessage(message.broadcaster_user_id, `Available commands (<[param]> are optional): ${commandList}`);
