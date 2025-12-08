@@ -1,10 +1,119 @@
 import { NextRequest } from "next/server";
 import crypto from "crypto";
-import { getTwitchClip, sendChatMessage, updateRedemptionStatus } from "@actions/twitch";
-import { addToClipQueue, getOverlayByRewardId } from "../actions/database";
-import { RewardStatus } from "../lib/types";
+import { handleClip, sendChatMessage, updateRedemptionStatus } from "@actions/twitch";
+import { addToClipQueue, getOverlayByRewardId } from "@actions/database";
+import { RewardStatus, EventSubNotification, RewardRedemptionEvent, TwitchMessage } from "@types";
+import { sendMessage } from "@actions/websocket";
+import { handleCommand, isCommand, isMod } from "@actions/commands";
+
+function parseEventSub<T = Record<string, unknown>>(body: string): EventSubNotification<T> {
+	return JSON.parse(body) as EventSubNotification<T>;
+}
 
 const SECRET = process.env.WEBHOOK_SECRET;
+
+async function getRequiredHeaders(headers: Headers): Promise<{ messageId: string; timestamp: string; signature: string; messageType: string } | { error: Response }> {
+	const messageId = headers.get("Twitch-Eventsub-Message-Id");
+	const timestamp = headers.get("Twitch-Eventsub-Message-Timestamp");
+	const signature = headers.get("Twitch-Eventsub-Message-Signature");
+	const messageType = headers.get("Twitch-Eventsub-Message-Type");
+
+	if (!messageId || !timestamp || !signature || !messageType) {
+		console.error("Missing required headers:", { messageId, timestamp, signature, messageType });
+		return { error: new Response("Missing required headers", { status: 400 }) };
+	}
+
+	return { messageId, timestamp, signature, messageType };
+}
+
+function isValidSignature(signature: string, timestamp: string, messageId: string, body: string) {
+	const message = messageId + timestamp + body;
+	const hmac = crypto.createHmac("sha256", SECRET!).update(message).digest("hex");
+	const expectedSignature = `sha256=${hmac}`;
+
+	try {
+		const sigBuf = Buffer.from(signature);
+		const expBuf = Buffer.from(expectedSignature);
+		if (sigBuf.length !== expBuf.length) return false;
+		return crypto.timingSafeEqual(sigBuf, expBuf);
+	} catch {
+		return false;
+	}
+}
+
+async function handleRewardRedemption(notification: EventSubNotification<RewardRedemptionEvent>): Promise<Response | null> {
+	const reward = notification.event;
+	const input = reward.user_input;
+
+	try {
+		const overlay = await getOverlayByRewardId(reward.reward.id);
+
+		if (overlay) {
+			if (!input) {
+				console.error("User input is undefined.");
+				await sendChatMessage(reward.broadcaster_user_id, `@${reward.user_name} no input was provided. Points have been refunded.`);
+				await updateRedemptionStatus(reward.broadcaster_user_id, reward.id, overlay.rewardId!, RewardStatus.CANCELED);
+				return new Response("User input is undefined", { status: 200 });
+			}
+
+			const clip = await handleClip(input, reward.broadcaster_user_id);
+
+			if ("errorCode" in clip && (clip.errorCode === 1 || clip.errorCode === 2)) {
+				await sendChatMessage(reward.broadcaster_user_id, `@${reward.user_name} please provide a valid Twitch clip URL. Points have been refunded.`);
+				await updateRedemptionStatus(reward.broadcaster_user_id, reward.id, overlay.rewardId!, RewardStatus.CANCELED);
+				return new Response("Invalid Twitch clip URL", { status: 200 });
+			}
+
+			if ("errorCode" in clip && clip.errorCode === 3) {
+				await sendChatMessage(reward.broadcaster_user_id, `@${reward.user_name} the requested clip could not be found. Points have been refunded.`);
+				await updateRedemptionStatus(reward.broadcaster_user_id, reward.id, overlay.rewardId!, RewardStatus.CANCELED);
+				return new Response("Clip not found", { status: 200 });
+			}
+
+			if ("errorCode" in clip && clip.errorCode === 4) {
+				await sendChatMessage(reward.broadcaster_user_id, `@${reward.user_name} you can only use clips taken from this channel. Points have been refunded.`);
+				await updateRedemptionStatus(reward.broadcaster_user_id, reward.id, overlay.rewardId!, RewardStatus.CANCELED);
+				return new Response("Clip does not belong to the specified creator", { status: 200 });
+			}
+
+			if (!("errorCode" in clip)) {
+				await addToClipQueue(overlay.id, clip.id);
+				await sendMessage("new_clip_redemption", { clipId: clip.id }, overlay.ownerId);
+
+				await sendChatMessage(reward.broadcaster_user_id, `@${reward.user_name} your clip (${clip.title}) has been added to the queue!`);
+				await updateRedemptionStatus(reward.broadcaster_user_id, reward.id, overlay.rewardId!, RewardStatus.FULFILLED);
+			}
+		}
+	} catch (error) {
+		console.error("Error processing reward redemption:", error);
+	}
+
+	return null;
+}
+
+async function handleNotification(bodyText: string): Promise<Response | null> {
+	const notification = parseEventSub<Record<string, unknown>>(bodyText);
+
+	switch (notification.subscription.type) {
+		case "channel.chat.message": {
+			const event = notification.event as TwitchMessage;
+			if ((await isCommand(event)) && (await isMod(event))) {
+				handleCommand(event);
+				handleCommand(notification.event as TwitchMessage);
+			}
+			break;
+		}
+
+		case "channel.channel_points_custom_reward_redemption.add": {
+			const rewardNotif = notification as EventSubNotification<RewardRedemptionEvent>;
+			const res = await handleRewardRedemption(rewardNotif);
+			if (res) return res;
+			break;
+		}
+	}
+
+	return null;
+}
 
 export async function POST(request: NextRequest) {
 	if (!SECRET) {
@@ -12,92 +121,22 @@ export async function POST(request: NextRequest) {
 		return new Response("Webhook secret not configured", { status: 500 });
 	}
 
-	const messageId = request.headers.get("Twitch-Eventsub-Message-Id");
-	const timestamp = request.headers.get("Twitch-Eventsub-Message-Timestamp");
-	const signature = request.headers.get("Twitch-Eventsub-Message-Signature");
-	const messageType = request.headers.get("Twitch-Eventsub-Message-Type");
+	const headersResult = await getRequiredHeaders(request.headers);
+	if ("error" in headersResult) return headersResult.error;
 
-	if (!messageId || !timestamp || !signature || !messageType) {
-		console.error("Missing required headers:", {
-			messageId,
-			timestamp,
-			signature,
-			messageType,
-		});
-		return new Response("Missing required headers", { status: 400 });
-	}
+	const { messageId, timestamp, signature, messageType } = headersResult;
 
 	const body = await request.text();
-	const message = messageId + timestamp + body;
 
-	const hmac = crypto.createHmac("sha256", SECRET).update(message).digest("hex");
-	const expectedSignature = `sha256=${hmac}`;
-
-	if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature))) {
-		console.error("Invalid signature:", { signature, expectedSignature });
+	if (!isValidSignature(signature, timestamp, messageId, body)) {
+		console.error("Invalid signature:", { signature });
 		return new Response("Invalid signature", { status: 403 });
 	}
 
 	switch (messageType) {
 		case "notification": {
-			const notification = JSON.parse(body);
-
-			if (notification.subscription.type === "channel.channel_points_custom_reward_redemption.add") {
-				const reward = notification.event;
-				const input = reward.user_input;
-
-				try {
-					const overlay = await getOverlayByRewardId(reward.reward.id);
-
-					if (overlay) {
-						const twitchClipRegex = /^https?:\/\/(?:www\.)?twitch\.tv\/(\w+)\/clip\/([A-Za-z0-9_-]+)|^https?:\/\/clips\.twitch\.tv\/([A-Za-z0-9_-]+)/;
-						const match = input.match(twitchClipRegex);
-
-						if (!match) {
-							console.error("Invalid Twitch clip URL:", input);
-
-							await sendChatMessage(reward.broadcaster_user_id, `@${reward.user_name} please provide a valid Twitch clip URL. Points have been refunded.`);
-							await updateRedemptionStatus(reward.broadcaster_user_id, reward.id, overlay.rewardId!, RewardStatus.CANCELED);
-							return new Response("Invalid Twitch clip URL", { status: 200 });
-						}
-
-						const clipId = match[2] || match[3];
-						if (!clipId) {
-							console.error("Could not extract clip ID from URL:", input);
-
-							await sendChatMessage(reward.broadcaster_user_id, `@${reward.user_name} please provide a valid Twitch clip URL. Points have been refunded.`);
-							await updateRedemptionStatus(reward.broadcaster_user_id, reward.id, overlay.rewardId!, RewardStatus.CANCELED);
-							return new Response("Invalid Twitch clip URL", { status: 200 });
-						}
-
-						const clip = await getTwitchClip(clipId, reward.broadcaster_user_id);
-
-						if (!clip) {
-							console.error("Failed to fetch clip for reward:", reward.id);
-
-							await sendChatMessage(reward.broadcaster_user_id, `@${reward.user_name} the requested clip could not be found. Points have been refunded.`);
-							await updateRedemptionStatus(reward.broadcaster_user_id, reward.id, overlay.rewardId!, RewardStatus.CANCELED);
-
-							return new Response("Clip not found", { status: 200 });
-						}
-
-						if (clip.broadcaster_id !== reward.broadcaster_user_id) {
-							console.error("Clip does not belong to the specified creator:", reward.broadcaster_user_id);
-							await sendChatMessage(reward.broadcaster_user_id, `@${reward.user_name} you can only use clips taken from this channel. Points have been refunded.`);
-							await updateRedemptionStatus(reward.broadcaster_user_id, reward.id, overlay.rewardId!, RewardStatus.CANCELED);
-							return new Response("Clip does not belong to the specified creator", { status: 200 });
-						}
-
-						await addToClipQueue(overlay.id, clip.id);
-
-						await sendChatMessage(reward.broadcaster_user_id, `@${reward.user_name} your clip (${clip.title} has been added to the queue!`);
-						await updateRedemptionStatus(reward.broadcaster_user_id, reward.id, overlay.rewardId!, RewardStatus.FULFILLED);
-					}
-				} catch (error) {
-					console.error("Error processing reward redemption:", error);
-				}
-			}
-
+			const notifResponse = await handleNotification(body);
+			if (notifResponse) return notifResponse;
 			return new Response(null, { status: 204 });
 		}
 		case "webhook_callback_verification": {

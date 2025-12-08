@@ -1,8 +1,9 @@
 "use server";
 
 import axios from "axios";
-import { AuthenticatedUser, Game, Overlay, RewardStatus, TwitchApiResponse, TwitchAppAccessTokenResponse, TwitchClip, TwitchClipBody, TwitchClipResponse, TwitchReward, TwitchRewardResponse, TwitchTokenApiResponse, TwitchUserResponse } from "@types";
+import { AuthenticatedUser, Game, Overlay, OverlayType, RewardStatus, TwitchApiResponse, TwitchAppAccessTokenResponse, TwitchClip, TwitchClipBody, TwitchClipResponse, TwitchReward, TwitchRewardResponse, TwitchTokenApiResponse, TwitchUserResponse } from "@types";
 import { getAccessToken } from "@actions/database";
+import { getBaseUrl, isPreview } from "@actions/utils";
 
 export async function logTwitchError(context: string, error: unknown) {
 	if (axios.isAxiosError(error) && error.response) {
@@ -14,6 +15,12 @@ export async function logTwitchError(context: string, error: unknown) {
 
 export async function exchangeAccesToken(code: string): Promise<TwitchTokenApiResponse | null> {
 	const url = "https://id.twitch.tv/oauth2/token";
+	const baseUrl = await getBaseUrl();
+
+	let callbackUrl = new URL("/callback", baseUrl).toString();
+	if ((await isPreview()) && process.env.PREVIEW_CALLBACK_URL) {
+		callbackUrl = new URL(process.env.PREVIEW_CALLBACK_URL).toString();
+	}
 
 	try {
 		const response = await axios.post<TwitchTokenApiResponse>(url, null, {
@@ -22,7 +29,7 @@ export async function exchangeAccesToken(code: string): Promise<TwitchTokenApiRe
 				client_secret: process.env.TWITCH_CLIENT_SECRET || "",
 				code: code,
 				grant_type: "authorization_code",
-				redirect_uri: process.env.TWITCH_CALLBACK_URL || "",
+				redirect_uri: callbackUrl,
 			},
 		});
 		return response.data;
@@ -192,9 +199,10 @@ export async function getTwitchClip(clipId: string, creatorId: string): Promise<
 	}
 }
 
-export async function getTwitchClips(overlay: Overlay): Promise<TwitchClip[]> {
+export async function getTwitchClips(overlay: Overlay, type?: OverlayType): Promise<TwitchClip[]> {
 	const url = "https://api.twitch.tv/helix/clips";
 	const token = await getAccessToken(overlay.ownerId);
+	overlay.type = type || overlay.type;
 
 	if (!token) {
 		console.error("No access token found for ownerId:", overlay.ownerId);
@@ -203,6 +211,10 @@ export async function getTwitchClips(overlay: Overlay): Promise<TwitchClip[]> {
 	const clips: TwitchClip[] = [];
 	let cursor: string | undefined;
 	let fetchCount = 0;
+
+	if (overlay.type === "Queue") {
+		return clips;
+	}
 
 	let endDate = undefined;
 	if (overlay.type !== "Featured" && overlay.type !== "All") {
@@ -333,6 +345,13 @@ export async function subscribeToReward(userId: string, rewardId: string): Promi
 		return;
 	}
 
+	let eventsubCallback = process.env.TWITCH_EVENTSUB_URL;
+
+	if (await isPreview()) {
+		const baseUrl = await getBaseUrl();
+		eventsubCallback = new URL("/eventsub", baseUrl).toString();
+	}
+
 	try {
 		await axios.post(
 			url,
@@ -345,7 +364,7 @@ export async function subscribeToReward(userId: string, rewardId: string): Promi
 				},
 				transport: {
 					method: "webhook",
-					callback: process.env.TWITCH_EVENTSUB_URL,
+					callback: eventsubCallback,
 					secret: process.env.WEBHOOK_SECRET,
 				},
 			},
@@ -396,6 +415,53 @@ export async function updateRedemptionStatus(userId: string, redemptionId: strin
 	}
 }
 
+export async function subscribeToChat(userId: string) {
+	const url = "https://api.twitch.tv/helix/eventsub/subscriptions";
+	const token = await getAppAccessToken();
+
+	if (!token) {
+		console.error("No app access token found");
+		return;
+	}
+
+	let eventsubCallback = process.env.TWITCH_EVENTSUB_URL;
+
+	if (await isPreview()) {
+		const baseUrl = await getBaseUrl();
+		eventsubCallback = new URL("/eventsub", baseUrl).toString();
+	}
+
+	try {
+		await axios.post(
+			url,
+			{
+				type: "channel.chat.message",
+				version: "1",
+				condition: {
+					broadcaster_user_id: userId,
+					user_id: process.env.TWITCH_USER_ID || "",
+				},
+				transport: {
+					method: "webhook",
+					callback: eventsubCallback,
+					secret: process.env.WEBHOOK_SECRET,
+				},
+			},
+			{
+				headers: {
+					Authorization: `Bearer ${token.access_token}`,
+					"Client-Id": process.env.TWITCH_CLIENT_ID || "",
+				},
+			}
+		);
+	} catch (error) {
+		if (axios.isAxiosError(error) && error.response?.status === 409) {
+			return;
+		}
+		logTwitchError("Error subscribing to chat", error);
+	}
+}
+
 export async function sendChatMessage(userId: string, message: string) {
 	const url = "https://api.twitch.tv/helix/chat/messages";
 	const token = await getAppAccessToken();
@@ -423,4 +489,38 @@ export async function sendChatMessage(userId: string, message: string) {
 	} catch (error) {
 		logTwitchError("Error sending chat message", error);
 	}
+}
+
+export async function handleClip(input: string, broadcasterId: string) {
+	const twitchClipRegex = /^https?:\/\/(?:www\.)?twitch\.tv\/(\w+)\/clip\/([A-Za-z0-9_-]+)|^https?:\/\/clips\.twitch\.tv\/([A-Za-z0-9_-]+)/;
+	const match = input.match(twitchClipRegex);
+
+	if (!match) {
+		console.error("Invalid Twitch clip URL:", input);
+
+		return { errorCode: 1 };
+	}
+
+	const clipId = match[2] || match[3];
+	if (!clipId) {
+		console.error("Could not extract clip ID from URL:", input);
+
+		return { errorCode: 2 };
+	}
+
+	const clip = await getTwitchClip(clipId, broadcasterId);
+
+	if (!clip) {
+		console.error("Failed to fetch clip", clipId);
+
+		return { errorCode: 3 };
+	}
+
+	if (clip.broadcaster_id !== broadcasterId) {
+		console.error("Clip does not belong to the specified creator:", broadcasterId);
+
+		return { errorCode: 4 };
+	}
+
+	return clip;
 }

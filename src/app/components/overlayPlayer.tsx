@@ -1,13 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { Overlay, TwitchClip, TwitchClipGqlData, TwitchClipGqlResponse, TwitchClipVideoQuality, VideoClip } from "@types";
-import { getAvatar, getGameDetails, getTwitchClip, logTwitchError } from "@actions/twitch";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ClipQueueItem, ModQueueItem, Overlay, TwitchClip, TwitchClipGqlData, TwitchClipGqlResponse, TwitchClipVideoQuality, VideoClip } from "@types";
+import { getAvatar, getGameDetails, getTwitchClip, logTwitchError, subscribeToChat } from "@actions/twitch";
 import PlayerOverlay from "./playerOverlay";
 import { Avatar } from "@heroui/react";
 import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
-import { getFirstFromClipQueue, removeFromClipQueue } from "@actions/database";
+import { getFirstFromClipQueue, getFirstFromModQueue, removeFromClipQueue, removeFromModQueue } from "@actions/database";
 
 type VideoQualityWithNumeric = TwitchClipVideoQuality & { numericQuality: number };
 
@@ -76,14 +76,34 @@ export default function OverlayPlayer({ clips, overlay }: { clips: TwitchClip[];
 	const [videoClip, setVideoClip] = useState<VideoClip | null>(null);
 	const [playedClips, setPlayedClips] = useState<string[]>([]);
 	const [showOverlay, setShowOverlay] = useState<boolean>(false);
+	const [showPlayer, setShowPlayer] = useState<boolean>(true);
+	const [paused, setPaused] = useState<boolean>(false);
+	const [, setWebsocket] = useState<WebSocket | null>(null);
+	const playerRef = useRef<HTMLVideoElement | null>(null);
+	const clipRef = useRef<VideoClip | null>(null);
+
+	const getFirstQueClip = useCallback(async (): Promise<ModQueueItem | ClipQueueItem | null> => {
+		const modClip = await getFirstFromModQueue(overlay.ownerId);
+		if (modClip) {
+			return modClip;
+		}
+		const queClip = await getFirstFromClipQueue(overlay.id);
+
+		if (!queClip) {
+			return null;
+		}
+
+		return queClip;
+	}, [overlay]);
 
 	const getRandomClip = useCallback(async (): Promise<TwitchClip> => {
-		const queClip = await getFirstFromClipQueue(overlay.id);
+		const queClip = await getFirstQueClip();
 
 		if (queClip) {
 			const clip = await getTwitchClip(queClip.clipId, overlay.ownerId);
 
 			if (clip != null) {
+				removeFromModQueue(queClip.id);
 				removeFromClipQueue(queClip.id);
 				return clip;
 			}
@@ -98,7 +118,162 @@ export default function OverlayPlayer({ clips, overlay }: { clips: TwitchClip[];
 
 		const randomIndex = Math.floor(Math.random() * unplayedClips.length);
 		return unplayedClips[randomIndex];
-	}, [clips, overlay.id, overlay.ownerId, playedClips]);
+	}, [clips, overlay, playedClips, getFirstQueClip]);
+
+	const playNextClip = useCallback(async () => {
+		const randomClip = await getRandomClip();
+
+		if (!randomClip) return;
+
+		const mediaUrl = await getRawMediaUrl(randomClip?.id);
+
+		const brodcasterAvatar = await getAvatar(randomClip?.broadcaster_id, randomClip?.broadcaster_id);
+		const game = await getGameDetails(randomClip?.game_id, randomClip?.broadcaster_id);
+
+		if (mediaUrl && randomClip)
+			setVideoClip({
+				...randomClip,
+				mediaUrl,
+				brodcasterAvatar: brodcasterAvatar ?? "",
+				game: game ?? {
+					id: "",
+					name: "Unknown Game",
+					box_art_url: "",
+					igdb_id: "",
+				},
+			});
+	}, [getRandomClip]);
+
+	useEffect(() => {
+		clipRef.current = videoClip;
+	}, [videoClip]);
+
+	useEffect(() => {
+		console.log("Paused state changed:", paused);
+		if (playerRef.current) {
+			if (paused) {
+				playerRef.current.pause();
+			} else {
+				playerRef.current.play().catch((error) => {
+					console.error("Error playing the video:", error);
+				});
+			}
+		}
+	}, [paused]);
+
+	useEffect(() => {
+		async function setupWebSocket() {
+			const ws = new WebSocket("/ws");
+			setWebsocket(ws);
+
+			ws.addEventListener("open", () => {
+				ws.send(
+					JSON.stringify({
+						type: "subscribe",
+						data: overlay.id,
+					})
+				);
+			});
+
+			ws.addEventListener("error", (event) => {
+				console.error("WebSocket error:", event);
+				console.log("Reconnecting in 5 seconds...");
+				ws.close();
+
+				setTimeout(() => {
+					console.log("Reconnecting to WebSocket...");
+
+					setupWebSocket();
+				}, 5000);
+			});
+
+			ws.addEventListener("message", async (event) => {
+				if (event.data === `subscribed ${overlay.ownerId}`) {
+					console.log("WebSocket subscribed successfully.");
+					return;
+				} else {
+					try {
+						const message = JSON.parse(event.data);
+
+						switch (message.type) {
+							case "new_clip_redemption": {
+								if (!clipRef.current) return;
+								await playNextClip();
+								break;
+							}
+							case "command": {
+								const { name, data } = message.data;
+								console.log("Received command via WebSocket:", name);
+
+								switch (name) {
+									case "play": {
+										if (data) {
+											if (!clipRef.current) return;
+											await playNextClip();
+											break;
+										} else {
+											setPaused(false);
+										}
+										break;
+									}
+
+									case "pause": {
+										setPaused(true);
+										break;
+									}
+
+									case "skip": {
+										await playNextClip();
+										break;
+									}
+
+									case "hide": {
+										setShowPlayer(false);
+										if (playerRef.current) {
+											playerRef.current.pause();
+										}
+										break;
+									}
+
+									case "show": {
+										setShowPlayer(true);
+										if (playerRef.current) {
+											playerRef.current.play().catch((error) => {
+												console.error("Error playing the video:", error);
+											});
+										}
+										break;
+									}
+								}
+							}
+						}
+					} catch (error) {
+						console.error("Error handling WebSocket message:", error);
+					}
+				}
+			});
+
+			return () => {
+				ws.close();
+			};
+		}
+		setupWebSocket();
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
+
+	useEffect(() => {
+		async function setupChat() {
+			if (overlay.ownerId) {
+				try {
+					await subscribeToChat(overlay.ownerId);
+				} catch (error) {
+					logTwitchError("Error subscribing to chat", error);
+				}
+			}
+		}
+
+		setupChat();
+	}, [overlay.ownerId]);
 
 	useEffect(() => {
 		async function fetchVideoSource() {
@@ -128,18 +303,10 @@ export default function OverlayPlayer({ clips, overlay }: { clips: TwitchClip[];
 		fetchVideoSource();
 	}, [getRandomClip]);
 
-	useEffect(() => {
-		if (!clips || clips.length === 0) {
-		}
-	}, [clips, videoClip]);
+	if (!videoClip) {
+		console.info("No clips available for overlay player.");
 
-	if (!clips) {
-		return (
-			<div className='flex flex-col items-center justify-center w-full h-64'>
-				<span className='text-gray-400 text-lg font-semibold'>No clips found, this also pauses the clip queue...</span>
-				<span className='text-gray-400 text-lg font-semibold mt-2'>Refresh to load new clips</span>
-			</div>
-		);
+		return null;
 	}
 
 	return (
@@ -150,16 +317,19 @@ export default function OverlayPlayer({ clips, overlay }: { clips: TwitchClip[];
 						key={videoClip.id}
 						autoPlay
 						src={videoClip.mediaUrl}
-						initial={{ opacity: 0 }}
+						initial={{ opacity: 0.1 }}
 						animate={{ opacity: 1 }}
-						exit={{ opacity: 0 }}
+						hidden={!showPlayer}
+						exit={{ opacity: 0.1 }}
 						transition={{ duration: 0.5 }}
+						ref={playerRef}
 						onEnded={() => {
 							async function fetchNewClip() {
 								setShowOverlay(false);
 								setPlayedClips((prevPlayedClips) => [...prevPlayedClips, videoClip!.id]);
 
 								const randomClip = await getRandomClip();
+								if (!randomClip) return setVideoClip(null);
 								const mediaUrl = await getRawMediaUrl(randomClip.id);
 
 								const brodcasterAvatar = await getAvatar(randomClip?.broadcaster_id, randomClip?.broadcaster_id);

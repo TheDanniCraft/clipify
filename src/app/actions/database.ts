@@ -1,8 +1,8 @@
 "use server";
 
 import { drizzle } from "drizzle-orm/node-postgres";
-import { tokenTable, usersTable, overlaysTable, queueTable } from "@/db/schema";
-import { AuthenticatedUser, Overlay, TwitchUserResponse, TwitchTokenApiResponse, UserToken, Plan, Role } from "@types";
+import { tokenTable, usersTable, overlaysTable, queueTable, settingsTable, modQueueTable } from "@/db/schema";
+import { AuthenticatedUser, Overlay, TwitchUserResponse, TwitchTokenApiResponse, UserToken, Plan, Role, UserSettings } from "@types";
 import { getUserDetails, refreshAccessToken, subscribeToReward } from "@actions/twitch";
 import { eq, inArray } from "drizzle-orm";
 import { validateAuth } from "@actions/auth";
@@ -56,12 +56,6 @@ export async function getUser(id: string): Promise<AuthenticatedUser | null> {
 
 export async function getUserPlan(id: string): Promise<string | null> {
 	try {
-		const isAuthenticated = await validateAuth(true);
-		if (!isAuthenticated || isAuthenticated.id !== id) {
-			console.warn(`Unauthenticated "getUserPlan" API request for user id: ${id}`);
-			return null;
-		}
-
 		const user = await db.select().from(usersTable).where(eq(usersTable.id, id)).limit(1).execute();
 
 		if (user.length === 0) {
@@ -221,6 +215,17 @@ export async function getAllOverlays(userId: string) {
 	}
 }
 
+export async function getAllOverlayIds(userId: string) {
+	try {
+		const overlays = await db.select().from(overlaysTable).where(eq(overlaysTable.ownerId, userId)).execute();
+
+		return overlays.map((overlay) => overlay.id);
+	} catch (error) {
+		console.error("Error fetching overlays:", error);
+		throw new Error("Failed to fetch overlays");
+	}
+}
+
 export async function getOverlay(overlayId: string) {
 	try {
 		const overlays = await db.select().from(overlaysTable).where(eq(overlaysTable.id, overlayId)).execute();
@@ -342,6 +347,16 @@ export async function addToClipQueue(overlayId: string, clipId: string) {
 	}
 }
 
+export async function getClipQueue(overlayId: string) {
+	try {
+		const result = await db.select().from(queueTable).where(eq(queueTable.overlayId, overlayId)).execute();
+		return result;
+	} catch (error) {
+		console.error("Error fetching clip queue:", error);
+		throw new Error("Failed to fetch clip queue");
+	}
+}
+
 export async function getFirstFromClipQueue(overlayId: string) {
 	try {
 		const result = await db.select().from(queueTable).where(eq(queueTable.overlayId, overlayId)).limit(1).execute();
@@ -359,5 +374,100 @@ export async function removeFromClipQueue(id: string) {
 	} catch (error) {
 		console.error("Error removing clip from queue:", error);
 		throw new Error("Failed to remove clip from queue");
+	}
+}
+
+export async function clearClipQueue(overlayId: string) {
+	try {
+		await db.delete(queueTable).where(eq(queueTable.overlayId, overlayId)).execute();
+	} catch (error) {
+		console.error("Error clearing clip queue:", error);
+		throw new Error("Failed to clear clip queue");
+	}
+}
+
+export async function addToModQueue(broadcasterId: string, clipId: string) {
+	try {
+		await db.insert(modQueueTable).values({ broadcasterId, clipId }).execute();
+	} catch (error) {
+		console.error("Error adding clip to mod queue:", error);
+		throw new Error("Failed to add clip to mod queue");
+	}
+}
+
+export async function getModQueue(broadcasterId: string) {
+	try {
+		const result = await db.select().from(modQueueTable).where(eq(modQueueTable.broadcasterId, broadcasterId)).execute();
+		return result;
+	} catch (error) {
+		console.error("Error fetching mod queue:", error);
+		throw new Error("Failed to fetch mod queue");
+	}
+}
+
+export async function getFirstFromModQueue(broadcasterId: string) {
+	try {
+		const result = await db.select().from(modQueueTable).where(eq(modQueueTable.broadcasterId, broadcasterId)).limit(1).execute();
+		return result[0] || null;
+	} catch (error) {
+		console.error("Error fetching first clip from mod queue:", error);
+		throw new Error("Failed to fetch first clip from mod queue");
+	}
+}
+
+export async function removeFromModQueue(id: string) {
+	try {
+		await db.delete(modQueueTable).where(eq(modQueueTable.id, id)).execute();
+	} catch (error) {
+		console.error("Error removing clip from mod queue:", error);
+		throw new Error("Failed to remove clip from mod queue");
+	}
+}
+
+export async function clearModQueue(broadcasterId: string) {
+	try {
+		await db.delete(modQueueTable).where(eq(modQueueTable.broadcasterId, broadcasterId)).execute();
+	} catch (error) {
+		console.error("Error clearing mod queue:", error);
+		throw new Error("Failed to clear mod queue");
+	}
+}
+
+export async function getSettings(userId: string): Promise<UserSettings> {
+	try {
+		const settings = await db.select().from(settingsTable).where(eq(settingsTable.id, userId)).limit(1).execute();
+
+		if (settings.length === 0) {
+			// Save default settings
+			return saveSettings({
+				id: userId,
+				prefix: "!",
+			}).then(() => getSettings(userId));
+		}
+
+		return settings[0];
+	} catch (error) {
+		console.error("Error fetching settings:", error);
+		throw new Error("Failed to fetch settings");
+	}
+}
+
+export async function saveSettings(settings: UserSettings) {
+	try {
+		await db
+			.insert(settingsTable)
+			.values({
+				id: settings.id,
+				prefix: settings.prefix,
+			})
+			.onConflictDoUpdate({
+				target: settingsTable.id,
+				set: {
+					prefix: settings.prefix,
+				},
+			});
+	} catch (error) {
+		console.error("Error saving settings:", error);
+		throw new Error("Failed to save settings");
 	}
 }

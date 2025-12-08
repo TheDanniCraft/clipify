@@ -42,3 +42,17 @@ export const queueTable = pgTable("clipQueue", {
 		.references(() => overlaysTable.id, { onDelete: "cascade" }),
 	clipId: varchar("clip_id").notNull(),
 });
+
+export const modQueueTable = pgTable("modQueue", {
+	id: uuid("id").notNull().defaultRandom().primaryKey(),
+	broadcasterId: varchar("broadcaster_id").notNull(),
+	clipId: varchar("clip_id").notNull(),
+});
+
+export const settingsTable = pgTable("userSettings", {
+	id: varchar("id")
+		.notNull()
+		.primaryKey()
+		.references(() => usersTable.id, { onDelete: "cascade" }),
+	prefix: varchar("prefix").notNull().default("!"),
+});

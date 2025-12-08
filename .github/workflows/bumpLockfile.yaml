@@ -1,0 +1,32 @@
+name: 🔼 Bump Bun lockfile on Depfu branches
+
+on:
+  push:
+    branches:
+      - "depfu/*"
+    paths:
+      - "package.json"
+
+permissions:
+  contents: write
+
+jobs:
+  bump-lockfile:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Check out repository
+        uses: actions/checkout@v4
+
+      - name: 🟢 Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: 📦 Install dependencies
+        run: bun install --lockfile-only
+
+      - name: 🔼 Commit and push updated lockfile
+        uses: stefanzweifel/git-auto-commit-action@v6
+        with:
+          commit_message: "⬆️ Bump lockfile"
+          file_pattern: bun.lock

@@ -21,7 +21,7 @@ Sections:
 2. Features
     - Easy to Use: Intuitive interface designed for effortless setup and management.
     - Plug & Play: As easy as adding a browser source to your streaming software.
-    - Control your player: Choose to play clips from today, all-time, or just your featured clips.
+    - Customize your player: Choose to play clips from today, all-time, or just your featured clips.
     - Keeps Your Stream Entertained: Auto-play clips to keep your audience engaged even when you're away.
     - Multiple Overlays: Create as many overlays as you like for AFK, starting, or end screens.
     - Channel Points Integration (Coming Soon): Let viewers play their favourite clips using Twitch channel points.

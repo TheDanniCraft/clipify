@@ -1,5 +1,5 @@
 # Base
-FROM oven/bun:slim AS base
+FROM oven/bun:1 AS base
 
 RUN apt-get update && \
     apt-get install -y bash curl gnupg && \
@@ -19,6 +19,7 @@ RUN bun install --frozen-lockfile
 
 FROM base AS builder
 WORKDIR /app
+ARG COOLIFY_URL
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .

@@ -37,6 +37,13 @@ export default function OverlayTable({ userid }: { userid: string }) {
 
 	const [statusFilter, setStatusFilter] = React.useState("all");
 
+	const handleOverlayClick = useMemoizedCallback(() => {
+		setSortDescriptor({
+			column: "name",
+			direction: sortDescriptor.direction === "ascending" ? "descending" : "ascending",
+		});
+	});
+
 	useEffect(() => {
 		const fetchOverlays = async () => {
 			try {
@@ -458,13 +465,6 @@ export default function OverlayTable({ userid }: { userid: string }) {
 			</div>
 		);
 	}, [filterSelectedKeys, page, pages, filteredItems.length, onPreviousPage, onNextPage]);
-
-	const handleOverlayClick = useMemoizedCallback(() => {
-		setSortDescriptor({
-			column: "name",
-			direction: sortDescriptor.direction === "ascending" ? "descending" : "ascending",
-		});
-	});
 
 	return (
 		<div className='h-full w-full p-6'>

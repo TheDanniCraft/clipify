@@ -2,19 +2,23 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Providers } from "./providers";
 import PlausibleProvider from "next-plausible";
+import { getBaseUrl } from "@actions/utils";
+
+const baseUrl = await getBaseUrl();
+const manifestUrl = new URL("manifest.webmanifest", baseUrl);
 
 export const metadata: Metadata = {
 	title: "Clipify – Let your clips talk. Even when you can't.",
 	description: "Clipify automatically plays your best Twitch clips to keep your stream alive and your viewers entertained, even when you're away.",
-	metadataBase: new URL("https://clipify.us"),
-	manifest: "https://clipify.us/manifest.webmanifest",
+	metadataBase: baseUrl,
+	manifest: manifestUrl,
 	alternates: {
 		canonical: "https://clipify.us",
 	},
 	openGraph: {
 		title: "Clipify – Let your clips talk. Even when you can't.",
 		description: "Need a break? Clipify got you covered. Auto-play clips while you're away – keep your stream alive and your viewers entertained.",
-		url: "https://clipify.us",
+		url: `${baseUrl}`,
 		siteName: "Clipify",
 		images: [
 			{
@@ -40,11 +44,11 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
 			<head>
 				<PlausibleProvider domain='clipify.us' customDomain='https://analytics.thedannicraft.de' selfHosted trackOutboundLinks trackFileDownloads taggedEvents hash enabled />
 				<meta name='apple-mobile-web-app-title' content='Clipify' />
-				<link rel='preconnect' href='https://chat.cloud.thedannicraft.de' crossOrigin='' />
-				<link rel='dns-prefetch' href='https://chat.cloud.thedannicraft.de' />
+				<link rel='preconnect' href='https://goadopt.io' crossOrigin='anonymous' />
+				<link rel='preconnect' href='https://affiliate.clipify.us' crossOrigin='anonymous' />
+				<script async src='https://affiliate.clipify.us/tracking/program-1.js'></script>
 
-				<link rel='preconnect' href='https://api.status.thedannicraft.de' />
-				<link rel='dns-prefetch' href='https://api.status.thedannicraft.de' />
+				<meta name='adopt-website-id' content='792b9b29-57f9-4d92-b5f1-313f94ddfacc' />
 			</head>
 			<body>
 				<Providers>{children}</Providers>

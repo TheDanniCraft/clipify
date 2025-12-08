@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+
 import { useParams, useRouter } from "next/navigation";
 import { getOverlay, getUser, saveOverlay } from "@/app/actions/database";
 import { addToast, Button, Card, CardBody, CardHeader, Divider, Form, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Select, SelectItem, Snippet, Spinner, Switch, Tooltip } from "@heroui/react";
@@ -9,9 +10,9 @@ import { IconAlertTriangle, IconArrowLeft, IconCrown, IconDeviceFloppy, IconInfo
 import DashboardNavbar from "@components/dashboardNavbar";
 import { useNavigationGuard } from "next-navigation-guard";
 import { validateAuth } from "@/app/actions/auth";
-import Footer from "@components/footer";
-import { createChannelReward, getReward, removeChannelReward } from "@/app/actions/twitch";
+import { createChannelReward, getReward, getTwitchClips, removeChannelReward } from "@/app/actions/twitch";
 import { generatePaymentLink } from "@/app/actions/subscription";
+import FeedbackWidget from "@components/feedbackWidget";
 
 const overlayTypes: { key: OverlayType; label: string }[] = [
 	{ key: "1", label: "Top Clips - Today" },
@@ -22,6 +23,7 @@ const overlayTypes: { key: OverlayType; label: string }[] = [
 	{ key: "365", label: "Top Clips - Last Year" },
 	{ key: "Featured", label: "Featured only" },
 	{ key: "All", label: "All Clips" },
+	{ key: "Queue", label: "Clip Queue" },
 ];
 
 export default function OverlaySettings() {
@@ -30,9 +32,10 @@ export default function OverlaySettings() {
 
 	const [overlay, setOverlay] = useState<Overlay | null>(null);
 	const [baseOverlay, setBaseOverlay] = useState<Overlay | null>(null);
-	const [baseUrl, setBaseUrl] = useState<string | null>(null);
+	const [baseUrl] = useState<string | null>(typeof window !== "undefined" ? window.location.origin : null);
 	const [user, setUser] = useState<AuthenticatedUser>();
 	const [reward, setReward] = useState<TwitchReward | null>(null);
+	const [clipsPerType, setClipsPerType] = useState<Record<OverlayType, number>>({} as Record<OverlayType, number>);
 
 	const navGuard = useNavigationGuard({ enabled: isFormDirty() });
 
@@ -60,8 +63,6 @@ export default function OverlaySettings() {
 	}, [overlay?.rewardId, overlay?.ownerId]);
 
 	useEffect(() => {
-		setBaseUrl(window.location.origin);
-
 		if (overlay?.ownerId) {
 			getUser(overlay.ownerId).then((user) => {
 				if (user) {
@@ -76,11 +77,17 @@ export default function OverlaySettings() {
 			const fetchedOverlay = await getOverlay(overlayId);
 			setOverlay(fetchedOverlay);
 			setBaseOverlay(fetchedOverlay);
+
+			overlayTypes.forEach(async (type) => {
+				const clips = await getTwitchClips(fetchedOverlay, type.key);
+
+				setClipsPerType((prev) => ({ ...prev, [type.key]: clips.length }));
+			});
 		}
 		fetchOverlay();
 	}, [overlayId]);
 
-	if (!overlayId || !overlay) {
+	if (!overlayId || !overlay || !overlayTypes.every((t) => typeof clipsPerType[t.key] === "number")) {
 		return (
 			<div className='flex flex-col items-center justify-center w-full h-screen'>
 				<Spinner label='Loading overlay' />
@@ -111,7 +118,11 @@ export default function OverlaySettings() {
 
 	return (
 		<>
+			<script src='//tag.goadopt.io/injector.js?website_code=792b9b29-57f9-4d92-b5f1-313f94ddfacc' className='adopt-injector' defer></script>
+
 			<DashboardNavbar user={user!} title='Overlay Settings' tagline='Manage your overlays'>
+				<FeedbackWidget />
+
 				<div className='flex flex-col items-center justify-center w-full p-4'>
 					<Card className='w-full max-w-4xl'>
 						<CardHeader className='justify-between space-x-1'>
@@ -174,7 +185,7 @@ export default function OverlaySettings() {
 										label='Overlay Type'
 									>
 										{overlayTypes.map((type) => (
-											<SelectItem key={type.key}>{type.label}</SelectItem>
+											<SelectItem key={type.key}>{clipsPerType[type.key] != null && type.key !== "Queue" ? `${type.label}: ${clipsPerType[type.key]}` : type.label}</SelectItem>
 										))}
 									</Select>
 									<Divider className='my-4' />
@@ -192,13 +203,14 @@ export default function OverlaySettings() {
 													<ul className='list-disc list-inside text-warning-700 text-xs mt-2 ml-1'>
 														<li>Multiple overlay</li>
 														<li>Link custom Twitch rewards</li>
+														<li>Control your overlay via chat</li>
 														<li>Priority support</li>
 													</ul>
 													<Button
 														color='warning'
 														variant='shadow'
 														onPress={async () => {
-															const link = await generatePaymentLink(user, window.location.href);
+															const link = await generatePaymentLink(user, window.location.href, window.numok?.getStripeMetadata());
 
 															if (link) {
 																window.location.href = link;
@@ -212,9 +224,9 @@ export default function OverlaySettings() {
 														}}
 														className='mt-3 w-full font-semibold'
 													>
-														Upgrade for less than $1/month
+														Upgrade for less than 2€/month
 													</Button>
-													<p className='text-xs text-warning-600 text-center mt-2'>Enjoy a 7-day free trial. Cancel anytime.</p>
+													<p className='text-xs text-warning-600 text-center mt-2'>Enjoy a 3-day free trial. Cancel anytime.</p>
 												</CardBody>
 											</Card>
 										</div>
@@ -293,7 +305,6 @@ export default function OverlaySettings() {
 					</ModalContent>
 				</Modal>
 			</DashboardNavbar>
-			<Footer />
 		</>
 	);
 }

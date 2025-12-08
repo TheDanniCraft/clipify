@@ -17,9 +17,9 @@ export default function PlayerOverlay({ children, top, bottom, left, right }: { 
 		<AnimatePresence>
 			{show && (
 				<motion.div
-					initial={{ opacity: 0 }}
+					initial={{ opacity: 0.1 }}
 					animate={{ opacity: 1 }}
-					exit={{ opacity: 0 }}
+					exit={{ opacity: 0.1 }}
 					transition={{ duration: 0.5 }}
 					className={`absolute text-white bg-zinc-900 p-2
 						${left ? "rounded-r-md" : ""}

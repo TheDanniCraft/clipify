@@ -1,24 +1,16 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useMemo, useRef } from "react";
+import { useEffect, useRef } from "react";
 
 type noop = (this: any, ...args: any[]) => any;
-
-type PickFunction<T extends noop> = (this: ThisParameterType<T>, ...args: Parameters<T>) => ReturnType<T>;
 
 export function useMemoizedCallback<T extends noop>(fn: T) {
 	const fnRef = useRef<T>(fn);
 
 	// why not write `fnRef.current = fn`?
 	// https://github.com/alibaba/hooks/issues/728
-	fnRef.current = useMemo<T>(() => fn, [fn]);
+	useEffect(() => {
+		fnRef.current = fn;
+	}, [fn]);
 
-	const memoizedFn = useRef<PickFunction<T> | undefined>(undefined);
-
-	if (!memoizedFn.current) {
-		memoizedFn.current = function (this, ...args) {
-			return fnRef.current.apply(this, args);
-		};
-	}
-
-	return memoizedFn.current as T;
+	return ((...args: Parameters<T>) => fnRef.current.apply(undefined, args)) as T;
 }

@@ -1,17 +1,52 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { Button, ButtonGroup, Chip, Divider, Link } from "@heroui/react";
+import React, { useCallback, useEffect, useState } from "react";
+import { Button, Chip, Divider, Form, Image, Input, Link, Modal, ModalContent, Spinner, Tab, Tabs } from "@heroui/react";
 
 import Logo from "@components/logo";
-import { IconMoonFilled, IconSunFilled } from "@tabler/icons-react";
+import { IconCircleCheckFilled, IconMailFilled, IconMoonFilled, IconSend, IconSunFilled } from "@tabler/icons-react";
 import { useTheme } from "next-themes";
 import axios from "axios";
+import { getEmailProvider, subscribeToNewsletter } from "@actions/newsletter";
+import { usePlausible } from "next-plausible";
+import { isRatelimitError } from "@actions/rateLimit";
 
-export default function Component() {
+export default function Footer() {
 	const { theme, setTheme } = useTheme();
 	const [statusColor, setStatusColor] = useState("#ffffff");
 	const [statusText, setStatusText] = useState("Loading...");
+	const plausible = usePlausible();
+	const [newsletterState, setNewsletterState] = useState("default");
+	const [isOpen, setIsOpen] = useState(false);
+
+	const footerNavigation = {
+		features: [
+			{ name: "Easy to Use", href: "#features" },
+			{ name: "Plug & Play", href: "#features" },
+			{ name: "Customize your player", href: "#features" },
+			{ name: "Multiple Overlays", href: "#features" },
+			{ name: "Channel Points Integration", href: "#features" },
+		],
+		supportOptions: [
+			{ name: "Pricing", href: "#pricing" },
+			{ name: "FAQs", href: "#faq" },
+			{ name: "Help Center", href: "https://help.clipify.us/" },
+			{ name: "Service Status", href: "https://status.thedannicraft.de/status/clipify" },
+		],
+		aboutUs: [
+			{ name: "Latest News", href: "/changelog" },
+			{ name: "Roadmap", href: "/roadmap" },
+			{ name: "Collaborations", href: "https://help.clipify.us/hc/clipify/articles/1756597294-collaborations" },
+			{ name: "Checkout the code", href: "https://github.com/TheDanniCraft/clipify" },
+			{ name: "Referral Program", href: "/referral-program" },
+		],
+		legal: [
+			{ name: "Privacy Policy", href: "https://hub.goadopt.io/document/3852d930-97b9-46c2-950d-823e62515ab4?language=en" },
+			{ name: "Cookie Policy", href: "https://hub.goadopt.io/document/535d4dc1-7b66-4b96-9bff-bc6e0e47587d?language=en" },
+			{ name: "Terms of Service", href: "https://hub.goadopt.io/document/9651af3f-af45-480f-8a4d-2beb6ed68e9b?language=en" },
+			{ name: "Request Data Removal", href: "https://hub.goadopt.io/privacy-hub/07b752d8-6dc2-4831-9c53-b5038623ddf4?language=en&legislation=gdpr&websiteId=b03e3c81-5d51-4e76-8610-8259e1b06086&disclaimerId=792b9b29-57f9-4d92-b5f1-313f94ddfacc&visitorId=9b705dd6-cc3e-4a91-9dad-f7acb8bd6a7c" },
+		],
+	};
 
 	useEffect(() => {
 		axios
@@ -44,46 +79,162 @@ export default function Component() {
 			});
 	}, []);
 
+	const subscribe = useCallback(
+		async (event: React.FormEvent<HTMLFormElement>) => {
+			event.preventDefault();
+			const data = Object.fromEntries(new FormData(event.currentTarget));
+			setNewsletterState("loading");
+
+			try {
+				const res = await subscribeToNewsletter(data.email as string);
+				if (await isRatelimitError(res)) {
+					setNewsletterState("rateLimit");
+					return;
+				}
+				setNewsletterState("success");
+				setIsOpen(true);
+
+				plausible("Newsletter Subscription", {
+					props: {
+						emailType: await getEmailProvider(data.email as string),
+					},
+				});
+			} catch {
+				setNewsletterState("error");
+			}
+		},
+		[plausible]
+	);
+
+	const renderList = useCallback(
+		({ title, items }: { title: string; items: { name: string; href: string }[] }) => (
+			<div>
+				<h3 className='text-small text-default-600 font-semibold'>{title}</h3>
+				<ul className='mt-2 space-y-0.5'>
+					{items.map((item) => (
+						<li key={item.name}>
+							<Link className='text-default-400' href={item.href} size='sm'>
+								{item.name}
+							</Link>
+						</li>
+					))}
+				</ul>
+			</div>
+		),
+		[]
+	);
+
 	return (
 		<>
 			<Divider className='my-4' />
-			<footer className='flex w-full flex-col'>
-				<div className='mx-auto w-full max-w-7xl px-6 py-12 md:flex md:items-center md:justify-between lg:px-8'>
-					<div className='flex flex-col items-center justify-center gap-2 md:order-2 md:items-end'>
-						<ButtonGroup>
-							<Button isIconOnly onPress={() => setTheme("dark")} color={theme === "dark" ? "primary" : "default"} aria-label='Switch to dark theme'>
-								<IconMoonFilled />
-							</Button>
-							<Button isIconOnly onPress={() => setTheme("light")} color={theme == "light" ? "primary" : "default"} aria-label='Switch to light theme'>
-								<IconSunFilled />
-							</Button>
-						</ButtonGroup>
-					</div>
-					<div className='mt-4 md:order-1 md:mt-0'>
-						<div className='flex items-center justify-center gap-3 md:justify-start'>
-							<div className='flex items-center'>
+			<footer className='flex w-full flex-col pb-16'>
+				<div className='mx-auto max-w-7xl px-6 pt-16 pb-8 sm:pt-24 lg:px-8 lg:pt-32'>
+					<div className='xl:grid xl:grid-cols-3 xl:gap-8'>
+						<div className='space-y-8 md:pr-8'>
+							<div className='flex items-center justify-start'>
 								<Logo size={34} />
 								<span className='text-small font-medium'>Clipify</span>
 							</div>
-							<Divider className='h-4' orientation='vertical' />
-							<Link href='https://status.thedannicraft.de/status/clipify'>
-								<Chip
-									className='border-none px-0 text-default-500'
-									classNames={{
-										dot: "bg-[var(--chip-dot-bg)]",
-									}}
-									style={
-										{
-											"--chip-dot-bg": statusColor,
-										} as React.CSSProperties
-									}
-									variant='dot'
-								>
-									{statusText}
-								</Chip>
-							</Link>
+							<p className='text-small text-default-500'>Need a break? Clipify got you covered. Auto-play clips while you are away - keep your stream alive and your viewers entertained.</p>
 						</div>
-						<p className='text-center text-tiny text-default-400 md:text-start'>&copy; {new Date().getFullYear()} TheDanniCraft. All rights reserved.</p>
+						<div className='mt-16 grid grid-cols-2 gap-8 xl:col-span-2 xl:mt-0'>
+							<div className='md:grid md:grid-cols-2 md:gap-8'>
+								<div>{renderList({ title: "Features", items: footerNavigation.features })}</div>
+								<div className='mt-10 md:mt-0'>{renderList({ title: "Support", items: footerNavigation.supportOptions })}</div>
+							</div>
+							<div className='md:grid md:grid-cols-2 md:gap-8'>
+								<div>{renderList({ title: "About Us", items: footerNavigation.aboutUs })}</div>
+								<div className='mt-10 md:mt-0'>{renderList({ title: "Legal", items: footerNavigation.legal })}</div>
+							</div>
+						</div>
+					</div>
+
+					<div className='rounded-medium bg-default-200/20 my-10 p-4 sm:my-14 sm:p-8 lg:my-16 lg:flex lg:items-center lg:justify-between lg:gap-2'>
+						<div>
+							<h3 className='text-small text-default-600 font-semibold'>Subscribe to our newsletter</h3>
+							<p className='text-small text-default-400 mt-2'>Receive updates on new features, tips and tricks, or offers straight to your email.</p>
+						</div>
+						<Form onSubmit={subscribe}>
+							<Input
+								isRequired
+								placeholder='mail@example.com'
+								type='email'
+								labelPlacement='outside'
+								className={newsletterState == "success" ? "text-success" : newsletterState == "error" || newsletterState == "rateLimit" ? "text-danger" : "text-default-900"}
+								description={(() => {
+									switch (newsletterState) {
+										case "loading":
+											return "Subscribing...";
+										case "error":
+											return "An error occurred. Please try again. If the error persists, please contact the team.";
+										case "rateLimit":
+											return "Please wait before trying again.";
+										default:
+											return "";
+									}
+								})()}
+								startContent={(() => {
+									switch (newsletterState) {
+										case "loading":
+											return <Spinner />;
+										case "success":
+											return <IconCircleCheckFilled className='text-success-500' />;
+										default:
+											return <IconMailFilled className='text-default-400' />;
+									}
+								})()}
+								onChange={() => {
+									setNewsletterState("default");
+								}}
+								name='email'
+								isDisabled={newsletterState === "loading" || newsletterState === "success"}
+								endContent={
+									<Button color='primary' size='sm' isIconOnly type='submit' disabled={newsletterState === "loading" || newsletterState === "success"} aria-label='Subscribe to newsletter'>
+										<IconSend className='text-white' />
+									</Button>
+								}
+							/>
+						</Form>
+						<Modal isOpen={isOpen} onOpenChange={(open) => setIsOpen(open)}>
+							<ModalContent>
+								<div className='p-6'>
+									<div className='text-success-500 mt-2 text-center'>
+										<Image alt='Tada Icon' src='https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Activities/Party%20Popper.png' width='50' height='50' className='mx-auto' />
+										<p className='text-lg font-bold'>You&apos;re almost there!</p>
+										<p className='text-xs'>We&apos;ve just sent a confirmation email your way. Check your inbox to finish subscribing-and if you don&apos;t see it, be sure to take a quick look in your spam folder too.</p>
+									</div>
+								</div>
+							</ModalContent>
+						</Modal>
+					</div>
+
+					<div className='flex flex-wrap justify-between gap-2 pt-8'>
+						<div>
+							<div className='flex items-center justify-center gap-3 md:justify-start'>
+								<Link href='https://status.thedannicraft.de/status/clipify'>
+									<Chip
+										className='border-none px-0 text-default-500'
+										classNames={{
+											dot: "bg-[var(--chip-dot-bg)]",
+										}}
+										style={
+											{
+												"--chip-dot-bg": statusColor,
+											} as React.CSSProperties
+										}
+										variant='dot'
+									>
+										{statusText}
+									</Chip>
+								</Link>
+							</div>
+							<p className='text-center text-tiny text-default-400 md:text-start'>&copy; {new Date().getFullYear()} TheDanniCraft. All rights reserved.</p>
+						</div>
+
+						<Tabs onSelectionChange={(key) => setTheme(String(key))} color='primary' selectedKey={theme}>
+							<Tab title={<IconMoonFilled />} key='dark' aria-label='Switch to dark theme' />
+							<Tab title={<IconSunFilled />} key='light' aria-label='Switch to light theme' />
+						</Tabs>
 					</div>
 				</div>
 			</footer>

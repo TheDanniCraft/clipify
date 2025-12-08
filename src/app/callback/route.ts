@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { exchangeAccesToken } from "@actions/twitch";
 import { setAccessToken } from "@actions/database";
-import { authUser, getBaseUrl } from "@actions/auth";
+import { authUser } from "@actions/auth";
+import { getBaseUrl } from "@actions/utils";
+
 import { cookies } from "next/headers";
 import jwt from "jsonwebtoken";
 import * as Sentry from "@sentry/nextjs";
@@ -18,7 +20,10 @@ export async function GET(request: NextRequest) {
 			return authUser("codeError");
 		}
 
-		const receivedState = Buffer.from(state || "", "base64").toString("utf-8");
+		let receivedState = Buffer.from(state || "", "base64").toString("utf-8");
+
+		// Fix for n8n adding a space at the start of the state
+		receivedState = receivedState.replace(/^ /, "");
 		const stateTimestamp = new Date(receivedState).getTime();
 		const currentTimestamp = Date.now();
 
