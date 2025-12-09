@@ -9,7 +9,14 @@ export async function isCoolify() {
 }
 
 export async function getBaseUrl(): Promise<URL> {
-	let url = process.env.COOLIFY_URL || "http://localhost:3000";
+	let url: string;
+	if (process.env.COOLIFY_URL) {
+		url = process.env.COOLIFY_URL;
+	} else if (process.env.NODE_ENV === "development") {
+		url = "http://localhost:3000";
+	} else {
+		url = "https://clipify.us/";
+	}
 
 	if (!/^https?:\/\//.test(url)) {
 		url = `http://${url}`;
