@@ -84,8 +84,6 @@ export default function SettingsPage() {
 			color: "default",
 		});
 
-		console.log("Submitting settings:", settings);
-
 		if (!settings) return;
 		await saveSettings(settings);
 		setBaseSettings(settings);
