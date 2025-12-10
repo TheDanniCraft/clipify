@@ -11,19 +11,22 @@ async function getDrizzleFiles(): Promise<string[]> {
 
 async function nextConfig(): Promise<NextConfig> {
 	const drizzleFiles = await getDrizzleFiles();
-	return withSentryConfig(
+
+	const config = withSentryConfig(
 		withPlausibleProxy({
 			customDomain: "https://analytics.thedannicraft.de",
 		})({
-			output: "standalone",
 			outputFileTracingIncludes: {
 				"**": drizzleFiles,
 			},
+			output: "standalone",
 		}),
 		{
 			tunnelRoute: "/monitor",
 		}
 	);
+
+	return config;
 }
 
 export default nextConfig;
