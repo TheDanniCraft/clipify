@@ -4,25 +4,29 @@ import { withSentryConfig } from "@sentry/nextjs";
 import path from "path";
 import { nodeFileTrace } from "@vercel/nft";
 
-const drizzle = nodeFileTrace([require.resolve("drizzle-kit"), require.resolve("drizzle-orm"), path.resolve(path.dirname(require.resolve("drizzle-kit")), "bin.cjs")]).then((drizzle) => [...drizzle.fileList, "./node_modules/.bin/drizzle-kit", "./node_modules/drizzle-orm/**", "./node_modules/drizzle-kit/**"]);
+async function getDrizzleFiles(): Promise<string[]> {
+	const drizzle = await nodeFileTrace([require.resolve("drizzle-kit"), require.resolve("drizzle-orm"), path.resolve(path.dirname(require.resolve("drizzle-kit")), "bin.cjs")]);
+	return [...drizzle.fileList, "./node_modules/.bin/drizzle-kit", "./node_modules/drizzle-orm/**", "./node_modules/drizzle-kit/**"];
+}
 
-const nextConfigPromise = Promise.resolve(drizzle).then(
-	(drizzle) =>
-		({
-			output: "standalone",
-			outputFileTracingIncludes: {
-				"**": [...drizzle],
-			},
-		} as NextConfig)
-);
+async function nextConfig(): Promise<NextConfig> {
+	const drizzleFiles = await getDrizzleFiles();
 
-export default nextConfigPromise.then((resolvedConfig) =>
-	withSentryConfig(
+	const config = withSentryConfig(
 		withPlausibleProxy({
 			customDomain: "https://analytics.thedannicraft.de",
-		})(resolvedConfig),
+		})({
+			outputFileTracingIncludes: {
+				"**": drizzleFiles,
+			},
+			output: "standalone",
+		}),
 		{
 			tunnelRoute: "/monitor",
 		}
-	)
-);
+	);
+
+	return config;
+}
+
+export default nextConfig;

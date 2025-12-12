@@ -308,7 +308,6 @@ export async function saveOverlay(overlay: Overlay) {
 			subscribeToReward(overlay.ownerId, overlay.rewardId);
 		}
 	} catch (error) {
-		console.log(overlay);
 		console.error("Error saving overlay:", error);
 		throw new Error("Failed to save overlay");
 	}
