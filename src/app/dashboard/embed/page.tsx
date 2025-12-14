@@ -4,7 +4,7 @@ import { validateAuth } from "@/app/actions/auth";
 import { getAllOverlays } from "@/app/actions/database";
 import DashboardNavbar from "@/app/components/dashboardNavbar";
 import { AuthenticatedUser } from "@/app/lib/types";
-import { Card, CardBody, CardHeader, Divider, Link, Select, SelectItem, Snippet, Spinner } from "@heroui/react";
+import { Card, CardBody, CardHeader, Divider, Link, Select, SelectItem, Snippet, Spinner, Switch, Tooltip } from "@heroui/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -17,6 +17,7 @@ export default function EmbedTool() {
 		return new URLSearchParams(window.location.search).get("oid") ?? "";
 	});
 	const [baseUrl, setBaseUrl] = useState<string>("");
+	const [showBanner, setShowBanner] = useState<boolean>();
 
 	useEffect(() => {
 		async function setup() {
@@ -51,6 +52,16 @@ export default function EmbedTool() {
 		fetchBaseUrl();
 	}, []);
 
+	useEffect(() => {
+		function initializeShowBanner() {
+			if (user) {
+				setShowBanner(user.plan === "free");
+			}
+		}
+
+		initializeShowBanner();
+	}, [user]);
+
 	if (overlays.length === 0)
 		return (
 			<div className='flex flex-col items-center justify-center w-full h-screen'>
@@ -81,6 +92,13 @@ export default function EmbedTool() {
 									<SelectItem key={overlay.id}>{overlay.name}</SelectItem>
 								))}
 							</Select>
+							<Tooltip content={user?.plan === "free" ? "Upgrade your plan to remove Clipify branding" : "Toggle to include Clipify branding on your overlay"}>
+								<span>
+									<Switch isSelected={showBanner} onValueChange={setShowBanner} isDisabled={user?.plan === "free"}>
+										Enable Clipify Branding
+									</Switch>
+								</span>
+							</Tooltip>
 							<div>
 								<Snippet
 									size='sm'
@@ -90,7 +108,7 @@ export default function EmbedTool() {
 										pre: "overflow-hidden whitespace-nowrap",
 									}}
 								>
-									{overlayId === "" ? "Select an overlay to generate the link" : `${baseUrl}/embed/${overlayId}`}
+									{overlayId === "" ? "Select an overlay to generate the link" : `${baseUrl}/embed/${overlayId}${showBanner ? "?showBanner" : ""}`}
 								</Snippet>
 								<p className='text-sm text-gray-500'>You can use this link to embed your overlay (e.g. iframe)</p>
 							</div>
@@ -103,7 +121,7 @@ export default function EmbedTool() {
 										pre: "overflow-hidden whitespace-nowrap",
 									}}
 								>
-									{overlayId === "" ? "Select an overlay to see the embed code" : `<iframe src="${baseUrl}/embed/${overlayId === "" ? "default" : overlayId}" class="w-full h-full" title="Clipify Overlay" style="width: 100%; aspect-ratio: 16 / 9; border: 0;"></iframe>`}
+									{overlayId === "" ? "Select an overlay to see the embed code" : `<iframe src="${baseUrl}/embed/${overlayId === "" ? "default" : overlayId}${showBanner ? "?showBanner" : ""}" class="w-full h-full" title="Clipify Overlay" style="width: 100%; aspect-ratio: 16 / 9; border: 0;"></iframe>`}
 								</Snippet>
 							</div>
 						</CardBody>
@@ -114,9 +132,9 @@ export default function EmbedTool() {
 							<h2 className='text-2xl font-bold'>Preview</h2>
 						</CardHeader>
 						<CardBody className='flex flex-col px-5 pb-5 w-full items-center justify-center'>
-							<iframe src={`${baseUrl}/embed/${overlayId === "" ? "default" : overlayId}`} className='w-full aspect-video rounded-lg' title='Overlay Preview' />
+							<iframe src={`${baseUrl}/embed/${overlayId === "" ? "default" : overlayId}${showBanner ? "?showBanner" : ""}`} className='w-full aspect-video rounded-lg' title='Overlay Preview' />
 							{user && user.plan === "free" && (
-								<p className='text-sm text-warning font-medium'>
+								<p className='text-sm text-warning font-medium mt-2'>
 									Your current plan allows you to use the embed tool with Clipify branding.{" "}
 									<Link color='warning' className='text-sm' underline='always' href='/dashboard/settings'>
 										Upgrade now
@@ -124,6 +142,8 @@ export default function EmbedTool() {
 									to remove the branding.
 								</p>
 							)}
+
+							{user && user.plan !== "free" && showBanner && <p className='text-sm text-success font-medium mt-2'>You enabled Clipify branding for this embed. Thanks for supporting Clipify!</p>}
 						</CardBody>
 					</Card>
 				</div>

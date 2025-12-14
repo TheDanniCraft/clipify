@@ -3,8 +3,12 @@ import { getTwitchClips } from "@/app/actions/twitch";
 import OverlayPlayer from "@/app/components/overlayPlayer";
 import type { Overlay } from "@/app/lib/types";
 
-export default async function Overlay({ params }: { params: Promise<{ overlayId: string }> }) {
+export default async function Overlay({ params, searchParams }: { params: Promise<{ overlayId: string }>; searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
 	const { overlayId } = await params;
+	const sp = await searchParams;
+	let rawShowBanner = sp.showBanner;
+	if (Array.isArray(rawShowBanner)) rawShowBanner = rawShowBanner[0];
+	const showBanner = rawShowBanner !== undefined && rawShowBanner !== "false" && rawShowBanner !== "0";
 
 	if (overlayId === "default") {
 		return (
@@ -66,7 +70,7 @@ export default async function Overlay({ params }: { params: Promise<{ overlayId:
 				}}
 			/>
 			<div className='flex flex-col justify-center items-center h-screen w-screen'>
-				<OverlayPlayer clips={clips} overlay={overlay} isEmbed showBanner={plan === "free"} />
+				<OverlayPlayer clips={clips} overlay={overlay} isEmbed showBanner={showBanner || plan === "free"} />
 			</div>
 		</>
 	);
