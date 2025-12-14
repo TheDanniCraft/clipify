@@ -75,10 +75,10 @@ export default function OverlaySettings() {
 	useEffect(() => {
 		async function fetchOverlay() {
 			const fetchedOverlay = await getOverlay(overlayId);
+			if (!fetchedOverlay) return;
+
 			setOverlay(fetchedOverlay);
 			setBaseOverlay(fetchedOverlay);
-
-			if (!fetchedOverlay) return;
 
 			overlayTypes.forEach(async (type) => {
 				const clips = await getTwitchClips(fetchedOverlay, type.key);

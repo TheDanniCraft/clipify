@@ -317,7 +317,7 @@ export default function OverlayPlayer({ clips, overlay, isEmbed, showBanner }: {
 		return null;
 	}
 
-	if (isEmbed || (!isEmbed && !isInIframe())) {
+	if (isEmbed || !isInIframe()) {
 		return (
 			<div className='relative inline-block'>
 				<AnimatePresence mode='wait'>
@@ -420,4 +420,5 @@ export default function OverlayPlayer({ clips, overlay, isEmbed, showBanner }: {
 			</div>
 		);
 	}
+	return null;
 }

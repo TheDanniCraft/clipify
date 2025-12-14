@@ -5,26 +5,18 @@ import { getAllOverlays } from "@/app/actions/database";
 import DashboardNavbar from "@/app/components/dashboardNavbar";
 import { AuthenticatedUser } from "@/app/lib/types";
 import { Card, CardBody, CardHeader, Divider, Link, Select, SelectItem, Snippet, Spinner } from "@heroui/react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 export default function EmbedTool() {
 	const router = useRouter();
 	const [user, setUser] = useState<AuthenticatedUser>();
 	const [overlays, setOverlays] = useState<{ id: string; name: string }[]>([]);
-	const [overlayId, setOverlayId] = useState<string>("");
+	const [overlayId, setOverlayId] = useState<string>(() => {
+		if (typeof window === "undefined") return "";
+		return new URLSearchParams(window.location.search).get("oid") ?? "";
+	});
 	const [baseUrl, setBaseUrl] = useState<string>("");
-	const searchParams = useSearchParams();
-
-	useEffect(() => {
-		async function handleQueryParams() {
-			const oid = searchParams.get("oid");
-			if (oid) {
-				setOverlayId(oid);
-			}
-		}
-		handleQueryParams();
-	}, [router, searchParams]);
 
 	useEffect(() => {
 		async function setup() {
@@ -35,6 +27,8 @@ export default function EmbedTool() {
 				return;
 			}
 
+			setUser(user);
+
 			const userOverlays = await getAllOverlays(user.id);
 
 			if (!userOverlays || userOverlays.length === 0) return;
@@ -43,7 +37,7 @@ export default function EmbedTool() {
 		}
 
 		setup();
-	}, [router, overlayId]);
+	}, [router]);
 
 	useEffect(() => {
 		function fetchBaseUrl() {
