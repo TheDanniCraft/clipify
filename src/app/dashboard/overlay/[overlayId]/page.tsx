@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 
 import { useParams, useRouter } from "next/navigation";
 import { getOverlay, getUser, saveOverlay } from "@/app/actions/database";
-import { addToast, Button, Card, CardBody, CardHeader, Divider, Form, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Select, SelectItem, Snippet, Spinner, Switch, Tooltip } from "@heroui/react";
+import { addToast, Button, Card, CardBody, CardHeader, Divider, Form, Input, Link, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Select, SelectItem, Snippet, Spinner, Switch, Tooltip } from "@heroui/react";
 import { AuthenticatedUser, Overlay, OverlayType, Plan, TwitchReward } from "@types";
 import { IconAlertTriangle, IconArrowLeft, IconCrown, IconDeviceFloppy, IconInfoCircle, IconPlayerPauseFilled, IconPlayerPlayFilled } from "@tabler/icons-react";
 import DashboardNavbar from "@components/dashboardNavbar";
@@ -78,6 +78,8 @@ export default function OverlaySettings() {
 			setOverlay(fetchedOverlay);
 			setBaseOverlay(fetchedOverlay);
 
+			if (!fetchedOverlay) return;
+
 			overlayTypes.forEach(async (type) => {
 				const clips = await getTwitchClips(fetchedOverlay, type.key);
 
@@ -146,7 +148,7 @@ export default function OverlaySettings() {
 								<Form className='w-full' onSubmit={handleSubmit}>
 									<div className='flex items-center w-full space-x-4'>
 										<Switch
-											isSelected={overlay.status == "active"}
+											isSelected={overlay.status === "active"}
 											onValueChange={(value) => {
 												setOverlay({ ...overlay, status: value ? "active" : "paused" });
 											}}
@@ -167,6 +169,16 @@ export default function OverlaySettings() {
 										<Button type='submit' color='primary' isIconOnly isDisabled={!isFormDirty()} aria-label='Save Overlay Settings'>
 											<IconDeviceFloppy />
 										</Button>
+									</div>
+									<div className='w-full flex justify-center items-center text-xs text-warning-300 p-2 border border-warning-200 rounded bg-warning-50 max-w-full mb-2'>
+										<IconAlertTriangle size={16} className='mr-2' />
+										<span className='text-center'>
+											Do not share this URL publicly. For embedding on websites, use the{" "}
+											<Link color='warning' underline='always' className='text-xs' href={`${baseUrl}/dashboard/embed?oid=${overlayId}`}>
+												embed widget tool
+											</Link>
+											.
+										</span>
 									</div>
 									<Input
 										value={overlay.name}

@@ -3,11 +3,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ClipQueueItem, ModQueueItem, Overlay, TwitchClip, TwitchClipGqlData, TwitchClipGqlResponse, TwitchClipVideoQuality, VideoClip } from "@types";
 import { getAvatar, getGameDetails, getTwitchClip, logTwitchError, subscribeToChat } from "@actions/twitch";
-import PlayerOverlay from "./playerOverlay";
-import { Avatar } from "@heroui/react";
+import PlayerOverlay from "@components/playerOverlay";
+import { Avatar, Button, Link } from "@heroui/react";
 import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
 import { getFirstFromClipQueue, getFirstFromModQueue, removeFromClipQueue, removeFromModQueue } from "@actions/database";
+import Logo from "@components/logo";
 
 type VideoQualityWithNumeric = TwitchClipVideoQuality & { numericQuality: number };
 
@@ -72,7 +73,11 @@ async function getRawMediaUrl(clipId: string): Promise<string | undefined> {
 	}
 }
 
-export default function OverlayPlayer({ clips, overlay }: { clips: TwitchClip[]; overlay: Overlay }) {
+function isInIframe() {
+	return window.self !== window.top;
+}
+
+export default function OverlayPlayer({ clips, overlay, isEmbed, showBanner }: { clips: TwitchClip[]; overlay: Overlay; isEmbed?: boolean; showBanner?: boolean }) {
 	const [videoClip, setVideoClip] = useState<VideoClip | null>(null);
 	const [playedClips, setPlayedClips] = useState<string[]>([]);
 	const [showOverlay, setShowOverlay] = useState<boolean>(false);
@@ -83,6 +88,8 @@ export default function OverlayPlayer({ clips, overlay }: { clips: TwitchClip[];
 	const clipRef = useRef<VideoClip | null>(null);
 
 	const getFirstQueClip = useCallback(async (): Promise<ModQueueItem | ClipQueueItem | null> => {
+		if (isEmbed) return null;
+
 		const modClip = await getFirstFromModQueue(overlay.ownerId);
 		if (modClip) {
 			return modClip;
@@ -94,7 +101,7 @@ export default function OverlayPlayer({ clips, overlay }: { clips: TwitchClip[];
 		}
 
 		return queClip;
-	}, [overlay]);
+	}, [isEmbed, overlay.id, overlay.ownerId]);
 
 	const getRandomClip = useCallback(async (): Promise<TwitchClip> => {
 		const queClip = await getFirstQueClip();
@@ -149,7 +156,7 @@ export default function OverlayPlayer({ clips, overlay }: { clips: TwitchClip[];
 	}, [videoClip]);
 
 	useEffect(() => {
-		console.log("Paused state changed:", paused);
+		if (!isEmbed) console.log("Paused state changed:", paused);
 		if (playerRef.current) {
 			if (paused) {
 				playerRef.current.pause();
@@ -159,7 +166,7 @@ export default function OverlayPlayer({ clips, overlay }: { clips: TwitchClip[];
 				});
 			}
 		}
-	}, [paused]);
+	}, [paused, isEmbed]);
 
 	useEffect(() => {
 		async function setupWebSocket() {
@@ -257,7 +264,7 @@ export default function OverlayPlayer({ clips, overlay }: { clips: TwitchClip[];
 				ws.close();
 			};
 		}
-		setupWebSocket();
+		if (!isEmbed) setupWebSocket();
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
@@ -272,14 +279,17 @@ export default function OverlayPlayer({ clips, overlay }: { clips: TwitchClip[];
 			}
 		}
 
-		setupChat();
-	}, [overlay.ownerId]);
+		if (!isEmbed) setupChat();
+	}, [isEmbed, overlay.ownerId]);
 
 	useEffect(() => {
 		async function fetchVideoSource() {
 			const randomClip = await getRandomClip();
 
-			if (!randomClip) return;
+			if (!randomClip) {
+				console.info("No clips available for overlay player.");
+				return;
+			}
 
 			const mediaUrl = await getRawMediaUrl(randomClip?.id);
 
@@ -304,88 +314,110 @@ export default function OverlayPlayer({ clips, overlay }: { clips: TwitchClip[];
 	}, [getRandomClip]);
 
 	if (!videoClip) {
-		console.info("No clips available for overlay player.");
-
 		return null;
 	}
 
-	return (
-		<div className='relative inline-block'>
-			<AnimatePresence mode='wait'>
-				{videoClip?.mediaUrl && (
-					<motion.video
-						key={videoClip.id}
-						autoPlay
-						src={videoClip.mediaUrl}
-						initial={{ opacity: 0.1 }}
-						animate={{ opacity: 1 }}
-						hidden={!showPlayer}
-						exit={{ opacity: 0.1 }}
-						transition={{ duration: 0.5 }}
-						ref={playerRef}
-						onEnded={() => {
-							async function fetchNewClip() {
-								setShowOverlay(false);
-								setPlayedClips((prevPlayedClips) => [...prevPlayedClips, videoClip!.id]);
+	if (isEmbed || (!isEmbed && !isInIframe())) {
+		return (
+			<div className='relative inline-block'>
+				<AnimatePresence mode='wait'>
+					{videoClip?.mediaUrl && (
+						<motion.video
+							key={videoClip.id}
+							autoPlay
+							src={videoClip.mediaUrl}
+							initial={{ opacity: 0.1 }}
+							animate={{ opacity: 1 }}
+							hidden={!showPlayer}
+							exit={{ opacity: 0.1 }}
+							transition={{ duration: 0.5 }}
+							ref={playerRef}
+							onEnded={() => {
+								async function fetchNewClip() {
+									setShowOverlay(false);
+									setPlayedClips((prevPlayedClips) => [...prevPlayedClips, videoClip!.id]);
 
-								const randomClip = await getRandomClip();
-								if (!randomClip) return setVideoClip(null);
-								const mediaUrl = await getRawMediaUrl(randomClip.id);
+									const randomClip = await getRandomClip();
+									if (!randomClip) return setVideoClip(null);
+									const mediaUrl = await getRawMediaUrl(randomClip.id);
 
-								const brodcasterAvatar = await getAvatar(randomClip?.broadcaster_id, randomClip?.broadcaster_id);
-								const game = await getGameDetails(randomClip?.game_id, randomClip?.broadcaster_id);
+									const brodcasterAvatar = await getAvatar(randomClip?.broadcaster_id, randomClip?.broadcaster_id);
+									const game = await getGameDetails(randomClip?.game_id, randomClip?.broadcaster_id);
 
-								if (mediaUrl) {
-									setVideoClip({
-										...randomClip,
-										mediaUrl,
-										brodcasterAvatar: brodcasterAvatar ?? "",
-										game: game ?? {
-											id: "",
-											name: "Unknown Game",
-											box_art_url: "",
-											igdb_id: "",
-										},
-									});
+									if (mediaUrl) {
+										setVideoClip({
+											...randomClip,
+											mediaUrl,
+											brodcasterAvatar: brodcasterAvatar ?? "",
+											game: game ?? {
+												id: "",
+												name: "Unknown Game",
+												box_art_url: "",
+												igdb_id: "",
+											},
+										});
+									}
 								}
-							}
-							fetchNewClip();
-						}}
-						onPlay={() => {
-							setShowOverlay(true);
-						}}
-						style={{
-							width: "100vw",
-							height: "100vh",
-							aspectRatio: "19 / 9",
-						}}
-						className='block'
-					>
-						Your browser does not support the video tag.
-					</motion.video>
-				)}
-			</AnimatePresence>
-			<div className='absolute inset-0 flex flex-col justify-between text-xs sm:text-sm md:text-base lg:text-lg'>
-				{showOverlay && (
-					<>
-						<PlayerOverlay left='2%' top='2%'>
-							<div className='flex items-center'>
-								<Avatar size='md' src={videoClip?.brodcasterAvatar} />
-								<div className='flex flex-col justify-center ml-2 text-xs'>
-									<span className='font-semibold'>{videoClip?.broadcaster_name}</span>
-									<span className='text-xs text-gray-400'>Playing {videoClip?.game?.name}</span>
-								</div>
-							</div>
-						</PlayerOverlay>
-						<PlayerOverlay right='2%' bottom='2%'>
-							<div className='flex flex-col items-end text-right'>
-								<span className='font-bold'>{videoClip?.title}</span>
-								<span className='text-xs text-gray-400 mt-1'>clipped by {videoClip?.creator_name}</span>
-							</div>
-						</PlayerOverlay>
-					</>
+								fetchNewClip();
+							}}
+							onPlay={() => {
+								setShowOverlay(true);
+							}}
+							style={{
+								width: "100vw",
+								height: "100vh",
+								aspectRatio: "19 / 9",
+							}}
+							className='block'
+						>
+							Your browser does not support the video tag.
+						</motion.video>
+					)}
+				</AnimatePresence>
+				{isEmbed ? (
+					showBanner ? (
+						<div className='absolute left-4 bottom-4'>
+							<Button as={Link} href='https://clipify.us?utm_source=embed&utm_medium=overlay&utm_campaign=webembed' color='primary' className='inline-flex items-center gap-1 px-3 py-1.5 text-white text-xs sm:text-sm rounded-full shadow-md hover:bg-opacity-80 transition' aria-label='Powered by Clipify'>
+								<Logo className='w-4 h-4 sm:w-6 sm:h-6' />
+								<span>Powered by Clipify</span>
+							</Button>
+						</div>
+					) : null
+				) : (
+					<div className='absolute inset-0 flex flex-col justify-between text-xs sm:text-sm md:text-base lg:text-lg'>
+						{showOverlay && (
+							<>
+								<PlayerOverlay left='2%' top='2%'>
+									<div className='flex items-center'>
+										<Avatar size='md' src={videoClip?.brodcasterAvatar} />
+										<div className='flex flex-col justify-center ml-2 text-xs'>
+											<span className='font-semibold'>{videoClip?.broadcaster_name}</span>
+											<span className='text-xs text-gray-400'>Playing {videoClip?.game?.name}</span>
+										</div>
+									</div>
+								</PlayerOverlay>
+								<PlayerOverlay right='2%' bottom='2%'>
+									<div className='flex flex-col items-end text-right'>
+										<span className='font-bold'>{videoClip?.title}</span>
+										<span className='text-xs text-gray-400 mt-1'>clipped by {videoClip?.creator_name}</span>
+									</div>
+								</PlayerOverlay>
+							</>
+						)}
+					</div>
 				)}
 			</div>
-		</div>
-	);
+		);
+	}
+
+	if (!isEmbed && isInIframe()) {
+		return (
+			<div className='w-screen h-screen flex items-center justify-center bg-black text-white p-6'>
+				<div className='max-w-xl text-center'>
+					<h2 className='text-2xl font-bold mb-2'>Using overlay in non-embed mode isn&apos;t allowed.</h2>
+					<p className='text-base text-gray-300'>Please use the embed URL (check your overlay dashboard for the link).</p>
+				</div>
+			</div>
+		);
+	}
 }
