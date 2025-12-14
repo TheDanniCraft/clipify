@@ -1,4 +1,5 @@
-import { TablerIcon, IconFolder, IconFileText, IconGitBranch, IconUsers, IconClipboardData, IconBolt } from "@tabler/icons-react";
+import { IconFolder, IconFileText, IconGitBranch, IconUsers, IconClipboardData, IconBolt, IconProps } from "@tabler/icons-react";
+import { ForwardRefExoticComponent, RefAttributes } from "react";
 
 export enum RoadmapStatus {
 	Shipped = "Shipped",
@@ -8,7 +9,7 @@ export enum RoadmapStatus {
 }
 
 export interface RoadmapItemData {
-	icon: TablerIcon;
+	icon: ForwardRefExoticComponent<IconProps & RefAttributes<SVGSVGElement>>;
 	color: string;
 	title: string;
 	description: string;
