@@ -117,12 +117,10 @@ export default function EmbedTool() {
 							>
 								{overlays.map((overlay) => (
 									<SelectItem key={overlay.id}>
-										<>
-											<div className='flex items-center'>
-												<Avatar className='mr-2 h-6 w-6' src={avatars[overlay.ownerId]} />
-												{overlay.name}
-											</div>
-										</>
+										<div className='flex items-center'>
+											<Avatar className='mr-2 h-6 w-6' src={avatars[overlay.ownerId]} />
+											{overlay.name}
+										</div>
 									</SelectItem>
 								))}
 							</Select>

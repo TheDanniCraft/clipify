@@ -233,18 +233,16 @@ export default function TagsInput(props: TagsInputProps) {
 		}
 
 		const commitCount = endsWithDelim ? parts.length : Math.max(0, parts.length - 1);
-		let committedAll = true;
 
+		let committedCount = 0;
 		for (let i = 0; i < commitCount; i += 1) {
 			const ok = canAddToken(parts[i]);
-			if (!ok) {
-				committedAll = false;
-				break;
-			}
+			if (!ok) break;
+			committedCount += 1;
 		}
 
-		if (!committedAll) {
-			setInputValue(next);
+		if (committedCount !== commitCount) {
+			setInputValue(parts.slice(committedCount).join(" "));
 			return;
 		}
 
