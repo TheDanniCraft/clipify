@@ -39,6 +39,9 @@ export type TagsInputProps = PassthroughTextAreaProps & {
 	showCounter?: boolean;
 };
 
+const DELIM_RE = /[,\s]+/g;
+const HAS_DELIM_RE = /[,\s]/;
+
 export default function TagsInput(props: TagsInputProps) {
 	const {
 		suggestions,
@@ -107,15 +110,15 @@ export default function TagsInput(props: TagsInputProps) {
 
 	const derivedIsInvalid = Boolean(derivedErrorMessage);
 
-	const addTag = (raw: string) => {
-		if (isDisabled || isReadOnly || isAtLimit) return;
+	const canAddToken = (token: string) => {
+		if (isDisabled || isReadOnly || isAtLimit) return false;
 
-		const t = normalize(raw);
-		if (!t) return;
+		const t = normalize(token);
+		if (!t) return false;
 
 		if (!allowDuplicates) {
 			const exists = tags.some((x) => x.toLowerCase() === t.toLowerCase());
-			if (exists) return;
+			if (exists) return false;
 		}
 
 		const nextTags = [...tags, t];
@@ -124,11 +127,17 @@ export default function TagsInput(props: TagsInputProps) {
 			const res = validate(nextTags);
 			if (typeof res === "string") {
 				setTransientError(res);
-				return;
+				return false;
 			}
 		}
 
 		setTags(nextTags);
+		return true;
+	};
+
+	const addTag = (raw: string) => {
+		const ok = canAddToken(raw);
+		if (!ok) return;
 		setInputValue("");
 		setTransientError(null);
 		queueMicrotask(() => inputRef.current?.focus());
@@ -201,6 +210,47 @@ export default function TagsInput(props: TagsInputProps) {
 		return () => ro.disconnect();
 	}, [onHeightChange]);
 
+	const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+		onChange?.(e);
+		setTransientError(null);
+
+		const next = e.target.value;
+
+		if (!HAS_DELIM_RE.test(next)) {
+			setInputValue(next);
+			return;
+		}
+
+		const endsWithDelim = /[,\s]$/.test(next);
+		const parts = next
+			.split(DELIM_RE)
+			.map((p) => p.trim())
+			.filter(Boolean);
+
+		if (parts.length === 0) {
+			setInputValue("");
+			return;
+		}
+
+		const commitCount = endsWithDelim ? parts.length : Math.max(0, parts.length - 1);
+
+		let committedCount = 0;
+		for (let i = 0; i < commitCount; i += 1) {
+			const ok = canAddToken(parts[i]);
+			if (!ok) break;
+			committedCount += 1;
+		}
+
+		if (committedCount !== commitCount) {
+			setInputValue(parts.slice(committedCount).join(" "));
+			return;
+		}
+
+		const remainder = endsWithDelim ? "" : parts[parts.length - 1];
+		setInputValue(remainder);
+		if (endsWithDelim) queueMicrotask(() => inputRef.current?.focus());
+	};
+
 	return (
 		<Popover isOpen={isOpen} placement='bottom-start' offset={8}>
 			<div
@@ -231,13 +281,10 @@ export default function TagsInput(props: TagsInputProps) {
 							<input
 								ref={inputRef}
 								aria-label={ariaLabel}
+								enterKeyHint='done'
 								disabled={isDisabled || isReadOnly || isAtLimit}
 								value={inputValue}
-								onChange={(e) => {
-									onChange?.(e);
-									setInputValue(e.target.value);
-									setTransientError(null);
-								}}
+								onChange={handleInputChange}
 								onFocus={() => {
 									if (!isDisabled && !isReadOnly) setIsFocused(true);
 								}}
@@ -248,7 +295,7 @@ export default function TagsInput(props: TagsInputProps) {
 								onKeyDown={(e) => {
 									if (isDisabled || isReadOnly) return;
 
-									if (e.key === " " || e.key === "," || e.key === "Enter") {
+									if (e.key === "Enter") {
 										const t = normalize(inputValue);
 										if (!t) return;
 										e.preventDefault();

@@ -109,6 +109,11 @@ export default function EmbedTool() {
 								}}
 								label='Select Overlay'
 								placeholder='Select an overlay to generate embed code'
+								renderValue={() => {
+									const selected = overlayId;
+									const found = overlays.find((o) => o.id === selected);
+									return found ? found.name : undefined;
+								}}
 							>
 								{overlays.map((overlay) => (
 									<SelectItem key={overlay.id}>
