@@ -17,7 +17,7 @@ export type ColumnsKey = "accessType" | "id" | "name" | "status" | "actions";
 export const INITIAL_VISIBLE_COLUMNS: ColumnsKey[] = ["accessType", "id", "name", "status", "actions"];
 
 export const columns = [
-	{ name: "", uid: "aType", sortDirection: "ascending" },
+	{ name: "", uid: "accessType", sortDirection: "ascending" },
 	{ name: "Overlay ID", uid: "id" },
 	{ name: "Name", uid: "name", sortDirection: "ascending" },
 	{ name: "Status", uid: "status", info: "The overlay's current status" },
