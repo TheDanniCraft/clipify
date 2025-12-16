@@ -109,13 +109,20 @@ export default function EmbedTool() {
 								}}
 								label='Select Overlay'
 								placeholder='Select an overlay to generate embed code'
+								renderValue={() => {
+									const selected = overlayId;
+									const found = overlays.find((o) => o.id === selected);
+									return found ? found.name : undefined;
+								}}
 							>
 								{overlays.map((overlay) => (
 									<SelectItem key={overlay.id}>
-										<div className='flex items-center'>
-											<Avatar className='mr-2 h-6 w-6' src={avatars[overlay.ownerId]} />
-											{overlay.name}
-										</div>
+										<>
+											<div className='flex items-center'>
+												<Avatar className='mr-2 h-6 w-6' src={avatars[overlay.ownerId]} />
+												{overlay.name}
+											</div>
+										</>
 									</SelectItem>
 								))}
 							</Select>
