@@ -90,6 +90,38 @@ export async function getUserDetails(accessToken: string): Promise<TwitchUserRes
 	}
 }
 
+export async function getUsersDetailsBulk({ userIds, userNames, accessToken }: { userIds?: string[]; userNames?: string[]; accessToken: string }): Promise<TwitchUserResponse[]> {
+	const url = "https://api.twitch.tv/helix/users";
+
+	try {
+		if ((!userIds || userIds.length === 0) && (!userNames || userNames.length === 0)) {
+			return [];
+		}
+
+		if (userIds && userNames) {
+			console.error("You cannot provide both userIds and userNames");
+			return [];
+		}
+
+		if ((userIds?.length ?? 0) >= 100 || (userNames?.length ?? 0) >= 100) {
+			console.error("You cannot provide more than 100 userIds or userNames");
+			return [];
+		}
+
+		const response = await axios.get<TwitchApiResponse<TwitchUserResponse>>(url, {
+			headers: {
+				Authorization: `Bearer ${accessToken}`,
+				"Client-Id": process.env.TWITCH_CLIENT_ID || "",
+			},
+			params: userIds ? { id: userIds } : { login: userNames },
+		});
+		return response.data.data;
+	} catch (error) {
+		logTwitchError("Error fetching bulk user details", error);
+		return [];
+	}
+}
+
 export async function createChannelReward(userId: string): Promise<TwitchRewardResponse | null> {
 	const url = "https://api.twitch.tv/helix/channel_points/custom_rewards";
 	try {

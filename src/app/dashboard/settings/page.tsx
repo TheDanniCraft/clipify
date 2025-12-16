@@ -6,7 +6,7 @@ import ConfirmModal from "@/app/components/confirmModal";
 import DashboardNavbar from "@/app/components/dashboardNavbar";
 import { AuthenticatedUser, Plan, UserSettings } from "@/app/lib/types";
 import { addToast, Avatar, Button, Card, CardBody, CardHeader, Divider, Form, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Snippet, Spinner, Tooltip, useDisclosure } from "@heroui/react";
-import { IconAlertTriangle, IconArrowLeft, IconCreditCardFilled, IconDeviceFloppy, IconDiamondFilled, IconInfoCircle, IconTrash } from "@tabler/icons-react";
+import { IconAlertTriangle, IconArrowLeft, IconCreditCardFilled, IconCrown, IconDeviceFloppy, IconDiamondFilled, IconInfoCircle, IconTrash } from "@tabler/icons-react";
 import { redirect, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { generatePaymentLink, checkIfSubscriptionExists, getPortalLink } from "@/app/actions/subscription";
@@ -14,6 +14,7 @@ import { useNavigationGuard } from "next-navigation-guard";
 import { tiers } from "@/app/components/Pricing/pricing-tiers";
 import { TiersEnum } from "@/app/components/Pricing/pricing-types";
 import { IconCheck } from "@tabler/icons-react";
+import TagsInput from "@/app/components/tagsInput";
 
 export default function SettingsPage() {
 	const [user, setUser] = useState<AuthenticatedUser | null>(null);
@@ -78,22 +79,28 @@ export default function SettingsPage() {
 	}
 
 	async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-		event.preventDefault();
-		addToast({
-			title: "Saving...",
-			color: "default",
-		});
+		try {
+			event.preventDefault();
+			addToast({
+				title: "Saving...",
+				color: "default",
+			});
 
-		console.log("Submitting settings:", settings);
-
-		if (!settings) return;
-		await saveSettings(settings);
-		setBaseSettings(settings);
-		addToast({
-			title: "Settings saved",
-			description: "Your settings have been saved successfully.",
-			color: "success",
-		});
+			if (!settings) return;
+			await saveSettings(settings);
+			setBaseSettings(settings);
+			addToast({
+				title: "Settings saved",
+				description: "Your settings have been saved successfully.",
+				color: "success",
+			});
+		} catch {
+			addToast({
+				title: "Error",
+				description: "An error occurred while saving your settings. Please try again.",
+				color: "danger",
+			});
+		}
 	}
 
 	return (
@@ -175,6 +182,79 @@ export default function SettingsPage() {
 								}}
 								required
 							/>
+
+							{user.plan === Plan.Free && (
+								<div className='w-full mb-4'>
+									<Card className='bg-warning-50 border border-warning-200 mb-2'>
+										<CardBody>
+											<div className='flex items-center gap-2 mb-1'>
+												<IconCrown className='text-warning-500' />
+												<span className='text-warning-800 font-semibold text-base'>Premium Feature Locked</span>
+											</div>
+											<p className='text-sm text-warning-700'>
+												Unlock advanced settings with <span className='font-semibold'>Premium</span>.
+											</p>
+											<ul className='list-disc list-inside text-warning-700 text-xs mt-2 ml-1'>
+												<li>Grant editors permission to manage your overlays</li>
+												<li>Priority support</li>
+											</ul>
+											<Button
+												color='warning'
+												variant='shadow'
+												onPress={async () => {
+													if (!user) return;
+
+													const link = await generatePaymentLink(user, window.location.href, window.numok?.getStripeMetadata());
+
+													if (link) {
+														window.location.href = link;
+													} else {
+														addToast({
+															title: "Error",
+															description: "Failed to generate payment link. Please try again later.",
+															color: "danger",
+														});
+													}
+												}}
+												className='mt-3 w-full font-semibold'
+											>
+												Upgrade for less than 2€/month
+											</Button>
+											<p className='text-xs text-warning-600 text-center mt-2'>Enjoy a 3-day free trial. Cancel anytime.</p>
+										</CardBody>
+									</Card>
+								</div>
+							)}
+							<div
+								className='w-full'
+								style={{
+									filter: user?.plan === Plan.Free ? "blur(1.5px)" : "none",
+									pointerEvents: user?.plan === Plan.Free ? "none" : "auto",
+								}}
+							>
+								<TagsInput
+									fullWidth
+									maxInputs={5}
+									label='Edit editors'
+									description={"Editors can manage yourt overlay"}
+									value={settings?.editors}
+									validate={(value) => {
+										for (const name of value) {
+											if (!/^[A-Za-z0-9_]{4,25}$/.test(name)) {
+												return `Invalid Twitch username: '${name}' (use 4–25 chars, only letters/numbers/_)`;
+											}
+
+											if (name.toLowerCase() === user.username.toLowerCase()) {
+												return `You cannot add yourself as an editor.`;
+											}
+										}
+										return null;
+									}}
+									onValueChange={(editors) => {
+										setSettings({ ...settings!, editors });
+									}}
+								/>
+							</div>
 
 							<Button type='submit' color='primary' className='mt-4' fullWidth isDisabled={!isFormDirty()} aria-label='Save Settings' startContent={<IconDeviceFloppy />}>
 								Save Settings

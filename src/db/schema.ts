@@ -1,6 +1,7 @@
-import { varchar, pgTable } from "drizzle-orm/pg-core";
+import { varchar, pgTable, primaryKey, check } from "drizzle-orm/pg-core";
 import type { Role, Plan, StatusOptions, OverlayType } from "@types";
 import { uuid } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 export const usersTable = pgTable("users", {
 	id: varchar("id").notNull().primaryKey(),
@@ -11,6 +12,18 @@ export const usersTable = pgTable("users", {
 	plan: varchar("plan").$type<Plan>().notNull(),
 	stripeCustomerId: varchar("stripe_customer_id"),
 });
+
+export const editorsTable = pgTable(
+	"editors",
+	{
+		userId: varchar("user_id")
+			.notNull()
+			.references(() => usersTable.id, { onDelete: "cascade" }),
+
+		editorId: varchar("editor_id").notNull(),
+	},
+	(t) => [primaryKey({ columns: [t.userId, t.editorId] }), check("editors_no_self", sql`${t.userId} <> ${t.editorId}`)]
+);
 
 export const tokenTable = pgTable("tokens", {
 	id: varchar("id")

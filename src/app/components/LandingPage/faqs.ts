@@ -26,6 +26,10 @@ const faqs: Faq[] = [
 		content: "Yes, Clipify provides an embed feature that allows you to showcase your clips on your website or blog.",
 	},
 	{
+		title: "Can I allow others to manage my overlay settings (mods, managers etc.)?",
+		content: "Yes, you can add editors to help manage your overlay settings. Just make sure not to add yourself as an editor.",
+	},
+	{
 		title: "What are the benefits of the Pro version?",
 		content: "The Pro version includes features like multiple active overlays, channel points integration, and priority support.",
 	},
