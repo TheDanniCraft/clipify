@@ -235,8 +235,8 @@ export default function SettingsPage() {
 								<TagsInput
 									fullWidth
 									maxInputs={5}
-									label='Edit editors (Twitch usernames)'
-									description={"Editors can manage your overlay"}
+									label='Edit editors'
+									description={"Twitch usernames of users you want to grant permission to manage your overlays. Editors can modify, create and delete overlays on your behalf."}
 									value={settings?.editors}
 									validate={(value) => {
 										for (const name of value) {
