@@ -245,7 +245,7 @@ export default function OverlaySettings() {
 													>
 														Upgrade for less than 2€/month
 													</Button>
-													{user?.id !== overlay.ownerId ? <p className='text-xs text-danger text-center mt-2'>Only the overlay of this owner can unlock premium features.</p> : <p className='text-xs text-warning-600 text-center mt-2'>Enjoy a 3-day free trial. Cancel anytime.</p>}
+													{user?.id !== overlay.ownerId ? <p className='text-xs text-danger text-center mt-2'>Only the overlay owner can unlock premium features.</p> : <p className='text-xs text-warning-600 text-center mt-2'>Enjoy a 3-day free trial. Cancel anytime.</p>}
 												</CardBody>
 											</Card>
 										</div>
