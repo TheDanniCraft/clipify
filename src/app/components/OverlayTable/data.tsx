@@ -12,9 +12,9 @@ export const statusColorMap: Record<StatusOptions, JSX.Element> = {
 	paused: <IconCircleFilled color='hsl(var(--heroui-danger))' />,
 };
 
-export type ColumnsKey = "aType" | "id" | "name" | "status" | "actions";
+export type ColumnsKey = "accessType" | "id" | "name" | "status" | "actions";
 
-export const INITIAL_VISIBLE_COLUMNS: ColumnsKey[] = ["aType", "id", "name", "status", "actions"];
+export const INITIAL_VISIBLE_COLUMNS: ColumnsKey[] = ["accessType", "id", "name", "status", "actions"];
 
 export const columns = [
 	{ name: "", uid: "aType", sortDirection: "ascending" },

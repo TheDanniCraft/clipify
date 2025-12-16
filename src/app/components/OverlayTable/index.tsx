@@ -24,7 +24,7 @@ import { getAvatar, getUsersDetailsBulk } from "@/app/actions/twitch";
 
 export default function OverlayTable({ userId, accessToken }: { userId: string; accessToken: string }) {
 	const router = useRouter();
-	type LocalOverlay = Overlay & { aType?: "owner" | "editor" };
+	type LocalOverlay = Overlay & { accessType?: "owner" | "editor" };
 
 	const [overlays, setOverlays] = useState<LocalOverlay[]>();
 	const [filterValue, setFilterValue] = useState("");
@@ -55,7 +55,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 				const overlaysData = await getAllOverlays(userId);
 				const editorOverlays = await getEditorOverlays(userId);
 
-				const combinedOverlays: Overlay[] = [...(overlaysData ?? []).map((o) => ({ ...o, aType: "owner" as const })), ...(editorOverlays ?? []).map((o) => ({ ...o, aType: "editor" as const }))];
+				const combinedOverlays: LocalOverlay[] = [...(overlaysData ?? []).map((o) => ({ ...o, accessType: "owner" as const })), ...(editorOverlays ?? []).map((o) => ({ ...o, accessType: "editor" as const }))];
 
 				setOverlays(combinedOverlays ?? undefined);
 			} catch (error) {
@@ -176,7 +176,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 		const cellValue = overlay[overlayKey as unknown as keyof Overlay] as string;
 
 		switch (overlayKey) {
-			case "aType":
+			case "accessType":
 				return <AvatarCell ownerId={overlay.ownerId} userId={userId} />;
 			case "name":
 			case "id":
@@ -274,7 +274,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 		const overlaysData = await getAllOverlays(userId);
 		const editorOverlays = await getEditorOverlays(userId);
 
-		const combinedOverlays: Overlay[] = [...(overlaysData ?? []).map((o) => ({ ...o, aType: "owner" as const })), ...(editorOverlays ?? []).map((o) => ({ ...o, aType: "editor" as const }))];
+		const combinedOverlays: LocalOverlay[] = [...(overlaysData ?? []).map((o) => ({ ...o, accessType: "owner" as const })), ...(editorOverlays ?? []).map((o) => ({ ...o, accessType: "editor" as const }))];
 
 		setOverlays(combinedOverlays ?? undefined);
 	});
@@ -617,7 +617,7 @@ function AvatarCell({ ownerId, userId }: { ownerId: string; userId: string }) {
 		return () => {
 			cancelled = true;
 		};
-	}, [ownerId]);
+	}, [ownerId, userId]);
 
 	return (
 		<Skeleton isLoaded={!loading} className='rounded-full'>
