@@ -1,4 +1,4 @@
-import { IconFolder, IconFileText, IconGitBranch, IconUsers, IconClipboardData, IconBolt, IconProps } from "@tabler/icons-react";
+import { IconFolder, IconFileText, IconGitBranch, IconUsers, IconClipboardData, IconBolt, IconProps, IconPencil, IconPaint } from "@tabler/icons-react";
 import { ForwardRefExoticComponent, RefAttributes } from "react";
 
 export enum RoadmapStatus {
@@ -60,7 +60,7 @@ export const roadmapData: RoadmapItemData[] = [
 		color: "orange",
 		title: "Milestones & Improvements",
 		description: "Key updates and improvements before v1 release.",
-		status: RoadmapStatus.InDevelopment,
+		status: RoadmapStatus.Shipped,
 		timeframe: "Q3 2025",
 		features: ["Add cookie banner", "Improve logging", "Add feedback widget", "Performance improvements"],
 	},
@@ -69,8 +69,26 @@ export const roadmapData: RoadmapItemData[] = [
 		color: "red",
 		title: "v1 Release",
 		description: "First major release with stability and polish.",
-		status: RoadmapStatus.Planned,
-		timeframe: "Planned Q4 2025",
+		status: RoadmapStatus.Shipped,
+		timeframe: "Q4 2025",
 		features: ["Production-ready deployment", "Final bug fixes", "Documentation updates", "User feedback integration"],
+	},
+	{
+		icon: IconPencil,
+		color: "teal",
+		title: "Editor Support",
+		description: "Allow editors to manage overlays.",
+		features: ["Editor roles", "Permission management", "Overlay editing", "Collaboration tools"],
+		status: RoadmapStatus.Shipped,
+		timeframe: "Q4 2025",
+	},
+	{
+		icon: IconPaint,
+		color: "pink",
+		title: "Overlay Themes",
+		description: "Introduce customizable overlay themes.",
+		features: ["Theme selection", "Custom color schemes", "Layout options", "Preview mode"],
+		status: RoadmapStatus.InDevelopment,
+		timeframe: "Q1 2026",
 	},
 ];
