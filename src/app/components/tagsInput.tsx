@@ -73,6 +73,8 @@ export default function TagsInput(props: TagsInputProps) {
 	const isReadOnly = Boolean(textareaProps.isReadOnly);
 	const isClearable = Boolean(textareaProps.isClearable);
 
+	const ariaLabel = typeof textareaProps.label === "string" ? textareaProps.label : "Tags input";
+
 	const isControlled = value !== undefined;
 
 	const [internalTags, setInternalTags] = useState<string[]>(value ?? []);
@@ -228,6 +230,7 @@ export default function TagsInput(props: TagsInputProps) {
 
 							<input
 								ref={inputRef}
+								aria-label={ariaLabel}
 								disabled={isDisabled || isReadOnly || isAtLimit}
 								value={inputValue}
 								onChange={(e) => {

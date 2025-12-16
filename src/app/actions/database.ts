@@ -531,15 +531,18 @@ export async function saveSettings(settings: UserSettings) {
 	const prefix = settings.prefix;
 	const editors = settings.editors ?? [];
 
+	// Fetch the user's username (login) to filter out self from editors
+	const userDetails = await getUserDetails(userId);
+	const userLogin = userDetails?.login;
 	// Clean + dedupe editor names (and never include self)
-	const editorNames = Array.from(new Set(editors.filter((name) => name && name !== userId)));
+	const editorNames = Array.from(new Set(editors.filter((name) => name && name !== userLogin)));
 
 	// Do network calls BEFORE the transaction (keeps tx short)
 	let rows: Array<{ userId: string; editorId: string }> = [];
 
 	if (editorNames.length > 0) {
 		const accessToken = await getAccessToken(userId);
-		if (!accessToken) return;
+		if (!accessToken) throw new Error("Could not retrieve access token. Settings were not saved.");
 
 		const users = await getUsersDetailsBulk({
 			userNames: editorNames,

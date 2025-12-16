@@ -177,7 +177,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 
 		switch (overlayKey) {
 			case "aType":
-				return <AvatarCell ownerId={overlay.ownerId} />;
+				return <AvatarCell ownerId={overlay.ownerId} userId={userId} />;
 			case "name":
 			case "id":
 				return <CopyText>{cellValue}</CopyText>;
@@ -598,7 +598,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 	);
 }
 
-function AvatarCell({ ownerId }: { ownerId: string }) {
+function AvatarCell({ ownerId, userId }: { ownerId: string; userId: string }) {
 	const [src, setSrc] = React.useState<string | null>(null);
 	const [loading, setLoading] = React.useState(true);
 
@@ -607,7 +607,7 @@ function AvatarCell({ ownerId }: { ownerId: string }) {
 
 		(async () => {
 			try {
-				const url = await getAvatar(ownerId, ownerId);
+				const url = await getAvatar(ownerId, userId);
 				if (!cancelled) setSrc(url ?? null);
 			} finally {
 				if (!cancelled) setLoading(false);
