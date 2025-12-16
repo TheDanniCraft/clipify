@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 
 import { useParams, useRouter } from "next/navigation";
-import { getOverlay, getUser, saveOverlay } from "@/app/actions/database";
-import { addToast, Button, Card, CardBody, CardHeader, Divider, Form, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Select, SelectItem, Snippet, Spinner, Switch, Tooltip } from "@heroui/react";
+import { getOverlay, getUser, getUserPlan, saveOverlay } from "@/app/actions/database";
+import { addToast, Button, Card, CardBody, CardHeader, Divider, Form, Input, Link, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Select, SelectItem, Snippet, Spinner, Switch, Tooltip } from "@heroui/react";
 import { AuthenticatedUser, Overlay, OverlayType, Plan, TwitchReward } from "@types";
 import { IconAlertTriangle, IconArrowLeft, IconCrown, IconDeviceFloppy, IconInfoCircle, IconPlayerPauseFilled, IconPlayerPlayFilled } from "@tabler/icons-react";
 import DashboardNavbar from "@components/dashboardNavbar";
@@ -36,15 +36,29 @@ export default function OverlaySettings() {
 	const [user, setUser] = useState<AuthenticatedUser>();
 	const [reward, setReward] = useState<TwitchReward | null>(null);
 	const [clipsPerType, setClipsPerType] = useState<Record<OverlayType, number>>({} as Record<OverlayType, number>);
+	const [ownerPlan, setOwnerPlan] = useState<Plan | null>(null);
 
 	const navGuard = useNavigationGuard({ enabled: isFormDirty() });
 
 	useEffect(() => {
+		async function fetchOwnerPlan() {
+			if (overlay?.ownerId) {
+				const owner = await getUserPlan(overlay.ownerId);
+				setOwnerPlan(owner);
+			}
+		}
+		fetchOwnerPlan();
+	}, [overlay?.ownerId]);
+
+	useEffect(() => {
 		async function checkAuth() {
-			if (!(await validateAuth())) {
+			const user = await validateAuth();
+			if (!user) {
 				router.push("/logout");
 				return;
 			}
+
+			setUser(user);
 		}
 
 		checkAuth();
@@ -63,18 +77,10 @@ export default function OverlaySettings() {
 	}, [overlay?.rewardId, overlay?.ownerId]);
 
 	useEffect(() => {
-		if (overlay?.ownerId) {
-			getUser(overlay.ownerId).then((user) => {
-				if (user) {
-					setUser(user);
-				}
-			});
-		}
-	}, [overlay?.ownerId]);
-
-	useEffect(() => {
 		async function fetchOverlay() {
 			const fetchedOverlay = await getOverlay(overlayId);
+			if (!fetchedOverlay) return;
+
 			setOverlay(fetchedOverlay);
 			setBaseOverlay(fetchedOverlay);
 
@@ -146,7 +152,7 @@ export default function OverlaySettings() {
 								<Form className='w-full' onSubmit={handleSubmit}>
 									<div className='flex items-center w-full space-x-4'>
 										<Switch
-											isSelected={overlay.status == "active"}
+											isSelected={overlay.status === "active"}
 											onValueChange={(value) => {
 												setOverlay({ ...overlay, status: value ? "active" : "paused" });
 											}}
@@ -167,6 +173,16 @@ export default function OverlaySettings() {
 										<Button type='submit' color='primary' isIconOnly isDisabled={!isFormDirty()} aria-label='Save Overlay Settings'>
 											<IconDeviceFloppy />
 										</Button>
+									</div>
+									<div className='w-full flex justify-center items-center text-xs text-warning-300 p-2 border border-warning-200 rounded bg-warning-50 max-w-full mb-2'>
+										<IconAlertTriangle size={16} className='mr-2' />
+										<span className='text-center'>
+											Do not share this URL publicly. For embedding on websites, use the{" "}
+											<Link color='warning' underline='always' className='text-xs' href={`${baseUrl}/dashboard/embed?oid=${overlayId}`}>
+												embed widget tool
+											</Link>
+											.
+										</span>
 									</div>
 									<Input
 										value={overlay.name}
@@ -189,7 +205,7 @@ export default function OverlaySettings() {
 										))}
 									</Select>
 									<Divider className='my-4' />
-									{user?.plan === Plan.Free && (
+									{ownerPlan === Plan.Free && (
 										<div className='w-full mb-4'>
 											<Card className='bg-warning-50 border border-warning-200 mb-2'>
 												<CardBody>
@@ -209,7 +225,10 @@ export default function OverlaySettings() {
 													<Button
 														color='warning'
 														variant='shadow'
+														isDisabled={user?.id !== overlay.ownerId}
 														onPress={async () => {
+															if (!user) return;
+
 															const link = await generatePaymentLink(user, window.location.href, window.numok?.getStripeMetadata());
 
 															if (link) {
@@ -226,7 +245,7 @@ export default function OverlaySettings() {
 													>
 														Upgrade for less than 2€/month
 													</Button>
-													<p className='text-xs text-warning-600 text-center mt-2'>Enjoy a 3-day free trial. Cancel anytime.</p>
+													{user?.id !== overlay.ownerId ? <p className='text-xs text-danger text-center mt-2'>Only the overlay owner can unlock premium features.</p> : <p className='text-xs text-warning-600 text-center mt-2'>Enjoy a 3-day free trial. Cancel anytime.</p>}
 												</CardBody>
 											</Card>
 										</div>
@@ -234,8 +253,8 @@ export default function OverlaySettings() {
 									<div
 										className='w-full'
 										style={{
-											filter: user?.plan === Plan.Free ? "blur(1.5px)" : "none",
-											pointerEvents: user?.plan === Plan.Free ? "none" : "auto",
+											filter: ownerPlan === Plan.Free ? "blur(1.5px)" : "none",
+											pointerEvents: ownerPlan === Plan.Free ? "none" : "auto",
 										}}
 									>
 										<div className='flex w-full items-center mb-2 gap-1'>
@@ -246,7 +265,7 @@ export default function OverlaySettings() {
 														setOverlay({ ...overlay, rewardId: reward.id });
 													}
 												}}
-												isDisabled={user?.plan === Plan.Free || !!overlay.rewardId}
+												isDisabled={ownerPlan === Plan.Free || !!overlay.rewardId}
 											>
 												Create Reward
 											</Button>

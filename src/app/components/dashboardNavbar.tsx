@@ -60,6 +60,9 @@ export default function DashboardNavbar({ children, user, title, tagline }: { ch
 								<DropdownItem key='settings' onPress={() => router.push("/dashboard/settings")}>
 									My Settings
 								</DropdownItem>
+								<DropdownItem key='embeddable_widgets' onPress={() => router.push("/dashboard/embed")}>
+									Embed Overlay
+								</DropdownItem>
 								<DropdownItem key='help_and_feedback' onPress={() => router.push("https://help.clipify.us/")}>
 									Help
 								</DropdownItem>

@@ -171,7 +171,7 @@ export type AuthenticatedUser = InferSelectModel<typeof usersTable>;
 
 export type UserToken = InferSelectModel<typeof tokenTable>;
 
-export type UserSettings = InferSelectModel<typeof settingsTable>;
+export type UserSettings = InferSelectModel<typeof settingsTable> & { editors: string[] };
 
 export type StatusOptions = "active" | "paused";
 
@@ -181,6 +181,8 @@ export type ClipQueueItem = InferSelectModel<typeof queueTable>;
 export type ModQueueItem = InferSelectModel<typeof modQueueTable>;
 
 export type OverlayType = "1" | "7" | "30" | "90" | "180" | "365" | "Featured" | "All" | "Queue";
+
+export type AccessType = "owner" | "editor";
 
 export type TwitchClipBody = {
 	broadcaster_id: string;

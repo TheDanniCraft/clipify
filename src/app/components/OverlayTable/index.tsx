@@ -2,16 +2,16 @@
 
 import type { Selection, SortDescriptor } from "@heroui/react";
 import type { ColumnsKey } from "./data";
-import type { Overlay, StatusOptions } from "@types";
+import type { Overlay, StatusOptions, TwitchUserResponse } from "@types";
 import type { Key } from "@react-types/shared";
 
 import dynamic from "next/dynamic";
-import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, TableHeader, TableColumn, TableBody, TableRow, TableCell, Input, Button, RadioGroup, Radio, Chip, Pagination, Divider, Tooltip, Popover, PopoverTrigger, PopoverContent, Spinner, addToast, Link } from "@heroui/react";
+import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, TableHeader, TableColumn, TableBody, TableRow, TableCell, Input, Button, RadioGroup, Radio, Chip, Pagination, Divider, Tooltip, Popover, PopoverTrigger, PopoverContent, Spinner, addToast, Link, Avatar, Skeleton } from "@heroui/react";
 const Table = dynamic(() => import("@heroui/react").then((c) => c.Table), { ssr: false }); // Temp fix for issue 4385
 import React, { useMemo, useCallback, useState, useEffect } from "react";
 import { cn } from "@heroui/react";
 import { IconAdjustmentsHorizontal, IconArrowsLeftRight, IconChevronDown, IconChevronUp, IconCirclePlus, IconCircuitChangeover, IconInfoCircle, IconMenuDeep, IconPencil, IconReload, IconSearch, IconTrash } from "@tabler/icons-react";
-import { createOverlay, deleteOverlay, saveOverlay, getAllOverlays, getUserPlan } from "@actions/database";
+import { createOverlay, deleteOverlay, saveOverlay, getAllOverlays, getUserPlan, getEditorOverlays, getEditorAccess } from "@actions/database";
 
 import { CopyText } from "./copy-text";
 
@@ -20,16 +20,21 @@ import { useMemoizedCallback } from "./use-memoized-callback";
 import { columns, INITIAL_VISIBLE_COLUMNS } from "./data";
 import { Status } from "./Status";
 import { useRouter } from "next/navigation";
+import { getAvatar, getUsersDetailsBulk } from "@/app/actions/twitch";
 
-export default function OverlayTable({ userid }: { userid: string }) {
+export default function OverlayTable({ userId, accessToken }: { userId: string; accessToken: string }) {
 	const router = useRouter();
-	const [overlays, setOverlays] = useState<Overlay[]>();
+	type LocalOverlay = Overlay & { accessType?: "owner" | "editor" };
+
+	const [overlays, setOverlays] = useState<LocalOverlay[]>();
 	const [filterValue, setFilterValue] = useState("");
 	const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set([]));
 	const [visibleColumns, setVisibleColumns] = useState<Selection>(new Set(INITIAL_VISIBLE_COLUMNS));
 	const [rowsPerPage] = useState(10);
 	const [page, setPage] = useState(1);
 	const [isLoading, setIsLoading] = useState(false);
+	const [hasAccess, setHasAccess] = useState<boolean>(false);
+	const [editorAccessList, setEditorAccessList] = useState<Set<TwitchUserResponse>>(new Set());
 	const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
 		column: "memberInfo",
 		direction: "ascending",
@@ -45,17 +50,35 @@ export default function OverlayTable({ userid }: { userid: string }) {
 	});
 
 	useEffect(() => {
-		const fetchOverlays = async () => {
+		async function fetchOverlays() {
 			try {
-				const overlaysData = await getAllOverlays(userid);
-				setOverlays(overlaysData ?? undefined);
+				const overlaysData = await getAllOverlays(userId);
+				const editorOverlays = await getEditorOverlays(userId);
+
+				const combinedOverlays: LocalOverlay[] = [...(overlaysData ?? []).map((o) => ({ ...o, accessType: "owner" as const })), ...(editorOverlays ?? []).map((o) => ({ ...o, accessType: "editor" as const }))];
+
+				setOverlays(combinedOverlays ?? undefined);
 			} catch (error) {
 				console.error("Failed to fetch overlays:", error);
 			}
-		};
+		}
+
+		async function fetchEditorAccess() {
+			const editors = await getEditorAccess(userId);
+			if (editors && editors.length > 0) {
+				setHasAccess(true);
+
+				const editorDetails = await getUsersDetailsBulk({ userIds: [userId, ...editors.map((e) => e.userId)], accessToken });
+
+				setEditorAccessList(new Set(editorDetails));
+			} else {
+				setHasAccess(false);
+			}
+		}
 
 		fetchOverlays();
-	}, [userid]);
+		fetchEditorAccess();
+	}, [accessToken, userId]);
 
 	const headerColumns = useMemo(() => {
 		if (visibleColumns === "all") return columns;
@@ -105,7 +128,7 @@ export default function OverlayTable({ userid }: { userid: string }) {
 	}, [page, filteredItems, rowsPerPage]);
 
 	const sortedItems = useMemo(() => {
-		return [...items].sort((a: Overlay, b: Overlay) => {
+		return [...items].sort((a: LocalOverlay, b: LocalOverlay) => {
 			const col = sortDescriptor.column as keyof Overlay;
 
 			let first = a[col];
@@ -147,12 +170,14 @@ export default function OverlayTable({ userid }: { userid: string }) {
 		onClick: handleOverlayClick,
 	}));
 
-	const renderCell = useMemoizedCallback((overlay: Overlay, columnKey: React.Key) => {
+	const renderCell = useMemoizedCallback((overlay: LocalOverlay, columnKey: React.Key) => {
 		const overlayKey = columnKey as ColumnsKey;
 
 		const cellValue = overlay[overlayKey as unknown as keyof Overlay] as string;
 
 		switch (overlayKey) {
+			case "accessType":
+				return <AvatarCell ownerId={overlay.ownerId} userId={userId} />;
 			case "name":
 			case "id":
 				return <CopyText>{cellValue}</CopyText>;
@@ -246,8 +271,12 @@ export default function OverlayTable({ userid }: { userid: string }) {
 	});
 
 	const reloadOverlays = useMemoizedCallback(async () => {
-		const overlaysData = await getAllOverlays(userid);
-		setOverlays(overlaysData ?? undefined);
+		const overlaysData = await getAllOverlays(userId);
+		const editorOverlays = await getEditorOverlays(userId);
+
+		const combinedOverlays: LocalOverlay[] = [...(overlaysData ?? []).map((o) => ({ ...o, accessType: "owner" as const })), ...(editorOverlays ?? []).map((o) => ({ ...o, accessType: "editor" as const }))];
+
+		setOverlays(combinedOverlays ?? undefined);
 	});
 
 	const topContent = useMemo(() => {
@@ -282,19 +311,21 @@ export default function OverlayTable({ userid }: { userid: string }) {
 									</Button>
 								</DropdownTrigger>
 								<DropdownMenu aria-label='Sort' items={headerColumns.filter((c) => !["actions"].includes(c.uid))}>
-									{(item) => (
-										<DropdownItem
-											key={item.uid}
-											onPress={() => {
-												setSortDescriptor({
-													column: item.uid,
-													direction: sortDescriptor.direction === "ascending" ? "descending" : "ascending",
-												});
-											}}
-										>
-											{item.name}
-										</DropdownItem>
-									)}
+									{(item) =>
+										item.name === "" ? null : (
+											<DropdownItem
+												key={item.uid}
+												onPress={() => {
+													setSortDescriptor({
+														column: item.uid,
+														direction: sortDescriptor.direction === "ascending" ? "descending" : "ascending",
+													});
+												}}
+											>
+												{item.name}
+											</DropdownItem>
+										)
+									}
 								</DropdownMenu>
 							</Dropdown>
 						</div>
@@ -306,7 +337,7 @@ export default function OverlayTable({ userid }: { userid: string }) {
 									</Button>
 								</DropdownTrigger>
 								<DropdownMenu disallowEmptySelection aria-label='Columns' items={columns.filter((c) => !["actions"].includes(c.uid))} selectedKeys={visibleColumns} selectionMode='multiple' onSelectionChange={setVisibleColumns}>
-									{(item) => <DropdownItem key={item.uid}>{item.name}</DropdownItem>}
+									{(item) => (item.name === "" ? null : <DropdownItem key={item.uid}>{item.name}</DropdownItem>)}
 								</DropdownMenu>
 							</Dropdown>
 						</div>
@@ -407,45 +438,95 @@ export default function OverlayTable({ userid }: { userid: string }) {
 					</Chip>
 					<Button isIconOnly size='sm' variant='light' onPress={reloadOverlays} startContent={<IconReload className='text-default-400' width={16} />} aria-label='Reload Overlays' />
 				</div>
-				<Button
-					color='primary'
-					endContent={<IconCirclePlus width={20} />}
-					isLoading={isLoading}
-					isDisabled={overlays === undefined}
-					onPress={async () => {
-						setIsLoading(true);
+				{hasAccess ? (
+					<Dropdown>
+						<DropdownTrigger>
+							<Button color='primary' isDisabled={overlays === undefined} isLoading={isLoading} endContent={<IconCirclePlus width={20} />}>
+								Add Overlay
+							</Button>
+						</DropdownTrigger>
 
-						const plan = await getUserPlan(userid);
-						const overlaysCount = overlays?.length ?? 0;
+						<DropdownMenu aria-label='Overlay actions' items={editorAccessList}>
+							{(item) => (
+								<DropdownItem
+									key={item.id}
+									onPress={async () => {
+										setIsLoading(true);
 
-						if (plan === "free" && overlaysCount >= 1) {
-							addToast({
-								title: "Upgrade Required",
-								description: (
-									<p>
-										To add an additional overlay, please{" "}
-										<Link color='warning' underline='always' href='/dashboard/settings'>
-											upgrade
-										</Link>{" "}
-										to <strong>Pro</strong>.
-									</p>
-								),
-								color: "warning",
+										const plan = await getUserPlan(userId);
+										const overlaysCount = overlays?.length ?? 0;
+
+										if (plan === "free" && overlaysCount >= 1) {
+											addToast({
+												title: "Upgrade Required",
+												description: (
+													<p>
+														To add an additional overlay, please{" "}
+														<Link color='warning' underline='always' href='/dashboard/settings'>
+															upgrade
+														</Link>{" "}
+														to <strong>Pro</strong>.
+													</p>
+												),
+												color: "warning",
+											});
+											setIsLoading(false);
+											return;
+										}
+
+										const overlay = await createOverlay(item.id);
+										router.push(`/dashboard/overlay/${overlay.id}`);
+									}}
+								>
+									<div className='flex items-center'>
+										<Avatar className='mr-2 h-6 w-6' src={item.profile_image_url} />
+										Add new overlay for {item.display_name}
+									</div>
+								</DropdownItem>
+							)}
+						</DropdownMenu>
+					</Dropdown>
+				) : (
+					<Button
+						color='primary'
+						endContent={<IconCirclePlus width={20} />}
+						isLoading={isLoading}
+						isDisabled={overlays === undefined}
+						onPress={async () => {
+							setIsLoading(true);
+
+							const plan = await getUserPlan(userId);
+							const overlaysCount = overlays?.length ?? 0;
+
+							if (plan === "free" && overlaysCount >= 1) {
+								addToast({
+									title: "Upgrade Required",
+									description: (
+										<p>
+											To add an additional overlay, please{" "}
+											<Link color='warning' underline='always' href='/dashboard/settings'>
+												upgrade
+											</Link>{" "}
+											to <strong>Pro</strong>.
+										</p>
+									),
+									color: "warning",
+								});
+								setIsLoading(false);
+								return;
+							}
+
+							createOverlay(userId).then((overlay) => {
+								router.push(`/dashboard/overlay/${overlay.id}`);
 							});
-							setIsLoading(false);
-							return;
-						}
-
-						createOverlay(userid).then((overlay) => {
-							router.push(`/dashboard/overlay/${overlay.id}`);
-						});
-					}}
-				>
-					Add Overlay
-				</Button>
+						}}
+					>
+						Add Overlay
+					</Button>
+				)}
 			</div>
 		);
-	}, [overlays, reloadOverlays, router, userid, isLoading]);
+	}, [overlays, reloadOverlays, router, userId, isLoading, hasAccess, editorAccessList]);
 
 	const bottomContent = useMemo(() => {
 		return (
@@ -514,5 +595,33 @@ export default function OverlayTable({ userid }: { userid: string }) {
 				</TableBody>
 			</Table>
 		</div>
+	);
+}
+
+function AvatarCell({ ownerId, userId }: { ownerId: string; userId: string }) {
+	const [src, setSrc] = React.useState<string | null>(null);
+	const [loading, setLoading] = React.useState(true);
+
+	React.useEffect(() => {
+		let cancelled = false;
+
+		(async () => {
+			try {
+				const url = await getAvatar(ownerId, userId);
+				if (!cancelled) setSrc(url ?? null);
+			} finally {
+				if (!cancelled) setLoading(false);
+			}
+		})();
+
+		return () => {
+			cancelled = true;
+		};
+	}, [ownerId, userId]);
+
+	return (
+		<Skeleton isLoaded={!loading} className='rounded-full'>
+			<Avatar size='sm' src={src ?? undefined} fallback />
+		</Skeleton>
 	);
 }

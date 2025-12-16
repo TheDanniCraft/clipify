@@ -22,6 +22,14 @@ const faqs: Faq[] = [
 		content: "Yes, Clipify offers a free version with basic features. You can also upgrade to Pro for additional features.",
 	},
 	{
+		title: "Can I embed Clipify on my website?",
+		content: "Yes, Clipify provides an embed feature that allows you to showcase your clips on your website or blog.",
+	},
+	{
+		title: "Can I allow others to manage my overlay settings (mods, managers etc.)?",
+		content: "Yes, you can add editors to help manage your overlay settings. Just make sure not to add yourself as an editor.",
+	},
+	{
 		title: "What are the benefits of the Pro version?",
 		content: "The Pro version includes features like multiple active overlays, channel points integration, and priority support.",
 	},
