@@ -220,12 +220,6 @@ export async function getAccessToken(userId: string): Promise<UserToken | null> 
 
 export async function getAllOverlays(userId: string) {
 	try {
-		const isAuthenticated = await validateAuth(true);
-		if (!isAuthenticated || isAuthenticated.id !== userId) {
-			console.warn(`Unauthenticated "getAllOverlays" API request for user id: ${userId}`);
-			return null;
-		}
-
 		const overlays = await db.select().from(overlaysTable).where(eq(overlaysTable.ownerId, userId)).execute();
 
 		return overlays;

@@ -1,23 +1,25 @@
 "use client";
 
 import { validateAuth } from "@/app/actions/auth";
-import { getAllOverlays } from "@/app/actions/database";
+import { getAccessToken, getAllOverlays, getEditorOverlays } from "@/app/actions/database";
+import { getUsersDetailsBulk } from "@/app/actions/twitch";
 import DashboardNavbar from "@/app/components/dashboardNavbar";
-import { AuthenticatedUser } from "@/app/lib/types";
-import { Card, CardBody, CardHeader, Divider, Link, Select, SelectItem, Snippet, Spinner, Switch, Tooltip } from "@heroui/react";
+import { AuthenticatedUser, Overlay } from "@/app/lib/types";
+import { Avatar, Card, CardBody, CardHeader, Divider, Link, Select, SelectItem, Snippet, Spinner, Switch, Tooltip } from "@heroui/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 export default function EmbedTool() {
 	const router = useRouter();
 	const [user, setUser] = useState<AuthenticatedUser>();
-	const [overlays, setOverlays] = useState<{ id: string; name: string }[]>([]);
+	const [overlays, setOverlays] = useState<Overlay[]>([]);
 	const [overlayId, setOverlayId] = useState<string>(() => {
 		if (typeof window === "undefined") return "";
 		return new URLSearchParams(window.location.search).get("oid") ?? "";
 	});
 	const [baseUrl, setBaseUrl] = useState<string>("");
 	const [showBanner, setShowBanner] = useState<boolean>();
+	const [avatars, setAvatars] = useState<Record<string, string>>({});
 
 	useEffect(() => {
 		async function setup() {
@@ -30,11 +32,31 @@ export default function EmbedTool() {
 
 			setUser(user);
 
-			const userOverlays = await getAllOverlays(user.id);
+			const userOverlays = (await getAllOverlays(user.id)) || [];
+			const editorOverlays = await getEditorOverlays(user.id);
+
+			if (editorOverlays && editorOverlays.length > 0) {
+				for (const editor of editorOverlays) {
+					const editorOwnerOverlays = (await getAllOverlays(editor.ownerId)) || [];
+					if (editorOwnerOverlays.length > 0) userOverlays.push(...editorOwnerOverlays);
+				}
+			}
+
+			const token = await getAccessToken(user.id);
+
+			if (token) {
+				const avatars = await getUsersDetailsBulk({ userIds: userOverlays.map((o) => o.ownerId), accessToken: token?.accessToken });
+				setAvatars(
+					avatars.reduce((acc, curr) => {
+						acc[curr.id] = curr.profile_image_url;
+						return acc;
+					}, {} as Record<string, string>)
+				);
+			}
 
 			if (!userOverlays || userOverlays.length === 0) return;
 
-			setOverlays(userOverlays.map((overlay) => ({ id: overlay.id, name: overlay.name })));
+			setOverlays(userOverlays);
 		}
 
 		setup();
@@ -89,7 +111,12 @@ export default function EmbedTool() {
 								placeholder='Select an overlay to generate embed code'
 							>
 								{overlays.map((overlay) => (
-									<SelectItem key={overlay.id}>{overlay.name}</SelectItem>
+									<SelectItem key={overlay.id}>
+										<div className='flex items-center'>
+											<Avatar className='mr-2 h-6 w-6' src={avatars[overlay.ownerId]} />
+											{overlay.name}
+										</div>
+									</SelectItem>
 								))}
 							</Select>
 							<Tooltip content={user?.plan === "free" ? "Upgrade your plan to remove Clipify branding" : "Toggle to include Clipify branding on your overlay"}>
