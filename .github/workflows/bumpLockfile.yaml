@@ -3,7 +3,7 @@ name: 🔼 Bump Bun lockfile on Depfu branches
 on:
   push:
     branches:
-      - "depfu/*"
+      - "depfu/**"
     paths:
       - "package.json"
 
