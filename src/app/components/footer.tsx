@@ -39,6 +39,7 @@ export default function Footer() {
 			{ name: "Collaborations", href: "https://help.clipify.us/hc/clipify/articles/1756597294-collaborations" },
 			{ name: "Checkout the code", href: "https://github.com/TheDanniCraft/clipify" },
 			{ name: "Referral Program", href: "/referral-program" },
+			{ name: "Climate Initiative", href: "https://climate.stripe.com/FaGAVC" },
 		],
 		legal: [
 			{ name: "Privacy Policy", href: "https://hub.goadopt.io/document/3852d930-97b9-46c2-950d-823e62515ab4?language=en" },
@@ -135,7 +136,10 @@ export default function Footer() {
 								<Logo size={34} />
 								<span className='text-small font-medium'>Clipify</span>
 							</div>
-							<p className='text-small text-default-500'>Need a break? Clipify got you covered. Auto-play clips while you are away - keep your stream alive and your viewers entertained.</p>
+							<div>
+								<p className='text-small text-default-500'>Need a break? Clipify got you covered. Auto-play clips while you are away - keep your stream alive and your viewers entertained.</p>
+								<iframe width='380' height='38' className='mt-2 rounded-lg outline-2 outline-background' src={`https://climate.stripe.com/badge/am4dxe?theme=${theme}&size=small&locale=en-US`}></iframe>
+							</div>
 						</div>
 						<div className='mt-16 grid grid-cols-2 gap-8 xl:col-span-2 xl:mt-0'>
 							<div className='md:grid md:grid-cols-2 md:gap-8'>
