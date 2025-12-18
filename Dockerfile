@@ -14,6 +14,7 @@ ENV INFISICAL_API_URL=https://infisical.thedannicraft.de
 FROM base AS deps
 WORKDIR /app
 COPY package.json bun.lock ./
+COPY patches ./patches
 
 RUN bun install --frozen-lockfile
 
