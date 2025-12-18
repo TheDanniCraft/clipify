@@ -16,8 +16,8 @@
 		"prepare": "next-ws patch"
 	},
 	"dependencies": {
-		"@heroui/react": "^2.8.5",
-		"@sentry/nextjs": "^10.30.0",
+		"@heroui/react": "^2.8.6",
+		"@sentry/nextjs": "^10.32.0",
 		"@tabler/icons-react": "^3.36.0",
 		"axios": "^1.13.2",
 		"dotenv": "^17.2.3",
@@ -33,14 +33,14 @@
 		"rate-limiter-flexible": "^9.0.1",
 		"react": "^19.2.3",
 		"react-dom": "^19.2.3",
-		"stripe": "^20.0.0",
+		"stripe": "^20.1.0",
 		"ws": "^8.18.3",
 		"xss": "^1.0.15"
 	},
 	"devDependencies": {
 		"@tailwindcss/postcss": "^4.1.18",
 		"@types/jsonwebtoken": "^9.0.10",
-		"@types/node": "^25.0.2",
+		"@types/node": "^25.0.3",
 		"@types/pg": "^8.16.0",
 		"@types/react": "^19.2.7",
 		"@types/react-dom": "^19.2.3",
