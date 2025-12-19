@@ -1,11 +1,8 @@
-diff --git a/node_modules/next/.bun-tag-45ddcc61e2178baf b/.bun-tag-45ddcc61e2178baf
-new file mode 100644
-index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
-diff --git a/node_modules/next/.bun-tag-f3028f1c824ca116 b/.bun-tag-f3028f1c824ca116
+diff --git a/node_modules/next/.bun-tag-1fc78cf0370fa4f2 b/.bun-tag-1fc78cf0370fa4f2
 new file mode 100644
 index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
 diff --git a/dist/server/lib/router-utils/proxy-request.js b/dist/server/lib/router-utils/proxy-request.js
-index de8549da03855f8ac804a26a240184d443dec6fc..22feec259848cbba47e253a5657e02c9fe6eb639 100644
+index de8549da03855f8ac804a26a240184d443dec6fc..3c4409bc737ee4f64c54cb7ace6196587186072e 100644
 --- a/dist/server/lib/router-utils/proxy-request.js
 +++ b/dist/server/lib/router-utils/proxy-request.js
 @@ -1,4 +1,5 @@
@@ -28,3 +25,12 @@ index de8549da03855f8ac804a26a240184d443dec6fc..22feec259848cbba47e253a5657e02c9
          // we limit proxy requests to 30s by default, in development
          // we don't time out WebSocket requests to allow proxying
          proxyTimeout: proxyTimeout === null ? undefined : proxyTimeout || 30000,
+@@ -44,6 +45,8 @@ async function proxyRequest(req, res, parsedUrl, upgradeHead, reqBody, proxyTime
+     // object will detect the disconnect, and we can abort the proxy's
+     // connection.
+     proxy.on('proxyReq', (proxyReq)=>{
++        proxyReq.removeHeader('accept-encoding'); 
++
+         res.on('close', ()=>proxyReq.destroy());
+     });
+     proxy.on('proxyRes', (proxyRes)=>{
