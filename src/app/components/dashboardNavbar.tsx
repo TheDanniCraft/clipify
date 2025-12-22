@@ -32,7 +32,7 @@ export default function DashboardNavbar({ children, user, title, tagline }: { ch
 				<NavbarContent className='ml-auto h-12 max-w-fit items-center gap-0' justify='end'>
 					<NavbarItem>
 						<Button isIconOnly radius='full' variant='light' onPress={() => setTheme(theme === "dark" ? "light" : "dark")} aria-label='Toggle Theme'>
-							{theme === "dark" ? <IconSunFilled className='text-primary-foreground/60' width={24} /> : <IconMoonFilled className='text-primary-foreground/60' width={24} />}
+							{(theme ?? "dark") === "dark" ? <IconSunFilled className='text-primary-foreground/60' width={24} /> : <IconMoonFilled className='text-primary-foreground/60' width={24} />}
 						</Button>
 					</NavbarItem>
 					<NavbarItem className='px-2'>
@@ -69,7 +69,7 @@ export default function DashboardNavbar({ children, user, title, tagline }: { ch
 								<DropdownItem key='Refer_a_friend' onPress={() => router.push("/referral-program")}>
 									Refer a Friend
 								</DropdownItem>
-								<DropdownItem key='logout' color='danger' onPress={() => router.push("/logout")}>
+								<DropdownItem className='text-danger' key='logout' onPress={() => router.push("/logout")}>
 									Log Out
 								</DropdownItem>
 							</DropdownMenu>
