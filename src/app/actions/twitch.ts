@@ -287,6 +287,37 @@ export async function getTwitchClips(overlay: Overlay, type?: OverlayType): Prom
 	return clips;
 }
 
+export async function getDemoClip(clipId: string): Promise<TwitchClip | null> {
+	const url = "https://api.twitch.tv/helix/clips";
+	const token = await getAppAccessToken();
+
+	if (!token) {
+		console.error("No app access token found");
+		return null;
+	}
+
+	try {
+		const response = await axios.get<TwitchApiResponse<TwitchClipResponse>>(url, {
+			headers: {
+				Authorization: `Bearer ${token.access_token}`,
+				"Client-Id": process.env.TWITCH_CLIENT_ID || "",
+			},
+			params: {
+				id: clipId,
+			},
+		});
+		const clip = response.data.data[0];
+		if (!clip) {
+			console.error("Clip not found for ID:", clipId);
+			return null;
+		}
+		return clip;
+	} catch (error) {
+		logTwitchError("Error fetching demo Twitch clip", error);
+		return null;
+	}
+}
+
 export async function getAvatar(userId: string, authUserId: string): Promise<string | undefined> {
 	const url = "https://api.twitch.tv/helix/users";
 

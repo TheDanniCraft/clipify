@@ -9,6 +9,7 @@ import TiersComponent from "@components/Pricing";
 import faqs from "@components/LandingPage/faqs";
 import Footer from "@components/footer";
 import FloatingBanner from "@components/floatingBanner";
+import DemoPlayer from "@components/DemoPlayer";
 
 export default function Home() {
 	return (
@@ -193,6 +194,19 @@ export default function Home() {
 					</div>
 				</div>
 				<TiersComponent />
+			</div>
+			<div id='demo' />
+			<div className='w-full bg-background py-24 px-4'>
+				<div className='max-w-6xl mx-auto'>
+					<div className='text-center mb-16'>
+						<Chip color='primary' className='mb-4'>
+							Interactive Demo
+						</Chip>
+						<h2 className='text-4xl font-bold mb-4'>See Clipify in action</h2>
+						<p className='text-foreground-500 text-lg max-w-2xl mx-auto'>Try our live demo to preview how clips play and how overlays behave on your stream.</p>
+					</div>
+					<DemoPlayer />
+				</div>
 			</div>
 			<div id='faq' />
 			<div className='w-full bg-background py-24 px-4'>

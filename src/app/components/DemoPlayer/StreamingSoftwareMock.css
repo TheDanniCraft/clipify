@@ -1,0 +1,348 @@
+.obs {
+	width: 100%;
+	min-height: 620px;
+	display: grid;
+	grid-template-rows: auto 1fr auto auto;
+	background: #1b1d22;
+	border: 1px solid rgba(255, 255, 255, 0.08);
+	border-radius: 12px;
+	overflow: hidden;
+	box-shadow: 0 20px 70px rgba(0, 0, 0, 0.55);
+	max-width: 100%;
+	overflow-x: hidden;
+}
+
+.obs > * {
+	min-width: 0;
+}
+
+.obs__titlebar {
+	height: 34px;
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 0 12px;
+	background: linear-gradient(180deg, #1f232a, #1a1d23);
+	border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+	min-width: 0;
+	overflow: hidden;
+}
+
+.obs__traffic {
+	display: flex;
+	gap: 8px;
+	flex: 0 0 auto;
+}
+.dot {
+	width: 10px;
+	height: 10px;
+	border-radius: 999px;
+	opacity: 0.95;
+}
+.red {
+	background: #ff5f57;
+}
+.yellow {
+	background: #febc2e;
+}
+.green {
+	background: #28c840;
+}
+
+.obs__title {
+	font-size: 12px;
+	color: rgba(255, 255, 255, 0.78);
+	flex: 1 1 auto;
+	min-width: 0;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
+.obs__previewArea {
+	background: #13151a;
+	display: grid;
+}
+
+.obs__previewBg {
+	position: relative;
+	display: grid;
+	place-items: center;
+	padding: 14px;
+	background: radial-gradient(900px 320px at 50% 20%, rgba(255, 255, 255, 0.04), transparent 60%);
+}
+
+.obs__canvas {
+	position: relative;
+	width: min(100%, 980px);
+	background: #0f1116;
+	border: 1px solid rgba(255, 255, 255, 0.12);
+	box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.45);
+	overflow: hidden;
+}
+
+.obs__scene {
+	position: absolute;
+	inset: 0;
+}
+
+.obs__canvasBorder {
+	pointer-events: none;
+	position: absolute;
+	inset: 0;
+	box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.obs__docks {
+	background: #1c1f25;
+	border-top: 1px solid rgba(255, 255, 255, 0.06);
+	display: grid;
+	grid-template-columns: 1.05fr 1.25fr 1.9fr 1.35fr;
+	gap: 8px;
+	padding: 8px;
+	align-items: stretch;
+}
+
+@media (max-width: 1100px) {
+	.obs__docks {
+		grid-template-columns: 1fr 1fr;
+	}
+}
+
+.dock {
+	background: #242830;
+	border: 1px solid rgba(255, 255, 255, 0.07);
+	border-radius: 6px;
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+}
+
+.dock__header {
+	height: 28px;
+	display: flex;
+	align-items: center;
+	padding: 0 10px;
+	font-size: 12px;
+	color: rgba(255, 255, 255, 0.82);
+	background: linear-gradient(180deg, #2a2f39, #242830);
+	border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.dock__body {
+	padding: 8px;
+	flex: 1 1 auto;
+	min-height: 150px;
+	display: flex;
+	flex-direction: column;
+}
+
+.obs__list {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.obs__row {
+	height: 28px;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 0 8px;
+	font-size: 12px;
+	color: rgba(255, 255, 255, 0.78);
+	border: 1px solid rgba(0, 0, 0, 0.25);
+	background: #1f232b;
+	border-radius: 4px;
+	min-width: 0;
+}
+
+.obs__row--selected {
+	background: #1e4fb8;
+	border-color: rgba(255, 255, 255, 0.12);
+	color: rgba(255, 255, 255, 0.96);
+}
+
+.obs__icon {
+	opacity: 0.85;
+	flex: 0 0 auto;
+}
+
+.obs__tinyIcon {
+	opacity: 0.75;
+	font-size: 12px;
+	flex: 0 0 auto;
+}
+
+.obs__spacer {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.obs__dockFooter {
+	margin-top: auto;
+	display: flex;
+	gap: 8px;
+	align-items: center;
+	padding-top: 10px;
+	opacity: 0.9;
+}
+
+.obs__miniBtn {
+	width: 26px;
+	height: 22px;
+	border-radius: 4px;
+	border: 1px solid rgba(255, 255, 255, 0.08);
+	background: #1f232b;
+	color: rgba(255, 255, 255, 0.8);
+	font-size: 12px;
+	cursor: default;
+}
+
+.obs__mixerFooter {
+	margin-top: auto;
+	display: flex;
+	justify-content: flex-start;
+	gap: 10px;
+	padding-top: 8px;
+	opacity: 0.85;
+}
+
+.obs__controls {
+	display: grid;
+	gap: 8px;
+	margin-top: 2px;
+}
+
+.obs__ctrlBtn {
+	height: 32px;
+	border-radius: 4px;
+	border: 1px solid rgba(255, 255, 255, 0.08);
+	background: #2a2f39;
+	color: rgba(255, 255, 255, 0.86);
+	font-size: 12px;
+	cursor: default;
+}
+
+.obs__ctrlBtn.danger {
+	border-color: rgba(255, 80, 80, 0.35);
+	background: rgba(255, 80, 80, 0.14);
+	color: rgba(255, 220, 220, 0.95);
+}
+
+.obs__statusbar {
+	height: 28px;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 0 10px;
+	background: #1a1d23;
+	border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.obs__statusLeft {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+}
+
+.obs__pill {
+	height: 18px;
+	padding: 0 8px;
+	border-radius: 999px;
+	background: rgba(255, 255, 255, 0.06);
+	border: 1px solid rgba(255, 255, 255, 0.06);
+	color: rgba(255, 255, 255, 0.7);
+	display: grid;
+	place-items: center;
+	font-size: 11px;
+	font-variant-numeric: tabular-nums;
+}
+
+.obs__pill--live {
+	border-color: rgba(255, 80, 80, 0.35);
+	background: rgba(255, 80, 80, 0.12);
+	color: rgba(255, 210, 210, 0.95);
+}
+
+.obs__statusRight {
+	font-size: 11px;
+	color: rgba(255, 255, 255, 0.7);
+	white-space: nowrap;
+}
+
+/* MixerRow styles (was inside style jsx) */
+.mx {
+	margin-bottom: 12px;
+}
+
+.mx__top {
+	display: grid;
+	grid-template-columns: 1fr auto;
+	gap: 10px;
+	align-items: center;
+	margin-bottom: 6px;
+}
+
+.mx__label {
+	font-size: 12px;
+	color: rgba(255, 255, 255, 0.78);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.mx__db {
+	font-size: 11px;
+	color: rgba(255, 255, 255, 0.7);
+	font-variant-numeric: tabular-nums;
+}
+
+.mx__mute {
+	font-size: 10px;
+	padding: 2px 6px;
+	border-radius: 999px;
+	border: 1px solid rgba(255, 255, 255, 0.12);
+	background: rgba(255, 255, 255, 0.06);
+	color: rgba(255, 255, 255, 0.75);
+	letter-spacing: 0.04em;
+}
+
+.mx__meter {
+	height: 12px;
+	border-radius: 3px;
+	overflow: hidden;
+	background: #14161b;
+	border: 1px solid rgba(255, 255, 255, 0.06);
+	position: relative;
+}
+
+.mx__meter.muted {
+	filter: grayscale(0.8);
+	opacity: 0.7;
+}
+
+.mx__fill {
+	height: 100%;
+	background: linear-gradient(90deg, #14a44d 0%, #22c55e 55%, #eab308 78%, #ef4444 100%);
+	transition: width 220ms linear;
+}
+
+.mx__peak {
+	position: absolute;
+	top: 0;
+	width: 2px;
+	height: 100%;
+	background: rgba(255, 255, 255, 0.9);
+	box-shadow: 0 0 6px rgba(255, 255, 255, 0.25);
+	transition: left 220ms linear;
+}
+
+.mx__ticks {
+	position: absolute;
+	inset: 0;
+	background-image: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.12) 0px, rgba(255, 255, 255, 0.12) 1px, transparent 1px, transparent 18px);
+	opacity: 0.18;
+	pointer-events: none;
+}

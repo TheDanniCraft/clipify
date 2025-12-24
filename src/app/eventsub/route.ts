@@ -99,7 +99,6 @@ async function handleNotification(bodyText: string): Promise<Response | null> {
 			const event = notification.event as TwitchMessage;
 			if ((await isCommand(event)) && (await isMod(event))) {
 				handleCommand(event);
-				handleCommand(notification.event as TwitchMessage);
 			}
 			break;
 		}

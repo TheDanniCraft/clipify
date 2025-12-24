@@ -139,7 +139,7 @@ export default function Footer() {
 							</div>
 							<div>
 								<p className='text-small text-default-500'>Need a break? Clipify got you covered. Auto-play clips while you are away - keep your stream alive and your viewers entertained.</p>
-								<iframe width='380' height='38' title='Stripe Climate contribution badge' className='mt-2 rounded-lg outline-2 outline-background' src={stripeSrc}></iframe>
+								<iframe title='Stripe Climate contribution badge' className='mt-2 rounded-lg outline-2 outline-background max-w-95 h-14.5' src={stripeSrc}></iframe>
 							</div>
 						</div>
 						<div className='mt-16 grid grid-cols-2 gap-8 xl:col-span-2 xl:mt-0'>
