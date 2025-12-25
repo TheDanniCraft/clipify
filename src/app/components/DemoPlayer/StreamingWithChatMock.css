@@ -1,0 +1,26 @@
+.streamLayout {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) 340px;
+	gap: 12px;
+	align-items: start;
+}
+
+.streamLayout__main {
+	min-width: 0;
+}
+
+.streamLayout__chat {
+	min-width: 0;
+	min-height: 0;
+}
+
+@media (max-width: 1100px) {
+	.streamLayout {
+		grid-template-columns: 1fr;
+	}
+
+	.streamLayout__chat {
+		width: 100% !important;
+		max-height: min(70vh, 520px);
+	}
+}

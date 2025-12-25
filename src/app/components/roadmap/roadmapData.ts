@@ -1,4 +1,4 @@
-import { IconFolder, IconFileText, IconGitBranch, IconUsers, IconClipboardData, IconBolt, IconProps, IconPencil, IconPaint } from "@tabler/icons-react";
+import { IconFolder, IconFileText, IconGitBranch, IconUsers, IconClipboardData, IconBolt, IconProps, IconPencil, IconPaint, IconHandMove } from "@tabler/icons-react";
 import { ForwardRefExoticComponent, RefAttributes } from "react";
 
 export enum RoadmapStatus {
@@ -83,12 +83,21 @@ export const roadmapData: RoadmapItemData[] = [
 		timeframe: "Q4 2025",
 	},
 	{
+		icon: IconHandMove,
+		color: "cyan",
+		title: "Interactive Demo on Landing Page",
+		description: "Provide an interactive demo showcasing overlay features on the landing page.",
+		status: RoadmapStatus.InDevelopment,
+		timeframe: "Q4 2025",
+		features: ["Example Overlay Player", "Simulate Channel Points", "Simulate Chat Commands", "See it in Action"],
+	},
+	{
 		icon: IconPaint,
 		color: "pink",
 		title: "Overlay Themes",
 		description: "Introduce customizable overlay themes.",
 		features: ["Theme selection", "Custom color schemes", "Layout options", "Preview mode"],
-		status: RoadmapStatus.InDevelopment,
+		status: RoadmapStatus.Planned,
 		timeframe: "Q1 2026",
 	},
 ];

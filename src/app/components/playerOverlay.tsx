@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-export default function PlayerOverlay({ children, top, bottom, left, right }: { children: React.ReactNode; top?: string; bottom?: string; left?: string; right?: string }) {
+export default function PlayerOverlay({ children, top, bottom, left, right, scale }: { children: React.ReactNode; top?: string; bottom?: string; left?: string; right?: string; scale?: number }) {
 	const [show, setShow] = useState(false);
 
 	useEffect(() => {
@@ -31,7 +31,7 @@ export default function PlayerOverlay({ children, top, bottom, left, right }: { 
 						bottom,
 						left: left ? 0 : undefined,
 						right: right ? 0 : undefined,
-						scale: 2,
+						scale: scale ?? 2,
 						transformOrigin: `${left ? "left" : right ? "right" : "center"} ${top ? "top" : bottom ? "bottom" : "center"}`,
 					}}
 				>

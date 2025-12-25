@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ClipQueueItem, ModQueueItem, Overlay, TwitchClip, TwitchClipGqlData, TwitchClipGqlResponse, TwitchClipVideoQuality, VideoClip } from "@types";
-import { getAvatar, getGameDetails, getTwitchClip, logTwitchError, subscribeToChat } from "@actions/twitch";
+import { getAvatar, getDemoClip, getGameDetails, getTwitchClip, logTwitchError, subscribeToChat } from "@actions/twitch";
 import PlayerOverlay from "@components/playerOverlay";
 import { Avatar, Button, Link } from "@heroui/react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -77,7 +77,7 @@ function isInIframe() {
 	return window.self !== window.top;
 }
 
-export default function OverlayPlayer({ clips, overlay, isEmbed, showBanner }: { clips: TwitchClip[]; overlay: Overlay; isEmbed?: boolean; showBanner?: boolean }) {
+export default function OverlayPlayer({ clips, overlay, isEmbed, showBanner, isDemoPlayer }: { clips: TwitchClip[]; overlay: Overlay; isEmbed?: boolean; showBanner?: boolean; isDemoPlayer?: boolean }) {
 	const [videoClip, setVideoClip] = useState<VideoClip | null>(null);
 	const [playedClips, setPlayedClips] = useState<string[]>([]);
 	const [showOverlay, setShowOverlay] = useState<boolean>(false);
@@ -86,9 +86,100 @@ export default function OverlayPlayer({ clips, overlay, isEmbed, showBanner }: {
 	const [, setWebsocket] = useState<WebSocket | null>(null);
 	const playerRef = useRef<HTMLVideoElement | null>(null);
 	const clipRef = useRef<VideoClip | null>(null);
+	const [demoQueue, setDemoQueue] = useState<string[]>([]);
+
+	const getFirstFromDemoQueue = useCallback(async () => {
+		if (demoQueue.length === 0) {
+			return null;
+		}
+		const raw = demoQueue[0].trim();
+
+		let nextClipId = raw;
+
+		try {
+			const url = new URL(raw);
+			const host = url.hostname.toLowerCase();
+
+			// Only accept twitch hosts
+			if (!host.includes("twitch.tv") && !host.includes("clips.twitch.tv")) {
+				setDemoQueue((prevQueue) => prevQueue.slice(1));
+				return null;
+			}
+
+			const clipMatch = url.pathname.match(/\/clip\/([^\/\?]+)/);
+			if (clipMatch && clipMatch[1]) {
+				nextClipId = clipMatch[1];
+			} else {
+				const parts = url.pathname.split("/").filter(Boolean);
+				if (parts.length > 0) nextClipId = parts[parts.length - 1];
+			}
+		} catch {
+			if (!/^[A-Za-z0-9_-]+$/.test(raw)) {
+				setDemoQueue((prevQueue) => prevQueue.slice(1));
+				return null;
+			}
+			nextClipId = raw;
+		}
+
+		setDemoQueue((prevQueue) => prevQueue.slice(1));
+
+		const clip = await getDemoClip(nextClipId);
+		if (!clip) {
+			return null;
+		}
+
+		return clip;
+	}, [demoQueue]);
+
+	async function handleCommand(name: string, data: string) {
+		switch (name) {
+			case "play": {
+				if (data) {
+					if (isDemoPlayer) {
+						setDemoQueue((prevQueue) => [...prevQueue, data]);
+					}
+					if (!clipRef.current) return;
+
+					await playNextClip();
+					break;
+				} else {
+					setPaused(false);
+				}
+				break;
+			}
+
+			case "pause": {
+				setPaused(true);
+				break;
+			}
+
+			case "skip": {
+				await playNextClip();
+				break;
+			}
+
+			case "hide": {
+				setShowPlayer(false);
+				if (playerRef.current) {
+					playerRef.current.pause();
+				}
+				break;
+			}
+
+			case "show": {
+				setShowPlayer(true);
+				if (playerRef.current) {
+					playerRef.current.play().catch((error) => {
+						console.error("Error playing the video:", error);
+					});
+				}
+				break;
+			}
+		}
+	}
 
 	const getFirstQueClip = useCallback(async (): Promise<ModQueueItem | ClipQueueItem | null> => {
-		if (isEmbed) return null;
+		if (isEmbed || isDemoPlayer) return null;
 
 		const modClip = await getFirstFromModQueue(overlay.ownerId);
 		if (modClip) {
@@ -101,9 +192,16 @@ export default function OverlayPlayer({ clips, overlay, isEmbed, showBanner }: {
 		}
 
 		return queClip;
-	}, [isEmbed, overlay.id, overlay.ownerId]);
+	}, [isEmbed, isDemoPlayer, overlay.id, overlay.ownerId]);
 
 	const getRandomClip = useCallback(async (): Promise<TwitchClip> => {
+		if (isDemoPlayer) {
+			const demoClip = await getFirstFromDemoQueue();
+			if (demoClip) {
+				return demoClip;
+			}
+		}
+
 		const queClip = await getFirstQueClip();
 
 		if (queClip) {
@@ -125,7 +223,7 @@ export default function OverlayPlayer({ clips, overlay, isEmbed, showBanner }: {
 
 		const randomIndex = Math.floor(Math.random() * unplayedClips.length);
 		return unplayedClips[randomIndex];
-	}, [clips, overlay, playedClips, getFirstQueClip]);
+	}, [isDemoPlayer, getFirstQueClip, clips, getFirstFromDemoQueue, overlay.ownerId, playedClips]);
 
 	const playNextClip = useCallback(async () => {
 		const randomClip = await getRandomClip();
@@ -134,8 +232,13 @@ export default function OverlayPlayer({ clips, overlay, isEmbed, showBanner }: {
 
 		const mediaUrl = await getRawMediaUrl(randomClip?.id);
 
-		const brodcasterAvatar = await getAvatar(randomClip?.broadcaster_id, randomClip?.broadcaster_id);
-		const game = await getGameDetails(randomClip?.game_id, randomClip?.broadcaster_id);
+		let brodcasterAvatar;
+		let game;
+
+		if (!isDemoPlayer) {
+			brodcasterAvatar = await getAvatar(randomClip?.broadcaster_id, randomClip?.broadcaster_id);
+			game = await getGameDetails(randomClip?.game_id, randomClip?.broadcaster_id);
+		}
 
 		if (mediaUrl && randomClip)
 			setVideoClip({
@@ -144,12 +247,12 @@ export default function OverlayPlayer({ clips, overlay, isEmbed, showBanner }: {
 				brodcasterAvatar: brodcasterAvatar ?? "",
 				game: game ?? {
 					id: "",
-					name: "Unknown Game",
+					name: isDemoPlayer ? "Demo Mode" : "Unknown Game",
 					box_art_url: "",
 					igdb_id: "",
 				},
 			});
-	}, [getRandomClip]);
+	}, [getRandomClip, isDemoPlayer]);
 
 	useEffect(() => {
 		clipRef.current = videoClip;
@@ -212,46 +315,8 @@ export default function OverlayPlayer({ clips, overlay, isEmbed, showBanner }: {
 								const { name, data } = message.data;
 								console.log("Received command via WebSocket:", name);
 
-								switch (name) {
-									case "play": {
-										if (data) {
-											if (!clipRef.current) return;
-											await playNextClip();
-											break;
-										} else {
-											setPaused(false);
-										}
-										break;
-									}
-
-									case "pause": {
-										setPaused(true);
-										break;
-									}
-
-									case "skip": {
-										await playNextClip();
-										break;
-									}
-
-									case "hide": {
-										setShowPlayer(false);
-										if (playerRef.current) {
-											playerRef.current.pause();
-										}
-										break;
-									}
-
-									case "show": {
-										setShowPlayer(true);
-										if (playerRef.current) {
-											playerRef.current.play().catch((error) => {
-												console.error("Error playing the video:", error);
-											});
-										}
-										break;
-									}
-								}
+								await handleCommand(name, data);
+								break;
 							}
 						}
 					} catch (error) {
@@ -264,7 +329,26 @@ export default function OverlayPlayer({ clips, overlay, isEmbed, showBanner }: {
 				ws.close();
 			};
 		}
-		if (!isEmbed) setupWebSocket();
+
+		async function setupMessaging() {
+			window.addEventListener("message", async (event) => {
+				if (event.origin !== window.location.origin) {
+					return;
+				}
+
+				const data = event.data;
+				if (!data || typeof data !== "object") return;
+
+				const { name, data: payload } = data as { name?: string; data?: unknown };
+				if (typeof name !== "string" || name.length === 0) return;
+
+				console.log("Received command via postMessage:", name);
+				await handleCommand(name, typeof payload === "string" ? payload : "");
+			});
+		}
+
+		if (!isEmbed && !isDemoPlayer) setupWebSocket();
+		if (isDemoPlayer) setupMessaging();
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
@@ -317,7 +401,7 @@ export default function OverlayPlayer({ clips, overlay, isEmbed, showBanner }: {
 		return null;
 	}
 
-	if (isEmbed || !isInIframe()) {
+	if (isEmbed || isDemoPlayer || !isInIframe()) {
 		return (
 			<div className='relative inline-block'>
 				<AnimatePresence mode='wait'>
@@ -369,6 +453,7 @@ export default function OverlayPlayer({ clips, overlay, isEmbed, showBanner }: {
 								aspectRatio: "19 / 9",
 							}}
 							className='block'
+							muted={isDemoPlayer}
 						>
 							Your browser does not support the video tag.
 						</motion.video>
@@ -387,7 +472,7 @@ export default function OverlayPlayer({ clips, overlay, isEmbed, showBanner }: {
 					<div className='absolute inset-0 flex flex-col justify-between text-xs sm:text-sm md:text-base lg:text-lg'>
 						{showOverlay && (
 							<>
-								<PlayerOverlay left='2%' top='2%'>
+								<PlayerOverlay left='2%' top='2%' scale={isDemoPlayer ? 1 : undefined}>
 									<div className='flex items-center'>
 										<Avatar size='md' src={videoClip?.brodcasterAvatar} />
 										<div className='flex flex-col justify-center ml-2 text-xs'>
@@ -396,7 +481,7 @@ export default function OverlayPlayer({ clips, overlay, isEmbed, showBanner }: {
 										</div>
 									</div>
 								</PlayerOverlay>
-								<PlayerOverlay right='2%' bottom='2%'>
+								<PlayerOverlay right='2%' bottom='2%' scale={isDemoPlayer ? 1 : undefined}>
 									<div className='flex flex-col items-end text-right'>
 										<span className='font-bold'>{videoClip?.title}</span>
 										<span className='text-xs text-gray-400 mt-1'>clipped by {videoClip?.creator_name}</span>
@@ -408,9 +493,7 @@ export default function OverlayPlayer({ clips, overlay, isEmbed, showBanner }: {
 				)}
 			</div>
 		);
-	}
-
-	if (!isEmbed && isInIframe()) {
+	} else {
 		return (
 			<div className='w-screen h-screen flex items-center justify-center bg-black text-white p-6'>
 				<div className='max-w-xl text-center'>
@@ -420,5 +503,6 @@ export default function OverlayPlayer({ clips, overlay, isEmbed, showBanner }: {
 			</div>
 		);
 	}
+
 	return null;
 }

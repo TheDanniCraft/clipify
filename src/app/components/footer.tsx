@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Button, Chip, Divider, Form, Image, Input, Link, Modal, ModalContent, Spinner, Tab, Tabs } from "@heroui/react";
 
 import Logo from "@components/logo";
@@ -18,6 +18,8 @@ export default function Footer() {
 	const plausible = usePlausible();
 	const [newsletterState, setNewsletterState] = useState("default");
 	const [isOpen, setIsOpen] = useState(false);
+
+	const stripeSrc = useMemo(() => `https://climate.stripe.com/badge/am4dxe?theme=${theme || "dark"}&size=small&locale=en-US`, [theme]);
 
 	const footerNavigation = {
 		features: [
@@ -37,8 +39,8 @@ export default function Footer() {
 			{ name: "Latest News", href: "/changelog" },
 			{ name: "Roadmap", href: "/roadmap" },
 			{ name: "Collaborations", href: "https://help.clipify.us/hc/clipify/articles/1756597294-collaborations" },
-			{ name: "Checkout the code", href: "https://github.com/TheDanniCraft/clipify" },
 			{ name: "Referral Program", href: "/referral-program" },
+			{ name: "Climate Initiative", href: "https://climate.stripe.com/FaGAVC" },
 		],
 		legal: [
 			{ name: "Privacy Policy", href: "https://hub.goadopt.io/document/3852d930-97b9-46c2-950d-823e62515ab4?language=en" },
@@ -135,7 +137,10 @@ export default function Footer() {
 								<Logo size={34} />
 								<span className='text-small font-medium'>Clipify</span>
 							</div>
-							<p className='text-small text-default-500'>Need a break? Clipify got you covered. Auto-play clips while you are away - keep your stream alive and your viewers entertained.</p>
+							<div>
+								<p className='text-small text-default-500'>Need a break? Clipify got you covered. Auto-play clips while you are away - keep your stream alive and your viewers entertained.</p>
+								<iframe title='Stripe Climate contribution badge' className='mt-2 rounded-lg outline-2 outline-background max-w-95 h-14.5' src={stripeSrc}></iframe>
+							</div>
 						</div>
 						<div className='mt-16 grid grid-cols-2 gap-8 xl:col-span-2 xl:mt-0'>
 							<div className='md:grid md:grid-cols-2 md:gap-8'>
@@ -231,7 +236,7 @@ export default function Footer() {
 							<p className='text-center text-tiny text-default-400 md:text-start'>&copy; {new Date().getFullYear()} TheDanniCraft. All rights reserved.</p>
 						</div>
 
-						<Tabs onSelectionChange={(key) => setTheme(String(key))} color='primary' selectedKey={theme}>
+						<Tabs onSelectionChange={(key) => setTheme(String(key))} color='primary' selectedKey={theme ?? "dark"}>
 							<Tab title={<IconMoonFilled />} key='dark' aria-label='Switch to dark theme' />
 							<Tab title={<IconSunFilled />} key='light' aria-label='Switch to light theme' />
 						</Tabs>
