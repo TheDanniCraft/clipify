@@ -247,7 +247,7 @@ export default function OverlayPlayer({ clips, overlay, isEmbed, showBanner, isD
 				brodcasterAvatar: brodcasterAvatar ?? "",
 				game: game ?? {
 					id: "",
-					name: isDemoPlayer ? "Unknown Game" : "Demo Mode",
+					name: isDemoPlayer ? "Demo Mode" : "Unknown Game",
 					box_art_url: "",
 					igdb_id: "",
 				},
@@ -336,10 +336,14 @@ export default function OverlayPlayer({ clips, overlay, isEmbed, showBanner, isD
 					return;
 				}
 
-				const { name, data } = event.data;
+				const data = event.data;
+				if (!data || typeof data !== "object") return;
+
+				const { name, data: payload } = data as { name?: string; data?: unknown };
+				if (typeof name !== "string" || name.length === 0) return;
 
 				console.log("Received command via postMessage:", name);
-				await handleCommand(name, data);
+				await handleCommand(name, typeof payload === "string" ? payload : "");
 			});
 		}
 
@@ -489,9 +493,7 @@ export default function OverlayPlayer({ clips, overlay, isEmbed, showBanner, isD
 				)}
 			</div>
 		);
-	}
-
-	if (!isEmbed && !isDemoPlayer && isInIframe()) {
+	} else {
 		return (
 			<div className='w-screen h-screen flex items-center justify-center bg-black text-white p-6'>
 				<div className='max-w-xl text-center'>
@@ -501,5 +503,6 @@ export default function OverlayPlayer({ clips, overlay, isEmbed, showBanner, isD
 			</div>
 		);
 	}
+
 	return null;
 }

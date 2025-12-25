@@ -61,8 +61,9 @@ export default function StreamingWithChatMock({ children, showChat = true, chatW
 						onCommand={(cmd, args) => {
 							if (args.length > 0) {
 								iframeRef?.current?.contentWindow?.postMessage({ name: cmd, data: args[0] });
+							} else {
+								iframeRef?.current?.contentWindow?.postMessage({ name: cmd, data: null });
 							}
-							iframeRef?.current?.contentWindow?.postMessage({ name: cmd, data: null });
 						}}
 						onRedeem={(_, input) => {
 							iframeRef?.current?.contentWindow?.postMessage({ name: "play", data: input });
