@@ -9,7 +9,7 @@ export default function DemoPlayer() {
 		<>
 			<div className='w-full'>
 				<StreamingWithChatMock iframeRef={iframeRef as RefObject<HTMLIFrameElement>}>
-					<iframe ref={iframeRef} className='w-full h-full' src='/demoPlayer' title='Interactive demo player' />
+					<iframe referrerPolicy='strict-origin-when-cross-origin' ref={iframeRef} className='w-full h-full' src='/demoPlayer' title='Interactive demo player' />
 				</StreamingWithChatMock>
 			</div>
 		</>

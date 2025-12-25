@@ -241,7 +241,7 @@ export default function SettingsPage() {
 									validate={(value) => {
 										for (const name of value) {
 											if (!/^[A-Za-z0-9_]{4,25}$/.test(name)) {
-												return `Invalid Twitch username: '${name}' (use 4–25 chars, only letters/numbers/_)`;
+												return `Invalid Twitch username: '${name}' (use 4-25 chars, only letters/numbers/_)`;
 											}
 
 											if (name.toLowerCase() === user.username.toLowerCase()) {

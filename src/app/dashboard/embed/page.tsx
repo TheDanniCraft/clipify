@@ -164,7 +164,7 @@ export default function EmbedTool() {
 							<h2 className='text-2xl font-bold'>Preview</h2>
 						</CardHeader>
 						<CardBody className='flex flex-col px-5 pb-5 w-full items-center justify-center'>
-							<iframe src={`${baseUrl}/embed/${overlayId === "" ? "default" : overlayId}${showBanner ? "?showBanner" : ""}`} className='w-full aspect-video rounded-lg' title='Overlay Preview' />
+							<iframe referrerPolicy='strict-origin-when-cross-origin' src={`${baseUrl}/embed/${overlayId === "" ? "default" : overlayId}${showBanner ? "?showBanner" : ""}`} className='w-full aspect-video rounded-lg' title='Overlay Preview' />
 							{user && user.plan === "free" && (
 								<p className='text-sm text-warning font-medium mt-2'>
 									Your current plan allows you to use the embed tool with Clipify branding.{" "}
