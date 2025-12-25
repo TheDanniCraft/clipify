@@ -31,7 +31,7 @@ To get started with Clipify, simply visit [https://clipify.us](https://clipify.u
 ## Pricing
 
 - **Free:** Unlimited clips, one overlay, all core features.
-- **Pro:** 2€/month – Multiple overlays, channel points integration, priority support, and more.
+- **Pro:** 2€/month - Multiple overlays, channel points integration, priority support, and more.
 
 You can upgrade to Pro directly on [clipify.us](https://clipify.us).
 
