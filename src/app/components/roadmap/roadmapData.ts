@@ -87,7 +87,7 @@ export const roadmapData: RoadmapItemData[] = [
 		color: "cyan",
 		title: "Interactive Demo on Landing Page",
 		description: "Provide an interactive demo showcasing overlay features on the landing page.",
-		status: RoadmapStatus.InDevelopment,
+		status: RoadmapStatus.Shipped,
 		timeframe: "Q4 2025",
 		features: ["Example Overlay Player", "Simulate Channel Points", "Simulate Chat Commands", "See it in Action"],
 	},
