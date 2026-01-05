@@ -18,7 +18,7 @@
 	"dependencies": {
 		"@heroui/react": "^2.8.6",
 		"@sentry/nextjs": "^10.32.1",
-		"@tabler/icons-react": "^3.36.0",
+		"@tabler/icons-react": "^3.36.1",
 		"axios": "^1.13.2",
 		"dotenv": "^17.2.3",
 		"drizzle-orm": "^0.45.1",
