@@ -139,7 +139,7 @@ export default function Footer() {
 							</div>
 							<div>
 								<p className='text-small text-default-500'>Need a break? Clipify got you covered. Auto-play clips while you are away - keep your stream alive and your viewers entertained.</p>
-								<a href='https://www.producthunt.com/products/clipify-2?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-clipify-us' target='_blank' rel='noreferrer noopener' className='mt-4 inline-block'>
+								<a href='https://www.producthunt.com/products/clipify-2?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-clipify-us' target='_blank' rel='noopener noreferrer' className='mt-4 inline-block'>
 									<Image src={productHuntSrc} alt='Clipify on Product Hunt' className='h-[52px] w-auto' />
 								</a>
 							</div>
