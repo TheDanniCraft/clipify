@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 📥 Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 🟢 Set up Bun
         uses: oven-sh/setup-bun@v2
@@ -35,7 +35,7 @@ jobs:
           git_commit_gpgsign: true
 
       - name: 🔼 Commit and push updated lockfile
-        uses: stefanzweifel/git-auto-commit-action@v6
+        uses: stefanzweifel/git-auto-commit-action@v7
         with:
           commit_message: "⬆️ Bump lockfile"
           file_pattern: bun.lock

@@ -1,0 +1,76 @@
+{
+	"$schema": "https://docs.renovatebot.com/renovate-schema.json",
+	"extends": [
+		"config:recommended"
+	],
+	"rangeStrategy": "bump",
+	"branchPrefix": "renovate/",
+	"additionalBranchPrefix": "{{{manager}}}/",
+	"labels": [
+		"dependencies",
+		"renovate"
+	],
+	"commitMessagePrefix": "⬆️ Bump ",
+	"commitMessageAction": "",
+	"commitMessageTopic": "{{depName}}",
+	"commitMessageExtra": " to {{newVersion}}",
+	"packageRules": [
+		{
+			"groupName": "next/react ecosystem",
+			"matchPackageNames": [
+				"/^next$/",
+				"/^react$/",
+				"/^react-dom$/",
+				"/^eslint-config-next$/",
+				"/^next-/"
+			]
+		},
+		{
+			"groupName": "database (drizzle/pg)",
+			"matchPackageNames": [
+				"/^drizzle-/",
+				"/^pg$/",
+				"/^@types/pg$/"
+			]
+		},
+		{
+			"groupName": "typescript & types",
+			"matchPackageNames": [
+				"/^@types//",
+				"/^typescript$/",
+				"/^tsx$/"
+			]
+		},
+		{
+			"groupName": "linting",
+			"matchPackageNames": [
+				"/^eslint$/"
+			]
+		},
+		{
+			"groupName": "tailwind",
+			"matchPackageNames": [
+				"/^tailwindcss$/",
+				"/^@tailwindcss//"
+			]
+		},
+		{
+			"groupName": "stripe",
+			"matchPackageNames": [
+				"/^stripe$/"
+			]
+		},
+		{
+			"matchManagers": [
+				"github-actions"
+			],
+			"groupName": "github actions"
+		},
+		{
+			"matchManagers": [
+				"dockerfile"
+			],
+			"groupName": "docker images"
+		}
+	]
+}

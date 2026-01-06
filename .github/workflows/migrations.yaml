@@ -15,11 +15,11 @@ jobs:
     steps:
       # Use deploy key for enabling bypass of branch protection, thanks to https://github.com/sbellone/release-workflow-example
       - name: 📥 Check out the repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ssh-key: ${{ secrets.DEPLOY_KEY }}
       - name: 🍞 Set up Bun
-        uses: oven-sh/setup-bun@v1
+        uses: oven-sh/setup-bun@v2
       - name: 📦 Install dependencies
         run: bun install
       - name: 📝 Generate migrations
@@ -34,7 +34,7 @@ jobs:
           git_user_signingkey: true
           git_commit_gpgsign: true
       - name: 🚀 Commit and push migrations
-        uses: stefanzweifel/git-auto-commit-action@v6
+        uses: stefanzweifel/git-auto-commit-action@v7
         with:
           commit_message: "🗃️ Update migration files (from ${{ github.event.after}})"
           file_pattern: drizzle/*
