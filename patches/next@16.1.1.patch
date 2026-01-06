@@ -1,8 +1,5 @@
-diff --git a/node_modules/next/.bun-tag-1fc78cf0370fa4f2 b/.bun-tag-1fc78cf0370fa4f2
-new file mode 100644
-index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
 diff --git a/dist/server/lib/router-utils/proxy-request.js b/dist/server/lib/router-utils/proxy-request.js
-index de8549da03855f8ac804a26a240184d443dec6fc..3c4409bc737ee4f64c54cb7ace6196587186072e 100644
+index de8549da03855f8ac804a26a240184d443dec6fc..b4f4936d20dc69e61e597185734088769917cc48 100644
 --- a/dist/server/lib/router-utils/proxy-request.js
 +++ b/dist/server/lib/router-utils/proxy-request.js
 @@ -1,4 +1,5 @@
@@ -29,7 +26,7 @@ index de8549da03855f8ac804a26a240184d443dec6fc..3c4409bc737ee4f64c54cb7ace619658
      // object will detect the disconnect, and we can abort the proxy's
      // connection.
      proxy.on('proxyReq', (proxyReq)=>{
-+        proxyReq.removeHeader('accept-encoding'); 
++        proxyReq.removeHeader('accept-encoding');
 +
          res.on('close', ()=>proxyReq.destroy());
      });

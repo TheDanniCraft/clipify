@@ -55,6 +55,6 @@
 		"typescript": "^5.9.3"
 	},
 	"patchedDependencies": {
-		"next@16.1.0": "patches/next@16.1.0.patch"
+		"next@16.1.1": "patches/next@16.1.1.patch"
 	}
 }
