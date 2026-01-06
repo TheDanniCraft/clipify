@@ -1,45 +1,75 @@
 {
 	"$schema": "https://docs.renovatebot.com/renovate-schema.json",
-	"extends": ["config:recommended"],
+	"extends": [
+		"config:recommended"
+	],
 	"rangeStrategy": "bump",
 	"branchPrefix": "renovate/",
 	"additionalBranchPrefix": "{{{manager}}}/",
-	"labels": ["dependencies", "renovate"],
+	"labels": [
+		"dependencies",
+		"renovate"
+	],
 	"commitMessagePrefix": "⬆️ Bump ",
 	"commitMessageAction": "",
 	"commitMessageTopic": "{{depName}}",
 	"commitMessageExtra": " to {{newVersion}}",
 	"packageRules": [
 		{
-			"matchPackagePatterns": ["^next$", "^react$", "^react-dom$", "^eslint-config-next$", "^next-"],
-			"groupName": "next/react ecosystem"
+			"groupName": "next/react ecosystem",
+			"matchPackageNames": [
+				"/^next$/",
+				"/^react$/",
+				"/^react-dom$/",
+				"/^eslint-config-next$/",
+				"/^next-/"
+			]
 		},
 		{
-			"matchPackagePatterns": ["^drizzle-", "^pg$", "^@types/pg$"],
-			"groupName": "database (drizzle/pg)"
+			"groupName": "database (drizzle/pg)",
+			"matchPackageNames": [
+				"/^drizzle-/",
+				"/^pg$/",
+				"/^@types/pg$/"
+			]
 		},
 		{
-			"matchPackagePatterns": ["^@types/", "^typescript$", "^tsx$"],
-			"groupName": "typescript & types"
+			"groupName": "typescript & types",
+			"matchPackageNames": [
+				"/^@types//",
+				"/^typescript$/",
+				"/^tsx$/"
+			]
 		},
 		{
-			"matchPackagePatterns": ["^eslint$"],
-			"groupName": "linting"
+			"groupName": "linting",
+			"matchPackageNames": [
+				"/^eslint$/"
+			]
 		},
 		{
-			"matchPackagePatterns": ["^tailwindcss$", "^@tailwindcss/"],
-			"groupName": "tailwind"
+			"groupName": "tailwind",
+			"matchPackageNames": [
+				"/^tailwindcss$/",
+				"/^@tailwindcss//"
+			]
 		},
 		{
-			"matchPackagePatterns": ["^stripe$"],
-			"groupName": "stripe"
+			"groupName": "stripe",
+			"matchPackageNames": [
+				"/^stripe$/"
+			]
 		},
 		{
-			"matchManagers": ["github-actions"],
+			"matchManagers": [
+				"github-actions"
+			],
 			"groupName": "github actions"
 		},
 		{
-			"matchManagers": ["dockerfile"],
+			"matchManagers": [
+				"dockerfile"
+			],
 			"groupName": "docker images"
 		}
 	]
