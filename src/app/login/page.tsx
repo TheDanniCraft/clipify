@@ -2,6 +2,8 @@ import { Button, Link } from "@heroui/react";
 import { IconBrandTwitch } from "@tabler/icons-react";
 import ErrorToast from "@components/errorToast";
 import { getBaseUrl, isPreview } from "@actions/utils";
+import { validateAuth } from "../actions/auth";
+import { redirect } from "next/navigation";
 
 export default async function Login({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
 	const scopes: string[] = ["user:read:email", "channel:read:redemptions", "channel:manage:redemptions", "user:read:chat", "user:write:chat", "user:bot", "channel:bot"];
@@ -25,6 +27,12 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
 	authLink.searchParams.append("state", state);
 
 	const { error, errorCode } = await searchParams;
+
+	const loggedInUser = await validateAuth();
+	if (loggedInUser) {
+		redirect("/dashboard");
+	}
+
 	return (
 		<>
 			<script src='//tag.goadopt.io/injector.js?website_code=792b9b29-57f9-4d92-b5f1-313f94ddfacc' className='adopt-injector' defer></script>
