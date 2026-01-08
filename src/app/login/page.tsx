@@ -6,16 +6,29 @@ import { validateAuth } from "../actions/auth";
 import { redirect } from "next/navigation";
 
 export default async function Login({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
+	const { error, errorCode, returnUrl } = await searchParams;
+
 	const scopes: string[] = ["user:read:email", "channel:read:redemptions", "channel:manage:redemptions", "user:read:chat", "user:write:chat", "user:bot", "channel:bot"];
 
-	let state = Buffer.from(new Date().toISOString()).toString("base64");
+	let state = Buffer.from(
+		JSON.stringify({
+			returnUrl: returnUrl || null,
+			date: new Date().toISOString(),
+		})
+	).toString("base64");
 
 	const baseUrl = await getBaseUrl();
 	let callbackUrl = new URL("/callback", baseUrl);
 
 	const authLink = new URL("https://id.twitch.tv/oauth2/authorize");
 	if ((await isPreview()) && process.env.PREVIEW_CALLBACK_URL) {
-		state = Buffer.from(JSON.stringify({ initiator: callbackUrl, date: new Date().toISOString() })).toString("base64");
+		state = Buffer.from(
+			JSON.stringify({
+				initiator: callbackUrl,
+				returnUrl: returnUrl || null,
+				date: new Date().toISOString(),
+			})
+		).toString("base64");
 		callbackUrl = new URL(process.env.PREVIEW_CALLBACK_URL);
 	}
 
@@ -25,8 +38,6 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
 	authLink.searchParams.append("scope", scopes.join(" "));
 	authLink.searchParams.append("force_verify", "true");
 	authLink.searchParams.append("state", state);
-
-	const { error, errorCode } = await searchParams;
 
 	const loggedInUser = await validateAuth();
 	if (loggedInUser) {

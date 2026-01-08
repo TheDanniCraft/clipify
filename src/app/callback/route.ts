@@ -7,6 +7,34 @@ import { getBaseUrl } from "@actions/utils";
 import { cookies } from "next/headers";
 import jwt from "jsonwebtoken";
 import * as Sentry from "@sentry/nextjs";
+function getSafeReturnUrl(returnUrl: string | null, baseUrl: URL) {
+	if (typeof returnUrl !== "string" || !returnUrl.trim()) {
+		return new URL("/dashboard", baseUrl);
+	}
+
+	const raw = returnUrl.trim();
+
+	// Reject protocol-relative URLs like "//evil.com"
+	if (raw.startsWith("//")) {
+		return new URL("/dashboard", baseUrl);
+	}
+
+	let target: URL;
+
+	try {
+		// If raw is relative, this resolves it against base.
+		target = new URL(raw, baseUrl);
+	} catch {
+		return new URL("/dashboard", baseUrl);
+	}
+
+	// Enforce same-origin (prevents redirecting to other domains)
+	if (target.origin !== baseUrl.origin) {
+		return new URL("/dashboard", baseUrl);
+	}
+
+	return target;
+}
 
 export async function GET(request: NextRequest) {
 	try {
@@ -17,28 +45,26 @@ export async function GET(request: NextRequest) {
 		const state = url.searchParams.get("state");
 
 		if (!code) {
-			return authUser("codeError");
+			return authUser(undefined, "codeError");
 		}
 
-		let receivedState = Buffer.from(state || "", "base64").toString("utf-8");
+		const receivedState = JSON.parse(Buffer.from(state || "", "base64").toString("utf-8"));
 
-		// Fix for n8n adding a space at the start of the state
-		receivedState = receivedState.replace(/^ /, "");
-		const stateTimestamp = new Date(receivedState).getTime();
+		const stateTimestamp = new Date(receivedState.date).getTime();
 		const currentTimestamp = Date.now();
 
 		if (isNaN(stateTimestamp) || currentTimestamp - stateTimestamp > 5 * 60 * 1000) {
-			return authUser("stateError");
+			return authUser(undefined, "stateError");
 		}
 
 		const token = await exchangeAccesToken(code);
 		if (!token || !token.access_token) {
-			return authUser("codeError");
+			return authUser(undefined, "codeError");
 		}
 		const user = await setAccessToken(token);
 
 		if (!user) {
-			return authUser("userError");
+			return authUser(undefined, "userError");
 		}
 
 		const cookieToken = await jwt.sign(user, process.env.JWT_SECRET!, {
@@ -53,10 +79,11 @@ export async function GET(request: NextRequest) {
 
 		const baseUrl = await getBaseUrl();
 
-		return NextResponse.redirect(new URL("/dashboard", baseUrl));
+		const returnUrl = getSafeReturnUrl(receivedState.returnUrl, baseUrl);
+		return NextResponse.redirect(returnUrl);
 	} catch (error) {
 		const errorCode = await Sentry.captureException(error);
 
-		return authUser("serverError", errorCode);
+		return authUser(undefined, "serverError", errorCode);
 	}
 }
