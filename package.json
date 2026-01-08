@@ -46,7 +46,7 @@
 		"@types/react": "^19.2.7",
 		"@types/react-dom": "^19.2.3",
 		"@types/ws": "^8.18.1",
-		"@vercel/nft": "^1.1.1",
+		"@vercel/nft": "^1.2.0",
 		"drizzle-kit": "^0.31.8",
 		"eslint": "^9.39.2",
 		"eslint-config-next": "^16.1.1",
