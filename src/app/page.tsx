@@ -20,7 +20,7 @@ export default function Home() {
 				title="We're launched!"
 				text='50% off for early-bird users'
 				cta={
-					<Button as={Link} href='/#pricing' radius='full' className='h-9 px-4 bg-white text-black'>
+					<Button as={Link} href='#pricing' radius='full' className='h-9 px-4 bg-white text-black'>
 						Claim Offer
 					</Button>
 				}
@@ -184,7 +184,7 @@ export default function Home() {
 											Use <span className='font-bold bg-white text-purple-700 px-2 py-0.5 rounded'>EARLYCLIPPY</span> for <strong>50% OFF</strong> your first year.
 										</p>
 
-										<Button as={Link} href='/login' className='w-full bg-white text-purple-700 font-medium py-2 rounded-lg hover:opacity-90 transition'>
+										<Button as={Link} href='/redeem?code=EARLYCLIPPY&redirect=/login&campaign=launch_offer' className='w-full bg-white text-purple-700 font-medium py-2 rounded-lg hover:opacity-90 transition'>
 											Register To Claim Offer
 										</Button>
 									</CardBody>

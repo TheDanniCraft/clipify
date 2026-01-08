@@ -3,9 +3,10 @@
 import Stripe from "stripe";
 import { AuthenticatedUser, NumokStripeMetadata } from "@types";
 import { getBaseUrl } from "@actions/utils";
+import { cookies } from "next/headers";
 
 const PRODUCTS = {
-	dev: ["price_1RaLC2B0sp7KYCWLkJGjDq3q", "price_1Ru0WHB0sp7KYCWLBbdT0ZH7"],
+	dev: ["price_1SnM3MBg46KdNQq5MjHMYyYw", "price_1SnMAsBg46KdNQq5k8cI6Y8M"],
 	prod: ["price_1S83PSB0sp7KYCWLzhUkxodR", "price_1S83Y2B0sp7KYCWL0YDGoqjG"],
 };
 
@@ -71,10 +72,21 @@ export async function isEligibleForTrial(user: AuthenticatedUser) {
 }
 
 export async function generatePaymentLink(user: AuthenticatedUser, returnUrl?: string, numokMetadata?: NumokStripeMetadata) {
+	const cookieStore = await cookies();
 	const products = await getPlans();
 
 	const stripe = await getStripe();
 	const baseUrl = await getBaseUrl();
+
+	const rawCode = cookieStore.get("offer")?.value;
+	let promo: Stripe.PromotionCode | null = null;
+	if (rawCode) {
+		const promoList = await stripe.promotionCodes.list({
+			code: rawCode,
+			limit: 1,
+		});
+		promo = promoList.data.length ? promoList.data[0] : null;
+	}
 
 	const session = await stripe.checkout.sessions.create({
 		line_items: [{ price: products[0], quantity: 1 }],
@@ -87,12 +99,12 @@ export async function generatePaymentLink(user: AuthenticatedUser, returnUrl?: s
 			userId: user.id,
 			...numokMetadata,
 		},
-		allow_promotion_codes: true,
 		tax_id_collection: {
 			enabled: true,
 		},
 		subscription_data: (await isEligibleForTrial(user)) ? { trial_period_days: 3 } : {},
 		...(user.stripeCustomerId ? { customer_update: { name: "auto", address: "auto" } } : {}),
+		...(promo ? { discounts: [{ promotion_code: promo.id }] } : { allow_promotion_codes: true }),
 	});
 
 	return session.url;
