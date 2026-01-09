@@ -57,7 +57,6 @@ export async function GET(request: NextRequest) {
 		}
 
 		if (!state || !state.trim()) {
-			console.log("Missing state");
 			return authUser(undefined, "stateError");
 		}
 
@@ -68,19 +67,17 @@ export async function GET(request: NextRequest) {
 				issuer: "clipify",
 			});
 		} catch (e) {
-			console.log("Invalid state", e);
+			console.error("Invalid state", e);
 			return authUser(undefined, "stateError");
 		}
 
 		if (!isOAuthStatePayload(decoded)) {
-			console.log("Invalid state payload");
 			return authUser(undefined, "stateError");
 		}
 		const payload = decoded;
 
 		const cookieNonce = cookieStore.get("auth_nonce")?.value;
 		if (!cookieNonce || payload.nonce !== cookieNonce) {
-			console.log("Invalid nonce");
 			return authUser(undefined, "stateError");
 		}
 		cookieStore.set("auth_nonce", "", { path: "/", maxAge: 0 });
@@ -110,7 +107,6 @@ export async function GET(request: NextRequest) {
 
 		const baseUrl = await getBaseUrl();
 		const returnUrl = getSafeReturnUrl(typeof payload.returnUrl === "string" ? payload.returnUrl : null, baseUrl);
-		console.log(payload);
 
 		return NextResponse.redirect(returnUrl);
 	} catch (error) {

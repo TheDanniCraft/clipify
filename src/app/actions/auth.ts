@@ -69,30 +69,3 @@ export async function validateAuth(skipUserCheck = false) {
 
 	return user;
 }
-
-export async function generateState(stateObject = {}) {
-	const nonce = crypto.randomUUID();
-
-	const cookieStore = await cookies();
-
-	cookieStore.set("auth_nonce", nonce, {
-		httpOnly: true,
-		secure: process.env.NODE_ENV === "production",
-		sameSite: "lax",
-		path: "/",
-		maxAge: 10 * 60,
-	});
-
-	const state = jwt.sign(
-		{
-			nonce,
-			...stateObject,
-		},
-		process.env.JWT_SECRET!,
-		{
-			expiresIn: 10 * 60,
-		}
-	);
-
-	return state;
-}

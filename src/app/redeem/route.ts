@@ -13,6 +13,7 @@ export async function GET(request: NextRequest) {
 	cookieStore.set("offer", offerCode, {
 		httpOnly: true,
 		sameSite: "lax",
+		secure: process.env.NODE_ENV === "production",
 	});
 
 	return NextResponse.redirect(new URL(`${redirectUrl || "/"}?utm_source=offer_redeem&utm_medium=offer&utm_campaign=${campaign || offerCode}`, request.url));
