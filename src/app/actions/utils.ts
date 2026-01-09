@@ -30,3 +30,11 @@ export async function getBaseUrl(): Promise<URL> {
 
 	return new URL(url);
 }
+
+export async function safeReturnUrl(input?: string | string[] | null) {
+	const v = Array.isArray(input) ? input[0] : input;
+	if (!v) return null;
+	if (!v.startsWith("/")) return null;
+	if (v.startsWith("//")) return null;
+	return v;
+}

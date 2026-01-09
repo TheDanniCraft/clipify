@@ -79,10 +79,11 @@ export async function generatePaymentLink(user: AuthenticatedUser, returnUrl?: s
 	const baseUrl = await getBaseUrl();
 
 	const rawCode = cookieStore.get("offer")?.value;
+	const offerCode = rawCode?.trim();
 	let promo: Stripe.PromotionCode | null = null;
-	if (rawCode) {
+	if (offerCode && /^[A-Za-z0-9]+$/.test(offerCode)) {
 		const promoList = await stripe.promotionCodes.list({
-			code: rawCode,
+			code: offerCode,
 			limit: 1,
 		});
 		promo = promoList.data.length ? promoList.data[0] : null;

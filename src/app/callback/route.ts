@@ -1,12 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
+import { cookies } from "next/headers";
+import jwt, { type JwtPayload } from "jsonwebtoken";
+import * as Sentry from "@sentry/nextjs";
+
 import { exchangeAccesToken } from "@actions/twitch";
 import { setAccessToken } from "@actions/database";
 import { authUser } from "@actions/auth";
 import { getBaseUrl } from "@actions/utils";
 
-import { cookies } from "next/headers";
-import jwt from "jsonwebtoken";
-import * as Sentry from "@sentry/nextjs";
+type OAuthStatePayload = JwtPayload & {
+	nonce: string;
+	returnUrl?: string | null;
+	initiator?: string;
+	date?: string;
+};
+
+function isOAuthStatePayload(p: string | JwtPayload): p is OAuthStatePayload {
+	return typeof p === "object" && p !== null && typeof p.nonce === "string";
+}
+
 function getSafeReturnUrl(returnUrl: string | null, baseUrl: URL) {
 	if (typeof returnUrl !== "string" || !returnUrl.trim()) {
 		return new URL("/dashboard", baseUrl);
@@ -14,21 +26,17 @@ function getSafeReturnUrl(returnUrl: string | null, baseUrl: URL) {
 
 	const raw = returnUrl.trim();
 
-	// Reject protocol-relative URLs like "//evil.com"
 	if (raw.startsWith("//")) {
 		return new URL("/dashboard", baseUrl);
 	}
 
 	let target: URL;
-
 	try {
-		// If raw is relative, this resolves it against base.
 		target = new URL(raw, baseUrl);
 	} catch {
 		return new URL("/dashboard", baseUrl);
 	}
 
-	// Enforce same-origin (prevents redirecting to other domains)
 	if (target.origin !== baseUrl.origin) {
 		return new URL("/dashboard", baseUrl);
 	}
@@ -48,42 +56,65 @@ export async function GET(request: NextRequest) {
 			return authUser(undefined, "codeError");
 		}
 
-		const receivedState = JSON.parse(Buffer.from(state || "", "base64").toString("utf-8"));
-
-		const stateTimestamp = new Date(receivedState.date).getTime();
-		const currentTimestamp = Date.now();
-
-		if (isNaN(stateTimestamp) || currentTimestamp - stateTimestamp > 5 * 60 * 1000) {
+		if (!state || !state.trim()) {
+			console.log("Missing state");
 			return authUser(undefined, "stateError");
 		}
 
+		let decoded: string | JwtPayload;
+		try {
+			decoded = jwt.verify(state, process.env.JWT_SECRET!, {
+				algorithms: ["HS256"],
+				issuer: "clipify",
+			});
+		} catch (e) {
+			console.log("Invalid state", e);
+			return authUser(undefined, "stateError");
+		}
+
+		if (!isOAuthStatePayload(decoded)) {
+			console.log("Invalid state payload");
+			return authUser(undefined, "stateError");
+		}
+		const payload = decoded;
+
+		const cookieNonce = cookieStore.get("auth_nonce")?.value;
+		if (!cookieNonce || payload.nonce !== cookieNonce) {
+			console.log("Invalid nonce");
+			return authUser(undefined, "stateError");
+		}
+		cookieStore.set("auth_nonce", "", { path: "/", maxAge: 0 });
+
 		const token = await exchangeAccesToken(code);
-		if (!token || !token.access_token) {
+		if (!token?.access_token) {
 			return authUser(undefined, "codeError");
 		}
-		const user = await setAccessToken(token);
 
+		const user = await setAccessToken(token);
 		if (!user) {
 			return authUser(undefined, "userError");
 		}
 
-		const cookieToken = await jwt.sign(user, process.env.JWT_SECRET!, {
+		const cookieToken = jwt.sign(user, process.env.JWT_SECRET!, {
 			expiresIn: "1h",
+			algorithm: "HS256",
 		});
 
-		await cookieStore.set("token", cookieToken, {
+		cookieStore.set("token", cookieToken, {
 			httpOnly: true,
 			sameSite: "lax",
+			secure: process.env.NODE_ENV === "production",
 			maxAge: 60 * 60 * 2,
+			path: "/",
 		});
 
 		const baseUrl = await getBaseUrl();
+		const returnUrl = getSafeReturnUrl(typeof payload.returnUrl === "string" ? payload.returnUrl : null, baseUrl);
+		console.log(payload);
 
-		const returnUrl = getSafeReturnUrl(receivedState.returnUrl, baseUrl);
 		return NextResponse.redirect(returnUrl);
 	} catch (error) {
 		const errorCode = await Sentry.captureException(error);
-
 		return authUser(undefined, "serverError", errorCode);
 	}
 }
