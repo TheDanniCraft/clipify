@@ -27,13 +27,16 @@ export async function getUserFromCookie(cookie: string) {
 	}
 }
 
-export async function authUser(error?: string, errorCode?: string) {
+export async function authUser(returnUrl?: string, error?: string, errorCode?: string) {
 	const url = await getBaseUrl();
 
 	const appUrl = new URL("/login", url);
 	if (error) {
 		appUrl.searchParams.set("error", error);
 		appUrl.searchParams.set("errorCode", errorCode || "");
+	}
+	if (returnUrl) {
+		appUrl.searchParams.set("returnUrl", returnUrl);
 	}
 
 	return NextResponse.redirect(appUrl);

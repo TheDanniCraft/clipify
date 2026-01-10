@@ -5,7 +5,7 @@ export async function proxy(request: NextRequest) {
 	const token = request.cookies.get("token")?.value;
 
 	if (!token) {
-		return authUser();
+		return authUser(request.nextUrl.pathname);
 	}
 
 	NextResponse.next();

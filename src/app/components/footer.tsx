@@ -19,7 +19,7 @@ export default function Footer() {
 	const [newsletterState, setNewsletterState] = useState("default");
 	const [isOpen, setIsOpen] = useState(false);
 
-	const stripeSrc = useMemo(() => `https://climate.stripe.com/badge/am4dxe?theme=${theme || "dark"}&size=small&locale=en-US`, [theme]);
+	const productHuntSrc = useMemo(() => `https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1052781&theme=${theme === "light" ? "light" : "dark"}`, [theme]);
 
 	const footerNavigation = {
 		features: [
@@ -139,7 +139,9 @@ export default function Footer() {
 							</div>
 							<div>
 								<p className='text-small text-default-500'>Need a break? Clipify got you covered. Auto-play clips while you are away - keep your stream alive and your viewers entertained.</p>
-								<iframe title='Stripe Climate contribution badge' className='mt-2 rounded-lg outline-2 outline-background max-w-95 h-14.5' src={stripeSrc}></iframe>
+								<a href='https://www.producthunt.com/products/clipify-2?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-clipify-us' target='_blank' rel='noopener noreferrer' className='mt-4 inline-block'>
+									<Image src={productHuntSrc} alt='Clipify on Product Hunt' className='h-[52px] w-auto' />
+								</a>
 							</div>
 						</div>
 						<div className='mt-16 grid grid-cols-2 gap-8 xl:col-span-2 xl:mt-0'>

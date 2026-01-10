@@ -462,7 +462,7 @@ export default function OverlayPlayer({ clips, overlay, isEmbed, showBanner, isD
 				{isEmbed ? (
 					showBanner ? (
 						<div className='absolute left-4 bottom-4'>
-							<Button as={Link} href='https://clipify.us?utm_source=embed&utm_medium=overlay&utm_campaign=webembed' color='primary' className='inline-flex items-center gap-1 px-3 py-1.5 text-white text-xs sm:text-sm rounded-full shadow-md hover:bg-opacity-80 transition' aria-label='Powered by Clipify'>
+							<Button as={Link} href='https://clipify.us?utm_source=embed&utm_medium=overlay&utm_campaign=webembed' target='_blank' rel='noopener noreferrer' color='primary' className='inline-flex items-center gap-1 px-3 py-1.5 text-white text-xs sm:text-sm rounded-full shadow-md hover:bg-opacity-80 transition' aria-label='Powered by Clipify'>
 								<Logo className='w-4 h-4 sm:w-6 sm:h-6' />
 								<span>Powered by Clipify</span>
 							</Button>
