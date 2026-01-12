@@ -24,7 +24,7 @@
 		"drizzle-orm": "^0.45.1",
 		"jsonwebtoken": "^9.0.3",
 		"minimatch": "^10.1.1",
-		"motion": "^12.25.0",
+		"motion": "^12.26.1",
 		"next": "^16.1.1",
 		"next-navigation-guard": "^0.2.0",
 		"next-plausible": "^3.12.5",
