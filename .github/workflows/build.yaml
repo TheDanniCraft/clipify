@@ -9,19 +9,21 @@ permissions:
 
 jobs:
   build-and-push:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.runner }}
     strategy:
       matrix:
-        architecture:
-          - linux/amd64
-          - linux/arm64
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
 
     steps:
       - name: 🔡 Prepare env
         id: prepareEnv
         run: |
           echo "REPO_NAME=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
-          platform=${{ matrix.architecture }}
+          platform=${{ matrix.platform }}
           echo "PLATFORM_PAIR=${platform//\//-}" >> $GITHUB_ENV
 
       - name: 🐳 Docker Meta
@@ -50,11 +52,14 @@ jobs:
         id: build
         uses: docker/build-push-action@v6
         with:
-          platforms: ${{ matrix.architecture }}
+          platforms: ${{ matrix.platform }}
           context: .
           push: true
           labels: ${{ steps.meta.outputs.labels }}
           outputs: type=image,name=ghcr.io/${{ env.REPO_NAME }},push-by-digest=true,name-canonical=true,push=true
+
+          cache-from: type=gha,scope=${{ github.repository }}-${{ matrix.platform }}
+          cache-to: type=gha,mode=max,scope=${{ github.repository }}-${{ matrix.platform }}
 
       - name: 📜 Export digest
         run: |
