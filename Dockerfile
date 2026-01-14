@@ -1,24 +1,20 @@
-# Base
-FROM oven/bun:1 AS base
-
-RUN apt-get update && \
-    apt-get install -y bash curl gnupg && \
-    curl -1sLf 'https://artifacts-cli.infisical.com/setup.deb.sh' | bash && \
-    apt-get update && \
-    apt-get install -y infisical && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
-
-ENV INFISICAL_API_URL=https://infisical.thedannicraft.de
-
-FROM base AS deps
+# -------------------------
+# deps (install node_modules)
+# -------------------------
+FROM oven/bun:1 AS deps
 WORKDIR /app
+
 COPY package.json bun.lock ./
 COPY patches ./patches
 
-RUN bun install --frozen-lockfile
+RUN --mount=type=cache,target=/root/.bun \
+    bun install --frozen-lockfile
 
-FROM base AS builder
+
+# -------------------------
+# builder (build Next standalone)
+# -------------------------
+FROM oven/bun:1 AS builder
 WORKDIR /app
 ARG COOLIFY_URL
 
@@ -27,14 +23,63 @@ COPY . .
 
 RUN bun run app:build
 
-FROM base AS runner
+
+# -------------------------
+# runner (production)
+# -------------------------
+FROM oven/bun:1 AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
+ENV INFISICAL_API_URL=https://infisical.thedannicraft.de
+ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
 
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+# Buildx provides this automatically
+ARG TARGETARCH
+# Pin Infisical for reproducible builds
+ARG INFISICAL_VERSION=0.43.46
+ARG INFISICAL_SHA_AMD64=3457a1f9fa51f1b04bb759bd60fd5ee77dc51509ac4058248cb8c68b1b1372ff
+ARG INFISICAL_SHA_ARM64=89bd57b8ed9934c421565397bb8fdaf4906b61bae2b6d8b68eca2af01393b605
 
+# Minimal OS deps + user creation
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    ca-certificates \
+    curl \
+    adduser && \
+    rm -rf /var/lib/apt/lists/* && \
+    addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nextjs
+
+# Install Infisical CLI
+RUN set -eux; \
+    case "${TARGETARCH}" in \
+    amd64) \
+    INF_ARCH="amd64"; \
+    INF_SHA="${INFISICAL_SHA_AMD64}"; \
+    ;; \
+    arm64) \
+    INF_ARCH="arm64"; \
+    INF_SHA="${INFISICAL_SHA_ARM64}"; \
+    ;; \
+    *) echo "Unsupported arch: ${TARGETARCH}" && exit 1 ;; \
+    esac; \
+    \
+    file="cli_${INFISICAL_VERSION}_linux_${INF_ARCH}.tar.gz"; \
+    url="https://github.com/Infisical/cli/releases/download/v${INFISICAL_VERSION}/${file}"; \
+    tmp="/tmp/${file}"; \
+    \
+    curl -fsSL "$url" -o "$tmp"; \
+    \
+    echo "${INF_SHA}  ${tmp}" | sha256sum -c -; \
+    \
+    tar -xzf "$tmp" -C /usr/local/bin; \
+    rm -f "$tmp"; \
+    chmod +x /usr/local/bin/infisical; \
+    infisical --version
+
+# App runtime files
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
@@ -42,11 +87,6 @@ COPY --from=builder --chown=nextjs:nodejs /app/drizzle.config.ts ./
 COPY --from=builder --chown=nextjs:nodejs /app/drizzle ./drizzle
 
 USER nextjs
-
 EXPOSE 3000
-
-ENV PORT=3000
-
-ENV HOSTNAME="0.0.0.0"
 
 CMD ["infisical", "run", "--projectId", "4bea168c-8d4c-4086-b755-f04fdc5305a1", "--command", "bun run db:migrate && bun server.js || sleep infinity"]

@@ -263,8 +263,8 @@ export async function getTwitchClips(overlay: Overlay, type?: OverlayType): Prom
 		if (overlay.type === "Featured") {
 			params.is_featured = true;
 		} else if (overlay.type !== "All") {
-			params.started_at = new Date().toISOString();
-			params.ended_at = endDate;
+			params.started_at = endDate;
+			params.ended_at = new Date().toISOString();
 		}
 
 		try {

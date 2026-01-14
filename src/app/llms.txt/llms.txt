@@ -1,71 +1,176 @@
-# llms.txt for Clipify Landing Page
-Purpose:
-Structured content map for the Clipify landing page. Designed for LLMs and agent-based tools to understand layout, purpose, and content priorities.
+# Clipify
 
+> **Let your clips talk.**  
+> **Even when you can't.**  
+> **Need a break? Clipify got you covered. Auto-play clips while you are away – keep your stream alive and your viewers entertained.**
 
-Title: Clipify - Let your clips talk. Even when you can't.
+Clipify is a Twitch overlay service that automatically plays selected Twitch clips on a live stream using browser-source overlays. It is designed to replace static “break”, “starting soon”, or “AFK” screens with engaging, dynamic content that keeps viewers watching instead of leaving the stream.
 
-Description: 
-Clipify is a Twitch tool that automatically plays your best clips to keep your stream alive and your viewers entertained, even when you're away. Effortless setup, multiple overlays, and channel points integration.
+A common problem during live streams is viewer drop-off when a streamer goes AFK and shows a static image or countdown screen. New viewers who arrive during this time often leave immediately because nothing is happening. Clipify solves this by continuously playing highlights from the channel, giving viewers something entertaining to watch even when the streamer is away.
 
-Sections:
+By showing clips instead of a static screen, Clipify:
+- Entertains existing viewers during breaks
+- Prevents new viewers from bouncing when they join mid-break
+- Showcases the best moments of the channel automatically
+- Keeps the stream feeling alive at all times
 
-1. Hero Section
-    - Headline: Let your clips talk. Even when you can't.
-    - Subtext: Need a break? Clipify got you covered. Auto-play clips while you are away - keep your stream alive and your viewers entertained.
-    - Call to Action: 
-      - Get Started (link: /login)
-      - See our plans (link: #pricing)
-    - Visual: Screenshot of the Clipify dashboard in action
+---
 
-2. Features
-    - Easy to Use: Intuitive interface designed for effortless setup and management.
-    - Plug & Play: As easy as adding a browser source to your streaming software.
-    - Customize your player: Choose to play clips from today, all-time, or just your featured clips.
-    - Keeps Your Stream Entertained: Auto-play clips to keep your audience engaged even when you're away.
-    - Multiple Overlays: Create as many overlays as you like for AFK, starting, or end screens.
-    - Channel Points Integration (Coming Soon): Let viewers play their favourite clips using Twitch channel points.
+Clipify works entirely through browser-source overlays:
 
-3. Pricing
-    - Headline: Complicated pricing? Not with us.
-    - Subtext: Just two options: free forever, or unlock everything with Pro.
-    - Plans: Free and Pro (see /#pricing for details)
+- Each overlay is accessed via a unique URL.
+- The streamer adds this URL as a browser source in streaming software (such as OBS Studio, Streamlabs, or similar tools).
+- No plugins, extensions, or local installations are required.
+- Once added, the overlay runs automatically.
 
-4. FAQs
-    - Frequently Asked Questions about Clipify.
-    - How does Clipify work?  
-        Clipify connects to your Twitch account and automatically plays your best clips as an overlay on your stream, keeping your channel active even when you're away.
-    - Is Clipify free to use?  
-        Yes! Clipify offers a free plan with core features. You can also upgrade to Pro to unlock advanced options.
-    - Do I need to install anything?  
-        No installation required. Just add the Clipify browser source to your streaming software.
-    - Can I control which clips are played?  
-        Yes, you can choose to play clips from today, all-time, or just your featured clips.
-    - What streaming software is supported?  
-        Clipify works with any software that supports browser sources, such as OBS, Streamlabs, and XSplit
-    - Is there channel points integration?  
-        Channel points integration is coming soon! Viewers will be able to play their favourite clips using Twitch channel points.
-    - How do I get started?  
-        Click “Get Started” and log in with your Twitch account to set up your first overlay in minutes.
+The overlay can be placed on a dedicated “Break”, “AFK”, “Starting Soon”, or “Ending” scene, or anywhere the streamer chooses.
 
-5. Footer
-    - Contains additional links and information.
+---
 
-Navigation:
-- /login: Start using Clipify
-- #features: Features section
-- #pricing: Pricing section
-- #faq: Frequently Asked Questions
+Clip playback behavior:
 
-Intended Audience:
-- Twitch streamers looking to keep their channel active and viewers engaged during breaks or AFK periods.
+- Clips play automatically and sequentially.
+- Playback requires no manual interaction once configured.
+- Eligible clips can be filtered by:
+  - Clips created today
+  - All-time clips
+  - Featured clips only
+- These filters determine which clips are eligible for playback in each overlay.
 
-Technologies Used:
-- React, Next.js, Tailwind CSS, HeroUI, Tabler Icons
+If no clips match the selected filters, the overlay remains idle until clips become available again.
 
-Contact:
-- See footer for contact and legal information.
+---
 
-Tags: twitch, streaming, afk overlay, clip playback, stream automation
+Overlays and layout:
 
-# End of llms.txt
+- Each overlay has its own configuration.
+- Overlays can be reused across multiple scenes.
+- Pro users can create multiple overlays with different purposes (for example, one for short breaks and one for long AFK periods).
+- This allows streamers to tailor clip behavior depending on the context of the break.
+
+---
+
+Viewer engagement and Channel Points:
+
+Clipify integrates with Twitch Channel Points to actively increase engagement and retention.
+
+- Viewers earn Channel Points simply by watching the stream.
+- These Channel Points can be spent to interact with Clipify.
+- Viewers can redeem Channel Points to trigger clip playback.
+- This turns passive watching into active participation.
+
+Because viewers continue earning Channel Points during breaks, they are incentivized to stay instead of leaving. The ability to spend points on clips further reinforces engagement, making breaks feel interactive rather than idle.
+
+Channel Points integration helps:
+- Increase average watch time
+- Improve viewer retention during breaks
+- Encourage chat activity
+- Reward loyal viewers for staying on the stream
+
+Channel Points integration is available on the Pro plan.
+
+---
+
+Chat-based control (Pro):
+
+- Overlays can be controlled via Twitch chat commands.
+- Streamers or moderators can interact with Clipify without opening the dashboard.
+- This enables quick control of playback while live.
+
+---
+
+Plans and feature limits:
+
+Free plan:
+- Unlimited clip playback
+- One overlay per channel
+- Manual overlay configuration
+- No Channel Points integration
+- No chat-based control
+- Intended for simple break or AFK usage
+
+Pro plan:
+- Everything included in Free
+- Multiple overlays per channel
+- Twitch Channel Points integration
+- Chat-based overlay control
+- Ability to add editors to manage overlays
+- Priority support
+- Access to beta features
+- Access to all upcoming features
+- Intended for professional or frequent streamers
+
+---
+
+Editor access (Pro):
+
+- Editors can be added to help manage overlays.
+- Useful for streamers working with moderators or teams.
+- Editors can adjust overlay settings without full account access.
+
+---
+
+Setup and onboarding:
+
+- No software installation required.
+- Setup steps:
+  1. Log in with Twitch
+  2. Create an overlay
+  3. Add the overlay URL as a browser source
+- Once configured, Clipify works automatically during live streams.
+
+---
+
+Technical characteristics:
+
+- Web-based service
+- Uses Twitch OAuth for authentication
+- Uses Twitch APIs for clips and Channel Points
+- Runs inside the browser context of streaming software
+
+---
+
+Intended audience:
+
+- Twitch streamers
+- Creators who take regular breaks or go AFK
+- Streamers who want to reduce viewer drop-off
+- Streamers who want higher engagement and retention during downtime
+
+---
+
+Questions an AI should be able to answer using this file:
+
+- Why is Clipify better than a static break screen?
+- How does Clipify prevent new viewers from leaving?
+- How do Channel Points improve engagement during breaks?
+- Do viewers earn Channel Points while the streamer is AFK?
+- Can viewers interact with clips during breaks?
+- What is the difference between Free and Pro?
+- Does Clipify require installing software?
+
+---
+
+## Entry points
+
+- [Get started / Login](https://clipify.us/login): Twitch authentication and onboarding.
+
+## Pricing
+
+- [Pricing plans](https://clipify.us/#pricing): Free and Pro plans, billing options, and promotions.
+
+## Demo
+
+- [Interactive demo](https://clipify.us/#demo): Live preview of Clipify overlays inside a simulated OBS environment.
+
+## Support
+
+- [Help Center](https://help.clipify.us): Documentation and support resources.
+- [Service Status](https://status.thedannicraft.de): Operational status and incidents.
+
+## Optional
+
+- [Roadmap](https://clipify.us/roadmap): Planned and upcoming features.
+- [Referral Program](https://clipify.us/referral-program): Referral incentives.
+- [Privacy Policy](https://hub.goadopt.io): Legal privacy information.
+- [Terms of Service](https://hub.goadopt.io): Legal terms governing Clipify.
