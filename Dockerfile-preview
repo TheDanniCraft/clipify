@@ -38,6 +38,8 @@ ENV HOSTNAME=0.0.0.0
 
 ARG TARGETARCH
 ARG INFISICAL_VERSION=0.43.46
+ARG INFISICAL_SHA_AMD64=3457a1f9fa51f1b04bb759bd60fd5ee77dc51509ac4058248cb8c68b1b1372ff
+ARG INFISICAL_SHA_ARM64=89bd57b8ed9934c421565397bb8fdaf4906b61bae2b6d8b68eca2af01393b605
 
 # minimal deps + create user
 RUN apt-get update && \
@@ -52,13 +54,27 @@ RUN apt-get update && \
 # install infisical CLI
 RUN set -eux; \
     case "${TARGETARCH}" in \
-    amd64) INF_ARCH="amd64" ;; \
-    arm64) INF_ARCH="arm64" ;; \
+    amd64) \
+    INF_ARCH="amd64"; \
+    INF_SHA="${INFISICAL_SHA_AMD64}"; \
+    ;; \
+    arm64) \
+    INF_ARCH="arm64"; \
+    INF_SHA="${INFISICAL_SHA_ARM64}"; \
+    ;; \
     *) echo "Unsupported arch: ${TARGETARCH}" && exit 1 ;; \
     esac; \
-    curl -fsSL \
-    "https://github.com/Infisical/cli/releases/download/v${INFISICAL_VERSION}/cli_${INFISICAL_VERSION}_linux_${INF_ARCH}.tar.gz" \
-    | tar -xz -C /usr/local/bin; \
+    \
+    file="cli_${INFISICAL_VERSION}_linux_${INF_ARCH}.tar.gz"; \
+    url="https://github.com/Infisical/cli/releases/download/v${INFISICAL_VERSION}/${file}"; \
+    tmp="/tmp/${file}"; \
+    \
+    curl -fsSL "$url" -o "$tmp"; \
+    \
+    echo "${INF_SHA}  ${tmp}" | sha256sum -c -; \
+    \
+    tar -xzf "$tmp" -C /usr/local/bin; \
+    rm -f "$tmp"; \
     chmod +x /usr/local/bin/infisical; \
     infisical --version
 
