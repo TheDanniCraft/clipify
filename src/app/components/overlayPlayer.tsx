@@ -77,16 +77,75 @@ function isInIframe() {
 	return window.self !== window.top;
 }
 
+/**
+ * Fetch everything needed to play a clip, in parallel where possible.
+ */
+async function buildVideoClip(randomClip: TwitchClip, isDemoPlayer: boolean): Promise<VideoClip | null> {
+	const mediaUrlPromise = getRawMediaUrl(randomClip.id);
+
+	const avatarPromise = isDemoPlayer ? Promise.resolve("") : getAvatar(randomClip.broadcaster_id, randomClip.broadcaster_id);
+
+	const gamePromise = isDemoPlayer
+		? Promise.resolve({
+				id: "",
+				name: "Demo Mode",
+				box_art_url: "",
+				igdb_id: "",
+		  })
+		: getGameDetails(randomClip.game_id, randomClip.broadcaster_id);
+
+	const [mediaUrl, brodcasterAvatar, game] = await Promise.all([mediaUrlPromise, avatarPromise, gamePromise]);
+
+	if (!mediaUrl) return null;
+
+	return {
+		...randomClip,
+		mediaUrl,
+		brodcasterAvatar: brodcasterAvatar ?? "",
+		game: game ?? {
+			id: "",
+			name: isDemoPlayer ? "Demo Mode" : "Unknown Game",
+			box_art_url: "",
+			igdb_id: "",
+		},
+	};
+}
+
+/**
+ * Warm up browser buffering a bit by preloading the media URL.
+ * (Not guaranteed in all browsers, but helps a lot in practice.)
+ */
+function preloadVideo(url: string) {
+	try {
+		const link = document.createElement("link");
+		link.rel = "preload";
+		link.as = "video";
+		link.href = url;
+		document.head.appendChild(link);
+		setTimeout(() => link.remove(), 10_000);
+	} catch {
+		// ignore
+	}
+}
+
 export default function OverlayPlayer({ clips, overlay, isEmbed, showBanner, isDemoPlayer }: { clips: TwitchClip[]; overlay: Overlay; isEmbed?: boolean; showBanner?: boolean; isDemoPlayer?: boolean }) {
 	const [videoClip, setVideoClip] = useState<VideoClip | null>(null);
+	const [nextClip, setNextClip] = useState<VideoClip | null>(null);
+
 	const [playedClips, setPlayedClips] = useState<string[]>([]);
 	const [showOverlay, setShowOverlay] = useState<boolean>(false);
 	const [showPlayer, setShowPlayer] = useState<boolean>(true);
 	const [paused, setPaused] = useState<boolean>(false);
 	const [, setWebsocket] = useState<WebSocket | null>(null);
+
 	const playerRef = useRef<HTMLVideoElement | null>(null);
 	const clipRef = useRef<VideoClip | null>(null);
+
+	// Demo queue support
 	const [demoQueue, setDemoQueue] = useState<string[]>([]);
+
+	// Prevent overlapping prefetches / stale updates
+	const prefetchAbortRef = useRef<AbortController | null>(null);
 
 	const getFirstFromDemoQueue = useCallback(async () => {
 		if (demoQueue.length === 0) {
@@ -208,6 +267,7 @@ export default function OverlayPlayer({ clips, overlay, isEmbed, showBanner, isD
 			const clip = await getTwitchClip(queClip.clipId, overlay.ownerId);
 
 			if (clip != null) {
+				// Fire and forget; don't block playback
 				removeFromModQueue(queClip.id);
 				removeFromClipQueue(queClip.id);
 				return clip;
@@ -225,33 +285,15 @@ export default function OverlayPlayer({ clips, overlay, isEmbed, showBanner, isD
 		return unplayedClips[randomIndex];
 	}, [isDemoPlayer, getFirstQueClip, clips, getFirstFromDemoQueue, overlay.ownerId, playedClips]);
 
+	/**
+	 * Immediate playback (used by commands or when we didn't have a prefetched clip).
+	 */
 	const playNextClip = useCallback(async () => {
 		const randomClip = await getRandomClip();
-
 		if (!randomClip) return;
 
-		const mediaUrl = await getRawMediaUrl(randomClip?.id);
-
-		let brodcasterAvatar;
-		let game;
-
-		if (!isDemoPlayer) {
-			brodcasterAvatar = await getAvatar(randomClip?.broadcaster_id, randomClip?.broadcaster_id);
-			game = await getGameDetails(randomClip?.game_id, randomClip?.broadcaster_id);
-		}
-
-		if (mediaUrl && randomClip)
-			setVideoClip({
-				...randomClip,
-				mediaUrl,
-				brodcasterAvatar: brodcasterAvatar ?? "",
-				game: game ?? {
-					id: "",
-					name: isDemoPlayer ? "Demo Mode" : "Unknown Game",
-					box_art_url: "",
-					igdb_id: "",
-				},
-			});
+		const built = await buildVideoClip(randomClip, !!isDemoPlayer);
+		if (built) setVideoClip(built);
 	}, [getRandomClip, isDemoPlayer]);
 
 	useEffect(() => {
@@ -271,6 +313,9 @@ export default function OverlayPlayer({ clips, overlay, isEmbed, showBanner, isD
 		}
 	}, [paused, isEmbed]);
 
+	/**
+	 * WebSocket / postMessage wiring
+	 */
 	useEffect(() => {
 		async function setupWebSocket() {
 			const ws = new WebSocket("/ws");
@@ -292,7 +337,6 @@ export default function OverlayPlayer({ clips, overlay, isEmbed, showBanner, isD
 
 				setTimeout(() => {
 					console.log("Reconnecting to WebSocket...");
-
 					setupWebSocket();
 				}, 5000);
 			});
@@ -352,6 +396,9 @@ export default function OverlayPlayer({ clips, overlay, isEmbed, showBanner, isD
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
+	/**
+	 * Twitch chat subscription
+	 */
 	useEffect(() => {
 		async function setupChat() {
 			if (overlay.ownerId) {
@@ -366,7 +413,12 @@ export default function OverlayPlayer({ clips, overlay, isEmbed, showBanner, isD
 		if (!isEmbed) setupChat();
 	}, [isEmbed, overlay.ownerId]);
 
+	/**
+	 * Initial clip load
+	 */
 	useEffect(() => {
+		let cancelled = false;
+
 		async function fetchVideoSource() {
 			const randomClip = await getRandomClip();
 
@@ -375,27 +427,49 @@ export default function OverlayPlayer({ clips, overlay, isEmbed, showBanner, isD
 				return;
 			}
 
-			const mediaUrl = await getRawMediaUrl(randomClip?.id);
-
-			const brodcasterAvatar = await getAvatar(randomClip?.broadcaster_id, randomClip?.broadcaster_id);
-			const game = await getGameDetails(randomClip?.game_id, randomClip?.broadcaster_id);
-
-			if (mediaUrl && randomClip)
-				setVideoClip({
-					...randomClip,
-					mediaUrl,
-					brodcasterAvatar: brodcasterAvatar ?? "",
-					game: game ?? {
-						id: "",
-						name: "Unknown Game",
-						box_art_url: "",
-						igdb_id: "",
-					},
-				});
+			const built = await buildVideoClip(randomClip, !!isDemoPlayer);
+			if (!cancelled && built) setVideoClip(built);
 		}
 
 		fetchVideoSource();
-	}, [getRandomClip]);
+
+		return () => {
+			cancelled = true;
+		};
+	}, [getRandomClip, isDemoPlayer]);
+
+	/**
+	 * Prefetch the next clip in the background while the current one plays.
+	 * This is the main fix to remove the 1–2s "dead air" on transitions.
+	 */
+	useEffect(() => {
+		if (!videoClip) return;
+
+		let cancelled = false;
+
+		async function prefetchNext() {
+			// cancel any previous prefetch
+			prefetchAbortRef.current?.abort();
+			const controller = new AbortController();
+			prefetchAbortRef.current = controller;
+
+			const candidate = await getRandomClip();
+			if (!candidate || cancelled || controller.signal.aborted) return;
+
+			const built = await buildVideoClip(candidate, !!isDemoPlayer);
+			if (!built || cancelled || controller.signal.aborted) return;
+
+			preloadVideo(built.mediaUrl);
+			setNextClip(built);
+		}
+
+		prefetchNext();
+
+		return () => {
+			cancelled = true;
+			prefetchAbortRef.current?.abort();
+		};
+	}, [videoClip, getRandomClip, isDemoPlayer]);
 
 	if (!videoClip) {
 		return null;
@@ -417,32 +491,24 @@ export default function OverlayPlayer({ clips, overlay, isEmbed, showBanner, isD
 							transition={{ duration: 0.5 }}
 							ref={playerRef}
 							onEnded={() => {
-								async function fetchNewClip() {
-									setShowOverlay(false);
-									setPlayedClips((prevPlayedClips) => [...prevPlayedClips, videoClip!.id]);
+								setShowOverlay(false);
+								setPlayedClips((prev) => [...prev, videoClip.id]);
 
+								// Instant swap if we have a prefetched clip ready
+								if (nextClip) {
+									setVideoClip(nextClip);
+									setNextClip(null);
+									return;
+								}
+
+								// Fallback slow path
+								(async () => {
 									const randomClip = await getRandomClip();
 									if (!randomClip) return setVideoClip(null);
-									const mediaUrl = await getRawMediaUrl(randomClip.id);
 
-									const brodcasterAvatar = await getAvatar(randomClip?.broadcaster_id, randomClip?.broadcaster_id);
-									const game = await getGameDetails(randomClip?.game_id, randomClip?.broadcaster_id);
-
-									if (mediaUrl) {
-										setVideoClip({
-											...randomClip,
-											mediaUrl,
-											brodcasterAvatar: brodcasterAvatar ?? "",
-											game: game ?? {
-												id: "",
-												name: "Unknown Game",
-												box_art_url: "",
-												igdb_id: "",
-											},
-										});
-									}
-								}
-								fetchNewClip();
+									const built = await buildVideoClip(randomClip, !!isDemoPlayer);
+									if (built) setVideoClip(built);
+								})();
 							}}
 							onPlay={() => {
 								setShowOverlay(true);
@@ -459,6 +525,7 @@ export default function OverlayPlayer({ clips, overlay, isEmbed, showBanner, isD
 						</motion.video>
 					)}
 				</AnimatePresence>
+
 				{isEmbed ? (
 					showBanner ? (
 						<div className='absolute left-4 bottom-4'>
@@ -503,6 +570,4 @@ export default function OverlayPlayer({ clips, overlay, isEmbed, showBanner, isD
 			</div>
 		);
 	}
-
-	return null;
 }
