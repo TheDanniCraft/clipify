@@ -93,8 +93,8 @@ export async function generatePaymentLink(user: AuthenticatedUser, returnUrl?: s
 		line_items: [{ price: products[0], quantity: 1 }],
 		client_reference_id: user.id,
 		mode: "subscription",
-		success_url: `${baseUrl}/dashboard/settings`,
-		cancel_url: returnUrl || `${baseUrl}/dashboard/settings`,
+		success_url: `${baseUrl}dashboard/settings`,
+		cancel_url: returnUrl || `${baseUrl}dashboard/settings`,
 		...(user.stripeCustomerId ? { customer: user.stripeCustomerId } : { customer_email: user.email }),
 		metadata: {
 			userId: user.id,
@@ -121,7 +121,7 @@ export async function getPortalLink(user: AuthenticatedUser) {
 
 	const session = await stripe.billingPortal.sessions.create({
 		customer: user.stripeCustomerId,
-		return_url: `${baseUrl}/dashboard/settings`,
+		return_url: `${baseUrl}dashboard/settings`,
 	});
 
 	return session.url;

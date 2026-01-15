@@ -12,32 +12,32 @@ export default function sitemap(): MetadataRoute.Sitemap {
 			priority: 1,
 		},
 		{
-			url: `${baseUrl}/changelog`,
+			url: `${baseUrl}changelog`,
 			lastModified: new Date(),
 			changeFrequency: "weekly",
 			priority: 0.8,
 		},
 
 		{
-			url: `${baseUrl}/login`,
+			url: `${baseUrl}login`,
 			lastModified: new Date(),
 			changeFrequency: "yearly",
 			priority: 0.7,
 		},
 		{
-			url: `${baseUrl}/roadmap`,
+			url: `${baseUrl}roadmap`,
 			lastModified: new Date(),
 			changeFrequency: "monthly",
 			priority: 0.7,
 		},
 		{
-			url: `${baseUrl}/referral-program`,
+			url: `${baseUrl}referral-program`,
 			lastModified: new Date(),
 			changeFrequency: "monthly",
 			priority: 0.7,
 		},
 		{
-			url: `${baseUrl}/llms.txt`,
+			url: `${baseUrl}llms.txt`,
 			lastModified: new Date(),
 			changeFrequency: "monthly",
 			priority: 0.7,
