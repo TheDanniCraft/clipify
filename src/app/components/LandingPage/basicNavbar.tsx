@@ -9,10 +9,10 @@ import Logo from "@components/logo";
 import { IconChevronRight } from "@tabler/icons-react";
 
 const menuItems = [
-	{ name: "Home", href: "#" },
-	{ name: "Features", href: "#features" },
-	{ name: "Pricing", href: "#pricing" },
-	{ name: "FAQ", href: "#faq" },
+	{ name: "Home", href: "/#" },
+	{ name: "Features", href: "/#features" },
+	{ name: "Pricing", href: "/#pricing" },
+	{ name: "FAQ", href: "/#faq" },
 ];
 
 const BasicNavbar = React.forwardRef<HTMLElement, NavbarProps>(({ classNames = {}, ...props }, ref) => {
