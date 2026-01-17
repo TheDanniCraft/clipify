@@ -34,7 +34,7 @@
 		"rate-limiter-flexible": "^9.0.1",
 		"react": "^19.2.3",
 		"react-dom": "^19.2.3",
-		"stripe": "^20.1.2",
+		"stripe": "^20.2.0",
 		"ws": "^8.19.0",
 		"xss": "^1.0.15"
 	},
