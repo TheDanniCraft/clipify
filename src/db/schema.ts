@@ -1,6 +1,5 @@
-import { varchar, pgTable, primaryKey, check } from "drizzle-orm/pg-core";
+import { varchar, pgTable, primaryKey, check, timestamp, uuid } from "drizzle-orm/pg-core";
 import type { Role, Plan, StatusOptions, OverlayType } from "@types";
-import { uuid } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
 export const usersTable = pgTable("users", {
@@ -11,6 +10,9 @@ export const usersTable = pgTable("users", {
 	role: varchar("role").$type<Role>().notNull(),
 	plan: varchar("plan").$type<Plan>().notNull(),
 	stripeCustomerId: varchar("stripe_customer_id"),
+	createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+	updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+	lastLogin: timestamp("last_login", { withTimezone: true }),
 });
 
 export const editorsTable = pgTable(
@@ -22,7 +24,7 @@ export const editorsTable = pgTable(
 
 		editorId: varchar("editor_id").notNull(),
 	},
-	(t) => [primaryKey({ columns: [t.userId, t.editorId] }), check("editors_no_self", sql`${t.userId} <> ${t.editorId}`)]
+	(t) => [primaryKey({ columns: [t.userId, t.editorId] }), check("editors_no_self", sql`${t.userId} <> ${t.editorId}`)],
 );
 
 export const tokenTable = pgTable("tokens", {
@@ -46,6 +48,9 @@ export const overlaysTable = pgTable("overlays", {
 	status: varchar("status").$type<StatusOptions>().notNull(),
 	type: varchar("type").$type<OverlayType>().notNull(),
 	rewardId: varchar("reward_id"),
+	createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+	updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+	lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
 });
 
 export const queueTable = pgTable("clipQueue", {
@@ -54,12 +59,14 @@ export const queueTable = pgTable("clipQueue", {
 		.notNull()
 		.references(() => overlaysTable.id, { onDelete: "cascade" }),
 	clipId: varchar("clip_id").notNull(),
+	queuedAt: timestamp("queued_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
 export const modQueueTable = pgTable("modQueue", {
 	id: uuid("id").notNull().defaultRandom().primaryKey(),
 	broadcasterId: varchar("broadcaster_id").notNull(),
 	clipId: varchar("clip_id").notNull(),
+	queuedAt: timestamp("queued_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
 export const settingsTable = pgTable("userSettings", {
