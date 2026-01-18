@@ -4,6 +4,7 @@ import axios from "axios";
 import { AuthenticatedUser, Game, Overlay, OverlayType, RewardStatus, TwitchApiResponse, TwitchAppAccessTokenResponse, TwitchClip, TwitchClipBody, TwitchClipResponse, TwitchReward, TwitchRewardResponse, TwitchTokenApiResponse, TwitchUserResponse } from "@types";
 import { getAccessToken } from "@actions/database";
 import { getBaseUrl, isPreview } from "@actions/utils";
+import RE2 from "re2";
 
 export async function logTwitchError(context: string, error: unknown) {
 	if (axios.isAxiosError(error) && error.response) {
@@ -13,17 +14,17 @@ export async function logTwitchError(context: string, error: unknown) {
 	}
 }
 
-function compileEntry(entry: string): RegExp | null {
+type Re2Instance = { test(s: string): boolean };
+
+function compileEntry(entry: string): RE2 | null {
 	const s = entry.trim();
 	if (!s) return null;
 
 	try {
-		// Regex with forced flags (Discord-like)
-		return new RegExp(s, "gi"); // or "giu" if you decide later
+		// Safe, linear-time regex engine (no ReDoS)
+		return new RE2(s, "gi");
 	} catch {
-		// Not valid regex → treat as keyword
-		const escaped = s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-		return new RegExp(escaped, "gi");
+		return null;
 	}
 }
 

@@ -13,7 +13,13 @@ const nextConfigPromise = Promise.resolve(drizzle).then(
 			outputFileTracingIncludes: {
 				"**": [...drizzle],
 			},
-		} as NextConfig)
+			webpack: (config, { isServer }) => {
+				if (isServer) {
+					config.externals.push({ re2: "commonjs re2" });
+				}
+				return config;
+			},
+		}) as NextConfig,
 );
 
 export default nextConfigPromise.then((resolvedConfig) =>
@@ -23,6 +29,6 @@ export default nextConfigPromise.then((resolvedConfig) =>
 		})(resolvedConfig),
 		{
 			tunnelRoute: "/monitor",
-		}
-	)
+		},
+	),
 );
