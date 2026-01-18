@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ClipQueueItem, ModQueueItem, Overlay, TwitchClip, TwitchClipGqlData, TwitchClipGqlResponse, TwitchClipVideoQuality, VideoClip } from "@types";
-import { getAvatar, getDemoClip, getGameDetails, getTwitchClip, logTwitchError, subscribeToChat } from "@actions/twitch";
+import { getAvatar, getDemoClip, getGameDetails, getTwitchClip, subscribeToChat } from "@actions/twitch";
 import PlayerOverlay from "@components/playerOverlay";
 import { Avatar, Button, Link } from "@heroui/react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -62,7 +62,7 @@ async function getRawMediaUrl(clipId: string): Promise<string | undefined> {
 
 		return `${clipsVideoSource}?sig=${clipsSignature}&token=${clipsToken}`;
 	} catch (error) {
-		logTwitchError("Error fetching raw media URL", error);
+		console.error("Error fetching raw media URL", error);
 		return undefined;
 	}
 }
