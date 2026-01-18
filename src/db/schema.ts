@@ -1,4 +1,4 @@
-import { varchar, pgTable, primaryKey, check, timestamp, uuid } from "drizzle-orm/pg-core";
+import { varchar, pgTable, primaryKey, check, timestamp, uuid, integer } from "drizzle-orm/pg-core";
 import type { Role, Plan, StatusOptions, OverlayType } from "@types";
 import { sql } from "drizzle-orm";
 
@@ -51,6 +51,9 @@ export const overlaysTable = pgTable("overlays", {
 	createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 	updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 	lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+	minClipDuration: integer("min_clip_duration").notNull().default(0),
+	maxClipDuration: integer("max_clip_duration").notNull().default(60),
+	blacklistWords: varchar("blacklist_words").array().notNull().default([]),
 });
 
 export const queueTable = pgTable("clipQueue", {

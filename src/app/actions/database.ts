@@ -335,7 +335,7 @@ export async function downgradeUserPlan(userId: string) {
 		await db.delete(overlaysTable).where(inArray(overlaysTable.id, overlaysToDeactivate)).execute();
 	}
 
-	await db.update(overlaysTable).set({ rewardId: null }).where(eq(overlaysTable.id, overlays[0].id)).execute();
+	await db.update(overlaysTable).set({ rewardId: null, blacklistWords: [], minClipDuration: 0, maxClipDuration: 60 }).where(eq(overlaysTable.id, overlays[0].id)).execute();
 
 	await db.delete(editorsTable).where(eq(editorsTable.userId, userId)).execute();
 
@@ -367,6 +367,9 @@ export async function saveOverlay(overlay: Overlay) {
 				status: overlay.status,
 				type: overlay.type,
 				rewardId: plan === Plan.Free ? null : overlay.rewardId,
+				minClipDuration: overlay.minClipDuration,
+				maxClipDuration: overlay.maxClipDuration,
+				blacklistWords: overlay.blacklistWords,
 			})
 			.onConflictDoUpdate({
 				target: overlaysTable.id,
@@ -376,6 +379,9 @@ export async function saveOverlay(overlay: Overlay) {
 					type: overlay.type,
 					rewardId: plan === Plan.Free ? null : overlay.rewardId,
 					updatedAt: new Date(),
+					minClipDuration: overlay.minClipDuration,
+					maxClipDuration: overlay.maxClipDuration,
+					blacklistWords: overlay.blacklistWords,
 				},
 			});
 

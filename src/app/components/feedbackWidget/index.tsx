@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Button, Form, Image, Input, Link, Popover, PopoverContent, PopoverTrigger, RadioGroup, Spinner, Tab, Tabs, Textarea } from "@heroui/react";
 import { IconChevronLeft, IconX } from "@tabler/icons-react";
 import { FiderPost, submitFeedback } from "@actions/feedbackWidget";
-import {  RatingValueEnum } from "@types";
+import { RatingValueEnum } from "@types";
 import FeedbackRatingItem from "./itemRating";
 import { RateLimitError } from "@types";
 import { isRatelimitError } from "@actions/rateLimit";
@@ -99,7 +99,7 @@ export default function FeedbackWidget() {
 												</div>
 											)}
 											<Button fullWidth type='submit'>
-												Submit Feedback
+												Submit {type === "feedback" ? "Feedback" : type === "bug" ? "Bug Report" : "Feature Request"}
 											</Button>
 										</Form>
 									)}

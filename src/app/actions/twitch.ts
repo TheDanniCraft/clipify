@@ -13,6 +13,30 @@ export async function logTwitchError(context: string, error: unknown) {
 	}
 }
 
+function compileEntry(entry: string): RegExp | null {
+	const s = entry.trim();
+	if (!s) return null;
+
+	try {
+		// Regex with forced flags (Discord-like)
+		return new RegExp(s, "gi"); // or "giu" if you decide later
+	} catch {
+		// Not valid regex → treat as keyword
+		const escaped = s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+		return new RegExp(escaped, "gi");
+	}
+}
+
+function isTitleBlocked(title: string, blacklist: string[]): boolean {
+	return blacklist.some((entry) => {
+		const rx = compileEntry(entry);
+		if (!rx) return false;
+
+		rx.lastIndex = 0;
+		return rx.test(title);
+	});
+}
+
 export async function exchangeAccesToken(code: string): Promise<TwitchTokenApiResponse | null> {
 	const url = "https://id.twitch.tv/oauth2/token";
 	const baseUrl = await getBaseUrl();
@@ -148,7 +172,7 @@ export async function createChannelReward(userId: string): Promise<TwitchRewardR
 					Authorization: `Bearer ${token.accessToken}`,
 					"Client-Id": process.env.TWITCH_CLIENT_ID || "",
 				},
-			}
+			},
 		);
 
 		return response.data.data[0] || null;
@@ -231,7 +255,7 @@ export async function getTwitchClip(clipId: string, creatorId: string): Promise<
 	}
 }
 
-export async function getTwitchClips(overlay: Overlay, type?: OverlayType): Promise<TwitchClip[]> {
+export async function getTwitchClips(overlay: Overlay, type?: OverlayType, skipFilter?: boolean): Promise<TwitchClip[]> {
 	const url = "https://api.twitch.tv/helix/clips";
 	const token = await getAccessToken(overlay.ownerId);
 	overlay.type = type || overlay.type;
@@ -240,7 +264,7 @@ export async function getTwitchClips(overlay: Overlay, type?: OverlayType): Prom
 		console.error("No access token found for ownerId:", overlay.ownerId);
 		return [];
 	}
-	const clips: TwitchClip[] = [];
+	let clips: TwitchClip[] = [];
 	let cursor: string | undefined;
 	let fetchCount = 0;
 
@@ -283,6 +307,19 @@ export async function getTwitchClips(overlay: Overlay, type?: OverlayType): Prom
 		}
 		fetchCount++;
 	} while (cursor && fetchCount < 15);
+
+	if (!skipFilter) {
+		// Filter for duration
+		clips = clips.filter((clip) => {
+			const clipDuration = clip.duration;
+			return clipDuration >= overlay.minClipDuration && clipDuration <= overlay.maxClipDuration;
+		});
+
+		// Filter for blacklist words
+		clips = clips.filter((clip) => {
+			return !isTitleBlocked(clip.title, overlay.blacklistWords);
+		});
+	}
 
 	return clips;
 }
@@ -436,7 +473,7 @@ export async function subscribeToReward(userId: string, rewardId: string): Promi
 					Authorization: `Bearer ${token.access_token}`,
 					"Client-Id": process.env.TWITCH_CLIENT_ID || "",
 				},
-			}
+			},
 		);
 	} catch (error) {
 		if (axios.isAxiosError(error) && error.response?.status === 409) {
@@ -471,7 +508,7 @@ export async function updateRedemptionStatus(userId: string, redemptionId: strin
 					broadcaster_id: userId,
 					reward_id: rewardId,
 				},
-			}
+			},
 		);
 	} catch (error) {
 		logTwitchError("Error updating redemption status", error);
@@ -515,7 +552,7 @@ export async function subscribeToChat(userId: string) {
 					Authorization: `Bearer ${token.access_token}`,
 					"Client-Id": process.env.TWITCH_CLIENT_ID || "",
 				},
-			}
+			},
 		);
 	} catch (error) {
 		if (axios.isAxiosError(error) && error.response?.status === 409) {
@@ -547,7 +584,7 @@ export async function sendChatMessage(userId: string, message: string) {
 					Authorization: `Bearer ${token.access_token}`,
 					"Client-Id": process.env.TWITCH_CLIENT_ID || "",
 				},
-			}
+			},
 		);
 	} catch (error) {
 		logTwitchError("Error sending chat message", error);
