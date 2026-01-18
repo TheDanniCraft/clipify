@@ -4,12 +4,18 @@
 FROM oven/bun:1 AS deps
 WORKDIR /app
 
+# build deps for node-gyp (re2, etc.) - only in deps stage
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 \
+    make \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY package.json bun.lock ./
 COPY patches ./patches
 
 RUN --mount=type=cache,target=/root/.bun \
     bun install --frozen-lockfile
-
 
 # -------------------------
 # builder
