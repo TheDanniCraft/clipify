@@ -20,6 +20,7 @@ const Construction = ({ endDate, cta }: { endDate?: Date; cta: Cta }) => {
 		seconds: "0",
 	} as Timer);
 	const [newsletterState, setNewsletterState] = useState("default");
+	const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
 	useEffect(() => {
 		if (!endDate) return;
@@ -153,7 +154,7 @@ const Construction = ({ endDate, cta }: { endDate?: Date; cta: Cta }) => {
 										</Button>
 									}
 								/>
-								<Turnstile siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY} onSuccess={setToken} onError={() => console.error("Turnstile error")} onExpire={() => setToken(null)} />
+								{siteKey && <Turnstile siteKey={siteKey} onSuccess={setToken} onError={() => console.error("Turnstile error")} onExpire={() => setToken(null)} />}
 							</Form>
 							{newsletterState === "success" && (
 								<div className='text-success-500 mt-2 text-center'>
