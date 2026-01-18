@@ -32,7 +32,7 @@ export const tokenTable = pgTable("tokens", {
 		.primaryKey(),
 	accessToken: varchar("access_token").notNull(),
 	refreshToken: varchar("refresh_token").notNull(),
-	expiresAt: varchar("expires_at").notNull(),
+	expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
 	scope: varchar("scope").array().notNull(),
 	tokenType: varchar("token_type").notNull(),
 });

@@ -47,6 +47,7 @@ async function setUser(user: TwitchUserResponse): Promise<AuthenticatedUser> {
 					username: user.login,
 					email: user.email,
 					avatar: user.profile_image_url,
+					updatedAt: new Date(),
 				},
 			})
 			.returning()

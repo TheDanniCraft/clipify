@@ -85,7 +85,7 @@ async function buildVideoClip(randomClip: TwitchClip, isDemoPlayer: boolean): Pr
 				name: "Demo Mode",
 				box_art_url: "",
 				igdb_id: "",
-		  })
+			})
 		: getGameDetails(randomClip.game_id, randomClip.broadcaster_id);
 
 	const [mediaUrl, brodcasterAvatar, game] = await Promise.all([mediaUrlPromise, avatarPromise, gamePromise]);
@@ -386,7 +386,7 @@ export default function OverlayPlayer({ clips, overlay, isEmbed, showBanner, isD
 			try {
 				await subscribeToChat(overlay.ownerId);
 			} catch (error) {
-				logTwitchError("Error subscribing to chat", error);
+				console.error("Error subscribing to chat", error);
 			}
 		}
 
@@ -442,6 +442,7 @@ export default function OverlayPlayer({ clips, overlay, isEmbed, showBanner, isD
 			cancelled = true;
 			prefetchAbortRef.current?.abort();
 		};
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [videoClip?.id, getRandomClip, isDemoPlayer]);
 
 	if (!videoClip) return null;
