@@ -4,7 +4,7 @@ import axios from "axios";
 import { AuthenticatedUser, Game, Overlay, OverlayType, RewardStatus, TwitchApiResponse, TwitchAppAccessTokenResponse, TwitchClip, TwitchClipBody, TwitchClipResponse, TwitchReward, TwitchRewardResponse, TwitchTokenApiResponse, TwitchUserResponse } from "@types";
 import { getAccessToken } from "@actions/database";
 import { getBaseUrl, isPreview } from "@actions/utils";
-import RE2 from "re2";
+import { RE2JS } from "re2js";
 
 export async function logTwitchError(context: string, error: unknown) {
 	if (axios.isAxiosError(error) && error.response) {
@@ -14,15 +14,13 @@ export async function logTwitchError(context: string, error: unknown) {
 	}
 }
 
-type Re2Instance = { test(s: string): boolean };
-
-function compileEntry(entry: string): RE2 | null {
+function compileEntry(entry: string): RE2JS | null {
 	const s = entry.trim();
 	if (!s) return null;
 
 	try {
-		// Safe, linear-time regex engine (no ReDoS)
-		return new RE2(s, "gi");
+		// "i" equivalent; there is no "g" in RE2JS
+		return RE2JS.compile(s, RE2JS.CASE_INSENSITIVE);
 	} catch {
 		return null;
 	}
@@ -33,8 +31,8 @@ function isTitleBlocked(title: string, blacklist: string[]): boolean {
 		const rx = compileEntry(entry);
 		if (!rx) return false;
 
-		rx.lastIndex = 0;
-		return rx.test(title);
+		// Equivalent to /.../g.test(title) but without lastIndex state:
+		return rx.matcher(title).find();
 	});
 }
 

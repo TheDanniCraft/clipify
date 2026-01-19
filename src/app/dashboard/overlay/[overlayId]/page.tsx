@@ -14,6 +14,7 @@ import { createChannelReward, getReward, getTwitchClips, removeChannelReward } f
 import { generatePaymentLink } from "@/app/actions/subscription";
 import FeedbackWidget from "@components/feedbackWidget";
 import TagsInput from "@components/tagsInput";
+import { RE2JS } from "re2js";
 
 const overlayTypes: { key: OverlayType; label: string }[] = [
 	{ key: "1", label: "Top Clips - Today" },
@@ -27,17 +28,15 @@ const overlayTypes: { key: OverlayType; label: string }[] = [
 	{ key: "Queue", label: "Clip Queue" },
 ];
 
-function compileEntry(entry: string): RegExp | null {
+function compileEntry(entry: string): RE2JS | null {
 	const s = entry.trim();
 	if (!s) return null;
 
 	try {
-		// Regex with forced flags (Discord-like)
-		return new RegExp(s, "gi"); // or "giu" if you decide later
+		// "i" equivalent; there is no "g" in RE2JS
+		return RE2JS.compile(s, RE2JS.CASE_INSENSITIVE);
 	} catch {
-		// Not valid regex → treat as keyword
-		const escaped = s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-		return new RegExp(escaped, "gi");
+		return null;
 	}
 }
 
@@ -46,8 +45,8 @@ function isTitleBlocked(title: string, blacklist: string[]): boolean {
 		const rx = compileEntry(entry);
 		if (!rx) return false;
 
-		rx.lastIndex = 0;
-		return rx.test(title);
+		// Equivalent to /.../g.test(title) but without lastIndex state:
+		return rx.matcher(title).find();
 	});
 }
 
@@ -354,7 +353,7 @@ export default function OverlaySettings() {
 											className='p-2'
 											size='sm'
 										/>
-										<TagsInput className='p-2' fullWidth label='Blacklisted Words' value={overlay.blacklistWords} onValueChange={(value) => setOverlay({ ...overlay, blacklistWords: value })} description='Hide clips containing certain words in their titles. Regex supported (e.g. ^hello$).' />
+										<TagsInput className='p-2' fullWidth label='Blacklisted Words' value={overlay.blacklistWords} onValueChange={(value) => setOverlay({ ...overlay, blacklistWords: value })} description='Hide clips containing certain words in their titles. Supports RE2 regex (no lookarounds). Example: ^hello$' />
 									</div>
 								</Form>
 							</div>
