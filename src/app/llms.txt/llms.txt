@@ -95,6 +95,7 @@ Pro plan:
 - Twitch Channel Points integration
 - Chat-based overlay control
 - Ability to add editors to manage overlays
+- Advanced clip filtering
 - Priority support
 - Access to beta features
 - Access to all upcoming features

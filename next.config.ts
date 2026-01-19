@@ -13,7 +13,7 @@ const nextConfigPromise = Promise.resolve(drizzle).then(
 			outputFileTracingIncludes: {
 				"**": [...drizzle],
 			},
-		} as NextConfig)
+		}) as NextConfig,
 );
 
 export default nextConfigPromise.then((resolvedConfig) =>
@@ -23,6 +23,6 @@ export default nextConfigPromise.then((resolvedConfig) =>
 		})(resolvedConfig),
 		{
 			tunnelRoute: "/monitor",
-		}
-	)
+		},
+	),
 );

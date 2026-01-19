@@ -4,7 +4,7 @@ import jwt, { type JwtPayload } from "jsonwebtoken";
 import * as Sentry from "@sentry/nextjs";
 
 import { exchangeAccesToken } from "@actions/twitch";
-import { setAccessToken } from "@actions/database";
+import { setAccessToken, touchUser } from "@actions/database";
 import { authUser } from "@actions/auth";
 import { getBaseUrl } from "@actions/utils";
 
@@ -107,6 +107,8 @@ export async function GET(request: NextRequest) {
 
 		const baseUrl = await getBaseUrl();
 		const returnUrl = getSafeReturnUrl(typeof payload.returnUrl === "string" ? payload.returnUrl : null, baseUrl);
+
+		await touchUser(user.id);
 
 		return NextResponse.redirect(returnUrl);
 	} catch (error) {

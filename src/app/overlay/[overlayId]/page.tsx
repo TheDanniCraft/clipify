@@ -1,7 +1,7 @@
-import { getOverlay } from "@/app/actions/database";
-import { getTwitchClips } from "@/app/actions/twitch";
-import OverlayPlayer from "@/app/components/overlayPlayer";
-import type { Overlay } from "@/app/lib/types";
+import { getOverlay, touchOverlay } from "@actions/database";
+import { getTwitchClips } from "@actions/twitch";
+import OverlayPlayer from "@components/overlayPlayer";
+import type { Overlay } from "@types";
 
 export default async function Overlay({ params }: { params: Promise<{ overlayId: string }> }) {
 	const { overlayId } = await params;
@@ -22,6 +22,7 @@ export default async function Overlay({ params }: { params: Promise<{ overlayId:
 		);
 
 	const clips = await getTwitchClips(overlay);
+	await touchOverlay(overlay.id);
 
 	return (
 		<>
