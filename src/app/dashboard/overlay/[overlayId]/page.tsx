@@ -14,7 +14,7 @@ import { createChannelReward, getReward, getTwitchClips, removeChannelReward } f
 import { generatePaymentLink } from "@/app/actions/subscription";
 import FeedbackWidget from "@components/feedbackWidget";
 import TagsInput from "@components/tagsInput";
-import { RE2JS } from "re2js";
+import { isTitleBlocked } from "@/app/utils/regexFilter";
 
 const overlayTypes: { key: OverlayType; label: string }[] = [
 	{ key: "1", label: "Top Clips - Today" },
@@ -27,28 +27,6 @@ const overlayTypes: { key: OverlayType; label: string }[] = [
 	{ key: "All", label: "All Clips" },
 	{ key: "Queue", label: "Clip Queue" },
 ];
-
-function compileEntry(entry: string): RE2JS | null {
-	const s = entry.trim();
-	if (!s) return null;
-
-	try {
-		// "i" equivalent; there is no "g" in RE2JS
-		return RE2JS.compile(s, RE2JS.CASE_INSENSITIVE);
-	} catch {
-		return null;
-	}
-}
-
-function isTitleBlocked(title: string, blacklist: string[]): boolean {
-	return blacklist.some((entry) => {
-		const rx = compileEntry(entry);
-		if (!rx) return false;
-
-		// Equivalent to /.../g.test(title) but without lastIndex state:
-		return rx.matcher(title).find();
-	});
-}
 
 export default function OverlaySettings() {
 	const router = useRouter();
@@ -336,6 +314,7 @@ export default function OverlaySettings() {
 											minValue={0}
 											maxValue={60}
 											defaultValue={[overlay.minClipDuration, overlay.maxClipDuration]}
+											value={[overlay.minClipDuration, overlay.maxClipDuration]}
 											step={1}
 											label='Filter clips by duration (seconds)'
 											showTooltip
@@ -368,8 +347,7 @@ export default function OverlaySettings() {
 							<ul className='space-y-2'>
 								{previewClips
 									.filter((clip) => {
-										const titleLower = clip.title.toLowerCase();
-										return clip.duration >= overlay.minClipDuration && clip.duration <= overlay.maxClipDuration && !overlay.blacklistWords.some((word) => titleLower.includes(word.toLowerCase()));
+										return clip.duration >= overlay.minClipDuration && clip.duration <= overlay.maxClipDuration && !isTitleBlocked(clip.title, overlay.blacklistWords);
 									})
 									.map((clip) => (
 										<li key={clip.id} className='flex gap-3 items-center rounded-md p-2 hover:bg-white/5 transition'>

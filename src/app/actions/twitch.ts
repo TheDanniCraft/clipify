@@ -4,7 +4,7 @@ import axios from "axios";
 import { AuthenticatedUser, Game, Overlay, OverlayType, RewardStatus, TwitchApiResponse, TwitchAppAccessTokenResponse, TwitchClip, TwitchClipBody, TwitchClipResponse, TwitchReward, TwitchRewardResponse, TwitchTokenApiResponse, TwitchUserResponse } from "@types";
 import { getAccessToken } from "@actions/database";
 import { getBaseUrl, isPreview } from "@actions/utils";
-import { RE2JS } from "re2js";
+import { isTitleBlocked } from "@/app/utils/regexFilter";
 
 export async function logTwitchError(context: string, error: unknown) {
 	if (axios.isAxiosError(error) && error.response) {
@@ -12,28 +12,6 @@ export async function logTwitchError(context: string, error: unknown) {
 	} else {
 		console.error("%s:", context, error);
 	}
-}
-
-function compileEntry(entry: string): RE2JS | null {
-	const s = entry.trim();
-	if (!s) return null;
-
-	try {
-		// "i" equivalent; there is no "g" in RE2JS
-		return RE2JS.compile(s, RE2JS.CASE_INSENSITIVE);
-	} catch {
-		return null;
-	}
-}
-
-function isTitleBlocked(title: string, blacklist: string[]): boolean {
-	return blacklist.some((entry) => {
-		const rx = compileEntry(entry);
-		if (!rx) return false;
-
-		// Equivalent to /.../g.test(title) but without lastIndex state:
-		return rx.matcher(title).find();
-	});
 }
 
 export async function exchangeAccesToken(code: string): Promise<TwitchTokenApiResponse | null> {
