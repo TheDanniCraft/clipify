@@ -20,7 +20,6 @@ export default function Footer() {
 	const [newsletterState, setNewsletterState] = useState("default");
 	const [isOpen, setIsOpen] = useState(false);
 	const [token, setToken] = useState<string | null>(null);
-	const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
 	const productHuntSrc = useMemo(() => `https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1052781&theme=${theme === "light" ? "light" : "dark"}`, [theme]);
 
@@ -209,7 +208,7 @@ export default function Footer() {
 									</Button>
 								}
 							/>
-							{siteKey && <Turnstile siteKey={siteKey} onSuccess={setToken} onError={() => console.error("Turnstile error")} onExpire={() => setToken(null)} />}
+							<Turnstile siteKey='0x4AAAAAACMFR636JljxhVLl' onSuccess={setToken} onError={() => console.error("Turnstile error")} onExpire={() => setToken(null)} />
 						</Form>
 						<Modal isOpen={isOpen} onOpenChange={(open) => setIsOpen(open)}>
 							<ModalContent>
