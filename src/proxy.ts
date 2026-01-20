@@ -8,7 +8,7 @@ export async function proxy(request: NextRequest) {
 		return authUser(request.nextUrl.pathname);
 	}
 
-	NextResponse.next();
+	return NextResponse.next();
 }
 
 export const config = {

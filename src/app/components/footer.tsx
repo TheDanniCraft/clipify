@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Button, Chip, Divider, Form, Image, Input, Link, Modal, ModalContent, Spinner, Tab, Tabs } from "@heroui/react";
+import { Turnstile } from "nextjs-turnstile";
 
 import Logo from "@components/logo";
 import { IconCircleCheckFilled, IconMailFilled, IconMoonFilled, IconSend, IconSunFilled } from "@tabler/icons-react";
@@ -18,6 +19,7 @@ export default function Footer() {
 	const plausible = usePlausible();
 	const [newsletterState, setNewsletterState] = useState("default");
 	const [isOpen, setIsOpen] = useState(false);
+	const [token, setToken] = useState<string | null>(null);
 
 	const productHuntSrc = useMemo(() => `https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1052781&theme=${theme === "light" ? "light" : "dark"}`, [theme]);
 
@@ -88,11 +90,16 @@ export default function Footer() {
 			setNewsletterState("loading");
 
 			try {
-				const res = await subscribeToNewsletter(data.email as string);
+				const res = await subscribeToNewsletter(data.email as string, token || "");
 				if (await isRatelimitError(res)) {
 					setNewsletterState("rateLimit");
 					return;
 				}
+				if (res instanceof Error) {
+					setNewsletterState("error");
+					return;
+				}
+
 				setNewsletterState("success");
 				setIsOpen(true);
 
@@ -105,7 +112,7 @@ export default function Footer() {
 				setNewsletterState("error");
 			}
 		},
-		[plausible]
+		[plausible, token],
 	);
 
 	const renderList = useCallback(
@@ -123,7 +130,7 @@ export default function Footer() {
 				</ul>
 			</div>
 		),
-		[]
+		[],
 	);
 
 	return (
@@ -196,11 +203,12 @@ export default function Footer() {
 								name='email'
 								isDisabled={newsletterState === "loading" || newsletterState === "success"}
 								endContent={
-									<Button color='primary' size='sm' isIconOnly type='submit' disabled={newsletterState === "loading" || newsletterState === "success"} aria-label='Subscribe to newsletter'>
+									<Button color='primary' size='sm' isIconOnly type='submit' isDisabled={newsletterState === "loading" || newsletterState === "success" || !token} aria-label='Subscribe to newsletter'>
 										<IconSend className='text-white' />
 									</Button>
 								}
 							/>
+							<Turnstile siteKey='0x4AAAAAACMFR636JljxhVLl' onSuccess={setToken} onError={() => console.error("Turnstile error")} onExpire={() => setToken(null)} />
 						</Form>
 						<Modal isOpen={isOpen} onOpenChange={(open) => setIsOpen(open)}>
 							<ModalContent>

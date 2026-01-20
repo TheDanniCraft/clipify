@@ -4,10 +4,24 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { tokenTable, usersTable, overlaysTable, queueTable, settingsTable, modQueueTable, editorsTable } from "@/db/schema";
 import { AuthenticatedUser, Overlay, TwitchUserResponse, TwitchTokenApiResponse, UserToken, Plan, Role, UserSettings } from "@types";
 import { getUserDetails, getUsersDetailsBulk, refreshAccessToken, subscribeToReward } from "@actions/twitch";
-import { eq, inArray, and } from "drizzle-orm";
+import { eq, inArray, and, or, isNull, lt, sql } from "drizzle-orm";
 import { validateAuth } from "@actions/auth";
 
 const db = drizzle(process.env.DATABASE_URL!);
+
+const OVERLAY_TOUCH_INTERVAL = sql`now() - interval '1 minute'`;
+
+export async function touchUser(userId: string, tx = db) {
+	await tx.update(usersTable).set({ lastLogin: new Date() }).where(eq(usersTable.id, userId)).execute();
+}
+
+export async function touchOverlay(overlayId: string, tx = db) {
+	await tx
+		.update(overlaysTable)
+		.set({ lastUsedAt: new Date() })
+		.where(and(eq(overlaysTable.id, overlayId), or(isNull(overlaysTable.lastUsedAt), lt(overlaysTable.lastUsedAt, OVERLAY_TOUCH_INTERVAL))))
+		.execute();
+}
 
 async function isEditor(user: AuthenticatedUser, overlay: Overlay): Promise<boolean> {
 	const isOwner = user.id === overlay.ownerId;
@@ -47,6 +61,7 @@ async function setUser(user: TwitchUserResponse): Promise<AuthenticatedUser> {
 					username: user.login,
 					email: user.email,
 					avatar: user.profile_image_url,
+					updatedAt: new Date(),
 				},
 			})
 			.returning()
@@ -113,6 +128,7 @@ export async function updateUserSubscription(userId: string, customerId: string,
 			.set({
 				plan,
 				stripeCustomerId: customerId,
+				updatedAt: new Date(),
 			})
 			.where(eq(usersTable.id, userId))
 			.returning()
@@ -153,7 +169,7 @@ export async function setAccessToken(token: TwitchTokenApiResponse): Promise<Aut
 				id: user.id,
 				accessToken: token.access_token,
 				refreshToken: token.refresh_token,
-				expiresAt: expiresAt.toISOString(),
+				expiresAt: expiresAt,
 				scope: token.scope,
 				tokenType: token.token_type,
 			})
@@ -162,7 +178,7 @@ export async function setAccessToken(token: TwitchTokenApiResponse): Promise<Aut
 				set: {
 					accessToken: token.access_token,
 					refreshToken: token.refresh_token,
-					expiresAt: expiresAt.toISOString(),
+					expiresAt: expiresAt,
 					scope: token.scope,
 					tokenType: token.token_type,
 				},
@@ -184,7 +200,7 @@ export async function getAccessToken(userId: string): Promise<UserToken | null> 
 		}
 
 		const currentTime = new Date();
-		const expiresAt = new Date(token[0].expiresAt);
+		const expiresAt = token[0].expiresAt;
 
 		if (currentTime > expiresAt) {
 			const newToken = await refreshAccessToken(token[0].refreshToken);
@@ -198,7 +214,7 @@ export async function getAccessToken(userId: string): Promise<UserToken | null> 
 				id: userId,
 				accessToken: newToken.access_token,
 				refreshToken: newToken.refresh_token,
-				expiresAt: new Date(Date.now() + newToken.expires_in * 1000).toISOString(),
+				expiresAt: new Date(Date.now() + newToken.expires_in * 1000),
 				scope: newToken.scope,
 				tokenType: newToken.token_type,
 			};
@@ -208,7 +224,7 @@ export async function getAccessToken(userId: string): Promise<UserToken | null> 
 			id: userId,
 			accessToken: token[0].accessToken,
 			refreshToken: token[0].refreshToken,
-			expiresAt: expiresAt.toISOString(),
+			expiresAt: expiresAt,
 			scope: token[0].scope,
 			tokenType: token[0].tokenType,
 		};
@@ -319,9 +335,11 @@ export async function downgradeUserPlan(userId: string) {
 		await db.delete(overlaysTable).where(inArray(overlaysTable.id, overlaysToDeactivate)).execute();
 	}
 
-	await db.update(overlaysTable).set({ rewardId: null }).where(eq(overlaysTable.id, overlays[0].id)).execute();
+	await db.update(overlaysTable).set({ rewardId: null, blacklistWords: [], minClipDuration: 0, maxClipDuration: 60 }).where(eq(overlaysTable.id, overlays[0].id)).execute();
 
 	await db.delete(editorsTable).where(eq(editorsTable.userId, userId)).execute();
+
+	await db.update(usersTable).set({ updatedAt: new Date() }).where(eq(usersTable.id, userId)).execute();
 }
 
 export async function saveOverlay(overlay: Overlay) {
@@ -349,6 +367,9 @@ export async function saveOverlay(overlay: Overlay) {
 				status: overlay.status,
 				type: overlay.type,
 				rewardId: plan === Plan.Free ? null : overlay.rewardId,
+				minClipDuration: overlay.minClipDuration,
+				maxClipDuration: overlay.maxClipDuration,
+				blacklistWords: overlay.blacklistWords,
 			})
 			.onConflictDoUpdate({
 				target: overlaysTable.id,
@@ -357,6 +378,10 @@ export async function saveOverlay(overlay: Overlay) {
 					status: overlay.status,
 					type: overlay.type,
 					rewardId: plan === Plan.Free ? null : overlay.rewardId,
+					updatedAt: new Date(),
+					minClipDuration: overlay.minClipDuration,
+					maxClipDuration: overlay.maxClipDuration,
+					blacklistWords: overlay.blacklistWords,
 				},
 			});
 

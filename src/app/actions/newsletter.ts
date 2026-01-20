@@ -3,6 +3,7 @@
 import axios from "axios";
 import { tryRateLimit } from "@/app/actions/rateLimit";
 import { RateLimitError } from "@types";
+import { verifyTurnstile } from "nextjs-turnstile";
 
 const LISTMONK_URL = process.env.LISTMONK_URL;
 const LISTMONK_LIST_UUID = process.env.LISTMONK_LIST_UUID;
@@ -44,7 +45,7 @@ const providerPatterns = [
 	{ regex: /@(bellsouth|att)\.net$/i, provider: "AT&T" },
 ];
 
-export async function subscribeToNewsletter(email: string) {
+export async function subscribeToNewsletter(email: string, captchaToken: string) {
 	if (!LISTMONK_URL || !LISTMONK_LIST_UUID || !LISTMONK_USERNAME || !LISTMONK_API_KEY) {
 		throw new Error("Missing Listmonk configuration in environment variables");
 	}
@@ -54,6 +55,14 @@ export async function subscribeToNewsletter(email: string) {
 
 		if (!rateLimiter.success) {
 			return new RateLimitError();
+		}
+
+		const isValidCaptcha = await verifyTurnstile(captchaToken, {
+			secretKey: process.env.TURNSTILE_SECRET_KEY || "",
+		});
+
+		if (!isValidCaptcha) {
+			return new Error("Invalid CAPTCHA");
 		}
 
 		const response = await axios.post(
@@ -68,7 +77,7 @@ export async function subscribeToNewsletter(email: string) {
 					"Content-Type": "application/json",
 					Authorization: `Basic ${Buffer.from(`${LISTMONK_USERNAME}:${LISTMONK_API_KEY}`).toString("base64")}`,
 				},
-			}
+			},
 		);
 
 		return response.data;

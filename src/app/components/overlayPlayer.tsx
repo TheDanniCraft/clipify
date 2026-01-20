@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ClipQueueItem, ModQueueItem, Overlay, TwitchClip, TwitchClipGqlData, TwitchClipGqlResponse, TwitchClipVideoQuality, VideoClip } from "@types";
-import { getAvatar, getDemoClip, getGameDetails, getTwitchClip, logTwitchError, subscribeToChat } from "@actions/twitch";
+import { getAvatar, getDemoClip, getGameDetails, getTwitchClip, subscribeToChat } from "@actions/twitch";
 import PlayerOverlay from "@components/playerOverlay";
 import { Avatar, Button, Link } from "@heroui/react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -62,7 +62,7 @@ async function getRawMediaUrl(clipId: string): Promise<string | undefined> {
 
 		return `${clipsVideoSource}?sig=${clipsSignature}&token=${clipsToken}`;
 	} catch (error) {
-		logTwitchError("Error fetching raw media URL", error);
+		console.error("Error fetching raw media URL", error);
 		return undefined;
 	}
 }
@@ -85,7 +85,7 @@ async function buildVideoClip(randomClip: TwitchClip, isDemoPlayer: boolean): Pr
 				name: "Demo Mode",
 				box_art_url: "",
 				igdb_id: "",
-		  })
+			})
 		: getGameDetails(randomClip.game_id, randomClip.broadcaster_id);
 
 	const [mediaUrl, brodcasterAvatar, game] = await Promise.all([mediaUrlPromise, avatarPromise, gamePromise]);
@@ -386,7 +386,7 @@ export default function OverlayPlayer({ clips, overlay, isEmbed, showBanner, isD
 			try {
 				await subscribeToChat(overlay.ownerId);
 			} catch (error) {
-				logTwitchError("Error subscribing to chat", error);
+				console.error("Error subscribing to chat", error);
 			}
 		}
 
@@ -442,6 +442,7 @@ export default function OverlayPlayer({ clips, overlay, isEmbed, showBanner, isD
 			cancelled = true;
 			prefetchAbortRef.current?.abort();
 		};
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [videoClip?.id, getRandomClip, isDemoPlayer]);
 
 	if (!videoClip) return null;

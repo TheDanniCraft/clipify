@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 
 import { useParams, useRouter } from "next/navigation";
 import { getOverlay, getUserPlan, saveOverlay } from "@/app/actions/database";
-import { addToast, Button, Card, CardBody, CardHeader, Divider, Form, Input, Link, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Select, SelectItem, Snippet, Spinner, Switch, Tooltip } from "@heroui/react";
-import { AuthenticatedUser, Overlay, OverlayType, Plan, TwitchReward } from "@types";
+import { addToast, Button, Card, CardBody, CardHeader, Divider, Form, Image, Input, Link, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Select, SelectItem, Slider, Snippet, Spinner, Switch, Tooltip, useDisclosure } from "@heroui/react";
+import { AuthenticatedUser, Overlay, OverlayType, Plan, TwitchClip, TwitchReward } from "@types";
 import { IconAlertTriangle, IconArrowLeft, IconCrown, IconDeviceFloppy, IconInfoCircle, IconPlayerPauseFilled, IconPlayerPlayFilled } from "@tabler/icons-react";
 import DashboardNavbar from "@components/dashboardNavbar";
 import { useNavigationGuard } from "next-navigation-guard";
@@ -13,6 +13,8 @@ import { validateAuth } from "@/app/actions/auth";
 import { createChannelReward, getReward, getTwitchClips, removeChannelReward } from "@/app/actions/twitch";
 import { generatePaymentLink } from "@/app/actions/subscription";
 import FeedbackWidget from "@components/feedbackWidget";
+import TagsInput from "@components/tagsInput";
+import { isTitleBlocked } from "@/app/utils/regexFilter";
 
 const overlayTypes: { key: OverlayType; label: string }[] = [
 	{ key: "1", label: "Top Clips - Today" },
@@ -35,8 +37,9 @@ export default function OverlaySettings() {
 	const [baseUrl] = useState<string | null>(typeof window !== "undefined" ? window.location.origin : null);
 	const [user, setUser] = useState<AuthenticatedUser>();
 	const [reward, setReward] = useState<TwitchReward | null>(null);
-	const [clipsPerType, setClipsPerType] = useState<Record<OverlayType, number>>({} as Record<OverlayType, number>);
 	const [ownerPlan, setOwnerPlan] = useState<Plan | null>(null);
+	const [previewClips, setPreviewClips] = useState<TwitchClip[]>([]);
+	const { isOpen: isCliplistOpen, onOpen: onCliplistOpen, onOpenChange: onCliplistOpenChange } = useDisclosure();
 
 	const navGuard = useNavigationGuard({ enabled: isFormDirty() });
 
@@ -83,17 +86,21 @@ export default function OverlaySettings() {
 
 			setOverlay(fetchedOverlay);
 			setBaseOverlay(fetchedOverlay);
-
-			overlayTypes.forEach(async (type) => {
-				const clips = await getTwitchClips(fetchedOverlay, type.key);
-
-				setClipsPerType((prev) => ({ ...prev, [type.key]: clips.length }));
-			});
 		}
 		fetchOverlay();
 	}, [overlayId]);
 
-	if (!overlayId || !overlay || !overlayTypes.every((t) => typeof clipsPerType[t.key] === "number")) {
+	useEffect(() => {
+		async function getClipsForType() {
+			if (!overlay) return;
+			const clips = await getTwitchClips(overlay, overlay.type, true);
+			setPreviewClips(clips);
+		}
+		getClipsForType();
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [overlay?.type]);
+
+	if (!overlayId || !overlay) {
 		return (
 			<div className='flex flex-col items-center justify-center w-full h-screen'>
 				<Spinner label='Loading overlay' />
@@ -192,18 +199,30 @@ export default function OverlaySettings() {
 										isRequired
 										label='Overlay Name'
 									/>
-									<Select
-										isRequired
-										selectedKeys={[overlay.type]}
-										onSelectionChange={(value) => {
-											setOverlay({ ...overlay, type: value.currentKey as OverlayType });
-										}}
-										label='Overlay Type'
-									>
-										{overlayTypes.map((type) => (
-											<SelectItem key={type.key}>{clipsPerType[type.key] != null && type.key !== "Queue" ? `${type.label}: ${clipsPerType[type.key]}` : type.label}</SelectItem>
-										))}
-									</Select>
+									<div className='w-full flex items-center'>
+										<Select
+											isRequired
+											selectedKeys={[overlay.type]}
+											onSelectionChange={(value) => {
+												setOverlay({ ...overlay, type: value.currentKey as OverlayType });
+											}}
+											label='Overlay Type'
+										>
+											{overlayTypes.map((type) => (
+												<SelectItem key={type.key}>{type.key !== "Queue" ? type.label : type.label}</SelectItem>
+											))}
+										</Select>
+										<Button isIconOnly onPress={onCliplistOpen} size='lg' className='ml-2'>
+											<span>
+												{
+													previewClips.filter((clip) => {
+														return clip.duration >= overlay.minClipDuration && clip.duration <= overlay.maxClipDuration && !isTitleBlocked(clip.title, overlay.blacklistWords);
+													}).length
+												}
+											</span>
+										</Button>
+									</div>
+
 									<Divider className='my-4' />
 									{ownerPlan === Plan.Free && (
 										<div className='w-full mb-4'>
@@ -220,6 +239,7 @@ export default function OverlaySettings() {
 														<li>Multiple overlay</li>
 														<li>Link custom Twitch rewards</li>
 														<li>Control your overlay via chat</li>
+														<li>Advanced clip filtering</li>
 														<li>Priority support</li>
 													</ul>
 													<Button
@@ -257,7 +277,7 @@ export default function OverlaySettings() {
 											pointerEvents: ownerPlan === Plan.Free ? "none" : "auto",
 										}}
 									>
-										<div className='flex w-full items-center mb-2 gap-1'>
+										<div className='flex w-full items-center px-2 mb-2 gap-1'>
 											<Button
 												onPress={async () => {
 													const reward = await createChannelReward(overlay.ownerId);
@@ -290,12 +310,61 @@ export default function OverlaySettings() {
 												<IconInfoCircle className='text-default-400' />
 											</Tooltip>
 										</div>
+										<Slider
+											minValue={0}
+											maxValue={60}
+											defaultValue={[overlay.minClipDuration, overlay.maxClipDuration]}
+											value={[overlay.minClipDuration, overlay.maxClipDuration]}
+											step={1}
+											label='Filter clips by duration (seconds)'
+											showTooltip
+											marks={[
+												{ value: 0, label: "0s" },
+												{ value: 20, label: "20s" },
+												{ value: 40, label: "40s" },
+												{ value: 60, label: "60s" },
+											]}
+											formatOptions={{ style: "unit", unit: "second" }}
+											onChange={(value: number | number[]) => {
+												const [min, max] = Array.isArray(value) ? (value as [number, number]) : [value as number, value as number];
+												setOverlay({ ...overlay, minClipDuration: min, maxClipDuration: max });
+											}}
+											className='p-2'
+											size='sm'
+										/>
+										<TagsInput className='p-2' fullWidth label='Blacklisted Words' value={overlay.blacklistWords} onValueChange={(value) => setOverlay({ ...overlay, blacklistWords: value })} description='Hide clips containing certain words in their titles. Supports RE2 regex (no lookarounds). Example: ^hello$' />
 									</div>
 								</Form>
 							</div>
 						</CardBody>
 					</Card>
 				</div>
+
+				<Modal isOpen={isCliplistOpen} onOpenChange={onCliplistOpenChange}>
+					<ModalContent className='flex max-h-[80vh] flex-col overflow-hidden'>
+						<ModalHeader>Preview Clips</ModalHeader>
+						<ModalBody className='flex-1 overflow-y-auto'>
+							<ul className='space-y-2'>
+								{previewClips
+									.filter((clip) => {
+										return clip.duration >= overlay.minClipDuration && clip.duration <= overlay.maxClipDuration && !isTitleBlocked(clip.title, overlay.blacklistWords);
+									})
+									.map((clip) => (
+										<li key={clip.id} className='flex gap-3 items-center rounded-md p-2 hover:bg-white/5 transition'>
+											{/* Thumbnail */}
+											<Image src={clip.thumbnail_url} alt={clip.title} className='h-12 w-20 rounded object-cover flex-shrink-0' />
+
+											{/* Text */}
+											<div className='min-w-0'>
+												<p className='text-sm font-medium truncate'>{clip.title}</p>
+												<p className='text-xs text-white/60'>clipped by {clip.creator_name}</p>
+											</div>
+										</li>
+									))}
+							</ul>
+						</ModalBody>
+					</ModalContent>
+				</Modal>
 
 				<Modal backdrop='blur' isOpen={navGuard.active} onClose={navGuard.reject}>
 					<ModalContent>

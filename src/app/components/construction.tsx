@@ -8,9 +8,11 @@ import { IconCircleCheckFilled, IconMailFilled, IconSend } from "@tabler/icons-r
 import { subscribeToNewsletter, getEmailProvider } from "@/app/actions/newsletter";
 import { usePlausible } from "next-plausible";
 import { isRatelimitError } from "@actions/rateLimit";
+import { Turnstile } from "nextjs-turnstile";
 
 const Construction = ({ endDate, cta }: { endDate?: Date; cta: Cta }) => {
 	const plausible = usePlausible();
+	const [token, setToken] = useState<string | null>(null);
 	const [timeLeft, setTimeLeft] = useState({
 		days: "0",
 		hours: "0",
@@ -55,7 +57,7 @@ const Construction = ({ endDate, cta }: { endDate?: Date; cta: Cta }) => {
 		const data = Object.fromEntries(new FormData(event.currentTarget));
 		await setNewsletterState("loading");
 
-		await subscribeToNewsletter(data.email as string)
+		await subscribeToNewsletter(data.email as string, token || "")
 			.then(async (res) => {
 				if (await isRatelimitError(res)) {
 					setNewsletterState("rateLimit");
@@ -151,6 +153,7 @@ const Construction = ({ endDate, cta }: { endDate?: Date; cta: Cta }) => {
 										</Button>
 									}
 								/>
+								<Turnstile siteKey='0x4AAAAAACMFR636JljxhVLl' onSuccess={setToken} onError={() => console.error("Turnstile error")} onExpire={() => setToken(null)} />
 							</Form>
 							{newsletterState === "success" && (
 								<div className='text-success-500 mt-2 text-center'>
