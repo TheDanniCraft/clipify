@@ -291,6 +291,9 @@ export default function OverlaySettings() {
 											</Button>
 											<Input
 												isClearable
+												onChange={(event) => {
+													event.preventDefault();
+												}}
 												onClear={() => {
 													if (reward) {
 														removeChannelReward(reward.id, overlay.ownerId);
