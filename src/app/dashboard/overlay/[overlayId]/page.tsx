@@ -292,6 +292,7 @@ export default function OverlaySettings() {
 											<Input
 												isClearable
 												onChange={(event) => {
+													// Dont allow manual input, but let them clear it (isReadOnly would disable clearing)
 													event.preventDefault();
 												}}
 												onClear={() => {
@@ -335,7 +336,7 @@ export default function OverlaySettings() {
 											className='p-2'
 											size='sm'
 										/>
-										<NumberInput min={0} defaultValue={overlay.minClipViews} value={overlay.minClipViews} onValueChange={(value) => setOverlay({ ...overlay, minClipViews: Number(value) })} label='Minimum Clip Views' description='Only clips with at least this many views will be shown in the overlay.' className='p-2' />
+										<NumberInput size='sm' min={0} defaultValue={overlay.minClipViews} value={overlay.minClipViews} onValueChange={(value) => setOverlay({ ...overlay, minClipViews: Number(value) })} label='Minimum Clip Views' description='Only clips with at least this many views will be shown in the overlay.' className='p-2' />
 										<TagsInput className='p-2' fullWidth label='Blacklisted Words' value={overlay.blacklistWords} onValueChange={(value) => setOverlay({ ...overlay, blacklistWords: value })} description='Hide clips containing certain words in their titles. Supports RE2 regex (no lookarounds). Example: ^hello$' />
 									</div>
 								</Form>
