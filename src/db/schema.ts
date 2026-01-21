@@ -53,6 +53,7 @@ export const overlaysTable = pgTable("overlays", {
 	lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
 	minClipDuration: integer("min_clip_duration").notNull().default(0),
 	maxClipDuration: integer("max_clip_duration").notNull().default(60),
+	minClipViews: integer("min_clip_views").notNull().default(0),
 	blacklistWords: varchar("blacklist_words").array().notNull().default([]),
 });
 
