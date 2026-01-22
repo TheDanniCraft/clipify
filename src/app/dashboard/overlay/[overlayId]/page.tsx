@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 
 import { useParams, useRouter } from "next/navigation";
 import { getOverlay, getUserPlan, saveOverlay } from "@/app/actions/database";
-import { addToast, Button, Card, CardBody, CardHeader, Divider, Form, Image, Input, Link, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Select, SelectItem, Slider, Snippet, Spinner, Switch, Tooltip, useDisclosure } from "@heroui/react";
+import { addToast, Button, Card, CardBody, CardHeader, Divider, Form, Image, Input, Link, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, NumberInput, Select, SelectItem, Slider, Snippet, Spinner, Switch, Tooltip, useDisclosure } from "@heroui/react";
 import { AuthenticatedUser, Overlay, OverlayType, Plan, TwitchClip, TwitchReward } from "@types";
 import { IconAlertTriangle, IconArrowLeft, IconCrown, IconDeviceFloppy, IconInfoCircle, IconPlayerPauseFilled, IconPlayerPlayFilled } from "@tabler/icons-react";
 import DashboardNavbar from "@components/dashboardNavbar";
@@ -216,7 +216,7 @@ export default function OverlaySettings() {
 											<span>
 												{
 													previewClips.filter((clip) => {
-														return clip.duration >= overlay.minClipDuration && clip.duration <= overlay.maxClipDuration && !isTitleBlocked(clip.title, overlay.blacklistWords);
+														return clip.duration >= overlay.minClipDuration && clip.duration <= overlay.maxClipDuration && !isTitleBlocked(clip.title, overlay.blacklistWords) && clip.view_count >= overlay.minClipViews;
 													}).length
 												}
 											</span>
@@ -291,6 +291,10 @@ export default function OverlaySettings() {
 											</Button>
 											<Input
 												isClearable
+												onChange={(event) => {
+													// Dont allow manual input, but let them clear it (isReadOnly would disable clearing)
+													event.preventDefault();
+												}}
 												onClear={() => {
 													if (reward) {
 														removeChannelReward(reward.id, overlay.ownerId);
@@ -332,6 +336,7 @@ export default function OverlaySettings() {
 											className='p-2'
 											size='sm'
 										/>
+										<NumberInput size='sm' min={0} defaultValue={overlay.minClipViews} value={overlay.minClipViews} onValueChange={(value) => setOverlay({ ...overlay, minClipViews: Number(value) })} label='Minimum Clip Views' description='Only clips with at least this many views will be shown in the overlay.' className='p-2' />
 										<TagsInput className='p-2' fullWidth label='Blacklisted Words' value={overlay.blacklistWords} onValueChange={(value) => setOverlay({ ...overlay, blacklistWords: value })} description='Hide clips containing certain words in their titles. Supports RE2 regex (no lookarounds). Example: ^hello$' />
 									</div>
 								</Form>
@@ -347,7 +352,7 @@ export default function OverlaySettings() {
 							<ul className='space-y-2'>
 								{previewClips
 									.filter((clip) => {
-										return clip.duration >= overlay.minClipDuration && clip.duration <= overlay.maxClipDuration && !isTitleBlocked(clip.title, overlay.blacklistWords);
+										return clip.duration >= overlay.minClipDuration && clip.duration <= overlay.maxClipDuration && !isTitleBlocked(clip.title, overlay.blacklistWords) && clip.view_count >= overlay.minClipViews;
 									})
 									.map((clip) => (
 										<li key={clip.id} className='flex gap-3 items-center rounded-md p-2 hover:bg-white/5 transition'>
