@@ -43,6 +43,13 @@
       "when": 1768867346956,
       "tag": "0005_cuddly_wolfsbane",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1769075285672,
+      "tag": "0006_short_natasha_romanoff",
+      "breakpoints": true
     }
   ]
 }

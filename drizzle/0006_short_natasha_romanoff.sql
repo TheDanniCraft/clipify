@@ -1,0 +1,1 @@
+ALTER TABLE "overlays" ADD COLUMN "min_clip_views" integer DEFAULT 0 NOT NULL;
