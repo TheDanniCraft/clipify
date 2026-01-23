@@ -356,14 +356,21 @@ export default function OverlaySettings() {
 									})
 									.map((clip) => (
 										<li key={clip.id} className='flex gap-3 items-center rounded-md p-2 hover:bg-white/5 transition'>
-											{/* Thumbnail */}
-											<Image src={clip.thumbnail_url} alt={clip.title} className='h-12 w-20 rounded object-cover flex-shrink-0' />
+											<a href={clip.url} target='_blank' rel='noopener noreferrer' className='flex items-center gap-3 w-full'>
+												{/* Thumbnail */}
+												<Image src={clip.thumbnail_url} alt={clip.title} className='h-12 w-20 rounded object-cover flex-shrink-0' />
 
-											{/* Text */}
-											<div className='min-w-0'>
-												<p className='text-sm font-medium truncate'>{clip.title}</p>
-												<p className='text-xs text-white/60'>clipped by {clip.creator_name}</p>
-											</div>
+												{/* Text */}
+												<div className='min-w-0'>
+													<p className='text-sm font-medium truncate'>{clip.title}</p>
+													<p className='text-xs text-white/60'>clipped by {clip.creator_name}</p>
+													<div className='text-xs text-white/60'>
+														<span>{clip.view_count} views</span>
+														<span className='mx-1'>•</span>
+														<span>{clip.duration}s</span>
+													</div>
+												</div>
+											</a>
 										</li>
 									))}
 							</ul>
