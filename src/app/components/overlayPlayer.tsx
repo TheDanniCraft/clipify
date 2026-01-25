@@ -131,6 +131,11 @@ export default function OverlayPlayer({ clips, overlay, isEmbed, showBanner, isD
 		playedClipsRef.current = playedClips;
 	}, [playedClips]);
 
+	const nextClipRef = useRef<VideoClip | null>(null);
+	useEffect(() => {
+		nextClipRef.current = nextClip;
+	}, [nextClip]);
+
 	const [showOverlay, setShowOverlay] = useState<boolean>(false);
 	const [showPlayer, setShowPlayer] = useState<boolean>(true);
 	const [paused, setPaused] = useState<boolean>(false);
@@ -216,17 +221,32 @@ export default function OverlayPlayer({ clips, overlay, isEmbed, showBanner, isD
 		if (!clips || clips.length === 0) return null;
 
 		const played = playedClipsRef.current;
-		let unplayed = clips.filter((c) => !played.includes(c.id));
+		const nextId = nextClipRef.current?.id;
+		const currentId = clipRef.current?.id;
 
-		if (unplayed.length === 0) {
-			// reset cycle
+		let candidates = clips.filter((c) => !played.includes(c.id) && c.id !== currentId && c.id !== nextId);
+
+		if (candidates.length === 0) {
 			setPlayedClips([]);
 			playedClipsRef.current = [];
-			unplayed = clips;
+
+			candidates = clips.filter((c) => c.id !== currentId && c.id !== nextId);
 		}
 
-		const randomIndex = Math.floor(Math.random() * unplayed.length);
-		return unplayed[randomIndex] ?? null;
+		if (candidates.length === 0 && clips.length === 1) {
+			return clips[0];
+		}
+
+		if (candidates.length === 0 && clips.length === 2) {
+			if (!currentId) return clips[Math.floor(Math.random() * 2)];
+			return clips.find((c) => c.id !== currentId) ?? clips[0];
+		}
+
+		if (candidates.length === 0) {
+			return clips[Math.floor(Math.random() * clips.length)];
+		}
+
+		return candidates[Math.floor(Math.random() * candidates.length)];
 	}, [clips, getFirstQueClip, getFirstFromDemoQueue, isDemoPlayer, overlay.ownerId]);
 
 	/**
@@ -239,11 +259,11 @@ export default function OverlayPlayer({ clips, overlay, isEmbed, showBanner, isD
 		advanceLockRef.current = true;
 
 		try {
-			// If we have a prefetched clip, swap instantly
-			if (nextClip) {
-				const next = nextClip;
+			const prefetched = nextClipRef.current;
+			if (prefetched) {
+				nextClipRef.current = null;
 				setNextClip(null);
-				setVideoClip(next);
+				setVideoClip(prefetched);
 				return;
 			}
 
@@ -263,7 +283,7 @@ export default function OverlayPlayer({ clips, overlay, isEmbed, showBanner, isD
 		} finally {
 			advanceLockRef.current = false;
 		}
-	}, [getRandomClip, isDemoPlayer, nextClip]);
+	}, [getRandomClip, isDemoPlayer]);
 
 	async function handleCommand(name: string, data: string) {
 		switch (name) {
@@ -464,7 +484,11 @@ export default function OverlayPlayer({ clips, overlay, isEmbed, showBanner, isD
 							ref={playerRef}
 							onEnded={() => {
 								setShowOverlay(false);
-								setPlayedClips((prev) => [...prev, videoClip.id]);
+
+								// sync update so next pick can't choose the same clip
+								playedClipsRef.current = [...playedClipsRef.current, videoClip.id];
+								setPlayedClips(playedClipsRef.current);
+
 								advanceClip();
 							}}
 							onPlay={() => setShowOverlay(true)}
