@@ -33,7 +33,7 @@
 		"nextjs-turnstile": "^1.0.3",
 		"pg": "^8.17.2",
 		"rate-limiter-flexible": "^9.0.1",
-		"re2js": "^1.2.0",
+		"re2js": "^1.2.1",
 		"react": "^19.2.3",
 		"react-dom": "^19.2.3",
 		"stripe": "^20.2.0",
