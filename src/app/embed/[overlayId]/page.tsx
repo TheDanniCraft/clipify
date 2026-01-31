@@ -6,9 +6,18 @@ import { Plan, type Overlay } from "@/app/lib/types";
 export default async function Overlay({ params, searchParams }: { params: Promise<{ overlayId: string }>; searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
 	const { overlayId } = await params;
 	const sp = await searchParams;
+	const toFlag = (value: string | string[] | undefined) => {
+		let raw = value;
+		if (Array.isArray(raw)) raw = raw[0];
+		if (raw === undefined) return false;
+		if (raw === "" || raw === "true" || raw === "1") return true;
+		return raw !== "false" && raw !== "0";
+	};
 	let rawShowBanner = sp.showBanner;
 	if (Array.isArray(rawShowBanner)) rawShowBanner = rawShowBanner[0];
 	const showBanner = rawShowBanner !== undefined && rawShowBanner !== "false" && rawShowBanner !== "0";
+	const embedMuted = toFlag(sp.muted);
+	const embedAutoplay = toFlag(sp.autoplay ?? sp.autopaly ?? sp.autopla);
 
 	if (overlayId === "default") {
 		return (
@@ -70,7 +79,7 @@ export default async function Overlay({ params, searchParams }: { params: Promis
 				}}
 			/>
 			<div className='flex flex-col justify-center items-center h-screen w-screen'>
-				<OverlayPlayer clips={clips} overlay={overlay} isEmbed showBanner={showBanner || plan === Plan.Free} />
+				<OverlayPlayer clips={clips} overlay={overlay} isEmbed showBanner={showBanner || plan === Plan.Free} embedMuted={embedMuted} embedAutoplay={embedAutoplay} />
 			</div>
 		</>
 	);

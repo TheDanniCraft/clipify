@@ -6,6 +6,7 @@ import { getUsersDetailsBulk } from "@/app/actions/twitch";
 import DashboardNavbar from "@/app/components/dashboardNavbar";
 import { AuthenticatedUser, Overlay } from "@/app/lib/types";
 import { Avatar, Card, CardBody, CardHeader, Divider, Link, Select, SelectItem, Snippet, Spinner, Switch, Tooltip } from "@heroui/react";
+import { IconCode, IconEye, IconLink, IconPlayerPlayFilled, IconSparkles, IconVolume } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -19,6 +20,8 @@ export default function EmbedTool() {
 	});
 	const [baseUrl, setBaseUrl] = useState<string>("");
 	const [showBanner, setShowBanner] = useState<boolean>();
+	const [embedMuted, setEmbedMuted] = useState<boolean>(false);
+	const [embedAutoplay, setEmbedAutoplay] = useState<boolean>(false);
 	const [avatars, setAvatars] = useState<Record<string, string>>({});
 
 	useEffect(() => {
@@ -84,6 +87,16 @@ export default function EmbedTool() {
 		initializeShowBanner();
 	}, [user]);
 
+	const buildEmbedUrl = (id: string) => {
+		if (!id) return "";
+		const params: string[] = [];
+		if (showBanner) params.push("showBanner");
+		if (embedMuted) params.push("muted");
+		if (embedAutoplay) params.push("autopla");
+		const query = params.join("&");
+		return `${baseUrl}/embed/${id}${query ? `?${query}` : ""}`;
+	};
+
 	if (overlays.length === 0)
 		return (
 			<div className='flex flex-col items-center justify-center w-full h-screen'>
@@ -99,7 +112,10 @@ export default function EmbedTool() {
 				<div className='px-6 md:px-12 lg:px-16 py-8 grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 items-start max-w-7xl mx-auto w-full'>
 					<Card>
 						<CardHeader>
-							<h2 className='text-2xl font-bold'>Select Overlay</h2>
+							<h2 className='text-2xl font-bold flex items-center gap-2'>
+								<IconSparkles className='h-5 w-5 text-primary' />
+								Select Overlay
+							</h2>
 						</CardHeader>
 						<CardBody className='flex flex-col gap-4'>
 							<Select
@@ -127,11 +143,30 @@ export default function EmbedTool() {
 							<Tooltip content={user?.plan === "free" ? "Upgrade your plan to remove Clipify branding" : "Toggle to include Clipify branding on your overlay"}>
 								<span>
 									<Switch isSelected={showBanner} onValueChange={setShowBanner} isDisabled={user?.plan === "free"}>
-										Enable Clipify Branding
+										<span className='flex items-center gap-2'>
+											<IconSparkles className='h-4 w-4 text-primary' />
+											Enable Clipify Branding
+										</span>
 									</Switch>
 								</span>
 							</Tooltip>
+							<Switch isSelected={embedAutoplay} onValueChange={setEmbedAutoplay}>
+								<span className='flex items-center gap-2'>
+									<IconPlayerPlayFilled className='h-4 w-4 text-emerald-500' />
+									Autoplay (skip click-to-play)
+								</span>
+							</Switch>
+							<Switch isSelected={embedMuted} onValueChange={setEmbedMuted}>
+								<span className='flex items-center gap-2'>
+									<IconVolume className='h-4 w-4 text-blue-500' />
+									Start muted
+								</span>
+							</Switch>
 							<div>
+								<div className='text-xs uppercase tracking-wide text-gray-500 font-semibold mb-2 flex items-center gap-2'>
+									<IconLink className='h-4 w-4' />
+									Embed link
+								</div>
 								<Snippet
 									size='sm'
 									className='w-full max-w-full'
@@ -140,12 +175,16 @@ export default function EmbedTool() {
 										pre: "overflow-hidden whitespace-nowrap",
 									}}
 								>
-									{overlayId === "" ? "Select an overlay to generate the link" : `${baseUrl}/embed/${overlayId}${showBanner ? "?showBanner" : ""}`}
+									{overlayId === "" ? "Select an overlay to generate the link" : buildEmbedUrl(overlayId)}
 								</Snippet>
 								<p className='text-sm text-gray-500'>You can use this link to embed your overlay (e.g. iframe)</p>
 							</div>
 							<Divider />
 							<div>
+								<div className='text-xs uppercase tracking-wide text-gray-500 font-semibold mb-2 flex items-center gap-2'>
+									<IconCode className='h-4 w-4' />
+									Embed code
+								</div>
 								<Snippet
 									className='w-full max-w-full'
 									symbol=''
@@ -153,7 +192,7 @@ export default function EmbedTool() {
 										pre: "overflow-hidden whitespace-nowrap",
 									}}
 								>
-									{overlayId === "" ? "Select an overlay to see the embed code" : `<iframe src="${baseUrl}/embed/${overlayId === "" ? "default" : overlayId}${showBanner ? "?showBanner" : ""}" class="w-full h-full" title="Clipify Overlay" style="width: 100%; aspect-ratio: 16 / 9; border: 0;"></iframe>`}
+									{overlayId === "" ? "Select an overlay to see the embed code" : `<iframe src="${buildEmbedUrl(overlayId === "" ? "default" : overlayId)}" class="w-full h-full" title="Clipify Overlay" style="width: 100%; aspect-ratio: 16 / 9; border: 0;"></iframe>`}
 								</Snippet>
 							</div>
 						</CardBody>
@@ -161,10 +200,13 @@ export default function EmbedTool() {
 
 					<Card>
 						<CardHeader>
-							<h2 className='text-2xl font-bold'>Preview</h2>
+							<h2 className='text-2xl font-bold flex items-center gap-2'>
+								<IconEye className='h-5 w-5 text-primary' />
+								Preview
+							</h2>
 						</CardHeader>
 						<CardBody className='flex flex-col px-5 pb-5 w-full items-center justify-center'>
-							<iframe referrerPolicy='strict-origin-when-cross-origin' src={`${baseUrl}/embed/${overlayId === "" ? "default" : overlayId}${showBanner ? "?showBanner" : ""}`} className='w-full aspect-video rounded-lg' title='Overlay Preview' />
+							<iframe referrerPolicy='strict-origin-when-cross-origin' src={buildEmbedUrl(overlayId === "" ? "default" : overlayId)} className='w-full aspect-video rounded-lg' title='Overlay Preview' />
 							{user && user.plan === "free" && (
 								<p className='text-sm text-warning font-medium mt-2'>
 									Your current plan allows you to use the embed tool with Clipify branding.{" "}

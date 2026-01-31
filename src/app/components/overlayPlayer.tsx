@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
 import { getFirstFromClipQueue, getFirstFromModQueue, removeFromClipQueue, removeFromModQueue } from "@actions/database";
 import Logo from "@components/logo";
+import { IconPlayerPlayFilled, IconVolume, IconVolumeOff } from "@tabler/icons-react";
 
 type VideoQualityWithNumeric = TwitchClipVideoQuality & { numericQuality: number };
 
@@ -121,7 +122,23 @@ function preloadVideo(url: string) {
 	}
 }
 
-export default function OverlayPlayer({ clips, overlay, isEmbed, showBanner, isDemoPlayer }: { clips: TwitchClip[]; overlay: Overlay; isEmbed?: boolean; showBanner?: boolean; isDemoPlayer?: boolean }) {
+export default function OverlayPlayer({
+	clips,
+	overlay,
+	isEmbed,
+	showBanner,
+	isDemoPlayer,
+	embedMuted,
+	embedAutoplay,
+}: {
+	clips: TwitchClip[];
+	overlay: Overlay;
+	isEmbed?: boolean;
+	showBanner?: boolean;
+	isDemoPlayer?: boolean;
+	embedMuted?: boolean;
+	embedAutoplay?: boolean;
+}) {
 	const [videoClip, setVideoClip] = useState<VideoClip | null>(null);
 	const [nextClip, setNextClip] = useState<VideoClip | null>(null);
 
@@ -138,7 +155,10 @@ export default function OverlayPlayer({ clips, overlay, isEmbed, showBanner, isD
 
 	const [showOverlay, setShowOverlay] = useState<boolean>(false);
 	const [showPlayer, setShowPlayer] = useState<boolean>(true);
-	const [paused, setPaused] = useState<boolean>(false);
+	const embedBehaviorEnabled = !!isEmbed && !isDemoPlayer;
+	const [paused, setPaused] = useState<boolean>(embedBehaviorEnabled ? !embedAutoplay : false);
+	const [isMuted, setIsMuted] = useState<boolean>(embedBehaviorEnabled ? !!embedMuted : false);
+	const [hasUserStarted, setHasUserStarted] = useState<boolean>(!embedBehaviorEnabled || !!embedAutoplay);
 	const [, setWebsocket] = useState<WebSocket | null>(null);
 
 	const playerRef = useRef<HTMLVideoElement | null>(null);
@@ -333,6 +353,18 @@ export default function OverlayPlayer({ clips, overlay, isEmbed, showBanner, isD
 		}
 	}, [paused]);
 
+	useEffect(() => {
+		if (!playerRef.current) return;
+		if (paused) return;
+		playerRef.current.play().catch((error) => console.error("Error playing the video:", error));
+	}, [paused, videoClip?.id]);
+
+	useEffect(() => {
+		if (playerRef.current) {
+			playerRef.current.muted = !!isDemoPlayer || (embedBehaviorEnabled ? isMuted : false);
+		}
+	}, [embedBehaviorEnabled, isDemoPlayer, isMuted, videoClip?.id]);
+
 	/**
 	 * WebSocket / postMessage wiring
 	 * (NOTE: your original code didn't cleanup listeners; that's also a possible "double trigger" in dev StrictMode)
@@ -468,13 +500,24 @@ export default function OverlayPlayer({ clips, overlay, isEmbed, showBanner, isD
 	if (!videoClip) return null;
 
 	if (isEmbed || isDemoPlayer || !isInIframe()) {
+		const effectiveMuted = !!isDemoPlayer || (embedBehaviorEnabled ? isMuted : false);
+		const allowAutoplay = embedBehaviorEnabled ? hasUserStarted : true;
+		const showClickToPlay = embedBehaviorEnabled && paused;
 		return (
-			<div className='relative inline-block'>
+			<div
+				className='relative inline-block'
+				onClick={() => {
+					if (showClickToPlay) {
+						setHasUserStarted(true);
+						setPaused(false);
+					}
+				}}
+			>
 				<AnimatePresence mode='wait'>
 					{videoClip.mediaUrl && (
 						<motion.video
 							key={videoClip.id}
-							autoPlay
+							autoPlay={allowAutoplay}
 							src={videoClip.mediaUrl}
 							initial={{ opacity: 0.1 }}
 							animate={{ opacity: 1 }}
@@ -498,12 +541,44 @@ export default function OverlayPlayer({ clips, overlay, isEmbed, showBanner, isD
 								aspectRatio: "19 / 9",
 							}}
 							className='block'
-							muted={!!isDemoPlayer}
+							muted={effectiveMuted}
 						>
 							Your browser does not support the video tag.
 						</motion.video>
 					)}
 				</AnimatePresence>
+
+				{embedBehaviorEnabled && (
+					<>
+						<div className='absolute right-4 top-4'>
+							<button
+								type='button'
+								onClick={(event) => {
+									event.stopPropagation();
+									setIsMuted((prev) => !prev);
+								}}
+								className='h-10 w-10 rounded-full bg-primary text-white shadow-md hover:bg-primary-600 transition flex items-center justify-center'
+								aria-pressed={isMuted}
+								aria-label={isMuted ? "Unmute overlay" : "Mute overlay"}
+							>
+								{isMuted ? <IconVolumeOff className='h-5 w-5 text-zinc-200' /> : <IconVolume className='h-5 w-5 text-white' />}
+							</button>
+						</div>
+
+						{showClickToPlay && (
+							<div className='absolute inset-0 flex items-center justify-center'>
+								<div
+									className='rounded-full bg-primary text-white text-sm sm:text-base px-5 py-2.5 shadow-lg flex items-center gap-2'
+								>
+									<span className='inline-flex items-center justify-center h-7 w-7 rounded-full bg-white'>
+										<IconPlayerPlayFilled className='h-4 w-4 text-primary' />
+									</span>
+									<span>Play clips</span>
+								</div>
+							</div>
+						)}
+					</>
+				)}
 
 				{isEmbed ? (
 					showBanner ? (
