@@ -10,14 +10,14 @@ export default async function Overlay({ params, searchParams }: { params: Promis
 		let raw = value;
 		if (Array.isArray(raw)) raw = raw[0];
 		if (raw === undefined) return false;
-		if (raw === "" || raw === "true" || raw === "1") return true;
-		return raw !== "false" && raw !== "0";
+		const normalized = raw.toString().trim().toLowerCase();
+		if (normalized === "" || normalized === "true" || normalized === "1") return true;
+		if (normalized === "false" || normalized === "0") return false;
+		return false;
 	};
-	let rawShowBanner = sp.showBanner;
-	if (Array.isArray(rawShowBanner)) rawShowBanner = rawShowBanner[0];
-	const showBanner = rawShowBanner !== undefined && rawShowBanner !== "false" && rawShowBanner !== "0";
+	const showBanner = toFlag(sp.showBanner);
 	const embedMuted = toFlag(sp.muted);
-	const embedAutoplay = toFlag(sp.autoplay ?? sp.autopaly ?? sp.autopla);
+	const embedAutoplay = toFlag(sp.autoplay);
 
 	if (overlayId === "default") {
 		return (

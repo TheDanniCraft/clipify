@@ -92,7 +92,7 @@ export default function EmbedTool() {
 		const params: string[] = [];
 		if (showBanner) params.push("showBanner");
 		if (embedMuted) params.push("muted");
-		if (embedAutoplay) params.push("autopla");
+		if (embedAutoplay) params.push("autoplay");
 		const query = params.join("&");
 		return `${baseUrl}/embed/${id}${query ? `?${query}` : ""}`;
 	};

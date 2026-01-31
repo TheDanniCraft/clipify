@@ -356,7 +356,14 @@ export default function OverlayPlayer({
 	useEffect(() => {
 		if (!playerRef.current) return;
 		if (paused) return;
-		playerRef.current.play().catch((error) => console.error("Error playing the video:", error));
+		playerRef.current.play().catch((error) => {
+			console.error("Error playing the video:", error);
+			// If autoplay is blocked, fall back to click-to-play in embed mode.
+			if (embedBehaviorEnabled) {
+				setHasUserStarted(false);
+				setPaused(true);
+			}
+		});
 	}, [paused, videoClip?.id]);
 
 	useEffect(() => {
@@ -506,8 +513,19 @@ export default function OverlayPlayer({
 		return (
 			<div
 				className='relative inline-block'
+				role={showClickToPlay ? "button" : undefined}
+				tabIndex={showClickToPlay ? 0 : -1}
+				aria-label={showClickToPlay ? "Play clips" : undefined}
 				onClick={() => {
 					if (showClickToPlay) {
+						setHasUserStarted(true);
+						setPaused(false);
+					}
+				}}
+				onKeyDown={(event) => {
+					if (!showClickToPlay) return;
+					if (event.key === "Enter" || event.key === " ") {
+						event.preventDefault();
 						setHasUserStarted(true);
 						setPaused(false);
 					}
