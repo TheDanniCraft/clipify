@@ -10,7 +10,7 @@ import type { AuthenticatedUser } from "@/app/lib/types";
 
 type UpgradeModalProps = {
 	isOpen: boolean;
-	onOpenChange: () => void;
+	onOpenChange: (isOpen: boolean) => void;
 	user: AuthenticatedUser;
 	title?: string;
 	description?: string;

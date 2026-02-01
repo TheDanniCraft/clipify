@@ -1,7 +1,7 @@
 "use server";
 
 import { WebSocket } from "ws";
-import { getOverlayPublic } from "@actions/database";
+import { getOverlayBySecret } from "@actions/database";
 import { RawData } from "ws";
 import { overlaySubscribers as subscribers, addSubscriber } from "@/app/store/overlaySubscribers";
 
@@ -11,9 +11,16 @@ export async function handleMessage(buffer: RawData, client: WebSocket) {
 
 	switch (parsedMessage.type) {
 		case "subscribe": {
-			const overlay = await getOverlayPublic(parsedMessage.data).catch(() => {
-				return null;
-			});
+			const payload = parsedMessage.data as { overlayId?: string; secret?: string } | string;
+			const overlayId = typeof payload === "string" ? payload : payload?.overlayId;
+			const secret = typeof payload === "string" ? undefined : payload?.secret;
+
+			if (!overlayId || !secret) {
+				client.close(4002);
+				return;
+			}
+
+			const overlay = await getOverlayBySecret(overlayId, secret).catch(() => null);
 			if (!overlay) {
 				client.close(4002);
 				return;

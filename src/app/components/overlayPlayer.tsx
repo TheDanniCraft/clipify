@@ -412,7 +412,7 @@ export default function OverlayPlayer({
 			setWebsocket(ws);
 
 			ws.addEventListener("open", () => {
-				ws?.send(JSON.stringify({ type: "subscribe", data: overlay.id }));
+				ws?.send(JSON.stringify({ type: "subscribe", data: { overlayId: overlay.id, secret: overlaySecret } }));
 			});
 
 			ws.addEventListener("message", async (event) => {
