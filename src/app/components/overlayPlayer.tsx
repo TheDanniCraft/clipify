@@ -307,13 +307,27 @@ export default function OverlayPlayer({
 		}
 	}, [getRandomClip, isDemoPlayer]);
 
+	const resetPrefetch = useCallback(() => {
+		prefetchAbortRef.current?.abort();
+		prefetchAbortRef.current = null;
+		nextClipRef.current = null;
+		setNextClip(null);
+	}, []);
+
 	async function handleCommand(name: string, data: string) {
 		switch (name) {
 			case "play": {
 				if (data) {
-					if (isDemoPlayer) setDemoQueue((prevQueue) => [...prevQueue, data]);
-					if (!clipRef.current) return;
-					await advanceClip();
+					resetPrefetch();
+
+					if (isDemoPlayer) {
+						setDemoQueue((prevQueue) => [...prevQueue, data]);
+					}
+
+					// Only start immediately if nothing is currently playing.
+					if (!clipRef.current) {
+						await advanceClip();
+					}
 				} else {
 					setPaused(false);
 				}
@@ -409,7 +423,10 @@ export default function OverlayPlayer({
 
 					switch (message.type) {
 						case "new_clip_redemption":
-							await advanceClip();
+							resetPrefetch();
+							if (!clipRef.current) {
+								await advanceClip();
+							}
 							break;
 						case "command": {
 							const { name, data } = message.data;
