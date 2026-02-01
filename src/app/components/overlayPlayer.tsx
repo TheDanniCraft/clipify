@@ -130,6 +130,7 @@ export default function OverlayPlayer({
 	isDemoPlayer,
 	embedMuted,
 	embedAutoplay,
+	overlaySecret,
 }: {
 	clips: TwitchClip[];
 	overlay: Overlay;
@@ -138,6 +139,7 @@ export default function OverlayPlayer({
 	isDemoPlayer?: boolean;
 	embedMuted?: boolean;
 	embedAutoplay?: boolean;
+	overlaySecret?: string;
 }) {
 	const [videoClip, setVideoClip] = useState<VideoClip | null>(null);
 	const [nextClip, setNextClip] = useState<VideoClip | null>(null);
@@ -214,12 +216,12 @@ export default function OverlayPlayer({
 	const getFirstQueClip = useCallback(async (): Promise<ModQueueItem | ClipQueueItem | null> => {
 		if (isEmbed || isDemoPlayer) return null;
 
-		const modClip = await getFirstFromModQueue(overlay.ownerId);
+		const modClip = await getFirstFromModQueue(overlay.id, overlaySecret);
 		if (modClip) return modClip;
 
-		const queClip = await getFirstFromClipQueue(overlay.id);
+		const queClip = await getFirstFromClipQueue(overlay.id, overlaySecret);
 		return queClip ?? null;
-	}, [isEmbed, isDemoPlayer, overlay.id, overlay.ownerId]);
+	}, [isEmbed, isDemoPlayer, overlay.id, overlaySecret]);
 
 	const getRandomClip = useCallback(async (): Promise<TwitchClip | null> => {
 		if (isDemoPlayer) {
@@ -232,8 +234,8 @@ export default function OverlayPlayer({
 			const clip = await getTwitchClip(queClip.clipId, overlay.ownerId);
 			if (clip != null) {
 				// fire-and-forget cleanup
-				removeFromModQueue(queClip.id);
-				removeFromClipQueue(queClip.id);
+				removeFromModQueue(queClip.id, overlay.id, overlaySecret);
+				removeFromClipQueue(queClip.id, overlay.id, overlaySecret);
 				return clip;
 			}
 		}

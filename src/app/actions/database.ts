@@ -23,24 +23,60 @@ export async function touchOverlay(overlayId: string, tx = db) {
 		.execute();
 }
 
-async function isEditor(user: AuthenticatedUser, overlay: Overlay): Promise<boolean> {
-	const isOwner = user.id === overlay.ownerId;
-	if (!isOwner) {
-		const editorRows = await db
-			.select()
-			.from(editorsTable)
-			.where(and(eq(editorsTable.editorId, user.id), eq(editorsTable.userId, overlay.ownerId)))
-			.limit(1)
-			.execute();
+type OverlayPatch = Partial<Pick<Overlay, "name" | "status" | "type" | "rewardId" | "minClipDuration" | "maxClipDuration" | "blacklistWords" | "minClipViews">>;
 
-		if (!editorRows || editorRows.length === 0) {
-			return false;
-		}
+async function requireUser(): Promise<AuthenticatedUser | null> {
+	const user = await validateAuth(false);
+	if (!user) {
+		console.warn(`Unauthenticated request`);
+		return null;
+	}
+	return user;
+}
 
-		return true;
+async function canEditOwner(editorId: string, ownerId: string): Promise<boolean> {
+	if (editorId === ownerId) return true;
+
+	const editorRows = await db
+		.select()
+		.from(editorsTable)
+		.where(and(eq(editorsTable.editorId, editorId), eq(editorsTable.userId, ownerId)))
+		.limit(1)
+		.execute();
+
+	return !!editorRows?.[0];
+}
+
+async function requireOverlayAccess(overlayId: string): Promise<{ user: AuthenticatedUser; overlay: Overlay } | null> {
+	const user = await requireUser();
+	if (!user) return null;
+
+	const overlays = await db.select().from(overlaysTable).where(eq(overlaysTable.id, overlayId)).limit(1).execute();
+	const overlay = overlays[0];
+	if (!overlay) return null;
+
+	if (!(await canEditOwner(user.id, overlay.ownerId))) {
+		console.warn(`Unauthorized overlay access for user id: ${user.id} on overlay id: ${overlayId}`);
+		return null;
 	}
 
-	return true;
+	return { user, overlay };
+}
+
+async function requireOverlaySecretAccess(overlayId: string, secret?: string): Promise<Overlay | null> {
+	if (!secret) {
+		console.warn(`Missing overlay secret for overlay id: ${overlayId}`);
+		return null;
+	}
+
+	const overlays = await db.select().from(overlaysTable).where(eq(overlaysTable.id, overlayId)).limit(1).execute();
+	const overlay = overlays[0];
+	if (!overlay || !overlay.secret || overlay.secret !== secret) {
+		console.warn(`Invalid overlay secret for overlay id: ${overlayId}`);
+		return null;
+	}
+
+	return overlay;
 }
 
 async function setUser(user: TwitchUserResponse): Promise<AuthenticatedUser> {
@@ -89,7 +125,7 @@ export async function getUser(id: string): Promise<AuthenticatedUser | null> {
 	}
 }
 
-export async function getUserPlan(id: string): Promise<Plan | null> {
+async function getUserPlanByIdInternal(id: string): Promise<Plan | null> {
 	try {
 		const user = await db.select().from(usersTable).where(eq(usersTable.id, id)).limit(1).execute();
 
@@ -102,6 +138,21 @@ export async function getUserPlan(id: string): Promise<Plan | null> {
 		console.error("Error fetching user plan:", error);
 		throw new Error("Failed to fetch user plan");
 	}
+}
+
+export async function getUserPlan(id: string): Promise<Plan | null> {
+	const user = await requireUser();
+	if (!user || user.id !== id) {
+		console.warn(`Unauthorized "getUserPlan" API request for user id: ${id}`);
+		return null;
+	}
+
+	return getUserPlanByIdInternal(id);
+}
+
+// Server-only helper for internal lookups (do not call from client components).
+export async function getUserPlanById(id: string): Promise<Plan | null> {
+	return getUserPlanByIdInternal(id);
 }
 
 export async function deleteUser(id: string): Promise<AuthenticatedUser | null> {
@@ -236,6 +287,11 @@ export async function getAccessToken(userId: string): Promise<UserToken | null> 
 
 export async function getAllOverlays(userId: string) {
 	try {
+		const user = await requireUser();
+		if (!user || user.id !== userId) {
+			console.warn(`Unauthorized "getAllOverlays" API request for user id: ${userId}`);
+			return null;
+		}
 		const overlays = await db.select().from(overlaysTable).where(eq(overlaysTable.ownerId, userId)).execute();
 
 		return overlays;
@@ -247,6 +303,11 @@ export async function getAllOverlays(userId: string) {
 
 export async function getAllOverlayIds(userId: string) {
 	try {
+		const user = await requireUser();
+		if (!user || user.id !== userId) {
+			console.warn(`Unauthorized "getAllOverlayIds" API request for user id: ${userId}`);
+			return null;
+		}
 		const overlays = await db.select().from(overlaysTable).where(eq(overlaysTable.ownerId, userId)).execute();
 
 		return overlays.map((overlay) => overlay.id);
@@ -272,8 +333,25 @@ export async function getEditorAccess(userId: string) {
 	}
 }
 
+export async function getAllOverlayIdsByOwner(ownerId: string) {
+	try {
+		const overlays = await db.select().from(overlaysTable).where(eq(overlaysTable.ownerId, ownerId)).execute();
+
+		return overlays.map((overlay) => overlay.id);
+	} catch (error) {
+		console.error("Error fetching overlays:", error);
+		throw new Error("Failed to fetch overlays");
+	}
+}
+
 export async function getEditorOverlays(ownerId: string) {
 	try {
+		const user = await requireUser();
+		if (!user || user.id !== ownerId) {
+			console.warn(`Unauthorized "getEditorOverlays" API request for user id: ${ownerId}`);
+			return null;
+		}
+
 		const owners = await db.select().from(editorsTable).where(eq(editorsTable.editorId, ownerId)).execute();
 
 		const ownerIds = owners.map((owner) => owner.userId);
@@ -290,11 +368,47 @@ export async function getEditorOverlays(ownerId: string) {
 	}
 }
 
+export async function getOverlayPublic(overlayId: string) {
+	try {
+		const overlays = await db.select().from(overlaysTable).where(eq(overlaysTable.id, overlayId)).limit(1).execute();
+		const overlay = overlays[0];
+
+		if (!overlay) return null;
+
+		return { ...overlay, rewardId: null, secret: "" };
+	} catch (error) {
+		console.error("Error fetching overlay:", error);
+		throw new Error("Failed to fetch overlay");
+	}
+}
+
+export async function getOverlayBySecret(overlayId: string, secret?: string) {
+	try {
+		const overlay = await requireOverlaySecretAccess(overlayId, secret);
+		return overlay;
+	} catch (error) {
+		console.error("Error fetching overlay:", error);
+		throw new Error("Failed to fetch overlay");
+	}
+}
+
 export async function getOverlay(overlayId: string) {
 	try {
-		const overlays = await db.select().from(overlaysTable).where(eq(overlaysTable.id, overlayId)).execute();
+		const ctx = await requireOverlayAccess(overlayId);
+		if (!ctx) return null;
 
-		return overlays[0];
+		if (!ctx.overlay.secret) {
+			const newSecret = crypto.randomUUID();
+			const updated = await db
+				.update(overlaysTable)
+				.set({ secret: newSecret, updatedAt: new Date() })
+				.where(eq(overlaysTable.id, overlayId))
+				.returning()
+				.execute();
+			return updated[0] ?? ctx.overlay;
+		}
+
+		return ctx.overlay;
 	} catch (error) {
 		console.error("Error fetching overlay:", error);
 		throw new Error("Failed to fetch overlay");
@@ -303,11 +417,22 @@ export async function getOverlay(overlayId: string) {
 
 export async function createOverlay(userId: string) {
 	try {
+		const user = await requireUser();
+		if (!user) {
+			console.warn(`Unauthenticated "createOverlay" API request`);
+			return null;
+		}
+		if (!(await canEditOwner(user.id, userId))) {
+			console.warn(`Unauthorized "createOverlay" API request for user id: ${user.id} on owner id: ${userId}`);
+			return null;
+		}
+		const secret = crypto.randomUUID();
 		const overlay = await db
 			.insert(overlaysTable)
 			.values({
 				id: crypto.randomUUID(),
 				ownerId: userId,
+				secret,
 				name: "New Overlay",
 				status: "active",
 				type: "Featured",
@@ -342,78 +467,64 @@ export async function downgradeUserPlan(userId: string) {
 	await db.update(usersTable).set({ updatedAt: new Date() }).where(eq(usersTable.id, userId)).execute();
 }
 
-export async function saveOverlay(overlay: Overlay) {
+export async function saveOverlay(overlayId: string, patch: OverlayPatch) {
 	try {
-		const isAuthenticated = await validateAuth(true);
-		if (!isAuthenticated) {
-			console.warn(`Unauthenticated "saveOverlay" API request`);
-			return null;
-		}
+		const ctx = await requireOverlayAccess(overlayId);
+		if (!ctx) return null;
 
-		if (!(await isEditor(isAuthenticated, overlay))) {
-			console.warn(`Unauthorized "saveOverlay" API request for user id: ${isAuthenticated.id} on overlay id: ${overlay.id}`);
-			return null;
-		}
+		const sanitizedPatch = Object.fromEntries(Object.entries(patch).filter(([, value]) => value !== undefined)) as OverlayPatch;
+		const next = { ...ctx.overlay, ...sanitizedPatch };
+
 		// Use the owner's plan to determine whether rewardId is allowed
-		const ownerRows = await db.select().from(usersTable).where(eq(usersTable.id, overlay.ownerId)).limit(1).execute();
+		const ownerRows = await db.select().from(usersTable).where(eq(usersTable.id, ctx.overlay.ownerId)).limit(1).execute();
 		const plan = ownerRows && ownerRows[0] ? ownerRows[0].plan : Plan.Free;
+		const rewardIdAllowed = plan === Plan.Free ? null : next.rewardId ?? null;
 
 		await db
-			.insert(overlaysTable)
-			.values({
-				id: overlay.id,
-				ownerId: overlay.ownerId,
-				name: overlay.name,
-				status: overlay.status,
-				type: overlay.type,
-				rewardId: plan === Plan.Free ? null : overlay.rewardId,
-				minClipDuration: overlay.minClipDuration,
-				maxClipDuration: overlay.maxClipDuration,
-				blacklistWords: overlay.blacklistWords,
-				minClipViews: overlay.minClipViews,
+			.update(overlaysTable)
+			.set({
+				name: next.name,
+				status: next.status,
+				type: next.type,
+				rewardId: rewardIdAllowed,
+				updatedAt: new Date(),
+				minClipDuration: next.minClipDuration,
+				maxClipDuration: next.maxClipDuration,
+				blacklistWords: next.blacklistWords,
+				minClipViews: next.minClipViews,
 			})
-			.onConflictDoUpdate({
-				target: overlaysTable.id,
-				set: {
-					name: overlay.name,
-					status: overlay.status,
-					type: overlay.type,
-					rewardId: plan === Plan.Free ? null : overlay.rewardId,
-					updatedAt: new Date(),
-					minClipDuration: overlay.minClipDuration,
-					maxClipDuration: overlay.maxClipDuration,
-					blacklistWords: overlay.blacklistWords,
-					minClipViews: overlay.minClipViews,
-				},
-			});
+			.where(eq(overlaysTable.id, overlayId))
+			.execute();
 
-		if (overlay.rewardId) {
-			subscribeToReward(overlay.ownerId, overlay.rewardId);
+		if (rewardIdAllowed && rewardIdAllowed !== ctx.overlay.rewardId) {
+			subscribeToReward(ctx.overlay.ownerId, rewardIdAllowed);
 		}
+
+		return getOverlay(overlayId);
 	} catch (error) {
-		console.log(overlay);
 		console.error("Error saving overlay:", error);
 		throw new Error("Failed to save overlay");
 	}
 }
 
-export async function deleteOverlay(overlay: Overlay) {
+export async function deleteOverlay(overlayId: string) {
 	try {
-		const isAuthenticated = await validateAuth(true);
-		if (!isAuthenticated) {
-			console.warn(`Unauthenticated "deleteOverlay" API request`);
-			return;
-		}
-		if (!(await isEditor(isAuthenticated, overlay))) {
-			console.warn(`Unauthorized "deleteOverlay" API request for user id: ${isAuthenticated.id} on overlay id: ${overlay.id}`);
-			return;
-		}
+		const ctx = await requireOverlayAccess(overlayId);
+		if (!ctx) return false;
 
-		await db.delete(overlaysTable).where(eq(overlaysTable.id, overlay.id)).execute();
+		await db.delete(overlaysTable).where(eq(overlaysTable.id, overlayId)).execute();
+		return true;
 	} catch (error) {
 		console.error("Error deleting overlay:", error);
 		throw new Error("Failed to delete overlay");
 	}
+}
+
+export async function getOverlayOwnerPlan(overlayId: string): Promise<Plan | null> {
+	const ctx = await requireOverlayAccess(overlayId);
+	if (!ctx) return null;
+
+	return getUserPlanByIdInternal(ctx.overlay.ownerId);
 }
 
 export async function getOverlayByRewardId(rewardId: string) {
@@ -435,7 +546,7 @@ export async function addToClipQueue(overlayId: string, clipId: string) {
 	}
 }
 
-export async function getClipQueue(overlayId: string) {
+export async function getClipQueueByOverlayId(overlayId: string) {
 	try {
 		const result = await db.select().from(queueTable).where(eq(queueTable.overlayId, overlayId)).execute();
 		return result;
@@ -445,7 +556,18 @@ export async function getClipQueue(overlayId: string) {
 	}
 }
 
-export async function getFirstFromClipQueue(overlayId: string) {
+export async function getClipQueue(overlayId: string, secret?: string) {
+	try {
+		const overlay = await requireOverlaySecretAccess(overlayId, secret);
+		if (!overlay) return [];
+		return getClipQueueByOverlayId(overlayId);
+	} catch (error) {
+		console.error("Error fetching clip queue:", error);
+		throw new Error("Failed to fetch clip queue");
+	}
+}
+
+export async function getFirstFromClipQueueByOverlayId(overlayId: string) {
 	try {
 		const result = await db.select().from(queueTable).where(eq(queueTable.overlayId, overlayId)).limit(1).execute();
 
@@ -456,7 +578,18 @@ export async function getFirstFromClipQueue(overlayId: string) {
 	}
 }
 
-export async function removeFromClipQueue(id: string) {
+export async function getFirstFromClipQueue(overlayId: string, secret?: string) {
+	try {
+		const overlay = await requireOverlaySecretAccess(overlayId, secret);
+		if (!overlay) return null;
+		return getFirstFromClipQueueByOverlayId(overlayId);
+	} catch (error) {
+		console.error("Error fetching first clip from queue:", error);
+		throw new Error("Failed to fetch first clip from queue");
+	}
+}
+
+export async function removeFromClipQueueById(id: string) {
 	try {
 		await db.delete(queueTable).where(eq(queueTable.id, id)).execute();
 	} catch (error) {
@@ -465,9 +598,31 @@ export async function removeFromClipQueue(id: string) {
 	}
 }
 
-export async function clearClipQueue(overlayId: string) {
+export async function removeFromClipQueue(id: string, overlayId: string, secret?: string) {
+	try {
+		const overlay = await requireOverlaySecretAccess(overlayId, secret);
+		if (!overlay) return;
+		await db.delete(queueTable).where(and(eq(queueTable.id, id), eq(queueTable.overlayId, overlayId))).execute();
+	} catch (error) {
+		console.error("Error removing clip from queue:", error);
+		throw new Error("Failed to remove clip from queue");
+	}
+}
+
+export async function clearClipQueueByOverlayId(overlayId: string) {
 	try {
 		await db.delete(queueTable).where(eq(queueTable.overlayId, overlayId)).execute();
+	} catch (error) {
+		console.error("Error clearing clip queue:", error);
+		throw new Error("Failed to clear clip queue");
+	}
+}
+
+export async function clearClipQueue(overlayId: string, secret?: string) {
+	try {
+		const overlay = await requireOverlaySecretAccess(overlayId, secret);
+		if (!overlay) return;
+		await clearClipQueueByOverlayId(overlayId);
 	} catch (error) {
 		console.error("Error clearing clip queue:", error);
 		throw new Error("Failed to clear clip queue");
@@ -483,7 +638,7 @@ export async function addToModQueue(broadcasterId: string, clipId: string) {
 	}
 }
 
-export async function getModQueue(broadcasterId: string) {
+export async function getModQueueByBroadcasterId(broadcasterId: string) {
 	try {
 		const result = await db.select().from(modQueueTable).where(eq(modQueueTable.broadcasterId, broadcasterId)).execute();
 		return result;
@@ -493,7 +648,11 @@ export async function getModQueue(broadcasterId: string) {
 	}
 }
 
-export async function getFirstFromModQueue(broadcasterId: string) {
+export async function getModQueue(broadcasterId: string) {
+	return getModQueueByBroadcasterId(broadcasterId);
+}
+
+export async function getFirstFromModQueueByBroadcasterId(broadcasterId: string) {
 	try {
 		const result = await db.select().from(modQueueTable).where(eq(modQueueTable.broadcasterId, broadcasterId)).limit(1).execute();
 		return result[0] || null;
@@ -503,7 +662,18 @@ export async function getFirstFromModQueue(broadcasterId: string) {
 	}
 }
 
-export async function removeFromModQueue(id: string) {
+export async function getFirstFromModQueue(overlayId: string, secret?: string) {
+	try {
+		const overlay = await requireOverlaySecretAccess(overlayId, secret);
+		if (!overlay) return null;
+		return getFirstFromModQueueByBroadcasterId(overlay.ownerId);
+	} catch (error) {
+		console.error("Error fetching first clip from mod queue:", error);
+		throw new Error("Failed to fetch first clip from mod queue");
+	}
+}
+
+export async function removeFromModQueueById(id: string) {
 	try {
 		await db.delete(modQueueTable).where(eq(modQueueTable.id, id)).execute();
 	} catch (error) {
@@ -512,9 +682,31 @@ export async function removeFromModQueue(id: string) {
 	}
 }
 
-export async function clearModQueue(broadcasterId: string) {
+export async function removeFromModQueue(id: string, overlayId: string, secret?: string) {
+	try {
+		const overlay = await requireOverlaySecretAccess(overlayId, secret);
+		if (!overlay) return;
+		await db.delete(modQueueTable).where(and(eq(modQueueTable.id, id), eq(modQueueTable.broadcasterId, overlay.ownerId))).execute();
+	} catch (error) {
+		console.error("Error removing clip from mod queue:", error);
+		throw new Error("Failed to remove clip from mod queue");
+	}
+}
+
+export async function clearModQueueByBroadcasterId(broadcasterId: string) {
 	try {
 		await db.delete(modQueueTable).where(eq(modQueueTable.broadcasterId, broadcasterId)).execute();
+	} catch (error) {
+		console.error("Error clearing mod queue:", error);
+		throw new Error("Failed to clear mod queue");
+	}
+}
+
+export async function clearModQueue(overlayId: string, secret?: string) {
+	try {
+		const overlay = await requireOverlaySecretAccess(overlayId, secret);
+		if (!overlay) return;
+		await clearModQueueByBroadcasterId(overlay.ownerId);
 	} catch (error) {
 		console.error("Error clearing mod queue:", error);
 		throw new Error("Failed to clear mod queue");

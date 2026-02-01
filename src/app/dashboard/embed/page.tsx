@@ -36,19 +36,14 @@ export default function EmbedTool() {
 			setUser(user);
 
 			const userOverlays = (await getAllOverlays(user.id)) || [];
-			const editorOverlays = await getEditorOverlays(user.id);
-
-			if (editorOverlays && editorOverlays.length > 0) {
-				for (const editor of editorOverlays) {
-					const editorOwnerOverlays = (await getAllOverlays(editor.ownerId)) || [];
-					if (editorOwnerOverlays.length > 0) userOverlays.push(...editorOwnerOverlays);
-				}
-			}
+			const editorOverlays = (await getEditorOverlays(user.id)) || [];
+			const combined = [...userOverlays, ...editorOverlays];
+			const uniqueOverlays = Array.from(new Map(combined.map((overlay) => [overlay.id, overlay])).values());
 
 			const token = await getAccessToken(user.id);
 
 			if (token) {
-				const avatars = await getUsersDetailsBulk({ userIds: userOverlays.map((o) => o.ownerId), accessToken: token?.accessToken });
+				const avatars = await getUsersDetailsBulk({ userIds: uniqueOverlays.map((o) => o.ownerId), accessToken: token?.accessToken });
 				setAvatars(
 					avatars.reduce((acc, curr) => {
 						acc[curr.id] = curr.profile_image_url;
@@ -57,9 +52,9 @@ export default function EmbedTool() {
 				);
 			}
 
-			if (!userOverlays || userOverlays.length === 0) return;
+			if (uniqueOverlays.length === 0) return;
 
-			setOverlays(userOverlays);
+			setOverlays(uniqueOverlays);
 		}
 
 		setup();

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { useParams, useRouter } from "next/navigation";
-import { getOverlay, getUserPlan, saveOverlay } from "@/app/actions/database";
+import { getOverlay, getOverlayOwnerPlan, saveOverlay } from "@/app/actions/database";
 import { addToast, Button, Card, CardBody, CardHeader, Divider, Form, Image, Input, Link, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, NumberInput, Select, SelectItem, Slider, Snippet, Spinner, Switch, Tooltip, useDisclosure } from "@heroui/react";
 import { AuthenticatedUser, Overlay, OverlayType, Plan, TwitchClip, TwitchReward } from "@types";
 import { IconAlertTriangle, IconArrowLeft, IconCrown, IconDeviceFloppy, IconInfoCircle, IconPlayerPauseFilled, IconPlayerPlayFilled } from "@tabler/icons-react";
@@ -45,13 +45,13 @@ export default function OverlaySettings() {
 
 	useEffect(() => {
 		async function fetchOwnerPlan() {
-			if (overlay?.ownerId) {
-				const owner = await getUserPlan(overlay.ownerId);
+			if (overlay?.id) {
+				const owner = await getOverlayOwnerPlan(overlay.id);
 				setOwnerPlan(owner);
 			}
 		}
 		fetchOwnerPlan();
-	}, [overlay?.ownerId]);
+	}, [overlay?.id]);
 
 	useEffect(() => {
 		async function checkAuth() {
@@ -120,7 +120,16 @@ export default function OverlaySettings() {
 		});
 
 		if (!overlay) return;
-		await saveOverlay(overlay);
+		await saveOverlay(overlay.id, {
+			name: overlay.name,
+			status: overlay.status,
+			type: overlay.type,
+			rewardId: overlay.rewardId,
+			minClipDuration: overlay.minClipDuration,
+			maxClipDuration: overlay.maxClipDuration,
+			blacklistWords: overlay.blacklistWords,
+			minClipViews: overlay.minClipViews,
+		});
 		setBaseOverlay(overlay);
 		addToast({
 			title: "Overlay settings saved",
@@ -174,7 +183,7 @@ export default function OverlaySettings() {
 													pre: "overflow-hidden whitespace-nowrap",
 												}}
 											>
-												{`${baseUrl}/overlay/${overlayId}`}
+												{overlay.secret ? `${baseUrl}/overlay/${overlayId}?secret=${overlay.secret}` : "Missing secret. Refresh this page to generate one."}
 											</Snippet>
 										</div>
 										<Button type='submit' color='primary' isIconOnly isDisabled={!isFormDirty()} aria-label='Save Overlay Settings'>

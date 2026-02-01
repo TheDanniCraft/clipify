@@ -44,6 +44,7 @@ export const overlaysTable = pgTable("overlays", {
 	ownerId: varchar("owner_id")
 		.notNull()
 		.references(() => usersTable.id, { onDelete: "cascade" }),
+	secret: varchar("secret").notNull().default(""),
 	name: varchar("name").notNull(),
 	status: varchar("status").$type<StatusOptions>().notNull(),
 	type: varchar("type").$type<OverlayType>().notNull(),

@@ -194,7 +194,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 							onClick={(event) => {
 								event.stopPropagation();
 
-								deleteOverlay(overlay)
+								deleteOverlay(overlay.id)
 									.then(() => {
 										setOverlays((prev) => (prev ? prev.filter((o) => o.id !== overlay.id) : []));
 
@@ -363,7 +363,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 
 										const toggleStatusPromises = selectedOverlays?.map((overlay) => {
 											const newStatus = overlay.status === "active" ? "paused" : "active";
-											return saveOverlay({ ...overlay, status: newStatus }).then(() => {
+											return saveOverlay(overlay.id, { status: newStatus }).then(() => {
 												setOverlays((prev) => (prev ? prev.map((o) => (o.id === overlay.id ? { ...o, status: newStatus } : o)) : []));
 											});
 										});
@@ -395,7 +395,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 										const selectedOverlays = filterSelectedKeys === "all" ? overlays : filteredItems.filter((item) => filterSelectedKeys.has(String(item.id)));
 
 										const deletePromises = selectedOverlays?.map((overlay) =>
-											deleteOverlay(overlay).then(() => {
+											deleteOverlay(overlay.id).then(() => {
 												setOverlays((prev) => (prev ? prev.filter((o) => o.id !== overlay.id) : []));
 											})
 										);
@@ -475,6 +475,15 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 										}
 
 										const overlay = await createOverlay(item.id);
+										if (!overlay) {
+											addToast({
+												title: "Error",
+												description: "Failed to create overlay. Please try again.",
+												color: "danger",
+											});
+											setIsLoading(false);
+											return;
+										}
 										router.push(`/dashboard/overlay/${overlay.id}`);
 									}}
 								>
@@ -517,6 +526,15 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 							}
 
 							createOverlay(userId).then((overlay) => {
+								if (!overlay) {
+									addToast({
+										title: "Error",
+										description: "Failed to create overlay. Please try again.",
+										color: "danger",
+									});
+									setIsLoading(false);
+									return;
+								}
 								router.push(`/dashboard/overlay/${overlay.id}`);
 							});
 						}}
