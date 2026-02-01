@@ -647,13 +647,18 @@ export async function removeFromClipQueue(id: string, overlayId: string, secret?
 	}
 }
 
-export async function clearClipQueueByOverlayId(overlayId: string) {
+async function clearClipQueueByOverlayId(overlayId: string) {
 	try {
 		await db.delete(queueTable).where(eq(queueTable.overlayId, overlayId)).execute();
 	} catch (error) {
 		console.error("Error clearing clip queue:", error);
 		throw new Error("Failed to clear clip queue");
 	}
+}
+
+// Server-only helper (do not call from client components).
+export async function clearClipQueueByOverlayIdServer(overlayId: string) {
+	return clearClipQueueByOverlayId(overlayId);
 }
 
 export async function clearClipQueue(overlayId: string, secret?: string) {

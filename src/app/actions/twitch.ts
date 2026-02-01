@@ -421,7 +421,6 @@ export async function getReward(userId: string, rewardId: string): Promise<Twitc
 export async function subscribeToReward(userId: string, rewardId: string): Promise<void> {
 	const url = "https://api.twitch.tv/helix/eventsub/subscriptions";
 	const token = await getAppAccessToken();
-	console.error(token);
 
 	if (!token) {
 		console.error("No app access token found");

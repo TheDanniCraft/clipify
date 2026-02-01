@@ -36,7 +36,6 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 	const [page, setPage] = useState(1);
 	const [isLoading, setIsLoading] = useState(false);
 	const [hasAccess, setHasAccess] = useState<boolean>(false);
-	const [userPlan, setUserPlan] = useState<string | null>(null);
 	const [currentUser, setCurrentUser] = useState<AuthenticatedUser | null>(null);
 	const [editorAccessList, setEditorAccessList] = useState<Set<TwitchUserResponse>>(new Set());
 	const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
@@ -93,13 +92,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 		fetchUser();
 	}, []);
 
-	useEffect(() => {
-		async function fetchPlan() {
-			const plan = await getUserPlan(userId);
-			setUserPlan(plan);
-		}
-		fetchPlan();
-	}, [userId]);
+// Plan is available on currentUser; avoid extra fetch.
 
 	const headerColumns = useMemo(() => {
 		if (visibleColumns === "all") return columns;
@@ -601,7 +594,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 	return (
 		<div className='h-full w-full p-6'>
 			{topBar}
-			{userPlan === "free" && (overlays?.length ?? 0) >= 1 && (
+			{currentUser?.plan === "free" && (overlays?.length ?? 0) >= 1 && (
 				<div className='mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning-200 bg-warning-50 px-4 py-3 text-sm text-warning-800'>
 					<span>You&apos;re on the Free plan and have reached the overlay limit. Upgrade to add more overlays.</span>
 					<Button color='warning' variant='flat' onPress={onUpgradeOpen}>
@@ -653,7 +646,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 					{(item) => <TableRow key={item.id}>{(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}</TableRow>}
 				</TableBody>
 			</Table>
-			{currentUser && userPlan === "free" && <UpgradeModal isOpen={isUpgradeOpen} onOpenChange={onUpgradeOpenChange} user={currentUser} title='Upgrade to add more overlays' />}
+			{currentUser?.plan === "free" && <UpgradeModal isOpen={isUpgradeOpen} onOpenChange={onUpgradeOpenChange} user={currentUser} title='Upgrade to add more overlays' />}
 		</div>
 	);
 }

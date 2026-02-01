@@ -29,7 +29,7 @@ export default function AffiliateProgram() {
 					<section className='z-20 grid grid-cols-1 items-center gap-10 lg:grid-cols-[1.1fr_0.9fr]'>
 						<div className='flex flex-col items-start gap-6'>
 							<Button className='border-default-100 bg-default-50 text-small text-default-500 h-9 overflow-hidden border-1 px-[18px] py-2 leading-5 font-normal' endContent={<IconArrowRight className='flex-none outline-hidden [&>path]:stroke-2' width={20} />} radius='full' variant='bordered'>
-								Clipify Public Affiliate Programm
+								Clipify Public Affiliate Program
 							</Button>
 
 							<div className='text-left text-[clamp(40px,10vw,44px)] leading-[1.1] font-bold tracking-tighter sm:text-[64px] text-white'>

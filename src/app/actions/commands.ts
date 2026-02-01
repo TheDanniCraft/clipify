@@ -3,7 +3,7 @@
 import { TwitchBadge, TwitchMessage } from "@types";
 import { sendMessage } from "@actions/websocket";
 import { getTwitchClip, handleClip, sendChatMessage } from "@actions/twitch";
-import { addToModQueue, clearClipQueueByOverlayId, clearModQueueByBroadcasterId, getAllOverlayIdsByOwnerServer, getClipQueueByOverlayId, getModQueue, getSettings, getUserPlanByIdServer } from "@actions/database";
+import { addToModQueue, clearClipQueueByOverlayIdServer, clearModQueueByBroadcasterId, getAllOverlayIdsByOwnerServer, getClipQueueByOverlayId, getModQueue, getSettings, getUserPlanByIdServer } from "@actions/database";
 
 async function getPrefix(userId: string): Promise<string | null> {
 	const settings = await getSettings(userId);
@@ -218,7 +218,7 @@ const commands: Record<string, { description: string; usage: string; execute: (m
 			if (args.length === 0) {
 				const overlayIds = await getAllOverlayIdsByOwnerServer(message.broadcaster_user_id);
 				if (overlayIds && overlayIds.length > 0) {
-					await Promise.all(overlayIds.map((overlayId) => clearClipQueueByOverlayId(overlayId)));
+					await Promise.all(overlayIds.map((overlayId) => clearClipQueueByOverlayIdServer(overlayId)));
 				}
 				await clearModQueueByBroadcasterId(message.broadcaster_user_id);
 
@@ -235,7 +235,7 @@ const commands: Record<string, { description: string; usage: string; execute: (m
 				case "reward": {
 					const overlayIds = await getAllOverlayIdsByOwnerServer(message.broadcaster_user_id);
 					if (overlayIds && overlayIds.length > 0) {
-						await Promise.all(overlayIds.map((overlayId) => clearClipQueueByOverlayId(overlayId)));
+						await Promise.all(overlayIds.map((overlayId) => clearClipQueueByOverlayIdServer(overlayId)));
 					}
 					await sendChatMessage(message.broadcaster_user_id, `@${message.chatter_user_name} the reward queue has been cleared!`);
 					return;
