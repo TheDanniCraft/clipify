@@ -425,8 +425,17 @@ export async function getOverlay(overlayId: string) {
 
 		if (!ctx.overlay.secret) {
 			const newSecret = crypto.randomUUID();
-			const updated = await db.update(overlaysTable).set({ secret: newSecret, updatedAt: new Date() }).where(eq(overlaysTable.id, overlayId)).returning().execute();
-			return updated[0] ?? ctx.overlay;
+			const updated = await db
+				.update(overlaysTable)
+				.set({ secret: newSecret, updatedAt: new Date() })
+				.where(and(eq(overlaysTable.id, overlayId), or(isNull(overlaysTable.secret), eq(overlaysTable.secret, ""))))
+				.returning()
+				.execute();
+			if (updated[0]) {
+				return updated[0];
+			}
+			const overlays = await db.select().from(overlaysTable).where(eq(overlaysTable.id, overlayId)).limit(1).execute();
+			return overlays[0] ?? ctx.overlay;
 		}
 
 		return ctx.overlay;
@@ -446,6 +455,15 @@ export async function createOverlay(userId: string) {
 		if (!(await canEditOwner(user.id, userId))) {
 			console.warn(`Unauthorized "createOverlay" API request for user id: ${user.id} on owner id: ${userId}`);
 			return null;
+		}
+		const ownerRows = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1).execute();
+		const ownerPlan = ownerRows && ownerRows[0] ? ownerRows[0].plan : Plan.Free;
+		if (ownerPlan === Plan.Free) {
+			const existing = await db.select().from(overlaysTable).where(eq(overlaysTable.ownerId, userId)).execute();
+			if (existing.length >= 1) {
+				console.warn(`Free plan overlay limit reached for owner id: ${userId}`);
+				return null;
+			}
 		}
 		const secret = crypto.randomUUID();
 		const overlay = await db
