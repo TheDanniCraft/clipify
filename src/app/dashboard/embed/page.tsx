@@ -145,7 +145,7 @@ export default function EmbedTool() {
 									</SelectItem>
 								))}
 							</Select>
-							<Tooltip content={user?.plan === "free" ? "Upgrade your plan to remove Clipify branding" : "Toggle to include Clipify branding on your overlay"}>
+							<Tooltip content={ownerPlan === "free" ? "This overlay's owner must upgrade to remove Clipify branding" : "Toggle to include Clipify branding on your overlay"}>
 								<span>
 									<Switch isSelected={effectiveShowBanner} onValueChange={setShowBanner} isDisabled={!overlayId || ownerPlan === "free"}>
 										<span className='flex items-center gap-2'>

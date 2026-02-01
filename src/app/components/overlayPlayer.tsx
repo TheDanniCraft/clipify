@@ -233,9 +233,12 @@ export default function OverlayPlayer({
 		if (queClip) {
 			const clip = await getTwitchClip(queClip.clipId, overlay.ownerId);
 			if (clip != null) {
-				// fire-and-forget cleanup
-				removeFromModQueue(queClip.id, overlay.id, overlaySecret);
-				removeFromClipQueue(queClip.id, overlay.id, overlaySecret);
+				removeFromModQueue(queClip.id, overlay.id, overlaySecret).catch((error) => {
+					console.error("Failed to remove from mod queue:", error);
+				});
+				removeFromClipQueue(queClip.id, overlay.id, overlaySecret).catch((error) => {
+					console.error("Failed to remove from clip queue:", error);
+				});
 				return clip;
 			}
 		}
