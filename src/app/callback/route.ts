@@ -95,6 +95,7 @@ export async function GET(request: NextRequest) {
 		const cookieToken = jwt.sign(user, process.env.JWT_SECRET!, {
 			expiresIn: "1h",
 			algorithm: "HS256",
+			issuer: "clipify",
 		});
 
 		cookieStore.set("token", cookieToken, {
