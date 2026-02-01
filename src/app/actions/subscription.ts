@@ -89,7 +89,7 @@ export async function generatePaymentLink(user: AuthenticatedUser, returnUrl?: s
 		promo = promoList.data.length ? promoList.data[0] : null;
 	}
 
-	const session = await stripe.checkout.sessions.create({
+	const baseSessionParams: Stripe.Checkout.SessionCreateParams = {
 		line_items: [{ price: products[0], quantity: 1 }],
 		client_reference_id: user.id,
 		mode: "subscription",
@@ -105,8 +105,30 @@ export async function generatePaymentLink(user: AuthenticatedUser, returnUrl?: s
 		},
 		subscription_data: (await isEligibleForTrial(user)) ? { trial_period_days: 3 } : {},
 		...(user.stripeCustomerId ? { customer_update: { name: "auto", address: "auto" } } : {}),
-		...(promo ? { discounts: [{ promotion_code: promo.id }] } : { allow_promotion_codes: true }),
-	});
+	};
+
+	const createSession = async (usePromo: boolean) => {
+		return stripe.checkout.sessions.create({
+			...baseSessionParams,
+			...(usePromo && promo ? { discounts: [{ promotion_code: promo.id }] } : { allow_promotion_codes: true }),
+		});
+	};
+
+	let session: Stripe.Checkout.Session;
+	try {
+		session = await createSession(true);
+	} catch (error) {
+		const err = error as Stripe.StripeRawError;
+		const msg = err?.message || "";
+		const code = err?.code || "";
+		const promoNotRedeemable = code === "promotion_code_not_redeemable" || msg.includes("promotion code cannot be redeemed");
+
+		if (promo && promoNotRedeemable) {
+			session = await createSession(false);
+		} else {
+			throw error;
+		}
+	}
 
 	return session.url;
 }
