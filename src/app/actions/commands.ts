@@ -3,7 +3,7 @@
 import { TwitchBadge, TwitchMessage } from "@types";
 import { sendMessage } from "@actions/websocket";
 import { getTwitchClip, handleClip, sendChatMessage } from "@actions/twitch";
-import { addToModQueue, clearClipQueueByOverlayId, clearModQueueByBroadcasterId, getAllOverlayIdsByOwner, getClipQueueByOverlayId, getModQueue, getSettings, getUserPlanById } from "@actions/database";
+import { addToModQueue, clearClipQueueByOverlayId, clearModQueueByBroadcasterId, getAllOverlayIdsByOwnerServer, getClipQueueByOverlayId, getModQueue, getSettings, getUserPlanByIdServer } from "@actions/database";
 
 async function getPrefix(userId: string): Promise<string | null> {
 	const settings = await getSettings(userId);
@@ -33,7 +33,7 @@ export async function handleCommand(message: TwitchMessage): Promise<void> {
 	if (!prefix) return;
 
 	// ignore commands for free plan users
-	const userPlan = await getUserPlanById(message.broadcaster_user_id);
+	const userPlan = await getUserPlanByIdServer(message.broadcaster_user_id);
 	if (!userPlan) return;
 	if (userPlan === "free") return;
 
@@ -166,7 +166,7 @@ const commands: Record<string, { description: string; usage: string; execute: (m
 				const modQue = await getModQueue(message.broadcaster_user_id);
 				const rewardQue = [];
 
-				const overlayIds = await getAllOverlayIdsByOwner(message.broadcaster_user_id);
+				const overlayIds = await getAllOverlayIdsByOwnerServer(message.broadcaster_user_id);
 
 				if (overlayIds) {
 					for (const overlayId of overlayIds) {
@@ -216,7 +216,7 @@ const commands: Record<string, { description: string; usage: string; execute: (m
 			const args = text.split(/\s+/).filter(Boolean).slice(1);
 
 			if (args.length === 0) {
-				const overlayIds = await getAllOverlayIdsByOwner(message.broadcaster_user_id);
+				const overlayIds = await getAllOverlayIdsByOwnerServer(message.broadcaster_user_id);
 				if (overlayIds && overlayIds.length > 0) {
 					await Promise.all(overlayIds.map((overlayId) => clearClipQueueByOverlayId(overlayId)));
 				}
@@ -233,7 +233,7 @@ const commands: Record<string, { description: string; usage: string; execute: (m
 					return;
 				}
 				case "reward": {
-					const overlayIds = await getAllOverlayIdsByOwner(message.broadcaster_user_id);
+					const overlayIds = await getAllOverlayIdsByOwnerServer(message.broadcaster_user_id);
 					if (overlayIds && overlayIds.length > 0) {
 						await Promise.all(overlayIds.map((overlayId) => clearClipQueueByOverlayId(overlayId)));
 					}

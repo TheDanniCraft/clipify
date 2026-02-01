@@ -23,8 +23,8 @@ export default async function Overlay({ params, searchParams }: { params: Promis
 	if (!overlay)
 		return (
 			<div className='flex flex-col justify-center items-center h-screen w-screen'>
-				<span>Missing overlay secret</span>
-				<span className='text-sm text-gray-400 mt-2'>Go to the dashboard to get a URL with a secret.</span>
+				<span>Overlay not found or invalid secret</span>
+				<span className='text-sm text-gray-400 mt-2'>Check the overlay URL and secret in your dashboard.</span>
 			</div>
 		);
 	if (overlay.status == "paused")

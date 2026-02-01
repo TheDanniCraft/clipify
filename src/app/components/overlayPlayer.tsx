@@ -423,7 +423,12 @@ export default function OverlayPlayer({
 			});
 
 			ws.addEventListener("error", (event) => {
-				console.error("WebSocket error:", event);
+				const details = {
+					readyState: ws?.readyState,
+					url: ws?.url,
+					type: event.type,
+				};
+				console.error("WebSocket error", details);
 				ws?.close();
 			});
 		}

@@ -395,13 +395,25 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 										const selectedOverlays = filterSelectedKeys === "all" ? overlays : filteredItems.filter((item) => filterSelectedKeys.has(String(item.id)));
 
 										const deletePromises = selectedOverlays?.map((overlay) =>
-											deleteOverlay(overlay.id).then(() => {
-												setOverlays((prev) => (prev ? prev.filter((o) => o.id !== overlay.id) : []));
-											})
+											deleteOverlay(overlay.id).then((ok) => ({
+												ok: Boolean(ok),
+												id: overlay.id,
+											}))
 										);
 
 										Promise.all(deletePromises ?? [])
-											.then(() => {
+											.then((results) => {
+												const failed = results.filter((r) => !r.ok);
+												if (failed.length > 0) {
+													addToast({
+														title: "Error",
+														description: "One or more overlays could not be deleted.",
+														color: "danger",
+													});
+													return;
+												}
+
+												setOverlays((prev) => (prev ? prev.filter((o) => !results.some((r) => r.ok && r.id === o.id)) : []));
 												setSelectedKeys(new Set([]));
 												addToast({
 													title: "Successfully deleted",

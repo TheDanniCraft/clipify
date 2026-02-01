@@ -1,4 +1,4 @@
-import { getOverlayPublic, getUserPlanById } from "@/app/actions/database";
+import { getOverlayOwnerPlanPublic, getOverlayPublic } from "@/app/actions/database";
 import { getTwitchClips } from "@/app/actions/twitch";
 import OverlayPlayer from "@/app/components/overlayPlayer";
 import { Plan, type Overlay } from "@/app/lib/types";
@@ -64,7 +64,7 @@ export default async function Overlay({ params, searchParams }: { params: Promis
 		);
 
 	const clips = await getTwitchClips(overlay);
-	const plan = await getUserPlanById(overlay.ownerId);
+	const plan = await getOverlayOwnerPlanPublic(overlayId);
 
 	return (
 		<>
