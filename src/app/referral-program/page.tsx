@@ -1,7 +1,7 @@
 "use client";
 
 import { Accordion, AccordionItem, Button, Chip } from "@heroui/react";
-import { IconArrowRight, IconChartBar, IconChevronDown, IconClock, IconLink, IconRepeat, IconReportMoney, IconUsers } from "@tabler/icons-react";
+import { IconArrowRight, IconChartBar, IconChevronDown, IconClock, IconCoin, IconLink, IconRepeat, IconReportMoney, IconUsers } from "@tabler/icons-react";
 import FeatureCard from "../components/featureCard";
 import Link from "next/link";
 import Footer from "@components/footer";
@@ -11,7 +11,7 @@ import BasicNavbar from "@components/LandingPage/basicNavbar";
 export default function AffiliateProgram() {
 	return (
 		<>
-			<div className='bg-gradient-to-br from-primary-800 to-primary-400 h-screen relative flex flex-col overflow-hidden'>
+			<div className='bg-gradient-to-br from-primary-800 to-primary-400 min-h-dvh relative flex flex-col overflow-hidden'>
 				<BasicNavbar />
 
 				<div
@@ -25,41 +25,86 @@ export default function AffiliateProgram() {
                     '
 				/>
 
-				<main className='container mx-auto flex flex-1 flex-col items-center justify-center overflow-hidden px-8'>
-					<section className='z-20 flex flex-col items-center justify-center gap-[18px] sm:gap-6'>
-						<Button className='border-default-100 bg-default-50 text-small text-default-500 h-9 overflow-hidden border-1 px-[18px] py-2 leading-5 font-normal' endContent={<IconArrowRight className='flex-none outline-hidden [&>path]:stroke-2' width={20} />} radius='full' variant='bordered'>
-							New Affiliate Program
-						</Button>
+				<main className='container mx-auto flex flex-1 flex-col justify-center overflow-hidden px-8'>
+					<section className='z-20 grid grid-cols-1 items-center gap-10 lg:grid-cols-[1.1fr_0.9fr]'>
+						<div className='flex flex-col items-start gap-6'>
+							<Button className='border-default-100 bg-default-50 text-small text-default-500 h-9 overflow-hidden border-1 px-[18px] py-2 leading-5 font-normal' endContent={<IconArrowRight className='flex-none outline-hidden [&>path]:stroke-2' width={20} />} radius='full' variant='bordered'>
+								Clipify Public Affiliate Programm
+							</Button>
 
-						<div className='text-center text-[clamp(40px,10vw,44px)] leading-[1.2] font-bold tracking-tighter sm:text-[64px]'>
-							<div className='bg-hero-section-title bg-clip-text text-transparent'>
-								Earn by recommending
-								<br />
-								tools you already use.
+							<div className='text-left text-[clamp(40px,10vw,44px)] leading-[1.1] font-bold tracking-tighter sm:text-[64px] text-white'>
+								<div className='bg-hero-section-title bg-clip-text text-transparent'>
+									Turn your audience
+									<br />
+									into recurring revenue.
+								</div>
+							</div>
+
+							<p className='text-white/70 leading-7 font-normal sm:text-[18px] max-w-xl'>Share Clipify with other creators and earn on every paid signup. Clean attribution, clear rules, and payouts you can trust.</p>
+
+							<div className='flex flex-wrap items-center gap-3 text-xs text-white/90'>
+								<span className='px-3 py-1 rounded-full border border-white/20 bg-white/10'>30-day cookie</span>
+								<span className='px-3 py-1 rounded-full border border-white/20 bg-white/10'>Recurring commissions</span>
+								<span className='px-3 py-1 rounded-full border border-white/20 bg-white/10'>Real-time dashboard</span>
+							</div>
+
+							<div className='flex flex-col items-start gap-4 sm:flex-row sm:items-center'>
+								<Button className='bg-white text-small text-slate-900 h-10 px-[18px] py-[10px] leading-5 font-semibold' radius='full' as={Link} href='https://affiliate.clipify.us/register'>
+									Join Now
+								</Button>
+								<Button
+									className='border-white/60 text-small h-10 border-2 px-4 py-2.5 leading-5 font-semibold text-white'
+									endContent={
+										<span className='bg-white pointer-events-none flex h-[22px] w-[22px] items-center justify-center rounded-full'>
+											<IconArrowRight className='text-default-50 [&>path]:stroke-[2.5]' width={16} />
+										</span>
+									}
+									radius='full'
+									variant='bordered'
+									as={Link}
+									href='#details'
+								>
+									See Details
+								</Button>
 							</div>
 						</div>
 
-						<p className='text-default-500 text-center leading-7 font-normal sm:w-[466px] sm:text-[18px]'>Share our platform with other creators and earn on every paid signup. Simple links, clear tracking and transparent payouts.</p>
+						<div className='relative'>
+							<div className='absolute -inset-4 rounded-2xl bg-primary-400/25 blur-2xl' />
+							<div className='relative rounded-2xl border border-white/10 bg-white/10 p-6 backdrop-blur'>
+								<div className='flex items-center justify-between'>
+									<div className='text-white/70 text-xs uppercase tracking-wider'>Commission Rate</div>
+									<IconCoin className='text-white/70' size={18} />
+								</div>
+								<div className='mt-4 grid grid-cols-2 gap-4'>
+									<div className='rounded-xl border border-white/10 bg-white/10 p-4'>
+										<p className='text-xs text-white/70'>30.0% of sale</p>
+										<p className='text-2xl font-bold text-white'>Recurring</p>
+									</div>
+									<div className='rounded-xl border border-white/10 bg-white/10 p-4'>
+										<p className='text-xs text-white/70'>Cookie Duration</p>
+										<p className='text-2xl font-bold text-white'>30 days</p>
+									</div>
+									<div className='rounded-xl border border-white/10 bg-white/10 p-4'>
+										<p className='text-xs text-white/70'>Payouts</p>
+										<p className='text-2xl font-bold text-white'>Monthly</p>
+									</div>
+									<div className='rounded-xl border border-white/10 bg-white/10 p-4'>
+										<p className='text-xs text-white/70'>Tracking</p>
+										<p className='text-2xl font-bold text-white'>Realtime</p>
+									</div>
+								</div>
 
-						<div className='flex flex-col items-center justify-center gap-6 sm:flex-row'>
-							<Button className='bg-default-foreground text-small text-background h-10 w-[163px] px-[16px] py-[10px] leading-5 font-semibold' radius='full' as={Link} href='https://affiliate.clipify.us/register'>
-								Join Now
-							</Button>
-
-							<Button
-								className='border-white text-small h-10 w-[163px] border-2 px-4 py-2.5 leading-5 font-semibol	d'
-								endContent={
-									<span className='bg-white pointer-events-none flex h-[22px] w-[22px] items-center justify-center rounded-full'>
-										<IconArrowRight className='text-default-50 [&>path]:stroke-[2.5]' width={16} />
-									</span>
-								}
-								radius='full'
-								variant='bordered'
-								as={Link}
-								href='#details'
-							>
-								See Details
-							</Button>
+								<div className='mt-6 flex items-center gap-3 rounded-xl border border-white/10 bg-white/10 p-4'>
+									<div className='h-9 w-9 rounded-full bg-white/15 flex items-center justify-center'>
+										<IconUsers size={18} className='text-white/80' />
+									</div>
+									<div>
+										<p className='text-sm text-white font-semibold'>Invite creators you already help</p>
+										<p className='text-xs text-white/60'>Earn for life on every paid subscription</p>
+									</div>
+								</div>
+							</div>
 						</div>
 					</section>
 				</main>
