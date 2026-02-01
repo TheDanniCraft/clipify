@@ -394,6 +394,54 @@ export async function getEditorOverlays(ownerId: string) {
 	}
 }
 
+export async function getOverlayOwnerPlans(overlayIds: string[]): Promise<Record<string, Plan>> {
+	try {
+		const user = await requireUser();
+		if (!user) {
+			console.warn(`Unauthenticated "getOverlayOwnerPlans" API request`);
+			return {};
+		}
+
+		if (!overlayIds || overlayIds.length === 0) {
+			return {};
+		}
+
+		const uniqueOverlayIds = Array.from(new Set(overlayIds));
+
+		const editorRows = await db.select().from(editorsTable).where(eq(editorsTable.editorId, user.id)).execute();
+		const allowedOwnerIds = Array.from(new Set([user.id, ...editorRows.map((row) => row.userId)]));
+
+		const overlays = await db
+			.select({ id: overlaysTable.id, ownerId: overlaysTable.ownerId })
+			.from(overlaysTable)
+			.where(and(inArray(overlaysTable.id, uniqueOverlayIds), inArray(overlaysTable.ownerId, allowedOwnerIds)))
+			.execute();
+
+		if (overlays.length === 0) {
+			return {};
+		}
+
+		const ownerIds = Array.from(new Set(overlays.map((overlay) => overlay.ownerId)));
+		const owners = await db
+			.select({ id: usersTable.id, plan: usersTable.plan })
+			.from(usersTable)
+			.where(inArray(usersTable.id, ownerIds))
+			.execute();
+
+		const planByOwnerId = new Map(owners.map((owner) => [owner.id, owner.plan]));
+		const result: Record<string, Plan> = {};
+
+		for (const overlay of overlays) {
+			result[overlay.id] = planByOwnerId.get(overlay.ownerId) ?? Plan.Free;
+		}
+
+		return result;
+	} catch (error) {
+		console.error("Error fetching overlay owner plans:", error);
+		throw new Error("Failed to fetch overlay owner plans");
+	}
+}
+
 export async function getOverlayPublic(overlayId: string) {
 	try {
 		const overlays = await db.select().from(overlaysTable).where(eq(overlaysTable.id, overlayId)).limit(1).execute();

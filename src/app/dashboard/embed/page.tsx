@@ -1,7 +1,7 @@
 "use client";
 
 import { validateAuth } from "@/app/actions/auth";
-import { getAccessToken, getAllOverlays, getEditorOverlays, getOverlayOwnerPlan } from "@/app/actions/database";
+import { getAccessToken, getAllOverlays, getEditorOverlays, getOverlayOwnerPlans } from "@/app/actions/database";
 import { getUsersDetailsBulk } from "@/app/actions/twitch";
 import DashboardNavbar from "@/app/components/dashboardNavbar";
 import { AuthenticatedUser, Overlay } from "@/app/lib/types";
@@ -59,13 +59,9 @@ export default function EmbedTool() {
 
 			setOverlays(uniqueOverlays);
 
-			const planEntries = await Promise.all(
-				uniqueOverlays.map(async (overlay) => {
-					const plan = await getOverlayOwnerPlan(overlay.id);
-					return [overlay.id, plan ?? "free"] as const;
-				})
-			);
-			setOwnerPlansByOverlayId(Object.fromEntries(planEntries));
+			const plansByOverlayId = await getOverlayOwnerPlans(uniqueOverlays.map((overlay) => overlay.id));
+			const normalizedPlans = Object.fromEntries(uniqueOverlays.map((overlay) => [overlay.id, plansByOverlayId[overlay.id] ?? "free"]));
+			setOwnerPlansByOverlayId(normalizedPlans);
 		}
 
 		setup();

@@ -515,7 +515,9 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 												description: "Failed to create overlay. The owner may be on the Free plan or you lack permissions.",
 												color: "danger",
 											});
-											onUpgradeOpen();
+											if (currentUser?.id === item.id) {
+												onUpgradeOpen();
+											}
 											setIsLoading(false);
 											return;
 										}
