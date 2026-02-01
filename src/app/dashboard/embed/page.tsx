@@ -1,12 +1,12 @@
 "use client";
 
 import { validateAuth } from "@/app/actions/auth";
-import { getAccessToken, getAllOverlays, getEditorOverlays } from "@/app/actions/database";
+import { getAccessToken, getAllOverlays, getEditorOverlays, getOverlayOwnerPlan } from "@/app/actions/database";
 import { getUsersDetailsBulk } from "@/app/actions/twitch";
 import DashboardNavbar from "@/app/components/dashboardNavbar";
 import { AuthenticatedUser, Overlay } from "@/app/lib/types";
 import { Avatar, Button, Card, CardBody, CardHeader, Divider, Link, Select, SelectItem, Snippet, Spinner, Switch, Tooltip, useDisclosure } from "@heroui/react";
-import { IconCode, IconEye, IconLink, IconPlayerPlayFilled, IconSparkles, IconVolume } from "@tabler/icons-react";
+import { IconArrowLeft, IconCode, IconEye, IconLink, IconPlayerPlayFilled, IconSparkles, IconVolume } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import UpgradeModal from "@/app/components/upgradeModal";
@@ -24,6 +24,7 @@ export default function EmbedTool() {
 	const [embedMuted, setEmbedMuted] = useState<boolean>(false);
 	const [embedAutoplay, setEmbedAutoplay] = useState<boolean>(false);
 	const [avatars, setAvatars] = useState<Record<string, string>>({});
+	const [ownerPlansByOverlayId, setOwnerPlansByOverlayId] = useState<Record<string, string>>({});
 	const { isOpen: isUpgradeOpen, onOpen: onUpgradeOpen, onOpenChange: onUpgradeOpenChange } = useDisclosure();
 
 	useEffect(() => {
@@ -57,6 +58,14 @@ export default function EmbedTool() {
 			if (uniqueOverlays.length === 0) return;
 
 			setOverlays(uniqueOverlays);
+
+			const planEntries = await Promise.all(
+				uniqueOverlays.map(async (overlay) => {
+					const plan = await getOverlayOwnerPlan(overlay.id);
+					return [overlay.id, plan ?? "free"] as const;
+				})
+			);
+			setOwnerPlansByOverlayId(Object.fromEntries(planEntries));
 		}
 
 		setup();
@@ -74,20 +83,13 @@ export default function EmbedTool() {
 		fetchBaseUrl();
 	}, []);
 
-	useEffect(() => {
-		function initializeShowBanner() {
-			if (user) {
-				setShowBanner(user.plan === "free");
-			}
-		}
-
-		initializeShowBanner();
-	}, [user]);
+	const ownerPlan = overlayId ? ownerPlansByOverlayId[overlayId] : undefined;
+	const effectiveShowBanner = ownerPlan === "free" ? true : showBanner;
 
 	const buildEmbedUrl = (id: string) => {
 		if (!id) return "";
 		const params: string[] = [];
-		if (showBanner) params.push("showBanner");
+		if (effectiveShowBanner) params.push("showBanner");
 		if (embedMuted) params.push("muted");
 		if (embedAutoplay) params.push("autoplay");
 		const query = params.join("&");
@@ -109,16 +111,26 @@ export default function EmbedTool() {
 				<div className='px-6 md:px-12 lg:px-16 py-8 grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 items-start max-w-7xl mx-auto w-full'>
 					<Card>
 						<CardHeader>
-							<h2 className='text-2xl font-bold flex items-center gap-2'>
-								<IconSparkles className='h-5 w-5 text-primary' />
-								Select Overlay
-							</h2>
+							<div className='flex items-center gap-2'>
+								<Button isIconOnly variant='light' onPress={() => router.push("/dashboard")} aria-label='Back to Dashboard'>
+									<IconArrowLeft className='h-5 w-5 text-primary' />
+								</Button>
+								<h2 className='text-2xl font-bold flex items-center gap-2'>
+									<IconSparkles className='h-5 w-5 text-primary' />
+									Select Overlay
+								</h2>
+							</div>
 						</CardHeader>
 						<CardBody className='flex flex-col gap-4'>
 							<Select
 								selectedKeys={overlayId === "" ? new Set([]) : new Set([overlayId])}
 								onSelectionChange={(selected) => {
-									setOverlayId(String(Array.from(selected)[0] ?? ""));
+									const nextId = String(Array.from(selected)[0] ?? "");
+									setOverlayId(nextId);
+									const nextPlan = nextId ? ownerPlansByOverlayId[nextId] : undefined;
+									if (!nextId || nextPlan !== "free") {
+										setShowBanner(false);
+									}
 								}}
 								label='Select Overlay'
 								placeholder='Select an overlay to generate embed code'
@@ -139,7 +151,7 @@ export default function EmbedTool() {
 							</Select>
 							<Tooltip content={user?.plan === "free" ? "Upgrade your plan to remove Clipify branding" : "Toggle to include Clipify branding on your overlay"}>
 								<span>
-									<Switch isSelected={showBanner} onValueChange={setShowBanner} isDisabled={user?.plan === "free"}>
+									<Switch isSelected={effectiveShowBanner} onValueChange={setShowBanner} isDisabled={!overlayId || ownerPlan === "free"}>
 										<span className='flex items-center gap-2'>
 											<IconSparkles className='h-4 w-4 text-primary' />
 											Enable Clipify Branding
@@ -147,23 +159,31 @@ export default function EmbedTool() {
 									</Switch>
 								</span>
 							</Tooltip>
-							{user?.plan === "free" && (
-								<Button variant='flat' color='primary' onPress={onUpgradeOpen}>
+							{ownerPlan === "free" && (
+								<Button variant='solid' color='primary' onPress={onUpgradeOpen} className='text-white'>
 									Upgrade to remove branding
 								</Button>
 							)}
-							<Switch isSelected={embedAutoplay} onValueChange={setEmbedAutoplay}>
-								<span className='flex items-center gap-2'>
-									<IconPlayerPlayFilled className='h-4 w-4 text-emerald-500' />
-									Autoplay (skip click-to-play)
+							<Tooltip content='Toggle autoplay for this embed'>
+								<span>
+									<Switch isSelected={embedAutoplay} onValueChange={setEmbedAutoplay} isDisabled={!overlayId}>
+										<span className='flex items-center gap-2'>
+											<IconPlayerPlayFilled className='h-4 w-4 text-emerald-500' />
+											Autoplay (skip click-to-play)
+										</span>
+									</Switch>
 								</span>
-							</Switch>
-							<Switch isSelected={embedMuted} onValueChange={setEmbedMuted}>
-								<span className='flex items-center gap-2'>
-									<IconVolume className='h-4 w-4 text-blue-500' />
-									Start muted
+							</Tooltip>
+							<Tooltip content='Toggle starting muted for this embed'>
+								<span>
+									<Switch isSelected={embedMuted} onValueChange={setEmbedMuted} isDisabled={!overlayId}>
+										<span className='flex items-center gap-2'>
+											<IconVolume className='h-4 w-4 text-blue-500' />
+											Start muted
+										</span>
+									</Switch>
 								</span>
-							</Switch>
+							</Tooltip>
 							<div>
 								<div className='text-xs uppercase tracking-wide text-gray-500 font-semibold mb-2 flex items-center gap-2'>
 									<IconLink className='h-4 w-4' />
@@ -209,7 +229,7 @@ export default function EmbedTool() {
 						</CardHeader>
 						<CardBody className='flex flex-col px-5 pb-5 w-full items-center justify-center'>
 							<iframe referrerPolicy='strict-origin-when-cross-origin' src={buildEmbedUrl(overlayId === "" ? "default" : overlayId)} className='w-full aspect-video rounded-lg' title='Overlay Preview' />
-							{user && user.plan === "free" && (
+							{ownerPlan === "free" && (
 								<p className='text-sm text-warning font-medium mt-2'>
 									Your current plan allows you to use the embed tool with Clipify branding.{" "}
 									<Link color='warning' className='text-sm' underline='always' href='/dashboard/settings'>
@@ -219,7 +239,7 @@ export default function EmbedTool() {
 								</p>
 							)}
 
-							{user && user.plan !== "free" && showBanner && <p className='text-sm text-success font-medium mt-2'>You enabled Clipify branding for this embed. Thanks for supporting Clipify!</p>}
+							{ownerPlan !== "free" && effectiveShowBanner && <p className='text-sm text-success font-medium mt-2'>You enabled Clipify branding for this embed. Thanks for supporting Clipify!</p>}
 						</CardBody>
 					</Card>
 				</div>
