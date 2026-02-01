@@ -5,10 +5,11 @@ import { getAccessToken, getAllOverlays, getEditorOverlays } from "@/app/actions
 import { getUsersDetailsBulk } from "@/app/actions/twitch";
 import DashboardNavbar from "@/app/components/dashboardNavbar";
 import { AuthenticatedUser, Overlay } from "@/app/lib/types";
-import { Avatar, Card, CardBody, CardHeader, Divider, Link, Select, SelectItem, Snippet, Spinner, Switch, Tooltip } from "@heroui/react";
+import { Avatar, Button, Card, CardBody, CardHeader, Divider, Link, Select, SelectItem, Snippet, Spinner, Switch, Tooltip, useDisclosure } from "@heroui/react";
 import { IconCode, IconEye, IconLink, IconPlayerPlayFilled, IconSparkles, IconVolume } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import UpgradeModal from "@/app/components/upgradeModal";
 
 export default function EmbedTool() {
 	const router = useRouter();
@@ -23,6 +24,7 @@ export default function EmbedTool() {
 	const [embedMuted, setEmbedMuted] = useState<boolean>(false);
 	const [embedAutoplay, setEmbedAutoplay] = useState<boolean>(false);
 	const [avatars, setAvatars] = useState<Record<string, string>>({});
+	const { isOpen: isUpgradeOpen, onOpen: onUpgradeOpen, onOpenChange: onUpgradeOpenChange } = useDisclosure();
 
 	useEffect(() => {
 		async function setup() {
@@ -145,6 +147,11 @@ export default function EmbedTool() {
 									</Switch>
 								</span>
 							</Tooltip>
+							{user?.plan === "free" && (
+								<Button variant='flat' color='primary' onPress={onUpgradeOpen}>
+									Upgrade to remove branding
+								</Button>
+							)}
 							<Switch isSelected={embedAutoplay} onValueChange={setEmbedAutoplay}>
 								<span className='flex items-center gap-2'>
 									<IconPlayerPlayFilled className='h-4 w-4 text-emerald-500' />
@@ -217,6 +224,7 @@ export default function EmbedTool() {
 					</Card>
 				</div>
 			</DashboardNavbar>
+			{user && <UpgradeModal isOpen={isUpgradeOpen} onOpenChange={onUpgradeOpenChange} user={user} title='Remove branding with Pro' />}
 		</>
 	);
 }

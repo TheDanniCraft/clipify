@@ -100,8 +100,8 @@ export default function AffiliateProgram() {
 										<IconUsers size={18} className='text-white/80' />
 									</div>
 									<div>
-										<p className='text-sm text-white font-semibold'>Invite creators you already help</p>
-										<p className='text-xs text-white/60'>Earn for life on every paid subscription</p>
+										<p className='text-sm text-white font-semibold'>Earn by sharing</p>
+										<p className='text-xs text-white/60'>Get paid for sharing a tool you already use</p>
 									</div>
 								</div>
 							</div>

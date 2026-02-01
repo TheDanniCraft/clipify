@@ -11,10 +11,10 @@ import DashboardNavbar from "@components/dashboardNavbar";
 import { useNavigationGuard } from "next-navigation-guard";
 import { validateAuth } from "@/app/actions/auth";
 import { createChannelReward, getReward, getTwitchClips, removeChannelReward } from "@/app/actions/twitch";
-import { generatePaymentLink } from "@/app/actions/subscription";
 import FeedbackWidget from "@components/feedbackWidget";
 import TagsInput from "@components/tagsInput";
 import { isTitleBlocked } from "@/app/utils/regexFilter";
+import UpgradeModal from "@/app/components/upgradeModal";
 
 const overlayTypes: { key: OverlayType; label: string }[] = [
 	{ key: "1", label: "Top Clips - Today" },
@@ -40,6 +40,7 @@ export default function OverlaySettings() {
 	const [ownerPlan, setOwnerPlan] = useState<Plan | null>(null);
 	const [previewClips, setPreviewClips] = useState<TwitchClip[]>([]);
 	const { isOpen: isCliplistOpen, onOpen: onCliplistOpen, onOpenChange: onCliplistOpenChange } = useDisclosure();
+	const { isOpen: isUpgradeOpen, onOpen: onUpgradeOpen, onOpenChange: onUpgradeOpenChange } = useDisclosure();
 
 	const navGuard = useNavigationGuard({ enabled: isFormDirty() });
 
@@ -255,24 +256,10 @@ export default function OverlaySettings() {
 														color='warning'
 														variant='shadow'
 														isDisabled={user?.id !== overlay.ownerId}
-														onPress={async () => {
-															if (!user) return;
-
-															const link = await generatePaymentLink(user, window.location.href, window.numok?.getStripeMetadata());
-
-															if (link) {
-																window.location.href = link;
-															} else {
-																addToast({
-																	title: "Error",
-																	description: "Failed to generate payment link. Please try again later.",
-																	color: "danger",
-																});
-															}
-														}}
+														onPress={onUpgradeOpen}
 														className='mt-3 w-full font-semibold'
 													>
-														Upgrade for less than 2€/month
+														Upgrade for less than a coffee
 													</Button>
 													{user?.id !== overlay.ownerId ? <p className='text-xs text-danger text-center mt-2'>Only the overlay owner can unlock premium features.</p> : <p className='text-xs text-warning-600 text-center mt-2'>Enjoy a 3-day free trial. Cancel anytime.</p>}
 												</CardBody>
@@ -414,6 +401,8 @@ export default function OverlaySettings() {
 					</ModalContent>
 				</Modal>
 			</DashboardNavbar>
+
+			{user && <UpgradeModal isOpen={isUpgradeOpen} onOpenChange={onUpgradeOpenChange} user={user} title='Upgrade to unlock premium overlay features' />}
 		</>
 	);
 }
