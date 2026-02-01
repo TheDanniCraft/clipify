@@ -296,6 +296,11 @@ export async function getTwitchClips(overlay: Overlay, type?: OverlayType, skipF
 		clips = clips.filter((clip) => {
 			return !isTitleBlocked(clip.title, overlay.blacklistWords);
 		});
+
+		// Filter for minimum views
+		clips = clips.filter((clip) => {
+			return clip.view_count >= overlay.minClipViews;
+		});
 	}
 
 	return clips;
