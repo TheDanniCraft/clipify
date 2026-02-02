@@ -539,7 +539,7 @@ export default function OverlayPlayer({
 		const showClickToPlay = embedBehaviorEnabled && paused;
 		return (
 			<div
-				className='relative inline-block'
+				className='relative inline-block group'
 				role={showClickToPlay ? "button" : undefined}
 				tabIndex={showClickToPlay ? 0 : -1}
 				aria-label={showClickToPlay ? "Play clips" : undefined}
@@ -595,7 +595,7 @@ export default function OverlayPlayer({
 
 				{embedBehaviorEnabled && (
 					<>
-						<div className='absolute right-4 top-4'>
+						<div className='absolute right-4 top-4 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100'>
 							<button
 								type='button'
 								onClick={(event) => {
