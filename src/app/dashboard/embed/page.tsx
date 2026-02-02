@@ -20,7 +20,7 @@ export default function EmbedTool() {
 		return new URLSearchParams(window.location.search).get("oid") ?? "";
 	});
 	const [baseUrl, setBaseUrl] = useState<string>("");
-	const [showBanner, setShowBanner] = useState<boolean>();
+	const [showBanner, setShowBanner] = useState<boolean>(false);
 	const [embedMuted, setEmbedMuted] = useState<boolean>(false);
 	const [embedAutoplay, setEmbedAutoplay] = useState<boolean>(false);
 	const [avatars, setAvatars] = useState<Record<string, string>>({});
@@ -80,7 +80,7 @@ export default function EmbedTool() {
 	}, []);
 
 	const ownerPlan = overlayId ? ownerPlansByOverlayId[overlayId] : undefined;
-	const effectiveShowBanner = ownerPlan === "free" ? true : showBanner;
+	const effectiveShowBanner = ownerPlan === "free" ? true : !!showBanner;
 
 	const buildEmbedUrl = (id: string) => {
 		if (!id) return "";
