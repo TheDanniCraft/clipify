@@ -50,6 +50,13 @@
       "when": 1769075285672,
       "tag": "0006_short_natasha_romanoff",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1769993107292,
+      "tag": "0007_illegal_slayback",
+      "breakpoints": true
     }
   ]
 }
