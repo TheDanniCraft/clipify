@@ -11,9 +11,7 @@ import { redirect, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { generatePaymentLink, checkIfSubscriptionExists, getPortalLink } from "@/app/actions/subscription";
 import { useNavigationGuard } from "next-navigation-guard";
-import { tiers } from "@/app/components/Pricing/pricing-tiers";
-import { TiersEnum } from "@/app/components/Pricing/pricing-types";
-import { IconCheck } from "@tabler/icons-react";
+import UpgradeModal from "@/app/components/upgradeModal";
 import TagsInput from "@/app/components/tagsInput";
 
 export default function SettingsPage() {
@@ -23,12 +21,6 @@ export default function SettingsPage() {
 	const [timer, setTimer] = useState<number>(0);
 	const [settings, setSettings] = useState<UserSettings | null>(null);
 	const [baseSettings, setBaseSettings] = useState<UserSettings | null>(null);
-
-	// compute pro/free tier features for the upgrade modal
-	const proTier = tiers.find((t) => t.key === TiersEnum.Pro);
-	const freeTier = tiers.find((t) => t.key === TiersEnum.Free);
-	const proFeatures = proTier?.features ?? [];
-	const uniqueProFeatures = proFeatures.filter((f) => !(freeTier?.features ?? []).includes(f) && f !== "Everything in Free");
 
 	const router = useRouter();
 	const navGuard = useNavigationGuard({ enabled: isFormDirty() });
@@ -218,7 +210,7 @@ export default function SettingsPage() {
 												}}
 												className='mt-3 w-full font-semibold'
 											>
-												Upgrade for less than 2€/month
+												Upgrade for less than a coffee
 											</Button>
 											<p className='text-xs text-warning-600 text-center mt-2'>Enjoy a 3-day free trial. Cancel anytime.</p>
 										</CardBody>
@@ -312,60 +304,7 @@ export default function SettingsPage() {
 				</ModalContent>
 			</Modal>
 
-			<Modal isOpen={upgradeModalIsOpen} onOpenChange={upgradeModalOnOpenChange}>
-				<ModalContent>
-					<ModalHeader>Upgrade Account</ModalHeader>
-					<ModalBody>
-						<p className='text-muted-foreground'>Upgrade your account to unlock advanced features and support the development of Clipify. Your support helps us keep improving the service.</p>
-						<p>
-							Plan: <span className={`${user.plan === Plan.Free ? "text-green-600" : "text-primary-400"} capitalize`}>{user.plan}</span>
-						</p>
-
-						<Divider />
-
-						{/* Feature list: show Pro features and emphasize upgrade-only items */}
-						{proTier && (
-							<>
-								<p className='mt-3 text-default-700'>What&apos;s included with Pro</p>
-								<ul className='grid grid-cols-1 gap-1 sm:grid-cols-2 mt-1 text-sm'>
-									{proFeatures.map((f) => {
-										const isUnique = uniqueProFeatures.includes(f);
-										return (
-											<li key={f} className='flex items-start gap-2'>
-												<IconCheck size={16} className={isUnique ? "text-primary mt-0.5" : "text-default-400 mt-0.5"} />
-												<p className={isUnique ? "text-default-900 font-medium" : "text-default-500"}>{f}</p>
-											</li>
-										);
-									})}
-								</ul>
-							</>
-						)}
-
-						<Divider className='my-3' />
-						<Button
-							className='mb-2'
-							color='primary'
-							onPress={async () => {
-								const link = await generatePaymentLink(user, window.location.href, window.numok.getStripeMetadata());
-
-								if (link) {
-									window.location.href = link;
-								} else {
-									addToast({
-										title: "Error",
-										description: "Failed to generate payment link. Please try again later.",
-										color: "danger",
-									});
-								}
-							}}
-							startContent={<IconDiamondFilled />}
-							isDisabled={user.plan !== Plan.Free}
-						>
-							Upgrade to Pro
-						</Button>
-					</ModalBody>
-				</ModalContent>
-			</Modal>
+			<UpgradeModal isOpen={upgradeModalIsOpen} onOpenChange={upgradeModalOnOpenChange} user={user} title='Upgrade Account' />
 
 			<ConfirmModal
 				isOpen={deleteModalIsOpen}

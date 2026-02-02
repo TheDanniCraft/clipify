@@ -1,4 +1,4 @@
-import { getOverlay, getUserPlan } from "@/app/actions/database";
+import { getOverlayOwnerPlanPublic, getOverlayPublic } from "@/app/actions/database";
 import { getTwitchClips } from "@/app/actions/twitch";
 import OverlayPlayer from "@/app/components/overlayPlayer";
 import { Plan, type Overlay } from "@/app/lib/types";
@@ -6,9 +6,18 @@ import { Plan, type Overlay } from "@/app/lib/types";
 export default async function Overlay({ params, searchParams }: { params: Promise<{ overlayId: string }>; searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
 	const { overlayId } = await params;
 	const sp = await searchParams;
-	let rawShowBanner = sp.showBanner;
-	if (Array.isArray(rawShowBanner)) rawShowBanner = rawShowBanner[0];
-	const showBanner = rawShowBanner !== undefined && rawShowBanner !== "false" && rawShowBanner !== "0";
+	const toFlag = (value: string | string[] | undefined) => {
+		let raw = value;
+		if (Array.isArray(raw)) raw = raw[0];
+		if (raw === undefined) return false;
+		const normalized = raw.toString().trim().toLowerCase();
+		if (normalized === "" || normalized === "true" || normalized === "1") return true;
+		if (normalized === "false" || normalized === "0") return false;
+		return false;
+	};
+	const showBanner = toFlag(sp.showBanner);
+	const embedMuted = toFlag(sp.muted);
+	const embedAutoplay = toFlag(sp.autoplay);
 
 	if (overlayId === "default") {
 		return (
@@ -25,7 +34,7 @@ export default async function Overlay({ params, searchParams }: { params: Promis
 		);
 	}
 
-	const overlay = (await getOverlay(overlayId)) as Overlay;
+	const overlay = (await getOverlayPublic(overlayId)) as Overlay;
 
 	if (!overlay)
 		return (
@@ -55,7 +64,7 @@ export default async function Overlay({ params, searchParams }: { params: Promis
 		);
 
 	const clips = await getTwitchClips(overlay);
-	const plan = await getUserPlan(overlay.ownerId);
+	const plan = await getOverlayOwnerPlanPublic(overlayId);
 
 	return (
 		<>
@@ -70,7 +79,7 @@ export default async function Overlay({ params, searchParams }: { params: Promis
 				}}
 			/>
 			<div className='flex flex-col justify-center items-center h-screen w-screen'>
-				<OverlayPlayer clips={clips} overlay={overlay} isEmbed showBanner={showBanner || plan === Plan.Free} />
+				<OverlayPlayer clips={clips} overlay={overlay} isEmbed showBanner={showBanner || plan === Plan.Free} embedMuted={embedMuted} embedAutoplay={embedAutoplay} />
 			</div>
 		</>
 	);

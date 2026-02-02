@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { useParams, useRouter } from "next/navigation";
-import { getOverlay, getUserPlan, saveOverlay } from "@/app/actions/database";
+import { getOverlay, getOverlayOwnerPlan, saveOverlay } from "@/app/actions/database";
 import { addToast, Button, Card, CardBody, CardHeader, Divider, Form, Image, Input, Link, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, NumberInput, Select, SelectItem, Slider, Snippet, Spinner, Switch, Tooltip, useDisclosure } from "@heroui/react";
 import { AuthenticatedUser, Overlay, OverlayType, Plan, TwitchClip, TwitchReward } from "@types";
 import { IconAlertTriangle, IconArrowLeft, IconCrown, IconDeviceFloppy, IconInfoCircle, IconPlayerPauseFilled, IconPlayerPlayFilled } from "@tabler/icons-react";
@@ -11,10 +11,10 @@ import DashboardNavbar from "@components/dashboardNavbar";
 import { useNavigationGuard } from "next-navigation-guard";
 import { validateAuth } from "@/app/actions/auth";
 import { createChannelReward, getReward, getTwitchClips, removeChannelReward } from "@/app/actions/twitch";
-import { generatePaymentLink } from "@/app/actions/subscription";
 import FeedbackWidget from "@components/feedbackWidget";
 import TagsInput from "@components/tagsInput";
 import { isTitleBlocked } from "@/app/utils/regexFilter";
+import UpgradeModal from "@/app/components/upgradeModal";
 
 const overlayTypes: { key: OverlayType; label: string }[] = [
 	{ key: "1", label: "Top Clips - Today" },
@@ -40,18 +40,19 @@ export default function OverlaySettings() {
 	const [ownerPlan, setOwnerPlan] = useState<Plan | null>(null);
 	const [previewClips, setPreviewClips] = useState<TwitchClip[]>([]);
 	const { isOpen: isCliplistOpen, onOpen: onCliplistOpen, onOpenChange: onCliplistOpenChange } = useDisclosure();
+	const { isOpen: isUpgradeOpen, onOpen: onUpgradeOpen, onOpenChange: onUpgradeOpenChange } = useDisclosure();
 
 	const navGuard = useNavigationGuard({ enabled: isFormDirty() });
 
 	useEffect(() => {
 		async function fetchOwnerPlan() {
-			if (overlay?.ownerId) {
-				const owner = await getUserPlan(overlay.ownerId);
+			if (overlay?.id) {
+				const owner = await getOverlayOwnerPlan(overlay.id);
 				setOwnerPlan(owner);
 			}
 		}
 		fetchOwnerPlan();
-	}, [overlay?.ownerId]);
+	}, [overlay?.id]);
 
 	useEffect(() => {
 		async function checkAuth() {
@@ -120,7 +121,16 @@ export default function OverlaySettings() {
 		});
 
 		if (!overlay) return;
-		await saveOverlay(overlay);
+		await saveOverlay(overlay.id, {
+			name: overlay.name,
+			status: overlay.status,
+			type: overlay.type,
+			rewardId: overlay.rewardId,
+			minClipDuration: overlay.minClipDuration,
+			maxClipDuration: overlay.maxClipDuration,
+			blacklistWords: overlay.blacklistWords,
+			minClipViews: overlay.minClipViews,
+		});
 		setBaseOverlay(overlay);
 		addToast({
 			title: "Overlay settings saved",
@@ -174,7 +184,7 @@ export default function OverlaySettings() {
 													pre: "overflow-hidden whitespace-nowrap",
 												}}
 											>
-												{`${baseUrl}/overlay/${overlayId}`}
+												{overlay.secret ? `${baseUrl}/overlay/${overlayId}?secret=${overlay.secret}` : "Missing secret. Refresh this page to generate one."}
 											</Snippet>
 										</div>
 										<Button type='submit' color='primary' isIconOnly isDisabled={!isFormDirty()} aria-label='Save Overlay Settings'>
@@ -246,24 +256,10 @@ export default function OverlaySettings() {
 														color='warning'
 														variant='shadow'
 														isDisabled={user?.id !== overlay.ownerId}
-														onPress={async () => {
-															if (!user) return;
-
-															const link = await generatePaymentLink(user, window.location.href, window.numok?.getStripeMetadata());
-
-															if (link) {
-																window.location.href = link;
-															} else {
-																addToast({
-																	title: "Error",
-																	description: "Failed to generate payment link. Please try again later.",
-																	color: "danger",
-																});
-															}
-														}}
+														onPress={onUpgradeOpen}
 														className='mt-3 w-full font-semibold'
 													>
-														Upgrade for less than 2€/month
+														Upgrade for less than a coffee
 													</Button>
 													{user?.id !== overlay.ownerId ? <p className='text-xs text-danger text-center mt-2'>Only the overlay owner can unlock premium features.</p> : <p className='text-xs text-warning-600 text-center mt-2'>Enjoy a 3-day free trial. Cancel anytime.</p>}
 												</CardBody>
@@ -336,7 +332,7 @@ export default function OverlaySettings() {
 											className='p-2'
 											size='sm'
 										/>
-										<NumberInput size='sm' min={0} defaultValue={overlay.minClipViews} value={overlay.minClipViews} onValueChange={(value) => setOverlay({ ...overlay, minClipViews: Number(value) })} label='Minimum Clip Views' description='Only clips with at least this many views will be shown in the overlay.' className='p-2' />
+										<NumberInput size='sm' minValue={0} defaultValue={overlay.minClipViews} value={overlay.minClipViews} onValueChange={(value) => setOverlay({ ...overlay, minClipViews: Number(value) })} label='Minimum Clip Views' description='Only clips with at least this many views will be shown in the overlay.' className='p-2' />
 										<TagsInput className='p-2' fullWidth label='Blacklisted Words' value={overlay.blacklistWords} onValueChange={(value) => setOverlay({ ...overlay, blacklistWords: value })} description='Hide clips containing certain words in their titles. Supports RE2 regex (no lookarounds). Example: ^hello$' />
 									</div>
 								</Form>
@@ -405,6 +401,8 @@ export default function OverlaySettings() {
 					</ModalContent>
 				</Modal>
 			</DashboardNavbar>
+
+			{user && <UpgradeModal isOpen={isUpgradeOpen} onOpenChange={onUpgradeOpenChange} user={user} title='Upgrade to unlock premium overlay features' />}
 		</>
 	);
 }

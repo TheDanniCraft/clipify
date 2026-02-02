@@ -2,16 +2,18 @@
 
 import type { Selection, SortDescriptor } from "@heroui/react";
 import type { ColumnsKey } from "./data";
-import type { Overlay, StatusOptions, TwitchUserResponse } from "@types";
+import type { AuthenticatedUser, Overlay, StatusOptions, TwitchUserResponse } from "@types";
 import type { Key } from "@react-types/shared";
 
 import dynamic from "next/dynamic";
-import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, TableHeader, TableColumn, TableBody, TableRow, TableCell, Input, Button, RadioGroup, Radio, Chip, Pagination, Divider, Tooltip, Popover, PopoverTrigger, PopoverContent, Spinner, addToast, Link, Avatar, Skeleton } from "@heroui/react";
+import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, TableHeader, TableColumn, TableBody, TableRow, TableCell, Input, Button, RadioGroup, Radio, Chip, Pagination, Divider, Tooltip, Popover, PopoverTrigger, PopoverContent, Spinner, addToast, Link, Avatar, Skeleton, useDisclosure } from "@heroui/react";
 const Table = dynamic(() => import("@heroui/react").then((c) => c.Table), { ssr: false }); // Temp fix for issue 4385
 import React, { useMemo, useCallback, useState, useEffect } from "react";
 import { cn } from "@heroui/react";
 import { IconAdjustmentsHorizontal, IconArrowsLeftRight, IconChevronDown, IconChevronUp, IconCirclePlus, IconCircuitChangeover, IconInfoCircle, IconMenuDeep, IconPencil, IconReload, IconSearch, IconTrash } from "@tabler/icons-react";
-import { createOverlay, deleteOverlay, saveOverlay, getAllOverlays, getUserPlan, getEditorOverlays, getEditorAccess } from "@actions/database";
+import { createOverlay, deleteOverlay, saveOverlay, getAllOverlays, getEditorOverlays, getEditorAccess } from "@actions/database";
+import { validateAuth } from "@/app/actions/auth";
+import UpgradeModal from "@/app/components/upgradeModal";
 
 import { CopyText } from "./copy-text";
 
@@ -34,11 +36,13 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 	const [page, setPage] = useState(1);
 	const [isLoading, setIsLoading] = useState(false);
 	const [hasAccess, setHasAccess] = useState<boolean>(false);
+	const [currentUser, setCurrentUser] = useState<AuthenticatedUser | null>(null);
 	const [editorAccessList, setEditorAccessList] = useState<Set<TwitchUserResponse>>(new Set());
 	const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
 		column: "memberInfo",
 		direction: "ascending",
 	});
+	const { isOpen: isUpgradeOpen, onOpen: onUpgradeOpen, onOpenChange: onUpgradeOpenChange } = useDisclosure();
 
 	const [statusFilter, setStatusFilter] = React.useState("all");
 
@@ -80,6 +84,16 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 		fetchEditorAccess();
 	}, [accessToken, userId]);
 
+	useEffect(() => {
+		async function fetchUser() {
+			const user = await validateAuth();
+			if (user) setCurrentUser(user);
+		}
+		fetchUser();
+	}, []);
+
+// Plan is available on currentUser; avoid extra fetch.
+
 	const headerColumns = useMemo(() => {
 		if (visibleColumns === "all") return columns;
 
@@ -103,7 +117,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 
 			return allStatus || statusFilter === col.status.toLowerCase();
 		},
-		[statusFilter]
+		[statusFilter],
 	);
 
 	const filteredItems = useMemo(() => {
@@ -194,8 +208,16 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 							onClick={(event) => {
 								event.stopPropagation();
 
-								deleteOverlay(overlay)
-									.then(() => {
+								deleteOverlay(overlay.id)
+									.then((deleted) => {
+										if (!deleted) {
+											addToast({
+												title: "Error",
+												description: "Unable to delete the overlay. Please check your permissions and try again.",
+												color: "danger",
+											});
+											return;
+										}
 										setOverlays((prev) => (prev ? prev.filter((o) => o.id !== overlay.id) : []));
 
 										addToast({
@@ -362,14 +384,34 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 										const selectedOverlays = filterSelectedKeys === "all" ? overlays : filteredItems.filter((item) => filterSelectedKeys.has(String(item.id)));
 
 										const toggleStatusPromises = selectedOverlays?.map((overlay) => {
-											const newStatus = overlay.status === "active" ? "paused" : "active";
-											return saveOverlay({ ...overlay, status: newStatus }).then(() => {
-												setOverlays((prev) => (prev ? prev.map((o) => (o.id === overlay.id ? { ...o, status: newStatus } : o)) : []));
-											});
+											const newStatus: StatusOptions = overlay.status === "active" ? "paused" : "active";
+											return saveOverlay(overlay.id, { status: newStatus }).then((updated) => ({
+												ok: Boolean(updated),
+												id: overlay.id,
+												status: newStatus,
+											}));
 										});
 
 										Promise.all(toggleStatusPromises ?? [])
-											.then(() => {
+											.then((results) => {
+												const failed = results.filter((r) => !r.ok);
+												if (failed.length > 0) {
+													addToast({
+														title: "Error",
+														description: "One or more overlays could not be updated.",
+														color: "danger",
+													});
+													return;
+												}
+
+												setOverlays((prev) =>
+													prev
+														? prev.map((o) => {
+																const match = results.find((r) => r.id === o.id && r.ok);
+																return match ? { ...o, status: match.status } : o;
+															})
+														: []
+												);
 												addToast({
 													title: "Status Updated",
 													description: `${selectedOverlays?.length ?? 0} Overlay${(selectedOverlays?.length ?? 0) > 1 ? "s" : ""} status have been updated.`,
@@ -395,13 +437,25 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 										const selectedOverlays = filterSelectedKeys === "all" ? overlays : filteredItems.filter((item) => filterSelectedKeys.has(String(item.id)));
 
 										const deletePromises = selectedOverlays?.map((overlay) =>
-											deleteOverlay(overlay).then(() => {
-												setOverlays((prev) => (prev ? prev.filter((o) => o.id !== overlay.id) : []));
-											})
+											deleteOverlay(overlay.id).then((ok) => ({
+												ok: Boolean(ok),
+												id: overlay.id,
+											})),
 										);
 
 										Promise.all(deletePromises ?? [])
-											.then(() => {
+											.then((results) => {
+												const failed = results.filter((r) => !r.ok);
+												if (failed.length > 0) {
+													addToast({
+														title: "Error",
+														description: "One or more overlays could not be deleted.",
+														color: "danger",
+													});
+													return;
+												}
+
+												setOverlays((prev) => (prev ? prev.filter((o) => !results.some((r) => r.ok && r.id === o.id)) : []));
 												setSelectedKeys(new Set([]));
 												addToast({
 													title: "Successfully deleted",
@@ -429,6 +483,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 	}, [filterValue, visibleColumns, filterSelectedKeys, headerColumns, sortDescriptor, statusFilter, setStatusFilter, onSearchChange, setVisibleColumns, filteredItems, overlays]);
 
 	const topBar = useMemo(() => {
+		const ownerOverlaysCount = overlays?.filter((o) => o.ownerId === userId).length ?? 0;
 		return (
 			<div className='mb-[12px] flex items-center justify-between'>
 				<div className='flex w-[226px] items-center gap-2'>
@@ -453,28 +508,19 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 									onPress={async () => {
 										setIsLoading(true);
 
-										const plan = await getUserPlan(userId);
-										const overlaysCount = overlays?.length ?? 0;
-
-										if (plan === "free" && overlaysCount >= 1) {
+										const overlay = await createOverlay(item.id);
+										if (!overlay) {
 											addToast({
-												title: "Upgrade Required",
-												description: (
-													<p>
-														To add an additional overlay, please{" "}
-														<Link color='warning' underline='always' href='/dashboard/settings'>
-															upgrade
-														</Link>{" "}
-														to <strong>Pro</strong>.
-													</p>
-												),
-												color: "warning",
+												title: "Error",
+												description: "Failed to create overlay. The owner may be on the Free plan or you lack permissions.",
+												color: "danger",
 											});
+											if (currentUser?.id === item.id) {
+												onUpgradeOpen();
+											}
 											setIsLoading(false);
 											return;
 										}
-
-										const overlay = await createOverlay(item.id);
 										router.push(`/dashboard/overlay/${overlay.id}`);
 									}}
 								>
@@ -495,10 +541,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 						onPress={async () => {
 							setIsLoading(true);
 
-							const plan = await getUserPlan(userId);
-							const overlaysCount = overlays?.length ?? 0;
-
-							if (plan === "free" && overlaysCount >= 1) {
+							if (currentUser?.plan === "free" && ownerOverlaysCount >= 1) {
 								addToast({
 									title: "Upgrade Required",
 									description: (
@@ -512,11 +555,22 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 									),
 									color: "warning",
 								});
+								onUpgradeOpen();
 								setIsLoading(false);
 								return;
 							}
 
 							createOverlay(userId).then((overlay) => {
+								if (!overlay) {
+									addToast({
+										title: "Error",
+										description: "Failed to create overlay. Please try again.",
+										color: "danger",
+									});
+									onUpgradeOpen();
+									setIsLoading(false);
+									return;
+								}
 								router.push(`/dashboard/overlay/${overlay.id}`);
 							});
 						}}
@@ -526,7 +580,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 				)}
 			</div>
 		);
-	}, [overlays, reloadOverlays, router, userId, isLoading, hasAccess, editorAccessList]);
+	}, [overlays, reloadOverlays, router, userId, isLoading, hasAccess, editorAccessList, currentUser, onUpgradeOpen]);
 
 	const bottomContent = useMemo(() => {
 		return (
@@ -550,6 +604,14 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 	return (
 		<div className='h-full w-full p-6'>
 			{topBar}
+			{currentUser?.plan === "free" && (overlays?.filter((o) => o.ownerId === userId).length ?? 0) >= 1 && (
+				<div className='mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning-200 bg-warning-50 px-4 py-3 text-sm text-warning-800'>
+					<span>You&apos;re on the Free plan and have reached the overlay limit. Upgrade to add more overlays.</span>
+					<Button color='warning' variant='flat' onPress={onUpgradeOpen}>
+						Upgrade to Pro
+					</Button>
+				</div>
+			)}
 			<Table
 				isHeaderSticky
 				aria-label='Example table with custom cells, pagination and sorting'
@@ -594,6 +656,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 					{(item) => <TableRow key={item.id}>{(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}</TableRow>}
 				</TableBody>
 			</Table>
+			{currentUser?.plan === "free" && <UpgradeModal isOpen={isUpgradeOpen} onOpenChange={onUpgradeOpenChange} user={currentUser} title='Upgrade to add more overlays' />}
 		</div>
 	);
 }

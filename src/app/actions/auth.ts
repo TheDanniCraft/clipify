@@ -19,7 +19,10 @@ export async function getCookie(name: string) {
 
 export async function getUserFromCookie(cookie: string) {
 	try {
-		const decodedToken = await jwt.verify(cookie, process.env.JWT_SECRET!);
+		const decodedToken = jwt.verify(cookie, process.env.JWT_SECRET!, {
+			algorithms: ["HS256"],
+			issuer: "clipify",
+		});
 
 		return decodedToken as AuthenticatedUser;
 	} catch {

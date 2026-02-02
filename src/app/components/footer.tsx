@@ -208,7 +208,7 @@ export default function Footer() {
 									</Button>
 								}
 							/>
-							<Turnstile siteKey='0x4AAAAAACMFR636JljxhVLl' onSuccess={setToken} onError={() => console.error("Turnstile error")} onExpire={() => setToken(null)} />
+							<Turnstile siteKey='0x4AAAAAACMFR636JljxhVLl' onSuccess={setToken} onError={(error) => console.error("Turnstile error:", error)} onExpire={() => setToken(null)} />
 						</Form>
 						<Modal isOpen={isOpen} onOpenChange={(open) => setIsOpen(open)}>
 							<ModalContent>

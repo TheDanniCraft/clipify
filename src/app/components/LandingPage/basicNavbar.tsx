@@ -12,6 +12,7 @@ const menuItems = [
 	{ name: "Home", href: "/#" },
 	{ name: "Features", href: "/#features" },
 	{ name: "Pricing", href: "/#pricing" },
+	{ name: "Demo", href: "/#demo" },
 	{ name: "FAQ", href: "/#faq" },
 ];
 

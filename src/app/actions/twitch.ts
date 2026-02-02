@@ -14,6 +14,108 @@ export async function logTwitchError(context: string, error: unknown) {
 	}
 }
 
+type EventSubSubscription = {
+	id: string;
+	type: string;
+	status: string;
+	condition?: Record<string, string>;
+	transport?: {
+		method?: string;
+		callback?: string;
+	};
+};
+
+async function listEventSubSubscriptions(type?: string): Promise<EventSubSubscription[]> {
+	const url = "https://api.twitch.tv/helix/eventsub/subscriptions";
+	const token = await getAppAccessToken();
+
+	if (!token) {
+		console.error("No app access token found");
+		return [];
+	}
+
+	const all: EventSubSubscription[] = [];
+	let cursor: string | undefined;
+
+	do {
+		try {
+			const response = await axios.get<TwitchApiResponse<EventSubSubscription>>(url, {
+				headers: {
+					Authorization: `Bearer ${token.access_token}`,
+					"Client-Id": process.env.TWITCH_CLIENT_ID || "",
+				},
+				params: {
+					first: 100,
+					type,
+					after: cursor,
+				},
+			});
+			all.push(...response.data.data);
+			cursor = response.data.pagination?.cursor;
+		} catch (error) {
+			logTwitchError("Error listing EventSub subscriptions", error);
+			break;
+		}
+	} while (cursor);
+
+	return all;
+}
+
+async function deleteEventSubSubscription(id: string): Promise<boolean> {
+	const url = "https://api.twitch.tv/helix/eventsub/subscriptions";
+	const token = await getAppAccessToken();
+
+	if (!token) {
+		console.error("No app access token found");
+		return false;
+	}
+
+	try {
+		await axios.delete(url, {
+			headers: {
+				Authorization: `Bearer ${token.access_token}`,
+				"Client-Id": process.env.TWITCH_CLIENT_ID || "",
+			},
+			params: {
+				id,
+			},
+		});
+		return true;
+	} catch (error) {
+		logTwitchError("Error deleting EventSub subscription", error);
+		return false;
+	}
+}
+
+async function clearEventSubSubscriptionsByTypeAndCondition({
+	type,
+	conditionMatch,
+}: {
+	type: string;
+	conditionMatch: Record<string, string>;
+}): Promise<number> {
+	const subscriptions = await listEventSubSubscriptions(type);
+
+	const targets = subscriptions.filter((sub) => {
+		if (sub.type !== type) return false;
+		if (!sub.condition) return false;
+		for (const [key, value] of Object.entries(conditionMatch)) {
+			if (sub.condition[key] !== value) return false;
+		}
+		return true;
+	});
+
+	if (targets.length === 0) return 0;
+
+	let deleted = 0;
+	for (const target of targets) {
+		if (await deleteEventSubSubscription(target.id)) {
+			deleted += 1;
+		}
+	}
+	return deleted;
+}
+
 export async function exchangeAccesToken(code: string): Promise<TwitchTokenApiResponse | null> {
 	const url = "https://id.twitch.tv/oauth2/token";
 	const baseUrl = await getBaseUrl();
@@ -296,6 +398,11 @@ export async function getTwitchClips(overlay: Overlay, type?: OverlayType, skipF
 		clips = clips.filter((clip) => {
 			return !isTitleBlocked(clip.title, overlay.blacklistWords);
 		});
+
+		// Filter for minimum views
+		clips = clips.filter((clip) => {
+			return clip.view_count >= overlay.minClipViews;
+		});
 	}
 
 	return clips;
@@ -453,6 +560,49 @@ export async function subscribeToReward(userId: string, rewardId: string): Promi
 			},
 		);
 	} catch (error) {
+		if (axios.isAxiosError(error) && error.response?.status === 429) {
+			const shouldAutoClear = (await isPreview()) || process.env.NODE_ENV !== "production" || process.env.TWITCH_EVENTSUB_AUTO_CLEAR === "1";
+			if (shouldAutoClear) {
+				const deleted = await clearEventSubSubscriptionsByTypeAndCondition({
+					type: "channel.channel_points_custom_reward_redemption.add",
+					conditionMatch: {
+						broadcaster_user_id: userId,
+						reward_id: rewardId,
+					},
+				});
+
+				if (deleted > 0) {
+					try {
+						await axios.post(
+							url,
+							{
+								type: "channel.channel_points_custom_reward_redemption.add",
+								version: "1",
+								condition: {
+									broadcaster_user_id: userId,
+									reward_id: rewardId,
+								},
+								transport: {
+									method: "webhook",
+									callback: eventsubCallback,
+									secret: process.env.WEBHOOK_SECRET,
+								},
+							},
+							{
+								headers: {
+									Authorization: `Bearer ${token.access_token}`,
+									"Client-Id": process.env.TWITCH_CLIENT_ID || "",
+								},
+							},
+						);
+						return;
+					} catch (retryError) {
+						logTwitchError("Error subscribing to reward after clearing EventSub", retryError);
+						return;
+					}
+				}
+			}
+		}
 		if (axios.isAxiosError(error) && error.response?.status === 409) {
 			return;
 		}
@@ -532,6 +682,49 @@ export async function subscribeToChat(userId: string) {
 			},
 		);
 	} catch (error) {
+		if (axios.isAxiosError(error) && error.response?.status === 429) {
+			const shouldAutoClear = (await isPreview()) || process.env.NODE_ENV !== "production" || process.env.TWITCH_EVENTSUB_AUTO_CLEAR === "1";
+			if (shouldAutoClear) {
+				const deleted = await clearEventSubSubscriptionsByTypeAndCondition({
+					type: "channel.chat.message",
+					conditionMatch: {
+						broadcaster_user_id: userId,
+						user_id: process.env.TWITCH_USER_ID || "",
+					},
+				});
+
+				if (deleted > 0) {
+					try {
+						await axios.post(
+							url,
+							{
+								type: "channel.chat.message",
+								version: "1",
+								condition: {
+									broadcaster_user_id: userId,
+									user_id: process.env.TWITCH_USER_ID || "",
+								},
+								transport: {
+									method: "webhook",
+									callback: eventsubCallback,
+									secret: process.env.WEBHOOK_SECRET,
+								},
+							},
+							{
+								headers: {
+									Authorization: `Bearer ${token.access_token}`,
+									"Client-Id": process.env.TWITCH_CLIENT_ID || "",
+								},
+							},
+						);
+						return;
+					} catch (retryError) {
+						logTwitchError("Error subscribing to chat after clearing EventSub", retryError);
+						return;
+					}
+				}
+			}
+		}
 		if (axios.isAxiosError(error) && error.response?.status === 409) {
 			return;
 		}

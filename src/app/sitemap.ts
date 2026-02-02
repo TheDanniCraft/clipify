@@ -19,12 +19,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
 		},
 
 		{
-			url: `${baseUrl}login`,
-			lastModified: new Date(),
-			changeFrequency: "yearly",
-			priority: 0.7,
-		},
-		{
 			url: `${baseUrl}roadmap`,
 			lastModified: new Date(),
 			changeFrequency: "monthly",
@@ -35,18 +29,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
 			lastModified: new Date(),
 			changeFrequency: "monthly",
 			priority: 0.7,
-		},
-		{
-			url: `${baseUrl}llms.txt`,
-			lastModified: new Date(),
-			changeFrequency: "monthly",
-			priority: 0.7,
-		},
-		{
-			url: "https://help.clipify.us/",
-			lastModified: new Date(),
-			changeFrequency: "weekly",
-			priority: 0.5,
 		},
 	];
 }

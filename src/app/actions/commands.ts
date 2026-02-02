@@ -3,7 +3,7 @@
 import { TwitchBadge, TwitchMessage } from "@types";
 import { sendMessage } from "@actions/websocket";
 import { getTwitchClip, handleClip, sendChatMessage } from "@actions/twitch";
-import { addToModQueue, clearClipQueue, clearModQueue, getAllOverlayIds, getClipQueue, getModQueue, getSettings, getUserPlan } from "@actions/database";
+import { addToModQueue, clearClipQueueByOverlayIdServer, clearModQueueByBroadcasterId, getAllOverlayIdsByOwnerServer, getClipQueueByOverlayId, getModQueue, getSettings, getUserPlanByIdServer } from "@actions/database";
 
 async function getPrefix(userId: string): Promise<string | null> {
 	const settings = await getSettings(userId);
@@ -33,7 +33,7 @@ export async function handleCommand(message: TwitchMessage): Promise<void> {
 	if (!prefix) return;
 
 	// ignore commands for free plan users
-	const userPlan = await getUserPlan(message.broadcaster_user_id);
+	const userPlan = await getUserPlanByIdServer(message.broadcaster_user_id);
 	if (!userPlan) return;
 	if (userPlan === "free") return;
 
@@ -166,11 +166,11 @@ const commands: Record<string, { description: string; usage: string; execute: (m
 				const modQue = await getModQueue(message.broadcaster_user_id);
 				const rewardQue = [];
 
-				const overlayIds = await getAllOverlayIds(message.broadcaster_user_id);
+				const overlayIds = await getAllOverlayIdsByOwnerServer(message.broadcaster_user_id);
 
 				if (overlayIds) {
 					for (const overlayId of overlayIds) {
-						rewardQue.push(...(await getClipQueue(overlayId)));
+						rewardQue.push(...(await getClipQueueByOverlayId(overlayId)));
 					}
 				}
 
@@ -216,8 +216,11 @@ const commands: Record<string, { description: string; usage: string; execute: (m
 			const args = text.split(/\s+/).filter(Boolean).slice(1);
 
 			if (args.length === 0) {
-				await clearClipQueue(message.broadcaster_user_id);
-				await clearModQueue(message.broadcaster_user_id);
+				const overlayIds = await getAllOverlayIdsByOwnerServer(message.broadcaster_user_id);
+				if (overlayIds && overlayIds.length > 0) {
+					await Promise.all(overlayIds.map((overlayId) => clearClipQueueByOverlayIdServer(overlayId)));
+				}
+				await clearModQueueByBroadcasterId(message.broadcaster_user_id);
 
 				await sendChatMessage(message.broadcaster_user_id, `@${message.chatter_user_name} the queue has been cleared!`);
 				return;
@@ -225,12 +228,15 @@ const commands: Record<string, { description: string; usage: string; execute: (m
 
 			switch (args[0].toLowerCase()) {
 				case "mod": {
-					await clearModQueue(message.broadcaster_user_id);
+					await clearModQueueByBroadcasterId(message.broadcaster_user_id);
 					await sendChatMessage(message.broadcaster_user_id, `@${message.chatter_user_name} the mod queue has been cleared!`);
 					return;
 				}
 				case "reward": {
-					await clearClipQueue(message.broadcaster_user_id);
+					const overlayIds = await getAllOverlayIdsByOwnerServer(message.broadcaster_user_id);
+					if (overlayIds && overlayIds.length > 0) {
+						await Promise.all(overlayIds.map((overlayId) => clearClipQueueByOverlayIdServer(overlayId)));
+					}
 					await sendChatMessage(message.broadcaster_user_id, `@${message.chatter_user_name} the reward queue has been cleared!`);
 					return;
 				}
