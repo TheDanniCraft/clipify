@@ -48,10 +48,13 @@ export default function EmbedTool() {
 			if (token) {
 				const avatars = await getUsersDetailsBulk({ userIds: uniqueOverlays.map((o) => o.ownerId), accessToken: token?.accessToken });
 				setAvatars(
-					avatars.reduce((acc, curr) => {
-						acc[curr.id] = curr.profile_image_url;
-						return acc;
-					}, {} as Record<string, string>)
+					avatars.reduce(
+						(acc, curr) => {
+							acc[curr.id] = curr.profile_image_url;
+							return acc;
+						},
+						{} as Record<string, string>,
+					),
 				);
 			}
 
@@ -108,13 +111,8 @@ export default function EmbedTool() {
 					<Card>
 						<CardHeader>
 							<div className='flex items-center gap-2'>
-								<Button isIconOnly variant='light' onPress={() => router.push("/dashboard")} aria-label='Back to Dashboard'>
-									<IconArrowLeft className='h-5 w-5 text-primary' />
-								</Button>
-								<h2 className='text-2xl font-bold flex items-center gap-2'>
-									<IconSparkles className='h-5 w-5 text-primary' />
-									Select Overlay
-								</h2>
+								<Button isIconOnly variant='light' startContent={<IconArrowLeft />} onPress={() => router.push("/dashboard")} aria-label='Back to Dashboard' />
+								<h2 className='text-2xl font-bold flex items-center gap-2'>Select Overlay</h2>
 							</div>
 						</CardHeader>
 						<CardBody className='flex flex-col gap-4'>
