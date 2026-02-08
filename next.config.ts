@@ -29,16 +29,16 @@ const nextConfigPromise = Promise.resolve(drizzle).then(
 
 				return [
 					{
-						source: "/:path*",
-						headers: [...baseSecurityHeaders, { key: "X-Frame-Options", value: "DENY" }, { key: "Content-Security-Policy", value: "frame-ancestors 'none';" }],
-					},
-					{
 						source: "/demoPlayer",
 						headers: [...baseSecurityHeaders, { key: "X-Frame-Options", value: "SAMEORIGIN" }, { key: "Content-Security-Policy", value: "frame-ancestors 'self';" }],
 					},
 					{
 						source: "/embed/:overlayId",
 						headers: [...baseSecurityHeaders, { key: "Content-Security-Policy", value: "frame-ancestors *;" }],
+					},
+					{
+						source: "/:path((?!demoPlayer$|embed/[^/]+/?$).*)",
+						headers: [...baseSecurityHeaders, { key: "X-Frame-Options", value: "DENY" }, { key: "Content-Security-Policy", value: "frame-ancestors 'none';" }],
 					},
 				];
 			},
