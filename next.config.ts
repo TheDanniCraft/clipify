@@ -13,6 +13,7 @@ const nextConfigPromise = Promise.resolve(drizzle).then(
 			outputFileTracingIncludes: {
 				"**": [...drizzle],
 			},
+			poweredByHeader: false,
 			async headers() {
 				const baseSecurityHeaders = [
 					{ key: "X-Content-Type-Options", value: "nosniff" },
