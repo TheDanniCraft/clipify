@@ -1,4 +1,4 @@
-import { varchar, pgTable, primaryKey, check, timestamp, uuid, integer } from "drizzle-orm/pg-core";
+import { varchar, pgTable, primaryKey, check, timestamp, uuid, integer, text } from "drizzle-orm/pg-core";
 import type { Role, Plan, StatusOptions, OverlayType } from "@types";
 import { sql } from "drizzle-orm";
 
@@ -32,10 +32,10 @@ export const tokenTable = pgTable("tokens", {
 		.notNull()
 		.references(() => usersTable.id, { onDelete: "cascade" })
 		.primaryKey(),
-	accessToken: varchar("access_token").notNull(),
-	refreshToken: varchar("refresh_token").notNull(),
+	accessToken: text("access_token").notNull(),
+	refreshToken: text("refresh_token").notNull(),
 	expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
-	scope: varchar("scope").array().notNull(),
+	scope: text("scope").array().notNull(),
 	tokenType: varchar("token_type").notNull(),
 });
 

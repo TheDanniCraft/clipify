@@ -1,57 +1,33 @@
 {
-  "compilerOptions": {
-    "target": "ES2024",
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext"
-    ],
-    "allowJs": true,
-    "skipLibCheck": true,
-    "strict": true,
-    "noEmit": true,
-    "esModuleInterop": true,
-    "module": "esnext",
-    "moduleResolution": "bundler",
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "jsx": "react-jsx",
-    "incremental": true,
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ],
-    "paths": {
-      "@/*": [
-        "./src/*"
-      ],
-      "@components/*": [
-        "./src/app/components/*"
-      ],
-      "@css/*": [
-        "./src/app/css/*"
-      ],
-      "@actions/*": [
-        "./src/app/actions/*"
-      ],
-      "@store/*": [
-        "./src/app/store/*"
-      ],
-      "@types": [
-        "./src/app/lib/types.ts"
-      ]
-    }
-  },
-  "include": [
-    "next-env.d.ts",
-    "**/*.ts",
-    "**/*.tsx",
-    ".next/types/**/*.ts",
-    "src/middleware.js",
-    ".next/dev/types/**/*.ts"
-  ],
-  "exclude": [
-    "node_modules"
-  ]
+	"compilerOptions": {
+		"target": "ES2024",
+		"lib": ["dom", "dom.iterable", "esnext"],
+		"allowJs": true,
+		"skipLibCheck": true,
+		"strict": true,
+		"noEmit": true,
+		"esModuleInterop": true,
+		"module": "esnext",
+		"moduleResolution": "bundler",
+		"resolveJsonModule": true,
+		"isolatedModules": true,
+		"jsx": "react-jsx",
+		"incremental": true,
+		"plugins": [
+			{
+				"name": "next"
+			}
+		],
+		"paths": {
+			"@/*": ["./src/*"],
+			"@components/*": ["./src/app/components/*"],
+			"@css/*": ["./src/app/css/*"],
+			"@actions/*": ["./src/app/actions/*"],
+			"@store/*": ["./src/app/store/*"],
+			"@lib/*": ["./src/app/lib/*"],
+			"@types": ["./src/app/lib/types.ts"]
+		}
+	},
+	"include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "src/middleware.js", ".next/dev/types/**/*.ts"],
+	"exclude": ["node_modules"]
 }

@@ -5,7 +5,7 @@ import { ClipQueueItem, ModQueueItem, Overlay, TwitchClip, TwitchClipGqlData, Tw
 import { getAvatar, getDemoClip, getGameDetails, getTwitchClip, subscribeToChat } from "@actions/twitch";
 import PlayerOverlay from "@components/playerOverlay";
 import { Avatar, Button, Link } from "@heroui/react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import axios from "axios";
 import { getFirstFromClipQueue, getFirstFromModQueue, removeFromClipQueue, removeFromModQueue } from "@actions/database";
 import Logo from "@components/logo";
@@ -141,8 +141,17 @@ export default function OverlayPlayer({
 	embedAutoplay?: boolean;
 	overlaySecret?: string;
 }) {
+	const CROSSFADE_SECONDS = 0.7;
+	const CROSSFADE_MS = Math.round(CROSSFADE_SECONDS * 1000);
+	const SHOW_FADE_SECONDS = 0.6;
+
 	const [videoClip, setVideoClip] = useState<VideoClip | null>(null);
 	const [nextClip, setNextClip] = useState<VideoClip | null>(null);
+	const [incomingClip, setIncomingClip] = useState<VideoClip | null>(null);
+	const [isCrossfading, setIsCrossfading] = useState<boolean>(false);
+	const [activeSlot, setActiveSlot] = useState<"a" | "b">("a");
+	const [clipA, setClipA] = useState<VideoClip | null>(null);
+	const [clipB, setClipB] = useState<VideoClip | null>(null);
 
 	const [playedClips, setPlayedClips] = useState<string[]>([]);
 	const playedClipsRef = useRef<string[]>([]);
@@ -163,7 +172,8 @@ export default function OverlayPlayer({
 	const [hasUserStarted, setHasUserStarted] = useState<boolean>(!embedBehaviorEnabled || !!embedAutoplay);
 	const [, setWebsocket] = useState<WebSocket | null>(null);
 
-	const playerRef = useRef<HTMLVideoElement | null>(null);
+	const videoARef = useRef<HTMLVideoElement | null>(null);
+	const videoBRef = useRef<HTMLVideoElement | null>(null);
 	const clipRef = useRef<VideoClip | null>(null);
 
 	// Demo queue support
@@ -175,6 +185,7 @@ export default function OverlayPlayer({
 
 	// Prevent overlapping prefetches / stale updates
 	const prefetchAbortRef = useRef<AbortController | null>(null);
+	const crossfadeLockRef = useRef(false);
 
 	const getFirstFromDemoQueue = useCallback(async () => {
 		// NOTE: we read state via closure here; that’s fine, demo mode is explicit
@@ -284,10 +295,29 @@ export default function OverlayPlayer({
 		advanceLockRef.current = true;
 
 		try {
+			crossfadeLockRef.current = false;
+			setIncomingClip(null);
+			setIsCrossfading(false);
+
 			const prefetched = nextClipRef.current;
 			if (prefetched) {
 				nextClipRef.current = null;
 				setNextClip(null);
+				if (activeSlot === "a") {
+					setClipA(prefetched);
+					setClipB(null);
+					if (videoBRef.current) {
+						videoBRef.current.pause();
+						videoBRef.current.currentTime = 0;
+					}
+				} else {
+					setClipB(prefetched);
+					setClipA(null);
+					if (videoARef.current) {
+						videoARef.current.pause();
+						videoARef.current.currentTime = 0;
+					}
+				}
 				setVideoClip(prefetched);
 				return;
 			}
@@ -304,11 +334,28 @@ export default function OverlayPlayer({
 			// ignore stale result if something newer already advanced
 			if (myReqId !== requestIdRef.current) return;
 
-			if (built) setVideoClip(built);
+			if (built) {
+				if (activeSlot === "a") {
+					setClipA(built);
+					setClipB(null);
+					if (videoBRef.current) {
+						videoBRef.current.pause();
+						videoBRef.current.currentTime = 0;
+					}
+				} else {
+					setClipB(built);
+					setClipA(null);
+					if (videoARef.current) {
+						videoARef.current.pause();
+						videoARef.current.currentTime = 0;
+					}
+				}
+				setVideoClip(built);
+			}
 		} finally {
 			advanceLockRef.current = false;
 		}
-	}, [getRandomClip, isDemoPlayer]);
+	}, [activeSlot, getRandomClip, isDemoPlayer]);
 
 	const resetPrefetch = useCallback(() => {
 		prefetchAbortRef.current?.abort();
@@ -349,13 +396,13 @@ export default function OverlayPlayer({
 
 			case "hide": {
 				setShowPlayer(false);
-				playerRef.current?.pause();
+				(activeSlot === "a" ? videoARef.current : videoBRef.current)?.pause();
 				break;
 			}
 
 			case "show": {
 				setShowPlayer(true);
-				playerRef.current?.play().catch((error) => console.error("Error playing the video:", error));
+				(activeSlot === "a" ? videoARef.current : videoBRef.current)?.play().catch((error) => console.error("Error playing the video:", error));
 				break;
 			}
 		}
@@ -366,16 +413,22 @@ export default function OverlayPlayer({
 	}, [videoClip]);
 
 	useEffect(() => {
-		if (playerRef.current) {
-			if (paused) playerRef.current.pause();
-			else playerRef.current.play().catch((error) => console.error("Error playing the video:", error));
+		const activeVideo = activeSlot === "a" ? videoARef.current : videoBRef.current;
+		if (!activeVideo) return;
+		if (!showPlayer) {
+			activeVideo.pause();
+			return;
 		}
-	}, [paused]);
+		if (paused) activeVideo.pause();
+		else activeVideo.play().catch((error) => console.error("Error playing the video:", error));
+	}, [activeSlot, paused, showPlayer]);
 
 	useEffect(() => {
-		if (!playerRef.current) return;
+		const activeVideo = activeSlot === "a" ? videoARef.current : videoBRef.current;
+		if (!activeVideo) return;
+		if (!showPlayer) return;
 		if (paused) return;
-		playerRef.current.play().catch((error) => {
+		activeVideo.play().catch((error) => {
 			console.error("Error playing the video:", error);
 			// If autoplay is blocked, fall back to click-to-play in embed mode.
 			if (embedBehaviorEnabled) {
@@ -383,12 +436,12 @@ export default function OverlayPlayer({
 				setPaused(true);
 			}
 		});
-	}, [paused, videoClip?.id]);
+	}, [activeSlot, embedBehaviorEnabled, paused, showPlayer, videoClip?.id]);
 
 	useEffect(() => {
-		if (playerRef.current) {
-			playerRef.current.muted = !!isDemoPlayer || (embedBehaviorEnabled ? isMuted : false);
-		}
+		const mutedValue = !!isDemoPlayer || (embedBehaviorEnabled ? isMuted : false);
+		if (videoARef.current) videoARef.current.muted = mutedValue;
+		if (videoBRef.current) videoBRef.current.muted = mutedValue;
 	}, [embedBehaviorEnabled, isDemoPlayer, isMuted, videoClip?.id]);
 
 	/**
@@ -495,9 +548,26 @@ export default function OverlayPlayer({
 			const built = await buildVideoClip(candidate, !!isDemoPlayer);
 			if (myReqId !== requestIdRef.current) return;
 
-			if (built) setVideoClip(built);
+			if (built) {
+				if (activeSlot === "a") {
+					setClipA(built);
+					setClipB(null);
+					if (videoBRef.current) {
+						videoBRef.current.pause();
+						videoBRef.current.currentTime = 0;
+					}
+				} else {
+					setClipB(built);
+					setClipA(null);
+					if (videoARef.current) {
+						videoARef.current.pause();
+						videoARef.current.currentTime = 0;
+					}
+				}
+				setVideoClip(built);
+			}
 		})();
-	}, [getRandomClip, isDemoPlayer]);
+	}, [activeSlot, getRandomClip, isDemoPlayer]);
 
 	/**
 	 * Prefetch next clip while current plays.
@@ -531,6 +601,62 @@ export default function OverlayPlayer({
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [videoClip?.id, getRandomClip, isDemoPlayer]);
 
+	const startCrossfade = useCallback(() => {
+		if (crossfadeLockRef.current || isCrossfading) return;
+		const prefetched = nextClipRef.current;
+		if (!prefetched) return;
+
+		crossfadeLockRef.current = true;
+		setIsCrossfading(true);
+		nextClipRef.current = null;
+		setNextClip(null);
+		setIncomingClip(prefetched);
+		if (activeSlot === "a") setClipB(prefetched);
+		else setClipA(prefetched);
+
+		if (clipRef.current) {
+			playedClipsRef.current = [...playedClipsRef.current, clipRef.current.id];
+			setPlayedClips(playedClipsRef.current);
+		}
+	}, [activeSlot, isCrossfading]);
+
+	useEffect(() => {
+		if (!nextClipRef.current || isCrossfading || !showPlayer) return;
+		const activeVideo = activeSlot === "a" ? videoARef.current : videoBRef.current;
+		if (!activeVideo) return;
+		const duration = activeVideo.duration;
+		if (!Number.isFinite(duration) || duration <= 0) return;
+		const remaining = duration - activeVideo.currentTime;
+		if (remaining <= CROSSFADE_SECONDS) startCrossfade();
+	}, [activeSlot, isCrossfading, showPlayer, nextClip, startCrossfade]);
+
+	useEffect(() => {
+		if (!incomingClip || !isCrossfading) return;
+
+		const inactiveSlot = activeSlot === "a" ? "b" : "a";
+		const inactiveVideo = inactiveSlot === "a" ? videoARef.current : videoBRef.current;
+		const activeVideo = activeSlot === "a" ? videoARef.current : videoBRef.current;
+
+		if (inactiveVideo && showPlayer) {
+			inactiveVideo.currentTime = 0;
+			inactiveVideo.play().catch((error) => console.error("Error playing the video:", error));
+		}
+
+		const timeout = setTimeout(() => {
+			setActiveSlot(inactiveSlot);
+			setVideoClip(incomingClip);
+			setIncomingClip(null);
+			setIsCrossfading(false);
+			crossfadeLockRef.current = false;
+			if (activeVideo) {
+				activeVideo.pause();
+				activeVideo.currentTime = 0;
+			}
+		}, CROSSFADE_MS);
+
+		return () => clearTimeout(timeout);
+	}, [CROSSFADE_MS, activeSlot, incomingClip, isCrossfading, showPlayer]);
+
 	if (!videoClip) return null;
 
 	if (isEmbed || isDemoPlayer || !isInIframe()) {
@@ -539,7 +665,7 @@ export default function OverlayPlayer({
 		const showClickToPlay = embedBehaviorEnabled && paused;
 		return (
 			<div
-				className='relative inline-block group'
+				className='relative w-screen h-screen group'
 				role={showClickToPlay ? "button" : undefined}
 				tabIndex={showClickToPlay ? 0 : -1}
 				aria-label={showClickToPlay ? "Play clips" : undefined}
@@ -558,23 +684,43 @@ export default function OverlayPlayer({
 					}
 				}}
 			>
-				<AnimatePresence mode='wait'>
-					{videoClip.mediaUrl && (
+				{(clipA?.mediaUrl || clipB?.mediaUrl) && (
+					<>
 						<motion.video
-							key={videoClip.id}
+							key='slot-a'
 							autoPlay={allowAutoplay}
-							src={videoClip.mediaUrl}
-							initial={{ opacity: 0.1 }}
-							animate={{ opacity: 1 }}
-							hidden={!showPlayer}
-							exit={{ opacity: 0.1 }}
-							transition={{ duration: 0.5 }}
-							ref={playerRef}
-							onEnded={() => {
+							src={clipA?.mediaUrl}
+							initial={{ opacity: 0 }}
+							animate={{
+								opacity: showPlayer
+									? activeSlot === "a"
+										? isCrossfading
+											? 0
+											: 1
+										: isCrossfading
+											? 1
+											: 0
+									: 0,
+							}}
+							transition={{ duration: isCrossfading ? CROSSFADE_SECONDS : SHOW_FADE_SECONDS, ease: "easeInOut" }}
+							ref={videoARef}
+							onTimeUpdate={(event) => {
+								if (event.currentTarget !== videoARef.current) return;
+								if (activeSlot !== "a") return;
+								if (isCrossfading || !nextClipRef.current) return;
+								const duration = event.currentTarget.duration;
+								if (!Number.isFinite(duration) || duration <= 0) return;
+								const remaining = duration - event.currentTarget.currentTime;
+								if (remaining <= CROSSFADE_SECONDS) startCrossfade();
+							}}
+							onEnded={(event) => {
+								if (event.currentTarget !== videoARef.current) return;
+								if (activeSlot !== "a") return;
+								if (isCrossfading) return;
 								setShowOverlay(false);
 
 								// sync update so next pick can't choose the same clip
-								playedClipsRef.current = [...playedClipsRef.current, videoClip.id];
+								if (clipA) playedClipsRef.current = [...playedClipsRef.current, clipA.id];
 								setPlayedClips(playedClipsRef.current);
 
 								advanceClip();
@@ -584,14 +730,68 @@ export default function OverlayPlayer({
 								width: "100vw",
 								height: "100vh",
 								aspectRatio: "19 / 9",
+								pointerEvents: showPlayer ? "auto" : "none",
 							}}
-							className='block'
+							className='block absolute inset-0'
 							muted={effectiveMuted}
 						>
 							Your browser does not support the video tag.
 						</motion.video>
-					)}
-				</AnimatePresence>
+
+						{clipB?.mediaUrl && (
+							<motion.video
+								key='slot-b'
+								autoPlay={allowAutoplay}
+								src={clipB.mediaUrl}
+								initial={{ opacity: 0 }}
+								animate={{
+									opacity: showPlayer
+										? activeSlot === "b"
+											? isCrossfading
+												? 0
+												: 1
+											: isCrossfading
+												? 1
+												: 0
+										: 0,
+								}}
+								transition={{ duration: isCrossfading ? CROSSFADE_SECONDS : SHOW_FADE_SECONDS, ease: "easeInOut" }}
+								ref={videoBRef}
+								onTimeUpdate={(event) => {
+									if (event.currentTarget !== videoBRef.current) return;
+									if (activeSlot !== "b") return;
+									if (isCrossfading || !nextClipRef.current) return;
+									const duration = event.currentTarget.duration;
+									if (!Number.isFinite(duration) || duration <= 0) return;
+									const remaining = duration - event.currentTarget.currentTime;
+									if (remaining <= CROSSFADE_SECONDS) startCrossfade();
+								}}
+								onEnded={(event) => {
+									if (event.currentTarget !== videoBRef.current) return;
+									if (activeSlot !== "b") return;
+									if (isCrossfading) return;
+									setShowOverlay(false);
+
+									if (clipB) playedClipsRef.current = [...playedClipsRef.current, clipB.id];
+									setPlayedClips(playedClipsRef.current);
+
+									advanceClip();
+								}}
+								onPlay={() => setShowOverlay(true)}
+								style={{
+									width: "100vw",
+									height: "100vh",
+									aspectRatio: "19 / 9",
+									pointerEvents: showPlayer ? "auto" : "none",
+								}}
+								className='block absolute inset-0'
+								muted={effectiveMuted}
+							>
+								Your browser does not support the video tag.
+							</motion.video>
+						)}
+					</>
+				)}
 
 				{embedBehaviorEnabled && (
 					<>

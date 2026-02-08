@@ -6,6 +6,7 @@ import { AuthenticatedUser, Overlay, TwitchUserResponse, TwitchTokenApiResponse,
 import { getUserDetails, getUsersDetailsBulk, refreshAccessToken, subscribeToReward } from "@actions/twitch";
 import { eq, inArray, and, or, isNull, lt, sql } from "drizzle-orm";
 import { validateAuth } from "@actions/auth";
+import { encryptToken, decryptToken } from "@lib/tokenCrypto";
 
 const db = drizzle(process.env.DATABASE_URL!);
 
@@ -223,12 +224,14 @@ export async function setAccessToken(token: TwitchTokenApiResponse): Promise<Aut
 
 		const expiresAt = new Date(Date.now() + token.expires_in * 1000);
 
+		const aad = `twitchUser:${user.id}:oauth`;
+
 		await db
 			.insert(tokenTable)
 			.values({
 				id: user.id,
-				accessToken: token.access_token,
-				refreshToken: token.refresh_token,
+				accessToken: encryptToken(token.access_token, aad),
+				refreshToken: encryptToken(token.refresh_token, aad),
 				expiresAt: expiresAt,
 				scope: token.scope,
 				tokenType: token.token_type,
@@ -236,8 +239,8 @@ export async function setAccessToken(token: TwitchTokenApiResponse): Promise<Aut
 			.onConflictDoUpdate({
 				target: tokenTable.id,
 				set: {
-					accessToken: token.access_token,
-					refreshToken: token.refresh_token,
+					accessToken: encryptToken(token.access_token, aad),
+					refreshToken: encryptToken(token.refresh_token, aad),
 					expiresAt: expiresAt,
 					scope: token.scope,
 					tokenType: token.token_type,
@@ -253,17 +256,31 @@ export async function setAccessToken(token: TwitchTokenApiResponse): Promise<Aut
 
 export async function getAccessToken(userId: string): Promise<UserToken | null> {
 	try {
-		const token = await db.select().from(tokenTable).where(eq(tokenTable.id, userId)).limit(1).execute();
+		const rows = await db.select().from(tokenTable).where(eq(tokenTable.id, userId)).limit(1).execute();
 
-		if (token.length === 0) {
+		if (rows.length === 0) return null;
+
+		const row = rows[0];
+
+		const aad = `twitchUser:${userId}:oauth`;
+
+		let accessToken: string;
+		let refreshToken: string;
+
+		try {
+			accessToken = decryptToken(row.accessToken, aad);
+			refreshToken = decryptToken(row.refreshToken, aad);
+		} catch {
+			// key mismatch or tampered data => require re-login
+			console.error("Token decrypt failed for user:", userId);
 			return null;
 		}
 
 		const currentTime = new Date();
-		const expiresAt = token[0].expiresAt;
+		const expiresAt = row.expiresAt;
 
 		if (currentTime > expiresAt) {
-			const newToken = await refreshAccessToken(token[0].refreshToken);
+			const newToken = await refreshAccessToken(refreshToken);
 
 			if (!newToken) {
 				return null;
@@ -282,11 +299,11 @@ export async function getAccessToken(userId: string): Promise<UserToken | null> 
 
 		return {
 			id: userId,
-			accessToken: token[0].accessToken,
-			refreshToken: token[0].refreshToken,
+			accessToken: accessToken,
+			refreshToken: refreshToken,
 			expiresAt: expiresAt,
-			scope: token[0].scope,
-			tokenType: token[0].tokenType,
+			scope: row.scope,
+			tokenType: row.tokenType,
 		};
 	} catch (error) {
 		console.error("Error fetching access token:", error);
@@ -422,11 +439,7 @@ export async function getOverlayOwnerPlans(overlayIds: string[]): Promise<Record
 		}
 
 		const ownerIds = Array.from(new Set(overlays.map((overlay) => overlay.ownerId)));
-		const owners = await db
-			.select({ id: usersTable.id, plan: usersTable.plan })
-			.from(usersTable)
-			.where(inArray(usersTable.id, ownerIds))
-			.execute();
+		const owners = await db.select({ id: usersTable.id, plan: usersTable.plan }).from(usersTable).where(inArray(usersTable.id, ownerIds)).execute();
 
 		const planByOwnerId = new Map(owners.map((owner) => [owner.id, owner.plan]));
 		const result: Record<string, Plan> = {};
@@ -862,8 +875,11 @@ export async function saveSettings(settings: UserSettings) {
 	const prefix = settings.prefix;
 	const editors = settings.editors ?? [];
 
+	const accessToken = await getAccessToken(userId);
+	if (!accessToken) throw new Error("Could not retrieve access token.");
+
 	// Fetch the user's username (login) to filter out self from editors
-	const userDetails = await getUserDetails(userId);
+	const userDetails = await getUserDetails(accessToken.accessToken);
 	const userLogin = userDetails?.login;
 	// Clean + dedupe editor names (and never include self)
 	const editorNames = Array.from(new Set(editors.filter((name) => name && name !== userLogin)));
@@ -872,9 +888,6 @@ export async function saveSettings(settings: UserSettings) {
 	let rows: Array<{ userId: string; editorId: string }> = [];
 
 	if (editorNames.length > 0) {
-		const accessToken = await getAccessToken(userId);
-		if (!accessToken) throw new Error("Could not retrieve access token. Settings were not saved.");
-
 		const users = await getUsersDetailsBulk({
 			userNames: editorNames,
 			accessToken: accessToken.accessToken,

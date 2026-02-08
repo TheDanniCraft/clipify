@@ -13,6 +13,36 @@ const nextConfigPromise = Promise.resolve(drizzle).then(
 			outputFileTracingIncludes: {
 				"**": [...drizzle],
 			},
+			poweredByHeader: false,
+			async headers() {
+				const baseSecurityHeaders = [
+					{ key: "X-Content-Type-Options", value: "nosniff" },
+					{ key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+					{
+						key: "Permissions-Policy",
+						value: ["camera=()", "microphone=()", "geolocation=()", "payment=()", "usb=()", "interest-cohort=()"].join(", "),
+					},
+					{
+						key: "Strict-Transport-Security",
+						value: "max-age=31536000; includeSubDomains",
+					},
+				];
+
+				return [
+					{
+						source: "/demoPlayer",
+						headers: [...baseSecurityHeaders, { key: "X-Frame-Options", value: "SAMEORIGIN" }, { key: "Content-Security-Policy", value: "frame-ancestors 'self';" }],
+					},
+					{
+						source: "/embed/:overlayId",
+						headers: [...baseSecurityHeaders, { key: "Content-Security-Policy", value: "frame-ancestors *;" }],
+					},
+					{
+						source: "/:path((?!demoPlayer$|embed/[^/]+/?$).*)",
+						headers: [...baseSecurityHeaders, { key: "X-Frame-Options", value: "DENY" }, { key: "Content-Security-Policy", value: "frame-ancestors 'none';" }],
+					},
+				];
+			},
 		}) as NextConfig,
 );
 
