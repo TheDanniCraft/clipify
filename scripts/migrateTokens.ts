@@ -1,5 +1,5 @@
 import { Client } from "pg";
-import { encryptToken } from "@lib/tokenCrypto";
+import { encryptToken } from "../src/app/lib/tokenCrypto";
 
 // Heuristic: your encrypted format is "v1.<iv>.<tag>.<ct>"
 const ENCRYPTED_TOKEN_REGEX = /^v1\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
@@ -43,6 +43,8 @@ async function main() {
 
 			if (rows.length === 0) break;
 
+			const updates: Array<{ id: string; accessEnc: string; refreshEnc: string }> = [];
+
 			for (const r of rows) {
 				// Skip rows already encrypted
 				if (looksEncrypted(r.access_token) && looksEncrypted(r.refresh_token)) {
@@ -55,14 +57,32 @@ async function main() {
 				const accessEnc = looksEncrypted(r.access_token) ? r.access_token : encryptToken(r.access_token, aad);
 				const refreshEnc = looksEncrypted(r.refresh_token) ? r.refresh_token : encryptToken(r.refresh_token, aad);
 
-				await client.query(
-					`UPDATE tokens
-         SET access_token = $1, refresh_token = $2
-         WHERE id = $3`,
-					[accessEnc, refreshEnc, r.id],
-				);
+				updates.push({ id: r.id, accessEnc, refreshEnc });
+			}
 
-				updated++;
+			if (updates.length > 0) {
+				await client.query("BEGIN");
+				try {
+					const values = updates
+						.map((_, i) => `($${i * 3 + 1}, $${i * 3 + 2}, $${i * 3 + 3})`)
+						.join(", ");
+					const params = updates.flatMap((u) => [u.accessEnc, u.refreshEnc, u.id]);
+
+					await client.query(
+						`UPDATE tokens AS t
+         SET access_token = v.access_token,
+             refresh_token = v.refresh_token
+         FROM (VALUES ${values}) AS v(access_token, refresh_token, id)
+         WHERE t.id = v.id`,
+						params,
+					);
+
+					await client.query("COMMIT");
+					updated += updates.length;
+				} catch (e) {
+					await client.query("ROLLBACK");
+					throw e;
+				}
 			}
 
 			lastId = rows[rows.length - 1]!.id;

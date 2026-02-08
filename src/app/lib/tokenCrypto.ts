@@ -2,7 +2,11 @@ import crypto from "node:crypto";
 
 const ENC_VERSION = "v1";
 
+let cachedKey: Buffer | null = null;
+
 function getKey(): Buffer {
+	if (cachedKey) return cachedKey;
+
 	const b64 = process.env.DB_SECRET_KEY;
 	if (!b64) throw new Error("Missing DB_SECRET_KEY");
 
@@ -10,6 +14,7 @@ function getKey(): Buffer {
 	if (key.length !== 32) {
 		throw new Error("DB_SECRET_KEY must be base64 for exactly 32 bytes (AES-256 key)");
 	}
+	cachedKey = key;
 	return key;
 }
 
