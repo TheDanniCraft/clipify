@@ -13,6 +13,14 @@ import { IconPlayerPlayFilled, IconVolume, IconVolumeOff } from "@tabler/icons-r
 
 type VideoQualityWithNumeric = TwitchClipVideoQuality & { numericQuality: number };
 
+const CACHE_MAX = 200;
+
+function trimCache(map: Map<string, unknown>) {
+	if (map.size <= CACHE_MAX) return;
+	const firstKey = map.keys().next().value as string | undefined;
+	if (firstKey) map.delete(firstKey);
+}
+
 async function getRawMediaUrl(clipId: string): Promise<string | undefined> {
 	const query = [
 		{
@@ -73,40 +81,6 @@ function isInIframe() {
 }
 
 /**
- * Fetch everything needed to play a clip, in parallel where possible.
- */
-async function buildVideoClip(randomClip: TwitchClip, isDemoPlayer: boolean): Promise<VideoClip | null> {
-	const mediaUrlPromise = getRawMediaUrl(randomClip.id);
-
-	const avatarPromise = isDemoPlayer ? Promise.resolve("") : getAvatar(randomClip.broadcaster_id, randomClip.broadcaster_id);
-
-	const gamePromise = isDemoPlayer
-		? Promise.resolve({
-				id: "",
-				name: "Demo Mode",
-				box_art_url: "",
-				igdb_id: "",
-			})
-		: getGameDetails(randomClip.game_id, randomClip.broadcaster_id);
-
-	const [mediaUrl, brodcasterAvatar, game] = await Promise.all([mediaUrlPromise, avatarPromise, gamePromise]);
-
-	if (!mediaUrl) return null;
-
-	return {
-		...randomClip,
-		mediaUrl,
-		brodcasterAvatar: brodcasterAvatar ?? "",
-		game: game ?? {
-			id: "",
-			name: isDemoPlayer ? "Demo Mode" : "Unknown Game",
-			box_art_url: "",
-			igdb_id: "",
-		},
-	};
-}
-
-/**
  * Warm up browser buffering a bit by preloading the media URL.
  */
 function preloadVideo(url: string) {
@@ -144,6 +118,8 @@ export default function OverlayPlayer({
 	const CROSSFADE_SECONDS = 0.7;
 	const CROSSFADE_MS = Math.round(CROSSFADE_SECONDS * 1000);
 	const SHOW_FADE_SECONDS = 0.6;
+	const HOLD_FRAME_SECONDS = 0.08;
+	const HOLD_TIMEOUT_MS = 1500;
 
 	const [videoClip, setVideoClip] = useState<VideoClip | null>(null);
 	const [nextClip, setNextClip] = useState<VideoClip | null>(null);
@@ -186,6 +162,169 @@ export default function OverlayPlayer({
 	// Prevent overlapping prefetches / stale updates
 	const prefetchAbortRef = useRef<AbortController | null>(null);
 	const crossfadeLockRef = useRef(false);
+	const holdLastFrameRef = useRef(false);
+	const holdSlotRef = useRef<"a" | "b" | null>(null);
+	const readyARef = useRef(false);
+	const readyBRef = useRef(false);
+	const mediaUrlCacheRef = useRef<Map<string, string>>(new Map());
+	const mediaUrlInFlightRef = useRef<Map<string, Promise<string | undefined>>>(new Map());
+	const avatarCacheRef = useRef<Map<string, string>>(new Map());
+	const avatarInFlightRef = useRef<Map<string, Promise<string>>>(new Map());
+	const gameCacheRef = useRef<Map<string, NonNullable<VideoClip["game"]> | null>>(new Map());
+	const gameInFlightRef = useRef<Map<string, Promise<NonNullable<VideoClip["game"]> | null>>>(new Map());
+	const holdTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+	const getMediaUrlCached = useCallback(async (clipId: string) => {
+		const cached = mediaUrlCacheRef.current.get(clipId);
+		if (cached) return cached;
+
+		const inflight = mediaUrlInFlightRef.current.get(clipId);
+		if (inflight) return inflight;
+
+		const promise = getRawMediaUrl(clipId)
+			.then((url) => {
+				if (url) {
+					mediaUrlCacheRef.current.set(clipId, url);
+					trimCache(mediaUrlCacheRef.current);
+				}
+				return url;
+			})
+			.catch((error) => {
+				console.error("Error fetching raw media URL", error);
+				return undefined;
+			})
+			.finally(() => {
+				mediaUrlInFlightRef.current.delete(clipId);
+			});
+
+		mediaUrlInFlightRef.current.set(clipId, promise);
+		return promise;
+	}, []);
+
+	const getAvatarCached = useCallback(async (broadcasterId: string) => {
+		if (avatarCacheRef.current.has(broadcasterId)) {
+			return avatarCacheRef.current.get(broadcasterId) ?? "";
+		}
+
+		const inflight = avatarInFlightRef.current.get(broadcasterId);
+		if (inflight) return inflight;
+
+		const promise = getAvatar(broadcasterId, broadcasterId)
+			.then((avatar) => {
+				const value = avatar ?? "";
+				avatarCacheRef.current.set(broadcasterId, value);
+				trimCache(avatarCacheRef.current);
+				return value;
+			})
+			.catch(() => "")
+			.finally(() => {
+				avatarInFlightRef.current.delete(broadcasterId);
+			});
+
+		avatarInFlightRef.current.set(broadcasterId, promise);
+		return promise;
+	}, []);
+
+	const getGameCached = useCallback(async (gameId: string, broadcasterId: string) => {
+		const cacheKey = `${gameId}:${broadcasterId}`;
+		if (gameCacheRef.current.has(cacheKey)) {
+			return gameCacheRef.current.get(cacheKey) ?? null;
+		}
+
+		const inflight = gameInFlightRef.current.get(cacheKey);
+		if (inflight) return inflight;
+
+		const promise = getGameDetails(gameId, broadcasterId)
+			.then((game) => {
+				const value = game ?? null;
+				gameCacheRef.current.set(cacheKey, value);
+				trimCache(gameCacheRef.current);
+				return value;
+			})
+			.catch(() => null)
+			.finally(() => {
+				gameInFlightRef.current.delete(cacheKey);
+			});
+
+		gameInFlightRef.current.set(cacheKey, promise);
+		return promise;
+	}, []);
+
+	const prefetchMetadata = useCallback(
+		(randomClip: TwitchClip) => {
+			if (isDemoPlayer) return;
+			getAvatarCached(randomClip.broadcaster_id).catch(() => "");
+			getGameCached(randomClip.game_id, randomClip.broadcaster_id).catch(() => null);
+		},
+		[getAvatarCached, getGameCached, isDemoPlayer]
+	);
+
+	const patchClipById = useCallback((id: string, patch: Partial<VideoClip>) => {
+		setVideoClip((prev) => (prev && prev.id === id ? { ...prev, ...patch } : prev));
+		setNextClip((prev) => (prev && prev.id === id ? { ...prev, ...patch } : prev));
+		setClipA((prev) => (prev && prev.id === id ? { ...prev, ...patch } : prev));
+		setClipB((prev) => (prev && prev.id === id ? { ...prev, ...patch } : prev));
+	}, []);
+
+	const buildVideoClipFast = useCallback(
+		async (randomClip: TwitchClip): Promise<VideoClip | null> => {
+			prefetchMetadata(randomClip);
+
+			const mediaUrl = await getMediaUrlCached(randomClip.id);
+			if (!mediaUrl) return null;
+
+			const baseGame = isDemoPlayer
+				? {
+						id: "",
+						name: "Demo Mode",
+						box_art_url: "",
+						igdb_id: "",
+					}
+				: {
+						id: "",
+						name: "Unknown Game",
+						box_art_url: "",
+						igdb_id: "",
+					};
+
+			const cachedAvatar = avatarCacheRef.current.has(randomClip.broadcaster_id)
+				? avatarCacheRef.current.get(randomClip.broadcaster_id) ?? ""
+				: "";
+			const gameCacheKey = `${randomClip.game_id}:${randomClip.broadcaster_id}`;
+			const cachedGame =
+				(gameCacheRef.current.has(gameCacheKey) ? gameCacheRef.current.get(gameCacheKey) : null) ??
+				(isDemoPlayer
+					? {
+							id: "",
+							name: "Demo Mode",
+							box_art_url: "",
+							igdb_id: "",
+						}
+					: baseGame);
+
+			const baseClip: VideoClip = {
+				...randomClip,
+				mediaUrl,
+				brodcasterAvatar: cachedAvatar,
+				game: cachedGame,
+			};
+
+			if (isDemoPlayer) return baseClip;
+
+			const avatarPromise = getAvatarCached(randomClip.broadcaster_id);
+			const gamePromise = getGameCached(randomClip.game_id, randomClip.broadcaster_id);
+
+			Promise.all([avatarPromise, gamePromise]).then(([avatar, game]) => {
+				patchClipById(baseClip.id, {
+					brodcasterAvatar: avatar ?? "",
+					game: game ?? baseGame,
+				});
+			});
+
+			return baseClip;
+		},
+		[getMediaUrlCached, getAvatarCached, getGameCached, isDemoPlayer, patchClipById, prefetchMetadata]
+	);
 
 	const getFirstFromDemoQueue = useCallback(async () => {
 		// NOTE: we read state via closure here; that’s fine, demo mode is explicit
@@ -296,6 +435,12 @@ export default function OverlayPlayer({
 
 		try {
 			crossfadeLockRef.current = false;
+			holdLastFrameRef.current = false;
+			holdSlotRef.current = null;
+			if (holdTimeoutRef.current) {
+				clearTimeout(holdTimeoutRef.current);
+				holdTimeoutRef.current = null;
+			}
 			setIncomingClip(null);
 			setIsCrossfading(false);
 
@@ -304,14 +449,18 @@ export default function OverlayPlayer({
 				nextClipRef.current = null;
 				setNextClip(null);
 				if (activeSlot === "a") {
+					readyARef.current = false;
 					setClipA(prefetched);
+					readyBRef.current = false;
 					setClipB(null);
 					if (videoBRef.current) {
 						videoBRef.current.pause();
 						videoBRef.current.currentTime = 0;
 					}
 				} else {
+					readyBRef.current = false;
 					setClipB(prefetched);
+					readyARef.current = false;
 					setClipA(null);
 					if (videoARef.current) {
 						videoARef.current.pause();
@@ -329,21 +478,25 @@ export default function OverlayPlayer({
 			}
 
 			const myReqId = ++requestIdRef.current;
-			const built = await buildVideoClip(candidate, !!isDemoPlayer);
+			const built = await buildVideoClipFast(candidate);
 
 			// ignore stale result if something newer already advanced
 			if (myReqId !== requestIdRef.current) return;
 
 			if (built) {
 				if (activeSlot === "a") {
+					readyARef.current = false;
 					setClipA(built);
+					readyBRef.current = false;
 					setClipB(null);
 					if (videoBRef.current) {
 						videoBRef.current.pause();
 						videoBRef.current.currentTime = 0;
 					}
 				} else {
+					readyBRef.current = false;
 					setClipB(built);
+					readyARef.current = false;
 					setClipA(null);
 					if (videoARef.current) {
 						videoARef.current.pause();
@@ -355,7 +508,7 @@ export default function OverlayPlayer({
 		} finally {
 			advanceLockRef.current = false;
 		}
-	}, [activeSlot, getRandomClip, isDemoPlayer]);
+	}, [activeSlot, buildVideoClipFast, getRandomClip, isDemoPlayer]);
 
 	const resetPrefetch = useCallback(() => {
 		prefetchAbortRef.current?.abort();
@@ -415,6 +568,7 @@ export default function OverlayPlayer({
 	useEffect(() => {
 		const activeVideo = activeSlot === "a" ? videoARef.current : videoBRef.current;
 		if (!activeVideo) return;
+		if (holdLastFrameRef.current && holdSlotRef.current === activeSlot) return;
 		if (!showPlayer) {
 			activeVideo.pause();
 			return;
@@ -426,6 +580,7 @@ export default function OverlayPlayer({
 	useEffect(() => {
 		const activeVideo = activeSlot === "a" ? videoARef.current : videoBRef.current;
 		if (!activeVideo) return;
+		if (holdLastFrameRef.current && holdSlotRef.current === activeSlot) return;
 		if (!showPlayer) return;
 		if (paused) return;
 		activeVideo.play().catch((error) => {
@@ -443,6 +598,35 @@ export default function OverlayPlayer({
 		if (videoARef.current) videoARef.current.muted = mutedValue;
 		if (videoBRef.current) videoBRef.current.muted = mutedValue;
 	}, [embedBehaviorEnabled, isDemoPlayer, isMuted, videoClip?.id]);
+
+	useEffect(() => {
+		return () => {
+			if (holdTimeoutRef.current) {
+				clearTimeout(holdTimeoutRef.current);
+				holdTimeoutRef.current = null;
+			}
+			holdLastFrameRef.current = false;
+			holdSlotRef.current = null;
+		};
+	}, []);
+
+	useEffect(() => {
+		if (!nextClip) return;
+		if (isCrossfading) return;
+		const inactiveSlot = activeSlot === "a" ? "b" : "a";
+
+		if (inactiveSlot === "a") {
+			if (clipA?.id !== nextClip.id) {
+				readyARef.current = false;
+				setClipA(nextClip);
+			}
+		} else {
+			if (clipB?.id !== nextClip.id) {
+				readyBRef.current = false;
+				setClipB(nextClip);
+			}
+		}
+	}, [activeSlot, clipA?.id, clipB?.id, isCrossfading, nextClip]);
 
 	/**
 	 * WebSocket / postMessage wiring
@@ -545,19 +729,23 @@ export default function OverlayPlayer({
 			if (!candidate) return;
 
 			const myReqId = ++requestIdRef.current;
-			const built = await buildVideoClip(candidate, !!isDemoPlayer);
+			const built = await buildVideoClipFast(candidate);
 			if (myReqId !== requestIdRef.current) return;
 
 			if (built) {
 				if (activeSlot === "a") {
+					readyARef.current = false;
 					setClipA(built);
+					readyBRef.current = false;
 					setClipB(null);
 					if (videoBRef.current) {
 						videoBRef.current.pause();
 						videoBRef.current.currentTime = 0;
 					}
 				} else {
+					readyBRef.current = false;
 					setClipB(built);
+					readyARef.current = false;
 					setClipA(null);
 					if (videoARef.current) {
 						videoARef.current.pause();
@@ -567,7 +755,7 @@ export default function OverlayPlayer({
 				setVideoClip(built);
 			}
 		})();
-	}, [activeSlot, getRandomClip, isDemoPlayer]);
+	}, [activeSlot, buildVideoClipFast, getRandomClip, isDemoPlayer]);
 
 	/**
 	 * Prefetch next clip while current plays.
@@ -585,7 +773,7 @@ export default function OverlayPlayer({
 			const candidate = await getRandomClip();
 			if (!candidate || cancelled || controller.signal.aborted) return;
 
-			const built = await buildVideoClip(candidate, !!isDemoPlayer);
+			const built = await buildVideoClipFast(candidate);
 			if (!built || cancelled || controller.signal.aborted) return;
 
 			preloadVideo(built.mediaUrl);
@@ -599,20 +787,35 @@ export default function OverlayPlayer({
 			prefetchAbortRef.current?.abort();
 		};
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [videoClip?.id, getRandomClip, isDemoPlayer]);
+	}, [buildVideoClipFast, prefetchMetadata, videoClip?.id, getRandomClip, isDemoPlayer]);
 
 	const startCrossfade = useCallback(() => {
 		if (crossfadeLockRef.current || isCrossfading) return;
 		const prefetched = nextClipRef.current;
 		if (!prefetched) return;
 
+		const inactiveSlot = activeSlot === "a" ? "b" : "a";
+		const incomingReady = inactiveSlot === "a" ? readyARef.current : readyBRef.current;
+		if (!incomingReady) return;
+
 		crossfadeLockRef.current = true;
+		holdLastFrameRef.current = false;
+		holdSlotRef.current = null;
+		if (holdTimeoutRef.current) {
+			clearTimeout(holdTimeoutRef.current);
+			holdTimeoutRef.current = null;
+		}
 		setIsCrossfading(true);
 		nextClipRef.current = null;
 		setNextClip(null);
 		setIncomingClip(prefetched);
-		if (activeSlot === "a") setClipB(prefetched);
-		else setClipA(prefetched);
+		if (inactiveSlot === "a") {
+			readyARef.current = false;
+			setClipA(prefetched);
+		} else {
+			readyBRef.current = false;
+			setClipB(prefetched);
+		}
 
 		if (clipRef.current) {
 			playedClipsRef.current = [...playedClipsRef.current, clipRef.current.id];
@@ -620,15 +823,52 @@ export default function OverlayPlayer({
 		}
 	}, [activeSlot, isCrossfading]);
 
+	const handleTimeUpdate = useCallback(
+		(slot: "a" | "b", video: HTMLVideoElement | null) => {
+			if (!video) return;
+			if (activeSlot !== slot) return;
+			if (isCrossfading) return;
+			const duration = video.duration;
+			if (!Number.isFinite(duration) || duration <= 0) return;
+			const remaining = duration - video.currentTime;
+			// Only engage crossfade/hold logic when a next clip is available.
+			if (!nextClipRef.current) return;
+
+			const inactiveSlot = slot === "a" ? "b" : "a";
+			const incomingReady = inactiveSlot === "a" ? readyARef.current : readyBRef.current;
+			if (remaining <= CROSSFADE_SECONDS) {
+				if (incomingReady) startCrossfade();
+				else if (!holdLastFrameRef.current) {
+					holdLastFrameRef.current = true;
+					holdSlotRef.current = slot;
+					video.currentTime = Math.max(0, duration - HOLD_FRAME_SECONDS);
+					video.pause();
+					if (!holdTimeoutRef.current) {
+						holdTimeoutRef.current = setTimeout(() => {
+							if (!holdLastFrameRef.current) return;
+							holdLastFrameRef.current = false;
+							holdSlotRef.current = null;
+							if (holdTimeoutRef.current) {
+								clearTimeout(holdTimeoutRef.current);
+								holdTimeoutRef.current = null;
+							}
+							if (!crossfadeLockRef.current) advanceClip();
+						}, HOLD_TIMEOUT_MS);
+					}
+				}
+			}
+		},
+		[activeSlot, advanceClip, isCrossfading, startCrossfade, CROSSFADE_SECONDS, HOLD_FRAME_SECONDS, HOLD_TIMEOUT_MS]
+	);
+
 	useEffect(() => {
-		if (!nextClipRef.current || isCrossfading || !showPlayer) return;
-		const activeVideo = activeSlot === "a" ? videoARef.current : videoBRef.current;
-		if (!activeVideo) return;
-		const duration = activeVideo.duration;
-		if (!Number.isFinite(duration) || duration <= 0) return;
-		const remaining = duration - activeVideo.currentTime;
-		if (remaining <= CROSSFADE_SECONDS) startCrossfade();
-	}, [activeSlot, isCrossfading, showPlayer, nextClip, startCrossfade]);
+		if (!holdLastFrameRef.current || !nextClipRef.current || isCrossfading) return;
+		if (paused || !showPlayer) return;
+		const inactiveSlot = activeSlot === "a" ? "b" : "a";
+		const incomingReady = inactiveSlot === "a" ? readyARef.current : readyBRef.current;
+		if (!incomingReady) return;
+		startCrossfade();
+	}, [activeSlot, isCrossfading, nextClip, paused, showPlayer, startCrossfade]);
 
 	useEffect(() => {
 		if (!incomingClip || !isCrossfading) return;
@@ -661,8 +901,7 @@ export default function OverlayPlayer({
 
 	if (isEmbed || isDemoPlayer || !isInIframe()) {
 		const effectiveMuted = !!isDemoPlayer || (embedBehaviorEnabled ? isMuted : false);
-		const allowAutoplay = embedBehaviorEnabled ? hasUserStarted : true;
-		const showClickToPlay = embedBehaviorEnabled && paused;
+		const showClickToPlay = embedBehaviorEnabled && paused && !hasUserStarted;
 		return (
 			<div
 				className='relative w-screen h-screen group'
@@ -688,8 +927,9 @@ export default function OverlayPlayer({
 					<>
 						<motion.video
 							key='slot-a'
-							autoPlay={allowAutoplay}
+							autoPlay={false}
 							src={clipA?.mediaUrl}
+							preload='auto'
 							initial={{ opacity: 0 }}
 							animate={{
 								opacity: showPlayer
@@ -704,19 +944,36 @@ export default function OverlayPlayer({
 							}}
 							transition={{ duration: isCrossfading ? CROSSFADE_SECONDS : SHOW_FADE_SECONDS, ease: "easeInOut" }}
 							ref={videoARef}
+							onCanPlay={() => {
+								readyARef.current = true;
+								if (holdLastFrameRef.current) startCrossfade();
+							}}
+							onError={() => {
+								if (activeSlot === "a") {
+									holdLastFrameRef.current = false;
+									holdSlotRef.current = null;
+									if (holdTimeoutRef.current) {
+										clearTimeout(holdTimeoutRef.current);
+										holdTimeoutRef.current = null;
+									}
+									advanceClip();
+									return;
+								}
+								if (nextClipRef.current?.id === clipA?.id) {
+									nextClipRef.current = null;
+									setNextClip(null);
+									readyARef.current = false;
+								}
+							}}
 							onTimeUpdate={(event) => {
 								if (event.currentTarget !== videoARef.current) return;
-								if (activeSlot !== "a") return;
-								if (isCrossfading || !nextClipRef.current) return;
-								const duration = event.currentTarget.duration;
-								if (!Number.isFinite(duration) || duration <= 0) return;
-								const remaining = duration - event.currentTarget.currentTime;
-								if (remaining <= CROSSFADE_SECONDS) startCrossfade();
+								handleTimeUpdate("a", videoARef.current);
 							}}
 							onEnded={(event) => {
 								if (event.currentTarget !== videoARef.current) return;
 								if (activeSlot !== "a") return;
 								if (isCrossfading) return;
+								if (holdLastFrameRef.current) return;
 								setShowOverlay(false);
 
 								// sync update so next pick can't choose the same clip
@@ -741,8 +998,9 @@ export default function OverlayPlayer({
 						{clipB?.mediaUrl && (
 							<motion.video
 								key='slot-b'
-								autoPlay={allowAutoplay}
+								autoPlay={false}
 								src={clipB.mediaUrl}
+								preload='auto'
 								initial={{ opacity: 0 }}
 								animate={{
 									opacity: showPlayer
@@ -757,19 +1015,36 @@ export default function OverlayPlayer({
 								}}
 								transition={{ duration: isCrossfading ? CROSSFADE_SECONDS : SHOW_FADE_SECONDS, ease: "easeInOut" }}
 								ref={videoBRef}
+								onCanPlay={() => {
+									readyBRef.current = true;
+									if (holdLastFrameRef.current) startCrossfade();
+								}}
+								onError={() => {
+									if (activeSlot === "b") {
+										holdLastFrameRef.current = false;
+										holdSlotRef.current = null;
+										if (holdTimeoutRef.current) {
+											clearTimeout(holdTimeoutRef.current);
+											holdTimeoutRef.current = null;
+										}
+										advanceClip();
+										return;
+									}
+									if (nextClipRef.current?.id === clipB?.id) {
+										nextClipRef.current = null;
+										setNextClip(null);
+										readyBRef.current = false;
+									}
+								}}
 								onTimeUpdate={(event) => {
 									if (event.currentTarget !== videoBRef.current) return;
-									if (activeSlot !== "b") return;
-									if (isCrossfading || !nextClipRef.current) return;
-									const duration = event.currentTarget.duration;
-									if (!Number.isFinite(duration) || duration <= 0) return;
-									const remaining = duration - event.currentTarget.currentTime;
-									if (remaining <= CROSSFADE_SECONDS) startCrossfade();
+									handleTimeUpdate("b", videoBRef.current);
 								}}
 								onEnded={(event) => {
 									if (event.currentTarget !== videoBRef.current) return;
 									if (activeSlot !== "b") return;
 									if (isCrossfading) return;
+									if (holdLastFrameRef.current) return;
 									setShowOverlay(false);
 
 									if (clipB) playedClipsRef.current = [...playedClipsRef.current, clipB.id];
