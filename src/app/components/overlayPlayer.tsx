@@ -101,6 +101,7 @@ export default function OverlayPlayer({
 	overlay,
 	isEmbed,
 	showBanner,
+	showEmbedOverlay,
 	isDemoPlayer,
 	embedMuted,
 	embedAutoplay,
@@ -110,6 +111,7 @@ export default function OverlayPlayer({
 	overlay: Overlay;
 	isEmbed?: boolean;
 	showBanner?: boolean;
+	showEmbedOverlay?: boolean;
 	isDemoPlayer?: boolean;
 	embedMuted?: boolean;
 	embedAutoplay?: boolean;
@@ -228,7 +230,7 @@ export default function OverlayPlayer({
 	}, []);
 
 	const getGameCached = useCallback(async (gameId: string, broadcasterId: string) => {
-		const cacheKey = `${gameId}:${broadcasterId}`;
+		const cacheKey = gameId;
 		if (gameCacheRef.current.has(cacheKey)) {
 			return gameCacheRef.current.get(cacheKey) ?? null;
 		}
@@ -254,11 +256,10 @@ export default function OverlayPlayer({
 
 	const prefetchMetadata = useCallback(
 		(randomClip: TwitchClip) => {
-			if (isDemoPlayer) return;
 			getAvatarCached(randomClip.broadcaster_id).catch(() => "");
 			getGameCached(randomClip.game_id, randomClip.broadcaster_id).catch(() => null);
 		},
-		[getAvatarCached, getGameCached, isDemoPlayer]
+		[getAvatarCached, getGameCached]
 	);
 
 	const patchClipById = useCallback((id: string, patch: Partial<VideoClip>) => {
@@ -292,9 +293,8 @@ export default function OverlayPlayer({
 			const cachedAvatar = avatarCacheRef.current.has(randomClip.broadcaster_id)
 				? avatarCacheRef.current.get(randomClip.broadcaster_id) ?? ""
 				: "";
-			const gameCacheKey = `${randomClip.game_id}:${randomClip.broadcaster_id}`;
 			const cachedGame =
-				(gameCacheRef.current.has(gameCacheKey) ? gameCacheRef.current.get(gameCacheKey) : null) ??
+				(gameCacheRef.current.has(randomClip.game_id) ? gameCacheRef.current.get(randomClip.game_id) : null) ??
 				(isDemoPlayer
 					? {
 							id: "",
@@ -310,8 +310,6 @@ export default function OverlayPlayer({
 				brodcasterAvatar: cachedAvatar,
 				game: cachedGame,
 			};
-
-			if (isDemoPlayer) return baseClip;
 
 			const avatarPromise = getAvatarCached(randomClip.broadcaster_id);
 			const gamePromise = getGameCached(randomClip.game_id, randomClip.broadcaster_id);
@@ -952,6 +950,7 @@ export default function OverlayPlayer({
 	if (isEmbed || isDemoPlayer || !isInIframe()) {
 		const effectiveMuted = !!isDemoPlayer || (embedBehaviorEnabled ? isMuted : false);
 		const showClickToPlay = embedBehaviorEnabled && paused && !hasUserStarted;
+		const canShowOverlay = showPlayer && !!videoClip && (!embedBehaviorEnabled || hasUserStarted);
 		return (
 			<div
 				className='relative w-screen h-screen group'
@@ -1120,7 +1119,7 @@ export default function OverlayPlayer({
 
 				{embedBehaviorEnabled && (
 					<>
-						<div className='absolute right-4 top-4 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100'>
+						<div className='absolute right-4 top-4 z-20 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100'>
 							<button
 								type='button'
 								onClick={(event) => {
@@ -1150,7 +1149,7 @@ export default function OverlayPlayer({
 					</>
 				)}
 
-				{isEmbed ? (
+				{isEmbed && !showEmbedOverlay ? (
 					showBanner ? (
 						<div className='absolute left-4 bottom-4'>
 							<Button as={Link} href='https://clipify.us?utm_source=embed&utm_medium=overlay&utm_campaign=webembed' target='_blank' rel='noopener noreferrer' color='primary' className='inline-flex items-center gap-1 px-3 py-1.5 text-white text-xs sm:text-sm rounded-full shadow-md hover:bg-opacity-80 transition' aria-label='Powered by Clipify'>
@@ -1160,10 +1159,10 @@ export default function OverlayPlayer({
 						</div>
 					) : null
 				) : (
-					<div className='absolute inset-0 z-10 flex flex-col justify-between text-xs sm:text-sm md:text-base lg:text-lg'>
-						{(showOverlay || (showPlayer && !!videoClip)) && (
+					<div className='absolute inset-0 z-10 pointer-events-none flex flex-col justify-between text-xs sm:text-sm md:text-base lg:text-lg'>
+						{(showOverlay || canShowOverlay) && !showClickToPlay && (
 							<>
-								<PlayerOverlay key={`${videoClip.id}-left`} left='2%' top='2%' scale={isDemoPlayer ? 1 : undefined}>
+								<PlayerOverlay key={`${videoClip.id}-left`} left='2%' top='2%' scale={isEmbed ? 1 : isDemoPlayer ? 1 : undefined}>
 									<div className='flex items-center'>
 										<Avatar size='md' src={videoClip.brodcasterAvatar} />
 										<div className='flex flex-col justify-center ml-2 text-xs'>
@@ -1173,7 +1172,7 @@ export default function OverlayPlayer({
 									</div>
 								</PlayerOverlay>
 
-								<PlayerOverlay key={`${videoClip.id}-right`} right='2%' bottom='2%' scale={isDemoPlayer ? 1 : undefined}>
+								<PlayerOverlay key={`${videoClip.id}-right`} right='2%' bottom='2%' scale={isEmbed ? 1 : isDemoPlayer ? 1 : undefined}>
 									<div className='flex flex-col items-end text-right'>
 										<span className='font-bold'>{videoClip.title}</span>
 										<span className='text-xs text-gray-400 mt-1'>clipped by {videoClip.creator_name}</span>
@@ -1181,6 +1180,22 @@ export default function OverlayPlayer({
 								</PlayerOverlay>
 							</>
 						)}
+						{isEmbed && showBanner ? (
+							<div className='absolute left-4 bottom-4'>
+								<Button
+									as={Link}
+									href='https://clipify.us?utm_source=embed&utm_medium=overlay&utm_campaign=webembed'
+									target='_blank'
+									rel='noopener noreferrer'
+									color='primary'
+									className='inline-flex items-center gap-1 px-3 py-1.5 text-white text-xs sm:text-sm rounded-full shadow-md hover:bg-opacity-80 transition'
+									aria-label='Powered by Clipify'
+								>
+									<Logo className='w-4 h-4 sm:w-6 sm:h-6' />
+									<span>Powered by Clipify</span>
+								</Button>
+							</div>
+						) : null}
 					</div>
 				)}
 			</div>

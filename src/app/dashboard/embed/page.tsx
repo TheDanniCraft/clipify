@@ -24,6 +24,7 @@ export default function EmbedTool() {
 	const [showBanner, setShowBanner] = useState<boolean>(false);
 	const [embedMuted, setEmbedMuted] = useState<boolean>(false);
 	const [embedAutoplay, setEmbedAutoplay] = useState<boolean>(false);
+	const [showEmbedOverlay, setShowEmbedOverlay] = useState<boolean>(false);
 	const [avatars, setAvatars] = useState<Record<string, string>>({});
 	const [ownerPlansByOverlayId, setOwnerPlansByOverlayId] = useState<Record<string, string>>({});
 	const { isOpen: isUpgradeOpen, onOpen: onUpgradeOpen, onOpenChange: onUpgradeOpenChange } = useDisclosure();
@@ -90,6 +91,7 @@ export default function EmbedTool() {
 		if (!id) return "";
 		const params: string[] = [];
 		if (effectiveShowBanner) params.push("showBanner");
+		if (showEmbedOverlay) params.push("showOverlay");
 		if (embedMuted) params.push("muted");
 		if (embedAutoplay) params.push("autoplay");
 		const query = params.join("&");
@@ -166,6 +168,16 @@ export default function EmbedTool() {
 										<span className='flex items-center gap-2'>
 											<IconPlayerPlayFilled className='h-4 w-4 text-emerald-500' />
 											Autoplay (skip click-to-play)
+										</span>
+									</Switch>
+								</span>
+							</Tooltip>
+							<Tooltip content='Show clip title, creator and game overlay on the embed'>
+								<span>
+									<Switch isSelected={showEmbedOverlay} onValueChange={setShowEmbedOverlay} isDisabled={!overlayId}>
+										<span className='flex items-center gap-2'>
+											<IconEye className='h-4 w-4 text-purple-500' />
+											Show clip overlay
 										</span>
 									</Switch>
 								</span>
