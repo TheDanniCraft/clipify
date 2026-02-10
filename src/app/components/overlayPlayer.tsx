@@ -1160,7 +1160,7 @@ export default function OverlayPlayer({
 					) : null
 				) : (
 					<div className='absolute inset-0 z-10 pointer-events-none flex flex-col justify-between text-xs sm:text-sm md:text-base lg:text-lg'>
-						{(showOverlay || canShowOverlay) && !showClickToPlay && (
+						{showOverlay && canShowOverlay && !showClickToPlay && (
 							<>
 								<PlayerOverlay key={`${videoClip.id}-left`} left='2%' top='2%' scale={isEmbed ? 1 : isDemoPlayer ? 1 : undefined}>
 									<div className='flex items-center'>
@@ -1181,7 +1181,7 @@ export default function OverlayPlayer({
 							</>
 						)}
 						{isEmbed && showBanner ? (
-							<div className='absolute left-4 bottom-4'>
+							<div className='absolute left-4 bottom-4 pointer-events-auto'>
 								<Button
 									as={Link}
 									href='https://clipify.us?utm_source=embed&utm_medium=overlay&utm_campaign=webembed'

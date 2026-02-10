@@ -2,7 +2,7 @@
 
 import axios from "axios";
 import { AuthenticatedUser, Game, Overlay, OverlayType, RewardStatus, TwitchApiResponse, TwitchAppAccessTokenResponse, TwitchCacheType, TwitchClip, TwitchClipBody, TwitchClipResponse, TwitchReward, TwitchRewardResponse, TwitchTokenApiResponse, TwitchUserResponse } from "@types";
-import { getAccessToken, getTwitchCache, getTwitchCacheStale, setTwitchCache } from "@actions/database";
+import { getAccessToken, getTwitchCache, getTwitchCacheEntry, getTwitchCacheStale, setTwitchCache } from "@actions/database";
 import { getBaseUrl, isPreview } from "@actions/utils";
 import { isTitleBlocked } from "@/app/utils/regexFilter";
 import { REWARD_NOT_FOUND } from "@lib/twitchErrors";
@@ -234,8 +234,8 @@ export async function getUsersDetailsBulk({ userIds, userNames, accessToken }: {
 		});
 
 		const fresh = response.data.data;
-		for (const user of fresh) {
-			await setTwitchCache(TwitchCacheType.User, user.id, user, USER_CACHE_TTL_SECONDS);
+		if (fresh.length > 0) {
+			await Promise.all(fresh.map((user) => setTwitchCache(TwitchCacheType.User, user.id, user, USER_CACHE_TTL_SECONDS)));
 		}
 
 		if (cachedUsers.length > 0) return [...cachedUsers, ...fresh];
@@ -509,8 +509,8 @@ export async function getGameDetails(gameId: string, authUserId: string): Promis
 	const GAME_CACHE_TTL_SECONDS = 60 * 60 * 24;
 	const cacheKey = gameId;
 
-	const cached = await getTwitchCache<Game | null>(TwitchCacheType.Game, cacheKey);
-	if (cached !== null) return cached;
+	const cachedEntry = await getTwitchCacheEntry<Game | null>(TwitchCacheType.Game, cacheKey);
+	if (cachedEntry.hit) return cachedEntry.value;
 
 	let accessToken = authUserId ? (await getAccessToken(authUserId))?.accessToken : undefined;
 	if (!accessToken) {

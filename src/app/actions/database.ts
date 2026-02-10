@@ -937,6 +937,25 @@ export async function getTwitchCache<T>(type: TwitchCacheType, key: string): Pro
 	}
 }
 
+export async function getTwitchCacheEntry<T>(type: TwitchCacheType, key: string): Promise<{ hit: boolean; value: T | null }> {
+	try {
+		const now = new Date();
+		const rows = await db
+			.select()
+			.from(twitchCacheTable)
+			.where(and(eq(twitchCacheTable.type, type), eq(twitchCacheTable.key, key), or(isNull(twitchCacheTable.expiresAt), gt(twitchCacheTable.expiresAt, now))))
+			.limit(1)
+			.execute();
+
+		if (rows.length === 0) return { hit: false, value: null };
+
+		return { hit: true, value: JSON.parse(rows[0].value) as T };
+	} catch (error) {
+		console.error("Error reading twitch cache entry:", error);
+		return { hit: false, value: null };
+	}
+}
+
 // Stale read: ignore expiresAt and return last known value if present.
 export async function getTwitchCacheStale<T>(type: TwitchCacheType, key: string): Promise<T | null> {
 	try {
