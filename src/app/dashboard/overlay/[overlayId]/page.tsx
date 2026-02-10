@@ -72,8 +72,19 @@ export default function OverlaySettings() {
 	useEffect(() => {
 		async function fetchRewardTitle() {
 			if (overlay?.rewardId) {
-				const reward = await getReward(overlay.ownerId, overlay.rewardId);
-				setReward(reward);
+				try {
+					const reward = await getReward(overlay.ownerId, overlay.rewardId);
+					setReward(reward);
+				} catch (error) {
+					const isNotFound = error instanceof Error && error.message === "REWARD_NOT_FOUND";
+					if (isNotFound) {
+						const nextOverlay = { ...overlay, rewardId: null };
+						await saveOverlay(overlay.id, { rewardId: null });
+						setOverlay(nextOverlay);
+						setBaseOverlay(nextOverlay);
+					}
+					setReward(null);
+				}
 			} else {
 				setReward(null);
 			}

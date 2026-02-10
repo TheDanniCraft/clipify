@@ -493,6 +493,8 @@ export async function getGameDetails(gameId: string, authUserId: string): Promis
 	}
 }
 
+const REWARD_NOT_FOUND = "REWARD_NOT_FOUND";
+
 export async function getReward(userId: string, rewardId: string): Promise<TwitchReward | null> {
 	const url = `https://api.twitch.tv/helix/channel_points/custom_rewards`;
 	const token = await getAccessToken(userId);
@@ -515,6 +517,9 @@ export async function getReward(userId: string, rewardId: string): Promise<Twitc
 		});
 		return response.data.data[0] || null;
 	} catch (error) {
+		if (axios.isAxiosError(error) && error.response?.status === 404) {
+			throw new Error(REWARD_NOT_FOUND);
+		}
 		logTwitchError("Error fetching reward", error);
 		return null;
 	}
