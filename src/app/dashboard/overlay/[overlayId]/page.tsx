@@ -3,18 +3,18 @@
 import { useEffect, useState } from "react";
 
 import { useParams, useRouter } from "next/navigation";
-import { getOverlay, getOverlayOwnerPlan, saveOverlay } from "@/app/actions/database";
+import { getOverlay, getOverlayOwnerPlan, saveOverlay } from "@actions/database";
 import { addToast, Button, Card, CardBody, CardHeader, Divider, Form, Image, Input, Link, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, NumberInput, Select, SelectItem, Slider, Snippet, Spinner, Switch, Tooltip, useDisclosure } from "@heroui/react";
 import { AuthenticatedUser, Overlay, OverlayType, Plan, TwitchClip, TwitchReward } from "@types";
 import { IconAlertTriangle, IconArrowLeft, IconCrown, IconDeviceFloppy, IconInfoCircle, IconPlayerPauseFilled, IconPlayerPlayFilled } from "@tabler/icons-react";
 import DashboardNavbar from "@components/dashboardNavbar";
 import { useNavigationGuard } from "next-navigation-guard";
-import { validateAuth } from "@/app/actions/auth";
-import { createChannelReward, getReward, getTwitchClips, removeChannelReward } from "@/app/actions/twitch";
+import { validateAuth } from "@actions/auth";
+import { createChannelReward, getReward, getTwitchClips, removeChannelReward } from "@actions/twitch";
 import FeedbackWidget from "@components/feedbackWidget";
 import TagsInput from "@components/tagsInput";
 import { isTitleBlocked } from "@/app/utils/regexFilter";
-import UpgradeModal from "@/app/components/upgradeModal";
+import UpgradeModal from "@components/upgradeModal";
 import ChatwootData from "@components/chatwootData";
 
 const overlayTypes: { key: OverlayType; label: string }[] = [

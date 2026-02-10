@@ -3,10 +3,10 @@
 import { addToast, Button, Divider, Modal, ModalBody, ModalContent, ModalHeader } from "@heroui/react";
 import { IconBolt, IconCheck, IconDiamondFilled, IconSparkles } from "@tabler/icons-react";
 import { useMemo } from "react";
-import { generatePaymentLink } from "@/app/actions/subscription";
-import { frequencies, tiers } from "@/app/components/Pricing/pricing-tiers";
-import { FrequencyEnum, TiersEnum } from "@/app/components/Pricing/pricing-types";
-import type { AuthenticatedUser } from "@/app/lib/types";
+import { generatePaymentLink } from "@actions/subscription";
+import { frequencies, tiers } from "@components/Pricing/pricing-tiers";
+import { FrequencyEnum, TiersEnum } from "@components/Pricing/pricing-types";
+import type { AuthenticatedUser } from "@lib/types";
 
 type UpgradeModalProps = {
 	isOpen: boolean;

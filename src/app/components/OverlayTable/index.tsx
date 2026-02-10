@@ -12,8 +12,8 @@ import React, { useMemo, useCallback, useState, useEffect } from "react";
 import { cn } from "@heroui/react";
 import { IconAdjustmentsHorizontal, IconArrowsLeftRight, IconChevronDown, IconChevronUp, IconCirclePlus, IconCircuitChangeover, IconInfoCircle, IconMenuDeep, IconPencil, IconReload, IconSearch, IconTrash } from "@tabler/icons-react";
 import { createOverlay, deleteOverlay, saveOverlay, getAllOverlays, getEditorOverlays, getEditorAccess } from "@actions/database";
-import { validateAuth } from "@/app/actions/auth";
-import UpgradeModal from "@/app/components/upgradeModal";
+import { validateAuth } from "@actions/auth";
+import UpgradeModal from "@components/upgradeModal";
 
 import { CopyText } from "./copy-text";
 
@@ -22,7 +22,7 @@ import { useMemoizedCallback } from "./use-memoized-callback";
 import { columns, INITIAL_VISIBLE_COLUMNS } from "./data";
 import { Status } from "./Status";
 import { useRouter } from "next/navigation";
-import { getAvatar, getUsersDetailsBulk } from "@/app/actions/twitch";
+import { getAvatar, getUsersDetailsBulk } from "@actions/twitch";
 
 export default function OverlayTable({ userId, accessToken }: { userId: string; accessToken: string }) {
 	const router = useRouter();
@@ -92,7 +92,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 		fetchUser();
 	}, []);
 
-// Plan is available on currentUser; avoid extra fetch.
+	// Plan is available on currentUser; avoid extra fetch.
 
 	const headerColumns = useMemo(() => {
 		if (visibleColumns === "all") return columns;
@@ -410,7 +410,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 																const match = results.find((r) => r.id === o.id && r.ok);
 																return match ? { ...o, status: match.status } : o;
 															})
-														: []
+														: [],
 												);
 												addToast({
 													title: "Status Updated",

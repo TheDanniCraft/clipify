@@ -1,7 +1,7 @@
 "use server";
 
 import axios from "axios";
-import { tryRateLimit } from "@/app/actions/rateLimit";
+import { tryRateLimit } from "@actions/rateLimit";
 import { RateLimitError } from "@types";
 import { verifyTurnstile } from "nextjs-turnstile";
 

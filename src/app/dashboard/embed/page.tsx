@@ -1,15 +1,15 @@
 "use client";
 
-import { validateAuth } from "@/app/actions/auth";
-import { getAccessToken, getAllOverlays, getEditorOverlays, getOverlayOwnerPlans } from "@/app/actions/database";
-import { getUsersDetailsBulk } from "@/app/actions/twitch";
-import DashboardNavbar from "@/app/components/dashboardNavbar";
-import { AuthenticatedUser, Overlay } from "@/app/lib/types";
+import { validateAuth } from "@actions/auth";
+import { getAccessToken, getAllOverlays, getEditorOverlays, getOverlayOwnerPlans } from "@actions/database";
+import { getUsersDetailsBulk } from "@actions/twitch";
+import DashboardNavbar from "@components/dashboardNavbar";
+import { AuthenticatedUser, Overlay } from "@types";
 import { Avatar, Button, Card, CardBody, CardHeader, Divider, Link, Select, SelectItem, Snippet, Spinner, Switch, Tooltip, useDisclosure } from "@heroui/react";
 import { IconArrowLeft, IconCode, IconEye, IconLink, IconPlayerPlayFilled, IconSparkles, IconVolume } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import UpgradeModal from "@/app/components/upgradeModal";
+import UpgradeModal from "@components/upgradeModal";
 import ChatwootData from "@components/chatwootData";
 
 export default function EmbedTool() {

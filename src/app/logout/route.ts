@@ -1,4 +1,4 @@
-import { authUser } from "@/app/actions/auth";
+import { authUser } from "@actions/auth";
 import { cookies } from "next/headers";
 
 export async function GET() {
