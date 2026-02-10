@@ -1,10 +1,10 @@
 "use server";
 
 import { drizzle } from "drizzle-orm/node-postgres";
-import { tokenTable, usersTable, overlaysTable, queueTable, settingsTable, modQueueTable, editorsTable } from "@/db/schema";
-import { AuthenticatedUser, Overlay, TwitchUserResponse, TwitchTokenApiResponse, UserToken, Plan, Role, UserSettings } from "@types";
+import { tokenTable, usersTable, overlaysTable, queueTable, settingsTable, modQueueTable, editorsTable, twitchCacheTable } from "@/db/schema";
+import { AuthenticatedUser, Overlay, TwitchUserResponse, TwitchTokenApiResponse, UserToken, Plan, Role, UserSettings, TwitchCacheType } from "@types";
 import { getUserDetails, getUsersDetailsBulk, refreshAccessToken, subscribeToReward } from "@actions/twitch";
-import { eq, inArray, and, or, isNull, lt, sql } from "drizzle-orm";
+import { eq, inArray, and, or, isNull, lt, gt, sql } from "drizzle-orm";
 import { validateAuth } from "@actions/auth";
 import { encryptToken, decryptToken } from "@lib/tokenCrypto";
 
@@ -914,5 +914,73 @@ export async function saveSettings(settings: UserSettings) {
 	} catch (error) {
 		console.error("Error saving settings:", error);
 		throw new Error("Failed to save settings");
+	}
+}
+
+
+export async function getTwitchCache<T>(type: TwitchCacheType, key: string): Promise<T | null> {
+	try {
+		const now = new Date();
+		const rows = await db
+			.select()
+			.from(twitchCacheTable)
+			.where(and(eq(twitchCacheTable.type, type), eq(twitchCacheTable.key, key), or(isNull(twitchCacheTable.expiresAt), gt(twitchCacheTable.expiresAt, now))))
+			.limit(1)
+			.execute();
+
+		if (rows.length === 0) return null;
+
+		return JSON.parse(rows[0].value) as T;
+	} catch (error) {
+		console.error("Error reading twitch cache:", error);
+		return null;
+	}
+}
+
+// Stale read: ignore expiresAt and return last known value if present.
+export async function getTwitchCacheStale<T>(type: TwitchCacheType, key: string): Promise<T | null> {
+	try {
+		const rows = await db
+			.select()
+			.from(twitchCacheTable)
+			.where(and(eq(twitchCacheTable.type, type), eq(twitchCacheTable.key, key)))
+			.limit(1)
+			.execute();
+
+		if (rows.length === 0) return null;
+
+		return JSON.parse(rows[0].value) as T;
+	} catch (error) {
+		console.error("Error reading stale twitch cache:", error);
+		return null;
+	}
+}
+
+export async function setTwitchCache(type: TwitchCacheType, key: string, value: unknown, ttlSeconds?: number) {
+	try {
+		const now = new Date();
+		const expiresAt = ttlSeconds ? new Date(Date.now() + ttlSeconds * 1000) : null;
+		const payload = JSON.stringify(value);
+
+		await db
+			.insert(twitchCacheTable)
+			.values({
+				type,
+				key,
+				value: payload,
+				fetchedAt: now,
+				expiresAt,
+			})
+			.onConflictDoUpdate({
+				target: [twitchCacheTable.type, twitchCacheTable.key],
+				set: {
+					value: payload,
+					fetchedAt: now,
+					expiresAt,
+				},
+			})
+			.execute();
+	} catch (error) {
+		console.error("Error writing twitch cache:", error);
 	}
 }

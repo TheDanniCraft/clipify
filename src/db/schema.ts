@@ -1,5 +1,5 @@
-import { varchar, pgTable, primaryKey, check, timestamp, uuid, integer, text } from "drizzle-orm/pg-core";
-import type { Role, Plan, StatusOptions, OverlayType } from "@types";
+import { varchar, pgTable, check, timestamp, uuid, integer, text, uniqueIndex, primaryKey } from "drizzle-orm/pg-core";
+import type { Role, Plan, StatusOptions, OverlayType, TwitchCacheType } from "@types";
 import { sql } from "drizzle-orm";
 
 export const usersTable = pgTable("users", {
@@ -81,3 +81,16 @@ export const settingsTable = pgTable("userSettings", {
 		.references(() => usersTable.id, { onDelete: "cascade" }),
 	prefix: varchar("prefix").notNull().default("!"),
 });
+
+export const twitchCacheTable = pgTable(
+	"twitchCache",
+	{
+		id: uuid("id").notNull().defaultRandom().primaryKey(),
+		type: varchar("type").$type<TwitchCacheType>().notNull(),
+		key: varchar("key").notNull(),
+		value: text("value").notNull(),
+		fetchedAt: timestamp("fetched_at", { withTimezone: true }).defaultNow().notNull(),
+		expiresAt: timestamp("expires_at", { withTimezone: true }),
+	},
+	(t) => [uniqueIndex("twitch_cache_type_key_unique").on(t.type, t.key)],
+);

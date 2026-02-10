@@ -1,6 +1,6 @@
 import type { SVGProps } from "react";
 import { InferSelectModel } from "drizzle-orm";
-import { modQueueTable, overlaysTable, settingsTable, tokenTable, usersTable, queueTable } from "@/db/schema";
+import { modQueueTable, overlaysTable, settingsTable, tokenTable, usersTable, queueTable, twitchCacheTable } from "@/db/schema";
 
 export class RateLimitError extends Error {
 	constructor() {
@@ -116,6 +116,15 @@ export enum RewardStatus {
 	FULFILLED = "FULFILLED",
 	CANCELED = "CANCELED",
 }
+
+export enum TwitchCacheType {
+	Avatar = "avatar",
+	Game = "game",
+	Clip = "clip",
+	User = "user",
+}
+
+export type TwitchCache = InferSelectModel<typeof twitchCacheTable>;
 
 export type TwitchClipResponse = {
 	id: string;

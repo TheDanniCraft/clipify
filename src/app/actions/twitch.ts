@@ -2,7 +2,7 @@
 
 import axios from "axios";
 import { AuthenticatedUser, Game, Overlay, OverlayType, RewardStatus, TwitchApiResponse, TwitchAppAccessTokenResponse, TwitchClip, TwitchClipBody, TwitchClipResponse, TwitchReward, TwitchRewardResponse, TwitchTokenApiResponse, TwitchUserResponse } from "@types";
-import { getAccessToken } from "@actions/database";
+import { getAccessToken, getTwitchCache, getTwitchCacheStale, setTwitchCache } from "@actions/database";
 import { getBaseUrl, isPreview } from "@actions/utils";
 import { isTitleBlocked } from "@/app/utils/regexFilter";
 import { REWARD_NOT_FOUND } from "@lib/twitchErrors";
@@ -196,6 +196,7 @@ export async function getUserDetails(accessToken: string): Promise<TwitchUserRes
 
 export async function getUsersDetailsBulk({ userIds, userNames, accessToken }: { userIds?: string[]; userNames?: string[]; accessToken: string }): Promise<TwitchUserResponse[]> {
 	const url = "https://api.twitch.tv/helix/users";
+	const USER_CACHE_TTL_SECONDS = 60 * 60;
 
 	try {
 		if ((!userIds || userIds.length === 0) && (!userNames || userNames.length === 0)) {
@@ -212,15 +213,39 @@ export async function getUsersDetailsBulk({ userIds, userNames, accessToken }: {
 			return [];
 		}
 
+		const ids = userIds ? Array.from(new Set(userIds)) : [];
+		let cachedUsers: TwitchUserResponse[] = [];
+		let missingIds = ids;
+
+		if (ids.length > 0) {
+			const cached = await Promise.all(ids.map((id) => getTwitchCache<TwitchUserResponse>("user", id)));
+			cachedUsers = cached.filter((u): u is TwitchUserResponse => !!u);
+			const cachedIds = new Set(cachedUsers.map((u) => u.id));
+			missingIds = ids.filter((id) => !cachedIds.has(id));
+			if (missingIds.length === 0) return cachedUsers;
+		}
+
 		const response = await axios.get<TwitchApiResponse<TwitchUserResponse>>(url, {
 			headers: {
 				Authorization: `Bearer ${accessToken}`,
 				"Client-Id": process.env.TWITCH_CLIENT_ID || "",
 			},
-			params: userIds ? { id: userIds } : { login: userNames },
+			params: missingIds.length > 0 ? { id: missingIds } : { login: userNames },
 		});
-		return response.data.data;
+
+		const fresh = response.data.data;
+		for (const user of fresh) {
+			await setTwitchCache("user", user.id, user, USER_CACHE_TTL_SECONDS);
+		}
+
+		if (cachedUsers.length > 0) return [...cachedUsers, ...fresh];
+		return fresh;
 	} catch (error) {
+		if (ids.length > 0) {
+			const stale = await Promise.all(ids.map((id) => getTwitchCacheStale<TwitchUserResponse>("user", id)));
+			const staleUsers = stale.filter((u): u is TwitchUserResponse => !!u);
+			if (staleUsers.length > 0) return staleUsers;
+		}
 		logTwitchError("Error fetching bulk user details", error);
 		return [];
 	}
@@ -442,8 +467,18 @@ export async function getDemoClip(clipId: string): Promise<TwitchClip | null> {
 
 export async function getAvatar(userId: string, authUserId: string): Promise<string | undefined> {
 	const url = "https://api.twitch.tv/helix/users";
+	const AVATAR_CACHE_TTL_SECONDS = 60 * 60 * 24;
 
-	const token = await getAccessToken(authUserId);
+	const cached = await getTwitchCache<string>("avatar", userId);
+	if (cached !== null) return cached || undefined;
+
+	let token = authUserId ? await getAccessToken(authUserId) : null;
+	if (!token) {
+		const appToken = await getAppAccessToken();
+		if (appToken) {
+			token = { accessToken: appToken.access_token } as { accessToken: string };
+		}
+	}
 
 	if (!token) {
 		console.error("No access token found for authUserId:", authUserId);
@@ -460,8 +495,12 @@ export async function getAvatar(userId: string, authUserId: string): Promise<str
 				id: userId,
 			},
 		});
-		return response.data.data[0]?.profile_image_url || undefined;
+		const avatar = response.data.data[0]?.profile_image_url || "";
+		await setTwitchCache("avatar", userId, avatar, AVATAR_CACHE_TTL_SECONDS);
+		return avatar || undefined;
 	} catch (error) {
+		const stale = await getTwitchCacheStale<string>("avatar", userId);
+		if (stale !== null) return stale || undefined;
 		logTwitchError("Error fetching avatar", error);
 		return undefined;
 	}
@@ -469,8 +508,19 @@ export async function getAvatar(userId: string, authUserId: string): Promise<str
 
 export async function getGameDetails(gameId: string, authUserId: string): Promise<Game | null> {
 	const url = "https://api.twitch.tv/helix/games";
+	const GAME_CACHE_TTL_SECONDS = 60 * 60 * 24;
+	const cacheKey = gameId;
 
-	const token = await getAccessToken(authUserId);
+	const cached = await getTwitchCache<Game | null>("game", cacheKey);
+	if (cached !== null) return cached;
+
+	let token = authUserId ? await getAccessToken(authUserId) : null;
+	if (!token) {
+		const appToken = await getAppAccessToken();
+		if (appToken) {
+			token = { accessToken: appToken.access_token } as { accessToken: string };
+		}
+	}
 
 	if (!token) {
 		console.error("No access token found for authUserId:", authUserId);
@@ -487,8 +537,12 @@ export async function getGameDetails(gameId: string, authUserId: string): Promis
 				id: gameId,
 			},
 		});
-		return response.data.data[0] || null;
+		const game = response.data.data[0] || null;
+		await setTwitchCache("game", cacheKey, game, GAME_CACHE_TTL_SECONDS);
+		return game;
 	} catch (error) {
+		const stale = await getTwitchCacheStale<Game | null>("game", cacheKey);
+		if (stale !== null) return stale;
 		logTwitchError("Error fetching game details", error);
 		return null;
 	}
