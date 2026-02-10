@@ -4,7 +4,7 @@ export const revalidate = 0;
 import { getOverlayPublic } from "@actions/database";
 import { getTwitchClips } from "@actions/twitch";
 import OverlayPlayer from "@components/overlayPlayer";
-import { type Overlay } from "@lib/types";
+import { type Overlay } from "@types";
 
 export default async function Overlay() {
 	const overlay = (await getOverlayPublic(process.env.DEMO_OVERLAY_ID as string)) as Overlay;

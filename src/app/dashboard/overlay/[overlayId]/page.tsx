@@ -10,7 +10,8 @@ import { IconAlertTriangle, IconArrowLeft, IconCrown, IconDeviceFloppy, IconInfo
 import DashboardNavbar from "@components/dashboardNavbar";
 import { useNavigationGuard } from "next-navigation-guard";
 import { validateAuth } from "@actions/auth";
-import { createChannelReward, getReward, getTwitchClips, removeChannelReward, REWARD_NOT_FOUND } from "@actions/twitch";
+import { createChannelReward, getReward, getTwitchClips, removeChannelReward } from "@actions/twitch";
+import { REWARD_NOT_FOUND } from "@lib/twitchErrors";
 import FeedbackWidget from "@components/feedbackWidget";
 import TagsInput from "@components/tagsInput";
 import { isTitleBlocked } from "@/app/utils/regexFilter";

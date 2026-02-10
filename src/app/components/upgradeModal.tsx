@@ -6,7 +6,7 @@ import { useMemo } from "react";
 import { generatePaymentLink } from "@actions/subscription";
 import { frequencies, tiers } from "@components/Pricing/pricing-tiers";
 import { FrequencyEnum, TiersEnum } from "@components/Pricing/pricing-types";
-import type { AuthenticatedUser } from "@lib/types";
+import type { AuthenticatedUser } from "@types";
 
 type UpgradeModalProps = {
 	isOpen: boolean;

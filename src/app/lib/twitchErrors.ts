@@ -1,0 +1,1 @@
+export const REWARD_NOT_FOUND = "REWARD_NOT_FOUND";
