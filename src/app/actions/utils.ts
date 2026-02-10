@@ -11,7 +11,12 @@ export async function isCoolify() {
 export async function getBaseUrl(): Promise<URL> {
 	let url: string;
 	if (process.env.COOLIFY_URL) {
-		url = process.env.COOLIFY_URL.split(",")[0] || process.env.COOLIFY_URL;
+		const rawCoolifyUrl = process.env.COOLIFY_URL;
+		const parts = rawCoolifyUrl
+			.split(",")
+			.map((part) => part.trim())
+			.filter(Boolean);
+		url = parts[0] || rawCoolifyUrl.trim();
 	} else if (process.env.NODE_ENV === "development") {
 		url = "http://localhost:3000";
 	} else {
