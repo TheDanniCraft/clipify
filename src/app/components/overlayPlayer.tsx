@@ -136,6 +136,7 @@ export default function OverlayPlayer({
 	}, [playedClips]);
 
 	const nextClipRef = useRef<VideoClip | null>(null);
+	const nextQueueItemRef = useRef<ModQueueItem | ClipQueueItem | null>(null);
 	useEffect(() => {
 		nextClipRef.current = nextClip;
 	}, [nextClip]);
@@ -158,6 +159,7 @@ export default function OverlayPlayer({
 	// Prevent overlapping "advance" calls + stale async overwrites
 	const advanceLockRef = useRef(false);
 	const requestIdRef = useRef(0);
+	const pendingSkipRef = useRef(0);
 
 	// Prevent overlapping prefetches / stale updates
 	const prefetchAbortRef = useRef<AbortController | null>(null);
@@ -373,24 +375,18 @@ export default function OverlayPlayer({
 		return queClip ?? null;
 	}, [isEmbed, isDemoPlayer, overlay.id, overlaySecret]);
 
-	const getRandomClip = useCallback(async (): Promise<TwitchClip | null> => {
+	type ClipCandidate = { clip: TwitchClip; queueItem?: ModQueueItem | ClipQueueItem };
+
+	const getRandomClip = useCallback(async (): Promise<ClipCandidate | null> => {
 		if (isDemoPlayer) {
 			const demoClip = await getFirstFromDemoQueue();
-			if (demoClip) return demoClip;
+			if (demoClip) return { clip: demoClip };
 		}
 
 		const queClip = await getFirstQueClip();
 		if (queClip) {
 			const clip = await getTwitchClip(queClip.clipId, overlay.ownerId);
-			if (clip != null) {
-				removeFromModQueue(queClip.id, overlay.id, overlaySecret).catch((error) => {
-					console.error("Failed to remove from mod queue:", error);
-				});
-				removeFromClipQueue(queClip.id, overlay.id, overlaySecret).catch((error) => {
-					console.error("Failed to remove from clip queue:", error);
-				});
-				return clip;
-			}
+			if (clip != null) return { clip, queueItem: queClip };
 		}
 
 		if (!clips || clips.length === 0) return null;
@@ -408,20 +404,18 @@ export default function OverlayPlayer({
 			candidates = clips.filter((c) => c.id !== currentId && c.id !== nextId);
 		}
 
-		if (candidates.length === 0 && clips.length === 1) {
-			return clips[0];
-		}
+		if (candidates.length === 0 && clips.length === 1) return { clip: clips[0] };
 
 		if (candidates.length === 0 && clips.length === 2) {
-			if (!currentId) return clips[Math.floor(Math.random() * 2)];
-			return clips.find((c) => c.id !== currentId) ?? clips[0];
+			if (!currentId) return { clip: clips[Math.floor(Math.random() * 2)] };
+			return { clip: clips.find((c) => c.id !== currentId) ?? clips[0] };
 		}
 
 		if (candidates.length === 0) {
-			return clips[Math.floor(Math.random() * clips.length)];
+			return { clip: clips[Math.floor(Math.random() * clips.length)] };
 		}
 
-		return candidates[Math.floor(Math.random() * candidates.length)];
+		return { clip: candidates[Math.floor(Math.random() * candidates.length)] };
 	}, [clips, getFirstQueClip, getFirstFromDemoQueue, isDemoPlayer, overlay.ownerId]);
 
 	/**
@@ -448,6 +442,15 @@ export default function OverlayPlayer({
 			if (prefetched) {
 				nextClipRef.current = null;
 				setNextClip(null);
+				if (nextQueueItemRef.current) {
+					removeFromModQueue(nextQueueItemRef.current.id, overlay.id, overlaySecret).catch((error) => {
+						console.error("Failed to remove from mod queue:", error);
+					});
+					removeFromClipQueue(nextQueueItemRef.current.id, overlay.id, overlaySecret).catch((error) => {
+						console.error("Failed to remove from clip queue:", error);
+					});
+					nextQueueItemRef.current = null;
+				}
 				if (activeSlot === "a") {
 					readyARef.current = false;
 					setClipA(prefetched);
@@ -473,17 +476,25 @@ export default function OverlayPlayer({
 
 			const candidate = await getRandomClip();
 			if (!candidate) {
-				setVideoClip(null);
+				// Keep current clip if we can't fetch a new one (avoid blank background on skip).
 				return;
 			}
 
 			const myReqId = ++requestIdRef.current;
-			const built = await buildVideoClipFast(candidate);
+			const built = await buildVideoClipFast(candidate.clip);
 
 			// ignore stale result if something newer already advanced
 			if (myReqId !== requestIdRef.current) return;
 
 			if (built) {
+				if (candidate.queueItem) {
+					removeFromModQueue(candidate.queueItem.id, overlay.id, overlaySecret).catch((error) => {
+						console.error("Failed to remove from mod queue:", error);
+					});
+					removeFromClipQueue(candidate.queueItem.id, overlay.id, overlaySecret).catch((error) => {
+						console.error("Failed to remove from clip queue:", error);
+					});
+				}
 				if (activeSlot === "a") {
 					readyARef.current = false;
 					setClipA(built);
@@ -507,13 +518,18 @@ export default function OverlayPlayer({
 			}
 		} finally {
 			advanceLockRef.current = false;
+			if (pendingSkipRef.current > 0) {
+				pendingSkipRef.current -= 1;
+				advanceClip().catch((error) => console.error("Error advancing clip after pending skip:", error));
+			}
 		}
-	}, [activeSlot, buildVideoClipFast, getRandomClip, isDemoPlayer]);
+	}, [activeSlot, buildVideoClipFast, getRandomClip, isDemoPlayer, overlay.id, overlaySecret]);
 
 	const resetPrefetch = useCallback(() => {
 		prefetchAbortRef.current?.abort();
 		prefetchAbortRef.current = null;
 		nextClipRef.current = null;
+		nextQueueItemRef.current = null;
 		setNextClip(null);
 	}, []);
 
@@ -543,6 +559,10 @@ export default function OverlayPlayer({
 			}
 
 			case "skip": {
+				if (advanceLockRef.current) {
+					pendingSkipRef.current += 1;
+					break;
+				}
 				await advanceClip();
 				break;
 			}
@@ -729,10 +749,18 @@ export default function OverlayPlayer({
 			if (!candidate) return;
 
 			const myReqId = ++requestIdRef.current;
-			const built = await buildVideoClipFast(candidate);
+			const built = await buildVideoClipFast(candidate.clip);
 			if (myReqId !== requestIdRef.current) return;
 
 			if (built) {
+				if (candidate.queueItem) {
+					removeFromModQueue(candidate.queueItem.id, overlay.id, overlaySecret).catch((error) => {
+						console.error("Failed to remove from mod queue:", error);
+					});
+					removeFromClipQueue(candidate.queueItem.id, overlay.id, overlaySecret).catch((error) => {
+						console.error("Failed to remove from clip queue:", error);
+					});
+				}
 				if (activeSlot === "a") {
 					readyARef.current = false;
 					setClipA(built);
@@ -755,7 +783,7 @@ export default function OverlayPlayer({
 				setVideoClip(built);
 			}
 		})();
-	}, [activeSlot, buildVideoClipFast, getRandomClip, isDemoPlayer]);
+	}, [activeSlot, buildVideoClipFast, getRandomClip, isDemoPlayer, overlay.id, overlaySecret]);
 
 	/**
 	 * Prefetch next clip while current plays.
@@ -773,11 +801,12 @@ export default function OverlayPlayer({
 			const candidate = await getRandomClip();
 			if (!candidate || cancelled || controller.signal.aborted) return;
 
-			const built = await buildVideoClipFast(candidate);
+			const built = await buildVideoClipFast(candidate.clip);
 			if (!built || cancelled || controller.signal.aborted) return;
 
 			preloadVideo(built.mediaUrl);
 			setNextClip(built);
+			nextQueueItemRef.current = candidate.queueItem ?? null;
 		}
 
 		prefetchNext();
@@ -787,7 +816,7 @@ export default function OverlayPlayer({
 			prefetchAbortRef.current?.abort();
 		};
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [buildVideoClipFast, videoClip?.id, getRandomClip, isDemoPlayer]);
+	}, [buildVideoClipFast, videoClip?.id, getRandomClip, isDemoPlayer, overlay.id, overlaySecret]);
 
 	const startCrossfade = useCallback(() => {
 		if (crossfadeLockRef.current || isCrossfading) return;
@@ -805,6 +834,15 @@ export default function OverlayPlayer({
 			clearTimeout(holdTimeoutRef.current);
 			holdTimeoutRef.current = null;
 		}
+		if (nextQueueItemRef.current) {
+			removeFromModQueue(nextQueueItemRef.current.id, overlay.id, overlaySecret).catch((error) => {
+				console.error("Failed to remove from mod queue:", error);
+			});
+			removeFromClipQueue(nextQueueItemRef.current.id, overlay.id, overlaySecret).catch((error) => {
+				console.error("Failed to remove from clip queue:", error);
+			});
+			nextQueueItemRef.current = null;
+		}
 		setIsCrossfading(true);
 		nextClipRef.current = null;
 		setNextClip(null);
@@ -821,7 +859,7 @@ export default function OverlayPlayer({
 			playedClipsRef.current = [...playedClipsRef.current, clipRef.current.id];
 			setPlayedClips(playedClipsRef.current);
 		}
-	}, [activeSlot, isCrossfading]);
+	}, [activeSlot, isCrossfading, overlay.id, overlaySecret]);
 
 	const handleTimeUpdate = useCallback(
 		(slot: "a" | "b", video: HTMLVideoElement | null) => {
