@@ -787,7 +787,7 @@ export default function OverlayPlayer({
 			prefetchAbortRef.current?.abort();
 		};
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [buildVideoClipFast, prefetchMetadata, videoClip?.id, getRandomClip, isDemoPlayer]);
+	}, [buildVideoClipFast, videoClip?.id, getRandomClip, isDemoPlayer]);
 
 	const startCrossfade = useCallback(() => {
 		if (crossfadeLockRef.current || isCrossfading) return;
