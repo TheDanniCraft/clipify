@@ -1,10 +1,10 @@
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-import { getOverlayPublic } from "@/app/actions/database";
-import { getTwitchClips } from "@/app/actions/twitch";
-import OverlayPlayer from "@/app/components/overlayPlayer";
-import { type Overlay } from "@/app/lib/types";
+import { getOverlayPublic } from "@actions/database";
+import { getTwitchClips } from "@actions/twitch";
+import OverlayPlayer from "@components/overlayPlayer";
+import { type Overlay } from "@types";
 
 export default async function Overlay() {
 	const overlay = (await getOverlayPublic(process.env.DEMO_OVERLAY_ID as string)) as Overlay;

@@ -1,7 +1,7 @@
-import { getOverlayOwnerPlanPublic, getOverlayPublic } from "@/app/actions/database";
-import { getTwitchClips } from "@/app/actions/twitch";
-import OverlayPlayer from "@/app/components/overlayPlayer";
-import { Plan, type Overlay } from "@/app/lib/types";
+import { getOverlayOwnerPlanPublic, getOverlayPublic } from "@actions/database";
+import { getTwitchClips } from "@actions/twitch";
+import OverlayPlayer from "@components/overlayPlayer";
+import { Plan, type Overlay } from "@types";
 
 export default async function Overlay({ params, searchParams }: { params: Promise<{ overlayId: string }>; searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
 	const { overlayId } = await params;

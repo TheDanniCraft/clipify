@@ -1,15 +1,16 @@
 "use client";
 
-import { validateAuth } from "@/app/actions/auth";
-import { getAccessToken, getAllOverlays, getEditorOverlays, getOverlayOwnerPlans } from "@/app/actions/database";
-import { getUsersDetailsBulk } from "@/app/actions/twitch";
-import DashboardNavbar from "@/app/components/dashboardNavbar";
-import { AuthenticatedUser, Overlay } from "@/app/lib/types";
+import { validateAuth } from "@actions/auth";
+import { getAccessToken, getAllOverlays, getEditorOverlays, getOverlayOwnerPlans } from "@actions/database";
+import { getUsersDetailsBulk } from "@actions/twitch";
+import DashboardNavbar from "@components/dashboardNavbar";
+import { AuthenticatedUser, Overlay } from "@types";
 import { Avatar, Button, Card, CardBody, CardHeader, Divider, Link, Select, SelectItem, Snippet, Spinner, Switch, Tooltip, useDisclosure } from "@heroui/react";
 import { IconArrowLeft, IconCode, IconEye, IconLink, IconPlayerPlayFilled, IconSparkles, IconVolume } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import UpgradeModal from "@/app/components/upgradeModal";
+import UpgradeModal from "@components/upgradeModal";
+import ChatwootData from "@components/chatwootData";
 
 export default function EmbedTool() {
 	const router = useRouter();
@@ -105,6 +106,7 @@ export default function EmbedTool() {
 	return (
 		<>
 			<script src='//tag.goadopt.io/injector.js?website_code=792b9b29-57f9-4d92-b5f1-313f94ddfacc' className='adopt-injector' defer></script>
+			<ChatwootData user={user} overlay={overlays.find((o) => o.id === overlayId)} />
 
 			<DashboardNavbar user={user!} title='Embed Widget Tool' tagline='Generate embed codes for your overlays'>
 				<div className='px-6 md:px-12 lg:px-16 py-8 grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 items-start max-w-7xl mx-auto w-full'>

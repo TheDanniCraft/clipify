@@ -3,7 +3,7 @@
 import { WebSocket } from "ws";
 import { getOverlayBySecret } from "@actions/database";
 import { RawData } from "ws";
-import { overlaySubscribers as subscribers, addSubscriber } from "@/app/store/overlaySubscribers";
+import { overlaySubscribers as subscribers, addSubscriber } from "@store/overlaySubscribers";
 
 export async function handleMessage(buffer: RawData, client: WebSocket) {
 	const message = buffer.toString("utf8").trim();

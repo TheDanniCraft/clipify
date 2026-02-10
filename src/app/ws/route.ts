@@ -1,5 +1,5 @@
 import { WebSocket, WebSocketServer } from "ws";
-import { removeSubscriber } from "@/app/store/overlaySubscribers";
+import { removeSubscriber } from "@store/overlaySubscribers";
 import { handleMessage } from "@actions/websocket";
 
 let heartbeatInterval: NodeJS.Timeout | null = null;

@@ -413,3 +413,55 @@ declare global {
 		};
 	}
 }
+
+declare global {
+	interface Window {
+		chatwootSDK?: {
+			run: (config: { websiteToken: string; baseUrl: string }) => void;
+		};
+		chatwootSettings?: {
+			hideMessageBubble?: boolean;
+			position?: "left" | "right";
+			locale?: string;
+			type?: "standard" | "expanded_bubble";
+			launcherTitle?: string;
+			darkMode?: "auto" | "light";
+		};
+		$chatwoot?: {
+			baseUrl: string;
+			baseDomain?: string;
+			hasLoaded: boolean;
+			hideMessageBubble: boolean;
+			isOpen: boolean;
+			position: "left" | "right";
+			websiteToken: string;
+			locale: string;
+			useBrowserLanguage: boolean;
+			type: "standard" | "expanded_bubble";
+			availableMessage: string;
+			darkMode: "auto" | "light";
+			enableEmojiPicker: boolean;
+			enableEndConversation: boolean;
+			enableFileUpload?: boolean;
+			launcherTitle: string;
+			popoutChatWindow: () => void;
+			removeLabel: (label: string) => void;
+			reset: () => void;
+			resetTriggered: boolean;
+			setColorScheme: (scheme: unknown) => void;
+			setConversationCustomAttributes: (attrs: unknown) => void;
+			setCustomAttributes: (attrs: unknown) => void;
+			setLabel: (label: string) => void;
+			setLocale: (locale: string) => void;
+			setUser: (user: unknown, options?: unknown) => void;
+			showPopoutButton: boolean;
+			showUnreadMessagesDialog: boolean;
+			toggle: (state?: boolean) => void;
+			toggleBubbleVisibility: (visible: boolean) => void;
+			unavailableMessage: string;
+			welcomeDescription: string;
+			welcomeTitle: string;
+			widgetStyle: string;
+		};
+	}
+}

@@ -2,9 +2,9 @@
 
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
-import { downgradeUserPlan, getUserByCustomerId, updateUserSubscription } from "@/app/actions/database";
-import { getPlans, getStripe } from "@/app/actions/subscription";
-import { Plan } from "@/app/lib/types";
+import { downgradeUserPlan, getUserByCustomerId, updateUserSubscription } from "@actions/database";
+import { getPlans, getStripe } from "@actions/subscription";
+import { Plan } from "@types";
 import Stripe from "stripe";
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_KEY || "";

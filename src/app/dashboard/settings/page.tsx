@@ -1,18 +1,19 @@
 "use client";
 
-import { validateAuth } from "@/app/actions/auth";
-import { deleteUser, getSettings, saveSettings } from "@/app/actions/database";
-import ConfirmModal from "@/app/components/confirmModal";
-import DashboardNavbar from "@/app/components/dashboardNavbar";
-import { AuthenticatedUser, Plan, UserSettings } from "@/app/lib/types";
+import { validateAuth } from "@actions/auth";
+import { deleteUser, getSettings, saveSettings } from "@actions/database";
+import ConfirmModal from "@components/confirmModal";
+import DashboardNavbar from "@components/dashboardNavbar";
+import { AuthenticatedUser, Plan, UserSettings } from "@types";
 import { addToast, Avatar, Button, Card, CardBody, CardHeader, Divider, Form, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Snippet, Spinner, Tooltip, useDisclosure } from "@heroui/react";
 import { IconAlertTriangle, IconArrowLeft, IconCreditCardFilled, IconCrown, IconDeviceFloppy, IconDiamondFilled, IconInfoCircle, IconTrash } from "@tabler/icons-react";
 import { redirect, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { generatePaymentLink, checkIfSubscriptionExists, getPortalLink } from "@/app/actions/subscription";
+import { generatePaymentLink, checkIfSubscriptionExists, getPortalLink } from "@actions/subscription";
 import { useNavigationGuard } from "next-navigation-guard";
-import UpgradeModal from "@/app/components/upgradeModal";
-import TagsInput from "@/app/components/tagsInput";
+import UpgradeModal from "@components/upgradeModal";
+import TagsInput from "@components/tagsInput";
+import ChatwootData from "@components/chatwootData";
 
 export default function SettingsPage() {
 	const [user, setUser] = useState<AuthenticatedUser | null>(null);
@@ -98,6 +99,7 @@ export default function SettingsPage() {
 	return (
 		<>
 			<script src='//tag.goadopt.io/injector.js?website_code=792b9b29-57f9-4d92-b5f1-313f94ddfacc' className='adopt-injector' defer></script>
+			<ChatwootData user={user} />
 
 			<DashboardNavbar user={user} title='Settings' tagline='Manage your settings'>
 				<Card className='mt-4'>

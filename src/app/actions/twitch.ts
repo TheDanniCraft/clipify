@@ -5,6 +5,7 @@ import { AuthenticatedUser, Game, Overlay, OverlayType, RewardStatus, TwitchApiR
 import { getAccessToken } from "@actions/database";
 import { getBaseUrl, isPreview } from "@actions/utils";
 import { isTitleBlocked } from "@/app/utils/regexFilter";
+import { REWARD_NOT_FOUND } from "@lib/twitchErrors";
 
 export async function logTwitchError(context: string, error: unknown) {
 	if (axios.isAxiosError(error) && error.response) {
@@ -515,6 +516,9 @@ export async function getReward(userId: string, rewardId: string): Promise<Twitc
 		});
 		return response.data.data[0] || null;
 	} catch (error) {
+		if (axios.isAxiosError(error) && error.response?.status === 404) {
+			throw new Error(REWARD_NOT_FOUND);
+		}
 		logTwitchError("Error fetching reward", error);
 		return null;
 	}
