@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { downgradeUserPlan, getUserByCustomerId, updateUserSubscription } from "@actions/database";
 import { getPlans, getStripe } from "@actions/subscription";
-import { Plan } from "@lib/types";
+import { Plan } from "@types";
 import Stripe from "stripe";
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_KEY || "";
