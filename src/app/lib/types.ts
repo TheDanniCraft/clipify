@@ -429,7 +429,7 @@ declare global {
 		};
 		$chatwoot?: {
 			baseUrl: string;
-			baseDomain: undefined;
+			baseDomain?: string;
 			hasLoaded: boolean;
 			hideMessageBubble: boolean;
 			isOpen: boolean;
@@ -442,7 +442,7 @@ declare global {
 			darkMode: "auto" | "light";
 			enableEmojiPicker: boolean;
 			enableEndConversation: boolean;
-			enableFileUpload: undefined;
+			enableFileUpload?: boolean;
 			launcherTitle: string;
 			popoutChatWindow: () => void;
 			removeLabel: (label: string) => void;
