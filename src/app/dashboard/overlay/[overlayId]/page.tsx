@@ -72,16 +72,19 @@ export default function OverlaySettings() {
 
 	useEffect(() => {
 		async function fetchRewardTitle() {
-			if (overlay?.rewardId) {
+			const overlayId = overlay?.id;
+			const ownerId = overlay?.ownerId;
+			const rewardId = overlay?.rewardId;
+
+			if (overlayId && ownerId && rewardId) {
 				try {
-					const reward = await getReward(overlay.ownerId, overlay.rewardId);
+					const reward = await getReward(ownerId, rewardId);
 					setReward(reward);
 				} catch (error) {
 					const isNotFound = error instanceof Error && error.message === REWARD_NOT_FOUND;
 					if (isNotFound) {
-						const nextOverlay = { ...overlay, rewardId: null };
 						try {
-							await saveOverlay(overlay.id, { rewardId: null });
+							await saveOverlay(overlayId, { rewardId: null });
 						} catch (saveError) {
 							addToast({
 								title: "Failed to update reward",
@@ -89,8 +92,8 @@ export default function OverlaySettings() {
 								color: "danger",
 							});
 						}
-						setOverlay(nextOverlay);
-						setBaseOverlay(nextOverlay);
+						setOverlay((prev) => (prev ? { ...prev, rewardId: null } : prev));
+						setBaseOverlay((prev) => (prev ? { ...prev, rewardId: null } : prev));
 					}
 					setReward(null);
 				}
@@ -99,7 +102,7 @@ export default function OverlaySettings() {
 			}
 		}
 		fetchRewardTitle();
-	}, [overlay?.rewardId, overlay?.ownerId]);
+	}, [addToast, overlay?.id, overlay?.ownerId, overlay?.rewardId]);
 
 	useEffect(() => {
 		async function fetchOverlay() {
