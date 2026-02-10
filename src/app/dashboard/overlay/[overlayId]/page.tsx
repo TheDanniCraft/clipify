@@ -10,7 +10,7 @@ import { IconAlertTriangle, IconArrowLeft, IconCrown, IconDeviceFloppy, IconInfo
 import DashboardNavbar from "@components/dashboardNavbar";
 import { useNavigationGuard } from "next-navigation-guard";
 import { validateAuth } from "@actions/auth";
-import { createChannelReward, getReward, getTwitchClips, removeChannelReward } from "@actions/twitch";
+import { createChannelReward, getReward, getTwitchClips, removeChannelReward, REWARD_NOT_FOUND } from "@actions/twitch";
 import FeedbackWidget from "@components/feedbackWidget";
 import TagsInput from "@components/tagsInput";
 import { isTitleBlocked } from "@/app/utils/regexFilter";
@@ -76,10 +76,18 @@ export default function OverlaySettings() {
 					const reward = await getReward(overlay.ownerId, overlay.rewardId);
 					setReward(reward);
 				} catch (error) {
-					const isNotFound = error instanceof Error && error.message === "REWARD_NOT_FOUND";
+					const isNotFound = error instanceof Error && error.message === REWARD_NOT_FOUND;
 					if (isNotFound) {
 						const nextOverlay = { ...overlay, rewardId: null };
-						await saveOverlay(overlay.id, { rewardId: null });
+						try {
+							await saveOverlay(overlay.id, { rewardId: null });
+						} catch (saveError) {
+							addToast({
+								title: "Failed to update reward",
+								description: "The overlay was updated locally, but saving the change failed.",
+								color: "danger",
+							});
+						}
 						setOverlay(nextOverlay);
 						setBaseOverlay(nextOverlay);
 					}

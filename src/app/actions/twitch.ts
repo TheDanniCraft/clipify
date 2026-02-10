@@ -493,7 +493,7 @@ export async function getGameDetails(gameId: string, authUserId: string): Promis
 	}
 }
 
-const REWARD_NOT_FOUND = "REWARD_NOT_FOUND";
+export const REWARD_NOT_FOUND = "REWARD_NOT_FOUND";
 
 export async function getReward(userId: string, rewardId: string): Promise<TwitchReward | null> {
 	const url = `https://api.twitch.tv/helix/channel_points/custom_rewards`;

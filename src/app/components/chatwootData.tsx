@@ -23,7 +23,7 @@ export default function ChatwootData({ user, overlay }: { user?: AuthenticatedUs
 		lastSignatureRef.current = signature;
 
 		if (user) {
-			window.$chatwoot?.setCustomAttributes({
+			window.$chatwoot?.setCustomAttributes?.({
 				user_id: user.id,
 				plan: user.plan,
 				stripe_customer_id: user.stripeCustomerId,
@@ -62,7 +62,7 @@ export default function ChatwootData({ user, overlay }: { user?: AuthenticatedUs
 		const setConversationAttributes = () => {
 			if (hasSetOverlayRef.current) return;
 			hasSetOverlayRef.current = true;
-			window.$chatwoot?.setConversationCustomAttributes({
+			window.$chatwoot?.setConversationCustomAttributes?.({
 				overlay_id: overlay.id,
 				overlay_created_at: overlay.createdAt,
 			});
