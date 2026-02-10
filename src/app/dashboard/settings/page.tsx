@@ -13,6 +13,7 @@ import { generatePaymentLink, checkIfSubscriptionExists, getPortalLink } from "@
 import { useNavigationGuard } from "next-navigation-guard";
 import UpgradeModal from "@/app/components/upgradeModal";
 import TagsInput from "@/app/components/tagsInput";
+import ChatwootData from "@/app/components/chatwootData";
 
 export default function SettingsPage() {
 	const [user, setUser] = useState<AuthenticatedUser | null>(null);
@@ -98,6 +99,7 @@ export default function SettingsPage() {
 	return (
 		<>
 			<script src='//tag.goadopt.io/injector.js?website_code=792b9b29-57f9-4d92-b5f1-313f94ddfacc' className='adopt-injector' defer></script>
+			<ChatwootData user={user} />
 
 			<DashboardNavbar user={user} title='Settings' tagline='Manage your settings'>
 				<Card className='mt-4'>

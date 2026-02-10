@@ -15,6 +15,7 @@ import FeedbackWidget from "@components/feedbackWidget";
 import TagsInput from "@components/tagsInput";
 import { isTitleBlocked } from "@/app/utils/regexFilter";
 import UpgradeModal from "@/app/components/upgradeModal";
+import ChatwootData from "@/app/components/chatwootData";
 
 const overlayTypes: { key: OverlayType; label: string }[] = [
 	{ key: "1", label: "Top Clips - Today" },
@@ -142,6 +143,7 @@ export default function OverlaySettings() {
 	return (
 		<>
 			<script src='//tag.goadopt.io/injector.js?website_code=792b9b29-57f9-4d92-b5f1-313f94ddfacc' className='adopt-injector' defer></script>
+			<ChatwootData user={user} overlay={overlay} />
 
 			<DashboardNavbar user={user!} title='Overlay Settings' tagline='Manage your overlays'>
 				<FeedbackWidget />
@@ -252,13 +254,7 @@ export default function OverlaySettings() {
 														<li>Advanced clip filtering</li>
 														<li>Priority support</li>
 													</ul>
-													<Button
-														color='warning'
-														variant='shadow'
-														isDisabled={user?.id !== overlay.ownerId}
-														onPress={onUpgradeOpen}
-														className='mt-3 w-full font-semibold'
-													>
+													<Button color='warning' variant='shadow' isDisabled={user?.id !== overlay.ownerId} onPress={onUpgradeOpen} className='mt-3 w-full font-semibold'>
 														Upgrade for less than a coffee
 													</Button>
 													{user?.id !== overlay.ownerId ? <p className='text-xs text-danger text-center mt-2'>Only the overlay owner can unlock premium features.</p> : <p className='text-xs text-warning-600 text-center mt-2'>Enjoy a 3-day free trial. Cancel anytime.</p>}

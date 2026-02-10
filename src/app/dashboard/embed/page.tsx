@@ -10,6 +10,7 @@ import { IconArrowLeft, IconCode, IconEye, IconLink, IconPlayerPlayFilled, IconS
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import UpgradeModal from "@/app/components/upgradeModal";
+import ChatwootData from "@/app/components/chatwootData";
 
 export default function EmbedTool() {
 	const router = useRouter();
@@ -105,6 +106,7 @@ export default function EmbedTool() {
 	return (
 		<>
 			<script src='//tag.goadopt.io/injector.js?website_code=792b9b29-57f9-4d92-b5f1-313f94ddfacc' className='adopt-injector' defer></script>
+			<ChatwootData user={user} overlay={overlays.find((o) => o.id === overlayId)} />
 
 			<DashboardNavbar user={user!} title='Embed Widget Tool' tagline='Generate embed codes for your overlays'>
 				<div className='px-6 md:px-12 lg:px-16 py-8 grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 items-start max-w-7xl mx-auto w-full'>

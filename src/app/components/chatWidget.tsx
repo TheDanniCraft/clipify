@@ -3,22 +3,6 @@ import { useEffect } from "react";
 const CHATWOOT_BASE_URL = "https://chat.cloud.thedannicraft.de";
 const CHATWOOT_WEBSITE_TOKEN = "new6uhVJwGhe8PCG8jxRMeiC";
 
-declare global {
-	interface Window {
-		chatwootSDK?: {
-			run: (config: { websiteToken: string; baseUrl: string }) => void;
-		};
-		chatwootSettings?: {
-			hideMessageBubble?: boolean;
-			position?: "left" | "right";
-			locale?: string;
-			type?: "standard" | "expanded_bubble";
-			launcherTitle?: string;
-			darkMode?: "auto" | "light";
-		};
-	}
-}
-
 const ChatWidget = () => {
 	useEffect(() => {
 		window.chatwootSettings = {
