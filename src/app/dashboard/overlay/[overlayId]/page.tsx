@@ -15,7 +15,7 @@ import FeedbackWidget from "@components/feedbackWidget";
 import TagsInput from "@components/tagsInput";
 import { isTitleBlocked } from "@/app/utils/regexFilter";
 import UpgradeModal from "@/app/components/upgradeModal";
-import ChatwootData from "@/app/components/chatwootData";
+import ChatwootData from "@components/chatwootData";
 
 const overlayTypes: { key: OverlayType; label: string }[] = [
 	{ key: "1", label: "Top Clips - Today" },

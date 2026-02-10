@@ -10,7 +10,7 @@ import { IconArrowLeft, IconCode, IconEye, IconLink, IconPlayerPlayFilled, IconS
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import UpgradeModal from "@/app/components/upgradeModal";
-import ChatwootData from "@/app/components/chatwootData";
+import ChatwootData from "@components/chatwootData";
 
 export default function EmbedTool() {
 	const router = useRouter();

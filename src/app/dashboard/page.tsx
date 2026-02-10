@@ -4,7 +4,7 @@ import DashboardNavbar from "@components/dashboardNavbar";
 import { validateAuth } from "@actions/auth";
 import FeedbackWidget from "@components/feedbackWidget";
 import { getAccessToken } from "@actions/database";
-import ChatwootData from "../components/chatwootData";
+import ChatwootData from "@components/chatwootData";
 
 export default async function Dashboard() {
 	const user = await validateAuth();

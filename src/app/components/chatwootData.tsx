@@ -6,6 +6,7 @@ import { AuthenticatedUser, Overlay } from "@types";
 export default function ChatwootData({ user, overlay }: { user?: AuthenticatedUser; overlay?: Overlay }) {
 	const lastSignatureRef = useRef<string | null>(null);
 	const hasSetOverlayRef = useRef(false);
+	const lastOverlayIdRef = useRef<string | null>(null);
 
 	const applyChatwootData = useCallback(() => {
 		const signature = JSON.stringify({
@@ -48,7 +49,14 @@ export default function ChatwootData({ user, overlay }: { user?: AuthenticatedUs
 
 	useEffect(() => {
 		if (!overlay) {
+			lastOverlayIdRef.current = null;
+			hasSetOverlayRef.current = false;
 			return;
+		}
+
+		if (lastOverlayIdRef.current !== overlay.id) {
+			lastOverlayIdRef.current = overlay.id;
+			hasSetOverlayRef.current = false;
 		}
 
 		const setConversationAttributes = () => {

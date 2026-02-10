@@ -13,7 +13,7 @@ import { generatePaymentLink, checkIfSubscriptionExists, getPortalLink } from "@
 import { useNavigationGuard } from "next-navigation-guard";
 import UpgradeModal from "@/app/components/upgradeModal";
 import TagsInput from "@/app/components/tagsInput";
-import ChatwootData from "@/app/components/chatwootData";
+import ChatwootData from "@components/chatwootData";
 
 export default function SettingsPage() {
 	const [user, setUser] = useState<AuthenticatedUser | null>(null);
