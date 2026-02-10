@@ -471,6 +471,7 @@ export default function OverlayPlayer({
 					}
 				}
 				setVideoClip(prefetched);
+				setShowOverlay(true);
 				return;
 			}
 
@@ -515,6 +516,7 @@ export default function OverlayPlayer({
 					}
 				}
 				setVideoClip(built);
+				setShowOverlay(true);
 			}
 		} finally {
 			advanceLockRef.current = false;
@@ -584,6 +586,14 @@ export default function OverlayPlayer({
 	useEffect(() => {
 		clipRef.current = videoClip;
 	}, [videoClip]);
+
+	useEffect(() => {
+		if (!showPlayer) {
+			setShowOverlay(false);
+			return;
+		}
+		if (videoClip) setShowOverlay(true);
+	}, [showPlayer, videoClip?.id]);
 
 	useEffect(() => {
 		const activeVideo = activeSlot === "a" ? videoARef.current : videoBRef.current;
@@ -781,6 +791,7 @@ export default function OverlayPlayer({
 					}
 				}
 				setVideoClip(built);
+				setShowOverlay(true);
 			}
 		})();
 	}, [activeSlot, buildVideoClipFast, getRandomClip, isDemoPlayer, overlay.id, overlaySecret]);
@@ -923,6 +934,7 @@ export default function OverlayPlayer({
 		const timeout = setTimeout(() => {
 			setActiveSlot(inactiveSlot);
 			setVideoClip(incomingClip);
+			setShowOverlay(true);
 			setIncomingClip(null);
 			setIsCrossfading(false);
 			crossfadeLockRef.current = false;
@@ -1027,7 +1039,7 @@ export default function OverlayPlayer({
 								aspectRatio: "19 / 9",
 								pointerEvents: showPlayer ? "auto" : "none",
 							}}
-							className='block absolute inset-0'
+							className='block absolute inset-0 z-0'
 							muted={effectiveMuted}
 						>
 							Your browser does not support the video tag.
@@ -1097,7 +1109,7 @@ export default function OverlayPlayer({
 									aspectRatio: "19 / 9",
 									pointerEvents: showPlayer ? "auto" : "none",
 								}}
-								className='block absolute inset-0'
+								className='block absolute inset-0 z-0'
 								muted={effectiveMuted}
 							>
 								Your browser does not support the video tag.
@@ -1148,10 +1160,10 @@ export default function OverlayPlayer({
 						</div>
 					) : null
 				) : (
-					<div className='absolute inset-0 flex flex-col justify-between text-xs sm:text-sm md:text-base lg:text-lg'>
-						{showOverlay && (
+					<div className='absolute inset-0 z-10 flex flex-col justify-between text-xs sm:text-sm md:text-base lg:text-lg'>
+						{(showOverlay || (showPlayer && !!videoClip)) && (
 							<>
-								<PlayerOverlay left='2%' top='2%' scale={isDemoPlayer ? 1 : undefined}>
+								<PlayerOverlay key={`${videoClip.id}-left`} left='2%' top='2%' scale={isDemoPlayer ? 1 : undefined}>
 									<div className='flex items-center'>
 										<Avatar size='md' src={videoClip.brodcasterAvatar} />
 										<div className='flex flex-col justify-center ml-2 text-xs'>
@@ -1161,7 +1173,7 @@ export default function OverlayPlayer({
 									</div>
 								</PlayerOverlay>
 
-								<PlayerOverlay right='2%' bottom='2%' scale={isDemoPlayer ? 1 : undefined}>
+								<PlayerOverlay key={`${videoClip.id}-right`} right='2%' bottom='2%' scale={isDemoPlayer ? 1 : undefined}>
 									<div className='flex flex-col items-end text-right'>
 										<span className='font-bold'>{videoClip.title}</span>
 										<span className='text-xs text-gray-400 mt-1'>clipped by {videoClip.creator_name}</span>
