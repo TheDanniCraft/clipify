@@ -10,6 +10,18 @@ import { encryptToken, decryptToken } from "@lib/tokenCrypto";
 
 const db = drizzle(process.env.DATABASE_URL!);
 
+const TWITCH_CACHE_CLEANUP_INTERVAL_MS = 10 * 60 * 1000;
+let lastTwitchCacheCleanupAt = 0;
+
+const cleanupTwitchCacheIfNeeded = async (now: Date) => {
+	if (now.getTime() - lastTwitchCacheCleanupAt < TWITCH_CACHE_CLEANUP_INTERVAL_MS) return;
+	lastTwitchCacheCleanupAt = now.getTime();
+	await db
+		.delete(twitchCacheTable)
+		.where(lt(twitchCacheTable.expiresAt, now))
+		.execute();
+};
+
 const OVERLAY_TOUCH_INTERVAL = sql`now() - interval '1 minute'`;
 
 export async function touchUser(userId: string, tx = db) {
@@ -981,6 +993,8 @@ export async function setTwitchCache(type: TwitchCacheType, key: string, value: 
 		const expiresAt = ttlSeconds ? new Date(Date.now() + ttlSeconds * 1000) : null;
 		const payload = JSON.stringify(value);
 
+		cleanupTwitchCacheIfNeeded(now).catch((error) => console.error("Error cleaning up twitch cache:", error));
+
 		await db
 			.insert(twitchCacheTable)
 			.values({
@@ -1003,3 +1017,76 @@ export async function setTwitchCache(type: TwitchCacheType, key: string, value: 
 		console.error("Error writing twitch cache:", error);
 	}
 }
+
+export async function getTwitchCacheBatch<T>(type: TwitchCacheType, keys: string[]): Promise<T[]> {
+	try {
+		if (keys.length === 0) return [];
+		const now = new Date();
+		const rows = await db
+			.select()
+			.from(twitchCacheTable)
+			.where(
+				and(
+					eq(twitchCacheTable.type, type),
+					inArray(twitchCacheTable.key, keys),
+					or(isNull(twitchCacheTable.expiresAt), gt(twitchCacheTable.expiresAt, now)),
+				),
+			)
+			.execute();
+
+		return rows.map((row) => JSON.parse(row.value) as T);
+	} catch (error) {
+		console.error("Error reading twitch cache batch:", error);
+		return [];
+	}
+}
+
+// Stale batch read: ignore expiresAt and return last known values if present.
+export async function getTwitchCacheStaleBatch<T>(type: TwitchCacheType, keys: string[]): Promise<T[]> {
+	try {
+		if (keys.length === 0) return [];
+		const rows = await db
+			.select()
+			.from(twitchCacheTable)
+			.where(and(eq(twitchCacheTable.type, type), inArray(twitchCacheTable.key, keys)))
+			.execute();
+
+		return rows.map((row) => JSON.parse(row.value) as T);
+	} catch (error) {
+		console.error("Error reading stale twitch cache batch:", error);
+		return [];
+	}
+}
+
+export async function setTwitchCacheBatch(type: TwitchCacheType, entries: { key: string; value: unknown }[], ttlSeconds?: number) {
+	try {
+		if (entries.length === 0) return;
+		const now = new Date();
+		const expiresAt = ttlSeconds ? new Date(Date.now() + ttlSeconds * 1000) : null;
+		const rows = entries.map((entry) => ({
+			type,
+			key: entry.key,
+			value: JSON.stringify(entry.value),
+			fetchedAt: now,
+			expiresAt,
+		}));
+
+		cleanupTwitchCacheIfNeeded(now).catch((error) => console.error("Error cleaning up twitch cache:", error));
+
+		await db
+			.insert(twitchCacheTable)
+			.values(rows)
+			.onConflictDoUpdate({
+				target: [twitchCacheTable.type, twitchCacheTable.key],
+				set: {
+					value: sql`excluded.value`,
+					fetchedAt: now,
+					expiresAt,
+				},
+			})
+			.execute();
+	} catch (error) {
+		console.error("Error writing twitch cache batch:", error);
+	}
+}
+

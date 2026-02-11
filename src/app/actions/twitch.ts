@@ -2,7 +2,7 @@
 
 import axios from "axios";
 import { AuthenticatedUser, Game, Overlay, OverlayType, RewardStatus, TwitchApiResponse, TwitchAppAccessTokenResponse, TwitchCacheType, TwitchClip, TwitchClipBody, TwitchClipResponse, TwitchReward, TwitchRewardResponse, TwitchTokenApiResponse, TwitchUserResponse } from "@types";
-import { getAccessToken, getTwitchCache, getTwitchCacheEntry, getTwitchCacheStale, setTwitchCache } from "@actions/database";
+import { getAccessToken, getTwitchCache, getTwitchCacheBatch, getTwitchCacheEntry, getTwitchCacheStale, getTwitchCacheStaleBatch, setTwitchCache, setTwitchCacheBatch } from "@actions/database";
 import { getBaseUrl, isPreview } from "@actions/utils";
 import { isTitleBlocked } from "@/app/utils/regexFilter";
 import { REWARD_NOT_FOUND } from "@lib/twitchErrors";
@@ -196,7 +196,7 @@ export async function getUserDetails(accessToken: string): Promise<TwitchUserRes
 
 export async function getUsersDetailsBulk({ userIds, userNames, accessToken }: { userIds?: string[]; userNames?: string[]; accessToken: string }): Promise<TwitchUserResponse[]> {
 	const url = "https://api.twitch.tv/helix/users";
-	const USER_CACHE_TTL_SECONDS = 60 * 60;
+	const USER_CACHE_TTL_SECONDS = 60 * 60 * 24;
 	const ids = userIds ? Array.from(new Set(userIds)) : [];
 
 	try {
@@ -218,8 +218,7 @@ export async function getUsersDetailsBulk({ userIds, userNames, accessToken }: {
 		let missingIds = ids;
 
 		if (ids.length > 0) {
-			const cached = await Promise.all(ids.map((id) => getTwitchCache<TwitchUserResponse>(TwitchCacheType.User, id)));
-			cachedUsers = cached.filter((u): u is TwitchUserResponse => !!u);
+			cachedUsers = await getTwitchCacheBatch<TwitchUserResponse>(TwitchCacheType.User, ids);
 			const cachedIds = new Set(cachedUsers.map((u) => u.id));
 			missingIds = ids.filter((id) => !cachedIds.has(id));
 			if (missingIds.length === 0) return cachedUsers;
@@ -235,15 +234,18 @@ export async function getUsersDetailsBulk({ userIds, userNames, accessToken }: {
 
 		const fresh = response.data.data;
 		if (fresh.length > 0) {
-			await Promise.all(fresh.map((user) => setTwitchCache(TwitchCacheType.User, user.id, user, USER_CACHE_TTL_SECONDS)));
+			await setTwitchCacheBatch(
+				TwitchCacheType.User,
+				fresh.map((user) => ({ key: user.id, value: user })),
+				USER_CACHE_TTL_SECONDS,
+			);
 		}
 
 		if (cachedUsers.length > 0) return [...cachedUsers, ...fresh];
 		return fresh;
 	} catch (error) {
 		if (ids.length > 0) {
-			const stale = await Promise.all(ids.map((id) => getTwitchCacheStale<TwitchUserResponse>(TwitchCacheType.User, id)));
-			const staleUsers = stale.filter((u): u is TwitchUserResponse => !!u);
+			const staleUsers = await getTwitchCacheStaleBatch<TwitchUserResponse>(TwitchCacheType.User, ids);
 			if (staleUsers.length > 0) return staleUsers;
 		}
 		logTwitchError("Error fetching bulk user details", error);
@@ -467,7 +469,7 @@ export async function getDemoClip(clipId: string): Promise<TwitchClip | null> {
 
 export async function getAvatar(userId: string, authUserId: string): Promise<string | undefined> {
 	const url = "https://api.twitch.tv/helix/users";
-	const AVATAR_CACHE_TTL_SECONDS = 60 * 60 * 24;
+	const AVATAR_CACHE_TTL_SECONDS = 60 * 60 * 6;
 
 	const cached = await getTwitchCache<string>(TwitchCacheType.Avatar, userId);
 	if (cached !== null) return cached || undefined;
@@ -506,7 +508,7 @@ export async function getAvatar(userId: string, authUserId: string): Promise<str
 
 export async function getGameDetails(gameId: string, authUserId: string): Promise<Game | null> {
 	const url = "https://api.twitch.tv/helix/games";
-	const GAME_CACHE_TTL_SECONDS = 60 * 60 * 24;
+	const GAME_CACHE_TTL_SECONDS = 60 * 60 * 24 * 30;
 	const cacheKey = gameId;
 
 	const cachedEntry = await getTwitchCacheEntry<Game | null>(TwitchCacheType.Game, cacheKey);

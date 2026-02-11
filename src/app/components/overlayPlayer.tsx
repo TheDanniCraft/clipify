@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ClipQueueItem, ModQueueItem, Overlay, TwitchClip, TwitchClipGqlData, TwitchClipGqlResponse, TwitchClipVideoQuality, VideoClip } from "@types";
-import { getAvatar, getDemoClip, getGameDetails, getTwitchClip, subscribeToChat } from "@actions/twitch";
+import { getAvatar, getDemoClip, getGameDetails, getTwitchClip, sendChatMessage, subscribeToChat } from "@actions/twitch";
 import PlayerOverlay from "@components/playerOverlay";
 import { Avatar, Button, Link } from "@heroui/react";
 import { motion } from "framer-motion";
@@ -156,7 +156,39 @@ export default function OverlayPlayer({
 	const clipRef = useRef<VideoClip | null>(null);
 
 	// Demo queue support
-	const [demoQueue, setDemoQueue] = useState<string[]>([]);
+	type DemoQueueItem = { id: string; clip?: TwitchClip };
+	const [demoQueue, setDemoQueue] = useState<DemoQueueItem[]>([]);
+
+	const parseDemoClipId = useCallback((rawInput: string) => {
+		const raw = rawInput.trim();
+		if (!raw) return null;
+
+		try {
+			const url = new URL(raw);
+			const host = url.hostname.toLowerCase();
+			const isTwitchHost =
+				host === "twitch.tv" ||
+				host === "www.twitch.tv" ||
+				host === "clips.twitch.tv" ||
+				host.endsWith(".twitch.tv") ||
+				host.endsWith(".clips.twitch.tv");
+			if (!isTwitchHost) return null;
+
+			const clipMatch = url.pathname.match(/\/clip\/([^\/\?]+)/);
+			if (clipMatch && clipMatch[1]) return clipMatch[1];
+
+			if (host === "clips.twitch.tv" || host.endsWith(".clips.twitch.tv")) {
+				const parts = url.pathname.split("/").filter(Boolean);
+				const candidate = parts[0];
+				if (candidate && /^[A-Za-z0-9_-]+$/.test(candidate)) return candidate;
+			}
+
+			return null;
+		} catch {
+			if (!/^[A-Za-z0-9_-]+$/.test(raw)) return null;
+			return raw;
+		}
+	}, []);
 
 	// Prevent overlapping "advance" calls + stale async overwrites
 	const advanceLockRef = useRef(false);
@@ -327,40 +359,28 @@ export default function OverlayPlayer({
 	);
 
 	const getFirstFromDemoQueue = useCallback(async () => {
-		// NOTE: we read state via closure here; that’s fine, demo mode is explicit
+		// NOTE: we read state via closure here; that's fine, demo mode is explicit
 		if (demoQueue.length === 0) return null;
 
-		const raw = demoQueue[0].trim();
-		let nextClipId = raw;
+		let consumed = 0;
 
-		try {
-			const url = new URL(raw);
-			const host = url.hostname.toLowerCase();
+		while (consumed < demoQueue.length) {
+			const item = demoQueue[consumed];
+			consumed += 1;
 
-			if (!host.includes("twitch.tv") && !host.includes("clips.twitch.tv")) {
-				setDemoQueue((prevQueue) => prevQueue.slice(1));
-				return null;
-			}
+			if (!item.id) continue;
 
-			const clipMatch = url.pathname.match(/\/clip\/([^\/\?]+)/);
-			if (clipMatch && clipMatch[1]) {
-				nextClipId = clipMatch[1];
-			} else {
-				const parts = url.pathname.split("/").filter(Boolean);
-				if (parts.length > 0) nextClipId = parts[parts.length - 1];
+			const clip = item.clip ?? (await getDemoClip(item.id));
+			if (clip) {
+				setDemoQueue((prevQueue) => prevQueue.slice(consumed));
+				return clip;
 			}
-		} catch {
-			if (!/^[A-Za-z0-9_-]+$/.test(raw)) {
-				setDemoQueue((prevQueue) => prevQueue.slice(1));
-				return null;
-			}
-			nextClipId = raw;
 		}
 
-		setDemoQueue((prevQueue) => prevQueue.slice(1));
-
-		const clip = await getDemoClip(nextClipId);
-		return clip ?? null;
+		if (consumed > 0) {
+			setDemoQueue((prevQueue) => prevQueue.slice(consumed));
+		}
+		return null;
 	}, [demoQueue]);
 
 	const getFirstQueClip = useCallback(async (): Promise<ModQueueItem | ClipQueueItem | null> => {
@@ -540,21 +560,39 @@ export default function OverlayPlayer({
 					resetPrefetch();
 
 					if (isDemoPlayer) {
-						setDemoQueue((prevQueue) => [...prevQueue, data]);
-					}
+						const demoId = parseDemoClipId(data);
+						if (!demoId) {
+							return;
+						}
+
+						const demoClip = await getDemoClip(demoId);
+						if (!demoClip) {
+							return;
+						}
+
+					setDemoQueue((prevQueue) => [...prevQueue, { id: demoId, clip: demoClip }]);
+				}
 
 					// Only start immediately if nothing is currently playing.
 					if (!clipRef.current) {
 						await advanceClip();
 					}
 				} else {
+					setHasUserStarted(true);
 					setPaused(false);
+					if (showPlayer) {
+						(activeSlot === "a" ? videoARef.current : videoBRef.current)?.play().catch((error) => {
+							console.error("Error playing the video:", error);
+						});
+					}
 				}
+
 				break;
 			}
 
 			case "pause": {
 				setPaused(true);
+				(activeSlot === "a" ? videoARef.current : videoBRef.current)?.pause();
 				break;
 			}
 
