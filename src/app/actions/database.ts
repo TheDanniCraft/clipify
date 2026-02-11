@@ -1,14 +1,26 @@
 "use server";
 
 import { drizzle } from "drizzle-orm/node-postgres";
-import { tokenTable, usersTable, overlaysTable, queueTable, settingsTable, modQueueTable, editorsTable } from "@/db/schema";
-import { AuthenticatedUser, Overlay, TwitchUserResponse, TwitchTokenApiResponse, UserToken, Plan, Role, UserSettings } from "@types";
+import { tokenTable, usersTable, overlaysTable, queueTable, settingsTable, modQueueTable, editorsTable, twitchCacheTable } from "@/db/schema";
+import { AuthenticatedUser, Overlay, TwitchUserResponse, TwitchTokenApiResponse, UserToken, Plan, Role, UserSettings, TwitchCacheType } from "@types";
 import { getUserDetails, getUsersDetailsBulk, refreshAccessToken, subscribeToReward } from "@actions/twitch";
-import { eq, inArray, and, or, isNull, lt, sql } from "drizzle-orm";
+import { eq, inArray, and, or, isNull, lt, gt, sql } from "drizzle-orm";
 import { validateAuth } from "@actions/auth";
 import { encryptToken, decryptToken } from "@lib/tokenCrypto";
 
 const db = drizzle(process.env.DATABASE_URL!);
+
+const TWITCH_CACHE_CLEANUP_INTERVAL_MS = 10 * 60 * 1000;
+let lastTwitchCacheCleanupAt = 0;
+
+const cleanupTwitchCacheIfNeeded = async (now: Date) => {
+	if (now.getTime() - lastTwitchCacheCleanupAt < TWITCH_CACHE_CLEANUP_INTERVAL_MS) return;
+	lastTwitchCacheCleanupAt = now.getTime();
+	await db
+		.delete(twitchCacheTable)
+		.where(lt(twitchCacheTable.expiresAt, now))
+		.execute();
+};
 
 const OVERLAY_TOUCH_INTERVAL = sql`now() - interval '1 minute'`;
 
@@ -916,3 +928,165 @@ export async function saveSettings(settings: UserSettings) {
 		throw new Error("Failed to save settings");
 	}
 }
+
+
+export async function getTwitchCache<T>(type: TwitchCacheType, key: string): Promise<T | null> {
+	try {
+		const now = new Date();
+		const rows = await db
+			.select()
+			.from(twitchCacheTable)
+			.where(and(eq(twitchCacheTable.type, type), eq(twitchCacheTable.key, key), or(isNull(twitchCacheTable.expiresAt), gt(twitchCacheTable.expiresAt, now))))
+			.limit(1)
+			.execute();
+
+		if (rows.length === 0) return null;
+
+		return JSON.parse(rows[0].value) as T;
+	} catch (error) {
+		console.error("Error reading twitch cache:", error);
+		return null;
+	}
+}
+
+export async function getTwitchCacheEntry<T>(type: TwitchCacheType, key: string): Promise<{ hit: boolean; value: T | null }> {
+	try {
+		const now = new Date();
+		const rows = await db
+			.select()
+			.from(twitchCacheTable)
+			.where(and(eq(twitchCacheTable.type, type), eq(twitchCacheTable.key, key), or(isNull(twitchCacheTable.expiresAt), gt(twitchCacheTable.expiresAt, now))))
+			.limit(1)
+			.execute();
+
+		if (rows.length === 0) return { hit: false, value: null };
+
+		return { hit: true, value: JSON.parse(rows[0].value) as T };
+	} catch (error) {
+		console.error("Error reading twitch cache entry:", error);
+		return { hit: false, value: null };
+	}
+}
+
+// Stale read: ignore expiresAt and return last known value if present.
+export async function getTwitchCacheStale<T>(type: TwitchCacheType, key: string): Promise<T | null> {
+	try {
+		const rows = await db
+			.select()
+			.from(twitchCacheTable)
+			.where(and(eq(twitchCacheTable.type, type), eq(twitchCacheTable.key, key)))
+			.limit(1)
+			.execute();
+
+		if (rows.length === 0) return null;
+
+		return JSON.parse(rows[0].value) as T;
+	} catch (error) {
+		console.error("Error reading stale twitch cache:", error);
+		return null;
+	}
+}
+
+export async function setTwitchCache(type: TwitchCacheType, key: string, value: unknown, ttlSeconds?: number) {
+	try {
+		const now = new Date();
+		const expiresAt = ttlSeconds ? new Date(Date.now() + ttlSeconds * 1000) : null;
+		const payload = JSON.stringify(value);
+
+		cleanupTwitchCacheIfNeeded(now).catch((error) => console.error("Error cleaning up twitch cache:", error));
+
+		await db
+			.insert(twitchCacheTable)
+			.values({
+				type,
+				key,
+				value: payload,
+				fetchedAt: now,
+				expiresAt,
+			})
+			.onConflictDoUpdate({
+				target: [twitchCacheTable.type, twitchCacheTable.key],
+				set: {
+					value: payload,
+					fetchedAt: now,
+					expiresAt,
+				},
+			})
+			.execute();
+	} catch (error) {
+		console.error("Error writing twitch cache:", error);
+	}
+}
+
+export async function getTwitchCacheBatch<T>(type: TwitchCacheType, keys: string[]): Promise<T[]> {
+	try {
+		if (keys.length === 0) return [];
+		const now = new Date();
+		const rows = await db
+			.select()
+			.from(twitchCacheTable)
+			.where(
+				and(
+					eq(twitchCacheTable.type, type),
+					inArray(twitchCacheTable.key, keys),
+					or(isNull(twitchCacheTable.expiresAt), gt(twitchCacheTable.expiresAt, now)),
+				),
+			)
+			.execute();
+
+		return rows.map((row) => JSON.parse(row.value) as T);
+	} catch (error) {
+		console.error("Error reading twitch cache batch:", error);
+		return [];
+	}
+}
+
+// Stale batch read: ignore expiresAt and return last known values if present.
+export async function getTwitchCacheStaleBatch<T>(type: TwitchCacheType, keys: string[]): Promise<T[]> {
+	try {
+		if (keys.length === 0) return [];
+		const rows = await db
+			.select()
+			.from(twitchCacheTable)
+			.where(and(eq(twitchCacheTable.type, type), inArray(twitchCacheTable.key, keys)))
+			.execute();
+
+		return rows.map((row) => JSON.parse(row.value) as T);
+	} catch (error) {
+		console.error("Error reading stale twitch cache batch:", error);
+		return [];
+	}
+}
+
+export async function setTwitchCacheBatch(type: TwitchCacheType, entries: { key: string; value: unknown }[], ttlSeconds?: number) {
+	try {
+		if (entries.length === 0) return;
+		const now = new Date();
+		const expiresAt = ttlSeconds ? new Date(Date.now() + ttlSeconds * 1000) : null;
+		const rows = entries.map((entry) => ({
+			type,
+			key: entry.key,
+			value: JSON.stringify(entry.value),
+			fetchedAt: now,
+			expiresAt,
+		}));
+
+		cleanupTwitchCacheIfNeeded(now).catch((error) => console.error("Error cleaning up twitch cache:", error));
+
+		await db
+			.insert(twitchCacheTable)
+			.values(rows)
+			.onConflictDoUpdate({
+				target: [twitchCacheTable.type, twitchCacheTable.key],
+				set: {
+					value: sql`excluded.value`,
+					fetchedAt: now,
+					expiresAt,
+				},
+			})
+			.execute();
+	} catch (error) {
+		console.error("Error writing twitch cache batch:", error);
+	}
+}
+

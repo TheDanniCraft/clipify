@@ -18,6 +18,7 @@ export default async function Overlay({ params, searchParams }: { params: Promis
 	const showBanner = toFlag(sp.showBanner);
 	const embedMuted = toFlag(sp.muted);
 	const embedAutoplay = toFlag(sp.autoplay);
+	const showEmbedOverlay = toFlag(sp.showOverlay);
 
 	if (overlayId === "default") {
 		return (
@@ -79,7 +80,15 @@ export default async function Overlay({ params, searchParams }: { params: Promis
 				}}
 			/>
 			<div className='flex flex-col justify-center items-center h-screen w-screen'>
-				<OverlayPlayer clips={clips} overlay={overlay} isEmbed showBanner={showBanner || plan === Plan.Free} embedMuted={embedMuted} embedAutoplay={embedAutoplay} />
+				<OverlayPlayer
+					clips={clips}
+					overlay={overlay}
+					isEmbed
+					showBanner={showBanner || plan === Plan.Free}
+					showEmbedOverlay={showEmbedOverlay}
+					embedMuted={embedMuted}
+					embedAutoplay={embedAutoplay}
+				/>
 			</div>
 		</>
 	);

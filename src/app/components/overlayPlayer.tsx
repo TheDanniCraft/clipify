@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ClipQueueItem, ModQueueItem, Overlay, TwitchClip, TwitchClipGqlData, TwitchClipGqlResponse, TwitchClipVideoQuality, VideoClip } from "@types";
-import { getAvatar, getDemoClip, getGameDetails, getTwitchClip, subscribeToChat } from "@actions/twitch";
+import { getAvatar, getDemoClip, getGameDetails, getTwitchClip, sendChatMessage, subscribeToChat } from "@actions/twitch";
 import PlayerOverlay from "@components/playerOverlay";
 import { Avatar, Button, Link } from "@heroui/react";
 import { motion } from "framer-motion";
@@ -101,6 +101,7 @@ export default function OverlayPlayer({
 	overlay,
 	isEmbed,
 	showBanner,
+	showEmbedOverlay,
 	isDemoPlayer,
 	embedMuted,
 	embedAutoplay,
@@ -110,6 +111,7 @@ export default function OverlayPlayer({
 	overlay: Overlay;
 	isEmbed?: boolean;
 	showBanner?: boolean;
+	showEmbedOverlay?: boolean;
 	isDemoPlayer?: boolean;
 	embedMuted?: boolean;
 	embedAutoplay?: boolean;
@@ -154,7 +156,39 @@ export default function OverlayPlayer({
 	const clipRef = useRef<VideoClip | null>(null);
 
 	// Demo queue support
-	const [demoQueue, setDemoQueue] = useState<string[]>([]);
+	type DemoQueueItem = { id: string; clip?: TwitchClip };
+	const [demoQueue, setDemoQueue] = useState<DemoQueueItem[]>([]);
+
+	const parseDemoClipId = useCallback((rawInput: string) => {
+		const raw = rawInput.trim();
+		if (!raw) return null;
+
+		try {
+			const url = new URL(raw);
+			const host = url.hostname.toLowerCase();
+			const isTwitchHost =
+				host === "twitch.tv" ||
+				host === "www.twitch.tv" ||
+				host === "clips.twitch.tv" ||
+				host.endsWith(".twitch.tv") ||
+				host.endsWith(".clips.twitch.tv");
+			if (!isTwitchHost) return null;
+
+			const clipMatch = url.pathname.match(/\/clip\/([^\/\?]+)/);
+			if (clipMatch && clipMatch[1]) return clipMatch[1];
+
+			if (host === "clips.twitch.tv" || host.endsWith(".clips.twitch.tv")) {
+				const parts = url.pathname.split("/").filter(Boolean);
+				const candidate = parts[0];
+				if (candidate && /^[A-Za-z0-9_-]+$/.test(candidate)) return candidate;
+			}
+
+			return null;
+		} catch {
+			if (!/^[A-Za-z0-9_-]+$/.test(raw)) return null;
+			return raw;
+		}
+	}, []);
 
 	// Prevent overlapping "advance" calls + stale async overwrites
 	const advanceLockRef = useRef(false);
@@ -228,7 +262,7 @@ export default function OverlayPlayer({
 	}, []);
 
 	const getGameCached = useCallback(async (gameId: string, broadcasterId: string) => {
-		const cacheKey = `${gameId}:${broadcasterId}`;
+		const cacheKey = gameId;
 		if (gameCacheRef.current.has(cacheKey)) {
 			return gameCacheRef.current.get(cacheKey) ?? null;
 		}
@@ -254,11 +288,10 @@ export default function OverlayPlayer({
 
 	const prefetchMetadata = useCallback(
 		(randomClip: TwitchClip) => {
-			if (isDemoPlayer) return;
 			getAvatarCached(randomClip.broadcaster_id).catch(() => "");
 			getGameCached(randomClip.game_id, randomClip.broadcaster_id).catch(() => null);
 		},
-		[getAvatarCached, getGameCached, isDemoPlayer]
+		[getAvatarCached, getGameCached]
 	);
 
 	const patchClipById = useCallback((id: string, patch: Partial<VideoClip>) => {
@@ -292,9 +325,8 @@ export default function OverlayPlayer({
 			const cachedAvatar = avatarCacheRef.current.has(randomClip.broadcaster_id)
 				? avatarCacheRef.current.get(randomClip.broadcaster_id) ?? ""
 				: "";
-			const gameCacheKey = `${randomClip.game_id}:${randomClip.broadcaster_id}`;
 			const cachedGame =
-				(gameCacheRef.current.has(gameCacheKey) ? gameCacheRef.current.get(gameCacheKey) : null) ??
+				(gameCacheRef.current.has(randomClip.game_id) ? gameCacheRef.current.get(randomClip.game_id) : null) ??
 				(isDemoPlayer
 					? {
 							id: "",
@@ -310,8 +342,6 @@ export default function OverlayPlayer({
 				brodcasterAvatar: cachedAvatar,
 				game: cachedGame,
 			};
-
-			if (isDemoPlayer) return baseClip;
 
 			const avatarPromise = getAvatarCached(randomClip.broadcaster_id);
 			const gamePromise = getGameCached(randomClip.game_id, randomClip.broadcaster_id);
@@ -329,40 +359,28 @@ export default function OverlayPlayer({
 	);
 
 	const getFirstFromDemoQueue = useCallback(async () => {
-		// NOTE: we read state via closure here; that’s fine, demo mode is explicit
+		// NOTE: we read state via closure here; that's fine, demo mode is explicit
 		if (demoQueue.length === 0) return null;
 
-		const raw = demoQueue[0].trim();
-		let nextClipId = raw;
+		let consumed = 0;
 
-		try {
-			const url = new URL(raw);
-			const host = url.hostname.toLowerCase();
+		while (consumed < demoQueue.length) {
+			const item = demoQueue[consumed];
+			consumed += 1;
 
-			if (!host.includes("twitch.tv") && !host.includes("clips.twitch.tv")) {
-				setDemoQueue((prevQueue) => prevQueue.slice(1));
-				return null;
-			}
+			if (!item.id) continue;
 
-			const clipMatch = url.pathname.match(/\/clip\/([^\/\?]+)/);
-			if (clipMatch && clipMatch[1]) {
-				nextClipId = clipMatch[1];
-			} else {
-				const parts = url.pathname.split("/").filter(Boolean);
-				if (parts.length > 0) nextClipId = parts[parts.length - 1];
+			const clip = item.clip ?? (await getDemoClip(item.id));
+			if (clip) {
+				setDemoQueue((prevQueue) => prevQueue.slice(consumed));
+				return clip;
 			}
-		} catch {
-			if (!/^[A-Za-z0-9_-]+$/.test(raw)) {
-				setDemoQueue((prevQueue) => prevQueue.slice(1));
-				return null;
-			}
-			nextClipId = raw;
 		}
 
-		setDemoQueue((prevQueue) => prevQueue.slice(1));
-
-		const clip = await getDemoClip(nextClipId);
-		return clip ?? null;
+		if (consumed > 0) {
+			setDemoQueue((prevQueue) => prevQueue.slice(consumed));
+		}
+		return null;
 	}, [demoQueue]);
 
 	const getFirstQueClip = useCallback(async (): Promise<ModQueueItem | ClipQueueItem | null> => {
@@ -471,6 +489,7 @@ export default function OverlayPlayer({
 					}
 				}
 				setVideoClip(prefetched);
+				setShowOverlay(true);
 				return;
 			}
 
@@ -515,6 +534,7 @@ export default function OverlayPlayer({
 					}
 				}
 				setVideoClip(built);
+				setShowOverlay(true);
 			}
 		} finally {
 			advanceLockRef.current = false;
@@ -540,21 +560,39 @@ export default function OverlayPlayer({
 					resetPrefetch();
 
 					if (isDemoPlayer) {
-						setDemoQueue((prevQueue) => [...prevQueue, data]);
-					}
+						const demoId = parseDemoClipId(data);
+						if (!demoId) {
+							return;
+						}
+
+						const demoClip = await getDemoClip(demoId);
+						if (!demoClip) {
+							return;
+						}
+
+					setDemoQueue((prevQueue) => [...prevQueue, { id: demoId, clip: demoClip }]);
+				}
 
 					// Only start immediately if nothing is currently playing.
 					if (!clipRef.current) {
 						await advanceClip();
 					}
 				} else {
+					setHasUserStarted(true);
 					setPaused(false);
+					if (showPlayer) {
+						(activeSlot === "a" ? videoARef.current : videoBRef.current)?.play().catch((error) => {
+							console.error("Error playing the video:", error);
+						});
+					}
 				}
+
 				break;
 			}
 
 			case "pause": {
 				setPaused(true);
+				(activeSlot === "a" ? videoARef.current : videoBRef.current)?.pause();
 				break;
 			}
 
@@ -584,6 +622,14 @@ export default function OverlayPlayer({
 	useEffect(() => {
 		clipRef.current = videoClip;
 	}, [videoClip]);
+
+	useEffect(() => {
+		if (!showPlayer) {
+			setShowOverlay(false);
+			return;
+		}
+		if (videoClip) setShowOverlay(true);
+	}, [showPlayer, videoClip?.id]);
 
 	useEffect(() => {
 		const activeVideo = activeSlot === "a" ? videoARef.current : videoBRef.current;
@@ -781,6 +827,7 @@ export default function OverlayPlayer({
 					}
 				}
 				setVideoClip(built);
+				setShowOverlay(true);
 			}
 		})();
 	}, [activeSlot, buildVideoClipFast, getRandomClip, isDemoPlayer, overlay.id, overlaySecret]);
@@ -923,6 +970,7 @@ export default function OverlayPlayer({
 		const timeout = setTimeout(() => {
 			setActiveSlot(inactiveSlot);
 			setVideoClip(incomingClip);
+			setShowOverlay(true);
 			setIncomingClip(null);
 			setIsCrossfading(false);
 			crossfadeLockRef.current = false;
@@ -940,6 +988,7 @@ export default function OverlayPlayer({
 	if (isEmbed || isDemoPlayer || !isInIframe()) {
 		const effectiveMuted = !!isDemoPlayer || (embedBehaviorEnabled ? isMuted : false);
 		const showClickToPlay = embedBehaviorEnabled && paused && !hasUserStarted;
+		const canShowOverlay = showPlayer && !!videoClip && (!embedBehaviorEnabled || hasUserStarted);
 		return (
 			<div
 				className='relative w-screen h-screen group'
@@ -1027,7 +1076,7 @@ export default function OverlayPlayer({
 								aspectRatio: "19 / 9",
 								pointerEvents: showPlayer ? "auto" : "none",
 							}}
-							className='block absolute inset-0'
+							className='block absolute inset-0 z-0'
 							muted={effectiveMuted}
 						>
 							Your browser does not support the video tag.
@@ -1097,7 +1146,7 @@ export default function OverlayPlayer({
 									aspectRatio: "19 / 9",
 									pointerEvents: showPlayer ? "auto" : "none",
 								}}
-								className='block absolute inset-0'
+								className='block absolute inset-0 z-0'
 								muted={effectiveMuted}
 							>
 								Your browser does not support the video tag.
@@ -1108,7 +1157,7 @@ export default function OverlayPlayer({
 
 				{embedBehaviorEnabled && (
 					<>
-						<div className='absolute right-4 top-4 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100'>
+						<div className='absolute right-4 top-4 z-20 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100'>
 							<button
 								type='button'
 								onClick={(event) => {
@@ -1138,7 +1187,7 @@ export default function OverlayPlayer({
 					</>
 				)}
 
-				{isEmbed ? (
+				{isEmbed && !showEmbedOverlay ? (
 					showBanner ? (
 						<div className='absolute left-4 bottom-4'>
 							<Button as={Link} href='https://clipify.us?utm_source=embed&utm_medium=overlay&utm_campaign=webembed' target='_blank' rel='noopener noreferrer' color='primary' className='inline-flex items-center gap-1 px-3 py-1.5 text-white text-xs sm:text-sm rounded-full shadow-md hover:bg-opacity-80 transition' aria-label='Powered by Clipify'>
@@ -1148,10 +1197,10 @@ export default function OverlayPlayer({
 						</div>
 					) : null
 				) : (
-					<div className='absolute inset-0 flex flex-col justify-between text-xs sm:text-sm md:text-base lg:text-lg'>
-						{showOverlay && (
+					<div className='absolute inset-0 z-10 pointer-events-none flex flex-col justify-between text-xs sm:text-sm md:text-base lg:text-lg'>
+						{showOverlay && canShowOverlay && !showClickToPlay && (
 							<>
-								<PlayerOverlay left='2%' top='2%' scale={isDemoPlayer ? 1 : undefined}>
+								<PlayerOverlay key={`${videoClip.id}-left`} left='2%' top='2%' scale={isEmbed ? 1 : isDemoPlayer ? 1 : undefined}>
 									<div className='flex items-center'>
 										<Avatar size='md' src={videoClip.brodcasterAvatar} />
 										<div className='flex flex-col justify-center ml-2 text-xs'>
@@ -1161,7 +1210,7 @@ export default function OverlayPlayer({
 									</div>
 								</PlayerOverlay>
 
-								<PlayerOverlay right='2%' bottom='2%' scale={isDemoPlayer ? 1 : undefined}>
+								<PlayerOverlay key={`${videoClip.id}-right`} right='2%' bottom='2%' scale={isEmbed ? 1 : isDemoPlayer ? 1 : undefined}>
 									<div className='flex flex-col items-end text-right'>
 										<span className='font-bold'>{videoClip.title}</span>
 										<span className='text-xs text-gray-400 mt-1'>clipped by {videoClip.creator_name}</span>
@@ -1169,6 +1218,22 @@ export default function OverlayPlayer({
 								</PlayerOverlay>
 							</>
 						)}
+						{isEmbed && showBanner ? (
+							<div className='absolute left-4 bottom-4 pointer-events-auto'>
+								<Button
+									as={Link}
+									href='https://clipify.us?utm_source=embed&utm_medium=overlay&utm_campaign=webembed'
+									target='_blank'
+									rel='noopener noreferrer'
+									color='primary'
+									className='inline-flex items-center gap-1 px-3 py-1.5 text-white text-xs sm:text-sm rounded-full shadow-md hover:bg-opacity-80 transition'
+									aria-label='Powered by Clipify'
+								>
+									<Logo className='w-4 h-4 sm:w-6 sm:h-6' />
+									<span>Powered by Clipify</span>
+								</Button>
+							</div>
+						) : null}
 					</div>
 				)}
 			</div>
