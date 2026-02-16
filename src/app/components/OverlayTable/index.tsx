@@ -628,7 +628,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 				onSelectionChange={onSelectionChange}
 				onSortChange={setSortDescriptor}
 				onRowAction={(key) => {
-					router.push(`/dashboard/overlay/${key}`);
+					router.push(`/dashboard/overlay/${String(key)}`);
 				}}
 			>
 				<TableHeader columns={headerColumns}>
