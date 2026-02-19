@@ -23,7 +23,7 @@
 		"dotenv": "^17.3.1",
 		"drizzle-orm": "^0.45.1",
 		"jsonwebtoken": "^9.0.3",
-		"minimatch": "^10.2.1",
+		"minimatch": "^10.2.2",
 		"motion": "^12.34.1",
 		"next": "^16.1.6",
 		"next-navigation-guard": "^0.2.0",
