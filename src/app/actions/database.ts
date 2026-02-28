@@ -1,7 +1,7 @@
 "use server";
 
-import { drizzle } from "drizzle-orm/node-postgres";
 import { tokenTable, usersTable, overlaysTable, queueTable, settingsTable, modQueueTable, editorsTable, twitchCacheTable } from "@/db/schema";
+import { db } from "@/db/client";
 import { AuthenticatedUser, Overlay, TwitchUserResponse, TwitchTokenApiResponse, UserToken, Plan, Role, UserSettings, TwitchCacheType } from "@types";
 import { getUserDetails, getUsersDetailsBulk, refreshAccessToken, subscribeToReward } from "@actions/twitch";
 import { eq, inArray, and, or, isNull, lt, gt, sql } from "drizzle-orm";
@@ -9,8 +9,6 @@ import { validateAuth } from "@actions/auth";
 import { encryptToken, decryptToken } from "@lib/tokenCrypto";
 import { getFeatureAccess } from "@lib/featureAccess";
 import { ensureReverseTrialGrantForUser, resolveUserEntitlements, resolveUserEntitlementsForUsers } from "@lib/entitlements";
-
-const db = drizzle(process.env.DATABASE_URL!);
 
 const TWITCH_CACHE_CLEANUP_INTERVAL_MS = 10 * 60 * 1000;
 let lastTwitchCacheCleanupAt = 0;

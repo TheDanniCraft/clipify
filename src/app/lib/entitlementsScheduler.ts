@@ -5,6 +5,8 @@ declare global {
 	var __entitlementsSchedulerStarted: boolean | undefined;
 	// eslint-disable-next-line no-var
 	var __entitlementsSchedulerTimer: ReturnType<typeof setInterval> | undefined;
+	// eslint-disable-next-line no-var
+	var __entitlementsSchedulerRunning: boolean | undefined;
 }
 
 function shouldRunScheduler() {
@@ -29,10 +31,14 @@ export function startEntitlementsScheduler() {
 	const scheduledIntervalMs = Math.max(30_000, intervalMs);
 
 	const run = async () => {
+		if (globalThis.__entitlementsSchedulerRunning) return;
+		globalThis.__entitlementsSchedulerRunning = true;
 		try {
 			await reconcileRevokedUsersBatch(batchSize, cooldownHours);
 		} catch (error) {
 			console.error("[entitlements] scheduler_run_failed", error);
+		} finally {
+			globalThis.__entitlementsSchedulerRunning = false;
 		}
 	};
 

@@ -1,11 +1,9 @@
 "use server";
 
 import { entitlementGrantsTable, editorsTable, overlaysTable, usersTable } from "@/db/schema";
+import { db } from "@/db/client";
 import { and, asc, eq, gt, inArray, isNull, lt, lte, or } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/node-postgres";
 import { AuthenticatedUser, Plan, UserEntitlements } from "@types";
-
-const db = drizzle(process.env.DATABASE_URL!);
 
 const PRO_ACCESS = "pro_access";
 type CreateGrantInput = {
@@ -56,7 +54,6 @@ export async function createProAccessGrant(input: CreateGrantInput) {
 }
 
 export async function ensureReverseTrialGrantForUser(user: Pick<AuthenticatedUser, "id" | "plan">) {
-	if (!isHybridEntitlementsEnabled()) return { created: false as const };
 	if (user.plan !== Plan.Free) return { created: false as const };
 
 	const existing = await db
@@ -135,9 +132,7 @@ export async function resolveUserEntitlements(user: AuthenticatedUser): Promise<
 		.orderBy(asc(entitlementGrantsTable.userId), asc(entitlementGrantsTable.startsAt))
 		.execute();
 
-	const userSpecific = pickBestGrant(grants.filter((grant) => grant.userId === user.id));
-	const globalGrant = pickBestGrant(grants.filter((grant) => grant.userId === null));
-	const grant = userSpecific ?? globalGrant;
+	const grant = pickBestGrant(grants);
 	if (grant) {
 		const isReverseTrialGrant = grant.source === "reverse_trial";
 		return {
@@ -212,15 +207,14 @@ export async function resolveUserEntitlementsForUsers(users: AuthenticatedUser[]
 		.orderBy(asc(entitlementGrantsTable.userId), asc(entitlementGrantsTable.startsAt))
 		.execute();
 
-	const globalGrant = pickBestGrant(grants.filter((grant) => grant.userId === null));
 	const grantByUserId = new Map<string, ActiveGrant[]>();
 	for (const grant of grants) {
-		if (!grant.userId) continue;
-		grantByUserId.set(grant.userId, [...(grantByUserId.get(grant.userId) ?? []), grant]);
+		const key = grant.userId ?? "__global__";
+		grantByUserId.set(key, [...(grantByUserId.get(key) ?? []), grant]);
 	}
 
 	for (const user of freeUsers) {
-		const grant = pickBestGrant(grantByUserId.get(user.id) ?? []) ?? globalGrant;
+		const grant = pickBestGrant([...(grantByUserId.get(user.id) ?? []), ...(grantByUserId.get("__global__") ?? [])]);
 		if (grant) {
 			const isReverseTrialGrant = grant.source === "reverse_trial";
 			result.set(user.id, {
