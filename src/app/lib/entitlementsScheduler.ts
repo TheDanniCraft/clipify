@@ -1,8 +1,5 @@
 import { reconcileRevokedUsersBatch } from "@lib/entitlements";
 
-const STARTED_KEY = "__entitlementsSchedulerStarted";
-const TIMER_KEY = "__entitlementsSchedulerTimer";
-
 declare global {
 	// eslint-disable-next-line no-var
 	var __entitlementsSchedulerStarted: boolean | undefined;
@@ -24,7 +21,7 @@ function parsePositiveInt(value: string | undefined, fallback: number) {
 
 export function startEntitlementsScheduler() {
 	if (!shouldRunScheduler()) return;
-	if (globalThis[STARTED_KEY]) return;
+	if (globalThis.__entitlementsSchedulerStarted) return;
 
 	const intervalMs = parsePositiveInt(process.env.ENTITLEMENTS_RECONCILE_INTERVAL_MS, 5 * 60 * 1000);
 	const batchSize = parsePositiveInt(process.env.ENTITLEMENTS_RECONCILE_BATCH_SIZE, 100);
@@ -39,9 +36,9 @@ export function startEntitlementsScheduler() {
 		}
 	};
 
-	globalThis[STARTED_KEY] = true;
+	globalThis.__entitlementsSchedulerStarted = true;
 	void run();
-	globalThis[TIMER_KEY] = setInterval(() => {
+	globalThis.__entitlementsSchedulerTimer = setInterval(() => {
 		void run();
 	}, scheduledIntervalMs);
 	console.info("[entitlements] scheduler_started", {

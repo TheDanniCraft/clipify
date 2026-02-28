@@ -16,6 +16,7 @@ type CreateGrantInput = {
 	endsAt?: Date | null;
 };
 const REVERSE_TRIAL_DAYS = 7;
+type ActiveGrant = typeof entitlementGrantsTable.$inferSelect;
 
 function isHybridEntitlementsEnabled() {
 	const raw = process.env.ENTITLEMENTS_HYBRID_ENABLED;
@@ -79,6 +80,28 @@ export async function ensureReverseTrialGrantForUser(user: Pick<AuthenticatedUse
 	return { created: true as const };
 }
 
+function pickBestGrant(grants: ActiveGrant[]) {
+	if (grants.length === 0) return null;
+	return grants.reduce((best, current) => {
+		const bestEndsAt = best.endsAt;
+		const currentEndsAt = current.endsAt;
+
+		if (bestEndsAt == null && currentEndsAt == null) {
+			return current.startsAt > best.startsAt ? current : best;
+		}
+		if (bestEndsAt == null) {
+			return best;
+		}
+		if (currentEndsAt == null) {
+			return current;
+		}
+		if (currentEndsAt.getTime() !== bestEndsAt.getTime()) {
+			return currentEndsAt > bestEndsAt ? current : best;
+		}
+		return current.startsAt > best.startsAt ? current : best;
+	});
+}
+
 export async function resolveUserEntitlements(user: AuthenticatedUser): Promise<UserEntitlements> {
 	const now = new Date();
 	const isBillingPro = user.plan === Plan.Pro;
@@ -112,8 +135,8 @@ export async function resolveUserEntitlements(user: AuthenticatedUser): Promise<
 		.orderBy(asc(entitlementGrantsTable.userId), asc(entitlementGrantsTable.startsAt))
 		.execute();
 
-	const userSpecific = grants.find((grant) => grant.userId === user.id);
-	const globalGrant = grants.find((grant) => grant.userId === null);
+	const userSpecific = pickBestGrant(grants.filter((grant) => grant.userId === user.id));
+	const globalGrant = pickBestGrant(grants.filter((grant) => grant.userId === null));
 	const grant = userSpecific ?? globalGrant;
 	if (grant) {
 		const isReverseTrialGrant = grant.source === "reverse_trial";
@@ -189,17 +212,15 @@ export async function resolveUserEntitlementsForUsers(users: AuthenticatedUser[]
 		.orderBy(asc(entitlementGrantsTable.userId), asc(entitlementGrantsTable.startsAt))
 		.execute();
 
-	const globalGrant = grants.find((grant) => grant.userId === null);
-	const grantByUserId = new Map<string, (typeof grants)[number]>();
+	const globalGrant = pickBestGrant(grants.filter((grant) => grant.userId === null));
+	const grantByUserId = new Map<string, ActiveGrant[]>();
 	for (const grant of grants) {
 		if (!grant.userId) continue;
-		if (!grantByUserId.has(grant.userId)) {
-			grantByUserId.set(grant.userId, grant);
-		}
+		grantByUserId.set(grant.userId, [...(grantByUserId.get(grant.userId) ?? []), grant]);
 	}
 
 	for (const user of freeUsers) {
-		const grant = grantByUserId.get(user.id) ?? globalGrant;
+		const grant = pickBestGrant(grantByUserId.get(user.id) ?? []) ?? globalGrant;
 		if (grant) {
 			const isReverseTrialGrant = grant.source === "reverse_trial";
 			result.set(user.id, {
@@ -231,38 +252,40 @@ export async function reconcileFreeConstraintsIfNeeded(user: AuthenticatedUser, 
 	if (!isHybridEntitlementsEnabled()) return;
 	if (user.plan !== Plan.Free || entitlements.effectivePlan !== "free") return;
 
-	const overlays = await db.select().from(overlaysTable).where(eq(overlaysTable.ownerId, user.id)).orderBy(asc(overlaysTable.createdAt)).execute();
-	const removed = overlays.slice(1).map((overlay) => overlay.id);
+	await db.transaction(async (tx) => {
+		const overlays = await tx.select().from(overlaysTable).where(eq(overlaysTable.ownerId, user.id)).orderBy(asc(overlaysTable.createdAt)).execute();
+		const removed = overlays.slice(1).map((overlay) => overlay.id);
 
-	if (removed.length > 0) {
-		await db.delete(overlaysTable).where(inArray(overlaysTable.id, removed)).execute();
-	}
+		if (removed.length > 0) {
+			await tx.delete(overlaysTable).where(inArray(overlaysTable.id, removed)).execute();
+		}
 
-	const keptOverlay = overlays[0];
-	if (keptOverlay) {
-		await db
-			.update(overlaysTable)
+		const keptOverlay = overlays[0];
+		if (keptOverlay) {
+			await tx
+				.update(overlaysTable)
+				.set({
+					rewardId: null,
+					blacklistWords: [],
+					minClipViews: 0,
+					minClipDuration: 0,
+					maxClipDuration: 60,
+				})
+				.where(eq(overlaysTable.id, keptOverlay.id))
+				.execute();
+		}
+
+		await tx.delete(editorsTable).where(eq(editorsTable.userId, user.id)).execute();
+		const now = new Date();
+		await tx
+			.update(usersTable)
 			.set({
-				rewardId: null,
-				blacklistWords: [],
-				minClipViews: 0,
-				minClipDuration: 0,
-				maxClipDuration: 60,
+				updatedAt: now,
+				lastEntitlementReconciledAt: now,
 			})
-			.where(eq(overlaysTable.id, keptOverlay.id))
+			.where(eq(usersTable.id, user.id))
 			.execute();
-	}
-
-	await db.delete(editorsTable).where(eq(editorsTable.userId, user.id)).execute();
-	await db
-		.update(usersTable)
-		.set({
-			updatedAt: new Date(),
-			lastEntitlementReconciledAt: new Date(),
-		})
-		.where(eq(usersTable.id, user.id))
-		.execute();
-
+	});
 }
 
 export async function reconcileRevokedUsersBatch(batchSize = 100, reconciliationCooldownHours = 6) {

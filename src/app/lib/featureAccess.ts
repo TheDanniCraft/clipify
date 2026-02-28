@@ -4,8 +4,7 @@ import { Plan } from "@types";
 export type FeatureKey = "multi_overlay" | "chat_commands" | "advanced_filters" | "editors";
 export type AccessContext = { allowed: boolean; reason?: "trial" | "free_limit" | "trial_expired" | "pro_required" };
 
-export function isReverseTrialActive(user: Pick<AuthenticatedUser, "plan" | "createdAt" | "entitlements">, now = new Date()) {
-	void now;
+export function isReverseTrialActive(user: Pick<AuthenticatedUser, "plan" | "createdAt" | "entitlements">) {
 	return Boolean(user.entitlements?.reverseTrialActive);
 }
 
