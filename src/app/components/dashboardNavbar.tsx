@@ -57,6 +57,11 @@ export default function DashboardNavbar({ children, user, title, tagline }: { ch
 									<p className='font-semibold'>Signed in as</p>
 									<p className='font-semibold'>{user?.username}</p>
 								</DropdownItem>
+								{user?.plan === "free" ? (
+									<DropdownItem key='upgrade_to_pro' className='text-warning' onPress={() => router.push("/dashboard/settings?upgrade&cycle=yearly&source=paywall_banner&feature=account_menu")}>
+										Upgrade to Pro
+									</DropdownItem>
+								) : null}
 								<DropdownItem key='settings' onPress={() => router.push("/dashboard/settings")}>
 									My Settings
 								</DropdownItem>

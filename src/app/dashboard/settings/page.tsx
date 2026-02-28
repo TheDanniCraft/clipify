@@ -8,12 +8,16 @@ import { AuthenticatedUser, Plan, UserSettings } from "@types";
 import { addToast, Avatar, Button, Card, CardBody, CardHeader, Divider, Form, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Snippet, Spinner, Tooltip, useDisclosure } from "@heroui/react";
 import { IconAlertTriangle, IconArrowLeft, IconCreditCardFilled, IconCrown, IconDeviceFloppy, IconDiamondFilled, IconInfoCircle, IconTrash } from "@tabler/icons-react";
 import { redirect, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { generatePaymentLink, checkIfSubscriptionExists, getPortalLink } from "@actions/subscription";
 import { useNavigationGuard } from "next-navigation-guard";
 import UpgradeModal from "@components/upgradeModal";
 import TagsInput from "@components/tagsInput";
 import ChatwootData from "@components/chatwootData";
+import { getFeatureAccess, getTrialDaysLeft, isReverseTrialActive } from "@lib/featureAccess";
+import { usePlausible } from "next-plausible";
+import { trackPaywallEvent } from "@lib/paywallTracking";
+import type { BillingCycle, PaywallSource } from "@actions/subscription";
 
 export default function SettingsPage() {
 	const [user, setUser] = useState<AuthenticatedUser | null>(null);
@@ -22,6 +26,7 @@ export default function SettingsPage() {
 	const [timer, setTimer] = useState<number>(0);
 	const [settings, setSettings] = useState<UserSettings | null>(null);
 	const [baseSettings, setBaseSettings] = useState<UserSettings | null>(null);
+	const plausible = usePlausible();
 
 	const router = useRouter();
 	const navGuard = useNavigationGuard({ enabled: isFormDirty() });
@@ -58,6 +63,47 @@ export default function SettingsPage() {
 
 		fetchSettings();
 	}, [user]);
+
+	const upgradeIntent = useMemo<{ cycle: BillingCycle; source: PaywallSource; feature: string }>(() => {
+		if (typeof window === "undefined") {
+			return { cycle: "yearly", source: "upgrade_modal", feature: "account" };
+		}
+		const params = new URLSearchParams(window.location.search);
+		const cycle = params.get("cycle");
+		const source = params.get("source");
+		const feature = params.get("feature");
+		return {
+			cycle: cycle === "monthly" || cycle === "yearly" ? cycle : ("yearly" as const),
+			source: source === "pricing_page" || source === "upgrade_modal" || source === "paywall_banner" ? source : ("upgrade_modal" as const),
+			feature: feature || "account",
+		};
+	}, []);
+	const effectivePlan = user?.entitlements?.effectivePlan ?? user?.plan ?? Plan.Free;
+	const isEffectivelyFree = effectivePlan === Plan.Free;
+	const canUpgradeFromBilling = user?.plan === Plan.Free;
+
+	useEffect(() => {
+		if (!user || typeof window === "undefined") return;
+		const params = new URLSearchParams(window.location.search);
+		if (!params.has("upgrade") || !canUpgradeFromBilling) return;
+		upgradeModalOnOpen();
+	}, [canUpgradeFromBilling, upgradeModalOnOpen, user]);
+
+	const editorsAccess = user ? getFeatureAccess(user, "editors") : { allowed: false as const };
+	const inTrial = user ? isReverseTrialActive(user) : false;
+	const trialDaysLeft = user ? getTrialDaysLeft(user) : 0;
+	const trialSummaryLabel = trialDaysLeft <= 1 ? "Ends today" : `${trialDaysLeft} days left`;
+	const effectivePlanLabel = inTrial ? `Pro (trial ${trialSummaryLabel})` : effectivePlan === Plan.Pro ? "Pro" : "Free";
+
+	useEffect(() => {
+		if (!user) return;
+		if (!isEffectivelyFree || editorsAccess.allowed) return;
+		trackPaywallEvent(plausible, "paywall_impression", {
+			source: "paywall_banner",
+			feature: "editors",
+			plan: user.plan,
+		});
+	}, [editorsAccess.allowed, isEffectivelyFree, plausible, user]);
 
 	if (!user) {
 		return (
@@ -130,12 +176,12 @@ export default function SettingsPage() {
 							<div>
 								<p className='text-2xl font-bold'>{user.username}</p>
 								<p className='text-sm font-bold text-muted-foreground'>
-									<span className='text-muted-foreground'>Plan:</span> <span className={`${user.plan === Plan.Free ? "text-green-600" : "text-primary-400"} capitalize`}>{user.plan}</span>
+									<span className='text-muted-foreground'>Plan:</span> <span className={`${effectivePlan === Plan.Free ? "text-green-600" : "text-primary-400"}`}>{effectivePlanLabel}</span>
 								</p>
 							</div>
 						</div>
-						{user.plan === Plan.Free && (
-							<Button color='primary' startContent={<IconDiamondFilled />} isDisabled={user.plan != Plan.Free} onPress={upgradeModalOnOpen} aria-label='Upgrade Account'>
+						{canUpgradeFromBilling && (
+							<Button color='primary' startContent={<IconDiamondFilled />} isDisabled={!canUpgradeFromBilling} onPress={upgradeModalOnOpen} aria-label='Upgrade Account'>
 								Upgrade Account
 							</Button>
 						)}
@@ -177,16 +223,16 @@ export default function SettingsPage() {
 								required
 							/>
 
-							{user.plan === Plan.Free && (
+							{isEffectivelyFree && !editorsAccess.allowed && (
 								<div className='w-full mb-4'>
 									<Card className='bg-warning-50 border border-warning-200 mb-2'>
 										<CardBody>
 											<div className='flex items-center gap-2 mb-1'>
 												<IconCrown className='text-warning-500' />
-												<span className='text-warning-800 font-semibold text-base'>Premium Feature Locked</span>
+												<span className='text-warning-800 font-semibold text-base'>Pro Feature Locked</span>
 											</div>
 											<p className='text-sm text-warning-700'>
-												Unlock advanced settings with <span className='font-semibold'>Premium</span>.
+												Unlock advanced settings with <span className='font-semibold'>Pro</span>.
 											</p>
 											<ul className='list-disc list-inside text-warning-700 text-xs mt-2 ml-1'>
 												<li>Grant editors permission to manage your overlays</li>
@@ -197,10 +243,22 @@ export default function SettingsPage() {
 												variant='shadow'
 												onPress={async () => {
 													if (!user) return;
+													trackPaywallEvent(plausible, "paywall_cta_click", {
+														source: "paywall_banner",
+														feature: "editors",
+														plan: user.plan,
+														cycle: "yearly",
+													});
 
-													const link = await generatePaymentLink(user, window.location.href, window.numok?.getStripeMetadata());
+													const link = await generatePaymentLink(user, "yearly", window.location.href, window.numok?.getStripeMetadata(), "paywall_banner");
 
 													if (link) {
+														trackPaywallEvent(plausible, "checkout_start", {
+															source: "paywall_banner",
+															feature: "editors",
+															plan: user.plan,
+															cycle: "yearly",
+														});
 														window.location.href = link;
 													} else {
 														addToast({
@@ -212,9 +270,9 @@ export default function SettingsPage() {
 												}}
 												className='mt-3 w-full font-semibold'
 											>
-												Upgrade for less than a coffee
+												Upgrade to Pro
 											</Button>
-											<p className='text-xs text-warning-600 text-center mt-2'>Enjoy a 3-day free trial. Cancel anytime.</p>
+											<p className='text-xs text-warning-600 text-center mt-2'>{inTrial ? `Trial active: ${trialDaysLeft <= 1 ? "ends today." : `${trialDaysLeft} days left.`}` : "Start Pro now. Cancel anytime."}</p>
 										</CardBody>
 									</Card>
 								</div>
@@ -222,8 +280,8 @@ export default function SettingsPage() {
 							<div
 								className='w-full'
 								style={{
-									filter: user?.plan === Plan.Free ? "blur(1.5px)" : "none",
-									pointerEvents: user?.plan === Plan.Free ? "none" : "auto",
+									filter: isEffectivelyFree && !editorsAccess.allowed ? "blur(1.5px)" : "none",
+									pointerEvents: isEffectivelyFree && !editorsAccess.allowed ? "none" : "auto",
 								}}
 							>
 								<TagsInput
@@ -306,7 +364,7 @@ export default function SettingsPage() {
 				</ModalContent>
 			</Modal>
 
-			<UpgradeModal isOpen={upgradeModalIsOpen} onOpenChange={upgradeModalOnOpenChange} user={user} title='Upgrade Account' />
+			<UpgradeModal key={`${upgradeIntent.source}-${upgradeIntent.feature}-${upgradeIntent.cycle}`} isOpen={upgradeModalIsOpen} onOpenChange={upgradeModalOnOpenChange} user={user} title='Upgrade Account' source={upgradeIntent.source} feature={upgradeIntent.feature} initialBillingCycle={upgradeIntent.cycle} />
 
 			<ConfirmModal
 				isOpen={deleteModalIsOpen}
@@ -326,3 +384,4 @@ export default function SettingsPage() {
 		</>
 	);
 }
+
