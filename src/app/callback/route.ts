@@ -7,7 +7,6 @@ import { exchangeAccesToken } from "@actions/twitch";
 import { setAccessToken, touchUser } from "@actions/database";
 import { authUser } from "@actions/auth";
 import { getBaseUrl } from "@actions/utils";
-import { ensureReverseTrialGrantForUser } from "@lib/entitlements";
 
 type OAuthStatePayload = JwtPayload & {
 	nonce: string;
@@ -92,7 +91,6 @@ export async function GET(request: NextRequest) {
 		if (!user) {
 			return authUser(undefined, "userError");
 		}
-		await ensureReverseTrialGrantForUser(user);
 
 		const cookieToken = jwt.sign(user, process.env.JWT_SECRET!, {
 			expiresIn: "1h",

@@ -11,6 +11,7 @@ export function isReverseTrialActive(user: Pick<AuthenticatedUser, "plan" | "cre
 export function getTrialDaysLeft(user: Pick<AuthenticatedUser, "plan" | "createdAt" | "entitlements">, now = new Date()) {
 	if (user.entitlements?.trialEndsAt) {
 		const trialEndMs = (user.entitlements.trialEndsAt instanceof Date ? user.entitlements.trialEndsAt : new Date(user.entitlements.trialEndsAt)).getTime();
+		if (!Number.isFinite(trialEndMs)) return 0;
 		const msLeft = trialEndMs - now.getTime();
 		if (msLeft <= 0) return 0;
 		return Math.ceil(msLeft / (24 * 60 * 60 * 1000));

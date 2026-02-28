@@ -18,7 +18,7 @@ type ActiveGrant = typeof entitlementGrantsTable.$inferSelect;
 
 function isHybridEntitlementsEnabled() {
 	const raw = process.env.ENTITLEMENTS_HYBRID_ENABLED;
-	if (raw == null) return process.env.NODE_ENV !== "production";
+	if (raw == null) return true;
 	return ["1", "true", "yes", "on"].includes(raw.toLowerCase());
 }
 
