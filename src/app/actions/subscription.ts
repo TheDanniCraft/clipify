@@ -59,6 +59,16 @@ export async function generatePaymentLink(user: AuthenticatedUser, billingCycle:
 	const stripe = await getStripe();
 	const baseUrl = await getBaseUrl();
 	const defaultReturnUrl = new URL("/dashboard/settings", baseUrl).toString();
+	const cancelUrl = (() => {
+		if (!returnUrl) return defaultReturnUrl;
+		try {
+			const resolved = new URL(returnUrl, baseUrl);
+			if (resolved.origin !== baseUrl.origin) return defaultReturnUrl;
+			return resolved.toString();
+		} catch {
+			return defaultReturnUrl;
+		}
+	})();
 	let stripeCustomerId = user.stripeCustomerId ?? null;
 
 	if (!stripeCustomerId) {
@@ -90,7 +100,7 @@ export async function generatePaymentLink(user: AuthenticatedUser, billingCycle:
 		client_reference_id: user.id,
 		mode: "subscription",
 		success_url: defaultReturnUrl,
-		cancel_url: returnUrl || defaultReturnUrl,
+		cancel_url: cancelUrl,
 		customer: stripeCustomerId,
 		metadata: {
 			userId: user.id,

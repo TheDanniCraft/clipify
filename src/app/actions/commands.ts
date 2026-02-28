@@ -7,9 +7,33 @@ import { addToModQueue, clearClipQueueByOverlayIdServer, clearModQueueByBroadcas
 import { getFeatureAccess } from "@lib/featureAccess";
 import { getBaseUrl } from "@actions/utils";
 
+const CHAT_COMMAND_ACCESS_TTL_MS = 60_000;
+const chatCommandAccessCache = new Map<string, { allowed: boolean; expiresAt: number }>();
+let cachedUpgradeUrl: string | null = null;
+
 async function getPrefix(userId: string): Promise<string | null> {
 	const settings = await getSettings(userId);
 	return settings ? settings.prefix : null;
+}
+
+async function getUpgradeSettingsUrl() {
+	if (cachedUpgradeUrl) return cachedUpgradeUrl;
+	cachedUpgradeUrl = new URL("/dashboard/settings", await getBaseUrl()).toString();
+	return cachedUpgradeUrl;
+}
+
+async function canUseChatCommands(userId: string) {
+	const now = Date.now();
+	const cached = chatCommandAccessCache.get(userId);
+	if (cached && cached.expiresAt > now) {
+		return cached.allowed;
+	}
+
+	const user = await getUserByIdServer(userId);
+	if (!user) return null;
+	const allowed = getFeatureAccess(user, "chat_commands").allowed;
+	chatCommandAccessCache.set(userId, { allowed, expiresAt: now + CHAT_COMMAND_ACCESS_TTL_MS });
+	return allowed;
 }
 
 export async function isCommand(message: TwitchMessage): Promise<boolean> {
@@ -35,11 +59,10 @@ export async function handleCommand(message: TwitchMessage): Promise<void> {
 	if (!prefix) return;
 
 	if (firstFragment.type === "text" && firstFragment.text.startsWith(prefix)) {
-		const user = await getUserByIdServer(message.broadcaster_user_id);
-		if (!user) return;
-		const commandAccess = getFeatureAccess(user, "chat_commands");
-		if (!commandAccess.allowed) {
-			const upgradeUrl = new URL("/dashboard/settings", await getBaseUrl()).toString();
+		const allowed = await canUseChatCommands(message.broadcaster_user_id);
+		if (allowed == null) return;
+		if (!allowed) {
+			const upgradeUrl = await getUpgradeSettingsUrl();
 			await sendChatMessage(message.broadcaster_user_id, `@${message.chatter_user_name} chat commands are a Pro feature. Upgrade in dashboard settings: ${upgradeUrl}`);
 			return;
 		}
