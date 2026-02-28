@@ -34,16 +34,16 @@ export async function handleCommand(message: TwitchMessage): Promise<void> {
 	const prefix = await getPrefix(message.broadcaster_user_id);
 	if (!prefix) return;
 
-	const user = await getUserByIdServer(message.broadcaster_user_id);
-	if (!user) return;
-	const commandAccess = getFeatureAccess(user, "chat_commands");
-	if (!commandAccess.allowed) {
-		const upgradeUrl = new URL("/dashboard/settings", await getBaseUrl()).toString();
-		await sendChatMessage(message.broadcaster_user_id, `@${message.chatter_user_name} chat commands are a Pro feature. Upgrade in dashboard settings: ${upgradeUrl}`);
-		return;
-	}
-
 	if (firstFragment.type === "text" && firstFragment.text.startsWith(prefix)) {
+		const user = await getUserByIdServer(message.broadcaster_user_id);
+		if (!user) return;
+		const commandAccess = getFeatureAccess(user, "chat_commands");
+		if (!commandAccess.allowed) {
+			const upgradeUrl = new URL("/dashboard/settings", await getBaseUrl()).toString();
+			await sendChatMessage(message.broadcaster_user_id, `@${message.chatter_user_name} chat commands are a Pro feature. Upgrade in dashboard settings: ${upgradeUrl}`);
+			return;
+		}
+
 		const commandName = firstFragment.text.slice(prefix.length).trimStart().split(/\s+/)?.[0]?.toLowerCase();
 		const command = commands[commandName];
 		if (command) {
