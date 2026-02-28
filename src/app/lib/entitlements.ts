@@ -15,6 +15,7 @@ type CreateGrantInput = {
 };
 const REVERSE_TRIAL_DAYS = 7;
 type ActiveGrant = typeof entitlementGrantsTable.$inferSelect;
+type EntitlementUserRef = Pick<AuthenticatedUser, "id" | "plan">;
 
 function isHybridEntitlementsEnabled() {
 	const raw = process.env.ENTITLEMENTS_HYBRID_ENABLED;
@@ -111,7 +112,7 @@ function pickBestGrant(grants: ActiveGrant[]) {
 	});
 }
 
-export async function resolveUserEntitlements(user: AuthenticatedUser): Promise<UserEntitlements> {
+export async function resolveUserEntitlements(user: EntitlementUserRef): Promise<UserEntitlements> {
 	const now = new Date();
 	const isBillingPro = user.plan === Plan.Pro;
 
@@ -168,7 +169,7 @@ export async function resolveUserEntitlements(user: AuthenticatedUser): Promise<
 	};
 }
 
-export async function resolveUserEntitlementsForUsers(users: AuthenticatedUser[]): Promise<Map<string, UserEntitlements>> {
+export async function resolveUserEntitlementsForUsers(users: EntitlementUserRef[]): Promise<Map<string, UserEntitlements>> {
 	const result = new Map<string, UserEntitlements>();
 	if (users.length === 0) return result;
 
@@ -254,7 +255,7 @@ export async function resolveUserEntitlementsForUsers(users: AuthenticatedUser[]
 	return result;
 }
 
-export async function reconcileFreeConstraintsIfNeeded(user: AuthenticatedUser, entitlements: UserEntitlements) {
+export async function reconcileFreeConstraintsIfNeeded(user: EntitlementUserRef, entitlements: UserEntitlements) {
 	if (!isHybridEntitlementsEnabled()) return;
 	if (user.plan !== Plan.Free || entitlements.effectivePlan !== "free") return;
 
@@ -310,7 +311,7 @@ export async function reconcileRevokedUsersBatch(batchSize = 100, reconciliation
 		.limit(batchSize)
 		.execute();
 
-	const entitlementsByUserId = await resolveUserEntitlementsForUsers(candidates as AuthenticatedUser[]);
+	const entitlementsByUserId = await resolveUserEntitlementsForUsers(candidates);
 	let reconciled = 0;
 	for (const user of candidates) {
 		const entitlements = entitlementsByUserId.get(user.id) ?? {
@@ -332,7 +333,7 @@ export async function reconcileRevokedUsersBatch(batchSize = 100, reconciliation
 				.execute();
 			continue;
 		}
-		await reconcileFreeConstraintsIfNeeded(user as AuthenticatedUser, entitlements);
+		await reconcileFreeConstraintsIfNeeded(user, entitlements);
 		reconciled += 1;
 	}
 

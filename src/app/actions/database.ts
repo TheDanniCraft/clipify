@@ -493,7 +493,7 @@ export async function getOverlayOwnerPlans(overlayIds: string[]): Promise<Record
 		const ownerIds = Array.from(new Set(overlays.map((overlay) => overlay.ownerId)));
 		const owners = await db.select({ id: usersTable.id, plan: usersTable.plan, createdAt: usersTable.createdAt }).from(usersTable).where(inArray(usersTable.id, ownerIds)).execute();
 		const effectivePlanByOwnerId = new Map<string, Plan>();
-		const entitlementsByOwnerId = await resolveUserEntitlementsForUsers(owners as AuthenticatedUser[]);
+		const entitlementsByOwnerId = await resolveUserEntitlementsForUsers(owners);
 		for (const owner of owners) {
 			const entitlements = entitlementsByOwnerId.get(owner.id);
 			effectivePlanByOwnerId.set(owner.id, entitlements?.effectivePlan === "pro" ? Plan.Pro : Plan.Free);
@@ -705,7 +705,7 @@ export async function getOverlayOwnerPlanPublic(overlayId: string): Promise<Plan
 		const ownerRows = await db.select().from(usersTable).where(eq(usersTable.id, overlay.ownerId)).limit(1).execute();
 		const owner = ownerRows[0];
 		if (!owner) return Plan.Free;
-		const entitlements = await resolveUserEntitlements(owner as AuthenticatedUser);
+		const entitlements = await resolveUserEntitlements(owner);
 		return entitlements.effectivePlan === "pro" ? Plan.Pro : Plan.Free;
 	} catch (error) {
 		console.error("Error fetching overlay owner plan:", error);
