@@ -47,6 +47,7 @@ export function startEntitlementsScheduler() {
 	globalThis.__entitlementsSchedulerTimer = setInterval(() => {
 		void run();
 	}, scheduledIntervalMs);
+	globalThis.__entitlementsSchedulerTimer.unref?.();
 	console.info("[entitlements] scheduler_started", {
 		intervalMs: scheduledIntervalMs,
 		batchSize,

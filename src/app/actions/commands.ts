@@ -8,6 +8,7 @@ import { getFeatureAccess } from "@lib/featureAccess";
 import { getBaseUrl } from "@actions/utils";
 
 const CHAT_COMMAND_ACCESS_TTL_MS = 60_000;
+const CHAT_COMMAND_ACCESS_MAX_ENTRIES = 1000;
 const chatCommandAccessCache = new Map<string, { allowed: boolean; expiresAt: number }>();
 let cachedUpgradeUrl: string | null = null;
 
@@ -24,12 +25,21 @@ async function getUpgradeSettingsUrl() {
 
 async function canUseChatCommands(userId: string) {
 	const now = Date.now();
+	for (const [key, entry] of chatCommandAccessCache) {
+		if (entry.expiresAt <= now) {
+			chatCommandAccessCache.delete(key);
+		}
+	}
+
+	while (chatCommandAccessCache.size > CHAT_COMMAND_ACCESS_MAX_ENTRIES) {
+		const oldestKey = chatCommandAccessCache.keys().next().value as string | undefined;
+		if (!oldestKey) break;
+		chatCommandAccessCache.delete(oldestKey);
+	}
+
 	const cached = chatCommandAccessCache.get(userId);
 	if (cached) {
-		if (cached.expiresAt > now) {
-			return cached.allowed;
-		}
-		chatCommandAccessCache.delete(userId);
+		return cached.allowed;
 	}
 
 	const user = await getUserByIdServer(userId);

@@ -272,6 +272,7 @@ export async function reconcileFreeConstraintsIfNeeded(user: EntitlementUserRef,
 			await tx
 				.update(overlaysTable)
 				.set({
+					updatedAt: new Date(),
 					rewardId: null,
 					blacklistWords: [],
 					minClipViews: 0,
