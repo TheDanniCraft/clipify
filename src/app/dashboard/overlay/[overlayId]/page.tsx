@@ -135,13 +135,15 @@ export default function OverlaySettings() {
 
 	useEffect(() => {
 		if (!user) return;
+		if (!overlay) return;
+		if (user.id !== overlay.ownerId) return;
 		if (ownerPlan !== Plan.Free) return;
 		trackPaywallEvent(plausible, "paywall_impression", {
 			source: "paywall_banner",
 			feature: "advanced_filters",
 			plan: user.plan,
 		});
-	}, [ownerPlan, plausible, user]);
+	}, [ownerPlan, overlay, plausible, user]);
 
 	if (!overlayId || !overlay) {
 		return (

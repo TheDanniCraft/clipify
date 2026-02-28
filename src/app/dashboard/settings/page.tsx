@@ -7,7 +7,7 @@ import DashboardNavbar from "@components/dashboardNavbar";
 import { AuthenticatedUser, Plan, UserSettings } from "@types";
 import { addToast, Avatar, Button, Card, CardBody, CardHeader, Divider, Form, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Snippet, Spinner, Tooltip, useDisclosure } from "@heroui/react";
 import { IconAlertTriangle, IconArrowLeft, IconCreditCardFilled, IconCrown, IconDeviceFloppy, IconDiamondFilled, IconInfoCircle, IconTrash } from "@tabler/icons-react";
-import { redirect, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { generatePaymentLink, checkIfSubscriptionExists, getPortalLink } from "@actions/subscription";
 import { useNavigationGuard } from "next-navigation-guard";
@@ -35,14 +35,15 @@ export default function SettingsPage() {
 		async function validateUser() {
 			const user = await validateAuth();
 			if (!user) {
-				redirect("/logout");
+				router.push("/logout");
+				return;
 			}
 
 			setUser(user);
 		}
 
 		validateUser();
-	}, []);
+	}, [router]);
 
 	useEffect(() => {
 		if (timer > 0) {

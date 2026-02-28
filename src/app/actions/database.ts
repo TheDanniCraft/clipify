@@ -235,6 +235,12 @@ export async function getUserByCustomerId(customerId: string): Promise<Authentic
 
 export async function updateUserStripeCustomerId(userId: string, customerId: string): Promise<AuthenticatedUser | null> {
 	try {
+		const authedUser = await validateAuth(true);
+		if (!authedUser || authedUser.id !== userId) {
+			console.warn(`Unauthorized "updateUserStripeCustomerId" API request for user id: ${userId}`);
+			return null;
+		}
+
 		const user = await db
 			.update(usersTable)
 			.set({
@@ -253,9 +259,9 @@ export async function updateUserStripeCustomerId(userId: string, customerId: str
 }
 
 // Server-only helper for internal lookups.
-export async function getUserByIdServer(id: string): Promise<AuthenticatedUser | null> {
+export async function getUserByIdServer(id: string): Promise<Pick<AuthenticatedUser, "id" | "plan" | "createdAt" | "entitlements"> | null> {
 	try {
-		const user = await db.select().from(usersTable).where(eq(usersTable.id, id)).limit(1).execute();
+		const user = await db.select({ id: usersTable.id, plan: usersTable.plan, createdAt: usersTable.createdAt }).from(usersTable).where(eq(usersTable.id, id)).limit(1).execute();
 		if (!user[0]) return null;
 		const entitlements = await resolveUserEntitlements(user[0]);
 		return { ...user[0], entitlements };

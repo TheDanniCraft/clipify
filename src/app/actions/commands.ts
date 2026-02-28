@@ -25,8 +25,11 @@ async function getUpgradeSettingsUrl() {
 async function canUseChatCommands(userId: string) {
 	const now = Date.now();
 	const cached = chatCommandAccessCache.get(userId);
-	if (cached && cached.expiresAt > now) {
-		return cached.allowed;
+	if (cached) {
+		if (cached.expiresAt > now) {
+			return cached.allowed;
+		}
+		chatCommandAccessCache.delete(userId);
 	}
 
 	const user = await getUserByIdServer(userId);
