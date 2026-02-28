@@ -28,6 +28,7 @@ export default function EmbedTool() {
 	const [avatars, setAvatars] = useState<Record<string, string>>({});
 	const [ownerPlansByOverlayId, setOwnerPlansByOverlayId] = useState<Record<string, string>>({});
 	const [isInitializing, setIsInitializing] = useState<boolean>(true);
+	const [initializationError, setInitializationError] = useState<string | null>(null);
 	const { isOpen: isUpgradeOpen, onOpen: onUpgradeOpen, onOpenChange: onUpgradeOpenChange } = useDisclosure();
 
 	useEffect(() => {
@@ -68,6 +69,9 @@ export default function EmbedTool() {
 					const normalizedPlans = Object.fromEntries(uniqueOverlays.map((overlay) => [overlay.id, plansByOverlayId[overlay.id] ?? "free"]));
 					setOwnerPlansByOverlayId(normalizedPlans);
 				}
+			} catch (error) {
+				console.error("Failed to initialize embed tool:", error);
+				setInitializationError("We couldn't load the embed tool. Please retry.");
 			} finally {
 				setIsInitializing(false);
 			}
@@ -108,6 +112,22 @@ export default function EmbedTool() {
 				<Spinner label='Loading embed tool...' />
 			</div>
 		);
+
+	if (initializationError) {
+		return (
+			<div className='flex flex-col items-center justify-center w-full h-screen gap-4 px-6 text-center'>
+				<p className='text-danger-400 text-sm'>{initializationError}</p>
+				<div className='flex items-center gap-2'>
+					<Button color='primary' onPress={() => window.location.reload()}>
+						Retry
+					</Button>
+					<Button variant='flat' onPress={() => router.push("/logout")}>
+						Log out
+					</Button>
+				</div>
+			</div>
+		);
+	}
 
 	if (overlays.length === 0) {
 		if (!user) {

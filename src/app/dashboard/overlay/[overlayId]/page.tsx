@@ -17,7 +17,7 @@ import TagsInput from "@components/tagsInput";
 import { isTitleBlocked } from "@/app/utils/regexFilter";
 import UpgradeModal from "@components/upgradeModal";
 import ChatwootData from "@components/chatwootData";
-import { getFeatureAccess, getTrialDaysLeft, isReverseTrialActive } from "@lib/featureAccess";
+import { getTrialDaysLeft, isReverseTrialActive } from "@lib/featureAccess";
 import { usePlausible } from "next-plausible";
 import { trackPaywallEvent } from "@lib/paywallTracking";
 
@@ -129,19 +129,19 @@ export default function OverlaySettings() {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [overlay?.type]);
 
-	const advancedFiltersAccess = user ? getFeatureAccess(user, "advanced_filters") : { allowed: false as const };
+	const ownerHasAdvancedAccess = ownerPlan === Plan.Pro;
 	const inTrial = user ? isReverseTrialActive(user) : false;
 	const trialDaysLeft = user ? getTrialDaysLeft(user) : 0;
 
 	useEffect(() => {
 		if (!user) return;
-		if (ownerPlan !== Plan.Free || advancedFiltersAccess.allowed) return;
+		if (ownerPlan !== Plan.Free) return;
 		trackPaywallEvent(plausible, "paywall_impression", {
 			source: "paywall_banner",
 			feature: "advanced_filters",
 			plan: user.plan,
 		});
-	}, [advancedFiltersAccess.allowed, ownerPlan, plausible, user]);
+	}, [ownerPlan, plausible, user]);
 
 	if (!overlayId || !overlay) {
 		return (
@@ -277,7 +277,7 @@ export default function OverlaySettings() {
 									</div>
 
 									<Divider className='my-4' />
-									{ownerPlan === Plan.Free && !advancedFiltersAccess.allowed && (
+									{ownerPlan === Plan.Free && !ownerHasAdvancedAccess && (
 										<div className='w-full mb-4'>
 											<Card className='bg-warning-50 border border-warning-200 mb-2'>
 												<CardBody>
@@ -328,8 +328,8 @@ export default function OverlaySettings() {
 									<div
 										className='w-full'
 										style={{
-											filter: ownerPlan === Plan.Free && !advancedFiltersAccess.allowed ? "blur(1.5px)" : "none",
-											pointerEvents: ownerPlan === Plan.Free && !advancedFiltersAccess.allowed ? "none" : "auto",
+											filter: ownerPlan === Plan.Free && !ownerHasAdvancedAccess ? "blur(1.5px)" : "none",
+											pointerEvents: ownerPlan === Plan.Free && !ownerHasAdvancedAccess ? "none" : "auto",
 										}}
 									>
 										<div className='flex w-full items-center px-2 mb-2 gap-1'>
@@ -340,7 +340,7 @@ export default function OverlaySettings() {
 														setOverlay({ ...overlay, rewardId: reward.id });
 													}
 												}}
-												isDisabled={(ownerPlan === Plan.Free && !advancedFiltersAccess.allowed) || !!overlay.rewardId}
+												isDisabled={(ownerPlan === Plan.Free && !ownerHasAdvancedAccess) || !!overlay.rewardId}
 											>
 												Create Reward
 											</Button>
