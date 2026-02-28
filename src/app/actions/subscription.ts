@@ -58,6 +58,7 @@ export async function generatePaymentLink(user: AuthenticatedUser, billingCycle:
 
 	const stripe = await getStripe();
 	const baseUrl = await getBaseUrl();
+	const defaultReturnUrl = new URL("/dashboard/settings", baseUrl).toString();
 	let stripeCustomerId = user.stripeCustomerId ?? null;
 
 	if (!stripeCustomerId) {
@@ -88,8 +89,8 @@ export async function generatePaymentLink(user: AuthenticatedUser, billingCycle:
 		line_items: [{ price: selectedPrice, quantity: 1 }],
 		client_reference_id: user.id,
 		mode: "subscription",
-		success_url: `${baseUrl}dashboard/settings`,
-		cancel_url: returnUrl || `${baseUrl}dashboard/settings`,
+		success_url: defaultReturnUrl,
+		cancel_url: returnUrl || defaultReturnUrl,
 		customer: stripeCustomerId,
 		metadata: {
 			userId: user.id,
@@ -139,7 +140,7 @@ export async function getPortalLink(user: AuthenticatedUser) {
 
 	const session = await stripe.billingPortal.sessions.create({
 		customer: user.stripeCustomerId,
-		return_url: `${baseUrl}dashboard/settings`,
+		return_url: new URL("/dashboard/settings", baseUrl).toString(),
 	});
 
 	return session.url;

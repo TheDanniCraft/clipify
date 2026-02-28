@@ -5,6 +5,7 @@ import { sendMessage } from "@actions/websocket";
 import { getTwitchClip, handleClip, sendChatMessage } from "@actions/twitch";
 import { addToModQueue, clearClipQueueByOverlayIdServer, clearModQueueByBroadcasterId, getAllOverlayIdsByOwnerServer, getClipQueueByOverlayId, getModQueue, getSettings, getUserByIdServer } from "@actions/database";
 import { getFeatureAccess } from "@lib/featureAccess";
+import { getBaseUrl } from "@actions/utils";
 
 async function getPrefix(userId: string): Promise<string | null> {
 	const settings = await getSettings(userId);
@@ -37,7 +38,8 @@ export async function handleCommand(message: TwitchMessage): Promise<void> {
 	if (!user) return;
 	const commandAccess = getFeatureAccess(user, "chat_commands");
 	if (!commandAccess.allowed) {
-		await sendChatMessage(message.broadcaster_user_id, `@${message.chatter_user_name} chat commands are a Pro feature. Upgrade in dashboard settings: https://clipify.us/dashboard/settings`);
+		const upgradeUrl = new URL("/dashboard/settings", await getBaseUrl()).toString();
+		await sendChatMessage(message.broadcaster_user_id, `@${message.chatter_user_name} chat commands are a Pro feature. Upgrade in dashboard settings: ${upgradeUrl}`);
 		return;
 	}
 

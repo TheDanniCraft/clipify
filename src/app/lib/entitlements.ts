@@ -138,6 +138,95 @@ export async function resolveUserEntitlements(user: AuthenticatedUser): Promise<
 	};
 }
 
+export async function resolveUserEntitlementsForUsers(users: AuthenticatedUser[]): Promise<Map<string, UserEntitlements>> {
+	const result = new Map<string, UserEntitlements>();
+	if (users.length === 0) return result;
+
+	const now = new Date();
+	const freeUsers = users.filter((user) => user.plan !== Plan.Pro);
+
+	for (const user of users) {
+		if (user.plan === Plan.Pro) {
+			result.set(user.id, {
+				effectivePlan: "pro",
+				isBillingPro: true,
+				reverseTrialActive: false,
+				trialEndsAt: null,
+				hasActiveGrant: false,
+				source: "billing",
+			});
+		}
+	}
+
+	if (freeUsers.length === 0) return result;
+
+	if (!isHybridEntitlementsEnabled()) {
+		for (const user of freeUsers) {
+			result.set(user.id, {
+				effectivePlan: "free",
+				isBillingPro: false,
+				reverseTrialActive: false,
+				trialEndsAt: null,
+				hasActiveGrant: false,
+				source: "reverse_trial",
+			});
+		}
+		return result;
+	}
+
+	const freeUserIds = freeUsers.map((user) => user.id);
+	const grants = await db
+		.select()
+		.from(entitlementGrantsTable)
+		.where(
+			and(
+				eq(entitlementGrantsTable.entitlement, PRO_ACCESS),
+				lte(entitlementGrantsTable.startsAt, now),
+				or(isNull(entitlementGrantsTable.endsAt), gt(entitlementGrantsTable.endsAt, now)),
+				or(inArray(entitlementGrantsTable.userId, freeUserIds), isNull(entitlementGrantsTable.userId)),
+			),
+		)
+		.orderBy(asc(entitlementGrantsTable.userId), asc(entitlementGrantsTable.startsAt))
+		.execute();
+
+	const globalGrant = grants.find((grant) => grant.userId === null);
+	const grantByUserId = new Map<string, (typeof grants)[number]>();
+	for (const grant of grants) {
+		if (!grant.userId) continue;
+		if (!grantByUserId.has(grant.userId)) {
+			grantByUserId.set(grant.userId, grant);
+		}
+	}
+
+	for (const user of freeUsers) {
+		const grant = grantByUserId.get(user.id) ?? globalGrant;
+		if (grant) {
+			const isReverseTrialGrant = grant.source === "reverse_trial";
+			result.set(user.id, {
+				effectivePlan: "pro",
+				isBillingPro: false,
+				reverseTrialActive: isReverseTrialGrant,
+				trialEndsAt: grant.endsAt ?? null,
+				hasActiveGrant: true,
+				grantSource: grant.source,
+				source: isReverseTrialGrant ? "reverse_trial" : "grant",
+			});
+			continue;
+		}
+
+		result.set(user.id, {
+			effectivePlan: "free",
+			isBillingPro: false,
+			reverseTrialActive: false,
+			trialEndsAt: null,
+			hasActiveGrant: false,
+			source: "reverse_trial",
+		});
+	}
+
+	return result;
+}
+
 export async function reconcileFreeConstraintsIfNeeded(user: AuthenticatedUser, entitlements: UserEntitlements) {
 	if (!isHybridEntitlementsEnabled()) return;
 	if (user.plan !== Plan.Free || entitlements.effectivePlan !== "free") return;
@@ -196,6 +285,14 @@ export async function reconcileRevokedUsersBatch(batchSize = 100, reconciliation
 	for (const user of candidates) {
 		const entitlements = await resolveUserEntitlements(user as AuthenticatedUser);
 		if (entitlements.effectivePlan !== "free") {
+			await db
+				.update(usersTable)
+				.set({
+					updatedAt: new Date(),
+					lastEntitlementReconciledAt: new Date(),
+				})
+				.where(eq(usersTable.id, user.id))
+				.execute();
 			continue;
 		}
 		await reconcileFreeConstraintsIfNeeded(user as AuthenticatedUser, entitlements);

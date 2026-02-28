@@ -8,7 +8,7 @@ import { eq, inArray, and, or, isNull, lt, gt, sql } from "drizzle-orm";
 import { validateAuth } from "@actions/auth";
 import { encryptToken, decryptToken } from "@lib/tokenCrypto";
 import { getFeatureAccess } from "@lib/featureAccess";
-import { createProAccessGrant, resolveUserEntitlements } from "@lib/entitlements";
+import { ensureReverseTrialGrantForUser, resolveUserEntitlements, resolveUserEntitlementsForUsers } from "@lib/entitlements";
 
 const db = drizzle(process.env.DATABASE_URL!);
 
@@ -121,15 +121,7 @@ async function setUser(user: TwitchUserResponse): Promise<AuthenticatedUser> {
 			.then((result) => result[0]);
 
 		if (isNewUser) {
-			const startsAt = dbUser.createdAt instanceof Date ? dbUser.createdAt : new Date(dbUser.createdAt);
-			const endsAt = new Date(startsAt.getTime() + 7 * 24 * 60 * 60 * 1000);
-			await createProAccessGrant({
-				userId: dbUser.id,
-				source: "reverse_trial",
-				reason: "free_signup_trial",
-				startsAt,
-				endsAt,
-			});
+			await ensureReverseTrialGrantForUser({ id: dbUser.id, plan: dbUser.plan });
 		}
 
 		return dbUser;
@@ -503,9 +495,10 @@ export async function getOverlayOwnerPlans(overlayIds: string[]): Promise<Record
 		const ownerIds = Array.from(new Set(overlays.map((overlay) => overlay.ownerId)));
 		const owners = await db.select({ id: usersTable.id, plan: usersTable.plan, createdAt: usersTable.createdAt }).from(usersTable).where(inArray(usersTable.id, ownerIds)).execute();
 		const effectivePlanByOwnerId = new Map<string, Plan>();
+		const entitlementsByOwnerId = await resolveUserEntitlementsForUsers(owners as AuthenticatedUser[]);
 		for (const owner of owners) {
-			const entitlements = await resolveUserEntitlements(owner as AuthenticatedUser);
-			effectivePlanByOwnerId.set(owner.id, entitlements.effectivePlan === "pro" ? Plan.Pro : Plan.Free);
+			const entitlements = entitlementsByOwnerId.get(owner.id);
+			effectivePlanByOwnerId.set(owner.id, entitlements?.effectivePlan === "pro" ? Plan.Pro : Plan.Free);
 		}
 		const result: Record<string, Plan> = {};
 

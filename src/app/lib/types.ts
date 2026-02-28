@@ -182,7 +182,7 @@ export type UserEntitlements = {
 	effectivePlan: EffectivePlan;
 	isBillingPro: boolean;
 	reverseTrialActive: boolean;
-	trialEndsAt: Date | null;
+	trialEndsAt: Date | string | null;
 	hasActiveGrant: boolean;
 	grantSource?: string;
 	source: EntitlementSource;
