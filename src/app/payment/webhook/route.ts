@@ -25,24 +25,41 @@ async function handleCheckoutSessionCompleted(stripe: Stripe, data: Stripe.Event
 	if (!subscriptionId || typeof subscriptionId !== "string") return NextResponse.json({ error: "No subscription ID found in session" });
 
 	const plans = await getPlans();
-	if (!plans.some((plan: string) => plan === priceId)) return NextResponse.json({ error: "No plan found for this price" });
+	if (!Object.values(plans).some((plan) => plan === priceId)) return NextResponse.json({ error: "No plan found for this price" });
 
 	const referenceId = session.client_reference_id;
 	if (!referenceId) return NextResponse.json({ error: "No reference ID found in session metadata" });
 
-	updateUserSubscription(referenceId, customerId, Plan.Pro);
+	await updateUserSubscription(referenceId, customerId, Plan.Pro);
 	return NextResponse.json({});
 }
 
-async function handleCustomerSubscriptionDeleted(stripe: Stripe, data: Stripe.Event.Data) {
-	const subscription = await stripe.subscriptions.retrieve((data.object as Stripe.Checkout.Session).id);
+async function handleCustomerSubscriptionDeleted(data: Stripe.Event.Data) {
+	const subscription = data.object as Stripe.Subscription;
 	if (!subscription) return NextResponse.json({ error: "No subscription found" });
 
 	const user = await getUserByCustomerId(subscription.customer as string);
 	if (!user) return NextResponse.json({ error: "No user found for this subscription" });
 
-	updateUserSubscription(user.id, subscription.customer as string, Plan.Free);
+	await updateUserSubscription(user.id, subscription.customer as string, Plan.Free);
 	await downgradeUserPlan(user.id);
+
+	return NextResponse.json({});
+}
+
+async function handleCustomerSubscriptionUpdated(data: Stripe.Event.Data) {
+	const subscription = data.object as Stripe.Subscription;
+	if (!subscription) return NextResponse.json({ error: "No subscription found" });
+
+	const user = await getUserByCustomerId(subscription.customer as string);
+	if (!user) return NextResponse.json({ error: "No user found for this subscription" });
+
+	const activeStatuses = new Set<Stripe.Subscription.Status>(["active", "trialing", "past_due"]);
+	const nextPlan = activeStatuses.has(subscription.status) ? Plan.Pro : Plan.Free;
+	await updateUserSubscription(user.id, subscription.customer as string, nextPlan);
+	if (nextPlan === Plan.Free) {
+		await downgradeUserPlan(user.id);
+	}
 
 	return NextResponse.json({});
 }
@@ -69,7 +86,9 @@ export async function POST(req: Request) {
 			case "checkout.session.completed":
 				return await handleCheckoutSessionCompleted(stripe, data);
 			case "customer.subscription.deleted":
-				return await handleCustomerSubscriptionDeleted(stripe, data);
+				return await handleCustomerSubscriptionDeleted(data);
+			case "customer.subscription.updated":
+				return await handleCustomerSubscriptionUpdated(data);
 			default:
 				return NextResponse.json({});
 		}

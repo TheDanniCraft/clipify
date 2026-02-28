@@ -1,6 +1,6 @@
 import type { SVGProps } from "react";
 import { InferSelectModel } from "drizzle-orm";
-import { modQueueTable, overlaysTable, settingsTable, tokenTable, usersTable, queueTable, twitchCacheTable } from "@/db/schema";
+import { entitlementGrantsTable, modQueueTable, overlaysTable, settingsTable, tokenTable, usersTable, queueTable, twitchCacheTable } from "@/db/schema";
 
 export class RateLimitError extends Error {
 	constructor() {
@@ -176,7 +176,21 @@ export enum Plan {
 	Pro = "pro",
 }
 
-export type AuthenticatedUser = InferSelectModel<typeof usersTable>;
+export type EffectivePlan = "free" | "pro";
+export type EntitlementSource = "billing" | "reverse_trial" | "grant";
+export type UserEntitlements = {
+	effectivePlan: EffectivePlan;
+	isBillingPro: boolean;
+	reverseTrialActive: boolean;
+	trialEndsAt: Date | null;
+	hasActiveGrant: boolean;
+	grantSource?: string;
+	source: EntitlementSource;
+};
+
+export type DbUser = InferSelectModel<typeof usersTable>;
+export type AuthenticatedUser = DbUser & { entitlements?: UserEntitlements };
+export type EntitlementGrant = InferSelectModel<typeof entitlementGrantsTable>;
 
 export type UserToken = InferSelectModel<typeof tokenTable>;
 

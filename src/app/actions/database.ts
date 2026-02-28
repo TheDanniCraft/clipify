@@ -7,6 +7,8 @@ import { getUserDetails, getUsersDetailsBulk, refreshAccessToken, subscribeToRew
 import { eq, inArray, and, or, isNull, lt, gt, sql } from "drizzle-orm";
 import { validateAuth } from "@actions/auth";
 import { encryptToken, decryptToken } from "@lib/tokenCrypto";
+import { getFeatureAccess } from "@lib/featureAccess";
+import { createProAccessGrant, resolveUserEntitlements } from "@lib/entitlements";
 
 const db = drizzle(process.env.DATABASE_URL!);
 
@@ -94,7 +96,9 @@ async function requireOverlaySecretAccess(overlayId: string, secret?: string): P
 
 async function setUser(user: TwitchUserResponse): Promise<AuthenticatedUser> {
 	try {
-		return await db
+		const existing = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.id, user.id)).limit(1).execute();
+		const isNewUser = existing.length === 0;
+		const dbUser = await db
 			.insert(usersTable)
 			.values({
 				id: user.id,
@@ -115,6 +119,20 @@ async function setUser(user: TwitchUserResponse): Promise<AuthenticatedUser> {
 			})
 			.returning()
 			.then((result) => result[0]);
+
+		if (isNewUser) {
+			const startsAt = dbUser.createdAt instanceof Date ? dbUser.createdAt : new Date(dbUser.createdAt);
+			const endsAt = new Date(startsAt.getTime() + 7 * 24 * 60 * 60 * 1000);
+			await createProAccessGrant({
+				userId: dbUser.id,
+				source: "reverse_trial",
+				reason: "free_signup_trial",
+				startsAt,
+				endsAt,
+			});
+		}
+
+		return dbUser;
 	} catch (error) {
 		console.error("Error inserting user:", error);
 		throw new Error("Failed to insert user");
@@ -221,6 +239,38 @@ export async function getUserByCustomerId(customerId: string): Promise<Authentic
 		return user[0] || null;
 	} catch (error) {
 		console.error("Error fetching user by customer ID:", error);
+		return null;
+	}
+}
+
+export async function updateUserStripeCustomerId(userId: string, customerId: string): Promise<AuthenticatedUser | null> {
+	try {
+		const user = await db
+			.update(usersTable)
+			.set({
+				stripeCustomerId: customerId,
+				updatedAt: new Date(),
+			})
+			.where(eq(usersTable.id, userId))
+			.returning()
+			.execute();
+
+		return user[0] ?? null;
+	} catch (error) {
+		console.error("Error updating user stripe customer id:", error);
+		throw new Error("Failed to update stripe customer id");
+	}
+}
+
+// Server-only helper for internal lookups.
+export async function getUserByIdServer(id: string): Promise<AuthenticatedUser | null> {
+	try {
+		const user = await db.select().from(usersTable).where(eq(usersTable.id, id)).limit(1).execute();
+		if (!user[0]) return null;
+		const entitlements = await resolveUserEntitlements(user[0]);
+		return { ...user[0], entitlements };
+	} catch (error) {
+		console.error("Error fetching user by id:", error);
 		return null;
 	}
 }
@@ -451,13 +501,16 @@ export async function getOverlayOwnerPlans(overlayIds: string[]): Promise<Record
 		}
 
 		const ownerIds = Array.from(new Set(overlays.map((overlay) => overlay.ownerId)));
-		const owners = await db.select({ id: usersTable.id, plan: usersTable.plan }).from(usersTable).where(inArray(usersTable.id, ownerIds)).execute();
-
-		const planByOwnerId = new Map(owners.map((owner) => [owner.id, owner.plan]));
+		const owners = await db.select({ id: usersTable.id, plan: usersTable.plan, createdAt: usersTable.createdAt }).from(usersTable).where(inArray(usersTable.id, ownerIds)).execute();
+		const effectivePlanByOwnerId = new Map<string, Plan>();
+		for (const owner of owners) {
+			const entitlements = await resolveUserEntitlements(owner as AuthenticatedUser);
+			effectivePlanByOwnerId.set(owner.id, entitlements.effectivePlan === "pro" ? Plan.Pro : Plan.Free);
+		}
 		const result: Record<string, Plan> = {};
 
 		for (const overlay of overlays) {
-			result[overlay.id] = planByOwnerId.get(overlay.ownerId) ?? Plan.Free;
+			result[overlay.id] = effectivePlanByOwnerId.get(overlay.ownerId) ?? Plan.Free;
 		}
 
 		return result;
@@ -530,8 +583,13 @@ export async function createOverlay(userId: string) {
 			return null;
 		}
 		const ownerRows = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1).execute();
-		const ownerPlan = ownerRows && ownerRows[0] ? ownerRows[0].plan : Plan.Free;
-		if (ownerPlan === Plan.Free) {
+		const owner = ownerRows[0];
+		if (!owner) {
+			return null;
+		}
+		const ownerWithEntitlements = { ...owner, entitlements: await resolveUserEntitlements(owner) };
+		const multiOverlayAccess = getFeatureAccess(ownerWithEntitlements, "multi_overlay");
+		if (!multiOverlayAccess.allowed) {
 			const existing = await db.select().from(overlaysTable).where(eq(overlaysTable.ownerId, userId)).execute();
 			if (existing.length >= 1) {
 				console.warn(`Free plan overlay limit reached for owner id: ${userId}`);
@@ -587,10 +645,16 @@ export async function saveOverlay(overlayId: string, patch: OverlayPatch) {
 		const sanitizedPatch = Object.fromEntries(Object.entries(patch).filter(([, value]) => value !== undefined)) as OverlayPatch;
 		const next = { ...ctx.overlay, ...sanitizedPatch };
 
-		// Use the owner's plan to determine whether rewardId is allowed
+		// Use the owner's access context to determine whether advanced settings are allowed
 		const ownerRows = await db.select().from(usersTable).where(eq(usersTable.id, ctx.overlay.ownerId)).limit(1).execute();
-		const plan = ownerRows && ownerRows[0] ? ownerRows[0].plan : Plan.Free;
-		const rewardIdAllowed = plan === Plan.Free ? null : (next.rewardId ?? null);
+		const owner = ownerRows[0];
+		const ownerWithEntitlements = owner ? { ...owner, entitlements: await resolveUserEntitlements(owner) } : null;
+		const advancedAccess = ownerWithEntitlements ? getFeatureAccess(ownerWithEntitlements, "advanced_filters") : { allowed: false as const };
+		const rewardIdAllowed = advancedAccess.allowed ? (next.rewardId ?? null) : null;
+		const minClipDuration = advancedAccess.allowed ? next.minClipDuration : 0;
+		const maxClipDuration = advancedAccess.allowed ? next.maxClipDuration : 60;
+		const minClipViews = advancedAccess.allowed ? next.minClipViews : 0;
+		const blacklistWords = advancedAccess.allowed ? next.blacklistWords : [];
 
 		await db
 			.update(overlaysTable)
@@ -600,10 +664,10 @@ export async function saveOverlay(overlayId: string, patch: OverlayPatch) {
 				type: next.type,
 				rewardId: rewardIdAllowed,
 				updatedAt: new Date(),
-				minClipDuration: next.minClipDuration,
-				maxClipDuration: next.maxClipDuration,
-				blacklistWords: next.blacklistWords,
-				minClipViews: next.minClipViews,
+				minClipDuration,
+				maxClipDuration,
+				blacklistWords,
+				minClipViews,
 			})
 			.where(eq(overlaysTable.id, overlayId))
 			.execute();
@@ -635,8 +699,9 @@ export async function deleteOverlay(overlayId: string) {
 export async function getOverlayOwnerPlan(overlayId: string): Promise<Plan | null> {
 	const ctx = await requireOverlayAccess(overlayId);
 	if (!ctx) return null;
-
-	return getUserPlanByIdInternal(ctx.overlay.ownerId);
+	const owner = await getUserByIdServer(ctx.overlay.ownerId);
+	if (!owner) return null;
+	return owner.entitlements?.effectivePlan === "pro" ? Plan.Pro : Plan.Free;
 }
 
 // Public plan lookup scoped to an overlay id (embed use).
@@ -646,7 +711,11 @@ export async function getOverlayOwnerPlanPublic(overlayId: string): Promise<Plan
 		const overlay = overlays[0];
 		if (!overlay) return null;
 
-		return getUserPlanByIdInternal(overlay.ownerId);
+		const ownerRows = await db.select().from(usersTable).where(eq(usersTable.id, overlay.ownerId)).limit(1).execute();
+		const owner = ownerRows[0];
+		if (!owner) return Plan.Free;
+		const entitlements = await resolveUserEntitlements(owner as AuthenticatedUser);
+		return entitlements.effectivePlan === "pro" ? Plan.Pro : Plan.Free;
 	} catch (error) {
 		console.error("Error fetching overlay owner plan:", error);
 		throw new Error("Failed to fetch overlay owner plan");
@@ -886,6 +955,11 @@ export async function saveSettings(settings: UserSettings) {
 	const userId = settings.id;
 	const prefix = settings.prefix;
 	const editors = settings.editors ?? [];
+	const userRows = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1).execute();
+	const owner = userRows[0];
+	const ownerWithEntitlements = owner ? { ...owner, entitlements: await resolveUserEntitlements(owner) } : null;
+	const editorsAccess = ownerWithEntitlements ? getFeatureAccess(ownerWithEntitlements, "editors") : { allowed: false as const };
+	const effectiveEditors = editorsAccess.allowed ? editors : [];
 
 	const accessToken = await getAccessToken(userId);
 	if (!accessToken) throw new Error("Could not retrieve access token.");
@@ -894,7 +968,7 @@ export async function saveSettings(settings: UserSettings) {
 	const userDetails = await getUserDetails(accessToken.accessToken);
 	const userLogin = userDetails?.login;
 	// Clean + dedupe editor names (and never include self)
-	const editorNames = Array.from(new Set(editors.filter((name) => name && name !== userLogin)));
+	const editorNames = Array.from(new Set(effectiveEditors.filter((name) => name && name !== userLogin)));
 
 	// Do network calls BEFORE the transaction (keeps tx short)
 	let rows: Array<{ userId: string; editorId: string }> = [];

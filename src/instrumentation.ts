@@ -3,6 +3,8 @@ import * as Sentry from "@sentry/nextjs";
 export async function register() {
 	if (process.env.NEXT_RUNTIME === "nodejs") {
 		await import("../sentry.server.config");
+		const { startEntitlementsScheduler } = await import("@lib/entitlementsScheduler");
+		startEntitlementsScheduler();
 	}
 	if (process.env.NEXT_RUNTIME === "edge") {
 		await import("../sentry.edge.config");

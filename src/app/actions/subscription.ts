@@ -4,10 +4,20 @@ import Stripe from "stripe";
 import { AuthenticatedUser, NumokStripeMetadata } from "@types";
 import { getBaseUrl } from "@actions/utils";
 import { cookies } from "next/headers";
+import { updateUserStripeCustomerId } from "@actions/database";
+
+export type BillingCycle = "monthly" | "yearly";
+export type PaywallSource = "pricing_page" | "upgrade_modal" | "paywall_banner";
 
 const PRODUCTS = {
-	dev: ["price_1SnM3MBg46KdNQq5MjHMYyYw", "price_1SnMAsBg46KdNQq5k8cI6Y8M"],
-	prod: ["price_1S83PSB0sp7KYCWLzhUkxodR", "price_1S83Y2B0sp7KYCWL0YDGoqjG"],
+	dev: {
+		monthly: "price_1SnM3MBg46KdNQq5MjHMYyYw",
+		yearly: "price_1SnMAsBg46KdNQq5k8cI6Y8M",
+	},
+	prod: {
+		monthly: "price_1S83PSB0sp7KYCWLzhUkxodR",
+		yearly: "price_1S83Y2B0sp7KYCWL0YDGoqjG",
+	},
 };
 
 let stripe: Stripe | null = null;
@@ -41,42 +51,27 @@ export async function checkIfSubscriptionExists(user: AuthenticatedUser) {
 	return subscriptions.data.length > 0;
 }
 
-export async function isEligibleForTrial(user: AuthenticatedUser) {
-	if (!user.stripeCustomerId) {
-		return true;
-	}
-
-	const stripe = await getStripe();
-	const tiers = await getPlans();
-
-	const subscriptions = await stripe.subscriptions.list({
-		customer: user.stripeCustomerId,
-		status: "all",
-		expand: ["data.items.data.price"],
-		limit: 100,
-	});
-
-	// any subscription with a trial for one of the current prices
-	const hasTrialForTrackedPrices = subscriptions.data.some((sub) => {
-		const hadTrial = sub.trial_start != null && sub.trial_end != null && sub.trial_end > sub.trial_start;
-
-		if (!hadTrial) return false;
-
-		const hasTrackedPrice = sub.items.data.some((item) => tiers.includes(item.price.id));
-
-		return hasTrackedPrice;
-	});
-
-	// eligible if they have NOT yet trialed any of these prices
-	return !hasTrialForTrackedPrices;
-}
-
-export async function generatePaymentLink(user: AuthenticatedUser, returnUrl?: string, numokMetadata?: NumokStripeMetadata) {
+export async function generatePaymentLink(user: AuthenticatedUser, billingCycle: BillingCycle, returnUrl?: string, numokMetadata?: NumokStripeMetadata, source?: PaywallSource) {
 	const cookieStore = await cookies();
 	const products = await getPlans();
+	const selectedPrice = products[billingCycle];
 
 	const stripe = await getStripe();
 	const baseUrl = await getBaseUrl();
+	let stripeCustomerId = user.stripeCustomerId ?? null;
+
+	if (!stripeCustomerId) {
+		const customer = await stripe.customers.create({
+			email: user.email,
+			metadata: {
+				userId: user.id,
+				source: source ?? "upgrade_modal",
+			},
+		});
+		stripeCustomerId = customer.id;
+		await updateUserStripeCustomerId(user.id, customer.id);
+		console.info("[entitlements] stripe_customer_created_on_intent", { userId: user.id, customerId: customer.id, source: source ?? "upgrade_modal" });
+	}
 
 	const rawCode = cookieStore.get("offer")?.value;
 	const offerCode = rawCode?.trim();
@@ -90,21 +85,22 @@ export async function generatePaymentLink(user: AuthenticatedUser, returnUrl?: s
 	}
 
 	const baseSessionParams: Stripe.Checkout.SessionCreateParams = {
-		line_items: [{ price: products[0], quantity: 1 }],
+		line_items: [{ price: selectedPrice, quantity: 1 }],
 		client_reference_id: user.id,
 		mode: "subscription",
 		success_url: `${baseUrl}dashboard/settings`,
 		cancel_url: returnUrl || `${baseUrl}dashboard/settings`,
-		...(user.stripeCustomerId ? { customer: user.stripeCustomerId } : { customer_email: user.email }),
+		customer: stripeCustomerId,
 		metadata: {
 			userId: user.id,
+			source: source ?? "upgrade_modal",
+			billingCycle,
 			...numokMetadata,
 		},
 		tax_id_collection: {
 			enabled: true,
 		},
-		subscription_data: (await isEligibleForTrial(user)) ? { trial_period_days: 3 } : {},
-		...(user.stripeCustomerId ? { customer_update: { name: "auto", address: "auto" } } : {}),
+		customer_update: { name: "auto", address: "auto" },
 	};
 
 	const createSession = async (usePromo: boolean) => {

@@ -1,4 +1,4 @@
-import { varchar, pgTable, check, timestamp, uuid, integer, text, uniqueIndex, primaryKey } from "drizzle-orm/pg-core";
+import { varchar, pgTable, check, timestamp, uuid, integer, text, uniqueIndex, primaryKey, index } from "drizzle-orm/pg-core";
 import type { Role, Plan, StatusOptions, OverlayType, TwitchCacheType } from "@types";
 import { sql } from "drizzle-orm";
 
@@ -13,6 +13,7 @@ export const usersTable = pgTable("users", {
 	createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 	updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 	lastLogin: timestamp("last_login", { withTimezone: true }),
+	lastEntitlementReconciledAt: timestamp("last_entitlement_reconciled_at", { withTimezone: true }),
 });
 
 export const editorsTable = pgTable(
@@ -93,4 +94,23 @@ export const twitchCacheTable = pgTable(
 		expiresAt: timestamp("expires_at", { withTimezone: true }),
 	},
 	(t) => [uniqueIndex("twitch_cache_type_key_unique").on(t.type, t.key)],
+);
+
+export const entitlementGrantsTable = pgTable(
+	"entitlement_grants",
+	{
+		id: uuid("id").notNull().defaultRandom().primaryKey(),
+		userId: varchar("user_id").references(() => usersTable.id, { onDelete: "cascade" }),
+		entitlement: varchar("entitlement").notNull().default("pro_access"),
+		source: varchar("source").notNull().default("system"),
+		reason: varchar("reason"),
+		startsAt: timestamp("starts_at", { withTimezone: true }).defaultNow().notNull(),
+		endsAt: timestamp("ends_at", { withTimezone: true }),
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+	},
+	(t) => [
+		index("entitlement_grants_user_lookup_idx").on(t.userId, t.entitlement, t.startsAt, t.endsAt),
+		index("entitlement_grants_global_lookup_idx").on(t.entitlement, t.startsAt, t.endsAt),
+	],
 );
