@@ -113,7 +113,7 @@ export default function UpgradeModal({ isOpen, onOpenChange, user, title, descri
 										) : (
 											<span className='text-2xl font-semibold'>{monthly}</span>
 										)}
-										<span className='text-xs text-default-400'>/{monthlySuffix}</span>
+										<span className='text-xs text-default-400'>{monthlySuffix}</span>
 									</div>
 									<div className='mt-2 inline-flex items-center gap-1 text-xs text-default-500'>
 										<IconBolt size={14} className='text-primary-400' />
@@ -138,7 +138,7 @@ export default function UpgradeModal({ isOpen, onOpenChange, user, title, descri
 										) : (
 											<span className='text-2xl font-semibold text-primary-200'>{yearly}</span>
 										)}
-										<span className='text-xs text-primary-300'>/{yearlySuffix}</span>
+										<span className='text-xs text-primary-300'>{yearlySuffix}</span>
 									</div>
 									<div className='mt-2 inline-flex items-center gap-1 text-xs text-primary-200'>
 										<IconSparkles size={14} />

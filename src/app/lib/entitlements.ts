@@ -310,9 +310,17 @@ export async function reconcileRevokedUsersBatch(batchSize = 100, reconciliation
 		.limit(batchSize)
 		.execute();
 
+	const entitlementsByUserId = await resolveUserEntitlementsForUsers(candidates as AuthenticatedUser[]);
 	let reconciled = 0;
 	for (const user of candidates) {
-		const entitlements = await resolveUserEntitlements(user as AuthenticatedUser);
+		const entitlements = entitlementsByUserId.get(user.id) ?? {
+			effectivePlan: "free" as const,
+			isBillingPro: false,
+			reverseTrialActive: false,
+			trialEndsAt: null,
+			hasActiveGrant: false,
+			source: "reverse_trial" as const,
+		};
 		if (entitlements.effectivePlan !== "free") {
 			await db
 				.update(usersTable)
