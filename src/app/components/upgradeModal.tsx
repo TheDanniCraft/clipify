@@ -3,7 +3,8 @@
 import { addToast, Button, Chip, Divider, Modal, ModalBody, ModalContent, ModalHeader, Tab, Tabs } from "@heroui/react";
 import { IconBolt, IconCheck, IconDiamondFilled, IconSparkles } from "@tabler/icons-react";
 import { useEffect, useMemo, useState } from "react";
-import { BillingCycle, generatePaymentLink, PaywallSource } from "@actions/subscription";
+import { generatePaymentLink } from "@actions/subscription";
+import type { BillingCycle, PaywallSource } from "@actions/subscription";
 import { frequencies, tiers } from "@components/Pricing/pricing-tiers";
 import { FrequencyEnum, TiersEnum } from "@components/Pricing/pricing-types";
 import type { AuthenticatedUser } from "@types";

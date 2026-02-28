@@ -2,7 +2,7 @@
 
 import { entitlementGrantsTable, editorsTable, overlaysTable, usersTable } from "@/db/schema";
 import { db } from "@/db/client";
-import { and, asc, eq, gt, inArray, isNull, lt, lte, or } from "drizzle-orm";
+import { and, asc, eq, gt, inArray, isNull, lt, lte, or, sql } from "drizzle-orm";
 import { AuthenticatedUser, Plan, UserEntitlements } from "@types";
 
 const PRO_ACCESS = "pro_access";
@@ -56,25 +56,37 @@ export async function createProAccessGrant(input: CreateGrantInput) {
 export async function ensureReverseTrialGrantForUser(user: Pick<AuthenticatedUser, "id" | "plan">) {
 	if (user.plan !== Plan.Free) return { created: false as const };
 
-	const existing = await db
-		.select({ id: entitlementGrantsTable.id })
-		.from(entitlementGrantsTable)
-		.where(and(eq(entitlementGrantsTable.userId, user.id), eq(entitlementGrantsTable.entitlement, PRO_ACCESS), eq(entitlementGrantsTable.source, "reverse_trial")))
-		.limit(1)
-		.execute();
+	return db.transaction(async (tx) => {
+		// Serialize reverse-trial grant creation per user to avoid race duplicates.
+		await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`reverse_trial:${user.id}`}))`);
 
-	if (existing.length > 0) return { created: false as const };
+		const existing = await tx
+			.select({ id: entitlementGrantsTable.id })
+			.from(entitlementGrantsTable)
+			.where(and(eq(entitlementGrantsTable.userId, user.id), eq(entitlementGrantsTable.entitlement, PRO_ACCESS), eq(entitlementGrantsTable.source, "reverse_trial")))
+			.limit(1)
+			.execute();
 
-	const startsAt = new Date();
-	const endsAt = new Date(startsAt.getTime() + REVERSE_TRIAL_DAYS * 24 * 60 * 60 * 1000);
-	await createProAccessGrant({
-		userId: user.id,
-		source: "reverse_trial",
-		reason: "free_signup_trial",
-		startsAt,
-		endsAt,
+		if (existing.length > 0) return { created: false as const };
+
+		const startsAt = new Date();
+		const endsAt = new Date(startsAt.getTime() + REVERSE_TRIAL_DAYS * 24 * 60 * 60 * 1000);
+		await tx
+			.insert(entitlementGrantsTable)
+			.values({
+				userId: user.id,
+				entitlement: PRO_ACCESS,
+				source: "reverse_trial",
+				reason: "free_signup_trial",
+				startsAt,
+				endsAt,
+				createdAt: startsAt,
+				updatedAt: startsAt,
+			})
+			.execute();
+
+		return { created: true as const };
 	});
-	return { created: true as const };
 }
 
 function pickBestGrant(grants: ActiveGrant[]) {
