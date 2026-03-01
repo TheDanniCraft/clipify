@@ -60,10 +60,11 @@ export async function checkIfSubscriptionExists(user: AuthenticatedUser) {
 
 	const subscriptions = await stripe.subscriptions.list({
 		customer: authUser.stripeCustomerId,
-		status: "active",
+		status: "all",
 	});
 
-	return subscriptions.data.length > 0;
+	const blockingStatuses: Stripe.Subscription.Status[] = ["active", "trialing", "past_due", "unpaid"];
+	return subscriptions.data.some((subscription) => blockingStatuses.includes(subscription.status));
 }
 
 async function persistStripeCustomerId(userId: string, customerId: string) {
