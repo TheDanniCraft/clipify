@@ -147,7 +147,7 @@ export async function resolveUserEntitlements(user: EntitlementUserRef): Promise
 
 	const grant = pickBestGrant(grants);
 	if (grant) {
-		const isReverseTrialGrant = grant.source === "reverse_trial";
+		const isReverseTrialGrant = grant.source === EntitlementGrantSource.ReverseTrial;
 		return {
 			effectivePlan: "pro",
 			isBillingPro: false,
@@ -234,7 +234,7 @@ export async function resolveUserEntitlementsForUsers(users: EntitlementUserRef[
 	for (const user of freeUsers) {
 		const grant = pickBestGrant([...(grantByUserId.get(user.id) ?? []), ...(grantByUserId.get("__global__") ?? [])]);
 		if (grant) {
-			const isReverseTrialGrant = grant.source === "reverse_trial";
+			const isReverseTrialGrant = grant.source === EntitlementGrantSource.ReverseTrial;
 			result.set(user.id, {
 				effectivePlan: "pro",
 				isBillingPro: false,
@@ -306,47 +306,58 @@ export async function reconcileRevokedUsersBatch(batchSize = 100, reconciliation
 		return { candidates: 0, reconciled: 0 };
 	}
 
-	const now = new Date();
-	const reconciliationCutoff = new Date(now.getTime() - reconciliationCooldownHours * 60 * 60 * 1000);
-
-	const candidates = await db
-		.select()
-		.from(usersTable)
-		.where(and(eq(usersTable.plan, Plan.Free), or(isNull(usersTable.lastEntitlementReconciledAt), lt(usersTable.lastEntitlementReconciledAt, reconciliationCutoff))))
-		.orderBy(asc(usersTable.createdAt))
-		.limit(batchSize)
-		.execute();
-
-	const entitlementsByUserId = await resolveUserEntitlementsForUsers(candidates);
-	let reconciled = 0;
-	for (const user of candidates) {
-		const entitlements = entitlementsByUserId.get(user.id) ?? {
-			effectivePlan: "free" as const,
-			isBillingPro: false,
-			reverseTrialActive: false,
-			trialEndsAt: null,
-			hasActiveGrant: false,
-			source: "reverse_trial" as const,
-		};
-		if (entitlements.effectivePlan !== "free") {
-			await db
-				.update(usersTable)
-				.set({
-					updatedAt: new Date(),
-					lastEntitlementReconciledAt: new Date(),
-				})
-				.where(eq(usersTable.id, user.id))
-				.execute();
-			continue;
-		}
-		await reconcileFreeConstraintsIfNeeded(user, entitlements);
-		reconciled += 1;
+	const lockKey = "entitlements_reconcile_batch";
+	const lockResult = (await db.execute(sql`select pg_try_advisory_lock(hashtext(${lockKey})) as locked`)) as unknown as { rows?: Array<{ locked?: boolean }> };
+	const locked = Boolean(lockResult.rows?.[0]?.locked);
+	if (!locked) {
+		return { candidates: 0, reconciled: 0 };
 	}
 
-	console.info("[entitlements] batch_reconcile_complete", {
-		candidates: candidates.length,
-		reconciled,
-	});
+	try {
+		const now = new Date();
+		const reconciliationCutoff = new Date(now.getTime() - reconciliationCooldownHours * 60 * 60 * 1000);
 
-	return { candidates: candidates.length, reconciled };
+		const candidates = await db
+			.select()
+			.from(usersTable)
+			.where(and(eq(usersTable.plan, Plan.Free), or(isNull(usersTable.lastEntitlementReconciledAt), lt(usersTable.lastEntitlementReconciledAt, reconciliationCutoff))))
+			.orderBy(asc(usersTable.createdAt))
+			.limit(batchSize)
+			.execute();
+
+		const entitlementsByUserId = await resolveUserEntitlementsForUsers(candidates);
+		let reconciled = 0;
+		for (const user of candidates) {
+			const entitlements = entitlementsByUserId.get(user.id) ?? {
+				effectivePlan: "free" as const,
+				isBillingPro: false,
+				reverseTrialActive: false,
+				trialEndsAt: null,
+				hasActiveGrant: false,
+				source: "reverse_trial" as const,
+			};
+			if (entitlements.effectivePlan !== "free") {
+				await db
+					.update(usersTable)
+					.set({
+						updatedAt: new Date(),
+						lastEntitlementReconciledAt: new Date(),
+					})
+					.where(eq(usersTable.id, user.id))
+					.execute();
+				continue;
+			}
+			await reconcileFreeConstraintsIfNeeded(user, entitlements);
+			reconciled += 1;
+		}
+
+		console.info("[entitlements] batch_reconcile_complete", {
+			candidates: candidates.length,
+			reconciled,
+		});
+
+		return { candidates: candidates.length, reconciled };
+	} finally {
+		await db.execute(sql`select pg_advisory_unlock(hashtext(${lockKey}))`);
+	}
 }

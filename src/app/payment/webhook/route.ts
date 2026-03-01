@@ -28,8 +28,6 @@ async function handleCheckoutSessionCompleted(stripe: Stripe, data: Stripe.Event
 	const priceId = session.line_items?.data[0]?.price?.id;
 	if (!priceId) return NextResponse.json({ error: "No price ID found in session" });
 
-	if (!session.subscription || typeof session.subscription !== "string") return NextResponse.json({ error: "No subscription ID found in session" });
-
 	const plans = await getPlans();
 	if (!Object.values(plans).some((plan) => plan === priceId)) return NextResponse.json({ error: "No plan found for this price" });
 

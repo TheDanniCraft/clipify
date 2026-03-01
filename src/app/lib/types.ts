@@ -221,7 +221,7 @@ export enum OverlayType {
 	Today = "1",
 	LastWeek = "7",
 	LastMonth = "30",
-	LastQuater = "90",
+	LastQuarter = "90",
 	Last180Days = "180",
 	LastYear = "365",
 	Featured = "Featured",

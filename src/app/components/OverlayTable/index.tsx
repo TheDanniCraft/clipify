@@ -2,7 +2,8 @@
 
 import type { Selection, SortDescriptor } from "@heroui/react";
 import type { ColumnsKey } from "./data";
-import { AuthenticatedUser, Overlay, StatusOptions, TwitchUserResponse } from "@types";
+import type { AuthenticatedUser, Overlay, TwitchUserResponse } from "@types";
+import { StatusOptions } from "@types";
 import type { Key } from "@react-types/shared";
 
 import dynamic from "next/dynamic";

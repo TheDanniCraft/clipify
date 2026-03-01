@@ -22,15 +22,15 @@ import { usePlausible } from "next-plausible";
 import { trackPaywallEvent } from "@lib/paywallTracking";
 
 const overlayTypes: { key: OverlayType; label: string }[] = [
-	{ key: "1" as OverlayType, label: "Top Clips - Today" },
-	{ key: "7" as OverlayType, label: "Top Clips - Last 7 Days" },
-	{ key: "30" as OverlayType, label: "Top Clips - Last 30 Days" },
-	{ key: "90" as OverlayType, label: "Top Clips - Last 90 Days" },
-	{ key: "180" as OverlayType, label: "Top Clips - Last 180 Days" },
-	{ key: "365" as OverlayType, label: "Top Clips - Last Year" },
-	{ key: "Featured" as OverlayType, label: "Featured only" },
-	{ key: "All" as OverlayType, label: "All Clips" },
-	{ key: "Queue" as OverlayType, label: "Clip Queue" },
+	{ key: OverlayType.Today, label: "Top Clips - Today" },
+	{ key: OverlayType.LastWeek, label: "Top Clips - Last 7 Days" },
+	{ key: OverlayType.LastMonth, label: "Top Clips - Last 30 Days" },
+	{ key: OverlayType.LastQuarter, label: "Top Clips - Last 90 Days" },
+	{ key: OverlayType.Last180Days, label: "Top Clips - Last 180 Days" },
+	{ key: OverlayType.LastYear, label: "Top Clips - Last Year" },
+	{ key: OverlayType.Featured, label: "Featured only" },
+	{ key: OverlayType.All, label: "All Clips" },
+	{ key: OverlayType.Queue, label: "Clip Queue" },
 ];
 
 export default function OverlaySettings() {
