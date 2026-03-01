@@ -950,6 +950,11 @@ export async function getSettings(userId: string): Promise<UserSettings> {
 
 export async function saveSettings(settings: UserSettings) {
 	const userId = settings.id;
+	const authedUser = await requireUser();
+	if (!authedUser || authedUser.id !== userId) {
+		console.warn(`Unauthorized "saveSettings" API request for user id: ${userId}`);
+		throw new Error("Unauthorized");
+	}
 	const prefix = settings.prefix;
 	const editors = settings.editors ?? [];
 	const userRows = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1).execute();
