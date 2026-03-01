@@ -1,6 +1,6 @@
 import type { SVGProps } from "react";
 import { InferSelectModel } from "drizzle-orm";
-import { entitlementGrantsTable, modQueueTable, overlaysTable, settingsTable, tokenTable, usersTable, queueTable, twitchCacheTable } from "@/db/schema";
+import type { entitlementGrantsTable, modQueueTable, overlaysTable, settingsTable, tokenTable, usersTable, queueTable, twitchCacheTable } from "@/db/schema";
 
 export class RateLimitError extends Error {
 	constructor() {
@@ -196,14 +196,27 @@ export type UserToken = InferSelectModel<typeof tokenTable>;
 
 export type UserSettings = InferSelectModel<typeof settingsTable> & { editors: string[] };
 
-export type StatusOptions = "active" | "paused";
+export enum StatusOptions {
+	Active = "active",
+	Paused = "paused",
+}
 
 export type Overlay = InferSelectModel<typeof overlaysTable>;
 
 export type ClipQueueItem = InferSelectModel<typeof queueTable>;
 export type ModQueueItem = InferSelectModel<typeof modQueueTable>;
 
-export type OverlayType = "1" | "7" | "30" | "90" | "180" | "365" | "Featured" | "All" | "Queue";
+export enum OverlayType {
+	Today = "1",
+	LastWeek = "7",
+	LastMonth = "30",
+	LastQuater = "90",
+	Last180Days = "180",
+	LastYear = "365",
+	Featured = "Featured",
+	All = "All",
+	Queue = "Queue",
+}
 
 export type AccessType = "owner" | "editor";
 
@@ -488,3 +501,4 @@ declare global {
 		};
 	}
 }
+

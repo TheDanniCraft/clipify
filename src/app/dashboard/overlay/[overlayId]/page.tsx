@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { getOverlay, getOverlayOwnerPlan, saveOverlay } from "@actions/database";
 import { addToast, Button, Card, CardBody, CardHeader, Divider, Form, Image, Input, Link, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, NumberInput, Select, SelectItem, Slider, Snippet, Spinner, Switch, Tooltip, useDisclosure } from "@heroui/react";
-import { AuthenticatedUser, Overlay, OverlayType, Plan, TwitchClip, TwitchReward } from "@types";
+import { AuthenticatedUser, Overlay, OverlayType, Plan, StatusOptions, TwitchClip, TwitchReward } from "@types";
 import { IconAlertTriangle, IconArrowLeft, IconCrown, IconDeviceFloppy, IconInfoCircle, IconPlayerPauseFilled, IconPlayerPlayFilled } from "@tabler/icons-react";
 import DashboardNavbar from "@components/dashboardNavbar";
 import { useNavigationGuard } from "next-navigation-guard";
@@ -22,15 +22,15 @@ import { usePlausible } from "next-plausible";
 import { trackPaywallEvent } from "@lib/paywallTracking";
 
 const overlayTypes: { key: OverlayType; label: string }[] = [
-	{ key: "1", label: "Top Clips - Today" },
-	{ key: "7", label: "Top Clips - Last 7 Days" },
-	{ key: "30", label: "Top Clips - Last 30 Days" },
-	{ key: "90", label: "Top Clips - Last 90 Days" },
-	{ key: "180", label: "Top Clips - Last 180 Days" },
-	{ key: "365", label: "Top Clips - Last Year" },
-	{ key: "Featured", label: "Featured only" },
-	{ key: "All", label: "All Clips" },
-	{ key: "Queue", label: "Clip Queue" },
+	{ key: "1" as OverlayType, label: "Top Clips - Today" },
+	{ key: "7" as OverlayType, label: "Top Clips - Last 7 Days" },
+	{ key: "30" as OverlayType, label: "Top Clips - Last 30 Days" },
+	{ key: "90" as OverlayType, label: "Top Clips - Last 90 Days" },
+	{ key: "180" as OverlayType, label: "Top Clips - Last 180 Days" },
+	{ key: "365" as OverlayType, label: "Top Clips - Last Year" },
+	{ key: "Featured" as OverlayType, label: "Featured only" },
+	{ key: "All" as OverlayType, label: "All Clips" },
+	{ key: "Queue" as OverlayType, label: "Clip Queue" },
 ];
 
 export default function OverlaySettings() {
@@ -214,9 +214,9 @@ export default function OverlaySettings() {
 								<Form className='w-full' onSubmit={handleSubmit}>
 									<div className='flex items-center w-full space-x-4'>
 										<Switch
-											isSelected={overlay.status === "active"}
+											isSelected={overlay.status === StatusOptions.Active}
 											onValueChange={(value) => {
-												setOverlay({ ...overlay, status: value ? "active" : "paused" });
+												setOverlay({ ...overlay, status: value ? StatusOptions.Active : StatusOptions.Paused });
 											}}
 											startContent={<IconPlayerPlayFilled />}
 											endContent={<IconPlayerPauseFilled />}

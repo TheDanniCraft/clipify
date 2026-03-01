@@ -2,7 +2,7 @@
 
 import type { Selection, SortDescriptor } from "@heroui/react";
 import type { ColumnsKey } from "./data";
-import type { AuthenticatedUser, Overlay, StatusOptions, TwitchUserResponse } from "@types";
+import { AuthenticatedUser, Overlay, StatusOptions, TwitchUserResponse } from "@types";
 import type { Key } from "@react-types/shared";
 
 import dynamic from "next/dynamic";
@@ -402,7 +402,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 										const selectedOverlays = filterSelectedKeys === "all" ? overlays : filteredItems.filter((item) => filterSelectedKeys.has(String(item.id)));
 
 										const toggleStatusPromises = selectedOverlays?.map((overlay) => {
-											const newStatus: StatusOptions = overlay.status === "active" ? "paused" : "active";
+											const newStatus: StatusOptions = overlay.status === StatusOptions.Active ? StatusOptions.Paused : StatusOptions.Active;
 											return saveOverlay(overlay.id, { status: newStatus }).then((updated) => ({
 												ok: Boolean(updated),
 												id: overlay.id,
@@ -517,94 +517,94 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 						<Button isIconOnly size='sm' variant='light' onPress={reloadOverlays} startContent={<IconReload className='text-default-400' width={16} />} aria-label='Reload Overlays' />
 					</div>
 					{hasAccess ? (
-					<Dropdown>
-						<DropdownTrigger>
-							<Button color='primary' isDisabled={overlays === undefined} isLoading={isLoading} endContent={<IconCirclePlus width={20} />}>
-								Add Overlay
-							</Button>
-						</DropdownTrigger>
+						<Dropdown>
+							<DropdownTrigger>
+								<Button color='primary' isDisabled={overlays === undefined} isLoading={isLoading} endContent={<IconCirclePlus width={20} />}>
+									Add Overlay
+								</Button>
+							</DropdownTrigger>
 
-						<DropdownMenu aria-label='Overlay actions' items={editorAccessList}>
-							{(item) => (
-								<DropdownItem
-									key={item.id}
-									onPress={async () => {
-										setIsLoading(true);
+							<DropdownMenu aria-label='Overlay actions' items={editorAccessList}>
+								{(item) => (
+									<DropdownItem
+										key={item.id}
+										onPress={async () => {
+											setIsLoading(true);
 
-										const overlay = await createOverlay(item.id);
-										if (!overlay) {
-											addToast({
-												title: "Error",
-												description: "Failed to create overlay. The owner may be on the Free plan or you lack permissions.",
-												color: "danger",
-											});
-											if (currentUser?.id === item.id) {
-												onUpgradeOpen();
+											const overlay = await createOverlay(item.id);
+											if (!overlay) {
+												addToast({
+													title: "Error",
+													description: "Failed to create overlay. The owner may be on the Free plan or you lack permissions.",
+													color: "danger",
+												});
+												if (currentUser?.id === item.id) {
+													onUpgradeOpen();
+												}
+												setIsLoading(false);
+												return;
 											}
-											setIsLoading(false);
-											return;
-										}
-										router.push(`/dashboard/overlay/${overlay.id}`);
-									}}
-								>
-									<div className='flex items-center'>
-										<Avatar className='mr-2 h-6 w-6' src={item.profile_image_url} />
-										Add new overlay for {item.display_name}
-									</div>
-								</DropdownItem>
-							)}
-						</DropdownMenu>
-					</Dropdown>
+											router.push(`/dashboard/overlay/${overlay.id}`);
+										}}
+									>
+										<div className='flex items-center'>
+											<Avatar className='mr-2 h-6 w-6' src={item.profile_image_url} />
+											Add new overlay for {item.display_name}
+										</div>
+									</DropdownItem>
+								)}
+							</DropdownMenu>
+						</Dropdown>
 					) : (
-					<Button
-						color='primary'
-						endContent={<IconCirclePlus width={20} />}
-						isLoading={isLoading}
-						isDisabled={overlays === undefined}
-						onPress={async () => {
-							setIsLoading(true);
+						<Button
+							color='primary'
+							endContent={<IconCirclePlus width={20} />}
+							isLoading={isLoading}
+							isDisabled={overlays === undefined}
+							onPress={async () => {
+								setIsLoading(true);
 
-							if (effectivePlan === "free" && ownerOverlaysCount >= 1 && !multiOverlayAccess.allowed) {
-								trackPaywallEvent(plausible, "paywall_cta_click", {
-									source: "paywall_banner",
-									feature: "multi_overlay",
-									plan: currentUser?.plan ?? "free",
-								});
-								addToast({
-									title: "Upgrade Required",
-									description: (
-										<p>
-											To add an additional overlay, please{" "}
-											<Link color='warning' underline='always' href='/dashboard/settings'>
-												upgrade
-											</Link>{" "}
-											to <strong>Pro</strong>.
-										</p>
-									),
-									color: "warning",
-								});
-								onUpgradeOpen();
-								setIsLoading(false);
-								return;
-							}
-
-							createOverlay(userId).then((overlay) => {
-								if (!overlay) {
+								if (effectivePlan === "free" && ownerOverlaysCount >= 1 && !multiOverlayAccess.allowed) {
+									trackPaywallEvent(plausible, "paywall_cta_click", {
+										source: "paywall_banner",
+										feature: "multi_overlay",
+										plan: currentUser?.plan ?? "free",
+									});
 									addToast({
-										title: "Error",
-										description: "Failed to create overlay. Please try again.",
-										color: "danger",
+										title: "Upgrade Required",
+										description: (
+											<p>
+												To add an additional overlay, please{" "}
+												<Link color='warning' underline='always' href='/dashboard/settings'>
+													upgrade
+												</Link>{" "}
+												to <strong>Pro</strong>.
+											</p>
+										),
+										color: "warning",
 									});
 									onUpgradeOpen();
 									setIsLoading(false);
 									return;
 								}
-								router.push(`/dashboard/overlay/${overlay.id}`);
-							});
-						}}
-					>
-						Add Overlay
-					</Button>
+
+								createOverlay(userId).then((overlay) => {
+									if (!overlay) {
+										addToast({
+											title: "Error",
+											description: "Failed to create overlay. Please try again.",
+											color: "danger",
+										});
+										onUpgradeOpen();
+										setIsLoading(false);
+										return;
+									}
+									router.push(`/dashboard/overlay/${overlay.id}`);
+								});
+							}}
+						>
+							Add Overlay
+						</Button>
 					)}
 				</div>
 				{currentUser?.plan === "free" && inTrial && (

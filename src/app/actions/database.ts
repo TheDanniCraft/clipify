@@ -2,7 +2,7 @@
 
 import { tokenTable, usersTable, overlaysTable, queueTable, settingsTable, modQueueTable, editorsTable, twitchCacheTable } from "@/db/schema";
 import { db } from "@/db/client";
-import { AuthenticatedUser, Overlay, TwitchUserResponse, TwitchTokenApiResponse, UserToken, Plan, Role, UserSettings, TwitchCacheType } from "@types";
+import { AuthenticatedUser, Overlay, TwitchUserResponse, TwitchTokenApiResponse, UserToken, Plan, Role, UserSettings, TwitchCacheType, StatusOptions, OverlayType } from "@types";
 import { getUserDetails, getUsersDetailsBulk, refreshAccessToken, subscribeToReward } from "@actions/twitch";
 import { eq, inArray, and, or, isNull, lt, gt, sql } from "drizzle-orm";
 import { validateAuth } from "@actions/auth";
@@ -16,10 +16,7 @@ let lastTwitchCacheCleanupAt = 0;
 const cleanupTwitchCacheIfNeeded = async (now: Date) => {
 	if (now.getTime() - lastTwitchCacheCleanupAt < TWITCH_CACHE_CLEANUP_INTERVAL_MS) return;
 	lastTwitchCacheCleanupAt = now.getTime();
-	await db
-		.delete(twitchCacheTable)
-		.where(lt(twitchCacheTable.expiresAt, now))
-		.execute();
+	await db.delete(twitchCacheTable).where(lt(twitchCacheTable.expiresAt, now)).execute();
 };
 
 const OVERLAY_TOUCH_INTERVAL = sql`now() - interval '1 minute'`;
@@ -576,8 +573,8 @@ export async function createOverlay(userId: string) {
 				ownerId: userId,
 				secret,
 				name: "New Overlay",
-				status: "active",
-				type: "Featured",
+				status: StatusOptions.Active,
+				type: OverlayType.Featured,
 			})
 			.returning()
 			.then((result) => result[0]);
@@ -977,7 +974,6 @@ export async function saveSettings(settings: UserSettings) {
 	}
 }
 
-
 export async function getTwitchCache<T>(type: TwitchCacheType, key: string): Promise<T | null> {
 	try {
 		const now = new Date();
@@ -1073,13 +1069,7 @@ export async function getTwitchCacheBatch<T>(type: TwitchCacheType, keys: string
 		const rows = await db
 			.select()
 			.from(twitchCacheTable)
-			.where(
-				and(
-					eq(twitchCacheTable.type, type),
-					inArray(twitchCacheTable.key, keys),
-					or(isNull(twitchCacheTable.expiresAt), gt(twitchCacheTable.expiresAt, now)),
-				),
-			)
+			.where(and(eq(twitchCacheTable.type, type), inArray(twitchCacheTable.key, keys), or(isNull(twitchCacheTable.expiresAt), gt(twitchCacheTable.expiresAt, now))))
 			.execute();
 
 		return rows.map((row) => JSON.parse(row.value) as T);
@@ -1137,4 +1127,3 @@ export async function setTwitchCacheBatch(type: TwitchCacheType, entries: { key:
 		console.error("Error writing twitch cache batch:", error);
 	}
 }
-
