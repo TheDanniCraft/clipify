@@ -223,7 +223,12 @@ export async function resolveUserEntitlementsForUsers(users: EntitlementUserRef[
 	const grantByUserId = new Map<string, ActiveGrant[]>();
 	for (const grant of grants) {
 		const key = grant.userId ?? "__global__";
-		grantByUserId.set(key, [...(grantByUserId.get(key) ?? []), grant]);
+		let grantsForUser = grantByUserId.get(key);
+		if (!grantsForUser) {
+			grantsForUser = [];
+			grantByUserId.set(key, grantsForUser);
+		}
+		grantsForUser.push(grant);
 	}
 
 	for (const user of freeUsers) {

@@ -11,6 +11,7 @@ const CHAT_COMMAND_ACCESS_TTL_MS = 60_000;
 const CHAT_COMMAND_ACCESS_MAX_ENTRIES = 1000;
 const chatCommandAccessCache = new Map<string, { allowed: boolean; expiresAt: number }>();
 let cachedUpgradeUrl: string | null = null;
+let nextChatCommandCacheCleanupAt = 0;
 
 async function getPrefix(userId: string): Promise<string | null> {
 	const settings = await getSettings(userId);
@@ -25,9 +26,12 @@ async function getUpgradeSettingsUrl() {
 
 async function canUseChatCommands(userId: string) {
 	const now = Date.now();
-	for (const [key, entry] of chatCommandAccessCache) {
-		if (entry.expiresAt <= now) {
-			chatCommandAccessCache.delete(key);
+	if (now >= nextChatCommandCacheCleanupAt) {
+		nextChatCommandCacheCleanupAt = now + CHAT_COMMAND_ACCESS_TTL_MS;
+		for (const [key, entry] of chatCommandAccessCache) {
+			if (entry.expiresAt <= now) {
+				chatCommandAccessCache.delete(key);
+			}
 		}
 	}
 
