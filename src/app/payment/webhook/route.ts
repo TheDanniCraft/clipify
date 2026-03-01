@@ -9,6 +9,13 @@ import Stripe from "stripe";
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_KEY || "";
 
+function getSubscriptionCustomerId(subscription: Stripe.Subscription) {
+	const customer = subscription.customer;
+	if (typeof customer === "string") return customer;
+	if (customer && typeof customer === "object" && "id" in customer && typeof customer.id === "string") return customer.id;
+	return null;
+}
+
 async function handleCheckoutSessionCompleted(stripe: Stripe, data: Stripe.Event.Data) {
 	const session = await stripe.checkout.sessions.retrieve((data.object as Stripe.Checkout.Session).id, {
 		expand: ["line_items"],
@@ -36,11 +43,13 @@ async function handleCheckoutSessionCompleted(stripe: Stripe, data: Stripe.Event
 async function handleCustomerSubscriptionDeleted(data: Stripe.Event.Data) {
 	const subscription = data.object as Stripe.Subscription;
 	if (!subscription) return NextResponse.json({ error: "No subscription found" });
+	const customerId = getSubscriptionCustomerId(subscription);
+	if (!customerId) return NextResponse.json({ error: "Invalid customer ID in subscription" });
 
-	const user = await getUserByCustomerId(subscription.customer as string);
+	const user = await getUserByCustomerId(customerId);
 	if (!user) return NextResponse.json({ error: "No user found for this subscription" });
 
-	await updateUserSubscription(user.id, subscription.customer as string, Plan.Free);
+	await updateUserSubscription(user.id, customerId, Plan.Free);
 	await downgradeUserPlan(user.id);
 
 	return NextResponse.json({});
@@ -49,13 +58,15 @@ async function handleCustomerSubscriptionDeleted(data: Stripe.Event.Data) {
 async function handleCustomerSubscriptionUpdated(data: Stripe.Event.Data) {
 	const subscription = data.object as Stripe.Subscription;
 	if (!subscription) return NextResponse.json({ error: "No subscription found" });
+	const customerId = getSubscriptionCustomerId(subscription);
+	if (!customerId) return NextResponse.json({ error: "Invalid customer ID in subscription" });
 
-	const user = await getUserByCustomerId(subscription.customer as string);
+	const user = await getUserByCustomerId(customerId);
 	if (!user) return NextResponse.json({ error: "No user found for this subscription" });
 
 	const activeStatuses = new Set<Stripe.Subscription.Status>(["active", "trialing", "past_due"]);
 	const nextPlan = activeStatuses.has(subscription.status) ? Plan.Pro : Plan.Free;
-	await updateUserSubscription(user.id, subscription.customer as string, nextPlan);
+	await updateUserSubscription(user.id, customerId, nextPlan);
 	if (nextPlan === Plan.Free) {
 		await downgradeUserPlan(user.id);
 	}

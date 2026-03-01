@@ -45,8 +45,11 @@ async function canUseChatCommands(userId: string) {
 	}
 
 	const cached = chatCommandAccessCache.get(userId);
-	if (cached) {
+	if (cached && cached.expiresAt > now) {
 		return cached.allowed;
+	}
+	if (cached && cached.expiresAt <= now) {
+		chatCommandAccessCache.delete(userId);
 	}
 
 	const user = await getUserByIdServer(userId);
