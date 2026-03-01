@@ -3,11 +3,78 @@
 import { TwitchBadge, TwitchMessage } from "@types";
 import { sendMessage } from "@actions/websocket";
 import { getTwitchClip, handleClip, sendChatMessage } from "@actions/twitch";
-import { addToModQueue, clearClipQueueByOverlayIdServer, clearModQueueByBroadcasterId, getAllOverlayIdsByOwnerServer, getClipQueueByOverlayId, getModQueue, getSettings, getUserPlanByIdServer } from "@actions/database";
+import { addToModQueue, clearClipQueueByOverlayIdServer, clearModQueueByBroadcasterId, getAllOverlayIdsByOwnerServer, getClipQueueByOverlayId, getModQueue, getSettings, getUserByIdServer } from "@actions/database";
+import { getFeatureAccess } from "@lib/featureAccess";
+import { getBaseUrl } from "@actions/utils";
+
+const CHAT_COMMAND_ACCESS_TTL_MS = 60_000;
+const CHAT_COMMAND_ACCESS_MAX_ENTRIES = 1000;
+const UPGRADE_MESSAGE_COOLDOWN_MS = 30_000;
+const chatCommandAccessCache = new Map<string, { allowed: boolean; expiresAt: number }>();
+const upgradeMessageCooldownByUser = new Map<string, number>();
+let cachedUpgradeUrl: string | null = null;
+let nextChatCommandCacheCleanupAt = 0;
+let nextUpgradeMessageCleanupAt = 0;
 
 async function getPrefix(userId: string): Promise<string | null> {
 	const settings = await getSettings(userId);
 	return settings ? settings.prefix : null;
+}
+
+async function getUpgradeSettingsUrl() {
+	if (cachedUpgradeUrl) return cachedUpgradeUrl;
+	cachedUpgradeUrl = new URL("/dashboard/settings", await getBaseUrl()).toString();
+	return cachedUpgradeUrl;
+}
+
+async function canUseChatCommands(userId: string) {
+	const now = Date.now();
+	if (now >= nextChatCommandCacheCleanupAt) {
+		nextChatCommandCacheCleanupAt = now + CHAT_COMMAND_ACCESS_TTL_MS;
+		for (const [key, entry] of chatCommandAccessCache) {
+			if (entry.expiresAt <= now) {
+				chatCommandAccessCache.delete(key);
+			}
+		}
+	}
+
+	while (chatCommandAccessCache.size > CHAT_COMMAND_ACCESS_MAX_ENTRIES) {
+		const oldestKey = chatCommandAccessCache.keys().next().value as string | undefined;
+		if (!oldestKey) break;
+		chatCommandAccessCache.delete(oldestKey);
+	}
+
+	const cached = chatCommandAccessCache.get(userId);
+	if (cached && cached.expiresAt > now) {
+		return cached.allowed;
+	}
+	if (cached && cached.expiresAt <= now) {
+		chatCommandAccessCache.delete(userId);
+	}
+
+	const user = await getUserByIdServer(userId);
+	if (!user) return null;
+	const allowed = getFeatureAccess(user, "chat_commands").allowed;
+	chatCommandAccessCache.set(userId, { allowed, expiresAt: now + CHAT_COMMAND_ACCESS_TTL_MS });
+	return allowed;
+}
+
+function canSendUpgradeMessage(broadcasterUserId: string, chatterUserId: string) {
+	const now = Date.now();
+	if (now >= nextUpgradeMessageCleanupAt) {
+		nextUpgradeMessageCleanupAt = now + UPGRADE_MESSAGE_COOLDOWN_MS;
+		for (const [key, until] of upgradeMessageCooldownByUser) {
+			if (until <= now) {
+				upgradeMessageCooldownByUser.delete(key);
+			}
+		}
+	}
+
+	const key = `${broadcasterUserId}:${chatterUserId}`;
+	const until = upgradeMessageCooldownByUser.get(key) ?? 0;
+	if (until > now) return false;
+	upgradeMessageCooldownByUser.set(key, now + UPGRADE_MESSAGE_COOLDOWN_MS);
+	return true;
 }
 
 export async function isCommand(message: TwitchMessage): Promise<boolean> {
@@ -32,12 +99,17 @@ export async function handleCommand(message: TwitchMessage): Promise<void> {
 	const prefix = await getPrefix(message.broadcaster_user_id);
 	if (!prefix) return;
 
-	// ignore commands for free plan users
-	const userPlan = await getUserPlanByIdServer(message.broadcaster_user_id);
-	if (!userPlan) return;
-	if (userPlan === "free") return;
-
 	if (firstFragment.type === "text" && firstFragment.text.startsWith(prefix)) {
+		const allowed = await canUseChatCommands(message.broadcaster_user_id);
+		if (allowed == null) return;
+		if (!allowed) {
+			if (canSendUpgradeMessage(message.broadcaster_user_id, message.chatter_user_id)) {
+				const upgradeUrl = await getUpgradeSettingsUrl();
+				await sendChatMessage(message.broadcaster_user_id, `@${message.chatter_user_name} chat commands are a Pro feature. Upgrade in dashboard settings: ${upgradeUrl}`);
+			}
+			return;
+		}
+
 		const commandName = firstFragment.text.slice(prefix.length).trimStart().split(/\s+/)?.[0]?.toLowerCase();
 		const command = commands[commandName];
 		if (command) {

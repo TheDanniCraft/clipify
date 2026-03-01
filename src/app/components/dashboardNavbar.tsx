@@ -10,6 +10,8 @@ import { useRouter } from "next/navigation";
 export default function DashboardNavbar({ children, user, title, tagline }: { children: React.ReactNode; user: AuthenticatedUser; title: string; tagline: string }) {
 	const { theme, setTheme } = useTheme();
 	const router = useRouter();
+	const effectivePlan = user?.entitlements?.effectivePlan ?? user?.plan;
+	const showUpgradeItem = user?.plan === "free" && (effectivePlan === "free" || Boolean(user?.entitlements?.reverseTrialActive));
 
 	return (
 		<>
@@ -57,6 +59,11 @@ export default function DashboardNavbar({ children, user, title, tagline }: { ch
 									<p className='font-semibold'>Signed in as</p>
 									<p className='font-semibold'>{user?.username}</p>
 								</DropdownItem>
+								{showUpgradeItem ? (
+									<DropdownItem key='upgrade_to_pro' className='text-warning' onPress={() => router.push("/dashboard/settings?upgrade&cycle=yearly&source=paywall_banner&feature=account_menu")}>
+										Upgrade to Pro
+									</DropdownItem>
+								) : null}
 								<DropdownItem key='settings' onPress={() => router.push("/dashboard/settings")}>
 									My Settings
 								</DropdownItem>

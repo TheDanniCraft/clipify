@@ -2,7 +2,8 @@
 
 import type { Selection, SortDescriptor } from "@heroui/react";
 import type { ColumnsKey } from "./data";
-import type { AuthenticatedUser, Overlay, StatusOptions, TwitchUserResponse } from "@types";
+import type { AuthenticatedUser, Overlay, TwitchUserResponse } from "@types";
+import { StatusOptions } from "@types";
 import type { Key } from "@react-types/shared";
 
 import dynamic from "next/dynamic";
@@ -10,10 +11,13 @@ import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, TableHeader, Tab
 const Table = dynamic(() => import("@heroui/react").then((c) => c.Table), { ssr: false }); // Temp fix for issue 4385
 import React, { useMemo, useCallback, useState, useEffect } from "react";
 import { cn } from "@heroui/react";
-import { IconAdjustmentsHorizontal, IconArrowsLeftRight, IconChevronDown, IconChevronUp, IconCirclePlus, IconCircuitChangeover, IconInfoCircle, IconMenuDeep, IconPencil, IconReload, IconSearch, IconTrash } from "@tabler/icons-react";
+import { IconAdjustmentsHorizontal, IconArrowsLeftRight, IconChevronDown, IconChevronUp, IconCirclePlus, IconCircuitChangeover, IconCrown, IconInfoCircle, IconMenuDeep, IconPencil, IconReload, IconSearch, IconTrash } from "@tabler/icons-react";
 import { createOverlay, deleteOverlay, saveOverlay, getAllOverlays, getEditorOverlays, getEditorAccess } from "@actions/database";
 import { validateAuth } from "@actions/auth";
 import UpgradeModal from "@components/upgradeModal";
+import { getFeatureAccess, getTrialDaysLeft, isReverseTrialActive } from "@lib/featureAccess";
+import { usePlausible } from "next-plausible";
+import { trackPaywallEvent } from "@lib/paywallTracking";
 
 import { CopyText } from "./copy-text";
 
@@ -43,6 +47,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 		direction: "ascending",
 	});
 	const { isOpen: isUpgradeOpen, onOpen: onUpgradeOpen, onOpenChange: onUpgradeOpenChange } = useDisclosure();
+	const plausible = usePlausible();
 
 	const [statusFilter, setStatusFilter] = React.useState("all");
 
@@ -91,6 +96,20 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 		}
 		fetchUser();
 	}, []);
+
+	useEffect(() => {
+		if (!currentUser) return;
+		const ownerOverlaysCount = overlays?.filter((o) => o.ownerId === userId).length ?? 0;
+		const effectivePlan = currentUser.entitlements?.effectivePlan ?? currentUser.plan;
+		if (effectivePlan !== "free" || ownerOverlaysCount < 1) return;
+		if (getFeatureAccess(currentUser, "multi_overlay").allowed) return;
+		trackPaywallEvent(plausible, "paywall_impression", {
+			source: "paywall_banner",
+			feature: "multi_overlay",
+			plan: currentUser.plan,
+			overlay_count: ownerOverlaysCount,
+		});
+	}, [currentUser, overlays, plausible, userId]);
 
 	// Plan is available on currentUser; avoid extra fetch.
 
@@ -384,7 +403,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 										const selectedOverlays = filterSelectedKeys === "all" ? overlays : filteredItems.filter((item) => filterSelectedKeys.has(String(item.id)));
 
 										const toggleStatusPromises = selectedOverlays?.map((overlay) => {
-											const newStatus: StatusOptions = overlay.status === "active" ? "paused" : "active";
+											const newStatus: StatusOptions = overlay.status === StatusOptions.Active ? StatusOptions.Paused : StatusOptions.Active;
 											return saveOverlay(overlay.id, { status: newStatus }).then((updated) => ({
 												ok: Boolean(updated),
 												id: overlay.id,
@@ -484,103 +503,140 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 
 	const topBar = useMemo(() => {
 		const ownerOverlaysCount = overlays?.filter((o) => o.ownerId === userId).length ?? 0;
+		const multiOverlayAccess = currentUser ? getFeatureAccess(currentUser, "multi_overlay") : { allowed: false as const };
+		const inTrial = currentUser ? isReverseTrialActive(currentUser) : false;
+		const trialDaysLeft = currentUser ? getTrialDaysLeft(currentUser) : 0;
+		const effectivePlan = currentUser?.entitlements?.effectivePlan ?? currentUser?.plan ?? "free";
 		return (
-			<div className='mb-[12px] flex items-center justify-between'>
-				<div className='flex w-[226px] items-center gap-2'>
-					<h1 className='text-2xl font-[700] leading-[32px]'>Overlays</h1>
-					<Chip className='hidden items-center text-default-500 sm:flex' size='sm' variant='flat'>
-						{overlays?.length ?? 0}
-					</Chip>
-					<Button isIconOnly size='sm' variant='light' onPress={reloadOverlays} startContent={<IconReload className='text-default-400' width={16} />} aria-label='Reload Overlays' />
-				</div>
-				{hasAccess ? (
-					<Dropdown>
-						<DropdownTrigger>
-							<Button color='primary' isDisabled={overlays === undefined} isLoading={isLoading} endContent={<IconCirclePlus width={20} />}>
-								Add Overlay
-							</Button>
-						</DropdownTrigger>
+			<div className='mb-[12px]'>
+				<div className='flex items-center justify-between'>
+					<div className='flex w-[226px] items-center gap-2'>
+						<h1 className='text-2xl font-[700] leading-[32px]'>Overlays</h1>
+						<Chip className='hidden items-center text-default-500 sm:flex' size='sm' variant='flat'>
+							{overlays?.length ?? 0}
+						</Chip>
+						<Button isIconOnly size='sm' variant='light' onPress={reloadOverlays} startContent={<IconReload className='text-default-400' width={16} />} aria-label='Reload Overlays' />
+					</div>
+					{hasAccess ? (
+						<Dropdown>
+							<DropdownTrigger>
+								<Button color='primary' isDisabled={overlays === undefined} isLoading={isLoading} endContent={<IconCirclePlus width={20} />}>
+									Add Overlay
+								</Button>
+							</DropdownTrigger>
 
-						<DropdownMenu aria-label='Overlay actions' items={editorAccessList}>
-							{(item) => (
-								<DropdownItem
-									key={item.id}
-									onPress={async () => {
-										setIsLoading(true);
+							<DropdownMenu aria-label='Overlay actions' items={editorAccessList}>
+								{(item) => (
+									<DropdownItem
+										key={item.id}
+										onPress={async () => {
+											setIsLoading(true);
 
-										const overlay = await createOverlay(item.id);
-										if (!overlay) {
-											addToast({
-												title: "Error",
-												description: "Failed to create overlay. The owner may be on the Free plan or you lack permissions.",
-												color: "danger",
-											});
-											if (currentUser?.id === item.id) {
-												onUpgradeOpen();
+											const overlay = await createOverlay(item.id);
+											if (!overlay) {
+												addToast({
+													title: "Error",
+													description: "Failed to create overlay. The owner may be on the Free plan or you lack permissions.",
+													color: "danger",
+												});
+												if (currentUser?.id === item.id) {
+													onUpgradeOpen();
+												}
+												setIsLoading(false);
+												return;
 											}
-											setIsLoading(false);
-											return;
-										}
-										router.push(`/dashboard/overlay/${overlay.id}`);
-									}}
-								>
-									<div className='flex items-center'>
-										<Avatar className='mr-2 h-6 w-6' src={item.profile_image_url} />
-										Add new overlay for {item.display_name}
-									</div>
-								</DropdownItem>
-							)}
-						</DropdownMenu>
-					</Dropdown>
-				) : (
-					<Button
-						color='primary'
-						endContent={<IconCirclePlus width={20} />}
-						isLoading={isLoading}
-						isDisabled={overlays === undefined}
-						onPress={async () => {
-							setIsLoading(true);
+											router.push(`/dashboard/overlay/${overlay.id}`);
+										}}
+									>
+										<div className='flex items-center'>
+											<Avatar className='mr-2 h-6 w-6' src={item.profile_image_url} />
+											Add new overlay for {item.display_name}
+										</div>
+									</DropdownItem>
+								)}
+							</DropdownMenu>
+						</Dropdown>
+					) : (
+						<Button
+							color='primary'
+							endContent={<IconCirclePlus width={20} />}
+							isLoading={isLoading}
+							isDisabled={overlays === undefined}
+							onPress={async () => {
+								setIsLoading(true);
 
-							if (currentUser?.plan === "free" && ownerOverlaysCount >= 1) {
-								addToast({
-									title: "Upgrade Required",
-									description: (
-										<p>
-											To add an additional overlay, please{" "}
-											<Link color='warning' underline='always' href='/dashboard/settings'>
-												upgrade
-											</Link>{" "}
-											to <strong>Pro</strong>.
-										</p>
-									),
-									color: "warning",
-								});
-								onUpgradeOpen();
-								setIsLoading(false);
-								return;
-							}
-
-							createOverlay(userId).then((overlay) => {
-								if (!overlay) {
+								if (effectivePlan === "free" && ownerOverlaysCount >= 1 && !multiOverlayAccess.allowed) {
+									trackPaywallEvent(plausible, "paywall_cta_click", {
+										source: "paywall_banner",
+										feature: "multi_overlay",
+										plan: currentUser?.plan ?? "free",
+									});
 									addToast({
-										title: "Error",
-										description: "Failed to create overlay. Please try again.",
-										color: "danger",
+										title: "Upgrade Required",
+										description: (
+											<p>
+												To add an additional overlay, please{" "}
+												<Link color='warning' underline='always' href='/dashboard/settings'>
+													upgrade
+												</Link>{" "}
+												to <strong>Pro</strong>.
+											</p>
+										),
+										color: "warning",
 									});
 									onUpgradeOpen();
 									setIsLoading(false);
 									return;
 								}
-								router.push(`/dashboard/overlay/${overlay.id}`);
-							});
-						}}
-					>
-						Add Overlay
-					</Button>
+
+								createOverlay(userId).then((overlay) => {
+									if (!overlay) {
+										addToast({
+											title: "Error",
+											description: "Failed to create overlay. Please try again.",
+											color: "danger",
+										});
+										onUpgradeOpen();
+										setIsLoading(false);
+										return;
+									}
+									router.push(`/dashboard/overlay/${overlay.id}`);
+								});
+							}}
+						>
+							Add Overlay
+						</Button>
+					)}
+				</div>
+				{currentUser?.plan === "free" && inTrial && (
+					<div className='mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-300/45 bg-gradient-to-r from-amber-500/20 to-orange-500/15 px-4 py-3 text-sm text-amber-50 shadow-sm'>
+						<div className='flex items-center gap-2'>
+							<IconCrown size={16} className='text-amber-200' />
+							<span>
+								Trial active: <strong className='text-amber-100'>{trialDaysLeft <= 1 ? "Ends today" : `${trialDaysLeft} days left`}</strong>. Lock in Pro before your trial ends.
+							</span>
+						</div>
+						<Button
+							size='sm'
+							color='warning'
+							variant='solid'
+							className='font-semibold text-black'
+							onPress={() => {
+								trackPaywallEvent(plausible, "paywall_cta_click", {
+									source: "paywall_banner",
+									feature: "trial_active",
+									plan: currentUser?.plan ?? "free",
+								});
+								onUpgradeOpen();
+							}}
+						>
+							Upgrade now
+						</Button>
+					</div>
 				)}
 			</div>
 		);
-	}, [overlays, reloadOverlays, router, userId, isLoading, hasAccess, editorAccessList, currentUser, onUpgradeOpen]);
+	}, [overlays, userId, currentUser, reloadOverlays, isLoading, hasAccess, editorAccessList, plausible, onUpgradeOpen, router]);
 
 	const bottomContent = useMemo(() => {
 		return (
@@ -604,7 +660,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 	return (
 		<div className='h-full w-full p-6'>
 			{topBar}
-			{currentUser?.plan === "free" && (overlays?.filter((o) => o.ownerId === userId).length ?? 0) >= 1 && (
+			{currentUser && (currentUser.entitlements?.effectivePlan ?? currentUser.plan) === "free" && !getFeatureAccess(currentUser, "multi_overlay").allowed && (overlays?.filter((o) => o.ownerId === userId).length ?? 0) >= 1 && (
 				<div className='mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning-200 bg-warning-50 px-4 py-3 text-sm text-warning-800'>
 					<span>You&apos;re on the Free plan and have reached the overlay limit. Upgrade to add more overlays.</span>
 					<Button color='warning' variant='flat' onPress={onUpgradeOpen}>
@@ -656,7 +712,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 					{(item) => <TableRow key={item.id}>{(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}</TableRow>}
 				</TableBody>
 			</Table>
-			{currentUser?.plan === "free" && <UpgradeModal isOpen={isUpgradeOpen} onOpenChange={onUpgradeOpenChange} user={currentUser} title='Upgrade to add more overlays' />}
+			{currentUser && currentUser.plan === "free" && <UpgradeModal isOpen={isUpgradeOpen} onOpenChange={onUpgradeOpenChange} user={currentUser} title='Upgrade to add more overlays' source='upgrade_modal' feature='multi_overlay' />}
 		</div>
 	);
 }

@@ -1,18 +1,31 @@
-import { varchar, pgTable, check, timestamp, uuid, integer, text, uniqueIndex, primaryKey } from "drizzle-orm/pg-core";
-import type { Role, Plan, StatusOptions, OverlayType, TwitchCacheType } from "@types";
+import { varchar, pgTable, check, timestamp, uuid, integer, text, uniqueIndex, primaryKey, index, pgEnum } from "drizzle-orm/pg-core";
+import { type Role, type Plan, type StatusOptions, type OverlayType, type TwitchCacheType, type Entitlement, type EntitlementGrantSource, Role as RoleEnumValues, Plan as PlanEnumValues, StatusOptions as StatusOptionsEnumValues, OverlayType as OverlayTypeEnumValues, TwitchCacheType as TwitchCacheTypeEnumValues, Entitlement as EntitlementEnumValues, EntitlementGrantSource as EntitlementGrantSourceEnumValues } from "@types";
 import { sql } from "drizzle-orm";
+
+function enumToPgEnum<T extends Record<string, unknown>>(myEnum: T): [T[keyof T], ...T[keyof T][]] {
+	return Object.values(myEnum).map((value: unknown) => `${value}`) as [T[keyof T], ...T[keyof T][]];
+}
+
+export const roleEnum = pgEnum("role", enumToPgEnum(RoleEnumValues));
+export const planEnum = pgEnum("plan", enumToPgEnum(PlanEnumValues));
+export const statusOptionsEnum = pgEnum("status_options", enumToPgEnum(StatusOptionsEnumValues));
+export const overlayTypeEnum = pgEnum("overlay_type", enumToPgEnum(OverlayTypeEnumValues));
+export const twitchCacheTypeEnum = pgEnum("twitch_cache_type", enumToPgEnum(TwitchCacheTypeEnumValues));
+export const entitlementEnum = pgEnum("entitlement", enumToPgEnum(EntitlementEnumValues));
+export const entitlementGrantSourceEnum = pgEnum("entitlement_grant_source", enumToPgEnum(EntitlementGrantSourceEnumValues));
 
 export const usersTable = pgTable("users", {
 	id: varchar("id").notNull().primaryKey(),
 	email: varchar("email").notNull(),
 	username: varchar("username").notNull(),
 	avatar: varchar("avatar").notNull(),
-	role: varchar("role").$type<Role>().notNull(),
-	plan: varchar("plan").$type<Plan>().notNull(),
+	role: roleEnum("role").$type<Role>().notNull(),
+	plan: planEnum("plan").$type<Plan>().notNull(),
 	stripeCustomerId: varchar("stripe_customer_id"),
 	createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 	updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 	lastLogin: timestamp("last_login", { withTimezone: true }),
+	lastEntitlementReconciledAt: timestamp("last_entitlement_reconciled_at", { withTimezone: true }),
 });
 
 export const editorsTable = pgTable(
@@ -46,8 +59,8 @@ export const overlaysTable = pgTable("overlays", {
 		.references(() => usersTable.id, { onDelete: "cascade" }),
 	secret: varchar("secret").notNull().default(""),
 	name: varchar("name").notNull(),
-	status: varchar("status").$type<StatusOptions>().notNull(),
-	type: varchar("type").$type<OverlayType>().notNull(),
+	status: statusOptionsEnum("status").$type<StatusOptions>().notNull(),
+	type: overlayTypeEnum("type").$type<OverlayType>().notNull(),
 	rewardId: varchar("reward_id"),
 	createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 	updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
@@ -86,11 +99,27 @@ export const twitchCacheTable = pgTable(
 	"twitchCache",
 	{
 		id: uuid("id").notNull().defaultRandom().primaryKey(),
-		type: varchar("type").$type<TwitchCacheType>().notNull(),
+		type: twitchCacheTypeEnum("type").$type<TwitchCacheType>().notNull(),
 		key: varchar("key").notNull(),
 		value: text("value").notNull(),
 		fetchedAt: timestamp("fetched_at", { withTimezone: true }).defaultNow().notNull(),
 		expiresAt: timestamp("expires_at", { withTimezone: true }),
 	},
 	(t) => [uniqueIndex("twitch_cache_type_key_unique").on(t.type, t.key)],
+);
+
+export const entitlementGrantsTable = pgTable(
+	"entitlement_grants",
+	{
+		id: uuid("id").notNull().defaultRandom().primaryKey(),
+		userId: varchar("user_id").references(() => usersTable.id, { onDelete: "cascade" }),
+		entitlement: entitlementEnum("entitlement").$type<Entitlement>().notNull().default(EntitlementEnumValues.ProAccess),
+		source: entitlementGrantSourceEnum("source").$type<EntitlementGrantSource>().notNull().default(EntitlementGrantSourceEnumValues.System),
+		reason: varchar("reason"),
+		startsAt: timestamp("starts_at", { withTimezone: true }).defaultNow().notNull(),
+		endsAt: timestamp("ends_at", { withTimezone: true }),
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+	},
+	(t) => [index("entitlement_grants_user_lookup_idx").on(t.userId, t.entitlement, t.startsAt, t.endsAt), index("entitlement_grants_global_lookup_idx").on(t.entitlement, t.startsAt, t.endsAt)],
 );

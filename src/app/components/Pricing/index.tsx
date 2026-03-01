@@ -7,9 +7,12 @@ import { cn } from "@heroui/react";
 import { tiers, frequencies } from "./pricing-tiers";
 import { IconCheck } from "@tabler/icons-react";
 import { FrequencyEnum } from "./pricing-types";
+import { usePlausible } from "next-plausible";
+import { trackPaywallEvent } from "@lib/paywallTracking";
 
 export default function TiersComponent() {
 	const [selectedFrequency, setSelectedFrequency] = useState(frequencies.find((f) => f.key === FrequencyEnum.Yearly) ?? frequencies[0]);
+	const plausible = usePlausible();
 
 	const onFrequencyChange = (selectedKey: React.Key) => {
 		const frequencyIndex = frequencies.findIndex((f) => f.key === selectedKey);
@@ -43,51 +46,64 @@ export default function TiersComponent() {
 			<Spacer y={12} />
 			{/* Grid ---> "xs" to "lg" */}
 			<div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
-				{tiers.slice(0, 2).map((tier) => (
-					<Card
-						key={tier.key}
-						isBlurred
-						className={cn("bg-background/60 p-3 dark:bg-default-100/50", {
-							"!border-small border-primary/50": tier.mostPopular,
-						})}
-						shadow='md'
-					>
-						{tier.discountedPrice?.[selectedFrequency.key] ? (
-							<Chip className='absolute right-4 top-4' variant='shadow' color='secondary'>
-								Limited offer
-							</Chip>
-						) : tier.mostPopular ? (
-							<Chip className='absolute right-4 top-4 bg-primary' variant='flat'>
-								Most Popular
-							</Chip>
-						) : null}
-						<CardHeader className='flex flex-col items-start gap-2 pb-6'>
-							<h2 className='text-large font-medium'>{tier.title}</h2>
-							<p className='text-medium text-default-500'>{tier.description}</p>
-						</CardHeader>
-						<Divider />
-						<CardBody className='gap-8'>
-							<p className='flex items-end gap-2 pt-2 tabular-nums'>
-								{typeof tier.price !== "string" && tier.discountedPrice?.[selectedFrequency.key] ? (
-									<>
-										{/* Old price - smaller, muted, clean strike */}
-										<span className='inline text-xl md:text-2xl font-medium text-default-500/60 line-through decoration-2 decoration-default-500/50 underline-offset-4' aria-hidden='true'>
-											{tier.price[selectedFrequency.key]}
-										</span>
+				{tiers.slice(0, 2).map((tier) => {
+					const checkoutHref = `/login?returnUrl=${encodeURIComponent(`/dashboard/settings?upgrade&cycle=${selectedFrequency.key}&source=pricing_page&feature=plan`)}`;
 
-										{/* New price - bold, tight leading */}
-										<span className='inline text-4xl md:text-5xl font-extrabold leading-none tracking-tight text-secondary'>{tier.discountedPrice[selectedFrequency.key]}</span>
+					return (
+						<Card
+							key={tier.key}
+							isBlurred
+							className={cn("bg-background/60 p-3 dark:bg-default-100/50", {
+								"!border-small border-primary/50": tier.mostPopular,
+							})}
+							shadow='md'
+						>
+							{tier.discountedPrice?.[selectedFrequency.key] ? (
+								<Chip className='absolute right-4 top-4' variant='shadow' color='secondary'>
+									Limited offer
+								</Chip>
+							) : tier.mostPopular ? (
+								<Chip className='absolute right-4 top-4 bg-primary' variant='flat'>
+									Most Popular
+								</Chip>
+							) : null}
+							<CardHeader className='flex flex-col items-start gap-2 pb-6'>
+								<h2 className='text-large font-medium'>{tier.title}</h2>
+								<p className='text-medium text-default-500'>{tier.description}</p>
+							</CardHeader>
+							<Divider />
+							<CardBody className='gap-8'>
+								<div className='min-h-[5.5rem] flex flex-col justify-end'>
+									<p className='flex items-end gap-2 pt-2 tabular-nums'>
+										{typeof tier.price !== "string" && tier.discountedPrice?.[selectedFrequency.key] ? (
+											<>
+												{/* Old price - smaller, muted, clean strike */}
+												<span className='inline text-xl md:text-2xl font-medium text-default-500/60 line-through decoration-2 decoration-default-500/50 underline-offset-4' aria-hidden='true'>
+													{tier.price[selectedFrequency.key]}
+												</span>
 
-										{/* Suffix */}
-										<span className='text-small font-medium text-default-400 leading-none'>/{selectedFrequency.priceSuffix}</span>
-									</>
-								) : (
-									<>
-										<span className='inline text-4xl md:text-5xl font-extrabold leading-none tracking-tight'>{typeof tier.price === "string" ? tier.price : tier.price[selectedFrequency.key]}</span>
-										{typeof tier.price !== "string" && <span className='text-small font-medium text-default-400 leading-none'>/{selectedFrequency.priceSuffix}</span>}
-									</>
-								)}
-							</p>
+												{/* New price - bold, tight leading */}
+												<span className='inline text-4xl md:text-5xl font-extrabold leading-none tracking-tight text-secondary'>{tier.discountedPrice[selectedFrequency.key]}</span>
+
+												{/* Suffix */}
+												<span className='text-small font-medium text-default-400 leading-none'>/{selectedFrequency.priceSuffix}</span>
+											</>
+										) : (
+											<>
+												<span className='inline text-4xl md:text-5xl font-extrabold leading-none tracking-tight'>{typeof tier.price === "string" ? tier.price : tier.price[selectedFrequency.key]}</span>
+												{typeof tier.price !== "string" && <span className='text-small font-medium text-default-400 leading-none'>/{selectedFrequency.priceSuffix}</span>}
+											</>
+										)}
+									</p>
+								</div>
+								<p
+									className={cn("text-xs font-medium h-4", {
+										"text-success-500": tier.key === "pro" && selectedFrequency.key === FrequencyEnum.Yearly,
+										"invisible": !(tier.key === "pro" && selectedFrequency.key === FrequencyEnum.Yearly),
+									})}
+								>
+									Save 2 months with yearly billing
+								</p>
 							<ul className='flex flex-col gap-2'>
 								{tier.features?.map((feature) => (
 									<li key={feature} className='flex items-center gap-2'>
@@ -98,12 +114,28 @@ export default function TiersComponent() {
 							</ul>
 						</CardBody>
 						<CardFooter>
-							<Button fullWidth as={Link} color={tier.buttonColor} href='/login' variant={tier.buttonVariant} aria-label={tier.buttonText}>
+							<Button
+								fullWidth
+								as={Link}
+								color={tier.buttonColor}
+								href={checkoutHref}
+								variant={tier.buttonVariant}
+								aria-label={tier.buttonText}
+								onPress={() => {
+									trackPaywallEvent(plausible, "paywall_cta_click", {
+										source: "pricing_page",
+										feature: "plan",
+										plan: tier.key,
+										cycle: selectedFrequency.key,
+									});
+								}}
+							>
 								{tier.buttonText}
 							</Button>
 						</CardFooter>
 					</Card>
-				))}
+				);
+				})}
 			</div>
 			<Spacer y={12} />
 		</div>

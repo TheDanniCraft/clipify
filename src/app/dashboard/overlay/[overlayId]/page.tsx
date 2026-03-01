@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { getOverlay, getOverlayOwnerPlan, saveOverlay } from "@actions/database";
 import { addToast, Button, Card, CardBody, CardHeader, Divider, Form, Image, Input, Link, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, NumberInput, Select, SelectItem, Slider, Snippet, Spinner, Switch, Tooltip, useDisclosure } from "@heroui/react";
-import { AuthenticatedUser, Overlay, OverlayType, Plan, TwitchClip, TwitchReward } from "@types";
+import { AuthenticatedUser, Overlay, OverlayType, Plan, StatusOptions, TwitchClip, TwitchReward } from "@types";
 import { IconAlertTriangle, IconArrowLeft, IconCrown, IconDeviceFloppy, IconInfoCircle, IconPlayerPauseFilled, IconPlayerPlayFilled } from "@tabler/icons-react";
 import DashboardNavbar from "@components/dashboardNavbar";
 import { useNavigationGuard } from "next-navigation-guard";
@@ -17,17 +17,20 @@ import TagsInput from "@components/tagsInput";
 import { isTitleBlocked } from "@/app/utils/regexFilter";
 import UpgradeModal from "@components/upgradeModal";
 import ChatwootData from "@components/chatwootData";
+import { getTrialDaysLeft, isReverseTrialActive } from "@lib/featureAccess";
+import { usePlausible } from "next-plausible";
+import { trackPaywallEvent } from "@lib/paywallTracking";
 
 const overlayTypes: { key: OverlayType; label: string }[] = [
-	{ key: "1", label: "Top Clips - Today" },
-	{ key: "7", label: "Top Clips - Last 7 Days" },
-	{ key: "30", label: "Top Clips - Last 30 Days" },
-	{ key: "90", label: "Top Clips - Last 90 Days" },
-	{ key: "180", label: "Top Clips - Last 180 Days" },
-	{ key: "365", label: "Top Clips - Last Year" },
-	{ key: "Featured", label: "Featured only" },
-	{ key: "All", label: "All Clips" },
-	{ key: "Queue", label: "Clip Queue" },
+	{ key: OverlayType.Today, label: "Top Clips - Today" },
+	{ key: OverlayType.LastWeek, label: "Top Clips - Last 7 Days" },
+	{ key: OverlayType.LastMonth, label: "Top Clips - Last 30 Days" },
+	{ key: OverlayType.LastQuarter, label: "Top Clips - Last 90 Days" },
+	{ key: OverlayType.Last180Days, label: "Top Clips - Last 180 Days" },
+	{ key: OverlayType.LastYear, label: "Top Clips - Last Year" },
+	{ key: OverlayType.Featured, label: "Featured only" },
+	{ key: OverlayType.All, label: "All Clips" },
+	{ key: OverlayType.Queue, label: "Clip Queue" },
 ];
 
 export default function OverlaySettings() {
@@ -43,6 +46,7 @@ export default function OverlaySettings() {
 	const [previewClips, setPreviewClips] = useState<TwitchClip[]>([]);
 	const { isOpen: isCliplistOpen, onOpen: onCliplistOpen, onOpenChange: onCliplistOpenChange } = useDisclosure();
 	const { isOpen: isUpgradeOpen, onOpen: onUpgradeOpen, onOpenChange: onUpgradeOpenChange } = useDisclosure();
+	const plausible = usePlausible();
 
 	const navGuard = useNavigationGuard({ enabled: isFormDirty() });
 
@@ -125,6 +129,22 @@ export default function OverlaySettings() {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [overlay?.type]);
 
+	const ownerHasAdvancedAccess = ownerPlan === Plan.Pro;
+	const inTrial = user ? isReverseTrialActive(user) : false;
+	const trialDaysLeft = user ? getTrialDaysLeft(user) : 0;
+
+	useEffect(() => {
+		if (!user) return;
+		if (!overlay) return;
+		if (user.id !== overlay.ownerId) return;
+		if (ownerPlan !== Plan.Free) return;
+		trackPaywallEvent(plausible, "paywall_impression", {
+			source: "paywall_banner",
+			feature: "advanced_filters",
+			plan: user.plan,
+		});
+	}, [ownerPlan, overlay, plausible, user]);
+
 	if (!overlayId || !overlay) {
 		return (
 			<div className='flex flex-col items-center justify-center w-full h-screen'>
@@ -194,9 +214,9 @@ export default function OverlaySettings() {
 								<Form className='w-full' onSubmit={handleSubmit}>
 									<div className='flex items-center w-full space-x-4'>
 										<Switch
-											isSelected={overlay.status === "active"}
+											isSelected={overlay.status === StatusOptions.Active}
 											onValueChange={(value) => {
-												setOverlay({ ...overlay, status: value ? "active" : "paused" });
+												setOverlay({ ...overlay, status: value ? StatusOptions.Active : StatusOptions.Paused });
 											}}
 											startContent={<IconPlayerPlayFilled />}
 											endContent={<IconPlayerPauseFilled />}
@@ -259,16 +279,16 @@ export default function OverlaySettings() {
 									</div>
 
 									<Divider className='my-4' />
-									{ownerPlan === Plan.Free && (
+									{ownerPlan === Plan.Free && !ownerHasAdvancedAccess && (
 										<div className='w-full mb-4'>
 											<Card className='bg-warning-50 border border-warning-200 mb-2'>
 												<CardBody>
 													<div className='flex items-center gap-2 mb-1'>
 														<IconCrown className='text-warning-500' />
-														<span className='text-warning-800 font-semibold text-base'>Premium Feature Locked</span>
+														<span className='text-warning-800 font-semibold text-base'>Pro Feature Locked</span>
 													</div>
 													<p className='text-sm text-warning-700'>
-														Unlock advanced overlay settings with <span className='font-semibold'>Premium</span>.
+														Unlock advanced overlay settings with <span className='font-semibold'>Pro</span>.
 													</p>
 													<ul className='list-disc list-inside text-warning-700 text-xs mt-2 ml-1'>
 														<li>Multiple overlay</li>
@@ -277,10 +297,32 @@ export default function OverlaySettings() {
 														<li>Advanced clip filtering</li>
 														<li>Priority support</li>
 													</ul>
-													<Button color='warning' variant='shadow' isDisabled={user?.id !== overlay.ownerId} onPress={onUpgradeOpen} className='mt-3 w-full font-semibold'>
-														Upgrade for less than a coffee
+													<Button
+														color='warning'
+														variant='shadow'
+														isDisabled={user?.id !== overlay.ownerId}
+														onPress={() => {
+															trackPaywallEvent(plausible, "paywall_cta_click", {
+																source: "paywall_banner",
+																feature: "advanced_filters",
+																plan: user?.plan ?? "free",
+															});
+															onUpgradeOpen();
+														}}
+														className='mt-3 w-full font-semibold'
+													>
+														Upgrade to Pro
 													</Button>
-													{user?.id !== overlay.ownerId ? <p className='text-xs text-danger text-center mt-2'>Only the overlay owner can unlock premium features.</p> : <p className='text-xs text-warning-600 text-center mt-2'>Enjoy a 3-day free trial. Cancel anytime.</p>}
+													{user?.id !== overlay.ownerId ? (
+														<p className='text-xs text-danger text-center mt-2'>Only the overlay owner can unlock Pro features.</p>
+													) : (
+														<div className='mt-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning-300 bg-warning-100 px-3 py-2'>
+															<p className='text-xs text-warning-700'>{inTrial ? `Trial active: ${trialDaysLeft <= 1 ? "ends today." : `${trialDaysLeft} days left.`}` : "Start Pro now. Cancel anytime."}</p>
+															<Button size='sm' color='warning' variant='flat' onPress={onUpgradeOpen}>
+																Upgrade now
+															</Button>
+														</div>
+													)}
 												</CardBody>
 											</Card>
 										</div>
@@ -288,8 +330,8 @@ export default function OverlaySettings() {
 									<div
 										className='w-full'
 										style={{
-											filter: ownerPlan === Plan.Free ? "blur(1.5px)" : "none",
-											pointerEvents: ownerPlan === Plan.Free ? "none" : "auto",
+											filter: ownerPlan === Plan.Free && !ownerHasAdvancedAccess ? "blur(1.5px)" : "none",
+											pointerEvents: ownerPlan === Plan.Free && !ownerHasAdvancedAccess ? "none" : "auto",
 										}}
 									>
 										<div className='flex w-full items-center px-2 mb-2 gap-1'>
@@ -300,7 +342,7 @@ export default function OverlaySettings() {
 														setOverlay({ ...overlay, rewardId: reward.id });
 													}
 												}}
-												isDisabled={ownerPlan === Plan.Free || !!overlay.rewardId}
+												isDisabled={(ownerPlan === Plan.Free && !ownerHasAdvancedAccess) || !!overlay.rewardId}
 											>
 												Create Reward
 											</Button>
@@ -421,7 +463,7 @@ export default function OverlaySettings() {
 				</Modal>
 			</DashboardNavbar>
 
-			{user && <UpgradeModal isOpen={isUpgradeOpen} onOpenChange={onUpgradeOpenChange} user={user} title='Upgrade to unlock premium overlay features' />}
+			{user && <UpgradeModal isOpen={isUpgradeOpen} onOpenChange={onUpgradeOpenChange} user={user} title='Upgrade to unlock Pro overlay features' source='upgrade_modal' feature='advanced_filters' />}
 		</>
 	);
 }

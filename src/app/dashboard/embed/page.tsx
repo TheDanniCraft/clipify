@@ -27,46 +27,54 @@ export default function EmbedTool() {
 	const [showEmbedOverlay, setShowEmbedOverlay] = useState<boolean>(false);
 	const [avatars, setAvatars] = useState<Record<string, string>>({});
 	const [ownerPlansByOverlayId, setOwnerPlansByOverlayId] = useState<Record<string, string>>({});
+	const [isInitializing, setIsInitializing] = useState<boolean>(true);
+	const [initializationError, setInitializationError] = useState<string | null>(null);
 	const { isOpen: isUpgradeOpen, onOpen: onUpgradeOpen, onOpenChange: onUpgradeOpenChange } = useDisclosure();
 
 	useEffect(() => {
 		async function setup() {
-			const user = await validateAuth();
+			try {
+				const user = await validateAuth();
 
-			if (!user) {
-				router.push("/logout");
-				return;
+				if (!user) {
+					router.push("/logout");
+					return;
+				}
+
+				setUser(user);
+
+				const userOverlays = (await getAllOverlays(user.id)) || [];
+				const editorOverlays = (await getEditorOverlays(user.id)) || [];
+				const combined = [...userOverlays, ...editorOverlays];
+				const uniqueOverlays = Array.from(new Map(combined.map((overlay) => [overlay.id, overlay])).values());
+				setOverlays(uniqueOverlays);
+
+				const token = await getAccessToken(user.id);
+
+				if (token && uniqueOverlays.length > 0) {
+					const avatars = await getUsersDetailsBulk({ userIds: uniqueOverlays.map((o) => o.ownerId), accessToken: token?.accessToken });
+					setAvatars(
+						avatars.reduce(
+							(acc, curr) => {
+								acc[curr.id] = curr.profile_image_url;
+								return acc;
+							},
+							{} as Record<string, string>,
+						),
+					);
+				}
+
+				if (uniqueOverlays.length > 0) {
+					const plansByOverlayId = await getOverlayOwnerPlans(uniqueOverlays.map((overlay) => overlay.id));
+					const normalizedPlans = Object.fromEntries(uniqueOverlays.map((overlay) => [overlay.id, plansByOverlayId[overlay.id] ?? "free"]));
+					setOwnerPlansByOverlayId(normalizedPlans);
+				}
+			} catch (error) {
+				console.error("Failed to initialize embed tool:", error);
+				setInitializationError("We couldn't load the embed tool. Please retry.");
+			} finally {
+				setIsInitializing(false);
 			}
-
-			setUser(user);
-
-			const userOverlays = (await getAllOverlays(user.id)) || [];
-			const editorOverlays = (await getEditorOverlays(user.id)) || [];
-			const combined = [...userOverlays, ...editorOverlays];
-			const uniqueOverlays = Array.from(new Map(combined.map((overlay) => [overlay.id, overlay])).values());
-
-			const token = await getAccessToken(user.id);
-
-			if (token) {
-				const avatars = await getUsersDetailsBulk({ userIds: uniqueOverlays.map((o) => o.ownerId), accessToken: token?.accessToken });
-				setAvatars(
-					avatars.reduce(
-						(acc, curr) => {
-							acc[curr.id] = curr.profile_image_url;
-							return acc;
-						},
-						{} as Record<string, string>,
-					),
-				);
-			}
-
-			if (uniqueOverlays.length === 0) return;
-
-			setOverlays(uniqueOverlays);
-
-			const plansByOverlayId = await getOverlayOwnerPlans(uniqueOverlays.map((overlay) => overlay.id));
-			const normalizedPlans = Object.fromEntries(uniqueOverlays.map((overlay) => [overlay.id, plansByOverlayId[overlay.id] ?? "free"]));
-			setOwnerPlansByOverlayId(normalizedPlans);
 		}
 
 		setup();
@@ -98,12 +106,52 @@ export default function EmbedTool() {
 		return `${baseUrl}/embed/${id}${query ? `?${query}` : ""}`;
 	};
 
-	if (overlays.length === 0)
+	if (isInitializing)
 		return (
 			<div className='flex flex-col items-center justify-center w-full h-screen'>
 				<Spinner label='Loading embed tool...' />
 			</div>
 		);
+
+	if (initializationError) {
+		return (
+			<div className='flex flex-col items-center justify-center w-full h-screen gap-4 px-6 text-center'>
+				<p className='text-danger-400 text-sm'>{initializationError}</p>
+				<div className='flex items-center gap-2'>
+					<Button color='primary' onPress={() => window.location.reload()}>
+						Retry
+					</Button>
+					<Button variant='flat' onPress={() => router.push("/logout")}>
+						Log out
+					</Button>
+				</div>
+			</div>
+		);
+	}
+
+	if (overlays.length === 0) {
+		if (!user) {
+			return (
+				<div className='flex flex-col items-center justify-center w-full h-screen'>
+					<Spinner label='Loading embed tool...' />
+				</div>
+			);
+		}
+		return (
+			<DashboardNavbar user={user} title='Embed Widget Tool' tagline='Generate embed codes for your overlays'>
+				<div className='mx-auto max-w-xl w-full px-6 py-12'>
+					<Card>
+						<CardBody className='flex flex-col gap-4'>
+							<p className='text-default-700'>Create your first overlay to unlock the embed tool.</p>
+							<Button color='primary' onPress={() => router.push("/dashboard")}>
+								Create first overlay
+							</Button>
+						</CardBody>
+					</Card>
+				</div>
+			</DashboardNavbar>
+		);
+	}
 
 	return (
 		<>

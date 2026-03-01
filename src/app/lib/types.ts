@@ -1,6 +1,6 @@
 import type { SVGProps } from "react";
 import { InferSelectModel } from "drizzle-orm";
-import { modQueueTable, overlaysTable, settingsTable, tokenTable, usersTable, queueTable, twitchCacheTable } from "@/db/schema";
+import type { entitlementGrantsTable, modQueueTable, overlaysTable, settingsTable, tokenTable, usersTable, queueTable, twitchCacheTable } from "@/db/schema";
 
 export class RateLimitError extends Error {
 	constructor() {
@@ -176,20 +176,58 @@ export enum Plan {
 	Pro = "pro",
 }
 
-export type AuthenticatedUser = InferSelectModel<typeof usersTable>;
+export enum Entitlement {
+	ProAccess = "pro_access",
+}
+
+export enum EntitlementGrantSource {
+	System = "system",
+	ReverseTrial = "reverse_trial",
+	Promo = "promo",
+	Support = "support",
+}
+
+export type EffectivePlan = "free" | "pro";
+export type EntitlementSource = "billing" | "reverse_trial" | "grant";
+export type UserEntitlements = {
+	effectivePlan: EffectivePlan;
+	isBillingPro: boolean;
+	reverseTrialActive: boolean;
+	trialEndsAt: Date | string | null;
+	hasActiveGrant: boolean;
+	grantSource?: EntitlementGrantSource;
+	source: EntitlementSource;
+};
+
+export type DbUser = InferSelectModel<typeof usersTable>;
+export type AuthenticatedUser = DbUser & { entitlements?: UserEntitlements };
+export type EntitlementGrant = InferSelectModel<typeof entitlementGrantsTable>;
 
 export type UserToken = InferSelectModel<typeof tokenTable>;
 
 export type UserSettings = InferSelectModel<typeof settingsTable> & { editors: string[] };
 
-export type StatusOptions = "active" | "paused";
+export enum StatusOptions {
+	Active = "active",
+	Paused = "paused",
+}
 
 export type Overlay = InferSelectModel<typeof overlaysTable>;
 
 export type ClipQueueItem = InferSelectModel<typeof queueTable>;
 export type ModQueueItem = InferSelectModel<typeof modQueueTable>;
 
-export type OverlayType = "1" | "7" | "30" | "90" | "180" | "365" | "Featured" | "All" | "Queue";
+export enum OverlayType {
+	Today = "1",
+	LastWeek = "7",
+	LastMonth = "30",
+	LastQuarter = "90",
+	Last180Days = "180",
+	LastYear = "365",
+	Featured = "Featured",
+	All = "All",
+	Queue = "Queue",
+}
 
 export type AccessType = "owner" | "editor";
 
@@ -474,3 +512,4 @@ declare global {
 		};
 	}
 }
+

@@ -46,9 +46,6 @@ export async function authUser(returnUrl?: string, error?: string, errorCode?: s
 }
 
 export async function validateAuth(skipUserCheck = false) {
-	const { getUser } = await import("@actions/database");
-	const { verifyToken } = await import("@actions/twitch");
-
 	const cookieStore = await cookies();
 	const token = cookieStore.get("token");
 	const cookieUser = token ? ((await getUserFromCookie(token.value)) as AuthenticatedUser | null) : null;
@@ -61,14 +58,20 @@ export async function validateAuth(skipUserCheck = false) {
 		return cookieUser;
 	}
 
+	const { getUser } = await import("@actions/database");
 	const user = await getUser(cookieUser.id);
 	if (!user) {
 		return false;
 	}
 
+	const { verifyToken } = await import("@actions/twitch");
 	if (!(await verifyToken(user))) {
 		return false;
 	}
 
-	return user;
+	const { resolveUserEntitlements } = await import("@lib/entitlements");
+	const entitlements = await resolveUserEntitlements(user);
+	const enrichedUser = { ...user, entitlements };
+
+	return enrichedUser;
 }

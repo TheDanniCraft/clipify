@@ -4,10 +4,23 @@ import Stripe from "stripe";
 import { AuthenticatedUser, NumokStripeMetadata } from "@types";
 import { getBaseUrl } from "@actions/utils";
 import { cookies } from "next/headers";
+import { validateAuth } from "@actions/auth";
+import { db } from "@/db/client";
+import { usersTable } from "@/db/schema";
+import { eq } from "drizzle-orm";
+
+export type BillingCycle = "monthly" | "yearly";
+export type PaywallSource = "pricing_page" | "upgrade_modal" | "paywall_banner";
 
 const PRODUCTS = {
-	dev: ["price_1SnM3MBg46KdNQq5MjHMYyYw", "price_1SnMAsBg46KdNQq5k8cI6Y8M"],
-	prod: ["price_1S83PSB0sp7KYCWLzhUkxodR", "price_1S83Y2B0sp7KYCWL0YDGoqjG"],
+	dev: {
+		monthly: "price_1SnM3MBg46KdNQq5MjHMYyYw",
+		yearly: "price_1SnMAsBg46KdNQq5k8cI6Y8M",
+	},
+	prod: {
+		monthly: "price_1S83PSB0sp7KYCWLzhUkxodR",
+		yearly: "price_1S83Y2B0sp7KYCWL0YDGoqjG",
+	},
 };
 
 let stripe: Stripe | null = null;
@@ -26,57 +39,87 @@ export async function getPlans() {
 	return PRODUCTS[env];
 }
 
+async function getAuthorizedUser(requestedUser: Pick<AuthenticatedUser, "id">) {
+	const authUser = await validateAuth(false);
+	if (!authUser) {
+		throw new Error("Unauthorized");
+	}
+	if (requestedUser.id !== authUser.id) {
+		throw new Error("Forbidden");
+	}
+	return authUser;
+}
+
 export async function checkIfSubscriptionExists(user: AuthenticatedUser) {
-	if (!user.stripeCustomerId) {
+	const authUser = await getAuthorizedUser(user);
+	if (!authUser.stripeCustomerId) {
 		return false;
 	}
 
 	const stripe = await getStripe();
 
 	const subscriptions = await stripe.subscriptions.list({
-		customer: user.stripeCustomerId,
-		status: "active",
-	});
-
-	return subscriptions.data.length > 0;
-}
-
-export async function isEligibleForTrial(user: AuthenticatedUser) {
-	if (!user.stripeCustomerId) {
-		return true;
-	}
-
-	const stripe = await getStripe();
-	const tiers = await getPlans();
-
-	const subscriptions = await stripe.subscriptions.list({
-		customer: user.stripeCustomerId,
+		customer: authUser.stripeCustomerId,
 		status: "all",
-		expand: ["data.items.data.price"],
 		limit: 100,
 	});
 
-	// any subscription with a trial for one of the current prices
-	const hasTrialForTrackedPrices = subscriptions.data.some((sub) => {
-		const hadTrial = sub.trial_start != null && sub.trial_end != null && sub.trial_end > sub.trial_start;
-
-		if (!hadTrial) return false;
-
-		const hasTrackedPrice = sub.items.data.some((item) => tiers.includes(item.price.id));
-
-		return hasTrackedPrice;
-	});
-
-	// eligible if they have NOT yet trialed any of these prices
-	return !hasTrialForTrackedPrices;
+	const blockingStatuses: Stripe.Subscription.Status[] = ["active", "trialing", "past_due", "unpaid"];
+	return subscriptions.data.some((subscription) => blockingStatuses.includes(subscription.status));
 }
 
-export async function generatePaymentLink(user: AuthenticatedUser, returnUrl?: string, numokMetadata?: NumokStripeMetadata) {
+async function persistStripeCustomerId(userId: string, customerId: string) {
+	const result = await db
+		.update(usersTable)
+		.set({
+			stripeCustomerId: customerId,
+			updatedAt: new Date(),
+		})
+		.where(eq(usersTable.id, userId))
+		.returning({ id: usersTable.id })
+		.execute();
+	return result.length > 0;
+}
+
+export async function generatePaymentLink(user: AuthenticatedUser, billingCycle: BillingCycle, returnUrl?: string, numokMetadata?: NumokStripeMetadata, source?: PaywallSource) {
+	const authUser = await getAuthorizedUser(user);
 	const cookieStore = await cookies();
 	const products = await getPlans();
+	const selectedPrice = products[billingCycle];
+	if (!selectedPrice) {
+		throw new Error(`Missing Stripe price for billing cycle: ${billingCycle}`);
+	}
 
 	const stripe = await getStripe();
 	const baseUrl = await getBaseUrl();
+	const defaultReturnUrl = new URL("/dashboard/settings", baseUrl).toString();
+	const cancelUrl = (() => {
+		if (!returnUrl) return defaultReturnUrl;
+		try {
+			const resolved = new URL(returnUrl, baseUrl);
+			if (resolved.origin !== baseUrl.origin) return defaultReturnUrl;
+			return resolved.toString();
+		} catch {
+			return defaultReturnUrl;
+		}
+	})();
+	let stripeCustomerId = authUser.stripeCustomerId ?? null;
+
+	if (!stripeCustomerId) {
+		const customer = await stripe.customers.create({
+			email: authUser.email,
+			metadata: {
+				userId: authUser.id,
+				source: source ?? "upgrade_modal",
+			},
+		});
+		stripeCustomerId = customer.id;
+		const persisted = await persistStripeCustomerId(authUser.id, customer.id);
+		if (!persisted) {
+			throw new Error("Failed to persist Stripe customer ID");
+		}
+		console.info("[entitlements] stripe_customer_created_on_intent", { userId: authUser.id, customerId: customer.id, source: source ?? "upgrade_modal" });
+	}
 
 	const rawCode = cookieStore.get("offer")?.value;
 	const offerCode = rawCode?.trim();
@@ -90,21 +133,22 @@ export async function generatePaymentLink(user: AuthenticatedUser, returnUrl?: s
 	}
 
 	const baseSessionParams: Stripe.Checkout.SessionCreateParams = {
-		line_items: [{ price: products[0], quantity: 1 }],
-		client_reference_id: user.id,
+		line_items: [{ price: selectedPrice, quantity: 1 }],
+		client_reference_id: authUser.id,
 		mode: "subscription",
-		success_url: `${baseUrl}dashboard/settings`,
-		cancel_url: returnUrl || `${baseUrl}dashboard/settings`,
-		...(user.stripeCustomerId ? { customer: user.stripeCustomerId } : { customer_email: user.email }),
+		success_url: defaultReturnUrl,
+		cancel_url: cancelUrl,
+		customer: stripeCustomerId,
 		metadata: {
-			userId: user.id,
+			userId: authUser.id,
+			source: source ?? "upgrade_modal",
+			billingCycle,
 			...numokMetadata,
 		},
 		tax_id_collection: {
 			enabled: true,
 		},
-		subscription_data: (await isEligibleForTrial(user)) ? { trial_period_days: 3 } : {},
-		...(user.stripeCustomerId ? { customer_update: { name: "auto", address: "auto" } } : {}),
+		customer_update: { name: "auto", address: "auto" },
 	};
 
 	const createSession = async (usePromo: boolean) => {
@@ -134,7 +178,8 @@ export async function generatePaymentLink(user: AuthenticatedUser, returnUrl?: s
 }
 
 export async function getPortalLink(user: AuthenticatedUser) {
-	if (!user.stripeCustomerId) {
+	const authUser = await getAuthorizedUser(user);
+	if (!authUser.stripeCustomerId) {
 		throw new Error("User does not have a Stripe customer ID");
 	}
 
@@ -142,8 +187,8 @@ export async function getPortalLink(user: AuthenticatedUser) {
 	const baseUrl = await getBaseUrl();
 
 	const session = await stripe.billingPortal.sessions.create({
-		customer: user.stripeCustomerId,
-		return_url: `${baseUrl}dashboard/settings`,
+		customer: authUser.stripeCustomerId,
+		return_url: new URL("/dashboard/settings", baseUrl).toString(),
 	});
 
 	return session.url;
