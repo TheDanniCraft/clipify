@@ -9,9 +9,12 @@ import { getBaseUrl } from "@actions/utils";
 
 const CHAT_COMMAND_ACCESS_TTL_MS = 60_000;
 const CHAT_COMMAND_ACCESS_MAX_ENTRIES = 1000;
+const UPGRADE_MESSAGE_COOLDOWN_MS = 30_000;
 const chatCommandAccessCache = new Map<string, { allowed: boolean; expiresAt: number }>();
+const upgradeMessageCooldownByUser = new Map<string, number>();
 let cachedUpgradeUrl: string | null = null;
 let nextChatCommandCacheCleanupAt = 0;
+let nextUpgradeMessageCleanupAt = 0;
 
 async function getPrefix(userId: string): Promise<string | null> {
 	const settings = await getSettings(userId);
@@ -53,6 +56,24 @@ async function canUseChatCommands(userId: string) {
 	return allowed;
 }
 
+function canSendUpgradeMessage(broadcasterUserId: string, chatterUserId: string) {
+	const now = Date.now();
+	if (now >= nextUpgradeMessageCleanupAt) {
+		nextUpgradeMessageCleanupAt = now + UPGRADE_MESSAGE_COOLDOWN_MS;
+		for (const [key, until] of upgradeMessageCooldownByUser) {
+			if (until <= now) {
+				upgradeMessageCooldownByUser.delete(key);
+			}
+		}
+	}
+
+	const key = `${broadcasterUserId}:${chatterUserId}`;
+	const until = upgradeMessageCooldownByUser.get(key) ?? 0;
+	if (until > now) return false;
+	upgradeMessageCooldownByUser.set(key, now + UPGRADE_MESSAGE_COOLDOWN_MS);
+	return true;
+}
+
 export async function isCommand(message: TwitchMessage): Promise<boolean> {
 	const prefix = await getPrefix(message.broadcaster_user_id);
 	if (!prefix) return false;
@@ -79,8 +100,10 @@ export async function handleCommand(message: TwitchMessage): Promise<void> {
 		const allowed = await canUseChatCommands(message.broadcaster_user_id);
 		if (allowed == null) return;
 		if (!allowed) {
-			const upgradeUrl = await getUpgradeSettingsUrl();
-			await sendChatMessage(message.broadcaster_user_id, `@${message.chatter_user_name} chat commands are a Pro feature. Upgrade in dashboard settings: ${upgradeUrl}`);
+			if (canSendUpgradeMessage(message.broadcaster_user_id, message.chatter_user_id)) {
+				const upgradeUrl = await getUpgradeSettingsUrl();
+				await sendChatMessage(message.broadcaster_user_id, `@${message.chatter_user_name} chat commands are a Pro feature. Upgrade in dashboard settings: ${upgradeUrl}`);
+			}
 			return;
 		}
 

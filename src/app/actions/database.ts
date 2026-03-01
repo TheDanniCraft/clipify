@@ -235,7 +235,7 @@ export async function getUserByCustomerId(customerId: string): Promise<Authentic
 
 export async function updateUserStripeCustomerId(userId: string, customerId: string): Promise<AuthenticatedUser | null> {
 	try {
-		const authedUser = await validateAuth(true);
+		const authedUser = await validateAuth(false);
 		if (!authedUser || authedUser.id !== userId) {
 			console.warn(`Unauthorized "updateUserStripeCustomerId" API request for user id: ${userId}`);
 			return null;
