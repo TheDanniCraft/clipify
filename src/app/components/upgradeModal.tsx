@@ -2,7 +2,7 @@
 
 import { addToast, Button, Chip, Divider, Modal, ModalBody, ModalContent, ModalHeader, Tab, Tabs } from "@heroui/react";
 import { IconBolt, IconCheck, IconDiamondFilled, IconSparkles } from "@tabler/icons-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { generatePaymentLink } from "@actions/subscription";
 import type { BillingCycle, PaywallSource } from "@actions/subscription";
 import { frequencies, tiers } from "@components/Pricing/pricing-tiers";
@@ -46,9 +46,15 @@ export default function UpgradeModal({ isOpen, onOpenChange, user, title, descri
 	const inTrial = isReverseTrialActive(user);
 	const trialDaysLeft = getTrialDaysLeft(user);
 	const planLabel = effectivePlan === "pro" ? "Pro" : "Free";
+	const hasTrackedImpressionRef = useRef(false);
 
 	useEffect(() => {
-		if (!isOpen) return;
+		if (!isOpen) {
+			hasTrackedImpressionRef.current = false;
+			return;
+		}
+		if (hasTrackedImpressionRef.current) return;
+		hasTrackedImpressionRef.current = true;
 		trackPaywallEvent(plausible, "paywall_impression", {
 			source,
 			feature,

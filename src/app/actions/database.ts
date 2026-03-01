@@ -233,31 +233,6 @@ export async function getUserByCustomerId(customerId: string): Promise<Authentic
 	}
 }
 
-export async function updateUserStripeCustomerId(userId: string, customerId: string): Promise<AuthenticatedUser | null> {
-	try {
-		const authedUser = await validateAuth(false);
-		if (!authedUser || authedUser.id !== userId) {
-			console.warn(`Unauthorized "updateUserStripeCustomerId" API request for user id: ${userId}`);
-			return null;
-		}
-
-		const user = await db
-			.update(usersTable)
-			.set({
-				stripeCustomerId: customerId,
-				updatedAt: new Date(),
-			})
-			.where(eq(usersTable.id, userId))
-			.returning()
-			.execute();
-
-		return user[0] ?? null;
-	} catch (error) {
-		console.error("Error updating user stripe customer id:", error);
-		throw new Error("Failed to update stripe customer id");
-	}
-}
-
 // Server-only helper for internal lookups.
 export async function getUserByIdServer(id: string): Promise<Pick<AuthenticatedUser, "id" | "plan" | "createdAt" | "entitlements"> | null> {
 	try {

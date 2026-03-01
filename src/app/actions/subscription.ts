@@ -4,8 +4,10 @@ import Stripe from "stripe";
 import { AuthenticatedUser, NumokStripeMetadata } from "@types";
 import { getBaseUrl } from "@actions/utils";
 import { cookies } from "next/headers";
-import { updateUserStripeCustomerId } from "@actions/database";
 import { validateAuth } from "@actions/auth";
+import { db } from "@/db/client";
+import { usersTable } from "@/db/schema";
+import { eq } from "drizzle-orm";
 
 export type BillingCycle = "monthly" | "yearly";
 export type PaywallSource = "pricing_page" | "upgrade_modal" | "paywall_banner";
@@ -64,6 +66,19 @@ export async function checkIfSubscriptionExists(user: AuthenticatedUser) {
 	return subscriptions.data.length > 0;
 }
 
+async function persistStripeCustomerId(userId: string, customerId: string) {
+	const result = await db
+		.update(usersTable)
+		.set({
+			stripeCustomerId: customerId,
+			updatedAt: new Date(),
+		})
+		.where(eq(usersTable.id, userId))
+		.returning({ id: usersTable.id })
+		.execute();
+	return result.length > 0;
+}
+
 export async function generatePaymentLink(user: AuthenticatedUser, billingCycle: BillingCycle, returnUrl?: string, numokMetadata?: NumokStripeMetadata, source?: PaywallSource) {
 	const authUser = await getAuthorizedUser(user);
 	const cookieStore = await cookies();
@@ -97,7 +112,10 @@ export async function generatePaymentLink(user: AuthenticatedUser, billingCycle:
 			},
 		});
 		stripeCustomerId = customer.id;
-		await updateUserStripeCustomerId(authUser.id, customer.id);
+		const persisted = await persistStripeCustomerId(authUser.id, customer.id);
+		if (!persisted) {
+			throw new Error("Failed to persist Stripe customer ID");
+		}
 		console.info("[entitlements] stripe_customer_created_on_intent", { userId: authUser.id, customerId: customer.id, source: source ?? "upgrade_modal" });
 	}
 
