@@ -176,6 +176,17 @@ export enum Plan {
 	Pro = "pro",
 }
 
+export enum Entitlement {
+	ProAccess = "pro_access",
+}
+
+export enum EntitlementGrantSource {
+	System = "system",
+	ReverseTrial = "reverse_trial",
+	Promo = "promo",
+	Support = "support",
+}
+
 export type EffectivePlan = "free" | "pro";
 export type EntitlementSource = "billing" | "reverse_trial" | "grant";
 export type UserEntitlements = {
@@ -184,7 +195,7 @@ export type UserEntitlements = {
 	reverseTrialActive: boolean;
 	trialEndsAt: Date | string | null;
 	hasActiveGrant: boolean;
-	grantSource?: string;
+	grantSource?: EntitlementGrantSource;
 	source: EntitlementSource;
 };
 

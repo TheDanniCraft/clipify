@@ -3,12 +3,12 @@
 import { entitlementGrantsTable, editorsTable, overlaysTable, usersTable } from "@/db/schema";
 import { db } from "@/db/client";
 import { and, asc, eq, gt, inArray, isNull, lt, lte, or, sql } from "drizzle-orm";
-import { AuthenticatedUser, Plan, UserEntitlements } from "@types";
+import { AuthenticatedUser, Entitlement, EntitlementGrantSource, Plan, UserEntitlements } from "@types";
 
-const PRO_ACCESS = "pro_access";
+const PRO_ACCESS = Entitlement.ProAccess;
 type CreateGrantInput = {
 	userId?: string | null;
-	source: string;
+	source: EntitlementGrantSource;
 	reason?: string | null;
 	startsAt?: Date;
 	endsAt?: Date | null;
@@ -64,7 +64,7 @@ export async function ensureReverseTrialGrantForUser(user: Pick<AuthenticatedUse
 		const existing = await tx
 			.select({ id: entitlementGrantsTable.id })
 			.from(entitlementGrantsTable)
-			.where(and(eq(entitlementGrantsTable.userId, user.id), eq(entitlementGrantsTable.entitlement, PRO_ACCESS), eq(entitlementGrantsTable.source, "reverse_trial")))
+			.where(and(eq(entitlementGrantsTable.userId, user.id), eq(entitlementGrantsTable.entitlement, PRO_ACCESS), eq(entitlementGrantsTable.source, EntitlementGrantSource.ReverseTrial)))
 			.limit(1)
 			.execute();
 
@@ -77,7 +77,7 @@ export async function ensureReverseTrialGrantForUser(user: Pick<AuthenticatedUse
 			.values({
 				userId: user.id,
 				entitlement: PRO_ACCESS,
-				source: "reverse_trial",
+				source: EntitlementGrantSource.ReverseTrial,
 				reason: "free_signup_trial",
 				startsAt,
 				endsAt,

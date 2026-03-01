@@ -1,5 +1,5 @@
 import { varchar, pgTable, check, timestamp, uuid, integer, text, uniqueIndex, primaryKey, index, pgEnum } from "drizzle-orm/pg-core";
-import { type Role, type Plan, type StatusOptions, type OverlayType, type TwitchCacheType, Role as RoleEnumValues, Plan as PlanEnumValues, StatusOptions as StatusOptionsEnumValues, OverlayType as OverlayTypeEnumValues, TwitchCacheType as TwitchCacheTypeEnumValues } from "@types";
+import { type Role, type Plan, type StatusOptions, type OverlayType, type TwitchCacheType, type Entitlement, type EntitlementGrantSource, Role as RoleEnumValues, Plan as PlanEnumValues, StatusOptions as StatusOptionsEnumValues, OverlayType as OverlayTypeEnumValues, TwitchCacheType as TwitchCacheTypeEnumValues, Entitlement as EntitlementEnumValues, EntitlementGrantSource as EntitlementGrantSourceEnumValues } from "@types";
 import { sql } from "drizzle-orm";
 
 function enumToPgEnum<T extends Record<string, unknown>>(myEnum: T): [T[keyof T], ...T[keyof T][]] {
@@ -11,6 +11,8 @@ export const planEnum = pgEnum("plan", enumToPgEnum(PlanEnumValues));
 export const statusOptionsEnum = pgEnum("status_options", enumToPgEnum(StatusOptionsEnumValues));
 export const overlayTypeEnum = pgEnum("overlay_type", enumToPgEnum(OverlayTypeEnumValues));
 export const twitchCacheTypeEnum = pgEnum("twitch_cache_type", enumToPgEnum(TwitchCacheTypeEnumValues));
+export const entitlementEnum = pgEnum("entitlement", enumToPgEnum(EntitlementEnumValues));
+export const entitlementGrantSourceEnum = pgEnum("entitlement_grant_source", enumToPgEnum(EntitlementGrantSourceEnumValues));
 
 export const usersTable = pgTable("users", {
 	id: varchar("id").notNull().primaryKey(),
@@ -111,8 +113,8 @@ export const entitlementGrantsTable = pgTable(
 	{
 		id: uuid("id").notNull().defaultRandom().primaryKey(),
 		userId: varchar("user_id").references(() => usersTable.id, { onDelete: "cascade" }),
-		entitlement: varchar("entitlement").notNull().default("pro_access"),
-		source: varchar("source").notNull().default("system"),
+		entitlement: entitlementEnum("entitlement").$type<Entitlement>().notNull().default(EntitlementEnumValues.ProAccess),
+		source: entitlementGrantSourceEnum("source").$type<EntitlementGrantSource>().notNull().default(EntitlementGrantSourceEnumValues.System),
 		reason: varchar("reason"),
 		startsAt: timestamp("starts_at", { withTimezone: true }).defaultNow().notNull(),
 		endsAt: timestamp("ends_at", { withTimezone: true }),
