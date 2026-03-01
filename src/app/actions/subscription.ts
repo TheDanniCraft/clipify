@@ -5,6 +5,7 @@ import { AuthenticatedUser, NumokStripeMetadata } from "@types";
 import { getBaseUrl } from "@actions/utils";
 import { cookies } from "next/headers";
 import { updateUserStripeCustomerId } from "@actions/database";
+import { validateAuth } from "@actions/auth";
 
 export type BillingCycle = "monthly" | "yearly";
 export type PaywallSource = "pricing_page" | "upgrade_modal" | "paywall_banner";
@@ -36,15 +37,27 @@ export async function getPlans() {
 	return PRODUCTS[env];
 }
 
+async function getAuthorizedUser(requestedUser: Pick<AuthenticatedUser, "id">) {
+	const authUser = await validateAuth(false);
+	if (!authUser) {
+		throw new Error("Unauthorized");
+	}
+	if (requestedUser.id !== authUser.id) {
+		throw new Error("Forbidden");
+	}
+	return authUser;
+}
+
 export async function checkIfSubscriptionExists(user: AuthenticatedUser) {
-	if (!user.stripeCustomerId) {
+	const authUser = await getAuthorizedUser(user);
+	if (!authUser.stripeCustomerId) {
 		return false;
 	}
 
 	const stripe = await getStripe();
 
 	const subscriptions = await stripe.subscriptions.list({
-		customer: user.stripeCustomerId,
+		customer: authUser.stripeCustomerId,
 		status: "active",
 	});
 
@@ -52,9 +65,13 @@ export async function checkIfSubscriptionExists(user: AuthenticatedUser) {
 }
 
 export async function generatePaymentLink(user: AuthenticatedUser, billingCycle: BillingCycle, returnUrl?: string, numokMetadata?: NumokStripeMetadata, source?: PaywallSource) {
+	const authUser = await getAuthorizedUser(user);
 	const cookieStore = await cookies();
 	const products = await getPlans();
 	const selectedPrice = products[billingCycle];
+	if (!selectedPrice) {
+		throw new Error(`Missing Stripe price for billing cycle: ${billingCycle}`);
+	}
 
 	const stripe = await getStripe();
 	const baseUrl = await getBaseUrl();
@@ -69,19 +86,19 @@ export async function generatePaymentLink(user: AuthenticatedUser, billingCycle:
 			return defaultReturnUrl;
 		}
 	})();
-	let stripeCustomerId = user.stripeCustomerId ?? null;
+	let stripeCustomerId = authUser.stripeCustomerId ?? null;
 
 	if (!stripeCustomerId) {
 		const customer = await stripe.customers.create({
-			email: user.email,
+			email: authUser.email,
 			metadata: {
-				userId: user.id,
+				userId: authUser.id,
 				source: source ?? "upgrade_modal",
 			},
 		});
 		stripeCustomerId = customer.id;
-		await updateUserStripeCustomerId(user.id, customer.id);
-		console.info("[entitlements] stripe_customer_created_on_intent", { userId: user.id, customerId: customer.id, source: source ?? "upgrade_modal" });
+		await updateUserStripeCustomerId(authUser.id, customer.id);
+		console.info("[entitlements] stripe_customer_created_on_intent", { userId: authUser.id, customerId: customer.id, source: source ?? "upgrade_modal" });
 	}
 
 	const rawCode = cookieStore.get("offer")?.value;
@@ -97,13 +114,13 @@ export async function generatePaymentLink(user: AuthenticatedUser, billingCycle:
 
 	const baseSessionParams: Stripe.Checkout.SessionCreateParams = {
 		line_items: [{ price: selectedPrice, quantity: 1 }],
-		client_reference_id: user.id,
+		client_reference_id: authUser.id,
 		mode: "subscription",
 		success_url: defaultReturnUrl,
 		cancel_url: cancelUrl,
 		customer: stripeCustomerId,
 		metadata: {
-			userId: user.id,
+			userId: authUser.id,
 			source: source ?? "upgrade_modal",
 			billingCycle,
 			...numokMetadata,
@@ -141,7 +158,8 @@ export async function generatePaymentLink(user: AuthenticatedUser, billingCycle:
 }
 
 export async function getPortalLink(user: AuthenticatedUser) {
-	if (!user.stripeCustomerId) {
+	const authUser = await getAuthorizedUser(user);
+	if (!authUser.stripeCustomerId) {
 		throw new Error("User does not have a Stripe customer ID");
 	}
 
@@ -149,7 +167,7 @@ export async function getPortalLink(user: AuthenticatedUser) {
 	const baseUrl = await getBaseUrl();
 
 	const session = await stripe.billingPortal.sessions.create({
-		customer: user.stripeCustomerId,
+		customer: authUser.stripeCustomerId,
 		return_url: new URL("/dashboard/settings", baseUrl).toString(),
 	});
 
