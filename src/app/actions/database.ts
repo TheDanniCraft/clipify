@@ -957,10 +957,7 @@ export async function saveSettings(settings: UserSettings) {
 	}
 	const prefix = settings.prefix;
 	const editors = settings.editors ?? [];
-	const userRows = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1).execute();
-	const owner = userRows[0];
-	const ownerWithEntitlements = owner ? { ...owner, entitlements: await resolveUserEntitlements(owner) } : null;
-	const editorsAccess = ownerWithEntitlements ? getFeatureAccess(ownerWithEntitlements, "editors") : { allowed: false as const };
+	const editorsAccess = getFeatureAccess(authedUser, "editors");
 	const effectiveEditors = editorsAccess.allowed ? editors : [];
 
 	const accessToken = await getAccessToken(userId);
