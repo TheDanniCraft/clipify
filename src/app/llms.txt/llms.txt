@@ -1,4 +1,4 @@
-﻿# Clipify
+# Clipify
 
 > **Let your clips talk.**  
 > **Even when you can't.**  

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type RefObject, type SyntheticEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ClipQueueItem, ModQueueItem, Overlay, TwitchClip, TwitchClipGqlData, TwitchClipGqlResponse, TwitchClipVideoQuality, VideoClip } from "@types";
 import { getAvatar, getDemoClip, getGameDetails, getTwitchClip, subscribeToChat } from "@actions/twitch";
 import PlayerOverlay from "@components/playerOverlay";
@@ -114,6 +114,324 @@ function parseThemeFontSetting(value?: string) {
 	return { fontFamily: raw, fontUrl: "" };
 }
 
+function sanitizeFontCssUrl(value?: string) {
+	const raw = (value ?? "").trim();
+	if (!raw) return "";
+	try {
+		const parsed = new URL(raw);
+		if (parsed.protocol !== "https:") return "";
+		if (parsed.hostname.toLowerCase() !== "fonts.googleapis.com") return "";
+		return parsed.toString();
+	} catch {
+		return "";
+	}
+}
+
+const POWERED_BY_URL = "https://clipify.us?utm_source=embed&utm_medium=overlay&utm_campaign=webembed";
+
+function getSlotOpacity(slot: "a" | "b", activeSlot: "a" | "b", isCrossfading: boolean, showPlayer: boolean) {
+	if (!showPlayer) return 0;
+	if (activeSlot === slot) return isCrossfading ? 0 : 1;
+	return isCrossfading ? 1 : 0;
+}
+
+function PoweredByBadge({ className }: { className: string }) {
+	return (
+		<Button as={Link} href={POWERED_BY_URL} target='_blank' rel='noopener noreferrer' color='primary' className={className} aria-label='Powered by Clipify'>
+			<Logo className='w-4 h-4 sm:w-6 sm:h-6' />
+			<span>Powered by Clipify</span>
+		</Button>
+	);
+}
+
+type OverlayViewportProps = {
+	clipA: VideoClip | null;
+	clipB: VideoClip | null;
+	activeSlot: "a" | "b";
+	isCrossfading: boolean;
+	showPlayer: boolean;
+	crossfadeSeconds: number;
+	showFadeSeconds: number;
+	videoARef: RefObject<HTMLVideoElement | null>;
+	videoBRef: RefObject<HTMLVideoElement | null>;
+	effectiveMuted: boolean;
+	onCanPlayA: () => void;
+	onCanPlayB: () => void;
+	onErrorA: () => void;
+	onErrorB: () => void;
+	onTimeUpdateA: (event: SyntheticEvent<HTMLVideoElement>) => void;
+	onTimeUpdateB: (event: SyntheticEvent<HTMLVideoElement>) => void;
+	onEndedA: (event: SyntheticEvent<HTMLVideoElement>) => void;
+	onEndedB: (event: SyntheticEvent<HTMLVideoElement>) => void;
+	onSlotPlay: () => void;
+	showClickToPlay: boolean;
+	onStartRequested: () => void;
+	onStartKeyDown: (event: ReactKeyboardEvent<HTMLDivElement>) => void;
+	overlay: Overlay;
+	embedBehaviorEnabled: boolean;
+	isMuted: boolean;
+	onToggleMuted: () => void;
+	isEmbed?: boolean;
+	showEmbedOverlay?: boolean;
+	showBanner?: boolean;
+	showOverlay: boolean;
+	canShowOverlay: boolean;
+	videoClip: VideoClip;
+	channelAnchoredRight: boolean;
+	channelAnchoredBottom: boolean;
+	channelInfoPos: { x: number; y: number };
+	channelMirrored: boolean;
+	overlayScale: number;
+	channelScale: number;
+	overlayFadeOutSeconds: number;
+	themeStyle: CSSProperties;
+	ownerAvatar: string;
+	clipAnchoredRight: boolean;
+	clipAnchoredBottom: boolean;
+	clipInfoPos: { x: number; y: number };
+	clipScale: number;
+	timerAnchoredRight: boolean;
+	timerAnchoredBottom: boolean;
+	timerPos: { x: number; y: number };
+	timerScale: number;
+	remainingSeconds: number;
+	progressBarHeight: number;
+	progress: number;
+	progressBarStartColor?: string;
+	progressBarEndColor?: string;
+};
+
+function OverlayViewport({
+	clipA,
+	clipB,
+	activeSlot,
+	isCrossfading,
+	showPlayer,
+	crossfadeSeconds,
+	showFadeSeconds,
+	videoARef,
+	videoBRef,
+	effectiveMuted,
+	onCanPlayA,
+	onCanPlayB,
+	onErrorA,
+	onErrorB,
+	onTimeUpdateA,
+	onTimeUpdateB,
+	onEndedA,
+	onEndedB,
+	onSlotPlay,
+	showClickToPlay,
+	onStartRequested,
+	onStartKeyDown,
+	overlay,
+	embedBehaviorEnabled,
+	isMuted,
+	onToggleMuted,
+	isEmbed,
+	showEmbedOverlay,
+	showBanner,
+	showOverlay,
+	canShowOverlay,
+	videoClip,
+	channelAnchoredRight,
+	channelAnchoredBottom,
+	channelInfoPos,
+	channelMirrored,
+	overlayScale,
+	channelScale,
+	overlayFadeOutSeconds,
+	themeStyle,
+	ownerAvatar,
+	clipAnchoredRight,
+	clipAnchoredBottom,
+	clipInfoPos,
+	clipScale,
+	timerAnchoredRight,
+	timerAnchoredBottom,
+	timerPos,
+	timerScale,
+	remainingSeconds,
+	progressBarHeight,
+	progress,
+	progressBarStartColor,
+	progressBarEndColor,
+}: OverlayViewportProps) {
+	return (
+		<div
+			className='relative w-screen h-screen group'
+			role={showClickToPlay ? "button" : undefined}
+			tabIndex={showClickToPlay ? 0 : -1}
+			aria-label={showClickToPlay ? "Play clips" : undefined}
+			onClick={showClickToPlay ? onStartRequested : undefined}
+			onKeyDown={onStartKeyDown}
+		>
+			{(clipA?.mediaUrl || clipB?.mediaUrl) && (
+				<>
+					<motion.video
+						key='slot-a'
+						autoPlay={false}
+						src={clipA?.mediaUrl}
+						preload='auto'
+						initial={{ opacity: 0 }}
+						animate={{ opacity: getSlotOpacity("a", activeSlot, isCrossfading, showPlayer) }}
+						transition={{ duration: isCrossfading ? crossfadeSeconds : showFadeSeconds, ease: "easeInOut" }}
+						ref={videoARef}
+						onCanPlay={onCanPlayA}
+						onError={onErrorA}
+						onTimeUpdate={onTimeUpdateA}
+						onEnded={onEndedA}
+						onPlay={onSlotPlay}
+						style={{
+							width: "100vw",
+							height: "100vh",
+							aspectRatio: "19 / 9",
+							pointerEvents: showPlayer ? "auto" : "none",
+						}}
+						className='block absolute inset-0 z-0'
+						muted={effectiveMuted}
+					>
+						Your browser does not support the video tag.
+					</motion.video>
+
+					{clipB?.mediaUrl && (
+						<motion.video
+							key='slot-b'
+							autoPlay={false}
+							src={clipB.mediaUrl}
+							preload='auto'
+							initial={{ opacity: 0 }}
+							animate={{ opacity: getSlotOpacity("b", activeSlot, isCrossfading, showPlayer) }}
+							transition={{ duration: isCrossfading ? crossfadeSeconds : showFadeSeconds, ease: "easeInOut" }}
+							ref={videoBRef}
+							onCanPlay={onCanPlayB}
+							onError={onErrorB}
+							onTimeUpdate={onTimeUpdateB}
+							onEnded={onEndedB}
+							onPlay={onSlotPlay}
+							style={{
+								width: "100vw",
+								height: "100vh",
+								aspectRatio: "19 / 9",
+								pointerEvents: showPlayer ? "auto" : "none",
+							}}
+							className='block absolute inset-0 z-0'
+							muted={effectiveMuted}
+						>
+							Your browser does not support the video tag.
+						</motion.video>
+					)}
+				</>
+			)}
+
+			{overlay.effectScanlines && <div className='pointer-events-none absolute inset-0 z-[5] bg-[repeating-linear-gradient(0deg,rgba(255,255,255,0.03)_0px,rgba(255,255,255,0.03)_1px,transparent_2px,transparent_4px)]' />}
+			{overlay.effectStatic && <div className='pointer-events-none absolute inset-0 z-[5] animate-pulse bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.05),transparent_35%),radial-gradient(circle_at_70%_60%,rgba(255,255,255,0.04),transparent_40%)]' />}
+			{overlay.effectCrt && <div className='pointer-events-none absolute inset-0 z-[6] bg-[radial-gradient(circle_at_center,transparent_52%,rgba(0,0,0,0.38)_100%),linear-gradient(90deg,rgba(255,0,0,0.04),rgba(0,255,255,0.04))] mix-blend-screen' />}
+
+			{embedBehaviorEnabled && (
+				<>
+					<div className='absolute right-4 top-4 z-20 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100'>
+						<button type='button' onClick={(event) => {
+							event.stopPropagation();
+							onToggleMuted();
+						}} className='h-10 w-10 rounded-full bg-primary text-white shadow-md hover:bg-primary-600 transition flex items-center justify-center' aria-pressed={isMuted} aria-label={isMuted ? "Unmute overlay" : "Mute overlay"}>
+							{isMuted ? <IconVolumeOff className='h-5 w-5 text-zinc-200' /> : <IconVolume className='h-5 w-5 text-white' />}
+						</button>
+					</div>
+
+					{showClickToPlay && (
+						<div className='absolute inset-0 flex items-center justify-center'>
+							<div className='rounded-full bg-primary text-white text-sm sm:text-base px-5 py-2.5 shadow-lg flex items-center gap-2'>
+								<span className='inline-flex items-center justify-center h-7 w-7 rounded-full bg-white'>
+									<IconPlayerPlayFilled className='h-4 w-4 text-primary' />
+								</span>
+								<span>Play clips</span>
+							</div>
+						</div>
+					)}
+				</>
+			)}
+
+			{isEmbed && !showEmbedOverlay ? (
+				showBanner ? (
+					<div className='absolute left-4 bottom-4'>
+						<PoweredByBadge className='inline-flex items-center gap-1 px-3 py-1.5 text-white text-xs sm:text-sm rounded-full shadow-md hover:bg-opacity-80 transition' />
+					</div>
+				) : null
+			) : (
+				<div className='absolute inset-0 z-10 pointer-events-none flex flex-col justify-between text-xs'>
+					{showOverlay && canShowOverlay && !showClickToPlay && (
+						<>
+							{overlay.showChannelInfo && (
+								<PlayerOverlay key={`${videoClip.id}-channel`} left={channelAnchoredRight ? undefined : `${channelInfoPos.x}%`} right={channelAnchoredRight ? `${100 - channelInfoPos.x}%` : undefined} top={channelAnchoredBottom ? undefined : `${channelInfoPos.y}%`} bottom={channelAnchoredBottom ? `${100 - channelInfoPos.y}%` : undefined} scale={overlayScale * channelScale} fadeOutSeconds={overlayFadeOutSeconds} className='w-fit p-2 shadow-lg backdrop-blur-sm' style={themeStyle}>
+									<div className={`flex items-center ${channelMirrored ? "flex-row-reverse" : ""}`}>
+										<Avatar size='md' src={videoClip.brodcasterAvatar || ownerAvatar} />
+										<div className={`flex flex-col justify-center text-xs ${channelMirrored ? "mr-2 items-end text-right" : "ml-2 items-start text-left"}`}>
+											<span className='font-semibold'>{videoClip.broadcaster_name}</span>
+											<span className='text-xs opacity-80'>Playing {videoClip.game?.name}</span>
+										</div>
+									</div>
+								</PlayerOverlay>
+							)}
+
+							{overlay.showClipInfo && (
+								<PlayerOverlay
+									key={`${videoClip.id}-clip`}
+									left={clipAnchoredRight ? undefined : `${clipInfoPos.x}%`}
+									right={clipAnchoredRight ? `${100 - clipInfoPos.x}%` : undefined}
+									top={clipAnchoredBottom ? undefined : `${clipInfoPos.y}%`}
+									bottom={clipAnchoredBottom ? `${100 - clipInfoPos.y}%` : undefined}
+									scale={overlayScale * clipScale}
+									fadeOutSeconds={overlayFadeOutSeconds}
+									className='w-fit p-2 shadow-lg backdrop-blur-sm max-w-[min(360px,42vw)]'
+									style={themeStyle}
+								>
+									<div className={`flex flex-col break-normal ${clipAnchoredRight ? "items-end text-right" : "items-start text-left"}`}>
+										<span className='font-bold'>{videoClip.title}</span>
+										<span className='text-xs opacity-80 mt-1'>clipped by {videoClip.creator_name}</span>
+									</div>
+								</PlayerOverlay>
+							)}
+
+							{overlay.showTimer && (
+								<PlayerOverlay
+									key={`${videoClip.id}-timer`}
+									left={timerAnchoredRight ? undefined : `${timerPos.x}%`}
+									right={timerAnchoredRight ? `${100 - timerPos.x}%` : undefined}
+									top={timerAnchoredBottom ? undefined : `${timerPos.y}%`}
+									bottom={timerAnchoredBottom ? `${100 - timerPos.y}%` : undefined}
+									scale={overlayScale * timerScale}
+									fadeOutSeconds={0}
+									className='shadow-lg backdrop-blur-sm !rounded-full !p-0 h-12 w-12 min-h-12 min-w-12 aspect-square flex items-center justify-center text-sm font-bold leading-none tabular-nums'
+									style={{ ...themeStyle, borderRadius: "9999px", padding: 0 }}
+								>
+									<span>{remainingSeconds}</span>
+								</PlayerOverlay>
+							)}
+						</>
+					)}
+					{overlay.showProgressBar && canShowOverlay && !showClickToPlay && (
+						<div className='absolute left-0 right-0 bottom-0 overflow-hidden' style={{ backgroundColor: "rgba(0, 0, 0, 0.35)", height: `${progressBarHeight}px` }}>
+							<div
+								className='h-full transition-[width] duration-150 ease-linear'
+								style={{
+									width: `${progress}%`,
+									background: `linear-gradient(90deg, ${progressBarStartColor || "#26018E"}, ${progressBarEndColor || "#8D42F9"})`,
+								}}
+							/>
+						</div>
+					)}
+					{isEmbed && showBanner ? (
+						<div className='absolute left-4 bottom-4 pointer-events-auto'>
+							<PoweredByBadge className='inline-flex items-center gap-1 px-3 py-1.5 text-white text-xs sm:text-sm rounded-full shadow-md hover:bg-opacity-80 transition' />
+						</div>
+					) : null}
+				</div>
+			)}
+		</div>
+	);
+}
+
 export default function OverlayPlayer({
 	clips,
 	overlay,
@@ -205,6 +523,7 @@ export default function OverlayPlayer({
 	const timerAnchoredRight = timerPos.x > 50;
 	const timerAnchoredBottom = timerPos.y > 50;
 	const { fontFamily: resolvedThemeFontFamily, fontUrl: resolvedThemeFontUrl } = useMemo(() => parseThemeFontSetting(overlay.themeFontFamily), [overlay.themeFontFamily]);
+	const safeThemeFontUrl = useMemo(() => sanitizeFontCssUrl(resolvedThemeFontUrl), [resolvedThemeFontUrl]);
 	const themeStyle = {
 		color: overlay.themeTextColor || "#FFFFFF",
 		backgroundColor: overlay.themeBackgroundColor || "rgba(10,10,10,0.65)",
@@ -777,16 +1096,16 @@ export default function OverlayPlayer({
 	}, [overlay.playerVolume]);
 
 	useEffect(() => {
-		if (!resolvedThemeFontUrl) return;
+		if (!safeThemeFontUrl) return;
 		if (typeof document === "undefined") return;
-		const id = `overlay-font-${btoa(resolvedThemeFontUrl).replace(/=/g, "")}`;
+		const id = `overlay-font-${btoa(safeThemeFontUrl).replace(/=/g, "")}`;
 		if (document.getElementById(id)) return;
 		const link = document.createElement("link");
 		link.id = id;
 		link.rel = "stylesheet";
-		link.href = resolvedThemeFontUrl;
+		link.href = safeThemeFontUrl;
 		document.head.appendChild(link);
-	}, [resolvedThemeFontUrl]);
+	}, [safeThemeFontUrl]);
 
 	useEffect(() => {
 		return () => {
@@ -1134,299 +1453,148 @@ export default function OverlayPlayer({
 		const displayCurrentTime = Math.min(activeCurrentTime, Math.max(displayDuration, 0));
 		const remainingSeconds = Math.max(0, Math.ceil(displayDuration - displayCurrentTime));
 		const progress = displayDuration > 0 ? clamp((displayCurrentTime / displayDuration) * 100, 0, 100) : 0;
+		const handleStartRequested = () => {
+			if (!showClickToPlay) return;
+			setHasUserStarted(true);
+			setPaused(false);
+		};
+
+		const handleStartKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+			if (!showClickToPlay) return;
+			if (event.key === "Enter" || event.key === " ") {
+				event.preventDefault();
+				setHasUserStarted(true);
+				setPaused(false);
+			}
+		};
+
+		const handleSlotAError = () => {
+			if (activeSlot === "a") {
+				holdLastFrameRef.current = false;
+				holdSlotRef.current = null;
+				if (holdTimeoutRef.current) {
+					clearTimeout(holdTimeoutRef.current);
+					holdTimeoutRef.current = null;
+				}
+				advanceClip();
+				return;
+			}
+			if (nextClipRef.current?.id === clipA?.id) {
+				nextClipRef.current = null;
+				setNextClip(null);
+				readyARef.current = false;
+			}
+		};
+
+		const handleSlotBError = () => {
+			if (activeSlot === "b") {
+				holdLastFrameRef.current = false;
+				holdSlotRef.current = null;
+				if (holdTimeoutRef.current) {
+					clearTimeout(holdTimeoutRef.current);
+					holdTimeoutRef.current = null;
+				}
+				advanceClip();
+				return;
+			}
+			if (nextClipRef.current?.id === clipB?.id) {
+				nextClipRef.current = null;
+				setNextClip(null);
+				readyBRef.current = false;
+			}
+		};
+
+		const handleSlotAEnded = (event: SyntheticEvent<HTMLVideoElement>) => {
+			if (event.currentTarget !== videoARef.current) return;
+			if (activeSlot !== "a") return;
+			if (isCrossfading) return;
+			if (holdLastFrameRef.current) return;
+			setShowOverlay(false);
+			if (clipA) playedClipsRef.current = [...playedClipsRef.current, clipA.id];
+			setPlayedClips(playedClipsRef.current);
+			advanceClip();
+		};
+
+		const handleSlotBEnded = (event: SyntheticEvent<HTMLVideoElement>) => {
+			if (event.currentTarget !== videoBRef.current) return;
+			if (activeSlot !== "b") return;
+			if (isCrossfading) return;
+			if (holdLastFrameRef.current) return;
+			setShowOverlay(false);
+			if (clipB) playedClipsRef.current = [...playedClipsRef.current, clipB.id];
+			setPlayedClips(playedClipsRef.current);
+			advanceClip();
+		};
+
 		return (
-			<div
-				className='relative w-screen h-screen group'
-				role={showClickToPlay ? "button" : undefined}
-				tabIndex={showClickToPlay ? 0 : -1}
-				aria-label={showClickToPlay ? "Play clips" : undefined}
-				onClick={() => {
-					if (showClickToPlay) {
-						setHasUserStarted(true);
-						setPaused(false);
-					}
+			<OverlayViewport
+				clipA={clipA}
+				clipB={clipB}
+				activeSlot={activeSlot}
+				isCrossfading={isCrossfading}
+				showPlayer={showPlayer}
+				crossfadeSeconds={CROSSFADE_SECONDS}
+				showFadeSeconds={SHOW_FADE_SECONDS}
+				videoARef={videoARef}
+				videoBRef={videoBRef}
+				effectiveMuted={effectiveMuted}
+				onCanPlayA={() => {
+					readyARef.current = true;
+					if (holdLastFrameRef.current) startCrossfade();
 				}}
-				onKeyDown={(event) => {
-					if (!showClickToPlay) return;
-					if (event.key === "Enter" || event.key === " ") {
-						event.preventDefault();
-						setHasUserStarted(true);
-						setPaused(false);
-					}
+				onCanPlayB={() => {
+					readyBRef.current = true;
+					if (holdLastFrameRef.current) startCrossfade();
 				}}
-			>
-				{(clipA?.mediaUrl || clipB?.mediaUrl) && (
-					<>
-						<motion.video
-							key='slot-a'
-							autoPlay={false}
-							src={clipA?.mediaUrl}
-							preload='auto'
-							initial={{ opacity: 0 }}
-							animate={{
-								opacity: showPlayer
-									? activeSlot === "a"
-										? isCrossfading
-											? 0
-											: 1
-										: isCrossfading
-											? 1
-											: 0
-									: 0,
-							}}
-							transition={{ duration: isCrossfading ? CROSSFADE_SECONDS : SHOW_FADE_SECONDS, ease: "easeInOut" }}
-							ref={videoARef}
-							onCanPlay={() => {
-								readyARef.current = true;
-								if (holdLastFrameRef.current) startCrossfade();
-							}}
-							onError={() => {
-								if (activeSlot === "a") {
-									holdLastFrameRef.current = false;
-									holdSlotRef.current = null;
-									if (holdTimeoutRef.current) {
-										clearTimeout(holdTimeoutRef.current);
-										holdTimeoutRef.current = null;
-									}
-									advanceClip();
-									return;
-								}
-								if (nextClipRef.current?.id === clipA?.id) {
-									nextClipRef.current = null;
-									setNextClip(null);
-									readyARef.current = false;
-								}
-							}}
-							onTimeUpdate={(event) => {
-								if (event.currentTarget !== videoARef.current) return;
-								handleTimeUpdate("a", videoARef.current);
-							}}
-							onEnded={(event) => {
-								if (event.currentTarget !== videoARef.current) return;
-								if (activeSlot !== "a") return;
-								if (isCrossfading) return;
-								if (holdLastFrameRef.current) return;
-								setShowOverlay(false);
-
-								// sync update so next pick can't choose the same clip
-								if (clipA) playedClipsRef.current = [...playedClipsRef.current, clipA.id];
-								setPlayedClips(playedClipsRef.current);
-
-								advanceClip();
-							}}
-							onPlay={() => setShowOverlay(true)}
-							style={{
-								width: "100vw",
-								height: "100vh",
-								aspectRatio: "19 / 9",
-								pointerEvents: showPlayer ? "auto" : "none",
-							}}
-							className='block absolute inset-0 z-0'
-							muted={effectiveMuted}
-						>
-							Your browser does not support the video tag.
-						</motion.video>
-
-						{clipB?.mediaUrl && (
-							<motion.video
-								key='slot-b'
-								autoPlay={false}
-								src={clipB.mediaUrl}
-								preload='auto'
-								initial={{ opacity: 0 }}
-								animate={{
-									opacity: showPlayer
-										? activeSlot === "b"
-											? isCrossfading
-												? 0
-												: 1
-											: isCrossfading
-												? 1
-												: 0
-										: 0,
-								}}
-								transition={{ duration: isCrossfading ? CROSSFADE_SECONDS : SHOW_FADE_SECONDS, ease: "easeInOut" }}
-								ref={videoBRef}
-								onCanPlay={() => {
-									readyBRef.current = true;
-									if (holdLastFrameRef.current) startCrossfade();
-								}}
-								onError={() => {
-									if (activeSlot === "b") {
-										holdLastFrameRef.current = false;
-										holdSlotRef.current = null;
-										if (holdTimeoutRef.current) {
-											clearTimeout(holdTimeoutRef.current);
-											holdTimeoutRef.current = null;
-										}
-										advanceClip();
-										return;
-									}
-									if (nextClipRef.current?.id === clipB?.id) {
-										nextClipRef.current = null;
-										setNextClip(null);
-										readyBRef.current = false;
-									}
-								}}
-								onTimeUpdate={(event) => {
-									if (event.currentTarget !== videoBRef.current) return;
-									handleTimeUpdate("b", videoBRef.current);
-								}}
-								onEnded={(event) => {
-									if (event.currentTarget !== videoBRef.current) return;
-									if (activeSlot !== "b") return;
-									if (isCrossfading) return;
-									if (holdLastFrameRef.current) return;
-									setShowOverlay(false);
-
-									if (clipB) playedClipsRef.current = [...playedClipsRef.current, clipB.id];
-									setPlayedClips(playedClipsRef.current);
-
-									advanceClip();
-								}}
-								onPlay={() => setShowOverlay(true)}
-								style={{
-									width: "100vw",
-									height: "100vh",
-									aspectRatio: "19 / 9",
-									pointerEvents: showPlayer ? "auto" : "none",
-								}}
-								className='block absolute inset-0 z-0'
-								muted={effectiveMuted}
-							>
-								Your browser does not support the video tag.
-							</motion.video>
-						)}
-					</>
-				)}
-
-				{overlay.effectScanlines && <div className='pointer-events-none absolute inset-0 z-[5] bg-[repeating-linear-gradient(0deg,rgba(255,255,255,0.03)_0px,rgba(255,255,255,0.03)_1px,transparent_2px,transparent_4px)]' />}
-				{overlay.effectStatic && <div className='pointer-events-none absolute inset-0 z-[5] animate-pulse bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.05),transparent_35%),radial-gradient(circle_at_70%_60%,rgba(255,255,255,0.04),transparent_40%)]' />}
-				{overlay.effectCrt && <div className='pointer-events-none absolute inset-0 z-[6] bg-[radial-gradient(circle_at_center,transparent_52%,rgba(0,0,0,0.38)_100%),linear-gradient(90deg,rgba(255,0,0,0.04),rgba(0,255,255,0.04))] mix-blend-screen' />}
-
-				{embedBehaviorEnabled && (
-					<>
-						<div className='absolute right-4 top-4 z-20 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100'>
-							<button
-								type='button'
-								onClick={(event) => {
-									event.stopPropagation();
-									setIsMuted((prev) => !prev);
-								}}
-								className='h-10 w-10 rounded-full bg-primary text-white shadow-md hover:bg-primary-600 transition flex items-center justify-center'
-								aria-pressed={isMuted}
-								aria-label={isMuted ? "Unmute overlay" : "Mute overlay"}
-							>
-								{isMuted ? <IconVolumeOff className='h-5 w-5 text-zinc-200' /> : <IconVolume className='h-5 w-5 text-white' />}
-							</button>
-						</div>
-
-						{showClickToPlay && (
-							<div className='absolute inset-0 flex items-center justify-center'>
-								<div
-									className='rounded-full bg-primary text-white text-sm sm:text-base px-5 py-2.5 shadow-lg flex items-center gap-2'
-								>
-									<span className='inline-flex items-center justify-center h-7 w-7 rounded-full bg-white'>
-										<IconPlayerPlayFilled className='h-4 w-4 text-primary' />
-									</span>
-									<span>Play clips</span>
-								</div>
-							</div>
-						)}
-					</>
-				)}
-
-				{isEmbed && !showEmbedOverlay ? (
-					showBanner ? (
-						<div className='absolute left-4 bottom-4'>
-							<Button as={Link} href='https://clipify.us?utm_source=embed&utm_medium=overlay&utm_campaign=webembed' target='_blank' rel='noopener noreferrer' color='primary' className='inline-flex items-center gap-1 px-3 py-1.5 text-white text-xs sm:text-sm rounded-full shadow-md hover:bg-opacity-80 transition' aria-label='Powered by Clipify'>
-								<Logo className='w-4 h-4 sm:w-6 sm:h-6' />
-								<span>Powered by Clipify</span>
-							</Button>
-						</div>
-					) : null
-				) : (
-					<div className='absolute inset-0 z-10 pointer-events-none flex flex-col justify-between text-xs'>
-						{showOverlay && canShowOverlay && !showClickToPlay && (
-							<>
-								{overlay.showChannelInfo && (
-									<PlayerOverlay key={`${videoClip.id}-channel`} left={channelAnchoredRight ? undefined : `${channelInfoPos.x}%`} right={channelAnchoredRight ? `${100 - channelInfoPos.x}%` : undefined} top={channelAnchoredBottom ? undefined : `${channelInfoPos.y}%`} bottom={channelAnchoredBottom ? `${100 - channelInfoPos.y}%` : undefined} scale={overlayScale * channelScale} fadeOutSeconds={overlayFadeOutSeconds} className='w-fit p-2 shadow-lg backdrop-blur-sm' style={themeStyle}>
-										<div className={`flex items-center ${channelMirrored ? "flex-row-reverse" : ""}`}>
-											<Avatar size='md' src={videoClip.brodcasterAvatar || ownerAvatar} />
-											<div className={`flex flex-col justify-center text-xs ${channelMirrored ? "mr-2 items-end text-right" : "ml-2 items-start text-left"}`}>
-												<span className='font-semibold'>{videoClip.broadcaster_name}</span>
-												<span className='text-xs opacity-80'>Playing {videoClip.game?.name}</span>
-											</div>
-										</div>
-									</PlayerOverlay>
-								)}
-
-								{overlay.showClipInfo && (
-									<PlayerOverlay
-										key={`${videoClip.id}-clip`}
-										left={clipAnchoredRight ? undefined : `${clipInfoPos.x}%`}
-										right={clipAnchoredRight ? `${100 - clipInfoPos.x}%` : undefined}
-										top={clipAnchoredBottom ? undefined : `${clipInfoPos.y}%`}
-										bottom={clipAnchoredBottom ? `${100 - clipInfoPos.y}%` : undefined}
-										scale={overlayScale * clipScale}
-										fadeOutSeconds={overlayFadeOutSeconds}
-										className='w-fit p-2 shadow-lg backdrop-blur-sm max-w-[min(360px,42vw)]'
-										style={themeStyle}
-									>
-										<div className={`flex flex-col break-normal ${clipAnchoredRight ? "items-end text-right" : "items-start text-left"}`}>
-											<span className='font-bold'>{videoClip.title}</span>
-											<span className='text-xs opacity-80 mt-1'>clipped by {videoClip.creator_name}</span>
-										</div>
-									</PlayerOverlay>
-								)}
-
-								{overlay.showTimer && (
-									<PlayerOverlay
-										key={`${videoClip.id}-timer`}
-										left={timerAnchoredRight ? undefined : `${timerPos.x}%`}
-										right={timerAnchoredRight ? `${100 - timerPos.x}%` : undefined}
-										top={timerAnchoredBottom ? undefined : `${timerPos.y}%`}
-										bottom={timerAnchoredBottom ? `${100 - timerPos.y}%` : undefined}
-										scale={overlayScale * timerScale}
-										fadeOutSeconds={0}
-										className='shadow-lg backdrop-blur-sm !rounded-full !p-0 h-12 w-12 min-h-12 min-w-12 aspect-square flex items-center justify-center text-sm font-bold leading-none tabular-nums'
-										style={{ ...themeStyle, borderRadius: "9999px", padding: 0 }}
-									>
-										<span>{remainingSeconds}</span>
-									</PlayerOverlay>
-								)}
-							</>
-						)}
-						{overlay.showProgressBar && canShowOverlay && !showClickToPlay && (
-							<div className='absolute left-0 right-0 bottom-0 overflow-hidden' style={{ backgroundColor: "rgba(0, 0, 0, 0.35)", height: `${progressBarHeight}px` }}>
-								<div
-									className='h-full transition-[width] duration-150 ease-linear'
-									style={{
-										width: `${progress}%`,
-										background: `linear-gradient(90deg, ${overlay.progressBarStartColor || "#26018E"}, ${overlay.progressBarEndColor || "#8D42F9"})`,
-									}}
-								/>
-							</div>
-						)}
-						{isEmbed && showBanner ? (
-							<div className='absolute left-4 bottom-4 pointer-events-auto'>
-								<Button
-									as={Link}
-									href='https://clipify.us?utm_source=embed&utm_medium=overlay&utm_campaign=webembed'
-									target='_blank'
-									rel='noopener noreferrer'
-									color='primary'
-									className='inline-flex items-center gap-1 px-3 py-1.5 text-white text-xs sm:text-sm rounded-full shadow-md hover:bg-opacity-80 transition'
-									aria-label='Powered by Clipify'
-								>
-									<Logo className='w-4 h-4 sm:w-6 sm:h-6' />
-									<span>Powered by Clipify</span>
-								</Button>
-							</div>
-						) : null}
-					</div>
-				)}
-			</div>
+				onErrorA={handleSlotAError}
+				onErrorB={handleSlotBError}
+				onTimeUpdateA={(event) => {
+					if (event.currentTarget !== videoARef.current) return;
+					handleTimeUpdate("a", videoARef.current);
+				}}
+				onTimeUpdateB={(event) => {
+					if (event.currentTarget !== videoBRef.current) return;
+					handleTimeUpdate("b", videoBRef.current);
+				}}
+				onEndedA={handleSlotAEnded}
+				onEndedB={handleSlotBEnded}
+				onSlotPlay={() => setShowOverlay(true)}
+				showClickToPlay={showClickToPlay}
+				onStartRequested={handleStartRequested}
+				onStartKeyDown={handleStartKeyDown}
+				overlay={overlay}
+				embedBehaviorEnabled={embedBehaviorEnabled}
+				isMuted={isMuted}
+				onToggleMuted={() => setIsMuted((prev) => !prev)}
+				isEmbed={isEmbed}
+				showEmbedOverlay={showEmbedOverlay}
+				showBanner={showBanner}
+				showOverlay={showOverlay}
+				canShowOverlay={canShowOverlay}
+				videoClip={videoClip}
+				channelAnchoredRight={channelAnchoredRight}
+				channelAnchoredBottom={channelAnchoredBottom}
+				channelInfoPos={channelInfoPos}
+				channelMirrored={channelMirrored}
+				overlayScale={overlayScale}
+				channelScale={channelScale}
+				overlayFadeOutSeconds={overlayFadeOutSeconds}
+				themeStyle={themeStyle}
+				ownerAvatar={ownerAvatar}
+				clipAnchoredRight={clipAnchoredRight}
+				clipAnchoredBottom={clipAnchoredBottom}
+				clipInfoPos={clipInfoPos}
+				clipScale={clipScale}
+				timerAnchoredRight={timerAnchoredRight}
+				timerAnchoredBottom={timerAnchoredBottom}
+				timerPos={timerPos}
+				timerScale={timerScale}
+				remainingSeconds={remainingSeconds}
+				progressBarHeight={progressBarHeight}
+				progress={progress}
+				progressBarStartColor={overlay.progressBarStartColor}
+				progressBarEndColor={overlay.progressBarEndColor}
+			/>
 		);
 	}
 

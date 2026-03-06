@@ -12,6 +12,11 @@ import { ensureReverseTrialGrantForUser, resolveUserEntitlements, resolveUserEnt
 
 const TWITCH_CACHE_CLEANUP_INTERVAL_MS = 10 * 60 * 1000;
 let lastTwitchCacheCleanupAt = 0;
+const FONT_URL_DELIMITER = "||url||";
+const ALLOWED_FONT_CSS_HOSTS = new Set(["fonts.googleapis.com"]);
+const HEX_COLOR_PATTERN = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
+const RGB_COLOR_PATTERN = /^rgba?\(\s*(?:25[0-5]|2[0-4]\d|1?\d?\d)\s*,\s*(?:25[0-5]|2[0-4]\d|1?\d?\d)\s*,\s*(?:25[0-5]|2[0-4]\d|1?\d?\d)(?:\s*,\s*(?:0|1|0?\.\d+))?\s*\)$/i;
+const HSL_COLOR_PATTERN = /^hsla?\(\s*(?:360|3[0-5]\d|[12]?\d?\d)(?:\.\d+)?\s*,\s*(?:100|[1-9]?\d)(?:\.\d+)?%\s*,\s*(?:100|[1-9]?\d)(?:\.\d+)?%(?:\s*,\s*(?:0|1|0?\.\d+))?\s*\)$/i;
 
 const cleanupTwitchCacheIfNeeded = async (now: Date) => {
 	if (now.getTime() - lastTwitchCacheCleanupAt < TWITCH_CACHE_CLEANUP_INTERVAL_MS) return;
@@ -78,6 +83,108 @@ type OverlayPatch = Partial<
 		| "timerScale"
 	>
 >;
+
+function clampInteger(value: number | null | undefined, min: number, max: number, fallback: number) {
+	return Math.round(Math.max(min, Math.min(max, value ?? fallback)));
+}
+
+function normalizeCreatorFilters(values: string[] | null | undefined) {
+	return Array.from(new Set((values ?? []).map((name) => name.trim().toLowerCase()).filter(Boolean)));
+}
+
+function sanitizeThemeFontFamilyValue(value: string | null | undefined) {
+	const trimmed = (value ?? "").trim();
+	if (!trimmed) return "inherit";
+	if (trimmed.length > 200) return "inherit";
+	if (trimmed.includes(FONT_URL_DELIMITER)) return "inherit";
+	if (!/^[-,./\s"'0-9A-Za-z]+$/.test(trimmed)) return "inherit";
+	return trimmed;
+}
+
+function sanitizeThemeFontUrl(value: string | null | undefined) {
+	const trimmed = (value ?? "").trim();
+	if (!trimmed) return "";
+
+	try {
+		const parsed = new URL(trimmed);
+		if (parsed.protocol !== "https:") return "";
+		if (!ALLOWED_FONT_CSS_HOSTS.has(parsed.hostname.toLowerCase())) return "";
+		return parsed.toString();
+	} catch {
+		return "";
+	}
+}
+
+function sanitizeThemeFontSetting(value: string | null | undefined) {
+	const raw = (value ?? "").trim();
+	if (!raw) return "inherit";
+
+	if (!raw.includes(FONT_URL_DELIMITER)) {
+		return sanitizeThemeFontFamilyValue(raw);
+	}
+
+	const [rawFamily, rawUrl] = raw.split(FONT_URL_DELIMITER);
+	const family = sanitizeThemeFontFamilyValue(rawFamily);
+	const safeUrl = sanitizeThemeFontUrl(rawUrl);
+	if (!safeUrl) return family;
+	return `${family}${FONT_URL_DELIMITER}${safeUrl}`;
+}
+
+function sanitizeCssColor(value: string | null | undefined, fallback: string) {
+	const trimmed = (value ?? "").trim();
+	if (!trimmed) return fallback;
+	if (trimmed.toLowerCase() === "transparent") return "transparent";
+	if (HEX_COLOR_PATTERN.test(trimmed) || RGB_COLOR_PATTERN.test(trimmed) || HSL_COLOR_PATTERN.test(trimmed)) return trimmed;
+	return fallback;
+}
+
+function buildOverlayUpdatePayload(next: Overlay, advancedAllowed: boolean) {
+	const rewardId = advancedAllowed ? (next.rewardId ?? null) : null;
+
+	return {
+		name: next.name,
+		status: next.status,
+		type: next.type,
+		rewardId,
+		updatedAt: new Date(),
+		minClipDuration: advancedAllowed ? next.minClipDuration : 0,
+		maxClipDuration: advancedAllowed ? next.maxClipDuration : 60,
+		maxDurationMode: advancedAllowed ? next.maxDurationMode : MaxDurationMode.Filter,
+		blacklistWords: advancedAllowed ? next.blacklistWords : [],
+		minClipViews: advancedAllowed ? next.minClipViews : 0,
+		playbackMode: advancedAllowed ? next.playbackMode : PlaybackMode.Random,
+		preferCurrentCategory: advancedAllowed ? !!next.preferCurrentCategory : false,
+		clipCreatorsOnly: advancedAllowed ? normalizeCreatorFilters(next.clipCreatorsOnly) : [],
+		clipCreatorsBlocked: advancedAllowed ? normalizeCreatorFilters(next.clipCreatorsBlocked) : [],
+		clipPackSize: advancedAllowed ? Math.max(25, Math.min(500, next.clipPackSize ?? 100)) : 100,
+		playerVolume: advancedAllowed ? Math.max(0, Math.min(100, next.playerVolume ?? 50)) : 50,
+		showChannelInfo: advancedAllowed ? !!next.showChannelInfo : true,
+		showClipInfo: advancedAllowed ? !!next.showClipInfo : true,
+		showTimer: advancedAllowed ? !!next.showTimer : false,
+		showProgressBar: advancedAllowed ? !!next.showProgressBar : false,
+		overlayInfoFadeOutSeconds: advancedAllowed ? Math.max(0, Math.min(30, next.overlayInfoFadeOutSeconds ?? 6)) : 6,
+		themeFontFamily: advancedAllowed ? sanitizeThemeFontSetting(next.themeFontFamily) : "inherit",
+		themeTextColor: advancedAllowed ? sanitizeCssColor(next.themeTextColor, "#FFFFFF") : "#FFFFFF",
+		themeAccentColor: advancedAllowed ? sanitizeCssColor(next.themeAccentColor, "#7C3AED") : "#7C3AED",
+		themeBackgroundColor: advancedAllowed ? sanitizeCssColor(next.themeBackgroundColor, "rgba(10,10,10,0.65)") : "rgba(10,10,10,0.65)",
+		progressBarStartColor: advancedAllowed ? sanitizeCssColor(next.progressBarStartColor, "#26018E") : "#26018E",
+		progressBarEndColor: advancedAllowed ? sanitizeCssColor(next.progressBarEndColor, "#8D42F9") : "#8D42F9",
+		borderSize: advancedAllowed ? Math.max(0, Math.min(32, next.borderSize ?? 0)) : 0,
+		borderRadius: advancedAllowed ? Math.max(0, Math.min(48, next.borderRadius ?? 10)) : 10,
+		effectScanlines: advancedAllowed ? !!next.effectScanlines : false,
+		effectStatic: advancedAllowed ? !!next.effectStatic : false,
+		effectCrt: advancedAllowed ? !!next.effectCrt : false,
+		channelInfoX: advancedAllowed ? clampInteger(next.channelInfoX, 0, 100, 0) : 0,
+		channelInfoY: advancedAllowed ? clampInteger(next.channelInfoY, 0, 100, 0) : 0,
+		clipInfoX: advancedAllowed ? clampInteger(next.clipInfoX, 0, 100, 100) : 100,
+		clipInfoY: advancedAllowed ? clampInteger(next.clipInfoY, 0, 100, 100) : 100,
+		timerX: advancedAllowed ? clampInteger(next.timerX, 0, 100, 100) : 100,
+		timerY: advancedAllowed ? clampInteger(next.timerY, 0, 100, 0) : 0,
+		channelScale: advancedAllowed ? clampInteger(next.channelScale, 50, 250, 100) : 100,
+		clipScale: advancedAllowed ? clampInteger(next.clipScale, 50, 250, 100) : 100,
+		timerScale: advancedAllowed ? clampInteger(next.timerScale, 50, 250, 100) : 100,
+	};
+}
 
 async function requireUser(): Promise<AuthenticatedUser | null> {
 	const user = await validateAuth(false);
@@ -461,6 +568,7 @@ export async function getAllOverlayIdsByOwnerServer(ownerId: string) {
 	}
 }
 
+// Server-only helper used by chat command actions.
 export async function getAllOverlaysByOwnerServer(ownerId: string) {
 	try {
 		return await db.select().from(overlaysTable).where(eq(overlaysTable.ownerId, ownerId)).execute();
@@ -725,98 +833,16 @@ export async function saveOverlay(overlayId: string, patch: OverlayPatch) {
 		const owner = ownerRows[0];
 		const ownerWithEntitlements = owner ? { ...owner, entitlements: await resolveUserEntitlements(owner) } : null;
 		const advancedAccess = ownerWithEntitlements ? getFeatureAccess(ownerWithEntitlements, "advanced_filters") : { allowed: false as const };
-		const rewardIdAllowed = advancedAccess.allowed ? (next.rewardId ?? null) : null;
-		const minClipDuration = advancedAccess.allowed ? next.minClipDuration : 0;
-		const maxClipDuration = advancedAccess.allowed ? next.maxClipDuration : 60;
-		const maxDurationMode = advancedAccess.allowed ? next.maxDurationMode : MaxDurationMode.Filter;
-		const minClipViews = advancedAccess.allowed ? next.minClipViews : 0;
-		const blacklistWords = advancedAccess.allowed ? next.blacklistWords : [];
-		const playbackMode = advancedAccess.allowed ? next.playbackMode : PlaybackMode.Random;
-		const preferCurrentCategory = advancedAccess.allowed ? !!next.preferCurrentCategory : false;
-		const clipCreatorsOnly = advancedAccess.allowed
-			? Array.from(new Set((next.clipCreatorsOnly ?? []).map((name) => name.trim().toLowerCase()).filter(Boolean)))
-			: [];
-		const clipCreatorsBlocked = advancedAccess.allowed
-			? Array.from(new Set((next.clipCreatorsBlocked ?? []).map((name) => name.trim().toLowerCase()).filter(Boolean)))
-			: [];
-		const clipPackSize = advancedAccess.allowed ? Math.max(25, Math.min(500, next.clipPackSize ?? 100)) : 100;
-		const playerVolume = advancedAccess.allowed ? Math.max(0, Math.min(100, next.playerVolume ?? 50)) : 50;
-		const showChannelInfo = advancedAccess.allowed ? !!next.showChannelInfo : true;
-		const showClipInfo = advancedAccess.allowed ? !!next.showClipInfo : true;
-		const showTimer = advancedAccess.allowed ? !!next.showTimer : false;
-		const showProgressBar = advancedAccess.allowed ? !!next.showProgressBar : false;
-		const overlayInfoFadeOutSeconds = advancedAccess.allowed ? Math.max(0, Math.min(30, next.overlayInfoFadeOutSeconds ?? 6)) : 6;
-		const themeFontFamily = advancedAccess.allowed ? next.themeFontFamily || "inherit" : "inherit";
-		const themeTextColor = advancedAccess.allowed ? next.themeTextColor || "#FFFFFF" : "#FFFFFF";
-		const themeAccentColor = advancedAccess.allowed ? next.themeAccentColor || "#7C3AED" : "#7C3AED";
-		const themeBackgroundColor = advancedAccess.allowed ? next.themeBackgroundColor || "rgba(10,10,10,0.65)" : "rgba(10,10,10,0.65)";
-		const progressBarStartColor = advancedAccess.allowed ? next.progressBarStartColor || "#26018E" : "#26018E";
-		const progressBarEndColor = advancedAccess.allowed ? next.progressBarEndColor || "#8D42F9" : "#8D42F9";
-		const borderSize = advancedAccess.allowed ? Math.max(0, Math.min(32, next.borderSize ?? 0)) : 0;
-		const borderRadius = advancedAccess.allowed ? Math.max(0, Math.min(48, next.borderRadius ?? 10)) : 10;
-		const effectScanlines = advancedAccess.allowed ? !!next.effectScanlines : false;
-		const effectStatic = advancedAccess.allowed ? !!next.effectStatic : false;
-		const effectCrt = advancedAccess.allowed ? !!next.effectCrt : false;
-		const channelInfoX = advancedAccess.allowed ? Math.round(Math.max(0, Math.min(100, next.channelInfoX ?? 0))) : 0;
-		const channelInfoY = advancedAccess.allowed ? Math.round(Math.max(0, Math.min(100, next.channelInfoY ?? 0))) : 0;
-		const clipInfoX = advancedAccess.allowed ? Math.round(Math.max(0, Math.min(100, next.clipInfoX ?? 100))) : 100;
-		const clipInfoY = advancedAccess.allowed ? Math.round(Math.max(0, Math.min(100, next.clipInfoY ?? 100))) : 100;
-		const timerX = advancedAccess.allowed ? Math.round(Math.max(0, Math.min(100, next.timerX ?? 100))) : 100;
-		const timerY = advancedAccess.allowed ? Math.round(Math.max(0, Math.min(100, next.timerY ?? 0))) : 0;
-		const channelScale = advancedAccess.allowed ? Math.round(Math.max(50, Math.min(250, next.channelScale ?? 100))) : 100;
-		const clipScale = advancedAccess.allowed ? Math.round(Math.max(50, Math.min(250, next.clipScale ?? 100))) : 100;
-		const timerScale = advancedAccess.allowed ? Math.round(Math.max(50, Math.min(250, next.timerScale ?? 100))) : 100;
+		const updatePayload = buildOverlayUpdatePayload(next, advancedAccess.allowed);
 
 		await db
 			.update(overlaysTable)
-			.set({
-				name: next.name,
-				status: next.status,
-				type: next.type,
-				rewardId: rewardIdAllowed,
-				updatedAt: new Date(),
-				minClipDuration,
-				maxClipDuration,
-				maxDurationMode,
-				blacklistWords,
-				minClipViews,
-				playbackMode,
-				preferCurrentCategory,
-				clipCreatorsOnly,
-				clipCreatorsBlocked,
-				clipPackSize,
-				playerVolume,
-				showChannelInfo,
-				showClipInfo,
-				showTimer,
-				showProgressBar,
-				overlayInfoFadeOutSeconds,
-				themeFontFamily,
-				themeTextColor,
-				themeAccentColor,
-				themeBackgroundColor,
-				progressBarStartColor,
-				progressBarEndColor,
-				borderSize,
-				borderRadius,
-				effectScanlines,
-				effectStatic,
-				effectCrt,
-				channelInfoX,
-				channelInfoY,
-				clipInfoX,
-				clipInfoY,
-				timerX,
-				timerY,
-				channelScale,
-				clipScale,
-				timerScale,
-			})
+			.set(updatePayload)
 			.where(eq(overlaysTable.id, overlayId))
 			.execute();
 
-		if (rewardIdAllowed && rewardIdAllowed !== ctx.overlay.rewardId) {
-			subscribeToReward(ctx.overlay.ownerId, rewardIdAllowed);
+		if (updatePayload.rewardId && updatePayload.rewardId !== ctx.overlay.rewardId) {
+			subscribeToReward(ctx.overlay.ownerId, updatePayload.rewardId);
 		}
 
 		return getOverlay(overlayId);

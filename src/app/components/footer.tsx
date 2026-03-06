@@ -141,6 +141,10 @@ export default function Footer() {
 	);
 
 	const finishSubscribe = useCallback(async (includeNames = true) => {
+		if (!token) {
+			setNewsletterState("error");
+			return;
+		}
 		setNewsletterState("loading");
 
 		try {
@@ -300,10 +304,10 @@ export default function Footer() {
 											>
 												Back
 											</Button>
-											<Button variant='flat' onPress={() => finishSubscribe(false)} isDisabled={newsletterState === "loading" || !pendingEmail}>
+											<Button variant='flat' onPress={() => finishSubscribe(false)} isDisabled={newsletterState === "loading" || !pendingEmail || !token}>
 												Skip
 											</Button>
-											<Button color='primary' onPress={() => finishSubscribe(true)} isDisabled={newsletterState === "loading" || !pendingEmail}>
+											<Button color='primary' onPress={() => finishSubscribe(true)} isDisabled={newsletterState === "loading" || !pendingEmail || !token}>
 												Add and subscribe
 											</Button>
 										</div>

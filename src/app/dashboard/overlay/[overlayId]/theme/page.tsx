@@ -101,6 +101,19 @@ function getFontMode(fontFamily: string, fontUrl: string): FontMode {
 	return fontUrl ? "google" : "website";
 }
 
+function sanitizeThemeFontCssUrl(value: string) {
+	const raw = value.trim();
+	if (!raw) return "";
+	try {
+		const parsed = new URL(raw);
+		if (parsed.protocol !== "https:") return "";
+		if (parsed.hostname.toLowerCase() !== "fonts.googleapis.com") return "";
+		return parsed.toString();
+	} catch {
+		return "";
+	}
+}
+
 type HSLA = { h: number; s: number; l: number; a: number };
 
 function normalizeHue(value: number) {
@@ -912,7 +925,8 @@ export default function OverlayStylePage() {
 	}, []);
 
 	const parsedThemeFont = parseThemeFontSetting(overlay?.themeFontFamily);
-	const currentFontMode = getFontMode(parsedThemeFont.fontFamily, parsedThemeFont.fontUrl);
+	const safeThemeFontUrl = useMemo(() => sanitizeThemeFontCssUrl(parsedThemeFont.fontUrl), [parsedThemeFont.fontUrl]);
+	const currentFontMode = getFontMode(parsedThemeFont.fontFamily, safeThemeFontUrl);
 	const googleFontFamily = extractPrimaryFontName(parsedThemeFont.fontFamily) || "Poppins";
 	const selectedComponents = useMemo(() => {
 		const components: string[] = [];
@@ -929,6 +943,18 @@ export default function OverlayStylePage() {
 		if (overlay?.effectCrt) effects.push("crt");
 		return new Set(effects);
 	}, [overlay?.effectScanlines, overlay?.effectStatic, overlay?.effectCrt]);
+
+	useEffect(() => {
+		if (!safeThemeFontUrl) return;
+		if (typeof document === "undefined") return;
+		const id = `theme-font-${btoa(safeThemeFontUrl).replace(/=/g, "")}`;
+		if (document.getElementById(id)) return;
+		const link = document.createElement("link");
+		link.id = id;
+		link.rel = "stylesheet";
+		link.href = safeThemeFontUrl;
+		document.head.appendChild(link);
+	}, [safeThemeFontUrl]);
 
 	if (!overlay || !user) {
 		return (
@@ -992,7 +1018,6 @@ export default function OverlayStylePage() {
 
 	return (
 		<>
-			{parsedThemeFont.fontUrl ? <link rel='stylesheet' href={parsedThemeFont.fontUrl} /> : null}
 			<DashboardNavbar user={user} title='Overlay Style' tagline='Customize look and layout'>
 				<ChatwootData user={user} overlay={overlay} />
 
@@ -1178,7 +1203,7 @@ export default function OverlayStylePage() {
 													}}
 													description='Example: Poppins, Space Grotesk, Roboto Slab'
 												/>
-												<Input type='text' label='Google CSS URL' value={parsedThemeFont.fontUrl} isReadOnly />
+												<Input type='text' label='Google CSS URL' value={safeThemeFontUrl} isReadOnly />
 											</div>
 										)}
 
