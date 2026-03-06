@@ -1,17 +1,38 @@
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-export default function PlayerOverlay({ children, top, bottom, left, right, scale }: { children: React.ReactNode; top?: string; bottom?: string; left?: string; right?: string; scale?: number }) {
+export default function PlayerOverlay({
+	children,
+	top,
+	bottom,
+	left,
+	right,
+	scale,
+	fadeOutSeconds,
+	className,
+	style,
+}: {
+	children: React.ReactNode;
+	top?: string;
+	bottom?: string;
+	left?: string;
+	right?: string;
+	scale?: number;
+	fadeOutSeconds?: number;
+	className?: string;
+	style?: React.CSSProperties;
+}) {
 	const [show, setShow] = useState(false);
 
 	useEffect(() => {
 		const fadeInTimeout = setTimeout(() => setShow(true), 1000);
-		const fadeOutTimeout = setTimeout(() => setShow(false), 6000);
+		const shouldFadeOut = (fadeOutSeconds ?? 6) > 0;
+		const fadeOutTimeout = shouldFadeOut ? setTimeout(() => setShow(false), (fadeOutSeconds ?? 6) * 1000) : null;
 		return () => {
 			clearTimeout(fadeInTimeout);
-			clearTimeout(fadeOutTimeout);
+			if (fadeOutTimeout) clearTimeout(fadeOutTimeout);
 		};
-	}, []);
+	}, [fadeOutSeconds]);
 
 	return (
 		<AnimatePresence>
@@ -21,18 +42,18 @@ export default function PlayerOverlay({ children, top, bottom, left, right, scal
 					animate={{ opacity: 1 }}
 					exit={{ opacity: 0.1 }}
 					transition={{ duration: 0.5 }}
-					className={`absolute text-white bg-zinc-900 p-2
+					className={`absolute text-white
 						${left ? "rounded-r-md" : ""}
 						${right ? "rounded-l-md" : ""}
-						w-fit break-words
-					`}
+					${className ?? ""}`}
 					style={{
 						top,
 						bottom,
-						left: left ? 0 : undefined,
-						right: right ? 0 : undefined,
-						scale: scale ?? 2,
+						left,
+						right,
+						scale: scale ?? 1,
 						transformOrigin: `${left ? "left" : right ? "right" : "center"} ${top ? "top" : bottom ? "bottom" : "center"}`,
+						...style,
 					}}
 				>
 					{children}

@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ClipQueueItem, ModQueueItem, Overlay, TwitchClip, TwitchClipGqlData, TwitchClipGqlResponse, TwitchClipVideoQuality, VideoClip } from "@types";
-import { getAvatar, getDemoClip, getGameDetails, getTwitchClip, sendChatMessage, subscribeToChat } from "@actions/twitch";
+import { getAvatar, getDemoClip, getGameDetails, getTwitchClip, subscribeToChat } from "@actions/twitch";
 import PlayerOverlay from "@components/playerOverlay";
 import { Avatar, Button, Link } from "@heroui/react";
 import { motion } from "framer-motion";
@@ -14,6 +14,7 @@ import { IconPlayerPlayFilled, IconVolume, IconVolumeOff } from "@tabler/icons-r
 type VideoQualityWithNumeric = TwitchClipVideoQuality & { numericQuality: number };
 
 const CACHE_MAX = 200;
+const FONT_URL_DELIMITER = "||url||";
 
 function trimCache(map: Map<string, unknown>) {
 	if (map.size <= CACHE_MAX) return;
@@ -96,6 +97,23 @@ function preloadVideo(url: string) {
 	}
 }
 
+function clamp(value: number, min: number, max: number) {
+	return Math.min(max, Math.max(min, value));
+}
+
+function parseThemeFontSetting(value?: string) {
+	const raw = (value ?? "").trim();
+	if (!raw) return { fontFamily: "inherit", fontUrl: "" };
+	if (raw.includes(FONT_URL_DELIMITER)) {
+		const [family, url] = raw.split(FONT_URL_DELIMITER);
+		return {
+			fontFamily: family?.trim() || "inherit",
+			fontUrl: url?.trim() || "",
+		};
+	}
+	return { fontFamily: raw, fontUrl: "" };
+}
+
 export default function OverlayPlayer({
 	clips,
 	overlay,
@@ -148,12 +166,50 @@ export default function OverlayPlayer({
 	const embedBehaviorEnabled = !!isEmbed && !isDemoPlayer;
 	const [paused, setPaused] = useState<boolean>(embedBehaviorEnabled ? !embedAutoplay : false);
 	const [isMuted, setIsMuted] = useState<boolean>(embedBehaviorEnabled ? !!embedMuted : false);
+	const [runtimeVolume, setRuntimeVolume] = useState<number>(overlay.playerVolume ?? 50);
+	const [ownerAvatar, setOwnerAvatar] = useState<string>("");
 	const [hasUserStarted, setHasUserStarted] = useState<boolean>(!embedBehaviorEnabled || !!embedAutoplay);
 	const [, setWebsocket] = useState<WebSocket | null>(null);
 
 	const videoARef = useRef<HTMLVideoElement | null>(null);
 	const videoBRef = useRef<HTMLVideoElement | null>(null);
 	const clipRef = useRef<VideoClip | null>(null);
+	const [activeDuration, setActiveDuration] = useState(0);
+	const [activeCurrentTime, setActiveCurrentTime] = useState(0);
+
+	const playbackMode = overlay.playbackMode ?? "random";
+	const maxDurationMode = overlay.maxDurationMode ?? "filter";
+	const channelInfoPos = {
+		x: clamp(overlay.channelInfoX ?? 0, 0, 100),
+		y: clamp(overlay.channelInfoY ?? 0, 0, 100),
+	};
+	const channelMirrored = channelInfoPos.x > 50;
+	const channelAnchoredRight = channelInfoPos.x > 50;
+	const channelAnchoredBottom = channelInfoPos.y > 50;
+	const clipInfoPos = {
+		x: clamp(overlay.clipInfoX ?? 100, 0, 100),
+		y: clamp(overlay.clipInfoY ?? 100, 0, 100),
+	};
+	const clipAnchoredRight = clipInfoPos.x > 50;
+	const clipAnchoredBottom = clipInfoPos.y > 50;
+	const overlayScale = isEmbed || isDemoPlayer ? 1 : 2;
+	const overlayFadeOutSeconds = clamp(overlay.overlayInfoFadeOutSeconds ?? 6, 0, 30);
+	const timerPos = {
+		x: clamp(overlay.timerX ?? 88, 0, 100),
+		y: clamp(overlay.timerY ?? 70, 0, 100),
+	};
+	const timerAnchoredRight = timerPos.x > 50;
+	const timerAnchoredBottom = timerPos.y > 50;
+	const { fontFamily: resolvedThemeFontFamily, fontUrl: resolvedThemeFontUrl } = useMemo(() => parseThemeFontSetting(overlay.themeFontFamily), [overlay.themeFontFamily]);
+	const themeStyle = {
+		color: overlay.themeTextColor || "#FFFFFF",
+		backgroundColor: overlay.themeBackgroundColor || "rgba(10,10,10,0.65)",
+		borderColor: overlay.themeAccentColor || "#7C3AED",
+		borderStyle: "solid",
+		borderWidth: `${Math.max(0, overlay.borderSize ?? 0)}px`,
+		borderRadius: `${Math.max(0, overlay.borderRadius ?? 10)}px`,
+		fontFamily: resolvedThemeFontFamily || "inherit",
+	};
 
 	// Demo queue support
 	type DemoQueueItem = { id: string; clip?: TwitchClip };
@@ -430,11 +486,26 @@ export default function OverlayPlayer({
 		}
 
 		if (candidates.length === 0) {
-			return { clip: clips[Math.floor(Math.random() * clips.length)] };
+			candidates = [...clips];
+		}
+
+		if (playbackMode === "top") {
+			const topClip = [...candidates].sort((a, b) => b.view_count - a.view_count || b.created_at.localeCompare(a.created_at))[0];
+			return topClip ? { clip: topClip } : null;
+		}
+
+		if (playbackMode === "hybrid") {
+			const weighted = [...candidates]
+				.map((clip) => ({
+					clip,
+					score: clip.view_count * (0.75 + Math.random() * 0.5),
+				}))
+				.sort((a, b) => b.score - a.score);
+			return weighted[0] ? { clip: weighted[0].clip } : null;
 		}
 
 		return { clip: candidates[Math.floor(Math.random() * candidates.length)] };
-	}, [clips, getFirstQueClip, getFirstFromDemoQueue, isDemoPlayer, overlay.ownerId]);
+	}, [clips, getFirstQueClip, getFirstFromDemoQueue, isDemoPlayer, overlay.ownerId, playbackMode]);
 
 	/**
 	 * The ONLY function that advances the currently playing clip.
@@ -616,6 +687,13 @@ export default function OverlayPlayer({
 				(activeSlot === "a" ? videoARef.current : videoBRef.current)?.play().catch((error) => console.error("Error playing the video:", error));
 				break;
 			}
+
+			case "volume": {
+				const next = Number.parseInt((data || "").trim(), 10);
+				if (!Number.isFinite(next)) break;
+				setRuntimeVolume(clamp(next, 0, 100));
+				break;
+			}
 		}
 	}
 
@@ -624,12 +702,31 @@ export default function OverlayPlayer({
 	}, [videoClip]);
 
 	useEffect(() => {
+		setActiveCurrentTime(0);
+		setActiveDuration(0);
+	}, [videoClip?.id]);
+
+	useEffect(() => {
 		if (!showPlayer) {
 			setShowOverlay(false);
 			return;
 		}
 		if (videoClip) setShowOverlay(true);
 	}, [showPlayer, videoClip?.id]);
+
+	useEffect(() => {
+		let cancelled = false;
+		getAvatar(overlay.ownerId, overlay.ownerId)
+			.then((avatar) => {
+				if (!cancelled) setOwnerAvatar(avatar ?? "");
+			})
+			.catch(() => {
+				if (!cancelled) setOwnerAvatar("");
+			});
+		return () => {
+			cancelled = true;
+		};
+	}, [overlay.ownerId]);
 
 	useEffect(() => {
 		const activeVideo = activeSlot === "a" ? videoARef.current : videoBRef.current;
@@ -664,6 +761,28 @@ export default function OverlayPlayer({
 		if (videoARef.current) videoARef.current.muted = mutedValue;
 		if (videoBRef.current) videoBRef.current.muted = mutedValue;
 	}, [embedBehaviorEnabled, isDemoPlayer, isMuted, videoClip?.id]);
+
+	useEffect(() => {
+		const volume = clamp(runtimeVolume / 100, 0, 1);
+		if (videoARef.current) videoARef.current.volume = volume;
+		if (videoBRef.current) videoBRef.current.volume = volume;
+	}, [runtimeVolume, videoClip?.id]);
+
+	useEffect(() => {
+		setRuntimeVolume(overlay.playerVolume ?? 50);
+	}, [overlay.playerVolume]);
+
+	useEffect(() => {
+		if (!resolvedThemeFontUrl) return;
+		if (typeof document === "undefined") return;
+		const id = `overlay-font-${btoa(resolvedThemeFontUrl).replace(/=/g, "")}`;
+		if (document.getElementById(id)) return;
+		const link = document.createElement("link");
+		link.id = id;
+		link.rel = "stylesheet";
+		link.href = resolvedThemeFontUrl;
+		document.head.appendChild(link);
+	}, [resolvedThemeFontUrl]);
 
 	useEffect(() => {
 		return () => {
@@ -915,6 +1034,24 @@ export default function OverlayPlayer({
 			if (isCrossfading) return;
 			const duration = video.duration;
 			if (!Number.isFinite(duration) || duration <= 0) return;
+			setActiveDuration(duration);
+			setActiveCurrentTime(video.currentTime);
+
+			if (maxDurationMode === "cut" && (overlay.maxClipDuration ?? 0) > 0 && video.currentTime >= overlay.maxClipDuration) {
+				if (!crossfadeLockRef.current) {
+					if (nextClipRef.current) {
+						const inactiveSlot = slot === "a" ? "b" : "a";
+						const incomingReady = inactiveSlot === "a" ? readyARef.current : readyBRef.current;
+						if (incomingReady) {
+							startCrossfade();
+							return;
+						}
+					}
+					advanceClip();
+				}
+				return;
+			}
+
 			const remaining = duration - video.currentTime;
 			// Only engage crossfade/hold logic when a next clip is available.
 			if (!nextClipRef.current) return;
@@ -943,7 +1080,7 @@ export default function OverlayPlayer({
 				}
 			}
 		},
-		[activeSlot, advanceClip, isCrossfading, startCrossfade, CROSSFADE_SECONDS, HOLD_FRAME_SECONDS, HOLD_TIMEOUT_MS]
+		[activeSlot, advanceClip, isCrossfading, maxDurationMode, overlay.maxClipDuration, startCrossfade, CROSSFADE_SECONDS, HOLD_FRAME_SECONDS, HOLD_TIMEOUT_MS]
 	);
 
 	useEffect(() => {
@@ -989,6 +1126,10 @@ export default function OverlayPlayer({
 		const effectiveMuted = !!isDemoPlayer || (embedBehaviorEnabled ? isMuted : false);
 		const showClickToPlay = embedBehaviorEnabled && paused && !hasUserStarted;
 		const canShowOverlay = showPlayer && !!videoClip && (!embedBehaviorEnabled || hasUserStarted);
+		const displayDuration = maxDurationMode === "cut" && (overlay.maxClipDuration ?? 0) > 0 ? Math.min(activeDuration || 0, overlay.maxClipDuration) : activeDuration;
+		const displayCurrentTime = Math.min(activeCurrentTime, Math.max(displayDuration, 0));
+		const remainingSeconds = Math.max(0, Math.ceil(displayDuration - displayCurrentTime));
+		const progress = displayDuration > 0 ? clamp((displayCurrentTime / displayDuration) * 100, 0, 100) : 0;
 		return (
 			<div
 				className='relative w-screen h-screen group'
@@ -1155,6 +1296,10 @@ export default function OverlayPlayer({
 					</>
 				)}
 
+				{overlay.effectScanlines && <div className='pointer-events-none absolute inset-0 z-[5] bg-[repeating-linear-gradient(0deg,rgba(255,255,255,0.03)_0px,rgba(255,255,255,0.03)_1px,transparent_2px,transparent_4px)]' />}
+				{overlay.effectStatic && <div className='pointer-events-none absolute inset-0 z-[5] animate-pulse bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.05),transparent_35%),radial-gradient(circle_at_70%_60%,rgba(255,255,255,0.04),transparent_40%)]' />}
+				{overlay.effectCrt && <div className='pointer-events-none absolute inset-0 z-[6] bg-[radial-gradient(circle_at_center,transparent_52%,rgba(0,0,0,0.38)_100%),linear-gradient(90deg,rgba(255,0,0,0.04),rgba(0,255,255,0.04))] mix-blend-screen' />}
+
 				{embedBehaviorEnabled && (
 					<>
 						<div className='absolute right-4 top-4 z-20 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100'>
@@ -1197,26 +1342,67 @@ export default function OverlayPlayer({
 						</div>
 					) : null
 				) : (
-					<div className='absolute inset-0 z-10 pointer-events-none flex flex-col justify-between text-xs sm:text-sm md:text-base lg:text-lg'>
+					<div className='absolute inset-0 z-10 pointer-events-none flex flex-col justify-between text-xs'>
 						{showOverlay && canShowOverlay && !showClickToPlay && (
 							<>
-								<PlayerOverlay key={`${videoClip.id}-left`} left='2%' top='2%' scale={isEmbed ? 1 : isDemoPlayer ? 1 : undefined}>
-									<div className='flex items-center'>
-										<Avatar size='md' src={videoClip.brodcasterAvatar} />
-										<div className='flex flex-col justify-center ml-2 text-xs'>
-											<span className='font-semibold'>{videoClip.broadcaster_name}</span>
-											<span className='text-xs text-gray-400'>Playing {videoClip.game?.name}</span>
+								{overlay.showChannelInfo && (
+									<PlayerOverlay key={`${videoClip.id}-channel`} left={channelAnchoredRight ? undefined : `${channelInfoPos.x}%`} right={channelAnchoredRight ? `${100 - channelInfoPos.x}%` : undefined} top={channelAnchoredBottom ? undefined : `${channelInfoPos.y}%`} bottom={channelAnchoredBottom ? `${100 - channelInfoPos.y}%` : undefined} scale={overlayScale} fadeOutSeconds={overlayFadeOutSeconds} className='w-fit p-2 shadow-lg backdrop-blur-sm' style={themeStyle}>
+										<div className={`flex items-center ${channelMirrored ? "flex-row-reverse" : ""}`}>
+											<Avatar size='md' src={videoClip.brodcasterAvatar || ownerAvatar} />
+											<div className={`flex flex-col justify-center text-xs ${channelMirrored ? "mr-2 items-end text-right" : "ml-2 items-start text-left"}`}>
+												<span className='font-semibold'>{videoClip.broadcaster_name}</span>
+												<span className='text-xs opacity-80'>Playing {videoClip.game?.name}</span>
+											</div>
 										</div>
-									</div>
-								</PlayerOverlay>
+									</PlayerOverlay>
+								)}
 
-								<PlayerOverlay key={`${videoClip.id}-right`} right='2%' bottom='2%' scale={isEmbed ? 1 : isDemoPlayer ? 1 : undefined}>
-									<div className='flex flex-col items-end text-right'>
-										<span className='font-bold'>{videoClip.title}</span>
-										<span className='text-xs text-gray-400 mt-1'>clipped by {videoClip.creator_name}</span>
-									</div>
-								</PlayerOverlay>
+								{overlay.showClipInfo && (
+									<PlayerOverlay
+										key={`${videoClip.id}-clip`}
+										left={clipAnchoredRight ? undefined : `${clipInfoPos.x}%`}
+										right={clipAnchoredRight ? `${100 - clipInfoPos.x}%` : undefined}
+										top={clipAnchoredBottom ? undefined : `${clipInfoPos.y}%`}
+										bottom={clipAnchoredBottom ? `${100 - clipInfoPos.y}%` : undefined}
+										scale={overlayScale}
+										fadeOutSeconds={overlayFadeOutSeconds}
+										className='w-fit p-2 shadow-lg backdrop-blur-sm max-w-[min(360px,42vw)]'
+										style={themeStyle}
+									>
+										<div className={`flex flex-col break-normal ${clipAnchoredRight ? "items-end text-right" : "items-start text-left"}`}>
+											<span className='font-bold'>{videoClip.title}</span>
+											<span className='text-xs opacity-80 mt-1'>clipped by {videoClip.creator_name}</span>
+										</div>
+									</PlayerOverlay>
+								)}
+
+								{overlay.showTimer && (
+									<PlayerOverlay
+										key={`${videoClip.id}-timer`}
+										left={timerAnchoredRight ? undefined : `${timerPos.x}%`}
+										right={timerAnchoredRight ? `${100 - timerPos.x}%` : undefined}
+										top={timerAnchoredBottom ? undefined : `${timerPos.y}%`}
+										bottom={timerAnchoredBottom ? `${100 - timerPos.y}%` : undefined}
+										scale={overlayScale}
+										fadeOutSeconds={0}
+										className='shadow-lg backdrop-blur-sm !rounded-full !p-0 h-12 w-12 min-h-12 min-w-12 aspect-square flex items-center justify-center text-sm font-bold leading-none tabular-nums'
+										style={{ ...themeStyle, borderRadius: "9999px", padding: 0 }}
+									>
+										<span>{remainingSeconds}</span>
+									</PlayerOverlay>
+								)}
 							</>
+						)}
+						{overlay.showProgressBar && canShowOverlay && !showClickToPlay && (
+							<div className='absolute left-0 right-0 bottom-0 h-2 sm:h-3 overflow-hidden' style={{ backgroundColor: "rgba(0, 0, 0, 0.35)" }}>
+								<div
+									className='h-full transition-[width] duration-150 ease-linear'
+									style={{
+										width: `${progress}%`,
+										background: `linear-gradient(90deg, ${overlay.progressBarStartColor || "#26018E"}, ${overlay.progressBarEndColor || "#8D42F9"})`,
+									}}
+								/>
+							</div>
 						)}
 						{isEmbed && showBanner ? (
 							<div className='absolute left-4 bottom-4 pointer-events-auto'>

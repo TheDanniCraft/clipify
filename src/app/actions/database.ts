@@ -2,7 +2,7 @@
 
 import { tokenTable, usersTable, overlaysTable, queueTable, settingsTable, modQueueTable, editorsTable, twitchCacheTable } from "@/db/schema";
 import { db } from "@/db/client";
-import { AuthenticatedUser, Overlay, TwitchUserResponse, TwitchTokenApiResponse, UserToken, Plan, Role, UserSettings, TwitchCacheType, StatusOptions, OverlayType } from "@types";
+import { AuthenticatedUser, Overlay, TwitchUserResponse, TwitchTokenApiResponse, UserToken, Plan, Role, UserSettings, TwitchCacheType, StatusOptions, OverlayType, PlaybackMode, MaxDurationMode } from "@types";
 import { getUserDetails, getUsersDetailsBulk, refreshAccessToken, subscribeToReward } from "@actions/twitch";
 import { eq, inArray, and, or, isNull, lt, gt, sql } from "drizzle-orm";
 import { validateAuth } from "@actions/auth";
@@ -33,7 +33,48 @@ export async function touchOverlay(overlayId: string, tx = db) {
 		.execute();
 }
 
-type OverlayPatch = Partial<Pick<Overlay, "name" | "status" | "type" | "rewardId" | "minClipDuration" | "maxClipDuration" | "blacklistWords" | "minClipViews">>;
+type OverlayPatch = Partial<
+	Pick<
+		Overlay,
+		| "name"
+		| "status"
+		| "type"
+		| "rewardId"
+		| "minClipDuration"
+		| "maxClipDuration"
+		| "maxDurationMode"
+		| "blacklistWords"
+		| "minClipViews"
+		| "playbackMode"
+		| "preferCurrentCategory"
+		| "clipCreatorsOnly"
+		| "clipCreatorsBlocked"
+		| "clipPackSize"
+		| "playerVolume"
+		| "showChannelInfo"
+		| "showClipInfo"
+		| "showTimer"
+		| "showProgressBar"
+		| "overlayInfoFadeOutSeconds"
+		| "themeFontFamily"
+		| "themeTextColor"
+		| "themeAccentColor"
+		| "themeBackgroundColor"
+		| "progressBarStartColor"
+		| "progressBarEndColor"
+		| "borderSize"
+		| "borderRadius"
+		| "effectScanlines"
+		| "effectStatic"
+		| "effectCrt"
+		| "channelInfoX"
+		| "channelInfoY"
+		| "clipInfoX"
+		| "clipInfoY"
+		| "timerX"
+		| "timerY"
+	>
+>;
 
 async function requireUser(): Promise<AuthenticatedUser | null> {
 	const user = await validateAuth(false);
@@ -417,6 +458,26 @@ export async function getAllOverlayIdsByOwnerServer(ownerId: string) {
 	}
 }
 
+export async function getAllOverlaysByOwnerServer(ownerId: string) {
+	try {
+		return await db.select().from(overlaysTable).where(eq(overlaysTable.ownerId, ownerId)).execute();
+	} catch (error) {
+		console.error("Error fetching overlays:", error);
+		throw new Error("Failed to fetch overlays");
+	}
+}
+
+export async function setPlayerVolumeForOwner(ownerId: string, volume: number) {
+	try {
+		const clampedVolume = Math.max(0, Math.min(100, volume));
+		await db.update(overlaysTable).set({ playerVolume: clampedVolume, updatedAt: new Date() }).where(eq(overlaysTable.ownerId, ownerId)).execute();
+		return clampedVolume;
+	} catch (error) {
+		console.error("Error updating player volume for owner:", error);
+		throw new Error("Failed to update player volume");
+	}
+}
+
 export async function getEditorOverlays(ownerId: string) {
 	try {
 		const user = await requireUser();
@@ -599,7 +660,46 @@ export async function downgradeUserPlan(userId: string) {
 		await db.delete(overlaysTable).where(inArray(overlaysTable.id, overlaysToDeactivate)).execute();
 	}
 
-	await db.update(overlaysTable).set({ rewardId: null, blacklistWords: [], minClipViews: 0, minClipDuration: 0, maxClipDuration: 60 }).where(eq(overlaysTable.id, overlays[0].id)).execute();
+	await db
+		.update(overlaysTable)
+		.set({
+			rewardId: null,
+			blacklistWords: [],
+			minClipViews: 0,
+			minClipDuration: 0,
+			maxClipDuration: 60,
+			maxDurationMode: MaxDurationMode.Filter,
+			playbackMode: PlaybackMode.Random,
+			preferCurrentCategory: false,
+			clipCreatorsOnly: [],
+			clipCreatorsBlocked: [],
+			clipPackSize: 100,
+			playerVolume: 50,
+			showChannelInfo: true,
+			showClipInfo: true,
+			showTimer: false,
+			showProgressBar: false,
+			overlayInfoFadeOutSeconds: 6,
+			themeFontFamily: "inherit",
+			themeTextColor: "#FFFFFF",
+			themeAccentColor: "#7C3AED",
+			themeBackgroundColor: "rgba(10,10,10,0.65)",
+			progressBarStartColor: "#26018E",
+			progressBarEndColor: "#8D42F9",
+			borderSize: 0,
+			borderRadius: 10,
+			effectScanlines: false,
+			effectStatic: false,
+			effectCrt: false,
+			channelInfoX: 0,
+			channelInfoY: 0,
+			clipInfoX: 100,
+			clipInfoY: 100,
+			timerX: 88,
+			timerY: 70,
+		})
+		.where(eq(overlaysTable.id, overlays[0].id))
+		.execute();
 
 	await db.delete(editorsTable).where(eq(editorsTable.userId, userId)).execute();
 
@@ -622,8 +722,41 @@ export async function saveOverlay(overlayId: string, patch: OverlayPatch) {
 		const rewardIdAllowed = advancedAccess.allowed ? (next.rewardId ?? null) : null;
 		const minClipDuration = advancedAccess.allowed ? next.minClipDuration : 0;
 		const maxClipDuration = advancedAccess.allowed ? next.maxClipDuration : 60;
+		const maxDurationMode = advancedAccess.allowed ? next.maxDurationMode : MaxDurationMode.Filter;
 		const minClipViews = advancedAccess.allowed ? next.minClipViews : 0;
 		const blacklistWords = advancedAccess.allowed ? next.blacklistWords : [];
+		const playbackMode = advancedAccess.allowed ? next.playbackMode : PlaybackMode.Random;
+		const preferCurrentCategory = advancedAccess.allowed ? !!next.preferCurrentCategory : false;
+		const clipCreatorsOnly = advancedAccess.allowed
+			? Array.from(new Set((next.clipCreatorsOnly ?? []).map((name) => name.trim().toLowerCase()).filter(Boolean)))
+			: [];
+		const clipCreatorsBlocked = advancedAccess.allowed
+			? Array.from(new Set((next.clipCreatorsBlocked ?? []).map((name) => name.trim().toLowerCase()).filter(Boolean)))
+			: [];
+		const clipPackSize = advancedAccess.allowed ? Math.max(25, Math.min(500, next.clipPackSize ?? 100)) : 100;
+		const playerVolume = advancedAccess.allowed ? Math.max(0, Math.min(100, next.playerVolume ?? 50)) : 50;
+		const showChannelInfo = advancedAccess.allowed ? !!next.showChannelInfo : true;
+		const showClipInfo = advancedAccess.allowed ? !!next.showClipInfo : true;
+		const showTimer = advancedAccess.allowed ? !!next.showTimer : false;
+		const showProgressBar = advancedAccess.allowed ? !!next.showProgressBar : false;
+		const overlayInfoFadeOutSeconds = advancedAccess.allowed ? Math.max(0, Math.min(30, next.overlayInfoFadeOutSeconds ?? 6)) : 6;
+		const themeFontFamily = advancedAccess.allowed ? next.themeFontFamily || "inherit" : "inherit";
+		const themeTextColor = advancedAccess.allowed ? next.themeTextColor || "#FFFFFF" : "#FFFFFF";
+		const themeAccentColor = advancedAccess.allowed ? next.themeAccentColor || "#7C3AED" : "#7C3AED";
+		const themeBackgroundColor = advancedAccess.allowed ? next.themeBackgroundColor || "rgba(10,10,10,0.65)" : "rgba(10,10,10,0.65)";
+		const progressBarStartColor = advancedAccess.allowed ? next.progressBarStartColor || "#26018E" : "#26018E";
+		const progressBarEndColor = advancedAccess.allowed ? next.progressBarEndColor || "#8D42F9" : "#8D42F9";
+		const borderSize = advancedAccess.allowed ? Math.max(0, Math.min(32, next.borderSize ?? 0)) : 0;
+		const borderRadius = advancedAccess.allowed ? Math.max(0, Math.min(48, next.borderRadius ?? 10)) : 10;
+		const effectScanlines = advancedAccess.allowed ? !!next.effectScanlines : false;
+		const effectStatic = advancedAccess.allowed ? !!next.effectStatic : false;
+		const effectCrt = advancedAccess.allowed ? !!next.effectCrt : false;
+		const channelInfoX = advancedAccess.allowed ? Math.max(0, Math.min(100, next.channelInfoX ?? 0)) : 0;
+		const channelInfoY = advancedAccess.allowed ? Math.max(0, Math.min(100, next.channelInfoY ?? 0)) : 0;
+		const clipInfoX = advancedAccess.allowed ? Math.max(0, Math.min(100, next.clipInfoX ?? 100)) : 100;
+		const clipInfoY = advancedAccess.allowed ? Math.max(0, Math.min(100, next.clipInfoY ?? 100)) : 100;
+		const timerX = advancedAccess.allowed ? Math.max(0, Math.min(100, next.timerX ?? 88)) : 88;
+		const timerY = advancedAccess.allowed ? Math.max(0, Math.min(100, next.timerY ?? 70)) : 70;
 
 		await db
 			.update(overlaysTable)
@@ -635,8 +768,37 @@ export async function saveOverlay(overlayId: string, patch: OverlayPatch) {
 				updatedAt: new Date(),
 				minClipDuration,
 				maxClipDuration,
+				maxDurationMode,
 				blacklistWords,
 				minClipViews,
+				playbackMode,
+				preferCurrentCategory,
+				clipCreatorsOnly,
+				clipCreatorsBlocked,
+				clipPackSize,
+				playerVolume,
+				showChannelInfo,
+				showClipInfo,
+				showTimer,
+				showProgressBar,
+				overlayInfoFadeOutSeconds,
+				themeFontFamily,
+				themeTextColor,
+				themeAccentColor,
+				themeBackgroundColor,
+				progressBarStartColor,
+				progressBarEndColor,
+				borderSize,
+				borderRadius,
+				effectScanlines,
+				effectStatic,
+				effectCrt,
+				channelInfoX,
+				channelInfoY,
+				clipInfoX,
+				clipInfoY,
+				timerX,
+				timerY,
 			})
 			.where(eq(overlaysTable.id, overlayId))
 			.execute();

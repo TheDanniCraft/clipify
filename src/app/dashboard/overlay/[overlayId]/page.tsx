@@ -5,8 +5,8 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { getOverlay, getOverlayOwnerPlan, saveOverlay } from "@actions/database";
 import { addToast, Button, Card, CardBody, CardHeader, Divider, Form, Image, Input, Link, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, NumberInput, Select, SelectItem, Slider, Snippet, Spinner, Switch, Tooltip, useDisclosure } from "@heroui/react";
-import { AuthenticatedUser, Overlay, OverlayType, Plan, StatusOptions, TwitchClip, TwitchReward } from "@types";
-import { IconAlertTriangle, IconArrowLeft, IconCrown, IconDeviceFloppy, IconInfoCircle, IconPlayerPauseFilled, IconPlayerPlayFilled } from "@tabler/icons-react";
+import { AuthenticatedUser, MaxDurationMode, Overlay, OverlayType, Plan, PlaybackMode, StatusOptions, TwitchClip, TwitchReward } from "@types";
+import { IconAlertTriangle, IconArrowLeft, IconCrown, IconDeviceFloppy, IconInfoCircle, IconPaint, IconPlayerPauseFilled, IconPlayerPlayFilled } from "@tabler/icons-react";
 import DashboardNavbar from "@components/dashboardNavbar";
 import { useNavigationGuard } from "next-navigation-guard";
 import { validateAuth } from "@actions/auth";
@@ -31,6 +31,17 @@ const overlayTypes: { key: OverlayType; label: string }[] = [
 	{ key: OverlayType.Featured, label: "Featured only" },
 	{ key: OverlayType.All, label: "All Clips" },
 	{ key: OverlayType.Queue, label: "Clip Queue" },
+];
+
+const playbackModes: { key: PlaybackMode; label: string }[] = [
+	{ key: PlaybackMode.Random, label: "Random" },
+	{ key: PlaybackMode.Top, label: "Top (Most Viewed First)" },
+	{ key: PlaybackMode.Hybrid, label: "Hybrid (Top-biased Random)" },
+];
+
+const maxDurationModes: { key: MaxDurationMode; label: string }[] = [
+	{ key: MaxDurationMode.Filter, label: "Filter out long clips" },
+	{ key: MaxDurationMode.Cut, label: "Stop clip at max length" },
 ];
 
 export default function OverlaySettings() {
@@ -89,7 +100,7 @@ export default function OverlaySettings() {
 					if (isNotFound) {
 						try {
 							await saveOverlay(overlayId, { rewardId: null });
-						} catch (saveError) {
+						} catch {
 							addToast({
 								title: "Failed to update reward",
 								description: "The overlay was updated locally, but saving the change failed.",
@@ -127,7 +138,7 @@ export default function OverlaySettings() {
 		}
 		getClipsForType();
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [overlay?.type]);
+	}, [overlay?.type, overlay?.clipPackSize]);
 
 	const ownerHasAdvancedAccess = ownerPlan === Plan.Pro;
 	const inTrial = user ? isReverseTrialActive(user) : false;
@@ -157,6 +168,29 @@ export default function OverlaySettings() {
 		return JSON.stringify(overlay) !== JSON.stringify(baseOverlay);
 	}
 
+	const matchesPreviewFilters = (clip: TwitchClip) => {
+		const overMax = overlay.maxDurationMode === MaxDurationMode.Filter ? clip.duration > overlay.maxClipDuration : false;
+		if (clip.duration < overlay.minClipDuration || overMax) return false;
+		if (isTitleBlocked(clip.title, overlay.blacklistWords)) return false;
+		if (clip.view_count < overlay.minClipViews) return false;
+
+		const creatorName = clip.creator_name.toLowerCase();
+		const creatorId = clip.creator_id.toLowerCase();
+		const allowed = (overlay.clipCreatorsOnly ?? []).map((name) => name.toLowerCase());
+		const blocked = (overlay.clipCreatorsBlocked ?? []).map((name) => name.toLowerCase());
+
+		if (allowed.length > 0 && !allowed.includes(creatorName) && !allowed.includes(creatorId)) {
+			return false;
+		}
+		if (blocked.includes(creatorName) || blocked.includes(creatorId)) {
+			return false;
+		}
+
+		return true;
+	};
+
+	const filteredPreviewClips = previewClips.filter(matchesPreviewFilters);
+
 	async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();
 		addToast({
@@ -172,8 +206,31 @@ export default function OverlaySettings() {
 			rewardId: overlay.rewardId,
 			minClipDuration: overlay.minClipDuration,
 			maxClipDuration: overlay.maxClipDuration,
+			maxDurationMode: overlay.maxDurationMode,
 			blacklistWords: overlay.blacklistWords,
 			minClipViews: overlay.minClipViews,
+			playbackMode: overlay.playbackMode,
+			preferCurrentCategory: overlay.preferCurrentCategory,
+			clipCreatorsOnly: overlay.clipCreatorsOnly,
+			clipCreatorsBlocked: overlay.clipCreatorsBlocked,
+			clipPackSize: overlay.clipPackSize,
+			playerVolume: overlay.playerVolume,
+			showChannelInfo: overlay.showChannelInfo,
+			showClipInfo: overlay.showClipInfo,
+			showTimer: overlay.showTimer,
+			showProgressBar: overlay.showProgressBar,
+			themeFontFamily: overlay.themeFontFamily,
+			themeTextColor: overlay.themeTextColor,
+			themeAccentColor: overlay.themeAccentColor,
+			themeBackgroundColor: overlay.themeBackgroundColor,
+			borderSize: overlay.borderSize,
+			borderRadius: overlay.borderRadius,
+			effectScanlines: overlay.effectScanlines,
+			effectStatic: overlay.effectStatic,
+			channelInfoX: overlay.channelInfoX,
+			channelInfoY: overlay.channelInfoY,
+			clipInfoX: overlay.clipInfoX,
+			clipInfoY: overlay.clipInfoY,
 		});
 		setBaseOverlay(overlay);
 		addToast({
@@ -268,13 +325,7 @@ export default function OverlaySettings() {
 											))}
 										</Select>
 										<Button isIconOnly onPress={onCliplistOpen} size='lg' className='ml-2'>
-											<span>
-												{
-													previewClips.filter((clip) => {
-														return clip.duration >= overlay.minClipDuration && clip.duration <= overlay.maxClipDuration && !isTitleBlocked(clip.title, overlay.blacklistWords) && clip.view_count >= overlay.minClipViews;
-													}).length
-												}
-											</span>
+											<span>{filteredPreviewClips.length}</span>
 										</Button>
 									</div>
 
@@ -295,6 +346,7 @@ export default function OverlaySettings() {
 														<li>Link custom Twitch rewards</li>
 														<li>Control your overlay via chat</li>
 														<li>Advanced clip filtering</li>
+														<li>Theme studio with drag & drop layout</li>
 														<li>Priority support</li>
 													</ul>
 													<Button
@@ -349,7 +401,6 @@ export default function OverlaySettings() {
 											<Input
 												isClearable
 												onChange={(event) => {
-													// Dont allow manual input, but let them clear it (isReadOnly would disable clearing)
 													event.preventDefault();
 												}}
 												onClear={() => {
@@ -371,6 +422,28 @@ export default function OverlaySettings() {
 												<IconInfoCircle className='text-default-400' />
 											</Tooltip>
 										</div>
+
+										<Select selectedKeys={[overlay.playbackMode]} onSelectionChange={(value) => setOverlay({ ...overlay, playbackMode: value.currentKey as PlaybackMode })} label='Playback Mode' className='p-2'>
+											{playbackModes.map((mode) => (
+												<SelectItem key={mode.key}>{mode.label}</SelectItem>
+											))}
+										</Select>
+										<Switch className='p-2' isSelected={overlay.preferCurrentCategory} onValueChange={(value) => setOverlay({ ...overlay, preferCurrentCategory: value })}>
+											Prefer clips from current stream category
+										</Switch>
+										<NumberInput
+											size='sm'
+											minValue={25}
+											maxValue={500}
+											step={25}
+											defaultValue={overlay.clipPackSize}
+											value={overlay.clipPackSize}
+											onValueChange={(value) => setOverlay({ ...overlay, clipPackSize: Number(value) })}
+											label='Clip Pack Size'
+											description='How many clips are loaded in one batch for randomization and playback.'
+											className='p-2'
+										/>
+
 										<Slider
 											minValue={0}
 											maxValue={60}
@@ -393,8 +466,21 @@ export default function OverlaySettings() {
 											className='p-2'
 											size='sm'
 										/>
+										<Select selectedKeys={[overlay.maxDurationMode]} onSelectionChange={(value) => setOverlay({ ...overlay, maxDurationMode: value.currentKey as MaxDurationMode })} label='Max Duration Behavior' className='p-2'>
+											{maxDurationModes.map((mode) => (
+												<SelectItem key={mode.key}>{mode.label}</SelectItem>
+											))}
+										</Select>
 										<NumberInput size='sm' minValue={0} defaultValue={overlay.minClipViews} value={overlay.minClipViews} onValueChange={(value) => setOverlay({ ...overlay, minClipViews: Number(value) })} label='Minimum Clip Views' description='Only clips with at least this many views will be shown in the overlay.' className='p-2' />
-										<TagsInput className='p-2' fullWidth label='Blacklisted Words' value={overlay.blacklistWords} onValueChange={(value) => setOverlay({ ...overlay, blacklistWords: value })} description='Hide clips containing certain words in their titles. Supports RE2 regex (no lookarounds). Example: ^hello$' />
+										<TagsInput className='p-2' fullWidth label='Only These Clip Creators' value={overlay.clipCreatorsOnly} onValueChange={(value) => setOverlay({ ...overlay, clipCreatorsOnly: value })} description='Allow only specific clip creators (Twitch usernames).' />
+										<TagsInput className='p-2' fullWidth label='Blocked Clip Creators' value={overlay.clipCreatorsBlocked} onValueChange={(value) => setOverlay({ ...overlay, clipCreatorsBlocked: value })} description='Exclude specific clip creators from playback.' />
+										<TagsInput className='p-2' fullWidth label='Blacklisted Words' value={overlay.blacklistWords} onValueChange={(value) => setOverlay({ ...overlay, blacklistWords: value })} description='Hide clips containing certain words in titles. Supports RE2 regex (no lookarounds).' />
+										<Divider className='my-2' />
+										<div className='px-2 pb-2'>
+											<Button color='primary' variant='solid' fullWidth startContent={<IconPaint size={16} />} onPress={() => router.push(`/dashboard/overlay/${overlay.id}/theme`)}>
+												Customize Overlay Style
+											</Button>
+										</div>
 									</div>
 								</Form>
 							</div>
@@ -407,11 +493,7 @@ export default function OverlaySettings() {
 						<ModalHeader>Preview Clips</ModalHeader>
 						<ModalBody className='flex-1 overflow-y-auto'>
 							<ul className='space-y-2'>
-								{previewClips
-									.filter((clip) => {
-										return clip.duration >= overlay.minClipDuration && clip.duration <= overlay.maxClipDuration && !isTitleBlocked(clip.title, overlay.blacklistWords) && clip.view_count >= overlay.minClipViews;
-									})
-									.map((clip) => (
+								{filteredPreviewClips.map((clip) => (
 										<li key={clip.id} className='flex gap-3 items-center rounded-md p-2 hover:bg-white/5 transition'>
 											<a href={clip.url} target='_blank' rel='noopener noreferrer' className='flex items-center gap-3 w-full'>
 												{/* Thumbnail */}

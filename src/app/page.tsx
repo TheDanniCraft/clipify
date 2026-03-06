@@ -149,10 +149,11 @@ export default function Home() {
 					<div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16'>
 						<FeatureCard title='Easy to Use' description='Intuitive interface designed for effortless setup and management.' icon={IconThumbUp} />
 						<FeatureCard title='Plug & Play' description="It's as easy as adding a browser source to your streaming software." icon={IconPlugConnected} />
-						<FeatureCard title='Customize your player' description='Choose to play clips from today, all-time, or just your featured clips.' icon={IconAdjustments} />
+						<FeatureCard title='Smart Playback Modes' description='Switch between Random, Top, and Hybrid playback, plus advanced creator and category filters with Pro.' icon={IconAdjustments} />
 						<FeatureCard title='Keeps Your Stream Entertained' description="Auto-play clips to keep your audience engaged even when you're away." icon={IconMoodSmile} />
 						<FeatureCard title='Multiple Overlays' description='Create as many overlays as you like, use them for AFK screens, at the starting or end screens of your stream, or anywhere you want.' icon={IconLayersDifference} />
-						<FeatureCard title='Channel Points Integration' description='Let viewers play their favourite clips using Twitch channel points.' icon={IconCoin} />
+						<FeatureCard title='Theme Studio (Pro)' description='Build your own overlay look with drag-and-drop info cards, custom colors/fonts, effects, timer, and progress bar.' icon={IconCoin} />
+						<FeatureCard title='Channel Points Integration' description='Let viewers trigger clip playback with Twitch channel points and keep chat engaged during breaks.' icon={IconCoin} />
 					</div>
 				</div>
 			</div>

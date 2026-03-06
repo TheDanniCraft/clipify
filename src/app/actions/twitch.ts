@@ -362,6 +362,27 @@ export async function getTwitchClip(clipId: string, creatorId: string): Promise<
 	}
 }
 
+async function getCurrentCategoryGameId(ownerId: string, accessToken: string): Promise<string | null> {
+	const url = "https://api.twitch.tv/helix/streams";
+	try {
+		const response = await axios.get<TwitchApiResponse<{ game_id: string }>>(url, {
+			headers: {
+				Authorization: `Bearer ${accessToken}`,
+				"Client-Id": process.env.TWITCH_CLIENT_ID || "",
+			},
+			params: {
+				user_id: ownerId,
+				first: 1,
+			},
+		});
+
+		return response.data.data[0]?.game_id || null;
+	} catch (error) {
+		logTwitchError("Error fetching current category", error);
+		return null;
+	}
+}
+
 export async function getTwitchClips(overlay: Overlay, type?: OverlayType, skipFilter?: boolean): Promise<TwitchClip[]> {
 	const url = "https://api.twitch.tv/helix/clips";
 	const token = await getAccessToken(overlay.ownerId);
@@ -374,6 +395,8 @@ export async function getTwitchClips(overlay: Overlay, type?: OverlayType, skipF
 	let clips: TwitchClip[] = [];
 	let cursor: string | undefined;
 	let fetchCount = 0;
+	const requestedPackSize = Math.max(25, Math.min(500, overlay.clipPackSize ?? 100));
+	const maxPages = Math.max(1, Math.min(15, Math.ceil(requestedPackSize / 100)));
 
 	if (overlay.type === "Queue") {
 		return clips;
@@ -413,12 +436,25 @@ export async function getTwitchClips(overlay: Overlay, type?: OverlayType, skipF
 			break;
 		}
 		fetchCount++;
-	} while (cursor && fetchCount < 15);
+	} while (cursor && fetchCount < maxPages);
 
 	if (!skipFilter) {
+		if (overlay.preferCurrentCategory) {
+			const currentGameId = await getCurrentCategoryGameId(overlay.ownerId, token.accessToken);
+			if (currentGameId) {
+				const sameCategoryClips = clips.filter((clip) => clip.game_id === currentGameId);
+				if (sameCategoryClips.length > 0) {
+					clips = sameCategoryClips;
+				}
+			}
+		}
+
 		// Filter for duration
 		clips = clips.filter((clip) => {
 			const clipDuration = clip.duration;
+			if (overlay.maxDurationMode === "cut") {
+				return clipDuration >= overlay.minClipDuration;
+			}
 			return clipDuration >= overlay.minClipDuration && clipDuration <= overlay.maxClipDuration;
 		});
 
@@ -427,11 +463,36 @@ export async function getTwitchClips(overlay: Overlay, type?: OverlayType, skipF
 			return !isTitleBlocked(clip.title, overlay.blacklistWords);
 		});
 
+		// Filter for selected clip creators
+		const allowedCreators = (overlay.clipCreatorsOnly ?? []).map((name) => name.toLowerCase());
+		if (allowedCreators.length > 0) {
+			clips = clips.filter((clip) => allowedCreators.includes(clip.creator_name.toLowerCase()) || allowedCreators.includes(clip.creator_id.toLowerCase()));
+		}
+
+		const blockedCreators = (overlay.clipCreatorsBlocked ?? []).map((name) => name.toLowerCase());
+		if (blockedCreators.length > 0) {
+			clips = clips.filter((clip) => !blockedCreators.includes(clip.creator_name.toLowerCase()) && !blockedCreators.includes(clip.creator_id.toLowerCase()));
+		}
+
 		// Filter for minimum views
 		clips = clips.filter((clip) => {
 			return clip.view_count >= overlay.minClipViews;
 		});
+
+		if (overlay.playbackMode === "top") {
+			clips.sort((a, b) => b.view_count - a.view_count || b.created_at.localeCompare(a.created_at));
+		} else if (overlay.playbackMode === "hybrid") {
+			clips = clips
+				.map((clip) => ({
+					clip,
+					score: clip.view_count * (0.7 + Math.random() * 0.6),
+				}))
+				.sort((a, b) => b.score - a.score)
+				.map((entry) => entry.clip);
+		}
 	}
+
+	clips = clips.slice(0, requestedPackSize);
 
 	return clips;
 }
