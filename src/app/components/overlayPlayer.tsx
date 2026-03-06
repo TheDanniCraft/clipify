@@ -193,10 +193,14 @@ export default function OverlayPlayer({
 	const clipAnchoredRight = clipInfoPos.x > 50;
 	const clipAnchoredBottom = clipInfoPos.y > 50;
 	const overlayScale = isEmbed || isDemoPlayer ? 1 : 2;
+	const progressBarHeight = Math.max(8, Math.round(10 * overlayScale));
+	const channelScale = clamp((overlay.channelScale ?? 100) / 100, 0.5, 2.5);
+	const clipScale = clamp((overlay.clipScale ?? 100) / 100, 0.5, 2.5);
+	const timerScale = clamp((overlay.timerScale ?? 100) / 100, 0.5, 2.5);
 	const overlayFadeOutSeconds = clamp(overlay.overlayInfoFadeOutSeconds ?? 6, 0, 30);
 	const timerPos = {
-		x: clamp(overlay.timerX ?? 88, 0, 100),
-		y: clamp(overlay.timerY ?? 70, 0, 100),
+		x: clamp(overlay.timerX ?? 100, 0, 100),
+		y: clamp(overlay.timerY ?? 0, 0, 100),
 	};
 	const timerAnchoredRight = timerPos.x > 50;
 	const timerAnchoredBottom = timerPos.y > 50;
@@ -1346,7 +1350,7 @@ export default function OverlayPlayer({
 						{showOverlay && canShowOverlay && !showClickToPlay && (
 							<>
 								{overlay.showChannelInfo && (
-									<PlayerOverlay key={`${videoClip.id}-channel`} left={channelAnchoredRight ? undefined : `${channelInfoPos.x}%`} right={channelAnchoredRight ? `${100 - channelInfoPos.x}%` : undefined} top={channelAnchoredBottom ? undefined : `${channelInfoPos.y}%`} bottom={channelAnchoredBottom ? `${100 - channelInfoPos.y}%` : undefined} scale={overlayScale} fadeOutSeconds={overlayFadeOutSeconds} className='w-fit p-2 shadow-lg backdrop-blur-sm' style={themeStyle}>
+									<PlayerOverlay key={`${videoClip.id}-channel`} left={channelAnchoredRight ? undefined : `${channelInfoPos.x}%`} right={channelAnchoredRight ? `${100 - channelInfoPos.x}%` : undefined} top={channelAnchoredBottom ? undefined : `${channelInfoPos.y}%`} bottom={channelAnchoredBottom ? `${100 - channelInfoPos.y}%` : undefined} scale={overlayScale * channelScale} fadeOutSeconds={overlayFadeOutSeconds} className='w-fit p-2 shadow-lg backdrop-blur-sm' style={themeStyle}>
 										<div className={`flex items-center ${channelMirrored ? "flex-row-reverse" : ""}`}>
 											<Avatar size='md' src={videoClip.brodcasterAvatar || ownerAvatar} />
 											<div className={`flex flex-col justify-center text-xs ${channelMirrored ? "mr-2 items-end text-right" : "ml-2 items-start text-left"}`}>
@@ -1364,7 +1368,7 @@ export default function OverlayPlayer({
 										right={clipAnchoredRight ? `${100 - clipInfoPos.x}%` : undefined}
 										top={clipAnchoredBottom ? undefined : `${clipInfoPos.y}%`}
 										bottom={clipAnchoredBottom ? `${100 - clipInfoPos.y}%` : undefined}
-										scale={overlayScale}
+										scale={overlayScale * clipScale}
 										fadeOutSeconds={overlayFadeOutSeconds}
 										className='w-fit p-2 shadow-lg backdrop-blur-sm max-w-[min(360px,42vw)]'
 										style={themeStyle}
@@ -1383,7 +1387,7 @@ export default function OverlayPlayer({
 										right={timerAnchoredRight ? `${100 - timerPos.x}%` : undefined}
 										top={timerAnchoredBottom ? undefined : `${timerPos.y}%`}
 										bottom={timerAnchoredBottom ? `${100 - timerPos.y}%` : undefined}
-										scale={overlayScale}
+										scale={overlayScale * timerScale}
 										fadeOutSeconds={0}
 										className='shadow-lg backdrop-blur-sm !rounded-full !p-0 h-12 w-12 min-h-12 min-w-12 aspect-square flex items-center justify-center text-sm font-bold leading-none tabular-nums'
 										style={{ ...themeStyle, borderRadius: "9999px", padding: 0 }}
@@ -1394,7 +1398,7 @@ export default function OverlayPlayer({
 							</>
 						)}
 						{overlay.showProgressBar && canShowOverlay && !showClickToPlay && (
-							<div className='absolute left-0 right-0 bottom-0 h-2 sm:h-3 overflow-hidden' style={{ backgroundColor: "rgba(0, 0, 0, 0.35)" }}>
+							<div className='absolute left-0 right-0 bottom-0 overflow-hidden' style={{ backgroundColor: "rgba(0, 0, 0, 0.35)", height: `${progressBarHeight}px` }}>
 								<div
 									className='h-full transition-[width] duration-150 ease-linear'
 									style={{

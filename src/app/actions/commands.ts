@@ -364,6 +364,14 @@ const commands: Record<string, { description: string; usage: string; execute: (m
 		},
 	},
 
+	vboluem: {
+		description: "Alias for volume",
+		usage: "vboluem <[0-100]>",
+		execute: async (message: TwitchMessage, prefix: string) => {
+			await commands.volume.execute(message, prefix);
+		},
+	},
+
 	help: {
 		description: "Show help information",
 		usage: "help",

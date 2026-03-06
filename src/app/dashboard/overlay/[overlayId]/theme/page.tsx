@@ -7,7 +7,7 @@ import DashboardNavbar from "@components/dashboardNavbar";
 import UpgradeModal from "@components/upgradeModal";
 import { getTrialDaysLeft, isReverseTrialActive } from "@lib/featureAccess";
 import { AuthenticatedUser, Overlay, Plan } from "@types";
-import { addToast, Avatar, Button, Card, CardBody, CardHeader, Divider, Input, NumberInput, Popover, PopoverContent, PopoverTrigger, Select, SelectItem, Slider, Spinner, Tab, Tabs, useDisclosure } from "@heroui/react";
+import { addToast, Avatar, Button, Card, CardBody, CardHeader, Divider, Input, Popover, PopoverContent, PopoverTrigger, Select, SelectItem, Slider, Spinner, Tab, Tabs, useDisclosure } from "@heroui/react";
 import { IconArrowLeft, IconCrown, IconDeviceFloppy, IconPalette } from "@tabler/icons-react";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -21,7 +21,6 @@ const systemFontOptions = [
 ];
 type FontMode = "website" | "system" | "google";
 type DragBlockedReason = "touch" | "narrow";
-const OBS_OVERLAY_SCALE = 2;
 const THEME_DEFAULTS = {
 	overlayInfoFadeOutSeconds: 6,
 	showChannelInfo: true,
@@ -43,11 +42,17 @@ const THEME_DEFAULTS = {
 	channelInfoY: 0,
 	clipInfoX: 100,
 	clipInfoY: 100,
-	timerX: 88,
-	timerY: 70,
+	timerX: 100,
+	timerY: 0,
+	channelScale: 100,
+	clipScale: 100,
+	timerScale: 100,
 } as const;
 
 type DragTarget = "channel" | "clip" | "timer";
+type ResizeHandle = "tl" | "tr" | "bl" | "br";
+type HorizontalAnchor = "left" | "right";
+type VerticalAnchor = "top" | "bottom";
 
 function clamp(value: number, min: number, max: number) {
 	return Math.min(max, Math.max(min, value));
@@ -117,10 +122,6 @@ function hslaToCss(value: HSLA, allowAlpha: boolean) {
 	const rgb = hslToRgb(h, s, l);
 	if (allowAlpha && a < 1) return `hsla(${h}, ${s}%, ${l}%, ${a.toFixed(2)})`;
 	return `#${componentToHex(rgb.r)}${componentToHex(rgb.g)}${componentToHex(rgb.b)}`;
-}
-
-function rgbToHex(r: number, g: number, b: number) {
-	return `#${componentToHex(r)}${componentToHex(g)}${componentToHex(b)}`;
 }
 
 function parseHexColor(raw: string) {
@@ -276,17 +277,11 @@ function ThemeColorInput({ label, value, onChange, defaultValue, allowAlpha }: {
 	const parsed = useMemo(() => parseColorToHsla(value) ?? parsedDefault, [parsedDefault, value]);
 	const hsv = useMemo(() => hslToHsv(parsed.h, parsed.s, parsed.l), [parsed.h, parsed.l, parsed.s]);
 	const rgb = useMemo(() => hslToRgb(parsed.h, parsed.s, parsed.l), [parsed.h, parsed.l, parsed.s]);
-	const hexValue = useMemo(() => rgbToHex(rgb.r, rgb.g, rgb.b).toUpperCase(), [rgb.b, rgb.g, rgb.r]);
 	const preview = hslaToCss(parsed, true);
-	const [hexDraft, setHexDraft] = useState(hexValue);
 	const svMarkerLeft = clamp(hsv.s, 2, 98);
 	const svMarkerTop = clamp(100 - hsv.v, 2, 98);
 	const hueMarkerLeft = clamp((hsv.h / 360) * 100, 1, 99);
 	const alphaMarkerLeft = clamp(parsed.a * 100, 1, 99);
-
-	useEffect(() => {
-		setHexDraft(hexValue);
-	}, [hexValue]);
 
 	const updateFromHsv = (patch: Partial<{ h: number; s: number; v: number; a: number }>) => {
 		const nextHsv = {
@@ -348,17 +343,6 @@ function ThemeColorInput({ label, value, onChange, defaultValue, allowAlpha }: {
 		updateFromHsv({ a });
 	};
 
-	const commitHexDraft = () => {
-		const normalized = hexDraft.trim().startsWith("#") ? hexDraft.trim() : `#${hexDraft.trim()}`;
-		const parsedHex = parseHexColor(normalized);
-		if (!parsedHex) {
-			setHexDraft(hexValue);
-			return;
-		}
-		const nextHsl = rgbToHsl(parsedHex.r, parsedHex.g, parsedHex.b, parsed.a);
-		onChange(hslaToCss({ h: nextHsl.h, s: nextHsl.s, l: nextHsl.l, a: parsed.a }, !!allowAlpha));
-	};
-
 	return (
 		<Input
 			type='text'
@@ -398,28 +382,18 @@ function ThemeColorInput({ label, value, onChange, defaultValue, allowAlpha }: {
 								<div className='absolute top-1/2 h-4 w-2 rounded-full border border-white bg-zinc-900 -translate-y-1/2 -translate-x-1/2 pointer-events-none' style={{ left: `${hueMarkerLeft}%` }} />
 							</div>
 							{allowAlpha ? (
-								<div ref={alphaRef} className='relative h-3 rounded-full border border-default-200 overflow-hidden cursor-pointer' onPointerDown={(event) => startPointerDrag(event, (x) => updateAlphaFromPointer(x))}>
-									<div className='absolute inset-0 bg-[linear-gradient(45deg,#d4d4d8_25%,transparent_25%,transparent_50%,#d4d4d8_50%,#d4d4d8_75%,transparent_75%,transparent)] bg-[length:10px_10px]' />
-									<div className='absolute inset-0' style={{ background: `linear-gradient(90deg, rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0), rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 1))` }} />
-									<div className='absolute top-1/2 h-4 w-2 rounded-full border border-white bg-zinc-900 -translate-y-1/2 -translate-x-1/2 pointer-events-none' style={{ left: `${alphaMarkerLeft}%` }} />
+								<div className='rounded-xl border border-default-200 bg-content2/70 p-2'>
+									<div className='flex items-center justify-between text-[11px] text-default-500 mb-2'>
+										<span>Opacity</span>
+										<span>{Math.round(parsed.a * 100)}%</span>
+									</div>
+									<div ref={alphaRef} className='relative h-5 rounded-lg border border-default-300 overflow-hidden cursor-pointer' onPointerDown={(event) => startPointerDrag(event, (x) => updateAlphaFromPointer(x))}>
+										<div className='absolute inset-0 bg-[linear-gradient(45deg,#d4d4d8_25%,transparent_25%,transparent_50%,#d4d4d8_50%,#d4d4d8_75%,transparent_75%,transparent)] bg-[length:10px_10px]' />
+										<div className='absolute inset-0' style={{ background: `linear-gradient(90deg, rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0), rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 1))` }} />
+										<div className='absolute top-1/2 h-4 w-4 rounded-full border-2 border-white bg-zinc-900/90 -translate-y-1/2 -translate-x-1/2 pointer-events-none' style={{ left: `${alphaMarkerLeft}%`, boxShadow: "0 0 0 1px rgba(0,0,0,0.5)" }} />
+									</div>
 								</div>
 							) : null}
-							<div className='grid grid-cols-[56px_minmax(0,1fr)_72px] gap-2'>
-								<div className='h-8 rounded-lg border border-default-200 bg-content2 flex items-center justify-center text-xs'>Hex</div>
-								<Input
-									size='sm'
-									value={hexDraft}
-									onValueChange={setHexDraft}
-									onBlur={commitHexDraft}
-									onKeyDown={(event) => {
-										if (event.key === "Enter") {
-											event.preventDefault();
-											commitHexDraft();
-										}
-									}}
-								/>
-								<Input size='sm' value={`${Math.round(parsed.a * 100)}%`} isReadOnly />
-							</div>
 							<Button size='sm' variant='light' onPress={() => onChange(defaultValue)}>
 								Reset to default
 							</Button>
@@ -431,13 +405,31 @@ function ThemeColorInput({ label, value, onChange, defaultValue, allowAlpha }: {
 	);
 }
 
-function OverlayStylePreview({ overlay, canDrag, onMove, streamerAvatar, dragBlockedReason }: { overlay: Overlay; canDrag: boolean; onMove: (target: DragTarget, x: number, y: number) => void; streamerAvatar?: string; dragBlockedReason: DragBlockedReason | null }) {
+function OverlayStylePreview({
+	overlay,
+	canDrag,
+	onMove,
+	onScaleChange,
+	streamerAvatar,
+	dragBlockedReason,
+}: {
+	overlay: Overlay;
+	canDrag: boolean;
+	onMove: (target: DragTarget, x: number, y: number) => void;
+	onScaleChange: (target: DragTarget, scale: number) => void;
+	streamerAvatar?: string;
+	dragBlockedReason: DragBlockedReason | null;
+}) {
 	const containerRef = useRef<HTMLDivElement | null>(null);
 	const channelRef = useRef<HTMLDivElement | null>(null);
 	const clipRef = useRef<HTMLDivElement | null>(null);
 	const timerRef = useRef<HTMLDivElement | null>(null);
-	const [drag, setDrag] = useState<{ target: DragTarget; offsetX: number; offsetY: number } | null>(null);
-	const runtimeOverlayScale = OBS_OVERLAY_SCALE;
+	const [drag, setDrag] = useState<{ target: DragTarget; offsetX: number; offsetY: number; width: number; height: number; anchorX: HorizontalAnchor; anchorY: VerticalAnchor } | null>(null);
+	const [resize, setResize] = useState<{ target: DragTarget; handle: ResizeHandle; startScale: number; startWidth: number; startHeight: number; fixedX: number; fixedY: number } | null>(null);
+	const [selectedTarget, setSelectedTarget] = useState<DragTarget | null>(null);
+	const channelScaleFactor = clamp((overlay.channelScale ?? 100) / 100, 0.5, 2.5);
+	const clipScaleFactor = clamp((overlay.clipScale ?? 100) / 100, 0.5, 2.5);
+	const timerScaleFactor = clamp((overlay.timerScale ?? 100) / 100, 0.5, 2.5);
 	const { fontFamily: resolvedThemeFontFamily } = useMemo(() => parseThemeFontSetting(overlay.themeFontFamily), [overlay.themeFontFamily]);
 
 	const themeStyle = useMemo(
@@ -454,44 +446,42 @@ function OverlayStylePreview({ overlay, canDrag, onMove, streamerAvatar, dragBlo
 	);
 	const timerPos = useMemo(
 		() => ({
-			x: clamp(overlay.timerX ?? 88, 0, 100),
-			y: clamp(overlay.timerY ?? 70, 0, 100),
+			x: clamp(overlay.timerX ?? 100, 0, 100),
+			y: clamp(overlay.timerY ?? 0, 0, 100),
 		}),
 		[overlay.timerX, overlay.timerY],
 	);
+	const channelAnchoredRight = drag?.target === "channel" ? drag.anchorX === "right" : overlay.channelInfoX > 50;
+	const channelAnchoredBottom = drag?.target === "channel" ? drag.anchorY === "bottom" : overlay.channelInfoY > 50;
+	const clipAnchoredRight = drag?.target === "clip" ? drag.anchorX === "right" : overlay.clipInfoX > 50;
+	const clipAnchoredBottom = drag?.target === "clip" ? drag.anchorY === "bottom" : overlay.clipInfoY > 50;
+	const timerAnchoredRight = drag?.target === "timer" ? drag.anchorX === "right" : timerPos.x > 50;
+	const timerAnchoredBottom = drag?.target === "timer" ? drag.anchorY === "bottom" : timerPos.y > 50;
+	const previewProgressBarHeight = 10;
 
 	useEffect(() => {
-		if (!drag || !canDrag) return;
+		if (!drag || !canDrag || resize) return;
 
 		const onPointerMove = (event: PointerEvent) => {
 			const container = containerRef.current;
 			if (!container) return;
 			const rect = container.getBoundingClientRect();
-			const targetRef = drag.target === "channel" ? channelRef.current : drag.target === "clip" ? clipRef.current : timerRef.current;
-			const scale = runtimeOverlayScale;
-			const targetWidth = (targetRef?.offsetWidth ?? 0) * scale;
-			const targetHeight = (targetRef?.offsetHeight ?? 0) * scale;
+			const targetWidth = drag.width;
+			const targetHeight = drag.height;
+			if (targetWidth <= 0 || targetHeight <= 0) return;
 
-			const leftPx = event.clientX - rect.left - drag.offsetX;
-			const topPx = event.clientY - rect.top - drag.offsetY;
-			const centerXPx = leftPx + targetWidth / 2;
-			const shouldAnchorRight = centerXPx > rect.width / 2;
+			const leftPx = clamp(event.clientX - rect.left - drag.offsetX, 0, Math.max(0, rect.width - targetWidth));
+			const topPx = clamp(event.clientY - rect.top - drag.offsetY, 0, Math.max(0, rect.height - targetHeight));
 			const rawLeftX = (leftPx / rect.width) * 100;
 			const rawRightX = ((leftPx + targetWidth) / rect.width) * 100;
-			const centerYPx = topPx + targetHeight / 2;
-			const shouldAnchorBottom = centerYPx > rect.height / 2;
 			const rawTopY = (topPx / rect.height) * 100;
 			const rawBottomY = ((topPx + targetHeight) / rect.height) * 100;
 			const widthPct = (targetWidth / rect.width) * 100;
 			const heightPct = (targetHeight / rect.height) * 100;
-			const maxXLeft = 100 - widthPct;
-			const minXRight = widthPct;
-			const maxYTop = 100 - heightPct;
-			const minYBottom = heightPct;
-			const nextX = shouldAnchorRight ? clamp(rawRightX, minXRight, 100) : clamp(rawLeftX, 0, Math.max(0, maxXLeft));
-			const nextY = shouldAnchorBottom ? clamp(rawBottomY, minYBottom, 100) : clamp(rawTopY, 0, Math.max(0, maxYTop));
+			const nextX = drag.anchorX === "right" ? clamp(rawRightX, widthPct, 100) : clamp(rawLeftX, 0, Math.max(0, 100 - widthPct));
+			const nextY = drag.anchorY === "bottom" ? clamp(rawBottomY, heightPct, 100) : clamp(rawTopY, 0, Math.max(0, 100 - heightPct));
 
-			onMove(drag.target, Math.round(nextX), Math.round(nextY));
+			onMove(drag.target, Number(nextX.toFixed(2)), Number(nextY.toFixed(2)));
 		};
 
 		const onPointerUp = () => setDrag(null);
@@ -505,90 +495,351 @@ function OverlayStylePreview({ overlay, canDrag, onMove, streamerAvatar, dragBlo
 			window.removeEventListener("pointerup", onPointerUp);
 			window.removeEventListener("pointercancel", onPointerUp);
 		};
-	}, [canDrag, drag, onMove, runtimeOverlayScale]);
+	}, [canDrag, drag, onMove, resize]);
+
+	useEffect(() => {
+		if (!resize || !canDrag) return;
+
+		const onPointerMove = (event: PointerEvent) => {
+			const container = containerRef.current;
+			if (!container) return;
+			const containerRect = container.getBoundingClientRect();
+			const pointerX = event.clientX - containerRect.left;
+			const pointerY = event.clientY - containerRect.top;
+
+			let rawWidth = 0;
+			let rawHeight = 0;
+			if (resize.handle === "tl") {
+				rawWidth = resize.fixedX - pointerX;
+				rawHeight = resize.fixedY - pointerY;
+			} else if (resize.handle === "tr") {
+				rawWidth = pointerX - resize.fixedX;
+				rawHeight = resize.fixedY - pointerY;
+			} else if (resize.handle === "bl") {
+				rawWidth = resize.fixedX - pointerX;
+				rawHeight = pointerY - resize.fixedY;
+			} else {
+				rawWidth = pointerX - resize.fixedX;
+				rawHeight = pointerY - resize.fixedY;
+			}
+
+			const baseWidth = Math.max(resize.startWidth, 1);
+			const baseHeight = Math.max(resize.startHeight, 1);
+			const projectedNumerator = rawWidth * baseWidth + rawHeight * baseHeight;
+			const projectedDenominator = baseWidth * baseWidth + baseHeight * baseHeight;
+			const projectedRatio = projectedDenominator > 0 ? projectedNumerator / projectedDenominator : 1;
+			const minRatio = 50 / Math.max(resize.startScale, 1);
+			const maxRatio = 250 / Math.max(resize.startScale, 1);
+			const maxFitRatio = Math.min(containerRect.width / baseWidth, containerRect.height / baseHeight);
+			const ratioUpperBound = Math.max(minRatio, Math.min(maxRatio, maxFitRatio));
+			const ratio = clamp(projectedRatio, minRatio, ratioUpperBound);
+			const nextScale = clamp(Math.round(resize.startScale * ratio), 50, 250);
+			const appliedRatio = nextScale / Math.max(resize.startScale, 1);
+			const nextWidth = resize.startWidth * appliedRatio;
+			const nextHeight = resize.startHeight * appliedRatio;
+
+			let nextLeft = 0;
+			let nextTop = 0;
+			if (resize.handle === "tl") {
+				nextLeft = resize.fixedX - nextWidth;
+				nextTop = resize.fixedY - nextHeight;
+			} else if (resize.handle === "tr") {
+				nextLeft = resize.fixedX;
+				nextTop = resize.fixedY - nextHeight;
+			} else if (resize.handle === "bl") {
+				nextLeft = resize.fixedX - nextWidth;
+				nextTop = resize.fixedY;
+			} else {
+				nextLeft = resize.fixedX;
+				nextTop = resize.fixedY;
+			}
+
+			nextLeft = clamp(nextLeft, 0, Math.max(0, containerRect.width - nextWidth));
+			nextTop = clamp(nextTop, 0, Math.max(0, containerRect.height - nextHeight));
+			const centerXPx = nextLeft + nextWidth / 2;
+			const centerYPx = nextTop + nextHeight / 2;
+			const anchorRight = centerXPx > containerRect.width / 2;
+			const anchorBottom = centerYPx > containerRect.height / 2;
+			const rawLeftX = (nextLeft / containerRect.width) * 100;
+			const rawRightX = ((nextLeft + nextWidth) / containerRect.width) * 100;
+			const rawTopY = (nextTop / containerRect.height) * 100;
+			const rawBottomY = ((nextTop + nextHeight) / containerRect.height) * 100;
+			const widthPct = (nextWidth / containerRect.width) * 100;
+			const heightPct = (nextHeight / containerRect.height) * 100;
+			const nextX = anchorRight ? clamp(rawRightX, widthPct, 100) : clamp(rawLeftX, 0, Math.max(0, 100 - widthPct));
+			const nextY = anchorBottom ? clamp(rawBottomY, heightPct, 100) : clamp(rawTopY, 0, Math.max(0, 100 - heightPct));
+
+			onScaleChange(resize.target, nextScale);
+			onMove(resize.target, Number(nextX.toFixed(2)), Number(nextY.toFixed(2)));
+		};
+
+		const onPointerUp = () => setResize(null);
+
+		window.addEventListener("pointermove", onPointerMove);
+		window.addEventListener("pointerup", onPointerUp);
+		window.addEventListener("pointercancel", onPointerUp);
+
+		return () => {
+			window.removeEventListener("pointermove", onPointerMove);
+			window.removeEventListener("pointerup", onPointerUp);
+			window.removeEventListener("pointercancel", onPointerUp);
+		};
+	}, [canDrag, onMove, onScaleChange, resize]);
+
+	useEffect(() => {
+		const onPointerDown = (event: PointerEvent) => {
+			const target = event.target as Node | null;
+			if (!target) return;
+
+			const container = containerRef.current;
+			const channel = channelRef.current;
+			const clip = clipRef.current;
+			const timer = timerRef.current;
+			const clickedOverlayElement = !!(channel?.contains(target) || clip?.contains(target) || timer?.contains(target));
+			if (clickedOverlayElement) return;
+
+			if (!container || !container.contains(target)) {
+				setSelectedTarget(null);
+				return;
+			}
+
+			setSelectedTarget(null);
+		};
+
+		window.addEventListener("pointerdown", onPointerDown);
+		return () => window.removeEventListener("pointerdown", onPointerDown);
+	}, []);
+
+	useEffect(() => {
+		if (!canDrag || !selectedTarget) return;
+
+		const onKeyDown = (event: KeyboardEvent) => {
+			if (!["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)) return;
+			const active = document.activeElement as HTMLElement | null;
+			if (active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA" || active.isContentEditable)) return;
+			event.preventDefault();
+
+			const container = containerRef.current;
+			if (!container) return;
+			const targetRef = selectedTarget === "channel" ? channelRef.current : selectedTarget === "clip" ? clipRef.current : timerRef.current;
+			if (!targetRef) return;
+
+			const containerRect = container.getBoundingClientRect();
+			const targetRect = targetRef.getBoundingClientRect();
+			const step = event.shiftKey ? 10 : 2;
+			const deltaX = event.key === "ArrowLeft" ? -step : event.key === "ArrowRight" ? step : 0;
+			const deltaY = event.key === "ArrowUp" ? -step : event.key === "ArrowDown" ? step : 0;
+			const width = targetRect.width;
+			const height = targetRect.height;
+			const currentX = selectedTarget === "channel" ? overlay.channelInfoX : selectedTarget === "clip" ? overlay.clipInfoX : timerPos.x;
+			const currentY = selectedTarget === "channel" ? overlay.channelInfoY : selectedTarget === "clip" ? overlay.clipInfoY : timerPos.y;
+			const stepXPct = (step / Math.max(containerRect.width, 1)) * 100;
+			const stepYPct = (step / Math.max(containerRect.height, 1)) * 100;
+			const widthPct = (width / containerRect.width) * 100;
+			const heightPct = (height / containerRect.height) * 100;
+			const anchorRight = selectedTarget === "channel" ? channelAnchoredRight : selectedTarget === "clip" ? clipAnchoredRight : timerAnchoredRight;
+			const anchorBottom = selectedTarget === "channel" ? channelAnchoredBottom : selectedTarget === "clip" ? clipAnchoredBottom : timerAnchoredBottom;
+			const rawNextX = currentX + (deltaX > 0 ? stepXPct : deltaX < 0 ? -stepXPct : 0);
+			const rawNextY = currentY + (deltaY > 0 ? stepYPct : deltaY < 0 ? -stepYPct : 0);
+			const nextX = anchorRight ? clamp(rawNextX, widthPct, 100) : clamp(rawNextX, 0, Math.max(0, 100 - widthPct));
+			const nextY = anchorBottom ? clamp(rawNextY, heightPct, 100) : clamp(rawNextY, 0, Math.max(0, 100 - heightPct));
+
+			onMove(selectedTarget, Number(nextX.toFixed(2)), Number(nextY.toFixed(2)));
+		};
+
+		window.addEventListener("keydown", onKeyDown);
+		return () => window.removeEventListener("keydown", onKeyDown);
+	}, [canDrag, channelAnchoredBottom, channelAnchoredRight, clipAnchoredBottom, clipAnchoredRight, onMove, overlay.channelInfoX, overlay.channelInfoY, overlay.clipInfoX, overlay.clipInfoY, selectedTarget, timerAnchoredBottom, timerAnchoredRight, timerPos.x, timerPos.y]);
+
+	function startResize(target: DragTarget, handle: ResizeHandle, event: React.PointerEvent<HTMLElement>) {
+		if (!canDrag) return;
+		event.preventDefault();
+		event.stopPropagation();
+		const targetRef = target === "channel" ? channelRef.current : target === "clip" ? clipRef.current : timerRef.current;
+		if (!targetRef) return;
+		const container = containerRef.current;
+		if (!container) return;
+		const containerRect = container.getBoundingClientRect();
+		const rect = targetRef.getBoundingClientRect();
+		const startLeft = rect.left - containerRect.left;
+		const startTop = rect.top - containerRect.top;
+		const startRight = startLeft + rect.width;
+		const startBottom = startTop + rect.height;
+		let fixedX = startLeft;
+		let fixedY = startTop;
+		if (handle === "tl") {
+			fixedX = startRight;
+			fixedY = startBottom;
+		} else if (handle === "tr") {
+			fixedX = startLeft;
+			fixedY = startBottom;
+		} else if (handle === "bl") {
+			fixedX = startRight;
+			fixedY = startTop;
+		}
+		const startScale = target === "channel" ? overlay.channelScale ?? 100 : target === "clip" ? overlay.clipScale ?? 100 : overlay.timerScale ?? 100;
+		setResize({
+			target,
+			handle,
+			startScale,
+			startWidth: rect.width,
+			startHeight: rect.height,
+			fixedX,
+			fixedY,
+		});
+	}
+
+	function renderResizeHandles(target: DragTarget) {
+		if (!canDrag || selectedTarget !== target) return null;
+		return (
+			<>
+				<button type='button' className='absolute -left-1 -top-1 h-3 w-3 rounded-full border border-red-700 bg-red-500 cursor-nwse-resize' onPointerDown={(event) => startResize(target, "tl", event)} aria-label={`Resize ${target} top left`} />
+				<button type='button' className='absolute -right-1 -top-1 h-3 w-3 rounded-full border border-red-700 bg-red-500 cursor-nesw-resize' onPointerDown={(event) => startResize(target, "tr", event)} aria-label={`Resize ${target} top right`} />
+				<button type='button' className='absolute -left-1 -bottom-1 h-3 w-3 rounded-full border border-red-700 bg-red-500 cursor-nesw-resize' onPointerDown={(event) => startResize(target, "bl", event)} aria-label={`Resize ${target} bottom left`} />
+				<button type='button' className='absolute -right-1 -bottom-1 h-3 w-3 rounded-full border border-red-700 bg-red-500 cursor-nwse-resize' onPointerDown={(event) => startResize(target, "br", event)} aria-label={`Resize ${target} bottom right`} />
+			</>
+		);
+	}
 
 	return (
 		<div className='w-full'>
-			<div className='mb-2 text-xs text-default-500'>
-				{canDrag
-					? "Drag overlay elements to position them."
-					: dragBlockedReason === "narrow"
-						? "Drag and drop needs a wider viewport. Increase browser width or use desktop."
-						: "Drag and drop is only supported on desktop. Switch to a desktop browser."}
-			</div>
-			<div ref={containerRef} className='relative w-full aspect-video rounded-xl border border-default-200 overflow-hidden bg-[linear-gradient(140deg,#0B1220,#1E293B)]'>
-				<div className='absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_20%_20%,rgba(124,58,237,0.45),transparent_45%),radial-gradient(circle_at_80%_70%,rgba(56,189,248,0.35),transparent_45%)]' />
+			<div
+				ref={containerRef}
+				className='relative w-full aspect-video rounded-xl border border-default-200 overflow-hidden bg-[linear-gradient(140deg,#0B1220,#1E293B)]'
+				onPointerDown={(event) => {
+					if (event.target === event.currentTarget) setSelectedTarget(null);
+				}}
+			>
+				<div className='pointer-events-none absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_20%_20%,rgba(124,58,237,0.45),transparent_45%),radial-gradient(circle_at_80%_70%,rgba(56,189,248,0.35),transparent_45%)]' />
 
 				{overlay.effectScanlines && <div className='pointer-events-none absolute inset-0 z-[5] bg-[repeating-linear-gradient(0deg,rgba(255,255,255,0.03)_0px,rgba(255,255,255,0.03)_1px,transparent_2px,transparent_4px)]' />}
 				{overlay.effectStatic && <div className='pointer-events-none absolute inset-0 z-[5] animate-pulse bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.05),transparent_35%),radial-gradient(circle_at_70%_60%,rgba(255,255,255,0.04),transparent_40%)]' />}
 				{overlay.effectCrt && <div className='pointer-events-none absolute inset-0 z-[6] bg-[radial-gradient(circle_at_center,transparent_52%,rgba(0,0,0,0.38)_100%),linear-gradient(90deg,rgba(255,0,0,0.04),rgba(0,255,255,0.04))] mix-blend-screen' />}
 
 				{overlay.showChannelInfo && (
-					<div
-						ref={channelRef}
-						className={`absolute z-10 w-fit p-2 shadow-lg backdrop-blur-sm ${canDrag ? "cursor-grab active:cursor-grabbing" : "cursor-not-allowed"}`}
-						style={{ ...(overlay.channelInfoX > 50 ? { right: `${100 - overlay.channelInfoX}%` } : { left: `${overlay.channelInfoX}%` }), ...(overlay.channelInfoY > 50 ? { bottom: `${100 - overlay.channelInfoY}%` } : { top: `${overlay.channelInfoY}%` }), ...themeStyle }}
-						onPointerDown={(event) => {
-							if (!canDrag) return;
-							event.preventDefault();
-							const rect = (event.currentTarget as HTMLDivElement).getBoundingClientRect();
-							setDrag({ target: "channel", offsetX: event.clientX - rect.left, offsetY: event.clientY - rect.top });
-						}}
-					>
-						<div className={`flex items-center ${overlay.channelInfoX > 50 ? "flex-row-reverse" : ""}`}>
-							<Avatar size='md' src={streamerAvatar} />
-							<div className={`text-xs ${overlay.channelInfoX > 50 ? "mr-2 text-right" : "ml-2 text-left"}`}>
-								<div className='font-semibold'>TheDanniCraft</div>
-								<div className='opacity-80'>Playing Just Chatting</div>
+					<div className='absolute z-10' style={{ left: `${overlay.channelInfoX}%`, top: `${overlay.channelInfoY}%` }}>
+						<div className='inline-block' style={{ transform: `translate(${channelAnchoredRight ? "-100%" : "0"}, ${channelAnchoredBottom ? "-100%" : "0"})` }}>
+							<div className='relative inline-block'>
+								<div
+									ref={channelRef}
+									className={`relative w-fit p-2 shadow-lg backdrop-blur-sm ${canDrag ? "cursor-grab active:cursor-grabbing" : "cursor-not-allowed"} ${selectedTarget === "channel" ? "ring-2 ring-inset ring-red-500" : ""}`}
+									style={{ transform: `scale(${channelScaleFactor})`, transformOrigin: `${channelAnchoredRight ? "right" : "left"} ${channelAnchoredBottom ? "bottom" : "top"}`, ...themeStyle }}
+									onPointerDown={(event) => {
+										if (!canDrag || resize) return;
+										event.stopPropagation();
+										event.preventDefault();
+										setSelectedTarget("channel");
+										const rect = (event.currentTarget as HTMLDivElement).getBoundingClientRect();
+										setDrag({
+											target: "channel",
+											offsetX: event.clientX - rect.left,
+											offsetY: event.clientY - rect.top,
+											width: rect.width,
+											height: rect.height,
+											anchorX: overlay.channelInfoX > 50 ? "right" : "left",
+											anchorY: overlay.channelInfoY > 50 ? "bottom" : "top",
+										});
+									}}
+								>
+									<div className={`flex items-center ${channelAnchoredRight ? "flex-row-reverse" : ""}`}>
+										<Avatar size='md' src={streamerAvatar} />
+										<div className={`text-xs ${channelAnchoredRight ? "mr-2 text-right" : "ml-2 text-left"}`}>
+											<div className='font-semibold'>TheDanniCraft</div>
+											<div className='opacity-80'>Playing Just Chatting</div>
+										</div>
+									</div>
+								</div>
+								{renderResizeHandles("channel")}
 							</div>
 						</div>
 					</div>
 				)}
 
 				{overlay.showClipInfo && (
-					<div
-						ref={clipRef}
-						className={`absolute z-10 p-2 shadow-lg backdrop-blur-sm w-fit max-w-[min(360px,42vw)] ${canDrag ? "cursor-grab active:cursor-grabbing" : "cursor-not-allowed"}`}
-						style={{
-							...(overlay.clipInfoX > 50 ? { right: `${100 - overlay.clipInfoX}%` } : { left: `${overlay.clipInfoX}%` }),
-							...(overlay.clipInfoY > 50 ? { bottom: `${100 - overlay.clipInfoY}%` } : { top: `${overlay.clipInfoY}%` }),
-							...themeStyle,
-						}}
-						onPointerDown={(event) => {
-							if (!canDrag) return;
-							event.preventDefault();
-							const rect = (event.currentTarget as HTMLDivElement).getBoundingClientRect();
-							setDrag({ target: "clip", offsetX: event.clientX - rect.left, offsetY: event.clientY - rect.top });
-						}}
-					>
-						<div className={`text-xs break-normal ${overlay.clipInfoX > 50 ? "text-right" : "text-left"}`}>
-							<div className='font-bold'>Insane comeback in ranked</div>
-							<div className='opacity-80 mt-1'>clipped by bestviewer123</div>
+					<div className='absolute z-10' style={{ left: `${overlay.clipInfoX}%`, top: `${overlay.clipInfoY}%` }}>
+						<div className='inline-block' style={{ transform: `translate(${clipAnchoredRight ? "-100%" : "0"}, ${clipAnchoredBottom ? "-100%" : "0"})` }}>
+							<div className='relative inline-block'>
+								<div
+									ref={clipRef}
+									className={`relative p-2 shadow-lg backdrop-blur-sm w-max max-w-[360px] ${canDrag ? "cursor-grab active:cursor-grabbing" : "cursor-not-allowed"} ${selectedTarget === "clip" ? "ring-2 ring-inset ring-red-500" : ""}`}
+									style={{
+										transform: `scale(${clipScaleFactor})`,
+										transformOrigin: `${clipAnchoredRight ? "right" : "left"} ${clipAnchoredBottom ? "bottom" : "top"}`,
+										...themeStyle,
+									}}
+									onPointerDown={(event) => {
+										if (!canDrag || resize) return;
+										event.stopPropagation();
+										event.preventDefault();
+										setSelectedTarget("clip");
+										const rect = (event.currentTarget as HTMLDivElement).getBoundingClientRect();
+										setDrag({
+											target: "clip",
+											offsetX: event.clientX - rect.left,
+											offsetY: event.clientY - rect.top,
+											width: rect.width,
+											height: rect.height,
+											anchorX: overlay.clipInfoX > 50 ? "right" : "left",
+											anchorY: overlay.clipInfoY > 50 ? "bottom" : "top",
+										});
+									}}
+								>
+									<div className={`text-xs break-normal ${clipAnchoredRight ? "text-right" : "text-left"}`}>
+										<div className='font-bold'>Insane comeback in ranked</div>
+										<div className='opacity-80 mt-1'>clipped by bestviewer123</div>
+									</div>
+								</div>
+								{renderResizeHandles("clip")}
+							</div>
 						</div>
 					</div>
 				)}
 
 				{overlay.showTimer && (
-					<div
-						ref={timerRef}
-						className={`absolute z-10 shadow-lg backdrop-blur-sm h-12 w-12 min-h-12 min-w-12 aspect-square flex items-center justify-center text-sm font-bold leading-none tabular-nums ${canDrag ? "cursor-grab active:cursor-grabbing" : "cursor-not-allowed"}`}
-						style={{ ...(timerPos.x > 50 ? { right: `${100 - timerPos.x}%` } : { left: `${timerPos.x}%` }), ...(timerPos.y > 50 ? { bottom: `${100 - timerPos.y}%` } : { top: `${timerPos.y}%` }), ...themeStyle, borderRadius: "9999px", padding: 0 }}
-						onPointerDown={(event) => {
-							if (!canDrag) return;
-							event.preventDefault();
-							const rect = (event.currentTarget as HTMLDivElement).getBoundingClientRect();
-							setDrag({ target: "timer", offsetX: event.clientX - rect.left, offsetY: event.clientY - rect.top });
-						}}
-					>
-						18
+					<div className='absolute z-10' style={{ left: `${timerPos.x}%`, top: `${timerPos.y}%` }}>
+						<div className='inline-block' style={{ transform: `translate(${timerAnchoredRight ? "-100%" : "0"}, ${timerAnchoredBottom ? "-100%" : "0"})` }}>
+							<div className='relative inline-block'>
+								<div
+									ref={timerRef}
+									className={`relative shadow-lg backdrop-blur-sm h-12 w-12 min-h-12 min-w-12 aspect-square flex items-center justify-center text-sm font-bold leading-none tabular-nums ${canDrag ? "cursor-grab active:cursor-grabbing" : "cursor-not-allowed"} ${selectedTarget === "timer" ? "ring-2 ring-inset ring-red-500" : ""}`}
+									style={{ transform: `scale(${timerScaleFactor})`, transformOrigin: `${timerAnchoredRight ? "right" : "left"} ${timerAnchoredBottom ? "bottom" : "top"}`, ...themeStyle, borderRadius: "9999px", padding: 0 }}
+									onPointerDown={(event) => {
+										if (!canDrag || resize) return;
+										event.stopPropagation();
+										event.preventDefault();
+										setSelectedTarget("timer");
+										const rect = (event.currentTarget as HTMLDivElement).getBoundingClientRect();
+										setDrag({
+											target: "timer",
+											offsetX: event.clientX - rect.left,
+											offsetY: event.clientY - rect.top,
+											width: rect.width,
+											height: rect.height,
+											anchorX: timerPos.x > 50 ? "right" : "left",
+											anchorY: timerPos.y > 50 ? "bottom" : "top",
+										});
+									}}
+								>
+									18
+								</div>
+								{renderResizeHandles("timer")}
+							</div>
+						</div>
 					</div>
 				)}
 
 				{overlay.showProgressBar && (
-					<div className='absolute left-0 right-0 bottom-0 h-2 sm:h-3 overflow-hidden' style={{ backgroundColor: "rgba(0,0,0,0.35)" }}>
+					<div className='absolute left-0 right-0 bottom-0 overflow-hidden' style={{ backgroundColor: "rgba(0,0,0,0.35)", height: `${previewProgressBarHeight}px` }}>
 						<div className='h-full' style={{ width: "52%", background: `linear-gradient(90deg, ${overlay.progressBarStartColor || "#26018E"}, ${overlay.progressBarEndColor || "#8D42F9"})` }} />
 					</div>
 				)}
+			</div>
+			<div className='mt-2 text-xs text-default-500'>
+				{canDrag
+					? "Drag overlay elements to position them. Use arrow keys to nudge selected items (Shift for larger steps)."
+					: dragBlockedReason === "narrow"
+						? "Drag and drop needs a wider viewport. Increase browser width or use desktop."
+						: "Drag and drop is only supported on desktop. Switch to a desktop browser."}
 			</div>
 		</div>
 	);
@@ -731,6 +982,9 @@ export default function OverlayStylePage() {
 			clipInfoY: overlay.clipInfoY,
 			timerX: overlay.timerX,
 			timerY: overlay.timerY,
+			channelScale: overlay.channelScale,
+			clipScale: overlay.clipScale,
+			timerScale: overlay.timerScale,
 		});
 		setBaseOverlay(overlay);
 		addToast({ title: "Style saved", description: "Overlay style has been updated.", color: "success" });
@@ -788,6 +1042,8 @@ export default function OverlayStylePage() {
 									style={{
 										filter: ownerPlan === Plan.Free && !ownerHasAdvancedAccess ? "blur(1.5px)" : "none",
 										pointerEvents: ownerPlan === Plan.Free && !ownerHasAdvancedAccess ? "none" : "auto",
+										userSelect: ownerPlan === Plan.Free && !ownerHasAdvancedAccess ? "none" : "auto",
+										WebkitUserSelect: ownerPlan === Plan.Free && !ownerHasAdvancedAccess ? "none" : "auto",
 									}}
 								>
 									<OverlayStylePreview
@@ -801,6 +1057,14 @@ export default function OverlayStylePage() {
 												if (target === "channel") return { ...prev, channelInfoX: x, channelInfoY: y };
 												if (target === "timer") return { ...prev, timerX: x, timerY: y };
 												return { ...prev, clipInfoX: x, clipInfoY: y };
+											});
+										}}
+										onScaleChange={(target, scale) => {
+											setOverlay((prev) => {
+												if (!prev) return prev;
+												if (target === "channel") return { ...prev, channelScale: scale };
+												if (target === "timer") return { ...prev, timerScale: scale };
+												return { ...prev, clipScale: scale };
 											});
 										}}
 									/>
@@ -926,8 +1190,6 @@ export default function OverlayStylePage() {
 									<ThemeColorInput label='Progress Gradient Start' value={overlay.progressBarStartColor} defaultValue='#26018E' onChange={(value) => setOverlay({ ...overlay, progressBarStartColor: value })} />
 									<ThemeColorInput label='Progress Gradient End' value={overlay.progressBarEndColor} defaultValue='#8D42F9' onChange={(value) => setOverlay({ ...overlay, progressBarEndColor: value })} />
 								</div>
-								<NumberInput minValue={0} maxValue={32} value={overlay.borderSize} onValueChange={(value) => setOverlay({ ...overlay, borderSize: Number(value) })} label='Border Size' />
-								<NumberInput minValue={0} maxValue={48} value={overlay.borderRadius} onValueChange={(value) => setOverlay({ ...overlay, borderRadius: Number(value) })} label='Border Radius' />
 							</div>
 						</CardBody>
 					</Card>

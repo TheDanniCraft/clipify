@@ -117,8 +117,11 @@ export const overlaysTable = pgTable("overlays", {
 	channelInfoY: integer("channel_info_y").notNull().default(0),
 	clipInfoX: integer("clip_info_x").notNull().default(100),
 	clipInfoY: integer("clip_info_y").notNull().default(100),
-	timerX: integer("timer_x").notNull().default(88),
-	timerY: integer("timer_y").notNull().default(70),
+	timerX: integer("timer_x").notNull().default(100),
+	timerY: integer("timer_y").notNull().default(0),
+	channelScale: integer("channel_scale").notNull().default(100),
+	clipScale: integer("clip_scale").notNull().default(100),
+	timerScale: integer("timer_scale").notNull().default(100),
 });
 
 export const queueTable = pgTable("clipQueue", {

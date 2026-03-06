@@ -384,6 +384,8 @@ export default function OverlaySettings() {
 										style={{
 											filter: ownerPlan === Plan.Free && !ownerHasAdvancedAccess ? "blur(1.5px)" : "none",
 											pointerEvents: ownerPlan === Plan.Free && !ownerHasAdvancedAccess ? "none" : "auto",
+											userSelect: ownerPlan === Plan.Free && !ownerHasAdvancedAccess ? "none" : "auto",
+											WebkitUserSelect: ownerPlan === Plan.Free && !ownerHasAdvancedAccess ? "none" : "auto",
 										}}
 									>
 										<div className='flex w-full items-center px-2 mb-2 gap-1'>

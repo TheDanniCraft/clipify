@@ -73,6 +73,9 @@ type OverlayPatch = Partial<
 		| "clipInfoY"
 		| "timerX"
 		| "timerY"
+		| "channelScale"
+		| "clipScale"
+		| "timerScale"
 	>
 >;
 
@@ -695,8 +698,11 @@ export async function downgradeUserPlan(userId: string) {
 			channelInfoY: 0,
 			clipInfoX: 100,
 			clipInfoY: 100,
-			timerX: 88,
-			timerY: 70,
+			timerX: 100,
+			timerY: 0,
+			channelScale: 100,
+			clipScale: 100,
+			timerScale: 100,
 		})
 		.where(eq(overlaysTable.id, overlays[0].id))
 		.execute();
@@ -751,12 +757,15 @@ export async function saveOverlay(overlayId: string, patch: OverlayPatch) {
 		const effectScanlines = advancedAccess.allowed ? !!next.effectScanlines : false;
 		const effectStatic = advancedAccess.allowed ? !!next.effectStatic : false;
 		const effectCrt = advancedAccess.allowed ? !!next.effectCrt : false;
-		const channelInfoX = advancedAccess.allowed ? Math.max(0, Math.min(100, next.channelInfoX ?? 0)) : 0;
-		const channelInfoY = advancedAccess.allowed ? Math.max(0, Math.min(100, next.channelInfoY ?? 0)) : 0;
-		const clipInfoX = advancedAccess.allowed ? Math.max(0, Math.min(100, next.clipInfoX ?? 100)) : 100;
-		const clipInfoY = advancedAccess.allowed ? Math.max(0, Math.min(100, next.clipInfoY ?? 100)) : 100;
-		const timerX = advancedAccess.allowed ? Math.max(0, Math.min(100, next.timerX ?? 88)) : 88;
-		const timerY = advancedAccess.allowed ? Math.max(0, Math.min(100, next.timerY ?? 70)) : 70;
+		const channelInfoX = advancedAccess.allowed ? Math.round(Math.max(0, Math.min(100, next.channelInfoX ?? 0))) : 0;
+		const channelInfoY = advancedAccess.allowed ? Math.round(Math.max(0, Math.min(100, next.channelInfoY ?? 0))) : 0;
+		const clipInfoX = advancedAccess.allowed ? Math.round(Math.max(0, Math.min(100, next.clipInfoX ?? 100))) : 100;
+		const clipInfoY = advancedAccess.allowed ? Math.round(Math.max(0, Math.min(100, next.clipInfoY ?? 100))) : 100;
+		const timerX = advancedAccess.allowed ? Math.round(Math.max(0, Math.min(100, next.timerX ?? 100))) : 100;
+		const timerY = advancedAccess.allowed ? Math.round(Math.max(0, Math.min(100, next.timerY ?? 0))) : 0;
+		const channelScale = advancedAccess.allowed ? Math.round(Math.max(50, Math.min(250, next.channelScale ?? 100))) : 100;
+		const clipScale = advancedAccess.allowed ? Math.round(Math.max(50, Math.min(250, next.clipScale ?? 100))) : 100;
+		const timerScale = advancedAccess.allowed ? Math.round(Math.max(50, Math.min(250, next.timerScale ?? 100))) : 100;
 
 		await db
 			.update(overlaysTable)
@@ -799,6 +808,9 @@ export async function saveOverlay(overlayId: string, patch: OverlayPatch) {
 				clipInfoY,
 				timerX,
 				timerY,
+				channelScale,
+				clipScale,
+				timerScale,
 			})
 			.where(eq(overlaysTable.id, overlayId))
 			.execute();
