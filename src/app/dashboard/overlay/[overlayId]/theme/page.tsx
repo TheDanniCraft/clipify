@@ -286,6 +286,7 @@ function ThemeColorInput({ label, value, onChange, defaultValue, allowAlpha }: {
 	const svRef = useRef<HTMLDivElement | null>(null);
 	const hueRef = useRef<HTMLDivElement | null>(null);
 	const alphaRef = useRef<HTMLDivElement | null>(null);
+	const dragAbortControllerRef = useRef<AbortController | null>(null);
 	const parsedDefault = useMemo(() => parseColorToHsla(defaultValue) ?? { h: 260, s: 65, l: 52, a: 1 }, [defaultValue]);
 	const parsed = useMemo(() => parseColorToHsla(value) ?? parsedDefault, [parsedDefault, value]);
 	const hsv = useMemo(() => hslToHsv(parsed.h, parsed.s, parsed.l), [parsed.h, parsed.l, parsed.s]);
@@ -317,18 +318,30 @@ function ThemeColorInput({ label, value, onChange, defaultValue, allowAlpha }: {
 		);
 	};
 
+	useEffect(() => {
+		return () => {
+			dragAbortControllerRef.current?.abort();
+			dragAbortControllerRef.current = null;
+		};
+	}, []);
+
 	const startPointerDrag = (event: React.PointerEvent<HTMLElement>, onMove: (clientX: number, clientY: number) => void) => {
 		event.preventDefault();
+		dragAbortControllerRef.current?.abort();
+		const controller = new AbortController();
+		dragAbortControllerRef.current = controller;
+		const { signal } = controller;
 		onMove(event.clientX, event.clientY);
 		const move = (nextEvent: PointerEvent) => onMove(nextEvent.clientX, nextEvent.clientY);
 		const stop = () => {
-			window.removeEventListener("pointermove", move);
-			window.removeEventListener("pointerup", stop);
-			window.removeEventListener("pointercancel", stop);
+			controller.abort();
+			if (dragAbortControllerRef.current === controller) {
+				dragAbortControllerRef.current = null;
+			}
 		};
-		window.addEventListener("pointermove", move);
-		window.addEventListener("pointerup", stop);
-		window.addEventListener("pointercancel", stop);
+		window.addEventListener("pointermove", move, { signal });
+		window.addEventListener("pointerup", stop, { once: true, signal });
+		window.addEventListener("pointercancel", stop, { once: true, signal });
 	};
 
 	const updateSvFromPointer = (clientX: number, clientY: number) => {
@@ -583,7 +596,7 @@ function OverlayStylePreview({
 			const nextY = anchorBottom ? clamp(rawBottomY, heightPct, 100) : clamp(rawTopY, 0, Math.max(0, 100 - heightPct));
 
 			onScaleChange(resize.target, nextScale);
-			onMove(resize.target, Number(nextX.toFixed(2)), Number(nextY.toFixed(2)));
+			onMove(resize.target, Math.round(nextX), Math.round(nextY));
 		};
 
 		const onPointerUp = () => setResize(null);

@@ -408,9 +408,10 @@ export async function getTwitchClips(overlay: Overlay, type?: OverlayType, skipF
 	}
 
 	do {
+		const remaining = Math.max(1, requestedPackSize - clips.length);
 		const params: TwitchClipBody = {
 			broadcaster_id: overlay.ownerId,
-			first: 100,
+			first: Math.min(100, remaining),
 			after: cursor,
 		};
 
