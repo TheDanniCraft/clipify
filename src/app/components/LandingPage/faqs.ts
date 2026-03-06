@@ -30,8 +30,12 @@ const faqs: Faq[] = [
 		content: "Yes, you can add editors to help manage your overlay settings. Just make sure not to add yourself as an editor.",
 	},
 	{
+		title: "What can I customize in Theme Studio?",
+		content: "You can drag and position overlay cards, resize them, nudge with arrow keys, customize colors/fonts/effects, and style the timer and progress bar to match your stream branding.",
+	},
+	{
 		title: "What are the benefits of the Pro version?",
-		content: "The Pro version includes features like multiple active overlays, channel points integration, and priority support.",
+		content: "The Pro version includes Theme Studio, advanced playback filters, multiple active overlays, channel points integration, and priority support.",
 	},
 	{
 		title: "Can I use Clipify on multiple channels?",

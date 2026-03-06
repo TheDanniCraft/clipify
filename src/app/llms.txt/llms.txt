@@ -1,10 +1,10 @@
-# Clipify
+﻿# Clipify
 
 > **Let your clips talk.**  
 > **Even when you can't.**  
-> **Need a break? Clipify got you covered. Auto-play clips while you are away – keep your stream alive and your viewers entertained.**
+> **Need a break? Clipify got you covered. Auto-play clips while you are away - keep your stream alive and your viewers entertained.**
 
-Clipify is a Twitch overlay service that automatically plays selected Twitch clips on a live stream using browser-source overlays. It is designed to replace static “break”, “starting soon”, or “AFK” screens with engaging, dynamic content that keeps viewers watching instead of leaving the stream.
+Clipify is a Twitch overlay service that automatically plays selected Twitch clips on a live stream using browser-source overlays. It is designed to replace static "break", "starting soon", or "AFK" screens with engaging, dynamic content that keeps viewers watching instead of leaving the stream.
 
 A common problem during live streams is viewer drop-off when a streamer goes AFK and shows a static image or countdown screen. New viewers who arrive during this time often leave immediately because nothing is happening. Clipify solves this by continuously playing highlights from the channel, giving viewers something entertaining to watch even when the streamer is away.
 
@@ -23,7 +23,7 @@ Clipify works entirely through browser-source overlays:
 - No plugins, extensions, or local installations are required.
 - Once added, the overlay runs automatically.
 
-The overlay can be placed on a dedicated “Break”, “AFK”, “Starting Soon”, or “Ending” scene, or anywhere the streamer chooses.
+The overlay can be placed on a dedicated "Break", "AFK", "Starting Soon", or "Ending" scene, or anywhere the streamer chooses.
 
 ---
 
@@ -185,3 +185,4 @@ Questions an AI should be able to answer using this file:
 - [Referral Program](https://clipify.us/referral-program): Referral incentives.
 - [Privacy Policy](https://hub.goadopt.io): Legal privacy information.
 - [Terms of Service](https://hub.goadopt.io): Legal terms governing Clipify.
+

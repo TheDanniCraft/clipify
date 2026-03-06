@@ -3,7 +3,7 @@
 import BasicNavbar from "@components/LandingPage/basicNavbar";
 import { Accordion, AccordionItem, Button, Chip, Image, Link, Card, CardHeader, CardBody } from "@heroui/react";
 import { LazyMotion, motion, domAnimation, AnimatePresence } from "motion/react";
-import { IconThumbUp, IconArrowRight, IconPlugConnected, IconLayersDifference, IconMoodSmile, IconCoin, IconAdjustments, IconChevronDown } from "@tabler/icons-react";
+import { IconThumbUp, IconArrowRight, IconPlugConnected, IconLayersDifference, IconMoodSmile, IconCoin, IconAdjustments, IconChevronDown, IconArrowsMove, IconMessageCircle } from "@tabler/icons-react";
 import FeatureCard from "@components/featureCard";
 import TiersComponent from "@components/Pricing";
 import faqs from "@components/LandingPage/faqs";
@@ -152,8 +152,10 @@ export default function Home() {
 						<FeatureCard title='Smart Playback Modes' description='Switch between Random, Top, and Hybrid playback, plus advanced creator and category filters with Pro.' icon={IconAdjustments} />
 						<FeatureCard title='Keeps Your Stream Entertained' description="Auto-play clips to keep your audience engaged even when you're away." icon={IconMoodSmile} />
 						<FeatureCard title='Multiple Overlays' description='Create as many overlays as you like, use them for AFK screens, at the starting or end screens of your stream, or anywhere you want.' icon={IconLayersDifference} />
-						<FeatureCard title='Theme Studio (Pro)' description='Build your own overlay look with drag-and-drop info cards, custom colors/fonts, effects, timer, and progress bar.' icon={IconCoin} />
+						<FeatureCard title='Theme Studio' description='Build your own overlay look with drag-and-drop cards, custom colors/fonts/effects, timer, and progress bar styling.' icon={IconCoin} />
+						<FeatureCard title='Live Layout Editor' description='Drag, resize, and nudge overlay cards with keyboard controls for clean stream scenes.' icon={IconArrowsMove} />
 						<FeatureCard title='Channel Points Integration' description='Let viewers trigger clip playback with Twitch channel points and keep chat engaged during breaks.' icon={IconCoin} />
+						<FeatureCard title='Chat Commands' description='Control playback, queue and volume directly from Twitch chat while live.' icon={IconMessageCircle} />
 					</div>
 				</div>
 			</div>
