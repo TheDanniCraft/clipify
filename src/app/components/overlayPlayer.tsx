@@ -521,6 +521,8 @@ export default function OverlayPlayer({
 	};
 	const timerAnchoredRight = timerPos.x > 50;
 	const timerAnchoredBottom = timerPos.y > 50;
+	const clipPackSize = clamp(Math.round(overlay.clipPackSize ?? 100), 10, 500);
+	const clipPoolTargetSize = Math.max(clipPackSize * 4, 120);
 	const { fontFamily: resolvedThemeFontFamily, fontUrl: resolvedThemeFontUrl } = useMemo(() => parseThemeFontSetting(overlay.themeFontFamily), [overlay.themeFontFamily]);
 	const safeThemeFontUrl = useMemo(() => sanitizeFontCssUrl(resolvedThemeFontUrl), [resolvedThemeFontUrl]);
 	const themeStyle = {
@@ -551,7 +553,7 @@ export default function OverlayPlayer({
 					...clipPoolRef.current.map((clip) => clip.id),
 				]),
 			);
-			const fetched = await getTwitchClipBatch(overlay, overlay.type, excludeIds, 60);
+			const fetched = await getTwitchClipBatch(overlay, overlay.type, excludeIds, clipPackSize);
 			if (!Array.isArray(fetched)) return fetched;
 			const deduped = new Map<string, TwitchClip>();
 			for (const clip of fetched) {
@@ -564,14 +566,14 @@ export default function OverlayPlayer({
 				for (const clip of prev) merged.set(clip.id, clip);
 				for (const clip of next) merged.set(clip.id, clip);
 				const pruned = Array.from(merged.values()).filter((clip) => !playedClipsRef.current.includes(clip.id));
-				return pruned.slice(0, 240);
+				return pruned.slice(0, clipPoolTargetSize);
 			});
 			return next;
 		} catch (error) {
 			console.error("Error refreshing clip pool:", error);
 			return clipPoolRef.current;
 		}
-	}, [overlay]);
+	}, [clipPackSize, clipPoolTargetSize, overlay]);
 
 	const parseDemoClipId = useCallback((rawInput: string) => {
 		const raw = rawInput.trim();
@@ -1333,16 +1335,42 @@ export default function OverlayPlayer({
 
 	useEffect(() => {
 		let cancelled = false;
-		const load = async () => {
-			const next = await refreshClipPool();
-			if (cancelled || !next) return;
+		let delayMs = 30_000;
+		const maxDelayMs = 5 * 60_000;
+		let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+		const scheduleNext = () => {
+			if (cancelled) return;
+			timeoutId = setTimeout(run, delayMs);
 		};
 
-		load();
-		const interval = setInterval(load, 30_000);
+		const run = async () => {
+			if (cancelled) return;
+			if (typeof document !== "undefined" && document.visibilityState === "hidden") {
+				delayMs = Math.min(delayMs * 2, maxDelayMs);
+				scheduleNext();
+				return;
+			}
+
+			try {
+				const next = await refreshClipPool();
+				if (cancelled) return;
+				if (!Array.isArray(next) || next.length === 0) {
+					delayMs = Math.min(delayMs * 2, maxDelayMs);
+				} else {
+					delayMs = 30_000;
+				}
+			} catch {
+				delayMs = Math.min(delayMs * 2, maxDelayMs);
+			}
+
+			scheduleNext();
+		};
+
+		void run();
 		return () => {
 			cancelled = true;
-			clearInterval(interval);
+			if (timeoutId) clearTimeout(timeoutId);
 		};
 	}, [refreshClipPool]);
 

@@ -626,25 +626,18 @@ export async function getAllOverlaysByOwnerServer(ownerId: string) {
 // Server-only helper for clip cache daemon.
 export async function getActiveOverlayOwnerIdsForClipSync(batchSize = 50) {
 	try {
+		const limitedBatchSize = Math.max(1, Math.floor(batchSize));
+		const scoreExpr = sql<Date>`max(coalesce(${overlaysTable.lastUsedAt}, ${overlaysTable.createdAt}))`;
 		const rows = await db
-			.select({ ownerId: overlaysTable.ownerId, lastUsedAt: overlaysTable.lastUsedAt, createdAt: overlaysTable.createdAt })
+			.select({ ownerId: overlaysTable.ownerId, score: scoreExpr })
 			.from(overlaysTable)
 			.where(eq(overlaysTable.status, StatusOptions.Active))
+			.groupBy(overlaysTable.ownerId)
+			.orderBy(desc(scoreExpr))
+			.limit(limitedBatchSize)
 			.execute();
 
-		const dedupedByOwner = new Map<string, { ownerId: string; score: number }>();
-		for (const row of rows) {
-			const score = (row.lastUsedAt ?? row.createdAt)?.getTime() ?? 0;
-			const existing = dedupedByOwner.get(row.ownerId);
-			if (!existing || score > existing.score) {
-				dedupedByOwner.set(row.ownerId, { ownerId: row.ownerId, score });
-			}
-		}
-
-		return Array.from(dedupedByOwner.values())
-			.sort((a, b) => b.score - a.score)
-			.slice(0, Math.max(1, batchSize))
-			.map((entry) => entry.ownerId);
+		return rows.map((row) => row.ownerId);
 	} catch (error) {
 		console.error("Error fetching active owner IDs for clip sync:", error);
 		return [];
