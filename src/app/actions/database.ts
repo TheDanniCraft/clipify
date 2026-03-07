@@ -2,9 +2,9 @@
 
 import { tokenTable, usersTable, overlaysTable, queueTable, settingsTable, modQueueTable, editorsTable, twitchCacheTable } from "@/db/schema";
 import { db } from "@/db/client";
-import { AuthenticatedUser, Overlay, TwitchUserResponse, TwitchTokenApiResponse, UserToken, Plan, Role, UserSettings, TwitchCacheType, StatusOptions, OverlayType, PlaybackMode, MaxDurationMode } from "@types";
+import { AuthenticatedUser, Overlay, TwitchUserResponse, TwitchTokenApiResponse, UserToken, Plan, Role, UserSettings, TwitchCacheType, StatusOptions, OverlayType, PlaybackMode, MaxDurationMode, TwitchClip } from "@types";
 import { getUserDetails, getUsersDetailsBulk, refreshAccessToken, subscribeToReward } from "@actions/twitch";
-import { eq, inArray, and, or, isNull, lt, gt, sql } from "drizzle-orm";
+import { eq, inArray, and, or, isNull, lt, gt, sql, like, desc } from "drizzle-orm";
 import { validateAuth } from "@actions/auth";
 import { encryptToken, decryptToken } from "@lib/tokenCrypto";
 import { getFeatureAccess } from "@lib/featureAccess";
@@ -576,6 +576,122 @@ export async function getAllOverlaysByOwnerServer(ownerId: string) {
 		console.error("Error fetching overlays:", error);
 		throw new Error("Failed to fetch overlays");
 	}
+}
+
+// Server-only helper for clip cache daemon.
+export async function getActiveOverlayOwnerIdsForClipSync(batchSize = 50) {
+	try {
+		const rows = await db
+			.select({ ownerId: overlaysTable.ownerId, lastUsedAt: overlaysTable.lastUsedAt, createdAt: overlaysTable.createdAt })
+			.from(overlaysTable)
+			.where(eq(overlaysTable.status, StatusOptions.Active))
+			.execute();
+
+		const dedupedByOwner = new Map<string, { ownerId: string; score: number }>();
+		for (const row of rows) {
+			const score = (row.lastUsedAt ?? row.createdAt)?.getTime() ?? 0;
+			const existing = dedupedByOwner.get(row.ownerId);
+			if (!existing || score > existing.score) {
+				dedupedByOwner.set(row.ownerId, { ownerId: row.ownerId, score });
+			}
+		}
+
+		return Array.from(dedupedByOwner.values())
+			.sort((a, b) => b.score - a.score)
+			.slice(0, Math.max(1, batchSize))
+			.map((entry) => entry.ownerId);
+	} catch (error) {
+		console.error("Error fetching active owner IDs for clip sync:", error);
+		return [];
+	}
+}
+
+type ClipSyncState = {
+	lastIncrementalSyncAt?: string;
+	lastBackfillSyncAt?: string;
+	backfillCursor?: string;
+	backfillComplete?: boolean;
+};
+
+type CachedClipValue = {
+	clip?: TwitchClip;
+	unavailable?: boolean;
+};
+
+export type ClipCacheStatus = {
+	cachedClipCount: number;
+	unavailableClipCount: number;
+	oldestClipDate: string | null;
+	newestClipDate: string | null;
+	lastIncrementalSyncAt: string | null;
+	lastBackfillSyncAt: string | null;
+	backfillComplete: boolean;
+	backfillCursor: string | null;
+	estimatedCoveragePercent: number;
+};
+
+function extractCachedClip(value: unknown): TwitchClip | null {
+	if (!value || typeof value !== "object") return null;
+	if ("clip" in (value as CachedClipValue) && (value as CachedClipValue).clip) return (value as CachedClipValue).clip as TwitchClip;
+	if ("id" in (value as Record<string, unknown>) && typeof (value as Record<string, unknown>).id === "string") return value as TwitchClip;
+	return null;
+}
+
+function parseClipDate(value: string) {
+	const parsed = new Date(value).getTime();
+	return Number.isFinite(parsed) ? parsed : null;
+}
+
+export async function getClipCacheStatus(ownerId: string): Promise<ClipCacheStatus | null> {
+	const user = await requireUser();
+	if (!user || !(await canEditOwner(user.id, ownerId))) {
+		console.warn(`Unauthorized "getClipCacheStatus" API request for owner id: ${ownerId}`);
+		return null;
+	}
+	return getClipCacheStatusForOwnerServer(ownerId);
+}
+
+export async function getClipCacheStatusForOwnerServer(ownerId: string): Promise<ClipCacheStatus> {
+	const clipPrefix = `clip:${ownerId}:`;
+	const stateKey = `clip-sync:${ownerId}`;
+	const [entries, state] = await Promise.all([
+		getTwitchCacheByPrefixEntries<CachedClipValue | TwitchClip>(TwitchCacheType.Clip, clipPrefix),
+		getTwitchCache<ClipSyncState>(TwitchCacheType.Clip, stateKey),
+	]);
+
+	let cachedClipCount = 0;
+	let unavailableClipCount = 0;
+	let oldestTs: number | null = null;
+	let newestTs: number | null = null;
+
+	for (const entry of entries) {
+		const value = entry.value as CachedClipValue | TwitchClip;
+		if ((value as CachedClipValue).unavailable) {
+			unavailableClipCount += 1;
+		}
+		const clip = extractCachedClip(value);
+		if (!clip) continue;
+		cachedClipCount += 1;
+		const ts = parseClipDate(clip.created_at);
+		if (ts == null) continue;
+		oldestTs = oldestTs == null ? ts : Math.min(oldestTs, ts);
+		newestTs = newestTs == null ? ts : Math.max(newestTs, ts);
+	}
+
+	const backfillComplete = Boolean(state?.backfillComplete);
+	const estimatedCoveragePercent = backfillComplete ? 100 : Math.min(99, Math.round((cachedClipCount / (cachedClipCount + 1500)) * 100));
+
+	return {
+		cachedClipCount,
+		unavailableClipCount,
+		oldestClipDate: oldestTs == null ? null : new Date(oldestTs).toISOString(),
+		newestClipDate: newestTs == null ? null : new Date(newestTs).toISOString(),
+		lastIncrementalSyncAt: state?.lastIncrementalSyncAt ?? null,
+		lastBackfillSyncAt: state?.lastBackfillSyncAt ?? null,
+		backfillComplete,
+		backfillCursor: state?.backfillCursor ?? null,
+		estimatedCoveragePercent,
+	};
 }
 
 export async function setPlayerVolumeForOwner(ownerId: string, volume: number) {
@@ -1279,6 +1395,27 @@ export async function getTwitchCacheBatch<T>(type: TwitchCacheType, keys: string
 	}
 }
 
+export async function getTwitchCacheByPrefixEntries<T>(type: TwitchCacheType, keyPrefix: string, limit?: number): Promise<Array<{ key: string; value: T }>> {
+	try {
+		if (!keyPrefix) return [];
+		const now = new Date();
+		const baseQuery = db
+			.select({ key: twitchCacheTable.key, value: twitchCacheTable.value })
+			.from(twitchCacheTable)
+			.where(and(eq(twitchCacheTable.type, type), like(twitchCacheTable.key, `${keyPrefix}%`), or(isNull(twitchCacheTable.expiresAt), gt(twitchCacheTable.expiresAt, now))))
+			.orderBy(desc(twitchCacheTable.fetchedAt));
+		const rows = typeof limit === "number" ? await baseQuery.limit(limit).execute() : await baseQuery.execute();
+
+		return rows.map((row) => ({
+			key: row.key,
+			value: JSON.parse(row.value) as T,
+		}));
+	} catch (error) {
+		console.error("Error reading twitch cache by prefix:", error);
+		return [];
+	}
+}
+
 // Stale batch read: ignore expiresAt and return last known values if present.
 export async function getTwitchCacheStaleBatch<T>(type: TwitchCacheType, keys: string[]): Promise<T[]> {
 	try {
@@ -1325,5 +1462,27 @@ export async function setTwitchCacheBatch(type: TwitchCacheType, entries: { key:
 			.execute();
 	} catch (error) {
 		console.error("Error writing twitch cache batch:", error);
+	}
+}
+
+export async function deleteTwitchCacheKeys(type: TwitchCacheType, keys: string[]) {
+	try {
+		if (keys.length === 0) return 0;
+		const result = await db.delete(twitchCacheTable).where(and(eq(twitchCacheTable.type, type), inArray(twitchCacheTable.key, keys))).execute();
+		return Number(result.rowCount ?? 0);
+	} catch (error) {
+		console.error("Error deleting twitch cache keys:", error);
+		return 0;
+	}
+}
+
+export async function deleteTwitchCacheByPrefix(type: TwitchCacheType, keyPrefix: string) {
+	try {
+		if (!keyPrefix) return 0;
+		const result = await db.delete(twitchCacheTable).where(and(eq(twitchCacheTable.type, type), like(twitchCacheTable.key, `${keyPrefix}%`))).execute();
+		return Number(result.rowCount ?? 0);
+	} catch (error) {
+		console.error("Error deleting twitch cache by prefix:", error);
+		return 0;
 	}
 }

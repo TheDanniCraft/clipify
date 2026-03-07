@@ -3,6 +3,9 @@ import "./globals.css";
 import { Providers } from "./providers";
 import { getBaseUrl } from "@actions/utils";
 import PlausibleClient from "./PlausibleClient";
+import { startClipCacheScheduler } from "@lib/clipCacheScheduler";
+
+startClipCacheScheduler();
 
 const baseUrl = await getBaseUrl();
 const manifestUrl = new URL("manifest.webmanifest", baseUrl);
