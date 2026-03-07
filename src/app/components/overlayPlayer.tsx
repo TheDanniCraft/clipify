@@ -553,7 +553,7 @@ export default function OverlayPlayer({
 					...clipPoolRef.current.map((clip) => clip.id),
 				]),
 			);
-			const fetched = await getTwitchClipBatch(overlay, overlay.type, excludeIds, clipPackSize);
+			const fetched = await getTwitchClipBatch(overlay.id, overlaySecret, overlay.type, excludeIds, clipPackSize);
 			if (!Array.isArray(fetched)) return fetched;
 			const deduped = new Map<string, TwitchClip>();
 			for (const clip of fetched) {
@@ -573,7 +573,7 @@ export default function OverlayPlayer({
 			console.error("Error refreshing clip pool:", error);
 			return clipPoolRef.current;
 		}
-	}, [clipPackSize, clipPoolTargetSize, overlay]);
+	}, [clipPackSize, clipPoolTargetSize, overlay, overlaySecret]);
 
 	const parseDemoClipId = useCallback((rawInput: string) => {
 		const raw = rawInput.trim();
