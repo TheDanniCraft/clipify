@@ -23,8 +23,10 @@ declare global {
 
 function shouldRunScheduler() {
 	const enabled = process.env.CLIP_CACHE_SYNC_ENABLED;
-	if (enabled == null) return true;
-	return ["1", "true", "yes", "on"].includes(enabled.toLowerCase());
+	if (enabled != null) {
+		return ["1", "true", "yes", "on"].includes(enabled.toLowerCase());
+	}
+	return process.env.NODE_ENV === "production";
 }
 
 function parsePositiveInt(value: string | undefined, fallback: number) {

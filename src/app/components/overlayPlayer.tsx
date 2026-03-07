@@ -484,6 +484,7 @@ export default function OverlayPlayer({
 	const [isMuted, setIsMuted] = useState<boolean>(embedBehaviorEnabled ? !!embedMuted : false);
 	const [runtimeVolume, setRuntimeVolume] = useState<number>(overlay.playerVolume ?? 50);
 	const [ownerAvatar, setOwnerAvatar] = useState<string>("");
+	const [isDocumentVisible, setIsDocumentVisible] = useState<boolean>(true);
 	const [hasUserStarted, setHasUserStarted] = useState<boolean>(!embedBehaviorEnabled || !!embedAutoplay);
 	const [, setWebsocket] = useState<WebSocket | null>(null);
 	const [clipPool, setClipPool] = useState<TwitchClip[]>([]);
@@ -542,6 +543,16 @@ export default function OverlayPlayer({
 	useEffect(() => {
 		clipPoolRef.current = clipPool;
 	}, [clipPool]);
+
+	useEffect(() => {
+		const updateVisibility = () => {
+			if (typeof document === "undefined") return;
+			setIsDocumentVisible(document.visibilityState !== "hidden");
+		};
+		updateVisibility();
+		document.addEventListener("visibilitychange", updateVisibility);
+		return () => document.removeEventListener("visibilitychange", updateVisibility);
+	}, []);
 
 	const refreshClipPool = useCallback(async () => {
 		try {
@@ -1117,6 +1128,7 @@ export default function OverlayPlayer({
 	}, [videoClip?.id]);
 
 	useEffect(() => {
+		if (!showPlayer || paused || !videoClip || !isDocumentVisible) return;
 		let rafId = 0;
 		let lastCommitAt = 0;
 		const tick = () => {
@@ -1136,7 +1148,7 @@ export default function OverlayPlayer({
 		};
 		rafId = requestAnimationFrame(tick);
 		return () => cancelAnimationFrame(rafId);
-	}, [activeSlot, videoClip?.id]);
+	}, [activeSlot, isDocumentVisible, paused, showPlayer, videoClip?.id]);
 
 	useEffect(() => {
 		if (!showPlayer) {

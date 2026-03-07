@@ -77,7 +77,7 @@ export default function SettingsPage() {
 	}, [timer]);
 
 	useEffect(() => {
-		if (!clipForceRefreshStatus || clipForceRefreshStatus.remainingMs <= 0) return;
+		if (!clipForceRefreshStatus || clipForceRefreshStatus.canRefresh) return;
 		const interval = setInterval(() => {
 			setClipForceRefreshStatus((prev) => {
 				if (!prev) return prev;
@@ -90,7 +90,7 @@ export default function SettingsPage() {
 			});
 		}, 1000);
 		return () => clearInterval(interval);
-	}, [clipForceRefreshStatus]);
+	}, [clipForceRefreshStatus?.canRefresh]);
 
 	useEffect(() => {
 		async function fetchSettings() {
