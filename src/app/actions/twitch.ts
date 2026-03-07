@@ -558,10 +558,15 @@ export async function syncOwnerClipCache(ownerId: string, ensurePackSize = 0): P
 	const syncState = await getClipSyncState(ownerId);
 	const now = Date.now();
 	const nextState: ClipSyncState = { ...syncState };
+	const isSyncDue = (lastSyncAt: string | undefined, intervalMs: number): boolean => {
+		if (!lastSyncAt) return true;
+		const parsed = Date.parse(lastSyncAt);
+		if (!Number.isFinite(parsed)) return true;
+		return now - parsed >= intervalMs;
+	};
 	const incrementalDue =
 		(ensurePackSize > 0 && cachedClips.length < ensurePackSize) ||
-		!nextState.lastIncrementalSyncAt ||
-		now - new Date(nextState.lastIncrementalSyncAt).getTime() >= CLIP_SYNC_INCREMENTAL_INTERVAL_MS;
+		isSyncDue(nextState.lastIncrementalSyncAt, CLIP_SYNC_INCREMENTAL_INTERVAL_MS);
 
 	if (incrementalDue) {
 		try {
@@ -583,7 +588,7 @@ export async function syncOwnerClipCache(ownerId: string, ensurePackSize = 0): P
 	const backfillDue =
 		!nextState.backfillComplete &&
 		!!nextState.backfillCursor &&
-		(!nextState.lastBackfillSyncAt || now - new Date(nextState.lastBackfillSyncAt).getTime() >= CLIP_SYNC_BACKFILL_INTERVAL_MS);
+		isSyncDue(nextState.lastBackfillSyncAt, CLIP_SYNC_BACKFILL_INTERVAL_MS);
 
 	if (backfillDue && nextState.backfillCursor) {
 		try {

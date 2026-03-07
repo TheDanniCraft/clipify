@@ -2,7 +2,7 @@
 
 import { type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type RefObject, type SyntheticEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ClipQueueItem, ModQueueItem, Overlay, TwitchClip, TwitchClipGqlData, TwitchClipGqlResponse, TwitchClipVideoQuality, VideoClip } from "@types";
-import { getAvatar, getDemoClip, getGameDetails, getTwitchClip, getTwitchClipBatch, resolvePlayableClip, subscribeToChat } from "@actions/twitch";
+import { getAvatar, getDemoClip, getGameDetails, getTwitchClip, getTwitchClipBatch, resolvePlayableClip, subscribeToChat, subscribeToClipCreate } from "@actions/twitch";
 import PlayerOverlay from "@components/playerOverlay";
 import { Avatar, Button, Link } from "@heroui/react";
 import { motion } from "framer-motion";
@@ -1336,7 +1336,7 @@ export default function OverlayPlayer({
 		async function setupChat() {
 			if (!overlay.ownerId) return;
 			try {
-				await subscribeToChat(overlay.ownerId);
+				await Promise.all([subscribeToChat(overlay.ownerId), subscribeToClipCreate(overlay.ownerId)]);
 			} catch (error) {
 				console.error("Error subscribing to EventSub", error);
 			}
