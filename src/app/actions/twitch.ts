@@ -38,6 +38,7 @@ type CachedClipValue = {
 	clip: TwitchClip;
 	unavailable?: boolean;
 	lastSeenAt?: string;
+	lastValidatedAt?: string;
 };
 
 type ClipForceRefreshState = {
@@ -46,6 +47,7 @@ type ClipForceRefreshState = {
 
 const CLIP_SYNC_INCREMENTAL_INTERVAL_MS = 10 * 60 * 1000;
 const CLIP_SYNC_BACKFILL_INTERVAL_MS = 2 * 60 * 1000;
+const CLIP_VALIDATION_STALE_MS = Math.max(5 * 60 * 1000, Number(process.env.CLIP_VALIDATION_STALE_MS ?? 6 * 60 * 60 * 1000));
 const CLIP_FORCE_REFRESH_COOLDOWN_MS = Math.max(60 * 60 * 1000, Number(process.env.CLIP_FORCE_REFRESH_COOLDOWN_MS ?? 6 * 60 * 60 * 1000));
 const CLIP_CACHE_PREFIX = (ownerId: string) => `clip:${ownerId}:`;
 const CLIP_SYNC_STATE_KEY = (ownerId: string) => `clip-sync:${ownerId}`;
@@ -84,6 +86,8 @@ async function getCachedClipsByOwner(ownerId: string): Promise<TwitchClip[]> {
 	const entries = await getTwitchCacheByPrefixEntries<CachedClipValue | TwitchClip>(TwitchCacheType.Clip, CLIP_CACHE_PREFIX(ownerId));
 	const deduped = new Map<string, TwitchClip>();
 	for (const entry of entries) {
+		const value = entry.value as CachedClipValue | TwitchClip;
+		if ((value as CachedClipValue).unavailable) continue;
 		const clip = parseCachedClipValue(entry.value);
 		if (!clip?.id) continue;
 		if (deduped.has(clip.id)) continue;
@@ -99,9 +103,56 @@ async function upsertClipsByOwner(ownerId: string, clips: TwitchClip[]) {
 		TwitchCacheType.Clip,
 		clips.map((clip) => ({
 			key: toClipCacheKey(ownerId, clip.id),
-			value: { clip, lastSeenAt: nowIso } satisfies CachedClipValue,
+			value: { clip, lastSeenAt: nowIso, lastValidatedAt: nowIso } satisfies CachedClipValue,
 		})),
 	);
+}
+
+export async function resolvePlayableClip(ownerId: string, clip: TwitchClip): Promise<TwitchClip | null> {
+	const key = toClipCacheKey(ownerId, clip.id);
+	const cached = await getTwitchCache<CachedClipValue | TwitchClip>(TwitchCacheType.Clip, key);
+	const nowIso = new Date().toISOString();
+	const cachedValue = cached && typeof cached === "object" ? (cached as CachedClipValue | TwitchClip) : null;
+	const cachedClip = parseCachedClipValue(cachedValue);
+
+	if (cachedValue && "unavailable" in cachedValue && (cachedValue as CachedClipValue).unavailable) {
+		const lastValidatedAt = (cachedValue as CachedClipValue).lastValidatedAt;
+		const stale = !lastValidatedAt || Date.now() - new Date(lastValidatedAt).getTime() >= CLIP_VALIDATION_STALE_MS;
+		if (!stale) return null;
+	}
+
+	const lastValidatedAt = cachedValue && "lastValidatedAt" in (cachedValue as CachedClipValue) ? (cachedValue as CachedClipValue).lastValidatedAt : undefined;
+	const stale = !lastValidatedAt || Date.now() - new Date(lastValidatedAt).getTime() >= CLIP_VALIDATION_STALE_MS;
+	if (!stale) {
+		return cachedClip ?? clip;
+	}
+
+	const fresh = await getTwitchClip(clip.id, ownerId);
+	if (!fresh) {
+		await setTwitchCache(
+			TwitchCacheType.Clip,
+			key,
+			{
+				clip: cachedClip ?? clip,
+				unavailable: true,
+				lastSeenAt: (cachedValue as CachedClipValue | null)?.lastSeenAt ?? nowIso,
+				lastValidatedAt: nowIso,
+			} satisfies CachedClipValue,
+		);
+		return null;
+	}
+
+	await setTwitchCache(
+		TwitchCacheType.Clip,
+		key,
+		{
+			clip: fresh,
+			unavailable: false,
+			lastSeenAt: nowIso,
+			lastValidatedAt: nowIso,
+		} satisfies CachedClipValue,
+	);
+	return fresh;
 }
 
 async function fetchClipPage(ownerId: string, accessToken: string, first: number, after?: string) {

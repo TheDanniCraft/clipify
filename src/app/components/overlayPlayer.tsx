@@ -2,7 +2,7 @@
 
 import { type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type RefObject, type SyntheticEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ClipQueueItem, ModQueueItem, Overlay, TwitchClip, TwitchClipGqlData, TwitchClipGqlResponse, TwitchClipVideoQuality, VideoClip } from "@types";
-import { getAvatar, getDemoClip, getGameDetails, getTwitchClip, getTwitchClips, subscribeToChat, subscribeToClipCreate } from "@actions/twitch";
+import { getAvatar, getDemoClip, getGameDetails, getTwitchClip, getTwitchClips, resolvePlayableClip, subscribeToChat, subscribeToClipCreate } from "@actions/twitch";
 import PlayerOverlay from "@components/playerOverlay";
 import { Avatar, Button, Link } from "@heroui/react";
 import { motion } from "framer-motion";
@@ -839,7 +839,9 @@ export default function OverlayPlayer({
 
 		if (playbackMode === "top") {
 			const topClip = [...candidates].sort((a, b) => b.view_count - a.view_count || b.created_at.localeCompare(a.created_at))[0];
-			return topClip ? { clip: topClip } : null;
+			if (!topClip) return null;
+			const playable = await resolvePlayableClip(overlay.ownerId, topClip);
+			return playable ? { clip: playable } : null;
 		}
 
 		if (playbackMode === "smart_shuffle") {
@@ -883,12 +885,20 @@ export default function OverlayPlayer({
 			let pick = Math.random() * totalWeight;
 			for (const entry of scored) {
 				pick -= entry.score;
-				if (pick <= 0) return { clip: entry.clip };
+				if (pick <= 0) {
+					const playable = await resolvePlayableClip(overlay.ownerId, entry.clip);
+					return playable ? { clip: playable } : null;
+				}
 			}
-			return scored[0] ? { clip: scored[0].clip } : null;
+			if (!scored[0]) return null;
+			const playable = await resolvePlayableClip(overlay.ownerId, scored[0].clip);
+			return playable ? { clip: playable } : null;
 		}
 
-		return { clip: candidates[Math.floor(Math.random() * candidates.length)] };
+		const randomClip = candidates[Math.floor(Math.random() * candidates.length)];
+		if (!randomClip) return null;
+		const playable = await resolvePlayableClip(overlay.ownerId, randomClip);
+		return playable ? { clip: playable } : null;
 	}, [getFirstQueClip, getFirstFromDemoQueue, isDemoPlayer, overlay.ownerId, playbackMode, refreshClipPool]);
 
 	/**
