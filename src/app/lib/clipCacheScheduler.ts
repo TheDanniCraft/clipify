@@ -22,6 +22,8 @@ declare global {
 }
 
 function shouldRunScheduler() {
+	// Avoid DB activity during `next build` where runtime resources may be unavailable.
+	if (process.env.NEXT_PHASE === "phase-production-build") return false;
 	return process.env.NODE_ENV !== "test";
 }
 
