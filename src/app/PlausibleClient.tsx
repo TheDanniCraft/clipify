@@ -15,7 +15,7 @@ function getHost(ref: string) {
 
 const EMBED_ROUTE_PATTERNS = ["/demoPlayer", "/embed/**"];
 
-export default function PlausibleClient() {
+export default function PlausibleClient({ children }: { children: React.ReactNode }) {
 	const pathname = usePathname();
 
 	const enabled = useMemo(() => {
@@ -38,5 +38,9 @@ export default function PlausibleClient() {
 
 	if (!enabled) return null;
 
-	return <PlausibleProvider domain='clipify.us' customDomain='https://analytics.thedannicraft.de' selfHosted trackOutboundLinks trackFileDownloads taggedEvents hash enabled />;
+	return (
+		<PlausibleProvider domain='clipify.us' customDomain='https://analytics.thedannicraft.de' selfHosted trackOutboundLinks trackFileDownloads taggedEvents hash enabled>
+			{children}
+		</PlausibleProvider>
+	);
 }

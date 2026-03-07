@@ -53,8 +53,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
 				<meta name='adopt-website-id' content='792b9b29-57f9-4d92-b5f1-313f94ddfacc' />
 			</head>
 			<body>
-				<PlausibleClient />
-				<Providers>{children}</Providers>
+				<PlausibleClient>
+					<Providers>{children}</Providers>
+				</PlausibleClient>
 			</body>
 		</html>
 	);
