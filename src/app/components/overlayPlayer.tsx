@@ -2,7 +2,7 @@
 
 import { type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type RefObject, type SyntheticEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ClipQueueItem, ModQueueItem, Overlay, TwitchClip, TwitchClipGqlData, TwitchClipGqlResponse, TwitchClipVideoQuality, VideoClip } from "@types";
-import { getAvatar, getDemoClip, getGameDetails, getTwitchClip, getTwitchClips, resolvePlayableClip, subscribeToChat, subscribeToClipCreate } from "@actions/twitch";
+import { getAvatar, getDemoClip, getGameDetails, getTwitchClip, getTwitchClips, resolvePlayableClip, subscribeToChat } from "@actions/twitch";
 import PlayerOverlay from "@components/playerOverlay";
 import { Avatar, Button, Link } from "@heroui/react";
 import { motion } from "framer-motion";
@@ -1102,13 +1102,18 @@ export default function OverlayPlayer({
 
 	useEffect(() => {
 		let rafId = 0;
+		let lastCommitAt = 0;
 		const tick = () => {
 			const activeVideo = activeSlot === "a" ? videoARef.current : videoBRef.current;
 			if (activeVideo) {
 				const duration = activeVideo.duration;
 				if (Number.isFinite(duration) && duration > 0) {
-					setActiveDuration(duration);
-					setActiveCurrentTime(activeVideo.currentTime);
+					const now = performance.now();
+					if (now - lastCommitAt >= 66) {
+						setActiveDuration(duration);
+						setActiveCurrentTime(activeVideo.currentTime);
+						lastCommitAt = now;
+					}
 				}
 			}
 			rafId = requestAnimationFrame(tick);
@@ -1303,7 +1308,7 @@ export default function OverlayPlayer({
 		async function setupChat() {
 			if (!overlay.ownerId) return;
 			try {
-				await Promise.all([subscribeToChat(overlay.ownerId), subscribeToClipCreate(overlay.ownerId)]);
+				await subscribeToChat(overlay.ownerId);
 			} catch (error) {
 				console.error("Error subscribing to EventSub", error);
 			}

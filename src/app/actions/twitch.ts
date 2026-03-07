@@ -47,8 +47,13 @@ type ClipForceRefreshState = {
 
 const CLIP_SYNC_INCREMENTAL_INTERVAL_MS = 10 * 60 * 1000;
 const CLIP_SYNC_BACKFILL_INTERVAL_MS = 2 * 60 * 1000;
-const CLIP_VALIDATION_STALE_MS = Math.max(5 * 60 * 1000, Number(process.env.CLIP_VALIDATION_STALE_MS ?? 6 * 60 * 60 * 1000));
-const CLIP_FORCE_REFRESH_COOLDOWN_MS = Math.max(60 * 60 * 1000, Number(process.env.CLIP_FORCE_REFRESH_COOLDOWN_MS ?? 6 * 60 * 60 * 1000));
+function parsePositiveInt(value: string | undefined, fallback: number) {
+	const parsed = Number(value);
+	if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
+	return Math.floor(parsed);
+}
+const CLIP_VALIDATION_STALE_MS = Math.max(5 * 60 * 1000, parsePositiveInt(process.env.CLIP_VALIDATION_STALE_MS, 6 * 60 * 60 * 1000));
+const CLIP_FORCE_REFRESH_COOLDOWN_MS = Math.max(60 * 60 * 1000, parsePositiveInt(process.env.CLIP_FORCE_REFRESH_COOLDOWN_MS, 6 * 60 * 60 * 1000));
 const CLIP_CACHE_PREFIX = (ownerId: string) => `clip:${ownerId}:`;
 const CLIP_SYNC_STATE_KEY = (ownerId: string) => `clip-sync:${ownerId}`;
 const CLIP_FORCE_REFRESH_KEY = (ownerId: string) => `clip-sync-force:${ownerId}`;
