@@ -41,7 +41,7 @@ export const tiers: Array<Tier> = [
 			"Control your overlay via chat",
 			"Add editors to manage your overlays",
 			"Advanced clip filtering",
-			"Additional playback modes: Top and Hybrid",
+			"Additional playback modes: Top and Smart Shuffle",
 			"Theme Studio",
 			"Advanced clip player for embedding in websites",
 			"Priority support",
