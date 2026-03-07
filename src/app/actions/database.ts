@@ -52,6 +52,12 @@ function recordCacheRead(hit: boolean, stale = false) {
 	metrics.lastReadAt = new Date().toISOString();
 }
 
+function recordCacheBatchReads(hits: number, requested: number, stale = false) {
+	for (let i = 0; i < hits; i++) recordCacheRead(true, stale);
+	const misses = Math.max(0, requested - hits);
+	for (let i = 0; i < misses; i++) recordCacheRead(false, stale);
+}
+
 export async function getTwitchCacheReadMetricsSnapshot() {
 	const metrics = getCacheReadMetricsStore();
 	const total = metrics.hits + metrics.misses;
@@ -1438,7 +1444,7 @@ export async function getTwitchCacheBatch<T>(type: TwitchCacheType, keys: string
 			.where(and(eq(twitchCacheTable.type, type), inArray(twitchCacheTable.key, keys), or(isNull(twitchCacheTable.expiresAt), gt(twitchCacheTable.expiresAt, now))))
 			.execute();
 
-		recordCacheRead(rows.length > 0);
+		recordCacheBatchReads(rows.length, keys.length);
 		return rows.map((row) => JSON.parse(row.value) as T);
 	} catch (error) {
 		console.error("Error reading twitch cache batch:", error);
@@ -1477,7 +1483,7 @@ export async function getTwitchCacheStaleBatch<T>(type: TwitchCacheType, keys: s
 			.where(and(eq(twitchCacheTable.type, type), inArray(twitchCacheTable.key, keys)))
 			.execute();
 
-		recordCacheRead(rows.length > 0, true);
+		recordCacheBatchReads(rows.length, keys.length, true);
 		return rows.map((row) => JSON.parse(row.value) as T);
 	} catch (error) {
 		console.error("Error reading stale twitch cache batch:", error);

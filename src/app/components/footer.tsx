@@ -132,12 +132,19 @@ export default function Footer() {
 		(event: React.FormEvent<HTMLFormElement>) => {
 			event.preventDefault();
 			const data = Object.fromEntries(new FormData(event.currentTarget));
-			setPendingEmail((data.email as string).trim());
+			const email = ((data.email as string) || "").trim();
+			if (!email || !token) {
+				setPendingEmail(email);
+				setNewsletterState("error");
+				setIsDetailsExpanded(false);
+				return;
+			}
+			setPendingEmail(email);
 			setFirstName("");
 			setNewsletterState("default");
 			setIsDetailsExpanded(true);
 		},
-		[],
+		[token],
 	);
 
 	const finishSubscribe = useCallback(async (includeNames = true) => {
