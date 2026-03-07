@@ -645,14 +645,13 @@ export async function forceRefreshOwnClipCache(ensurePackSize = 0) {
 
 export async function getTwitchClips(overlay: Overlay, type?: OverlayType, skipFilter?: boolean): Promise<TwitchClip[]> {
 	overlay.type = type || overlay.type;
-	const RESPONSE_CLIP_LIMIT = 300;
 	let clips: TwitchClip[] = [];
 
 	if (overlay.type === "Queue") {
 		return clips;
 	}
 
-	await syncOwnerClipCache(overlay.ownerId, RESPONSE_CLIP_LIMIT);
+	await syncOwnerClipCache(overlay.ownerId);
 	clips = await getCachedClipsByOwner(overlay.ownerId);
 
 	if (overlay.type === "Featured") {
@@ -714,9 +713,79 @@ export async function getTwitchClips(overlay: Overlay, type?: OverlayType, skipF
 		}
 	}
 
-	clips = clips.slice(0, RESPONSE_CLIP_LIMIT);
-
 	return clips;
+}
+
+export async function getTwitchClipBatch(overlay: Overlay, type?: OverlayType, excludeClipIds: string[] = [], count = 50, skipFilter?: boolean): Promise<TwitchClip[]> {
+	const all = await getTwitchClips(overlay, type, skipFilter);
+	if (all.length === 0) return [];
+
+	const exclude = new Set(excludeClipIds);
+	let candidates = all.filter((clip) => !exclude.has(clip.id));
+	if (candidates.length === 0) {
+		candidates = all;
+	}
+
+	const batchSize = Math.max(1, Math.min(200, count));
+
+	if (overlay.playbackMode === "top") {
+		return [...candidates].sort((a, b) => b.view_count - a.view_count || b.created_at.localeCompare(a.created_at)).slice(0, batchSize);
+	}
+
+	if (overlay.playbackMode === "smart_shuffle") {
+		const remaining = [...candidates];
+		const ordered: TwitchClip[] = [];
+		const recent: TwitchClip[] = [];
+		while (remaining.length > 0 && ordered.length < batchSize) {
+			const recentCreatorCounts = new Map<string, number>();
+			const recentGameCounts = new Map<string, number>();
+			for (const clip of recent.slice(-20)) {
+				const creatorKey = clip.creator_id || clip.creator_name;
+				recentCreatorCounts.set(creatorKey, (recentCreatorCounts.get(creatorKey) ?? 0) + 1);
+				recentGameCounts.set(clip.game_id, (recentGameCounts.get(clip.game_id) ?? 0) + 1);
+			}
+
+			const sortedViews = remaining.map((clip) => clip.view_count).sort((a, b) => a - b);
+			const medianViews = sortedViews.length > 0 ? sortedViews[Math.floor(sortedViews.length / 2)] : 0;
+			const maxLogViews = Math.log1p(Math.max(1, ...sortedViews));
+
+			const scored = remaining.map((clip) => {
+				const creatorKey = clip.creator_id || clip.creator_name;
+				const creatorPenalty = (recentCreatorCounts.get(creatorKey) ?? 0) * 0.12;
+				const gamePenalty = (recentGameCounts.get(clip.game_id) ?? 0) * 0.1;
+				const viewScore = Math.log1p(clip.view_count) / maxLogViews;
+				const exploreBoost = clip.view_count <= medianViews ? 0.12 : 0;
+				const jitter = Math.random() * 0.25;
+				const score = Math.max(0.05, 0.58 * viewScore + 0.25 * jitter + exploreBoost - creatorPenalty - gamePenalty);
+				return { clip, score };
+			});
+
+			const totalWeight = scored.reduce((sum, entry) => sum + entry.score, 0);
+			let pick = Math.random() * totalWeight;
+			let picked = scored[0]?.clip;
+			for (const entry of scored) {
+				pick -= entry.score;
+				if (pick <= 0) {
+					picked = entry.clip;
+					break;
+				}
+			}
+
+			if (!picked) break;
+			ordered.push(picked);
+			recent.push(picked);
+			const idx = remaining.findIndex((clip) => clip.id === picked.id);
+			if (idx >= 0) remaining.splice(idx, 1);
+			else break;
+		}
+		return ordered;
+	}
+
+	return [...candidates]
+		.map((clip) => ({ clip, sort: Math.random() }))
+		.sort((a, b) => a.sort - b.sort)
+		.map((entry) => entry.clip)
+		.slice(0, batchSize);
 }
 
 export async function getDemoClip(clipId: string): Promise<TwitchClip | null> {

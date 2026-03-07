@@ -2,7 +2,7 @@
 
 import { type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type RefObject, type SyntheticEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ClipQueueItem, ModQueueItem, Overlay, TwitchClip, TwitchClipGqlData, TwitchClipGqlResponse, TwitchClipVideoQuality, VideoClip } from "@types";
-import { getAvatar, getDemoClip, getGameDetails, getTwitchClip, getTwitchClips, resolvePlayableClip, subscribeToChat } from "@actions/twitch";
+import { getAvatar, getDemoClip, getGameDetails, getTwitchClip, getTwitchClipBatch, resolvePlayableClip, subscribeToChat } from "@actions/twitch";
 import PlayerOverlay from "@components/playerOverlay";
 import { Avatar, Button, Link } from "@heroui/react";
 import { motion } from "framer-motion";
@@ -543,7 +543,15 @@ export default function OverlayPlayer({
 
 	const refreshClipPool = useCallback(async () => {
 		try {
-			const fetched = await getTwitchClips(overlay, overlay.type);
+			const excludeIds = Array.from(
+				new Set([
+					...playedClipsRef.current,
+					...(clipRef.current?.id ? [clipRef.current.id] : []),
+					...(nextClipRef.current?.id ? [nextClipRef.current.id] : []),
+					...clipPoolRef.current.map((clip) => clip.id),
+				]),
+			);
+			const fetched = await getTwitchClipBatch(overlay, overlay.type, excludeIds, 60);
 			if (!Array.isArray(fetched)) return fetched;
 			const deduped = new Map<string, TwitchClip>();
 			for (const clip of fetched) {
@@ -551,7 +559,13 @@ export default function OverlayPlayer({
 				deduped.set(clip.id, clip);
 			}
 			const next = Array.from(deduped.values());
-			setClipPool(next);
+			setClipPool((prev) => {
+				const merged = new Map<string, TwitchClip>();
+				for (const clip of prev) merged.set(clip.id, clip);
+				for (const clip of next) merged.set(clip.id, clip);
+				const pruned = Array.from(merged.values()).filter((clip) => !playedClipsRef.current.includes(clip.id));
+				return pruned.slice(0, 240);
+			});
 			return next;
 		} catch (error) {
 			console.error("Error refreshing clip pool:", error);
