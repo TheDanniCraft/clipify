@@ -18,6 +18,51 @@ const HEX_COLOR_PATTERN = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
 const RGB_COLOR_PATTERN = /^rgba?\(\s*(?:25[0-5]|2[0-4]\d|1?\d?\d)\s*,\s*(?:25[0-5]|2[0-4]\d|1?\d?\d)\s*,\s*(?:25[0-5]|2[0-4]\d|1?\d?\d)(?:\s*,\s*(?:0|1|0?\.\d+))?\s*\)$/i;
 const HSL_COLOR_PATTERN = /^hsla?\(\s*(?:360|3[0-5]\d|[12]?\d?\d)(?:\.\d+)?\s*,\s*(?:100|[1-9]?\d)(?:\.\d+)?%\s*,\s*(?:100|[1-9]?\d)(?:\.\d+)?%(?:\s*,\s*(?:0|1|0?\.\d+))?\s*\)$/i;
 
+type CacheReadMetrics = {
+	hits: number;
+	misses: number;
+	staleHits: number;
+	lastReadAt: string | null;
+	startedAt: string;
+};
+
+declare global {
+	// eslint-disable-next-line no-var
+	var __twitchCacheReadMetrics: CacheReadMetrics | undefined;
+}
+
+function getCacheReadMetricsStore(): CacheReadMetrics {
+	if (!globalThis.__twitchCacheReadMetrics) {
+		globalThis.__twitchCacheReadMetrics = {
+			hits: 0,
+			misses: 0,
+			staleHits: 0,
+			lastReadAt: null,
+			startedAt: new Date().toISOString(),
+		};
+	}
+	return globalThis.__twitchCacheReadMetrics;
+}
+
+function recordCacheRead(hit: boolean, stale = false) {
+	const metrics = getCacheReadMetricsStore();
+	if (hit) metrics.hits += 1;
+	else metrics.misses += 1;
+	if (stale && hit) metrics.staleHits += 1;
+	metrics.lastReadAt = new Date().toISOString();
+}
+
+export async function getTwitchCacheReadMetricsSnapshot() {
+	const metrics = getCacheReadMetricsStore();
+	const total = metrics.hits + metrics.misses;
+	const hitRate = total > 0 ? metrics.hits / total : 0;
+	return {
+		...metrics,
+		totalReads: total,
+		hitRate,
+	};
+}
+
 const cleanupTwitchCacheIfNeeded = async (now: Date) => {
 	if (now.getTime() - lastTwitchCacheCleanupAt < TWITCH_CACHE_CLEANUP_INTERVAL_MS) return;
 	lastTwitchCacheCleanupAt = now.getTime();
@@ -1300,7 +1345,11 @@ export async function getTwitchCache<T>(type: TwitchCacheType, key: string): Pro
 			.limit(1)
 			.execute();
 
-		if (rows.length === 0) return null;
+		if (rows.length === 0) {
+			recordCacheRead(false);
+			return null;
+		}
+		recordCacheRead(true);
 
 		return JSON.parse(rows[0].value) as T;
 	} catch (error) {
@@ -1319,7 +1368,11 @@ export async function getTwitchCacheEntry<T>(type: TwitchCacheType, key: string)
 			.limit(1)
 			.execute();
 
-		if (rows.length === 0) return { hit: false, value: null };
+		if (rows.length === 0) {
+			recordCacheRead(false);
+			return { hit: false, value: null };
+		}
+		recordCacheRead(true);
 
 		return { hit: true, value: JSON.parse(rows[0].value) as T };
 	} catch (error) {
@@ -1338,7 +1391,11 @@ export async function getTwitchCacheStale<T>(type: TwitchCacheType, key: string)
 			.limit(1)
 			.execute();
 
-		if (rows.length === 0) return null;
+		if (rows.length === 0) {
+			recordCacheRead(false, true);
+			return null;
+		}
+		recordCacheRead(true, true);
 
 		return JSON.parse(rows[0].value) as T;
 	} catch (error) {
@@ -1388,6 +1445,7 @@ export async function getTwitchCacheBatch<T>(type: TwitchCacheType, keys: string
 			.where(and(eq(twitchCacheTable.type, type), inArray(twitchCacheTable.key, keys), or(isNull(twitchCacheTable.expiresAt), gt(twitchCacheTable.expiresAt, now))))
 			.execute();
 
+		recordCacheRead(rows.length > 0);
 		return rows.map((row) => JSON.parse(row.value) as T);
 	} catch (error) {
 		console.error("Error reading twitch cache batch:", error);
@@ -1426,6 +1484,7 @@ export async function getTwitchCacheStaleBatch<T>(type: TwitchCacheType, keys: s
 			.where(and(eq(twitchCacheTable.type, type), inArray(twitchCacheTable.key, keys)))
 			.execute();
 
+		recordCacheRead(rows.length > 0, true);
 		return rows.map((row) => JSON.parse(row.value) as T);
 	} catch (error) {
 		console.error("Error reading stale twitch cache batch:", error);
