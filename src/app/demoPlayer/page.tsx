@@ -2,7 +2,6 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 import { getOverlayPublic } from "@actions/database";
-import { getTwitchClips } from "@actions/twitch";
 import OverlayPlayer from "@components/overlayPlayer";
 import { type Overlay } from "@types";
 
@@ -36,8 +35,6 @@ export default async function Overlay() {
 			</>
 		);
 
-	const clips = await getTwitchClips(overlay);
-
 	return (
 		<>
 			<style>{`
@@ -51,7 +48,7 @@ export default async function Overlay() {
 				}}
 			/>
 			<div className='flex flex-col justify-center items-center h-screen w-screen'>
-				<OverlayPlayer clips={clips} overlay={overlay} isDemoPlayer />
+				<OverlayPlayer overlay={overlay} isDemoPlayer />
 			</div>
 		</>
 	);

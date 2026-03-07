@@ -232,7 +232,7 @@ export enum OverlayType {
 export enum PlaybackMode {
 	Random = "random",
 	Top = "top",
-	Hybrid = "hybrid",
+	SmartShuffle = "smart_shuffle",
 }
 
 export enum MaxDurationMode {

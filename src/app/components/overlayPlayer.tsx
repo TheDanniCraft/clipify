@@ -2,7 +2,7 @@
 
 import { type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type RefObject, type SyntheticEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ClipQueueItem, ModQueueItem, Overlay, TwitchClip, TwitchClipGqlData, TwitchClipGqlResponse, TwitchClipVideoQuality, VideoClip } from "@types";
-import { getAvatar, getDemoClip, getGameDetails, getTwitchClip, subscribeToChat } from "@actions/twitch";
+import { getAvatar, getDemoClip, getGameDetails, getTwitchClip, getTwitchClips, subscribeToChat, subscribeToClipCreate } from "@actions/twitch";
 import PlayerOverlay from "@components/playerOverlay";
 import { Avatar, Button, Link } from "@heroui/react";
 import { motion } from "framer-motion";
@@ -433,7 +433,6 @@ function OverlayViewport({
 }
 
 export default function OverlayPlayer({
-	clips,
 	overlay,
 	isEmbed,
 	showBanner,
@@ -443,7 +442,6 @@ export default function OverlayPlayer({
 	embedAutoplay,
 	overlaySecret,
 }: {
-	clips: TwitchClip[];
 	overlay: Overlay;
 	isEmbed?: boolean;
 	showBanner?: boolean;
@@ -488,6 +486,8 @@ export default function OverlayPlayer({
 	const [ownerAvatar, setOwnerAvatar] = useState<string>("");
 	const [hasUserStarted, setHasUserStarted] = useState<boolean>(!embedBehaviorEnabled || !!embedAutoplay);
 	const [, setWebsocket] = useState<WebSocket | null>(null);
+	const [clipPool, setClipPool] = useState<TwitchClip[]>([]);
+	const clipPoolRef = useRef<TwitchClip[]>([]);
 
 	const videoARef = useRef<HTMLVideoElement | null>(null);
 	const videoBRef = useRef<HTMLVideoElement | null>(null);
@@ -496,7 +496,6 @@ export default function OverlayPlayer({
 	const [activeCurrentTime, setActiveCurrentTime] = useState(0);
 
 	const playbackMode = overlay.playbackMode ?? "random";
-	const maxDurationMode = overlay.maxDurationMode ?? "filter";
 	const channelInfoPos = {
 		x: clamp(overlay.channelInfoX ?? 0, 0, 100),
 		y: clamp(overlay.channelInfoY ?? 0, 0, 100),
@@ -537,6 +536,28 @@ export default function OverlayPlayer({
 	// Demo queue support
 	type DemoQueueItem = { id: string; clip?: TwitchClip };
 	const [demoQueue, setDemoQueue] = useState<DemoQueueItem[]>([]);
+
+	useEffect(() => {
+		clipPoolRef.current = clipPool;
+	}, [clipPool]);
+
+	const refreshClipPool = useCallback(async () => {
+		try {
+			const fetched = await getTwitchClips(overlay, overlay.type);
+			if (!Array.isArray(fetched)) return fetched;
+			const deduped = new Map<string, TwitchClip>();
+			for (const clip of fetched) {
+				if (!clip?.id) continue;
+				deduped.set(clip.id, clip);
+			}
+			const next = Array.from(deduped.values());
+			setClipPool(next);
+			return next;
+		} catch (error) {
+			console.error("Error refreshing clip pool:", error);
+			return clipPoolRef.current;
+		}
+	}, [overlay]);
 
 	const parseDemoClipId = useCallback((rawInput: string) => {
 		const raw = rawInput.trim();
@@ -786,30 +807,34 @@ export default function OverlayPlayer({
 			if (clip != null) return { clip, queueItem: queClip };
 		}
 
-		if (!clips || clips.length === 0) return null;
+		let availableClips = clipPoolRef.current;
+		if (!availableClips || availableClips.length === 0) {
+			availableClips = await refreshClipPool();
+		}
+		if (!availableClips || availableClips.length === 0) return null;
 
 		const played = playedClipsRef.current;
 		const nextId = nextClipRef.current?.id;
 		const currentId = clipRef.current?.id;
 
-		let candidates = clips.filter((c) => !played.includes(c.id) && c.id !== currentId && c.id !== nextId);
+		let candidates = availableClips.filter((c) => !played.includes(c.id) && c.id !== currentId && c.id !== nextId);
 
 		if (candidates.length === 0) {
 			setPlayedClips([]);
 			playedClipsRef.current = [];
 
-			candidates = clips.filter((c) => c.id !== currentId && c.id !== nextId);
+			candidates = availableClips.filter((c) => c.id !== currentId && c.id !== nextId);
 		}
 
-		if (candidates.length === 0 && clips.length === 1) return { clip: clips[0] };
+		if (candidates.length === 0 && availableClips.length === 1) return { clip: availableClips[0] };
 
-		if (candidates.length === 0 && clips.length === 2) {
-			if (!currentId) return { clip: clips[Math.floor(Math.random() * 2)] };
-			return { clip: clips.find((c) => c.id !== currentId) ?? clips[0] };
+		if (candidates.length === 0 && availableClips.length === 2) {
+			if (!currentId) return { clip: availableClips[Math.floor(Math.random() * 2)] };
+			return { clip: availableClips.find((c) => c.id !== currentId) ?? availableClips[0] };
 		}
 
 		if (candidates.length === 0) {
-			candidates = [...clips];
+			candidates = [...availableClips];
 		}
 
 		if (playbackMode === "top") {
@@ -817,18 +842,54 @@ export default function OverlayPlayer({
 			return topClip ? { clip: topClip } : null;
 		}
 
-		if (playbackMode === "hybrid") {
-			const weighted = [...candidates]
-				.map((clip) => ({
-					clip,
-					score: clip.view_count * (0.75 + Math.random() * 0.5),
-				}))
-				.sort((a, b) => b.score - a.score);
-			return weighted[0] ? { clip: weighted[0].clip } : null;
+		if (playbackMode === "smart_shuffle") {
+			const qualityPool = (() => {
+				if (candidates.length <= 12) return candidates;
+				const sortedByViews = [...candidates].sort((a, b) => b.view_count - a.view_count || b.created_at.localeCompare(a.created_at));
+				const keepCount = Math.max(12, Math.ceil(sortedByViews.length * 0.65));
+				return sortedByViews.slice(0, keepCount);
+			})();
+
+			const idToClip = new Map(availableClips.map((clip) => [clip.id, clip]));
+			const recentClips = played
+				.slice(-20)
+				.map((id) => idToClip.get(id))
+				.filter((clip): clip is TwitchClip => !!clip);
+
+			const recentCreatorCounts = new Map<string, number>();
+			const recentGameCounts = new Map<string, number>();
+			for (const clip of recentClips) {
+				const creatorKey = clip.creator_id || clip.creator_name;
+				recentCreatorCounts.set(creatorKey, (recentCreatorCounts.get(creatorKey) ?? 0) + 1);
+				recentGameCounts.set(clip.game_id, (recentGameCounts.get(clip.game_id) ?? 0) + 1);
+			}
+
+			const sortedViews = [...qualityPool].map((clip) => clip.view_count).sort((a, b) => a - b);
+			const medianViews = sortedViews.length > 0 ? sortedViews[Math.floor(sortedViews.length / 2)] : 0;
+			const maxLogViews = Math.log1p(Math.max(1, ...sortedViews));
+
+			const scored = qualityPool.map((clip) => {
+				const creatorKey = clip.creator_id || clip.creator_name;
+				const creatorPenalty = (recentCreatorCounts.get(creatorKey) ?? 0) * 0.12;
+				const gamePenalty = (recentGameCounts.get(clip.game_id) ?? 0) * 0.1;
+				const viewScore = Math.log1p(clip.view_count) / maxLogViews;
+				const exploreBoost = clip.view_count <= medianViews ? 0.12 : 0;
+				const jitter = Math.random() * 0.25;
+				const score = Math.max(0.05, 0.58 * viewScore + 0.25 * jitter + exploreBoost - creatorPenalty - gamePenalty);
+				return { clip, score };
+			});
+
+			const totalWeight = scored.reduce((sum, entry) => sum + entry.score, 0);
+			let pick = Math.random() * totalWeight;
+			for (const entry of scored) {
+				pick -= entry.score;
+				if (pick <= 0) return { clip: entry.clip };
+			}
+			return scored[0] ? { clip: scored[0].clip } : null;
 		}
 
 		return { clip: candidates[Math.floor(Math.random() * candidates.length)] };
-	}, [clips, getFirstQueClip, getFirstFromDemoQueue, isDemoPlayer, overlay.ownerId, playbackMode]);
+	}, [getFirstQueClip, getFirstFromDemoQueue, isDemoPlayer, overlay.ownerId, playbackMode, refreshClipPool]);
 
 	/**
 	 * The ONLY function that advances the currently playing clip.
@@ -1030,6 +1091,23 @@ export default function OverlayPlayer({
 	}, [videoClip?.id]);
 
 	useEffect(() => {
+		let rafId = 0;
+		const tick = () => {
+			const activeVideo = activeSlot === "a" ? videoARef.current : videoBRef.current;
+			if (activeVideo) {
+				const duration = activeVideo.duration;
+				if (Number.isFinite(duration) && duration > 0) {
+					setActiveDuration(duration);
+					setActiveCurrentTime(activeVideo.currentTime);
+				}
+			}
+			rafId = requestAnimationFrame(tick);
+		};
+		rafId = requestAnimationFrame(tick);
+		return () => cancelAnimationFrame(rafId);
+	}, [activeSlot, videoClip?.id]);
+
+	useEffect(() => {
 		if (!showPlayer) {
 			setShowOverlay(false);
 			return;
@@ -1215,14 +1293,29 @@ export default function OverlayPlayer({
 		async function setupChat() {
 			if (!overlay.ownerId) return;
 			try {
-				await subscribeToChat(overlay.ownerId);
+				await Promise.all([subscribeToChat(overlay.ownerId), subscribeToClipCreate(overlay.ownerId)]);
 			} catch (error) {
-				console.error("Error subscribing to chat", error);
+				console.error("Error subscribing to EventSub", error);
 			}
 		}
 
 		if (!isEmbed) setupChat();
 	}, [isEmbed, overlay.ownerId]);
+
+	useEffect(() => {
+		let cancelled = false;
+		const load = async () => {
+			const next = await refreshClipPool();
+			if (cancelled || !next) return;
+		};
+
+		load();
+		const interval = setInterval(load, 30_000);
+		return () => {
+			cancelled = true;
+			clearInterval(interval);
+		};
+	}, [refreshClipPool]);
 
 	/**
 	 * Initial clip load (RUNS ONCE).
@@ -1350,32 +1443,15 @@ export default function OverlayPlayer({
 		}
 	}, [activeSlot, isCrossfading, overlay.id, overlaySecret]);
 
-	const handleTimeUpdate = useCallback(
-		(slot: "a" | "b", video: HTMLVideoElement | null) => {
-			if (!video) return;
-			if (activeSlot !== slot) return;
-			if (isCrossfading) return;
-			const duration = video.duration;
-			if (!Number.isFinite(duration) || duration <= 0) return;
-			setActiveDuration(duration);
-			setActiveCurrentTime(video.currentTime);
+		const handleTimeUpdate = useCallback(
+			(slot: "a" | "b", video: HTMLVideoElement | null) => {
+				if (!video) return;
+				if (activeSlot !== slot) return;
+				if (isCrossfading) return;
+				const duration = video.duration;
+				if (!Number.isFinite(duration) || duration <= 0) return;
 
-			if (maxDurationMode === "cut" && (overlay.maxClipDuration ?? 0) > 0 && video.currentTime >= overlay.maxClipDuration) {
-				if (!crossfadeLockRef.current) {
-					if (nextClipRef.current) {
-						const inactiveSlot = slot === "a" ? "b" : "a";
-						const incomingReady = inactiveSlot === "a" ? readyARef.current : readyBRef.current;
-						if (incomingReady) {
-							startCrossfade();
-							return;
-						}
-					}
-					advanceClip();
-				}
-				return;
-			}
-
-			const remaining = duration - video.currentTime;
+				const remaining = duration - video.currentTime;
 			// Only engage crossfade/hold logic when a next clip is available.
 			if (!nextClipRef.current) return;
 
@@ -1403,7 +1479,7 @@ export default function OverlayPlayer({
 				}
 			}
 		},
-		[activeSlot, advanceClip, isCrossfading, maxDurationMode, overlay.maxClipDuration, startCrossfade, CROSSFADE_SECONDS, HOLD_FRAME_SECONDS, HOLD_TIMEOUT_MS]
+		[activeSlot, advanceClip, isCrossfading, startCrossfade, CROSSFADE_SECONDS, HOLD_FRAME_SECONDS, HOLD_TIMEOUT_MS]
 	);
 
 	useEffect(() => {
@@ -1449,7 +1525,7 @@ export default function OverlayPlayer({
 		const effectiveMuted = !!isDemoPlayer || (embedBehaviorEnabled ? isMuted : false);
 		const showClickToPlay = embedBehaviorEnabled && paused && !hasUserStarted;
 		const canShowOverlay = showPlayer && !!videoClip && (!embedBehaviorEnabled || hasUserStarted);
-		const displayDuration = maxDurationMode === "cut" && (overlay.maxClipDuration ?? 0) > 0 ? Math.min(activeDuration || 0, overlay.maxClipDuration) : activeDuration;
+			const displayDuration = activeDuration;
 		const displayCurrentTime = Math.min(activeCurrentTime, Math.max(displayDuration, 0));
 		const remainingSeconds = Math.max(0, Math.ceil(displayDuration - displayCurrentTime));
 		const progress = displayDuration > 0 ? clamp((displayCurrentTime / displayDuration) * 100, 0, 100) : 0;
