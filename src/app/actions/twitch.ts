@@ -119,15 +119,21 @@ export async function resolvePlayableClip(ownerId: string, clip: TwitchClip): Pr
 	const nowIso = new Date().toISOString();
 	const cachedValue = cached && typeof cached === "object" ? (cached as CachedClipValue | TwitchClip) : null;
 	const cachedClip = parseCachedClipValue(cachedValue);
+	const isStaleValidation = (lastValidatedAt?: string): boolean => {
+		if (!lastValidatedAt) return true;
+		const timestamp = Date.parse(lastValidatedAt);
+		if (!Number.isFinite(timestamp)) return true;
+		return Date.now() - timestamp >= CLIP_VALIDATION_STALE_MS;
+	};
 
 	if (cachedValue && "unavailable" in cachedValue && (cachedValue as CachedClipValue).unavailable) {
 		const lastValidatedAt = (cachedValue as CachedClipValue).lastValidatedAt;
-		const stale = !lastValidatedAt || Date.now() - new Date(lastValidatedAt).getTime() >= CLIP_VALIDATION_STALE_MS;
+		const stale = isStaleValidation(lastValidatedAt);
 		if (!stale) return null;
 	}
 
 	const lastValidatedAt = cachedValue && "lastValidatedAt" in (cachedValue as CachedClipValue) ? (cachedValue as CachedClipValue).lastValidatedAt : undefined;
-	const stale = !lastValidatedAt || Date.now() - new Date(lastValidatedAt).getTime() >= CLIP_VALIDATION_STALE_MS;
+	const stale = isStaleValidation(lastValidatedAt);
 	if (!stale) {
 		return cachedClip ?? clip;
 	}
