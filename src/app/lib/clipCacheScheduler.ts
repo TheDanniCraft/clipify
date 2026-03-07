@@ -22,26 +22,15 @@ declare global {
 }
 
 function shouldRunScheduler() {
-	const enabled = process.env.CLIP_CACHE_SYNC_ENABLED;
-	if (enabled != null) {
-		return ["1", "true", "yes", "on"].includes(enabled.toLowerCase());
-	}
-	return process.env.NODE_ENV === "production";
-}
-
-function parsePositiveInt(value: string | undefined, fallback: number) {
-	const parsed = Number(value);
-	if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
-	return Math.floor(parsed);
+	return process.env.NODE_ENV !== "test";
 }
 
 export function startClipCacheScheduler() {
 	if (!shouldRunScheduler()) return;
 	if (globalThis.__clipCacheSchedulerStarted) return;
 
-	const intervalMs = parsePositiveInt(process.env.CLIP_CACHE_SYNC_INTERVAL_MS, 60_000);
-	const batchSize = parsePositiveInt(process.env.CLIP_CACHE_SYNC_BATCH_SIZE, 25);
-	const scheduledIntervalMs = Math.max(30_000, intervalMs);
+	const batchSize = CLIP_CACHE_SYNC_BATCH_SIZE;
+	const scheduledIntervalMs = CLIP_CACHE_SYNC_INTERVAL_MS;
 	globalThis.__clipCacheSchedulerStats = {
 		startedAt: new Date().toISOString(),
 		intervalMs: scheduledIntervalMs,
@@ -111,3 +100,5 @@ export function getClipCacheSchedulerStats() {
 		}
 	);
 }
+const CLIP_CACHE_SYNC_INTERVAL_MS = 60_000;
+const CLIP_CACHE_SYNC_BATCH_SIZE = 25;
