@@ -16,7 +16,7 @@
 		"prepare": "next-ws patch"
 	},
 	"dependencies": {
-		"@heroui/react": "^2.8.9",
+		"@heroui/react": "^2.8.10",
 		"@sentry/nextjs": "^10.42.0",
 		"@tabler/icons-react": "^3.39.0",
 		"axios": "^1.13.6",
