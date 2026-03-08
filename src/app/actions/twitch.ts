@@ -93,7 +93,12 @@ async function getCachedClipsByOwner(ownerId: string): Promise<TwitchClip[]> {
 	const deduped = new Map<string, TwitchClip>();
 	for (const entry of entries) {
 		const value = entry.value as CachedClipValue | TwitchClip;
-		if ((value as CachedClipValue).unavailable) continue;
+		if ((value as CachedClipValue).unavailable) {
+			const lastValidatedAt = (value as CachedClipValue).lastValidatedAt;
+			const parsed = lastValidatedAt ? Date.parse(lastValidatedAt) : Number.NaN;
+			const stale = !Number.isFinite(parsed) || Date.now() - parsed >= CLIP_VALIDATION_STALE_MS;
+			if (!stale) continue;
+		}
 		const clip = parseCachedClipValue(entry.value);
 		if (!clip?.id) continue;
 		if (deduped.has(clip.id)) continue;
@@ -583,8 +588,10 @@ export async function syncOwnerClipCache(ownerId: string, ensurePackSize = 0): P
 				const page = await fetchClipPage(ownerId, token.accessToken, first);
 				await upsertClipsByOwner(ownerId, page.clips);
 				nextState.lastIncrementalSyncAt = new Date(now).toISOString();
-				if (!nextState.backfillCursor && page.cursor) {
-					nextState.backfillCursor = page.cursor;
+				if (page.cursor) {
+					if (!nextState.backfillComplete && !nextState.backfillCursor) {
+						nextState.backfillCursor = page.cursor;
+					}
 				}
 				if (!page.cursor) {
 					nextState.backfillComplete = true;

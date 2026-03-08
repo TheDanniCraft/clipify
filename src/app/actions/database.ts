@@ -727,7 +727,7 @@ export async function getClipCacheStatusForOwnerServer(ownerId: string): Promise
 	}
 
 	const backfillComplete = Boolean(state?.backfillComplete);
-	const estimatedCoveragePercent = backfillComplete ? 100 : Math.min(99, Math.round((cachedClipCount / (cachedClipCount + 1500)) * 100));
+	const estimatedCoveragePercent = backfillComplete ? 100 : 0;
 
 	return {
 		cachedClipCount,
@@ -1352,9 +1352,13 @@ export async function getTwitchCache<T>(type: TwitchCacheType, key: string): Pro
 			recordCacheRead(false);
 			return null;
 		}
+		const parsed = parseCacheJson<T>(rows[0].value, `getTwitchCache:${type}:${key}`);
+		if (parsed === null) {
+			recordCacheRead(false);
+			return null;
+		}
 		recordCacheRead(true);
-
-		return JSON.parse(rows[0].value) as T;
+		return parsed;
 	} catch (error) {
 		console.error("Error reading twitch cache:", error);
 		return null;
@@ -1375,9 +1379,13 @@ export async function getTwitchCacheEntry<T>(type: TwitchCacheType, key: string)
 			recordCacheRead(false);
 			return { hit: false, value: null };
 		}
+		const parsed = parseCacheJson<T>(rows[0].value, `getTwitchCacheEntry:${type}:${key}`);
+		if (parsed === null) {
+			recordCacheRead(false);
+			return { hit: false, value: null };
+		}
 		recordCacheRead(true);
-
-		return { hit: true, value: JSON.parse(rows[0].value) as T };
+		return { hit: true, value: parsed };
 	} catch (error) {
 		console.error("Error reading twitch cache entry:", error);
 		return { hit: false, value: null };
@@ -1398,9 +1406,13 @@ export async function getTwitchCacheStale<T>(type: TwitchCacheType, key: string)
 			recordCacheRead(false, true);
 			return null;
 		}
+		const parsed = parseCacheJson<T>(rows[0].value, `getTwitchCacheStale:${type}:${key}`);
+		if (parsed === null) {
+			recordCacheRead(false, true);
+			return null;
+		}
 		recordCacheRead(true, true);
-
-		return JSON.parse(rows[0].value) as T;
+		return parsed;
 	} catch (error) {
 		console.error("Error reading stale twitch cache:", error);
 		return null;
@@ -1448,8 +1460,14 @@ export async function getTwitchCacheBatch<T>(type: TwitchCacheType, keys: string
 			.where(and(eq(twitchCacheTable.type, type), inArray(twitchCacheTable.key, keys), or(isNull(twitchCacheTable.expiresAt), gt(twitchCacheTable.expiresAt, now))))
 			.execute();
 
-		recordCacheBatchReads(rows.length, keys.length);
-		return rows.map((row) => JSON.parse(row.value) as T);
+		const values: T[] = [];
+		for (const row of rows) {
+			const parsed = parseCacheJson<T>(row.value, `getTwitchCacheBatch:${type}:${row.key}`);
+			if (parsed === null) continue;
+			values.push(parsed);
+		}
+		recordCacheBatchReads(values.length, keys.length);
+		return values;
 	} catch (error) {
 		console.error("Error reading twitch cache batch:", error);
 		return [];
@@ -1468,10 +1486,16 @@ export async function getTwitchCacheByPrefixEntries<T>(type: TwitchCacheType, ke
 			.orderBy(desc(twitchCacheTable.fetchedAt));
 		const rows = typeof limit === "number" ? await baseQuery.limit(limit).execute() : await baseQuery.execute();
 
-		return rows.map((row) => ({
-			key: row.key,
-			value: JSON.parse(row.value) as T,
-		}));
+		const entries: Array<{ key: string; value: T }> = [];
+		for (const row of rows) {
+			const parsed = parseCacheJson<T>(row.value, `getTwitchCacheByPrefixEntries:${type}:${row.key}`);
+			if (parsed === null) continue;
+			entries.push({
+				key: row.key,
+				value: parsed,
+			});
+		}
+		return entries;
 	} catch (error) {
 		console.error("Error reading twitch cache by prefix:", error);
 		return [];
@@ -1488,11 +1512,26 @@ export async function getTwitchCacheStaleBatch<T>(type: TwitchCacheType, keys: s
 			.where(and(eq(twitchCacheTable.type, type), inArray(twitchCacheTable.key, keys)))
 			.execute();
 
-		recordCacheBatchReads(rows.length, keys.length, true);
-		return rows.map((row) => JSON.parse(row.value) as T);
+		const values: T[] = [];
+		for (const row of rows) {
+			const parsed = parseCacheJson<T>(row.value, `getTwitchCacheStaleBatch:${type}:${row.key}`);
+			if (parsed === null) continue;
+			values.push(parsed);
+		}
+		recordCacheBatchReads(values.length, keys.length, true);
+		return values;
 	} catch (error) {
 		console.error("Error reading stale twitch cache batch:", error);
 		return [];
+	}
+}
+
+function parseCacheJson<T>(value: string, context: string): T | null {
+	try {
+		return JSON.parse(value) as T;
+	} catch (error) {
+		console.error(`Error parsing twitch cache payload (${context}):`, error);
+		return null;
 	}
 }
 
