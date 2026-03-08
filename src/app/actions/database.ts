@@ -18,6 +18,10 @@ const HEX_COLOR_PATTERN = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
 const RGB_COLOR_PATTERN = /^rgba?\(\s*(?:25[0-5]|2[0-4]\d|1?\d?\d)\s*,\s*(?:25[0-5]|2[0-4]\d|1?\d?\d)\s*,\s*(?:25[0-5]|2[0-4]\d|1?\d?\d)(?:\s*,\s*(?:0|1|0?\.\d+))?\s*\)$/i;
 const HSL_COLOR_PATTERN = /^hsla?\(\s*(?:360|3[0-5]\d|[12]?\d?\d)(?:\.\d+)?\s*,\s*(?:100|[1-9]?\d)(?:\.\d+)?%\s*,\s*(?:100|[1-9]?\d)(?:\.\d+)?%(?:\s*,\s*(?:0|1|0?\.\d+))?\s*\)$/i;
 
+function escapeLikePattern(value: string) {
+	return value.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
+}
+
 type CacheReadMetrics = {
 	hits: number;
 	misses: number;
@@ -1537,7 +1541,11 @@ export async function deleteTwitchCacheKeys(type: TwitchCacheType, keys: string[
 export async function deleteTwitchCacheByPrefix(type: TwitchCacheType, keyPrefix: string) {
 	try {
 		if (!keyPrefix) return 0;
-		const result = await db.delete(twitchCacheTable).where(and(eq(twitchCacheTable.type, type), like(twitchCacheTable.key, `${keyPrefix}%`))).execute();
+		const escapedPrefix = escapeLikePattern(keyPrefix);
+		const result = await db
+			.delete(twitchCacheTable)
+			.where(and(eq(twitchCacheTable.type, type), sql`${twitchCacheTable.key} LIKE ${`${escapedPrefix}%`} ESCAPE '\\'`))
+			.execute();
 		return Number(result.rowCount ?? 0);
 	} catch (error) {
 		console.error("Error deleting twitch cache by prefix:", error);
