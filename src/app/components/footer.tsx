@@ -141,7 +141,7 @@ export default function Footer() {
 			}
 			if (!token) {
 				setPendingEmail(email);
-				setNewsletterState("default");
+				setNewsletterState("captcha");
 				setIsDetailsExpanded(false);
 				return;
 			}
@@ -330,6 +330,7 @@ export default function Footer() {
 									<Turnstile siteKey='0x4AAAAAACMFR636JljxhVLl' onSuccess={setToken} onError={(error) => console.error("Turnstile error:", error)} onExpire={() => setToken(null)} />
 								</div>
 								{newsletterState === "loading" && <p className='text-xs text-default-500 pt-1'>Subscribing...</p>}
+								{newsletterState === "captcha" && <p className='text-xs text-default-500 pt-1'>Please complete the CAPTCHA first.</p>}
 								{newsletterState === "error" && <p className='text-xs text-danger pt-1'>Could not subscribe right now. Please try again.</p>}
 								{newsletterState === "rateLimit" && <p className='text-xs text-danger pt-1'>Too many attempts. Please wait a moment.</p>}
 							</Form>

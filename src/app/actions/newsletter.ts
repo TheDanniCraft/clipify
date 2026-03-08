@@ -93,7 +93,7 @@ export async function subscribeToNewsletter(email: string, captchaToken: string,
 		return response.data;
 	} catch (error: unknown) {
 		console.error("Newsletter subscription error:", error);
-		return error instanceof Error ? error : new Error("Failed to subscribe to newsletter");
+		throw error instanceof Error ? error : new Error("Failed to subscribe to newsletter");
 	}
 }
 

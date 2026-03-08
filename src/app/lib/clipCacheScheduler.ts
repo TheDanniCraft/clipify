@@ -1,3 +1,7 @@
+const CLIP_CACHE_SYNC_INTERVAL_MS = 60_000;
+const CLIP_CACHE_SYNC_BATCH_SIZE = 25;
+const CLIP_CACHE_SYNC_LOCK_KEY = "clip_cache_scheduler";
+
 declare global {
 	// eslint-disable-next-line no-var
 	var __clipCacheSchedulerStarted: boolean | undefined;
@@ -49,8 +53,14 @@ export function startClipCacheScheduler() {
 		if (globalThis.__clipCacheSchedulerRunning) return;
 		const started = Date.now();
 		globalThis.__clipCacheSchedulerRunning = true;
+		let lockAcquired = false;
+		let lockClient: { query: (text: string, values?: unknown[]) => Promise<unknown>; release: () => void } | null = null;
 		try {
-			const [{ getActiveOverlayOwnerIdsForClipSync }, { syncOwnerClipCache }] = await Promise.all([import("@actions/database"), import("@actions/twitch")]);
+			const [{ getActiveOverlayOwnerIdsForClipSync }, { syncOwnerClipCache }, { dbPool }] = await Promise.all([import("@actions/database"), import("@actions/twitch"), import("@/db/client")]);
+			lockClient = await dbPool.connect();
+			const lockResult = (await lockClient.query("select pg_try_advisory_lock(hashtext($1)) as locked", [CLIP_CACHE_SYNC_LOCK_KEY])) as { rows?: Array<{ locked?: boolean }> };
+			lockAcquired = Boolean(lockResult.rows?.[0]?.locked);
+			if (!lockAcquired) return;
 			const ownerIds = await getActiveOverlayOwnerIdsForClipSync(batchSize);
 			for (const ownerId of ownerIds) {
 				await syncOwnerClipCache(ownerId);
@@ -66,6 +76,14 @@ export function startClipCacheScheduler() {
 				globalThis.__clipCacheSchedulerStats.lastError = error instanceof Error ? error.message : String(error);
 			}
 		} finally {
+			if (lockClient && lockAcquired) {
+				try {
+					await lockClient.query("select pg_advisory_unlock(hashtext($1))", [CLIP_CACHE_SYNC_LOCK_KEY]);
+				} catch {
+					// Best-effort unlock.
+				}
+			}
+			lockClient?.release();
 			globalThis.__clipCacheSchedulerRunning = false;
 			if (globalThis.__clipCacheSchedulerStats) {
 				globalThis.__clipCacheSchedulerStats.totalRuns += 1;
@@ -102,5 +120,3 @@ export function getClipCacheSchedulerStats() {
 		}
 	);
 }
-const CLIP_CACHE_SYNC_INTERVAL_MS = 60_000;
-const CLIP_CACHE_SYNC_BATCH_SIZE = 25;

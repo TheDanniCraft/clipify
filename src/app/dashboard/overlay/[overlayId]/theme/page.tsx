@@ -5,7 +5,7 @@ import { getOverlay, getOverlayOwnerPlan, saveOverlay } from "@actions/database"
 import ChatwootData from "@components/chatwootData";
 import DashboardNavbar from "@components/dashboardNavbar";
 import UpgradeModal from "@components/upgradeModal";
-import { getTrialDaysLeft, isReverseTrialActive } from "@lib/featureAccess";
+import { getFeatureAccess, getTrialDaysLeft, isReverseTrialActive } from "@lib/featureAccess";
 import { AuthenticatedUser, Overlay, Plan } from "@types";
 import { addToast, Avatar, Button, Card, CardBody, CardHeader, Divider, Input, Popover, PopoverContent, PopoverTrigger, Select, SelectItem, Slider, Spinner, Tab, Tabs, useDisclosure } from "@heroui/react";
 import { IconArrowLeft, IconCrown, IconDeviceFloppy, IconPalette } from "@tabler/icons-react";
@@ -977,7 +977,7 @@ export default function OverlayStylePage() {
 		);
 	}
 
-	const ownerHasAdvancedAccess = ownerPlan === Plan.Pro;
+	const ownerHasAdvancedAccess = getFeatureAccess(user, "advanced_filters").allowed;
 	const inTrial = isReverseTrialActive(user);
 	const trialDaysLeft = getTrialDaysLeft(user);
 

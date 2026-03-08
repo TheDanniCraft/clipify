@@ -865,10 +865,12 @@ export default function OverlayPlayer({
 		}
 
 		if (playbackMode === "top") {
-			const topClip = [...candidates].sort((a, b) => b.view_count - a.view_count || b.created_at.localeCompare(a.created_at))[0];
-			if (!topClip) return null;
-			const playable = await resolvePlayableClip(overlay.ownerId, topClip);
-			return playable ? { clip: playable } : null;
+			const sorted = [...candidates].sort((a, b) => b.view_count - a.view_count || b.created_at.localeCompare(a.created_at));
+			for (const clip of sorted) {
+				const playable = await resolvePlayableClip(overlay.ownerId, clip);
+				if (playable) return { clip: playable };
+			}
+			return null;
 		}
 
 		if (playbackMode === "smart_shuffle") {
@@ -908,24 +910,32 @@ export default function OverlayPlayer({
 				return { clip, score };
 			});
 
-			const totalWeight = scored.reduce((sum, entry) => sum + entry.score, 0);
-			let pick = Math.random() * totalWeight;
-			for (const entry of scored) {
-				pick -= entry.score;
-				if (pick <= 0) {
-					const playable = await resolvePlayableClip(overlay.ownerId, entry.clip);
-					return playable ? { clip: playable } : null;
+			const remaining = [...scored];
+			while (remaining.length > 0) {
+				const totalWeight = remaining.reduce((sum, entry) => sum + entry.score, 0);
+				let pick = Math.random() * totalWeight;
+				let pickedIndex = 0;
+				for (let i = 0; i < remaining.length; i++) {
+					pick -= remaining[i]!.score;
+					if (pick <= 0) {
+						pickedIndex = i;
+						break;
+					}
 				}
+				const [picked] = remaining.splice(pickedIndex, 1);
+				if (!picked) continue;
+				const playable = await resolvePlayableClip(overlay.ownerId, picked.clip);
+				if (playable) return { clip: playable };
 			}
-			if (!scored[0]) return null;
-			const playable = await resolvePlayableClip(overlay.ownerId, scored[0].clip);
-			return playable ? { clip: playable } : null;
+			return null;
 		}
 
-		const randomClip = candidates[Math.floor(Math.random() * candidates.length)];
-		if (!randomClip) return null;
-		const playable = await resolvePlayableClip(overlay.ownerId, randomClip);
-		return playable ? { clip: playable } : null;
+		const shuffled = [...candidates].sort(() => Math.random() - 0.5);
+		for (const clip of shuffled) {
+			const playable = await resolvePlayableClip(overlay.ownerId, clip);
+			if (playable) return { clip: playable };
+		}
+		return null;
 	}, [getFirstQueClip, getFirstFromDemoQueue, isDemoPlayer, overlay.ownerId, playbackMode, refreshClipPool]);
 
 	/**

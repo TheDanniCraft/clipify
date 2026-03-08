@@ -5,6 +5,7 @@ import { AuthenticatedUser, Game, Overlay, OverlayType, RewardStatus, TwitchApiR
 import { deleteTwitchCacheByPrefix, deleteTwitchCacheKeys, getAccessToken, getOverlayBySecret, getOverlayPublic, getTwitchCache, getTwitchCacheBatch, getTwitchCacheByPrefixEntries, getTwitchCacheEntry, getTwitchCacheStale, getTwitchCacheStaleBatch, setTwitchCache, setTwitchCacheBatch } from "@actions/database";
 import { getBaseUrl, isPreview } from "@actions/utils";
 import { isTitleBlocked } from "@/app/utils/regexFilter";
+import { dbPool } from "@/db/client";
 import { REWARD_NOT_FOUND } from "@lib/twitchErrors";
 import { validateAuth } from "@actions/auth";
 
@@ -547,63 +548,81 @@ export async function cacheClipFromEventSub(clipId: string, broadcasterId: strin
 }
 
 export async function syncOwnerClipCache(ownerId: string, ensurePackSize = 0): Promise<void> {
-	const token = await getAccessToken(ownerId);
-	if (!token) return;
+	const lockClient = await dbPool.connect();
+	const lockKey = `clip_sync_owner:${ownerId}`;
+	let lockAcquired = false;
+	try {
+		const lockResult = (await lockClient.query("select pg_try_advisory_lock(hashtext($1)) as locked", [lockKey])) as { rows?: Array<{ locked?: boolean }> };
+		lockAcquired = Boolean(lockResult.rows?.[0]?.locked);
+		if (!lockAcquired) return;
 
-	let cachedClips: TwitchClip[] = [];
-	if (ensurePackSize > 0) {
-		cachedClips = await getCachedClipsByOwner(ownerId);
-	}
+		const token = await getAccessToken(ownerId);
+		if (!token) return;
 
-	const syncState = await getClipSyncState(ownerId);
-	const now = Date.now();
-	const nextState: ClipSyncState = { ...syncState };
-	const isSyncDue = (lastSyncAt: string | undefined, intervalMs: number): boolean => {
-		if (!lastSyncAt) return true;
-		const parsed = Date.parse(lastSyncAt);
-		if (!Number.isFinite(parsed)) return true;
-		return now - parsed >= intervalMs;
-	};
-	const incrementalDue =
-		(ensurePackSize > 0 && cachedClips.length < ensurePackSize) ||
-		isSyncDue(nextState.lastIncrementalSyncAt, CLIP_SYNC_INCREMENTAL_INTERVAL_MS);
+		let cachedClips: TwitchClip[] = [];
+		if (ensurePackSize > 0) {
+			cachedClips = await getCachedClipsByOwner(ownerId);
+		}
 
-	if (incrementalDue) {
-		try {
-			const first = ensurePackSize > 0 && cachedClips.length < ensurePackSize ? Math.max(1, Math.min(100, ensurePackSize - cachedClips.length)) : 100;
-			const page = await fetchClipPage(ownerId, token.accessToken, first);
-			await upsertClipsByOwner(ownerId, page.clips);
-			nextState.lastIncrementalSyncAt = new Date(now).toISOString();
-			if (!nextState.backfillCursor && page.cursor) {
+		const syncState = await getClipSyncState(ownerId);
+		const now = Date.now();
+		const nextState: ClipSyncState = { ...syncState };
+		const isSyncDue = (lastSyncAt: string | undefined, intervalMs: number): boolean => {
+			if (!lastSyncAt) return true;
+			const parsed = Date.parse(lastSyncAt);
+			if (!Number.isFinite(parsed)) return true;
+			return now - parsed >= intervalMs;
+		};
+		const incrementalDue =
+			(ensurePackSize > 0 && cachedClips.length < ensurePackSize) ||
+			isSyncDue(nextState.lastIncrementalSyncAt, CLIP_SYNC_INCREMENTAL_INTERVAL_MS);
+
+		if (incrementalDue) {
+			try {
+				const first = ensurePackSize > 0 && cachedClips.length < ensurePackSize ? Math.max(1, Math.min(100, ensurePackSize - cachedClips.length)) : 100;
+				const page = await fetchClipPage(ownerId, token.accessToken, first);
+				await upsertClipsByOwner(ownerId, page.clips);
+				nextState.lastIncrementalSyncAt = new Date(now).toISOString();
+				if (!nextState.backfillCursor && page.cursor) {
+					nextState.backfillCursor = page.cursor;
+				}
+				if (!page.cursor) {
+					nextState.backfillComplete = true;
+				}
+			} catch (error) {
+				logTwitchError("Error fetching incremental clip sync page", error);
+			}
+		}
+
+		const backfillDue =
+			!nextState.backfillComplete &&
+			!!nextState.backfillCursor &&
+			isSyncDue(nextState.lastBackfillSyncAt, CLIP_SYNC_BACKFILL_INTERVAL_MS);
+
+		if (backfillDue && nextState.backfillCursor) {
+			try {
+				const page = await fetchClipPage(ownerId, token.accessToken, 100, nextState.backfillCursor);
+				await upsertClipsByOwner(ownerId, page.clips);
+				nextState.lastBackfillSyncAt = new Date(now).toISOString();
 				nextState.backfillCursor = page.cursor;
+				nextState.backfillComplete = !page.cursor;
+			} catch (error) {
+				logTwitchError("Error fetching backfill clip sync page", error);
 			}
-			if (!page.cursor) {
-				nextState.backfillComplete = true;
+		}
+
+		if (JSON.stringify(syncState) !== JSON.stringify(nextState)) {
+			await setClipSyncState(ownerId, nextState);
+		}
+	} finally {
+		if (lockAcquired) {
+			try {
+				await lockClient.query("select pg_advisory_unlock(hashtext($1))", [lockKey]);
+			} catch {
+				// Best-effort unlock.
 			}
-		} catch (error) {
-			logTwitchError("Error fetching incremental clip sync page", error);
 		}
-	}
-
-	const backfillDue =
-		!nextState.backfillComplete &&
-		!!nextState.backfillCursor &&
-		isSyncDue(nextState.lastBackfillSyncAt, CLIP_SYNC_BACKFILL_INTERVAL_MS);
-
-	if (backfillDue && nextState.backfillCursor) {
-		try {
-			const page = await fetchClipPage(ownerId, token.accessToken, 100, nextState.backfillCursor);
-			await upsertClipsByOwner(ownerId, page.clips);
-			nextState.lastBackfillSyncAt = new Date(now).toISOString();
-			nextState.backfillCursor = page.cursor;
-			nextState.backfillComplete = !page.cursor;
-		} catch (error) {
-			logTwitchError("Error fetching backfill clip sync page", error);
-		}
-	}
-
-	if (JSON.stringify(syncState) !== JSON.stringify(nextState)) {
-		await setClipSyncState(ownerId, nextState);
+		lockClient.release();
 	}
 }
 
