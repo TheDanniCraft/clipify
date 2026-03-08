@@ -285,7 +285,7 @@ function OverlayViewport({
 						style={{
 							width: "100vw",
 							height: "100vh",
-							aspectRatio: "19 / 9",
+							aspectRatio: "16 / 9",
 							pointerEvents: showPlayer ? "auto" : "none",
 						}}
 						className='block absolute inset-0 z-0'
@@ -312,7 +312,7 @@ function OverlayViewport({
 							style={{
 								width: "100vw",
 								height: "100vh",
-								aspectRatio: "19 / 9",
+								aspectRatio: "16 / 9",
 								pointerEvents: showPlayer ? "auto" : "none",
 							}}
 							className='block absolute inset-0 z-0'

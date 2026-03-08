@@ -133,9 +133,15 @@ export default function Footer() {
 			event.preventDefault();
 			const data = Object.fromEntries(new FormData(event.currentTarget));
 			const email = ((data.email as string) || "").trim();
-			if (!email || !token) {
+			if (!email) {
 				setPendingEmail(email);
 				setNewsletterState("error");
+				setIsDetailsExpanded(false);
+				return;
+			}
+			if (!token) {
+				setPendingEmail(email);
+				setNewsletterState("default");
 				setIsDetailsExpanded(false);
 				return;
 			}

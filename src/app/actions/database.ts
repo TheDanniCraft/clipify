@@ -4,7 +4,7 @@ import { tokenTable, usersTable, overlaysTable, queueTable, settingsTable, modQu
 import { db } from "@/db/client";
 import { AuthenticatedUser, Overlay, TwitchUserResponse, TwitchTokenApiResponse, UserToken, Plan, Role, UserSettings, TwitchCacheType, StatusOptions, OverlayType, PlaybackMode, MaxDurationMode, TwitchClip } from "@types";
 import { getUserDetails, getUsersDetailsBulk, refreshAccessToken, subscribeToReward } from "@actions/twitch";
-import { eq, inArray, and, or, isNull, lt, gt, sql, like, desc } from "drizzle-orm";
+import { eq, inArray, and, or, isNull, lt, gt, sql, desc } from "drizzle-orm";
 import { validateAuth } from "@actions/auth";
 import { encryptToken, decryptToken } from "@lib/tokenCrypto";
 import { getFeatureAccess } from "@lib/featureAccess";
@@ -1460,10 +1460,11 @@ export async function getTwitchCacheByPrefixEntries<T>(type: TwitchCacheType, ke
 	try {
 		if (!keyPrefix) return [];
 		const now = new Date();
+		const escapedPrefix = escapeLikePattern(keyPrefix);
 		const baseQuery = db
 			.select({ key: twitchCacheTable.key, value: twitchCacheTable.value })
 			.from(twitchCacheTable)
-			.where(and(eq(twitchCacheTable.type, type), like(twitchCacheTable.key, `${keyPrefix}%`), or(isNull(twitchCacheTable.expiresAt), gt(twitchCacheTable.expiresAt, now))))
+			.where(and(eq(twitchCacheTable.type, type), sql`${twitchCacheTable.key} LIKE ${`${escapedPrefix}%`} ESCAPE '\\'`, or(isNull(twitchCacheTable.expiresAt), gt(twitchCacheTable.expiresAt, now))))
 			.orderBy(desc(twitchCacheTable.fetchedAt));
 		const rows = typeof limit === "number" ? await baseQuery.limit(limit).execute() : await baseQuery.execute();
 
