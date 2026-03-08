@@ -62,6 +62,8 @@ const providerPatterns = [
 ];
 
 export async function subscribeToNewsletter(email: string, captchaToken: string, details?: NewsletterContactDetails) {
+	const { client, contactBookId } = getUseSendClient();
+
 	try {
 		const rateLimiter = await tryRateLimit({ key: "newsletter", points: 1, duration: 60 });
 
@@ -77,7 +79,6 @@ export async function subscribeToNewsletter(email: string, captchaToken: string,
 			return new Error("Invalid CAPTCHA");
 		}
 
-		const { client, contactBookId } = getUseSendClient();
 		const payload = {
 			email,
 			subscribed: true,
@@ -93,8 +94,7 @@ export async function subscribeToNewsletter(email: string, captchaToken: string,
 		return response.data;
 	} catch (error: unknown) {
 		console.error("Newsletter subscription error:", error);
-
-		throw new Error("Failed to subscribe to newsletter");
+		return error instanceof Error ? error : new Error("Failed to subscribe to newsletter");
 	}
 }
 

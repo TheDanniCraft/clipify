@@ -645,7 +645,9 @@ export async function forceRefreshOwnClipCache(ensurePackSize = 0) {
 	await deleteTwitchCacheKeys(TwitchCacheType.Clip, [CLIP_SYNC_STATE_KEY(user.id)]);
 	const nowIso = new Date().toISOString();
 	await setClipForceRefreshState(user.id, { lastForcedAt: nowIso });
-	void syncOwnerClipCache(user.id, ensurePackSize);
+	void syncOwnerClipCache(user.id, ensurePackSize).catch((error) => {
+		logTwitchError("forceRefreshOwnClipCache/syncOwnerClipCache", error);
+	});
 
 	return {
 		ok: true as const,
@@ -657,20 +659,20 @@ export async function forceRefreshOwnClipCache(ensurePackSize = 0) {
 }
 
 export async function getTwitchClips(overlay: Overlay, type?: OverlayType, skipFilter?: boolean): Promise<TwitchClip[]> {
-	overlay.type = type || overlay.type;
+	const overlayType = type ?? overlay.type;
 	let clips: TwitchClip[] = [];
 
-	if (overlay.type === "Queue") {
+	if (overlayType === "Queue") {
 		return clips;
 	}
 
 	await syncOwnerClipCache(overlay.ownerId);
 	clips = await getCachedClipsByOwner(overlay.ownerId);
 
-	if (overlay.type === "Featured") {
+	if (overlayType === "Featured") {
 		clips = clips.filter((clip) => !!((clip as TwitchClip & { is_featured?: boolean }).is_featured));
-	} else if (overlay.type !== "All") {
-		const days = Number(overlay.type);
+	} else if (overlayType !== "All") {
+		const days = Number(overlayType);
 		if (Number.isFinite(days) && days > 0) {
 			const minTs = Date.now() - days * 24 * 60 * 60 * 1000;
 			clips = clips.filter((clip) => {

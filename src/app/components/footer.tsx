@@ -135,7 +135,7 @@ export default function Footer() {
 			const email = ((data.email as string) || "").trim();
 			if (!email) {
 				setPendingEmail(email);
-				setNewsletterState("error");
+				setNewsletterState("default");
 				setIsDetailsExpanded(false);
 				return;
 			}

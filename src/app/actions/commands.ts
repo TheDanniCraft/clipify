@@ -343,32 +343,17 @@ const commands: Record<string, { description: string; usage: string; execute: (m
 				return;
 			}
 
-			const requestedVolume = Number.parseInt(args[0] || "", 10);
-			if (!Number.isFinite(requestedVolume)) {
+			const rawVolume = (args[0] || "").trim();
+			if (!/^\d+$/.test(rawVolume)) {
 				await sendChatMessage(message.broadcaster_user_id, `@${message.chatter_user_name} please provide a valid number between 0 and 100.`);
 				return;
 			}
+			const requestedVolume = Number.parseInt(rawVolume, 10);
 
 			const clampedVolume = Math.max(0, Math.min(100, requestedVolume));
 			await setPlayerVolumeForOwner(message.broadcaster_user_id, clampedVolume);
 			await sendMessage("command", { name: "volume", data: String(clampedVolume) }, message.broadcaster_user_id);
 			await sendChatMessage(message.broadcaster_user_id, `@${message.chatter_user_name} player volume set to ${clampedVolume}% for all overlays.`);
-		},
-	},
-
-	volue: {
-		description: "Alias for volume",
-		usage: "volue <[0-100]>",
-		execute: async (message: TwitchMessage, prefix: string) => {
-			await commands.volume.execute(message, prefix);
-		},
-	},
-
-	vboluem: {
-		description: "Alias for volume",
-		usage: "vboluem <[0-100]>",
-		execute: async (message: TwitchMessage, prefix: string) => {
-			await commands.volume.execute(message, prefix);
 		},
 	},
 
