@@ -62,9 +62,8 @@ const providerPatterns = [
 ];
 
 export async function subscribeToNewsletter(email: string, captchaToken: string, details?: NewsletterContactDetails) {
-	const { client, contactBookId } = getUseSendClient();
-
 	try {
+		const { client, contactBookId } = getUseSendClient();
 		const rateLimiter = await tryRateLimit({ key: "newsletter", points: 1, duration: 60 });
 
 		if (!rateLimiter.success) {
