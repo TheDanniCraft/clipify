@@ -97,7 +97,7 @@ export const roadmapData: RoadmapItemData[] = [
 		title: "Overlay Themes",
 		description: "Introduce customizable overlay themes and a visual layout editor.",
 		features: ["Theme selection", "Custom color schemes", "Drag & drop layout editor", "OBS-focused scaling and placement", "Resizable overlay elements"],
-		status: RoadmapStatus.InDevelopment,
+		status: RoadmapStatus.Shipped,
 		timeframe: "Q1-Q2 2026",
 	},
 ];
