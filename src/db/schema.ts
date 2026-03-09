@@ -176,3 +176,21 @@ export const entitlementGrantsTable = pgTable(
 	},
 	(t) => [index("entitlement_grants_user_lookup_idx").on(t.userId, t.entitlement, t.startsAt, t.endsAt), index("entitlement_grants_global_lookup_idx").on(t.entitlement, t.startsAt, t.endsAt)],
 );
+
+export const adminImpersonationSessionsTable = pgTable(
+	"admin_impersonation_sessions",
+	{
+		id: uuid("id").notNull().defaultRandom().primaryKey(),
+		adminUserId: varchar("admin_user_id")
+			.notNull()
+			.references(() => usersTable.id, { onDelete: "cascade" }),
+		targetUserId: varchar("target_user_id")
+			.notNull()
+			.references(() => usersTable.id, { onDelete: "cascade" }),
+		startedAt: timestamp("started_at", { withTimezone: true }).defaultNow().notNull(),
+		endedAt: timestamp("ended_at", { withTimezone: true }),
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+	},
+	(t) => [index("admin_impersonation_sessions_admin_idx").on(t.adminUserId, t.startedAt), index("admin_impersonation_sessions_target_idx").on(t.targetUserId, t.startedAt)],
+);

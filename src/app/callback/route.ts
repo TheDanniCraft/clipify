@@ -105,6 +105,13 @@ export async function GET(request: NextRequest) {
 			maxAge: 60 * 60 * 2,
 			path: "/",
 		});
+		cookieStore.set("admin_view", "", {
+			httpOnly: true,
+			sameSite: "lax",
+			secure: process.env.NODE_ENV === "production",
+			maxAge: 0,
+			path: "/",
+		});
 
 		const baseUrl = await getBaseUrl();
 		const returnUrl = getSafeReturnUrl(typeof payload.returnUrl === "string" ? payload.returnUrl : null, baseUrl);
