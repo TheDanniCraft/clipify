@@ -142,23 +142,44 @@ export async function POST(request: NextRequest) {
 
 	switch (messageType) {
 		case "notification": {
-			const notifResponse = await handleNotification(body);
-			if (notifResponse) return notifResponse;
-			return new Response(null, { status: 204 });
+			try {
+				const notifResponse = await handleNotification(body);
+				if (notifResponse) return notifResponse;
+				return new Response(null, { status: 204 });
+			} catch (error) {
+				if (error instanceof SyntaxError) {
+					console.error("Invalid EventSub notification payload");
+					return new Response("Invalid JSON payload", { status: 400 });
+				}
+				console.error("Error handling EventSub notification:", error);
+				return new Response(null, { status: 204 });
+			}
 		}
 		case "webhook_callback_verification": {
-			const challenge = JSON.parse(body).challenge;
+			let challenge: string | undefined;
+			try {
+				challenge = JSON.parse(body).challenge as string | undefined;
+			} catch {
+				console.error("Invalid EventSub callback verification payload");
+				return new Response("Invalid JSON payload", { status: 400 });
+			}
 			return new Response(challenge, {
 				status: 200,
 				headers: { "Content-Type": "text/plain" },
 			});
 		}
 		case "revocation": {
-			const notification = JSON.parse(body);
+			let notification: { subscription?: { type?: string; status?: string; condition?: unknown } };
+			try {
+				notification = JSON.parse(body) as { subscription?: { type?: string; status?: string; condition?: unknown } };
+			} catch {
+				console.error("Invalid EventSub revocation payload");
+				return new Response("Invalid JSON payload", { status: 400 });
+			}
 
-			console.log(`${notification.subscription.type} notifications revoked!`);
-			console.log(`reason: ${notification.subscription.status}`);
-			console.log(`condition: ${JSON.stringify(notification.subscription.condition, null, 4)}`);
+			console.log(`${notification.subscription?.type} notifications revoked!`);
+			console.log(`reason: ${notification.subscription?.status}`);
+			console.log(`condition: ${JSON.stringify(notification.subscription?.condition, null, 4)}`);
 
 			return new Response(null, { status: 204 });
 		}

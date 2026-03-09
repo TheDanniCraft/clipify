@@ -1,0 +1,80 @@
+/** @jest-environment node */
+export {};
+
+const consume = jest.fn();
+const RateLimiterMemory = jest.fn().mockImplementation(() => ({
+	consume: (...args: unknown[]) => consume(...args),
+}));
+const headers = jest.fn();
+
+let headerValues: Record<string, string | null> = {};
+
+jest.mock("rate-limiter-flexible", () => ({
+	RateLimiterMemory,
+}));
+
+jest.mock("next/headers", () => ({
+	headers: (...args: unknown[]) => headers(...args),
+}));
+
+async function loadRateLimit() {
+	jest.resetModules();
+	return import("@/app/actions/rateLimit");
+}
+
+describe("actions/rateLimit", () => {
+	beforeEach(() => {
+		jest.clearAllMocks();
+		headerValues = {};
+		headers.mockResolvedValue({
+			get: (name: string) => headerValues[name.toLowerCase()] ?? null,
+		});
+	});
+
+	it("extracts the first forwarded ip when x-forwarded-for contains multiple addresses", async () => {
+		headerValues["x-forwarded-for"] = "203.0.113.1, 10.0.0.1";
+		const { getUserIP } = await loadRateLimit();
+		await expect(getUserIP()).resolves.toBe("203.0.113.1");
+	});
+
+	it("falls back to x-real-ip and then localhost", async () => {
+		const { getUserIP } = await loadRateLimit();
+		headerValues["x-real-ip"] = "198.51.100.7";
+		await expect(getUserIP()).resolves.toBe("198.51.100.7");
+
+		headerValues["x-real-ip"] = null;
+		await expect(getUserIP()).resolves.toBe("127.0.0.1");
+	});
+
+	it("reuses the same limiter instance for repeated calls with the same key", async () => {
+		consume.mockResolvedValue({ remainingPoints: 0 });
+		const { tryRateLimit } = await loadRateLimit();
+
+		await tryRateLimit({ key: "feedback", points: 2, duration: 60 });
+		await tryRateLimit({ key: "feedback", points: 2, duration: 60 });
+
+		expect(RateLimiterMemory).toHaveBeenCalledTimes(1);
+		expect(consume).toHaveBeenCalledTimes(2);
+	});
+
+	it("returns success states from limiter consume resolve/reject", async () => {
+		const { tryRateLimit } = await loadRateLimit();
+		consume.mockResolvedValueOnce({ msBeforeNext: 0 });
+		const ok = await tryRateLimit({ key: "newsletter", points: 1, duration: 10 });
+		expect(ok.success).toBe(true);
+
+		consume.mockRejectedValueOnce({ msBeforeNext: 20_000 });
+		const blocked = await tryRateLimit({ key: "newsletter", points: 1, duration: 10 });
+		expect(blocked.success).toBe(false);
+	});
+
+	it("detects rate-limit errors by error name", async () => {
+		const { isRatelimitError } = await loadRateLimit();
+		const rateError = new Error("too many");
+		rateError.name = "RateLimitError";
+
+		await expect(isRatelimitError(rateError)).resolves.toBe(true);
+		await expect(isRatelimitError(new Error("other"))).resolves.toBe(false);
+		await expect(isRatelimitError("oops")).resolves.toBe(false);
+	});
+});

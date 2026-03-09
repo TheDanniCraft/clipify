@@ -10,17 +10,9 @@ import axios from "axios";
 import { getFirstFromClipQueue, getFirstFromModQueue, removeFromClipQueue, removeFromModQueue } from "@actions/database";
 import Logo from "@components/logo";
 import { IconPlayerPlayFilled, IconVolume, IconVolumeOff } from "@tabler/icons-react";
+import { clamp, getSlotOpacity, parseThemeFontSetting, sanitizeFontCssUrl, trimCache } from "./overlayPlayer.utils";
 
 type VideoQualityWithNumeric = TwitchClipVideoQuality & { numericQuality: number };
-
-const CACHE_MAX = 200;
-const FONT_URL_DELIMITER = "||url||";
-
-function trimCache(map: Map<string, unknown>) {
-	if (map.size <= CACHE_MAX) return;
-	const firstKey = map.keys().next().value as string | undefined;
-	if (firstKey) map.delete(firstKey);
-}
 
 async function getRawMediaUrl(clipId: string): Promise<string | undefined> {
 	const query = [
@@ -97,43 +89,7 @@ function preloadVideo(url: string) {
 	}
 }
 
-function clamp(value: number, min: number, max: number) {
-	return Math.min(max, Math.max(min, value));
-}
-
-function parseThemeFontSetting(value?: string) {
-	const raw = (value ?? "").trim();
-	if (!raw) return { fontFamily: "inherit", fontUrl: "" };
-	if (raw.includes(FONT_URL_DELIMITER)) {
-		const [family, url] = raw.split(FONT_URL_DELIMITER);
-		return {
-			fontFamily: family?.trim() || "inherit",
-			fontUrl: url?.trim() || "",
-		};
-	}
-	return { fontFamily: raw, fontUrl: "" };
-}
-
-function sanitizeFontCssUrl(value?: string) {
-	const raw = (value ?? "").trim();
-	if (!raw) return "";
-	try {
-		const parsed = new URL(raw);
-		if (parsed.protocol !== "https:") return "";
-		if (parsed.hostname.toLowerCase() !== "fonts.googleapis.com") return "";
-		return parsed.toString();
-	} catch {
-		return "";
-	}
-}
-
 const POWERED_BY_URL = "https://clipify.us?utm_source=embed&utm_medium=overlay&utm_campaign=webembed";
-
-function getSlotOpacity(slot: "a" | "b", activeSlot: "a" | "b", isCrossfading: boolean, showPlayer: boolean) {
-	if (!showPlayer) return 0;
-	if (activeSlot === slot) return isCrossfading ? 0 : 1;
-	return isCrossfading ? 1 : 0;
-}
 
 function PoweredByBadge({ className }: { className: string }) {
 	return (
@@ -539,6 +495,11 @@ export default function OverlayPlayer({
 	// Demo queue support
 	type DemoQueueItem = { id: string; clip?: TwitchClip };
 	const [demoQueue, setDemoQueue] = useState<DemoQueueItem[]>([]);
+	const demoQueueRef = useRef<DemoQueueItem[]>([]);
+
+	useEffect(() => {
+		demoQueueRef.current = demoQueue;
+	}, [demoQueue]);
 
 	useEffect(() => {
 		clipPoolRef.current = clipPool;
@@ -786,29 +747,33 @@ export default function OverlayPlayer({
 	);
 
 	const getFirstFromDemoQueue = useCallback(async () => {
-		// NOTE: we read state via closure here; that's fine, demo mode is explicit
-		if (demoQueue.length === 0) return null;
+		const queueSnapshot = demoQueueRef.current;
+		if (queueSnapshot.length === 0) return null;
 
 		let consumed = 0;
 
-		while (consumed < demoQueue.length) {
-			const item = demoQueue[consumed];
+		while (consumed < queueSnapshot.length) {
+			const item = queueSnapshot[consumed];
 			consumed += 1;
 
 			if (!item.id) continue;
 
 			const clip = item.clip ?? (await getDemoClip(item.id));
 			if (clip) {
-				setDemoQueue((prevQueue) => prevQueue.slice(consumed));
+				const nextQueue = queueSnapshot.slice(consumed);
+				demoQueueRef.current = nextQueue;
+				setDemoQueue(nextQueue);
 				return clip;
 			}
 		}
 
 		if (consumed > 0) {
-			setDemoQueue((prevQueue) => prevQueue.slice(consumed));
+			const nextQueue = queueSnapshot.slice(consumed);
+			demoQueueRef.current = nextQueue;
+			setDemoQueue(nextQueue);
 		}
 		return null;
-	}, [demoQueue]);
+	}, []);
 
 	const getFirstQueClip = useCallback(async (): Promise<ModQueueItem | ClipQueueItem | null> => {
 		if (isEmbed || isDemoPlayer) return null;
@@ -1072,8 +1037,10 @@ export default function OverlayPlayer({
 							return;
 						}
 
-					setDemoQueue((prevQueue) => [...prevQueue, { id: demoId, clip: demoClip }]);
-				}
+						const nextQueue = [...demoQueueRef.current, { id: demoId, clip: demoClip }];
+						demoQueueRef.current = nextQueue;
+						setDemoQueue(nextQueue);
+					}
 
 					// Only start immediately if nothing is currently playing.
 					if (!clipRef.current) {
