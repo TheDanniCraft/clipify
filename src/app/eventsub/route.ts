@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import crypto from "crypto";
-import { cacheClipFromEventSub, handleClip, sendChatMessage, updateRedemptionStatus } from "@actions/twitch";
+import { handleClip, sendChatMessage, updateRedemptionStatus } from "@actions/twitch";
 import { addToClipQueue, getOverlayByRewardId } from "@actions/database";
 import { RewardStatus, EventSubNotification, RewardRedemptionEvent, TwitchMessage } from "@types";
 import { sendMessage } from "@actions/websocket";
@@ -110,13 +110,6 @@ async function handleNotification(bodyText: string): Promise<Response | null> {
 			break;
 		}
 
-		case "channel.clip.create": {
-			const event = notification.event as { id?: string; broadcaster_user_id?: string };
-			if (event.id && event.broadcaster_user_id) {
-				await cacheClipFromEventSub(event.id, event.broadcaster_user_id);
-			}
-			break;
-		}
 	}
 
 	return null;

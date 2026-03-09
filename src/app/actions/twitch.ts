@@ -46,8 +46,6 @@ type ClipForceRefreshState = {
 	lastForcedAt?: string;
 };
 
-let clipCreateEventSubUnsupported = false;
-
 const CLIP_SYNC_INCREMENTAL_INTERVAL_MS = 10 * 60 * 1000;
 const CLIP_SYNC_BACKFILL_INTERVAL_MS = 2 * 60 * 1000;
 function parsePositiveInt(value: string | undefined, fallback: number) {
@@ -279,14 +277,6 @@ async function clearEventSubSubscriptionsByTypeAndCondition({
 		}
 	}
 	return deleted;
-}
-
-function isInvalidSubscriptionTypeVersionError(error: unknown): boolean {
-	if (!axios.isAxiosError(error)) return false;
-	if (error.response?.status !== 400) return false;
-	const responseData = error.response.data as { message?: unknown } | string | undefined;
-	const message = typeof responseData === "string" ? responseData : String(responseData?.message ?? "");
-	return message.toLowerCase().includes("invalid subscription type and version");
 }
 
 export async function exchangeAccesToken(code: string): Promise<TwitchTokenApiResponse | null> {
@@ -553,13 +543,6 @@ async function getCurrentCategoryGameId(ownerId: string, accessToken: string): P
 		logTwitchError("Error fetching current category", error);
 		return null;
 	}
-}
-
-export async function cacheClipFromEventSub(clipId: string, broadcasterId: string): Promise<boolean> {
-	const clip = await getTwitchClip(clipId, broadcasterId);
-	if (!clip) return false;
-	await upsertClipsByOwner(broadcasterId, [clip]);
-	return true;
 }
 
 export async function syncOwnerClipCache(ownerId: string, ensurePackSize = 0): Promise<void> {
@@ -1190,107 +1173,6 @@ export async function subscribeToChat(userId: string) {
 			return;
 		}
 		logTwitchError("Error subscribing to chat", error);
-	}
-}
-
-export async function subscribeToClipCreate(userId: string) {
-	if (clipCreateEventSubUnsupported) return;
-
-	const url = "https://api.twitch.tv/helix/eventsub/subscriptions";
-	const token = await getAppAccessToken();
-
-	if (!token) {
-		console.error("No app access token found");
-		return;
-	}
-
-	let eventsubCallback = process.env.TWITCH_EVENTSUB_URL;
-
-	if (await isPreview()) {
-		const baseUrl = await getBaseUrl();
-		eventsubCallback = new URL("/eventsub", baseUrl).toString();
-	}
-
-	try {
-		await axios.post(
-			url,
-			{
-				type: "channel.clip.create",
-				version: "1",
-				condition: {
-					broadcaster_user_id: userId,
-				},
-				transport: {
-					method: "webhook",
-					callback: eventsubCallback,
-					secret: process.env.WEBHOOK_SECRET,
-				},
-			},
-			{
-				headers: {
-					Authorization: `Bearer ${token.access_token}`,
-					"Client-Id": process.env.TWITCH_CLIENT_ID || "",
-				},
-			},
-		);
-	} catch (error) {
-		if (isInvalidSubscriptionTypeVersionError(error)) {
-			clipCreateEventSubUnsupported = true;
-			console.warn("Clip-create EventSub subscription type is unavailable; disabling further clip-create subscription attempts.");
-			return;
-		}
-
-		if (axios.isAxiosError(error) && error.response?.status === 429) {
-			const shouldAutoClear = (await isPreview()) || process.env.NODE_ENV !== "production" || process.env.TWITCH_EVENTSUB_AUTO_CLEAR === "1";
-			if (shouldAutoClear) {
-				const deleted = await clearEventSubSubscriptionsByTypeAndCondition({
-					type: "channel.clip.create",
-					conditionMatch: {
-						broadcaster_user_id: userId,
-					},
-				});
-
-				if (deleted > 0) {
-					try {
-						await axios.post(
-							url,
-							{
-								type: "channel.clip.create",
-								version: "1",
-								condition: {
-									broadcaster_user_id: userId,
-								},
-								transport: {
-									method: "webhook",
-									callback: eventsubCallback,
-									secret: process.env.WEBHOOK_SECRET,
-								},
-							},
-							{
-								headers: {
-									Authorization: `Bearer ${token.access_token}`,
-									"Client-Id": process.env.TWITCH_CLIENT_ID || "",
-								},
-							},
-						);
-						return;
-					} catch (retryError) {
-						if (isInvalidSubscriptionTypeVersionError(retryError)) {
-							clipCreateEventSubUnsupported = true;
-							console.warn("Clip-create EventSub subscription type is unavailable; disabling further clip-create subscription attempts.");
-							return;
-						}
-
-						logTwitchError("Error subscribing to clip create after clearing EventSub", retryError);
-						return;
-					}
-				}
-			}
-		}
-		if (axios.isAxiosError(error) && error.response?.status === 409) {
-			return;
-		}
-		logTwitchError("Error subscribing to clip create", error);
 	}
 }
 

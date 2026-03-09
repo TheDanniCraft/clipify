@@ -310,7 +310,7 @@ export default function SettingsPage() {
 										<IconDatabase className='text-default-500' />
 										<div>
 											<p className='font-semibold text-sm'>Clip Crawl Status</p>
-											<p className='text-xs text-default-500'>Shows how much clip history is cached for faster playback.</p>
+											<p className='text-xs text-default-500'>Your clip cache is checked in the background about every minute.</p>
 										</div>
 									</div>
 									<span className={`text-xs font-semibold ${clipCacheStatus?.backfillComplete ? "text-success-600" : "text-warning-600"}`}>{clipCacheStatus?.backfillComplete ? "Complete" : "Syncing"}</span>
@@ -360,7 +360,7 @@ export default function SettingsPage() {
 								</div>
 							</CardBody>
 						</Card>
-						<p className='mb-6 text-xs text-default-500'>Your clip cache is checked about every minute. New clips are usually picked up quickly (often within about a minute), and older clips are added in batches every few minutes until full history catch-up is done.</p>
+						<p className='mb-6 text-xs text-default-500'>New clips are usually picked up within several minutes, and older clips are added in batches every few minutes until full history catch-up is done.</p>
 
 						<Form className='w-full' onSubmit={handleSubmit}>
 							<Input

@@ -294,69 +294,6 @@ describe("actions/twitch external API and failure handling", () => {
 		await expect(subscribeToChat("owner-1")).resolves.toBeUndefined();
 	});
 
-	it("logs retry failure for clip-create subscription after auto-clear", async () => {
-		const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => undefined);
-		jest.spyOn(axios, "post").mockImplementation((url: string) => {
-			if (url.includes("/oauth2/token")) {
-				return Promise.resolve({ data: { access_token: "app-token", expires_in: 3600, token_type: "bearer" } } as never);
-			}
-			if (url.includes("/eventsub/subscriptions")) {
-				return Promise.reject(createAxiosError(429));
-			}
-			return Promise.resolve({ data: {} } as never);
-		});
-		jest.spyOn(axios, "get").mockResolvedValue({
-			data: {
-				data: [
-					{
-						id: "clip-sub-1",
-						type: "channel.clip.create",
-						condition: { broadcaster_user_id: "owner-1" },
-					},
-				],
-				pagination: {},
-			},
-		} as never);
-		jest.spyOn(axios, "delete").mockResolvedValue({ data: {} } as never);
-
-		const { subscribeToClipCreate } = await loadTwitch();
-		await expect(subscribeToClipCreate("owner-1")).resolves.toBeUndefined();
-
-		expect(consoleSpy).toHaveBeenCalled();
-	});
-
-	it("stops retrying clip-create subscriptions after Twitch reports invalid type/version", async () => {
-		const warningSpy = jest.spyOn(console, "warn").mockImplementation(() => undefined);
-		try {
-			await jest.isolateModulesAsync(async () => {
-				const isolatedAxios = (await import("axios")).default;
-				let eventSubCalls = 0;
-				jest.spyOn(isolatedAxios, "post").mockImplementation((url: string) => {
-					if (url.includes("/oauth2/token")) {
-						return Promise.resolve({ data: { access_token: "app-token", expires_in: 3600, token_type: "bearer" } } as never);
-					}
-					if (url.includes("/eventsub/subscriptions")) {
-						eventSubCalls += 1;
-						return Promise.reject(createAxiosError(400, { message: "invalid subscription type and version" }));
-					}
-					return Promise.resolve({ data: {} } as never);
-				});
-
-				const { subscribeToClipCreate } = await import("@/app/actions/twitch");
-				await expect(subscribeToClipCreate("owner-1")).resolves.toBeUndefined();
-				await expect(subscribeToClipCreate("owner-1")).resolves.toBeUndefined();
-
-				expect(eventSubCalls).toBe(1);
-			});
-
-			expect(warningSpy).toHaveBeenCalledWith(
-				"Clip-create EventSub subscription type is unavailable; disabling further clip-create subscription attempts.",
-			);
-		} finally {
-			warningSpy.mockRestore();
-		}
-	});
-
 	it("returns cached avatar immediately and uses stale avatar on API failure", async () => {
 		getTwitchCache.mockResolvedValueOnce("https://cached/avatar.png").mockResolvedValueOnce(null);
 		getTwitchCacheStale.mockResolvedValue("https://stale/avatar.png");
@@ -863,56 +800,6 @@ describe("actions/twitch external API and failure handling", () => {
 		expect(consoleSpy).toHaveBeenCalled();
 	});
 
-	it("handles clip-create subscription no-token/preview/retry/409/generic branches", async () => {
-		const consoleSpy = jest.spyOn(console, "error");
-		isPreview.mockResolvedValue(true);
-		getBaseUrl.mockResolvedValue("https://preview.clipify.dev");
-
-		const tokenResponse = { data: { access_token: "app-token", expires_in: 3600, token_type: "bearer" } } as never;
-		let oauthCalls = 0;
-		let eventSubAttempts = 0;
-		jest.spyOn(axios, "post").mockImplementation((url: string, body?: unknown) => {
-			if (url.includes("/oauth2/token")) {
-				oauthCalls += 1;
-				if (oauthCalls === 1) return Promise.reject(new Error("missing token"));
-				return Promise.resolve(tokenResponse);
-			}
-			if (url.includes("/eventsub/subscriptions")) {
-				eventSubAttempts += 1;
-				const callback = (body as { transport?: { callback?: string } })?.transport?.callback;
-				if (callback !== "https://preview.clipify.dev/eventsub") {
-					throw new Error("unexpected callback");
-				}
-				if (eventSubAttempts === 1) return Promise.reject(createAxiosError(429));
-				if (eventSubAttempts === 2) return Promise.resolve({ data: {} } as never);
-				if (eventSubAttempts === 3) return Promise.reject(createAxiosError(409));
-				return Promise.reject(new Error("clip create failed"));
-			}
-			return Promise.resolve({ data: {} } as never);
-		});
-		jest.spyOn(axios, "get").mockResolvedValue({
-			data: {
-				data: [
-					{
-						id: "clip-sub-1",
-						type: "channel.clip.create",
-						condition: { broadcaster_user_id: "owner-1" },
-					},
-				],
-				pagination: {},
-			},
-		} as never);
-		jest.spyOn(axios, "delete").mockResolvedValue({ data: {} } as never);
-
-		const { subscribeToClipCreate } = await loadTwitch();
-		await expect(subscribeToClipCreate("owner-1")).resolves.toBeUndefined();
-		await expect(subscribeToClipCreate("owner-1")).resolves.toBeUndefined();
-		await expect(subscribeToClipCreate("owner-1")).resolves.toBeUndefined();
-		await expect(subscribeToClipCreate("owner-1")).resolves.toBeUndefined();
-
-		expect(consoleSpy).toHaveBeenCalled();
-	});
-
 	it("sends chat messages successfully and logs failures", async () => {
 		let call = 0;
 		jest.spyOn(axios, "post").mockImplementation((url: string) => {
@@ -1165,40 +1052,6 @@ describe("actions/twitch external API and failure handling", () => {
 		try {
 			const { subscribeToReward } = await loadTwitch();
 			await expect(subscribeToReward("owner-1", "reward-1")).resolves.toBeUndefined();
-
-			expect(getSpy).not.toHaveBeenCalled();
-			expect(deleteSpy).not.toHaveBeenCalled();
-		} finally {
-			if (originalNodeEnv === undefined) delete process.env.NODE_ENV;
-			else process.env.NODE_ENV = originalNodeEnv;
-
-			if (originalAutoClear === undefined) delete process.env.TWITCH_EVENTSUB_AUTO_CLEAR;
-			else process.env.TWITCH_EVENTSUB_AUTO_CLEAR = originalAutoClear;
-		}
-	});
-
-	it("does not auto-clear clip-create EventSub entries on 429 in production when override is disabled", async () => {
-		const originalNodeEnv = process.env.NODE_ENV;
-		const originalAutoClear = process.env.TWITCH_EVENTSUB_AUTO_CLEAR;
-		process.env.NODE_ENV = "production";
-		delete process.env.TWITCH_EVENTSUB_AUTO_CLEAR;
-		isPreview.mockResolvedValue(false);
-
-		const getSpy = jest.spyOn(axios, "get");
-		const deleteSpy = jest.spyOn(axios, "delete");
-		jest.spyOn(axios, "post").mockImplementation((url: string) => {
-			if (url.includes("/oauth2/token")) {
-				return Promise.resolve({ data: { access_token: "app-token", expires_in: 3600, token_type: "bearer" } } as never);
-			}
-			if (url.includes("/eventsub/subscriptions")) {
-				return Promise.reject(createAxiosError(429));
-			}
-			return Promise.resolve({ data: {} } as never);
-		});
-
-		try {
-			const { subscribeToClipCreate } = await loadTwitch();
-			await expect(subscribeToClipCreate("owner-1")).resolves.toBeUndefined();
 
 			expect(getSpy).not.toHaveBeenCalled();
 			expect(deleteSpy).not.toHaveBeenCalled();

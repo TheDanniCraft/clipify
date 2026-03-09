@@ -10,7 +10,6 @@ const getTwitchClip = jest.fn();
 const getTwitchClipBatch = jest.fn();
 const resolvePlayableClip = jest.fn();
 const subscribeToChat = jest.fn();
-const subscribeToClipCreate = jest.fn();
 
 const getFirstFromClipQueue = jest.fn();
 const getFirstFromModQueue = jest.fn();
@@ -25,7 +24,6 @@ jest.mock("@actions/twitch", () => ({
 	getTwitchClipBatch: (...args: unknown[]) => getTwitchClipBatch(...args),
 	resolvePlayableClip: (...args: unknown[]) => resolvePlayableClip(...args),
 	subscribeToChat: (...args: unknown[]) => subscribeToChat(...args),
-	subscribeToClipCreate: (...args: unknown[]) => subscribeToClipCreate(...args),
 }));
 
 jest.mock("@actions/database", () => ({
@@ -248,7 +246,6 @@ describe("components/overlayPlayer", () => {
 		getTwitchClipBatch.mockResolvedValue([]);
 		resolvePlayableClip.mockImplementation(async (_ownerId: string, clip: unknown) => clip);
 		subscribeToChat.mockResolvedValue(undefined);
-		subscribeToClipCreate.mockResolvedValue(undefined);
 		getFirstFromModQueue.mockResolvedValue(null);
 		getFirstFromClipQueue.mockResolvedValue(null);
 		removeFromModQueue.mockResolvedValue(undefined);
@@ -308,7 +305,6 @@ describe("components/overlayPlayer", () => {
 			expect(screen.queryByRole("button", { name: "Play clips" })).not.toBeInTheDocument();
 		});
 		expect(subscribeToChat).not.toHaveBeenCalled();
-		expect(subscribeToClipCreate).not.toHaveBeenCalled();
 	});
 
 	it("renders embed overlay badge path and progress fallback colors", async () => {
@@ -415,7 +411,6 @@ describe("components/overlayPlayer", () => {
 
 		expect(pauseMock).toHaveBeenCalled();
 		expect(subscribeToChat).toHaveBeenCalledWith("owner-1");
-		expect(subscribeToClipCreate).toHaveBeenCalledWith("owner-1");
 	});
 
 	it("falls back to the next top clip when the highest-view clip is not playable", async () => {

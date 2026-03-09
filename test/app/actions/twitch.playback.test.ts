@@ -578,38 +578,4 @@ describe("actions/twitch playback and cache behavior", () => {
 		expect(clips.map((clip) => clip.id)).toEqual(["stale-unavailable", "normal-clip"]);
 	});
 
-	it("caches new clips from EventSub notifications when clip lookup succeeds", async () => {
-		jest.spyOn(axios, "get").mockResolvedValue({
-			data: {
-				data: [buildClip("eventsub-clip")],
-			},
-		} as never);
-
-		const { cacheClipFromEventSub } = await loadTwitch();
-		const result = await cacheClipFromEventSub("eventsub-clip", "owner-1");
-
-		expect(result).toBe(true);
-		expect(setTwitchCacheBatch).toHaveBeenCalledWith(
-			"clip",
-			expect.arrayContaining([
-				expect.objectContaining({
-					key: "clip:owner-1:eventsub-clip",
-				}),
-			]),
-		);
-	});
-
-	it("does not cache EventSub clips when lookup fails", async () => {
-		jest.spyOn(axios, "get").mockResolvedValue({
-			data: {
-				data: [],
-			},
-		} as never);
-
-		const { cacheClipFromEventSub } = await loadTwitch();
-		const result = await cacheClipFromEventSub("missing-clip", "owner-1");
-
-		expect(result).toBe(false);
-		expect(setTwitchCacheBatch).not.toHaveBeenCalled();
-	});
 });

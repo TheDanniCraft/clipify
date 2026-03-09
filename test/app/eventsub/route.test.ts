@@ -2,7 +2,6 @@
 
 import crypto from "crypto";
 
-const cacheClipFromEventSub = jest.fn();
 const handleClip = jest.fn();
 const sendChatMessage = jest.fn();
 const updateRedemptionStatus = jest.fn();
@@ -14,7 +13,6 @@ const isCommand = jest.fn();
 const isMod = jest.fn();
 
 jest.mock("@actions/twitch", () => ({
-	cacheClipFromEventSub: (...args: unknown[]) => cacheClipFromEventSub(...args),
 	handleClip: (...args: unknown[]) => handleClip(...args),
 	sendChatMessage: (...args: unknown[]) => sendChatMessage(...args),
 	updateRedemptionStatus: (...args: unknown[]) => updateRedemptionStatus(...args),
@@ -148,18 +146,6 @@ describe("app/eventsub route", () => {
 		await expect(res.text()).resolves.toBe("Invalid JSON payload");
 	});
 
-	it("processes clip-create notifications and caches clip", async () => {
-		const { POST } = await loadRoute("secret");
-		const body = JSON.stringify({
-			subscription: { type: "channel.clip.create" },
-			event: { id: "clip-1", broadcaster_user_id: "owner-1" },
-		});
-		const req = createSignedRequest("secret", "notification", body);
-		const res = await POST(req as never);
-		expect(res.status).toBe(204);
-		expect(cacheClipFromEventSub).toHaveBeenCalledWith("clip-1", "owner-1");
-	});
-
 	it("runs chat command handling only for mod commands", async () => {
 		const { POST } = await loadRoute("secret");
 		isCommand.mockResolvedValue(true);
@@ -201,31 +187,6 @@ describe("app/eventsub route", () => {
 		const plainRes = await POST(plainReq as never);
 		expect(plainRes.status).toBe(204);
 		expect(handleCommand).not.toHaveBeenCalled();
-	});
-
-	it("ignores clip-create notifications with incomplete payloads", async () => {
-		const { POST } = await loadRoute("secret");
-		const body = JSON.stringify({
-			subscription: { type: "channel.clip.create" },
-			event: { id: "clip-1" },
-		});
-		const req = createSignedRequest("secret", "notification", body);
-		const res = await POST(req as never);
-		expect(res.status).toBe(204);
-		expect(cacheClipFromEventSub).not.toHaveBeenCalled();
-	});
-
-	it("keeps webhook successful when clip cache update throws", async () => {
-		const { POST } = await loadRoute("secret");
-		cacheClipFromEventSub.mockRejectedValue(new Error("cache down"));
-		const body = JSON.stringify({
-			subscription: { type: "channel.clip.create" },
-			event: { id: "clip-1", broadcaster_user_id: "owner-1" },
-		});
-		const req = createSignedRequest("secret", "notification", body);
-		const res = await POST(req as never);
-
-		expect(res.status).toBe(204);
 	});
 
 	it("cancels reward redemption when user input is missing", async () => {
@@ -384,7 +345,7 @@ describe("app/eventsub route", () => {
 	it("handles revocation and unknown message types", async () => {
 		const { POST } = await loadRoute("secret");
 		const revocationBody = JSON.stringify({
-			subscription: { type: "channel.clip.create", status: "authorization_revoked", condition: { broadcaster_user_id: "1" } },
+			subscription: { type: "channel.chat.message", status: "authorization_revoked", condition: { broadcaster_user_id: "1" } },
 		});
 		const revocationReq = createSignedRequest("secret", "revocation", revocationBody);
 		const revocationRes = await POST(revocationReq as never);
