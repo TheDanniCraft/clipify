@@ -774,8 +774,8 @@ function OverlayStylePreview({
 											<div className='opacity-80'>Playing Just Chatting</div>
 										</div>
 									</div>
+									{renderResizeHandles("channel")}
 								</div>
-								{renderResizeHandles("channel")}
 							</div>
 						</div>
 					</div>
@@ -814,8 +814,8 @@ function OverlayStylePreview({
 										<div className='font-bold'>Insane comeback in ranked</div>
 										<div className='opacity-80 mt-1'>clipped by bestviewer123</div>
 									</div>
+									{renderResizeHandles("clip")}
 								</div>
-								{renderResizeHandles("clip")}
 							</div>
 						</div>
 					</div>
@@ -847,8 +847,8 @@ function OverlayStylePreview({
 									}}
 								>
 									18
+									{renderResizeHandles("timer")}
 								</div>
-								{renderResizeHandles("timer")}
 							</div>
 						</div>
 					</div>
