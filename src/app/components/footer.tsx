@@ -194,6 +194,18 @@ export default function Footer() {
 		}
 	}, [firstName, pendingEmail, plausible, token]);
 
+	const handleNewsletterSubmit = useCallback(
+		(event: React.FormEvent<HTMLFormElement>) => {
+			if (isDetailsExpanded) {
+				event.preventDefault();
+				void finishSubscribe(true);
+				return;
+			}
+			subscribe(event);
+		},
+		[finishSubscribe, isDetailsExpanded, subscribe],
+	);
+
 	const renderList = useCallback(
 		({ title, items }: { title: string; items: { name: string; href: string }[] }) => (
 			<div>
@@ -248,7 +260,7 @@ export default function Footer() {
 							<p className='text-small text-default-400 mt-2'>Receive updates on new features, tips and tricks, or offers straight to your email.</p>
 						</div>
 						<div className='w-full lg:max-w-md'>
-							<Form onSubmit={subscribe}>
+							<Form onSubmit={handleNewsletterSubmit}>
 								<motion.div
 									className='relative w-full overflow-hidden'
 									animate={{
@@ -308,6 +320,7 @@ export default function Footer() {
 										<Input size='sm' label='How should we call you?' placeholder={firstNamePlaceholder} value={firstName} onChange={(event) => setFirstName(event.target.value)} />
 										<div className='flex flex-wrap items-center gap-2'>
 											<Button
+												type='button'
 												variant='light'
 												onPress={() => {
 													setIsDetailsExpanded(false);
@@ -317,10 +330,10 @@ export default function Footer() {
 											>
 												Back
 											</Button>
-											<Button variant='flat' onPress={() => finishSubscribe(false)} isDisabled={newsletterState === "loading" || !pendingEmail || !token}>
+											<Button type='button' variant='flat' onPress={() => finishSubscribe(false)} isDisabled={newsletterState === "loading" || !pendingEmail || !token}>
 												Skip
 											</Button>
-											<Button color='primary' onPress={() => finishSubscribe(true)} isDisabled={newsletterState === "loading" || !pendingEmail || !token}>
+											<Button type='submit' color='primary' isDisabled={newsletterState === "loading" || !pendingEmail || !token}>
 												Add and subscribe
 											</Button>
 										</div>
