@@ -325,6 +325,38 @@ describe("actions/twitch external API and failure handling", () => {
 		expect(consoleSpy).toHaveBeenCalled();
 	});
 
+	it("stops retrying clip-create subscriptions after Twitch reports invalid type/version", async () => {
+		const warningSpy = jest.spyOn(console, "warn").mockImplementation(() => undefined);
+		try {
+			await jest.isolateModulesAsync(async () => {
+				const isolatedAxios = (await import("axios")).default;
+				let eventSubCalls = 0;
+				jest.spyOn(isolatedAxios, "post").mockImplementation((url: string) => {
+					if (url.includes("/oauth2/token")) {
+						return Promise.resolve({ data: { access_token: "app-token", expires_in: 3600, token_type: "bearer" } } as never);
+					}
+					if (url.includes("/eventsub/subscriptions")) {
+						eventSubCalls += 1;
+						return Promise.reject(createAxiosError(400, { message: "invalid subscription type and version" }));
+					}
+					return Promise.resolve({ data: {} } as never);
+				});
+
+				const { subscribeToClipCreate } = await import("@/app/actions/twitch");
+				await expect(subscribeToClipCreate("owner-1")).resolves.toBeUndefined();
+				await expect(subscribeToClipCreate("owner-1")).resolves.toBeUndefined();
+
+				expect(eventSubCalls).toBe(1);
+			});
+
+			expect(warningSpy).toHaveBeenCalledWith(
+				"Clip-create EventSub subscription type is unavailable; disabling further clip-create subscription attempts.",
+			);
+		} finally {
+			warningSpy.mockRestore();
+		}
+	});
+
 	it("returns cached avatar immediately and uses stale avatar on API failure", async () => {
 		getTwitchCache.mockResolvedValueOnce("https://cached/avatar.png").mockResolvedValueOnce(null);
 		getTwitchCacheStale.mockResolvedValue("https://stale/avatar.png");

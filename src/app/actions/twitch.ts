@@ -46,6 +46,8 @@ type ClipForceRefreshState = {
 	lastForcedAt?: string;
 };
 
+let clipCreateEventSubUnsupported = false;
+
 const CLIP_SYNC_INCREMENTAL_INTERVAL_MS = 10 * 60 * 1000;
 const CLIP_SYNC_BACKFILL_INTERVAL_MS = 2 * 60 * 1000;
 function parsePositiveInt(value: string | undefined, fallback: number) {
@@ -277,6 +279,14 @@ async function clearEventSubSubscriptionsByTypeAndCondition({
 		}
 	}
 	return deleted;
+}
+
+function isInvalidSubscriptionTypeVersionError(error: unknown): boolean {
+	if (!axios.isAxiosError(error)) return false;
+	if (error.response?.status !== 400) return false;
+	const responseData = error.response.data as { message?: unknown } | string | undefined;
+	const message = typeof responseData === "string" ? responseData : String(responseData?.message ?? "");
+	return message.toLowerCase().includes("invalid subscription type and version");
 }
 
 export async function exchangeAccesToken(code: string): Promise<TwitchTokenApiResponse | null> {
@@ -1184,6 +1194,8 @@ export async function subscribeToChat(userId: string) {
 }
 
 export async function subscribeToClipCreate(userId: string) {
+	if (clipCreateEventSubUnsupported) return;
+
 	const url = "https://api.twitch.tv/helix/eventsub/subscriptions";
 	const token = await getAppAccessToken();
 
@@ -1222,6 +1234,12 @@ export async function subscribeToClipCreate(userId: string) {
 			},
 		);
 	} catch (error) {
+		if (isInvalidSubscriptionTypeVersionError(error)) {
+			clipCreateEventSubUnsupported = true;
+			console.warn("Clip-create EventSub subscription type is unavailable; disabling further clip-create subscription attempts.");
+			return;
+		}
+
 		if (axios.isAxiosError(error) && error.response?.status === 429) {
 			const shouldAutoClear = (await isPreview()) || process.env.NODE_ENV !== "production" || process.env.TWITCH_EVENTSUB_AUTO_CLEAR === "1";
 			if (shouldAutoClear) {
@@ -1257,6 +1275,12 @@ export async function subscribeToClipCreate(userId: string) {
 						);
 						return;
 					} catch (retryError) {
+						if (isInvalidSubscriptionTypeVersionError(retryError)) {
+							clipCreateEventSubUnsupported = true;
+							console.warn("Clip-create EventSub subscription type is unavailable; disabling further clip-create subscription attempts.");
+							return;
+						}
+
 						logTwitchError("Error subscribing to clip create after clearing EventSub", retryError);
 						return;
 					}
