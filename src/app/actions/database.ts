@@ -1530,7 +1530,7 @@ function parseCacheJson<T>(value: string, context: string): T | null {
 	try {
 		return JSON.parse(value) as T;
 	} catch (error) {
-		console.error(`Error parsing twitch cache payload (${context}):`, error);
+		console.error("Error parsing twitch cache payload (%s):", context, error);
 		return null;
 	}
 }
