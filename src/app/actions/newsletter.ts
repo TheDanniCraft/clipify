@@ -1,14 +1,30 @@
 "use server";
 
-import axios from "axios";
+import { UseSend } from "usesend-js";
 import { tryRateLimit } from "@actions/rateLimit";
 import { RateLimitError } from "@types";
 import { verifyTurnstile } from "nextjs-turnstile";
 
-const LISTMONK_URL = process.env.LISTMONK_URL;
-const LISTMONK_LIST_UUID = process.env.LISTMONK_LIST_UUID;
-const LISTMONK_USERNAME = process.env.LISTMONK_USERNAME;
-const LISTMONK_API_KEY = process.env.LISTMONK_API_KEY;
+const USESEND_BASE_URL = process.env.USESEND_BASE_URL;
+const USESEND_API_KEY = process.env.USESEND_API_KEY;
+const USESEND_CONTACT_BOOK_ID = process.env.USESEND_CONTACT_BOOK_ID;
+
+type NewsletterContactDetails = {
+	firstName?: string;
+	properties?: Record<string, string>;
+};
+
+function getUseSendClient() {
+	if (!USESEND_BASE_URL || !USESEND_API_KEY || !USESEND_CONTACT_BOOK_ID) {
+		throw new Error("Missing useSend configuration in environment variables");
+	}
+
+	const baseUrl = USESEND_BASE_URL.replace(/\/+$/, "");
+	return {
+		client: new UseSend(USESEND_API_KEY, baseUrl),
+		contactBookId: USESEND_CONTACT_BOOK_ID,
+	};
+}
 
 // List of most popular email providers
 const providerPatterns = [
@@ -45,12 +61,9 @@ const providerPatterns = [
 	{ regex: /@(bellsouth|att)\.net$/i, provider: "AT&T" },
 ];
 
-export async function subscribeToNewsletter(email: string, captchaToken: string) {
-	if (!LISTMONK_URL || !LISTMONK_LIST_UUID || !LISTMONK_USERNAME || !LISTMONK_API_KEY) {
-		throw new Error("Missing Listmonk configuration in environment variables");
-	}
-
+export async function subscribeToNewsletter(email: string, captchaToken: string, details?: NewsletterContactDetails) {
 	try {
+		const { client, contactBookId } = getUseSendClient();
 		const rateLimiter = await tryRateLimit({ key: "newsletter", points: 1, duration: 60 });
 
 		if (!rateLimiter.success) {
@@ -65,33 +78,22 @@ export async function subscribeToNewsletter(email: string, captchaToken: string)
 			return new Error("Invalid CAPTCHA");
 		}
 
-		const response = await axios.post(
-			`${LISTMONK_URL}/api/public/subscription`,
-			{
-				email,
-				list_uuids: [LISTMONK_LIST_UUID],
-				status: "enabled",
-			},
-			{
-				headers: {
-					"Content-Type": "application/json",
-					Authorization: `Basic ${Buffer.from(`${LISTMONK_USERNAME}:${LISTMONK_API_KEY}`).toString("base64")}`,
-				},
-			},
-		);
+		const payload = {
+			email,
+			subscribed: true,
+			...(details?.firstName ? { firstName: details.firstName } : {}),
+			...(details?.properties ? { properties: details.properties } : {}),
+		};
+
+		const response = await client.contacts.create(contactBookId, payload);
+		if (response.error) {
+			throw new Error(response.error.message || "useSend contact creation failed");
+		}
 
 		return response.data;
 	} catch (error: unknown) {
-		if (axios.isAxiosError(error)) {
-			console.error("Axios error:", {
-				message: error.message,
-				response: error.response?.data,
-			});
-		} else {
-			console.error("Unknown error:", error);
-		}
-
-		throw new Error("Failed to subscribe to newsletter");
+		console.error("Newsletter subscription error:", error);
+		throw error instanceof Error ? error : new Error("Failed to subscribe to newsletter");
 	}
 }
 

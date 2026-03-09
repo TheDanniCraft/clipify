@@ -3,7 +3,7 @@
 import { TwitchBadge, TwitchMessage } from "@types";
 import { sendMessage } from "@actions/websocket";
 import { getTwitchClip, handleClip, sendChatMessage } from "@actions/twitch";
-import { addToModQueue, clearClipQueueByOverlayIdServer, clearModQueueByBroadcasterId, getAllOverlayIdsByOwnerServer, getClipQueueByOverlayId, getModQueue, getSettings, getUserByIdServer } from "@actions/database";
+import { addToModQueue, clearClipQueueByOverlayIdServer, clearModQueueByBroadcasterId, getAllOverlayIdsByOwnerServer, getAllOverlaysByOwnerServer, getClipQueueByOverlayId, getModQueue, getSettings, getUserByIdServer, setPlayerVolumeForOwner } from "@actions/database";
 import { getFeatureAccess } from "@lib/featureAccess";
 import { getBaseUrl } from "@actions/utils";
 
@@ -317,6 +317,43 @@ const commands: Record<string, { description: string; usage: string; execute: (m
 					return;
 				}
 			}
+		},
+	},
+
+	volume: {
+		description: "Show or set player volume (0-100)",
+		usage: "volume <[0-100]>",
+		execute: async (message: TwitchMessage) => {
+			const text = message.message.text;
+			const args = text.split(/\s+/).filter(Boolean).slice(1);
+			const overlays = await getAllOverlaysByOwnerServer(message.broadcaster_user_id);
+
+			if (!overlays || overlays.length === 0) {
+				await sendChatMessage(message.broadcaster_user_id, `@${message.chatter_user_name} no overlays found for this channel.`);
+				return;
+			}
+
+			if (args.length === 0) {
+				const uniqueVolumes = Array.from(new Set(overlays.map((o) => o.playerVolume)));
+				if (uniqueVolumes.length === 1) {
+					await sendChatMessage(message.broadcaster_user_id, `@${message.chatter_user_name} current player volume is ${uniqueVolumes[0]}%. Use "volume <0-100>" to change it.`);
+					return;
+				}
+				await sendChatMessage(message.broadcaster_user_id, `@${message.chatter_user_name} overlays currently have mixed volumes (${uniqueVolumes.join(", ")}). Use "volume <0-100>" to set all.`);
+				return;
+			}
+
+			const rawVolume = (args[0] || "").trim();
+			if (!/^\d+$/.test(rawVolume)) {
+				await sendChatMessage(message.broadcaster_user_id, `@${message.chatter_user_name} please provide a valid number between 0 and 100.`);
+				return;
+			}
+			const requestedVolume = Number.parseInt(rawVolume, 10);
+
+			const clampedVolume = Math.max(0, Math.min(100, requestedVolume));
+			await setPlayerVolumeForOwner(message.broadcaster_user_id, clampedVolume);
+			await sendMessage("command", { name: "volume", data: String(clampedVolume) }, message.broadcaster_user_id);
+			await sendChatMessage(message.broadcaster_user_id, `@${message.chatter_user_name} player volume set to ${clampedVolume}% for all overlays.`);
 		},
 	},
 

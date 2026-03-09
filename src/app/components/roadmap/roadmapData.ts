@@ -95,9 +95,9 @@ export const roadmapData: RoadmapItemData[] = [
 		icon: IconPaint,
 		color: "pink",
 		title: "Overlay Themes",
-		description: "Introduce customizable overlay themes.",
-		features: ["Theme selection", "Custom color schemes", "Layout options", "Preview mode"],
-		status: RoadmapStatus.Planned,
-		timeframe: "Q1 2026",
+		description: "Introduce customizable overlay themes and a visual layout editor.",
+		features: ["Theme selection", "Custom color schemes", "Drag & drop layout editor", "OBS-focused scaling and placement", "Resizable overlay elements"],
+		status: RoadmapStatus.Shipped,
+		timeframe: "Q1-Q2 2026",
 	},
 ];

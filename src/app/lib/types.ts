@@ -229,6 +229,17 @@ export enum OverlayType {
 	Queue = "Queue",
 }
 
+export enum PlaybackMode {
+	Random = "random",
+	Top = "top",
+	SmartShuffle = "smart_shuffle",
+}
+
+export enum MaxDurationMode {
+	Filter = "filter",
+	Cut = "cut",
+}
+
 export type AccessType = "owner" | "editor";
 
 export type TwitchClipBody = {

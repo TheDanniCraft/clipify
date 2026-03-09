@@ -1,11 +1,13 @@
 "use server";
 
 import axios from "axios";
-import { AuthenticatedUser, Game, Overlay, OverlayType, RewardStatus, TwitchApiResponse, TwitchAppAccessTokenResponse, TwitchCacheType, TwitchClip, TwitchClipBody, TwitchClipResponse, TwitchReward, TwitchRewardResponse, TwitchTokenApiResponse, TwitchUserResponse } from "@types";
-import { getAccessToken, getTwitchCache, getTwitchCacheBatch, getTwitchCacheEntry, getTwitchCacheStale, getTwitchCacheStaleBatch, setTwitchCache, setTwitchCacheBatch } from "@actions/database";
+import { AuthenticatedUser, Game, Overlay, OverlayType, RewardStatus, TwitchApiResponse, TwitchAppAccessTokenResponse, TwitchCacheType, TwitchClip, TwitchClipResponse, TwitchReward, TwitchRewardResponse, TwitchTokenApiResponse, TwitchUserResponse } from "@types";
+import { deleteTwitchCacheByPrefix, deleteTwitchCacheKeys, getAccessToken, getOverlayBySecret, getOverlayPublic, getTwitchCache, getTwitchCacheBatch, getTwitchCacheByPrefixEntries, getTwitchCacheEntry, getTwitchCacheStale, getTwitchCacheStaleBatch, setTwitchCache, setTwitchCacheBatch } from "@actions/database";
 import { getBaseUrl, isPreview } from "@actions/utils";
 import { isTitleBlocked } from "@/app/utils/regexFilter";
+import { dbPool } from "@/db/client";
 import { REWARD_NOT_FOUND } from "@lib/twitchErrors";
+import { validateAuth } from "@actions/auth";
 
 export async function logTwitchError(context: string, error: unknown) {
 	if (axios.isAxiosError(error) && error.response) {
@@ -25,6 +27,166 @@ type EventSubSubscription = {
 		callback?: string;
 	};
 };
+
+type ClipSyncState = {
+	lastIncrementalSyncAt?: string;
+	lastBackfillSyncAt?: string;
+	backfillCursor?: string;
+	backfillComplete?: boolean;
+};
+
+type CachedClipValue = {
+	clip: TwitchClip;
+	unavailable?: boolean;
+	lastSeenAt?: string;
+	lastValidatedAt?: string;
+};
+
+type ClipForceRefreshState = {
+	lastForcedAt?: string;
+};
+
+const CLIP_SYNC_INCREMENTAL_INTERVAL_MS = 10 * 60 * 1000;
+const CLIP_SYNC_BACKFILL_INTERVAL_MS = 2 * 60 * 1000;
+function parsePositiveInt(value: string | undefined, fallback: number) {
+	const parsed = Number(value);
+	if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
+	return Math.floor(parsed);
+}
+const CLIP_VALIDATION_STALE_MS = Math.max(5 * 60 * 1000, parsePositiveInt(process.env.CLIP_VALIDATION_STALE_MS, 6 * 60 * 60 * 1000));
+const CLIP_FORCE_REFRESH_COOLDOWN_MS = Math.max(60 * 60 * 1000, parsePositiveInt(process.env.CLIP_FORCE_REFRESH_COOLDOWN_MS, 6 * 60 * 60 * 1000));
+const CLIP_CACHE_PREFIX = (ownerId: string) => `clip:${ownerId}:`;
+const CLIP_SYNC_STATE_KEY = (ownerId: string) => `clip-sync:${ownerId}`;
+const CLIP_FORCE_REFRESH_KEY = (ownerId: string) => `clip-sync-force:${ownerId}`;
+
+function toClipCacheKey(ownerId: string, clipId: string) {
+	return `${CLIP_CACHE_PREFIX(ownerId)}${clipId}`;
+}
+
+function parseCachedClipValue(value: CachedClipValue | TwitchClip | null | undefined): TwitchClip | null {
+	if (!value || typeof value !== "object") return null;
+	if ("clip" in value && value.clip) return value.clip;
+	if ("id" in value && typeof value.id === "string") return value as TwitchClip;
+	return null;
+}
+
+async function getClipSyncState(ownerId: string): Promise<ClipSyncState> {
+	const state = await getTwitchCache<ClipSyncState>(TwitchCacheType.Clip, CLIP_SYNC_STATE_KEY(ownerId));
+	return state ?? {};
+}
+
+async function setClipSyncState(ownerId: string, state: ClipSyncState) {
+	await setTwitchCache(TwitchCacheType.Clip, CLIP_SYNC_STATE_KEY(ownerId), state);
+}
+
+async function getClipForceRefreshState(ownerId: string): Promise<ClipForceRefreshState> {
+	const state = await getTwitchCache<ClipForceRefreshState>(TwitchCacheType.Clip, CLIP_FORCE_REFRESH_KEY(ownerId));
+	return state ?? {};
+}
+
+async function setClipForceRefreshState(ownerId: string, state: ClipForceRefreshState) {
+	await setTwitchCache(TwitchCacheType.Clip, CLIP_FORCE_REFRESH_KEY(ownerId), state);
+}
+
+async function getCachedClipsByOwner(ownerId: string): Promise<TwitchClip[]> {
+	const entries = await getTwitchCacheByPrefixEntries<CachedClipValue | TwitchClip>(TwitchCacheType.Clip, CLIP_CACHE_PREFIX(ownerId));
+	const deduped = new Map<string, TwitchClip>();
+	for (const entry of entries) {
+		const value = entry.value as CachedClipValue | TwitchClip;
+		if ((value as CachedClipValue).unavailable) {
+			const lastValidatedAt = (value as CachedClipValue).lastValidatedAt;
+			const parsed = lastValidatedAt ? Date.parse(lastValidatedAt) : Number.NaN;
+			const stale = !Number.isFinite(parsed) || Date.now() - parsed >= CLIP_VALIDATION_STALE_MS;
+			if (!stale) continue;
+		}
+		const clip = parseCachedClipValue(entry.value);
+		if (!clip?.id) continue;
+		if (deduped.has(clip.id)) continue;
+		deduped.set(clip.id, clip);
+	}
+	return Array.from(deduped.values());
+}
+
+async function upsertClipsByOwner(ownerId: string, clips: TwitchClip[]) {
+	if (clips.length === 0) return;
+	const nowIso = new Date().toISOString();
+	await setTwitchCacheBatch(
+		TwitchCacheType.Clip,
+		clips.map((clip) => ({
+			key: toClipCacheKey(ownerId, clip.id),
+			value: { clip, lastSeenAt: nowIso, lastValidatedAt: nowIso } satisfies CachedClipValue,
+		})),
+	);
+}
+
+export async function resolvePlayableClip(ownerId: string, clip: TwitchClip): Promise<TwitchClip | null> {
+	const key = toClipCacheKey(ownerId, clip.id);
+	const cached = await getTwitchCache<CachedClipValue | TwitchClip>(TwitchCacheType.Clip, key);
+	const nowIso = new Date().toISOString();
+	const cachedValue = cached && typeof cached === "object" ? (cached as CachedClipValue | TwitchClip) : null;
+	const cachedClip = parseCachedClipValue(cachedValue);
+	const isStaleValidation = (lastValidatedAt?: string): boolean => {
+		if (!lastValidatedAt) return true;
+		const timestamp = Date.parse(lastValidatedAt);
+		if (!Number.isFinite(timestamp)) return true;
+		return Date.now() - timestamp >= CLIP_VALIDATION_STALE_MS;
+	};
+
+	if (cachedValue && "unavailable" in cachedValue && (cachedValue as CachedClipValue).unavailable) {
+		const lastValidatedAt = (cachedValue as CachedClipValue).lastValidatedAt;
+		const stale = isStaleValidation(lastValidatedAt);
+		if (!stale) return null;
+	}
+
+	const lastValidatedAt = cachedValue && "lastValidatedAt" in (cachedValue as CachedClipValue) ? (cachedValue as CachedClipValue).lastValidatedAt : undefined;
+	const stale = isStaleValidation(lastValidatedAt);
+	if (!stale) {
+		return cachedClip ?? clip;
+	}
+
+	const fresh = await getTwitchClip(clip.id, ownerId);
+	if (!fresh) {
+		await setTwitchCache(
+			TwitchCacheType.Clip,
+			key,
+			{
+				clip: cachedClip ?? clip,
+				unavailable: true,
+				lastSeenAt: (cachedValue as CachedClipValue | null)?.lastSeenAt ?? nowIso,
+				lastValidatedAt: nowIso,
+			} satisfies CachedClipValue,
+		);
+		return null;
+	}
+
+	await setTwitchCache(
+		TwitchCacheType.Clip,
+		key,
+		{
+			clip: fresh,
+			unavailable: false,
+			lastSeenAt: nowIso,
+			lastValidatedAt: nowIso,
+		} satisfies CachedClipValue,
+	);
+	return fresh;
+}
+
+async function fetchClipPage(ownerId: string, accessToken: string, first: number, after?: string) {
+	const url = "https://api.twitch.tv/helix/clips";
+	const response = await axios.get<TwitchApiResponse<TwitchClipResponse>>(url, {
+		headers: {
+			Authorization: `Bearer ${accessToken}`,
+			"Client-Id": process.env.TWITCH_CLIENT_ID || "",
+		},
+		params: {
+			broadcaster_id: ownerId,
+			first,
+			after,
+		},
+	});
+	return { clips: response.data.data, cursor: response.data.pagination?.cursor };
+}
 
 async function listEventSubSubscriptions(type?: string): Promise<EventSubSubscription[]> {
 	const url = "https://api.twitch.tv/helix/eventsub/subscriptions";
@@ -362,60 +524,197 @@ export async function getTwitchClip(clipId: string, creatorId: string): Promise<
 	}
 }
 
-export async function getTwitchClips(overlay: Overlay, type?: OverlayType, skipFilter?: boolean): Promise<TwitchClip[]> {
-	const url = "https://api.twitch.tv/helix/clips";
-	const token = await getAccessToken(overlay.ownerId);
-	overlay.type = type || overlay.type;
+async function getCurrentCategoryGameId(ownerId: string, accessToken: string): Promise<string | null> {
+	const url = "https://api.twitch.tv/helix/streams";
+	try {
+		const response = await axios.get<TwitchApiResponse<{ game_id: string }>>(url, {
+			headers: {
+				Authorization: `Bearer ${accessToken}`,
+				"Client-Id": process.env.TWITCH_CLIENT_ID || "",
+			},
+			params: {
+				user_id: ownerId,
+				first: 1,
+			},
+		});
 
-	if (!token) {
-		console.error("No access token found for ownerId:", overlay.ownerId);
-		return [];
+		return response.data.data[0]?.game_id || null;
+	} catch (error) {
+		logTwitchError("Error fetching current category", error);
+		return null;
 	}
-	let clips: TwitchClip[] = [];
-	let cursor: string | undefined;
-	let fetchCount = 0;
+}
 
-	if (overlay.type === "Queue") {
+export async function syncOwnerClipCache(ownerId: string, ensurePackSize = 0): Promise<void> {
+	const lockClient = await dbPool.connect();
+	const lockKey = `clip_sync_owner:${ownerId}`;
+	let lockAcquired = false;
+	try {
+		const lockResult = (await lockClient.query("select pg_try_advisory_lock(hashtext($1)) as locked", [lockKey])) as { rows?: Array<{ locked?: boolean }> };
+		lockAcquired = Boolean(lockResult.rows?.[0]?.locked);
+		if (!lockAcquired) return;
+
+		const token = await getAccessToken(ownerId);
+		if (!token) return;
+
+		let cachedClips: TwitchClip[] = [];
+		if (ensurePackSize > 0) {
+			cachedClips = await getCachedClipsByOwner(ownerId);
+		}
+
+		const syncState = await getClipSyncState(ownerId);
+		const now = Date.now();
+		const nextState: ClipSyncState = { ...syncState };
+		const isSyncDue = (lastSyncAt: string | undefined, intervalMs: number): boolean => {
+			if (!lastSyncAt) return true;
+			const parsed = Date.parse(lastSyncAt);
+			if (!Number.isFinite(parsed)) return true;
+			return now - parsed >= intervalMs;
+		};
+		const incrementalDue =
+			(ensurePackSize > 0 && cachedClips.length < ensurePackSize) ||
+			isSyncDue(nextState.lastIncrementalSyncAt, CLIP_SYNC_INCREMENTAL_INTERVAL_MS);
+
+		if (incrementalDue) {
+			try {
+				const first = ensurePackSize > 0 && cachedClips.length < ensurePackSize ? Math.max(1, Math.min(100, ensurePackSize - cachedClips.length)) : 100;
+				const page = await fetchClipPage(ownerId, token.accessToken, first);
+				await upsertClipsByOwner(ownerId, page.clips);
+				nextState.lastIncrementalSyncAt = new Date(now).toISOString();
+				if (page.cursor) {
+					if (!nextState.backfillComplete && !nextState.backfillCursor) {
+						nextState.backfillCursor = page.cursor;
+					}
+				}
+				if (!page.cursor) {
+					nextState.backfillComplete = true;
+				}
+			} catch (error) {
+				logTwitchError("Error fetching incremental clip sync page", error);
+			}
+		}
+
+		const backfillDue =
+			!nextState.backfillComplete &&
+			!!nextState.backfillCursor &&
+			isSyncDue(nextState.lastBackfillSyncAt, CLIP_SYNC_BACKFILL_INTERVAL_MS);
+
+		if (backfillDue && nextState.backfillCursor) {
+			try {
+				const page = await fetchClipPage(ownerId, token.accessToken, 100, nextState.backfillCursor);
+				await upsertClipsByOwner(ownerId, page.clips);
+				nextState.lastBackfillSyncAt = new Date(now).toISOString();
+				nextState.backfillCursor = page.cursor;
+				nextState.backfillComplete = !page.cursor;
+			} catch (error) {
+				logTwitchError("Error fetching backfill clip sync page", error);
+			}
+		}
+
+		if (JSON.stringify(syncState) !== JSON.stringify(nextState)) {
+			await setClipSyncState(ownerId, nextState);
+		}
+	} finally {
+		if (lockAcquired) {
+			try {
+				await lockClient.query("select pg_advisory_unlock(hashtext($1))", [lockKey]);
+			} catch {
+				// Best-effort unlock.
+			}
+		}
+		lockClient.release();
+	}
+}
+
+export async function getOwnClipForceRefreshStatus() {
+	const user = await validateAuth(false);
+	if (!user) return null;
+
+	const state = await getClipForceRefreshState(user.id);
+	const lastForcedAt = state.lastForcedAt ?? null;
+	const lastForcedTs = lastForcedAt ? new Date(lastForcedAt).getTime() : 0;
+	const now = Date.now();
+	const nextAllowedTs = lastForcedTs > 0 ? lastForcedTs + CLIP_FORCE_REFRESH_COOLDOWN_MS : now;
+
+	return {
+		lastForcedAt,
+		cooldownMs: CLIP_FORCE_REFRESH_COOLDOWN_MS,
+		nextAllowedAt: new Date(nextAllowedTs).toISOString(),
+		remainingMs: Math.max(0, nextAllowedTs - now),
+		canRefresh: now >= nextAllowedTs,
+	};
+}
+
+export async function forceRefreshOwnClipCache(ensurePackSize = 0) {
+	const user = await validateAuth(false);
+	if (!user) throw new Error("Not authenticated");
+
+	const status = await getOwnClipForceRefreshStatus();
+	if (!status) throw new Error("Not authenticated");
+	if (!status.canRefresh) {
+		return {
+			ok: false as const,
+			reason: "cooldown",
+			nextAllowedAt: status.nextAllowedAt,
+			remainingMs: status.remainingMs,
+		};
+	}
+
+	await deleteTwitchCacheByPrefix(TwitchCacheType.Clip, CLIP_CACHE_PREFIX(user.id));
+	await deleteTwitchCacheKeys(TwitchCacheType.Clip, [CLIP_SYNC_STATE_KEY(user.id)]);
+	const nowIso = new Date().toISOString();
+	await setClipForceRefreshState(user.id, { lastForcedAt: nowIso });
+	void syncOwnerClipCache(user.id, ensurePackSize).catch((error) => {
+		logTwitchError("forceRefreshOwnClipCache/syncOwnerClipCache", error);
+	});
+
+	return {
+		ok: true as const,
+		lastForcedAt: nowIso,
+		cooldownMs: CLIP_FORCE_REFRESH_COOLDOWN_MS,
+		nextAllowedAt: new Date(Date.now() + CLIP_FORCE_REFRESH_COOLDOWN_MS).toISOString(),
+		remainingMs: CLIP_FORCE_REFRESH_COOLDOWN_MS,
+	};
+}
+
+export async function getTwitchClips(overlay: Overlay, type?: OverlayType, skipFilter?: boolean): Promise<TwitchClip[]> {
+	const overlayType = type ?? overlay.type;
+	let clips: TwitchClip[] = [];
+
+	if (overlayType === "Queue") {
 		return clips;
 	}
 
-	let endDate = undefined;
-	if (overlay.type !== "Featured" && overlay.type !== "All") {
-		endDate = new Date(Date.now() - Number(overlay.type) * 24 * 60 * 60 * 1000).toISOString();
+	await syncOwnerClipCache(overlay.ownerId);
+	clips = await getCachedClipsByOwner(overlay.ownerId);
+
+	if (overlayType === "Featured") {
+		clips = clips.filter((clip) => !!((clip as TwitchClip & { is_featured?: boolean }).is_featured));
+	} else if (overlayType !== "All") {
+		const days = Number(overlayType);
+		if (Number.isFinite(days) && days > 0) {
+			const minTs = Date.now() - days * 24 * 60 * 60 * 1000;
+			clips = clips.filter((clip) => {
+				const ts = new Date(clip.created_at).getTime();
+				return Number.isFinite(ts) && ts >= minTs;
+			});
+		}
 	}
 
-	do {
-		const params: TwitchClipBody = {
-			broadcaster_id: overlay.ownerId,
-			first: 100,
-			after: cursor,
-		};
-
-		if (overlay.type === "Featured") {
-			params.is_featured = true;
-		} else if (overlay.type !== "All") {
-			params.started_at = endDate;
-			params.ended_at = new Date().toISOString();
-		}
-
-		try {
-			const response = await axios.get<TwitchApiResponse<TwitchClipResponse>>(url, {
-				headers: {
-					Authorization: `Bearer ${token.accessToken}`,
-					"Client-Id": process.env.TWITCH_CLIENT_ID || "",
-				},
-				params,
-			});
-			clips.push(...response.data.data);
-			cursor = response.data.pagination?.cursor;
-		} catch (error) {
-			logTwitchError("Error fetching Twitch clips", error);
-			break;
-		}
-		fetchCount++;
-	} while (cursor && fetchCount < 15);
-
 	if (!skipFilter) {
+		if (overlay.preferCurrentCategory) {
+			const token = await getAccessToken(overlay.ownerId);
+			if (token?.accessToken) {
+				const currentGameId = await getCurrentCategoryGameId(overlay.ownerId, token.accessToken);
+				if (currentGameId) {
+					const sameCategoryClips = clips.filter((clip) => clip.game_id === currentGameId);
+					if (sameCategoryClips.length > 0) {
+						clips = sameCategoryClips;
+					}
+				}
+			}
+		}
+
 		// Filter for duration
 		clips = clips.filter((clip) => {
 			const clipDuration = clip.duration;
@@ -427,13 +726,102 @@ export async function getTwitchClips(overlay: Overlay, type?: OverlayType, skipF
 			return !isTitleBlocked(clip.title, overlay.blacklistWords);
 		});
 
+		// Filter for selected clip creators
+		const allowedCreators = (overlay.clipCreatorsOnly ?? []).map((name) => name.toLowerCase());
+		if (allowedCreators.length > 0) {
+			clips = clips.filter((clip) => allowedCreators.includes(clip.creator_name.toLowerCase()) || allowedCreators.includes(clip.creator_id.toLowerCase()));
+		}
+
+		const blockedCreators = (overlay.clipCreatorsBlocked ?? []).map((name) => name.toLowerCase());
+		if (blockedCreators.length > 0) {
+			clips = clips.filter((clip) => !blockedCreators.includes(clip.creator_name.toLowerCase()) && !blockedCreators.includes(clip.creator_id.toLowerCase()));
+		}
+
 		// Filter for minimum views
 		clips = clips.filter((clip) => {
 			return clip.view_count >= overlay.minClipViews;
 		});
+
+		if (overlay.playbackMode === "top") {
+			clips.sort((a, b) => b.view_count - a.view_count || b.created_at.localeCompare(a.created_at));
+		}
 	}
 
 	return clips;
+}
+
+export async function getTwitchClipBatch(overlayId: string, overlaySecret?: string, type?: OverlayType, excludeClipIds: string[] = [], count = 50, skipFilter?: boolean): Promise<TwitchClip[]> {
+	const overlay = overlaySecret ? await getOverlayBySecret(overlayId, overlaySecret) : await getOverlayPublic(overlayId);
+	if (!overlay) return [];
+	const all = await getTwitchClips(overlay, type, skipFilter);
+	if (all.length === 0) return [];
+
+	const exclude = new Set(excludeClipIds);
+	let candidates = all.filter((clip) => !exclude.has(clip.id));
+	if (candidates.length === 0) {
+		candidates = all;
+	}
+
+	const batchSize = Math.max(1, Math.min(200, count));
+
+	if (overlay.playbackMode === "top") {
+		return [...candidates].sort((a, b) => b.view_count - a.view_count || b.created_at.localeCompare(a.created_at)).slice(0, batchSize);
+	}
+
+	if (overlay.playbackMode === "smart_shuffle") {
+		const remaining = [...candidates];
+		const ordered: TwitchClip[] = [];
+		const recent: TwitchClip[] = [];
+		while (remaining.length > 0 && ordered.length < batchSize) {
+			const recentCreatorCounts = new Map<string, number>();
+			const recentGameCounts = new Map<string, number>();
+			for (const clip of recent.slice(-20)) {
+				const creatorKey = clip.creator_id || clip.creator_name;
+				recentCreatorCounts.set(creatorKey, (recentCreatorCounts.get(creatorKey) ?? 0) + 1);
+				recentGameCounts.set(clip.game_id, (recentGameCounts.get(clip.game_id) ?? 0) + 1);
+			}
+
+			const sortedViews = remaining.map((clip) => clip.view_count).sort((a, b) => a - b);
+			const medianViews = sortedViews.length > 0 ? sortedViews[Math.floor(sortedViews.length / 2)] : 0;
+			const maxLogViews = Math.log1p(Math.max(1, ...sortedViews));
+
+			const scored = remaining.map((clip) => {
+				const creatorKey = clip.creator_id || clip.creator_name;
+				const creatorPenalty = (recentCreatorCounts.get(creatorKey) ?? 0) * 0.12;
+				const gamePenalty = (recentGameCounts.get(clip.game_id) ?? 0) * 0.1;
+				const viewScore = Math.log1p(clip.view_count) / maxLogViews;
+				const exploreBoost = clip.view_count <= medianViews ? 0.12 : 0;
+				const jitter = Math.random() * 0.25;
+				const score = Math.max(0.05, 0.58 * viewScore + 0.25 * jitter + exploreBoost - creatorPenalty - gamePenalty);
+				return { clip, score };
+			});
+
+			const totalWeight = scored.reduce((sum, entry) => sum + entry.score, 0);
+			let pick = Math.random() * totalWeight;
+			let picked = scored[0]?.clip;
+			for (const entry of scored) {
+				pick -= entry.score;
+				if (pick <= 0) {
+					picked = entry.clip;
+					break;
+				}
+			}
+
+			if (!picked) break;
+			ordered.push(picked);
+			recent.push(picked);
+			const idx = remaining.findIndex((clip) => clip.id === picked.id);
+			if (idx >= 0) remaining.splice(idx, 1);
+			else break;
+		}
+		return ordered;
+	}
+
+	return [...candidates]
+		.map((clip) => ({ clip, sort: Math.random() }))
+		.sort((a, b) => a.sort - b.sort)
+		.map((entry) => entry.clip)
+		.slice(0, batchSize);
 }
 
 export async function getDemoClip(clipId: string): Promise<TwitchClip | null> {

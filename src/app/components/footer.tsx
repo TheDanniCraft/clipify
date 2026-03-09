@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button, Chip, Divider, Form, Image, Input, Link, Modal, ModalContent, Spinner, Tab, Tabs } from "@heroui/react";
 import { Turnstile } from "nextjs-turnstile";
+import { motion } from "motion/react";
 
 import Logo from "@components/logo";
 import { IconCircleCheckFilled, IconMailFilled, IconMoonFilled, IconSend, IconSunFilled } from "@tabler/icons-react";
@@ -18,8 +19,41 @@ export default function Footer() {
 	const [statusText, setStatusText] = useState("Loading...");
 	const plausible = usePlausible();
 	const [newsletterState, setNewsletterState] = useState("default");
-	const [isOpen, setIsOpen] = useState(false);
+	const [isDetailsExpanded, setIsDetailsExpanded] = useState(false);
+	const [isSuccessOpen, setIsSuccessOpen] = useState(false);
 	const [token, setToken] = useState<string | null>(null);
+	const [pendingEmail, setPendingEmail] = useState("");
+	const [firstName, setFirstName] = useState("");
+	const emailStepRef = useRef<HTMLDivElement>(null);
+	const nameStepRef = useRef<HTMLDivElement>(null);
+	const [stepHeights, setStepHeights] = useState({ email: 64, name: 172 });
+	const firstNamePlaceholder = useMemo(() => {
+		const localPart = (pendingEmail.split("@")[0] || "").trim();
+		if (!localPart) {
+			return "First name";
+		}
+
+		const stopWords = new Set(["the", "real", "official", "its", "iam", "im", "hello", "mail", "contact", "team", "info", "admin", "support", "noreply", "no", "reply"]);
+		const normalized = localPart
+			.split("+")[0]
+			.replace(/([a-z])([A-Z])/g, "$1 $2")
+			.split(/[._\-\s]+/)
+			.map((part) => part.replace(/[^\p{L}]/gu, "").toLowerCase())
+			.filter((part) => part.length > 1 && !stopWords.has(part));
+
+		if (!normalized.length) {
+			return "First name";
+		}
+
+		const guess = normalized[0];
+		return guess.charAt(0).toUpperCase() + guess.slice(1);
+	}, [pendingEmail]);
+
+	const measureStepHeights = useCallback(() => {
+		const emailHeight = emailStepRef.current?.scrollHeight ?? 64;
+		const nameHeight = nameStepRef.current?.scrollHeight ?? 172;
+		setStepHeights({ email: emailHeight, name: nameHeight });
+	}, []);
 
 	const productHuntSrc = useMemo(() => `https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1052781&theme=${theme === "light" ? "light" : "dark"}`, [theme]);
 
@@ -83,36 +117,93 @@ export default function Footer() {
 			});
 	}, []);
 
+	useEffect(() => {
+		const frame = window.requestAnimationFrame(measureStepHeights);
+		return () => window.cancelAnimationFrame(frame);
+	}, [measureStepHeights, firstName, pendingEmail, newsletterState]);
+
+	useEffect(() => {
+		const handleResize = () => measureStepHeights();
+		window.addEventListener("resize", handleResize);
+		return () => window.removeEventListener("resize", handleResize);
+	}, [measureStepHeights]);
+
 	const subscribe = useCallback(
-		async (event: React.FormEvent<HTMLFormElement>) => {
+		(event: React.FormEvent<HTMLFormElement>) => {
 			event.preventDefault();
 			const data = Object.fromEntries(new FormData(event.currentTarget));
-			setNewsletterState("loading");
-
-			try {
-				const res = await subscribeToNewsletter(data.email as string, token || "");
-				if (await isRatelimitError(res)) {
-					setNewsletterState("rateLimit");
-					return;
-				}
-				if (res instanceof Error) {
-					setNewsletterState("error");
-					return;
-				}
-
-				setNewsletterState("success");
-				setIsOpen(true);
-
-				plausible("Newsletter Subscription", {
-					props: {
-						emailType: await getEmailProvider(data.email as string),
-					},
-				});
-			} catch {
-				setNewsletterState("error");
+			const email = ((data.email as string) || "").trim();
+			if (!email) {
+				setPendingEmail(email);
+				setNewsletterState("default");
+				setIsDetailsExpanded(false);
+				return;
 			}
+			if (!token) {
+				setPendingEmail(email);
+				setNewsletterState("captcha");
+				setIsDetailsExpanded(false);
+				return;
+			}
+			setPendingEmail(email);
+			setFirstName("");
+			setNewsletterState("default");
+			setIsDetailsExpanded(true);
 		},
-		[plausible, token],
+		[token],
+	);
+
+	const finishSubscribe = useCallback(async (includeNames = true) => {
+		if (!token) {
+			setNewsletterState("error");
+			return;
+		}
+		setNewsletterState("loading");
+
+		try {
+			const res = await subscribeToNewsletter(
+				pendingEmail,
+				token || "",
+				includeNames
+					? {
+							firstName: firstName.trim() || undefined,
+						}
+					: undefined,
+			);
+
+			if (await isRatelimitError(res)) {
+				setNewsletterState("rateLimit");
+				return;
+			}
+			if (res instanceof Error) {
+				setNewsletterState("error");
+				return;
+			}
+
+			setNewsletterState("success");
+			setIsDetailsExpanded(false);
+			setIsSuccessOpen(true);
+
+			plausible("Newsletter Subscription", {
+				props: {
+					emailType: await getEmailProvider(pendingEmail),
+				},
+			});
+		} catch {
+			setNewsletterState("error");
+		}
+	}, [firstName, pendingEmail, plausible, token]);
+
+	const handleNewsletterSubmit = useCallback(
+		(event: React.FormEvent<HTMLFormElement>) => {
+			if (isDetailsExpanded) {
+				event.preventDefault();
+				void finishSubscribe(true);
+				return;
+			}
+			subscribe(event);
+		},
+		[finishSubscribe, isDetailsExpanded, subscribe],
 	);
 
 	const renderList = useCallback(
@@ -168,49 +259,96 @@ export default function Footer() {
 							<h3 className='text-small text-default-600 font-semibold'>Subscribe to our newsletter</h3>
 							<p className='text-small text-default-400 mt-2'>Receive updates on new features, tips and tricks, or offers straight to your email.</p>
 						</div>
-						<Form onSubmit={subscribe}>
-							<Input
-								isRequired
-								placeholder='mail@example.com'
-								type='email'
-								labelPlacement='outside'
-								className={newsletterState == "success" ? "text-success" : newsletterState == "error" || newsletterState == "rateLimit" ? "text-danger" : "text-default-900"}
-								description={(() => {
-									switch (newsletterState) {
-										case "loading":
-											return "Subscribing...";
-										case "error":
-											return "An error occurred. Please try again. If the error persists, please contact the team.";
-										case "rateLimit":
-											return "Please wait before trying again.";
-										default:
-											return "";
-									}
-								})()}
-								startContent={(() => {
-									switch (newsletterState) {
-										case "loading":
-											return <Spinner />;
-										case "success":
-											return <IconCircleCheckFilled className='text-success-500' />;
-										default:
-											return <IconMailFilled className='text-default-400' />;
-									}
-								})()}
-								onChange={() => {
-									setNewsletterState("default");
-								}}
-								name='email'
-								isDisabled={newsletterState === "loading" || newsletterState === "success"}
-								endContent={
-									<Button color='primary' size='sm' isIconOnly type='submit' isDisabled={newsletterState === "loading" || newsletterState === "success" || !token} aria-label='Subscribe to newsletter'>
-										<IconSend className='text-white' />
-									</Button>
-								}
-							/>
-							<Turnstile siteKey='0x4AAAAAACMFR636JljxhVLl' onSuccess={setToken} onError={(error) => console.error("Turnstile error:", error)} onExpire={() => setToken(null)} />
-						</Form>
-						<Modal isOpen={isOpen} onOpenChange={(open) => setIsOpen(open)}>
+						<div className='w-full lg:max-w-md'>
+							<Form onSubmit={handleNewsletterSubmit}>
+								<motion.div
+									className='relative w-full overflow-hidden'
+									animate={{
+										height: isDetailsExpanded ? stepHeights.name : stepHeights.email,
+									}}
+									transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+								>
+									<motion.div
+										ref={emailStepRef}
+										className={isDetailsExpanded ? "absolute inset-0 w-full" : "relative w-full"}
+										animate={{
+											opacity: isDetailsExpanded ? 0 : 1,
+											y: isDetailsExpanded ? -8 : 0,
+											pointerEvents: isDetailsExpanded ? "none" : "auto",
+										}}
+										transition={{ duration: 0.2, ease: "easeOut" }}
+									>
+										<Input
+											isRequired
+											placeholder='mail@example.com'
+											type='email'
+											labelPlacement='outside'
+											className={newsletterState == "success" ? "text-success" : newsletterState == "error" || newsletterState == "rateLimit" ? "text-danger" : "text-default-900"}
+											startContent={(() => {
+												switch (newsletterState) {
+													case "loading":
+														return <Spinner />;
+													case "success":
+														return <IconCircleCheckFilled className='text-success-500' />;
+													default:
+														return <IconMailFilled className='text-default-400' />;
+												}
+											})()}
+											onChange={() => {
+												setNewsletterState("default");
+											}}
+											name='email'
+											isDisabled={newsletterState === "loading" || newsletterState === "success"}
+											endContent={
+												<Button color='primary' size='sm' isIconOnly type='submit' isDisabled={newsletterState === "loading" || newsletterState === "success" || !token} aria-label='Continue newsletter signup'>
+													<IconSend className='text-white' />
+												</Button>
+											}
+										/>
+									</motion.div>
+									<motion.div
+										ref={nameStepRef}
+										className={isDetailsExpanded ? "relative w-full space-y-3" : "absolute inset-0 w-full space-y-3"}
+										animate={{
+											opacity: isDetailsExpanded ? 1 : 0,
+											y: isDetailsExpanded ? 0 : 8,
+											pointerEvents: isDetailsExpanded ? "auto" : "none",
+										}}
+										transition={{ duration: 0.24, ease: "easeOut" }}
+									>
+										<div className='rounded-small border border-default-200 px-3 py-2 text-xs text-default-500'>Subscribing as {pendingEmail}</div>
+										<Input size='sm' label='How should we call you?' placeholder={firstNamePlaceholder} value={firstName} onChange={(event) => setFirstName(event.target.value)} />
+										<div className='flex flex-wrap items-center gap-2'>
+											<Button
+												type='button'
+												variant='light'
+												onPress={() => {
+													setIsDetailsExpanded(false);
+													setNewsletterState("default");
+												}}
+												isDisabled={newsletterState === "loading"}
+											>
+												Back
+											</Button>
+											<Button type='button' variant='flat' onPress={() => finishSubscribe(false)} isDisabled={newsletterState === "loading" || !pendingEmail || !token}>
+												Skip
+											</Button>
+											<Button type='submit' color='primary' isDisabled={newsletterState === "loading" || !pendingEmail || !token}>
+												Add and subscribe
+											</Button>
+										</div>
+									</motion.div>
+								</motion.div>
+								<div className='pt-1'>
+									<Turnstile siteKey='0x4AAAAAACMFR636JljxhVLl' onSuccess={setToken} onError={(error) => console.error("Turnstile error:", error)} onExpire={() => setToken(null)} />
+								</div>
+								{newsletterState === "loading" && <p className='text-xs text-default-500 pt-1'>Subscribing...</p>}
+								{newsletterState === "captcha" && <p className='text-xs text-default-500 pt-1'>Please complete the CAPTCHA first.</p>}
+								{newsletterState === "error" && <p className='text-xs text-danger pt-1'>Could not subscribe right now. Please try again.</p>}
+								{newsletterState === "rateLimit" && <p className='text-xs text-danger pt-1'>Too many attempts. Please wait a moment.</p>}
+							</Form>
+						</div>
+						<Modal isOpen={isSuccessOpen} onOpenChange={(open) => setIsSuccessOpen(open)}>
 							<ModalContent>
 								<div className='p-6'>
 									<div className='text-success-500 mt-2 text-center'>

@@ -1,5 +1,4 @@
 import { getOverlayBySecret, touchOverlay } from "@actions/database";
-import { getTwitchClips } from "@actions/twitch";
 import OverlayPlayer from "@components/overlayPlayer";
 import type { Overlay } from "@types";
 
@@ -34,7 +33,6 @@ export default async function Overlay({ params, searchParams }: { params: Promis
 			</div>
 		);
 
-	const clips = await getTwitchClips(overlay);
 	await touchOverlay(overlay.id);
 
 	return (
@@ -50,7 +48,7 @@ export default async function Overlay({ params, searchParams }: { params: Promis
 				}}
 			/>
 			<div className='flex flex-col justify-center items-center h-screen w-screen'>
-				<OverlayPlayer clips={clips} overlay={overlay} overlaySecret={secret} />
+				<OverlayPlayer overlay={overlay} overlaySecret={secret} />
 			</div>
 		</>
 	);

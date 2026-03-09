@@ -3,10 +3,10 @@
 import { useEffect, useState } from "react";
 
 import { useParams, useRouter } from "next/navigation";
-import { getOverlay, getOverlayOwnerPlan, saveOverlay } from "@actions/database";
+import { getClipCacheStatus, getOverlay, getOverlayOwnerPlan, saveOverlay } from "@actions/database";
 import { addToast, Button, Card, CardBody, CardHeader, Divider, Form, Image, Input, Link, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, NumberInput, Select, SelectItem, Slider, Snippet, Spinner, Switch, Tooltip, useDisclosure } from "@heroui/react";
-import { AuthenticatedUser, Overlay, OverlayType, Plan, StatusOptions, TwitchClip, TwitchReward } from "@types";
-import { IconAlertTriangle, IconArrowLeft, IconCrown, IconDeviceFloppy, IconInfoCircle, IconPlayerPauseFilled, IconPlayerPlayFilled } from "@tabler/icons-react";
+import { AuthenticatedUser, Overlay, OverlayType, Plan, PlaybackMode, StatusOptions, TwitchClip, TwitchReward } from "@types";
+import { IconAlertTriangle, IconArrowLeft, IconCrown, IconDeviceFloppy, IconInfoCircle, IconPaint, IconPlayerPauseFilled, IconPlayerPlayFilled } from "@tabler/icons-react";
 import DashboardNavbar from "@components/dashboardNavbar";
 import { useNavigationGuard } from "next-navigation-guard";
 import { validateAuth } from "@actions/auth";
@@ -33,6 +33,12 @@ const overlayTypes: { key: OverlayType; label: string }[] = [
 	{ key: OverlayType.Queue, label: "Clip Queue" },
 ];
 
+const playbackModes: { key: PlaybackMode; label: string }[] = [
+	{ key: PlaybackMode.Random, label: "Random" },
+	{ key: PlaybackMode.Top, label: "Top (Most Viewed First)" },
+	{ key: PlaybackMode.SmartShuffle, label: "Smart Shuffle" },
+];
+
 export default function OverlaySettings() {
 	const router = useRouter();
 	const { overlayId } = useParams() as { overlayId: string };
@@ -44,6 +50,8 @@ export default function OverlaySettings() {
 	const [reward, setReward] = useState<TwitchReward | null>(null);
 	const [ownerPlan, setOwnerPlan] = useState<Plan | null>(null);
 	const [previewClips, setPreviewClips] = useState<TwitchClip[]>([]);
+	const [previewReviewMode, setPreviewReviewMode] = useState(true);
+	const [clipCacheStatus, setClipCacheStatus] = useState<Awaited<ReturnType<typeof getClipCacheStatus>> | null>(null);
 	const { isOpen: isCliplistOpen, onOpen: onCliplistOpen, onOpenChange: onCliplistOpenChange } = useDisclosure();
 	const { isOpen: isUpgradeOpen, onOpen: onUpgradeOpen, onOpenChange: onUpgradeOpenChange } = useDisclosure();
 	const plausible = usePlausible();
@@ -89,7 +97,7 @@ export default function OverlaySettings() {
 					if (isNotFound) {
 						try {
 							await saveOverlay(overlayId, { rewardId: null });
-						} catch (saveError) {
+						} catch {
 							addToast({
 								title: "Failed to update reward",
 								description: "The overlay was updated locally, but saving the change failed.",
@@ -118,6 +126,15 @@ export default function OverlaySettings() {
 		}
 		fetchOverlay();
 	}, [overlayId]);
+
+	useEffect(() => {
+		async function fetchClipCacheCoverage() {
+			if (!overlay?.ownerId) return;
+			const status = await getClipCacheStatus(overlay.ownerId);
+			setClipCacheStatus(status);
+		}
+		fetchClipCacheCoverage();
+	}, [overlay?.ownerId]);
 
 	useEffect(() => {
 		async function getClipsForType() {
@@ -157,6 +174,121 @@ export default function OverlaySettings() {
 		return JSON.stringify(overlay) !== JSON.stringify(baseOverlay);
 	}
 
+	const matchesPreviewFilters = (clip: TwitchClip) => {
+		const overMax = clip.duration > overlay.maxClipDuration;
+		if (clip.duration < overlay.minClipDuration || overMax) return false;
+		if (isTitleBlocked(clip.title, overlay.blacklistWords)) return false;
+		if (clip.view_count < overlay.minClipViews) return false;
+
+		const creatorName = clip.creator_name.toLowerCase();
+		const creatorId = clip.creator_id.toLowerCase();
+		const allowed = (overlay.clipCreatorsOnly ?? []).map((name) => name.toLowerCase());
+		const blocked = (overlay.clipCreatorsBlocked ?? []).map((name) => name.toLowerCase());
+
+		if (allowed.length > 0 && !allowed.includes(creatorName) && !allowed.includes(creatorId)) {
+			return false;
+		}
+		if (blocked.includes(creatorName) || blocked.includes(creatorId)) {
+			return false;
+		}
+
+		return true;
+	};
+
+	const filteredPreviewClips = previewClips.filter(matchesPreviewFilters);
+	const previewModalClips = (() => {
+		if (!previewReviewMode) return filteredPreviewClips;
+		if (overlay.playbackMode === PlaybackMode.Random) {
+			return [...filteredPreviewClips]
+				.map((clip) => ({ clip, sort: Math.random() }))
+				.sort((a, b) => a.sort - b.sort)
+				.map((entry) => entry.clip);
+		}
+		if (overlay.playbackMode === PlaybackMode.SmartShuffle) {
+			const remaining = (() => {
+				if (filteredPreviewClips.length <= 12) return [...filteredPreviewClips];
+				const sortedByViews = [...filteredPreviewClips].sort((a, b) => b.view_count - a.view_count || b.created_at.localeCompare(a.created_at));
+				const keepCount = Math.max(12, Math.ceil(sortedByViews.length * 0.65));
+				return sortedByViews.slice(0, keepCount);
+			})();
+			const ordered: TwitchClip[] = [];
+			const recent: TwitchClip[] = [];
+
+			while (remaining.length > 0) {
+				const recentCreatorCounts = new Map<string, number>();
+				const recentGameCounts = new Map<string, number>();
+				for (const clip of recent.slice(-20)) {
+					const creatorKey = clip.creator_id || clip.creator_name;
+					recentCreatorCounts.set(creatorKey, (recentCreatorCounts.get(creatorKey) ?? 0) + 1);
+					recentGameCounts.set(clip.game_id, (recentGameCounts.get(clip.game_id) ?? 0) + 1);
+				}
+
+				const sortedViews = remaining.map((clip) => clip.view_count).sort((a, b) => a - b);
+				const medianViews = sortedViews.length > 0 ? sortedViews[Math.floor(sortedViews.length / 2)] : 0;
+				const maxLogViews = Math.log1p(Math.max(1, ...sortedViews));
+
+				const scored = remaining.map((clip) => {
+					const creatorKey = clip.creator_id || clip.creator_name;
+					const creatorPenalty = (recentCreatorCounts.get(creatorKey) ?? 0) * 0.12;
+					const gamePenalty = (recentGameCounts.get(clip.game_id) ?? 0) * 0.1;
+					const viewScore = Math.log1p(clip.view_count) / maxLogViews;
+					const exploreBoost = clip.view_count <= medianViews ? 0.12 : 0;
+					const jitter = Math.random() * 0.25;
+					const score = Math.max(0.05, 0.58 * viewScore + 0.25 * jitter + exploreBoost - creatorPenalty - gamePenalty);
+					return { clip, score };
+				});
+
+				const totalWeight = scored.reduce((sum, entry) => sum + entry.score, 0);
+				let pick = Math.random() * totalWeight;
+				let pickedClip = scored[0]?.clip;
+				for (const entry of scored) {
+					pick -= entry.score;
+					if (pick <= 0) {
+						pickedClip = entry.clip;
+						break;
+					}
+				}
+
+				if (!pickedClip) break;
+				ordered.push(pickedClip);
+				recent.push(pickedClip);
+				const pickedIndex = remaining.findIndex((clip) => clip.id === pickedClip.id);
+				if (pickedIndex >= 0) remaining.splice(pickedIndex, 1);
+				else break;
+			}
+
+			return ordered;
+		}
+
+		return [...filteredPreviewClips].sort((a, b) => {
+			const byViews = b.view_count - a.view_count;
+			if (byViews !== 0) return byViews;
+			return b.created_at.localeCompare(a.created_at);
+		});
+	})();
+
+	const requiredDaysByType: Partial<Record<OverlayType, number>> = {
+		[OverlayType.Today]: 1,
+		[OverlayType.LastWeek]: 7,
+		[OverlayType.LastMonth]: 30,
+		[OverlayType.LastQuarter]: 90,
+		[OverlayType.Last180Days]: 180,
+		[OverlayType.LastYear]: 365,
+	};
+	const selectedCoverageReady = (() => {
+		if (!clipCacheStatus) return true;
+		if (overlay.type === OverlayType.All) return clipCacheStatus.backfillComplete;
+		if (overlay.type === OverlayType.Featured || overlay.type === OverlayType.Queue) return true;
+		const requiredDays = requiredDaysByType[overlay.type];
+		if (!requiredDays) return true;
+		if (!clipCacheStatus.oldestClipDate) return false;
+		const oldest = new Date(clipCacheStatus.oldestClipDate).getTime();
+		if (!Number.isFinite(oldest)) return false;
+		const target = Date.now() - requiredDays * 24 * 60 * 60 * 1000;
+		return oldest <= target;
+	})();
+	const showCoverageWarning = !selectedCoverageReady && overlay.type !== OverlayType.Queue && overlay.type !== OverlayType.Featured;
+
 	async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();
 		addToast({
@@ -172,8 +304,31 @@ export default function OverlaySettings() {
 			rewardId: overlay.rewardId,
 			minClipDuration: overlay.minClipDuration,
 			maxClipDuration: overlay.maxClipDuration,
+			maxDurationMode: overlay.maxDurationMode,
 			blacklistWords: overlay.blacklistWords,
 			minClipViews: overlay.minClipViews,
+			playbackMode: overlay.playbackMode,
+			preferCurrentCategory: overlay.preferCurrentCategory,
+			clipCreatorsOnly: overlay.clipCreatorsOnly,
+			clipCreatorsBlocked: overlay.clipCreatorsBlocked,
+			clipPackSize: overlay.clipPackSize,
+			playerVolume: overlay.playerVolume,
+			showChannelInfo: overlay.showChannelInfo,
+			showClipInfo: overlay.showClipInfo,
+			showTimer: overlay.showTimer,
+			showProgressBar: overlay.showProgressBar,
+			themeFontFamily: overlay.themeFontFamily,
+			themeTextColor: overlay.themeTextColor,
+			themeAccentColor: overlay.themeAccentColor,
+			themeBackgroundColor: overlay.themeBackgroundColor,
+			borderSize: overlay.borderSize,
+			borderRadius: overlay.borderRadius,
+			effectScanlines: overlay.effectScanlines,
+			effectStatic: overlay.effectStatic,
+			channelInfoX: overlay.channelInfoX,
+			channelInfoY: overlay.channelInfoY,
+			clipInfoX: overlay.clipInfoX,
+			clipInfoY: overlay.clipInfoY,
 		});
 		setBaseOverlay(overlay);
 		addToast({
@@ -268,15 +423,24 @@ export default function OverlaySettings() {
 											))}
 										</Select>
 										<Button isIconOnly onPress={onCliplistOpen} size='lg' className='ml-2'>
-											<span>
-												{
-													previewClips.filter((clip) => {
-														return clip.duration >= overlay.minClipDuration && clip.duration <= overlay.maxClipDuration && !isTitleBlocked(clip.title, overlay.blacklistWords) && clip.view_count >= overlay.minClipViews;
-													}).length
-												}
-											</span>
+											<span>{filteredPreviewClips.length}</span>
 										</Button>
 									</div>
+									{showCoverageWarning && (
+										<div className='w-full mt-2 rounded-lg border border-warning-200 bg-warning-50 px-3 py-2 text-warning-800 text-xs flex items-center justify-between gap-2'>
+											<div className='flex items-start gap-2'>
+												<IconInfoCircle size={16} className='mt-0.5 text-warning-600' />
+												<span>
+													{overlay.type === OverlayType.All
+														? "All-time crawl is still syncing. Older clips may not appear yet."
+														: "Selected time range is not fully cached yet. Results may be incomplete until crawl catches up."}
+												</span>
+											</div>
+											<Link href='/dashboard/settings' color='warning' underline='always' className='text-xs whitespace-nowrap'>
+												View crawl status
+											</Link>
+										</div>
+									)}
 
 									<Divider className='my-4' />
 									{ownerPlan === Plan.Free && !ownerHasAdvancedAccess && (
@@ -295,6 +459,7 @@ export default function OverlaySettings() {
 														<li>Link custom Twitch rewards</li>
 														<li>Control your overlay via chat</li>
 														<li>Advanced clip filtering</li>
+														<li>Theme studio with drag & drop layout</li>
 														<li>Priority support</li>
 													</ul>
 													<Button
@@ -332,6 +497,8 @@ export default function OverlaySettings() {
 										style={{
 											filter: ownerPlan === Plan.Free && !ownerHasAdvancedAccess ? "blur(1.5px)" : "none",
 											pointerEvents: ownerPlan === Plan.Free && !ownerHasAdvancedAccess ? "none" : "auto",
+											userSelect: ownerPlan === Plan.Free && !ownerHasAdvancedAccess ? "none" : "auto",
+											WebkitUserSelect: ownerPlan === Plan.Free && !ownerHasAdvancedAccess ? "none" : "auto",
 										}}
 									>
 										<div className='flex w-full items-center px-2 mb-2 gap-1'>
@@ -349,7 +516,6 @@ export default function OverlaySettings() {
 											<Input
 												isClearable
 												onChange={(event) => {
-													// Dont allow manual input, but let them clear it (isReadOnly would disable clearing)
 													event.preventDefault();
 												}}
 												onClear={() => {
@@ -371,6 +537,15 @@ export default function OverlaySettings() {
 												<IconInfoCircle className='text-default-400' />
 											</Tooltip>
 										</div>
+
+										<Select selectedKeys={[overlay.playbackMode]} onSelectionChange={(value) => setOverlay({ ...overlay, playbackMode: value.currentKey as PlaybackMode })} label='Playback Mode' className='p-2'>
+											{playbackModes.map((mode) => (
+												<SelectItem key={mode.key}>{mode.label}</SelectItem>
+											))}
+										</Select>
+										<Switch className='p-2' isSelected={overlay.preferCurrentCategory} onValueChange={(value) => setOverlay({ ...overlay, preferCurrentCategory: value })}>
+											Prefer clips from current stream category
+										</Switch>
 										<Slider
 											minValue={0}
 											maxValue={60}
@@ -393,8 +568,16 @@ export default function OverlaySettings() {
 											className='p-2'
 											size='sm'
 										/>
-										<NumberInput size='sm' minValue={0} defaultValue={overlay.minClipViews} value={overlay.minClipViews} onValueChange={(value) => setOverlay({ ...overlay, minClipViews: Number(value) })} label='Minimum Clip Views' description='Only clips with at least this many views will be shown in the overlay.' className='p-2' />
-										<TagsInput className='p-2' fullWidth label='Blacklisted Words' value={overlay.blacklistWords} onValueChange={(value) => setOverlay({ ...overlay, blacklistWords: value })} description='Hide clips containing certain words in their titles. Supports RE2 regex (no lookarounds). Example: ^hello$' />
+											<NumberInput size='sm' minValue={0} defaultValue={overlay.minClipViews} value={overlay.minClipViews} onValueChange={(value) => setOverlay({ ...overlay, minClipViews: Number(value) })} label='Minimum Clip Views' description='Only clips with at least this many views will be shown in the overlay.' className='p-2' />
+										<TagsInput className='p-2' fullWidth label='Only These Clip Creators' value={overlay.clipCreatorsOnly} onValueChange={(value) => setOverlay({ ...overlay, clipCreatorsOnly: value })} description='Allow only specific clip creators (Twitch usernames).' />
+										<TagsInput className='p-2' fullWidth label='Blocked Clip Creators' value={overlay.clipCreatorsBlocked} onValueChange={(value) => setOverlay({ ...overlay, clipCreatorsBlocked: value })} description='Exclude specific clip creators from playback.' />
+										<TagsInput className='p-2' fullWidth label='Blacklisted Words' value={overlay.blacklistWords} onValueChange={(value) => setOverlay({ ...overlay, blacklistWords: value })} description='Hide clips containing certain words in titles. Supports RE2 regex (no lookarounds).' />
+										<Divider className='my-2' />
+										<div className='px-2 pb-2'>
+											<Button color='primary' variant='solid' fullWidth startContent={<IconPaint size={16} />} onPress={() => router.push(`/dashboard/overlay/${overlay.id}/theme`)}>
+												Customize Overlay Style
+											</Button>
+										</div>
 									</div>
 								</Form>
 							</div>
@@ -404,32 +587,30 @@ export default function OverlaySettings() {
 
 				<Modal isOpen={isCliplistOpen} onOpenChange={onCliplistOpenChange}>
 					<ModalContent className='flex max-h-[80vh] flex-col overflow-hidden'>
-						<ModalHeader>Preview Clips</ModalHeader>
+						<ModalHeader className='flex items-center justify-between gap-3'>
+							<span>Preview Clips</span>
+							<Switch size='sm' isSelected={previewReviewMode} onValueChange={setPreviewReviewMode}>
+								Review mode
+							</Switch>
+						</ModalHeader>
 						<ModalBody className='flex-1 overflow-y-auto'>
 							<ul className='space-y-2'>
-								{previewClips
-									.filter((clip) => {
-										return clip.duration >= overlay.minClipDuration && clip.duration <= overlay.maxClipDuration && !isTitleBlocked(clip.title, overlay.blacklistWords) && clip.view_count >= overlay.minClipViews;
-									})
-									.map((clip) => (
-										<li key={clip.id} className='flex gap-3 items-center rounded-md p-2 hover:bg-white/5 transition'>
-											<a href={clip.url} target='_blank' rel='noopener noreferrer' className='flex items-center gap-3 w-full'>
-												{/* Thumbnail */}
-												<Image src={clip.thumbnail_url} alt={clip.title} className='h-12 w-20 rounded object-cover flex-shrink-0' />
-
-												{/* Text */}
-												<div className='min-w-0'>
-													<p className='text-sm font-medium truncate'>{clip.title}</p>
-													<p className='text-xs text-white/60'>clipped by {clip.creator_name}</p>
-													<div className='text-xs text-white/60'>
-														<span>{clip.view_count} views</span>
-														<span className='mx-1'>•</span>
-														<span>{clip.duration}s</span>
-													</div>
+								{previewModalClips.map((clip) => (
+									<li key={clip.id} className='flex gap-3 items-center rounded-md p-2 hover:bg-white/5 transition'>
+										<a href={clip.url} target='_blank' rel='noopener noreferrer' className='flex items-center gap-3 w-full'>
+											<Image src={clip.thumbnail_url} alt={clip.title} className='h-12 w-20 rounded object-cover flex-shrink-0' />
+											<div className='min-w-0'>
+												<p className='text-sm font-medium truncate'>{clip.title}</p>
+												<p className='text-xs text-white/60'>clipped by {clip.creator_name}</p>
+												<div className='text-xs text-white/60'>
+													<span>{clip.view_count} views</span>
+													<span className='mx-1'>|</span>
+													<span>{clip.duration}s</span>
 												</div>
-											</a>
-										</li>
-									))}
+											</div>
+										</a>
+									</li>
+								))}
 							</ul>
 						</ModalBody>
 					</ModalContent>

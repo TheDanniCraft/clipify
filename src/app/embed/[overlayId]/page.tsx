@@ -1,5 +1,4 @@
 import { getOverlayOwnerPlanPublic, getOverlayPublic } from "@actions/database";
-import { getTwitchClips } from "@actions/twitch";
 import OverlayPlayer from "@components/overlayPlayer";
 import { Plan, type Overlay } from "@types";
 
@@ -64,7 +63,6 @@ export default async function Overlay({ params, searchParams }: { params: Promis
 			</>
 		);
 
-	const clips = await getTwitchClips(overlay);
 	const plan = await getOverlayOwnerPlanPublic(overlayId);
 
 	return (
@@ -81,7 +79,6 @@ export default async function Overlay({ params, searchParams }: { params: Promis
 			/>
 			<div className='flex flex-col justify-center items-center h-screen w-screen'>
 				<OverlayPlayer
-					clips={clips}
 					overlay={overlay}
 					isEmbed
 					showBanner={showBanner || plan === Plan.Free}

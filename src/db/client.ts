@@ -14,4 +14,5 @@ const pool =
 
 globalThis.__dbPool = pool;
 
+export const dbPool = pool;
 export const db = drizzle(pool);

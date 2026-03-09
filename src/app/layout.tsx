@@ -3,6 +3,9 @@ import "./globals.css";
 import { Providers } from "./providers";
 import { getBaseUrl } from "@actions/utils";
 import PlausibleClient from "./PlausibleClient";
+import { startClipCacheScheduler } from "@lib/clipCacheScheduler";
+
+startClipCacheScheduler();
 
 const baseUrl = await getBaseUrl();
 const manifestUrl = new URL("manifest.webmanifest", baseUrl);
@@ -50,8 +53,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
 				<meta name='adopt-website-id' content='792b9b29-57f9-4d92-b5f1-313f94ddfacc' />
 			</head>
 			<body>
-				<PlausibleClient />
-				<Providers>{children}</Providers>
+				<PlausibleClient>
+					<Providers>{children}</Providers>
+				</PlausibleClient>
 			</body>
 		</html>
 	);

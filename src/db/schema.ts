@@ -1,5 +1,24 @@
-import { varchar, pgTable, check, timestamp, uuid, integer, text, uniqueIndex, primaryKey, index, pgEnum } from "drizzle-orm/pg-core";
-import { type Role, type Plan, type StatusOptions, type OverlayType, type TwitchCacheType, type Entitlement, type EntitlementGrantSource, Role as RoleEnumValues, Plan as PlanEnumValues, StatusOptions as StatusOptionsEnumValues, OverlayType as OverlayTypeEnumValues, TwitchCacheType as TwitchCacheTypeEnumValues, Entitlement as EntitlementEnumValues, EntitlementGrantSource as EntitlementGrantSourceEnumValues } from "@types";
+import { varchar, pgTable, check, timestamp, uuid, integer, text, uniqueIndex, primaryKey, index, pgEnum, boolean } from "drizzle-orm/pg-core";
+import {
+	type Role,
+	type Plan,
+	type StatusOptions,
+	type OverlayType,
+	type TwitchCacheType,
+	type Entitlement,
+	type EntitlementGrantSource,
+	type PlaybackMode,
+	type MaxDurationMode,
+	Role as RoleEnumValues,
+	Plan as PlanEnumValues,
+	StatusOptions as StatusOptionsEnumValues,
+	OverlayType as OverlayTypeEnumValues,
+	TwitchCacheType as TwitchCacheTypeEnumValues,
+	Entitlement as EntitlementEnumValues,
+	EntitlementGrantSource as EntitlementGrantSourceEnumValues,
+	PlaybackMode as PlaybackModeEnumValues,
+	MaxDurationMode as MaxDurationModeEnumValues,
+} from "@types";
 import { sql } from "drizzle-orm";
 
 function enumToPgEnum<T extends Record<string, unknown>>(myEnum: T): [T[keyof T], ...T[keyof T][]] {
@@ -10,6 +29,8 @@ export const roleEnum = pgEnum("role", enumToPgEnum(RoleEnumValues));
 export const planEnum = pgEnum("plan", enumToPgEnum(PlanEnumValues));
 export const statusOptionsEnum = pgEnum("status_options", enumToPgEnum(StatusOptionsEnumValues));
 export const overlayTypeEnum = pgEnum("overlay_type", enumToPgEnum(OverlayTypeEnumValues));
+export const playbackModeEnum = pgEnum("playback_mode", enumToPgEnum(PlaybackModeEnumValues));
+export const maxDurationModeEnum = pgEnum("max_duration_mode", enumToPgEnum(MaxDurationModeEnumValues));
 export const twitchCacheTypeEnum = pgEnum("twitch_cache_type", enumToPgEnum(TwitchCacheTypeEnumValues));
 export const entitlementEnum = pgEnum("entitlement", enumToPgEnum(EntitlementEnumValues));
 export const entitlementGrantSourceEnum = pgEnum("entitlement_grant_source", enumToPgEnum(EntitlementGrantSourceEnumValues));
@@ -67,8 +88,40 @@ export const overlaysTable = pgTable("overlays", {
 	lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
 	minClipDuration: integer("min_clip_duration").notNull().default(0),
 	maxClipDuration: integer("max_clip_duration").notNull().default(60),
+	maxDurationMode: maxDurationModeEnum("max_duration_mode").$type<MaxDurationMode>().notNull().default(MaxDurationModeEnumValues.Filter),
 	minClipViews: integer("min_clip_views").notNull().default(0),
 	blacklistWords: varchar("blacklist_words").array().notNull().default([]),
+	playbackMode: playbackModeEnum("playback_mode").$type<PlaybackMode>().notNull().default(PlaybackModeEnumValues.Random),
+	preferCurrentCategory: boolean("prefer_current_category").notNull().default(false),
+	clipCreatorsOnly: varchar("clip_creators_only").array().notNull().default([]),
+	clipCreatorsBlocked: varchar("clip_creators_blocked").array().notNull().default([]),
+	clipPackSize: integer("clip_pack_size").notNull().default(100),
+	playerVolume: integer("player_volume").notNull().default(50),
+	showChannelInfo: boolean("show_channel_info").notNull().default(true),
+	showClipInfo: boolean("show_clip_info").notNull().default(true),
+	showTimer: boolean("show_timer").notNull().default(false),
+	showProgressBar: boolean("show_progress_bar").notNull().default(false),
+	overlayInfoFadeOutSeconds: integer("overlay_info_fade_out_seconds").notNull().default(6),
+	themeFontFamily: varchar("theme_font_family").notNull().default("inherit"),
+	themeTextColor: varchar("theme_text_color").notNull().default("#FFFFFF"),
+	themeAccentColor: varchar("theme_accent_color").notNull().default("#7C3AED"),
+	themeBackgroundColor: varchar("theme_background_color").notNull().default("rgba(10,10,10,0.65)"),
+	progressBarStartColor: varchar("progress_bar_start_color").notNull().default("#26018E"),
+	progressBarEndColor: varchar("progress_bar_end_color").notNull().default("#8D42F9"),
+	borderSize: integer("border_size").notNull().default(0),
+	borderRadius: integer("border_radius").notNull().default(10),
+	effectScanlines: boolean("effect_scanlines").notNull().default(false),
+	effectStatic: boolean("effect_static").notNull().default(false),
+	effectCrt: boolean("effect_crt").notNull().default(false),
+	channelInfoX: integer("channel_info_x").notNull().default(0),
+	channelInfoY: integer("channel_info_y").notNull().default(0),
+	clipInfoX: integer("clip_info_x").notNull().default(100),
+	clipInfoY: integer("clip_info_y").notNull().default(100),
+	timerX: integer("timer_x").notNull().default(100),
+	timerY: integer("timer_y").notNull().default(0),
+	channelScale: integer("channel_scale").notNull().default(100),
+	clipScale: integer("clip_scale").notNull().default(100),
+	timerScale: integer("timer_scale").notNull().default(100),
 });
 
 export const queueTable = pgTable("clipQueue", {
@@ -105,7 +158,7 @@ export const twitchCacheTable = pgTable(
 		fetchedAt: timestamp("fetched_at", { withTimezone: true }).defaultNow().notNull(),
 		expiresAt: timestamp("expires_at", { withTimezone: true }),
 	},
-	(t) => [uniqueIndex("twitch_cache_type_key_unique").on(t.type, t.key)],
+	(t) => [uniqueIndex("twitch_cache_type_key_unique").on(t.type, t.key), index("twitch_cache_expires_at_idx").on(t.expiresAt)],
 );
 
 export const entitlementGrantsTable = pgTable(

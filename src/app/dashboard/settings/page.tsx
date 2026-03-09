@@ -1,15 +1,16 @@
 "use client";
 
 import { validateAuth } from "@actions/auth";
-import { deleteUser, getSettings, saveSettings } from "@actions/database";
+import { deleteUser, getClipCacheStatus, getSettings, saveSettings } from "@actions/database";
 import ConfirmModal from "@components/confirmModal";
 import DashboardNavbar from "@components/dashboardNavbar";
 import { AuthenticatedUser, Plan, UserSettings } from "@types";
 import { addToast, Avatar, Button, Card, CardBody, CardHeader, Divider, Form, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Snippet, Spinner, Tooltip, useDisclosure } from "@heroui/react";
-import { IconAlertTriangle, IconArrowLeft, IconCreditCardFilled, IconCrown, IconDeviceFloppy, IconDiamondFilled, IconInfoCircle, IconTrash } from "@tabler/icons-react";
+import { IconAlertTriangle, IconArrowLeft, IconCreditCardFilled, IconCrown, IconDatabase, IconDeviceFloppy, IconDiamondFilled, IconInfoCircle, IconTrash } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { generatePaymentLink, checkIfSubscriptionExists, getPortalLink } from "@actions/subscription";
+import { forceRefreshOwnClipCache, getOwnClipForceRefreshStatus } from "@actions/twitch";
 import { useNavigationGuard } from "next-navigation-guard";
 import UpgradeModal from "@components/upgradeModal";
 import TagsInput from "@components/tagsInput";
@@ -19,6 +20,24 @@ import { usePlausible } from "next-plausible";
 import { trackPaywallEvent } from "@lib/paywallTracking";
 import type { BillingCycle, PaywallSource } from "@actions/subscription";
 
+type ClipCacheStatusState = {
+	cachedClipCount: number;
+	unavailableClipCount: number;
+	oldestClipDate: string | null;
+	lastIncrementalSyncAt: string | null;
+	lastBackfillSyncAt: string | null;
+	backfillComplete: boolean;
+	estimatedCoveragePercent: number;
+};
+
+type ClipForceRefreshStatusState = {
+	lastForcedAt: string | null;
+	cooldownMs: number;
+	nextAllowedAt: string;
+	remainingMs: number;
+	canRefresh: boolean;
+} | null;
+
 export default function SettingsPage() {
 	const [user, setUser] = useState<AuthenticatedUser | null>(null);
 	const { isOpen: upgradeModalIsOpen, onOpen: upgradeModalOnOpen, onOpenChange: upgradeModalOnOpenChange } = useDisclosure();
@@ -26,6 +45,9 @@ export default function SettingsPage() {
 	const [timer, setTimer] = useState<number>(0);
 	const [settings, setSettings] = useState<UserSettings | null>(null);
 	const [baseSettings, setBaseSettings] = useState<UserSettings | null>(null);
+	const [clipCacheStatus, setClipCacheStatus] = useState<ClipCacheStatusState | null>(null);
+	const [clipForceRefreshStatus, setClipForceRefreshStatus] = useState<ClipForceRefreshStatusState>(null);
+	const [isForceRefreshing, setIsForceRefreshing] = useState(false);
 	const plausible = usePlausible();
 
 	const router = useRouter();
@@ -55,11 +77,31 @@ export default function SettingsPage() {
 	}, [timer]);
 
 	useEffect(() => {
+		if (!clipForceRefreshStatus || clipForceRefreshStatus.canRefresh) return;
+		const interval = setInterval(() => {
+			setClipForceRefreshStatus((prev) => {
+				if (!prev) return prev;
+				const next = Math.max(0, prev.remainingMs - 1000);
+				return {
+					...prev,
+					remainingMs: next,
+					canRefresh: next <= 0,
+				};
+			});
+		}, 1000);
+		return () => clearInterval(interval);
+	}, [clipForceRefreshStatus?.canRefresh]);
+
+	useEffect(() => {
 		async function fetchSettings() {
 			if (!user) return;
 			const fetchedSettings = await getSettings(user.id);
 			setSettings(fetchedSettings);
 			setBaseSettings(fetchedSettings);
+			const status = await getClipCacheStatus(user.id);
+			setClipCacheStatus(status);
+			const forceStatus = await getOwnClipForceRefreshStatus();
+			setClipForceRefreshStatus(forceStatus);
 		}
 
 		fetchSettings();
@@ -116,6 +158,60 @@ export default function SettingsPage() {
 
 	function isFormDirty() {
 		return JSON.stringify(settings) !== JSON.stringify(baseSettings);
+	}
+
+	function formatStatusDate(value: string | null | undefined) {
+		if (!value) return "Never";
+		const parsed = new Date(value);
+		if (Number.isNaN(parsed.getTime())) return "Unknown";
+		return parsed.toLocaleString();
+	}
+
+	function formatDurationMs(value: number) {
+		if (value <= 0) return "now";
+		const totalSeconds = Math.ceil(value / 1000);
+		const hours = Math.floor(totalSeconds / 3600);
+		const minutes = Math.floor((totalSeconds % 3600) / 60);
+		const seconds = totalSeconds % 60;
+		if (hours > 0) return `${hours}h ${minutes}m`;
+		if (minutes > 0) return `${minutes}m ${seconds}s`;
+		return `${seconds}s`;
+	}
+
+	async function handleForceRefreshCache() {
+		if (!user) return;
+		try {
+			setIsForceRefreshing(true);
+			const result = await forceRefreshOwnClipCache();
+			if (!result.ok) {
+				addToast({
+					title: "Refresh cooldown active",
+					description: `Try again in ${formatDurationMs(result.remainingMs)}.`,
+					color: "warning",
+				});
+				const forceStatus = await getOwnClipForceRefreshStatus();
+				setClipForceRefreshStatus(forceStatus);
+				return;
+			}
+
+			addToast({
+				title: "Cache refresh started",
+				description: "Triggered clip cache refresh successfully.",
+				color: "success",
+			});
+
+			const [status, forceStatus] = await Promise.all([getClipCacheStatus(user.id), getOwnClipForceRefreshStatus()]);
+			setClipCacheStatus(status);
+			setClipForceRefreshStatus(forceStatus);
+		} catch {
+			addToast({
+				title: "Error",
+				description: "Failed to force refresh clip cache.",
+				color: "danger",
+			});
+		} finally {
+			setIsForceRefreshing(false);
+		}
 	}
 
 	async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -207,6 +303,64 @@ export default function SettingsPage() {
 							</Button>
 						)}
 						<Divider className='my-4' />
+						<Card className='border border-default-200 bg-default-50/60'>
+							<CardBody className='gap-3'>
+								<div className='flex items-center justify-between gap-2'>
+									<div className='flex items-center gap-2'>
+										<IconDatabase className='text-default-500' />
+										<div>
+											<p className='font-semibold text-sm'>Clip Crawl Status</p>
+											<p className='text-xs text-default-500'>Your clip cache is checked in the background about every minute.</p>
+										</div>
+									</div>
+									<span className={`text-xs font-semibold ${clipCacheStatus?.backfillComplete ? "text-success-600" : "text-warning-600"}`}>{clipCacheStatus?.backfillComplete ? "Complete" : "Syncing"}</span>
+								</div>
+								<div className='flex flex-wrap items-center justify-between gap-2'>
+									<p className='text-xs text-default-500'>
+										Manual refresh: {clipForceRefreshStatus?.canRefresh ? "available now" : `available in ${formatDurationMs(clipForceRefreshStatus?.remainingMs ?? 0)}`}
+									</p>
+									<Button
+										size='sm'
+										color='secondary'
+										variant='shadow'
+										className='font-semibold'
+										isLoading={isForceRefreshing}
+										isDisabled={isForceRefreshing || !clipForceRefreshStatus?.canRefresh}
+										onPress={handleForceRefreshCache}
+									>
+										Force Refresh Cache
+									</Button>
+								</div>
+								<div className='w-full h-2 rounded-full bg-default-200 overflow-hidden'>
+									<div className='h-full bg-gradient-to-r from-primary-700 to-primary-400' style={{ width: `${clipCacheStatus?.estimatedCoveragePercent ?? 0}%` }} />
+								</div>
+								<p className='text-xs text-default-500'>Cached clips are stored clip records used by the player so playback works quickly without refetching everything from Twitch on each request.</p>
+								<div className='grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-default-600'>
+									<p>
+										<span className='font-semibold'>Backfill progress (estimate):</span> {clipCacheStatus?.estimatedCoveragePercent ?? 0}%
+									</p>
+									<p>
+										<span className='font-semibold'>Cached clips:</span> {clipCacheStatus?.cachedClipCount ?? 0}
+									</p>
+									<p>
+										<span className='font-semibold'>Unavailable clips:</span> {clipCacheStatus?.unavailableClipCount ?? 0}
+									</p>
+									<p>
+										<span className='font-semibold'>Oldest cached clip:</span> {formatStatusDate(clipCacheStatus?.oldestClipDate)}
+									</p>
+									<p>
+										<span className='font-semibold'>Last fresh sync:</span> {formatStatusDate(clipCacheStatus?.lastIncrementalSyncAt)}
+									</p>
+									<p>
+										<span className='font-semibold'>Last backfill sync:</span> {formatStatusDate(clipCacheStatus?.lastBackfillSyncAt)}
+									</p>
+									<p>
+										<span className='font-semibold'>Last manual refresh:</span> {formatStatusDate(clipForceRefreshStatus?.lastForcedAt)}
+									</p>
+								</div>
+							</CardBody>
+						</Card>
+						<p className='mb-6 text-xs text-default-500'>New clips are usually picked up within several minutes, and older clips are added in batches every few minutes until full history catch-up is done.</p>
 
 						<Form className='w-full' onSubmit={handleSubmit}>
 							<Input

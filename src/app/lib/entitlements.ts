@@ -3,7 +3,7 @@
 import { entitlementGrantsTable, editorsTable, overlaysTable, usersTable } from "@/db/schema";
 import { db } from "@/db/client";
 import { and, asc, eq, gt, inArray, isNull, lt, lte, or, sql } from "drizzle-orm";
-import { AuthenticatedUser, Entitlement, EntitlementGrantSource, Plan, UserEntitlements } from "@types";
+import { AuthenticatedUser, Entitlement, EntitlementGrantSource, MaxDurationMode, Plan, PlaybackMode, UserEntitlements } from "@types";
 
 const PRO_ACCESS = Entitlement.ProAccess;
 type CreateGrantInput = {
@@ -283,6 +283,38 @@ export async function reconcileFreeConstraintsIfNeeded(user: EntitlementUserRef,
 					minClipViews: 0,
 					minClipDuration: 0,
 					maxClipDuration: 60,
+					maxDurationMode: MaxDurationMode.Filter,
+					playbackMode: PlaybackMode.Random,
+					preferCurrentCategory: false,
+					clipCreatorsOnly: [],
+					clipCreatorsBlocked: [],
+					clipPackSize: 100,
+					playerVolume: 50,
+					showChannelInfo: true,
+					showClipInfo: true,
+					showTimer: false,
+					showProgressBar: false,
+					overlayInfoFadeOutSeconds: 6,
+					themeFontFamily: "inherit",
+					themeTextColor: "#FFFFFF",
+					themeAccentColor: "#7C3AED",
+					themeBackgroundColor: "rgba(10,10,10,0.65)",
+					progressBarStartColor: "#26018E",
+					progressBarEndColor: "#8D42F9",
+					borderSize: 0,
+					borderRadius: 10,
+					effectScanlines: false,
+					effectStatic: false,
+					effectCrt: false,
+					channelInfoX: 0,
+					channelInfoY: 0,
+					clipInfoX: 100,
+					clipInfoY: 100,
+					timerX: 100,
+					timerY: 0,
+					channelScale: 100,
+					clipScale: 100,
+					timerScale: 100,
 				})
 				.where(eq(overlaysTable.id, keptOverlay.id))
 				.execute();

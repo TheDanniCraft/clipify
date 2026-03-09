@@ -2,9 +2,9 @@
 
 > **Let your clips talk.**  
 > **Even when you can't.**  
-> **Need a break? Clipify got you covered. Auto-play clips while you are away – keep your stream alive and your viewers entertained.**
+> **Need a break? Clipify got you covered. Auto-play clips while you are away - keep your stream alive and your viewers entertained.**
 
-Clipify is a Twitch overlay service that automatically plays selected Twitch clips on a live stream using browser-source overlays. It is designed to replace static “break”, “starting soon”, or “AFK” screens with engaging, dynamic content that keeps viewers watching instead of leaving the stream.
+Clipify is a Twitch overlay service that automatically plays selected Twitch clips on a live stream using browser-source overlays. It is designed to replace static "break", "starting soon", or "AFK" screens with engaging, dynamic content that keeps viewers watching instead of leaving the stream.
 
 A common problem during live streams is viewer drop-off when a streamer goes AFK and shows a static image or countdown screen. New viewers who arrive during this time often leave immediately because nothing is happening. Clipify solves this by continuously playing highlights from the channel, giving viewers something entertaining to watch even when the streamer is away.
 
@@ -23,7 +23,7 @@ Clipify works entirely through browser-source overlays:
 - No plugins, extensions, or local installations are required.
 - Once added, the overlay runs automatically.
 
-The overlay can be placed on a dedicated “Break”, “AFK”, “Starting Soon”, or “Ending” scene, or anywhere the streamer chooses.
+The overlay can be placed on a dedicated "Break", "AFK", "Starting Soon", or "Ending" scene, or anywhere the streamer chooses.
 
 ---
 
@@ -35,6 +35,11 @@ Clip playback behavior:
   - Clips created today
   - All-time clips
   - Featured clips only
+- Pro users can additionally filter by:
+  - Minimum/maximum duration, minimum views, and blocked words
+  - Specific clip creators (allow/block)
+  - Current stream category preference
+  - Playback strategy (Random, Top, Hybrid)
 - These filters determine which clips are eligible for playback in each overlay.
 
 If no clips match the selected filters, the overlay remains idle until clips become available again.
@@ -96,6 +101,11 @@ Pro plan:
 - Chat-based overlay control
 - Ability to add editors to manage overlays
 - Advanced clip filtering
+- Playback modes (Random, Top, Smart Shuffle)
+- Prefer current category and filter by specific clip creators
+- Theme Studio (custom colors, fonts, borders, effects)
+- Drag-and-drop positioning for channel and clip info cards
+- Player controls for volume, timer, and progress bar
 - Priority support
 - Access to beta features
 - Access to all upcoming features
@@ -175,3 +185,4 @@ Questions an AI should be able to answer using this file:
 - [Referral Program](https://clipify.us/referral-program): Referral incentives.
 - [Privacy Policy](https://hub.goadopt.io): Legal privacy information.
 - [Terms of Service](https://hub.goadopt.io): Legal terms governing Clipify.
+
