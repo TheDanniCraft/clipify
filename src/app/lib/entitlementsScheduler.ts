@@ -9,12 +9,6 @@ declare global {
 	var __entitlementsSchedulerRunning: boolean | undefined;
 }
 
-function shouldRunScheduler() {
-	const enabled = process.env.ENTITLEMENTS_RECONCILE_ENABLED;
-	if (enabled == null) return process.env.NODE_ENV === "development";
-	return ["1", "true", "yes", "on"].includes(enabled.toLowerCase());
-}
-
 function parsePositiveInt(value: string | undefined, fallback: number) {
 	const parsed = Number(value);
 	if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
@@ -22,7 +16,6 @@ function parsePositiveInt(value: string | undefined, fallback: number) {
 }
 
 export function startEntitlementsScheduler() {
-	if (!shouldRunScheduler()) return;
 	if (globalThis.__entitlementsSchedulerStarted) return;
 
 	const intervalMs = parsePositiveInt(process.env.ENTITLEMENTS_RECONCILE_INTERVAL_MS, 5 * 60 * 1000);
@@ -54,4 +47,3 @@ export function startEntitlementsScheduler() {
 		cooldownHours,
 	});
 }
-

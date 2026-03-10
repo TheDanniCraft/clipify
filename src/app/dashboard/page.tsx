@@ -3,7 +3,7 @@ import OverlayTable from "@components/OverlayTable";
 import DashboardNavbar from "@components/dashboardNavbar";
 import { validateAuth } from "@actions/auth";
 import FeedbackWidget from "@components/feedbackWidget";
-import { getAccessToken } from "@actions/database";
+import { getAccessTokenResult } from "@actions/database";
 import ChatwootData from "@components/chatwootData";
 
 export default async function Dashboard() {
@@ -11,9 +11,9 @@ export default async function Dashboard() {
 	if (!user) {
 		redirect("/logout");
 	}
-	const token = await getAccessToken(user.id);
-	if (!token) {
-		redirect("/logout");
+	const tokenResult = await getAccessTokenResult(user.id);
+	if (!tokenResult.token) {
+		redirect(tokenResult.reason === "user_disabled" ? "/logout?error=accountDisabled" : "/logout");
 	}
 
 	return (
@@ -23,7 +23,7 @@ export default async function Dashboard() {
 			<ChatwootData user={user} />
 			<FeedbackWidget />
 			<DashboardNavbar user={user} title='Dashboard' tagline='Manage your overlays'>
-				<OverlayTable userId={user.id} accessToken={token.accessToken} />
+				<OverlayTable userId={user.id} accessToken={tokenResult.token.accessToken} />
 			</DashboardNavbar>
 		</>
 	);

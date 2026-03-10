@@ -28,6 +28,19 @@ describe("components/ErrorToast", () => {
 		expect(payload.title).toContain("Unknown error");
 	});
 
+	it("maps accountDisabled error label", () => {
+		render(<ErrorToast error='accountDisabled' errorCode='' />);
+		const payload = addToast.mock.calls[0][0];
+		expect(payload.title).toContain("Account disabled");
+		expect(String(payload.description?.props?.children?.[0] ?? payload.description)).toContain("Your account is currently disabled");
+	});
+
+	it("uses corrected unexpected title text", () => {
+		render(<ErrorToast error='stateError' errorCode='' />);
+		const payload = addToast.mock.calls[0][0];
+		expect(payload.title).toContain("An unexpected error occurred");
+	});
+
 	it("does nothing when error is empty", () => {
 		render(<ErrorToast error='' errorCode='' />);
 		expect(addToast).not.toHaveBeenCalled();

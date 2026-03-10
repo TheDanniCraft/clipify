@@ -139,23 +139,27 @@ function mockInsertChain(table: unknown) {
 		return {
 			values: () => ({
 				onConflictDoUpdate: () => ({
-					returning: async () => [
-						{
-							id: "owner-1",
-							username: "owner",
-							email: "owner@example.com",
-							avatar: "https://avatar",
-							role: "user",
-							plan: "free",
-						},
-					],
+					returning: () => ({
+						execute: async () => [
+							{
+								id: "owner-1",
+								username: "owner",
+								email: "owner@example.com",
+								avatar: "https://avatar",
+								role: "user",
+								plan: "free",
+							},
+						],
+					}),
 				}),
 			}),
 		};
 	}
 	return {
 		values: () => ({
-			onConflictDoUpdate: async () => undefined,
+			onConflictDoUpdate: () => ({
+				execute: async () => undefined,
+			}),
 		}),
 	};
 }
@@ -345,5 +349,31 @@ describe("actions/database disabled user handling", () => {
 		});
 
 		expect(updateCalls).toHaveLength(0);
+	});
+
+	it("automatically unlocks legacy-disabled users with null disableType after successful reauth", async () => {
+		queueSelectResult([{ id: "owner-1", disabled: true, disableType: null }]);
+
+		const { setAccessToken } = await loadDatabaseActions();
+		await setAccessToken({
+			access_token: "new-access",
+			refresh_token: "new-refresh",
+			expires_in: 3600,
+			scope: [],
+			token_type: "bearer",
+		});
+
+		expect(updateCalls).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					table: usersTable,
+					set: expect.objectContaining({
+						disabled: false,
+						disableType: null,
+						disabledReason: null,
+					}),
+				}),
+			]),
+		);
 	});
 });

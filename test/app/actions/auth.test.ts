@@ -180,7 +180,6 @@ describe("actions/auth", () => {
 		cookieValues.token = "jwt-token";
 		verify.mockReturnValue({ id: "user-1" });
 		mockDbRows([{ id: "user-1", username: "alice", role: "user", plan: "free" }]);
-		verifyToken.mockResolvedValue(true);
 		resolveUserEntitlements.mockResolvedValue({
 			effectivePlan: "pro",
 			isBillingPro: false,
@@ -199,7 +198,7 @@ describe("actions/auth", () => {
 				}),
 			}),
 		);
-		expect(verifyToken).toHaveBeenCalled();
+		expect(verifyToken).not.toHaveBeenCalled();
 	});
 
 	it("returns false when actor user lookup fails", async () => {
@@ -211,17 +210,23 @@ describe("actions/auth", () => {
 		await expect(validateAuth(false)).resolves.toBe(false);
 	});
 
-	it("returns false when token verification fails for validateAuth", async () => {
+	it("returns enriched user even when external token verification would fail", async () => {
 		cookieValues.token = "jwt-token";
 		verify.mockReturnValue({ id: "user-1" });
 		mockDbRows([{ id: "user-1", username: "alice", role: "user", plan: "free" }]);
 		verifyToken.mockResolvedValue(false);
+		resolveUserEntitlements.mockResolvedValue({ effectivePlan: "pro" });
 
 		const { validateAuth } = await loadAuth();
-		await expect(validateAuth(false)).resolves.toBe(false);
+		await expect(validateAuth(false)).resolves.toEqual(
+			expect.objectContaining({
+				id: "user-1",
+				entitlements: expect.objectContaining({ effectivePlan: "pro" }),
+			}),
+		);
 	});
 
-	it("falls back to actor user and clears admin view when impersonated target token is invalid", async () => {
+	it("returns impersonated user when admin-view target exists", async () => {
 		cookieValues.token = "jwt-token";
 		cookieValues.admin_view = "admin-view-token";
 		verify.mockImplementation((token: string) => {
@@ -230,40 +235,25 @@ describe("actions/auth", () => {
 			throw new Error("invalid token");
 		});
 		mockDbRows([{ id: "admin-1", username: "root", role: "admin", plan: "pro" }], [{ id: "user-2", username: "alice", role: "user", plan: "free" }]);
-		verifyToken.mockResolvedValueOnce(false).mockResolvedValueOnce(true);
 		resolveUserEntitlements.mockResolvedValue({ effectivePlan: "pro" });
 
 		const { validateAuth } = await loadAuth();
 		await expect(validateAuth(false)).resolves.toEqual(
 			expect.objectContaining({
-				id: "admin-1",
+				id: "user-2",
 				entitlements: expect.objectContaining({ effectivePlan: "pro" }),
-			}),
-		);
-
-		expect(cookieSet).toHaveBeenCalledWith(
-			"admin_view",
-			"",
-			expect.objectContaining({
-				maxAge: 0,
 			}),
 		);
 	});
 
-	it("rejects non-admin users in validateAdminAuth and clears admin-view cookie", async () => {
+	it("rejects non-admin users in validateAdminAuth", async () => {
 		cookieValues.token = "jwt-token";
 		verify.mockReturnValue({ id: "user-1" });
 		mockDbRows([{ id: "user-1", username: "alice", role: "user", plan: "free" }]);
 
 		const { validateAdminAuth } = await loadAuth();
 		await expect(validateAdminAuth(false)).resolves.toBe(false);
-		expect(cookieSet).toHaveBeenCalledWith(
-			"admin_view",
-			"",
-			expect.objectContaining({
-				maxAge: 0,
-			}),
-		);
+		expect(cookieSet).not.toHaveBeenCalled();
 	});
 
 	it("returns enriched admin user in validateAdminAuth when verification succeeds", async () => {
@@ -370,6 +360,71 @@ describe("actions/auth", () => {
 				maxAge: 0,
 			}),
 		);
+	});
+
+	it("closes admin-view session in validateAuth for non-admin users without mutating cookies", async () => {
+		cookieValues.token = "jwt-token";
+		cookieValues.admin_view_session = "123e4567-e89b-12d3-a456-426614174000";
+		verify.mockReturnValue({ id: "user-1" });
+		mockDbRows([{ id: "user-1", username: "alice", role: "user", plan: "free" }]);
+		resolveUserEntitlements.mockResolvedValue({ effectivePlan: "free" });
+
+		const { validateAuth } = await loadAuth();
+		await expect(validateAuth(false)).resolves.toEqual(expect.objectContaining({ id: "user-1" }));
+		expect(dbUpdate).toHaveBeenCalled();
+		expect(cookieSet).not.toHaveBeenCalledWith("admin_view_session", "", expect.anything());
+	});
+
+	it("closes admin-view session when admin_view payload is invalid without mutating cookies", async () => {
+		cookieValues.token = "jwt-token";
+		cookieValues.admin_view = "admin-view-token";
+		cookieValues.admin_view_session = "123e4567-e89b-12d3-a456-426614174000";
+		verify.mockImplementation((token: string) => {
+			if (token === "jwt-token") return { id: "admin-1" };
+			if (token === "admin-view-token") return { adminUserId: "different-admin", targetUserId: "user-2" };
+			throw new Error("invalid token");
+		});
+		mockDbRows([{ id: "admin-1", username: "root", role: "admin", plan: "pro" }]);
+		resolveUserEntitlements.mockResolvedValue({ effectivePlan: "pro" });
+
+		const { validateAuth } = await loadAuth();
+		await expect(validateAuth(false)).resolves.toEqual(expect.objectContaining({ id: "admin-1" }));
+		expect(dbUpdate).toHaveBeenCalled();
+		expect(cookieSet).not.toHaveBeenCalledWith("admin_view_session", "", expect.anything());
+	});
+
+	it("closes admin-view session when payload targets the actor user", async () => {
+		cookieValues.token = "jwt-token";
+		cookieValues.admin_view = "admin-view-token";
+		cookieValues.admin_view_session = "123e4567-e89b-12d3-a456-426614174000";
+		verify.mockImplementation((token: string) => {
+			if (token === "jwt-token") return { id: "admin-1" };
+			if (token === "admin-view-token") return { adminUserId: "admin-1", targetUserId: "admin-1" };
+			throw new Error("invalid token");
+		});
+		mockDbRows([{ id: "admin-1", username: "root", role: "admin", plan: "pro" }]);
+		resolveUserEntitlements.mockResolvedValue({ effectivePlan: "pro" });
+
+		const { validateAuth } = await loadAuth();
+		await expect(validateAuth(false)).resolves.toEqual(expect.objectContaining({ id: "admin-1" }));
+		expect(dbUpdate).toHaveBeenCalled();
+	});
+
+	it("closes admin-view session when impersonation target user is missing", async () => {
+		cookieValues.token = "jwt-token";
+		cookieValues.admin_view = "admin-view-token";
+		cookieValues.admin_view_session = "123e4567-e89b-12d3-a456-426614174000";
+		verify.mockImplementation((token: string) => {
+			if (token === "jwt-token") return { id: "admin-1" };
+			if (token === "admin-view-token") return { adminUserId: "admin-1", targetUserId: "user-2" };
+			throw new Error("invalid token");
+		});
+		mockDbRows([{ id: "admin-1", username: "root", role: "admin", plan: "pro" }], []);
+		resolveUserEntitlements.mockResolvedValue({ effectivePlan: "pro" });
+
+		const { validateAuth } = await loadAuth();
+		await expect(validateAuth(false)).resolves.toEqual(expect.objectContaining({ id: "admin-1" }));
+		expect(dbUpdate).toHaveBeenCalled();
 	});
 
 	it("sets admin-view cookie for valid admin impersonation requests", async () => {

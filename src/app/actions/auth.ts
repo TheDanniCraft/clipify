@@ -69,6 +69,7 @@ export async function authUser(returnUrl?: string, error?: string, errorCode?: s
 export async function validateAuth(skipUserCheck = false) {
 	const cookieStore = await cookies();
 	const token = cookieStore.get(AUTH_COOKIE_NAME);
+
 	const cookieUser = token ? ((await getUserFromCookie(token.value)) as AuthenticatedUser | null) : null;
 
 	if (!cookieUser) {
@@ -84,23 +85,6 @@ export async function validateAuth(skipUserCheck = false) {
 
 	if (skipUserCheck) {
 		return adminView ? { ...effectiveUser, adminView } : effectiveUser;
-	}
-
-	const { verifyToken } = await import("@actions/twitch");
-	const effectiveUserTokenValid = await verifyToken(effectiveUser);
-	if (!effectiveUserTokenValid) {
-		if (adminView) {
-			await clearAdminViewCookie(cookieStore);
-
-			if (!(await verifyToken(actorUser))) {
-				return false;
-			}
-
-			const actorEntitlements = await resolveUserEntitlements(actorUser);
-			return { ...actorUser, entitlements: actorEntitlements };
-		}
-
-		return false;
 	}
 
 	const entitlements = await resolveUserEntitlements(effectiveUser);
@@ -120,7 +104,6 @@ export async function validateAdminAuth(skipUserCheck = false) {
 
 	const adminUser = await getUserById(cookieUser.id);
 	if (!adminUser || adminUser.role !== Role.Admin) {
-		await clearAdminViewCookie(cookieStore);
 		return false;
 	}
 
@@ -194,7 +177,7 @@ async function getUserById(userId: string): Promise<AuthenticatedUser | null> {
 
 async function resolveEffectiveUser(actorUser: AuthenticatedUser, cookieStore: Awaited<ReturnType<typeof cookies>>) {
 	if (actorUser.role !== Role.Admin) {
-		await clearAdminViewCookie(cookieStore);
+		await closeAdminViewSessionReadOnly(cookieStore);
 		return { effectiveUser: actorUser, adminView: undefined as AuthenticatedUser["adminView"] };
 	}
 
@@ -204,13 +187,13 @@ async function resolveEffectiveUser(actorUser: AuthenticatedUser, cookieStore: A
 	}
 
 	if (adminViewPayload.targetUserId === actorUser.id) {
-		await clearAdminViewCookie(cookieStore);
+		await closeAdminViewSessionReadOnly(cookieStore);
 		return { effectiveUser: actorUser, adminView: undefined as AuthenticatedUser["adminView"] };
 	}
 
 	const targetUser = await getUserById(adminViewPayload.targetUserId);
 	if (!targetUser) {
-		await clearAdminViewCookie(cookieStore);
+		await closeAdminViewSessionReadOnly(cookieStore);
 		return { effectiveUser: actorUser, adminView: undefined as AuthenticatedUser["adminView"] };
 	}
 
@@ -235,13 +218,32 @@ async function getAdminViewPayload(adminUserId: string, cookieStore: Awaited<Ret
 		});
 		const payload = decoded as AdminViewPayload;
 		if (!payload?.adminUserId || !payload?.targetUserId || payload.adminUserId !== adminUserId) {
-			await clearAdminViewCookie(cookieStore);
+			await closeAdminViewSessionReadOnly(cookieStore);
 			return null;
 		}
 		return payload;
 	} catch {
-		await clearAdminViewCookie(cookieStore);
+		await closeAdminViewSessionReadOnly(cookieStore);
 		return null;
+	}
+}
+
+async function closeAdminViewSessionReadOnly(cookieStore: Awaited<ReturnType<typeof cookies>>) {
+	const sessionId = cookieStore.get(ADMIN_VIEW_SESSION_COOKIE_NAME)?.value;
+	if (!sessionId) return;
+	if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(sessionId)) return;
+
+	try {
+		await db
+			.update(adminImpersonationSessionsTable)
+			.set({
+				endedAt: new Date(),
+				updatedAt: new Date(),
+			})
+			.where(and(eq(adminImpersonationSessionsTable.id, sessionId), isNull(adminImpersonationSessionsTable.endedAt)))
+			.execute();
+	} catch (error) {
+		console.error("[admin-view] failed to close impersonation session (read-only)", error);
 	}
 }
 
