@@ -112,4 +112,52 @@ describe("lib/instanceHealth", () => {
 		expect(snapshot.status).toBe("ok");
 		expect(snapshot.db.latencyMs).toBeGreaterThanOrEqual(0);
 	});
+
+	it("returns degraded status when scheduler failure ratio is high", async () => {
+		getClipCacheSchedulerStats.mockReturnValue({
+			startedAt: "2026-03-01T00:00:00.000Z",
+			intervalMs: 60000,
+			batchSize: 25,
+			lastRunAt: "2026-03-09T00:00:00.000Z",
+			lastRunDurationMs: 210,
+			lastRunOwnerCount: 4,
+			totalRuns: 10,
+			totalFailures: 2,
+			lastError: null,
+		});
+
+		const { getInstanceHealthSnapshot } = await import("@/app/lib/instanceHealth");
+		const snapshot = await getInstanceHealthSnapshot();
+
+		expect(snapshot.status).toBe("degraded");
+	});
+
+	it("returns down status for very high db latency and handles zero sync ratio", async () => {
+		dbExecute.mockImplementationOnce(async () => ({ rows: [{ count: 2 }] }));
+		dbExecute.mockImplementationOnce(async () => ({ rows: [{ count: 1 }] }));
+		dbExecute.mockImplementationOnce(async () => ({
+			rows: [
+				{ plan: "free", count: 4 },
+				{ plan: "pro", count: 2 },
+			],
+		}));
+		dbExecute.mockImplementationOnce(async () => ({ rows: [{ count: 11 }] }));
+		dbExecute.mockImplementationOnce(async () => ({ rows: [{ count: 0 }] }));
+		dbExecute.mockImplementationOnce(async () => ({ rows: [{ count: 0 }] }));
+		dbExecute.mockImplementationOnce(async () => ({ rows: [{ count: 4 }] }));
+
+		const dateNowSpy = jest.spyOn(Date, "now");
+		dateNowSpy.mockReturnValueOnce(0).mockReturnValueOnce(6001);
+
+		try {
+			const { getInstanceHealthSnapshot } = await import("@/app/lib/instanceHealth");
+			const snapshot = await getInstanceHealthSnapshot();
+
+			expect(snapshot.status).toBe("down");
+			expect(snapshot.cache.clipSyncStates).toBe(0);
+			expect(snapshot.cache.backfillCompleteRatio).toBe(0);
+		} finally {
+			dateNowSpy.mockRestore();
+		}
+	});
 });

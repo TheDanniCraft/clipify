@@ -8,8 +8,8 @@ const getUserFromCookie = jest.fn();
 
 jest.mock("next/server", () => ({
 	NextResponse: {
-		next: (...args: unknown[]) => nextMock(...args),
-		redirect: (...args: unknown[]) => redirectMock(...args),
+		next: () => nextMock(),
+		redirect: (url: URL) => redirectMock(url),
 	},
 }));
 

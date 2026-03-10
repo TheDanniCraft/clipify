@@ -50,17 +50,7 @@ jest.mock("@heroui/react", () => ({
 	),
 	DropdownMenu: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 	DropdownTrigger: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-	Autocomplete: ({
-		inputValue,
-		onInputChange,
-		onSelectionChange,
-		defaultItems,
-	}: {
-		inputValue?: string;
-		onInputChange?: (value: string) => void;
-		onSelectionChange?: (key: string) => void;
-		defaultItems?: Array<{ id: string; username: string }>;
-	}) => (
+	Autocomplete: ({ inputValue, onInputChange, onSelectionChange, defaultItems }: { inputValue?: string; onInputChange?: (value: string) => void; onSelectionChange?: (key: string) => void; defaultItems?: Array<{ id: string; username: string }> }) => (
 		<div>
 			<input aria-label='admin-switch-search' value={inputValue} onChange={(event) => onInputChange?.(event.target.value)} />
 			<select aria-label='admin-switch-select' onChange={(event) => onSelectionChange?.(event.target.value)}>
@@ -169,5 +159,34 @@ describe("components/dashboardNavbar", () => {
 		await waitFor(() => expect(switchAdminView).toHaveBeenCalledWith("user-2"));
 		expect(routerPush).not.toHaveBeenCalledWith("/dashboard");
 		await waitFor(() => expect(screen.getByText("Switch failed: unauthorized")).toBeInTheDocument());
+	});
+
+	it("does not render impersonation controls for regular users", async () => {
+		render(
+			<DashboardNavbar
+				user={
+					{
+						id: "user-3",
+						username: "charlie",
+						avatar: "",
+						role: "user",
+						plan: "free",
+						email: "c@c.com",
+						createdAt: new Date(),
+						updatedAt: new Date(),
+					} as never
+				}
+				title='Dashboard'
+				tagline='Test'
+			>
+				<div>content</div>
+			</DashboardNavbar>,
+		);
+
+		expect(screen.queryByText("You are viewing as")).not.toBeInTheDocument();
+		await act(async () => {
+			jest.advanceTimersByTime(250);
+		});
+		expect(getAdminViewCandidates).not.toHaveBeenCalled();
 	});
 });

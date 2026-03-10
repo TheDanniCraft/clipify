@@ -434,11 +434,7 @@ describe("actions/twitch external API and failure handling", () => {
 		});
 
 		expect(users).toEqual([cachedUser, freshUser]);
-		expect(setTwitchCacheBatch).toHaveBeenCalledWith(
-			expect.anything(),
-			[{ key: "2", value: freshUser }],
-			expect.any(Number),
-		);
+		expect(setTwitchCacheBatch).toHaveBeenCalledWith(expect.anything(), [{ key: "2", value: freshUser }], expect.any(Number));
 	});
 
 	it("returns empty bulk users and logs when API + stale cache both fail", async () => {
@@ -677,7 +673,7 @@ describe("actions/twitch external API and failure handling", () => {
 		const { subscribeToReward } = await loadTwitch();
 		await expect(subscribeToReward("owner-1", "reward-1")).resolves.toBeUndefined();
 
-		expect((eventSubPayload?.transport as { callback?: string } | undefined)?.callback).toBe("https://preview.clipify.dev/eventsub");
+		expect((eventSubPayload as { transport?: { callback?: string } } | null)?.transport?.callback).toBe("https://preview.clipify.dev/eventsub");
 		expect(consoleSpy).toHaveBeenCalled();
 	});
 
@@ -999,7 +995,7 @@ describe("actions/twitch external API and failure handling", () => {
 	it("does not auto-clear chat EventSub entries on 429 in production when override is disabled", async () => {
 		const originalNodeEnv = process.env.NODE_ENV;
 		const originalAutoClear = process.env.TWITCH_EVENTSUB_AUTO_CLEAR;
-		process.env.NODE_ENV = "production";
+		Reflect.set(process.env, "NODE_ENV", "production");
 		delete process.env.TWITCH_EVENTSUB_AUTO_CLEAR;
 		isPreview.mockResolvedValue(false);
 
@@ -1022,8 +1018,8 @@ describe("actions/twitch external API and failure handling", () => {
 			expect(getSpy).not.toHaveBeenCalled();
 			expect(deleteSpy).not.toHaveBeenCalled();
 		} finally {
-			if (originalNodeEnv === undefined) delete process.env.NODE_ENV;
-			else process.env.NODE_ENV = originalNodeEnv;
+			if (originalNodeEnv === undefined) Reflect.deleteProperty(process.env, "NODE_ENV");
+			else Reflect.set(process.env, "NODE_ENV", originalNodeEnv);
 
 			if (originalAutoClear === undefined) delete process.env.TWITCH_EVENTSUB_AUTO_CLEAR;
 			else process.env.TWITCH_EVENTSUB_AUTO_CLEAR = originalAutoClear;
@@ -1033,7 +1029,7 @@ describe("actions/twitch external API and failure handling", () => {
 	it("does not auto-clear reward EventSub entries on 429 in production when override is disabled", async () => {
 		const originalNodeEnv = process.env.NODE_ENV;
 		const originalAutoClear = process.env.TWITCH_EVENTSUB_AUTO_CLEAR;
-		process.env.NODE_ENV = "production";
+		Reflect.set(process.env, "NODE_ENV", "production");
 		delete process.env.TWITCH_EVENTSUB_AUTO_CLEAR;
 		isPreview.mockResolvedValue(false);
 
@@ -1056,8 +1052,8 @@ describe("actions/twitch external API and failure handling", () => {
 			expect(getSpy).not.toHaveBeenCalled();
 			expect(deleteSpy).not.toHaveBeenCalled();
 		} finally {
-			if (originalNodeEnv === undefined) delete process.env.NODE_ENV;
-			else process.env.NODE_ENV = originalNodeEnv;
+			if (originalNodeEnv === undefined) Reflect.deleteProperty(process.env, "NODE_ENV");
+			else Reflect.set(process.env, "NODE_ENV", originalNodeEnv);
 
 			if (originalAutoClear === undefined) delete process.env.TWITCH_EVENTSUB_AUTO_CLEAR;
 			else process.env.TWITCH_EVENTSUB_AUTO_CLEAR = originalAutoClear;

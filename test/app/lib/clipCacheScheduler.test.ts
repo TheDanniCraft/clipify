@@ -230,7 +230,9 @@ describe("lib/clipCacheScheduler", () => {
 			await flushAsyncWork();
 
 			expect(intervalCallback).toBeTruthy();
-			intervalCallback?.();
+			if (intervalCallback) {
+				(intervalCallback as () => void)();
+			}
 			await flushAsyncWork();
 			await flushAsyncWork();
 
