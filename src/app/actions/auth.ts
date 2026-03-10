@@ -8,13 +8,17 @@ import { getBaseUrl } from "@actions/utils";
 import { resolveUserEntitlements } from "@lib/entitlements";
 import { db } from "@/db/client";
 import { adminImpersonationSessionsTable, usersTable } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull, lt } from "drizzle-orm";
 
 const AUTH_COOKIE_NAME = "token";
 const ADMIN_VIEW_COOKIE_NAME = "admin_view";
 const ADMIN_VIEW_SESSION_COOKIE_NAME = "admin_view_session";
 const ADMIN_VIEW_ISSUER = "clipify-admin-view";
 const ADMIN_VIEW_TTL_SECONDS = 60 * 60;
+
+function getAdminViewSessionExpiryCutoffDate() {
+	return new Date(Date.now() - ADMIN_VIEW_TTL_SECONDS * 1000);
+}
 
 type AdminViewPayload = {
 	adminUserId: string;
@@ -273,7 +277,8 @@ async function closeAdminViewSession(cookieStore: Awaited<ReturnType<typeof cook
 				endedAt: new Date(),
 				updatedAt: new Date(),
 			})
-			.where(eq(adminImpersonationSessionsTable.id, sessionId));
+			.where(eq(adminImpersonationSessionsTable.id, sessionId))
+			.execute();
 	} catch (error) {
 		console.error("[admin-view] failed to close impersonation session", error);
 	} finally {
@@ -289,13 +294,23 @@ async function closeAdminViewSession(cookieStore: Awaited<ReturnType<typeof cook
 
 async function startAdminViewSession(cookieStore: Awaited<ReturnType<typeof cookies>>, adminUserId: string, targetUserId: string) {
 	try {
+		await db
+			.update(adminImpersonationSessionsTable)
+			.set({
+				endedAt: new Date(),
+				updatedAt: new Date(),
+			})
+			.where(and(isNull(adminImpersonationSessionsTable.endedAt), lt(adminImpersonationSessionsTable.startedAt, getAdminViewSessionExpiryCutoffDate())))
+			.execute();
+
 		const rows = await db
 			.insert(adminImpersonationSessionsTable)
 			.values({
 				adminUserId,
 				targetUserId,
 			})
-			.returning({ id: adminImpersonationSessionsTable.id });
+			.returning({ id: adminImpersonationSessionsTable.id })
+			.execute();
 		const sessionId = rows[0]?.id;
 		if (!sessionId) return;
 

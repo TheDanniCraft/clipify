@@ -43,13 +43,17 @@ jest.mock("@/db/schema", () => ({
 		id: "id",
 		adminUserId: "admin_user_id",
 		targetUserId: "target_user_id",
+		startedAt: "started_at",
 		endedAt: "ended_at",
 		updatedAt: "updated_at",
 	},
 }));
 
 jest.mock("drizzle-orm", () => ({
+	and: (...args: unknown[]) => ({ op: "and", args }),
 	eq: (...args: unknown[]) => ({ op: "eq", args }),
+	isNull: (...args: unknown[]) => ({ op: "isNull", args }),
+	lt: (...args: unknown[]) => ({ op: "lt", args }),
 }));
 
 jest.mock("@actions/twitch", () => ({
@@ -101,12 +105,16 @@ describe("actions/auth", () => {
 		});
 		dbInsert.mockReturnValue({
 			values: () => ({
-				returning: jest.fn().mockResolvedValue([{ id: "session-1" }]),
+				returning: () => ({
+					execute: jest.fn().mockResolvedValue([{ id: "session-1" }]),
+				}),
 			}),
 		});
 		dbUpdate.mockReturnValue({
 			set: () => ({
-				where: jest.fn().mockResolvedValue(undefined),
+				where: () => ({
+					execute: jest.fn().mockResolvedValue(undefined),
+				}),
 			}),
 		});
 		getBaseUrl.mockResolvedValue(new URL("https://clipify.us"));
@@ -326,7 +334,9 @@ describe("actions/auth", () => {
 		sign.mockReturnValue("signed-admin-view");
 		dbInsert.mockReturnValue({
 			values: () => ({
-				returning: jest.fn().mockRejectedValue(new Error("db down")),
+				returning: () => ({
+					execute: jest.fn().mockRejectedValue(new Error("db down")),
+				}),
 			}),
 		});
 		mockDbRows([{ id: "admin-1", username: "root", role: "admin", plan: "pro" }], [{ id: "user-2", username: "alice", role: "user", plan: "free" }]);
