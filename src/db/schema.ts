@@ -34,6 +34,7 @@ export const maxDurationModeEnum = pgEnum("max_duration_mode", enumToPgEnum(MaxD
 export const twitchCacheTypeEnum = pgEnum("twitch_cache_type", enumToPgEnum(TwitchCacheTypeEnumValues));
 export const entitlementEnum = pgEnum("entitlement", enumToPgEnum(EntitlementEnumValues));
 export const entitlementGrantSourceEnum = pgEnum("entitlement_grant_source", enumToPgEnum(EntitlementGrantSourceEnumValues));
+export const accountDisableTypeEnum = pgEnum("account_disable_type", ["manual", "automatic"]);
 
 export const usersTable = pgTable("users", {
 	id: varchar("id").notNull().primaryKey(),
@@ -42,6 +43,10 @@ export const usersTable = pgTable("users", {
 	avatar: varchar("avatar").notNull(),
 	role: roleEnum("role").$type<Role>().notNull(),
 	plan: planEnum("plan").$type<Plan>().notNull(),
+	disabled: boolean("disabled").notNull().default(false),
+	disableType: accountDisableTypeEnum("disable_type"),
+	disabledAt: timestamp("disabled_at", { withTimezone: true }),
+	disabledReason: varchar("disabled_reason"),
 	stripeCustomerId: varchar("stripe_customer_id"),
 	createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 	updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
@@ -175,4 +180,22 @@ export const entitlementGrantsTable = pgTable(
 		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 	},
 	(t) => [index("entitlement_grants_user_lookup_idx").on(t.userId, t.entitlement, t.startsAt, t.endsAt), index("entitlement_grants_global_lookup_idx").on(t.entitlement, t.startsAt, t.endsAt)],
+);
+
+export const adminImpersonationSessionsTable = pgTable(
+	"admin_impersonation_sessions",
+	{
+		id: uuid("id").notNull().defaultRandom().primaryKey(),
+		adminUserId: varchar("admin_user_id")
+			.notNull()
+			.references(() => usersTable.id, { onDelete: "cascade" }),
+		targetUserId: varchar("target_user_id")
+			.notNull()
+			.references(() => usersTable.id, { onDelete: "cascade" }),
+		startedAt: timestamp("started_at", { withTimezone: true }).defaultNow().notNull(),
+		endedAt: timestamp("ended_at", { withTimezone: true }),
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+	},
+	(t) => [index("admin_impersonation_sessions_admin_idx").on(t.adminUserId, t.startedAt), index("admin_impersonation_sessions_target_idx").on(t.targetUserId, t.startedAt)],
 );

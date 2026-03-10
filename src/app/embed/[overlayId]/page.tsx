@@ -2,6 +2,11 @@ import { getOverlayOwnerPlanPublic, getOverlayPublic } from "@actions/database";
 import OverlayPlayer from "@components/overlayPlayer";
 import { Plan, type Overlay } from "@types";
 
+type PublicOverlayWithDisabledState = Overlay & {
+	ownerDisabled?: boolean;
+	ownerDisabledReason?: string | null;
+};
+
 export default async function Overlay({ params, searchParams }: { params: Promise<{ overlayId: string }>; searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
 	const { overlayId } = await params;
 	const sp = await searchParams;
@@ -34,7 +39,7 @@ export default async function Overlay({ params, searchParams }: { params: Promis
 		);
 	}
 
-	const overlay = (await getOverlayPublic(overlayId)) as Overlay;
+	const overlay = (await getOverlayPublic(overlayId)) as PublicOverlayWithDisabledState | null;
 
 	if (!overlay)
 		return (
@@ -46,6 +51,19 @@ export default async function Overlay({ params, searchParams }: { params: Promis
 				/>
 				<div className='flex justify-center items-center h-screen w-screen'>
 					<span>Overlay not found</span>
+				</div>
+			</>
+		);
+	if (overlay.ownerDisabled)
+		return (
+			<>
+				<script
+					dangerouslySetInnerHTML={{
+						__html: "window.$chatwoot = window.$chatwoot || {}; window.$chatwoot.disabled = true;",
+					}}
+				/>
+				<div className='flex justify-center items-center h-screen w-screen text-center px-4'>
+					<span>Your account has been disabled. Please contact support.</span>
 				</div>
 			</>
 		);
@@ -78,14 +96,7 @@ export default async function Overlay({ params, searchParams }: { params: Promis
 				}}
 			/>
 			<div className='flex flex-col justify-center items-center h-screen w-screen'>
-				<OverlayPlayer
-					overlay={overlay}
-					isEmbed
-					showBanner={showBanner || plan === Plan.Free}
-					showEmbedOverlay={showEmbedOverlay}
-					embedMuted={embedMuted}
-					embedAutoplay={embedAutoplay}
-				/>
+				<OverlayPlayer overlay={overlay} isEmbed showBanner={showBanner || plan === Plan.Free} showEmbedOverlay={showEmbedOverlay} embedMuted={embedMuted} embedAutoplay={embedAutoplay} />
 			</div>
 		</>
 	);

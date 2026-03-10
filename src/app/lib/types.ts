@@ -200,7 +200,12 @@ export type UserEntitlements = {
 };
 
 export type DbUser = InferSelectModel<typeof usersTable>;
-export type AuthenticatedUser = DbUser & { entitlements?: UserEntitlements };
+export type AdminViewContext = {
+	active: true;
+	adminUserId: string;
+	adminUsername?: string;
+};
+export type AuthenticatedUser = DbUser & { entitlements?: UserEntitlements; adminView?: AdminViewContext };
 export type EntitlementGrant = InferSelectModel<typeof entitlementGrantsTable>;
 
 export type UserToken = InferSelectModel<typeof tokenTable>;

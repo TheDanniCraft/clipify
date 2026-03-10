@@ -146,29 +146,21 @@ export async function resolvePlayableClip(ownerId: string, clip: TwitchClip): Pr
 
 	const fresh = await getTwitchClip(clip.id, ownerId);
 	if (!fresh) {
-		await setTwitchCache(
-			TwitchCacheType.Clip,
-			key,
-			{
-				clip: cachedClip ?? clip,
-				unavailable: true,
-				lastSeenAt: (cachedValue as CachedClipValue | null)?.lastSeenAt ?? nowIso,
-				lastValidatedAt: nowIso,
-			} satisfies CachedClipValue,
-		);
+		await setTwitchCache(TwitchCacheType.Clip, key, {
+			clip: cachedClip ?? clip,
+			unavailable: true,
+			lastSeenAt: (cachedValue as CachedClipValue | null)?.lastSeenAt ?? nowIso,
+			lastValidatedAt: nowIso,
+		} satisfies CachedClipValue);
 		return null;
 	}
 
-	await setTwitchCache(
-		TwitchCacheType.Clip,
-		key,
-		{
-			clip: fresh,
-			unavailable: false,
-			lastSeenAt: nowIso,
-			lastValidatedAt: nowIso,
-		} satisfies CachedClipValue,
-	);
+	await setTwitchCache(TwitchCacheType.Clip, key, {
+		clip: fresh,
+		unavailable: false,
+		lastSeenAt: nowIso,
+		lastValidatedAt: nowIso,
+	} satisfies CachedClipValue);
 	return fresh;
 }
 
@@ -250,13 +242,7 @@ async function deleteEventSubSubscription(id: string): Promise<boolean> {
 	}
 }
 
-async function clearEventSubSubscriptionsByTypeAndCondition({
-	type,
-	conditionMatch,
-}: {
-	type: string;
-	conditionMatch: Record<string, string>;
-}): Promise<number> {
+async function clearEventSubSubscriptionsByTypeAndCondition({ type, conditionMatch }: { type: string; conditionMatch: Record<string, string> }): Promise<number> {
 	const subscriptions = await listEventSubSubscriptions(type);
 
 	const targets = subscriptions.filter((sub) => {
@@ -306,6 +292,18 @@ export async function exchangeAccesToken(code: string): Promise<TwitchTokenApiRe
 }
 
 export async function refreshAccessToken(refreshToken: string): Promise<TwitchTokenApiResponse | null> {
+	const result = await refreshAccessTokenWithContext(refreshToken);
+	return result.token;
+}
+
+export type RefreshAccessTokenResult = {
+	token: TwitchTokenApiResponse | null;
+	invalidRefreshToken: boolean;
+	status?: number;
+	message?: string;
+};
+
+export async function refreshAccessTokenWithContext(refreshToken: string, userId?: string): Promise<RefreshAccessTokenResult> {
 	const url = "https://id.twitch.tv/oauth2/token";
 	try {
 		const response = await axios.post<TwitchTokenApiResponse>(url, null, {
@@ -316,10 +314,30 @@ export async function refreshAccessToken(refreshToken: string): Promise<TwitchTo
 				grant_type: "refresh_token",
 			},
 		});
-		return response.data;
+		return {
+			token: response.data,
+			invalidRefreshToken: false,
+		};
 	} catch (error) {
-		logTwitchError("Error refreshing access token", error);
-		return null;
+		let status: number | undefined;
+		let message: string | undefined;
+		let invalidRefreshToken = false;
+		if (axios.isAxiosError(error)) {
+			status = error.response?.status;
+			message = (typeof error.response?.data === "object" && error.response?.data && "message" in error.response.data && typeof error.response.data.message === "string" ? error.response.data.message : error.message) || "unknown";
+			invalidRefreshToken = status === 400 && (message ?? "").toLowerCase().includes("invalid refresh token");
+		}
+		console.error("Error refreshing access token:", {
+			userId: userId ?? "unknown",
+			status: status ?? "unknown",
+			message: message ?? "unknown",
+		});
+		return {
+			token: null,
+			invalidRefreshToken,
+			status,
+			message,
+		};
 	}
 }
 
@@ -571,9 +589,7 @@ export async function syncOwnerClipCache(ownerId: string, ensurePackSize = 0): P
 			if (!Number.isFinite(parsed)) return true;
 			return now - parsed >= intervalMs;
 		};
-		const incrementalDue =
-			(ensurePackSize > 0 && cachedClips.length < ensurePackSize) ||
-			isSyncDue(nextState.lastIncrementalSyncAt, CLIP_SYNC_INCREMENTAL_INTERVAL_MS);
+		const incrementalDue = (ensurePackSize > 0 && cachedClips.length < ensurePackSize) || isSyncDue(nextState.lastIncrementalSyncAt, CLIP_SYNC_INCREMENTAL_INTERVAL_MS);
 
 		if (incrementalDue) {
 			try {
@@ -594,10 +610,7 @@ export async function syncOwnerClipCache(ownerId: string, ensurePackSize = 0): P
 			}
 		}
 
-		const backfillDue =
-			!nextState.backfillComplete &&
-			!!nextState.backfillCursor &&
-			isSyncDue(nextState.lastBackfillSyncAt, CLIP_SYNC_BACKFILL_INTERVAL_MS);
+		const backfillDue = !nextState.backfillComplete && !!nextState.backfillCursor && isSyncDue(nextState.lastBackfillSyncAt, CLIP_SYNC_BACKFILL_INTERVAL_MS);
 
 		if (backfillDue && nextState.backfillCursor) {
 			try {
@@ -689,7 +702,7 @@ export async function getTwitchClips(overlay: Overlay, type?: OverlayType, skipF
 	clips = await getCachedClipsByOwner(overlay.ownerId);
 
 	if (overlayType === "Featured") {
-		clips = clips.filter((clip) => !!((clip as TwitchClip & { is_featured?: boolean }).is_featured));
+		clips = clips.filter((clip) => !!(clip as TwitchClip & { is_featured?: boolean }).is_featured);
 	} else if (overlayType !== "All") {
 		const days = Number(overlayType);
 		if (Number.isFinite(days) && days > 0) {
