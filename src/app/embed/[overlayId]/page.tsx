@@ -96,14 +96,7 @@ export default async function Overlay({ params, searchParams }: { params: Promis
 				}}
 			/>
 			<div className='flex flex-col justify-center items-center h-screen w-screen'>
-				<OverlayPlayer
-					overlay={overlay}
-					isEmbed
-					showBanner={showBanner || plan === Plan.Free}
-					showEmbedOverlay={showEmbedOverlay}
-					embedMuted={embedMuted}
-					embedAutoplay={embedAutoplay}
-				/>
+				<OverlayPlayer overlay={overlay} isEmbed showBanner={showBanner || plan === Plan.Free} showEmbedOverlay={showEmbedOverlay} embedMuted={embedMuted} embedAutoplay={embedAutoplay} />
 			</div>
 		</>
 	);
