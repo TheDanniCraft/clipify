@@ -5,6 +5,7 @@ import { addToast, Code } from "@heroui/react";
 export default function ErrorToast({ error, errorCode }: { error: string; errorCode: string }) {
 	if (error) {
 		let errorMessage;
+		let errorDescription = "It seems like something went wrong while trying to authenticate with Twitch. Please try again later, if the issue persists contact the developers";
 		switch (error) {
 			case "twitchAPiError":
 				errorMessage = "Twitch API error";
@@ -12,15 +13,19 @@ export default function ErrorToast({ error, errorCode }: { error: string; errorC
 			case "stateError":
 				errorMessage = "State error";
 				break;
+			case "accountDisabled":
+				errorMessage = "Account disabled";
+				errorDescription = "Your account is currently disabled. Please contact support if you think this is a mistake.";
+				break;
 			default:
 				errorMessage = "Unknown error";
 		}
 
 		addToast({
-			title: `An unecpected error occurred: ${errorMessage}`,
+			title: `An unexpected error occurred: ${errorMessage}`,
 			description: (
 				<>
-					It seems like something went wrong while trying to authenticate with Twitch. Please try again later, if the issue persists contact the developers
+					{errorDescription}
 					{errorCode && (
 						<>
 							{" and specify this error code: "}
@@ -31,7 +36,7 @@ export default function ErrorToast({ error, errorCode }: { error: string; errorC
 				</>
 			),
 			color: "danger",
-			timeout: 20,
+			timeout: 8000,
 		});
 	}
 

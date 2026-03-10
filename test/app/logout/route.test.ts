@@ -26,9 +26,18 @@ describe("app/logout/route", () => {
 
 	it("clears token and admin-view auth flow state", async () => {
 		const { GET } = await import("@/app/logout/route");
-		const response = await GET();
+		const response = await GET({ nextUrl: new URL("https://clipify.us/logout") } as never);
 		expect(clearAdminViewCookieForAuthFlow).toHaveBeenCalledTimes(1);
 		expect(authUser).toHaveBeenCalledTimes(1);
+		expect(authUser).toHaveBeenCalledWith(undefined, undefined);
+		expect(response).toEqual({ ok: true });
+	});
+
+	it("passes through logout error to login redirect", async () => {
+		const { GET } = await import("@/app/logout/route");
+		const response = await GET({ nextUrl: new URL("https://clipify.us/logout?error=accountDisabled") } as never);
+		expect(clearAdminViewCookieForAuthFlow).toHaveBeenCalledTimes(1);
+		expect(authUser).toHaveBeenCalledWith(undefined, "accountDisabled");
 		expect(response).toEqual({ ok: true });
 	});
 });

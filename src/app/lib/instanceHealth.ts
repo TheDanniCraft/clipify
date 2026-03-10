@@ -64,7 +64,10 @@ export type InstanceHealthSnapshot = {
 };
 
 async function countRows(table: typeof usersTable | typeof overlaysTable) {
-	const result = await db.select({ count: sql<number>`count(*)::int` }).from(table);
+	const result = await db
+		.select({ count: sql<number>`count(*)::int` })
+		.from(table)
+		.execute();
 	return Number(result[0]?.count ?? 0);
 }
 
@@ -72,7 +75,8 @@ async function countWhereOverlays(status: StatusOptions) {
 	const result = await db
 		.select({ count: sql<number>`count(*)::int` })
 		.from(overlaysTable)
-		.where(eq(overlaysTable.status, status));
+		.where(eq(overlaysTable.status, status))
+		.execute();
 	return Number(result[0]?.count ?? 0);
 }
 
@@ -92,16 +96,19 @@ export async function getInstanceHealthSnapshot(): Promise<InstanceHealthSnapsho
 			.select({ count: sql<number>`count(*)::int` })
 			.from(usersTable)
 			.where(and(sql`${usersTable.lastLogin} is not null`, gt(usersTable.lastLogin, dayAgo)))
+			.execute()
 			.then((rows) => Number(rows[0]?.count ?? 0)),
 		db
 			.select({ count: sql<number>`count(*)::int` })
 			.from(usersTable)
 			.where(and(sql`${usersTable.lastLogin} is not null`, gt(usersTable.lastLogin, weekAgo)))
+			.execute()
 			.then((rows) => Number(rows[0]?.count ?? 0)),
 		db
 			.select({ count: sql<number>`count(*)::int` })
 			.from(usersTable)
 			.where(and(sql`${usersTable.lastLogin} is not null`, gt(usersTable.lastLogin, monthAgo)))
+			.execute()
 			.then((rows) => Number(rows[0]?.count ?? 0)),
 	]);
 
@@ -111,7 +118,8 @@ export async function getInstanceHealthSnapshot(): Promise<InstanceHealthSnapsho
 			count: sql<number>`count(*)::int`,
 		})
 		.from(usersTable)
-		.groupBy(usersTable.plan);
+		.groupBy(usersTable.plan)
+		.execute();
 	const freeUsers = Number(usersByPlan.find((row) => row.plan === Plan.Free)?.count ?? 0);
 	const paidUsers = Number(usersByPlan.find((row) => row.plan === Plan.Pro)?.count ?? 0);
 
@@ -123,7 +131,8 @@ export async function getInstanceHealthSnapshot(): Promise<InstanceHealthSnapsho
 		})
 		.from(entitlementGrantsTable)
 		.where(and(sql`${entitlementGrantsTable.startsAt} <= now()`, sql`(${entitlementGrantsTable.endsAt} is null or ${entitlementGrantsTable.endsAt} > now())`))
-		.groupBy(entitlementGrantsTable.source, entitlementGrantsTable.entitlement);
+		.groupBy(entitlementGrantsTable.source, entitlementGrantsTable.entitlement)
+		.execute();
 
 	const activeGrantUsersResult = await db.execute(sql`select count(distinct user_id)::int as count from entitlement_grants where starts_at <= now() and (ends_at is null or ends_at > now()) and user_id is not null`);
 	const activeGrantUsers = Number((activeGrantUsersResult as { rows?: Array<{ count?: number }> }).rows?.[0]?.count ?? 0);
@@ -166,7 +175,8 @@ export async function getInstanceHealthSnapshot(): Promise<InstanceHealthSnapsho
 			count: sql<number>`count(*)::int`,
 		})
 		.from(twitchCacheTable)
-		.groupBy(twitchCacheTable.type);
+		.groupBy(twitchCacheTable.type)
+		.execute();
 
 	const cacheTotalEntries = cacheTotals.reduce((sum, row) => sum + Number(row.count ?? 0), 0);
 	const clipEntries = Number(cacheTotals.find((row) => row.type === TwitchCacheType.Clip)?.count ?? 0);

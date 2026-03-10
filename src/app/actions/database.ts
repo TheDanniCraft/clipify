@@ -351,9 +351,12 @@ async function setUser(user: TwitchUserResponse): Promise<AuthenticatedUser> {
 				},
 			})
 			.returning()
+			.execute()
 			.then((result) => result[0]);
 
-		if (!isNewUser && existing[0]?.disabled && existing[0]?.disableType === "automatic") {
+		// Re-enable users after successful OAuth when disable was automatic or legacy-null.
+		// Preserve explicit manual disables.
+		if (!isNewUser && existing[0]?.disabled && existing[0]?.disableType !== "manual") {
 			await db
 				.update(usersTable)
 				.set({
@@ -495,6 +498,16 @@ export async function getUserByIdServer(id: string): Promise<Pick<AuthenticatedU
 	}
 }
 
+export async function isUserDisabledByIdServer(id: string): Promise<boolean> {
+	try {
+		const rows = await db.select({ disabled: usersTable.disabled }).from(usersTable).where(eq(usersTable.id, id)).limit(1).execute();
+		return Boolean(rows[0]?.disabled);
+	} catch (error) {
+		console.error("Error checking user disabled state:", error);
+		return false;
+	}
+}
+
 export async function setAccessToken(token: TwitchTokenApiResponse): Promise<AuthenticatedUser | null> {
 	try {
 		const user = await getUserDetails(token.access_token);
@@ -527,7 +540,8 @@ export async function setAccessToken(token: TwitchTokenApiResponse): Promise<Aut
 					scope: token.scope,
 					tokenType: token.token_type,
 				},
-			});
+			})
+			.execute();
 
 		return dbUser;
 	} catch (error) {
@@ -537,16 +551,23 @@ export async function setAccessToken(token: TwitchTokenApiResponse): Promise<Aut
 }
 
 export async function getAccessToken(userId: string): Promise<UserToken | null> {
+	const result = await getAccessTokenResult(userId);
+	return result.token;
+}
+
+export async function getAccessTokenResult(userId: string): Promise<{ token: UserToken | null; reason?: "user_disabled" | "token_row_missing" | "token_decrypt_failed" | "refresh_invalid_token" | "refresh_failed" }> {
 	try {
 		const userRows = await db.select({ disabled: usersTable.disabled }).from(usersTable).where(eq(usersTable.id, userId)).limit(1).execute();
 		const userRow = userRows[0];
 		if (userRow?.disabled) {
-			return null;
+			return { token: null, reason: "user_disabled" };
 		}
 
 		const rows = await db.select().from(tokenTable).where(eq(tokenTable.id, userId)).limit(1).execute();
 
-		if (rows.length === 0) return null;
+		if (rows.length === 0) {
+			return { token: null, reason: "token_row_missing" };
+		}
 
 		const row = rows[0];
 
@@ -561,7 +582,7 @@ export async function getAccessToken(userId: string): Promise<UserToken | null> 
 		} catch {
 			// key mismatch or tampered data => require re-login
 			console.error("Token decrypt failed for user:", userId);
-			return null;
+			return { token: null, reason: "token_decrypt_failed" };
 		}
 
 		const currentTime = new Date();
@@ -575,27 +596,31 @@ export async function getAccessToken(userId: string): Promise<UserToken | null> 
 				if (refreshResult.invalidRefreshToken) {
 					await disableUserAccess(userId, "invalid_refresh_token");
 				}
-				return null;
+				return { token: null, reason: refreshResult.invalidRefreshToken ? "refresh_invalid_token" : "refresh_failed" };
 			}
 
 			await setAccessToken(newToken);
 			return {
-				id: userId,
-				accessToken: newToken.access_token,
-				refreshToken: newToken.refresh_token,
-				expiresAt: new Date(Date.now() + newToken.expires_in * 1000),
-				scope: newToken.scope,
-				tokenType: newToken.token_type,
+				token: {
+					id: userId,
+					accessToken: newToken.access_token,
+					refreshToken: newToken.refresh_token,
+					expiresAt: new Date(Date.now() + newToken.expires_in * 1000),
+					scope: newToken.scope,
+					tokenType: newToken.token_type,
+				},
 			};
 		}
 
 		return {
-			id: userId,
-			accessToken: accessToken,
-			refreshToken: refreshToken,
-			expiresAt: expiresAt,
-			scope: row.scope,
-			tokenType: row.tokenType,
+			token: {
+				id: userId,
+				accessToken: accessToken,
+				refreshToken: refreshToken,
+				expiresAt: expiresAt,
+				scope: row.scope,
+				tokenType: row.tokenType,
+			},
 		};
 	} catch (error) {
 		console.error("Error fetching access token:", error);
@@ -759,10 +784,7 @@ export async function getClipCacheStatus(ownerId: string): Promise<ClipCacheStat
 export async function getClipCacheStatusForOwnerServer(ownerId: string): Promise<ClipCacheStatus> {
 	const clipPrefix = `clip:${ownerId}:`;
 	const stateKey = `clip-sync:${ownerId}`;
-	const [entries, state] = await Promise.all([
-		getTwitchCacheByPrefixEntries<CachedClipValue | TwitchClip>(TwitchCacheType.Clip, clipPrefix),
-		getTwitchCache<ClipSyncState>(TwitchCacheType.Clip, stateKey),
-	]);
+	const [entries, state] = await Promise.all([getTwitchCacheByPrefixEntries<CachedClipValue | TwitchClip>(TwitchCacheType.Clip, clipPrefix), getTwitchCache<ClipSyncState>(TwitchCacheType.Clip, stateKey)]);
 
 	let cachedClipCount = 0;
 	let unavailableClipCount = 0;
@@ -1067,11 +1089,7 @@ export async function saveOverlay(overlayId: string, patch: OverlayPatch) {
 		const advancedAccess = ownerWithEntitlements ? getFeatureAccess(ownerWithEntitlements, "advanced_filters") : { allowed: false as const };
 		const updatePayload = buildOverlayUpdatePayload(next, advancedAccess.allowed);
 
-		await db
-			.update(overlaysTable)
-			.set(updatePayload)
-			.where(eq(overlaysTable.id, overlayId))
-			.execute();
+		await db.update(overlaysTable).set(updatePayload).where(eq(overlaysTable.id, overlayId)).execute();
 
 		if (updatePayload.rewardId && updatePayload.rewardId !== ctx.overlay.rewardId) {
 			subscribeToReward(ctx.overlay.ownerId, updatePayload.rewardId);
@@ -1388,16 +1406,20 @@ export async function saveSettings(settings: UserSettings) {
 	try {
 		await db.transaction(async (tx) => {
 			// Upsert settings
-			await tx.insert(settingsTable).values({ id: userId, prefix }).onConflictDoUpdate({
-				target: settingsTable.id,
-				set: { prefix },
-			});
+			await tx
+				.insert(settingsTable)
+				.values({ id: userId, prefix })
+				.onConflictDoUpdate({
+					target: settingsTable.id,
+					set: { prefix },
+				})
+				.execute();
 
 			// Replace editors
-			await tx.delete(editorsTable).where(eq(editorsTable.userId, userId));
+			await tx.delete(editorsTable).where(eq(editorsTable.userId, userId)).execute();
 
 			if (rows.length > 0) {
-				await tx.insert(editorsTable).values(rows);
+				await tx.insert(editorsTable).values(rows).execute();
 			}
 		});
 	} catch (error) {
@@ -1638,7 +1660,10 @@ export async function setTwitchCacheBatch(type: TwitchCacheType, entries: { key:
 export async function deleteTwitchCacheKeys(type: TwitchCacheType, keys: string[]) {
 	try {
 		if (keys.length === 0) return 0;
-		const result = await db.delete(twitchCacheTable).where(and(eq(twitchCacheTable.type, type), inArray(twitchCacheTable.key, keys))).execute();
+		const result = await db
+			.delete(twitchCacheTable)
+			.where(and(eq(twitchCacheTable.type, type), inArray(twitchCacheTable.key, keys)))
+			.execute();
 		return Number(result.rowCount ?? 0);
 	} catch (error) {
 		console.error("Error deleting twitch cache keys:", error);
