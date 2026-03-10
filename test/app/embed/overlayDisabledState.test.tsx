@@ -36,8 +36,8 @@ describe("overlay disabled account UX", () => {
 			ownerDisabled: true,
 		});
 
-		const module = await import("@/app/embed/[overlayId]/page");
-		const Page = module.default;
+		const pageModule = await import("@/app/embed/[overlayId]/page");
+		const Page = pageModule.default;
 		const ui = await Page({
 			params: Promise.resolve({ overlayId: "overlay-1" }),
 			searchParams: Promise.resolve({}),
@@ -56,8 +56,8 @@ describe("overlay disabled account UX", () => {
 			ownerDisabled: true,
 		});
 
-		const module = await import("@/app/overlay/[overlayId]/page");
-		const Page = module.default;
+		const pageModule = await import("@/app/overlay/[overlayId]/page");
+		const Page = pageModule.default;
 		const ui = await Page({
 			params: Promise.resolve({ overlayId: "overlay-1" }),
 			searchParams: Promise.resolve({ secret: "abc" }),
