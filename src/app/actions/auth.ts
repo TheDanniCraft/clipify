@@ -83,7 +83,19 @@ export async function validateAuth(skipUserCheck = false) {
 	}
 
 	const { verifyToken } = await import("@actions/twitch");
-	if (!(await verifyToken(effectiveUser))) {
+	const effectiveUserTokenValid = await verifyToken(effectiveUser);
+	if (!effectiveUserTokenValid) {
+		if (adminView) {
+			await clearAdminViewCookie(cookieStore);
+
+			if (!(await verifyToken(actorUser))) {
+				return false;
+			}
+
+			const actorEntitlements = await resolveUserEntitlements(actorUser);
+			return { ...actorUser, entitlements: actorEntitlements };
+		}
+
 		return false;
 	}
 

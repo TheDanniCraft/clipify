@@ -153,10 +153,7 @@ describe("actions/auth", () => {
 			if (token === "admin-view-token") return { adminUserId: "admin-1", targetUserId: "user-2" };
 			throw new Error("invalid token");
 		});
-		mockDbRows(
-			[{ id: "admin-1", username: "root", role: "admin", plan: "pro" }],
-			[{ id: "user-2", username: "alice", role: "user", plan: "free" }],
-		);
+		mockDbRows([{ id: "admin-1", username: "root", role: "admin", plan: "pro" }], [{ id: "user-2", username: "alice", role: "user", plan: "free" }]);
 
 		const { validateAuth } = await loadAuth();
 		await expect(validateAuth(true)).resolves.toEqual(
@@ -214,6 +211,35 @@ describe("actions/auth", () => {
 
 		const { validateAuth } = await loadAuth();
 		await expect(validateAuth(false)).resolves.toBe(false);
+	});
+
+	it("falls back to actor user and clears admin view when impersonated target token is invalid", async () => {
+		cookieValues.token = "jwt-token";
+		cookieValues.admin_view = "admin-view-token";
+		verify.mockImplementation((token: string) => {
+			if (token === "jwt-token") return { id: "admin-1" };
+			if (token === "admin-view-token") return { adminUserId: "admin-1", targetUserId: "user-2" };
+			throw new Error("invalid token");
+		});
+		mockDbRows([{ id: "admin-1", username: "root", role: "admin", plan: "pro" }], [{ id: "user-2", username: "alice", role: "user", plan: "free" }]);
+		verifyToken.mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+		resolveUserEntitlements.mockResolvedValue({ effectivePlan: "pro" });
+
+		const { validateAuth } = await loadAuth();
+		await expect(validateAuth(false)).resolves.toEqual(
+			expect.objectContaining({
+				id: "admin-1",
+				entitlements: expect.objectContaining({ effectivePlan: "pro" }),
+			}),
+		);
+
+		expect(cookieSet).toHaveBeenCalledWith(
+			"admin_view",
+			"",
+			expect.objectContaining({
+				maxAge: 0,
+			}),
+		);
 	});
 
 	it("rejects non-admin users in validateAdminAuth and clears admin-view cookie", async () => {
@@ -303,10 +329,7 @@ describe("actions/auth", () => {
 				returning: jest.fn().mockRejectedValue(new Error("db down")),
 			}),
 		});
-		mockDbRows(
-			[{ id: "admin-1", username: "root", role: "admin", plan: "pro" }],
-			[{ id: "user-2", username: "alice", role: "user", plan: "free" }],
-		);
+		mockDbRows([{ id: "admin-1", username: "root", role: "admin", plan: "pro" }], [{ id: "user-2", username: "alice", role: "user", plan: "free" }]);
 
 		const { startAdminView } = await loadAuth();
 		await expect(startAdminView("user-2")).resolves.toEqual({ ok: true });
@@ -343,10 +366,7 @@ describe("actions/auth", () => {
 		cookieValues.token = "jwt-token";
 		verify.mockReturnValue({ id: "admin-1" });
 		sign.mockReturnValue("signed-admin-view");
-		mockDbRows(
-			[{ id: "admin-1", username: "root", role: "admin", plan: "pro" }],
-			[{ id: "user-2", username: "alice", role: "user", plan: "free" }],
-		);
+		mockDbRows([{ id: "admin-1", username: "root", role: "admin", plan: "pro" }], [{ id: "user-2", username: "alice", role: "user", plan: "free" }]);
 
 		const { startAdminView } = await loadAuth();
 		await expect(startAdminView("user-2")).resolves.toEqual({ ok: true });
