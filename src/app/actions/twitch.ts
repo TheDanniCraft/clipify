@@ -306,6 +306,18 @@ export async function exchangeAccesToken(code: string): Promise<TwitchTokenApiRe
 }
 
 export async function refreshAccessToken(refreshToken: string): Promise<TwitchTokenApiResponse | null> {
+	const result = await refreshAccessTokenWithContext(refreshToken);
+	return result.token;
+}
+
+export type RefreshAccessTokenResult = {
+	token: TwitchTokenApiResponse | null;
+	invalidRefreshToken: boolean;
+	status?: number;
+	message?: string;
+};
+
+export async function refreshAccessTokenWithContext(refreshToken: string, userId?: string): Promise<RefreshAccessTokenResult> {
 	const url = "https://id.twitch.tv/oauth2/token";
 	try {
 		const response = await axios.post<TwitchTokenApiResponse>(url, null, {
@@ -316,10 +328,33 @@ export async function refreshAccessToken(refreshToken: string): Promise<TwitchTo
 				grant_type: "refresh_token",
 			},
 		});
-		return response.data;
+		return {
+			token: response.data,
+			invalidRefreshToken: false,
+		};
 	} catch (error) {
-		logTwitchError("Error refreshing access token", error);
-		return null;
+		let status: number | undefined;
+		let message: string | undefined;
+		let invalidRefreshToken = false;
+		if (axios.isAxiosError(error)) {
+			status = error.response?.status;
+			message =
+				(typeof error.response?.data === "object" && error.response?.data && "message" in error.response.data && typeof error.response.data.message === "string"
+					? error.response.data.message
+					: error.message) || "unknown";
+			invalidRefreshToken = status === 400 && message.toLowerCase().includes("invalid refresh token");
+		}
+		console.error("Error refreshing access token:", {
+			userId: userId ?? "unknown",
+			status: status ?? "unknown",
+			message: message ?? "unknown",
+		});
+		return {
+			token: null,
+			invalidRefreshToken,
+			status,
+			message,
+		};
 	}
 }
 

@@ -3,7 +3,7 @@
 import { tokenTable, usersTable, overlaysTable, queueTable, settingsTable, modQueueTable, editorsTable, twitchCacheTable } from "@/db/schema";
 import { db } from "@/db/client";
 import { AuthenticatedUser, Overlay, TwitchUserResponse, TwitchTokenApiResponse, UserToken, Plan, Role, UserSettings, TwitchCacheType, StatusOptions, OverlayType, PlaybackMode, MaxDurationMode, TwitchClip } from "@types";
-import { getUserDetails, getUsersDetailsBulk, refreshAccessToken, subscribeToReward } from "@actions/twitch";
+import { getUserDetails, getUsersDetailsBulk, refreshAccessTokenWithContext, subscribeToReward } from "@actions/twitch";
 import { eq, inArray, and, or, isNull, lt, gt, sql, desc } from "drizzle-orm";
 import { validateAuth } from "@actions/auth";
 import { encryptToken, decryptToken } from "@lib/tokenCrypto";
@@ -80,6 +80,34 @@ const cleanupTwitchCacheIfNeeded = async (now: Date) => {
 };
 
 const OVERLAY_TOUCH_INTERVAL = sql`now() - interval '1 minute'`;
+
+async function disableUserAccess(userId: string, reason: string, disableType: "manual" | "automatic" = "automatic") {
+	const now = new Date();
+	try {
+		await db
+			.update(usersTable)
+			.set({
+				disabled: true,
+				disableType,
+				disabledAt: now,
+				disabledReason: reason,
+				updatedAt: now,
+			})
+			.where(eq(usersTable.id, userId))
+			.execute();
+
+		await db
+			.update(overlaysTable)
+			.set({
+				status: StatusOptions.Paused,
+				updatedAt: now,
+			})
+			.where(eq(overlaysTable.ownerId, userId))
+			.execute();
+	} catch (error) {
+		console.error("Error disabling user access:", { userId, reason, error });
+	}
+}
 
 export async function touchUser(userId: string, tx = db) {
 	await tx.update(usersTable).set({ lastLogin: new Date() }).where(eq(usersTable.id, userId)).execute();
@@ -291,13 +319,17 @@ async function requireOverlaySecretAccess(overlayId: string, secret?: string): P
 		console.warn(`Invalid overlay secret for overlay id: ${overlayId}`);
 		return null;
 	}
+	const ownerRows = await db.select({ disabled: usersTable.disabled }).from(usersTable).where(eq(usersTable.id, overlay.ownerId)).limit(1).execute();
+	if (ownerRows[0]?.disabled) {
+		return null;
+	}
 
 	return overlay;
 }
 
 async function setUser(user: TwitchUserResponse): Promise<AuthenticatedUser> {
 	try {
-		const existing = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.id, user.id)).limit(1).execute();
+		const existing = await db.select({ id: usersTable.id, disabled: usersTable.disabled, disableType: usersTable.disableType }).from(usersTable).where(eq(usersTable.id, user.id)).limit(1).execute();
 		const isNewUser = existing.length === 0;
 		const dbUser = await db
 			.insert(usersTable)
@@ -320,6 +352,20 @@ async function setUser(user: TwitchUserResponse): Promise<AuthenticatedUser> {
 			})
 			.returning()
 			.then((result) => result[0]);
+
+		if (!isNewUser && existing[0]?.disabled && existing[0]?.disableType === "automatic") {
+			await db
+				.update(usersTable)
+				.set({
+					disabled: false,
+					disableType: null,
+					disabledAt: null,
+					disabledReason: null,
+					updatedAt: new Date(),
+				})
+				.where(eq(usersTable.id, user.id))
+				.execute();
+		}
 
 		if (isNewUser) {
 			await ensureReverseTrialGrantForUser({ id: dbUser.id, plan: dbUser.plan });
@@ -492,6 +538,12 @@ export async function setAccessToken(token: TwitchTokenApiResponse): Promise<Aut
 
 export async function getAccessToken(userId: string): Promise<UserToken | null> {
 	try {
+		const userRows = await db.select({ disabled: usersTable.disabled }).from(usersTable).where(eq(usersTable.id, userId)).limit(1).execute();
+		const userRow = userRows[0];
+		if (userRow?.disabled) {
+			return null;
+		}
+
 		const rows = await db.select().from(tokenTable).where(eq(tokenTable.id, userId)).limit(1).execute();
 
 		if (rows.length === 0) return null;
@@ -516,9 +568,13 @@ export async function getAccessToken(userId: string): Promise<UserToken | null> 
 		const expiresAt = row.expiresAt;
 
 		if (currentTime > expiresAt) {
-			const newToken = await refreshAccessToken(refreshToken);
+			const refreshResult = await refreshAccessTokenWithContext(refreshToken, userId);
+			const newToken = refreshResult.token;
 
 			if (!newToken) {
+				if (refreshResult.invalidRefreshToken) {
+					await disableUserAccess(userId, "invalid_refresh_token");
+				}
 				return null;
 			}
 
@@ -641,7 +697,8 @@ export async function getActiveOverlayOwnerIdsForClipSync(batchSize = 50) {
 		const rows = await db
 			.select({ ownerId: overlaysTable.ownerId, score: scoreExpr })
 			.from(overlaysTable)
-			.where(eq(overlaysTable.status, StatusOptions.Active))
+			.innerJoin(usersTable, eq(usersTable.id, overlaysTable.ownerId))
+			.where(and(eq(overlaysTable.status, StatusOptions.Active), eq(usersTable.disabled, false)))
 			.groupBy(overlaysTable.ownerId)
 			.orderBy(desc(scoreExpr))
 			.limit(limitedBatchSize)
@@ -831,6 +888,17 @@ export async function getOverlayPublic(overlayId: string) {
 		const overlay = overlays[0];
 
 		if (!overlay) return null;
+		const ownerRows = await db.select({ disabled: usersTable.disabled, disabledReason: usersTable.disabledReason }).from(usersTable).where(eq(usersTable.id, overlay.ownerId)).limit(1).execute();
+		const owner = ownerRows[0];
+		if (owner?.disabled) {
+			return {
+				...overlay,
+				rewardId: null,
+				secret: "",
+				ownerDisabled: true,
+				ownerDisabledReason: owner.disabledReason ?? "account_disabled",
+			};
+		}
 
 		return { ...overlay, rewardId: null, secret: "" };
 	} catch (error) {

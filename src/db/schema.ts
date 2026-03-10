@@ -34,6 +34,7 @@ export const maxDurationModeEnum = pgEnum("max_duration_mode", enumToPgEnum(MaxD
 export const twitchCacheTypeEnum = pgEnum("twitch_cache_type", enumToPgEnum(TwitchCacheTypeEnumValues));
 export const entitlementEnum = pgEnum("entitlement", enumToPgEnum(EntitlementEnumValues));
 export const entitlementGrantSourceEnum = pgEnum("entitlement_grant_source", enumToPgEnum(EntitlementGrantSourceEnumValues));
+export const accountDisableTypeEnum = pgEnum("account_disable_type", ["manual", "automatic"]);
 
 export const usersTable = pgTable("users", {
 	id: varchar("id").notNull().primaryKey(),
@@ -42,6 +43,10 @@ export const usersTable = pgTable("users", {
 	avatar: varchar("avatar").notNull(),
 	role: roleEnum("role").$type<Role>().notNull(),
 	plan: planEnum("plan").$type<Plan>().notNull(),
+	disabled: boolean("disabled").notNull().default(false),
+	disableType: accountDisableTypeEnum("disable_type"),
+	disabledAt: timestamp("disabled_at", { withTimezone: true }),
+	disabledReason: varchar("disabled_reason"),
 	stripeCustomerId: varchar("stripe_customer_id"),
 	createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 	updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),

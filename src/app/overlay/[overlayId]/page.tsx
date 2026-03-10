@@ -1,6 +1,10 @@
-import { getOverlayBySecret, touchOverlay } from "@actions/database";
+import { getOverlayBySecret, getOverlayPublic, touchOverlay } from "@actions/database";
 import OverlayPlayer from "@components/overlayPlayer";
 import type { Overlay } from "@types";
+
+type PublicOverlayWithDisabledState = Overlay & {
+	ownerDisabled?: boolean;
+};
 
 export default async function Overlay({ params, searchParams }: { params: Promise<{ overlayId: string }>; searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
 	const { overlayId } = await params;
@@ -19,13 +23,22 @@ export default async function Overlay({ params, searchParams }: { params: Promis
 
 	const overlay = (await getOverlayBySecret(overlayId, secret)) as Overlay;
 
-	if (!overlay)
+	if (!overlay) {
+		const publicOverlay = (await getOverlayPublic(overlayId)) as PublicOverlayWithDisabledState | null;
+		if (publicOverlay?.ownerDisabled) {
+			return (
+				<div className='flex flex-col justify-center items-center h-screen w-screen text-center px-4'>
+					<span>Your account has been disabled. Please contact support.</span>
+				</div>
+			);
+		}
 		return (
 			<div className='flex flex-col justify-center items-center h-screen w-screen'>
 				<span>Overlay not found or invalid secret</span>
 				<span className='text-sm text-gray-400 mt-2'>Check the overlay URL and secret in your dashboard.</span>
 			</div>
 		);
+	}
 	if (overlay.status == "paused")
 		return (
 			<div className='flex justify-center items-center h-screen w-screen'>
