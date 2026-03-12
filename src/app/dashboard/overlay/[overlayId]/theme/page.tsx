@@ -96,7 +96,7 @@ function extractPrimaryFontName(fontFamily: string) {
 
 function getFontMode(fontFamily: string, fontUrl: string): FontMode {
 	if (!fontFamily || fontFamily === "inherit") return "website";
-	if (fontUrl && fontUrl.includes("fonts.googleapis.com")) return "google";
+	if (isGoogleFontsUrl(fontUrl)) return "google";
 	if (!fontUrl && systemFontOptions.some((opt) => opt.key === fontFamily)) return "system";
 	return fontUrl ? "google" : "website";
 }
@@ -112,6 +112,11 @@ function sanitizeThemeFontCssUrl(value: string) {
 	} catch {
 		return "";
 	}
+}
+
+function isGoogleFontsUrl(fontUrl: string | undefined | null): boolean {
+	if (!fontUrl) return false;
+	return sanitizeThemeFontCssUrl(fontUrl) !== "";
 }
 
 type HSLA = { h: number; s: number; l: number; a: number };
