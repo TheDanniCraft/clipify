@@ -738,11 +738,10 @@ export async function syncOwnerClipCache(ownerId: string, ensurePackSize = 0): P
 					if (!windowFailed && hitLimitInWindow && windowSizeMs > MIN_WINDOW_MS) {
 						// Shrink and retry the SAME window range in the next outer iteration or next run
 						nextState.backfillWindowSizeMs = Math.max(MIN_WINDOW_MS, Math.floor(windowSizeMs / 2));
-						// If we have a cursor, we should actually keep it to not lose progress within the window
-						// but shrinking is usually better if we hit the 1k limit early.
-						// However, we MUST persist what we have.
+						// We MUST persist what we have.
 						await upsertClipsByOwner(ownerId, fetchedClips);
-						nextState.backfillCursor = cursor;
+						// Reset cursor because the next request will have different date bounds, making the current cursor invalid.
+						nextState.backfillCursor = undefined;
 						break; // Stop this run's loop to avoid getting stuck if remainingBudget is low
 					} else if ((!windowFailed && !cursor) || hitLimitInWindow || budgetExhausted || (windowFailed && pagesFetchedInWindow > 0)) {
 						// Case A: No error and window truly finished (!cursor)
