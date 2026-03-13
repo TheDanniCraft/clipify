@@ -2,8 +2,9 @@ import { db } from "@/db/client";
 import { entitlementGrantsTable, overlaysTable, usersTable, twitchCacheTable } from "@/db/schema";
 import { getTwitchCacheReadMetricsSnapshot } from "@actions/database";
 import { getClipCacheSchedulerStats } from "@lib/clipCacheScheduler";
-import { and, eq, gt, sql } from "drizzle-orm";
+import { and, eq, gt, inArray, sql } from "drizzle-orm";
 import { Entitlement, EntitlementGrantSource, Plan, StatusOptions, TwitchCacheType } from "@types";
+import { TWITCH_CLIPS_LAUNCH_MS } from "@lib/constants";
 
 type HealthStatus = "ok" | "degraded" | "down";
 
@@ -183,22 +184,72 @@ export async function getInstanceHealthSnapshot(): Promise<InstanceHealthSnapsho
 	const avatarEntries = Number(cacheTotals.find((row) => row.type === TwitchCacheType.Avatar)?.count ?? 0);
 	const gameEntries = Number(cacheTotals.find((row) => row.type === TwitchCacheType.Game)?.count ?? 0);
 
-	const [unavailableClipsRow, clipSyncStatesRow, clipSyncCompleteRow, staleValidatedRow] = await Promise.all([
+	const [unavailableClipsRow, clipSyncStatesRow, staleValidatedRow] = await Promise.all([
 		db.execute(sql`select count(*)::int as count from "twitchCache" where type = ${TwitchCacheType.Clip} and value like '%"unavailable":true%'`),
-		db.execute(sql`select count(*)::int as count from "twitchCache" where type = ${TwitchCacheType.Clip} and key like 'clip-sync:%' and key not like 'clip-sync-force:%'`),
-		db.execute(sql`select count(*)::int as count from "twitchCache" where type = ${TwitchCacheType.Clip} and key like 'clip-sync:%' and key not like 'clip-sync-force:%' and value like '%"backfillComplete":true%'`),
+		db.execute(sql`select key, value from "twitchCache" where type = ${TwitchCacheType.Clip} and key like 'clip-sync:%' and key not like 'clip-sync-force:%'`),
 		db.execute(sql`select count(*)::int as count from "twitchCache" where type = ${TwitchCacheType.Clip} and key like 'clip:%' and value like '%"lastValidatedAt":%' and fetched_at < now() - interval '6 hours'`),
 	]);
 
 	const unavailableClips = Number((unavailableClipsRow as { rows?: Array<{ count?: number }> }).rows?.[0]?.count ?? 0);
-	const clipSyncStates = Number((clipSyncStatesRow as { rows?: Array<{ count?: number }> }).rows?.[0]?.count ?? 0);
-	const clipSyncComplete = Number((clipSyncCompleteRow as { rows?: Array<{ count?: number }> }).rows?.[0]?.count ?? 0);
 	const staleValidatedClips = Number((staleValidatedRow as { rows?: Array<{ count?: number }> }).rows?.[0]?.count ?? 0);
+
+	const syncStatesRaw = (clipSyncStatesRow as unknown as { rows?: Array<{ key: string; value: string }> }).rows ?? [];
+	const clipSyncStates = syncStatesRaw.length;
+
+	// Extract owner IDs and fetch their creation dates in one batch.
+	// Deduplicate IDs to reduce database work.
+	const ownerIds = syncStatesRaw
+		.map((row) => row.key.split(":")[1])
+		.filter((id): id is string => Boolean(id));
+	const uniqueOwnerIds = Array.from(new Set(ownerIds));
+
+	const users =
+		uniqueOwnerIds.length > 0
+			? await Promise.all(
+					Array.from({ length: Math.ceil(uniqueOwnerIds.length / 1000) }).map((_, i) =>
+						db
+							.select({ id: usersTable.id, createdAt: usersTable.createdAt })
+							.from(usersTable)
+							.where(inArray(usersTable.id, uniqueOwnerIds.slice(i * 1000, i * 1000 + 1000)))
+							.execute(),
+					),
+			  ).then((results) => results.flat())
+			: [];
+	const userCreatedAtMap = new Map(users.map((u) => [u.id, new Date(u.createdAt).getTime()]));
+
+	// Calculate the global % ratio based on user timestamps
+	const NOW_MS = Date.now();
+
+	let totalProgress = 0;
+	let clipSyncCompleteCount = 0;
+
+	for (const row of syncStatesRaw) {
+		try {
+			const state = JSON.parse(row.value);
+			const ownerId = row.key.split(":")[1];
+			const userCreatedAt = userCreatedAtMap.get(ownerId);
+			const userBaselineMs = userCreatedAt ? Math.max(TWITCH_CLIPS_LAUNCH_MS, userCreatedAt) : TWITCH_CLIPS_LAUNCH_MS;
+			const totalDuration = NOW_MS - userBaselineMs;
+
+			if (state.backfillComplete) {
+				totalProgress += 1; // 100% complete
+				clipSyncCompleteCount += 1;
+			} else if (state.backfillWindowEnd) {
+				const endMs = new Date(state.backfillWindowEnd).getTime();
+				let progress = (NOW_MS - endMs) / totalDuration;
+				progress = Math.max(0, Math.min(1, progress)); // Clamp between 0 and 1
+				totalProgress += progress;
+			}
+		} catch {
+			// Ignore malformed JSON
+		}
+	}
+
+	const backfillCompleteRatio = clipSyncStates > 0 ? totalProgress / clipSyncStates : 0;
 
 	const scheduler = getClipCacheSchedulerStats();
 	const cacheReads = await getTwitchCacheReadMetricsSnapshot();
 	const dbLatencyMs = Date.now() - started;
-	const backfillCompleteRatio = clipSyncStates > 0 ? clipSyncComplete / clipSyncStates : 0;
 
 	let status: HealthStatus = "ok";
 	if (dbLatencyMs > 2000 || (scheduler.totalRuns > 0 && scheduler.totalFailures / scheduler.totalRuns > 0.15)) status = "degraded";
@@ -240,7 +291,7 @@ export async function getInstanceHealthSnapshot(): Promise<InstanceHealthSnapsho
 			gameEntries,
 			unavailableClips,
 			clipSyncStates,
-			clipSyncComplete,
+			clipSyncComplete: clipSyncCompleteCount,
 			backfillCompleteRatio,
 			staleValidatedClips,
 			globalReadHitRate: cacheReads.hitRate,
