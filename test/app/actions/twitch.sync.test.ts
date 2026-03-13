@@ -105,6 +105,10 @@ describe("actions/twitch syncOwnerClipCache", () => {
 		validateAuth.mockResolvedValue(null);
 	});
 
+	afterEach(() => {
+		jest.restoreAllMocks();
+	});
+
 	it("runs incremental and backfill sync and persists state", async () => {
 		const TWITCH_CLIPS_LAUNCH_MS = new Date("2016-05-01T00:00:00Z").getTime();
 		getTwitchCache.mockResolvedValue({
@@ -275,6 +279,12 @@ describe("actions/twitch syncOwnerClipCache", () => {
 					data: [buildClip("clip-backfill-2")],
 					pagination: {},
 				},
+			} as never)
+			.mockResolvedValue({
+				data: {
+					data: [],
+					pagination: {},
+				},
 			} as never);
 
 		const { syncOwnerClipCache } = await import("@/app/actions/twitch");
@@ -436,50 +446,52 @@ describe("actions/twitch syncOwnerClipCache", () => {
 		const now = Date.now();
 		const windowEnd = new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-		// Use isolateModules to ensure fresh module state for environment variable change
-		await jest.isolateModules(async () => {
+		// Use isolateModulesAsync to ensure fresh module state for environment variable change.
+		await jest.isolateModulesAsync(async () => {
 			process.env.CLIP_SYNC_REQUEST_BUDGET_PER_RUN = "1";
+			try {
+				const isolatedAxios = (await import("axios")).default;
+				const { syncOwnerClipCache } = await import("@/app/actions/twitch");
 
-			const { syncOwnerClipCache } = await import("@/app/actions/twitch");
+				getTwitchCache.mockResolvedValue({
+					backfillWindowEnd: windowEnd,
+					backfillComplete: false,
+					lastIncrementalSyncAt: new Date(now).toISOString(),
+				});
 
-			getTwitchCache.mockResolvedValue({
-				backfillWindowEnd: windowEnd,
-				backfillComplete: false,
-				lastIncrementalSyncAt: new Date(now).toISOString(),
-			});
+				const page1 = {
+					data: {
+						data: [buildClip("budget-1")],
+						pagination: { cursor: "cursor-mid-window" },
+					},
+				};
 
-			const page1 = {
-				data: {
-					data: [buildClip("budget-1")],
-					pagination: { cursor: "cursor-mid-window" },
-				},
-			};
+				jest.spyOn(isolatedAxios, "get").mockResolvedValueOnce(page1 as never);
 
-			jest.spyOn(axios, "get").mockResolvedValueOnce(page1 as never);
+				await syncOwnerClipCache("owner-1");
 
-			await syncOwnerClipCache("owner-1");
+				// Should have persisted the first page
+				expect(setTwitchCacheBatch).toHaveBeenCalledWith(
+					TwitchCacheType.Clip,
+					expect.arrayContaining([
+						expect.objectContaining({
+							key: "clip:owner-1:budget-1",
+						}),
+					]),
+				);
 
-			// Should have persisted the first page
-			expect(setTwitchCacheBatch).toHaveBeenCalledWith(
-				TwitchCacheType.Clip,
-				expect.arrayContaining([
+				// Should NOT have advanced windowEnd, but SHOULD have saved the cursor
+				expect(setTwitchCache).toHaveBeenCalledWith(
+					TwitchCacheType.Clip,
+					"clip-sync:owner-1",
 					expect.objectContaining({
-						key: "clip:owner-1:budget-1",
+						backfillWindowEnd: windowEnd, // Same as before
+						backfillCursor: "cursor-mid-window",
 					}),
-				]),
-			);
-
-			// Should NOT have advanced windowEnd, but SHOULD have saved the cursor
-			expect(setTwitchCache).toHaveBeenCalledWith(
-				TwitchCacheType.Clip,
-				"clip-sync:owner-1",
-				expect.objectContaining({
-					backfillWindowEnd: windowEnd, // Same as before
-					backfillCursor: "cursor-mid-window",
-				}),
-			);
-
-			delete process.env.CLIP_SYNC_REQUEST_BUDGET_PER_RUN;
+				);
+			} finally {
+				delete process.env.CLIP_SYNC_REQUEST_BUDGET_PER_RUN;
+			}
 		});
 	});
 
@@ -519,14 +531,12 @@ describe("actions/twitch syncOwnerClipCache", () => {
 		});
 
 		// Mock a response that triggers hitLimitInWindow (e.g., 10 pages)
-		const mockPage = {
+		jest.spyOn(axios, "get").mockResolvedValue({
 			data: {
 				data: Array.from({ length: 100 }, (_, i) => buildClip(`dense-${i}`)),
 				pagination: { cursor: "dense-cursor" },
 			},
-		};
-
-		const getSpy = jest.spyOn(axios, "get").mockResolvedValue(mockPage as never);
+		} as never);
 
 		const { syncOwnerClipCache } = await import("@/app/actions/twitch");
 		await syncOwnerClipCache("owner-1");
