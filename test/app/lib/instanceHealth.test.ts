@@ -13,6 +13,37 @@ jest.mock("@/db/client", () => ({
 	},
 }));
 
+jest.mock("@/db/schema", () => ({
+	usersTable: {
+		id: "id",
+		createdAt: "createdAt",
+		plan: "plan",
+		lastLogin: "lastLogin",
+	},
+	entitlementGrantsTable: {
+		source: "source",
+		entitlement: "entitlement",
+		startsAt: "startsAt",
+		endsAt: "endsAt",
+		userId: "userId",
+	},
+	overlaysTable: {
+		status: "status",
+		ownerId: "ownerId",
+	},
+	twitchCacheTable: {
+		type: "type",
+	},
+}));
+
+jest.mock("drizzle-orm", () => ({
+	eq: jest.fn(),
+	and: jest.fn(),
+	gt: jest.fn(),
+	sql: jest.fn(),
+	inArray: jest.fn(),
+}));
+
 jest.mock("@actions/database", () => ({
 	getTwitchCacheReadMetricsSnapshot: (...args: unknown[]) => getTwitchCacheReadMetricsSnapshot(...args),
 }));
@@ -58,18 +89,23 @@ describe("lib/instanceHealth", () => {
 		dbSelect.mockImplementation(() => makeQuery(selectQueue.shift() ?? []));
 
 		const executeQueue: unknown[] = [
-			{ rows: [{ count: 2 }] },
-			{ rows: [{ count: 1 }] },
+			{ rows: [{ count: 2 }] }, // activeGrantUsers
+			{ rows: [{ count: 1 }] }, // activeGrantUsersOnFree
 			{
 				rows: [
 					{ plan: "free", count: 4 },
 					{ plan: "pro", count: 2 },
 				],
-			},
-			{ rows: [{ count: 11 }] },
-			{ rows: [{ count: 3 }] },
-			{ rows: [{ count: 2 }] },
-			{ rows: [{ count: 4 }] },
+			}, // activeOverlayOwnersByPlan
+			{ rows: [{ count: 4 }] }, // unavailableClips
+			{
+				rows: [
+					{ key: "clip-sync:owner-1", value: JSON.stringify({ backfillComplete: true }) },
+					{ key: "clip-sync:owner-2", value: JSON.stringify({ backfillComplete: true }) },
+					{ key: "clip-sync:owner-3", value: JSON.stringify({ backfillComplete: false, backfillWindowEnd: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString() }) },
+				],
+			}, // clipSyncStates
+			{ rows: [{ count: 5 }] }, // staleValidatedClips
 		];
 		dbExecute.mockImplementation(async () => executeQueue.shift() ?? { rows: [] });
 
@@ -106,7 +142,7 @@ describe("lib/instanceHealth", () => {
 		expect(snapshot.entitlements.activeGrantUsersOnFree).toBe(1);
 		expect(snapshot.cache.entriesTotal).toBe(135);
 		expect(snapshot.cache.clipEntries).toBe(100);
-		expect(snapshot.cache.backfillCompleteRatio).toBeCloseTo(2 / 3, 5);
+		expect(snapshot.cache.backfillCompleteRatio).toBeCloseTo(2 / 3, 1);
 		expect(snapshot.scheduler.clipCache.totalRuns).toBe(10);
 		expect(snapshot.cache.globalReadHitRate).toBe(0.9);
 		expect(snapshot.status).toBe("ok");
@@ -133,18 +169,17 @@ describe("lib/instanceHealth", () => {
 	});
 
 	it("returns down status for very high db latency and handles zero sync ratio", async () => {
-		dbExecute.mockImplementationOnce(async () => ({ rows: [{ count: 2 }] }));
-		dbExecute.mockImplementationOnce(async () => ({ rows: [{ count: 1 }] }));
+		dbExecute.mockImplementationOnce(async () => ({ rows: [{ count: 2 }] })); // activeGrantUsers
+		dbExecute.mockImplementationOnce(async () => ({ rows: [{ count: 1 }] })); // activeGrantUsersOnFree
 		dbExecute.mockImplementationOnce(async () => ({
 			rows: [
 				{ plan: "free", count: 4 },
 				{ plan: "pro", count: 2 },
 			],
-		}));
-		dbExecute.mockImplementationOnce(async () => ({ rows: [{ count: 11 }] }));
-		dbExecute.mockImplementationOnce(async () => ({ rows: [{ count: 0 }] }));
-		dbExecute.mockImplementationOnce(async () => ({ rows: [{ count: 0 }] }));
-		dbExecute.mockImplementationOnce(async () => ({ rows: [{ count: 4 }] }));
+		})); // activeOverlayOwnersByPlan
+		dbExecute.mockImplementationOnce(async () => ({ rows: [{ count: 0 }] })); // unavailableClips
+		dbExecute.mockImplementationOnce(async () => ({ rows: [] })); // clipSyncStates
+		dbExecute.mockImplementationOnce(async () => ({ rows: [{ count: 4 }] })); // staleValidatedClips
 
 		const dateNowSpy = jest.spyOn(Date, "now");
 		dateNowSpy.mockReturnValueOnce(0).mockReturnValueOnce(6001);

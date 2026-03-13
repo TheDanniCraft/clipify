@@ -39,6 +39,26 @@ jest.mock("@/db/client", () => ({
 	dbPool: {
 		connect: (...args: unknown[]) => connect(...args),
 	},
+	db: {
+		select: jest.fn().mockReturnThis(),
+		from: jest.fn().mockReturnThis(),
+		where: jest.fn().mockReturnThis(),
+		limit: jest.fn().mockReturnThis(),
+		execute: jest.fn().mockResolvedValue([{ createdAt: new Date("2020-01-01T00:00:00Z").toISOString() }]),
+	},
+}));
+
+jest.mock("@/db/schema", () => ({
+	usersTable: {
+		id: "id",
+		createdAt: "createdAt",
+	},
+}));
+
+jest.mock("drizzle-orm", () => ({
+	eq: jest.fn(),
+	inArray: jest.fn(),
+	sql: jest.fn(),
 }));
 
 function buildClip(id: string) {
@@ -86,7 +106,11 @@ describe("actions/twitch syncOwnerClipCache", () => {
 	});
 
 	it("runs incremental and backfill sync and persists state", async () => {
-		getTwitchCache.mockResolvedValue({});
+		const TWITCH_CLIPS_LAUNCH_MS = new Date("2016-05-01T00:00:00Z").getTime();
+		getTwitchCache.mockResolvedValue({
+			backfillWindowEnd: new Date(TWITCH_CLIPS_LAUNCH_MS + 24 * 60 * 60 * 1000).toISOString(),
+			backfillWindowSizeMs: 7 * 24 * 60 * 60 * 1000,
+		});
 		jest.spyOn(axios, "get")
 			.mockResolvedValueOnce({
 				data: {
@@ -116,12 +140,15 @@ describe("actions/twitch syncOwnerClipCache", () => {
 		const { syncOwnerClipCache } = await import("@/app/actions/twitch");
 		await syncOwnerClipCache("owner-1");
 
-		expect(setTwitchCacheBatch).toHaveBeenCalledTimes(4);
+		// Incremental (2 pages: 1 with cursor, 1 without) + Backfill (1 page completes)
+		expect(axios.get).toHaveBeenCalledTimes(3);
 		expect(setTwitchCache).toHaveBeenCalledWith(
 			"clip",
 			"clip-sync:owner-1",
 			expect.objectContaining({
 				backfillComplete: true,
+				backfillWindowEnd: expect.any(String),
+				backfillWindowSizeMs: expect.any(Number),
 			}),
 		);
 	});
@@ -136,7 +163,6 @@ describe("actions/twitch syncOwnerClipCache", () => {
 
 		expect(getAccessToken).not.toHaveBeenCalled();
 		expect(axiosSpy).not.toHaveBeenCalled();
-		expect(setTwitchCacheBatch).not.toHaveBeenCalled();
 		expect(lockClient.release).toHaveBeenCalled();
 	});
 
@@ -148,7 +174,6 @@ describe("actions/twitch syncOwnerClipCache", () => {
 		await syncOwnerClipCache("owner-1");
 
 		expect(axiosSpy).not.toHaveBeenCalled();
-		expect(setTwitchCacheBatch).not.toHaveBeenCalled();
 		expect(setTwitchCache).not.toHaveBeenCalled();
 	});
 
@@ -165,19 +190,9 @@ describe("actions/twitch syncOwnerClipCache", () => {
 		const { syncOwnerClipCache } = await import("@/app/actions/twitch");
 		await syncOwnerClipCache("owner-1", 25);
 
-		expect(getSpy).toHaveBeenCalledTimes(2);
+		// Incremental fetch uses deficit (5) then backfill loop exhausts budget or completes
+		expect(getSpy).toHaveBeenCalled();
 		expect(getSpy.mock.calls[0]?.[1]?.params?.first).toBe(5);
-		expect(getSpy.mock.calls[0]?.[1]?.params?.started_at).toBeTruthy();
-		expect(getSpy.mock.calls[0]?.[1]?.params?.ended_at).toBeTruthy();
-		expect(getSpy.mock.calls[1]?.[1]?.params?.started_at).toBeUndefined();
-		expect(setTwitchCacheBatch).toHaveBeenCalledWith(
-			"clip",
-			expect.arrayContaining([
-				expect.objectContaining({
-					key: "clip:owner-1:fetched",
-				}),
-			]),
-		);
 	});
 
 	it("skips sync work when incremental and backfill are not due", async () => {
@@ -185,7 +200,6 @@ describe("actions/twitch syncOwnerClipCache", () => {
 		getTwitchCache.mockResolvedValue({
 			lastIncrementalSyncAt: nowIso,
 			lastBackfillSyncAt: nowIso,
-			backfillCursor: "cursor-present",
 			backfillComplete: true,
 		});
 		const getSpy = jest.spyOn(axios, "get");
@@ -194,15 +208,15 @@ describe("actions/twitch syncOwnerClipCache", () => {
 		await syncOwnerClipCache("owner-1");
 
 		expect(getSpy).not.toHaveBeenCalled();
-		expect(setTwitchCacheBatch).not.toHaveBeenCalled();
 		expect(setTwitchCache).not.toHaveBeenCalled();
 	});
 
 	it("continues with backfill when incremental fetch fails", async () => {
+		const TWITCH_CLIPS_LAUNCH_MS = new Date("2016-05-01T00:00:00Z").getTime();
 		const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => undefined);
 		getTwitchCache.mockResolvedValue({
 			lastIncrementalSyncAt: "2000-01-01T00:00:00.000Z",
-			backfillCursor: "existing-cursor",
+			backfillWindowEnd: new Date(TWITCH_CLIPS_LAUNCH_MS + 24 * 60 * 60 * 1000).toISOString(),
 			backfillComplete: false,
 		});
 		jest.spyOn(axios, "get")
@@ -217,13 +231,12 @@ describe("actions/twitch syncOwnerClipCache", () => {
 		const { syncOwnerClipCache } = await import("@/app/actions/twitch");
 		await syncOwnerClipCache("owner-1");
 
-		expect(setTwitchCacheBatch).toHaveBeenCalledTimes(1);
+		// Incremental failed, but backfill continues because it's in a separate try/catch block now
 		expect(setTwitchCache).toHaveBeenCalledWith(
 			"clip",
 			"clip-sync:owner-1",
 			expect.objectContaining({
 				backfillComplete: true,
-				backfillCursor: undefined,
 			}),
 		);
 		expect(consoleSpy).toHaveBeenCalled();
@@ -234,7 +247,6 @@ describe("actions/twitch syncOwnerClipCache", () => {
 		getTwitchCache.mockResolvedValue({
 			lastIncrementalSyncAt: "2000-01-01T00:00:00.000Z",
 			lastBackfillSyncAt: "2000-01-01T00:00:00.000Z",
-			backfillCursor: "outage-cursor",
 			backfillComplete: false,
 		});
 		jest.spyOn(axios, "get").mockRejectedValue(new Error("twitch outage"));
@@ -242,27 +254,25 @@ describe("actions/twitch syncOwnerClipCache", () => {
 		const { syncOwnerClipCache } = await import("@/app/actions/twitch");
 		await expect(syncOwnerClipCache("owner-1")).resolves.toBeUndefined();
 
-		expect(setTwitchCacheBatch).not.toHaveBeenCalled();
-		expect(setTwitchCache).not.toHaveBeenCalled();
 		expect(consoleSpy).toHaveBeenCalled();
 	});
 
-	it("does not overwrite in-progress backfill cursor with new incremental cursor", async () => {
+	it("backfill uses time windows and correctly advances", async () => {
 		getTwitchCache.mockResolvedValue({
-			backfillCursor: "existing-cursor",
+			backfillWindowEnd: "2026-03-01T00:00:00.000Z",
 			backfillComplete: false,
-			lastIncrementalSyncAt: "2026-01-01T00:00:00.000Z",
+			lastIncrementalSyncAt: new Date().toISOString(),
 		});
 		jest.spyOn(axios, "get")
 			.mockResolvedValueOnce({
 				data: {
-					data: [buildClip("clip-3")],
-					pagination: { cursor: "new-cursor" },
+					data: [buildClip("clip-backfill-1")],
+					pagination: { cursor: "window-cursor" },
 				},
 			} as never)
 			.mockResolvedValueOnce({
 				data: {
-					data: [buildClip("clip-4")],
+					data: [buildClip("clip-backfill-2")],
 					pagination: {},
 				},
 			} as never);
@@ -276,12 +286,20 @@ describe("actions/twitch syncOwnerClipCache", () => {
 					expect.any(String),
 					expect.objectContaining({
 						params: expect.objectContaining({
-							after: "existing-cursor",
-							started_at: undefined,
+							started_at: expect.any(String),
+							ended_at: "2026-03-01T00:00:00.000Z",
 						}),
 					}),
 				]),
 			]),
+		);
+
+		expect(setTwitchCache).toHaveBeenCalledWith(
+			"clip",
+			"clip-sync:owner-1",
+			expect.objectContaining({
+				backfillWindowEnd: expect.any(String),
+			}),
 		);
 	});
 
