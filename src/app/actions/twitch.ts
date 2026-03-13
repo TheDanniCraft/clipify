@@ -659,6 +659,12 @@ export async function syncOwnerClipCache(ownerId: string, ensurePackSize = 0): P
 		const backfillDue = !nextState.backfillComplete && isSyncDue(nextState.lastBackfillSyncAt, CLIP_SYNC_BACKFILL_INTERVAL_MS);
 
 		if (!rateLimited && backfillDue) {
+			// Legacy cursor check: if we have a cursor but no window state, it's from the old sync logic.
+			// Twitch cursors are query-specific, so we must reset it to avoid 400 errors.
+			if (nextState.backfillCursor && !nextState.backfillWindowEnd) {
+				nextState.backfillCursor = undefined;
+			}
+
 			try {
 				// Process multiple windows in one run if budget allows.
 				// We always allow at least ONE window to ensure backfill progress isn't starved by high-volume recent clips.
