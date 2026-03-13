@@ -57,7 +57,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 
 	const [health, totalRowsRaw] = await Promise.all([
 		getInstanceHealthSnapshot(),
-		userFilter ? db.select({ count: sql<number>`count(*)::int` }).from(usersTable).where(userFilter).execute() : db.select({ count: sql<number>`count(*)::int` }).from(usersTable).execute(),
+		userFilter ? db.select({ count: count() }).from(usersTable).where(userFilter).execute() : db.select({ count: count() }).from(usersTable).execute(),
 	]);
 	const totalRows = Number(totalRowsRaw[0]?.count ?? 0);
 	const totalPages = Math.max(1, Math.ceil(totalRows / PAGE_SIZE));
