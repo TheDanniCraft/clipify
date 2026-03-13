@@ -9,6 +9,7 @@ import { validateAuth } from "@actions/auth";
 import { encryptToken, decryptToken } from "@lib/tokenCrypto";
 import { getFeatureAccess } from "@lib/featureAccess";
 import { ensureReverseTrialGrantForUser, resolveUserEntitlements, resolveUserEntitlementsForUsers } from "@lib/entitlements";
+import { TWITCH_CLIPS_LAUNCH_MS } from "@lib/constants";
 
 const TWITCH_CACHE_CLEANUP_INTERVAL_MS = 10 * 60 * 1000;
 let lastTwitchCacheCleanupAt = 0;
@@ -740,6 +741,7 @@ type ClipSyncState = {
 	lastIncrementalSyncAt?: string;
 	lastBackfillSyncAt?: string;
 	backfillCursor?: string;
+	backfillWindowEnd?: string;
 	backfillComplete?: boolean;
 };
 
@@ -784,7 +786,11 @@ export async function getClipCacheStatus(ownerId: string): Promise<ClipCacheStat
 export async function getClipCacheStatusForOwnerServer(ownerId: string): Promise<ClipCacheStatus> {
 	const clipPrefix = `clip:${ownerId}:`;
 	const stateKey = `clip-sync:${ownerId}`;
-	const [entries, state] = await Promise.all([getTwitchCacheByPrefixEntries<CachedClipValue | TwitchClip>(TwitchCacheType.Clip, clipPrefix), getTwitchCache<ClipSyncState>(TwitchCacheType.Clip, stateKey)]);
+	const [entries, state, user] = await Promise.all([
+		getTwitchCacheByPrefixEntries<CachedClipValue | TwitchClip>(TwitchCacheType.Clip, clipPrefix),
+		getTwitchCache<ClipSyncState>(TwitchCacheType.Clip, stateKey),
+		db.select({ createdAt: usersTable.createdAt }).from(usersTable).where(eq(usersTable.id, ownerId)).limit(1).execute().then((rows) => rows[0]),
+	]);
 
 	let cachedClipCount = 0;
 	let unavailableClipCount = 0;
@@ -806,7 +812,25 @@ export async function getClipCacheStatusForOwnerServer(ownerId: string): Promise
 	}
 
 	const backfillComplete = Boolean(state?.backfillComplete);
-	const estimatedCoveragePercent = backfillComplete ? 100 : 0;
+	let estimatedCoveragePercent = 0;
+
+	if (backfillComplete) {
+		estimatedCoveragePercent = 100;
+	} else if (state?.backfillWindowEnd) {
+		const userCreatedMs = user ? new Date(user.createdAt).getTime() : NaN;
+		const hasValidUserCreatedMs = Number.isFinite(userCreatedMs) && userCreatedMs > 0;
+		const userBaselineMs = hasValidUserCreatedMs ? Math.max(TWITCH_CLIPS_LAUNCH_MS, userCreatedMs) : TWITCH_CLIPS_LAUNCH_MS;
+
+		const now = Date.now();
+		const totalDuration = now - userBaselineMs;
+		const endMs = new Date(state.backfillWindowEnd).getTime();
+
+		if (Number.isFinite(endMs) && totalDuration > 0) {
+			const effectiveEndMs = Math.min(endMs, now);
+			const progress = (now - effectiveEndMs) / totalDuration;
+			estimatedCoveragePercent = Math.round(Math.max(0, Math.min(1, progress)) * 100);
+		}
+	}
 
 	return {
 		cachedClipCount,
