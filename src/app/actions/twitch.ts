@@ -677,7 +677,7 @@ export async function syncOwnerClipCache(ownerId: string, ensurePackSize = 0): P
 					const normalizedWindowSizeMs = Number.isFinite(rawWindowSizeMs) && rawWindowSizeMs > 0 ? rawWindowSizeMs : DEFAULT_WINDOW_MS;
 					const windowSizeMs = Math.min(MAX_WINDOW_MS, Math.max(MIN_WINDOW_MS, normalizedWindowSizeMs));
 
-					let cursor: string | undefined;
+					let cursor: string | undefined = nextState.backfillCursor;
 					let pagesFetchedInWindow = 0;
 					let clipsFetchedInWindow = 0;
 					let hitLimitInWindow = false;
@@ -686,7 +686,7 @@ export async function syncOwnerClipCache(ownerId: string, ensurePackSize = 0): P
 					const currentStartMs = Math.max(TWITCH_CLIPS_LAUNCH_MS, currentEndMs - windowSizeMs);
 
 					// Advance window logic if we are already at the start (nothing to sync)
-					if (currentEndMs <= TWITCH_CLIPS_LAUNCH_MS) {
+					if (currentEndMs <= TWITCH_CLIPS_LAUNCH_MS && !cursor) {
 						nextState.backfillComplete = true;
 						break;
 					}
@@ -727,34 +727,50 @@ export async function syncOwnerClipCache(ownerId: string, ensurePackSize = 0): P
 						}
 					}
 
+					const budgetExhausted = pagesFetchedInWindow >= remainingBudget && cursor;
+
 					if (!windowFailed && hitLimitInWindow && windowSizeMs > MIN_WINDOW_MS) {
 						// Shrink and retry the SAME window range in the next outer iteration or next run
 						nextState.backfillWindowSizeMs = Math.max(MIN_WINDOW_MS, Math.floor(windowSizeMs / 2));
+						// If we have a cursor, we should actually keep it to not lose progress within the window
+						// but shrinking is usually better if we hit the 1k limit early.
+						// However, we MUST persist what we have.
+						await upsertClipsByOwner(ownerId, fetchedClips);
+						nextState.backfillCursor = cursor;
 						break; // Stop this run's loop to avoid getting stuck if remainingBudget is low
-					} else if ((!windowFailed && !cursor) || hitLimitInWindow || (windowFailed && pagesFetchedInWindow > 0)) {
+					} else if ((!windowFailed && !cursor) || hitLimitInWindow || budgetExhausted || (windowFailed && pagesFetchedInWindow > 0)) {
 						// Case A: No error and window truly finished (!cursor)
 						// Case B: Hit limit but already at MIN_WINDOW_MS (Accept partial and move on)
-						// Case C: Window failed mid-fetch (windowFailed) AND we have some data, accept partial and move on
+						// Case C: Budget exhausted mid-window (budgetExhausted) - Save partial and stay on same window
+						// Case D: Window failed mid-fetch (windowFailed) AND we have some data, accept partial and move on
 
 						await upsertClipsByOwner(ownerId, fetchedClips);
-						nextState.backfillWindowEnd = new Date(currentStartMs).toISOString();
-
-						if (hitLimitInWindow) {
-							nextState.backfillWindowSizeMs = MIN_WINDOW_MS;
-							console.warn(`Clip backfill hit 1,000 limit within minimum window (${MIN_WINDOW_MS / 60000}m) for owner ${ownerId}. Some clips might be missing.`);
-						} else if (windowFailed) {
-							// Preserve window size on error
-							nextState.backfillWindowSizeMs = windowSizeMs;
+						
+						if (budgetExhausted) {
+							// Stay on the same window for next run, but save current progress
+							nextState.backfillCursor = cursor;
 						} else {
-							if (clipsFetchedInWindow < 100 && windowSizeMs < MAX_WINDOW_MS) {
-								nextState.backfillWindowSizeMs = Math.min(MAX_WINDOW_MS, windowSizeMs * 2);
-							} else {
-								nextState.backfillWindowSizeMs = windowSizeMs;
-							}
-						}
+							// Move to next window
+							nextState.backfillWindowEnd = new Date(currentStartMs).toISOString();
+							nextState.backfillCursor = undefined;
 
-						if (currentStartMs <= TWITCH_CLIPS_LAUNCH_MS) {
-							nextState.backfillComplete = true;
+							if (hitLimitInWindow) {
+								nextState.backfillWindowSizeMs = MIN_WINDOW_MS;
+								console.warn(`Clip backfill hit 1,000 limit within minimum window (${MIN_WINDOW_MS / 60000}m) for owner ${ownerId}. Some clips might be missing.`);
+							} else if (windowFailed) {
+								// Preserve window size on error
+								nextState.backfillWindowSizeMs = windowSizeMs;
+							} else {
+								if (clipsFetchedInWindow < 100 && windowSizeMs < MAX_WINDOW_MS) {
+									nextState.backfillWindowSizeMs = Math.min(MAX_WINDOW_MS, windowSizeMs * 2);
+								} else {
+									nextState.backfillWindowSizeMs = windowSizeMs;
+								}
+							}
+
+							if (currentStartMs <= TWITCH_CLIPS_LAUNCH_MS) {
+								nextState.backfillComplete = true;
+							}
 						}
 					} else if (windowFailed) {
 						// Abort backfill for this run if a window failed completely to avoid infinite retry loop.
@@ -763,7 +779,6 @@ export async function syncOwnerClipCache(ownerId: string, ensurePackSize = 0): P
 				}
 
 				nextState.lastBackfillSyncAt = new Date(now).toISOString();
-				nextState.backfillCursor = undefined;
 			} catch (error) {
 				// Only log if it's NOT a 429, because 429s are expected and handled via rateLimitedUntil
 				if (!axios.isAxiosError(error) || error.response?.status !== 429) {
