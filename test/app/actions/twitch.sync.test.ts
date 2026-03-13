@@ -377,4 +377,168 @@ describe("actions/twitch syncOwnerClipCache", () => {
 		);
 		expect(consoleSpy).toHaveBeenCalled();
 	});
+
+	it("persists partial backfill results and cursor on 429 rate limit error", async () => {
+		const now = Date.now();
+		const windowEnd = new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString();
+
+		getTwitchCache.mockResolvedValue({
+			backfillWindowEnd: windowEnd,
+			backfillComplete: false,
+			lastIncrementalSyncAt: new Date(now).toISOString(),
+		});
+
+		const page1 = {
+			data: {
+				data: [buildClip("partial-1")],
+				pagination: { cursor: "cursor-after-page-1" },
+			},
+		};
+
+		const error429 = {
+			isAxiosError: true,
+			response: {
+				status: 429,
+				headers: { "retry-after": "60" },
+			},
+		};
+
+		jest.spyOn(axios, "get").mockResolvedValueOnce(page1 as never).mockRejectedValueOnce(error429);
+		// Mock axios.isAxiosError
+		jest.spyOn(axios, "isAxiosError").mockImplementation((e) => e === error429);
+
+		const { syncOwnerClipCache } = await import("@/app/actions/twitch");
+		// The error is swallowed in the backfill loop catch, so it resolves
+		await syncOwnerClipCache("owner-1");
+
+		// Should have persisted the first page
+		expect(setTwitchCacheBatch).toHaveBeenCalledWith(
+			TwitchCacheType.Clip,
+			expect.arrayContaining([
+				expect.objectContaining({
+					key: "clip:owner-1:partial-1",
+				}),
+			]),
+		);
+
+		// Should have updated sync state with the cursor and rate limit
+		expect(setTwitchCache).toHaveBeenCalledWith(
+			TwitchCacheType.Clip,
+			"clip-sync:owner-1",
+			expect.objectContaining({
+				backfillCursor: "cursor-after-page-1",
+				rateLimitedUntil: expect.any(String),
+			}),
+		);
+	});
+
+	it("persists partial results and maintains cursor when request budget is exhausted", async () => {
+		const now = Date.now();
+		const windowEnd = new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString();
+
+		// Use isolateModules to ensure fresh module state for environment variable change
+		await jest.isolateModules(async () => {
+			process.env.CLIP_SYNC_REQUEST_BUDGET_PER_RUN = "1";
+
+			const { syncOwnerClipCache } = await import("@/app/actions/twitch");
+
+			getTwitchCache.mockResolvedValue({
+				backfillWindowEnd: windowEnd,
+				backfillComplete: false,
+				lastIncrementalSyncAt: new Date(now).toISOString(),
+			});
+
+			const page1 = {
+				data: {
+					data: [buildClip("budget-1")],
+					pagination: { cursor: "cursor-mid-window" },
+				},
+			};
+
+			jest.spyOn(axios, "get").mockResolvedValueOnce(page1 as never);
+
+			await syncOwnerClipCache("owner-1");
+
+			// Should have persisted the first page
+			expect(setTwitchCacheBatch).toHaveBeenCalledWith(
+				TwitchCacheType.Clip,
+				expect.arrayContaining([
+					expect.objectContaining({
+						key: "clip:owner-1:budget-1",
+					}),
+				]),
+			);
+
+			// Should NOT have advanced windowEnd, but SHOULD have saved the cursor
+			expect(setTwitchCache).toHaveBeenCalledWith(
+				TwitchCacheType.Clip,
+				"clip-sync:owner-1",
+				expect.objectContaining({
+					backfillWindowEnd: windowEnd, // Same as before
+					backfillCursor: "cursor-mid-window",
+				}),
+			);
+
+			delete process.env.CLIP_SYNC_REQUEST_BUDGET_PER_RUN;
+		});
+	});
+
+	it("resets legacy backfill cursor to avoid invalid query errors", async () => {
+		getTwitchCache.mockResolvedValue({
+			backfillCursor: "legacy-cursor",
+			backfillWindowEnd: undefined, // Missing window state indicates legacy
+			backfillComplete: false,
+			lastIncrementalSyncAt: new Date().toISOString(),
+		});
+
+		jest.spyOn(axios, "get").mockResolvedValue({
+			data: { data: [], pagination: {} },
+		} as never);
+
+		const { syncOwnerClipCache } = await import("@/app/actions/twitch");
+		await syncOwnerClipCache("owner-1");
+
+		// First call should NOT use the legacy cursor
+		expect(axios.get).toHaveBeenCalledWith(
+			expect.any(String),
+			expect.objectContaining({
+				params: expect.objectContaining({
+					after: undefined,
+				}),
+			}),
+		);
+	});
+
+	it("resets cursor when shrinking window size due to high clip density", async () => {
+		const now = Date.now();
+		getTwitchCache.mockResolvedValue({
+			backfillWindowEnd: new Date(now).toISOString(),
+			backfillWindowSizeMs: 24 * 60 * 60 * 1000, // 1 day
+			backfillComplete: false,
+			lastIncrementalSyncAt: new Date(now).toISOString(),
+		});
+
+		// Mock a response that triggers hitLimitInWindow (e.g., 10 pages)
+		const mockPage = {
+			data: {
+				data: Array.from({ length: 100 }, (_, i) => buildClip(`dense-${i}`)),
+				pagination: { cursor: "dense-cursor" },
+			},
+		};
+
+		const getSpy = jest.spyOn(axios, "get").mockResolvedValue(mockPage as never);
+
+		const { syncOwnerClipCache } = await import("@/app/actions/twitch");
+		await syncOwnerClipCache("owner-1");
+
+		// Should have shrunk the window and RESET the cursor
+		expect(setTwitchCache).toHaveBeenCalledWith(
+			TwitchCacheType.Clip,
+			"clip-sync:owner-1",
+			expect.objectContaining({
+				backfillWindowSizeMs: 12 * 60 * 60 * 1000, // Halved
+				backfillCursor: undefined, // RESET
+			}),
+		);
+	});
 });
