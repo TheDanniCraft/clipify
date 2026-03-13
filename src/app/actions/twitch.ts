@@ -9,9 +9,6 @@ import { dbPool } from "@/db/client";
 import { REWARD_NOT_FOUND } from "@lib/twitchErrors";
 import { validateAuth } from "@actions/auth";
 import { TWITCH_CLIPS_LAUNCH_MS } from "@lib/constants";
-import { db } from "@/db/client";
-import { usersTable } from "@/db/schema";
-import { eq } from "drizzle-orm";
 
 export async function logTwitchError(context: string, error: unknown) {
 	if (axios.isAxiosError(error) && error.response) {
@@ -663,14 +660,12 @@ export async function syncOwnerClipCache(ownerId: string, ensurePackSize = 0): P
 
 		if (!rateLimited && backfillDue) {
 			try {
-				const userBaselineRow = await db.select({ createdAt: usersTable.createdAt }).from(usersTable).where(eq(usersTable.id, ownerId)).limit(1).execute().then((rows) => rows[0]);
-				const userCreatedMs = userBaselineRow ? new Date(userBaselineRow.createdAt).getTime() : NaN;
-				const userBaselineMs = Number.isFinite(userCreatedMs) && userCreatedMs > 0 ? Math.max(TWITCH_CLIPS_LAUNCH_MS, userCreatedMs) : TWITCH_CLIPS_LAUNCH_MS;
-
-				// Process multiple windows in one run if budget allows
-				while (recentRequestsUsed < CLIP_SYNC_REQUEST_BUDGET_PER_RUN && !nextState.backfillComplete) {
-					const remainingBudget = CLIP_SYNC_REQUEST_BUDGET_PER_RUN - recentRequestsUsed;
-					if (remainingBudget < 1) break;
+				// Process multiple windows in one run if budget allows.
+				// We always allow at least ONE window to ensure backfill progress isn't starved by high-volume recent clips.
+				let forceFirstIteration = true;
+				while ((recentRequestsUsed < CLIP_SYNC_REQUEST_BUDGET_PER_RUN || forceFirstIteration) && !nextState.backfillComplete) {
+					const remainingBudget = Math.max(1, CLIP_SYNC_REQUEST_BUDGET_PER_RUN - recentRequestsUsed);
+					forceFirstIteration = false;
 
 					const currentEndMs = nextState.backfillWindowEnd ? new Date(nextState.backfillWindowEnd).getTime() : now - CLIP_SYNC_RECENT_WINDOW_DAYS * 24 * 60 * 60 * 1000;
 
@@ -688,39 +683,58 @@ export async function syncOwnerClipCache(ownerId: string, ensurePackSize = 0): P
 					let hitLimitInWindow = false;
 					const fetchedClips: TwitchClip[] = [];
 
-					const currentStartMs = Math.max(userBaselineMs, currentEndMs - windowSizeMs);
+					const currentStartMs = Math.max(TWITCH_CLIPS_LAUNCH_MS, currentEndMs - windowSizeMs);
 
 					// Advance window logic if we are already at the start (nothing to sync)
-					if (currentEndMs <= userBaselineMs) {
+					if (currentEndMs <= TWITCH_CLIPS_LAUNCH_MS) {
 						nextState.backfillComplete = true;
 						break;
 					}
 
+					const startedAtIso = new Date(currentStartMs).toISOString();
+					const endedAtIso = new Date(currentEndMs).toISOString();
+
+					let windowFailed = false;
 					// Process the entire time window atomically
-					while (pagesFetchedInWindow < remainingBudget && currentEndMs > userBaselineMs) {
-						const page = await fetchClipPage(ownerId, token.accessToken, 100, cursor, new Date(currentStartMs).toISOString(), new Date(currentEndMs).toISOString());
+					while (pagesFetchedInWindow < remainingBudget && currentEndMs > TWITCH_CLIPS_LAUNCH_MS) {
+						try {
+							const page = await fetchClipPage(ownerId, token.accessToken, 100, cursor, startedAtIso, endedAtIso);
 
-						fetchedClips.push(...page.clips);
-						clipsFetchedInWindow += page.clips.length;
-						recentRequestsUsed += 1;
-						pagesFetchedInWindow += 1;
-						cursor = page.cursor;
+							fetchedClips.push(...page.clips);
+							clipsFetchedInWindow += page.clips.length;
+							recentRequestsUsed += 1;
+							pagesFetchedInWindow += 1;
+							cursor = page.cursor;
 
-						if (clipsFetchedInWindow >= 1000 || (pagesFetchedInWindow >= 10 && cursor)) {
-							hitLimitInWindow = true;
+							if (clipsFetchedInWindow >= 1000 || (pagesFetchedInWindow >= 10 && cursor)) {
+								hitLimitInWindow = true;
+								break;
+							}
+
+							if (!cursor) break;
+						} catch (error) {
+							if (axios.isAxiosError(error) && error.response?.status === 429) {
+								const resumeAt = getRateLimitResumeAt(error, now);
+								if (resumeAt) {
+									nextState.rateLimitedUntil = resumeAt;
+								}
+								throw error; // Rethrow to abort the entire backfill for this run
+							}
+							logTwitchError("Error fetching backfill clip sync page", error);
+							// Stop processing this window but allow saving what we have
+							windowFailed = true;
 							break;
 						}
-
-						if (!cursor) break;
 					}
 
-					if (hitLimitInWindow && windowSizeMs > MIN_WINDOW_MS) {
+					if (!windowFailed && hitLimitInWindow && windowSizeMs > MIN_WINDOW_MS) {
 						// Shrink and retry the SAME window range in the next outer iteration or next run
 						nextState.backfillWindowSizeMs = Math.max(MIN_WINDOW_MS, Math.floor(windowSizeMs / 2));
 						break; // Stop this run's loop to avoid getting stuck if remainingBudget is low
-					} else if (!cursor || hitLimitInWindow) {
+					} else if (!cursor || hitLimitInWindow || (windowFailed && pagesFetchedInWindow > 0)) {
 						// Case A: No limit hit and window finished (!cursor)
 						// Case B: Hit limit but already at MIN_WINDOW_MS (Accept partial and move on)
+						// Case C: Window failed mid-fetch (windowFailed) AND we have some data, accept partial and move on
 
 						await upsertClipsByOwner(ownerId, fetchedClips);
 						nextState.backfillWindowEnd = new Date(currentStartMs).toISOString();
@@ -728,6 +742,9 @@ export async function syncOwnerClipCache(ownerId: string, ensurePackSize = 0): P
 						if (hitLimitInWindow) {
 							nextState.backfillWindowSizeMs = MIN_WINDOW_MS;
 							console.warn(`Clip backfill hit 1,000 limit within minimum window (${MIN_WINDOW_MS / 60000}m) for owner ${ownerId}. Some clips might be missing.`);
+						} else if (windowFailed) {
+							// Preserve window size on error
+							nextState.backfillWindowSizeMs = windowSizeMs;
 						} else {
 							if (clipsFetchedInWindow < 100 && windowSizeMs < MAX_WINDOW_MS) {
 								nextState.backfillWindowSizeMs = Math.min(MAX_WINDOW_MS, windowSizeMs * 2);
@@ -736,20 +753,16 @@ export async function syncOwnerClipCache(ownerId: string, ensurePackSize = 0): P
 							}
 						}
 
-						if (currentStartMs <= userBaselineMs) {
+						if (currentStartMs <= TWITCH_CLIPS_LAUNCH_MS) {
 							nextState.backfillComplete = true;
 						}
-					} else {
-						// Budget exhausted before finishing the window and before hitting the 1000-clip limit.
-						// We do NOT advance nextState.backfillWindowEnd, so the next run picks up where we left off (re-processing the same window).
-						// We can still save what we've fetched so far to reduce work in the next run (optional, but keep it simple for now).
-						break;
 					}
 				}
 
 				nextState.lastBackfillSyncAt = new Date(now).toISOString();
 				nextState.backfillCursor = undefined;
-			} catch (error) {				logTwitchError("Error fetching backfill clip sync page", error);
+			} catch (error) {
+				logTwitchError("Error fetching backfill clip sync page", error);
 				const resumeAt = getRateLimitResumeAt(error, now);
 				if (resumeAt) {
 					nextState.rateLimitedUntil = resumeAt;
@@ -773,16 +786,10 @@ export async function syncOwnerClipCache(ownerId: string, ensurePackSize = 0): P
 }
 
 export async function getCreatorSyncProgress(ownerId: string) {
-	const [syncState, user] = await Promise.all([getClipSyncState(ownerId), db.select({ createdAt: usersTable.createdAt }).from(usersTable).where(eq(usersTable.id, ownerId)).limit(1).execute().then(rows => rows[0])]);
+	const syncState = await getClipSyncState(ownerId);
 
-	// Use user's creation date as baseline, but no earlier than Twitch Clips launch.
-	// Guard against invalid dates to avoid propagating NaN.
-	const userCreatedMs = user ? new Date(user.createdAt).getTime() : NaN;
-	const hasValidUserCreatedMs = Number.isFinite(userCreatedMs) && userCreatedMs > 0;
-	const userBaselineMs = hasValidUserCreatedMs ? Math.max(TWITCH_CLIPS_LAUNCH_MS, userCreatedMs) : TWITCH_CLIPS_LAUNCH_MS;
-	
 	const now = Date.now();
-	const totalDuration = now - userBaselineMs;
+	const totalDuration = now - TWITCH_CLIPS_LAUNCH_MS;
 
 	let syncProgress = 0;
 	if (syncState.backfillComplete) {

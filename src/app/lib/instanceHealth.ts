@@ -186,7 +186,9 @@ export async function getInstanceHealthSnapshot(): Promise<InstanceHealthSnapsho
 
 	const [unavailableClipsRow, clipSyncStatesRow, staleValidatedRow] = await Promise.all([
 		db.execute(sql`select count(*)::int as count from "twitchCache" where type = ${TwitchCacheType.Clip} and value like '%"unavailable":true%'`),
-		db.execute(sql`select key, value from "twitchCache" where type = ${TwitchCacheType.Clip} and key like 'clip-sync:%' and key not like 'clip-sync-force:%'`),
+		db.execute(
+			sql`select key, value from "twitchCache" where type = ${TwitchCacheType.Clip} and key like 'clip-sync:%' and key not like 'clip-sync-force:%' order by fetched_at desc limit 10000`,
+		),
 		db.execute(sql`select count(*)::int as count from "twitchCache" where type = ${TwitchCacheType.Clip} and key like 'clip:%' and value like '%"lastValidatedAt":%' and fetched_at < now() - interval '6 hours'`),
 	]);
 
@@ -196,26 +198,12 @@ export async function getInstanceHealthSnapshot(): Promise<InstanceHealthSnapsho
 	const syncStatesRaw = (clipSyncStatesRow as unknown as { rows?: Array<{ key: string; value: string }> }).rows ?? [];
 	const clipSyncStates = syncStatesRaw.length;
 
-	// Extract owner IDs and fetch their creation dates in one batch.
-	// Deduplicate IDs to reduce database work.
-	const ownerIds = syncStatesRaw
-		.map((row) => row.key.split(":")[1])
-		.filter((id): id is string => Boolean(id));
-	const uniqueOwnerIds = Array.from(new Set(ownerIds));
-
-	const users =
-		uniqueOwnerIds.length > 0
-			? await Promise.all(
-					Array.from({ length: Math.ceil(uniqueOwnerIds.length / 1000) }).map((_, i) =>
-						db
-							.select({ id: usersTable.id, createdAt: usersTable.createdAt })
-							.from(usersTable)
-							.where(inArray(usersTable.id, uniqueOwnerIds.slice(i * 1000, i * 1000 + 1000)))
-							.execute(),
-					),
-			  ).then((results) => results.flat())
-			: [];
-	const userCreatedAtMap = new Map(users.map((u) => [u.id, new Date(u.createdAt).getTime()]));
+	// Extract owner IDs and deduplicate to count active sync states.
+	const uniqueOwnerIds = new Set(
+		syncStatesRaw
+			.map((row) => row.key.split(":")[1])
+			.filter((id): id is string => Boolean(id))
+	);
 
 	// Calculate the global % ratio based on user timestamps
 	const NOW_MS = Date.now();
@@ -226,19 +214,18 @@ export async function getInstanceHealthSnapshot(): Promise<InstanceHealthSnapsho
 	for (const row of syncStatesRaw) {
 		try {
 			const state = JSON.parse(row.value);
-			const ownerId = row.key.split(":")[1];
-			const userCreatedAt = userCreatedAtMap.get(ownerId);
-			const userBaselineMs = userCreatedAt ? Math.max(TWITCH_CLIPS_LAUNCH_MS, userCreatedAt) : TWITCH_CLIPS_LAUNCH_MS;
-			const totalDuration = NOW_MS - userBaselineMs;
+			const totalDuration = NOW_MS - TWITCH_CLIPS_LAUNCH_MS;
 
 			if (state.backfillComplete) {
 				totalProgress += 1; // 100% complete
 				clipSyncCompleteCount += 1;
 			} else if (state.backfillWindowEnd) {
 				const endMs = new Date(state.backfillWindowEnd).getTime();
-				let progress = (NOW_MS - endMs) / totalDuration;
-				progress = Math.max(0, Math.min(1, progress)); // Clamp between 0 and 1
-				totalProgress += progress;
+				if (Number.isFinite(endMs) && totalDuration > 0) {
+					const effectiveEndMs = Math.min(endMs, NOW_MS);
+					const progress = (NOW_MS - effectiveEndMs) / totalDuration;
+					totalProgress += Math.max(0, Math.min(1, progress));
+				}
 			}
 		} catch {
 			// Ignore malformed JSON
