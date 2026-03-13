@@ -33,6 +33,7 @@ type ClipSyncState = {
 	lastBackfillSyncAt?: string;
 	backfillCursor?: string;
 	backfillComplete?: boolean;
+	rateLimitedUntil?: string;
 };
 
 type CachedClipValue = {
@@ -46,8 +47,12 @@ type ClipForceRefreshState = {
 	lastForcedAt?: string;
 };
 
-const CLIP_SYNC_INCREMENTAL_INTERVAL_MS = 10 * 60 * 1000;
-const CLIP_SYNC_BACKFILL_INTERVAL_MS = 2 * 60 * 1000;
+const CLIP_SYNC_INCREMENTAL_INTERVAL_MS = 60 * 1000;
+const CLIP_SYNC_BACKFILL_INTERVAL_MS = 60 * 1000;
+const CLIP_SYNC_RECENT_WINDOW_DAYS = 7;
+const CLIP_SYNC_REQUEST_BUDGET_PER_RUN = Math.min(200, Math.max(1, parsePositiveInt(process.env.CLIP_SYNC_REQUEST_BUDGET_PER_RUN, 50)));
+const CLIP_SYNC_RECENT_MAX_PAGES_PER_RUN = Math.min(500, Math.max(1, parsePositiveInt(process.env.CLIP_SYNC_RECENT_MAX_PAGES_PER_RUN, 200)));
+const CLIP_SYNC_MIN_BACKFILL_PAGES_PER_RUN = Math.min(20, Math.max(1, parsePositiveInt(process.env.CLIP_SYNC_MIN_BACKFILL_PAGES_PER_RUN, 1)));
 function parsePositiveInt(value: string | undefined, fallback: number) {
 	const parsed = Number(value);
 	if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
@@ -68,6 +73,25 @@ function parseCachedClipValue(value: CachedClipValue | TwitchClip | null | undef
 	if ("clip" in value && value.clip) return value.clip;
 	if ("id" in value && typeof value.id === "string") return value as TwitchClip;
 	return null;
+}
+
+function getRateLimitResumeAt(error: unknown, nowMs: number): string | null {
+	if (!axios.isAxiosError(error) || error.response?.status !== 429) return null;
+	const retryAfterRaw = error.response?.headers?.["retry-after"];
+	const resetRaw = error.response?.headers?.["ratelimit-reset"];
+
+	const retryAfterSeconds = Number.parseInt(Array.isArray(retryAfterRaw) ? retryAfterRaw[0] : (retryAfterRaw ?? "").toString(), 10);
+	if (Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0) {
+		return new Date(nowMs + retryAfterSeconds * 1000).toISOString();
+	}
+
+	const resetSeconds = Number.parseInt(Array.isArray(resetRaw) ? resetRaw[0] : (resetRaw ?? "").toString(), 10);
+	if (Number.isFinite(resetSeconds) && resetSeconds > 0) {
+		return new Date(resetSeconds * 1000).toISOString();
+	}
+
+	// Fallback: back off one minute when Twitch does not provide explicit headers.
+	return new Date(nowMs + 60_000).toISOString();
 }
 
 async function getClipSyncState(ownerId: string): Promise<ClipSyncState> {
@@ -164,7 +188,7 @@ export async function resolvePlayableClip(ownerId: string, clip: TwitchClip): Pr
 	return fresh;
 }
 
-async function fetchClipPage(ownerId: string, accessToken: string, first: number, after?: string) {
+async function fetchClipPage(ownerId: string, accessToken: string, first: number, after?: string, startedAt?: string, endedAt?: string) {
 	const url = "https://api.twitch.tv/helix/clips";
 	const response = await axios.get<TwitchApiResponse<TwitchClipResponse>>(url, {
 		headers: {
@@ -175,6 +199,8 @@ async function fetchClipPage(ownerId: string, accessToken: string, first: number
 			broadcaster_id: ownerId,
 			first,
 			after,
+			started_at: startedAt,
+			ended_at: endedAt,
 		},
 	});
 	return { clips: response.data.data, cursor: response.data.pagination?.cursor };
@@ -583,6 +609,13 @@ export async function syncOwnerClipCache(ownerId: string, ensurePackSize = 0): P
 		const syncState = await getClipSyncState(ownerId);
 		const now = Date.now();
 		const nextState: ClipSyncState = { ...syncState };
+		const rateLimitedUntilMs = nextState.rateLimitedUntil ? Date.parse(nextState.rateLimitedUntil) : Number.NaN;
+		if (Number.isFinite(rateLimitedUntilMs)) {
+			if (now < rateLimitedUntilMs) {
+				return;
+			}
+			nextState.rateLimitedUntil = undefined;
+		}
 		const isSyncDue = (lastSyncAt: string | undefined, intervalMs: number): boolean => {
 			if (!lastSyncAt) return true;
 			const parsed = Date.parse(lastSyncAt);
@@ -590,37 +623,73 @@ export async function syncOwnerClipCache(ownerId: string, ensurePackSize = 0): P
 			return now - parsed >= intervalMs;
 		};
 		const incrementalDue = (ensurePackSize > 0 && cachedClips.length < ensurePackSize) || isSyncDue(nextState.lastIncrementalSyncAt, CLIP_SYNC_INCREMENTAL_INTERVAL_MS);
+		let recentRequestsUsed = 0;
+		let rateLimited = false;
 
 		if (incrementalDue) {
 			try {
 				const first = ensurePackSize > 0 && cachedClips.length < ensurePackSize ? Math.max(1, Math.min(100, ensurePackSize - cachedClips.length)) : 100;
-				const page = await fetchClipPage(ownerId, token.accessToken, first);
-				await upsertClipsByOwner(ownerId, page.clips);
+				const endedAt = new Date(now).toISOString();
+				const recentWindowStartedAt = new Date(now - CLIP_SYNC_RECENT_WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString();
+				let recentCursor: string | undefined;
+				let pageSize = first;
+
+				// Always finish recent-window scan first; if this exceeds budget we still continue.
+				for (let pageIndex = 0; pageIndex < CLIP_SYNC_RECENT_MAX_PAGES_PER_RUN; pageIndex += 1) {
+					const page = await fetchClipPage(ownerId, token.accessToken, pageSize, recentCursor, recentWindowStartedAt, endedAt);
+					recentRequestsUsed += 1;
+					await upsertClipsByOwner(ownerId, page.clips);
+					recentCursor = page.cursor;
+					pageSize = 100;
+					if (!recentCursor) break;
+				}
 				nextState.lastIncrementalSyncAt = new Date(now).toISOString();
-				if (page.cursor) {
-					if (!nextState.backfillComplete && !nextState.backfillCursor) {
-						nextState.backfillCursor = page.cursor;
-					}
-				}
-				if (!page.cursor) {
-					nextState.backfillComplete = true;
-				}
 			} catch (error) {
 				logTwitchError("Error fetching incremental clip sync page", error);
+				const resumeAt = getRateLimitResumeAt(error, now);
+				if (resumeAt) {
+					nextState.rateLimitedUntil = resumeAt;
+					rateLimited = true;
+				}
+			}
+		}
+
+		if (!rateLimited && !nextState.backfillComplete && !nextState.backfillCursor) {
+			try {
+				const seedPage = await fetchClipPage(ownerId, token.accessToken, 100);
+				await upsertClipsByOwner(ownerId, seedPage.clips);
+				nextState.backfillCursor = seedPage.cursor;
+				nextState.backfillComplete = !seedPage.cursor;
+			} catch (error) {
+				logTwitchError("Error seeding backfill clip sync page", error);
+				const resumeAt = getRateLimitResumeAt(error, now);
+				if (resumeAt) {
+					nextState.rateLimitedUntil = resumeAt;
+					rateLimited = true;
+				}
 			}
 		}
 
 		const backfillDue = !nextState.backfillComplete && !!nextState.backfillCursor && isSyncDue(nextState.lastBackfillSyncAt, CLIP_SYNC_BACKFILL_INTERVAL_MS);
 
-		if (backfillDue && nextState.backfillCursor) {
+		if (!rateLimited && backfillDue && nextState.backfillCursor) {
 			try {
-				const page = await fetchClipPage(ownerId, token.accessToken, 100, nextState.backfillCursor);
-				await upsertClipsByOwner(ownerId, page.clips);
+				const remainingBudget = Math.max(0, CLIP_SYNC_REQUEST_BUDGET_PER_RUN - recentRequestsUsed);
+				const backfillPagesThisRun = Math.max(CLIP_SYNC_MIN_BACKFILL_PAGES_PER_RUN, remainingBudget);
+				for (let pageIndex = 0; pageIndex < backfillPagesThisRun && nextState.backfillCursor; pageIndex += 1) {
+					const page = await fetchClipPage(ownerId, token.accessToken, 100, nextState.backfillCursor);
+					await upsertClipsByOwner(ownerId, page.clips);
+					nextState.backfillCursor = page.cursor;
+					nextState.backfillComplete = !page.cursor;
+					if (nextState.backfillComplete) break;
+				}
 				nextState.lastBackfillSyncAt = new Date(now).toISOString();
-				nextState.backfillCursor = page.cursor;
-				nextState.backfillComplete = !page.cursor;
 			} catch (error) {
 				logTwitchError("Error fetching backfill clip sync page", error);
+				const resumeAt = getRateLimitResumeAt(error, now);
+				if (resumeAt) {
+					nextState.rateLimitedUntil = resumeAt;
+				}
 			}
 		}
 

@@ -26,7 +26,7 @@ jest.mock("jsonwebtoken", () => ({
 	sign: (...args: unknown[]) => sign(...args),
 }));
 
-describe("app/auth route", () => {
+describe("app/auth/bot route", () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
 		process.env.JWT_SECRET = "secret";
@@ -40,33 +40,17 @@ describe("app/auth route", () => {
 		sign.mockReturnValue("signed-state");
 	});
 
-	it("redirects to Twitch OAuth with expected params and sets nonce cookie", async () => {
-		const { GET } = await import("@/app/auth/route");
-		const response = await GET({ url: "https://clipify.us/auth?returnUrl=%2Fdashboard" } as never);
+	it("redirects to Twitch OAuth with extended bot scopes", async () => {
+		const { GET } = await import("@/app/auth/bot/route");
+		const response = await GET({ url: "https://clipify.us/auth/bot?returnUrl=%2Fdashboard" } as never);
 
 		expect(response.status).toBe(307);
-		const location = response.headers.get("location");
+		const location = response.headers.get("location") ?? "";
 		expect(location).toContain("https://id.twitch.tv/oauth2/authorize");
-		expect(location).toContain("client_id=client_id");
+		expect(location).toContain("user%3Awrite%3Achat");
+		expect(location).toContain("user%3Aread%3Achat");
+		expect(location).toContain("user%3Abot");
+		expect(location).toContain("channel%3Abot");
 		expect(location).toContain("state=signed-state");
-		expect(location).not.toContain("force_verify=true");
-
-		const cookieStore = await cookiesMock.mock.results[0]?.value;
-		expect(cookieStore.set).toHaveBeenCalledWith(
-			"auth_nonce",
-			"nonce-1",
-			expect.objectContaining({
-				httpOnly: true,
-				sameSite: "lax",
-			}),
-		);
-	});
-
-	it("adds force_verify when TWITCH_FORCE_VERIFY=true", async () => {
-		process.env.TWITCH_FORCE_VERIFY = "true";
-		const { GET } = await import("@/app/auth/route");
-		const response = await GET({ url: "https://clipify.us/auth?returnUrl=%2Fdashboard" } as never);
-		const location = response.headers.get("location");
-		expect(location).toContain("force_verify=true");
 	});
 });

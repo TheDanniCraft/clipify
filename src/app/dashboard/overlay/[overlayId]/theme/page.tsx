@@ -80,10 +80,7 @@ function encodeThemeFontSetting(fontFamily: string, fontUrl?: string) {
 function buildGoogleFontUrl(fontFamily: string) {
 	const family = fontFamily.trim().replace(/^['"]|['"]$/g, "");
 	if (!family) return "";
-	const encoded = family
-		.split(",")[0]
-		.trim()
-		.replace(/\s+/g, "+");
+	const encoded = family.split(",")[0].trim().replace(/\s+/g, "+");
 	return `https://fonts.googleapis.com/css2?family=${encoded}:wght@400;600;700&display=swap`;
 }
 
@@ -96,9 +93,8 @@ function extractPrimaryFontName(fontFamily: string) {
 
 function getFontMode(fontFamily: string, fontUrl: string): FontMode {
 	if (!fontFamily || fontFamily === "inherit") return "website";
-	if (fontUrl && fontUrl.includes("fonts.googleapis.com")) return "google";
 	if (!fontUrl && systemFontOptions.some((opt) => opt.key === fontFamily)) return "system";
-	return fontUrl ? "google" : "website";
+	return isGoogleFontsUrl(fontUrl) ? "google" : "website";
 }
 
 function sanitizeThemeFontCssUrl(value: string) {
@@ -112,6 +108,11 @@ function sanitizeThemeFontCssUrl(value: string) {
 	} catch {
 		return "";
 	}
+}
+
+function isGoogleFontsUrl(fontUrl: string | undefined | null): boolean {
+	if (!fontUrl) return false;
+	return sanitizeThemeFontCssUrl(fontUrl) !== "";
 }
 
 type HSLA = { h: number; s: number; l: number; a: number };
@@ -431,21 +432,7 @@ function ThemeColorInput({ label, value, onChange, defaultValue, allowAlpha }: {
 	);
 }
 
-function OverlayStylePreview({
-	overlay,
-	canDrag,
-	onMove,
-	onScaleChange,
-	streamerAvatar,
-	dragBlockedReason,
-}: {
-	overlay: Overlay;
-	canDrag: boolean;
-	onMove: (target: DragTarget, x: number, y: number) => void;
-	onScaleChange: (target: DragTarget, scale: number) => void;
-	streamerAvatar?: string;
-	dragBlockedReason: DragBlockedReason | null;
-}) {
+function OverlayStylePreview({ overlay, canDrag, onMove, onScaleChange, streamerAvatar, dragBlockedReason }: { overlay: Overlay; canDrag: boolean; onMove: (target: DragTarget, x: number, y: number) => void; onScaleChange: (target: DragTarget, scale: number) => void; streamerAvatar?: string; dragBlockedReason: DragBlockedReason | null }) {
 	const containerRef = useRef<HTMLDivElement | null>(null);
 	const channelRef = useRef<HTMLDivElement | null>(null);
 	const clipRef = useRef<HTMLDivElement | null>(null);
@@ -703,7 +690,7 @@ function OverlayStylePreview({
 			fixedX = startRight;
 			fixedY = startTop;
 		}
-		const startScale = target === "channel" ? overlay.channelScale ?? 100 : target === "clip" ? overlay.clipScale ?? 100 : overlay.timerScale ?? 100;
+		const startScale = target === "channel" ? (overlay.channelScale ?? 100) : target === "clip" ? (overlay.clipScale ?? 100) : (overlay.timerScale ?? 100);
 		setResize({
 			target,
 			handle,
@@ -860,13 +847,7 @@ function OverlayStylePreview({
 					</div>
 				)}
 			</div>
-			<div className='mt-2 text-xs text-default-500'>
-				{canDrag
-					? "Drag overlay elements to position them. Use arrow keys to nudge selected items (Shift for larger steps)."
-					: dragBlockedReason === "narrow"
-						? "Drag and drop needs a wider viewport. Increase browser width or use desktop."
-						: "Drag and drop is only supported on desktop. Switch to a desktop browser."}
-			</div>
+			<div className='mt-2 text-xs text-default-500'>{canDrag ? "Drag overlay elements to position them. Use arrow keys to nudge selected items (Shift for larger steps)." : dragBlockedReason === "narrow" ? "Drag and drop needs a wider viewport. Increase browser width or use desktop." : "Drag and drop is only supported on desktop. Switch to a desktop browser."}</div>
 		</div>
 	);
 }
@@ -1053,11 +1034,7 @@ export default function OverlayStylePage() {
 							<div>
 								{!dragSupported && (
 									<Card className='mb-3 border border-warning-200 bg-warning-50'>
-										<CardBody className='text-warning-800 text-sm'>
-											{dragBlockedReason === "narrow"
-												? "Drag & drop needs a wider viewport. Expand your browser width or switch to desktop for layout editing."
-												: "Drag & drop positioning is not supported on mobile or touch-only devices. Switch to a desktop browser for layout editing."}
-										</CardBody>
+										<CardBody className='text-warning-800 text-sm'>{dragBlockedReason === "narrow" ? "Drag & drop needs a wider viewport. Expand your browser width or switch to desktop for layout editing." : "Drag & drop positioning is not supported on mobile or touch-only devices. Switch to a desktop browser for layout editing."}</CardBody>
 									</Card>
 								)}
 								{ownerPlan === Plan.Free && !ownerHasAdvancedAccess ? (
@@ -1188,16 +1165,10 @@ export default function OverlayStylePage() {
 											<Tab key='google' title='Google' />
 										</Tabs>
 
-										{currentFontMode === "website" && (
-											<p className='text-xs text-default-500'>Using the same default font stack as the Clipify website.</p>
-										)}
+										{currentFontMode === "website" && <p className='text-xs text-default-500'>Using the same default font stack as the Clipify website.</p>}
 
 										{currentFontMode === "system" && (
-											<Select
-												selectedKeys={[systemFontOptions.some((opt) => opt.key === parsedThemeFont.fontFamily) ? parsedThemeFont.fontFamily : systemFontOptions[0]?.key || "system-ui"]}
-												onSelectionChange={(value) => setOverlay({ ...overlay, themeFontFamily: encodeThemeFontSetting((value.currentKey as string) || "system-ui", "") })}
-												label='System Font'
-											>
+											<Select selectedKeys={[systemFontOptions.some((opt) => opt.key === parsedThemeFont.fontFamily) ? parsedThemeFont.fontFamily : systemFontOptions[0]?.key || "system-ui"]} onSelectionChange={(value) => setOverlay({ ...overlay, themeFontFamily: encodeThemeFontSetting((value.currentKey as string) || "system-ui", "") })} label='System Font'>
 												{systemFontOptions.map((font) => (
 													<SelectItem key={font.key}>{font.label}</SelectItem>
 												))}
@@ -1219,7 +1190,6 @@ export default function OverlayStylePage() {
 												<Input type='text' label='Google CSS URL' value={safeThemeFontUrl} isReadOnly />
 											</div>
 										)}
-
 									</CardBody>
 								</Card>
 								<ThemeColorInput label='Text Color' value={overlay.themeTextColor} defaultValue='#FFFFFF' onChange={(value) => setOverlay({ ...overlay, themeTextColor: value })} />
