@@ -140,8 +140,8 @@ describe("actions/twitch syncOwnerClipCache", () => {
 		const { syncOwnerClipCache } = await import("@/app/actions/twitch");
 		await syncOwnerClipCache("owner-1");
 
-		// Incremental (2 pages: 1 with cursor, 1 without) + Backfill (1 page completes)
-		expect(axios.get).toHaveBeenCalledTimes(3);
+		// Incremental (3 pages: until cursor null) + Backfill (1 page completes because we force at least one iteration)
+		expect(axios.get).toHaveBeenCalledTimes(4);
 		expect(setTwitchCache).toHaveBeenCalledWith(
 			"clip",
 			"clip-sync:owner-1",
