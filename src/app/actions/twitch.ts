@@ -724,6 +724,11 @@ export async function syncOwnerClipCache(ownerId: string, ensurePackSize = 0): P
 								if (resumeAt) {
 									nextState.rateLimitedUntil = resumeAt;
 								}
+								// Persist what we have before aborting to avoid re-fetching the same window.
+								if (fetchedClips.length > 0) {
+									await upsertClipsByOwner(ownerId, fetchedClips);
+									nextState.backfillCursor = cursor;
+								}
 								throw error; // Rethrow to abort the entire backfill for this run
 							}
 							logTwitchError("Error fetching backfill clip sync page", error);
