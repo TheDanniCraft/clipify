@@ -1,10 +1,10 @@
 "use client";
 
 import { startAdminView } from "@actions/auth";
-import { Button, Card, CardBody, CardHeader, Chip, Input, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from "@heroui/react";
+import { Button, Card, CardBody, CardHeader, Chip, Input, Spinner, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from "@heroui/react";
 import { IconSearch } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useCallback, useEffect, useState, useTransition } from "react";
 
 type AdminExplorerRow = {
 	id: string;
@@ -28,6 +28,51 @@ type AdminUserExplorerProps = {
 export default function AdminUserExplorer({ users, query, page, totalPages, totalRows, firstRowNumber, lastRowNumber }: AdminUserExplorerProps) {
 	const router = useRouter();
 	const [switchingUserId, setSwitchingUserId] = useState<string | null>(null);
+	const [isPending, startTransition] = useTransition();
+	const [inputValue, setInputValue] = useState(query);
+
+	const handleSearch = useCallback(
+		(value: string) => {
+			const params = new URLSearchParams(window.location.search);
+			if (value) {
+				params.set("q", value);
+			} else {
+				params.delete("q");
+			}
+			params.set("page", "1"); // Reset to page 1 on new search
+
+			startTransition(() => {
+				router.push(`/admin?${params.toString()}`, { scroll: false });
+			});
+		},
+		[router],
+	);
+
+	useEffect(() => {
+		const timer = setTimeout(() => {
+			if (inputValue !== query) {
+				handleSearch(inputValue);
+			}
+		}, 400);
+
+		return () => clearTimeout(timer);
+	}, [inputValue, query, handleSearch]);
+
+	useEffect(() => {
+		setInputValue(query);
+	}, [query]);
+
+	const handlePageChange = useCallback(
+		(newPage: number) => {
+			const params = new URLSearchParams(window.location.search);
+			params.set("page", String(newPage));
+
+			startTransition(() => {
+				router.push(`/admin?${params.toString()}`, { scroll: false });
+			});
+		},
+		[router],
+	);
 
 	async function handleViewAsUser(userId: string) {
 		setSwitchingUserId(userId);
@@ -58,24 +103,23 @@ export default function AdminUserExplorer({ users, query, page, totalPages, tota
 				</div>
 			</CardHeader>
 			<CardBody className='gap-3'>
-				<form action='/admin' method='get' className='flex flex-col gap-2 sm:flex-row sm:items-end'>
+				<div className='flex flex-col gap-2 sm:flex-row sm:items-end'>
 					<div className='sm:min-w-[320px]'>
 						<Input
 							id='user-explorer-search'
 							name='q'
-							defaultValue={query}
+							value={inputValue}
+							onValueChange={setInputValue}
 							placeholder='username or user id'
 							label='Search users'
 							labelPlacement='outside'
 							size='sm'
 							variant='bordered'
 							startContent={<IconSearch className='text-default-400' size={16} />}
+							endContent={isPending ? <Spinner size='sm' /> : null}
 						/>
 					</div>
-					<Button type='submit' size='sm' color='primary' className='sm:mb-[2px]'>
-						Search
-					</Button>
-				</form>
+				</div>
 
 				<Table
 					aria-label='Admin user explorer table'
@@ -136,23 +180,15 @@ export default function AdminUserExplorer({ users, query, page, totalPages, tota
 				</Table>
 
 				<div className='flex flex-wrap items-center justify-between gap-2'>
-					<form action='/admin' method='get' className='flex items-center gap-2'>
-						{query ? <input type='hidden' name='q' value={query} /> : null}
-						<input type='hidden' name='page' value={String(Math.max(1, page - 1))} />
-						<Button type='submit' size='sm' variant='flat' isDisabled={page <= 1}>
-							Previous
-						</Button>
-					</form>
+					<Button size='sm' variant='flat' isDisabled={page <= 1 || isPending} onPress={() => handlePageChange(page - 1)}>
+						Previous
+					</Button>
 					<p className='text-xs text-default-500'>
 						Page {page} / {totalPages}
 					</p>
-					<form action='/admin' method='get' className='flex items-center gap-2'>
-						{query ? <input type='hidden' name='q' value={query} /> : null}
-						<input type='hidden' name='page' value={String(Math.min(totalPages, page + 1))} />
-						<Button type='submit' size='sm' variant='flat' isDisabled={page >= totalPages}>
-							Next
-						</Button>
-					</form>
+					<Button size='sm' variant='flat' isDisabled={page >= totalPages || isPending} onPress={() => handlePageChange(page + 1)}>
+						Next
+					</Button>
 				</div>
 			</CardBody>
 			</Card>

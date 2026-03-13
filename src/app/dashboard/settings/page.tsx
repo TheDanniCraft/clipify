@@ -6,7 +6,7 @@ import ConfirmModal from "@components/confirmModal";
 import DashboardNavbar from "@components/dashboardNavbar";
 import { AuthenticatedUser, Plan, UserSettings } from "@types";
 import { addToast, Avatar, Button, Card, CardBody, CardHeader, Divider, Form, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Snippet, Spinner, Tooltip, useDisclosure } from "@heroui/react";
-import { IconAlertTriangle, IconArrowLeft, IconCreditCardFilled, IconCrown, IconDatabase, IconDeviceFloppy, IconDiamondFilled, IconInfoCircle, IconTrash } from "@tabler/icons-react";
+import { IconAlertTriangle, IconArrowLeft, IconCreditCardFilled, IconCrown, IconDatabase, IconDeviceFloppy, IconDiamondFilled, IconInfoCircle, IconRefresh, IconTrash } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { generatePaymentLink, checkIfSubscriptionExists, getPortalLink } from "@actions/subscription";
@@ -48,6 +48,7 @@ export default function SettingsPage() {
 	const [clipCacheStatus, setClipCacheStatus] = useState<ClipCacheStatusState | null>(null);
 	const [clipForceRefreshStatus, setClipForceRefreshStatus] = useState<ClipForceRefreshStatusState>(null);
 	const [isForceRefreshing, setIsForceRefreshing] = useState(false);
+	const [isRefreshingStats, setIsRefreshingStats] = useState(false);
 	const plausible = usePlausible();
 
 	const router = useRouter();
@@ -77,7 +78,7 @@ export default function SettingsPage() {
 	}, [timer]);
 
 	useEffect(() => {
-		if (!clipForceRefreshStatus || clipForceRefreshStatus.canRefresh) return;
+		if (clipForceRefreshStatus?.canRefresh) return;
 		const interval = setInterval(() => {
 			setClipForceRefreshStatus((prev) => {
 				if (!prev) return prev;
@@ -214,6 +215,24 @@ export default function SettingsPage() {
 		}
 	}
 
+	async function handleRefreshStats() {
+		if (!user) return;
+		try {
+			setIsRefreshingStats(true);
+			const [status, forceStatus] = await Promise.all([getClipCacheStatus(user.id), getOwnClipForceRefreshStatus()]);
+			setClipCacheStatus(status);
+			setClipForceRefreshStatus(forceStatus);
+		} catch {
+			addToast({
+				title: "Error",
+				description: "Failed to refresh clip cache statistics.",
+				color: "danger",
+			});
+		} finally {
+			setIsRefreshingStats(false);
+		}
+	}
+
 	async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
 		try {
 			event.preventDefault();
@@ -319,17 +338,24 @@ export default function SettingsPage() {
 									<p className='text-xs text-default-500'>
 										Manual refresh: {clipForceRefreshStatus?.canRefresh ? "available now" : `available in ${formatDurationMs(clipForceRefreshStatus?.remainingMs ?? 0)}`}
 									</p>
-									<Button
-										size='sm'
-										color='secondary'
-										variant='shadow'
-										className='font-semibold'
-										isLoading={isForceRefreshing}
-										isDisabled={isForceRefreshing || !clipForceRefreshStatus?.canRefresh}
-										onPress={handleForceRefreshCache}
-									>
-										Force Refresh Cache
-									</Button>
+									<div className='flex items-center gap-2'>
+										<Tooltip content='Refresh statistics'>
+											<Button isIconOnly size='sm' variant='flat' onPress={handleRefreshStats} isLoading={isRefreshingStats} aria-label='Refresh statistics'>
+												<IconRefresh size={18} />
+											</Button>
+										</Tooltip>
+										<Button
+											size='sm'
+											color='secondary'
+											variant='shadow'
+											className='font-semibold'
+											isLoading={isForceRefreshing}
+											isDisabled={isForceRefreshing || !clipForceRefreshStatus?.canRefresh}
+											onPress={handleForceRefreshCache}
+										>
+											Force Refresh Cache
+										</Button>
+									</div>
 								</div>
 								<div className='w-full h-2 rounded-full bg-default-200 overflow-hidden'>
 									<div className='h-full bg-gradient-to-r from-primary-700 to-primary-400' style={{ width: `${clipCacheStatus?.estimatedCoveragePercent ?? 0}%` }} />
