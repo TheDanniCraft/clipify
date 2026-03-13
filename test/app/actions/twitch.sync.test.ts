@@ -97,6 +97,18 @@ describe("actions/twitch syncOwnerClipCache", () => {
 			.mockResolvedValueOnce({
 				data: {
 					data: [buildClip("clip-2")],
+					pagination: { cursor: "cursor-2" },
+				},
+			} as never)
+			.mockResolvedValueOnce({
+				data: {
+					data: [buildClip("clip-3")],
+					pagination: {},
+				},
+			} as never)
+			.mockResolvedValueOnce({
+				data: {
+					data: [buildClip("clip-4")],
 					pagination: {},
 				},
 			} as never);
@@ -104,7 +116,7 @@ describe("actions/twitch syncOwnerClipCache", () => {
 		const { syncOwnerClipCache } = await import("@/app/actions/twitch");
 		await syncOwnerClipCache("owner-1");
 
-		expect(setTwitchCacheBatch).toHaveBeenCalledTimes(2);
+		expect(setTwitchCacheBatch).toHaveBeenCalledTimes(4);
 		expect(setTwitchCache).toHaveBeenCalledWith(
 			"clip",
 			"clip-sync:owner-1",
@@ -153,8 +165,11 @@ describe("actions/twitch syncOwnerClipCache", () => {
 		const { syncOwnerClipCache } = await import("@/app/actions/twitch");
 		await syncOwnerClipCache("owner-1", 25);
 
-		expect(getSpy).toHaveBeenCalledTimes(1);
+		expect(getSpy).toHaveBeenCalledTimes(2);
 		expect(getSpy.mock.calls[0]?.[1]?.params?.first).toBe(5);
+		expect(getSpy.mock.calls[0]?.[1]?.params?.started_at).toBeTruthy();
+		expect(getSpy.mock.calls[0]?.[1]?.params?.ended_at).toBeTruthy();
+		expect(getSpy.mock.calls[1]?.[1]?.params?.started_at).toBeUndefined();
 		expect(setTwitchCacheBatch).toHaveBeenCalledWith(
 			"clip",
 			expect.arrayContaining([
@@ -255,7 +270,19 @@ describe("actions/twitch syncOwnerClipCache", () => {
 		const { syncOwnerClipCache } = await import("@/app/actions/twitch");
 		await syncOwnerClipCache("owner-1");
 
-		expect((axios.get as jest.Mock).mock.calls[1]?.[1]?.params?.after).toBe("existing-cursor");
+		expect((axios.get as jest.Mock).mock.calls).toEqual(
+			expect.arrayContaining([
+				expect.arrayContaining([
+					expect.any(String),
+					expect.objectContaining({
+						params: expect.objectContaining({
+							after: "existing-cursor",
+							started_at: undefined,
+						}),
+					}),
+				]),
+			]),
+		);
 	});
 
 	it("blocks force refresh during cooldown", async () => {
