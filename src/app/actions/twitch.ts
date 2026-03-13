@@ -756,6 +756,9 @@ export async function syncOwnerClipCache(ownerId: string, ensurePackSize = 0): P
 						if (currentStartMs <= TWITCH_CLIPS_LAUNCH_MS) {
 							nextState.backfillComplete = true;
 						}
+					} else if (windowFailed) {
+						// Abort backfill for this run if a window failed completely to avoid infinite retry loop.
+						break;
 					}
 				}
 
