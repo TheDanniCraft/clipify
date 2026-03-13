@@ -35,7 +35,6 @@ jest.mock("@/db/schema", () => ({
 		type: "type",
 	},
 }));
-
 jest.mock("drizzle-orm", () => ({
 	eq: jest.fn(),
 	and: jest.fn(),
@@ -49,6 +48,7 @@ jest.mock("drizzle-orm", () => ({
 	desc: jest.fn(),
 	lt: jest.fn(),
 	count: jest.fn(),
+	countDistinct: jest.fn(),
 	like: jest.fn(),
 	notLike: jest.fn(),
 }));
