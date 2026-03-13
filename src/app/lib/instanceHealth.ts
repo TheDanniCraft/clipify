@@ -2,7 +2,7 @@ import { db } from "@/db/client";
 import { entitlementGrantsTable, overlaysTable, usersTable, twitchCacheTable } from "@/db/schema";
 import { getTwitchCacheReadMetricsSnapshot } from "@actions/database";
 import { getClipCacheSchedulerStats } from "@lib/clipCacheScheduler";
-import { and, eq, gt, inArray, sql } from "drizzle-orm";
+import { and, eq, gt, sql } from "drizzle-orm";
 import { Entitlement, EntitlementGrantSource, Plan, StatusOptions, TwitchCacheType } from "@types";
 import { TWITCH_CLIPS_LAUNCH_MS } from "@lib/constants";
 
@@ -197,13 +197,6 @@ export async function getInstanceHealthSnapshot(): Promise<InstanceHealthSnapsho
 
 	const syncStatesRaw = (clipSyncStatesRow as unknown as { rows?: Array<{ key: string; value: string }> }).rows ?? [];
 	const clipSyncStates = syncStatesRaw.length;
-
-	// Extract owner IDs and deduplicate to count active sync states.
-	const uniqueOwnerIds = new Set(
-		syncStatesRaw
-			.map((row) => row.key.split(":")[1])
-			.filter((id): id is string => Boolean(id))
-	);
 
 	// Calculate the global % ratio based on user timestamps
 	const NOW_MS = Date.now();

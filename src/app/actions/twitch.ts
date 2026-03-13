@@ -731,8 +731,8 @@ export async function syncOwnerClipCache(ownerId: string, ensurePackSize = 0): P
 						// Shrink and retry the SAME window range in the next outer iteration or next run
 						nextState.backfillWindowSizeMs = Math.max(MIN_WINDOW_MS, Math.floor(windowSizeMs / 2));
 						break; // Stop this run's loop to avoid getting stuck if remainingBudget is low
-					} else if (!cursor || hitLimitInWindow || (windowFailed && pagesFetchedInWindow > 0)) {
-						// Case A: No limit hit and window finished (!cursor)
+					} else if ((!windowFailed && !cursor) || hitLimitInWindow || (windowFailed && pagesFetchedInWindow > 0)) {
+						// Case A: No error and window truly finished (!cursor)
 						// Case B: Hit limit but already at MIN_WINDOW_MS (Accept partial and move on)
 						// Case C: Window failed mid-fetch (windowFailed) AND we have some data, accept partial and move on
 
@@ -762,7 +762,11 @@ export async function syncOwnerClipCache(ownerId: string, ensurePackSize = 0): P
 				nextState.lastBackfillSyncAt = new Date(now).toISOString();
 				nextState.backfillCursor = undefined;
 			} catch (error) {
-				logTwitchError("Error fetching backfill clip sync page", error);
+				// Only log if it's NOT a 429, because 429s are expected and handled via rateLimitedUntil
+				if (!axios.isAxiosError(error) || error.response?.status !== 429) {
+					logTwitchError("Error in backfill sync run", error);
+				}
+				
 				const resumeAt = getRateLimitResumeAt(error, now);
 				if (resumeAt) {
 					nextState.rateLimitedUntil = resumeAt;
