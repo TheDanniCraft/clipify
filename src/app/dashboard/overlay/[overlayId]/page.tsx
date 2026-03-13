@@ -39,6 +39,12 @@ const playbackModes: { key: PlaybackMode; label: string }[] = [
 	{ key: PlaybackMode.SmartShuffle, label: "Smart Shuffle" },
 ];
 
+const playbackModeHelpText: Record<PlaybackMode, string> = {
+	[PlaybackMode.Random]: "Plays a randomized clip order from the filtered pool.",
+	[PlaybackMode.Top]: "Plays highest-viewed clips first. Great for strongest highlights.",
+	[PlaybackMode.SmartShuffle]: "Smart Shuffle ranks clips by quality (views), then picks with weighted randomness. It temporarily downranks clip authors/categories that appeared recently, occasionally promotes lower-view clips for variety, and avoids repeating the same pattern over and over.",
+};
+
 export default function OverlaySettings() {
 	const router = useRouter();
 	const { overlayId } = useParams() as { overlayId: string };
@@ -430,11 +436,7 @@ export default function OverlaySettings() {
 										<div className='w-full mt-2 rounded-lg border border-warning-200 bg-warning-50 px-3 py-2 text-warning-800 text-xs flex items-center justify-between gap-2'>
 											<div className='flex items-start gap-2'>
 												<IconInfoCircle size={16} className='mt-0.5 text-warning-600' />
-												<span>
-													{overlay.type === OverlayType.All
-														? "All-time crawl is still syncing. Older clips may not appear yet."
-														: "Selected time range is not fully cached yet. Results may be incomplete until crawl catches up."}
-												</span>
+												<span>{overlay.type === OverlayType.All ? "All-time crawl is still syncing. Older clips may not appear yet." : "Selected time range is not fully cached yet. Results may be incomplete until crawl catches up."}</span>
 											</div>
 											<Link href='/dashboard/settings' color='warning' underline='always' className='text-xs whitespace-nowrap'>
 												View crawl status
@@ -538,11 +540,16 @@ export default function OverlaySettings() {
 											</Tooltip>
 										</div>
 
-										<Select selectedKeys={[overlay.playbackMode]} onSelectionChange={(value) => setOverlay({ ...overlay, playbackMode: value.currentKey as PlaybackMode })} label='Playback Mode' className='p-2'>
-											{playbackModes.map((mode) => (
-												<SelectItem key={mode.key}>{mode.label}</SelectItem>
-											))}
-										</Select>
+										<div className='flex w-full items-center px-2 mb-2 gap-1'>
+											<Select selectedKeys={[overlay.playbackMode]} onSelectionChange={(value) => setOverlay({ ...overlay, playbackMode: value.currentKey as PlaybackMode })} label='Playback Mode' className='flex-1'>
+												{playbackModes.map((mode) => (
+													<SelectItem key={mode.key}>{mode.label}</SelectItem>
+												))}
+											</Select>
+											<Tooltip content={playbackModeHelpText[overlay.playbackMode] ?? playbackModeHelpText[PlaybackMode.Random]}>
+												<IconInfoCircle className='text-default-400' />
+											</Tooltip>
+										</div>
 										<Switch className='p-2' isSelected={overlay.preferCurrentCategory} onValueChange={(value) => setOverlay({ ...overlay, preferCurrentCategory: value })}>
 											Prefer clips from current stream category
 										</Switch>
@@ -568,7 +575,7 @@ export default function OverlaySettings() {
 											className='p-2'
 											size='sm'
 										/>
-											<NumberInput size='sm' minValue={0} defaultValue={overlay.minClipViews} value={overlay.minClipViews} onValueChange={(value) => setOverlay({ ...overlay, minClipViews: Number(value) })} label='Minimum Clip Views' description='Only clips with at least this many views will be shown in the overlay.' className='p-2' />
+										<NumberInput size='sm' minValue={0} defaultValue={overlay.minClipViews} value={overlay.minClipViews} onValueChange={(value) => setOverlay({ ...overlay, minClipViews: Number(value) })} label='Minimum Clip Views' description='Only clips with at least this many views will be shown in the overlay.' className='p-2' />
 										<TagsInput className='p-2' fullWidth label='Only These Clip Creators' value={overlay.clipCreatorsOnly} onValueChange={(value) => setOverlay({ ...overlay, clipCreatorsOnly: value })} description='Allow only specific clip creators (Twitch usernames).' />
 										<TagsInput className='p-2' fullWidth label='Blocked Clip Creators' value={overlay.clipCreatorsBlocked} onValueChange={(value) => setOverlay({ ...overlay, clipCreatorsBlocked: value })} description='Exclude specific clip creators from playback.' />
 										<TagsInput className='p-2' fullWidth label='Blacklisted Words' value={overlay.blacklistWords} onValueChange={(value) => setOverlay({ ...overlay, blacklistWords: value })} description='Hide clips containing certain words in titles. Supports RE2 regex (no lookarounds).' />
