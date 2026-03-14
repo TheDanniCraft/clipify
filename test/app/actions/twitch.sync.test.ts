@@ -744,4 +744,90 @@ describe("actions/twitch syncOwnerClipCache", () => {
 			}),
 		);
 	});
+
+	it("does not shrink window when exactly 1,000 clips are fully fetched", async () => {
+		getTwitchCache.mockResolvedValue({
+			backfillWindowEnd: "2026-03-01T00:00:00.000Z",
+			backfillWindowSizeMs: 24 * 60 * 60 * 1000,
+			backfillComplete: false,
+			lastIncrementalSyncAt: new Date().toISOString(),
+		});
+
+		jest.spyOn(axios, "get")
+			.mockResolvedValueOnce({
+				data: {
+					data: Array.from({ length: 100 }, (_, i) => buildClip(`full-page-${i}`)),
+					pagination: { cursor: "p2" },
+				},
+			} as never)
+			.mockResolvedValueOnce({
+				data: {
+					data: Array.from({ length: 100 }, (_, i) => buildClip(`full-page-${i + 100}`)),
+					pagination: { cursor: "p3" },
+				},
+			} as never)
+			.mockResolvedValueOnce({
+				data: {
+					data: Array.from({ length: 100 }, (_, i) => buildClip(`full-page-${i + 200}`)),
+					pagination: { cursor: "p4" },
+				},
+			} as never)
+			.mockResolvedValueOnce({
+				data: {
+					data: Array.from({ length: 100 }, (_, i) => buildClip(`full-page-${i + 300}`)),
+					pagination: { cursor: "p5" },
+				},
+			} as never)
+			.mockResolvedValueOnce({
+				data: {
+					data: Array.from({ length: 100 }, (_, i) => buildClip(`full-page-${i + 400}`)),
+					pagination: { cursor: "p6" },
+				},
+			} as never)
+			.mockResolvedValueOnce({
+				data: {
+					data: Array.from({ length: 100 }, (_, i) => buildClip(`full-page-${i + 500}`)),
+					pagination: { cursor: "p7" },
+				},
+			} as never)
+			.mockResolvedValueOnce({
+				data: {
+					data: Array.from({ length: 100 }, (_, i) => buildClip(`full-page-${i + 600}`)),
+					pagination: { cursor: "p8" },
+				},
+			} as never)
+			.mockResolvedValueOnce({
+				data: {
+					data: Array.from({ length: 100 }, (_, i) => buildClip(`full-page-${i + 700}`)),
+					pagination: { cursor: "p9" },
+				},
+			} as never)
+			.mockResolvedValueOnce({
+				data: {
+					data: Array.from({ length: 100 }, (_, i) => buildClip(`full-page-${i + 800}`)),
+					pagination: { cursor: "p10" },
+				},
+			} as never)
+			.mockResolvedValueOnce({
+				data: {
+					data: Array.from({ length: 100 }, (_, i) => buildClip(`full-page-${i + 900}`)),
+					pagination: {},
+				},
+			} as never)
+			.mockResolvedValue({
+				data: {
+					data: [],
+					pagination: {},
+				},
+			} as never);
+
+		const { syncOwnerClipCache } = await import("@/app/actions/twitch");
+		await syncOwnerClipCache("owner-1");
+
+		const syncStateCall = (setTwitchCache as jest.Mock).mock.calls.find((call) => call[1] === "clip-sync:owner-1");
+		expect(syncStateCall).toBeDefined();
+		const savedState = syncStateCall?.[2] as { backfillWindowSizeMs?: number };
+		expect(savedState.backfillWindowSizeMs ?? 0).toBeGreaterThanOrEqual(24 * 60 * 60 * 1000);
+		expect(savedState.backfillWindowSizeMs).not.toBe(12 * 60 * 60 * 1000);
+	});
 });

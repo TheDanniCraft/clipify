@@ -43,6 +43,18 @@ export default function AdminUserExplorer({ users, initialPage, initialTotalPage
 	const [isLoading, setIsLoading] = useState(false);
 	const latestRequestIdRef = useRef(0);
 
+	useEffect(() => {
+		// Re-sync local table/search state when the route is re-rendered with new server payload.
+		latestRequestIdRef.current += 1;
+		setInputValue(initialQuery);
+		setSearchQuery(initialQuery);
+		setPage(initialPage);
+		setTotalPages(initialTotalPages);
+		setTotalRows(initialTotalRows);
+		setVisibleUsers(users);
+		setIsLoading(false);
+	}, [users, initialPage, initialTotalPages, initialTotalRows, initialQuery]);
+
 	const loadPage = useCallback(async (query: string, requestedPage: number) => {
 		const requestId = latestRequestIdRef.current + 1;
 		latestRequestIdRef.current = requestId;

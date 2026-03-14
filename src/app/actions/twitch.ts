@@ -711,7 +711,7 @@ export async function syncOwnerClipCache(ownerId: string, ensurePackSize = 0): P
 							pagesFetchedInWindow += 1;
 							cursor = page.cursor;
 
-							if (clipsFetchedInWindow >= 1000 || (pagesFetchedInWindow >= 10 && cursor)) {
+							if (cursor && (clipsFetchedInWindow >= 1000 || pagesFetchedInWindow >= 10)) {
 								hitLimitInWindow = true;
 								break;
 							}

@@ -309,4 +309,35 @@ describe("components/adminUserExplorer behavior", () => {
 		});
 		await waitFor(() => expect(screen.queryByText("Loading...")).not.toBeInTheDocument());
 	});
+
+	it("resyncs local explorer state when new server props arrive", async () => {
+		const { rerender } = render(
+			<AdminUserExplorer
+				users={[{ id: "u1", username: "alice", email: "alice@example.com", role: "user", plan: "free", lastLoginLabel: "now" }]}
+				initialPage={1}
+				initialTotalPages={1}
+				initialTotalRows={1}
+				initialQuery='alice'
+			/>,
+		);
+
+		expect(screen.getByRole("textbox")).toHaveValue("alice");
+		expect(screen.getByText("Page 1 / 1")).toBeInTheDocument();
+		expect(screen.getByText("@alice")).toBeInTheDocument();
+
+		rerender(
+			<AdminUserExplorer
+				users={[{ id: "u2", username: "bob", email: "bob@example.com", role: "user", plan: "free", lastLoginLabel: "later" }]}
+				initialPage={2}
+				initialTotalPages={3}
+				initialTotalRows={60}
+				initialQuery='bob'
+			/>,
+		);
+
+		expect(screen.getByRole("textbox")).toHaveValue("bob");
+		expect(screen.getByText("Page 2 / 3")).toBeInTheDocument();
+		expect(screen.queryByText("@alice")).not.toBeInTheDocument();
+		expect(screen.getByText("@bob")).toBeInTheDocument();
+	});
 });
