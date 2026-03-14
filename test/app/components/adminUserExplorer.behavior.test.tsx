@@ -1,5 +1,5 @@
 import React from "react";
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import AdminUserExplorer from "@/app/components/adminUserExplorer";
 
 const routerPush = jest.fn();
@@ -67,12 +67,6 @@ describe("components/adminUserExplorer behavior", () => {
 						lastLoginLabel: "now",
 					},
 				]}
-				query=''
-				page={1}
-				totalPages={1}
-				totalRows={1}
-				firstRowNumber={1}
-				lastRowNumber={1}
 			/>,
 		);
 
@@ -97,12 +91,6 @@ describe("components/adminUserExplorer behavior", () => {
 						lastLoginLabel: "now",
 					},
 				]}
-				query=''
-				page={1}
-				totalPages={1}
-				totalRows={1}
-				firstRowNumber={1}
-				lastRowNumber={1}
 			/>,
 		);
 
@@ -113,30 +101,45 @@ describe("components/adminUserExplorer behavior", () => {
 		expect(routerRefresh).not.toHaveBeenCalled();
 	});
 
-	it("updates URL parameters dynamically when typing in search", async () => {
-		jest.useFakeTimers();
-		render(<AdminUserExplorer users={[]} query='' page={1} totalPages={1} totalRows={0} firstRowNumber={0} lastRowNumber={0} />);
+	it("filters visible table rows when typing in search", async () => {
+		render(
+			<AdminUserExplorer
+				users={[
+					{ id: "u1", username: "alice", email: "alice@example.com", role: "user", plan: "free", lastLoginLabel: "now" },
+					{ id: "u2", username: "bob", email: "bob@example.com", role: "user", plan: "free", lastLoginLabel: "now" },
+				]}
+			/>,
+		);
 
 		const input = screen.getByRole("textbox");
 		fireEvent.change(input, { target: { value: "bob" } });
 
-		// Fast-forward debounce timer (400ms) using fake timers
-		act(() => {
-			jest.advanceTimersByTime(400);
-		});
-
-		await waitFor(() => expect(routerPush).toHaveBeenCalledWith(expect.stringContaining("q=bob"), { scroll: false }));
-		await waitFor(() => expect(routerPush).toHaveBeenCalledWith(expect.stringContaining("page=1"), { scroll: false }));
-		jest.useRealTimers();
+		expect(screen.queryByText("@alice")).not.toBeInTheDocument();
+		expect(screen.getByText("@bob")).toBeInTheDocument();
+		expect(routerPush).not.toHaveBeenCalled();
 	});
 
-	it("updates page parameter when clicking next/previous", async () => {
-		render(<AdminUserExplorer users={[]} query='alice' page={2} totalPages={5} totalRows={50} firstRowNumber={11} lastRowNumber={20} />);
+	it("updates table pagination locally when clicking next/previous", async () => {
+		const users = Array.from({ length: 26 }, (_, idx) => ({
+			id: `u${idx + 1}`,
+			username: `user${idx + 1}`,
+			email: `user${idx + 1}@example.com`,
+			role: "user",
+			plan: "free",
+			lastLoginLabel: "now",
+		}));
+		render(<AdminUserExplorer users={users} />);
+
+		expect(screen.getByText("Page 1 / 2")).toBeInTheDocument();
+		expect(screen.getByText("@user1")).toBeInTheDocument();
+		expect(screen.queryByText("@user26")).not.toBeInTheDocument();
 
 		fireEvent.click(screen.getByRole("button", { name: "Next" }));
-		await waitFor(() => expect(routerPush).toHaveBeenCalledWith(expect.stringContaining("page=3"), { scroll: false }));
+		expect(screen.getByText("Page 2 / 2")).toBeInTheDocument();
+		expect(screen.getByText("@user26")).toBeInTheDocument();
 
 		fireEvent.click(screen.getByRole("button", { name: "Previous" }));
-		await waitFor(() => expect(routerPush).toHaveBeenCalledWith(expect.stringContaining("page=1"), { scroll: false }));
+		expect(screen.getByText("Page 1 / 2")).toBeInTheDocument();
+		expect(routerPush).not.toHaveBeenCalled();
 	});
 });

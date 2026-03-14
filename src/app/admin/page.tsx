@@ -5,29 +5,19 @@ import DashboardNavbar from "@components/dashboardNavbar";
 import { db } from "@/db/client";
 import { usersTable } from "@/db/schema";
 import { Card, CardBody, CardHeader, Chip } from "@heroui/react";
-import { count, desc, eq, ilike, or } from "drizzle-orm";
+import { desc } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { getInstanceHealthSnapshot } from "@lib/instanceHealth";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-const PAGE_SIZE = 25;
-
 type AdminPageSearchParams = {
 	error?: string | string[];
-	page?: string | string[];
-	q?: string | string[];
 };
 
 function toSingle(value: string | string[] | undefined) {
 	return Array.isArray(value) ? value[0] : value;
-}
-
-function toPositiveInt(value: string | undefined, fallback: number) {
-	const parsed = Number.parseInt((value ?? "").trim(), 10);
-	if (!Number.isFinite(parsed) || parsed < 1) return fallback;
-	return parsed;
 }
 
 function formatNumber(value: number) {
@@ -50,52 +40,22 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 	}
 
 	const params = await searchParams;
-	const requestedPage = toPositiveInt(toSingle(params.page), 1);
 	const error = (toSingle(params.error) ?? "").trim();
-	const query = (toSingle(params.q) ?? "").trim();
-	const userFilter = query.length > 0 ? or(ilike(usersTable.username, `%${query}%`), eq(usersTable.id, query)) : undefined;
-
-	const [health, totalRowsRaw] = await Promise.all([
+	const [health, users] = await Promise.all([
 		getInstanceHealthSnapshot(),
-		userFilter ? db.select({ count: count() }).from(usersTable).where(userFilter).execute() : db.select({ count: count() }).from(usersTable).execute(),
+		db
+			.select({
+				id: usersTable.id,
+				username: usersTable.username,
+				email: usersTable.email,
+				role: usersTable.role,
+				plan: usersTable.plan,
+				lastLogin: usersTable.lastLogin,
+			})
+			.from(usersTable)
+			.orderBy(desc(usersTable.lastLogin), desc(usersTable.createdAt))
+			.execute(),
 	]);
-	const totalRows = Number(totalRowsRaw[0]?.count ?? 0);
-	const totalPages = Math.max(1, Math.ceil(totalRows / PAGE_SIZE));
-	const page = Math.min(requestedPage, totalPages);
-	const offset = (page - 1) * PAGE_SIZE;
-	const users = userFilter
-		? await db
-				.select({
-					id: usersTable.id,
-					username: usersTable.username,
-					email: usersTable.email,
-					role: usersTable.role,
-					plan: usersTable.plan,
-					lastLogin: usersTable.lastLogin,
-				})
-				.from(usersTable)
-				.where(userFilter)
-				.orderBy(desc(usersTable.lastLogin), desc(usersTable.createdAt))
-				.limit(PAGE_SIZE)
-				.offset(offset)
-				.execute()
-		: await db
-				.select({
-					id: usersTable.id,
-					username: usersTable.username,
-					email: usersTable.email,
-					role: usersTable.role,
-					plan: usersTable.plan,
-					lastLogin: usersTable.lastLogin,
-				})
-				.from(usersTable)
-				.orderBy(desc(usersTable.lastLogin), desc(usersTable.createdAt))
-				.limit(PAGE_SIZE)
-				.offset(offset)
-				.execute();
-
-	const firstRowNumber = totalRows === 0 ? 0 : offset + 1;
-	const lastRowNumber = Math.min(offset + PAGE_SIZE, totalRows);
 
 	return (
 		<DashboardNavbar user={adminUser} title='Admin' tagline='Operational telemetry and account entry points'>
@@ -210,12 +170,6 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 						plan: row.plan,
 						lastLoginLabel: formatDate(row.lastLogin),
 					}))}
-					query={query}
-					page={page}
-					totalPages={totalPages}
-					totalRows={totalRows}
-					firstRowNumber={firstRowNumber}
-					lastRowNumber={lastRowNumber}
 				/>
 			</div>
 		</DashboardNavbar>

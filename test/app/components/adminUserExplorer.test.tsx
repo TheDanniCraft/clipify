@@ -27,12 +27,6 @@ describe("components/adminUserExplorer", () => {
 						lastLoginLabel: "3/9/2026, 10:00:00 AM",
 					},
 				]}
-				query=''
-				page={1}
-				totalPages={1}
-				totalRows={1}
-				firstRowNumber={1}
-				lastRowNumber={1}
 			/>,
 		);
 
