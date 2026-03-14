@@ -12,10 +12,18 @@ export const revalidate = 0;
 
 type AdminPageSearchParams = {
 	error?: string | string[];
+	page?: string | string[];
+	q?: string | string[];
 };
 
 function toSingle(value: string | string[] | undefined) {
 	return Array.isArray(value) ? value[0] : value;
+}
+
+function toPositiveInt(value: string | undefined, fallback: number) {
+	const parsed = Number.parseInt((value ?? "").trim(), 10);
+	if (!Number.isFinite(parsed) || parsed < 1) return fallback;
+	return parsed;
 }
 
 function formatNumber(value: number) {
@@ -39,9 +47,11 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 
 	const params = await searchParams;
 	const error = (toSingle(params.error) ?? "").trim();
+	const initialQuery = (toSingle(params.q) ?? "").trim();
+	const initialPage = toPositiveInt(toSingle(params.page), 1);
 	const [health, explorer] = await Promise.all([
 		getInstanceHealthSnapshot(),
-		getAdminExplorerPage("", 1, 25),
+		getAdminExplorerPage(initialQuery, initialPage, 25),
 	]);
 
 	return (
@@ -160,6 +170,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 					initialPage={explorer.page}
 					initialTotalPages={explorer.totalPages}
 					initialTotalRows={explorer.totalRows}
+					initialQuery={initialQuery}
 				/>
 			</div>
 		</DashboardNavbar>

@@ -34,11 +34,27 @@ describe("components/adminUserExplorer", () => {
 				initialPage={1}
 				initialTotalPages={1}
 				initialTotalRows={1}
+				initialQuery=''
 			/>,
 		);
 
 		expect(screen.getByText("User Explorer")).toBeInTheDocument();
 		expect(screen.getByText("@alice")).toBeInTheDocument();
 		expect(screen.getByRole("button", { name: "View as User" })).toBeInTheDocument();
+	});
+
+	it("initializes search input from server-provided query", () => {
+		render(
+			<AdminUserExplorer
+				users={[]}
+				initialPage={2}
+				initialTotalPages={3}
+				initialTotalRows={60}
+				initialQuery='alice'
+			/>,
+		);
+
+		expect(screen.getByRole("textbox")).toHaveValue("alice");
+		expect(screen.getByText("Page 2 / 3")).toBeInTheDocument();
 	});
 });

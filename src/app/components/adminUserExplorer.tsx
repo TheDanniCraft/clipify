@@ -5,7 +5,7 @@ import { startAdminView } from "@actions/auth";
 import { Button, Card, CardBody, CardHeader, Chip, Input, Spinner, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from "@heroui/react";
 import { IconSearch } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 type AdminExplorerRow = {
 	id: string;
@@ -21,6 +21,7 @@ type AdminUserExplorerProps = {
 	initialPage: number;
 	initialTotalPages: number;
 	initialTotalRows: number;
+	initialQuery: string;
 };
 
 const PAGE_SIZE = 25;
@@ -30,39 +31,43 @@ function formatLastLoginLabel(value: Date | string | null) {
 	return new Date(value).toLocaleString();
 }
 
-export default function AdminUserExplorer({ users, initialPage, initialTotalPages, initialTotalRows }: AdminUserExplorerProps) {
+export default function AdminUserExplorer({ users, initialPage, initialTotalPages, initialTotalRows, initialQuery }: AdminUserExplorerProps) {
 	const router = useRouter();
 	const [switchingUserId, setSwitchingUserId] = useState<string | null>(null);
-	const [inputValue, setInputValue] = useState("");
-	const [searchQuery, setSearchQuery] = useState("");
+	const [inputValue, setInputValue] = useState(initialQuery);
+	const [searchQuery, setSearchQuery] = useState(initialQuery);
 	const [page, setPage] = useState(initialPage);
 	const [totalPages, setTotalPages] = useState(initialTotalPages);
 	const [totalRows, setTotalRows] = useState(initialTotalRows);
 	const [visibleUsers, setVisibleUsers] = useState(users);
-	const [isPending, startTransition] = useTransition();
+	const [isLoading, setIsLoading] = useState(false);
 	const latestRequestIdRef = useRef(0);
 
-	const loadPage = useCallback((query: string, requestedPage: number) => {
+	const loadPage = useCallback(async (query: string, requestedPage: number) => {
 		const requestId = latestRequestIdRef.current + 1;
 		latestRequestIdRef.current = requestId;
-		startTransition(() => {
-			void getAdminExplorerPage(query, requestedPage, PAGE_SIZE).then((result) => {
-				if (requestId !== latestRequestIdRef.current) return;
-				setVisibleUsers(
-					result.users.map((row) => ({
-						id: row.id,
-						username: row.username,
-						email: row.email,
-						role: row.role,
-						plan: row.plan,
-						lastLoginLabel: formatLastLoginLabel(row.lastLogin),
-					})),
-				);
-				setPage(result.page);
-				setTotalPages(result.totalPages);
-				setTotalRows(result.totalRows);
-			});
-		});
+		setIsLoading(true);
+		try {
+			const result = await getAdminExplorerPage(query, requestedPage, PAGE_SIZE);
+			if (requestId !== latestRequestIdRef.current) return;
+			setVisibleUsers(
+				result.users.map((row) => ({
+					id: row.id,
+					username: row.username,
+					email: row.email,
+					role: row.role,
+					plan: row.plan,
+					lastLoginLabel: formatLastLoginLabel(row.lastLogin),
+				})),
+			);
+			setPage(result.page);
+			setTotalPages(result.totalPages);
+			setTotalRows(result.totalRows);
+		} finally {
+			if (requestId === latestRequestIdRef.current) {
+				setIsLoading(false);
+			}
+		}
 	}, []);
 
 	useEffect(() => {
@@ -70,13 +75,15 @@ export default function AdminUserExplorer({ users, initialPage, initialTotalPage
 		const timer = setTimeout(() => {
 			if (nextQuery === searchQuery) return;
 			setSearchQuery(nextQuery);
-			loadPage(nextQuery, 1);
+			void loadPage(nextQuery, 1);
 		}, 400);
 		return () => clearTimeout(timer);
 	}, [inputValue, searchQuery, loadPage]);
 
 	function handlePageChange(newPage: number) {
-		loadPage(searchQuery, newPage);
+		const nextQuery = inputValue.trim();
+		setSearchQuery(nextQuery);
+		void loadPage(nextQuery, newPage);
 	}
 
 	async function handleViewAsUser(userId: string) {
@@ -124,7 +131,7 @@ export default function AdminUserExplorer({ users, initialPage, initialTotalPage
 							size='sm'
 							variant='bordered'
 							startContent={<IconSearch className='text-default-400' size={16} />}
-							endContent={isPending ? <Spinner size='sm' /> : null}
+							endContent={isLoading ? <Spinner size='sm' /> : null}
 						/>
 					</div>
 				</div>
@@ -188,13 +195,13 @@ export default function AdminUserExplorer({ users, initialPage, initialTotalPage
 				</Table>
 
 				<div className='flex flex-wrap items-center justify-between gap-2'>
-					<Button size='sm' variant='flat' isDisabled={page <= 1 || isPending} onPress={() => handlePageChange(page - 1)}>
+					<Button size='sm' variant='flat' isDisabled={page <= 1 || isLoading} onPress={() => handlePageChange(page - 1)}>
 						Previous
 					</Button>
 					<p className='text-xs text-default-500'>
 						Page {page} / {totalPages}
 					</p>
-					<Button size='sm' variant='flat' isDisabled={page >= totalPages || isPending} onPress={() => handlePageChange(page + 1)}>
+					<Button size='sm' variant='flat' isDisabled={page >= totalPages || isLoading} onPress={() => handlePageChange(page + 1)}>
 						Next
 					</Button>
 				</div>

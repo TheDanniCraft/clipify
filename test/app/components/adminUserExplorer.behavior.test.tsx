@@ -32,13 +32,16 @@ jest.mock("@heroui/react", () => ({
 	CardBody: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 	CardHeader: ({ children }: { children: React.ReactNode }) => <header>{children}</header>,
 	Chip: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
-	Input: ({ value, onValueChange }: { value?: string; onValueChange?: (v: string) => void }) => (
-		<input
-			value={value}
-			onChange={(e) => {
-				if (onValueChange) onValueChange(e.target.value);
-			}}
-		/>
+	Input: ({ value, onValueChange, endContent }: { value?: string; onValueChange?: (v: string) => void; endContent?: React.ReactNode }) => (
+		<div>
+			<input
+				value={value}
+				onChange={(e) => {
+					if (onValueChange) onValueChange(e.target.value);
+				}}
+			/>
+			{endContent}
+		</div>
 	),
 	Spinner: () => <div>Loading...</div>,
 	Table: ({ children }: { children: React.ReactNode }) => <table>{children}</table>,
@@ -81,6 +84,7 @@ describe("components/adminUserExplorer behavior", () => {
 				initialPage={1}
 				initialTotalPages={1}
 				initialTotalRows={1}
+				initialQuery=''
 			/>,
 		);
 
@@ -108,6 +112,7 @@ describe("components/adminUserExplorer behavior", () => {
 				initialPage={1}
 				initialTotalPages={1}
 				initialTotalRows={1}
+				initialQuery=''
 			/>,
 		);
 
@@ -135,6 +140,7 @@ describe("components/adminUserExplorer behavior", () => {
 				initialPage={1}
 				initialTotalPages={1}
 				initialTotalRows={2}
+				initialQuery=''
 			/>,
 		);
 
@@ -173,7 +179,7 @@ describe("components/adminUserExplorer behavior", () => {
 				totalPages: 2,
 				totalRows: 26,
 			});
-		render(<AdminUserExplorer users={users} initialPage={1} initialTotalPages={2} initialTotalRows={26} />);
+		render(<AdminUserExplorer users={users} initialPage={1} initialTotalPages={2} initialTotalRows={26} initialQuery='' />);
 
 		expect(screen.getByText("Page 1 / 2")).toBeInTheDocument();
 
@@ -207,6 +213,7 @@ describe("components/adminUserExplorer behavior", () => {
 				initialPage={1}
 				initialTotalPages={1}
 				initialTotalRows={1}
+				initialQuery=''
 			/>,
 		);
 
@@ -242,5 +249,64 @@ describe("components/adminUserExplorer behavior", () => {
 		expect(screen.queryByText("@a-user")).not.toBeInTheDocument();
 		expect(screen.getByText("@alice")).toBeInTheDocument();
 		jest.useRealTimers();
+	});
+
+	it("uses current input text for pagination even before debounce commits", async () => {
+		jest.useFakeTimers();
+		const users = Array.from({ length: 25 }, (_, idx) => ({
+			id: `u${idx + 1}`,
+			username: `user${idx + 1}`,
+			email: `user${idx + 1}@example.com`,
+			role: "user",
+			plan: "free",
+			lastLoginLabel: "now",
+		}));
+		getAdminExplorerPage.mockResolvedValue({
+			users: [{ id: "u-alice", username: "alice", email: "alice@example.com", role: "user", plan: "free", lastLogin: null }],
+			page: 2,
+			totalPages: 2,
+			totalRows: 26,
+		});
+
+		render(<AdminUserExplorer users={users} initialPage={1} initialTotalPages={2} initialTotalRows={26} initialQuery='' />);
+
+		const input = screen.getByRole("textbox");
+		fireEvent.change(input, { target: { value: "alice" } });
+		fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+		await waitFor(() => expect(getAdminExplorerPage).toHaveBeenCalledWith("alice", 2, 25));
+		jest.useRealTimers();
+	});
+
+	it("keeps loading state active while explorer request is in flight", async () => {
+		let resolveRequest!: (value: unknown) => void;
+		const pendingRequest = new Promise((resolve) => {
+			resolveRequest = resolve;
+		});
+		getAdminExplorerPage.mockReturnValueOnce(pendingRequest);
+
+		const users = Array.from({ length: 25 }, (_, idx) => ({
+			id: `u${idx + 1}`,
+			username: `user${idx + 1}`,
+			email: `user${idx + 1}@example.com`,
+			role: "user",
+			plan: "free",
+			lastLoginLabel: "now",
+		}));
+		render(<AdminUserExplorer users={users} initialPage={1} initialTotalPages={2} initialTotalRows={26} initialQuery='' />);
+
+		fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+		expect(screen.getByText("Loading...")).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Next" })).toBeDisabled();
+		expect(screen.getByRole("button", { name: "Previous" })).toBeDisabled();
+
+		resolveRequest({
+			users: [{ id: "u26", username: "user26", email: "user26@example.com", role: "user", plan: "free", lastLogin: null }],
+			page: 2,
+			totalPages: 2,
+			totalRows: 26,
+		});
+		await waitFor(() => expect(screen.queryByText("Loading...")).not.toBeInTheDocument());
 	});
 });
