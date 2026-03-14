@@ -1,0 +1,1 @@
+ALTER TABLE "users" ADD COLUMN "twitch_created_at" timestamp with time zone DEFAULT '2016-05-01T00:00:00.000Z'::timestamptz NOT NULL;
