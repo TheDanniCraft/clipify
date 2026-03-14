@@ -1,10 +1,11 @@
 "use client";
 
+import { getAdminExplorerPage } from "@actions/adminView";
 import { startAdminView } from "@actions/auth";
-import { Button, Card, CardBody, CardHeader, Chip, Input, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from "@heroui/react";
+import { Button, Card, CardBody, CardHeader, Chip, Input, Spinner, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from "@heroui/react";
 import { IconSearch } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 type AdminExplorerRow = {
 	id: string;
@@ -17,17 +18,85 @@ type AdminExplorerRow = {
 
 type AdminUserExplorerProps = {
 	users: AdminExplorerRow[];
-	query: string;
-	page: number;
-	totalPages: number;
-	totalRows: number;
-	firstRowNumber: number;
-	lastRowNumber: number;
+	initialPage: number;
+	initialTotalPages: number;
+	initialTotalRows: number;
+	initialQuery: string;
 };
 
-export default function AdminUserExplorer({ users, query, page, totalPages, totalRows, firstRowNumber, lastRowNumber }: AdminUserExplorerProps) {
+const PAGE_SIZE = 25;
+
+function formatLastLoginLabel(value: Date | string | null) {
+	if (!value) return "never";
+	return new Date(value).toLocaleString();
+}
+
+export default function AdminUserExplorer({ users, initialPage, initialTotalPages, initialTotalRows, initialQuery }: AdminUserExplorerProps) {
 	const router = useRouter();
 	const [switchingUserId, setSwitchingUserId] = useState<string | null>(null);
+	const [inputValue, setInputValue] = useState(initialQuery);
+	const [searchQuery, setSearchQuery] = useState(initialQuery);
+	const [page, setPage] = useState(initialPage);
+	const [totalPages, setTotalPages] = useState(initialTotalPages);
+	const [totalRows, setTotalRows] = useState(initialTotalRows);
+	const [visibleUsers, setVisibleUsers] = useState(users);
+	const [isLoading, setIsLoading] = useState(false);
+	const latestRequestIdRef = useRef(0);
+
+	useEffect(() => {
+		// Re-sync local table/search state when the route is re-rendered with new server payload.
+		latestRequestIdRef.current += 1;
+		setInputValue(initialQuery);
+		setSearchQuery(initialQuery);
+		setPage(initialPage);
+		setTotalPages(initialTotalPages);
+		setTotalRows(initialTotalRows);
+		setVisibleUsers(users);
+		setIsLoading(false);
+	}, [users, initialPage, initialTotalPages, initialTotalRows, initialQuery]);
+
+	const loadPage = useCallback(async (query: string, requestedPage: number) => {
+		const requestId = latestRequestIdRef.current + 1;
+		latestRequestIdRef.current = requestId;
+		setIsLoading(true);
+		try {
+			const result = await getAdminExplorerPage(query, requestedPage, PAGE_SIZE);
+			if (requestId !== latestRequestIdRef.current) return;
+			setVisibleUsers(
+				result.users.map((row) => ({
+					id: row.id,
+					username: row.username,
+					email: row.email,
+					role: row.role,
+					plan: row.plan,
+					lastLoginLabel: formatLastLoginLabel(row.lastLogin),
+				})),
+			);
+			setPage(result.page);
+			setTotalPages(result.totalPages);
+			setTotalRows(result.totalRows);
+		} finally {
+			if (requestId === latestRequestIdRef.current) {
+				setIsLoading(false);
+			}
+		}
+	}, []);
+
+	useEffect(() => {
+		const nextQuery = inputValue.trim();
+		const timer = setTimeout(() => {
+			if (nextQuery === searchQuery) return;
+			setSearchQuery(nextQuery);
+			void loadPage(nextQuery, 1);
+		}, 400);
+		return () => clearTimeout(timer);
+	}, [inputValue, searchQuery, loadPage]);
+
+	function handlePageChange(newPage: number) {
+		const nextQuery = inputValue.trim();
+		setSearchQuery(nextQuery);
+		void loadPage(nextQuery, newPage);
+	}
 
 	async function handleViewAsUser(userId: string) {
 		setSwitchingUserId(userId);
@@ -44,6 +113,9 @@ export default function AdminUserExplorer({ users, query, page, totalPages, tota
 		}
 	}
 
+	const firstRowNumber = totalRows === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
+	const lastRowNumber = Math.min(page * PAGE_SIZE, totalRows);
+
 	return (
 		<Card>
 			<CardHeader className='pb-1'>
@@ -58,24 +130,23 @@ export default function AdminUserExplorer({ users, query, page, totalPages, tota
 				</div>
 			</CardHeader>
 			<CardBody className='gap-3'>
-				<form action='/admin' method='get' className='flex flex-col gap-2 sm:flex-row sm:items-end'>
+				<div className='flex flex-col gap-2 sm:flex-row sm:items-end'>
 					<div className='sm:min-w-[320px]'>
 						<Input
 							id='user-explorer-search'
 							name='q'
-							defaultValue={query}
+							value={inputValue}
+							onValueChange={setInputValue}
 							placeholder='username or user id'
 							label='Search users'
 							labelPlacement='outside'
 							size='sm'
 							variant='bordered'
 							startContent={<IconSearch className='text-default-400' size={16} />}
+							endContent={isLoading ? <Spinner size='sm' /> : null}
 						/>
 					</div>
-					<Button type='submit' size='sm' color='primary' className='sm:mb-[2px]'>
-						Search
-					</Button>
-				</form>
+				</div>
 
 				<Table
 					aria-label='Admin user explorer table'
@@ -101,7 +172,7 @@ export default function AdminUserExplorer({ users, query, page, totalPages, tota
 						</TableColumn>
 					</TableHeader>
 					<TableBody emptyContent='No users found.'>
-						{users.map((row) => (
+						{visibleUsers.map((row) => (
 							<TableRow key={row.id}>
 								<TableCell>
 									<span className='font-medium'>@{row.username}</span>
@@ -136,25 +207,17 @@ export default function AdminUserExplorer({ users, query, page, totalPages, tota
 				</Table>
 
 				<div className='flex flex-wrap items-center justify-between gap-2'>
-					<form action='/admin' method='get' className='flex items-center gap-2'>
-						{query ? <input type='hidden' name='q' value={query} /> : null}
-						<input type='hidden' name='page' value={String(Math.max(1, page - 1))} />
-						<Button type='submit' size='sm' variant='flat' isDisabled={page <= 1}>
-							Previous
-						</Button>
-					</form>
+					<Button size='sm' variant='flat' isDisabled={page <= 1 || isLoading} onPress={() => handlePageChange(page - 1)}>
+						Previous
+					</Button>
 					<p className='text-xs text-default-500'>
 						Page {page} / {totalPages}
 					</p>
-					<form action='/admin' method='get' className='flex items-center gap-2'>
-						{query ? <input type='hidden' name='q' value={query} /> : null}
-						<input type='hidden' name='page' value={String(Math.min(totalPages, page + 1))} />
-						<Button type='submit' size='sm' variant='flat' isDisabled={page >= totalPages}>
-							Next
-						</Button>
-					</form>
+					<Button size='sm' variant='flat' isDisabled={page >= totalPages || isLoading} onPress={() => handlePageChange(page + 1)}>
+						Next
+					</Button>
 				</div>
 			</CardBody>
-			</Card>
-		);
+		</Card>
+	);
 }

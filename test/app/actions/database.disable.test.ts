@@ -86,6 +86,9 @@ jest.mock("drizzle-orm", () => ({
 	gt: jest.fn(),
 	sql: jest.fn((strings: TemplateStringsArray) => strings.join("")),
 	desc: jest.fn((value: unknown) => ({ desc: value })),
+	count: jest.fn(),
+	countDistinct: jest.fn(),
+	max: jest.fn(),
 }));
 
 const selectQueue: unknown[] = [];

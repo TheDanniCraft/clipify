@@ -1,18 +1,14 @@
 import { validateAdminAuth } from "@actions/auth";
+import { getAdminExplorerPage } from "@actions/adminView";
 import AdminHealthCharts from "@components/adminHealthCharts";
 import AdminUserExplorer from "@components/adminUserExplorer";
 import DashboardNavbar from "@components/dashboardNavbar";
-import { db } from "@/db/client";
-import { usersTable } from "@/db/schema";
 import { Card, CardBody, CardHeader, Chip } from "@heroui/react";
-import { desc, eq, ilike, or, sql } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { getInstanceHealthSnapshot } from "@lib/instanceHealth";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
-
-const PAGE_SIZE = 25;
 
 type AdminPageSearchParams = {
 	error?: string | string[];
@@ -50,52 +46,13 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 	}
 
 	const params = await searchParams;
-	const requestedPage = toPositiveInt(toSingle(params.page), 1);
 	const error = (toSingle(params.error) ?? "").trim();
-	const query = (toSingle(params.q) ?? "").trim();
-	const userFilter = query.length > 0 ? or(ilike(usersTable.username, `%${query}%`), eq(usersTable.id, query)) : undefined;
-
-	const [health, totalRowsRaw] = await Promise.all([
+	const initialQuery = (toSingle(params.q) ?? "").trim();
+	const initialPage = toPositiveInt(toSingle(params.page), 1);
+	const [health, explorer] = await Promise.all([
 		getInstanceHealthSnapshot(),
-		userFilter ? db.select({ count: sql<number>`count(*)::int` }).from(usersTable).where(userFilter).execute() : db.select({ count: sql<number>`count(*)::int` }).from(usersTable).execute(),
+		getAdminExplorerPage(initialQuery, initialPage, 25),
 	]);
-	const totalRows = Number(totalRowsRaw[0]?.count ?? 0);
-	const totalPages = Math.max(1, Math.ceil(totalRows / PAGE_SIZE));
-	const page = Math.min(requestedPage, totalPages);
-	const offset = (page - 1) * PAGE_SIZE;
-	const users = userFilter
-		? await db
-				.select({
-					id: usersTable.id,
-					username: usersTable.username,
-					email: usersTable.email,
-					role: usersTable.role,
-					plan: usersTable.plan,
-					lastLogin: usersTable.lastLogin,
-				})
-				.from(usersTable)
-				.where(userFilter)
-				.orderBy(desc(usersTable.lastLogin), desc(usersTable.createdAt))
-				.limit(PAGE_SIZE)
-				.offset(offset)
-				.execute()
-		: await db
-				.select({
-					id: usersTable.id,
-					username: usersTable.username,
-					email: usersTable.email,
-					role: usersTable.role,
-					plan: usersTable.plan,
-					lastLogin: usersTable.lastLogin,
-				})
-				.from(usersTable)
-				.orderBy(desc(usersTable.lastLogin), desc(usersTable.createdAt))
-				.limit(PAGE_SIZE)
-				.offset(offset)
-				.execute();
-
-	const firstRowNumber = totalRows === 0 ? 0 : offset + 1;
-	const lastRowNumber = Math.min(offset + PAGE_SIZE, totalRows);
 
 	return (
 		<DashboardNavbar user={adminUser} title='Admin' tagline='Operational telemetry and account entry points'>
@@ -202,7 +159,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 				) : null}
 
 				<AdminUserExplorer
-					users={users.map((row) => ({
+					users={explorer.users.map((row) => ({
 						id: row.id,
 						username: row.username,
 						email: row.email,
@@ -210,12 +167,10 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 						plan: row.plan,
 						lastLoginLabel: formatDate(row.lastLogin),
 					}))}
-					query={query}
-					page={page}
-					totalPages={totalPages}
-					totalRows={totalRows}
-					firstRowNumber={firstRowNumber}
-					lastRowNumber={lastRowNumber}
+					initialPage={explorer.page}
+					initialTotalPages={explorer.totalPages}
+					initialTotalRows={explorer.totalRows}
+					initialQuery={initialQuery}
 				/>
 			</div>
 		</DashboardNavbar>

@@ -2,7 +2,7 @@ import { db } from "@/db/client";
 import { entitlementGrantsTable, overlaysTable, usersTable, twitchCacheTable } from "@/db/schema";
 import { getTwitchCacheReadMetricsSnapshot } from "@actions/database";
 import { getClipCacheSchedulerStats } from "@lib/clipCacheScheduler";
-import { and, eq, gt, sql } from "drizzle-orm";
+import { and, count, countDistinct, desc, eq, gt, isNotNull, isNull, like, lt, lte, notLike, or, sql } from "drizzle-orm";
 import { Entitlement, EntitlementGrantSource, Plan, StatusOptions, TwitchCacheType } from "@types";
 
 type HealthStatus = "ok" | "degraded" | "down";
@@ -64,19 +64,12 @@ export type InstanceHealthSnapshot = {
 };
 
 async function countRows(table: typeof usersTable | typeof overlaysTable) {
-	const result = await db
-		.select({ count: sql<number>`count(*)::int` })
-		.from(table)
-		.execute();
+	const result = await db.select({ count: count() }).from(table).execute();
 	return Number(result[0]?.count ?? 0);
 }
 
 async function countWhereOverlays(status: StatusOptions) {
-	const result = await db
-		.select({ count: sql<number>`count(*)::int` })
-		.from(overlaysTable)
-		.where(eq(overlaysTable.status, status))
-		.execute();
+	const result = await db.select({ count: count() }).from(overlaysTable).where(eq(overlaysTable.status, status)).execute();
 	return Number(result[0]?.count ?? 0);
 }
 
@@ -93,21 +86,21 @@ export async function getInstanceHealthSnapshot(): Promise<InstanceHealthSnapsho
 		countWhereOverlays(StatusOptions.Active),
 		countWhereOverlays(StatusOptions.Paused),
 		db
-			.select({ count: sql<number>`count(*)::int` })
+			.select({ count: count() })
 			.from(usersTable)
-			.where(and(sql`${usersTable.lastLogin} is not null`, gt(usersTable.lastLogin, dayAgo)))
+			.where(and(isNotNull(usersTable.lastLogin), gt(usersTable.lastLogin, dayAgo)))
 			.execute()
 			.then((rows) => Number(rows[0]?.count ?? 0)),
 		db
-			.select({ count: sql<number>`count(*)::int` })
+			.select({ count: count() })
 			.from(usersTable)
-			.where(and(sql`${usersTable.lastLogin} is not null`, gt(usersTable.lastLogin, weekAgo)))
+			.where(and(isNotNull(usersTable.lastLogin), gt(usersTable.lastLogin, weekAgo)))
 			.execute()
 			.then((rows) => Number(rows[0]?.count ?? 0)),
 		db
-			.select({ count: sql<number>`count(*)::int` })
+			.select({ count: count() })
 			.from(usersTable)
-			.where(and(sql`${usersTable.lastLogin} is not null`, gt(usersTable.lastLogin, monthAgo)))
+			.where(and(isNotNull(usersTable.lastLogin), gt(usersTable.lastLogin, monthAgo)))
 			.execute()
 			.then((rows) => Number(rows[0]?.count ?? 0)),
 	]);
@@ -115,7 +108,7 @@ export async function getInstanceHealthSnapshot(): Promise<InstanceHealthSnapsho
 	const usersByPlan = await db
 		.select({
 			plan: usersTable.plan,
-			count: sql<number>`count(*)::int`,
+			count: count(),
 		})
 		.from(usersTable)
 		.groupBy(usersTable.plan)
@@ -127,36 +120,47 @@ export async function getInstanceHealthSnapshot(): Promise<InstanceHealthSnapsho
 		.select({
 			source: entitlementGrantsTable.source,
 			entitlement: entitlementGrantsTable.entitlement,
-			count: sql<number>`count(*)::int`,
+			count: count(),
 		})
 		.from(entitlementGrantsTable)
-		.where(and(sql`${entitlementGrantsTable.startsAt} <= now()`, sql`(${entitlementGrantsTable.endsAt} is null or ${entitlementGrantsTable.endsAt} > now())`))
+		.where(and(lte(entitlementGrantsTable.startsAt, sql`now()`), or(isNull(entitlementGrantsTable.endsAt), gt(entitlementGrantsTable.endsAt, sql`now()`))))
 		.groupBy(entitlementGrantsTable.source, entitlementGrantsTable.entitlement)
 		.execute();
 
-	const activeGrantUsersResult = await db.execute(sql`select count(distinct user_id)::int as count from entitlement_grants where starts_at <= now() and (ends_at is null or ends_at > now()) and user_id is not null`);
-	const activeGrantUsers = Number((activeGrantUsersResult as { rows?: Array<{ count?: number }> }).rows?.[0]?.count ?? 0);
-	const activeGrantUsersOnFreeResult = await db.execute(
-		sql`select count(distinct eg.user_id)::int as count
-		    from entitlement_grants eg
-		    join users u on u.id = eg.user_id
-		    where eg.starts_at <= now()
-		      and (eg.ends_at is null or eg.ends_at > now())
-		      and eg.user_id is not null
-		      and u.plan = ${Plan.Free}`,
-	);
-	const activeGrantUsersOnFree = Number((activeGrantUsersOnFreeResult as { rows?: Array<{ count?: number }> }).rows?.[0]?.count ?? 0);
+	const activeGrantUsersResult = await db
+		.select({ count: countDistinct(entitlementGrantsTable.userId) })
+		.from(entitlementGrantsTable)
+		.where(and(lte(entitlementGrantsTable.startsAt, sql`now()`), or(isNull(entitlementGrantsTable.endsAt), gt(entitlementGrantsTable.endsAt, sql`now()`)), isNotNull(entitlementGrantsTable.userId)))
+		.execute();
+	const activeGrantUsers = Number(activeGrantUsersResult[0]?.count ?? 0);
+
+	const activeGrantUsersOnFreeResult = await db
+		.select({ count: countDistinct(entitlementGrantsTable.userId) })
+		.from(entitlementGrantsTable)
+		.innerJoin(usersTable, eq(entitlementGrantsTable.userId, usersTable.id))
+		.where(
+			and(
+				lte(entitlementGrantsTable.startsAt, sql`now()`),
+				or(isNull(entitlementGrantsTable.endsAt), gt(entitlementGrantsTable.endsAt, sql`now()`)),
+				isNotNull(entitlementGrantsTable.userId),
+				eq(usersTable.plan, Plan.Free),
+			),
+		)
+		.execute();
+	const activeGrantUsersOnFree = Number(activeGrantUsersOnFreeResult[0]?.count ?? 0);
 	const activeGrantCount = activeGrants.reduce((sum, row) => sum + Number(row.count ?? 0), 0);
 	const effectiveProUsersEstimate = paidUsers + activeGrantUsersOnFree;
 
-	const activeOverlayOwnersByPlanResult = await db.execute(sql`
-		select u.plan as plan, count(distinct o.owner_id)::int as count
-		from overlays o
-		join users u on u.id = o.owner_id
-		where o.status = ${StatusOptions.Active}
-		group by u.plan
-	`);
-	const activeOverlayOwnersByPlanRows = (activeOverlayOwnersByPlanResult as { rows?: Array<{ plan?: Plan; count?: number }> }).rows ?? [];
+	const activeOverlayOwnersByPlanRows = await db
+		.select({
+			plan: usersTable.plan,
+			count: countDistinct(overlaysTable.ownerId),
+		})
+		.from(overlaysTable)
+		.innerJoin(usersTable, eq(overlaysTable.ownerId, usersTable.id))
+		.where(eq(overlaysTable.status, StatusOptions.Active))
+		.groupBy(usersTable.plan)
+		.execute();
 	const activeOverlayOwnersFree = Number(activeOverlayOwnersByPlanRows.find((row) => row.plan === Plan.Free)?.count ?? 0);
 	const activeOverlayOwnersPaid = Number(activeOverlayOwnersByPlanRows.find((row) => row.plan === Plan.Pro)?.count ?? 0);
 
@@ -172,7 +176,7 @@ export async function getInstanceHealthSnapshot(): Promise<InstanceHealthSnapsho
 	const cacheTotals = await db
 		.select({
 			type: twitchCacheTable.type,
-			count: sql<number>`count(*)::int`,
+			count: count(),
 		})
 		.from(twitchCacheTable)
 		.groupBy(twitchCacheTable.type)
@@ -183,22 +187,52 @@ export async function getInstanceHealthSnapshot(): Promise<InstanceHealthSnapsho
 	const avatarEntries = Number(cacheTotals.find((row) => row.type === TwitchCacheType.Avatar)?.count ?? 0);
 	const gameEntries = Number(cacheTotals.find((row) => row.type === TwitchCacheType.Game)?.count ?? 0);
 
-	const [unavailableClipsRow, clipSyncStatesRow, clipSyncCompleteRow, staleValidatedRow] = await Promise.all([
-		db.execute(sql`select count(*)::int as count from "twitchCache" where type = ${TwitchCacheType.Clip} and value like '%"unavailable":true%'`),
-		db.execute(sql`select count(*)::int as count from "twitchCache" where type = ${TwitchCacheType.Clip} and key like 'clip-sync:%' and key not like 'clip-sync-force:%'`),
-		db.execute(sql`select count(*)::int as count from "twitchCache" where type = ${TwitchCacheType.Clip} and key like 'clip-sync:%' and key not like 'clip-sync-force:%' and value like '%"backfillComplete":true%'`),
-		db.execute(sql`select count(*)::int as count from "twitchCache" where type = ${TwitchCacheType.Clip} and key like 'clip:%' and value like '%"lastValidatedAt":%' and fetched_at < now() - interval '6 hours'`),
+	const [unavailableClipsRows, clipSyncStatesRows, clipSyncCompleteRows, staleValidatedRows] = await Promise.all([
+		db
+			.select({ count: count() })
+			.from(twitchCacheTable)
+			.where(and(eq(twitchCacheTable.type, TwitchCacheType.Clip), like(twitchCacheTable.value, '%"unavailable":true%')))
+			.execute(),
+		db
+			.select({ count: count() })
+			.from(twitchCacheTable)
+			.where(and(eq(twitchCacheTable.type, TwitchCacheType.Clip), like(twitchCacheTable.key, "clip-sync:%"), notLike(twitchCacheTable.key, "clip-sync-force:%")))
+			.execute(),
+		db
+			.select({ count: count() })
+			.from(twitchCacheTable)
+			.where(
+				and(
+					eq(twitchCacheTable.type, TwitchCacheType.Clip),
+					like(twitchCacheTable.key, "clip-sync:%"),
+					notLike(twitchCacheTable.key, "clip-sync-force:%"),
+					like(twitchCacheTable.value, '%"backfillComplete":true%'),
+				),
+			)
+			.execute(),
+		db
+			.select({ count: count() })
+			.from(twitchCacheTable)
+			.where(
+				and(
+					eq(twitchCacheTable.type, TwitchCacheType.Clip),
+					like(twitchCacheTable.key, "clip:%"),
+					like(twitchCacheTable.value, '%"lastValidatedAt":%'),
+					lt(twitchCacheTable.fetchedAt, sql`now() - interval '6 hours'`),
+				),
+			)
+			.execute(),
 	]);
 
-	const unavailableClips = Number((unavailableClipsRow as { rows?: Array<{ count?: number }> }).rows?.[0]?.count ?? 0);
-	const clipSyncStates = Number((clipSyncStatesRow as { rows?: Array<{ count?: number }> }).rows?.[0]?.count ?? 0);
-	const clipSyncComplete = Number((clipSyncCompleteRow as { rows?: Array<{ count?: number }> }).rows?.[0]?.count ?? 0);
-	const staleValidatedClips = Number((staleValidatedRow as { rows?: Array<{ count?: number }> }).rows?.[0]?.count ?? 0);
+	const unavailableClips = Number(unavailableClipsRows[0]?.count ?? 0);
+	const staleValidatedClips = Number(staleValidatedRows[0]?.count ?? 0);
+	const clipSyncStates = Number(clipSyncStatesRows[0]?.count ?? 0);
+	const clipSyncCompleteCount = Number(clipSyncCompleteRows[0]?.count ?? 0);
+	const backfillCompleteRatio = clipSyncStates > 0 ? clipSyncCompleteCount / clipSyncStates : 0;
 
 	const scheduler = getClipCacheSchedulerStats();
 	const cacheReads = await getTwitchCacheReadMetricsSnapshot();
 	const dbLatencyMs = Date.now() - started;
-	const backfillCompleteRatio = clipSyncStates > 0 ? clipSyncComplete / clipSyncStates : 0;
 
 	let status: HealthStatus = "ok";
 	if (dbLatencyMs > 2000 || (scheduler.totalRuns > 0 && scheduler.totalFailures / scheduler.totalRuns > 0.15)) status = "degraded";
@@ -240,7 +274,7 @@ export async function getInstanceHealthSnapshot(): Promise<InstanceHealthSnapsho
 			gameEntries,
 			unavailableClips,
 			clipSyncStates,
-			clipSyncComplete,
+			clipSyncComplete: clipSyncCompleteCount,
 			backfillCompleteRatio,
 			staleValidatedClips,
 			globalReadHitRate: cacheReads.hitRate,

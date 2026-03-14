@@ -4,11 +4,12 @@ import { tokenTable, usersTable, overlaysTable, queueTable, settingsTable, modQu
 import { db } from "@/db/client";
 import { AuthenticatedUser, Overlay, TwitchUserResponse, TwitchTokenApiResponse, UserToken, Plan, Role, UserSettings, TwitchCacheType, StatusOptions, OverlayType, PlaybackMode, MaxDurationMode, TwitchClip } from "@types";
 import { getUserDetails, getUsersDetailsBulk, refreshAccessTokenWithContext, subscribeToReward } from "@actions/twitch";
-import { eq, inArray, and, or, isNull, lt, gt, sql, desc } from "drizzle-orm";
+import { eq, inArray, and, or, isNull, lt, gt, sql, desc, max } from "drizzle-orm";
 import { validateAuth } from "@actions/auth";
 import { encryptToken, decryptToken } from "@lib/tokenCrypto";
 import { getFeatureAccess } from "@lib/featureAccess";
 import { ensureReverseTrialGrantForUser, resolveUserEntitlements, resolveUserEntitlementsForUsers } from "@lib/entitlements";
+import { TWITCH_CLIPS_LAUNCH_MS } from "@lib/constants";
 
 const TWITCH_CACHE_CLEANUP_INTERVAL_MS = 10 * 60 * 1000;
 let lastTwitchCacheCleanupAt = 0;
@@ -20,6 +21,12 @@ const HSL_COLOR_PATTERN = /^hsla?\(\s*(?:360|3[0-5]\d|[12]?\d?\d)(?:\.\d+)?\s*,\
 
 function escapeLikePattern(value: string) {
 	return value.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
+}
+
+function parseTwitchCreatedAtOrDefault(createdAt: string | undefined) {
+	const parsed = Date.parse(createdAt ?? "");
+	if (!Number.isFinite(parsed)) return new Date(TWITCH_CLIPS_LAUNCH_MS);
+	return new Date(parsed);
 }
 
 type CacheReadMetrics = {
@@ -329,6 +336,7 @@ async function requireOverlaySecretAccess(overlayId: string, secret?: string): P
 
 async function setUser(user: TwitchUserResponse): Promise<AuthenticatedUser> {
 	try {
+		const twitchCreatedAt = parseTwitchCreatedAtOrDefault(user.created_at);
 		const existing = await db.select({ id: usersTable.id, disabled: usersTable.disabled, disableType: usersTable.disableType }).from(usersTable).where(eq(usersTable.id, user.id)).limit(1).execute();
 		const isNewUser = existing.length === 0;
 		const dbUser = await db
@@ -340,6 +348,7 @@ async function setUser(user: TwitchUserResponse): Promise<AuthenticatedUser> {
 				avatar: user.profile_image_url,
 				role: Role.User,
 				plan: Plan.Free,
+				twitchCreatedAt,
 			})
 			.onConflictDoUpdate({
 				target: usersTable.id,
@@ -347,6 +356,7 @@ async function setUser(user: TwitchUserResponse): Promise<AuthenticatedUser> {
 					username: user.login,
 					email: user.email,
 					avatar: user.profile_image_url,
+					twitchCreatedAt,
 					updatedAt: new Date(),
 				},
 			})
@@ -718,7 +728,7 @@ export async function getAllOverlaysByOwnerServer(ownerId: string) {
 export async function getActiveOverlayOwnerIdsForClipSync(batchSize = 50) {
 	try {
 		const limitedBatchSize = Math.max(1, Math.floor(batchSize));
-		const scoreExpr = sql<Date>`max(coalesce(${overlaysTable.lastUsedAt}, ${overlaysTable.createdAt}))`;
+		const scoreExpr = max(sql`coalesce(${overlaysTable.lastUsedAt}, ${overlaysTable.createdAt})`);
 		const rows = await db
 			.select({ ownerId: overlaysTable.ownerId, score: scoreExpr })
 			.from(overlaysTable)
@@ -740,7 +750,10 @@ type ClipSyncState = {
 	lastIncrementalSyncAt?: string;
 	lastBackfillSyncAt?: string;
 	backfillCursor?: string;
+	backfillWindowEnd?: string;
+	backfillWindowSizeMs?: number;
 	backfillComplete?: boolean;
+	rateLimitedUntil?: string;
 };
 
 type CachedClipValue = {
@@ -784,7 +797,10 @@ export async function getClipCacheStatus(ownerId: string): Promise<ClipCacheStat
 export async function getClipCacheStatusForOwnerServer(ownerId: string): Promise<ClipCacheStatus> {
 	const clipPrefix = `clip:${ownerId}:`;
 	const stateKey = `clip-sync:${ownerId}`;
-	const [entries, state] = await Promise.all([getTwitchCacheByPrefixEntries<CachedClipValue | TwitchClip>(TwitchCacheType.Clip, clipPrefix), getTwitchCache<ClipSyncState>(TwitchCacheType.Clip, stateKey)]);
+	const [entries, state] = await Promise.all([
+		getTwitchCacheByPrefixEntries<CachedClipValue | TwitchClip>(TwitchCacheType.Clip, clipPrefix),
+		getTwitchCache<ClipSyncState>(TwitchCacheType.Clip, stateKey),
+	]);
 
 	let cachedClipCount = 0;
 	let unavailableClipCount = 0;
@@ -806,7 +822,21 @@ export async function getClipCacheStatusForOwnerServer(ownerId: string): Promise
 	}
 
 	const backfillComplete = Boolean(state?.backfillComplete);
-	const estimatedCoveragePercent = backfillComplete ? 100 : 0;
+	let estimatedCoveragePercent = 0;
+
+	if (backfillComplete) {
+		estimatedCoveragePercent = 100;
+	} else if (state?.backfillWindowEnd) {
+		const now = Date.now();
+		const totalDuration = now - TWITCH_CLIPS_LAUNCH_MS;
+		const endMs = new Date(state.backfillWindowEnd).getTime();
+
+		if (Number.isFinite(endMs) && totalDuration > 0) {
+			const effectiveEndMs = Math.min(endMs, now);
+			const progress = (now - effectiveEndMs) / totalDuration;
+			estimatedCoveragePercent = Math.round(Math.max(0, Math.min(1, progress)) * 100);
+		}
+	}
 
 	return {
 		cachedClipCount,

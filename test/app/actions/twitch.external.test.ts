@@ -46,6 +46,24 @@ jest.mock("@/db/client", () => ({
 	dbPool: {
 		connect: jest.fn(),
 	},
+	db: {
+		select: jest.fn().mockReturnThis(),
+		from: jest.fn().mockReturnThis(),
+		where: jest.fn().mockReturnThis(),
+		limit: jest.fn().mockReturnThis(),
+		execute: jest.fn().mockResolvedValue([{ createdAt: new Date("2020-01-01T00:00:00Z").toISOString() }]),
+	},
+}));
+
+jest.mock("@/db/schema", () => ({
+	usersTable: {
+		id: "id",
+		createdAt: "createdAt",
+	},
+}));
+
+jest.mock("drizzle-orm", () => ({
+	eq: jest.fn(),
 }));
 
 type AxiosLikeError = Error & {
