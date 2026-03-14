@@ -689,14 +689,13 @@ export async function syncOwnerClipCache(ownerId: string, ensurePackSize = 0): P
 					let hitLimitInWindow = false;
 					const fetchedClips: TwitchClip[] = [];
 
-					const currentStartMs = Math.max(TWITCH_CLIPS_LAUNCH_MS, currentEndMs - windowSizeMs);
-
-					// Advance window logic if we are already at the start (nothing to sync)
-					if (currentEndMs <= TWITCH_CLIPS_LAUNCH_MS && !cursor) {
+					// Advance window logic if we are already at the start or have invalid state (nothing to sync)
+					if (!Number.isFinite(currentEndMs) || currentEndMs <= TWITCH_CLIPS_LAUNCH_MS) {
 						nextState.backfillComplete = true;
 						break;
 					}
 
+					const currentStartMs = Math.max(TWITCH_CLIPS_LAUNCH_MS, currentEndMs - windowSizeMs);
 					const startedAtIso = new Date(currentStartMs).toISOString();
 					const endedAtIso = new Date(currentEndMs).toISOString();
 

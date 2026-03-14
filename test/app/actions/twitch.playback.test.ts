@@ -578,4 +578,40 @@ describe("actions/twitch playback and cache behavior", () => {
 		expect(clips.map((clip) => clip.id)).toEqual(["stale-unavailable", "normal-clip"]);
 	});
 
+	it("dedupes mixed legacy/raw cache entries and ignores malformed values", async () => {
+		getTwitchCacheByPrefixEntries.mockResolvedValue([
+			{
+				key: "clip:owner-1:dup-wrapped",
+				value: {
+					clip: buildClip("dup"),
+				},
+			},
+			{
+				key: "clip:owner-1:dup-raw",
+				value: buildClip("dup"),
+			},
+			{
+				key: "clip:owner-1:invalid-shape",
+				value: { random: true },
+			},
+			{
+				key: "clip:owner-1:fresh-unavailable",
+				value: {
+					clip: buildClip("fresh-unavailable"),
+					unavailable: true,
+					lastValidatedAt: new Date().toISOString(),
+				},
+			},
+			{
+				key: "clip:owner-1:kept",
+				value: buildClip("kept"),
+			},
+		]);
+
+		const { getTwitchClips } = await loadTwitch();
+		const clips = await getTwitchClips(buildOverlay(), "All", true);
+
+		expect(clips.map((clip) => clip.id)).toEqual(["dup", "kept"]);
+	});
+
 });

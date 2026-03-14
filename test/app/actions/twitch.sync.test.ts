@@ -181,6 +181,45 @@ describe("actions/twitch syncOwnerClipCache", () => {
 		expect(setTwitchCache).not.toHaveBeenCalled();
 	});
 
+	it("skips all sync work while owner is rate-limited", async () => {
+		getTwitchCache.mockResolvedValue({
+			rateLimitedUntil: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
+			lastIncrementalSyncAt: "2000-01-01T00:00:00.000Z",
+			lastBackfillSyncAt: "2000-01-01T00:00:00.000Z",
+			backfillComplete: false,
+		});
+		const getSpy = jest.spyOn(axios, "get");
+
+		const { syncOwnerClipCache } = await import("@/app/actions/twitch");
+		await syncOwnerClipCache("owner-1");
+
+		expect(getSpy).not.toHaveBeenCalled();
+		expect(setTwitchCache).not.toHaveBeenCalled();
+	});
+
+	it("clears expired rate-limit state even when no sync is due", async () => {
+		const nowIso = new Date().toISOString();
+		getTwitchCache.mockResolvedValue({
+			rateLimitedUntil: "2000-01-01T00:00:00.000Z",
+			lastIncrementalSyncAt: nowIso,
+			lastBackfillSyncAt: nowIso,
+			backfillComplete: true,
+		});
+		const getSpy = jest.spyOn(axios, "get");
+
+		const { syncOwnerClipCache } = await import("@/app/actions/twitch");
+		await syncOwnerClipCache("owner-1");
+
+		expect(getSpy).not.toHaveBeenCalled();
+		expect(setTwitchCache).toHaveBeenCalledWith(
+			TwitchCacheType.Clip,
+			"clip-sync:owner-1",
+			expect.objectContaining({
+				rateLimitedUntil: undefined,
+			}),
+		);
+	});
+
 	it("sizes incremental fetch to ensure clip pack deficit", async () => {
 		getTwitchCache.mockResolvedValue({});
 		getTwitchCacheByPrefixEntries.mockResolvedValue(Array.from({ length: 20 }, (_, idx) => createCacheEntry(`existing-${idx}`)));
@@ -517,6 +556,28 @@ describe("actions/twitch syncOwnerClipCache", () => {
 				params: expect.objectContaining({
 					after: undefined,
 				}),
+			}),
+		);
+	});
+
+	it("marks backfill complete when stored window end is invalid", async () => {
+		getTwitchCache.mockResolvedValue({
+			backfillWindowEnd: "not-a-date",
+			backfillComplete: false,
+			lastIncrementalSyncAt: new Date().toISOString(),
+		});
+		const getSpy = jest.spyOn(axios, "get");
+
+		const { syncOwnerClipCache } = await import("@/app/actions/twitch");
+		await syncOwnerClipCache("owner-1");
+
+		expect(getSpy).not.toHaveBeenCalled();
+		expect(setTwitchCache).toHaveBeenCalledWith(
+			TwitchCacheType.Clip,
+			"clip-sync:owner-1",
+			expect.objectContaining({
+				backfillComplete: true,
+				lastBackfillSyncAt: expect.any(String),
 			}),
 		);
 	});
