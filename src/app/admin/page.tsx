@@ -5,7 +5,7 @@ import DashboardNavbar from "@components/dashboardNavbar";
 import { db } from "@/db/client";
 import { usersTable } from "@/db/schema";
 import { Card, CardBody, CardHeader, Chip } from "@heroui/react";
-import { count, desc, eq, ilike, or, sql } from "drizzle-orm";
+import { count, desc, eq, ilike, or } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { getInstanceHealthSnapshot } from "@lib/instanceHealth";
 

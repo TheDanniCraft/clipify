@@ -4,7 +4,7 @@ import { tokenTable, usersTable, overlaysTable, queueTable, settingsTable, modQu
 import { db } from "@/db/client";
 import { AuthenticatedUser, Overlay, TwitchUserResponse, TwitchTokenApiResponse, UserToken, Plan, Role, UserSettings, TwitchCacheType, StatusOptions, OverlayType, PlaybackMode, MaxDurationMode, TwitchClip } from "@types";
 import { getUserDetails, getUsersDetailsBulk, refreshAccessTokenWithContext, subscribeToReward } from "@actions/twitch";
-import { eq, inArray, and, or, isNull, lt, gt, sql, desc, count, countDistinct, max } from "drizzle-orm";
+import { eq, inArray, and, or, isNull, lt, gt, sql, desc, max } from "drizzle-orm";
 import { validateAuth } from "@actions/auth";
 import { encryptToken, decryptToken } from "@lib/tokenCrypto";
 import { getFeatureAccess } from "@lib/featureAccess";
