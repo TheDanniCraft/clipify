@@ -187,4 +187,60 @@ describe("components/adminUserExplorer behavior", () => {
 		await waitFor(() => expect(screen.getByText("Page 1 / 2")).toBeInTheDocument());
 		expect(routerPush).not.toHaveBeenCalled();
 	});
+
+	it("ignores stale overlapping explorer responses", async () => {
+		jest.useFakeTimers();
+		let resolveSlow!: (value: unknown) => void;
+		let resolveFast!: (value: unknown) => void;
+		const slow = new Promise((resolve) => {
+			resolveSlow = resolve;
+		});
+		const fast = new Promise((resolve) => {
+			resolveFast = resolve;
+		});
+
+		getAdminExplorerPage.mockReturnValueOnce(slow).mockReturnValueOnce(fast);
+
+		render(
+			<AdminUserExplorer
+				users={[{ id: "u0", username: "base", email: "base@example.com", role: "user", plan: "free", lastLoginLabel: "now" }]}
+				initialPage={1}
+				initialTotalPages={1}
+				initialTotalRows={1}
+			/>,
+		);
+
+		const input = screen.getByRole("textbox");
+		fireEvent.change(input, { target: { value: "a" } });
+		act(() => {
+			jest.advanceTimersByTime(400);
+		});
+		fireEvent.change(input, { target: { value: "alice" } });
+		act(() => {
+			jest.advanceTimersByTime(400);
+		});
+
+		expect(getAdminExplorerPage).toHaveBeenNthCalledWith(1, "a", 1, 25);
+		expect(getAdminExplorerPage).toHaveBeenNthCalledWith(2, "alice", 1, 25);
+
+		resolveFast({
+			users: [{ id: "u-alice", username: "alice", email: "alice@example.com", role: "user", plan: "free", lastLogin: null }],
+			page: 1,
+			totalPages: 1,
+			totalRows: 1,
+		});
+		await waitFor(() => expect(screen.getByText("@alice")).toBeInTheDocument());
+
+		resolveSlow({
+			users: [{ id: "u-a", username: "a-user", email: "a@example.com", role: "user", plan: "free", lastLogin: null }],
+			page: 1,
+			totalPages: 1,
+			totalRows: 1,
+		});
+		await act(async () => Promise.resolve());
+
+		expect(screen.queryByText("@a-user")).not.toBeInTheDocument();
+		expect(screen.getByText("@alice")).toBeInTheDocument();
+		jest.useRealTimers();
+	});
 });

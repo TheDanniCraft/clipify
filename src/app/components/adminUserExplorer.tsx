@@ -5,7 +5,7 @@ import { startAdminView } from "@actions/auth";
 import { Button, Card, CardBody, CardHeader, Chip, Input, Spinner, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from "@heroui/react";
 import { IconSearch } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 
 type AdminExplorerRow = {
 	id: string;
@@ -40,10 +40,14 @@ export default function AdminUserExplorer({ users, initialPage, initialTotalPage
 	const [totalRows, setTotalRows] = useState(initialTotalRows);
 	const [visibleUsers, setVisibleUsers] = useState(users);
 	const [isPending, startTransition] = useTransition();
+	const latestRequestIdRef = useRef(0);
 
 	const loadPage = useCallback((query: string, requestedPage: number) => {
+		const requestId = latestRequestIdRef.current + 1;
+		latestRequestIdRef.current = requestId;
 		startTransition(() => {
 			void getAdminExplorerPage(query, requestedPage, PAGE_SIZE).then((result) => {
+				if (requestId !== latestRequestIdRef.current) return;
 				setVisibleUsers(
 					result.users.map((row) => ({
 						id: row.id,

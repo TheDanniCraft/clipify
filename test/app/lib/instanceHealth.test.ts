@@ -103,11 +103,8 @@ describe("lib/instanceHealth", () => {
 				{ type: "game", count: 15 },
 			], // cacheTotals
 			[{ count: 4 }], // unavailableClipsRows
-			[
-				{ key: "clip-sync:owner-1", value: JSON.stringify({ backfillComplete: true }) },
-				{ key: "clip-sync:owner-2", value: JSON.stringify({ backfillComplete: true }) },
-				{ key: "clip-sync:owner-3", value: JSON.stringify({ backfillComplete: false, backfillWindowEnd: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString() }) },
-			], // clipSyncStatesRows
+			[{ count: 3 }], // clipSyncStatesRows
+			[{ count: 2 }], // clipSyncCompleteRows
 			[{ count: 5 }], // staleValidatedRows
 		];
 		dbSelect.mockImplementation(() => makeQuery(selectQueue.shift() ?? []));
@@ -197,7 +194,8 @@ describe("lib/instanceHealth", () => {
 				{ type: "game", count: 15 },
 			], // cacheTotals
 			[{ count: 0 }], // unavailableClipsRows
-			[], // clipSyncStatesRows
+			[{ count: 0 }], // clipSyncStatesRows
+			[{ count: 0 }], // clipSyncCompleteRows
 			[{ count: 4 }], // staleValidatedRows
 		];
 		dbSelect.mockImplementation(() => makeQuery(selectQueue.shift() ?? []));

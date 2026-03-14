@@ -4,7 +4,6 @@ import { getTwitchCacheReadMetricsSnapshot } from "@actions/database";
 import { getClipCacheSchedulerStats } from "@lib/clipCacheScheduler";
 import { and, count, countDistinct, desc, eq, gt, isNotNull, isNull, like, lt, lte, notLike, or, sql } from "drizzle-orm";
 import { Entitlement, EntitlementGrantSource, Plan, StatusOptions, TwitchCacheType } from "@types";
-import { TWITCH_CLIPS_LAUNCH_MS } from "@lib/constants";
 
 type HealthStatus = "ok" | "degraded" | "down";
 
@@ -188,17 +187,28 @@ export async function getInstanceHealthSnapshot(): Promise<InstanceHealthSnapsho
 	const avatarEntries = Number(cacheTotals.find((row) => row.type === TwitchCacheType.Avatar)?.count ?? 0);
 	const gameEntries = Number(cacheTotals.find((row) => row.type === TwitchCacheType.Game)?.count ?? 0);
 
-	const [unavailableClipsRows, clipSyncStatesRows, staleValidatedRows] = await Promise.all([
+	const [unavailableClipsRows, clipSyncStatesRows, clipSyncCompleteRows, staleValidatedRows] = await Promise.all([
 		db
 			.select({ count: count() })
 			.from(twitchCacheTable)
 			.where(and(eq(twitchCacheTable.type, TwitchCacheType.Clip), like(twitchCacheTable.value, '%"unavailable":true%')))
 			.execute(),
 		db
-			.select({ key: twitchCacheTable.key, value: twitchCacheTable.value })
+			.select({ count: count() })
 			.from(twitchCacheTable)
 			.where(and(eq(twitchCacheTable.type, TwitchCacheType.Clip), like(twitchCacheTable.key, "clip-sync:%"), notLike(twitchCacheTable.key, "clip-sync-force:%")))
-			.orderBy(desc(twitchCacheTable.fetchedAt))
+			.execute(),
+		db
+			.select({ count: count() })
+			.from(twitchCacheTable)
+			.where(
+				and(
+					eq(twitchCacheTable.type, TwitchCacheType.Clip),
+					like(twitchCacheTable.key, "clip-sync:%"),
+					notLike(twitchCacheTable.key, "clip-sync-force:%"),
+					like(twitchCacheTable.value, '%"backfillComplete":true%'),
+				),
+			)
 			.execute(),
 		db
 			.select({ count: count() })
@@ -216,38 +226,9 @@ export async function getInstanceHealthSnapshot(): Promise<InstanceHealthSnapsho
 
 	const unavailableClips = Number(unavailableClipsRows[0]?.count ?? 0);
 	const staleValidatedClips = Number(staleValidatedRows[0]?.count ?? 0);
-
-	const syncStatesRaw = clipSyncStatesRows;
-	const clipSyncStates = syncStatesRaw.length;
-
-	// Calculate the global % ratio based on user timestamps
-	const NOW_MS = Date.now();
-
-	let totalProgress = 0;
-	let clipSyncCompleteCount = 0;
-
-	for (const row of syncStatesRaw) {
-		try {
-			const state = JSON.parse(row.value);
-			const totalDuration = NOW_MS - TWITCH_CLIPS_LAUNCH_MS;
-
-			if (state.backfillComplete) {
-				totalProgress += 1; // 100% complete
-				clipSyncCompleteCount += 1;
-			} else if (state.backfillWindowEnd) {
-				const endMs = new Date(state.backfillWindowEnd).getTime();
-				if (Number.isFinite(endMs) && totalDuration > 0) {
-					const effectiveEndMs = Math.min(endMs, NOW_MS);
-					const progress = (NOW_MS - effectiveEndMs) / totalDuration;
-					totalProgress += Math.max(0, Math.min(1, progress));
-				}
-			}
-		} catch {
-			// Ignore malformed JSON
-		}
-	}
-
-	const backfillCompleteRatio = clipSyncStates > 0 ? totalProgress / clipSyncStates : 0;
+	const clipSyncStates = Number(clipSyncStatesRows[0]?.count ?? 0);
+	const clipSyncCompleteCount = Number(clipSyncCompleteRows[0]?.count ?? 0);
+	const backfillCompleteRatio = clipSyncStates > 0 ? clipSyncCompleteCount / clipSyncStates : 0;
 
 	const scheduler = getClipCacheSchedulerStats();
 	const cacheReads = await getTwitchCacheReadMetricsSnapshot();
