@@ -114,8 +114,9 @@ async function setClipForceRefreshState(ownerId: string, state: ClipForceRefresh
 	await setTwitchCache(TwitchCacheType.Clip, CLIP_FORCE_REFRESH_KEY(ownerId), state);
 }
 
-async function getCachedClipsByOwner(ownerId: string): Promise<TwitchClip[]> {
-	const entries = await getTwitchCacheByPrefixEntries<CachedClipValue | TwitchClip>(TwitchCacheType.Clip, CLIP_CACHE_PREFIX(ownerId));
+async function getCachedClipsByOwner(ownerId: string, limit?: number): Promise<TwitchClip[]> {
+	const boundedLimit = typeof limit === "number" ? Math.max(1, Math.floor(limit)) : undefined;
+	const entries = await getTwitchCacheByPrefixEntries<CachedClipValue | TwitchClip>(TwitchCacheType.Clip, CLIP_CACHE_PREFIX(ownerId), boundedLimit);
 	const deduped = new Map<string, TwitchClip>();
 	for (const entry of entries) {
 		const value = entry.value as CachedClipValue | TwitchClip;
@@ -129,6 +130,7 @@ async function getCachedClipsByOwner(ownerId: string): Promise<TwitchClip[]> {
 		if (!clip?.id) continue;
 		if (deduped.has(clip.id)) continue;
 		deduped.set(clip.id, clip);
+		if (boundedLimit && deduped.size >= boundedLimit) break;
 	}
 	return Array.from(deduped.values());
 }
@@ -617,7 +619,7 @@ export async function syncOwnerClipCache(ownerId: string, ensurePackSize = 0): P
 
 		let cachedClips: TwitchClip[] = [];
 		if (ensurePackSize > 0) {
-			cachedClips = await getCachedClipsByOwner(ownerId);
+			cachedClips = await getCachedClipsByOwner(ownerId, ensurePackSize);
 		}
 
 		const syncState = await getClipSyncState(ownerId);
@@ -699,7 +701,6 @@ export async function syncOwnerClipCache(ownerId: string, ensurePackSize = 0): P
 					let pagesFetchedInWindow = 0;
 					let clipsFetchedInWindow = 0;
 					let hitLimitInWindow = false;
-					const fetchedClips: TwitchClip[] = [];
 
 					// Advance window logic if we are already at the start or have invalid state (nothing to sync)
 					if (!Number.isFinite(currentEndMs) || currentEndMs <= ownerBackfillLowerBoundMs) {
@@ -716,8 +717,7 @@ export async function syncOwnerClipCache(ownerId: string, ensurePackSize = 0): P
 					while (pagesFetchedInWindow < remainingBudget && currentEndMs > ownerBackfillLowerBoundMs) {
 						try {
 							const page = await fetchClipPage(ownerId, token.accessToken, 100, cursor, startedAtIso, endedAtIso);
-
-							fetchedClips.push(...page.clips);
+							await upsertClipsByOwner(ownerId, page.clips);
 							clipsFetchedInWindow += page.clips.length;
 							recentRequestsUsed += 1;
 							pagesFetchedInWindow += 1;
@@ -735,12 +735,8 @@ export async function syncOwnerClipCache(ownerId: string, ensurePackSize = 0): P
 								if (resumeAt) {
 									nextState.rateLimitedUntil = resumeAt;
 								}
-								// Persist what we have before aborting to avoid re-fetching the same window.
-								if (fetchedClips.length > 0) {
-									await upsertClipsByOwner(ownerId, fetchedClips);
-									nextState.backfillWindowEnd = endedAtIso;
-									nextState.backfillCursor = cursor;
-								}
+								nextState.backfillWindowEnd = endedAtIso;
+								nextState.backfillCursor = cursor;
 								throw error; // Rethrow to abort the entire backfill for this run
 							}
 							logTwitchError("Error fetching backfill clip sync page", error);
@@ -755,8 +751,6 @@ export async function syncOwnerClipCache(ownerId: string, ensurePackSize = 0): P
 					if (!windowFailed && hitLimitInWindow && windowSizeMs > MIN_WINDOW_MS) {
 						// Shrink and retry the SAME window range in the next outer iteration or next run
 						nextState.backfillWindowSizeMs = Math.max(MIN_WINDOW_MS, Math.floor(windowSizeMs / 2));
-						// We MUST persist what we have.
-						await upsertClipsByOwner(ownerId, fetchedClips);
 						// Preserve window context so retries stay on the same historical range.
 						nextState.backfillWindowEnd = endedAtIso;
 						// Reset cursor because the next request will have different date bounds, making the current cursor invalid.
@@ -764,7 +758,6 @@ export async function syncOwnerClipCache(ownerId: string, ensurePackSize = 0): P
 						break; // Stop this run's loop to avoid getting stuck if remainingBudget is low
 					} else if (windowFailed && pagesFetchedInWindow > 0) {
 						// Persist partial progress in the SAME window and retry later from the saved cursor.
-						await upsertClipsByOwner(ownerId, fetchedClips);
 						nextState.backfillWindowEnd = endedAtIso;
 						nextState.backfillCursor = cursor;
 						nextState.backfillWindowSizeMs = windowSizeMs;
@@ -774,8 +767,6 @@ export async function syncOwnerClipCache(ownerId: string, ensurePackSize = 0): P
 						// Case B: Hit limit but already at MIN_WINDOW_MS (Accept partial and move on)
 						// Case C: Budget exhausted mid-window (budgetExhausted) - Save partial and stay on same window
 
-						await upsertClipsByOwner(ownerId, fetchedClips);
-						
 						if (budgetExhausted) {
 							// Stay on the same window for next run, but save current progress
 							nextState.backfillWindowEnd = endedAtIso;
