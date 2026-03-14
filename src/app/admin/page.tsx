@@ -1,11 +1,9 @@
 import { validateAdminAuth } from "@actions/auth";
+import { getAdminExplorerPage } from "@actions/adminView";
 import AdminHealthCharts from "@components/adminHealthCharts";
 import AdminUserExplorer from "@components/adminUserExplorer";
 import DashboardNavbar from "@components/dashboardNavbar";
-import { db } from "@/db/client";
-import { usersTable } from "@/db/schema";
 import { Card, CardBody, CardHeader, Chip } from "@heroui/react";
-import { desc } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { getInstanceHealthSnapshot } from "@lib/instanceHealth";
 
@@ -41,20 +39,9 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 
 	const params = await searchParams;
 	const error = (toSingle(params.error) ?? "").trim();
-	const [health, users] = await Promise.all([
+	const [health, explorer] = await Promise.all([
 		getInstanceHealthSnapshot(),
-		db
-			.select({
-				id: usersTable.id,
-				username: usersTable.username,
-				email: usersTable.email,
-				role: usersTable.role,
-				plan: usersTable.plan,
-				lastLogin: usersTable.lastLogin,
-			})
-			.from(usersTable)
-			.orderBy(desc(usersTable.lastLogin), desc(usersTable.createdAt))
-			.execute(),
+		getAdminExplorerPage("", 1, 25),
 	]);
 
 	return (
@@ -162,7 +149,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 				) : null}
 
 				<AdminUserExplorer
-					users={users.map((row) => ({
+					users={explorer.users.map((row) => ({
 						id: row.id,
 						username: row.username,
 						email: row.email,
@@ -170,6 +157,9 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 						plan: row.plan,
 						lastLoginLabel: formatDate(row.lastLogin),
 					}))}
+					initialPage={explorer.page}
+					initialTotalPages={explorer.totalPages}
+					initialTotalRows={explorer.totalRows}
 				/>
 			</div>
 		</DashboardNavbar>

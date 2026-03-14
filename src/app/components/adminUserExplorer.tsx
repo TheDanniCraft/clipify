@@ -1,10 +1,11 @@
 "use client";
 
+import { getAdminExplorerPage } from "@actions/adminView";
 import { startAdminView } from "@actions/auth";
-import { Button, Card, CardBody, CardHeader, Chip, Input, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from "@heroui/react";
+import { Button, Card, CardBody, CardHeader, Chip, Input, Spinner, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from "@heroui/react";
 import { IconSearch } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useState, useTransition } from "react";
 
 type AdminExplorerRow = {
 	id: string;
@@ -17,36 +18,61 @@ type AdminExplorerRow = {
 
 type AdminUserExplorerProps = {
 	users: AdminExplorerRow[];
+	initialPage: number;
+	initialTotalPages: number;
+	initialTotalRows: number;
 };
 
 const PAGE_SIZE = 25;
 
-export default function AdminUserExplorer({ users }: AdminUserExplorerProps) {
+function formatLastLoginLabel(value: Date | string | null) {
+	if (!value) return "never";
+	return new Date(value).toLocaleString();
+}
+
+export default function AdminUserExplorer({ users, initialPage, initialTotalPages, initialTotalRows }: AdminUserExplorerProps) {
 	const router = useRouter();
 	const [switchingUserId, setSwitchingUserId] = useState<string | null>(null);
 	const [inputValue, setInputValue] = useState("");
-	const [currentPage, setCurrentPage] = useState(1);
+	const [searchQuery, setSearchQuery] = useState("");
+	const [page, setPage] = useState(initialPage);
+	const [totalPages, setTotalPages] = useState(initialTotalPages);
+	const [totalRows, setTotalRows] = useState(initialTotalRows);
+	const [visibleUsers, setVisibleUsers] = useState(users);
+	const [isPending, startTransition] = useTransition();
 
-	const filteredUsers = useMemo(() => {
-		const q = inputValue.trim().toLowerCase();
-		if (!q) return users;
-		return users.filter((row) => row.username.toLowerCase().includes(q) || row.id.toLowerCase() === q);
-	}, [users, inputValue]);
+	const loadPage = useCallback((query: string, requestedPage: number) => {
+		startTransition(() => {
+			void getAdminExplorerPage(query, requestedPage, PAGE_SIZE).then((result) => {
+				setVisibleUsers(
+					result.users.map((row) => ({
+						id: row.id,
+						username: row.username,
+						email: row.email,
+						role: row.role,
+						plan: row.plan,
+						lastLoginLabel: formatLastLoginLabel(row.lastLogin),
+					})),
+				);
+				setPage(result.page);
+				setTotalPages(result.totalPages);
+				setTotalRows(result.totalRows);
+			});
+		});
+	}, []);
 
-	const totalRows = filteredUsers.length;
-	const totalPages = Math.max(1, Math.ceil(totalRows / PAGE_SIZE));
-	const page = Math.min(currentPage, totalPages);
-	const firstRowNumber = totalRows === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
-	const lastRowNumber = Math.min(page * PAGE_SIZE, totalRows);
-	const visibleUsers = filteredUsers.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-
-	function handleSearchValueChange(value: string) {
-		setInputValue(value);
-		setCurrentPage(1);
-	}
+	useEffect(() => {
+		const nextQuery = inputValue.trim();
+		const timer = setTimeout(() => {
+			if (nextQuery === searchQuery) return;
+			setSearchQuery(nextQuery);
+			loadPage(nextQuery, 1);
+		}, 400);
+		return () => clearTimeout(timer);
+	}, [inputValue, searchQuery, loadPage]);
 
 	function handlePageChange(newPage: number) {
-		setCurrentPage(newPage);
+		loadPage(searchQuery, newPage);
 	}
 
 	async function handleViewAsUser(userId: string) {
@@ -63,6 +89,9 @@ export default function AdminUserExplorer({ users }: AdminUserExplorerProps) {
 			setSwitchingUserId(null);
 		}
 	}
+
+	const firstRowNumber = totalRows === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
+	const lastRowNumber = Math.min(page * PAGE_SIZE, totalRows);
 
 	return (
 		<Card>
@@ -84,13 +113,14 @@ export default function AdminUserExplorer({ users }: AdminUserExplorerProps) {
 							id='user-explorer-search'
 							name='q'
 							value={inputValue}
-							onValueChange={handleSearchValueChange}
+							onValueChange={setInputValue}
 							placeholder='username or user id'
 							label='Search users'
 							labelPlacement='outside'
 							size='sm'
 							variant='bordered'
 							startContent={<IconSearch className='text-default-400' size={16} />}
+							endContent={isPending ? <Spinner size='sm' /> : null}
 						/>
 					</div>
 				</div>
@@ -154,13 +184,13 @@ export default function AdminUserExplorer({ users }: AdminUserExplorerProps) {
 				</Table>
 
 				<div className='flex flex-wrap items-center justify-between gap-2'>
-					<Button size='sm' variant='flat' isDisabled={page <= 1} onPress={() => handlePageChange(page - 1)}>
+					<Button size='sm' variant='flat' isDisabled={page <= 1 || isPending} onPress={() => handlePageChange(page - 1)}>
 						Previous
 					</Button>
 					<p className='text-xs text-default-500'>
 						Page {page} / {totalPages}
 					</p>
-					<Button size='sm' variant='flat' isDisabled={page >= totalPages} onPress={() => handlePageChange(page + 1)}>
+					<Button size='sm' variant='flat' isDisabled={page >= totalPages || isPending} onPress={() => handlePageChange(page + 1)}>
 						Next
 					</Button>
 				</div>

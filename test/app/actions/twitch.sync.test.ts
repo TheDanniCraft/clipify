@@ -717,4 +717,31 @@ describe("actions/twitch syncOwnerClipCache", () => {
 			}),
 		);
 	});
+
+	it("preserves initial window context when shrinking dense backfill window", async () => {
+		getTwitchCache.mockResolvedValue({
+			backfillComplete: false,
+			lastIncrementalSyncAt: new Date().toISOString(),
+		});
+
+		jest.spyOn(axios, "get").mockResolvedValue({
+			data: {
+				data: Array.from({ length: 100 }, (_, i) => buildClip(`dense-initial-${i}`)),
+				pagination: { cursor: "dense-initial-cursor" },
+			},
+		} as never);
+
+		const { syncOwnerClipCache } = await import("@/app/actions/twitch");
+		await syncOwnerClipCache("owner-1");
+
+		expect(setTwitchCache).toHaveBeenCalledWith(
+			TwitchCacheType.Clip,
+			"clip-sync:owner-1",
+			expect.objectContaining({
+				backfillWindowSizeMs: expect.any(Number),
+				backfillWindowEnd: expect.any(String),
+				backfillCursor: undefined,
+			}),
+		);
+	});
 });

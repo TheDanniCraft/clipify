@@ -1,10 +1,11 @@
 import React from "react";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import AdminUserExplorer from "@/app/components/adminUserExplorer";
 
 const routerPush = jest.fn();
 const routerRefresh = jest.fn();
 const startAdminView = jest.fn();
+const getAdminExplorerPage = jest.fn();
 
 jest.mock("next/navigation", () => ({
 	useRouter: () => ({
@@ -15,6 +16,10 @@ jest.mock("next/navigation", () => ({
 
 jest.mock("@actions/auth", () => ({
 	startAdminView: (...args: unknown[]) => startAdminView(...args),
+}));
+
+jest.mock("@actions/adminView", () => ({
+	getAdminExplorerPage: (...args: unknown[]) => getAdminExplorerPage(...args),
 }));
 
 jest.mock("@heroui/react", () => ({
@@ -52,6 +57,12 @@ describe("components/adminUserExplorer behavior", () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
 		startAdminView.mockResolvedValue({ ok: true });
+		getAdminExplorerPage.mockResolvedValue({
+			users: [],
+			page: 1,
+			totalPages: 1,
+			totalRows: 0,
+		});
 	});
 
 	it("switches immediately to selected user dashboard when action succeeds", async () => {
@@ -67,6 +78,9 @@ describe("components/adminUserExplorer behavior", () => {
 						lastLoginLabel: "now",
 					},
 				]}
+				initialPage={1}
+				initialTotalPages={1}
+				initialTotalRows={1}
 			/>,
 		);
 
@@ -91,6 +105,9 @@ describe("components/adminUserExplorer behavior", () => {
 						lastLoginLabel: "now",
 					},
 				]}
+				initialPage={1}
+				initialTotalPages={1}
+				initialTotalRows={1}
 			/>,
 		);
 
@@ -101,26 +118,41 @@ describe("components/adminUserExplorer behavior", () => {
 		expect(routerRefresh).not.toHaveBeenCalled();
 	});
 
-	it("filters visible table rows when typing in search", async () => {
+	it("requests server-side search updates without writing URL params", async () => {
+		jest.useFakeTimers();
+		getAdminExplorerPage.mockResolvedValue({
+			users: [{ id: "u2", username: "bob", email: "bob@example.com", role: "user", plan: "free", lastLogin: null }],
+			page: 1,
+			totalPages: 1,
+			totalRows: 1,
+		});
 		render(
 			<AdminUserExplorer
 				users={[
 					{ id: "u1", username: "alice", email: "alice@example.com", role: "user", plan: "free", lastLoginLabel: "now" },
 					{ id: "u2", username: "bob", email: "bob@example.com", role: "user", plan: "free", lastLoginLabel: "now" },
 				]}
+				initialPage={1}
+				initialTotalPages={1}
+				initialTotalRows={2}
 			/>,
 		);
 
 		const input = screen.getByRole("textbox");
 		fireEvent.change(input, { target: { value: "bob" } });
 
-		expect(screen.queryByText("@alice")).not.toBeInTheDocument();
-		expect(screen.getByText("@bob")).toBeInTheDocument();
+		act(() => {
+			jest.advanceTimersByTime(400);
+		});
+
+		await waitFor(() => expect(getAdminExplorerPage).toHaveBeenCalledWith("bob", 1, 25));
+		await waitFor(() => expect(screen.getByText("@bob")).toBeInTheDocument());
 		expect(routerPush).not.toHaveBeenCalled();
+		jest.useRealTimers();
 	});
 
-	it("updates table pagination locally when clicking next/previous", async () => {
-		const users = Array.from({ length: 26 }, (_, idx) => ({
+	it("requests server-side pagination when clicking next/previous", async () => {
+		const users = Array.from({ length: 25 }, (_, idx) => ({
 			id: `u${idx + 1}`,
 			username: `user${idx + 1}`,
 			email: `user${idx + 1}@example.com`,
@@ -128,18 +160,31 @@ describe("components/adminUserExplorer behavior", () => {
 			plan: "free",
 			lastLoginLabel: "now",
 		}));
-		render(<AdminUserExplorer users={users} />);
+		getAdminExplorerPage
+			.mockResolvedValueOnce({
+				users: [{ id: "u26", username: "user26", email: "user26@example.com", role: "user", plan: "free", lastLogin: null }],
+				page: 2,
+				totalPages: 2,
+				totalRows: 26,
+			})
+			.mockResolvedValueOnce({
+				users,
+				page: 1,
+				totalPages: 2,
+				totalRows: 26,
+			});
+		render(<AdminUserExplorer users={users} initialPage={1} initialTotalPages={2} initialTotalRows={26} />);
 
 		expect(screen.getByText("Page 1 / 2")).toBeInTheDocument();
-		expect(screen.getByText("@user1")).toBeInTheDocument();
-		expect(screen.queryByText("@user26")).not.toBeInTheDocument();
 
 		fireEvent.click(screen.getByRole("button", { name: "Next" }));
-		expect(screen.getByText("Page 2 / 2")).toBeInTheDocument();
-		expect(screen.getByText("@user26")).toBeInTheDocument();
+		await waitFor(() => expect(getAdminExplorerPage).toHaveBeenCalledWith("", 2, 25));
+		await waitFor(() => expect(screen.getByText("Page 2 / 2")).toBeInTheDocument());
+		await waitFor(() => expect(screen.getByText("@user26")).toBeInTheDocument());
 
 		fireEvent.click(screen.getByRole("button", { name: "Previous" }));
-		expect(screen.getByText("Page 1 / 2")).toBeInTheDocument();
+		await waitFor(() => expect(getAdminExplorerPage).toHaveBeenCalledWith("", 1, 25));
+		await waitFor(() => expect(screen.getByText("Page 1 / 2")).toBeInTheDocument());
 		expect(routerPush).not.toHaveBeenCalled();
 	});
 });

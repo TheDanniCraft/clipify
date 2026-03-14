@@ -745,6 +745,8 @@ export async function syncOwnerClipCache(ownerId: string, ensurePackSize = 0): P
 						nextState.backfillWindowSizeMs = Math.max(MIN_WINDOW_MS, Math.floor(windowSizeMs / 2));
 						// We MUST persist what we have.
 						await upsertClipsByOwner(ownerId, fetchedClips);
+						// Preserve window context so retries stay on the same historical range.
+						nextState.backfillWindowEnd = endedAtIso;
 						// Reset cursor because the next request will have different date bounds, making the current cursor invalid.
 						nextState.backfillCursor = undefined;
 						break; // Stop this run's loop to avoid getting stuck if remainingBudget is low

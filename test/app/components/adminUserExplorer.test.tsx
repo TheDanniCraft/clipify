@@ -13,6 +13,10 @@ jest.mock("@actions/auth", () => ({
 	startAdminView: jest.fn(async () => ({ ok: true })),
 }));
 
+jest.mock("@actions/adminView", () => ({
+	getAdminExplorerPage: jest.fn(async () => ({ users: [], page: 1, totalPages: 1, totalRows: 0 })),
+}));
+
 describe("components/adminUserExplorer", () => {
 	it("renders user explorer table and rows", () => {
 		render(
@@ -27,6 +31,9 @@ describe("components/adminUserExplorer", () => {
 						lastLoginLabel: "3/9/2026, 10:00:00 AM",
 					},
 				]}
+				initialPage={1}
+				initialTotalPages={1}
+				initialTotalRows={1}
 			/>,
 		);
 
