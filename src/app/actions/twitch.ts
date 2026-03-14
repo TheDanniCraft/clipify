@@ -726,6 +726,7 @@ export async function syncOwnerClipCache(ownerId: string, ensurePackSize = 0): P
 								// Persist what we have before aborting to avoid re-fetching the same window.
 								if (fetchedClips.length > 0) {
 									await upsertClipsByOwner(ownerId, fetchedClips);
+									nextState.backfillWindowEnd = endedAtIso;
 									nextState.backfillCursor = cursor;
 								}
 								throw error; // Rethrow to abort the entire backfill for this run
@@ -747,16 +748,23 @@ export async function syncOwnerClipCache(ownerId: string, ensurePackSize = 0): P
 						// Reset cursor because the next request will have different date bounds, making the current cursor invalid.
 						nextState.backfillCursor = undefined;
 						break; // Stop this run's loop to avoid getting stuck if remainingBudget is low
-					} else if ((!windowFailed && !cursor) || hitLimitInWindow || budgetExhausted || (windowFailed && pagesFetchedInWindow > 0)) {
+					} else if (windowFailed && pagesFetchedInWindow > 0) {
+						// Persist partial progress in the SAME window and retry later from the saved cursor.
+						await upsertClipsByOwner(ownerId, fetchedClips);
+						nextState.backfillWindowEnd = endedAtIso;
+						nextState.backfillCursor = cursor;
+						nextState.backfillWindowSizeMs = windowSizeMs;
+						break;
+					} else if ((!windowFailed && !cursor) || hitLimitInWindow || budgetExhausted) {
 						// Case A: No error and window truly finished (!cursor)
 						// Case B: Hit limit but already at MIN_WINDOW_MS (Accept partial and move on)
 						// Case C: Budget exhausted mid-window (budgetExhausted) - Save partial and stay on same window
-						// Case D: Window failed mid-fetch (windowFailed) AND we have some data, accept partial and move on
 
 						await upsertClipsByOwner(ownerId, fetchedClips);
 						
 						if (budgetExhausted) {
 							// Stay on the same window for next run, but save current progress
+							nextState.backfillWindowEnd = endedAtIso;
 							nextState.backfillCursor = cursor;
 						} else {
 							// Move to next window
