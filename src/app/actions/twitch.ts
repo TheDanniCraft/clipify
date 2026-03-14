@@ -603,6 +603,18 @@ export async function syncOwnerClipCache(ownerId: string, ensurePackSize = 0): P
 		const token = await getAccessToken(ownerId);
 		if (!token) return;
 
+		let ownerBackfillLowerBoundMs = TWITCH_CLIPS_LAUNCH_MS;
+		try {
+			const ownerLowerBoundResult = (await lockClient.query("select coalesce(twitch_created_at, created_at) as lower_bound from users where id = $1 limit 1", [ownerId])) as { rows?: Array<{ lower_bound?: string | Date | null }> };
+			const lowerBoundRaw = ownerLowerBoundResult.rows?.[0]?.lower_bound;
+			const parsedLowerBoundMs = lowerBoundRaw ? new Date(lowerBoundRaw).getTime() : Number.NaN;
+			if (Number.isFinite(parsedLowerBoundMs)) {
+				ownerBackfillLowerBoundMs = Math.max(TWITCH_CLIPS_LAUNCH_MS, parsedLowerBoundMs);
+			}
+		} catch {
+			ownerBackfillLowerBoundMs = TWITCH_CLIPS_LAUNCH_MS;
+		}
+
 		let cachedClips: TwitchClip[] = [];
 		if (ensurePackSize > 0) {
 			cachedClips = await getCachedClipsByOwner(ownerId);
@@ -690,18 +702,18 @@ export async function syncOwnerClipCache(ownerId: string, ensurePackSize = 0): P
 					const fetchedClips: TwitchClip[] = [];
 
 					// Advance window logic if we are already at the start or have invalid state (nothing to sync)
-					if (!Number.isFinite(currentEndMs) || currentEndMs <= TWITCH_CLIPS_LAUNCH_MS) {
+					if (!Number.isFinite(currentEndMs) || currentEndMs <= ownerBackfillLowerBoundMs) {
 						nextState.backfillComplete = true;
 						break;
 					}
 
-					const currentStartMs = Math.max(TWITCH_CLIPS_LAUNCH_MS, currentEndMs - windowSizeMs);
+					const currentStartMs = Math.max(ownerBackfillLowerBoundMs, currentEndMs - windowSizeMs);
 					const startedAtIso = new Date(currentStartMs).toISOString();
 					const endedAtIso = new Date(currentEndMs).toISOString();
 
 					let windowFailed = false;
 					// Process the entire time window atomically
-					while (pagesFetchedInWindow < remainingBudget && currentEndMs > TWITCH_CLIPS_LAUNCH_MS) {
+					while (pagesFetchedInWindow < remainingBudget && currentEndMs > ownerBackfillLowerBoundMs) {
 						try {
 							const page = await fetchClipPage(ownerId, token.accessToken, 100, cursor, startedAtIso, endedAtIso);
 
@@ -787,7 +799,7 @@ export async function syncOwnerClipCache(ownerId: string, ensurePackSize = 0): P
 								}
 							}
 
-							if (currentStartMs <= TWITCH_CLIPS_LAUNCH_MS) {
+							if (currentStartMs <= ownerBackfillLowerBoundMs) {
 								nextState.backfillComplete = true;
 							}
 						}

@@ -49,6 +49,7 @@ export const usersTable = pgTable("users", {
 	disabledReason: varchar("disabled_reason"),
 	stripeCustomerId: varchar("stripe_customer_id"),
 	createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+	twitchCreatedAt: timestamp("twitch_created_at", { withTimezone: true }).default(sql`'2016-05-01T00:00:00.000Z'::timestamptz`).notNull(),
 	updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 	lastLogin: timestamp("last_login", { withTimezone: true }),
 	lastEntitlementReconciledAt: timestamp("last_entitlement_reconciled_at", { withTimezone: true }),

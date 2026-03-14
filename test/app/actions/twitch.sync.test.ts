@@ -181,6 +181,36 @@ describe("actions/twitch syncOwnerClipCache", () => {
 		expect(setTwitchCache).not.toHaveBeenCalled();
 	});
 
+	it("uses owner-specific twitch signup lower bound to finish historical backfill", async () => {
+		const lockClient = {
+			query: jest
+				.fn()
+				.mockResolvedValueOnce({ rows: [{ locked: true }] })
+				.mockResolvedValueOnce({ rows: [{ lower_bound: "2022-01-01T00:00:00.000Z" }] }),
+			release: jest.fn(),
+		};
+		connect.mockResolvedValue(lockClient);
+		getTwitchCache.mockResolvedValue({
+			backfillWindowEnd: "2021-01-01T00:00:00.000Z",
+			backfillComplete: false,
+			lastIncrementalSyncAt: new Date().toISOString(),
+		});
+		const getSpy = jest.spyOn(axios, "get");
+
+		const { syncOwnerClipCache } = await import("@/app/actions/twitch");
+		await syncOwnerClipCache("owner-1");
+
+		expect(getSpy).not.toHaveBeenCalled();
+		expect(setTwitchCache).toHaveBeenCalledWith(
+			TwitchCacheType.Clip,
+			"clip-sync:owner-1",
+			expect.objectContaining({
+				backfillComplete: true,
+				backfillWindowEnd: "2021-01-01T00:00:00.000Z",
+			}),
+		);
+	});
+
 	it("skips all sync work while owner is rate-limited", async () => {
 		getTwitchCache.mockResolvedValue({
 			rateLimitedUntil: new Date(Date.now() + 5 * 60 * 1000).toISOString(),

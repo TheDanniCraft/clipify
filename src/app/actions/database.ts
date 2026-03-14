@@ -23,6 +23,12 @@ function escapeLikePattern(value: string) {
 	return value.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
 }
 
+function parseTwitchCreatedAtOrDefault(createdAt: string | undefined) {
+	const parsed = Date.parse(createdAt ?? "");
+	if (!Number.isFinite(parsed)) return new Date(TWITCH_CLIPS_LAUNCH_MS);
+	return new Date(parsed);
+}
+
 type CacheReadMetrics = {
 	hits: number;
 	misses: number;
@@ -330,6 +336,7 @@ async function requireOverlaySecretAccess(overlayId: string, secret?: string): P
 
 async function setUser(user: TwitchUserResponse): Promise<AuthenticatedUser> {
 	try {
+		const twitchCreatedAt = parseTwitchCreatedAtOrDefault(user.created_at);
 		const existing = await db.select({ id: usersTable.id, disabled: usersTable.disabled, disableType: usersTable.disableType }).from(usersTable).where(eq(usersTable.id, user.id)).limit(1).execute();
 		const isNewUser = existing.length === 0;
 		const dbUser = await db
@@ -341,6 +348,7 @@ async function setUser(user: TwitchUserResponse): Promise<AuthenticatedUser> {
 				avatar: user.profile_image_url,
 				role: Role.User,
 				plan: Plan.Free,
+				twitchCreatedAt,
 			})
 			.onConflictDoUpdate({
 				target: usersTable.id,
@@ -348,6 +356,7 @@ async function setUser(user: TwitchUserResponse): Promise<AuthenticatedUser> {
 					username: user.login,
 					email: user.email,
 					avatar: user.profile_image_url,
+					twitchCreatedAt,
 					updatedAt: new Date(),
 				},
 			})
