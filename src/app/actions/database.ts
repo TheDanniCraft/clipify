@@ -1412,9 +1412,9 @@ export async function getSettings(userId: string): Promise<UserSettings> {
 			return saveSettings({
 				id: userId,
 				prefix: "!",
-				marketingOptIn: true,
-				marketingOptInAt: new Date(),
-				marketingOptInSource: "soft_opt_in_default",
+				marketingOptIn: false,
+				marketingOptInAt: null,
+				marketingOptInSource: null,
 				useSendProductUpdatesContactId: null,
 				editors: [],
 			}).then(() => getSettings(userId));
@@ -1477,6 +1477,7 @@ export async function saveSettings(settings: UserSettings) {
 		const existingSettingsRows = await db.select().from(settingsTable).where(eq(settingsTable.id, userId)).limit(1).execute();
 		const existingSettings = existingSettingsRows[0];
 		const wasOptedIn = Boolean(existingSettings?.marketingOptIn);
+		const requestedSource = settings.marketingOptInSource ?? null;
 
 		let marketingOptInAt = existingSettings?.marketingOptInAt ?? null;
 		let marketingOptInSource = existingSettings?.marketingOptInSource ?? null;
@@ -1484,8 +1485,13 @@ export async function saveSettings(settings: UserSettings) {
 			marketingOptInAt = null;
 			marketingOptInSource = "settings_page_optout";
 		} else if (marketingOptIn && !wasOptedIn) {
-			marketingOptInAt = new Date();
-			marketingOptInSource = "settings_page_explicit_optin";
+			if (requestedSource === "soft_opt_in_default") {
+				marketingOptInAt = existingSettings?.marketingOptInAt ?? new Date();
+				marketingOptInSource = "soft_opt_in_default";
+			} else {
+				marketingOptInAt = new Date();
+				marketingOptInSource = "settings_page_explicit_optin";
+			}
 		} else {
 			// No consent state change; keep existing audit/source values untouched.
 			marketingOptInAt = existingSettings?.marketingOptInAt ?? null;
