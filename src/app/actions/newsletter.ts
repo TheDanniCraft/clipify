@@ -8,6 +8,7 @@ import { verifyTurnstile } from "nextjs-turnstile";
 const USESEND_BASE_URL = process.env.USESEND_BASE_URL;
 const USESEND_API_KEY = process.env.USESEND_API_KEY;
 const USESEND_CONTACT_BOOK_ID = process.env.USESEND_CONTACT_BOOK_ID;
+const USESEND_PRODUCT_UPDATES_CONTACT_BOOK_ID = process.env.USESEND_PRODUCT_UPDATES_CONTACT_BOOK_ID || "cmms2t6660023s548bhvb6x1i";
 
 type NewsletterContactDetails = {
 	firstName?: string;
@@ -105,4 +106,71 @@ export async function getEmailProvider(email: string) {
 		}
 	}
 	return "custom";
+}
+
+type ProductUpdatesContactInput = {
+	email: string;
+	subscribed: boolean;
+	userId: string;
+	username?: string;
+	source: "soft_opt_in" | "explicit_opt_in" | "explicit_opt_out";
+	contactId?: string | null;
+};
+
+type UseSendContact = {
+	id: string;
+	email: string;
+	subscribed?: boolean;
+};
+
+export async function syncProductUpdatesContact(input: ProductUpdatesContactInput): Promise<string | null> {
+	try {
+		if (!input.email) return null;
+		if (!USESEND_BASE_URL || !USESEND_API_KEY || !USESEND_PRODUCT_UPDATES_CONTACT_BOOK_ID) return null;
+
+		const baseUrl = USESEND_BASE_URL.replace(/\/+$/, "");
+		const client = new UseSend(USESEND_API_KEY, baseUrl);
+
+		const payload = {
+			email: input.email,
+			subscribed: input.subscribed,
+			...(input.username ? { firstName: input.username } : {}),
+			properties: {
+				product: "clipify",
+				consent_source: input.source,
+				user_id: input.userId,
+			},
+		};
+
+		if (input.contactId) {
+			const updateById = await client.contacts.update(USESEND_PRODUCT_UPDATES_CONTACT_BOOK_ID, input.contactId, payload);
+			if (!updateById.error) {
+				return input.contactId;
+			}
+		}
+
+		if (input.subscribed) {
+			// UseSend blocks re-subscribe on create for previously unsubscribed contacts.
+			// Resolve contact id by email, then force update subscribed=true.
+			const lookup = await client.get<UseSendContact[]>(`/contactBooks/${USESEND_PRODUCT_UPDATES_CONTACT_BOOK_ID}/contacts?emails=${encodeURIComponent(input.email)}`);
+			const existingContact = lookup.data?.find((contact) => contact.email.toLowerCase() === input.email.toLowerCase());
+
+			if (existingContact?.id) {
+				const updateResponse = await client.contacts.update(USESEND_PRODUCT_UPDATES_CONTACT_BOOK_ID, existingContact.id, payload);
+				if (updateResponse.error) {
+					throw new Error(updateResponse.error.message || "useSend product-updates contact update failed");
+				}
+				return existingContact.id;
+			}
+		}
+
+		const response = await client.contacts.create(USESEND_PRODUCT_UPDATES_CONTACT_BOOK_ID, payload);
+		if (response.error) {
+			throw new Error(response.error.message || "useSend product-updates contact sync failed");
+		}
+		return response.data?.contactId ?? null;
+	} catch (error) {
+		console.error("Product updates contact sync error:", error);
+		return null;
+	}
 }

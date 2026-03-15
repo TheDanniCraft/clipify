@@ -5,7 +5,7 @@ import { deleteUser, getClipCacheStatus, getSettings, saveSettings } from "@acti
 import ConfirmModal from "@components/confirmModal";
 import DashboardNavbar from "@components/dashboardNavbar";
 import { AuthenticatedUser, Plan, UserSettings } from "@types";
-import { addToast, Avatar, Button, Card, CardBody, CardHeader, Divider, Form, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Snippet, Spinner, Tooltip, useDisclosure } from "@heroui/react";
+import { addToast, Avatar, Button, Card, CardBody, CardHeader, Divider, Form, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Snippet, Spinner, Switch, Tooltip, useDisclosure } from "@heroui/react";
 import { IconAlertTriangle, IconArrowLeft, IconCreditCardFilled, IconCrown, IconDatabase, IconDeviceFloppy, IconDiamondFilled, IconInfoCircle, IconRefresh, IconTrash } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -125,6 +125,7 @@ export default function SettingsPage() {
 	const effectivePlan = user?.entitlements?.effectivePlan ?? user?.plan ?? Plan.Free;
 	const isEffectivelyFree = effectivePlan === Plan.Free;
 	const canUpgradeFromBilling = user?.plan === Plan.Free;
+	const receivesProductUpdates = Boolean(settings?.marketingOptIn);
 
 	useEffect(() => {
 		if (!user || typeof window === "undefined") return;
@@ -403,6 +404,28 @@ export default function SettingsPage() {
 								}}
 								required
 							/>
+							<div className='w-full rounded-medium border border-default-200 bg-default-50/40 p-3'>
+								<div className='flex items-start justify-between gap-4'>
+									<div>
+										<p className='font-semibold text-sm'>Email Preferences</p>
+										<p className='text-xs text-default-500'>Product updates and occasional special offers.</p>
+									</div>
+									<Switch
+										isSelected={receivesProductUpdates}
+										onValueChange={(value) => {
+											setSettings({
+												...settings!,
+												marketingOptIn: value,
+												marketingOptInSource: value ? "settings_page_explicit_optin" : "settings_page_optout",
+											});
+										}}
+									>
+										Receive emails
+									</Switch>
+								</div>
+								<p className='mt-2 text-xs text-default-500'>Opt out anytime here or by using the unsubscribe link in any email.</p>
+								{settings?.marketingOptInAt && <p className='mt-1 text-xs text-default-500'>Consent recorded on {new Date(settings.marketingOptInAt).toLocaleString()}.</p>}
+							</div>
 
 							{isEffectivelyFree && !editorsAccess.allowed && (
 								<div className='w-full mb-4'>

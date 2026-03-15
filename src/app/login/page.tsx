@@ -26,17 +26,17 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
 						Login with Twitch
 					</Button>
 
-					<div className='flex flex-col items-center text-xs text-gray-400 mt-1'>
-						<p>By using this service, you agree to our </p>
+					<div className='mt-2 flex max-w-[240px] flex-col items-center text-center text-xs text-gray-400'>
 						<p>
+							By logging in, you agree to our{" "}
 							<Link isExternal href='https://hub.goadopt.io/document/9651af3f-af45-480f-8a4d-2beb6ed68e9b?language=en' className='text-xs' color='foreground'>
-								Terms of Service
+								Terms
 							</Link>{" "}
 							and{" "}
 							<Link isExternal href='https://hub.goadopt.io/document/3852d930-97b9-46c2-950d-823e62515ab4?language=en' className='text-xs' color='foreground'>
-								Privacy Policy
+								Privacy
 							</Link>
-							.
+							. We send you product update emails by default. You can opt out anytime.
 						</p>
 					</div>
 				</div>
