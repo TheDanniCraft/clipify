@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Providers } from "./providers";
+import ThemeProvider from "./theme-provider";
 import { getBaseUrl } from "@actions/utils";
 import PlausibleClient from "./PlausibleClient";
 
@@ -51,7 +52,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
 			</head>
 			<body>
 				<PlausibleClient>
-					<Providers>{children}</Providers>
+					<ThemeProvider>
+						<Providers>{children}</Providers>
+					</ThemeProvider>
 				</PlausibleClient>
 			</body>
 		</html>

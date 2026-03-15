@@ -79,6 +79,7 @@ export default function Footer() {
 			{ name: "Climate Initiative", href: "https://climate.stripe.com/FaGAVC" },
 		],
 		legal: [
+			{ name: "Imprint", href: "/imprint" },
 			{ name: "Privacy Policy", href: "https://hub.goadopt.io/document/3852d930-97b9-46c2-950d-823e62515ab4?language=en" },
 			{ name: "Cookie Policy", href: "https://hub.goadopt.io/document/535d4dc1-7b66-4b96-9bff-bc6e0e47587d?language=en" },
 			{ name: "Terms of Service", href: "https://hub.goadopt.io/document/9651af3f-af45-480f-8a4d-2beb6ed68e9b?language=en" },
