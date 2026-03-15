@@ -4,6 +4,7 @@ import { tokenTable, usersTable, overlaysTable, queueTable, settingsTable, modQu
 import { db } from "@/db/client";
 import { AuthenticatedUser, Overlay, TwitchUserResponse, TwitchTokenApiResponse, UserToken, Plan, Role, UserSettings, TwitchCacheType, StatusOptions, OverlayType, PlaybackMode, MaxDurationMode, TwitchClip } from "@types";
 import { getUserDetails, getUsersDetailsBulk, refreshAccessTokenWithContext, subscribeToReward } from "@actions/twitch";
+import { syncProductUpdatesContact } from "@actions/newsletter";
 import { eq, inArray, and, or, isNull, lt, gt, sql, desc, max } from "drizzle-orm";
 import { validateAuth } from "@actions/auth";
 import { encryptToken, decryptToken } from "@lib/tokenCrypto";
@@ -27,6 +28,17 @@ function parseTwitchCreatedAtOrDefault(createdAt: string | undefined) {
 	const parsed = Date.parse(createdAt ?? "");
 	if (!Number.isFinite(parsed)) return new Date(TWITCH_CLIPS_LAUNCH_MS);
 	return new Date(parsed);
+}
+
+function deriveProductUpdatesConsentSource(settings: Pick<UserSettings, "marketingOptIn" | "marketingOptInSource">) {
+	if (settings.marketingOptInSource === "soft_opt_in_default") return "soft_opt_in" as const;
+	if (!settings.marketingOptIn || settings.marketingOptInSource === "settings_page_optout") return "explicit_opt_out" as const;
+	if (settings.marketingOptIn) return "explicit_opt_in" as const;
+	return "soft_opt_in" as const;
+}
+
+function isProductUpdatesSubscribed(settings: Pick<UserSettings, "marketingOptIn">) {
+	return Boolean(settings.marketingOptIn);
 }
 
 type CacheReadMetrics = {
@@ -382,6 +394,29 @@ async function setUser(user: TwitchUserResponse): Promise<AuthenticatedUser> {
 
 		if (isNewUser) {
 			await ensureReverseTrialGrantForUser({ id: dbUser.id, plan: dbUser.plan });
+			await db
+				.insert(settingsTable)
+				.values({
+					id: dbUser.id,
+					prefix: "!",
+					marketingOptIn: true,
+					marketingOptInAt: new Date(),
+					marketingOptInSource: "soft_opt_in_default",
+					useSendProductUpdatesContactId: null,
+				})
+				.onConflictDoNothing()
+				.execute();
+
+			const contactId = await syncProductUpdatesContact({
+				email: dbUser.email,
+				subscribed: true,
+				userId: dbUser.id,
+				username: dbUser.username,
+				source: "soft_opt_in",
+			});
+			if (contactId) {
+				await db.update(settingsTable).set({ useSendProductUpdatesContactId: contactId }).where(eq(settingsTable.id, dbUser.id)).execute();
+			}
 		}
 
 		return dbUser;
@@ -1377,6 +1412,10 @@ export async function getSettings(userId: string): Promise<UserSettings> {
 			return saveSettings({
 				id: userId,
 				prefix: "!",
+				marketingOptIn: true,
+				marketingOptInAt: new Date(),
+				marketingOptInSource: "soft_opt_in_default",
+				useSendProductUpdatesContactId: null,
 				editors: [],
 			}).then(() => getSettings(userId));
 		}
@@ -1408,6 +1447,7 @@ export async function saveSettings(settings: UserSettings) {
 		throw new Error("Unauthorized");
 	}
 	const prefix = settings.prefix;
+	const marketingOptIn = Boolean(settings.marketingOptIn);
 	const editors = settings.editors ?? [];
 	const editorsAccess = getFeatureAccess(authedUser, "editors");
 	const effectiveEditors = editorsAccess.allowed ? editors : [];
@@ -1434,14 +1474,34 @@ export async function saveSettings(settings: UserSettings) {
 	}
 
 	try {
+		const existingSettingsRows = await db.select().from(settingsTable).where(eq(settingsTable.id, userId)).limit(1).execute();
+		const existingSettings = existingSettingsRows[0];
+		const wasOptedIn = Boolean(existingSettings?.marketingOptIn);
+
+		let marketingOptInAt = existingSettings?.marketingOptInAt ?? null;
+		let marketingOptInSource = existingSettings?.marketingOptInSource ?? null;
+		if (!marketingOptIn && wasOptedIn) {
+			marketingOptInAt = null;
+			marketingOptInSource = "settings_page_optout";
+		} else if (marketingOptIn && !wasOptedIn) {
+			marketingOptInAt = new Date();
+			marketingOptInSource = "settings_page_explicit_optin";
+		} else {
+			// No consent state change; keep existing audit/source values untouched.
+			marketingOptInAt = existingSettings?.marketingOptInAt ?? null;
+			marketingOptInSource = existingSettings?.marketingOptInSource ?? null;
+		}
+
+		const useSendProductUpdatesContactId = existingSettings?.useSendProductUpdatesContactId ?? null;
+
 		await db.transaction(async (tx) => {
 			// Upsert settings
 			await tx
 				.insert(settingsTable)
-				.values({ id: userId, prefix })
+				.values({ id: userId, prefix, marketingOptIn, marketingOptInAt, marketingOptInSource, useSendProductUpdatesContactId })
 				.onConflictDoUpdate({
 					target: settingsTable.id,
-					set: { prefix },
+					set: { prefix, marketingOptIn, marketingOptInAt, marketingOptInSource, useSendProductUpdatesContactId },
 				})
 				.execute();
 
@@ -1452,6 +1512,33 @@ export async function saveSettings(settings: UserSettings) {
 				await tx.insert(editorsTable).values(rows).execute();
 			}
 		});
+
+		const finalSettings: Pick<UserSettings, "marketingOptIn" | "marketingOptInSource"> = {
+			marketingOptIn,
+			marketingOptInSource,
+		};
+		const previousSettings: Pick<UserSettings, "marketingOptIn" | "marketingOptInSource"> = {
+			marketingOptIn: Boolean(existingSettings?.marketingOptIn),
+			marketingOptInSource: existingSettings?.marketingOptInSource ?? null,
+		};
+		const previousSubscribed = isProductUpdatesSubscribed(previousSettings);
+		const nextSubscribed = isProductUpdatesSubscribed(finalSettings);
+		const previousSource = deriveProductUpdatesConsentSource(previousSettings);
+		const nextSource = deriveProductUpdatesConsentSource(finalSettings);
+
+		if (previousSubscribed !== nextSubscribed || previousSource !== nextSource) {
+			const syncedContactId = await syncProductUpdatesContact({
+				email: authedUser.email,
+				subscribed: nextSubscribed,
+				userId: authedUser.id,
+				username: authedUser.username,
+				source: nextSource,
+				contactId: useSendProductUpdatesContactId,
+			});
+			if (syncedContactId && syncedContactId !== useSendProductUpdatesContactId) {
+				await db.update(settingsTable).set({ useSendProductUpdatesContactId: syncedContactId }).where(eq(settingsTable.id, userId)).execute();
+			}
+		}
 	} catch (error) {
 		console.error("Error saving settings:", error);
 		throw new Error("Failed to save settings");
