@@ -47,10 +47,8 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
 				<link rel='preconnect' href='https://goadopt.io' crossOrigin='anonymous' />
 				<link rel='preconnect' href='https://affiliate.clipify.us' crossOrigin='anonymous' />
 				<script async src='https://affiliate.clipify.us/tracking/program-1.js'></script>
-
-				<meta name='adopt-website-id' content='792b9b29-57f9-4d92-b5f1-313f94ddfacc' />
 			</head>
-			<body>
+			<body suppressHydrationWarning>
 				<PlausibleClient>
 					<ThemeProvider>
 						<Providers>{children}</Providers>
