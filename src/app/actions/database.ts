@@ -1531,8 +1531,9 @@ export async function saveSettings(settings: UserSettings) {
 		const nextSubscribed = isProductUpdatesSubscribed(finalSettings);
 		const previousSource = deriveProductUpdatesConsentSource(previousSettings);
 		const nextSource = deriveProductUpdatesConsentSource(finalSettings);
+		const shouldRetryMissingContactSync = !useSendProductUpdatesContactId && nextSubscribed;
 
-		if (previousSubscribed !== nextSubscribed || previousSource !== nextSource) {
+		if (previousSubscribed !== nextSubscribed || previousSource !== nextSource || shouldRetryMissingContactSync) {
 			const syncedContactId = await syncProductUpdatesContact({
 				email: authedUser.email,
 				subscribed: nextSubscribed,
