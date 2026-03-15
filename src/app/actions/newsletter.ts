@@ -8,7 +8,7 @@ import { verifyTurnstile } from "nextjs-turnstile";
 const USESEND_BASE_URL = process.env.USESEND_BASE_URL;
 const USESEND_API_KEY = process.env.USESEND_API_KEY;
 const USESEND_CONTACT_BOOK_ID = process.env.USESEND_CONTACT_BOOK_ID;
-const USESEND_PRODUCT_UPDATES_CONTACT_BOOK_ID = process.env.USESEND_PRODUCT_UPDATES_CONTACT_BOOK_ID || "cmms2t6660023s548bhvb6x1i";
+const USESEND_PRODUCT_UPDATES_CONTACT_BOOK_ID = process.env.USESEND_PRODUCT_UPDATES_CONTACT_BOOK_ID;
 
 type NewsletterContactDetails = {
 	firstName?: string;
@@ -149,19 +149,23 @@ export async function syncProductUpdatesContact(input: ProductUpdatesContactInpu
 			}
 		}
 
-		if (input.subscribed) {
-			// UseSend blocks re-subscribe on create for previously unsubscribed contacts.
-			// Resolve contact id by email, then force update subscribed=true.
-			const lookup = await client.get<UseSendContact[]>(`/contactBooks/${USESEND_PRODUCT_UPDATES_CONTACT_BOOK_ID}/contacts?emails=${encodeURIComponent(input.email)}`);
-			const existingContact = lookup.data?.find((contact) => contact.email.toLowerCase() === input.email.toLowerCase());
+		// Resolve contact by email for both subscribe and unsubscribe flows.
+		// UseSend blocks re-subscribe on create for previously unsubscribed contacts,
+		// so we always prefer updating an existing contact when it exists.
+		const lookup = await client.get<UseSendContact[]>(`/contactBooks/${USESEND_PRODUCT_UPDATES_CONTACT_BOOK_ID}/contacts?emails=${encodeURIComponent(input.email)}`);
+		const existingContact = lookup.data?.find((contact) => contact.email.toLowerCase() === input.email.toLowerCase());
 
-			if (existingContact?.id) {
-				const updateResponse = await client.contacts.update(USESEND_PRODUCT_UPDATES_CONTACT_BOOK_ID, existingContact.id, payload);
-				if (updateResponse.error) {
-					throw new Error(updateResponse.error.message || "useSend product-updates contact update failed");
-				}
-				return existingContact.id;
+		if (existingContact?.id) {
+			const updateResponse = await client.contacts.update(USESEND_PRODUCT_UPDATES_CONTACT_BOOK_ID, existingContact.id, payload);
+			if (updateResponse.error) {
+				throw new Error(updateResponse.error.message || "useSend product-updates contact update failed");
 			}
+			return existingContact.id;
+		}
+
+		// If unsubscribed and no existing contact, do not create a new record.
+		if (!input.subscribed) {
+			return null;
 		}
 
 		const response = await client.contacts.create(USESEND_PRODUCT_UPDATES_CONTACT_BOOK_ID, payload);

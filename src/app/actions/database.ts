@@ -1413,8 +1413,8 @@ export async function getSettings(userId: string): Promise<UserSettings> {
 				id: userId,
 				prefix: "!",
 				marketingOptIn: true,
-				marketingOptInAt: null,
-				marketingOptInSource: null,
+				marketingOptInAt: new Date(),
+				marketingOptInSource: "soft_opt_in_default",
 				useSendProductUpdatesContactId: null,
 				editors: [],
 			}).then(() => getSettings(userId));
@@ -1492,7 +1492,7 @@ export async function saveSettings(settings: UserSettings) {
 			marketingOptInSource = existingSettings?.marketingOptInSource ?? null;
 		}
 
-		const useSendProductUpdatesContactId = existingSettings?.useSendProductUpdatesContactId ?? settings.useSendProductUpdatesContactId ?? null;
+		const useSendProductUpdatesContactId = existingSettings?.useSendProductUpdatesContactId ?? null;
 
 		await db.transaction(async (tx) => {
 			// Upsert settings

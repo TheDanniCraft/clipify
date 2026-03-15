@@ -261,7 +261,6 @@ export default function SettingsPage() {
 
 	return (
 		<>
-			<script src='//tag.goadopt.io/injector.js?website_code=792b9b29-57f9-4d92-b5f1-313f94ddfacc' className='adopt-injector' defer></script>
 			<ChatwootData user={user} />
 
 			<DashboardNavbar user={user} title='Settings' tagline='Manage your settings'>
@@ -397,9 +396,12 @@ export default function SettingsPage() {
 								description='Maximum of 3 characters. This prefix will be used for all bot commands.'
 								maxLength={3}
 								onChange={(e) => {
+									if (!settings) {
+										return;
+									}
 									const value = e.target.value.trim();
 									if (value.length <= 3) {
-										setSettings({ ...settings!, prefix: value });
+										setSettings({ ...settings, prefix: value });
 									}
 								}}
 								required
@@ -412,9 +414,13 @@ export default function SettingsPage() {
 									</div>
 									<Switch
 										isSelected={receivesProductUpdates}
+										isDisabled={!settings}
 										onValueChange={(value) => {
+											if (!settings) {
+												return;
+											}
 											setSettings({
-												...settings!,
+												...settings,
 												marketingOptIn: value,
 												marketingOptInSource: value ? "settings_page_explicit_optin" : "settings_page_optout",
 											});
@@ -507,7 +513,10 @@ export default function SettingsPage() {
 										return null;
 									}}
 									onValueChange={(editors) => {
-										setSettings({ ...settings!, editors });
+										if (!settings) {
+											return;
+										}
+										setSettings({ ...settings, editors });
 									}}
 								/>
 							</div>
