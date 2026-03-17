@@ -4,7 +4,7 @@ import { tokenTable, usersTable, overlaysTable, queueTable, settingsTable, modQu
 import { db } from "@/db/client";
 import { AuthenticatedUser, Overlay, TwitchUserResponse, TwitchTokenApiResponse, UserToken, Plan, Role, UserSettings, TwitchCacheType, StatusOptions, OverlayType, PlaybackMode, MaxDurationMode, TwitchClip } from "@types";
 import { getUserDetails, getUsersDetailsBulk, refreshAccessTokenWithContext, subscribeToReward } from "@actions/twitch";
-import { syncProductUpdatesContact } from "@actions/newsletter";
+import { syncProductUpdatesContact, getProductUpdatesSubscriptionStatus } from "@actions/newsletter";
 import { eq, inArray, and, or, isNull, lt, gt, sql, desc, max } from "drizzle-orm";
 import { validateAuth } from "@actions/auth";
 import { encryptToken, decryptToken } from "@lib/tokenCrypto";
@@ -1403,7 +1403,7 @@ export async function clearModQueue(overlayId: string, secret?: string) {
 	}
 }
 
-export async function getSettings(userId: string): Promise<UserSettings> {
+export async function getSettings(userId: string, forceSyncExternal = false): Promise<UserSettings> {
 	try {
 		const settingsWithoutEditors = await db.select().from(settingsTable).where(eq(settingsTable.id, userId)).limit(1).execute();
 
@@ -1432,7 +1432,45 @@ export async function getSettings(userId: string): Promise<UserSettings> {
 			editors: editorNames.map((editor) => editor.login),
 		}));
 
-		return settings[0];
+		const currentSettings = settings[0];
+
+		// Sync marketingOptIn from UseSend if it's different and forceSyncExternal is true
+		if (forceSyncExternal) {
+			const user = await db.select({ email: usersTable.email }).from(usersTable).where(eq(usersTable.id, userId)).limit(1).execute();
+			const userEmail = user[0]?.email;
+			const remoteSubscribed = await getProductUpdatesSubscriptionStatus(currentSettings.useSendProductUpdatesContactId, userEmail);
+
+			if (remoteSubscribed !== null && remoteSubscribed !== currentSettings.marketingOptIn) {
+				const now = new Date();
+				const marketingOptIn = remoteSubscribed;
+				let marketingOptInAt = currentSettings.marketingOptInAt;
+				let marketingOptInSource = currentSettings.marketingOptInSource;
+
+				if (marketingOptIn) {
+					marketingOptInAt = now;
+					marketingOptInSource = "external_usesend_sync_optin";
+				} else {
+					marketingOptInAt = null;
+					marketingOptInSource = "external_usesend_sync_optout";
+				}
+
+				await db
+					.update(settingsTable)
+					.set({
+						marketingOptIn,
+						marketingOptInAt,
+						marketingOptInSource,
+					})
+					.where(eq(settingsTable.id, userId))
+					.execute();
+
+				currentSettings.marketingOptIn = marketingOptIn;
+				currentSettings.marketingOptInAt = marketingOptInAt;
+				currentSettings.marketingOptInSource = marketingOptInSource;
+			}
+		}
+
+		return currentSettings;
 	} catch (error) {
 		console.error("Error fetching settings:", error);
 		throw new Error("Failed to fetch settings");

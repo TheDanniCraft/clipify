@@ -178,3 +178,33 @@ export async function syncProductUpdatesContact(input: ProductUpdatesContactInpu
 		return null;
 	}
 }
+
+export async function getProductUpdatesSubscriptionStatus(contactId?: string | null, email?: string | null): Promise<boolean | null> {
+	try {
+		if (!USESEND_BASE_URL || !USESEND_API_KEY || !USESEND_PRODUCT_UPDATES_CONTACT_BOOK_ID) return null;
+
+		const baseUrl = USESEND_BASE_URL.replace(/\/+$/, "");
+		const client = new UseSend(USESEND_API_KEY, baseUrl);
+
+		let contact: UseSendContact | undefined;
+
+		if (contactId) {
+			const response = await client.get<UseSendContact>(`/contactBooks/${USESEND_PRODUCT_UPDATES_CONTACT_BOOK_ID}/contacts/${contactId}`);
+			if (!response.error && response.data) {
+				contact = response.data;
+			}
+		}
+
+		if (!contact && email) {
+			const lookup = await client.get<UseSendContact[]>(`/contactBooks/${USESEND_PRODUCT_UPDATES_CONTACT_BOOK_ID}/contacts?emails=${encodeURIComponent(email)}`);
+			contact = lookup.data?.find((c) => c.email.toLowerCase() === email.toLowerCase());
+		}
+
+		if (!contact) return null;
+
+		return contact.subscribed ?? null;
+	} catch (error) {
+		console.error("Error fetching product updates subscription status:", error);
+		return null;
+	}
+}

@@ -96,7 +96,7 @@ export default function SettingsPage() {
 	useEffect(() => {
 		async function fetchSettings() {
 			if (!user) return;
-			const fetchedSettings = await getSettings(user.id);
+			const fetchedSettings = await getSettings(user.id, true);
 			setSettings(fetchedSettings);
 			setBaseSettings(fetchedSettings);
 			const status = await getClipCacheStatus(user.id);
