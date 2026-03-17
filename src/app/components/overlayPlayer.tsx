@@ -4,12 +4,12 @@ import { type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type RefO
 import { ClipQueueItem, ModQueueItem, Overlay, TwitchClip, TwitchClipGqlData, TwitchClipGqlResponse, TwitchClipVideoQuality, VideoClip } from "@types";
 import { getAvatar, getDemoClip, getGameDetails, getTwitchClip, getTwitchClipBatch, resolvePlayableClip, subscribeToChat } from "@actions/twitch";
 import PlayerOverlay from "@components/playerOverlay";
-import { Avatar, Button, Link } from "@heroui/react";
-import { motion } from "framer-motion";
+import { addToast, Avatar, Button, Link } from "@heroui/react";
+import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
 import { getFirstFromClipQueue, getFirstFromModQueue, removeFromClipQueue, removeFromModQueue } from "@actions/database";
 import Logo from "@components/logo";
-import { IconPlayerPlayFilled, IconVolume, IconVolumeOff } from "@tabler/icons-react";
+import { IconAlertTriangle, IconPlayerPlayFilled, IconVolume, IconVolumeOff, IconX } from "@tabler/icons-react";
 import { clamp, getSlotOpacity, parseThemeFontSetting, sanitizeFontCssUrl, trimCache } from "./overlayPlayer.utils";
 
 type VideoQualityWithNumeric = TwitchClipVideoQuality & { numericQuality: number };
@@ -100,6 +100,36 @@ function PoweredByBadge({ className }: { className: string }) {
 	);
 }
 
+function ResolutionWarning({ onClose }: { onClose: () => void }) {
+	return (
+		<motion.div
+			initial={{ opacity: 0, y: 20 }}
+			animate={{ opacity: 1, y: 0 }}
+			exit={{ opacity: 0, y: 20 }}
+			className='absolute bottom-6 right-6 z-[100] max-w-sm pointer-events-auto'
+		>
+			<div className='bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl p-4 flex items-start gap-4'>
+				<div className='h-10 w-10 min-w-10 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500'>
+					<IconAlertTriangle size={20} />
+				</div>
+				<div className='flex-1 pr-4'>
+					<h4 className='text-zinc-100 font-bold text-sm'>Resolution Warning</h4>
+					<p className='text-zinc-400 text-xs leading-relaxed mt-1'>
+						Your browser source is not 16:9 (e.g. 1920x1080). Some elements might look broken.
+					</p>
+				</div>
+				<button
+					type='button'
+					onClick={onClose}
+					className='h-6 w-6 rounded-md hover:bg-zinc-800 transition flex items-center justify-center text-zinc-500 hover:text-zinc-300'
+				>
+					<IconX size={16} />
+				</button>
+			</div>
+		</motion.div>
+	);
+}
+
 type OverlayViewportProps = {
 	clipA: VideoClip | null;
 	clipB: VideoClip | null;
@@ -155,6 +185,8 @@ type OverlayViewportProps = {
 	progress: number;
 	progressBarStartColor?: string;
 	progressBarEndColor?: string;
+	showResolutionWarning: boolean;
+	onCloseResolutionWarning: () => void;
 };
 
 function OverlayViewport({
@@ -212,6 +244,8 @@ function OverlayViewport({
 	progress,
 	progressBarStartColor,
 	progressBarEndColor,
+	showResolutionWarning,
+	onCloseResolutionWarning,
 }: OverlayViewportProps) {
 	return (
 		<div
@@ -222,6 +256,9 @@ function OverlayViewport({
 			onClick={showClickToPlay ? onStartRequested : undefined}
 			onKeyDown={onStartKeyDown}
 		>
+			<AnimatePresence>
+				{showResolutionWarning && <ResolutionWarning onClose={onCloseResolutionWarning} />}
+			</AnimatePresence>
 			{(clipA?.mediaUrl || clipB?.mediaUrl) && (
 				<>
 					<motion.video
@@ -445,6 +482,34 @@ export default function OverlayPlayer({
 	const [, setWebsocket] = useState<WebSocket | null>(null);
 	const [clipPool, setClipPool] = useState<TwitchClip[]>([]);
 	const clipPoolRef = useRef<TwitchClip[]>([]);
+	const [showResolutionWarning, setShowResolutionWarning] = useState(false);
+
+	useEffect(() => {
+		if (typeof window === "undefined" || isDemoPlayer) return;
+
+		const checkAspectRatio = () => {
+			const width = window.innerWidth;
+			const height = window.innerHeight;
+			if (width === 0 || height === 0) return;
+
+			const ratio = width / height;
+			const targetRatio = 16 / 9;
+			const tolerance = 0.05;
+
+			if (Math.abs(ratio - targetRatio) > tolerance) {
+				const storageKey = "last_res_warning_date";
+				const today = new Date().toISOString().split("T")[0];
+				const lastShown = localStorage.getItem(storageKey);
+
+				if (lastShown !== today) {
+					setShowResolutionWarning(true);
+					localStorage.setItem(storageKey, today);
+				}
+			}
+		};
+
+		checkAspectRatio();
+	}, [isDemoPlayer]);
 
 	const videoARef = useRef<HTMLVideoElement | null>(null);
 	const videoBRef = useRef<HTMLVideoElement | null>(null);
@@ -1716,6 +1781,8 @@ export default function OverlayPlayer({
 				progress={progress}
 				progressBarStartColor={overlay.progressBarStartColor}
 				progressBarEndColor={overlay.progressBarEndColor}
+				showResolutionWarning={showResolutionWarning}
+				onCloseResolutionWarning={() => setShowResolutionWarning(false)}
 			/>
 		);
 	}
