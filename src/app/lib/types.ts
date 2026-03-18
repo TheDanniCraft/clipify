@@ -1,6 +1,6 @@
 import type { SVGProps } from "react";
 import { InferSelectModel } from "drizzle-orm";
-import type { entitlementGrantsTable, modQueueTable, overlaysTable, settingsTable, tokenTable, usersTable, queueTable, twitchCacheTable } from "@/db/schema";
+import type { entitlementGrantsTable, modQueueTable, overlaysTable, playlistClipsTable, playlistsTable, settingsTable, tokenTable, usersTable, queueTable, twitchCacheTable } from "@/db/schema";
 
 export class RateLimitError extends Error {
 	constructor() {
@@ -218,6 +218,8 @@ export enum StatusOptions {
 }
 
 export type Overlay = InferSelectModel<typeof overlaysTable>;
+export type Playlist = InferSelectModel<typeof playlistsTable>;
+export type PlaylistClip = InferSelectModel<typeof playlistClipsTable>;
 
 export type ClipQueueItem = InferSelectModel<typeof queueTable>;
 export type ModQueueItem = InferSelectModel<typeof modQueueTable>;
@@ -232,6 +234,7 @@ export enum OverlayType {
 	Featured = "Featured",
 	All = "All",
 	Queue = "Queue",
+	Playlist = "Playlist",
 }
 
 export enum PlaybackMode {

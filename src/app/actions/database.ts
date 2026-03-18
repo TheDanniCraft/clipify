@@ -1,8 +1,8 @@
 "use server";
 
-import { tokenTable, usersTable, overlaysTable, queueTable, settingsTable, modQueueTable, editorsTable, twitchCacheTable } from "@/db/schema";
+import { tokenTable, usersTable, overlaysTable, playlistsTable, playlistClipsTable, queueTable, settingsTable, modQueueTable, editorsTable, twitchCacheTable } from "@/db/schema";
 import { db } from "@/db/client";
-import { AuthenticatedUser, Overlay, TwitchUserResponse, TwitchTokenApiResponse, UserToken, Plan, Role, UserSettings, TwitchCacheType, StatusOptions, OverlayType, PlaybackMode, MaxDurationMode, TwitchClip } from "@types";
+import { AuthenticatedUser, Overlay, Playlist, TwitchUserResponse, TwitchTokenApiResponse, UserToken, Plan, Role, UserSettings, TwitchCacheType, StatusOptions, OverlayType, PlaybackMode, MaxDurationMode, TwitchClip } from "@types";
 import { getUserDetails, getUsersDetailsBulk, refreshAccessTokenWithContext, subscribeToReward } from "@actions/twitch";
 import { syncProductUpdatesContact, getProductUpdatesSubscriptionStatus } from "@actions/newsletter";
 import { eq, inArray, and, or, isNull, lt, gt, sql, desc, max } from "drizzle-orm";
@@ -146,6 +146,7 @@ type OverlayPatch = Partial<
 		| "name"
 		| "status"
 		| "type"
+		| "playlistId"
 		| "rewardId"
 		| "minClipDuration"
 		| "maxClipDuration"
@@ -242,11 +243,13 @@ function sanitizeCssColor(value: string | null | undefined, fallback: string) {
 
 function buildOverlayUpdatePayload(next: Overlay, advancedAllowed: boolean) {
 	const rewardId = advancedAllowed ? (next.rewardId ?? null) : null;
+	const playlistId = next.type === OverlayType.Playlist ? (next.playlistId ?? null) : null;
 
 	return {
 		name: next.name,
 		status: next.status,
 		type: next.type,
+		playlistId,
 		rewardId,
 		updatedAt: new Date(),
 		minClipDuration: advancedAllowed ? next.minClipDuration : 0,
@@ -921,6 +924,367 @@ export async function getEditorOverlays(ownerId: string) {
 	}
 }
 
+type PlaylistWithMeta = Playlist & {
+	clipCount: number;
+	accessType: "owner" | "editor";
+};
+
+export type PlaylistImportFilters = {
+	overlayType?: OverlayType;
+	startDate?: string | null;
+	endDate?: string | null;
+	categoryId?: string | null;
+	minViews?: number;
+	clipCreatorsOnly?: string[];
+	clipCreatorsBlocked?: string[];
+	includeModQueue?: boolean;
+};
+
+function parseStoredClip(value: unknown): TwitchClip | null {
+	if (!value || typeof value !== "object") return null;
+	if ("clip" in (value as { clip?: unknown }) && (value as { clip?: unknown }).clip) {
+		const nested = (value as { clip?: unknown }).clip;
+		if (nested && typeof nested === "object" && "id" in (nested as Record<string, unknown>)) return nested as TwitchClip;
+	}
+	if ("id" in (value as Record<string, unknown>)) return value as TwitchClip;
+	return null;
+}
+
+async function getOwnerPlanContext(ownerId: string) {
+	const ownerRows = await db.select().from(usersTable).where(eq(usersTable.id, ownerId)).limit(1).execute();
+	const owner = ownerRows[0];
+	if (!owner) return { owner: null, isPro: false };
+	const entitlements = await resolveUserEntitlements(owner);
+	return {
+		owner,
+		isPro: entitlements.effectivePlan === "pro",
+	};
+}
+
+async function requirePlaylistAccess(playlistId: string): Promise<{ user: AuthenticatedUser; playlist: Playlist } | null> {
+	const user = await requireUser();
+	if (!user) return null;
+
+	const playlists = await db.select().from(playlistsTable).where(eq(playlistsTable.id, playlistId)).limit(1).execute();
+	const playlist = playlists[0];
+	if (!playlist) return null;
+
+	if (!(await canEditOwner(user.id, playlist.ownerId))) {
+		console.warn(`Unauthorized playlist access for user id: ${user.id} on playlist id: ${playlistId}`);
+		return null;
+	}
+
+	return { user, playlist };
+}
+
+async function getPlaylistClipCount(playlistId: string) {
+	const rows = await db.select({ count: sql<number>`count(*)` }).from(playlistClipsTable).where(eq(playlistClipsTable.playlistId, playlistId)).execute();
+	return Number(rows[0]?.count ?? 0);
+}
+
+export async function getAllPlaylists(userId: string): Promise<PlaylistWithMeta[] | null> {
+	const user = await requireUser();
+	if (!user || user.id !== userId) {
+		console.warn(`Unauthorized "getAllPlaylists" API request for user id: ${userId}`);
+		return null;
+	}
+
+	const editorRows = await db.select().from(editorsTable).where(eq(editorsTable.editorId, userId)).execute();
+	const ownerIds = Array.from(new Set([userId, ...editorRows.map((row) => row.userId)]));
+	const playlists = ownerIds.length > 0 ? await db.select().from(playlistsTable).where(inArray(playlistsTable.ownerId, ownerIds)).execute() : [];
+
+	if (playlists.length === 0) return [];
+
+	const counts = await db
+		.select({ playlistId: playlistClipsTable.playlistId, count: sql<number>`count(*)` })
+		.from(playlistClipsTable)
+		.where(inArray(playlistClipsTable.playlistId, playlists.map((playlist) => playlist.id)))
+		.groupBy(playlistClipsTable.playlistId)
+		.execute();
+	const countByPlaylistId = new Map(counts.map((row) => [row.playlistId, Number(row.count ?? 0)]));
+
+	return playlists.map((playlist) => ({
+		...playlist,
+		clipCount: countByPlaylistId.get(playlist.id) ?? 0,
+		accessType: playlist.ownerId === userId ? "owner" : "editor",
+	}));
+}
+
+export async function getPlaylistsForOwner(ownerId: string): Promise<Array<Playlist & { clipCount: number }> | null> {
+	const user = await requireUser();
+	if (!user || !(await canEditOwner(user.id, ownerId))) {
+		console.warn(`Unauthorized "getPlaylistsForOwner" API request for owner id: ${ownerId}`);
+		return null;
+	}
+
+	const playlists = await db.select().from(playlistsTable).where(eq(playlistsTable.ownerId, ownerId)).execute();
+	if (playlists.length === 0) return [];
+
+	const counts = await db
+		.select({ playlistId: playlistClipsTable.playlistId, count: sql<number>`count(*)` })
+		.from(playlistClipsTable)
+		.where(inArray(playlistClipsTable.playlistId, playlists.map((playlist) => playlist.id)))
+		.groupBy(playlistClipsTable.playlistId)
+		.execute();
+	const countByPlaylistId = new Map(counts.map((row) => [row.playlistId, Number(row.count ?? 0)]));
+
+	return playlists.map((playlist) => ({ ...playlist, clipCount: countByPlaylistId.get(playlist.id) ?? 0 }));
+}
+
+export async function createPlaylist(ownerId: string, name: string) {
+	const user = await requireUser();
+	if (!user) {
+		console.warn(`Unauthenticated "createPlaylist" API request`);
+		return null;
+	}
+	if (!(await canEditOwner(user.id, ownerId))) {
+		console.warn(`Unauthorized "createPlaylist" API request for user id: ${user.id} on owner id: ${ownerId}`);
+		return null;
+	}
+
+	const trimmedName = name.trim();
+	if (!trimmedName) {
+		throw new Error("Playlist name is required");
+	}
+
+	const { owner, isPro } = await getOwnerPlanContext(ownerId);
+	if (!owner) return null;
+	if (!isPro) {
+		const existing = await db.select().from(playlistsTable).where(eq(playlistsTable.ownerId, ownerId)).execute();
+		if (existing.length >= 1) {
+			throw new Error("Free plan allows only one playlist");
+		}
+	}
+
+	return db
+		.insert(playlistsTable)
+		.values({
+			ownerId,
+			name: trimmedName.slice(0, 120),
+			updatedAt: new Date(),
+		})
+		.returning()
+		.execute()
+		.then((rows) => rows[0] ?? null);
+}
+
+export async function savePlaylist(playlistId: string, patch: Partial<Pick<Playlist, "name">>) {
+	const ctx = await requirePlaylistAccess(playlistId);
+	if (!ctx) return null;
+
+	const nextName = (patch.name ?? ctx.playlist.name).trim();
+	if (!nextName) throw new Error("Playlist name is required");
+
+	await db
+		.update(playlistsTable)
+		.set({
+			name: nextName.slice(0, 120),
+			updatedAt: new Date(),
+		})
+		.where(eq(playlistsTable.id, playlistId))
+		.execute();
+
+	const rows = await db.select().from(playlistsTable).where(eq(playlistsTable.id, playlistId)).limit(1).execute();
+	return rows[0] ?? null;
+}
+
+export async function deletePlaylist(playlistId: string) {
+	const ctx = await requirePlaylistAccess(playlistId);
+	if (!ctx) return false;
+	await db.delete(playlistsTable).where(eq(playlistsTable.id, playlistId)).execute();
+	return true;
+}
+
+export async function getPlaylistClips(playlistId: string): Promise<TwitchClip[]> {
+	const ctx = await requirePlaylistAccess(playlistId);
+	if (!ctx) return [];
+	return getPlaylistClipsForOwnerServer(ctx.playlist.ownerId, playlistId);
+}
+
+export async function getPlaylistClipsForOwnerServer(ownerId: string, playlistId: string): Promise<TwitchClip[]> {
+	const playlistRows = await db.select().from(playlistsTable).where(and(eq(playlistsTable.id, playlistId), eq(playlistsTable.ownerId, ownerId))).limit(1).execute();
+	if (!playlistRows[0]) return [];
+
+	const rows = await db.select().from(playlistClipsTable).where(eq(playlistClipsTable.playlistId, playlistId)).orderBy(playlistClipsTable.position).execute();
+	const clips: TwitchClip[] = [];
+	for (const row of rows) {
+		try {
+			const parsed = JSON.parse(row.clipData) as unknown;
+			const clip = parseStoredClip(parsed);
+			if (clip?.id) clips.push(clip);
+		} catch {
+			continue;
+		}
+	}
+	return clips;
+}
+
+export async function upsertPlaylistClips(playlistId: string, clips: TwitchClip[], mode: "append" | "replace" = "append") {
+	const ctx = await requirePlaylistAccess(playlistId);
+	if (!ctx) return [];
+
+	const { isPro } = await getOwnerPlanContext(ctx.playlist.ownerId);
+	const existingRows = await db.select().from(playlistClipsTable).where(eq(playlistClipsTable.playlistId, playlistId)).orderBy(playlistClipsTable.position).execute();
+	const existingClipIds = new Set(existingRows.map((row) => row.clipId));
+	const uniqueIncoming = Array.from(new Map(clips.filter((clip) => !!clip?.id).map((clip) => [clip.id, clip])).values());
+
+	if (mode === "replace") {
+		if (!isPro && uniqueIncoming.length > 50) {
+			throw new Error("Free plan playlists are limited to 50 clips");
+		}
+		await db.transaction(async (tx) => {
+			await tx.delete(playlistClipsTable).where(eq(playlistClipsTable.playlistId, playlistId)).execute();
+			if (uniqueIncoming.length > 0) {
+				await tx
+					.insert(playlistClipsTable)
+					.values(
+						uniqueIncoming.map((clip, index) => ({
+							playlistId,
+							clipId: clip.id,
+							position: index,
+							clipData: JSON.stringify(clip),
+						})),
+					)
+					.execute();
+			}
+		});
+		await db.update(playlistsTable).set({ updatedAt: new Date() }).where(eq(playlistsTable.id, playlistId)).execute();
+		return getPlaylistClipsForOwnerServer(ctx.playlist.ownerId, playlistId);
+	}
+
+	const clipsToAppend = uniqueIncoming.filter((clip) => !existingClipIds.has(clip.id));
+	const finalCount = existingRows.length + clipsToAppend.length;
+	if (!isPro && finalCount > 50) {
+		throw new Error("Free plan playlists are limited to 50 clips");
+	}
+
+	if (clipsToAppend.length > 0) {
+		const basePosition = existingRows.length;
+		await db
+			.insert(playlistClipsTable)
+			.values(
+				clipsToAppend.map((clip, index) => ({
+					playlistId,
+					clipId: clip.id,
+					position: basePosition + index,
+					clipData: JSON.stringify(clip),
+				})),
+			)
+			.execute();
+		await db.update(playlistsTable).set({ updatedAt: new Date() }).where(eq(playlistsTable.id, playlistId)).execute();
+	}
+
+	return getPlaylistClipsForOwnerServer(ctx.playlist.ownerId, playlistId);
+}
+
+export async function reorderPlaylistClips(playlistId: string, orderedClipIds: string[]) {
+	const ctx = await requirePlaylistAccess(playlistId);
+	if (!ctx) return [];
+
+	const existingRows = await db.select().from(playlistClipsTable).where(eq(playlistClipsTable.playlistId, playlistId)).orderBy(playlistClipsTable.position).execute();
+	const existingById = new Map(existingRows.map((row) => [row.clipId, row]));
+	const dedupedRequested = Array.from(new Set(orderedClipIds)).filter((clipId) => existingById.has(clipId));
+	const remaining = existingRows.map((row) => row.clipId).filter((clipId) => !dedupedRequested.includes(clipId));
+	const nextOrder = [...dedupedRequested, ...remaining];
+
+	await db.transaction(async (tx) => {
+		for (const [index, clipId] of nextOrder.entries()) {
+			await tx
+				.update(playlistClipsTable)
+				.set({ position: index })
+				.where(and(eq(playlistClipsTable.playlistId, playlistId), eq(playlistClipsTable.clipId, clipId)))
+				.execute();
+		}
+	});
+	await db.update(playlistsTable).set({ updatedAt: new Date() }).where(eq(playlistsTable.id, playlistId)).execute();
+
+	return getPlaylistClipsForOwnerServer(ctx.playlist.ownerId, playlistId);
+}
+
+function applyPlaylistImportFilters(clips: TwitchClip[], filters: PlaylistImportFilters): TwitchClip[] {
+	const overlayType = filters.overlayType ?? OverlayType.All;
+	let result = [...clips];
+
+	if (overlayType === OverlayType.Featured) {
+		result = result.filter((clip) => Boolean((clip as TwitchClip & { is_featured?: boolean }).is_featured));
+	} else if (overlayType !== OverlayType.All && overlayType !== OverlayType.Playlist && overlayType !== OverlayType.Queue) {
+		const days = Number(overlayType);
+		if (Number.isFinite(days) && days > 0) {
+			const minTs = Date.now() - days * 24 * 60 * 60 * 1000;
+			result = result.filter((clip) => {
+				const ts = new Date(clip.created_at).getTime();
+				return Number.isFinite(ts) && ts >= minTs;
+			});
+		}
+	}
+
+	const startTs = filters.startDate ? new Date(filters.startDate).getTime() : Number.NaN;
+	const endTs = filters.endDate ? new Date(filters.endDate).getTime() : Number.NaN;
+	if (Number.isFinite(startTs) || Number.isFinite(endTs)) {
+		result = result.filter((clip) => {
+			const ts = new Date(clip.created_at).getTime();
+			if (!Number.isFinite(ts)) return false;
+			if (Number.isFinite(startTs) && ts < startTs) return false;
+			if (Number.isFinite(endTs) && ts > endTs) return false;
+			return true;
+		});
+	}
+
+	const categoryId = (filters.categoryId ?? "").trim().toLowerCase();
+	if (categoryId) {
+		result = result.filter((clip) => clip.game_id.toLowerCase() === categoryId);
+	}
+
+	const minViews = Math.max(0, Math.floor(filters.minViews ?? 0));
+	if (minViews > 0) {
+		result = result.filter((clip) => clip.view_count >= minViews);
+	}
+
+	const allowedCreators = normalizeCreatorFilters(filters.clipCreatorsOnly);
+	if (allowedCreators.length > 0) {
+		result = result.filter((clip) => allowedCreators.includes(clip.creator_name.toLowerCase()) || allowedCreators.includes(clip.creator_id.toLowerCase()));
+	}
+
+	const blockedCreators = normalizeCreatorFilters(filters.clipCreatorsBlocked);
+	if (blockedCreators.length > 0) {
+		result = result.filter((clip) => !blockedCreators.includes(clip.creator_name.toLowerCase()) && !blockedCreators.includes(clip.creator_id.toLowerCase()));
+	}
+
+	return result.sort((a, b) => b.view_count - a.view_count || b.created_at.localeCompare(a.created_at));
+}
+
+export async function importPlaylistClips(playlistId: string, filters: PlaylistImportFilters, mode: "append" | "replace") {
+	const ctx = await requirePlaylistAccess(playlistId);
+	if (!ctx) return [];
+
+	const { isPro } = await getOwnerPlanContext(ctx.playlist.ownerId);
+	if (!isPro) {
+		throw new Error("Auto import is a Pro feature");
+	}
+
+	const clipPrefix = `clip:${ctx.playlist.ownerId}:`;
+	const entries = await getTwitchCacheByPrefixEntries<unknown>(TwitchCacheType.Clip, clipPrefix);
+	const clipMap = new Map<string, TwitchClip>();
+	for (const entry of entries) {
+		const clip = parseStoredClip(entry.value);
+		if (!clip?.id) continue;
+		if (!clipMap.has(clip.id)) clipMap.set(clip.id, clip);
+	}
+
+	if (filters.includeModQueue) {
+		const modQueueEntries = await getModQueueByBroadcasterId(ctx.playlist.ownerId);
+		for (const queued of modQueueEntries) {
+			if (clipMap.has(queued.clipId)) continue;
+			const cacheEntry = await getTwitchCache<unknown>(TwitchCacheType.Clip, `clip:${ctx.playlist.ownerId}:${queued.clipId}`);
+			const clip = parseStoredClip(cacheEntry);
+			if (clip?.id) clipMap.set(clip.id, clip);
+		}
+	}
+
+	const imported = applyPlaylistImportFilters(Array.from(clipMap.values()), filters);
+	return upsertPlaylistClips(playlistId, imported, mode);
+}
+
 export async function getOverlayOwnerPlans(overlayIds: string[]): Promise<Record<string, Plan>> {
 	try {
 		const user = await requireUser();
@@ -1066,6 +1430,7 @@ export async function createOverlay(userId: string) {
 				name: "New Overlay",
 				status: StatusOptions.Active,
 				type: OverlayType.Featured,
+				playlistId: null,
 			})
 			.returning()
 			.then((result) => result[0]);
@@ -1079,9 +1444,12 @@ export async function createOverlay(userId: string) {
 
 export async function downgradeUserPlan(userId: string) {
 	const overlays = await db.select().from(overlaysTable).where(eq(overlaysTable.ownerId, userId)).execute();
+	const playlists = await db.select().from(playlistsTable).where(eq(playlistsTable.ownerId, userId)).orderBy(playlistsTable.createdAt).execute();
 
 	if (overlays.length === 0) {
-		return;
+		if (playlists.length === 0) {
+			return;
+		}
 	}
 
 	const overlaysToDeactivate = overlays.slice(1).map((overlay) => overlay.id);
@@ -1090,49 +1458,68 @@ export async function downgradeUserPlan(userId: string) {
 		await db.delete(overlaysTable).where(inArray(overlaysTable.id, overlaysToDeactivate)).execute();
 	}
 
-	await db
-		.update(overlaysTable)
-		.set({
-			rewardId: null,
-			blacklistWords: [],
-			minClipViews: 0,
-			minClipDuration: 0,
-			maxClipDuration: 60,
-			maxDurationMode: MaxDurationMode.Filter,
-			playbackMode: PlaybackMode.Random,
-			preferCurrentCategory: false,
-			clipCreatorsOnly: [],
-			clipCreatorsBlocked: [],
-			clipPackSize: 100,
-			playerVolume: 50,
-			showChannelInfo: true,
-			showClipInfo: true,
-			showTimer: false,
-			showProgressBar: false,
-			overlayInfoFadeOutSeconds: 6,
-			themeFontFamily: "inherit",
-			themeTextColor: "#FFFFFF",
-			themeAccentColor: "#7C3AED",
-			themeBackgroundColor: "rgba(10,10,10,0.65)",
-			progressBarStartColor: "#26018E",
-			progressBarEndColor: "#8D42F9",
-			borderSize: 0,
-			borderRadius: 10,
-			effectScanlines: false,
-			effectStatic: false,
-			effectCrt: false,
-			channelInfoX: 0,
-			channelInfoY: 0,
-			clipInfoX: 100,
-			clipInfoY: 100,
-			timerX: 100,
-			timerY: 0,
-			channelScale: 100,
-			clipScale: 100,
-			timerScale: 100,
-		})
-		.where(eq(overlaysTable.id, overlays[0].id))
-		.execute();
+	const keptOverlay = overlays[0];
+	if (keptOverlay) {
+		await db
+			.update(overlaysTable)
+			.set({
+				rewardId: null,
+				playlistId: null,
+				blacklistWords: [],
+				minClipViews: 0,
+				minClipDuration: 0,
+				maxClipDuration: 60,
+				maxDurationMode: MaxDurationMode.Filter,
+				playbackMode: PlaybackMode.Random,
+				preferCurrentCategory: false,
+				clipCreatorsOnly: [],
+				clipCreatorsBlocked: [],
+				clipPackSize: 100,
+				playerVolume: 50,
+				showChannelInfo: true,
+				showClipInfo: true,
+				showTimer: false,
+				showProgressBar: false,
+				overlayInfoFadeOutSeconds: 6,
+				themeFontFamily: "inherit",
+				themeTextColor: "#FFFFFF",
+				themeAccentColor: "#7C3AED",
+				themeBackgroundColor: "rgba(10,10,10,0.65)",
+				progressBarStartColor: "#26018E",
+				progressBarEndColor: "#8D42F9",
+				borderSize: 0,
+				borderRadius: 10,
+				effectScanlines: false,
+				effectStatic: false,
+				effectCrt: false,
+				channelInfoX: 0,
+				channelInfoY: 0,
+				clipInfoX: 100,
+				clipInfoY: 100,
+				timerX: 100,
+				timerY: 0,
+				channelScale: 100,
+				clipScale: 100,
+				timerScale: 100,
+			})
+			.where(eq(overlaysTable.id, keptOverlay.id))
+			.execute();
+	}
+
+	const playlistsToDelete = playlists.slice(1).map((playlist) => playlist.id);
+	if (playlistsToDelete.length > 0) {
+		await db.delete(playlistsTable).where(inArray(playlistsTable.id, playlistsToDelete)).execute();
+	}
+
+	const keptPlaylist = playlists[0];
+	if (keptPlaylist) {
+		const keptRows = await db.select().from(playlistClipsTable).where(eq(playlistClipsTable.playlistId, keptPlaylist.id)).orderBy(playlistClipsTable.position).execute();
+		const keepIds = new Set(keptRows.slice(0, 50).map((row) => row.clipId));
+		const removeIds = keptRows.filter((row) => !keepIds.has(row.clipId)).map((row) => row.clipId);
+		if (removeIds.length > 0) {
+			await db.delete(playlistClipsTable).where(and(eq(playlistClipsTable.playlistId, keptPlaylist.id), inArray(playlistClipsTable.clipId, removeIds))).execute();
+		}
+	}
 
 	await db.delete(editorsTable).where(eq(editorsTable.userId, userId)).execute();
 

@@ -2,7 +2,7 @@
 
 import axios from "axios";
 import { AuthenticatedUser, Game, Overlay, OverlayType, RewardStatus, TwitchApiResponse, TwitchAppAccessTokenResponse, TwitchCacheType, TwitchClip, TwitchClipResponse, TwitchReward, TwitchRewardResponse, TwitchTokenApiResponse, TwitchUserResponse } from "@types";
-import { deleteTwitchCacheByPrefix, deleteTwitchCacheKeys, getAccessToken, getOverlayBySecret, getOverlayPublic, getTwitchCache, getTwitchCacheBatch, getTwitchCacheByPrefixEntries, getTwitchCacheEntry, getTwitchCacheStale, getTwitchCacheStaleBatch, setTwitchCache, setTwitchCacheBatch } from "@actions/database";
+import { deleteTwitchCacheByPrefix, deleteTwitchCacheKeys, getAccessToken, getOverlayBySecret, getOverlayPublic, getPlaylistClipsForOwnerServer, getTwitchCache, getTwitchCacheBatch, getTwitchCacheByPrefixEntries, getTwitchCacheEntry, getTwitchCacheStale, getTwitchCacheStaleBatch, setTwitchCache, setTwitchCacheBatch } from "@actions/database";
 import { getBaseUrl, isPreview } from "@actions/utils";
 import { isTitleBlocked } from "@/app/utils/regexFilter";
 import { dbPool } from "@/db/client";
@@ -918,12 +918,17 @@ export async function getTwitchClips(overlay: Overlay, type?: OverlayType, skipF
 		return clips;
 	}
 
-	await syncOwnerClipCache(overlay.ownerId);
-	clips = await getCachedClipsByOwner(overlay.ownerId);
+	if (overlayType === OverlayType.Playlist) {
+		if (!overlay.playlistId) return [];
+		clips = await getPlaylistClipsForOwnerServer(overlay.ownerId, overlay.playlistId);
+	} else {
+		await syncOwnerClipCache(overlay.ownerId);
+		clips = await getCachedClipsByOwner(overlay.ownerId);
+	}
 
-	if (overlayType === "Featured") {
+	if (overlayType === OverlayType.Featured) {
 		clips = clips.filter((clip) => !!(clip as TwitchClip & { is_featured?: boolean }).is_featured);
-	} else if (overlayType !== "All") {
+	} else if (overlayType !== OverlayType.All && overlayType !== OverlayType.Playlist) {
 		const days = Number(overlayType);
 		if (Number.isFinite(days) && days > 0) {
 			const minTs = Date.now() - days * 24 * 60 * 60 * 1000;

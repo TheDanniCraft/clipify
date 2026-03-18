@@ -7,12 +7,12 @@ import { StatusOptions } from "@types";
 import type { Key } from "@react-types/shared";
 
 import dynamic from "next/dynamic";
-import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, TableHeader, TableColumn, TableBody, TableRow, TableCell, Input, Button, RadioGroup, Radio, Chip, Pagination, Divider, Tooltip, Popover, PopoverTrigger, PopoverContent, Spinner, addToast, Link, Avatar, Skeleton, useDisclosure } from "@heroui/react";
+import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, TableHeader, TableColumn, TableBody, TableRow, TableCell, Input, Button, RadioGroup, Radio, Chip, Pagination, Divider, Tooltip, Popover, PopoverTrigger, PopoverContent, Spinner, addToast, Link, Avatar, Skeleton, Tab, Tabs, useDisclosure } from "@heroui/react";
 const Table = dynamic(() => import("@heroui/react").then((c) => c.Table), { ssr: false }); // Temp fix for issue 4385
 import React, { useMemo, useCallback, useState, useEffect } from "react";
 import { cn } from "@heroui/react";
 import { IconAdjustmentsHorizontal, IconArrowsLeftRight, IconChevronDown, IconChevronUp, IconCirclePlus, IconCircuitChangeover, IconCrown, IconInfoCircle, IconMenuDeep, IconPencil, IconReload, IconSearch, IconTrash } from "@tabler/icons-react";
-import { createOverlay, deleteOverlay, saveOverlay, getAllOverlays, getEditorOverlays, getEditorAccess } from "@actions/database";
+import { createOverlay, createPlaylist, deleteOverlay, deletePlaylist, saveOverlay, getAllOverlays, getAllPlaylists, getEditorOverlays, getEditorAccess } from "@actions/database";
 import { validateAuth } from "@actions/auth";
 import UpgradeModal from "@components/upgradeModal";
 import { getFeatureAccess, getTrialDaysLeft, isReverseTrialActive } from "@lib/featureAccess";
@@ -31,8 +31,11 @@ import { getAvatar, getUsersDetailsBulk } from "@actions/twitch";
 export default function OverlayTable({ userId, accessToken }: { userId: string; accessToken: string }) {
 	const router = useRouter();
 	type LocalOverlay = Overlay & { accessType?: "owner" | "editor" };
+	type LocalPlaylist = { id: string; ownerId: string; name: string; clipCount: number; accessType?: "owner" | "editor" };
 
 	const [overlays, setOverlays] = useState<LocalOverlay[]>();
+	const [playlists, setPlaylists] = useState<LocalPlaylist[]>();
+	const [activeTab, setActiveTab] = useState<"overlays" | "playlists">("overlays");
 	const [filterValue, setFilterValue] = useState("");
 	const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set([]));
 	const [visibleColumns, setVisibleColumns] = useState<Selection>(new Set(INITIAL_VISIBLE_COLUMNS));
@@ -62,11 +65,20 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 		async function fetchOverlays() {
 			try {
 				const overlaysData = await getAllOverlays(userId);
+				const playlistsData = await getAllPlaylists(userId);
 				const editorOverlays = await getEditorOverlays(userId);
 
 				const combinedOverlays: LocalOverlay[] = [...(overlaysData ?? []).map((o) => ({ ...o, accessType: "owner" as const })), ...(editorOverlays ?? []).map((o) => ({ ...o, accessType: "editor" as const }))];
+				const combinedPlaylists: LocalPlaylist[] = (playlistsData ?? []).map((playlist) => ({
+					id: playlist.id,
+					name: playlist.name,
+					ownerId: playlist.ownerId,
+					clipCount: playlist.clipCount,
+					accessType: playlist.accessType,
+				}));
 
 				setOverlays(combinedOverlays ?? undefined);
+				setPlaylists(combinedPlaylists ?? undefined);
 			} catch (error) {
 				console.error("Failed to fetch overlays:", error);
 			}
@@ -313,11 +325,20 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 
 	const reloadOverlays = useMemoizedCallback(async () => {
 		const overlaysData = await getAllOverlays(userId);
+		const playlistsData = await getAllPlaylists(userId);
 		const editorOverlays = await getEditorOverlays(userId);
 
 		const combinedOverlays: LocalOverlay[] = [...(overlaysData ?? []).map((o) => ({ ...o, accessType: "owner" as const })), ...(editorOverlays ?? []).map((o) => ({ ...o, accessType: "editor" as const }))];
+		const combinedPlaylists: LocalPlaylist[] = (playlistsData ?? []).map((playlist) => ({
+			id: playlist.id,
+			name: playlist.name,
+			ownerId: playlist.ownerId,
+			clipCount: playlist.clipCount,
+			accessType: playlist.accessType,
+		}));
 
 		setOverlays(combinedOverlays ?? undefined);
+		setPlaylists(combinedPlaylists ?? undefined);
 	});
 
 	const topContent = useMemo(() => {
@@ -503,6 +524,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 
 	const topBar = useMemo(() => {
 		const ownerOverlaysCount = overlays?.filter((o) => o.ownerId === userId).length ?? 0;
+		const ownerPlaylistsCount = playlists?.filter((p) => p.ownerId === userId).length ?? 0;
 		const multiOverlayAccess = currentUser ? getFeatureAccess(currentUser, "multi_overlay") : { allowed: false as const };
 		const inTrial = currentUser ? isReverseTrialActive(currentUser) : false;
 		const trialDaysLeft = currentUser ? getTrialDaysLeft(currentUser) : 0;
@@ -511,9 +533,9 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 			<div className='mb-[12px]'>
 				<div className='flex items-center justify-between'>
 					<div className='flex w-[226px] items-center gap-2'>
-						<h1 className='text-2xl font-[700] leading-[32px]'>Overlays</h1>
+						<h1 className='text-2xl font-[700] leading-[32px]'>{activeTab === "overlays" ? "Overlays" : "Playlists"}</h1>
 						<Chip className='hidden items-center text-default-500 sm:flex' size='sm' variant='flat'>
-							{overlays?.length ?? 0}
+							{activeTab === "overlays" ? overlays?.length ?? 0 : playlists?.length ?? 0}
 						</Chip>
 						<Button isIconOnly size='sm' variant='light' onPress={reloadOverlays} startContent={<IconReload className='text-default-400' width={16} />} aria-label='Reload Overlays' />
 					</div>
@@ -531,26 +553,37 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 										key={item.id}
 										onPress={async () => {
 											setIsLoading(true);
-
-											const overlay = await createOverlay(item.id);
-											if (!overlay) {
-												addToast({
-													title: "Error",
-													description: "Failed to create overlay. The owner may be on the Free plan or you lack permissions.",
-													color: "danger",
-												});
-												if (currentUser?.id === item.id) {
-													onUpgradeOpen();
+											if (activeTab === "overlays") {
+												const overlay = await createOverlay(item.id);
+												if (!overlay) {
+													addToast({
+														title: "Error",
+														description: "Failed to create overlay. The owner may be on the Free plan or you lack permissions.",
+														color: "danger",
+													});
+													if (currentUser?.id === item.id) {
+														onUpgradeOpen();
+													}
+													setIsLoading(false);
+													return;
 												}
-												setIsLoading(false);
-												return;
+												router.push(`/dashboard/overlay/${overlay.id}`);
+											} else {
+												const playlist = await createPlaylist(item.id, `Playlist ${ownerPlaylistsCount + 1}`);
+												if (!playlist) {
+													addToast({
+														title: "Error",
+														description: "Failed to create playlist.",
+														color: "danger",
+													});
+												}
+												await reloadOverlays();
 											}
-											router.push(`/dashboard/overlay/${overlay.id}`);
 										}}
 									>
 										<div className='flex items-center'>
 											<Avatar className='mr-2 h-6 w-6' src={item.profile_image_url} />
-											Add new overlay for {item.display_name}
+											{activeTab === "overlays" ? `Add new overlay for ${item.display_name}` : `Add new playlist for ${item.display_name}`}
 										</div>
 									</DropdownItem>
 								)}
@@ -565,7 +598,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 							onPress={async () => {
 								setIsLoading(true);
 
-								if (effectivePlan === "free" && ownerOverlaysCount >= 1 && !multiOverlayAccess.allowed) {
+								if (activeTab === "overlays" && effectivePlan === "free" && ownerOverlaysCount >= 1 && !multiOverlayAccess.allowed) {
 									trackPaywallEvent(plausible, "paywall_cta_click", {
 										source: "paywall_banner",
 										feature: "multi_overlay",
@@ -589,22 +622,48 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 									return;
 								}
 
-								createOverlay(userId).then((overlay) => {
-									if (!overlay) {
+								if (activeTab === "overlays") {
+									createOverlay(userId).then((overlay) => {
+										if (!overlay) {
+											addToast({
+												title: "Error",
+												description: "Failed to create overlay. Please try again.",
+												color: "danger",
+											});
+											onUpgradeOpen();
+											setIsLoading(false);
+											return;
+										}
+										router.push(`/dashboard/overlay/${overlay.id}`);
+									});
+									return;
+								}
+
+								createPlaylist(userId, `Playlist ${ownerPlaylistsCount + 1}`)
+									.then(async (playlist) => {
+										if (!playlist) {
+											addToast({
+												title: "Error",
+												description: "Failed to create playlist. Please try again.",
+												color: "danger",
+											});
+											setIsLoading(false);
+											return;
+										}
+										await reloadOverlays();
+										setIsLoading(false);
+									})
+									.catch(() => {
 										addToast({
 											title: "Error",
-											description: "Failed to create overlay. Please try again.",
+											description: "Failed to create playlist. Please try again.",
 											color: "danger",
 										});
-										onUpgradeOpen();
 										setIsLoading(false);
-										return;
-									}
-									router.push(`/dashboard/overlay/${overlay.id}`);
-								});
+									});
 							}}
 						>
-							Add Overlay
+							{activeTab === "overlays" ? "Add Overlay" : "Add Playlist"}
 						</Button>
 					)}
 				</div>
@@ -636,7 +695,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 				)}
 			</div>
 		);
-	}, [overlays, userId, currentUser, reloadOverlays, isLoading, hasAccess, editorAccessList, plausible, onUpgradeOpen, router]);
+	}, [activeTab, overlays, playlists, userId, currentUser, reloadOverlays, isLoading, hasAccess, editorAccessList, plausible, onUpgradeOpen, router]);
 
 	const bottomContent = useMemo(() => {
 		return (
@@ -660,6 +719,10 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 	return (
 		<div className='h-full w-full p-6'>
 			{topBar}
+			<Tabs selectedKey={activeTab} onSelectionChange={(key) => setActiveTab(key as "overlays" | "playlists")} className='mb-4'>
+				<Tab key='overlays' title='Overlays' />
+				<Tab key='playlists' title='Playlists' />
+			</Tabs>
 			{currentUser && (currentUser.entitlements?.effectivePlan ?? currentUser.plan) === "free" && !getFeatureAccess(currentUser, "multi_overlay").allowed && (overlays?.filter((o) => o.ownerId === userId).length ?? 0) >= 1 && (
 				<div className='mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning-200 bg-warning-50 px-4 py-3 text-sm text-warning-800'>
 					<span>You&apos;re on the Free plan and have reached the overlay limit. Upgrade to add more overlays.</span>
@@ -668,7 +731,8 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 					</Button>
 				</div>
 			)}
-			<Table
+			{activeTab === "overlays" ? (
+				<Table
 				isHeaderSticky
 				aria-label='Example table with custom cells, pagination and sorting'
 				bottomContent={bottomContent}
@@ -711,7 +775,37 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 				<TableBody emptyContent={overlays === undefined ? <Spinner label='Loading overlays' /> : <div className='text-default-400'>No overlays found</div>} items={sortedItems}>
 					{(item) => <TableRow key={item.id}>{(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}</TableRow>}
 				</TableBody>
-			</Table>
+				</Table>
+			) : (
+				<div className='space-y-2'>
+					{(playlists ?? []).length === 0 && <div className='rounded border border-default-200 px-3 py-6 text-center text-default-500'>No playlists found.</div>}
+					{(playlists ?? []).map((playlist) => (
+						<div key={playlist.id} className='flex items-center justify-between rounded border border-default-200 px-3 py-2'>
+							<div>
+								<div className='text-sm font-semibold'>{playlist.name}</div>
+								<div className='text-xs text-default-500'>
+									{playlist.clipCount} clips • {playlist.accessType ?? "owner"}
+								</div>
+							</div>
+							<Button
+								color='danger'
+								variant='light'
+								size='sm'
+								onPress={async () => {
+									const ok = await deletePlaylist(playlist.id);
+									if (!ok) {
+										addToast({ title: "Failed to delete playlist", color: "danger" });
+										return;
+									}
+									setPlaylists((prev) => (prev ?? []).filter((entry) => entry.id !== playlist.id));
+								}}
+							>
+								Delete
+							</Button>
+						</div>
+					))}
+				</div>
+			)}
 			{currentUser && currentUser.plan === "free" && <UpgradeModal isOpen={isUpgradeOpen} onOpenChange={onUpgradeOpenChange} user={currentUser} title='Upgrade to add more overlays' source='upgrade_modal' feature='multi_overlay' />}
 		</div>
 	);
