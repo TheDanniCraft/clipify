@@ -6,6 +6,7 @@ import axios from "axios";
 const getAccessToken = jest.fn();
 const getOverlayBySecret = jest.fn();
 const getOverlayPublic = jest.fn();
+const getPlaylistClipsForOwnerServer = jest.fn();
 const getTwitchCache = jest.fn();
 const getTwitchCacheByPrefixEntries = jest.fn();
 const setTwitchCache = jest.fn();
@@ -18,6 +19,7 @@ jest.mock("@actions/database", () => ({
 	getAccessToken: (...args: unknown[]) => getAccessToken(...args),
 	getOverlayBySecret: (...args: unknown[]) => getOverlayBySecret(...args),
 	getOverlayPublic: (...args: unknown[]) => getOverlayPublic(...args),
+	getPlaylistClipsForOwnerServer: (...args: unknown[]) => getPlaylistClipsForOwnerServer(...args),
 	getTwitchCache: (...args: unknown[]) => getTwitchCache(...args),
 	getTwitchCacheBatch: jest.fn(),
 	getTwitchCacheByPrefixEntries: (...args: unknown[]) => getTwitchCacheByPrefixEntries(...args),
@@ -63,6 +65,7 @@ function buildOverlay(overrides: Partial<Record<string, unknown>> = {}) {
 		name: "Overlay",
 		status: "active",
 		type: "All",
+		playlistId: null,
 		rewardId: null,
 		createdAt: new Date("2026-01-01T00:00:00.000Z"),
 		updatedAt: new Date("2026-01-01T00:00:00.000Z"),
@@ -133,6 +136,7 @@ describe("actions/twitch playback and cache behavior", () => {
 		getAccessToken.mockResolvedValue({ accessToken: "token" });
 		getOverlayBySecret.mockResolvedValue(buildOverlay());
 		getOverlayPublic.mockResolvedValue(buildOverlay());
+		getPlaylistClipsForOwnerServer.mockResolvedValue([]);
 		getTwitchCache.mockResolvedValue({});
 		getTwitchCacheByPrefixEntries.mockResolvedValue([]);
 	});
@@ -172,6 +176,16 @@ describe("actions/twitch playback and cache behavior", () => {
 		expect(clips).toEqual([]);
 		expect(getTwitchCacheByPrefixEntries).not.toHaveBeenCalled();
 		expect(connect).not.toHaveBeenCalled();
+	});
+
+	it("loads playlist overlays from playlist snapshots instead of cache sync", async () => {
+		getPlaylistClipsForOwnerServer.mockResolvedValue([buildClip("playlist-1"), buildClip("playlist-2")]);
+		const { getTwitchClips } = await loadTwitch();
+		const clips = await getTwitchClips(buildOverlay({ type: "Playlist", playlistId: "playlist-1" }));
+
+		expect(clips.map((clip) => clip.id)).toEqual(["playlist-1", "playlist-2"]);
+		expect(getPlaylistClipsForOwnerServer).toHaveBeenCalledWith("owner-1", "playlist-1");
+		expect(getTwitchCacheByPrefixEntries).not.toHaveBeenCalled();
 	});
 
 	it("filters numeric time-window overlay types and drops invalid created_at values", async () => {
@@ -609,7 +623,7 @@ describe("actions/twitch playback and cache behavior", () => {
 		]);
 
 		const { getTwitchClips } = await loadTwitch();
-		const clips = await getTwitchClips(buildOverlay(), "All", true);
+		const clips = await getTwitchClips(buildOverlay(), "All" as never, true);
 
 		expect(clips.map((clip) => clip.id)).toEqual(["dup", "kept"]);
 	});

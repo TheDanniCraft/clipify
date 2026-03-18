@@ -127,4 +127,92 @@ describe("lib/entitlements", () => {
 		const on = await loadEntitlements();
 		await expect(on.hasActiveProGrant("user-1")).resolves.toBe(true);
 	});
+
+	it("reconciles free constraints and trims playlists/clips during transaction", async () => {
+		const txSelectExecute = jest
+			.fn()
+			.mockResolvedValueOnce([
+				{ id: "overlay-1", ownerId: "user-1", createdAt: new Date("2026-01-01T00:00:00.000Z") },
+				{ id: "overlay-2", ownerId: "user-1", createdAt: new Date("2026-01-02T00:00:00.000Z") },
+			])
+			.mockResolvedValueOnce([
+				{ id: "playlist-1", ownerId: "user-1", createdAt: new Date("2026-01-01T00:00:00.000Z") },
+				{ id: "playlist-2", ownerId: "user-1", createdAt: new Date("2026-01-02T00:00:00.000Z") },
+			])
+			.mockResolvedValueOnce(
+				Array.from({ length: 55 }, (_unused, index) => ({
+					playlistId: "playlist-1",
+					clipId: `clip-${index}`,
+					position: index,
+				})),
+			);
+		const txDeleteExecute = jest.fn().mockResolvedValue(undefined);
+		const txUpdateExecute = jest.fn().mockResolvedValue(undefined);
+		const tx = {
+			select: jest.fn(() => {
+				const chain: {
+					from: () => typeof chain;
+					where: () => typeof chain;
+					orderBy: () => typeof chain;
+					execute: typeof txSelectExecute;
+				} = {
+					from: jest.fn(() => chain),
+					where: jest.fn(() => chain),
+					orderBy: jest.fn(() => chain),
+					execute: txSelectExecute,
+				};
+				return chain;
+			}),
+			delete: jest.fn(() => {
+				const chain = {
+					where: jest.fn(() => ({
+						execute: txDeleteExecute,
+					})),
+					execute: txDeleteExecute,
+				};
+				return chain;
+			}),
+			update: jest.fn(() => ({
+				set: jest.fn(() => ({
+					where: jest.fn(() => ({
+						execute: txUpdateExecute,
+					})),
+				})),
+			})),
+		};
+		db.transaction.mockImplementationOnce(async (callback: (value: typeof tx) => unknown) => callback(tx));
+
+		const { reconcileFreeConstraintsIfNeeded } = await loadEntitlements();
+		await reconcileFreeConstraintsIfNeeded(
+			{ id: "user-1", plan: "free" } as never,
+			{
+				effectivePlan: "free",
+				isBillingPro: false,
+				reverseTrialActive: false,
+				trialEndsAt: null,
+				hasActiveGrant: false,
+				source: "reverse_trial",
+			},
+		);
+
+		expect(db.transaction).toHaveBeenCalledTimes(1);
+		expect(txDeleteExecute).toHaveBeenCalled();
+		expect(txUpdateExecute).toHaveBeenCalled();
+	});
+
+	it("skips free reconciliation when effective plan is pro", async () => {
+		const { reconcileFreeConstraintsIfNeeded } = await loadEntitlements();
+		await reconcileFreeConstraintsIfNeeded(
+			{ id: "user-1", plan: "free" } as never,
+			{
+				effectivePlan: "pro",
+				isBillingPro: false,
+				reverseTrialActive: false,
+				trialEndsAt: null,
+				hasActiveGrant: true,
+				source: "grant",
+			},
+		);
+		expect(db.transaction).not.toHaveBeenCalled();
+	});
 });
