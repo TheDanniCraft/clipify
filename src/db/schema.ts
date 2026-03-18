@@ -98,6 +98,8 @@ export const overlaysTable = pgTable("overlays", {
 	maxDurationMode: maxDurationModeEnum("max_duration_mode").$type<MaxDurationMode>().notNull().default(MaxDurationModeEnumValues.Filter),
 	minClipViews: integer("min_clip_views").notNull().default(0),
 	blacklistWords: varchar("blacklist_words").array().notNull().default([]),
+	categoriesOnly: varchar("categories_only").array().notNull().default([]),
+	categoriesBlocked: varchar("categories_blocked").array().notNull().default([]),
 	playbackMode: playbackModeEnum("playback_mode").$type<PlaybackMode>().notNull().default(PlaybackModeEnumValues.Random),
 	preferCurrentCategory: boolean("prefer_current_category").notNull().default(false),
 	clipCreatorsOnly: varchar("clip_creators_only").array().notNull().default([]),

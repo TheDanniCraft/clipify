@@ -44,9 +44,11 @@ jest.mock("@components/logo", () => ({
 }));
 
 jest.mock("@tabler/icons-react", () => ({
+	IconAlertTriangle: (props: Record<string, unknown>) => <svg data-testid='icon-alert' {...props} />,
 	IconPlayerPlayFilled: (props: Record<string, unknown>) => <svg data-testid='icon-play' {...props} />,
 	IconVolume: (props: Record<string, unknown>) => <svg data-testid='icon-volume' {...props} />,
 	IconVolumeOff: (props: Record<string, unknown>) => <svg data-testid='icon-volume-off' {...props} />,
+	IconX: (props: Record<string, unknown>) => <svg data-testid='icon-x' {...props} />,
 }));
 
 jest.mock("@heroui/react", () => ({
@@ -61,7 +63,9 @@ jest.mock("@heroui/react", () => ({
 jest.mock("framer-motion", () => ({
 	motion: {
 		video: ({ children, ...props }: VideoHTMLAttributes<HTMLVideoElement>) => <video {...props}>{children}</video>,
+		div: ({ children, ...props }: { children?: ReactNode } & Record<string, unknown>) => <div {...props}>{children}</div>,
 	},
+	AnimatePresence: ({ children }: { children?: ReactNode }) => <>{children}</>,
 }));
 
 function buildClip(id: string, overrides: Partial<Record<string, unknown>> = {}) {
@@ -140,6 +144,7 @@ function buildOverlay(overrides: Partial<Record<string, unknown>> = {}) {
 
 const playMock = jest.fn().mockResolvedValue(undefined);
 const pauseMock = jest.fn();
+const realConsoleError = console.error;
 
 type SocketListener = (event: { data?: string; type?: string }) => void;
 
@@ -234,6 +239,11 @@ describe("components/overlayPlayer", () => {
 		jest.clearAllMocks();
 		MockWebSocket.instances = [];
 		(globalThis as { WebSocket: typeof WebSocket }).WebSocket = MockWebSocket as never;
+		jest.spyOn(console, "error").mockImplementation((...args: unknown[]) => {
+			const first = args[0];
+			if (typeof first === "string" && first.includes("not wrapped in act")) return;
+			realConsoleError(...(args as Parameters<typeof console.error>));
+		});
 
 		jest.spyOn(axios, "post").mockImplementation((_url: string, body: unknown) => {
 			const slug = ((body as Array<{ variables?: { slug?: string } }>)[0]?.variables?.slug ?? "fallback") as string;

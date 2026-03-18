@@ -3,8 +3,9 @@
 import { tokenTable, usersTable, overlaysTable, playlistsTable, playlistClipsTable, queueTable, settingsTable, modQueueTable, editorsTable, twitchCacheTable } from "@/db/schema";
 import { db } from "@/db/client";
 import { AuthenticatedUser, Overlay, Playlist, TwitchUserResponse, TwitchTokenApiResponse, UserToken, Plan, Role, UserSettings, TwitchCacheType, StatusOptions, OverlayType, PlaybackMode, MaxDurationMode, TwitchClip } from "@types";
-import { getUserDetails, getUsersDetailsBulk, refreshAccessTokenWithContext, subscribeToReward } from "@actions/twitch";
+import { getUserDetails, getUsersDetailsBulk, refreshAccessTokenWithContext, subscribeToReward, syncOwnerClipCache } from "@actions/twitch";
 import { syncProductUpdatesContact, getProductUpdatesSubscriptionStatus } from "@actions/newsletter";
+import { isTitleBlocked } from "@/app/utils/regexFilter";
 import { eq, inArray, and, or, isNull, lt, gt, sql, desc, max } from "drizzle-orm";
 import { validateAuth } from "@actions/auth";
 import { encryptToken, decryptToken } from "@lib/tokenCrypto";
@@ -13,6 +14,8 @@ import { ensureReverseTrialGrantForUser, resolveUserEntitlements, resolveUserEnt
 import { TWITCH_CLIPS_LAUNCH_MS } from "@lib/constants";
 
 const TWITCH_CACHE_CLEANUP_INTERVAL_MS = 10 * 60 * 1000;
+const FREE_PLAYLIST_LIMIT = 1;
+const FREE_PLAYLIST_CLIP_LIMIT = 50;
 let lastTwitchCacheCleanupAt = 0;
 const FONT_URL_DELIMITER = "||url||";
 const ALLOWED_FONT_CSS_HOSTS = new Set(["fonts.googleapis.com"]);
@@ -52,6 +55,14 @@ type CacheReadMetrics = {
 declare global {
 	// eslint-disable-next-line no-var
 	var __twitchCacheReadMetrics: CacheReadMetrics | undefined;
+}
+
+function summarizeError(error: unknown): string {
+	if (error instanceof Error) {
+		const maybeCode = (error as Error & { code?: string }).code;
+		return maybeCode ? `${error.name}(${maybeCode}): ${error.message}` : `${error.name}: ${error.message}`;
+	}
+	return String(error);
 }
 
 function getCacheReadMetricsStore(): CacheReadMetrics {
@@ -152,6 +163,8 @@ type OverlayPatch = Partial<
 		| "maxClipDuration"
 		| "maxDurationMode"
 		| "blacklistWords"
+		| "categoriesOnly"
+		| "categoriesBlocked"
 		| "minClipViews"
 		| "playbackMode"
 		| "preferCurrentCategory"
@@ -256,6 +269,8 @@ function buildOverlayUpdatePayload(next: Overlay, advancedAllowed: boolean) {
 		maxClipDuration: advancedAllowed ? next.maxClipDuration : 60,
 		maxDurationMode: advancedAllowed ? next.maxDurationMode : MaxDurationMode.Filter,
 		blacklistWords: advancedAllowed ? next.blacklistWords : [],
+		categoriesOnly: advancedAllowed ? next.categoriesOnly ?? [] : [],
+		categoriesBlocked: advancedAllowed ? next.categoriesBlocked ?? [] : [],
 		minClipViews: advancedAllowed ? next.minClipViews : 0,
 		playbackMode: advancedAllowed ? next.playbackMode : PlaybackMode.Random,
 		preferCurrentCategory: advancedAllowed ? !!next.preferCurrentCategory : false,
@@ -934,11 +949,45 @@ export type PlaylistImportFilters = {
 	startDate?: string | null;
 	endDate?: string | null;
 	categoryId?: string | null;
+	categoryIds?: string[] | null;
 	minViews?: number;
+	minDuration?: number;
+	maxDuration?: number;
+	blacklistWords?: string[];
 	clipCreatorsOnly?: string[];
 	clipCreatorsBlocked?: string[];
 	includeModQueue?: boolean;
 };
+
+async function getPlaylistImportSourceClips(ownerId: string, filters: PlaylistImportFilters): Promise<TwitchClip[]> {
+	try {
+		// Keep import source aligned with overlay preview by syncing owner cache before reading.
+		await syncOwnerClipCache(ownerId);
+	} catch (error) {
+		console.warn(`Clip cache sync before playlist import failed for owner ${ownerId}`, error);
+	}
+
+	const clipPrefix = `clip:${ownerId}:`;
+	const entries = await getTwitchCacheByPrefixEntries<unknown>(TwitchCacheType.Clip, clipPrefix);
+	const clipMap = new Map<string, TwitchClip>();
+	for (const entry of entries) {
+		const clip = parseStoredClip(entry.value);
+		if (!clip?.id) continue;
+		if (!clipMap.has(clip.id)) clipMap.set(clip.id, clip);
+	}
+
+	if (filters.includeModQueue) {
+		const modQueueEntries = await getModQueueByBroadcasterId(ownerId);
+		for (const queued of modQueueEntries) {
+			if (clipMap.has(queued.clipId)) continue;
+			const cacheEntry = await getTwitchCache<unknown>(TwitchCacheType.Clip, `clip:${ownerId}:${queued.clipId}`);
+			const clip = parseStoredClip(cacheEntry);
+			if (clip?.id) clipMap.set(clip.id, clip);
+		}
+	}
+
+	return Array.from(clipMap.values());
+}
 
 function parseStoredClip(value: unknown): TwitchClip | null {
 	if (!value || typeof value !== "object") return null;
@@ -1051,7 +1100,7 @@ export async function createPlaylist(ownerId: string, name: string) {
 	if (!owner) return null;
 	if (!isPro) {
 		const existing = await db.select().from(playlistsTable).where(eq(playlistsTable.ownerId, ownerId)).execute();
-		if (existing.length >= 1) {
+		if (existing.length >= FREE_PLAYLIST_LIMIT) {
 			throw new Error("Free plan allows only one playlist");
 		}
 	}
@@ -1129,8 +1178,8 @@ export async function upsertPlaylistClips(playlistId: string, clips: TwitchClip[
 	const uniqueIncoming = Array.from(new Map(clips.filter((clip) => !!clip?.id).map((clip) => [clip.id, clip])).values());
 
 	if (mode === "replace") {
-		if (!isPro && uniqueIncoming.length > 50) {
-			throw new Error("Free plan playlists are limited to 50 clips");
+		if (!isPro && uniqueIncoming.length > FREE_PLAYLIST_CLIP_LIMIT) {
+			throw new Error(`Free plan playlists are limited to ${FREE_PLAYLIST_CLIP_LIMIT} clips`);
 		}
 		await db.transaction(async (tx) => {
 			await tx.delete(playlistClipsTable).where(eq(playlistClipsTable.playlistId, playlistId)).execute();
@@ -1154,8 +1203,8 @@ export async function upsertPlaylistClips(playlistId: string, clips: TwitchClip[
 
 	const clipsToAppend = uniqueIncoming.filter((clip) => !existingClipIds.has(clip.id));
 	const finalCount = existingRows.length + clipsToAppend.length;
-	if (!isPro && finalCount > 50) {
-		throw new Error("Free plan playlists are limited to 50 clips");
+	if (!isPro && finalCount > FREE_PLAYLIST_CLIP_LIMIT) {
+		throw new Error(`Free plan playlists are limited to ${FREE_PLAYLIST_CLIP_LIMIT} clips`);
 	}
 
 	if (clipsToAppend.length > 0) {
@@ -1218,8 +1267,16 @@ function applyPlaylistImportFilters(clips: TwitchClip[], filters: PlaylistImport
 		}
 	}
 
+	const dateOnlyPattern = /^\d{4}-\d{2}-\d{2}$/;
 	const startTs = filters.startDate ? new Date(filters.startDate).getTime() : Number.NaN;
-	const endTs = filters.endDate ? new Date(filters.endDate).getTime() : Number.NaN;
+	const endTs = filters.endDate
+		? (() => {
+				const raw = new Date(filters.endDate).getTime();
+				if (!Number.isFinite(raw)) return Number.NaN;
+				// If only a date is provided (no time), treat end as inclusive through the full day.
+				return dateOnlyPattern.test(filters.endDate) ? raw + 24 * 60 * 60 * 1000 - 1 : raw;
+			})()
+		: Number.NaN;
 	if (Number.isFinite(startTs) || Number.isFinite(endTs)) {
 		result = result.filter((clip) => {
 			const ts = new Date(clip.created_at).getTime();
@@ -1230,14 +1287,26 @@ function applyPlaylistImportFilters(clips: TwitchClip[], filters: PlaylistImport
 		});
 	}
 
-	const categoryId = (filters.categoryId ?? "").trim().toLowerCase();
-	if (categoryId) {
-		result = result.filter((clip) => clip.game_id.toLowerCase() === categoryId);
-	}
-
 	const minViews = Math.max(0, Math.floor(filters.minViews ?? 0));
 	if (minViews > 0) {
 		result = result.filter((clip) => clip.view_count >= minViews);
+	}
+
+	const minDuration = Math.max(0, Math.floor(filters.minDuration ?? 0));
+	const maxDuration = Math.max(0, Math.floor(filters.maxDuration ?? 0));
+	if (minDuration > 0 || maxDuration > 0) {
+		result = result.filter((clip) => {
+			if (minDuration > 0 && clip.duration < minDuration) return false;
+			if (maxDuration > 0 && clip.duration > maxDuration) return false;
+			return true;
+		});
+	}
+
+	const normalizedCategory = filters.categoryId?.trim().toLowerCase();
+	const normalizedCategories = (filters.categoryIds ?? []).map((entry) => entry.trim().toLowerCase()).filter((entry) => Boolean(entry) && entry !== "all");
+	const allowedCategories = Array.from(new Set([...(normalizedCategory && normalizedCategory !== "all" ? [normalizedCategory] : []), ...normalizedCategories]));
+	if (allowedCategories.length > 0) {
+		result = result.filter((clip) => allowedCategories.includes(clip.game_id.toLowerCase()));
 	}
 
 	const allowedCreators = normalizeCreatorFilters(filters.clipCreatorsOnly);
@@ -1248,6 +1317,11 @@ function applyPlaylistImportFilters(clips: TwitchClip[], filters: PlaylistImport
 	const blockedCreators = normalizeCreatorFilters(filters.clipCreatorsBlocked);
 	if (blockedCreators.length > 0) {
 		result = result.filter((clip) => !blockedCreators.includes(clip.creator_name.toLowerCase()) && !blockedCreators.includes(clip.creator_id.toLowerCase()));
+	}
+
+	const blacklistWords = (filters.blacklistWords ?? []).map((entry) => entry.trim()).filter(Boolean);
+	if (blacklistWords.length > 0) {
+		result = result.filter((clip) => !isTitleBlocked(clip.title, blacklistWords));
 	}
 
 	return result.sort((a, b) => b.view_count - a.view_count || b.created_at.localeCompare(a.created_at));
@@ -1262,27 +1336,22 @@ export async function importPlaylistClips(playlistId: string, filters: PlaylistI
 		throw new Error("Auto import is a Pro feature");
 	}
 
-	const clipPrefix = `clip:${ctx.playlist.ownerId}:`;
-	const entries = await getTwitchCacheByPrefixEntries<unknown>(TwitchCacheType.Clip, clipPrefix);
-	const clipMap = new Map<string, TwitchClip>();
-	for (const entry of entries) {
-		const clip = parseStoredClip(entry.value);
-		if (!clip?.id) continue;
-		if (!clipMap.has(clip.id)) clipMap.set(clip.id, clip);
-	}
-
-	if (filters.includeModQueue) {
-		const modQueueEntries = await getModQueueByBroadcasterId(ctx.playlist.ownerId);
-		for (const queued of modQueueEntries) {
-			if (clipMap.has(queued.clipId)) continue;
-			const cacheEntry = await getTwitchCache<unknown>(TwitchCacheType.Clip, `clip:${ctx.playlist.ownerId}:${queued.clipId}`);
-			const clip = parseStoredClip(cacheEntry);
-			if (clip?.id) clipMap.set(clip.id, clip);
-		}
-	}
-
-	const imported = applyPlaylistImportFilters(Array.from(clipMap.values()), filters);
+	const source = await getPlaylistImportSourceClips(ctx.playlist.ownerId, filters);
+	const imported = applyPlaylistImportFilters(source, filters);
 	return upsertPlaylistClips(playlistId, imported, mode);
+}
+
+export async function previewImportPlaylistClips(playlistId: string, filters: PlaylistImportFilters): Promise<TwitchClip[]> {
+	const ctx = await requirePlaylistAccess(playlistId);
+	if (!ctx) return [];
+
+	const { isPro } = await getOwnerPlanContext(ctx.playlist.ownerId);
+	if (!isPro) {
+		throw new Error("Auto import is a Pro feature");
+	}
+
+	const source = await getPlaylistImportSourceClips(ctx.playlist.ownerId, filters);
+	return applyPlaylistImportFilters(source, filters);
 }
 
 export async function getOverlayOwnerPlans(overlayIds: string[]): Promise<Record<string, Plan>> {
@@ -1514,7 +1583,7 @@ export async function downgradeUserPlan(userId: string) {
 	const keptPlaylist = playlists[0];
 	if (keptPlaylist) {
 		const keptRows = await db.select().from(playlistClipsTable).where(eq(playlistClipsTable.playlistId, keptPlaylist.id)).orderBy(playlistClipsTable.position).execute();
-		const keepIds = new Set(keptRows.slice(0, 50).map((row) => row.clipId));
+		const keepIds = new Set(keptRows.slice(0, FREE_PLAYLIST_CLIP_LIMIT).map((row) => row.clipId));
 		const removeIds = keptRows.filter((row) => !keepIds.has(row.clipId)).map((row) => row.clipId);
 		if (removeIds.length > 0) {
 			await db.delete(playlistClipsTable).where(and(eq(playlistClipsTable.playlistId, keptPlaylist.id), inArray(playlistClipsTable.clipId, removeIds))).execute();
@@ -2064,7 +2133,7 @@ export async function setTwitchCache(type: TwitchCacheType, key: string, value: 
 		const expiresAt = ttlSeconds ? new Date(Date.now() + ttlSeconds * 1000) : null;
 		const payload = JSON.stringify(value);
 
-		cleanupTwitchCacheIfNeeded(now).catch((error) => console.error("Error cleaning up twitch cache:", error));
+		cleanupTwitchCacheIfNeeded(now).catch((error) => console.error("Error cleaning up twitch cache:", summarizeError(error)));
 
 		await db
 			.insert(twitchCacheTable)
@@ -2085,7 +2154,7 @@ export async function setTwitchCache(type: TwitchCacheType, key: string, value: 
 			})
 			.execute();
 	} catch (error) {
-		console.error("Error writing twitch cache:", error);
+		console.error("Error writing twitch cache:", summarizeError(error));
 	}
 }
 
@@ -2169,7 +2238,7 @@ function parseCacheJson<T>(value: string, context: string): T | null {
 	try {
 		return JSON.parse(value) as T;
 	} catch (error) {
-		console.error("Error parsing twitch cache payload (%s):", context, error);
+		console.error("Error parsing twitch cache payload (%s): %s", context, summarizeError(error));
 		return null;
 	}
 }
@@ -2187,7 +2256,7 @@ export async function setTwitchCacheBatch(type: TwitchCacheType, entries: { key:
 			expiresAt,
 		}));
 
-		cleanupTwitchCacheIfNeeded(now).catch((error) => console.error("Error cleaning up twitch cache:", error));
+		cleanupTwitchCacheIfNeeded(now).catch((error) => console.error("Error cleaning up twitch cache:", summarizeError(error)));
 
 		await db
 			.insert(twitchCacheTable)
@@ -2202,7 +2271,7 @@ export async function setTwitchCacheBatch(type: TwitchCacheType, entries: { key:
 			})
 			.execute();
 	} catch (error) {
-		console.error("Error writing twitch cache batch:", error);
+		console.error("Error writing twitch cache batch:", summarizeError(error));
 	}
 }
 

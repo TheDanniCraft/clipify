@@ -1101,4 +1101,18 @@ describe("actions/twitch external API and failure handling", () => {
 
 		expect(status).toEqual(expect.objectContaining({ cooldownMs: 7200000 }));
 	});
+
+	describe("getTwitchGames", () => {
+		it("searches games on Twitch", async () => {
+			getAccessToken.mockResolvedValue({ accessToken: "token" });
+			const twitchGames = [{ id: "1", name: "Game 1" }];
+			jest.spyOn(axios, "get").mockResolvedValue({ data: { data: twitchGames } } as never);
+
+			const { getTwitchGames } = await loadTwitch();
+			const result = await getTwitchGames("query", "user-1");
+
+			expect(result).toEqual(twitchGames);
+			expect(axios.get).toHaveBeenCalledWith("https://api.twitch.tv/helix/search/categories", expect.any(Object));
+		});
+	});
 });

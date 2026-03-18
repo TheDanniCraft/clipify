@@ -12,6 +12,7 @@ const dbTransaction = jest.fn();
 const validateAuth = jest.fn();
 const resolveUserEntitlements = jest.fn();
 const getFeatureAccess = jest.fn(() => ({ allowed: true }));
+const getTwitchCacheByPrefixEntries = jest.fn();
 const subscribeToReward = jest.fn();
 
 const insertCalls: Array<{ table: unknown; values: unknown }> = [];
@@ -707,6 +708,31 @@ describe("actions/database playlist logic", () => {
 		expect(imported.map((clip) => clip.id)).toEqual(["featured-keep", "mod-extra"]);
 		const insertedPlaylistClips = insertCalls.find((call) => call.table === playlistClipsTable);
 		expect(insertedPlaylistClips).toBeTruthy();
+	});
+
+	it("filters by categoryId in importPlaylistClips", async () => {
+		resolveUserEntitlements.mockResolvedValue({
+			effectivePlan: "pro",
+			isBillingPro: true,
+			reverseTrialActive: false,
+			trialEndsAt: null,
+			hasActiveGrant: true,
+		});
+		queueSelectResult([{ id: "playlist-1", ownerId: "owner-1", name: "Main", createdAt: new Date(), updatedAt: new Date() }]);
+		queueSelectResult([{ id: "owner-1", plan: "pro", createdAt: new Date("2026-01-01T00:00:00.000Z") }]);
+		// getTwitchCacheByPrefixEntries select
+		queueSelectResult([
+			{ key: "clip:owner-1:cat-match", value: JSON.stringify({ id: "cat-match", game_id: "game-123", view_count: 100, created_at: new Date().toISOString() }) },
+			{ key: "clip:owner-1:cat-miss", value: JSON.stringify({ id: "cat-miss", game_id: "game-456", view_count: 100, created_at: new Date().toISOString() }) },
+		]);
+		queueSelectResult([]); // existing playlist clips
+		queueSelectResult([{ id: "playlist-1", ownerId: "owner-1" }]); // getPlaylistClipsForOwnerServer check
+		queueSelectResult([{ playlistId: "playlist-1", clipId: "cat-match", position: 0, clipData: JSON.stringify({ id: "cat-match" }) }]); // final return select
+
+		const { importPlaylistClips } = await loadDatabaseActions();
+		const imported = await importPlaylistClips("playlist-1", { overlayType: "All" as never, categoryId: "game-123" }, "replace");
+
+		expect(imported.every((clip) => clip.id !== "cat-miss")).toBe(true);
 	});
 
 	it("returns empty import result when playlist access fails", async () => {

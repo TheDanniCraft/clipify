@@ -1,16 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { useParams, useRouter } from "next/navigation";
-import { createPlaylist, getClipCacheStatus, getOverlay, getOverlayOwnerPlan, getPlaylistsForOwner, importPlaylistClips, reorderPlaylistClips, saveOverlay, upsertPlaylistClips } from "@actions/database";
-import { addToast, Button, Card, CardBody, CardHeader, Divider, Form, Image, Input, Link, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, NumberInput, Select, SelectItem, Slider, Snippet, Spinner, Switch, Tooltip, useDisclosure } from "@heroui/react";
-import { AuthenticatedUser, Overlay, OverlayType, Plan, PlaybackMode, StatusOptions, TwitchClip, TwitchReward } from "@types";
-import { IconAlertTriangle, IconArrowLeft, IconCrown, IconDeviceFloppy, IconGripVertical, IconInfoCircle, IconPaint, IconPlayerPauseFilled, IconPlayerPlayFilled, IconPlus } from "@tabler/icons-react";
+import { createPlaylist, getClipCacheStatus, getOverlay, getOverlayOwnerPlan, getPlaylistsForOwner, previewImportPlaylistClips, reorderPlaylistClips, saveOverlay, savePlaylist, upsertPlaylistClips } from "@actions/database";
+import { addToast, Autocomplete, AutocompleteItem, Button, Card, CardBody, CardHeader, Checkbox, Chip, DateRangePicker, Divider, Form, Image, Input, Link, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, NumberInput, Select, SelectItem, Slider, Snippet, Spinner, Switch, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow, Tooltip, useDisclosure } from "@heroui/react";
+import { AuthenticatedUser, Game, Overlay, OverlayType, Plan, PlaybackMode, StatusOptions, TwitchClip, TwitchReward } from "@types";
+import { IconAlertTriangle, IconArrowLeft, IconCrown, IconDeviceFloppy, IconDownload, IconGripVertical, IconInfoCircle, IconPaint, IconPlayerPauseFilled, IconPlayerPlayFilled, IconPlus, IconSearch, IconTrash } from "@tabler/icons-react";
 import DashboardNavbar from "@components/dashboardNavbar";
 import { useNavigationGuard } from "next-navigation-guard";
 import { validateAuth } from "@actions/auth";
-import { createChannelReward, getReward, getTwitchClips, handleClip, removeChannelReward } from "@actions/twitch";
+import { createChannelReward, getCachedClipsByOwner, getGameDetails, getReward, getTwitchClips, getTwitchGames, handleClip, removeChannelReward } from "@actions/twitch";
 import { REWARD_NOT_FOUND } from "@lib/twitchErrors";
 import FeedbackWidget from "@components/feedbackWidget";
 import TagsInput from "@components/tagsInput";
@@ -20,6 +20,8 @@ import ChatwootData from "@components/chatwootData";
 import { getTrialDaysLeft, isReverseTrialActive } from "@lib/featureAccess";
 import { usePlausible } from "next-plausible";
 import { trackPaywallEvent } from "@lib/paywallTracking";
+import type { Selection, SortDescriptor } from "@heroui/react";
+import { parseDate } from "@internationalized/date";
 
 const overlayTypes: { key: OverlayType; label: string }[] = [
 	{ key: OverlayType.Today, label: "Top Clips - Today" },
@@ -30,9 +32,18 @@ const overlayTypes: { key: OverlayType; label: string }[] = [
 	{ key: OverlayType.LastYear, label: "Top Clips - Last Year" },
 	{ key: OverlayType.Featured, label: "Featured only" },
 	{ key: OverlayType.All, label: "All Clips" },
-	{ key: OverlayType.Playlist, label: "Playlist Snapshot" },
+	{ key: OverlayType.Playlist, label: "Playlist" },
 	{ key: OverlayType.Queue, label: "Clip Queue" },
 ];
+
+const ALL_CATEGORIES_OPTION: Game = {
+	id: "all",
+	name: "All categories",
+	box_art_url: "",
+	igdb_id: "",
+};
+const FREE_PLAYLIST_CLIP_LIMIT = 50;
+const DEFAULT_IMPORT_START_DATE = "2016-01-01";
 
 const playbackModes: { key: PlaybackMode; label: string }[] = [
 	{ key: PlaybackMode.Random, label: "Random" },
@@ -60,25 +71,234 @@ export default function OverlaySettings() {
 	const [previewReviewMode, setPreviewReviewMode] = useState(true);
 	const [playlists, setPlaylists] = useState<Array<{ id: string; name: string; clipCount: number }>>([]);
 	const [playlistClips, setPlaylistClips] = useState<TwitchClip[]>([]);
+	const [savedPlaylistClipIds, setSavedPlaylistClipIds] = useState<string[]>([]);
+	const [selectedPlaylistClipIds, setSelectedPlaylistClipIds] = useState<Set<string>>(new Set());
 	const [newPlaylistName, setNewPlaylistName] = useState("");
+	const [playlistNameDraft, setPlaylistNameDraft] = useState("");
 	const [newClipInput, setNewClipInput] = useState("");
-	const [importStartDate, setImportStartDate] = useState("");
-	const [importEndDate, setImportEndDate] = useState("");
-	const [importCategoryId, setImportCategoryId] = useState("");
+	const [importStartDate, setImportStartDate] = useState(DEFAULT_IMPORT_START_DATE);
+	const [importEndDate, setImportEndDate] = useState(() => new Date().toISOString().slice(0, 10));
+	const [importCategoryId, setImportCategoryId] = useState("all");
+	const [importCategoryInput, setImportCategoryInput] = useState("All categories");
 	const [importMinViews, setImportMinViews] = useState(0);
-	const [importIncludeModQueue, setImportIncludeModQueue] = useState(false);
+	const [importMinDuration, setImportMinDuration] = useState(0);
+	const [importMaxDuration, setImportMaxDuration] = useState(0);
+	const [importBlacklistWords, setImportBlacklistWords] = useState<string[]>([]);
 	const [importCreatorAllowlist, setImportCreatorAllowlist] = useState<string[]>([]);
 	const [importCreatorDenylist, setImportCreatorDenylist] = useState<string[]>([]);
 	const [pendingImportMode, setPendingImportMode] = useState<"append" | "replace" | null>(null);
 	const [draggedClipId, setDraggedClipId] = useState<string | null>(null);
+	const [dragOverClipId, setDragOverClipId] = useState<string | null>(null);
 	const [clipCacheStatus, setClipCacheStatus] = useState<Awaited<ReturnType<typeof getClipCacheStatus>> | null>(null);
+	const [cachedClips, setCachedClips] = useState<TwitchClip[]>([]);
+	const [selectedCachedClipIds, setSelectedCachedClipIds] = useState<Selection>(new Set([]));
+	const [cachedClipsFilter, setCachedClipsFilter] = useState("");
+	const [cachedClipsSortDescriptor, setCachedClipsSortDescriptor] = useState<SortDescriptor>({
+		column: "date",
+		direction: "descending",
+	});
+	const [gameSearchResults, setGameSearchResults] = useState<Game[]>([]);
+	const [isSearchingGames, setIsSearchingGames] = useState(false);
+	const [gameDetailsById, setGameDetailsById] = useState<Record<string, Game>>({});
+	const [allowlistGameSearch, setAllowlistGameSearch] = useState("");
+	const [denylistGameSearch, setDenylistGameSearch] = useState("");
+	const [allowlistGameResults, setAllowlistGameResults] = useState<Game[]>([]);
+	const [denylistGameResults, setDenylistGameResults] = useState<Game[]>([]);
+	const [isSearchingAllowlistGames, setIsSearchingAllowlistGames] = useState(false);
+	const [isSearchingDenylistGames, setIsSearchingDenylistGames] = useState(false);
+
 	const { isOpen: isCliplistOpen, onOpen: onCliplistOpen, onOpenChange: onCliplistOpenChange } = useDisclosure();
 	const { isOpen: isPlaylistOpen, onOpen: onPlaylistOpen, onOpenChange: onPlaylistOpenChange } = useDisclosure();
 	const { isOpen: isImportOpen, onOpen: onImportOpen, onOpenChange: onImportOpenChange } = useDisclosure();
+	const { isOpen: isAddClipsOpen, onOpen: onAddClipsOpen, onOpenChange: onAddClipsOpenChange } = useDisclosure();
 	const { isOpen: isUpgradeOpen, onOpen: onUpgradeOpen, onOpenChange: onUpgradeOpenChange } = useDisclosure();
+	const { isOpen: isAutoImportLockedOpen, onOpen: onAutoImportLockedOpen, onOpenChange: onAutoImportLockedOpenChange } = useDisclosure();
 	const plausible = usePlausible();
 
 	const navGuard = useNavigationGuard({ enabled: isFormDirty() });
+
+	useEffect(() => {
+		async function resolveGameNames() {
+			if (!overlay || !user) return;
+			const allIds = Array.from(new Set([...(overlay.categoriesOnly ?? []), ...(overlay.categoriesBlocked ?? [])]));
+			const nextResolved = { ...gameDetailsById };
+			let changed = false;
+
+			for (const id of allIds) {
+				if (!nextResolved[id]) {
+					const game = await getGameDetails(id, user.id);
+					if (game) {
+						nextResolved[id] = game;
+						changed = true;
+					} else {
+						// Fallback to ID if name not found
+						nextResolved[id] = {
+							id,
+							name: `Game ${id}`,
+							box_art_url: "",
+							igdb_id: "",
+						};
+						changed = true;
+					}
+				}
+			}
+
+			if (changed) setGameDetailsById(nextResolved);
+		}
+		resolveGameNames();
+	}, [overlay?.categoriesOnly, overlay?.categoriesBlocked, user]);
+
+	useEffect(() => {
+		let timeoutId: NodeJS.Timeout;
+		if (allowlistGameSearch && allowlistGameSearch.length >= 2 && overlay?.ownerId) {
+			setIsSearchingAllowlistGames(true);
+			timeoutId = setTimeout(async () => {
+				const games = await getTwitchGames(allowlistGameSearch, overlay.ownerId);
+				setAllowlistGameResults(games);
+				setIsSearchingAllowlistGames(false);
+			}, 400);
+		} else {
+			setAllowlistGameResults([]);
+		}
+		return () => clearTimeout(timeoutId);
+	}, [allowlistGameSearch, overlay?.ownerId]);
+
+	useEffect(() => {
+		let timeoutId: NodeJS.Timeout;
+		if (denylistGameSearch && denylistGameSearch.length >= 2 && overlay?.ownerId) {
+			setIsSearchingDenylistGames(true);
+			timeoutId = setTimeout(async () => {
+				const games = await getTwitchGames(denylistGameSearch, overlay.ownerId);
+				setDenylistGameResults(games);
+				setIsSearchingDenylistGames(false);
+			}, 400);
+		} else {
+			setDenylistGameResults([]);
+		}
+		return () => clearTimeout(timeoutId);
+	}, [denylistGameSearch, overlay?.ownerId]);
+
+	useEffect(() => {
+		let timeoutId: NodeJS.Timeout;
+		const normalizedInput = importCategoryInput.trim().toLowerCase();
+		if (normalizedInput.length >= 2 && normalizedInput !== "all" && normalizedInput !== "all categories" && overlay?.ownerId) {
+			setIsSearchingGames(true);
+			timeoutId = setTimeout(async () => {
+				const games = await getTwitchGames(importCategoryInput, overlay.ownerId);
+				setGameSearchResults(games);
+				setIsSearchingGames(false);
+			}, 500);
+		} else {
+			setGameSearchResults([]);
+		}
+		return () => clearTimeout(timeoutId);
+	}, [importCategoryInput, overlay?.ownerId]);
+
+	const cachedCategoryOptions: Game[] = Object.values(gameDetailsById).sort((a, b) => a.name.localeCompare(b.name));
+	const importCategoryOptions = (() => {
+		const map = new Map<string, Game>();
+		for (const game of cachedCategoryOptions) map.set(game.id, game);
+		for (const game of gameSearchResults) map.set(game.id, game);
+		return [ALL_CATEGORIES_OPTION, ...Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name))];
+	})();
+
+	function getGameName(gameId: string) {
+		const resolved = gameDetailsById[gameId]?.name?.trim();
+		return resolved && resolved !== gameId ? resolved : "Unknown category";
+	}
+
+	const filteredCachedClips = useMemo(() => {
+		const f = cachedClipsFilter.toLowerCase();
+		return cachedClips.filter((clip) => {
+			const categoryName = getGameName(clip.game_id).toLowerCase();
+			return clip.title.toLowerCase().includes(f) || clip.creator_name.toLowerCase().includes(f) || categoryName.includes(f);
+		});
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [cachedClips, cachedClipsFilter, gameDetailsById]);
+
+	const sortedCachedClips = useMemo(() => {
+		const items = [...filteredCachedClips];
+		const { column, direction } = cachedClipsSortDescriptor;
+		const dir = direction === "descending" ? -1 : 1;
+		items.sort((a, b) => {
+			switch (column) {
+				case "clip":
+					return a.title.localeCompare(b.title) * dir;
+				case "creator":
+					return a.creator_name.localeCompare(b.creator_name) * dir;
+				case "category":
+					return getGameName(a.game_id).localeCompare(getGameName(b.game_id)) * dir;
+				case "views":
+					return (a.view_count - b.view_count) * dir;
+				case "date":
+					return (new Date(a.created_at).getTime() - new Date(b.created_at).getTime()) * dir;
+				default:
+					return 0;
+			}
+		});
+		return items;
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [filteredCachedClips, cachedClipsSortDescriptor, gameDetailsById]);
+
+	function reorderClips(clips: TwitchClip[], fromId: string, toId: string) {
+		if (fromId === toId) return clips;
+		const fromIndex = clips.findIndex((entry) => entry.id === fromId);
+		const toIndex = clips.findIndex((entry) => entry.id === toId);
+		if (fromIndex < 0 || toIndex < 0 || fromIndex === toIndex) return clips;
+		const next = [...clips];
+		const [moved] = next.splice(fromIndex, 1);
+		next.splice(toIndex, 0, moved);
+		return next;
+	}
+
+	async function handleOpenAddClips() {
+		if (!overlay?.ownerId) return;
+		const clips = await getCachedClipsByOwner(overlay.ownerId);
+		setCachedClips(clips);
+		const existingPlaylistClipIds = new Set(playlistClips.map((clip) => clip.id));
+		const preselectedClipIds = clips.filter((clip) => existingPlaylistClipIds.has(clip.id)).map((clip) => clip.id);
+		setSelectedCachedClipIds(new Set(preselectedClipIds));
+		const uniqueGameIds = Array.from(new Set(clips.map((clip) => clip.game_id).filter(Boolean)));
+		const missingIds = uniqueGameIds.filter((id) => !gameDetailsById[id]);
+		if (missingIds.length > 0) {
+			const resolved = await Promise.all(
+				missingIds.map(async (id) => {
+					const game = await getGameDetails(id, overlay.ownerId);
+					return {
+						id,
+						name: game?.name ?? "Unknown category",
+						box_art_url: game?.box_art_url ?? "",
+						igdb_id: game?.igdb_id ?? "",
+					} as Game;
+				}),
+			);
+			setGameDetailsById((prev) => {
+				const next = { ...prev };
+				for (const game of resolved) next[game.id] = game;
+				return next;
+			});
+		}
+		onAddClipsOpen();
+	}
+
+	async function handleAddSelectedClips() {
+		if (!currentOverlay.playlistId) return;
+		const selectedIds = Array.from(selectedCachedClipIds as Set<string>);
+		const clipsToAdd = cachedClips.filter((c) => selectedIds.includes(c.id));
+		if (clipsToAdd.length === 0) return;
+
+		try {
+			setPlaylistClips((prev) => {
+				const nextById = new Map(prev.map((clip) => [clip.id, clip]));
+				for (const clip of clipsToAdd) nextById.set(clip.id, clip);
+				return Array.from(nextById.values());
+			});
+			setSelectedCachedClipIds(new Set([]));
+			onAddClipsOpenChange();
+		} catch (error) {
+			addToast({ title: "Failed to add clips", color: "danger" });
+		}
+	}
 
 	useEffect(() => {
 		async function fetchOwnerPlan() {
@@ -181,15 +401,30 @@ export default function OverlaySettings() {
 		async function getPlaylistSnapshot() {
 			if (!overlay?.playlistId) {
 				setPlaylistClips([]);
+				setSavedPlaylistClipIds([]);
 				return;
 			}
 			const playlist = playlists.find((entry) => entry.id === overlay.playlistId);
 			if (!playlist) return;
 			const clips = await getTwitchClips({ ...overlay, type: OverlayType.Playlist }, OverlayType.Playlist, true);
 			setPlaylistClips(clips);
+			setSavedPlaylistClipIds(clips.map((clip) => clip.id));
 		}
 		getPlaylistSnapshot();
 		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [overlay?.playlistId, playlists]);
+
+	useEffect(() => {
+		setSelectedPlaylistClipIds((prev) => new Set(Array.from(prev).filter((id) => playlistClips.some((clip) => clip.id === id))));
+	}, [playlistClips]);
+
+	useEffect(() => {
+		if (!overlay?.playlistId) {
+			setPlaylistNameDraft("");
+			return;
+		}
+		const current = playlists.find((playlist) => playlist.id === overlay.playlistId);
+		setPlaylistNameDraft(current?.name ?? "");
 	}, [overlay?.playlistId, playlists]);
 
 	useEffect(() => {
@@ -221,6 +456,15 @@ export default function OverlaySettings() {
 	const isPlaylistOverlay = currentOverlay.type === OverlayType.Playlist;
 	const selectedPlaylist = playlists.find((playlist) => playlist.id === currentOverlay.playlistId) ?? null;
 	const canUseAutoImport = ownerPlan === Plan.Pro;
+	const isFreePlaylistLimitActive = ownerPlan === Plan.Free;
+	const playlistClipUsage = playlistClips.length;
+	const playlistClipUsagePercent = Math.min(100, Math.round((playlistClipUsage / FREE_PLAYLIST_CLIP_LIMIT) * 100));
+	const selectedIds = Array.from(selectedCachedClipIds as Set<string>);
+	const selectedNewClipCount = cachedClips.filter((clip) => selectedIds.includes(clip.id) && !playlistClips.some((existing) => existing.id === clip.id)).length;
+	const wouldExceedFreeLimit = isFreePlaylistLimitActive && playlistClipUsage + selectedNewClipCount > FREE_PLAYLIST_CLIP_LIMIT;
+	const isPlaylistDraftDirty = playlistClips.map((clip) => clip.id).join(",") !== savedPlaylistClipIds.join(",");
+	const isSelectedPlaylistNameDirty = selectedPlaylist ? playlistNameDraft.trim() !== selectedPlaylist.name : false;
+	const canSaveManagedPlaylist = isPlaylistDraftDirty || isSelectedPlaylistNameDirty;
 	const inTrial = user ? isReverseTrialActive(user) : false;
 	const trialDaysLeft = user ? getTrialDaysLeft(user) : 0;
 
@@ -278,7 +522,7 @@ export default function OverlaySettings() {
 	async function runImport(mode: "append" | "replace") {
 		if (!currentOverlay.playlistId) return;
 		try {
-			const clips = await importPlaylistClips(
+			const imported = await previewImportPlaylistClips(
 				currentOverlay.playlistId,
 				{
 					overlayType: OverlayType.All,
@@ -286,15 +530,23 @@ export default function OverlaySettings() {
 					endDate: importEndDate || null,
 					categoryId: importCategoryId || null,
 					minViews: importMinViews,
+					minDuration: importMinDuration,
+					maxDuration: importMaxDuration,
+					blacklistWords: importBlacklistWords,
 					clipCreatorsOnly: importCreatorAllowlist,
 					clipCreatorsBlocked: importCreatorDenylist,
-					includeModQueue: importIncludeModQueue,
 				},
-				mode,
 			);
-			setPlaylistClips(clips);
-			await refreshPlaylists();
-			addToast({ title: `Imported ${clips.length} clips`, color: "success" });
+			if (mode === "replace") {
+				setPlaylistClips(imported);
+			} else {
+				setPlaylistClips((prev) => {
+					const nextById = new Map(prev.map((clip) => [clip.id, clip]));
+					for (const clip of imported) nextById.set(clip.id, clip);
+					return Array.from(nextById.values());
+				});
+			}
+			addToast({ title: `Imported ${imported.length} clips into draft`, color: "success" });
 		} catch (error) {
 			addToast({
 				title: "Import failed",
@@ -320,6 +572,16 @@ export default function OverlaySettings() {
 			return false;
 		}
 		if (blocked.includes(creatorName) || blocked.includes(creatorId)) {
+			return false;
+		}
+
+		const allowedCategories = (overlay.categoriesOnly ?? []).map((id) => id.toLowerCase());
+		if (allowedCategories.length > 0 && !allowedCategories.includes(clip.game_id.toLowerCase())) {
+			return false;
+		}
+
+		const blockedCategories = (overlay.categoriesBlocked ?? []).map((id) => id.toLowerCase());
+		if (blockedCategories.length > 0 && blockedCategories.includes(clip.game_id.toLowerCase())) {
 			return false;
 		}
 
@@ -438,6 +700,8 @@ export default function OverlaySettings() {
 			maxClipDuration: overlay.maxClipDuration,
 			maxDurationMode: overlay.maxDurationMode,
 			blacklistWords: overlay.blacklistWords,
+			categoriesOnly: overlay.categoriesOnly,
+			categoriesBlocked: overlay.categoriesBlocked,
 			minClipViews: overlay.minClipViews,
 			playbackMode: overlay.playbackMode,
 			preferCurrentCategory: overlay.preferCurrentCategory,
@@ -687,23 +951,49 @@ export default function OverlaySettings() {
 												<div className='flex w-full items-center gap-2'>
 													<Select
 														selectedKeys={overlay.playlistId ? [overlay.playlistId] : []}
-														onSelectionChange={(value) => setOverlay({ ...overlay, playlistId: (value.currentKey as string | null) ?? null })}
+														onSelectionChange={async (value) => {
+															const selected = value.currentKey as string;
+															if (selected === "create_new") {
+																try {
+																	const playlist = await createPlaylist(currentOverlay.ownerId, "New Playlist");
+																	if (playlist) {
+																		await refreshPlaylists();
+																		setOverlay((prev) => (prev ? { ...prev, playlistId: playlist.id, type: OverlayType.Playlist } : prev));
+																		setPlaylistNameDraft(playlist.name);
+																		addToast({ title: "Playlist created", color: "success" });
+																		router.push(`/dashboard/playlist/${playlist.id}`);
+																	}
+																} catch (error) {
+																	addToast({ title: "Failed to create playlist", color: "danger" });
+																}
+																return;
+															}
+															setOverlay({ ...overlay, playlistId: selected ?? null });
+														}}
 														label='Playlist'
 														className='flex-1'
 													>
-														{playlists.map((playlist) => (
-															<SelectItem key={playlist.id}>{`${playlist.name} (${playlist.clipCount})`}</SelectItem>
-														))}
+														{[
+															...playlists.map((playlist) => (
+																<SelectItem key={playlist.id} textValue={`${playlist.name} (${playlist.clipCount})`}>
+																	{`${playlist.name} (${playlist.clipCount})`}
+																</SelectItem>
+															)),
+															<SelectItem key='create_new' textValue='Create new playlist...'>
+																Create new playlist...
+															</SelectItem>,
+														]}
 													</Select>
-													<Button onPress={onPlaylistOpen}>Manage</Button>
-												</div>
-												<div className='flex w-full items-end gap-2'>
-													<Input value={newPlaylistName} onValueChange={setNewPlaylistName} label='New Playlist Name' placeholder='My best clips' className='flex-1' />
-													<Button color='primary' startContent={<IconPlus size={14} />} onPress={handleCreatePlaylist}>
-														Create
+													<Button
+														onPress={() => {
+															if (!overlay.playlistId) return;
+															router.push(`/dashboard/playlist/${overlay.playlistId}`);
+														}}
+														isDisabled={!overlay.playlistId}
+													>
+														Manage
 													</Button>
 												</div>
-												<div className='text-xs text-default-500'>Playlists are snapshots of clips. Free: 1 playlist with up to 50 clips. Pro: unlimited playlists and clips.</div>
 											</div>
 										) : (
 											<>
@@ -733,8 +1023,67 @@ export default function OverlaySettings() {
 													size='sm'
 												/>
 												<NumberInput size='sm' minValue={0} defaultValue={overlay.minClipViews} value={overlay.minClipViews} onValueChange={(value) => setOverlay({ ...overlay, minClipViews: Number(value) })} label='Minimum Clip Views' description='Only clips with at least this many views will be shown in the overlay.' className='p-2' />
-												<TagsInput className='p-2' fullWidth label='Only These Clip Creators' value={overlay.clipCreatorsOnly} onValueChange={(value) => setOverlay({ ...overlay, clipCreatorsOnly: value })} description='Allow only specific clip creators (Twitch usernames).' />
-												<TagsInput className='p-2' fullWidth label='Blocked Clip Creators' value={overlay.clipCreatorsBlocked} onValueChange={(value) => setOverlay({ ...overlay, clipCreatorsBlocked: value })} description='Exclude specific clip creators from playback.' />
+
+												<div className='p-2 space-y-2'>
+													<Autocomplete label='Allowed Games / Categories' placeholder='Search and add a game...' items={allowlistGameResults.slice(0, 100)} isLoading={isSearchingAllowlistGames} onInputChange={setAllowlistGameSearch} onSelectionChange={(key) => {
+														if (!key) return;
+														const game = allowlistGameResults.find((g) => g.id === key);
+														const id = String(key);
+														if (!overlay.categoriesOnly?.includes(id)) {
+															setOverlay({ ...overlay, categoriesOnly: [...(overlay.categoriesOnly ?? []), id] });
+															if (game) setGameDetailsById((prev) => ({ ...prev, [id]: game }));
+														}
+														setAllowlistGameSearch("");
+													}}>
+														{(item) => (
+															<AutocompleteItem key={item.id} textValue={item.name}>
+																<div className='flex items-center gap-2'>
+																	<Image src={item.box_art_url?.replace("{width}", "32").replace("{height}", "44")} alt={item.name} className='h-8 w-6 rounded object-cover' />
+																	<span>{item.name}</span>
+																</div>
+															</AutocompleteItem>
+														)}
+													</Autocomplete>
+													<div className='flex flex-wrap gap-1'>
+														{(overlay.categoriesOnly ?? []).map((id) => (
+															<Chip key={id} onClose={() => setOverlay({ ...overlay, categoriesOnly: overlay.categoriesOnly.filter(x => x !== id) })} size='sm' variant='flat'>
+																{getGameName(id)}
+															</Chip>
+														))}
+													</div>
+												</div>
+
+												<div className='p-2 space-y-2'>
+													<Autocomplete label='Blocked Games / Categories' placeholder='Search and block a game...' items={denylistGameResults.slice(0, 100)} isLoading={isSearchingDenylistGames} onInputChange={setDenylistGameSearch} onSelectionChange={(key) => {
+														if (!key) return;
+														const game = denylistGameResults.find((g) => g.id === key);
+														const id = String(key);
+														if (!overlay.categoriesBlocked?.includes(id)) {
+															setOverlay({ ...overlay, categoriesBlocked: [...(overlay.categoriesBlocked ?? []), id] });
+															if (game) setGameDetailsById((prev) => ({ ...prev, [id]: game }));
+														}
+														setDenylistGameSearch("");
+													}}>
+														{(item) => (
+															<AutocompleteItem key={item.id} textValue={item.name}>
+																<div className='flex items-center gap-2'>
+																	<Image src={item.box_art_url?.replace("{width}", "32").replace("{height}", "44")} alt={item.name} className='h-8 w-6 rounded object-cover' />
+																	<span>{item.name}</span>
+																</div>
+															</AutocompleteItem>
+														)}
+													</Autocomplete>
+													<div className='flex flex-wrap gap-1'>
+														{(overlay.categoriesBlocked ?? []).map((id) => (
+															<Chip key={id} onClose={() => setOverlay({ ...overlay, categoriesBlocked: overlay.categoriesBlocked.filter(x => x !== id) })} size='sm' variant='flat' color='danger'>
+																{getGameName(id)}
+															</Chip>
+														))}
+													</div>
+												</div>
+
+												<TagsInput className='p-2' fullWidth label='Creator Allowlist' value={overlay.clipCreatorsOnly} onValueChange={(value) => setOverlay({ ...overlay, clipCreatorsOnly: value })} description='Allow only specific clip creators (Twitch usernames).' />
+												<TagsInput className='p-2' fullWidth label='Creator Denylist' value={overlay.clipCreatorsBlocked} onValueChange={(value) => setOverlay({ ...overlay, clipCreatorsBlocked: value })} description='Exclude specific clip creators from playback.' />
 												<TagsInput className='p-2' fullWidth label='Blacklisted Words' value={overlay.blacklistWords} onValueChange={(value) => setOverlay({ ...overlay, blacklistWords: value })} description='Hide clips containing certain words in titles. Supports RE2 regex (no lookarounds).' />
 											</>
 										)}
@@ -786,44 +1135,154 @@ export default function OverlaySettings() {
 					<ModalContent className='max-h-[85vh] overflow-hidden'>
 						<ModalHeader className='flex items-center justify-between'>
 							<div>{selectedPlaylist ? `Manage Playlist: ${selectedPlaylist.name}` : "Manage Playlist"}</div>
-							<Button size='sm' variant='flat' onPress={onImportOpen} isDisabled={!selectedPlaylist}>
-								Auto import
-							</Button>
-						</ModalHeader>
-						<ModalBody className='overflow-y-auto'>
-							<div className='flex gap-2'>
-								<Input value={newClipInput} onValueChange={setNewClipInput} label='Add Clip URL' placeholder='https://clips.twitch.tv/...' className='flex-1' />
-								<Button color='primary' onPress={handleAddClipToPlaylist} isDisabled={!overlay.playlistId}>
-									Add
+							<div className='flex items-center gap-2 pr-4'>
+								<Button size='sm' color='primary' variant='solid' startContent={<IconPlus size={14} />} className='font-semibold' onPress={handleOpenAddClips} isDisabled={!selectedPlaylist}>
+									Add clips
+								</Button>
+								<Button
+									size='sm'
+									variant='flat'
+									startContent={<IconDownload size={14} />}
+									onPress={() => {
+										if (!selectedPlaylist) return;
+										if (canUseAutoImport) {
+											onImportOpen();
+											return;
+										}
+										onAutoImportLockedOpen();
+									}}
+									isDisabled={!selectedPlaylist}
+								>
+									Auto import
 								</Button>
 							</div>
-							<div className='text-xs text-default-500'>Drag and drop to reorder. Save order to persist changes.</div>
+						</ModalHeader>
+						<ModalBody className='overflow-y-auto'>
+							<div className='mb-2'>
+								<Input
+									size='sm'
+									label='Playlist name'
+									value={playlistNameDraft}
+									onValueChange={setPlaylistNameDraft}
+									placeholder='Playlist name'
+									isDisabled={!selectedPlaylist}
+								/>
+							</div>
+							{isFreePlaylistLimitActive && (
+								<div className='mb-3 rounded-lg border border-default-200 bg-content2 px-3 py-2'>
+									<div className='mb-2 flex items-center justify-between text-xs text-default-600'>
+										<span>Free plan usage</span>
+										<span>
+											{playlistClipUsage}/{FREE_PLAYLIST_CLIP_LIMIT}
+										</span>
+									</div>
+									<div className='h-2 rounded-full bg-default-200'>
+										<div className='h-2 rounded-full bg-primary' style={{ width: `${playlistClipUsagePercent}%` }} />
+									</div>
+								</div>
+							)}
+							{playlistClips.length === 0 && <div className='py-8 text-center text-default-400'>No clips in this playlist. Click &quot;Add clips&quot; to start.</div>}
+							<div className='text-xs text-default-500'>Reorder clips as needed. Changes are applied when you click Save Playlist.</div>
+							<div className='flex items-center gap-2'>
+								<Button
+									size='sm'
+									variant='flat'
+									onPress={() => {
+										if (playlistClips.length === 0) return;
+										setSelectedPlaylistClipIds(new Set(playlistClips.map((clip) => clip.id)));
+									}}
+									isDisabled={playlistClips.length === 0}
+								>
+									Select all
+								</Button>
+								<Button
+									size='sm'
+									variant='light'
+									onPress={() => setSelectedPlaylistClipIds(new Set())}
+									isDisabled={selectedPlaylistClipIds.size === 0}
+								>
+									Clear
+								</Button>
+								<Button
+									size='sm'
+									color='danger'
+									variant='flat'
+									onPress={() => {
+										if (selectedPlaylistClipIds.size === 0) return;
+										setPlaylistClips((prev) => prev.filter((clip) => !selectedPlaylistClipIds.has(clip.id)));
+										setSelectedPlaylistClipIds(new Set());
+									}}
+									isDisabled={selectedPlaylistClipIds.size === 0}
+								>
+									Remove selected ({selectedPlaylistClipIds.size})
+								</Button>
+							</div>
 							<ul className='space-y-2'>
 								{playlistClips.map((clip) => (
 									<li
 										key={clip.id}
 										draggable
-										onDragStart={() => setDraggedClipId(clip.id)}
-										onDragOver={(event) => event.preventDefault()}
-										onDrop={() => {
-											if (!draggedClipId || draggedClipId === clip.id) return;
-											const fromIndex = playlistClips.findIndex((entry) => entry.id === draggedClipId);
-											const toIndex = playlistClips.findIndex((entry) => entry.id === clip.id);
-											if (fromIndex < 0 || toIndex < 0) return;
-											const next = [...playlistClips];
-											const [moved] = next.splice(fromIndex, 1);
-											next.splice(toIndex, 0, moved);
-											setPlaylistClips(next);
+										onDragStart={() => {
+											setDraggedClipId(clip.id);
+											setDragOverClipId(clip.id);
 										}}
-										className='flex items-center gap-3 rounded border border-default-200 px-3 py-2'
+										onDragOver={(event) => {
+											event.preventDefault();
+											if (!draggedClipId || draggedClipId === clip.id) return;
+											setDragOverClipId(clip.id);
+											setPlaylistClips((prev) => reorderClips(prev, draggedClipId, clip.id));
+										}}
+										onDrop={() => {
+											if (!draggedClipId) return;
+											const next = reorderClips(playlistClips, draggedClipId, clip.id);
+											setPlaylistClips(next);
+											setDraggedClipId(null);
+											setDragOverClipId(null);
+										}}
+										onDragEnd={() => {
+											setDraggedClipId(null);
+											setDragOverClipId(null);
+										}}
+										className={`flex items-center gap-3 rounded border px-3 py-2 transition-colors ${
+											draggedClipId === clip.id ? "opacity-55 border-default-300 bg-content2" : ""
+										} ${dragOverClipId === clip.id && draggedClipId !== clip.id ? "border-primary bg-primary/10" : "border-default-200"}`}
 									>
+										<Checkbox
+											isSelected={selectedPlaylistClipIds.has(clip.id)}
+											onValueChange={(checked) => {
+												setSelectedPlaylistClipIds((prev) => {
+													const next = new Set(prev);
+													if (checked) next.add(clip.id);
+													else next.delete(clip.id);
+													return next;
+												});
+											}}
+										/>
 										<IconGripVertical size={16} className='text-default-400' />
 										<Image src={clip.thumbnail_url} alt={clip.title} className='h-10 w-16 rounded object-cover' />
 										<div className='min-w-0 flex-1'>
 											<div className='truncate text-sm font-medium'>{clip.title}</div>
 											<div className='text-xs text-default-500'>{clip.creator_name}</div>
 										</div>
-										<div className='text-xs text-default-500'>{clip.view_count} views</div>
+										<div className='flex items-center gap-2'>
+											<div className='text-xs text-default-500'>{clip.view_count} views</div>
+											<Button
+												isIconOnly
+												size='sm'
+												variant='light'
+												color='danger'
+												onPress={() => {
+													setPlaylistClips((prev) => prev.filter((c) => c.id !== clip.id));
+													setSelectedPlaylistClipIds((prev) => {
+														const next = new Set(prev);
+														next.delete(clip.id);
+														return next;
+													});
+												}}
+											>
+												<IconTrash size={16} />
+											</Button>
+										</div>
 									</li>
 								))}
 							</ul>
@@ -834,39 +1293,176 @@ export default function OverlaySettings() {
 							</Button>
 							<Button
 								color='primary'
+								startContent={<IconDeviceFloppy size={16} />}
 								onPress={async () => {
 									if (!overlay.playlistId) return;
-									const reordered = await reorderPlaylistClips(
-										overlay.playlistId,
-										playlistClips.map((clip) => clip.id),
-									);
-									setPlaylistClips(reordered);
-									addToast({ title: "Playlist order saved", color: "success" });
+									const nextName = playlistNameDraft.trim();
+									if (!nextName) {
+										addToast({ title: "Playlist name is required", color: "danger" });
+										return;
+									}
+
+									if (selectedPlaylist && isSelectedPlaylistNameDirty) {
+										const updated = await savePlaylist(selectedPlaylist.id, { name: nextName });
+										if (!updated) {
+											addToast({ title: "Failed to save playlist", color: "danger" });
+											return;
+										}
+										await refreshPlaylists();
+										setPlaylistNameDraft(updated.name);
+									}
+
+									if (isPlaylistDraftDirty) {
+										const saved = await upsertPlaylistClips(overlay.playlistId, playlistClips, "replace");
+										setPlaylistClips(saved);
+										setSavedPlaylistClipIds(saved.map((clip) => clip.id));
+										await refreshPlaylists();
+									}
+
+									addToast({ title: "Playlist saved", color: "success" });
 								}}
-								isDisabled={!overlay.playlistId || playlistClips.length === 0}
+								isDisabled={!overlay.playlistId || !canSaveManagedPlaylist || !playlistNameDraft.trim()}
 							>
-								Save order
+								Save Playlist
+							</Button>
+						</ModalFooter>
+					</ModalContent>
+				</Modal>
+
+				<Modal isOpen={isAddClipsOpen} onOpenChange={onAddClipsOpenChange} size='5xl'>
+					<ModalContent className='max-h-[80vh]'>
+						<ModalHeader className='flex flex-col gap-1'>
+							<div>Select clips to add</div>
+							<Input
+								size='sm'
+								placeholder='Search by title or creator...'
+								startContent={<IconSearch size={16} />}
+								value={cachedClipsFilter}
+								onValueChange={setCachedClipsFilter}
+								isClearable
+							/>
+						</ModalHeader>
+						<ModalBody className='overflow-y-auto'>
+							<Table
+								aria-label='Cached clips table'
+								selectionMode='multiple'
+								selectedKeys={selectedCachedClipIds}
+								onSelectionChange={setSelectedCachedClipIds}
+								sortDescriptor={cachedClipsSortDescriptor}
+								onSortChange={setCachedClipsSortDescriptor}
+								classNames={{
+									wrapper: "max-h-[56vh]",
+								}}
+							>
+								<TableHeader>
+									<TableColumn key='clip' allowsSorting>
+										Clip
+									</TableColumn>
+									<TableColumn key='creator' allowsSorting>
+										Creator
+									</TableColumn>
+									<TableColumn key='category' allowsSorting>
+										Category
+									</TableColumn>
+									<TableColumn key='views' allowsSorting>
+										Views
+									</TableColumn>
+									<TableColumn key='date' allowsSorting>
+										Date
+									</TableColumn>
+								</TableHeader>
+								<TableBody items={sortedCachedClips} emptyContent='No clips found in cache.'>
+									{(item) => (
+										<TableRow key={item.id}>
+											<TableCell>
+												<div className='flex items-center gap-2'>
+													<Image src={item.thumbnail_url} alt={item.title} className='h-8 w-14 rounded object-cover' />
+													<div className='truncate max-w-[250px]'>{item.title}</div>
+												</div>
+											</TableCell>
+											<TableCell>{item.creator_name}</TableCell>
+											<TableCell>{getGameName(item.game_id)}</TableCell>
+											<TableCell>{item.view_count}</TableCell>
+											<TableCell>{new Date(item.created_at).toLocaleDateString()}</TableCell>
+										</TableRow>
+									)}
+								</TableBody>
+							</Table>
+						</ModalBody>
+						<ModalFooter>
+							{wouldExceedFreeLimit && <div className='mr-auto text-xs text-danger'>Free plan limit is {FREE_PLAYLIST_CLIP_LIMIT} clips per playlist.</div>}
+							<Button variant='light' onPress={onAddClipsOpenChange}>
+								Cancel
+							</Button>
+							<Button color='primary' onPress={handleAddSelectedClips} isDisabled={selectedIds.length === 0 || wouldExceedFreeLimit}>
+								Add selected clips
 							</Button>
 						</ModalFooter>
 					</ModalContent>
 				</Modal>
 
 				<Modal isOpen={isImportOpen} onOpenChange={onImportOpenChange}>
-					<ModalContent>
-						<ModalHeader>Auto Import to Playlist</ModalHeader>
-						<ModalBody className='space-y-2'>
-							{!canUseAutoImport && <div className='rounded border border-warning-200 bg-warning-50 px-3 py-2 text-xs text-warning-700'>Auto import is available on Pro.</div>}
-							<Input label='Category (Game ID)' value={importCategoryId} onValueChange={setImportCategoryId} />
-							<div className='grid grid-cols-2 gap-2'>
-								<Input type='date' label='Start Date' value={importStartDate} onValueChange={setImportStartDate} />
-								<Input type='date' label='End Date' value={importEndDate} onValueChange={setImportEndDate} />
-							</div>
+				<ModalContent>
+					<ModalHeader>Auto Import to Playlist</ModalHeader>
+					<ModalBody className='space-y-4'>
+						<Autocomplete
+							label='Category / Game'
+							isRequired
+							items={importCategoryOptions}
+								isLoading={isSearchingGames}
+								placeholder='Type at least 2 characters or choose all'
+								inputValue={importCategoryInput}
+								onInputChange={(value) => {
+									setImportCategoryInput(value);
+									const normalized = value.trim().toLowerCase();
+									if (!normalized || normalized === "all" || normalized === "all categories") {
+										setImportCategoryId("all");
+										return;
+									}
+									if (value !== (importCategoryOptions.find((item) => item.id === importCategoryId)?.name ?? "")) {
+										setImportCategoryId("");
+									}
+								}}
+								onSelectionChange={(key) => {
+									const nextId = (key as string) ?? "";
+									setImportCategoryId(nextId);
+									const selected = importCategoryOptions.find((item) => item.id === nextId);
+									setImportCategoryInput(selected?.name ?? "");
+								}}
+								selectedKey={importCategoryId || null}
+							>
+								{(item) => (
+									<AutocompleteItem key={item.id} textValue={item.name}>
+										<div className='flex items-center gap-2'>
+											{item.box_art_url ? <Image src={item.box_art_url.replace("{width}", "32").replace("{height}", "44")} alt={item.name} className='h-8 w-6 rounded object-cover' /> : null}
+											<span>{item.name}</span>
+										</div>
+									</AutocompleteItem>
+								)}
+							</Autocomplete>
+
+							<DateRangePicker
+								label='Date Range'
+								value={importStartDate && importEndDate ? { start: parseDate(importStartDate), end: parseDate(importEndDate) } : null}
+								onChange={(range) => {
+									if (!range) {
+										setImportStartDate(DEFAULT_IMPORT_START_DATE);
+										setImportEndDate(new Date().toISOString().slice(0, 10));
+										return;
+									}
+									setImportStartDate(range.start.toString());
+									setImportEndDate(range.end.toString());
+								}}
+							/>
+
 							<NumberInput label='Minimum Views' minValue={0} value={importMinViews} onValueChange={(value) => setImportMinViews(Number(value) || 0)} />
-							<Switch isSelected={importIncludeModQueue} onValueChange={setImportIncludeModQueue}>
-								Include mod queue clips
-							</Switch>
+							<div className='grid grid-cols-1 gap-3 sm:grid-cols-2'>
+								<NumberInput label='Min Duration (sec)' minValue={0} value={importMinDuration} onValueChange={(value) => setImportMinDuration(Number(value) || 0)} />
+								<NumberInput label='Max Duration (sec)' minValue={0} value={importMaxDuration} onValueChange={(value) => setImportMaxDuration(Number(value) || 0)} />
+							</div>
 							<TagsInput fullWidth label='Creator Allowlist' value={importCreatorAllowlist} onValueChange={setImportCreatorAllowlist} />
 							<TagsInput fullWidth label='Creator Denylist' value={importCreatorDenylist} onValueChange={setImportCreatorDenylist} />
+							<TagsInput fullWidth label='Blacklisted Words' value={importBlacklistWords} onValueChange={setImportBlacklistWords} />
 						</ModalBody>
 						<ModalFooter>
 							<Button variant='light' onPress={onImportOpenChange}>
@@ -874,7 +1470,8 @@ export default function OverlaySettings() {
 							</Button>
 							<Button
 								color='primary'
-								isDisabled={!canUseAutoImport || !overlay.playlistId}
+								startContent={<IconDownload size={16} />}
+								isDisabled={!canUseAutoImport || !overlay.playlistId || !importCategoryId}
 								onPress={() => {
 									if (playlistClips.length > 0) setPendingImportMode("append");
 									else runImport("replace");
@@ -910,6 +1507,23 @@ export default function OverlaySettings() {
 								}}
 							>
 								Replace
+							</Button>
+						</ModalFooter>
+					</ModalContent>
+				</Modal>
+
+				<Modal isOpen={isAutoImportLockedOpen} onOpenChange={onAutoImportLockedOpenChange}>
+					<ModalContent>
+						<ModalHeader>Auto Import Requires Pro</ModalHeader>
+						<ModalBody>
+							<div className='text-sm text-default-600'>Auto import is available on Pro. Free includes one playlist with up to {FREE_PLAYLIST_CLIP_LIMIT} clips.</div>
+						</ModalBody>
+						<ModalFooter>
+							<Button variant='light' onPress={onAutoImportLockedOpenChange}>
+								Close
+							</Button>
+							<Button color='primary' onPress={onUpgradeOpen}>
+								Upgrade
 							</Button>
 						</ModalFooter>
 					</ModalContent>

@@ -267,6 +267,43 @@ describe("actions/twitch playback and cache behavior", () => {
 		expect(clips.map((clip) => clip.id)).toEqual(["allowed-id", "not-listed"]);
 	});
 
+	it("filters by categoriesOnly and categoriesBlocked", async () => {
+		getTwitchCacheByPrefixEntries.mockResolvedValue(
+			cacheEntriesFromClips([
+				buildClip("cat-allowed", { game_id: "123" }),
+				buildClip("cat-blocked", { game_id: "456" }),
+				buildClip("cat-other", { game_id: "789" }),
+			]),
+		);
+
+		const { getTwitchClips } = await loadTwitch();
+		
+		// Test categoriesOnly
+		const onlyClips = await getTwitchClips(
+			buildOverlay({
+				categoriesOnly: ["123"],
+			}),
+		);
+		expect(onlyClips.map((clip) => clip.id)).toEqual(["cat-allowed"]);
+
+		// Test categoriesBlocked
+		const blockedClips = await getTwitchClips(
+			buildOverlay({
+				categoriesBlocked: ["456"],
+			}),
+		);
+		expect(blockedClips.map((clip) => clip.id)).toEqual(["cat-allowed", "cat-other"]);
+
+		// Test both
+		const bothClips = await getTwitchClips(
+			buildOverlay({
+				categoriesOnly: ["123", "789"],
+				categoriesBlocked: ["789"],
+			}),
+		);
+		expect(bothClips.map((clip) => clip.id)).toEqual(["cat-allowed"]);
+	});
+
 	it("prefers current category clips when category preference is enabled", async () => {
 		getTwitchCacheByPrefixEntries.mockResolvedValue([
 			{ key: "clip:owner-1:cat-a", value: buildClip("cat-a", { game_id: "game-a", view_count: 100 }) },

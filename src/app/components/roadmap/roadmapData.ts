@@ -100,4 +100,13 @@ export const roadmapData: RoadmapItemData[] = [
 		status: RoadmapStatus.Shipped,
 		timeframe: "Q1-Q2 2026",
 	},
+	{
+		icon: IconFolder,
+		color: "indigo",
+		title: "Clip Playlists",
+		description: "Build and manage reusable clip playlists.",
+		status: RoadmapStatus.InDevelopment,
+		timeframe: "Q2 2026",
+		features: ["Create and rename playlists", "Draft-based playlist editing", "Auto import filters", "Bulk clip management"],
+	},
 ];

@@ -543,7 +543,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 						<Dropdown>
 							<DropdownTrigger>
 								<Button color='primary' isDisabled={overlays === undefined} isLoading={isLoading} endContent={<IconCirclePlus width={20} />}>
-									Add Overlay
+									{activeTab === "overlays" ? "Add Overlay" : "Add Playlist"}
 								</Button>
 							</DropdownTrigger>
 
@@ -716,6 +716,46 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 		);
 	}, [filterSelectedKeys, page, pages, filteredItems.length, onPreviousPage, onNextPage]);
 
+	const playlistColumns = [
+		{ name: "Playlist Name", uid: "name" },
+		{ name: "Clips", uid: "clipCount" },
+		{ name: "Access", uid: "accessType" },
+		{ name: "Actions", uid: "actions" },
+	];
+
+	const renderPlaylistCell = useCallback((playlist: LocalPlaylist, columnKey: React.Key) => {
+		switch (columnKey) {
+			case "name":
+				return <div className='font-semibold'>{playlist.name}</div>;
+			case "clipCount":
+				return <div>{playlist.clipCount} clips</div>;
+			case "accessType":
+				return <AvatarCell ownerId={playlist.ownerId} userId={userId} />;
+			case "actions":
+				return (
+					<div className='flex items-center justify-end gap-2'>
+						<IconTrash
+							className='cursor-pointer text-default-400'
+							height={18}
+							width={18}
+							onClick={async (event) => {
+								event.stopPropagation();
+								const ok = await deletePlaylist(playlist.id);
+								if (!ok) {
+									addToast({ title: "Failed to delete playlist", color: "danger" });
+									return;
+								}
+								setPlaylists((prev) => (prev ?? []).filter((entry) => entry.id !== playlist.id));
+								addToast({ title: "Playlist deleted", color: "success" });
+							}}
+						/>
+					</div>
+				);
+			default:
+				return null;
+		}
+	}, [userId]);
+
 	return (
 		<div className='h-full w-full p-6'>
 			{topBar}
@@ -777,34 +817,24 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 				</TableBody>
 				</Table>
 			) : (
-				<div className='space-y-2'>
-					{(playlists ?? []).length === 0 && <div className='rounded border border-default-200 px-3 py-6 text-center text-default-500'>No playlists found.</div>}
-					{(playlists ?? []).map((playlist) => (
-						<div key={playlist.id} className='flex items-center justify-between rounded border border-default-200 px-3 py-2'>
-							<div>
-								<div className='text-sm font-semibold'>{playlist.name}</div>
-								<div className='text-xs text-default-500'>
-									{playlist.clipCount} clips • {playlist.accessType ?? "owner"}
-								</div>
-							</div>
-							<Button
-								color='danger'
-								variant='light'
-								size='sm'
-								onPress={async () => {
-									const ok = await deletePlaylist(playlist.id);
-									if (!ok) {
-										addToast({ title: "Failed to delete playlist", color: "danger" });
-										return;
-									}
-									setPlaylists((prev) => (prev ?? []).filter((entry) => entry.id !== playlist.id));
-								}}
-							>
-								Delete
-							</Button>
-						</div>
-					))}
-				</div>
+				<Table
+					aria-label='Playlists table'
+					onRowAction={(key) => {
+						// Open a playlist detail page (to be created)
+						router.push(`/dashboard/playlist/${String(key)}`);
+					}}
+				>
+					<TableHeader columns={playlistColumns}>
+						{(column) => (
+							<TableColumn key={column.uid} align={column.uid === "actions" ? "end" : "start"}>
+								{column.name}
+							</TableColumn>
+						)}
+					</TableHeader>
+					<TableBody emptyContent={playlists === undefined ? <Spinner label='Loading playlists' /> : <div className='text-default-400'>No playlists found</div>} items={playlists ?? []}>
+						{(item) => <TableRow key={item.id}>{(columnKey) => <TableCell>{renderPlaylistCell(item, columnKey)}</TableCell>}</TableRow>}
+					</TableBody>
+				</Table>
 			)}
 			{currentUser && currentUser.plan === "free" && <UpgradeModal isOpen={isUpgradeOpen} onOpenChange={onUpgradeOpenChange} user={currentUser} title='Upgrade to add more overlays' source='upgrade_modal' feature='multi_overlay' />}
 		</div>

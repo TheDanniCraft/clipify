@@ -114,7 +114,7 @@ async function setClipForceRefreshState(ownerId: string, state: ClipForceRefresh
 	await setTwitchCache(TwitchCacheType.Clip, CLIP_FORCE_REFRESH_KEY(ownerId), state);
 }
 
-async function getCachedClipsByOwner(ownerId: string, limit?: number): Promise<TwitchClip[]> {
+export async function getCachedClipsByOwner(ownerId: string, limit?: number): Promise<TwitchClip[]> {
 	const boundedLimit = typeof limit === "number" ? Math.max(1, Math.floor(limit)) : undefined;
 	const entries = await getTwitchCacheByPrefixEntries<CachedClipValue | TwitchClip>(TwitchCacheType.Clip, CLIP_CACHE_PREFIX(ownerId), boundedLimit);
 	const deduped = new Map<string, TwitchClip>();
@@ -133,6 +133,41 @@ async function getCachedClipsByOwner(ownerId: string, limit?: number): Promise<T
 		if (boundedLimit && deduped.size >= boundedLimit) break;
 	}
 	return Array.from(deduped.values());
+}
+
+export async function getTwitchGames(query: string, authUserId: string): Promise<Game[]> {
+	const url = "https://api.twitch.tv/helix/search/categories";
+	const token = await getAccessToken(authUserId);
+	if (!token) return [];
+
+	try {
+		const response = await axios.get<TwitchApiResponse<Game>>(url, {
+			headers: {
+				Authorization: `Bearer ${token.accessToken}`,
+				"Client-Id": process.env.TWITCH_CLIENT_ID || "",
+			},
+			params: {
+				query,
+				first: 100,
+			},
+		});
+		const games = response.data.data;
+
+		if (games.length > 0) {
+			// Cache individual games for ID resolution
+			const GAME_CACHE_TTL_SECONDS = 60 * 60 * 24 * 30; // 30 days
+			await setTwitchCacheBatch(
+				TwitchCacheType.Game,
+				games.map((game) => ({ key: game.id, value: game })),
+				GAME_CACHE_TTL_SECONDS,
+			);
+		}
+
+		return games;
+	} catch (error) {
+		logTwitchError("Error searching Twitch games", error);
+		return [];
+	}
 }
 
 async function upsertClipsByOwner(ownerId: string, clips: TwitchClip[]) {
@@ -963,6 +998,17 @@ export async function getTwitchClips(overlay: Overlay, type?: OverlayType, skipF
 		clips = clips.filter((clip) => {
 			return !isTitleBlocked(clip.title, overlay.blacklistWords);
 		});
+
+		// Filter for selected categories
+		const allowedCategories = (overlay.categoriesOnly ?? []).map((id) => id.toString().toLowerCase());
+		if (allowedCategories.length > 0) {
+			clips = clips.filter((clip) => allowedCategories.includes(clip.game_id.toLowerCase()));
+		}
+
+		const blockedCategories = (overlay.categoriesBlocked ?? []).map((id) => id.toString().toLowerCase());
+		if (blockedCategories.length > 0) {
+			clips = clips.filter((clip) => !blockedCategories.includes(clip.game_id.toLowerCase()));
+		}
 
 		// Filter for selected clip creators
 		const allowedCreators = (overlay.clipCreatorsOnly ?? []).map((name) => name.toLowerCase());

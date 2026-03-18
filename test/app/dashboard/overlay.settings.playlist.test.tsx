@@ -6,6 +6,7 @@ const getOverlayOwnerPlan = jest.fn();
 const getClipCacheStatus = jest.fn();
 const getPlaylistsForOwner = jest.fn();
 const saveOverlay = jest.fn();
+const savePlaylist = jest.fn();
 const validateAuth = jest.fn();
 const getTwitchClips = jest.fn();
 
@@ -31,6 +32,7 @@ jest.mock("@actions/database", () => ({
 	importPlaylistClips: jest.fn(),
 	reorderPlaylistClips: jest.fn(),
 	upsertPlaylistClips: jest.fn(),
+	savePlaylist: (...args: unknown[]) => savePlaylist(...args),
 	saveOverlay: (...args: unknown[]) => saveOverlay(...args),
 }));
 
@@ -95,7 +97,7 @@ jest.mock("@components/tagsInput", () => ({
 jest.mock("@tabler/icons-react", () => new Proxy({}, { get: () => () => <span /> }));
 
 jest.mock("@heroui/react", () => {
-	const React = require("react");
+	jest.requireActual<typeof import("react")>("react");
 	return {
 		addToast: jest.fn(),
 		useDisclosure: () => ({ isOpen: false, onOpen: jest.fn(), onOpenChange: jest.fn() }),
@@ -117,10 +119,19 @@ jest.mock("@heroui/react", () => {
 				<select>{children}</select>
 			</label>
 		),
+		Autocomplete: ({ label, children }: { label?: string; children?: React.ReactNode }) => (
+			<label>
+				{label}
+				<div>{children}</div>
+			</label>
+		),
+		AutocompleteItem: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
 		SelectItem: ({ children, ...props }: { children: React.ReactNode }) => <option {...props}>{children}</option>,
 		Switch: ({ children }: { children: React.ReactNode }) => <label>{children}</label>,
+		Checkbox: ({ children }: { children?: React.ReactNode }) => <label>{children}</label>,
 		Slider: () => <div />,
 		NumberInput: () => <div />,
+		DateRangePicker: ({ label }: { label?: string }) => <div>{label}</div>,
 		Card: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 		CardHeader: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 		CardBody: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
@@ -132,6 +143,12 @@ jest.mock("@heroui/react", () => {
 		ModalFooter: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 		ModalHeader: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 		Image: () => <div />,
+		Table: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+		TableHeader: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+		TableColumn: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+		TableBody: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+		TableRow: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+		TableCell: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
 		Snippet: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 		Spinner: ({ label }: { label?: string }) => <div>{label}</div>,
 		Tooltip: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
@@ -203,13 +220,14 @@ describe("dashboard overlay settings playlist mode", () => {
 		getPlaylistsForOwner.mockResolvedValue([{ id: "playlist-1", name: "Roadmap", clipCount: 3 }]);
 		getTwitchClips.mockResolvedValue([]);
 		saveOverlay.mockResolvedValue(buildOverlay());
+		savePlaylist.mockResolvedValue({ id: "playlist-1", name: "Roadmap", clipCount: 3 });
 	});
 
 	it("renders playlist controls and submits playlistId in save payload", async () => {
 		const Page = (await import("@/app/dashboard/overlay/[overlayId]/page")).default;
 		render(<Page />);
 
-		expect(await screen.findByText("New Playlist Name")).toBeInTheDocument();
+		expect(await screen.findByText("Playlist name")).toBeInTheDocument();
 
 		fireEvent.submit(screen.getByRole("button", { name: "Save Overlay Settings" }).closest("form") as HTMLFormElement);
 
@@ -224,4 +242,3 @@ describe("dashboard overlay settings playlist mode", () => {
 		});
 	});
 });
-

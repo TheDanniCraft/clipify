@@ -35,19 +35,19 @@ Clip playback behavior:
   - Clips created today
   - All-time clips
   - Featured clips only
-  - Playlist snapshots (manually curated clip sets)
-- Pro users can additionally filter by:
+  - Playlists (manually curated clip sets)
+  - Pro users can additionally filter by:
   - Minimum/maximum duration, minimum views, and blocked words
   - Specific clip creators (allow/block)
   - Current stream category preference
   - Playback strategy (Random, Top, Smart Shuffle)
-- These filters determine which clips are eligible for playback in each overlay.
+  - These filters determine which clips are eligible for playback in each overlay.
 
-Playlist overlays:
-- Playlists are overlay-agnostic snapshots and can be reused across multiple overlays.
-- One playlist can be played with different playback modes by different overlays (for example ordered/top/random/smart shuffle behavior).
-- When an overlay uses `Playlist` type, the playlist acts as the source snapshot.
-- Playlist order can be manually curated and reordered.
+  Playlist overlays:
+  - Playlists are overlay-agnostic and can be reused across multiple overlays.
+  - One playlist can be played with different playback modes by different overlays (for example ordered/top/random/smart shuffle behavior).
+  - When an overlay uses `Playlist` type, the playlist acts as the source.
+  - Playlist order can be manually curated and reordered.
 - Pro supports auto-import into playlists using reusable filters:
   - date range
   - category/game id
