@@ -59,7 +59,10 @@ jest.mock("@/db/schema", () => ({
 jest.mock("drizzle-orm", () => ({
 	eq: jest.fn(),
 	inArray: jest.fn(),
-	sql: jest.fn(),
+	sql: Object.assign(jest.fn(() => "sql"), {
+		join: jest.fn((parts: unknown[], separator = " ") => parts.join(String(separator))),
+		raw: jest.fn((value: unknown) => String(value)),
+	}),
 }));
 
 function buildClip(id: string) {

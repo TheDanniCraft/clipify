@@ -39,7 +39,10 @@ jest.mock("drizzle-orm", () => ({
 	eq: jest.fn(),
 	and: jest.fn(),
 	gt: jest.fn(),
-	sql: jest.fn(),
+	sql: Object.assign(jest.fn(() => "sql"), {
+		join: jest.fn((parts: unknown[], separator = " ") => parts.join(String(separator))),
+		raw: jest.fn((value: unknown) => String(value)),
+	}),
 	inArray: jest.fn(),
 	lte: jest.fn(),
 	or: jest.fn(),

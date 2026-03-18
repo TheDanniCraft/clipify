@@ -72,8 +72,6 @@ function makeInsertChain(table: unknown) {
 			const getResult = async () => (insertQueue.length > 0 ? (insertQueue.shift() as unknown) : []);
 			const returningResult = {
 				execute: getResult,
-				then: (onFulfilled: (value: unknown) => unknown, onRejected?: (reason: unknown) => unknown) =>
-					getResult().then(onFulfilled, onRejected),
 			};
 			return {
 				returning: () => returningResult,
@@ -186,7 +184,10 @@ jest.mock("drizzle-orm", () => ({
 	isNull: jest.fn(() => "isNull"),
 	lt: jest.fn(() => "lt"),
 	gt: jest.fn(() => "gt"),
-	sql: jest.fn(() => "sql"),
+	sql: Object.assign(jest.fn(() => "sql"), {
+		join: jest.fn((parts: unknown[], separator = " ") => parts.join(String(separator))),
+		raw: jest.fn((value: unknown) => String(value)),
+	}),
 	desc: jest.fn(() => "desc"),
 	max: jest.fn(() => "max"),
 }));

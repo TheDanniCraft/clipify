@@ -4,7 +4,7 @@ import { type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type RefO
 import { ClipQueueItem, ModQueueItem, Overlay, TwitchClip, TwitchClipGqlData, TwitchClipGqlResponse, TwitchClipVideoQuality, VideoClip } from "@types";
 import { getAvatar, getDemoClip, getGameDetails, getTwitchClip, getTwitchClipBatch, resolvePlayableClip, subscribeToChat } from "@actions/twitch";
 import PlayerOverlay from "@components/playerOverlay";
-import { addToast, Avatar, Button, Link } from "@heroui/react";
+import { Avatar, Button, Link } from "@heroui/react";
 import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
 import { getFirstFromClipQueue, getFirstFromModQueue, removeFromClipQueue, removeFromModQueue } from "@actions/database";

@@ -553,22 +553,24 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 										key={item.id}
 										onPress={async () => {
 											setIsLoading(true);
-											if (activeTab === "overlays") {
-												const overlay = await createOverlay(item.id);
-												if (!overlay) {
-													addToast({
-														title: "Error",
-														description: "Failed to create overlay. The owner may be on the Free plan or you lack permissions.",
-														color: "danger",
-													});
-													if (currentUser?.id === item.id) {
-														onUpgradeOpen();
+											try {
+												if (activeTab === "overlays") {
+													const overlay = await createOverlay(item.id);
+													if (!overlay) {
+														addToast({
+															title: "Error",
+															description: "Failed to create overlay. The owner may be on the Free plan or you lack permissions.",
+															color: "danger",
+														});
+														if (currentUser?.id === item.id) {
+															onUpgradeOpen();
+														}
+														return;
 													}
-													setIsLoading(false);
+													router.push(`/dashboard/overlay/${overlay.id}`);
 													return;
 												}
-												router.push(`/dashboard/overlay/${overlay.id}`);
-											} else {
+
 												const playlist = await createPlaylist(item.id, `Playlist ${ownerPlaylistsCount + 1}`);
 												if (!playlist) {
 													addToast({
@@ -576,8 +578,17 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 														description: "Failed to create playlist.",
 														color: "danger",
 													});
+													return;
 												}
 												await reloadOverlays();
+											} catch {
+												addToast({
+													title: "Error",
+													description: activeTab === "overlays" ? "Failed to create overlay. Please try again." : "Failed to create playlist. Please try again.",
+													color: "danger",
+												});
+											} finally {
+												setIsLoading(false);
 											}
 										}}
 									>
@@ -763,7 +774,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 				<Tab key='overlays' title='Overlays' />
 				<Tab key='playlists' title='Playlists' />
 			</Tabs>
-			{currentUser && (currentUser.entitlements?.effectivePlan ?? currentUser.plan) === "free" && !getFeatureAccess(currentUser, "multi_overlay").allowed && (overlays?.filter((o) => o.ownerId === userId).length ?? 0) >= 1 && (
+			{activeTab === "overlays" && currentUser && (currentUser.entitlements?.effectivePlan ?? currentUser.plan) === "free" && !getFeatureAccess(currentUser, "multi_overlay").allowed && (overlays?.filter((o) => o.ownerId === userId).length ?? 0) >= 1 && (
 				<div className='mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning-200 bg-warning-50 px-4 py-3 text-sm text-warning-800'>
 					<span>You&apos;re on the Free plan and have reached the overlay limit. Upgrade to add more overlays.</span>
 					<Button color='warning' variant='flat' onPress={onUpgradeOpen}>

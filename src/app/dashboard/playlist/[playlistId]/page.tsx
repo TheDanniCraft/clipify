@@ -59,7 +59,7 @@ export default function PlaylistPage() {
 	const [pendingImportMode, setPendingImportMode] = useState<"append" | "replace" | null>(null);
 	const [savedPlaylistClipIds, setSavedPlaylistClipIds] = useState<string[]>([]);
 
-	const { isOpen: isImportOpen, onOpen: onImportOpen, onOpenChange: onImportOpenChange } = useDisclosure();
+	const { isOpen: isImportOpen, onOpen: onImportOpen, onClose: onImportClose, onOpenChange: onImportOpenChange } = useDisclosure();
 	const { isOpen: isAddClipsOpen, onOpen: onAddClipsOpen, onOpenChange: onAddClipsOpenChange } = useDisclosure();
 	const { isOpen: isAutoImportLockedOpen, onOpen: onAutoImportLockedOpen, onOpenChange: onAutoImportLockedOpenChange } = useDisclosure();
 
@@ -612,7 +612,7 @@ async function handleAddSelectedClips() {
 						<TagsInput fullWidth label='Blacklisted Words' value={importBlacklistWords} onValueChange={setImportBlacklistWords} />
 					</ModalBody>
 					<ModalFooter>
-						<Button variant='light' onPress={onImportOpenChange}>
+						<Button variant='light' onPress={onImportClose}>
 							Cancel
 						</Button>
 						<Button

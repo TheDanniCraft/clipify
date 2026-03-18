@@ -88,7 +88,7 @@ export const overlaysTable = pgTable("overlays", {
 	name: varchar("name").notNull(),
 	status: statusOptionsEnum("status").$type<StatusOptions>().notNull(),
 	type: overlayTypeEnum("type").$type<OverlayType>().notNull(),
-	playlistId: uuid("playlist_id"),
+	playlistId: uuid("playlist_id").references(() => playlistsTable.id, { onDelete: "set null" }),
 	rewardId: varchar("reward_id"),
 	createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 	updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),

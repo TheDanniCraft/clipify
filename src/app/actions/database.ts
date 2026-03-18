@@ -1236,13 +1236,24 @@ export async function reorderPlaylistClips(playlistId: string, orderedClipIds: s
 	const remaining = existingRows.map((row) => row.clipId).filter((clipId) => !dedupedRequested.includes(clipId));
 	const nextOrder = [...dedupedRequested, ...remaining];
 
+	const reorderedRows = nextOrder
+		.map((clipId, position) => {
+			const existing = existingById.get(clipId);
+			if (!existing) return null;
+			return {
+				playlistId,
+				clipId: existing.clipId,
+				position,
+				clipData: existing.clipData,
+				addedAt: existing.addedAt,
+			};
+		})
+		.filter((row): row is { playlistId: string; clipId: string; position: number; clipData: string; addedAt: Date } => row !== null);
+
 	await db.transaction(async (tx) => {
-		for (const [index, clipId] of nextOrder.entries()) {
-			await tx
-				.update(playlistClipsTable)
-				.set({ position: index })
-				.where(and(eq(playlistClipsTable.playlistId, playlistId), eq(playlistClipsTable.clipId, clipId)))
-				.execute();
+		await tx.delete(playlistClipsTable).where(eq(playlistClipsTable.playlistId, playlistId)).execute();
+		if (reorderedRows.length > 0) {
+			await tx.insert(playlistClipsTable).values(reorderedRows).execute();
 		}
 	});
 	await db.update(playlistsTable).set({ updatedAt: new Date() }).where(eq(playlistsTable.id, playlistId)).execute();

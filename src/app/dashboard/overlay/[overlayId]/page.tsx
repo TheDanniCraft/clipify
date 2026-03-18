@@ -108,8 +108,8 @@ export default function OverlaySettings() {
 	const [isSearchingDenylistGames, setIsSearchingDenylistGames] = useState(false);
 
 	const { isOpen: isCliplistOpen, onOpen: onCliplistOpen, onOpenChange: onCliplistOpenChange } = useDisclosure();
-	const { isOpen: isPlaylistOpen, onOpen: onPlaylistOpen, onOpenChange: onPlaylistOpenChange } = useDisclosure();
-	const { isOpen: isImportOpen, onOpen: onImportOpen, onOpenChange: onImportOpenChange } = useDisclosure();
+	const { isOpen: isPlaylistOpen, onClose: onPlaylistClose, onOpenChange: onPlaylistOpenChange } = useDisclosure();
+	const { isOpen: isImportOpen, onOpen: onImportOpen, onClose: onImportClose, onOpenChange: onImportOpenChange } = useDisclosure();
 	const { isOpen: isAddClipsOpen, onOpen: onAddClipsOpen, onOpenChange: onAddClipsOpenChange } = useDisclosure();
 	const { isOpen: isUpgradeOpen, onOpen: onUpgradeOpen, onOpenChange: onUpgradeOpenChange } = useDisclosure();
 	const { isOpen: isAutoImportLockedOpen, onOpen: onAutoImportLockedOpen, onOpenChange: onAutoImportLockedOpenChange } = useDisclosure();
@@ -405,7 +405,11 @@ export default function OverlaySettings() {
 				return;
 			}
 			const playlist = playlists.find((entry) => entry.id === overlay.playlistId);
-			if (!playlist) return;
+			if (!playlist) {
+				setPlaylistClips([]);
+				setSavedPlaylistClipIds([]);
+				return;
+			}
 			const clips = await getTwitchClips({ ...overlay, type: OverlayType.Playlist }, OverlayType.Playlist, true);
 			setPlaylistClips(clips);
 			setSavedPlaylistClipIds(clips.map((clip) => clip.id));
@@ -1288,7 +1292,7 @@ export default function OverlaySettings() {
 							</ul>
 						</ModalBody>
 						<ModalFooter>
-							<Button variant='light' onPress={onPlaylistOpenChange}>
+							<Button variant='light' onPress={onPlaylistClose}>
 								Close
 							</Button>
 							<Button
@@ -1465,7 +1469,7 @@ export default function OverlaySettings() {
 							<TagsInput fullWidth label='Blacklisted Words' value={importBlacklistWords} onValueChange={setImportBlacklistWords} />
 						</ModalBody>
 						<ModalFooter>
-							<Button variant='light' onPress={onImportOpenChange}>
+							<Button variant='light' onPress={onImportClose}>
 								Cancel
 							</Button>
 							<Button

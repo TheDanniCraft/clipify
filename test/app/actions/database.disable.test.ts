@@ -84,7 +84,10 @@ jest.mock("drizzle-orm", () => ({
 	isNull: jest.fn(),
 	lt: jest.fn(),
 	gt: jest.fn(),
-	sql: jest.fn((strings: TemplateStringsArray) => strings.join("")),
+	sql: Object.assign(jest.fn((strings: TemplateStringsArray) => strings.join("")), {
+		join: jest.fn((parts: unknown[], separator = " ") => parts.join(String(separator))),
+		raw: jest.fn((value: unknown) => String(value)),
+	}),
 	desc: jest.fn((value: unknown) => ({ desc: value })),
 	count: jest.fn(),
 	countDistinct: jest.fn(),
