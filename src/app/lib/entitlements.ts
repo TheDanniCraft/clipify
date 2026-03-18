@@ -1,6 +1,6 @@
 "use server";
 
-import { entitlementGrantsTable, editorsTable, overlaysTable, usersTable } from "@/db/schema";
+import { entitlementGrantsTable, editorsTable, overlaysTable, playlistClipsTable, playlistsTable, usersTable } from "@/db/schema";
 import { db } from "@/db/client";
 import { and, asc, eq, gt, inArray, isNull, lt, lte, or, sql } from "drizzle-orm";
 import { AuthenticatedUser, Entitlement, EntitlementGrantSource, MaxDurationMode, Plan, PlaybackMode, UserEntitlements } from "@types";
@@ -279,6 +279,7 @@ export async function reconcileFreeConstraintsIfNeeded(user: EntitlementUserRef,
 				.set({
 					updatedAt: new Date(),
 					rewardId: null,
+					playlistId: null,
 					blacklistWords: [],
 					minClipViews: 0,
 					minClipDuration: 0,
@@ -321,6 +322,21 @@ export async function reconcileFreeConstraintsIfNeeded(user: EntitlementUserRef,
 		}
 
 		await tx.delete(editorsTable).where(eq(editorsTable.userId, user.id)).execute();
+
+		const playlists = await tx.select().from(playlistsTable).where(eq(playlistsTable.ownerId, user.id)).orderBy(asc(playlistsTable.createdAt)).execute();
+		const removedPlaylists = playlists.slice(1).map((playlist) => playlist.id);
+		if (removedPlaylists.length > 0) {
+			await tx.delete(playlistsTable).where(inArray(playlistsTable.id, removedPlaylists)).execute();
+		}
+		const keptPlaylist = playlists[0];
+		if (keptPlaylist) {
+			const clips = await tx.select().from(playlistClipsTable).where(eq(playlistClipsTable.playlistId, keptPlaylist.id)).orderBy(asc(playlistClipsTable.position)).execute();
+			const removeClipIds = clips.slice(50).map((clip) => clip.clipId);
+			if (removeClipIds.length > 0) {
+				await tx.delete(playlistClipsTable).where(and(eq(playlistClipsTable.playlistId, keptPlaylist.id), inArray(playlistClipsTable.clipId, removeClipIds))).execute();
+			}
+		}
+
 		const now = new Date();
 		await tx
 			.update(usersTable)

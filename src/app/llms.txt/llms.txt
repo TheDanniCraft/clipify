@@ -35,12 +35,26 @@ Clip playback behavior:
   - Clips created today
   - All-time clips
   - Featured clips only
+  - Playlist snapshots (manually curated clip sets)
 - Pro users can additionally filter by:
   - Minimum/maximum duration, minimum views, and blocked words
   - Specific clip creators (allow/block)
   - Current stream category preference
-  - Playback strategy (Random, Top, Hybrid)
+  - Playback strategy (Random, Top, Smart Shuffle)
 - These filters determine which clips are eligible for playback in each overlay.
+
+Playlist overlays:
+- Playlists are overlay-agnostic snapshots and can be reused across multiple overlays.
+- One playlist can be played with different playback modes by different overlays (for example ordered/top/random/smart shuffle behavior).
+- When an overlay uses `Playlist` type, the playlist acts as the source snapshot.
+- Playlist order can be manually curated and reordered.
+- Pro supports auto-import into playlists using reusable filters:
+  - date range
+  - category/game id
+  - minimum views
+  - creator allowlist/denylist
+  - optional mod queue inclusion
+- Auto-import supports append or replace behavior when a playlist already contains clips.
 
 If no clips match the selected filters, the overlay remains idle until clips become available again.
 
@@ -89,14 +103,19 @@ Plans and feature limits:
 Free plan:
 - Unlimited clip playback
 - One overlay per channel
+- One playlist per channel (up to 50 clips)
 - Manual overlay configuration
 - No Channel Points integration
 - No chat-based control
+- No auto-import for playlists
 - Intended for simple break or AFK usage
 
 Pro plan:
 - Everything included in Free
 - Multiple overlays per channel
+- Unlimited playlists
+- Unlimited clips per playlist
+- Playlist auto-import with advanced filters
 - Twitch Channel Points integration
 - Chat-based overlay control
 - Ability to add editors to manage overlays
