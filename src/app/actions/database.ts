@@ -1501,7 +1501,7 @@ export async function createOverlay(userId: string) {
 			}
 		}
 		const secret = crypto.randomUUID();
-		const overlay = await db
+		const overlayRows = await db
 			.insert(overlaysTable)
 			.values({
 				id: crypto.randomUUID(),
@@ -1513,7 +1513,8 @@ export async function createOverlay(userId: string) {
 				playlistId: null,
 			})
 			.returning()
-			.then((result) => result[0]);
+			.execute();
+		const overlay = overlayRows[0];
 
 		return overlay;
 	} catch (error) {
