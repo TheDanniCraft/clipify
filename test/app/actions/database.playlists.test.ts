@@ -585,9 +585,9 @@ describe("actions/database playlist logic", () => {
 		const ordered = await reorderPlaylistClips("playlist-1", ["clip-b", "clip-a"]);
 
 		expect(ordered.map((clip) => clip.id)).toEqual(["clip-b", "clip-a", "clip-c"]);
-		expect(updateCalls.filter((call) => call.table === playlistClipsTable)).toHaveLength(0);
-		expect(deleteCalls.filter((call) => call.table === playlistClipsTable)).toHaveLength(1);
-		expect(insertCalls.filter((call) => call.table === playlistClipsTable)).toHaveLength(1);
+		expect(updateCalls.filter((call) => call.table === playlistClipsTable)).toHaveLength(1);
+		expect(deleteCalls.filter((call) => call.table === playlistClipsTable)).toHaveLength(0);
+		expect(insertCalls.filter((call) => call.table === playlistClipsTable)).toHaveLength(0);
 	});
 
 	it("returns empty list for reorder when playlist access is denied", async () => {

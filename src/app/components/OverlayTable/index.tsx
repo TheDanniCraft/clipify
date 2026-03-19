@@ -111,17 +111,31 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 
 	useEffect(() => {
 		if (!currentUser) return;
-		const ownerOverlaysCount = overlays?.filter((o) => o.ownerId === userId).length ?? 0;
 		const effectivePlan = currentUser.entitlements?.effectivePlan ?? currentUser.plan;
-		if (effectivePlan !== "free" || ownerOverlaysCount < 1) return;
-		if (getFeatureAccess(currentUser, "multi_overlay").allowed) return;
-		trackPaywallEvent(plausible, "paywall_impression", {
-			source: "paywall_banner",
-			feature: "multi_overlay",
-			plan: currentUser.plan,
-			overlay_count: ownerOverlaysCount,
-		});
-	}, [currentUser, overlays, plausible, userId]);
+		if (effectivePlan !== "free") return;
+
+		if (activeTab === "overlays") {
+			const ownerOverlaysCount = overlays?.filter((o) => o.ownerId === userId).length ?? 0;
+			if (ownerOverlaysCount < 1) return;
+			if (getFeatureAccess(currentUser, "multi_overlay").allowed) return;
+			trackPaywallEvent(plausible, "paywall_impression", {
+				source: "paywall_banner",
+				feature: "multi_overlay",
+				plan: currentUser.plan,
+				overlay_count: ownerOverlaysCount,
+			});
+		} else {
+			const ownerPlaylistsCount = playlists?.filter((p) => p.ownerId === userId).length ?? 0;
+			if (ownerPlaylistsCount < 1) return;
+			if (getFeatureAccess(currentUser, "multi_playlist").allowed) return;
+			trackPaywallEvent(plausible, "paywall_impression", {
+				source: "paywall_banner",
+				feature: "multi_playlist",
+				plan: currentUser.plan,
+				playlist_count: ownerPlaylistsCount,
+			});
+		}
+	}, [currentUser, overlays, playlists, plausible, userId, activeTab]);
 
 	// Plan is available on currentUser; avoid extra fetch.
 
@@ -526,6 +540,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 		const ownerOverlaysCount = overlays?.filter((o) => o.ownerId === userId).length ?? 0;
 		const ownerPlaylistsCount = playlists?.filter((p) => p.ownerId === userId).length ?? 0;
 		const multiOverlayAccess = currentUser ? getFeatureAccess(currentUser, "multi_overlay") : { allowed: false as const };
+		const multiPlaylistAccess = currentUser ? getFeatureAccess(currentUser, "multi_playlist") : { allowed: false as const };
 		const inTrial = currentUser ? isReverseTrialActive(currentUser) : false;
 		const trialDaysLeft = currentUser ? getTrialDaysLeft(currentUser) : 0;
 		const effectivePlan = currentUser?.entitlements?.effectivePlan ?? currentUser?.plan ?? "free";
@@ -620,6 +635,30 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 										description: (
 											<p>
 												To add an additional overlay, please{" "}
+												<Link color='warning' underline='always' href='/dashboard/settings'>
+													upgrade
+												</Link>{" "}
+												to <strong>Pro</strong>.
+											</p>
+										),
+										color: "warning",
+									});
+									onUpgradeOpen();
+									setIsLoading(false);
+									return;
+								}
+
+								if (activeTab === "playlists" && effectivePlan === "free" && ownerPlaylistsCount >= 1 && !multiPlaylistAccess.allowed) {
+									trackPaywallEvent(plausible, "paywall_cta_click", {
+										source: "paywall_banner",
+										feature: "multi_playlist",
+										plan: currentUser?.plan ?? "free",
+									});
+									addToast({
+										title: "Upgrade Required",
+										description: (
+											<p>
+												To add an additional playlist, please{" "}
 												<Link color='warning' underline='always' href='/dashboard/settings'>
 													upgrade
 												</Link>{" "}
@@ -782,6 +821,14 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 					</Button>
 				</div>
 			)}
+			{activeTab === "playlists" && currentUser && (currentUser.entitlements?.effectivePlan ?? currentUser.plan) === "free" && !getFeatureAccess(currentUser, "multi_playlist").allowed && (playlists?.filter((p) => p.ownerId === userId).length ?? 0) >= 1 && (
+				<div className='mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning-200 bg-warning-50 px-4 py-3 text-sm text-warning-800'>
+					<span>You&apos;re on the Free plan and have reached the playlist limit. Upgrade to add more playlists.</span>
+					<Button color='warning' variant='flat' onPress={onUpgradeOpen}>
+						Upgrade to Pro
+					</Button>
+				</div>
+			)}
 			{activeTab === "overlays" ? (
 				<Table
 				isHeaderSticky
@@ -847,7 +894,16 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 					</TableBody>
 				</Table>
 			)}
-			{currentUser && currentUser.plan === "free" && <UpgradeModal isOpen={isUpgradeOpen} onOpenChange={onUpgradeOpenChange} user={currentUser} title='Upgrade to add more overlays' source='upgrade_modal' feature='multi_overlay' />}
+			{currentUser && currentUser.plan === "free" && (
+				<UpgradeModal
+					isOpen={isUpgradeOpen}
+					onOpenChange={onUpgradeOpenChange}
+					user={currentUser}
+					title={activeTab === "overlays" ? "Upgrade to add more overlays" : "Upgrade to add more playlists"}
+					source='upgrade_modal'
+					feature={activeTab === "overlays" ? "multi_overlay" : "multi_playlist"}
+				/>
+			)}
 		</div>
 	);
 }

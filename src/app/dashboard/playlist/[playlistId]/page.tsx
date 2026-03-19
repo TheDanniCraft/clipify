@@ -3,13 +3,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { getPlaylistClips, getPlaylistsForOwner, previewImportPlaylistClips, savePlaylist, upsertPlaylistClips } from "@actions/database";
-import { addToast, Autocomplete, AutocompleteItem, Button, Card, CardBody, CardHeader, Checkbox, DateRangePicker, Divider, Image, Input, Link, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, NumberInput, Spinner, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow, useDisclosure } from "@heroui/react";
+import { addToast, Autocomplete, AutocompleteItem, Button, Card, CardBody, CardHeader, Checkbox, DateRangePicker, Divider, Image, Input, Link, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, NumberInput, Pagination, Spinner, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow, useDisclosure } from "@heroui/react";
 import { AuthenticatedUser, Game, OverlayType, TwitchClip } from "@types";
 import { IconAlertTriangle, IconArrowLeft, IconDeviceFloppy, IconDownload, IconGripVertical, IconPlus, IconSearch, IconTrash } from "@tabler/icons-react";
 import DashboardNavbar from "@components/dashboardNavbar";
 import { useNavigationGuard } from "next-navigation-guard";
 import { validateAuth } from "@actions/auth";
-import { getCachedClipsByOwner, getGameDetails, getTwitchGames } from "@actions/twitch";
+import { getCachedClipsByOwner, getGamesDetailsBulk, getTwitchGames } from "@actions/twitch";
 import { getFeatureAccess } from "@lib/featureAccess";
 import TagsInput from "@components/tagsInput";
 import { parseDate } from "@internationalized/date";
@@ -37,6 +37,9 @@ export default function PlaylistPage() {
 	const [gameDetailsById, setGameDetailsById] = useState<Record<string, Game>>({});
 	const [selectedCachedClipIds, setSelectedCachedClipIds] = useState<Selection>(new Set([]));
 	const [cachedClipsFilter, setCachedClipsFilter] = useState("");
+	const [isLoadingCachedClips, setIsLoadingCachedClips] = useState(false);
+	const [cachedClipsPage, setCachedClipsPage] = useState(1);
+	const rowsPerPage = 50;
 	const [cachedClipsSortDescriptor, setCachedClipsSortDescriptor] = useState<SortDescriptor>({
 		column: "date",
 		direction: "descending",
@@ -186,21 +189,18 @@ export default function PlaylistPage() {
 		const missingIds = uniqueGameIds.filter((id) => !gameDetailsById[id]);
 		if (missingIds.length === 0) return;
 
-		const resolved = await Promise.all(
-			missingIds.map(async (id) => {
-				const game = await getGameDetails(id, user.id);
-				return {
-					id,
-					name: game?.name ?? "Unknown category",
-					box_art_url: game?.box_art_url ?? "",
-					igdb_id: game?.igdb_id ?? "",
-				} as Game;
-			}),
-		);
+		const resolved = await getGamesDetailsBulk(missingIds, user.id);
 
 		setGameDetailsById((prev) => {
 			const next = { ...prev };
-			for (const game of resolved) next[game.id] = game;
+			for (const game of resolved) {
+				next[game.id] = {
+					id: game.id,
+					name: game.name || "Unknown category",
+					box_art_url: game.box_art_url || "",
+					igdb_id: game.igdb_id || "",
+				} as Game;
+			}
 			return next;
 		});
 	}
@@ -220,14 +220,28 @@ export default function PlaylistPage() {
 
 	async function handleOpenAddClips() {
 		if (!user) return;
-		const clips = await getCachedClipsByOwner(user.id);
-		setCachedClips(clips);
-		const existingPlaylistClipIds = new Set(playlistClips.map((clip) => clip.id));
-		const preselectedClipIds = clips.filter((clip) => existingPlaylistClipIds.has(clip.id)).map((clip) => clip.id);
-		setSelectedCachedClipIds(new Set(preselectedClipIds));
-		void resolveGameDetails(clips);
+		setIsLoadingCachedClips(true);
 		onAddClipsOpen();
+		try {
+			const clips = await getCachedClipsByOwner(user.id);
+			setCachedClips(clips);
+			const existingPlaylistClipIds = new Set(playlistClips.map((clip) => clip.id));
+			const preselectedClipIds = clips.filter((clip) => existingPlaylistClipIds.has(clip.id)).map((clip) => clip.id);
+			setSelectedCachedClipIds(new Set(preselectedClipIds));
+			setCachedClipsPage(1);
+			await resolveGameDetails(clips);
+		} finally {
+			setIsLoadingCachedClips(false);
+		}
 	}
+
+	const paginatedCachedClips = useMemo(() => {
+		const start = (cachedClipsPage - 1) * rowsPerPage;
+		const end = start + rowsPerPage;
+		return sortedCachedClips.slice(start, end);
+	}, [cachedClipsPage, sortedCachedClips]);
+
+	const cachedClipsPagesCount = Math.ceil(sortedCachedClips.length / rowsPerPage);
 
 async function handleAddSelectedClips() {
 		const selectedIds = Array.from(selectedCachedClipIds as Set<string>);
@@ -500,6 +514,24 @@ async function handleAddSelectedClips() {
 							sortDescriptor={cachedClipsSortDescriptor}
 							onSortChange={setCachedClipsSortDescriptor}
 							classNames={{ wrapper: "max-h-[56vh]" }}
+							bottomContent={
+								cachedClipsPagesCount > 1 ? (
+									<div className='flex w-full justify-center gap-4 items-center'>
+										<Pagination
+											isCompact
+											showControls
+											showShadow
+											color='primary'
+											page={cachedClipsPage}
+											total={cachedClipsPagesCount}
+											onChange={setCachedClipsPage}
+										/>
+										<div className='text-xs text-default-400'>
+											{sortedCachedClips.length} clips total
+										</div>
+									</div>
+								) : null
+							}
 						>
 							<TableHeader>
 								<TableColumn key='clip' allowsSorting>
@@ -518,7 +550,12 @@ async function handleAddSelectedClips() {
 									Date
 								</TableColumn>
 							</TableHeader>
-							<TableBody items={sortedCachedClips} emptyContent='No clips found in cache.'>
+							<TableBody
+								items={paginatedCachedClips}
+								emptyContent={isLoadingCachedClips ? " " : "No clips found in cache."}
+								isLoading={isLoadingCachedClips}
+								loadingContent={<Spinner label='Fetching clips...' />}
+							>
 								{(item) => (
 									<TableRow key={item.id}>
 										<TableCell>

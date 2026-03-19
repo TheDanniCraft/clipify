@@ -1192,6 +1192,76 @@ export async function getAvatar(userId: string, authUserId: string): Promise<str
 	}
 }
 
+export async function getGamesDetailsBulk(gameIds: string[], authUserId: string): Promise<Game[]> {
+	if (gameIds.length === 0) return [];
+	const GAME_CACHE_TTL_SECONDS = 60 * 60 * 24 * 30;
+
+	const cacheEntries = await getTwitchCacheBatch<Game | null>(
+		TwitchCacheType.Game,
+		gameIds.map((id) => id),
+	);
+	const results: Game[] = [];
+	const missingIds: string[] = [];
+
+	for (let i = 0; i < gameIds.length; i++) {
+		const id = gameIds[i];
+		const cached = cacheEntries[i];
+		if (cached !== null) {
+			if (cached) results.push(cached);
+			continue;
+		}
+		missingIds.push(id);
+	}
+
+	if (missingIds.length === 0) return results;
+
+	let accessToken = authUserId ? (await getAccessToken(authUserId))?.accessToken : undefined;
+	if (!accessToken) {
+		const appToken = await getAppAccessToken();
+		accessToken = appToken?.access_token;
+	}
+
+	if (!accessToken) {
+		console.error("No access token found for authUserId:", authUserId);
+		return results;
+	}
+
+	try {
+		// Twitch allows up to 100 IDs per request
+		const chunks = [];
+		for (let i = 0; i < missingIds.length; i += 100) {
+			chunks.push(missingIds.slice(i, i + 100));
+		}
+
+		for (const chunk of chunks) {
+			const response = await axios.get<TwitchApiResponse<Game>>("https://api.twitch.tv/helix/games", {
+				headers: {
+					Authorization: `Bearer ${accessToken}`,
+					"Client-Id": process.env.TWITCH_CLIENT_ID || "",
+				},
+				params: {
+					id: chunk,
+				},
+			});
+
+			const games = response.data.data;
+			results.push(...games);
+
+			const gamesById = new Map(games.map((g) => [g.id, g]));
+			await setTwitchCacheBatch(
+				TwitchCacheType.Game,
+				chunk.map((id) => ({ key: id, value: gamesById.get(id) || null })),
+				GAME_CACHE_TTL_SECONDS,
+			);
+		}
+
+		return results;
+	} catch (error) {
+		logTwitchError("Error fetching bulk game details", error);
+		return results;
+	}
+}
+
 export async function getGameDetails(gameId: string, authUserId: string): Promise<Game | null> {
 	const url = "https://api.twitch.tv/helix/games";
 	const GAME_CACHE_TTL_SECONDS = 60 * 60 * 24 * 30;

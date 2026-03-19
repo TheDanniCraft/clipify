@@ -1,7 +1,7 @@
 import type { AuthenticatedUser } from "@types";
 import { Plan } from "@types";
 
-export type FeatureKey = "multi_overlay" | "chat_commands" | "advanced_filters" | "editors";
+export type FeatureKey = "multi_overlay" | "multi_playlist" | "chat_commands" | "advanced_filters" | "editors";
 export type AccessContext = { allowed: boolean; reason?: "trial" | "free_limit" | "trial_expired" | "pro_required" };
 
 export function isReverseTrialActive(user: Pick<AuthenticatedUser, "plan" | "createdAt" | "entitlements">) {
@@ -34,6 +34,7 @@ export function getFeatureAccess(user: Pick<AuthenticatedUser, "plan" | "created
 
 	switch (feature) {
 		case "multi_overlay":
+		case "multi_playlist":
 			return { allowed: false, reason: "free_limit" };
 		case "chat_commands":
 		case "advanced_filters":
