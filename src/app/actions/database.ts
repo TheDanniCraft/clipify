@@ -2075,7 +2075,7 @@ export async function getTwitchCache<T>(type: TwitchCacheType, key: string): Pro
 	}
 }
 
-export async function getTwitchCacheEntry<T>(type: TwitchCacheType, key: string): Promise<{ hit: boolean; value: T | null }> {
+export async function getTwitchCacheEntry<T>(type: TwitchCacheType, key: string): Promise<{ hit: boolean; value: T | null; fetchedAt?: Date }> {
 	try {
 		const now = new Date();
 		const rows = await db
@@ -2095,7 +2095,7 @@ export async function getTwitchCacheEntry<T>(type: TwitchCacheType, key: string)
 			return { hit: false, value: null };
 		}
 		recordCacheRead(true);
-		return { hit: true, value: parsed };
+		return { hit: true, value: parsed, fetchedAt: rows[0].fetchedAt };
 	} catch (error) {
 		console.error("Error reading twitch cache entry:", error);
 		return { hit: false, value: null };

@@ -90,8 +90,9 @@ export default function OverlaySettings() {
 	const [draggedClipId, setDraggedClipId] = useState<string | null>(null);
 	const [dragOverClipId, setDragOverClipId] = useState<string | null>(null);
 	const [clipCacheStatus, setClipCacheStatus] = useState<Awaited<ReturnType<typeof getClipCacheStatus>> | null>(null);
-	const [cachedClips, setCachedClips] = useState<TwitchClip[]>([]);
+	const [cachedClips, setCachedClips] = useState<TwitchClip[]>();
 	const [selectedCachedClipIds, setSelectedCachedClipIds] = useState<Selection>(new Set([]));
+	const [isLoadingCachedClips, setIsLoadingCachedClips] = useState(false);
 	const [cachedClipsFilter, setCachedClipsFilter] = useState("");
 	const [cachedClipsSortDescriptor, setCachedClipsSortDescriptor] = useState<SortDescriptor>({
 		column: "date",
@@ -116,6 +117,31 @@ export default function OverlaySettings() {
 	const plausible = usePlausible();
 
 	const navGuard = useNavigationGuard({ enabled: isFormDirty() });
+
+	async function resolveGameDetails(clips: TwitchClip[]) {
+		if (!overlay?.ownerId) return;
+		const uniqueGameIds = Array.from(new Set(clips.map((clip) => clip.game_id).filter(Boolean)));
+		const missingIds = uniqueGameIds.filter((id) => !gameDetailsById[id]);
+		if (missingIds.length === 0) return;
+
+		const resolved = await Promise.all(
+			missingIds.map(async (id) => {
+				const game = await getGameDetails(id, overlay.ownerId);
+				return {
+					id,
+					name: game?.name ?? "Unknown category",
+					box_art_url: game?.box_art_url ?? "",
+					igdb_id: game?.igdb_id ?? "",
+				} as Game;
+			}),
+		);
+
+		setGameDetailsById((prev) => {
+			const next = { ...prev };
+			for (const game of resolved) next[game.id] = game;
+			return next;
+		});
+	}
 
 	useEffect(() => {
 		async function resolveGameNames() {
@@ -150,7 +176,7 @@ export default function OverlaySettings() {
 
 	useEffect(() => {
 		let timeoutId: NodeJS.Timeout;
-		if (allowlistGameSearch && allowlistGameSearch.length >= 2 && overlay?.ownerId) {
+		if (allowlistGameSearch && allowlistGameSearch.length >= 1 && overlay?.ownerId) {
 			setIsSearchingAllowlistGames(true);
 			timeoutId = setTimeout(async () => {
 				const games = await getTwitchGames(allowlistGameSearch, overlay.ownerId);
@@ -165,7 +191,7 @@ export default function OverlaySettings() {
 
 	useEffect(() => {
 		let timeoutId: NodeJS.Timeout;
-		if (denylistGameSearch && denylistGameSearch.length >= 2 && overlay?.ownerId) {
+		if (denylistGameSearch && denylistGameSearch.length >= 1 && overlay?.ownerId) {
 			setIsSearchingDenylistGames(true);
 			timeoutId = setTimeout(async () => {
 				const games = await getTwitchGames(denylistGameSearch, overlay.ownerId);
@@ -181,26 +207,32 @@ export default function OverlaySettings() {
 	useEffect(() => {
 		let timeoutId: NodeJS.Timeout;
 		const normalizedInput = importCategoryInput.trim().toLowerCase();
-		if (normalizedInput.length >= 2 && normalizedInput !== "all" && normalizedInput !== "all categories" && overlay?.ownerId) {
+		if (normalizedInput.length >= 1 && normalizedInput !== "all" && normalizedInput !== "all categories" && overlay?.ownerId) {
 			setIsSearchingGames(true);
 			timeoutId = setTimeout(async () => {
 				const games = await getTwitchGames(importCategoryInput, overlay.ownerId);
 				setGameSearchResults(games);
 				setIsSearchingGames(false);
-			}, 500);
+			}, 300);
 		} else {
 			setGameSearchResults([]);
+			setIsSearchingGames(false);
 		}
 		return () => clearTimeout(timeoutId);
 	}, [importCategoryInput, overlay?.ownerId]);
 
-	const cachedCategoryOptions: Game[] = Object.values(gameDetailsById).sort((a, b) => a.name.localeCompare(b.name));
-	const importCategoryOptions = (() => {
+	const cachedCategoryOptions: Game[] = useMemo(() => Object.values(gameDetailsById).sort((a, b) => a.name.localeCompare(b.name)), [gameDetailsById]);
+	const importCategoryOptions = useMemo(() => {
 		const map = new Map<string, Game>();
 		for (const game of cachedCategoryOptions) map.set(game.id, game);
 		for (const game of gameSearchResults) map.set(game.id, game);
-		return [ALL_CATEGORIES_OPTION, ...Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name))];
-	})();
+
+		const all = [ALL_CATEGORIES_OPTION, ...Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name))];
+		const query = importCategoryInput.trim().toLowerCase();
+		if (!query || query === "all" || query === "all categories") return [ALL_CATEGORIES_OPTION];
+
+		return all.filter((game) => game.name.toLowerCase().includes(query) || game.id === "all");
+	}, [cachedCategoryOptions, gameSearchResults, importCategoryInput]);
 
 	function getGameName(gameId: string) {
 		const resolved = gameDetailsById[gameId]?.name?.trim();
@@ -209,7 +241,7 @@ export default function OverlaySettings() {
 
 	const filteredCachedClips = useMemo(() => {
 		const f = cachedClipsFilter.toLowerCase();
-		return cachedClips.filter((clip) => {
+		return (cachedClips ?? []).filter((clip) => {
 			const categoryName = getGameName(clip.game_id).toLowerCase();
 			return clip.title.toLowerCase().includes(f) || clip.creator_name.toLowerCase().includes(f) || categoryName.includes(f);
 		});
@@ -253,38 +285,24 @@ export default function OverlaySettings() {
 
 	async function handleOpenAddClips() {
 		if (!overlay?.ownerId) return;
-		const clips = await getCachedClipsByOwner(overlay.ownerId);
-		setCachedClips(clips);
-		const existingPlaylistClipIds = new Set(playlistClips.map((clip) => clip.id));
-		const preselectedClipIds = clips.filter((clip) => existingPlaylistClipIds.has(clip.id)).map((clip) => clip.id);
-		setSelectedCachedClipIds(new Set(preselectedClipIds));
-		const uniqueGameIds = Array.from(new Set(clips.map((clip) => clip.game_id).filter(Boolean)));
-		const missingIds = uniqueGameIds.filter((id) => !gameDetailsById[id]);
-		if (missingIds.length > 0) {
-			const resolved = await Promise.all(
-				missingIds.map(async (id) => {
-					const game = await getGameDetails(id, overlay.ownerId);
-					return {
-						id,
-						name: game?.name ?? "Unknown category",
-						box_art_url: game?.box_art_url ?? "",
-						igdb_id: game?.igdb_id ?? "",
-					} as Game;
-				}),
-			);
-			setGameDetailsById((prev) => {
-				const next = { ...prev };
-				for (const game of resolved) next[game.id] = game;
-				return next;
-			});
-		}
+		setIsLoadingCachedClips(true);
 		onAddClipsOpen();
+		try {
+			const clips = await getCachedClipsByOwner(overlay.ownerId);
+			await resolveGameDetails(clips);
+			setCachedClips(clips);
+			const existingPlaylistClipIds = new Set(playlistClips.map((clip) => clip.id));
+			const preselectedClipIds = clips.filter((clip) => existingPlaylistClipIds.has(clip.id)).map((clip) => clip.id);
+			setSelectedCachedClipIds(new Set(preselectedClipIds));
+		} finally {
+			setIsLoadingCachedClips(false);
+		}
 	}
 
 	async function handleAddSelectedClips() {
 		if (!currentOverlay.playlistId) return;
 		const selectedIds = Array.from(selectedCachedClipIds as Set<string>);
-		const clipsToAdd = cachedClips.filter((c) => selectedIds.includes(c.id));
+		const clipsToAdd = (cachedClips ?? []).filter((c) => selectedIds.includes(c.id));
 		if (clipsToAdd.length === 0) return;
 
 		try {
@@ -392,6 +410,7 @@ export default function OverlaySettings() {
 			if (!overlay) return;
 			const clips = await getTwitchClips(overlay, overlay.type, true);
 			setPreviewClips(clips);
+			await resolveGameDetails(clips);
 		}
 		getClipsForType();
 		// eslint-disable-next-line react-hooks/exhaustive-deps
@@ -413,6 +432,7 @@ export default function OverlaySettings() {
 			const clips = await getTwitchClips({ ...overlay, type: OverlayType.Playlist }, OverlayType.Playlist, true);
 			setPlaylistClips(clips);
 			setSavedPlaylistClipIds(clips.map((clip) => clip.id));
+			await resolveGameDetails(clips);
 		}
 		getPlaylistSnapshot();
 		// eslint-disable-next-line react-hooks/exhaustive-deps
@@ -464,7 +484,7 @@ export default function OverlaySettings() {
 	const playlistClipUsage = playlistClips.length;
 	const playlistClipUsagePercent = Math.min(100, Math.round((playlistClipUsage / FREE_PLAYLIST_CLIP_LIMIT) * 100));
 	const selectedIds = Array.from(selectedCachedClipIds as Set<string>);
-	const selectedNewClipCount = cachedClips.filter((clip) => selectedIds.includes(clip.id) && !playlistClips.some((existing) => existing.id === clip.id)).length;
+	const selectedNewClipCount = (cachedClips ?? []).filter((clip) => selectedIds.includes(clip.id) && !playlistClips.some((existing) => existing.id === clip.id)).length;
 	const wouldExceedFreeLimit = isFreePlaylistLimitActive && playlistClipUsage + selectedNewClipCount > FREE_PLAYLIST_CLIP_LIMIT;
 	const isPlaylistDraftDirty = playlistClips.map((clip) => clip.id).join(",") !== savedPlaylistClipIds.join(",");
 	const isSelectedPlaylistNameDirty = selectedPlaylist ? playlistNameDraft.trim() !== selectedPlaylist.name : false;
@@ -512,6 +532,7 @@ export default function OverlaySettings() {
 		try {
 			const next = await upsertPlaylistClips(currentOverlay.playlistId, [clip], "append");
 			setPlaylistClips(next);
+			await resolveGameDetails(next);
 			setNewClipInput("");
 			await refreshPlaylists();
 		} catch (error) {
@@ -550,6 +571,7 @@ export default function OverlaySettings() {
 					return Array.from(nextById.values());
 				});
 			}
+			await resolveGameDetails(imported);
 			addToast({ title: `Imported ${imported.length} clips into draft`, color: "success" });
 		} catch (error) {
 			addToast({
@@ -1375,7 +1397,10 @@ export default function OverlaySettings() {
 										Date
 									</TableColumn>
 								</TableHeader>
-								<TableBody items={sortedCachedClips} emptyContent='No clips found in cache.'>
+								<TableBody
+									items={sortedCachedClips}
+									emptyContent={cachedClips === undefined ? <Spinner label='Loading clips...' /> : <div className='text-default-400'>No clips found in cache.</div>}
+								>
 									{(item) => (
 										<TableRow key={item.id}>
 											<TableCell>
@@ -1412,6 +1437,8 @@ export default function OverlaySettings() {
 						<Autocomplete
 							label='Category / Game'
 							isRequired
+							allowsCustomValue
+							isClearable
 							items={importCategoryOptions}
 								isLoading={isSearchingGames}
 								placeholder='Type at least 2 characters or choose all'

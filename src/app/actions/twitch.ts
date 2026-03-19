@@ -135,39 +135,84 @@ export async function getCachedClipsByOwner(ownerId: string, limit?: number): Pr
 	return Array.from(deduped.values());
 }
 
-export async function getTwitchGames(query: string, authUserId: string): Promise<Game[]> {
-	const url = "https://api.twitch.tv/helix/search/categories";
+async function internalSearchTwitchGames(query: string, authUserId: string): Promise<Game[]> {
 	const token = await getAccessToken(authUserId);
 	if (!token) return [];
 
 	try {
-		const response = await axios.get<TwitchApiResponse<Game>>(url, {
-			headers: {
-				Authorization: `Bearer ${token.accessToken}`,
-				"Client-Id": process.env.TWITCH_CLIENT_ID || "",
-			},
-			params: {
-				query,
-				first: 100,
-			},
-		});
-		const games = response.data.data;
+		const [searchResponse, exactResponse] = await Promise.all([
+			axios.get<TwitchApiResponse<Game>>("https://api.twitch.tv/helix/search/categories", {
+				headers: {
+					Authorization: `Bearer ${token.accessToken}`,
+					"Client-Id": process.env.TWITCH_CLIENT_ID || "",
+				},
+				params: { query, first: 100 },
+			}),
+			axios.get<TwitchApiResponse<Game>>("https://api.twitch.tv/helix/games", {
+				headers: {
+					Authorization: `Bearer ${token.accessToken}`,
+					"Client-Id": process.env.TWITCH_CLIENT_ID || "",
+				},
+				params: { name: query },
+			}),
+		]);
 
+		const searchGames = searchResponse.data.data;
+		const exactGames = exactResponse.data.data;
+
+		// Merge and deduplicate
+		const map = new Map<string, Game>();
+		for (const game of exactGames) map.set(game.id, game);
+		for (const game of searchGames) map.set(game.id, game);
+		const games = Array.from(map.values());
+
+		const CACHE_TTL_SECONDS = 60 * 60 * 24 * 30; // 30 days
 		if (games.length > 0) {
-			// Cache individual games for ID resolution
-			const GAME_CACHE_TTL_SECONDS = 60 * 60 * 24 * 30; // 30 days
 			await setTwitchCacheBatch(
 				TwitchCacheType.Game,
 				games.map((game) => ({ key: game.id, value: game })),
-				GAME_CACHE_TTL_SECONDS,
+				CACHE_TTL_SECONDS,
 			);
 		}
+
+		// Cache the query result list as well
+		await setTwitchCache(TwitchCacheType.GameQuery, query.trim().toLowerCase(), games, CACHE_TTL_SECONDS);
 
 		return games;
 	} catch (error) {
 		logTwitchError("Error searching Twitch games", error);
 		return [];
 	}
+}
+
+export async function getTwitchGames(query: string, authUserId: string): Promise<Game[]> {
+	const normalizedQuery = query.trim().toLowerCase();
+	if (!normalizedQuery) return [];
+
+	const entry = await getTwitchCacheEntry<Game[]>(TwitchCacheType.GameQuery, normalizedQuery);
+
+	const FRESH_THRESHOLD_MS = 1000 * 60 * 1; // 1 minute
+	const STALE_THRESHOLD_MS = 1000 * 60 * 60 * 24; // 24 hours
+
+	if (entry.hit && entry.value && entry.fetchedAt) {
+		const ageMs = Date.now() - entry.fetchedAt.getTime();
+
+		if (ageMs < FRESH_THRESHOLD_MS) {
+			// Very fresh - return immediately
+			return entry.value;
+		}
+
+		if (ageMs < STALE_THRESHOLD_MS) {
+			// Stale but usable - return immediately and refresh in background for next time
+			internalSearchTwitchGames(query, authUserId).catch((err) => {
+				console.error("Background Twitch game search refresh failed:", err);
+			});
+			return entry.value;
+		}
+		// Too old - fall through to foreground fetch
+	}
+
+	return internalSearchTwitchGames(query, authUserId);
 }
 
 async function upsertClipsByOwner(ownerId: string, clips: TwitchClip[]) {

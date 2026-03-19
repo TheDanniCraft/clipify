@@ -120,6 +120,7 @@ export enum RewardStatus {
 export enum TwitchCacheType {
 	Avatar = "avatar",
 	Game = "game",
+	GameQuery = "game_query",
 	Clip = "clip",
 	User = "user",
 }

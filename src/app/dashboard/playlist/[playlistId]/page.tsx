@@ -33,7 +33,7 @@ export default function PlaylistPage() {
 	const [playlistNameDraft, setPlaylistNameDraft] = useState("");
 	const [playlistClips, setPlaylistClips] = useState<TwitchClip[]>([]);
 	const [selectedPlaylistClipIds, setSelectedPlaylistClipIds] = useState<Set<string>>(new Set());
-	const [cachedClips, setCachedClips] = useState<TwitchClip[]>([]);
+	const [cachedClips, setCachedClips] = useState<TwitchClip[]>();
 	const [gameDetailsById, setGameDetailsById] = useState<Record<string, Game>>({});
 	const [selectedCachedClipIds, setSelectedCachedClipIds] = useState<Selection>(new Set([]));
 	const [cachedClipsFilter, setCachedClipsFilter] = useState("");
@@ -89,6 +89,7 @@ export default function PlaylistPage() {
 				const clips = await getPlaylistClips(found.id);
 				setPlaylistClips(clips);
 				setSavedPlaylistClipIds(clips.map((clip) => clip.id));
+				await resolveGameDetails(clips);
 			}
 		}
 		fetchData();
@@ -97,26 +98,32 @@ export default function PlaylistPage() {
 	useEffect(() => {
 		let timeoutId: NodeJS.Timeout;
 		const normalizedInput = importCategoryInput.trim().toLowerCase();
-		if (normalizedInput.length >= 2 && normalizedInput !== "all" && normalizedInput !== "all categories" && user) {
+		if (normalizedInput.length >= 1 && normalizedInput !== "all" && normalizedInput !== "all categories" && user) {
 			setIsSearchingGames(true);
 			timeoutId = setTimeout(async () => {
 				const games = await getTwitchGames(importCategoryInput, user.id);
 				setGameSearchResults(games);
 				setIsSearchingGames(false);
-			}, 500);
+			}, 300);
 		} else {
 			setGameSearchResults([]);
+			setIsSearchingGames(false);
 		}
 		return () => clearTimeout(timeoutId);
 	}, [importCategoryInput, user]);
 
-	const cachedCategoryOptions: Game[] = Object.values(gameDetailsById).sort((a, b) => a.name.localeCompare(b.name));
-	const importCategoryOptions = (() => {
+	const cachedCategoryOptions: Game[] = useMemo(() => Object.values(gameDetailsById).sort((a, b) => a.name.localeCompare(b.name)), [gameDetailsById]);
+	const importCategoryOptions = useMemo(() => {
 		const map = new Map<string, Game>();
 		for (const game of cachedCategoryOptions) map.set(game.id, game);
 		for (const game of gameSearchResults) map.set(game.id, game);
-		return [ALL_CATEGORIES_OPTION, ...Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name))];
-	})();
+
+		const all = [ALL_CATEGORIES_OPTION, ...Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name))];
+		const query = importCategoryInput.trim().toLowerCase();
+		if (!query || query === "all" || query === "all categories") return [ALL_CATEGORIES_OPTION];
+
+		return all.filter((game) => game.name.toLowerCase().includes(query) || game.id === "all");
+	}, [cachedCategoryOptions, gameSearchResults, importCategoryInput]);
 
 	function getGameName(gameId: string) {
 		const resolved = gameDetailsById[gameId]?.name?.trim();
@@ -125,7 +132,7 @@ export default function PlaylistPage() {
 
 	const filteredCachedClips = useMemo(() => {
 		const f = cachedClipsFilter.toLowerCase();
-		return cachedClips.filter((clip) => {
+		return (cachedClips ?? []).filter((clip) => {
 			const categoryName = getGameName(clip.game_id).toLowerCase();
 			return clip.title.toLowerCase().includes(f) || clip.creator_name.toLowerCase().includes(f) || categoryName.includes(f);
 		});
@@ -161,7 +168,7 @@ export default function PlaylistPage() {
 	const playlistClipUsage = playlistClips.length;
 	const playlistClipUsagePercent = Math.min(100, Math.round((playlistClipUsage / FREE_PLAYLIST_CLIP_LIMIT) * 100));
 	const selectedIds = Array.from(selectedCachedClipIds as Set<string>);
-	const selectedNewClipCount = cachedClips.filter((clip) => selectedIds.includes(clip.id) && !playlistClips.some((existing) => existing.id === clip.id)).length;
+	const selectedNewClipCount = (cachedClips ?? []).filter((clip) => selectedIds.includes(clip.id) && !playlistClips.some((existing) => existing.id === clip.id)).length;
 	const wouldExceedFreeLimit = isFreePlaylistLimitActive && playlistClipUsage + selectedNewClipCount > FREE_PLAYLIST_CLIP_LIMIT;
 	const isPlaylistDirty = playlistClips.map((clip) => clip.id).join(",") !== savedPlaylistClipIds.join(",");
 	const isPlaylistNameDirty = playlist ? playlistNameDraft.trim() !== playlist.name : false;
@@ -224,12 +231,12 @@ export default function PlaylistPage() {
 		onAddClipsOpen();
 		try {
 			const clips = await getCachedClipsByOwner(user.id);
+			await resolveGameDetails(clips);
 			setCachedClips(clips);
 			const existingPlaylistClipIds = new Set(playlistClips.map((clip) => clip.id));
 			const preselectedClipIds = clips.filter((clip) => existingPlaylistClipIds.has(clip.id)).map((clip) => clip.id);
 			setSelectedCachedClipIds(new Set(preselectedClipIds));
 			setCachedClipsPage(1);
-			await resolveGameDetails(clips);
 		} finally {
 			setIsLoadingCachedClips(false);
 		}
@@ -245,7 +252,7 @@ export default function PlaylistPage() {
 
 async function handleAddSelectedClips() {
 		const selectedIds = Array.from(selectedCachedClipIds as Set<string>);
-		const clipsToAdd = cachedClips.filter((c) => selectedIds.includes(c.id));
+		const clipsToAdd = (cachedClips ?? []).filter((c) => selectedIds.includes(c.id));
 		if (clipsToAdd.length === 0) return;
 
 		try {
@@ -288,6 +295,7 @@ async function handleAddSelectedClips() {
 					return Array.from(nextById.values());
 				});
 			}
+			await resolveGameDetails(imported);
 			addToast({ title: `Imported ${imported.length} clips into draft`, color: "success" });
 		} catch (error) {
 			addToast({
@@ -551,10 +559,8 @@ async function handleAddSelectedClips() {
 								</TableColumn>
 							</TableHeader>
 							<TableBody
-								items={paginatedCachedClips}
-								emptyContent={isLoadingCachedClips ? " " : "No clips found in cache."}
-								isLoading={isLoadingCachedClips}
-								loadingContent={<Spinner label='Fetching clips...' />}
+								items={paginatedCachedClips ?? []}
+								emptyContent={cachedClips === undefined ? <Spinner label='Loading clips...' /> : <div className='text-default-400'>No clips found in cache.</div>}
 							>
 								{(item) => (
 									<TableRow key={item.id}>
@@ -592,6 +598,8 @@ async function handleAddSelectedClips() {
 						<Autocomplete
 							label='Category / Game'
 							isRequired
+							allowsCustomValue
+							isClearable
 							placeholder='Type at least 2 characters or choose all'
 							items={importCategoryOptions}
 							isLoading={isSearchingGames}
