@@ -253,7 +253,7 @@ describe("lib/instanceHealth", () => {
 		const originalEnv = process.env;
 		process.env = {
 			...originalEnv,
-			NODE_ENV: "staging",
+			NODE_ENV: "test",
 			VERCEL_GIT_COMMIT_SHA: undefined,
 			RAILWAY_GIT_COMMIT_SHA: "railway456",
 		};
@@ -261,7 +261,7 @@ describe("lib/instanceHealth", () => {
 		try {
 			const { getInstanceHealthSnapshot } = await import("@/app/lib/instanceHealth");
 			const snapshot = await getInstanceHealthSnapshot();
-			expect(snapshot.app.env).toBe("staging");
+			expect(snapshot.app.env).toBe("test");
 			expect(snapshot.app.version).toBe("railway456");
 		} finally {
 			process.env = originalEnv;

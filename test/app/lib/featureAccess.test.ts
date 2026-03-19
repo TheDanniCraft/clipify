@@ -85,7 +85,7 @@ describe("lib/featureAccess", () => {
 
 	it("returns pro_required for unknown features", () => {
 		const user = buildUser();
-		// @ts-ignore
+		// @ts-expect-error - Testing unknown feature key
 		expect(getFeatureAccess(user, "unknown_feature")).toEqual({ allowed: false, reason: "pro_required" });
 	});
 });

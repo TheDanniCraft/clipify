@@ -95,11 +95,11 @@ class MockResizeObserver {
 }
 
 describe("components/adminHealthCharts", () => {
-	let originalResizeObserver: any;
+	let originalResizeObserver: typeof global.ResizeObserver;
 
 	beforeEach(() => {
 		originalResizeObserver = global.ResizeObserver;
-		global.ResizeObserver = MockResizeObserver as any;
+		global.ResizeObserver = MockResizeObserver as unknown as typeof global.ResizeObserver;
 		jest.clearAllMocks();
 	});
 
@@ -143,7 +143,7 @@ describe("components/adminHealthCharts", () => {
 	});
 
 	it("handles missing ResizeObserver gracefully", () => {
-		// @ts-ignore
+		// @ts-expect-error - Testing missing global ResizeObserver
 		delete global.ResizeObserver;
 		const rafSpy = jest.spyOn(window, "requestAnimationFrame").mockImplementation((callback: FrameRequestCallback) => {
 			callback(0);
@@ -178,7 +178,7 @@ describe("components/adminHealthCharts", () => {
 	});
 
 	it("handles ResizeObserver callback", () => {
-		let observerCallbacks: any[] = [];
+		const observerCallbacks: Array<(entries: Array<{ contentRect: { width: number }; target: { getBoundingClientRect: () => { width: number } } }>) => void> = [];
 		global.ResizeObserver = jest.fn().mockImplementation((cb) => {
 			observerCallbacks.push(cb);
 			return {
@@ -186,7 +186,7 @@ describe("components/adminHealthCharts", () => {
 				disconnect: jest.fn(),
 				unobserve: jest.fn(),
 			};
-		}) as any;
+		}) as unknown as typeof global.ResizeObserver;
 
 		render(<AdminHealthCharts health={healthSnapshot} />);
 

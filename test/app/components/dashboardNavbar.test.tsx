@@ -39,29 +39,28 @@ jest.mock("@components/logo", () => ({
 }));
 
 jest.mock("@heroui/react", () => {
-	const Actual = jest.requireActual("react");
 	return {
 		Avatar: ({ src }: { src?: string }) => <div data-avatar={src ?? ""} />,
-		Badge: ({ children }: { children: Actual.ReactNode }) => <div>{children}</div>,
-		Button: ({ children, onPress, isDisabled, "aria-label": ariaLabel }: any) => (
+		Badge: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+		Button: ({ children, onPress, isDisabled, "aria-label": ariaLabel }: { children: React.ReactNode; onPress?: () => void; isDisabled?: boolean; "aria-label"?: string }) => (
 			<button onClick={onPress} disabled={isDisabled} aria-label={ariaLabel}>
 				{children}
 			</button>
 		),
-		Dropdown: ({ children }: { children: Actual.ReactNode }) => <div>{children}</div>,
-		DropdownItem: ({ children, onPress, isDisabled }: { children: Actual.ReactNode; onPress?: () => void; isDisabled?: boolean }) => (
+		Dropdown: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+		DropdownItem: ({ children, onPress, isDisabled }: { children: React.ReactNode; onPress?: () => void; isDisabled?: boolean }) => (
 			<button onClick={onPress} disabled={isDisabled}>
 				{children}
 			</button>
 		),
-		DropdownMenu: ({ children }: { children: Actual.ReactNode }) => <div>{children}</div>,
-		DropdownTrigger: ({ children }: { children: Actual.ReactNode }) => <div>{children}</div>,
-		Autocomplete: ({ inputValue, onInputChange, onSelectionChange, defaultItems, children }: any) => (
+		DropdownMenu: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+		DropdownTrigger: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+		Autocomplete: ({ inputValue, onInputChange, onSelectionChange, defaultItems }: { inputValue?: string; onInputChange?: (val: string) => void; onSelectionChange?: (key: string) => void; defaultItems?: Array<{ id: string; username: string }> }) => (
 			<div>
 				<input aria-label='admin-switch-search' value={inputValue} onChange={(event) => onInputChange?.(event.target.value)} />
 				<select aria-label='admin-switch-select' onChange={(event) => onSelectionChange?.(event.target.value)}>
 					<option value=''>Select user</option>
-					{(defaultItems ?? []).map((item: any) => (
+					{(defaultItems ?? []).map((item) => (
 						<option key={item.id} value={item.id}>
 							{item.username}
 						</option>
@@ -69,12 +68,12 @@ jest.mock("@heroui/react", () => {
 				</select>
 			</div>
 		),
-		AutocompleteItem: ({ children }: { children: Actual.ReactNode }) => <div>{children}</div>,
-		Link: ({ children, href }: { children: Actual.ReactNode; href?: string }) => <a href={href}>{children}</a>,
-		Navbar: ({ children }: { children: Actual.ReactNode }) => <div>{children}</div>,
-		NavbarBrand: ({ children }: { children: Actual.ReactNode }) => <div>{children}</div>,
-		NavbarContent: ({ children }: { children: Actual.ReactNode }) => <div>{children}</div>,
-		NavbarItem: ({ children }: { children: Actual.ReactNode }) => <div>{children}</div>,
+		AutocompleteItem: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+		Link: ({ children, href }: { children: React.ReactNode; href?: string }) => <a href={href}>{children}</a>,
+		Navbar: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+		NavbarBrand: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+		NavbarContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+		NavbarItem: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 		Spacer: () => <span />,
 	};
 });
@@ -107,7 +106,7 @@ describe("components/dashboardNavbar", () => {
 			createdAt: new Date(),
 			updatedAt: new Date(),
 			...overrides,
-		}) as any;
+		}) as unknown as Parameters<typeof DashboardNavbar>[0]["user"];
 
 	it("renders correctly and toggles theme", () => {
 		const { rerender } = render(

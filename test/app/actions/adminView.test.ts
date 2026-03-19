@@ -18,7 +18,7 @@ jest.mock("@/db/client", () => ({
 	},
 }));
 
-function mockSelectRows(rows: any[]) {
+function mockSelectRows(rows: Array<Record<string, unknown>>) {
 	const chain = {
 		from: jest.fn().mockReturnThis(),
 		where: jest.fn().mockReturnThis(),
