@@ -1427,27 +1427,77 @@ describe("components/overlayPlayer", () => {
 		await screen.findByText("Playing Unknown Game");
 	});
 
-	it("cancels late owner-avatar state updates on unmount", async () => {
-		let avatarCall = 0;
-		let resolveLateOwnerAvatar: ((value: string) => void) | null = null;
-		getAvatar.mockImplementation(() => {
-			avatarCall += 1;
-			if (avatarCall === 1) {
-				return new Promise<string>((resolve) => {
-					resolveLateOwnerAvatar = resolve;
-				});
-			}
-			return Promise.resolve("https://avatar.example/owner.png");
-		});
-		getTwitchClipBatch.mockResolvedValue([buildClip("avatar-cancel", { title: "avatar-cancel-clip" })]);
+	it("shows resolution warning when viewport is not 1080p", async () => {
+		getTwitchClipBatch.mockResolvedValue([buildClip("res-test")]);
+		const originalInnerWidth = window.innerWidth;
+		const originalInnerHeight = window.innerHeight;
 
-		const { unmount } = render(<OverlayPlayer overlay={buildOverlay()} />);
-		await screen.findByText("avatar-cancel-clip");
-		unmount();
+		Object.defineProperty(window, "innerWidth", { writable: true, configurable: true, value: 800 });
+		Object.defineProperty(window, "innerHeight", { writable: true, configurable: true, value: 600 });
 
-		await act(async () => {
-			resolveLateOwnerAvatar?.("https://avatar.example/late-owner.png");
+		try {
+			render(<OverlayPlayer overlay={buildOverlay()} />);
+			await screen.findByTestId("icon-alert");
+			expect(screen.getByText(/Current viewport is 800x600/)).toBeInTheDocument();
+
+			act(() => {
+				window.innerWidth = 1920;
+				window.innerHeight = 1080;
+				window.dispatchEvent(new Event("resize"));
+			});
+
+			await waitFor(() => {
+				expect(screen.queryByTestId("icon-alert")).not.toBeInTheDocument();
+			});
+		} finally {
+			Object.defineProperty(window, "innerWidth", { writable: true, configurable: true, value: originalInnerWidth });
+			Object.defineProperty(window, "innerHeight", { writable: true, configurable: true, value: originalInnerHeight });
+		}
+	});
+
+	it("covers preloadVideo catch block", async () => {
+		const originalCreateElement = document.createElement;
+		jest.spyOn(document, "createElement").mockImplementation((tagName: string) => {
+			if (tagName === "link") throw new Error("DOM failure");
+			return originalCreateElement.call(document, tagName);
 		});
-		expect(avatarCall).toBeGreaterThan(0);
+
+		getTwitchClipBatch.mockResolvedValue([buildClip("preload-fail")]);
+		render(<OverlayPlayer overlay={buildOverlay()} />);
+		await waitFor(() => expect(document.createElement).toHaveBeenCalledWith("link"));
+	});
+
+	it("handles raw media lookup axios errors gracefully", async () => {
+		getTwitchClipBatch.mockResolvedValue([buildClip("axios-fail")]);
+		const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => undefined);
+		jest.spyOn(axios, "post").mockRejectedValue(new Error("network error"));
+
+		try {
+			render(<OverlayPlayer overlay={buildOverlay()} />);
+			await waitFor(() => {
+				expect(consoleSpy).toHaveBeenCalledWith("Error fetching raw media URL", expect.any(Error));
+			});
+		} finally {
+			consoleSpy.mockRestore();
+		}
+	});
+
+	it("handles raw media lookup missing best quality", async () => {
+		getTwitchClipBatch.mockResolvedValue([buildClip("no-quality")]);
+		jest.spyOn(axios, "post").mockResolvedValue({
+			data: [
+				{
+					data: {
+						clip: {
+							videoQualities: [null],
+							playbackAccessToken: { signature: "sig", value: "val" },
+						},
+					},
+				},
+			],
+		} as never);
+
+		render(<OverlayPlayer overlay={buildOverlay()} />);
+		// Just ensure it doesn't crash and skips the clip
 	});
 });

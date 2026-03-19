@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import AdminHealthCharts from "@/app/components/adminHealthCharts";
 import type { InstanceHealthSnapshot } from "@/app/lib/instanceHealth";
 
@@ -88,7 +88,25 @@ const healthSnapshot: InstanceHealthSnapshot = {
 	},
 };
 
+class MockResizeObserver {
+	observe = jest.fn();
+	disconnect = jest.fn();
+	unobserve = jest.fn();
+}
+
 describe("components/adminHealthCharts", () => {
+	let originalResizeObserver: any;
+
+	beforeEach(() => {
+		originalResizeObserver = global.ResizeObserver;
+		global.ResizeObserver = MockResizeObserver as any;
+		jest.clearAllMocks();
+	});
+
+	afterEach(() => {
+		global.ResizeObserver = originalResizeObserver;
+	});
+
 	it("renders chart sections and key percentages", () => {
 		render(<AdminHealthCharts health={healthSnapshot} />);
 
@@ -122,5 +140,63 @@ describe("components/adminHealthCharts", () => {
 
 		rafSpy.mockRestore();
 		boxSpy.mockRestore();
+	});
+
+	it("handles missing ResizeObserver gracefully", () => {
+		// @ts-ignore
+		delete global.ResizeObserver;
+		const rafSpy = jest.spyOn(window, "requestAnimationFrame").mockImplementation((callback: FrameRequestCallback) => {
+			callback(0);
+			return 1;
+		});
+
+		render(<AdminHealthCharts health={healthSnapshot} />);
+		rafSpy.mockRestore();
+	});
+
+	it("handles edge cases for scheduler data (zero runs, failures)", () => {
+		const zeroHealth: InstanceHealthSnapshot = {
+			...healthSnapshot,
+			scheduler: {
+				clipCache: {
+					...healthSnapshot.scheduler.clipCache,
+					totalRuns: 0,
+					totalFailures: 0,
+					lastRunDurationMs: null,
+				},
+			},
+			counts: {
+				...healthSnapshot.counts,
+				users: 5,
+				activeUsers30d: 10, // results in negative inactiveUsers which is handled by Math.max(0, ...)
+			},
+		};
+
+		render(<AdminHealthCharts health={zeroHealth} />);
+		expect(screen.getByText("Success: 0")).toBeInTheDocument();
+		expect(screen.getByText("Failures: 0")).toBeInTheDocument();
+	});
+
+	it("handles ResizeObserver callback", () => {
+		let observerCallbacks: any[] = [];
+		global.ResizeObserver = jest.fn().mockImplementation((cb) => {
+			observerCallbacks.push(cb);
+			return {
+				observe: jest.fn(),
+				disconnect: jest.fn(),
+				unobserve: jest.fn(),
+			};
+		}) as any;
+
+		render(<AdminHealthCharts health={healthSnapshot} />);
+
+		// Simulate resize for all observers
+		act(() => {
+			for (const cb of observerCallbacks) {
+				cb([{ contentRect: { width: 800 }, target: { getBoundingClientRect: () => ({ width: 800 }) } }]);
+			}
+		});
+
+		expect(screen.getAllByTestId("radial-chart")[0]).toHaveAttribute("data-width", "800");
 	});
 });

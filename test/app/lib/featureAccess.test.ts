@@ -70,4 +70,22 @@ describe("lib/featureAccess", () => {
 		expect(getTrialDaysLeft(user, new Date("2026-01-03T12:00:00.000Z"))).toBe(2);
 		expect(getTrialDaysLeft(user, new Date("2026-01-06T00:00:00.000Z"))).toBe(0);
 	});
+
+	it("handles invalid trial dates and missing trial info", () => {
+		const user = buildUser({
+			entitlements: buildEntitlements({
+				trialEndsAt: "not-a-date",
+			}),
+		});
+		expect(getTrialDaysLeft(user)).toBe(0);
+
+		const noTrial = buildUser({ entitlements: buildEntitlements({ trialEndsAt: null }) });
+		expect(getTrialDaysLeft(noTrial)).toBe(0);
+	});
+
+	it("returns pro_required for unknown features", () => {
+		const user = buildUser();
+		// @ts-ignore
+		expect(getFeatureAccess(user, "unknown_feature")).toEqual({ allowed: false, reason: "pro_required" });
+	});
 });

@@ -217,4 +217,116 @@ describe("lib/instanceHealth", () => {
 			dateNowSpy.mockRestore();
 		}
 	});
+
+	it("returns degraded status for medium db latency", async () => {
+		const dateNowSpy = jest.spyOn(Date, "now");
+		dateNowSpy.mockReturnValueOnce(0).mockReturnValue(2500);
+
+		try {
+			const { getInstanceHealthSnapshot } = await import("@/app/lib/instanceHealth");
+			const snapshot = await getInstanceHealthSnapshot();
+			expect(snapshot.status).toBe("degraded");
+		} finally {
+			dateNowSpy.mockRestore();
+		}
+	});
+
+	it("uses environment variables for app info", async () => {
+		const originalEnv = process.env;
+		process.env = {
+			...originalEnv,
+			NODE_ENV: "production",
+			VERCEL_GIT_COMMIT_SHA: "vercel123",
+		};
+
+		try {
+			const { getInstanceHealthSnapshot } = await import("@/app/lib/instanceHealth");
+			const snapshot = await getInstanceHealthSnapshot();
+			expect(snapshot.app.env).toBe("production");
+			expect(snapshot.app.version).toBe("vercel123");
+		} finally {
+			process.env = originalEnv;
+		}
+	});
+
+	it("falls back to RAILWAY_GIT_COMMIT_SHA when VERCEL is missing", async () => {
+		const originalEnv = process.env;
+		process.env = {
+			...originalEnv,
+			NODE_ENV: "staging",
+			VERCEL_GIT_COMMIT_SHA: undefined,
+			RAILWAY_GIT_COMMIT_SHA: "railway456",
+		};
+
+		try {
+			const { getInstanceHealthSnapshot } = await import("@/app/lib/instanceHealth");
+			const snapshot = await getInstanceHealthSnapshot();
+			expect(snapshot.app.env).toBe("staging");
+			expect(snapshot.app.version).toBe("railway456");
+		} finally {
+			process.env = originalEnv;
+		}
+	});
+
+	it("handles empty or missing data in various plan and cache searches", async () => {
+		const selectQueue: unknown[][] = [
+			[{ count: 0 }], // usersTotal
+			[{ count: 0 }], // overlaysTotal
+			[{ count: 0 }], // overlaysActive
+			[{ count: 0 }], // overlaysPaused
+			[{ count: 0 }], // activeUsers24h
+			[{ count: 0 }], // activeUsers7d
+			[{ count: 0 }], // activeUsers30d
+			[], // usersByPlan (empty)
+			[], // activeGrants (empty)
+			[{ count: 0 }], // activeGrantUsers
+			[{ count: 0 }], // activeGrantUsersOnFree
+			[], // activeOverlayOwnersByPlanRows (empty)
+			[], // cacheTotals (empty)
+			[{ count: 0 }], // unavailableClipsRows
+			[{ count: 0 }], // clipSyncStatesRows
+			[{ count: 0 }], // clipSyncCompleteRows
+			[{ count: 0 }], // staleValidatedRows
+		];
+		dbSelect.mockImplementation(() => makeQuery(selectQueue.shift() ?? []));
+
+		const { getInstanceHealthSnapshot } = await import("@/app/lib/instanceHealth");
+		const snapshot = await getInstanceHealthSnapshot();
+
+		expect(snapshot.counts.usersFree).toBe(0);
+		expect(snapshot.counts.usersPaid).toBe(0);
+		expect(snapshot.cache.clipEntries).toBe(0);
+		expect(snapshot.cache.entriesTotal).toBe(0);
+		expect(snapshot.entitlements.activeGrantCount).toBe(0);
+		expect(snapshot.status).toBe("ok");
+	});
+
+	it("handles missing rows in count queries (?? 0 coverage)", async () => {
+		const selectQueue: unknown[][] = [
+			[], // usersTotal
+			[], // overlaysTotal
+			[], // overlaysActive
+			[], // overlaysPaused
+			[], // activeUsers24h
+			[], // activeUsers7d
+			[], // activeUsers30d
+			[], // usersByPlan
+			[], // activeGrants
+			[], // activeGrantUsers
+			[], // activeGrantUsersOnFree
+			[], // activeOverlayOwnersByPlanRows
+			[], // cacheTotals
+			[], // unavailableClipsRows
+			[], // clipSyncStatesRows
+			[], // clipSyncCompleteRows
+			[], // staleValidatedRows
+		];
+		dbSelect.mockImplementation(() => makeQuery(selectQueue.shift() ?? []));
+
+		const { getInstanceHealthSnapshot } = await import("@/app/lib/instanceHealth");
+		const snapshot = await getInstanceHealthSnapshot();
+
+		expect(snapshot.counts.users).toBe(0);
+		expect(snapshot.counts.overlaysTotal).toBe(0);
+	});
 });

@@ -248,6 +248,112 @@ describe("app/payment/webhook route", () => {
 		await expect(res.json()).resolves.toEqual({ error: "No reference ID found in session metadata" });
 	});
 
+	it("returns error for missing checkout session during retrieval", async () => {
+		const stripe = {
+			webhooks: {
+				constructEvent: jest.fn().mockReturnValue({
+					type: "checkout.session.completed",
+					data: { object: { id: "cs_missing" } },
+				}),
+			},
+			checkout: {
+				sessions: {
+					retrieve: jest.fn().mockResolvedValue(null),
+				},
+			},
+		};
+		getStripe.mockResolvedValue(stripe);
+
+		const { POST } = await loadRoute("whsec_test");
+		const res = await POST(new Request("http://localhost/payment/webhook", { method: "POST", body: "payload" }));
+		expect(res.status).toBe(200);
+		await expect(res.json()).resolves.toEqual({ error: "No session found" });
+	});
+
+	it("returns error for non-string customer ID in checkout session", async () => {
+		const stripe = {
+			webhooks: {
+				constructEvent: jest.fn().mockReturnValue({
+					type: "checkout.session.completed",
+					data: { object: { id: "cs_bad_cus" } },
+				}),
+			},
+			checkout: {
+				sessions: {
+					retrieve: jest.fn().mockResolvedValue({
+						id: "cs_bad_cus",
+						customer: { id: "obj_cus" }, // object instead of string
+					}),
+				},
+			},
+		};
+		getStripe.mockResolvedValue(stripe);
+
+		const { POST } = await loadRoute("whsec_test");
+		const res = await POST(new Request("http://localhost/payment/webhook", { method: "POST", body: "payload" }));
+		expect(res.status).toBe(200);
+		await expect(res.json()).resolves.toEqual({ error: "Invalid customer ID" });
+	});
+
+	it("handles customer as object in subscription events", async () => {
+		getUserByCustomerId.mockResolvedValue({ id: "user_obj" });
+		const stripe = {
+			webhooks: {
+				constructEvent: jest.fn().mockReturnValue({
+					type: "customer.subscription.deleted",
+					data: {
+						object: {
+							customer: { id: "cus_obj" },
+							status: "canceled",
+						},
+					},
+				}),
+			},
+		};
+		getStripe.mockResolvedValue(stripe);
+
+		const { POST } = await loadRoute("whsec_test");
+		const res = await POST(new Request("http://localhost/payment/webhook", { method: "POST", body: "payload" }));
+		expect(res.status).toBe(200);
+		expect(updateUserSubscription).toHaveBeenCalledWith("user_obj", "cus_obj", "free");
+	});
+
+	it("returns error for missing subscription object in events", async () => {
+		const stripe = {
+			webhooks: {
+				constructEvent: jest.fn().mockReturnValue({
+					type: "customer.subscription.deleted",
+					data: { object: null },
+				}),
+			},
+		};
+		getStripe.mockResolvedValue(stripe);
+
+		const { POST } = await loadRoute("whsec_test");
+		const res = await POST(new Request("http://localhost/payment/webhook", { method: "POST", body: "payload" }));
+		expect(res.status).toBe(200);
+		await expect(res.json()).resolves.toEqual({ error: "No subscription found" });
+	});
+
+	it("returns error for invalid/null customer in subscription object", async () => {
+		const stripe = {
+			webhooks: {
+				constructEvent: jest.fn().mockReturnValue({
+					type: "customer.subscription.updated",
+					data: {
+						object: { customer: null },
+					},
+				}),
+			},
+		};
+		getStripe.mockResolvedValue(stripe);
+
+		const { POST } = await loadRoute("whsec_test");
+		const res = await POST(new Request("http://localhost/payment/webhook", { method: "POST", body: "payload" }));
+		expect(res.status).toBe(200);
+		await expect(res.json()).resolves.toEqual({ error: "Invalid customer ID in subscription" });
+	});
+
 	it("returns error when deleted subscription customer does not map to a user", async () => {
 		getUserByCustomerId.mockResolvedValue(null);
 		const stripe = {
