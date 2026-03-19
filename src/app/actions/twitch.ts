@@ -628,6 +628,180 @@ async function getCurrentCategoryGameId(ownerId: string, accessToken: string): P
 	}
 }
 
+async function runIncrementalSync(ownerId: string, accessToken: string, nextState: ClipSyncState, ensurePackSize: number, cachedClipsCount: number, nowMs: number): Promise<{ requestsUsed: number; rateLimited: boolean }> {
+	let requestsUsed = 0;
+	try {
+		const first = ensurePackSize > 0 && cachedClipsCount < ensurePackSize ? Math.max(1, Math.min(100, ensurePackSize - cachedClipsCount)) : 100;
+		const endedAt = new Date(nowMs).toISOString();
+		const recentWindowStartedAt = new Date(nowMs - CLIP_SYNC_RECENT_WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString();
+		let recentCursor: string | undefined;
+		let pageSize = first;
+
+		// Always finish recent-window scan first; if this exceeds budget we still continue.
+		for (let pageIndex = 0; pageIndex < CLIP_SYNC_RECENT_MAX_PAGES_PER_RUN; pageIndex += 1) {
+			const page = await fetchClipPage(ownerId, accessToken, pageSize, recentCursor, recentWindowStartedAt, endedAt);
+			requestsUsed += 1;
+			await upsertClipsByOwner(ownerId, page.clips);
+			recentCursor = page.cursor;
+			pageSize = 100;
+			if (!recentCursor) break;
+		}
+		nextState.lastIncrementalSyncAt = new Date(nowMs).toISOString();
+		return { requestsUsed, rateLimited: false };
+	} catch (error) {
+		logTwitchError("Error fetching incremental clip sync page", error);
+		const resumeAt = getRateLimitResumeAt(error, nowMs);
+		if (resumeAt) {
+			nextState.rateLimitedUntil = resumeAt;
+			return { requestsUsed, rateLimited: true };
+		}
+		return { requestsUsed, rateLimited: false };
+	}
+}
+
+async function runBackfillSync(ownerId: string, accessToken: string, nextState: ClipSyncState, ownerBackfillLowerBoundMs: number, nowMs: number, initialRequestsUsed: number): Promise<void> {
+	// Legacy cursor check: if we have a cursor but no window state, it's from the old sync logic.
+	// Twitch cursors are query-specific, so we must reset it to avoid 400 errors.
+	if (nextState.backfillCursor && !nextState.backfillWindowEnd) {
+		nextState.backfillCursor = undefined;
+	}
+
+	let recentRequestsUsed = initialRequestsUsed;
+	try {
+		// Process multiple windows in one run if budget allows.
+		// We always allow at least ONE window to ensure backfill progress isn't starved by high-volume recent clips.
+		let forceFirstIteration = true;
+		while ((recentRequestsUsed < CLIP_SYNC_REQUEST_BUDGET_PER_RUN || forceFirstIteration) && !nextState.backfillComplete) {
+			const remainingBudget = Math.max(1, CLIP_SYNC_REQUEST_BUDGET_PER_RUN - recentRequestsUsed);
+			forceFirstIteration = false;
+
+			const currentEndMs = nextState.backfillWindowEnd ? new Date(nextState.backfillWindowEnd).getTime() : nowMs - CLIP_SYNC_RECENT_WINDOW_DAYS * 24 * 60 * 60 * 1000;
+
+			const MAX_WINDOW_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+			const MIN_WINDOW_MS = 10 * 60 * 1000; // 10 minutes
+			const DEFAULT_WINDOW_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+			const rawWindowSizeMs = Number(nextState.backfillWindowSizeMs);
+			const normalizedWindowSizeMs = Number.isFinite(rawWindowSizeMs) && rawWindowSizeMs > 0 ? rawWindowSizeMs : DEFAULT_WINDOW_MS;
+			const windowSizeMs = Math.min(MAX_WINDOW_MS, Math.max(MIN_WINDOW_MS, normalizedWindowSizeMs));
+
+			let cursor: string | undefined = nextState.backfillCursor;
+			let pagesFetchedInWindow = 0;
+			let clipsFetchedInWindow = 0;
+			let hitLimitInWindow = false;
+
+			// Advance window logic if we are already at the start or have invalid state (nothing to sync)
+			if (!Number.isFinite(currentEndMs) || currentEndMs <= ownerBackfillLowerBoundMs) {
+				nextState.backfillComplete = true;
+				break;
+			}
+
+			const currentStartMs = Math.max(ownerBackfillLowerBoundMs, currentEndMs - windowSizeMs);
+			const startedAtIso = new Date(currentStartMs).toISOString();
+			const endedAtIso = new Date(currentEndMs).toISOString();
+
+			let windowFailed = false;
+			// Process the entire time window atomically
+			while (pagesFetchedInWindow < remainingBudget && currentEndMs > ownerBackfillLowerBoundMs) {
+				try {
+					const page = await fetchClipPage(ownerId, accessToken, 100, cursor, startedAtIso, endedAtIso);
+					await upsertClipsByOwner(ownerId, page.clips);
+					clipsFetchedInWindow += page.clips.length;
+					recentRequestsUsed += 1;
+					pagesFetchedInWindow += 1;
+					cursor = page.cursor;
+
+					if (cursor && (clipsFetchedInWindow >= 1000 || pagesFetchedInWindow >= 10)) {
+						hitLimitInWindow = true;
+						break;
+					}
+
+					if (!cursor) break;
+				} catch (error) {
+					if (axios.isAxiosError(error) && error.response?.status === 429) {
+						const resumeAt = getRateLimitResumeAt(error, nowMs);
+						if (resumeAt) {
+							nextState.rateLimitedUntil = resumeAt;
+						}
+						nextState.backfillWindowEnd = endedAtIso;
+						nextState.backfillCursor = cursor;
+						throw error; // Rethrow to abort the entire backfill for this run
+					}
+					logTwitchError("Error fetching backfill clip sync page", error);
+					// Stop processing this window but allow saving what we have
+					windowFailed = true;
+					break;
+				}
+			}
+
+			const budgetExhausted = pagesFetchedInWindow >= remainingBudget && cursor;
+
+			if (!windowFailed && hitLimitInWindow && windowSizeMs > MIN_WINDOW_MS) {
+				// Shrink and retry the SAME window range in the next outer iteration or next run
+				nextState.backfillWindowSizeMs = Math.max(MIN_WINDOW_MS, Math.floor(windowSizeMs / 2));
+				// Preserve window context so retries stay on the same historical range.
+				nextState.backfillWindowEnd = endedAtIso;
+				// Reset cursor because the next request will have different date bounds, making the current cursor invalid.
+				nextState.backfillCursor = undefined;
+				break; // Stop this run's loop to avoid getting stuck if remainingBudget is low
+			} else if (windowFailed && pagesFetchedInWindow > 0) {
+				// Persist partial progress in the SAME window and retry later from the saved cursor.
+				nextState.backfillWindowEnd = endedAtIso;
+				nextState.backfillCursor = cursor;
+				nextState.backfillWindowSizeMs = windowSizeMs;
+				break;
+			} else if ((!windowFailed && !cursor) || hitLimitInWindow || budgetExhausted) {
+				// Case A: No error and window truly finished (!cursor)
+				// Case B: Hit limit but already at MIN_WINDOW_MS (Accept partial and move on)
+				// Case C: Budget exhausted mid-window (budgetExhausted) - Save partial and stay on same window
+
+				if (budgetExhausted) {
+					// Stay on the same window for next run, but save current progress
+					nextState.backfillWindowEnd = endedAtIso;
+					nextState.backfillCursor = cursor;
+				} else {
+					// Move to next window
+					nextState.backfillWindowEnd = new Date(currentStartMs).toISOString();
+					nextState.backfillCursor = undefined;
+
+					if (hitLimitInWindow) {
+						nextState.backfillWindowSizeMs = MIN_WINDOW_MS;
+						console.warn(`Clip backfill hit 1,000 limit within minimum window (${MIN_WINDOW_MS / 60000}m) for owner ${ownerId}. Some clips might be missing.`);
+					} else if (windowFailed) {
+						// Preserve window size on error
+						nextState.backfillWindowSizeMs = windowSizeMs;
+					} else {
+						if (clipsFetchedInWindow < 100 && windowSizeMs < MAX_WINDOW_MS) {
+							nextState.backfillWindowSizeMs = Math.min(MAX_WINDOW_MS, windowSizeMs * 2);
+						} else {
+							nextState.backfillWindowSizeMs = windowSizeMs;
+						}
+					}
+
+					if (currentStartMs <= ownerBackfillLowerBoundMs) {
+						nextState.backfillComplete = true;
+					}
+				}
+			} else if (windowFailed) {
+				// Abort backfill for this run if a window failed completely to avoid infinite retry loop.
+				break;
+			}
+		}
+
+		nextState.lastBackfillSyncAt = new Date(nowMs).toISOString();
+	} catch (error) {
+		// Only log if it's NOT a 429, because 429s are expected and handled via rateLimitedUntil
+		if (!axios.isAxiosError(error) || error.response?.status !== 429) {
+			logTwitchError("Error in backfill sync run", error);
+		}
+
+		const resumeAt = getRateLimitResumeAt(error, nowMs);
+		if (resumeAt) {
+			nextState.rateLimitedUntil = resumeAt;
+		}
+	}
+}
+
 export async function syncOwnerClipCache(ownerId: string, ensurePackSize = 0): Promise<void> {
 	const lockClient = await dbPool.connect();
 	const lockKey = `clip_sync_owner:${ownerId}`;
@@ -678,175 +852,15 @@ export async function syncOwnerClipCache(ownerId: string, ensurePackSize = 0): P
 		let rateLimited = false;
 
 		if (incrementalDue) {
-			try {
-				const first = ensurePackSize > 0 && cachedClips.length < ensurePackSize ? Math.max(1, Math.min(100, ensurePackSize - cachedClips.length)) : 100;
-				const endedAt = new Date(now).toISOString();
-				const recentWindowStartedAt = new Date(now - CLIP_SYNC_RECENT_WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString();
-				let recentCursor: string | undefined;
-				let pageSize = first;
-
-				// Always finish recent-window scan first; if this exceeds budget we still continue.
-				for (let pageIndex = 0; pageIndex < CLIP_SYNC_RECENT_MAX_PAGES_PER_RUN; pageIndex += 1) {
-					const page = await fetchClipPage(ownerId, token.accessToken, pageSize, recentCursor, recentWindowStartedAt, endedAt);
-					recentRequestsUsed += 1;
-					await upsertClipsByOwner(ownerId, page.clips);
-					recentCursor = page.cursor;
-					pageSize = 100;
-					if (!recentCursor) break;
-				}
-				nextState.lastIncrementalSyncAt = new Date(now).toISOString();
-			} catch (error) {
-				logTwitchError("Error fetching incremental clip sync page", error);
-				const resumeAt = getRateLimitResumeAt(error, now);
-				if (resumeAt) {
-					nextState.rateLimitedUntil = resumeAt;
-					rateLimited = true;
-				}
-			}
+			const result = await runIncrementalSync(ownerId, token.accessToken, nextState, ensurePackSize, cachedClips.length, now);
+			recentRequestsUsed = result.requestsUsed;
+			rateLimited = result.rateLimited;
 		}
 
 		const backfillDue = !nextState.backfillComplete && isSyncDue(nextState.lastBackfillSyncAt, CLIP_SYNC_BACKFILL_INTERVAL_MS);
 
 		if (!rateLimited && backfillDue) {
-			// Legacy cursor check: if we have a cursor but no window state, it's from the old sync logic.
-			// Twitch cursors are query-specific, so we must reset it to avoid 400 errors.
-			if (nextState.backfillCursor && !nextState.backfillWindowEnd) {
-				nextState.backfillCursor = undefined;
-			}
-
-			try {
-				// Process multiple windows in one run if budget allows.
-				// We always allow at least ONE window to ensure backfill progress isn't starved by high-volume recent clips.
-				let forceFirstIteration = true;
-				while ((recentRequestsUsed < CLIP_SYNC_REQUEST_BUDGET_PER_RUN || forceFirstIteration) && !nextState.backfillComplete) {
-					const remainingBudget = Math.max(1, CLIP_SYNC_REQUEST_BUDGET_PER_RUN - recentRequestsUsed);
-					forceFirstIteration = false;
-
-					const currentEndMs = nextState.backfillWindowEnd ? new Date(nextState.backfillWindowEnd).getTime() : now - CLIP_SYNC_RECENT_WINDOW_DAYS * 24 * 60 * 60 * 1000;
-
-					const MAX_WINDOW_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
-					const MIN_WINDOW_MS = 10 * 60 * 1000; // 10 minutes
-					const DEFAULT_WINDOW_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
-
-					const rawWindowSizeMs = Number(nextState.backfillWindowSizeMs);
-					const normalizedWindowSizeMs = Number.isFinite(rawWindowSizeMs) && rawWindowSizeMs > 0 ? rawWindowSizeMs : DEFAULT_WINDOW_MS;
-					const windowSizeMs = Math.min(MAX_WINDOW_MS, Math.max(MIN_WINDOW_MS, normalizedWindowSizeMs));
-
-					let cursor: string | undefined = nextState.backfillCursor;
-					let pagesFetchedInWindow = 0;
-					let clipsFetchedInWindow = 0;
-					let hitLimitInWindow = false;
-
-					// Advance window logic if we are already at the start or have invalid state (nothing to sync)
-					if (!Number.isFinite(currentEndMs) || currentEndMs <= ownerBackfillLowerBoundMs) {
-						nextState.backfillComplete = true;
-						break;
-					}
-
-					const currentStartMs = Math.max(ownerBackfillLowerBoundMs, currentEndMs - windowSizeMs);
-					const startedAtIso = new Date(currentStartMs).toISOString();
-					const endedAtIso = new Date(currentEndMs).toISOString();
-
-					let windowFailed = false;
-					// Process the entire time window atomically
-					while (pagesFetchedInWindow < remainingBudget && currentEndMs > ownerBackfillLowerBoundMs) {
-						try {
-							const page = await fetchClipPage(ownerId, token.accessToken, 100, cursor, startedAtIso, endedAtIso);
-							await upsertClipsByOwner(ownerId, page.clips);
-							clipsFetchedInWindow += page.clips.length;
-							recentRequestsUsed += 1;
-							pagesFetchedInWindow += 1;
-							cursor = page.cursor;
-
-							if (cursor && (clipsFetchedInWindow >= 1000 || pagesFetchedInWindow >= 10)) {
-								hitLimitInWindow = true;
-								break;
-							}
-
-							if (!cursor) break;
-						} catch (error) {
-							if (axios.isAxiosError(error) && error.response?.status === 429) {
-								const resumeAt = getRateLimitResumeAt(error, now);
-								if (resumeAt) {
-									nextState.rateLimitedUntil = resumeAt;
-								}
-								nextState.backfillWindowEnd = endedAtIso;
-								nextState.backfillCursor = cursor;
-								throw error; // Rethrow to abort the entire backfill for this run
-							}
-							logTwitchError("Error fetching backfill clip sync page", error);
-							// Stop processing this window but allow saving what we have
-							windowFailed = true;
-							break;
-						}
-					}
-
-					const budgetExhausted = pagesFetchedInWindow >= remainingBudget && cursor;
-
-					if (!windowFailed && hitLimitInWindow && windowSizeMs > MIN_WINDOW_MS) {
-						// Shrink and retry the SAME window range in the next outer iteration or next run
-						nextState.backfillWindowSizeMs = Math.max(MIN_WINDOW_MS, Math.floor(windowSizeMs / 2));
-						// Preserve window context so retries stay on the same historical range.
-						nextState.backfillWindowEnd = endedAtIso;
-						// Reset cursor because the next request will have different date bounds, making the current cursor invalid.
-						nextState.backfillCursor = undefined;
-						break; // Stop this run's loop to avoid getting stuck if remainingBudget is low
-					} else if (windowFailed && pagesFetchedInWindow > 0) {
-						// Persist partial progress in the SAME window and retry later from the saved cursor.
-						nextState.backfillWindowEnd = endedAtIso;
-						nextState.backfillCursor = cursor;
-						nextState.backfillWindowSizeMs = windowSizeMs;
-						break;
-					} else if ((!windowFailed && !cursor) || hitLimitInWindow || budgetExhausted) {
-						// Case A: No error and window truly finished (!cursor)
-						// Case B: Hit limit but already at MIN_WINDOW_MS (Accept partial and move on)
-						// Case C: Budget exhausted mid-window (budgetExhausted) - Save partial and stay on same window
-
-						if (budgetExhausted) {
-							// Stay on the same window for next run, but save current progress
-							nextState.backfillWindowEnd = endedAtIso;
-							nextState.backfillCursor = cursor;
-						} else {
-							// Move to next window
-							nextState.backfillWindowEnd = new Date(currentStartMs).toISOString();
-							nextState.backfillCursor = undefined;
-
-							if (hitLimitInWindow) {
-								nextState.backfillWindowSizeMs = MIN_WINDOW_MS;
-								console.warn(`Clip backfill hit 1,000 limit within minimum window (${MIN_WINDOW_MS / 60000}m) for owner ${ownerId}. Some clips might be missing.`);
-							} else if (windowFailed) {
-								// Preserve window size on error
-								nextState.backfillWindowSizeMs = windowSizeMs;
-							} else {
-								if (clipsFetchedInWindow < 100 && windowSizeMs < MAX_WINDOW_MS) {
-									nextState.backfillWindowSizeMs = Math.min(MAX_WINDOW_MS, windowSizeMs * 2);
-								} else {
-									nextState.backfillWindowSizeMs = windowSizeMs;
-								}
-							}
-
-							if (currentStartMs <= ownerBackfillLowerBoundMs) {
-								nextState.backfillComplete = true;
-							}
-						}
-					} else if (windowFailed) {
-						// Abort backfill for this run if a window failed completely to avoid infinite retry loop.
-						break;
-					}
-				}
-
-				nextState.lastBackfillSyncAt = new Date(now).toISOString();
-			} catch (error) {
-				// Only log if it's NOT a 429, because 429s are expected and handled via rateLimitedUntil
-				if (!axios.isAxiosError(error) || error.response?.status !== 429) {
-					logTwitchError("Error in backfill sync run", error);
-				}
-				
-				const resumeAt = getRateLimitResumeAt(error, now);
-				if (resumeAt) {
-					nextState.rateLimitedUntil = resumeAt;
-				}
-			}
+			await runBackfillSync(ownerId, token.accessToken, nextState, ownerBackfillLowerBoundMs, now, recentRequestsUsed);
 		}
 
 		if (JSON.stringify(syncState) !== JSON.stringify(nextState)) {
