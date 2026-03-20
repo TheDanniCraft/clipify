@@ -159,6 +159,7 @@ jest.mock("@actions/twitch", () => ({
 	getUsersDetailsBulk: jest.fn(),
 	refreshAccessTokenWithContext: jest.fn(),
 	subscribeToReward,
+    syncOwnerClipCache: jest.fn(),
 }));
 
 jest.mock("@lib/tokenCrypto", () => ({
@@ -742,9 +743,61 @@ describe("actions/database playlist logic", () => {
 		validateAuth.mockResolvedValueOnce({ id: "viewer-1", plan: "free" });
 		queueSelectResult([{ id: "playlist-1", ownerId: "owner-1", name: "Main", createdAt: new Date(), updatedAt: new Date() }]);
 		queueSelectResult([]);
-		const { importPlaylistClips } = await loadDatabaseActions();
+		const { importPlaylistClips, previewImportPlaylistClips } = await loadDatabaseActions();
 		await expect(importPlaylistClips("playlist-1", { overlayType: "All" as never }, "append")).resolves.toEqual([]);
+		await expect(previewImportPlaylistClips("playlist-1", { overlayType: "All" as never })).resolves.toEqual([]);
 	});
+
+    it("previews playlist clips for pro users with various filters", async () => {
+        resolveUserEntitlements.mockResolvedValue({
+            effectivePlan: "pro",
+            isBillingPro: true,
+            reverseTrialActive: false,
+            trialEndsAt: null,
+            hasActiveGrant: true,
+        });
+        queueSelectResult([{ id: "playlist-1", ownerId: "owner-1" }]); // playlist
+        queueSelectResult([{ id: "owner-1", plan: "pro" }]); // owner plan
+        
+        // getTwitchCacheByPrefixEntries select for getPlaylistImportSourceClips
+        queueSelectResult([
+            { key: "c:1", value: JSON.stringify({ id: "c1", title: "Good Clip", game_id: "G1", creator_name: "A", creator_id: "1", view_count: 100, created_at: "2020-01-01T00:00:00Z" }) },
+            { key: "c:2", value: JSON.stringify({ id: "c2", title: "Bad Word", game_id: "G1", creator_name: "A", creator_id: "1", view_count: 50, created_at: "2020-01-02T00:00:00Z" }) },
+            { key: "c:3", value: JSON.stringify({ id: "c3", title: "Other Game", game_id: "G2", creator_name: "B", creator_id: "2", view_count: 200, created_at: "2020-01-03T00:00:00Z" }) },
+        ]);
+        
+        const { previewImportPlaylistClips } = await loadDatabaseActions();
+        const result = await previewImportPlaylistClips("playlist-1", {
+            overlayType: "All" as never,
+            categoryId: "G1",
+            blacklistWords: ["bad"],
+            minViews: 60,
+        });
+        
+        expect(result).toHaveLength(1);
+        expect(result[0].id).toBe("c1");
+    });
+
+    it("filters clips by creators in import", async () => {
+        resolveUserEntitlements.mockResolvedValue({ effectivePlan: "pro", hasActiveGrant: true });
+        queueSelectResult([{ id: "playlist-1", ownerId: "owner-1" }]); // access
+        queueSelectResult([{ id: "owner-1", plan: "pro" }]); // plan
+        
+        queueSelectResult([
+            { key: "c:1", value: JSON.stringify({ id: "c1", creator_name: "Allowed", creator_id: "10", view_count: 10, game_id: "G", created_at: "2020-01-01T00:00:00Z" }) },
+            { key: "c:2", value: JSON.stringify({ id: "c2", creator_name: "Blocked", creator_id: "20", view_count: 10, game_id: "G", created_at: "2020-01-01T00:00:00Z" }) },
+        ]);
+        
+        const { previewImportPlaylistClips } = await loadDatabaseActions();
+        const result = await previewImportPlaylistClips("playlist-1", {
+            overlayType: "All" as never,
+            clipCreatorsOnly: ["Allowed"],
+            clipCreatorsBlocked: ["20"],
+        });
+        
+        expect(result).toHaveLength(1);
+        expect(result[0].id).toBe("c1");
+    });
 
 	it("saveOverlay clears playlistId when type is not Playlist", async () => {
 		const currentOverlay = {

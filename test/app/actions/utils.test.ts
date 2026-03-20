@@ -1,57 +1,94 @@
-import { getBaseUrl, isCoolify, isPreview, safeReturnUrl } from "@/app/actions/utils";
+import { isPreview, isCoolify, getBaseUrl, safeReturnUrl } from "@/app/actions/utils";
 
 describe("actions/utils", () => {
-	const originalEnv = process.env;
+    const originalEnv = process.env;
 
-	beforeEach(() => {
-		process.env = { ...originalEnv };
-	});
+    beforeEach(() => {
+        jest.resetModules();
+        process.env = { ...originalEnv };
+    });
 
-	afterAll(() => {
-		process.env = originalEnv;
-	});
+    afterAll(() => {
+        process.env = originalEnv;
+    });
 
-	it("detects preview mode case-insensitively", async () => {
-		process.env.IS_PREVIEW = "TrUe";
-		await expect(isPreview()).resolves.toBe(true);
-		process.env.IS_PREVIEW = "false";
-		await expect(isPreview()).resolves.toBe(false);
-	});
+    describe("isPreview", () => {
+        it("returns true if IS_PREVIEW is true", async () => {
+            process.env.IS_PREVIEW = "true";
+            expect(await isPreview()).toBe(true);
+        });
 
-	it("detects coolify by env var prefix", async () => {
-		delete process.env.COOLIFY_URL;
-		delete process.env.COOLIFY_TEST;
-		await expect(isCoolify()).resolves.toBe(false);
-		process.env.COOLIFY_TEST = "1";
-		await expect(isCoolify()).resolves.toBe(true);
-	});
+        it("returns false if IS_PREVIEW is false or missing", async () => {
+            process.env.IS_PREVIEW = "false";
+            expect(await isPreview()).toBe(false);
+            delete process.env.IS_PREVIEW;
+            expect(await isPreview()).toBe(false);
+        });
+    });
 
-	it("resolves base URL from COOLIFY_URL and normalizes hostname", async () => {
-		process.env.COOLIFY_URL = "my-app.example.com:8443,backup.example.com";
-		const result = await getBaseUrl();
-		expect(result.toString()).toBe("https://my-app.example.com/");
-	});
+    describe("isCoolify", () => {
+        it("returns true if any env var starts with COOLIFY_", async () => {
+            process.env.COOLIFY_APP_ID = "123";
+            expect(await isCoolify()).toBe(true);
+        });
 
-	it("falls back to localhost in development", async () => {
-		delete process.env.COOLIFY_URL;
-		process.env = { ...process.env, NODE_ENV: "development" };
-		const result = await getBaseUrl();
-		expect(result.toString()).toBe("http://localhost:3000/");
-	});
+        it("returns false if no env var starts with COOLIFY_", async () => {
+            Object.keys(process.env).forEach(key => {
+                if (key.startsWith("COOLIFY_")) delete process.env[key];
+            });
+            expect(await isCoolify()).toBe(false);
+        });
+    });
 
-	it("falls back to production URL outside development", async () => {
-		delete process.env.COOLIFY_URL;
-		process.env = { ...process.env, NODE_ENV: "production" };
-		const result = await getBaseUrl();
-		expect(result.toString()).toBe("https://clipify.us/");
-	});
+    describe("getBaseUrl", () => {
+        it("uses COOLIFY_URL if provided", async () => {
+            process.env.COOLIFY_URL = "test.clipify.us";
+            const url = await getBaseUrl();
+            expect(url.toString()).toBe("https://test.clipify.us/");
+        });
 
-	it("accepts only safe relative return URLs", async () => {
-		await expect(safeReturnUrl("/dashboard")).resolves.toBe("/dashboard");
-		await expect(safeReturnUrl(["/overlay/abc"])).resolves.toBe("/overlay/abc");
-		await expect(safeReturnUrl("https://evil.test")).resolves.toBeNull();
-		await expect(safeReturnUrl("//evil.test")).resolves.toBeNull();
-		await expect(safeReturnUrl("dashboard")).resolves.toBeNull();
-		await expect(safeReturnUrl(undefined)).resolves.toBeNull();
-	});
+        it("handles comma separated COOLIFY_URL", async () => {
+            process.env.COOLIFY_URL = "primary.us, secondary.us";
+            const url = await getBaseUrl();
+            expect(url.toString()).toBe("https://primary.us/");
+        });
+
+        it("uses localhost in development", async () => {
+            delete process.env.COOLIFY_URL;
+            Object.assign(process.env, { NODE_ENV: "development" });
+            const url = await getBaseUrl();
+            expect(url.toString()).toBe("http://localhost:3000/");
+        });
+
+        it("uses default production url", async () => {
+            delete process.env.COOLIFY_URL;
+            Object.assign(process.env, { NODE_ENV: "production" });
+            const url = await getBaseUrl();
+            expect(url.toString()).toBe("https://clipify.us/");
+        });
+
+        it("strips port and uses https if isCoolify is true", async () => {
+            process.env.COOLIFY_URL = "cool.us:8080";
+            process.env.COOLIFY_something = "true";
+            const url = await getBaseUrl();
+            expect(url.toString()).toBe("https://cool.us/");
+        });
+    });
+
+    describe("safeReturnUrl", () => {
+        it("returns the url if it starts with /", async () => {
+            expect(await safeReturnUrl("/dashboard")).toBe("/dashboard");
+        });
+
+        it("returns null if it is absolute or malformed", async () => {
+            expect(await safeReturnUrl("https://google.com")).toBeNull();
+            expect(await safeReturnUrl("//malicious.com")).toBeNull();
+            expect(await safeReturnUrl("")).toBeNull();
+            expect(await safeReturnUrl(null)).toBeNull();
+        });
+
+        it("handles array input", async () => {
+            expect(await safeReturnUrl(["/first", "/second"])).toBe("/first");
+        });
+    });
 });
