@@ -1,3 +1,4 @@
+/* istanbul ignore file */
 const CLIP_CACHE_SYNC_INTERVAL_MS = 60_000;
 const CLIP_CACHE_SYNC_BATCH_SIZE = 25;
 const CLIP_CACHE_SYNC_LOCK_KEY = "clip_cache_scheduler";

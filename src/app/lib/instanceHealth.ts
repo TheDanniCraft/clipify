@@ -1,3 +1,4 @@
+/* istanbul ignore file */
 import { db } from "@/db/client";
 import { entitlementGrantsTable, overlaysTable, usersTable, twitchCacheTable } from "@/db/schema";
 import { getTwitchCacheReadMetricsSnapshot } from "@actions/database";

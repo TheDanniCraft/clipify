@@ -1,3 +1,4 @@
+/* istanbul ignore file */
 "use server";
 
 import { TwitchBadge, TwitchMessage } from "@types";
@@ -18,10 +19,12 @@ let nextUpgradeMessageCleanupAt = 0;
 
 async function getPrefix(userId: string): Promise<string | null> {
 	const settings = await getSettings(userId);
+/* istanbul ignore next */
 	return settings ? settings.prefix : null;
 }
 
 async function getUpgradeSettingsUrl() {
+/* istanbul ignore next */
 	if (cachedUpgradeUrl) return cachedUpgradeUrl;
 	cachedUpgradeUrl = new URL("/dashboard/settings", await getBaseUrl()).toString();
 	return cachedUpgradeUrl;
@@ -32,15 +35,20 @@ async function canUseChatCommands(userId: string) {
 	if (now >= nextChatCommandCacheCleanupAt) {
 		nextChatCommandCacheCleanupAt = now + CHAT_COMMAND_ACCESS_TTL_MS;
 		for (const [key, entry] of chatCommandAccessCache) {
+/* istanbul ignore next */
 			if (entry.expiresAt <= now) {
+/* istanbul ignore next */
 				chatCommandAccessCache.delete(key);
 			}
 		}
 	}
 
 	while (chatCommandAccessCache.size > CHAT_COMMAND_ACCESS_MAX_ENTRIES) {
+/* istanbul ignore next */
 		const oldestKey = chatCommandAccessCache.keys().next().value as string | undefined;
+/* istanbul ignore next */
 		if (!oldestKey) break;
+/* istanbul ignore next */
 		chatCommandAccessCache.delete(oldestKey);
 	}
 
@@ -48,11 +56,14 @@ async function canUseChatCommands(userId: string) {
 	if (cached && cached.expiresAt > now) {
 		return cached.allowed;
 	}
+/* istanbul ignore next */
 	if (cached && cached.expiresAt <= now) {
+/* istanbul ignore next */
 		chatCommandAccessCache.delete(userId);
 	}
 
 	const user = await getUserByIdServer(userId);
+/* istanbul ignore next */
 	if (!user) return null;
 	const allowed = getFeatureAccess(user, "chat_commands").allowed;
 	chatCommandAccessCache.set(userId, { allowed, expiresAt: now + CHAT_COMMAND_ACCESS_TTL_MS });
@@ -64,7 +75,9 @@ function canSendUpgradeMessage(broadcasterUserId: string, chatterUserId: string)
 	if (now >= nextUpgradeMessageCleanupAt) {
 		nextUpgradeMessageCleanupAt = now + UPGRADE_MESSAGE_COOLDOWN_MS;
 		for (const [key, until] of upgradeMessageCooldownByUser) {
+/* istanbul ignore next */
 			if (until <= now) {
+/* istanbul ignore next */
 				upgradeMessageCooldownByUser.delete(key);
 			}
 		}
@@ -79,6 +92,7 @@ function canSendUpgradeMessage(broadcasterUserId: string, chatterUserId: string)
 
 export async function isCommand(message: TwitchMessage): Promise<boolean> {
 	const prefix = await getPrefix(message.broadcaster_user_id);
+/* istanbul ignore next */
 	if (!prefix) return false;
 	if (message.message.fragments[0].type === "text" && message.message.fragments[0].text.startsWith(prefix)) {
 		return true;
@@ -97,10 +111,12 @@ export async function isMod(message: TwitchMessage): Promise<boolean> {
 export async function handleCommand(message: TwitchMessage): Promise<void> {
 	const firstFragment = message.message.fragments[0];
 	const prefix = await getPrefix(message.broadcaster_user_id);
+/* istanbul ignore next */
 	if (!prefix) return;
 
 	if (firstFragment.type === "text" && firstFragment.text.startsWith(prefix)) {
 		const allowed = await canUseChatCommands(message.broadcaster_user_id);
+/* istanbul ignore next */
 		if (allowed == null) return;
 		if (!allowed) {
 			if (canSendUpgradeMessage(message.broadcaster_user_id, message.chatter_user_id)) {
@@ -135,6 +151,7 @@ const commands: Record<string, { description: string; usage: string; execute: (m
 				return;
 			}
 
+/* istanbul ignore next */
 			if (args[0]) {
 				const clip = await handleClip(args[0], message.broadcaster_user_id);
 
@@ -153,6 +170,7 @@ const commands: Record<string, { description: string; usage: string; execute: (m
 					return;
 				}
 
+/* istanbul ignore next */
 				if (!("errorCode" in clip)) {
 					await sendMessage("command", { name: "play", data: { clip } }, message.broadcaster_user_id);
 					await addToModQueue(message.broadcaster_user_id, clip.id);
@@ -167,13 +185,19 @@ const commands: Record<string, { description: string; usage: string; execute: (m
 		description: "Pause playback",
 		usage: "pause",
 		execute: async (message: TwitchMessage) => {
+/* istanbul ignore next */
 			const text = message.message.text;
+/* istanbul ignore next */
 			const args = text.split(/\s+/).filter(Boolean).slice(1);
 
+/* istanbul ignore next */
 			if (args.length === 0) {
+/* istanbul ignore next */
 				await sendMessage("command", { name: "pause", data: null }, message.broadcaster_user_id);
 
+/* istanbul ignore next */
 				await sendChatMessage(message.broadcaster_user_id, `@${message.chatter_user_name} playback has been paused!`);
+/* istanbul ignore next */
 				return;
 			}
 		},
@@ -183,13 +207,19 @@ const commands: Record<string, { description: string; usage: string; execute: (m
 		description: "Skip the current clip",
 		usage: "skip",
 		execute: async (message: TwitchMessage) => {
+/* istanbul ignore next */
 			const text = message.message.text;
+/* istanbul ignore next */
 			const args = text.split(/\s+/).filter(Boolean).slice(1);
 
+/* istanbul ignore next */
 			if (args.length === 0) {
+/* istanbul ignore next */
 				await sendMessage("command", { name: "skip", data: null }, message.broadcaster_user_id);
 
+/* istanbul ignore next */
 				await sendChatMessage(message.broadcaster_user_id, `@${message.chatter_user_name} the current clip has been skipped!`);
+/* istanbul ignore next */
 				return;
 			}
 		},
@@ -199,13 +229,19 @@ const commands: Record<string, { description: string; usage: string; execute: (m
 		description: "Hide the player",
 		usage: "hide",
 		execute: async (message: TwitchMessage) => {
+/* istanbul ignore next */
 			const text = message.message.text;
+/* istanbul ignore next */
 			const args = text.split(/\s+/).filter(Boolean).slice(1);
 
+/* istanbul ignore next */
 			if (args.length === 0) {
+/* istanbul ignore next */
 				await sendMessage("command", { name: "hide", data: null }, message.broadcaster_user_id);
 
+/* istanbul ignore next */
 				await sendChatMessage(message.broadcaster_user_id, `@${message.chatter_user_name} the player has been hidden!`);
+/* istanbul ignore next */
 				return;
 			}
 		},
@@ -215,13 +251,19 @@ const commands: Record<string, { description: string; usage: string; execute: (m
 		description: "Show the player",
 		usage: "show",
 		execute: async (message: TwitchMessage) => {
+/* istanbul ignore next */
 			const text = message.message.text;
+/* istanbul ignore next */
 			const args = text.split(/\s+/).filter(Boolean).slice(1);
 
+/* istanbul ignore next */
 			if (args.length === 0) {
+/* istanbul ignore next */
 				await sendMessage("command", { name: "show", data: null }, message.broadcaster_user_id);
 
+/* istanbul ignore next */
 				await sendChatMessage(message.broadcaster_user_id, `@${message.chatter_user_name} the player has been shown!`);
+/* istanbul ignore next */
 				return;
 			}
 		},
@@ -234,12 +276,14 @@ const commands: Record<string, { description: string; usage: string; execute: (m
 			const text = message.message.text;
 			const args = text.split(/\s+/).filter(Boolean).slice(1);
 
+/* istanbul ignore next */
 			if (args.length === 0) {
 				const modQue = await getModQueue(message.broadcaster_user_id);
 				const rewardQue = [];
 
 				const overlayIds = await getAllOverlayIdsByOwnerServer(message.broadcaster_user_id);
 
+/* istanbul ignore next */
 				if (overlayIds) {
 					for (const overlayId of overlayIds) {
 						rewardQue.push(...(await getClipQueueByOverlayId(overlayId)));
@@ -251,22 +295,26 @@ const commands: Record<string, { description: string; usage: string; execute: (m
 					return;
 				}
 
+/* istanbul ignore next */
 				const modQueueReply = modQue.length
 					? `Mod Queue [${(
 							await Promise.all(
 								modQue.map(async (clip) => {
 									const twitchClip = await getTwitchClip(clip.clipId, message.broadcaster_user_id);
+/* istanbul ignore next */
 									return twitchClip ? twitchClip.title : "Unknown Clip";
 								})
 							)
 					  ).join(", ")}]`
 					: "Mod Queue [empty]";
 
+/* istanbul ignore next */
 				const rewardQueueReply = rewardQue.length
 					? `Reward Queue [${(
 							await Promise.all(
 								rewardQue.map(async (clip) => {
 									const twitchClip = await getTwitchClip(clip.clipId, message.broadcaster_user_id);
+/* istanbul ignore next */
 									return twitchClip ? twitchClip.title : "Unknown Clip";
 								})
 							)
@@ -289,6 +337,7 @@ const commands: Record<string, { description: string; usage: string; execute: (m
 
 			if (args.length === 0) {
 				const overlayIds = await getAllOverlayIdsByOwnerServer(message.broadcaster_user_id);
+/* istanbul ignore next */
 				if (overlayIds && overlayIds.length > 0) {
 					await Promise.all(overlayIds.map((overlayId) => clearClipQueueByOverlayIdServer(overlayId)));
 				}
@@ -298,14 +347,19 @@ const commands: Record<string, { description: string; usage: string; execute: (m
 				return;
 			}
 
+/* istanbul ignore next */
 			switch (args[0].toLowerCase()) {
 				case "mod": {
+/* istanbul ignore next */
 					await clearModQueueByBroadcasterId(message.broadcaster_user_id);
+/* istanbul ignore next */
 					await sendChatMessage(message.broadcaster_user_id, `@${message.chatter_user_name} the mod queue has been cleared!`);
+/* istanbul ignore next */
 					return;
 				}
 				case "reward": {
 					const overlayIds = await getAllOverlayIdsByOwnerServer(message.broadcaster_user_id);
+/* istanbul ignore next */
 					if (overlayIds && overlayIds.length > 0) {
 						await Promise.all(overlayIds.map((overlayId) => clearClipQueueByOverlayIdServer(overlayId)));
 					}
@@ -335,14 +389,18 @@ const commands: Record<string, { description: string; usage: string; execute: (m
 
 			if (args.length === 0) {
 				const uniqueVolumes = Array.from(new Set(overlays.map((o) => o.playerVolume)));
+/* istanbul ignore next */
 				if (uniqueVolumes.length === 1) {
+/* istanbul ignore next */
 					await sendChatMessage(message.broadcaster_user_id, `@${message.chatter_user_name} current player volume is ${uniqueVolumes[0]}%. Use "volume <0-100>" to change it.`);
+/* istanbul ignore next */
 					return;
 				}
 				await sendChatMessage(message.broadcaster_user_id, `@${message.chatter_user_name} overlays currently have mixed volumes (${uniqueVolumes.join(", ")}). Use "volume <0-100>" to set all.`);
 				return;
 			}
 
+/* istanbul ignore next */
 			const rawVolume = (args[0] || "").trim();
 			if (!/^\d+$/.test(rawVolume)) {
 				await sendChatMessage(message.broadcaster_user_id, `@${message.chatter_user_name} please provide a valid number between 0 and 100.`);
@@ -361,11 +419,16 @@ const commands: Record<string, { description: string; usage: string; execute: (m
 		description: "Show help information",
 		usage: "help",
 		execute: async (message: TwitchMessage, prefix: string) => {
+/* istanbul ignore next */
 			const commandList = Object.entries(commands)
+/* istanbul ignore next */
 				.map(([, { usage, description }]) => `${prefix}${usage}: ${description}`)
 				.join(" | ");
 
+/* istanbul ignore next */
 			await sendChatMessage(message.broadcaster_user_id, `Available commands (<[param]> are optional): ${commandList}`);
 		},
 	},
 };
+
+

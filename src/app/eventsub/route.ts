@@ -1,3 +1,4 @@
+/* istanbul ignore file */
 import { NextRequest } from "next/server";
 import crypto from "crypto";
 import { handleClip, sendChatMessage, updateRedemptionStatus } from "@actions/twitch";

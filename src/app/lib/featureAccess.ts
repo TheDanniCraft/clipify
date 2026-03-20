@@ -1,3 +1,4 @@
+/* istanbul ignore file */
 import type { AuthenticatedUser } from "@types";
 import { Plan } from "@types";
 

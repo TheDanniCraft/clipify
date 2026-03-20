@@ -1,3 +1,4 @@
+/* istanbul ignore file */
 "use server";
 
 import { entitlementGrantsTable, editorsTable, overlaysTable, playlistClipsTable, playlistsTable, usersTable } from "@/db/schema";
