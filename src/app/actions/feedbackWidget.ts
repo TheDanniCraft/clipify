@@ -46,7 +46,7 @@ export async function submitFeedback(feedback: Feedback): Promise<FiderPost | nu
 		throw new Error("Unauthenticated");
 	}
 
-	const rateLimiter = await tryRateLimit({ key: "feedback", points: 1, duration: 20 });
+	const rateLimiter = await tryRateLimit({ key: "feedback", points: 1, duration: 20, identifier: isAuthenticated.id });
 
 	if (!rateLimiter.success) {
 		throw new RateLimitError();

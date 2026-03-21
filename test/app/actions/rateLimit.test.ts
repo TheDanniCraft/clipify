@@ -17,6 +17,11 @@ jest.mock("next/headers", () => ({
 	headers: (...args: unknown[]) => headers(...args),
 }));
 
+const isCoolifyMock = jest.fn();
+jest.mock("@/app/actions/utils", () => ({
+	isCoolify: () => isCoolifyMock(),
+}));
+
 async function loadRateLimit() {
 	jest.resetModules();
 	return import("@/app/actions/rateLimit");
@@ -29,6 +34,8 @@ describe("actions/rateLimit", () => {
 		headers.mockResolvedValue({
 			get: (name: string) => headerValues[name.toLowerCase()] ?? null,
 		});
+		isCoolifyMock.mockResolvedValue(false);
+		delete process.env.VERCEL;
 	});
 
 	it("extracts the first forwarded ip when x-forwarded-for contains multiple addresses", async () => {
@@ -37,13 +44,44 @@ describe("actions/rateLimit", () => {
 		await expect(getUserIP()).resolves.toBe("203.0.113.1");
 	});
 
-	it("falls back to x-real-ip and then localhost", async () => {
+	it("identifies Cloudflare by cf-ray and trusts cf-connecting-ip", async () => {
+		headerValues["cf-ray"] = "some-ray-id";
+		headerValues["cf-connecting-ip"] = "1.2.3.4";
+		headerValues["x-forwarded-for"] = "8.8.8.8, 1.2.3.4";
+		const { getUserIP } = await loadRateLimit();
+		await expect(getUserIP()).resolves.toBe("1.2.3.4");
+	});
+
+	it("identifies Vercel and trusts the first x-forwarded-for entry", async () => {
+		process.env.VERCEL = "1";
+		headerValues["x-forwarded-for"] = "5.6.7.8, 10.0.0.1";
+		const { getUserIP } = await loadRateLimit();
+		await expect(getUserIP()).resolves.toBe("5.6.7.8");
+	});
+
+	it("identifies Coolify and trusts x-real-ip", async () => {
+		isCoolifyMock.mockResolvedValue(true);
+		headerValues["x-real-ip"] = "9.10.11.12";
+		const { getUserIP } = await loadRateLimit();
+		await expect(getUserIP()).resolves.toBe("9.10.11.12");
+	});
+
+	it("falls back to x-real-ip and then localhost in unknown environments", async () => {
 		const { getUserIP } = await loadRateLimit();
 		headerValues["x-real-ip"] = "198.51.100.7";
 		await expect(getUserIP()).resolves.toBe("198.51.100.7");
 
 		headerValues["x-real-ip"] = null;
 		await expect(getUserIP()).resolves.toBe("127.0.0.1");
+	});
+
+	it("supports custom identifier (like User ID) for rate limiting", async () => {
+		consume.mockResolvedValue({ remainingPoints: 0 });
+		const { tryRateLimit } = await loadRateLimit();
+
+		await tryRateLimit({ key: "action", points: 5, duration: 60, identifier: "user_123" });
+
+		expect(consume).toHaveBeenCalledWith("user_123", 1);
 	});
 
 	it("reuses the same limiter instance for repeated calls with the same key", async () => {
