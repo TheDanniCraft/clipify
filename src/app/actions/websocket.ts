@@ -8,11 +8,26 @@ import { overlaySubscribers as subscribers, addSubscriber } from "@store/overlay
 
 export async function handleMessage(buffer: RawData, client: WebSocket) {
 	const message = buffer.toString("utf8").trim();
-	const parsedMessage = JSON.parse(message);
 
-	switch (parsedMessage.type) {
+	let parsedMessage: unknown;
+	try {
+		parsedMessage = JSON.parse(message);
+	} catch (error) {
+		console.error("Failed to parse WebSocket message:", error);
+		client.close(4003);
+		return;
+	}
+
+	if (!parsedMessage || typeof parsedMessage !== "object") {
+		client.close(4003);
+		return;
+	}
+
+	const messageObj = parsedMessage as Record<string, unknown>;
+
+	switch (messageObj.type) {
 		case "subscribe": {
-			const payload = parsedMessage.data as { overlayId?: string; secret?: string } | string;
+			const payload = messageObj.data as { overlayId?: string; secret?: string } | string;
 /* istanbul ignore next */
 			const overlayId = typeof payload === "string" ? payload : payload?.overlayId;
 /* istanbul ignore next */

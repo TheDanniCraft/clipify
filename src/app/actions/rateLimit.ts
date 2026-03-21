@@ -7,12 +7,16 @@ export async function getUserIP() {
 	const headersList = await headers();
 
 	/**
-	 * x-forwarded-for usually contains a list of IPs: <client>, <proxy1>, <proxy2>...
-	 * The first one is the client's IP, but it can be spoofed if the proxy is not configured to overwrite it.
-	 * In most trusted environments (Vercel, Cloudflare, etc.), the platform ensures the header is reliable.
+	 * Prioritized IP source chain:
+	 * 1. cf-connecting-ip: Cloudflare's trusted client IP.
+	 * 2. x-real-ip: Standard header for Traefik, Caddy, and Nginx.
+	 * 3. x-forwarded-for: Standard multi-proxy header.
 	 */
-	const forwardedFor = headersList.get("x-forwarded-for");
-	const ip = (forwardedFor?.split(",")[0].trim()) || headersList.get("x-real-ip") || "127.0.0.1";
+	const ip =
+		headersList.get("cf-connecting-ip") ||
+		headersList.get("x-real-ip") ||
+		headersList.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+		"127.0.0.1";
 
 	return ip;
 }
