@@ -3,14 +3,14 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { useParams, useRouter } from "next/navigation";
-import { createPlaylist, getClipCacheStatus, getOverlay, getOverlayOwnerPlan, getPlaylistsForOwner, previewImportPlaylistClips, reorderPlaylistClips, saveOverlay, savePlaylist, upsertPlaylistClips } from "@actions/database";
+import { createPlaylist, getClipCacheStatus, getOverlay, getOverlayOwnerPlan, getPlaylistsForOwner, previewImportPlaylistClips, saveOverlay, savePlaylist, upsertPlaylistClips } from "@actions/database";
 import { addToast, Autocomplete, AutocompleteItem, Button, Card, CardBody, CardHeader, Checkbox, Chip, DateRangePicker, Divider, Form, Image, Input, Link, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, NumberInput, Select, SelectItem, Slider, Snippet, Spinner, Switch, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow, Tooltip, useDisclosure } from "@heroui/react";
 import { AuthenticatedUser, Game, Overlay, OverlayType, Plan, PlaybackMode, StatusOptions, TwitchClip, TwitchReward } from "@types";
 import { IconAlertTriangle, IconArrowLeft, IconCrown, IconDeviceFloppy, IconDownload, IconGripVertical, IconInfoCircle, IconPaint, IconPlayerPauseFilled, IconPlayerPlayFilled, IconPlus, IconSearch, IconTrash } from "@tabler/icons-react";
 import DashboardNavbar from "@components/dashboardNavbar";
 import { useNavigationGuard } from "next-navigation-guard";
 import { validateAuth } from "@actions/auth";
-import { createChannelReward, getCachedClipsByOwner, getGameDetails, getReward, getTwitchClips, getTwitchGames, handleClip, removeChannelReward } from "@actions/twitch";
+import { createChannelReward, getCachedClipsByOwner, getGameDetails, getReward, getTwitchClips, getTwitchGames, removeChannelReward } from "@actions/twitch";
 import { REWARD_NOT_FOUND } from "@lib/twitchErrors";
 import FeedbackWidget from "@components/feedbackWidget";
 import TagsInput from "@components/tagsInput";
@@ -73,9 +73,7 @@ export default function OverlaySettings() {
 	const [playlistClips, setPlaylistClips] = useState<TwitchClip[]>([]);
 	const [savedPlaylistClipIds, setSavedPlaylistClipIds] = useState<string[]>([]);
 	const [selectedPlaylistClipIds, setSelectedPlaylistClipIds] = useState<Set<string>>(new Set());
-	const [newPlaylistName, setNewPlaylistName] = useState("");
 	const [playlistNameDraft, setPlaylistNameDraft] = useState("");
-	const [newClipInput, setNewClipInput] = useState("");
 	const [importStartDate, setImportStartDate] = useState(DEFAULT_IMPORT_START_DATE);
 	const [importEndDate, setImportEndDate] = useState(() => new Date().toISOString().slice(0, 10));
 	const [importCategoryId, setImportCategoryId] = useState("all");
@@ -92,7 +90,6 @@ export default function OverlaySettings() {
 	const [clipCacheStatus, setClipCacheStatus] = useState<Awaited<ReturnType<typeof getClipCacheStatus>> | null>(null);
 	const [cachedClips, setCachedClips] = useState<TwitchClip[]>();
 	const [selectedCachedClipIds, setSelectedCachedClipIds] = useState<Selection>(new Set([]));
-	const [isLoadingCachedClips, setIsLoadingCachedClips] = useState(false);
 	const [cachedClipsFilter, setCachedClipsFilter] = useState("");
 	const [cachedClipsSortDescriptor, setCachedClipsSortDescriptor] = useState<SortDescriptor>({
 		column: "date",
@@ -172,7 +169,7 @@ export default function OverlaySettings() {
 			if (changed) setGameDetailsById(nextResolved);
 		}
 		resolveGameNames();
-	}, [overlay?.categoriesOnly, overlay?.categoriesBlocked, user]);
+	}, [gameDetailsById, overlay, user]);
 
 	useEffect(() => {
 		let timeoutId: NodeJS.Timeout;
@@ -285,7 +282,6 @@ export default function OverlaySettings() {
 
 	async function handleOpenAddClips() {
 		if (!overlay?.ownerId) return;
-		setIsLoadingCachedClips(true);
 		onAddClipsOpen();
 		try {
 			const clips = await getCachedClipsByOwner(overlay.ownerId);
@@ -294,8 +290,8 @@ export default function OverlaySettings() {
 			const existingPlaylistClipIds = new Set(playlistClips.map((clip) => clip.id));
 			const preselectedClipIds = clips.filter((clip) => existingPlaylistClipIds.has(clip.id)).map((clip) => clip.id);
 			setSelectedCachedClipIds(new Set(preselectedClipIds));
-		} finally {
-			setIsLoadingCachedClips(false);
+		} catch (error) {
+			console.error("Failed to load clips:", error);
 		}
 	}
 
@@ -313,7 +309,7 @@ export default function OverlaySettings() {
 			});
 			setSelectedCachedClipIds(new Set([]));
 			onAddClipsOpenChange();
-		} catch (error) {
+		} catch {
 			addToast({ title: "Failed to add clips", color: "danger" });
 		}
 	}
@@ -374,7 +370,7 @@ export default function OverlaySettings() {
 			}
 		}
 		fetchRewardTitle();
-	}, [addToast, overlay?.id, overlay?.ownerId, overlay?.rewardId]);
+	}, [overlay?.id, overlay?.ownerId, overlay?.rewardId]);
 
 	useEffect(() => {
 		async function fetchOverlay() {
@@ -495,53 +491,6 @@ export default function OverlaySettings() {
 	async function refreshPlaylists() {
 		const rows = await getPlaylistsForOwner(currentOverlay.ownerId);
 		setPlaylists((rows ?? []).map((row) => ({ id: row.id, name: row.name, clipCount: row.clipCount })));
-	}
-
-	async function handleCreatePlaylist() {
-		const name = newPlaylistName.trim();
-		if (!name) return;
-		try {
-			const playlist = await createPlaylist(currentOverlay.ownerId, name);
-			if (!playlist) return;
-			await refreshPlaylists();
-			setOverlay((prev) => (prev ? { ...prev, playlistId: playlist.id, type: OverlayType.Playlist } : prev));
-			setNewPlaylistName("");
-			addToast({ title: "Playlist created", color: "success" });
-		} catch (error) {
-			addToast({
-				title: "Failed to create playlist",
-				description: error instanceof Error ? error.message : "Please try again.",
-				color: "danger",
-			});
-		}
-	}
-
-	async function handleAddClipToPlaylist() {
-		if (!currentOverlay.playlistId) return;
-		const input = newClipInput.trim();
-		if (!input) return;
-		const clip = await handleClip(input, currentOverlay.ownerId);
-		if (!clip || "errorCode" in clip) {
-			addToast({
-				title: "Could not add clip",
-				description: "Invalid clip URL/ID or the clip does not belong to this channel.",
-				color: "danger",
-			});
-			return;
-		}
-		try {
-			const next = await upsertPlaylistClips(currentOverlay.playlistId, [clip], "append");
-			setPlaylistClips(next);
-			await resolveGameDetails(next);
-			setNewClipInput("");
-			await refreshPlaylists();
-		} catch (error) {
-			addToast({
-				title: "Failed to add clip",
-				description: error instanceof Error ? error.message : "Please try again.",
-				color: "danger",
-			});
-		}
 	}
 
 	async function runImport(mode: "append" | "replace") {
@@ -989,7 +938,7 @@ export default function OverlaySettings() {
 																		addToast({ title: "Playlist created", color: "success" });
 																		router.push(`/dashboard/playlist/${playlist.id}`);
 																	}
-																} catch (error) {
+																} catch {
 																	addToast({ title: "Failed to create playlist", color: "danger" });
 																}
 																return;
