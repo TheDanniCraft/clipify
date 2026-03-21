@@ -660,7 +660,7 @@ export async function getAccessToken(userId: string): Promise<UserToken | null> 
 export async function getAccessTokenResult(userId: string): Promise<{ token: UserToken | null; reason?: "unauthorized" | "user_disabled" | "token_row_missing" | "token_decrypt_failed" | "refresh_invalid_token" | "refresh_failed" }> {
 	try {
 		const authedUser = await validateAuth(true);
-		if (!authedUser || (typeof authedUser === "object" && authedUser.id !== userId && authedUser.role !== Role.Admin)) {
+		if (!authedUser || (authedUser.id !== userId && authedUser.role !== Role.Admin)) {
 			return { token: null, reason: "unauthorized" };
 		}
 
@@ -2020,7 +2020,7 @@ export async function clearModQueue(overlayId: string, secret?: string) {
 export async function getSettings(userId: string, forceSyncExternal = false): Promise<UserSettings> {
 	try {
 		const authedUser = await validateAuth(true);
-		if (!authedUser || (typeof authedUser === "object" && authedUser.id !== userId && authedUser.role !== Role.Admin)) {
+		if (!authedUser || (authedUser.id !== userId && authedUser.role !== Role.Admin)) {
 			throw new Error("Unauthorized");
 		}
 

@@ -12,7 +12,7 @@ export async function getUserIP() {
 	 * In most trusted environments (Vercel, Cloudflare, etc.), the platform ensures the header is reliable.
 	 */
 	const forwardedFor = headersList.get("x-forwarded-for");
-	const ip = forwardedFor ? forwardedFor.split(",")[0].trim() : headersList.get("x-real-ip") || "127.0.0.1";
+	const ip = (forwardedFor?.split(",")[0].trim()) || headersList.get("x-real-ip") || "127.0.0.1";
 
 	return ip;
 }

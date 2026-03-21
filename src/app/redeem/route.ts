@@ -19,5 +19,10 @@ export async function GET(request: NextRequest) {
 		secure: process.env.NODE_ENV === "production",
 	});
 
-	return NextResponse.redirect(new URL(`${redirectUrl}?utm_source=offer_redeem&utm_medium=offer&utm_campaign=${campaign || offerCode}`, base));
+	const target = new URL(redirectUrl, base);
+	target.searchParams.set("utm_source", "offer_redeem");
+	target.searchParams.set("utm_medium", "offer");
+	target.searchParams.set("utm_campaign", campaign || offerCode);
+
+	return NextResponse.redirect(target);
 }
