@@ -2,21 +2,37 @@
 
 import { RateLimiterMemory, RateLimiterRes } from "rate-limiter-flexible";
 
+import { isCoolify } from "@actions/utils";
+
+let hasWarnedUntrustedProxy = false;
+
 export async function getUserIP() {
 	const { headers } = await import("next/headers");
 	const headersList = await headers();
 
+	const cfConnectingIp = headersList.get("cf-connecting-ip");
+	const xRealIp = headersList.get("x-real-ip");
+	const xForwardedFor = headersList.get("x-forwarded-for");
+
+	const isCloudflare = !!cfConnectingIp;
+	const isVercel = process.env.VERCEL === "1";
+	const isDev = process.env.NODE_ENV === "development";
+
 	/**
-	 * Prioritized IP source chain:
-	 * 1. cf-connecting-ip: Cloudflare's trusted client IP.
-	 * 2. x-real-ip: Standard header for Traefik, Caddy, and Nginx.
-	 * 3. x-forwarded-for: Standard multi-proxy header.
+	 * Check if we are running in a known trusted environment.
+	 * If not, and we're in production, we warn once that IP headers might be spoofable.
 	 */
-	const ip =
-		headersList.get("cf-connecting-ip") ||
-		headersList.get("x-real-ip") ||
-		headersList.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-		"127.0.0.1";
+	if (!isDev && !hasWarnedUntrustedProxy) {
+		const isCoolifyEnv = await isCoolify();
+		if (!isVercel && !isCoolifyEnv && !isCloudflare) {
+			console.warn(
+				"[security] Potentially untrusted proxy detected. Rate limiting may be impacted if clients can spoof IP headers (e.g. x-forwarded-for). Ensure your reverse proxy (Nginx/Traefik/Caddy) is configured to overwrite these headers."
+			);
+			hasWarnedUntrustedProxy = true;
+		}
+	}
+
+	const ip = cfConnectingIp || xRealIp || xForwardedFor?.split(",")[0]?.trim() || "127.0.0.1";
 
 	return ip;
 }
