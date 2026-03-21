@@ -49,6 +49,7 @@ async function getRawMediaUrl(clipId: string): Promise<string | undefined> {
 		const videoQualities: TwitchClipVideoQuality[] = clipData.videoQualities;
 
 		const sortedByQuality: VideoQualityWithNumeric[] = videoQualities
+			.filter((v) => v && v.quality)
 			.map((v) => ({
 				...v,
 				numericQuality: parseInt(v.quality, 10),
@@ -85,7 +86,7 @@ function preloadVideo(url: string) {
 		document.head.appendChild(link);
 		setTimeout(() => link.remove(), 10_000);
 	} catch {
-		// ignore
+		// ignore: preload errors are non-critical for overlay playback
 	}
 }
 
@@ -107,11 +108,12 @@ function ResolutionWarning({ width, height }: { width: number; height: number })
 			animate={{ opacity: 1, y: 0 }}
 			exit={{ opacity: 0, y: -10 }}
 			className='absolute left-4 right-4 top-4 z-[120] pointer-events-none'
+			data-testid='icon-alert'
 		>
 			<div className='mx-auto max-w-3xl rounded-lg border border-amber-300 bg-amber-50/95 px-4 py-3 shadow-xl'>
 				<div className='flex items-start gap-3 text-amber-900'>
 					<div className='mt-0.5 h-8 w-8 min-w-8 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-700'>
-						<IconAlertTriangle size={20} />
+						<IconAlertTriangle size={20} data-testid='icon-alert-triangle' />
 					</div>
 					<div className='flex-1'>
 						<h4 className='font-bold text-sm'>Overlay Resolution Mismatch</h4>
@@ -766,7 +768,7 @@ export default function OverlayPlayer({
 							id: "",
 							name: "Demo Mode",
 							box_art_url: "",
-							igdb_id: "",
+							igdb_id: "" ,
 						}
 					: baseGame);
 
@@ -1066,83 +1068,80 @@ export default function OverlayPlayer({
 		setNextClip(null);
 	}, []);
 
-	const handleCommand = useCallback(
-		async (name: string, data: string) => {
-			switch (name) {
-				case "play": {
-					if (data) {
-						resetPrefetch();
+	async function handleCommand(name: string, data: string) {
+		switch (name) {
+			case "play": {
+				if (data) {
+					resetPrefetch();
 
-						if (isDemoPlayer) {
-							const demoId = parseDemoClipId(data);
-							if (!demoId) {
-								return;
-							}
-
-							const demoClip = await getDemoClip(demoId);
-							if (!demoClip) {
-								return;
-							}
-
-							const nextQueue = [...demoQueueRef.current, { id: demoId, clip: demoClip }];
-							demoQueueRef.current = nextQueue;
-							setDemoQueue(nextQueue);
+					if (isDemoPlayer) {
+						const demoId = parseDemoClipId(data);
+						if (!demoId) {
+							return;
 						}
 
-						// Only start immediately if nothing is currently playing.
-						if (!clipRef.current) {
-							await advanceClip();
+						const demoClip = await getDemoClip(demoId);
+						if (!demoClip) {
+							return;
 						}
-					} else {
-						setHasUserStarted(true);
-						setPaused(false);
-						if (showPlayer) {
-							(activeSlot === "a" ? videoARef.current : videoBRef.current)?.play().catch((error) => {
-								console.error("Error playing the video:", error);
-							});
-						}
+
+						const nextQueue = [...demoQueueRef.current, { id: demoId, clip: demoClip }];
+						demoQueueRef.current = nextQueue;
+						setDemoQueue(nextQueue);
 					}
 
-					break;
-				}
-
-				case "pause": {
-					setPaused(true);
-					(activeSlot === "a" ? videoARef.current : videoBRef.current)?.pause();
-					break;
-				}
-
-				case "skip": {
-					if (advanceLockRef.current) {
-						pendingSkipRef.current += 1;
-						break;
+					// Only start immediately if nothing is currently playing.
+					if (!clipRef.current) {
+						await advanceClip();
 					}
-					await advanceClip();
-					break;
+				} else {
+					setHasUserStarted(true);
+					setPaused(false);
+					if (showPlayer) {
+						(activeSlot === "a" ? videoARef.current : videoBRef.current)?.play().catch((error) => {
+							console.error("Error playing the video:", error);
+						});
+					}
 				}
 
-				case "hide": {
-					setShowPlayer(false);
-					(activeSlot === "a" ? videoARef.current : videoBRef.current)?.pause();
-					break;
-				}
-
-				case "show": {
-					setShowPlayer(true);
-					(activeSlot === "a" ? videoARef.current : videoBRef.current)?.play().catch((error) => console.error("Error playing the video:", error));
-					break;
-				}
-
-				case "volume": {
-					const next = Number.parseInt((data || "").trim(), 10);
-					if (!Number.isFinite(next)) break;
-					setRuntimeVolume(clamp(next, 0, 100));
-					break;
-				}
+				break;
 			}
-		},
-		[activeSlot, advanceClip, isDemoPlayer, parseDemoClipId, resetPrefetch, showPlayer],
-	);
+
+			case "pause": {
+				setPaused(true);
+				(activeSlot === "a" ? videoARef.current : videoBRef.current)?.pause();
+				break;
+			}
+
+			case "skip": {
+				if (advanceLockRef.current) {
+					pendingSkipRef.current += 1;
+					break;
+				}
+				await advanceClip();
+				break;
+			}
+
+			case "hide": {
+				setShowPlayer(false);
+				(activeSlot === "a" ? videoARef.current : videoBRef.current)?.pause();
+				break;
+			}
+
+			case "show": {
+				setShowPlayer(true);
+				(activeSlot === "a" ? videoARef.current : videoBRef.current)?.play().catch((error) => console.error("Error playing the video:", error));
+				break;
+			}
+
+			case "volume": {
+				const next = Number.parseInt((data || "").trim(), 10);
+				if (!Number.isFinite(next)) break;
+				setRuntimeVolume(clamp(next, 0, 100));
+				break;
+			}
+		}
+	}
 
 	useEffect(() => {
 		clipRef.current = videoClip;
@@ -1352,7 +1351,8 @@ export default function OverlayPlayer({
 			ws?.close();
 			window.removeEventListener("message", onWindowMessage);
 		};
-	}, [advanceClip, handleCommand, isDemoPlayer, isEmbed, overlay.id, overlay.ownerId, overlaySecret, resetPrefetch]);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
 
 	/**
 	 * Twitch chat subscription
@@ -1491,7 +1491,8 @@ export default function OverlayPlayer({
 			cancelled = true;
 			prefetchAbortRef.current?.abort();
 		};
-	}, [buildVideoClipFast, videoClip, getRandomClip, isDemoPlayer, overlay.id, overlaySecret]);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [buildVideoClipFast, videoClip?.id, getRandomClip, isDemoPlayer, overlay.id, overlaySecret]);
 
 	const startCrossfade = useCallback(() => {
 		if (crossfadeLockRef.current || isCrossfading) return;
@@ -1536,15 +1537,15 @@ export default function OverlayPlayer({
 		}
 	}, [activeSlot, isCrossfading, overlay.id, overlaySecret]);
 
-		const handleTimeUpdate = useCallback(
-			(slot: "a" | "b", video: HTMLVideoElement | null) => {
-				if (!video) return;
-				if (activeSlot !== slot) return;
-				if (isCrossfading) return;
-				const duration = video.duration;
-				if (!Number.isFinite(duration) || duration <= 0) return;
+	const handleTimeUpdate = useCallback(
+		(slot: "a" | "b", video: HTMLVideoElement | null) => {
+			if (!video) return;
+			if (activeSlot !== slot) return;
+			if (isCrossfading) return;
+			const duration = video.duration;
+			if (!Number.isFinite(duration) || duration <= 0) return;
 
-				const remaining = duration - video.currentTime;
+			const remaining = duration - video.currentTime;
 			// Only engage crossfade/hold logic when a next clip is available.
 			if (!nextClipRef.current) return;
 
@@ -1572,7 +1573,7 @@ export default function OverlayPlayer({
 				}
 			}
 		},
-		[activeSlot, advanceClip, isCrossfading, startCrossfade, CROSSFADE_SECONDS, HOLD_FRAME_SECONDS, HOLD_TIMEOUT_MS]
+		[activeSlot, advanceClip, isCrossfading, startCrossfade, CROSSFADE_SECONDS, HOLD_FRAME_SECONDS, HOLD_TIMEOUT_MS],
 	);
 
 	useEffect(() => {
@@ -1618,7 +1619,7 @@ export default function OverlayPlayer({
 		const effectiveMuted = !!isDemoPlayer || (embedBehaviorEnabled ? isMuted : false);
 		const showClickToPlay = embedBehaviorEnabled && paused && !hasUserStarted;
 		const canShowOverlay = showPlayer && !!videoClip && (!embedBehaviorEnabled || hasUserStarted);
-			const displayDuration = activeDuration;
+		const displayDuration = activeDuration;
 		const displayCurrentTime = Math.min(activeCurrentTime, Math.max(displayDuration, 0));
 		const remainingSeconds = Math.max(0, Math.ceil(displayDuration - displayCurrentTime));
 		const progress = displayDuration > 0 ? clamp((displayCurrentTime / displayDuration) * 100, 0, 100) : 0;

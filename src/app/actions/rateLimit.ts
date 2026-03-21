@@ -10,24 +10,32 @@ export async function getUserIP() {
 	const { headers } = await import("next/headers");
 	const headersList = await headers();
 
-	// Headers provided by common trusted environments
+	// Platform-specific headers
 	const cfConnectingIp = headersList.get("cf-connecting-ip");
+	const doConnectingIp = headersList.get("do-connecting-ip");
+	const fastlyClientIp = headersList.get("fastly-client-ip");
+	const trueClientIp = headersList.get("true-client-ip");
+	const appEngineIp = headersList.get("x-appengine-user-ip");
 	const xRealIp = headersList.get("x-real-ip");
 	const xForwardedFor = headersList.get("x-forwarded-for");
 
 	// Environment identification
-	// Cloudflare sets CF-Ray in addition to connecting-ip
 	const isCloudflare = !!headersList.get("cf-ray");
+	const isDigitalOcean = !!doConnectingIp;
+	const isFastly = !!fastlyClientIp;
+	const isAkamai = !!headersList.get("akamai-origin-hop") || (!!trueClientIp && !isCloudflare);
+	const isGoogleCloud = !!appEngineIp || !!headersList.get("x-cloud-trace-context");
 	const isVercel = process.env.VERCEL === "1";
-	const isDev = process.env.NODE_ENV === "development";
 	const isCoolifyEnv = await isCoolify();
+	const isDev = process.env.NODE_ENV === "development";
 
 	/**
 	 * Check if we are running in a known trusted environment.
 	 * If not, and we're in production, we warn once that IP headers might be spoofable.
 	 */
 	if (!isDev && !hasWarnedUntrustedProxy) {
-		if (!isVercel && !isCoolifyEnv && !isCloudflare) {
+		const isKnownProvider = isVercel || isCoolifyEnv || isCloudflare || isDigitalOcean || isFastly || isAkamai || isGoogleCloud;
+		if (!isKnownProvider) {
 			console.warn(
 				"[security] Potentially untrusted proxy detected. Rate limiting may be impacted if clients can spoof IP headers (e.g. x-forwarded-for). Ensure your reverse proxy (Nginx/Traefik/Caddy) is configured to overwrite these headers."
 			);
@@ -40,6 +48,14 @@ export async function getUserIP() {
 
 	if (isCloudflare && cfConnectingIp) {
 		ip = cfConnectingIp;
+	} else if (isDigitalOcean && doConnectingIp) {
+		ip = doConnectingIp;
+	} else if (isFastly && fastlyClientIp) {
+		ip = fastlyClientIp;
+	} else if (isAkamai && trueClientIp) {
+		ip = trueClientIp;
+	} else if (isGoogleCloud && appEngineIp) {
+		ip = appEngineIp;
 	} else if (isVercel && xForwardedFor) {
 		// Vercel populates x-forwarded-for with the client IP as the first element
 		ip = xForwardedFor.split(",")[0]?.trim();
@@ -47,7 +63,7 @@ export async function getUserIP() {
 		// Nginx/Traefik on Coolify typically set x-real-ip
 		ip = xRealIp;
 	} else if (xForwardedFor) {
-		// Fallback for generic proxies (if configured correctly, they overwrite this)
+		// Fallback for generic proxies (if configured correctly, they should overwrite this)
 		ip = xForwardedFor.split(",")[0]?.trim();
 	}
 

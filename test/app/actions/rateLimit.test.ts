@@ -66,6 +66,30 @@ describe("actions/rateLimit", () => {
 		await expect(getUserIP()).resolves.toBe("9.10.11.12");
 	});
 
+	it("identifies DigitalOcean and trusts do-connecting-ip", async () => {
+		headerValues["do-connecting-ip"] = "1.2.3.4";
+		const { getUserIP } = await loadRateLimit();
+		await expect(getUserIP()).resolves.toBe("1.2.3.4");
+	});
+
+	it("identifies Fastly and trusts fastly-client-ip", async () => {
+		headerValues["fastly-client-ip"] = "2.3.4.5";
+		const { getUserIP } = await loadRateLimit();
+		await expect(getUserIP()).resolves.toBe("2.3.4.5");
+	});
+
+	it("identifies Akamai and trusts true-client-ip", async () => {
+		headerValues["true-client-ip"] = "3.4.5.6";
+		const { getUserIP } = await loadRateLimit();
+		await expect(getUserIP()).resolves.toBe("3.4.5.6");
+	});
+
+	it("identifies Google Cloud and trusts x-appengine-user-ip", async () => {
+		headerValues["x-appengine-user-ip"] = "4.5.6.7";
+		const { getUserIP } = await loadRateLimit();
+		await expect(getUserIP()).resolves.toBe("4.5.6.7");
+	});
+
 	it("falls back to x-real-ip and then localhost in unknown environments", async () => {
 		const { getUserIP } = await loadRateLimit();
 		headerValues["x-real-ip"] = "198.51.100.7";
