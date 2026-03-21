@@ -1,13 +1,13 @@
 "use server";
 
 import { tokenTable, usersTable, overlaysTable, playlistsTable, playlistClipsTable, queueTable, settingsTable, modQueueTable, editorsTable, twitchCacheTable } from "@/db/schema";
-import { db } from "@/db/client";
+import { db, QueryClient } from "@/db/client";
 import { AuthenticatedUser, Overlay, Playlist, TwitchUserResponse, TwitchTokenApiResponse, UserToken, Plan, Role, UserSettings, TwitchCacheType, StatusOptions, OverlayType, PlaybackMode, MaxDurationMode, TwitchClip } from "@types";
 import { getUserDetails, getUsersDetailsBulk, refreshAccessTokenWithContext, subscribeToReward, syncOwnerClipCache } from "@actions/twitch";
 import { syncProductUpdatesContact, getProductUpdatesSubscriptionStatus } from "@actions/newsletter";
 import { isTitleBlocked } from "@/app/utils/regexFilter";
 import { eq, inArray, and, or, isNull, lt, gt, sql, desc, max } from "drizzle-orm";
-import { validateAuth } from "@actions/auth";
+import { validateAuth, validateAdminAuth } from "@actions/auth";
 import { encryptToken, decryptToken } from "@lib/tokenCrypto";
 import { getFeatureAccess } from "@lib/featureAccess";
 import { ensureReverseTrialGrantForUser, resolveUserEntitlements, resolveUserEntitlementsForUsers } from "@lib/entitlements";
@@ -52,14 +52,13 @@ type CacheReadMetrics = {
 };
 
 declare global {
-	 
 	var __twitchCacheReadMetrics: CacheReadMetrics | undefined;
 }
 
 function summarizeError(error: unknown): string {
 	if (error instanceof Error) {
 		const maybeCode = (error as Error & { code?: string }).code;
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		return maybeCode ? `${error.name}(${maybeCode}): ${error.message}` : `${error.name}: ${error.message}`;
 	}
 	return String(error);
@@ -95,7 +94,7 @@ function recordCacheBatchReads(hits: number, requested: number, stale = false) {
 export async function getTwitchCacheReadMetricsSnapshot() {
 	const metrics = getCacheReadMetricsStore();
 	const total = metrics.hits + metrics.misses;
-/* istanbul ignore next */
+	/* istanbul ignore next */
 	const hitRate = total > 0 ? metrics.hits / total : 0;
 	return {
 		...metrics,
@@ -105,7 +104,7 @@ export async function getTwitchCacheReadMetricsSnapshot() {
 }
 
 const cleanupTwitchCacheIfNeeded = async (now: Date) => {
-/* istanbul ignore next */
+	/* istanbul ignore next */
 	if (now.getTime() - lastTwitchCacheCleanupAt < TWITCH_CACHE_CLEANUP_INTERVAL_MS) return;
 	lastTwitchCacheCleanupAt = now.getTime();
 	await db.delete(twitchCacheTable).where(lt(twitchCacheTable.expiresAt, now)).execute();
@@ -142,6 +141,12 @@ export async function disableUserAccess(userId: string, reason: string, disableT
 }
 
 export async function enableUserAccess(userId: string) {
+	const authedAdmin = await validateAdminAuth(true);
+	if (!authedAdmin) {
+		console.warn(`Unauthorized enableUserAccess attempt for user id: ${userId}`);
+		return;
+	}
+
 	const now = new Date();
 	try {
 		await db
@@ -230,30 +235,30 @@ function normalizeCreatorFilters(values: string[] | null | undefined) {
 }
 
 function sanitizeThemeFontFamilyValue(value: string | null | undefined) {
-/* istanbul ignore next */
+	/* istanbul ignore next */
 	const trimmed = (value ?? "").trim();
-/* istanbul ignore next */
+	/* istanbul ignore next */
 	if (!trimmed) return "inherit";
-/* istanbul ignore next */
+	/* istanbul ignore next */
 	if (trimmed.length > 200) return "inherit";
-/* istanbul ignore next */
+	/* istanbul ignore next */
 	if (trimmed.includes(FONT_URL_DELIMITER)) return "inherit";
-/* istanbul ignore next */
+	/* istanbul ignore next */
 	if (!/^[-,./\s"'0-9A-Za-z]+$/.test(trimmed)) return "inherit";
 	return trimmed;
 }
 
 function sanitizeThemeFontUrl(value: string | null | undefined) {
-/* istanbul ignore next */
+	/* istanbul ignore next */
 	const trimmed = (value ?? "").trim();
-/* istanbul ignore next */
+	/* istanbul ignore next */
 	if (!trimmed) return "";
 
 	try {
 		const parsed = new URL(trimmed);
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		if (parsed.protocol !== "https:") return "";
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		if (!ALLOWED_FONT_CSS_HOSTS.has(parsed.hostname.toLowerCase())) return "";
 		return parsed.toString();
 	} catch {
@@ -286,7 +291,7 @@ function sanitizeCssColor(value: string | null | undefined, fallback: string) {
 
 function buildOverlayUpdatePayload(next: Overlay, advancedAllowed: boolean) {
 	const rewardId = advancedAllowed ? (next.rewardId ?? null) : null;
-/* istanbul ignore next */
+	/* istanbul ignore next */
 	const playlistId = next.type === OverlayType.Playlist ? (next.playlistId ?? null) : null;
 
 	return {
@@ -300,8 +305,8 @@ function buildOverlayUpdatePayload(next: Overlay, advancedAllowed: boolean) {
 		maxClipDuration: advancedAllowed ? next.maxClipDuration : 60,
 		maxDurationMode: advancedAllowed ? next.maxDurationMode : MaxDurationMode.Filter,
 		blacklistWords: advancedAllowed ? next.blacklistWords : [],
-		categoriesOnly: advancedAllowed ? next.categoriesOnly ?? [] : [],
-		categoriesBlocked: advancedAllowed ? next.categoriesBlocked ?? [] : [],
+		categoriesOnly: advancedAllowed ? (next.categoriesOnly ?? []) : [],
+		categoriesBlocked: advancedAllowed ? (next.categoriesBlocked ?? []) : [],
 		minClipViews: advancedAllowed ? next.minClipViews : 0,
 		playbackMode: advancedAllowed ? next.playbackMode : PlaybackMode.Random,
 		preferCurrentCategory: advancedAllowed ? !!next.preferCurrentCategory : false,
@@ -361,7 +366,7 @@ async function canEditOwner(editorId: string, ownerId: string): Promise<boolean>
 
 async function requireOverlayAccess(overlayId: string): Promise<{ user: AuthenticatedUser; overlay: Overlay } | null> {
 	const user = await requireUser();
-/* istanbul ignore next */
+	/* istanbul ignore next */
 	if (!user) return null;
 
 	const overlays = await db.select().from(overlaysTable).where(eq(overlaysTable.id, overlayId)).limit(1).execute();
@@ -486,7 +491,7 @@ export async function getUser(id: string): Promise<AuthenticatedUser | null> {
 
 		const user = await db.select().from(usersTable).where(eq(usersTable.id, id)).limit(1).execute();
 
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		return user[0] || null;
 	} catch (error) {
 		console.error("Error fetching user:", error);
@@ -574,7 +579,7 @@ export async function getUserByCustomerId(customerId: string): Promise<Authentic
 	try {
 		const user = await db.select().from(usersTable).where(eq(usersTable.stripeCustomerId, customerId)).limit(1).execute();
 
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		return user[0] || null;
 	} catch (error) {
 		console.error("Error fetching user by customer ID:", error);
@@ -652,8 +657,13 @@ export async function getAccessToken(userId: string): Promise<UserToken | null> 
 	return result.token;
 }
 
-export async function getAccessTokenResult(userId: string): Promise<{ token: UserToken | null; reason?: "user_disabled" | "token_row_missing" | "token_decrypt_failed" | "refresh_invalid_token" | "refresh_failed" }> {
+export async function getAccessTokenResult(userId: string): Promise<{ token: UserToken | null; reason?: "unauthorized" | "user_disabled" | "token_row_missing" | "token_decrypt_failed" | "refresh_invalid_token" | "refresh_failed" }> {
 	try {
+		const authedUser = await validateAuth(true);
+		if (!authedUser || (typeof authedUser === "object" && authedUser.id !== userId && authedUser.role !== Role.Admin)) {
+			return { token: null, reason: "unauthorized" };
+		}
+
 		const userRows = await db.select({ disabled: usersTable.disabled }).from(usersTable).where(eq(usersTable.id, userId)).limit(1).execute();
 		const userRow = userRows[0];
 		if (userRow?.disabled) {
@@ -861,7 +871,7 @@ export type ClipCacheStatus = {
 };
 
 function extractCachedClip(value: unknown): TwitchClip | null {
-/* istanbul ignore next */
+	/* istanbul ignore next */
 	if (!value || typeof value !== "object") return null;
 	if ("clip" in (value as CachedClipValue) && (value as CachedClipValue).clip) return (value as CachedClipValue).clip as TwitchClip;
 	if ("id" in (value as Record<string, unknown>) && typeof (value as Record<string, unknown>).id === "string") return value as TwitchClip;
@@ -870,7 +880,7 @@ function extractCachedClip(value: unknown): TwitchClip | null {
 
 function parseClipDate(value: string) {
 	const parsed = new Date(value).getTime();
-/* istanbul ignore next */
+	/* istanbul ignore next */
 	return Number.isFinite(parsed) ? parsed : null;
 }
 
@@ -886,10 +896,7 @@ export async function getClipCacheStatus(ownerId: string): Promise<ClipCacheStat
 export async function getClipCacheStatusForOwnerServer(ownerId: string): Promise<ClipCacheStatus> {
 	const clipPrefix = `clip:${ownerId}:`;
 	const stateKey = `clip-sync:${ownerId}`;
-	const [entries, state] = await Promise.all([
-		getTwitchCacheByPrefixEntries<CachedClipValue | TwitchClip>(TwitchCacheType.Clip, clipPrefix),
-		getTwitchCache<ClipSyncState>(TwitchCacheType.Clip, stateKey),
-	]);
+	const [entries, state] = await Promise.all([getTwitchCacheByPrefixEntries<CachedClipValue | TwitchClip>(TwitchCacheType.Clip, clipPrefix), getTwitchCache<ClipSyncState>(TwitchCacheType.Clip, stateKey)]);
 
 	let cachedClipCount = 0;
 	let unavailableClipCount = 0;
@@ -905,11 +912,11 @@ export async function getClipCacheStatusForOwnerServer(ownerId: string): Promise
 		if (!clip) continue;
 		cachedClipCount += 1;
 		const ts = parseClipDate(clip.created_at);
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		if (ts == null) continue;
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		oldestTs = oldestTs == null ? ts : Math.min(oldestTs, ts);
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		newestTs = newestTs == null ? ts : Math.max(newestTs, ts);
 	}
 
@@ -923,7 +930,7 @@ export async function getClipCacheStatusForOwnerServer(ownerId: string): Promise
 		const totalDuration = now - TWITCH_CLIPS_LAUNCH_MS;
 		const endMs = new Date(state.backfillWindowEnd).getTime();
 
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		if (Number.isFinite(endMs) && totalDuration > 0) {
 			const effectiveEndMs = Math.min(endMs, now);
 			const progress = (now - effectiveEndMs) / totalDuration;
@@ -1012,20 +1019,20 @@ async function getPlaylistImportSourceClips(ownerId: string, filters: PlaylistIm
 	const clipMap = new Map<string, TwitchClip>();
 	for (const entry of entries) {
 		const clip = parseStoredClip(entry.value);
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		if (!clip?.id) continue;
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		if (!clipMap.has(clip.id)) clipMap.set(clip.id, clip);
 	}
 
 	if (filters.includeModQueue) {
 		const modQueueEntries = await getModQueueByBroadcasterId(ownerId);
 		for (const queued of modQueueEntries) {
-/* istanbul ignore next */
+			/* istanbul ignore next */
 			if (clipMap.has(queued.clipId)) continue;
 			const cacheEntry = await getTwitchCache<unknown>(TwitchCacheType.Clip, `clip:${ownerId}:${queued.clipId}`);
 			const clip = parseStoredClip(cacheEntry);
-/* istanbul ignore next */
+			/* istanbul ignore next */
 			if (clip?.id) clipMap.set(clip.id, clip);
 		}
 	}
@@ -1034,11 +1041,11 @@ async function getPlaylistImportSourceClips(ownerId: string, filters: PlaylistIm
 }
 
 function parseStoredClip(value: unknown): TwitchClip | null {
-/* istanbul ignore next */
+	/* istanbul ignore next */
 	if (!value || typeof value !== "object") return null;
 	if ("clip" in (value as { clip?: unknown }) && (value as { clip?: unknown }).clip) {
 		const nested = (value as { clip?: unknown }).clip;
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		if (nested && typeof nested === "object" && "id" in (nested as Record<string, unknown>)) return nested as TwitchClip;
 	}
 	if ("id" in (value as Record<string, unknown>)) return value as TwitchClip;
@@ -1048,7 +1055,7 @@ function parseStoredClip(value: unknown): TwitchClip | null {
 async function getOwnerPlanContext(ownerId: string) {
 	const ownerRows = await db.select().from(usersTable).where(eq(usersTable.id, ownerId)).limit(1).execute();
 	const owner = ownerRows[0];
-/* istanbul ignore next */
+	/* istanbul ignore next */
 	if (!owner) return { owner: null, isPro: false };
 	const entitlements = await resolveUserEntitlements(owner);
 	return {
@@ -1059,7 +1066,7 @@ async function getOwnerPlanContext(ownerId: string) {
 
 async function requirePlaylistAccess(playlistId: string): Promise<{ user: AuthenticatedUser; playlist: Playlist } | null> {
 	const user = await requireUser();
-/* istanbul ignore next */
+	/* istanbul ignore next */
 	if (!user) return null;
 
 	const playlists = await db.select().from(playlistsTable).where(eq(playlistsTable.id, playlistId)).limit(1).execute();
@@ -1083,19 +1090,24 @@ export async function getAllPlaylists(userId: string): Promise<PlaylistWithMeta[
 
 	const editorRows = await db.select().from(editorsTable).where(eq(editorsTable.editorId, userId)).execute();
 	const ownerIds = Array.from(new Set([userId, ...editorRows.map((row) => row.userId)]));
-/* istanbul ignore next */
+	/* istanbul ignore next */
 	const playlists = ownerIds.length > 0 ? await db.select().from(playlistsTable).where(inArray(playlistsTable.ownerId, ownerIds)).execute() : [];
 
-/* istanbul ignore next */
+	/* istanbul ignore next */
 	if (playlists.length === 0) return [];
 
 	const counts = await db
 		.select({ playlistId: playlistClipsTable.playlistId, count: sql<number>`count(*)` })
 		.from(playlistClipsTable)
-		.where(inArray(playlistClipsTable.playlistId, playlists.map((playlist) => playlist.id)))
+		.where(
+			inArray(
+				playlistClipsTable.playlistId,
+				playlists.map((playlist) => playlist.id),
+			),
+		)
 		.groupBy(playlistClipsTable.playlistId)
 		.execute();
-/* istanbul ignore next */
+	/* istanbul ignore next */
 	const countByPlaylistId = new Map(counts.map((row) => [row.playlistId, Number(row.count ?? 0)]));
 
 	return playlists.map((playlist) => ({
@@ -1113,19 +1125,24 @@ export async function getPlaylistsForOwner(ownerId: string): Promise<Array<Playl
 	}
 
 	const playlists = await db.select().from(playlistsTable).where(eq(playlistsTable.ownerId, ownerId)).execute();
-/* istanbul ignore next */
+	/* istanbul ignore next */
 	if (playlists.length === 0) return [];
 
 	const counts = await db
 		.select({ playlistId: playlistClipsTable.playlistId, count: sql<number>`count(*)` })
 		.from(playlistClipsTable)
-		.where(inArray(playlistClipsTable.playlistId, playlists.map((playlist) => playlist.id)))
+		.where(
+			inArray(
+				playlistClipsTable.playlistId,
+				playlists.map((playlist) => playlist.id),
+			),
+		)
 		.groupBy(playlistClipsTable.playlistId)
 		.execute();
-/* istanbul ignore next */
+	/* istanbul ignore next */
 	const countByPlaylistId = new Map(counts.map((row) => [row.playlistId, Number(row.count ?? 0)]));
 
-/* istanbul ignore next */
+	/* istanbul ignore next */
 	return playlists.map((playlist) => ({ ...playlist, clipCount: countByPlaylistId.get(playlist.id) ?? 0 }));
 }
 
@@ -1146,11 +1163,11 @@ export async function createPlaylist(ownerId: string, name: string) {
 	}
 
 	const { owner, isPro } = await getOwnerPlanContext(ownerId);
-/* istanbul ignore next */
+	/* istanbul ignore next */
 	if (!owner) return null;
 	if (!isPro) {
 		const existing = await db.select().from(playlistsTable).where(eq(playlistsTable.ownerId, ownerId)).execute();
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		if (existing.length >= FREE_PLAYLIST_LIMIT) {
 			throw new Error("Free plan allows only one playlist");
 		}
@@ -1165,16 +1182,16 @@ export async function createPlaylist(ownerId: string, name: string) {
 		})
 		.returning()
 		.execute();
-/* istanbul ignore next */
+	/* istanbul ignore next */
 	return rows[0] ?? null;
 }
 
 export async function savePlaylist(playlistId: string, patch: Partial<Pick<Playlist, "name">>) {
 	const ctx = await requirePlaylistAccess(playlistId);
-/* istanbul ignore next */
+	/* istanbul ignore next */
 	if (!ctx) return null;
 
-/* istanbul ignore next */
+	/* istanbul ignore next */
 	const nextName = (patch.name ?? ctx.playlist.name).trim();
 	if (!nextName) throw new Error("Playlist name is required");
 
@@ -1188,7 +1205,7 @@ export async function savePlaylist(playlistId: string, patch: Partial<Pick<Playl
 		.execute();
 
 	const rows = await db.select().from(playlistsTable).where(eq(playlistsTable.id, playlistId)).limit(1).execute();
-/* istanbul ignore next */
+	/* istanbul ignore next */
 	return rows[0] ?? null;
 }
 
@@ -1205,12 +1222,18 @@ export async function getPlaylistClips(playlistId: string): Promise<TwitchClip[]
 	return getPlaylistClipsForOwnerServer(ctx.playlist.ownerId, playlistId);
 }
 
-export async function getPlaylistClipsForOwnerServer(ownerId: string, playlistId: string): Promise<TwitchClip[]> {
-	const playlistRows = await db.select().from(playlistsTable).where(and(eq(playlistsTable.id, playlistId), eq(playlistsTable.ownerId, ownerId))).limit(1).execute();
-/* istanbul ignore next */
+export async function getPlaylistClipsForOwnerServer(ownerId: string, playlistId: string, tx?: QueryClient): Promise<TwitchClip[]> {
+	const client = tx ?? db;
+	const playlistRows = await client
+		.select()
+		.from(playlistsTable)
+		.where(and(eq(playlistsTable.id, playlistId), eq(playlistsTable.ownerId, ownerId)))
+		.limit(1)
+		.execute();
+	/* istanbul ignore next */
 	if (!playlistRows[0]) return [];
 
-	const rows = await db.select().from(playlistClipsTable).where(eq(playlistClipsTable.playlistId, playlistId)).orderBy(playlistClipsTable.position).execute();
+	const rows = await client.select().from(playlistClipsTable).where(eq(playlistClipsTable.playlistId, playlistId)).orderBy(playlistClipsTable.position).execute();
 	const clips: TwitchClip[] = [];
 	for (const row of rows) {
 		try {
@@ -1229,18 +1252,19 @@ export async function upsertPlaylistClips(playlistId: string, clips: TwitchClip[
 	const ctx = await requirePlaylistAccess(playlistId);
 	if (!ctx) return [];
 
-	const { isPro } = await getOwnerPlanContext(ctx.playlist.ownerId);
-	const existingRows = await db.select().from(playlistClipsTable).where(eq(playlistClipsTable.playlistId, playlistId)).orderBy(playlistClipsTable.position).execute();
-	const existingClipIds = new Set(existingRows.map((row) => row.clipId));
 	const uniqueIncoming = Array.from(new Map(clips.filter((clip) => !!clip?.id).map((clip) => [clip.id, clip])).values());
+	if (uniqueIncoming.length === 0 && mode === "append") {
+		return getPlaylistClipsForOwnerServer(ctx.playlist.ownerId, playlistId);
+	}
 
+	const { isPro } = await getOwnerPlanContext(ctx.playlist.ownerId);
 	if (mode === "replace") {
 		if (!isPro && uniqueIncoming.length > FREE_PLAYLIST_CLIP_LIMIT) {
 			throw new Error(`Free plan playlists are limited to ${FREE_PLAYLIST_CLIP_LIMIT} clips`);
 		}
-		await db.transaction(async (tx) => {
+		return await db.transaction(async (tx) => {
 			await tx.delete(playlistClipsTable).where(eq(playlistClipsTable.playlistId, playlistId)).execute();
-/* istanbul ignore next */
+			/* istanbul ignore next */
 			if (uniqueIncoming.length > 0) {
 				await tx
 					.insert(playlistClipsTable)
@@ -1254,64 +1278,70 @@ export async function upsertPlaylistClips(playlistId: string, clips: TwitchClip[
 					)
 					.execute();
 			}
+			await tx.update(playlistsTable).set({ updatedAt: new Date() }).where(eq(playlistsTable.id, playlistId)).execute();
+			return getPlaylistClipsForOwnerServer(ctx.playlist.ownerId, playlistId, tx);
 		});
-		await db.update(playlistsTable).set({ updatedAt: new Date() }).where(eq(playlistsTable.id, playlistId)).execute();
-		return getPlaylistClipsForOwnerServer(ctx.playlist.ownerId, playlistId);
 	}
 
-	const clipsToAppend = uniqueIncoming.filter((clip) => !existingClipIds.has(clip.id));
-	const finalCount = existingRows.length + clipsToAppend.length;
-	if (!isPro && finalCount > FREE_PLAYLIST_CLIP_LIMIT) {
-		throw new Error(`Free plan playlists are limited to ${FREE_PLAYLIST_CLIP_LIMIT} clips`);
-	}
+	return await db.transaction(async (tx) => {
+		const existingRows = await tx.select().from(playlistClipsTable).where(eq(playlistClipsTable.playlistId, playlistId)).orderBy(playlistClipsTable.position).execute();
+		const existingClipIds = new Set(existingRows.map((row) => row.clipId));
+		const clipsToAppend = uniqueIncoming.filter((clip) => !existingClipIds.has(clip.id));
+		const finalCount = existingRows.length + clipsToAppend.length;
 
-	if (clipsToAppend.length > 0) {
-		const basePosition = existingRows.length;
-		await db
-			.insert(playlistClipsTable)
-			.values(
-				clipsToAppend.map((clip, index) => ({
-					playlistId,
-					clipId: clip.id,
-					position: basePosition + index,
-					clipData: JSON.stringify(clip),
-				})),
-			)
-			.execute();
-		await db.update(playlistsTable).set({ updatedAt: new Date() }).where(eq(playlistsTable.id, playlistId)).execute();
-	}
+		if (!isPro && finalCount > FREE_PLAYLIST_CLIP_LIMIT) {
+			throw new Error(`Free plan playlists are limited to ${FREE_PLAYLIST_CLIP_LIMIT} clips`);
+		}
 
-	return getPlaylistClipsForOwnerServer(ctx.playlist.ownerId, playlistId);
+		if (clipsToAppend.length > 0) {
+			const basePosition = existingRows.length;
+			await tx
+				.insert(playlistClipsTable)
+				.values(
+					clipsToAppend.map((clip, index) => ({
+						playlistId,
+						clipId: clip.id,
+						position: basePosition + index,
+						clipData: JSON.stringify(clip),
+					})),
+				)
+				.execute();
+			await tx.update(playlistsTable).set({ updatedAt: new Date() }).where(eq(playlistsTable.id, playlistId)).execute();
+		}
+
+		return getPlaylistClipsForOwnerServer(ctx.playlist.ownerId, playlistId, tx);
+	});
 }
 
 export async function reorderPlaylistClips(playlistId: string, orderedClipIds: string[]) {
 	const ctx = await requirePlaylistAccess(playlistId);
 	if (!ctx) return [];
 
-	const existingRows = await db.select().from(playlistClipsTable).where(eq(playlistClipsTable.playlistId, playlistId)).orderBy(playlistClipsTable.position).execute();
-	const existingById = new Map(existingRows.map((row) => [row.clipId, row]));
-	const dedupedRequested = Array.from(new Set(orderedClipIds)).filter((clipId) => existingById.has(clipId));
-	const remaining = existingRows.map((row) => row.clipId).filter((clipId) => !dedupedRequested.includes(clipId));
-	const nextOrder = [...dedupedRequested, ...remaining];
+	return await db.transaction(async (tx) => {
+		const existingRows = await tx.select().from(playlistClipsTable).where(eq(playlistClipsTable.playlistId, playlistId)).orderBy(playlistClipsTable.position).execute();
+		const existingById = new Map(existingRows.map((row) => [row.clipId, row]));
+		const dedupedRequested = Array.from(new Set(orderedClipIds)).filter((clipId) => existingById.has(clipId));
+		const remaining = existingRows.map((row) => row.clipId).filter((clipId) => !dedupedRequested.includes(clipId));
+		const nextOrder = [...dedupedRequested, ...remaining];
 
-/* istanbul ignore next */
-	if (nextOrder.length > 0) {
-		const cases = nextOrder.map((clipId, index) => sql`WHEN ${playlistClipsTable.clipId} = ${clipId} THEN ${index}`);
-		await db
-			.update(playlistClipsTable)
-			.set({
-				position: sql`(CASE ${sql.join(cases, sql.raw(" "))} ELSE ${playlistClipsTable.position} END)`,
-			})
-			.where(eq(playlistClipsTable.playlistId, playlistId));
-	}
-
-	await db.update(playlistsTable).set({ updatedAt: new Date() }).where(eq(playlistsTable.id, playlistId)).execute();
-
-	return getPlaylistClipsForOwnerServer(ctx.playlist.ownerId, playlistId);
+		/* istanbul ignore next */
+		if (nextOrder.length > 0) {
+			const cases = nextOrder.map((clipId, index) => sql`WHEN ${playlistClipsTable.clipId} = ${clipId} THEN ${index}`);
+			await tx
+				.update(playlistClipsTable)
+				.set({
+					position: sql`(CASE ${sql.join(cases, sql.raw(" "))} ELSE ${playlistClipsTable.position} END)`,
+				})
+				.where(eq(playlistClipsTable.playlistId, playlistId))
+				.execute();
+		}
+		await tx.update(playlistsTable).set({ updatedAt: new Date() }).where(eq(playlistsTable.id, playlistId)).execute();
+		return getPlaylistClipsForOwnerServer(ctx.playlist.ownerId, playlistId, tx);
+	});
 }
 
 function applyPlaylistImportFilters(clips: TwitchClip[], filters: PlaylistImportFilters): TwitchClip[] {
-/* istanbul ignore next */
+	/* istanbul ignore next */
 	const overlayType = filters.overlayType ?? OverlayType.All;
 	let result = [...clips];
 
@@ -1319,7 +1349,7 @@ function applyPlaylistImportFilters(clips: TwitchClip[], filters: PlaylistImport
 		result = result.filter((clip) => Boolean((clip as TwitchClip & { is_featured?: boolean }).is_featured));
 	} else if (overlayType !== OverlayType.All && overlayType !== OverlayType.Playlist && overlayType !== OverlayType.Queue) {
 		const days = Number(overlayType);
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		if (Number.isFinite(days) && days > 0) {
 			const minTs = Date.now() - days * 24 * 60 * 60 * 1000;
 			result = result.filter((clip) => {
@@ -1336,16 +1366,16 @@ function applyPlaylistImportFilters(clips: TwitchClip[], filters: PlaylistImport
 				const raw = new Date(filters.endDate).getTime();
 				if (!Number.isFinite(raw)) return Number.NaN;
 				// If only a date is provided (no time), treat end as inclusive through the full day.
-/* istanbul ignore next */
+				/* istanbul ignore next */
 				return dateOnlyPattern.test(filters.endDate) ? raw + 24 * 60 * 60 * 1000 - 1 : raw;
 			})()
 		: Number.NaN;
 	if (Number.isFinite(startTs) || Number.isFinite(endTs)) {
 		result = result.filter((clip) => {
 			const ts = new Date(clip.created_at).getTime();
-/* istanbul ignore next */
+			/* istanbul ignore next */
 			if (!Number.isFinite(ts)) return false;
-/* istanbul ignore next */
+			/* istanbul ignore next */
 			if (Number.isFinite(startTs) && ts < startTs) return false;
 			if (Number.isFinite(endTs) && ts > endTs) return false;
 			return true;
@@ -1368,7 +1398,7 @@ function applyPlaylistImportFilters(clips: TwitchClip[], filters: PlaylistImport
 	}
 
 	const normalizedCategory = filters.categoryId?.trim().toLowerCase();
-/* istanbul ignore next */
+	/* istanbul ignore next */
 	const normalizedCategories = (filters.categoryIds ?? []).map((entry) => entry.trim().toLowerCase()).filter((entry) => Boolean(entry) && entry !== "all");
 	const allowedCategories = Array.from(new Set([...(normalizedCategory && normalizedCategory !== "all" ? [normalizedCategory] : []), ...normalizedCategories]));
 	if (allowedCategories.length > 0) {
@@ -1390,7 +1420,7 @@ function applyPlaylistImportFilters(clips: TwitchClip[], filters: PlaylistImport
 		result = result.filter((clip) => !isTitleBlocked(clip.title, blacklistWords));
 	}
 
-/* istanbul ignore next */
+	/* istanbul ignore next */
 	return result.sort((a, b) => b.view_count - a.view_count || b.created_at.localeCompare(a.created_at));
 }
 
@@ -1454,13 +1484,13 @@ export async function getOverlayOwnerPlans(overlayIds: string[]): Promise<Record
 		const entitlementsByOwnerId = await resolveUserEntitlementsForUsers(owners);
 		for (const owner of owners) {
 			const entitlements = entitlementsByOwnerId.get(owner.id);
-/* istanbul ignore next */
+			/* istanbul ignore next */
 			effectivePlanByOwnerId.set(owner.id, entitlements?.effectivePlan === "pro" ? Plan.Pro : Plan.Free);
 		}
 		const result: Record<string, Plan> = {};
 
 		for (const overlay of overlays) {
-/* istanbul ignore next */
+			/* istanbul ignore next */
 			result[overlay.id] = effectivePlanByOwnerId.get(overlay.ownerId) ?? Plan.Free;
 		}
 
@@ -1485,7 +1515,7 @@ export async function getOverlayPublic(overlayId: string) {
 				rewardId: null,
 				secret: "",
 				ownerDisabled: true,
-/* istanbul ignore next */
+				/* istanbul ignore next */
 				ownerDisabledReason: owner.disabledReason ?? "account_disabled",
 			};
 		}
@@ -1524,7 +1554,7 @@ export async function getOverlay(overlayId: string) {
 				return updated[0];
 			}
 			const overlays = await db.select().from(overlaysTable).where(eq(overlaysTable.id, overlayId)).limit(1).execute();
-/* istanbul ignore next */
+			/* istanbul ignore next */
 			return overlays[0] ?? ctx.overlay;
 		}
 
@@ -1555,7 +1585,7 @@ export async function createOverlay(userId: string) {
 		const multiOverlayAccess = getFeatureAccess(ownerWithEntitlements, "multi_overlay");
 		if (!multiOverlayAccess.allowed) {
 			const existing = await db.select().from(overlaysTable).where(eq(overlaysTable.ownerId, userId)).execute();
-/* istanbul ignore next */
+			/* istanbul ignore next */
 			if (existing.length >= 1) {
 				console.warn(`Free plan overlay limit reached for owner id: ${userId}`);
 				return null;
@@ -1585,97 +1615,109 @@ export async function createOverlay(userId: string) {
 }
 
 export async function downgradeUserPlan(userId: string) {
-	const overlays = await db.select().from(overlaysTable).where(eq(overlaysTable.ownerId, userId)).execute();
-	const playlists = await db.select().from(playlistsTable).where(eq(playlistsTable.ownerId, userId)).orderBy(playlistsTable.createdAt).execute();
+	await db.transaction(async (tx) => {
+		const [overlays, playlists] = await Promise.all([tx.select().from(overlaysTable).where(eq(overlaysTable.ownerId, userId)).execute(), tx.select().from(playlistsTable).where(eq(playlistsTable.ownerId, userId)).orderBy(playlistsTable.createdAt).execute()]);
 
-	if (overlays.length === 0) {
-/* istanbul ignore next */
-		if (playlists.length === 0) {
+		if (overlays.length === 0 && playlists.length === 0) {
 			return;
 		}
-	}
 
-	const overlaysToDeactivate = overlays.slice(1).map((overlay) => overlay.id);
+		if (overlays.length > 0) {
+			const [keptOverlay, ...overlaysToDeactivate] = overlays;
 
-	if (overlaysToDeactivate.length > 0) {
-		await db.delete(overlaysTable).where(inArray(overlaysTable.id, overlaysToDeactivate)).execute();
-	}
+			if (overlaysToDeactivate.length > 0) {
+				await tx
+					.delete(overlaysTable)
+					.where(
+						inArray(
+							overlaysTable.id,
+							overlaysToDeactivate.map((o) => o.id),
+						),
+					)
+					.execute();
+			}
 
-	const keptOverlay = overlays[0];
-/* istanbul ignore next */
-	if (keptOverlay) {
-		await db
-			.update(overlaysTable)
-			.set({
-				rewardId: null,
-				playlistId: null,
-				blacklistWords: [],
-				minClipViews: 0,
-				minClipDuration: 0,
-				maxClipDuration: 60,
-				maxDurationMode: MaxDurationMode.Filter,
-				playbackMode: PlaybackMode.Random,
-				preferCurrentCategory: false,
-				clipCreatorsOnly: [],
-				clipCreatorsBlocked: [],
-				clipPackSize: 100,
-				playerVolume: 50,
-				showChannelInfo: true,
-				showClipInfo: true,
-				showTimer: false,
-				showProgressBar: false,
-				overlayInfoFadeOutSeconds: 6,
-				themeFontFamily: "inherit",
-				themeTextColor: "#FFFFFF",
-				themeAccentColor: "#7C3AED",
-				themeBackgroundColor: "rgba(10,10,10,0.65)",
-				progressBarStartColor: "#26018E",
-				progressBarEndColor: "#8D42F9",
-				borderSize: 0,
-				borderRadius: 10,
-				effectScanlines: false,
-				effectStatic: false,
-				effectCrt: false,
-				channelInfoX: 0,
-				channelInfoY: 0,
-				clipInfoX: 100,
-				clipInfoY: 100,
-				timerX: 100,
-				timerY: 0,
-				channelScale: 100,
-				clipScale: 100,
-				timerScale: 100,
-			})
-			.where(eq(overlaysTable.id, keptOverlay.id))
-			.execute();
-	}
-
-	const playlistsToDelete = playlists.slice(1).map((playlist) => playlist.id);
-/* istanbul ignore next */
-	if (playlistsToDelete.length > 0) {
-		await db.delete(playlistsTable).where(inArray(playlistsTable.id, playlistsToDelete)).execute();
-	}
-
-	const keptPlaylist = playlists[0];
-/* istanbul ignore next */
-	if (keptPlaylist) {
-		const keptRows = await db.select().from(playlistClipsTable).where(eq(playlistClipsTable.playlistId, keptPlaylist.id)).orderBy(playlistClipsTable.position).execute();
-		const keepIds = new Set(keptRows.slice(0, FREE_PLAYLIST_CLIP_LIMIT).map((row) => row.clipId));
-		const removeIds = keptRows.filter((row) => !keepIds.has(row.clipId)).map((row) => row.clipId);
-		if (removeIds.length > 0) {
-			await db.delete(playlistClipsTable).where(and(eq(playlistClipsTable.playlistId, keptPlaylist.id), inArray(playlistClipsTable.clipId, removeIds))).execute();
+			await tx
+				.update(overlaysTable)
+				.set({
+					rewardId: null,
+					playlistId: null,
+					blacklistWords: [],
+					minClipViews: 0,
+					minClipDuration: 0,
+					maxClipDuration: 60,
+					maxDurationMode: MaxDurationMode.Filter,
+					playbackMode: PlaybackMode.Random,
+					preferCurrentCategory: false,
+					clipCreatorsOnly: [],
+					clipCreatorsBlocked: [],
+					clipPackSize: 100,
+					playerVolume: 50,
+					showChannelInfo: true,
+					showClipInfo: true,
+					showTimer: false,
+					showProgressBar: false,
+					overlayInfoFadeOutSeconds: 6,
+					themeFontFamily: "inherit",
+					themeTextColor: "#FFFFFF",
+					themeAccentColor: "#7C3AED",
+					themeBackgroundColor: "rgba(10,10,10,0.65)",
+					progressBarStartColor: "#26018E",
+					progressBarEndColor: "#8D42F9",
+					borderSize: 0,
+					borderRadius: 10,
+					effectScanlines: false,
+					effectStatic: false,
+					effectCrt: false,
+					channelInfoX: 0,
+					channelInfoY: 0,
+					clipInfoX: 100,
+					clipInfoY: 100,
+					timerX: 100,
+					timerY: 0,
+					channelScale: 100,
+					clipScale: 100,
+					timerScale: 100,
+				})
+				.where(eq(overlaysTable.id, keptOverlay.id))
+				.execute();
 		}
-	}
 
-	await db.delete(editorsTable).where(eq(editorsTable.userId, userId)).execute();
+		if (playlists.length > 0) {
+			const [keptPlaylist, ...playlistsToDelete] = playlists;
 
-	await db.update(usersTable).set({ updatedAt: new Date() }).where(eq(usersTable.id, userId)).execute();
+			if (playlistsToDelete.length > 0) {
+				await tx
+					.delete(playlistsTable)
+					.where(
+						inArray(
+							playlistsTable.id,
+							playlistsToDelete.map((p) => p.id),
+						),
+					)
+					.execute();
+			}
+
+			const keptRows = await tx.select().from(playlistClipsTable).where(eq(playlistClipsTable.playlistId, keptPlaylist.id)).orderBy(playlistClipsTable.position).execute();
+			const removeIds = keptRows.slice(FREE_PLAYLIST_CLIP_LIMIT).map((row) => row.clipId);
+
+			if (removeIds.length > 0) {
+				await tx
+					.delete(playlistClipsTable)
+					.where(and(eq(playlistClipsTable.playlistId, keptPlaylist.id), inArray(playlistClipsTable.clipId, removeIds)))
+					.execute();
+			}
+		}
+
+		await tx.delete(editorsTable).where(eq(editorsTable.userId, userId)).execute();
+		await tx.update(usersTable).set({ updatedAt: new Date() }).where(eq(usersTable.id, userId)).execute();
+	});
 }
 
 export async function saveOverlay(overlayId: string, patch: OverlayPatch) {
 	try {
 		const ctx = await requireOverlayAccess(overlayId);
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		if (!ctx) return null;
 
 		const sanitizedPatch = Object.fromEntries(Object.entries(patch).filter(([, value]) => value !== undefined)) as OverlayPatch;
@@ -1684,9 +1726,9 @@ export async function saveOverlay(overlayId: string, patch: OverlayPatch) {
 		// Use the owner's access context to determine whether advanced settings are allowed
 		const ownerRows = await db.select().from(usersTable).where(eq(usersTable.id, ctx.overlay.ownerId)).limit(1).execute();
 		const owner = ownerRows[0];
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		const ownerWithEntitlements = owner ? { ...owner, entitlements: await resolveUserEntitlements(owner) } : null;
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		const advancedAccess = ownerWithEntitlements ? getFeatureAccess(ownerWithEntitlements, "advanced_filters") : { allowed: false as const };
 		const updatePayload = buildOverlayUpdatePayload(next, advancedAccess.allowed);
 
@@ -1718,12 +1760,12 @@ export async function deleteOverlay(overlayId: string) {
 
 export async function getOverlayOwnerPlan(overlayId: string): Promise<Plan | null> {
 	const ctx = await requireOverlayAccess(overlayId);
-/* istanbul ignore next */
+	/* istanbul ignore next */
 	if (!ctx) return null;
 	const owner = await getUserByIdServer(ctx.overlay.ownerId);
-/* istanbul ignore next */
+	/* istanbul ignore next */
 	if (!owner) return null;
-/* istanbul ignore next */
+	/* istanbul ignore next */
 	return owner.entitlements?.effectivePlan === "pro" ? Plan.Pro : Plan.Free;
 }
 
@@ -1732,14 +1774,14 @@ export async function getOverlayOwnerPlanPublic(overlayId: string): Promise<Plan
 	try {
 		const overlays = await db.select().from(overlaysTable).where(eq(overlaysTable.id, overlayId)).limit(1).execute();
 		const overlay = overlays[0];
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		if (!overlay) return null;
 
 		const ownerRows = await db.select().from(usersTable).where(eq(usersTable.id, overlay.ownerId)).limit(1).execute();
 		const owner = ownerRows[0];
 		if (!owner) return Plan.Free;
 		const entitlements = await resolveUserEntitlements(owner);
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		return entitlements.effectivePlan === "pro" ? Plan.Pro : Plan.Free;
 	} catch (error) {
 		console.error("Error fetching overlay owner plan:", error);
@@ -1801,7 +1843,7 @@ export async function getFirstFromClipQueueByOverlayId(overlayId: string) {
 export async function getFirstFromClipQueue(overlayId: string, secret?: string) {
 	try {
 		const overlay = await requireOverlaySecretAccess(overlayId, secret);
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		if (!overlay) return null;
 		return getFirstFromClipQueueByOverlayId(overlayId);
 	} catch (error) {
@@ -1812,6 +1854,21 @@ export async function getFirstFromClipQueue(overlayId: string, secret?: string) 
 
 export async function removeFromClipQueueById(id: string) {
 	try {
+		const authedUser = await requireUser();
+		if (!authedUser) throw new Error("Unauthorized");
+
+		const itemRows = await db.select({ overlayId: queueTable.overlayId }).from(queueTable).where(eq(queueTable.id, id)).limit(1).execute();
+		const item = itemRows[0];
+		if (!item) return;
+
+		const overlayRows = await db.select({ ownerId: overlaysTable.ownerId }).from(overlaysTable).where(eq(overlaysTable.id, item.overlayId)).limit(1).execute();
+		const overlay = overlayRows[0];
+		if (!overlay) return;
+
+		if (!(await canEditOwner(authedUser.id, overlay.ownerId))) {
+			throw new Error("Unauthorized");
+		}
+
 		await db.delete(queueTable).where(eq(queueTable.id, id)).execute();
 	} catch (error) {
 		console.error("Error removing clip from queue:", error);
@@ -1822,7 +1879,7 @@ export async function removeFromClipQueueById(id: string) {
 export async function removeFromClipQueue(id: string, overlayId: string, secret?: string) {
 	try {
 		const overlay = await requireOverlaySecretAccess(overlayId, secret);
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		if (!overlay) return;
 		await db
 			.delete(queueTable)
@@ -1851,7 +1908,7 @@ export async function clearClipQueueByOverlayIdServer(overlayId: string) {
 export async function clearClipQueue(overlayId: string, secret?: string) {
 	try {
 		const overlay = await requireOverlaySecretAccess(overlayId, secret);
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		if (!overlay) return;
 		await clearClipQueueByOverlayId(overlayId);
 	} catch (error) {
@@ -1886,7 +1943,7 @@ export async function getModQueue(broadcasterId: string) {
 export async function getFirstFromModQueueByBroadcasterId(broadcasterId: string) {
 	try {
 		const result = await db.select().from(modQueueTable).where(eq(modQueueTable.broadcasterId, broadcasterId)).limit(1).execute();
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		return result[0] || null;
 	} catch (error) {
 		console.error("Error fetching first clip from mod queue:", error);
@@ -1907,6 +1964,17 @@ export async function getFirstFromModQueue(overlayId: string, secret?: string) {
 
 export async function removeFromModQueueById(id: string) {
 	try {
+		const authedUser = await requireUser();
+		if (!authedUser) throw new Error("Unauthorized");
+
+		const itemRows = await db.select({ broadcasterId: modQueueTable.broadcasterId }).from(modQueueTable).where(eq(modQueueTable.id, id)).limit(1).execute();
+		const item = itemRows[0];
+		if (!item) return;
+
+		if (!(await canEditOwner(authedUser.id, item.broadcasterId))) {
+			throw new Error("Unauthorized");
+		}
+
 		await db.delete(modQueueTable).where(eq(modQueueTable.id, id)).execute();
 	} catch (error) {
 		console.error("Error removing clip from mod queue:", error);
@@ -1917,7 +1985,7 @@ export async function removeFromModQueueById(id: string) {
 export async function removeFromModQueue(id: string, overlayId: string, secret?: string) {
 	try {
 		const overlay = await requireOverlaySecretAccess(overlayId, secret);
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		if (!overlay) return;
 		await db
 			.delete(modQueueTable)
@@ -1951,6 +2019,11 @@ export async function clearModQueue(overlayId: string, secret?: string) {
 
 export async function getSettings(userId: string, forceSyncExternal = false): Promise<UserSettings> {
 	try {
+		const authedUser = await validateAuth(true);
+		if (!authedUser || (typeof authedUser === "object" && authedUser.id !== userId && authedUser.role !== Role.Admin)) {
+			throw new Error("Unauthorized");
+		}
+
 		const settingsWithoutEditors = await db.select().from(settingsTable).where(eq(settingsTable.id, userId)).limit(1).execute();
 
 		if (settingsWithoutEditors.length === 0) {
@@ -1986,7 +2059,7 @@ export async function getSettings(userId: string, forceSyncExternal = false): Pr
 			const userEmail = user[0]?.email;
 			const remoteSubscribed = await getProductUpdatesSubscriptionStatus(currentSettings.useSendProductUpdatesContactId, userEmail);
 
-/* istanbul ignore next */
+			/* istanbul ignore next */
 			if (remoteSubscribed !== null && remoteSubscribed !== currentSettings.marketingOptIn) {
 				const now = new Date();
 				const marketingOptIn = remoteSubscribed;
@@ -2035,7 +2108,7 @@ export async function saveSettings(settings: UserSettings) {
 	const marketingOptIn = Boolean(settings.marketingOptIn);
 	const editors = settings.editors ?? [];
 	const editorsAccess = getFeatureAccess(authedUser, "editors");
-/* istanbul ignore next */
+	/* istanbul ignore next */
 	const effectiveEditors = editorsAccess.allowed ? editors : [];
 
 	const accessToken = await getAccessToken(userId);
@@ -2056,7 +2129,7 @@ export async function saveSettings(settings: UserSettings) {
 			accessToken: accessToken.accessToken,
 		});
 
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		rows = (users ?? []).filter((u): u is TwitchUserResponse => !!u?.id).map((u) => ({ userId: settings.id, editorId: u.id }));
 	}
 
@@ -2223,11 +2296,11 @@ export async function getTwitchCacheStale<T>(type: TwitchCacheType, key: string)
 export async function setTwitchCache(type: TwitchCacheType, key: string, value: unknown, ttlSeconds?: number) {
 	try {
 		const now = new Date();
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		const expiresAt = ttlSeconds ? new Date(Date.now() + ttlSeconds * 1000) : null;
 		const payload = JSON.stringify(value);
 
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		cleanupTwitchCacheIfNeeded(now).catch((error) => console.error("Error cleaning up twitch cache:", summarizeError(error)));
 
 		await db
@@ -2287,7 +2360,7 @@ export async function getTwitchCacheByPrefixEntries<T>(type: TwitchCacheType, ke
 			.from(twitchCacheTable)
 			.where(and(eq(twitchCacheTable.type, type), sql`${twitchCacheTable.key} LIKE ${`${escapedPrefix}%`} ESCAPE '\\'`, or(isNull(twitchCacheTable.expiresAt), gt(twitchCacheTable.expiresAt, now))))
 			.orderBy(desc(twitchCacheTable.fetchedAt));
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		const rows = typeof limit === "number" ? await baseQuery.limit(limit).execute() : await baseQuery.execute();
 
 		const entries: Array<{ key: string; value: T }> = [];
@@ -2343,7 +2416,7 @@ export async function setTwitchCacheBatch(type: TwitchCacheType, entries: { key:
 	try {
 		if (entries.length === 0) return;
 		const now = new Date();
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		const expiresAt = ttlSeconds ? new Date(Date.now() + ttlSeconds * 1000) : null;
 		const rows = entries.map((entry) => ({
 			type,
@@ -2353,7 +2426,7 @@ export async function setTwitchCacheBatch(type: TwitchCacheType, entries: { key:
 			expiresAt,
 		}));
 
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		cleanupTwitchCacheIfNeeded(now).catch((error) => console.error("Error cleaning up twitch cache:", summarizeError(error)));
 
 		await db
@@ -2380,7 +2453,7 @@ export async function deleteTwitchCacheKeys(type: TwitchCacheType, keys: string[
 			.delete(twitchCacheTable)
 			.where(and(eq(twitchCacheTable.type, type), inArray(twitchCacheTable.key, keys)))
 			.execute();
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		return Number(result.rowCount ?? 0);
 	} catch (error) {
 		console.error("Error deleting twitch cache keys:", error);
@@ -2396,11 +2469,10 @@ export async function deleteTwitchCacheByPrefix(type: TwitchCacheType, keyPrefix
 			.delete(twitchCacheTable)
 			.where(and(eq(twitchCacheTable.type, type), sql`${twitchCacheTable.key} LIKE ${`${escapedPrefix}%`} ESCAPE '\\'`))
 			.execute();
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		return Number(result.rowCount ?? 0);
 	} catch (error) {
 		console.error("Error deleting twitch cache by prefix:", error);
 		return 0;
 	}
 }
-
