@@ -9,7 +9,6 @@
 		"app:build": "next build --webpack",
 		"app:start": "next start",
 		"app:lint": "eslint .",
-		"typecheck": "tsc --noEmit",
 		"app:typecheck": "tsc --noEmit",
 		"test": "jest --runInBand",
 		"test:watch": "jest --watch",

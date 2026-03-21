@@ -52,7 +52,7 @@ type CacheReadMetrics = {
 };
 
 declare global {
-	// eslint-disable-next-line no-var
+	 
 	var __twitchCacheReadMetrics: CacheReadMetrics | undefined;
 }
 

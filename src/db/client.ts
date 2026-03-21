@@ -2,7 +2,7 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 
 declare global {
-	// eslint-disable-next-line no-var
+	 
 	var __dbPool: Pool | undefined;
 }
 

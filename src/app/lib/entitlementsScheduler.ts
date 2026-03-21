@@ -1,11 +1,11 @@
 import { reconcileRevokedUsersBatch } from "@lib/entitlements";
 
 declare global {
-	// eslint-disable-next-line no-var
+	 
 	var __entitlementsSchedulerStarted: boolean | undefined;
-	// eslint-disable-next-line no-var
+	 
 	var __entitlementsSchedulerTimer: ReturnType<typeof setInterval> | undefined;
-	// eslint-disable-next-line no-var
+	 
 	var __entitlementsSchedulerRunning: boolean | undefined;
 }
 

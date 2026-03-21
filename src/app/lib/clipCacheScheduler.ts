@@ -4,13 +4,13 @@ const CLIP_CACHE_SYNC_BATCH_SIZE = 25;
 const CLIP_CACHE_SYNC_LOCK_KEY = "clip_cache_scheduler";
 
 declare global {
-	// eslint-disable-next-line no-var
+	 
 	var __clipCacheSchedulerStarted: boolean | undefined;
-	// eslint-disable-next-line no-var
+	 
 	var __clipCacheSchedulerTimer: ReturnType<typeof setInterval> | undefined;
-	// eslint-disable-next-line no-var
+	 
 	var __clipCacheSchedulerRunning: boolean | undefined;
-	// eslint-disable-next-line no-var
+	 
 	var __clipCacheSchedulerStats:
 		| {
 				startedAt: string;

@@ -52,6 +52,7 @@ jest.mock("@tabler/icons-react", () => ({
 }));
 
 jest.mock("@heroui/react", () => ({
+	// eslint-disable-next-line @next/next/no-img-element
 	Avatar: ({ src }: { src?: string }) => <img alt='avatar' src={src || undefined} />,
 	Button: ({ as, children, ...props }: { as?: ElementType; children: ReactNode }) => {
 		const Component = as ?? "button";
@@ -463,11 +464,7 @@ describe("components/overlayPlayer", () => {
 	});
 
 	it("returns no clip when random mode cannot resolve any playable candidates", async () => {
-		const clips = [
-			buildClip("random-null-1", { title: "random-null-title-1", view_count: 100 }),
-			buildClip("random-null-2", { title: "random-null-title-2", view_count: 90 }),
-			buildClip("random-null-3", { title: "random-null-title-3", view_count: 80 }),
-		];
+		const clips = [buildClip("random-null-1", { title: "random-null-title-1", view_count: 100 }), buildClip("random-null-2", { title: "random-null-title-2", view_count: 90 }), buildClip("random-null-3", { title: "random-null-title-3", view_count: 80 })];
 		getTwitchClipBatch.mockResolvedValue(clips);
 		resolvePlayableClip.mockResolvedValue(null);
 
@@ -815,9 +812,7 @@ describe("components/overlayPlayer", () => {
 			expect(document.querySelectorAll("video").length).toBeGreaterThanOrEqual(2);
 		});
 
-		const slotA = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("hold-toggle-a")) as
-			| HTMLVideoElement
-			| undefined;
+		const slotA = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("hold-toggle-a")) as HTMLVideoElement | undefined;
 		expect(slotA).toBeTruthy();
 		setVideoTiming(slotA!, 10, 9.5);
 		fireEvent.timeUpdate(slotA!);
@@ -852,9 +847,7 @@ describe("components/overlayPlayer", () => {
 				expect(document.querySelectorAll("video").length).toBeGreaterThanOrEqual(2);
 			});
 
-			const slotA = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("hold-skip-a")) as
-				| HTMLVideoElement
-				| undefined;
+			const slotA = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("hold-skip-a")) as HTMLVideoElement | undefined;
 			expect(slotA).toBeTruthy();
 
 			setVideoTiming(slotA!, 10, 9.5);
@@ -889,9 +882,7 @@ describe("components/overlayPlayer", () => {
 				expect(document.querySelectorAll("video").length).toBeGreaterThanOrEqual(2);
 			});
 
-			const slotA = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("hold-slota-a")) as
-				| HTMLVideoElement
-				| undefined;
+			const slotA = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("hold-slota-a")) as HTMLVideoElement | undefined;
 			expect(slotA).toBeTruthy();
 
 			setVideoTiming(slotA!, 10, 9.5);
@@ -920,12 +911,8 @@ describe("components/overlayPlayer", () => {
 				expect(document.querySelectorAll("video").length).toBeGreaterThanOrEqual(2);
 			});
 
-			const initialSlotA = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("hold-slotb-a")) as
-				| HTMLVideoElement
-				| undefined;
-			const initialSlotB = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("hold-slotb-b")) as
-				| HTMLVideoElement
-				| undefined;
+			const initialSlotA = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("hold-slotb-a")) as HTMLVideoElement | undefined;
+			const initialSlotB = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("hold-slotb-b")) as HTMLVideoElement | undefined;
 			expect(initialSlotA).toBeTruthy();
 			expect(initialSlotB).toBeTruthy();
 
@@ -938,15 +925,11 @@ describe("components/overlayPlayer", () => {
 			});
 			await screen.findByText("hold-slotb-b");
 			await waitFor(() => {
-				const hasPrefetchedSlotA = Array.from(document.querySelectorAll("video")).some((video) =>
-					(video as HTMLVideoElement).src.includes("hold-slotb-c"),
-				);
+				const hasPrefetchedSlotA = Array.from(document.querySelectorAll("video")).some((video) => (video as HTMLVideoElement).src.includes("hold-slotb-c"));
 				expect(hasPrefetchedSlotA).toBe(true);
 			});
 
-			const activeSlotB = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("hold-slotb-b")) as
-				| HTMLVideoElement
-				| undefined;
+			const activeSlotB = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("hold-slotb-b")) as HTMLVideoElement | undefined;
 			expect(activeSlotB).toBeTruthy();
 
 			setVideoTiming(activeSlotB!, 10, 9.5);
@@ -1121,9 +1104,7 @@ describe("components/overlayPlayer", () => {
 			render(<OverlayPlayer overlay={buildOverlay({ playbackMode: "top" })} />);
 			await screen.findByText("prefetch-catch-a");
 			await waitFor(() => {
-				const hasPrefetchedSlot = Array.from(document.querySelectorAll("video")).some((video) =>
-					(video as HTMLVideoElement).src.includes("prefetch-catch-b"),
-				);
+				const hasPrefetchedSlot = Array.from(document.querySelectorAll("video")).some((video) => (video as HTMLVideoElement).src.includes("prefetch-catch-b"));
 				expect(hasPrefetchedSlot).toBe(true);
 			});
 
@@ -1245,18 +1226,12 @@ describe("components/overlayPlayer", () => {
 		render(<OverlayPlayer overlay={buildOverlay({ playbackMode: "top" })} />);
 		await screen.findByText("inactiveb-a");
 		await waitFor(() => {
-			const hasPrefetchedSlotB = Array.from(document.querySelectorAll("video")).some((video) =>
-				(video as HTMLVideoElement).src.includes("inactiveb-b"),
-			);
+			const hasPrefetchedSlotB = Array.from(document.querySelectorAll("video")).some((video) => (video as HTMLVideoElement).src.includes("inactiveb-b"));
 			expect(hasPrefetchedSlotB).toBe(true);
 		});
 
-		const slotA = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("inactiveb-a")) as
-			| HTMLVideoElement
-			| undefined;
-		const slotB = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("inactiveb-b")) as
-			| HTMLVideoElement
-			| undefined;
+		const slotA = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("inactiveb-a")) as HTMLVideoElement | undefined;
+		const slotB = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("inactiveb-b")) as HTMLVideoElement | undefined;
 		expect(slotA).toBeTruthy();
 		expect(slotB).toBeTruthy();
 
@@ -1286,12 +1261,8 @@ describe("components/overlayPlayer", () => {
 			expect(document.querySelectorAll("video").length).toBeGreaterThanOrEqual(2);
 		});
 
-		const initialSlotA = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("inactivea-a")) as
-			| HTMLVideoElement
-			| undefined;
-		const initialSlotB = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("inactivea-b")) as
-			| HTMLVideoElement
-			| undefined;
+		const initialSlotA = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("inactivea-a")) as HTMLVideoElement | undefined;
+		const initialSlotB = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("inactivea-b")) as HTMLVideoElement | undefined;
 		expect(initialSlotA).toBeTruthy();
 		expect(initialSlotB).toBeTruthy();
 
@@ -1304,18 +1275,12 @@ describe("components/overlayPlayer", () => {
 		});
 		await screen.findByText("inactivea-b");
 		await waitFor(() => {
-			const hasPrefetchedSlotA = Array.from(document.querySelectorAll("video")).some((video) =>
-				(video as HTMLVideoElement).src.includes("inactivea-c"),
-			);
+			const hasPrefetchedSlotA = Array.from(document.querySelectorAll("video")).some((video) => (video as HTMLVideoElement).src.includes("inactivea-c"));
 			expect(hasPrefetchedSlotA).toBe(true);
 		});
 
-		const prefetchedSlotA = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("inactivea-c")) as
-			| HTMLVideoElement
-			| undefined;
-		const activeSlotB = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("inactivea-b")) as
-			| HTMLVideoElement
-			| undefined;
+		const prefetchedSlotA = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("inactivea-c")) as HTMLVideoElement | undefined;
+		const activeSlotB = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("inactivea-b")) as HTMLVideoElement | undefined;
 		expect(prefetchedSlotA).toBeTruthy();
 		expect(activeSlotB).toBeTruthy();
 
@@ -1345,12 +1310,8 @@ describe("components/overlayPlayer", () => {
 			expect(document.querySelectorAll("video").length).toBeGreaterThanOrEqual(2);
 		});
 
-		const initialSlotA = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("slotb-rebuild-a")) as
-			| HTMLVideoElement
-			| undefined;
-		const initialSlotB = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("slotb-rebuild-b")) as
-			| HTMLVideoElement
-			| undefined;
+		const initialSlotA = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("slotb-rebuild-a")) as HTMLVideoElement | undefined;
+		const initialSlotB = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("slotb-rebuild-b")) as HTMLVideoElement | undefined;
 		expect(initialSlotA).toBeTruthy();
 		expect(initialSlotB).toBeTruthy();
 
@@ -1363,18 +1324,12 @@ describe("components/overlayPlayer", () => {
 		});
 		await screen.findByText("slotb-rebuild-b");
 		await waitFor(() => {
-			const hasPrefetchedSlotA = Array.from(document.querySelectorAll("video")).some((video) =>
-				(video as HTMLVideoElement).src.includes("slotb-rebuild-c"),
-			);
+			const hasPrefetchedSlotA = Array.from(document.querySelectorAll("video")).some((video) => (video as HTMLVideoElement).src.includes("slotb-rebuild-c"));
 			expect(hasPrefetchedSlotA).toBe(true);
 		});
 
-		const prefetchedSlotA = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("slotb-rebuild-c")) as
-			| HTMLVideoElement
-			| undefined;
-		const activeSlotB = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("slotb-rebuild-b")) as
-			| HTMLVideoElement
-			| undefined;
+		const prefetchedSlotA = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("slotb-rebuild-c")) as HTMLVideoElement | undefined;
+		const activeSlotB = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("slotb-rebuild-b")) as HTMLVideoElement | undefined;
 		expect(prefetchedSlotA).toBeTruthy();
 		expect(activeSlotB).toBeTruthy();
 

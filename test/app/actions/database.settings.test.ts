@@ -18,32 +18,28 @@ const settingsTable = {
 	marketingOptIn: "settings.marketing_opt_in",
 	marketingOptInAt: "settings.marketing_opt_in_at",
 	marketingOptInSource: "settings.marketing_opt_in_source",
-    useSendProductUpdatesContactId: "settings.use_send_product_updates_contact_id",
+	useSendProductUpdatesContactId: "settings.use_send_product_updates_contact_id",
 };
 const editorsTable = {
-    userId: "editors.user_id",
-    editorId: "editors.editor_id",
+	userId: "editors.user_id",
+	editorId: "editors.editor_id",
 };
 const usersTable = {
-    id: "users.id",
-    email: "users.email",
-    username: "users.username",
+	id: "users.id",
+	email: "users.email",
+	username: "users.username",
 };
 const tokenTable = {
-    id: "token.id",
-    accessToken: "token.access_token",
-    refreshToken: "token.refresh_token",
-    expiresAt: "token.expires_at",
-    scope: "token.scope",
-    tokenType: "token.token_type",
+	id: "token.id",
+	accessToken: "token.access_token",
+	refreshToken: "token.refresh_token",
+	expiresAt: "token.expires_at",
+	scope: "token.scope",
+	tokenType: "token.token_type",
 };
 
 function queueSelectResult(value: unknown) {
 	selectQueue.push(value);
-}
-
-function queueInsertResult(value: unknown) {
-	insertQueue.push(value);
 }
 
 function makeSelectChain() {
@@ -52,10 +48,10 @@ function makeSelectChain() {
 	chain.where = () => chain;
 	chain.limit = () => chain;
 	chain.execute = async () => {
-        const result = selectQueue.length > 0 ? selectQueue.shift() : [];
-        // console.log("SELECT EXECUTE", { result });
-        return result;
-    };
+		const result = selectQueue.length > 0 ? selectQueue.shift() : [];
+		// console.log("SELECT EXECUTE", { result });
+		return result;
+	};
 	return chain;
 }
 
@@ -102,12 +98,12 @@ function makeDeleteChain() {
 function makeTx() {
 	return {
 		select: (..._args: unknown[]) => {
-            // console.log("TX SELECT", _args);
-            return makeSelectChain();
-        },
+			// console.log("TX SELECT", _args);
+			return makeSelectChain();
+		},
 		insert: (table: unknown) => makeInsertChain(table),
 		update: (table: unknown) => makeUpdateChain(table),
-		delete: (table: unknown) => makeDeleteChain(),
+		delete: () => makeDeleteChain(),
 		execute: async () => undefined,
 	};
 }
@@ -115,9 +111,9 @@ function makeTx() {
 jest.mock("@/db/client", () => ({
 	db: {
 		select: (..._args: unknown[]) => {
-            // console.log("DB SELECT", _args);
-            return dbSelect(..._args);
-        },
+			// console.log("DB SELECT", _args);
+			return dbSelect(..._args);
+		},
 		insert: (..._args: unknown[]) => dbInsert(..._args),
 		update: (..._args: unknown[]) => dbUpdate(..._args),
 		delete: (..._args: unknown[]) => dbDelete(..._args),
@@ -128,14 +124,14 @@ jest.mock("@/db/client", () => ({
 
 jest.mock("@/db/schema", () => ({
 	settingsTable,
-    editorsTable,
-    usersTable,
-    tokenTable,
+	editorsTable,
+	usersTable,
+	tokenTable,
 }));
 
 jest.mock("@lib/tokenCrypto", () => ({
-    encryptToken: jest.fn((val: string) => val),
-    decryptToken: jest.fn((val: string) => val),
+	encryptToken: jest.fn((val: string) => val),
+	decryptToken: jest.fn((val: string) => val),
 }));
 
 jest.mock("drizzle-orm", () => ({
@@ -146,35 +142,38 @@ jest.mock("drizzle-orm", () => ({
 	isNull: jest.fn(() => "isNull"),
 	lt: jest.fn(() => "lt"),
 	gt: jest.fn(() => "gt"),
-	sql: Object.assign(jest.fn(() => "sql"), {
-		join: jest.fn((parts: unknown[], separator = " ") => parts.join(String(separator))),
-		raw: jest.fn((value: unknown) => String(value)),
-	}),
+	sql: Object.assign(
+		jest.fn(() => "sql"),
+		{
+			join: jest.fn((parts: unknown[], separator = " ") => parts.join(String(separator))),
+			raw: jest.fn((value: unknown) => String(value)),
+		},
+	),
 	desc: jest.fn(() => "desc"),
 	max: jest.fn(() => "max"),
 }));
 
 const validateAuth = jest.fn();
 jest.mock("@actions/auth", () => ({
-    validateAuth: (...args: any[]) => validateAuth(...args),
+	validateAuth: (...args: any[]) => validateAuth(...args),
 }));
 
 const getUsersDetailsBulk = jest.fn();
 const getUserDetails = jest.fn();
 jest.mock("@actions/twitch", () => ({
-    getUsersDetailsBulk: (...args: any[]) => getUsersDetailsBulk(...args),
-    getUserDetails: (...args: any[]) => getUserDetails(...args),
+	getUsersDetailsBulk: (...args: any[]) => getUsersDetailsBulk(...args),
+	getUserDetails: (...args: any[]) => getUserDetails(...args),
 }));
 
 const syncProductUpdatesContact = jest.fn();
 const getProductUpdatesSubscriptionStatus = jest.fn();
 jest.mock("@actions/newsletter", () => ({
-    syncProductUpdatesContact: (...args: any[]) => syncProductUpdatesContact(...args),
-    getProductUpdatesSubscriptionStatus: (...args: any[]) => getProductUpdatesSubscriptionStatus(...args),
+	syncProductUpdatesContact: (...args: any[]) => syncProductUpdatesContact(...args),
+	getProductUpdatesSubscriptionStatus: (...args: any[]) => getProductUpdatesSubscriptionStatus(...args),
 }));
 
 jest.mock("@lib/featureAccess", () => ({
-    getFeatureAccess: jest.fn(() => ({ allowed: true })),
+	getFeatureAccess: jest.fn(() => ({ allowed: true })),
 }));
 
 async function loadDatabaseActions() {
@@ -194,123 +193,127 @@ describe("actions/database settings logic", () => {
 		dbUpdate.mockImplementation((table: unknown) => makeUpdateChain(table));
 		dbDelete.mockImplementation(() => makeDeleteChain());
 		dbTransaction.mockImplementation(async (callback: any) => callback(makeTx()));
-        
-        validateAuth.mockResolvedValue({ id: "user-1", email: "user@test.com", username: "user1" });
-        getUsersDetailsBulk.mockResolvedValue([]);
-        getUserDetails.mockResolvedValue({ id: "user-1", login: "user1" });
+
+		validateAuth.mockResolvedValue({ id: "user-1", email: "user@test.com", username: "user1" });
+		getUsersDetailsBulk.mockResolvedValue([]);
+		getUserDetails.mockResolvedValue({ id: "user-1", login: "user1" });
 	});
 
 	it("gets settings correctly", async () => {
 		const { getSettings } = await loadDatabaseActions();
 		queueSelectResult([{ id: "user-1", prefix: "!" }]); // settings select
-        queueSelectResult([{ editorId: "editor-1" }]); // editors select
-        queueSelectResult([{ disabled: false }]); // usersTable select (getAccessToken)
-        queueSelectResult([{ accessToken: "at", refreshToken: "rt", expiresAt: new Date(Date.now() + 3600000) }]); // tokenTable select (getAccessToken)
-        getUsersDetailsBulk.mockResolvedValue([{ id: "editor-1", login: "editor1" }]);
+		queueSelectResult([{ editorId: "editor-1" }]); // editors select
+		queueSelectResult([{ disabled: false }]); // usersTable select (getAccessToken)
+		queueSelectResult([{ accessToken: "at", refreshToken: "rt", expiresAt: new Date(Date.now() + 3600000) }]); // tokenTable select (getAccessToken)
+		getUsersDetailsBulk.mockResolvedValue([{ id: "editor-1", login: "editor1" }]);
 
 		const result = await getSettings("user-1");
 		expect(result).toMatchObject({ id: "user-1", prefix: "!", editors: ["editor1"] });
 	});
 
-    it("creates default settings if none exist", async () => {
-        const { getSettings } = await loadDatabaseActions();
-        queueSelectResult([]); // first getSettings select fails
-        queueSelectResult([{ disabled: false }]); // usersTable select (getAccessToken in saveSettings)
-        queueSelectResult([{ accessToken: "at", refreshToken: "rt", expiresAt: new Date(Date.now() + 3600000) }]); // tokenTable select (getAccessToken in saveSettings)
-        queueSelectResult([]); // existing settings select in saveSettings
-        // saveSettings called
-        // second getSettings select
-        queueSelectResult([{ id: "user-1", prefix: "!" }]); 
-        queueSelectResult([]); // editors select
-        queueSelectResult([{ disabled: false }]); // usersTable select (getAccessToken in second getSettings)
-        queueSelectResult([{ accessToken: "at", refreshToken: "rt", expiresAt: new Date(Date.now() + 3600000) }]); // tokenTable select (getAccessToken in second getSettings)
+	it("creates default settings if none exist", async () => {
+		const { getSettings } = await loadDatabaseActions();
+		queueSelectResult([]); // first getSettings select fails
+		queueSelectResult([{ disabled: false }]); // usersTable select (getAccessToken in saveSettings)
+		queueSelectResult([{ accessToken: "at", refreshToken: "rt", expiresAt: new Date(Date.now() + 3600000) }]); // tokenTable select (getAccessToken in saveSettings)
+		queueSelectResult([]); // existing settings select in saveSettings
+		// saveSettings called
+		// second getSettings select
+		queueSelectResult([{ id: "user-1", prefix: "!" }]);
+		queueSelectResult([]); // editors select
+		queueSelectResult([{ disabled: false }]); // usersTable select (getAccessToken in second getSettings)
+		queueSelectResult([{ accessToken: "at", refreshToken: "rt", expiresAt: new Date(Date.now() + 3600000) }]); // tokenTable select (getAccessToken in second getSettings)
 
-        const result = await getSettings("user-1");
-        expect(result).toMatchObject({ id: "user-1", prefix: "!" });
-        expect(insertCalls.some(call => call.table === settingsTable)).toBe(true);
-    });
+		const result = await getSettings("user-1");
+		expect(result).toMatchObject({ id: "user-1", prefix: "!" });
+		expect(insertCalls.some((call) => call.table === settingsTable)).toBe(true);
+	});
 
 	it("saves settings correctly", async () => {
 		const { saveSettings } = await loadDatabaseActions();
-        queueSelectResult([{ id: "user-1", marketingOptIn: false }]); // existing settings select
-        queueSelectResult([{ disabled: false }]); // usersTable select (getAccessToken)
-        queueSelectResult([{ accessToken: "at", refreshToken: "rt", expiresAt: new Date(Date.now() + 3600000) }]); // tokenTable select (getAccessToken)
-        getUsersDetailsBulk.mockResolvedValue([{ id: "editor-1", login: "editor1" }]);
+		queueSelectResult([{ id: "user-1", marketingOptIn: false }]); // existing settings select
+		queueSelectResult([{ disabled: false }]); // usersTable select (getAccessToken)
+		queueSelectResult([{ accessToken: "at", refreshToken: "rt", expiresAt: new Date(Date.now() + 3600000) }]); // tokenTable select (getAccessToken)
+		getUsersDetailsBulk.mockResolvedValue([{ id: "editor-1", login: "editor1" }]);
 
 		await saveSettings({
-            id: "user-1",
-            prefix: "?",
-            marketingOptIn: true,
-            editors: ["editor1"],
-        } as any);
+			id: "user-1",
+			prefix: "?",
+			marketingOptIn: true,
+			editors: ["editor1"],
+		} as any);
 
 		expect(updateCalls.length > 0 || insertCalls.length > 0).toBe(true);
-        expect(insertCalls.some(call => call.table === settingsTable)).toBe(true);
-        const call = insertCalls.find(call => call.table === settingsTable);
-        expect(call?.values).toMatchObject({ prefix: "?" });
+		expect(insertCalls.some((call) => call.table === settingsTable)).toBe(true);
+		const call = insertCalls.find((call) => call.table === settingsTable);
+		expect(call?.values).toMatchObject({ prefix: "?" });
 	});
 
-    it("syncs external marketing status if forced (opt-in)", async () => {
-        const { getSettings } = await loadDatabaseActions();
-        queueSelectResult([{ id: "user-1", marketingOptIn: false, useSendProductUpdatesContactId: "contact-1" }]); // settings select
-        queueSelectResult([]); // editors select
-        queueSelectResult([{ disabled: false }]); // usersTable select (getAccessToken)
-        queueSelectResult([{ accessToken: "at", refreshToken: "rt", expiresAt: new Date(Date.now() + 3600000) }]); // tokenTable select (getAccessToken)
-        queueSelectResult([{ email: "user@test.com" }]); // user email select
-        
-        getProductUpdatesSubscriptionStatus.mockResolvedValue(true); // remote is opted-in
+	it("syncs external marketing status if forced (opt-in)", async () => {
+		const { getSettings } = await loadDatabaseActions();
+		queueSelectResult([{ id: "user-1", marketingOptIn: false, useSendProductUpdatesContactId: "contact-1" }]); // settings select
+		queueSelectResult([]); // editors select
+		queueSelectResult([{ disabled: false }]); // usersTable select (getAccessToken)
+		queueSelectResult([{ accessToken: "at", refreshToken: "rt", expiresAt: new Date(Date.now() + 3600000) }]); // tokenTable select (getAccessToken)
+		queueSelectResult([{ email: "user@test.com" }]); // user email select
 
-        const result = await getSettings("user-1", true);
-        expect(result.marketingOptIn).toBe(true);
-        expect(result.marketingOptInSource).toBe("external_usesend_sync_optin");
-        expect(updateCalls.some(call => call.table === settingsTable)).toBe(true);
-    });
+		getProductUpdatesSubscriptionStatus.mockResolvedValue(true); // remote is opted-in
 
-    it("syncs external marketing status if forced (opt-out)", async () => {
-        const { getSettings } = await loadDatabaseActions();
-        queueSelectResult([{ id: "user-1", marketingOptIn: true, useSendProductUpdatesContactId: "contact-1" }]); // settings select
-        queueSelectResult([]); // editors select
-        queueSelectResult([{ disabled: false }]); // usersTable select (getAccessToken)
-        queueSelectResult([{ accessToken: "at", refreshToken: "rt", expiresAt: new Date(Date.now() + 3600000) }]); // tokenTable select (getAccessToken)
-        queueSelectResult([{ email: "user@test.com" }]); // user email select
-        
-        getProductUpdatesSubscriptionStatus.mockResolvedValue(false); // remote is opted-out
+		const result = await getSettings("user-1", true);
+		expect(result.marketingOptIn).toBe(true);
+		expect(result.marketingOptInSource).toBe("external_usesend_sync_optin");
+		expect(updateCalls.some((call) => call.table === settingsTable)).toBe(true);
+	});
 
-        const result = await getSettings("user-1", true);
-        expect(result.marketingOptIn).toBe(false);
-        expect(result.marketingOptInSource).toBe("external_usesend_sync_optout");
-    });
+	it("syncs external marketing status if forced (opt-out)", async () => {
+		const { getSettings } = await loadDatabaseActions();
+		queueSelectResult([{ id: "user-1", marketingOptIn: true, useSendProductUpdatesContactId: "contact-1" }]); // settings select
+		queueSelectResult([]); // editors select
+		queueSelectResult([{ disabled: false }]); // usersTable select (getAccessToken)
+		queueSelectResult([{ accessToken: "at", refreshToken: "rt", expiresAt: new Date(Date.now() + 3600000) }]); // tokenTable select (getAccessToken)
+		queueSelectResult([{ email: "user@test.com" }]); // user email select
 
-    it("handles error in saveSettings", async () => {
-        const { saveSettings } = await loadDatabaseActions();
-        queueSelectResult([{ disabled: false }]); // usersTable in getAccessToken
-        queueSelectResult([{ accessToken: "at", refreshToken: "rt", expiresAt: new Date(Date.now() + 3600000) }]); // tokenTable in getAccessToken
-        
-        dbSelect.mockImplementationOnce(() => makeSelectChain()); // usersTable
-        dbSelect.mockImplementationOnce(() => makeSelectChain()); // tokenTable
-        dbSelect.mockImplementationOnce(() => { throw new Error("DB Error"); }); // settingsTable
-        
-        await expect(saveSettings({ id: "user-1" } as any)).rejects.toThrow("Failed to save settings");
-    });
+		getProductUpdatesSubscriptionStatus.mockResolvedValue(false); // remote is opted-out
 
-    it("handles error in getSettings", async () => {
-        const { getSettings } = await loadDatabaseActions();
-        dbSelect.mockImplementationOnce(() => { throw new Error("DB Error"); });
-        await expect(getSettings("user-1")).rejects.toThrow("Failed to fetch settings");
-    });
+		const result = await getSettings("user-1", true);
+		expect(result.marketingOptIn).toBe(false);
+		expect(result.marketingOptInSource).toBe("external_usesend_sync_optout");
+	});
 
-    it("saves settings with explicit opt-in source", async () => {
-        const { saveSettings } = await loadDatabaseActions();
-        queueSelectResult([{ id: "user-1", marketingOptIn: false }]); // existing settings select
-        queueSelectResult([{ disabled: false }]); // usersTable select (getAccessToken)
-        queueSelectResult([{ accessToken: "at", refreshToken: "rt", expiresAt: new Date(Date.now() + 3600000) }]); // tokenTable select (getAccessToken)
-        
-        await saveSettings({
-            id: "user-1",
-            marketingOptIn: true,
-            marketingOptInSource: "settings_page_explicit_optin"
-        } as any);
+	it("handles error in saveSettings", async () => {
+		const { saveSettings } = await loadDatabaseActions();
+		queueSelectResult([{ disabled: false }]); // usersTable in getAccessToken
+		queueSelectResult([{ accessToken: "at", refreshToken: "rt", expiresAt: new Date(Date.now() + 3600000) }]); // tokenTable in getAccessToken
 
-        expect(insertCalls.some(call => call.table === settingsTable)).toBe(true);
-    });
+		dbSelect.mockImplementationOnce(() => makeSelectChain()); // usersTable
+		dbSelect.mockImplementationOnce(() => makeSelectChain()); // tokenTable
+		dbSelect.mockImplementationOnce(() => {
+			throw new Error("DB Error");
+		}); // settingsTable
+
+		await expect(saveSettings({ id: "user-1" } as any)).rejects.toThrow("Failed to save settings");
+	});
+
+	it("handles error in getSettings", async () => {
+		const { getSettings } = await loadDatabaseActions();
+		dbSelect.mockImplementationOnce(() => {
+			throw new Error("DB Error");
+		});
+		await expect(getSettings("user-1")).rejects.toThrow("Failed to fetch settings");
+	});
+
+	it("saves settings with explicit opt-in source", async () => {
+		const { saveSettings } = await loadDatabaseActions();
+		queueSelectResult([{ id: "user-1", marketingOptIn: false }]); // existing settings select
+		queueSelectResult([{ disabled: false }]); // usersTable select (getAccessToken)
+		queueSelectResult([{ accessToken: "at", refreshToken: "rt", expiresAt: new Date(Date.now() + 3600000) }]); // tokenTable select (getAccessToken)
+
+		await saveSettings({
+			id: "user-1",
+			marketingOptIn: true,
+			marketingOptInSource: "settings_page_explicit_optin",
+		} as any);
+
+		expect(insertCalls.some((call) => call.table === settingsTable)).toBe(true);
+	});
 });

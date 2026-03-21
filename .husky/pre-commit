@@ -1,2 +1,2 @@
-npm run app:lint
-npm run app:typecheck
+bun run app:lint
+bun run app:typecheck

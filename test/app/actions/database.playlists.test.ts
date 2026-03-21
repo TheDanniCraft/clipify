@@ -12,7 +12,6 @@ const dbTransaction = jest.fn();
 const validateAuth = jest.fn();
 const resolveUserEntitlements = jest.fn();
 const getFeatureAccess = jest.fn(() => ({ allowed: true }));
-const getTwitchCacheByPrefixEntries = jest.fn();
 const subscribeToReward = jest.fn();
 
 const insertCalls: Array<{ table: unknown; values: unknown }> = [];
@@ -159,7 +158,7 @@ jest.mock("@actions/twitch", () => ({
 	getUsersDetailsBulk: jest.fn(),
 	refreshAccessTokenWithContext: jest.fn(),
 	subscribeToReward,
-    syncOwnerClipCache: jest.fn(),
+	syncOwnerClipCache: jest.fn(),
 }));
 
 jest.mock("@lib/tokenCrypto", () => ({
@@ -185,10 +184,13 @@ jest.mock("drizzle-orm", () => ({
 	isNull: jest.fn(() => "isNull"),
 	lt: jest.fn(() => "lt"),
 	gt: jest.fn(() => "gt"),
-	sql: Object.assign(jest.fn(() => "sql"), {
-		join: jest.fn((parts: unknown[], separator = " ") => parts.join(String(separator))),
-		raw: jest.fn((value: unknown) => String(value)),
-	}),
+	sql: Object.assign(
+		jest.fn(() => "sql"),
+		{
+			join: jest.fn((parts: unknown[], separator = " ") => parts.join(String(separator))),
+			raw: jest.fn((value: unknown) => String(value)),
+		},
+	),
 	desc: jest.fn(() => "desc"),
 	max: jest.fn(() => "max"),
 }));
@@ -242,10 +244,7 @@ describe("actions/database playlist logic", () => {
 		const { getAllPlaylists } = await loadDatabaseActions();
 		const result = await getAllPlaylists("owner-1");
 
-		expect(result).toEqual([
-			expect.objectContaining({ id: "playlist-1", clipCount: 3, accessType: "owner" }),
-			expect.objectContaining({ id: "playlist-2", clipCount: 0, accessType: "editor" }),
-		]);
+		expect(result).toEqual([expect.objectContaining({ id: "playlist-1", clipCount: 3, accessType: "owner" }), expect.objectContaining({ id: "playlist-2", clipCount: 0, accessType: "editor" })]);
 	});
 
 	it("returns null for getAllPlaylists when user is not authorized", async () => {
@@ -604,9 +603,7 @@ describe("actions/database playlist logic", () => {
 		queueSelectResult([{ id: "owner-1", plan: "free", createdAt: new Date("2026-01-01T00:00:00.000Z") }]);
 
 		const { importPlaylistClips } = await loadDatabaseActions();
-		await expect(
-			importPlaylistClips("playlist-1", { overlayType: "All" as never }, "append"),
-		).rejects.toThrow("Auto import is a Pro feature");
+		await expect(importPlaylistClips("playlist-1", { overlayType: "All" as never }, "append")).rejects.toThrow("Auto import is a Pro feature");
 	});
 
 	it("imports playlist clips for pro users with filters and mod queue inclusion", async () => {
@@ -748,56 +745,56 @@ describe("actions/database playlist logic", () => {
 		await expect(previewImportPlaylistClips("playlist-1", { overlayType: "All" as never })).resolves.toEqual([]);
 	});
 
-    it("previews playlist clips for pro users with various filters", async () => {
-        resolveUserEntitlements.mockResolvedValue({
-            effectivePlan: "pro",
-            isBillingPro: true,
-            reverseTrialActive: false,
-            trialEndsAt: null,
-            hasActiveGrant: true,
-        });
-        queueSelectResult([{ id: "playlist-1", ownerId: "owner-1" }]); // playlist
-        queueSelectResult([{ id: "owner-1", plan: "pro" }]); // owner plan
-        
-        // getTwitchCacheByPrefixEntries select for getPlaylistImportSourceClips
-        queueSelectResult([
-            { key: "c:1", value: JSON.stringify({ id: "c1", title: "Good Clip", game_id: "G1", creator_name: "A", creator_id: "1", view_count: 100, created_at: "2020-01-01T00:00:00Z" }) },
-            { key: "c:2", value: JSON.stringify({ id: "c2", title: "Bad Word", game_id: "G1", creator_name: "A", creator_id: "1", view_count: 50, created_at: "2020-01-02T00:00:00Z" }) },
-            { key: "c:3", value: JSON.stringify({ id: "c3", title: "Other Game", game_id: "G2", creator_name: "B", creator_id: "2", view_count: 200, created_at: "2020-01-03T00:00:00Z" }) },
-        ]);
-        
-        const { previewImportPlaylistClips } = await loadDatabaseActions();
-        const result = await previewImportPlaylistClips("playlist-1", {
-            overlayType: "All" as never,
-            categoryId: "G1",
-            blacklistWords: ["bad"],
-            minViews: 60,
-        });
-        
-        expect(result).toHaveLength(1);
-        expect(result[0].id).toBe("c1");
-    });
+	it("previews playlist clips for pro users with various filters", async () => {
+		resolveUserEntitlements.mockResolvedValue({
+			effectivePlan: "pro",
+			isBillingPro: true,
+			reverseTrialActive: false,
+			trialEndsAt: null,
+			hasActiveGrant: true,
+		});
+		queueSelectResult([{ id: "playlist-1", ownerId: "owner-1" }]); // playlist
+		queueSelectResult([{ id: "owner-1", plan: "pro" }]); // owner plan
 
-    it("filters clips by creators in import", async () => {
-        resolveUserEntitlements.mockResolvedValue({ effectivePlan: "pro", hasActiveGrant: true });
-        queueSelectResult([{ id: "playlist-1", ownerId: "owner-1" }]); // access
-        queueSelectResult([{ id: "owner-1", plan: "pro" }]); // plan
-        
-        queueSelectResult([
-            { key: "c:1", value: JSON.stringify({ id: "c1", creator_name: "Allowed", creator_id: "10", view_count: 10, game_id: "G", created_at: "2020-01-01T00:00:00Z" }) },
-            { key: "c:2", value: JSON.stringify({ id: "c2", creator_name: "Blocked", creator_id: "20", view_count: 10, game_id: "G", created_at: "2020-01-01T00:00:00Z" }) },
-        ]);
-        
-        const { previewImportPlaylistClips } = await loadDatabaseActions();
-        const result = await previewImportPlaylistClips("playlist-1", {
-            overlayType: "All" as never,
-            clipCreatorsOnly: ["Allowed"],
-            clipCreatorsBlocked: ["20"],
-        });
-        
-        expect(result).toHaveLength(1);
-        expect(result[0].id).toBe("c1");
-    });
+		// getTwitchCacheByPrefixEntries select for getPlaylistImportSourceClips
+		queueSelectResult([
+			{ key: "c:1", value: JSON.stringify({ id: "c1", title: "Good Clip", game_id: "G1", creator_name: "A", creator_id: "1", view_count: 100, created_at: "2020-01-01T00:00:00Z" }) },
+			{ key: "c:2", value: JSON.stringify({ id: "c2", title: "Bad Word", game_id: "G1", creator_name: "A", creator_id: "1", view_count: 50, created_at: "2020-01-02T00:00:00Z" }) },
+			{ key: "c:3", value: JSON.stringify({ id: "c3", title: "Other Game", game_id: "G2", creator_name: "B", creator_id: "2", view_count: 200, created_at: "2020-01-03T00:00:00Z" }) },
+		]);
+
+		const { previewImportPlaylistClips } = await loadDatabaseActions();
+		const result = await previewImportPlaylistClips("playlist-1", {
+			overlayType: "All" as never,
+			categoryId: "G1",
+			blacklistWords: ["bad"],
+			minViews: 60,
+		});
+
+		expect(result).toHaveLength(1);
+		expect(result[0].id).toBe("c1");
+	});
+
+	it("filters clips by creators in import", async () => {
+		resolveUserEntitlements.mockResolvedValue({ effectivePlan: "pro", hasActiveGrant: true });
+		queueSelectResult([{ id: "playlist-1", ownerId: "owner-1" }]); // access
+		queueSelectResult([{ id: "owner-1", plan: "pro" }]); // plan
+
+		queueSelectResult([
+			{ key: "c:1", value: JSON.stringify({ id: "c1", creator_name: "Allowed", creator_id: "10", view_count: 10, game_id: "G", created_at: "2020-01-01T00:00:00Z" }) },
+			{ key: "c:2", value: JSON.stringify({ id: "c2", creator_name: "Blocked", creator_id: "20", view_count: 10, game_id: "G", created_at: "2020-01-01T00:00:00Z" }) },
+		]);
+
+		const { previewImportPlaylistClips } = await loadDatabaseActions();
+		const result = await previewImportPlaylistClips("playlist-1", {
+			overlayType: "All" as never,
+			clipCreatorsOnly: ["Allowed"],
+			clipCreatorsBlocked: ["20"],
+		});
+
+		expect(result).toHaveLength(1);
+		expect(result[0].id).toBe("c1");
+	});
 
 	it("saveOverlay clears playlistId when type is not Playlist", async () => {
 		const currentOverlay = {
