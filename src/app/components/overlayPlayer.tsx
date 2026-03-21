@@ -1056,7 +1056,7 @@ export default function OverlayPlayer({
 				advanceClip().catch((error) => console.error("Error advancing clip after pending skip:", error));
 			}
 		}
-	}, [activeSlot, buildVideoClipFast, getRandomClip, isDemoPlayer, overlay.id, overlaySecret]);
+	}, [activeSlot, buildVideoClipFast, getRandomClip, overlay.id, overlaySecret]);
 
 	const resetPrefetch = useCallback(() => {
 		prefetchAbortRef.current?.abort();
@@ -1171,7 +1171,7 @@ export default function OverlayPlayer({
 		};
 		rafId = requestAnimationFrame(tick);
 		return () => cancelAnimationFrame(rafId);
-	}, [activeSlot, isDocumentVisible, paused, showPlayer, videoClip?.id]);
+	}, [activeSlot, isDocumentVisible, paused, showPlayer, videoClip]);
 
 	useEffect(() => {
 		if (!showPlayer) {
@@ -1179,7 +1179,7 @@ export default function OverlayPlayer({
 			return;
 		}
 		if (videoClip) setShowOverlay(true);
-	}, [showPlayer, videoClip?.id]);
+	}, [showPlayer, videoClip]);
 
 	useEffect(() => {
 		let cancelled = false;
