@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { getPlaylistClips, getPlaylistsForOwner, previewImportPlaylistClips, savePlaylist, upsertPlaylistClips } from "@actions/database";
 import { addToast, Autocomplete, AutocompleteItem, Button, Card, CardBody, CardHeader, Checkbox, DateRangePicker, Divider, Image, Input, Link, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, NumberInput, Pagination, Spinner, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow, useDisclosure } from "@heroui/react";
@@ -37,7 +37,7 @@ export default function PlaylistPage() {
 	const [gameDetailsById, setGameDetailsById] = useState<Record<string, Game>>({});
 	const [selectedCachedClipIds, setSelectedCachedClipIds] = useState<Selection>(new Set([]));
 	const [cachedClipsFilter, setCachedClipsFilter] = useState("");
-	const [isLoadingCachedClips, setIsLoadingCachedClips] = useState(false);
+	const [, setIsLoadingCachedClips] = useState(false);
 	const [cachedClipsPage, setCachedClipsPage] = useState(1);
 	const rowsPerPage = 50;
 	const [cachedClipsSortDescriptor, setCachedClipsSortDescriptor] = useState<SortDescriptor>({
@@ -66,6 +66,31 @@ export default function PlaylistPage() {
 	const { isOpen: isAddClipsOpen, onOpen: onAddClipsOpen, onOpenChange: onAddClipsOpenChange } = useDisclosure();
 	const { isOpen: isAutoImportLockedOpen, onOpen: onAutoImportLockedOpen, onOpenChange: onAutoImportLockedOpenChange } = useDisclosure();
 
+	const resolveGameDetails = useCallback(
+		async (clips: TwitchClip[]) => {
+			if (!user) return;
+			const uniqueGameIds = Array.from(new Set(clips.map((clip) => clip.game_id).filter(Boolean)));
+			const missingIds = uniqueGameIds.filter((id) => !gameDetailsById[id]);
+			if (missingIds.length === 0) return;
+
+			const resolved = await getGamesDetailsBulk(missingIds, user.id);
+
+			setGameDetailsById((prev) => {
+				const next = { ...prev };
+				for (const game of resolved) {
+					next[game.id] = {
+						id: game.id,
+						name: game.name || "Unknown category",
+						box_art_url: game.box_art_url || "",
+						igdb_id: game.igdb_id || "",
+					} as Game;
+				}
+				return next;
+			});
+		},
+		[gameDetailsById, user],
+	);
+
 	useEffect(() => {
 		async function checkAuth() {
 			const user = await validateAuth();
@@ -93,7 +118,7 @@ export default function PlaylistPage() {
 			}
 		}
 		fetchData();
-	}, [user, playlistId]);
+	}, [user, playlistId, resolveGameDetails]);
 
 	useEffect(() => {
 		let timeoutId: NodeJS.Timeout;
@@ -190,28 +215,6 @@ export default function PlaylistPage() {
 		return next;
 	}
 
-	async function resolveGameDetails(clips: TwitchClip[]) {
-		if (!user) return;
-		const uniqueGameIds = Array.from(new Set(clips.map((clip) => clip.game_id).filter(Boolean)));
-		const missingIds = uniqueGameIds.filter((id) => !gameDetailsById[id]);
-		if (missingIds.length === 0) return;
-
-		const resolved = await getGamesDetailsBulk(missingIds, user.id);
-
-		setGameDetailsById((prev) => {
-			const next = { ...prev };
-			for (const game of resolved) {
-				next[game.id] = {
-					id: game.id,
-					name: game.name || "Unknown category",
-					box_art_url: game.box_art_url || "",
-					igdb_id: game.igdb_id || "",
-				} as Game;
-			}
-			return next;
-		});
-	}
-
 	async function refreshPlaylist() {
 		if (!user || !playlistId) return;
 		const playlists = await getPlaylistsForOwner(user.id);
@@ -250,7 +253,7 @@ export default function PlaylistPage() {
 
 	const cachedClipsPagesCount = Math.ceil(sortedCachedClips.length / rowsPerPage);
 
-async function handleAddSelectedClips() {
+	async function handleAddSelectedClips() {
 		const selectedIds = Array.from(selectedCachedClipIds as Set<string>);
 		const clipsToAdd = (cachedClips ?? []).filter((c) => selectedIds.includes(c.id));
 		if (clipsToAdd.length === 0) return;
@@ -271,21 +274,18 @@ async function handleAddSelectedClips() {
 	async function runImport(mode: "append" | "replace") {
 		if (!playlistId) return;
 		try {
-			const imported = await previewImportPlaylistClips(
-				playlistId,
-				{
-					overlayType: OverlayType.All,
-					startDate: importStartDate || null,
-					endDate: importEndDate || null,
-					categoryId: importCategoryId || null,
-					minViews: importMinViews,
-					minDuration: importMinDuration,
-					maxDuration: importMaxDuration,
-					blacklistWords: importBlacklistWords,
-					clipCreatorsOnly: importCreatorAllowlist,
-					clipCreatorsBlocked: importCreatorDenylist,
-				},
-			);
+			const imported = await previewImportPlaylistClips(playlistId, {
+				overlayType: OverlayType.All,
+				startDate: importStartDate || null,
+				endDate: importEndDate || null,
+				categoryId: importCategoryId || null,
+				minViews: importMinViews,
+				minDuration: importMinDuration,
+				maxDuration: importMaxDuration,
+				blacklistWords: importBlacklistWords,
+				clipCreatorsOnly: importCreatorAllowlist,
+				clipCreatorsBlocked: importCreatorDenylist,
+			});
 			if (mode === "replace") {
 				setPlaylistClips(imported);
 			} else {
@@ -323,13 +323,7 @@ async function handleAddSelectedClips() {
 							<Button isIconOnly variant='light' onPress={() => router.push("/dashboard")}>
 								<IconArrowLeft />
 							</Button>
-							<Input
-								value={playlistNameDraft}
-								onValueChange={setPlaylistNameDraft}
-								size='sm'
-								className='min-w-[260px]'
-								placeholder='Playlist name'
-							/>
+							<Input value={playlistNameDraft} onValueChange={setPlaylistNameDraft} size='sm' className='min-w-[260px]' placeholder='Playlist name' />
 						</div>
 						<div className='flex items-center gap-2'>
 							<Button color='primary' variant='solid' startContent={<IconPlus size={18} />} className='font-semibold px-4' onPress={handleOpenAddClips}>
@@ -412,12 +406,7 @@ async function handleAddSelectedClips() {
 							>
 								Select all
 							</Button>
-							<Button
-								size='sm'
-								variant='light'
-								onPress={() => setSelectedPlaylistClipIds(new Set())}
-								isDisabled={selectedPlaylistClipIds.size === 0}
-							>
+							<Button size='sm' variant='light' onPress={() => setSelectedPlaylistClipIds(new Set())} isDisabled={selectedPlaylistClipIds.size === 0}>
 								Clear
 							</Button>
 							<Button
@@ -460,9 +449,7 @@ async function handleAddSelectedClips() {
 										setDraggedClipId(null);
 										setDragOverClipId(null);
 									}}
-									className={`flex items-center gap-3 rounded border px-3 py-2 transition-colors ${
-										draggedClipId === clip.id ? "opacity-55 border-default-300 bg-content2" : ""
-									} ${dragOverClipId === clip.id && draggedClipId !== clip.id ? "border-primary bg-primary/10" : "border-default-200 bg-content1 hover:bg-content2"}`}
+									className={`flex items-center gap-3 rounded border px-3 py-2 transition-colors ${draggedClipId === clip.id ? "opacity-55 border-default-300 bg-content2" : ""} ${dragOverClipId === clip.id && draggedClipId !== clip.id ? "border-primary bg-primary/10" : "border-default-200 bg-content1 hover:bg-content2"}`}
 								>
 									<Checkbox
 										isSelected={selectedPlaylistClipIds.has(clip.id)}
@@ -525,18 +512,8 @@ async function handleAddSelectedClips() {
 							bottomContent={
 								cachedClipsPagesCount > 1 ? (
 									<div className='flex w-full justify-center gap-4 items-center'>
-										<Pagination
-											isCompact
-											showControls
-											showShadow
-											color='primary'
-											page={cachedClipsPage}
-											total={cachedClipsPagesCount}
-											onChange={setCachedClipsPage}
-										/>
-										<div className='text-xs text-default-400'>
-											{sortedCachedClips.length} clips total
-										</div>
+										<Pagination isCompact showControls showShadow color='primary' page={cachedClipsPage} total={cachedClipsPagesCount} onChange={setCachedClipsPage} />
+										<div className='text-xs text-default-400'>{sortedCachedClips.length} clips total</div>
 									</div>
 								) : null
 							}
@@ -558,10 +535,7 @@ async function handleAddSelectedClips() {
 									Date
 								</TableColumn>
 							</TableHeader>
-							<TableBody
-								items={paginatedCachedClips ?? []}
-								emptyContent={cachedClips === undefined ? <Spinner label='Loading clips...' /> : <div className='text-default-400'>No clips found in cache.</div>}
-							>
+							<TableBody items={paginatedCachedClips ?? []} emptyContent={cachedClips === undefined ? <Spinner label='Loading clips...' /> : <div className='text-default-400'>No clips found in cache.</div>}>
 								{(item) => (
 									<TableRow key={item.id}>
 										<TableCell>
@@ -679,9 +653,7 @@ async function handleAddSelectedClips() {
 				<ModalContent>
 					<ModalHeader>Auto Import Requires Pro</ModalHeader>
 					<ModalBody>
-						<div className='text-sm text-default-600'>
-							Auto import is available on Pro. Free includes one playlist with up to {FREE_PLAYLIST_CLIP_LIMIT} clips.
-						</div>
+						<div className='text-sm text-default-600'>Auto import is available on Pro. Free includes one playlist with up to {FREE_PLAYLIST_CLIP_LIMIT} clips.</div>
 					</ModalBody>
 					<ModalFooter>
 						<Button variant='light' onPress={onAutoImportLockedOpenChange}>
