@@ -73,6 +73,28 @@ jest.mock("@/db/client", () => ({
 		})),
 		delete: (..._args: unknown[]) => dbDelete(..._args),
 		execute: jest.fn(),
+		transaction: jest.fn((cb) =>
+			cb({
+				select: (..._args: unknown[]) => dbSelect(..._args),
+				insert: jest.fn(() => ({
+					values: () => ({
+						returning: () => ({ execute: async () => [{ id: "new-id" }] }),
+						execute: async () => [],
+					}),
+				})),
+				update: jest.fn(() => ({
+					set: () => ({
+						where: () => ({
+							execute: async () => [],
+							returning: () => ({ execute: async () => [] }),
+						}),
+						execute: async () => [],
+					}),
+				})),
+				delete: (..._args: unknown[]) => dbDelete(..._args),
+				execute: jest.fn(),
+			}),
+		),
 	},
 }));
 

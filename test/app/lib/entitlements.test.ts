@@ -101,7 +101,7 @@ describe("lib/entitlements", () => {
 		const result = await resolveUserEntitlementsForUsers([
 			{ id: "pro-user", plan: Plan.Pro },
 			{ id: "free-user", plan: Plan.Free },
-		] as any);
+		] as Parameters<typeof resolveUserEntitlementsForUsers>[0]);
 
 		expect(result.get("pro-user")).toEqual(
 			expect.objectContaining({

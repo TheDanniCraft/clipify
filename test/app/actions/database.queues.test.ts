@@ -63,6 +63,11 @@ function makeDeleteChain(table: unknown) {
 	};
 }
 
+const editorsTable = {
+    userId: "editors.user_id",
+    editorId: "editors.editor_id",
+};
+
 jest.mock("@/db/client", () => ({
 	db: {
 		select: (..._args: unknown[]) => dbSelect(..._args),
@@ -77,6 +82,7 @@ jest.mock("@/db/schema", () => ({
 	modQueueTable,
     overlaysTable,
     usersTable,
+    editorsTable,
 }));
 
 jest.mock("drizzle-orm", () => ({
@@ -95,7 +101,12 @@ jest.mock("drizzle-orm", () => ({
 	max: jest.fn(() => "max"),
 }));
 
-jest.mock("@actions/auth", () => ({ validateAuth: jest.fn() }));
+const validateAuth = jest.fn();
+const validateAdminAuth = jest.fn();
+jest.mock("@actions/auth", () => ({
+	validateAuth,
+	validateAdminAuth,
+}));
 
 async function loadDatabaseActions() {
 	jest.resetModules();
@@ -156,6 +167,11 @@ describe("actions/database queue logic", () => {
 	});
 
 	it("removes from clip queue by id", async () => {
+		const { validateAuth } = require("@actions/auth");
+		validateAuth.mockResolvedValueOnce({ id: "user-1" });
+		queueSelectResult([{ overlayId: "overlay-1" }]); // queue select
+		queueSelectResult([{ ownerId: "user-1" }]); // overlay select
+
 		const { removeFromClipQueueById } = await loadDatabaseActions();
 		await removeFromClipQueueById("1");
 		expect(deleteCalls.some(call => call.table === queueTable)).toBe(true);
@@ -201,6 +217,10 @@ describe("actions/database queue logic", () => {
     });
 
     it("removes from mod queue by id", async () => {
+		const { validateAuth } = require("@actions/auth");
+		validateAuth.mockResolvedValueOnce({ id: "user-1" });
+		queueSelectResult([{ broadcasterId: "user-1" }]); // mod queue select
+
         const { removeFromModQueueById } = await loadDatabaseActions();
         await removeFromModQueueById("1");
         expect(deleteCalls.some(call => call.table === modQueueTable)).toBe(true);

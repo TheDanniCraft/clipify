@@ -115,7 +115,7 @@ function makeDeleteChain(table: unknown) {
 	};
 }
 
-function makeTx() {
+function makeTx(): any {
 	return {
 		select: (..._args: unknown[]) => makeSelectChain(),
 		insert: (table: unknown) => makeInsertChain(table),
@@ -411,7 +411,6 @@ describe("actions/database playlist logic", () => {
 		});
 		queueSelectResult([{ id: "playlist-1", ownerId: "owner-1", name: "Main", createdAt: new Date(), updatedAt: new Date() }]);
 		queueSelectResult([{ id: "owner-1", plan: "pro", createdAt: new Date("2026-01-01T00:00:00.000Z") }]);
-		queueSelectResult([{ playlistId: "playlist-1", clipId: "old", position: 0, clipData: JSON.stringify({ id: "old" }) }]);
 		queueSelectResult([{ id: "playlist-1", ownerId: "owner-1" }]);
 		queueSelectResult([
 			{ playlistId: "playlist-1", clipId: "new-1", position: 0, clipData: JSON.stringify({ id: "new-1", title: "New 1" }) },

@@ -131,8 +131,10 @@ jest.mock("drizzle-orm", () => ({
 }));
 
 const validateAuth = jest.fn();
+const validateAdminAuth = jest.fn();
 jest.mock("@actions/auth", () => ({
-    validateAuth: (...args: any[]) => validateAuth(...args),
+    validateAuth,
+    validateAdminAuth,
 }));
 
 const twitch = {
@@ -438,6 +440,9 @@ describe("actions/database user logic", () => {
     });
 
     it("disableUserAccess and enableUserAccess", async () => {
+		const { validateAdminAuth } = require("@actions/auth");
+		validateAdminAuth.mockResolvedValueOnce({ id: "admin-1", role: "admin" });
+
         const { disableUserAccess, enableUserAccess } = await loadDatabaseActions();
         await disableUserAccess("user-1", "reason", "automatic");
         expect(updateCalls.some(u => u.disabled === true && u.disabledReason === "reason")).toBe(true);

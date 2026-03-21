@@ -83,9 +83,11 @@ jest.mock("@/db/client", () => ({
 		execute: (..._args: unknown[]) => dbExecute(..._args),
 		transaction: jest.fn((cb) =>
 			cb({
+				select: (..._args: unknown[]) => dbSelect(..._args),
 				insert: (..._args: unknown[]) => dbInsert(..._args),
 				update: (..._args: unknown[]) => dbUpdate(..._args),
 				delete: (..._args: unknown[]) => dbDelete(..._args),
+				execute: (..._args: unknown[]) => dbExecute(..._args),
 			}),
 		),
 	},
@@ -124,8 +126,10 @@ jest.mock("drizzle-orm", () => ({
 }));
 
 const validateAuth = jest.fn();
+const validateAdminAuth = jest.fn();
 jest.mock("@actions/auth", () => ({
-	validateAuth: (...args: any[]) => validateAuth(...args),
+	validateAuth,
+	validateAdminAuth,
 }));
 
 const twitch = {
@@ -302,6 +306,11 @@ describe("database.ts coverage tests", () => {
 	});
 
 	it("covers removeFromClipQueueById error case", async () => {
+		const { validateAuth } = require("@actions/auth");
+		validateAuth.mockResolvedValueOnce({ id: "u1" });
+		queueSelectResult([{ overlayId: "ov1" }]);
+		queueSelectResult([{ ownerId: "u1" }]);
+
 		const { removeFromClipQueueById } = await loadDatabaseActions();
 		dbDelete.mockImplementationOnce(() => {
 			throw new Error("DB Error");
@@ -367,6 +376,10 @@ describe("database.ts coverage tests", () => {
 	});
 
 	it("covers removeFromModQueueById error case", async () => {
+		const { validateAuth } = require("@actions/auth");
+		validateAuth.mockResolvedValueOnce({ id: "u1" });
+		queueSelectResult([{ broadcasterId: "u1" }]);
+
 		const { removeFromModQueueById } = await loadDatabaseActions();
 		dbDelete.mockImplementationOnce(() => {
 			throw new Error("DB Error");
@@ -405,6 +418,8 @@ describe("database.ts coverage tests", () => {
 	});
 
 	it("covers getSettings save default branch", async () => {
+		const { validateAuth } = require("@actions/auth");
+		validateAuth.mockResolvedValue({ id: "user-1" });
 		const { getSettings } = await loadDatabaseActions();
 		queueSelectResult([]); // 1. getSettings initial settings select (empty)
 
@@ -424,6 +439,8 @@ describe("database.ts coverage tests", () => {
 	});
 
 	it("covers getSettings forceSyncExternal branch", async () => {
+		const { validateAuth } = require("@actions/auth");
+		validateAuth.mockResolvedValue({ id: "user-1" });
 		const { getSettings } = await loadDatabaseActions();
 		queueSelectResult([{ id: "user-1", marketingOptIn: false, useSendProductUpdatesContactId: "c1" }]); // settings
 		queueSelectResult([]); // editors
@@ -437,6 +454,8 @@ describe("database.ts coverage tests", () => {
 	});
 
 	it("covers getSettings error case", async () => {
+		const { validateAuth } = require("@actions/auth");
+		validateAuth.mockResolvedValue({ id: "user-1" });
 		const { getSettings } = await loadDatabaseActions();
 		dbSelect.mockImplementationOnce(() => {
 			throw new Error("DB Error");
@@ -445,12 +464,15 @@ describe("database.ts coverage tests", () => {
 	});
 
 	it("covers saveSettings unauthorized", async () => {
-		const { saveSettings } = await loadDatabaseActions();
+		const { validateAuth } = require("@actions/auth");
 		validateAuth.mockResolvedValue({ id: "user-2" });
+		const { saveSettings } = await loadDatabaseActions();
 		await expect(saveSettings({ id: "user-1" } as any)).rejects.toThrow("Unauthorized");
 	});
 
 	it("covers saveSettings soft_opt_in_default branch", async () => {
+		const { validateAuth } = require("@actions/auth");
+		validateAuth.mockResolvedValue({ id: "user-1" });
 		const { saveSettings } = await loadDatabaseActions();
 		queueSelectResult([{ disabled: false }]); // 1. getAccessToken userRow
 		queueSelectResult([{ accessToken: "at", refreshToken: "rt", expiresAt: new Date(Date.now() + 10000) }]); // 2. getAccessToken tokenRow
@@ -781,11 +803,14 @@ describe("database.ts coverage tests", () => {
 	});
 
 	it("covers enableUserAccess catch block", async () => {
-		const { enableUserAccess } = loadDatabaseActions();
+		const { validateAdminAuth } = require("@actions/auth");
+		validateAdminAuth.mockResolvedValueOnce({ id: "admin", role: "admin" });
+
+		const { enableUserAccess } = await loadDatabaseActions();
 		dbUpdate.mockImplementationOnce(() => {
-			throw new Error("DB Error");
+			throw new Error("DB error");
 		});
-		await enableUserAccess("user-1");
+		await enableUserAccess("u1");
 		expect(dbUpdate).toHaveBeenCalled();
 	});
 

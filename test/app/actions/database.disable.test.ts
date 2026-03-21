@@ -57,8 +57,11 @@ jest.mock("@actions/twitch", () => ({
 	subscribeToReward: jest.fn(),
 }));
 
+const validateAuth = jest.fn();
+const validateAdminAuth = jest.fn();
 jest.mock("@actions/auth", () => ({
-	validateAuth: jest.fn(),
+	validateAuth,
+	validateAdminAuth,
 }));
 
 jest.mock("@lib/tokenCrypto", () => ({
@@ -184,6 +187,7 @@ describe("actions/database disabled user handling", () => {
 		dbUpdate.mockImplementation((table: unknown) => mockUpdateChain(table));
 		dbInsert.mockImplementation((table: unknown) => mockInsertChain(table));
 		decryptToken.mockImplementation((value: string) => value);
+		validateAuth.mockResolvedValue({ id: "owner-1" });
 		getUserDetails.mockResolvedValue({
 			id: "owner-1",
 			login: "owner",
