@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useParams, useRouter } from "next/navigation";
 import { createPlaylist, getClipCacheStatus, getOverlay, getOverlayOwnerPlan, getPlaylistsForOwner, previewImportPlaylistClips, saveOverlay, savePlaylist, upsertPlaylistClips } from "@actions/database";
@@ -63,7 +63,7 @@ export default function OverlaySettings() {
 
 	const [overlay, setOverlay] = useState<Overlay | null>(null);
 	const [baseOverlay, setBaseOverlay] = useState<Overlay | null>(null);
-	const [baseUrl] = useState<string | null>(typeof window !== "undefined" ? window.location.origin : null);
+	const [baseUrl, setBaseUrl] = useState<string | null>(null);
 	const [user, setUser] = useState<AuthenticatedUser>();
 	const [reward, setReward] = useState<TwitchReward | null>(null);
 	const [ownerPlan, setOwnerPlan] = useState<Plan | null>(null);
@@ -75,7 +75,7 @@ export default function OverlaySettings() {
 	const [selectedPlaylistClipIds, setSelectedPlaylistClipIds] = useState<Set<string>>(new Set());
 	const [playlistNameDraft, setPlaylistNameDraft] = useState("");
 	const [importStartDate, setImportStartDate] = useState(DEFAULT_IMPORT_START_DATE);
-	const [importEndDate, setImportEndDate] = useState(() => new Date().toISOString().slice(0, 10));
+	const [importEndDate, setImportEndDate] = useState("");
 	const [importCategoryId, setImportCategoryId] = useState("all");
 	const [importCategoryInput, setImportCategoryInput] = useState("All categories");
 	const [importMinViews, setImportMinViews] = useState(0);
@@ -115,7 +115,12 @@ export default function OverlaySettings() {
 
 	const navGuard = useNavigationGuard({ enabled: isFormDirty() });
 
-	async function resolveGameDetails(clips: TwitchClip[]) {
+	useEffect(() => {
+		setBaseUrl(window.location.origin);
+		setImportEndDate(new Date().toISOString().slice(0, 10));
+	}, []);
+
+	const resolveGameDetails = useCallback(async (clips: TwitchClip[]) => {
 		if (!overlay?.ownerId) return;
 		const uniqueGameIds = Array.from(new Set(clips.map((clip) => clip.game_id).filter(Boolean)));
 		const missingIds = uniqueGameIds.filter((id) => !gameDetailsById[id]);
@@ -138,7 +143,7 @@ export default function OverlaySettings() {
 			for (const game of resolved) next[game.id] = game;
 			return next;
 		});
-	}
+	}, [overlay?.ownerId, gameDetailsById]);
 
 	useEffect(() => {
 		async function resolveGameNames() {
@@ -409,8 +414,7 @@ export default function OverlaySettings() {
 			await resolveGameDetails(clips);
 		}
 		getClipsForType();
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [overlay?.type, overlay?.playlistId]);
+	}, [overlay, resolveGameDetails]);
 
 	useEffect(() => {
 		async function getPlaylistSnapshot() {
@@ -431,8 +435,7 @@ export default function OverlaySettings() {
 			await resolveGameDetails(clips);
 		}
 		getPlaylistSnapshot();
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [overlay?.playlistId, playlists]);
+	}, [overlay, playlists, resolveGameDetails]);
 
 	useEffect(() => {
 		setSelectedPlaylistClipIds((prev) => new Set(Array.from(prev).filter((id) => playlistClips.some((clip) => clip.id === id))));
@@ -762,15 +765,23 @@ export default function OverlaySettings() {
 											<IconDeviceFloppy />
 										</Button>
 									</div>
-									<div className='w-full flex justify-center items-center text-xs text-warning-300 p-2 border border-warning-200 rounded bg-warning-50 max-w-full mb-2'>
-										<IconAlertTriangle size={16} className='mr-2' />
-										<span className='text-center'>
-											Do not share this URL publicly. For embedding on websites, use the{" "}
-											<Link color='warning' underline='always' className='text-xs' href={`${baseUrl}/dashboard/embed?oid=${overlayId}`}>
-												embed widget tool
-											</Link>
-											.
-										</span>
+									<div className='w-full flex flex-col gap-2 mb-2'>
+										<div className='w-full flex justify-center items-center text-xs text-warning-300 p-2 border border-warning-200 rounded bg-warning-50 max-w-full'>
+											<IconAlertTriangle size={16} className='mr-2 flex-shrink-0' />
+											<span className='text-center'>
+												Do not share this URL publicly. For embedding on websites, use the{" "}
+												<Link color='warning' underline='always' className='text-xs' href={`${baseUrl}/dashboard/embed?oid=${overlayId}`}>
+													embed widget tool
+												</Link>
+												.
+											</span>
+										</div>
+										<div className='w-full flex justify-center items-center text-xs text-primary-400 p-2 border border-primary-200 rounded bg-primary-50 max-w-full'>
+											<IconInfoCircle size={16} className='mr-2 flex-shrink-0' />
+											<span className='text-center font-medium'>
+												Optimal Browser Source resolution: <span className='font-bold underline'>1920x1080</span>. Ensure your OBS/Streamlabs source matches this for best quality.
+											</span>
+										</div>
 									</div>
 									<Input
 										value={overlay.name}

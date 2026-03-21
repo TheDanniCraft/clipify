@@ -1066,80 +1066,83 @@ export default function OverlayPlayer({
 		setNextClip(null);
 	}, []);
 
-	async function handleCommand(name: string, data: string) {
-		switch (name) {
-			case "play": {
-				if (data) {
-					resetPrefetch();
+	const handleCommand = useCallback(
+		async (name: string, data: string) => {
+			switch (name) {
+				case "play": {
+					if (data) {
+						resetPrefetch();
 
-					if (isDemoPlayer) {
-						const demoId = parseDemoClipId(data);
-						if (!demoId) {
-							return;
+						if (isDemoPlayer) {
+							const demoId = parseDemoClipId(data);
+							if (!demoId) {
+								return;
+							}
+
+							const demoClip = await getDemoClip(demoId);
+							if (!demoClip) {
+								return;
+							}
+
+							const nextQueue = [...demoQueueRef.current, { id: demoId, clip: demoClip }];
+							demoQueueRef.current = nextQueue;
+							setDemoQueue(nextQueue);
 						}
 
-						const demoClip = await getDemoClip(demoId);
-						if (!demoClip) {
-							return;
+						// Only start immediately if nothing is currently playing.
+						if (!clipRef.current) {
+							await advanceClip();
 						}
-
-						const nextQueue = [...demoQueueRef.current, { id: demoId, clip: demoClip }];
-						demoQueueRef.current = nextQueue;
-						setDemoQueue(nextQueue);
+					} else {
+						setHasUserStarted(true);
+						setPaused(false);
+						if (showPlayer) {
+							(activeSlot === "a" ? videoARef.current : videoBRef.current)?.play().catch((error) => {
+								console.error("Error playing the video:", error);
+							});
+						}
 					}
 
-					// Only start immediately if nothing is currently playing.
-					if (!clipRef.current) {
-						await advanceClip();
-					}
-				} else {
-					setHasUserStarted(true);
-					setPaused(false);
-					if (showPlayer) {
-						(activeSlot === "a" ? videoARef.current : videoBRef.current)?.play().catch((error) => {
-							console.error("Error playing the video:", error);
-						});
-					}
-				}
-
-				break;
-			}
-
-			case "pause": {
-				setPaused(true);
-				(activeSlot === "a" ? videoARef.current : videoBRef.current)?.pause();
-				break;
-			}
-
-			case "skip": {
-				if (advanceLockRef.current) {
-					pendingSkipRef.current += 1;
 					break;
 				}
-				await advanceClip();
-				break;
-			}
 
-			case "hide": {
-				setShowPlayer(false);
-				(activeSlot === "a" ? videoARef.current : videoBRef.current)?.pause();
-				break;
-			}
+				case "pause": {
+					setPaused(true);
+					(activeSlot === "a" ? videoARef.current : videoBRef.current)?.pause();
+					break;
+				}
 
-			case "show": {
-				setShowPlayer(true);
-				(activeSlot === "a" ? videoARef.current : videoBRef.current)?.play().catch((error) => console.error("Error playing the video:", error));
-				break;
-			}
+				case "skip": {
+					if (advanceLockRef.current) {
+						pendingSkipRef.current += 1;
+						break;
+					}
+					await advanceClip();
+					break;
+				}
 
-			case "volume": {
-				const next = Number.parseInt((data || "").trim(), 10);
-				if (!Number.isFinite(next)) break;
-				setRuntimeVolume(clamp(next, 0, 100));
-				break;
+				case "hide": {
+					setShowPlayer(false);
+					(activeSlot === "a" ? videoARef.current : videoBRef.current)?.pause();
+					break;
+				}
+
+				case "show": {
+					setShowPlayer(true);
+					(activeSlot === "a" ? videoARef.current : videoBRef.current)?.play().catch((error) => console.error("Error playing the video:", error));
+					break;
+				}
+
+				case "volume": {
+					const next = Number.parseInt((data || "").trim(), 10);
+					if (!Number.isFinite(next)) break;
+					setRuntimeVolume(clamp(next, 0, 100));
+					break;
+				}
 			}
-		}
-	}
+		},
+		[activeSlot, advanceClip, isDemoPlayer, parseDemoClipId, resetPrefetch, showPlayer],
+	);
 
 	useEffect(() => {
 		clipRef.current = videoClip;
@@ -1349,8 +1352,7 @@ export default function OverlayPlayer({
 			ws?.close();
 			window.removeEventListener("message", onWindowMessage);
 		};
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, []);
+	}, [advanceClip, handleCommand, isDemoPlayer, isEmbed, overlay.id, overlay.ownerId, overlaySecret, resetPrefetch]);
 
 	/**
 	 * Twitch chat subscription
@@ -1489,8 +1491,7 @@ export default function OverlayPlayer({
 			cancelled = true;
 			prefetchAbortRef.current?.abort();
 		};
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [buildVideoClipFast, videoClip?.id, getRandomClip, isDemoPlayer, overlay.id, overlaySecret]);
+	}, [buildVideoClipFast, videoClip, getRandomClip, isDemoPlayer, overlay.id, overlaySecret]);
 
 	const startCrossfade = useCallback(() => {
 		if (crossfadeLockRef.current || isCrossfading) return;

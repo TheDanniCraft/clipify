@@ -48,8 +48,12 @@ export default function PlaylistPage() {
 	const [dragOverClipId, setDragOverClipId] = useState<string | null>(null);
 
 	const [importStartDate, setImportStartDate] = useState(DEFAULT_IMPORT_START_DATE);
-	const [importEndDate, setImportEndDate] = useState(() => new Date().toISOString().slice(0, 10));
+	const [importEndDate, setImportEndDate] = useState("");
 	const [importCategoryId, setImportCategoryId] = useState("all");
+
+	useEffect(() => {
+		setImportEndDate(new Date().toISOString().slice(0, 10));
+	}, []);
 	const [importCategoryInput, setImportCategoryInput] = useState("All categories");
 	const [importMinViews, setImportMinViews] = useState(0);
 	const [importMinDuration, setImportMinDuration] = useState(0);
@@ -150,10 +154,13 @@ export default function PlaylistPage() {
 		return all.filter((game) => game.name.toLowerCase().includes(query) || game.id === "all");
 	}, [cachedCategoryOptions, gameSearchResults, importCategoryInput]);
 
-	function getGameName(gameId: string) {
-		const resolved = gameDetailsById[gameId]?.name?.trim();
-		return resolved && resolved !== gameId ? resolved : "Unknown category";
-	}
+	const getGameName = useCallback(
+		(gameId: string) => {
+			const resolved = gameDetailsById[gameId]?.name?.trim();
+			return resolved && resolved !== gameId ? resolved : "Unknown category";
+		},
+		[gameDetailsById],
+	);
 
 	const filteredCachedClips = useMemo(() => {
 		const f = cachedClipsFilter.toLowerCase();
@@ -161,8 +168,7 @@ export default function PlaylistPage() {
 			const categoryName = getGameName(clip.game_id).toLowerCase();
 			return clip.title.toLowerCase().includes(f) || clip.creator_name.toLowerCase().includes(f) || categoryName.includes(f);
 		});
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [cachedClips, cachedClipsFilter, gameDetailsById]);
+	}, [cachedClips, cachedClipsFilter, getGameName]);
 
 	const sortedCachedClips = useMemo(() => {
 		const items = [...filteredCachedClips];
@@ -185,8 +191,7 @@ export default function PlaylistPage() {
 			}
 		});
 		return items;
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [filteredCachedClips, cachedClipsSortDescriptor, gameDetailsById]);
+	}, [filteredCachedClips, cachedClipsSortDescriptor, getGameName]);
 
 	const canUseAutoImport = user ? getFeatureAccess(user, "advanced_filters").allowed : false;
 	const isFreePlaylistLimitActive = user ? !getFeatureAccess(user, "advanced_filters").allowed : false;
