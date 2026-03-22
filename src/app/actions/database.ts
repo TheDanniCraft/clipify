@@ -661,6 +661,10 @@ export async function getAccessToken(userId: string): Promise<UserToken | null> 
 	return result.token;
 }
 
+/**
+ * Server-only version that bypasses user session validation.
+ * Use only for internal server actions (e.g., EventSub, schedulers).
+ */
 export async function getAccessTokenServer(userId: string): Promise<UserToken | null> {
 	const result = await getAccessTokenResultServer(userId);
 	return result.token;
@@ -675,6 +679,9 @@ export async function getAccessTokenResult(userId: string): Promise<{ token: Use
 	return getAccessTokenResultServer(userId);
 }
 
+/**
+ * Server-only version that bypasses user session validation.
+ */
 export async function getAccessTokenResultServer(userId: string): Promise<{ token: UserToken | null; reason?: "user_disabled" | "token_row_missing" | "token_decrypt_failed" | "refresh_invalid_token" | "refresh_failed" }> {
 	try {
 		const userRows = await db.select({ disabled: usersTable.disabled }).from(usersTable).where(eq(usersTable.id, userId)).limit(1).execute();
@@ -2040,11 +2047,24 @@ export async function getSettings(userId: string, forceSyncExternal = false): Pr
 			throw new Error("Unauthorized");
 		}
 
+		return getSettingsServer(userId, forceSyncExternal);
+	} catch (error) {
+		console.error("Error fetching settings:", error);
+		throw new Error("Failed to fetch settings");
+	}
+}
+
+/**
+ * Server-only version that bypasses user session validation.
+ * Use only for internal server actions (e.g., EventSub, chat commands).
+ */
+export async function getSettingsServer(userId: string, forceSyncExternal = false): Promise<UserSettings> {
+	try {
 		const settingsWithoutEditors = await db.select().from(settingsTable).where(eq(settingsTable.id, userId)).limit(1).execute();
 
 		if (settingsWithoutEditors.length === 0) {
 			// Save default settings
-			return saveSettings({
+			const defaultSettings: UserSettings = {
 				id: userId,
 				prefix: "!",
 				marketingOptIn: false,
@@ -2052,14 +2072,30 @@ export async function getSettings(userId: string, forceSyncExternal = false): Pr
 				marketingOptInSource: null,
 				useSendProductUpdatesContactId: null,
 				editors: [],
-			}).then(() => getSettings(userId));
+			};
+
+			// Insert default settings directly to avoid recursion with saveSettings auth checks
+			await db
+				.insert(settingsTable)
+				.values({
+					id: defaultSettings.id,
+					prefix: defaultSettings.prefix,
+					marketingOptIn: defaultSettings.marketingOptIn,
+					marketingOptInAt: defaultSettings.marketingOptInAt,
+					marketingOptInSource: defaultSettings.marketingOptInSource,
+					useSendProductUpdatesContactId: defaultSettings.useSendProductUpdatesContactId,
+				})
+				.onConflictDoNothing()
+				.execute();
+
+			return defaultSettings;
 		}
 
 		const settingsEditors = await db.select().from(editorsTable).where(eq(editorsTable.userId, userId)).execute();
 
 		const editorNames = await getUsersDetailsBulk({
 			userIds: settingsEditors.map((editor) => editor.editorId),
-			accessToken: (await getAccessToken(userId))?.accessToken || "",
+			accessToken: (await getAccessTokenServer(userId))?.accessToken || "",
 		});
 
 		const settings: UserSettings[] = settingsWithoutEditors.map((setting) => ({
@@ -2108,8 +2144,8 @@ export async function getSettings(userId: string, forceSyncExternal = false): Pr
 
 		return currentSettings;
 	} catch (error) {
-		console.error("Error fetching settings:", error);
-		throw new Error("Failed to fetch settings");
+		console.error("Error fetching settings server:", error);
+		throw new Error("Failed to fetch settings server");
 	}
 }
 

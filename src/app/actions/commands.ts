@@ -4,7 +4,7 @@
 import { TwitchBadge, TwitchMessage } from "@types";
 import { sendMessage } from "@actions/websocket";
 import { getTwitchClip, handleClip, sendChatMessage } from "@actions/twitch";
-import { addToModQueue, clearClipQueueByOverlayIdServer, clearModQueueByBroadcasterId, getAllOverlayIdsByOwnerServer, getAllOverlaysByOwnerServer, getClipQueueByOverlayId, getModQueue, getSettings, getUserByIdServer, setPlayerVolumeForOwner } from "@actions/database";
+import { addToModQueue, clearClipQueueByOverlayIdServer, clearModQueueByBroadcasterId, getAllOverlayIdsByOwnerServer, getAllOverlaysByOwnerServer, getClipQueueByOverlayId, getModQueue, getSettingsServer, getUserByIdServer, setPlayerVolumeForOwner } from "@actions/database";
 import { getFeatureAccess } from "@lib/featureAccess";
 import { getBaseUrl } from "@actions/utils";
 
@@ -18,7 +18,7 @@ let nextChatCommandCacheCleanupAt = 0;
 let nextUpgradeMessageCleanupAt = 0;
 
 async function getPrefix(userId: string): Promise<string | null> {
-	const settings = await getSettings(userId);
+	const settings = await getSettingsServer(userId);
 /* ignore: command processing edge case */
 	return settings ? settings.prefix : null;
 }

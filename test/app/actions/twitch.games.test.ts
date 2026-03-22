@@ -3,7 +3,7 @@ export {};
 
 import { getGamesDetailsBulk } from "@/app/actions/twitch";
 import axios from "axios";
-import { getTwitchCacheBatch, setTwitchCacheBatch, getAccessToken } from "@actions/database";
+import { getTwitchCacheBatch, setTwitchCacheBatch, getAccessTokenServer } from "@actions/database";
 import { TwitchCacheType } from "@types";
 
 jest.mock("axios");
@@ -34,7 +34,7 @@ describe("getGamesDetailsBulk", () => {
 
 	it("should fetch missing games from Twitch and cache them", async () => {
 		(getTwitchCacheBatch as jest.Mock).mockResolvedValue([null, null]);
-		(getAccessToken as jest.Mock).mockResolvedValue({ accessToken: mockAccessToken });
+		(getAccessTokenServer as jest.Mock).mockResolvedValue({ accessToken: mockAccessToken });
 		(axios.get as jest.Mock).mockResolvedValue({
 			data: {
 				data: [
@@ -57,7 +57,7 @@ describe("getGamesDetailsBulk", () => {
 	it("should handle mixed cached and missing games", async () => {
 		const mockCachedGame = { id: "123", name: "Game 1" };
 		(getTwitchCacheBatch as jest.Mock).mockResolvedValue([mockCachedGame, null]);
-		(getAccessToken as jest.Mock).mockResolvedValue({ accessToken: mockAccessToken });
+		(getAccessTokenServer as jest.Mock).mockResolvedValue({ accessToken: mockAccessToken });
 		(axios.get as jest.Mock).mockResolvedValue({
 			data: {
 				data: [{ id: "456", name: "Game 2" }],

@@ -682,7 +682,7 @@ export async function verifyToken(user: AuthenticatedUser) {
 
 export async function getTwitchClip(clipId: string, creatorId: string): Promise<null | TwitchClip> {
 	const url = "https://api.twitch.tv/helix/clips";
-	const token = await getAccessToken(creatorId);
+	const token = await getAccessTokenServer(creatorId);
 
 	if (!token) {
 		console.error("No access token found for creatorId:", creatorId);
@@ -1121,7 +1121,7 @@ export async function getTwitchClips(overlay: Overlay, type?: OverlayType, skipF
 
 	if (!skipFilter) {
 		if (overlay.preferCurrentCategory) {
-			const token = await getAccessToken(overlay.ownerId);
+			const token = await getAccessTokenServer(overlay.ownerId);
 			if (token?.accessToken) {
 				const currentGameId = await getCurrentCategoryGameId(overlay.ownerId, token.accessToken);
 				if (currentGameId) {
@@ -1307,7 +1307,7 @@ export async function getAvatar(userId: string, authUserId: string): Promise<str
 	if (cached !== null) return cached || undefined;
 
 /* istanbul ignore next */
-	let accessToken = authUserId ? (await getAccessToken(authUserId))?.accessToken : undefined;
+	let accessToken = authUserId ? (await getAccessTokenServer(authUserId))?.accessToken : undefined;
 	if (!accessToken) {
 		const appToken = await getAppAccessToken();
 		accessToken = appToken?.access_token;
@@ -1357,7 +1357,7 @@ export async function getGamesDetailsBulk(gameIds: string[], authUserId: string)
 	for (let i = 0; i < gameIds.length; i++) {
 		const id = gameIds[i];
 		const cached = cacheEntries[i];
-		if (cached !== null) {
+		if (cached !== null && cached !== undefined) {
 /* istanbul ignore next */
 			if (cached) results.push(cached);
 			continue;
@@ -1368,7 +1368,7 @@ export async function getGamesDetailsBulk(gameIds: string[], authUserId: string)
 	if (missingIds.length === 0) return results;
 
 /* istanbul ignore next */
-	let accessToken = authUserId ? (await getAccessToken(authUserId))?.accessToken : undefined;
+	let accessToken = authUserId ? (await getAccessTokenServer(authUserId))?.accessToken : undefined;
 /* istanbul ignore next */
 	if (!accessToken) {
 /* istanbul ignore next */
@@ -1433,7 +1433,7 @@ export async function getGameDetails(gameId: string, authUserId: string): Promis
 	if (cachedEntry.hit) return cachedEntry.value;
 
 /* istanbul ignore next */
-	let accessToken = authUserId ? (await getAccessToken(authUserId))?.accessToken : undefined;
+	let accessToken = authUserId ? (await getAccessTokenServer(authUserId))?.accessToken : undefined;
 	if (!accessToken) {
 		const appToken = await getAppAccessToken();
 		accessToken = appToken?.access_token;
@@ -1593,7 +1593,7 @@ export async function subscribeToReward(userId: string, rewardId: string): Promi
 
 export async function updateRedemptionStatus(userId: string, redemptionId: string, rewardId: string, status: RewardStatus) {
 	const url = "https://api.twitch.tv/helix/channel_points/custom_rewards/redemptions";
-	const token = await getAccessToken(userId);
+	const token = await getAccessTokenServer(userId);
 
 	if (!token) {
 		console.error("No app access token found");
