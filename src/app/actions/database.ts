@@ -64,7 +64,7 @@ function summarizeError(error: unknown): string {
 	if (typeof error === "object" && error !== null) {
 		if ("message" in error) return String((error as { message: unknown }).message);
 		if ("name" in error) return String((error as { name: unknown }).name);
-		if ("stack" in error) return String((error as { stack: unknown }).stack).split("\n")[0];
+		if ("stack" in error) return String((error as { stack: unknown }).stack).split("\n")[0] || "Unknown error (stack available)";
 	}
 	return String(error);
 }
@@ -661,13 +661,22 @@ export async function getAccessToken(userId: string): Promise<UserToken | null> 
 	return result.token;
 }
 
-export async function getAccessTokenResult(userId: string): Promise<{ token: UserToken | null; reason?: "unauthorized" | "user_disabled" | "token_row_missing" | "token_decrypt_failed" | "refresh_invalid_token" | "refresh_failed" }> {
-	try {
-		const authedUser = await validateAuth(true);
-		if (!authedUser || (authedUser.id !== userId && authedUser.role !== Role.Admin)) {
-			return { token: null, reason: "unauthorized" };
-		}
+export async function getAccessTokenServer(userId: string): Promise<UserToken | null> {
+	const result = await getAccessTokenResultServer(userId);
+	return result.token;
+}
 
+export async function getAccessTokenResult(userId: string): Promise<{ token: UserToken | null; reason?: "unauthorized" | "user_disabled" | "token_row_missing" | "token_decrypt_failed" | "refresh_invalid_token" | "refresh_failed" }> {
+	const authedUser = await validateAuth(true);
+	if (!authedUser || (authedUser.id !== userId && authedUser.role !== Role.Admin)) {
+		return { token: null, reason: "unauthorized" };
+	}
+
+	return getAccessTokenResultServer(userId);
+}
+
+export async function getAccessTokenResultServer(userId: string): Promise<{ token: UserToken | null; reason?: "user_disabled" | "token_row_missing" | "token_decrypt_failed" | "refresh_invalid_token" | "refresh_failed" }> {
+	try {
 		const userRows = await db.select({ disabled: usersTable.disabled }).from(usersTable).where(eq(usersTable.id, userId)).limit(1).execute();
 		const userRow = userRows[0];
 		if (userRow?.disabled) {
@@ -699,7 +708,8 @@ export async function getAccessTokenResult(userId: string): Promise<{ token: Use
 		const currentTime = new Date();
 		const expiresAt = row.expiresAt;
 
-		if (currentTime > expiresAt) {
+		const EXPIRATION_BUFFER_MS = 60000;
+		if (currentTime.getTime() + EXPIRATION_BUFFER_MS > expiresAt.getTime()) {
 			const refreshResult = await refreshAccessTokenWithContext(refreshToken, userId);
 			const newToken = refreshResult.token;
 
@@ -734,7 +744,7 @@ export async function getAccessTokenResult(userId: string): Promise<{ token: Use
 			},
 		};
 	} catch (error) {
-		console.error("Error fetching access token:", error);
+		console.error("Error fetching access token:", summarizeError(error));
 		throw new Error("Failed to fetch access token");
 	}
 }
@@ -1336,7 +1346,7 @@ export async function reorderPlaylistClips(playlistId: string, orderedClipIds: s
 			await tx
 				.update(playlistClipsTable)
 				.set({
-					position: sql`(CASE ${sql.join(cases, sql.raw(" "))} ELSE ${playlistClipsTable.position} END)`,
+					position: sql`(CASE ${sql.join(cases)} ELSE ${playlistClipsTable.position} END)`,
 				})
 				.where(eq(playlistClipsTable.playlistId, playlistId))
 				.execute();

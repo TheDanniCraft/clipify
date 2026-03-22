@@ -3,7 +3,7 @@
 
 import axios from "axios";
 import { AuthenticatedUser, Game, Overlay, OverlayType, RewardStatus, TwitchApiResponse, TwitchAppAccessTokenResponse, TwitchCacheType, TwitchClip, TwitchClipResponse, TwitchReward, TwitchRewardResponse, TwitchTokenApiResponse, TwitchUserResponse } from "@types";
-import { deleteTwitchCacheByPrefix, deleteTwitchCacheKeys, getAccessToken, getOverlayBySecret, getOverlayPublic, getPlaylistClipsForOwnerServer, getTwitchCache, getTwitchCacheBatch, getTwitchCacheByPrefixEntries, getTwitchCacheEntry, getTwitchCacheStale, getTwitchCacheStaleBatch, setTwitchCache, setTwitchCacheBatch } from "@actions/database";
+import { deleteTwitchCacheByPrefix, deleteTwitchCacheKeys, getAccessToken, getAccessTokenServer, getOverlayBySecret, getOverlayPublic, getPlaylistClipsForOwnerServer, getTwitchCache, getTwitchCacheBatch, getTwitchCacheByPrefixEntries, getTwitchCacheEntry, getTwitchCacheStale, getTwitchCacheStaleBatch, setTwitchCache, setTwitchCacheBatch } from "@actions/database";
 import { getBaseUrl, isPreview } from "@actions/utils";
 import { isTitleBlocked } from "@/app/utils/regexFilter";
 import { dbPool } from "@/db/client";
@@ -929,7 +929,7 @@ export async function syncOwnerClipCache(ownerId: string, ensurePackSize = 0): P
 		lockAcquired = Boolean(lockResult.rows?.[0]?.locked);
 		if (!lockAcquired) return;
 
-		const token = await getAccessToken(ownerId);
+		const token = await getAccessTokenServer(ownerId);
 		if (!token) return;
 
 		let ownerBackfillLowerBoundMs = TWITCH_CLIPS_LAUNCH_MS;

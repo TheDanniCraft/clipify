@@ -37,7 +37,7 @@ export async function getUserIP() {
 		const isKnownProvider = isVercel || isCoolifyEnv || isCloudflare || isDigitalOcean || isFastly || isAkamai || isGoogleCloud;
 		if (!isKnownProvider) {
 			console.warn(
-				"[security] Potentially untrusted proxy detected. Rate limiting may be impacted if clients can spoof IP headers (e.g. x-forwarded-for). Ensure your reverse proxy (Nginx/Traefik/Caddy) is configured to overwrite these headers."
+				"[security] Potentially untrusted proxy detected. Rate limiting may be impacted if clients can spoof IP headers (e.g. X-Forwarded-For). Ensure your reverse proxy (Nginx/Traefik/Caddy) is configured to overwrite these headers."
 			);
 			hasWarnedUntrustedProxy = true;
 		}

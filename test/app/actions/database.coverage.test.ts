@@ -425,13 +425,16 @@ describe("database.ts coverage tests", () => {
 
 		// saveSettings calls:
 		queueSelectResult([{ disabled: false }]); // 2. getAccessToken userRow
-		queueSelectResult([{ accessToken: "at", refreshToken: "rt", expiresAt: new Date(Date.now() + 10000) }]); // 3. getAccessToken tokenRow
+		queueSelectResult([{ accessToken: "at", refreshToken: "rt", expiresAt: new Date(Date.now() + 1000000) }]); // 3. getAccessToken tokenRow
 		twitch.getUserDetails.mockResolvedValue({ id: "user-1", login: "u1" });
 		queueSelectResult([]); // 4. saveSettings existing settings select
 
 		// getSettings (called again) calls:
 		queueSelectResult([{ id: "user-1", prefix: "!" }]); // 5. getSettings second settings select
 		queueSelectResult([]); // 6. getSettings editors select
+		// getAccessToken call inside getSettings second call
+		queueSelectResult([{ disabled: false }]); // 7. getAccessToken userRow
+		queueSelectResult([{ accessToken: "at", refreshToken: "rt", expiresAt: new Date(Date.now() + 1000000) }]); // 8. getAccessToken tokenRow
 
 		twitch.getUsersDetailsBulk.mockResolvedValue([]);
 		const result = await getSettings("user-1");
@@ -475,7 +478,7 @@ describe("database.ts coverage tests", () => {
 		validateAuth.mockResolvedValue({ id: "user-1" });
 		const { saveSettings } = await loadDatabaseActions();
 		queueSelectResult([{ disabled: false }]); // 1. getAccessToken userRow
-		queueSelectResult([{ accessToken: "at", refreshToken: "rt", expiresAt: new Date(Date.now() + 10000) }]); // 2. getAccessToken tokenRow
+		queueSelectResult([{ accessToken: "at", refreshToken: "rt", expiresAt: new Date(Date.now() + 1000000) }]); // 2. getAccessToken tokenRow
 		twitch.getUserDetails.mockResolvedValue({ id: "user-1", login: "u1" });
 		queueSelectResult([{ marketingOptIn: false }]); // 3. existing settings select
 
@@ -742,7 +745,7 @@ describe("database.ts coverage tests", () => {
 	it("covers saveSettings catch block", async () => {
 		const { saveSettings } = loadDatabaseActions();
 		queueSelectResult([{ disabled: false }]); // getAccessToken userRow
-		queueSelectResult([{ accessToken: "at", refreshToken: "rt", expiresAt: new Date(Date.now() + 10000) }]); // tokenRow (valid)
+		queueSelectResult([{ accessToken: "at", refreshToken: "rt", expiresAt: new Date(Date.now() + 1000000) }]); // tokenRow (valid)
 		twitch.getUserDetails.mockResolvedValue({ login: "u1" });
 		queueSelectResult(new Error("DB Error")); // existingSettingsRows select error
 
@@ -901,7 +904,7 @@ describe("database.ts coverage tests", () => {
 	it("covers saveSettings opt-out source branch", async () => {
 		const { saveSettings } = loadDatabaseActions();
 		queueSelectResult([{ disabled: false }]); // getAccessToken userRow
-		queueSelectResult([{ accessToken: "at", refreshToken: "rt", expiresAt: new Date(Date.now() + 10000) }]); // tokenRow
+		queueSelectResult([{ accessToken: "at", refreshToken: "rt", expiresAt: new Date(Date.now() + 1000000) }]); // tokenRow
 		twitch.getUserDetails.mockResolvedValue({ id: "user-1", login: "u1" });
 		queueSelectResult([{ marketingOptIn: true, marketingOptInAt: new Date(), marketingOptInSource: "settings_page_explicit_optin" }]); // existing settings
 
@@ -912,7 +915,7 @@ describe("database.ts coverage tests", () => {
 	it("covers saveSettings contact id update branch", async () => {
 		const { saveSettings } = loadDatabaseActions();
 		queueSelectResult([{ disabled: false }]); // getAccessToken userRow
-		queueSelectResult([{ accessToken: "at", refreshToken: "rt", expiresAt: new Date(Date.now() + 10000) }]); // tokenRow
+		queueSelectResult([{ accessToken: "at", refreshToken: "rt", expiresAt: new Date(Date.now() + 1000000) }]); // tokenRow
 		twitch.getUserDetails.mockResolvedValue({ id: "user-1", login: "u1" });
 		queueSelectResult([{ marketingOptIn: false, marketingOptInAt: null, marketingOptInSource: null, useSendProductUpdatesContactId: null }]); // existing settings
 		newsletter.syncProductUpdatesContact.mockResolvedValue("new-contact");
@@ -1216,5 +1219,108 @@ describe("database.ts coverage tests", () => {
 		queueSelectResult([{ disabled: true, disabledReason: null }]); // owner
 		const result = await getOverlayPublic("ov1");
 		expect(result?.ownerDisabledReason).toBe("account_disabled");
+	});
+
+	describe("getAccessToken actions", () => {
+		it("getAccessTokenResult returns unauthorized if not owner or admin", async () => {
+			const { getAccessTokenResult } = loadDatabaseActions();
+			validateAuth.mockResolvedValueOnce({ id: "other-user", role: "user" });
+			const result = await getAccessTokenResult("target-user");
+			expect(result).toEqual({ token: null, reason: "unauthorized" });
+		});
+
+		it("getAccessTokenResultServer returns user_disabled if user is disabled", async () => {
+			const { getAccessTokenResultServer } = loadDatabaseActions();
+			queueSelectResult([{ disabled: true }]); // user check
+			const result = await getAccessTokenResultServer("user-1");
+			expect(result).toEqual({ token: null, reason: "user_disabled" });
+		});
+
+		it("getAccessTokenResultServer returns token_row_missing if no token row", async () => {
+			const { getAccessTokenResultServer } = loadDatabaseActions();
+			queueSelectResult([{ disabled: false }]); // user check
+			queueSelectResult([]); // token check
+			const result = await getAccessTokenResultServer("user-1");
+			expect(result).toEqual({ token: null, reason: "token_row_missing" });
+		});
+
+		it("getAccessTokenResultServer returns token_decrypt_failed on decryption error", async () => {
+			const { getAccessTokenResultServer } = loadDatabaseActions();
+			const { decryptToken } = require("@lib/tokenCrypto");
+			decryptToken.mockImplementationOnce(() => {
+				throw new Error("fail");
+			});
+			queueSelectResult([{ disabled: false }]); // user check
+			queueSelectResult([{ accessToken: "at", refreshToken: "rt" }]); // token check
+			const result = await getAccessTokenResultServer("user-1");
+			expect(result).toEqual({ token: null, reason: "token_decrypt_failed" });
+		});
+
+		it("getAccessTokenResultServer refreshes token if expired", async () => {
+			const { getAccessTokenResultServer } = loadDatabaseActions();
+			const now = new Date();
+			const expiredAt = new Date(now.getTime() - 1000);
+			queueSelectResult([{ disabled: false }]); // user check
+			queueSelectResult([{ accessToken: "at", refreshToken: "rt", expiresAt: expiredAt, scope: ["s"], tokenType: "Bearer" }]); // token check
+
+			twitch.refreshAccessTokenWithContext.mockResolvedValueOnce({
+				token: { access_token: "new-at", refresh_token: "new-rt", expires_in: 3600, scope: ["s"], token_type: "Bearer" },
+			});
+			twitch.getUserDetails.mockResolvedValueOnce({ id: "user-1", login: "u1" });
+			queueSelectResult([{ id: "user-1" }]); // insertUser select
+
+			const result = await getAccessTokenResultServer("user-1");
+			expect(result.token?.accessToken).toBe("new-at");
+			expect(twitch.refreshAccessTokenWithContext).toHaveBeenCalledWith("rt", "user-1");
+		});
+
+		it("getAccessTokenResultServer handles refresh failure", async () => {
+			const { getAccessTokenResultServer } = loadDatabaseActions();
+			const expiredAt = new Date(Date.now() - 1000);
+			queueSelectResult([{ disabled: false }]); // user check
+			queueSelectResult([{ accessToken: "at", refreshToken: "rt", expiresAt: expiredAt }]); // token check
+
+			twitch.refreshAccessTokenWithContext.mockResolvedValueOnce({ token: null, invalidRefreshToken: false });
+
+			const result = await getAccessTokenResultServer("user-1");
+			expect(result).toEqual({ token: null, reason: "refresh_failed" });
+		});
+
+		it("getAccessTokenResultServer handles invalid refresh token and disables user", async () => {
+			const { getAccessTokenResultServer } = loadDatabaseActions();
+			const expiredAt = new Date(Date.now() - 1000);
+			queueSelectResult([{ disabled: false }]); // user check
+			queueSelectResult([{ accessToken: "at", refreshToken: "rt", expiresAt: expiredAt }]); // token check
+
+			twitch.refreshAccessTokenWithContext.mockResolvedValueOnce({ token: null, invalidRefreshToken: true });
+
+			const result = await getAccessTokenResultServer("user-1");
+			expect(result).toEqual({ token: null, reason: "refresh_invalid_token" });
+			expect(dbUpdate).toHaveBeenCalled(); // disableUserAccess call
+		});
+
+		it("getAccessTokenResultServer throws error on database failure", async () => {
+			const { getAccessTokenResultServer } = loadDatabaseActions();
+			dbSelect.mockImplementationOnce(() => {
+				throw new Error("db-fail");
+			});
+			await expect(getAccessTokenResultServer("user-1")).rejects.toThrow("Failed to fetch access token");
+		});
+
+		it("getAccessToken and getAccessTokenServer wrappers", async () => {
+			const { getAccessToken, getAccessTokenServer } = loadDatabaseActions();
+			// Mocking result of the internal result function to be success
+			validateAuth.mockResolvedValueOnce({ id: "user-1", role: "user" });
+			queueSelectResult([{ disabled: false }]); // getAccessTokenResult -> getAccessTokenResultServer -> user check
+			queueSelectResult([{ accessToken: "at", refreshToken: "rt", expiresAt: new Date(Date.now() + 1000000) }]); // token check
+
+			const token1 = await getAccessToken("user-1");
+			expect(token1?.accessToken).toBe("at");
+
+			queueSelectResult([{ disabled: false }]); // getAccessTokenServer -> getAccessTokenResultServer -> user check
+			queueSelectResult([{ accessToken: "at2", refreshToken: "rt2", expiresAt: new Date(Date.now() + 1000000) }]); // token check
+			const token2 = await getAccessTokenServer("user-1");
+			expect(token2?.accessToken).toBe("at2");
+		});
 	});
 });

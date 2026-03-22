@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
 	const redirectUrl = (await safeReturnUrl(rawRedirectUrl)) || "/";
 	const campaign = request.nextUrl.searchParams.get("campaign");
 
-	if (!offerCode) return NextResponse.redirect(new URL(redirectUrl, base));
+	if (!offerCode) return NextResponse.redirect(new URL(redirectUrl, base).toString());
 
 	cookieStore.set("offer", offerCode, {
 		httpOnly: true,

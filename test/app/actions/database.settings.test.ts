@@ -231,9 +231,9 @@ describe("actions/database settings logic", () => {
 
 	it("saves settings correctly", async () => {
 		const { saveSettings } = await loadDatabaseActions();
+		queueSelectResult([{ disabled: false }]); // getAccessToken userRow
+		queueSelectResult([{ accessToken: "at", refreshToken: "rt", expiresAt: new Date(Date.now() + 3600000) }]); // getAccessToken tokenRow
 		queueSelectResult([{ id: "user-1", marketingOptIn: false }]); // existing settings select
-		queueSelectResult([{ disabled: false }]); // usersTable select (getAccessToken)
-		queueSelectResult([{ accessToken: "at", refreshToken: "rt", expiresAt: new Date(Date.now() + 3600000) }]); // tokenTable select (getAccessToken)
 		getUsersDetailsBulk.mockResolvedValue([{ id: "editor-1", login: "editor1" }]);
 
 		await saveSettings({
@@ -304,9 +304,9 @@ describe("actions/database settings logic", () => {
 
 	it("saves settings with explicit opt-in source", async () => {
 		const { saveSettings } = await loadDatabaseActions();
+		queueSelectResult([{ disabled: false }]); // getAccessToken userRow
+		queueSelectResult([{ accessToken: "at", refreshToken: "rt", expiresAt: new Date(Date.now() + 3600000) }]); // getAccessToken tokenRow
 		queueSelectResult([{ id: "user-1", marketingOptIn: false }]); // existing settings select
-		queueSelectResult([{ disabled: false }]); // usersTable select (getAccessToken)
-		queueSelectResult([{ accessToken: "at", refreshToken: "rt", expiresAt: new Date(Date.now() + 3600000) }]); // tokenTable select (getAccessToken)
 
 		await saveSettings({
 			id: "user-1",

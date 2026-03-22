@@ -39,7 +39,7 @@ export default function PlaylistPage() {
 	const [cachedClipsFilter, setCachedClipsFilter] = useState("");
 	const [, setIsLoadingCachedClips] = useState(false);
 	const [cachedClipsPage, setCachedClipsPage] = useState(1);
-	const rowsPerPage = 50;
+	const ROWS_PER_PAGE = 50;
 	const [cachedClipsSortDescriptor, setCachedClipsSortDescriptor] = useState<SortDescriptor>({
 		column: "date",
 		direction: "descending",
@@ -108,20 +108,25 @@ export default function PlaylistPage() {
 	}, [router]);
 
 	useEffect(() => {
+		let active = true;
 		async function fetchData() {
 			if (!user || !playlistId) return;
 			const playlists = await getPlaylistsForOwner(user.id);
 			const found = playlists?.find((p) => p.id === playlistId);
-			if (found) {
+			if (active && found) {
 				setPlaylist({ id: found.id, name: found.name, clipCount: found.clipCount });
 				setPlaylistNameDraft(found.name);
 				const clips = await getPlaylistClips(found.id);
+				if (!active) return;
 				setPlaylistClips(clips);
 				setSavedPlaylistClipIds(clips.map((clip) => clip.id));
 				await resolveGameDetails(clips);
 			}
 		}
 		fetchData();
+		return () => {
+			active = false;
+		};
 	}, [user, playlistId, resolveGameDetails]);
 
 	useEffect(() => {
@@ -245,18 +250,22 @@ export default function PlaylistPage() {
 			const preselectedClipIds = clips.filter((clip) => existingPlaylistClipIds.has(clip.id)).map((clip) => clip.id);
 			setSelectedCachedClipIds(new Set(preselectedClipIds));
 			setCachedClipsPage(1);
+		} catch (error) {
+			console.error("Failed to load cached clips:", error);
+			addToast({ title: "Failed to load clips", color: "danger" });
+			onAddClipsOpenChange();
 		} finally {
 			setIsLoadingCachedClips(false);
 		}
 	}
 
 	const paginatedCachedClips = useMemo(() => {
-		const start = (cachedClipsPage - 1) * rowsPerPage;
-		const end = start + rowsPerPage;
+		const start = (cachedClipsPage - 1) * ROWS_PER_PAGE;
+		const end = start + ROWS_PER_PAGE;
 		return sortedCachedClips.slice(start, end);
 	}, [cachedClipsPage, sortedCachedClips]);
 
-	const cachedClipsPagesCount = Math.ceil(sortedCachedClips.length / rowsPerPage);
+	const cachedClipsPagesCount = Math.ceil(sortedCachedClips.length / ROWS_PER_PAGE);
 
 	async function handleAddSelectedClips() {
 		const selectedIds = Array.from(selectedCachedClipIds as Set<string>);

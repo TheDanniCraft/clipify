@@ -4,6 +4,7 @@ export {};
 import axios from "axios";
 
 const getAccessToken = jest.fn();
+const getAccessTokenServer = jest.fn();
 const getOverlayBySecret = jest.fn();
 const getOverlayPublic = jest.fn();
 const getPlaylistClipsForOwnerServer = jest.fn();
@@ -17,6 +18,8 @@ jest.mock("@actions/database", () => ({
 	deleteTwitchCacheByPrefix: jest.fn(),
 	deleteTwitchCacheKeys: jest.fn(),
 	getAccessToken: (...args: unknown[]) => getAccessToken(...args),
+	getAccessTokenServer: (...args: unknown[]) => getAccessTokenServer(...args),
+	getAccessTokenResultServer: jest.fn(),
 	getOverlayBySecret: (...args: unknown[]) => getOverlayBySecret(...args),
 	getOverlayPublic: (...args: unknown[]) => getOverlayPublic(...args),
 	getPlaylistClipsForOwnerServer: (...args: unknown[]) => getPlaylistClipsForOwnerServer(...args),
@@ -134,6 +137,7 @@ describe("actions/twitch playback and cache behavior", () => {
 		jest.restoreAllMocks();
 		connect.mockResolvedValue(createLockClient(false));
 		getAccessToken.mockResolvedValue({ accessToken: "token" });
+		getAccessTokenServer.mockResolvedValue({ accessToken: "token" });
 		getOverlayBySecret.mockResolvedValue(buildOverlay());
 		getOverlayPublic.mockResolvedValue(buildOverlay());
 		getPlaylistClipsForOwnerServer.mockResolvedValue([]);

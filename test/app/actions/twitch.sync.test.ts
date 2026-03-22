@@ -7,6 +7,7 @@ import { TwitchCacheType } from "@types";
 const deleteTwitchCacheByPrefix = jest.fn();
 const deleteTwitchCacheKeys = jest.fn();
 const getAccessToken = jest.fn();
+const getAccessTokenServer = jest.fn();
 const getTwitchCache = jest.fn();
 const getTwitchCacheByPrefixEntries = jest.fn();
 const setTwitchCache = jest.fn();
@@ -19,6 +20,8 @@ jest.mock("@actions/database", () => ({
 	deleteTwitchCacheByPrefix: (...args: unknown[]) => deleteTwitchCacheByPrefix(...args),
 	deleteTwitchCacheKeys: (...args: unknown[]) => deleteTwitchCacheKeys(...args),
 	getAccessToken: (...args: unknown[]) => getAccessToken(...args),
+	getAccessTokenServer: (...args: unknown[]) => getAccessTokenServer(...args),
+	getAccessTokenResultServer: jest.fn(),
 	getOverlayBySecret: jest.fn(),
 	getOverlayPublic: jest.fn(),
 	getPlaylistClipsForOwnerServer: jest.fn(),
@@ -104,6 +107,7 @@ describe("actions/twitch syncOwnerClipCache", () => {
 		jest.clearAllMocks();
 		connect.mockResolvedValue(createLockClient(true));
 		getAccessToken.mockResolvedValue({ accessToken: "token" });
+		getAccessTokenServer.mockResolvedValue({ accessToken: "token" });
 		getTwitchCache.mockResolvedValue({});
 		getTwitchCacheByPrefixEntries.mockResolvedValue([]);
 		validateAuth.mockResolvedValue(null);
@@ -175,7 +179,7 @@ describe("actions/twitch syncOwnerClipCache", () => {
 	});
 
 	it("returns early when no access token is available", async () => {
-		getAccessToken.mockResolvedValue(null);
+		getAccessTokenServer.mockResolvedValue(null);
 		const axiosSpy = jest.spyOn(axios, "get");
 
 		const { syncOwnerClipCache } = await import("@/app/actions/twitch");
