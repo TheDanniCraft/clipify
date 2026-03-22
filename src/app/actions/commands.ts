@@ -92,12 +92,9 @@ function canSendUpgradeMessage(broadcasterUserId: string, chatterUserId: string)
 
 export async function isCommand(message: TwitchMessage): Promise<boolean> {
 	const prefix = await getPrefix(message.broadcaster_user_id);
-/* ignore: command processing edge case */
 	if (!prefix) return false;
-	if (message.message.fragments[0].type === "text" && message.message.fragments[0].text.startsWith(prefix)) {
-		return true;
-	}
-	return false;
+	const firstFragment = message.message.fragments[0];
+	return firstFragment.type === "text" && firstFragment.text.startsWith(prefix);
 }
 
 export async function isMod(message: TwitchMessage): Promise<boolean> {
