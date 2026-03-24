@@ -29,11 +29,11 @@
 		"jsonwebtoken": "^9.0.3",
 		"minimatch": "^10.2.4",
 		"motion": "^12.38.0",
-		"next": "^16.2.0",
+		"next": "^16.2.1",
 		"next-navigation-guard": "^0.2.0",
 		"next-plausible": "^3.12.5",
 		"next-themes": "^0.4.6",
-		"next-ws": "^2.2.1",
+		"next-ws": "^2.2.2",
 		"nextjs-turnstile": "^1.0.5",
 		"pg": "^8.20.0",
 		"rate-limiter-flexible": "^10.0.1",
@@ -43,7 +43,7 @@
 		"recharts": "^3.8.0",
 		"stripe": "^20.4.1",
 		"usesend-js": "^1.6.3",
-		"ws": "^8.19.0",
+		"ws": "^8.20.0",
 		"xss": "^1.0.15"
 	},
 	"devDependencies": {
@@ -54,20 +54,20 @@
 		"@types/jest": "^30.0.0",
 		"@types/jsonwebtoken": "^9.0.10",
 		"@types/node": "^25.5.0",
-		"@types/pg": "^8.18.0",
+		"@types/pg": "^8.20.0",
 		"@types/react": "^19.2.14",
 		"@types/react-dom": "^19.2.3",
 		"@types/ws": "^8.18.1",
-		"@vercel/nft": "^1.4.0",
+		"@vercel/nft": "^1.5.0",
 		"drizzle-kit": "^0.31.10",
 		"eslint": "^9.39.4",
-		"eslint-config-next": "^16.2.0",
+		"eslint-config-next": "^16.2.1",
 		"husky": "^9.1.7",
 		"jest": "^30.3.0",
 		"jest-environment-jsdom": "^30.3.0",
 		"tailwindcss": "^4.2.2",
 		"tsx": "^4.21.0",
-		"typescript": "^5.9.3"
+		"typescript": "^6.0.2"
 	},
 	"patchedDependencies": {
 		"next@16.1.6": "patches/next@16.1.6.patch"
