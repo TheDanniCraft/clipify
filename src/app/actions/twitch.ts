@@ -79,6 +79,48 @@ function parseCachedClipValue(value: CachedClipValue | TwitchClip | null | undef
 	return null;
 }
 
+function normalizeGameSearchText(value: string): string {
+	return value.toLowerCase().replace(/[^a-z0-9]+/g, "");
+}
+
+function buildGameSearchQueries(query: string): string[] {
+	const base = query.trim();
+	const normalized = normalizeGameSearchText(base);
+	const spaced = base.toLowerCase().replace(/[-_]+/g, " ").replace(/\s+/g, " ").trim();
+	const compact = base.toLowerCase().replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+	const fallbackPrefix = normalized.length > 5 ? normalized.slice(0, 6) : "";
+
+	return Array.from(new Set([base, spaced, compact, normalized, fallbackPrefix].filter((entry) => entry.length >= 2)));
+}
+
+function levenshteinDistance(a: string, b: string): number {
+	const dp: number[] = new Array(b.length + 1);
+	for (let j = 0; j <= b.length; j++) dp[j] = j;
+	for (let i = 1; i <= a.length; i++) {
+		let prev = dp[0];
+		dp[0] = i;
+		for (let j = 1; j <= b.length; j++) {
+			const temp = dp[j];
+			const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+			dp[j] = Math.min(dp[j] + 1, dp[j - 1] + 1, prev + cost);
+			prev = temp;
+		}
+	}
+	return dp[b.length];
+}
+
+function scoreGameSearchResult(game: Game, rawQuery: string): number {
+	const query = normalizeGameSearchText(rawQuery);
+	const name = normalizeGameSearchText(game.name);
+	if (!query) return 999;
+	if (name === query) return 0;
+	if (name.startsWith(query)) return 1;
+	if (name.includes(query)) return 2;
+	if (query.startsWith(name)) return 3;
+	const boundedName = name.slice(0, Math.max(query.length + 2, 8));
+	return 10 + levenshteinDistance(boundedName, query);
+}
+
 function getRateLimitResumeAt(error: unknown, nowMs: number): string | null {
 	if (!axios.isAxiosError(error) || error.response?.status !== 429) return null;
 	const retryAfterRaw = error.response?.headers?.["retry-after"];
@@ -154,33 +196,42 @@ async function internalSearchTwitchGames(query: string, authUserId: string): Pro
 	if (!token) return [];
 
 	try {
-		const [searchResponse, exactResponse] = await Promise.all([
-			axios.get<TwitchApiResponse<Game>>("https://api.twitch.tv/helix/search/categories", {
-				headers: {
-					Authorization: `Bearer ${token.accessToken}`,
+		const searchQueries = buildGameSearchQueries(query);
+		const searchResponses = await Promise.all(
+			searchQueries.map((searchQuery) =>
+				axios.get<TwitchApiResponse<Game>>("https://api.twitch.tv/helix/search/categories", {
+					headers: {
+						Authorization: `Bearer ${token.accessToken}`,
 /* istanbul ignore next */
-					"Client-Id": process.env.TWITCH_CLIENT_ID || "",
-				},
-				params: { query, first: 100 },
-			}),
-			axios.get<TwitchApiResponse<Game>>("https://api.twitch.tv/helix/games", {
-				headers: {
-					Authorization: `Bearer ${token.accessToken}`,
+						"Client-Id": process.env.TWITCH_CLIENT_ID || "",
+					},
+					params: { query: searchQuery, first: 100 },
+				}),
+			),
+		);
+		const exactResponse = await axios.get<TwitchApiResponse<Game>>("https://api.twitch.tv/helix/games", {
+			headers: {
+				Authorization: `Bearer ${token.accessToken}`,
 /* istanbul ignore next */
-					"Client-Id": process.env.TWITCH_CLIENT_ID || "",
-				},
-				params: { name: query },
-			}),
-		]);
+				"Client-Id": process.env.TWITCH_CLIENT_ID || "",
+			},
+			params: { name: query },
+		});
 
-		const searchGames = searchResponse.data.data;
+		const searchGames = searchResponses.flatMap((response) => response.data.data);
 		const exactGames = exactResponse.data.data;
 
 		// Merge and deduplicate
 		const map = new Map<string, Game>();
 		for (const game of exactGames) map.set(game.id, game);
 		for (const game of searchGames) map.set(game.id, game);
-		const games = Array.from(map.values());
+		const games = Array.from(map.values())
+			.sort((a, b) => {
+				const scoreDiff = scoreGameSearchResult(a, query) - scoreGameSearchResult(b, query);
+				if (scoreDiff !== 0) return scoreDiff;
+				return a.name.localeCompare(b.name);
+			})
+			.slice(0, 100);
 
 		const CACHE_TTL_SECONDS = 60 * 60 * 24 * 30; // 30 days
 /* istanbul ignore next */

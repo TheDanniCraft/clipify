@@ -23,6 +23,7 @@ const ALL_CATEGORIES_OPTION: Game = {
 };
 const FREE_PLAYLIST_CLIP_LIMIT = 50;
 const DEFAULT_IMPORT_START_DATE = "2016-01-01";
+const normalizeCategorySearch = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, "");
 
 export default function PlaylistPage() {
 	const router = useRouter();
@@ -155,8 +156,25 @@ export default function PlaylistPage() {
 		const all = [ALL_CATEGORIES_OPTION, ...Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name))];
 		const query = importCategoryInput.trim().toLowerCase();
 		if (!query || query === "all" || query === "all categories") return [ALL_CATEGORIES_OPTION];
+		const normalizedQuery = normalizeCategorySearch(query);
 
-		return all.filter((game) => game.name.toLowerCase().includes(query) || game.id === "all");
+		return all
+			.filter((game) => {
+				if (game.id === "all") return true;
+				const gameName = game.name.toLowerCase();
+				if (gameName.includes(query)) return true;
+				return normalizeCategorySearch(gameName).includes(normalizedQuery);
+			})
+			.sort((a, b) => {
+				if (a.id === "all") return -1;
+				if (b.id === "all") return 1;
+				const aNorm = normalizeCategorySearch(a.name);
+				const bNorm = normalizeCategorySearch(b.name);
+				const aExact = aNorm === normalizedQuery ? 0 : aNorm.startsWith(normalizedQuery) ? 1 : 2;
+				const bExact = bNorm === normalizedQuery ? 0 : bNorm.startsWith(normalizedQuery) ? 1 : 2;
+				if (aExact !== bExact) return aExact - bExact;
+				return a.name.localeCompare(b.name);
+			});
 	}, [cachedCategoryOptions, gameSearchResults, importCategoryInput]);
 
 	const getGameName = useCallback(
@@ -311,6 +329,8 @@ export default function PlaylistPage() {
 			}
 			await resolveGameDetails(imported);
 			addToast({ title: `Imported ${imported.length} clips into draft`, color: "success" });
+			setPendingImportMode(null);
+			onImportClose();
 		} catch (error) {
 			addToast({
 				title: "Import failed",

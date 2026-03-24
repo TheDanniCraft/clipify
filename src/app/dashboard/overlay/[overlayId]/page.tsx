@@ -44,6 +44,7 @@ const ALL_CATEGORIES_OPTION: Game = {
 };
 const FREE_PLAYLIST_CLIP_LIMIT = 50;
 const DEFAULT_IMPORT_START_DATE = "2016-01-01";
+const normalizeCategorySearch = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, "");
 
 const playbackModes: { key: PlaybackMode; label: string }[] = [
 	{ key: PlaybackMode.Random, label: "Random" },
@@ -232,8 +233,25 @@ export default function OverlaySettings() {
 		const all = [ALL_CATEGORIES_OPTION, ...Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name))];
 		const query = importCategoryInput.trim().toLowerCase();
 		if (!query || query === "all" || query === "all categories") return [ALL_CATEGORIES_OPTION];
+		const normalizedQuery = normalizeCategorySearch(query);
 
-		return all.filter((game) => game.name.toLowerCase().includes(query) || game.id === "all");
+		return all
+			.filter((game) => {
+				if (game.id === "all") return true;
+				const gameName = game.name.toLowerCase();
+				if (gameName.includes(query)) return true;
+				return normalizeCategorySearch(gameName).includes(normalizedQuery);
+			})
+			.sort((a, b) => {
+				if (a.id === "all") return -1;
+				if (b.id === "all") return 1;
+				const aNorm = normalizeCategorySearch(a.name);
+				const bNorm = normalizeCategorySearch(b.name);
+				const aExact = aNorm === normalizedQuery ? 0 : aNorm.startsWith(normalizedQuery) ? 1 : 2;
+				const bExact = bNorm === normalizedQuery ? 0 : bNorm.startsWith(normalizedQuery) ? 1 : 2;
+				if (aExact !== bExact) return aExact - bExact;
+				return a.name.localeCompare(b.name);
+			});
 	}, [cachedCategoryOptions, gameSearchResults, importCategoryInput]);
 
 	function getGameName(gameId: string) {
@@ -525,6 +543,8 @@ export default function OverlaySettings() {
 			}
 			await resolveGameDetails(imported);
 			addToast({ title: `Imported ${imported.length} clips into draft`, color: "success" });
+			setPendingImportMode(null);
+			onImportClose();
 		} catch (error) {
 			addToast({
 				title: "Import failed",
@@ -776,12 +796,9 @@ export default function OverlaySettings() {
 												.
 											</span>
 										</div>
-										<div className='w-full flex justify-center items-center text-xs text-primary-400 p-2 border border-primary-200 rounded bg-primary-50 max-w-full'>
-											<IconInfoCircle size={16} className='mr-2 flex-shrink-0' />
-											<span className='text-center font-medium'>
-												Optimal Browser Source resolution: <span className='font-bold underline'>1920x1080</span>. Ensure your OBS/Streamlabs source matches this for best quality.
-											</span>
-										</div>
+										<p className='text-xs text-default-500 text-center'>
+											For OBS/Streamlabs browser sources, use <span className='font-semibold'>1920x1080</span> for best scaling.
+										</p>
 									</div>
 									<Input
 										value={overlay.name}
