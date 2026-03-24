@@ -656,7 +656,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 													});
 													return;
 												}
-												await reloadOverlays();
+												router.push(`/dashboard/playlist/${playlist.id}`);
 											} catch {
 												addToast({
 													title: "Error",
@@ -761,8 +761,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 											setIsLoading(false);
 											return;
 										}
-										await reloadOverlays();
-										setIsLoading(false);
+										router.push(`/dashboard/playlist/${playlist.id}`);
 									})
 									.catch(() => {
 										addToast({
@@ -856,7 +855,8 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 				bottomContent={bottomContent}
 				bottomContentPlacement='outside'
 				classNames={{
-					td: "before:bg-transparent",
+					th: "first:w-[30px] first:min-w-[30px] first:max-w-[30px] first:px-1",
+					td: "before:bg-transparent first:w-[30px] first:min-w-[30px] first:max-w-[30px] first:px-1",
 				}}
 				selectedKeys={filterSelectedKeys}
 				selectionMode='multiple'
@@ -871,7 +871,16 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 			>
 				<TableHeader columns={headerColumns}>
 					{(column) => (
-						<TableColumn key={column.uid} align={column.uid === "actions" ? "end" : "start"} className={cn([column.uid === "actions" ? "flex items-center justify-end px-[20px]" : ""])}>
+						<TableColumn
+							key={column.uid}
+							align={column.uid === "actions" || column.uid === "clipCount" ? "end" : "start"}
+							className={cn([
+								column.uid === "actions" ? "flex items-center justify-end px-[20px]" : "",
+								column.uid === "accessType" ? "w-[48px] min-w-[48px] max-w-[48px] px-1" : "",
+								column.uid === "clipCount" ? "w-[90px] min-w-[90px] max-w-[90px] text-right" : "",
+								column.uid === "name" ? "w-full" : "",
+							])}
+						>
 							{column.uid === "name" ? (
 								<div {...getOverlayInfoProps()} className='flex w-full cursor-pointer items-center justify-between'>
 									{column.name}
@@ -891,7 +900,21 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 					)}
 				</TableHeader>
 				<TableBody emptyContent={activeTab === "overlays" ? (overlays === undefined ? <Spinner label='Loading overlays' /> : <div className='text-default-400'>No overlays found</div>) : (playlists === undefined ? <Spinner label='Loading playlists' /> : <div className='text-default-400'>No playlists found</div>)} items={sortedItems}>
-					{(item) => <TableRow key={item.id}>{(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}</TableRow>}
+					{(item) => (
+						<TableRow key={item.id}>
+							{(columnKey) => (
+								<TableCell
+									className={cn(
+										columnKey === "accessType" ? "w-[48px] min-w-[48px] max-w-[48px] px-1" : "",
+										columnKey === "clipCount" ? "w-[90px] min-w-[90px] max-w-[90px] text-right" : "",
+										columnKey === "name" ? "w-full" : "",
+									)}
+								>
+									{renderCell(item, columnKey)}
+								</TableCell>
+							)}
+						</TableRow>
+					)}
 				</TableBody>
 			</Table>
 
