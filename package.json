@@ -42,7 +42,7 @@
 		"recharts": "^3.8.0",
 		"stripe": "^20.4.1",
 		"usesend-js": "^1.6.3",
-		"ws": "^8.19.0",
+		"ws": "^8.20.0",
 		"xss": "^1.0.15"
 	},
 	"devDependencies": {
