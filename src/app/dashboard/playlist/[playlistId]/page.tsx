@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { getPlaylistClips, getPlaylistsForOwner, previewImportPlaylistClips, savePlaylist, upsertPlaylistClips } from "@actions/database";
+import { getAllPlaylists, getPlaylistClips, previewImportPlaylistClips, savePlaylist, upsertPlaylistClips } from "@actions/database";
 import { addToast, Autocomplete, AutocompleteItem, Button, Card, CardBody, CardHeader, Checkbox, DateRangePicker, Divider, Image, Input, Link, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, NumberInput, Pagination, Spinner, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow, useDisclosure } from "@heroui/react";
 import { AuthenticatedUser, Game, OverlayType, TwitchClip } from "@types";
 import { IconAlertTriangle, IconArrowLeft, IconDeviceFloppy, IconDownload, IconGripVertical, IconPlus, IconSearch, IconTrash } from "@tabler/icons-react";
@@ -31,6 +31,7 @@ export default function PlaylistPage() {
 
 	const [user, setUser] = useState<AuthenticatedUser>();
 	const [playlist, setPlaylist] = useState<{ id: string; name: string; clipCount: number } | null>(null);
+	const [isPlaylistResolved, setIsPlaylistResolved] = useState(false);
 	const [playlistNameDraft, setPlaylistNameDraft] = useState("");
 	const [playlistClips, setPlaylistClips] = useState<TwitchClip[]>([]);
 	const [selectedPlaylistClipIds, setSelectedPlaylistClipIds] = useState<Set<string>>(new Set());
@@ -112,7 +113,8 @@ export default function PlaylistPage() {
 		let active = true;
 		async function fetchData() {
 			if (!user || !playlistId) return;
-			const playlists = await getPlaylistsForOwner(user.id);
+			setIsPlaylistResolved(false);
+			const playlists = await getAllPlaylists(user.id);
 			const found = playlists?.find((p) => p.id === playlistId);
 			if (active && found) {
 				setPlaylist({ id: found.id, name: found.name, clipCount: found.clipCount });
@@ -123,6 +125,7 @@ export default function PlaylistPage() {
 				setSavedPlaylistClipIds(clips.map((clip) => clip.id));
 				await resolveGameDetails(clips);
 			}
+			if (active) setIsPlaylistResolved(true);
 		}
 		fetchData();
 		return () => {
@@ -245,7 +248,7 @@ export default function PlaylistPage() {
 
 	async function refreshPlaylist() {
 		if (!user || !playlistId) return;
-		const playlists = await getPlaylistsForOwner(user.id);
+		const playlists = await getAllPlaylists(user.id);
 		const found = playlists?.find((p) => p.id === playlistId);
 		if (found) {
 			setPlaylist({ id: found.id, name: found.name, clipCount: found.clipCount });
@@ -340,11 +343,29 @@ export default function PlaylistPage() {
 		}
 	}
 
-	if (!playlist) {
+	if (!isPlaylistResolved || !user) {
 		return (
 			<div className='flex h-screen w-full flex-col items-center justify-center'>
 				<Spinner label='Loading playlist' />
 			</div>
+		);
+	}
+
+	if (!playlist) {
+		return (
+			<DashboardNavbar user={user} title='Playlist Management' tagline='Manage your curated clip sets'>
+				<div className='flex w-full justify-center p-4'>
+					<Card className='w-full max-w-2xl'>
+						<CardBody className='flex flex-col items-center gap-4 py-10 text-center'>
+							<div className='text-xl font-semibold'>Playlist not found</div>
+							<div className='text-sm text-default-500'>This playlist may not exist anymore, or you might not have access.</div>
+							<Button startContent={<IconArrowLeft size={16} />} onPress={() => router.push("/dashboard")}>
+								Back to Dashboard
+							</Button>
+						</CardBody>
+					</Card>
+				</div>
+			</DashboardNavbar>
 		);
 	}
 
