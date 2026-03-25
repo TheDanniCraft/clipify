@@ -1170,7 +1170,7 @@ export async function getTwitchClips(overlay: Overlay, type?: OverlayType, skipF
 		}
 	}
 
-	if (!skipFilter) {
+	if (!skipFilter && overlayType !== OverlayType.Playlist) {
 		if (overlay.preferCurrentCategory) {
 			const token = await getAccessTokenServer(overlay.ownerId);
 			if (token?.accessToken) {
@@ -1402,21 +1402,15 @@ export async function getGamesDetailsBulk(gameIds: string[], authUserId: string)
 		TwitchCacheType.Game,
 		gameIds.map((id) => id),
 	);
-	const results: Game[] = [];
-	const missingIds: string[] = [];
-
-	for (let i = 0; i < gameIds.length; i++) {
-		const id = gameIds[i];
-		const cached = cacheEntries[i];
-		if (cached !== null && cached !== undefined) {
-/* istanbul ignore next */
-			if (cached) results.push(cached);
-			continue;
-		}
-		missingIds.push(id);
+	const gamesById = new Map<string, Game>();
+	for (const cached of cacheEntries) {
+		if (cached?.id) gamesById.set(cached.id, cached);
 	}
+	const missingIds = Array.from(new Set(gameIds.filter((id) => !gamesById.has(id))));
 
-	if (missingIds.length === 0) return results;
+	if (missingIds.length === 0) {
+		return gameIds.map((id) => gamesById.get(id)).filter((game): game is Game => !!game);
+	}
 
 /* istanbul ignore next */
 	let accessToken = authUserId ? (await getAccessTokenServer(authUserId))?.accessToken : undefined;
@@ -1433,7 +1427,7 @@ export async function getGamesDetailsBulk(gameIds: string[], authUserId: string)
 /* istanbul ignore next */
 		console.error("No access token found for authUserId:", authUserId);
 /* istanbul ignore next */
-		return results;
+		return gameIds.map((id) => gamesById.get(id)).filter((game): game is Game => !!game);
 	}
 
 	try {
@@ -1455,23 +1449,25 @@ export async function getGamesDetailsBulk(gameIds: string[], authUserId: string)
 			});
 
 			const games = response.data.data;
-			results.push(...games);
+			for (const game of games) {
+				gamesById.set(game.id, game);
+			}
 
-			const gamesById = new Map(games.map((g) => [g.id, g]));
+			const chunkGamesById = new Map(games.map((g) => [g.id, g]));
 			await setTwitchCacheBatch(
 				TwitchCacheType.Game,
 /* istanbul ignore next */
-				chunk.map((id) => ({ key: id, value: gamesById.get(id) || null })),
+				chunk.map((id) => ({ key: id, value: chunkGamesById.get(id) || null })),
 				GAME_CACHE_TTL_SECONDS,
 			);
 		}
 
-		return results;
+		return gameIds.map((id) => gamesById.get(id)).filter((game): game is Game => !!game);
 	} catch (error) {
 /* istanbul ignore next */
 		logTwitchError("Error fetching bulk game details", error);
 /* istanbul ignore next */
-		return results;
+		return gameIds.map((id) => gamesById.get(id)).filter((game): game is Game => !!game);
 	}
 }
 

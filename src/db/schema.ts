@@ -180,7 +180,7 @@ export const settingsTable = pgTable("userSettings", {
 		.primaryKey()
 		.references(() => usersTable.id, { onDelete: "cascade" }),
 	prefix: varchar("prefix").notNull().default("!"),
-	marketingOptIn: boolean("marketing_opt_in").notNull().default(false),
+	marketingOptIn: boolean("marketing_opt_in").notNull().default(true),
 	marketingOptInAt: timestamp("marketing_opt_in_at", { withTimezone: true }),
 	marketingOptInSource: varchar("marketing_opt_in_source"),
 	useSendProductUpdatesContactId: varchar("usesend_product_updates_contact_id"),

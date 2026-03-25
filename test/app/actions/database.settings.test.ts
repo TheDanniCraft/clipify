@@ -213,19 +213,18 @@ describe("actions/database settings logic", () => {
 
 	it("creates default settings if none exist", async () => {
 		const { getSettings } = await loadDatabaseActions();
-		queueSelectResult([]); // first getSettings select fails
-		queueSelectResult([{ disabled: false }]); // usersTable select (getAccessToken in saveSettings)
-		queueSelectResult([{ accessToken: "at", refreshToken: "rt", expiresAt: new Date(Date.now() + 3600000) }]); // tokenTable select (getAccessToken in saveSettings)
-		queueSelectResult([]); // existing settings select in saveSettings
-		// saveSettings called
-		// second getSettings select
-		queueSelectResult([{ id: "user-1", prefix: "!" }]);
-		queueSelectResult([]); // editors select
-		queueSelectResult([{ disabled: false }]); // usersTable select (getAccessToken in second getSettings)
-		queueSelectResult([{ accessToken: "at", refreshToken: "rt", expiresAt: new Date(Date.now() + 3600000) }]); // tokenTable select (getAccessToken in second getSettings)
+		const createdAt = new Date("2026-01-01T12:00:00.000Z");
+		queueSelectResult([]); // settings select
+		queueSelectResult([{ createdAt }]); // user createdAt select for soft opt-in timestamp
 
 		const result = await getSettings("user-1");
-		expect(result).toMatchObject({ id: "user-1", prefix: "!" });
+		expect(result).toMatchObject({
+			id: "user-1",
+			prefix: "!",
+			marketingOptIn: true,
+			marketingOptInAt: createdAt,
+			marketingOptInSource: "soft_opt_in_default",
+		});
 		expect(insertCalls.some((call) => call.table === settingsTable)).toBe(true);
 	});
 

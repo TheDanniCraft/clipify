@@ -121,30 +121,33 @@ export default function OverlaySettings() {
 		setImportEndDate(new Date().toISOString().slice(0, 10));
 	}, []);
 
-	const resolveGameDetails = useCallback(async (clips: TwitchClip[]) => {
-		if (!overlay?.ownerId) return;
-		const uniqueGameIds = Array.from(new Set(clips.map((clip) => clip.game_id).filter(Boolean)));
-		const missingIds = uniqueGameIds.filter((id) => !gameDetailsById[id]);
-		if (missingIds.length === 0) return;
+	const resolveGameDetails = useCallback(
+		async (clips: TwitchClip[]) => {
+			if (!overlay?.ownerId) return;
+			const uniqueGameIds = Array.from(new Set(clips.map((clip) => clip.game_id).filter(Boolean)));
+			const missingIds = uniqueGameIds.filter((id) => !gameDetailsById[id]);
+			if (missingIds.length === 0) return;
 
-		const resolved = await Promise.all(
-			missingIds.map(async (id) => {
-				const game = await getGameDetails(id, overlay.ownerId);
-				return {
-					id,
-					name: game?.name ?? "Unknown category",
-					box_art_url: game?.box_art_url ?? "",
-					igdb_id: game?.igdb_id ?? "",
-				} as Game;
-			}),
-		);
+			const resolved = await Promise.all(
+				missingIds.map(async (id) => {
+					const game = await getGameDetails(id, overlay.ownerId);
+					return {
+						id,
+						name: game?.name ?? "Unknown category",
+						box_art_url: game?.box_art_url ?? "",
+						igdb_id: game?.igdb_id ?? "",
+					} as Game;
+				}),
+			);
 
-		setGameDetailsById((prev) => {
-			const next = { ...prev };
-			for (const game of resolved) next[game.id] = game;
-			return next;
-		});
-	}, [overlay?.ownerId, gameDetailsById]);
+			setGameDetailsById((prev) => {
+				const next = { ...prev };
+				for (const game of resolved) next[game.id] = game;
+				return next;
+			});
+		},
+		[overlay?.ownerId, gameDetailsById],
+	);
 
 	useEffect(() => {
 		async function resolveGameNames() {
@@ -179,10 +182,10 @@ export default function OverlaySettings() {
 
 	useEffect(() => {
 		let timeoutId: NodeJS.Timeout;
-		if (allowlistGameSearch && allowlistGameSearch.length >= 1 && overlay?.ownerId) {
+		if (allowlistGameSearch && allowlistGameSearch.length >= 1 && user?.id) {
 			setIsSearchingAllowlistGames(true);
 			timeoutId = setTimeout(async () => {
-				const games = await getTwitchGames(allowlistGameSearch, overlay.ownerId);
+				const games = await getTwitchGames(allowlistGameSearch, user.id);
 				setAllowlistGameResults(games);
 				setIsSearchingAllowlistGames(false);
 			}, 400);
@@ -190,14 +193,14 @@ export default function OverlaySettings() {
 			setAllowlistGameResults([]);
 		}
 		return () => clearTimeout(timeoutId);
-	}, [allowlistGameSearch, overlay?.ownerId]);
+	}, [allowlistGameSearch, user?.id]);
 
 	useEffect(() => {
 		let timeoutId: NodeJS.Timeout;
-		if (denylistGameSearch && denylistGameSearch.length >= 1 && overlay?.ownerId) {
+		if (denylistGameSearch && denylistGameSearch.length >= 1 && user?.id) {
 			setIsSearchingDenylistGames(true);
 			timeoutId = setTimeout(async () => {
-				const games = await getTwitchGames(denylistGameSearch, overlay.ownerId);
+				const games = await getTwitchGames(denylistGameSearch, user.id);
 				setDenylistGameResults(games);
 				setIsSearchingDenylistGames(false);
 			}, 400);
@@ -205,15 +208,15 @@ export default function OverlaySettings() {
 			setDenylistGameResults([]);
 		}
 		return () => clearTimeout(timeoutId);
-	}, [denylistGameSearch, overlay?.ownerId]);
+	}, [denylistGameSearch, user?.id]);
 
 	useEffect(() => {
 		let timeoutId: NodeJS.Timeout;
 		const normalizedInput = importCategoryInput.trim().toLowerCase();
-		if (normalizedInput.length >= 1 && normalizedInput !== "all" && normalizedInput !== "all categories" && overlay?.ownerId) {
+		if (normalizedInput.length >= 1 && normalizedInput !== "all" && normalizedInput !== "all categories" && user?.id) {
 			setIsSearchingGames(true);
 			timeoutId = setTimeout(async () => {
-				const games = await getTwitchGames(importCategoryInput, overlay.ownerId);
+				const games = await getTwitchGames(importCategoryInput, user.id);
 				setGameSearchResults(games);
 				setIsSearchingGames(false);
 			}, 300);
@@ -222,7 +225,7 @@ export default function OverlaySettings() {
 			setIsSearchingGames(false);
 		}
 		return () => clearTimeout(timeoutId);
-	}, [importCategoryInput, overlay?.ownerId]);
+	}, [importCategoryInput, user?.id]);
 
 	const cachedCategoryOptions: Game[] = useMemo(() => Object.values(gameDetailsById).sort((a, b) => a.name.localeCompare(b.name)), [gameDetailsById]);
 	const importCategoryOptions = useMemo(() => {
@@ -517,21 +520,18 @@ export default function OverlaySettings() {
 	async function runImport(mode: "append" | "replace") {
 		if (!currentOverlay.playlistId) return;
 		try {
-			const imported = await previewImportPlaylistClips(
-				currentOverlay.playlistId,
-				{
-					overlayType: OverlayType.All,
-					startDate: importStartDate || null,
-					endDate: importEndDate || null,
-					categoryId: importCategoryId || null,
-					minViews: importMinViews,
-					minDuration: importMinDuration,
-					maxDuration: importMaxDuration,
-					blacklistWords: importBlacklistWords,
-					clipCreatorsOnly: importCreatorAllowlist,
-					clipCreatorsBlocked: importCreatorDenylist,
-				},
-			);
+			const imported = await previewImportPlaylistClips(currentOverlay.playlistId, {
+				overlayType: OverlayType.All,
+				startDate: importStartDate || null,
+				endDate: importEndDate || null,
+				categoryId: importCategoryId || null,
+				minViews: importMinViews,
+				minDuration: importMinDuration,
+				maxDuration: importMaxDuration,
+				blacklistWords: importBlacklistWords,
+				clipCreatorsOnly: importCreatorAllowlist,
+				clipCreatorsBlocked: importCreatorDenylist,
+			});
 			if (mode === "replace") {
 				setPlaylistClips(imported);
 			} else {
@@ -818,7 +818,7 @@ export default function OverlaySettings() {
 												setOverlay({
 													...overlay,
 													type: nextType,
-													playlistId: nextType === OverlayType.Playlist ? overlay.playlistId ?? fallbackPlaylistId : null,
+													playlistId: nextType === OverlayType.Playlist ? (overlay.playlistId ?? fallbackPlaylistId) : null,
 												});
 											}}
 											label='Overlay Type'
@@ -1028,16 +1028,23 @@ export default function OverlaySettings() {
 												<NumberInput size='sm' minValue={0} defaultValue={overlay.minClipViews} value={overlay.minClipViews} onValueChange={(value) => setOverlay({ ...overlay, minClipViews: Number(value) })} label='Minimum Clip Views' description='Only clips with at least this many views will be shown in the overlay.' className='p-2' />
 
 												<div className='p-2 space-y-2'>
-													<Autocomplete label='Allowed Games / Categories' placeholder='Search and add a game...' items={allowlistGameResults.slice(0, 100)} isLoading={isSearchingAllowlistGames} onInputChange={setAllowlistGameSearch} onSelectionChange={(key) => {
-														if (!key) return;
-														const game = allowlistGameResults.find((g) => g.id === key);
-														const id = String(key);
-														if (!overlay.categoriesOnly?.includes(id)) {
-															setOverlay({ ...overlay, categoriesOnly: [...(overlay.categoriesOnly ?? []), id] });
-															if (game) setGameDetailsById((prev) => ({ ...prev, [id]: game }));
-														}
-														setAllowlistGameSearch("");
-													}}>
+													<Autocomplete
+														label='Allowed Games / Categories'
+														placeholder='Search and add a game...'
+														items={allowlistGameResults.slice(0, 100)}
+														isLoading={isSearchingAllowlistGames}
+														onInputChange={setAllowlistGameSearch}
+														onSelectionChange={(key) => {
+															if (!key) return;
+															const game = allowlistGameResults.find((g) => g.id === key);
+															const id = String(key);
+															if (!overlay.categoriesOnly?.includes(id)) {
+																setOverlay({ ...overlay, categoriesOnly: [...(overlay.categoriesOnly ?? []), id] });
+																if (game) setGameDetailsById((prev) => ({ ...prev, [id]: game }));
+															}
+															setAllowlistGameSearch("");
+														}}
+													>
 														{(item) => (
 															<AutocompleteItem key={item.id} textValue={item.name}>
 																<div className='flex items-center gap-2'>
@@ -1049,7 +1056,7 @@ export default function OverlaySettings() {
 													</Autocomplete>
 													<div className='flex flex-wrap gap-1'>
 														{(overlay.categoriesOnly ?? []).map((id) => (
-															<Chip key={id} onClose={() => setOverlay({ ...overlay, categoriesOnly: overlay.categoriesOnly.filter(x => x !== id) })} size='sm' variant='flat'>
+															<Chip key={id} onClose={() => setOverlay({ ...overlay, categoriesOnly: overlay.categoriesOnly.filter((x) => x !== id) })} size='sm' variant='flat'>
 																{getGameName(id)}
 															</Chip>
 														))}
@@ -1057,16 +1064,23 @@ export default function OverlaySettings() {
 												</div>
 
 												<div className='p-2 space-y-2'>
-													<Autocomplete label='Blocked Games / Categories' placeholder='Search and block a game...' items={denylistGameResults.slice(0, 100)} isLoading={isSearchingDenylistGames} onInputChange={setDenylistGameSearch} onSelectionChange={(key) => {
-														if (!key) return;
-														const game = denylistGameResults.find((g) => g.id === key);
-														const id = String(key);
-														if (!overlay.categoriesBlocked?.includes(id)) {
-															setOverlay({ ...overlay, categoriesBlocked: [...(overlay.categoriesBlocked ?? []), id] });
-															if (game) setGameDetailsById((prev) => ({ ...prev, [id]: game }));
-														}
-														setDenylistGameSearch("");
-													}}>
+													<Autocomplete
+														label='Blocked Games / Categories'
+														placeholder='Search and block a game...'
+														items={denylistGameResults.slice(0, 100)}
+														isLoading={isSearchingDenylistGames}
+														onInputChange={setDenylistGameSearch}
+														onSelectionChange={(key) => {
+															if (!key) return;
+															const game = denylistGameResults.find((g) => g.id === key);
+															const id = String(key);
+															if (!overlay.categoriesBlocked?.includes(id)) {
+																setOverlay({ ...overlay, categoriesBlocked: [...(overlay.categoriesBlocked ?? []), id] });
+																if (game) setGameDetailsById((prev) => ({ ...prev, [id]: game }));
+															}
+															setDenylistGameSearch("");
+														}}
+													>
 														{(item) => (
 															<AutocompleteItem key={item.id} textValue={item.name}>
 																<div className='flex items-center gap-2'>
@@ -1078,7 +1092,7 @@ export default function OverlaySettings() {
 													</Autocomplete>
 													<div className='flex flex-wrap gap-1'>
 														{(overlay.categoriesBlocked ?? []).map((id) => (
-															<Chip key={id} onClose={() => setOverlay({ ...overlay, categoriesBlocked: overlay.categoriesBlocked.filter(x => x !== id) })} size='sm' variant='flat' color='danger'>
+															<Chip key={id} onClose={() => setOverlay({ ...overlay, categoriesBlocked: overlay.categoriesBlocked.filter((x) => x !== id) })} size='sm' variant='flat' color='danger'>
 																{getGameName(id)}
 															</Chip>
 														))}
@@ -1162,14 +1176,7 @@ export default function OverlaySettings() {
 						</ModalHeader>
 						<ModalBody className='overflow-y-auto'>
 							<div className='mb-2'>
-								<Input
-									size='sm'
-									label='Playlist name'
-									value={playlistNameDraft}
-									onValueChange={setPlaylistNameDraft}
-									placeholder='Playlist name'
-									isDisabled={!selectedPlaylist}
-								/>
+								<Input size='sm' label='Playlist name' value={playlistNameDraft} onValueChange={setPlaylistNameDraft} placeholder='Playlist name' isDisabled={!selectedPlaylist} />
 							</div>
 							{isFreePlaylistLimitActive && (
 								<div className='mb-3 rounded-lg border border-default-200 bg-content2 px-3 py-2'>
@@ -1198,12 +1205,7 @@ export default function OverlaySettings() {
 								>
 									Select all
 								</Button>
-								<Button
-									size='sm'
-									variant='light'
-									onPress={() => setSelectedPlaylistClipIds(new Set())}
-									isDisabled={selectedPlaylistClipIds.size === 0}
-								>
+								<Button size='sm' variant='light' onPress={() => setSelectedPlaylistClipIds(new Set())} isDisabled={selectedPlaylistClipIds.size === 0}>
 									Clear
 								</Button>
 								<Button
@@ -1246,9 +1248,7 @@ export default function OverlaySettings() {
 											setDraggedClipId(null);
 											setDragOverClipId(null);
 										}}
-										className={`flex items-center gap-3 rounded border px-3 py-2 transition-colors ${
-											draggedClipId === clip.id ? "opacity-55 border-default-300 bg-content2" : ""
-										} ${dragOverClipId === clip.id && draggedClipId !== clip.id ? "border-primary bg-primary/10" : "border-default-200"}`}
+										className={`flex items-center gap-3 rounded border px-3 py-2 transition-colors ${draggedClipId === clip.id ? "opacity-55 border-default-300 bg-content2" : ""} ${dragOverClipId === clip.id && draggedClipId !== clip.id ? "border-primary bg-primary/10" : "border-default-200"}`}
 									>
 										<Checkbox
 											isSelected={selectedPlaylistClipIds.has(clip.id)}
@@ -1336,14 +1336,7 @@ export default function OverlaySettings() {
 					<ModalContent className='max-h-[80vh]'>
 						<ModalHeader className='flex flex-col gap-1'>
 							<div>Select clips to add</div>
-							<Input
-								size='sm'
-								placeholder='Search by title or creator...'
-								startContent={<IconSearch size={16} />}
-								value={cachedClipsFilter}
-								onValueChange={setCachedClipsFilter}
-								isClearable
-							/>
+							<Input size='sm' placeholder='Search by title or creator...' startContent={<IconSearch size={16} />} value={cachedClipsFilter} onValueChange={setCachedClipsFilter} isClearable />
 						</ModalHeader>
 						<ModalBody className='overflow-y-auto'>
 							<Table
@@ -1374,10 +1367,7 @@ export default function OverlaySettings() {
 										Date
 									</TableColumn>
 								</TableHeader>
-								<TableBody
-									items={sortedCachedClips}
-									emptyContent={cachedClips === undefined ? <Spinner label='Loading clips...' /> : <div className='text-default-400'>No clips found in cache.</div>}
-								>
+								<TableBody items={sortedCachedClips} emptyContent={cachedClips === undefined ? <Spinner label='Loading clips...' /> : <div className='text-default-400'>No clips found in cache.</div>}>
 									{(item) => (
 										<TableRow key={item.id}>
 											<TableCell>
@@ -1408,15 +1398,15 @@ export default function OverlaySettings() {
 				</Modal>
 
 				<Modal isOpen={isImportOpen} onOpenChange={onImportOpenChange}>
-				<ModalContent>
-					<ModalHeader>Auto Import to Playlist</ModalHeader>
-					<ModalBody className='space-y-4'>
-						<Autocomplete
-							label='Category / Game'
-							isRequired
-							allowsCustomValue
-							isClearable
-							items={importCategoryOptions}
+					<ModalContent>
+						<ModalHeader>Auto Import to Playlist</ModalHeader>
+						<ModalBody className='space-y-4'>
+							<Autocomplete
+								label='Category / Game'
+								isRequired
+								allowsCustomValue
+								isClearable
+								items={importCategoryOptions}
 								isLoading={isSearchingGames}
 								placeholder='Type at least 2 characters or choose all'
 								inputValue={importCategoryInput}

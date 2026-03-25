@@ -11,11 +11,9 @@ import { validateAuth, validateAdminAuth } from "@actions/auth";
 import { encryptToken, decryptToken } from "@lib/tokenCrypto";
 import { getFeatureAccess } from "@lib/featureAccess";
 import { ensureReverseTrialGrantForUser, resolveUserEntitlements, resolveUserEntitlementsForUsers } from "@lib/entitlements";
-import { TWITCH_CLIPS_LAUNCH_MS } from "@lib/constants";
+import { TWITCH_CLIPS_LAUNCH_MS, FREE_PLAYLIST_LIMIT, FREE_PLAYLIST_CLIP_LIMIT } from "@lib/constants";
 
 const TWITCH_CACHE_CLEANUP_INTERVAL_MS = 10 * 60 * 1000;
-const FREE_PLAYLIST_LIMIT = 1;
-const FREE_PLAYLIST_CLIP_LIMIT = 50;
 let lastTwitchCacheCleanupAt = 0;
 const FONT_URL_DELIMITER = "||url||";
 const ALLOWED_FONT_CSS_HOSTS = new Set(["fonts.googleapis.com"]);
@@ -2063,16 +2061,31 @@ export async function getSettingsServer(userId: string, forceSyncExternal = fals
 		const settingsWithoutEditors = await db.select().from(settingsTable).where(eq(settingsTable.id, userId)).limit(1).execute();
 
 		if (settingsWithoutEditors.length === 0) {
+			const userRows = await db.select({ createdAt: usersTable.createdAt, email: usersTable.email, username: usersTable.username }).from(usersTable).where(eq(usersTable.id, userId)).limit(1).execute();
+			const userRow = userRows[0];
+			const consentRecordedAt = userRow?.createdAt ?? new Date();
+
 			// Save default settings
 			const defaultSettings: UserSettings = {
 				id: userId,
 				prefix: "!",
-				marketingOptIn: false,
-				marketingOptInAt: null,
-				marketingOptInSource: null,
+				marketingOptIn: true,
+				marketingOptInAt: consentRecordedAt,
+				marketingOptInSource: "soft_opt_in_default",
 				useSendProductUpdatesContactId: null,
 				editors: [],
 			};
+
+			const contactId =
+				userRow && userRow.email && userRow.username
+					? await syncProductUpdatesContact({
+							email: userRow.email,
+							subscribed: true,
+							userId,
+							username: userRow.username,
+							source: "soft_opt_in",
+					  })
+					: null;
 
 			// Insert default settings directly to avoid recursion with saveSettings auth checks
 			await db
@@ -2083,12 +2096,17 @@ export async function getSettingsServer(userId: string, forceSyncExternal = fals
 					marketingOptIn: defaultSettings.marketingOptIn,
 					marketingOptInAt: defaultSettings.marketingOptInAt,
 					marketingOptInSource: defaultSettings.marketingOptInSource,
-					useSendProductUpdatesContactId: defaultSettings.useSendProductUpdatesContactId,
+					useSendProductUpdatesContactId: contactId,
 				})
-				.onConflictDoNothing()
+				.onConflictDoUpdate({
+					target: settingsTable.id,
+					set: {
+						useSendProductUpdatesContactId: contactId,
+					},
+				})
 				.execute();
 
-			return defaultSettings;
+			return { ...defaultSettings, useSendProductUpdatesContactId: contactId };
 		}
 
 		const settingsEditors = await db.select().from(editorsTable).where(eq(editorsTable.userId, userId)).execute();

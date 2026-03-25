@@ -55,12 +55,13 @@ describe("getGamesDetailsBulk", () => {
 	});
 
 	it("should handle mixed cached and missing games", async () => {
-		const mockCachedGame = { id: "123", name: "Game 1" };
-		(getTwitchCacheBatch as jest.Mock).mockResolvedValue([mockCachedGame, null]);
+		const mockCachedGame = { id: "456", name: "Game 2" };
+		// Cache batch returns only hits and is not positionally aligned with request IDs.
+		(getTwitchCacheBatch as jest.Mock).mockResolvedValue([mockCachedGame]);
 		(getAccessTokenServer as jest.Mock).mockResolvedValue({ accessToken: mockAccessToken });
 		(axios.get as jest.Mock).mockResolvedValue({
 			data: {
-				data: [{ id: "456", name: "Game 2" }],
+				data: [{ id: "123", name: "Game 1" }],
 			},
 		});
 
@@ -70,8 +71,9 @@ describe("getGamesDetailsBulk", () => {
 		expect(result.find(g => g.id === "123")).toBeDefined();
 		expect(result.find(g => g.id === "456")).toBeDefined();
 		expect(axios.get).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
-			params: { id: ["456"] }
+			params: { id: ["123"] }
 		}));
+		expect(result.map((g) => g.id)).toEqual(["123", "456"]);
 	});
 
 	it("should return empty array if no IDs provided", async () => {

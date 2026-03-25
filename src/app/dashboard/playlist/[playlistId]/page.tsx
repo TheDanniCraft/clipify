@@ -30,7 +30,7 @@ export default function PlaylistPage() {
 	const { playlistId } = useParams() as { playlistId: string };
 
 	const [user, setUser] = useState<AuthenticatedUser>();
-	const [playlist, setPlaylist] = useState<{ id: string; name: string; clipCount: number } | null>(null);
+	const [playlist, setPlaylist] = useState<{ id: string; ownerId: string; name: string; clipCount: number } | null>(null);
 	const [isPlaylistResolved, setIsPlaylistResolved] = useState(false);
 	const [playlistNameDraft, setPlaylistNameDraft] = useState("");
 	const [playlistClips, setPlaylistClips] = useState<TwitchClip[]>([]);
@@ -117,7 +117,7 @@ export default function PlaylistPage() {
 			const playlists = await getAllPlaylists(user.id);
 			const found = playlists?.find((p) => p.id === playlistId);
 			if (active && found) {
-				setPlaylist({ id: found.id, name: found.name, clipCount: found.clipCount });
+				setPlaylist({ id: found.id, ownerId: found.ownerId, name: found.name, clipCount: found.clipCount });
 				setPlaylistNameDraft(found.name);
 				const clips = await getPlaylistClips(found.id);
 				if (!active) return;
@@ -251,7 +251,7 @@ export default function PlaylistPage() {
 		const playlists = await getAllPlaylists(user.id);
 		const found = playlists?.find((p) => p.id === playlistId);
 		if (found) {
-			setPlaylist({ id: found.id, name: found.name, clipCount: found.clipCount });
+			setPlaylist({ id: found.id, ownerId: found.ownerId, name: found.name, clipCount: found.clipCount });
 			setPlaylistNameDraft(found.name);
 			const clips = await getPlaylistClips(found.id);
 			setPlaylistClips(clips);
@@ -260,11 +260,11 @@ export default function PlaylistPage() {
 	}
 
 	async function handleOpenAddClips() {
-		if (!user) return;
+		if (!user || !playlist) return;
 		setIsLoadingCachedClips(true);
 		onAddClipsOpen();
 		try {
-			const clips = await getCachedClipsByOwner(user.id);
+			const clips = await getCachedClipsByOwner(playlist.ownerId);
 			await resolveGameDetails(clips);
 			setCachedClips(clips);
 			const existingPlaylistClipIds = new Set(playlistClips.map((clip) => clip.id));
