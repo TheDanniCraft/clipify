@@ -15,7 +15,7 @@ export const statusColorMap: Record<StatusOptions, JSX.Element> = {
 export type ColumnsKey = "accessType" | "id" | "name" | "status" | "actions" | "clipCount";
 
 export const INITIAL_VISIBLE_COLUMNS: ColumnsKey[] = ["accessType", "id", "name", "status", "actions"];
-export const INITIAL_VISIBLE_PLAYLIST_COLUMNS: ColumnsKey[] = ["accessType", "name", "clipCount", "actions"];
+export const INITIAL_VISIBLE_PLAYLIST_COLUMNS: ColumnsKey[] = ["accessType", "id", "name", "clipCount", "actions"];
 
 export const columns = [
 	{ name: "", uid: "accessType", sortDirection: "ascending" },
@@ -27,6 +27,7 @@ export const columns = [
 
 export const playlistColumns = [
 	{ name: "", uid: "accessType", sortDirection: "ascending" },
+	{ name: "Playlist ID", uid: "id" },
 	{ name: "Playlist Name", uid: "name", sortDirection: "ascending" },
 	{ name: "Clips", uid: "clipCount", sortDirection: "ascending" },
 	{ name: "Actions", uid: "actions" },

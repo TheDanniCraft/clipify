@@ -307,6 +307,8 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 		} else {
 			const playlist = item as LocalPlaylist;
 			switch (key) {
+				case "id":
+					return <CopyText textClassName='whitespace-nowrap'>{playlist.id}</CopyText>;
 				case "name":
 					return <div className='font-semibold'>{playlist.name}</div>;
 				case "clipCount":
@@ -878,6 +880,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 							className={cn([
 								column.uid === "actions" ? "flex items-center justify-end px-[20px]" : "",
 								column.uid === "accessType" ? "w-[48px] min-w-[48px] max-w-[48px] px-1" : "",
+								column.uid === "id" ? "w-[320px] min-w-[320px] max-w-[320px]" : "",
 								column.uid === "clipCount" ? "w-[90px] min-w-[90px] max-w-[90px] text-right" : "",
 								activeTab === "playlists" && column.uid === "name" ? "w-full" : "",
 							])}
@@ -907,6 +910,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 								<TableCell
 									className={cn(
 										columnKey === "accessType" ? "w-[48px] min-w-[48px] max-w-[48px] px-1" : "",
+										columnKey === "id" ? "w-[320px] min-w-[320px] max-w-[320px]" : "",
 										columnKey === "clipCount" ? "w-[90px] min-w-[90px] max-w-[90px] text-right" : "",
 										activeTab === "playlists" && columnKey === "name" ? "w-full" : "",
 									)}
