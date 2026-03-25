@@ -32,6 +32,8 @@ async function loadEntitlements() {
 	return import("@/app/lib/entitlements");
 }
 
+type PartialUser = { id: string; plan: Plan };
+
 describe("lib/entitlements", () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
@@ -40,7 +42,7 @@ describe("lib/entitlements", () => {
 
 	it("returns billing entitlements for pro users without querying grants", async () => {
 		const { resolveUserEntitlements } = await loadEntitlements();
-		const result = await resolveUserEntitlements({ id: "pro-user", plan: Plan.Pro } as any);
+		const result = await resolveUserEntitlements({ id: "pro-user", plan: Plan.Pro } as PartialUser as any);
 		expect(result).toEqual(
 			expect.objectContaining({
 				effectivePlan: "pro",
@@ -54,7 +56,7 @@ describe("lib/entitlements", () => {
 	it("returns free entitlements when hybrid grants are disabled", async () => {
 		process.env.ENTITLEMENTS_HYBRID_ENABLED = "0";
 		const { resolveUserEntitlements } = await loadEntitlements();
-		const result = await resolveUserEntitlements({ id: "free-user", plan: Plan.Free } as any);
+		const result = await resolveUserEntitlements({ id: "free-user", plan: Plan.Free } as PartialUser as any);
 		expect(result).toEqual(
 			expect.objectContaining({
 				effectivePlan: "free",
@@ -76,7 +78,7 @@ describe("lib/entitlements", () => {
 			},
 		]);
 		const { resolveUserEntitlements } = await loadEntitlements();
-		const result = await resolveUserEntitlements({ id: "free-user", plan: Plan.Free } as any);
+		const result = await resolveUserEntitlements({ id: "free-user", plan: Plan.Free } as PartialUser as any);
 		expect(result).toEqual(
 			expect.objectContaining({
 				effectivePlan: "pro",
@@ -165,10 +167,10 @@ describe("lib/entitlements", () => {
 				})),
 			})),
 		};
-		db.transaction.mockImplementationOnce(async (callback: any) => callback(tx));
+		db.transaction.mockImplementationOnce(async (callback: (tx: unknown) => unknown) => callback(tx));
 
 		const { ensureReverseTrialGrantForUser } = await loadEntitlements();
-		const result = await ensureReverseTrialGrantForUser({ id: "u1", plan: Plan.Free } as any);
+		const result = await ensureReverseTrialGrantForUser({ id: "u1", plan: Plan.Free } as PartialUser);
 		expect(result).toEqual({ created: true });
 		expect(txInsertExecute).toHaveBeenCalled();
 	});
@@ -187,10 +189,10 @@ describe("lib/entitlements", () => {
 				})),
 			})),
 		};
-		db.transaction.mockImplementationOnce(async (callback: any) => callback(tx));
+		db.transaction.mockImplementationOnce(async (callback: (tx: unknown) => unknown) => callback(tx));
 
 		const { ensureReverseTrialGrantForUser } = await loadEntitlements();
-		const result = await ensureReverseTrialGrantForUser({ id: "u1", plan: Plan.Free } as any);
+		const result = await ensureReverseTrialGrantForUser({ id: "u1", plan: Plan.Free } as PartialUser);
 		expect(result).toEqual({ created: false });
 	});
 
@@ -200,7 +202,7 @@ describe("lib/entitlements", () => {
 		selectExecute.mockResolvedValueOnce([]); // no grants for u1
 
 		const { reconcileRevokedUsersBatch } = await loadEntitlements();
-		db.transaction.mockImplementation(async (callback: any) => {
+		db.transaction.mockImplementation(async (callback: (tx: unknown) => unknown) => {
 			const tx = {
 				select: jest.fn(() => ({
 					from: jest.fn(() => ({
@@ -235,20 +237,20 @@ describe("lib/entitlements", () => {
 	it("picks best grant among multiple options (via resolveUserEntitlements)", async () => {
 		const { resolveUserEntitlements } = await loadEntitlements();
 		const now = new Date();
-		const g1 = { id: "g1", source: EntitlementGrantSource.Support, startsAt: new Date(now.getTime() - 1000), endsAt: new Date(now.getTime() + 1000), entitlement: "pro_access" } as any;
-		const g2 = { id: "g2", source: EntitlementGrantSource.Support, startsAt: new Date(now.getTime() - 500), endsAt: new Date(now.getTime() + 2000), entitlement: "pro_access" } as any;
+		const g1 = { id: "g1", source: EntitlementGrantSource.Support, startsAt: new Date(now.getTime() - 1000), endsAt: new Date(now.getTime() + 1000), entitlement: "pro_access" };
+		const g2 = { id: "g2", source: EntitlementGrantSource.Support, startsAt: new Date(now.getTime() - 500), endsAt: new Date(now.getTime() + 2000), entitlement: "pro_access" };
 
 		selectExecute.mockResolvedValue([g1, g2]);
-		const result = await resolveUserEntitlements({ id: "u1", plan: Plan.Free });
+		const result = await resolveUserEntitlements({ id: "u1", plan: Plan.Free } as PartialUser);
 		expect(result.trialEndsAt).toEqual(g2.endsAt);
 	});
 
 	it("reconciles free constraints with multiple overlays and playlists", async () => {
 		const { reconcileFreeConstraintsIfNeeded } = await loadEntitlements();
 		const user = { id: "u1", plan: Plan.Free };
-		const entitlements = { effectivePlan: "free" } as any;
+		const entitlements = { effectivePlan: "free" } as Parameters<typeof reconcileFreeConstraintsIfNeeded>[1];
 
-		const makeChain = (data: any) => ({
+		const makeChain = (data: unknown) => ({
 			from: jest.fn(() => ({
 				where: jest.fn(() => ({
 					orderBy: jest.fn(() => ({
@@ -279,9 +281,9 @@ describe("lib/entitlements", () => {
 			execute: jest.fn(),
 		};
 
-		db.transaction.mockImplementationOnce(async (callback: any) => callback(tx));
+		db.transaction.mockImplementationOnce(async (callback: (tx: unknown) => unknown) => callback(tx));
 
-		await reconcileFreeConstraintsIfNeeded(user as any, entitlements);
+		await reconcileFreeConstraintsIfNeeded(user as PartialUser as any, entitlements);
 		expect(tx.delete).toHaveBeenCalledTimes(4);
 	});
 
@@ -294,7 +296,7 @@ describe("lib/entitlements", () => {
 
 	it("skips reverse trial for non-free plan", async () => {
 		const { ensureReverseTrialGrantForUser } = await loadEntitlements();
-		const result = await ensureReverseTrialGrantForUser({ id: "u1", plan: Plan.Pro } as any);
+		const result = await ensureReverseTrialGrantForUser({ id: "u1", plan: Plan.Pro } as PartialUser);
 		expect(result).toEqual({ created: false });
 	});
 
