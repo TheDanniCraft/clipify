@@ -256,8 +256,9 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 				case "accessType":
 					return <AvatarCell ownerId={overlay.ownerId} userId={userId} />;
 				case "name":
-				case "id":
 					return <CopyText>{cellValue}</CopyText>;
+				case "id":
+					return <CopyText textClassName='whitespace-nowrap'>{cellValue}</CopyText>;
 				case "status":
 					return <Status status={cellValue as StatusOptions} />;
 				case "actions":
@@ -878,7 +879,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 								column.uid === "actions" ? "flex items-center justify-end px-[20px]" : "",
 								column.uid === "accessType" ? "w-[48px] min-w-[48px] max-w-[48px] px-1" : "",
 								column.uid === "clipCount" ? "w-[90px] min-w-[90px] max-w-[90px] text-right" : "",
-								column.uid === "name" ? "w-full" : "",
+								activeTab === "playlists" && column.uid === "name" ? "w-full" : "",
 							])}
 						>
 							{column.uid === "name" ? (
@@ -907,7 +908,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 									className={cn(
 										columnKey === "accessType" ? "w-[48px] min-w-[48px] max-w-[48px] px-1" : "",
 										columnKey === "clipCount" ? "w-[90px] min-w-[90px] max-w-[90px] text-right" : "",
-										columnKey === "name" ? "w-full" : "",
+										activeTab === "playlists" && columnKey === "name" ? "w-full" : "",
 									)}
 								>
 									{renderCell(item, columnKey)}
