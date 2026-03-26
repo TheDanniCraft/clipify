@@ -828,11 +828,15 @@ export default function OverlaySettings() {
 											onSelectionChange={(value) => {
 												const nextType = value.currentKey as OverlayType;
 												const fallbackPlaylistId = playlists[0]?.id ?? null;
+												const nextPlaybackMode = (() => {
+													if (nextType === OverlayType.Playlist) return overlay.playbackMode;
+													return overlay.playbackMode === PlaybackMode.Order ? PlaybackMode.Random : overlay.playbackMode;
+												})();
 												setOverlay({
 													...overlay,
 													type: nextType,
 													playlistId: nextType === OverlayType.Playlist ? (overlay.playlistId ?? fallbackPlaylistId) : null,
-													playbackMode: nextType === OverlayType.Playlist ? overlay.playbackMode : (overlay.playbackMode === PlaybackMode.Order ? PlaybackMode.Random : overlay.playbackMode),
+													playbackMode: nextPlaybackMode,
 												});
 											}}
 											label='Overlay Type'

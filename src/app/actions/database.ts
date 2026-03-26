@@ -295,7 +295,11 @@ function buildOverlayUpdatePayload(next: Overlay, advancedAllowed: boolean) {
 	// Only assign playlistId when the overlay type is set to Playlist to ensure data consistency
 	/* istanbul ignore next: playlist id assignment logic */
 	const playlistId = next.type === OverlayType.Playlist ? (next.playlistId ?? null) : null;
-	const playbackMode = !advancedAllowed ? PlaybackMode.Random : next.type === OverlayType.Playlist ? next.playbackMode : next.playbackMode === PlaybackMode.Order ? PlaybackMode.Random : next.playbackMode;
+	const playbackMode = (() => {
+		if (!advancedAllowed) return PlaybackMode.Random;
+		if (next.type !== OverlayType.Playlist && next.playbackMode === PlaybackMode.Order) return PlaybackMode.Random;
+		return next.playbackMode;
+	})();
 
 	return {
 		name: next.name,

@@ -1,7 +1,7 @@
 "use client";
 
 import { type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type RefObject, type SyntheticEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ClipQueueItem, ModQueueItem, Overlay, TwitchClip, TwitchClipGqlData, TwitchClipGqlResponse, TwitchClipVideoQuality, VideoClip } from "@types";
+import { ClipQueueItem, ModQueueItem, Overlay, PlaybackMode, TwitchClip, TwitchClipGqlData, TwitchClipGqlResponse, TwitchClipVideoQuality, VideoClip } from "@types";
 import { getAvatar, getDemoClip, getGameDetails, getTwitchClip, getTwitchClipBatch, resolvePlayableClip, subscribeToChat } from "@actions/twitch";
 import PlayerOverlay from "@components/playerOverlay";
 import { Avatar, Button, Link } from "@heroui/react";
@@ -943,7 +943,7 @@ export default function OverlayPlayer({
 			return null;
 		}
 
-		if (playbackMode === "order") {
+		if (playbackMode === PlaybackMode.Order) {
 			for (const clip of candidates) {
 				const playable = await resolvePlayableClip(overlay.ownerId, clip);
 				if (playable) return { clip: playable };
