@@ -6,6 +6,7 @@ on:
       - master
     paths:
       - "src/db/schema.ts"
+      - "src/app/lib/types.ts"
 
 jobs:
   generate-migrations:
