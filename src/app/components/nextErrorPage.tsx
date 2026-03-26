@@ -1,6 +1,7 @@
 "use client";
 
 import { Button, Chip, Link } from "@heroui/react";
+import Image from "next/image";
 import type { ReactNode } from "react";
 
 type NextErrorPageProps = {
@@ -43,7 +44,7 @@ export default function NextErrorPage({ contextLabel, code, title, description, 
 					<div className='relative'>
 						<div className='absolute -inset-14 rounded-full bg-white/30 blur-3xl' />
 						<div className='absolute -inset-4 rounded-full border border-white/10' />
-						<img src='/clippy/Clippy.svg' alt='Clippy' className='relative h-56 w-56 md:h-80 md:w-80' />
+						<Image src='/clippy/Clippy.svg' alt='Clippy' width={320} height={320} className='relative h-56 w-56 md:h-80 md:w-80' />
 					</div>
 				</section>
 			</div>

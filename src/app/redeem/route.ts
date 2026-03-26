@@ -1,16 +1,17 @@
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
-import { getBaseUrl } from "../actions/utils";
+import { getBaseUrl, safeReturnUrl } from "../actions/utils";
 
 export async function GET(request: NextRequest) {
 	const cookieStore = await cookies();
 	const base = await getBaseUrl();
 
 	const offerCode = request.nextUrl.searchParams.get("code");
-	const redirectUrl = request.nextUrl.searchParams.get("redirect");
+	const rawRedirectUrl = request.nextUrl.searchParams.get("redirect");
+	const redirectUrl = (await safeReturnUrl(rawRedirectUrl)) || "/";
 	const campaign = request.nextUrl.searchParams.get("campaign");
 
-	if (!offerCode) return NextResponse.redirect(redirectUrl || "/");
+	if (!offerCode) return NextResponse.redirect(new URL(redirectUrl, base).toString());
 
 	cookieStore.set("offer", offerCode, {
 		httpOnly: true,
@@ -18,5 +19,10 @@ export async function GET(request: NextRequest) {
 		secure: process.env.NODE_ENV === "production",
 	});
 
-	return NextResponse.redirect(new URL(`${redirectUrl || "/"}?utm_source=offer_redeem&utm_medium=offer&utm_campaign=${campaign || offerCode}`, base));
+	const target = new URL(redirectUrl, base);
+	target.searchParams.set("utm_source", "offer_redeem");
+	target.searchParams.set("utm_medium", "offer");
+	target.searchParams.set("utm_campaign", campaign || offerCode);
+
+	return NextResponse.redirect(target);
 }

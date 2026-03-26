@@ -5,11 +5,11 @@ import { ClipQueueItem, ModQueueItem, Overlay, TwitchClip, TwitchClipGqlData, Tw
 import { getAvatar, getDemoClip, getGameDetails, getTwitchClip, getTwitchClipBatch, resolvePlayableClip, subscribeToChat } from "@actions/twitch";
 import PlayerOverlay from "@components/playerOverlay";
 import { Avatar, Button, Link } from "@heroui/react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
 import { getFirstFromClipQueue, getFirstFromModQueue, removeFromClipQueue, removeFromModQueue } from "@actions/database";
 import Logo from "@components/logo";
-import { IconPlayerPlayFilled, IconVolume, IconVolumeOff } from "@tabler/icons-react";
+import { IconAlertTriangle, IconPlayerPlayFilled, IconVolume, IconVolumeOff } from "@tabler/icons-react";
 import { clamp, getSlotOpacity, parseThemeFontSetting, sanitizeFontCssUrl, trimCache } from "./overlayPlayer.utils";
 
 type VideoQualityWithNumeric = TwitchClipVideoQuality & { numericQuality: number };
@@ -49,6 +49,7 @@ async function getRawMediaUrl(clipId: string): Promise<string | undefined> {
 		const videoQualities: TwitchClipVideoQuality[] = clipData.videoQualities;
 
 		const sortedByQuality: VideoQualityWithNumeric[] = videoQualities
+			.filter((v) => v && v.quality)
 			.map((v) => ({
 				...v,
 				numericQuality: parseInt(v.quality, 10),
@@ -85,7 +86,7 @@ function preloadVideo(url: string) {
 		document.head.appendChild(link);
 		setTimeout(() => link.remove(), 10_000);
 	} catch {
-		// ignore
+		// ignore: preload errors are non-critical for overlay playback
 	}
 }
 
@@ -97,6 +98,32 @@ function PoweredByBadge({ className }: { className: string }) {
 			<Logo className='w-4 h-4 sm:w-6 sm:h-6' />
 			<span>Powered by Clipify</span>
 		</Button>
+	);
+}
+
+function ResolutionWarning({ width, height }: { width: number; height: number }) {
+	return (
+		<motion.div
+			initial={{ opacity: 0, y: -10 }}
+			animate={{ opacity: 1, y: 0 }}
+			exit={{ opacity: 0, y: -10 }}
+			className='absolute left-4 right-4 top-4 z-[120] pointer-events-none'
+			data-testid='icon-alert'
+		>
+			<div className='mx-auto max-w-3xl rounded-lg border border-amber-300 bg-amber-50/95 px-4 py-3 shadow-xl'>
+				<div className='flex items-start gap-3 text-amber-900'>
+					<div className='mt-0.5 h-8 w-8 min-w-8 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-700'>
+						<IconAlertTriangle size={20} data-testid='icon-alert-triangle' />
+					</div>
+					<div className='flex-1'>
+						<h4 className='font-bold text-sm'>Overlay Resolution Mismatch</h4>
+						<p className='text-xs leading-relaxed mt-1'>
+							Current viewport is {width}x{height}. Set your browser source to exactly 1920x1080 for correct scaling.
+						</p>
+					</div>
+				</div>
+			</div>
+		</motion.div>
 	);
 }
 
@@ -155,6 +182,9 @@ type OverlayViewportProps = {
 	progress: number;
 	progressBarStartColor?: string;
 	progressBarEndColor?: string;
+	showResolutionWarning: boolean;
+	viewportWidth: number;
+	viewportHeight: number;
 };
 
 function OverlayViewport({
@@ -212,6 +242,9 @@ function OverlayViewport({
 	progress,
 	progressBarStartColor,
 	progressBarEndColor,
+	showResolutionWarning,
+	viewportWidth,
+	viewportHeight,
 }: OverlayViewportProps) {
 	return (
 		<div
@@ -222,6 +255,9 @@ function OverlayViewport({
 			onClick={showClickToPlay ? onStartRequested : undefined}
 			onKeyDown={onStartKeyDown}
 		>
+			<AnimatePresence>
+				{showResolutionWarning && <ResolutionWarning width={viewportWidth} height={viewportHeight} />}
+			</AnimatePresence>
 			{(clipA?.mediaUrl || clipB?.mediaUrl) && (
 				<>
 					<motion.video
@@ -445,6 +481,18 @@ export default function OverlayPlayer({
 	const [, setWebsocket] = useState<WebSocket | null>(null);
 	const [clipPool, setClipPool] = useState<TwitchClip[]>([]);
 	const clipPoolRef = useRef<TwitchClip[]>([]);
+	const [viewportSize, setViewportSize] = useState({ width: 0, height: 0 });
+	const showResolutionWarning = !isDemoPlayer && viewportSize.width > 0 && viewportSize.height > 0 && (viewportSize.width !== 1920 || viewportSize.height !== 1080);
+
+	useEffect(() => {
+		if (typeof window === "undefined") return;
+		const updateViewportSize = () => {
+			setViewportSize({ width: window.innerWidth, height: window.innerHeight });
+		};
+		updateViewportSize();
+		window.addEventListener("resize", updateViewportSize);
+		return () => window.removeEventListener("resize", updateViewportSize);
+	}, []);
 
 	const videoARef = useRef<HTMLVideoElement | null>(null);
 	const videoBRef = useRef<HTMLVideoElement | null>(null);
@@ -720,7 +768,7 @@ export default function OverlayPlayer({
 							id: "",
 							name: "Demo Mode",
 							box_art_url: "",
-							igdb_id: "",
+							igdb_id: "" ,
 						}
 					: baseGame);
 
@@ -1010,7 +1058,7 @@ export default function OverlayPlayer({
 				advanceClip().catch((error) => console.error("Error advancing clip after pending skip:", error));
 			}
 		}
-	}, [activeSlot, buildVideoClipFast, getRandomClip, isDemoPlayer, overlay.id, overlaySecret]);
+	}, [activeSlot, buildVideoClipFast, getRandomClip, overlay.id, overlaySecret]);
 
 	const resetPrefetch = useCallback(() => {
 		prefetchAbortRef.current?.abort();
@@ -1125,7 +1173,7 @@ export default function OverlayPlayer({
 		};
 		rafId = requestAnimationFrame(tick);
 		return () => cancelAnimationFrame(rafId);
-	}, [activeSlot, isDocumentVisible, paused, showPlayer, videoClip?.id]);
+	}, [activeSlot, isDocumentVisible, paused, showPlayer, videoClip]);
 
 	useEffect(() => {
 		if (!showPlayer) {
@@ -1133,7 +1181,7 @@ export default function OverlayPlayer({
 			return;
 		}
 		if (videoClip) setShowOverlay(true);
-	}, [showPlayer, videoClip?.id]);
+	}, [showPlayer, videoClip]);
 
 	useEffect(() => {
 		let cancelled = false;
@@ -1489,15 +1537,15 @@ export default function OverlayPlayer({
 		}
 	}, [activeSlot, isCrossfading, overlay.id, overlaySecret]);
 
-		const handleTimeUpdate = useCallback(
-			(slot: "a" | "b", video: HTMLVideoElement | null) => {
-				if (!video) return;
-				if (activeSlot !== slot) return;
-				if (isCrossfading) return;
-				const duration = video.duration;
-				if (!Number.isFinite(duration) || duration <= 0) return;
+	const handleTimeUpdate = useCallback(
+		(slot: "a" | "b", video: HTMLVideoElement | null) => {
+			if (!video) return;
+			if (activeSlot !== slot) return;
+			if (isCrossfading) return;
+			const duration = video.duration;
+			if (!Number.isFinite(duration) || duration <= 0) return;
 
-				const remaining = duration - video.currentTime;
+			const remaining = duration - video.currentTime;
 			// Only engage crossfade/hold logic when a next clip is available.
 			if (!nextClipRef.current) return;
 
@@ -1525,7 +1573,7 @@ export default function OverlayPlayer({
 				}
 			}
 		},
-		[activeSlot, advanceClip, isCrossfading, startCrossfade, CROSSFADE_SECONDS, HOLD_FRAME_SECONDS, HOLD_TIMEOUT_MS]
+		[activeSlot, advanceClip, isCrossfading, startCrossfade, CROSSFADE_SECONDS, HOLD_FRAME_SECONDS, HOLD_TIMEOUT_MS],
 	);
 
 	useEffect(() => {
@@ -1571,7 +1619,7 @@ export default function OverlayPlayer({
 		const effectiveMuted = !!isDemoPlayer || (embedBehaviorEnabled ? isMuted : false);
 		const showClickToPlay = embedBehaviorEnabled && paused && !hasUserStarted;
 		const canShowOverlay = showPlayer && !!videoClip && (!embedBehaviorEnabled || hasUserStarted);
-			const displayDuration = activeDuration;
+		const displayDuration = activeDuration;
 		const displayCurrentTime = Math.min(activeCurrentTime, Math.max(displayDuration, 0));
 		const remainingSeconds = Math.max(0, Math.ceil(displayDuration - displayCurrentTime));
 		const progress = displayDuration > 0 ? clamp((displayCurrentTime / displayDuration) * 100, 0, 100) : 0;
@@ -1716,6 +1764,9 @@ export default function OverlayPlayer({
 				progress={progress}
 				progressBarStartColor={overlay.progressBarStartColor}
 				progressBarEndColor={overlay.progressBarEndColor}
+				showResolutionWarning={showResolutionWarning}
+				viewportWidth={viewportSize.width}
+				viewportHeight={viewportSize.height}
 			/>
 		);
 	}

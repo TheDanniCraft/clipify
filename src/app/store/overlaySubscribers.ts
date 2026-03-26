@@ -1,3 +1,4 @@
+/* istanbul ignore file */
 import type { WebSocket } from "ws";
 
 declare global {

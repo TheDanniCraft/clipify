@@ -1,4 +1,4 @@
-import { IconFolder, IconFileText, IconGitBranch, IconUsers, IconClipboardData, IconBolt, IconProps, IconPencil, IconPaint, IconHandMove } from "@tabler/icons-react";
+import { IconFolder, IconFileText, IconGitBranch, IconUsers, IconClipboardData, IconBolt, IconProps, IconPencil, IconPaint, IconHandMove, IconPlaylistFilled } from "@tabler/icons-react";
 import { ForwardRefExoticComponent, RefAttributes } from "react";
 
 export enum RoadmapStatus {
@@ -99,5 +99,14 @@ export const roadmapData: RoadmapItemData[] = [
 		features: ["Theme selection", "Custom color schemes", "Drag & drop layout editor", "OBS-focused scaling and placement", "Resizable overlay elements"],
 		status: RoadmapStatus.Shipped,
 		timeframe: "Q1-Q2 2026",
+	},
+	{
+		icon: IconPlaylistFilled,
+		color: "indigo",
+		title: "Clip Playlists",
+		description: "Build and manage reusable clip playlists.",
+		status: RoadmapStatus.InDevelopment,
+		timeframe: "Q2 2026",
+		features: ["Create and rename playlists", "Draft-based playlist editing", "Auto import clips", "Bulk clip management"],
 	},
 ];

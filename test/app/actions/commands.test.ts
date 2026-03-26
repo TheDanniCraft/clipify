@@ -37,6 +37,7 @@ jest.mock("@actions/database", () => ({
 	getClipQueueByOverlayId: (...args: unknown[]) => getClipQueueByOverlayId(...args),
 	getModQueue: (...args: unknown[]) => getModQueue(...args),
 	getSettings: (...args: unknown[]) => getSettings(...args),
+	getSettingsServer: (...args: unknown[]) => getSettings(...args),
 	getUserByIdServer: (...args: unknown[]) => getUserByIdServer(...args),
 	setPlayerVolumeForOwner: (...args: unknown[]) => setPlayerVolumeForOwner(...args),
 }));

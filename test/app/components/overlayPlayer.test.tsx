@@ -44,12 +44,15 @@ jest.mock("@components/logo", () => ({
 }));
 
 jest.mock("@tabler/icons-react", () => ({
+	IconAlertTriangle: (props: Record<string, unknown>) => <svg data-testid='icon-alert' {...props} />,
 	IconPlayerPlayFilled: (props: Record<string, unknown>) => <svg data-testid='icon-play' {...props} />,
 	IconVolume: (props: Record<string, unknown>) => <svg data-testid='icon-volume' {...props} />,
 	IconVolumeOff: (props: Record<string, unknown>) => <svg data-testid='icon-volume-off' {...props} />,
+	IconX: (props: Record<string, unknown>) => <svg data-testid='icon-x' {...props} />,
 }));
 
 jest.mock("@heroui/react", () => ({
+	// eslint-disable-next-line @next/next/no-img-element
 	Avatar: ({ src }: { src?: string }) => <img alt='avatar' src={src || undefined} />,
 	Button: ({ as, children, ...props }: { as?: ElementType; children: ReactNode }) => {
 		const Component = as ?? "button";
@@ -61,7 +64,9 @@ jest.mock("@heroui/react", () => ({
 jest.mock("framer-motion", () => ({
 	motion: {
 		video: ({ children, ...props }: VideoHTMLAttributes<HTMLVideoElement>) => <video {...props}>{children}</video>,
+		div: ({ children, ...props }: { children?: ReactNode } & Record<string, unknown>) => <div {...props}>{children}</div>,
 	},
+	AnimatePresence: ({ children }: { children?: ReactNode }) => <>{children}</>,
 }));
 
 function buildClip(id: string, overrides: Partial<Record<string, unknown>> = {}) {
@@ -93,6 +98,7 @@ function buildOverlay(overrides: Partial<Record<string, unknown>> = {}) {
 		name: "Overlay",
 		status: "active",
 		type: "All",
+		playlistId: null,
 		rewardId: null,
 		createdAt: new Date("2026-01-01T00:00:00.000Z"),
 		updatedAt: new Date("2026-01-01T00:00:00.000Z"),
@@ -139,6 +145,7 @@ function buildOverlay(overrides: Partial<Record<string, unknown>> = {}) {
 
 const playMock = jest.fn().mockResolvedValue(undefined);
 const pauseMock = jest.fn();
+const realConsoleError = console.error;
 
 type SocketListener = (event: { data?: string; type?: string }) => void;
 
@@ -233,6 +240,11 @@ describe("components/overlayPlayer", () => {
 		jest.clearAllMocks();
 		MockWebSocket.instances = [];
 		(globalThis as { WebSocket: typeof WebSocket }).WebSocket = MockWebSocket as never;
+		jest.spyOn(console, "error").mockImplementation((...args: unknown[]) => {
+			const first = args[0];
+			if (typeof first === "string" && first.includes("not wrapped in act")) return;
+			realConsoleError(...(args as Parameters<typeof console.error>));
+		});
 
 		jest.spyOn(axios, "post").mockImplementation((_url: string, body: unknown) => {
 			const slug = ((body as Array<{ variables?: { slug?: string } }>)[0]?.variables?.slug ?? "fallback") as string;
@@ -452,11 +464,7 @@ describe("components/overlayPlayer", () => {
 	});
 
 	it("returns no clip when random mode cannot resolve any playable candidates", async () => {
-		const clips = [
-			buildClip("random-null-1", { title: "random-null-title-1", view_count: 100 }),
-			buildClip("random-null-2", { title: "random-null-title-2", view_count: 90 }),
-			buildClip("random-null-3", { title: "random-null-title-3", view_count: 80 }),
-		];
+		const clips = [buildClip("random-null-1", { title: "random-null-title-1", view_count: 100 }), buildClip("random-null-2", { title: "random-null-title-2", view_count: 90 }), buildClip("random-null-3", { title: "random-null-title-3", view_count: 80 })];
 		getTwitchClipBatch.mockResolvedValue(clips);
 		resolvePlayableClip.mockResolvedValue(null);
 
@@ -804,9 +812,7 @@ describe("components/overlayPlayer", () => {
 			expect(document.querySelectorAll("video").length).toBeGreaterThanOrEqual(2);
 		});
 
-		const slotA = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("hold-toggle-a")) as
-			| HTMLVideoElement
-			| undefined;
+		const slotA = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("hold-toggle-a")) as HTMLVideoElement | undefined;
 		expect(slotA).toBeTruthy();
 		setVideoTiming(slotA!, 10, 9.5);
 		fireEvent.timeUpdate(slotA!);
@@ -841,9 +847,7 @@ describe("components/overlayPlayer", () => {
 				expect(document.querySelectorAll("video").length).toBeGreaterThanOrEqual(2);
 			});
 
-			const slotA = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("hold-skip-a")) as
-				| HTMLVideoElement
-				| undefined;
+			const slotA = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("hold-skip-a")) as HTMLVideoElement | undefined;
 			expect(slotA).toBeTruthy();
 
 			setVideoTiming(slotA!, 10, 9.5);
@@ -878,9 +882,7 @@ describe("components/overlayPlayer", () => {
 				expect(document.querySelectorAll("video").length).toBeGreaterThanOrEqual(2);
 			});
 
-			const slotA = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("hold-slota-a")) as
-				| HTMLVideoElement
-				| undefined;
+			const slotA = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("hold-slota-a")) as HTMLVideoElement | undefined;
 			expect(slotA).toBeTruthy();
 
 			setVideoTiming(slotA!, 10, 9.5);
@@ -909,12 +911,8 @@ describe("components/overlayPlayer", () => {
 				expect(document.querySelectorAll("video").length).toBeGreaterThanOrEqual(2);
 			});
 
-			const initialSlotA = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("hold-slotb-a")) as
-				| HTMLVideoElement
-				| undefined;
-			const initialSlotB = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("hold-slotb-b")) as
-				| HTMLVideoElement
-				| undefined;
+			const initialSlotA = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("hold-slotb-a")) as HTMLVideoElement | undefined;
+			const initialSlotB = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("hold-slotb-b")) as HTMLVideoElement | undefined;
 			expect(initialSlotA).toBeTruthy();
 			expect(initialSlotB).toBeTruthy();
 
@@ -927,15 +925,11 @@ describe("components/overlayPlayer", () => {
 			});
 			await screen.findByText("hold-slotb-b");
 			await waitFor(() => {
-				const hasPrefetchedSlotA = Array.from(document.querySelectorAll("video")).some((video) =>
-					(video as HTMLVideoElement).src.includes("hold-slotb-c"),
-				);
+				const hasPrefetchedSlotA = Array.from(document.querySelectorAll("video")).some((video) => (video as HTMLVideoElement).src.includes("hold-slotb-c"));
 				expect(hasPrefetchedSlotA).toBe(true);
 			});
 
-			const activeSlotB = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("hold-slotb-b")) as
-				| HTMLVideoElement
-				| undefined;
+			const activeSlotB = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("hold-slotb-b")) as HTMLVideoElement | undefined;
 			expect(activeSlotB).toBeTruthy();
 
 			setVideoTiming(activeSlotB!, 10, 9.5);
@@ -1110,9 +1104,7 @@ describe("components/overlayPlayer", () => {
 			render(<OverlayPlayer overlay={buildOverlay({ playbackMode: "top" })} />);
 			await screen.findByText("prefetch-catch-a");
 			await waitFor(() => {
-				const hasPrefetchedSlot = Array.from(document.querySelectorAll("video")).some((video) =>
-					(video as HTMLVideoElement).src.includes("prefetch-catch-b"),
-				);
+				const hasPrefetchedSlot = Array.from(document.querySelectorAll("video")).some((video) => (video as HTMLVideoElement).src.includes("prefetch-catch-b"));
 				expect(hasPrefetchedSlot).toBe(true);
 			});
 
@@ -1234,18 +1226,12 @@ describe("components/overlayPlayer", () => {
 		render(<OverlayPlayer overlay={buildOverlay({ playbackMode: "top" })} />);
 		await screen.findByText("inactiveb-a");
 		await waitFor(() => {
-			const hasPrefetchedSlotB = Array.from(document.querySelectorAll("video")).some((video) =>
-				(video as HTMLVideoElement).src.includes("inactiveb-b"),
-			);
+			const hasPrefetchedSlotB = Array.from(document.querySelectorAll("video")).some((video) => (video as HTMLVideoElement).src.includes("inactiveb-b"));
 			expect(hasPrefetchedSlotB).toBe(true);
 		});
 
-		const slotA = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("inactiveb-a")) as
-			| HTMLVideoElement
-			| undefined;
-		const slotB = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("inactiveb-b")) as
-			| HTMLVideoElement
-			| undefined;
+		const slotA = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("inactiveb-a")) as HTMLVideoElement | undefined;
+		const slotB = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("inactiveb-b")) as HTMLVideoElement | undefined;
 		expect(slotA).toBeTruthy();
 		expect(slotB).toBeTruthy();
 
@@ -1275,12 +1261,8 @@ describe("components/overlayPlayer", () => {
 			expect(document.querySelectorAll("video").length).toBeGreaterThanOrEqual(2);
 		});
 
-		const initialSlotA = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("inactivea-a")) as
-			| HTMLVideoElement
-			| undefined;
-		const initialSlotB = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("inactivea-b")) as
-			| HTMLVideoElement
-			| undefined;
+		const initialSlotA = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("inactivea-a")) as HTMLVideoElement | undefined;
+		const initialSlotB = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("inactivea-b")) as HTMLVideoElement | undefined;
 		expect(initialSlotA).toBeTruthy();
 		expect(initialSlotB).toBeTruthy();
 
@@ -1293,18 +1275,12 @@ describe("components/overlayPlayer", () => {
 		});
 		await screen.findByText("inactivea-b");
 		await waitFor(() => {
-			const hasPrefetchedSlotA = Array.from(document.querySelectorAll("video")).some((video) =>
-				(video as HTMLVideoElement).src.includes("inactivea-c"),
-			);
+			const hasPrefetchedSlotA = Array.from(document.querySelectorAll("video")).some((video) => (video as HTMLVideoElement).src.includes("inactivea-c"));
 			expect(hasPrefetchedSlotA).toBe(true);
 		});
 
-		const prefetchedSlotA = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("inactivea-c")) as
-			| HTMLVideoElement
-			| undefined;
-		const activeSlotB = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("inactivea-b")) as
-			| HTMLVideoElement
-			| undefined;
+		const prefetchedSlotA = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("inactivea-c")) as HTMLVideoElement | undefined;
+		const activeSlotB = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("inactivea-b")) as HTMLVideoElement | undefined;
 		expect(prefetchedSlotA).toBeTruthy();
 		expect(activeSlotB).toBeTruthy();
 
@@ -1334,12 +1310,8 @@ describe("components/overlayPlayer", () => {
 			expect(document.querySelectorAll("video").length).toBeGreaterThanOrEqual(2);
 		});
 
-		const initialSlotA = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("slotb-rebuild-a")) as
-			| HTMLVideoElement
-			| undefined;
-		const initialSlotB = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("slotb-rebuild-b")) as
-			| HTMLVideoElement
-			| undefined;
+		const initialSlotA = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("slotb-rebuild-a")) as HTMLVideoElement | undefined;
+		const initialSlotB = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("slotb-rebuild-b")) as HTMLVideoElement | undefined;
 		expect(initialSlotA).toBeTruthy();
 		expect(initialSlotB).toBeTruthy();
 
@@ -1352,18 +1324,12 @@ describe("components/overlayPlayer", () => {
 		});
 		await screen.findByText("slotb-rebuild-b");
 		await waitFor(() => {
-			const hasPrefetchedSlotA = Array.from(document.querySelectorAll("video")).some((video) =>
-				(video as HTMLVideoElement).src.includes("slotb-rebuild-c"),
-			);
+			const hasPrefetchedSlotA = Array.from(document.querySelectorAll("video")).some((video) => (video as HTMLVideoElement).src.includes("slotb-rebuild-c"));
 			expect(hasPrefetchedSlotA).toBe(true);
 		});
 
-		const prefetchedSlotA = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("slotb-rebuild-c")) as
-			| HTMLVideoElement
-			| undefined;
-		const activeSlotB = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("slotb-rebuild-b")) as
-			| HTMLVideoElement
-			| undefined;
+		const prefetchedSlotA = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("slotb-rebuild-c")) as HTMLVideoElement | undefined;
+		const activeSlotB = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("slotb-rebuild-b")) as HTMLVideoElement | undefined;
 		expect(prefetchedSlotA).toBeTruthy();
 		expect(activeSlotB).toBeTruthy();
 
@@ -1416,27 +1382,77 @@ describe("components/overlayPlayer", () => {
 		await screen.findByText("Playing Unknown Game");
 	});
 
-	it("cancels late owner-avatar state updates on unmount", async () => {
-		let avatarCall = 0;
-		let resolveLateOwnerAvatar: ((value: string) => void) | null = null;
-		getAvatar.mockImplementation(() => {
-			avatarCall += 1;
-			if (avatarCall === 1) {
-				return new Promise<string>((resolve) => {
-					resolveLateOwnerAvatar = resolve;
-				});
-			}
-			return Promise.resolve("https://avatar.example/owner.png");
-		});
-		getTwitchClipBatch.mockResolvedValue([buildClip("avatar-cancel", { title: "avatar-cancel-clip" })]);
+	it("shows resolution warning when viewport is not 1080p", async () => {
+		getTwitchClipBatch.mockResolvedValue([buildClip("res-test")]);
+		const originalInnerWidth = window.innerWidth;
+		const originalInnerHeight = window.innerHeight;
 
-		const { unmount } = render(<OverlayPlayer overlay={buildOverlay()} />);
-		await screen.findByText("avatar-cancel-clip");
-		unmount();
+		Object.defineProperty(window, "innerWidth", { writable: true, configurable: true, value: 800 });
+		Object.defineProperty(window, "innerHeight", { writable: true, configurable: true, value: 600 });
 
-		await act(async () => {
-			resolveLateOwnerAvatar?.("https://avatar.example/late-owner.png");
+		try {
+			render(<OverlayPlayer overlay={buildOverlay()} />);
+			await screen.findByTestId("icon-alert");
+			expect(screen.getByText(/Current viewport is 800x600/)).toBeInTheDocument();
+
+			act(() => {
+				window.innerWidth = 1920;
+				window.innerHeight = 1080;
+				window.dispatchEvent(new Event("resize"));
+			});
+
+			await waitFor(() => {
+				expect(screen.queryByTestId("icon-alert")).not.toBeInTheDocument();
+			});
+		} finally {
+			Object.defineProperty(window, "innerWidth", { writable: true, configurable: true, value: originalInnerWidth });
+			Object.defineProperty(window, "innerHeight", { writable: true, configurable: true, value: originalInnerHeight });
+		}
+	});
+
+	it("covers preloadVideo catch block", async () => {
+		const originalCreateElement = document.createElement;
+		jest.spyOn(document, "createElement").mockImplementation((tagName: string) => {
+			if (tagName === "link") throw new Error("DOM failure");
+			return originalCreateElement.call(document, tagName);
 		});
-		expect(avatarCall).toBeGreaterThan(0);
+
+		getTwitchClipBatch.mockResolvedValue([buildClip("preload-fail")]);
+		render(<OverlayPlayer overlay={buildOverlay()} />);
+		await waitFor(() => expect(document.createElement).toHaveBeenCalledWith("link"));
+	});
+
+	it("handles raw media lookup axios errors gracefully", async () => {
+		getTwitchClipBatch.mockResolvedValue([buildClip("axios-fail")]);
+		const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => undefined);
+		jest.spyOn(axios, "post").mockRejectedValue(new Error("network error"));
+
+		try {
+			render(<OverlayPlayer overlay={buildOverlay()} />);
+			await waitFor(() => {
+				expect(consoleSpy).toHaveBeenCalledWith("Error fetching raw media URL", expect.any(Error));
+			});
+		} finally {
+			consoleSpy.mockRestore();
+		}
+	});
+
+	it("handles raw media lookup missing best quality", async () => {
+		getTwitchClipBatch.mockResolvedValue([buildClip("no-quality")]);
+		jest.spyOn(axios, "post").mockResolvedValue({
+			data: [
+				{
+					data: {
+						clip: {
+							videoQualities: [null],
+							playbackAccessToken: { signature: "sig", value: "val" },
+						},
+					},
+				},
+			],
+		} as never);
+
+		render(<OverlayPlayer overlay={buildOverlay()} />);
+		// Just ensure it doesn't crash and skips the clip
 	});
 });

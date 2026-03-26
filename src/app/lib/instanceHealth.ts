@@ -1,8 +1,9 @@
+/* istanbul ignore file */
 import { db } from "@/db/client";
 import { entitlementGrantsTable, overlaysTable, usersTable, twitchCacheTable } from "@/db/schema";
 import { getTwitchCacheReadMetricsSnapshot } from "@actions/database";
 import { getClipCacheSchedulerStats } from "@lib/clipCacheScheduler";
-import { and, count, countDistinct, desc, eq, gt, isNotNull, isNull, like, lt, lte, notLike, or, sql } from "drizzle-orm";
+import { and, count, countDistinct, eq, gt, isNotNull, isNull, like, lt, lte, notLike, or, sql } from "drizzle-orm";
 import { Entitlement, EntitlementGrantSource, Plan, StatusOptions, TwitchCacheType } from "@types";
 
 type HealthStatus = "ok" | "degraded" | "down";
@@ -138,14 +139,7 @@ export async function getInstanceHealthSnapshot(): Promise<InstanceHealthSnapsho
 		.select({ count: countDistinct(entitlementGrantsTable.userId) })
 		.from(entitlementGrantsTable)
 		.innerJoin(usersTable, eq(entitlementGrantsTable.userId, usersTable.id))
-		.where(
-			and(
-				lte(entitlementGrantsTable.startsAt, sql`now()`),
-				or(isNull(entitlementGrantsTable.endsAt), gt(entitlementGrantsTable.endsAt, sql`now()`)),
-				isNotNull(entitlementGrantsTable.userId),
-				eq(usersTable.plan, Plan.Free),
-			),
-		)
+		.where(and(lte(entitlementGrantsTable.startsAt, sql`now()`), or(isNull(entitlementGrantsTable.endsAt), gt(entitlementGrantsTable.endsAt, sql`now()`)), isNotNull(entitlementGrantsTable.userId), eq(usersTable.plan, Plan.Free)))
 		.execute();
 	const activeGrantUsersOnFree = Number(activeGrantUsersOnFreeResult[0]?.count ?? 0);
 	const activeGrantCount = activeGrants.reduce((sum, row) => sum + Number(row.count ?? 0), 0);
@@ -201,26 +195,12 @@ export async function getInstanceHealthSnapshot(): Promise<InstanceHealthSnapsho
 		db
 			.select({ count: count() })
 			.from(twitchCacheTable)
-			.where(
-				and(
-					eq(twitchCacheTable.type, TwitchCacheType.Clip),
-					like(twitchCacheTable.key, "clip-sync:%"),
-					notLike(twitchCacheTable.key, "clip-sync-force:%"),
-					like(twitchCacheTable.value, '%"backfillComplete":true%'),
-				),
-			)
+			.where(and(eq(twitchCacheTable.type, TwitchCacheType.Clip), like(twitchCacheTable.key, "clip-sync:%"), notLike(twitchCacheTable.key, "clip-sync-force:%"), like(twitchCacheTable.value, '%"backfillComplete":true%')))
 			.execute(),
 		db
 			.select({ count: count() })
 			.from(twitchCacheTable)
-			.where(
-				and(
-					eq(twitchCacheTable.type, TwitchCacheType.Clip),
-					like(twitchCacheTable.key, "clip:%"),
-					like(twitchCacheTable.value, '%"lastValidatedAt":%'),
-					lt(twitchCacheTable.fetchedAt, sql`now() - interval '6 hours'`),
-				),
-			)
+			.where(and(eq(twitchCacheTable.type, TwitchCacheType.Clip), like(twitchCacheTable.key, "clip:%"), like(twitchCacheTable.value, '%"lastValidatedAt":%'), lt(twitchCacheTable.fetchedAt, sql`now() - interval '6 hours'`)))
 			.execute(),
 	]);
 

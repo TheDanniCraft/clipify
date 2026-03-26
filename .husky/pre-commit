@@ -1,0 +1,2 @@
+bun run app:lint
+bun run app:typecheck

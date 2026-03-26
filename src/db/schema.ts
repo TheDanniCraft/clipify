@@ -88,6 +88,8 @@ export const overlaysTable = pgTable("overlays", {
 	name: varchar("name").notNull(),
 	status: statusOptionsEnum("status").$type<StatusOptions>().notNull(),
 	type: overlayTypeEnum("type").$type<OverlayType>().notNull(),
+	playlistId: uuid("playlist_id")
+		.references(() => playlistsTable.id, { onDelete: "set null" }),
 	rewardId: varchar("reward_id"),
 	createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 	updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
@@ -97,6 +99,8 @@ export const overlaysTable = pgTable("overlays", {
 	maxDurationMode: maxDurationModeEnum("max_duration_mode").$type<MaxDurationMode>().notNull().default(MaxDurationModeEnumValues.Filter),
 	minClipViews: integer("min_clip_views").notNull().default(0),
 	blacklistWords: varchar("blacklist_words").array().notNull().default([]),
+	categoriesOnly: varchar("categories_only").array().notNull().default([]),
+	categoriesBlocked: varchar("categories_blocked").array().notNull().default([]),
 	playbackMode: playbackModeEnum("playback_mode").$type<PlaybackMode>().notNull().default(PlaybackModeEnumValues.Random),
 	preferCurrentCategory: boolean("prefer_current_category").notNull().default(false),
 	clipCreatorsOnly: varchar("clip_creators_only").array().notNull().default([]),
@@ -130,6 +134,30 @@ export const overlaysTable = pgTable("overlays", {
 	timerScale: integer("timer_scale").notNull().default(100),
 });
 
+export const playlistsTable = pgTable("playlists", {
+	id: uuid("id").notNull().defaultRandom().primaryKey(),
+	ownerId: varchar("owner_id")
+		.notNull()
+		.references(() => usersTable.id, { onDelete: "cascade" }),
+	name: varchar("name").notNull(),
+	createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+	updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const playlistClipsTable = pgTable(
+	"playlist_clips",
+	{
+		playlistId: uuid("playlist_id")
+			.notNull()
+			.references(() => playlistsTable.id, { onDelete: "cascade" }),
+		clipId: varchar("clip_id").notNull(),
+		position: integer("position").notNull(),
+		clipData: text("clip_data").notNull(),
+		addedAt: timestamp("added_at", { withTimezone: true }).defaultNow().notNull(),
+	},
+	(t) => [primaryKey({ columns: [t.playlistId, t.clipId] }), index("playlist_clips_position_idx").on(t.playlistId, t.position)],
+);
+
 export const queueTable = pgTable("clipQueue", {
 	id: uuid("id").notNull().defaultRandom().primaryKey(),
 	overlayId: uuid("overlay_id")
@@ -152,7 +180,7 @@ export const settingsTable = pgTable("userSettings", {
 		.primaryKey()
 		.references(() => usersTable.id, { onDelete: "cascade" }),
 	prefix: varchar("prefix").notNull().default("!"),
-	marketingOptIn: boolean("marketing_opt_in").notNull().default(false),
+	marketingOptIn: boolean("marketing_opt_in").notNull().default(true),
 	marketingOptInAt: timestamp("marketing_opt_in_at", { withTimezone: true }),
 	marketingOptInSource: varchar("marketing_opt_in_source"),
 	useSendProductUpdatesContactId: varchar("usesend_product_updates_contact_id"),

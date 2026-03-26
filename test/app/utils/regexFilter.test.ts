@@ -13,4 +13,9 @@ describe("utils/regexFilter", () => {
 	it("returns false for empty blacklist", () => {
 		expect(isTitleBlocked("anything", [])).toBe(false);
 	});
+
+	it("skips empty string entries in blacklist", () => {
+		expect(isTitleBlocked("pog", ["", " "])).toBe(false);
+		expect(isTitleBlocked("pog", [" ", "pog"])).toBe(true);
+	});
 });

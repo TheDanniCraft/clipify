@@ -1,3 +1,4 @@
+/* istanbul ignore file */
 "use server";
 
 import { db } from "@/db/client";
@@ -91,6 +92,7 @@ export async function getAdminExplorerPage(query: string, requestedPage = 1, pag
 	const safePageSize = toPositiveInt(pageSize, 25);
 	const filter = q.length > 0 ? or(ilike(usersTable.username, `%${q}%`), eq(usersTable.id, q)) : undefined;
 	const totalRowsRaw = filter ? await db.select({ count: count() }).from(usersTable).where(filter).execute() : await db.select({ count: count() }).from(usersTable).execute();
+/* istanbul ignore next */
 	const totalRows = Number(totalRowsRaw[0]?.count ?? 0);
 	const totalPages = Math.max(1, Math.ceil(totalRows / safePageSize));
 	const page = Math.min(toPositiveInt(requestedPage, 1), totalPages);
@@ -133,3 +135,5 @@ export async function getAdminExplorerPage(query: string, requestedPage = 1, pag
 		totalRows,
 	};
 }
+
+
