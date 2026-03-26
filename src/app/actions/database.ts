@@ -1231,10 +1231,22 @@ export async function savePlaylist(playlistId: string, patch: Partial<Pick<Playl
 }
 
 export async function deletePlaylist(playlistId: string) {
-	const ctx = await requirePlaylistAccess(playlistId);
-	if (!ctx) return false;
-	await db.delete(playlistsTable).where(eq(playlistsTable.id, playlistId)).execute();
-	return true;
+	try {
+		const ctx = await requirePlaylistAccess(playlistId);
+		if (!ctx) return false;
+
+		await db.transaction(async (tx) => {
+			// Clear overlay references first to avoid FK delete failures in environments
+			// where the constraint might not be ON DELETE SET NULL yet.
+			await tx.update(overlaysTable).set({ playlistId: null, updatedAt: new Date() }).where(eq(overlaysTable.playlistId, playlistId)).execute();
+			await tx.delete(playlistsTable).where(eq(playlistsTable.id, playlistId)).execute();
+		});
+
+		return true;
+	} catch (error) {
+		console.error("Error deleting playlist:", error);
+		return false;
+	}
 }
 
 export async function getPlaylistClips(playlistId: string): Promise<TwitchClip[]> {

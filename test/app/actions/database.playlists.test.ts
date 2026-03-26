@@ -26,6 +26,8 @@ const usersTable = {
 const overlaysTable = {
 	id: "overlays.id",
 	ownerId: "overlays.owner_id",
+	playlistId: "overlays.playlist_id",
+	updatedAt: "overlays.updated_at",
 };
 const editorsTable = {
 	editorId: "editors.editor_id",
@@ -333,10 +335,21 @@ describe("actions/database playlist logic", () => {
 		const { deletePlaylist } = await loadDatabaseActions();
 		await expect(deletePlaylist("playlist-1")).resolves.toBe(true);
 		expect(deleteCalls.some((call) => call.table === playlistsTable)).toBe(true);
+		expect(updateCalls.some((call) => call.table === overlaysTable)).toBe(true);
 
 		validateAuth.mockResolvedValueOnce({ id: "editor-2", plan: "free" });
 		queueSelectResult([{ id: "playlist-1", ownerId: "owner-1", name: "Main", createdAt: new Date(), updatedAt: new Date() }]);
 		queueSelectResult([]);
+		await expect(deletePlaylist("playlist-1")).resolves.toBe(false);
+	});
+
+	it("returns false when playlist deletion transaction fails", async () => {
+		queueSelectResult([{ id: "playlist-1", ownerId: "owner-1", name: "Main", createdAt: new Date(), updatedAt: new Date() }]);
+		dbTransaction.mockImplementationOnce(async () => {
+			throw new Error("constraint failure");
+		});
+
+		const { deletePlaylist } = await loadDatabaseActions();
 		await expect(deletePlaylist("playlist-1")).resolves.toBe(false);
 	});
 

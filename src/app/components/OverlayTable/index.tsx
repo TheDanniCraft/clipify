@@ -245,7 +245,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 		onClick: handleOverlayClick,
 	}));
 
-	const renderCell = useMemoizedCallback((item: LocalOverlay | LocalPlaylist, columnKey: React.Key) => {
+	const renderCell = useCallback((item: LocalOverlay | LocalPlaylist, columnKey: React.Key) => {
 		const key = columnKey as ColumnsKey;
 
 		if (activeTab === "overlays") {
@@ -324,13 +324,25 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 								width={18}
 								onClick={async (event) => {
 									event.stopPropagation();
-									const ok = await deletePlaylist(playlist.id);
-									if (!ok) {
-										addToast({ title: "Failed to delete playlist", color: "danger" });
-										return;
+									try {
+										const ok = await deletePlaylist(playlist.id);
+										if (!ok) {
+											addToast({
+												title: "Failed to delete playlist",
+												description: "Unable to delete the playlist. Please check your permissions and try again.",
+												color: "danger",
+											});
+											return;
+										}
+										setPlaylists((prev) => (prev ?? []).filter((entry) => entry.id !== playlist.id));
+										addToast({ title: "Playlist deleted", color: "success" });
+									} catch {
+										addToast({
+											title: "Failed to delete playlist",
+											description: "An unexpected error occurred while deleting the playlist.",
+											color: "danger",
+										});
 									}
-									setPlaylists((prev) => (prev ?? []).filter((entry) => entry.id !== playlist.id));
-									addToast({ title: "Playlist deleted", color: "success" });
 								}}
 							/>
 						</div>
@@ -339,7 +351,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 					return (playlist as Record<string, unknown>)[key] as React.ReactNode;
 			}
 		}
-	});
+	}, [activeTab, userId]);
 
 	const onNextPage = useMemoizedCallback(() => {
 		if (page < pages) {
