@@ -4,6 +4,7 @@ export {};
 const selectQueue: unknown[] = [];
 const dbSelect = jest.fn();
 const dbDelete = jest.fn();
+const updateSetCalls: Array<Record<string, unknown>> = [];
 
 const deleteCalls: Array<{ table: unknown }> = [];
 
@@ -63,13 +64,16 @@ jest.mock("@/db/client", () => ({
 			}),
 		})),
 		update: jest.fn(() => ({
-			set: () => ({
+			set: (payload: Record<string, unknown>) => {
+				updateSetCalls.push(payload);
+				return ({
 				where: () => ({
 					execute: async () => [],
 					returning: () => ({ execute: async () => [] }),
 				}),
 				execute: async () => [],
-			}),
+				});
+			},
 		})),
 		delete: (..._args: unknown[]) => dbDelete(..._args),
 		execute: jest.fn(),
@@ -83,13 +87,16 @@ jest.mock("@/db/client", () => ({
 					}),
 				})),
 				update: jest.fn(() => ({
-					set: () => ({
+					set: (payload: Record<string, unknown>) => {
+						updateSetCalls.push(payload);
+						return ({
 						where: () => ({
 							execute: async () => [],
 							returning: () => ({ execute: async () => [] }),
 						}),
 						execute: async () => [],
-					}),
+						});
+					},
 				})),
 				delete: (..._args: unknown[]) => dbDelete(..._args),
 				execute: jest.fn(),
@@ -156,6 +163,7 @@ describe("actions/database overlay logic", () => {
 		jest.clearAllMocks();
 		selectQueue.length = 0;
 		deleteCalls.length = 0;
+		updateSetCalls.length = 0;
 		dbSelect.mockImplementation(() => makeSelectChain());
 		dbDelete.mockImplementation((table: unknown) => makeDeleteChain(table));
 		validateAuth.mockResolvedValue({ id: "user-1" });
@@ -266,6 +274,19 @@ describe("actions/database overlay logic", () => {
 
 		const result = await saveOverlay("overlay-1", { name: "Updated" });
 		expect(result).toBeDefined();
+	});
+
+	it("normalizes order playback mode to random for non-playlist overlays", async () => {
+		const { saveOverlay } = await loadDatabaseActions();
+		queueSelectResult([{ id: "overlay-1", ownerId: "user-1", type: "All", playbackMode: "random" }]); // requireOverlayAccess select
+		queueSelectResult([{ id: "user-1", plan: "pro" }]); // owner select
+		dbSelect.mockImplementationOnce(() => makeSelectChain()); // resolveUserEntitlements getUserById select (empty)
+		queueSelectResult([{ id: "overlay-1", ownerId: "user-1", type: "All", playbackMode: "random" }]); // getOverlay -> requireOverlayAccess select
+		queueSelectResult([{ id: "overlay-1", ownerId: "user-1", type: "All", playbackMode: "random" }]); // getOverlay return
+
+		await saveOverlay("overlay-1", { type: "All" as never, playbackMode: "order" as never });
+
+		expect(updateSetCalls.some((payload) => payload.playbackMode === "random")).toBe(true);
 	});
 
 	it("downgrades user plan", async () => {

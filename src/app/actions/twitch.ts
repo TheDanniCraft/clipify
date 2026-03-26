@@ -2,7 +2,7 @@
 "use server";
 
 import axios from "axios";
-import { AuthenticatedUser, Game, Overlay, OverlayType, RewardStatus, TwitchApiResponse, TwitchAppAccessTokenResponse, TwitchCacheType, TwitchClip, TwitchClipResponse, TwitchReward, TwitchRewardResponse, TwitchTokenApiResponse, TwitchUserResponse } from "@types";
+import { AuthenticatedUser, Game, Overlay, OverlayType, PlaybackMode, RewardStatus, TwitchApiResponse, TwitchAppAccessTokenResponse, TwitchCacheType, TwitchClip, TwitchClipResponse, TwitchReward, TwitchRewardResponse, TwitchTokenApiResponse, TwitchUserResponse } from "@types";
 import { deleteTwitchCacheByPrefix, deleteTwitchCacheKeys, getAccessToken, getAccessTokenServer, getOverlayBySecret, getOverlayPublic, getPlaylistClipsForOwnerServer, getTwitchCache, getTwitchCacheBatch, getTwitchCacheByPrefixEntries, getTwitchCacheEntry, getTwitchCacheStale, getTwitchCacheStaleBatch, setTwitchCache, setTwitchCacheBatch } from "@actions/database";
 import { getBaseUrl, isPreview } from "@actions/utils";
 import { isTitleBlocked } from "@/app/utils/regexFilter";
@@ -1308,6 +1308,10 @@ export async function getTwitchClipBatch(overlayId: string, overlaySecret?: stri
 			else break;
 		}
 		return ordered;
+	}
+
+	if (overlay.playbackMode === PlaybackMode.Order) {
+		return [...candidates].slice(0, batchSize);
 	}
 
 	return [...candidates]

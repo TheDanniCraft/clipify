@@ -240,6 +240,7 @@ export enum OverlayType {
 
 export enum PlaybackMode {
 	Random = "random",
+	Order = "order",
 	Top = "top",
 	SmartShuffle = "smart_shuffle",
 }

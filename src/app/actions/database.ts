@@ -295,6 +295,11 @@ function buildOverlayUpdatePayload(next: Overlay, advancedAllowed: boolean) {
 	// Only assign playlistId when the overlay type is set to Playlist to ensure data consistency
 	/* istanbul ignore next: playlist id assignment logic */
 	const playlistId = next.type === OverlayType.Playlist ? (next.playlistId ?? null) : null;
+	const playbackMode = (() => {
+		if (!advancedAllowed) return PlaybackMode.Random;
+		if (next.type !== OverlayType.Playlist && next.playbackMode === PlaybackMode.Order) return PlaybackMode.Random;
+		return next.playbackMode;
+	})();
 
 	return {
 		name: next.name,
@@ -310,7 +315,7 @@ function buildOverlayUpdatePayload(next: Overlay, advancedAllowed: boolean) {
 		categoriesOnly: advancedAllowed ? (next.categoriesOnly ?? []) : [],
 		categoriesBlocked: advancedAllowed ? (next.categoriesBlocked ?? []) : [],
 		minClipViews: advancedAllowed ? next.minClipViews : 0,
-		playbackMode: advancedAllowed ? next.playbackMode : PlaybackMode.Random,
+		playbackMode,
 		preferCurrentCategory: advancedAllowed ? !!next.preferCurrentCategory : false,
 		clipCreatorsOnly: advancedAllowed ? normalizeCreatorFilters(next.clipCreatorsOnly) : [],
 		clipCreatorsBlocked: advancedAllowed ? normalizeCreatorFilters(next.clipCreatorsBlocked) : [],
