@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { getAllPlaylists, getPlaylistClips, previewImportPlaylistClips, savePlaylist, upsertPlaylistClips } from "@actions/database";
 import { addToast, Autocomplete, AutocompleteItem, Button, Card, CardBody, CardHeader, Checkbox, DateRangePicker, Divider, Image, Input, Link, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, NumberInput, Pagination, Spinner, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow, useDisclosure } from "@heroui/react";
@@ -67,16 +67,21 @@ export default function PlaylistPage() {
 	const [isSearchingGames, setIsSearchingGames] = useState(false);
 	const [pendingImportMode, setPendingImportMode] = useState<"append" | "replace" | null>(null);
 	const [savedPlaylistClipIds, setSavedPlaylistClipIds] = useState<string[]>([]);
+	const gameDetailsByIdRef = useRef<Record<string, Game>>({});
 
 	const { isOpen: isImportOpen, onOpen: onImportOpen, onClose: onImportClose, onOpenChange: onImportOpenChange } = useDisclosure();
 	const { isOpen: isAddClipsOpen, onOpen: onAddClipsOpen, onOpenChange: onAddClipsOpenChange } = useDisclosure();
 	const { isOpen: isAutoImportLockedOpen, onOpen: onAutoImportLockedOpen, onOpenChange: onAutoImportLockedOpenChange } = useDisclosure();
 
+	useEffect(() => {
+		gameDetailsByIdRef.current = gameDetailsById;
+	}, [gameDetailsById]);
+
 	const resolveGameDetails = useCallback(
 		async (clips: TwitchClip[]) => {
 			if (!user) return;
 			const uniqueGameIds = Array.from(new Set(clips.map((clip) => clip.game_id).filter(Boolean)));
-			const missingIds = uniqueGameIds.filter((id) => !gameDetailsById[id]);
+			const missingIds = uniqueGameIds.filter((id) => !gameDetailsByIdRef.current[id]);
 			if (missingIds.length === 0) return;
 
 			const resolved = await getGamesDetailsBulk(missingIds, user.id);
@@ -94,7 +99,7 @@ export default function PlaylistPage() {
 				return next;
 			});
 		},
-		[gameDetailsById, user],
+		[user],
 	);
 
 	useEffect(() => {
