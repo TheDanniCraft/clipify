@@ -55,7 +55,7 @@ const playbackModes: { key: PlaybackMode; label: string }[] = [
 
 const playbackModeHelpText: Record<PlaybackMode, string> = {
 	[PlaybackMode.Random]: "Plays a randomized clip order from the filtered pool.",
-	[PlaybackMode.Order]: "Plays clips in the saved playlist order (Reihenfolge).",
+	[PlaybackMode.Order]: "Plays clips in the saved playlist order.",
 	[PlaybackMode.Top]: "Plays highest-viewed clips first. Great for strongest highlights.",
 	[PlaybackMode.SmartShuffle]: "Smart Shuffle ranks clips by quality (views), then picks with weighted randomness. It temporarily downranks clip authors/categories that appeared recently, occasionally promotes lower-view clips for variety, and avoids repeating the same pattern over and over.",
 };
@@ -472,6 +472,14 @@ export default function OverlaySettings() {
 		const current = playlists.find((playlist) => playlist.id === overlay.playlistId);
 		setPlaylistNameDraft(current?.name ?? "");
 	}, [overlay?.playlistId, playlists]);
+
+	useEffect(() => {
+		if (!overlay) return;
+		const orderModeAllowed = overlay.type === OverlayType.Playlist && !!overlay.playlistId;
+		if (overlay.playbackMode === PlaybackMode.Order && !orderModeAllowed) {
+			setOverlay((prev) => (prev ? { ...prev, playbackMode: PlaybackMode.Random } : prev));
+		}
+	}, [overlay]);
 
 	useEffect(() => {
 		if (!user) return;
