@@ -943,6 +943,14 @@ export default function OverlayPlayer({
 			return null;
 		}
 
+		if (playbackMode === "order") {
+			for (const clip of candidates) {
+				const playable = await resolvePlayableClip(overlay.ownerId, clip);
+				if (playable) return { clip: playable };
+			}
+			return null;
+		}
+
 		const shuffled = [...candidates].sort(() => Math.random() - 0.5);
 		for (const clip of shuffled) {
 			const playable = await resolvePlayableClip(overlay.ownerId, clip);

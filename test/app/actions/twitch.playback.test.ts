@@ -458,6 +458,22 @@ describe("actions/twitch playback and cache behavior", () => {
 		expect(batch.every((clip) => ["r1", "r2", "r3"].includes(clip.id))).toBe(true);
 	});
 
+	it("builds ordered batches for order playback mode", async () => {
+		getOverlayPublic.mockResolvedValue(buildOverlay({ playbackMode: "order" }));
+		getTwitchCacheByPrefixEntries.mockResolvedValue(
+			cacheEntriesFromClips([
+				buildClip("o1", { view_count: 30 }),
+				buildClip("o2", { view_count: 20 }),
+				buildClip("o3", { view_count: 10 }),
+			]),
+		);
+
+		const { getTwitchClipBatch } = await loadTwitch();
+		const batch = await getTwitchClipBatch("overlay-1", undefined, undefined, [], 2, true);
+
+		expect(batch.map((clip) => clip.id)).toEqual(["o1", "o2"]);
+	});
+
 	it("falls back to all candidates in random mode when exclusions remove the full set and clamps batch size", async () => {
 		getOverlayPublic.mockResolvedValue(buildOverlay({ playbackMode: "random" }));
 		getTwitchCacheByPrefixEntries.mockResolvedValue(

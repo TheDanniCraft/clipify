@@ -1310,6 +1310,10 @@ export async function getTwitchClipBatch(overlayId: string, overlaySecret?: stri
 		return ordered;
 	}
 
+	if (overlay.playbackMode === "order") {
+		return [...candidates].slice(0, batchSize);
+	}
+
 	return [...candidates]
 		.map((clip) => ({ clip, sort: Math.random() }))
 		.sort((a, b) => a.sort - b.sort)

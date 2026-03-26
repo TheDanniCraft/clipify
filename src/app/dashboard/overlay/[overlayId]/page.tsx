@@ -48,12 +48,14 @@ const normalizeCategorySearch = (value: string) => value.toLowerCase().replace(/
 
 const playbackModes: { key: PlaybackMode; label: string }[] = [
 	{ key: PlaybackMode.Random, label: "Random" },
+	{ key: PlaybackMode.Order, label: "Order (Playlist Sequence)" },
 	{ key: PlaybackMode.Top, label: "Top (Most Viewed First)" },
 	{ key: PlaybackMode.SmartShuffle, label: "Smart Shuffle" },
 ];
 
 const playbackModeHelpText: Record<PlaybackMode, string> = {
 	[PlaybackMode.Random]: "Plays a randomized clip order from the filtered pool.",
+	[PlaybackMode.Order]: "Plays clips in the saved playlist order (Reihenfolge).",
 	[PlaybackMode.Top]: "Plays highest-viewed clips first. Great for strongest highlights.",
 	[PlaybackMode.SmartShuffle]: "Smart Shuffle ranks clips by quality (views), then picks with weighted randomness. It temporarily downranks clip authors/categories that appeared recently, occasionally promotes lower-view clips for variety, and avoids repeating the same pattern over and over.",
 };
@@ -595,6 +597,9 @@ export default function OverlaySettings() {
 				.sort((a, b) => a.sort - b.sort)
 				.map((entry) => entry.clip);
 		}
+		if (overlay.playbackMode === PlaybackMode.Order) {
+			return filteredPreviewClips;
+		}
 		if (overlay.playbackMode === PlaybackMode.SmartShuffle) {
 			const remaining = (() => {
 				if (filteredPreviewClips.length <= 12) return [...filteredPreviewClips];
@@ -819,6 +824,7 @@ export default function OverlaySettings() {
 													...overlay,
 													type: nextType,
 													playlistId: nextType === OverlayType.Playlist ? (overlay.playlistId ?? fallbackPlaylistId) : null,
+													playbackMode: nextType === OverlayType.Playlist ? overlay.playbackMode : (overlay.playbackMode === PlaybackMode.Order ? PlaybackMode.Random : overlay.playbackMode),
 												});
 											}}
 											label='Overlay Type'
@@ -941,7 +947,9 @@ export default function OverlaySettings() {
 
 										<div className='flex w-full items-center px-2 mb-2 gap-1'>
 											<Select selectedKeys={[overlay.playbackMode]} onSelectionChange={(value) => setOverlay({ ...overlay, playbackMode: value.currentKey as PlaybackMode })} label='Playback Mode' className='flex-1'>
-												{playbackModes.map((mode) => (
+												{playbackModes
+													.filter((mode) => mode.key !== PlaybackMode.Order || (isPlaylistOverlay && !!overlay.playlistId))
+													.map((mode) => (
 													<SelectItem key={mode.key}>{mode.label}</SelectItem>
 												))}
 											</Select>
