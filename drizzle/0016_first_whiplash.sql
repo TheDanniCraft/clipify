@@ -1,0 +1,1 @@
+ALTER TYPE "public"."playback_mode" ADD VALUE 'order' BEFORE 'top';
