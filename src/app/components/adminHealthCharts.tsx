@@ -79,6 +79,39 @@ export default function AdminHealthCharts({ health }: { health: InstanceHealthSn
 		{ label: "Free Owners", value: health.counts.activeOverlayOwnersFree, fill: "#006FEE" },
 		{ label: "Paid Owners", value: health.counts.activeOverlayOwnersPaid, fill: "#9353D3" },
 	];
+	const accountStatusData = [
+		{ label: "Enabled", value: Math.max(0, health.counts.users - health.accounts.disabledUsers), fill: "#17C964" },
+		{ label: "Manual disabled", value: health.accounts.disabledManual, fill: "#F31260" },
+		{ label: "Auto disabled", value: health.accounts.disabledAutomatic, fill: "#F5A524" },
+	];
+	const playlistCoverageData = [
+		{ label: "Playlists", value: health.playlists.total, fill: "#9353D3" },
+		{ label: "Non-empty", value: health.playlists.nonEmpty, fill: "#17C964" },
+		{ label: "Empty", value: health.playlists.empty, fill: "#F31260" },
+		{ label: "Overlays linked", value: health.playlists.overlaysWithPlaylist, fill: "#006FEE" },
+		{ label: "Active linked", value: health.playlists.activeOverlaysWithPlaylist, fill: "#F5A524" },
+	];
+	const disabledReasonData = Object.entries(health.accounts.disabledReasonCounts).map(([reason, value]) => ({
+		label: reason,
+		value,
+	}));
+	const optedOutReasonData = Object.entries(health.newsletter.optedOutReasonCounts).map(([reason, value]) => ({
+		label: reason,
+		value,
+	}));
+	const newsletterConsentSourceData = Object.entries(health.newsletter.consentSourceCounts).map(([source, value]) => ({
+		label: source,
+		value,
+	}));
+	const queueDepthData = [
+		{ label: "Clip Queue", value: health.queues.clipQueueDepth, fill: "#006FEE" },
+		{ label: "Mod Queue", value: health.queues.modQueueDepth, fill: "#F5A524" },
+	];
+	const tokenHealthData = [
+		{ label: "Total", value: health.auth.tokenRows, fill: "#17C964" },
+		{ label: "Expiring 24h", value: health.auth.expiringIn24h, fill: "#F5A524" },
+		{ label: "Expired", value: health.auth.expiredTokens, fill: "#F31260" },
+	];
 	const entitlementSourceData = Object.entries(health.entitlements.grantsBySource).map(([source, value]) => ({
 		label: source,
 		value,
@@ -224,6 +257,83 @@ export default function AdminHealthCharts({ health }: { health: InstanceHealthSn
 
 			<Card className='min-w-0 lg:col-span-2'>
 				<CardHeader className='pb-1'>
+					<p className='text-sm font-semibold'>Accounts and Playlists</p>
+				</CardHeader>
+				<CardBody className='grid min-w-0 gap-3 md:grid-cols-2'>
+					<div className='rounded-lg border border-default-200 p-3'>
+						<p className='mb-2 text-xs font-semibold text-default-500'>Account Status</p>
+						<MeasuredChart className='h-56 min-w-0'>
+							{(width) => (
+								<PieChart width={width} height={224}>
+									<Tooltip {...tooltipProps} />
+									<Pie data={accountStatusData} dataKey='value' nameKey='label' cx='50%' cy='50%' outerRadius={Math.min(78, Math.floor(width / 4))} label>
+										{accountStatusData.map((entry) => (
+											<Cell key={entry.label} fill={entry.fill} />
+										))}
+									</Pie>
+								</PieChart>
+							)}
+						</MeasuredChart>
+					</div>
+					<div className='rounded-lg border border-default-200 p-3'>
+						<p className='mb-2 text-xs font-semibold text-default-500'>Playlist Coverage</p>
+						<MeasuredChart className='h-56 min-w-0'>
+							{(width) => (
+								<BarChart width={width} height={224} data={playlistCoverageData} margin={{ top: 10, right: 8, left: -18, bottom: 24 }}>
+									<CartesianGrid strokeDasharray='4 4' stroke='#d4d4d8' />
+									<XAxis dataKey='label' stroke='#71717a' angle={-16} textAnchor='end' height={44} />
+									<YAxis stroke='#71717a' allowDecimals={false} />
+									<Tooltip {...tooltipProps} />
+									<Bar dataKey='value' radius={[6, 6, 0, 0]}>
+										{playlistCoverageData.map((entry) => (
+											<Cell key={entry.label} fill={entry.fill} />
+										))}
+									</Bar>
+								</BarChart>
+							)}
+						</MeasuredChart>
+					</div>
+				</CardBody>
+			</Card>
+
+			<Card className='min-w-0 lg:col-span-2'>
+				<CardHeader className='pb-1'>
+					<p className='text-sm font-semibold'>Reason Breakdown</p>
+				</CardHeader>
+				<CardBody className='grid min-w-0 gap-3 md:grid-cols-2'>
+					<div className='rounded-lg border border-default-200 p-3'>
+						<p className='mb-2 text-xs font-semibold text-default-500'>Disabled Reasons</p>
+						<MeasuredChart className='h-56 min-w-0'>
+							{(width) => (
+								<BarChart width={width} height={224} data={disabledReasonData} margin={{ top: 10, right: 8, left: -18, bottom: 24 }}>
+									<CartesianGrid strokeDasharray='4 4' stroke='#d4d4d8' />
+									<XAxis dataKey='label' stroke='#71717a' angle={-16} textAnchor='end' height={44} />
+									<YAxis stroke='#71717a' allowDecimals={false} />
+									<Tooltip {...tooltipProps} />
+									<Bar dataKey='value' fill='#F31260' radius={[6, 6, 0, 0]} />
+								</BarChart>
+							)}
+						</MeasuredChart>
+					</div>
+					<div className='rounded-lg border border-default-200 p-3'>
+						<p className='mb-2 text-xs font-semibold text-default-500'>Opt-out Reasons</p>
+						<MeasuredChart className='h-56 min-w-0'>
+							{(width) => (
+								<BarChart width={width} height={224} data={optedOutReasonData} margin={{ top: 10, right: 8, left: -18, bottom: 24 }}>
+									<CartesianGrid strokeDasharray='4 4' stroke='#d4d4d8' />
+									<XAxis dataKey='label' stroke='#71717a' angle={-16} textAnchor='end' height={44} />
+									<YAxis stroke='#71717a' allowDecimals={false} />
+									<Tooltip {...tooltipProps} />
+									<Bar dataKey='value' fill='#F5A524' radius={[6, 6, 0, 0]} />
+								</BarChart>
+							)}
+						</MeasuredChart>
+					</div>
+				</CardBody>
+			</Card>
+
+			<Card className='min-w-0 lg:col-span-2'>
+				<CardHeader className='pb-1'>
 					<p className='text-sm font-semibold'>Entitlement Sources</p>
 				</CardHeader>
 				<CardBody className='min-w-0'>
@@ -238,6 +348,64 @@ export default function AdminHealthCharts({ health }: { health: InstanceHealthSn
 							</BarChart>
 						)}
 					</MeasuredChart>
+				</CardBody>
+			</Card>
+
+			<Card className='min-w-0 lg:col-span-2'>
+				<CardHeader className='pb-1'>
+					<p className='text-sm font-semibold'>Newsletter and Auth Ops</p>
+				</CardHeader>
+				<CardBody className='grid min-w-0 gap-3 md:grid-cols-3'>
+					<div className='rounded-lg border border-default-200 p-3'>
+						<p className='mb-2 text-xs font-semibold text-default-500'>Consent Sources</p>
+						<MeasuredChart className='h-56 min-w-0'>
+							{(width) => (
+								<BarChart width={width} height={224} data={newsletterConsentSourceData} margin={{ top: 10, right: 8, left: -18, bottom: 30 }}>
+									<CartesianGrid strokeDasharray='4 4' stroke='#d4d4d8' />
+									<XAxis dataKey='label' stroke='#71717a' angle={-20} textAnchor='end' height={52} />
+									<YAxis stroke='#71717a' allowDecimals={false} />
+									<Tooltip {...tooltipProps} />
+									<Bar dataKey='value' fill='#9353D3' radius={[6, 6, 0, 0]} />
+								</BarChart>
+							)}
+						</MeasuredChart>
+					</div>
+					<div className='rounded-lg border border-default-200 p-3'>
+						<p className='mb-2 text-xs font-semibold text-default-500'>Queue Depth</p>
+						<MeasuredChart className='h-56 min-w-0'>
+							{(width) => (
+								<BarChart width={width} height={224} data={queueDepthData} margin={{ top: 10, right: 8, left: -18, bottom: 20 }}>
+									<CartesianGrid strokeDasharray='4 4' stroke='#d4d4d8' />
+									<XAxis dataKey='label' stroke='#71717a' angle={-14} textAnchor='end' height={40} />
+									<YAxis stroke='#71717a' allowDecimals={false} />
+									<Tooltip {...tooltipProps} />
+									<Bar dataKey='value' radius={[6, 6, 0, 0]}>
+										{queueDepthData.map((entry) => (
+											<Cell key={entry.label} fill={entry.fill} />
+										))}
+									</Bar>
+								</BarChart>
+							)}
+						</MeasuredChart>
+					</div>
+					<div className='rounded-lg border border-default-200 p-3'>
+						<p className='mb-2 text-xs font-semibold text-default-500'>Token Health</p>
+						<MeasuredChart className='h-56 min-w-0'>
+							{(width) => (
+								<BarChart width={width} height={224} data={tokenHealthData} margin={{ top: 10, right: 8, left: -18, bottom: 20 }}>
+									<CartesianGrid strokeDasharray='4 4' stroke='#d4d4d8' />
+									<XAxis dataKey='label' stroke='#71717a' angle={-14} textAnchor='end' height={40} />
+									<YAxis stroke='#71717a' allowDecimals={false} />
+									<Tooltip {...tooltipProps} />
+									<Bar dataKey='value' radius={[6, 6, 0, 0]}>
+										{tokenHealthData.map((entry) => (
+											<Cell key={entry.label} fill={entry.fill} />
+										))}
+									</Bar>
+								</BarChart>
+							)}
+						</MeasuredChart>
+					</div>
 				</CardBody>
 			</Card>
 
