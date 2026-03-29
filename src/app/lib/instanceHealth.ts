@@ -1,6 +1,6 @@
 /* istanbul ignore file */
 import { db } from "@/db/client";
-import { entitlementGrantsTable, overlaysTable, usersTable, twitchCacheTable } from "@/db/schema";
+import { entitlementGrantsTable, modQueueTable, overlaysTable, playlistClipsTable, playlistsTable, queueTable, settingsTable, tokenTable, twitchCacheTable, usersTable } from "@/db/schema";
 import { getTwitchCacheReadMetricsSnapshot } from "@actions/database";
 import { getClipCacheSchedulerStats } from "@lib/clipCacheScheduler";
 import { and, count, countDistinct, eq, gt, isNotNull, isNull, like, lt, lte, notLike, or, sql } from "drizzle-orm";
@@ -28,6 +28,38 @@ export type InstanceHealthSnapshot = {
 		overlaysPaused: number;
 		activeOverlayOwnersFree: number;
 		activeOverlayOwnersPaid: number;
+	};
+	accounts: {
+		disabledUsers: number;
+		disabledManual: number;
+		disabledAutomatic: number;
+		neverLoggedIn: number;
+		disabledReasonCounts: Record<string, number>;
+	};
+	playlists: {
+		total: number;
+		nonEmpty: number;
+		empty: number;
+		clipRows: number;
+		avgClipsPerPlaylist: number;
+		overlaysWithPlaylist: number;
+		activeOverlaysWithPlaylist: number;
+	};
+	newsletter: {
+		settingsRows: number;
+		optedIn: number;
+		optedOut: number;
+		consentSourceCounts: Record<string, number>;
+		optedOutReasonCounts: Record<string, number>;
+	};
+	queues: {
+		clipQueueDepth: number;
+		modQueueDepth: number;
+	};
+	auth: {
+		tokenRows: number;
+		expiredTokens: number;
+		expiringIn24h: number;
 	};
 	entitlements: {
 		activeGrantUsers: number;
@@ -64,7 +96,7 @@ export type InstanceHealthSnapshot = {
 	};
 };
 
-async function countRows(table: typeof usersTable | typeof overlaysTable) {
+async function countRows(table: typeof usersTable | typeof overlaysTable | typeof playlistsTable) {
 	const result = await db.select({ count: count() }).from(table).execute();
 	return Number(result[0]?.count ?? 0);
 }
@@ -77,11 +109,12 @@ async function countWhereOverlays(status: StatusOptions) {
 export async function getInstanceHealthSnapshot(): Promise<InstanceHealthSnapshot> {
 	const started = Date.now();
 	const now = new Date();
+	const in24h = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 	const dayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 	const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 	const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-	const [usersTotal, overlaysTotal, overlaysActive, overlaysPaused, activeUsers24h, activeUsers7d, activeUsers30d] = await Promise.all([
+	const [usersTotal, overlaysTotal, overlaysActive, overlaysPaused, activeUsers24h, activeUsers7d, activeUsers30d, disabledUsers, disabledManual, disabledAutomatic, neverLoggedIn, disabledReasonRows] = await Promise.all([
 		countRows(usersTable),
 		countRows(overlaysTable),
 		countWhereOverlays(StatusOptions.Active),
@@ -104,7 +137,44 @@ export async function getInstanceHealthSnapshot(): Promise<InstanceHealthSnapsho
 			.where(and(isNotNull(usersTable.lastLogin), gt(usersTable.lastLogin, monthAgo)))
 			.execute()
 			.then((rows) => Number(rows[0]?.count ?? 0)),
+		db
+			.select({ count: count() })
+			.from(usersTable)
+			.where(eq(usersTable.disabled, true))
+			.execute()
+			.then((rows) => Number(rows[0]?.count ?? 0)),
+		db
+			.select({ count: count() })
+			.from(usersTable)
+			.where(and(eq(usersTable.disabled, true), eq(usersTable.disableType, "manual")))
+			.execute()
+			.then((rows) => Number(rows[0]?.count ?? 0)),
+		db
+			.select({ count: count() })
+			.from(usersTable)
+			.where(and(eq(usersTable.disabled, true), eq(usersTable.disableType, "automatic")))
+			.execute()
+			.then((rows) => Number(rows[0]?.count ?? 0)),
+		db
+			.select({ count: count() })
+			.from(usersTable)
+			.where(isNull(usersTable.lastLogin))
+			.execute()
+			.then((rows) => Number(rows[0]?.count ?? 0)),
+		db
+			.select({
+				reason: usersTable.disabledReason,
+				count: count(),
+			})
+			.from(usersTable)
+			.where(eq(usersTable.disabled, true))
+			.groupBy(usersTable.disabledReason)
+			.execute(),
 	]);
+	const disabledReasonCounts = disabledReasonRows.reduce<Record<string, number>>((acc, row) => {
+		acc[(row.reason ?? "unknown").trim() || "unknown"] = Number(row.count ?? 0);
+		return acc;
+	}, {});
 
 	const usersByPlan = await db
 		.select({
@@ -157,6 +227,104 @@ export async function getInstanceHealthSnapshot(): Promise<InstanceHealthSnapsho
 		.execute();
 	const activeOverlayOwnersFree = Number(activeOverlayOwnersByPlanRows.find((row) => row.plan === Plan.Free)?.count ?? 0);
 	const activeOverlayOwnersPaid = Number(activeOverlayOwnersByPlanRows.find((row) => row.plan === Plan.Pro)?.count ?? 0);
+
+	const [playlistsTotal, playlistClipRows, nonEmptyPlaylistsRows, overlaysWithPlaylistRows, activeOverlaysWithPlaylistRows] = await Promise.all([
+		countRows(playlistsTable),
+		db
+			.select({ count: count() })
+			.from(playlistClipsTable)
+			.execute(),
+		db
+			.select({ count: countDistinct(playlistClipsTable.playlistId) })
+			.from(playlistClipsTable)
+			.execute(),
+		db
+			.select({ count: count() })
+			.from(overlaysTable)
+			.where(isNotNull(overlaysTable.playlistId))
+			.execute(),
+		db
+			.select({ count: count() })
+			.from(overlaysTable)
+			.where(and(eq(overlaysTable.status, StatusOptions.Active), isNotNull(overlaysTable.playlistId)))
+			.execute(),
+	]);
+	const playlistClipCount = Number(playlistClipRows[0]?.count ?? 0);
+	const nonEmptyPlaylists = Number(nonEmptyPlaylistsRows[0]?.count ?? 0);
+	const emptyPlaylists = Math.max(0, playlistsTotal - nonEmptyPlaylists);
+	const overlaysWithPlaylist = Number(overlaysWithPlaylistRows[0]?.count ?? 0);
+	const activeOverlaysWithPlaylist = Number(activeOverlaysWithPlaylistRows[0]?.count ?? 0);
+	const avgClipsPerPlaylist = playlistsTotal > 0 ? playlistClipCount / playlistsTotal : 0;
+
+	const [settingsRows, optedInRows, optedOutRows, newsletterConsentSourceRows, optedOutReasonRows] = await Promise.all([
+		db
+			.select({ count: count() })
+			.from(settingsTable)
+			.execute(),
+		db
+			.select({ count: count() })
+			.from(settingsTable)
+			.where(eq(settingsTable.marketingOptIn, true))
+			.execute(),
+		db
+			.select({ count: count() })
+			.from(settingsTable)
+			.where(eq(settingsTable.marketingOptIn, false))
+			.execute(),
+		db
+			.select({
+				source: settingsTable.marketingOptInSource,
+				count: count(),
+			})
+			.from(settingsTable)
+			.groupBy(settingsTable.marketingOptInSource)
+			.execute(),
+		db
+			.select({
+				source: settingsTable.marketingOptInSource,
+				count: count(),
+			})
+			.from(settingsTable)
+			.where(eq(settingsTable.marketingOptIn, false))
+			.groupBy(settingsTable.marketingOptInSource)
+			.execute(),
+	]);
+	const consentSourceCounts = newsletterConsentSourceRows.reduce<Record<string, number>>((acc, row) => {
+		acc[row.source ?? "unknown"] = Number(row.count ?? 0);
+		return acc;
+	}, {});
+	const optedOutReasonCounts = optedOutReasonRows.reduce<Record<string, number>>((acc, row) => {
+		acc[row.source ?? "unknown"] = Number(row.count ?? 0);
+		return acc;
+	}, {});
+
+	const [clipQueueRows, modQueueRows] = await Promise.all([
+		db
+			.select({ count: count() })
+			.from(queueTable)
+			.execute(),
+		db
+			.select({ count: count() })
+			.from(modQueueTable)
+			.execute(),
+	]);
+
+	const [tokenRows, expiredTokensRows, expiringIn24hRows] = await Promise.all([
+		db
+			.select({ count: count() })
+			.from(tokenTable)
+			.execute(),
+		db
+			.select({ count: count() })
+			.from(tokenTable)
+			.where(lt(tokenTable.expiresAt, now))
+			.execute(),
+		db
+			.select({ count: count() })
+			.from(tokenTable)
+			.where(and(gt(tokenTable.expiresAt, now), lte(tokenTable.expiresAt, in24h)))
+			.execute(),
+	]);
 
 	const grantsBySource = Object.values(EntitlementGrantSource).reduce<Record<string, number>>((acc, source) => {
 		acc[source] = Number(activeGrants.filter((row) => row.source === source).reduce((sum, row) => sum + Number(row.count ?? 0), 0));
@@ -238,6 +406,38 @@ export async function getInstanceHealthSnapshot(): Promise<InstanceHealthSnapsho
 			overlaysPaused,
 			activeOverlayOwnersFree,
 			activeOverlayOwnersPaid,
+		},
+		accounts: {
+			disabledUsers,
+			disabledManual,
+			disabledAutomatic,
+			neverLoggedIn,
+			disabledReasonCounts,
+		},
+		playlists: {
+			total: playlistsTotal,
+			nonEmpty: nonEmptyPlaylists,
+			empty: emptyPlaylists,
+			clipRows: playlistClipCount,
+			avgClipsPerPlaylist,
+			overlaysWithPlaylist,
+			activeOverlaysWithPlaylist,
+		},
+		newsletter: {
+			settingsRows: Number(settingsRows[0]?.count ?? 0),
+			optedIn: Number(optedInRows[0]?.count ?? 0),
+			optedOut: Number(optedOutRows[0]?.count ?? 0),
+			consentSourceCounts,
+			optedOutReasonCounts,
+		},
+		queues: {
+			clipQueueDepth: Number(clipQueueRows[0]?.count ?? 0),
+			modQueueDepth: Number(modQueueRows[0]?.count ?? 0),
+		},
+		auth: {
+			tokenRows: Number(tokenRows[0]?.count ?? 0),
+			expiredTokens: Number(expiredTokensRows[0]?.count ?? 0),
+			expiringIn24h: Number(expiringIn24hRows[0]?.count ?? 0),
 		},
 		entitlements: {
 			activeGrantUsers,
