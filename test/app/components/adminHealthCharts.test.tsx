@@ -61,6 +61,22 @@ const healthSnapshot: InstanceHealthSnapshot = {
 		overlaysWithPlaylist: 7,
 		activeOverlaysWithPlaylist: 5,
 	},
+	rewards: {
+		overlaysWithReward: 3,
+		activeOverlaysWithReward: 2,
+		uniqueRewardIds: 3,
+		ownersWithReward: 2,
+	},
+	overlayConfig: {
+		byType: {
+			last_month: 2,
+			playlist: 1,
+		},
+		byPlaybackMode: {
+			random: 2,
+			top: 1,
+		},
+	},
 	newsletter: {
 		settingsRows: 10,
 		optedIn: 8,

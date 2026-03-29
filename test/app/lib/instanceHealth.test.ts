@@ -19,6 +19,9 @@ jest.mock("@/db/schema", () => ({
 		createdAt: "createdAt",
 		plan: "plan",
 		lastLogin: "lastLogin",
+		disabled: "disabled",
+		disableType: "disableType",
+		disabledReason: "disabledReason",
 	},
 	entitlementGrantsTable: {
 		source: "source",
@@ -30,9 +33,35 @@ jest.mock("@/db/schema", () => ({
 	overlaysTable: {
 		status: "status",
 		ownerId: "ownerId",
+		playlistId: "playlistId",
+		rewardId: "rewardId",
+		type: "type",
+		playbackMode: "playbackMode",
+	},
+	playlistsTable: {
+		id: "id",
+	},
+	playlistClipsTable: {
+		playlistId: "playlistId",
+	},
+	settingsTable: {
+		marketingOptIn: "marketingOptIn",
+		marketingOptInSource: "marketingOptInSource",
+	},
+	queueTable: {
+		id: "id",
+	},
+	modQueueTable: {
+		id: "id",
+	},
+	tokenTable: {
+		expiresAt: "expiresAt",
 	},
 	twitchCacheTable: {
 		type: "type",
+		key: "key",
+		value: "value",
+		fetchedAt: "fetchedAt",
 	},
 }));
 jest.mock("drizzle-orm", () => ({
@@ -89,6 +118,11 @@ describe("lib/instanceHealth", () => {
 			[{ count: 5 }], // activeUsers24h
 			[{ count: 7 }], // activeUsers7d
 			[{ count: 9 }], // activeUsers30d
+			[{ count: 1 }], // disabledUsers
+			[{ count: 1 }], // disabledManual
+			[{ count: 0 }], // disabledAutomatic
+			[{ count: 1 }], // neverLoggedIn
+			[{ reason: "abuse", count: 1 }], // disabledReasonRows
 			[
 				{ plan: "free", count: 7 },
 				{ plan: "pro", count: 3 },
@@ -100,6 +134,27 @@ describe("lib/instanceHealth", () => {
 				{ plan: "free", count: 4 },
 				{ plan: "pro", count: 2 },
 			], // activeOverlayOwnersByPlanRows
+			[{ count: 4 }], // playlistsTotal
+			[{ count: 12 }], // playlistClipRows
+			[{ count: 3 }], // nonEmptyPlaylistsRows
+			[{ count: 6 }], // overlaysWithPlaylistRows
+			[{ count: 4 }], // activeOverlaysWithPlaylistRows
+			[{ count: 3 }], // overlaysWithRewardRows
+			[{ count: 2 }], // activeOverlaysWithRewardRows
+			[{ count: 3 }], // uniqueRewardIdsRows
+			[{ count: 2 }], // ownersWithRewardRows
+			[{ type: "last_month", count: 2 }], // overlaysByTypeRows
+			[{ mode: "random", count: 2 }], // overlaysByPlaybackModeRows
+			[{ count: 10 }], // settingsRows
+			[{ count: 8 }], // optedInRows
+			[{ count: 2 }], // optedOutRows
+			[{ source: "soft_opt_in_default", count: 6 }], // newsletterConsentSourceRows
+			[{ source: "settings_page_optout", count: 2 }], // optedOutReasonRows
+			[{ count: 3 }], // clipQueueRows
+			[{ count: 1 }], // modQueueRows
+			[{ count: 10 }], // tokenRows
+			[{ count: 0 }], // expiredTokensRows
+			[{ count: 2 }], // expiringIn24hRows
 			[
 				{ type: "clip", count: 100 },
 				{ type: "avatar", count: 20 },
@@ -180,6 +235,11 @@ describe("lib/instanceHealth", () => {
 			[{ count: 5 }], // activeUsers24h
 			[{ count: 7 }], // activeUsers7d
 			[{ count: 9 }], // activeUsers30d
+			[{ count: 1 }], // disabledUsers
+			[{ count: 1 }], // disabledManual
+			[{ count: 0 }], // disabledAutomatic
+			[{ count: 1 }], // neverLoggedIn
+			[{ reason: "abuse", count: 1 }], // disabledReasonRows
 			[
 				{ plan: "free", count: 7 },
 				{ plan: "pro", count: 3 },
@@ -191,6 +251,27 @@ describe("lib/instanceHealth", () => {
 				{ plan: "free", count: 4 },
 				{ plan: "pro", count: 2 },
 			], // activeOverlayOwnersByPlanRows
+			[{ count: 4 }], // playlistsTotal
+			[{ count: 12 }], // playlistClipRows
+			[{ count: 3 }], // nonEmptyPlaylistsRows
+			[{ count: 6 }], // overlaysWithPlaylistRows
+			[{ count: 4 }], // activeOverlaysWithPlaylistRows
+			[{ count: 3 }], // overlaysWithRewardRows
+			[{ count: 2 }], // activeOverlaysWithRewardRows
+			[{ count: 3 }], // uniqueRewardIdsRows
+			[{ count: 2 }], // ownersWithRewardRows
+			[{ type: "last_month", count: 2 }], // overlaysByTypeRows
+			[{ mode: "random", count: 2 }], // overlaysByPlaybackModeRows
+			[{ count: 10 }], // settingsRows
+			[{ count: 8 }], // optedInRows
+			[{ count: 2 }], // optedOutRows
+			[{ source: "soft_opt_in_default", count: 6 }], // newsletterConsentSourceRows
+			[{ source: "settings_page_optout", count: 2 }], // optedOutReasonRows
+			[{ count: 3 }], // clipQueueRows
+			[{ count: 1 }], // modQueueRows
+			[{ count: 10 }], // tokenRows
+			[{ count: 0 }], // expiredTokensRows
+			[{ count: 2 }], // expiringIn24hRows
 			[
 				{ type: "clip", count: 100 },
 				{ type: "avatar", count: 20 },
@@ -277,11 +358,37 @@ describe("lib/instanceHealth", () => {
 			[{ count: 0 }], // activeUsers24h
 			[{ count: 0 }], // activeUsers7d
 			[{ count: 0 }], // activeUsers30d
+			[{ count: 0 }], // disabledUsers
+			[{ count: 0 }], // disabledManual
+			[{ count: 0 }], // disabledAutomatic
+			[{ count: 0 }], // neverLoggedIn
+			[], // disabledReasonRows
 			[], // usersByPlan (empty)
 			[], // activeGrants (empty)
 			[{ count: 0 }], // activeGrantUsers
 			[{ count: 0 }], // activeGrantUsersOnFree
 			[], // activeOverlayOwnersByPlanRows (empty)
+			[{ count: 0 }], // playlistsTotal
+			[{ count: 0 }], // playlistClipRows
+			[{ count: 0 }], // nonEmptyPlaylistsRows
+			[{ count: 0 }], // overlaysWithPlaylistRows
+			[{ count: 0 }], // activeOverlaysWithPlaylistRows
+			[{ count: 0 }], // overlaysWithRewardRows
+			[{ count: 0 }], // activeOverlaysWithRewardRows
+			[{ count: 0 }], // uniqueRewardIdsRows
+			[{ count: 0 }], // ownersWithRewardRows
+			[], // overlaysByTypeRows
+			[], // overlaysByPlaybackModeRows
+			[{ count: 0 }], // settingsRows
+			[{ count: 0 }], // optedInRows
+			[{ count: 0 }], // optedOutRows
+			[], // newsletterConsentSourceRows
+			[], // optedOutReasonRows
+			[{ count: 0 }], // clipQueueRows
+			[{ count: 0 }], // modQueueRows
+			[{ count: 0 }], // tokenRows
+			[{ count: 0 }], // expiredTokensRows
+			[{ count: 0 }], // expiringIn24hRows
 			[], // cacheTotals (empty)
 			[{ count: 0 }], // unavailableClipsRows
 			[{ count: 0 }], // clipSyncStatesRows
@@ -310,11 +417,37 @@ describe("lib/instanceHealth", () => {
 			[], // activeUsers24h
 			[], // activeUsers7d
 			[], // activeUsers30d
+			[], // disabledUsers
+			[], // disabledManual
+			[], // disabledAutomatic
+			[], // neverLoggedIn
+			[], // disabledReasonRows
 			[], // usersByPlan
 			[], // activeGrants
 			[], // activeGrantUsers
 			[], // activeGrantUsersOnFree
 			[], // activeOverlayOwnersByPlanRows
+			[], // playlistsTotal
+			[], // playlistClipRows
+			[], // nonEmptyPlaylistsRows
+			[], // overlaysWithPlaylistRows
+			[], // activeOverlaysWithPlaylistRows
+			[], // overlaysWithRewardRows
+			[], // activeOverlaysWithRewardRows
+			[], // uniqueRewardIdsRows
+			[], // ownersWithRewardRows
+			[], // overlaysByTypeRows
+			[], // overlaysByPlaybackModeRows
+			[], // settingsRows
+			[], // optedInRows
+			[], // optedOutRows
+			[], // newsletterConsentSourceRows
+			[], // optedOutReasonRows
+			[], // clipQueueRows
+			[], // modQueueRows
+			[], // tokenRows
+			[], // expiredTokensRows
+			[], // expiringIn24hRows
 			[], // cacheTotals
 			[], // unavailableClipsRows
 			[], // clipSyncStatesRows
