@@ -112,6 +112,20 @@ export default function AdminHealthCharts({ health }: { health: InstanceHealthSn
 		{ label: "Expiring 24h", value: health.auth.expiringIn24h, fill: "#F5A524" },
 		{ label: "Expired", value: health.auth.expiredTokens, fill: "#F31260" },
 	];
+	const rewardUsageData = [
+		{ label: "With reward", value: health.rewards.overlaysWithReward, fill: "#006FEE" },
+		{ label: "Active with reward", value: health.rewards.activeOverlaysWithReward, fill: "#17C964" },
+		{ label: "Unique reward IDs", value: health.rewards.uniqueRewardIds, fill: "#F5A524" },
+		{ label: "Owners with reward", value: health.rewards.ownersWithReward, fill: "#9353D3" },
+	];
+	const overlayTypeData = Object.entries(health.overlayConfig.byType).map(([type, value]) => ({
+		label: type,
+		value,
+	}));
+	const playbackModeData = Object.entries(health.overlayConfig.byPlaybackMode).map(([mode, value]) => ({
+		label: mode,
+		value,
+	}));
 	const entitlementSourceData = Object.entries(health.entitlements.grantsBySource).map(([source, value]) => ({
 		label: source,
 		value,
@@ -402,6 +416,60 @@ export default function AdminHealthCharts({ health }: { health: InstanceHealthSn
 											<Cell key={entry.label} fill={entry.fill} />
 										))}
 									</Bar>
+								</BarChart>
+							)}
+						</MeasuredChart>
+					</div>
+				</CardBody>
+			</Card>
+
+			<Card className='min-w-0 lg:col-span-2'>
+				<CardHeader className='pb-1'>
+					<p className='text-sm font-semibold'>Rewards and Overlay Config</p>
+				</CardHeader>
+				<CardBody className='grid min-w-0 gap-3 md:grid-cols-3'>
+					<div className='rounded-lg border border-default-200 p-3'>
+						<p className='mb-2 text-xs font-semibold text-default-500'>Reward Usage</p>
+						<MeasuredChart className='h-56 min-w-0'>
+							{(width) => (
+								<BarChart width={width} height={224} data={rewardUsageData} margin={{ top: 10, right: 8, left: -18, bottom: 20 }}>
+									<CartesianGrid strokeDasharray='4 4' stroke='#d4d4d8' />
+									<XAxis dataKey='label' stroke='#71717a' angle={-14} textAnchor='end' height={40} />
+									<YAxis stroke='#71717a' allowDecimals={false} />
+									<Tooltip {...tooltipProps} />
+									<Bar dataKey='value' radius={[6, 6, 0, 0]}>
+										{rewardUsageData.map((entry) => (
+											<Cell key={entry.label} fill={entry.fill} />
+										))}
+									</Bar>
+								</BarChart>
+							)}
+						</MeasuredChart>
+					</div>
+					<div className='rounded-lg border border-default-200 p-3'>
+						<p className='mb-2 text-xs font-semibold text-default-500'>Overlay Types</p>
+						<MeasuredChart className='h-56 min-w-0'>
+							{(width) => (
+								<BarChart width={width} height={224} data={overlayTypeData} margin={{ top: 10, right: 8, left: -18, bottom: 30 }}>
+									<CartesianGrid strokeDasharray='4 4' stroke='#d4d4d8' />
+									<XAxis dataKey='label' stroke='#71717a' angle={-20} textAnchor='end' height={52} />
+									<YAxis stroke='#71717a' allowDecimals={false} />
+									<Tooltip {...tooltipProps} />
+									<Bar dataKey='value' fill='#17C964' radius={[6, 6, 0, 0]} />
+								</BarChart>
+							)}
+						</MeasuredChart>
+					</div>
+					<div className='rounded-lg border border-default-200 p-3'>
+						<p className='mb-2 text-xs font-semibold text-default-500'>Playback Modes</p>
+						<MeasuredChart className='h-56 min-w-0'>
+							{(width) => (
+								<BarChart width={width} height={224} data={playbackModeData} margin={{ top: 10, right: 8, left: -18, bottom: 30 }}>
+									<CartesianGrid strokeDasharray='4 4' stroke='#d4d4d8' />
+									<XAxis dataKey='label' stroke='#71717a' angle={-20} textAnchor='end' height={52} />
+									<YAxis stroke='#71717a' allowDecimals={false} />
+									<Tooltip {...tooltipProps} />
+									<Bar dataKey='value' fill='#F31260' radius={[6, 6, 0, 0]} />
 								</BarChart>
 							)}
 						</MeasuredChart>

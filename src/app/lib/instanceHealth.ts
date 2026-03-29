@@ -4,7 +4,7 @@ import { entitlementGrantsTable, modQueueTable, overlaysTable, playlistClipsTabl
 import { getTwitchCacheReadMetricsSnapshot } from "@actions/database";
 import { getClipCacheSchedulerStats } from "@lib/clipCacheScheduler";
 import { and, count, countDistinct, eq, gt, isNotNull, isNull, like, lt, lte, notLike, or, sql } from "drizzle-orm";
-import { Entitlement, EntitlementGrantSource, Plan, StatusOptions, TwitchCacheType } from "@types";
+import { Entitlement, EntitlementGrantSource, OverlayType, PlaybackMode, Plan, StatusOptions, TwitchCacheType } from "@types";
 
 type HealthStatus = "ok" | "degraded" | "down";
 
@@ -44,6 +44,16 @@ export type InstanceHealthSnapshot = {
 		avgClipsPerPlaylist: number;
 		overlaysWithPlaylist: number;
 		activeOverlaysWithPlaylist: number;
+	};
+	rewards: {
+		overlaysWithReward: number;
+		activeOverlaysWithReward: number;
+		uniqueRewardIds: number;
+		ownersWithReward: number;
+	};
+	overlayConfig: {
+		byType: Record<string, number>;
+		byPlaybackMode: Record<string, number>;
 	};
 	newsletter: {
 		settingsRows: number;
@@ -256,6 +266,54 @@ export async function getInstanceHealthSnapshot(): Promise<InstanceHealthSnapsho
 	const activeOverlaysWithPlaylist = Number(activeOverlaysWithPlaylistRows[0]?.count ?? 0);
 	const avgClipsPerPlaylist = playlistsTotal > 0 ? playlistClipCount / playlistsTotal : 0;
 
+	const [overlaysWithRewardRows, activeOverlaysWithRewardRows, uniqueRewardIdsRows, ownersWithRewardRows, overlaysByTypeRows, overlaysByPlaybackModeRows] = await Promise.all([
+		db
+			.select({ count: count() })
+			.from(overlaysTable)
+			.where(isNotNull(overlaysTable.rewardId))
+			.execute(),
+		db
+			.select({ count: count() })
+			.from(overlaysTable)
+			.where(and(eq(overlaysTable.status, StatusOptions.Active), isNotNull(overlaysTable.rewardId)))
+			.execute(),
+		db
+			.select({ count: countDistinct(overlaysTable.rewardId) })
+			.from(overlaysTable)
+			.where(isNotNull(overlaysTable.rewardId))
+			.execute(),
+		db
+			.select({ count: countDistinct(overlaysTable.ownerId) })
+			.from(overlaysTable)
+			.where(isNotNull(overlaysTable.rewardId))
+			.execute(),
+		db
+			.select({
+				type: overlaysTable.type,
+				count: count(),
+			})
+			.from(overlaysTable)
+			.groupBy(overlaysTable.type)
+			.execute(),
+		db
+			.select({
+				mode: overlaysTable.playbackMode,
+				count: count(),
+			})
+			.from(overlaysTable)
+			.groupBy(overlaysTable.playbackMode)
+			.execute(),
+	]);
+
+	const overlayTypeCounts = Object.values(OverlayType).reduce<Record<string, number>>((acc, type) => {
+		acc[type] = Number(overlaysByTypeRows.find((row) => row.type === type)?.count ?? 0);
+		return acc;
+	}, {});
+	const playbackModeCounts = Object.values(PlaybackMode).reduce<Record<string, number>>((acc, mode) => {
+		acc[mode] = Number(overlaysByPlaybackModeRows.find((row) => row.mode === mode)?.count ?? 0);
+		return acc;
+	}, {});
+
 	const [settingsRows, optedInRows, optedOutRows, newsletterConsentSourceRows, optedOutReasonRows] = await Promise.all([
 		db
 			.select({ count: count() })
@@ -422,6 +480,16 @@ export async function getInstanceHealthSnapshot(): Promise<InstanceHealthSnapsho
 			avgClipsPerPlaylist,
 			overlaysWithPlaylist,
 			activeOverlaysWithPlaylist,
+		},
+		rewards: {
+			overlaysWithReward: Number(overlaysWithRewardRows[0]?.count ?? 0),
+			activeOverlaysWithReward: Number(activeOverlaysWithRewardRows[0]?.count ?? 0),
+			uniqueRewardIds: Number(uniqueRewardIdsRows[0]?.count ?? 0),
+			ownersWithReward: Number(ownersWithRewardRows[0]?.count ?? 0),
+		},
+		overlayConfig: {
+			byType: overlayTypeCounts,
+			byPlaybackMode: playbackModeCounts,
 		},
 		newsletter: {
 			settingsRows: Number(settingsRows[0]?.count ?? 0),
