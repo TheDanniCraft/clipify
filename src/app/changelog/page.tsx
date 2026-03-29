@@ -3,6 +3,7 @@ import Footer from "@components/footer";
 import BasicNavbar from "@components/LandingPage/basicNavbar";
 import { GithubRelease } from "@types";
 import axios from "axios";
+import Script from "next/script";
 import xss from "xss";
 
 export default async function ChangelogPage() {
@@ -19,7 +20,7 @@ export default async function ChangelogPage() {
 
 	return (
 		<>
-			<script src='//tag.goadopt.io/injector.js?website_code=792b9b29-57f9-4d92-b5f1-313f94ddfacc' className='adopt-injector' defer></script>
+			<Script id='adopt-injector-changelog' src='https://tag.goadopt.io/injector.js?website_code=792b9b29-57f9-4d92-b5f1-313f94ddfacc' strategy='afterInteractive' />
 			<BasicNavbar />
 
 			<div className='min-h-screen bg-background text-foreground p-6'>

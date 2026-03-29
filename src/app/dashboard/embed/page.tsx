@@ -155,7 +155,6 @@ export default function EmbedTool() {
 
 	return (
 		<>
-			<script src='//tag.goadopt.io/injector.js?website_code=792b9b29-57f9-4d92-b5f1-313f94ddfacc' className='adopt-injector' defer></script>
 			<ChatwootData user={user} overlay={overlays.find((o) => o.id === overlayId)} />
 
 			<DashboardNavbar user={user!} title='Embed Widget Tool' tagline='Generate embed codes for your overlays'>

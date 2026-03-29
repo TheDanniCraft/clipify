@@ -4,6 +4,7 @@ import { Providers } from "./providers";
 import ThemeProvider from "./theme-provider";
 import { getBaseUrl } from "@actions/utils";
 import PlausibleClient from "./PlausibleClient";
+import Script from "next/script";
 
 const baseUrl = await getBaseUrl();
 const manifestUrl = new URL("manifest.webmanifest", baseUrl);
@@ -46,9 +47,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
 				<meta name='apple-mobile-web-app-title' content='Clipify' />
 				<link rel='preconnect' href='https://goadopt.io' crossOrigin='anonymous' />
 				<link rel='preconnect' href='https://affiliate.clipify.us' crossOrigin='anonymous' />
-				<script async src='https://affiliate.clipify.us/tracking/program-1.js'></script>
 			</head>
 			<body suppressHydrationWarning>
+				<Script id='affiliate-program-tracker' src='https://affiliate.clipify.us/tracking/program-1.js' strategy='afterInteractive' />
 				<PlausibleClient>
 					<ThemeProvider>
 						<Providers>{children}</Providers>

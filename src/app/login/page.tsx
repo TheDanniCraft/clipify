@@ -3,6 +3,7 @@ import { IconBrandTwitch } from "@tabler/icons-react";
 import ErrorToast from "@components/errorToast";
 import { validateAuth } from "@actions/auth";
 import { redirect } from "next/navigation";
+import Script from "next/script";
 
 export default async function Login({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
 	const { error, errorCode, returnUrl } = await searchParams;
@@ -16,7 +17,7 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
 
 	return (
 		<>
-			<script src='//tag.goadopt.io/injector.js?website_code=792b9b29-57f9-4d92-b5f1-313f94ddfacc' className='adopt-injector' defer></script>
+			<Script id='adopt-injector-login' src='https://tag.goadopt.io/injector.js?website_code=792b9b29-57f9-4d92-b5f1-313f94ddfacc' strategy='afterInteractive' />
 
 			<ErrorToast error={error as string} errorCode={errorCode as string} />
 
