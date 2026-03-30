@@ -6,7 +6,6 @@ import { Autocomplete, AutocompleteItem, Avatar, Badge, Button, Dropdown, Dropdo
 import { AuthenticatedUser, Role } from "@types";
 import Logo from "@components/logo";
 import { useRouter } from "next/navigation";
-import Script from "next/script";
 import { getAdminViewCandidates, stopAdminView, switchAdminView, type AdminViewCandidate } from "@actions/adminView";
 import { useEffect, useMemo, useState } from "react";
 
@@ -90,7 +89,6 @@ export default function DashboardNavbar({ children, user, title, tagline }: { ch
 
 	return (
 		<>
-			<Script src='https://tag.goadopt.io/injector.js?website_code=792b9b29-57f9-4d92-b5f1-313f94ddfacc' strategy='afterInteractive' />
 			<Navbar
 				classNames={{
 					base: "bg-primary",

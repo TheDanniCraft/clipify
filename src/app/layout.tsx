@@ -5,6 +5,7 @@ import ThemeProvider from "./theme-provider";
 import { getBaseUrl } from "@actions/utils";
 import PlausibleClient from "./PlausibleClient";
 import Script from "next/script";
+import AdOptScript from "./components/AdOptScript";
 
 const baseUrl = await getBaseUrl();
 const manifestUrl = new URL("manifest.webmanifest", baseUrl);
@@ -49,6 +50,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
 				<link rel='preconnect' href='https://affiliate.clipify.us' crossOrigin='anonymous' />
 			</head>
 			<body suppressHydrationWarning>
+				<AdOptScript />
 				<Script id='affiliate-program-tracker' src='https://affiliate.clipify.us/tracking/program-1.js' strategy='afterInteractive' />
 				<PlausibleClient>
 					<ThemeProvider>

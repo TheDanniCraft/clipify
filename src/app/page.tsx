@@ -10,12 +10,10 @@ import faqs from "@components/LandingPage/faqs";
 import Footer from "@components/footer";
 import FloatingBanner from "@components/floatingBanner";
 import DemoPlayer from "@components/DemoPlayer";
-import Script from "next/script";
 
 export default function Home() {
 	return (
 		<>
-			<Script src='https://tag.goadopt.io/injector.js?website_code=792b9b29-57f9-4d92-b5f1-313f94ddfacc' strategy='afterInteractive' />
 			<FloatingBanner
 				icon={<Image alt='Tada Icon' src='https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Activities/Party%20Popper.png' width='50' height='50' className='mx-auto' />}
 				title="We're launched!"
