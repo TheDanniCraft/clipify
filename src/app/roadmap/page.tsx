@@ -7,7 +7,7 @@ import Script from "next/script";
 export default function RoadmapPage() {
 	return (
 		<>
-			<Script id='adopt-injector-roadmap' src='https://tag.goadopt.io/injector.js?website_code=792b9b29-57f9-4d92-b5f1-313f94ddfacc' strategy='afterInteractive' />
+			<Script src='https://tag.goadopt.io/injector.js?website_code=792b9b29-57f9-4d92-b5f1-313f94ddfacc' strategy='afterInteractive' />
 			<BasicNavbar />
 
 			<div className='min-h-screen bg-background text-foreground p-6'>

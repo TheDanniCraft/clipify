@@ -45,7 +45,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
 		<html lang='en' suppressHydrationWarning>
 			<head>
 				<meta name='apple-mobile-web-app-title' content='Clipify' />
-				<link rel='preconnect' href='https://goadopt.io' crossOrigin='anonymous' />
+				<link rel='preconnect' href='https://tag.goadopt.io' crossOrigin='anonymous' />
 				<link rel='preconnect' href='https://affiliate.clipify.us' crossOrigin='anonymous' />
 			</head>
 			<body suppressHydrationWarning>
