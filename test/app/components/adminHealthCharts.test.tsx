@@ -86,7 +86,7 @@ const healthSnapshot: InstanceHealthSnapshot = {
 			settings_page_explicit_optin: 2,
 			settings_page_optout: 2,
 		},
-		optedOutReasonCounts: {
+		optedOutSourceCounts: {
 			settings_page_optout: 2,
 		},
 	},

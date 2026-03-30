@@ -95,8 +95,8 @@ export default function AdminHealthCharts({ health }: { health: InstanceHealthSn
 		label: reason,
 		value,
 	}));
-	const optedOutReasonData = Object.entries(health.newsletter.optedOutReasonCounts).map(([reason, value]) => ({
-		label: reason,
+	const optedOutSourceData = Object.entries(health.newsletter.optedOutSourceCounts).map(([source, value]) => ({
+		label: source,
 		value,
 	}));
 	const newsletterConsentSourceData = Object.entries(health.newsletter.consentSourceCounts).map(([source, value]) => ({
@@ -330,10 +330,10 @@ export default function AdminHealthCharts({ health }: { health: InstanceHealthSn
 						</MeasuredChart>
 					</div>
 					<div className='rounded-lg border border-default-200 p-3'>
-						<p className='mb-2 text-xs font-semibold text-default-500'>Opt-out Reasons</p>
+						<p className='mb-2 text-xs font-semibold text-default-500'>Opt-out Sources</p>
 						<MeasuredChart className='h-56 min-w-0'>
 							{(width) => (
-								<BarChart width={width} height={224} data={optedOutReasonData} margin={{ top: 10, right: 8, left: -18, bottom: 24 }}>
+								<BarChart width={width} height={224} data={optedOutSourceData} margin={{ top: 10, right: 8, left: -18, bottom: 24 }}>
 									<CartesianGrid strokeDasharray='4 4' stroke='#d4d4d8' />
 									<XAxis dataKey='label' stroke='#71717a' angle={-16} textAnchor='end' height={44} />
 									<YAxis stroke='#71717a' allowDecimals={false} />

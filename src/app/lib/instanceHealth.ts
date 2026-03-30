@@ -60,7 +60,7 @@ export type InstanceHealthSnapshot = {
 		optedIn: number;
 		optedOut: number;
 		consentSourceCounts: Record<string, number>;
-		optedOutReasonCounts: Record<string, number>;
+		optedOutSourceCounts: Record<string, number>;
 	};
 	queues: {
 		clipQueueDepth: number;
@@ -314,7 +314,7 @@ export async function getInstanceHealthSnapshot(): Promise<InstanceHealthSnapsho
 		return acc;
 	}, {});
 
-	const [settingsRows, optedInRows, optedOutRows, newsletterConsentSourceRows, optedOutReasonRows] = await Promise.all([
+	const [settingsRows, optedInRows, optedOutRows, newsletterConsentSourceRows, optedOutSourceRows] = await Promise.all([
 		db
 			.select({ count: count() })
 			.from(settingsTable)
@@ -351,7 +351,7 @@ export async function getInstanceHealthSnapshot(): Promise<InstanceHealthSnapsho
 		acc[row.source ?? "unknown"] = Number(row.count ?? 0);
 		return acc;
 	}, {});
-	const optedOutReasonCounts = optedOutReasonRows.reduce<Record<string, number>>((acc, row) => {
+	const optedOutSourceCounts = optedOutSourceRows.reduce<Record<string, number>>((acc, row) => {
 		acc[row.source ?? "unknown"] = Number(row.count ?? 0);
 		return acc;
 	}, {});
@@ -496,7 +496,7 @@ export async function getInstanceHealthSnapshot(): Promise<InstanceHealthSnapsho
 			optedIn: Number(optedInRows[0]?.count ?? 0),
 			optedOut: Number(optedOutRows[0]?.count ?? 0),
 			consentSourceCounts,
-			optedOutReasonCounts,
+			optedOutSourceCounts,
 		},
 		queues: {
 			clipQueueDepth: Number(clipQueueRows[0]?.count ?? 0),
