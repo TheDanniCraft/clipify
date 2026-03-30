@@ -85,7 +85,6 @@ describe("app/dashboard/page", () => {
 		expect(screen.getByText("overlay-table:user-1:access-token")).toBeInTheDocument();
 		expect(screen.getByText("chatwoot:user-1")).toBeInTheDocument();
 		expect(screen.getByText("feedback-widget")).toBeInTheDocument();
-		expect(document.querySelector("script.adopt-injector")).not.toBeNull();
 	});
 
 	it("renders dashboard for an admin user after login", async () => {

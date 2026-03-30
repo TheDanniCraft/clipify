@@ -14,7 +14,6 @@ import DemoPlayer from "@components/DemoPlayer";
 export default function Home() {
 	return (
 		<>
-			<script src='//tag.goadopt.io/injector.js?website_code=792b9b29-57f9-4d92-b5f1-313f94ddfacc' className='adopt-injector' defer></script>
 			<FloatingBanner
 				icon={<Image alt='Tada Icon' src='https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Activities/Party%20Popper.png' width='50' height='50' className='mx-auto' />}
 				title="We're launched!"

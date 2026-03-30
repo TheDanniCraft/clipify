@@ -43,6 +43,62 @@ const healthSnapshot: InstanceHealthSnapshot = {
 		activeOverlayOwnersFree: 4,
 		activeOverlayOwnersPaid: 3,
 	},
+	accounts: {
+		disabledUsers: 1,
+		disabledManual: 1,
+		disabledAutomatic: 0,
+		neverLoggedIn: 2,
+		disabledReasonCounts: {
+			abuse: 1,
+		},
+	},
+	playlists: {
+		total: 4,
+		nonEmpty: 3,
+		empty: 1,
+		clipRows: 24,
+		avgClipsPerPlaylist: 6,
+		overlaysWithPlaylist: 7,
+		activeOverlaysWithPlaylist: 5,
+	},
+	rewards: {
+		overlaysWithReward: 3,
+		activeOverlaysWithReward: 2,
+		uniqueRewardIds: 3,
+		ownersWithReward: 2,
+	},
+	overlayConfig: {
+		byType: {
+			last_month: 2,
+			playlist: 1,
+		},
+		byPlaybackMode: {
+			random: 2,
+			top: 1,
+		},
+	},
+	newsletter: {
+		settingsRows: 10,
+		optedIn: 8,
+		optedOut: 2,
+		consentSourceCounts: {
+			soft_opt_in_default: 6,
+			settings_page_explicit_optin: 2,
+			settings_page_optout: 2,
+		},
+		optedOutSourceCounts: {
+			settings_page_optout: 2,
+		},
+	},
+	queues: {
+		clipQueueDepth: 3,
+		modQueueDepth: 1,
+	},
+	auth: {
+		tokenRows: 10,
+		expiredTokens: 0,
+		expiringIn24h: 2,
+	},
 	entitlements: {
 		activeGrantUsers: 1,
 		activeGrantUsersOnFree: 1,

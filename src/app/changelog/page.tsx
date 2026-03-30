@@ -19,7 +19,6 @@ export default async function ChangelogPage() {
 
 	return (
 		<>
-			<script src='//tag.goadopt.io/injector.js?website_code=792b9b29-57f9-4d92-b5f1-313f94ddfacc' className='adopt-injector' defer></script>
 			<BasicNavbar />
 
 			<div className='min-h-screen bg-background text-foreground p-6'>

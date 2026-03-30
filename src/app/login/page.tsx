@@ -16,8 +16,6 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
 
 	return (
 		<>
-			<script src='//tag.goadopt.io/injector.js?website_code=792b9b29-57f9-4d92-b5f1-313f94ddfacc' className='adopt-injector' defer></script>
-
 			<ErrorToast error={error as string} errorCode={errorCode as string} />
 
 			<div className='min-h-screen min-w-screen flex items-center justify-center bg-gradient-to-br from-primary-800 to-primary-400'>
