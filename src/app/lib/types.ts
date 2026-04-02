@@ -467,9 +467,13 @@ export type CampaignOffer = {
 	subtitle: string | null;
 	badgeText: string | null;
 	ctaLabel: string;
+	floatingCtaLabel: string | null;
 	ctaHref: string;
 	offerCode: string | null;
 	utmCampaign: string;
+	showPricingTierPromo: boolean;
+	pricingMonthlyPromo: number | null;
+	pricingYearlyPromo: number | null;
 	iconUrl: string | null;
 	updated: string | null;
 };

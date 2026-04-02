@@ -12,6 +12,7 @@ type AuthResponse = {
 
 let cachedAuthToken: string | null = null;
 let cachedAuthTokenExpiresAt = 0;
+let authPromise: Promise<string | null> | null = null;
 
 export function getPocketBaseUrl(): string | null {
 	return process.env.POCKETBASE_URL?.trim() || null;
@@ -20,6 +21,7 @@ export function getPocketBaseUrl(): string | null {
 export function invalidatePocketBaseAuthToken(): void {
 	cachedAuthToken = null;
 	cachedAuthTokenExpiresAt = 0;
+	authPromise = null;
 }
 
 function parseJwtExp(token: string): number | null {
@@ -89,5 +91,11 @@ export async function getPocketBaseAuthToken(options?: { forceRefresh?: boolean 
 	const existing = getCachedTokenIfValid();
 	if (existing) return existing;
 
-	return loginWithPassword(pocketBaseUrl);
+	if (!authPromise) {
+		authPromise = loginWithPassword(pocketBaseUrl).finally(() => {
+			authPromise = null;
+		});
+	}
+
+	return authPromise;
 }

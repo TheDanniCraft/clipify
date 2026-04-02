@@ -24,7 +24,7 @@ export default function FloatingBanner({ icon, title, text, cta }: { icon?: Reac
 				{/* Banner Card */}
 				<div className='relative rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg flex items-center gap-x-3 px-6 py-3'>
 					<div className='flex items-center gap-x-3'>
-						{icon}
+						{icon ? <div className='flex shrink-0 items-center justify-center'>{icon}</div> : null}
 
 						<div className='flex items-center gap-4'>
 							<div className='text-left'>
