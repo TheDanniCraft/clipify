@@ -10,20 +10,27 @@ import faqs from "@components/LandingPage/faqs";
 import Footer from "@components/footer";
 import FloatingBanner from "@components/floatingBanner";
 import DemoPlayer from "@components/DemoPlayer";
+import { useCmsOffer } from "@hooks/useCmsOffer";
 
 export default function Home() {
+	const campaignOffer = useCmsOffer();
+
+	const floatingBannerCta = campaignOffer ? (
+		<Button as={Link} href={campaignOffer.ctaHref} radius='full' className='h-9 px-4 bg-white text-black'>
+			{campaignOffer.ctaLabel}
+		</Button>
+	) : undefined;
+
 	return (
 		<>
-			<FloatingBanner
-				icon={<Image alt='Tada Icon' src='https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Activities/Party%20Popper.png' width='50' height='50' className='mx-auto' />}
-				title="We're launched!"
-				text='50% off for early-bird users'
-				cta={
-					<Button as={Link} href='#pricing' radius='full' className='h-9 px-4 bg-white text-black'>
-						Claim Offer
-					</Button>
-				}
-			/>
+			{campaignOffer && campaignOffer.showFloatingBanner ? (
+				<FloatingBanner
+					icon={campaignOffer.iconUrl ? <Image alt={`${campaignOffer.title} Icon`} src={campaignOffer.iconUrl} width='50' height='50' className='mx-auto' /> : undefined}
+					title={campaignOffer.badgeText ?? campaignOffer.title}
+					text={campaignOffer.subtitle ?? campaignOffer.title}
+					cta={floatingBannerCta}
+				/>
+			) : null}
 
 			<div className='bg-gradient-to-br from-primary-800 to-primary-400 h-full'>
 				<BasicNavbar />
@@ -168,31 +175,39 @@ export default function Home() {
 						<h2 className='text-4xl font-bold mb-4'>Complicated pricing? Not with us.</h2>
 						<p className='text-foreground-500 text-lg max-w-2xl mx-auto'>Just two options: free forever, or unlock everything with Pro.</p>
 
-						<div className='mx-auto w-full max-w-md mt-12'>
-							<div className='relative'>
-								{/* Gradient Glow Layer */}
-								<div className='absolute -inset-1 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 blur-2xl opacity-60'></div>
+						{campaignOffer && campaignOffer.showPricingCard ? (
+							<div className='mx-auto w-full max-w-md mt-12'>
+								<div className='relative'>
+									<div className='absolute -inset-1 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 blur-2xl opacity-60'></div>
 
-								<Card className='relative bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl shadow-lg'>
-									<CardHeader className='p-4 pb-2'>
-										<div className='flex items-center gap-2 rounded-none'>
-											<Image alt='Launch Icon' className='rounded-none' src='https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Travel%20and%20places/Rocket.png' width={28} />
-											<h2 className='text-[17px] md:text-[18px] font-semibold leading-[1.1] tracking-tight'>Launch Offer</h2>
-										</div>
-									</CardHeader>
+									<Card className='relative bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl shadow-lg'>
+										<CardHeader className='p-4 pb-2'>
+											<div className='flex items-center gap-2 rounded-none'>
+												{campaignOffer.iconUrl ? <Image alt={`${campaignOffer.title} Icon`} className='rounded-none' src={campaignOffer.iconUrl} width={28} /> : null}
+												<h2 className='text-[17px] md:text-[18px] font-semibold leading-[1.1] tracking-tight'>{campaignOffer.title}</h2>
+											</div>
+										</CardHeader>
 
-									<CardBody className='px-4 pb-4 space-y-3'>
-										<p className='text-base'>
-											Use <span className='font-bold bg-white text-purple-700 px-2 py-0.5 rounded'>EARLYCLIPPY</span> for <strong>50% OFF</strong> your first year.
-										</p>
+										<CardBody className='px-4 pb-4 space-y-3'>
+											<p className='text-base'>
+												{campaignOffer.offerCode ? (
+													<>
+														Use <span className='font-bold bg-white text-purple-700 px-2 py-0.5 rounded'>{campaignOffer.offerCode}</span>
+														{campaignOffer.subtitle ? ` ${campaignOffer.subtitle}` : ""}
+													</>
+												) : (
+													campaignOffer.subtitle ?? campaignOffer.badgeText ?? campaignOffer.title
+												)}
+											</p>
 
-										<Button as={Link} href='/redeem?code=EARLYCLIPPY&redirect=/login&campaign=launch_offer' className='w-full bg-white text-purple-700 font-medium py-2 rounded-lg hover:opacity-90 transition'>
-											Register To Claim Offer
-										</Button>
-									</CardBody>
-								</Card>
+											<Button as={Link} href={campaignOffer.ctaHref} className='w-full bg-white text-purple-700 font-medium py-2 rounded-lg hover:opacity-90 transition'>
+												{campaignOffer.ctaLabel}
+											</Button>
+										</CardBody>
+									</Card>
+								</div>
 							</div>
-						</div>
+						) : null}
 					</div>
 				</div>
 				<TiersComponent />

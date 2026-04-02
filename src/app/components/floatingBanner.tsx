@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { Button } from "@heroui/react";
 import { IconX } from "@tabler/icons-react";
 
-export default function FloatingBanner({ icon, title, text, cta }: { icon: ReactNode; title: string; text: string; cta?: ReactNode }) {
+export default function FloatingBanner({ icon, title, text, cta }: { icon?: ReactNode; title: string; text: string; cta?: ReactNode }) {
 	const [isDismissed, setIsDismissed] = useState(false);
 
 	const handleClose = () => {

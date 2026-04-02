@@ -453,6 +453,27 @@ export type NumokStripeMetadata = {
 	numok_sid3?: string;
 };
 
+export type CampaignOffer = {
+	id: string;
+	name: string;
+	slug: string;
+	isEnabled: boolean;
+	startAt: string;
+	endAt: string | null;
+	priority: number;
+	showFloatingBanner: boolean;
+	showPricingCard: boolean;
+	title: string;
+	subtitle: string | null;
+	badgeText: string | null;
+	ctaLabel: string;
+	ctaHref: string;
+	offerCode: string | null;
+	utmCampaign: string;
+	iconUrl: string | null;
+	updated: string | null;
+};
+
 export type EventSubSubscription = {
 	type: string;
 	condition?: Record<string, unknown>;
