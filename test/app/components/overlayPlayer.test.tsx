@@ -45,6 +45,7 @@ jest.mock("@components/logo", () => ({
 
 jest.mock("@tabler/icons-react", () => ({
 	IconAlertTriangle: (props: Record<string, unknown>) => <svg data-testid='icon-alert' {...props} />,
+	IconPlayerPauseFilled: (props: Record<string, unknown>) => <svg data-testid='icon-pause' {...props} />,
 	IconPlayerPlayFilled: (props: Record<string, unknown>) => <svg data-testid='icon-play' {...props} />,
 	IconVolume: (props: Record<string, unknown>) => <svg data-testid='icon-volume' {...props} />,
 	IconVolumeOff: (props: Record<string, unknown>) => <svg data-testid='icon-volume-off' {...props} />,
@@ -297,7 +298,7 @@ describe("components/overlayPlayer", () => {
 		expect(resolvePlayableClip).toHaveBeenCalledWith("owner-1", expect.objectContaining({ id: "top-1" }));
 	});
 
-	it("handles embed click-to-play and mute toggle controls", async () => {
+	it("handles embed click-to-play, pause, and mute controls", async () => {
 		getTwitchClipBatch.mockResolvedValue([buildClip("embed-1", { title: "embed-clip" })]);
 
 		render(<OverlayPlayer overlay={buildOverlay()} isEmbed embedAutoplay={false} embedMuted />);
@@ -307,10 +308,19 @@ describe("components/overlayPlayer", () => {
 		});
 
 		const playCta = screen.getByRole("button", { name: "Play clips" });
+		const resumeButton = screen.getByRole("button", { name: "Resume overlay" });
 		const muteButton = screen.getByRole("button", { name: "Unmute overlay" });
+		expect(screen.queryByTestId("icon-alert")).not.toBeInTheDocument();
 
 		fireEvent.click(muteButton);
 		expect(screen.getByRole("button", { name: "Mute overlay" })).toBeInTheDocument();
+
+		fireEvent.click(resumeButton);
+		expect(screen.getByRole("button", { name: "Pause overlay" })).toBeInTheDocument();
+
+		fireEvent.click(screen.getByRole("button", { name: "Pause overlay" }));
+		expect(screen.getByRole("button", { name: "Resume overlay" })).toBeInTheDocument();
+		expect(pauseMock).toHaveBeenCalled();
 
 		fireEvent.click(playCta);
 		await waitFor(() => {
