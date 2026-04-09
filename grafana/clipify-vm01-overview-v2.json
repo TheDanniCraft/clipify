@@ -1,0 +1,7029 @@
+{
+	"annotations": [
+		{
+			"kind": "AnnotationQuery",
+			"spec": {
+				"builtIn": true,
+				"enable": true,
+				"hide": true,
+				"iconColor": "rgba(0, 211, 255, 1)",
+				"name": "Annotations & Alerts",
+				"query": {
+					"datasource": {
+						"name": "-- Grafana --"
+					},
+					"group": "grafana",
+					"kind": "DataQuery",
+					"spec": {},
+					"version": "v0"
+				}
+			}
+		}
+	],
+	"cursorSync": "Crosshair",
+	"editable": true,
+	"elements": {
+		"panel-3": {
+			"kind": "Panel",
+			"spec": {
+				"data": {
+					"kind": "QueryGroup",
+					"spec": {
+						"queries": [
+							{
+								"kind": "PanelQuery",
+								"spec": {
+									"hidden": false,
+									"query": {
+										"datasource": {
+											"name": "efg3es37pgh6ob"
+										},
+										"group": "influxdb",
+										"kind": "DataQuery",
+										"spec": {
+											"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"clipify_vm01\")\n  |> filter(fn: (r) => r[\"_field\"] == \"db_latencyMs\")\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])\n  |> group(columns: [\"_field\"])\n  |> last()"
+										},
+										"version": "v0"
+									},
+									"refId": "A"
+								}
+							}
+						],
+						"queryOptions": {},
+						"transformations": []
+					}
+				},
+				"description": "Latest database latency for clipify_vm01.",
+				"id": 3,
+				"links": [],
+				"title": "DB Latency",
+				"vizConfig": {
+					"group": "stat",
+					"kind": "VizConfig",
+					"spec": {
+						"fieldConfig": {
+							"defaults": {
+								"color": {
+									"mode": "thresholds"
+								},
+								"decimals": 2,
+								"thresholds": {
+									"mode": "absolute",
+									"steps": [
+										{
+											"color": "green",
+											"value": 0
+										},
+										{
+											"color": "yellow",
+											"value": 180
+										},
+										{
+											"color": "orange",
+											"value": 250
+										},
+										{
+											"color": "red",
+											"value": 400
+										}
+									]
+								},
+								"unit": "ms"
+							},
+							"overrides": [
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "db_latencyMs"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "DB Latency"
+										}
+									]
+								}
+							]
+						},
+						"options": {
+							"colorMode": "value",
+							"graphMode": "area",
+							"justifyMode": "center",
+							"orientation": "auto",
+							"percentChangeColorMode": "standard",
+							"reduceOptions": {
+								"calcs": ["lastNotNull"],
+								"fields": "",
+								"values": false
+							},
+							"showPercentChange": false,
+							"textMode": "auto",
+							"wideLayout": true
+						}
+					},
+					"version": "13.0.0-24139322263"
+				}
+			}
+		},
+		"panel-4": {
+			"kind": "Panel",
+			"spec": {
+				"data": {
+					"kind": "QueryGroup",
+					"spec": {
+						"queries": [
+							{
+								"kind": "PanelQuery",
+								"spec": {
+									"hidden": false,
+									"query": {
+										"datasource": {
+											"name": "efg3es37pgh6ob"
+										},
+										"group": "influxdb",
+										"kind": "DataQuery",
+										"spec": {
+											"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"clipify_vm01\")\n  |> filter(fn: (r) => r[\"_field\"] == \"uptimeSec\")\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])\n  |> group(columns: [\"_field\"])\n  |> last()"
+										},
+										"version": "v0"
+									},
+									"refId": "A"
+								}
+							}
+						],
+						"queryOptions": {},
+						"transformations": []
+					}
+				},
+				"description": "Latest application uptime.",
+				"id": 4,
+				"links": [],
+				"title": "Uptime",
+				"vizConfig": {
+					"group": "stat",
+					"kind": "VizConfig",
+					"spec": {
+						"fieldConfig": {
+							"defaults": {
+								"color": {
+									"mode": "thresholds"
+								},
+								"decimals": 0,
+								"thresholds": {
+									"mode": "absolute",
+									"steps": [
+										{
+											"color": "green",
+											"value": 0
+										}
+									]
+								},
+								"unit": "s"
+							},
+							"overrides": [
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "uptimeSec"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Uptime"
+										}
+									]
+								}
+							]
+						},
+						"options": {
+							"colorMode": "value",
+							"graphMode": "area",
+							"justifyMode": "center",
+							"orientation": "auto",
+							"percentChangeColorMode": "standard",
+							"reduceOptions": {
+								"calcs": ["lastNotNull"],
+								"fields": "",
+								"values": false
+							},
+							"showPercentChange": false,
+							"textMode": "auto",
+							"wideLayout": true
+						}
+					},
+					"version": "13.0.0-24139322263"
+				}
+			}
+		},
+		"panel-5": {
+			"kind": "Panel",
+			"spec": {
+				"data": {
+					"kind": "QueryGroup",
+					"spec": {
+						"queries": [
+							{
+								"kind": "PanelQuery",
+								"spec": {
+									"hidden": false,
+									"query": {
+										"datasource": {
+											"name": "efg3es37pgh6ob"
+										},
+										"group": "influxdb",
+										"kind": "DataQuery",
+										"spec": {
+											"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"clipify_vm01\")\n  |> filter(fn: (r) => r[\"_field\"] == \"counts_users\")\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])\n  |> group(columns: [\"_field\"])\n  |> last()"
+										},
+										"version": "v0"
+									},
+									"refId": "A"
+								}
+							}
+						],
+						"queryOptions": {},
+						"transformations": []
+					}
+				},
+				"description": "Current total users.",
+				"id": 5,
+				"links": [],
+				"title": "Users Total",
+				"vizConfig": {
+					"group": "stat",
+					"kind": "VizConfig",
+					"spec": {
+						"fieldConfig": {
+							"defaults": {
+								"color": {
+									"mode": "thresholds"
+								},
+								"decimals": 0,
+								"thresholds": {
+									"mode": "absolute",
+									"steps": [
+										{
+											"color": "green",
+											"value": 0
+										}
+									]
+								},
+								"unit": "short"
+							},
+							"overrides": [
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "counts_users"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Users Total"
+										}
+									]
+								}
+							]
+						},
+						"options": {
+							"colorMode": "value",
+							"graphMode": "area",
+							"justifyMode": "center",
+							"orientation": "auto",
+							"percentChangeColorMode": "standard",
+							"reduceOptions": {
+								"calcs": ["lastNotNull"],
+								"fields": "",
+								"values": false
+							},
+							"showPercentChange": false,
+							"textMode": "auto",
+							"wideLayout": true
+						}
+					},
+					"version": "13.0.0-24139322263"
+				}
+			}
+		},
+		"panel-6": {
+			"kind": "Panel",
+			"spec": {
+				"data": {
+					"kind": "QueryGroup",
+					"spec": {
+						"queries": [
+							{
+								"kind": "PanelQuery",
+								"spec": {
+									"hidden": false,
+									"query": {
+										"datasource": {
+											"name": "efg3es37pgh6ob"
+										},
+										"group": "influxdb",
+										"kind": "DataQuery",
+										"spec": {
+											"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"clipify_vm01\")\n  |> filter(fn: (r) => r[\"_field\"] == \"counts_usersPaid\")\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])\n  |> group(columns: [\"_field\"])\n  |> last()"
+										},
+										"version": "v0"
+									},
+									"refId": "A"
+								}
+							}
+						],
+						"queryOptions": {},
+						"transformations": []
+					}
+				},
+				"description": "Current paid users.",
+				"id": 6,
+				"links": [],
+				"title": "Users Paid",
+				"vizConfig": {
+					"group": "stat",
+					"kind": "VizConfig",
+					"spec": {
+						"fieldConfig": {
+							"defaults": {
+								"color": {
+									"mode": "thresholds"
+								},
+								"decimals": 0,
+								"thresholds": {
+									"mode": "absolute",
+									"steps": [
+										{
+											"color": "green",
+											"value": 0
+										}
+									]
+								},
+								"unit": "short"
+							},
+							"overrides": [
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "counts_usersPaid"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Users Paid"
+										}
+									]
+								}
+							]
+						},
+						"options": {
+							"colorMode": "value",
+							"graphMode": "area",
+							"justifyMode": "center",
+							"orientation": "auto",
+							"percentChangeColorMode": "standard",
+							"reduceOptions": {
+								"calcs": ["lastNotNull"],
+								"fields": "",
+								"values": false
+							},
+							"showPercentChange": false,
+							"textMode": "auto",
+							"wideLayout": true
+						}
+					},
+					"version": "13.0.0-24139322263"
+				}
+			}
+		},
+		"panel-7": {
+			"kind": "Panel",
+			"spec": {
+				"data": {
+					"kind": "QueryGroup",
+					"spec": {
+						"queries": [
+							{
+								"kind": "PanelQuery",
+								"spec": {
+									"hidden": false,
+									"query": {
+										"datasource": {
+											"name": "efg3es37pgh6ob"
+										},
+										"group": "influxdb",
+										"kind": "DataQuery",
+										"spec": {
+											"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"clipify_vm01\")\n  |> filter(fn: (r) => r[\"_field\"] == \"counts_usersFree\")\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])\n  |> group(columns: [\"_field\"])\n  |> last()"
+										},
+										"version": "v0"
+									},
+									"refId": "A"
+								}
+							}
+						],
+						"queryOptions": {},
+						"transformations": []
+					}
+				},
+				"description": "Current free users.",
+				"id": 7,
+				"links": [],
+				"title": "Users Free",
+				"vizConfig": {
+					"group": "stat",
+					"kind": "VizConfig",
+					"spec": {
+						"fieldConfig": {
+							"defaults": {
+								"color": {
+									"mode": "thresholds"
+								},
+								"decimals": 0,
+								"thresholds": {
+									"mode": "absolute",
+									"steps": [
+										{
+											"color": "green",
+											"value": 0
+										}
+									]
+								},
+								"unit": "short"
+							},
+							"overrides": [
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "counts_usersFree"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Users Free"
+										}
+									]
+								}
+							]
+						},
+						"options": {
+							"colorMode": "value",
+							"graphMode": "area",
+							"justifyMode": "center",
+							"orientation": "auto",
+							"percentChangeColorMode": "standard",
+							"reduceOptions": {
+								"calcs": ["lastNotNull"],
+								"fields": "",
+								"values": false
+							},
+							"showPercentChange": false,
+							"textMode": "auto",
+							"wideLayout": true
+						}
+					},
+					"version": "13.0.0-24139322263"
+				}
+			}
+		},
+		"panel-8": {
+			"kind": "Panel",
+			"spec": {
+				"data": {
+					"kind": "QueryGroup",
+					"spec": {
+						"queries": [
+							{
+								"kind": "PanelQuery",
+								"spec": {
+									"hidden": false,
+									"query": {
+										"datasource": {
+											"name": "efg3es37pgh6ob"
+										},
+										"group": "influxdb",
+										"kind": "DataQuery",
+										"spec": {
+											"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"clipify_vm01\")\n  |> filter(fn: (r) => r[\"_field\"] == \"entitlements_activeGrantUsers\")\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])\n  |> group(columns: [\"_field\"])\n  |> last()"
+										},
+										"version": "v0"
+									},
+									"refId": "A"
+								}
+							}
+						],
+						"queryOptions": {},
+						"transformations": []
+					}
+				},
+				"description": "Users with active grants.",
+				"id": 8,
+				"links": [],
+				"title": "Grant Users",
+				"vizConfig": {
+					"group": "stat",
+					"kind": "VizConfig",
+					"spec": {
+						"fieldConfig": {
+							"defaults": {
+								"color": {
+									"mode": "thresholds"
+								},
+								"decimals": 0,
+								"thresholds": {
+									"mode": "absolute",
+									"steps": [
+										{
+											"color": "green",
+											"value": 0
+										}
+									]
+								},
+								"unit": "short"
+							},
+							"overrides": [
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "entitlements_activeGrantUsers"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Grant Users"
+										}
+									]
+								}
+							]
+						},
+						"options": {
+							"colorMode": "value",
+							"graphMode": "area",
+							"justifyMode": "center",
+							"orientation": "auto",
+							"percentChangeColorMode": "standard",
+							"reduceOptions": {
+								"calcs": ["lastNotNull"],
+								"fields": "",
+								"values": false
+							},
+							"showPercentChange": false,
+							"textMode": "auto",
+							"wideLayout": true
+						}
+					},
+					"version": "13.0.0-24139322263"
+				}
+			}
+		},
+		"panel-9": {
+			"kind": "Panel",
+			"spec": {
+				"data": {
+					"kind": "QueryGroup",
+					"spec": {
+						"queries": [
+							{
+								"kind": "PanelQuery",
+								"spec": {
+									"hidden": false,
+									"query": {
+										"datasource": {
+											"name": "efg3es37pgh6ob"
+										},
+										"group": "influxdb",
+										"kind": "DataQuery",
+										"spec": {
+											"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"clipify_vm01\")\n  |> filter(fn: (r) => r[\"_field\"] == \"cache_globalReadHitRate\")\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])\n  |> group(columns: [\"_field\"])\n  |> last()\n  |> map(fn: (r) => ({ r with _value: r._value * 100.0 }))"
+										},
+										"version": "v0"
+									},
+									"refId": "A"
+								}
+							}
+						],
+						"queryOptions": {},
+						"transformations": []
+					}
+				},
+				"description": "Global cache read hit rate.",
+				"id": 9,
+				"links": [],
+				"title": "Cache Hit Rate",
+				"vizConfig": {
+					"group": "gauge",
+					"kind": "VizConfig",
+					"spec": {
+						"fieldConfig": {
+							"defaults": {
+								"color": {
+									"mode": "thresholds"
+								},
+								"decimals": 1,
+								"max": 100,
+								"min": 0,
+								"thresholds": {
+									"mode": "absolute",
+									"steps": [
+										{
+											"color": "red",
+											"value": 0
+										},
+										{
+											"color": "orange",
+											"value": 80
+										},
+										{
+											"color": "yellow",
+											"value": 90
+										},
+										{
+											"color": "green",
+											"value": 95
+										}
+									]
+								},
+								"unit": "percent"
+							},
+							"overrides": [
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "cache_globalReadHitRate"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Hit Rate"
+										}
+									]
+								}
+							]
+						},
+						"options": {
+							"barShape": "flat",
+							"barWidthFactor": 0.5,
+							"effects": {
+								"barGlow": false,
+								"centerGlow": false,
+								"gradient": true
+							},
+							"endpointMarker": "point",
+							"minVizHeight": 75,
+							"minVizWidth": 75,
+							"orientation": "auto",
+							"reduceOptions": {
+								"calcs": ["lastNotNull"],
+								"fields": "",
+								"values": false
+							},
+							"segmentCount": 1,
+							"segmentSpacing": 0.3,
+							"shape": "gauge",
+							"showThresholdLabels": false,
+							"showThresholdMarkers": true,
+							"sizing": "auto",
+							"sparkline": true,
+							"textMode": "auto"
+						}
+					},
+					"version": "13.0.0-24139322263"
+				}
+			}
+		},
+		"panel-10": {
+			"kind": "Panel",
+			"spec": {
+				"data": {
+					"kind": "QueryGroup",
+					"spec": {
+						"queries": [
+							{
+								"kind": "PanelQuery",
+								"spec": {
+									"hidden": false,
+									"query": {
+										"datasource": {
+											"name": "efg3es37pgh6ob"
+										},
+										"group": "influxdb",
+										"kind": "DataQuery",
+										"spec": {
+											"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"clipify_vm01\")\n  |> filter(fn: (r) => r[\"_field\"] == \"cache_backfillCompleteRatio\")\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])\n  |> group(columns: [\"_field\"])\n  |> last()\n  |> map(fn: (r) => ({ r with _value: r._value * 100.0 }))"
+										},
+										"version": "v0"
+									},
+									"refId": "A"
+								}
+							}
+						],
+						"queryOptions": {},
+						"transformations": []
+					}
+				},
+				"description": "Backfill completion ratio.",
+				"id": 10,
+				"links": [],
+				"title": "Backfill Complete",
+				"vizConfig": {
+					"group": "gauge",
+					"kind": "VizConfig",
+					"spec": {
+						"fieldConfig": {
+							"defaults": {
+								"color": {
+									"mode": "thresholds"
+								},
+								"decimals": 1,
+								"max": 100,
+								"min": 0,
+								"thresholds": {
+									"mode": "absolute",
+									"steps": [
+										{
+											"color": "red",
+											"value": 0
+										},
+										{
+											"color": "yellow",
+											"value": 90
+										},
+										{
+											"color": "green",
+											"value": 99
+										}
+									]
+								},
+								"unit": "percent"
+							},
+							"overrides": [
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "cache_backfillCompleteRatio"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Backfill Complete %"
+										}
+									]
+								}
+							]
+						},
+						"options": {
+							"barShape": "flat",
+							"barWidthFactor": 0.5,
+							"effects": {
+								"barGlow": false,
+								"centerGlow": false,
+								"gradient": true
+							},
+							"endpointMarker": "point",
+							"minVizHeight": 75,
+							"minVizWidth": 75,
+							"orientation": "auto",
+							"reduceOptions": {
+								"calcs": ["lastNotNull"],
+								"fields": "",
+								"values": false
+							},
+							"segmentCount": 1,
+							"segmentSpacing": 0.3,
+							"shape": "gauge",
+							"showThresholdLabels": false,
+							"showThresholdMarkers": true,
+							"sizing": "auto",
+							"sparkline": true,
+							"textMode": "auto"
+						}
+					},
+					"version": "13.0.0-24139322263"
+				}
+			}
+		},
+		"panel-13": {
+			"kind": "Panel",
+			"spec": {
+				"data": {
+					"kind": "QueryGroup",
+					"spec": {
+						"queries": [
+							{
+								"kind": "PanelQuery",
+								"spec": {
+									"hidden": false,
+									"query": {
+										"datasource": {
+											"name": "efg3es37pgh6ob"
+										},
+										"group": "influxdb",
+										"kind": "DataQuery",
+										"spec": {
+											"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"clipify_vm01\")\n  |> filter(fn: (r) =>\n      r[\"_field\"] == \"db_latencyMs\"\n    )\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)"
+										},
+										"version": "v0"
+									},
+									"refId": "A"
+								}
+							}
+						],
+						"queryOptions": {},
+						"transformations": []
+					}
+				},
+				"description": "Trend of database latency.",
+				"id": 13,
+				"links": [],
+				"title": "DB Latency Over Time",
+				"vizConfig": {
+					"group": "timeseries",
+					"kind": "VizConfig",
+					"spec": {
+						"fieldConfig": {
+							"defaults": {
+								"color": {
+									"mode": "palette-classic"
+								},
+								"custom": {
+									"axisBorderShow": false,
+									"axisCenteredZero": false,
+									"axisColorMode": "text",
+									"axisLabel": "",
+									"axisPlacement": "auto",
+									"barAlignment": 0,
+									"barWidthFactor": 0.6,
+									"drawStyle": "line",
+									"fillOpacity": 10,
+									"gradientMode": "none",
+									"hideFrom": {
+										"legend": false,
+										"tooltip": false,
+										"viz": false
+									},
+									"insertNulls": false,
+									"lineInterpolation": "linear",
+									"lineWidth": 2,
+									"pointSize": 5,
+									"scaleDistribution": {
+										"type": "linear"
+									},
+									"showPoints": "never",
+									"showValues": false,
+									"spanNulls": false,
+									"stacking": {
+										"group": "A",
+										"mode": "none"
+									},
+									"thresholdsStyle": {
+										"mode": "off"
+									}
+								},
+								"decimals": 2,
+								"thresholds": {
+									"mode": "absolute",
+									"steps": [
+										{
+											"color": "green",
+											"value": 0
+										},
+										{
+											"color": "#EAB839",
+											"value": 180
+										},
+										{
+											"color": "orange",
+											"value": 250
+										},
+										{
+											"color": "red",
+											"value": 400
+										}
+									]
+								},
+								"unit": "ms"
+							},
+							"overrides": [
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "db_latencyMs"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "DB Latency"
+										}
+									]
+								}
+							]
+						},
+						"options": {
+							"annotations": {
+								"clustering": -1,
+								"multiLane": false
+							},
+							"legend": {
+								"calcs": ["lastNotNull"],
+								"displayMode": "list",
+								"placement": "bottom",
+								"showLegend": true
+							},
+							"tooltip": {
+								"hideZeros": false,
+								"mode": "multi",
+								"sort": "none"
+							}
+						}
+					},
+					"version": "13.0.0-24139322263"
+				}
+			}
+		},
+		"panel-14": {
+			"kind": "Panel",
+			"spec": {
+				"data": {
+					"kind": "QueryGroup",
+					"spec": {
+						"queries": [
+							{
+								"kind": "PanelQuery",
+								"spec": {
+									"hidden": false,
+									"query": {
+										"datasource": {
+											"name": "efg3es37pgh6ob"
+										},
+										"group": "influxdb",
+										"kind": "DataQuery",
+										"spec": {
+											"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"clipify_vm01\")\n  |> filter(fn: (r) =>\n      r[\"_field\"] == \"uptimeSec\"\n    )\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)"
+										},
+										"version": "v0"
+									},
+									"refId": "A"
+								}
+							}
+						],
+						"queryOptions": {},
+						"transformations": []
+					}
+				},
+				"description": "Uptime trend; should be monotonically increasing except restarts.",
+				"id": 14,
+				"links": [],
+				"title": "Uptime Over Time",
+				"vizConfig": {
+					"group": "timeseries",
+					"kind": "VizConfig",
+					"spec": {
+						"fieldConfig": {
+							"defaults": {
+								"color": {
+									"mode": "palette-classic"
+								},
+								"custom": {
+									"axisBorderShow": false,
+									"axisCenteredZero": false,
+									"axisColorMode": "text",
+									"axisLabel": "",
+									"axisPlacement": "auto",
+									"barAlignment": 0,
+									"barWidthFactor": 0.6,
+									"drawStyle": "line",
+									"fillOpacity": 10,
+									"gradientMode": "none",
+									"hideFrom": {
+										"legend": false,
+										"tooltip": false,
+										"viz": false
+									},
+									"insertNulls": false,
+									"lineInterpolation": "linear",
+									"lineWidth": 2,
+									"pointSize": 5,
+									"scaleDistribution": {
+										"type": "linear"
+									},
+									"showPoints": "never",
+									"showValues": false,
+									"spanNulls": false,
+									"stacking": {
+										"group": "A",
+										"mode": "none"
+									},
+									"thresholdsStyle": {
+										"mode": "off"
+									}
+								},
+								"decimals": 0,
+								"thresholds": {
+									"mode": "absolute",
+									"steps": [
+										{
+											"color": "green",
+											"value": 0
+										}
+									]
+								},
+								"unit": "s"
+							},
+							"overrides": [
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "uptimeSec"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Uptime"
+										}
+									]
+								}
+							]
+						},
+						"options": {
+							"annotations": {
+								"clustering": -1,
+								"multiLane": false
+							},
+							"legend": {
+								"calcs": ["lastNotNull"],
+								"displayMode": "list",
+								"placement": "bottom",
+								"showLegend": true
+							},
+							"tooltip": {
+								"hideZeros": false,
+								"mode": "multi",
+								"sort": "none"
+							}
+						}
+					},
+					"version": "13.0.0-24139322263"
+				}
+			}
+		},
+		"panel-15": {
+			"kind": "Panel",
+			"spec": {
+				"data": {
+					"kind": "QueryGroup",
+					"spec": {
+						"queries": [
+							{
+								"kind": "PanelQuery",
+								"spec": {
+									"hidden": false,
+									"query": {
+										"datasource": {
+											"name": "efg3es37pgh6ob"
+										},
+										"group": "influxdb",
+										"kind": "DataQuery",
+										"spec": {
+											"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"clipify_vm01\")\n  |> filter(fn: (r) =>\n      r[\"_field\"] == \"cache_backfillCompleteRatio\"\n    )\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> map(fn: (r) => ({ r with _value: r._value * 100.0 }))"
+										},
+										"version": "v0"
+									},
+									"refId": "A"
+								}
+							}
+						],
+						"queryOptions": {},
+						"transformations": []
+					}
+				},
+				"description": "Backfill completion trend.",
+				"id": 15,
+				"links": [],
+				"title": "Backfill Completion Over Time",
+				"vizConfig": {
+					"group": "timeseries",
+					"kind": "VizConfig",
+					"spec": {
+						"fieldConfig": {
+							"defaults": {
+								"color": {
+									"mode": "palette-classic"
+								},
+								"custom": {
+									"axisBorderShow": false,
+									"axisCenteredZero": false,
+									"axisColorMode": "text",
+									"axisLabel": "",
+									"axisPlacement": "auto",
+									"barAlignment": 0,
+									"barWidthFactor": 0.6,
+									"drawStyle": "line",
+									"fillOpacity": 10,
+									"gradientMode": "none",
+									"hideFrom": {
+										"legend": false,
+										"tooltip": false,
+										"viz": false
+									},
+									"insertNulls": false,
+									"lineInterpolation": "linear",
+									"lineWidth": 2,
+									"pointSize": 5,
+									"scaleDistribution": {
+										"type": "linear"
+									},
+									"showPoints": "never",
+									"showValues": false,
+									"spanNulls": false,
+									"stacking": {
+										"group": "A",
+										"mode": "none"
+									},
+									"thresholdsStyle": {
+										"mode": "off"
+									}
+								},
+								"decimals": 1,
+								"max": 100,
+								"thresholds": {
+									"mode": "absolute",
+									"steps": [
+										{
+											"color": "green",
+											"value": 0
+										}
+									]
+								},
+								"unit": "percent"
+							},
+							"overrides": [
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "cache_backfillCompleteRatio"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Backfill Complete %"
+										}
+									]
+								}
+							]
+						},
+						"options": {
+							"annotations": {
+								"clustering": -1,
+								"multiLane": false
+							},
+							"legend": {
+								"calcs": ["lastNotNull"],
+								"displayMode": "list",
+								"placement": "bottom",
+								"showLegend": true
+							},
+							"tooltip": {
+								"hideZeros": false,
+								"mode": "multi",
+								"sort": "none"
+							}
+						}
+					},
+					"version": "13.0.0-24139322263"
+				}
+			}
+		},
+		"panel-16": {
+			"kind": "Panel",
+			"spec": {
+				"data": {
+					"kind": "QueryGroup",
+					"spec": {
+						"queries": [
+							{
+								"kind": "PanelQuery",
+								"spec": {
+									"hidden": false,
+									"query": {
+										"datasource": {
+											"name": "efg3es37pgh6ob"
+										},
+										"group": "influxdb",
+										"kind": "DataQuery",
+										"spec": {
+											"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"clipify_vm01\")\n  |> filter(fn: (r) =>\n      r[\"_field\"] == \"cache_globalReadHitRate\" or\n      r[\"_field\"] == \"cache_globalReadHits\" or\n      r[\"_field\"] == \"cache_globalReadMisses\"\n    )\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)"
+										},
+										"version": "v0"
+									},
+									"refId": "A"
+								}
+							}
+						],
+						"queryOptions": {},
+						"transformations": []
+					}
+				},
+				"description": "Hit rate and read counters together for quick health checks.",
+				"id": 16,
+				"links": [],
+				"title": "Cache Read Health",
+				"vizConfig": {
+					"group": "timeseries",
+					"kind": "VizConfig",
+					"spec": {
+						"fieldConfig": {
+							"defaults": {
+								"color": {
+									"mode": "palette-classic"
+								},
+								"custom": {
+									"axisBorderShow": false,
+									"axisCenteredZero": false,
+									"axisColorMode": "text",
+									"axisLabel": "",
+									"axisPlacement": "auto",
+									"barAlignment": 0,
+									"barWidthFactor": 0.6,
+									"drawStyle": "line",
+									"fillOpacity": 10,
+									"gradientMode": "none",
+									"hideFrom": {
+										"legend": false,
+										"tooltip": false,
+										"viz": false
+									},
+									"insertNulls": false,
+									"lineInterpolation": "linear",
+									"lineWidth": 2,
+									"pointSize": 5,
+									"scaleDistribution": {
+										"type": "linear"
+									},
+									"showPoints": "never",
+									"showValues": false,
+									"spanNulls": false,
+									"stacking": {
+										"group": "A",
+										"mode": "none"
+									},
+									"thresholdsStyle": {
+										"mode": "off"
+									}
+								},
+								"decimals": 1,
+								"thresholds": {
+									"mode": "absolute",
+									"steps": [
+										{
+											"color": "green",
+											"value": 0
+										}
+									]
+								},
+								"unit": "short"
+							},
+							"overrides": [
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "cache_globalReadHitRate"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Hit Rate"
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "cache_globalReadHits"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Read Hits"
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "cache_globalReadMisses"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Read Misses"
+										}
+									]
+								}
+							]
+						},
+						"options": {
+							"annotations": {
+								"clustering": -1,
+								"multiLane": false
+							},
+							"legend": {
+								"calcs": ["lastNotNull"],
+								"displayMode": "list",
+								"placement": "bottom",
+								"showLegend": true
+							},
+							"tooltip": {
+								"hideZeros": false,
+								"mode": "multi",
+								"sort": "none"
+							}
+						}
+					},
+					"version": "13.0.0-24139322263"
+				}
+			}
+		},
+		"panel-19": {
+			"kind": "Panel",
+			"spec": {
+				"data": {
+					"kind": "QueryGroup",
+					"spec": {
+						"queries": [
+							{
+								"kind": "PanelQuery",
+								"spec": {
+									"hidden": false,
+									"query": {
+										"datasource": {
+											"name": "efg3es37pgh6ob"
+										},
+										"group": "influxdb",
+										"kind": "DataQuery",
+										"spec": {
+											"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"clipify_vm01\")\n  |> filter(fn: (r) =>\n      r[\"_field\"] == \"counts_users\" or\n      r[\"_field\"] == \"counts_usersFree\" or\n      r[\"_field\"] == \"counts_usersPaid\"\n    )\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)"
+										},
+										"version": "v0"
+									},
+									"refId": "A"
+								}
+							}
+						],
+						"queryOptions": {},
+						"transformations": []
+					}
+				},
+				"description": "Total, free, and paid users.",
+				"id": 19,
+				"links": [],
+				"title": "User Base",
+				"vizConfig": {
+					"group": "timeseries",
+					"kind": "VizConfig",
+					"spec": {
+						"fieldConfig": {
+							"defaults": {
+								"color": {
+									"mode": "palette-classic"
+								},
+								"custom": {
+									"axisBorderShow": false,
+									"axisCenteredZero": false,
+									"axisColorMode": "text",
+									"axisLabel": "",
+									"axisPlacement": "auto",
+									"barAlignment": 0,
+									"barWidthFactor": 0.6,
+									"drawStyle": "line",
+									"fillOpacity": 10,
+									"gradientMode": "none",
+									"hideFrom": {
+										"legend": false,
+										"tooltip": false,
+										"viz": false
+									},
+									"insertNulls": false,
+									"lineInterpolation": "linear",
+									"lineWidth": 2,
+									"pointSize": 5,
+									"scaleDistribution": {
+										"type": "linear"
+									},
+									"showPoints": "never",
+									"showValues": false,
+									"spanNulls": false,
+									"stacking": {
+										"group": "A",
+										"mode": "none"
+									},
+									"thresholdsStyle": {
+										"mode": "off"
+									}
+								},
+								"decimals": 0,
+								"thresholds": {
+									"mode": "absolute",
+									"steps": [
+										{
+											"color": "green",
+											"value": 0
+										}
+									]
+								},
+								"unit": "short"
+							},
+							"overrides": [
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "counts_users"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Users Total"
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "counts_usersFree"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Users Free"
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "counts_usersPaid"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Users Paid"
+										}
+									]
+								}
+							]
+						},
+						"options": {
+							"annotations": {
+								"clustering": -1,
+								"multiLane": false
+							},
+							"legend": {
+								"calcs": ["lastNotNull"],
+								"displayMode": "list",
+								"placement": "bottom",
+								"showLegend": true
+							},
+							"tooltip": {
+								"hideZeros": false,
+								"mode": "multi",
+								"sort": "none"
+							}
+						}
+					},
+					"version": "13.0.0-24139322263"
+				}
+			}
+		},
+		"panel-20": {
+			"kind": "Panel",
+			"spec": {
+				"data": {
+					"kind": "QueryGroup",
+					"spec": {
+						"queries": [
+							{
+								"kind": "PanelQuery",
+								"spec": {
+									"hidden": false,
+									"query": {
+										"datasource": {
+											"name": "efg3es37pgh6ob"
+										},
+										"group": "influxdb",
+										"kind": "DataQuery",
+										"spec": {
+											"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"clipify_vm01\")\n  |> filter(fn: (r) =>\n      r[\"_field\"] == \"counts_activeUsers24h\" or\n      r[\"_field\"] == \"counts_activeUsers7d\" or\n      r[\"_field\"] == \"counts_activeUsers30d\"\n    )\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)"
+										},
+										"version": "v0"
+									},
+									"refId": "A"
+								}
+							}
+						],
+						"queryOptions": {},
+						"transformations": []
+					}
+				},
+				"description": "Rolling active-user windows.",
+				"id": 20,
+				"links": [],
+				"title": "Active Users",
+				"vizConfig": {
+					"group": "timeseries",
+					"kind": "VizConfig",
+					"spec": {
+						"fieldConfig": {
+							"defaults": {
+								"color": {
+									"mode": "palette-classic"
+								},
+								"custom": {
+									"axisBorderShow": false,
+									"axisCenteredZero": false,
+									"axisColorMode": "text",
+									"axisLabel": "",
+									"axisPlacement": "auto",
+									"barAlignment": 0,
+									"barWidthFactor": 0.6,
+									"drawStyle": "line",
+									"fillOpacity": 10,
+									"gradientMode": "none",
+									"hideFrom": {
+										"legend": false,
+										"tooltip": false,
+										"viz": false
+									},
+									"insertNulls": false,
+									"lineInterpolation": "linear",
+									"lineWidth": 2,
+									"pointSize": 5,
+									"scaleDistribution": {
+										"type": "linear"
+									},
+									"showPoints": "never",
+									"showValues": false,
+									"spanNulls": false,
+									"stacking": {
+										"group": "A",
+										"mode": "none"
+									},
+									"thresholdsStyle": {
+										"mode": "off"
+									}
+								},
+								"decimals": 0,
+								"thresholds": {
+									"mode": "absolute",
+									"steps": [
+										{
+											"color": "green",
+											"value": 0
+										}
+									]
+								},
+								"unit": "short"
+							},
+							"overrides": [
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "counts_activeUsers24h"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Active 24h"
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "counts_activeUsers7d"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Active 7d"
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "counts_activeUsers30d"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Active 30d"
+										}
+									]
+								}
+							]
+						},
+						"options": {
+							"annotations": {
+								"clustering": -1,
+								"multiLane": false
+							},
+							"legend": {
+								"calcs": ["lastNotNull"],
+								"displayMode": "list",
+								"placement": "bottom",
+								"showLegend": true
+							},
+							"tooltip": {
+								"hideZeros": false,
+								"mode": "multi",
+								"sort": "none"
+							}
+						}
+					},
+					"version": "13.0.0-24139322263"
+				}
+			}
+		},
+		"panel-21": {
+			"kind": "Panel",
+			"spec": {
+				"data": {
+					"kind": "QueryGroup",
+					"spec": {
+						"queries": [
+							{
+								"kind": "PanelQuery",
+								"spec": {
+									"hidden": false,
+									"query": {
+										"datasource": {
+											"name": "efg3es37pgh6ob"
+										},
+										"group": "influxdb",
+										"kind": "DataQuery",
+										"spec": {
+											"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"clipify_vm01\")\n  |> filter(fn: (r) =>\n      r[\"_field\"] == \"counts_overlaysActive\" or\n      r[\"_field\"] == \"counts_overlaysPaused\" or\n      r[\"_field\"] == \"counts_overlaysTotal\"\n    )\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)"
+										},
+										"version": "v0"
+									},
+									"refId": "A"
+								}
+							}
+						],
+						"queryOptions": {},
+						"transformations": []
+					}
+				},
+				"description": "Active, paused, and total overlays.",
+				"id": 21,
+				"links": [],
+				"title": "Overlay Counts",
+				"vizConfig": {
+					"group": "timeseries",
+					"kind": "VizConfig",
+					"spec": {
+						"fieldConfig": {
+							"defaults": {
+								"color": {
+									"mode": "palette-classic"
+								},
+								"custom": {
+									"axisBorderShow": false,
+									"axisCenteredZero": false,
+									"axisColorMode": "text",
+									"axisLabel": "",
+									"axisPlacement": "auto",
+									"barAlignment": 0,
+									"barWidthFactor": 0.6,
+									"drawStyle": "line",
+									"fillOpacity": 10,
+									"gradientMode": "none",
+									"hideFrom": {
+										"legend": false,
+										"tooltip": false,
+										"viz": false
+									},
+									"insertNulls": false,
+									"lineInterpolation": "linear",
+									"lineWidth": 2,
+									"pointSize": 5,
+									"scaleDistribution": {
+										"type": "linear"
+									},
+									"showPoints": "never",
+									"showValues": false,
+									"spanNulls": false,
+									"stacking": {
+										"group": "A",
+										"mode": "none"
+									},
+									"thresholdsStyle": {
+										"mode": "off"
+									}
+								},
+								"decimals": 0,
+								"thresholds": {
+									"mode": "absolute",
+									"steps": [
+										{
+											"color": "green",
+											"value": 0
+										}
+									]
+								},
+								"unit": "short"
+							},
+							"overrides": [
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "counts_overlaysActive"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Overlays Active"
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "counts_overlaysPaused"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Overlays Paused"
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "counts_overlaysTotal"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Overlays Total"
+										}
+									]
+								}
+							]
+						},
+						"options": {
+							"annotations": {
+								"clustering": -1,
+								"multiLane": false
+							},
+							"legend": {
+								"calcs": ["lastNotNull"],
+								"displayMode": "list",
+								"placement": "bottom",
+								"showLegend": true
+							},
+							"tooltip": {
+								"hideZeros": false,
+								"mode": "multi",
+								"sort": "none"
+							}
+						}
+					},
+					"version": "13.0.0-24139322263"
+				}
+			}
+		},
+		"panel-22": {
+			"kind": "Panel",
+			"spec": {
+				"data": {
+					"kind": "QueryGroup",
+					"spec": {
+						"queries": [
+							{
+								"kind": "PanelQuery",
+								"spec": {
+									"hidden": false,
+									"query": {
+										"datasource": {
+											"name": "efg3es37pgh6ob"
+										},
+										"group": "influxdb",
+										"kind": "DataQuery",
+										"spec": {
+											"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"clipify_vm01\")\n  |> filter(fn: (r) =>\n      r[\"_field\"] == \"counts_activeOverlayOwnersFree\" or\n      r[\"_field\"] == \"counts_activeOverlayOwnersPaid\"\n    )\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)"
+										},
+										"version": "v0"
+									},
+									"refId": "A"
+								}
+							}
+						],
+						"queryOptions": {},
+						"transformations": []
+					}
+				},
+				"description": "Free vs paid overlay owners.",
+				"id": 22,
+				"links": [],
+				"title": "Overlay Owners",
+				"vizConfig": {
+					"group": "timeseries",
+					"kind": "VizConfig",
+					"spec": {
+						"fieldConfig": {
+							"defaults": {
+								"color": {
+									"mode": "palette-classic"
+								},
+								"custom": {
+									"axisBorderShow": false,
+									"axisCenteredZero": false,
+									"axisColorMode": "text",
+									"axisLabel": "",
+									"axisPlacement": "auto",
+									"barAlignment": 0,
+									"barWidthFactor": 0.6,
+									"drawStyle": "line",
+									"fillOpacity": 10,
+									"gradientMode": "none",
+									"hideFrom": {
+										"legend": false,
+										"tooltip": false,
+										"viz": false
+									},
+									"insertNulls": false,
+									"lineInterpolation": "linear",
+									"lineWidth": 2,
+									"pointSize": 5,
+									"scaleDistribution": {
+										"type": "linear"
+									},
+									"showPoints": "never",
+									"showValues": false,
+									"spanNulls": false,
+									"stacking": {
+										"group": "A",
+										"mode": "none"
+									},
+									"thresholdsStyle": {
+										"mode": "off"
+									}
+								},
+								"decimals": 0,
+								"thresholds": {
+									"mode": "absolute",
+									"steps": [
+										{
+											"color": "green",
+											"value": 0
+										}
+									]
+								},
+								"unit": "short"
+							},
+							"overrides": [
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "counts_activeOverlayOwnersFree"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Owners Free"
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "counts_activeOverlayOwnersPaid"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Owners Paid"
+										}
+									]
+								}
+							]
+						},
+						"options": {
+							"annotations": {
+								"clustering": -1,
+								"multiLane": false
+							},
+							"legend": {
+								"calcs": ["lastNotNull"],
+								"displayMode": "list",
+								"placement": "bottom",
+								"showLegend": true
+							},
+							"tooltip": {
+								"hideZeros": false,
+								"mode": "multi",
+								"sort": "none"
+							}
+						}
+					},
+					"version": "13.0.0-24139322263"
+				}
+			}
+		},
+		"panel-25": {
+			"kind": "Panel",
+			"spec": {
+				"data": {
+					"kind": "QueryGroup",
+					"spec": {
+						"queries": [
+							{
+								"kind": "PanelQuery",
+								"spec": {
+									"hidden": false,
+									"query": {
+										"datasource": {
+											"name": "efg3es37pgh6ob"
+										},
+										"group": "influxdb",
+										"kind": "DataQuery",
+										"spec": {
+											"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"clipify_vm01\")\n  |> filter(fn: (r) =>\n      r[\"_field\"] == \"entitlements_activeGrantCount\" or\n      r[\"_field\"] == \"entitlements_activeGrantUsers\" or\n      r[\"_field\"] == \"entitlements_activeGrantUsersOnFree\" or\n      r[\"_field\"] == \"entitlements_effectiveProUsersEstimate\"\n    )\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)"
+										},
+										"version": "v0"
+									},
+									"refId": "A"
+								}
+							}
+						],
+						"queryOptions": {},
+						"transformations": []
+					}
+				},
+				"description": "Headline entitlement and grant metrics.",
+				"id": 25,
+				"links": [],
+				"title": "Grant Summary",
+				"vizConfig": {
+					"group": "timeseries",
+					"kind": "VizConfig",
+					"spec": {
+						"fieldConfig": {
+							"defaults": {
+								"color": {
+									"mode": "palette-classic"
+								},
+								"custom": {
+									"axisBorderShow": false,
+									"axisCenteredZero": false,
+									"axisColorMode": "text",
+									"axisLabel": "",
+									"axisPlacement": "auto",
+									"barAlignment": 0,
+									"barWidthFactor": 0.6,
+									"drawStyle": "line",
+									"fillOpacity": 10,
+									"gradientMode": "none",
+									"hideFrom": {
+										"legend": false,
+										"tooltip": false,
+										"viz": false
+									},
+									"insertNulls": false,
+									"lineInterpolation": "linear",
+									"lineWidth": 2,
+									"pointSize": 5,
+									"scaleDistribution": {
+										"type": "linear"
+									},
+									"showPoints": "never",
+									"showValues": false,
+									"spanNulls": false,
+									"stacking": {
+										"group": "A",
+										"mode": "none"
+									},
+									"thresholdsStyle": {
+										"mode": "off"
+									}
+								},
+								"decimals": 0,
+								"thresholds": {
+									"mode": "absolute",
+									"steps": [
+										{
+											"color": "green",
+											"value": 0
+										}
+									]
+								},
+								"unit": "short"
+							},
+							"overrides": [
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "entitlements_activeGrantCount"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Active Grants"
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "entitlements_activeGrantUsers"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Grant Users"
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "entitlements_activeGrantUsersOnFree"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Grant Users on Free"
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "entitlements_effectiveProUsersEstimate"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Effective Pro Users"
+										}
+									]
+								}
+							]
+						},
+						"options": {
+							"annotations": {
+								"clustering": -1,
+								"multiLane": false
+							},
+							"legend": {
+								"calcs": ["lastNotNull"],
+								"displayMode": "list",
+								"placement": "bottom",
+								"showLegend": true
+							},
+							"tooltip": {
+								"hideZeros": false,
+								"mode": "multi",
+								"sort": "none"
+							}
+						}
+					},
+					"version": "13.0.0-24139322263"
+				}
+			}
+		},
+		"panel-26": {
+			"kind": "Panel",
+			"spec": {
+				"data": {
+					"kind": "QueryGroup",
+					"spec": {
+						"queries": [
+							{
+								"kind": "PanelQuery",
+								"spec": {
+									"hidden": false,
+									"query": {
+										"datasource": {
+											"name": "efg3es37pgh6ob"
+										},
+										"group": "influxdb",
+										"kind": "DataQuery",
+										"spec": {
+											"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"clipify_vm01\")\n  |> filter(fn: (r) =>\n      r[\"_field\"] == \"entitlements_grantsBySource_promo\" or\n      r[\"_field\"] == \"entitlements_grantsBySource_reverse_trial\" or\n      r[\"_field\"] == \"entitlements_grantsBySource_support\" or\n      r[\"_field\"] == \"entitlements_grantsBySource_system\"\n    )\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)"
+										},
+										"version": "v0"
+									},
+									"refId": "A"
+								}
+							}
+						],
+						"queryOptions": {},
+						"transformations": []
+					}
+				},
+				"description": "Grants by source.",
+				"id": 26,
+				"links": [],
+				"title": "Grant Sources",
+				"vizConfig": {
+					"group": "timeseries",
+					"kind": "VizConfig",
+					"spec": {
+						"fieldConfig": {
+							"defaults": {
+								"color": {
+									"mode": "palette-classic"
+								},
+								"custom": {
+									"axisBorderShow": false,
+									"axisCenteredZero": false,
+									"axisColorMode": "text",
+									"axisLabel": "",
+									"axisPlacement": "auto",
+									"barAlignment": 0,
+									"barWidthFactor": 0.6,
+									"drawStyle": "line",
+									"fillOpacity": 10,
+									"gradientMode": "none",
+									"hideFrom": {
+										"legend": false,
+										"tooltip": false,
+										"viz": false
+									},
+									"insertNulls": false,
+									"lineInterpolation": "linear",
+									"lineWidth": 2,
+									"pointSize": 5,
+									"scaleDistribution": {
+										"type": "linear"
+									},
+									"showPoints": "never",
+									"showValues": false,
+									"spanNulls": false,
+									"stacking": {
+										"group": "A",
+										"mode": "none"
+									},
+									"thresholdsStyle": {
+										"mode": "off"
+									}
+								},
+								"decimals": 0,
+								"thresholds": {
+									"mode": "absolute",
+									"steps": [
+										{
+											"color": "green",
+											"value": 0
+										}
+									]
+								},
+								"unit": "short"
+							},
+							"overrides": [
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "entitlements_grantsBySource_promo"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Promo Grants"
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "entitlements_grantsBySource_reverse_trial"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Reverse Trial Grants"
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "entitlements_grantsBySource_support"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Support Grants"
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "entitlements_grantsBySource_system"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "System Grants"
+										}
+									]
+								}
+							]
+						},
+						"options": {
+							"annotations": {
+								"clustering": -1,
+								"multiLane": false
+							},
+							"legend": {
+								"calcs": ["lastNotNull"],
+								"displayMode": "table",
+								"placement": "bottom",
+								"showLegend": true
+							},
+							"tooltip": {
+								"hideZeros": false,
+								"mode": "multi",
+								"sort": "none"
+							}
+						}
+					},
+					"version": "13.0.0-24139322263"
+				}
+			}
+		},
+		"panel-27": {
+			"kind": "Panel",
+			"spec": {
+				"data": {
+					"kind": "QueryGroup",
+					"spec": {
+						"queries": [
+							{
+								"kind": "PanelQuery",
+								"spec": {
+									"hidden": false,
+									"query": {
+										"datasource": {
+											"name": "efg3es37pgh6ob"
+										},
+										"group": "influxdb",
+										"kind": "DataQuery",
+										"spec": {
+											"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"clipify_vm01\")\n  |> filter(fn: (r) =>\n      r[\"_field\"] == \"entitlements_activeGrantUsers\" or\n      r[\"_field\"] == \"entitlements_effectiveProUsersEstimate\" or\n      r[\"_field\"] == \"entitlements_grantsByEntitlement_pro_access\"\n    )\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)"
+										},
+										"version": "v0"
+									},
+									"refId": "A"
+								}
+							}
+						],
+						"queryOptions": {},
+						"transformations": []
+					}
+				},
+				"description": "Compare effective pro estimate with active granted users and pro-access grants.",
+				"id": 27,
+				"links": [],
+				"title": "Pro Access Trend",
+				"vizConfig": {
+					"group": "timeseries",
+					"kind": "VizConfig",
+					"spec": {
+						"fieldConfig": {
+							"defaults": {
+								"color": {
+									"mode": "palette-classic"
+								},
+								"custom": {
+									"axisBorderShow": false,
+									"axisCenteredZero": false,
+									"axisColorMode": "text",
+									"axisLabel": "",
+									"axisPlacement": "auto",
+									"barAlignment": 0,
+									"barWidthFactor": 0.6,
+									"drawStyle": "line",
+									"fillOpacity": 10,
+									"gradientMode": "none",
+									"hideFrom": {
+										"legend": false,
+										"tooltip": false,
+										"viz": false
+									},
+									"insertNulls": false,
+									"lineInterpolation": "linear",
+									"lineWidth": 2,
+									"pointSize": 5,
+									"scaleDistribution": {
+										"type": "linear"
+									},
+									"showPoints": "never",
+									"showValues": false,
+									"spanNulls": false,
+									"stacking": {
+										"group": "A",
+										"mode": "none"
+									},
+									"thresholdsStyle": {
+										"mode": "off"
+									}
+								},
+								"decimals": 0,
+								"thresholds": {
+									"mode": "absolute",
+									"steps": [
+										{
+											"color": "green",
+											"value": 0
+										}
+									]
+								},
+								"unit": "short"
+							},
+							"overrides": [
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "entitlements_activeGrantUsers"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Grant Users"
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "entitlements_effectiveProUsersEstimate"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Effective Pro Users"
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "entitlements_grantsByEntitlement_pro_access"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Pro Access Grants"
+										}
+									]
+								}
+							]
+						},
+						"options": {
+							"annotations": {
+								"clustering": -1,
+								"multiLane": false
+							},
+							"legend": {
+								"calcs": ["lastNotNull"],
+								"displayMode": "list",
+								"placement": "bottom",
+								"showLegend": true
+							},
+							"tooltip": {
+								"hideZeros": false,
+								"mode": "multi",
+								"sort": "none"
+							}
+						}
+					},
+					"version": "13.0.0-24139322263"
+				}
+			}
+		},
+		"panel-30": {
+			"kind": "Panel",
+			"spec": {
+				"data": {
+					"kind": "QueryGroup",
+					"spec": {
+						"queries": [
+							{
+								"kind": "PanelQuery",
+								"spec": {
+									"hidden": false,
+									"query": {
+										"datasource": {
+											"name": "efg3es37pgh6ob"
+										},
+										"group": "influxdb",
+										"kind": "DataQuery",
+										"spec": {
+											"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"clipify_vm01\")\n  |> filter(fn: (r) =>\n      r[\"_field\"] == \"cache_globalReadHits\" or\n      r[\"_field\"] == \"cache_globalReadMisses\" or\n      r[\"_field\"] == \"cache_globalReadTotal\" or\n      r[\"_field\"] == \"cache_globalStaleHits\"\n    )\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)"
+										},
+										"version": "v0"
+									},
+									"refId": "A"
+								}
+							}
+						],
+						"queryOptions": {},
+						"transformations": []
+					}
+				},
+				"description": "Cache read volume and misses over time.",
+				"id": 30,
+				"links": [],
+				"title": "Read Traffic",
+				"vizConfig": {
+					"group": "timeseries",
+					"kind": "VizConfig",
+					"spec": {
+						"fieldConfig": {
+							"defaults": {
+								"color": {
+									"mode": "palette-classic"
+								},
+								"custom": {
+									"axisBorderShow": false,
+									"axisCenteredZero": false,
+									"axisColorMode": "text",
+									"axisLabel": "",
+									"axisPlacement": "auto",
+									"barAlignment": 0,
+									"barWidthFactor": 0.6,
+									"drawStyle": "line",
+									"fillOpacity": 10,
+									"gradientMode": "none",
+									"hideFrom": {
+										"legend": false,
+										"tooltip": false,
+										"viz": false
+									},
+									"insertNulls": false,
+									"lineInterpolation": "linear",
+									"lineWidth": 2,
+									"pointSize": 5,
+									"scaleDistribution": {
+										"type": "linear"
+									},
+									"showPoints": "never",
+									"showValues": false,
+									"spanNulls": false,
+									"stacking": {
+										"group": "A",
+										"mode": "none"
+									},
+									"thresholdsStyle": {
+										"mode": "off"
+									}
+								},
+								"decimals": 0,
+								"thresholds": {
+									"mode": "absolute",
+									"steps": [
+										{
+											"color": "green",
+											"value": 0
+										}
+									]
+								},
+								"unit": "short"
+							},
+							"overrides": [
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "cache_globalReadHits"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Read Hits"
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "cache_globalReadMisses"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Read Misses"
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "cache_globalReadTotal"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Read Total"
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "cache_globalStaleHits"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Stale Hits"
+										}
+									]
+								}
+							]
+						},
+						"options": {
+							"annotations": {
+								"clustering": -1,
+								"multiLane": false
+							},
+							"legend": {
+								"calcs": ["lastNotNull"],
+								"displayMode": "list",
+								"placement": "bottom",
+								"showLegend": true
+							},
+							"tooltip": {
+								"hideZeros": false,
+								"mode": "multi",
+								"sort": "none"
+							}
+						}
+					},
+					"version": "13.0.0-24139322263"
+				}
+			}
+		},
+		"panel-31": {
+			"kind": "Panel",
+			"spec": {
+				"data": {
+					"kind": "QueryGroup",
+					"spec": {
+						"queries": [
+							{
+								"kind": "PanelQuery",
+								"spec": {
+									"hidden": false,
+									"query": {
+										"datasource": {
+											"name": "efg3es37pgh6ob"
+										},
+										"group": "influxdb",
+										"kind": "DataQuery",
+										"spec": {
+											"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"clipify_vm01\")\n  |> filter(fn: (r) =>\n      r[\"_field\"] == \"cache_avatarEntries\" or\n      r[\"_field\"] == \"cache_clipEntries\" or\n      r[\"_field\"] == \"cache_gameEntries\" or\n      r[\"_field\"] == \"cache_entriesTotal\"\n    )\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)"
+										},
+										"version": "v0"
+									},
+									"refId": "A"
+								}
+							}
+						],
+						"queryOptions": {},
+						"transformations": []
+					}
+				},
+				"description": "Cache entry composition by type.",
+				"id": 31,
+				"links": [],
+				"title": "Cache Inventory",
+				"vizConfig": {
+					"group": "timeseries",
+					"kind": "VizConfig",
+					"spec": {
+						"fieldConfig": {
+							"defaults": {
+								"color": {
+									"mode": "palette-classic"
+								},
+								"custom": {
+									"axisBorderShow": false,
+									"axisCenteredZero": false,
+									"axisColorMode": "text",
+									"axisLabel": "",
+									"axisPlacement": "auto",
+									"barAlignment": 0,
+									"barWidthFactor": 0.6,
+									"drawStyle": "line",
+									"fillOpacity": 10,
+									"gradientMode": "none",
+									"hideFrom": {
+										"legend": false,
+										"tooltip": false,
+										"viz": false
+									},
+									"insertNulls": false,
+									"lineInterpolation": "linear",
+									"lineWidth": 2,
+									"pointSize": 5,
+									"scaleDistribution": {
+										"type": "linear"
+									},
+									"showPoints": "never",
+									"showValues": false,
+									"spanNulls": false,
+									"stacking": {
+										"group": "A",
+										"mode": "none"
+									},
+									"thresholdsStyle": {
+										"mode": "off"
+									}
+								},
+								"decimals": 0,
+								"thresholds": {
+									"mode": "absolute",
+									"steps": [
+										{
+											"color": "green",
+											"value": 0
+										}
+									]
+								},
+								"unit": "short"
+							},
+							"overrides": [
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "cache_avatarEntries"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Avatar Entries"
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "cache_clipEntries"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Clip Entries"
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "cache_gameEntries"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Game Entries"
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "cache_entriesTotal"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Entries Total"
+										}
+									]
+								}
+							]
+						},
+						"options": {
+							"annotations": {
+								"clustering": -1,
+								"multiLane": false
+							},
+							"legend": {
+								"calcs": ["lastNotNull"],
+								"displayMode": "list",
+								"placement": "bottom",
+								"showLegend": true
+							},
+							"tooltip": {
+								"hideZeros": false,
+								"mode": "multi",
+								"sort": "none"
+							}
+						}
+					},
+					"version": "13.0.0-24139322263"
+				}
+			}
+		},
+		"panel-32": {
+			"kind": "Panel",
+			"spec": {
+				"data": {
+					"kind": "QueryGroup",
+					"spec": {
+						"queries": [
+							{
+								"kind": "PanelQuery",
+								"spec": {
+									"hidden": false,
+									"query": {
+										"datasource": {
+											"name": "efg3es37pgh6ob"
+										},
+										"group": "influxdb",
+										"kind": "DataQuery",
+										"spec": {
+											"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"clipify_vm01\")\n  |> filter(fn: (r) =>\n      r[\"_field\"] == \"cache_clipSyncStates\" or\n      r[\"_field\"] == \"cache_clipSyncComplete\"\n    )\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)"
+										},
+										"version": "v0"
+									},
+									"refId": "A"
+								}
+							}
+						],
+						"queryOptions": {},
+						"transformations": []
+					}
+				},
+				"description": "Clip sync progress metrics.",
+				"id": 32,
+				"links": [],
+				"title": "Clip Sync State",
+				"vizConfig": {
+					"group": "timeseries",
+					"kind": "VizConfig",
+					"spec": {
+						"fieldConfig": {
+							"defaults": {
+								"color": {
+									"mode": "palette-classic"
+								},
+								"custom": {
+									"axisBorderShow": false,
+									"axisCenteredZero": false,
+									"axisColorMode": "text",
+									"axisLabel": "",
+									"axisPlacement": "auto",
+									"barAlignment": 0,
+									"barWidthFactor": 0.6,
+									"drawStyle": "line",
+									"fillOpacity": 10,
+									"gradientMode": "none",
+									"hideFrom": {
+										"legend": false,
+										"tooltip": false,
+										"viz": false
+									},
+									"insertNulls": false,
+									"lineInterpolation": "linear",
+									"lineWidth": 2,
+									"pointSize": 5,
+									"scaleDistribution": {
+										"type": "linear"
+									},
+									"showPoints": "never",
+									"showValues": false,
+									"spanNulls": false,
+									"stacking": {
+										"group": "A",
+										"mode": "none"
+									},
+									"thresholdsStyle": {
+										"mode": "off"
+									}
+								},
+								"decimals": 0,
+								"thresholds": {
+									"mode": "absolute",
+									"steps": [
+										{
+											"color": "green",
+											"value": 0
+										}
+									]
+								},
+								"unit": "short"
+							},
+							"overrides": [
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "cache_clipSyncStates"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Clip Sync States"
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "cache_clipSyncComplete"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Clip Sync Complete"
+										}
+									]
+								}
+							]
+						},
+						"options": {
+							"annotations": {
+								"clustering": -1,
+								"multiLane": false
+							},
+							"legend": {
+								"calcs": ["lastNotNull"],
+								"displayMode": "list",
+								"placement": "bottom",
+								"showLegend": true
+							},
+							"tooltip": {
+								"hideZeros": false,
+								"mode": "multi",
+								"sort": "none"
+							}
+						}
+					},
+					"version": "13.0.0-24139322263"
+				}
+			}
+		},
+		"panel-33": {
+			"kind": "Panel",
+			"spec": {
+				"data": {
+					"kind": "QueryGroup",
+					"spec": {
+						"queries": [
+							{
+								"kind": "PanelQuery",
+								"spec": {
+									"hidden": false,
+									"query": {
+										"datasource": {
+											"name": "efg3es37pgh6ob"
+										},
+										"group": "influxdb",
+										"kind": "DataQuery",
+										"spec": {
+											"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"clipify_vm01\")\n  |> filter(fn: (r) =>\n      r[\"_field\"] == \"cache_staleValidatedClips\" or\n      r[\"_field\"] == \"cache_unavailableClips\"\n    )\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)"
+										},
+										"version": "v0"
+									},
+									"refId": "A"
+								}
+							}
+						],
+						"queryOptions": {},
+						"transformations": []
+					}
+				},
+				"description": "Potentially degraded clip availability.",
+				"id": 33,
+				"links": [],
+				"title": "Clip Availability",
+				"vizConfig": {
+					"group": "timeseries",
+					"kind": "VizConfig",
+					"spec": {
+						"fieldConfig": {
+							"defaults": {
+								"color": {
+									"mode": "palette-classic"
+								},
+								"custom": {
+									"axisBorderShow": false,
+									"axisCenteredZero": false,
+									"axisColorMode": "text",
+									"axisLabel": "",
+									"axisPlacement": "auto",
+									"barAlignment": 0,
+									"barWidthFactor": 0.6,
+									"drawStyle": "line",
+									"fillOpacity": 10,
+									"gradientMode": "none",
+									"hideFrom": {
+										"legend": false,
+										"tooltip": false,
+										"viz": false
+									},
+									"insertNulls": false,
+									"lineInterpolation": "linear",
+									"lineWidth": 2,
+									"pointSize": 5,
+									"scaleDistribution": {
+										"type": "linear"
+									},
+									"showPoints": "never",
+									"showValues": false,
+									"spanNulls": false,
+									"stacking": {
+										"group": "A",
+										"mode": "none"
+									},
+									"thresholdsStyle": {
+										"mode": "off"
+									}
+								},
+								"decimals": 0,
+								"thresholds": {
+									"mode": "absolute",
+									"steps": [
+										{
+											"color": "green",
+											"value": 0
+										}
+									]
+								},
+								"unit": "short"
+							},
+							"overrides": [
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "cache_staleValidatedClips"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Stale Validated Clips"
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "cache_unavailableClips"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Unavailable Clips"
+										}
+									]
+								}
+							]
+						},
+						"options": {
+							"annotations": {
+								"clustering": -1,
+								"multiLane": false
+							},
+							"legend": {
+								"calcs": ["lastNotNull"],
+								"displayMode": "list",
+								"placement": "bottom",
+								"showLegend": true
+							},
+							"tooltip": {
+								"hideZeros": false,
+								"mode": "multi",
+								"sort": "none"
+							}
+						}
+					},
+					"version": "13.0.0-24139322263"
+				}
+			}
+		},
+		"panel-36": {
+			"kind": "Panel",
+			"spec": {
+				"data": {
+					"kind": "QueryGroup",
+					"spec": {
+						"queries": [
+							{
+								"kind": "PanelQuery",
+								"spec": {
+									"hidden": false,
+									"query": {
+										"datasource": {
+											"name": "efg3es37pgh6ob"
+										},
+										"group": "influxdb",
+										"kind": "DataQuery",
+										"spec": {
+											"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"clipify_vm01\")\n  |> filter(fn: (r) =>\n      r[\"_field\"] == \"scheduler_clipCache_lastRunDurationMs\"\n    )\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)"
+										},
+										"version": "v0"
+									},
+									"refId": "A"
+								}
+							}
+						],
+						"queryOptions": {},
+						"transformations": []
+					}
+				},
+				"description": "Duration of the latest scheduler run.",
+				"id": 36,
+				"links": [],
+				"title": "Scheduler Duration",
+				"vizConfig": {
+					"group": "timeseries",
+					"kind": "VizConfig",
+					"spec": {
+						"fieldConfig": {
+							"defaults": {
+								"color": {
+									"mode": "palette-classic"
+								},
+								"custom": {
+									"axisBorderShow": false,
+									"axisCenteredZero": false,
+									"axisColorMode": "text",
+									"axisLabel": "",
+									"axisPlacement": "auto",
+									"barAlignment": 0,
+									"barWidthFactor": 0.6,
+									"drawStyle": "line",
+									"fillOpacity": 10,
+									"gradientMode": "none",
+									"hideFrom": {
+										"legend": false,
+										"tooltip": false,
+										"viz": false
+									},
+									"insertNulls": false,
+									"lineInterpolation": "linear",
+									"lineWidth": 2,
+									"pointSize": 5,
+									"scaleDistribution": {
+										"type": "linear"
+									},
+									"showPoints": "never",
+									"showValues": false,
+									"spanNulls": false,
+									"stacking": {
+										"group": "A",
+										"mode": "none"
+									},
+									"thresholdsStyle": {
+										"mode": "off"
+									}
+								},
+								"decimals": 2,
+								"thresholds": {
+									"mode": "absolute",
+									"steps": [
+										{
+											"color": "green",
+											"value": 0
+										}
+									]
+								},
+								"unit": "ms"
+							},
+							"overrides": [
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "scheduler_clipCache_lastRunDurationMs"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Last Run Duration"
+										}
+									]
+								}
+							]
+						},
+						"options": {
+							"annotations": {
+								"clustering": -1,
+								"multiLane": false
+							},
+							"legend": {
+								"calcs": ["lastNotNull"],
+								"displayMode": "list",
+								"placement": "bottom",
+								"showLegend": true
+							},
+							"tooltip": {
+								"hideZeros": false,
+								"mode": "multi",
+								"sort": "none"
+							}
+						}
+					},
+					"version": "13.0.0-24139322263"
+				}
+			}
+		},
+		"panel-37": {
+			"kind": "Panel",
+			"spec": {
+				"data": {
+					"kind": "QueryGroup",
+					"spec": {
+						"queries": [
+							{
+								"kind": "PanelQuery",
+								"spec": {
+									"hidden": false,
+									"query": {
+										"datasource": {
+											"name": "efg3es37pgh6ob"
+										},
+										"group": "influxdb",
+										"kind": "DataQuery",
+										"spec": {
+											"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"clipify_vm01\")\n  |> filter(fn: (r) =>\n      r[\"_field\"] == \"scheduler_clipCache_batchSize\" or\n      r[\"_field\"] == \"scheduler_clipCache_lastRunOwnerCount\"\n    )\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)"
+										},
+										"version": "v0"
+									},
+									"refId": "A"
+								}
+							}
+						],
+						"queryOptions": {},
+						"transformations": []
+					}
+				},
+				"description": "Batch size and owners processed.",
+				"id": 37,
+				"links": [],
+				"title": "Scheduler Workload",
+				"vizConfig": {
+					"group": "timeseries",
+					"kind": "VizConfig",
+					"spec": {
+						"fieldConfig": {
+							"defaults": {
+								"color": {
+									"mode": "palette-classic"
+								},
+								"custom": {
+									"axisBorderShow": false,
+									"axisCenteredZero": false,
+									"axisColorMode": "text",
+									"axisLabel": "",
+									"axisPlacement": "auto",
+									"barAlignment": 0,
+									"barWidthFactor": 0.6,
+									"drawStyle": "line",
+									"fillOpacity": 10,
+									"gradientMode": "none",
+									"hideFrom": {
+										"legend": false,
+										"tooltip": false,
+										"viz": false
+									},
+									"insertNulls": false,
+									"lineInterpolation": "linear",
+									"lineWidth": 2,
+									"pointSize": 5,
+									"scaleDistribution": {
+										"type": "linear"
+									},
+									"showPoints": "never",
+									"showValues": false,
+									"spanNulls": false,
+									"stacking": {
+										"group": "A",
+										"mode": "none"
+									},
+									"thresholdsStyle": {
+										"mode": "off"
+									}
+								},
+								"decimals": 0,
+								"thresholds": {
+									"mode": "absolute",
+									"steps": [
+										{
+											"color": "green",
+											"value": 0
+										}
+									]
+								},
+								"unit": "short"
+							},
+							"overrides": [
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "scheduler_clipCache_batchSize"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Batch Size"
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "scheduler_clipCache_lastRunOwnerCount"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Last Run Owners"
+										}
+									]
+								}
+							]
+						},
+						"options": {
+							"annotations": {
+								"clustering": -1,
+								"multiLane": false
+							},
+							"legend": {
+								"calcs": ["lastNotNull"],
+								"displayMode": "list",
+								"placement": "bottom",
+								"showLegend": true
+							},
+							"tooltip": {
+								"hideZeros": false,
+								"mode": "multi",
+								"sort": "none"
+							}
+						}
+					},
+					"version": "13.0.0-24139322263"
+				}
+			}
+		},
+		"panel-38": {
+			"kind": "Panel",
+			"spec": {
+				"data": {
+					"kind": "QueryGroup",
+					"spec": {
+						"queries": [
+							{
+								"kind": "PanelQuery",
+								"spec": {
+									"hidden": false,
+									"query": {
+										"datasource": {
+											"name": "efg3es37pgh6ob"
+										},
+										"group": "influxdb",
+										"kind": "DataQuery",
+										"spec": {
+											"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"clipify_vm01\")\n  |> filter(fn: (r) =>\n      r[\"_field\"] == \"scheduler_clipCache_totalRuns\" or\n      r[\"_field\"] == \"scheduler_clipCache_totalFailures\"\n    )\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)"
+										},
+										"version": "v0"
+									},
+									"refId": "A"
+								}
+							}
+						],
+						"queryOptions": {},
+						"transformations": []
+					}
+				},
+				"description": "Cumulative scheduler runs and failures.",
+				"id": 38,
+				"links": [],
+				"title": "Scheduler Totals",
+				"vizConfig": {
+					"group": "timeseries",
+					"kind": "VizConfig",
+					"spec": {
+						"fieldConfig": {
+							"defaults": {
+								"color": {
+									"mode": "palette-classic"
+								},
+								"custom": {
+									"axisBorderShow": false,
+									"axisCenteredZero": false,
+									"axisColorMode": "text",
+									"axisLabel": "",
+									"axisPlacement": "auto",
+									"barAlignment": 0,
+									"barWidthFactor": 0.6,
+									"drawStyle": "line",
+									"fillOpacity": 10,
+									"gradientMode": "none",
+									"hideFrom": {
+										"legend": false,
+										"tooltip": false,
+										"viz": false
+									},
+									"insertNulls": false,
+									"lineInterpolation": "linear",
+									"lineWidth": 2,
+									"pointSize": 5,
+									"scaleDistribution": {
+										"type": "linear"
+									},
+									"showPoints": "never",
+									"showValues": false,
+									"spanNulls": false,
+									"stacking": {
+										"group": "A",
+										"mode": "none"
+									},
+									"thresholdsStyle": {
+										"mode": "off"
+									}
+								},
+								"decimals": 0,
+								"thresholds": {
+									"mode": "absolute",
+									"steps": [
+										{
+											"color": "green",
+											"value": 0
+										}
+									]
+								},
+								"unit": "short"
+							},
+							"overrides": [
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "scheduler_clipCache_totalRuns"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Total Runs"
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "scheduler_clipCache_totalFailures"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Total Failures"
+										}
+									]
+								}
+							]
+						},
+						"options": {
+							"annotations": {
+								"clustering": -1,
+								"multiLane": false
+							},
+							"legend": {
+								"calcs": ["lastNotNull"],
+								"displayMode": "list",
+								"placement": "bottom",
+								"showLegend": true
+							},
+							"tooltip": {
+								"hideZeros": false,
+								"mode": "multi",
+								"sort": "none"
+							}
+						}
+					},
+					"version": "13.0.0-24139322263"
+				}
+			}
+		},
+		"panel-39": {
+			"kind": "Panel",
+			"spec": {
+				"data": {
+					"kind": "QueryGroup",
+					"spec": {
+						"queries": [
+							{
+								"kind": "PanelQuery",
+								"spec": {
+									"hidden": false,
+									"query": {
+										"datasource": {
+											"name": "efg3es37pgh6ob"
+										},
+										"group": "influxdb",
+										"kind": "DataQuery",
+										"spec": {
+											"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"clipify_vm01\")\n  |> filter(fn: (r) =>\n      r[\"_field\"] == \"scheduler_clipCache_totalFailures\"\n    )\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)\n  |> difference(nonNegative: true)"
+										},
+										"version": "v0"
+									},
+									"refId": "A"
+								}
+							}
+						],
+						"queryOptions": {},
+						"transformations": []
+					}
+				},
+				"description": "Incremental failures per interval.",
+				"id": 39,
+				"links": [],
+				"title": "Scheduler Failure Delta",
+				"vizConfig": {
+					"group": "timeseries",
+					"kind": "VizConfig",
+					"spec": {
+						"fieldConfig": {
+							"defaults": {
+								"color": {
+									"mode": "palette-classic"
+								},
+								"custom": {
+									"axisBorderShow": false,
+									"axisCenteredZero": false,
+									"axisColorMode": "text",
+									"axisLabel": "",
+									"axisPlacement": "auto",
+									"barAlignment": 0,
+									"barWidthFactor": 0.6,
+									"drawStyle": "line",
+									"fillOpacity": 10,
+									"gradientMode": "none",
+									"hideFrom": {
+										"legend": false,
+										"tooltip": false,
+										"viz": false
+									},
+									"insertNulls": false,
+									"lineInterpolation": "linear",
+									"lineWidth": 2,
+									"pointSize": 5,
+									"scaleDistribution": {
+										"type": "linear"
+									},
+									"showPoints": "never",
+									"showValues": false,
+									"spanNulls": false,
+									"stacking": {
+										"group": "A",
+										"mode": "none"
+									},
+									"thresholdsStyle": {
+										"mode": "off"
+									}
+								},
+								"decimals": 0,
+								"thresholds": {
+									"mode": "absolute",
+									"steps": [
+										{
+											"color": "green",
+											"value": 0
+										}
+									]
+								},
+								"unit": "short"
+							},
+							"overrides": [
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "scheduler_clipCache_totalFailures"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Total Failures"
+										}
+									]
+								}
+							]
+						},
+						"options": {
+							"annotations": {
+								"clustering": -1,
+								"multiLane": false
+							},
+							"legend": {
+								"calcs": ["lastNotNull"],
+								"displayMode": "list",
+								"placement": "bottom",
+								"showLegend": true
+							},
+							"tooltip": {
+								"hideZeros": false,
+								"mode": "multi",
+								"sort": "none"
+							}
+						}
+					},
+					"version": "13.0.0-24139322263"
+				}
+			}
+		},
+		"panel-40": {
+			"kind": "Panel",
+			"spec": {
+				"data": {
+					"kind": "QueryGroup",
+					"spec": {
+						"queries": [
+							{
+								"kind": "PanelQuery",
+								"spec": {
+									"hidden": false,
+									"query": {
+										"datasource": {
+											"name": "efg3es37pgh6ob"
+										},
+										"group": "influxdb",
+										"kind": "DataQuery",
+										"spec": {
+											"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"clipify_vm01\")\n  |> filter(fn: (r) => r[\"_field\"] == \"scheduler_clipCache_intervalMs\")\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])\n  |> group(columns: [\"_field\"])\n  |> last()"
+										},
+										"version": "v0"
+									},
+									"refId": "A"
+								}
+							}
+						],
+						"queryOptions": {},
+						"transformations": []
+					}
+				},
+				"description": "Configured scheduler interval.",
+				"id": 40,
+				"links": [],
+				"title": "Scheduler Interval",
+				"vizConfig": {
+					"group": "stat",
+					"kind": "VizConfig",
+					"spec": {
+						"fieldConfig": {
+							"defaults": {
+								"color": {
+									"mode": "thresholds"
+								},
+								"decimals": 0,
+								"thresholds": {
+									"mode": "absolute",
+									"steps": [
+										{
+											"color": "green",
+											"value": 0
+										}
+									]
+								},
+								"unit": "ms"
+							},
+							"overrides": [
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "scheduler_clipCache_intervalMs"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Interval"
+										}
+									]
+								}
+							]
+						},
+						"options": {
+							"colorMode": "value",
+							"graphMode": "area",
+							"justifyMode": "center",
+							"orientation": "auto",
+							"percentChangeColorMode": "standard",
+							"reduceOptions": {
+								"calcs": ["lastNotNull"],
+								"fields": "",
+								"values": false
+							},
+							"showPercentChange": false,
+							"textMode": "auto",
+							"wideLayout": true
+						}
+					},
+					"version": "13.0.0-24139322263"
+				}
+			}
+		},
+		"panel-41": {
+			"kind": "Panel",
+			"spec": {
+				"data": {
+					"kind": "QueryGroup",
+					"spec": {
+						"queries": [
+							{
+								"kind": "PanelQuery",
+								"spec": {
+									"hidden": false,
+									"query": {
+										"datasource": {
+											"name": "efg3es37pgh6ob"
+										},
+										"group": "influxdb",
+										"kind": "DataQuery",
+										"spec": {
+											"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"clipify_vm01\")\n  |> filter(fn: (r) => r[\"_field\"] == \"scheduler_clipCache_lastRunOwnerCount\")\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])\n  |> group(columns: [\"_field\"])\n  |> last()"
+										},
+										"version": "v0"
+									},
+									"refId": "A"
+								}
+							}
+						],
+						"queryOptions": {},
+						"transformations": []
+					}
+				},
+				"description": "Owners processed in the most recent run.",
+				"id": 41,
+				"links": [],
+				"title": "Last Run Owner Count",
+				"vizConfig": {
+					"group": "stat",
+					"kind": "VizConfig",
+					"spec": {
+						"fieldConfig": {
+							"defaults": {
+								"color": {
+									"mode": "thresholds"
+								},
+								"decimals": 0,
+								"thresholds": {
+									"mode": "absolute",
+									"steps": [
+										{
+											"color": "green",
+											"value": 0
+										}
+									]
+								},
+								"unit": "short"
+							},
+							"overrides": [
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "scheduler_clipCache_lastRunOwnerCount"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Last Run Owners"
+										}
+									]
+								}
+							]
+						},
+						"options": {
+							"colorMode": "value",
+							"graphMode": "area",
+							"justifyMode": "center",
+							"orientation": "auto",
+							"percentChangeColorMode": "standard",
+							"reduceOptions": {
+								"calcs": ["lastNotNull"],
+								"fields": "",
+								"values": false
+							},
+							"showPercentChange": false,
+							"textMode": "auto",
+							"wideLayout": true
+						}
+					},
+					"version": "13.0.0-24139322263"
+				}
+			}
+		},
+		"panel-42": {
+			"kind": "Panel",
+			"spec": {
+				"data": {
+					"kind": "QueryGroup",
+					"spec": {
+						"queries": [
+							{
+								"kind": "PanelQuery",
+								"spec": {
+									"hidden": false,
+									"query": {
+										"datasource": {
+											"name": "efg3es37pgh6ob"
+										},
+										"group": "influxdb",
+										"kind": "DataQuery",
+										"spec": {
+											"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"clipify_vm01\")\n  |> filter(fn: (r) =>\n      r[\"_field\"] == \"counts_overlaysActive\"\n    )\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])\n  |> group(columns: [\"_field\"])\n  |> last()"
+										},
+										"version": "v0"
+									},
+									"refId": "A"
+								}
+							}
+						],
+						"queryOptions": {},
+						"transformations": []
+					}
+				},
+				"description": "Current active overlays.",
+				"id": 42,
+				"links": [],
+				"title": "Overlays Active",
+				"vizConfig": {
+					"group": "stat",
+					"kind": "VizConfig",
+					"spec": {
+						"fieldConfig": {
+							"defaults": {
+								"color": {
+									"mode": "thresholds"
+								},
+								"decimals": 0,
+								"thresholds": {
+									"mode": "absolute",
+									"steps": [
+										{
+											"color": "green",
+											"value": 0
+										}
+									]
+								},
+								"unit": "short"
+							},
+							"overrides": [
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "counts_overlaysActive"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Overlays Active"
+										}
+									]
+								}
+							]
+						},
+						"options": {
+							"colorMode": "value",
+							"graphMode": "area",
+							"justifyMode": "center",
+							"orientation": "auto",
+							"percentChangeColorMode": "standard",
+							"reduceOptions": {
+								"calcs": ["lastNotNull"],
+								"fields": "",
+								"values": false
+							},
+							"showPercentChange": false,
+							"textMode": "auto",
+							"wideLayout": true
+						}
+					},
+					"version": "13.0.0-24139322263"
+				}
+			}
+		},
+		"panel-43": {
+			"kind": "Panel",
+			"spec": {
+				"data": {
+					"kind": "QueryGroup",
+					"spec": {
+						"queries": [
+							{
+								"kind": "PanelQuery",
+								"spec": {
+									"hidden": false,
+									"query": {
+										"datasource": {
+											"name": "efg3es37pgh6ob"
+										},
+										"group": "influxdb",
+										"kind": "DataQuery",
+										"spec": {
+											"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"clipify_vm01\")\n  |> filter(fn: (r) =>\n      r[\"_field\"] == \"playlists_total\"\n    )\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])\n  |> group(columns: [\"_field\"])\n  |> last()"
+										},
+										"version": "v0"
+									},
+									"refId": "A"
+								}
+							}
+						],
+						"queryOptions": {},
+						"transformations": []
+					}
+				},
+				"description": "Current total playlists.",
+				"id": 43,
+				"links": [],
+				"title": "Playlists Total",
+				"vizConfig": {
+					"group": "stat",
+					"kind": "VizConfig",
+					"spec": {
+						"fieldConfig": {
+							"defaults": {
+								"color": {
+									"mode": "thresholds"
+								},
+								"decimals": 0,
+								"thresholds": {
+									"mode": "absolute",
+									"steps": [
+										{
+											"color": "green",
+											"value": 0
+										}
+									]
+								},
+								"unit": "short"
+							},
+							"overrides": [
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "playlists_total"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Playlists Total"
+										}
+									]
+								}
+							]
+						},
+						"options": {
+							"colorMode": "value",
+							"graphMode": "area",
+							"justifyMode": "center",
+							"orientation": "auto",
+							"percentChangeColorMode": "standard",
+							"reduceOptions": {
+								"calcs": ["lastNotNull"],
+								"fields": "",
+								"values": false
+							},
+							"showPercentChange": false,
+							"textMode": "auto",
+							"wideLayout": true
+						}
+					},
+					"version": "13.0.0-24139322263"
+				}
+			}
+		},
+		"panel-44": {
+			"kind": "Panel",
+			"spec": {
+				"data": {
+					"kind": "QueryGroup",
+					"spec": {
+						"queries": [
+							{
+								"kind": "PanelQuery",
+								"spec": {
+									"hidden": false,
+									"query": {
+										"datasource": {
+											"name": "efg3es37pgh6ob"
+										},
+										"group": "influxdb",
+										"kind": "DataQuery",
+										"spec": {
+											"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"clipify_vm01\")\n  |> filter(fn: (r) =>\n      r[\"_field\"] == \"queues_clipQueueDepth\"\n    )\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])\n  |> group(columns: [\"_field\"])\n  |> last()"
+										},
+										"version": "v0"
+									},
+									"refId": "A"
+								}
+							}
+						],
+						"queryOptions": {},
+						"transformations": []
+					}
+				},
+				"description": "Current clip queue depth.",
+				"id": 44,
+				"links": [],
+				"title": "Queue Depth",
+				"vizConfig": {
+					"group": "stat",
+					"kind": "VizConfig",
+					"spec": {
+						"fieldConfig": {
+							"defaults": {
+								"color": {
+									"mode": "thresholds"
+								},
+								"decimals": 0,
+								"thresholds": {
+									"mode": "absolute",
+									"steps": [
+										{
+											"color": "green",
+											"value": 0
+										}
+									]
+								},
+								"unit": "short"
+							},
+							"overrides": [
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "queues_clipQueueDepth"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Clip Queue Depth"
+										}
+									]
+								}
+							]
+						},
+						"options": {
+							"colorMode": "value",
+							"graphMode": "area",
+							"justifyMode": "center",
+							"orientation": "auto",
+							"percentChangeColorMode": "standard",
+							"reduceOptions": {
+								"calcs": ["lastNotNull"],
+								"fields": "",
+								"values": false
+							},
+							"showPercentChange": false,
+							"textMode": "auto",
+							"wideLayout": true
+						}
+					},
+					"version": "13.0.0-24139322263"
+				}
+			}
+		},
+		"panel-45": {
+			"kind": "Panel",
+			"spec": {
+				"data": {
+					"kind": "QueryGroup",
+					"spec": {
+						"queries": [
+							{
+								"kind": "PanelQuery",
+								"spec": {
+									"hidden": false,
+									"query": {
+										"datasource": {
+											"name": "efg3es37pgh6ob"
+										},
+										"group": "influxdb",
+										"kind": "DataQuery",
+										"spec": {
+											"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"clipify_vm01\")\n  |> filter(fn: (r) =>\n      r[\"_field\"] == \"newsletter_optedIn\"\n    )\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])\n  |> group(columns: [\"_field\"])\n  |> last()"
+										},
+										"version": "v0"
+									},
+									"refId": "A"
+								}
+							}
+						],
+						"queryOptions": {},
+						"transformations": []
+					}
+				},
+				"description": "Current opted-in newsletter users.",
+				"id": 45,
+				"links": [],
+				"title": "Newsletter Opted In",
+				"vizConfig": {
+					"group": "stat",
+					"kind": "VizConfig",
+					"spec": {
+						"fieldConfig": {
+							"defaults": {
+								"color": {
+									"mode": "thresholds"
+								},
+								"decimals": 0,
+								"thresholds": {
+									"mode": "absolute",
+									"steps": [
+										{
+											"color": "green",
+											"value": 0
+										}
+									]
+								},
+								"unit": "short"
+							},
+							"overrides": [
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "newsletter_optedIn"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Opted In"
+										}
+									]
+								}
+							]
+						},
+						"options": {
+							"colorMode": "value",
+							"graphMode": "area",
+							"justifyMode": "center",
+							"orientation": "auto",
+							"percentChangeColorMode": "standard",
+							"reduceOptions": {
+								"calcs": ["lastNotNull"],
+								"fields": "",
+								"values": false
+							},
+							"showPercentChange": false,
+							"textMode": "auto",
+							"wideLayout": true
+						}
+					},
+					"version": "13.0.0-24139322263"
+				}
+			}
+		},
+		"panel-46": {
+			"kind": "Panel",
+			"spec": {
+				"data": {
+					"kind": "QueryGroup",
+					"spec": {
+						"queries": [
+							{
+								"kind": "PanelQuery",
+								"spec": {
+									"hidden": false,
+									"query": {
+										"datasource": {
+											"name": "efg3es37pgh6ob"
+										},
+										"group": "influxdb",
+										"kind": "DataQuery",
+										"spec": {
+											"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"clipify_vm01\")\n  |> filter(fn: (r) =>\n      r[\"_field\"] == \"auth_tokenRows\" or\n      r[\"_field\"] == \"auth_expiredTokens\" or\n      r[\"_field\"] == \"auth_expiringIn24h\"\n    )\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)"
+										},
+										"version": "v0"
+									},
+									"refId": "A"
+								}
+							}
+						],
+						"queryOptions": {},
+						"transformations": []
+					}
+				},
+				"description": "Token inventory, expired tokens, and tokens expiring within 24 hours.",
+				"id": 46,
+				"links": [],
+				"title": "Auth Token Health",
+				"vizConfig": {
+					"group": "timeseries",
+					"kind": "VizConfig",
+					"spec": {
+						"fieldConfig": {
+							"defaults": {
+								"color": {
+									"mode": "palette-classic"
+								},
+								"custom": {
+									"axisBorderShow": false,
+									"axisCenteredZero": false,
+									"axisColorMode": "text",
+									"axisLabel": "",
+									"axisPlacement": "auto",
+									"barAlignment": 0,
+									"barWidthFactor": 0.6,
+									"drawStyle": "line",
+									"fillOpacity": 10,
+									"gradientMode": "none",
+									"hideFrom": {
+										"legend": false,
+										"tooltip": false,
+										"viz": false
+									},
+									"insertNulls": false,
+									"lineInterpolation": "linear",
+									"lineWidth": 2,
+									"pointSize": 5,
+									"scaleDistribution": {
+										"type": "linear"
+									},
+									"showPoints": "never",
+									"showValues": false,
+									"spanNulls": false,
+									"stacking": {
+										"group": "A",
+										"mode": "none"
+									},
+									"thresholdsStyle": {
+										"mode": "off"
+									}
+								},
+								"decimals": 0,
+								"thresholds": {
+									"mode": "absolute",
+									"steps": [
+										{
+											"color": "green",
+											"value": 0
+										}
+									]
+								},
+								"unit": "short"
+							},
+							"overrides": [
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "auth_tokenRows"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Token Rows"
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "auth_expiredTokens"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Expired Tokens"
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "auth_expiringIn24h"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Expiring in 24h"
+										}
+									]
+								}
+							]
+						},
+						"options": {
+							"annotations": {
+								"clustering": -1,
+								"multiLane": false
+							},
+							"legend": {
+								"calcs": ["lastNotNull"],
+								"displayMode": "list",
+								"placement": "bottom",
+								"showLegend": true
+							},
+							"tooltip": {
+								"hideZeros": false,
+								"mode": "multi",
+								"sort": "none"
+							}
+						}
+					},
+					"version": "13.0.0-24139322263"
+				}
+			}
+		},
+		"panel-47": {
+			"kind": "Panel",
+			"spec": {
+				"data": {
+					"kind": "QueryGroup",
+					"spec": {
+						"queries": [
+							{
+								"kind": "PanelQuery",
+								"spec": {
+									"hidden": false,
+									"query": {
+										"datasource": {
+											"name": "efg3es37pgh6ob"
+										},
+										"group": "influxdb",
+										"kind": "DataQuery",
+										"spec": {
+											"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"clipify_vm01\")\n  |> filter(fn: (r) =>\n      r[\"_field\"] == \"accounts_disabledAutomatic\" or\n      r[\"_field\"] == \"accounts_disabledManual\" or\n      r[\"_field\"] == \"accounts_disabledUsers\" or\n      r[\"_field\"] == \"accounts_neverLoggedIn\"\n    )\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)"
+										},
+										"version": "v0"
+									},
+									"refId": "A"
+								}
+							}
+						],
+						"queryOptions": {},
+						"transformations": []
+					}
+				},
+				"description": "Disabled and never-logged-in account counts.",
+				"id": 47,
+				"links": [],
+				"title": "Account Status",
+				"vizConfig": {
+					"group": "timeseries",
+					"kind": "VizConfig",
+					"spec": {
+						"fieldConfig": {
+							"defaults": {
+								"color": {
+									"mode": "palette-classic"
+								},
+								"custom": {
+									"axisBorderShow": false,
+									"axisCenteredZero": false,
+									"axisColorMode": "text",
+									"axisLabel": "",
+									"axisPlacement": "auto",
+									"barAlignment": 0,
+									"barWidthFactor": 0.6,
+									"drawStyle": "line",
+									"fillOpacity": 10,
+									"gradientMode": "none",
+									"hideFrom": {
+										"legend": false,
+										"tooltip": false,
+										"viz": false
+									},
+									"insertNulls": false,
+									"lineInterpolation": "linear",
+									"lineWidth": 2,
+									"pointSize": 5,
+									"scaleDistribution": {
+										"type": "linear"
+									},
+									"showPoints": "never",
+									"showValues": false,
+									"spanNulls": false,
+									"stacking": {
+										"group": "A",
+										"mode": "none"
+									},
+									"thresholdsStyle": {
+										"mode": "off"
+									}
+								},
+								"decimals": 0,
+								"thresholds": {
+									"mode": "absolute",
+									"steps": [
+										{
+											"color": "green",
+											"value": 0
+										}
+									]
+								},
+								"unit": "short"
+							},
+							"overrides": [
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "accounts_disabledAutomatic"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Disabled Auto"
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "accounts_disabledManual"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Disabled Manual"
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "accounts_disabledUsers"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Disabled Users"
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "accounts_neverLoggedIn"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Never Logged In"
+										}
+									]
+								}
+							]
+						},
+						"options": {
+							"annotations": {
+								"clustering": -1,
+								"multiLane": false
+							},
+							"legend": {
+								"calcs": ["lastNotNull"],
+								"displayMode": "table",
+								"placement": "bottom",
+								"showLegend": true
+							},
+							"tooltip": {
+								"hideZeros": false,
+								"mode": "multi",
+								"sort": "none"
+							}
+						}
+					},
+					"version": "13.0.0-24139322263"
+				}
+			}
+		},
+		"panel-48": {
+			"kind": "Panel",
+			"spec": {
+				"data": {
+					"kind": "QueryGroup",
+					"spec": {
+						"queries": [
+							{
+								"kind": "PanelQuery",
+								"spec": {
+									"hidden": false,
+									"query": {
+										"datasource": {
+											"name": "efg3es37pgh6ob"
+										},
+										"group": "influxdb",
+										"kind": "DataQuery",
+										"spec": {
+											"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"clipify_vm01\")\n  |> filter(fn: (r) =>\n      r[\"_field\"] == \"accounts_disabledReasonCounts_invalid_refresh_token\"\n    )\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)"
+										},
+										"version": "v0"
+									},
+									"refId": "A"
+								}
+							}
+						],
+						"queryOptions": {},
+						"transformations": []
+					}
+				},
+				"description": "Current disable reason breakdown.",
+				"id": 48,
+				"links": [],
+				"title": "Disable Reasons",
+				"vizConfig": {
+					"group": "timeseries",
+					"kind": "VizConfig",
+					"spec": {
+						"fieldConfig": {
+							"defaults": {
+								"color": {
+									"mode": "palette-classic"
+								},
+								"custom": {
+									"axisBorderShow": false,
+									"axisCenteredZero": false,
+									"axisColorMode": "text",
+									"axisLabel": "",
+									"axisPlacement": "auto",
+									"barAlignment": 0,
+									"barWidthFactor": 0.6,
+									"drawStyle": "line",
+									"fillOpacity": 10,
+									"gradientMode": "none",
+									"hideFrom": {
+										"legend": false,
+										"tooltip": false,
+										"viz": false
+									},
+									"insertNulls": false,
+									"lineInterpolation": "linear",
+									"lineWidth": 2,
+									"pointSize": 5,
+									"scaleDistribution": {
+										"type": "linear"
+									},
+									"showPoints": "never",
+									"showValues": false,
+									"spanNulls": false,
+									"stacking": {
+										"group": "A",
+										"mode": "none"
+									},
+									"thresholdsStyle": {
+										"mode": "off"
+									}
+								},
+								"decimals": 0,
+								"thresholds": {
+									"mode": "absolute",
+									"steps": [
+										{
+											"color": "green",
+											"value": 0
+										}
+									]
+								},
+								"unit": "short"
+							},
+							"overrides": [
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "accounts_disabledReasonCounts_invalid_refresh_token"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Invalid Refresh Token"
+										}
+									]
+								}
+							]
+						},
+						"options": {
+							"annotations": {
+								"clustering": -1,
+								"multiLane": false
+							},
+							"legend": {
+								"calcs": ["lastNotNull"],
+								"displayMode": "table",
+								"placement": "bottom",
+								"showLegend": true
+							},
+							"tooltip": {
+								"hideZeros": false,
+								"mode": "multi",
+								"sort": "none"
+							}
+						}
+					},
+					"version": "13.0.0-24139322263"
+				}
+			}
+		},
+		"panel-49": {
+			"kind": "Panel",
+			"spec": {
+				"data": {
+					"kind": "QueryGroup",
+					"spec": {
+						"queries": [
+							{
+								"kind": "PanelQuery",
+								"spec": {
+									"hidden": false,
+									"query": {
+										"datasource": {
+											"name": "efg3es37pgh6ob"
+										},
+										"group": "influxdb",
+										"kind": "DataQuery",
+										"spec": {
+											"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"clipify_vm01\")\n  |> filter(fn: (r) =>\n      r[\"_field\"] == \"entitlements_activeGrantCount\" or\n      r[\"_field\"] == \"entitlements_activeGrantUsers\" or\n      r[\"_field\"] == \"entitlements_activeGrantUsersOnFree\" or\n      r[\"_field\"] == \"entitlements_effectiveProUsersEstimate\"\n    )\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)"
+										},
+										"version": "v0"
+									},
+									"refId": "A"
+								}
+							}
+						],
+						"queryOptions": {},
+						"transformations": []
+					}
+				},
+				"description": "Grant counts, covered users, and effective pro estimate.",
+				"id": 49,
+				"links": [],
+				"title": "Entitlement Coverage",
+				"vizConfig": {
+					"group": "timeseries",
+					"kind": "VizConfig",
+					"spec": {
+						"fieldConfig": {
+							"defaults": {
+								"color": {
+									"mode": "palette-classic"
+								},
+								"custom": {
+									"axisBorderShow": false,
+									"axisCenteredZero": false,
+									"axisColorMode": "text",
+									"axisLabel": "",
+									"axisPlacement": "auto",
+									"barAlignment": 0,
+									"barWidthFactor": 0.6,
+									"drawStyle": "line",
+									"fillOpacity": 10,
+									"gradientMode": "none",
+									"hideFrom": {
+										"legend": false,
+										"tooltip": false,
+										"viz": false
+									},
+									"insertNulls": false,
+									"lineInterpolation": "linear",
+									"lineWidth": 2,
+									"pointSize": 5,
+									"scaleDistribution": {
+										"type": "linear"
+									},
+									"showPoints": "never",
+									"showValues": false,
+									"spanNulls": false,
+									"stacking": {
+										"group": "A",
+										"mode": "none"
+									},
+									"thresholdsStyle": {
+										"mode": "off"
+									}
+								},
+								"decimals": 0,
+								"thresholds": {
+									"mode": "absolute",
+									"steps": [
+										{
+											"color": "green",
+											"value": 0
+										}
+									]
+								},
+								"unit": "short"
+							},
+							"overrides": [
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "entitlements_activeGrantCount"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Active Grants"
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "entitlements_activeGrantUsers"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Grant Users"
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "entitlements_activeGrantUsersOnFree"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Grant Users on Free"
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "entitlements_effectiveProUsersEstimate"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Effective Pro Users"
+										}
+									]
+								}
+							]
+						},
+						"options": {
+							"annotations": {
+								"clustering": -1,
+								"multiLane": false
+							},
+							"legend": {
+								"calcs": ["lastNotNull"],
+								"displayMode": "list",
+								"placement": "bottom",
+								"showLegend": true
+							},
+							"tooltip": {
+								"hideZeros": false,
+								"mode": "multi",
+								"sort": "none"
+							}
+						}
+					},
+					"version": "13.0.0-24139322263"
+				}
+			}
+		},
+		"panel-50": {
+			"kind": "Panel",
+			"spec": {
+				"data": {
+					"kind": "QueryGroup",
+					"spec": {
+						"queries": [
+							{
+								"kind": "PanelQuery",
+								"spec": {
+									"hidden": false,
+									"query": {
+										"datasource": {
+											"name": "efg3es37pgh6ob"
+										},
+										"group": "influxdb",
+										"kind": "DataQuery",
+										"spec": {
+											"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"clipify_vm01\")\n  |> filter(fn: (r) =>\n      r[\"_field\"] == \"overlayConfig_byPlaybackMode_order\" or\n      r[\"_field\"] == \"overlayConfig_byPlaybackMode_random\" or\n      r[\"_field\"] == \"overlayConfig_byPlaybackMode_smart_shuffle\" or\n      r[\"_field\"] == \"overlayConfig_byPlaybackMode_top\"\n    )\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)"
+										},
+										"version": "v0"
+									},
+									"refId": "A"
+								}
+							}
+						],
+						"queryOptions": {},
+						"transformations": []
+					}
+				},
+				"description": "Distribution of active playback modes over time.",
+				"id": 50,
+				"links": [],
+				"title": "Overlay Playback Modes",
+				"vizConfig": {
+					"group": "timeseries",
+					"kind": "VizConfig",
+					"spec": {
+						"fieldConfig": {
+							"defaults": {
+								"color": {
+									"mode": "palette-classic"
+								},
+								"custom": {
+									"axisBorderShow": false,
+									"axisCenteredZero": false,
+									"axisColorMode": "text",
+									"axisLabel": "",
+									"axisPlacement": "auto",
+									"barAlignment": 0,
+									"barWidthFactor": 0.6,
+									"drawStyle": "line",
+									"fillOpacity": 10,
+									"gradientMode": "none",
+									"hideFrom": {
+										"legend": false,
+										"tooltip": false,
+										"viz": false
+									},
+									"insertNulls": false,
+									"lineInterpolation": "linear",
+									"lineWidth": 2,
+									"pointSize": 5,
+									"scaleDistribution": {
+										"type": "linear"
+									},
+									"showPoints": "never",
+									"showValues": false,
+									"spanNulls": false,
+									"stacking": {
+										"group": "A",
+										"mode": "none"
+									},
+									"thresholdsStyle": {
+										"mode": "off"
+									}
+								},
+								"decimals": 0,
+								"thresholds": {
+									"mode": "absolute",
+									"steps": [
+										{
+											"color": "green",
+											"value": 0
+										}
+									]
+								},
+								"unit": "short"
+							},
+							"overrides": [
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "overlayConfig_byPlaybackMode_order"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Mode: Order"
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "overlayConfig_byPlaybackMode_random"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Mode: Random"
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "overlayConfig_byPlaybackMode_smart_shuffle"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Mode: Smart Shuffle"
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "overlayConfig_byPlaybackMode_top"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Mode: Top"
+										}
+									]
+								}
+							]
+						},
+						"options": {
+							"annotations": {
+								"clustering": -1,
+								"multiLane": false
+							},
+							"legend": {
+								"calcs": ["lastNotNull"],
+								"displayMode": "table",
+								"placement": "bottom",
+								"showLegend": true
+							},
+							"tooltip": {
+								"hideZeros": false,
+								"mode": "multi",
+								"sort": "none"
+							}
+						}
+					},
+					"version": "13.0.0-24139322263"
+				}
+			}
+		},
+		"panel-51": {
+			"kind": "Panel",
+			"spec": {
+				"data": {
+					"kind": "QueryGroup",
+					"spec": {
+						"queries": [
+							{
+								"kind": "PanelQuery",
+								"spec": {
+									"hidden": false,
+									"query": {
+										"datasource": {
+											"name": "efg3es37pgh6ob"
+										},
+										"group": "influxdb",
+										"kind": "DataQuery",
+										"spec": {
+											"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"clipify_vm01\")\n  |> filter(fn: (r) =>\n      r[\"_field\"] == \"overlayConfig_byType_1\" or\n      r[\"_field\"] == \"overlayConfig_byType_7\" or\n      r[\"_field\"] == \"overlayConfig_byType_30\" or\n      r[\"_field\"] == \"overlayConfig_byType_90\" or\n      r[\"_field\"] == \"overlayConfig_byType_180\" or\n      r[\"_field\"] == \"overlayConfig_byType_365\" or\n      r[\"_field\"] == \"overlayConfig_byType_All\" or\n      r[\"_field\"] == \"overlayConfig_byType_Featured\" or\n      r[\"_field\"] == \"overlayConfig_byType_Playlist\" or\n      r[\"_field\"] == \"overlayConfig_byType_Queue\"\n    )\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)"
+										},
+										"version": "v0"
+									},
+									"refId": "A"
+								}
+							}
+						],
+						"queryOptions": {},
+						"transformations": []
+					}
+				},
+				"description": "Configured overlay type mix.",
+				"id": 51,
+				"links": [],
+				"title": "Overlay Types",
+				"vizConfig": {
+					"group": "timeseries",
+					"kind": "VizConfig",
+					"spec": {
+						"fieldConfig": {
+							"defaults": {
+								"color": {
+									"mode": "palette-classic"
+								},
+								"custom": {
+									"axisBorderShow": false,
+									"axisCenteredZero": false,
+									"axisColorMode": "text",
+									"axisLabel": "",
+									"axisPlacement": "auto",
+									"barAlignment": 0,
+									"barWidthFactor": 0.6,
+									"drawStyle": "line",
+									"fillOpacity": 10,
+									"gradientMode": "none",
+									"hideFrom": {
+										"legend": false,
+										"tooltip": false,
+										"viz": false
+									},
+									"insertNulls": false,
+									"lineInterpolation": "linear",
+									"lineWidth": 2,
+									"pointSize": 5,
+									"scaleDistribution": {
+										"type": "linear"
+									},
+									"showPoints": "never",
+									"showValues": false,
+									"spanNulls": false,
+									"stacking": {
+										"group": "A",
+										"mode": "none"
+									},
+									"thresholdsStyle": {
+										"mode": "off"
+									}
+								},
+								"decimals": 0,
+								"thresholds": {
+									"mode": "absolute",
+									"steps": [
+										{
+											"color": "green",
+											"value": 0
+										}
+									]
+								},
+								"unit": "short"
+							},
+							"overrides": [
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "overlayConfig_byType_1"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Type: 1 Day"
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "overlayConfig_byType_7"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Type: 7 Days"
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "overlayConfig_byType_30"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Type: 30 Days"
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "overlayConfig_byType_90"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Type: 90 Days"
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "overlayConfig_byType_180"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Type: 180 Days"
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "overlayConfig_byType_365"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Type: 365 Days"
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "overlayConfig_byType_All"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Type: All"
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "overlayConfig_byType_Featured"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Type: Featured"
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "overlayConfig_byType_Playlist"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Type: Playlist"
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "overlayConfig_byType_Queue"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Type: Queue"
+										}
+									]
+								}
+							]
+						},
+						"options": {
+							"annotations": {
+								"clustering": -1,
+								"multiLane": false
+							},
+							"legend": {
+								"calcs": ["lastNotNull"],
+								"displayMode": "table",
+								"placement": "bottom",
+								"showLegend": true
+							},
+							"tooltip": {
+								"hideZeros": false,
+								"mode": "multi",
+								"sort": "none"
+							}
+						}
+					},
+					"version": "13.0.0-24139322263"
+				}
+			}
+		},
+		"panel-52": {
+			"kind": "Panel",
+			"spec": {
+				"data": {
+					"kind": "QueryGroup",
+					"spec": {
+						"queries": [
+							{
+								"kind": "PanelQuery",
+								"spec": {
+									"hidden": false,
+									"query": {
+										"datasource": {
+											"name": "efg3es37pgh6ob"
+										},
+										"group": "influxdb",
+										"kind": "DataQuery",
+										"spec": {
+											"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"clipify_vm01\")\n  |> filter(fn: (r) =>\n      r[\"_field\"] == \"playlists_total\" or\n      r[\"_field\"] == \"playlists_nonEmpty\" or\n      r[\"_field\"] == \"playlists_empty\" or\n      r[\"_field\"] == \"playlists_clipRows\" or\n      r[\"_field\"] == \"playlists_avgClipsPerPlaylist\"\n    )\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)"
+										},
+										"version": "v0"
+									},
+									"refId": "A"
+								}
+							}
+						],
+						"queryOptions": {},
+						"transformations": []
+					}
+				},
+				"description": "Playlist totals, fill state, and average clips per playlist.",
+				"id": 52,
+				"links": [],
+				"title": "Playlists Overview",
+				"vizConfig": {
+					"group": "timeseries",
+					"kind": "VizConfig",
+					"spec": {
+						"fieldConfig": {
+							"defaults": {
+								"color": {
+									"mode": "palette-classic"
+								},
+								"custom": {
+									"axisBorderShow": false,
+									"axisCenteredZero": false,
+									"axisColorMode": "text",
+									"axisLabel": "",
+									"axisPlacement": "auto",
+									"barAlignment": 0,
+									"barWidthFactor": 0.6,
+									"drawStyle": "line",
+									"fillOpacity": 10,
+									"gradientMode": "none",
+									"hideFrom": {
+										"legend": false,
+										"tooltip": false,
+										"viz": false
+									},
+									"insertNulls": false,
+									"lineInterpolation": "linear",
+									"lineWidth": 2,
+									"pointSize": 5,
+									"scaleDistribution": {
+										"type": "linear"
+									},
+									"showPoints": "never",
+									"showValues": false,
+									"spanNulls": false,
+									"stacking": {
+										"group": "A",
+										"mode": "none"
+									},
+									"thresholdsStyle": {
+										"mode": "off"
+									}
+								},
+								"decimals": 0,
+								"thresholds": {
+									"mode": "absolute",
+									"steps": [
+										{
+											"color": "green",
+											"value": 0
+										}
+									]
+								},
+								"unit": "short"
+							},
+							"overrides": [
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "playlists_total"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Playlists Total"
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "playlists_nonEmpty"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Playlists Non-Empty"
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "playlists_empty"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Playlists Empty"
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "playlists_clipRows"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Playlist Clip Rows"
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "playlists_avgClipsPerPlaylist"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Avg Clips per Playlist"
+										}
+									]
+								}
+							]
+						},
+						"options": {
+							"annotations": {
+								"clustering": -1,
+								"multiLane": false
+							},
+							"legend": {
+								"calcs": ["lastNotNull"],
+								"displayMode": "list",
+								"placement": "bottom",
+								"showLegend": true
+							},
+							"tooltip": {
+								"hideZeros": false,
+								"mode": "multi",
+								"sort": "none"
+							}
+						}
+					},
+					"version": "13.0.0-24139322263"
+				}
+			}
+		},
+		"panel-53": {
+			"kind": "Panel",
+			"spec": {
+				"data": {
+					"kind": "QueryGroup",
+					"spec": {
+						"queries": [
+							{
+								"kind": "PanelQuery",
+								"spec": {
+									"hidden": false,
+									"query": {
+										"datasource": {
+											"name": "efg3es37pgh6ob"
+										},
+										"group": "influxdb",
+										"kind": "DataQuery",
+										"spec": {
+											"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"clipify_vm01\")\n  |> filter(fn: (r) =>\n      r[\"_field\"] == \"playlists_overlaysWithPlaylist\" or\n      r[\"_field\"] == \"playlists_activeOverlaysWithPlaylist\"\n    )\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)"
+										},
+										"version": "v0"
+									},
+									"refId": "A"
+								}
+							}
+						],
+						"queryOptions": {},
+						"transformations": []
+					}
+				},
+				"description": "How many overlays are connected to playlists.",
+				"id": 53,
+				"links": [],
+				"title": "Playlist Overlay Usage",
+				"vizConfig": {
+					"group": "timeseries",
+					"kind": "VizConfig",
+					"spec": {
+						"fieldConfig": {
+							"defaults": {
+								"color": {
+									"mode": "palette-classic"
+								},
+								"custom": {
+									"axisBorderShow": false,
+									"axisCenteredZero": false,
+									"axisColorMode": "text",
+									"axisLabel": "",
+									"axisPlacement": "auto",
+									"barAlignment": 0,
+									"barWidthFactor": 0.6,
+									"drawStyle": "line",
+									"fillOpacity": 10,
+									"gradientMode": "none",
+									"hideFrom": {
+										"legend": false,
+										"tooltip": false,
+										"viz": false
+									},
+									"insertNulls": false,
+									"lineInterpolation": "linear",
+									"lineWidth": 2,
+									"pointSize": 5,
+									"scaleDistribution": {
+										"type": "linear"
+									},
+									"showPoints": "never",
+									"showValues": false,
+									"spanNulls": false,
+									"stacking": {
+										"group": "A",
+										"mode": "none"
+									},
+									"thresholdsStyle": {
+										"mode": "off"
+									}
+								},
+								"decimals": 0,
+								"thresholds": {
+									"mode": "absolute",
+									"steps": [
+										{
+											"color": "green",
+											"value": 0
+										}
+									]
+								},
+								"unit": "short"
+							},
+							"overrides": [
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "playlists_overlaysWithPlaylist"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Overlays with Playlist"
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "playlists_activeOverlaysWithPlaylist"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Active Overlays with Playlist"
+										}
+									]
+								}
+							]
+						},
+						"options": {
+							"annotations": {
+								"clustering": -1,
+								"multiLane": false
+							},
+							"legend": {
+								"calcs": ["lastNotNull"],
+								"displayMode": "list",
+								"placement": "bottom",
+								"showLegend": true
+							},
+							"tooltip": {
+								"hideZeros": false,
+								"mode": "multi",
+								"sort": "none"
+							}
+						}
+					},
+					"version": "13.0.0-24139322263"
+				}
+			}
+		},
+		"panel-54": {
+			"kind": "Panel",
+			"spec": {
+				"data": {
+					"kind": "QueryGroup",
+					"spec": {
+						"queries": [
+							{
+								"kind": "PanelQuery",
+								"spec": {
+									"hidden": false,
+									"query": {
+										"datasource": {
+											"name": "efg3es37pgh6ob"
+										},
+										"group": "influxdb",
+										"kind": "DataQuery",
+										"spec": {
+											"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"clipify_vm01\")\n  |> filter(fn: (r) =>\n      r[\"_field\"] == \"rewards_overlaysWithReward\" or\n      r[\"_field\"] == \"rewards_activeOverlaysWithReward\" or\n      r[\"_field\"] == \"rewards_ownersWithReward\" or\n      r[\"_field\"] == \"rewards_uniqueRewardIds\"\n    )\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)"
+										},
+										"version": "v0"
+									},
+									"refId": "A"
+								}
+							}
+						],
+						"queryOptions": {},
+						"transformations": []
+					}
+				},
+				"description": "Reward coverage across overlays and owners.",
+				"id": 54,
+				"links": [],
+				"title": "Rewards Overview",
+				"vizConfig": {
+					"group": "timeseries",
+					"kind": "VizConfig",
+					"spec": {
+						"fieldConfig": {
+							"defaults": {
+								"color": {
+									"mode": "palette-classic"
+								},
+								"custom": {
+									"axisBorderShow": false,
+									"axisCenteredZero": false,
+									"axisColorMode": "text",
+									"axisLabel": "",
+									"axisPlacement": "auto",
+									"barAlignment": 0,
+									"barWidthFactor": 0.6,
+									"drawStyle": "line",
+									"fillOpacity": 10,
+									"gradientMode": "none",
+									"hideFrom": {
+										"legend": false,
+										"tooltip": false,
+										"viz": false
+									},
+									"insertNulls": false,
+									"lineInterpolation": "linear",
+									"lineWidth": 2,
+									"pointSize": 5,
+									"scaleDistribution": {
+										"type": "linear"
+									},
+									"showPoints": "never",
+									"showValues": false,
+									"spanNulls": false,
+									"stacking": {
+										"group": "A",
+										"mode": "none"
+									},
+									"thresholdsStyle": {
+										"mode": "off"
+									}
+								},
+								"decimals": 0,
+								"thresholds": {
+									"mode": "absolute",
+									"steps": [
+										{
+											"color": "green",
+											"value": 0
+										}
+									]
+								},
+								"unit": "short"
+							},
+							"overrides": [
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "rewards_overlaysWithReward"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Overlays with Reward"
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "rewards_activeOverlaysWithReward"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Active Overlays with Reward"
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "rewards_ownersWithReward"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Owners with Reward"
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "rewards_uniqueRewardIds"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Unique Reward IDs"
+										}
+									]
+								}
+							]
+						},
+						"options": {
+							"annotations": {
+								"clustering": -1,
+								"multiLane": false
+							},
+							"legend": {
+								"calcs": ["lastNotNull"],
+								"displayMode": "list",
+								"placement": "bottom",
+								"showLegend": true
+							},
+							"tooltip": {
+								"hideZeros": false,
+								"mode": "multi",
+								"sort": "none"
+							}
+						}
+					},
+					"version": "13.0.0-24139322263"
+				}
+			}
+		},
+		"panel-55": {
+			"kind": "Panel",
+			"spec": {
+				"data": {
+					"kind": "QueryGroup",
+					"spec": {
+						"queries": [
+							{
+								"kind": "PanelQuery",
+								"spec": {
+									"hidden": false,
+									"query": {
+										"datasource": {
+											"name": "efg3es37pgh6ob"
+										},
+										"group": "influxdb",
+										"kind": "DataQuery",
+										"spec": {
+											"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"clipify_vm01\")\n  |> filter(fn: (r) =>\n      r[\"_field\"] == \"queues_clipQueueDepth\" or\n      r[\"_field\"] == \"queues_modQueueDepth\"\n    )\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)"
+										},
+										"version": "v0"
+									},
+									"refId": "A"
+								}
+							}
+						],
+						"queryOptions": {},
+						"transformations": []
+					}
+				},
+				"description": "Clip and moderator queue depth.",
+				"id": 55,
+				"links": [],
+				"title": "Queue Depths",
+				"vizConfig": {
+					"group": "timeseries",
+					"kind": "VizConfig",
+					"spec": {
+						"fieldConfig": {
+							"defaults": {
+								"color": {
+									"mode": "palette-classic"
+								},
+								"custom": {
+									"axisBorderShow": false,
+									"axisCenteredZero": false,
+									"axisColorMode": "text",
+									"axisLabel": "",
+									"axisPlacement": "auto",
+									"barAlignment": 0,
+									"barWidthFactor": 0.6,
+									"drawStyle": "line",
+									"fillOpacity": 10,
+									"gradientMode": "none",
+									"hideFrom": {
+										"legend": false,
+										"tooltip": false,
+										"viz": false
+									},
+									"insertNulls": false,
+									"lineInterpolation": "linear",
+									"lineWidth": 2,
+									"pointSize": 5,
+									"scaleDistribution": {
+										"type": "linear"
+									},
+									"showPoints": "never",
+									"showValues": false,
+									"spanNulls": false,
+									"stacking": {
+										"group": "A",
+										"mode": "none"
+									},
+									"thresholdsStyle": {
+										"mode": "off"
+									}
+								},
+								"decimals": 0,
+								"thresholds": {
+									"mode": "absolute",
+									"steps": [
+										{
+											"color": "green",
+											"value": 0
+										}
+									]
+								},
+								"unit": "short"
+							},
+							"overrides": [
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "queues_clipQueueDepth"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Clip Queue Depth"
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "queues_modQueueDepth"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Mod Queue Depth"
+										}
+									]
+								}
+							]
+						},
+						"options": {
+							"annotations": {
+								"clustering": -1,
+								"multiLane": false
+							},
+							"legend": {
+								"calcs": ["lastNotNull"],
+								"displayMode": "list",
+								"placement": "bottom",
+								"showLegend": true
+							},
+							"tooltip": {
+								"hideZeros": false,
+								"mode": "multi",
+								"sort": "none"
+							}
+						}
+					},
+					"version": "13.0.0-24139322263"
+				}
+			}
+		},
+		"panel-56": {
+			"kind": "Panel",
+			"spec": {
+				"data": {
+					"kind": "QueryGroup",
+					"spec": {
+						"queries": [
+							{
+								"kind": "PanelQuery",
+								"spec": {
+									"hidden": false,
+									"query": {
+										"datasource": {
+											"name": "efg3es37pgh6ob"
+										},
+										"group": "influxdb",
+										"kind": "DataQuery",
+										"spec": {
+											"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"clipify_vm01\")\n  |> filter(fn: (r) =>\n      r[\"_field\"] == \"newsletter_optedIn\" or\n      r[\"_field\"] == \"newsletter_optedOut\" or\n      r[\"_field\"] == \"newsletter_settingsRows\"\n    )\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)"
+										},
+										"version": "v0"
+									},
+									"refId": "A"
+								}
+							}
+						],
+						"queryOptions": {},
+						"transformations": []
+					}
+				},
+				"description": "Newsletter participation totals.",
+				"id": 56,
+				"links": [],
+				"title": "Newsletter Summary",
+				"vizConfig": {
+					"group": "timeseries",
+					"kind": "VizConfig",
+					"spec": {
+						"fieldConfig": {
+							"defaults": {
+								"color": {
+									"mode": "palette-classic"
+								},
+								"custom": {
+									"axisBorderShow": false,
+									"axisCenteredZero": false,
+									"axisColorMode": "text",
+									"axisLabel": "",
+									"axisPlacement": "auto",
+									"barAlignment": 0,
+									"barWidthFactor": 0.6,
+									"drawStyle": "line",
+									"fillOpacity": 10,
+									"gradientMode": "none",
+									"hideFrom": {
+										"legend": false,
+										"tooltip": false,
+										"viz": false
+									},
+									"insertNulls": false,
+									"lineInterpolation": "linear",
+									"lineWidth": 2,
+									"pointSize": 5,
+									"scaleDistribution": {
+										"type": "linear"
+									},
+									"showPoints": "never",
+									"showValues": false,
+									"spanNulls": false,
+									"stacking": {
+										"group": "A",
+										"mode": "none"
+									},
+									"thresholdsStyle": {
+										"mode": "off"
+									}
+								},
+								"decimals": 0,
+								"thresholds": {
+									"mode": "absolute",
+									"steps": [
+										{
+											"color": "green",
+											"value": 0
+										}
+									]
+								},
+								"unit": "short"
+							},
+							"overrides": [
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "newsletter_optedIn"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Opted In"
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "newsletter_optedOut"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Opted Out"
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "newsletter_settingsRows"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Settings Rows"
+										}
+									]
+								}
+							]
+						},
+						"options": {
+							"annotations": {
+								"clustering": -1,
+								"multiLane": false
+							},
+							"legend": {
+								"calcs": ["lastNotNull"],
+								"displayMode": "table",
+								"placement": "bottom",
+								"showLegend": true
+							},
+							"tooltip": {
+								"hideZeros": false,
+								"mode": "multi",
+								"sort": "none"
+							}
+						}
+					},
+					"version": "13.0.0-24139322263"
+				}
+			}
+		},
+		"panel-57": {
+			"kind": "Panel",
+			"spec": {
+				"data": {
+					"kind": "QueryGroup",
+					"spec": {
+						"queries": [
+							{
+								"kind": "PanelQuery",
+								"spec": {
+									"hidden": false,
+									"query": {
+										"datasource": {
+											"name": "efg3es37pgh6ob"
+										},
+										"group": "influxdb",
+										"kind": "DataQuery",
+										"spec": {
+											"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"clipify_vm01\")\n  |> filter(fn: (r) =>\n      r[\"_field\"] == \"newsletter_consentSourceCounts_external_usesend_sync_optout\" or\n      r[\"_field\"] == \"newsletter_consentSourceCounts_settings_page_explicit_optin\" or\n      r[\"_field\"] == \"newsletter_consentSourceCounts_settings_page_optout\" or\n      r[\"_field\"] == \"newsletter_consentSourceCounts_soft_opt_in_default\"\n    )\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)"
+										},
+										"version": "v0"
+									},
+									"refId": "A"
+								}
+							}
+						],
+						"queryOptions": {},
+						"transformations": []
+					}
+				},
+				"description": "Consent source breakdown.",
+				"id": 57,
+				"links": [],
+				"title": "Newsletter Consent Sources",
+				"vizConfig": {
+					"group": "timeseries",
+					"kind": "VizConfig",
+					"spec": {
+						"fieldConfig": {
+							"defaults": {
+								"color": {
+									"mode": "palette-classic"
+								},
+								"custom": {
+									"axisBorderShow": false,
+									"axisCenteredZero": false,
+									"axisColorMode": "text",
+									"axisLabel": "",
+									"axisPlacement": "auto",
+									"barAlignment": 0,
+									"barWidthFactor": 0.6,
+									"drawStyle": "line",
+									"fillOpacity": 10,
+									"gradientMode": "none",
+									"hideFrom": {
+										"legend": false,
+										"tooltip": false,
+										"viz": false
+									},
+									"insertNulls": false,
+									"lineInterpolation": "linear",
+									"lineWidth": 2,
+									"pointSize": 5,
+									"scaleDistribution": {
+										"type": "linear"
+									},
+									"showPoints": "never",
+									"showValues": false,
+									"spanNulls": false,
+									"stacking": {
+										"group": "A",
+										"mode": "none"
+									},
+									"thresholdsStyle": {
+										"mode": "off"
+									}
+								},
+								"decimals": 0,
+								"thresholds": {
+									"mode": "absolute",
+									"steps": [
+										{
+											"color": "green",
+											"value": 0
+										}
+									]
+								},
+								"unit": "short"
+							},
+							"overrides": [
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "newsletter_consentSourceCounts_external_usesend_sync_optout"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Consent: UseSend Sync Opt-out"
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "newsletter_consentSourceCounts_settings_page_explicit_optin"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Consent: Settings Explicit Opt-in"
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "newsletter_consentSourceCounts_settings_page_optout"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Consent: Settings Opt-out"
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "newsletter_consentSourceCounts_soft_opt_in_default"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Consent: Soft Opt-in Default"
+										}
+									]
+								}
+							]
+						},
+						"options": {
+							"annotations": {
+								"clustering": -1,
+								"multiLane": false
+							},
+							"legend": {
+								"calcs": ["lastNotNull"],
+								"displayMode": "table",
+								"placement": "bottom",
+								"showLegend": true
+							},
+							"tooltip": {
+								"hideZeros": false,
+								"mode": "multi",
+								"sort": "none"
+							}
+						}
+					},
+					"version": "13.0.0-24139322263"
+				}
+			}
+		},
+		"panel-58": {
+			"kind": "Panel",
+			"spec": {
+				"data": {
+					"kind": "QueryGroup",
+					"spec": {
+						"queries": [
+							{
+								"kind": "PanelQuery",
+								"spec": {
+									"hidden": false,
+									"query": {
+										"datasource": {
+											"name": "efg3es37pgh6ob"
+										},
+										"group": "influxdb",
+										"kind": "DataQuery",
+										"spec": {
+											"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"clipify_vm01\")\n  |> filter(fn: (r) =>\n      r[\"_field\"] == \"newsletter_optedOutSourceCounts_external_usesend_sync_optout\" or\n      r[\"_field\"] == \"newsletter_optedOutSourceCounts_settings_page_optout\"\n    )\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)"
+										},
+										"version": "v0"
+									},
+									"refId": "A"
+								}
+							}
+						],
+						"queryOptions": {},
+						"transformations": []
+					}
+				},
+				"description": "Opt-out source breakdown.",
+				"id": 58,
+				"links": [],
+				"title": "Newsletter Opt-out Sources",
+				"vizConfig": {
+					"group": "timeseries",
+					"kind": "VizConfig",
+					"spec": {
+						"fieldConfig": {
+							"defaults": {
+								"color": {
+									"mode": "palette-classic"
+								},
+								"custom": {
+									"axisBorderShow": false,
+									"axisCenteredZero": false,
+									"axisColorMode": "text",
+									"axisLabel": "",
+									"axisPlacement": "auto",
+									"barAlignment": 0,
+									"barWidthFactor": 0.6,
+									"drawStyle": "line",
+									"fillOpacity": 10,
+									"gradientMode": "none",
+									"hideFrom": {
+										"legend": false,
+										"tooltip": false,
+										"viz": false
+									},
+									"insertNulls": false,
+									"lineInterpolation": "linear",
+									"lineWidth": 2,
+									"pointSize": 5,
+									"scaleDistribution": {
+										"type": "linear"
+									},
+									"showPoints": "never",
+									"showValues": false,
+									"spanNulls": false,
+									"stacking": {
+										"group": "A",
+										"mode": "none"
+									},
+									"thresholdsStyle": {
+										"mode": "off"
+									}
+								},
+								"decimals": 0,
+								"thresholds": {
+									"mode": "absolute",
+									"steps": [
+										{
+											"color": "green",
+											"value": 0
+										}
+									]
+								},
+								"unit": "short"
+							},
+							"overrides": [
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "newsletter_optedOutSourceCounts_external_usesend_sync_optout"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Opt-out: UseSend Sync"
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "newsletter_optedOutSourceCounts_settings_page_optout"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Opt-out: Settings Page"
+										}
+									]
+								}
+							]
+						},
+						"options": {
+							"annotations": {
+								"clustering": -1,
+								"multiLane": false
+							},
+							"legend": {
+								"calcs": ["lastNotNull"],
+								"displayMode": "table",
+								"placement": "bottom",
+								"showLegend": true
+							},
+							"tooltip": {
+								"hideZeros": false,
+								"mode": "multi",
+								"sort": "none"
+							}
+						}
+					},
+					"version": "13.0.0-24139322263"
+				}
+			}
+		},
+		"panel-59": {
+			"kind": "Panel",
+			"spec": {
+				"data": {
+					"kind": "QueryGroup",
+					"spec": {
+						"queries": [
+							{
+								"kind": "PanelQuery",
+								"spec": {
+									"hidden": false,
+									"query": {
+										"datasource": {
+											"name": "efg3es37pgh6ob"
+										},
+										"group": "influxdb",
+										"kind": "DataQuery",
+										"spec": {
+											"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"clipify_vm01\")\n  |> filter(fn: (r) =>\n      r[\"_field\"] == \"scheduler_clipCache_lastRunDurationMs\" or\n      r[\"_field\"] == \"scheduler_clipCache_batchSize\" or\n      r[\"_field\"] == \"scheduler_clipCache_lastRunOwnerCount\"\n    )\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)"
+										},
+										"version": "v0"
+									},
+									"refId": "A"
+								}
+							}
+						],
+						"queryOptions": {},
+						"transformations": []
+					}
+				},
+				"description": "Scheduler duration, batch size, and owner count.",
+				"id": 59,
+				"links": [],
+				"title": "Scheduler Performance",
+				"vizConfig": {
+					"group": "timeseries",
+					"kind": "VizConfig",
+					"spec": {
+						"fieldConfig": {
+							"defaults": {
+								"color": {
+									"mode": "palette-classic"
+								},
+								"custom": {
+									"axisBorderShow": false,
+									"axisCenteredZero": false,
+									"axisColorMode": "text",
+									"axisLabel": "",
+									"axisPlacement": "auto",
+									"barAlignment": 0,
+									"barWidthFactor": 0.6,
+									"drawStyle": "line",
+									"fillOpacity": 10,
+									"gradientMode": "none",
+									"hideFrom": {
+										"legend": false,
+										"tooltip": false,
+										"viz": false
+									},
+									"insertNulls": false,
+									"lineInterpolation": "linear",
+									"lineWidth": 2,
+									"pointSize": 5,
+									"scaleDistribution": {
+										"type": "linear"
+									},
+									"showPoints": "never",
+									"showValues": false,
+									"spanNulls": false,
+									"stacking": {
+										"group": "A",
+										"mode": "none"
+									},
+									"thresholdsStyle": {
+										"mode": "off"
+									}
+								},
+								"decimals": 0,
+								"thresholds": {
+									"mode": "absolute",
+									"steps": [
+										{
+											"color": "green",
+											"value": 0
+										}
+									]
+								},
+								"unit": "short"
+							},
+							"overrides": [
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "scheduler_clipCache_lastRunDurationMs"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Last Run Duration"
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "scheduler_clipCache_batchSize"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Batch Size"
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "scheduler_clipCache_lastRunOwnerCount"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Last Run Owners"
+										}
+									]
+								}
+							]
+						},
+						"options": {
+							"annotations": {
+								"clustering": -1,
+								"multiLane": false
+							},
+							"legend": {
+								"calcs": ["lastNotNull"],
+								"displayMode": "list",
+								"placement": "bottom",
+								"showLegend": true
+							},
+							"tooltip": {
+								"hideZeros": false,
+								"mode": "multi",
+								"sort": "none"
+							}
+						}
+					},
+					"version": "13.0.0-24139322263"
+				}
+			}
+		}
+	},
+	"layout": {
+		"kind": "RowsLayout",
+		"spec": {
+			"rows": [
+				{
+					"kind": "RowsLayoutRow",
+					"spec": {
+						"title": "Executive Summary",
+						"collapse": false,
+						"layout": {
+							"kind": "GridLayout",
+							"spec": {
+								"items": [
+									{
+										"kind": "GridLayoutItem",
+										"spec": {
+											"element": {
+												"kind": "ElementReference",
+												"name": "panel-3"
+											},
+											"height": 4,
+											"width": 6,
+											"x": 0,
+											"y": 0
+										}
+									},
+									{
+										"kind": "GridLayoutItem",
+										"spec": {
+											"element": {
+												"kind": "ElementReference",
+												"name": "panel-4"
+											},
+											"height": 4,
+											"width": 6,
+											"x": 6,
+											"y": 0
+										}
+									},
+									{
+										"kind": "GridLayoutItem",
+										"spec": {
+											"element": {
+												"kind": "ElementReference",
+												"name": "panel-9"
+											},
+											"height": 4,
+											"width": 6,
+											"x": 12,
+											"y": 0
+										}
+									},
+									{
+										"kind": "GridLayoutItem",
+										"spec": {
+											"element": {
+												"kind": "ElementReference",
+												"name": "panel-10"
+											},
+											"height": 4,
+											"width": 6,
+											"x": 18,
+											"y": 0
+										}
+									},
+									{
+										"kind": "GridLayoutItem",
+										"spec": {
+											"element": {
+												"kind": "ElementReference",
+												"name": "panel-5"
+											},
+											"height": 4,
+											"width": 6,
+											"x": 0,
+											"y": 4
+										}
+									},
+									{
+										"kind": "GridLayoutItem",
+										"spec": {
+											"element": {
+												"kind": "ElementReference",
+												"name": "panel-6"
+											},
+											"height": 4,
+											"width": 6,
+											"x": 6,
+											"y": 4
+										}
+									},
+									{
+										"kind": "GridLayoutItem",
+										"spec": {
+											"element": {
+												"kind": "ElementReference",
+												"name": "panel-7"
+											},
+											"height": 4,
+											"width": 6,
+											"x": 12,
+											"y": 4
+										}
+									},
+									{
+										"kind": "GridLayoutItem",
+										"spec": {
+											"element": {
+												"kind": "ElementReference",
+												"name": "panel-8"
+											},
+											"height": 4,
+											"width": 6,
+											"x": 18,
+											"y": 4
+										}
+									},
+									{
+										"kind": "GridLayoutItem",
+										"spec": {
+											"element": {
+												"kind": "ElementReference",
+												"name": "panel-42"
+											},
+											"height": 4,
+											"width": 6,
+											"x": 0,
+											"y": 8
+										}
+									},
+									{
+										"kind": "GridLayoutItem",
+										"spec": {
+											"element": {
+												"kind": "ElementReference",
+												"name": "panel-45"
+											},
+											"height": 4,
+											"width": 6,
+											"x": 6,
+											"y": 8
+										}
+									},
+									{
+										"kind": "GridLayoutItem",
+										"spec": {
+											"element": {
+												"kind": "ElementReference",
+												"name": "panel-43"
+											},
+											"height": 4,
+											"width": 6,
+											"x": 12,
+											"y": 8
+										}
+									},
+									{
+										"kind": "GridLayoutItem",
+										"spec": {
+											"element": {
+												"kind": "ElementReference",
+												"name": "panel-44"
+											},
+											"height": 4,
+											"width": 6,
+											"x": 18,
+											"y": 8
+										}
+									}
+								]
+							}
+						}
+					}
+				},
+				{
+					"kind": "RowsLayoutRow",
+					"spec": {
+						"title": "System Health",
+						"collapse": false,
+						"layout": {
+							"kind": "GridLayout",
+							"spec": {
+								"items": [
+									{
+										"kind": "GridLayoutItem",
+										"spec": {
+											"element": {
+												"kind": "ElementReference",
+												"name": "panel-13"
+											},
+											"height": 8,
+											"width": 12,
+											"x": 0,
+											"y": 0
+										}
+									},
+									{
+										"kind": "GridLayoutItem",
+										"spec": {
+											"element": {
+												"kind": "ElementReference",
+												"name": "panel-14"
+											},
+											"height": 8,
+											"width": 12,
+											"x": 12,
+											"y": 0
+										}
+									},
+									{
+										"kind": "GridLayoutItem",
+										"spec": {
+											"element": {
+												"kind": "ElementReference",
+												"name": "panel-15"
+											},
+											"height": 8,
+											"width": 12,
+											"x": 0,
+											"y": 8
+										}
+									},
+									{
+										"kind": "GridLayoutItem",
+										"spec": {
+											"element": {
+												"kind": "ElementReference",
+												"name": "panel-16"
+											},
+											"height": 8,
+											"width": 12,
+											"x": 12,
+											"y": 8
+										}
+									},
+									{
+										"kind": "GridLayoutItem",
+										"spec": {
+											"element": {
+												"kind": "ElementReference",
+												"name": "panel-46"
+											},
+											"height": 8,
+											"width": 12,
+											"x": 0,
+											"y": 16
+										}
+									},
+									{
+										"kind": "GridLayoutItem",
+										"spec": {
+											"element": {
+												"kind": "ElementReference",
+												"name": "panel-59"
+											},
+											"height": 8,
+											"width": 12,
+											"x": 12,
+											"y": 16
+										}
+									}
+								]
+							}
+						}
+					}
+				},
+				{
+					"kind": "RowsLayoutRow",
+					"spec": {
+						"title": "Users and Accounts",
+						"collapse": false,
+						"layout": {
+							"kind": "GridLayout",
+							"spec": {
+								"items": [
+									{
+										"kind": "GridLayoutItem",
+										"spec": {
+											"element": {
+												"kind": "ElementReference",
+												"name": "panel-19"
+											},
+											"height": 8,
+											"width": 12,
+											"x": 0,
+											"y": 0
+										}
+									},
+									{
+										"kind": "GridLayoutItem",
+										"spec": {
+											"element": {
+												"kind": "ElementReference",
+												"name": "panel-20"
+											},
+											"height": 8,
+											"width": 12,
+											"x": 12,
+											"y": 0
+										}
+									},
+									{
+										"kind": "GridLayoutItem",
+										"spec": {
+											"element": {
+												"kind": "ElementReference",
+												"name": "panel-21"
+											},
+											"height": 8,
+											"width": 12,
+											"x": 0,
+											"y": 8
+										}
+									},
+									{
+										"kind": "GridLayoutItem",
+										"spec": {
+											"element": {
+												"kind": "ElementReference",
+												"name": "panel-22"
+											},
+											"height": 8,
+											"width": 12,
+											"x": 12,
+											"y": 8
+										}
+									},
+									{
+										"kind": "GridLayoutItem",
+										"spec": {
+											"element": {
+												"kind": "ElementReference",
+												"name": "panel-47"
+											},
+											"height": 8,
+											"width": 12,
+											"x": 0,
+											"y": 16
+										}
+									},
+									{
+										"kind": "GridLayoutItem",
+										"spec": {
+											"element": {
+												"kind": "ElementReference",
+												"name": "panel-48"
+											},
+											"height": 8,
+											"width": 12,
+											"x": 12,
+											"y": 16
+										}
+									}
+								]
+							}
+						}
+					}
+				},
+				{
+					"kind": "RowsLayoutRow",
+					"spec": {
+						"title": "Entitlements",
+						"collapse": false,
+						"layout": {
+							"kind": "GridLayout",
+							"spec": {
+								"items": [
+									{
+										"kind": "GridLayoutItem",
+										"spec": {
+											"element": {
+												"kind": "ElementReference",
+												"name": "panel-25"
+											},
+											"height": 8,
+											"width": 12,
+											"x": 0,
+											"y": 0
+										}
+									},
+									{
+										"kind": "GridLayoutItem",
+										"spec": {
+											"element": {
+												"kind": "ElementReference",
+												"name": "panel-26"
+											},
+											"height": 8,
+											"width": 12,
+											"x": 12,
+											"y": 0
+										}
+									},
+									{
+										"kind": "GridLayoutItem",
+										"spec": {
+											"element": {
+												"kind": "ElementReference",
+												"name": "panel-27"
+											},
+											"height": 8,
+											"width": 12,
+											"x": 0,
+											"y": 8
+										}
+									},
+									{
+										"kind": "GridLayoutItem",
+										"spec": {
+											"element": {
+												"kind": "ElementReference",
+												"name": "panel-49"
+											},
+											"height": 8,
+											"width": 12,
+											"x": 12,
+											"y": 8
+										}
+									}
+								]
+							}
+						}
+					}
+				},
+				{
+					"kind": "RowsLayoutRow",
+					"spec": {
+						"title": "Cache and Content",
+						"collapse": false,
+						"layout": {
+							"kind": "GridLayout",
+							"spec": {
+								"items": [
+									{
+										"kind": "GridLayoutItem",
+										"spec": {
+											"element": {
+												"kind": "ElementReference",
+												"name": "panel-30"
+											},
+											"height": 8,
+											"width": 12,
+											"x": 0,
+											"y": 0
+										}
+									},
+									{
+										"kind": "GridLayoutItem",
+										"spec": {
+											"element": {
+												"kind": "ElementReference",
+												"name": "panel-31"
+											},
+											"height": 8,
+											"width": 12,
+											"x": 12,
+											"y": 0
+										}
+									},
+									{
+										"kind": "GridLayoutItem",
+										"spec": {
+											"element": {
+												"kind": "ElementReference",
+												"name": "panel-32"
+											},
+											"height": 8,
+											"width": 12,
+											"x": 0,
+											"y": 8
+										}
+									},
+									{
+										"kind": "GridLayoutItem",
+										"spec": {
+											"element": {
+												"kind": "ElementReference",
+												"name": "panel-33"
+											},
+											"height": 8,
+											"width": 12,
+											"x": 12,
+											"y": 8
+										}
+									}
+								]
+							}
+						}
+					}
+				},
+				{
+					"kind": "RowsLayoutRow",
+					"spec": {
+						"title": "Overlays, Playlists, Rewards",
+						"collapse": false,
+						"layout": {
+							"kind": "GridLayout",
+							"spec": {
+								"items": [
+									{
+										"kind": "GridLayoutItem",
+										"spec": {
+											"element": {
+												"kind": "ElementReference",
+												"name": "panel-50"
+											},
+											"height": 8,
+											"width": 12,
+											"x": 0,
+											"y": 0
+										}
+									},
+									{
+										"kind": "GridLayoutItem",
+										"spec": {
+											"element": {
+												"kind": "ElementReference",
+												"name": "panel-51"
+											},
+											"height": 8,
+											"width": 12,
+											"x": 12,
+											"y": 0
+										}
+									},
+									{
+										"kind": "GridLayoutItem",
+										"spec": {
+											"element": {
+												"kind": "ElementReference",
+												"name": "panel-52"
+											},
+											"height": 8,
+											"width": 12,
+											"x": 0,
+											"y": 8
+										}
+									},
+									{
+										"kind": "GridLayoutItem",
+										"spec": {
+											"element": {
+												"kind": "ElementReference",
+												"name": "panel-53"
+											},
+											"height": 8,
+											"width": 12,
+											"x": 12,
+											"y": 8
+										}
+									},
+									{
+										"kind": "GridLayoutItem",
+										"spec": {
+											"element": {
+												"kind": "ElementReference",
+												"name": "panel-54"
+											},
+											"height": 8,
+											"width": 12,
+											"x": 0,
+											"y": 16
+										}
+									},
+									{
+										"kind": "GridLayoutItem",
+										"spec": {
+											"element": {
+												"kind": "ElementReference",
+												"name": "panel-55"
+											},
+											"height": 8,
+											"width": 12,
+											"x": 12,
+											"y": 16
+										}
+									}
+								]
+							}
+						}
+					}
+				},
+				{
+					"kind": "RowsLayoutRow",
+					"spec": {
+						"title": "Newsletter",
+						"collapse": false,
+						"layout": {
+							"kind": "GridLayout",
+							"spec": {
+								"items": [
+									{
+										"kind": "GridLayoutItem",
+										"spec": {
+											"element": {
+												"kind": "ElementReference",
+												"name": "panel-56"
+											},
+											"height": 8,
+											"width": 12,
+											"x": 0,
+											"y": 0
+										}
+									},
+									{
+										"kind": "GridLayoutItem",
+										"spec": {
+											"element": {
+												"kind": "ElementReference",
+												"name": "panel-57"
+											},
+											"height": 8,
+											"width": 12,
+											"x": 12,
+											"y": 0
+										}
+									},
+									{
+										"kind": "GridLayoutItem",
+										"spec": {
+											"element": {
+												"kind": "ElementReference",
+												"name": "panel-58"
+											},
+											"height": 8,
+											"width": 12,
+											"x": 0,
+											"y": 8
+										}
+									}
+								]
+							}
+						}
+					}
+				},
+				{
+					"kind": "RowsLayoutRow",
+					"spec": {
+						"title": "Scheduler",
+						"collapse": false,
+						"layout": {
+							"kind": "GridLayout",
+							"spec": {
+								"items": [
+									{
+										"kind": "GridLayoutItem",
+										"spec": {
+											"element": {
+												"kind": "ElementReference",
+												"name": "panel-36"
+											},
+											"height": 8,
+											"width": 8,
+											"x": 0,
+											"y": 0
+										}
+									},
+									{
+										"kind": "GridLayoutItem",
+										"spec": {
+											"element": {
+												"kind": "ElementReference",
+												"name": "panel-37"
+											},
+											"height": 8,
+											"width": 8,
+											"x": 8,
+											"y": 0
+										}
+									},
+									{
+										"kind": "GridLayoutItem",
+										"spec": {
+											"element": {
+												"kind": "ElementReference",
+												"name": "panel-38"
+											},
+											"height": 8,
+											"width": 8,
+											"x": 16,
+											"y": 0
+										}
+									},
+									{
+										"kind": "GridLayoutItem",
+										"spec": {
+											"element": {
+												"kind": "ElementReference",
+												"name": "panel-39"
+											},
+											"height": 8,
+											"width": 12,
+											"x": 0,
+											"y": 8
+										}
+									},
+									{
+										"kind": "GridLayoutItem",
+										"spec": {
+											"element": {
+												"kind": "ElementReference",
+												"name": "panel-40"
+											},
+											"height": 8,
+											"width": 6,
+											"x": 12,
+											"y": 8
+										}
+									},
+									{
+										"kind": "GridLayoutItem",
+										"spec": {
+											"element": {
+												"kind": "ElementReference",
+												"name": "panel-41"
+											},
+											"height": 8,
+											"width": 6,
+											"x": 18,
+											"y": 8
+										}
+									}
+								]
+							}
+						}
+					}
+				}
+			]
+		}
+	},
+	"links": [],
+	"liveNow": false,
+	"preload": false,
+	"tags": ["clipify", "vm01", "monitoring", "draft-v2"],
+	"timeSettings": {
+		"autoRefresh": "30s",
+		"autoRefreshIntervals": ["5s", "10s", "30s", "1m", "5m", "15m", "30m", "1h", "2h", "1d"],
+		"fiscalYearStartMonth": 0,
+		"from": "now-30d",
+		"hideTimepicker": false,
+		"timezone": "browser",
+		"to": "now"
+	},
+	"title": "Clipify VM01 Overview v2",
+	"variables": []
+}
