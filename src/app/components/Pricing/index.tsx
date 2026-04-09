@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import type { CampaignOffer } from "@types";
 import { Button, Card, CardBody, CardFooter, CardHeader, Chip, Divider, Link, Spacer, Tab, Tabs } from "@heroui/react";
 import { cn } from "@heroui/react";
 
@@ -10,9 +11,20 @@ import { FrequencyEnum } from "./pricing-types";
 import { usePlausible } from "next-plausible";
 import { trackPaywallEvent } from "@lib/paywallTracking";
 
-export default function TiersComponent() {
+type TiersComponentProps = {
+	campaignOffer?: CampaignOffer | null;
+};
+
+export default function TiersComponent({ campaignOffer = null }: TiersComponentProps) {
 	const [selectedFrequency, setSelectedFrequency] = useState(frequencies.find((f) => f.key === FrequencyEnum.Yearly) ?? frequencies[0]);
 	const plausible = usePlausible();
+	const proPromoEnabled = Boolean(campaignOffer?.showPricingTierPromo);
+	const pricingPromoByFrequency = {
+		[FrequencyEnum.Monthly]: campaignOffer?.pricingMonthlyPromo ?? null,
+		[FrequencyEnum.Yearly]: campaignOffer?.pricingYearlyPromo ?? null,
+	};
+
+	const formatPromoPrice = (value: number | null) => (typeof value === "number" ? `${value} EUR` : null);
 
 	const onFrequencyChange = (selectedKey: React.Key) => {
 		const frequencyIndex = frequencies.findIndex((f) => f.key === selectedKey);
@@ -48,6 +60,7 @@ export default function TiersComponent() {
 			<div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
 				{tiers.slice(0, 2).map((tier) => {
 					const checkoutHref = `/login?returnUrl=${encodeURIComponent(`/dashboard/settings?upgrade&cycle=${selectedFrequency.key}&source=pricing_page&feature=plan`)}`;
+					const hasPromoPrice = pricingPromoByFrequency[selectedFrequency.key] !== null;
 
 					return (
 						<Card
@@ -58,7 +71,7 @@ export default function TiersComponent() {
 							})}
 							shadow='md'
 						>
-							{tier.discountedPrice?.[selectedFrequency.key] ? (
+							{tier.key === "pro" && proPromoEnabled && hasPromoPrice ? (
 								<Chip className='absolute right-4 top-4' variant='shadow' color='secondary'>
 									Limited offer
 								</Chip>
@@ -75,7 +88,7 @@ export default function TiersComponent() {
 							<CardBody className='gap-8'>
 								<div className='min-h-[5.5rem] flex flex-col justify-end'>
 									<p className='flex items-end gap-2 pt-2 tabular-nums'>
-										{typeof tier.price !== "string" && tier.discountedPrice?.[selectedFrequency.key] ? (
+										{typeof tier.price !== "string" && tier.key === "pro" && proPromoEnabled && hasPromoPrice ? (
 											<>
 												{/* Old price - smaller, muted, clean strike */}
 												<span className='inline text-xl md:text-2xl font-medium text-default-500/60 line-through decoration-2 decoration-default-500/50 underline-offset-4' aria-hidden='true'>
@@ -83,7 +96,7 @@ export default function TiersComponent() {
 												</span>
 
 												{/* New price - bold, tight leading */}
-												<span className='inline text-4xl md:text-5xl font-extrabold leading-none tracking-tight text-secondary'>{tier.discountedPrice[selectedFrequency.key]}</span>
+												<span className='inline text-4xl md:text-5xl font-extrabold leading-none tracking-tight text-secondary'>{formatPromoPrice(pricingPromoByFrequency[selectedFrequency.key])}</span>
 
 												{/* Suffix */}
 												<span className='text-small font-medium text-default-400 leading-none'>/{selectedFrequency.priceSuffix}</span>

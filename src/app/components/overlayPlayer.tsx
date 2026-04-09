@@ -9,7 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
 import { getFirstFromClipQueue, getFirstFromModQueue, removeFromClipQueue, removeFromModQueue } from "@actions/database";
 import Logo from "@components/logo";
-import { IconAlertTriangle, IconPlayerPlayFilled, IconVolume, IconVolumeOff } from "@tabler/icons-react";
+import { IconAlertTriangle, IconPlayerPauseFilled, IconPlayerPlayFilled, IconVolume, IconVolumeOff } from "@tabler/icons-react";
 import { clamp, getSlotOpacity, parseThemeFontSetting, sanitizeFontCssUrl, trimCache } from "./overlayPlayer.utils";
 
 type VideoQualityWithNumeric = TwitchClipVideoQuality & { numericQuality: number };
@@ -152,6 +152,8 @@ type OverlayViewportProps = {
 	onStartKeyDown: (event: ReactKeyboardEvent<HTMLDivElement>) => void;
 	overlay: Overlay;
 	embedBehaviorEnabled: boolean;
+	paused: boolean;
+	onTogglePaused: () => void;
 	isMuted: boolean;
 	onToggleMuted: () => void;
 	isEmbed?: boolean;
@@ -212,6 +214,8 @@ function OverlayViewport({
 	onStartKeyDown,
 	overlay,
 	embedBehaviorEnabled,
+	paused,
+	onTogglePaused,
 	isMuted,
 	onToggleMuted,
 	isEmbed,
@@ -322,7 +326,19 @@ function OverlayViewport({
 
 			{embedBehaviorEnabled && (
 				<>
-					<div className='absolute right-4 top-4 z-20 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100'>
+					<div className='absolute right-4 top-4 z-20 flex gap-2 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100'>
+						<button
+							type='button'
+							onClick={(event) => {
+								event.stopPropagation();
+								onTogglePaused();
+							}}
+							className='h-10 w-10 rounded-full bg-primary text-white shadow-md hover:bg-primary-600 transition flex items-center justify-center'
+							aria-pressed={!paused}
+							aria-label={paused ? "Resume overlay" : "Pause overlay"}
+						>
+							{paused ? <IconPlayerPlayFilled className='h-5 w-5 text-white' /> : <IconPlayerPauseFilled className='h-5 w-5 text-white' />}
+						</button>
 						<button type='button' onClick={(event) => {
 							event.stopPropagation();
 							onToggleMuted();
@@ -482,7 +498,7 @@ export default function OverlayPlayer({
 	const [clipPool, setClipPool] = useState<TwitchClip[]>([]);
 	const clipPoolRef = useRef<TwitchClip[]>([]);
 	const [viewportSize, setViewportSize] = useState({ width: 0, height: 0 });
-	const showResolutionWarning = !isDemoPlayer && viewportSize.width > 0 && viewportSize.height > 0 && (viewportSize.width !== 1920 || viewportSize.height !== 1080);
+	const showResolutionWarning = !isDemoPlayer && !isEmbed && viewportSize.width > 0 && viewportSize.height > 0 && (viewportSize.width !== 1920 || viewportSize.height !== 1080);
 
 	useEffect(() => {
 		if (typeof window === "undefined") return;
@@ -1742,6 +1758,11 @@ export default function OverlayPlayer({
 				onStartKeyDown={handleStartKeyDown}
 				overlay={overlay}
 				embedBehaviorEnabled={embedBehaviorEnabled}
+				paused={paused}
+				onTogglePaused={() => {
+					setHasUserStarted(true);
+					setPaused((prev) => !prev);
+				}}
 				isMuted={isMuted}
 				onToggleMuted={() => setIsMuted((prev) => !prev)}
 				isEmbed={isEmbed}
