@@ -38,9 +38,5 @@ export default function PlausibleClient({ children }: { children: React.ReactNod
 
 	if (!enabled) return <>{children}</>;
 
-	return (
-		<PlausibleProvider domain='clipify.us' customDomain='https://analytics.thedannicraft.de' selfHosted trackOutboundLinks trackFileDownloads taggedEvents enabled>
-			{children}
-		</PlausibleProvider>
-	);
+	return <PlausibleProvider enabled>{children}</PlausibleProvider>;
 }
