@@ -60,6 +60,7 @@ export default function TiersComponent({ campaignOffer = null }: TiersComponentP
 			<div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
 				{tiers.slice(0, 2).map((tier) => {
 					const checkoutHref = `/login?returnUrl=${encodeURIComponent(`/dashboard/settings?upgrade&cycle=${selectedFrequency.key}&source=pricing_page&feature=plan`)}`;
+					const hasPromoPrice = pricingPromoByFrequency[selectedFrequency.key] !== null;
 
 					return (
 						<Card
@@ -70,7 +71,7 @@ export default function TiersComponent({ campaignOffer = null }: TiersComponentP
 							})}
 							shadow='md'
 						>
-							{tier.key === "pro" && proPromoEnabled && pricingPromoByFrequency[selectedFrequency.key] ? (
+							{tier.key === "pro" && proPromoEnabled && hasPromoPrice ? (
 								<Chip className='absolute right-4 top-4' variant='shadow' color='secondary'>
 									Limited offer
 								</Chip>
@@ -87,7 +88,7 @@ export default function TiersComponent({ campaignOffer = null }: TiersComponentP
 							<CardBody className='gap-8'>
 								<div className='min-h-[5.5rem] flex flex-col justify-end'>
 									<p className='flex items-end gap-2 pt-2 tabular-nums'>
-										{typeof tier.price !== "string" && tier.key === "pro" && proPromoEnabled && pricingPromoByFrequency[selectedFrequency.key] ? (
+										{typeof tier.price !== "string" && tier.key === "pro" && proPromoEnabled && hasPromoPrice ? (
 											<>
 												{/* Old price - smaller, muted, clean strike */}
 												<span className='inline text-xl md:text-2xl font-medium text-default-500/60 line-through decoration-2 decoration-default-500/50 underline-offset-4' aria-hidden='true'>
@@ -110,8 +111,8 @@ export default function TiersComponent({ campaignOffer = null }: TiersComponentP
 								</div>
 								<p
 									className={cn("text-xs font-medium h-4", {
-										"text-success-500": tier.key === "pro" && selectedFrequency.key === FrequencyEnum.Yearly && proPromoEnabled,
-										"invisible": !(tier.key === "pro" && selectedFrequency.key === FrequencyEnum.Yearly && proPromoEnabled),
+										"text-success-500": tier.key === "pro" && selectedFrequency.key === FrequencyEnum.Yearly,
+										"invisible": !(tier.key === "pro" && selectedFrequency.key === FrequencyEnum.Yearly),
 									})}
 								>
 									Save 2 months with yearly billing
