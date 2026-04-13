@@ -74,6 +74,12 @@ function isInIframe() {
 	return window.self !== window.top;
 }
 
+function getWebSocketUrl() {
+	if (typeof window === "undefined") return null;
+	const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+	return `${protocol}//${window.location.host}/ws`;
+}
+
 /**
  * Warm up browser buffering a bit by preloading the media URL.
  */
@@ -494,7 +500,7 @@ export default function OverlayPlayer({
 	const [ownerAvatar, setOwnerAvatar] = useState<string>("");
 	const [isDocumentVisible, setIsDocumentVisible] = useState<boolean>(true);
 	const [hasUserStarted, setHasUserStarted] = useState<boolean>(!embedBehaviorEnabled || !!embedAutoplay);
-	const [, setWebsocket] = useState<WebSocket | null>(null);
+	const [websocket, setWebsocket] = useState<WebSocket | null>(null);
 	const [clipPool, setClipPool] = useState<TwitchClip[]>([]);
 	const clipPoolRef = useRef<TwitchClip[]>([]);
 	const [viewportSize, setViewportSize] = useState({ width: 0, height: 0 });
@@ -517,6 +523,7 @@ export default function OverlayPlayer({
 	const [activeCurrentTime, setActiveCurrentTime] = useState(0);
 
 	const playbackMode = overlay.playbackMode ?? "random";
+	const effectiveMuted = !!isDemoPlayer || isMuted || runtimeVolume <= 0;
 	const channelInfoPos = {
 		x: clamp(overlay.channelInfoX ?? 0, 0, 100),
 		y: clamp(overlay.channelInfoY ?? 0, 0, 100),
@@ -975,6 +982,55 @@ export default function OverlayPlayer({
 		return null;
 	}, [getFirstQueClip, getFirstFromDemoQueue, isDemoPlayer, overlay.ownerId, playbackMode, refreshClipPool]);
 
+	const consumeQueueItem = useCallback(
+		async (queueItem: ModQueueItem | ClipQueueItem | null | undefined) => {
+			if (!queueItem) return;
+			nextQueueItemRef.current = null;
+			await Promise.allSettled([
+				removeFromModQueue(queueItem.id, overlay.id, overlaySecret),
+				removeFromClipQueue(queueItem.id, overlay.id, overlaySecret),
+			]);
+		},
+		[overlay.id, overlaySecret],
+	);
+
+	const activateClipImmediately = useCallback(
+		(nextClipToPlay: VideoClip) => {
+			const targetSlot = activeSlot === "a" ? "b" : "a";
+			const previousVideo = activeSlot === "a" ? videoARef.current : videoBRef.current;
+
+			if (targetSlot === "a") {
+				readyARef.current = false;
+				setClipA(nextClipToPlay);
+				readyBRef.current = false;
+				setClipB(null);
+				if (videoBRef.current) {
+					videoBRef.current.pause();
+					videoBRef.current.currentTime = 0;
+				}
+			} else {
+				readyBRef.current = false;
+				setClipB(nextClipToPlay);
+				readyARef.current = false;
+				setClipA(null);
+				if (videoARef.current) {
+					videoARef.current.pause();
+					videoARef.current.currentTime = 0;
+				}
+			}
+
+			if (previousVideo) {
+				previousVideo.pause();
+				previousVideo.currentTime = 0;
+			}
+
+			setActiveSlot(targetSlot);
+			setVideoClip(nextClipToPlay);
+			setShowOverlay(true);
+		},
+		[activeSlot],
+	);
+
 	/**
 	 * The ONLY function that advances the currently playing clip.
 	 * Uses prefetched clip if available, otherwise fetch/build a new one.
@@ -999,36 +1055,8 @@ export default function OverlayPlayer({
 			if (prefetched) {
 				nextClipRef.current = null;
 				setNextClip(null);
-				if (nextQueueItemRef.current) {
-					removeFromModQueue(nextQueueItemRef.current.id, overlay.id, overlaySecret).catch((error) => {
-						console.error("Failed to remove from mod queue:", error);
-					});
-					removeFromClipQueue(nextQueueItemRef.current.id, overlay.id, overlaySecret).catch((error) => {
-						console.error("Failed to remove from clip queue:", error);
-					});
-					nextQueueItemRef.current = null;
-				}
-				if (activeSlot === "a") {
-					readyARef.current = false;
-					setClipA(prefetched);
-					readyBRef.current = false;
-					setClipB(null);
-					if (videoBRef.current) {
-						videoBRef.current.pause();
-						videoBRef.current.currentTime = 0;
-					}
-				} else {
-					readyBRef.current = false;
-					setClipB(prefetched);
-					readyARef.current = false;
-					setClipA(null);
-					if (videoARef.current) {
-						videoARef.current.pause();
-						videoARef.current.currentTime = 0;
-					}
-				}
-				setVideoClip(prefetched);
-				setShowOverlay(true);
+				await consumeQueueItem(nextQueueItemRef.current);
+				activateClipImmediately(prefetched);
 				return;
 			}
 
@@ -1045,35 +1073,8 @@ export default function OverlayPlayer({
 			if (myReqId !== requestIdRef.current) return;
 
 			if (built) {
-				if (candidate.queueItem) {
-					removeFromModQueue(candidate.queueItem.id, overlay.id, overlaySecret).catch((error) => {
-						console.error("Failed to remove from mod queue:", error);
-					});
-					removeFromClipQueue(candidate.queueItem.id, overlay.id, overlaySecret).catch((error) => {
-						console.error("Failed to remove from clip queue:", error);
-					});
-				}
-				if (activeSlot === "a") {
-					readyARef.current = false;
-					setClipA(built);
-					readyBRef.current = false;
-					setClipB(null);
-					if (videoBRef.current) {
-						videoBRef.current.pause();
-						videoBRef.current.currentTime = 0;
-					}
-				} else {
-					readyBRef.current = false;
-					setClipB(built);
-					readyARef.current = false;
-					setClipA(null);
-					if (videoARef.current) {
-						videoARef.current.pause();
-						videoARef.current.currentTime = 0;
-					}
-				}
-				setVideoClip(built);
-				setShowOverlay(true);
+				await consumeQueueItem(candidate.queueItem);
+				activateClipImmediately(built);
 			}
 		} finally {
 			advanceLockRef.current = false;
@@ -1082,7 +1083,7 @@ export default function OverlayPlayer({
 				advanceClip().catch((error) => console.error("Error advancing clip after pending skip:", error));
 			}
 		}
-	}, [activeSlot, buildVideoClipFast, getRandomClip, overlay.id, overlaySecret]);
+	}, [activateClipImmediately, buildVideoClipFast, consumeQueueItem, getRandomClip]);
 
 	const resetPrefetch = useCallback(() => {
 		prefetchAbortRef.current?.abort();
@@ -1164,8 +1165,37 @@ export default function OverlayPlayer({
 				setRuntimeVolume(clamp(next, 0, 100));
 				break;
 			}
+
+			case "mute": {
+				setIsMuted(true);
+				break;
+			}
+
+			case "unmute": {
+				setRuntimeVolume((prev) => (prev <= 0 ? 1 : prev));
+				setIsMuted(false);
+				break;
+			}
+
+			case "toggle_mute": {
+				setIsMuted((prev) => {
+					if (prev && runtimeVolume <= 0) {
+						setRuntimeVolume(1);
+					}
+					return !prev;
+				});
+				break;
+			}
 		}
 	}
+
+	const sendStateUpdate = useCallback(
+		(payload: object) => {
+			if (!websocket || websocket.readyState !== WebSocket.OPEN) return;
+			websocket.send(JSON.stringify({ type: "state_update", data: payload }));
+		},
+		[websocket],
+	);
 
 	useEffect(() => {
 		clipRef.current = videoClip;
@@ -1198,6 +1228,64 @@ export default function OverlayPlayer({
 		rafId = requestAnimationFrame(tick);
 		return () => cancelAnimationFrame(rafId);
 	}, [activeSlot, isDocumentVisible, paused, showPlayer, videoClip]);
+
+	useEffect(() => {
+		sendStateUpdate({
+			kind: "playback_state",
+			overlayId: overlay.id,
+			paused,
+			showPlayer,
+			volume: runtimeVolume,
+			muted: effectiveMuted,
+		});
+	}, [effectiveMuted, overlay.id, paused, runtimeVolume, sendStateUpdate, showPlayer]);
+
+	useEffect(() => {
+		sendStateUpdate({
+			kind: "now_playing",
+			overlayId: overlay.id,
+			clipId: videoClip?.id ?? null,
+			title: videoClip?.title ?? null,
+			creatorName: videoClip?.creator_name ?? null,
+			duration: activeDuration || videoClip?.duration || null,
+			currentTime: activeCurrentTime ?? 0,
+			thumbnailUrl: videoClip?.thumbnail_url ?? null,
+		});
+	}, [activeCurrentTime, activeDuration, overlay.id, sendStateUpdate, videoClip]);
+
+	useEffect(() => {
+		const nextItems = [nextClip]
+			.filter((entry): entry is NonNullable<typeof entry> => Boolean(entry))
+			.map((entry) => ({
+				clipId: entry.id,
+				title: entry.title,
+				creatorName: entry.creator_name,
+				duration: entry.duration,
+				thumbnailUrl: entry.thumbnail_url ?? null,
+			}));
+
+		sendStateUpdate({
+			kind: "queue_preview",
+			overlayId: overlay.id,
+			items: nextItems,
+		});
+	}, [nextClip, overlay.id, sendStateUpdate]);
+
+	useEffect(() => {
+		const timer = setInterval(() => {
+			sendStateUpdate({
+				kind: "heartbeat",
+				overlayId: overlay.id,
+				playerAttached: Boolean(clipRef.current),
+				showPlayer,
+				paused,
+				currentClipId: clipRef.current?.id ?? null,
+				nextClipId: nextClipRef.current?.id ?? null,
+			});
+		}, 1000);
+
+		return () => clearInterval(timer);
+	}, [overlay.id, paused, sendStateUpdate, showPlayer]);
 
 	useEffect(() => {
 		if (!showPlayer) {
@@ -1250,10 +1338,9 @@ export default function OverlayPlayer({
 	}, [activeSlot, embedBehaviorEnabled, paused, showPlayer, videoClip?.id]);
 
 	useEffect(() => {
-		const mutedValue = !!isDemoPlayer || (embedBehaviorEnabled ? isMuted : false);
-		if (videoARef.current) videoARef.current.muted = mutedValue;
-		if (videoBRef.current) videoBRef.current.muted = mutedValue;
-	}, [embedBehaviorEnabled, isDemoPlayer, isMuted, videoClip?.id]);
+		if (videoARef.current) videoARef.current.muted = effectiveMuted;
+		if (videoBRef.current) videoBRef.current.muted = effectiveMuted;
+	}, [effectiveMuted, videoClip?.id]);
 
 	useEffect(() => {
 		const volume = clamp(runtimeVolume / 100, 0, 1);
@@ -1312,6 +1399,7 @@ export default function OverlayPlayer({
 	 */
 	useEffect(() => {
 		let ws: WebSocket | null = null;
+		let removeLoadListener: (() => void) | null = null;
 
 		const onWindowMessage = async (event: MessageEvent) => {
 			if (event.origin !== window.location.origin) return;
@@ -1326,15 +1414,17 @@ export default function OverlayPlayer({
 		};
 
 		function setupWebSocket() {
-			ws = new WebSocket("/ws");
+			const wsUrl = getWebSocketUrl();
+			if (!wsUrl) return;
+			ws = new WebSocket(wsUrl);
 			setWebsocket(ws);
 
 			ws.addEventListener("open", () => {
-				ws?.send(JSON.stringify({ type: "subscribe", data: { overlayId: overlay.id, secret: overlaySecret } }));
+				ws?.send(JSON.stringify({ type: "subscribe", data: { overlayId: overlay.id, secret: overlaySecret, role: "overlay" } }));
 			});
 
 			ws.addEventListener("message", async (event) => {
-				if (event.data === `subscribed ${overlay.ownerId}`) return;
+				if (event.data === `subscribed ${overlay.id}`) return;
 
 				try {
 					const message = JSON.parse(event.data);
@@ -1368,11 +1458,21 @@ export default function OverlayPlayer({
 			});
 		}
 
-		if (!isEmbed && !isDemoPlayer) setupWebSocket();
+		if (!isEmbed && !isDemoPlayer) {
+			if (typeof document !== "undefined" && document.readyState === "complete") {
+				setupWebSocket();
+			} else if (typeof window !== "undefined") {
+				const handleLoad = () => setupWebSocket();
+				window.addEventListener("load", handleLoad, { once: true });
+				removeLoadListener = () => window.removeEventListener("load", handleLoad);
+			}
+		}
 		if (isDemoPlayer) window.addEventListener("message", onWindowMessage);
 
 		return () => {
+			if (removeLoadListener) removeLoadListener();
 			ws?.close();
+			setWebsocket(null);
 			window.removeEventListener("message", onWindowMessage);
 		};
 		// eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1452,14 +1552,7 @@ export default function OverlayPlayer({
 			if (myReqId !== requestIdRef.current) return;
 
 			if (built) {
-				if (candidate.queueItem) {
-					removeFromModQueue(candidate.queueItem.id, overlay.id, overlaySecret).catch((error) => {
-						console.error("Failed to remove from mod queue:", error);
-					});
-					removeFromClipQueue(candidate.queueItem.id, overlay.id, overlaySecret).catch((error) => {
-						console.error("Failed to remove from clip queue:", error);
-					});
-				}
+				await consumeQueueItem(candidate.queueItem);
 				if (activeSlot === "a") {
 					readyARef.current = false;
 					setClipA(built);
@@ -1483,7 +1576,7 @@ export default function OverlayPlayer({
 				setShowOverlay(true);
 			}
 		})();
-	}, [activeSlot, buildVideoClipFast, getRandomClip, isDemoPlayer, overlay.id, overlaySecret]);
+	}, [activeSlot, buildVideoClipFast, consumeQueueItem, getRandomClip, isDemoPlayer]);
 
 	/**
 	 * Prefetch next clip while current plays.
@@ -1640,7 +1733,6 @@ export default function OverlayPlayer({
 	if (!videoClip) return null;
 
 	if (isEmbed || isDemoPlayer || !isInIframe()) {
-		const effectiveMuted = !!isDemoPlayer || (embedBehaviorEnabled ? isMuted : false);
 		const showClickToPlay = embedBehaviorEnabled && paused && !hasUserStarted;
 		const canShowOverlay = showPlayer && !!videoClip && (!embedBehaviorEnabled || hasUserStarted);
 		const displayDuration = activeDuration;

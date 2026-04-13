@@ -6,7 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { createPlaylist, getClipCacheStatus, getOverlay, getOverlayOwnerPlan, getPlaylistsForOwner, previewImportPlaylistClips, saveOverlay, savePlaylist, upsertPlaylistClips } from "@actions/database";
 import { addToast, Autocomplete, AutocompleteItem, Button, Card, CardBody, CardHeader, Checkbox, Chip, DateRangePicker, Divider, Form, Image, Input, Link, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, NumberInput, Select, SelectItem, Slider, Snippet, Spinner, Switch, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow, Tooltip, useDisclosure } from "@heroui/react";
 import { AuthenticatedUser, Game, Overlay, OverlayType, Plan, PlaybackMode, StatusOptions, TwitchClip, TwitchReward } from "@types";
-import { IconAlertTriangle, IconArrowLeft, IconCrown, IconDeviceFloppy, IconDownload, IconGripVertical, IconInfoCircle, IconPaint, IconPlayerPauseFilled, IconPlayerPlayFilled, IconPlus, IconSearch, IconTrash } from "@tabler/icons-react";
+import { IconAlertTriangle, IconArrowLeft, IconCrown, IconDeviceFloppy, IconDeviceRemote, IconDownload, IconExternalLink, IconGripVertical, IconInfoCircle, IconPaint, IconPlayerPauseFilled, IconPlayerPlayFilled, IconPlus, IconSearch, IconTrash } from "@tabler/icons-react";
 import DashboardNavbar from "@components/dashboardNavbar";
 import { useNavigationGuard } from "next-navigation-guard";
 import { validateAuth } from "@actions/auth";
@@ -521,6 +521,9 @@ export default function OverlaySettings() {
 	const canSaveManagedPlaylist = isPlaylistDraftDirty || isSelectedPlaylistNameDirty;
 	const inTrial = user ? isReverseTrialActive(user) : false;
 	const trialDaysLeft = user ? getTrialDaysLeft(user) : 0;
+	const overlayUrl = baseUrl && overlay.secret ? `${baseUrl}/overlay/${overlayId}?secret=${overlay.secret}` : null;
+	const controllerUrl = baseUrl && overlay.secret ? `${baseUrl}/controller/${overlayId}?secret=${overlay.secret}` : null;
+	const controllerEnabled = Boolean(controllerUrl && ownerPlan === Plan.Pro);
 
 	async function refreshPlaylists() {
 		const rows = await getPlaylistsForOwner(currentOverlay.ownerId);
@@ -773,7 +776,7 @@ export default function OverlaySettings() {
 						<CardBody>
 							<div className='flex items-center'>
 								<Form className='w-full' onSubmit={handleSubmit}>
-									<div className='flex items-center w-full space-x-4'>
+									<div className='flex items-center w-full space-x-2'>
 										<Switch
 											isSelected={overlay.status === StatusOptions.Active}
 											onValueChange={(value) => {
@@ -790,9 +793,24 @@ export default function OverlaySettings() {
 													pre: "overflow-hidden whitespace-nowrap",
 												}}
 											>
-												{overlay.secret ? `${baseUrl}/overlay/${overlayId}?secret=${overlay.secret}` : "Missing secret. Refresh this page to generate one."}
+												{overlayUrl ?? "Missing secret. Refresh this page to generate one."}
 											</Snippet>
 										</div>
+										<Tooltip content={ownerPlan === Plan.Pro ? "Open remote controller" : "Remote controller is a Pro feature"}>
+											<Button
+												isIconOnly
+												variant='flat'
+												color='secondary'
+												isDisabled={!controllerEnabled}
+												aria-label='Open remote controller'
+												onPress={() => {
+													if (!controllerUrl || ownerPlan !== Plan.Pro) return;
+													window.open(controllerUrl, "_blank", "noopener,noreferrer");
+												}}
+											>
+												<IconDeviceRemote size={18} />
+											</Button>
+										</Tooltip>
 										<Button type='submit' color='primary' isIconOnly isDisabled={!isFormDirty()} aria-label='Save Overlay Settings'>
 											<IconDeviceFloppy />
 										</Button>
@@ -876,6 +894,7 @@ export default function OverlaySettings() {
 														<li>Multiple overlay</li>
 														<li>Link custom Twitch rewards</li>
 														<li>Control your overlay via chat</li>
+														<li>Remote control panel for live playback</li>
 														<li>Advanced clip filtering</li>
 														<li>Theme studio with drag & drop layout</li>
 														<li>Priority support</li>
@@ -961,8 +980,8 @@ export default function OverlaySettings() {
 												{playbackModes
 													.filter((mode) => mode.key !== PlaybackMode.Order || (isPlaylistOverlay && !!overlay.playlistId))
 													.map((mode) => (
-													<SelectItem key={mode.key}>{mode.label}</SelectItem>
-												))}
+														<SelectItem key={mode.key}>{mode.label}</SelectItem>
+													))}
 											</Select>
 											<Tooltip content={playbackModeHelpText[overlay.playbackMode] ?? playbackModeHelpText[PlaybackMode.Random]}>
 												<IconInfoCircle className='text-default-400' />

@@ -7,7 +7,9 @@ let heartbeatInterval: NodeJS.Timeout | null = null;
 declare module "ws" {
 	interface WebSocket {
 		isAlive?: boolean;
-		broadcaster?: string | null;
+		ownerId?: string | null;
+		overlayId?: string | null;
+		role?: "overlay" | "controller";
 		subscribeDeadline?: NodeJS.Timeout;
 	}
 }
@@ -32,9 +34,11 @@ export function UPGRADE(client: WebSocket, server: WebSocketServer) {
 		}, 30 * 1000);
 	}
 
-	client.broadcaster = null;
+	client.ownerId = null;
+	client.overlayId = null;
+	client.role = "overlay";
 	client.subscribeDeadline = setTimeout(() => {
-		if (!client.broadcaster && client.readyState === client.OPEN) {
+		if ((!client.ownerId || !client.overlayId) && client.readyState === client.OPEN) {
 			client.close(4001);
 		}
 	}, 10 * 1000);
@@ -45,7 +49,7 @@ export function UPGRADE(client: WebSocket, server: WebSocketServer) {
 
 	const cleanup = async () => {
 		clearTimeout(client.subscribeDeadline);
-		if (client.broadcaster) removeSubscriber(client.broadcaster, client);
+		if (client.ownerId && client.overlayId) removeSubscriber(client.ownerId, client.overlayId, client);
 	};
 
 	client.once("close", () => {

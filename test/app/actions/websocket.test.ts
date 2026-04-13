@@ -5,6 +5,7 @@ import { WebSocket } from "ws";
 
 const getOverlayBySecret = jest.fn();
 const addSubscriber = jest.fn();
+const ownerSubscribers = new Map<string, Set<unknown>>();
 const overlaySubscribers = new Map<string, Set<unknown>>();
 
 jest.mock("@actions/database", () => ({
@@ -12,6 +13,7 @@ jest.mock("@actions/database", () => ({
 }));
 
 jest.mock("@store/overlaySubscribers", () => ({
+	ownerSubscribers,
 	overlaySubscribers,
 	addSubscriber: (...args: unknown[]) => addSubscriber(...args),
 }));
@@ -33,13 +35,16 @@ function createClient(overrides: Partial<Record<string, unknown>> = {}) {
 		send: jest.Mock;
 		readyState: number;
 		subscribeDeadline: unknown;
-		broadcaster?: string;
+		ownerId?: string;
+		overlayId?: string;
+		role?: string;
 	};
 }
 
 describe("actions/websocket", () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
+		ownerSubscribers.clear();
 		overlaySubscribers.clear();
 	});
 
@@ -63,7 +68,7 @@ describe("actions/websocket", () => {
 	});
 
 	it("subscribes valid clients and stores them by broadcaster", async () => {
-		getOverlayBySecret.mockResolvedValue({ ownerId: "owner-1" });
+		getOverlayBySecret.mockResolvedValue({ ownerId: "owner-1", id: "ov-1" });
 		const clearTimeoutSpy = jest.spyOn(global, "clearTimeout");
 		const { handleMessage } = await loadWebsocketActions();
 		const client = createClient();
@@ -74,10 +79,11 @@ describe("actions/websocket", () => {
 		);
 
 		expect(clearTimeoutSpy).toHaveBeenCalledWith(client.subscribeDeadline);
-		expect(client.broadcaster).toBe("owner-1");
-		expect(addSubscriber).toHaveBeenCalledWith("owner-1", client);
-		expect(overlaySubscribers.get("owner-1")?.has(client)).toBe(true);
-		expect(client.send).toHaveBeenCalledWith("subscribed owner-1");
+		expect(client.ownerId).toBe("owner-1");
+		expect(client.overlayId).toBe("ov-1");
+		expect(client.role).toBe("overlay");
+		expect(addSubscriber).toHaveBeenCalledWith("owner-1", "ov-1", client);
+		expect(client.send).toHaveBeenCalledWith("subscribed ov-1");
 	});
 
 	it("closes unknown message types", async () => {
@@ -91,7 +97,7 @@ describe("actions/websocket", () => {
 		const { sendMessage } = await loadWebsocketActions();
 		const openClient = createClient({ readyState: WebSocket.OPEN });
 		const closedClient = createClient({ readyState: WebSocket.CLOSED });
-		overlaySubscribers.set("owner-1", new Set([openClient, closedClient]));
+		ownerSubscribers.set("owner-1", new Set([openClient, closedClient]));
 
 		await sendMessage("event", { clipId: "clip-1" }, "owner-1");
 
@@ -104,8 +110,8 @@ describe("actions/websocket", () => {
 		const ownerAOpen = createClient({ readyState: WebSocket.OPEN });
 		const ownerAClosed = createClient({ readyState: WebSocket.CLOSING });
 		const ownerBOpen = createClient({ readyState: WebSocket.OPEN });
-		overlaySubscribers.set("owner-a", new Set([ownerAOpen, ownerAClosed]));
-		overlaySubscribers.set("owner-b", new Set([ownerBOpen]));
+		overlaySubscribers.set("overlay-a", new Set([ownerAOpen, ownerAClosed]));
+		overlaySubscribers.set("overlay-b", new Set([ownerBOpen]));
 
 		await sendMessage("refresh", { full: true });
 

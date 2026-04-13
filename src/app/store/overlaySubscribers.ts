@@ -2,23 +2,35 @@
 import type { WebSocket } from "ws";
 
 declare global {
+	var __ownerSubscribers: Map<string, Set<WebSocket>> | undefined;
 	var __overlaySubscribers: Map<string, Set<WebSocket>> | undefined;
 }
 
+export const ownerSubscribers: Map<string, Set<WebSocket>> = globalThis.__ownerSubscribers ?? (globalThis.__ownerSubscribers = new Map());
 export const overlaySubscribers: Map<string, Set<WebSocket>> = globalThis.__overlaySubscribers ?? (globalThis.__overlaySubscribers = new Map());
 
-// tiny helpers (optional)
-export function addSubscriber(broadcaster: string, ws: WebSocket) {
-	let set = overlaySubscribers.get(broadcaster);
+function addToMap(map: Map<string, Set<WebSocket>>, key: string, ws: WebSocket) {
+	let set = map.get(key);
 	if (!set) {
 		set = new Set<WebSocket>();
-		overlaySubscribers.set(broadcaster, set);
+		map.set(key, set);
 	}
 	set.add(ws);
 }
-export function removeSubscriber(broadcaster: string, ws: WebSocket) {
-	const set = overlaySubscribers.get(broadcaster);
+
+function removeFromMap(map: Map<string, Set<WebSocket>>, key: string, ws: WebSocket) {
+	const set = map.get(key);
 	if (!set) return;
 	set.delete(ws);
-	if (set.size === 0) overlaySubscribers.delete(broadcaster);
+	if (set.size === 0) map.delete(key);
+}
+
+export function addSubscriber(ownerId: string, overlayId: string, ws: WebSocket) {
+	addToMap(ownerSubscribers, ownerId, ws);
+	addToMap(overlaySubscribers, overlayId, ws);
+}
+
+export function removeSubscriber(ownerId: string, overlayId: string, ws: WebSocket) {
+	removeFromMap(ownerSubscribers, ownerId, ws);
+	removeFromMap(overlaySubscribers, overlayId, ws);
 }
