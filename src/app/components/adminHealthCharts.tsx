@@ -144,7 +144,8 @@ export default function AdminHealthCharts({ health }: { health: InstanceHealthSn
 	const successRuns = Math.max(0, totalRuns - totalFailures);
 	const successRatio = totalRuns > 0 ? successRuns / totalRuns : 1;
 	const failureRatio = totalRuns > 0 ? totalFailures / totalRuns : 0;
-	const dbLatency = Math.max(0, health.db.latencyMs);
+	const dbPing = Math.max(0, health.db.pingMs);
+	const healthAggregation = Math.max(0, health.db.healthAggregationMs);
 	const lastRunDuration = Math.max(0, health.scheduler.clipCache.lastRunDurationMs ?? 0);
 
 	const cacheGaugeData = [
@@ -537,9 +538,9 @@ export default function AdminHealthCharts({ health }: { health: InstanceHealthSn
 				</CardHeader>
 				<CardBody className='h-56 gap-3'>
 					<div className='rounded-lg border border-primary-300/40 bg-gradient-to-r from-primary-500/15 via-primary-400/10 to-transparent p-3'>
-						<p className='text-xs font-semibold uppercase tracking-wide text-default-500'>DB Latency</p>
-						<p className='text-3xl font-semibold text-primary'>{dbLatency.toLocaleString()}ms</p>
-						<p className='text-xs text-default-500'>Last sync duration: {lastRunDuration.toLocaleString()}ms</p>
+						<p className='text-xs font-semibold uppercase tracking-wide text-default-500'>DB Ping</p>
+						<p className='text-3xl font-semibold text-primary'>{dbPing.toLocaleString()}ms</p>
+						<p className='text-xs text-default-500'>Health aggregation: {healthAggregation.toLocaleString()}ms</p>
 					</div>
 					<div className='rounded-lg border border-default-200 p-3'>
 						<p className='text-xs font-semibold text-default-500'>Run Success vs Failure</p>

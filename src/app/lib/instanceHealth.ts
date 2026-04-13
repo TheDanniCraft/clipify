@@ -102,7 +102,8 @@ export type InstanceHealthSnapshot = {
 	};
 	db: {
 		ok: boolean;
-		latencyMs: number;
+		pingMs: number;
+		healthAggregationMs: number;
 	};
 };
 
@@ -118,6 +119,9 @@ async function countWhereOverlays(status: StatusOptions) {
 
 export async function getInstanceHealthSnapshot(): Promise<InstanceHealthSnapshot> {
 	const started = Date.now();
+	const dbPingStarted = Date.now();
+	await db.execute(sql`select 1`);
+	const dbPingMs = Date.now() - dbPingStarted;
 	const now = new Date();
 	const in24h = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 	const dayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
@@ -438,11 +442,11 @@ export async function getInstanceHealthSnapshot(): Promise<InstanceHealthSnapsho
 
 	const scheduler = getClipCacheSchedulerStats();
 	const cacheReads = await getTwitchCacheReadMetricsSnapshot();
-	const dbLatencyMs = Date.now() - started;
+	const healthAggregationMs = Date.now() - started;
 
 	let status: HealthStatus = "ok";
-	if (dbLatencyMs > 2000 || (scheduler.totalRuns > 0 && scheduler.totalFailures / scheduler.totalRuns > 0.15)) status = "degraded";
-	if (dbLatencyMs > 5000) status = "down";
+	if (dbPingMs > 2000 || healthAggregationMs > 2000 || (scheduler.totalRuns > 0 && scheduler.totalFailures / scheduler.totalRuns > 0.15)) status = "degraded";
+	if (dbPingMs > 5000 || healthAggregationMs > 5000) status = "down";
 
 	return {
 		status,
@@ -537,8 +541,9 @@ export async function getInstanceHealthSnapshot(): Promise<InstanceHealthSnapsho
 			clipCache: scheduler,
 		},
 		db: {
-			ok: dbLatencyMs < 5000,
-			latencyMs: dbLatencyMs,
+			ok: dbPingMs < 5000,
+			pingMs: dbPingMs,
+			healthAggregationMs,
 		},
 	};
 }

@@ -109,6 +109,7 @@ function makeQuery(rows: unknown[]) {
 describe("lib/instanceHealth", () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
+		dbExecute.mockResolvedValue([]);
 
 		const selectQueue: unknown[][] = [
 			[{ count: 10 }], // usersTotal
@@ -204,7 +205,8 @@ describe("lib/instanceHealth", () => {
 		expect(snapshot.scheduler.clipCache.totalRuns).toBe(10);
 		expect(snapshot.cache.globalReadHitRate).toBe(0.9);
 		expect(snapshot.status).toBe("ok");
-		expect(snapshot.db.latencyMs).toBeGreaterThanOrEqual(0);
+		expect(snapshot.db.pingMs).toBeGreaterThanOrEqual(0);
+		expect(snapshot.db.healthAggregationMs).toBeGreaterThanOrEqual(snapshot.db.pingMs);
 	});
 
 	it("returns degraded status when scheduler failure ratio is high", async () => {

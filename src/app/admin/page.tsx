@@ -144,7 +144,8 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 								<p>Last owner count: {formatNumber(health.scheduler.clipCache.lastRunOwnerCount)}</p>
 								<p>Last duration ms: {formatNumber(health.scheduler.clipCache.lastRunDurationMs ?? 0)}</p>
 								<p>Last run at: {formatDate(health.scheduler.clipCache.lastRunAt ?? null)}</p>
-								<p>DB latency ms: {formatNumber(health.db.latencyMs)}</p>
+								<p>DB ping ms: {formatNumber(health.db.pingMs)}</p>
+								<p>Health aggregation ms: {formatNumber(health.db.healthAggregationMs)}</p>
 								<p>DB ok: {health.db.ok ? "yes" : "no"}</p>
 								<p>Commit: {health.app.version}</p>
 							</div>

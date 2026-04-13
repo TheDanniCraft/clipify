@@ -165,14 +165,14 @@ export const queueTable = pgTable("clipQueue", {
 		.references(() => overlaysTable.id, { onDelete: "cascade" }),
 	clipId: varchar("clip_id").notNull(),
 	queuedAt: timestamp("queued_at", { withTimezone: true }).defaultNow().notNull(),
-});
+}, (t) => [index("clip_queue_overlay_queued_at_idx").on(t.overlayId, t.queuedAt)]);
 
 export const modQueueTable = pgTable("modQueue", {
 	id: uuid("id").notNull().defaultRandom().primaryKey(),
 	broadcasterId: varchar("broadcaster_id").notNull(),
 	clipId: varchar("clip_id").notNull(),
 	queuedAt: timestamp("queued_at", { withTimezone: true }).defaultNow().notNull(),
-});
+}, (t) => [index("mod_queue_broadcaster_queued_at_idx").on(t.broadcasterId, t.queuedAt)]);
 
 export const settingsTable = pgTable("userSettings", {
 	id: varchar("id")
