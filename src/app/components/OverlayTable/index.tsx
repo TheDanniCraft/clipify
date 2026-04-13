@@ -28,7 +28,7 @@ import { Status } from "./Status";
 import { useRouter } from "next/navigation";
 import { getAvatar, getUsersDetailsBulk } from "@actions/twitch";
 
-export default function OverlayTable({ userId, accessToken, campaignOffer = null }: { userId: string; accessToken: string; campaignOffer?: CampaignOffer | null }) {
+export default function OverlayTable({ userId, accessToken }: { userId: string; accessToken: string; campaignOffer?: CampaignOffer | null }) {
 	const router = useRouter();
 	type LocalOverlay = Overlay & { accessType?: "owner" | "editor" };
 	type LocalPlaylist = { id: string; ownerId: string; name: string; clipCount: number; accessType?: "owner" | "editor" };
@@ -186,7 +186,7 @@ export default function OverlayTable({ userId, accessToken, campaignOffer = null
 	);
 
 	const filteredItems = useMemo(() => {
-		const rawItems = activeTab === "overlays" ? (overlays || []) : (playlists || []);
+		const rawItems = activeTab === "overlays" ? overlays || [] : playlists || [];
 		let filtered = [...rawItems];
 
 		if (filterValue) {
@@ -245,113 +245,116 @@ export default function OverlayTable({ userId, accessToken, campaignOffer = null
 		onClick: handleOverlayClick,
 	}));
 
-	const renderCell = useCallback((item: LocalOverlay | LocalPlaylist, columnKey: React.Key) => {
-		const key = columnKey as ColumnsKey;
+	const renderCell = useCallback(
+		(item: LocalOverlay | LocalPlaylist, columnKey: React.Key) => {
+			const key = columnKey as ColumnsKey;
 
-		if (activeTab === "overlays") {
-			const overlay = item as LocalOverlay;
-			const cellValue = overlay[key as unknown as keyof Overlay] as string;
+			if (activeTab === "overlays") {
+				const overlay = item as LocalOverlay;
+				const cellValue = overlay[key as unknown as keyof Overlay] as string;
 
-			switch (key) {
-				case "accessType":
-					return <AvatarCell ownerId={overlay.ownerId} userId={userId} />;
-				case "name":
-					return <CopyText>{cellValue}</CopyText>;
-				case "id":
-					return <CopyText textClassName='whitespace-nowrap'>{cellValue}</CopyText>;
-				case "status":
-					return <Status status={cellValue as StatusOptions} />;
-				case "actions":
-					return (
-						<div className='flex items-center justify-end gap-2'>
-							<IconPencil className='cursor-pointer text-default-400' height={18} width={18} />
-							<IconTrash
-								className='cursor-pointer text-default-400'
-								height={18}
-								width={18}
-								onClick={(event) => {
-									event.stopPropagation();
+				switch (key) {
+					case "accessType":
+						return <AvatarCell ownerId={overlay.ownerId} userId={userId} />;
+					case "name":
+						return <CopyText>{cellValue}</CopyText>;
+					case "id":
+						return <CopyText textClassName='whitespace-nowrap'>{cellValue}</CopyText>;
+					case "status":
+						return <Status status={cellValue as StatusOptions} />;
+					case "actions":
+						return (
+							<div className='flex items-center justify-end gap-2'>
+								<IconPencil className='cursor-pointer text-default-400' height={18} width={18} />
+								<IconTrash
+									className='cursor-pointer text-default-400'
+									height={18}
+									width={18}
+									onClick={(event) => {
+										event.stopPropagation();
 
-									deleteOverlay(overlay.id)
-										.then((deleted) => {
-											if (!deleted) {
+										deleteOverlay(overlay.id)
+											.then((deleted) => {
+												if (!deleted) {
+													addToast({
+														title: "Error",
+														description: "Unable to delete the overlay. Please check your permissions and try again.",
+														color: "danger",
+													});
+													return;
+												}
+												setOverlays((prev) => (prev ? prev.filter((o) => o.id !== overlay.id) : []));
+
+												addToast({
+													title: "Successfully deleted",
+													description: `Overlay "${overlay.name}" has been deleted.`,
+													color: "success",
+												});
+											})
+											.catch(() => {
 												addToast({
 													title: "Error",
-													description: "Unable to delete the overlay. Please check your permissions and try again.",
+													description: "An error occurred while deleting the overlay.",
+													color: "danger",
+												});
+											});
+									}}
+								/>
+							</div>
+						);
+					default:
+						return cellValue;
+				}
+			} else {
+				const playlist = item as LocalPlaylist;
+				switch (key) {
+					case "id":
+						return <CopyText textClassName='whitespace-nowrap'>{playlist.id}</CopyText>;
+					case "name":
+						return <div className='font-semibold'>{playlist.name}</div>;
+					case "clipCount":
+						return <div>{playlist.clipCount} clips</div>;
+					case "accessType":
+						return <AvatarCell ownerId={playlist.ownerId} userId={userId} />;
+					case "actions":
+						return (
+							<div className='flex items-center justify-end gap-2'>
+								<IconTrash
+									className='cursor-pointer text-default-400'
+									height={18}
+									width={18}
+									onClick={async (event) => {
+										event.stopPropagation();
+										try {
+											const ok = await deletePlaylist(playlist.id);
+											if (!ok) {
+												addToast({
+													title: "Failed to delete playlist",
+													description: "Unable to delete the playlist. Please check your permissions and try again.",
 													color: "danger",
 												});
 												return;
 											}
-											setOverlays((prev) => (prev ? prev.filter((o) => o.id !== overlay.id) : []));
-
-											addToast({
-												title: "Successfully deleted",
-												description: `Overlay "${overlay.name}" has been deleted.`,
-												color: "success",
-											});
-										})
-										.catch(() => {
-											addToast({
-												title: "Error",
-												description: "An error occurred while deleting the overlay.",
-												color: "danger",
-											});
-										});
-								}}
-							/>
-						</div>
-					);
-				default:
-					return cellValue;
-			}
-		} else {
-			const playlist = item as LocalPlaylist;
-			switch (key) {
-				case "id":
-					return <CopyText textClassName='whitespace-nowrap'>{playlist.id}</CopyText>;
-				case "name":
-					return <div className='font-semibold'>{playlist.name}</div>;
-				case "clipCount":
-					return <div>{playlist.clipCount} clips</div>;
-				case "accessType":
-					return <AvatarCell ownerId={playlist.ownerId} userId={userId} />;
-				case "actions":
-					return (
-						<div className='flex items-center justify-end gap-2'>
-							<IconTrash
-								className='cursor-pointer text-default-400'
-								height={18}
-								width={18}
-								onClick={async (event) => {
-									event.stopPropagation();
-									try {
-										const ok = await deletePlaylist(playlist.id);
-										if (!ok) {
+											setPlaylists((prev) => (prev ?? []).filter((entry) => entry.id !== playlist.id));
+											addToast({ title: "Playlist deleted", color: "success" });
+										} catch {
 											addToast({
 												title: "Failed to delete playlist",
-												description: "Unable to delete the playlist. Please check your permissions and try again.",
+												description: "An unexpected error occurred while deleting the playlist.",
 												color: "danger",
 											});
-											return;
 										}
-										setPlaylists((prev) => (prev ?? []).filter((entry) => entry.id !== playlist.id));
-										addToast({ title: "Playlist deleted", color: "success" });
-									} catch {
-										addToast({
-											title: "Failed to delete playlist",
-											description: "An unexpected error occurred while deleting the playlist.",
-											color: "danger",
-										});
-									}
-								}}
-							/>
-						</div>
-					);
-				default:
-					return (playlist as Record<string, unknown>)[key] as React.ReactNode;
+									}}
+								/>
+							</div>
+						);
+					default:
+						return (playlist as Record<string, unknown>)[key] as React.ReactNode;
+				}
 			}
-		}
-	}, [activeTab, userId]);
+		},
+		[activeTab, userId],
+	);
 
 	const onNextPage = useMemoizedCallback(() => {
 		if (page < pages) {
@@ -498,113 +501,113 @@ export default function OverlayTable({ userId, accessToken, campaignOffer = null
 									Selected Actions
 								</Button>
 							</DropdownTrigger>
-					<DropdownMenu aria-label='Selected Actions'>
-						{activeTab === "overlays" ? (
-							<DropdownItem
-								key='toggleStatus'
-								startContent={<IconCircuitChangeover />}
-								onClick={() => {
-									const selectedOverlays = filterSelectedKeys === "all" ? overlays : (filteredItems as LocalOverlay[]).filter((item) => filterSelectedKeys.has(String(item.id)));
+							<DropdownMenu aria-label='Selected Actions'>
+								{activeTab === "overlays" ? (
+									<DropdownItem
+										key='toggleStatus'
+										startContent={<IconCircuitChangeover />}
+										onClick={() => {
+											const selectedOverlays = filterSelectedKeys === "all" ? overlays : (filteredItems as LocalOverlay[]).filter((item) => filterSelectedKeys.has(String(item.id)));
 
-									const toggleStatusPromises = selectedOverlays?.map((overlay) => {
-										const newStatus: StatusOptions = overlay.status === StatusOptions.Active ? StatusOptions.Paused : StatusOptions.Active;
-										return saveOverlay(overlay.id, { status: newStatus }).then((updated) => ({
-											ok: Boolean(updated),
-											id: overlay.id,
-											status: newStatus,
-										}));
-									});
+											const toggleStatusPromises = selectedOverlays?.map((overlay) => {
+												const newStatus: StatusOptions = overlay.status === StatusOptions.Active ? StatusOptions.Paused : StatusOptions.Active;
+												return saveOverlay(overlay.id, { status: newStatus }).then((updated) => ({
+													ok: Boolean(updated),
+													id: overlay.id,
+													status: newStatus,
+												}));
+											});
 
-									Promise.all(toggleStatusPromises ?? [])
-										.then((results) => {
-											const failed = results.filter((r) => !r.ok);
-											if (failed.length > 0) {
+											Promise.all(toggleStatusPromises ?? [])
+												.then((results) => {
+													const failed = results.filter((r) => !r.ok);
+													if (failed.length > 0) {
+														addToast({
+															title: "Error",
+															description: "One or more overlays could not be updated.",
+															color: "danger",
+														});
+														return;
+													}
+
+													setOverlays((prev) =>
+														prev
+															? prev.map((o) => {
+																	const match = results.find((r) => r.id === o.id && r.ok);
+																	return match ? { ...o, status: match.status } : o;
+																})
+															: [],
+													);
+													addToast({
+														title: "Status Updated",
+														description: `${selectedOverlays?.length ?? 0} Overlay${(selectedOverlays?.length ?? 0) > 1 ? "s" : ""} status have been updated.`,
+														color: "success",
+													});
+												})
+												.catch(() => {
+													addToast({
+														title: "Error",
+														description: "An error occurred while updating the status of one or more overlays.",
+														color: "danger",
+													});
+												});
+										}}
+									>
+										Toggle status
+									</DropdownItem>
+								) : (
+									<DropdownItem key='none' className='hidden' />
+								)}
+								<DropdownItem
+									key='delete'
+									color='danger'
+									startContent={<IconTrash className='text-danger-500' width={16} />}
+									onClick={() => {
+										const selectedItems = filterSelectedKeys === "all" ? (activeTab === "overlays" ? overlays : playlists) : filteredItems.filter((item) => filterSelectedKeys.has(String(item.id)));
+
+										const deletePromises = selectedItems?.map((item) =>
+											(activeTab === "overlays" ? deleteOverlay(item.id) : deletePlaylist(item.id)).then((ok) => ({
+												ok: Boolean(ok),
+												id: item.id,
+											})),
+										);
+
+										Promise.all(deletePromises ?? [])
+											.then((results) => {
+												const failed = results.filter((r) => !r.ok);
+												if (failed.length > 0) {
+													addToast({
+														title: "Error",
+														description: `One or more ${activeTab} could not be deleted.`,
+														color: "danger",
+													});
+													return;
+												}
+
+												if (activeTab === "overlays") {
+													setOverlays((prev) => (prev ? prev.filter((o) => !results.some((r) => r.ok && r.id === o.id)) : []));
+												} else {
+													setPlaylists((prev) => (prev ? prev.filter((p) => !results.some((r) => r.ok && r.id === p.id)) : []));
+												}
+												setSelectedKeys(new Set([]));
+												addToast({
+													title: "Successfully deleted",
+													description: `${selectedItems?.length ?? 0} ${activeTab === "overlays" ? "Overlay" : "Playlist"}${(selectedItems?.length ?? 0) > 1 ? "s" : ""} have been deleted.`,
+													color: "success",
+												});
+											})
+											.catch(() => {
 												addToast({
 													title: "Error",
-													description: "One or more overlays could not be updated.",
+													description: `An error occurred while deleting one or more ${activeTab}.`,
 													color: "danger",
 												});
-												return;
-											}
-
-											setOverlays((prev) =>
-												prev
-													? prev.map((o) => {
-															const match = results.find((r) => r.id === o.id && r.ok);
-															return match ? { ...o, status: match.status } : o;
-														})
-													: [],
-											);
-											addToast({
-												title: "Status Updated",
-												description: `${selectedOverlays?.length ?? 0} Overlay${(selectedOverlays?.length ?? 0) > 1 ? "s" : ""} status have been updated.`,
-												color: "success",
 											});
-										})
-										.catch(() => {
-											addToast({
-												title: "Error",
-												description: "An error occurred while updating the status of one or more overlays.",
-												color: "danger",
-											});
-										});
-								}}
-							>
-								Toggle status
-							</DropdownItem>
-						) : (
-							<DropdownItem key='none' className='hidden' />
-						)}
-						<DropdownItem
-							key='delete'
-							color='danger'
-							startContent={<IconTrash className='text-danger-500' width={16} />}
-							onClick={() => {
-								const selectedItems = filterSelectedKeys === "all" ? (activeTab === "overlays" ? overlays : playlists) : filteredItems.filter((item) => filterSelectedKeys.has(String(item.id)));
-
-								const deletePromises = selectedItems?.map((item) =>
-									(activeTab === "overlays" ? deleteOverlay(item.id) : deletePlaylist(item.id)).then((ok) => ({
-										ok: Boolean(ok),
-										id: item.id,
-									})),
-								);
-
-								Promise.all(deletePromises ?? [])
-									.then((results) => {
-										const failed = results.filter((r) => !r.ok);
-										if (failed.length > 0) {
-											addToast({
-												title: "Error",
-												description: `One or more ${activeTab} could not be deleted.`,
-												color: "danger",
-											});
-											return;
-										}
-
-										if (activeTab === "overlays") {
-											setOverlays((prev) => (prev ? prev.filter((o) => !results.some((r) => r.ok && r.id === o.id)) : []));
-										} else {
-											setPlaylists((prev) => (prev ? prev.filter((p) => !results.some((r) => r.ok && r.id === p.id)) : []));
-										}
-										setSelectedKeys(new Set([]));
-										addToast({
-											title: "Successfully deleted",
-											description: `${selectedItems?.length ?? 0} ${activeTab === "overlays" ? "Overlay" : "Playlist"}${(selectedItems?.length ?? 0) > 1 ? "s" : ""} have been deleted.`,
-											color: "success",
-										});
-									})
-									.catch(() => {
-										addToast({
-											title: "Error",
-											description: `An error occurred while deleting one or more ${activeTab}.`,
-											color: "danger",
-										});
-									});
-							}}
-						>
-							Delete
-						</DropdownItem>
-					</DropdownMenu>
+									}}
+								>
+									Delete
+								</DropdownItem>
+							</DropdownMenu>
 						</Dropdown>
 					)}
 				</div>
@@ -626,7 +629,7 @@ export default function OverlayTable({ userId, accessToken, campaignOffer = null
 					<div className='flex w-[226px] items-center gap-2'>
 						<h1 className='text-2xl font-[700] leading-[32px]'>{activeTab === "overlays" ? "Overlays" : "Playlists"}</h1>
 						<Chip className='hidden items-center text-default-500 sm:flex' size='sm' variant='flat'>
-							{activeTab === "overlays" ? overlays?.length ?? 0 : playlists?.length ?? 0}
+							{activeTab === "overlays" ? (overlays?.length ?? 0) : (playlists?.length ?? 0)}
 						</Chip>
 						<Button isIconOnly size='sm' variant='light' onPress={reloadOverlays} startContent={<IconReload className='text-default-400' width={16} />} aria-label='Reload' />
 					</div>
@@ -889,13 +892,7 @@ export default function OverlayTable({ userId, accessToken, campaignOffer = null
 						<TableColumn
 							key={column.uid}
 							align={column.uid === "actions" || column.uid === "clipCount" ? "end" : "start"}
-							className={cn([
-								column.uid === "actions" ? "flex items-center justify-end px-[20px]" : "",
-								column.uid === "accessType" ? "w-[48px] min-w-[48px] max-w-[48px] px-1" : "",
-								column.uid === "id" ? "w-[320px] min-w-[320px] max-w-[320px]" : "",
-								column.uid === "clipCount" ? "w-[90px] min-w-[90px] max-w-[90px] text-right" : "",
-								activeTab === "playlists" && column.uid === "name" ? "w-full" : "",
-							])}
+							className={cn([column.uid === "actions" ? "flex items-center justify-end px-[20px]" : "", column.uid === "accessType" ? "w-[48px] min-w-[48px] max-w-[48px] px-1" : "", column.uid === "id" ? "w-[320px] min-w-[320px] max-w-[320px]" : "", column.uid === "clipCount" ? "w-[90px] min-w-[90px] max-w-[90px] text-right" : "", activeTab === "playlists" && column.uid === "name" ? "w-full" : ""])}
 						>
 							{column.uid === "name" ? (
 								<div {...getOverlayInfoProps()} className='flex w-full cursor-pointer items-center justify-between'>
@@ -915,36 +912,12 @@ export default function OverlayTable({ userId, accessToken, campaignOffer = null
 						</TableColumn>
 					)}
 				</TableHeader>
-				<TableBody emptyContent={activeTab === "overlays" ? (overlays === undefined ? <Spinner label='Loading overlays' /> : <div className='text-default-400'>No overlays found</div>) : (playlists === undefined ? <Spinner label='Loading playlists' /> : <div className='text-default-400'>No playlists found</div>)} items={sortedItems}>
-					{(item) => (
-						<TableRow key={item.id}>
-							{(columnKey) => (
-								<TableCell
-									className={cn(
-										columnKey === "accessType" ? "w-[48px] min-w-[48px] max-w-[48px] px-1" : "",
-										columnKey === "id" ? "w-[320px] min-w-[320px] max-w-[320px]" : "",
-										columnKey === "clipCount" ? "w-[90px] min-w-[90px] max-w-[90px] text-right" : "",
-										activeTab === "playlists" && columnKey === "name" ? "w-full" : "",
-									)}
-								>
-									{renderCell(item, columnKey)}
-								</TableCell>
-							)}
-						</TableRow>
-					)}
+				<TableBody emptyContent={activeTab === "overlays" ? overlays === undefined ? <Spinner label='Loading overlays' /> : <div className='text-default-400'>No overlays found</div> : playlists === undefined ? <Spinner label='Loading playlists' /> : <div className='text-default-400'>No playlists found</div>} items={sortedItems}>
+					{(item) => <TableRow key={item.id}>{(columnKey) => <TableCell className={cn(columnKey === "accessType" ? "w-[48px] min-w-[48px] max-w-[48px] px-1" : "", columnKey === "id" ? "w-[320px] min-w-[320px] max-w-[320px]" : "", columnKey === "clipCount" ? "w-[90px] min-w-[90px] max-w-[90px] text-right" : "", activeTab === "playlists" && columnKey === "name" ? "w-full" : "")}>{renderCell(item, columnKey)}</TableCell>}</TableRow>}
 				</TableBody>
 			</Table>
 
-			{currentUser && currentUser.plan === "free" && (
-				<UpgradeModal
-					isOpen={isUpgradeOpen}
-					onOpenChange={onUpgradeOpenChange}
-					user={currentUser}
-					title={activeTab === "overlays" ? "Upgrade to add more overlays" : "Upgrade to add more playlists"}
-					source='upgrade_modal'
-					feature={activeTab === "overlays" ? "multi_overlay" : "multi_playlist"}
-				/>
-			)}
+			{currentUser && currentUser.plan === "free" && <UpgradeModal isOpen={isUpgradeOpen} onOpenChange={onUpgradeOpenChange} user={currentUser} title={activeTab === "overlays" ? "Upgrade to add more overlays" : "Upgrade to add more playlists"} source='upgrade_modal' feature={activeTab === "overlays" ? "multi_overlay" : "multi_playlist"} />}
 		</div>
 	);
 }

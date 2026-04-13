@@ -1,20 +1,7 @@
 "use client";
 
-import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
-import {
-	IconBroadcast,
-	IconLock,
-	IconLockOpen2,
-	IconEye,
-	IconEyeOff,
-	IconLayoutSidebarRightExpand,
-	IconPlayerSkipForward,
-	IconPlayerPauseFilled,
-	IconPlayerPlayFilled,
-	IconPlus,
-	IconVolume,
-	IconVolumeOff,
-} from "@tabler/icons-react";
+import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { IconBroadcast, IconLock, IconLockOpen2, IconEye, IconEyeOff, IconLayoutSidebarRightExpand, IconPlayerSkipForward, IconPlayerPauseFilled, IconPlayerPlayFilled, IconPlus, IconVolume, IconVolumeOff } from "@tabler/icons-react";
 import { Button, Chip, Image, Progress, Slider } from "@heroui/react";
 
 type PlaybackState = {
@@ -63,9 +50,7 @@ function PanelLabel({ children }: { children: ReactNode }) {
 function QueueRow({ clip, accent }: { clip: ClipSummary; accent?: boolean }) {
 	return (
 		<div className={`grid grid-cols-[52px_minmax(0,1fr)_auto] items-center gap-3 rounded-2xl px-3 py-3 ${accent ? "bg-primary/10" : "bg-transparent hover:bg-default-100"}`}>
-			<div className='flex h-11 w-[52px] items-center justify-center overflow-hidden rounded-xl bg-default-100'>
-				{clip.thumbnailUrl ? <Image src={clip.thumbnailUrl} alt='' width={52} height={44} radius='none' className='h-11 w-[52px] object-cover' /> : <span className='text-[10px] font-semibold uppercase tracking-[0.18em] text-default-400'>Clip</span>}
-			</div>
+			<div className='flex h-11 w-[52px] items-center justify-center overflow-hidden rounded-xl bg-default-100'>{clip.thumbnailUrl ? <Image src={clip.thumbnailUrl} alt='' width={52} height={44} radius='none' className='h-11 w-[52px] object-cover' /> : <span className='text-[10px] font-semibold uppercase tracking-[0.18em] text-default-400'>Clip</span>}</div>
 			<div className='min-w-0'>
 				<div className='truncate text-sm font-medium text-foreground'>{clip.title}</div>
 				<div className='truncate text-xs text-default-500'>{clip.creatorName}</div>
@@ -97,6 +82,14 @@ export default function ControllerClient({ overlayId, secret }: { overlayId: str
 	const [modClipFeedback, setModClipFeedback] = useState<{ tone: "default" | "danger" | "success"; text: string } | null>(null);
 	const [mounted, setMounted] = useState(false);
 	const [, setClock] = useState(0);
+
+	const refreshQueues = () => setQueueRefreshKey((value) => value + 1);
+	const refreshQueuesSoon = useCallback(() => {
+		const now = Date.now();
+		if (now - queueRefreshAtRef.current < 1000) return;
+		queueRefreshAtRef.current = now;
+		refreshQueues();
+	}, []);
 
 	useEffect(() => {
 		setMounted(true);
@@ -208,19 +201,11 @@ export default function ControllerClient({ overlayId, secret }: { overlayId: str
 			wsRef.current?.close();
 			wsRef.current = null;
 		};
-	}, [overlayId, secret]);
+	}, [overlayId, refreshQueuesSoon, secret]);
 
 	useEffect(() => {
 		setVolumeDraft(playback.volume);
 	}, [playback.volume]);
-
-	const refreshQueues = () => setQueueRefreshKey((value) => value + 1);
-	const refreshQueuesSoon = () => {
-		const now = Date.now();
-		if (now - queueRefreshAtRef.current < 1000) return;
-		queueRefreshAtRef.current = now;
-		refreshQueues();
-	};
 
 	const runControllerAction = async (action: "set_volume" | "clear_mod_queue" | "clear_viewer_queue" | "clear_all_queues" | "add_mod_clip", options?: { volume?: number; clipUrl?: string }) => {
 		const response = await fetch(`/api/controller/${overlayId}`, {
@@ -344,18 +329,12 @@ export default function ControllerClient({ overlayId, secret }: { overlayId: str
 				<Surface className='px-4 py-4 sm:px-5'>
 					<div className='grid gap-4 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center'>
 						<div className='flex min-w-0 items-center gap-4'>
-							<div className='flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-default-100'>
-								{nowPlaying?.thumbnailUrl ? <Image src={nowPlaying.thumbnailUrl} alt={nowPlaying.title} width={64} height={64} radius='none' className='h-16 w-16 object-cover' /> : <span className='text-[10px] font-semibold uppercase tracking-[0.18em] text-default-400'>Clip</span>}
-							</div>
+							<div className='flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-default-100'>{nowPlaying?.thumbnailUrl ? <Image src={nowPlaying.thumbnailUrl} alt={nowPlaying.title} width={64} height={64} radius='none' className='h-16 w-16 object-cover' /> : <span className='text-[10px] font-semibold uppercase tracking-[0.18em] text-default-400'>Clip</span>}</div>
 							<div className='min-w-0'>
 								<h1 className='truncate text-2xl font-bold tracking-tight text-foreground sm:text-3xl'>{nowPlaying?.title ?? "No active clip"}</h1>
 								<p className='mt-1 truncate text-sm text-default-500'>{nowPlaying ? `by ${nowPlaying.creatorName}` : `Overlay ${overlayId}`}</p>
 								<div className='mt-2 flex flex-wrap gap-2'>
-									<Chip
-										startContent={controlsUnlocked ? <IconLockOpen2 size={12} /> : <IconLock size={12} />}
-										size='sm'
-										classNames={{ base: controlsUnlocked ? "bg-success/15 text-success-700" : "bg-warning/15 text-warning-700" }}
-									>
+									<Chip startContent={controlsUnlocked ? <IconLockOpen2 size={12} /> : <IconLock size={12} />} size='sm' classNames={{ base: controlsUnlocked ? "bg-success/15 text-success-700" : "bg-warning/15 text-warning-700" }}>
 										{controlsUnlocked ? "Controls unlocked" : "Controls locked"}
 									</Chip>
 									<Chip startContent={<IconBroadcast size={12} />} size='sm' classNames={{ base: "bg-default-100 text-foreground" }}>
@@ -405,13 +384,7 @@ export default function ControllerClient({ overlayId, secret }: { overlayId: str
 												<div className='truncate text-xs text-default-500'>{nowPlaying?.creatorName ?? "Waiting for overlay state"}</div>
 											</div>
 											<div className='flex items-center gap-2 rounded-full bg-content1 px-3 py-2'>
-												<Button
-													isIconOnly
-													radius='full'
-													variant='light'
-													className={controlsUnlocked ? "bg-success/15 text-success-600" : "bg-warning/15 text-warning-600"}
-													onPress={() => setControlsUnlocked((value) => !value)}
-												>
+												<Button isIconOnly radius='full' variant='light' className={controlsUnlocked ? "bg-success/15 text-success-600" : "bg-warning/15 text-warning-600"} onPress={() => setControlsUnlocked((value) => !value)}>
 													{controlsUnlocked ? <IconLockOpen2 size={18} /> : <IconLock size={18} />}
 												</Button>
 												<Button isIconOnly radius='full' variant='light' className='bg-default-200 text-foreground' onPress={() => sendCommand(playback.showPlayer ? "hide" : "show")} isDisabled={interactiveControlsDisabled}>
@@ -479,29 +452,16 @@ export default function ControllerClient({ overlayId, secret }: { overlayId: str
 
 								<div className='rounded-[24px] bg-default-50 p-4'>
 									<div className='flex items-center justify-between gap-3'>
-											<div>
-												<div className='text-sm font-semibold text-foreground'>Add to mod queue</div>
-											</div>
+										<div>
+											<div className='text-sm font-semibold text-foreground'>Add to mod queue</div>
+										</div>
 										<Button isIconOnly radius='full' variant='flat' className='bg-content1 text-foreground' isDisabled>
 											<IconPlus size={16} />
 										</Button>
 									</div>
 									<div className='mt-4 flex flex-col gap-3 sm:flex-row'>
-										<input
-											type='url'
-											value={modClipUrl}
-											onChange={(event) => setModClipUrl(event.target.value)}
-											placeholder='https://clips.twitch.tv/...'
-											className='h-11 flex-1 rounded-full border border-default-200 bg-content1 px-4 text-sm text-foreground outline-none transition focus:border-primary'
-											disabled={interactiveControlsDisabled || isSubmittingModClip}
-										/>
-										<Button
-											radius='full'
-											color='primary'
-											className='h-11 px-5 font-semibold'
-											onPress={() => void submitModClip()}
-											isDisabled={interactiveControlsDisabled || isSubmittingModClip || modClipUrl.trim().length === 0}
-										>
+										<input type='url' value={modClipUrl} onChange={(event) => setModClipUrl(event.target.value)} placeholder='https://clips.twitch.tv/...' className='h-11 flex-1 rounded-full border border-default-200 bg-content1 px-4 text-sm text-foreground outline-none transition focus:border-primary' disabled={interactiveControlsDisabled || isSubmittingModClip} />
+										<Button radius='full' color='primary' className='h-11 px-5 font-semibold' onPress={() => void submitModClip()} isDisabled={interactiveControlsDisabled || isSubmittingModClip || modClipUrl.trim().length === 0}>
 											Add clip
 										</Button>
 									</div>
@@ -516,7 +476,9 @@ export default function ControllerClient({ overlayId, secret }: { overlayId: str
 						<div className='border-b border-default-200 px-5 py-4'>
 							<PanelLabel>Queue</PanelLabel>
 							<h2 className='mt-1 text-xl font-bold text-foreground'>Up next</h2>
-							<p className='mt-1 text-sm text-default-500'>{upcomingCount} clip{upcomingCount === 1 ? "" : "s"} ready to go.</p>
+							<p className='mt-1 text-sm text-default-500'>
+								{upcomingCount} clip{upcomingCount === 1 ? "" : "s"} ready to go.
+							</p>
 						</div>
 						<div className='p-3'>
 							<div className='rounded-[24px] bg-default-50 p-3'>
@@ -525,7 +487,9 @@ export default function ControllerClient({ overlayId, secret }: { overlayId: str
 								<div className='mb-2 mt-4 px-2 text-xs font-medium uppercase tracking-[0.2em] text-default-500'>Upcoming</div>
 								{nextClips.length > 0 ? (
 									<div className='grid gap-1'>
-										{nextClips.slice(0, 4).map((clip, idx) => <QueueRow key={`preloaded-${clip.clipId}-${idx}`} clip={clip} />)}
+										{nextClips.slice(0, 4).map((clip, idx) => (
+											<QueueRow key={`preloaded-${clip.clipId}-${idx}`} clip={clip} />
+										))}
 									</div>
 								) : (
 									<div className='rounded-2xl bg-content1 px-4 py-6 text-center text-sm text-default-500'>{isLive ? "No preloaded clip yet." : "Player disconnected."}</div>
@@ -533,15 +497,11 @@ export default function ControllerClient({ overlayId, secret }: { overlayId: str
 							</div>
 							<div className='rounded-[24px] bg-default-50 p-3'>
 								<div className='mb-2 px-2 text-xs font-medium uppercase tracking-[0.2em] text-default-500'>Mod Queue</div>
-								<div className='grid gap-1'>
-									{modQueue.length > 0 ? modQueue.slice(0, 6).map((clip, idx) => <QueueRow key={`mod-${clip.clipId}-${idx}`} clip={clip} />) : <div className='rounded-2xl bg-content1 px-4 py-6 text-center text-sm text-default-500'>No mod clips queued.</div>}
-								</div>
+								<div className='grid gap-1'>{modQueue.length > 0 ? modQueue.slice(0, 6).map((clip, idx) => <QueueRow key={`mod-${clip.clipId}-${idx}`} clip={clip} />) : <div className='rounded-2xl bg-content1 px-4 py-6 text-center text-sm text-default-500'>No mod clips queued.</div>}</div>
 							</div>
 							<div className='mt-3 rounded-[24px] bg-default-50 p-3'>
 								<div className='mb-2 px-2 text-xs font-medium uppercase tracking-[0.2em] text-default-500'>Viewer Queue</div>
-								<div className='grid gap-1'>
-									{viewerQueue.length > 0 ? viewerQueue.slice(0, 6).map((clip, idx) => <QueueRow key={`viewer-${clip.clipId}-${idx}`} clip={clip} />) : <div className='rounded-2xl bg-content1 px-4 py-6 text-center text-sm text-default-500'>No viewer clips queued.</div>}
-								</div>
+								<div className='grid gap-1'>{viewerQueue.length > 0 ? viewerQueue.slice(0, 6).map((clip, idx) => <QueueRow key={`viewer-${clip.clipId}-${idx}`} clip={clip} />) : <div className='rounded-2xl bg-content1 px-4 py-6 text-center text-sm text-default-500'>No viewer clips queued.</div>}</div>
 							</div>
 							<div className='mt-3 rounded-[24px] bg-default-50 p-3'>
 								<div className='mb-2 flex flex-wrap gap-2 px-2'>

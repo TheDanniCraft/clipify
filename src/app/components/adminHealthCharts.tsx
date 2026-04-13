@@ -146,7 +146,6 @@ export default function AdminHealthCharts({ health }: { health: InstanceHealthSn
 	const failureRatio = totalRuns > 0 ? totalFailures / totalRuns : 0;
 	const dbPing = Math.max(0, health.db.pingMs);
 	const healthAggregation = Math.max(0, health.db.healthAggregationMs);
-	const lastRunDuration = Math.max(0, health.scheduler.clipCache.lastRunDurationMs ?? 0);
 
 	const cacheGaugeData = [
 		{

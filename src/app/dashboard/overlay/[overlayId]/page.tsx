@@ -6,7 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { createPlaylist, getClipCacheStatus, getOverlay, getOverlayOwnerPlan, getPlaylistsForOwner, previewImportPlaylistClips, saveOverlay, savePlaylist, upsertPlaylistClips } from "@actions/database";
 import { addToast, Autocomplete, AutocompleteItem, Button, Card, CardBody, CardHeader, Checkbox, Chip, DateRangePicker, Divider, Form, Image, Input, Link, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, NumberInput, Select, SelectItem, Slider, Snippet, Spinner, Switch, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow, Tooltip, useDisclosure } from "@heroui/react";
 import { AuthenticatedUser, Game, Overlay, OverlayType, Plan, PlaybackMode, StatusOptions, TwitchClip, TwitchReward } from "@types";
-import { IconAlertTriangle, IconArrowLeft, IconCrown, IconDeviceFloppy, IconDeviceRemote, IconDownload, IconExternalLink, IconGripVertical, IconInfoCircle, IconPaint, IconPlayerPauseFilled, IconPlayerPlayFilled, IconPlus, IconSearch, IconTrash } from "@tabler/icons-react";
+import { IconAlertTriangle, IconArrowLeft, IconCrown, IconDeviceFloppy, IconDeviceRemote, IconDownload, IconGripVertical, IconInfoCircle, IconPaint, IconPlayerPauseFilled, IconPlayerPlayFilled, IconPlus, IconSearch, IconTrash } from "@tabler/icons-react";
 import DashboardNavbar from "@components/dashboardNavbar";
 import { useNavigationGuard } from "next-navigation-guard";
 import { validateAuth } from "@actions/auth";
