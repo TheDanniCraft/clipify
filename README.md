@@ -21,7 +21,10 @@ _❗ **Note:** Clipify is open source, but currently not intended for self-hosti
 - Plug & Play: Add as a browser source to your streaming software.
 - Player Control: Choose to play clips from today, all-time, or just your featured clips.
 - Multiple Overlays: Create as many overlays as you like for different stream scenes.
+- Clip Playlists: Build reusable playlists, auto-import clips, and use different playback strategies.
 - Channel Points Integration: Let viewers play their favourite clips using Twitch channel points.
+- Remote Control Panel: Control playback, queue state, mute, and visibility from a dedicated live remote.
+- Editors & Managers: Let trusted teammates manage overlays and playlists without sharing your full account.
 - Analytics Integration: Built-in support for Plausible Analytics.
 
 ## Getting Started
@@ -31,7 +34,7 @@ To get started with Clipify, simply visit [https://clipify.us](https://clipify.u
 ## Pricing
 
 - **Free:** Unlimited clips, one overlay, all core features.
-- **Pro:** 2€/month - Multiple overlays, channel points integration, priority support, and more.
+- **Pro:** 2€/month - Multiple overlays, playlists, remote control panel, editor access, channel points integration, priority support, and more.
 
 You can upgrade to Pro directly on [clipify.us](https://clipify.us).
 

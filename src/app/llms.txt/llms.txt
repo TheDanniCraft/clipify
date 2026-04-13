@@ -96,6 +96,13 @@ Chat-based control (Pro):
 - Streamers or moderators can interact with Clipify without opening the dashboard.
 - This enables quick control of playback while live.
 
+Remote control panel (Pro):
+
+- Clipify includes a dedicated remote control panel for live playback control.
+- The remote can show current clip state, playback progress, queue state, and player health.
+- Pro users can pause, resume, skip, mute, change volume, show/hide the overlay, and manage queues from the remote.
+- The remote is designed to work well on phones or secondary screens during a live stream.
+
 ---
 
 Plans and feature limits:
@@ -118,7 +125,8 @@ Pro plan:
 - Playlist auto-import with advanced filters
 - Twitch Channel Points integration
 - Chat-based overlay control
-- Ability to add editors to manage overlays
+- Remote control panel for live playback control
+- Ability to add editors/managers to manage overlays and playlists
 - Advanced clip filtering
 - Playback modes (Random, Top, Smart Shuffle)
 - Prefer current category and filter by specific clip creators
@@ -136,7 +144,7 @@ Editor access (Pro):
 
 - Editors can be added to help manage overlays.
 - Useful for streamers working with moderators or teams.
-- Editors can adjust overlay settings without full account access.
+- Editors can adjust overlay settings and playlists without full account access.
 
 ---
 
