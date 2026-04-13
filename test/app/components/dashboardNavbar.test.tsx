@@ -8,6 +8,7 @@ const routerRefresh = jest.fn();
 const getAdminViewCandidates = jest.fn();
 const switchAdminView = jest.fn();
 const stopAdminView = jest.fn();
+const getActiveCampaignOfferAction = jest.fn();
 let currentTheme = "dark";
 
 jest.mock("next-themes", () => ({
@@ -31,6 +32,10 @@ jest.mock("@actions/adminView", () => ({
 	getAdminViewCandidates: (...args: unknown[]) => getAdminViewCandidates(...args),
 	switchAdminView: (...args: unknown[]) => switchAdminView(...args),
 	stopAdminView: (...args: unknown[]) => stopAdminView(...args),
+}));
+
+jest.mock("@actions/campaignOffers", () => ({
+	getActiveCampaignOfferAction: (...args: unknown[]) => getActiveCampaignOfferAction(...args),
 }));
 
 jest.mock("@components/logo", () => ({
@@ -83,6 +88,7 @@ describe("components/dashboardNavbar", () => {
 		jest.clearAllMocks();
 		jest.useFakeTimers();
 		currentTheme = "dark";
+		getActiveCampaignOfferAction.mockResolvedValue(null);
 		getAdminViewCandidates.mockResolvedValue([
 			{ id: "user-1", username: "alice", role: "user", plan: "free" },
 			{ id: "user-2", username: "bob", role: "user", plan: "pro" },

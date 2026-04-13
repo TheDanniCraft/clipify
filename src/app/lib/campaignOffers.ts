@@ -22,15 +22,19 @@ type PocketBaseCampaignOfferRecord = {
 	endAt?: string | null;
 	priority?: number;
 	showFloatingBanner?: boolean;
+	showDashboardBanner?: boolean;
 	showPricingCard?: boolean;
 	title?: string;
 	subtitle?: string | null;
 	badgeText?: string | null;
+	floatingTitle?: string | null;
+	floatingSubtitle?: string | null;
 	ctaLabel?: string;
 	floatingCtaLabel?: string | null;
 	ctaHref?: string;
 	offerCode?: string | null;
 	utmCampaign?: string | null;
+	autoApplyAtCheckout?: boolean;
 	showPricingTierPromo?: boolean;
 	pricingMonthlyPromo?: number | null;
 	pricingYearlyPromo?: number | null;
@@ -110,15 +114,19 @@ function mapRecordToOffer(baseUrl: string, record: PocketBaseCampaignOfferRecord
 		endAt: record.endAt ?? null,
 		priority: record.priority ?? 0,
 		showFloatingBanner: record.showFloatingBanner ?? true,
+		showDashboardBanner: record.showDashboardBanner ?? true,
 		showPricingCard: record.showPricingCard ?? true,
 		title: record.title,
 		subtitle: record.subtitle ?? null,
 		badgeText: record.badgeText ?? null,
+		floatingTitle: record.floatingTitle?.trim() || null,
+		floatingSubtitle: record.floatingSubtitle?.trim() || null,
 		ctaLabel: record.ctaLabel,
 		floatingCtaLabel: record.floatingCtaLabel?.trim() || null,
 		ctaHref: record.ctaHref,
 		offerCode: record.offerCode ?? null,
 		utmCampaign: record.utmCampaign?.trim() || record.slug,
+		autoApplyAtCheckout: record.autoApplyAtCheckout ?? true,
 		showPricingTierPromo: record.showPricingTierPromo ?? false,
 		pricingMonthlyPromo: toOptionalInt(record.pricingMonthlyPromo),
 		pricingYearlyPromo: toOptionalInt(record.pricingYearlyPromo),

@@ -9,6 +9,7 @@ import { validateAuth } from "@actions/auth";
 import { db } from "@/db/client";
 import { usersTable } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { getActiveCampaignOffer } from "@lib/campaignOffers";
 
 export type BillingCycle = "monthly" | "yearly";
 export type PaywallSource = "pricing_page" | "upgrade_modal" | "paywall_banner";
@@ -139,7 +140,10 @@ export async function generatePaymentLink(user: AuthenticatedUser, billingCycle:
 	}
 
 	const rawCode = cookieStore.get("offer")?.value;
-	const offerCode = rawCode?.trim();
+	const campaignOffer = await getActiveCampaignOffer();
+	const normalizedCookieCode = rawCode?.trim().toUpperCase();
+	const normalizedCampaignCode = campaignOffer?.offerCode?.trim().toUpperCase();
+	const offerCode = normalizedCookieCode || (campaignOffer?.autoApplyAtCheckout ? normalizedCampaignCode : undefined);
 	let promo: Stripe.PromotionCode | null = null;
 	if (offerCode && /^[A-Za-z0-9]+$/.test(offerCode)) {
 		const promoList = await stripe.promotionCodes.list({
@@ -161,6 +165,8 @@ export async function generatePaymentLink(user: AuthenticatedUser, billingCycle:
 			userId: authUser.id,
 			source: source ?? "upgrade_modal",
 			billingCycle,
+			campaignSlug: campaignOffer?.slug ?? "",
+			offerCode: offerCode ?? "",
 			...numokMetadata,
 		},
 		tax_id_collection: {

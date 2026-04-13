@@ -11,6 +11,7 @@ const portalCreate = jest.fn();
 const validateAuth = jest.fn();
 const getBaseUrl = jest.fn();
 const cookies = jest.fn();
+const getActiveCampaignOffer = jest.fn();
 
 const updateExecute = jest.fn();
 
@@ -52,6 +53,10 @@ jest.mock("@/db/client", () => ({
 	db,
 }));
 
+jest.mock("@lib/campaignOffers", () => ({
+	getActiveCampaignOffer: (...args: unknown[]) => getActiveCampaignOffer(...args),
+}));
+
 async function loadSubscription() {
 	jest.resetModules();
 	return import("@/app/actions/subscription");
@@ -67,6 +72,7 @@ describe("actions/subscription", () => {
 			email: "alice@example.com",
 			stripeCustomerId: null,
 		});
+		getActiveCampaignOffer.mockResolvedValue(null);
 		cookies.mockResolvedValue({
 			get: () => undefined,
 		});

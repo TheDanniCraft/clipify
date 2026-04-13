@@ -10,8 +10,18 @@ jest.mock("next/navigation", () => ({
 }));
 
 const trackPaywallEvent = jest.fn();
+const getActiveCampaignOfferAction = jest.fn();
 jest.mock("@lib/paywallTracking", () => ({
 	trackPaywallEvent: (...args: any[]) => trackPaywallEvent(...args),
+}));
+
+jest.mock("@actions/campaignOffers", () => ({
+	getActiveCampaignOfferAction: (...args: any[]) => getActiveCampaignOfferAction(...args),
+}));
+
+jest.mock("@components/upgradeModal", () => ({
+	__esModule: true,
+	default: () => <div>upgrade-modal</div>,
 }));
 
 jest.mock("next-plausible", () => ({
@@ -179,6 +189,7 @@ describe("OverlayTable", () => {
 
 	beforeEach(() => {
 		jest.clearAllMocks();
+		getActiveCampaignOfferAction.mockResolvedValue(null);
 		getAllOverlays.mockResolvedValue([{ id: "ov-1", name: "Overlay 1", status: StatusOptions.Active, ownerId: userId }]);
 		getAllPlaylists.mockResolvedValue([{ id: "pl-1", name: "Playlist 1", ownerId: userId, clipCount: 5 }]);
 		getEditorOverlays.mockResolvedValue([]);
