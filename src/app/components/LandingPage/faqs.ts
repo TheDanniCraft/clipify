@@ -35,7 +35,7 @@ const faqs: Faq[] = [
 	},
 	{
 		title: "What are the benefits of the Pro version?",
-		content: "The Pro version includes Theme Studio, advanced playback filters, multiple active overlays, channel points integration, and priority support.",
+		content: "The Pro version includes Theme Studio, advanced playback filters, multiple active overlays, channel points integration, the remote control panel, editor access for teammates, and priority support.",
 	},
 	{
 		title: "Can I use Clipify on multiple channels?",

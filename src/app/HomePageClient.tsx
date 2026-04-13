@@ -4,13 +4,14 @@ import type { CampaignOffer } from "@types";
 import BasicNavbar from "@components/LandingPage/basicNavbar";
 import { Accordion, AccordionItem, Button, Chip, Image, Link, Card, CardHeader, CardBody } from "@heroui/react";
 import { LazyMotion, motion, domAnimation, AnimatePresence } from "motion/react";
-import { IconThumbUp, IconArrowRight, IconPlugConnected, IconLayersDifference, IconMoodSmile, IconCoin, IconAdjustments, IconChevronDown, IconArrowsMove, IconMessageCircle } from "@tabler/icons-react";
+import { IconThumbUp, IconArrowRight, IconPlugConnected, IconLayersDifference, IconMoodSmile, IconCoin, IconAdjustments, IconChevronDown, IconArrowsMove, IconMessageCircle, IconDeviceRemote, IconUsersGroup, IconPlaylist } from "@tabler/icons-react";
 import FeatureCard from "@components/featureCard";
 import TiersComponent from "@components/Pricing";
 import faqs from "@components/LandingPage/faqs";
 import Footer from "@components/footer";
 import FloatingBanner from "@components/floatingBanner";
 import DemoPlayer from "@components/DemoPlayer";
+import CountdownTimer from "@components/countdownTimer";
 
 export function buildCampaignOfferHref(ctaHref: string, utmCampaign?: string | null): string {
 	if (!utmCampaign) return ctaHref;
@@ -33,6 +34,8 @@ type HomePageClientProps = {
 export default function HomePageClient({ campaignOffer }: HomePageClientProps) {
 	const campaignOfferHref = campaignOffer ? buildCampaignOfferHref(campaignOffer.ctaHref, campaignOffer.utmCampaign) : null;
 	const floatingCtaLabel = campaignOffer?.floatingCtaLabel ?? campaignOffer?.ctaLabel;
+	const floatingTitle = campaignOffer?.floatingTitle ?? campaignOffer?.badgeText ?? campaignOffer?.title;
+	const floatingSubtitle = campaignOffer?.floatingSubtitle ?? campaignOffer?.subtitle ?? campaignOffer?.title;
 
 	const floatingBannerCta = campaignOffer ? (
 		<Button as={Link} href={campaignOfferHref ?? campaignOffer.ctaHref} radius='full' className='h-9 px-4 bg-white text-black'>
@@ -42,24 +45,7 @@ export default function HomePageClient({ campaignOffer }: HomePageClientProps) {
 
 	return (
 		<>
-			{campaignOffer && campaignOffer.showFloatingBanner ? (
-				<FloatingBanner
-					icon={
-						campaignOffer.iconUrl ? (
-							<Image
-								alt={`${campaignOffer.title} Icon`}
-								src={campaignOffer.iconUrl}
-								width='50'
-								height='50'
-								className='h-[50px] w-[50px] shrink-0 rounded-none object-contain'
-							/>
-						) : undefined
-					}
-					title={campaignOffer.badgeText ?? campaignOffer.title}
-					text={campaignOffer.subtitle ?? campaignOffer.title}
-					cta={floatingBannerCta}
-				/>
-			) : null}
+			{campaignOffer && campaignOffer.showFloatingBanner ? <FloatingBanner icon={campaignOffer.iconUrl ? <Image alt={`${campaignOffer.title} Icon`} src={campaignOffer.iconUrl} width='50' height='50' className='h-[50px] w-[50px] shrink-0 rounded-none object-contain' /> : undefined} title={floatingTitle ?? campaignOffer.title} text={floatingSubtitle ?? campaignOffer.title} cta={floatingBannerCta} /> : null}
 
 			<div className='bg-gradient-to-br from-primary-800 to-primary-400 h-full'>
 				<BasicNavbar />
@@ -184,13 +170,16 @@ export default function HomePageClient({ campaignOffer }: HomePageClientProps) {
 					<div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16'>
 						<FeatureCard title='Easy to Use' description='Intuitive interface designed for effortless setup and management.' icon={IconThumbUp} />
 						<FeatureCard title='Plug & Play' description="It's as easy as adding a browser source to your streaming software." icon={IconPlugConnected} />
-						<FeatureCard title='Smart Playback Modes' description='Switch between Random, Top, and Smart Shuffle playback, plus advanced creator and category filters with Pro.' icon={IconAdjustments} />
 						<FeatureCard title='Keeps Your Stream Entertained' description="Auto-play clips to keep your audience engaged even when you're away." icon={IconMoodSmile} />
+						<FeatureCard title='Clip Playlists' description='Build reusable clip playlists, reorder them manually, or auto-import highlights with filters for dates, creators, categories, and views.' icon={IconPlaylist} />
+						<FeatureCard title='Smart Playback Modes' description='Switch between Random, Top, and Smart Shuffle playback, plus advanced creator and category filters with Pro.' icon={IconAdjustments} />
 						<FeatureCard title='Multiple Overlays' description='Create as many overlays as you like, use them for AFK screens, at the starting or end screens of your stream, or anywhere you want.' icon={IconLayersDifference} />
-						<FeatureCard title='Theme Studio' description='Build your own overlay look with drag-and-drop cards, custom colors/fonts/effects, timer, and progress bar styling.' icon={IconCoin} />
-						<FeatureCard title='Live Layout Editor' description='Drag, resize, and nudge overlay cards with keyboard controls for clean stream scenes.' icon={IconArrowsMove} />
 						<FeatureCard title='Channel Points Integration' description='Let viewers trigger clip playback with Twitch channel points and keep chat engaged during breaks.' icon={IconCoin} />
+						<FeatureCard title='Remote Control Panel' description='Open a dedicated live controller to pause, skip, mute, manage queues, and monitor overlay playback from a phone or second screen.' icon={IconDeviceRemote} />
+						<FeatureCard title='Theme Studio' description='Build your own overlay look with drag-and-drop cards, custom colors/fonts/effects, timer, and progress bar styling.' icon={IconCoin} />
+						<FeatureCard title='Editors & Managers' description='Give trusted teammates access to manage overlays and playlists without sharing your full account credentials.' icon={IconUsersGroup} />
 						<FeatureCard title='Chat Commands' description='Control playback, queue and volume directly from Twitch chat while live.' icon={IconMessageCircle} />
+						<FeatureCard title='Live Layout Editor' description='Drag, resize, and nudge overlay cards with keyboard controls for clean stream scenes.' icon={IconArrowsMove} />
 					</div>
 				</div>
 			</div>
@@ -225,9 +214,14 @@ export default function HomePageClient({ campaignOffer }: HomePageClientProps) {
 														{campaignOffer.subtitle ? ` ${campaignOffer.subtitle}` : ""}
 													</>
 												) : (
-													campaignOffer.subtitle ?? campaignOffer.badgeText ?? campaignOffer.title
+													(campaignOffer.subtitle ?? campaignOffer.badgeText ?? campaignOffer.title)
 												)}
 											</p>
+											{campaignOffer?.endAt ? (
+												<div>
+													<CountdownTimer endAt={campaignOffer.endAt} tone='light' showSeconds className='pt-1' />
+												</div>
+											) : null}
 
 											<Button as={Link} href={campaignOfferHref ?? campaignOffer.ctaHref} className='w-full bg-white text-purple-700 font-medium py-2 rounded-lg hover:opacity-90 transition'>
 												{campaignOffer.ctaLabel}
