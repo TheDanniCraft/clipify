@@ -218,7 +218,7 @@ export default function HomePageClient({ campaignOffer }: HomePageClientProps) {
 												)}
 											</p>
 											{campaignOffer?.endAt ? (
-												<div>
+												<div className='flex justify-center'>
 													<CountdownTimer endAt={campaignOffer.endAt} tone='light' showSeconds className='pt-1' />
 												</div>
 											) : null}
