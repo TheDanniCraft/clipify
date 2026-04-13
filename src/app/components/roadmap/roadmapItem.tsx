@@ -1,13 +1,14 @@
 import React from "react";
 import { Card, Chip } from "@heroui/react";
-import { RoadmapStatus, RoadmapItemData } from "./roadmapData";
-import { IconChevronRight } from "@tabler/icons-react";
+import { RoadmapStatus, RoadmapItemData, type RoadmapColor } from "./roadmapData";
+import * as TablerIcons from "@tabler/icons-react";
+import { IconBolt, IconChevronRight, type Icon } from "@tabler/icons-react";
 
 interface RoadmapItemProps extends Omit<RoadmapItemData, "status"> {
 	status: RoadmapStatus;
 }
 
-function getIconColorClasses(color: string): string {
+function getIconColorClasses(color: RoadmapColor): string {
 	switch (color) {
 		case "emerald":
 			return "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-500";
@@ -59,6 +60,9 @@ function getIconColorClasses(color: string): string {
 }
 
 export const RoadmapItem: React.FC<RoadmapItemProps> = ({ icon, color, title, description, status, timeframe, features }) => {
+	const iconRegistry = TablerIcons as unknown as Record<string, Icon>;
+	const ResolvedIcon = iconRegistry[icon] ?? IconBolt;
+
 	return (
 		<div className='flex items-start gap-6 relative'>
 			<div className='relative z-10 mt-6 flex items-center justify-center'>
@@ -68,7 +72,9 @@ export const RoadmapItem: React.FC<RoadmapItemProps> = ({ icon, color, title, de
 			<Card className='flex-1 p-6 bg-content1 border-none'>
 				<div className='space-y-4'>
 					<div className='flex items-start'>
-						<div className={`p-3 rounded-md ${getIconColorClasses(color)} mr-4`}>{React.createElement(icon, { className: "w-6 h-6" })}</div>
+						<div className={`p-3 rounded-md ${getIconColorClasses(color)} mr-4`}>
+							<ResolvedIcon className='w-6 h-6' />
+						</div>
 						<div className='flex-1'>
 							<h3 className='text-xl font-semibold mb-1'>{title}</h3>
 							<p className='text-default-400'>{description}</p>
