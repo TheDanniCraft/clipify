@@ -3,6 +3,7 @@
 import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { IconBroadcast, IconLock, IconLockOpen2, IconEye, IconEyeOff, IconLayoutSidebarRightExpand, IconPlayerSkipForward, IconPlayerPauseFilled, IconPlayerPlayFilled, IconPlus, IconVolume, IconVolumeOff } from "@tabler/icons-react";
 import { Button, Chip, Image, Progress, Slider } from "@heroui/react";
+import { getControllerQueuesAction, runControllerAction, type ControllerQueueResponse } from "@actions/controller";
 
 type PlaybackState = {
 	paused: boolean;
@@ -18,11 +19,6 @@ type ClipSummary = {
 	duration: number;
 	currentTime?: number;
 	thumbnailUrl: string | null;
-};
-
-type QueueApiResponse = {
-	modQueue: Array<{ id: string; clipId: string; title: string; creatorName: string; duration: number; thumbnailUrl?: string | null }>;
-	viewerQueue: Array<{ id: string; clipId: string; title: string; creatorName: string; duration: number; thumbnailUrl?: string | null }>;
 };
 
 function formatDuration(seconds?: number | null) {
@@ -207,12 +203,8 @@ export default function ControllerClient({ overlayId, secret }: { overlayId: str
 		setVolumeDraft(playback.volume);
 	}, [playback.volume]);
 
-	const runControllerAction = async (action: "set_volume" | "clear_mod_queue" | "clear_viewer_queue" | "clear_all_queues" | "add_mod_clip", options?: { volume?: number; clipUrl?: string }) => {
-		const response = await fetch(`/api/controller/${overlayId}`, {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ secret, action, volume: options?.volume, clipUrl: options?.clipUrl }),
-		});
+	const executeControllerAction = async (action: "set_volume" | "clear_mod_queue" | "clear_viewer_queue" | "clear_all_queues" | "add_mod_clip", options?: { volume?: number; clipUrl?: string }) => {
+		const response = await runControllerAction(overlayId, { secret, action, volume: options?.volume, clipUrl: options?.clipUrl });
 		if (response.ok && action !== "set_volume") refreshQueues();
 		return response;
 	};
@@ -227,9 +219,9 @@ export default function ControllerClient({ overlayId, secret }: { overlayId: str
 					if (active) timer = setTimeout(loadQueues, 30000);
 					return;
 				}
-				const response = await fetch(`/api/controller/${overlayId}?secret=${encodeURIComponent(secret)}`, { cache: "no-store" });
-				if (!response.ok || !active) return;
-				const data = (await response.json()) as QueueApiResponse;
+				const response = await getControllerQueuesAction(overlayId, secret);
+				if (!active || "ok" in response) return;
+				const data = response as ControllerQueueResponse;
 				if (!active) return;
 				setModQueue(
 					(data.modQueue ?? []).map((item) => ({
@@ -297,7 +289,7 @@ export default function ControllerClient({ overlayId, secret }: { overlayId: str
 	const setVolume = async (nextVolume: number) => {
 		setIsApplyingVolume(true);
 		try {
-			await runControllerAction("set_volume", { volume: nextVolume });
+			await executeControllerAction("set_volume", { volume: nextVolume });
 		} finally {
 			setIsApplyingVolume(false);
 		}
@@ -310,10 +302,9 @@ export default function ControllerClient({ overlayId, secret }: { overlayId: str
 		setIsSubmittingModClip(true);
 		setModClipFeedback(null);
 		try {
-			const response = await runControllerAction("add_mod_clip", { clipUrl });
-			const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+			const response = await executeControllerAction("add_mod_clip", { clipUrl });
 			if (!response.ok) {
-				setModClipFeedback({ tone: "danger", text: payload?.error ?? "Unable to add clip to mod queue." });
+				setModClipFeedback({ tone: "danger", text: response.error ?? "Unable to add clip to mod queue." });
 				return;
 			}
 			setModClipUrl("");
@@ -460,7 +451,7 @@ export default function ControllerClient({ overlayId, secret }: { overlayId: str
 										</Button>
 									</div>
 									<div className='mt-4 flex flex-col gap-3 sm:flex-row'>
-										<input type='url' value={modClipUrl} onChange={(event) => setModClipUrl(event.target.value)} placeholder='https://clips.twitch.tv/...' className='h-11 flex-1 rounded-full border border-default-200 bg-content1 px-4 text-sm text-foreground outline-none transition focus:border-primary' disabled={interactiveControlsDisabled || isSubmittingModClip} />
+										<input type='url' value={modClipUrl} onChange={(event) => setModClipUrl(event.target.value)} aria-label='Mod queue clip URL' placeholder='https://clips.twitch.tv/...' className='h-11 flex-1 rounded-full border border-default-200 bg-content1 px-4 text-sm text-foreground outline-none transition focus:border-primary' disabled={interactiveControlsDisabled || isSubmittingModClip} />
 										<Button radius='full' color='primary' className='h-11 px-5 font-semibold' onPress={() => void submitModClip()} isDisabled={interactiveControlsDisabled || isSubmittingModClip || modClipUrl.trim().length === 0}>
 											Add clip
 										</Button>
@@ -505,13 +496,13 @@ export default function ControllerClient({ overlayId, secret }: { overlayId: str
 							</div>
 							<div className='mt-3 rounded-[24px] bg-default-50 p-3'>
 								<div className='mb-2 flex flex-wrap gap-2 px-2'>
-									<Button size='sm' variant='flat' className='rounded-full bg-content1 text-foreground' onPress={() => void runControllerAction("clear_mod_queue")} isDisabled={interactiveControlsDisabled}>
+									<Button size='sm' variant='flat' className='rounded-full bg-content1 text-foreground' onPress={() => void executeControllerAction("clear_mod_queue")} isDisabled={interactiveControlsDisabled}>
 										Clear mods
 									</Button>
-									<Button size='sm' variant='flat' className='rounded-full bg-content1 text-foreground' onPress={() => void runControllerAction("clear_viewer_queue")} isDisabled={interactiveControlsDisabled}>
+									<Button size='sm' variant='flat' className='rounded-full bg-content1 text-foreground' onPress={() => void executeControllerAction("clear_viewer_queue")} isDisabled={interactiveControlsDisabled}>
 										Clear viewers
 									</Button>
-									<Button size='sm' variant='solid' color='danger' className='rounded-full' onPress={() => void runControllerAction("clear_all_queues")} isDisabled={interactiveControlsDisabled}>
+									<Button size='sm' variant='solid' color='danger' className='rounded-full' onPress={() => void executeControllerAction("clear_all_queues")} isDisabled={interactiveControlsDisabled}>
 										Clear all
 									</Button>
 								</div>

@@ -2,7 +2,7 @@
 
 import type { Selection, SortDescriptor } from "@heroui/react";
 import type { ColumnsKey } from "./data";
-import type { AuthenticatedUser, CampaignOffer, Overlay, TwitchUserResponse } from "@types";
+import type { AuthenticatedUser, Overlay, TwitchUserResponse } from "@types";
 import { StatusOptions } from "@types";
 import type { Key } from "@react-types/shared";
 
@@ -28,7 +28,7 @@ import { Status } from "./Status";
 import { useRouter } from "next/navigation";
 import { getAvatar, getUsersDetailsBulk } from "@actions/twitch";
 
-export default function OverlayTable({ userId, accessToken }: { userId: string; accessToken: string; campaignOffer?: CampaignOffer | null }) {
+export default function OverlayTable({ userId, accessToken }: { userId: string; accessToken: string }) {
 	const router = useRouter();
 	type LocalOverlay = Overlay & { accessType?: "owner" | "editor" };
 	type LocalPlaylist = { id: string; ownerId: string; name: string; clipCount: number; accessType?: "owner" | "editor" };

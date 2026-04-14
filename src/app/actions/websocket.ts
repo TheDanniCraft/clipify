@@ -2,9 +2,10 @@
 "use server";
 
 import { WebSocket } from "ws";
-import { getOverlayBySecret } from "@actions/database";
+import { getOverlayBySecret, getOverlayOwnerPlanPublic } from "@actions/database";
 import { RawData } from "ws";
 import { ownerSubscribers, overlaySubscribers, addSubscriber } from "@store/overlaySubscribers";
+import { Plan } from "@types";
 
 function broadcastToClients(type: string, data: object, clients: Set<WebSocket> | undefined, except?: WebSocket) {
 	if (!clients) return;
@@ -37,12 +38,19 @@ export async function handleMessage(buffer: RawData, client: WebSocket) {
 
 	switch (messageObj.type) {
 		case "subscribe": {
-			const payload = messageObj.data as { overlayId?: string; secret?: string; role?: "overlay" | "controller" } | string;
+			const payload = messageObj.data as { overlayId?: string; secret?: string; role?: unknown } | string;
 /* istanbul ignore next */
 			const overlayId = typeof payload === "string" ? payload : payload?.overlayId;
 /* istanbul ignore next */
 			const secret = typeof payload === "string" ? undefined : payload?.secret;
-			const role = typeof payload === "string" ? "overlay" : (payload?.role ?? "overlay");
+			const requestedRole = typeof payload === "string" ? undefined : payload?.role;
+
+			if (requestedRole !== undefined && requestedRole !== "overlay" && requestedRole !== "controller") {
+				client.close(4003);
+				return;
+			}
+
+			const role = typeof payload === "string" ? "overlay" : (requestedRole ?? "overlay");
 
 			if (!overlayId || !secret) {
 				client.close(4002);
@@ -56,6 +64,14 @@ export async function handleMessage(buffer: RawData, client: WebSocket) {
 				return;
 			}
 
+			if (role === "controller") {
+				const ownerPlan = await getOverlayOwnerPlanPublic(overlay.id).catch(() => null);
+				if (ownerPlan !== Plan.Pro) {
+					client.close(4002);
+					return;
+				}
+			}
+
 			client.ownerId = overlay.ownerId;
 			client.overlayId = overlay.id;
 			client.role = role;
@@ -66,7 +82,7 @@ export async function handleMessage(buffer: RawData, client: WebSocket) {
 			return;
 		}
 		case "command": {
-			if (!client.overlayId || !client.ownerId) {
+			if (!client.overlayId || !client.ownerId || client.role !== "controller") {
 				client.close(4002);
 				return;
 			}
