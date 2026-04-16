@@ -1,6 +1,6 @@
 "use server";
 
-import { addToModQueue, clearClipQueue, clearModQueueByBroadcasterId, getClipQueue, getModQueue, getOverlayBySecret, getOverlayOwnerPlanPublic, getTwitchCache, setPlayerVolumeForOwner } from "@actions/database";
+import { addToModQueue, clearClipQueueByOverlayIdServer, clearModQueueByBroadcasterId, getClipQueueByOverlayId, getModQueue, getOverlayOwnerPlanPublic, getOverlayWithEditAccess, getTwitchCache, setPlayerVolumeForOwner } from "@actions/database";
 import { getTwitchClip, handleClip } from "@actions/twitch";
 import { sendMessage } from "@actions/websocket";
 import { Plan, TwitchCacheType, type TwitchClip } from "@types";
@@ -24,9 +24,9 @@ export type ControllerActionResult =
 	| { ok: true; volume?: number; clip?: Omit<QueueItem, "id"> }
 	| { ok: false; error: string; status: number };
 
-async function requireProOverlay(overlayId: string, secret: string) {
-	const overlay = await getOverlayBySecret(overlayId, secret);
-	if (!overlay) return { error: { ok: false as const, error: "Invalid overlay or secret", status: 403 } };
+async function requireProOverlay(overlayId: string) {
+	const overlay = await getOverlayWithEditAccess(overlayId);
+	if (!overlay) return { error: { ok: false as const, error: "Unauthorized", status: 403 } };
 
 	const ownerPlan = await getOverlayOwnerPlanPublic(overlayId);
 	if (ownerPlan !== Plan.Pro) {
@@ -71,13 +71,11 @@ async function resolveQueueItems(rows: Array<{ id: string; clipId: string }>, ow
 	return items;
 }
 
-export async function getControllerQueuesAction(overlayId: string, secret: string): Promise<ControllerQueueResponse | ControllerActionResult> {
-	if (!secret) return { ok: false, error: "Missing secret", status: 400 };
-
-	const { overlay, error } = await requireProOverlay(overlayId, secret);
+export async function getControllerQueuesAction(overlayId: string): Promise<ControllerQueueResponse | ControllerActionResult> {
+	const { overlay, error } = await requireProOverlay(overlayId);
 	if (!overlay) return error;
 
-	const [viewerRows, modRows] = await Promise.all([getClipQueue(overlayId, secret), getModQueue(overlay.ownerId)]);
+	const [viewerRows, modRows] = await Promise.all([getClipQueueByOverlayId(overlayId), getModQueue(overlay.ownerId)]);
 	const [viewerQueue, modQueue] = await Promise.all([resolveQueueItems(viewerRows, overlay.ownerId), resolveQueueItems(modRows, overlay.ownerId)]);
 
 	return { overlayId, modQueue, viewerQueue };
@@ -85,16 +83,15 @@ export async function getControllerQueuesAction(overlayId: string, secret: strin
 
 export async function runControllerAction(
 	overlayId: string,
-	body: { secret?: string; action?: string; volume?: number; clipUrl?: string } | null,
+	body: { action?: string; volume?: number; clipUrl?: string } | null,
 ): Promise<ControllerActionResult> {
-	const secret = body?.secret;
 	const action = body?.action;
 
-	if (!secret || !action) {
-		return { ok: false, error: "Missing secret or action", status: 400 };
+	if (!action) {
+		return { ok: false, error: "Missing action", status: 400 };
 	}
 
-	const { overlay, error } = await requireProOverlay(overlayId, secret);
+	const { overlay, error } = await requireProOverlay(overlayId);
 	if (!overlay) return error;
 
 	switch (action) {
@@ -111,11 +108,11 @@ export async function runControllerAction(
 			return { ok: true };
 		}
 		case "clear_viewer_queue": {
-			await clearClipQueue(overlayId, secret);
+			await clearClipQueueByOverlayIdServer(overlayId);
 			return { ok: true };
 		}
 		case "clear_all_queues": {
-			await Promise.all([clearModQueueByBroadcasterId(overlay.ownerId), clearClipQueue(overlayId, secret)]);
+			await Promise.all([clearModQueueByBroadcasterId(overlay.ownerId), clearClipQueueByOverlayIdServer(overlayId)]);
 			return { ok: true };
 		}
 		case "add_mod_clip": {

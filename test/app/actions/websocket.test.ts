@@ -2,14 +2,24 @@
 export {};
 
 import { WebSocket } from "ws";
+import { Plan } from "@/app/lib/types";
 
 const getOverlayBySecret = jest.fn();
+const getOverlayPublic = jest.fn();
+const getOverlayOwnerPlanPublic = jest.fn();
 const addSubscriber = jest.fn();
+const jwtVerify = jest.fn();
 const ownerSubscribers = new Map<string, Set<unknown>>();
 const overlaySubscribers = new Map<string, Set<unknown>>();
 
+jest.mock("jsonwebtoken", () => ({
+	verify: (...args: unknown[]) => jwtVerify(...args),
+}));
+
 jest.mock("@actions/database", () => ({
 	getOverlayBySecret: (...args: unknown[]) => getOverlayBySecret(...args),
+	getOverlayPublic: (...args: unknown[]) => getOverlayPublic(...args),
+	getOverlayOwnerPlanPublic: (...args: unknown[]) => getOverlayOwnerPlanPublic(...args),
 }));
 
 jest.mock("@store/overlaySubscribers", () => ({
@@ -84,6 +94,46 @@ describe("actions/websocket", () => {
 		expect(client.role).toBe("overlay");
 		expect(addSubscriber).toHaveBeenCalledWith("owner-1", "ov-1", client);
 		expect(client.send).toHaveBeenCalledWith("subscribed ov-1");
+	});
+
+	it("subscribes valid controller clients with a signed controller token", async () => {
+		jwtVerify.mockReturnValue({ overlayId: "ov-1", userId: "editor-1" });
+		getOverlayPublic.mockResolvedValue({ ownerId: "owner-1", id: "ov-1" });
+		getOverlayOwnerPlanPublic.mockResolvedValue(Plan.Pro);
+		const clearTimeoutSpy = jest.spyOn(global, "clearTimeout");
+		const { handleMessage } = await loadWebsocketActions();
+		const client = createClient();
+
+		await handleMessage(
+			Buffer.from(JSON.stringify({ type: "subscribe", data: { overlayId: "ov-1", controllerToken: "signed-token", role: "controller" } })),
+			client as never,
+		);
+
+		expect(jwtVerify).toHaveBeenCalledWith("signed-token", process.env.JWT_SECRET, expect.objectContaining({ issuer: "clipify-controller" }));
+		expect(getOverlayPublic).toHaveBeenCalledWith("ov-1");
+		expect(getOverlayOwnerPlanPublic).toHaveBeenCalledWith("ov-1");
+		expect(clearTimeoutSpy).toHaveBeenCalledWith(client.subscribeDeadline);
+		expect(client.ownerId).toBe("owner-1");
+		expect(client.overlayId).toBe("ov-1");
+		expect(client.role).toBe("controller");
+		expect(addSubscriber).toHaveBeenCalledWith("owner-1", "ov-1", client);
+		expect(client.send).toHaveBeenCalledWith("subscribed ov-1");
+	});
+
+	it("rejects controller subscriptions with invalid tokens", async () => {
+		jwtVerify.mockImplementation(() => {
+			throw new Error("invalid");
+		});
+		const { handleMessage } = await loadWebsocketActions();
+		const client = createClient();
+
+		await handleMessage(
+			Buffer.from(JSON.stringify({ type: "subscribe", data: { overlayId: "ov-1", controllerToken: "bad-token", role: "controller" } })),
+			client as never,
+		);
+
+		expect(client.close).toHaveBeenCalledWith(4002);
+		expect(getOverlayPublic).not.toHaveBeenCalled();
 	});
 
 	it("closes unknown message types", async () => {

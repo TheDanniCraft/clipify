@@ -522,7 +522,7 @@ export default function OverlaySettings() {
 	const inTrial = user ? isReverseTrialActive(user) : false;
 	const trialDaysLeft = user ? getTrialDaysLeft(user) : 0;
 	const overlayUrl = baseUrl && overlay.secret ? `${baseUrl}/overlay/${overlayId}?secret=${overlay.secret}` : null;
-	const controllerUrl = baseUrl && overlay.secret ? `${baseUrl}/controller/${overlayId}?secret=${overlay.secret}` : null;
+	const controllerUrl = baseUrl ? `${baseUrl}/controller/${overlayId}` : null;
 	const controllerEnabled = Boolean(controllerUrl && ownerPlan === Plan.Pro);
 
 	async function refreshPlaylists() {

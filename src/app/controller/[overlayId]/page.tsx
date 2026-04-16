@@ -1,7 +1,10 @@
 import Link from "next/link";
-import { getOverlayBySecret, getOverlayOwnerPlanPublic } from "@actions/database";
+import jwt from "jsonwebtoken";
+import { getOverlayOwnerPlanPublic, getOverlayWithEditAccess } from "@actions/database";
+import { validateAuth } from "@actions/auth";
 import { Plan } from "@types";
 import ControllerClient from "./controllerClient";
+import { redirect } from "next/navigation";
 
 function AccessSurface({
 	eyebrow,
@@ -40,23 +43,20 @@ function AccessSurface({
 
 export default async function ControllerPage({
 	params,
-	searchParams,
 }: {
 	params: Promise<{ overlayId: string }>;
 	searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
 	const { overlayId } = await params;
-	const query = await searchParams;
-	const secret = query?.secret;
-	const overlaySecret = Array.isArray(secret) ? secret[0] : secret;
+	const user = await validateAuth();
 
-	if (!overlaySecret) {
-		return <AccessSurface eyebrow='Controller Access' title='Missing overlay secret' description='Open this controller with the secure query string attached, for example `?secret=...`.' />;
+	if (!user) {
+		redirect(`/login?returnUrl=${encodeURIComponent(`/controller/${overlayId}`)}`);
 	}
 
-	const overlay = await getOverlayBySecret(overlayId, overlaySecret);
+	const overlay = await getOverlayWithEditAccess(overlayId);
 	if (!overlay) {
-		return <AccessSurface eyebrow='Controller Access' title='Invalid controller link' description='The overlay ID and secret do not match. Regenerate the controller link from your dashboard and try again.' />;
+		return <AccessSurface eyebrow='Controller Access' title='Access denied' description='Only the streamer or editors with access to this overlay can use the remote controller.' />;
 	}
 
 	const ownerPlan = await getOverlayOwnerPlanPublic(overlayId);
@@ -72,5 +72,11 @@ export default async function ControllerPage({
 		);
 	}
 
-	return <ControllerClient overlayId={overlayId} secret={overlaySecret} />;
+	const controllerToken = jwt.sign(
+		{ overlayId, userId: user.id },
+		process.env.JWT_SECRET!,
+		{ algorithm: "HS256", issuer: "clipify-controller", expiresIn: "12h" },
+	);
+
+	return <ControllerClient overlayId={overlayId} controllerToken={controllerToken} />;
 }

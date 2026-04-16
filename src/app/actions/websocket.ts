@@ -1,11 +1,19 @@
 /* istanbul ignore file */
 "use server";
 
+import jwt from "jsonwebtoken";
 import { WebSocket } from "ws";
-import { getOverlayBySecret, getOverlayOwnerPlanPublic } from "@actions/database";
+import { getOverlayBySecret, getOverlayOwnerPlanPublic, getOverlayPublic } from "@actions/database";
 import { RawData } from "ws";
 import { ownerSubscribers, overlaySubscribers, addSubscriber } from "@store/overlaySubscribers";
 import { Plan } from "@types";
+
+type ControllerTokenPayload = {
+	overlayId: string;
+	userId: string;
+	iat?: number;
+	exp?: number;
+};
 
 function broadcastToClients(type: string, data: object, clients: Set<WebSocket> | undefined, except?: WebSocket) {
 	if (!clients) return;
@@ -38,11 +46,12 @@ export async function handleMessage(buffer: RawData, client: WebSocket) {
 
 	switch (messageObj.type) {
 		case "subscribe": {
-			const payload = messageObj.data as { overlayId?: string; secret?: string; role?: unknown } | string;
+			const payload = messageObj.data as { overlayId?: string; secret?: string; controllerToken?: string; role?: unknown } | string;
 /* istanbul ignore next */
 			const overlayId = typeof payload === "string" ? payload : payload?.overlayId;
 /* istanbul ignore next */
 			const secret = typeof payload === "string" ? undefined : payload?.secret;
+			const controllerToken = typeof payload === "string" ? undefined : payload?.controllerToken;
 			const requestedRole = typeof payload === "string" ? undefined : payload?.role;
 
 			if (requestedRole !== undefined && requestedRole !== "overlay" && requestedRole !== "controller") {
@@ -52,21 +61,49 @@ export async function handleMessage(buffer: RawData, client: WebSocket) {
 
 			const role = typeof payload === "string" ? "overlay" : (requestedRole ?? "overlay");
 
-			if (!overlayId || !secret) {
+			if (!overlayId) {
 				client.close(4002);
 				return;
 			}
 
-/* istanbul ignore next */
-			const overlay = await getOverlayBySecret(overlayId, secret).catch(() => null);
-			if (!overlay) {
-				client.close(4002);
-				return;
-			}
-
+			let overlay: Awaited<ReturnType<typeof getOverlayBySecret>> | null = null;
 			if (role === "controller") {
+				if (!controllerToken) {
+					client.close(4002);
+					return;
+				}
+				let decoded: ControllerTokenPayload | null = null;
+				try {
+					decoded = jwt.verify(controllerToken, process.env.JWT_SECRET!, {
+						algorithms: ["HS256"],
+						issuer: "clipify-controller",
+					}) as ControllerTokenPayload;
+				} catch {
+					client.close(4002);
+					return;
+				}
+				if (!decoded?.overlayId || decoded.overlayId !== overlayId || !decoded.userId) {
+					client.close(4002);
+					return;
+				}
+				overlay = await getOverlayPublic(overlayId).catch(() => null);
+				if (!overlay) {
+					client.close(4002);
+					return;
+				}
 				const ownerPlan = await getOverlayOwnerPlanPublic(overlay.id).catch(() => null);
 				if (ownerPlan !== Plan.Pro) {
+					client.close(4002);
+					return;
+				}
+			} else {
+				if (!secret) {
+					client.close(4002);
+					return;
+				}
+/* istanbul ignore next */
+				overlay = await getOverlayBySecret(overlayId, secret).catch(() => null);
+				if (!overlay) {
 					client.close(4002);
 					return;
 				}

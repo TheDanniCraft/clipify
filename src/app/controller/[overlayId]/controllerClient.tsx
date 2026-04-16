@@ -56,7 +56,7 @@ function QueueRow({ clip, accent }: { clip: ClipSummary; accent?: boolean }) {
 	);
 }
 
-export default function ControllerClient({ overlayId, secret }: { overlayId: string; secret: string }) {
+export default function ControllerClient({ overlayId, controllerToken }: { overlayId: string; controllerToken: string }) {
 	const wsRef = useRef<WebSocket | null>(null);
 	const queueRefreshAtRef = useRef(0);
 	const [socketConnected, setSocketConnected] = useState(false);
@@ -107,7 +107,7 @@ export default function ControllerClient({ overlayId, secret }: { overlayId: str
 			ws.addEventListener("open", () => {
 				if (wsRef.current !== ws) return;
 				setSocketConnected(true);
-				ws.send(JSON.stringify({ type: "subscribe", data: { overlayId, secret, role: "controller" } }));
+				ws.send(JSON.stringify({ type: "subscribe", data: { overlayId, controllerToken, role: "controller" } }));
 			});
 
 			ws.addEventListener("close", () => {
@@ -197,14 +197,14 @@ export default function ControllerClient({ overlayId, secret }: { overlayId: str
 			wsRef.current?.close();
 			wsRef.current = null;
 		};
-	}, [overlayId, refreshQueuesSoon, secret]);
+	}, [controllerToken, overlayId, refreshQueuesSoon]);
 
 	useEffect(() => {
 		setVolumeDraft(playback.volume);
 	}, [playback.volume]);
 
 	const executeControllerAction = async (action: "set_volume" | "clear_mod_queue" | "clear_viewer_queue" | "clear_all_queues" | "add_mod_clip", options?: { volume?: number; clipUrl?: string }) => {
-		const response = await runControllerAction(overlayId, { secret, action, volume: options?.volume, clipUrl: options?.clipUrl });
+		const response = await runControllerAction(overlayId, { action, volume: options?.volume, clipUrl: options?.clipUrl });
 		if (response.ok && action !== "set_volume") refreshQueues();
 		return response;
 	};
@@ -219,7 +219,7 @@ export default function ControllerClient({ overlayId, secret }: { overlayId: str
 					if (active) timer = setTimeout(loadQueues, 30000);
 					return;
 				}
-				const response = await getControllerQueuesAction(overlayId, secret);
+				const response = await getControllerQueuesAction(overlayId);
 				if (!active || "ok" in response) return;
 				const data = response as ControllerQueueResponse;
 				if (!active) return;
@@ -251,7 +251,7 @@ export default function ControllerClient({ overlayId, secret }: { overlayId: str
 			active = false;
 			if (timer) clearTimeout(timer);
 		};
-	}, [overlayId, queueRefreshKey, secret]);
+	}, [overlayId, queueRefreshKey]);
 
 	const sendCommand = (name: string, data: string | null = null) => {
 		const ws = wsRef.current;

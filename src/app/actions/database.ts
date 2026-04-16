@@ -1603,6 +1603,16 @@ export async function getOverlay(overlayId: string) {
 	}
 }
 
+export async function getOverlayWithEditAccess(overlayId: string) {
+	try {
+		const ctx = await requireOverlayAccess(overlayId);
+		return ctx?.overlay ?? null;
+	} catch (error) {
+		console.error("Error fetching overlay with edit access:", error);
+		throw new Error("Failed to fetch overlay");
+	}
+}
+
 export async function createOverlay(userId: string) {
 	try {
 		const user = await requireUser();
