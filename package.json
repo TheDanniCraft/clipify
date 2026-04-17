@@ -21,7 +21,7 @@
 	},
 	"dependencies": {
 		"@heroui/react": "^2.8.10",
-		"@sentry/nextjs": "^10.48.0",
+		"@sentry/nextjs": "^10.49.0",
 		"@tabler/icons-react": "^3.41.1",
 		"axios": "^1.15.0",
 		"dotenv": "^17.4.2",
