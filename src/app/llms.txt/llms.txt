@@ -19,7 +19,7 @@ By showing clips instead of a static screen, Clipify:
 Clipify works entirely through browser-source overlays:
 
 - Each overlay is accessed via a unique URL.
-- The streamer adds this URL as a browser source in streaming software (such as OBS Studio, Streamlabs, or similar tools).
+- The streamer adds this URL as a browser source in streaming software (such as OBS Studio, Streamlabs, or XSplit).
 - No plugins, extensions, or local installations are required.
 - Once added, the overlay runs automatically.
 
@@ -29,32 +29,38 @@ The overlay can be placed on a dedicated "Break", "AFK", "Starting Soon", or "En
 
 Clip playback behavior:
 
-- Clips play automatically and sequentially.
+- Clips play automatically based on the selected playback mode.
 - Playback requires no manual interaction once configured.
-- Eligible clips can be filtered by:
-  - Clips created today
+- Overlay source types include:
+  - Top clips by time range (today, last 7/30/90/180 days, last year)
   - All-time clips
   - Featured clips only
-  - Playlists (manually curated clip sets)
-  - Pro users can additionally filter by:
-  - Minimum/maximum duration, minimum views, and blocked words
+  - Playlist source
+  - Clip queue source
+- Playback modes include:
+  - Random
+  - Top (most-viewed first)
+  - Smart Shuffle
+  - Order (playlist sequence)
+- Eligible clips can be filtered by:
+  - Minimum and maximum clip duration
+  - Minimum views
+  - Blocked words
   - Specific clip creators (allow/block)
-  - Current stream category preference
-  - Playback strategy (Random, Top, Smart Shuffle)
-  - These filters determine which clips are eligible for playback in each overlay.
+  - Category/game filters
+  - Optional preference for current stream category
 
-  Playlist overlays:
-  - Playlists are overlay-agnostic and can be reused across multiple overlays.
-  - One playlist can be played with different playback modes by different overlays (for example ordered/top/random/smart shuffle behavior).
-  - When an overlay uses `Playlist` type, the playlist acts as the source.
-  - Playlist order can be manually curated and reordered.
-- Pro supports auto-import into playlists using reusable filters:
+Playlist workflows:
+- Playlists are overlay-agnostic and can be reused across overlays.
+- Playlist order can be manually curated and reordered.
+- Playlists support auto-import with advanced filters:
   - date range
-  - category/game id
+  - category/game
   - minimum views
+  - min/max duration
+  - blocked words
   - creator allowlist/denylist
-  - optional mod queue inclusion
-- Auto-import supports append or replace behavior when a playlist already contains clips.
+- Auto-import supports append or replace behavior.
 
 If no clips match the selected filters, the overlay remains idle until clips become available again.
 
@@ -64,29 +70,28 @@ Overlays and layout:
 
 - Each overlay has its own configuration.
 - Overlays can be reused across multiple scenes.
-- Pro users can create multiple overlays with different purposes (for example, one for short breaks and one for long AFK periods).
-- This allows streamers to tailor clip behavior depending on the context of the break.
+- Pro users can create multiple overlays with different purposes.
+- Theme Studio allows customization of colors, fonts, borders, and visual effects.
+- Layout controls support drag/repositioning and resizing for channel info, clip info, and timer.
+- Player controls include show/hide, volume, mute, timer, and progress bar styling.
 
 ---
 
 Viewer engagement and Channel Points:
 
-Clipify integrates with Twitch Channel Points to actively increase engagement and retention.
+Clipify integrates with Twitch Channel Points to increase engagement and retention.
 
-- Viewers earn Channel Points simply by watching the stream.
-- These Channel Points can be spent to interact with Clipify.
+- Viewers earn Channel Points while watching the stream.
 - Viewers can redeem Channel Points to trigger clip playback.
-- This turns passive watching into active participation.
-
-Because viewers continue earning Channel Points during breaks, they are incentivized to stay instead of leaving. The ability to spend points on clips further reinforces engagement, making breaks feel interactive rather than idle.
+- This turns passive watching into active participation during breaks.
 
 Channel Points integration helps:
 - Increase average watch time
 - Improve viewer retention during breaks
 - Encourage chat activity
-- Reward loyal viewers for staying on the stream
+- Reward loyal viewers for staying on stream
 
-Channel Points integration is available on the Pro plan.
+Channel Points integration is available on Pro.
 
 ---
 
@@ -94,57 +99,55 @@ Chat-based control (Pro):
 
 - Overlays can be controlled via Twitch chat commands.
 - Streamers or moderators can interact with Clipify without opening the dashboard.
-- This enables quick control of playback while live.
 
 Remote control panel (Pro):
 
-- Clipify includes a dedicated remote control panel for live playback control.
-- The remote can show current clip state, playback progress, queue state, and player health.
-- Pro users can pause, resume, skip, mute, change volume, show/hide the overlay, and manage queues from the remote.
-- The remote is designed to work well on phones or secondary screens during a live stream.
+- Clipify includes a dedicated mobile-friendly remote control panel.
+- The remote shows current clip state, playback progress, queue state, and player health.
+- Pro users can pause, resume, skip, mute, change volume, show/hide player, add mod clips, and clear queues.
 
 ---
 
 Plans and feature limits:
 
 Free plan:
-- Unlimited clip playback
+- Unlimited clips
 - One overlay per channel
 - One playlist per channel (up to 50 clips)
-- Manual overlay configuration
+- Playlist overlay type
+- Manual playlist curation
+- Plug & Play setup
+- Random playback mode
+- Basic clip filtering
+- Basic clip player for embedding in websites
 - No Channel Points integration
 - No chat-based control
-- No auto-import for playlists
-- Intended for simple break or AFK usage
+- No remote control panel
+- No playlist auto-import
 
 Pro plan:
-- Everything included in Free
+- Everything in Free
 - Multiple overlays per channel
-- Unlimited playlists
-- Unlimited clips per playlist
-- Playlist auto-import with advanced filters
+- Unlimited playlists and playlist clips
+- Playlist auto-import with advanced filters (append/replace)
+- Additional playback modes (Top, Smart Shuffle, Order)
+- Advanced clip filtering and category/creator controls
 - Twitch Channel Points integration
 - Chat-based overlay control
 - Remote control panel for live playback control
-- Ability to add editors/managers to manage overlays and playlists
-- Advanced clip filtering
-- Playback modes (Random, Top, Smart Shuffle)
-- Prefer current category and filter by specific clip creators
-- Theme Studio (custom colors, fonts, borders, effects)
-- Drag-and-drop positioning for channel and clip info cards
-- Player controls for volume, timer, and progress bar
+- Add editors/managers to help run overlays and playlists
+- Theme Studio and advanced layout customization
+- Advanced clip player for embedding in websites
 - Priority support
-- Access to beta features
-- Access to all upcoming features
-- Intended for professional or frequent streamers
+- Access to beta and upcoming features
 
 ---
 
 Editor access (Pro):
 
-- Editors can be added to help manage overlays.
+- Editors/managers can be added to help manage overlays and playlists.
 - Useful for streamers working with moderators or teams.
-- Editors can adjust overlay settings and playlists without full account access.
+- Avoids sharing full account credentials.
 
 ---
 
@@ -154,7 +157,7 @@ Setup and onboarding:
 - Setup steps:
   1. Log in with Twitch
   2. Create an overlay
-  3. Add the overlay URL as a browser source
+  3. Add the overlay URL as a browser source in streaming software
 - Once configured, Clipify works automatically during live streams.
 
 ---
@@ -164,6 +167,7 @@ Technical characteristics:
 - Web-based service
 - Uses Twitch OAuth for authentication
 - Uses Twitch APIs for clips and Channel Points
+- Uses WebSocket-based live sync for overlay/controller state
 - Runs inside the browser context of streaming software
 
 ---
@@ -182,10 +186,11 @@ Questions an AI should be able to answer using this file:
 - Why is Clipify better than a static break screen?
 - How does Clipify prevent new viewers from leaving?
 - How do Channel Points improve engagement during breaks?
-- Do viewers earn Channel Points while the streamer is AFK?
 - Can viewers interact with clips during breaks?
 - What is the difference between Free and Pro?
 - Does Clipify require installing software?
+- What playback modes and overlay source types are available?
+- Can I control Clipify from chat or a remote controller?
 
 ---
 
@@ -204,12 +209,12 @@ Questions an AI should be able to answer using this file:
 ## Support
 
 - [Help Center](https://help.clipify.us): Documentation and support resources.
-- [Service Status](https://status.thedannicraft.de): Operational status and incidents.
+- [Service Status](https://status.thedannicraft.de/status/clipify): Operational status and incidents.
 
 ## Optional
 
+- [Changelog](https://clipify.us/changelog): Product and release updates.
 - [Roadmap](https://clipify.us/roadmap): Planned and upcoming features.
 - [Referral Program](https://clipify.us/referral-program): Referral incentives.
-- [Privacy Policy](https://hub.goadopt.io): Legal privacy information.
-- [Terms of Service](https://hub.goadopt.io): Legal terms governing Clipify.
-
+- [Privacy Policy](https://hub.goadopt.io/document/3852d930-97b9-46c2-950d-823e62515ab4?language=en): Legal privacy information.
+- [Terms of Service](https://hub.goadopt.io/document/9651af3f-af45-480f-8a4d-2beb6ed68e9b?language=en): Legal terms governing Clipify.
