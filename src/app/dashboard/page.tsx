@@ -15,7 +15,6 @@ export default async function Dashboard() {
 	if (!tokenResult.token) {
 		redirect(tokenResult.reason === "user_disabled" ? "/logout?error=accountDisabled" : "/logout");
 	}
-
 	return (
 		<>
 			<ChatwootData user={user} />

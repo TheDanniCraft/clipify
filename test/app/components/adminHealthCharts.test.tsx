@@ -140,7 +140,8 @@ const healthSnapshot: InstanceHealthSnapshot = {
 	},
 	db: {
 		ok: true,
-		latencyMs: 42,
+		pingMs: 42,
+		healthAggregationMs: 118,
 	},
 };
 

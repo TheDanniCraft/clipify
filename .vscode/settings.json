@@ -1,15 +1,16 @@
 {
-  "search.exclude": {
-    "**/.next": true,
-    "**/node_modules": true,
-    "**/coverage": true,
-    "**/.swc": true,
-    "**/.next/standalone": true
-  },
-  "files.exclude": {
-    "**/.next": true,
-    "**/.swc": true,
-    "**/coverage": true
-  },
-  "typescript.preferences.importModuleSpecifier": "non-relative"
+	"search.exclude": {
+		"**/.next": true,
+		"**/node_modules": true,
+		"**/coverage": true,
+		"**/.swc": true,
+		"**/.next/standalone": true
+	},
+	"files.exclude": {
+		"**/.next": true,
+		"**/.swc": true,
+		"**/coverage": true
+	},
+	"tailwindCSS.lint.suggestCanonicalClasses": "ignore",
+	"js/ts.preferences.importModuleSpecifier": "non-relative"
 }

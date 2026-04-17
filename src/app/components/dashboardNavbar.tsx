@@ -3,10 +3,12 @@
 import { IconMoonFilled, IconSunFilled } from "@tabler/icons-react";
 import { useTheme } from "next-themes";
 import { Autocomplete, AutocompleteItem, Avatar, Badge, Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Link, Navbar, NavbarBrand, NavbarContent, NavbarItem, Spacer } from "@heroui/react";
-import { AuthenticatedUser, Role } from "@types";
+import { AuthenticatedUser, CampaignOffer, Role } from "@types";
 import Logo from "@components/logo";
+import CountdownTimer from "@components/countdownTimer";
 import { useRouter } from "next/navigation";
 import { getAdminViewCandidates, stopAdminView, switchAdminView, type AdminViewCandidate } from "@actions/adminView";
+import { getActiveCampaignOfferAction } from "@actions/campaignOffers";
 import { useEffect, useMemo, useState } from "react";
 
 export default function DashboardNavbar({ children, user, title, tagline }: { children: React.ReactNode; user: AuthenticatedUser; title: string; tagline: string }) {
@@ -18,6 +20,7 @@ export default function DashboardNavbar({ children, user, title, tagline }: { ch
 	const [switchCandidates, setSwitchCandidates] = useState<AdminViewCandidate[]>([]);
 	const [isLoadingSwitchCandidates, setIsLoadingSwitchCandidates] = useState(false);
 	const [switchError, setSwitchError] = useState<string | null>(null);
+	const [campaignOffer, setCampaignOffer] = useState<CampaignOffer | null>(null);
 	const effectivePlan = user?.entitlements?.effectivePlan ?? user?.plan;
 	const showUpgradeItem = user?.plan === "free" && (effectivePlan === "free" || Boolean(user?.entitlements?.reverseTrialActive));
 	const isImpersonating = Boolean(user?.adminView?.active);
@@ -52,6 +55,26 @@ export default function DashboardNavbar({ children, user, title, tagline }: { ch
 		}
 		return Array.from(map.values());
 	}, [switchCandidates, user.id]);
+
+	useEffect(() => {
+		let cancelled = false;
+		const load = async () => {
+			try {
+				const offer = await getActiveCampaignOfferAction();
+				if (!cancelled) setCampaignOffer((offer as CampaignOffer | null) ?? null);
+			} catch {
+				if (!cancelled) setCampaignOffer(null);
+			}
+		};
+
+		if (showUpgradeItem) {
+			void load();
+		}
+
+		return () => {
+			cancelled = true;
+		};
+	}, [showUpgradeItem]);
 
 	useEffect(() => {
 		if (!isImpersonating) return;
@@ -133,7 +156,7 @@ export default function DashboardNavbar({ children, user, title, tagline }: { ch
 									<p className='font-semibold'>{user?.username}</p>
 								</DropdownItem>
 								{showUpgradeItem ? (
-									<DropdownItem key='upgrade_to_pro' className='text-warning' onPress={() => router.push("/dashboard/settings?upgrade&cycle=yearly&source=paywall_banner&feature=account_menu")}>
+									<DropdownItem key='upgrade_to_pro' className='text-primary' onPress={() => router.push("/dashboard/settings?upgrade&cycle=yearly&source=paywall_banner&feature=account_menu")}>
 										Upgrade to Pro
 									</DropdownItem>
 								) : null}
@@ -167,6 +190,22 @@ export default function DashboardNavbar({ children, user, title, tagline }: { ch
 					</NavbarItem>
 				</NavbarContent>
 			</Navbar>
+			{showUpgradeItem && campaignOffer?.showDashboardBanner ? (
+				<div className='w-full border-b border-default-200 bg-content1/95'>
+					<div className='mx-auto flex w-full max-w-5xl flex-col gap-2 px-4 py-3 lg:flex-row lg:items-center lg:justify-between lg:px-8'>
+						<div className='min-w-0'>
+							<p className='text-xs font-semibold uppercase tracking-[0.2em] text-primary'>{campaignOffer.badgeText ?? campaignOffer.title}</p>
+							<p className='truncate text-sm text-default-600'>{campaignOffer.floatingSubtitle ?? "Upgrade today with the active campaign price."}</p>
+						</div>
+						<div className='flex items-center gap-3 self-start lg:self-auto'>
+							{campaignOffer.endAt ? <CountdownTimer endAt={campaignOffer.endAt} tone='light' size='sm' showSeconds className='scale-90 origin-right' /> : null}
+							<Button size='sm' color='primary' onPress={() => router.push("/dashboard/settings?upgrade&cycle=yearly&source=paywall_banner&feature=active_campaign")}>
+								Upgrade Today
+							</Button>
+						</div>
+					</div>
+				</div>
+			) : null}
 			{isImpersonating ? (
 				<div className='w-full bg-content1/95'>
 					<div className='mx-auto flex w-full max-w-5xl flex-col gap-2 px-4 py-2 lg:flex-row lg:items-center lg:justify-between lg:px-8'>

@@ -449,6 +449,7 @@ export default function SettingsPage() {
 											</p>
 											<ul className='list-disc list-inside text-warning-700 text-xs mt-2 ml-1'>
 												<li>Grant editors permission to manage your overlays</li>
+												<li>Remote control panel for live playback</li>
 												<li>Priority support</li>
 											</ul>
 											<Button

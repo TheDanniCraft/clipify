@@ -1,9 +1,11 @@
 import Footer from "@components/footer";
 import BasicNavbar from "@components/LandingPage/basicNavbar";
-import { roadmapData } from "@components/roadmap/roadmapData";
 import { RoadmapItem } from "@components/roadmap/roadmapItem";
+import { getRoadmapItems } from "@lib/roadmap";
 
-export default function RoadmapPage() {
+export default async function RoadmapPage() {
+	const roadmapItems = await getRoadmapItems();
+
 	return (
 		<>
 			<BasicNavbar />
@@ -17,15 +19,22 @@ export default function RoadmapPage() {
 					</h1>
 					<p className='text-center text-default-400 mb-12'>See what we&apos;re building next and help shape the future of Clipify</p>
 
-					<div className='relative'>
-						<div className='absolute left-3.5 top-6 bottom-6 w-0.5 bg-gradient-to-b from-default-400 via-default-400 to-transparent opacity-20 z-0'></div>
+					{roadmapItems.length > 0 ? (
+						<div className='relative'>
+							<div className='absolute left-3.5 top-6 bottom-6 w-0.5 bg-gradient-to-b from-default-400 via-default-400 to-transparent opacity-20 z-0'></div>
 
-						<div className='space-y-6'>
-							{roadmapData.map((item, index) => (
-								<RoadmapItem key={index} icon={item.icon} color={item.color} title={item.title} description={item.description} status={item.status} timeframe={item.timeframe} features={item.features} />
-							))}
+							<div className='space-y-6'>
+								{roadmapItems.map((item, index) => (
+									<RoadmapItem key={index} icon={item.icon} color={item.color} title={item.title} description={item.description} status={item.status} timeframe={item.timeframe} features={item.features} />
+								))}
+							</div>
 						</div>
-					</div>
+					) : (
+						<div className='rounded-3xl border border-default-200 bg-content1 px-6 py-16 text-center'>
+							<h2 className='text-2xl font-semibold'>Roadmap unavailable</h2>
+							<p className='mt-3 text-default-400'>The roadmap is currently not available from the CMS. Please try again shortly.</p>
+						</div>
+					)}
 				</div>
 			</div>
 

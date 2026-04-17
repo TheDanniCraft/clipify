@@ -4,6 +4,7 @@ import { render, screen } from "@testing-library/react";
 const redirect = jest.fn();
 const validateAuth = jest.fn();
 const getAccessTokenResult = jest.fn();
+const getActiveCampaignOffer = jest.fn();
 
 jest.mock("next/navigation", () => ({
 	redirect: (...args: unknown[]) => redirect(...args),
@@ -15,6 +16,10 @@ jest.mock("@actions/auth", () => ({
 
 jest.mock("@actions/database", () => ({
 	getAccessTokenResult: (...args: unknown[]) => getAccessTokenResult(...args),
+}));
+
+jest.mock("@lib/campaignOffers", () => ({
+	getActiveCampaignOffer: (...args: unknown[]) => getActiveCampaignOffer(...args),
 }));
 
 jest.mock("@components/OverlayTable", () => ({
@@ -58,6 +63,7 @@ function makeUser(role: "user" | "admin", id = "user-1") {
 describe("app/dashboard/page", () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
+		getActiveCampaignOffer.mockResolvedValue(null);
 		redirect.mockImplementation(() => {
 			throw new Error("NEXT_REDIRECT");
 		});

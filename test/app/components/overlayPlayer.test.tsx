@@ -418,7 +418,7 @@ describe("components/overlayPlayer", () => {
 		expect(ws?.send).toHaveBeenCalledWith(
 			JSON.stringify({
 				type: "subscribe",
-				data: { overlayId: "overlay-1", secret: undefined },
+				data: { overlayId: "overlay-1", secret: undefined, role: "overlay" },
 			}),
 		);
 
@@ -1109,7 +1109,7 @@ describe("components/overlayPlayer", () => {
 		}
 	});
 
-	it("logs queue-removal failures when advancing with a prefetched queue clip", async () => {
+	it("attempts queue cleanup when advancing with a prefetched queue clip", async () => {
 		const firstClip = buildClip("prefetch-catch-a", { title: "prefetch-catch-a", view_count: 900 });
 		const secondClip = buildClip("prefetch-catch-b", { title: "prefetch-catch-b", view_count: 700 });
 		let queueCall = 0;
@@ -1127,30 +1127,24 @@ describe("components/overlayPlayer", () => {
 		getTwitchClipBatch.mockResolvedValue([]);
 		removeFromModQueue.mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error("prefetched mod remove failed"));
 		removeFromClipQueue.mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error("prefetched clip remove failed"));
-		const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => undefined);
+		render(<OverlayPlayer overlay={buildOverlay({ playbackMode: "top" })} />);
+		await screen.findByText("prefetch-catch-a");
+		await waitFor(() => {
+			const hasPrefetchedSlot = Array.from(document.querySelectorAll("video")).some((video) => (video as HTMLVideoElement).src.includes("prefetch-catch-b"));
+			expect(hasPrefetchedSlot).toBe(true);
+		});
 
-		try {
-			render(<OverlayPlayer overlay={buildOverlay({ playbackMode: "top" })} />);
-			await screen.findByText("prefetch-catch-a");
-			await waitFor(() => {
-				const hasPrefetchedSlot = Array.from(document.querySelectorAll("video")).some((video) => (video as HTMLVideoElement).src.includes("prefetch-catch-b"));
-				expect(hasPrefetchedSlot).toBe(true);
-			});
+		const ws = MockWebSocket.instances[0];
+		await sendSocketPayload(ws, { type: "command", data: { name: "skip", data: "" } });
+		await screen.findByText("prefetch-catch-b");
 
-			const ws = MockWebSocket.instances[0];
-			await sendSocketPayload(ws, { type: "command", data: { name: "skip", data: "" } });
-			await screen.findByText("prefetch-catch-b");
-
-			await waitFor(() => {
-				expect(consoleSpy).toHaveBeenCalledWith("Failed to remove from mod queue:", expect.any(Error));
-				expect(consoleSpy).toHaveBeenCalledWith("Failed to remove from clip queue:", expect.any(Error));
-			});
-		} finally {
-			consoleSpy.mockRestore();
-		}
+		await waitFor(() => {
+			expect(removeFromModQueue).toHaveBeenCalledWith("prefetch-q-2", "overlay-1", undefined);
+			expect(removeFromClipQueue).toHaveBeenCalledWith("prefetch-q-2", "overlay-1", undefined);
+		});
 	});
 
-	it("logs queue-removal failures when advancing with a freshly selected queue clip", async () => {
+	it("attempts queue cleanup when advancing with a freshly selected queue clip", async () => {
 		const startClip = buildClip("queue-catch-start", { title: "queue-catch-start", view_count: 900 });
 		const skipClip = buildClip("queue-catch-next", { title: "queue-catch-next", view_count: 700 });
 		let queueCall = 0;
@@ -1168,26 +1162,20 @@ describe("components/overlayPlayer", () => {
 		getTwitchClipBatch.mockResolvedValue([]);
 		removeFromModQueue.mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error("advance mod remove failed"));
 		removeFromClipQueue.mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error("advance clip remove failed"));
-		const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => undefined);
+		render(<OverlayPlayer overlay={buildOverlay({ playbackMode: "top" })} />);
+		await screen.findByText("queue-catch-start");
+		await waitFor(() => {
+			expect(queueCall).toBeGreaterThanOrEqual(2);
+		});
 
-		try {
-			render(<OverlayPlayer overlay={buildOverlay({ playbackMode: "top" })} />);
-			await screen.findByText("queue-catch-start");
-			await waitFor(() => {
-				expect(queueCall).toBeGreaterThanOrEqual(2);
-			});
+		const ws = MockWebSocket.instances[0];
+		await sendSocketPayload(ws, { type: "command", data: { name: "skip", data: "" } });
+		await screen.findByText("queue-catch-next");
 
-			const ws = MockWebSocket.instances[0];
-			await sendSocketPayload(ws, { type: "command", data: { name: "skip", data: "" } });
-			await screen.findByText("queue-catch-next");
-
-			await waitFor(() => {
-				expect(consoleSpy).toHaveBeenCalledWith("Failed to remove from mod queue:", expect.any(Error));
-				expect(consoleSpy).toHaveBeenCalledWith("Failed to remove from clip queue:", expect.any(Error));
-			});
-		} finally {
-			consoleSpy.mockRestore();
-		}
+		await waitFor(() => {
+			expect(removeFromModQueue).toHaveBeenCalledWith("queue-catch-next-item", "overlay-1", undefined);
+			expect(removeFromClipQueue).toHaveBeenCalledWith("queue-catch-next-item", "overlay-1", undefined);
+		});
 	});
 
 	it("advances when slot B errors while slot B is active", async () => {

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Button, Chip, Divider, Form, Image, Input, Link, Modal, ModalContent, Spinner, Tab, Tabs } from "@heroui/react";
 import { Turnstile } from "nextjs-turnstile";
 import { motion } from "motion/react";
@@ -22,6 +22,11 @@ export default function Footer() {
 	const [isDetailsExpanded, setIsDetailsExpanded] = useState(false);
 	const [isSuccessOpen, setIsSuccessOpen] = useState(false);
 	const [token, setToken] = useState<string | null>(null);
+	const mounted = useSyncExternalStore(
+		() => () => undefined,
+		() => true,
+		() => false,
+	);
 	const [pendingEmail, setPendingEmail] = useState("");
 	const [firstName, setFirstName] = useState("");
 	const emailStepRef = useRef<HTMLDivElement>(null);
@@ -54,6 +59,9 @@ export default function Footer() {
 		const nameHeight = nameStepRef.current?.scrollHeight ?? 172;
 		setStepHeights({ email: emailHeight, name: nameHeight });
 	}, []);
+
+	const emailSubmitDisabled = newsletterState === "loading" || newsletterState === "success" || (mounted && !token);
+	const detailSubmitDisabled = newsletterState === "loading" || !pendingEmail || (mounted && !token);
 
 	const productHuntSrc = useMemo(() => `https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1052781&theme=${theme === "light" ? "light" : "dark"}`, [theme]);
 
@@ -301,7 +309,7 @@ export default function Footer() {
 											name='email'
 											isDisabled={newsletterState === "loading" || newsletterState === "success"}
 											endContent={
-												<Button color='primary' size='sm' isIconOnly type='submit' isDisabled={newsletterState === "loading" || newsletterState === "success" || !token} aria-label='Continue newsletter signup'>
+												<Button color='primary' size='sm' isIconOnly type='submit' isDisabled={emailSubmitDisabled} aria-label='Continue newsletter signup'>
 													<IconSend className='text-white' />
 												</Button>
 											}
@@ -331,10 +339,10 @@ export default function Footer() {
 											>
 												Back
 											</Button>
-											<Button type='button' variant='flat' onPress={() => finishSubscribe(false)} isDisabled={newsletterState === "loading" || !pendingEmail || !token}>
+											<Button type='button' variant='flat' onPress={() => finishSubscribe(false)} isDisabled={detailSubmitDisabled}>
 												Skip
 											</Button>
-											<Button type='submit' color='primary' isDisabled={newsletterState === "loading" || !pendingEmail || !token}>
+											<Button type='submit' color='primary' isDisabled={detailSubmitDisabled}>
 												Add and subscribe
 											</Button>
 										</div>

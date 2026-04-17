@@ -1,7 +1,6 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
-import { IconBolt } from "@tabler/icons-react";
-import { RoadmapStatus } from "@/app/components/roadmap/roadmapData";
+import { RoadmapStatus, type RoadmapColor } from "@/app/components/roadmap/roadmapData";
 import { RoadmapItem } from "@/app/components/roadmap/roadmapItem";
 
 jest.mock("@heroui/react", () => ({
@@ -15,8 +14,8 @@ jest.mock("@tabler/icons-react", () => ({
 }));
 
 const baseProps = {
-	icon: IconBolt as never,
-	color: "yellow",
+	icon: "IconBolt",
+	color: "yellow" as RoadmapColor,
 	title: "Theme Studio",
 	description: "Custom overlay styling",
 	timeframe: "Q2",
@@ -33,12 +32,6 @@ describe("components/roadmap/RoadmapItem", () => {
 		expect(screen.getByText("In Development")).toBeInTheDocument();
 	});
 
-	it("applies fallback icon color class for unknown color", () => {
-		const { container } = render(<RoadmapItem {...baseProps} color='unknown' status={RoadmapStatus.Future} />);
-		expect(container.querySelector(".bg-slate-100")).toBeTruthy();
-		expect(container.querySelector(".bg-gray-500")).toBeTruthy();
-	});
-
 	it("applies shipped status color styles", () => {
 		const { container } = render(<RoadmapItem {...baseProps} status={RoadmapStatus.Shipped} />);
 		expect(container.querySelector(".bg-green-500")).toBeTruthy();
@@ -46,7 +39,7 @@ describe("components/roadmap/RoadmapItem", () => {
 	});
 
 	it("covers all defined icon color variants", () => {
-		const colorCases: Array<[string, string]> = [
+		const colorCases: Array<[RoadmapColor, string]> = [
 			["emerald", "bg-emerald-100"],
 			["blue", "bg-blue-100"],
 			["purple", "bg-purple-100"],
