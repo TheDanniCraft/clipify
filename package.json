@@ -67,7 +67,7 @@
 		"jest-environment-jsdom": "^30.3.0",
 		"tailwindcss": "^4.2.2",
 		"tsx": "^4.21.0",
-		"typescript": "^6.0.2"
+		"typescript": "^6.0.3"
 	},
 	"patchedDependencies": {
 		"next@16.1.6": "patches/next@16.1.6.patch"
