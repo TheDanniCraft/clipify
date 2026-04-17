@@ -1,0 +1,2 @@
+CREATE INDEX "mod_queue_broadcaster_queued_at_idx" ON "modQueue" USING btree ("broadcaster_id","queued_at");--> statement-breakpoint
+CREATE INDEX "clip_queue_overlay_queued_at_idx" ON "clipQueue" USING btree ("overlay_id","queued_at");

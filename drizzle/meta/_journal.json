@@ -120,6 +120,13 @@
       "when": 1774554535031,
       "tag": "0016_first_whiplash",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1776436746006,
+      "tag": "0017_serious_wild_child",
+      "breakpoints": true
     }
   ]
 }
