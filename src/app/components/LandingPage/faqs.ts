@@ -15,7 +15,11 @@ const faqs: Faq[] = [
 	},
 	{
 		title: "Can I control which clips are played?",
-		content: "Yes! You can choose to play clips from today, all-time, or just your featured clips.",
+		content: "Yes! You can choose use different filters to control which clips are played, such as time range, minimum views, duration, or even specific keywords in the title. Alternatively you can use Playlist to handpick the clips you want to play.",
+	},
+	{
+		title: "What are playlists?",
+		content: "Normally, Clipify automatically selects clips based on your filters (e.g. last week). But with Playlists, you can handpick specific clips to play, even in a custom order. This gives you full control over the content that gets showcased on your stream.",
 	},
 	{
 		title: "Is there a free version of Clipify?",
@@ -30,8 +34,20 @@ const faqs: Faq[] = [
 		content: "Yes, you can add editors to help manage your overlay settings. Just make sure not to add yourself as an editor.",
 	},
 	{
+		title: "Can I customize the overlays to match my stream's branding?",
+		content: "Yes, with Theme Studio you can fully customize the look and feel of your overlays to match your stream's branding. You can adjust colors, fonts, effects, and more to create a unique and cohesive visual experience for your viewers.",
+	},
+	{
 		title: "What can I customize in Theme Studio?",
 		content: "You can drag and position overlay cards, resize them, nudge with arrow keys, customize colors/fonts/effects, and style the timer and progress bar to match your stream branding.",
+	},
+	{
+		title: "Can I control my overlay while not on my PC?",
+		content: "Yes, with the remote control feature you can fully control the overlay remotely. Want to skip a clip whilst taking a break? Or want to change the volume? All possible.",
+	},
+	{
+		title: "Can moderators control the overlay during a stream?",
+		content: "Yes, your moderators can either use the chat commands (can be used by all Channel Moderators) or the remote control panel if you add them as editors in the dashboard.",
 	},
 	{
 		title: "What are the benefits of the Pro version?",
