@@ -44,6 +44,21 @@ jest.mock("@heroui/react", () => ({
 			onBlur={(event) => onChangeEnd?.(Number(event.target.value))}
 		/>
 	),
+	Input: ({
+		value,
+		onChange,
+		isDisabled,
+		"aria-label": ariaLabel,
+		placeholder,
+		type,
+	}: {
+		value?: string;
+		onChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
+		isDisabled?: boolean;
+		"aria-label"?: string;
+		placeholder?: string;
+		type?: string;
+	}) => <input type={type ?? "text"} aria-label={ariaLabel} placeholder={placeholder} disabled={isDisabled} value={value} onChange={onChange} />,
 }));
 
 type SocketListener = (event: { data?: string; type?: string }) => void;

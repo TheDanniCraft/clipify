@@ -11,6 +11,7 @@ import { getFirstFromClipQueue, getFirstFromModQueue, removeFromClipQueue, remov
 import Logo from "@components/logo";
 import { IconAlertTriangle, IconPlayerPauseFilled, IconPlayerPlayFilled, IconVolume, IconVolumeOff } from "@tabler/icons-react";
 import { clamp, getSlotOpacity, parseThemeFontSetting, sanitizeFontCssUrl, trimCache } from "./overlayPlayer.utils";
+import { usePlausible } from "next-plausible";
 
 type VideoQualityWithNumeric = TwitchClipVideoQuality & { numericQuality: number };
 
@@ -465,6 +466,7 @@ export default function OverlayPlayer({
 	embedAutoplay?: boolean;
 	overlaySecret?: string;
 }) {
+	const plausible = usePlausible();
 	const CROSSFADE_SECONDS = 0.7;
 	const CROSSFADE_MS = Math.round(CROSSFADE_SECONDS * 1000);
 	const SHOW_FADE_SECONDS = 0.6;
@@ -1254,6 +1256,53 @@ export default function OverlayPlayer({
 	}, [activeCurrentTime, activeDuration, overlay.id, sendStateUpdate, videoClip]);
 
 	useEffect(() => {
+		const timer = setInterval(() => {
+			const activeVideo = activeSlot === "a" ? videoARef.current : videoBRef.current;
+			const liveDuration = activeVideo?.duration;
+			const liveCurrentTime = activeVideo?.currentTime;
+			const resolvedDuration = Number.isFinite(liveDuration) && (liveDuration ?? 0) > 0 ? (liveDuration ?? 0) : activeDuration || videoClip?.duration || 0;
+			const resolvedCurrentTime = Number.isFinite(liveCurrentTime) ? Math.max(0, liveCurrentTime ?? 0) : activeCurrentTime ?? 0;
+			const nextItems = [nextClipRef.current]
+				.filter((entry): entry is NonNullable<typeof entry> => Boolean(entry))
+				.map((entry) => ({
+					clipId: entry.id,
+					title: entry.title,
+					creatorName: entry.creator_name,
+					duration: entry.duration,
+					thumbnailUrl: entry.thumbnail_url ?? null,
+				}));
+
+			sendStateUpdate({
+				kind: "playback_state",
+				overlayId: overlay.id,
+				paused,
+				showPlayer,
+				volume: runtimeVolume,
+				muted: effectiveMuted,
+			});
+
+			sendStateUpdate({
+				kind: "now_playing",
+				overlayId: overlay.id,
+				clipId: videoClip?.id ?? null,
+				title: videoClip?.title ?? null,
+				creatorName: videoClip?.creator_name ?? null,
+				duration: resolvedDuration || null,
+				currentTime: resolvedCurrentTime,
+				thumbnailUrl: videoClip?.thumbnail_url ?? null,
+			});
+
+			sendStateUpdate({
+				kind: "queue_preview",
+				overlayId: overlay.id,
+				items: nextItems,
+			});
+		}, 500);
+
+		return () => clearInterval(timer);
+	}, [activeCurrentTime, activeDuration, activeSlot, effectiveMuted, overlay.id, paused, runtimeVolume, sendStateUpdate, showPlayer, videoClip]);
+
+	useEffect(() => {
 		const nextItems = [nextClip]
 			.filter((entry): entry is NonNullable<typeof entry> => Boolean(entry))
 			.map((entry) => ({
@@ -1276,7 +1325,7 @@ export default function OverlayPlayer({
 			sendStateUpdate({
 				kind: "heartbeat",
 				overlayId: overlay.id,
-				playerAttached: Boolean(clipRef.current),
+				playerAttached: true,
 				showPlayer,
 				paused,
 				currentClipId: clipRef.current?.id ?? null,
@@ -1649,10 +1698,19 @@ export default function OverlayPlayer({
 		}
 
 		if (clipRef.current) {
+			if (!isDemoPlayer) {
+				plausible("clip_played", {
+					props: {
+						overlayId: overlay.id,
+						clipId: clipRef.current.id,
+						mode: playbackMode,
+					},
+				});
+			}
 			playedClipsRef.current = [...playedClipsRef.current, clipRef.current.id];
 			setPlayedClips(playedClipsRef.current);
 		}
-	}, [activeSlot, isCrossfading, overlay.id, overlaySecret]);
+	}, [activeSlot, isCrossfading, isDemoPlayer, overlay.id, overlaySecret, playbackMode, plausible]);
 
 	const handleTimeUpdate = useCallback(
 		(slot: "a" | "b", video: HTMLVideoElement | null) => {

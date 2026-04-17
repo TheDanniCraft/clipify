@@ -2,7 +2,7 @@
 
 import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { IconBroadcast, IconLock, IconLockOpen2, IconEye, IconEyeOff, IconLayoutSidebarRightExpand, IconPlayerSkipForward, IconPlayerPauseFilled, IconPlayerPlayFilled, IconPlus, IconVolume, IconVolumeOff } from "@tabler/icons-react";
-import { Button, Chip, Image, Progress, Slider } from "@heroui/react";
+import { Button, Chip, Image, Input, Progress, Slider } from "@heroui/react";
 import { getControllerQueuesAction, runControllerAction, type ControllerQueueResponse } from "@actions/controller";
 
 type PlaybackState = {
@@ -451,7 +451,17 @@ export default function ControllerClient({ overlayId, controllerToken }: { overl
 										</Button>
 									</div>
 									<div className='mt-4 flex flex-col gap-3 sm:flex-row'>
-										<input type='url' value={modClipUrl} onChange={(event) => setModClipUrl(event.target.value)} aria-label='Mod queue clip URL' placeholder='https://clips.twitch.tv/...' className='h-11 flex-1 rounded-full border border-default-200 bg-content1 px-4 text-sm text-foreground outline-none transition focus:border-primary' disabled={interactiveControlsDisabled || isSubmittingModClip} />
+										<Input
+											type='url'
+											value={modClipUrl}
+											onChange={(event) => setModClipUrl(event.target.value)}
+											aria-label='Mod queue clip URL'
+											placeholder='https://clips.twitch.tv/...'
+											radius='full'
+											size='md'
+											className='flex-1'
+											isDisabled={interactiveControlsDisabled || isSubmittingModClip}
+										/>
 										<Button radius='full' color='primary' className='h-11 px-5 font-semibold' onPress={() => void submitModClip()} isDisabled={interactiveControlsDisabled || isSubmittingModClip || modClipUrl.trim().length === 0}>
 											Add clip
 										</Button>
