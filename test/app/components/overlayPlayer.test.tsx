@@ -776,6 +776,26 @@ describe("components/overlayPlayer", () => {
 		}
 	});
 
+	it("does not replay a skipped clip before the remaining session clips are exhausted", async () => {
+		const firstClip = buildClip("skip-repeat-a", { title: "skip-repeat-a", view_count: 300 });
+		const secondClip = buildClip("skip-repeat-b", { title: "skip-repeat-b", view_count: 200 });
+		const thirdClip = buildClip("skip-repeat-c", { title: "skip-repeat-c", view_count: 100 });
+		getTwitchClipBatch.mockResolvedValue([firstClip, secondClip, thirdClip]);
+
+		render(<OverlayPlayer overlay={buildOverlay({ playbackMode: "order", clipPackSize: 2 })} />);
+		await screen.findByText("skip-repeat-a");
+
+		const ws = MockWebSocket.instances[0];
+		await sendSocketPayload(ws, { type: "command", data: { name: "skip", data: "" } });
+		await waitFor(() => {
+			const laterFetchExcludesSkippedClip = getTwitchClipBatch.mock.calls.some((call) => {
+				const excludeIds = call[3];
+				return Array.isArray(excludeIds) && excludeIds.includes("skip-repeat-a");
+			});
+			expect(laterFetchExcludesSkippedClip).toBe(true);
+		});
+	});
+
 	it("crossfades to prefetched clip when incoming slot is ready near clip end", async () => {
 		jest.useFakeTimers();
 		const firstClip = buildClip("crossfade-a", { title: "crossfade-a", view_count: 900 });
@@ -1175,6 +1195,30 @@ describe("components/overlayPlayer", () => {
 		await waitFor(() => {
 			expect(removeFromModQueue).toHaveBeenCalledWith("queue-catch-next-item", "overlay-1", undefined);
 			expect(removeFromClipQueue).toHaveBeenCalledWith("queue-catch-next-item", "overlay-1", undefined);
+		});
+	});
+
+	it("drops an invalid queue-head clip and continues to the next queued clip", async () => {
+		const validClip = buildClip("queue-valid-next", { title: "queue-valid-next", view_count: 700 });
+		let queueCall = 0;
+		getFirstFromModQueue.mockImplementation(async () => {
+			queueCall += 1;
+			if (queueCall === 1) return { id: "queue-invalid-item", clipId: "queue-invalid-clip" };
+			if (queueCall === 2) return { id: "queue-valid-item", clipId: validClip.id };
+			return null;
+		});
+		getTwitchClip.mockImplementation(async (clipId: string) => {
+			if (clipId === validClip.id) return validClip;
+			return null;
+		});
+		getTwitchClipBatch.mockResolvedValue([]);
+
+		render(<OverlayPlayer overlay={buildOverlay({ playbackMode: "top" })} />);
+		await screen.findByText("queue-valid-next");
+
+		await waitFor(() => {
+			expect(removeFromModQueue).toHaveBeenCalledWith("queue-invalid-item", "overlay-1", undefined);
+			expect(removeFromClipQueue).toHaveBeenCalledWith("queue-invalid-item", "overlay-1", undefined);
 		});
 	});
 

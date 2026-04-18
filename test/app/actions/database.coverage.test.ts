@@ -98,9 +98,9 @@ jest.mock("@/db/schema", () => ({
 	overlaysTable: { id: "overlays.id", ownerId: "overlays.owner_id", secret: "overlays.secret", status: "overlays.status", updatedAt: "overlays.updated_at" },
 	playlistsTable: { id: "playlists.id", ownerId: "playlists.owner_id", createdAt: "playlists.created_at" },
 	playlistClipsTable: { playlistId: "playlist_clips.playlist_id", clipId: "playlist_clips.clip_id", position: "playlist_clips.position" },
-	queueTable: { id: "queue.id", overlayId: "queue.overlay_id" },
+	queueTable: { id: "queue.id", overlayId: "queue.overlay_id", queuedAt: "queue.queued_at" },
 	settingsTable: { id: "settings.id" },
-	modQueueTable: { id: "mod_queue.id", broadcasterId: "mod_queue.broadcaster_id" },
+	modQueueTable: { id: "mod_queue.id", broadcasterId: "mod_queue.broadcaster_id", queuedAt: "mod_queue.queued_at" },
 	tokenTable: { id: "token.id" },
 	editorsTable: { id: "editors.id", editorId: "editors.editor_id", userId: "editors.user_id" },
 	twitchCacheTable: { type: "twitch_cache.type", key: "twitch_cache.key", value: "twitch_cache.value", expiresAt: "twitch_cache.expires_at", fetchedAt: "twitch_cache.fetched_at" },
@@ -122,6 +122,7 @@ jest.mock("drizzle-orm", () => ({
 		},
 	),
 	desc: jest.fn(() => "desc"),
+	asc: jest.fn(() => "asc"),
 	max: jest.fn(() => "max"),
 }));
 

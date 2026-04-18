@@ -6,7 +6,7 @@ import { AuthenticatedUser, Overlay, Playlist, TwitchUserResponse, TwitchTokenAp
 import { getUserDetails, getUsersDetailsBulk, refreshAccessTokenWithContext, subscribeToReward, syncOwnerClipCache } from "@actions/twitch";
 import { syncProductUpdatesContact, getProductUpdatesSubscriptionStatus } from "@actions/newsletter";
 import { isTitleBlocked } from "@/app/utils/regexFilter";
-import { eq, inArray, and, or, isNull, lt, gt, sql, desc, max } from "drizzle-orm";
+import { eq, inArray, and, or, isNull, lt, gt, sql, desc, max, asc } from "drizzle-orm";
 import { validateAuth, validateAdminAuth } from "@actions/auth";
 import { encryptToken, decryptToken } from "@lib/tokenCrypto";
 import { getFeatureAccess } from "@lib/featureAccess";
@@ -1879,7 +1879,7 @@ export async function getClipQueue(overlayId: string, secret?: string) {
 
 export async function getFirstFromClipQueueByOverlayId(overlayId: string) {
 	try {
-		const result = await db.select().from(queueTable).where(eq(queueTable.overlayId, overlayId)).limit(1).execute();
+		const result = await db.select().from(queueTable).where(eq(queueTable.overlayId, overlayId)).orderBy(asc(queueTable.queuedAt)).limit(1).execute();
 
 		return result[0] || null;
 	} catch (error) {
@@ -1990,7 +1990,7 @@ export async function getModQueue(broadcasterId: string) {
 
 export async function getFirstFromModQueueByBroadcasterId(broadcasterId: string) {
 	try {
-		const result = await db.select().from(modQueueTable).where(eq(modQueueTable.broadcasterId, broadcasterId)).limit(1).execute();
+		const result = await db.select().from(modQueueTable).where(eq(modQueueTable.broadcasterId, broadcasterId)).orderBy(asc(modQueueTable.queuedAt)).limit(1).execute();
 		/* istanbul ignore next: fallback value */
 		return result[0] || null;
 	} catch (error) {

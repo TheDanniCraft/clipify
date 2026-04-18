@@ -13,11 +13,13 @@ const queueTable = {
 	id: "queue.id",
 	overlayId: "queue.overlay_id",
 	clipId: "queue.clip_id",
+	queuedAt: "queue.queued_at",
 };
 const modQueueTable = {
 	id: "mod_queue.id",
 	broadcasterId: "mod_queue.broadcaster_id",
 	clipId: "mod_queue.clip_id",
+	queuedAt: "mod_queue.queued_at",
 };
 const overlaysTable = {
     id: "overlays.id",
@@ -37,6 +39,7 @@ function makeSelectChain() {
 	const chain: Record<string, unknown> = {};
 	chain.from = () => chain;
 	chain.where = () => chain;
+	chain.orderBy = () => chain;
 	chain.limit = () => chain;
 	chain.execute = async () => (selectQueue.length > 0 ? selectQueue.shift() : []);
 	return chain;
@@ -98,6 +101,7 @@ jest.mock("drizzle-orm", () => ({
 		raw: jest.fn((value: unknown) => String(value)),
 	}),
 	desc: jest.fn(() => "desc"),
+	asc: jest.fn(() => "asc"),
 	max: jest.fn(() => "max"),
 }));
 

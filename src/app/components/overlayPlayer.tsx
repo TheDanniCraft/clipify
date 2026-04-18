@@ -487,6 +487,13 @@ export default function OverlayPlayer({
 		playedClipsRef.current = playedClips;
 	}, [playedClips]);
 
+	const markClipAsPlayed = useCallback((clipId: string | null | undefined) => {
+		if (!clipId) return;
+		if (playedClipsRef.current.includes(clipId)) return;
+		playedClipsRef.current = [...playedClipsRef.current, clipId];
+		setPlayedClips(playedClipsRef.current);
+	}, []);
+
 	const nextClipRef = useRef<VideoClip | null>(null);
 	const nextQueueItemRef = useRef<ModQueueItem | ClipQueueItem | null>(null);
 	useEffect(() => {
@@ -858,6 +865,17 @@ export default function OverlayPlayer({
 		return queClip ?? null;
 	}, [isEmbed, isDemoPlayer, overlay.id, overlaySecret]);
 
+	const discardQueueItem = useCallback(
+		async (queueItem: ModQueueItem | ClipQueueItem | null | undefined) => {
+			if (!queueItem) return;
+			await Promise.allSettled([
+				removeFromModQueue(queueItem.id, overlay.id, overlaySecret),
+				removeFromClipQueue(queueItem.id, overlay.id, overlaySecret),
+			]);
+		},
+		[overlay.id, overlaySecret],
+	);
+
 	type ClipCandidate = { clip: TwitchClip; queueItem?: ModQueueItem | ClipQueueItem };
 
 	const getRandomClip = useCallback(async (): Promise<ClipCandidate | null> => {
@@ -866,10 +884,12 @@ export default function OverlayPlayer({
 			if (demoClip) return { clip: demoClip };
 		}
 
-		const queClip = await getFirstQueClip();
-		if (queClip) {
+		for (let attempt = 0; attempt < 25; attempt += 1) {
+			const queClip = await getFirstQueClip();
+			if (!queClip) break;
 			const clip = await getTwitchClip(queClip.clipId, overlay.ownerId);
 			if (clip != null) return { clip, queueItem: queClip };
+			await discardQueueItem(queClip);
 		}
 
 		let availableClips = clipPoolRef.current;
@@ -883,6 +903,14 @@ export default function OverlayPlayer({
 		const currentId = clipRef.current?.id;
 
 		let candidates = availableClips.filter((c) => !played.includes(c.id) && c.id !== currentId && c.id !== nextId);
+
+		if (candidates.length === 0) {
+			const refreshedClips = await refreshClipPool();
+			if (Array.isArray(refreshedClips) && refreshedClips.length > 0) {
+				availableClips = clipPoolRef.current.length > 0 ? clipPoolRef.current : refreshedClips;
+				candidates = availableClips.filter((c) => !played.includes(c.id) && c.id !== currentId && c.id !== nextId);
+			}
+		}
 
 		if (candidates.length === 0) {
 			setPlayedClips([]);
@@ -982,7 +1010,7 @@ export default function OverlayPlayer({
 			if (playable) return { clip: playable };
 		}
 		return null;
-	}, [getFirstQueClip, getFirstFromDemoQueue, isDemoPlayer, overlay.ownerId, playbackMode, refreshClipPool]);
+	}, [discardQueueItem, getFirstQueClip, getFirstFromDemoQueue, isDemoPlayer, overlay.ownerId, playbackMode, refreshClipPool]);
 
 	const consumeQueueItem = useCallback(
 		async (queueItem: ModQueueItem | ClipQueueItem | null | undefined) => {
@@ -1055,6 +1083,7 @@ export default function OverlayPlayer({
 
 			const prefetched = nextClipRef.current;
 			if (prefetched) {
+				markClipAsPlayed(clipRef.current?.id);
 				nextClipRef.current = null;
 				setNextClip(null);
 				await consumeQueueItem(nextQueueItemRef.current);
@@ -1075,6 +1104,7 @@ export default function OverlayPlayer({
 			if (myReqId !== requestIdRef.current) return;
 
 			if (built) {
+				markClipAsPlayed(clipRef.current?.id);
 				await consumeQueueItem(candidate.queueItem);
 				activateClipImmediately(built);
 			}
@@ -1085,7 +1115,7 @@ export default function OverlayPlayer({
 				advanceClip().catch((error) => console.error("Error advancing clip after pending skip:", error));
 			}
 		}
-	}, [activateClipImmediately, buildVideoClipFast, consumeQueueItem, getRandomClip]);
+	}, [activateClipImmediately, buildVideoClipFast, consumeQueueItem, getRandomClip, markClipAsPlayed]);
 
 	const resetPrefetch = useCallback(() => {
 		prefetchAbortRef.current?.abort();
@@ -1707,10 +1737,9 @@ export default function OverlayPlayer({
 					},
 				});
 			}
-			playedClipsRef.current = [...playedClipsRef.current, clipRef.current.id];
-			setPlayedClips(playedClipsRef.current);
+			markClipAsPlayed(clipRef.current.id);
 		}
-	}, [activeSlot, isCrossfading, isDemoPlayer, overlay.id, overlaySecret, playbackMode, plausible]);
+	}, [activeSlot, isCrossfading, isDemoPlayer, markClipAsPlayed, overlay.id, overlaySecret, playbackMode, plausible]);
 
 	const handleTimeUpdate = useCallback(
 		(slot: "a" | "b", video: HTMLVideoElement | null) => {
@@ -1854,8 +1883,7 @@ export default function OverlayPlayer({
 			if (isCrossfading) return;
 			if (holdLastFrameRef.current) return;
 			setShowOverlay(false);
-			if (clipA) playedClipsRef.current = [...playedClipsRef.current, clipA.id];
-			setPlayedClips(playedClipsRef.current);
+			markClipAsPlayed(clipA?.id);
 			advanceClip();
 		};
 
@@ -1865,8 +1893,7 @@ export default function OverlayPlayer({
 			if (isCrossfading) return;
 			if (holdLastFrameRef.current) return;
 			setShowOverlay(false);
-			if (clipB) playedClipsRef.current = [...playedClipsRef.current, clipB.id];
-			setPlayedClips(playedClipsRef.current);
+			markClipAsPlayed(clipB?.id);
 			advanceClip();
 		};
 
