@@ -24,7 +24,7 @@ jobs:
     env:
       APP_REPO: ${{ github.repository }}
       GH_TOKEN: ${{ secrets.DASHBOARD_SYNC_TOKEN }}
-      CONFLICT_TARGET_REPO: TheDanniCraft/grafana-dashbaords
+      CONFLICT_TARGET_REPO: TheDanniCraft/grafana-dashboards
       OUTPUT_FILE: /tmp/dashboard-sync-output-clipify.json
     steps:
       - name: Checkout app repo
@@ -37,7 +37,7 @@ jobs:
       - name: Checkout dashboards repo
         uses: actions/checkout@v4
         with:
-          repository: TheDanniCraft/grafana-dashbaords
+          repository: TheDanniCraft/grafana-dashboards
           token: ${{ secrets.DASHBOARD_SYNC_TOKEN }}
           path: dashboards
           fetch-depth: 0
