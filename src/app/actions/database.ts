@@ -2,11 +2,29 @@
 
 import { tokenTable, usersTable, overlaysTable, playlistsTable, playlistClipsTable, queueTable, settingsTable, modQueueTable, editorsTable, twitchCacheTable } from "@/db/schema";
 import { db, QueryClient } from "@/db/client";
-import { AuthenticatedUser, Overlay, Playlist, TwitchUserResponse, TwitchTokenApiResponse, UserToken, Plan, Role, UserSettings, TwitchCacheType, StatusOptions, OverlayType, PlaybackMode, MaxDurationMode, TwitchClip } from "@types";
-import { getUserDetails, getUsersDetailsBulk, refreshAccessTokenWithContext, subscribeToReward, syncOwnerClipCache } from "@actions/twitch";
+import {
+	AuthenticatedUser,
+	ClipQueueItem,
+	ModQueueItem,
+	Overlay,
+	Playlist,
+	TwitchUserResponse,
+	TwitchTokenApiResponse,
+	UserToken,
+	Plan,
+	Role,
+	UserSettings,
+	TwitchCacheType,
+	StatusOptions,
+	OverlayType,
+	PlaybackMode,
+	MaxDurationMode,
+	TwitchClip,
+} from "@types";
+import { getTwitchClipLookup, getUserDetails, getUsersDetailsBulk, refreshAccessTokenWithContext, subscribeToReward, syncOwnerClipCache } from "@actions/twitch";
 import { syncProductUpdatesContact, getProductUpdatesSubscriptionStatus } from "@actions/newsletter";
 import { isTitleBlocked } from "@/app/utils/regexFilter";
-import { eq, inArray, and, or, isNull, lt, gt, sql, desc, max } from "drizzle-orm";
+import { eq, inArray, and, or, isNull, lt, gt, sql, desc, max, asc } from "drizzle-orm";
 import { validateAuth, validateAdminAuth } from "@actions/auth";
 import { encryptToken, decryptToken } from "@lib/tokenCrypto";
 import { getFeatureAccess } from "@lib/featureAccess";
@@ -1879,7 +1897,7 @@ export async function getClipQueue(overlayId: string, secret?: string) {
 
 export async function getFirstFromClipQueueByOverlayId(overlayId: string) {
 	try {
-		const result = await db.select().from(queueTable).where(eq(queueTable.overlayId, overlayId)).limit(1).execute();
+		const result = await db.select().from(queueTable).where(eq(queueTable.overlayId, overlayId)).orderBy(asc(queueTable.queuedAt), asc(queueTable.id)).limit(1).execute();
 
 		return result[0] || null;
 	} catch (error) {
@@ -1990,12 +2008,52 @@ export async function getModQueue(broadcasterId: string) {
 
 export async function getFirstFromModQueueByBroadcasterId(broadcasterId: string) {
 	try {
-		const result = await db.select().from(modQueueTable).where(eq(modQueueTable.broadcasterId, broadcasterId)).limit(1).execute();
+		const result = await db.select().from(modQueueTable).where(eq(modQueueTable.broadcasterId, broadcasterId)).orderBy(asc(modQueueTable.queuedAt), asc(modQueueTable.id)).limit(1).execute();
 		/* istanbul ignore next: fallback value */
 		return result[0] || null;
 	} catch (error) {
 		console.error("Error fetching first clip from mod queue:", error);
 		throw new Error("Failed to fetch first clip from mod queue");
+	}
+}
+
+export async function getFirstValidQueuedClip(
+	overlayId: string,
+	secret?: string,
+): Promise<{ clip: TwitchClip; queueItem: ModQueueItem | ClipQueueItem } | null> {
+	try {
+		const overlay = await requireOverlaySecretAccess(overlayId, secret);
+		if (!overlay) return null;
+
+		while (true) {
+			const modClip = await getFirstFromModQueueByBroadcasterId(overlay.ownerId);
+			if (modClip) {
+				const clipLookup = await getTwitchClipLookup(modClip.clipId, overlay.ownerId);
+				if (clipLookup.clip) return { clip: clipLookup.clip, queueItem: modClip };
+				if (clipLookup.status !== "not_found") return null;
+
+				await db
+					.delete(modQueueTable)
+					.where(and(eq(modQueueTable.id, modClip.id), eq(modQueueTable.broadcasterId, overlay.ownerId)))
+					.execute();
+				continue;
+			}
+
+			const queuedClip = await getFirstFromClipQueueByOverlayId(overlayId);
+			if (!queuedClip) return null;
+
+			const clipLookup = await getTwitchClipLookup(queuedClip.clipId, overlay.ownerId);
+			if (clipLookup.clip) return { clip: clipLookup.clip, queueItem: queuedClip };
+			if (clipLookup.status !== "not_found") return null;
+
+			await db
+				.delete(queueTable)
+				.where(and(eq(queueTable.id, queuedClip.id), eq(queueTable.overlayId, overlayId)))
+				.execute();
+		}
+	} catch (error) {
+		console.error("Error fetching first valid queued clip:", error);
+		throw new Error("Failed to fetch first valid queued clip");
 	}
 }
 

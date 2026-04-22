@@ -2,12 +2,12 @@
 
 import { type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type RefObject, type SyntheticEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ClipQueueItem, ModQueueItem, Overlay, PlaybackMode, TwitchClip, TwitchClipGqlData, TwitchClipGqlResponse, TwitchClipVideoQuality, VideoClip } from "@types";
-import { getAvatar, getDemoClip, getGameDetails, getTwitchClip, getTwitchClipBatch, resolvePlayableClip, subscribeToChat } from "@actions/twitch";
+import { getAvatar, getDemoClip, getGameDetails, getTwitchClipBatch, resolvePlayableClip, subscribeToChat } from "@actions/twitch";
 import PlayerOverlay from "@components/playerOverlay";
 import { Avatar, Button, Link } from "@heroui/react";
 import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
-import { getFirstFromClipQueue, getFirstFromModQueue, removeFromClipQueue, removeFromModQueue } from "@actions/database";
+import { getFirstValidQueuedClip, removeFromClipQueue, removeFromModQueue } from "@actions/database";
 import Logo from "@components/logo";
 import { IconAlertTriangle, IconPlayerPauseFilled, IconPlayerPlayFilled, IconVolume, IconVolumeOff } from "@tabler/icons-react";
 import { clamp, getSlotOpacity, parseThemeFontSetting, sanitizeFontCssUrl, trimCache } from "./overlayPlayer.utils";
@@ -487,6 +487,13 @@ export default function OverlayPlayer({
 		playedClipsRef.current = playedClips;
 	}, [playedClips]);
 
+	const markClipAsPlayed = useCallback((clipId: string | null | undefined) => {
+		if (!clipId) return;
+		if (playedClipsRef.current.includes(clipId)) return;
+		playedClipsRef.current = [...playedClipsRef.current, clipId];
+		setPlayedClips(playedClipsRef.current);
+	}, []);
+
 	const nextClipRef = useRef<VideoClip | null>(null);
 	const nextQueueItemRef = useRef<ModQueueItem | ClipQueueItem | null>(null);
 	useEffect(() => {
@@ -848,16 +855,6 @@ export default function OverlayPlayer({
 		return null;
 	}, []);
 
-	const getFirstQueClip = useCallback(async (): Promise<ModQueueItem | ClipQueueItem | null> => {
-		if (isEmbed || isDemoPlayer) return null;
-
-		const modClip = await getFirstFromModQueue(overlay.id, overlaySecret);
-		if (modClip) return modClip;
-
-		const queClip = await getFirstFromClipQueue(overlay.id, overlaySecret);
-		return queClip ?? null;
-	}, [isEmbed, isDemoPlayer, overlay.id, overlaySecret]);
-
 	type ClipCandidate = { clip: TwitchClip; queueItem?: ModQueueItem | ClipQueueItem };
 
 	const getRandomClip = useCallback(async (): Promise<ClipCandidate | null> => {
@@ -866,10 +863,9 @@ export default function OverlayPlayer({
 			if (demoClip) return { clip: demoClip };
 		}
 
-		const queClip = await getFirstQueClip();
-		if (queClip) {
-			const clip = await getTwitchClip(queClip.clipId, overlay.ownerId);
-			if (clip != null) return { clip, queueItem: queClip };
+		if (!isEmbed && !isDemoPlayer) {
+			const queuedClip = await getFirstValidQueuedClip(overlay.id, overlaySecret);
+			if (queuedClip) return queuedClip;
 		}
 
 		let availableClips = clipPoolRef.current;
@@ -883,6 +879,18 @@ export default function OverlayPlayer({
 		const currentId = clipRef.current?.id;
 
 		let candidates = availableClips.filter((c) => !played.includes(c.id) && c.id !== currentId && c.id !== nextId);
+
+		if (candidates.length === 0) {
+			const refreshedClips = await refreshClipPool();
+			if (Array.isArray(refreshedClips) && refreshedClips.length > 0) {
+				availableClips = refreshedClips;
+				candidates = availableClips.filter((c) => !played.includes(c.id) && c.id !== currentId && c.id !== nextId);
+			} else if (Array.isArray(availableClips) && availableClips.length > 0) {
+				setPlayedClips([]);
+				playedClipsRef.current = [];
+				candidates = availableClips.filter((c) => c.id !== currentId && c.id !== nextId);
+			}
+		}
 
 		if (candidates.length === 0) {
 			setPlayedClips([]);
@@ -982,7 +990,7 @@ export default function OverlayPlayer({
 			if (playable) return { clip: playable };
 		}
 		return null;
-	}, [getFirstQueClip, getFirstFromDemoQueue, isDemoPlayer, overlay.ownerId, playbackMode, refreshClipPool]);
+	}, [getFirstFromDemoQueue, isDemoPlayer, isEmbed, overlay.id, overlay.ownerId, overlaySecret, playbackMode, refreshClipPool]);
 
 	const consumeQueueItem = useCallback(
 		async (queueItem: ModQueueItem | ClipQueueItem | null | undefined) => {
@@ -1055,6 +1063,7 @@ export default function OverlayPlayer({
 
 			const prefetched = nextClipRef.current;
 			if (prefetched) {
+				markClipAsPlayed(clipRef.current?.id);
 				nextClipRef.current = null;
 				setNextClip(null);
 				await consumeQueueItem(nextQueueItemRef.current);
@@ -1075,6 +1084,7 @@ export default function OverlayPlayer({
 			if (myReqId !== requestIdRef.current) return;
 
 			if (built) {
+				markClipAsPlayed(clipRef.current?.id);
 				await consumeQueueItem(candidate.queueItem);
 				activateClipImmediately(built);
 			}
@@ -1085,7 +1095,7 @@ export default function OverlayPlayer({
 				advanceClip().catch((error) => console.error("Error advancing clip after pending skip:", error));
 			}
 		}
-	}, [activateClipImmediately, buildVideoClipFast, consumeQueueItem, getRandomClip]);
+	}, [activateClipImmediately, buildVideoClipFast, consumeQueueItem, getRandomClip, markClipAsPlayed]);
 
 	const resetPrefetch = useCallback(() => {
 		prefetchAbortRef.current?.abort();
@@ -1707,10 +1717,9 @@ export default function OverlayPlayer({
 					},
 				});
 			}
-			playedClipsRef.current = [...playedClipsRef.current, clipRef.current.id];
-			setPlayedClips(playedClipsRef.current);
+			markClipAsPlayed(clipRef.current.id);
 		}
-	}, [activeSlot, isCrossfading, isDemoPlayer, overlay.id, overlaySecret, playbackMode, plausible]);
+	}, [activeSlot, isCrossfading, isDemoPlayer, markClipAsPlayed, overlay.id, overlaySecret, playbackMode, plausible]);
 
 	const handleTimeUpdate = useCallback(
 		(slot: "a" | "b", video: HTMLVideoElement | null) => {
@@ -1854,8 +1863,7 @@ export default function OverlayPlayer({
 			if (isCrossfading) return;
 			if (holdLastFrameRef.current) return;
 			setShowOverlay(false);
-			if (clipA) playedClipsRef.current = [...playedClipsRef.current, clipA.id];
-			setPlayedClips(playedClipsRef.current);
+			markClipAsPlayed(clipA?.id);
 			advanceClip();
 		};
 
@@ -1865,8 +1873,7 @@ export default function OverlayPlayer({
 			if (isCrossfading) return;
 			if (holdLastFrameRef.current) return;
 			setShowOverlay(false);
-			if (clipB) playedClipsRef.current = [...playedClipsRef.current, clipB.id];
-			setPlayedClips(playedClipsRef.current);
+			markClipAsPlayed(clipB?.id);
 			advanceClip();
 		};
 
