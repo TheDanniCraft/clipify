@@ -41,7 +41,7 @@
 										"group": "influxdb",
 										"kind": "DataQuery",
 										"spec": {
-											"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"clipify_vm01\")\n  |> filter(fn: (r) => r[\"_field\"] == \"db_latencyMs\")\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])\n  |> group(columns: [\"_field\"])\n  |> last()"
+											"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"clipify_vm01\")\n  |> filter(fn: (r) => r[\"_field\"] == \"db_pingMs\")\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])\n  |> group(columns: [\"_field\"])\n  |> last()"
 										},
 										"version": "v0"
 									},
@@ -53,10 +53,10 @@
 						"transformations": []
 					}
 				},
-				"description": "Latest database latency for clipify_vm01.",
+				"description": "Latest database ping for clipify_vm01.",
 				"id": 3,
 				"links": [],
-				"title": "DB Latency",
+				"title": "DB Ping",
 				"vizConfig": {
 					"group": "stat",
 					"kind": "VizConfig",
@@ -76,15 +76,15 @@
 										},
 										{
 											"color": "yellow",
-											"value": 180
+											"value": 25
 										},
 										{
 											"color": "orange",
-											"value": 250
+											"value": 50
 										},
 										{
 											"color": "red",
-											"value": 400
+											"value": 100
 										}
 									]
 								},
@@ -94,12 +94,12 @@
 								{
 									"matcher": {
 										"id": "byName",
-										"options": "db_latencyMs"
+										"options": "db_pingMs"
 									},
 									"properties": [
 										{
 											"id": "displayName",
-											"value": "DB Latency"
+											"value": "DB Ping"
 										}
 									]
 								}
@@ -819,7 +819,7 @@
 										"group": "influxdb",
 										"kind": "DataQuery",
 										"spec": {
-											"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"clipify_vm01\")\n  |> filter(fn: (r) =>\n      r[\"_field\"] == \"db_latencyMs\"\n    )\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)"
+											"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"clipify_vm01\")\n  |> filter(fn: (r) =>\n      r[\"_field\"] == \"db_pingMs\" or\n      r[\"_field\"] == \"db_healthAggregationMs\"\n    )\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)"
 										},
 										"version": "v0"
 									},
@@ -831,10 +831,10 @@
 						"transformations": []
 					}
 				},
-				"description": "Trend of database latency.",
+				"description": "Trend of database ping and full health aggregation duration.",
 				"id": 13,
 				"links": [],
-				"title": "DB Latency Over Time",
+				"title": "Health Timing Over Time",
 				"vizConfig": {
 					"group": "timeseries",
 					"kind": "VizConfig",
@@ -906,12 +906,72 @@
 								{
 									"matcher": {
 										"id": "byName",
-										"options": "db_latencyMs"
+										"options": "db_pingMs"
 									},
 									"properties": [
 										{
 											"id": "displayName",
-											"value": "DB Latency"
+											"value": "DB Ping"
+										},
+										{
+											"id": "thresholds",
+											"value": {
+												"mode": "absolute",
+												"steps": [
+													{
+														"color": "green",
+														"value": 0
+													},
+													{
+														"color": "#EAB839",
+														"value": 25
+													},
+													{
+														"color": "orange",
+														"value": 50
+													},
+													{
+														"color": "red",
+														"value": 100
+													}
+												]
+											}
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "db_healthAggregationMs"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Health Aggregation"
+										},
+										{
+											"id": "thresholds",
+											"value": {
+												"mode": "absolute",
+												"steps": [
+													{
+														"color": "green",
+														"value": 0
+													},
+													{
+														"color": "#EAB839",
+														"value": 180
+													},
+													{
+														"color": "orange",
+														"value": 250
+													},
+													{
+														"color": "red",
+														"value": 400
+													}
+												]
+											}
 										}
 									]
 								}
