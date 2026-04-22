@@ -6,13 +6,11 @@ import OverlayPlayer from "@/app/components/overlayPlayer";
 const getAvatar = jest.fn();
 const getDemoClip = jest.fn();
 const getGameDetails = jest.fn();
-const getTwitchClip = jest.fn();
 const getTwitchClipBatch = jest.fn();
 const resolvePlayableClip = jest.fn();
 const subscribeToChat = jest.fn();
 
-const getFirstFromClipQueue = jest.fn();
-const getFirstFromModQueue = jest.fn();
+const getFirstValidQueuedClip = jest.fn();
 const removeFromClipQueue = jest.fn();
 const removeFromModQueue = jest.fn();
 
@@ -20,15 +18,13 @@ jest.mock("@actions/twitch", () => ({
 	getAvatar: (...args: unknown[]) => getAvatar(...args),
 	getDemoClip: (...args: unknown[]) => getDemoClip(...args),
 	getGameDetails: (...args: unknown[]) => getGameDetails(...args),
-	getTwitchClip: (...args: unknown[]) => getTwitchClip(...args),
 	getTwitchClipBatch: (...args: unknown[]) => getTwitchClipBatch(...args),
 	resolvePlayableClip: (...args: unknown[]) => resolvePlayableClip(...args),
 	subscribeToChat: (...args: unknown[]) => subscribeToChat(...args),
 }));
 
 jest.mock("@actions/database", () => ({
-	getFirstFromClipQueue: (...args: unknown[]) => getFirstFromClipQueue(...args),
-	getFirstFromModQueue: (...args: unknown[]) => getFirstFromModQueue(...args),
+	getFirstValidQueuedClip: (...args: unknown[]) => getFirstValidQueuedClip(...args),
 	removeFromClipQueue: (...args: unknown[]) => removeFromClipQueue(...args),
 	removeFromModQueue: (...args: unknown[]) => removeFromModQueue(...args),
 }));
@@ -255,12 +251,10 @@ describe("components/overlayPlayer", () => {
 		getAvatar.mockResolvedValue("https://avatar.example/owner.png");
 		getGameDetails.mockResolvedValue({ id: "game-1", name: "Game", box_art_url: "", igdb_id: "" });
 		getDemoClip.mockResolvedValue(null);
-		getTwitchClip.mockResolvedValue(null);
 		getTwitchClipBatch.mockResolvedValue([]);
 		resolvePlayableClip.mockImplementation(async (_ownerId: string, clip: unknown) => clip);
 		subscribeToChat.mockResolvedValue(undefined);
-		getFirstFromModQueue.mockResolvedValue(null);
-		getFirstFromClipQueue.mockResolvedValue(null);
+		getFirstValidQueuedClip.mockResolvedValue(null);
 		removeFromModQueue.mockResolvedValue(undefined);
 		removeFromClipQueue.mockResolvedValue(undefined);
 		for (const element of Array.from(document.head.querySelectorAll("link[id^='overlay-font-']"))) {
@@ -274,14 +268,12 @@ describe("components/overlayPlayer", () => {
 
 	it("prefers mod queue clips over normal queue during clip selection", async () => {
 		const queuedClip = buildClip("mod-priority", { title: "mod-priority-clip" });
-		getFirstFromModQueue.mockResolvedValue({ id: "mod-q1", clipId: queuedClip.id });
-		getTwitchClip.mockResolvedValue(queuedClip);
+		getFirstValidQueuedClip.mockResolvedValue({ clip: queuedClip, queueItem: { id: "mod-q1", clipId: queuedClip.id } });
 
 		render(<OverlayPlayer overlay={buildOverlay()} />);
 
 		await screen.findByText("mod-priority-clip");
-		expect(getFirstFromModQueue).toHaveBeenCalledWith("overlay-1", undefined);
-		expect(getFirstFromClipQueue).not.toHaveBeenCalled();
+		expect(getFirstValidQueuedClip).toHaveBeenCalledWith("overlay-1", undefined);
 		expect(removeFromModQueue).toHaveBeenCalledWith("mod-q1", "overlay-1", undefined);
 		expect(removeFromClipQueue).toHaveBeenCalledWith("mod-q1", "overlay-1", undefined);
 	});
@@ -758,8 +750,7 @@ describe("components/overlayPlayer", () => {
 
 	it("keeps current clip when skip cannot fetch new clips and cache refresh fails", async () => {
 		const queueClip = buildClip("queue-only", { title: "queue-only-clip" });
-		getFirstFromModQueue.mockResolvedValueOnce({ id: "queued-1", clipId: queueClip.id });
-		getTwitchClip.mockResolvedValue(queueClip);
+		getFirstValidQueuedClip.mockResolvedValueOnce({ clip: queueClip, queueItem: { id: "queued-1", clipId: queueClip.id } });
 		getTwitchClipBatch.mockRejectedValue(new Error("cache unavailable"));
 		const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => undefined);
 
@@ -787,13 +778,12 @@ describe("components/overlayPlayer", () => {
 
 		const ws = MockWebSocket.instances[0];
 		await sendSocketPayload(ws, { type: "command", data: { name: "skip", data: "" } });
-		await waitFor(() => {
-			const laterFetchExcludesSkippedClip = getTwitchClipBatch.mock.calls.some((call) => {
-				const excludeIds = call[3];
-				return Array.isArray(excludeIds) && excludeIds.includes("skip-repeat-a");
-			});
-			expect(laterFetchExcludesSkippedClip).toBe(true);
-		});
+		await screen.findByText("skip-repeat-b");
+		expect(screen.queryByText("skip-repeat-a")).not.toBeInTheDocument();
+
+		await sendSocketPayload(ws, { type: "command", data: { name: "skip", data: "" } });
+		await screen.findByText("skip-repeat-c");
+		expect(screen.queryByText("skip-repeat-a")).not.toBeInTheDocument();
 	});
 
 	it("crossfades to prefetched clip when incoming slot is ready near clip end", async () => {
@@ -1080,25 +1070,24 @@ describe("components/overlayPlayer", () => {
 	it("queues a pending skip while advance is locked and drains it in finally", async () => {
 		const startClip = buildClip("queue-start", { title: "queue-start-clip", view_count: 999 });
 		const skipFirst = buildClip("skip-first", { title: "skip-first-clip", view_count: 300 });
-		let modQueueCall = 0;
+		let queueCall = 0;
 		let releaseSkipLock: (() => void) | null = null;
 
-		getFirstFromModQueue.mockImplementation(async () => {
-			modQueueCall += 1;
-			if (modQueueCall === 1) return { id: "mod-start", clipId: startClip.id };
-			if (modQueueCall === 2) return null;
-			if (modQueueCall === 3) {
+		getFirstValidQueuedClip.mockImplementation(async () => {
+			queueCall += 1;
+			if (queueCall === 1) return { clip: startClip, queueItem: { id: "mod-start", clipId: startClip.id } };
+			if (queueCall === 2) return null;
+			if (queueCall === 3) {
 				await new Promise<void>((resolve) => {
 					releaseSkipLock = resolve;
 				});
 				return null;
 			}
-			if (modQueueCall === 4) {
+			if (queueCall === 4) {
 				throw new Error("recursive-advance-failed");
 			}
 			return null;
 		});
-		getTwitchClip.mockResolvedValue(startClip);
 		getTwitchClipBatch.mockResolvedValueOnce([]).mockResolvedValueOnce([skipFirst]);
 		const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => undefined);
 
@@ -1133,15 +1122,10 @@ describe("components/overlayPlayer", () => {
 		const firstClip = buildClip("prefetch-catch-a", { title: "prefetch-catch-a", view_count: 900 });
 		const secondClip = buildClip("prefetch-catch-b", { title: "prefetch-catch-b", view_count: 700 });
 		let queueCall = 0;
-		getFirstFromModQueue.mockImplementation(async () => {
+		getFirstValidQueuedClip.mockImplementation(async () => {
 			queueCall += 1;
-			if (queueCall === 1) return { id: "prefetch-q-1", clipId: firstClip.id };
-			if (queueCall === 2) return { id: "prefetch-q-2", clipId: secondClip.id };
-			return null;
-		});
-		getTwitchClip.mockImplementation(async (clipId: string) => {
-			if (clipId === firstClip.id) return firstClip;
-			if (clipId === secondClip.id) return secondClip;
+			if (queueCall === 1) return { clip: firstClip, queueItem: { id: "prefetch-q-1", clipId: firstClip.id } };
+			if (queueCall === 2) return { clip: secondClip, queueItem: { id: "prefetch-q-2", clipId: secondClip.id } };
 			return null;
 		});
 		getTwitchClipBatch.mockResolvedValue([]);
@@ -1168,15 +1152,10 @@ describe("components/overlayPlayer", () => {
 		const startClip = buildClip("queue-catch-start", { title: "queue-catch-start", view_count: 900 });
 		const skipClip = buildClip("queue-catch-next", { title: "queue-catch-next", view_count: 700 });
 		let queueCall = 0;
-		getFirstFromModQueue.mockImplementation(async () => {
+		getFirstValidQueuedClip.mockImplementation(async () => {
 			queueCall += 1;
-			if (queueCall === 1) return { id: "queue-catch-start-item", clipId: startClip.id };
-			if (queueCall === 3) return { id: "queue-catch-next-item", clipId: skipClip.id };
-			return null;
-		});
-		getTwitchClip.mockImplementation(async (clipId: string) => {
-			if (clipId === startClip.id) return startClip;
-			if (clipId === skipClip.id) return skipClip;
+			if (queueCall === 1) return { clip: startClip, queueItem: { id: "queue-catch-start-item", clipId: startClip.id } };
+			if (queueCall === 3) return { clip: skipClip, queueItem: { id: "queue-catch-next-item", clipId: skipClip.id } };
 			return null;
 		});
 		getTwitchClipBatch.mockResolvedValue([]);
@@ -1200,25 +1179,15 @@ describe("components/overlayPlayer", () => {
 
 	it("drops an invalid queue-head clip and continues to the next queued clip", async () => {
 		const validClip = buildClip("queue-valid-next", { title: "queue-valid-next", view_count: 700 });
-		let queueCall = 0;
-		getFirstFromModQueue.mockImplementation(async () => {
-			queueCall += 1;
-			if (queueCall === 1) return { id: "queue-invalid-item", clipId: "queue-invalid-clip" };
-			if (queueCall === 2) return { id: "queue-valid-item", clipId: validClip.id };
-			return null;
-		});
-		getTwitchClip.mockImplementation(async (clipId: string) => {
-			if (clipId === validClip.id) return validClip;
-			return null;
-		});
+		getFirstValidQueuedClip.mockResolvedValue({ clip: validClip, queueItem: { id: "queue-valid-item", clipId: validClip.id } });
 		getTwitchClipBatch.mockResolvedValue([]);
 
 		render(<OverlayPlayer overlay={buildOverlay({ playbackMode: "top" })} />);
 		await screen.findByText("queue-valid-next");
 
 		await waitFor(() => {
-			expect(removeFromModQueue).toHaveBeenCalledWith("queue-invalid-item", "overlay-1", undefined);
-			expect(removeFromClipQueue).toHaveBeenCalledWith("queue-invalid-item", "overlay-1", undefined);
+			expect(removeFromModQueue).toHaveBeenCalledWith("queue-valid-item", "overlay-1", undefined);
+			expect(removeFromClipQueue).toHaveBeenCalledWith("queue-valid-item", "overlay-1", undefined);
 		});
 	});
 

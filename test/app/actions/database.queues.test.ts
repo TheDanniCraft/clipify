@@ -112,6 +112,11 @@ jest.mock("@actions/auth", () => ({
 	validateAdminAuth,
 }));
 
+const twitch = {
+	getTwitchClipLookup: jest.fn(),
+};
+jest.mock("@actions/twitch", () => twitch);
+
 async function loadDatabaseActions() {
 	jest.resetModules();
 	return import("@/app/actions/database");
@@ -126,6 +131,7 @@ describe("actions/database queue logic", () => {
 		dbSelect.mockImplementation(() => makeSelectChain());
 		dbInsert.mockImplementation((table: unknown) => makeInsertChain(table));
 		dbDelete.mockImplementation((table: unknown) => makeDeleteChain(table));
+		twitch.getTwitchClipLookup.mockResolvedValue({ clip: null, status: "transient_error" });
 	});
 
 	it("adds to clip queue", async () => {
@@ -269,6 +275,37 @@ describe("actions/database queue logic", () => {
         await clearModQueue("overlay-1", "wrong-secret");
         expect(deleteCalls.some(call => call.table === modQueueTable)).toBe(false);
     });
+
+	it("keeps a queued mod clip when the Twitch lookup fails transiently", async () => {
+		const { getFirstValidQueuedClip } = await loadDatabaseActions();
+		queueSelectResult([{ id: "overlay-1", secret: "secret-1", ownerId: "owner-1" }]); // overlay select
+		queueSelectResult([{ disabled: false }]); // owner select
+		queueSelectResult([{ id: "mod-1", clipId: "clip-1" }]); // mod queue select
+		twitch.getTwitchClipLookup.mockResolvedValue({ clip: null, status: "transient_error" });
+
+		const result = await getFirstValidQueuedClip("overlay-1", "secret-1");
+		expect(result).toBeNull();
+		expect(deleteCalls.some((call) => call.table === modQueueTable || call.table === queueTable)).toBe(false);
+	});
+
+	it("drops a missing queued mod clip and continues to the next queued clip", async () => {
+		const { getFirstValidQueuedClip } = await loadDatabaseActions();
+		queueSelectResult([{ id: "overlay-1", secret: "secret-1", ownerId: "owner-1" }]); // overlay select
+		queueSelectResult([{ disabled: false }]); // owner select
+		queueSelectResult([{ id: "mod-missing", clipId: "missing-clip" }]); // first mod queue select
+		queueSelectResult([]); // second mod queue select
+		queueSelectResult([{ id: "queue-valid", clipId: "valid-clip" }]); // clip queue select
+		twitch.getTwitchClipLookup
+			.mockResolvedValueOnce({ clip: null, status: "not_found" })
+			.mockResolvedValueOnce({ clip: { id: "valid-clip" }, status: "ok" });
+
+		const result = await getFirstValidQueuedClip("overlay-1", "secret-1");
+		expect(result).toEqual({
+			clip: { id: "valid-clip" },
+			queueItem: { id: "queue-valid", clipId: "valid-clip" },
+		});
+		expect(deleteCalls.some((call) => call.table === modQueueTable)).toBe(true);
+	});
 
     describe("error cases", () => {
         it("handles error in addToClipQueue", async () => {

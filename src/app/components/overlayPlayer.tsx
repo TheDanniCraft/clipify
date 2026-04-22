@@ -2,12 +2,12 @@
 
 import { type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type RefObject, type SyntheticEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ClipQueueItem, ModQueueItem, Overlay, PlaybackMode, TwitchClip, TwitchClipGqlData, TwitchClipGqlResponse, TwitchClipVideoQuality, VideoClip } from "@types";
-import { getAvatar, getDemoClip, getGameDetails, getTwitchClip, getTwitchClipBatch, resolvePlayableClip, subscribeToChat } from "@actions/twitch";
+import { getAvatar, getDemoClip, getGameDetails, getTwitchClipBatch, resolvePlayableClip, subscribeToChat } from "@actions/twitch";
 import PlayerOverlay from "@components/playerOverlay";
 import { Avatar, Button, Link } from "@heroui/react";
 import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
-import { getFirstFromClipQueue, getFirstFromModQueue, removeFromClipQueue, removeFromModQueue } from "@actions/database";
+import { getFirstValidQueuedClip, removeFromClipQueue, removeFromModQueue } from "@actions/database";
 import Logo from "@components/logo";
 import { IconAlertTriangle, IconPlayerPauseFilled, IconPlayerPlayFilled, IconVolume, IconVolumeOff } from "@tabler/icons-react";
 import { clamp, getSlotOpacity, parseThemeFontSetting, sanitizeFontCssUrl, trimCache } from "./overlayPlayer.utils";
@@ -855,27 +855,6 @@ export default function OverlayPlayer({
 		return null;
 	}, []);
 
-	const getFirstQueClip = useCallback(async (): Promise<ModQueueItem | ClipQueueItem | null> => {
-		if (isEmbed || isDemoPlayer) return null;
-
-		const modClip = await getFirstFromModQueue(overlay.id, overlaySecret);
-		if (modClip) return modClip;
-
-		const queClip = await getFirstFromClipQueue(overlay.id, overlaySecret);
-		return queClip ?? null;
-	}, [isEmbed, isDemoPlayer, overlay.id, overlaySecret]);
-
-	const discardQueueItem = useCallback(
-		async (queueItem: ModQueueItem | ClipQueueItem | null | undefined) => {
-			if (!queueItem) return;
-			await Promise.allSettled([
-				removeFromModQueue(queueItem.id, overlay.id, overlaySecret),
-				removeFromClipQueue(queueItem.id, overlay.id, overlaySecret),
-			]);
-		},
-		[overlay.id, overlaySecret],
-	);
-
 	type ClipCandidate = { clip: TwitchClip; queueItem?: ModQueueItem | ClipQueueItem };
 
 	const getRandomClip = useCallback(async (): Promise<ClipCandidate | null> => {
@@ -884,12 +863,9 @@ export default function OverlayPlayer({
 			if (demoClip) return { clip: demoClip };
 		}
 
-		for (let attempt = 0; attempt < 25; attempt += 1) {
-			const queClip = await getFirstQueClip();
-			if (!queClip) break;
-			const clip = await getTwitchClip(queClip.clipId, overlay.ownerId);
-			if (clip != null) return { clip, queueItem: queClip };
-			await discardQueueItem(queClip);
+		if (!isEmbed && !isDemoPlayer) {
+			const queuedClip = await getFirstValidQueuedClip(overlay.id, overlaySecret);
+			if (queuedClip) return queuedClip;
 		}
 
 		let availableClips = clipPoolRef.current;
@@ -907,8 +883,12 @@ export default function OverlayPlayer({
 		if (candidates.length === 0) {
 			const refreshedClips = await refreshClipPool();
 			if (Array.isArray(refreshedClips) && refreshedClips.length > 0) {
-				availableClips = clipPoolRef.current.length > 0 ? clipPoolRef.current : refreshedClips;
+				availableClips = refreshedClips;
 				candidates = availableClips.filter((c) => !played.includes(c.id) && c.id !== currentId && c.id !== nextId);
+			} else if (Array.isArray(availableClips) && availableClips.length > 0) {
+				setPlayedClips([]);
+				playedClipsRef.current = [];
+				candidates = availableClips.filter((c) => c.id !== currentId && c.id !== nextId);
 			}
 		}
 
@@ -1010,7 +990,7 @@ export default function OverlayPlayer({
 			if (playable) return { clip: playable };
 		}
 		return null;
-	}, [discardQueueItem, getFirstQueClip, getFirstFromDemoQueue, isDemoPlayer, overlay.ownerId, playbackMode, refreshClipPool]);
+	}, [getFirstFromDemoQueue, isDemoPlayer, isEmbed, overlay.id, overlay.ownerId, overlaySecret, playbackMode, refreshClipPool]);
 
 	const consumeQueueItem = useCallback(
 		async (queueItem: ModQueueItem | ClipQueueItem | null | undefined) => {

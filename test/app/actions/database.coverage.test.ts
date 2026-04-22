@@ -134,6 +134,7 @@ jest.mock("@actions/auth", () => ({
 }));
 
 const twitch = {
+	getTwitchClipLookup: jest.fn(),
 	getUserDetails: jest.fn(),
 	getUsersDetailsBulk: jest.fn(),
 	refreshAccessTokenWithContext: jest.fn(),
@@ -188,6 +189,7 @@ describe("database.ts coverage tests", () => {
 		dbUpdate.mockImplementation(() => makeUpdateChain());
 		dbDelete.mockImplementation(() => makeDeleteChain());
 		validateAuth.mockResolvedValue({ id: "user-1", email: "e", username: "u" });
+		twitch.getTwitchClipLookup.mockReset();
 		twitch.getUserDetails.mockReset();
 		twitch.getUsersDetailsBulk.mockReset();
 	});

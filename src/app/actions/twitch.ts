@@ -732,12 +732,20 @@ export async function verifyToken(user: AuthenticatedUser) {
 }
 
 export async function getTwitchClip(clipId: string, creatorId: string): Promise<null | TwitchClip> {
+	const result = await getTwitchClipLookup(clipId, creatorId);
+	return result.clip;
+}
+
+export async function getTwitchClipLookup(
+	clipId: string,
+	creatorId: string,
+): Promise<{ clip: TwitchClip | null; status: "ok" | "not_found" | "transient_error" }> {
 	const url = "https://api.twitch.tv/helix/clips";
 	const token = await getAccessTokenServer(creatorId);
 
 	if (!token) {
 		console.error("No access token found for creatorId:", creatorId);
-		return null;
+		return { clip: null, status: "transient_error" };
 	}
 
 	try {
@@ -753,12 +761,12 @@ export async function getTwitchClip(clipId: string, creatorId: string): Promise<
 		const clip = response.data.data[0];
 		if (!clip) {
 			console.error("Clip not found for ID:", clipId);
-			return null;
+			return { clip: null, status: "not_found" };
 		}
-		return clip;
+		return { clip, status: "ok" };
 	} catch (error) {
 		logTwitchError("Error fetching Twitch clip", error);
-		return null;
+		return { clip: null, status: "transient_error" };
 	}
 }
 
