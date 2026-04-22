@@ -1,0 +1,59 @@
+name: Publish Dashboards
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - "grafana/**/*.json"
+  workflow_dispatch:
+
+concurrency:
+  group: dashboard-sync-publish-clipify
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: |
+      github.actor != 'dashboard-sync-bot' &&
+      !contains(github.event.head_commit.message || '', '[dashboard-sync]')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    env:
+      APP_REPO: ${{ github.repository }}
+      GH_TOKEN: ${{ secrets.DASHBOARD_SYNC_TOKEN }}
+      CONFLICT_TARGET_REPO: TheDanniCraft/grafana-dashboards
+      OUTPUT_FILE: /tmp/dashboard-sync-output-clipify.json
+    steps:
+      - name: Checkout app repo
+        uses: actions/checkout@v6
+        with:
+          path: app
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Checkout dashboards repo
+        uses: actions/checkout@v6
+        with:
+          repository: TheDanniCraft/grafana-dashboards
+          token: ${{ secrets.DASHBOARD_SYNC_TOKEN }}
+          path: dashboards
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Run dashboard sync
+        run: |
+          node dashboards/scripts/publish-dashboards.js \
+            --source-root=./app \
+            --target-root=./dashboards \
+            --app-name=clipify \
+            --app-repo="${APP_REPO}" \
+            --conflict-target-repo="${CONFLICT_TARGET_REPO}" \
+            --output-file="${OUTPUT_FILE}"
