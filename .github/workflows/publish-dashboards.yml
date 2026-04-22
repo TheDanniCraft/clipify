@@ -1,4 +1,4 @@
-name: Publish Dashboards
+name: 📊 Publish Dashboards
 
 on:
   push:
