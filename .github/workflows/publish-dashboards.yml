@@ -28,14 +28,14 @@ jobs:
       OUTPUT_FILE: /tmp/dashboard-sync-output-clipify.json
     steps:
       - name: Checkout app repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           path: app
           fetch-depth: 0
           persist-credentials: true
 
       - name: Checkout dashboards repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: TheDanniCraft/grafana-dashboards
           token: ${{ secrets.DASHBOARD_SYNC_TOKEN }}
