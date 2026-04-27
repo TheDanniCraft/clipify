@@ -22,7 +22,7 @@
         "nextjs-turnstile": "^1.0.5",
         "pg": "^8.20.0",
         "rate-limiter-flexible": "^11.0.1",
-        "re2js": "^2.2.3",
+        "re2js": "^2.3.0",
         "react": "^19.2.5",
         "react-dom": "^19.2.5",
         "recharts": "^3.8.1",
@@ -2061,7 +2061,7 @@
 
     "rate-limiter-flexible": ["rate-limiter-flexible@11.0.1", "", {}, "sha512-hvyCUefjRund2N6hro2H8Dql7OvB6+B3Qv2FLWWbdsdyQScXf4+N0tM0Bryz11awTtNxx6C1QbHYb1rCiAx7pA=="],
 
-    "re2js": ["re2js@2.2.3", "", {}, "sha512-knY6jtTYhe38js7At+qsP9+KL9/gy8ZC2G/jOF3ocqbqj3qGaafqxWtDIjous+trwztsPJj6ezCczUPRN7+6oA=="],
+    "re2js": ["re2js@2.3.0", "", {}, "sha512-1jciPHt/vxUqKWZtreNhZPrC42w3CUylS3lm5sqBHCLc7qnYPQKt598NAXItcLKkfuZrEKVOh7irYNO1IixeRQ=="],
 
     "react": ["react@19.2.5", "", {}, "sha512-llUJLzz1zTUBrskt2pwZgLq59AemifIftw4aB7JxOqf1HY2FDaGDxgwpAPVzHU1kdWabH7FauP4i1oEeer2WCA=="],
 
