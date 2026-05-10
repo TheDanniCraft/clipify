@@ -4,7 +4,8 @@
 import { TwitchBadge, TwitchMessage } from "@types";
 import { sendMessage } from "@actions/websocket";
 import { getTwitchClip, handleClip, sendChatMessage } from "@actions/twitch";
-import { addToModQueue, clearClipQueueByOverlayIdServer, clearModQueueByBroadcasterId, getAllOverlayIdsByOwnerServer, getAllOverlaysByOwnerServer, getClipQueueByOverlayId, getModQueue, getSettingsServer, getUserByIdServer, setPlayerVolumeForOwner } from "@actions/database";
+import { addToModQueue, clearClipQueueByOverlayIdServer, clearModQueueByBroadcasterId, getClipQueueByOverlayId, getModQueue, getSettingsServer, getUserByIdServer, setPlayerVolumeForOwner } from "@actions/database";
+import { getAllOverlayIdsByOwnerInternal, getAllOverlaysByOwnerInternal } from "@/server/overlays";
 import { getFeatureAccess } from "@lib/featureAccess";
 import { getBaseUrl } from "@actions/utils";
 
@@ -280,7 +281,7 @@ const commands: Record<string, { description: string; usage: string; execute: (m
 				const modQue = await getModQueue(message.broadcaster_user_id);
 				const rewardQue = [];
 
-				const overlayIds = await getAllOverlayIdsByOwnerServer(message.broadcaster_user_id);
+				const overlayIds = await getAllOverlayIdsByOwnerInternal(message.broadcaster_user_id);
 
 /* ignore: command processing edge case */
 				if (overlayIds) {
@@ -335,7 +336,7 @@ const commands: Record<string, { description: string; usage: string; execute: (m
 			const args = text.split(/\s+/).filter(Boolean).slice(1);
 
 			if (args.length === 0) {
-				const overlayIds = await getAllOverlayIdsByOwnerServer(message.broadcaster_user_id);
+				const overlayIds = await getAllOverlayIdsByOwnerInternal(message.broadcaster_user_id);
 /* ignore: command processing edge case */
 				if (overlayIds && overlayIds.length > 0) {
 					await Promise.all(overlayIds.map((overlayId) => clearClipQueueByOverlayIdServer(overlayId)));
@@ -357,7 +358,7 @@ const commands: Record<string, { description: string; usage: string; execute: (m
 					return;
 				}
 				case "reward": {
-					const overlayIds = await getAllOverlayIdsByOwnerServer(message.broadcaster_user_id);
+					const overlayIds = await getAllOverlayIdsByOwnerInternal(message.broadcaster_user_id);
 /* ignore: command processing edge case */
 					if (overlayIds && overlayIds.length > 0) {
 						await Promise.all(overlayIds.map((overlayId) => clearClipQueueByOverlayIdServer(overlayId)));
@@ -379,7 +380,7 @@ const commands: Record<string, { description: string; usage: string; execute: (m
 		execute: async (message: TwitchMessage) => {
 			const text = message.message.text;
 			const args = text.split(/\s+/).filter(Boolean).slice(1);
-			const overlays = await getAllOverlaysByOwnerServer(message.broadcaster_user_id);
+			const overlays = await getAllOverlaysByOwnerInternal(message.broadcaster_user_id);
 
 			if (!overlays || overlays.length === 0) {
 				await sendChatMessage(message.broadcaster_user_id, `@${message.chatter_user_name} no overlays found for this channel.`);

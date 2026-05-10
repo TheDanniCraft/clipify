@@ -309,7 +309,7 @@ export default function SettingsPage() {
 								color='primary'
 								startContent={<IconCreditCardFilled />}
 								onPress={async () => {
-									const link = await getPortalLink(user);
+									const link = await getPortalLink();
 									if (link) {
 										window.location.href = link;
 									} else {
@@ -464,7 +464,7 @@ export default function SettingsPage() {
 														cycle: "yearly",
 													});
 
-													const link = await generatePaymentLink(user, "yearly", window.location.href, window.numok?.getStripeMetadata(), "paywall_banner");
+													const link = await generatePaymentLink("yearly", window.location.href, window.numok?.getStripeMetadata(), "paywall_banner");
 
 													if (link) {
 														trackPaywallEvent(plausible, "checkout_start", {
@@ -536,7 +536,7 @@ export default function SettingsPage() {
 								startContent={<IconTrash />}
 								isDisabled={user.plan !== Plan.Free}
 								onPress={async () => {
-									if (await checkIfSubscriptionExists(user)) {
+									if (await checkIfSubscriptionExists()) {
 										return addToast({
 											title: "Active Subscription",
 											description: "You have an active subscription. Please cancel it before deleting your account.",

@@ -259,18 +259,4 @@ describe("database.extra.test.ts", () => {
 		expect(result).toEqual(["ov-1"]);
 	});
 
-	it("getAllOverlayIdsByOwnerServer returns all overlay ids", async () => {
-		const { getAllOverlayIdsByOwnerServer } = loadDatabaseActions();
-		queueTableResult("overlays", [{ id: "ov-1" }]);
-		const result = await getAllOverlayIdsByOwnerServer("owner-1");
-		expect(result).toEqual(["ov-1"]);
-	});
-
-	it("getAllOverlaysByOwnerServer returns all overlays", async () => {
-		const { getAllOverlaysByOwnerServer } = loadDatabaseActions();
-		queueTableResult("overlays", [{ id: "ov-1" }]);
-		const result = await getAllOverlaysByOwnerServer("owner-1");
-		expect(result).toHaveLength(1);
-		expect(result[0].id).toBe("ov-1");
-	});
 });

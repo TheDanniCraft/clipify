@@ -219,12 +219,6 @@ describe("actions/database user logic", () => {
         expect(dbDelete).toHaveBeenCalled();
     });
 
-    it("updates user subscription", async () => {
-        const { updateUserSubscription } = await loadDatabaseActions();
-        const result = await updateUserSubscription("user-1", "cus-1", "pro" as any);
-        expect(result).toBeDefined();
-        expect(dbUpdate).toHaveBeenCalled();
-    });
 
     it("gets user by customer id", async () => {
         const { getUserByCustomerId } = await loadDatabaseActions();
@@ -423,12 +417,6 @@ describe("actions/database user logic", () => {
             const { deleteUser } = await loadDatabaseActions();
             dbDelete.mockImplementationOnce(() => { throw new Error("DB Error"); });
             await expect(deleteUser("user-1")).rejects.toThrow("Failed to delete user");
-        });
-
-        it("handles error in updateUserSubscription", async () => {
-            const { updateUserSubscription } = await loadDatabaseActions();
-            dbUpdate.mockImplementationOnce(() => { throw new Error("DB Error"); });
-            await expect(updateUserSubscription("user-1", "cus-1", "pro" as any)).rejects.toThrow("Failed to update user subscription");
         });
 
         it("handles error in getUserByCustomerId", async () => {

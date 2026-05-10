@@ -151,3 +151,6 @@ jobs:
 
       - name: 🏗️ Run build
         run: bun run app:build
+
+      - name: 🔐 Verify server action manifest boundaries
+        run: bun run app:check-action-manifest

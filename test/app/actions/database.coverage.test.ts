@@ -997,22 +997,6 @@ describe("database.ts coverage tests", () => {
 		await expect(getAllOverlayIdsByOwner("user-1")).rejects.toThrow("Failed to fetch overlays");
 	});
 
-	it("covers getAllOverlayIdsByOwnerServer catch branch", async () => {
-		const { getAllOverlayIdsByOwnerServer } = loadDatabaseActions();
-		dbSelect.mockImplementationOnce(() => {
-			throw new Error("DB Error");
-		});
-		await expect(getAllOverlayIdsByOwnerServer("user-1")).rejects.toThrow("Failed to fetch overlays");
-	});
-
-	it("covers getAllOverlaysByOwnerServer catch branch", async () => {
-		const { getAllOverlaysByOwnerServer } = loadDatabaseActions();
-		dbSelect.mockImplementationOnce(() => {
-			throw new Error("DB Error");
-		});
-		await expect(getAllOverlaysByOwnerServer("user-1")).rejects.toThrow("Failed to fetch overlays");
-	});
-
 	it("covers getClipCacheStatusForOwnerServer backfill window progress branch", async () => {
 		const { getClipCacheStatusForOwnerServer } = loadDatabaseActions();
 		const nowSpy = jest.spyOn(Date, "now").mockReturnValue(1_800_000_000_000);
@@ -1232,35 +1216,35 @@ describe("database.ts coverage tests", () => {
 			expect(result).toEqual({ token: null, reason: "unauthorized" });
 		});
 
-		it("getAccessTokenResultServer returns user_disabled if user is disabled", async () => {
-			const { getAccessTokenResultServer } = loadDatabaseActions();
+		it("getAccessTokenResult returns user_disabled if user is disabled", async () => {
+			const { getAccessTokenResult } = loadDatabaseActions();
 			queueSelectResult([{ disabled: true }]); // user check
-			const result = await getAccessTokenResultServer("user-1");
+			const result = await getAccessTokenResult("user-1");
 			expect(result).toEqual({ token: null, reason: "user_disabled" });
 		});
 
-		it("getAccessTokenResultServer returns token_row_missing if no token row", async () => {
-			const { getAccessTokenResultServer } = loadDatabaseActions();
+		it("getAccessTokenResult returns token_row_missing if no token row", async () => {
+			const { getAccessTokenResult } = loadDatabaseActions();
 			queueSelectResult([{ disabled: false }]); // user check
 			queueSelectResult([]); // token check
-			const result = await getAccessTokenResultServer("user-1");
+			const result = await getAccessTokenResult("user-1");
 			expect(result).toEqual({ token: null, reason: "token_row_missing" });
 		});
 
-		it("getAccessTokenResultServer returns token_decrypt_failed on decryption error", async () => {
-			const { getAccessTokenResultServer } = loadDatabaseActions();
+		it("getAccessTokenResult returns token_decrypt_failed on decryption error", async () => {
+			const { getAccessTokenResult } = loadDatabaseActions();
 			const { decryptToken } = require("@lib/tokenCrypto");
 			decryptToken.mockImplementationOnce(() => {
 				throw new Error("fail");
 			});
 			queueSelectResult([{ disabled: false }]); // user check
 			queueSelectResult([{ accessToken: "at", refreshToken: "rt" }]); // token check
-			const result = await getAccessTokenResultServer("user-1");
+			const result = await getAccessTokenResult("user-1");
 			expect(result).toEqual({ token: null, reason: "token_decrypt_failed" });
 		});
 
-		it("getAccessTokenResultServer refreshes token if expired", async () => {
-			const { getAccessTokenResultServer } = loadDatabaseActions();
+		it("getAccessTokenResult refreshes token if expired", async () => {
+			const { getAccessTokenResult } = loadDatabaseActions();
 			const now = new Date();
 			const expiredAt = new Date(now.getTime() - 1000);
 			queueSelectResult([{ disabled: false }]); // user check
@@ -1272,58 +1256,59 @@ describe("database.ts coverage tests", () => {
 			twitch.getUserDetails.mockResolvedValueOnce({ id: "user-1", login: "u1" });
 			queueSelectResult([{ id: "user-1" }]); // insertUser select
 
-			const result = await getAccessTokenResultServer("user-1");
+			const result = await getAccessTokenResult("user-1");
 			expect(result.token?.accessToken).toBe("new-at");
 			expect(twitch.refreshAccessTokenWithContext).toHaveBeenCalledWith("rt", "user-1");
 		});
 
-		it("getAccessTokenResultServer handles refresh failure", async () => {
-			const { getAccessTokenResultServer } = loadDatabaseActions();
+		it("getAccessTokenResult handles refresh failure", async () => {
+			const { getAccessTokenResult } = loadDatabaseActions();
 			const expiredAt = new Date(Date.now() - 1000);
 			queueSelectResult([{ disabled: false }]); // user check
 			queueSelectResult([{ accessToken: "at", refreshToken: "rt", expiresAt: expiredAt }]); // token check
 
 			twitch.refreshAccessTokenWithContext.mockResolvedValueOnce({ token: null, invalidRefreshToken: false });
 
-			const result = await getAccessTokenResultServer("user-1");
+			const result = await getAccessTokenResult("user-1");
 			expect(result).toEqual({ token: null, reason: "refresh_failed" });
 		});
 
-		it("getAccessTokenResultServer handles invalid refresh token and disables user", async () => {
-			const { getAccessTokenResultServer } = loadDatabaseActions();
+		it("getAccessTokenResult handles invalid refresh token and disables user", async () => {
+			const { getAccessTokenResult } = loadDatabaseActions();
 			const expiredAt = new Date(Date.now() - 1000);
 			queueSelectResult([{ disabled: false }]); // user check
 			queueSelectResult([{ accessToken: "at", refreshToken: "rt", expiresAt: expiredAt }]); // token check
 
 			twitch.refreshAccessTokenWithContext.mockResolvedValueOnce({ token: null, invalidRefreshToken: true });
 
-			const result = await getAccessTokenResultServer("user-1");
+			const result = await getAccessTokenResult("user-1");
 			expect(result).toEqual({ token: null, reason: "refresh_invalid_token" });
 			expect(dbUpdate).toHaveBeenCalled(); // disableUserAccess call
 		});
 
-		it("getAccessTokenResultServer throws error on database failure", async () => {
-			const { getAccessTokenResultServer } = loadDatabaseActions();
+		it("getAccessTokenResult throws error on database failure", async () => {
+			const { getAccessTokenResult } = loadDatabaseActions();
 			dbSelect.mockImplementationOnce(() => {
 				throw new Error("db-fail");
 			});
-			await expect(getAccessTokenResultServer("user-1")).rejects.toThrow("Failed to fetch access token");
+			await expect(getAccessTokenResult("user-1")).rejects.toThrow("Failed to fetch access token");
 		});
 
 		it("getAccessToken and getAccessTokenServer wrappers", async () => {
 			const { getAccessToken, getAccessTokenServer } = loadDatabaseActions();
 			// Mocking result of the internal result function to be success
 			validateAuth.mockResolvedValueOnce({ id: "user-1", role: "user" });
-			queueSelectResult([{ disabled: false }]); // getAccessTokenResult -> getAccessTokenResultServer -> user check
+			queueSelectResult([{ disabled: false }]); // getAccessTokenResult -> getAccessTokenResult -> user check
 			queueSelectResult([{ accessToken: "at", refreshToken: "rt", expiresAt: new Date(Date.now() + 1000000) }]); // token check
 
 			const token1 = await getAccessToken("user-1");
 			expect(token1?.accessToken).toBe("at");
 
-			queueSelectResult([{ disabled: false }]); // getAccessTokenServer -> getAccessTokenResultServer -> user check
+			queueSelectResult([{ disabled: false }]); // getAccessTokenServer -> getAccessTokenResult -> user check
 			queueSelectResult([{ accessToken: "at2", refreshToken: "rt2", expiresAt: new Date(Date.now() + 1000000) }]); // token check
 			const token2 = await getAccessTokenServer("user-1");
 			expect(token2?.accessToken).toBe("at2");
 		});
 	});
 });
+

@@ -21,15 +21,17 @@ import {
 	MaxDurationMode,
 	TwitchClip,
 } from "@types";
-import { getTwitchClipLookup, getUserDetails, getUsersDetailsBulk, refreshAccessTokenWithContext, subscribeToReward, syncOwnerClipCache } from "@actions/twitch";
+import { getTwitchClipLookup, getUserDetails, getUsersDetailsBulk, subscribeToReward, syncOwnerClipCache } from "@actions/twitch";
 import { syncProductUpdatesContact, getProductUpdatesSubscriptionStatus } from "@actions/newsletter";
 import { isTitleBlocked } from "@/app/utils/regexFilter";
 import { eq, inArray, and, or, isNull, lt, gt, sql, desc, max, asc } from "drizzle-orm";
 import { validateAuth, validateAdminAuth } from "@actions/auth";
-import { encryptToken, decryptToken } from "@lib/tokenCrypto";
+import { encryptToken } from "@lib/tokenCrypto";
 import { getFeatureAccess } from "@lib/featureAccess";
 import { ensureReverseTrialGrantForUser, resolveUserEntitlements, resolveUserEntitlementsForUsers } from "@lib/entitlements";
 import { TWITCH_CLIPS_LAUNCH_MS, FREE_PLAYLIST_LIMIT, FREE_PLAYLIST_CLIP_LIMIT } from "@lib/constants";
+import { getAccessTokenInternal, getAccessTokenResultInternal } from "@/server/tokens";
+import { canEditOwnerInternal, requireOverlayAccessInternal, requireOverlaySecretAccessInternal } from "@/server/overlays";
 
 const TWITCH_CACHE_CLEANUP_INTERVAL_MS = 10 * 60 * 1000;
 let lastTwitchCacheCleanupAt = 0;
@@ -377,53 +379,15 @@ async function requireUser(): Promise<AuthenticatedUser | null> {
 }
 
 async function canEditOwner(editorId: string, ownerId: string): Promise<boolean> {
-	if (editorId === ownerId) return true;
-
-	const editorRows = await db
-		.select()
-		.from(editorsTable)
-		.where(and(eq(editorsTable.editorId, editorId), eq(editorsTable.userId, ownerId)))
-		.limit(1)
-		.execute();
-
-	return !!editorRows?.[0];
+	return canEditOwnerInternal(editorId, ownerId);
 }
 
 async function requireOverlayAccess(overlayId: string): Promise<{ user: AuthenticatedUser; overlay: Overlay } | null> {
-	const user = await requireUser();
-	/* istanbul ignore next: unauthenticated guard */
-	if (!user) return null;
-
-	const overlays = await db.select().from(overlaysTable).where(eq(overlaysTable.id, overlayId)).limit(1).execute();
-	const overlay = overlays[0];
-	if (!overlay) return null;
-
-	if (!(await canEditOwner(user.id, overlay.ownerId))) {
-		console.warn(`Unauthorized overlay access for user id: ${user.id} on overlay id: ${overlayId}`);
-		return null;
-	}
-
-	return { user, overlay };
+	return requireOverlayAccessInternal(overlayId);
 }
 
 async function requireOverlaySecretAccess(overlayId: string, secret?: string): Promise<Overlay | null> {
-	if (!secret) {
-		console.warn(`Missing overlay secret for overlay id: ${overlayId}`);
-		return null;
-	}
-
-	const overlays = await db.select().from(overlaysTable).where(eq(overlaysTable.id, overlayId)).limit(1).execute();
-	const overlay = overlays[0];
-	if (!overlay || !overlay.secret || overlay.secret !== secret) {
-		console.warn(`Invalid overlay secret for overlay id: ${overlayId}`);
-		return null;
-	}
-	const ownerRows = await db.select({ disabled: usersTable.disabled }).from(usersTable).where(eq(usersTable.id, overlay.ownerId)).limit(1).execute();
-	if (ownerRows[0]?.disabled) {
-		return null;
-	}
-
-	return overlay;
+	return requireOverlaySecretAccessInternal(overlayId, secret);
 }
 
 export async function insertUser(user: TwitchUserResponse): Promise<AuthenticatedUser> {
@@ -580,26 +544,6 @@ export async function deleteUser(id: string): Promise<AuthenticatedUser | null> 
 	}
 }
 
-export async function updateUserSubscription(userId: string, customerId: string, plan: Plan): Promise<AuthenticatedUser | null> {
-	try {
-		const user = await db
-			.update(usersTable)
-			.set({
-				plan,
-				stripeCustomerId: customerId,
-				updatedAt: new Date(),
-			})
-			.where(eq(usersTable.id, userId))
-			.returning()
-			.execute();
-
-		return user[0];
-	} catch (error) {
-		console.error("Error updating user subscription:", error);
-		throw new Error("Failed to update user subscription");
-	}
-}
-
 export async function getUserByCustomerId(customerId: string): Promise<AuthenticatedUser | null> {
 	try {
 		const user = await db.select().from(usersTable).where(eq(usersTable.stripeCustomerId, customerId)).limit(1).execute();
@@ -687,8 +631,11 @@ export async function getAccessToken(userId: string): Promise<UserToken | null> 
  * Use only for internal server actions (e.g., EventSub, schedulers).
  */
 export async function getAccessTokenServer(userId: string): Promise<UserToken | null> {
-	const result = await getAccessTokenResultServer(userId);
-	return result.token;
+	const authedUser = await validateAuth(true);
+	if (!authedUser || (authedUser.id !== userId && authedUser.role !== Role.Admin)) {
+		return null;
+	}
+	return getAccessTokenInternal(userId);
 }
 
 export async function getAccessTokenResult(userId: string): Promise<{ token: UserToken | null; reason?: "unauthorized" | "user_disabled" | "token_row_missing" | "token_decrypt_failed" | "refresh_invalid_token" | "refresh_failed" }> {
@@ -697,84 +644,18 @@ export async function getAccessTokenResult(userId: string): Promise<{ token: Use
 		return { token: null, reason: "unauthorized" };
 	}
 
-	return getAccessTokenResultServer(userId);
+	return getAccessTokenResultInternal(userId);
 }
 
 /**
  * Server-only version that bypasses user session validation.
  */
-export async function getAccessTokenResultServer(userId: string): Promise<{ token: UserToken | null; reason?: "user_disabled" | "token_row_missing" | "token_decrypt_failed" | "refresh_invalid_token" | "refresh_failed" }> {
-	try {
-		const userRows = await db.select({ disabled: usersTable.disabled }).from(usersTable).where(eq(usersTable.id, userId)).limit(1).execute();
-		const userRow = userRows[0];
-		if (userRow?.disabled) {
-			return { token: null, reason: "user_disabled" };
-		}
-
-		const rows = await db.select().from(tokenTable).where(eq(tokenTable.id, userId)).limit(1).execute();
-
-		if (rows.length === 0) {
-			return { token: null, reason: "token_row_missing" };
-		}
-
-		const row = rows[0];
-
-		const aad = `twitchUser:${userId}:oauth`;
-
-		let accessToken: string;
-		let refreshToken: string;
-
-		try {
-			accessToken = decryptToken(row.accessToken, aad);
-			refreshToken = decryptToken(row.refreshToken, aad);
-		} catch {
-			// key mismatch or tampered data => require re-login
-			console.error("Token decrypt failed for user:", userId);
-			return { token: null, reason: "token_decrypt_failed" };
-		}
-
-		const currentTime = new Date();
-		const expiresAt = row.expiresAt;
-
-		const EXPIRATION_BUFFER_MS = 60000;
-		if (currentTime.getTime() + EXPIRATION_BUFFER_MS > expiresAt.getTime()) {
-			const refreshResult = await refreshAccessTokenWithContext(refreshToken, userId);
-			const newToken = refreshResult.token;
-
-			if (!newToken) {
-				if (refreshResult.invalidRefreshToken) {
-					await disableUserAccess(userId, "invalid_refresh_token");
-				}
-				return { token: null, reason: refreshResult.invalidRefreshToken ? "refresh_invalid_token" : "refresh_failed" };
-			}
-
-			await setAccessToken(newToken);
-			return {
-				token: {
-					id: userId,
-					accessToken: newToken.access_token,
-					refreshToken: newToken.refresh_token,
-					expiresAt: new Date(Date.now() + newToken.expires_in * 1000),
-					scope: newToken.scope,
-					tokenType: newToken.token_type,
-				},
-			};
-		}
-
-		return {
-			token: {
-				id: userId,
-				accessToken: accessToken,
-				refreshToken: refreshToken,
-				expiresAt: expiresAt,
-				scope: row.scope,
-				tokenType: row.tokenType,
-			},
-		};
-	} catch (error) {
-		console.error("Error fetching access token:", summarizeError(error));
-		throw new Error("Failed to fetch access token");
+export async function getOwnAccessTokenResult(): Promise<{ token: UserToken | null; reason?: "unauthorized" | "user_disabled" | "token_row_missing" | "token_decrypt_failed" | "refresh_invalid_token" | "refresh_failed" }> {
+	const authedUser = await validateAuth(true);
+	if (!authedUser) {
+		return { token: null, reason: "unauthorized" };
 	}
+	return getAccessTokenResultInternal(authedUser.id);
 }
 
 export async function getAllOverlays(userId: string) {
@@ -835,28 +716,6 @@ export async function getAllOverlayIdsByOwner(ownerId: string) {
 		const overlays = await db.select().from(overlaysTable).where(eq(overlaysTable.ownerId, ownerId)).execute();
 
 		return overlays.map((overlay) => overlay.id);
-	} catch (error) {
-		console.error("Error fetching overlays:", error);
-		throw new Error("Failed to fetch overlays");
-	}
-}
-
-// Server-only helper for internal lookups (do not call from client components).
-export async function getAllOverlayIdsByOwnerServer(ownerId: string) {
-	try {
-		const overlays = await db.select().from(overlaysTable).where(eq(overlaysTable.ownerId, ownerId)).execute();
-
-		return overlays.map((overlay) => overlay.id);
-	} catch (error) {
-		console.error("Error fetching overlays:", error);
-		throw new Error("Failed to fetch overlays");
-	}
-}
-
-// Server-only helper used by chat command actions.
-export async function getAllOverlaysByOwnerServer(ownerId: string) {
-	try {
-		return await db.select().from(overlaysTable).where(eq(overlaysTable.ownerId, ownerId)).execute();
 	} catch (error) {
 		console.error("Error fetching overlays:", error);
 		throw new Error("Failed to fetch overlays");
@@ -2631,3 +2490,4 @@ export async function deleteTwitchCacheByPrefix(type: TwitchCacheType, keyPrefix
 		return 0;
 	}
 }
+
