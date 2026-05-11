@@ -25,7 +25,8 @@ export default defineConfig([
       "no-restricted-syntax": [
         "error",
         {
-          selector: "ExportNamedDeclaration > FunctionDeclaration[id.name=/.*Internal$/]",
+          selector:
+            "ExportNamedDeclaration > FunctionDeclaration[id.name=/.*Internal$/], ExportNamedDeclaration > VariableDeclaration > VariableDeclarator[id.name=/.*Internal$/], ExportSpecifier[exported.name=/.*Internal$/]",
           message: "Do not export internal helpers from action modules.",
         },
       ],

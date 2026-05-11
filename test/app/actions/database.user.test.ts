@@ -140,11 +140,15 @@ jest.mock("@actions/auth", () => ({
 const twitch = {
     getUserDetails: jest.fn(),
     getUsersDetailsBulk: jest.fn(),
-    refreshAccessTokenWithContext: jest.fn(),
     subscribeToReward: jest.fn(),
     syncOwnerClipCache: jest.fn(),
 };
 jest.mock("@actions/twitch", () => twitch);
+
+const twitchAuth = {
+    refreshAccessTokenWithContextInternal: jest.fn(),
+};
+jest.mock("@/server/twitch-auth", () => twitchAuth);
 
 const tokenCrypto = {
     encryptToken: jest.fn((val: string) => val),
@@ -310,14 +314,13 @@ describe("actions/database user logic", () => {
         queueSelectResult([{ disabled: false }]);
         queueSelectResult([{ accessToken: "at", refreshToken: "rt", expiresAt: new Date(now - 1000), scope: [], tokenType: "bearer" }]);
         
-        twitch.refreshAccessTokenWithContext.mockResolvedValue({
+        twitchAuth.refreshAccessTokenWithContextInternal.mockResolvedValue({
             token: { access_token: "new-at", refresh_token: "new-rt", expires_in: 3600, scope: [], token_type: "bearer" }
         });
-        twitch.getUserDetails.mockResolvedValue({ id: "user-1", login: "user1" }); // for setAccessToken
 
         const result = await getAccessTokenResult("user-1");
         expect(result.token?.accessToken).toBe("new-at");
-        expect(twitch.refreshAccessTokenWithContext).toHaveBeenCalledWith("rt", "user-1");
+        expect(twitchAuth.refreshAccessTokenWithContextInternal).toHaveBeenCalledWith("rt", "user-1");
     });
 
     it("getAccessTokenResult handles refresh failure", async () => {
@@ -325,7 +328,7 @@ describe("actions/database user logic", () => {
         queueSelectResult([{ disabled: false }]);
         queueSelectResult([{ accessToken: "at", refreshToken: "rt", expiresAt: new Date(Date.now() - 1000) }]);
         
-        twitch.refreshAccessTokenWithContext.mockResolvedValue({ token: null });
+        twitchAuth.refreshAccessTokenWithContextInternal.mockResolvedValue({ token: null, invalidRefreshToken: false });
 
         const result = await getAccessTokenResult("user-1");
         expect(result).toEqual({ token: null, reason: "refresh_failed" });
@@ -336,7 +339,7 @@ describe("actions/database user logic", () => {
         queueSelectResult([{ disabled: false }]);
         queueSelectResult([{ accessToken: "at", refreshToken: "rt", expiresAt: new Date(Date.now() - 1000) }]);
         
-        twitch.refreshAccessTokenWithContext.mockResolvedValue({ token: null, invalidRefreshToken: true });
+        twitchAuth.refreshAccessTokenWithContextInternal.mockResolvedValue({ token: null, invalidRefreshToken: true });
 
         const result = await getAccessTokenResult("user-1");
         expect(result).toEqual({ token: null, reason: "refresh_invalid_token" });

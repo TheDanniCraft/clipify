@@ -627,8 +627,8 @@ export async function getAccessToken(userId: string): Promise<UserToken | null> 
 }
 
 /**
- * Server-only version that bypasses user session validation.
- * Use only for internal server actions (e.g., EventSub, schedulers).
+ * Authenticated server action variant.
+ * Requires owner/admin session and is not suitable for background jobs.
  */
 export async function getAccessTokenServer(userId: string): Promise<UserToken | null> {
 	const authedUser = await validateAuth(true);
@@ -2057,7 +2057,7 @@ export async function getSettingsServer(userId: string, forceSyncExternal = fals
 
 		const editorNames = await getUsersDetailsBulk({
 			userIds: settingsEditors.map((editor) => editor.editorId),
-			accessToken: (await getAccessTokenServer(userId))?.accessToken || "",
+			accessToken: (await getAccessTokenInternal(userId))?.accessToken || "",
 		});
 
 		const settings: UserSettings[] = settingsWithoutEditors.map((setting) => ({

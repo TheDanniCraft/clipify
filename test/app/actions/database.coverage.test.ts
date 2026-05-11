@@ -137,11 +137,15 @@ const twitch = {
 	getTwitchClipLookup: jest.fn(),
 	getUserDetails: jest.fn(),
 	getUsersDetailsBulk: jest.fn(),
-	refreshAccessTokenWithContext: jest.fn(),
 	subscribeToReward: jest.fn(),
 	syncOwnerClipCache: jest.fn(),
 };
 jest.mock("@actions/twitch", () => twitch);
+
+const twitchAuth = {
+	refreshAccessTokenWithContextInternal: jest.fn(),
+};
+jest.mock("@/server/twitch-auth", () => twitchAuth);
 
 const newsletter = {
 	syncProductUpdatesContact: jest.fn(),
@@ -1250,15 +1254,14 @@ describe("database.ts coverage tests", () => {
 			queueSelectResult([{ disabled: false }]); // user check
 			queueSelectResult([{ accessToken: "at", refreshToken: "rt", expiresAt: expiredAt, scope: ["s"], tokenType: "Bearer" }]); // token check
 
-			twitch.refreshAccessTokenWithContext.mockResolvedValueOnce({
+			twitchAuth.refreshAccessTokenWithContextInternal.mockResolvedValueOnce({
 				token: { access_token: "new-at", refresh_token: "new-rt", expires_in: 3600, scope: ["s"], token_type: "Bearer" },
+				invalidRefreshToken: false,
 			});
-			twitch.getUserDetails.mockResolvedValueOnce({ id: "user-1", login: "u1" });
-			queueSelectResult([{ id: "user-1" }]); // insertUser select
 
 			const result = await getAccessTokenResult("user-1");
 			expect(result.token?.accessToken).toBe("new-at");
-			expect(twitch.refreshAccessTokenWithContext).toHaveBeenCalledWith("rt", "user-1");
+			expect(twitchAuth.refreshAccessTokenWithContextInternal).toHaveBeenCalledWith("rt", "user-1");
 		});
 
 		it("getAccessTokenResult handles refresh failure", async () => {
@@ -1267,7 +1270,7 @@ describe("database.ts coverage tests", () => {
 			queueSelectResult([{ disabled: false }]); // user check
 			queueSelectResult([{ accessToken: "at", refreshToken: "rt", expiresAt: expiredAt }]); // token check
 
-			twitch.refreshAccessTokenWithContext.mockResolvedValueOnce({ token: null, invalidRefreshToken: false });
+			twitchAuth.refreshAccessTokenWithContextInternal.mockResolvedValueOnce({ token: null, invalidRefreshToken: false });
 
 			const result = await getAccessTokenResult("user-1");
 			expect(result).toEqual({ token: null, reason: "refresh_failed" });
@@ -1279,7 +1282,7 @@ describe("database.ts coverage tests", () => {
 			queueSelectResult([{ disabled: false }]); // user check
 			queueSelectResult([{ accessToken: "at", refreshToken: "rt", expiresAt: expiredAt }]); // token check
 
-			twitch.refreshAccessTokenWithContext.mockResolvedValueOnce({ token: null, invalidRefreshToken: true });
+			twitchAuth.refreshAccessTokenWithContextInternal.mockResolvedValueOnce({ token: null, invalidRefreshToken: true });
 
 			const result = await getAccessTokenResult("user-1");
 			expect(result).toEqual({ token: null, reason: "refresh_invalid_token" });

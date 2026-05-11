@@ -12,6 +12,7 @@ const getTwitchCacheStale = jest.fn();
 const getTwitchCacheStaleBatch = jest.fn();
 const setTwitchCache = jest.fn();
 const setTwitchCacheBatch = jest.fn();
+const getAccessTokenInternal = jest.fn();
 
 const getBaseUrl = jest.fn();
 const isPreview = jest.fn();
@@ -33,6 +34,10 @@ jest.mock("@actions/database", () => ({
 	getTwitchCacheStaleBatch: (...args: unknown[]) => getTwitchCacheStaleBatch(...args),
 	setTwitchCache: (...args: unknown[]) => setTwitchCache(...args),
 	setTwitchCacheBatch: (...args: unknown[]) => setTwitchCacheBatch(...args),
+}));
+
+jest.mock("@/server/tokens", () => ({
+	getAccessTokenInternal: (...args: unknown[]) => getAccessTokenInternal(...args),
 }));
 
 jest.mock("@actions/utils", () => ({
@@ -129,6 +134,7 @@ describe("actions/twitch external API and failure handling", () => {
 		process.env.TWITCH_USER_ID = "bot-user";
 
 		getAccessToken.mockResolvedValue({ accessToken: "user-access" });
+		getAccessTokenInternal.mockResolvedValue({ accessToken: "user-access" });
 		getTwitchCache.mockResolvedValue(null);
 		getTwitchCacheBatch.mockResolvedValue([]);
 		getTwitchCacheEntry.mockResolvedValue({ hit: false, value: null });
@@ -512,7 +518,7 @@ describe("actions/twitch external API and failure handling", () => {
 	});
 
 	it("handles getTwitchClip token-missing and API-failure branches", async () => {
-		getAccessToken.mockResolvedValueOnce(null).mockResolvedValueOnce({ accessToken: "user-access" });
+		getAccessTokenInternal.mockResolvedValueOnce(null).mockResolvedValueOnce({ accessToken: "user-access" });
 		jest.spyOn(axios, "get").mockRejectedValue(new Error("clip endpoint down"));
 
 		const { getTwitchClip } = await loadTwitch();
@@ -761,7 +767,7 @@ describe("actions/twitch external API and failure handling", () => {
 	});
 
 	it("returns early from redemption status update when token is missing", async () => {
-		getAccessToken.mockResolvedValueOnce(null);
+		getAccessTokenInternal.mockResolvedValueOnce(null);
 		const patchSpy = jest.spyOn(axios, "patch");
 
 		const { updateRedemptionStatus } = await loadTwitch();
@@ -847,7 +853,7 @@ describe("actions/twitch external API and failure handling", () => {
 	});
 
 	it("returns handleClip error code 3 when clip fetch fails", async () => {
-		getAccessToken.mockResolvedValueOnce(null);
+		getAccessTokenInternal.mockResolvedValueOnce(null);
 		const { handleClip } = await loadTwitch();
 
 		const result = await handleClip("https://clips.twitch.tv/missing-clip", "owner-1");
@@ -1105,7 +1111,7 @@ describe("actions/twitch external API and failure handling", () => {
 
 	describe("getTwitchGames", () => {
 		it("searches games on Twitch", async () => {
-			getAccessToken.mockResolvedValue({ accessToken: "token" });
+			getAccessTokenInternal.mockResolvedValue({ accessToken: "token" });
 			const twitchGames = [{ id: "1", name: "Game 1" }];
 			jest.spyOn(axios, "get").mockResolvedValue({ data: { data: twitchGames } } as never);
 
