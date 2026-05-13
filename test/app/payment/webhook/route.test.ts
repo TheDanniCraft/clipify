@@ -5,7 +5,7 @@ const getStripe = jest.fn();
 const getPlans = jest.fn();
 const downgradeUserPlan = jest.fn();
 const getUserByCustomerId = jest.fn();
-const updateUserSubscription = jest.fn();
+const updateUserSubscriptionFromStripeWebhookInternal = jest.fn();
 
 jest.mock("next/headers", () => ({
 	headers: () => headersMock(),
@@ -19,7 +19,10 @@ jest.mock("@actions/subscription", () => ({
 jest.mock("@actions/database", () => ({
 	downgradeUserPlan: (...args: unknown[]) => downgradeUserPlan(...args),
 	getUserByCustomerId: (...args: unknown[]) => getUserByCustomerId(...args),
-	updateUserSubscription: (...args: unknown[]) => updateUserSubscription(...args),
+}));
+
+jest.mock("@/server/subscriptions", () => ({
+	updateUserSubscriptionFromStripeWebhookInternal: (...args: unknown[]) => updateUserSubscriptionFromStripeWebhookInternal(...args),
 }));
 
 async function loadRoute(secret = "whsec_test") {
@@ -101,7 +104,7 @@ describe("app/payment/webhook route", () => {
 		const res = await POST(new Request("http://localhost/payment/webhook", { method: "POST", body: "payload" }));
 
 		expect(res.status).toBe(200);
-		expect(updateUserSubscription).toHaveBeenCalledWith("user_1", "cus_123", "pro");
+		expect(updateUserSubscriptionFromStripeWebhookInternal).toHaveBeenCalledWith("user_1", "cus_123", "pro");
 	});
 
 	it("handles customer.subscription.deleted and downgrades", async () => {
@@ -124,7 +127,7 @@ describe("app/payment/webhook route", () => {
 		const { POST } = await loadRoute("whsec_test");
 		const res = await POST(new Request("http://localhost/payment/webhook", { method: "POST", body: "payload" }));
 		expect(res.status).toBe(200);
-		expect(updateUserSubscription).toHaveBeenCalledWith("user_2", "cus_2", "free");
+		expect(updateUserSubscriptionFromStripeWebhookInternal).toHaveBeenCalledWith("user_2", "cus_2", "free");
 		expect(downgradeUserPlan).toHaveBeenCalledWith("user_2");
 	});
 
@@ -148,7 +151,7 @@ describe("app/payment/webhook route", () => {
 		const { POST } = await loadRoute("whsec_test");
 		const res = await POST(new Request("http://localhost/payment/webhook", { method: "POST", body: "payload" }));
 		expect(res.status).toBe(200);
-		expect(updateUserSubscription).toHaveBeenCalledWith("user_3", "cus_3", "pro");
+		expect(updateUserSubscriptionFromStripeWebhookInternal).toHaveBeenCalledWith("user_3", "cus_3", "pro");
 		expect(downgradeUserPlan).not.toHaveBeenCalled();
 	});
 
@@ -315,7 +318,7 @@ describe("app/payment/webhook route", () => {
 		const { POST } = await loadRoute("whsec_test");
 		const res = await POST(new Request("http://localhost/payment/webhook", { method: "POST", body: "payload" }));
 		expect(res.status).toBe(200);
-		expect(updateUserSubscription).toHaveBeenCalledWith("user_obj", "cus_obj", "free");
+		expect(updateUserSubscriptionFromStripeWebhookInternal).toHaveBeenCalledWith("user_obj", "cus_obj", "free");
 	});
 
 	it("returns error for missing subscription object in events", async () => {
@@ -375,7 +378,7 @@ describe("app/payment/webhook route", () => {
 		const res = await POST(new Request("http://localhost/payment/webhook", { method: "POST", body: "payload" }));
 		expect(res.status).toBe(200);
 		await expect(res.json()).resolves.toEqual({ error: "No user found for this subscription" });
-		expect(updateUserSubscription).not.toHaveBeenCalled();
+		expect(updateUserSubscriptionFromStripeWebhookInternal).not.toHaveBeenCalled();
 		expect(downgradeUserPlan).not.toHaveBeenCalled();
 	});
 
@@ -399,13 +402,13 @@ describe("app/payment/webhook route", () => {
 		const { POST } = await loadRoute("whsec_test");
 		const res = await POST(new Request("http://localhost/payment/webhook", { method: "POST", body: "payload" }));
 		expect(res.status).toBe(200);
-		expect(updateUserSubscription).toHaveBeenCalledWith("user_4", "cus_4", "free");
+		expect(updateUserSubscriptionFromStripeWebhookInternal).toHaveBeenCalledWith("user_4", "cus_4", "free");
 		expect(downgradeUserPlan).toHaveBeenCalledWith("user_4");
 	});
 
 	it("returns 400 when webhook event processing throws downstream errors", async () => {
 		getPlans.mockResolvedValue({ proMonthly: "price_pro" });
-		updateUserSubscription.mockRejectedValue(new Error("db write failed"));
+		updateUserSubscriptionFromStripeWebhookInternal.mockRejectedValue(new Error("db write failed"));
 		const stripe = {
 			webhooks: {
 				constructEvent: jest.fn().mockReturnValue({
@@ -436,3 +439,4 @@ describe("app/payment/webhook route", () => {
 		await expect(res.json()).resolves.toEqual({ error: "db write failed" });
 	});
 });
+

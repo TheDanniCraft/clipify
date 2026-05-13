@@ -8,8 +8,8 @@ const sendChatMessage = jest.fn();
 const addToModQueue = jest.fn();
 const clearClipQueueByOverlayIdServer = jest.fn();
 const clearModQueueByBroadcasterId = jest.fn();
-const getAllOverlayIdsByOwnerServer = jest.fn();
-const getAllOverlaysByOwnerServer = jest.fn();
+const getAllOverlayIdsByOwnerInternal = jest.fn();
+const getAllOverlaysByOwnerInternal = jest.fn();
 const getClipQueueByOverlayId = jest.fn();
 const getModQueue = jest.fn();
 const getSettings = jest.fn();
@@ -32,14 +32,17 @@ jest.mock("@actions/database", () => ({
 	addToModQueue: (...args: unknown[]) => addToModQueue(...args),
 	clearClipQueueByOverlayIdServer: (...args: unknown[]) => clearClipQueueByOverlayIdServer(...args),
 	clearModQueueByBroadcasterId: (...args: unknown[]) => clearModQueueByBroadcasterId(...args),
-	getAllOverlayIdsByOwnerServer: (...args: unknown[]) => getAllOverlayIdsByOwnerServer(...args),
-	getAllOverlaysByOwnerServer: (...args: unknown[]) => getAllOverlaysByOwnerServer(...args),
 	getClipQueueByOverlayId: (...args: unknown[]) => getClipQueueByOverlayId(...args),
 	getModQueue: (...args: unknown[]) => getModQueue(...args),
 	getSettings: (...args: unknown[]) => getSettings(...args),
 	getSettingsServer: (...args: unknown[]) => getSettings(...args),
 	getUserByIdServer: (...args: unknown[]) => getUserByIdServer(...args),
 	setPlayerVolumeForOwner: (...args: unknown[]) => setPlayerVolumeForOwner(...args),
+}));
+
+jest.mock("@/server/overlays", () => ({
+	getAllOverlayIdsByOwnerInternal: (...args: unknown[]) => getAllOverlayIdsByOwnerInternal(...args),
+	getAllOverlaysByOwnerInternal: (...args: unknown[]) => getAllOverlaysByOwnerInternal(...args),
 }));
 
 jest.mock("@lib/featureAccess", () => ({
@@ -188,7 +191,7 @@ describe("actions/commands", () => {
 
 	it("reports queue as empty when both mod and reward queues are empty", async () => {
 		getModQueue.mockResolvedValue([]);
-		getAllOverlayIdsByOwnerServer.mockResolvedValue(["overlay-1"]);
+		getAllOverlayIdsByOwnerInternal.mockResolvedValue(["overlay-1"]);
 		getClipQueueByOverlayId.mockResolvedValue([]);
 		const { handleCommand } = await loadCommands();
 		await handleCommand(buildMessage("!queue"));
@@ -197,7 +200,7 @@ describe("actions/commands", () => {
 
 	it("lists mod and reward queue titles and falls back to unknown clip labels", async () => {
 		getModQueue.mockResolvedValue([{ clipId: "mod-clip-1" }]);
-		getAllOverlayIdsByOwnerServer.mockResolvedValue(["overlay-1"]);
+		getAllOverlayIdsByOwnerInternal.mockResolvedValue(["overlay-1"]);
 		getClipQueueByOverlayId.mockResolvedValue([{ clipId: "reward-clip-1" }]);
 		getTwitchClip
 			.mockResolvedValueOnce({ id: "mod-clip-1", title: "Mod Clip" })
@@ -213,7 +216,7 @@ describe("actions/commands", () => {
 	});
 
 	it("clears only reward queues for !clearqueue reward", async () => {
-		getAllOverlayIdsByOwnerServer.mockResolvedValue(["overlay-1", "overlay-2"]);
+		getAllOverlayIdsByOwnerInternal.mockResolvedValue(["overlay-1", "overlay-2"]);
 		const { handleCommand } = await loadCommands();
 		await handleCommand(buildMessage("!clearqueue reward"));
 		expect(clearClipQueueByOverlayIdServer).toHaveBeenCalledTimes(2);
@@ -222,7 +225,7 @@ describe("actions/commands", () => {
 	});
 
 	it("clears both queues for !clearqueue without args", async () => {
-		getAllOverlayIdsByOwnerServer.mockResolvedValue(["overlay-1"]);
+		getAllOverlayIdsByOwnerInternal.mockResolvedValue(["overlay-1"]);
 		const { handleCommand } = await loadCommands();
 		await handleCommand(buildMessage("!clearqueue"));
 		expect(clearClipQueueByOverlayIdServer).toHaveBeenCalledWith("overlay-1");
@@ -237,14 +240,14 @@ describe("actions/commands", () => {
 	});
 
 	it("shows mixed overlay volumes for !volume with no args", async () => {
-		getAllOverlaysByOwnerServer.mockResolvedValue([{ playerVolume: 20 }, { playerVolume: 80 }]);
+		getAllOverlaysByOwnerInternal.mockResolvedValue([{ playerVolume: 20 }, { playerVolume: 80 }]);
 		const { handleCommand } = await loadCommands();
 		await handleCommand(buildMessage("!volume"));
 		expect(sendChatMessage).toHaveBeenCalledWith("owner-1", expect.stringContaining("mixed volumes (20, 80)"));
 	});
 
 	it("validates !volume numeric input and handles missing overlays", async () => {
-		getAllOverlaysByOwnerServer.mockResolvedValueOnce([]).mockResolvedValueOnce([{ playerVolume: 50 }]);
+		getAllOverlaysByOwnerInternal.mockResolvedValueOnce([]).mockResolvedValueOnce([{ playerVolume: 50 }]);
 		const { handleCommand } = await loadCommands();
 
 		await handleCommand(buildMessage("!volume"));
@@ -255,7 +258,7 @@ describe("actions/commands", () => {
 	});
 
 	it("clamps !volume values and broadcasts updates", async () => {
-		getAllOverlaysByOwnerServer.mockResolvedValue([{ playerVolume: 40 }]);
+		getAllOverlaysByOwnerInternal.mockResolvedValue([{ playerVolume: 40 }]);
 		const { handleCommand } = await loadCommands();
 		await handleCommand(buildMessage("!volume 130"));
 		expect(setPlayerVolumeForOwner).toHaveBeenCalledWith("owner-1", 100);
@@ -263,3 +266,4 @@ describe("actions/commands", () => {
 		expect(sendChatMessage).toHaveBeenCalledWith("owner-1", expect.stringContaining("100%"));
 	});
 });
+

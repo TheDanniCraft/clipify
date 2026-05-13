@@ -4,7 +4,7 @@ export {};
 const dbSelect = jest.fn();
 const dbUpdate = jest.fn();
 const dbInsert = jest.fn();
-const refreshAccessTokenWithContext = jest.fn();
+const refreshAccessTokenWithContextInternal = jest.fn();
 const getUserDetails = jest.fn();
 const decryptToken = jest.fn();
 const eq = jest.fn();
@@ -53,8 +53,11 @@ jest.mock("@/db/schema", () => ({
 jest.mock("@actions/twitch", () => ({
 	getUserDetails: (...args: unknown[]) => getUserDetails(...args),
 	getUsersDetailsBulk: jest.fn(),
-	refreshAccessTokenWithContext: (...args: unknown[]) => refreshAccessTokenWithContext(...args),
 	subscribeToReward: jest.fn(),
+}));
+
+jest.mock("@/server/twitch-auth", () => ({
+	refreshAccessTokenWithContextInternal: (...args: unknown[]) => refreshAccessTokenWithContextInternal(...args),
 }));
 
 const validateAuth = jest.fn();
@@ -207,7 +210,7 @@ describe("actions/database disabled user handling", () => {
 				tokenType: "bearer",
 			},
 		]);
-		refreshAccessTokenWithContext.mockResolvedValue({
+		refreshAccessTokenWithContextInternal.mockResolvedValue({
 			token: null,
 			invalidRefreshToken: true,
 			status: 400,
@@ -217,7 +220,7 @@ describe("actions/database disabled user handling", () => {
 		const { getAccessToken } = await loadDatabaseActions();
 		await expect(getAccessToken("owner-1")).resolves.toBeNull();
 
-		expect(refreshAccessTokenWithContext).toHaveBeenCalledWith("enc-refresh", "owner-1");
+		expect(refreshAccessTokenWithContextInternal).toHaveBeenCalledWith("enc-refresh", "owner-1");
 		expect(updateCalls).toHaveLength(2);
 		expect(updateCalls[0]?.table).toBe(usersTable);
 		expect(updateCalls[0]?.set).toEqual(
@@ -246,7 +249,7 @@ describe("actions/database disabled user handling", () => {
 				tokenType: "bearer",
 			},
 		]);
-		refreshAccessTokenWithContext.mockResolvedValue({
+		refreshAccessTokenWithContextInternal.mockResolvedValue({
 			token: null,
 			invalidRefreshToken: false,
 			status: 503,
@@ -263,7 +266,7 @@ describe("actions/database disabled user handling", () => {
 
 		const { getAccessToken } = await loadDatabaseActions();
 		await expect(getAccessToken("owner-1")).resolves.toBeNull();
-		expect(refreshAccessTokenWithContext).not.toHaveBeenCalled();
+		expect(refreshAccessTokenWithContextInternal).not.toHaveBeenCalled();
 	});
 
 	it("filters clip sync owners to enabled accounts only", async () => {
