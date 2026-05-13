@@ -2,7 +2,7 @@
 "use server";
 
 import Stripe from "stripe";
-import { AuthenticatedUser, NumokStripeMetadata } from "@types";
+import { NumokStripeMetadata } from "@types";
 import { getBaseUrl } from "@actions/utils";
 import { cookies } from "next/headers";
 import { validateAuth } from "@actions/auth";
@@ -45,23 +45,18 @@ export async function getPlans() {
 	return PRODUCTS[env];
 }
 
-async function getAuthorizedUser(requestedUser: Pick<AuthenticatedUser, "id">) {
+async function getAuthorizedUser() {
 	const authUser = await validateAuth(false);
 /* istanbul ignore next */
 	if (!authUser) {
 /* istanbul ignore next */
 		throw new Error("Unauthorized");
 	}
-/* istanbul ignore next */
-	if (requestedUser.id !== authUser.id) {
-/* istanbul ignore next */
-		throw new Error("Forbidden");
-	}
 	return authUser;
 }
 
-export async function checkIfSubscriptionExists(user: AuthenticatedUser) {
-	const authUser = await getAuthorizedUser(user);
+export async function checkIfSubscriptionExists() {
+	const authUser = await getAuthorizedUser();
 	if (!authUser.stripeCustomerId) {
 		return false;
 	}
@@ -91,8 +86,8 @@ async function persistStripeCustomerId(userId: string, customerId: string) {
 	return result.length > 0;
 }
 
-export async function generatePaymentLink(user: AuthenticatedUser, billingCycle: BillingCycle, returnUrl?: string, numokMetadata?: NumokStripeMetadata, source?: PaywallSource) {
-	const authUser = await getAuthorizedUser(user);
+export async function generatePaymentLink(billingCycle: BillingCycle, returnUrl?: string, numokMetadata?: NumokStripeMetadata, source?: PaywallSource) {
+	const authUser = await getAuthorizedUser();
 	const cookieStore = await cookies();
 	const products = await getPlans();
 	const selectedPrice = products[billingCycle];
@@ -206,8 +201,8 @@ export async function generatePaymentLink(user: AuthenticatedUser, billingCycle:
 	return session.url;
 }
 
-export async function getPortalLink(user: AuthenticatedUser) {
-	const authUser = await getAuthorizedUser(user);
+export async function getPortalLink() {
+	const authUser = await getAuthorizedUser();
 	if (!authUser.stripeCustomerId) {
 		throw new Error("User does not have a Stripe customer ID");
 	}

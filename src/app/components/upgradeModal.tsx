@@ -224,7 +224,7 @@ export default function UpgradeModal({ isOpen, onOpenChange, user, title, descri
 								plan: user.plan,
 								cycle: billingCycle,
 							});
-							const link = await generatePaymentLink(user, billingCycle, returnUrl ?? (typeof window !== "undefined" ? window.location.href : undefined), window.numok?.getStripeMetadata(), source);
+							const link = await generatePaymentLink(billingCycle, returnUrl ?? (typeof window !== "undefined" ? window.location.href : undefined), window.numok?.getStripeMetadata(), source);
 
 							if (link) {
 								trackPaywallEvent(plausible, "checkout_start", {

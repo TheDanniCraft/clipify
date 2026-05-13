@@ -12,6 +12,7 @@ const getTwitchCache = jest.fn();
 const getTwitchCacheByPrefixEntries = jest.fn();
 const setTwitchCache = jest.fn();
 const setTwitchCacheBatch = jest.fn();
+const getAccessTokenInternal = jest.fn();
 const validateAuth = jest.fn();
 
 const connect = jest.fn();
@@ -37,6 +38,10 @@ jest.mock("@actions/database", () => ({
 
 jest.mock("@actions/auth", () => ({
 	validateAuth: (...args: unknown[]) => validateAuth(...args),
+}));
+
+jest.mock("@/server/tokens", () => ({
+	getAccessTokenInternal: (...args: unknown[]) => getAccessTokenInternal(...args),
 }));
 
 jest.mock("@/db/client", () => ({
@@ -108,6 +113,7 @@ describe("actions/twitch syncOwnerClipCache", () => {
 		connect.mockResolvedValue(createLockClient(true));
 		getAccessToken.mockResolvedValue({ accessToken: "token" });
 		getAccessTokenServer.mockResolvedValue({ accessToken: "token" });
+		getAccessTokenInternal.mockResolvedValue({ accessToken: "token" });
 		getTwitchCache.mockResolvedValue({});
 		getTwitchCacheByPrefixEntries.mockResolvedValue([]);
 		validateAuth.mockResolvedValue(null);
@@ -179,7 +185,7 @@ describe("actions/twitch syncOwnerClipCache", () => {
 	});
 
 	it("returns early when no access token is available", async () => {
-		getAccessTokenServer.mockResolvedValue(null);
+		getAccessTokenInternal.mockResolvedValue(null);
 		const axiosSpy = jest.spyOn(axios, "get");
 
 		const { syncOwnerClipCache } = await import("@/app/actions/twitch");

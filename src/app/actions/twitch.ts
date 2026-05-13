@@ -4,6 +4,8 @@
 import axios from "axios";
 import { AuthenticatedUser, Game, Overlay, OverlayType, PlaybackMode, RewardStatus, TwitchApiResponse, TwitchAppAccessTokenResponse, TwitchCacheType, TwitchClip, TwitchClipResponse, TwitchReward, TwitchRewardResponse, TwitchTokenApiResponse, TwitchUserResponse } from "@types";
 import { deleteTwitchCacheByPrefix, deleteTwitchCacheKeys, getAccessToken, getAccessTokenServer, getOverlayBySecret, getOverlayPublic, getPlaylistClipsForOwnerServer, getTwitchCache, getTwitchCacheBatch, getTwitchCacheByPrefixEntries, getTwitchCacheEntry, getTwitchCacheStale, getTwitchCacheStaleBatch, setTwitchCache, setTwitchCacheBatch } from "@actions/database";
+import { getAccessTokenInternal } from "@/server/tokens";
+import { refreshAccessTokenWithContextInternal } from "@/server/twitch-auth";
 import { getBaseUrl, isPreview } from "@actions/utils";
 import { isTitleBlocked } from "@/app/utils/regexFilter";
 import { dbPool } from "@/db/client";
@@ -494,7 +496,7 @@ export async function exchangeAccesToken(code: string): Promise<TwitchTokenApiRe
 }
 
 export async function refreshAccessToken(refreshToken: string): Promise<TwitchTokenApiResponse | null> {
-	const result = await refreshAccessTokenWithContext(refreshToken);
+	const result = await refreshAccessTokenWithContextInternal(refreshToken);
 	return result.token;
 }
 
@@ -506,45 +508,7 @@ export type RefreshAccessTokenResult = {
 };
 
 export async function refreshAccessTokenWithContext(refreshToken: string, userId?: string): Promise<RefreshAccessTokenResult> {
-	const url = "https://id.twitch.tv/oauth2/token";
-	try {
-		const response = await axios.post<TwitchTokenApiResponse>(url, null, {
-			params: {
-/* istanbul ignore next */
-				client_id: process.env.TWITCH_CLIENT_ID || "",
-/* istanbul ignore next */
-				client_secret: process.env.TWITCH_CLIENT_SECRET || "",
-				refresh_token: refreshToken,
-				grant_type: "refresh_token",
-			},
-		});
-		return {
-			token: response.data,
-			invalidRefreshToken: false,
-		};
-	} catch (error) {
-		let status: number | undefined;
-		let message: string | undefined;
-		let invalidRefreshToken = false;
-		if (axios.isAxiosError(error)) {
-			status = error.response?.status;
-/* istanbul ignore next */
-			message = (typeof error.response?.data === "object" && error.response?.data && "message" in error.response.data && typeof error.response.data.message === "string" ? error.response.data.message : error.message) || "unknown";
-/* istanbul ignore next */
-			invalidRefreshToken = status === 400 && (message ?? "").toLowerCase().includes("invalid refresh token");
-		}
-		console.error("Error refreshing access token:", {
-			userId: userId ?? "unknown",
-			status: status ?? "unknown",
-			message: message ?? "unknown",
-		});
-		return {
-			token: null,
-			invalidRefreshToken,
-			status,
-			message,
-		};
-	}
+	return refreshAccessTokenWithContextInternal(refreshToken, userId);
 }
 
 export async function getAppAccessToken(): Promise<TwitchAppAccessTokenResponse | null> {
@@ -741,7 +705,7 @@ export async function getTwitchClipLookup(
 	creatorId: string,
 ): Promise<{ clip: TwitchClip | null; status: "ok" | "not_found" | "transient_error" }> {
 	const url = "https://api.twitch.tv/helix/clips";
-	const token = await getAccessTokenServer(creatorId);
+	const token = await getAccessTokenInternal(creatorId);
 
 	if (!token) {
 		console.error("No access token found for creatorId:", creatorId);
@@ -988,7 +952,7 @@ export async function syncOwnerClipCache(ownerId: string, ensurePackSize = 0): P
 		lockAcquired = Boolean(lockResult.rows?.[0]?.locked);
 		if (!lockAcquired) return;
 
-		const token = await getAccessTokenServer(ownerId);
+		const token = await getAccessTokenInternal(ownerId);
 		if (!token) return;
 
 		let ownerBackfillLowerBoundMs = TWITCH_CLIPS_LAUNCH_MS;
@@ -1652,7 +1616,7 @@ export async function subscribeToReward(userId: string, rewardId: string): Promi
 
 export async function updateRedemptionStatus(userId: string, redemptionId: string, rewardId: string, status: RewardStatus) {
 	const url = "https://api.twitch.tv/helix/channel_points/custom_rewards/redemptions";
-	const token = await getAccessTokenServer(userId);
+	const token = await getAccessTokenInternal(userId);
 
 	if (!token) {
 		console.error("No app access token found");

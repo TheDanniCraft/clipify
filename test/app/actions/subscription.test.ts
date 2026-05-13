@@ -99,8 +99,7 @@ describe("actions/subscription", () => {
 
 	it("checks existing subscriptions based on blocking statuses", async () => {
 		const { checkIfSubscriptionExists } = await loadSubscription();
-		const user = { id: "user-1", stripeCustomerId: null } as never;
-		await expect(checkIfSubscriptionExists(user)).resolves.toBe(false);
+		await expect(checkIfSubscriptionExists()).resolves.toBe(false);
 
 		validateAuth.mockResolvedValue({
 			id: "user-1",
@@ -110,7 +109,7 @@ describe("actions/subscription", () => {
 		subscriptionsList.mockResolvedValue({
 			data: [{ status: "canceled" }, { status: "active" }],
 		});
-		await expect(checkIfSubscriptionExists({ id: "user-1" } as never)).resolves.toBe(true);
+		await expect(checkIfSubscriptionExists()).resolves.toBe(true);
 	});
 
 	it("creates a checkout session and persists customer id when needed", async () => {
@@ -119,11 +118,6 @@ describe("actions/subscription", () => {
 
 		const { generatePaymentLink } = await loadSubscription();
 		const result = await generatePaymentLink(
-			{
-				id: "user-1",
-				email: "alice@example.com",
-				stripeCustomerId: null,
-			} as never,
 			"monthly",
 			"/dashboard/settings",
 			undefined,
@@ -167,11 +161,6 @@ describe("actions/subscription", () => {
 
 		const { generatePaymentLink } = await loadSubscription();
 		const result = await generatePaymentLink(
-			{
-				id: "user-1",
-				email: "alice@example.com",
-				stripeCustomerId: "cus_existing",
-			} as never,
 			"yearly",
 		);
 
@@ -183,7 +172,7 @@ describe("actions/subscription", () => {
 
 	it("returns portal links and enforces customer requirement", async () => {
 		const { getPortalLink } = await loadSubscription();
-		await expect(getPortalLink({ id: "user-1", stripeCustomerId: null } as never)).rejects.toThrow(
+		await expect(getPortalLink()).rejects.toThrow(
 			"User does not have a Stripe customer ID",
 		);
 
@@ -193,7 +182,7 @@ describe("actions/subscription", () => {
 			stripeCustomerId: "cus_123",
 		});
 		portalCreate.mockResolvedValue({ url: "https://billing.stripe.test/portal" });
-		await expect(getPortalLink({ id: "user-1", stripeCustomerId: "cus_123" } as never)).resolves.toBe(
+		await expect(getPortalLink()).resolves.toBe(
 			"https://billing.stripe.test/portal",
 		);
 	});

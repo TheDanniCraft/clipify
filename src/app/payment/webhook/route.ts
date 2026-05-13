@@ -3,10 +3,11 @@
 
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
-import { downgradeUserPlan, getUserByCustomerId, updateUserSubscription } from "@actions/database";
+import { downgradeUserPlan, getUserByCustomerId } from "@actions/database";
 import { getPlans, getStripe } from "@actions/subscription";
 import { Plan } from "@types";
 import Stripe from "stripe";
+import { updateUserSubscriptionFromStripeWebhookInternal } from "@/server/subscriptions";
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_KEY || "";
 
@@ -35,7 +36,7 @@ async function handleCheckoutSessionCompleted(stripe: Stripe, data: Stripe.Event
 	const referenceId = session.client_reference_id;
 	if (!referenceId) return NextResponse.json({ error: "No reference ID found in session metadata" });
 
-	await updateUserSubscription(referenceId, customerId, Plan.Pro);
+	await updateUserSubscriptionFromStripeWebhookInternal(referenceId, customerId, Plan.Pro);
 	return NextResponse.json({});
 }
 
@@ -48,7 +49,7 @@ async function handleCustomerSubscriptionDeleted(data: Stripe.Event.Data) {
 	const user = await getUserByCustomerId(customerId);
 	if (!user) return NextResponse.json({ error: "No user found for this subscription" });
 
-	await updateUserSubscription(user.id, customerId, Plan.Free);
+	await updateUserSubscriptionFromStripeWebhookInternal(user.id, customerId, Plan.Free);
 	await downgradeUserPlan(user.id);
 
 	return NextResponse.json({});
@@ -65,7 +66,7 @@ async function handleCustomerSubscriptionUpdated(data: Stripe.Event.Data) {
 
 	const activeStatuses = new Set<Stripe.Subscription.Status>(["active", "trialing", "past_due"]);
 	const nextPlan = activeStatuses.has(subscription.status) ? Plan.Pro : Plan.Free;
-	await updateUserSubscription(user.id, customerId, nextPlan);
+	await updateUserSubscriptionFromStripeWebhookInternal(user.id, customerId, nextPlan);
 	if (nextPlan === Plan.Free) {
 		await downgradeUserPlan(user.id);
 	}

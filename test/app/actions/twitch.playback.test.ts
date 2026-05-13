@@ -12,6 +12,7 @@ const getTwitchCache = jest.fn();
 const getTwitchCacheByPrefixEntries = jest.fn();
 const setTwitchCache = jest.fn();
 const setTwitchCacheBatch = jest.fn();
+const getAccessTokenInternal = jest.fn();
 const connect = jest.fn();
 
 jest.mock("@actions/database", () => ({
@@ -37,6 +38,10 @@ jest.mock("@/db/client", () => ({
 	dbPool: {
 		connect: (...args: unknown[]) => connect(...args),
 	},
+}));
+
+jest.mock("@/server/tokens", () => ({
+	getAccessTokenInternal: (...args: unknown[]) => getAccessTokenInternal(...args),
 }));
 
 function buildClip(id: string, overrides: Partial<Record<string, unknown>> = {}) {
@@ -138,6 +143,7 @@ describe("actions/twitch playback and cache behavior", () => {
 		connect.mockResolvedValue(createLockClient(false));
 		getAccessToken.mockResolvedValue({ accessToken: "token" });
 		getAccessTokenServer.mockResolvedValue({ accessToken: "token" });
+		getAccessTokenInternal.mockResolvedValue({ accessToken: "token" });
 		getOverlayBySecret.mockResolvedValue(buildOverlay());
 		getOverlayPublic.mockResolvedValue(buildOverlay());
 		getPlaylistClipsForOwnerServer.mockResolvedValue([]);
