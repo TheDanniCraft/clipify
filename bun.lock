@@ -21,7 +21,7 @@
         "next-ws": "^2.2.7",
         "nextjs-turnstile": "^1.0.5",
         "pg": "^8.21.0",
-        "rate-limiter-flexible": "^11.1.0",
+        "rate-limiter-flexible": "^11.2.0",
         "re2js": "^2.8.3",
         "react": "^19.2.6",
         "react-dom": "^19.2.6",
@@ -2001,7 +2001,7 @@
 
     "queue-microtask": ["queue-microtask@1.2.3", "", {}, "sha512-NuaNSa6flKT5JaSYQzJok04JzTL1CA6aGhv5rfLW3PgqA+M2ChpZQnAC8h8i4ZFkBS8X5RqkDBHA7r4hej3K9A=="],
 
-    "rate-limiter-flexible": ["rate-limiter-flexible@11.1.0", "", {}, "sha512-lyyC0SqKz+dE5JoHZ4JMqdrM3LSZKBxzuAFAyKCYAnmHnPz/Rb6iDquxoL4CMipDXoR0G+QRhOzYWL3JKihbNw=="],
+    "rate-limiter-flexible": ["rate-limiter-flexible@11.2.0", "", {}, "sha512-L0eIK+BmFMi6NcvmtEg7RSswOFKi9MMD5RhBIypFfOve+G6Jl1Xbb8qEHgK3uRzNtkOFYF0L9f7P4rSf2PnUVw=="],
 
     "re2js": ["re2js@2.8.3", "", {}, "sha512-lUKeXVwMqU302DM/WaOm33XF2hhzjGUZ8CbLg4zSAMpW2PPkJ2+is25AROevNiw+DytFmKU5gsQ92cB1Kxy+fA=="],
 
