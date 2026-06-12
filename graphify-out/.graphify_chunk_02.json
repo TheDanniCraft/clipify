@@ -1,0 +1,111 @@
+{
+  "nodes": [
+    {
+      "id": "og_image_image",
+      "label": "og-image.png",
+      "file_type": "image",
+      "source_file": "public/og-image.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "og_image_dashboard_ui",
+      "label": "Clipify Dashboard User Interface",
+      "file_type": "rationale",
+      "source_file": "public/og-image.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Shows a dashboard listing overlays with search, filters, sorting, column visibility, bulk selection, overlay status indicators (active/paused), and quick action controls (edit, delete)."
+    },
+    {
+      "id": "og_image_slogan",
+      "label": "Clipify Branding Slogan",
+      "file_type": "rationale",
+      "source_file": "public/og-image.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "The brand slogan: 'Let your clips talk. Even when you can't.' encapsulates the main goal of using overlay elements to communicate automatically during stream clips."
+    },
+    {
+      "id": "og_image_overlay_management",
+      "label": "Overlay Management System",
+      "file_type": "rationale",
+      "source_file": "public/og-image.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Clipify stream automation requires managing individual overlay instances representing different stream states (Pause Screen, Just Chatting, BRB Screen, Starting Soon, Ending Screen, Clips Only, Music Break)."
+    }
+  ],
+  "edges": [
+    {
+      "source": "og_image_image",
+      "target": "og_image_dashboard_ui",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/og-image.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "og_image_image",
+      "target": "og_image_slogan",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/og-image.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "og_image_dashboard_ui",
+      "target": "og_image_overlay_management",
+      "relation": "implements",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "public/og-image.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "og_image_slogan",
+      "target": "og_image_overlay_management",
+      "relation": "rationale_for",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "public/og-image.png",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "clipify_branding_and_product_presentation",
+      "label": "Clipify Product Presentation and Value Proposition",
+      "nodes": [
+        "og_image_image",
+        "og_image_dashboard_ui",
+        "og_image_slogan",
+        "og_image_overlay_management"
+      ],
+      "relation": "form",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "public/og-image.png"
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

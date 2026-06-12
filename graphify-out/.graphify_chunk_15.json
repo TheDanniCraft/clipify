@@ -1,0 +1,506 @@
+{
+  "nodes": [
+    {
+      "id": "streamingwithchatmock_streamingwithchatmock",
+      "label": "StreamingWithChatMock",
+      "file_type": "code",
+      "source_file": "src/app/components/DemoPlayer/StreamingWithChatMock.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Mocks a live stream with Twitch chat, dispatching window postMessages to a target iframe to simulate overlay interactions from command triggers."
+    },
+    {
+      "id": "feedbackwidget_feedbackwidget",
+      "label": "FeedbackWidget",
+      "file_type": "code",
+      "source_file": "src/app/components/feedbackWidget/index.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Popover widget handling user feedback, feature requests, and bug reports, with rate-limiting verification and Fider API submissions."
+    },
+    {
+      "id": "itemrating_feedbackratingitem",
+      "label": "FeedbackRatingItem",
+      "file_type": "code",
+      "source_file": "src/app/components/feedbackWidget/itemRating.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Custom emoji-based radio button selection using HeroUI radio context."
+    },
+    {
+      "id": "basicnavbar_basicnavbar",
+      "label": "BasicNavbar",
+      "file_type": "code",
+      "source_file": "src/app/components/LandingPage/basicNavbar.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "faqs_faqs",
+      "label": "Faqs",
+      "file_type": "code",
+      "source_file": "src/app/components/LandingPage/faqs.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "FAQ configuration that defines core features of Clipify like Theme Studio, Remote Control, and Playlists."
+    },
+    {
+      "id": "copytext_copytext",
+      "label": "CopyText",
+      "file_type": "code",
+      "source_file": "src/app/components/OverlayTable/copy-text.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "data_overlaytabledata",
+      "label": "OverlayTableData",
+      "file_type": "code",
+      "source_file": "src/app/components/OverlayTable/data.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "index_overlaytable",
+      "label": "OverlayTable",
+      "file_type": "code",
+      "source_file": "src/app/components/OverlayTable/index.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Displays a sortable, paginated data table of user overlays and playlists, with support for batch deleting, status toggling, and Pro upgrade redirection."
+    },
+    {
+      "id": "status_status",
+      "label": "Status",
+      "file_type": "code",
+      "source_file": "src/app/components/OverlayTable/Status.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "usememoizedcallback_usememoizedcallback",
+      "label": "useMemoizedCallback",
+      "file_type": "code",
+      "source_file": "src/app/components/OverlayTable/use-memoized-callback.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Hook that avoids standard React callback re-evaluation performance penalties by caching functions under a stable mutable ref, addressing React state update edge cases."
+    },
+    {
+      "id": "index_tierscomponent",
+      "label": "TiersComponent",
+      "file_type": "code",
+      "source_file": "src/app/components/Pricing/index.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Pricing card component supporting campaign/promotional discounts, monthly/yearly cycles, and paywall tracking via Plausible."
+    },
+    {
+      "id": "pricingcomparisontypes_pricingcomparisontypes",
+      "label": "PricingComparisonTypes",
+      "file_type": "code",
+      "source_file": "src/app/components/Pricing/pricing-comparison-types.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "pricingtiers_pricingtiers",
+      "label": "PricingTiers",
+      "file_type": "code",
+      "source_file": "src/app/components/Pricing/pricing-tiers.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Explicitly details features included in Free (1 overlay, 1 playlist, basic filters) and Pro (multiple overlays, remote control, Theme Studio, channel points)."
+    },
+    {
+      "id": "pricingtypes_pricingtypes",
+      "label": "PricingTypes",
+      "file_type": "code",
+      "source_file": "src/app/components/Pricing/pricing-types.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "roadmapdata_roadmapdata",
+      "label": "RoadmapData",
+      "file_type": "code",
+      "source_file": "src/app/components/roadmap/roadmapData.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "roadmapitem_roadmapitem",
+      "label": "RoadmapItem",
+      "file_type": "code",
+      "source_file": "src/app/components/roadmap/roadmapItem.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "controllerclient_controllerclient",
+      "label": "ControllerClient",
+      "file_type": "code",
+      "source_file": "src/app/controller/[overlayId]/controllerClient.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Remote controller client communicating player updates over WebSockets (/ws), featuring a toggle lock/unlock, mod/viewer queue clearing, and live volume/skip adjustments."
+    },
+    {
+      "id": "page_controllerpage",
+      "label": "ControllerPage",
+      "file_type": "code",
+      "source_file": "src/app/controller/[overlayId]/page.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Validates edit access and owner Pro subscription before signing a 12h JWT token to secure remote control commands."
+    },
+    {
+      "id": "page_dashboard",
+      "label": "Dashboard",
+      "file_type": "code",
+      "source_file": "src/app/dashboard/page.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "page_embedtool",
+      "label": "EmbedTool",
+      "file_type": "code",
+      "source_file": "src/app/dashboard/embed/page.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Interactive wizard to configure clip overlay embeds, generating iframe snippets while checking Pro status to toggle Clipify branding options."
+    },
+    {
+      "id": "page_overlaysettings",
+      "label": "OverlaySettings",
+      "file_type": "code",
+      "source_file": "src/app/dashboard/overlay/[overlayId]/page.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Configuration manager for overlays, editing limits (views, duration, creators), custom channel rewards (Twitch API), and manual/automatic playlist clip imports."
+    },
+    {
+      "id": "theme_page_themestudio",
+      "label": "ThemeStudio",
+      "file_type": "code",
+      "source_file": "src/app/dashboard/overlay/[overlayId]/theme/page.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Theme Studio visual layout builder. Restricts drag-and-resize, scaling, arrow nudges, Google Fonts, and scanline/CRT filters behind the Pro paywall."
+    }
+  ],
+  "edges": [
+    {
+      "source": "index_overlaytable",
+      "target": "data_overlaytabledata",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/components/OverlayTable/index.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "index_overlaytable",
+      "target": "copytext_copytext",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/components/OverlayTable/index.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "index_overlaytable",
+      "target": "status_status",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/components/OverlayTable/index.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "index_overlaytable",
+      "target": "usememoizedcallback_usememoizedcallback",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/components/OverlayTable/index.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "status_status",
+      "target": "data_overlaytabledata",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/components/OverlayTable/Status.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "feedbackwidget_feedbackwidget",
+      "target": "itemrating_feedbackratingitem",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/components/feedbackWidget/index.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "index_tierscomponent",
+      "target": "pricingtiers_pricingtiers",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/components/Pricing/index.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "pricingtiers_pricingtiers",
+      "target": "pricingtypes_pricingtypes",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/components/Pricing/pricing-tiers.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "pricingcomparisontypes_pricingcomparisontypes",
+      "target": "pricingtypes_pricingtypes",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/components/Pricing/pricing-comparison-types.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "roadmapitem_roadmapitem",
+      "target": "roadmapdata_roadmapdata",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/components/roadmap/roadmapItem.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "page_controllerpage",
+      "target": "controllerclient_controllerclient",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/controller/[overlayId]/page.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "page_dashboard",
+      "target": "index_overlaytable",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/dashboard/page.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "page_dashboard",
+      "target": "feedbackwidget_feedbackwidget",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/dashboard/page.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "page_overlaysettings",
+      "target": "controllerclient_controllerclient",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "src/app/dashboard/overlay/[overlayId]/page.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "theme_page_themestudio",
+      "target": "page_overlaysettings",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "src/app/dashboard/overlay/[overlayId]/theme/page.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "page_embedtool",
+      "target": "page_overlaysettings",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "src/app/dashboard/embed/page.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "theme_page_themestudio",
+      "target": "page_dashboard",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "src/app/dashboard/overlay/[overlayId]/theme/page.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "page_embedtool",
+      "target": "page_dashboard",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "src/app/dashboard/embed/page.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "theme_page_themestudio",
+      "target": "page_overlaysettings",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "src/app/dashboard/overlay/[overlayId]/theme/page.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "controllerclient_controllerclient",
+      "target": "page_overlaysettings",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "src/app/controller/[overlayId]/controllerClient.tsx",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "overlay_management_flow",
+      "label": "Overlay Management Flow",
+      "nodes": [
+        "page_dashboard",
+        "page_overlaysettings",
+        "theme_page_themestudio",
+        "page_embedtool"
+      ],
+      "relation": "participate_in",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "src/app/dashboard/page.tsx"
+    },
+    {
+      "id": "remote_control_flow",
+      "label": "Remote Control Flow",
+      "nodes": [
+        "controllerclient_controllerclient",
+        "page_controllerpage",
+        "page_overlaysettings"
+      ],
+      "relation": "participate_in",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "src/app/controller/[overlayId]/page.tsx"
+    },
+    {
+      "id": "pricing_definitions",
+      "label": "Pricing Definitions",
+      "nodes": [
+        "index_tierscomponent",
+        "pricingtiers_pricingtiers",
+        "pricingtypes_pricingtypes",
+        "pricingcomparisontypes_pricingcomparisontypes"
+      ],
+      "relation": "implement",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "src/app/components/Pricing/index.tsx"
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

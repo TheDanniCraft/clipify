@@ -1,0 +1,509 @@
+{
+  "nodes": [
+    {
+      "id": "playlistId_page",
+      "label": "Playlist Management Page",
+      "file_type": "code",
+      "source_file": "src/app/dashboard/playlist/[playlistId]/page.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "settings_page",
+      "label": "UserSettings Page",
+      "file_type": "code",
+      "source_file": "src/app/dashboard/settings/page.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "demoPlayer_page",
+      "label": "Demo Player Page",
+      "file_type": "code",
+      "source_file": "src/app/demoPlayer/page.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "overlayId_page",
+      "label": "Embed Overlay Page",
+      "file_type": "code",
+      "source_file": "src/app/embed/[overlayId]/page.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "eventsub_route",
+      "label": "Twitch EventSub Webhook Route",
+      "file_type": "code",
+      "source_file": "src/app/eventsub/route.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "imprint_page",
+      "label": "Imprint Legal Page",
+      "file_type": "code",
+      "source_file": "src/app/imprint/page.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "health_instance_route",
+      "label": "Internal Instance Health API Route",
+      "file_type": "code",
+      "source_file": "src/app/internal/health/instance/route.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "lib_campaignOffers",
+      "label": "Campaign Offers Utility",
+      "file_type": "code",
+      "source_file": "src/app/lib/campaignOffers.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "lib_clipCacheScheduler",
+      "label": "Clip Cache Scheduler",
+      "file_type": "code",
+      "source_file": "src/app/lib/clipCacheScheduler.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "lib_constants",
+      "label": "Application Constants",
+      "file_type": "code",
+      "source_file": "src/app/lib/constants.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "lib_entitlements",
+      "label": "Entitlements Manager",
+      "file_type": "code",
+      "source_file": "src/app/lib/entitlements.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "lib_entitlementsScheduler",
+      "label": "Entitlements Scheduler",
+      "file_type": "code",
+      "source_file": "src/app/lib/entitlementsScheduler.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "lib_featureAccess",
+      "label": "Feature Access Policy",
+      "file_type": "code",
+      "source_file": "src/app/lib/featureAccess.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "lib_instanceHealth",
+      "label": "Instance Health Metrics Collector",
+      "file_type": "code",
+      "source_file": "src/app/lib/instanceHealth.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "lib_paywallTracking",
+      "label": "Paywall Event Tracker",
+      "file_type": "code",
+      "source_file": "src/app/lib/paywallTracking.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "lib_pocketbaseAuth",
+      "label": "PocketBase Auth Manager",
+      "file_type": "code",
+      "source_file": "src/app/lib/pocketbaseAuth.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "lib_roadmap",
+      "label": "Roadmap Data Fetcher",
+      "file_type": "code",
+      "source_file": "src/app/lib/roadmap.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "lib_tokenCrypto",
+      "label": "Token Encryption Utility",
+      "file_type": "code",
+      "source_file": "src/app/lib/tokenCrypto.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "lib_twitchErrors",
+      "label": "Twitch Error Constants",
+      "file_type": "code",
+      "source_file": "src/app/lib/twitchErrors.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "lib_types",
+      "label": "Central TypeScript Types",
+      "file_type": "code",
+      "source_file": "src/app/lib/types.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "llmstxt_route",
+      "label": "LLMs.txt API Route",
+      "file_type": "code",
+      "source_file": "src/app/llms.txt/route.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "login_page",
+      "label": "Login Page",
+      "file_type": "code",
+      "source_file": "src/app/login/page.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "playlistId_page",
+      "target": "lib_featureAccess",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/dashboard/playlist/[playlistId]/page.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "settings_page",
+      "target": "lib_featureAccess",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/dashboard/settings/page.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "settings_page",
+      "target": "lib_paywallTracking",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/dashboard/settings/page.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "health_instance_route",
+      "target": "lib_instanceHealth",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/internal/health/instance/route.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "lib_campaignOffers",
+      "target": "lib_pocketbaseAuth",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/lib/campaignOffers.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "lib_entitlementsScheduler",
+      "target": "lib_entitlements",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/lib/entitlementsScheduler.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "lib_instanceHealth",
+      "target": "lib_clipCacheScheduler",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/lib/instanceHealth.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "lib_roadmap",
+      "target": "lib_pocketbaseAuth",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/lib/roadmap.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "playlistId_page",
+      "target": "lib_types",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/dashboard/playlist/[playlistId]/page.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "settings_page",
+      "target": "lib_types",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/dashboard/settings/page.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "demoPlayer_page",
+      "target": "lib_types",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/demoPlayer/page.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "overlayId_page",
+      "target": "lib_types",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/embed/[overlayId]/page.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "eventsub_route",
+      "target": "lib_types",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/eventsub/route.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "lib_campaignOffers",
+      "target": "lib_types",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/lib/campaignOffers.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "lib_entitlements",
+      "target": "lib_types",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/lib/entitlements.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "lib_featureAccess",
+      "target": "lib_types",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/lib/featureAccess.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "lib_instanceHealth",
+      "target": "lib_types",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/lib/instanceHealth.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "lib_clipCacheScheduler",
+      "target": "lib_entitlementsScheduler",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "src/app/lib/clipCacheScheduler.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "lib_campaignOffers",
+      "target": "lib_roadmap",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "src/app/lib/campaignOffers.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "lib_featureAccess",
+      "target": "lib_entitlements",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "src/app/lib/featureAccess.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "demoPlayer_page",
+      "target": "overlayId_page",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "src/app/demoPlayer/page.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "playlistId_page",
+      "target": "lib_constants",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "src/app/dashboard/playlist/[playlistId]/page.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "lib_pocketbaseAuth",
+      "target": "lib_tokenCrypto",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "src/app/lib/pocketbaseAuth.ts",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "entitlements_and_access_control",
+      "label": "Entitlements and Access Control Flow",
+      "nodes": ["lib_entitlements", "lib_featureAccess", "settings_page", "playlistId_page"],
+      "relation": "implement",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "src/app/lib/featureAccess.ts"
+    },
+    {
+      "id": "pocketbase_integration",
+      "label": "PocketBase CMS Integration",
+      "nodes": ["lib_pocketbaseAuth", "lib_campaignOffers", "lib_roadmap"],
+      "relation": "participate_in",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "src/app/lib/pocketbaseAuth.ts"
+    },
+    {
+      "id": "background_schedulers",
+      "label": "Background Job Schedulers",
+      "nodes": ["lib_clipCacheScheduler", "lib_entitlementsScheduler"],
+      "relation": "implement",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "src/app/lib/clipCacheScheduler.ts"
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

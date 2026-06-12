@@ -1,0 +1,17 @@
+---
+source_file: "src/app/components/DemoPlayer/FakeTwitchChat.tsx"
+type: "code"
+community: "Fake Twitch Chat Demo Player"
+location: "L55"
+tags:
+  - graphify/code
+  - graphify/EXTRACTED
+  - community/Fake_Twitch_Chat_Demo_Player
+---
+
+# EMOTES
+
+## Connections
+- [[FakeTwitchChat.tsx]] - `contains` [EXTRACTED]
+
+#graphify/code #graphify/EXTRACTED #community/Fake_Twitch_Chat_Demo_Player

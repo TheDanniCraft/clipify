@@ -1,0 +1,1697 @@
+{
+  "C:\\Coding\\TheDanniCraft-clipify\\.infisical.json": {
+    "mtime": 1765323290.0329895,
+    "ast_hash": "fd9230d6fa7af5afc475c76f49dda27d",
+    "semantic_hash": "fd9230d6fa7af5afc475c76f49dda27d"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\drizzle.config.ts": {
+    "mtime": 1756654866.914503,
+    "ast_hash": "6d4cac45cbe310d1c3bc6b30076248f4",
+    "semantic_hash": "6d4cac45cbe310d1c3bc6b30076248f4"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\eslint.config.mjs": {
+    "mtime": 1780142652.001232,
+    "ast_hash": "55b66ded9bcfcd62ecc9aed02959477d",
+    "semantic_hash": "55b66ded9bcfcd62ecc9aed02959477d"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\hero.ts": {
+    "mtime": 1781255186.8290336,
+    "ast_hash": "4fb852ab53485e0873f3cc20f7b063de",
+    "semantic_hash": "4fb852ab53485e0873f3cc20f7b063de"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\instrumentation-client.ts": {
+    "mtime": 1772239001.610712,
+    "ast_hash": "ca43fbf11b11d606c425bc33e665044c",
+    "semantic_hash": "ca43fbf11b11d606c425bc33e665044c"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\jest.setup.ts": {
+    "mtime": 1775760114.1761196,
+    "ast_hash": "d624944cebab64d0846c1d47b5e7a2c2",
+    "semantic_hash": "d624944cebab64d0846c1d47b5e7a2c2"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\next.config.ts": {
+    "mtime": 1777315999.4796128,
+    "ast_hash": "dc47a86b0a4aae5e830311d1f98f09a5",
+    "semantic_hash": "dc47a86b0a4aae5e830311d1f98f09a5"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\nixpacks.json": {
+    "mtime": 1749063370.849288,
+    "ast_hash": "38bd151ac27ca945d9e4650f349e843d",
+    "semantic_hash": "38bd151ac27ca945d9e4650f349e843d"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\package.json": {
+    "mtime": 1781255227.1891458,
+    "ast_hash": "9cc679c3aa635be382f764696a5fdbcd",
+    "semantic_hash": "9cc679c3aa635be382f764696a5fdbcd"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\postcss.config.mjs": {
+    "mtime": 1748775240.0071247,
+    "ast_hash": "481fac0fdecd70e1821cc30b86030c1a",
+    "semantic_hash": "481fac0fdecd70e1821cc30b86030c1a"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\renovate.json": {
+    "mtime": 1768242665.618023,
+    "ast_hash": "6146943d5c83200858bbff115c1e6ca0",
+    "semantic_hash": "6146943d5c83200858bbff115c1e6ca0"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\sentry.edge.config.ts": {
+    "mtime": 1748775240.0076306,
+    "ast_hash": "6239f28d9b9da9b7aa79000968625be7",
+    "semantic_hash": "6239f28d9b9da9b7aa79000968625be7"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\sentry.server.config.ts": {
+    "mtime": 1748775240.0076306,
+    "ast_hash": "6239f28d9b9da9b7aa79000968625be7",
+    "semantic_hash": "6239f28d9b9da9b7aa79000968625be7"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\tsconfig.json": {
+    "mtime": 1777315999.5187614,
+    "ast_hash": "28a5f11fd90ad44ae6349c7ff42534ab",
+    "semantic_hash": "28a5f11fd90ad44ae6349c7ff42534ab"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.heroui-docs\\migration\\meta.json": {
+    "mtime": 1776970252.0307443,
+    "ast_hash": "fb92a606b0a21bb7190d1a717b227155",
+    "semantic_hash": "fb92a606b0a21bb7190d1a717b227155"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.husky\\_\\applypatch-msg": {
+    "mtime": 1780248762.8380823,
+    "ast_hash": "0b71c2e7d39daa010985d529f1320b37",
+    "semantic_hash": "0b71c2e7d39daa010985d529f1320b37"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.husky\\_\\commit-msg": {
+    "mtime": 1780248762.8370593,
+    "ast_hash": "0b71c2e7d39daa010985d529f1320b37",
+    "semantic_hash": "0b71c2e7d39daa010985d529f1320b37"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.husky\\_\\h": {
+    "mtime": 1777041924.3330555,
+    "ast_hash": "15239a01c5554e56ff745570fb583a91",
+    "semantic_hash": "15239a01c5554e56ff745570fb583a91"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.husky\\_\\husky.sh": {
+    "mtime": 1780248762.8412552,
+    "ast_hash": "13871d2ab13e8423790ecb2c01c78c18",
+    "semantic_hash": "13871d2ab13e8423790ecb2c01c78c18"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.husky\\_\\post-applypatch": {
+    "mtime": 1780248762.8385913,
+    "ast_hash": "0b71c2e7d39daa010985d529f1320b37",
+    "semantic_hash": "0b71c2e7d39daa010985d529f1320b37"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.husky\\_\\post-checkout": {
+    "mtime": 1780248762.8396108,
+    "ast_hash": "0b71c2e7d39daa010985d529f1320b37",
+    "semantic_hash": "0b71c2e7d39daa010985d529f1320b37"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.husky\\_\\post-commit": {
+    "mtime": 1780248762.837568,
+    "ast_hash": "0b71c2e7d39daa010985d529f1320b37",
+    "semantic_hash": "0b71c2e7d39daa010985d529f1320b37"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.husky\\_\\post-merge": {
+    "mtime": 1780248762.8402257,
+    "ast_hash": "0b71c2e7d39daa010985d529f1320b37",
+    "semantic_hash": "0b71c2e7d39daa010985d529f1320b37"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.husky\\_\\post-rewrite": {
+    "mtime": 1780248762.8391006,
+    "ast_hash": "0b71c2e7d39daa010985d529f1320b37",
+    "semantic_hash": "0b71c2e7d39daa010985d529f1320b37"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.husky\\_\\pre-applypatch": {
+    "mtime": 1780248762.8380823,
+    "ast_hash": "0b71c2e7d39daa010985d529f1320b37",
+    "semantic_hash": "0b71c2e7d39daa010985d529f1320b37"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.husky\\_\\pre-auto-gc": {
+    "mtime": 1780248762.8407426,
+    "ast_hash": "0b71c2e7d39daa010985d529f1320b37",
+    "semantic_hash": "0b71c2e7d39daa010985d529f1320b37"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.husky\\_\\pre-commit": {
+    "mtime": 1780248762.8360295,
+    "ast_hash": "0b71c2e7d39daa010985d529f1320b37",
+    "semantic_hash": "0b71c2e7d39daa010985d529f1320b37"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.husky\\_\\pre-merge-commit": {
+    "mtime": 1780248762.836542,
+    "ast_hash": "0b71c2e7d39daa010985d529f1320b37",
+    "semantic_hash": "0b71c2e7d39daa010985d529f1320b37"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.husky\\_\\pre-push": {
+    "mtime": 1780248762.8402257,
+    "ast_hash": "0b71c2e7d39daa010985d529f1320b37",
+    "semantic_hash": "0b71c2e7d39daa010985d529f1320b37"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.husky\\_\\pre-rebase": {
+    "mtime": 1780248762.8391006,
+    "ast_hash": "0b71c2e7d39daa010985d529f1320b37",
+    "semantic_hash": "0b71c2e7d39daa010985d529f1320b37"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.husky\\_\\prepare-commit-msg": {
+    "mtime": 1780248762.8370593,
+    "ast_hash": "0b71c2e7d39daa010985d529f1320b37",
+    "semantic_hash": "0b71c2e7d39daa010985d529f1320b37"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.vscode\\settings.json": {
+    "mtime": 1776528720.4462783,
+    "ast_hash": "83962851214c4eead36596843d9c1a38",
+    "semantic_hash": "83962851214c4eead36596843d9c1a38"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\drizzle\\0000_narrow_maginty.sql": {
+    "mtime": 1749218347.8415966,
+    "ast_hash": "8f5cc2df80d79e7407685a641c1c4af1",
+    "semantic_hash": "8f5cc2df80d79e7407685a641c1c4af1"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\drizzle\\0001_volatile_maestro.sql": {
+    "mtime": 1750946403.8347783,
+    "ast_hash": "f214d394cb8007ca69a56c68df0c79fa",
+    "semantic_hash": "f214d394cb8007ca69a56c68df0c79fa"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\drizzle\\0002_volatile_post.sql": {
+    "mtime": 1754692970.4473186,
+    "ast_hash": "2dd2f6dc2ff7e2e757e57974e0be22fa",
+    "semantic_hash": "2dd2f6dc2ff7e2e757e57974e0be22fa"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\drizzle\\0003_medical_kree.sql": {
+    "mtime": 1765323290.0365477,
+    "ast_hash": "222047a89b93c94563d02dbe224d5813",
+    "semantic_hash": "222047a89b93c94563d02dbe224d5813"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\drizzle\\0004_tearful_landau.sql": {
+    "mtime": 1765937633.7255185,
+    "ast_hash": "311292112529232e17d2111c8a80794c",
+    "semantic_hash": "311292112529232e17d2111c8a80794c"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\drizzle\\0005_cuddly_wolfsbane.sql": {
+    "mtime": 1769026547.3975556,
+    "ast_hash": "c91e5fbe5f5c19eee7910dc58793781d",
+    "semantic_hash": "c91e5fbe5f5c19eee7910dc58793781d"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\drizzle\\0006_short_natasha_romanoff.sql": {
+    "mtime": 1775760114.1653643,
+    "ast_hash": "90ab21e9da6207c42d2cb35c9c96365d",
+    "semantic_hash": "90ab21e9da6207c42d2cb35c9c96365d"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\drizzle\\0007_illegal_slayback.sql": {
+    "mtime": 1775760114.1658697,
+    "ast_hash": "1a0f9060e53508bcf7d36810077eb3be",
+    "semantic_hash": "1a0f9060e53508bcf7d36810077eb3be"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\drizzle\\0008_ambiguous_rhino.sql": {
+    "mtime": 1775760114.1658697,
+    "ast_hash": "f10729e77a07d94fb3668100608e845d",
+    "semantic_hash": "f10729e77a07d94fb3668100608e845d"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\drizzle\\0009_swift_silver_samurai.sql": {
+    "mtime": 1775760114.1663806,
+    "ast_hash": "905d61b87b5cb65a9941d461921ec353",
+    "semantic_hash": "905d61b87b5cb65a9941d461921ec353"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\drizzle\\0010_needy_peter_quill.sql": {
+    "mtime": 1775760114.1668894,
+    "ast_hash": "564ecbcf96c9c06019f693398fabbaaa",
+    "semantic_hash": "564ecbcf96c9c06019f693398fabbaaa"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\drizzle\\0011_dazzling_magma.sql": {
+    "mtime": 1775760114.1674545,
+    "ast_hash": "4d2cd2cbc166883cb689d96ab16d6a7a",
+    "semantic_hash": "4d2cd2cbc166883cb689d96ab16d6a7a"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\drizzle\\0012_woozy_hannibal_king.sql": {
+    "mtime": 1775760114.1674545,
+    "ast_hash": "ae9eed52a9e9b8b906ab5e4cccc5035e",
+    "semantic_hash": "ae9eed52a9e9b8b906ab5e4cccc5035e"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\drizzle\\0013_material_caretaker.sql": {
+    "mtime": 1775760114.167966,
+    "ast_hash": "822977c28a00bc417fa4bbeda90c9676",
+    "semantic_hash": "822977c28a00bc417fa4bbeda90c9676"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\drizzle\\0014_late_timeslip.sql": {
+    "mtime": 1775760114.168479,
+    "ast_hash": "846162ec41ebd17cdafd9367f9490591",
+    "semantic_hash": "846162ec41ebd17cdafd9367f9490591"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\drizzle\\0015_black_malice.sql": {
+    "mtime": 1775760114.168989,
+    "ast_hash": "277470f82af400a6897cd67f848f0677",
+    "semantic_hash": "277470f82af400a6897cd67f848f0677"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\drizzle\\0016_first_whiplash.sql": {
+    "mtime": 1775760114.168989,
+    "ast_hash": "1ff36f61ed261e87c0b4c2e2b424d5f5",
+    "semantic_hash": "1ff36f61ed261e87c0b4c2e2b424d5f5"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\drizzle\\0017_serious_wild_child.sql": {
+    "mtime": 1776528720.4493246,
+    "ast_hash": "07abf039d406ec1bb2d13daa6e1a8669",
+    "semantic_hash": "07abf039d406ec1bb2d13daa6e1a8669"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\drizzle\\meta\\0000_snapshot.json": {
+    "mtime": 1749218470.2125213,
+    "ast_hash": "0c3237fbf9182d9b221045949d976e1d",
+    "semantic_hash": "0c3237fbf9182d9b221045949d976e1d"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\drizzle\\meta\\0001_snapshot.json": {
+    "mtime": 1750946403.8347783,
+    "ast_hash": "83ab4dc46e259267381163056cdc10f9",
+    "semantic_hash": "83ab4dc46e259267381163056cdc10f9"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\drizzle\\meta\\0002_snapshot.json": {
+    "mtime": 1754692970.4478269,
+    "ast_hash": "9890763c6ef21adc15b4615f878df511",
+    "semantic_hash": "9890763c6ef21adc15b4615f878df511"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\drizzle\\meta\\0003_snapshot.json": {
+    "mtime": 1765323290.037052,
+    "ast_hash": "7b201b50f0293cb609eb42d5ee9a43a1",
+    "semantic_hash": "7b201b50f0293cb609eb42d5ee9a43a1"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\drizzle\\meta\\0004_snapshot.json": {
+    "mtime": 1765937633.7261143,
+    "ast_hash": "7a0c7f50f73079d1eef7a8ccd2788543",
+    "semantic_hash": "7a0c7f50f73079d1eef7a8ccd2788543"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\drizzle\\meta\\0005_snapshot.json": {
+    "mtime": 1769026547.398064,
+    "ast_hash": "52d5e12fea8115ffa64066f48fffc682",
+    "semantic_hash": "52d5e12fea8115ffa64066f48fffc682"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\drizzle\\meta\\0006_snapshot.json": {
+    "mtime": 1775760114.169498,
+    "ast_hash": "dd139ac19bd43f763d5229e56fdb2525",
+    "semantic_hash": "dd139ac19bd43f763d5229e56fdb2525"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\drizzle\\meta\\0007_snapshot.json": {
+    "mtime": 1775760114.1700053,
+    "ast_hash": "adb99a6ffea67e2c35d2f21dabc656f8",
+    "semantic_hash": "adb99a6ffea67e2c35d2f21dabc656f8"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\drizzle\\meta\\0008_snapshot.json": {
+    "mtime": 1775760114.1705143,
+    "ast_hash": "18ea61af78aac11bb819d7ee88ed61ac",
+    "semantic_hash": "18ea61af78aac11bb819d7ee88ed61ac"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\drizzle\\meta\\0009_snapshot.json": {
+    "mtime": 1775760114.1705143,
+    "ast_hash": "5ca0aa020fa34915bb2882caca64da14",
+    "semantic_hash": "5ca0aa020fa34915bb2882caca64da14"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\drizzle\\meta\\0010_snapshot.json": {
+    "mtime": 1775760114.1715395,
+    "ast_hash": "348b2c0d94e2dd2d7a3d9f0d708617da",
+    "semantic_hash": "348b2c0d94e2dd2d7a3d9f0d708617da"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\drizzle\\meta\\0011_snapshot.json": {
+    "mtime": 1775760114.1720505,
+    "ast_hash": "23b6c0bbf5e3fd6f4add4c56d3cf4e34",
+    "semantic_hash": "23b6c0bbf5e3fd6f4add4c56d3cf4e34"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\drizzle\\meta\\0012_snapshot.json": {
+    "mtime": 1775760114.1725636,
+    "ast_hash": "5b509226365f15650e7ce4371fe88639",
+    "semantic_hash": "5b509226365f15650e7ce4371fe88639"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\drizzle\\meta\\0013_snapshot.json": {
+    "mtime": 1775760114.1730733,
+    "ast_hash": "65bda97d5770958c017dabdd5b1e8f79",
+    "semantic_hash": "65bda97d5770958c017dabdd5b1e8f79"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\drizzle\\meta\\0014_snapshot.json": {
+    "mtime": 1775760114.1735802,
+    "ast_hash": "d4efac2fdd47f8946a5a193ef4c8e225",
+    "semantic_hash": "d4efac2fdd47f8946a5a193ef4c8e225"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\drizzle\\meta\\0015_snapshot.json": {
+    "mtime": 1775760114.1740856,
+    "ast_hash": "77f28c7b9b372b120755bf6973cfbf6a",
+    "semantic_hash": "77f28c7b9b372b120755bf6973cfbf6a"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\drizzle\\meta\\0016_snapshot.json": {
+    "mtime": 1775760114.174594,
+    "ast_hash": "5715896813985cb757da43f47b0309fe",
+    "semantic_hash": "5715896813985cb757da43f47b0309fe"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\drizzle\\meta\\0017_snapshot.json": {
+    "mtime": 1776528720.4498315,
+    "ast_hash": "8f4c05c202c6473406788f7bee77817b",
+    "semantic_hash": "8f4c05c202c6473406788f7bee77817b"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\drizzle\\meta\\_journal.json": {
+    "mtime": 1778900926.1115181,
+    "ast_hash": "d6bda4783fca4bf401dceb3dc8eecfbb",
+    "semantic_hash": "d6bda4783fca4bf401dceb3dc8eecfbb"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\grafana\\clipify-vm01-overview-v1.json": {
+    "mtime": 1776528720.4513607,
+    "ast_hash": "38efafea1e9e217f3b6f96c7735bf757",
+    "semantic_hash": "38efafea1e9e217f3b6f96c7735bf757"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\grafana\\clipify-vm01-overview-v2.json": {
+    "mtime": 1777151587.21831,
+    "ast_hash": "dd47b1141084fe8b3e5471a4b0258ea4",
+    "semantic_hash": "dd47b1141084fe8b3e5471a4b0258ea4"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\scripts\\check-server-action-manifest.mjs": {
+    "mtime": 1780142652.0027654,
+    "ast_hash": "9ac67f19ade00d12c35fc1d1044de61c",
+    "semantic_hash": "9ac67f19ade00d12c35fc1d1044de61c"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\scripts\\migrateTokens.ts": {
+    "mtime": 1775760114.1796834,
+    "ast_hash": "b6be421a9f7ac10cbea8ebf88e2b56f5",
+    "semantic_hash": "b6be421a9f7ac10cbea8ebf88e2b56f5"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\instrumentation.ts": {
+    "mtime": 1775760114.2266748,
+    "ast_hash": "6b93fb41338313b5d366613a03190110",
+    "semantic_hash": "6b93fb41338313b5d366613a03190110"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\proxy.ts": {
+    "mtime": 1775760114.227185,
+    "ast_hash": "7d28cd6482d02a74994ffa1199fdce9d",
+    "semantic_hash": "7d28cd6482d02a74994ffa1199fdce9d"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\error.tsx": {
+    "mtime": 1781255186.8566532,
+    "ast_hash": "fde4b222ecbfa4e60931b6d17af3b5ff",
+    "semantic_hash": "fde4b222ecbfa4e60931b6d17af3b5ff"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\global-error.tsx": {
+    "mtime": 1781255186.8571625,
+    "ast_hash": "ddf0e47711b6fc59c74bf1e5269f0f6a",
+    "semantic_hash": "ddf0e47711b6fc59c74bf1e5269f0f6a"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\HomePageClient.tsx": {
+    "mtime": 1781255186.830568,
+    "ast_hash": "8c6d72c6ac0b4157b7e48fa4c35d56f6",
+    "semantic_hash": "8c6d72c6ac0b4157b7e48fa4c35d56f6"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\layout.tsx": {
+    "mtime": 1781255186.8586905,
+    "ast_hash": "1bc6a953bc3ed5e368acb84cf10e49b7",
+    "semantic_hash": "1bc6a953bc3ed5e368acb84cf10e49b7"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\manifest.ts": {
+    "mtime": 1765323290.0591302,
+    "ast_hash": "7984e760ef812c1991cf08fd613ccd34",
+    "semantic_hash": "7984e760ef812c1991cf08fd613ccd34"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\not-found.tsx": {
+    "mtime": 1781255186.8597157,
+    "ast_hash": "12eb0677aee40c09c33ffc3f599ea84e",
+    "semantic_hash": "12eb0677aee40c09c33ffc3f599ea84e"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\page.tsx": {
+    "mtime": 1781255186.8607345,
+    "ast_hash": "52846c96dc711709bfd53b60cb4b16be",
+    "semantic_hash": "52846c96dc711709bfd53b60cb4b16be"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\PlausibleClient.tsx": {
+    "mtime": 1781255186.8310778,
+    "ast_hash": "e2576667fe353c2b3966995427ea34f4",
+    "semantic_hash": "e2576667fe353c2b3966995427ea34f4"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\providers.tsx": {
+    "mtime": 1781255186.8607345,
+    "ast_hash": "a137cecede64ea243e2643b88b31e126",
+    "semantic_hash": "a137cecede64ea243e2643b88b31e126"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\robots.ts": {
+    "mtime": 1765323290.0616658,
+    "ast_hash": "5f02f3edabc2c20439a5f3a8c2e695af",
+    "semantic_hash": "5f02f3edabc2c20439a5f3a8c2e695af"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\sitemap.ts": {
+    "mtime": 1777408537.8680365,
+    "ast_hash": "f77b6c88a8a1b74b464df6aed84668b5",
+    "semantic_hash": "f77b6c88a8a1b74b464df6aed84668b5"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\theme-provider.tsx": {
+    "mtime": 1781255186.862263,
+    "ast_hash": "17892285e284f954d1609f29bda9af93",
+    "semantic_hash": "17892285e284f954d1609f29bda9af93"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\actions\\adminView.ts": {
+    "mtime": 1775760114.180698,
+    "ast_hash": "8190b1ced5f98aa814c02fd60df4d38c",
+    "semantic_hash": "8190b1ced5f98aa814c02fd60df4d38c"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\actions\\auth.ts": {
+    "mtime": 1775760114.1812074,
+    "ast_hash": "de0f07a1351bd5fe5dbbbacf2612fcd9",
+    "semantic_hash": "de0f07a1351bd5fe5dbbbacf2612fcd9"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\actions\\campaignOffers.ts": {
+    "mtime": 1776528720.4549313,
+    "ast_hash": "a081a5a77da12592868fd2f4ca200c08",
+    "semantic_hash": "a081a5a77da12592868fd2f4ca200c08"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\actions\\commands.ts": {
+    "mtime": 1780142652.0037808,
+    "ast_hash": "d4ffcddf3b8b39799c21c1cb5685f6b2",
+    "semantic_hash": "d4ffcddf3b8b39799c21c1cb5685f6b2"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\actions\\controller.ts": {
+    "mtime": 1776528720.4549313,
+    "ast_hash": "e26b27a6923aca95f2272f4bb25a3c0a",
+    "semantic_hash": "e26b27a6923aca95f2272f4bb25a3c0a"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\actions\\database.ts": {
+    "mtime": 1780245024.6212802,
+    "ast_hash": "cc0178a752bc07d153c031b0e73dfdbf",
+    "semantic_hash": "cc0178a752bc07d153c031b0e73dfdbf"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\actions\\feedbackWidget.ts": {
+    "mtime": 1775760114.1838148,
+    "ast_hash": "18dd5a176f9cd42bab32c88e0222d074",
+    "semantic_hash": "18dd5a176f9cd42bab32c88e0222d074"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\actions\\newsletter.ts": {
+    "mtime": 1775760114.1843228,
+    "ast_hash": "dd058e33a28e82ddfad3fad93e37e227",
+    "semantic_hash": "dd058e33a28e82ddfad3fad93e37e227"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\actions\\rateLimit.ts": {
+    "mtime": 1780245024.621792,
+    "ast_hash": "09bc1f62c4b8049f136c722eeb5e24fe",
+    "semantic_hash": "09bc1f62c4b8049f136c722eeb5e24fe"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\actions\\subscription.ts": {
+    "mtime": 1780245024.6228154,
+    "ast_hash": "c6b3a844137cab81894dae469ad6edea",
+    "semantic_hash": "c6b3a844137cab81894dae469ad6edea"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\actions\\twitch.ts": {
+    "mtime": 1780142652.0063207,
+    "ast_hash": "e828e04814bdc2a0091a8e0215476ed7",
+    "semantic_hash": "e828e04814bdc2a0091a8e0215476ed7"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\actions\\utils.ts": {
+    "mtime": 1775760114.1863527,
+    "ast_hash": "3d9640298e282c5b0ffd09f22b861262",
+    "semantic_hash": "3d9640298e282c5b0ffd09f22b861262"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\actions\\websocket.ts": {
+    "mtime": 1776528720.4569652,
+    "ast_hash": "3ce63e0a754ce63039219ab79d3341f5",
+    "semantic_hash": "3ce63e0a754ce63039219ab79d3341f5"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\admin\\page.tsx": {
+    "mtime": 1781255186.8315864,
+    "ast_hash": "5c06188e141a62d008f3e759ed47b298",
+    "semantic_hash": "5c06188e141a62d008f3e759ed47b298"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\admin\\view-as\\[targetUserId]\\route.ts": {
+    "mtime": 1775760114.1883879,
+    "ast_hash": "867720319755560ead43280ca3cdc7f8",
+    "semantic_hash": "867720319755560ead43280ca3cdc7f8"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\auth\\route.ts": {
+    "mtime": 1778434278.9061286,
+    "ast_hash": "b10acd48d474cfa53d727d24a2e33d23",
+    "semantic_hash": "b10acd48d474cfa53d727d24a2e33d23"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\auth\\bot\\route.ts": {
+    "mtime": 1775760114.1888962,
+    "ast_hash": "2e9f2028ebcca4697b106d9721e86ba9",
+    "semantic_hash": "2e9f2028ebcca4697b106d9721e86ba9"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\callback\\route.ts": {
+    "mtime": 1775760114.189913,
+    "ast_hash": "0bc6613fcac95c3a11c23a1dd56ce2bc",
+    "semantic_hash": "0bc6613fcac95c3a11c23a1dd56ce2bc"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\changelog\\page.tsx": {
+    "mtime": 1781255186.8320942,
+    "ast_hash": "4914eb176b7c45727c180d8ab6f66fab",
+    "semantic_hash": "4914eb176b7c45727c180d8ab6f66fab"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\components\\adminHealthCharts.tsx": {
+    "mtime": 1781255186.8392758,
+    "ast_hash": "082cc4d0d6fcfd5882d9f01c17dfc85b",
+    "semantic_hash": "082cc4d0d6fcfd5882d9f01c17dfc85b"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\components\\adminUserExplorer.tsx": {
+    "mtime": 1781255186.8392758,
+    "ast_hash": "19b81a12b086aeb92cce6ed5fb360e8f",
+    "semantic_hash": "19b81a12b086aeb92cce6ed5fb360e8f"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\components\\AdOptScript.tsx": {
+    "mtime": 1781255186.8326535,
+    "ast_hash": "6b3d8eb8982dbb6fd5a4e3c18481030b",
+    "semantic_hash": "6b3d8eb8982dbb6fd5a4e3c18481030b"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\components\\chatWidget.tsx": {
+    "mtime": 1781255186.8397853,
+    "ast_hash": "cbdd1b14ebeb5fbcb001a8123ed4a7c8",
+    "semantic_hash": "cbdd1b14ebeb5fbcb001a8123ed4a7c8"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\components\\chatwootData.tsx": {
+    "mtime": 1781255186.8402925,
+    "ast_hash": "404ee8e6e12c385cba40223577cef9b5",
+    "semantic_hash": "404ee8e6e12c385cba40223577cef9b5"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\components\\confirmModal.tsx": {
+    "mtime": 1781255186.8408031,
+    "ast_hash": "38c363a9ddfe2d2575430222443b8401",
+    "semantic_hash": "38c363a9ddfe2d2575430222443b8401"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\components\\construction.tsx": {
+    "mtime": 1781255186.8413117,
+    "ast_hash": "7d97d9a8b087f8883b93e7fb41871664",
+    "semantic_hash": "7d97d9a8b087f8883b93e7fb41871664"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\components\\countdownTimer.tsx": {
+    "mtime": 1781255186.8418195,
+    "ast_hash": "3aac6d32e9116ca83772f6fb80003723",
+    "semantic_hash": "3aac6d32e9116ca83772f6fb80003723"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\components\\dashboardNavbar.tsx": {
+    "mtime": 1781255186.842328,
+    "ast_hash": "151f5cde239e66ab4d20110cd8540b90",
+    "semantic_hash": "151f5cde239e66ab4d20110cd8540b90"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\components\\errorPage.tsx": {
+    "mtime": 1781255186.8428354,
+    "ast_hash": "30dbabf8146d291f79018814e2f0163a",
+    "semantic_hash": "30dbabf8146d291f79018814e2f0163a"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\components\\errorToast.tsx": {
+    "mtime": 1781255186.8433433,
+    "ast_hash": "0d0c1b12785aafc253ea06078fc7a97a",
+    "semantic_hash": "0d0c1b12785aafc253ea06078fc7a97a"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\components\\featureCard.tsx": {
+    "mtime": 1781255186.8438542,
+    "ast_hash": "5d779893c257e74ee3b0a96cb8e26131",
+    "semantic_hash": "5d779893c257e74ee3b0a96cb8e26131"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\components\\floatingBanner.tsx": {
+    "mtime": 1781255186.8448777,
+    "ast_hash": "29c4f4d27abe0dd10d3e128d01212ea4",
+    "semantic_hash": "29c4f4d27abe0dd10d3e128d01212ea4"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\components\\footer.tsx": {
+    "mtime": 1781255186.8453872,
+    "ast_hash": "c4caddb1932bfbba0b04b12fe11a6d14",
+    "semantic_hash": "c4caddb1932bfbba0b04b12fe11a6d14"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\components\\logo.tsx": {
+    "mtime": 1781255186.8458958,
+    "ast_hash": "2c1b460ea0b9dfee2cad4a9e99695102",
+    "semantic_hash": "2c1b460ea0b9dfee2cad4a9e99695102"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\components\\nextErrorPage.tsx": {
+    "mtime": 1781255186.8464024,
+    "ast_hash": "27bf32522eef001d379113cb608cc89d",
+    "semantic_hash": "27bf32522eef001d379113cb608cc89d"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\components\\overlayPlayer.tsx": {
+    "mtime": 1781255186.847415,
+    "ast_hash": "68a0f819fb17a1c577e3a2dc64708219",
+    "semantic_hash": "68a0f819fb17a1c577e3a2dc64708219"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\components\\overlayPlayer.utils.ts": {
+    "mtime": 1775760114.201165,
+    "ast_hash": "3184b6b63ed5537dea0d14b7e0ddbd04",
+    "semantic_hash": "3184b6b63ed5537dea0d14b7e0ddbd04"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\components\\playerOverlay.tsx": {
+    "mtime": 1781255186.8479853,
+    "ast_hash": "c477257ff388a5f5f7901741d31dfe11",
+    "semantic_hash": "c477257ff388a5f5f7901741d31dfe11"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\components\\scrollingBanner.tsx": {
+    "mtime": 1781255186.8490045,
+    "ast_hash": "b2ff41bdfb032893b2c8ce0d3ef198e1",
+    "semantic_hash": "b2ff41bdfb032893b2c8ce0d3ef198e1"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\components\\tagsInput.tsx": {
+    "mtime": 1781255186.849514,
+    "ast_hash": "bb221d85b50a2aa8ef4cde69c8f333c5",
+    "semantic_hash": "bb221d85b50a2aa8ef4cde69c8f333c5"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\components\\upgradeModal.tsx": {
+    "mtime": 1781255186.8500223,
+    "ast_hash": "011dd1b41d11d75fcf2a1c2c926da828",
+    "semantic_hash": "011dd1b41d11d75fcf2a1c2c926da828"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\components\\AffiliatePage\\faqs.ts": {
+    "mtime": 1765323290.0462804,
+    "ast_hash": "7b1fd16e978a92452ecf3a4871b23c99",
+    "semantic_hash": "7b1fd16e978a92452ecf3a4871b23c99"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\components\\DemoPlayer\\FakeTwitchChat.tsx": {
+    "mtime": 1781255186.8331635,
+    "ast_hash": "572b0bc2fc9322e038e9bf476a9ac295",
+    "semantic_hash": "572b0bc2fc9322e038e9bf476a9ac295"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\components\\DemoPlayer\\index.tsx": {
+    "mtime": 1781255186.8346937,
+    "ast_hash": "0c69e5555abab1a6cffc3c8350abe248",
+    "semantic_hash": "0c69e5555abab1a6cffc3c8350abe248"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\components\\DemoPlayer\\StreamingSoftwareMock.tsx": {
+    "mtime": 1781255186.833673,
+    "ast_hash": "a9950af7757c9883a288bfe6810af48e",
+    "semantic_hash": "a9950af7757c9883a288bfe6810af48e"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\components\\DemoPlayer\\StreamingWithChatMock.tsx": {
+    "mtime": 1781255186.8341825,
+    "ast_hash": "c844c3e7fc4c25dfd48924b9bbcc12cc",
+    "semantic_hash": "c844c3e7fc4c25dfd48924b9bbcc12cc"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\components\\feedbackWidget\\index.tsx": {
+    "mtime": 1781255186.8443663,
+    "ast_hash": "af46b6f7e5527852a0243811ade5ca1f",
+    "semantic_hash": "af46b6f7e5527852a0243811ade5ca1f"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\components\\feedbackWidget\\itemRating.tsx": {
+    "mtime": 1781255186.8443663,
+    "ast_hash": "2a94b3f6dfb9ef803d671c2a6e4f2e79",
+    "semantic_hash": "2a94b3f6dfb9ef803d671c2a6e4f2e79"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\components\\LandingPage\\basicNavbar.tsx": {
+    "mtime": 1781255186.8352046,
+    "ast_hash": "b459002da00c61f5e70a82b053e11c29",
+    "semantic_hash": "b459002da00c61f5e70a82b053e11c29"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\components\\LandingPage\\faqs.ts": {
+    "mtime": 1777408537.8659687,
+    "ast_hash": "69e42d46e88ea338773b5986b46746ef",
+    "semantic_hash": "69e42d46e88ea338773b5986b46746ef"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\components\\OverlayTable\\copy-text.tsx": {
+    "mtime": 1781255186.8362198,
+    "ast_hash": "0a395866b91172b6466e3cf988841e37",
+    "semantic_hash": "0a395866b91172b6466e3cf988841e37"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\components\\OverlayTable\\data.tsx": {
+    "mtime": 1781255186.8362198,
+    "ast_hash": "338594188c266eede8d802f794058a46",
+    "semantic_hash": "338594188c266eede8d802f794058a46"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\components\\OverlayTable\\index.tsx": {
+    "mtime": 1781255186.8372364,
+    "ast_hash": "24cf25705ed4b81f0d1200dc5cce745e",
+    "semantic_hash": "24cf25705ed4b81f0d1200dc5cce745e"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\components\\OverlayTable\\Status.tsx": {
+    "mtime": 1781255186.8357127,
+    "ast_hash": "4ecca1cad589673e984a546f2a63a289",
+    "semantic_hash": "4ecca1cad589673e984a546f2a63a289"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\components\\OverlayTable\\use-memoized-callback.ts": {
+    "mtime": 1765323290.0483258,
+    "ast_hash": "78a8e62f7e3f381e84e0f4086fd751b8",
+    "semantic_hash": "78a8e62f7e3f381e84e0f4086fd751b8"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\components\\Pricing\\index.tsx": {
+    "mtime": 1781255186.837745,
+    "ast_hash": "3302ac1476cb1fcad27ee5d0f920cade",
+    "semantic_hash": "3302ac1476cb1fcad27ee5d0f920cade"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\components\\Pricing\\pricing-comparison-types.ts": {
+    "mtime": 1748775240.0147417,
+    "ast_hash": "531c851291b5e5b6d7787468f55069a5",
+    "semantic_hash": "531c851291b5e5b6d7787468f55069a5"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\components\\Pricing\\pricing-tiers.ts": {
+    "mtime": 1781255186.8382537,
+    "ast_hash": "0c671d77f8fb9366ed16e03f89475437",
+    "semantic_hash": "0c671d77f8fb9366ed16e03f89475437"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\components\\Pricing\\pricing-types.ts": {
+    "mtime": 1781255186.8382537,
+    "ast_hash": "eb9bde90adf25f94ccd1b5dd7f8c34bd",
+    "semantic_hash": "eb9bde90adf25f94ccd1b5dd7f8c34bd"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\components\\roadmap\\roadmapData.ts": {
+    "mtime": 1776528720.4641354,
+    "ast_hash": "7b3195e0dd70ee21d8881e65c35a694b",
+    "semantic_hash": "7b3195e0dd70ee21d8881e65c35a694b"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\components\\roadmap\\roadmapItem.tsx": {
+    "mtime": 1781255186.8484926,
+    "ast_hash": "f053d4c77b847cc6de765991d805c529",
+    "semantic_hash": "f053d4c77b847cc6de765991d805c529"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\controller\\[overlayId]\\controllerClient.tsx": {
+    "mtime": 1781255186.851044,
+    "ast_hash": "fd222d1f8e73b260ab39d16483a84352",
+    "semantic_hash": "fd222d1f8e73b260ab39d16483a84352"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\controller\\[overlayId]\\page.tsx": {
+    "mtime": 1781255186.851044,
+    "ast_hash": "6a3f18fb286b06f738826f460c7f4beb",
+    "semantic_hash": "6a3f18fb286b06f738826f460c7f4beb"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\dashboard\\page.tsx": {
+    "mtime": 1781255186.8540962,
+    "ast_hash": "6b34fb9ccf1a1d8fd6d02691e5e445db",
+    "semantic_hash": "6b34fb9ccf1a1d8fd6d02691e5e445db"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\dashboard\\embed\\page.tsx": {
+    "mtime": 1781255186.8520577,
+    "ast_hash": "3fb1b4d3f7c77a89028f89f8bb14d3bb",
+    "semantic_hash": "3fb1b4d3f7c77a89028f89f8bb14d3bb"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\dashboard\\overlay\\[overlayId]\\page.tsx": {
+    "mtime": 1781255186.8530715,
+    "ast_hash": "e19eb852e9d77b542c5ec543fef0b96e",
+    "semantic_hash": "e19eb852e9d77b542c5ec543fef0b96e"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\dashboard\\overlay\\[overlayId]\\theme\\page.tsx": {
+    "mtime": 1781255186.8535824,
+    "ast_hash": "17a5ce9161278edcb28189786694d4c9",
+    "semantic_hash": "17a5ce9161278edcb28189786694d4c9"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\dashboard\\playlist\\[playlistId]\\page.tsx": {
+    "mtime": 1781255186.854608,
+    "ast_hash": "bcbb8d784e4942cb065eab6285eb85db",
+    "semantic_hash": "bcbb8d784e4942cb065eab6285eb85db"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\dashboard\\settings\\page.tsx": {
+    "mtime": 1781255186.8556287,
+    "ast_hash": "d445a7587e44f698ea3a3874d78e54df",
+    "semantic_hash": "d445a7587e44f698ea3a3874d78e54df"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\demoPlayer\\page.tsx": {
+    "mtime": 1781255186.8561409,
+    "ast_hash": "08df56daf044a5cbb878ee966c5ac0e3",
+    "semantic_hash": "08df56daf044a5cbb878ee966c5ac0e3"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\embed\\[overlayId]\\page.tsx": {
+    "mtime": 1781255186.8566532,
+    "ast_hash": "4b8d39f453b4c01c4419828602f07ccc",
+    "semantic_hash": "4b8d39f453b4c01c4419828602f07ccc"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\eventsub\\route.ts": {
+    "mtime": 1775760114.2093153,
+    "ast_hash": "a73ead412262a64d63a834e44f3f14f1",
+    "semantic_hash": "a73ead412262a64d63a834e44f3f14f1"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\imprint\\page.tsx": {
+    "mtime": 1781255186.858181,
+    "ast_hash": "7b7c5955a119990d7a8853b005a3d7fe",
+    "semantic_hash": "7b7c5955a119990d7a8853b005a3d7fe"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\internal\\health\\instance\\route.ts": {
+    "mtime": 1775760114.2118757,
+    "ast_hash": "56dcda40e9ef1d80851bfffbb84a758d",
+    "semantic_hash": "56dcda40e9ef1d80851bfffbb84a758d"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\lib\\campaignOffers.ts": {
+    "mtime": 1776528720.469212,
+    "ast_hash": "7834b913442a8d1e0f82568e8eaa5270",
+    "semantic_hash": "7834b913442a8d1e0f82568e8eaa5270"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\lib\\clipCacheScheduler.ts": {
+    "mtime": 1775760114.2128966,
+    "ast_hash": "dc9e69f4a1c4c7931f3e4d2343214e5d",
+    "semantic_hash": "dc9e69f4a1c4c7931f3e4d2343214e5d"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\lib\\constants.ts": {
+    "mtime": 1775760114.2128966,
+    "ast_hash": "3a9c237d19b8aedd19be4f11f76b4228",
+    "semantic_hash": "3a9c237d19b8aedd19be4f11f76b4228"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\lib\\entitlements.ts": {
+    "mtime": 1780245024.6938508,
+    "ast_hash": "fd3f922a8442f883e2b52c6e7ab5d078",
+    "semantic_hash": "fd3f922a8442f883e2b52c6e7ab5d078"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\lib\\entitlementsScheduler.ts": {
+    "mtime": 1775760114.2139578,
+    "ast_hash": "44e8deb33f17e0259fc1a27ade3b13f5",
+    "semantic_hash": "44e8deb33f17e0259fc1a27ade3b13f5"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\lib\\featureAccess.ts": {
+    "mtime": 1775760114.2144659,
+    "ast_hash": "8243ec78fa3128f8f1f1de095f66d819",
+    "semantic_hash": "8243ec78fa3128f8f1f1de095f66d819"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\lib\\instanceHealth.ts": {
+    "mtime": 1776888333.0975046,
+    "ast_hash": "61df3efcae9b4750f13187bda2af7226",
+    "semantic_hash": "61df3efcae9b4750f13187bda2af7226"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\lib\\paywallTracking.ts": {
+    "mtime": 1775760114.2154827,
+    "ast_hash": "b6ce70af4c5be229a7f807b71ba512aa",
+    "semantic_hash": "b6ce70af4c5be229a7f807b71ba512aa"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\lib\\pocketbaseAuth.ts": {
+    "mtime": 1776528720.4702294,
+    "ast_hash": "6457dfbaea6040f15b71fe171de51380",
+    "semantic_hash": "6457dfbaea6040f15b71fe171de51380"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\lib\\roadmap.ts": {
+    "mtime": 1776528720.4707386,
+    "ast_hash": "d12d3fc7c3dececf9323e44a35aa08c2",
+    "semantic_hash": "d12d3fc7c3dececf9323e44a35aa08c2"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\lib\\tokenCrypto.ts": {
+    "mtime": 1775760114.2154827,
+    "ast_hash": "fef6211ce28c55983f934a5ecd9a5b3d",
+    "semantic_hash": "fef6211ce28c55983f934a5ecd9a5b3d"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\lib\\twitchErrors.ts": {
+    "mtime": 1775760114.2159917,
+    "ast_hash": "93e16f9b28f4bffd25b26044945531d2",
+    "semantic_hash": "93e16f9b28f4bffd25b26044945531d2"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\lib\\types.ts": {
+    "mtime": 1780245024.694879,
+    "ast_hash": "dd90764678c62a71b5fdccdf08fcc559",
+    "semantic_hash": "dd90764678c62a71b5fdccdf08fcc559"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\llms.txt\\route.ts": {
+    "mtime": 1751839475.135662,
+    "ast_hash": "4e920f6acfbe9b1fc6b00d6e846e77f8",
+    "semantic_hash": "4e920f6acfbe9b1fc6b00d6e846e77f8"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\login\\page.tsx": {
+    "mtime": 1781255186.8592029,
+    "ast_hash": "4ad693f483966a18fe7cc6d0dfeaf5d9",
+    "semantic_hash": "4ad693f483966a18fe7cc6d0dfeaf5d9"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\logout\\route.ts": {
+    "mtime": 1775760114.2185445,
+    "ast_hash": "b314f2eacc37573244b518015401ee3e",
+    "semantic_hash": "b314f2eacc37573244b518015401ee3e"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\overlay\\[overlayId]\\page.tsx": {
+    "mtime": 1781255186.8602247,
+    "ast_hash": "908bcaa504816e3c9bd8ef827acc4985",
+    "semantic_hash": "908bcaa504816e3c9bd8ef827acc4985"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\payment\\webhook\\route.ts": {
+    "mtime": 1780245024.7000635,
+    "ast_hash": "3a0c7cc98007734fe4b4b0f7ac64b5fb",
+    "semantic_hash": "3a0c7cc98007734fe4b4b0f7ac64b5fb"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\redeem\\route.ts": {
+    "mtime": 1775760114.2215884,
+    "ast_hash": "9f5bdc298a61464c2ea3b1be5122505e",
+    "semantic_hash": "9f5bdc298a61464c2ea3b1be5122505e"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\referral-program\\page.tsx": {
+    "mtime": 1781255186.8612463,
+    "ast_hash": "4a291b81c3e1f99ac1a18e7ba682a008",
+    "semantic_hash": "4a291b81c3e1f99ac1a18e7ba682a008"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\roadmap\\page.tsx": {
+    "mtime": 1781255186.8617544,
+    "ast_hash": "ecba957e9cacf7c5769a010407c54e00",
+    "semantic_hash": "ecba957e9cacf7c5769a010407c54e00"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\store\\overlaySubscribers.ts": {
+    "mtime": 1776528720.4737842,
+    "ast_hash": "21c57db0c904d049f38393eba8a3c43d",
+    "semantic_hash": "21c57db0c904d049f38393eba8a3c43d"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\utils\\regexFilter.ts": {
+    "mtime": 1773430597.433684,
+    "ast_hash": "d561febe43f511fdad8319015d70b848",
+    "semantic_hash": "d561febe43f511fdad8319015d70b848"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\ws\\route.ts": {
+    "mtime": 1776528720.4742932,
+    "ast_hash": "f2030fac9971c24a7b075b39fdecbe85",
+    "semantic_hash": "f2030fac9971c24a7b075b39fdecbe85"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\db\\client.ts": {
+    "mtime": 1775760114.2256632,
+    "ast_hash": "154430b5a9fdcb2a811f8439c780d3fe",
+    "semantic_hash": "154430b5a9fdcb2a811f8439c780d3fe"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\db\\schema.ts": {
+    "mtime": 1780245024.7052095,
+    "ast_hash": "0360c487dd1dabf6f253fbd3f929b17e",
+    "semantic_hash": "0360c487dd1dabf6f253fbd3f929b17e"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\server\\overlays.ts": {
+    "mtime": 1780142652.0093744,
+    "ast_hash": "e354afc84147485fda513a4de66fc122",
+    "semantic_hash": "e354afc84147485fda513a4de66fc122"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\server\\subscriptions.ts": {
+    "mtime": 1780245024.706234,
+    "ast_hash": "810e56fe539f9203382bdc52c87e4f19",
+    "semantic_hash": "810e56fe539f9203382bdc52c87e4f19"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\server\\twitch-auth.ts": {
+    "mtime": 1780142652.0108974,
+    "ast_hash": "a99d91c9a6b10e93c3d9978e433d9987",
+    "semantic_hash": "a99d91c9a6b10e93c3d9978e433d9987"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\proxy.test.ts": {
+    "mtime": 1775760114.2583592,
+    "ast_hash": "47264e3faa923c5ac08058ff90daa1a1",
+    "semantic_hash": "47264e3faa923c5ac08058ff90daa1a1"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\HomePageClient.test.ts": {
+    "mtime": 1781255186.8627715,
+    "ast_hash": "5c779a0d76da115c338be8112928303f",
+    "semantic_hash": "5c779a0d76da115c338be8112928303f"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\PlausibleClient.test.tsx": {
+    "mtime": 1775760114.227694,
+    "ast_hash": "87974154142512eaa08469a958023a61",
+    "semantic_hash": "87974154142512eaa08469a958023a61"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\actions\\adminView.test.ts": {
+    "mtime": 1775760114.2287598,
+    "ast_hash": "3e1c17fe60496ec94f55668ebe20cca6",
+    "semantic_hash": "3e1c17fe60496ec94f55668ebe20cca6"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\actions\\auth.test.ts": {
+    "mtime": 1775760114.2292676,
+    "ast_hash": "a383dd152b8c6b086cf5b09c4a719ed7",
+    "semantic_hash": "a383dd152b8c6b086cf5b09c4a719ed7"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\actions\\commands.test.ts": {
+    "mtime": 1780142652.0114105,
+    "ast_hash": "2a63c18988e724927002bea82f45945c",
+    "semantic_hash": "2a63c18988e724927002bea82f45945c"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\actions\\controller.test.ts": {
+    "mtime": 1776528720.4753785,
+    "ast_hash": "dea3d90a2a423a923fd9226890c43ca4",
+    "semantic_hash": "dea3d90a2a423a923fd9226890c43ca4"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\actions\\database.cache.test.ts": {
+    "mtime": 1775760114.2302852,
+    "ast_hash": "a7f20ef3a99c39501f0145e56a5ea8f1",
+    "semantic_hash": "a7f20ef3a99c39501f0145e56a5ea8f1"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\actions\\database.coverage.test.ts": {
+    "mtime": 1780142652.0124748,
+    "ast_hash": "ce0d426550eaa4c27d55857428afcf67",
+    "semantic_hash": "ce0d426550eaa4c27d55857428afcf67"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\actions\\database.disable.test.ts": {
+    "mtime": 1780142652.0129812,
+    "ast_hash": "1ee969efa7bf88cf8801a64b51a56aae",
+    "semantic_hash": "1ee969efa7bf88cf8801a64b51a56aae"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\actions\\database.extra.test.ts": {
+    "mtime": 1780142652.0134876,
+    "ast_hash": "a44662bcf380204dc8e27d05f15f1ee1",
+    "semantic_hash": "a44662bcf380204dc8e27d05f15f1ee1"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\actions\\database.overlays.test.ts": {
+    "mtime": 1775760114.2318096,
+    "ast_hash": "e942b84f73f3a50f83443d34c3f0763f",
+    "semantic_hash": "e942b84f73f3a50f83443d34c3f0763f"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\actions\\database.playlists.test.ts": {
+    "mtime": 1775760114.2323227,
+    "ast_hash": "cdf56260a327f9adf7beccaccb390936",
+    "semantic_hash": "cdf56260a327f9adf7beccaccb390936"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\actions\\database.queues.test.ts": {
+    "mtime": 1777151587.2233963,
+    "ast_hash": "e0a41046b641340cc7392a65fddfdff4",
+    "semantic_hash": "e0a41046b641340cc7392a65fddfdff4"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\actions\\database.settings.test.ts": {
+    "mtime": 1775760114.233855,
+    "ast_hash": "9806b33ce67a24682a38a9356551ee04",
+    "semantic_hash": "9806b33ce67a24682a38a9356551ee04"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\actions\\database.user.test.ts": {
+    "mtime": 1780142652.0139961,
+    "ast_hash": "c4c19104020dd98d0970352ec1b54248",
+    "semantic_hash": "c4c19104020dd98d0970352ec1b54248"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\actions\\feedbackWidget.test.ts": {
+    "mtime": 1775760114.2343678,
+    "ast_hash": "b4e8758e53ff2f40866cce52ed78a06f",
+    "semantic_hash": "b4e8758e53ff2f40866cce52ed78a06f"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\actions\\newsletter.test.ts": {
+    "mtime": 1775760114.234877,
+    "ast_hash": "a1c6e23c47bcb915d873ffae098994bb",
+    "semantic_hash": "a1c6e23c47bcb915d873ffae098994bb"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\actions\\rateLimit.test.ts": {
+    "mtime": 1775760114.2353854,
+    "ast_hash": "85dc55942e510ddf396abe6a40b6ada7",
+    "semantic_hash": "85dc55942e510ddf396abe6a40b6ada7"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\actions\\subscription.test.ts": {
+    "mtime": 1780245024.7089324,
+    "ast_hash": "5576975f6907378572b233e8ddc5a4b5",
+    "semantic_hash": "5576975f6907378572b233e8ddc5a4b5"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\actions\\twitch.external.test.ts": {
+    "mtime": 1780142652.015518,
+    "ast_hash": "22693943234ad6a285543a28b970d164",
+    "semantic_hash": "22693943234ad6a285543a28b970d164"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\actions\\twitch.games.test.ts": {
+    "mtime": 1775760114.2369099,
+    "ast_hash": "49ba534ef61ecf5f64f52a92a313858e",
+    "semantic_hash": "49ba534ef61ecf5f64f52a92a313858e"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\actions\\twitch.playback.test.ts": {
+    "mtime": 1780142652.0160234,
+    "ast_hash": "8db08b1f153beeb468aa22f386ceaddd",
+    "semantic_hash": "8db08b1f153beeb468aa22f386ceaddd"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\actions\\twitch.sync.test.ts": {
+    "mtime": 1780142652.0165322,
+    "ast_hash": "4d2c14fdbdc62d1b94e025bbfb0c4cf7",
+    "semantic_hash": "4d2c14fdbdc62d1b94e025bbfb0c4cf7"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\actions\\utils.test.ts": {
+    "mtime": 1775760114.238443,
+    "ast_hash": "43b098e14c2c5012b2e9d1d120b5cc93",
+    "semantic_hash": "43b098e14c2c5012b2e9d1d120b5cc93"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\actions\\websocket.test.ts": {
+    "mtime": 1776528720.4769025,
+    "ast_hash": "266188cac156fbe6a4f5c8ace33470b1",
+    "semantic_hash": "266188cac156fbe6a4f5c8ace33470b1"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\auth\\bot.route.test.ts": {
+    "mtime": 1775760114.2394643,
+    "ast_hash": "93264565fd303be61041c7ca859b1e7f",
+    "semantic_hash": "93264565fd303be61041c7ca859b1e7f"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\auth\\route.test.ts": {
+    "mtime": 1775760114.2399738,
+    "ast_hash": "2292e2d1224153e3b2172e2632e3e95e",
+    "semantic_hash": "2292e2d1224153e3b2172e2632e3e95e"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\callback\\route.test.ts": {
+    "mtime": 1775760114.2404842,
+    "ast_hash": "5343fc594ef7510fd09eebac06799b77",
+    "semantic_hash": "5343fc594ef7510fd09eebac06799b77"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\components\\adminHealthCharts.test.tsx": {
+    "mtime": 1781255186.8658807,
+    "ast_hash": "b8a3d65abebf2eaf609adc42d56c5e75",
+    "semantic_hash": "b8a3d65abebf2eaf609adc42d56c5e75"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\components\\adminUserExplorer.behavior.test.tsx": {
+    "mtime": 1781255186.86639,
+    "ast_hash": "5f4386815faea6a9fbd9ab865b155512",
+    "semantic_hash": "5f4386815faea6a9fbd9ab865b155512"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\components\\adminUserExplorer.test.tsx": {
+    "mtime": 1781255186.8668995,
+    "ast_hash": "cea6314c36db1f3237e28f9bb5d6f568",
+    "semantic_hash": "cea6314c36db1f3237e28f9bb5d6f568"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\components\\chatwootData.test.tsx": {
+    "mtime": 1775760114.2456217,
+    "ast_hash": "6c7bbc1a5423b0009ad658f052403045",
+    "semantic_hash": "6c7bbc1a5423b0009ad658f052403045"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\components\\confirmModal.test.tsx": {
+    "mtime": 1781255186.8674073,
+    "ast_hash": "50788ed482a371da02b9d3375a5248ee",
+    "semantic_hash": "50788ed482a371da02b9d3375a5248ee"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\components\\dashboardNavbar.test.tsx": {
+    "mtime": 1781255186.867915,
+    "ast_hash": "30cf57d537e65a337907a5e3610e79d6",
+    "semantic_hash": "30cf57d537e65a337907a5e3610e79d6"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\components\\errorToast.test.tsx": {
+    "mtime": 1781255186.8684235,
+    "ast_hash": "5dcd8b054e7928840f112cbb32b84ccf",
+    "semantic_hash": "5dcd8b054e7928840f112cbb32b84ccf"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\components\\featureCard.test.tsx": {
+    "mtime": 1781255186.8689325,
+    "ast_hash": "e1fa62e782061f77348b8ec197125758",
+    "semantic_hash": "e1fa62e782061f77348b8ec197125758"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\components\\floatingBanner.test.tsx": {
+    "mtime": 1781255186.869445,
+    "ast_hash": "42181f50bfe895d08a18220c05bb26aa",
+    "semantic_hash": "42181f50bfe895d08a18220c05bb26aa"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\components\\logo.test.tsx": {
+    "mtime": 1775760114.247654,
+    "ast_hash": "052ee9742c085cc40001c506bdb908ac",
+    "semantic_hash": "052ee9742c085cc40001c506bdb908ac"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\components\\overlayPlayer.helpers.test.ts": {
+    "mtime": 1775760114.2481642,
+    "ast_hash": "4c024fb44209ff40c4570d5483fbaa12",
+    "semantic_hash": "4c024fb44209ff40c4570d5483fbaa12"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\components\\overlayPlayer.test.tsx": {
+    "mtime": 1781255186.869954,
+    "ast_hash": "4bfc38ba42ddee3653451ccb06bf7c9b",
+    "semantic_hash": "4bfc38ba42ddee3653451ccb06bf7c9b"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\components\\OverlayTable.test.tsx": {
+    "mtime": 1781255186.8633263,
+    "ast_hash": "c533608ee6710b6b81178ca4faba127d",
+    "semantic_hash": "c533608ee6710b6b81178ca4faba127d"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\components\\scrollingBanner.test.tsx": {
+    "mtime": 1781255186.8709776,
+    "ast_hash": "2af96ac7658160e6c42ad1c5515377c7",
+    "semantic_hash": "2af96ac7658160e6c42ad1c5515377c7"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\components\\OverlayTable\\copy-text.test.tsx": {
+    "mtime": 1781255186.8643472,
+    "ast_hash": "5bfc6e166979c37bf0eca76a58d5028a",
+    "semantic_hash": "5bfc6e166979c37bf0eca76a58d5028a"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\components\\OverlayTable\\index.test.tsx": {
+    "mtime": 1781255186.8648572,
+    "ast_hash": "9f1c1c4aa008209621d65e78957f334c",
+    "semantic_hash": "9f1c1c4aa008209621d65e78957f334c"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\components\\OverlayTable\\Status.test.tsx": {
+    "mtime": 1781255186.8638363,
+    "ast_hash": "ea43d81794df46dbebb4bf4e9a57cfa0",
+    "semantic_hash": "ea43d81794df46dbebb4bf4e9a57cfa0"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\components\\OverlayTable\\use-memoized-callback.test.tsx": {
+    "mtime": 1775760114.2430353,
+    "ast_hash": "b18543e7f44cb26a9214a65c9d455981",
+    "semantic_hash": "b18543e7f44cb26a9214a65c9d455981"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\components\\Pricing\\index.test.tsx": {
+    "mtime": 1781255186.8653672,
+    "ast_hash": "2d2d69cf4af5fa4d09542fd1b32592b9",
+    "semantic_hash": "2d2d69cf4af5fa4d09542fd1b32592b9"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\components\\Pricing\\pricing-tiers.test.ts": {
+    "mtime": 1778434278.91282,
+    "ast_hash": "4b1ce82e292f1800bf47368f5ee5259e",
+    "semantic_hash": "4b1ce82e292f1800bf47368f5ee5259e"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\components\\roadmap\\roadmapItem.test.tsx": {
+    "mtime": 1781255186.8704684,
+    "ast_hash": "046b6907e2aa7d36f229ad447e2b7701",
+    "semantic_hash": "046b6907e2aa7d36f229ad447e2b7701"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\controller\\controllerClient.test.tsx": {
+    "mtime": 1781255186.871486,
+    "ast_hash": "7ab8f8e445e3e8e1242d469dc9646f58",
+    "semantic_hash": "7ab8f8e445e3e8e1242d469dc9646f58"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\controller\\page.test.tsx": {
+    "mtime": 1778434278.9138498,
+    "ast_hash": "ab6653c37cf65877255fa24535544bac",
+    "semantic_hash": "ab6653c37cf65877255fa24535544bac"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\dashboard\\overlay.settings.playlist.test.tsx": {
+    "mtime": 1781255186.8719947,
+    "ast_hash": "bdc4980a495adc16eb0cbab641f52b59",
+    "semantic_hash": "bdc4980a495adc16eb0cbab641f52b59"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\dashboard\\page.test.tsx": {
+    "mtime": 1776528720.4819872,
+    "ast_hash": "54798dcccba70b079b26d7901cd000b5",
+    "semantic_hash": "54798dcccba70b079b26d7901cd000b5"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\dashboard\\playlist.page.test.tsx": {
+    "mtime": 1781255186.8725026,
+    "ast_hash": "c3b549ea550454752aab85cf56fa0ec0",
+    "semantic_hash": "c3b549ea550454752aab85cf56fa0ec0"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\embed\\overlayDisabledState.test.tsx": {
+    "mtime": 1775760114.2517436,
+    "ast_hash": "30ddc2bcbfedc55a3e923bd4642ddd6e",
+    "semantic_hash": "30ddc2bcbfedc55a3e923bd4642ddd6e"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\eventsub\\route.test.ts": {
+    "mtime": 1775760114.2527614,
+    "ast_hash": "812e357f6d3a0a9079cb0f472e20f737",
+    "semantic_hash": "812e357f6d3a0a9079cb0f472e20f737"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\lib\\campaignOffers.test.ts": {
+    "mtime": 1776528720.4824953,
+    "ast_hash": "ddcdda2d0e95729d2143909d97eaab8c",
+    "semantic_hash": "ddcdda2d0e95729d2143909d97eaab8c"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\lib\\clipCacheScheduler.test.ts": {
+    "mtime": 1775760114.2532716,
+    "ast_hash": "1a64cc9df6942e4d62d5bdbb42df39fb",
+    "semantic_hash": "1a64cc9df6942e4d62d5bdbb42df39fb"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\lib\\entitlements.test.ts": {
+    "mtime": 1775760114.2537782,
+    "ast_hash": "31b6d029d3e990f573619d993db5f3d8",
+    "semantic_hash": "31b6d029d3e990f573619d993db5f3d8"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\lib\\featureAccess.test.ts": {
+    "mtime": 1775760114.2537782,
+    "ast_hash": "a171bd3f14f4b084eafb362a756cb758",
+    "semantic_hash": "a171bd3f14f4b084eafb362a756cb758"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\lib\\instanceHealth.test.ts": {
+    "mtime": 1776528720.4830024,
+    "ast_hash": "bed75d6d19b4930ec741da4aba87866d",
+    "semantic_hash": "bed75d6d19b4930ec741da4aba87866d"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\lib\\paywallTracking.test.ts": {
+    "mtime": 1775760114.2547953,
+    "ast_hash": "a8a62f26ff9bbff1f68929df4d1770db",
+    "semantic_hash": "a8a62f26ff9bbff1f68929df4d1770db"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\lib\\pocketbaseAuth.test.ts": {
+    "mtime": 1776528720.4835093,
+    "ast_hash": "20584982041aeeb862363b73b7cda6c5",
+    "semantic_hash": "20584982041aeeb862363b73b7cda6c5"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\lib\\tokenCrypto.test.ts": {
+    "mtime": 1775760114.2553048,
+    "ast_hash": "17280617e520b1dd33a62a17242c2b88",
+    "semantic_hash": "17280617e520b1dd33a62a17242c2b88"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\llms.txt\\route.test.ts": {
+    "mtime": 1775760114.2558134,
+    "ast_hash": "8b8175f0ff7cb2ffef86f49db0ed128f",
+    "semantic_hash": "8b8175f0ff7cb2ffef86f49db0ed128f"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\logout\\route.test.ts": {
+    "mtime": 1775760114.2563221,
+    "ast_hash": "b5823b9eece5b771e81ce038960577f9",
+    "semantic_hash": "b5823b9eece5b771e81ce038960577f9"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\payment\\webhook\\route.test.ts": {
+    "mtime": 1780245024.7344499,
+    "ast_hash": "99cdb845fd4781db4024f096e0c44a10",
+    "semantic_hash": "99cdb845fd4781db4024f096e0c44a10"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\redeem\\route.test.ts": {
+    "mtime": 1776528720.4840164,
+    "ast_hash": "ea1d99285ad1744a09f6d76c06991af0",
+    "semantic_hash": "ea1d99285ad1744a09f6d76c06991af0"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\store\\overlaySubscribers.test.ts": {
+    "mtime": 1776528720.4845304,
+    "ast_hash": "986dc16f9497d79fcf0dd7825e326c02",
+    "semantic_hash": "986dc16f9497d79fcf0dd7825e326c02"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\test\\app\\utils\\regexFilter.test.ts": {
+    "mtime": 1775760114.2583592,
+    "ast_hash": "1db103d29c8a185b480d29d39fd8d035",
+    "semantic_hash": "1db103d29c8a185b480d29d39fd8d035"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\README.md": {
+    "mtime": 1778900918.7699125,
+    "ast_hash": "0fa9d09d5ac6904d5c169e6731060385",
+    "semantic_hash": "0fa9d09d5ac6904d5c169e6731060385"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\SECURITY.md": {
+    "mtime": 1758470446.3168974,
+    "ast_hash": "3c0c5e145ede4f83869065e119582f76",
+    "semantic_hash": "3c0c5e145ede4f83869065e119582f76"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.github\\workflows\\build.yaml": {
+    "mtime": 1775760114.1592565,
+    "ast_hash": "1a68058896bb5f33f164fb5949de83fb",
+    "semantic_hash": "1a68058896bb5f33f164fb5949de83fb"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.github\\workflows\\bumpLockfile.yaml": {
+    "mtime": 1775760114.159765,
+    "ast_hash": "9af967a276bb82f79ee740a5d995d1f9",
+    "semantic_hash": "9af967a276bb82f79ee740a5d995d1f9"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.github\\workflows\\ci.yml": {
+    "mtime": 1780142651.9971578,
+    "ast_hash": "7f1868263003a01716096d815de290bf",
+    "semantic_hash": "7f1868263003a01716096d815de290bf"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.github\\workflows\\migrations.yaml": {
+    "mtime": 1775760114.161294,
+    "ast_hash": "a4de945b155f5a6570b3be692cbba477",
+    "semantic_hash": "a4de945b155f5a6570b3be692cbba477"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.github\\workflows\\publish-dashboards.yml": {
+    "mtime": 1780245024.6079056,
+    "ast_hash": "96d343625d3dd4a09bfd46bfdb632fed",
+    "semantic_hash": "96d343625d3dd4a09bfd46bfdb632fed"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.heroui-docs\\migration\\agent-index.mdx": {
+    "mtime": 1776970252.0297213,
+    "ast_hash": "4974eade56e3d26e5d2e8b7c34fbfc15",
+    "semantic_hash": "4974eade56e3d26e5d2e8b7c34fbfc15"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.heroui-docs\\migration\\hooks.mdx": {
+    "mtime": 1776970252.0297213,
+    "ast_hash": "ce143583e55f25f76488507cd2d67853",
+    "semantic_hash": "ce143583e55f25f76488507cd2d67853"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.heroui-docs\\migration\\index.mdx": {
+    "mtime": 1776970252.0302327,
+    "ast_hash": "620872d1f922f8b3389b0098dc9e0af1",
+    "semantic_hash": "620872d1f922f8b3389b0098dc9e0af1"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.heroui-docs\\migration\\styling.mdx": {
+    "mtime": 1776970252.0307443,
+    "ast_hash": "dcf19719cef4726a091771e41758e278",
+    "semantic_hash": "dcf19719cef4726a091771e41758e278"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.heroui-docs\\migration\\(components)\\accordion.mdx": {
+    "mtime": 1776970252.006626,
+    "ast_hash": "bc56d7c9a0246e6113160bec5054f8a5",
+    "semantic_hash": "bc56d7c9a0246e6113160bec5054f8a5"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.heroui-docs\\migration\\(components)\\alert.mdx": {
+    "mtime": 1776970252.007131,
+    "ast_hash": "80b1f745035114b7eccef5f4c48ceb09",
+    "semantic_hash": "80b1f745035114b7eccef5f4c48ceb09"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.heroui-docs\\migration\\(components)\\autocomplete.mdx": {
+    "mtime": 1776970252.0076375,
+    "ast_hash": "330223e8fc08c1e2865b0da14c0b0951",
+    "semantic_hash": "330223e8fc08c1e2865b0da14c0b0951"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.heroui-docs\\migration\\(components)\\avatar.mdx": {
+    "mtime": 1776970252.0081444,
+    "ast_hash": "998ecf2b8e27aef9c6664c5acb1bc258",
+    "semantic_hash": "998ecf2b8e27aef9c6664c5acb1bc258"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.heroui-docs\\migration\\(components)\\badge.mdx": {
+    "mtime": 1776970252.0081444,
+    "ast_hash": "1976847e3388eb594c6cb56c69ba5de3",
+    "semantic_hash": "1976847e3388eb594c6cb56c69ba5de3"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.heroui-docs\\migration\\(components)\\breadcrumbs.mdx": {
+    "mtime": 1776970252.0087311,
+    "ast_hash": "11be31239b8abb8d335b6687f1f65aa4",
+    "semantic_hash": "11be31239b8abb8d335b6687f1f65aa4"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.heroui-docs\\migration\\(components)\\button-group.mdx": {
+    "mtime": 1776970252.0092444,
+    "ast_hash": "c1cced9228f7d771123b62537f99a1a2",
+    "semantic_hash": "c1cced9228f7d771123b62537f99a1a2"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.heroui-docs\\migration\\(components)\\button.mdx": {
+    "mtime": 1776970252.0092444,
+    "ast_hash": "1ec73f32b71974a9570e92d903b664d0",
+    "semantic_hash": "1ec73f32b71974a9570e92d903b664d0"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.heroui-docs\\migration\\(components)\\calendar.mdx": {
+    "mtime": 1776970252.0097568,
+    "ast_hash": "7e427dad590a01feabf816ab8b2347dc",
+    "semantic_hash": "7e427dad590a01feabf816ab8b2347dc"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.heroui-docs\\migration\\(components)\\card.mdx": {
+    "mtime": 1776970252.0102682,
+    "ast_hash": "bb75d5969e522b6b208af6533d4c88c9",
+    "semantic_hash": "bb75d5969e522b6b208af6533d4c88c9"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.heroui-docs\\migration\\(components)\\checkbox-group.mdx": {
+    "mtime": 1776970252.0102682,
+    "ast_hash": "9ec33f901b1de7a3968a3a90b795999a",
+    "semantic_hash": "9ec33f901b1de7a3968a3a90b795999a"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.heroui-docs\\migration\\(components)\\checkbox.mdx": {
+    "mtime": 1776970252.0107834,
+    "ast_hash": "e657c3cfcf78780cc9ab667b71d95d03",
+    "semantic_hash": "e657c3cfcf78780cc9ab667b71d95d03"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.heroui-docs\\migration\\(components)\\chip.mdx": {
+    "mtime": 1776970252.011303,
+    "ast_hash": "77c1a88d1227e963337be9e5662f60c3",
+    "semantic_hash": "77c1a88d1227e963337be9e5662f60c3"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.heroui-docs\\migration\\(components)\\circular-progress.mdx": {
+    "mtime": 1776970252.011303,
+    "ast_hash": "6e3fa0f91b651f68efc9a9d41464c25a",
+    "semantic_hash": "6e3fa0f91b651f68efc9a9d41464c25a"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.heroui-docs\\migration\\(components)\\code.mdx": {
+    "mtime": 1776970252.0118103,
+    "ast_hash": "8d479250399821af10baf49055a73963",
+    "semantic_hash": "8d479250399821af10baf49055a73963"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.heroui-docs\\migration\\(components)\\date-picker.mdx": {
+    "mtime": 1776970252.0123172,
+    "ast_hash": "734d7aebe319675c2cc73c7d3098ebac",
+    "semantic_hash": "734d7aebe319675c2cc73c7d3098ebac"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.heroui-docs\\migration\\(components)\\date-range-picker.mdx": {
+    "mtime": 1776970252.0123172,
+    "ast_hash": "59ff4b3a9a8e1695c7f8a9f7a39028e3",
+    "semantic_hash": "59ff4b3a9a8e1695c7f8a9f7a39028e3"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.heroui-docs\\migration\\(components)\\dateinput.mdx": {
+    "mtime": 1776970252.012823,
+    "ast_hash": "4ec2aeb4040860cb24ec33a5bae8964c",
+    "semantic_hash": "4ec2aeb4040860cb24ec33a5bae8964c"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.heroui-docs\\migration\\(components)\\divider.mdx": {
+    "mtime": 1776970252.0133295,
+    "ast_hash": "a1a30d6cff3afd076cac59f8277d0d0c",
+    "semantic_hash": "a1a30d6cff3afd076cac59f8277d0d0c"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.heroui-docs\\migration\\(components)\\drawer.mdx": {
+    "mtime": 1776970252.0133295,
+    "ast_hash": "789a8edd75559f3c7557786eb9f541e5",
+    "semantic_hash": "789a8edd75559f3c7557786eb9f541e5"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.heroui-docs\\migration\\(components)\\dropdown.mdx": {
+    "mtime": 1776970252.0138426,
+    "ast_hash": "a2f5eaf7363fd6b495d456608810d997",
+    "semantic_hash": "a2f5eaf7363fd6b495d456608810d997"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.heroui-docs\\migration\\(components)\\form.mdx": {
+    "mtime": 1776970252.0143535,
+    "ast_hash": "ed144500304f0eb18f3a371328fc9bc9",
+    "semantic_hash": "ed144500304f0eb18f3a371328fc9bc9"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.heroui-docs\\migration\\(components)\\image.mdx": {
+    "mtime": 1776970252.014863,
+    "ast_hash": "09525b1fa958f8769b2bd83e830fc2f0",
+    "semantic_hash": "09525b1fa958f8769b2bd83e830fc2f0"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.heroui-docs\\migration\\(components)\\input-otp.mdx": {
+    "mtime": 1776970252.014863,
+    "ast_hash": "351acbb2a59d61cbd99c0f5635b4d0f8",
+    "semantic_hash": "351acbb2a59d61cbd99c0f5635b4d0f8"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.heroui-docs\\migration\\(components)\\input.mdx": {
+    "mtime": 1776970252.0153737,
+    "ast_hash": "4f4ca1810548a02c80167bca35d8a9c1",
+    "semantic_hash": "4f4ca1810548a02c80167bca35d8a9c1"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.heroui-docs\\migration\\(components)\\kbd.mdx": {
+    "mtime": 1776970252.0158803,
+    "ast_hash": "5bd68ed5f5adbdf60f56d152cb160002",
+    "semantic_hash": "5bd68ed5f5adbdf60f56d152cb160002"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.heroui-docs\\migration\\(components)\\link.mdx": {
+    "mtime": 1776970252.016387,
+    "ast_hash": "cf74f8994cf8843025deceb0515e0042",
+    "semantic_hash": "cf74f8994cf8843025deceb0515e0042"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.heroui-docs\\migration\\(components)\\listbox.mdx": {
+    "mtime": 1776970252.0168972,
+    "ast_hash": "85374f5318e582025010b8f2ef437fc4",
+    "semantic_hash": "85374f5318e582025010b8f2ef437fc4"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.heroui-docs\\migration\\(components)\\modal.mdx": {
+    "mtime": 1776970252.0174072,
+    "ast_hash": "9782a40c79bc61bfff4e1e3e71a92cd0",
+    "semantic_hash": "9782a40c79bc61bfff4e1e3e71a92cd0"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.heroui-docs\\migration\\(components)\\navbar.mdx": {
+    "mtime": 1776970252.0174072,
+    "ast_hash": "5c9267c31cd8df7be8a2deca9bb5afb9",
+    "semantic_hash": "5c9267c31cd8df7be8a2deca9bb5afb9"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.heroui-docs\\migration\\(components)\\numberinput.mdx": {
+    "mtime": 1776970252.0179174,
+    "ast_hash": "0317bdc20757aa7043aab64f2402e0c6",
+    "semantic_hash": "0317bdc20757aa7043aab64f2402e0c6"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.heroui-docs\\migration\\(components)\\pagination.mdx": {
+    "mtime": 1776970252.0184276,
+    "ast_hash": "fe95c7aa549f3ab01ce9fbcf09ad3635",
+    "semantic_hash": "fe95c7aa549f3ab01ce9fbcf09ad3635"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.heroui-docs\\migration\\(components)\\popover.mdx": {
+    "mtime": 1776970252.0184276,
+    "ast_hash": "98e075b36600970dce760201c5ec9874",
+    "semantic_hash": "98e075b36600970dce760201c5ec9874"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.heroui-docs\\migration\\(components)\\progress.mdx": {
+    "mtime": 1776970252.0189369,
+    "ast_hash": "9b769f352d1bbdc16f01adc5fd849499",
+    "semantic_hash": "9b769f352d1bbdc16f01adc5fd849499"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.heroui-docs\\migration\\(components)\\radio-group.mdx": {
+    "mtime": 1776970252.019447,
+    "ast_hash": "e965b813114cfabcb98727cd68583b3e",
+    "semantic_hash": "e965b813114cfabcb98727cd68583b3e"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.heroui-docs\\migration\\(components)\\radio.mdx": {
+    "mtime": 1776970252.019447,
+    "ast_hash": "e7ab18012f22107e3d7c95dbff313cab",
+    "semantic_hash": "e7ab18012f22107e3d7c95dbff313cab"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.heroui-docs\\migration\\(components)\\range-calendar.mdx": {
+    "mtime": 1776970252.0199573,
+    "ast_hash": "ab3fe82d89c203edb983b1aae2ba1110",
+    "semantic_hash": "ab3fe82d89c203edb983b1aae2ba1110"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.heroui-docs\\migration\\(components)\\scroll-shadow.mdx": {
+    "mtime": 1776970252.020467,
+    "ast_hash": "c6a0ed9b1d14c527931213c42ba0f4bf",
+    "semantic_hash": "c6a0ed9b1d14c527931213c42ba0f4bf"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.heroui-docs\\migration\\(components)\\select.mdx": {
+    "mtime": 1776970252.020467,
+    "ast_hash": "60c9f193f51d0c971b0213be8169f65c",
+    "semantic_hash": "60c9f193f51d0c971b0213be8169f65c"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.heroui-docs\\migration\\(components)\\skeleton.mdx": {
+    "mtime": 1776970252.0209758,
+    "ast_hash": "524e64a6b698005cf9625675991d2115",
+    "semantic_hash": "524e64a6b698005cf9625675991d2115"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.heroui-docs\\migration\\(components)\\slider.mdx": {
+    "mtime": 1776970252.0214913,
+    "ast_hash": "aadeeabcad76bd4a30782e7917ea1721",
+    "semantic_hash": "aadeeabcad76bd4a30782e7917ea1721"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.heroui-docs\\migration\\(components)\\snippet.mdx": {
+    "mtime": 1776970252.0220013,
+    "ast_hash": "a4a397c04c2fd2205b0642bf355ab4dc",
+    "semantic_hash": "a4a397c04c2fd2205b0642bf355ab4dc"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.heroui-docs\\migration\\(components)\\spacer.mdx": {
+    "mtime": 1776970252.0225105,
+    "ast_hash": "5565074573d5d21eac239cfdcb96a7d0",
+    "semantic_hash": "5565074573d5d21eac239cfdcb96a7d0"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.heroui-docs\\migration\\(components)\\spinner.mdx": {
+    "mtime": 1776970252.0225105,
+    "ast_hash": "d01c2edb8df63a0c035f09546bedbefa",
+    "semantic_hash": "d01c2edb8df63a0c035f09546bedbefa"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.heroui-docs\\migration\\(components)\\switch.mdx": {
+    "mtime": 1776970252.0230224,
+    "ast_hash": "b6f3348c80567dd7b3a52b2cee1b48f3",
+    "semantic_hash": "b6f3348c80567dd7b3a52b2cee1b48f3"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.heroui-docs\\migration\\(components)\\table.mdx": {
+    "mtime": 1776970252.023532,
+    "ast_hash": "8c6230393c7170cf84b4566c7b34fea5",
+    "semantic_hash": "8c6230393c7170cf84b4566c7b34fea5"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.heroui-docs\\migration\\(components)\\tabs.mdx": {
+    "mtime": 1776970252.023532,
+    "ast_hash": "be570d26d40f918fdbc092a8741d1b2c",
+    "semantic_hash": "be570d26d40f918fdbc092a8741d1b2c"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.heroui-docs\\migration\\(components)\\timeinput.mdx": {
+    "mtime": 1776970252.0241132,
+    "ast_hash": "412ce1f682dc5df510cd7d8d14a02bc1",
+    "semantic_hash": "412ce1f682dc5df510cd7d8d14a02bc1"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.heroui-docs\\migration\\(components)\\toast.mdx": {
+    "mtime": 1776970252.0246234,
+    "ast_hash": "a51e0e75ca773a8fd1376a4a79ed0c0f",
+    "semantic_hash": "a51e0e75ca773a8fd1376a4a79ed0c0f"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.heroui-docs\\migration\\(components)\\tooltip.mdx": {
+    "mtime": 1776970252.0246234,
+    "ast_hash": "d4602f08eb1f758fd50ceaa8889773b2",
+    "semantic_hash": "d4602f08eb1f758fd50ceaa8889773b2"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.heroui-docs\\migration\\(components)\\user.mdx": {
+    "mtime": 1776970252.0251336,
+    "ast_hash": "19b080f0f085a52728c3745825be7931",
+    "semantic_hash": "19b080f0f085a52728c3745825be7931"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.heroui-docs\\migration\\(migration-for-agents)\\agent-skills.mdx": {
+    "mtime": 1776970252.0256457,
+    "ast_hash": "d8c6098a6fc7b034cbae500fb20e8d63",
+    "semantic_hash": "d8c6098a6fc7b034cbae500fb20e8d63"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.heroui-docs\\migration\\(migration-for-agents)\\agents-md.mdx": {
+    "mtime": 1776970252.02616,
+    "ast_hash": "fe0232bf253865d13718c3639b980be2",
+    "semantic_hash": "fe0232bf253865d13718c3639b980be2"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.heroui-docs\\migration\\(migration-for-agents)\\mcp-server.mdx": {
+    "mtime": 1776970252.0266714,
+    "ast_hash": "4fce441ce56a9f5a2100a1dd6484762f",
+    "semantic_hash": "4fce441ce56a9f5a2100a1dd6484762f"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.heroui-docs\\migration\\(workflows)\\agent-guide-full.mdx": {
+    "mtime": 1776970252.0276859,
+    "ast_hash": "b3ceffa8888f56e0edeedf9117975571",
+    "semantic_hash": "b3ceffa8888f56e0edeedf9117975571"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.heroui-docs\\migration\\(workflows)\\agent-guide-incremental.mdx": {
+    "mtime": 1776970252.0281923,
+    "ast_hash": "6b6fd0646d5abe4f4d3e8046f568442e",
+    "semantic_hash": "6b6fd0646d5abe4f4d3e8046f568442e"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.heroui-docs\\migration\\(workflows)\\full-migration.mdx": {
+    "mtime": 1776970252.0287004,
+    "ast_hash": "239ddd6a68c80537cddecc4553209d3e",
+    "semantic_hash": "239ddd6a68c80537cddecc4553209d3e"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\.heroui-docs\\migration\\(workflows)\\incremental-migration.mdx": {
+    "mtime": 1776970252.0292108,
+    "ast_hash": "1961c864a55c991ca94834d37099e416",
+    "semantic_hash": "1961c864a55c991ca94834d37099e416"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\llms.txt\\llms.txt": {
+    "mtime": 1776528720.4722629,
+    "ast_hash": "08c2d78e0701f251c0abe05ec9e6cba0",
+    "semantic_hash": "08c2d78e0701f251c0abe05ec9e6cba0"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\public\\appSkew.webp": {
+    "mtime": 1765323290.0401301,
+    "ast_hash": "e5e087a8dac821c223753ac644e68764",
+    "semantic_hash": "e5e087a8dac821c223753ac644e68764"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\public\\og-image.png": {
+    "mtime": 1755968112.0450797,
+    "ast_hash": "9412a8f4176def0ead5980c5fc5c47b9",
+    "semantic_hash": "9412a8f4176def0ead5980c5fc5c47b9"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\public\\web-app-manifest-192x192.png": {
+    "mtime": 1748775240.0254004,
+    "ast_hash": "6dd52142bf5f92583183a4db868d1d19",
+    "semantic_hash": "6dd52142bf5f92583183a4db868d1d19"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\public\\web-app-manifest-512x512.png": {
+    "mtime": 1748775240.025905,
+    "ast_hash": "22f6491085bc85b17ceddb22b88df902",
+    "semantic_hash": "22f6491085bc85b17ceddb22b88df902"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\public\\clippy\\Clippy.svg": {
+    "mtime": 1775760114.1786685,
+    "ast_hash": "cbb7620108b0a9f27176bc56423a2d19",
+    "semantic_hash": "cbb7620108b0a9f27176bc56423a2d19"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\apple-icon.png": {
+    "mtime": 1748775240.0101817,
+    "ast_hash": "da7cae15a101ffa17a379a9b2f0dd1a4",
+    "semantic_hash": "da7cae15a101ffa17a379a9b2f0dd1a4"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\icon0.svg": {
+    "mtime": 1748775240.0208063,
+    "ast_hash": "e866b0c2fdb9c035eb488572ec473305",
+    "semantic_hash": "e866b0c2fdb9c035eb488572ec473305"
+  },
+  "C:\\Coding\\TheDanniCraft-clipify\\src\\app\\icon1.png": {
+    "mtime": 1748775240.0213468,
+    "ast_hash": "60176c212416c47097f8b6ea11869fe0",
+    "semantic_hash": "60176c212416c47097f8b6ea11869fe0"
+  }
+}

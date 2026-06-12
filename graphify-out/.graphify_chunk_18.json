@@ -1,0 +1,763 @@
+{
+  "nodes": [
+    {
+      "id": "database_coverage_test",
+      "label": "Database Coverage Test",
+      "file_type": "code",
+      "source_file": "test/app/actions/database.coverage.test.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "database_disable_test",
+      "label": "Database Disable Test",
+      "file_type": "code",
+      "source_file": "test/app/actions/database.disable.test.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "database_extra_test",
+      "label": "Database Extra Test",
+      "file_type": "code",
+      "source_file": "test/app/actions/database.extra.test.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "database_overlays_test",
+      "label": "Database Overlays Test",
+      "file_type": "code",
+      "source_file": "test/app/actions/database.overlays.test.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "database_playlists_test",
+      "label": "Database Playlists Test",
+      "file_type": "code",
+      "source_file": "test/app/actions/database.playlists.test.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "database_queues_test",
+      "label": "Database Queues Test",
+      "file_type": "code",
+      "source_file": "test/app/actions/database.queues.test.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "database_settings_test",
+      "label": "Database Settings Test",
+      "file_type": "code",
+      "source_file": "test/app/actions/database.settings.test.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "database_user_test",
+      "label": "Database User Test",
+      "file_type": "code",
+      "source_file": "test/app/actions/database.user.test.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "feedbackWidget_test",
+      "label": "Feedback Widget Test",
+      "file_type": "code",
+      "source_file": "test/app/actions/feedbackWidget.test.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "newsletter_test",
+      "label": "Newsletter Test",
+      "file_type": "code",
+      "source_file": "test/app/actions/newsletter.test.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "rateLimit_test",
+      "label": "Rate Limit Test",
+      "file_type": "code",
+      "source_file": "test/app/actions/rateLimit.test.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "subscription_test",
+      "label": "Subscription Test",
+      "file_type": "code",
+      "source_file": "test/app/actions/subscription.test.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "twitch_external_test",
+      "label": "Twitch External Test",
+      "file_type": "code",
+      "source_file": "test/app/actions/twitch.external.test.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "twitch_games_test",
+      "label": "Twitch Games Test",
+      "file_type": "code",
+      "source_file": "test/app/actions/twitch.games.test.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "twitch_playback_test",
+      "label": "Twitch Playback Test",
+      "file_type": "code",
+      "source_file": "test/app/actions/twitch.playback.test.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "twitch_sync_test",
+      "label": "Twitch Sync Test",
+      "file_type": "code",
+      "source_file": "test/app/actions/twitch.sync.test.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "utils_test",
+      "label": "Utils Test",
+      "file_type": "code",
+      "source_file": "test/app/actions/utils.test.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "websocket_test",
+      "label": "WebSocket Test",
+      "file_type": "code",
+      "source_file": "test/app/actions/websocket.test.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "bot_route_test",
+      "label": "Bot Route Test",
+      "file_type": "code",
+      "source_file": "test/app/auth/bot.route.test.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "route_test",
+      "label": "Auth Route Test",
+      "file_type": "code",
+      "source_file": "test/app/auth/route.test.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "callback_route_test",
+      "label": "Callback Route Test",
+      "file_type": "code",
+      "source_file": "test/app/callback/route.test.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "adminHealthCharts_test",
+      "label": "Admin Health Charts Test",
+      "file_type": "code",
+      "source_file": "test/app/components/adminHealthCharts.test.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "database_actions",
+      "label": "Database Actions",
+      "file_type": "code",
+      "source_file": "app/actions/database.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "feedbackWidget_actions",
+      "label": "Feedback Widget Actions",
+      "file_type": "code",
+      "source_file": "app/actions/feedbackWidget.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "newsletter_actions",
+      "label": "Newsletter Actions",
+      "file_type": "code",
+      "source_file": "app/actions/newsletter.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "rateLimit_actions",
+      "label": "Rate Limit Actions",
+      "file_type": "code",
+      "source_file": "app/actions/rateLimit.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "subscription_actions",
+      "label": "Subscription Actions",
+      "file_type": "code",
+      "source_file": "app/actions/subscription.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "twitch_actions",
+      "label": "Twitch Actions",
+      "file_type": "code",
+      "source_file": "app/actions/twitch.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "utils_actions",
+      "label": "Utils Actions",
+      "file_type": "code",
+      "source_file": "app/actions/utils.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "websocket_actions",
+      "label": "WebSocket Actions",
+      "file_type": "code",
+      "source_file": "app/actions/websocket.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "bot_route",
+      "label": "Bot Route",
+      "file_type": "code",
+      "source_file": "app/auth/bot/route.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "auth_route",
+      "label": "Auth Route",
+      "file_type": "code",
+      "source_file": "app/auth/route.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "callback_route",
+      "label": "Callback Route",
+      "file_type": "code",
+      "source_file": "app/callback/route.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "adminHealthCharts_component",
+      "label": "Admin Health Charts Component",
+      "file_type": "code",
+      "source_file": "app/components/adminHealthCharts.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "ratelimit_iptrustresolution",
+      "label": "IP Trust Resolution Strategy",
+      "file_type": "rationale",
+      "source_file": "app/actions/rateLimit.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "twitch_historical_backfill",
+      "label": "Twitch Historical Backfill Sync",
+      "file_type": "rationale",
+      "source_file": "app/actions/twitch.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "websocket_control_overlay",
+      "label": "WebSocket Controller-Overlay Flow",
+      "file_type": "rationale",
+      "source_file": "app/actions/websocket.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "playlist_pro_limits",
+      "label": "Playlist Plan Limits and Auto-Import",
+      "file_type": "rationale",
+      "source_file": "app/actions/database.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "database_coverage_test",
+      "target": "database_actions",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/actions/database.coverage.test.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "database_disable_test",
+      "target": "database_actions",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/actions/database.disable.test.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "database_extra_test",
+      "target": "database_actions",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/actions/database.extra.test.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "database_overlays_test",
+      "target": "database_actions",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/actions/database.overlays.test.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "database_playlists_test",
+      "target": "database_actions",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/actions/database.playlists.test.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "database_queues_test",
+      "target": "database_actions",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/actions/database.queues.test.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "database_settings_test",
+      "target": "database_actions",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/actions/database.settings.test.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "database_user_test",
+      "target": "database_actions",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/actions/database.user.test.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "feedbackWidget_test",
+      "target": "feedbackWidget_actions",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/actions/feedbackWidget.test.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "newsletter_test",
+      "target": "newsletter_actions",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/actions/newsletter.test.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "rateLimit_test",
+      "target": "rateLimit_actions",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/actions/rateLimit.test.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "subscription_test",
+      "target": "subscription_actions",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/actions/subscription.test.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "twitch_external_test",
+      "target": "twitch_actions",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/actions/twitch.external.test.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "twitch_games_test",
+      "target": "twitch_actions",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/actions/twitch.games.test.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "twitch_playback_test",
+      "target": "twitch_actions",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/actions/twitch.playback.test.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "twitch_sync_test",
+      "target": "twitch_actions",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/actions/twitch.sync.test.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "utils_test",
+      "target": "utils_actions",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/actions/utils.test.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "websocket_test",
+      "target": "websocket_actions",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/actions/websocket.test.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "bot_route_test",
+      "target": "bot_route",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/auth/bot.route.test.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "route_test",
+      "target": "auth_route",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/auth/route.test.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "callback_route_test",
+      "target": "callback_route",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/callback/route.test.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "adminHealthCharts_test",
+      "target": "adminHealthCharts_component",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/components/adminHealthCharts.test.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "ratelimit_iptrustresolution",
+      "target": "rateLimit_actions",
+      "relation": "rationale_for",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "app/actions/rateLimit.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "twitch_historical_backfill",
+      "target": "twitch_actions",
+      "relation": "rationale_for",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "app/actions/twitch.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "websocket_control_overlay",
+      "target": "websocket_actions",
+      "relation": "rationale_for",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "app/actions/websocket.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "playlist_pro_limits",
+      "target": "database_actions",
+      "relation": "rationale_for",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "app/actions/database.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "bot_route_test",
+      "target": "route_test",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "test/app/auth/bot.route.test.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "twitch_playback_test",
+      "target": "twitch_sync_test",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "test/app/actions/twitch.playback.test.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "database_playlists_test",
+      "target": "database_queues_test",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "test/app/actions/database.playlists.test.ts",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "twitch_oauth_flow",
+      "label": "Twitch OAuth Authentication Flow",
+      "nodes": [
+        "route_test",
+        "bot_route_test",
+        "callback_route_test"
+      ],
+      "relation": "participate_in",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "test/app/auth/route.test.ts"
+    },
+    {
+      "id": "twitch_integration_suite",
+      "label": "Twitch Integration and Sync Testing",
+      "nodes": [
+        "twitch_external_test",
+        "twitch_games_test",
+        "twitch_playback_test",
+        "twitch_sync_test"
+      ],
+      "relation": "participate_in",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "test/app/actions/twitch.sync.test.ts"
+    },
+    {
+      "id": "database_actions_suite",
+      "label": "Database Actions Operations Suite",
+      "nodes": [
+        "database_coverage_test",
+        "database_disable_test",
+        "database_extra_test",
+        "database_overlays_test",
+        "database_playlists_test",
+        "database_queues_test",
+        "database_settings_test",
+        "database_user_test"
+      ],
+      "relation": "participate_in",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "test/app/actions/database.coverage.test.ts"
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

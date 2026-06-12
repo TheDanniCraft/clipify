@@ -1,0 +1,862 @@
+{
+  "nodes": [
+    {
+      "id": "test_dashboard_overlay_settings_playlist_test",
+      "label": "Dashboard Overlay Settings Playlist Test",
+      "file_type": "code",
+      "source_file": "test/app/dashboard/overlay.settings.playlist.test.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "test_dashboard_page_test",
+      "label": "Dashboard Page Test",
+      "file_type": "code",
+      "source_file": "test/app/dashboard/page.test.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "test_dashboard_playlist_page_test",
+      "label": "Dashboard Playlist Page Test",
+      "file_type": "code",
+      "source_file": "test/app/dashboard/playlist.page.test.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "test_embed_overlay_disabled_state_test",
+      "label": "Embed Overlay Disabled State Test",
+      "file_type": "code",
+      "source_file": "test/app/embed/overlayDisabledState.test.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "test_eventsub_route_test",
+      "label": "EventSub Webhook Route Test",
+      "file_type": "code",
+      "source_file": "test/app/eventsub/route.test.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "test_lib_campaign_offers_test",
+      "label": "Campaign Offers Library Test",
+      "file_type": "code",
+      "source_file": "test/app/lib/campaignOffers.test.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "test_lib_clip_cache_scheduler_test",
+      "label": "Clip Cache Scheduler Test",
+      "file_type": "code",
+      "source_file": "test/app/lib/clipCacheScheduler.test.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "test_lib_entitlements_test",
+      "label": "Entitlements Library Test",
+      "file_type": "code",
+      "source_file": "test/app/lib/entitlements.test.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "test_lib_feature_access_test",
+      "label": "Feature Access Library Test",
+      "file_type": "code",
+      "source_file": "test/app/lib/featureAccess.test.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "test_lib_instance_health_test",
+      "label": "Instance Health Library Test",
+      "file_type": "code",
+      "source_file": "test/app/lib/instanceHealth.test.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "test_lib_paywall_tracking_test",
+      "label": "Paywall Tracking Library Test",
+      "file_type": "code",
+      "source_file": "test/app/lib/paywallTracking.test.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "test_lib_pocketbase_auth_test",
+      "label": "PocketBase Auth Library Test",
+      "file_type": "code",
+      "source_file": "test/app/lib/pocketbaseAuth.test.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "test_lib_token_crypto_test",
+      "label": "Token Crypto Library Test",
+      "file_type": "code",
+      "source_file": "test/app/lib/tokenCrypto.test.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "test_llms_txt_route_test",
+      "label": "LLMs TXT Route Test",
+      "file_type": "code",
+      "source_file": "test/app/llms.txt/route.test.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "test_logout_route_test",
+      "label": "Logout Route Test",
+      "file_type": "code",
+      "source_file": "test/app/logout/route.test.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "test_payment_webhook_route_test",
+      "label": "Payment Webhook Route Test",
+      "file_type": "code",
+      "source_file": "test/app/payment/webhook/route.test.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "test_redeem_route_test",
+      "label": "Redeem Route Test",
+      "file_type": "code",
+      "source_file": "test/app/redeem/route.test.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "test_store_overlay_subscribers_test",
+      "label": "Overlay Subscribers Store Test",
+      "file_type": "code",
+      "source_file": "test/app/store/overlaySubscribers.test.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "test_utils_regex_filter_test",
+      "label": "Regex Filter Utility Test",
+      "file_type": "code",
+      "source_file": "test/app/utils/regexFilter.test.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "readme",
+      "label": "Clipify Project Documentation",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "clipify_app",
+      "label": "Clipify Application",
+      "file_type": "rationale",
+      "source_file": "README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "A stream assistant overlay system designed to automatically play Twitch clips to keep streams active and retain viewer engagement when streamers are away/AFK."
+    },
+    {
+      "id": "pricing_tiers",
+      "label": "Clipify Pricing Structure",
+      "file_type": "rationale",
+      "source_file": "README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Offers a Free tier (core features, 1 overlay) and a Pro tier (2 EUR/month, custom rewards, multiple overlays, playlist control, editor support)."
+    },
+    {
+      "id": "security_policy",
+      "label": "Security and Vulnerability Reporting Policy",
+      "file_type": "document",
+      "source_file": "SECURITY.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "vulnerability_reporting",
+      "label": "Vulnerability Disclosure Procedure",
+      "file_type": "rationale",
+      "source_file": "SECURITY.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Requires reporting vulnerabilities confidentially via email or GitHub Security Advisory prior to public announcement, with updates deployed directly to the hosted production server."
+    },
+    {
+      "id": "github_workflow_build",
+      "label": "Docker Image Build and Push CI/CD Workflow",
+      "file_type": "code",
+      "source_file": ".github/workflows/build.yaml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "docker_deployment",
+      "label": "Docker Multi-architecture Builds",
+      "file_type": "rationale",
+      "source_file": ".github/workflows/build.yaml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Compiles and pushes multi-platform (linux/amd64 and linux/arm64) Docker containers using Docker Buildx and imagetools manifest creation, uploading them to GitHub Container Registry (GHCR)."
+    },
+    {
+      "id": "app_dashboard_overlay_overlayId_page",
+      "label": "Dashboard Overlay Page",
+      "file_type": "code",
+      "source_file": "app/dashboard/overlay/[overlayId]/page.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "app_dashboard_page",
+      "label": "Dashboard Page",
+      "file_type": "code",
+      "source_file": "app/dashboard/page.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "app_dashboard_playlist_playlistId_page",
+      "label": "Dashboard Playlist Page",
+      "file_type": "code",
+      "source_file": "app/dashboard/playlist/[playlistId]/page.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "app_embed_overlayId_page",
+      "label": "Embed Overlay Page",
+      "file_type": "code",
+      "source_file": "app/embed/[overlayId]/page.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "app_overlay_overlayId_page",
+      "label": "Overlay Player Page",
+      "file_type": "code",
+      "source_file": "app/overlay/[overlayId]/page.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "app_eventsub_route",
+      "label": "EventSub Webhook Route",
+      "file_type": "code",
+      "source_file": "app/eventsub/route.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "app_lib_campaignOffers",
+      "label": "Campaign Offers Helper",
+      "file_type": "code",
+      "source_file": "app/lib/campaignOffers.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "app_lib_clipCacheScheduler",
+      "label": "Clip Cache Scheduler",
+      "file_type": "code",
+      "source_file": "app/lib/clipCacheScheduler.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "app_lib_entitlements",
+      "label": "User Entitlements Manager",
+      "file_type": "code",
+      "source_file": "app/lib/entitlements.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "app_lib_featureAccess",
+      "label": "Feature Access Rules",
+      "file_type": "code",
+      "source_file": "app/lib/featureAccess.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "app_lib_instanceHealth",
+      "label": "Instance Health Metrics",
+      "file_type": "code",
+      "source_file": "app/lib/instanceHealth.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "app_lib_paywallTracking",
+      "label": "Paywall Tracking Utilities",
+      "file_type": "code",
+      "source_file": "app/lib/paywallTracking.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "app_lib_pocketbaseAuth",
+      "label": "PocketBase Auth Client",
+      "file_type": "code",
+      "source_file": "app/lib/pocketbaseAuth.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "app_lib_tokenCrypto",
+      "label": "Token Encryption",
+      "file_type": "code",
+      "source_file": "app/lib/tokenCrypto.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "app_llms_txt_route",
+      "label": "LLMs TXT Route",
+      "file_type": "code",
+      "source_file": "app/llms.txt/route.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "app_logout_route",
+      "label": "Logout API Route",
+      "file_type": "code",
+      "source_file": "app/logout/route.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "app_payment_webhook_route",
+      "label": "Stripe Webhook Route",
+      "file_type": "code",
+      "source_file": "app/payment/webhook/route.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "app_redeem_route",
+      "label": "Redeem Promo Route",
+      "file_type": "code",
+      "source_file": "app/redeem/route.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "app_store_overlaySubscribers",
+      "label": "Overlay Subscribers Memory Store",
+      "file_type": "code",
+      "source_file": "app/store/overlaySubscribers.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "app_utils_regexFilter",
+      "label": "Regex Filter Utilities",
+      "file_type": "code",
+      "source_file": "app/utils/regexFilter.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "test_dashboard_overlay_settings_playlist_test",
+      "target": "app_dashboard_overlay_overlayId_page",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/dashboard/overlay.settings.playlist.test.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "test_dashboard_page_test",
+      "target": "app_dashboard_page",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/dashboard/page.test.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "test_dashboard_playlist_page_test",
+      "target": "app_dashboard_playlist_playlistId_page",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/dashboard/playlist.page.test.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "test_embed_overlay_disabled_state_test",
+      "target": "app_embed_overlayId_page",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/embed/overlayDisabledState.test.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "test_embed_overlay_disabled_state_test",
+      "target": "app_overlay_overlayId_page",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/embed/overlayDisabledState.test.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "test_eventsub_route_test",
+      "target": "app_eventsub_route",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/eventsub/route.test.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "test_lib_campaign_offers_test",
+      "target": "app_lib_campaignOffers",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/lib/campaignOffers.test.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "test_lib_clip_cache_scheduler_test",
+      "target": "app_lib_clipCacheScheduler",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/lib/clipCacheScheduler.test.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "test_lib_entitlements_test",
+      "target": "app_lib_entitlements",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/lib/entitlements.test.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "test_lib_feature_access_test",
+      "target": "app_lib_featureAccess",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/lib/featureAccess.test.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "test_lib_instance_health_test",
+      "target": "app_lib_instanceHealth",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/lib/instanceHealth.test.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "test_lib_paywall_tracking_test",
+      "target": "app_lib_paywallTracking",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/lib/paywallTracking.test.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "test_lib_pocketbase_auth_test",
+      "target": "app_lib_pocketbaseAuth",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/lib/pocketbaseAuth.test.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "test_lib_token_crypto_test",
+      "target": "app_lib_tokenCrypto",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/lib/tokenCrypto.test.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "test_llms_txt_route_test",
+      "target": "app_llms_txt_route",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/llms.txt/route.test.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "test_logout_route_test",
+      "target": "app_logout_route",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/logout/route.test.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "test_payment_webhook_route_test",
+      "target": "app_payment_webhook_route",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/payment/webhook/route.test.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "test_redeem_route_test",
+      "target": "app_redeem_route",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/redeem/route.test.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "test_store_overlay_subscribers_test",
+      "target": "app_store_overlaySubscribers",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/store/overlaySubscribers.test.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "test_utils_regex_filter_test",
+      "target": "app_utils_regexFilter",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/utils/regexFilter.test.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "readme",
+      "target": "clipify_app",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "readme",
+      "target": "pricing_tiers",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "security_policy",
+      "target": "vulnerability_reporting",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "SECURITY.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "github_workflow_build",
+      "target": "docker_deployment",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".github/workflows/build.yaml",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "github_workflow_build",
+      "target": "readme",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": ".github/workflows/build.yaml",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "app_lib_campaignOffers",
+      "target": "app_lib_pocketbaseAuth",
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "app/lib/campaignOffers.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "app_lib_instanceHealth",
+      "target": "app_lib_clipCacheScheduler",
+      "relation": "calls",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "app/lib/instanceHealth.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "app_lib_featureAccess",
+      "target": "app_lib_entitlements",
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "app/lib/featureAccess.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "app_payment_webhook_route",
+      "target": "app_lib_entitlements",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "app/payment/webhook/route.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "test_lib_entitlements_test",
+      "target": "test_lib_feature_access_test",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "test/app/lib/entitlements.test.ts",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "user_session_management_flow",
+      "label": "User Session Management & Dashboard Authentication Flow",
+      "nodes": [
+        "test_logout_route_test",
+        "test_dashboard_page_test",
+        "app_logout_route",
+        "app_dashboard_page"
+      ],
+      "relation": "participate_in",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "test/app/dashboard/page.test.tsx"
+    },
+    {
+      "id": "entitlements_and_feature_access_flow",
+      "label": "Entitlements Resolution and Feature Access Gating",
+      "nodes": [
+        "app_lib_entitlements",
+        "app_lib_featureAccess",
+        "test_lib_entitlements_test",
+        "test_lib_feature_access_test"
+      ],
+      "relation": "implement",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "test/app/lib/entitlements.test.ts"
+    },
+    {
+      "id": "clip_caching_scheduler_monitoring",
+      "label": "Clip Caching Sync and Health Monitoring Loop",
+      "nodes": [
+        "app_lib_clipCacheScheduler",
+        "app_lib_instanceHealth",
+        "test_lib_clip_cache_scheduler_test",
+        "test_lib_instance_health_test"
+      ],
+      "relation": "participate_in",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "test/app/lib/clipCacheScheduler.test.ts"
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

@@ -1,0 +1,803 @@
+{
+  "nodes": [
+    {
+      "id": "range_calendar_mdx",
+      "label": "RangeCalendar Migration Guide",
+      "file_type": "document",
+      "source_file": ".heroui-docs/migration/(components)/range-calendar.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "scroll_shadow_mdx",
+      "label": "ScrollShadow Migration Guide",
+      "file_type": "document",
+      "source_file": ".heroui-docs/migration/(components)/scroll-shadow.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "select_mdx",
+      "label": "Select Migration Guide",
+      "file_type": "document",
+      "source_file": ".heroui-docs/migration/(components)/select.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "skeleton_mdx",
+      "label": "Skeleton Migration Guide",
+      "file_type": "document",
+      "source_file": ".heroui-docs/migration/(components)/skeleton.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "slider_mdx",
+      "label": "Slider Migration Guide",
+      "file_type": "document",
+      "source_file": ".heroui-docs/migration/(components)/slider.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "snippet_mdx",
+      "label": "Snippet Migration Guide",
+      "file_type": "document",
+      "source_file": ".heroui-docs/migration/(components)/snippet.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "spacer_mdx",
+      "label": "Spacer Migration Guide",
+      "file_type": "document",
+      "source_file": ".heroui-docs/migration/(components)/spacer.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "spinner_mdx",
+      "label": "Spinner Migration Guide",
+      "file_type": "document",
+      "source_file": ".heroui-docs/migration/(components)/spinner.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "switch_mdx",
+      "label": "Switch Migration Guide",
+      "file_type": "document",
+      "source_file": ".heroui-docs/migration/(components)/switch.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "table_mdx",
+      "label": "Table Migration Guide",
+      "file_type": "document",
+      "source_file": ".heroui-docs/migration/(components)/table.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "tabs_mdx",
+      "label": "Tabs Migration Guide",
+      "file_type": "document",
+      "source_file": ".heroui-docs/migration/(components)/tabs.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "timeinput_mdx",
+      "label": "TimeInput Migration Guide",
+      "file_type": "document",
+      "source_file": ".heroui-docs/migration/(components)/timeinput.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "toast_mdx",
+      "label": "Toast Migration Guide",
+      "file_type": "document",
+      "source_file": ".heroui-docs/migration/(components)/toast.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "tooltip_mdx",
+      "label": "Tooltip Migration Guide",
+      "file_type": "document",
+      "source_file": ".heroui-docs/migration/(components)/tooltip.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "user_mdx",
+      "label": "User Migration Guide",
+      "file_type": "document",
+      "source_file": ".heroui-docs/migration/(components)/user.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "agent_skills_mdx",
+      "label": "Agent Skills Migration Guide",
+      "file_type": "document",
+      "source_file": ".heroui-docs/migration/(migration-for-agents)/agent-skills.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "agents_md_mdx",
+      "label": "AGENTS.md Migration Guide",
+      "file_type": "document",
+      "source_file": ".heroui-docs/migration/(migration-for-agents)/agents-md.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "mcp_server_mdx",
+      "label": "MCP Server Migration Guide",
+      "file_type": "document",
+      "source_file": ".heroui-docs/migration/(migration-for-agents)/mcp-server.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "agent_guide_full_mdx",
+      "label": "Agent Migration Guide - Full Migration",
+      "file_type": "document",
+      "source_file": ".heroui-docs/migration/(workflows)/agent-guide-full.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "agent_guide_incremental_mdx",
+      "label": "Agent Migration Guide - Incremental Migration",
+      "file_type": "document",
+      "source_file": ".heroui-docs/migration/(workflows)/agent-guide-incremental.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "full_migration_mdx",
+      "label": "Full Migration Workflow Guide",
+      "file_type": "document",
+      "source_file": ".heroui-docs/migration/(workflows)/full-migration.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "incremental_migration_mdx",
+      "label": "Incremental Migration Workflow Guide",
+      "file_type": "document",
+      "source_file": ".heroui-docs/migration/(workflows)/incremental-migration.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "compound_component_pattern",
+      "label": "Compound Component Pattern",
+      "file_type": "rationale",
+      "source_file": ".heroui-docs/migration/(components)/range-calendar.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "v3 uses a compound component pattern (e.g. Select.Trigger, Select.Value) instead of passing configuration via props. This provides developers with explicit layout control, custom styling flexibility, and clean composition without complex prop APIs."
+    },
+    {
+      "id": "full_migration_workflow",
+      "label": "Full Migration Workflow",
+      "file_type": "rationale",
+      "source_file": ".heroui-docs/migration/(workflows)/full-migration.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "v2 and v3 cannot coexist in the same project due to theme and stylesheet differences in full migration. Thus, a full migration branch is required to update all components before swapping the package dependencies to keep the transition clean."
+    },
+    {
+      "id": "incremental_coexistence_migration",
+      "label": "Incremental Coexistence Migration",
+      "file_type": "rationale",
+      "source_file": ".heroui-docs/migration/(workflows)/incremental-migration.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Large production codebases cannot afford extended broken builds. Coexistence strategies (pnpm aliases or keeping v2 component packages) allow teams to migrate files incrementally and maintain a working build."
+    },
+    {
+      "id": "pnpm_aliases_strategy",
+      "label": "pnpm Aliases Strategy (Strategy A)",
+      "file_type": "rationale",
+      "source_file": ".heroui-docs/migration/(workflows)/incremental-migration.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Utilizes pnpm package aliases to install both v2 and v3 versions of the main heroui package side-by-side (e.g. importing v3 components from @heroui-v3/react), enabling step-by-step migration."
+    },
+    {
+      "id": "component_packages_strategy",
+      "label": "Component Packages Strategy (Strategy B)",
+      "file_type": "rationale",
+      "source_file": ".heroui-docs/migration/(workflows)/incremental-migration.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Uses v2 component-specific packages (@heroui/button) alongside v3's unified package, keeping non-migrated components intact while transition proceeds."
+    },
+    {
+      "id": "mcp_server_concept",
+      "label": "Migration Model Context Protocol Server",
+      "file_type": "rationale",
+      "source_file": ".heroui-docs/migration/(migration-for-agents)/mcp-server.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Provides remote AI assistant tools and prompts deployed as a standard Model Context Protocol server, enabling automated and guided code generation during migration."
+    },
+    {
+      "id": "agent_skills_concept",
+      "label": "Migration Agent Skills",
+      "file_type": "rationale",
+      "source_file": ".heroui-docs/migration/(migration-for-agents)/agent-skills.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Pre-packaged files, scripts, and guides designed to be auto-discovered by developer environments, providing locally executable code migration logic."
+    },
+    {
+      "id": "agents_md_concept",
+      "label": "AGENTS.md and CLAUDE.md Indexing",
+      "file_type": "rationale",
+      "source_file": ".heroui-docs/migration/(migration-for-agents)/agents-md.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "A file-based markdown index that points AI coding assistants directly to migration workflows, hooks, styling, and component documentation downloaded locally."
+    },
+    {
+      "id": "synchronized_shimmer_effect",
+      "label": "Synchronized Shimmer Effect",
+      "file_type": "rationale",
+      "source_file": ".heroui-docs/migration/(components)/skeleton.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Applying skeleton--shimmer on a parent container allows all child Skeletons with animationType='none' to share a single, synchronized sweep effect, improving visual loading consistency."
+    },
+    {
+      "id": "snippet_removal_rationale",
+      "label": "Snippet Component Removal",
+      "file_type": "rationale",
+      "source_file": ".heroui-docs/migration/(components)/snippet.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Removed in v3 to avoid wrapper bloat. Easily replaced by native HTML pre/code elements, modern Clipboard API, and standard Tailwind CSS classes."
+    },
+    {
+      "id": "spacer_removal_rationale",
+      "label": "Spacer Component Removal",
+      "file_type": "rationale",
+      "source_file": ".heroui-docs/migration/(components)/spacer.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Removed in v3 in favor of standard Tailwind spacing utilities (gap, margin, space-y), aligning with modern layouts and preventing unnecessary DOM node creation."
+    },
+    {
+      "id": "user_removal_rationale",
+      "label": "User Component Removal",
+      "file_type": "rationale",
+      "source_file": ".heroui-docs/migration/(components)/user.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Removed in v3 to let developers compose user layouts manually with Avatar and flex elements. This maximizes design customization without locking users to a rigid preset."
+    }
+  ],
+  "edges": [
+    {
+      "source": "range_calendar_mdx",
+      "target": "compound_component_pattern",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": ".heroui-docs/migration/(components)/range-calendar.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "select_mdx",
+      "target": "compound_component_pattern",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": ".heroui-docs/migration/(components)/select.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "slider_mdx",
+      "target": "compound_component_pattern",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": ".heroui-docs/migration/(components)/slider.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "switch_mdx",
+      "target": "compound_component_pattern",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": ".heroui-docs/migration/(components)/switch.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "table_mdx",
+      "target": "compound_component_pattern",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": ".heroui-docs/migration/(components)/table.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tabs_mdx",
+      "target": "compound_component_pattern",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": ".heroui-docs/migration/(components)/tabs.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "timeinput_mdx",
+      "target": "compound_component_pattern",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": ".heroui-docs/migration/(components)/timeinput.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "toast_mdx",
+      "target": "compound_component_pattern",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": ".heroui-docs/migration/(components)/toast.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tooltip_mdx",
+      "target": "compound_component_pattern",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": ".heroui-docs/migration/(components)/tooltip.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "snippet_mdx",
+      "target": "snippet_removal_rationale",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": ".heroui-docs/migration/(components)/snippet.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "spacer_mdx",
+      "target": "spacer_removal_rationale",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": ".heroui-docs/migration/(components)/spacer.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "user_mdx",
+      "target": "user_removal_rationale",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": ".heroui-docs/migration/(components)/user.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "snippet_removal_rationale",
+      "target": "snippet_mdx",
+      "relation": "rationale_for",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": ".heroui-docs/migration/(components)/snippet.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "spacer_removal_rationale",
+      "target": "spacer_mdx",
+      "relation": "rationale_for",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": ".heroui-docs/migration/(components)/spacer.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "user_removal_rationale",
+      "target": "user_mdx",
+      "relation": "rationale_for",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": ".heroui-docs/migration/(components)/user.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agent_guide_full_mdx",
+      "target": "full_migration_workflow",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": ".heroui-docs/migration/(workflows)/agent-guide-full.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "full_migration_mdx",
+      "target": "full_migration_workflow",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": ".heroui-docs/migration/(workflows)/full-migration.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agent_guide_incremental_mdx",
+      "target": "incremental_coexistence_migration",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": ".heroui-docs/migration/(workflows)/agent-guide-incremental.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "incremental_migration_mdx",
+      "target": "incremental_coexistence_migration",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": ".heroui-docs/migration/(workflows)/incremental-migration.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "incremental_migration_mdx",
+      "target": "pnpm_aliases_strategy",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": ".heroui-docs/migration/(workflows)/incremental-migration.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "incremental_migration_mdx",
+      "target": "component_packages_strategy",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": ".heroui-docs/migration/(workflows)/incremental-migration.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "mcp_server_mdx",
+      "target": "mcp_server_concept",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": ".heroui-docs/migration/(migration-for-agents)/mcp-server.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agent_skills_mdx",
+      "target": "agent_skills_concept",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": ".heroui-docs/migration/(migration-for-agents)/agent-skills.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agents_md_mdx",
+      "target": "agents_md_concept",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": ".heroui-docs/migration/(migration-for-agents)/agents-md.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agent_guide_full_mdx",
+      "target": "full_migration_mdx",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".heroui-docs/migration/(workflows)/agent-guide-full.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agent_guide_incremental_mdx",
+      "target": "incremental_migration_mdx",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".heroui-docs/migration/(workflows)/agent-guide-incremental.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "full_migration_mdx",
+      "target": "mcp_server_mdx",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".heroui-docs/migration/(workflows)/full-migration.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "full_migration_mdx",
+      "target": "agent_skills_mdx",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".heroui-docs/migration/(workflows)/full-migration.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "full_migration_mdx",
+      "target": "agents_md_mdx",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".heroui-docs/migration/(workflows)/full-migration.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "incremental_migration_mdx",
+      "target": "mcp_server_mdx",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".heroui-docs/migration/(workflows)/incremental-migration.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "incremental_migration_mdx",
+      "target": "agent_skills_mdx",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".heroui-docs/migration/(workflows)/incremental-migration.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "incremental_migration_mdx",
+      "target": "agents_md_mdx",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".heroui-docs/migration/(workflows)/incremental-migration.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "skeleton_mdx",
+      "target": "synchronized_shimmer_effect",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": ".heroui-docs/migration/(components)/skeleton.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "snippet_mdx",
+      "target": "spacer_mdx",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": ".heroui-docs/migration/(components)/snippet.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "spacer_mdx",
+      "target": "user_mdx",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": ".heroui-docs/migration/(components)/spacer.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agent_guide_full_mdx",
+      "target": "agent_guide_incremental_mdx",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": ".heroui-docs/migration/(workflows)/agent-guide-full.mdx",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "hyperedge_ai_assistant_integration",
+      "label": "AI Assistant Integration Tools",
+      "nodes": [
+        "mcp_server_mdx",
+        "agent_skills_mdx",
+        "agents_md_mdx",
+        "mcp_server_concept",
+        "agent_skills_concept",
+        "agents_md_concept"
+      ],
+      "relation": "participate_in",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": ".heroui-docs/migration/(migration-for-agents)/mcp-server.mdx"
+    },
+    {
+      "id": "hyperedge_removed_components",
+      "label": "Removed Components in HeroUI v3",
+      "nodes": [
+        "snippet_mdx",
+        "spacer_mdx",
+        "user_mdx",
+        "snippet_removal_rationale",
+        "spacer_removal_rationale",
+        "user_removal_rationale"
+      ],
+      "relation": "participate_in",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": ".heroui-docs/migration/(components)/snippet.mdx"
+    },
+    {
+      "id": "hyperedge_compound_form_controls",
+      "label": "Compound Component Pattern for Form Controls",
+      "nodes": [
+        "select_mdx",
+        "switch_mdx",
+        "timeinput_mdx",
+        "slider_mdx",
+        "compound_component_pattern"
+      ],
+      "relation": "implement",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": ".heroui-docs/migration/(components)/select.mdx"
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

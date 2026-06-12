@@ -1,0 +1,831 @@
+{
+  "nodes": [
+    {
+      "id": "bumpLockfile_workflow",
+      "label": "Bump Bun Lockfile Workflow",
+      "file_type": "code",
+      "source_file": ".github/workflows/bumpLockfile.yaml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "ci_workflow",
+      "label": "CI Workflow",
+      "file_type": "code",
+      "source_file": ".github/workflows/ci.yml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "migrations_workflow",
+      "label": "Generate Migrations Workflow",
+      "file_type": "code",
+      "source_file": ".github/workflows/migrations.yaml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "publish_dashboards_workflow",
+      "label": "Publish Dashboards Workflow",
+      "file_type": "code",
+      "source_file": ".github/workflows/publish-dashboards.yml",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "agent_index_doc",
+      "label": "Migration Guide (AI Assistants)",
+      "file_type": "document",
+      "source_file": ".heroui-docs/migration/agent-index.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "hooks_doc",
+      "label": "Hooks Migration Guide",
+      "file_type": "document",
+      "source_file": ".heroui-docs/migration/hooks.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "index_doc",
+      "label": "Main Migration Guide",
+      "file_type": "document",
+      "source_file": ".heroui-docs/migration/index.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "styling_doc",
+      "label": "Styling & Theming Migration Guide",
+      "file_type": "document",
+      "source_file": ".heroui-docs/migration/styling.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "accordion_migration",
+      "label": "Accordion Migration",
+      "file_type": "document",
+      "source_file": ".heroui-docs/migration/(components)/accordion.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "alert_migration",
+      "label": "Alert Migration",
+      "file_type": "document",
+      "source_file": ".heroui-docs/migration/(components)/alert.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "autocomplete_migration",
+      "label": "Autocomplete Migration",
+      "file_type": "document",
+      "source_file": ".heroui-docs/migration/(components)/autocomplete.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "avatar_migration",
+      "label": "Avatar Migration",
+      "file_type": "document",
+      "source_file": ".heroui-docs/migration/(components)/avatar.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "badge_migration",
+      "label": "Badge Migration",
+      "file_type": "document",
+      "source_file": ".heroui-docs/migration/(components)/badge.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "breadcrumbs_migration",
+      "label": "Breadcrumbs Migration",
+      "file_type": "document",
+      "source_file": ".heroui-docs/migration/(components)/breadcrumbs.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "button_group_migration",
+      "label": "ButtonGroup Migration",
+      "file_type": "document",
+      "source_file": ".heroui-docs/migration/(components)/button-group.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "button_migration",
+      "label": "Button Migration",
+      "file_type": "document",
+      "source_file": ".heroui-docs/migration/(components)/button.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "calendar_migration",
+      "label": "Calendar Migration",
+      "file_type": "document",
+      "source_file": ".heroui-docs/migration/(components)/calendar.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "card_migration",
+      "label": "Card Migration",
+      "file_type": "document",
+      "source_file": ".heroui-docs/migration/(components)/card.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "checkbox_group_migration",
+      "label": "CheckboxGroup Migration",
+      "file_type": "document",
+      "source_file": ".heroui-docs/migration/(components)/checkbox-group.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "checkbox_migration",
+      "label": "Checkbox Migration",
+      "file_type": "document",
+      "source_file": ".heroui-docs/migration/(components)/checkbox.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "chip_migration",
+      "label": "Chip Migration",
+      "file_type": "document",
+      "source_file": ".heroui-docs/migration/(components)/chip.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "circular_progress_migration",
+      "label": "CircularProgress Migration",
+      "file_type": "document",
+      "source_file": ".heroui-docs/migration/(components)/circular-progress.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "compound_components_concept",
+      "label": "Compound Components Pattern",
+      "file_type": "rationale",
+      "source_file": ".heroui-docs/migration/index.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "v3 shifts from config props to explicit compound component layout (e.g. Card.Header, Card.Content) to give developers direct, structural control over layouts."
+    },
+    {
+      "id": "css_first_concept",
+      "label": "CSS-First Styling Architecture",
+      "file_type": "rationale",
+      "source_file": ".heroui-docs/migration/styling.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Replaces utility classes generated via Tailwind plugin in v2 with pre-packaged static CSS files, reducing JavaScript overhead and streamlining custom styling."
+    },
+    {
+      "id": "overlay_state_concept",
+      "label": "Overlay State Management",
+      "file_type": "rationale",
+      "source_file": ".heroui-docs/migration/hooks.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Replaces useDisclosure with useOverlayState to provide a cleaner state management API and standard alignment with React Aria Components."
+    },
+    {
+      "id": "color_system_concept",
+      "label": "Color System Overhaul",
+      "file_type": "rationale",
+      "source_file": ".heroui-docs/migration/styling.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Migrates to OKLCH color model, rebrands primary to accent, drops the secondary color token, and removes numbered shades in favor of semantic naming."
+    },
+    {
+      "id": "item_identity_concept",
+      "label": "Item Identity Split",
+      "file_type": "rationale",
+      "source_file": ".heroui-docs/migration/index.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Differentiates React list keys from selection state IDs and textValue accessibility triggers in collection components."
+    },
+    {
+      "id": "coexistence_strategies_concept",
+      "label": "Migration Coexistence Strategies",
+      "file_type": "rationale",
+      "source_file": ".heroui-docs/migration/index.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Offers Full Migration (rebuilding broken components, then upgrading) or Incremental Migration (managing v2 and v3 side-by-side via aliases)."
+    }
+  ],
+  "edges": [
+    {
+      "source": "agent_index_doc",
+      "target": "hooks_doc",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".heroui-docs/migration/agent-index.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agent_index_doc",
+      "target": "styling_doc",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".heroui-docs/migration/agent-index.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "index_doc",
+      "target": "hooks_doc",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".heroui-docs/migration/index.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "index_doc",
+      "target": "styling_doc",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".heroui-docs/migration/index.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "index_doc",
+      "target": "accordion_migration",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".heroui-docs/migration/index.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "index_doc",
+      "target": "alert_migration",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".heroui-docs/migration/index.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "index_doc",
+      "target": "autocomplete_migration",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".heroui-docs/migration/index.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "index_doc",
+      "target": "avatar_migration",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".heroui-docs/migration/index.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "index_doc",
+      "target": "badge_migration",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".heroui-docs/migration/index.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "index_doc",
+      "target": "breadcrumbs_migration",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".heroui-docs/migration/index.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "index_doc",
+      "target": "button_group_migration",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".heroui-docs/migration/index.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "index_doc",
+      "target": "button_migration",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".heroui-docs/migration/index.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "index_doc",
+      "target": "calendar_migration",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".heroui-docs/migration/index.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "index_doc",
+      "target": "card_migration",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".heroui-docs/migration/index.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "index_doc",
+      "target": "checkbox_group_migration",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".heroui-docs/migration/index.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "index_doc",
+      "target": "checkbox_migration",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".heroui-docs/migration/index.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "index_doc",
+      "target": "chip_migration",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".heroui-docs/migration/index.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "index_doc",
+      "target": "circular_progress_migration",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".heroui-docs/migration/index.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agent_index_doc",
+      "target": "index_doc",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": ".heroui-docs/migration/agent-index.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "index_doc",
+      "target": "coexistence_strategies_concept",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": ".heroui-docs/migration/index.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "index_doc",
+      "target": "item_identity_concept",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": ".heroui-docs/migration/index.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "hooks_doc",
+      "target": "compound_components_concept",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": ".heroui-docs/migration/hooks.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "hooks_doc",
+      "target": "overlay_state_concept",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": ".heroui-docs/migration/hooks.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "styling_doc",
+      "target": "css_first_concept",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": ".heroui-docs/migration/styling.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "styling_doc",
+      "target": "color_system_concept",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": ".heroui-docs/migration/styling.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "accordion_migration",
+      "target": "compound_components_concept",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": ".heroui-docs/migration/(components)/accordion.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "alert_migration",
+      "target": "compound_components_concept",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": ".heroui-docs/migration/(components)/alert.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "autocomplete_migration",
+      "target": "compound_components_concept",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": ".heroui-docs/migration/(components)/autocomplete.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "avatar_migration",
+      "target": "compound_components_concept",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": ".heroui-docs/migration/(components)/avatar.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "badge_migration",
+      "target": "compound_components_concept",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": ".heroui-docs/migration/(components)/badge.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "calendar_migration",
+      "target": "compound_components_concept",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": ".heroui-docs/migration/(components)/calendar.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "card_migration",
+      "target": "compound_components_concept",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": ".heroui-docs/migration/(components)/card.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "checkbox_group_migration",
+      "target": "compound_components_concept",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": ".heroui-docs/migration/(components)/checkbox-group.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "checkbox_migration",
+      "target": "compound_components_concept",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": ".heroui-docs/migration/(components)/checkbox.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "chip_migration",
+      "target": "compound_components_concept",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": ".heroui-docs/migration/(components)/chip.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "circular_progress_migration",
+      "target": "compound_components_concept",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": ".heroui-docs/migration/(components)/circular-progress.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "breadcrumbs_migration",
+      "target": "compound_components_concept",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": ".heroui-docs/migration/(components)/breadcrumbs.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "button_migration",
+      "target": "color_system_concept",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": ".heroui-docs/migration/(components)/button.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "chip_migration",
+      "target": "color_system_concept",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": ".heroui-docs/migration/(components)/chip.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "badge_migration",
+      "target": "color_system_concept",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": ".heroui-docs/migration/(components)/badge.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "alert_migration",
+      "target": "color_system_concept",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": ".heroui-docs/migration/(components)/alert.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "checkbox_group_migration",
+      "target": "checkbox_migration",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": ".heroui-docs/migration/(components)/checkbox-group.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "button_group_migration",
+      "target": "button_migration",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": ".heroui-docs/migration/(components)/button-group.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "bumpLockfile_workflow",
+      "target": "migrations_workflow",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": ".github/workflows/bumpLockfile.yaml",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "alert_migration",
+      "target": "chip_migration",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": ".heroui-docs/migration/(components)/alert.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "checkbox_group_migration",
+      "target": "button_group_migration",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": ".heroui-docs/migration/(components)/checkbox-group.mdx",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "github_workflows",
+      "label": "GitHub Actions Workflows",
+      "nodes": [
+        "bumpLockfile_workflow",
+        "ci_workflow",
+        "migrations_workflow",
+        "publish_dashboards_workflow"
+      ],
+      "relation": "form",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": ".github/workflows/ci.yml"
+    },
+    {
+      "id": "compound_component_migrations",
+      "label": "Compound Component Migration Guides",
+      "nodes": [
+        "accordion_migration",
+        "alert_migration",
+        "autocomplete_migration",
+        "avatar_migration",
+        "badge_migration",
+        "calendar_migration",
+        "card_migration",
+        "checkbox_migration",
+        "checkbox_group_migration",
+        "circular_progress_migration"
+      ],
+      "relation": "form",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": ".heroui-docs/migration/index.mdx"
+    },
+    {
+      "id": "cross_cutting_migration_guides",
+      "label": "Cross-Cutting Migration Guides",
+      "nodes": [
+        "index_doc",
+        "hooks_doc",
+        "styling_doc"
+      ],
+      "relation": "form",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": ".heroui-docs/migration/index.mdx"
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

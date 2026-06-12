@@ -1,0 +1,1071 @@
+{
+  "nodes": [
+    {
+      "id": "test_adminUserExplorer_behavior_test",
+      "label": "Admin User Explorer Behavior Test",
+      "file_type": "code",
+      "source_file": "test/app/components/adminUserExplorer.behavior.test.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "test_adminUserExplorer_test",
+      "label": "Admin User Explorer Test",
+      "file_type": "code",
+      "source_file": "test/app/components/adminUserExplorer.test.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "test_chatwootData_test",
+      "label": "Chatwoot Data Test",
+      "file_type": "code",
+      "source_file": "test/app/components/chatwootData.test.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "test_confirmModal_test",
+      "label": "Confirm Modal Test",
+      "file_type": "code",
+      "source_file": "test/app/components/confirmModal.test.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "test_dashboardNavbar_test",
+      "label": "Dashboard Navbar Test",
+      "file_type": "code",
+      "source_file": "test/app/components/dashboardNavbar.test.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "test_errorToast_test",
+      "label": "Error Toast Test",
+      "file_type": "code",
+      "source_file": "test/app/components/errorToast.test.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "test_featureCard_test",
+      "label": "Feature Card Test",
+      "file_type": "code",
+      "source_file": "test/app/components/featureCard.test.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "test_floatingBanner_test",
+      "label": "Floating Banner Test",
+      "file_type": "code",
+      "source_file": "test/app/components/floatingBanner.test.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "test_logo_test",
+      "label": "Logo Test",
+      "file_type": "code",
+      "source_file": "test/app/components/logo.test.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "test_overlayPlayer_helpers_test",
+      "label": "Overlay Player Helpers Test",
+      "file_type": "code",
+      "source_file": "test/app/components/overlayPlayer.helpers.test.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "test_overlayPlayer_test",
+      "label": "Overlay Player Test",
+      "file_type": "code",
+      "source_file": "test/app/components/overlayPlayer.test.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "test_OverlayTable_test",
+      "label": "Overlay Table Test",
+      "file_type": "code",
+      "source_file": "test/app/components/OverlayTable.test.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "test_scrollingBanner_test",
+      "label": "Scrolling Banner Test",
+      "file_type": "code",
+      "source_file": "test/app/components/scrollingBanner.test.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "test_OverlayTable_copy_text_test",
+      "label": "Overlay Table Copy Text Test",
+      "file_type": "code",
+      "source_file": "test/app/components/OverlayTable/copy-text.test.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "test_OverlayTable_index_test",
+      "label": "Overlay Table Index Test",
+      "file_type": "code",
+      "source_file": "test/app/components/OverlayTable/index.test.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "test_OverlayTable_Status_test",
+      "label": "Overlay Table Status Test",
+      "file_type": "code",
+      "source_file": "test/app/components/OverlayTable/Status.test.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "test_OverlayTable_use_memoized_callback_test",
+      "label": "Overlay Table Memoized Callback Hook Test",
+      "file_type": "code",
+      "source_file": "test/app/components/OverlayTable/use-memoized-callback.test.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "test_Pricing_index_test",
+      "label": "Pricing Index Test",
+      "file_type": "code",
+      "source_file": "test/app/components/Pricing/index.test.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "test_Pricing_pricing_tiers_test",
+      "label": "Pricing Tiers Test",
+      "file_type": "code",
+      "source_file": "test/app/components/Pricing/pricing-tiers.test.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "test_roadmap_roadmapItem_test",
+      "label": "Roadmap Item Test",
+      "file_type": "code",
+      "source_file": "test/app/components/roadmap/roadmapItem.test.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "test_controller_controllerClient_test",
+      "label": "Controller Client Test",
+      "file_type": "code",
+      "source_file": "test/app/controller/controllerClient.test.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "test_controller_page_test",
+      "label": "Controller Page Test",
+      "file_type": "code",
+      "source_file": "test/app/controller/page.test.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "components_adminUserExplorer",
+      "label": "Admin User Explorer Component",
+      "file_type": "code",
+      "source_file": "app/components/adminUserExplorer.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "components_chatwootData",
+      "label": "Chatwoot Data Component",
+      "file_type": "code",
+      "source_file": "app/components/chatwootData.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "components_confirmModal",
+      "label": "Confirm Modal Component",
+      "file_type": "code",
+      "source_file": "app/components/confirmModal.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "components_dashboardNavbar",
+      "label": "Dashboard Navbar Component",
+      "file_type": "code",
+      "source_file": "app/components/dashboardNavbar.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "components_errorToast",
+      "label": "Error Toast Component",
+      "file_type": "code",
+      "source_file": "app/components/errorToast.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "components_featureCard",
+      "label": "Feature Card Component",
+      "file_type": "code",
+      "source_file": "app/components/featureCard.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "components_floatingBanner",
+      "label": "Floating Banner Component",
+      "file_type": "code",
+      "source_file": "app/components/floatingBanner.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "components_logo",
+      "label": "Logo Component",
+      "file_type": "code",
+      "source_file": "app/components/logo.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "components_overlayPlayer_utils",
+      "label": "Overlay Player Utilities",
+      "file_type": "code",
+      "source_file": "app/components/overlayPlayer.utils.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "components_overlayPlayer",
+      "label": "Overlay Player Component",
+      "file_type": "code",
+      "source_file": "app/components/overlayPlayer.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "components_OverlayTable",
+      "label": "Overlay Table Component",
+      "file_type": "code",
+      "source_file": "app/components/OverlayTable/index.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "components_scrollingBanner",
+      "label": "Scrolling Banner Component",
+      "file_type": "code",
+      "source_file": "app/components/scrollingBanner.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "components_OverlayTable_copy_text",
+      "label": "Overlay Table Copy Text Component",
+      "file_type": "code",
+      "source_file": "app/components/OverlayTable/copy-text.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "components_OverlayTable_Status",
+      "label": "Overlay Table Status Component",
+      "file_type": "code",
+      "source_file": "app/components/OverlayTable/Status.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "components_OverlayTable_use_memoized_callback",
+      "label": "Overlay Table useMemoizedCallback Hook",
+      "file_type": "code",
+      "source_file": "app/components/OverlayTable/use-memoized-callback.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "components_Pricing",
+      "label": "Pricing Tiers Component",
+      "file_type": "code",
+      "source_file": "app/components/Pricing/index.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "components_Pricing_pricing_tiers",
+      "label": "Pricing Tiers Data",
+      "file_type": "code",
+      "source_file": "app/components/Pricing/pricing-tiers.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "components_roadmap_roadmapItem",
+      "label": "Roadmap Item Component",
+      "file_type": "code",
+      "source_file": "app/components/roadmap/roadmapItem.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "components_roadmap_roadmapData",
+      "label": "Roadmap Data Config",
+      "file_type": "code",
+      "source_file": "app/components/roadmap/roadmapData.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "controller_controllerClient",
+      "label": "Controller Client Component",
+      "file_type": "code",
+      "source_file": "app/controller/[overlayId]/controllerClient.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "controller_page",
+      "label": "Controller Page Component",
+      "file_type": "code",
+      "source_file": "app/controller/[overlayId]/page.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "actions_auth",
+      "label": "Authentication Actions",
+      "file_type": "code",
+      "source_file": "app/actions/auth.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "actions_adminView",
+      "label": "Admin View Actions",
+      "file_type": "code",
+      "source_file": "app/actions/adminView.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "actions_campaignOffers",
+      "label": "Campaign Offers Actions",
+      "file_type": "code",
+      "source_file": "app/actions/campaignOffers.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "actions_twitch",
+      "label": "Twitch Integration Actions",
+      "file_type": "code",
+      "source_file": "app/actions/twitch.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "actions_database",
+      "label": "Database Actions",
+      "file_type": "code",
+      "source_file": "app/actions/database.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "actions_controller",
+      "label": "Controller Actions",
+      "file_type": "code",
+      "source_file": "app/actions/controller.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "lib_paywallTracking",
+      "label": "Paywall Tracking Library",
+      "file_type": "code",
+      "source_file": "app/lib/paywallTracking.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "test_adminUserExplorer_behavior_test",
+      "target": "components_adminUserExplorer",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/components/adminUserExplorer.behavior.test.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "test_adminUserExplorer_test",
+      "target": "components_adminUserExplorer",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/components/adminUserExplorer.test.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "test_chatwootData_test",
+      "target": "components_chatwootData",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/components/chatwootData.test.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "test_confirmModal_test",
+      "target": "components_confirmModal",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/components/confirmModal.test.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "test_dashboardNavbar_test",
+      "target": "components_dashboardNavbar",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/components/dashboardNavbar.test.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "test_errorToast_test",
+      "target": "components_errorToast",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/components/errorToast.test.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "test_featureCard_test",
+      "target": "components_featureCard",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/components/featureCard.test.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "test_floatingBanner_test",
+      "target": "components_floatingBanner",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/components/floatingBanner.test.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "test_logo_test",
+      "target": "components_logo",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/components/logo.test.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "test_overlayPlayer_helpers_test",
+      "target": "components_overlayPlayer_utils",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/components/overlayPlayer.helpers.test.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "test_overlayPlayer_test",
+      "target": "components_overlayPlayer",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/components/overlayPlayer.test.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "test_OverlayTable_test",
+      "target": "components_OverlayTable",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/components/OverlayTable.test.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "test_scrollingBanner_test",
+      "target": "components_scrollingBanner",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/components/scrollingBanner.test.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "test_OverlayTable_copy_text_test",
+      "target": "components_OverlayTable_copy_text",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/components/OverlayTable/copy-text.test.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "test_OverlayTable_index_test",
+      "target": "components_OverlayTable",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/components/OverlayTable/index.test.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "test_OverlayTable_Status_test",
+      "target": "components_OverlayTable_Status",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/components/OverlayTable/Status.test.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "test_OverlayTable_use_memoized_callback_test",
+      "target": "components_OverlayTable_use_memoized_callback",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/components/OverlayTable/use-memoized-callback.test.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "test_Pricing_index_test",
+      "target": "components_Pricing",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/components/Pricing/index.test.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "test_Pricing_pricing_tiers_test",
+      "target": "components_Pricing_pricing_tiers",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/components/Pricing/pricing-tiers.test.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "test_roadmap_roadmapItem_test",
+      "target": "components_roadmap_roadmapItem",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/components/roadmap/roadmapItem.test.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "test_controller_controllerClient_test",
+      "target": "controller_controllerClient",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/controller/controllerClient.test.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "test_controller_page_test",
+      "target": "controller_page",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/controller/page.test.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "components_adminUserExplorer",
+      "target": "actions_auth",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "app/components/adminUserExplorer.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "components_adminUserExplorer",
+      "target": "actions_adminView",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "app/components/adminUserExplorer.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "components_dashboardNavbar",
+      "target": "actions_adminView",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "app/components/dashboardNavbar.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "components_dashboardNavbar",
+      "target": "actions_campaignOffers",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "app/components/dashboardNavbar.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "components_dashboardNavbar",
+      "target": "components_logo",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "app/components/dashboardNavbar.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "components_overlayPlayer",
+      "target": "components_overlayPlayer_utils",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "app/components/overlayPlayer.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "components_overlayPlayer",
+      "target": "actions_twitch",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "app/components/overlayPlayer.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "components_overlayPlayer",
+      "target": "actions_database",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "app/components/overlayPlayer.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "components_OverlayTable",
+      "target": "actions_database",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "app/components/OverlayTable/index.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "components_OverlayTable",
+      "target": "actions_auth",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "app/components/OverlayTable/index.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "components_OverlayTable",
+      "target": "actions_twitch",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "app/components/OverlayTable/index.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "components_OverlayTable",
+      "target": "actions_campaignOffers",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "app/components/OverlayTable/index.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "components_OverlayTable",
+      "target": "lib_paywallTracking",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "app/components/OverlayTable/index.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "components_OverlayTable",
+      "target": "components_OverlayTable_copy_text",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "app/components/OverlayTable/index.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "components_OverlayTable",
+      "target": "components_OverlayTable_Status",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "app/components/OverlayTable/index.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "components_OverlayTable",
+      "target": "components_OverlayTable_use_memoized_callback",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "app/components/OverlayTable/index.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "components_Pricing",
+      "target": "components_Pricing_pricing_tiers",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "app/components/Pricing/index.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "components_roadmap_roadmapItem",
+      "target": "components_roadmap_roadmapData",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "app/components/roadmap/roadmapItem.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "controller_controllerClient",
+      "target": "actions_controller",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "app/controller/[overlayId]/controllerClient.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "controller_page",
+      "target": "actions_auth",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "app/controller/[overlayId]/page.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "controller_page",
+      "target": "actions_database",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "app/controller/[overlayId]/page.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "controller_page",
+      "target": "controller_controllerClient",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "app/controller/[overlayId]/page.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "controller_controllerClient",
+      "target": "components_overlayPlayer",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "app/controller/[overlayId]/controllerClient.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "components_floatingBanner",
+      "target": "components_scrollingBanner",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "app/components/floatingBanner.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "components_adminUserExplorer",
+      "target": "components_OverlayTable",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "app/components/adminUserExplorer.tsx",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "controller_websocket_flow",
+      "label": "Controller and Overlay WebSocket Event Loop Flow",
+      "nodes": [
+        "components_overlayPlayer",
+        "controller_controllerClient",
+        "test_controller_controllerClient_test",
+        "test_overlayPlayer_test"
+      ],
+      "relation": "participate_in",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "app/controller/[overlayId]/controllerClient.tsx"
+    },
+    {
+      "id": "pricing_and_paywall_mechanisms",
+      "label": "Pricing Tiers and Access Gate Flow",
+      "nodes": [
+        "components_Pricing",
+        "components_Pricing_pricing_tiers",
+        "components_dashboardNavbar",
+        "controller_page"
+      ],
+      "relation": "participate_in",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "app/controller/[overlayId]/page.tsx"
+    },
+    {
+      "id": "tabular_explorers",
+      "label": "Resource Tabular Explorer UI Pattern",
+      "nodes": [
+        "components_adminUserExplorer",
+        "components_OverlayTable",
+        "components_OverlayTable_Status"
+      ],
+      "relation": "implement",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "app/components/OverlayTable/index.tsx"
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

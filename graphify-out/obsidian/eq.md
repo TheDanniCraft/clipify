@@ -1,0 +1,88 @@
+---
+source_file: "test/app/actions/database.disable.test.ts"
+type: "code"
+community: "Premium Gating & Chat Commands"
+location: "L10"
+tags:
+  - graphify/code
+  - graphify/INFERRED
+  - community/Premium_Gating__Chat_Commands
+---
+
+# eq
+
+## Connections
+- [[canEditOwnerInternal()]] - `calls` [INFERRED]
+- [[clearClipQueueByOverlayId()]] - `calls` [INFERRED]
+- [[clearModQueueByBroadcasterId()]] - `calls` [INFERRED]
+- [[closeAdminViewSession()]] - `calls` [INFERRED]
+- [[closeAdminViewSessionReadOnly()]] - `calls` [INFERRED]
+- [[countWhereOverlays()]] - `calls` [INFERRED]
+- [[createOverlay()]] - `calls` [INFERRED]
+- [[database.disable.test.ts]] - `contains` [EXTRACTED]
+- [[deleteOverlay()]] - `calls` [INFERRED]
+- [[deleteTwitchCacheByPrefix()]] - `calls` [INFERRED]
+- [[deleteTwitchCacheKeys()]] - `calls` [INFERRED]
+- [[deleteUser()]] - `calls` [INFERRED]
+- [[disableUserAccess()]] - `calls` [INFERRED]
+- [[enableUserAccess()]] - `calls` [INFERRED]
+- [[getActiveOverlayOwnerIdsForClipSync()]] - `calls` [INFERRED]
+- [[getAdminExplorerPage()]] - `calls` [INFERRED]
+- [[getAdminViewCandidates()]] - `calls` [INFERRED]
+- [[getAllOverlayIds()]] - `calls` [INFERRED]
+- [[getAllOverlayIdsByOwner()]] - `calls` [INFERRED]
+- [[getAllOverlayIdsByOwnerInternal()]] - `calls` [INFERRED]
+- [[getAllOverlays()]] - `calls` [INFERRED]
+- [[getAllOverlaysByOwnerInternal()]] - `calls` [INFERRED]
+- [[getAllPlaylists()]] - `calls` [INFERRED]
+- [[getClipQueueByOverlayId()]] - `calls` [INFERRED]
+- [[getEditorAccess()]] - `calls` [INFERRED]
+- [[getEditorOverlays()]] - `calls` [INFERRED]
+- [[getFirstFromClipQueueByOverlayId()]] - `calls` [INFERRED]
+- [[getFirstFromModQueueByBroadcasterId()]] - `calls` [INFERRED]
+- [[getFirstValidQueuedClip()]] - `calls` [INFERRED]
+- [[getInstanceHealthSnapshot()]] - `calls` [INFERRED]
+- [[getModQueueByBroadcasterId()]] - `calls` [INFERRED]
+- [[getOverlay()]] - `calls` [INFERRED]
+- [[getOverlayByRewardId()]] - `calls` [INFERRED]
+- [[getOverlayOwnerPlanPublic()]] - `calls` [INFERRED]
+- [[getOverlayOwnerPlans()]] - `calls` [INFERRED]
+- [[getOverlayPublic()]] - `calls` [INFERRED]
+- [[getOwnerPlanContext()]] - `calls` [INFERRED]
+- [[getPlaylistClipsForOwnerServer()]] - `calls` [INFERRED]
+- [[getPlaylistsForOwner()]] - `calls` [INFERRED]
+- [[getSettingsServer()]] - `calls` [INFERRED]
+- [[getTwitchCache()]] - `calls` [INFERRED]
+- [[getTwitchCacheBatch()]] - `calls` [INFERRED]
+- [[getTwitchCacheByPrefixEntries()]] - `calls` [INFERRED]
+- [[getTwitchCacheEntry()]] - `calls` [INFERRED]
+- [[getTwitchCacheStale()]] - `calls` [INFERRED]
+- [[getTwitchCacheStaleBatch()]] - `calls` [INFERRED]
+- [[getUser()]] - `calls` [INFERRED]
+- [[getUserByCustomerId()]] - `calls` [INFERRED]
+- [[getUserById()]] - `calls` [INFERRED]
+- [[getUserByIdServer()]] - `calls` [INFERRED]
+- [[getUserPlanByIdInternal()]] - `calls` [INFERRED]
+- [[hasActiveProGrant()]] - `calls` [INFERRED]
+- [[insertUser()]] - `calls` [INFERRED]
+- [[isUserDisabledByIdServer()]] - `calls` [INFERRED]
+- [[persistStripeCustomerId()]] - `calls` [INFERRED]
+- [[reconcileRevokedUsersBatch()]] - `calls` [INFERRED]
+- [[removeFromClipQueue()]] - `calls` [INFERRED]
+- [[removeFromClipQueueById()]] - `calls` [INFERRED]
+- [[removeFromModQueue()]] - `calls` [INFERRED]
+- [[removeFromModQueueById()]] - `calls` [INFERRED]
+- [[requireOverlayAccessInternal()]] - `calls` [INFERRED]
+- [[requireOverlaySecretAccessInternal()]] - `calls` [INFERRED]
+- [[requirePlaylistAccess()]] - `calls` [INFERRED]
+- [[resolveUserEntitlements()]] - `calls` [INFERRED]
+- [[resolveUserEntitlementsForUsers()]] - `calls` [INFERRED]
+- [[saveOverlay()]] - `calls` [INFERRED]
+- [[savePlaylist()]] - `calls` [INFERRED]
+- [[saveSettings()]] - `calls` [INFERRED]
+- [[setPlayerVolumeForOwner()]] - `calls` [INFERRED]
+- [[touchOverlay()]] - `calls` [INFERRED]
+- [[touchUser()]] - `calls` [INFERRED]
+- [[updateUserSubscriptionFromStripeWebhookInternal()]] - `calls` [INFERRED]
+
+#graphify/code #graphify/INFERRED #community/Premium_Gating__Chat_Commands

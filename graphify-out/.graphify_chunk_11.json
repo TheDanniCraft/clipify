@@ -1,0 +1,791 @@
+{
+  "nodes": [
+    {
+      "id": "0012_woozy_hannibal_king_migration",
+      "label": "0012_woozy_hannibal_king.sql",
+      "file_type": "code",
+      "source_file": "drizzle\\0012_woozy_hannibal_king.sql",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "0013_material_caretaker_migration",
+      "label": "0013_material_caretaker.sql",
+      "file_type": "code",
+      "source_file": "drizzle\\0013_material_caretaker.sql",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "0014_late_timeslip_migration",
+      "label": "0014_late_timeslip.sql",
+      "file_type": "code",
+      "source_file": "drizzle\\0014_late_timeslip.sql",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "0015_black_malice_migration",
+      "label": "0015_black_malice.sql",
+      "file_type": "code",
+      "source_file": "drizzle\\0015_black_malice.sql",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "0016_first_whiplash_migration",
+      "label": "0016_first_whiplash.sql",
+      "file_type": "code",
+      "source_file": "drizzle\\0016_first_whiplash.sql",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "0017_serious_wild_child_migration",
+      "label": "0017_serious_wild_child.sql",
+      "file_type": "code",
+      "source_file": "drizzle\\0017_serious_wild_child.sql",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "0000_snapshot_schema",
+      "label": "0000_snapshot.json",
+      "file_type": "code",
+      "source_file": "drizzle\\meta\\0000_snapshot.json",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "0001_snapshot_schema",
+      "label": "0001_snapshot.json",
+      "file_type": "code",
+      "source_file": "drizzle\\meta\\0001_snapshot.json",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "0002_snapshot_schema",
+      "label": "0002_snapshot.json",
+      "file_type": "code",
+      "source_file": "drizzle\\meta\\0002_snapshot.json",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "0003_snapshot_schema",
+      "label": "0003_snapshot.json",
+      "file_type": "code",
+      "source_file": "drizzle\\meta\\0003_snapshot.json",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "0004_snapshot_schema",
+      "label": "0004_snapshot.json",
+      "file_type": "code",
+      "source_file": "drizzle\\meta\\0004_snapshot.json",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "0005_snapshot_schema",
+      "label": "0005_snapshot.json",
+      "file_type": "code",
+      "source_file": "drizzle\\meta\\0005_snapshot.json",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "0006_snapshot_schema",
+      "label": "0006_snapshot.json",
+      "file_type": "code",
+      "source_file": "drizzle\\meta\\0006_snapshot.json",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "0007_snapshot_schema",
+      "label": "0007_snapshot.json",
+      "file_type": "code",
+      "source_file": "drizzle\\meta\\0007_snapshot.json",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "0008_snapshot_schema",
+      "label": "0008_snapshot.json",
+      "file_type": "code",
+      "source_file": "drizzle\\meta\\0008_snapshot.json",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "0009_snapshot_schema",
+      "label": "0009_snapshot.json",
+      "file_type": "code",
+      "source_file": "drizzle\\meta\\0009_snapshot.json",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "0010_snapshot_schema",
+      "label": "0010_snapshot.json",
+      "file_type": "code",
+      "source_file": "drizzle\\meta\\0010_snapshot.json",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "0011_snapshot_schema",
+      "label": "0011_snapshot.json",
+      "file_type": "code",
+      "source_file": "drizzle\\meta\\0011_snapshot.json",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "0012_snapshot_schema",
+      "label": "0012_snapshot.json",
+      "file_type": "code",
+      "source_file": "drizzle\\meta\\0012_snapshot.json",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "0013_snapshot_schema",
+      "label": "0013_snapshot.json",
+      "file_type": "code",
+      "source_file": "drizzle\\meta\\0013_snapshot.json",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "0014_snapshot_schema",
+      "label": "0014_snapshot.json",
+      "file_type": "code",
+      "source_file": "drizzle\\meta\\0014_snapshot.json",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "0015_snapshot_schema",
+      "label": "0015_snapshot.json",
+      "file_type": "code",
+      "source_file": "drizzle\\meta\\0015_snapshot.json",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "users_table",
+      "label": "Database Table: users",
+      "file_type": "rationale",
+      "source_file": "drizzle\\meta\\0000_snapshot.json",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "userSettings_table",
+      "label": "Database Table: userSettings",
+      "file_type": "rationale",
+      "source_file": "drizzle\\meta\\0015_snapshot.json",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "admin_impersonation_sessions_table",
+      "label": "Database Table: admin_impersonation_sessions",
+      "file_type": "rationale",
+      "source_file": "drizzle\\0012_woozy_hannibal_king.sql",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "playlists_table",
+      "label": "Database Table: playlists",
+      "file_type": "rationale",
+      "source_file": "drizzle\\0015_black_malice.sql",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "playlist_clips_table",
+      "label": "Database Table: playlist_clips",
+      "file_type": "rationale",
+      "source_file": "drizzle\\0015_black_malice.sql",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "overlays_table",
+      "label": "Database Table: overlays",
+      "file_type": "rationale",
+      "source_file": "drizzle\\meta\\0000_snapshot.json",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "clipQueue_table",
+      "label": "Database Table: clipQueue",
+      "file_type": "rationale",
+      "source_file": "drizzle\\meta\\0015_snapshot.json",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "modQueue_table",
+      "label": "Database Table: modQueue",
+      "file_type": "rationale",
+      "source_file": "drizzle\\meta\\0015_snapshot.json",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "tokens_table",
+      "label": "Database Table: tokens",
+      "file_type": "rationale",
+      "source_file": "drizzle\\meta\\0000_snapshot.json",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "0001_snapshot_schema",
+      "target": "0000_snapshot_schema",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle\\meta\\0001_snapshot.json",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0002_snapshot_schema",
+      "target": "0001_snapshot_schema",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle\\meta\\0002_snapshot.json",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0003_snapshot_schema",
+      "target": "0002_snapshot_schema",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle\\meta\\0003_snapshot.json",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0004_snapshot_schema",
+      "target": "0003_snapshot_schema",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle\\meta\\0004_snapshot.json",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0005_snapshot_schema",
+      "target": "0004_snapshot_schema",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle\\meta\\0005_snapshot.json",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0006_snapshot_schema",
+      "target": "0005_snapshot_schema",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle\\meta\\0006_snapshot.json",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0007_snapshot_schema",
+      "target": "0006_snapshot_schema",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle\\meta\\0007_snapshot.json",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0008_snapshot_schema",
+      "target": "0007_snapshot_schema",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle\\meta\\0008_snapshot.json",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0009_snapshot_schema",
+      "target": "0008_snapshot_schema",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle\\meta\\0009_snapshot.json",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0010_snapshot_schema",
+      "target": "0009_snapshot_schema",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle\\meta\\0010_snapshot.json",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0011_snapshot_schema",
+      "target": "0010_snapshot_schema",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle\\meta\\0011_snapshot.json",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0012_snapshot_schema",
+      "target": "0011_snapshot_schema",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle\\meta\\0012_snapshot.json",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0013_snapshot_schema",
+      "target": "0012_snapshot_schema",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle\\meta\\0013_snapshot.json",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0014_snapshot_schema",
+      "target": "0013_snapshot_schema",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle\\meta\\0014_snapshot.json",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0015_snapshot_schema",
+      "target": "0014_snapshot_schema",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle\\meta\\0015_snapshot.json",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0012_woozy_hannibal_king_migration",
+      "target": "0012_snapshot_schema",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle\\0012_woozy_hannibal_king.sql",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0013_material_caretaker_migration",
+      "target": "0013_snapshot_schema",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle\\0013_material_caretaker.sql",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0014_late_timeslip_migration",
+      "target": "0014_snapshot_schema",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle\\0014_late_timeslip.sql",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0015_black_malice_migration",
+      "target": "0015_snapshot_schema",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle\\0015_black_malice.sql",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0012_woozy_hannibal_king_migration",
+      "target": "admin_impersonation_sessions_table",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle\\0012_woozy_hannibal_king.sql",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0012_woozy_hannibal_king_migration",
+      "target": "users_table",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle\\0012_woozy_hannibal_king.sql",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0013_material_caretaker_migration",
+      "target": "users_table",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle\\0013_material_caretaker.sql",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0014_late_timeslip_migration",
+      "target": "userSettings_table",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle\\0014_late_timeslip.sql",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0015_black_malice_migration",
+      "target": "playlists_table",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle\\0015_black_malice.sql",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0015_black_malice_migration",
+      "target": "playlist_clips_table",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle\\0015_black_malice.sql",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0015_black_malice_migration",
+      "target": "overlays_table",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle\\0015_black_malice.sql",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0016_first_whiplash_migration",
+      "target": "overlays_table",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "drizzle\\0016_first_whiplash.sql",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0017_serious_wild_child_migration",
+      "target": "modQueue_table",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle\\0017_serious_wild_child.sql",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0017_serious_wild_child_migration",
+      "target": "clipQueue_table",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle\\0017_serious_wild_child.sql",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "admin_impersonation_sessions_table",
+      "target": "users_table",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle\\0012_woozy_hannibal_king.sql",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "playlists_table",
+      "target": "users_table",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle\\0015_black_malice.sql",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "playlist_clips_table",
+      "target": "playlists_table",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle\\0015_black_malice.sql",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "playlist_clips_table",
+      "target": "users_table",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "drizzle\\0015_black_malice.sql",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "overlays_table",
+      "target": "playlists_table",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle\\0015_black_malice.sql",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "overlays_table",
+      "target": "users_table",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle\\meta\\0000_snapshot.json",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "tokens_table",
+      "target": "users_table",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle\\meta\\0000_snapshot.json",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "clipQueue_table",
+      "target": "overlays_table",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle\\meta\\0015_snapshot.json",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "userSettings_table",
+      "target": "users_table",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle\\meta\\0015_snapshot.json",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "clipQueue_table",
+      "target": "playlist_clips_table",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "drizzle\\meta\\0015_snapshot.json",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "modQueue_table",
+      "target": "clipQueue_table",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "drizzle\\meta\\0015_snapshot.json",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "admin_impersonation_flow",
+      "label": "Admin Impersonation Feature",
+      "nodes": [
+        "0012_woozy_hannibal_king_migration",
+        "admin_impersonation_sessions_table",
+        "users_table"
+      ],
+      "relation": "participate_in",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "drizzle\\0012_woozy_hannibal_king.sql"
+    },
+    {
+      "id": "playlist_integration",
+      "label": "Playlist and Clip Management Flow",
+      "nodes": [
+        "0015_black_malice_migration",
+        "playlists_table",
+        "playlist_clips_table",
+        "overlays_table"
+      ],
+      "relation": "participate_in",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "drizzle\\0015_black_malice.sql"
+    },
+    {
+      "id": "user_preferences_system",
+      "label": "User Preference and Marketing Settings",
+      "nodes": [
+        "0014_late_timeslip_migration",
+        "userSettings_table",
+        "users_table"
+      ],
+      "relation": "participate_in",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "drizzle\\0014_late_timeslip.sql"
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

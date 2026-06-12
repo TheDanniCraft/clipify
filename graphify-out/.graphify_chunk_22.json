@@ -1,0 +1,698 @@
+{
+  "nodes": [
+    {
+      "id": "code_migration",
+      "label": "Code Migration",
+      "file_type": "document",
+      "source_file": ".heroui-docs/migration/(components)/code.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "datepicker_migration",
+      "label": "DatePicker Migration",
+      "file_type": "document",
+      "source_file": ".heroui-docs/migration/(components)/date-picker.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "daterangepicker_migration",
+      "label": "DateRangePicker Migration",
+      "file_type": "document",
+      "source_file": ".heroui-docs/migration/(components)/date-range-picker.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dateinput_migration",
+      "label": "DateInput Migration",
+      "file_type": "document",
+      "source_file": ".heroui-docs/migration/(components)/dateinput.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "divider_migration",
+      "label": "Divider Migration",
+      "file_type": "document",
+      "source_file": ".heroui-docs/migration/(components)/divider.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "drawer_migration",
+      "label": "Drawer Migration",
+      "file_type": "document",
+      "source_file": ".heroui-docs/migration/(components)/drawer.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dropdown_migration",
+      "label": "Dropdown Migration",
+      "file_type": "document",
+      "source_file": ".heroui-docs/migration/(components)/dropdown.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "form_migration",
+      "label": "Form Migration",
+      "file_type": "document",
+      "source_file": ".heroui-docs/migration/(components)/form.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "image_migration",
+      "label": "Image Migration",
+      "file_type": "document",
+      "source_file": ".heroui-docs/migration/(components)/image.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "inputotp_migration",
+      "label": "InputOTP Migration",
+      "file_type": "document",
+      "source_file": ".heroui-docs/migration/(components)/input-otp.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "input_migration",
+      "label": "Input Migration",
+      "file_type": "document",
+      "source_file": ".heroui-docs/migration/(components)/input.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "kbd_migration",
+      "label": "Kbd Migration",
+      "file_type": "document",
+      "source_file": ".heroui-docs/migration/(components)/kbd.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "link_migration",
+      "label": "Link Migration",
+      "file_type": "document",
+      "source_file": ".heroui-docs/migration/(components)/link.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "listbox_migration",
+      "label": "Listbox Migration",
+      "file_type": "document",
+      "source_file": ".heroui-docs/migration/(components)/listbox.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "modal_migration",
+      "label": "Modal Migration",
+      "file_type": "document",
+      "source_file": ".heroui-docs/migration/(components)/modal.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "navbar_migration",
+      "label": "Navbar Migration",
+      "file_type": "document",
+      "source_file": ".heroui-docs/migration/(components)/navbar.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "numberinput_migration",
+      "label": "NumberInput Migration",
+      "file_type": "document",
+      "source_file": ".heroui-docs/migration/(components)/numberinput.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "pagination_migration",
+      "label": "Pagination Migration",
+      "file_type": "document",
+      "source_file": ".heroui-docs/migration/(components)/pagination.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "popover_migration",
+      "label": "Popover Migration",
+      "file_type": "document",
+      "source_file": ".heroui-docs/migration/(components)/popover.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "progress_migration",
+      "label": "Progress Migration",
+      "file_type": "document",
+      "source_file": ".heroui-docs/migration/(components)/progress.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "radiogroup_migration",
+      "label": "RadioGroup Migration",
+      "file_type": "document",
+      "source_file": ".heroui-docs/migration/(components)/radio-group.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "radio_migration",
+      "label": "Radio Migration",
+      "file_type": "document",
+      "source_file": ".heroui-docs/migration/(components)/radio.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "compound_components_pattern",
+      "label": "Compound Components Pattern",
+      "file_type": "rationale",
+      "source_file": ".heroui-docs/migration/(components)/modal.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "HeroUI v3 shifts from single monolithic components with complex props to a compound component pattern to give developers fine-grained layout control, better styling support, and clean DOM structures."
+    },
+    {
+      "id": "native_html_tailwind_replacement",
+      "label": "Native HTML & Tailwind Replacement",
+      "file_type": "rationale",
+      "source_file": ".heroui-docs/migration/(components)/code.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "HeroUI v3 removes simple wrapper components (like Code, Image, Navbar) and advises using native HTML elements decorated with Tailwind CSS classes, reducing bundle size and increasing flexibility."
+    },
+    {
+      "id": "react_aria_components_integration",
+      "label": "React Aria Components Integration",
+      "file_type": "rationale",
+      "source_file": ".heroui-docs/migration/(components)/dateinput.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Underneath the hood, HeroUI v3 leverages React Aria Components to power complex behaviors, accessibility (A11y), focus management, validation, and standard events like onChange and onPress."
+    },
+    {
+      "id": "useoverlaystate_hook",
+      "label": "useOverlayState Hook",
+      "file_type": "code",
+      "source_file": ".heroui-docs/migration/(components)/modal.mdx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "datepicker_migration",
+      "target": "compound_components_pattern",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".heroui-docs/migration/(components)/date-picker.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "daterangepicker_migration",
+      "target": "compound_components_pattern",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".heroui-docs/migration/(components)/date-range-picker.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dateinput_migration",
+      "target": "compound_components_pattern",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".heroui-docs/migration/(components)/dateinput.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "drawer_migration",
+      "target": "compound_components_pattern",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".heroui-docs/migration/(components)/drawer.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dropdown_migration",
+      "target": "compound_components_pattern",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".heroui-docs/migration/(components)/dropdown.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "inputotp_migration",
+      "target": "compound_components_pattern",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".heroui-docs/migration/(components)/input-otp.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "input_migration",
+      "target": "compound_components_pattern",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".heroui-docs/migration/(components)/input.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "kbd_migration",
+      "target": "compound_components_pattern",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".heroui-docs/migration/(components)/kbd.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "listbox_migration",
+      "target": "compound_components_pattern",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".heroui-docs/migration/(components)/listbox.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "modal_migration",
+      "target": "compound_components_pattern",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".heroui-docs/migration/(components)/modal.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "numberinput_migration",
+      "target": "compound_components_pattern",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".heroui-docs/migration/(components)/numberinput.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "pagination_migration",
+      "target": "compound_components_pattern",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".heroui-docs/migration/(components)/pagination.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "popover_migration",
+      "target": "compound_components_pattern",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".heroui-docs/migration/(components)/popover.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "progress_migration",
+      "target": "compound_components_pattern",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".heroui-docs/migration/(components)/progress.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "radiogroup_migration",
+      "target": "compound_components_pattern",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".heroui-docs/migration/(components)/radio-group.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "radio_migration",
+      "target": "compound_components_pattern",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".heroui-docs/migration/(components)/radio.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "code_migration",
+      "target": "native_html_tailwind_replacement",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".heroui-docs/migration/(components)/code.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "image_migration",
+      "target": "native_html_tailwind_replacement",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".heroui-docs/migration/(components)/image.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "navbar_migration",
+      "target": "native_html_tailwind_replacement",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".heroui-docs/migration/(components)/navbar.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "datepicker_migration",
+      "target": "react_aria_components_integration",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".heroui-docs/migration/(components)/date-picker.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "daterangepicker_migration",
+      "target": "react_aria_components_integration",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".heroui-docs/migration/(components)/date-range-picker.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dateinput_migration",
+      "target": "react_aria_components_integration",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".heroui-docs/migration/(components)/dateinput.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "listbox_migration",
+      "target": "react_aria_components_integration",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".heroui-docs/migration/(components)/listbox.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "radiogroup_migration",
+      "target": "react_aria_components_integration",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".heroui-docs/migration/(components)/radio-group.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "radio_migration",
+      "target": "react_aria_components_integration",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".heroui-docs/migration/(components)/radio.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "drawer_migration",
+      "target": "useoverlaystate_hook",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".heroui-docs/migration/(components)/drawer.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "modal_migration",
+      "target": "useoverlaystate_hook",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".heroui-docs/migration/(components)/modal.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "radiogroup_migration",
+      "target": "radio_migration",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".heroui-docs/migration/(components)/radio-group.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "datepicker_migration",
+      "target": "daterangepicker_migration",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": ".heroui-docs/migration/(components)/date-picker.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "datepicker_migration",
+      "target": "dateinput_migration",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": ".heroui-docs/migration/(components)/date-picker.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "daterangepicker_migration",
+      "target": "dateinput_migration",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": ".heroui-docs/migration/(components)/date-range-picker.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "drawer_migration",
+      "target": "modal_migration",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": ".heroui-docs/migration/(components)/drawer.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "input_migration",
+      "target": "numberinput_migration",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": ".heroui-docs/migration/(components)/input.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "input_migration",
+      "target": "inputotp_migration",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": ".heroui-docs/migration/(components)/input.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "popover_migration",
+      "target": "dropdown_migration",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": ".heroui-docs/migration/(components)/popover.mdx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "listbox_migration",
+      "target": "dropdown_migration",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": ".heroui-docs/migration/(components)/listbox.mdx",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "date_field_components",
+      "label": "Date Field & Picker Family",
+      "nodes": [
+        "datepicker_migration",
+        "daterangepicker_migration",
+        "dateinput_migration"
+      ],
+      "relation": "implement",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": ".heroui-docs/migration/(components)/date-picker.mdx"
+    },
+    {
+      "id": "native_replacements",
+      "label": "Native HTML Replacements in HeroUI v3",
+      "nodes": [
+        "code_migration",
+        "image_migration",
+        "navbar_migration"
+      ],
+      "relation": "implement",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": ".heroui-docs/migration/(components)/code.mdx"
+    },
+    {
+      "id": "overlay_components",
+      "label": "Overlay and Trigger Systems",
+      "nodes": [
+        "drawer_migration",
+        "modal_migration",
+        "popover_migration"
+      ],
+      "relation": "participate_in",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": ".heroui-docs/migration/(components)/modal.mdx"
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

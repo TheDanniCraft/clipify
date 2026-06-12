@@ -1,0 +1,188 @@
+{
+  "nodes": [
+    {
+      "id": "appskew_screenshot",
+      "label": "Clipify App Screenshot",
+      "file_type": "image",
+      "source_file": "public/appSkew.webp",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "A skewed dark-themed high-fidelity screenshot of the Clipify user dashboard used to present the web application interface design."
+    },
+    {
+      "id": "appskew_dashboard",
+      "label": "Clipify User Dashboard",
+      "file_type": "image",
+      "source_file": "public/appSkew.webp",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Provides a central interface for users (likely streamers) to view and manage their overlays and widget states. Employs a dark mode aesthetic with purple branding."
+    },
+    {
+      "id": "appskew_overlay_table",
+      "label": "Overlay List Table",
+      "file_type": "image",
+      "source_file": "public/appSkew.webp",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Displays details about each overlay, including unique IDs (UUIDs), names, status indicators, and actions, with support for batch operations, searching, filtering, sorting, and pagination."
+    },
+    {
+      "id": "appskew_add_overlay",
+      "label": "Add Overlay Action",
+      "file_type": "image",
+      "source_file": "public/appSkew.webp",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "A primary call-to-action button positioned at the top right of the dashboard to trigger the overlay creation workflow."
+    },
+    {
+      "id": "appskew_overlay_status",
+      "label": "Overlay Status States",
+      "file_type": "rationale",
+      "source_file": "public/appSkew.webp",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "The state management design distinguishes between active (green) and paused (pink) statuses. This indicates whether an overlay is currently visible/rendering on stream or suspended."
+    },
+    {
+      "id": "appskew_uuid_identifier",
+      "label": "Overlay UUID Identification",
+      "file_type": "rationale",
+      "source_file": "public/appSkew.webp",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Each overlay is assigned a standard UUID as its Overlay ID, ensuring unique references when embedding or fetching overlay configurations."
+    },
+    {
+      "id": "appskew_standard_overlays",
+      "label": "Stream Overlay Templates",
+      "file_type": "rationale",
+      "source_file": "public/appSkew.webp",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Common overlay configurations for live streamers shown in the table, including Pause Screen, Just Chatting, BRB (Be Right Back), Starting/Ending Screens, Clips Only, and Music Break."
+    }
+  ],
+  "edges": [
+    {
+      "source": "appskew_screenshot",
+      "target": "appskew_dashboard",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/appSkew.webp",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "appskew_dashboard",
+      "target": "appskew_overlay_table",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/appSkew.webp",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "appskew_dashboard",
+      "target": "appskew_add_overlay",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/appSkew.webp",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "appskew_overlay_table",
+      "target": "appskew_overlay_status",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/appSkew.webp",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "appskew_overlay_table",
+      "target": "appskew_uuid_identifier",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/appSkew.webp",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "appskew_overlay_table",
+      "target": "appskew_standard_overlays",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "public/appSkew.webp",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "appskew_add_overlay",
+      "target": "appskew_overlay_table",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "public/appSkew.webp",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "appskew_overlay_status",
+      "target": "appskew_standard_overlays",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "public/appSkew.webp",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "overlay_management_flow",
+      "label": "Overlay Management Flow",
+      "nodes": [
+        "appskew_overlay_table",
+        "appskew_add_overlay",
+        "appskew_overlay_status",
+        "appskew_standard_overlays"
+      ],
+      "relation": "participate_in",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "public/appSkew.webp"
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

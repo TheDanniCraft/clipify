@@ -1,0 +1,971 @@
+{
+  "nodes": [
+    {
+      "id": "post_merge_hook",
+      "label": "Git post-merge Hook",
+      "file_type": "code",
+      "source_file": ".husky/_/post-merge",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "post_rewrite_hook",
+      "label": "Git post-rewrite Hook",
+      "file_type": "code",
+      "source_file": ".husky/_/post-rewrite",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "pre_applypatch_hook",
+      "label": "Git pre-applypatch Hook",
+      "file_type": "code",
+      "source_file": ".husky/_/pre-applypatch",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "pre_auto_gc_hook",
+      "label": "Git pre-auto-gc Hook",
+      "file_type": "code",
+      "source_file": ".husky/_/pre-auto-gc",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "pre_commit_hook",
+      "label": "Git pre-commit Hook",
+      "file_type": "code",
+      "source_file": ".husky/_/pre-commit",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "pre_merge_commit_hook",
+      "label": "Git pre-merge-commit Hook",
+      "file_type": "code",
+      "source_file": ".husky/_/pre-merge-commit",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "pre_push_hook",
+      "label": "Git pre-push Hook",
+      "file_type": "code",
+      "source_file": ".husky/_/pre-push",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "pre_rebase_hook",
+      "label": "Git pre-rebase Hook",
+      "file_type": "code",
+      "source_file": ".husky/_/pre-rebase",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "prepare_commit_msg_hook",
+      "label": "Git prepare-commit-msg Hook",
+      "file_type": "code",
+      "source_file": ".husky/_/prepare-commit-msg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "h_husky_helper",
+      "label": "Husky Hook Runner Helper",
+      "file_type": "code",
+      "source_file": ".husky/_/h",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "pre_commit_script",
+      "label": "Pre-Commit Script",
+      "file_type": "code",
+      "source_file": ".husky/pre-commit",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "pre_push_script",
+      "label": "Pre-Push Script",
+      "file_type": "code",
+      "source_file": ".husky/pre-push",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "settings_vscode_settings",
+      "label": "VS Code Workspace Settings",
+      "file_type": "code",
+      "source_file": ".vscode/settings.json",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "0000_narrow_maginty_migration",
+      "label": "Migration 0000: narrow_maginty",
+      "file_type": "code",
+      "source_file": "drizzle/0000_narrow_maginty.sql",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "0001_volatile_maestro_migration",
+      "label": "Migration 0001: volatile_maestro",
+      "file_type": "code",
+      "source_file": "drizzle/0001_volatile_maestro.sql",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "0002_volatile_post_migration",
+      "label": "Migration 0002: volatile_post",
+      "file_type": "code",
+      "source_file": "drizzle/0002_volatile_post.sql",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "0003_medical_kree_migration",
+      "label": "Migration 0003: medical_kree",
+      "file_type": "code",
+      "source_file": "drizzle/0003_medical_kree.sql",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "0004_tearful_landau_migration",
+      "label": "Migration 0004: tearful_landau",
+      "file_type": "code",
+      "source_file": "drizzle/0004_tearful_landau.sql",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "0005_cuddly_wolfsbane_migration",
+      "label": "Migration 0005: cuddly_wolfsbane",
+      "file_type": "code",
+      "source_file": "drizzle/0005_cuddly_wolfsbane.sql",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "0006_short_natasha_romanoff_migration",
+      "label": "Migration 0006: short_natasha_romanoff",
+      "file_type": "code",
+      "source_file": "drizzle/0006_short_natasha_romanoff.sql",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "0007_illegal_slayback_migration",
+      "label": "Migration 0007: illegal_slayback",
+      "file_type": "code",
+      "source_file": "drizzle/0007_illegal_slayback.sql",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "0008_ambiguous_rhino_migration",
+      "label": "Migration 0008: ambiguous_rhino",
+      "file_type": "code",
+      "source_file": "drizzle/0008_ambiguous_rhino.sql",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "0009_swift_silver_samurai_migration",
+      "label": "Migration 0009: swift_silver_samurai",
+      "file_type": "code",
+      "source_file": "drizzle/0009_swift_silver_samurai.sql",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "0010_needy_peter_quill_migration",
+      "label": "Migration 0010: needy_peter_quill",
+      "file_type": "code",
+      "source_file": "drizzle/0010_needy_peter_quill.sql",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "0011_dazzling_magma_migration",
+      "label": "Migration 0011: dazzling_magma",
+      "file_type": "code",
+      "source_file": "drizzle/0011_dazzling_magma.sql",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "0000_narrow_maginty_db_table_users",
+      "label": "Database Table: users",
+      "file_type": "code",
+      "source_file": "drizzle/0000_narrow_maginty.sql",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "0000_narrow_maginty_db_table_tokens",
+      "label": "Database Table: tokens",
+      "file_type": "code",
+      "source_file": "drizzle/0000_narrow_maginty.sql",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "0000_narrow_maginty_db_table_overlays",
+      "label": "Database Table: overlays",
+      "file_type": "code",
+      "source_file": "drizzle/0000_narrow_maginty.sql",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "0002_volatile_post_db_table_clipQueue",
+      "label": "Database Table: clipQueue",
+      "file_type": "code",
+      "source_file": "drizzle/0002_volatile_post.sql",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "0003_medical_kree_db_table_modQueue",
+      "label": "Database Table: modQueue",
+      "file_type": "code",
+      "source_file": "drizzle/0003_medical_kree.sql",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "0003_medical_kree_db_table_userSettings",
+      "label": "Database Table: userSettings",
+      "file_type": "code",
+      "source_file": "drizzle/0003_medical_kree.sql",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "0004_tearful_landau_db_table_editors",
+      "label": "Database Table: editors",
+      "file_type": "code",
+      "source_file": "drizzle/0004_tearful_landau.sql",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "0009_swift_silver_samurai_db_table_twitchCache",
+      "label": "Database Table: twitchCache",
+      "file_type": "code",
+      "source_file": "drizzle/0009_swift_silver_samurai.sql",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "0010_needy_peter_quill_db_table_entitlement_grants",
+      "label": "Database Table: entitlement_grants",
+      "file_type": "code",
+      "source_file": "drizzle/0010_needy_peter_quill.sql",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "post_merge_hook",
+      "target": "h_husky_helper",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".husky/_/post-merge",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "post_rewrite_hook",
+      "target": "h_husky_helper",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".husky/_/post-rewrite",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "pre_applypatch_hook",
+      "target": "h_husky_helper",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".husky/_/pre-applypatch",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "pre_auto_gc_hook",
+      "target": "h_husky_helper",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".husky/_/pre-auto-gc",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "pre_commit_hook",
+      "target": "h_husky_helper",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".husky/_/pre-commit",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "pre_merge_commit_hook",
+      "target": "h_husky_helper",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".husky/_/pre-merge-commit",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "pre_push_hook",
+      "target": "h_husky_helper",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".husky/_/pre-push",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "pre_rebase_hook",
+      "target": "h_husky_helper",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".husky/_/pre-rebase",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "prepare_commit_msg_hook",
+      "target": "h_husky_helper",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".husky/_/prepare-commit-msg",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "pre_commit_hook",
+      "target": "pre_commit_script",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".husky/_/pre-commit",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "pre_push_hook",
+      "target": "pre_push_script",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".husky/_/pre-push",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0000_narrow_maginty_migration",
+      "target": "0000_narrow_maginty_db_table_users",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle/0000_narrow_maginty.sql",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0000_narrow_maginty_migration",
+      "target": "0000_narrow_maginty_db_table_tokens",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle/0000_narrow_maginty.sql",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0000_narrow_maginty_migration",
+      "target": "0000_narrow_maginty_db_table_overlays",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle/0000_narrow_maginty.sql",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0001_volatile_maestro_migration",
+      "target": "0000_narrow_maginty_db_table_users",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle/0001_volatile_maestro.sql",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0002_volatile_post_migration",
+      "target": "0002_volatile_post_db_table_clipQueue",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle/0002_volatile_post.sql",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0002_volatile_post_migration",
+      "target": "0000_narrow_maginty_db_table_overlays",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle/0002_volatile_post.sql",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0003_medical_kree_migration",
+      "target": "0003_medical_kree_db_table_modQueue",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle/0003_medical_kree.sql",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0003_medical_kree_migration",
+      "target": "0003_medical_kree_db_table_userSettings",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle/0003_medical_kree.sql",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0004_tearful_landau_migration",
+      "target": "0004_tearful_landau_db_table_editors",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle/0004_tearful_landau.sql",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0005_cuddly_wolfsbane_migration",
+      "target": "0000_narrow_maginty_db_table_tokens",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle/0005_cuddly_wolfsbane.sql",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0005_cuddly_wolfsbane_migration",
+      "target": "0003_medical_kree_db_table_modQueue",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle/0005_cuddly_wolfsbane.sql",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0005_cuddly_wolfsbane_migration",
+      "target": "0000_narrow_maginty_db_table_overlays",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle/0005_cuddly_wolfsbane.sql",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0005_cuddly_wolfsbane_migration",
+      "target": "0002_volatile_post_db_table_clipQueue",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle/0005_cuddly_wolfsbane.sql",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0005_cuddly_wolfsbane_migration",
+      "target": "0000_narrow_maginty_db_table_users",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle/0005_cuddly_wolfsbane.sql",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0006_short_natasha_romanoff_migration",
+      "target": "0000_narrow_maginty_db_table_overlays",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle/0006_short_natasha_romanoff.sql",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0007_illegal_slayback_migration",
+      "target": "0000_narrow_maginty_db_table_overlays",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle/0007_illegal_slayback.sql",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0008_ambiguous_rhino_migration",
+      "target": "0000_narrow_maginty_db_table_tokens",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle/0008_ambiguous_rhino.sql",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0009_swift_silver_samurai_migration",
+      "target": "0009_swift_silver_samurai_db_table_twitchCache",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle/0009_swift_silver_samurai.sql",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0010_needy_peter_quill_migration",
+      "target": "0010_needy_peter_quill_db_table_entitlement_grants",
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle/0010_needy_peter_quill.sql",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0010_needy_peter_quill_migration",
+      "target": "0000_narrow_maginty_db_table_users",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle/0010_needy_peter_quill.sql",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0010_needy_peter_quill_migration",
+      "target": "0000_narrow_maginty_db_table_overlays",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle/0010_needy_peter_quill.sql",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0010_needy_peter_quill_migration",
+      "target": "0009_swift_silver_samurai_db_table_twitchCache",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle/0010_needy_peter_quill.sql",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0011_dazzling_magma_migration",
+      "target": "0000_narrow_maginty_db_table_overlays",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle/0011_dazzling_magma.sql",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0011_dazzling_magma_migration",
+      "target": "0009_swift_silver_samurai_db_table_twitchCache",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle/0011_dazzling_magma.sql",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0000_narrow_maginty_db_table_overlays",
+      "target": "0000_narrow_maginty_db_table_users",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle/0000_narrow_maginty.sql",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0000_narrow_maginty_db_table_tokens",
+      "target": "0000_narrow_maginty_db_table_users",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle/0000_narrow_maginty.sql",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0002_volatile_post_db_table_clipQueue",
+      "target": "0000_narrow_maginty_db_table_overlays",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle/0002_volatile_post.sql",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0003_medical_kree_db_table_userSettings",
+      "target": "0000_narrow_maginty_db_table_users",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle/0003_medical_kree.sql",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0004_tearful_landau_db_table_editors",
+      "target": "0000_narrow_maginty_db_table_users",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle/0004_tearful_landau.sql",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0010_needy_peter_quill_db_table_entitlement_grants",
+      "target": "0000_narrow_maginty_db_table_users",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle/0010_needy_peter_quill.sql",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0003_medical_kree_db_table_modQueue",
+      "target": "0000_narrow_maginty_db_table_users",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "drizzle/0003_medical_kree.sql",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0001_volatile_maestro_migration",
+      "target": "0000_narrow_maginty_migration",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle/0001_volatile_maestro.sql",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0002_volatile_post_migration",
+      "target": "0001_volatile_maestro_migration",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle/0002_volatile_post.sql",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0003_medical_kree_migration",
+      "target": "0002_volatile_post_migration",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle/0003_medical_kree.sql",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0004_tearful_landau_migration",
+      "target": "0003_medical_kree_migration",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle/0004_tearful_landau.sql",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0005_cuddly_wolfsbane_migration",
+      "target": "0004_tearful_landau_migration",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle/0005_cuddly_wolfsbane.sql",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0006_short_natasha_romanoff_migration",
+      "target": "0005_cuddly_wolfsbane_migration",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle/0006_short_natasha_romanoff.sql",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0007_illegal_slayback_migration",
+      "target": "0006_short_natasha_romanoff_migration",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle/0007_illegal_slayback.sql",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0008_ambiguous_rhino_migration",
+      "target": "0007_illegal_slayback_migration",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle/0008_ambiguous_rhino.sql",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0009_swift_silver_samurai_migration",
+      "target": "0008_ambiguous_rhino_migration",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle/0009_swift_silver_samurai.sql",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0010_needy_peter_quill_migration",
+      "target": "0009_swift_silver_samurai_migration",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle/0010_needy_peter_quill.sql",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "0011_dazzling_magma_migration",
+      "target": "0010_needy_peter_quill_migration",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle/0011_dazzling_magma.sql",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "git_hooks_automation",
+      "label": "Git Hooks Automation Workflow",
+      "nodes": [
+        "post_merge_hook",
+        "post_rewrite_hook",
+        "pre_applypatch_hook",
+        "pre_auto_gc_hook",
+        "pre_commit_hook",
+        "pre_merge_commit_hook",
+        "pre_push_hook",
+        "pre_rebase_hook",
+        "prepare_commit_msg_hook"
+      ],
+      "relation": "participate_in",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".husky/_/h"
+    },
+    {
+      "id": "user_centric_schema",
+      "label": "User-Centric Database Schema",
+      "nodes": [
+        "0000_narrow_maginty_db_table_users",
+        "0000_narrow_maginty_db_table_tokens",
+        "0000_narrow_maginty_db_table_overlays",
+        "0003_medical_kree_db_table_userSettings",
+        "0004_tearful_landau_db_table_editors",
+        "0010_needy_peter_quill_db_table_entitlement_grants"
+      ],
+      "relation": "participate_in",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle/0000_narrow_maginty.sql"
+    },
+    {
+      "id": "database_schema_migrations",
+      "label": "Database Schema Migrations",
+      "nodes": [
+        "0000_narrow_maginty_migration",
+        "0001_volatile_maestro_migration",
+        "0002_volatile_post_migration",
+        "0003_medical_kree_migration",
+        "0004_tearful_landau_migration",
+        "0005_cuddly_wolfsbane_migration",
+        "0006_short_natasha_romanoff_migration",
+        "0007_illegal_slayback_migration",
+        "0008_ambiguous_rhino_migration",
+        "0009_swift_silver_samurai_migration",
+        "0010_needy_peter_quill_migration",
+        "0011_dazzling_magma_migration"
+      ],
+      "relation": "form",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle"
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

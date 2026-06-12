@@ -1,0 +1,703 @@
+{
+  "nodes": [
+    {
+      "id": "actions_auth",
+      "label": "Authentication Server Actions",
+      "file_type": "code",
+      "source_file": "src/app/actions/auth.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "actions_campaignOffers",
+      "label": "Campaign Offers Server Actions",
+      "file_type": "code",
+      "source_file": "src/app/actions/campaignOffers.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "actions_commands",
+      "label": "Twitch Commands Handler",
+      "file_type": "code",
+      "source_file": "src/app/actions/commands.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "actions_controller",
+      "label": "Remote Controller Actions",
+      "file_type": "code",
+      "source_file": "src/app/actions/controller.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "actions_database",
+      "label": "Database Operations Actions",
+      "file_type": "code",
+      "source_file": "src/app/actions/database.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "actions_feedbackWidget",
+      "label": "Feedback Widget Actions",
+      "file_type": "code",
+      "source_file": "src/app/actions/feedbackWidget.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "actions_newsletter",
+      "label": "Newsletter Sync Actions",
+      "file_type": "code",
+      "source_file": "src/app/actions/newsletter.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "actions_rateLimit",
+      "label": "Rate Limiting Actions",
+      "file_type": "code",
+      "source_file": "src/app/actions/rateLimit.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "actions_subscription",
+      "label": "Stripe Subscription Actions",
+      "file_type": "code",
+      "source_file": "src/app/actions/subscription.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "actions_twitch",
+      "label": "Twitch API Actions",
+      "file_type": "code",
+      "source_file": "src/app/actions/twitch.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "actions_utils",
+      "label": "Utility Server Actions",
+      "file_type": "code",
+      "source_file": "src/app/actions/utils.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "actions_websocket",
+      "label": "WebSocket Server Actions",
+      "file_type": "code",
+      "source_file": "src/app/actions/websocket.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "admin_page",
+      "label": "Admin Dashboard Page",
+      "file_type": "code",
+      "source_file": "src/app/admin/page.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "admin_view_as_targetUserId",
+      "label": "Admin Impersonation Route",
+      "file_type": "code",
+      "source_file": "src/app/admin/view-as/[targetUserId]/route.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "auth_route",
+      "label": "Authentication Redirect Route",
+      "file_type": "code",
+      "source_file": "src/app/auth/route.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "auth_bot_route",
+      "label": "Bot Authentication Redirect Route",
+      "file_type": "code",
+      "source_file": "src/app/auth/bot/route.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "callback_route",
+      "label": "OAuth Callback Route",
+      "file_type": "code",
+      "source_file": "src/app/callback/route.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "changelog_page",
+      "label": "Changelog Page",
+      "file_type": "code",
+      "source_file": "src/app/changelog/page.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "components_adminHealthCharts",
+      "label": "Admin Health Charts Component",
+      "file_type": "code",
+      "source_file": "src/app/components/adminHealthCharts.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "components_adminUserExplorer",
+      "label": "Admin User Explorer Component",
+      "file_type": "code",
+      "source_file": "src/app/components/adminUserExplorer.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "components_adoptScript",
+      "label": "AdOpt CMP Integration Script",
+      "file_type": "code",
+      "source_file": "src/app/components/AdOptScript.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "components_chatWidget",
+      "label": "Chatwoot Live Chat Widget Component",
+      "file_type": "code",
+      "source_file": "src/app/components/chatWidget.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "admin_page",
+      "target": "actions_auth",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/admin/page.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "admin_page",
+      "target": "components_adminHealthCharts",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/admin/page.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "admin_page",
+      "target": "components_adminUserExplorer",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/admin/page.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "admin_view_as_targetUserId",
+      "target": "actions_auth",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/admin/view-as/[targetUserId]/route.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "components_adminUserExplorer",
+      "target": "actions_auth",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/components/adminUserExplorer.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "auth_route",
+      "target": "actions_utils",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/auth/route.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "auth_bot_route",
+      "target": "actions_utils",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/auth/bot/route.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "callback_route",
+      "target": "actions_twitch",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/callback/route.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "callback_route",
+      "target": "actions_database",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/callback/route.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "callback_route",
+      "target": "actions_auth",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/callback/route.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "callback_route",
+      "target": "actions_utils",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/callback/route.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "actions_auth",
+      "target": "actions_twitch",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/actions/auth.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "actions_auth",
+      "target": "actions_utils",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/actions/auth.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "actions_commands",
+      "target": "actions_websocket",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/actions/commands.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "actions_commands",
+      "target": "actions_twitch",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/actions/commands.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "actions_commands",
+      "target": "actions_database",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/actions/commands.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "actions_commands",
+      "target": "actions_utils",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/actions/commands.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "actions_controller",
+      "target": "actions_database",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/actions/controller.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "actions_controller",
+      "target": "actions_twitch",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/actions/controller.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "actions_controller",
+      "target": "actions_websocket",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/actions/controller.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "actions_database",
+      "target": "actions_twitch",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/actions/database.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "actions_database",
+      "target": "actions_newsletter",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/actions/database.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "actions_database",
+      "target": "actions_auth",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/actions/database.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "actions_feedbackWidget",
+      "target": "actions_auth",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/actions/feedbackWidget.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "actions_feedbackWidget",
+      "target": "actions_rateLimit",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/actions/feedbackWidget.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "actions_newsletter",
+      "target": "actions_rateLimit",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/actions/newsletter.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "actions_rateLimit",
+      "target": "actions_utils",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/actions/rateLimit.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "actions_subscription",
+      "target": "actions_utils",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/actions/subscription.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "actions_subscription",
+      "target": "actions_auth",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/actions/subscription.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "actions_websocket",
+      "target": "actions_database",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/actions/websocket.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "actions_twitch",
+      "target": "actions_database",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/actions/twitch.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "actions_twitch",
+      "target": "actions_utils",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/actions/twitch.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "actions_twitch",
+      "target": "actions_auth",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/actions/twitch.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "actions_database",
+      "target": "actions_twitch",
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "src/app/actions/database.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "actions_controller",
+      "target": "actions_commands",
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "src/app/actions/controller.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "actions_websocket",
+      "target": "actions_commands",
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "src/app/actions/websocket.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "actions_websocket",
+      "target": "actions_controller",
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "src/app/actions/websocket.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "auth_route",
+      "target": "auth_bot_route",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "src/app/auth/route.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "actions_rateLimit",
+      "target": "actions_utils",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "src/app/actions/rateLimit.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "components_adminUserExplorer",
+      "target": "admin_view_as_targetUserId",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "src/app/components/adminUserExplorer.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "actions_subscription",
+      "target": "actions_campaignOffers",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "src/app/actions/subscription.ts",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "admin_impersonation_flow",
+      "label": "Admin User Impersonation Flow",
+      "nodes": [
+        "admin_page",
+        "components_adminUserExplorer",
+        "admin_view_as_targetUserId",
+        "actions_auth"
+      ],
+      "relation": "participate_in",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "src/app/admin/page.tsx"
+    },
+    {
+      "id": "twitch_oauth_auth_flow",
+      "label": "Twitch OAuth Authentication Flow",
+      "nodes": [
+        "auth_route",
+        "auth_bot_route",
+        "callback_route",
+        "actions_auth"
+      ],
+      "relation": "form",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "src/app/callback/route.ts"
+    },
+    {
+      "id": "admin_telemetry_dashboard",
+      "label": "Admin Telemetry Dashboard and Health Ops",
+      "nodes": [
+        "admin_page",
+        "components_adminHealthCharts",
+        "actions_database"
+      ],
+      "relation": "participate_in",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "src/app/admin/page.tsx"
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

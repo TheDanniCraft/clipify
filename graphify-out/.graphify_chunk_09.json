@@ -1,0 +1,666 @@
+{
+  "nodes": [
+    {
+      "id": "infisical_config",
+      "label": "Infisical Workspace Config",
+      "file_type": "code",
+      "source_file": ".infisical.json",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "drizzle_config",
+      "label": "Drizzle Configuration",
+      "file_type": "code",
+      "source_file": "drizzle.config.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "eslint_config",
+      "label": "ESLint Configuration",
+      "file_type": "code",
+      "source_file": "eslint.config.mjs",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "eslint_client_server_boundary",
+      "label": "Client-Server Import and Export Boundaries",
+      "file_type": "rationale",
+      "source_file": "eslint.config.mjs",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Architectural restriction preventing importing server-side internals (@/server/*) into client components and exporting internal helpers from action modules to preserve secure isolation."
+    },
+    {
+      "id": "hero_theme_config",
+      "label": "HeroUI Theme Colors Configuration",
+      "file_type": "code",
+      "source_file": "hero.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "instrumentation_client",
+      "label": "Sentry Client Instrumentation",
+      "file_type": "code",
+      "source_file": "instrumentation-client.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "jest_setup",
+      "label": "Jest Environment Setup",
+      "file_type": "code",
+      "source_file": "jest.setup.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "next_config",
+      "label": "Next.js Standalone & Security Header Config",
+      "file_type": "code",
+      "source_file": "next.config.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "next_security_csp",
+      "label": "Next.js Content Security Policy & Framing Restrictions",
+      "file_type": "rationale",
+      "source_file": "next.config.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Strict framing rules allowing same-origin for demoPlayer, wildcard for overlay embed routes, and block everywhere else to prevent clickjacking."
+    },
+    {
+      "id": "nixpacks_config",
+      "label": "Nixpacks Deployment Environment",
+      "file_type": "code",
+      "source_file": "nixpacks.json",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "package_json",
+      "label": "Package Metadata & Scripts",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "postcss_config",
+      "label": "PostCSS Tailwind Plugin Config",
+      "file_type": "code",
+      "source_file": "postcss.config.mjs",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "renovate_config",
+      "label": "Renovate Bot Dependency Rules",
+      "file_type": "code",
+      "source_file": "renovate.json",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "sentry_edge_config",
+      "label": "Sentry Edge Middleware Config",
+      "file_type": "code",
+      "source_file": "sentry.edge.config.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "sentry_server_config",
+      "label": "Sentry Server Runtime Config",
+      "file_type": "code",
+      "source_file": "sentry.server.config.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "tsconfig_json",
+      "label": "TypeScript Compiler Paths Config",
+      "file_type": "code",
+      "source_file": "tsconfig.json",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "heroui_migration_meta",
+      "label": "HeroUI v2 to v3 Migration Guide Index",
+      "file_type": "document",
+      "source_file": ".heroui-docs/migration/meta.json",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "husky_hook_helper",
+      "label": "Husky Hook Invocation Helper",
+      "file_type": "code",
+      "source_file": ".husky/_/h",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "husky_applypatch_msg",
+      "label": "Husky applypatch-msg Hook Wrapper",
+      "file_type": "code",
+      "source_file": ".husky/_/applypatch-msg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "husky_commit_msg",
+      "label": "Husky commit-msg Hook Wrapper",
+      "file_type": "code",
+      "source_file": ".husky/_/commit-msg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "husky_deprecated_sh",
+      "label": "Husky Deprecated Script",
+      "file_type": "code",
+      "source_file": ".husky/_/husky.sh",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "husky_post_applypatch",
+      "label": "Husky post-applypatch Hook Wrapper",
+      "file_type": "code",
+      "source_file": ".husky/_/post-applypatch",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "husky_post_checkout",
+      "label": "Husky post-checkout Hook Wrapper",
+      "file_type": "code",
+      "source_file": ".husky/_/post-checkout",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "husky_post_commit",
+      "label": "Husky post-commit Hook Wrapper",
+      "file_type": "code",
+      "source_file": ".husky/_/post-commit",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "postgresql",
+      "label": "PostgreSQL Database Engine",
+      "file_type": "code",
+      "source_file": "drizzle.config.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "heroui_react",
+      "label": "@heroui/react library",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "sentry_nextjs",
+      "label": "@sentry/nextjs monitoring library",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "next_plausible",
+      "label": "next-plausible library",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "bun",
+      "label": "Bun JavaScript Runtime",
+      "file_type": "code",
+      "source_file": "nixpacks.json",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "tailwindcss",
+      "label": "Tailwind CSS",
+      "file_type": "code",
+      "source_file": "postcss.config.mjs",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "testing_library_jest_dom",
+      "label": "@testing-library/jest-dom package",
+      "file_type": "code",
+      "source_file": "jest.setup.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "drizzle_config",
+      "target": "postgresql",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "drizzle.config.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "eslint_config",
+      "target": "eslint_client_server_boundary",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "eslint.config.mjs",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "hero_theme_config",
+      "target": "heroui_react",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "hero.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "instrumentation_client",
+      "target": "sentry_nextjs",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "instrumentation-client.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "jest_setup",
+      "target": "testing_library_jest_dom",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "jest.setup.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "next_config",
+      "target": "drizzle_config",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "next.config.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "next_config",
+      "target": "sentry_nextjs",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "next.config.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "next_config",
+      "target": "next_plausible",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "next.config.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "next_config",
+      "target": "next_security_csp",
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "next.config.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "nixpacks_config",
+      "target": "infisical_config",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "nixpacks.json",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "nixpacks_config",
+      "target": "bun",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "nixpacks.json",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "package_json",
+      "target": "infisical_config",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "package.json",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "package_json",
+      "target": "eslint_config",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "package.json",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "package_json",
+      "target": "drizzle_config",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "package.json",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "package_json",
+      "target": "jest_setup",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "package.json",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "package_json",
+      "target": "next_config",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "package.json",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "postcss_config",
+      "target": "tailwindcss",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "postcss.config.mjs",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "sentry_edge_config",
+      "target": "sentry_nextjs",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "sentry.edge.config.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "sentry_server_config",
+      "target": "sentry_nextjs",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "sentry.server.config.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "sentry_edge_config",
+      "target": "sentry_server_config",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "sentry.edge.config.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "heroui_migration_meta",
+      "target": "heroui_react",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": ".heroui-docs/migration/meta.json",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "husky_applypatch_msg",
+      "target": "husky_hook_helper",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".husky/_/applypatch-msg",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "husky_commit_msg",
+      "target": "husky_hook_helper",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".husky/_/commit-msg",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "husky_post_applypatch",
+      "target": "husky_hook_helper",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".husky/_/post-applypatch",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "husky_post_checkout",
+      "target": "husky_hook_helper",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".husky/_/post-checkout",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "husky_post_commit",
+      "target": "husky_hook_helper",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".husky/_/post-commit",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "husky_deprecated_sh",
+      "target": "husky_hook_helper",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": ".husky/_/husky.sh",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "sentry_monitoring_integration",
+      "label": "Sentry Monitoring Integration",
+      "nodes": [
+        "instrumentation_client",
+        "sentry_edge_config",
+        "sentry_server_config",
+        "next_config"
+      ],
+      "relation": "participate_in",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "next.config.ts"
+    },
+    {
+      "id": "husky_git_hooks",
+      "label": "Husky Git Hooks Flow",
+      "nodes": [
+        "husky_applypatch_msg",
+        "husky_commit_msg",
+        "husky_post_applypatch",
+        "husky_post_checkout",
+        "husky_post_commit",
+        "husky_hook_helper"
+      ],
+      "relation": "form",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".husky/_/h"
+    },
+    {
+      "id": "deployment_and_secrets_flow",
+      "label": "Deployment and Secrets Management Environment",
+      "nodes": [
+        "package_json",
+        "nixpacks_config",
+        "infisical_config"
+      ],
+      "relation": "participate_in",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "nixpacks.json"
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

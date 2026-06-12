@@ -1,0 +1,455 @@
+{
+  "nodes": [
+    {
+      "id": "route_logout",
+      "label": "Logout Route",
+      "file_type": "code",
+      "source_file": "src/app/logout/route.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "page_overlay",
+      "label": "Overlay Page",
+      "file_type": "code",
+      "source_file": "src/app/overlay/[overlayId]/page.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "route_payment_webhook",
+      "label": "Payment Webhook Route",
+      "file_type": "code",
+      "source_file": "src/app/payment/webhook/route.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "route_redeem",
+      "label": "Redeem Route",
+      "file_type": "code",
+      "source_file": "src/app/redeem/route.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "page_referral_program",
+      "label": "Referral Program Page",
+      "file_type": "code",
+      "source_file": "src/app/referral-program/page.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "page_roadmap",
+      "label": "Roadmap Page",
+      "file_type": "code",
+      "source_file": "src/app/roadmap/page.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "overlaysubscribers_store",
+      "label": "Overlay Subscribers Store",
+      "file_type": "code",
+      "source_file": "src/app/store/overlaySubscribers.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "regexfilter_util",
+      "label": "Regex Filter Utility",
+      "file_type": "code",
+      "source_file": "src/app/utils/regexFilter.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "route_ws",
+      "label": "WebSocket Route",
+      "file_type": "code",
+      "source_file": "src/app/ws/route.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "client_db",
+      "label": "Database Client",
+      "file_type": "code",
+      "source_file": "src/db/client.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "schema_db",
+      "label": "Database Schema",
+      "file_type": "code",
+      "source_file": "src/db/schema.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "overlays_server",
+      "label": "Server Overlays Business Logic",
+      "file_type": "code",
+      "source_file": "src/server/overlays.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "subscriptions_server",
+      "label": "Server Subscriptions Business Logic",
+      "file_type": "code",
+      "source_file": "src/server/subscriptions.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "twitchauth_server",
+      "label": "Server Twitch Auth Business Logic",
+      "file_type": "code",
+      "source_file": "src/server/twitch-auth.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "proxy_test",
+      "label": "Proxy Middleware Test",
+      "file_type": "code",
+      "source_file": "test/proxy.test.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "homepageclient_test",
+      "label": "HomePageClient Test",
+      "file_type": "code",
+      "source_file": "test/app/HomePageClient.test.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "plausibleclient_test",
+      "label": "PlausibleClient Test",
+      "file_type": "code",
+      "source_file": "test/app/PlausibleClient.test.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "adminview_test",
+      "label": "Admin View Action Test",
+      "file_type": "code",
+      "source_file": "test/app/actions/adminView.test.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "auth_test",
+      "label": "Auth Action Test",
+      "file_type": "code",
+      "source_file": "test/app/actions/auth.test.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "commands_test",
+      "label": "Commands Action Test",
+      "file_type": "code",
+      "source_file": "test/app/actions/commands.test.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "controller_test",
+      "label": "Controller Action Test",
+      "file_type": "code",
+      "source_file": "test/app/actions/controller.test.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "databasecache_test",
+      "label": "Database Cache Test",
+      "file_type": "code",
+      "source_file": "test/app/actions/database.cache.test.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "route_payment_webhook",
+      "target": "subscriptions_server",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/payment/webhook/route.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "route_ws",
+      "target": "overlaysubscribers_store",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/ws/route.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "overlays_server",
+      "target": "client_db",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/server/overlays.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "overlays_server",
+      "target": "schema_db",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/server/overlays.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "subscriptions_server",
+      "target": "client_db",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/server/subscriptions.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "subscriptions_server",
+      "target": "schema_db",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/server/subscriptions.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "adminview_test",
+      "target": "client_db",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/actions/adminView.test.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "auth_test",
+      "target": "client_db",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/actions/auth.test.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "auth_test",
+      "target": "schema_db",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/actions/auth.test.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "commands_test",
+      "target": "overlays_server",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/actions/commands.test.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "databasecache_test",
+      "target": "client_db",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/actions/database.cache.test.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "databasecache_test",
+      "target": "schema_db",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test/app/actions/database.cache.test.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "overlays_server",
+      "target": "subscriptions_server",
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "src/server/subscriptions.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "commands_test",
+      "target": "controller_test",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "test/app/actions/controller.test.ts",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "page_referral_program",
+      "target": "page_roadmap",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "src/app/referral-program/page.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "route_logout",
+      "target": "route_redeem",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "src/app/logout/route.ts",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "websocket_communication_flow",
+      "label": "WebSocket Live Updates Communication Flow",
+      "nodes": [
+        "route_ws",
+        "overlaysubscribers_store",
+        "commands_test",
+        "controller_test"
+      ],
+      "relation": "participate_in",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "src/app/ws/route.ts"
+    },
+    {
+      "id": "database_access_layer",
+      "label": "Database Client and Schema Layer",
+      "nodes": [
+        "client_db",
+        "schema_db",
+        "overlays_server",
+        "subscriptions_server"
+      ],
+      "relation": "form",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/db/client.ts"
+    },
+    {
+      "id": "server_actions_testing",
+      "label": "Server Actions Test Suite",
+      "nodes": [
+        "adminview_test",
+        "auth_test",
+        "commands_test",
+        "controller_test",
+        "databasecache_test"
+      ],
+      "relation": "participate_in",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "test/app/actions/auth.test.ts"
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

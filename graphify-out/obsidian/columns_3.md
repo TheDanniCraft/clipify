@@ -1,0 +1,17 @@
+---
+source_file: "drizzle/meta/0000_snapshot.json"
+type: "code"
+community: "Drizzle Schema Snapshot 0000 (4)"
+location: "L185"
+tags:
+  - graphify/code
+  - graphify/EXTRACTED
+  - community/Drizzle_Schema_Snapshot_0000_4
+---
+
+# columns
+
+## Connections
+- [[_meta]] - `contains` [EXTRACTED]
+
+#graphify/code #graphify/EXTRACTED #community/Drizzle_Schema_Snapshot_0000_4

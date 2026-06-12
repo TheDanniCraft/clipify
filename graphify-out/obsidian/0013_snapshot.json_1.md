@@ -1,0 +1,18 @@
+---
+source_file: "drizzle/meta/0013_snapshot.json"
+type: "code"
+community: "Drizzle Migration History Snapshots"
+tags:
+  - graphify/code
+  - graphify/EXTRACTED
+  - community/Drizzle_Migration_History_Snapshots
+---
+
+# 0013_snapshot.json
+
+## Connections
+- [[0012_snapshot.json_1]] - `references` [EXTRACTED]
+- [[0013_material_caretaker.sql]] - `references` [EXTRACTED]
+- [[0014_snapshot.json_1]] - `references` [EXTRACTED]
+
+#graphify/code #graphify/EXTRACTED #community/Drizzle_Migration_History_Snapshots

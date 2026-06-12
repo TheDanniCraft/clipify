@@ -1,0 +1,17 @@
+---
+source_file: "test/app/components/dashboardNavbar.test.tsx"
+type: "code"
+community: "Dashboardnavbar Test Suite"
+location: "L6"
+tags:
+  - graphify/code
+  - graphify/EXTRACTED
+  - community/Dashboardnavbar_Test_Suite
+---
+
+# routerPush
+
+## Connections
+- [[dashboardNavbar.test.tsx]] - `contains` [EXTRACTED]
+
+#graphify/code #graphify/EXTRACTED #community/Dashboardnavbar_Test_Suite

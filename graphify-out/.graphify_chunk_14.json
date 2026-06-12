@@ -1,0 +1,676 @@
+{
+  "nodes": [
+    {
+      "id": "chatwootData_ChatwootData",
+      "label": "ChatwootData Component",
+      "file_type": "code",
+      "source_file": "src/app/components/chatwootData.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "confirmModal_ConfirmModal",
+      "label": "ConfirmModal Component",
+      "file_type": "code",
+      "source_file": "src/app/components/confirmModal.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "construction_Construction",
+      "label": "Construction Page Component",
+      "file_type": "code",
+      "source_file": "src/app/components/construction.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "countdownTimer_CountdownTimer",
+      "label": "CountdownTimer Component",
+      "file_type": "code",
+      "source_file": "src/app/components/countdownTimer.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "dashboardNavbar_DashboardNavbar",
+      "label": "DashboardNavbar Component",
+      "file_type": "code",
+      "source_file": "src/app/components/dashboardNavbar.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "errorPage_ErrorPage",
+      "label": "ErrorPage Component",
+      "file_type": "code",
+      "source_file": "src/app/components/errorPage.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "errorToast_ErrorToast",
+      "label": "ErrorToast Component",
+      "file_type": "code",
+      "source_file": "src/app/components/errorToast.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "featureCard_FeatureCard",
+      "label": "FeatureCard Component",
+      "file_type": "code",
+      "source_file": "src/app/components/featureCard.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "floatingBanner_FloatingBanner",
+      "label": "FloatingBanner Component",
+      "file_type": "code",
+      "source_file": "src/app/components/floatingBanner.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "footer_Footer",
+      "label": "Footer Component",
+      "file_type": "code",
+      "source_file": "src/app/components/footer.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "logo_Logo",
+      "label": "Clipify Logo SVG",
+      "file_type": "code",
+      "source_file": "src/app/components/logo.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "nextErrorPage_NextErrorPage",
+      "label": "NextErrorPage Component",
+      "file_type": "code",
+      "source_file": "src/app/components/nextErrorPage.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "overlayPlayer_OverlayPlayer",
+      "label": "OverlayPlayer Component",
+      "file_type": "code",
+      "source_file": "src/app/components/overlayPlayer.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "overlayPlayer_OverlayViewport",
+      "label": "OverlayViewport Sub-component",
+      "file_type": "code",
+      "source_file": "src/app/components/overlayPlayer.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "overlayPlayer_utils",
+      "label": "Overlay Player Utilities",
+      "file_type": "code",
+      "source_file": "src/app/components/overlayPlayer.utils.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "playerOverlay_PlayerOverlay",
+      "label": "PlayerOverlay Wrapper",
+      "file_type": "code",
+      "source_file": "src/app/components/playerOverlay.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "scrollingBanner_ScrollingBanner",
+      "label": "ScrollingBanner Component",
+      "file_type": "code",
+      "source_file": "src/app/components/scrollingBanner.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "tagsInput_TagsInput",
+      "label": "TagsInput Component",
+      "file_type": "code",
+      "source_file": "src/app/components/tagsInput.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "upgradeModal_UpgradeModal",
+      "label": "UpgradeModal Component",
+      "file_type": "code",
+      "source_file": "src/app/components/upgradeModal.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "faqs_faqs",
+      "label": "Affiliate Program FAQs Data",
+      "file_type": "code",
+      "source_file": "src/app/components/AffiliatePage/faqs.ts",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "FakeTwitchChat_FakeTwitchChat",
+      "label": "FakeTwitchChat Component",
+      "file_type": "code",
+      "source_file": "src/app/components/DemoPlayer/FakeTwitchChat.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "DemoPlayer_index",
+      "label": "DemoPlayer Wrapper Component",
+      "file_type": "code",
+      "source_file": "src/app/components/DemoPlayer/index.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "StreamingSoftwareMock_StreamingSoftwareMock",
+      "label": "StreamingSoftwareMock Component",
+      "file_type": "code",
+      "source_file": "src/app/components/DemoPlayer/StreamingSoftwareMock.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "rationale_video_double_buffering",
+      "label": "Double-Buffering Video Crossfade",
+      "file_type": "rationale",
+      "source_file": "src/app/components/overlayPlayer.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Seamlessly crossfade between slot A and slot B to avoid Twitch clip loading stutter and blank screens during transitions."
+    },
+    {
+      "id": "rationale_smart_firstname_guess",
+      "label": "UX Heuristic: First Name Guessing from Email",
+      "file_type": "rationale",
+      "source_file": "src/app/components/footer.tsx",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Extract and capitalize a plausible first name from the local part of an email address, ignoring common system addresses and stop words, to personalize the newsletter subscription flow."
+    }
+  ],
+  "edges": [
+    {
+      "source": "dashboardNavbar_DashboardNavbar",
+      "target": "logo_Logo",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/components/dashboardNavbar.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dashboardNavbar_DashboardNavbar",
+      "target": "countdownTimer_CountdownTimer",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/components/dashboardNavbar.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "footer_Footer",
+      "target": "logo_Logo",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/components/footer.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "overlayPlayer_OverlayPlayer",
+      "target": "playerOverlay_PlayerOverlay",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/components/overlayPlayer.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "overlayPlayer_OverlayPlayer",
+      "target": "logo_Logo",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/components/overlayPlayer.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "overlayPlayer_OverlayPlayer",
+      "target": "overlayPlayer_OverlayViewport",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/components/overlayPlayer.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "overlayPlayer_OverlayPlayer",
+      "target": "overlayPlayer_utils",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/components/overlayPlayer.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "overlayPlayer_OverlayViewport",
+      "target": "playerOverlay_PlayerOverlay",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/components/overlayPlayer.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "rationale_video_double_buffering",
+      "target": "overlayPlayer_OverlayPlayer",
+      "relation": "rationale_for",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "src/app/components/overlayPlayer.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "rationale_smart_firstname_guess",
+      "target": "footer_Footer",
+      "relation": "rationale_for",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "src/app/components/footer.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "errorPage_ErrorPage",
+      "target": "nextErrorPage_NextErrorPage",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "src/app/components/errorPage.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "countdownTimer_CountdownTimer",
+      "target": "construction_Construction",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "src/app/components/countdownTimer.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "construction_Construction",
+      "target": "footer_Footer",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "src/app/components/construction.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "DemoPlayer_index",
+      "target": "StreamingWithChatMock_StreamingWithChatMock",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/components/DemoPlayer/index.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "construction_Construction",
+      "target": "newsletter_subscribeToNewsletter",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/components/construction.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "construction_Construction",
+      "target": "newsletter_getEmailProvider",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/components/construction.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "construction_Construction",
+      "target": "rateLimit_isRatelimitError",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/components/construction.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "footer_Footer",
+      "target": "newsletter_subscribeToNewsletter",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/components/footer.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "footer_Footer",
+      "target": "newsletter_getEmailProvider",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/components/footer.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "footer_Footer",
+      "target": "rateLimit_isRatelimitError",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/components/footer.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dashboardNavbar_DashboardNavbar",
+      "target": "adminView_getAdminViewCandidates",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/components/dashboardNavbar.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dashboardNavbar_DashboardNavbar",
+      "target": "adminView_stopAdminView",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/components/dashboardNavbar.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dashboardNavbar_DashboardNavbar",
+      "target": "adminView_switchAdminView",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/components/dashboardNavbar.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "dashboardNavbar_DashboardNavbar",
+      "target": "campaignOffers_getActiveCampaignOfferAction",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/components/dashboardNavbar.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "upgradeModal_UpgradeModal",
+      "target": "subscription_generatePaymentLink",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/components/upgradeModal.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "upgradeModal_UpgradeModal",
+      "target": "campaignOffers_getActiveCampaignOfferAction",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/components/upgradeModal.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "overlayPlayer_OverlayPlayer",
+      "target": "twitch_getAvatar",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/components/overlayPlayer.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "overlayPlayer_OverlayPlayer",
+      "target": "twitch_getDemoClip",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/components/overlayPlayer.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "overlayPlayer_OverlayPlayer",
+      "target": "twitch_getGameDetails",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/components/overlayPlayer.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "overlayPlayer_OverlayPlayer",
+      "target": "twitch_getTwitchClipBatch",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/components/overlayPlayer.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "overlayPlayer_OverlayPlayer",
+      "target": "twitch_resolvePlayableClip",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/components/overlayPlayer.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "overlayPlayer_OverlayPlayer",
+      "target": "twitch_subscribeToChat",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/components/overlayPlayer.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "overlayPlayer_OverlayPlayer",
+      "target": "database_getFirstValidQueuedClip",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/components/overlayPlayer.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "overlayPlayer_OverlayPlayer",
+      "target": "database_removeFromClipQueue",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/components/overlayPlayer.tsx",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "overlayPlayer_OverlayPlayer",
+      "target": "database_removeFromModQueue",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/app/components/overlayPlayer.tsx",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "mock_demo_player_flow",
+      "label": "Mock Demo Player Flow",
+      "nodes": [
+        "DemoPlayer_index",
+        "FakeTwitchChat_FakeTwitchChat",
+        "StreamingSoftwareMock_StreamingSoftwareMock"
+      ],
+      "relation": "participate_in",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "src/app/components/DemoPlayer/index.tsx"
+    },
+    {
+      "id": "video_player_overlay_system",
+      "label": "Video Player Overlay System",
+      "nodes": [
+        "overlayPlayer_OverlayPlayer",
+        "overlayPlayer_OverlayViewport",
+        "playerOverlay_PlayerOverlay"
+      ],
+      "relation": "participate_in",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "src/app/components/overlayPlayer.tsx"
+    },
+    {
+      "id": "newsletter_subscription_flow",
+      "label": "Newsletter Subscription Flow",
+      "nodes": [
+        "construction_Construction",
+        "footer_Footer",
+        "newsletter_subscribeToNewsletter"
+      ],
+      "relation": "participate_in",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "src/app/components/footer.tsx"
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}
