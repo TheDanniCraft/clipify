@@ -19,7 +19,7 @@ jobs:
       cache-hit: ${{ steps.restore.outputs.cache-hit }}
     steps:
       - name: 📥 Check out repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: 🟢 Set up Bun
         uses: oven-sh/setup-bun@v2
@@ -34,7 +34,7 @@ jobs:
       # try to restore an existing cache
       - name: ♻️ Restore Bun & node_modules cache
         id: restore
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@v6
         with:
           path: |
             ~/.bun/install/cache
@@ -50,7 +50,7 @@ jobs:
       # save a new cache entry when we had a miss
       - name: 💾 Save Bun & node_modules cache
         if: steps.restore.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v5
+        uses: actions/cache/save@v6
         with:
           path: |
             ~/.bun/install/cache
@@ -64,7 +64,7 @@ jobs:
     needs: deps
     steps:
       - name: 📥 Check out repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: 🟢 Set up Bun
         uses: oven-sh/setup-bun@v2
@@ -72,7 +72,7 @@ jobs:
           bun-version: latest
 
       - name: ♻️ Restore deps cache
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@v6
         with:
           path: |
             ~/.bun/install/cache
@@ -89,7 +89,7 @@ jobs:
     needs: deps
     steps:
       - name: 📥 Check out repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: 🟢 Set up Bun
         uses: oven-sh/setup-bun@v2
@@ -97,7 +97,7 @@ jobs:
           bun-version: latest
 
       - name: ♻️ Restore deps cache
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@v6
         with:
           path: |
             ~/.bun/install/cache
@@ -121,7 +121,7 @@ jobs:
     needs: deps
     steps:
       - name: 📥 Check out repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: 🟢 Set up Bun
         uses: oven-sh/setup-bun@v2
@@ -129,7 +129,7 @@ jobs:
           bun-version: latest
 
       - name: ♻️ Restore deps cache
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@v6
         with:
           path: |
             ~/.bun/install/cache
@@ -138,7 +138,7 @@ jobs:
           key: ${{ needs.deps.outputs.cache-key }}
 
       - name: ⚡ Cache Next.js build
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           # See here for caching with `yarn`, `bun` or other package managers https://github.com/actions/cache/blob/main/examples.md or you can leverage caching with actions/setup-node
           path: |
