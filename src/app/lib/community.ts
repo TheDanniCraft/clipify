@@ -176,10 +176,30 @@ async function fetchCommunityUsers(): Promise<CommunityUserRow[]> {
 		})
 		.from(usersTable)
 		.innerJoin(overlaysTable, eq(overlaysTable.ownerId, usersTable.id))
-		.leftJoin(settingsTable, eq(settingsTable.id, usersTable.id))
-		.where(and(eq(usersTable.disabled, false), eq(settingsTable.showOnCommunityPage, true)))
+		.where(eq(usersTable.disabled, false))
 		.groupBy(usersTable.id, usersTable.username, usersTable.avatar, usersTable.plan, usersTable.lastLogin, usersTable.createdAt, usersTable.updatedAt)
 		.execute();
+}
+
+export async function fetchCommunityPageVisibleUserIds(ownerIds: string[]): Promise<Set<string>> {
+	const visibleUserIds = new Set<string>();
+	if (ownerIds.length === 0) return visibleUserIds;
+
+	try {
+		const rows = await db
+			.select({ id: settingsTable.id })
+			.from(settingsTable)
+			.where(and(inArray(settingsTable.id, ownerIds), eq(settingsTable.showOnCommunityPage, true)))
+			.execute();
+
+		for (const row of rows) {
+			visibleUserIds.add(row.id);
+		}
+	} catch (error) {
+		console.error("[community] failed to resolve community page visibility", error);
+	}
+
+	return visibleUserIds;
 }
 
 async function fetchOverlayIdsByOwner(ownerIds: string[]): Promise<Map<string, Set<string>>> {

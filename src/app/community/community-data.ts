@@ -72,13 +72,14 @@ export function buildCommunityHeroStreamers(snapshot: CommunitySnapshot, limit =
 	return snapshot.streamers.map(enrichCommunityStreamer).sort(compareCommunityStreamers).slice(0, limit);
 }
 
-export function buildCommunityPageGroups(snapshot: CommunitySnapshot): CommunityPageGroup[] {
+export function buildCommunityPageGroups(snapshot: CommunitySnapshot, visibleUserIds?: ReadonlySet<string>): CommunityPageGroup[] {
 	const streamers = snapshot.streamers.map(enrichCommunityStreamer).sort(compareCommunityStreamers);
+	const isVisible = (streamer: CommunityPageStreamer) => !visibleUserIds || visibleUserIds.has(streamer.id);
 
 	return groupDefinitions.map((group) => ({
 		key: group.key,
 		title: group.title,
 		description: group.description,
-		streamers: streamers.filter(group.filter),
+		streamers: streamers.filter((streamer) => group.filter(streamer) && isVisible(streamer)),
 	})).filter((group) => group.streamers.length > 0);
 }
