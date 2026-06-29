@@ -133,7 +133,10 @@ async function writeCommunitySnapshotToCache(snapshot: CommunitySnapshot): Promi
 
 export async function invalidateCommunitySnapshotCache(): Promise<void> {
 	try {
-		await db.delete(twitchCacheTable).where(and(eq(twitchCacheTable.type, COMMUNITY_SNAPSHOT_CACHE_TYPE), eq(twitchCacheTable.key, COMMUNITY_SNAPSHOT_CACHE_KEY))).execute();
+		await db
+			.delete(twitchCacheTable)
+			.where(and(eq(twitchCacheTable.type, COMMUNITY_SNAPSHOT_CACHE_TYPE), eq(twitchCacheTable.key, COMMUNITY_SNAPSHOT_CACHE_KEY)))
+			.execute();
 	} catch (error) {
 		console.error("[community] failed to invalidate snapshot cache", error);
 	}
@@ -203,15 +206,7 @@ async function fetchPartnerOwnerIds(ownerIds: string[]): Promise<Set<string>> {
 	const rows = await db
 		.select({ userId: entitlementGrantsTable.userId })
 		.from(entitlementGrantsTable)
-		.where(
-			and(
-				eq(entitlementGrantsTable.entitlement, Entitlement.ProAccess),
-				eq(entitlementGrantsTable.source, EntitlementGrantSource.Partner),
-				lte(entitlementGrantsTable.startsAt, sql`now()`),
-				or(isNull(entitlementGrantsTable.endsAt), gt(entitlementGrantsTable.endsAt, sql`now()`)),
-				or(inArray(entitlementGrantsTable.userId, ownerIds), isNull(entitlementGrantsTable.userId)),
-			),
-		)
+		.where(and(eq(entitlementGrantsTable.entitlement, Entitlement.ProAccess), eq(entitlementGrantsTable.source, EntitlementGrantSource.Partner), lte(entitlementGrantsTable.startsAt, sql`now()`), or(isNull(entitlementGrantsTable.endsAt), gt(entitlementGrantsTable.endsAt, sql`now()`)), or(inArray(entitlementGrantsTable.userId, ownerIds), isNull(entitlementGrantsTable.userId))))
 		.execute();
 
 	for (const row of rows) {
@@ -335,11 +330,7 @@ async function buildCommunitySnapshot(): Promise<CommunitySnapshot> {
 		return null;
 	});
 
-	const [twitchUsers, liveOwnerIds, activeOverlayIds] = await Promise.all([
-		appToken ? fetchTwitchUsers(ownerIds, appToken.access_token) : Promise.resolve(new Map<string, TwitchUserResponse>()),
-		appToken ? fetchLiveOwnerIds(ownerIds, appToken.access_token) : Promise.resolve(new Set<string>()),
-		fetchActiveOverlayIdsFromPlausible(),
-	]);
+	const [twitchUsers, liveOwnerIds, activeOverlayIds] = await Promise.all([appToken ? fetchTwitchUsers(ownerIds, appToken.access_token) : Promise.resolve(new Map<string, TwitchUserResponse>()), appToken ? fetchLiveOwnerIds(ownerIds, appToken.access_token) : Promise.resolve(new Set<string>()), fetchActiveOverlayIdsFromPlausible()]);
 
 	const streamers = users.map((user) => {
 		const twitchUser = twitchUsers.get(user.id);
@@ -404,7 +395,7 @@ export async function getCommunitySnapshot(): Promise<CommunitySnapshot> {
 
 	const stale = await readCommunitySnapshotFromCache(true);
 	if (stale) {
-		void refreshCommunitySnapshot();
+		refreshCommunitySnapshot();
 		return stale;
 	}
 

@@ -2,6 +2,7 @@
 import { Plan, EntitlementGrantSource } from "@types";
 
 const selectExecute = jest.fn();
+const deleteExecute = jest.fn();
 
 const queryBuilder = {
 	from: jest.fn(),
@@ -16,11 +17,19 @@ queryBuilder.where.mockImplementation(() => queryBuilder);
 queryBuilder.limit.mockImplementation(() => queryBuilder);
 queryBuilder.orderBy.mockImplementation(() => queryBuilder);
 
+const deleteBuilder = {
+	where: jest.fn(),
+	execute: (...args: unknown[]) => deleteExecute(...args),
+};
+
+deleteBuilder.where.mockImplementation(() => deleteBuilder);
+
 const db = {
 	select: jest.fn(() => queryBuilder),
 	transaction: jest.fn(),
 	execute: jest.fn(),
 	insert: jest.fn(),
+	delete: jest.fn(() => deleteBuilder),
 };
 
 jest.mock("@/db/client", () => ({
@@ -148,18 +157,25 @@ describe("lib/entitlements", () => {
 
 	it("creates partner access grants with the partner source", async () => {
 		const insertExecute = jest.fn().mockResolvedValue([{ id: "partner-grant" }]);
-		db.insert.mockImplementation(() => ({
-			values: jest.fn(() => ({
-				returning: jest.fn(() => ({
-					execute: insertExecute,
-				})),
+		const values = jest.fn(() => ({
+			returning: jest.fn(() => ({
+				execute: insertExecute,
 			})),
+		}));
+		db.insert.mockImplementation(() => ({
+			values,
 		}));
 
 		const { createPartnerAccessGrant } = await loadEntitlements();
 		const result = await createPartnerAccessGrant({ userId: "partner-user" });
 		expect(result).toEqual({ id: "partner-grant" });
 		expect(db.insert).toHaveBeenCalled();
+		expect(values).toHaveBeenCalledWith(
+			expect.objectContaining({
+				userId: "partner-user",
+				source: EntitlementGrantSource.Partner,
+			}),
+		);
 	});
 
 	it("ensures reverse trial grant for free user", async () => {
