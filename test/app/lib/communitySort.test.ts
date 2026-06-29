@@ -4,7 +4,7 @@ import type { CommunityStreamer } from "@/app/lib/community-types";
 import { compareCommunityStreamers } from "@/app/lib/communitySort";
 
 describe("compareCommunityStreamers", () => {
-	it("orders community streamers by partner, status, plan, views, then recency", () => {
+	it("orders community streamers by status, partner, plan, views, then recency", () => {
 		const streamers = [
 			{
 				id: "offline-pro",
@@ -88,7 +88,7 @@ describe("compareCommunityStreamers", () => {
 		expect(streamers.map((streamer) => streamer.id)).toEqual(["pro", "free"]);
 	});
 
-	it("prefers partners before everyone else", () => {
+	it("prefers partners within the same status bucket", () => {
 		const streamers = [
 			{
 				id: "non-partner-live",
@@ -98,25 +98,25 @@ describe("compareCommunityStreamers", () => {
 				plan: Plan.Pro,
 				viewCount: 500,
 				partner: false,
-				status: "live_with_overlay",
+				status: "live",
 				lastActiveAt: "2026-06-28T02:00:00.000Z",
 			},
 			{
-				id: "partner-offline",
-				displayName: "Partner Offline",
-				username: "partner-offline",
-				avatar: "https://example.com/partner-offline.png",
+				id: "partner-live",
+				displayName: "Partner Live",
+				username: "partner-live",
+				avatar: "https://example.com/partner-live.png",
 				plan: Plan.Free,
 				viewCount: 1,
 				partner: true,
-				status: "offline",
+				status: "live",
 				lastActiveAt: "2026-06-28T03:00:00.000Z",
 			},
 		] satisfies CommunityStreamer[];
 
 		streamers.sort(compareCommunityStreamers);
 
-		expect(streamers.map((streamer) => streamer.id)).toEqual(["partner-offline", "non-partner-live"]);
+		expect(streamers.map((streamer) => streamer.id)).toEqual(["partner-live", "non-partner-live"]);
 	});
 
 	it("prefers higher Twitch view counts before alphabetical order", () => {

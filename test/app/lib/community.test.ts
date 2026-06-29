@@ -1,6 +1,7 @@
 /** @jest-environment node */
 
 import { Plan } from "@types";
+import type { CommunitySnapshot } from "@/app/lib/community-types";
 
 const selectExecute = jest.fn();
 const insertExecute = jest.fn();
@@ -109,5 +110,114 @@ describe("lib/community", () => {
 
 		expect(visibleUserIds).toEqual(new Set(["user-1"]));
 		expect(queryBuilder.where).toHaveBeenCalled();
+	});
+
+	it("builds a teaser list in server order and keeps the payload minimal", async () => {
+		const { buildCommunityTeaserStreamers } = await import("@/app/community/community-data");
+
+		const snapshot = {
+			streamers: [
+				{
+					id: "offline",
+					username: "offline",
+					displayName: "Offline",
+					avatar: "https://example.com/offline.png",
+					plan: Plan.Free,
+					viewCount: 10,
+					partner: false,
+					status: "offline" as const,
+					lastActiveAt: "2026-06-28T00:00:00.000Z",
+				},
+				{
+					id: "live",
+					username: "live",
+					displayName: "Live",
+					avatar: "https://example.com/live.png",
+					plan: Plan.Free,
+					viewCount: 20,
+					partner: false,
+					status: "live" as const,
+					lastActiveAt: "2026-06-28T01:00:00.000Z",
+				},
+				{
+					id: "overlay",
+					username: "overlay",
+					displayName: "Overlay",
+					avatar: "https://example.com/overlay.png",
+					plan: Plan.Pro,
+					viewCount: 30,
+					partner: false,
+					status: "live_with_overlay" as const,
+					lastActiveAt: "2026-06-28T02:00:00.000Z",
+				},
+			],
+			totalCount: 3,
+			liveCount: 2,
+			overlayActiveCount: 1,
+			updatedAt: "2026-06-29T00:00:00.000Z",
+		} satisfies CommunitySnapshot;
+
+		const streamers = buildCommunityTeaserStreamers(snapshot, new Set(["overlay", "live", "offline"]));
+
+		expect(streamers.map((streamer) => streamer.id)).toEqual(["overlay", "live", "offline"]);
+		expect(streamers[0]).toEqual({
+			id: "overlay",
+			avatar: "https://example.com/overlay.png",
+			displayName: "Overlay",
+			status: "live_with_overlay",
+		});
+	});
+
+	it("groups public community page streamers after filtering opt-out users", async () => {
+		const { buildCommunityPageGroups } = await import("@/app/community/community-data");
+
+		const snapshot = {
+			streamers: [
+				{
+					id: "partner",
+					username: "partner",
+					displayName: "Partner",
+					avatar: "https://example.com/partner.png",
+					plan: Plan.Free,
+					viewCount: 10,
+					partner: true,
+					status: "offline" as const,
+					lastActiveAt: "2026-06-28T00:00:00.000Z",
+				},
+				{
+					id: "offline",
+					username: "offline",
+					displayName: "Offline",
+					avatar: "https://example.com/offline.png",
+					plan: Plan.Free,
+					viewCount: 20,
+					partner: false,
+					status: "offline" as const,
+					lastActiveAt: "2026-06-28T01:00:00.000Z",
+				},
+				{
+					id: "hidden",
+					username: "hidden",
+					displayName: "Hidden",
+					avatar: "https://example.com/hidden.png",
+					plan: Plan.Pro,
+					viewCount: 30,
+					partner: false,
+					status: "live" as const,
+					lastActiveAt: "2026-06-28T02:00:00.000Z",
+				},
+			],
+			totalCount: 3,
+			liveCount: 1,
+			overlayActiveCount: 0,
+			updatedAt: "2026-06-29T00:00:00.000Z",
+		} satisfies CommunitySnapshot;
+
+		const groups = buildCommunityPageGroups(snapshot, new Set(["partner", "offline"]));
+
+		expect(groups.map((group) => group.key)).toEqual(["partners", "offline"]);
+		expect(groups[0]?.streamers.map((streamer) => streamer.id)).toEqual(["partner"]);
+		expect(groups[1]?.streamers.map((streamer) => streamer.id)).toEqual(["partner", "offline"]);
+		expect(groups[0]?.streamers[0]).toEqual(expect.objectContaining({ twitchUrl: "https://twitch.tv/partner" }));
 	});
 });

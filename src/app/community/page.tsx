@@ -1,13 +1,13 @@
 import { Avatar, Button, Chip, Link } from "@heroui/react";
 import { IconBroadcast, IconBrandTwitch, IconCircleMinus, IconDiamondFilled, IconPlugConnected, IconSparkles } from "@tabler/icons-react";
 
-import { fetchCommunityPageVisibleUserIds, getCommunitySnapshot } from "@lib/community";
+import { getPublicCommunityPageDataAction } from "@actions/community";
 
 import BasicNavbar from "@components/LandingPage/basicNavbar";
 import Footer from "@components/footer";
 
 import CommunityHeroAvatars from "./community-hero-avatars";
-import { buildCommunityHeroStreamers, buildCommunityPageGroups, type CommunityPageGroup, type CommunityPageStreamer } from "./community-data";
+import type { CommunityPageGroup, CommunityPageStreamer } from "@lib/community-types";
 
 export const metadata = {
 	title: "Community | Clipify",
@@ -101,10 +101,7 @@ function CommunitySection({ group }: { group: CommunityPageGroup }) {
 }
 
 export default async function CommunityPage() {
-	const snapshot = await getCommunitySnapshot();
-	const visibleUserIds = await fetchCommunityPageVisibleUserIds(snapshot.streamers.map((streamer) => streamer.id));
-	const featuredStreamers = buildCommunityHeroStreamers(snapshot);
-	const communityGroups = buildCommunityPageGroups(snapshot, visibleUserIds);
+	const { featuredStreamers, communityGroups } = await getPublicCommunityPageDataAction();
 
 	return (
 		<div className='bg-background text-foreground'>

@@ -10,18 +10,17 @@ import CommunityTeaser from "@components/LandingPage/communityTeaser";
 import { IconCircleCheckFilled, IconMailFilled, IconMoonFilled, IconSend, IconSunFilled } from "@tabler/icons-react";
 import { useTheme } from "next-themes";
 import axios from "axios";
-import { getCommunityPageVisibleUserIdsAction, getCommunitySnapshotAction } from "@actions/community";
+import { getPublicCommunityTeaserAction } from "@actions/community";
 import { getEmailProvider, subscribeToNewsletter } from "@actions/newsletter";
 import { usePlausible } from "next-plausible";
 import { isRatelimitError } from "@actions/rateLimit";
-import type { CommunitySnapshot } from "@lib/community-types";
+import type { CommunityTeaserStreamer } from "@lib/community-types";
 
 export default function Footer() {
 	const { theme, setTheme } = useTheme();
 	const [statusColor, setStatusColor] = useState("#ffffff");
 	const [statusText, setStatusText] = useState("Loading...");
-	const [footerCommunityPreview, setFooterCommunityPreview] = useState<CommunitySnapshot | null>(null);
-	const [footerCommunityVisibleUserIds, setFooterCommunityVisibleUserIds] = useState<string[] | null>(null);
+	const [footerCommunityPreview, setFooterCommunityPreview] = useState<CommunityTeaserStreamer[] | null>(null);
 	const plausible = usePlausible();
 	const [newsletterState, setNewsletterState] = useState("default");
 	const [isDetailsExpanded, setIsDetailsExpanded] = useState(false);
@@ -68,14 +67,7 @@ export default function Footer() {
 	const emailSubmitDisabled = newsletterState === "loading" || newsletterState === "success" || (mounted && !token);
 	const detailSubmitDisabled = newsletterState === "loading" || !pendingEmail || (mounted && !token);
 
-	const communityStreamers = useMemo(() => {
-		if (!footerCommunityPreview || !footerCommunityVisibleUserIds) {
-			return [];
-		}
-
-		const visibleUserIds = new Set(footerCommunityVisibleUserIds);
-		return footerCommunityPreview.streamers.filter((streamer) => visibleUserIds.has(streamer.id));
-	}, [footerCommunityPreview, footerCommunityVisibleUserIds]);
+	const communityStreamers = useMemo(() => footerCommunityPreview ?? [], [footerCommunityPreview]);
 	const footerNavigation = {
 		features: [
 			{ name: "Easy to Use", href: "#features" },
@@ -141,12 +133,10 @@ export default function Footer() {
 		let cancelled = false;
 
 		async function loadCommunityPreview() {
-			const snapshot = await getCommunitySnapshotAction();
-			const visibleUserIds = await getCommunityPageVisibleUserIdsAction(snapshot.streamers.map((streamer) => streamer.id));
+			const streamers = await getPublicCommunityTeaserAction();
 
 			if (!cancelled) {
-				setFooterCommunityPreview(snapshot);
-				setFooterCommunityVisibleUserIds(visibleUserIds);
+				setFooterCommunityPreview(streamers);
 			}
 		}
 
@@ -154,7 +144,6 @@ export default function Footer() {
 			console.error("Error fetching community preview:", error);
 			if (!cancelled) {
 				setFooterCommunityPreview(null);
-				setFooterCommunityVisibleUserIds(null);
 			}
 		});
 

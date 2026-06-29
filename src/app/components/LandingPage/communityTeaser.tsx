@@ -3,19 +3,16 @@
 import { Avatar } from "@heroui/react";
 import type { ComponentProps } from "react";
 
-import type { CommunityStreamer, CommunityStreamerStatus } from "@lib/community-types";
-import { compareCommunityStreamers } from "@lib/communitySort";
-
-type AvatarColor = NonNullable<ComponentProps<typeof Avatar>["color"]>;
+import type { CommunityTeaserStreamer, CommunityStreamerStatus } from "@lib/community-types";
 
 type CommunityTeaserProps = {
 	className?: string;
 	countClassName?: string;
 	maxVisible?: number;
-	streamers: CommunityStreamer[];
+	streamers: CommunityTeaserStreamer[];
 };
 
-function getStatusClass(status: CommunityStreamerStatus): AvatarColor {
+function getStatusClass(status: CommunityStreamerStatus): NonNullable<ComponentProps<typeof Avatar>["color"]> {
 	switch (status) {
 		case "live_with_overlay":
 			return "success";
@@ -31,7 +28,7 @@ export default function CommunityTeaser({ className, countClassName, maxVisible 
 		return null;
 	}
 
-	const visibleStreamers = [...streamers].sort(compareCommunityStreamers).slice(0, maxVisible);
+	const visibleStreamers = streamers.slice(0, maxVisible);
 
 	return (
 		<div className={["flex items-center", className].filter(Boolean).join(" ")}>

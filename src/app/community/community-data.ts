@@ -2,20 +2,14 @@ import { Plan } from "@types";
 
 import { compareCommunityStreamers } from "@lib/communitySort";
 
-import type { CommunitySnapshot, CommunityStreamer } from "@lib/community-types";
-
-export type CommunityPageStreamer = CommunityStreamer & {
-	twitchUrl: string;
-};
-
-export type CommunityPageGroupKey = "partners" | "pro" | "now_live_with_clipify" | "now_live" | "offline";
-
-export type CommunityPageGroup = {
-	key: CommunityPageGroupKey;
-	title: string;
-	description: string;
-	streamers: CommunityPageStreamer[];
-};
+import type {
+	CommunityPageGroup,
+	CommunityPageGroupKey,
+	CommunityPageStreamer,
+	CommunitySnapshot,
+	CommunityTeaserStreamer,
+	CommunityStreamer,
+} from "@lib/community-types";
 
 type CommunityPageGroupDefinition = {
 	key: CommunityPageGroupKey;
@@ -28,10 +22,19 @@ function twitchUrl(username: string) {
 	return `https://twitch.tv/${username}`;
 }
 
-function enrichCommunityStreamer(streamer: CommunityStreamer): CommunityPageStreamer {
+function toPublicPageStreamer(streamer: CommunityStreamer): CommunityPageStreamer {
 	return {
 		...streamer,
 		twitchUrl: twitchUrl(streamer.username),
+	};
+}
+
+function toTeaserStreamer(streamer: CommunityStreamer): CommunityTeaserStreamer {
+	return {
+		id: streamer.id,
+		avatar: streamer.avatar,
+		displayName: streamer.displayName,
+		status: streamer.status,
 	};
 }
 
@@ -68,18 +71,35 @@ const groupDefinitions: CommunityPageGroupDefinition[] = [
 	},
 ];
 
-export function buildCommunityHeroStreamers(snapshot: CommunitySnapshot, limit = 5): CommunityPageStreamer[] {
-	return snapshot.streamers.map(enrichCommunityStreamer).sort(compareCommunityStreamers).slice(0, limit);
+function filterVisible(streamer: CommunityStreamer, visibleUserIds?: ReadonlySet<string>) {
+	return !visibleUserIds || visibleUserIds.has(streamer.id);
+}
+
+export function buildCommunityTeaserStreamers(snapshot: CommunitySnapshot, visibleUserIds?: ReadonlySet<string>, limit = 5): CommunityTeaserStreamer[] {
+	return snapshot.streamers.filter((streamer) => filterVisible(streamer, visibleUserIds)).sort(compareCommunityStreamers).slice(0, limit).map(toTeaserStreamer);
 }
 
 export function buildCommunityPageGroups(snapshot: CommunitySnapshot, visibleUserIds?: ReadonlySet<string>): CommunityPageGroup[] {
-	const streamers = snapshot.streamers.map(enrichCommunityStreamer).sort(compareCommunityStreamers);
-	const isVisible = (streamer: CommunityPageStreamer) => !visibleUserIds || visibleUserIds.has(streamer.id);
-
-	return groupDefinitions.map((group) => ({
+	const streamers = snapshot.streamers.filter((streamer) => filterVisible(streamer, visibleUserIds)).sort(compareCommunityStreamers).map(toPublicPageStreamer);
+	const groups = groupDefinitions.map((group) => ({
 		key: group.key,
 		title: group.title,
 		description: group.description,
-		streamers: streamers.filter((streamer) => group.filter(streamer) && isVisible(streamer)),
-	})).filter((group) => group.streamers.length > 0);
+		streamers: [] as CommunityPageStreamer[],
+	}));
+
+	for (const streamer of streamers) {
+		for (const group of groupDefinitions) {
+			if (!group.filter(streamer)) {
+				continue;
+			}
+
+			const targetGroup = groups.find((entry) => entry.key === group.key);
+			if (targetGroup) {
+				targetGroup.streamers.push(streamer);
+			}
+		}
+	}
+
+	return groups.filter((group) => group.streamers.length > 0);
 }

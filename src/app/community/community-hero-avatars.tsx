@@ -2,10 +2,10 @@
 
 import { Avatar } from "@heroui/react";
 
-import type { CommunityPageStreamer } from "./community-data";
+import type { CommunityTeaserStreamer } from "@lib/community-types";
 
 type CommunityHeroAvatarsProps = {
-	streamers: CommunityPageStreamer[];
+	streamers: CommunityTeaserStreamer[];
 };
 
 export default function CommunityHeroAvatars({ streamers }: CommunityHeroAvatarsProps) {
