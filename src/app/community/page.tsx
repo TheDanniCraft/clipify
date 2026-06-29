@@ -1,7 +1,7 @@
 import { Avatar, Button, Chip, Link } from "@heroui/react";
 import { IconBroadcast, IconBrandTwitch, IconCircleMinus, IconDiamondFilled, IconPlugConnected, IconSparkles } from "@tabler/icons-react";
 
-import { getCommunitySnapshot } from "@lib/community";
+import { fetchCommunityPageVisibleUserIds, getCommunitySnapshot } from "@lib/community";
 
 import BasicNavbar from "@components/LandingPage/basicNavbar";
 import Footer from "@components/footer";
@@ -102,8 +102,9 @@ function CommunitySection({ group }: { group: CommunityPageGroup }) {
 
 export default async function CommunityPage() {
 	const snapshot = await getCommunitySnapshot();
+	const visibleUserIds = await fetchCommunityPageVisibleUserIds(snapshot.streamers.map((streamer) => streamer.id));
 	const featuredStreamers = buildCommunityHeroStreamers(snapshot);
-	const communityGroups = buildCommunityPageGroups(snapshot);
+	const communityGroups = buildCommunityPageGroups(snapshot, visibleUserIds);
 
 	return (
 		<div className='bg-background text-foreground'>
@@ -134,7 +135,7 @@ export default async function CommunityPage() {
 										Register now
 									</Button>
 								</div>
-								<div className='pt-2'>
+								<div className='mt-[-15px]'>
 									<CommunityHeroAvatars streamers={featuredStreamers} />
 								</div>
 							</div>
@@ -146,7 +147,10 @@ export default async function CommunityPage() {
 			</div>
 			<div className='w-full bg-background px-4 py-24'>
 				<div className='mx-auto flex w-full max-w-6xl flex-col'>
-					<div className='mt-8'>
+					<div className='mb-6 flex flex-col items-start gap-2'>
+						<p className='max-w-2xl text-sm text-default-500'>Want to be featured here? Create an account, create your first overlay and opt in in Settings.</p>
+					</div>
+					<div className='mt-4'>
 						{communityGroups.map((group) => (
 							<CommunitySection key={group.key} group={group} />
 						))}
