@@ -145,13 +145,18 @@ jest.mock("@heroui/react", () => {
 		),
 		Tab: ({ title, onPress }: any) => <button onClick={onPress}>{title}</button>,
 		useDisclosure: () => ({ isOpen: false, onOpen: jest.fn(), onOpenChange: jest.fn() }),
-		RadioGroup: ({ children, _value, onValueChange }: any) => <div onChange={(e: any) => onValueChange(e.target.value)}>{children}</div>,
-		Radio: ({ children, value }: any) => (
+		Label: ({ children }: any) => <span>{children}</span>,
+		RadioGroup: ({ children, _value, onChange }: any) => <div onChange={(e: any) => onChange(e.target.value)}>{children}</div>,
+		Radio: Object.assign(({ children, value }: any) => (
 			<label>
 				<input type='radio' value={value} />
 				{children}
 			</label>
-		),
+		), {
+			Content: ({ children }: any) => <span>{children}</span>,
+			Control: ({ children }: any) => <span>{children}</span>,
+			Indicator: () => null,
+		}),
 	};
 });
 

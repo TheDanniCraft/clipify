@@ -1084,8 +1084,12 @@ export default function OverlayStylePage() {
 							</div>
 							<Separator />
 							<div className='grid grid-cols-1 lg:grid-cols-2 gap-3'>
-								<Slider minValue={0} maxValue={100} step={1} value={overlay.playerVolume} label='Player Volume' showTooltip onChange={(value) => setOverlay({ ...overlay, playerVolume: Number(Array.isArray(value) ? value[0] : value) })} />
-								<Slider minValue={0} maxValue={30} step={1} value={overlay.overlayInfoFadeOutSeconds ?? 6} label='Overlay Fade Out (seconds)' showTooltip onChange={(value) => setOverlay({ ...overlay, overlayInfoFadeOutSeconds: Number(Array.isArray(value) ? value[0] : value) })} />
+								<Slider minValue={0} maxValue={100} step={1} value={overlay.playerVolume} onChange={(value) => setOverlay({ ...overlay, playerVolume: Number(Array.isArray(value) ? value[0] : value) })}>
+									<Label>Player Volume</Label><Slider.Output /><Slider.Track><Slider.Fill /><Slider.Thumb /></Slider.Track>
+								</Slider>
+								<Slider minValue={0} maxValue={30} step={1} value={overlay.overlayInfoFadeOutSeconds ?? 6} onChange={(value) => setOverlay({ ...overlay, overlayInfoFadeOutSeconds: Number(Array.isArray(value) ? value[0] : value) })}>
+									<Label>Overlay Fade Out (seconds)</Label><Slider.Output /><Slider.Track><Slider.Fill /><Slider.Thumb /></Slider.Track>
+								</Slider>
 								<Select
 									label='Enabled Components'
 									selectionMode='multiple'

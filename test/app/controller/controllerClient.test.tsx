@@ -34,16 +34,17 @@ jest.mock("@heroui/react", () => ({
 	),
 	Chip: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
 	Progress: ({ value, "aria-label": ariaLabel }: { value?: number; "aria-label"?: string }) => <progress aria-label={ariaLabel} value={value} max={100} />,
-	Slider: ({ value, onChange, onChangeEnd, isDisabled, "aria-label": ariaLabel }: { value?: number; onChange?: (value: number) => void; onChangeEnd?: (value: number) => void; isDisabled?: boolean; "aria-label"?: string }) => (
-		<input
-			type='range'
-			aria-label={ariaLabel}
-			disabled={isDisabled}
-			value={value}
-			onChange={(event) => onChange?.(Number(event.target.value))}
-			onBlur={(event) => onChangeEnd?.(Number(event.target.value))}
-		/>
-	),
+	Slider: Object.assign(({ children, value, onChange, onChangeEnd, isDisabled, "aria-label": ariaLabel }: { children?: React.ReactNode; value?: number; onChange?: (value: number) => void; onChangeEnd?: (value: number) => void; isDisabled?: boolean; "aria-label"?: string }) => (
+		<div>
+			{children}
+			<input type='range' aria-label={ariaLabel} disabled={isDisabled} value={value} onChange={(event) => onChange?.(Number(event.target.value))} onBlur={(event) => onChangeEnd?.(Number(event.target.value))} />
+		</div>
+	), {
+		Track: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+		Fill: () => null,
+		Thumb: () => null,
+		Output: () => null,
+	}),
 	Input: (props: React.InputHTMLAttributes<HTMLInputElement>) => <input {...props} />,
 }));
 

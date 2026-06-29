@@ -1,5 +1,5 @@
 "use client";
-import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, TableHeader, TableColumn, TableBody, TableRow, TableCell, Button, RadioGroup, Radio, Chip, Pagination, Separator, Tooltip, Popover, PopoverTrigger, PopoverContent, Spinner, addToast, Link, Avatar, Skeleton, Tab, Tabs, useDisclosure, TextField, InputGroup, cn } from "@heroui/react";
+import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, TableHeader, TableColumn, TableBody, TableRow, TableCell, Button, RadioGroup, Radio, Chip, Pagination, Separator, Tooltip, Popover, PopoverTrigger, PopoverContent, Spinner, addToast, Link, Avatar, Skeleton, Tab, Tabs, useDisclosure, TextField, InputGroup, Label, cn } from "@heroui/react";
 import type { Selection, SortDescriptor } from "@heroui/react";
 
 import type { ColumnsKey } from "./data";
@@ -439,10 +439,11 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 									</PopoverTrigger>
 									<PopoverContent className='w-80'>
 										<div className='flex w-full flex-col gap-6 px-2 py-4'>
-											<RadioGroup label='Status' value={statusFilter} onValueChange={setStatusFilter}>
-												<Radio value='all'>All</Radio>
-												<Radio value='active'>Active</Radio>
-												<Radio value='paused'>Paused</Radio>
+											<RadioGroup value={statusFilter} onChange={setStatusFilter}>
+												<Label>Status</Label>
+												<Radio value='all'><Radio.Content><Radio.Control><Radio.Indicator /></Radio.Control>All</Radio.Content></Radio>
+												<Radio value='active'><Radio.Content><Radio.Control><Radio.Indicator /></Radio.Control>Active</Radio.Content></Radio>
+												<Radio value='paused'><Radio.Content><Radio.Control><Radio.Indicator /></Radio.Control>Paused</Radio.Content></Radio>
 											</RadioGroup>
 										</div>
 									</PopoverContent>

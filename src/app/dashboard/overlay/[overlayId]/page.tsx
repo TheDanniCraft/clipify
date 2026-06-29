@@ -778,12 +778,19 @@ export default function OverlaySettings() {
 									<div className='flex items-center w-full space-x-2'>
 										<Switch
 											isSelected={overlay.status === StatusOptions.Active}
-											onValueChange={(value) => {
+											onChange={(value) => {
 												setOverlay({ ...overlay, status: value ? StatusOptions.Active : StatusOptions.Paused });
 											}}
-											startContent={<IconPlayerPlayFilled />}
-											endContent={<IconPlayerPauseFilled />}
-										/>
+											aria-label='Set overlay status'
+										>
+											<Switch.Content>
+												<Switch.Control className='flex items-center gap-1'>
+													<IconPlayerPlayFilled size={14} />
+													<Switch.Thumb />
+													<IconPlayerPauseFilled size={14} />
+												</Switch.Control>
+											</Switch.Content>
+										</Switch>
 										<div className='flex-1 overflow-hidden'>
 											<Snippet
 												className='w-full max-w-full'
@@ -1007,31 +1014,27 @@ export default function OverlaySettings() {
 											</div>
 										) : (
 											<>
-												<Switch className='p-2' isSelected={overlay.preferCurrentCategory} onValueChange={(value) => setOverlay({ ...overlay, preferCurrentCategory: value })}>
-													Prefer clips from current stream category
+										<Switch className='p-2' isSelected={overlay.preferCurrentCategory} onChange={(value) => setOverlay({ ...overlay, preferCurrentCategory: value })}>
+											<Switch.Content><Switch.Control><Switch.Thumb /></Switch.Control>Prefer clips from current stream category</Switch.Content>
 												</Switch>
-												<Slider
-													minValue={0}
-													maxValue={60}
-													defaultValue={[overlay.minClipDuration, overlay.maxClipDuration]}
-													value={[overlay.minClipDuration, overlay.maxClipDuration]}
-													step={1}
-													label='Filter clips by duration (seconds)'
-													showTooltip
-													marks={[
-														{ value: 0, label: "0s" },
-														{ value: 20, label: "20s" },
-														{ value: 40, label: "40s" },
-														{ value: 60, label: "60s" },
-													]}
-													formatOptions={{ style: "unit", unit: "second" }}
-													onChange={(value: number | number[]) => {
-														const [min, max] = Array.isArray(value) ? (value as [number, number]) : [value as number, value as number];
-														setOverlay({ ...overlay, minClipDuration: min, maxClipDuration: max });
-													}}
-													className='p-2'
-													size='sm'
-												/>
+										<div className='p-2'>
+											<Slider minValue={0} maxValue={60} value={[overlay.minClipDuration, overlay.maxClipDuration]} step={1} formatOptions={{ style: "unit", unit: "second" }} onChange={(value: number | number[]) => {
+													const [min, max] = Array.isArray(value) ? (value as [number, number]) : [value as number, value as number];
+													setOverlay({ ...overlay, minClipDuration: min, maxClipDuration: max });
+												}}>
+												<Label>Filter clips by duration (seconds)</Label>
+												<Slider.Output />
+												<Slider.Track>
+													{({ state }) => (
+														<>
+															<Slider.Fill />
+															{state.values.map((_, index) => <Slider.Thumb key={index} index={index} />)}
+														</>
+													)}
+												</Slider.Track>
+											</Slider>
+											<div className='mt-1 flex justify-between text-xs text-default-400'><span>0s</span><span>20s</span><span>40s</span><span>60s</span></div>
+										</div>
 												<NumberInput size='sm' minValue={0} defaultValue={overlay.minClipViews} value={overlay.minClipViews} onValueChange={(value) => setOverlay({ ...overlay, minClipViews: Number(value) })} label='Minimum Clip Views' description='Only clips with at least this many views will be shown in the overlay.' className='p-2' />
 
 												<div className='p-2 space-y-2'>
@@ -1130,8 +1133,8 @@ export default function OverlaySettings() {
 					<ModalContent className='flex max-h-[80vh] flex-col overflow-hidden'>
 						<ModalHeader className='flex items-center justify-between gap-3'>
 							<span>Preview Clips</span>
-							<Switch size='sm' isSelected={previewReviewMode} onValueChange={setPreviewReviewMode}>
-								Review mode
+							<Switch size='sm' isSelected={previewReviewMode} onChange={setPreviewReviewMode}>
+								<Switch.Content><Switch.Control><Switch.Thumb /></Switch.Control>Review mode</Switch.Content>
 							</Switch>
 						</ModalHeader>
 						<ModalBody className='flex-1 overflow-y-auto'>
@@ -1243,8 +1246,9 @@ export default function OverlaySettings() {
 										className={`flex items-center gap-3 rounded border px-3 py-2 transition-colors ${draggedClipId === clip.id ? "opacity-55 border-default-300 bg-content2" : ""} ${dragOverClipId === clip.id && draggedClipId !== clip.id ? "border-primary bg-primary/10" : "border-default-200"}`}
 									>
 										<Checkbox
+											aria-label={`Select ${clip.title}`}
 											isSelected={selectedPlaylistClipIds.has(clip.id)}
-											onValueChange={(checked) => {
+											onChange={(checked) => {
 												setSelectedPlaylistClipIds((prev) => {
 													const next = new Set(prev);
 													if (checked) next.add(clip.id);
@@ -1252,7 +1256,9 @@ export default function OverlaySettings() {
 													return next;
 												});
 											}}
-										/>
+										>
+											<Checkbox.Content><Checkbox.Control><Checkbox.Indicator /></Checkbox.Control></Checkbox.Content>
+										</Checkbox>
 										<IconGripVertical size={16} className='text-default-400' />
 										<Image unoptimized src={clip.thumbnail_url} alt={clip.title} width={64} height={40} className='h-10 w-16 rounded object-cover' />
 										<div className='min-w-0 flex-1'>

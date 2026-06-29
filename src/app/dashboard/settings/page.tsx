@@ -410,7 +410,7 @@ export default function SettingsPage() {
 											isSelected={receivesProductUpdates}
 											isDisabled={!settings}
 											aria-label='Receive emails'
-											onValueChange={(value) => {
+											onChange={(value) => {
 												if (!settings) {
 													return;
 												}
@@ -420,7 +420,9 @@ export default function SettingsPage() {
 													marketingOptInSource: value ? "settings_page_explicit_optin" : "settings_page_optout",
 												});
 											}}
-										/>
+										>
+											<Switch.Content><Switch.Control><Switch.Thumb /></Switch.Control></Switch.Content>
+										</Switch>
 									</div>
 									<p className='mt-2 text-xs text-default-500'>Opt out anytime here or by using the unsubscribe link in any email.</p>
 									{settings?.marketingOptInAt && <p className='mt-1 text-xs text-default-500'>Consent recorded on {new Date(settings.marketingOptInAt).toLocaleString()}.</p>}
@@ -435,7 +437,7 @@ export default function SettingsPage() {
 											isSelected={showOnCommunityPage}
 											isDisabled={!settings}
 											aria-label='Show on community page'
-											onValueChange={(value) => {
+											onChange={(value) => {
 												if (!settings) {
 													return;
 												}
@@ -444,7 +446,9 @@ export default function SettingsPage() {
 													showOnCommunityPage: value,
 												});
 											}}
-										/>
+										>
+											<Switch.Content><Switch.Control><Switch.Thumb /></Switch.Control></Switch.Content>
+										</Switch>
 									</div>
 									<p className='mt-2 text-xs text-default-500'>Show up on the public community page with your Twitch handle and channel link.</p>
 								</div>

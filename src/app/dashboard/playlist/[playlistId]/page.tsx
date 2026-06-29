@@ -495,8 +495,9 @@ export default function PlaylistPage() {
 									className={`flex items-center gap-3 rounded border px-3 py-2 transition-colors ${draggedClipId === clip.id ? "opacity-55 border-default-300 bg-content2" : ""} ${dragOverClipId === clip.id && draggedClipId !== clip.id ? "border-primary bg-primary/10" : "border-default-200 bg-content1 hover:bg-content2"}`}
 								>
 									<Checkbox
+										aria-label={`Select ${clip.title}`}
 										isSelected={selectedPlaylistClipIds.has(clip.id)}
-										onValueChange={(checked) => {
+										onChange={(checked) => {
 											setSelectedPlaylistClipIds((prev) => {
 												const next = new Set(prev);
 												if (checked) next.add(clip.id);
@@ -504,7 +505,9 @@ export default function PlaylistPage() {
 												return next;
 											});
 										}}
-									/>
+									>
+										<Checkbox.Content><Checkbox.Control><Checkbox.Indicator /></Checkbox.Control></Checkbox.Content>
+									</Checkbox>
 									<IconGripVertical size={16} className='text-default-400 cursor-grab' />
 									<Image unoptimized src={clip.thumbnail_url} alt={clip.title} width={80} height={48} className='h-12 w-20 rounded object-cover' />
 									<div className='min-w-0 flex-1'>

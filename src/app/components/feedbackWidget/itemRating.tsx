@@ -1,9 +1,5 @@
 "use client";
-import { VisuallyHidden, useRadio, useRadioGroupContext, cn } from "@heroui/react";
-import type { RadioProps } from "@heroui/react";
-
-
-import React from "react";
+import { Radio } from "@heroui/react";
 import { RatingValueEnum } from "@types";
 
 const emojis: Record<RatingValueEnum, string> = {
@@ -14,42 +10,27 @@ const emojis: Record<RatingValueEnum, string> = {
 	[RatingValueEnum.EXCELLENT]: "🥰",
 };
 
-export type FeedbackRatingItemProps = Omit<RadioProps, "value"> & {
+export type FeedbackRatingItemProps = {
 	value: RatingValueEnum;
 	fullWidth?: boolean;
+	className?: string;
 };
 
-const FeedbackRatingItem = React.forwardRef<HTMLInputElement, FeedbackRatingItemProps>((props, ref) => {
-	const { Component, isSelected: isSelfSelected, getBaseProps, getInputProps } = useRadio(props);
-
-	const groupContext = useRadioGroupContext();
-
-	const isSelected = isSelfSelected || Number(groupContext.groupState.selectedValue) >= Number(props.value);
-	const isReadOnly = groupContext.groupState.isReadOnly;
-	const baseProps = getBaseProps();
+const FeedbackRatingItem = ({ className, fullWidth, value }: FeedbackRatingItemProps) => {
 	return (
-		<Component
-			{...baseProps}
-			ref={ref}
-			className={cn("flex items-center justify-center text-[30px]", baseProps?.["className"], {
-				"cursor-default": isReadOnly,
-			})}
-		>
-			<VisuallyHidden>
-				<input {...getInputProps()} />
-			</VisuallyHidden>
-			<span
-				className={cn("transition-transform pointer-events-none select-none ", isSelected ? "" : "opacity-40", {
-					"group-data-[pressed=true]:scale-90": !isReadOnly,
-				})}
-				aria-label={props.value}
-			>
-				{emojis[props.value]}
-			</span>
-		</Component>
+		<Radio aria-label={value} value={value} className={["flex items-center justify-center text-[30px]", fullWidth ? "flex-1" : "", className].filter(Boolean).join(" ")}>
+			{({ isSelected, isReadOnly }) => (
+				<Radio.Content>
+					<Radio.Control className='sr-only'>
+						<Radio.Indicator />
+					</Radio.Control>
+					<span className={["pointer-events-none select-none transition-transform", isSelected ? "" : "opacity-40", isReadOnly ? "cursor-default" : "group-data-[pressed=true]:scale-90"].filter(Boolean).join(" ")} aria-label={value}>
+						{emojis[value]}
+					</span>
+				</Radio.Content>
+			)}
+		</Radio>
 	);
-});
-
-FeedbackRatingItem.displayName = "FeedbackRatingItem";
+};
 
 export default FeedbackRatingItem;

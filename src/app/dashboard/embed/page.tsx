@@ -202,11 +202,14 @@ export default function EmbedTool() {
 							</Select>
 							<Tooltip content={ownerPlan === "free" ? "This overlay's owner must upgrade to remove Clipify branding" : "Toggle to include Clipify branding on your overlay"}>
 								<span>
-									<Switch isSelected={effectiveShowBanner} onValueChange={setShowBanner} isDisabled={!overlayId || ownerPlan === "free"}>
-										<span className='flex items-center gap-2'>
+									<Switch isSelected={effectiveShowBanner} onChange={setShowBanner} isDisabled={!overlayId || ownerPlan === "free"}>
+										<Switch.Content>
+											<Switch.Control><Switch.Thumb /></Switch.Control>
+											<span className='flex items-center gap-2'>
 											<IconSparkles className='h-4 w-4 text-primary' />
 											Enable Clipify Branding
-										</span>
+											</span>
+										</Switch.Content>
 									</Switch>
 								</span>
 							</Tooltip>
@@ -217,31 +220,40 @@ export default function EmbedTool() {
 							)}
 							<Tooltip content='Toggle autoplay for this embed'>
 								<span>
-									<Switch isSelected={embedAutoplay} onValueChange={setEmbedAutoplay} isDisabled={!overlayId}>
-										<span className='flex items-center gap-2'>
+									<Switch isSelected={embedAutoplay} onChange={setEmbedAutoplay} isDisabled={!overlayId}>
+										<Switch.Content>
+											<Switch.Control><Switch.Thumb /></Switch.Control>
+											<span className='flex items-center gap-2'>
 											<IconPlayerPlayFilled className='h-4 w-4 text-emerald-500' />
 											Autoplay (skip click-to-play)
-										</span>
+											</span>
+										</Switch.Content>
 									</Switch>
 								</span>
 							</Tooltip>
 							<Tooltip content='Show clip title, creator and game overlay on the embed'>
 								<span>
-									<Switch isSelected={showEmbedOverlay} onValueChange={setShowEmbedOverlay} isDisabled={!overlayId}>
-										<span className='flex items-center gap-2'>
+									<Switch isSelected={showEmbedOverlay} onChange={setShowEmbedOverlay} isDisabled={!overlayId}>
+										<Switch.Content>
+											<Switch.Control><Switch.Thumb /></Switch.Control>
+											<span className='flex items-center gap-2'>
 											<IconEye className='h-4 w-4 text-purple-500' />
 											Show clip overlay
-										</span>
+											</span>
+										</Switch.Content>
 									</Switch>
 								</span>
 							</Tooltip>
 							<Tooltip content='Toggle starting muted for this embed'>
 								<span>
-									<Switch isSelected={embedMuted} onValueChange={setEmbedMuted} isDisabled={!overlayId}>
-										<span className='flex items-center gap-2'>
+									<Switch isSelected={embedMuted} onChange={setEmbedMuted} isDisabled={!overlayId}>
+										<Switch.Content>
+											<Switch.Control><Switch.Thumb /></Switch.Control>
+											<span className='flex items-center gap-2'>
 											<IconVolume className='h-4 w-4 text-blue-500' />
 											Start muted
-										</span>
+											</span>
+										</Switch.Content>
 									</Switch>
 								</span>
 							</Tooltip>

@@ -420,7 +420,6 @@ export default function ControllerClient({ overlayId, controllerToken }: { overl
 										<div className='mt-4 flex items-center gap-3'>
 											{playback.muted ? <IconVolumeOff size={18} className='shrink-0 text-danger' /> : <IconVolume size={18} className='shrink-0 text-default-500' />}
 											<Slider
-												size='sm'
 												minValue={0}
 												maxValue={100}
 												step={1}
@@ -430,11 +429,15 @@ export default function ControllerClient({ overlayId, controllerToken }: { overl
 													const final = Number(Array.isArray(value) ? value[0] : value);
 													await setVolume(final);
 												}}
-												color='primary'
 												isDisabled={mounted ? isApplyingVolume || interactiveControlsDisabled : false}
 												aria-label='Set volume'
 												className='flex-1'
-											/>
+											>
+												<Slider.Track className='w-full'>
+													<Slider.Fill />
+													<Slider.Thumb />
+												</Slider.Track>
+											</Slider>
 										</div>
 										{controlsDisabled ? <p className='mt-3 text-xs text-warning-700'>Unlock controls to change volume or mute.</p> : null}
 									</div>

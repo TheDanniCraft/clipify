@@ -131,9 +131,22 @@ jest.mock("@heroui/react", () => {
 		),
 		AutocompleteItem: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
 		SelectItem: ({ children, ...props }: { children: React.ReactNode }) => <option {...props}>{children}</option>,
-		Switch: ({ children }: { children: React.ReactNode }) => <label>{children}</label>,
-		Checkbox: ({ children }: { children?: React.ReactNode }) => <label>{children}</label>,
-		Slider: () => <div />,
+		Switch: Object.assign(({ children }: { children: React.ReactNode }) => <label>{children}</label>, {
+			Content: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
+			Control: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
+			Thumb: () => <span />,
+		}),
+		Checkbox: Object.assign(({ children }: { children?: React.ReactNode }) => <label>{children}</label>, {
+			Content: ({ children }: { children?: React.ReactNode }) => <span>{children}</span>,
+			Control: ({ children }: { children?: React.ReactNode }) => <span>{children}</span>,
+			Indicator: () => null,
+		}),
+		Slider: Object.assign(({ children }: { children?: React.ReactNode }) => <div>{children}</div>, {
+			Output: () => null,
+			Track: ({ children }: { children?: React.ReactNode | ((value: { state: { values: number[] } }) => React.ReactNode) }) => <div>{typeof children === "function" ? children({ state: { values: [0, 60] } }) : children}</div>,
+			Fill: () => null,
+			Thumb: () => null,
+		}),
 		NumberInput: () => <div />,
 		DateRangePicker: ({ label }: { label?: string }) => <div>{label}</div>,
 		Card: Object.assign(({ children }: { children: React.ReactNode }) => <div>{children}</div>, {

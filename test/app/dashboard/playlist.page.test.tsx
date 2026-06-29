@@ -83,7 +83,11 @@ jest.mock("@heroui/react", () => ({
 		Content: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
 		Header: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
 	}),
-	Checkbox: ({ children }: { children?: React.ReactNode }) => <label>{children}</label>,
+	Checkbox: Object.assign(({ children }: { children?: React.ReactNode }) => <label>{children}</label>, {
+		Content: ({ children }: { children?: React.ReactNode }) => <span>{children}</span>,
+		Control: ({ children }: { children?: React.ReactNode }) => <span>{children}</span>,
+		Indicator: () => null,
+	}),
 	DateRangePicker: () => <div />,
 	Separator: () => <div />,
 	Link: ({ children }: { children?: React.ReactNode }) => <a>{children}</a>,
