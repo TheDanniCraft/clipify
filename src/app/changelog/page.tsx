@@ -1,4 +1,5 @@
-import { Card, CardBody, Chip, Link } from "@heroui/react";
+import { Card, Chip, Link } from "@heroui/react";
+
 import Footer from "@components/footer";
 import BasicNavbar from "@components/LandingPage/basicNavbar";
 import { GithubRelease } from "@types";
@@ -47,9 +48,10 @@ export default async function ChangelogPage() {
 											</div>
 											<div className='flex-1 space-y-1'>
 												<Card className='flex-1 p-4'>
-													<CardBody>
-														<Link className='pb-2' href={release.html_url} isExternal showAnchorIcon>
+													<Card.Content>
+														<Link className='pb-2' href={release.html_url} target='_blank' rel='noopener noreferrer'>
 															<h3 className='text-lg font-semibold'>Release {release.name || release.tag_name}</h3>
+															<Link.Icon />
 														</Link>
 														<p
 															className='text-sm'
@@ -57,7 +59,7 @@ export default async function ChangelogPage() {
 																__html: xss(release.body).replace(/(?:\r\n|\r|\n)/g, "<br />"),
 															}}
 														/>
-													</CardBody>
+													</Card.Content>
 												</Card>
 												<span className='text-xs mr-4 text-gray-400 ml-auto flex justify-end'>{release.published_at}</span>
 											</div>

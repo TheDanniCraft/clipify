@@ -3,7 +3,8 @@ import { getAdminExplorerPage } from "@actions/adminView";
 import AdminHealthCharts from "@components/adminHealthCharts";
 import AdminUserExplorer from "@components/adminUserExplorer";
 import DashboardNavbar from "@components/dashboardNavbar";
-import { Card, CardBody, CardHeader, Chip } from "@heroui/react";
+import { Card, Chip } from "@heroui/react";
+
 import { notFound } from "next/navigation";
 import { getInstanceHealthSnapshot } from "@lib/instanceHealth";
 
@@ -58,7 +59,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 		<DashboardNavbar user={adminUser} title='Admin' tagline='Operational telemetry and account entry points'>
 			<div className='mt-5 flex flex-col gap-4'>
 				<Card>
-					<CardHeader className='flex items-center justify-between pb-1'>
+					<Card.Header className='flex items-center justify-between pb-1'>
 						<div>
 							<p className='text-sm font-semibold'>Instance Health Snapshot</p>
 							<p className='text-xs text-default-500'>
@@ -68,11 +69,11 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 						<Chip color={health.status === "ok" ? "success" : health.status === "degraded" ? "warning" : "danger"} variant='flat'>
 							{health.status.toUpperCase()}
 						</Chip>
-					</CardHeader>
-					<CardBody className='pt-0'>
+					</Card.Header>
+					<Card.Content className='pt-0'>
 						<AdminHealthCharts health={health} />
-					</CardBody>
-					<CardBody className='grid grid-cols-1 gap-3 xl:grid-cols-2'>
+					</Card.Content>
+					<Card.Content className='grid grid-cols-1 gap-3 xl:grid-cols-2'>
 						<div className='rounded-lg border border-default-200 p-3'>
 							<p className='mb-2 text-xs font-semibold text-default-500'>Counts</p>
 							<div className='grid grid-cols-2 gap-2 text-xs'>
@@ -150,12 +151,12 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 								<p>Commit: {health.app.version}</p>
 							</div>
 						</div>
-					</CardBody>
+					</Card.Content>
 				</Card>
 
 				{error ? (
 					<Card className='border border-danger-300 bg-danger-50'>
-						<CardBody className='text-sm text-danger-700'>Admin action failed: {error}</CardBody>
+						<Card.Content className='text-sm text-danger-700'>Admin action failed: {error}</Card.Content>
 					</Card>
 				) : null}
 

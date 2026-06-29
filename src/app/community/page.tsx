@@ -1,4 +1,5 @@
-import { Avatar, Button, Chip, Link } from "@heroui/react";
+import { Avatar, Chip, Link } from "@heroui/react";
+
 import { IconBroadcast, IconBrandTwitch, IconCircleMinus, IconDiamondFilled, IconPlugConnected, IconSparkles } from "@tabler/icons-react";
 
 import { getPublicCommunityPageDataAction } from "@actions/community";
@@ -66,9 +67,9 @@ function StreamerRow({ streamer }: { streamer: CommunityPageStreamer }) {
 			</div>
 
 			{canOpenTwitch ? (
-				<Button as={Link} href={streamer.twitchUrl} rel='noreferrer' target='_blank' color='primary' radius='full' size='sm' variant='light' endContent={<IconBrandTwitch size={16} />}>
+				<Link href={streamer.twitchUrl} rel='noreferrer' target='_blank' className='rounded-full inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 font-medium bg-transparent text-foreground hover:bg-default/40 text-sm'>
 					Open Twitch
-				</Button>
+				{<IconBrandTwitch size={16} />}</Link>
 			) : null}
 		</div>
 	);
@@ -128,9 +129,9 @@ export default async function CommunityPage() {
 								</h1>
 								<p className='max-w-xl text-lg leading-8 text-white/70'>See how creators are using Clipify in real streams and how the community puts the tool to work.</p>
 								<div className='flex flex-col gap-3 sm:flex-row sm:items-center'>
-									<Button as={Link} href='/login' radius='full' className='h-10 w-[163px] bg-white px-[16px] py-[10px] text-small font-medium leading-5 text-black'>
+									<Link href='/login' className='h-10 w-[163px] bg-white px-[16px] py-[10px] text-small font-medium leading-5 text-black rounded-full inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 font-medium bg-accent text-accent-foreground hover:bg-accent-hover'>
 										Register now
-									</Button>
+									</Link>
 								</div>
 								<div className='mt-[-15px]'>
 									<CommunityHeroAvatars streamers={featuredStreamers} />

@@ -1,5 +1,6 @@
 import React from "react";
 import { Card, Chip } from "@heroui/react";
+
 import { RoadmapStatus, RoadmapItemData, type RoadmapColor } from "./roadmapData";
 import * as TablerIcons from "@tabler/icons-react";
 import { IconBolt, IconChevronRight, type Icon } from "@tabler/icons-react";

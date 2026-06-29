@@ -2,6 +2,7 @@
 
 import * as Sentry from "@sentry/nextjs";
 import { Button } from "@heroui/react";
+
 import { useEffect } from "react";
 import NextErrorPage from "@components/nextErrorPage";
 
@@ -16,7 +17,7 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
 			title='We hit a small problem'
 			description='This page could not load right now. Please try again.'
 			actions={
-				<Button color='primary' onPress={reset}>
+				<Button onPress={reset} variant='primary'>
 					Try again
 				</Button>
 			}

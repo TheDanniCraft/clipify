@@ -5,7 +5,8 @@ import { getAccessToken, getAllOverlays, getEditorOverlays, getOverlayOwnerPlans
 import { getUsersDetailsBulk } from "@actions/twitch";
 import DashboardNavbar from "@components/dashboardNavbar";
 import { AuthenticatedUser, Overlay } from "@types";
-import { Avatar, Button, Card, CardBody, CardHeader, Divider, Link, Select, SelectItem, Snippet, Spinner, Switch, Tooltip, useDisclosure } from "@heroui/react";
+import { Avatar, Button, Card, Divider, Link, Select, SelectItem, Snippet, Spinner, Switch, Tooltip, useDisclosure } from "@heroui/react";
+
 import { IconArrowLeft, IconCode, IconEye, IconLink, IconPlayerPlayFilled, IconSparkles, IconVolume } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -109,7 +110,8 @@ export default function EmbedTool() {
 	if (isInitializing)
 		return (
 			<div className='flex flex-col items-center justify-center w-full h-screen'>
-				<Spinner label='Loading embed tool...' />
+				<Spinner />
+				<span>Loading embed tool...</span>
 			</div>
 		);
 
@@ -118,10 +120,10 @@ export default function EmbedTool() {
 			<div className='flex flex-col items-center justify-center w-full h-screen gap-4 px-6 text-center'>
 				<p className='text-danger-400 text-sm'>{initializationError}</p>
 				<div className='flex items-center gap-2'>
-					<Button color='primary' onPress={() => window.location.reload()}>
+					<Button onPress={() => window.location.reload()} variant='primary'>
 						Retry
 					</Button>
-					<Button variant='flat' onPress={() => router.push("/logout")}>
+					<Button variant='tertiary' onPress={() => router.push("/logout")}>
 						Log out
 					</Button>
 				</div>
@@ -133,7 +135,8 @@ export default function EmbedTool() {
 		if (!user) {
 			return (
 				<div className='flex flex-col items-center justify-center w-full h-screen'>
-					<Spinner label='Loading embed tool...' />
+					<Spinner />
+					<span>Loading embed tool...</span>
 				</div>
 			);
 		}
@@ -141,12 +144,12 @@ export default function EmbedTool() {
 			<DashboardNavbar user={user} title='Embed Widget Tool' tagline='Generate embed codes for your overlays'>
 				<div className='mx-auto max-w-xl w-full px-6 py-12'>
 					<Card>
-						<CardBody className='flex flex-col gap-4'>
+						<Card.Content className='flex flex-col gap-4'>
 							<p className='text-default-700'>Create your first overlay to unlock the embed tool.</p>
-							<Button color='primary' onPress={() => router.push("/dashboard")}>
+							<Button onPress={() => router.push("/dashboard")} variant='primary'>
 								Create first overlay
 							</Button>
-						</CardBody>
+						</Card.Content>
 					</Card>
 				</div>
 			</DashboardNavbar>
@@ -160,13 +163,13 @@ export default function EmbedTool() {
 			<DashboardNavbar user={user!} title='Embed Widget Tool' tagline='Generate embed codes for your overlays'>
 				<div className='px-6 md:px-12 lg:px-16 py-8 grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 items-start max-w-7xl mx-auto w-full'>
 					<Card>
-						<CardHeader>
+						<Card.Header>
 							<div className='flex items-center gap-2'>
-								<Button isIconOnly variant='light' startContent={<IconArrowLeft />} onPress={() => router.push("/dashboard")} aria-label='Back to Dashboard' />
+								<Button isIconOnly variant='tertiary' onPress={() => router.push("/dashboard")} aria-label='Back to Dashboard'>{<IconArrowLeft />}</Button>
 								<h2 className='text-2xl font-bold flex items-center gap-2'>Select Overlay</h2>
 							</div>
-						</CardHeader>
-						<CardBody className='flex flex-col gap-4'>
+						</Card.Header>
+						<Card.Content className='flex flex-col gap-4'>
 							<Select
 								selectedKeys={overlayId === "" ? new Set([]) : new Set([overlayId])}
 								onSelectionChange={(selected) => {
@@ -205,7 +208,7 @@ export default function EmbedTool() {
 								</span>
 							</Tooltip>
 							{ownerPlan === "free" && (
-								<Button variant='solid' color='primary' onPress={onUpgradeOpen} className='text-white'>
+								<Button variant='primary' onPress={onUpgradeOpen} className='text-white'>
 									Upgrade to remove branding
 								</Button>
 							)}
@@ -272,22 +275,22 @@ export default function EmbedTool() {
 									{overlayId === "" ? "Select an overlay to see the embed code" : `<iframe src="${buildEmbedUrl(overlayId === "" ? "default" : overlayId)}" class="w-full h-full" title="Clipify Overlay" style="width: 100%; aspect-ratio: 16 / 9; border: 0;"></iframe>`}
 								</Snippet>
 							</div>
-						</CardBody>
+						</Card.Content>
 					</Card>
 
 					<Card>
-						<CardHeader>
+						<Card.Header>
 							<h2 className='text-2xl font-bold flex items-center gap-2'>
 								<IconEye className='h-5 w-5 text-primary' />
 								Preview
 							</h2>
-						</CardHeader>
-						<CardBody className='flex flex-col px-5 pb-5 w-full items-center justify-center'>
+						</Card.Header>
+						<Card.Content className='flex flex-col px-5 pb-5 w-full items-center justify-center'>
 							<iframe referrerPolicy='strict-origin-when-cross-origin' src={buildEmbedUrl(overlayId === "" ? "default" : overlayId)} className='w-full aspect-video rounded-lg' title='Overlay Preview' />
 							{ownerPlan === "free" && (
 								<p className='text-sm text-warning font-medium mt-2'>
 									Your current plan allows you to use the embed tool with Clipify branding.{" "}
-									<Link color='warning' className='text-sm' underline='always' href='/dashboard/settings'>
+									<Link className='text-sm text-warning underline underline-offset-2' href='/dashboard/settings'>
 										Upgrade now
 									</Link>{" "}
 									to remove the branding.
@@ -295,7 +298,7 @@ export default function EmbedTool() {
 							)}
 
 							{ownerPlan !== "free" && effectiveShowBanner && <p className='text-sm text-success font-medium mt-2'>You enabled Clipify branding for this embed. Thanks for supporting Clipify!</p>}
-						</CardBody>
+						</Card.Content>
 					</Card>
 				</div>
 			</DashboardNavbar>

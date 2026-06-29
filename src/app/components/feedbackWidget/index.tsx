@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Button, Form, Image, Input, Link, Popover, PopoverContent, PopoverTrigger, RadioGroup, Spinner, Tab, Tabs, Textarea } from "@heroui/react";
+import { Button, Form, Image, Input, Link, Popover, PopoverContent, PopoverTrigger, RadioGroup, Spinner, Tab, Tabs, Textarea, TextField, Label, FieldError } from "@heroui/react";
+
 import { IconChevronLeft, IconX } from "@tabler/icons-react";
 import { FiderPost, submitFeedback } from "@actions/feedbackWidget";
 import { RatingValueEnum } from "@types";
@@ -55,13 +56,10 @@ export default function FeedbackWidget() {
 			<div className='fixed bottom-6 right-6 z-50'>
 				<Popover isOpen={open} onOpenChange={setOpen} placement='left' offset={-40} shouldBlockScroll>
 					<PopoverTrigger>
-						<Button
-							onPress={() => {
+						<Button onPress={() => {
 								setOpen(true);
 								setState("default");
-							}}
-							className='fixed top-1/2 right-0 z-50 -translate-y-1/2 rounded-b-[0] shadow-lg text-xs rotate-[-90deg] origin-bottom-right'
-						>
+							}} className='fixed top-1/2 right-0 z-50 -translate-y-1/2 rounded-b-[0] shadow-lg text-xs rotate-[-90deg] origin-bottom-right'>
 							Feedback
 						</Button>
 					</PopoverTrigger>
@@ -69,8 +67,8 @@ export default function FeedbackWidget() {
 					<PopoverContent className='p-5 rounded-r-[0] h-screen w-screen sm:h-full sm:m-0 sm:w-full'>
 						<div>
 							<div className='flex justify-between mb-3'>
-								<Button size='sm' isIconOnly startContent={<IconChevronLeft />} variant='light' onPress={() => setState("default")} className={`${state === "default" || state === "loading" ? "invisible" : "visible"}`} />
-								<Button size='sm' isIconOnly startContent={<IconX />} variant='light' onPress={() => setOpen(false)} />
+								<Button size='sm' isIconOnly variant='tertiary' onPress={() => setState("default")} className={`${state === "default" || state === "loading" ? "invisible" : "visible"}`}>{<IconChevronLeft />}</Button>
+								<Button size='sm' isIconOnly variant='tertiary' onPress={() => setOpen(false)}>{<IconX />}</Button>
 							</div>
 							<div className='sm:max-h-[400px] overflow-scroll'>
 								<p className='text-xl font-bold'>Send us your feedback</p>
@@ -83,7 +81,7 @@ export default function FeedbackWidget() {
 												<Tab title='🆕 Feature' key='feature' />
 												<Tab title='🐞 Bug' key='bug' />
 											</Tabs>
-											<Input size='sm' name='title' fullWidth label='Title' placeholder='' isRequired minLength={10} maxLength={32} />
+											<TextField name='title' fullWidth isRequired><Label>Title</Label><Input placeholder='' minLength={10} maxLength={32} className='h-8 text-sm' /><FieldError /></TextField>
 											<Textarea name='comment' fullWidth placeholder="I like... / I don't like" minRows={6} maxRows={6} />
 											{type === "feedback" && (
 												<div className='flex justify-between text-2xl w-full'>
@@ -98,14 +96,15 @@ export default function FeedbackWidget() {
 													</RadioGroup>
 												</div>
 											)}
-											<Button fullWidth type='submit'>
+											<Button type='submit' className='w-full'>
 												Submit {type === "feedback" ? "Feedback" : type === "bug" ? "Bug Report" : "Feature Request"}
 											</Button>
 										</Form>
 									)}
 									{state === "loading" && (
 										<div className='flex flex-col items-center justify-center py-8'>
-											<Spinner size='lg' color='primary' label='Submitting feedback...' className='animate-pulse' />
+											<Spinner size='lg' color='accent' className='animate-pulse' />
+											<span>Submitting feedback...</span>
 										</div>
 									)}
 									{state === "success" && (
@@ -113,8 +112,9 @@ export default function FeedbackWidget() {
 											<Image src='https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Activities/Party%20Popper.png' alt='Success Image' width={64} className='pb-4' />
 											<p>Thank you for your {type === "feedback" ? "feedback" : type === "bug" ? "bug report" : "feature request"}!</p>
 											{response && "html_url" in response && (
-												<Link isExternal showAnchorIcon underline='always' href={response.html_url} size='sm' className='mb-5'>
+												<Link href={response.html_url} className='mb-5 underline underline-offset-2 text-sm' target='_blank' rel='noopener noreferrer'>
 													Open feedback
+													<Link.Icon />
 												</Link>
 											)}
 										</div>

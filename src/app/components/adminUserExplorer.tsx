@@ -2,7 +2,8 @@
 
 import { getAdminExplorerPage } from "@actions/adminView";
 import { startAdminView } from "@actions/auth";
-import { Button, Card, CardBody, CardHeader, Chip, Input, Spinner, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from "@heroui/react";
+import { Button, Card, Chip, Spinner, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow, TextField, Label, InputGroup } from "@heroui/react";
+
 import { IconSearch } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -118,7 +119,7 @@ export default function AdminUserExplorer({ users, initialPage, initialTotalPage
 
 	return (
 		<Card>
-			<CardHeader className='pb-1'>
+			<Card.Header className='pb-1'>
 				<div className='flex w-full flex-col gap-1 sm:flex-row sm:items-center sm:justify-between'>
 					<div>
 						<p className='text-sm font-semibold'>User Explorer</p>
@@ -128,23 +129,11 @@ export default function AdminUserExplorer({ users, initialPage, initialTotalPage
 						Showing {firstRowNumber}-{lastRowNumber} of {new Intl.NumberFormat("en-US").format(totalRows)}
 					</p>
 				</div>
-			</CardHeader>
-			<CardBody className='gap-3'>
+			</Card.Header>
+			<Card.Content className='gap-3'>
 				<div className='flex flex-col gap-2 sm:flex-row sm:items-end'>
 					<div className='sm:min-w-[320px]'>
-						<Input
-							id='user-explorer-search'
-							name='q'
-							value={inputValue}
-							onValueChange={setInputValue}
-							placeholder='username or user id'
-							label='Search users'
-							labelPlacement='outside'
-							size='sm'
-							variant='bordered'
-							startContent={<IconSearch className='text-default-400' size={16} />}
-							endContent={isLoading ? <Spinner size='sm' /> : null}
-						/>
+						<TextField name='q'><Label>Search users</Label><InputGroup><InputGroup.Prefix>{<IconSearch className='text-default-400' size={16} />}</InputGroup.Prefix><InputGroup.Input id='user-explorer-search' value={inputValue} onChange={(event) => (setInputValue)(event.target.value)} placeholder='username or user id' variant='secondary' className='h-8 text-sm' /><InputGroup.Suffix>{isLoading ? <Spinner size='sm' /> : null}</InputGroup.Suffix></InputGroup></TextField>
 					</div>
 				</div>
 
@@ -197,7 +186,7 @@ export default function AdminUserExplorer({ users, initialPage, initialTotalPage
 									<span className='text-default-600'>{row.lastLoginLabel}</span>
 								</TableCell>
 								<TableCell className='text-right'>
-									<Button size='sm' color='primary' variant='solid' onPress={() => void handleViewAsUser(row.id)} isLoading={switchingUserId === row.id} isDisabled={switchingUserId != null}>
+									<Button size='sm' variant='primary' onPress={() => void handleViewAsUser(row.id)} isPending={switchingUserId === row.id} isDisabled={switchingUserId != null}>
 										View as User
 									</Button>
 								</TableCell>
@@ -207,17 +196,17 @@ export default function AdminUserExplorer({ users, initialPage, initialTotalPage
 				</Table>
 
 				<div className='flex flex-wrap items-center justify-between gap-2'>
-					<Button size='sm' variant='flat' isDisabled={page <= 1 || isLoading} onPress={() => handlePageChange(page - 1)}>
+					<Button size='sm' variant='tertiary' isDisabled={page <= 1 || isLoading} onPress={() => handlePageChange(page - 1)}>
 						Previous
 					</Button>
 					<p className='text-xs text-default-500'>
 						Page {page} / {totalPages}
 					</p>
-					<Button size='sm' variant='flat' isDisabled={page >= totalPages || isLoading} onPress={() => handlePageChange(page + 1)}>
+					<Button size='sm' variant='tertiary' isDisabled={page >= totalPages || isLoading} onPress={() => handlePageChange(page + 1)}>
 						Next
 					</Button>
 				</div>
-			</CardBody>
+			</Card.Content>
 		</Card>
 	);
 }

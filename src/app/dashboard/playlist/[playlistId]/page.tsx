@@ -3,7 +3,9 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { getAllPlaylists, getPlaylistClips, previewImportPlaylistClips, savePlaylist, upsertPlaylistClips } from "@actions/database";
-import { addToast, Autocomplete, AutocompleteItem, Button, Card, CardBody, CardHeader, Checkbox, DateRangePicker, Divider, Image, Input, Link, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, NumberInput, Pagination, Spinner, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow, useDisclosure } from "@heroui/react";
+import { addToast, Autocomplete, AutocompleteItem, Button, Card, Checkbox, DateRangePicker, Divider, Image, Input, Link, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, NumberInput, Pagination, Spinner, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow, useDisclosure, TextField, InputGroup, CloseButton } from "@heroui/react";
+import type { Selection, SortDescriptor } from "@heroui/react";
+
 import { AuthenticatedUser, Game, OverlayType, TwitchClip } from "@types";
 import { IconAlertTriangle, IconArrowLeft, IconDeviceFloppy, IconDownload, IconGripVertical, IconPlus, IconSearch, IconTrash } from "@tabler/icons-react";
 import DashboardNavbar from "@components/dashboardNavbar";
@@ -13,7 +15,6 @@ import { getCachedClipsByOwner, getGamesDetailsBulk, getTwitchGames } from "@act
 import { getFeatureAccess } from "@lib/featureAccess";
 import TagsInput from "@components/tagsInput";
 import { parseDate } from "@internationalized/date";
-import type { Selection, SortDescriptor } from "@heroui/react";
 
 const ALL_CATEGORIES_OPTION: Game = {
 	id: "all",
@@ -351,7 +352,8 @@ export default function PlaylistPage() {
 	if (!isPlaylistResolved || !user) {
 		return (
 			<div className='flex h-screen w-full flex-col items-center justify-center'>
-				<Spinner label='Loading playlist' />
+				<Spinner />
+				<span>Loading playlist</span>
 			</div>
 		);
 	}
@@ -361,13 +363,13 @@ export default function PlaylistPage() {
 			<DashboardNavbar user={user} title='Playlist Management' tagline='Manage your curated clip sets'>
 				<div className='flex w-full justify-center p-4'>
 					<Card className='w-full max-w-2xl'>
-						<CardBody className='flex flex-col items-center gap-4 py-10 text-center'>
+						<Card.Content className='flex flex-col items-center gap-4 py-10 text-center'>
 							<div className='text-xl font-semibold'>Playlist not found</div>
 							<div className='text-sm text-default-500'>This playlist may not exist anymore, or you might not have access.</div>
-							<Button startContent={<IconArrowLeft size={16} />} onPress={() => router.push("/dashboard")}>
+							<Button onPress={() => router.push("/dashboard")}>{<IconArrowLeft size={16} />}
 								Back to Dashboard
 							</Button>
-						</CardBody>
+						</Card.Content>
 					</Card>
 				</div>
 			</DashboardNavbar>
@@ -378,34 +380,27 @@ export default function PlaylistPage() {
 		<DashboardNavbar user={user!} title='Playlist Management' tagline='Manage your curated clip sets'>
 			<div className='flex flex-col items-center justify-center w-full p-4'>
 				<Card className='w-full max-w-4xl'>
-					<CardHeader className='justify-between'>
+					<Card.Header className='justify-between'>
 						<div className='flex items-center gap-2'>
-							<Button isIconOnly variant='light' onPress={() => router.push("/dashboard")}>
+							<Button isIconOnly variant='tertiary' onPress={() => router.push("/dashboard")}>
 								<IconArrowLeft />
 							</Button>
-							<Input value={playlistNameDraft} onValueChange={setPlaylistNameDraft} size='sm' className='min-w-[260px]' placeholder='Playlist name' />
+							<TextField className='min-w-[260px]'><Input value={playlistNameDraft} onChange={(event) => (setPlaylistNameDraft)(event.target.value)} placeholder='Playlist name' className='h-8 text-sm' /></TextField>
 						</div>
 						<div className='flex items-center gap-2'>
-							<Button color='primary' variant='solid' startContent={<IconPlus size={18} />} className='font-semibold px-4' onPress={handleOpenAddClips}>
+							<Button variant='primary' className='font-semibold px-4' onPress={handleOpenAddClips}>{<IconPlus size={18} />}
 								Add Clips
 							</Button>
-							<Button
-								variant='flat'
-								startContent={<IconDownload size={16} />}
-								onPress={() => {
+							<Button variant='tertiary' onPress={() => {
 									if (canUseAutoImport) {
 										onImportOpen();
 										return;
 									}
 									onAutoImportLockedOpen();
-								}}
-							>
+								}}>{<IconDownload size={16} />}
 								Auto Import
 							</Button>
-							<Button
-								color='primary'
-								startContent={<IconDeviceFloppy size={16} />}
-								onPress={async () => {
+							<Button onPress={async () => {
 									if (!playlistId) return;
 									const nextName = playlistNameDraft.trim();
 									if (!nextName) {
@@ -431,15 +426,13 @@ export default function PlaylistPage() {
 									}
 
 									addToast({ title: "Playlist saved", color: "success" });
-								}}
-								isDisabled={!canSavePlaylist || !playlistNameDraft.trim()}
-							>
+								}} isDisabled={!canSavePlaylist || !playlistNameDraft.trim()} variant='primary'>{<IconDeviceFloppy size={16} />}
 								Save Playlist
 							</Button>
 						</div>
-					</CardHeader>
+					</Card.Header>
 					<Divider />
-					<CardBody>
+					<Card.Content>
 						{isFreePlaylistLimitActive && (
 							<div className='mb-4 rounded-lg border border-default-200 bg-content2 px-3 py-2'>
 								<div className='mb-2 flex items-center justify-between text-xs text-default-600'>
@@ -455,31 +448,20 @@ export default function PlaylistPage() {
 						)}
 						<div className='mb-4 text-sm text-default-500'>Reorder clips as needed. Changes are applied when you click Save Playlist.</div>
 						<div className='mb-3 flex items-center gap-2'>
-							<Button
-								size='sm'
-								variant='flat'
-								onPress={() => {
+							<Button size='sm' variant='tertiary' onPress={() => {
 									if (playlistClips.length === 0) return;
 									setSelectedPlaylistClipIds(new Set(playlistClips.map((clip) => clip.id)));
-								}}
-								isDisabled={playlistClips.length === 0}
-							>
+								}} isDisabled={playlistClips.length === 0}>
 								Select all
 							</Button>
-							<Button size='sm' variant='light' onPress={() => setSelectedPlaylistClipIds(new Set())} isDisabled={selectedPlaylistClipIds.size === 0}>
+							<Button size='sm' variant='tertiary' onPress={() => setSelectedPlaylistClipIds(new Set())} isDisabled={selectedPlaylistClipIds.size === 0}>
 								Clear
 							</Button>
-							<Button
-								size='sm'
-								color='danger'
-								variant='flat'
-								onPress={() => {
+							<Button size='sm' variant='danger-soft' onPress={() => {
 									if (selectedPlaylistClipIds.size === 0) return;
 									setPlaylistClips((prev) => prev.filter((clip) => !selectedPlaylistClipIds.has(clip.id)));
 									setSelectedPlaylistClipIds(new Set());
-								}}
-								isDisabled={selectedPlaylistClipIds.size === 0}
-							>
+								}} isDisabled={selectedPlaylistClipIds.size === 0}>
 								Remove selected ({selectedPlaylistClipIds.size})
 							</Button>
 						</div>
@@ -530,11 +512,7 @@ export default function PlaylistPage() {
 											{clip.creator_name} • {clip.view_count} views • {clip.duration}s
 										</div>
 									</div>
-									<Button
-										isIconOnly
-										variant='light'
-										color='danger'
-										onPress={async () => {
+									<Button isIconOnly variant='danger-soft' onPress={async () => {
 											const next = playlistClips.filter((c) => c.id !== clip.id);
 											setPlaylistClips(next);
 											setSelectedPlaylistClipIds((prev) => {
@@ -542,15 +520,14 @@ export default function PlaylistPage() {
 												nextIds.delete(clip.id);
 												return nextIds;
 											});
-										}}
-									>
+										}}>
 										<IconTrash size={18} />
 									</Button>
 								</li>
 							))}
 							{playlistClips.length === 0 && <div className='py-12 text-center text-default-400 border-2 border-dashed border-default-200 rounded-lg'>This playlist is empty. Add clips to get started!</div>}
 						</ul>
-					</CardBody>
+					</Card.Content>
 				</Card>
 			</div>
 
@@ -558,7 +535,7 @@ export default function PlaylistPage() {
 				<ModalContent className='max-h-[80vh]'>
 					<ModalHeader className='flex flex-col gap-1'>
 						<div>Select clips to add</div>
-						<Input size='sm' placeholder='Search by title or creator...' startContent={<IconSearch size={16} />} value={cachedClipsFilter} onValueChange={setCachedClipsFilter} isClearable />
+						<TextField><InputGroup><InputGroup.Prefix>{<IconSearch size={16} />}</InputGroup.Prefix><InputGroup.Input placeholder='Search by title or creator...' value={cachedClipsFilter} onChange={(event) => (setCachedClipsFilter)(event.target.value)} className='h-8 text-sm' />{cachedClipsFilter ? <CloseButton aria-label='Clear' onPress={() => (setCachedClipsFilter)("")} /> : null}</InputGroup></TextField>
 					</ModalHeader>
 					<ModalBody className='overflow-y-auto'>
 						<Table
@@ -595,7 +572,7 @@ export default function PlaylistPage() {
 									Date
 								</TableColumn>
 							</TableHeader>
-							<TableBody items={paginatedCachedClips ?? []} emptyContent={cachedClips === undefined ? <Spinner label='Loading clips...' /> : <div className='text-default-400'>No clips found in cache.</div>}>
+							<TableBody items={paginatedCachedClips ?? []} emptyContent={cachedClips === undefined ? <span className='inline-flex items-center gap-2'><Spinner />Loading clips...</span> : <div className='text-default-400'>No clips found in cache.</div>}>
 								{(item) => (
 									<TableRow key={item.id}>
 										<TableCell>
@@ -615,10 +592,10 @@ export default function PlaylistPage() {
 					</ModalBody>
 					<ModalFooter>
 						{wouldExceedFreeLimit && <div className='mr-auto text-xs text-danger'>Free plan limit is {FREE_PLAYLIST_CLIP_LIMIT} clips per playlist.</div>}
-						<Button variant='light' onPress={onAddClipsOpenChange}>
+						<Button variant='tertiary' onPress={onAddClipsOpenChange}>
 							Cancel
 						</Button>
-						<Button color='primary' onPress={handleAddSelectedClips} isDisabled={selectedIds.length === 0 || wouldExceedFreeLimit}>
+						<Button onPress={handleAddSelectedClips} isDisabled={selectedIds.length === 0 || wouldExceedFreeLimit} variant='primary'>
 							Add selected clips
 						</Button>
 					</ModalFooter>
@@ -691,18 +668,13 @@ export default function PlaylistPage() {
 						<TagsInput fullWidth label='Blacklisted Words' value={importBlacklistWords} onValueChange={setImportBlacklistWords} />
 					</ModalBody>
 					<ModalFooter>
-						<Button variant='light' onPress={onImportClose}>
+						<Button variant='tertiary' onPress={onImportClose}>
 							Cancel
 						</Button>
-						<Button
-							color='primary'
-							startContent={<IconDownload size={16} />}
-							isDisabled={!canUseAutoImport || !playlistId || !importCategoryId}
-							onPress={() => {
+						<Button isDisabled={!canUseAutoImport || !playlistId || !importCategoryId} onPress={() => {
 								if (playlistClips.length > 0) setPendingImportMode("append");
 								else runImport("replace");
-							}}
-						>
+							}} variant='primary'>{<IconDownload size={16} />}
 							Import
 						</Button>
 					</ModalFooter>
@@ -716,12 +688,12 @@ export default function PlaylistPage() {
 						<div className='text-sm text-default-600'>Auto import is available on Pro. Free includes one playlist with up to {FREE_PLAYLIST_CLIP_LIMIT} clips.</div>
 					</ModalBody>
 					<ModalFooter>
-						<Button variant='light' onPress={onAutoImportLockedOpenChange}>
+						<Button variant='tertiary' onPress={onAutoImportLockedOpenChange}>
 							Close
 						</Button>
-						<Button as={Link} href='/dashboard/settings' color='primary'>
+						<Link href='/dashboard/settings' className='inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 font-medium bg-accent text-accent-foreground hover:bg-accent-hover'>
 							Upgrade
-						</Button>
+						</Link>
 					</ModalFooter>
 				</ModalContent>
 			</Modal>
@@ -733,22 +705,16 @@ export default function PlaylistPage() {
 						<div className='text-sm text-default-600'>This playlist already has clips. Do you want to replace it or append imported clips?</div>
 					</ModalBody>
 					<ModalFooter>
-						<Button
-							variant='light'
-							onPress={async () => {
+						<Button variant='tertiary' onPress={async () => {
 								setPendingImportMode(null);
 								await runImport("append");
-							}}
-						>
+							}}>
 							Append
 						</Button>
-						<Button
-							color='danger'
-							onPress={async () => {
+						<Button onPress={async () => {
 								setPendingImportMode(null);
 								await runImport("replace");
-							}}
-						>
+							}} variant='danger'>
 							Replace
 						</Button>
 					</ModalFooter>
@@ -772,10 +738,10 @@ export default function PlaylistPage() {
 						</p>
 					</ModalBody>
 					<ModalFooter>
-						<Button variant='light' onPress={navGuard.reject} aria-label='Cancel'>
+						<Button variant='tertiary' onPress={navGuard.reject} aria-label='Cancel'>
 							Cancel
 						</Button>
-						<Button color='danger' onPress={navGuard.accept} aria-label='Discard Changes'>
+						<Button onPress={navGuard.accept} aria-label='Discard Changes' variant='danger'>
 							Discard changes
 						</Button>
 					</ModalFooter>

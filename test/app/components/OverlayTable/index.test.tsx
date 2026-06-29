@@ -113,7 +113,12 @@ jest.mock("@heroui/react", () => {
 		TableBody: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 		TableRow: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 		TableCell: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-		Input: ({ value, onValueChange, placeholder }: { value?: string; onValueChange?: (value: string) => void; placeholder?: string }) => <input value={value ?? ""} placeholder={placeholder} onChange={(event) => onValueChange?.(event.target.value)} />,
+		TextField: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+		InputGroup: Object.assign(({ children }: { children: React.ReactNode }) => <div>{children}</div>, {
+			Prefix: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
+			Suffix: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
+			Input: (props: React.InputHTMLAttributes<HTMLInputElement>) => <input {...props} />,
+		}),
 		Button: ({ children, onPress, onClick }: { children: React.ReactNode; onPress?: () => void; onClick?: () => void }) => <button onClick={() => (onPress ? onPress() : onClick ? onClick() : undefined)}>{children}</button>,
 		RadioGroup: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 		Radio: ({ children }: { children: React.ReactNode }) => <label>{children}</label>,

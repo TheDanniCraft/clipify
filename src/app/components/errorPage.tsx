@@ -1,4 +1,5 @@
-import { Card, CardBody, CardHeader } from "@heroui/react";
+import { Card } from "@heroui/react";
+
 import Image from "next/image";
 import type { ReactNode } from "react";
 
@@ -14,14 +15,14 @@ export default function ErrorPage({ title, description, actions, imageSrc = "/cl
 	return (
 		<main className='mx-auto flex min-h-screen w-full max-w-3xl items-center justify-center px-4 py-8'>
 			<Card className='w-full border border-primary/20 bg-content1/80 backdrop-blur'>
-				<CardHeader className='flex flex-col items-center gap-3 pb-2 text-center'>
+				<Card.Header className='flex flex-col items-center gap-3 pb-2 text-center'>
 					<Image src={imageSrc} alt={imageAlt} width={80} height={80} className='h-20 w-20' />
 					<h1 className='text-xl font-semibold'>{title}</h1>
-				</CardHeader>
-				<CardBody className='flex flex-col items-center gap-4 pt-1 text-center'>
+				</Card.Header>
+				<Card.Content className='flex flex-col items-center gap-4 pt-1 text-center'>
 					<p className='max-w-xl text-sm text-default-500'>{description}</p>
 					{actions ? <div className='flex flex-wrap items-center justify-center gap-2'>{actions}</div> : null}
-				</CardBody>
+				</Card.Content>
 			</Card>
 		</main>
 	);

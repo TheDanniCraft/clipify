@@ -4,7 +4,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useParams, useRouter } from "next/navigation";
 import { createPlaylist, getClipCacheStatus, getOverlay, getOverlayOwnerPlan, getPlaylistsForOwner, previewImportPlaylistClips, saveOverlay, savePlaylist, upsertPlaylistClips } from "@actions/database";
-import { addToast, Autocomplete, AutocompleteItem, Button, Card, CardBody, CardHeader, Checkbox, Chip, DateRangePicker, Divider, Form, Image, Input, Link, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, NumberInput, Select, SelectItem, Slider, Snippet, Spinner, Switch, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow, Tooltip, useDisclosure } from "@heroui/react";
+import { addToast, Autocomplete, AutocompleteItem, Button, Card, Checkbox, Chip, DateRangePicker, Divider, Form, Image, Input, Link, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, NumberInput, Select, SelectItem, Slider, Snippet, Spinner, Switch, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow, Tooltip, useDisclosure, TextField, Label, FieldError, InputGroup, CloseButton } from "@heroui/react";
+import type { Selection, SortDescriptor } from "@heroui/react";
+
 import { AuthenticatedUser, Game, Overlay, OverlayType, Plan, PlaybackMode, StatusOptions, TwitchClip, TwitchReward } from "@types";
 import { IconAlertTriangle, IconArrowLeft, IconCrown, IconDeviceFloppy, IconDeviceRemote, IconDownload, IconGripVertical, IconInfoCircle, IconPaint, IconPlayerPauseFilled, IconPlayerPlayFilled, IconPlus, IconSearch, IconTrash } from "@tabler/icons-react";
 import DashboardNavbar from "@components/dashboardNavbar";
@@ -20,7 +22,6 @@ import ChatwootData from "@components/chatwootData";
 import { getTrialDaysLeft, isReverseTrialActive } from "@lib/featureAccess";
 import { usePlausible } from "next-plausible";
 import { trackPaywallEvent } from "@lib/paywallTracking";
-import type { Selection, SortDescriptor } from "@heroui/react";
 import { parseDate } from "@internationalized/date";
 
 const overlayTypes: { key: OverlayType; label: string }[] = [
@@ -496,7 +497,8 @@ export default function OverlaySettings() {
 	if (!overlayId || !overlay) {
 		return (
 			<div className='flex flex-col items-center justify-center w-full h-screen'>
-				<Spinner label='Loading overlay' />
+				<Spinner />
+				<span>Loading overlay</span>
 			</div>
 		);
 	}
@@ -757,23 +759,19 @@ export default function OverlaySettings() {
 
 				<div className='flex flex-col items-center justify-center w-full p-4'>
 					<Card className='w-full max-w-4xl'>
-						<CardHeader className='justify-between space-x-1'>
+						<Card.Header className='justify-between space-x-1'>
 							<div className='flex items-center'>
-								<Button
-									isIconOnly
-									variant='light'
-									onPress={() => {
+								<Button isIconOnly variant='tertiary' onPress={() => {
 										router.push(`${baseUrl}/dashboard`);
-									}}
-								>
+									}}>
 									<IconArrowLeft />
 								</Button>
 								<h1 className='text-xl font-bold'>Overlay Settings</h1>
 							</div>
 							<span className='text-sm text-gray-500'>ID: {overlayId}</span>
-						</CardHeader>
+						</Card.Header>
 						<Divider />
-						<CardBody>
+						<Card.Content>
 							<div className='flex items-center'>
 								<Form className='w-full' onSubmit={handleSubmit}>
 									<div className='flex items-center w-full space-x-2'>
@@ -797,21 +795,14 @@ export default function OverlaySettings() {
 											</Snippet>
 										</div>
 										<Tooltip content={ownerPlan === Plan.Pro ? "Open remote controller" : "Remote controller is a Pro feature"}>
-											<Button
-												isIconOnly
-												variant='flat'
-												color='secondary'
-												isDisabled={!controllerEnabled}
-												aria-label='Open remote controller'
-												onPress={() => {
+											<Button isIconOnly variant='tertiary' isDisabled={!controllerEnabled} aria-label='Open remote controller' onPress={() => {
 													if (!controllerUrl || ownerPlan !== Plan.Pro) return;
 													window.open(controllerUrl, "_blank", "noopener,noreferrer");
-												}}
-											>
+												}}>
 												<IconDeviceRemote size={18} />
 											</Button>
 										</Tooltip>
-										<Button type='submit' color='primary' isIconOnly isDisabled={!isFormDirty()} aria-label='Save Overlay Settings'>
+										<Button type='submit' isIconOnly isDisabled={!isFormDirty()} aria-label='Save Overlay Settings' variant='primary'>
 											<IconDeviceFloppy />
 										</Button>
 									</div>
@@ -820,7 +811,7 @@ export default function OverlaySettings() {
 											<IconAlertTriangle size={16} className='mr-2 flex-shrink-0' />
 											<span className='text-center'>
 												Do not share this URL publicly. For embedding on websites, use the{" "}
-												<Link color='warning' underline='always' className='text-xs' href={`${baseUrl}/dashboard/embed?oid=${overlayId}`}>
+												<Link className='text-xs text-warning underline underline-offset-2' href={`${baseUrl}/dashboard/embed?oid=${overlayId}`}>
 													embed widget tool
 												</Link>
 												.
@@ -830,14 +821,9 @@ export default function OverlaySettings() {
 											For OBS/Streamlabs browser sources, use <span className='font-semibold'>1920x1080</span> for best scaling.
 										</p>
 									</div>
-									<Input
-										value={overlay.name}
-										onValueChange={(value) => {
+									<TextField isRequired><Label>Overlay Name</Label><Input value={overlay.name} onChange={(event) => ((value) => {
 											setOverlay({ ...overlay, name: value });
-										}}
-										isRequired
-										label='Overlay Name'
-									/>
+										})(event.target.value)} /><FieldError /></TextField>
 									<div className='w-full flex items-center'>
 										<Select
 											isRequired
@@ -872,7 +858,7 @@ export default function OverlaySettings() {
 												<IconInfoCircle size={16} className='mt-0.5 text-warning-600' />
 												<span>{overlay.type === OverlayType.All ? "All-time crawl is still syncing. Older clips may not appear yet." : "Selected time range is not fully cached yet. Results may be incomplete until crawl catches up."}</span>
 											</div>
-											<Link href='/dashboard/settings' color='warning' underline='always' className='text-xs whitespace-nowrap'>
+											<Link href='/dashboard/settings' className='text-xs whitespace-nowrap text-warning underline underline-offset-2'>
 												View crawl status
 											</Link>
 										</div>
@@ -882,7 +868,7 @@ export default function OverlaySettings() {
 									{ownerPlan === Plan.Free && !ownerHasAdvancedAccess && (
 										<div className='w-full mb-4'>
 											<Card className='bg-warning-50 border border-warning-200 mb-2'>
-												<CardBody>
+												<Card.Content>
 													<div className='flex items-center gap-2 mb-1'>
 														<IconCrown className='text-warning-500' />
 														<span className='text-warning-800 font-semibold text-base'>Pro Feature Locked</span>
@@ -899,20 +885,14 @@ export default function OverlaySettings() {
 														<li>Theme studio with drag & drop layout</li>
 														<li>Priority support</li>
 													</ul>
-													<Button
-														color='warning'
-														variant='shadow'
-														isDisabled={user?.id !== overlay.ownerId}
-														onPress={() => {
+													<Button variant='primary' isDisabled={user?.id !== overlay.ownerId} onPress={() => {
 															trackPaywallEvent(plausible, "paywall_cta_click", {
 																source: "paywall_banner",
 																feature: "advanced_filters",
 																plan: user?.plan ?? "free",
 															});
 															onUpgradeOpen();
-														}}
-														className='mt-3 w-full font-semibold'
-													>
+														}} className='mt-3 w-full font-semibold'>
 														Upgrade to Pro
 													</Button>
 													{user?.id !== overlay.ownerId ? (
@@ -920,12 +900,12 @@ export default function OverlaySettings() {
 													) : (
 														<div className='mt-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning-300 bg-warning-100 px-3 py-2'>
 															<p className='text-xs text-warning-700'>{inTrial ? `Trial active: ${trialDaysLeft <= 1 ? "ends today." : `${trialDaysLeft} days left.`}` : "Start Pro now. Cancel anytime."}</p>
-															<Button size='sm' color='warning' variant='flat' onPress={onUpgradeOpen}>
+															<Button size='sm' variant='tertiary' onPress={onUpgradeOpen}>
 																Upgrade now
 															</Button>
 														</div>
 													)}
-												</CardBody>
+												</Card.Content>
 											</Card>
 										</div>
 									)}
@@ -939,31 +919,22 @@ export default function OverlaySettings() {
 										}}
 									>
 										<div className='flex w-full items-center px-2 mb-2 gap-1'>
-											<Button
-												onPress={async () => {
+											<Button onPress={async () => {
 													const reward = await createChannelReward(overlay.ownerId);
 													if (reward) {
 														setOverlay({ ...overlay, rewardId: reward.id });
 													}
-												}}
-												isDisabled={(ownerPlan === Plan.Free && !ownerHasAdvancedAccess) || !!overlay.rewardId}
-											>
+												}} isDisabled={(ownerPlan === Plan.Free && !ownerHasAdvancedAccess) || !!overlay.rewardId}>
 												Create Reward
 											</Button>
-											<Input
-												isClearable
-												onChange={(event) => {
+											<TextField><InputGroup><InputGroup.Input onChange={(event) => {
 													event.preventDefault();
-												}}
-												onClear={() => {
+												}} value={reward?.title} placeholder='Reward ID not set' />{reward?.title ? <CloseButton aria-label='Clear' onPress={() => {
 													if (reward) {
 														removeChannelReward(reward.id, overlay.ownerId);
 													}
 													setOverlay({ ...overlay, rewardId: null });
-												}}
-												value={reward?.title}
-												placeholder='Reward ID not set'
-											/>
+												}} /> : null}</InputGroup></TextField>
 											<Tooltip
 												content={
 													<div className='px-1 py-2'>
@@ -1025,13 +996,10 @@ export default function OverlaySettings() {
 															</SelectItem>,
 														]}
 													</Select>
-													<Button
-														onPress={() => {
+													<Button onPress={() => {
 															if (!overlay.playlistId) return;
 															router.push(`/dashboard/playlist/${overlay.playlistId}`);
-														}}
-														isDisabled={!overlay.playlistId}
-													>
+														}} isDisabled={!overlay.playlistId}>
 														Manage
 													</Button>
 												</div>
@@ -1144,14 +1112,14 @@ export default function OverlaySettings() {
 										)}
 										<Divider className='my-2' />
 										<div className='px-2 pb-2'>
-											<Button color='primary' variant='solid' fullWidth startContent={<IconPaint size={16} />} onPress={() => router.push(`/dashboard/overlay/${overlay.id}/theme`)}>
+											<Button variant='primary' onPress={() => router.push(`/dashboard/overlay/${overlay.id}/theme`)} className='w-full'>{<IconPaint size={16} />}
 												Customize Overlay Style
 											</Button>
 										</div>
 									</div>
 								</Form>
 							</div>
-						</CardBody>
+						</Card.Content>
 					</Card>
 				</div>
 
@@ -1191,30 +1159,24 @@ export default function OverlaySettings() {
 						<ModalHeader className='flex items-center justify-between'>
 							<div>{selectedPlaylist ? `Manage Playlist: ${selectedPlaylist.name}` : "Manage Playlist"}</div>
 							<div className='flex items-center gap-2 pr-4'>
-								<Button size='sm' color='primary' variant='solid' startContent={<IconPlus size={14} />} className='font-semibold' onPress={handleOpenAddClips} isDisabled={!selectedPlaylist}>
+								<Button size='sm' variant='primary' className='font-semibold' onPress={handleOpenAddClips} isDisabled={!selectedPlaylist}>{<IconPlus size={14} />}
 									Add clips
 								</Button>
-								<Button
-									size='sm'
-									variant='flat'
-									startContent={<IconDownload size={14} />}
-									onPress={() => {
+								<Button size='sm' variant='tertiary' onPress={() => {
 										if (!selectedPlaylist) return;
 										if (canUseAutoImport) {
 											onImportOpen();
 											return;
 										}
 										onAutoImportLockedOpen();
-									}}
-									isDisabled={!selectedPlaylist}
-								>
+									}} isDisabled={!selectedPlaylist}>{<IconDownload size={14} />}
 									Auto import
 								</Button>
 							</div>
 						</ModalHeader>
 						<ModalBody className='overflow-y-auto'>
 							<div className='mb-2'>
-								<Input size='sm' label='Playlist name' value={playlistNameDraft} onValueChange={setPlaylistNameDraft} placeholder='Playlist name' isDisabled={!selectedPlaylist} />
+								<TextField isDisabled={!selectedPlaylist}><Label>Playlist name</Label><Input value={playlistNameDraft} onChange={(event) => (setPlaylistNameDraft)(event.target.value)} placeholder='Playlist name' className='h-8 text-sm' /></TextField>
 							</div>
 							{isFreePlaylistLimitActive && (
 								<div className='mb-3 rounded-lg border border-default-200 bg-content2 px-3 py-2'>
@@ -1232,31 +1194,20 @@ export default function OverlaySettings() {
 							{playlistClips.length === 0 && <div className='py-8 text-center text-default-400'>No clips in this playlist. Click &quot;Add clips&quot; to start.</div>}
 							<div className='text-xs text-default-500'>Reorder clips as needed. Changes are applied when you click Save Playlist.</div>
 							<div className='flex items-center gap-2'>
-								<Button
-									size='sm'
-									variant='flat'
-									onPress={() => {
+								<Button size='sm' variant='tertiary' onPress={() => {
 										if (playlistClips.length === 0) return;
 										setSelectedPlaylistClipIds(new Set(playlistClips.map((clip) => clip.id)));
-									}}
-									isDisabled={playlistClips.length === 0}
-								>
+									}} isDisabled={playlistClips.length === 0}>
 									Select all
 								</Button>
-								<Button size='sm' variant='light' onPress={() => setSelectedPlaylistClipIds(new Set())} isDisabled={selectedPlaylistClipIds.size === 0}>
+								<Button size='sm' variant='tertiary' onPress={() => setSelectedPlaylistClipIds(new Set())} isDisabled={selectedPlaylistClipIds.size === 0}>
 									Clear
 								</Button>
-								<Button
-									size='sm'
-									color='danger'
-									variant='flat'
-									onPress={() => {
+								<Button size='sm' variant='danger-soft' onPress={() => {
 										if (selectedPlaylistClipIds.size === 0) return;
 										setPlaylistClips((prev) => prev.filter((clip) => !selectedPlaylistClipIds.has(clip.id)));
 										setSelectedPlaylistClipIds(new Set());
-									}}
-									isDisabled={selectedPlaylistClipIds.size === 0}
-								>
+									}} isDisabled={selectedPlaylistClipIds.size === 0}>
 									Remove selected ({selectedPlaylistClipIds.size})
 								</Button>
 							</div>
@@ -1307,20 +1258,14 @@ export default function OverlaySettings() {
 										</div>
 										<div className='flex items-center gap-2'>
 											<div className='text-xs text-default-500'>{clip.view_count} views</div>
-											<Button
-												isIconOnly
-												size='sm'
-												variant='light'
-												color='danger'
-												onPress={() => {
+											<Button isIconOnly size='sm' variant='danger-soft' onPress={() => {
 													setPlaylistClips((prev) => prev.filter((c) => c.id !== clip.id));
 													setSelectedPlaylistClipIds((prev) => {
 														const next = new Set(prev);
 														next.delete(clip.id);
 														return next;
 													});
-												}}
-											>
+												}}>
 												<IconTrash size={16} />
 											</Button>
 										</div>
@@ -1329,13 +1274,10 @@ export default function OverlaySettings() {
 							</ul>
 						</ModalBody>
 						<ModalFooter>
-							<Button variant='light' onPress={onPlaylistClose}>
+							<Button variant='tertiary' onPress={onPlaylistClose}>
 								Close
 							</Button>
-							<Button
-								color='primary'
-								startContent={<IconDeviceFloppy size={16} />}
-								onPress={async () => {
+							<Button onPress={async () => {
 									if (!overlay.playlistId) return;
 									const nextName = playlistNameDraft.trim();
 									if (!nextName) {
@@ -1361,9 +1303,7 @@ export default function OverlaySettings() {
 									}
 
 									addToast({ title: "Playlist saved", color: "success" });
-								}}
-								isDisabled={!overlay.playlistId || !canSaveManagedPlaylist || !playlistNameDraft.trim()}
-							>
+								}} isDisabled={!overlay.playlistId || !canSaveManagedPlaylist || !playlistNameDraft.trim()} variant='primary'>{<IconDeviceFloppy size={16} />}
 								Save Playlist
 							</Button>
 						</ModalFooter>
@@ -1374,7 +1314,7 @@ export default function OverlaySettings() {
 					<ModalContent className='max-h-[80vh]'>
 						<ModalHeader className='flex flex-col gap-1'>
 							<div>Select clips to add</div>
-							<Input size='sm' placeholder='Search by title or creator...' startContent={<IconSearch size={16} />} value={cachedClipsFilter} onValueChange={setCachedClipsFilter} isClearable />
+							<TextField><InputGroup><InputGroup.Prefix>{<IconSearch size={16} />}</InputGroup.Prefix><InputGroup.Input placeholder='Search by title or creator...' value={cachedClipsFilter} onChange={(event) => (setCachedClipsFilter)(event.target.value)} className='h-8 text-sm' />{cachedClipsFilter ? <CloseButton aria-label='Clear' onPress={() => (setCachedClipsFilter)("")} /> : null}</InputGroup></TextField>
 						</ModalHeader>
 						<ModalBody className='overflow-y-auto'>
 							<Table
@@ -1405,7 +1345,7 @@ export default function OverlaySettings() {
 										Date
 									</TableColumn>
 								</TableHeader>
-								<TableBody items={sortedCachedClips} emptyContent={cachedClips === undefined ? <Spinner label='Loading clips...' /> : <div className='text-default-400'>No clips found in cache.</div>}>
+								<TableBody items={sortedCachedClips} emptyContent={cachedClips === undefined ? <span className='inline-flex items-center gap-2'><Spinner />Loading clips...</span> : <div className='text-default-400'>No clips found in cache.</div>}>
 									{(item) => (
 										<TableRow key={item.id}>
 											<TableCell>
@@ -1425,10 +1365,10 @@ export default function OverlaySettings() {
 						</ModalBody>
 						<ModalFooter>
 							{wouldExceedFreeLimit && <div className='mr-auto text-xs text-danger'>Free plan limit is {FREE_PLAYLIST_CLIP_LIMIT} clips per playlist.</div>}
-							<Button variant='light' onPress={onAddClipsOpenChange}>
+							<Button variant='tertiary' onPress={onAddClipsOpenChange}>
 								Cancel
 							</Button>
-							<Button color='primary' onPress={handleAddSelectedClips} isDisabled={selectedIds.length === 0 || wouldExceedFreeLimit}>
+							<Button onPress={handleAddSelectedClips} isDisabled={selectedIds.length === 0 || wouldExceedFreeLimit} variant='primary'>
 								Add selected clips
 							</Button>
 						</ModalFooter>
@@ -1501,18 +1441,13 @@ export default function OverlaySettings() {
 							<TagsInput fullWidth label='Blacklisted Words' value={importBlacklistWords} onValueChange={setImportBlacklistWords} />
 						</ModalBody>
 						<ModalFooter>
-							<Button variant='light' onPress={onImportClose}>
+							<Button variant='tertiary' onPress={onImportClose}>
 								Cancel
 							</Button>
-							<Button
-								color='primary'
-								startContent={<IconDownload size={16} />}
-								isDisabled={!canUseAutoImport || !overlay.playlistId || !importCategoryId}
-								onPress={() => {
+							<Button isDisabled={!canUseAutoImport || !overlay.playlistId || !importCategoryId} onPress={() => {
 									if (playlistClips.length > 0) setPendingImportMode("append");
 									else runImport("replace");
-								}}
-							>
+								}} variant='primary'>{<IconDownload size={16} />}
 								Import
 							</Button>
 						</ModalFooter>
@@ -1526,22 +1461,16 @@ export default function OverlaySettings() {
 							<div className='text-sm text-default-600'>This playlist already has clips. Do you want to replace it or append imported clips?</div>
 						</ModalBody>
 						<ModalFooter>
-							<Button
-								variant='light'
-								onPress={async () => {
+							<Button variant='tertiary' onPress={async () => {
 									setPendingImportMode(null);
 									await runImport("append");
-								}}
-							>
+								}}>
 								Append
 							</Button>
-							<Button
-								color='danger'
-								onPress={async () => {
+							<Button onPress={async () => {
 									setPendingImportMode(null);
 									await runImport("replace");
-								}}
-							>
+								}} variant='danger'>
 								Replace
 							</Button>
 						</ModalFooter>
@@ -1555,10 +1484,10 @@ export default function OverlaySettings() {
 							<div className='text-sm text-default-600'>Auto import is available on Pro. Free includes one playlist with up to {FREE_PLAYLIST_CLIP_LIMIT} clips.</div>
 						</ModalBody>
 						<ModalFooter>
-							<Button variant='light' onPress={onAutoImportLockedOpenChange}>
+							<Button variant='tertiary' onPress={onAutoImportLockedOpenChange}>
 								Close
 							</Button>
-							<Button color='primary' onPress={onUpgradeOpen}>
+							<Button onPress={onUpgradeOpen} variant='primary'>
 								Upgrade
 							</Button>
 						</ModalFooter>
@@ -1582,10 +1511,10 @@ export default function OverlaySettings() {
 							</p>
 						</ModalBody>
 						<ModalFooter>
-							<Button variant='light' onPress={navGuard.reject} aria-label='Cancel'>
+							<Button variant='tertiary' onPress={navGuard.reject} aria-label='Cancel'>
 								Cancel
 							</Button>
-							<Button color='danger' onPress={navGuard.accept} aria-label='Discard Changes'>
+							<Button onPress={navGuard.accept} aria-label='Discard Changes' variant='danger'>
 								Discard changes
 							</Button>
 						</ModalFooter>

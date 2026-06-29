@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "./FakeTwitchChat.css";
 import { Modal, ModalBody, ModalContent, ModalHeader, useDisclosure } from "@heroui/react";
 
+
 type ChatMsg = {
 	id: string;
 	user: string;

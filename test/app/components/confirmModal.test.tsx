@@ -7,9 +7,10 @@ jest.mock("@heroui/react", () => ({
 	ModalContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 	ModalHeader: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 	ModalBody: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-	Input: ({ onValueChange, placeholder }: { onValueChange: (value: string) => void; placeholder?: string }) => (
-		<input aria-label='confirm-input' placeholder={placeholder} onChange={(e) => onValueChange(e.currentTarget.value)} />
-	),
+	TextField: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+	Label: ({ children }: { children: React.ReactNode }) => <label>{children}</label>,
+	FieldError: () => null,
+	Input: (props: React.InputHTMLAttributes<HTMLInputElement>) => <input aria-label='confirm-input' {...props} />,
 	Button: ({ onPress, children, isDisabled }: { onPress?: () => void; children: React.ReactNode; isDisabled?: boolean }) => (
 		<button onClick={onPress} disabled={isDisabled}>
 			{children}

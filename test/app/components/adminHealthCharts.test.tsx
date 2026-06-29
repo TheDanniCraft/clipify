@@ -4,9 +4,10 @@ import AdminHealthCharts from "@/app/components/adminHealthCharts";
 import type { InstanceHealthSnapshot } from "@/app/lib/instanceHealth";
 
 jest.mock("@heroui/react", () => ({
-	Card: ({ children }: { children: React.ReactNode }) => <section>{children}</section>,
-	CardHeader: ({ children }: { children: React.ReactNode }) => <header>{children}</header>,
-	CardBody: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+	Card: Object.assign(({ children }: { children: React.ReactNode }) => <section>{children}</section>, {
+		Header: ({ children }: { children: React.ReactNode }) => <header>{children}</header>,
+		Content: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+	}),
 }));
 
 jest.mock("recharts", () => ({

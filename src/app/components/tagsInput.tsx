@@ -1,7 +1,9 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState, type ComponentProps } from "react";
-import { Chip, Textarea, Popover, PopoverContent, Listbox, ListboxItem, type TextAreaProps } from "@heroui/react";
+import { Chip, Textarea, Popover, PopoverContent, Listbox, ListboxItem } from "@heroui/react";
+import type { TextAreaProps } from "@heroui/react";
+
 
 type ChipColor = "default" | "primary" | "secondary" | "success" | "warning" | "danger";
 type ChipVariant = "solid" | "bordered" | "flat" | "faded" | "light" | "shadow";

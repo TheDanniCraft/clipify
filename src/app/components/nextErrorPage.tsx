@@ -1,6 +1,6 @@
 "use client";
+import { Chip, Link } from "@heroui/react";
 
-import { Button, Chip, Link } from "@heroui/react";
 import Image from "next/image";
 import type { ReactNode } from "react";
 
@@ -32,9 +32,9 @@ export default function NextErrorPage({ contextLabel, code, title, description, 
 					<div className='flex flex-wrap items-center justify-center gap-3 lg:justify-start'>
 						{actions}
 						{showHomeAction ? (
-							<Button as={Link} href='/' variant='bordered' className='border-white/65 text-white'>
+							<Link href='/' className='border-white/65 text-white inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 font-medium bg-default text-foreground hover:bg-default/80'>
 								Go home
-							</Button>
+							</Link>
 						) : null}
 					</div>
 					<p className='text-xs text-white/65'>If this keeps happening, please contact support and include what you were doing.</p>

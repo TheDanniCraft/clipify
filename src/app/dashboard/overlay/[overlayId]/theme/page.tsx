@@ -7,7 +7,8 @@ import DashboardNavbar from "@components/dashboardNavbar";
 import UpgradeModal from "@components/upgradeModal";
 import { getFeatureAccess, getTrialDaysLeft, isReverseTrialActive } from "@lib/featureAccess";
 import { AuthenticatedUser, Overlay, Plan } from "@types";
-import { addToast, Avatar, Button, Card, CardBody, CardHeader, Divider, Input, Popover, PopoverContent, PopoverTrigger, Select, SelectItem, Slider, Spinner, Tab, Tabs, useDisclosure } from "@heroui/react";
+import { addToast, Avatar, Button, Card, Divider, Input, Popover, PopoverContent, PopoverTrigger, Select, SelectItem, Slider, Spinner, Tab, Tabs, useDisclosure, TextField, Label, Description, InputGroup } from "@heroui/react";
+
 import { IconArrowLeft, IconCrown, IconDeviceFloppy, IconPalette } from "@tabler/icons-react";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -371,13 +372,7 @@ function ThemeColorInput({ label, value, onChange, defaultValue, allowAlpha }: {
 	};
 
 	return (
-		<Input
-			type='text'
-			label={label}
-			value={value}
-			onValueChange={onChange}
-			endContent={
-				<Popover placement='bottom-end'>
+		<TextField type='text'><Label>{label}</Label><InputGroup><InputGroup.Input value={value} onChange={(event) => (onChange)(event.target.value)} /><InputGroup.Suffix>{<Popover placement='bottom-end'>
 					<PopoverTrigger>
 						<button type='button' className='h-7 w-7 rounded-md border border-default-300 transition-transform hover:scale-105' style={{ background: preview }} aria-label={`Pick ${label}`} />
 					</PopoverTrigger>
@@ -421,14 +416,12 @@ function ThemeColorInput({ label, value, onChange, defaultValue, allowAlpha }: {
 									</div>
 								</div>
 							) : null}
-							<Button size='sm' variant='light' onPress={() => onChange(defaultValue)}>
+							<Button size='sm' variant='tertiary' onPress={() => onChange(defaultValue)}>
 								Reset to default
 							</Button>
 						</div>
 					</PopoverContent>
-				</Popover>
-			}
-		/>
+				</Popover>}</InputGroup.Suffix></InputGroup></TextField>
 	);
 }
 
@@ -953,7 +946,8 @@ export default function OverlayStylePage() {
 	if (!overlay || !user) {
 		return (
 			<div className='flex items-center justify-center h-screen w-full'>
-				<Spinner label='Loading overlay style editor' />
+				<Spinner />
+				<span>Loading overlay style editor</span>
 			</div>
 		);
 	}
@@ -1017,39 +1011,39 @@ export default function OverlayStylePage() {
 
 				<div className='w-full p-4 md:p-6'>
 					<Card>
-						<CardHeader className='flex items-center justify-between gap-2'>
-							<Button isIconOnly variant='light' aria-label='Back to Overlay Settings' onPress={() => router.push(`/dashboard/overlay/${overlay.id}`)}>
+						<Card.Header className='flex items-center justify-between gap-2'>
+							<Button isIconOnly variant='tertiary' aria-label='Back to Overlay Settings' onPress={() => router.push(`/dashboard/overlay/${overlay.id}`)}>
 								<IconArrowLeft />
 							</Button>
 							<div className='flex items-center gap-2'>
-								<Button variant='flat' onPress={handleResetThemeDefaults}>
+								<Button variant='tertiary' onPress={handleResetThemeDefaults}>
 									Reset Theme
 								</Button>
-								<Button color='primary' startContent={<IconDeviceFloppy />} onPress={handleSave} isDisabled={!isFormDirty}>
+								<Button onPress={handleSave} isDisabled={!isFormDirty} variant='primary'>{<IconDeviceFloppy />}
 									Save Style
 								</Button>
 							</div>
-						</CardHeader>
-						<CardBody className='flex flex-col gap-4'>
+						</Card.Header>
+						<Card.Content className='flex flex-col gap-4'>
 							<div>
 								{!dragSupported && (
 									<Card className='mb-3 border border-warning-200 bg-warning-50'>
-										<CardBody className='text-warning-800 text-sm'>{dragBlockedReason === "narrow" ? "Drag & drop needs a wider viewport. Expand your browser width or switch to desktop for layout editing." : "Drag & drop positioning is not supported on mobile or touch-only devices. Switch to a desktop browser for layout editing."}</CardBody>
+										<Card.Content className='text-warning-800 text-sm'>{dragBlockedReason === "narrow" ? "Drag & drop needs a wider viewport. Expand your browser width or switch to desktop for layout editing." : "Drag & drop positioning is not supported on mobile or touch-only devices. Switch to a desktop browser for layout editing."}</Card.Content>
 									</Card>
 								)}
 								{ownerPlan === Plan.Free && !ownerHasAdvancedAccess ? (
 									<Card className='bg-warning-50 border border-warning-200 mb-2'>
-										<CardBody>
+										<Card.Content>
 											<div className='flex items-center gap-2 mb-1'>
 												<IconCrown className='text-warning-500' />
 												<span className='text-warning-800 font-semibold text-base'>Pro Feature Locked</span>
 											</div>
 											<p className='text-sm text-warning-700'>Theme Studio and drag-and-drop layout are available on Pro.</p>
-											<Button color='warning' variant='shadow' onPress={onUpgradeOpen} className='mt-3 w-full font-semibold'>
+											<Button variant='primary' onPress={onUpgradeOpen} className='mt-3 w-full font-semibold'>
 												Upgrade to Pro
 											</Button>
 											<p className='text-xs text-warning-600 text-center mt-2'>{inTrial ? `Trial active: ${trialDaysLeft <= 1 ? "ends today." : `${trialDaysLeft} days left.`}` : "Start Pro now. Cancel anytime."}</p>
-										</CardBody>
+										</Card.Content>
 									</Card>
 								) : null}
 
@@ -1130,13 +1124,13 @@ export default function OverlayStylePage() {
 									<SelectItem key='crt'>CRT (Old TV)</SelectItem>
 								</Select>
 								<Card className='lg:col-span-2 border border-default-200/80'>
-									<CardHeader className='pb-1'>
+									<Card.Header className='pb-1'>
 										<div>
 											<div className='text-sm font-semibold'>Typography</div>
 											<div className='text-xs text-default-500'>Pick a font source, then fine-tune only what you need.</div>
 										</div>
-									</CardHeader>
-									<CardBody className='pt-1 flex flex-col gap-3'>
+									</Card.Header>
+									<Card.Content className='pt-1 flex flex-col gap-3'>
 										<Tabs
 											selectedKey={currentFontMode}
 											onSelectionChange={(key) => {
@@ -1177,20 +1171,14 @@ export default function OverlayStylePage() {
 
 										{currentFontMode === "google" && (
 											<div className='grid grid-cols-1 lg:grid-cols-2 gap-3'>
-												<Input
-													type='text'
-													label='Google Font Family'
-													value={googleFontFamily}
-													onValueChange={(value) => {
+												<TextField type='text'><Label>Google Font Family</Label><Input value={googleFontFamily} onChange={(event) => ((value) => {
 														const family = (value || "Poppins").trim();
 														setOverlay({ ...overlay, themeFontFamily: encodeThemeFontSetting(`${family}, sans-serif`, buildGoogleFontUrl(family)) });
-													}}
-													description='Example: Poppins, Space Grotesk, Roboto Slab'
-												/>
-												<Input type='text' label='Google CSS URL' value={safeThemeFontUrl} isReadOnly />
+													})(event.target.value)} /><Description>Example: Poppins, Space Grotesk, Roboto Slab</Description></TextField>
+												<TextField type='text' isReadOnly><Label>Google CSS URL</Label><Input value={safeThemeFontUrl} /></TextField>
 											</div>
 										)}
-									</CardBody>
+									</Card.Content>
 								</Card>
 								<ThemeColorInput label='Text Color' value={overlay.themeTextColor} defaultValue='#FFFFFF' onChange={(value) => setOverlay({ ...overlay, themeTextColor: value })} />
 								<ThemeColorInput label='Background Color' value={overlay.themeBackgroundColor} defaultValue='rgba(10,10,10,0.65)' allowAlpha onChange={(value) => setOverlay({ ...overlay, themeBackgroundColor: value })} />
@@ -1199,7 +1187,7 @@ export default function OverlayStylePage() {
 									<ThemeColorInput label='Progress Gradient End' value={overlay.progressBarEndColor} defaultValue='#8D42F9' onChange={(value) => setOverlay({ ...overlay, progressBarEndColor: value })} />
 								</div>
 							</div>
-						</CardBody>
+						</Card.Content>
 					</Card>
 				</div>
 			</DashboardNavbar>

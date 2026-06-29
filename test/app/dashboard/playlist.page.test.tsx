@@ -67,16 +67,22 @@ jest.mock("@heroui/react", () => ({
 		</button>
 	),
 	Form: ({ children, onSubmit }: { children?: React.ReactNode; onSubmit?: (event: React.FormEvent<HTMLFormElement>) => void }) => <form onSubmit={onSubmit}>{children}</form>,
-	Input: ({ value, onValueChange, placeholder, ...props }: { value?: string; onValueChange?: (value: string) => void; placeholder?: string }) => (
-		<input {...props} placeholder={placeholder} value={value ?? ""} onChange={(event) => onValueChange?.(event.target.value)} />
-	),
+	TextField: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+	Input: (props: React.InputHTMLAttributes<HTMLInputElement>) => <input {...props} />,
+	InputGroup: Object.assign(({ children }: { children: React.ReactNode }) => <div>{children}</div>, {
+		Prefix: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
+		Suffix: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
+		Input: (props: React.InputHTMLAttributes<HTMLInputElement>) => <input {...props} />,
+	}),
+	CloseButton: ({ onPress }: { onPress?: () => void }) => <button type='button' aria-label='Clear' onClick={onPress} />,
 	Select: ({ children }: { children?: React.ReactNode }) => <select>{children}</select>,
 	SelectItem: ({ children }: { children?: React.ReactNode }) => <option>{children}</option>,
 	Autocomplete: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
 	AutocompleteItem: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
-	Card: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
-	CardBody: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
-	CardHeader: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+	Card: Object.assign(({ children }: { children?: React.ReactNode }) => <div>{children}</div>, {
+		Content: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+		Header: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+	}),
 	Checkbox: ({ children }: { children?: React.ReactNode }) => <label>{children}</label>,
 	DateRangePicker: () => <div />,
 	Divider: () => <div />,

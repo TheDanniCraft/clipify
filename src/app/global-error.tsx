@@ -3,6 +3,7 @@
 import * as Sentry from "@sentry/nextjs";
 import { useEffect } from "react";
 import { Button, Link } from "@heroui/react";
+
 import NextErrorPage from "@components/nextErrorPage";
 
 export default function GlobalError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
@@ -19,12 +20,12 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
 					description='Something unexpected happened. We logged the issue automatically, and your data is safe.'
 					actions={
 						<>
-							<Button color='primary' onPress={reset}>
+							<Button onPress={reset} variant='primary'>
 								Try again
 							</Button>
-							<Button as={Link} href='/dashboard' variant='flat' color='default'>
+							<Link href='/dashboard' className='inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 font-medium bg-transparent text-foreground hover:bg-default/40'>
 								Go to dashboard
-							</Button>
+							</Link>
 						</>
 					}
 				/>

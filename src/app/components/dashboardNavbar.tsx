@@ -3,6 +3,7 @@
 import { IconMoonFilled, IconSunFilled } from "@tabler/icons-react";
 import { useTheme } from "next-themes";
 import { Autocomplete, AutocompleteItem, Avatar, Badge, Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Link, Navbar, NavbarBrand, NavbarContent, NavbarItem, Spacer } from "@heroui/react";
+
 import { AuthenticatedUser, CampaignOffer, Role } from "@types";
 import Logo from "@components/logo";
 import CountdownTimer from "@components/countdownTimer";
@@ -129,7 +130,7 @@ export default function DashboardNavbar({ children, user, title, tagline }: { ch
 				</NavbarBrand>
 				<NavbarContent className='ml-auto h-12 max-w-fit items-center gap-0' justify='end'>
 					<NavbarItem>
-						<Button isIconOnly radius='full' variant='light' onPress={() => setTheme(theme === "dark" ? "light" : "dark")} aria-label='Toggle Theme'>
+						<Button isIconOnly variant='tertiary' onPress={() => setTheme(theme === "dark" ? "light" : "dark")} aria-label='Toggle Theme' className='rounded-full'>
 							{(theme ?? "dark") === "dark" ? <IconSunFilled className='text-primary-foreground/60' width={24} /> : <IconMoonFilled className='text-primary-foreground/60' width={24} />}
 						</Button>
 					</NavbarItem>
@@ -199,7 +200,7 @@ export default function DashboardNavbar({ children, user, title, tagline }: { ch
 						</div>
 						<div className='flex items-center gap-3 self-start lg:self-auto'>
 							{campaignOffer.endAt ? <CountdownTimer endAt={campaignOffer.endAt} tone='light' size='sm' showSeconds className='scale-90 origin-right' /> : null}
-							<Button size='sm' color='primary' onPress={() => router.push("/dashboard/settings?upgrade&cycle=yearly&source=paywall_banner&feature=active_campaign")}>
+							<Button size='sm' onPress={() => router.push("/dashboard/settings?upgrade&cycle=yearly&source=paywall_banner&feature=active_campaign")} variant='primary'>
 								Upgrade Today
 							</Button>
 						</div>
@@ -240,7 +241,7 @@ export default function DashboardNavbar({ children, user, title, tagline }: { ch
 									</AutocompleteItem>
 								)}
 							</Autocomplete>
-							<Button size='sm' color='danger' variant='flat' radius='md' onPress={handleExitAdminView} isDisabled={isClearingAdminView}>
+							<Button size='sm' variant='danger-soft' onPress={handleExitAdminView} isDisabled={isClearingAdminView} className='rounded-md'>
 								Exit
 							</Button>
 						</div>

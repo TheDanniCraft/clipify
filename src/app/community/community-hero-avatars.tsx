@@ -1,6 +1,6 @@
 "use client";
-
 import { Avatar } from "@heroui/react";
+
 
 import type { CommunityTeaserStreamer } from "@lib/community-types";
 

@@ -1,7 +1,8 @@
 "use client";
 
 import { type ReactNode, useEffect, useRef, useState } from "react";
-import { Card, CardBody, CardHeader } from "@heroui/react";
+import { Card } from "@heroui/react";
+
 import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, PolarAngleAxis, RadialBar, RadialBarChart, Tooltip, XAxis, YAxis } from "recharts";
 import type { InstanceHealthSnapshot } from "@lib/instanceHealth";
 
@@ -166,10 +167,10 @@ export default function AdminHealthCharts({ health }: { health: InstanceHealthSn
 	return (
 		<div className='grid grid-cols-1 gap-3 lg:grid-cols-2'>
 			<Card className='min-w-0 lg:col-span-2'>
-				<CardHeader className='pb-1'>
+				<Card.Header className='pb-1'>
 					<p className='text-sm font-semibold'>Active Users Trend</p>
-				</CardHeader>
-				<CardBody className='min-w-0'>
+				</Card.Header>
+				<Card.Content className='min-w-0'>
 					<MeasuredChart className='h-64 min-w-0'>
 						{(width) => (
 							<BarChart width={width} height={256} data={activityData} margin={{ top: 10, right: 8, left: -18, bottom: 4 }}>
@@ -185,14 +186,14 @@ export default function AdminHealthCharts({ health }: { health: InstanceHealthSn
 							</BarChart>
 						)}
 					</MeasuredChart>
-				</CardBody>
+				</Card.Content>
 			</Card>
 
 			<Card className='min-w-0'>
-				<CardHeader className='pb-1'>
+				<Card.Header className='pb-1'>
 					<p className='text-sm font-semibold'>User Activity Segments</p>
-				</CardHeader>
-				<CardBody className='min-w-0'>
+				</Card.Header>
+				<Card.Content className='min-w-0'>
 					<MeasuredChart className='h-56 min-w-0'>
 						{(width) => (
 							<BarChart width={width} height={224} data={userActivitySegments} margin={{ top: 10, right: 8, left: -18, bottom: 4 }}>
@@ -208,14 +209,14 @@ export default function AdminHealthCharts({ health }: { health: InstanceHealthSn
 							</BarChart>
 						)}
 					</MeasuredChart>
-				</CardBody>
+				</Card.Content>
 			</Card>
 
 			<Card className='min-w-0'>
-				<CardHeader className='pb-1'>
+				<Card.Header className='pb-1'>
 					<p className='text-sm font-semibold'>User Plan Split</p>
-				</CardHeader>
-				<CardBody className='min-w-0'>
+				</Card.Header>
+				<Card.Content className='min-w-0'>
 					<MeasuredChart className='h-56 min-w-0'>
 						{(width) => (
 							<PieChart width={width} height={224}>
@@ -228,14 +229,14 @@ export default function AdminHealthCharts({ health }: { health: InstanceHealthSn
 							</PieChart>
 						)}
 					</MeasuredChart>
-				</CardBody>
+				</Card.Content>
 			</Card>
 
 			<Card className='min-w-0 lg:col-span-2'>
-				<CardHeader className='pb-1'>
+				<Card.Header className='pb-1'>
 					<p className='text-sm font-semibold'>Overlay Distribution</p>
-				</CardHeader>
-				<CardBody className='grid min-w-0 gap-3 md:grid-cols-2'>
+				</Card.Header>
+				<Card.Content className='grid min-w-0 gap-3 md:grid-cols-2'>
 					<div className='rounded-lg border border-default-200 p-3'>
 						<p className='mb-2 text-xs font-semibold text-default-500'>Overlay State</p>
 						<MeasuredChart className='h-56 min-w-0'>
@@ -266,14 +267,14 @@ export default function AdminHealthCharts({ health }: { health: InstanceHealthSn
 							)}
 						</MeasuredChart>
 					</div>
-				</CardBody>
+				</Card.Content>
 			</Card>
 
 			<Card className='min-w-0 lg:col-span-2'>
-				<CardHeader className='pb-1'>
+				<Card.Header className='pb-1'>
 					<p className='text-sm font-semibold'>Accounts and Playlists</p>
-				</CardHeader>
-				<CardBody className='grid min-w-0 gap-3 md:grid-cols-2'>
+				</Card.Header>
+				<Card.Content className='grid min-w-0 gap-3 md:grid-cols-2'>
 					<div className='rounded-lg border border-default-200 p-3'>
 						<p className='mb-2 text-xs font-semibold text-default-500'>Account Status</p>
 						<MeasuredChart className='h-56 min-w-0'>
@@ -307,14 +308,14 @@ export default function AdminHealthCharts({ health }: { health: InstanceHealthSn
 							)}
 						</MeasuredChart>
 					</div>
-				</CardBody>
+				</Card.Content>
 			</Card>
 
 			<Card className='min-w-0 lg:col-span-2'>
-				<CardHeader className='pb-1'>
+				<Card.Header className='pb-1'>
 					<p className='text-sm font-semibold'>Reason Breakdown</p>
-				</CardHeader>
-				<CardBody className='grid min-w-0 gap-3 md:grid-cols-2'>
+				</Card.Header>
+				<Card.Content className='grid min-w-0 gap-3 md:grid-cols-2'>
 					<div className='rounded-lg border border-default-200 p-3'>
 						<p className='mb-2 text-xs font-semibold text-default-500'>Disabled Reasons</p>
 						<MeasuredChart className='h-56 min-w-0'>
@@ -343,14 +344,14 @@ export default function AdminHealthCharts({ health }: { health: InstanceHealthSn
 							)}
 						</MeasuredChart>
 					</div>
-				</CardBody>
+				</Card.Content>
 			</Card>
 
 			<Card className='min-w-0 lg:col-span-2'>
-				<CardHeader className='pb-1'>
+				<Card.Header className='pb-1'>
 					<p className='text-sm font-semibold'>Entitlement Sources</p>
-				</CardHeader>
-				<CardBody className='min-w-0'>
+				</Card.Header>
+				<Card.Content className='min-w-0'>
 					<MeasuredChart className='h-64 min-w-0'>
 						{(width) => (
 							<BarChart width={width} height={256} data={entitlementSourceData} margin={{ top: 10, right: 8, left: -18, bottom: 28 }}>
@@ -362,14 +363,14 @@ export default function AdminHealthCharts({ health }: { health: InstanceHealthSn
 							</BarChart>
 						)}
 					</MeasuredChart>
-				</CardBody>
+				</Card.Content>
 			</Card>
 
 			<Card className='min-w-0 lg:col-span-2'>
-				<CardHeader className='pb-1'>
+				<Card.Header className='pb-1'>
 					<p className='text-sm font-semibold'>Newsletter and Auth Ops</p>
-				</CardHeader>
-				<CardBody className='grid min-w-0 gap-3 md:grid-cols-3'>
+				</Card.Header>
+				<Card.Content className='grid min-w-0 gap-3 md:grid-cols-3'>
 					<div className='rounded-lg border border-default-200 p-3'>
 						<p className='mb-2 text-xs font-semibold text-default-500'>Consent Sources</p>
 						<MeasuredChart className='h-56 min-w-0'>
@@ -420,14 +421,14 @@ export default function AdminHealthCharts({ health }: { health: InstanceHealthSn
 							)}
 						</MeasuredChart>
 					</div>
-				</CardBody>
+				</Card.Content>
 			</Card>
 
 			<Card className='min-w-0 lg:col-span-2'>
-				<CardHeader className='pb-1'>
+				<Card.Header className='pb-1'>
 					<p className='text-sm font-semibold'>Rewards and Overlay Config</p>
-				</CardHeader>
-				<CardBody className='grid min-w-0 gap-3 md:grid-cols-3'>
+				</Card.Header>
+				<Card.Content className='grid min-w-0 gap-3 md:grid-cols-3'>
 					<div className='rounded-lg border border-default-200 p-3'>
 						<p className='mb-2 text-xs font-semibold text-default-500'>Reward Usage</p>
 						<MeasuredChart className='h-56 min-w-0'>
@@ -474,14 +475,14 @@ export default function AdminHealthCharts({ health }: { health: InstanceHealthSn
 							)}
 						</MeasuredChart>
 					</div>
-				</CardBody>
+				</Card.Content>
 			</Card>
 
 			<Card className='min-w-0 lg:col-span-2'>
-				<CardHeader className='pb-1'>
+				<Card.Header className='pb-1'>
 					<p className='text-sm font-semibold'>Cache Composition</p>
-				</CardHeader>
-				<CardBody className='min-w-0'>
+				</Card.Header>
+				<Card.Content className='min-w-0'>
 					<MeasuredChart className='h-64 min-w-0'>
 						{(width) => (
 							<BarChart layout='vertical' width={width} height={256} data={cacheCompositionData} margin={{ top: 10, right: 8, left: -18, bottom: 4 }}>
@@ -496,14 +497,14 @@ export default function AdminHealthCharts({ health }: { health: InstanceHealthSn
 							</BarChart>
 						)}
 					</MeasuredChart>
-				</CardBody>
+				</Card.Content>
 			</Card>
 
 			<Card className='min-w-0'>
-				<CardHeader className='pb-1'>
+				<Card.Header className='pb-1'>
 					<p className='text-sm font-semibold'>Health Gauges</p>
-				</CardHeader>
-				<CardBody className='grid h-56 min-w-0 grid-cols-2 gap-2'>
+				</Card.Header>
+				<Card.Content className='grid h-56 min-w-0 grid-cols-2 gap-2'>
 					<div className='flex flex-col items-center justify-center'>
 						<MeasuredChart className='h-[120px] w-full min-w-0'>
 							{(width) => (
@@ -528,14 +529,14 @@ export default function AdminHealthCharts({ health }: { health: InstanceHealthSn
 						<p className='text-xs text-default-500'>Backfill</p>
 						<p className='text-sm font-semibold'>{formatPercent(health.cache.backfillCompleteRatio)}</p>
 					</div>
-				</CardBody>
+				</Card.Content>
 			</Card>
 
 			<Card className='min-w-0'>
-				<CardHeader className='pb-1'>
+				<Card.Header className='pb-1'>
 					<p className='text-sm font-semibold'>Scheduler Reliability</p>
-				</CardHeader>
-				<CardBody className='h-56 gap-3'>
+				</Card.Header>
+				<Card.Content className='h-56 gap-3'>
 					<div className='rounded-lg border border-primary-300/40 bg-gradient-to-r from-primary-500/15 via-primary-400/10 to-transparent p-3'>
 						<p className='text-xs font-semibold uppercase tracking-wide text-default-500'>DB Ping</p>
 						<p className='text-3xl font-semibold text-primary'>{dbPing.toLocaleString()}ms</p>
@@ -553,7 +554,7 @@ export default function AdminHealthCharts({ health }: { health: InstanceHealthSn
 							<span>Total: {totalRuns}</span>
 						</div>
 					</div>
-				</CardBody>
+				</Card.Content>
 			</Card>
 		</div>
 	);

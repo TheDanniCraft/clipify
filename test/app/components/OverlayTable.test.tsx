@@ -71,7 +71,12 @@ jest.mock("@heroui/react", () => {
 				{isLoading ? "Loading..." : children}
 			</button>
 		),
-		Input: ({ value, onValueChange, placeholder }: any) => <input value={value} onChange={(e) => onValueChange(e.target.value)} placeholder={placeholder} />,
+		TextField: ({ children }: any) => <div>{children}</div>,
+		InputGroup: Object.assign(({ children }: any) => <div>{children}</div>, {
+			Prefix: ({ children }: any) => <span>{children}</span>,
+			Suffix: ({ children }: any) => <span>{children}</span>,
+			Input: (props: any) => <input {...props} />,
+		}),
 		Chip: ({ children }: any) => <div>{children}</div>,
 		Divider: () => <hr />,
 		Tooltip: ({ children, content }: any) => <div title={typeof content === "string" ? content : ""}>{children}</div>,

@@ -1,6 +1,6 @@
 "use client";
-
 import { addToast, Button, Chip, Divider, Modal, ModalBody, ModalContent, ModalHeader, Tab, Tabs } from "@heroui/react";
+
 import { IconBolt, IconCheck, IconDiamondFilled, IconSparkles } from "@tabler/icons-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { generatePaymentLink } from "@actions/subscription";
@@ -216,9 +216,7 @@ export default function UpgradeModal({ isOpen, onOpenChange, user, title, descri
 					)}
 
 					<Divider className='my-3' />
-					<Button
-						color='primary'
-						onPress={async () => {
+					<Button onPress={async () => {
 							trackPaywallEvent(plausible, "paywall_cta_click", {
 								source,
 								feature,
@@ -242,10 +240,7 @@ export default function UpgradeModal({ isOpen, onOpenChange, user, title, descri
 								color: "danger",
 							});
 						}
-					}}
-					startContent={<IconDiamondFilled />}
-					isDisabled={!canUpgrade}
-					>
+					}} isDisabled={!canUpgrade} variant='primary'>{<IconDiamondFilled />}
 						{ctaLabel ?? "Upgrade to Pro"}
 					</Button>
 					<p className='text-xs text-default-400 mb-3'>You can cancel anytime in your billing portal.</p>

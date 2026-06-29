@@ -5,7 +5,8 @@ import { deleteUser, getClipCacheStatus, getSettings, saveSettings } from "@acti
 import ConfirmModal from "@components/confirmModal";
 import DashboardNavbar from "@components/dashboardNavbar";
 import { AuthenticatedUser, Plan, UserSettings } from "@types";
-import { addToast, Avatar, Button, Card, CardBody, CardHeader, Divider, Form, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Snippet, Spinner, Switch, Tooltip, useDisclosure } from "@heroui/react";
+import { addToast, Avatar, Button, Card, Divider, Form, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Snippet, Spinner, Switch, Tooltip, useDisclosure, TextField, Label, Description, FieldError } from "@heroui/react";
+
 import { IconAlertTriangle, IconArrowLeft, IconCreditCardFilled, IconDatabase, IconDeviceFloppy, IconDiamondFilled, IconInfoCircle, IconRefresh, IconTrash } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -157,7 +158,8 @@ export default function SettingsPage() {
 	if (!user) {
 		return (
 			<div className='flex items-center justify-center h-screen w-full'>
-				<Spinner label='Loading' />
+				<Spinner />
+				<span>Loading</span>
 			</div>
 		);
 	}
@@ -269,9 +271,9 @@ export default function SettingsPage() {
 
 			<DashboardNavbar user={user} title='Settings' tagline='Manage your settings'>
 				<Card className='mt-4'>
-					<CardHeader>
+					<Card.Header>
 						<div className='flex items-center gap-2 w-full justify-between'>
-							<Button isIconOnly variant='light' startContent={<IconArrowLeft />} onPress={() => router.push("/dashboard")} aria-label='Back to Dashboard' />
+							<Button isIconOnly variant='tertiary' onPress={() => router.push("/dashboard")} aria-label='Back to Dashboard'>{<IconArrowLeft />}</Button>
 							<div className='flex items-center gap-2'>
 								<div className='flex items-center overflow-hidden'>
 									<Snippet
@@ -289,8 +291,8 @@ export default function SettingsPage() {
 								</Tooltip>
 							</div>
 						</div>
-					</CardHeader>
-					<CardBody className='px-6 pt-0 pb-6'>
+					</Card.Header>
+					<Card.Content className='px-6 pt-0 pb-6'>
 						<div className='mb-5 flex items-center'>
 							<Avatar src={user.avatar} size='lg' className='mr-4' />
 							<div>
@@ -302,15 +304,12 @@ export default function SettingsPage() {
 						</div>
 						<div className='mb-6 flex flex-wrap gap-3'>
 							{canUpgradeFromBilling && (
-								<Button color='primary' startContent={<IconDiamondFilled />} isDisabled={!canUpgradeFromBilling} onPress={upgradeModalOnOpen} aria-label='Upgrade Account'>
+								<Button isDisabled={!canUpgradeFromBilling} onPress={upgradeModalOnOpen} aria-label='Upgrade Account' variant='primary'>{<IconDiamondFilled />}
 									Upgrade Account
 								</Button>
 							)}
 							{user.plan !== Plan.Free && (
-								<Button
-									color='primary'
-									startContent={<IconCreditCardFilled />}
-									onPress={async () => {
+								<Button onPress={async () => {
 										const link = await getPortalLink();
 										if (link) {
 											window.location.href = link;
@@ -321,8 +320,7 @@ export default function SettingsPage() {
 												color: "danger",
 											});
 										}
-									}}
-								>
+									}} variant='primary'>{<IconCreditCardFilled />}
 									Manage Subscription
 								</Button>
 							)}
@@ -348,19 +346,12 @@ export default function SettingsPage() {
 									</p>
 									<div className='flex items-center gap-2'>
 										<Tooltip content='Refresh statistics'>
-											<Button isIconOnly size='sm' variant='flat' onPress={handleRefreshStats} isLoading={isRefreshingStats} aria-label='Refresh statistics'>
-												<IconRefresh size={18} />
+											<Button isIconOnly size='sm' variant='tertiary' onPress={handleRefreshStats} isPending={isRefreshingStats} aria-label='Refresh statistics'>
+												{isRefreshingStats ? <Spinner color='current' size='sm' /> : <IconRefresh size={18} />}
 											</Button>
 										</Tooltip>
-										<Button
-											size='sm'
-											color='secondary'
-											variant='shadow'
-											className='font-semibold'
-											isLoading={isForceRefreshing}
-											isDisabled={isForceRefreshing || !clipForceRefreshStatus?.canRefresh}
-											onPress={handleForceRefreshCache}
-										>
+										<Button size='sm' variant='secondary' className='font-semibold' isPending={isForceRefreshing} isDisabled={isForceRefreshing || !clipForceRefreshStatus?.canRefresh} onPress={handleForceRefreshCache}>
+											{isForceRefreshing ? <Spinner color='current' size='sm' /> : null}
 											Force Refresh Cache
 										</Button>
 									</div>
@@ -397,13 +388,7 @@ export default function SettingsPage() {
 							<Divider />
 
 							<Form className='w-full' onSubmit={handleSubmit}>
-								<Input
-									label='Command Prefix'
-									type='text'
-									value={settings?.prefix || ""}
-									description='Maximum of 3 characters. This prefix will be used for all bot commands.'
-									maxLength={3}
-									onChange={(e) => {
+								<TextField type='text' isRequired><Label>Command Prefix</Label><Input value={settings?.prefix || ""} maxLength={3} onChange={(e) => {
 										if (!settings) {
 											return;
 										}
@@ -411,9 +396,7 @@ export default function SettingsPage() {
 										if (value.length <= 3) {
 											setSettings({ ...settings, prefix: value });
 										}
-									}}
-									required
-								/>
+									}} /><Description>Maximum of 3 characters. This prefix will be used for all bot commands.</Description><FieldError /></TextField>
 								<div className='w-full rounded-medium border border-default-200 bg-default-50/40 p-3'>
 									<div className='flex items-center justify-between gap-4'>
 										<div>
@@ -466,7 +449,7 @@ export default function SettingsPage() {
 								{isEffectivelyFree && !editorsAccess.allowed && (
 									<div className='w-full mb-4'>
 										<Card className='bg-warning-50 border border-warning-200 mb-2'>
-											<CardBody>
+											<Card.Content>
 												<div className='flex items-center gap-2 mb-1'>
 													<span className='text-warning-800 font-semibold text-base'>Pro Feature Locked</span>
 												</div>
@@ -478,10 +461,7 @@ export default function SettingsPage() {
 													<li>Remote control panel for live playback</li>
 													<li>Priority support</li>
 												</ul>
-												<Button
-													color='warning'
-													variant='shadow'
-													onPress={async () => {
+												<Button variant='primary' onPress={async () => {
 														if (!user) return;
 														trackPaywallEvent(plausible, "paywall_cta_click", {
 															source: "paywall_banner",
@@ -507,13 +487,11 @@ export default function SettingsPage() {
 																color: "danger",
 															});
 														}
-													}}
-													className='mt-3 w-full font-semibold'
-												>
+													}} className='mt-3 w-full font-semibold'>
 													Upgrade to Pro
 												</Button>
 												<p className='text-xs text-warning-600 text-center mt-2'>{inTrial ? `Trial active: ${trialDaysLeft <= 1 ? "ends today." : `${trialDaysLeft} days left.`}` : "Start Pro now. Cancel anytime."}</p>
-											</CardBody>
+											</Card.Content>
 										</Card>
 									</div>
 								)}
@@ -551,17 +529,13 @@ export default function SettingsPage() {
 									/>
 								</div>
 
-								<Button type='submit' color='primary' className='mt-4' fullWidth isDisabled={!isFormDirty()} aria-label='Save Settings' startContent={<IconDeviceFloppy />}>
+								<Button type='submit' className='mt-4 w-full' isDisabled={!isFormDirty()} aria-label='Save Settings' variant='primary'>{<IconDeviceFloppy />}
 									Save Settings
 								</Button>
 							</Form>
 							<Divider className='my-4' />
 							<div className='flex  flex-col gap-2 justify-end'>
-								<Button
-									color='danger'
-									startContent={<IconTrash />}
-									isDisabled={user.plan !== Plan.Free}
-									onPress={async () => {
+								<Button isDisabled={user.plan !== Plan.Free} onPress={async () => {
 										if (await checkIfSubscriptionExists()) {
 											return addToast({
 												title: "Active Subscription",
@@ -570,14 +544,13 @@ export default function SettingsPage() {
 											});
 										}
 										deleteModalOnOpen();
-									}}
-								>
+									}} variant='danger'>{<IconTrash />}
 									Delete Account
 								</Button>
 								{user.plan !== Plan.Free && <span className='text-sm text-gray-500'>You must cancel your subscription and wait for it to expire before deleting your account.</span>}
 							</div>
 						</div>
-					</CardBody>
+					</Card.Content>
 				</Card>
 			</DashboardNavbar>
 
@@ -598,10 +571,10 @@ export default function SettingsPage() {
 						</p>
 					</ModalBody>
 					<ModalFooter>
-						<Button variant='light' onPress={navGuard.reject} aria-label='Cancel'>
+						<Button variant='tertiary' onPress={navGuard.reject} aria-label='Cancel'>
 							Cancel
 						</Button>
-						<Button color='danger' onPress={navGuard.accept} aria-label='Discard Changes'>
+						<Button onPress={navGuard.accept} aria-label='Discard Changes' variant='danger'>
 							Discard changes
 						</Button>
 					</ModalFooter>

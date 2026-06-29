@@ -107,12 +107,16 @@ jest.mock("@heroui/react", () => {
 			</button>
 		),
 		Form: ({ children, onSubmit }: { children: React.ReactNode; onSubmit?: (event: React.FormEvent<HTMLFormElement>) => void }) => <form onSubmit={onSubmit}>{children}</form>,
-		Input: ({ label, value, onValueChange, ...props }: { label?: string; value?: string; onValueChange?: (value: string) => void }) => (
-			<label>
-				{label}
-				<input {...props} value={value ?? ""} onChange={(event) => onValueChange?.(event.target.value)} />
-			</label>
-		),
+		TextField: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+		Label: ({ children }: { children: React.ReactNode }) => <label>{children}</label>,
+		FieldError: () => null,
+		Input: (props: React.InputHTMLAttributes<HTMLInputElement>) => <input {...props} />,
+		InputGroup: Object.assign(({ children }: { children: React.ReactNode }) => <div>{children}</div>, {
+			Prefix: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
+			Suffix: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
+			Input: (props: React.InputHTMLAttributes<HTMLInputElement>) => <input {...props} />,
+		}),
+		CloseButton: ({ onPress }: { onPress?: () => void }) => <button type='button' aria-label='Clear' onClick={onPress} />,
 		Select: ({ label, children }: { label?: string; children: React.ReactNode }) => (
 			<label>
 				{label}
@@ -132,9 +136,10 @@ jest.mock("@heroui/react", () => {
 		Slider: () => <div />,
 		NumberInput: () => <div />,
 		DateRangePicker: ({ label }: { label?: string }) => <div>{label}</div>,
-		Card: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-		CardHeader: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-		CardBody: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+		Card: Object.assign(({ children }: { children: React.ReactNode }) => <div>{children}</div>, {
+			Header: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+			Content: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+		}),
 		Divider: () => <div />,
 		Link: ({ children }: { children: React.ReactNode }) => <a>{children}</a>,
 		Modal: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,

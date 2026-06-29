@@ -2,8 +2,8 @@
 
 import React, { useState } from "react";
 import type { CampaignOffer } from "@types";
-import { Button, Card, CardBody, CardFooter, CardHeader, Chip, Divider, Link, Spacer, Tab, Tabs } from "@heroui/react";
-import { cn } from "@heroui/react";
+import { Card, Chip, Divider, Link, Spacer, Tab, Tabs, cn } from "@heroui/react";
+
 
 import { tiers, frequencies } from "./pricing-tiers";
 import { IconCheck } from "@tabler/icons-react";
@@ -63,14 +63,9 @@ export default function TiersComponent({ campaignOffer = null }: TiersComponentP
 					const hasPromoPrice = pricingPromoByFrequency[selectedFrequency.key] !== null;
 
 					return (
-						<Card
-							key={tier.key}
-							isBlurred
-							className={cn("bg-background/60 p-3 dark:bg-default-100/50", {
+						<Card key={tier.key} className={[cn("bg-background/60 p-3 dark:bg-default-100/50", {
 								"!border-small border-primary/50": tier.mostPopular,
-							})}
-							shadow='md'
-						>
+							}), "shadow-md backdrop-blur-md"].filter(Boolean).join(" ")}>
 							{tier.key === "pro" && proPromoEnabled && hasPromoPrice ? (
 								<Chip className='absolute right-4 top-4' variant='shadow' color='secondary'>
 									Limited offer
@@ -80,12 +75,12 @@ export default function TiersComponent({ campaignOffer = null }: TiersComponentP
 									Most Popular
 								</Chip>
 							) : null}
-							<CardHeader className='flex flex-col items-start gap-2 pb-6'>
+							<Card.Header className='flex flex-col items-start gap-2 pb-6'>
 								<h2 className='text-large font-medium'>{tier.title}</h2>
 								<p className='text-medium text-default-500'>{tier.description}</p>
-							</CardHeader>
+							</Card.Header>
 							<Divider />
-							<CardBody className='gap-8'>
+							<Card.Content className='gap-8'>
 								<div className='min-h-[5.5rem] flex flex-col justify-end'>
 									<p className='flex items-end gap-2 pt-2 tabular-nums'>
 										{typeof tier.price !== "string" && tier.key === "pro" && proPromoEnabled && hasPromoPrice ? (
@@ -125,27 +120,19 @@ export default function TiersComponent({ campaignOffer = null }: TiersComponentP
 									</li>
 								))}
 							</ul>
-						</CardBody>
-						<CardFooter>
-							<Button
-								fullWidth
-								as={Link}
-								color={tier.buttonColor}
-								href={checkoutHref}
-								variant={tier.buttonVariant}
-								aria-label={tier.buttonText}
-								onPress={() => {
+						</Card.Content>
+						<Card.Footer>
+							<Link href={checkoutHref} aria-label={tier.buttonText} onPress={() => {
 									trackPaywallEvent(plausible, "paywall_cta_click", {
 										source: "pricing_page",
 										feature: "plan",
 										plan: tier.key,
 										cycle: selectedFrequency.key,
 									});
-								}}
-							>
+								}} className={cn("w-full inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 font-medium bg-accent text-accent-foreground hover:bg-accent-hover", tier.buttonVariant === "shadow" && "shadow-md")}>
 								{tier.buttonText}
-							</Button>
-						</CardFooter>
+							</Link>
+						</Card.Footer>
 					</Card>
 				);
 				})}

@@ -80,10 +80,11 @@ jest.mock("@heroui/react", () => {
 				{children}
 			</button>
 		),
-		Card: ({ children, isBlurred: _isBlurred, shadow: _shadow, ...props }: { children: ReactNode; isBlurred?: boolean; shadow?: string; [key: string]: unknown }) => <div {...props}>{children}</div>,
-		CardBody: ({ children, ...props }: { children: ReactNode }) => <div {...props}>{children}</div>,
-		CardFooter: ({ children, ...props }: { children: ReactNode }) => <div {...props}>{children}</div>,
-		CardHeader: ({ children, ...props }: { children: ReactNode }) => <div {...props}>{children}</div>,
+		Card: Object.assign(({ children, ...props }: { children: ReactNode; [key: string]: unknown }) => <div {...props}>{children}</div>, {
+			Header: ({ children, ...props }: { children: ReactNode }) => <div {...props}>{children}</div>,
+			Content: ({ children, ...props }: { children: ReactNode }) => <div {...props}>{children}</div>,
+			Footer: ({ children, ...props }: { children: ReactNode }) => <div {...props}>{children}</div>,
+		}),
 		Chip: ({ children, ...props }: { children: ReactNode }) => <div {...props}>{children}</div>,
 		Divider: () => <hr />,
 		Link: ({ children, ...props }: { children: ReactNode }) => <a {...props}>{children}</a>,

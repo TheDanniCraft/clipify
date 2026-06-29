@@ -1,6 +1,6 @@
-import { Button, Tooltip } from "@heroui/react";
+import { Button, Tooltip, cn } from "@heroui/react";
+
 import React, { forwardRef, memo, useMemo } from "react";
-import { cn } from "@heroui/react";
 import { IconChecks, IconClipboard } from "@tabler/icons-react";
 
 export interface CopyTextProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -39,7 +39,7 @@ export const CopyText = memo(
 			<div ref={forwardedRef} className={cn("flex items-center gap-3 text-default-500", className)}>
 				<span className={textClassName}>{children}</span>
 				<Tooltip className='text-foreground' content={content}>
-					<Button isIconOnly className='h-7 w-7 min-w-7 text-default-400' size='sm' variant='light' onPress={handleClick} aria-label='Copy to clipboard'>
+					<Button isIconOnly className='h-7 w-7 min-w-7 text-default-400' size='sm' variant='tertiary' onPress={handleClick} aria-label='Copy to clipboard'>
 						{!copied && <IconClipboard className='h-[14px] w-[14px]' />}
 						{copied && <IconChecks className='h-[14px] w-[14px]' />}
 					</Button>

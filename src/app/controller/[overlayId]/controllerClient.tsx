@@ -2,7 +2,8 @@
 
 import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { IconBroadcast, IconLock, IconLockOpen2, IconEye, IconEyeOff, IconLayoutSidebarRightExpand, IconPlayerSkipForward, IconPlayerPauseFilled, IconPlayerPlayFilled, IconPlus, IconVolume, IconVolumeOff } from "@tabler/icons-react";
-import { Button, Chip, Image, Input, Progress, Slider } from "@heroui/react";
+import { Button, Chip, Image, Input, Progress, Slider, TextField } from "@heroui/react";
+
 import { getControllerQueuesAction, runControllerAction, type ControllerQueueResponse } from "@actions/controller";
 
 type PlaybackState = {
@@ -375,18 +376,13 @@ export default function ControllerClient({ overlayId, controllerToken }: { overl
 												<div className='truncate text-xs text-default-500'>{nowPlaying?.creatorName ?? "Waiting for overlay state"}</div>
 											</div>
 											<div className='flex items-center gap-2 rounded-full bg-content1 px-3 py-2'>
-												<Button isIconOnly radius='full' variant='light' className={controlsUnlocked ? "bg-success/15 text-success-600" : "bg-warning/15 text-warning-600"} onPress={() => setControlsUnlocked((value) => !value)}>
+												<Button isIconOnly variant='tertiary' className={[controlsUnlocked ? "bg-success/15 text-success-600" : "bg-warning/15 text-warning-600", "rounded-full"].filter(Boolean).join(" ")} onPress={() => setControlsUnlocked((value) => !value)}>
 													{controlsUnlocked ? <IconLockOpen2 size={18} /> : <IconLock size={18} />}
 												</Button>
-												<Button isIconOnly radius='full' variant='light' className='bg-default-200 text-foreground' onPress={() => sendCommand(playback.showPlayer ? "hide" : "show")} isDisabled={interactiveControlsDisabled}>
+												<Button isIconOnly variant='tertiary' className='bg-default-200 text-foreground rounded-full' onPress={() => sendCommand(playback.showPlayer ? "hide" : "show")} isDisabled={interactiveControlsDisabled}>
 													{playback.showPlayer ? <IconEyeOff size={18} /> : <IconEye size={18} />}
 												</Button>
-												<Button
-													isIconOnly
-													radius='full'
-													variant='light'
-													className='bg-default-200 text-foreground'
-													onPress={async () => {
+												<Button isIconOnly variant='tertiary' className='bg-default-200 text-foreground rounded-full' onPress={async () => {
 														if (controlsDisabled) return;
 														if (playback.muted) {
 															if ((playback.volume ?? 0) <= 0) {
@@ -396,15 +392,13 @@ export default function ControllerClient({ overlayId, controllerToken }: { overl
 															return;
 														}
 														sendCommand("mute");
-													}}
-													isDisabled={interactiveControlsDisabled}
-												>
+													}} isDisabled={interactiveControlsDisabled}>
 													{playback.muted ? <IconVolumeOff size={18} className='text-danger' /> : <IconVolume size={18} />}
 												</Button>
-												<Button isIconOnly radius='full' variant='light' className='bg-primary text-white' onPress={() => sendCommand(playback.paused ? "play" : "pause")} isDisabled={interactiveControlsDisabled}>
+												<Button isIconOnly variant='tertiary' className='bg-primary text-white rounded-full' onPress={() => sendCommand(playback.paused ? "play" : "pause")} isDisabled={interactiveControlsDisabled}>
 													{playback.paused ? <IconPlayerPlayFilled size={18} /> : <IconPlayerPauseFilled size={18} />}
 												</Button>
-												<Button isIconOnly radius='full' variant='light' className='bg-default-200 text-foreground' onPress={() => sendCommand("skip")} isDisabled={interactiveControlsDisabled}>
+												<Button isIconOnly variant='tertiary' className='bg-default-200 text-foreground rounded-full' onPress={() => sendCommand("skip")} isDisabled={interactiveControlsDisabled}>
 													<IconPlayerSkipForward size={18} />
 												</Button>
 											</div>
@@ -446,23 +440,13 @@ export default function ControllerClient({ overlayId, controllerToken }: { overl
 										<div>
 											<div className='text-sm font-semibold text-foreground'>Add to mod queue</div>
 										</div>
-										<Button isIconOnly radius='full' variant='flat' className='bg-content1 text-foreground' isDisabled>
+										<Button isIconOnly variant='tertiary' className='bg-content1 text-foreground rounded-full' isDisabled>
 											<IconPlus size={16} />
 										</Button>
 									</div>
 									<div className='mt-4 flex flex-col gap-3 sm:flex-row'>
-										<Input
-											type='url'
-											value={modClipUrl}
-											onChange={(event) => setModClipUrl(event.target.value)}
-											aria-label='Mod queue clip URL'
-											placeholder='https://clips.twitch.tv/...'
-											radius='full'
-											size='md'
-											className='flex-1'
-											isDisabled={interactiveControlsDisabled || isSubmittingModClip}
-										/>
-										<Button radius='full' color='primary' className='h-11 px-5 font-semibold' onPress={() => void submitModClip()} isDisabled={interactiveControlsDisabled || isSubmittingModClip || modClipUrl.trim().length === 0}>
+										<TextField type='url' className='flex-1' isDisabled={interactiveControlsDisabled || isSubmittingModClip}><Input value={modClipUrl} onChange={(event) => setModClipUrl(event.target.value)} aria-label='Mod queue clip URL' placeholder='https://clips.twitch.tv/...' className='rounded-full' /></TextField>
+										<Button className='h-11 px-5 font-semibold rounded-full' onPress={() => void submitModClip()} isDisabled={interactiveControlsDisabled || isSubmittingModClip || modClipUrl.trim().length === 0} variant='primary'>
 											Add clip
 										</Button>
 									</div>
@@ -506,13 +490,13 @@ export default function ControllerClient({ overlayId, controllerToken }: { overl
 							</div>
 							<div className='mt-3 rounded-[24px] bg-default-50 p-3'>
 								<div className='mb-2 flex flex-wrap gap-2 px-2'>
-									<Button size='sm' variant='flat' className='rounded-full bg-content1 text-foreground' onPress={() => void executeControllerAction("clear_mod_queue")} isDisabled={interactiveControlsDisabled}>
+									<Button size='sm' variant='tertiary' className='rounded-full bg-content1 text-foreground' onPress={() => void executeControllerAction("clear_mod_queue")} isDisabled={interactiveControlsDisabled}>
 										Clear mods
 									</Button>
-									<Button size='sm' variant='flat' className='rounded-full bg-content1 text-foreground' onPress={() => void executeControllerAction("clear_viewer_queue")} isDisabled={interactiveControlsDisabled}>
+									<Button size='sm' variant='tertiary' className='rounded-full bg-content1 text-foreground' onPress={() => void executeControllerAction("clear_viewer_queue")} isDisabled={interactiveControlsDisabled}>
 										Clear viewers
 									</Button>
-									<Button size='sm' variant='solid' color='danger' className='rounded-full' onPress={() => void executeControllerAction("clear_all_queues")} isDisabled={interactiveControlsDisabled}>
+									<Button size='sm' variant='danger' className='rounded-full' onPress={() => void executeControllerAction("clear_all_queues")} isDisabled={interactiveControlsDisabled}>
 										Clear all
 									</Button>
 								</div>

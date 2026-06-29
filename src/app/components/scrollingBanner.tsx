@@ -1,10 +1,9 @@
 "use client";
-
+import { ScrollShadow, cn } from "@heroui/react";
 import type { ScrollShadowProps } from "@heroui/react";
 
+
 import React from "react";
-import { ScrollShadow } from "@heroui/react";
-import { cn } from "@heroui/react";
 
 interface ScrollingBannerProps extends ScrollShadowProps {
 	isReverse?: boolean;

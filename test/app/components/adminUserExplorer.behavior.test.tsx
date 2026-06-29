@@ -28,21 +28,18 @@ jest.mock("@heroui/react", () => ({
 			{children}
 		</button>
 	),
-	Card: ({ children }: { children: React.ReactNode }) => <section>{children}</section>,
-	CardBody: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-	CardHeader: ({ children }: { children: React.ReactNode }) => <header>{children}</header>,
+	Card: Object.assign(({ children }: { children: React.ReactNode }) => <section>{children}</section>, {
+		Content: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+		Header: ({ children }: { children: React.ReactNode }) => <header>{children}</header>,
+	}),
 	Chip: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
-	Input: ({ value, onValueChange, endContent }: { value?: string; onValueChange?: (v: string) => void; endContent?: React.ReactNode }) => (
-		<div>
-			<input
-				value={value}
-				onChange={(e) => {
-					if (onValueChange) onValueChange(e.target.value);
-				}}
-			/>
-			{endContent}
-		</div>
-	),
+	TextField: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+	Label: ({ children }: { children: React.ReactNode }) => <label>{children}</label>,
+	InputGroup: Object.assign(({ children }: { children: React.ReactNode }) => <div>{children}</div>, {
+		Prefix: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
+		Suffix: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
+		Input: (props: React.InputHTMLAttributes<HTMLInputElement>) => <input {...props} />,
+	}),
 	Spinner: () => <div>Loading...</div>,
 	Table: ({ children }: { children: React.ReactNode }) => <table>{children}</table>,
 	TableBody: ({ children }: { children: React.ReactNode }) => <tbody>{children}</tbody>,

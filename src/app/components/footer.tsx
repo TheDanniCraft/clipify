@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { Button, Chip, Divider, Form, Image, Input, Link, Modal, ModalContent, Spinner, Tab, Tabs } from "@heroui/react";
+import { Button, Chip, Divider, Form, Image, Input, Link, Modal, ModalContent, Spinner, Tab, Tabs, TextField, Label, FieldError, InputGroup } from "@heroui/react";
+
 import { Turnstile } from "nextjs-turnstile";
 import { motion } from "motion/react";
 
@@ -251,7 +252,7 @@ export default function Footer() {
 				<ul className='mt-2 space-y-0.5'>
 					{items.map((item) => (
 						<li key={item.name}>
-							<Link className='text-default-400' href={item.href} size='sm'>
+							<Link className='text-default-400 text-sm' href={item.href}>
 								{item.name}
 							</Link>
 						</li>
@@ -324,13 +325,7 @@ export default function Footer() {
 										}}
 										transition={{ duration: 0.2, ease: "easeOut" }}
 									>
-										<Input
-											isRequired
-											placeholder='mail@example.com'
-											type='email'
-											labelPlacement='outside'
-											className={newsletterState == "success" ? "text-success" : newsletterState == "error" || newsletterState == "rateLimit" ? "text-danger" : "text-default-900"}
-											startContent={(() => {
+										<TextField isRequired type='email' className={newsletterState == "success" ? "text-success" : newsletterState == "error" || newsletterState == "rateLimit" ? "text-danger" : "text-default-900"} name='email' isDisabled={newsletterState === "loading" || newsletterState === "success"}><InputGroup><InputGroup.Prefix>{(() => {
 												switch (newsletterState) {
 													case "loading":
 														return <Spinner />;
@@ -339,18 +334,11 @@ export default function Footer() {
 													default:
 														return <IconMailFilled className='text-default-400' />;
 												}
-											})()}
-											onChange={() => {
+											})()}</InputGroup.Prefix><InputGroup.Input placeholder='mail@example.com' onChange={() => {
 												setNewsletterState("default");
-											}}
-											name='email'
-											isDisabled={newsletterState === "loading" || newsletterState === "success"}
-											endContent={
-												<Button color='primary' size='sm' isIconOnly type='submit' isDisabled={emailSubmitDisabled} aria-label='Continue newsletter signup'>
+											}} /><InputGroup.Suffix>{<Button size='sm' isIconOnly type='submit' isDisabled={emailSubmitDisabled} aria-label='Continue newsletter signup' variant='primary'>
 													<IconSend className='text-white' />
-												</Button>
-											}
-										/>
+												</Button>}</InputGroup.Suffix></InputGroup><FieldError /></TextField>
 									</motion.div>
 									<motion.div
 										ref={nameStepRef}
@@ -363,23 +351,18 @@ export default function Footer() {
 										transition={{ duration: 0.24, ease: "easeOut" }}
 									>
 										<div className='rounded-small border border-default-200 px-3 py-2 text-xs text-default-500'>Subscribing as {pendingEmail}</div>
-										<Input size='sm' label='How should we call you?' placeholder={firstNamePlaceholder} value={firstName} onChange={(event) => setFirstName(event.target.value)} />
+										<TextField><Label>How should we call you?</Label><Input placeholder={firstNamePlaceholder} value={firstName} onChange={(event) => setFirstName(event.target.value)} className='h-8 text-sm' /></TextField>
 										<div className='flex flex-wrap items-center gap-2'>
-											<Button
-												type='button'
-												variant='light'
-												onPress={() => {
+											<Button type='button' variant='tertiary' onPress={() => {
 													setIsDetailsExpanded(false);
 													setNewsletterState("default");
-												}}
-												isDisabled={newsletterState === "loading"}
-											>
+												}} isDisabled={newsletterState === "loading"}>
 												Back
 											</Button>
-											<Button type='button' variant='flat' onPress={() => finishSubscribe(false)} isDisabled={detailSubmitDisabled}>
+											<Button type='button' variant='tertiary' onPress={() => finishSubscribe(false)} isDisabled={detailSubmitDisabled}>
 												Skip
 											</Button>
-											<Button type='submit' color='primary' isDisabled={detailSubmitDisabled}>
+											<Button type='submit' isDisabled={detailSubmitDisabled} variant='primary'>
 												Add and subscribe
 											</Button>
 										</div>

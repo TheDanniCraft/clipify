@@ -1,6 +1,6 @@
 "use client";
-
 import { HeroUIProvider, ToastProvider } from "@heroui/react";
+
 import { NavigationGuardProvider } from "next-navigation-guard";
 import ChatWidget from "@components/chatWidget";
 

@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 
 import type { CampaignOffer } from "@types";
 import BasicNavbar from "@components/LandingPage/basicNavbar";
-import { Accordion, AccordionItem, Button, Chip, Image, Link, Card, CardHeader, CardBody } from "@heroui/react";
+import { Accordion, AccordionItem, Chip, Image, Link, Card } from "@heroui/react";
+
 import { LazyMotion, motion, domAnimation, AnimatePresence } from "motion/react";
 import { IconThumbUp, IconArrowRight, IconPlugConnected, IconLayersDifference, IconMoodSmile, IconCoin, IconAdjustments, IconChevronDown, IconArrowsMove, IconMessageCircle, IconDeviceRemote, IconUsersGroup, IconPlaylist } from "@tabler/icons-react";
 import FeatureCard from "@components/featureCard";
@@ -63,9 +64,9 @@ export default function HomePageClient({ campaignOffer }: HomePageClientProps) {
 	}, []);
 
 	const floatingBannerCta = campaignOffer ? (
-		<Button as={Link} href={campaignOfferHref ?? campaignOffer.ctaHref} radius='full' className='h-9 px-4 bg-white text-black'>
+		<Link href={campaignOfferHref ?? campaignOffer.ctaHref} className='h-9 px-4 bg-white text-black rounded-full inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 font-medium bg-accent text-accent-foreground hover:bg-accent-hover'>
 			{floatingCtaLabel}
-		</Button>
+		</Link>
 	) : undefined;
 
 	return (
@@ -141,23 +142,14 @@ export default function HomePageClient({ campaignOffer }: HomePageClientProps) {
 												type: "spring",
 											}}
 										>
-											<Button className='h-10 w-[163px] bg-white px-[16px] py-[10px] text-small font-medium leading-5 text-black' radius='full' as={Link} href='/login'>
+											<Link className='h-10 w-[163px] bg-white px-[16px] py-[10px] text-small font-medium leading-5 text-black rounded-full inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 font-medium bg-accent text-accent-foreground hover:bg-accent-hover' href='/login'>
 												Get Started
-											</Button>
-											<Button
-												className='h-10 w-[163px] border-1 border-white px-[16px] py-[10px] text-small font-medium leading-5 text-white'
-												endContent={
-													<span className='pointer-events-none flex h-[22px] w-[22px] items-center justify-center rounded-full bg-white'>
-														<IconArrowRight className='text-black' width={16} />
-													</span>
-												}
-												radius='full'
-												variant='bordered'
-												as={Link}
-												href='#pricing'
-											>
+											</Link>
+											<Link className='h-10 w-[163px] border-1 border-white px-[16px] py-[10px] text-small font-medium leading-5 text-white rounded-full inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 font-medium bg-default text-foreground hover:bg-default/80' href='#pricing'>
 												See our plans
-											</Button>
+											{<span className='pointer-events-none flex h-[22px] w-[22px] items-center justify-center rounded-full bg-white'>
+														<IconArrowRight className='text-black' width={16} />
+													</span>}</Link>
 										</motion.div>
 
 										{communityStreamers.length > 0 ? (
@@ -241,14 +233,14 @@ export default function HomePageClient({ campaignOffer }: HomePageClientProps) {
 									<div className='absolute -inset-1 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 blur-2xl opacity-60'></div>
 
 									<Card className='relative bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl shadow-lg'>
-										<CardHeader className='p-4 pb-2'>
+										<Card.Header className='p-4 pb-2'>
 											<div className='flex items-center gap-2 rounded-none'>
 												{campaignOffer.iconUrl ? <Image alt={`${campaignOffer.title} Icon`} className='rounded-none' src={campaignOffer.iconUrl} width={28} /> : null}
 												<h2 className='text-[17px] md:text-[18px] font-semibold leading-[1.1] tracking-tight'>{campaignOffer.title}</h2>
 											</div>
-										</CardHeader>
+										</Card.Header>
 
-										<CardBody className='px-4 pb-4 space-y-3'>
+										<Card.Content className='px-4 pb-4 space-y-3'>
 											<p className='text-base'>
 												{campaignOffer.offerCode ? (
 													<>
@@ -265,10 +257,10 @@ export default function HomePageClient({ campaignOffer }: HomePageClientProps) {
 												</div>
 											) : null}
 
-											<Button as={Link} href={campaignOfferHref ?? campaignOffer.ctaHref} className='w-full bg-white text-purple-700 font-medium py-2 rounded-lg hover:opacity-90 transition'>
+											<Link href={campaignOfferHref ?? campaignOffer.ctaHref} className='w-full bg-white text-purple-700 font-medium py-2 rounded-lg hover:opacity-90 transition inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 font-medium bg-accent text-accent-foreground hover:bg-accent-hover'>
 												{campaignOffer.ctaLabel}
-											</Button>
-										</CardBody>
+											</Link>
+										</Card.Content>
 									</Card>
 								</div>
 							</div>

@@ -1,16 +1,15 @@
 "use client";
-
+import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, TableHeader, TableColumn, TableBody, TableRow, TableCell, Button, RadioGroup, Radio, Chip, Pagination, Divider, Tooltip, Popover, PopoverTrigger, PopoverContent, Spinner, addToast, Link, Avatar, Skeleton, Tab, Tabs, useDisclosure, TextField, InputGroup, cn } from "@heroui/react";
 import type { Selection, SortDescriptor } from "@heroui/react";
+
 import type { ColumnsKey } from "./data";
 import type { AuthenticatedUser, Overlay, TwitchUserResponse } from "@types";
 import { StatusOptions } from "@types";
 import type { Key } from "@react-types/shared";
 
 import dynamic from "next/dynamic";
-import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, TableHeader, TableColumn, TableBody, TableRow, TableCell, Input, Button, RadioGroup, Radio, Chip, Pagination, Divider, Tooltip, Popover, PopoverTrigger, PopoverContent, Spinner, addToast, Link, Avatar, Skeleton, Tab, Tabs, useDisclosure } from "@heroui/react";
 const Table = dynamic(() => import("@heroui/react").then((c) => c.Table), { ssr: false }); // Temp fix for issue 4385
 import React, { useMemo, useCallback, useState, useEffect } from "react";
-import { cn } from "@heroui/react";
 import { IconAdjustmentsHorizontal, IconArrowsLeftRight, IconChevronDown, IconChevronUp, IconCirclePlus, IconCircuitChangeover, IconCrown, IconInfoCircle, IconMenuDeep, IconPencil, IconReload, IconSearch, IconTrash } from "@tabler/icons-react";
 import { createOverlay, createPlaylist, deleteOverlay, deletePlaylist, saveOverlay, getAllOverlays, getAllPlaylists, getEditorOverlays, getEditorAccess } from "@actions/database";
 import { validateAuth } from "@actions/auth";
@@ -429,12 +428,12 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 			<div className='flex items-center gap-4 overflow-auto px-[6px] py-[4px]'>
 				<div className='flex items-center gap-3'>
 					<div className='flex items-center gap-4'>
-						<Input className='min-w-[200px]' endContent={<IconSearch className='text-default-400' width={16} />} placeholder='Search' size='sm' value={filterValue} onValueChange={onSearchChange} />
+						<TextField className='min-w-[200px]'><InputGroup><InputGroup.Input placeholder='Search' value={filterValue} onChange={(event) => (onSearchChange)(event.target.value)} className='h-8 text-sm' /><InputGroup.Suffix>{<IconSearch className='text-default-400' width={16} />}</InputGroup.Suffix></InputGroup></TextField>
 						{activeTab === "overlays" && (
 							<div>
 								<Popover placement='bottom'>
 									<PopoverTrigger>
-										<Button className='bg-default-100 text-default-800' size='sm' startContent={<IconAdjustmentsHorizontal className='text-default-400' width={16} />} aria-label='Open Filter Options'>
+										<Button className='bg-default-100 text-default-800' size='sm' aria-label='Open Filter Options'>{<IconAdjustmentsHorizontal className='text-default-400' width={16} />}
 											Filter
 										</Button>
 									</PopoverTrigger>
@@ -453,7 +452,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 						<div>
 							<Dropdown>
 								<DropdownTrigger>
-									<Button className='bg-default-100 text-default-800' size='sm' startContent={<IconMenuDeep className='text-default-400' width={16} />} aria-label='Open Sort Options'>
+									<Button className='bg-default-100 text-default-800' size='sm' aria-label='Open Sort Options'>{<IconMenuDeep className='text-default-400' width={16} />}
 										Sort
 									</Button>
 								</DropdownTrigger>
@@ -479,7 +478,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 						<div>
 							<Dropdown closeOnSelect={false}>
 								<DropdownTrigger>
-									<Button className='bg-default-100 text-default-800' size='sm' startContent={<IconArrowsLeftRight className='text-default-400' width={16} />} aria-label='Open Column Options'>
+									<Button className='bg-default-100 text-default-800' size='sm' aria-label='Open Column Options'>{<IconArrowsLeftRight className='text-default-400' width={16} />}
 										Columns
 									</Button>
 								</DropdownTrigger>
@@ -497,9 +496,9 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 					{(filterSelectedKeys === "all" || filterSelectedKeys.size > 0) && (
 						<Dropdown>
 							<DropdownTrigger>
-								<Button className='bg-default-100 text-default-800' endContent={<IconChevronDown className='text-default-400' />} size='sm' variant='flat' aria-label='Open Selected Actions'>
+								<Button className='bg-default-100 text-default-800' size='sm' variant='tertiary' aria-label='Open Selected Actions'>
 									Selected Actions
-								</Button>
+								{<IconChevronDown className='text-default-400' />}</Button>
 							</DropdownTrigger>
 							<DropdownMenu aria-label='Selected Actions'>
 								{activeTab === "overlays" ? (
@@ -631,14 +630,15 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 						<Chip className='hidden items-center text-default-500 sm:flex' size='sm' variant='flat'>
 							{activeTab === "overlays" ? (overlays?.length ?? 0) : (playlists?.length ?? 0)}
 						</Chip>
-						<Button isIconOnly size='sm' variant='light' onPress={reloadOverlays} startContent={<IconReload className='text-default-400' width={16} />} aria-label='Reload' />
+						<Button isIconOnly size='sm' variant='tertiary' onPress={reloadOverlays} aria-label='Reload'>{<IconReload className='text-default-400' width={16} />}</Button>
 					</div>
 					{hasAccess ? (
 						<Dropdown>
 							<DropdownTrigger>
-								<Button color='primary' isDisabled={overlays === undefined} isLoading={isLoading} endContent={<IconCirclePlus width={20} />}>
+								<Button isDisabled={overlays === undefined} isPending={isLoading} variant='primary'>
+									{isLoading ? <Spinner color='current' size='sm' /> : null}
 									{activeTab === "overlays" ? "Add Overlay" : "Add Playlist"}
-								</Button>
+								{<IconCirclePlus width={20} />}</Button>
 							</DropdownTrigger>
 
 							<DropdownMenu aria-label='Actions' items={editorAccessList}>
@@ -695,12 +695,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 							</DropdownMenu>
 						</Dropdown>
 					) : (
-						<Button
-							color='primary'
-							endContent={<IconCirclePlus width={20} />}
-							isLoading={isLoading}
-							isDisabled={overlays === undefined}
-							onPress={async () => {
+						<Button isPending={isLoading} isDisabled={overlays === undefined} onPress={async () => {
 								setIsLoading(true);
 
 								if (activeTab === "overlays" && effectivePlan === "free" && ownerOverlaysCount >= 1 && !multiOverlayAccess.allowed) {
@@ -714,7 +709,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 										description: (
 											<p>
 												To add an additional overlay, please{" "}
-												<Link color='warning' underline='always' href='/dashboard/settings'>
+												<Link className='text-warning underline underline-offset-2' href='/dashboard/settings'>
 													upgrade
 												</Link>{" "}
 												to <strong>Pro</strong>.
@@ -738,7 +733,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 										description: (
 											<p>
 												To add an additional playlist, please{" "}
-												<Link color='warning' underline='always' href='/dashboard/settings'>
+												<Link className='text-warning underline underline-offset-2' href='/dashboard/settings'>
 													upgrade
 												</Link>{" "}
 												to <strong>Pro</strong>.
@@ -789,10 +784,10 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 										});
 										setIsLoading(false);
 									});
-							}}
-						>
+							}} variant='primary'>
+							{isLoading ? <Spinner color='current' size='sm' /> : null}
 							{activeTab === "overlays" ? "Add Overlay" : "Add Playlist"}
-						</Button>
+						{<IconCirclePlus width={20} />}</Button>
 					)}
 				</div>
 				{currentUser?.plan === "free" && inTrial && (
@@ -803,20 +798,14 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 								Trial active: <strong className='text-amber-100'>{trialDaysLeft <= 1 ? "Ends today" : `${trialDaysLeft} days left`}</strong>. Lock in Pro before your trial ends.
 							</span>
 						</div>
-						<Button
-							size='sm'
-							color='warning'
-							variant='solid'
-							className='font-semibold text-black'
-							onPress={() => {
+						<Button size='sm' variant='primary' className='font-semibold text-black' onPress={() => {
 								trackPaywallEvent(plausible, "paywall_cta_click", {
 									source: "paywall_banner",
 									feature: "trial_active",
 									plan: currentUser?.plan ?? "free",
 								});
 								onUpgradeOpen();
-							}}
-						>
+							}}>
 							Upgrade now
 						</Button>
 					</div>
@@ -832,10 +821,10 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 				<div className='flex items-center justify-end gap-6'>
 					<span className='text-small text-default-400'>{filterSelectedKeys === "all" ? "All items selected" : `${filterSelectedKeys.size} of ${filteredItems.length} selected`}</span>
 					<div className='flex items-center gap-3'>
-						<Button isDisabled={page === 1} size='sm' variant='flat' onPress={onPreviousPage} aria-label='Previous Page'>
+						<Button isDisabled={page === 1} size='sm' variant='tertiary' onPress={onPreviousPage} aria-label='Previous Page'>
 							Previous
 						</Button>
-						<Button isDisabled={page === pages} size='sm' variant='flat' onPress={onNextPage} aria-label='Next Page'>
+						<Button isDisabled={page === pages} size='sm' variant='tertiary' onPress={onNextPage} aria-label='Next Page'>
 							Next
 						</Button>
 					</div>
@@ -854,7 +843,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 			{activeTab === "overlays" && currentUser && (currentUser.entitlements?.effectivePlan ?? currentUser.plan) === "free" && !getFeatureAccess(currentUser, "multi_overlay").allowed && (overlays?.filter((o) => o.ownerId === userId).length ?? 0) >= 1 && (
 				<div className='mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning-200 bg-warning-50 px-4 py-3 text-sm text-warning-800'>
 					<span>You&apos;re on the Free plan and have reached the overlay limit. Upgrade to add more overlays.</span>
-					<Button color='warning' variant='flat' onPress={onUpgradeOpen}>
+					<Button variant='tertiary' onPress={onUpgradeOpen}>
 						Upgrade to Pro
 					</Button>
 				</div>
@@ -862,7 +851,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 			{activeTab === "playlists" && currentUser && (currentUser.entitlements?.effectivePlan ?? currentUser.plan) === "free" && !getFeatureAccess(currentUser, "multi_playlist").allowed && (playlists?.filter((p) => p.ownerId === userId).length ?? 0) >= 1 && (
 				<div className='mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning-200 bg-warning-50 px-4 py-3 text-sm text-warning-800'>
 					<span>You&apos;re on the Free plan and have reached the playlist limit. Upgrade to add more playlists.</span>
-					<Button color='warning' variant='flat' onPress={onUpgradeOpen}>
+					<Button variant='tertiary' onPress={onUpgradeOpen}>
 						Upgrade to Pro
 					</Button>
 				</div>
@@ -912,7 +901,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 						</TableColumn>
 					)}
 				</TableHeader>
-				<TableBody emptyContent={activeTab === "overlays" ? overlays === undefined ? <Spinner label='Loading overlays' /> : <div className='text-default-400'>No overlays found</div> : playlists === undefined ? <Spinner label='Loading playlists' /> : <div className='text-default-400'>No playlists found</div>} items={sortedItems}>
+					<TableBody emptyContent={activeTab === "overlays" ? overlays === undefined ? <span className='inline-flex items-center gap-2'><Spinner />Loading overlays</span> : <div className='text-default-400'>No overlays found</div> : playlists === undefined ? <span className='inline-flex items-center gap-2'><Spinner />Loading playlists</span> : <div className='text-default-400'>No playlists found</div>} items={sortedItems}>
 					{(item) => <TableRow key={item.id}>{(columnKey) => <TableCell className={cn(columnKey === "accessType" ? "w-[48px] min-w-[48px] max-w-[48px] px-1" : "", columnKey === "id" ? "w-[320px] min-w-[320px] max-w-[320px]" : "", columnKey === "clipCount" ? "w-[90px] min-w-[90px] max-w-[90px] text-right" : "", activeTab === "playlists" && columnKey === "name" ? "w-full" : "")}>{renderCell(item, columnKey)}</TableCell>}</TableRow>}
 				</TableBody>
 			</Table>

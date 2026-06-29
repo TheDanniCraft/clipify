@@ -1,6 +1,6 @@
 "use client";
+import { Button, Input, Modal, ModalBody, ModalContent, ModalHeader, TextField, Label, FieldError } from "@heroui/react";
 
-import { Button, Input, Modal, ModalBody, ModalContent, ModalHeader } from "@heroui/react";
 import { IconAlertTriangle } from "@tabler/icons-react";
 import { useState } from "react";
 
@@ -23,27 +23,18 @@ export default function ConfirmModal({ isOpen, onOpenChange, keyword, onConfirm 
 					<p className='leading-snug'>
 						<strong>This action is irreversible!</strong>
 					</p>
-					<Input
-						className='pt-4'
-						label={
-							<>
+					<TextField className='pt-4' isRequired><Label>{<>
 								Type <strong>{keyword}</strong> to continue
-							</>
-						}
-						onValueChange={(e) => {
+							</>}</Label><Input onChange={(event) => ((e) => {
 							if (e === keyword) {
 								setConfirmed(true);
 							} else {
 								setConfirmed(false);
 							}
-						}}
-						labelPlacement='outside'
-						placeholder={keyword}
-						required
-					/>
+						})(event.target.value)} placeholder={keyword} /><FieldError /></TextField>
 					<div className='flex justify-end gap-2'>
 						<Button onPress={onOpenChange}>Cancel</Button>
-						<Button color='danger' isDisabled={!confirmed} onPress={onConfirm}>
+						<Button isDisabled={!confirmed} onPress={onConfirm} variant='danger'>
 							Delete
 						</Button>
 					</div>

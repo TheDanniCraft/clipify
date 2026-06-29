@@ -4,7 +4,8 @@ import { type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type RefO
 import { ClipQueueItem, ModQueueItem, Overlay, PlaybackMode, TwitchClip, VideoClip } from "@types";
 import { getAvatar, getDemoClip, getGameDetails, getTwitchClipBatch, getTwitchClipPlaybackUrl, resolvePlayableClip, subscribeToChat } from "@actions/twitch";
 import PlayerOverlay from "@components/playerOverlay";
-import { Avatar, Button, Link } from "@heroui/react";
+import { Avatar, Link } from "@heroui/react";
+
 import { motion, AnimatePresence } from "framer-motion";
 import { getFirstValidQueuedClip, removeFromClipQueue, removeFromModQueue } from "@actions/database";
 import Logo from "@components/logo";
@@ -42,10 +43,10 @@ const POWERED_BY_URL = "https://clipify.us?utm_source=embed&utm_medium=overlay&u
 
 function PoweredByBadge({ className }: { className: string }) {
 	return (
-		<Button as={Link} href={POWERED_BY_URL} target='_blank' rel='noopener noreferrer' color='primary' className={className} aria-label='Powered by Clipify'>
+		<Link href={POWERED_BY_URL} target='_blank' rel='noopener noreferrer' className={[className, "inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 font-medium bg-accent text-accent-foreground hover:bg-accent-hover"].filter(Boolean).join(" ")} aria-label='Powered by Clipify'>
 			<Logo className='w-4 h-4 sm:w-6 sm:h-6' />
 			<span>Powered by Clipify</span>
-		</Button>
+		</Link>
 	);
 }
 

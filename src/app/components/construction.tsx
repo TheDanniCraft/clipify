@@ -3,7 +3,8 @@ import { Cta, Timer } from "@types";
 
 import React, { useEffect, useState } from "react";
 import { motion } from "motion/react";
-import { Button, Form, Image, Input, Popover, PopoverContent, PopoverTrigger, Spinner } from "@heroui/react";
+import { Button, Form, Image, Popover, PopoverContent, PopoverTrigger, Spinner, TextField, Label, Description, FieldError, InputGroup } from "@heroui/react";
+
 import { IconCircleCheckFilled, IconMailFilled, IconSend } from "@tabler/icons-react";
 import { subscribeToNewsletter, getEmailProvider } from "@actions/newsletter";
 import { usePlausible } from "next-plausible";
@@ -107,20 +108,26 @@ const Construction = ({ endDate, cta }: { endDate?: Date; cta: Cta }) => {
 				<motion.div initial={{ opacity: 0.1 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 + (endDate ? 0.3 : 0), duration: 0.5 }}>
 					<Popover showArrow offset={10} placement='bottom' backdrop='blur'>
 						<PopoverTrigger>
-							<Button variant='faded' size='lg' startContent={cta.icon} aria-label={cta.text}>
+							<Button variant='secondary' size='lg' aria-label={cta.text}>{cta.icon}
 								{cta.text}
 							</Button>
 						</PopoverTrigger>
 						<PopoverContent className='p-5 w-[300px] min-w-[300px]'>
 							<Form onSubmit={subscribe}>
-								<Input
-									isRequired
-									label='Enter your Email'
-									placeholder='mail@example.com'
-									type='email'
-									labelPlacement='outside'
-									className={newsletterState == "success" ? "text-success" : newsletterState == "error" || newsletterState == "rateLimit" ? "text-danger" : "text-default-900"}
-									description={(() => {
+								<TextField isRequired type='email' className={newsletterState == "success" ? "text-success" : newsletterState == "error" || newsletterState == "rateLimit" ? "text-danger" : "text-default-900"} name='email' isDisabled={newsletterState === "loading" || newsletterState === "success"}><Label>Enter your Email</Label><InputGroup><InputGroup.Prefix>{(() => {
+										switch (newsletterState) {
+											case "loading":
+												return <Spinner />;
+											case "success":
+												return <IconCircleCheckFilled className='text-success-500' />;
+											default:
+												return <IconMailFilled className='text-default-400' />;
+										}
+									})()}</InputGroup.Prefix><InputGroup.Input placeholder='mail@example.com' onChange={() => {
+										setNewsletterState("default");
+									}} /><InputGroup.Suffix>{<Button size='sm' isIconOnly type='submit' isDisabled={newsletterState === "loading" || newsletterState === "success"} aria-label='Subscribe to newsletter' variant='primary'>
+											<IconSend className='text-white' />
+										</Button>}</InputGroup.Suffix></InputGroup><Description>{(() => {
 										switch (newsletterState) {
 											case "loading":
 												return "Subscribing...";
@@ -131,28 +138,7 @@ const Construction = ({ endDate, cta }: { endDate?: Date; cta: Cta }) => {
 											default:
 												return "";
 										}
-									})()}
-									startContent={(() => {
-										switch (newsletterState) {
-											case "loading":
-												return <Spinner />;
-											case "success":
-												return <IconCircleCheckFilled className='text-success-500' />;
-											default:
-												return <IconMailFilled className='text-default-400' />;
-										}
-									})()}
-									onChange={() => {
-										setNewsletterState("default");
-									}}
-									name='email'
-									isDisabled={newsletterState === "loading" || newsletterState === "success"}
-									endContent={
-										<Button color='primary' size='sm' isIconOnly type='submit' disabled={newsletterState === "loading" || newsletterState === "success"} aria-label='Subscribe to newsletter'>
-											<IconSend className='text-white' />
-										</Button>
-									}
-								/>
+									})()}</Description><FieldError /></TextField>
 								<Turnstile siteKey='0x4AAAAAACMFR636JljxhVLl' onSuccess={setToken} onError={() => console.error("Turnstile error")} onExpire={() => setToken(null)} />
 							</Form>
 							{newsletterState === "success" && (

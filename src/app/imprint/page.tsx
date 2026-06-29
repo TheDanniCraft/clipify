@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Image, Link } from "@heroui/react";
+
 import BasicNavbar from "@components/LandingPage/basicNavbar";
 
 import Footer from "@components/footer";
@@ -67,8 +68,9 @@ export default function ImprintPage() {
 						<h2 className='mb-4 text-2xl font-semibold'>EU Dispute Resolution</h2>
 						<p>
 							The European Commission provides a platform for online dispute resolution (ODR):{" "}
-							<Link href='https://ec.europa.eu/consumers/odr' isExternal showAnchorIcon>
+							<Link href='https://ec.europa.eu/consumers/odr' target='_blank' rel='noopener noreferrer'>
 								https://ec.europa.eu/consumers/odr
+								<Link.Icon />
 							</Link>
 							.
 						</p>

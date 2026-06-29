@@ -1,9 +1,9 @@
 "use client";
-
+import { Navbar, NavbarBrand, NavbarContent, NavbarItem, NavbarMenu, NavbarMenuItem, NavbarMenuToggle, Link, Divider, cn } from "@heroui/react";
 import type { NavbarProps } from "@heroui/react";
 
+
 import React from "react";
-import { Navbar, NavbarBrand, NavbarContent, NavbarItem, NavbarMenu, NavbarMenuItem, NavbarMenuToggle, Link, Button, Divider, cn } from "@heroui/react";
 
 import Logo from "@components/logo";
 import { IconChevronRight } from "@tabler/icons-react";
@@ -49,7 +49,7 @@ const BasicNavbar = React.forwardRef<HTMLElement, NavbarProps>(({ classNames = {
 			<NavbarContent justify='center'>
 				{menuItems.map((item, index) => (
 					<NavbarItem className='text-white' key={index}>
-						<Link aria-current='page' className='text-white font-bold' href={item.href} size='sm'>
+						<Link aria-current='page' className='text-white font-bold text-sm' href={item.href}>
 							{item.name}
 						</Link>
 					</NavbarItem>
@@ -59,12 +59,12 @@ const BasicNavbar = React.forwardRef<HTMLElement, NavbarProps>(({ classNames = {
 			{/* Right Content */}
 			<NavbarContent className='hidden md:flex' justify='end'>
 				<NavbarItem className='ml-2 !flex gap-2'>
-					<Button className='text-white' radius='full' variant='light' as={Link} href='/login'>
+					<Link className='text-white rounded-full inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 font-medium bg-transparent text-foreground hover:bg-default/40' href='/login'>
 						Login
-					</Button>
-					<Button className='bg-default-foreground font-medium text-background' color='secondary' endContent={<IconChevronRight />} radius='full' variant='flat' as={Link} href='/login'>
+					</Link>
+					<Link className='bg-default-foreground font-medium text-background rounded-full inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 font-medium bg-transparent text-foreground hover:bg-default/40' href='/login'>
 						Get Started
-					</Button>
+					{<IconChevronRight />}</Link>
 				</NavbarItem>
 			</NavbarContent>
 
@@ -83,18 +83,18 @@ const BasicNavbar = React.forwardRef<HTMLElement, NavbarProps>(({ classNames = {
 				}}
 			>
 				<NavbarMenuItem>
-					<Button fullWidth as={Link} href='/login' variant='faded'>
+					<Link href='/login' className='w-full inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 font-medium bg-default text-foreground hover:bg-default/80'>
 						Sign In
-					</Button>
+					</Link>
 				</NavbarMenuItem>
 				<NavbarMenuItem className='mb-4'>
-					<Button fullWidth as={Link} className='bg-foreground text-background' href='/login'>
+					<Link className='bg-foreground text-background w-full inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 font-medium bg-accent text-accent-foreground hover:bg-accent-hover' href='/login'>
 						Get Started
-					</Button>
+					</Link>
 				</NavbarMenuItem>
 				{menuItems.map((item, index) => (
 					<NavbarMenuItem key={`${item}-${index}`}>
-						<Link className='mb-2 w-full text-white' href={item.href} size='md'>
+						<Link className='mb-2 w-full text-white text-base' href={item.href}>
 							{item.name}
 						</Link>
 						{index < menuItems.length - 1 && <Divider className='opacity-50' />}
