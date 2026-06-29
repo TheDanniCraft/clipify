@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import type { CampaignOffer } from "@types";
-import { Card, Chip, Divider, Link, Spacer, Tab, Tabs, cn } from "@heroui/react";
+import { Card, Chip, Separator, Link, Spacer, Tab, Tabs, cn } from "@heroui/react";
 
 
 import { tiers, frequencies } from "./pricing-tiers";
@@ -50,7 +50,7 @@ export default function TiersComponent({ campaignOffer = null }: TiersComponentP
 					title={
 						<div className='flex items-center gap-2'>
 							<p>Pay Yearly</p>
-							<Chip color='primary'>2 months free</Chip>
+							<Chip color='accent'>2 months free</Chip>
 						</div>
 					}
 				/>
@@ -67,11 +67,11 @@ export default function TiersComponent({ campaignOffer = null }: TiersComponentP
 								"!border-small border-primary/50": tier.mostPopular,
 							}), "shadow-md backdrop-blur-md"].filter(Boolean).join(" ")}>
 							{tier.key === "pro" && proPromoEnabled && hasPromoPrice ? (
-								<Chip className='absolute right-4 top-4' variant='shadow' color='secondary'>
+								<Chip className='absolute right-4 top-4 shadow-lg' variant='primary' color='accent'>
 									Limited offer
 								</Chip>
 							) : tier.mostPopular ? (
-								<Chip className='absolute right-4 top-4 bg-primary' variant='flat'>
+								<Chip className='absolute right-4 top-4 bg-primary' variant='tertiary'>
 									Most Popular
 								</Chip>
 							) : null}
@@ -79,7 +79,7 @@ export default function TiersComponent({ campaignOffer = null }: TiersComponentP
 								<h2 className='text-large font-medium'>{tier.title}</h2>
 								<p className='text-medium text-default-500'>{tier.description}</p>
 							</Card.Header>
-							<Divider />
+							<Separator />
 							<Card.Content className='gap-8'>
 								<div className='min-h-[5.5rem] flex flex-col justify-end'>
 									<p className='flex items-end gap-2 pt-2 tabular-nums'>

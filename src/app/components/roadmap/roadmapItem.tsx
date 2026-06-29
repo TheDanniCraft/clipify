@@ -83,7 +83,7 @@ export const RoadmapItem: React.FC<RoadmapItemProps> = ({ icon, color, title, de
 					</div>
 
 					<div className='flex items-center gap-3'>
-						<Chip variant='flat' size='sm' className={`${getChipColor(status)}`}>
+						<Chip variant='tertiary' size='sm' className={`${getChipColor(status)}`}>
 							{status}
 						</Chip>
 						<span className='text-default-400'>{timeframe}</span>

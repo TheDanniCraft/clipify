@@ -50,8 +50,10 @@ jest.mock("@tabler/icons-react", () => ({
 }));
 
 jest.mock("@heroui/react", () => ({
-	// eslint-disable-next-line @next/next/no-img-element
-	Avatar: ({ src }: { src?: string }) => <img alt='avatar' src={src || undefined} />,
+	Avatar: Object.assign(({ children }: { children?: ReactNode }) => <div>{children}</div>, {
+		Image: ({ src }: { src?: string }) => <span data-avatar-src={src || undefined} />,
+		Fallback: ({ children }: { children?: ReactNode }) => <span>{children}</span>,
+	}),
 	Button: ({ as, children, ...props }: { as?: ElementType; children: ReactNode }) => {
 		const Component = as ?? "button";
 		return <Component {...props}>{children}</Component>;

@@ -4,7 +4,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useParams, useRouter } from "next/navigation";
 import { createPlaylist, getClipCacheStatus, getOverlay, getOverlayOwnerPlan, getPlaylistsForOwner, previewImportPlaylistClips, saveOverlay, savePlaylist, upsertPlaylistClips } from "@actions/database";
-import { addToast, Autocomplete, AutocompleteItem, Button, Card, Checkbox, Chip, DateRangePicker, Divider, Form, Image, Input, Link, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, NumberInput, Select, SelectItem, Slider, Snippet, Spinner, Switch, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow, Tooltip, useDisclosure, TextField, Label, FieldError, InputGroup, CloseButton } from "@heroui/react";
+import { addToast, Autocomplete, AutocompleteItem, Button, Card, Checkbox, Chip, DateRangePicker, Separator, Form, Input, Link, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, NumberInput, Select, SelectItem, Slider, Snippet, Spinner, Switch, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow, Tooltip, useDisclosure, TextField, Label, FieldError, InputGroup, CloseButton } from "@heroui/react";
+import Image from "next/image";
 import type { Selection, SortDescriptor } from "@heroui/react";
 
 import { AuthenticatedUser, Game, Overlay, OverlayType, Plan, PlaybackMode, StatusOptions, TwitchClip, TwitchReward } from "@types";
@@ -770,7 +771,7 @@ export default function OverlaySettings() {
 							</div>
 							<span className='text-sm text-gray-500'>ID: {overlayId}</span>
 						</Card.Header>
-						<Divider />
+						<Separator />
 						<Card.Content>
 							<div className='flex items-center'>
 								<Form className='w-full' onSubmit={handleSubmit}>
@@ -864,7 +865,7 @@ export default function OverlaySettings() {
 										</div>
 									)}
 
-									<Divider className='my-4' />
+									<Separator className='my-4' />
 									{ownerPlan === Plan.Free && !ownerHasAdvancedAccess && (
 										<div className='w-full mb-4'>
 											<Card className='bg-warning-50 border border-warning-200 mb-2'>
@@ -1054,7 +1055,7 @@ export default function OverlaySettings() {
 														{(item) => (
 															<AutocompleteItem key={item.id} textValue={item.name}>
 																<div className='flex items-center gap-2'>
-																	<Image src={item.box_art_url?.replace("{width}", "32").replace("{height}", "44")} alt={item.name} className='h-8 w-6 rounded object-cover' />
+																	{item.box_art_url ? <Image unoptimized src={item.box_art_url.replace("{width}", "32").replace("{height}", "44")} alt={item.name} width={24} height={32} className='h-8 w-6 rounded object-cover' /> : null}
 																	<span>{item.name}</span>
 																</div>
 															</AutocompleteItem>
@@ -1062,8 +1063,9 @@ export default function OverlaySettings() {
 													</Autocomplete>
 													<div className='flex flex-wrap gap-1'>
 														{(overlay.categoriesOnly ?? []).map((id) => (
-															<Chip key={id} onClose={() => setOverlay({ ...overlay, categoriesOnly: overlay.categoriesOnly.filter((x) => x !== id) })} size='sm' variant='flat'>
-																{getGameName(id)}
+																	<Chip key={id} size='sm' variant='tertiary'>
+																		<span>{getGameName(id)}</span>
+																		<CloseButton aria-label={`Remove ${getGameName(id)}`} onPress={() => setOverlay({ ...overlay, categoriesOnly: overlay.categoriesOnly.filter((x) => x !== id) })} />
 															</Chip>
 														))}
 													</div>
@@ -1090,7 +1092,7 @@ export default function OverlaySettings() {
 														{(item) => (
 															<AutocompleteItem key={item.id} textValue={item.name}>
 																<div className='flex items-center gap-2'>
-																	<Image src={item.box_art_url?.replace("{width}", "32").replace("{height}", "44")} alt={item.name} className='h-8 w-6 rounded object-cover' />
+																	{item.box_art_url ? <Image unoptimized src={item.box_art_url.replace("{width}", "32").replace("{height}", "44")} alt={item.name} width={24} height={32} className='h-8 w-6 rounded object-cover' /> : null}
 																	<span>{item.name}</span>
 																</div>
 															</AutocompleteItem>
@@ -1098,8 +1100,9 @@ export default function OverlaySettings() {
 													</Autocomplete>
 													<div className='flex flex-wrap gap-1'>
 														{(overlay.categoriesBlocked ?? []).map((id) => (
-															<Chip key={id} onClose={() => setOverlay({ ...overlay, categoriesBlocked: overlay.categoriesBlocked.filter((x) => x !== id) })} size='sm' variant='flat' color='danger'>
-																{getGameName(id)}
+																	<Chip key={id} size='sm' variant='tertiary' color='danger'>
+																		<span>{getGameName(id)}</span>
+																		<CloseButton aria-label={`Remove ${getGameName(id)}`} onPress={() => setOverlay({ ...overlay, categoriesBlocked: overlay.categoriesBlocked.filter((x) => x !== id) })} />
 															</Chip>
 														))}
 													</div>
@@ -1110,7 +1113,7 @@ export default function OverlaySettings() {
 												<TagsInput className='p-2' fullWidth label='Blacklisted Words' value={overlay.blacklistWords} onValueChange={(value) => setOverlay({ ...overlay, blacklistWords: value })} description='Hide clips containing certain words in titles. Supports RE2 regex (no lookarounds).' />
 											</>
 										)}
-										<Divider className='my-2' />
+										<Separator className='my-2' />
 										<div className='px-2 pb-2'>
 											<Button variant='primary' onPress={() => router.push(`/dashboard/overlay/${overlay.id}/theme`)} className='w-full'>{<IconPaint size={16} />}
 												Customize Overlay Style
@@ -1136,7 +1139,7 @@ export default function OverlaySettings() {
 								{previewModalClips.map((clip) => (
 									<li key={clip.id} className='flex gap-3 items-center rounded-md p-2 hover:bg-white/5 transition'>
 										<a href={clip.url} target='_blank' rel='noopener noreferrer' className='flex items-center gap-3 w-full'>
-											<Image src={clip.thumbnail_url} alt={clip.title} className='h-12 w-20 rounded object-cover flex-shrink-0' />
+											<Image unoptimized src={clip.thumbnail_url} alt={clip.title} width={80} height={48} className='h-12 w-20 flex-shrink-0 rounded object-cover' />
 											<div className='min-w-0'>
 												<p className='text-sm font-medium truncate'>{clip.title}</p>
 												<p className='text-xs text-white/60'>clipped by {clip.creator_name}</p>
@@ -1251,7 +1254,7 @@ export default function OverlaySettings() {
 											}}
 										/>
 										<IconGripVertical size={16} className='text-default-400' />
-										<Image src={clip.thumbnail_url} alt={clip.title} className='h-10 w-16 rounded object-cover' />
+										<Image unoptimized src={clip.thumbnail_url} alt={clip.title} width={64} height={40} className='h-10 w-16 rounded object-cover' />
 										<div className='min-w-0 flex-1'>
 											<div className='truncate text-sm font-medium'>{clip.title}</div>
 											<div className='text-xs text-default-500'>{clip.creator_name}</div>
@@ -1350,7 +1353,7 @@ export default function OverlaySettings() {
 										<TableRow key={item.id}>
 											<TableCell>
 												<div className='flex items-center gap-2'>
-													<Image src={item.thumbnail_url} alt={item.title} className='h-8 w-14 rounded object-cover' />
+													<Image unoptimized src={item.thumbnail_url} alt={item.title} width={56} height={32} className='h-8 w-14 rounded object-cover' />
 													<div className='truncate max-w-[250px]'>{item.title}</div>
 												</div>
 											</TableCell>
@@ -1410,7 +1413,7 @@ export default function OverlaySettings() {
 								{(item) => (
 									<AutocompleteItem key={item.id} textValue={item.name}>
 										<div className='flex items-center gap-2'>
-											{item.box_art_url ? <Image src={item.box_art_url.replace("{width}", "32").replace("{height}", "44")} alt={item.name} className='h-8 w-6 rounded object-cover' /> : null}
+											{item.box_art_url ? <Image unoptimized src={item.box_art_url.replace("{width}", "32").replace("{height}", "44")} alt={item.name} width={24} height={32} className='h-8 w-6 rounded object-cover' /> : null}
 											<span>{item.name}</span>
 										</div>
 									</AutocompleteItem>

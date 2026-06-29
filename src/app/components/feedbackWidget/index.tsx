@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Button, Form, Image, Input, Link, Popover, PopoverContent, PopoverTrigger, RadioGroup, Spinner, Tab, Tabs, Textarea, TextField, Label, FieldError } from "@heroui/react";
+import { Button, Form, Input, Link, Popover, PopoverContent, PopoverTrigger, RadioGroup, Spinner, Tab, Tabs, Textarea, TextField, Label, FieldError } from "@heroui/react";
+import Image from "next/image";
 
 import { IconChevronLeft, IconX } from "@tabler/icons-react";
 import { FiderPost, submitFeedback } from "@actions/feedbackWidget";
@@ -109,7 +110,7 @@ export default function FeedbackWidget() {
 									)}
 									{state === "success" && (
 										<div className='flex flex-col items-center justify-center py-4'>
-											<Image src='https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Activities/Party%20Popper.png' alt='Success Image' width={64} className='pb-4' />
+											<Image unoptimized src='https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Activities/Party%20Popper.png' alt='Success Image' width={64} height={64} className='pb-4' />
 											<p>Thank you for your {type === "feedback" ? "feedback" : type === "bug" ? "bug report" : "feature request"}!</p>
 											{response && "html_url" in response && (
 												<Link href={response.html_url} className='mb-5 underline underline-offset-2 text-sm' target='_blank' rel='noopener noreferrer'>

@@ -1,5 +1,5 @@
 "use client";
-import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, TableHeader, TableColumn, TableBody, TableRow, TableCell, Button, RadioGroup, Radio, Chip, Pagination, Divider, Tooltip, Popover, PopoverTrigger, PopoverContent, Spinner, addToast, Link, Avatar, Skeleton, Tab, Tabs, useDisclosure, TextField, InputGroup, cn } from "@heroui/react";
+import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, TableHeader, TableColumn, TableBody, TableRow, TableCell, Button, RadioGroup, Radio, Chip, Pagination, Separator, Tooltip, Popover, PopoverTrigger, PopoverContent, Spinner, addToast, Link, Avatar, Skeleton, Tab, Tabs, useDisclosure, TextField, InputGroup, cn } from "@heroui/react";
 import type { Selection, SortDescriptor } from "@heroui/react";
 
 import type { ColumnsKey } from "./data";
@@ -489,7 +489,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 						</div>
 					</div>
 
-					<Divider className='h-5' orientation='vertical' />
+					<Separator className='h-5' orientation='vertical' />
 
 					<div className='whitespace-nowrap text-sm text-default-800'>{filterSelectedKeys === "all" ? "All items selected" : `${filterSelectedKeys.size} Selected`}</div>
 
@@ -627,7 +627,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 				<div className='flex items-center justify-between'>
 					<div className='flex w-[226px] items-center gap-2'>
 						<h1 className='text-2xl font-[700] leading-[32px]'>{activeTab === "overlays" ? "Overlays" : "Playlists"}</h1>
-						<Chip className='hidden items-center text-default-500 sm:flex' size='sm' variant='flat'>
+						<Chip className='hidden items-center text-default-500 sm:flex' size='sm' variant='tertiary'>
 							{activeTab === "overlays" ? (overlays?.length ?? 0) : (playlists?.length ?? 0)}
 						</Chip>
 						<Button isIconOnly size='sm' variant='tertiary' onPress={reloadOverlays} aria-label='Reload'>{<IconReload className='text-default-400' width={16} />}</Button>
@@ -687,7 +687,10 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 										}}
 									>
 										<div className='flex items-center'>
-											<Avatar className='mr-2 h-6 w-6' src={item.profile_image_url} />
+											<Avatar className='mr-2 h-6 w-6'>
+												<Avatar.Image alt={item.display_name} src={item.profile_image_url} />
+												<Avatar.Fallback>{item.display_name.slice(0, 2).toUpperCase()}</Avatar.Fallback>
+											</Avatar>
 											{activeTab === "overlays" ? `Add new overlay for ${item.display_name}` : `Add new playlist for ${item.display_name}`}
 										</div>
 									</DropdownItem>
@@ -934,7 +937,10 @@ function AvatarCell({ ownerId, userId }: { ownerId: string; userId: string }) {
 
 	return (
 		<Skeleton isLoaded={!loading} className='rounded-full'>
-			<Avatar size='sm' src={src ?? undefined} fallback />
+			<Avatar size='sm'>
+				<Avatar.Image alt='' src={src ?? undefined} />
+				<Avatar.Fallback>?</Avatar.Fallback>
+			</Avatar>
 		</Skeleton>
 	);
 }

@@ -2,7 +2,7 @@
 
 import { IconMoonFilled, IconSunFilled } from "@tabler/icons-react";
 import { useTheme } from "next-themes";
-import { Autocomplete, AutocompleteItem, Avatar, Badge, Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Link, Navbar, NavbarBrand, NavbarContent, NavbarItem, Spacer } from "@heroui/react";
+import { Autocomplete, AutocompleteItem, Avatar, Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Link, Navbar, NavbarBrand, NavbarContent, NavbarItem, Spacer } from "@heroui/react";
 
 import { AuthenticatedUser, CampaignOffer, Role } from "@types";
 import Logo from "@components/logo";
@@ -137,18 +137,12 @@ export default function DashboardNavbar({ children, user, title, tagline }: { ch
 					<NavbarItem className='px-2'>
 						<Dropdown placement='bottom-end'>
 							<DropdownTrigger>
-								<button className='mt-1 h-8 w-8 transition-transform' aria-label='Open profile menu'>
-									<Badge
-										classNames={{
-											badge: "border-primary",
-										}}
-										color='success'
-										content=''
-										placement='bottom-right'
-										shape='circle'
-									>
-										<Avatar size='sm' src={user?.avatar} />
-									</Badge>
+								<button className='relative mt-1 h-8 w-8 transition-transform' aria-label='Open profile menu'>
+									<Avatar size='sm'>
+										<Avatar.Image alt={user?.username ?? "User avatar"} src={user?.avatar} />
+										<Avatar.Fallback>{user?.username?.slice(0, 2).toUpperCase() ?? "?"}</Avatar.Fallback>
+									</Avatar>
+									<span aria-label='Online' className='absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-primary bg-success' role='status' />
 								</button>
 							</DropdownTrigger>
 							<DropdownMenu aria-label='Profile Actions' variant='flat'>

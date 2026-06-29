@@ -32,15 +32,15 @@ function getStatusTone(status: CommunityPageStreamer["status"]) {
 function getSectionTone(group: CommunityPageGroup) {
 	switch (group.key) {
 		case "partners":
-			return { color: "secondary" as const, icon: <IconSparkles size={16} />, variant: "flat" as const };
+			return { color: "accent" as const, icon: <IconSparkles size={16} />, variant: "tertiary" as const };
 		case "pro":
-			return { color: "primary" as const, icon: <IconDiamondFilled size={16} />, variant: "solid" as const };
+			return { color: "accent" as const, icon: <IconDiamondFilled size={16} />, variant: "primary" as const };
 		case "now_live_with_clipify":
-			return { color: "success" as const, icon: <IconPlugConnected size={16} />, variant: "flat" as const };
+			return { color: "success" as const, icon: <IconPlugConnected size={16} />, variant: "tertiary" as const };
 		case "now_live":
-			return { color: "danger" as const, icon: <IconBroadcast size={16} />, variant: "flat" as const };
+			return { color: "danger" as const, icon: <IconBroadcast size={16} />, variant: "tertiary" as const };
 		default:
-			return { color: "default" as const, icon: <IconCircleMinus size={16} />, variant: "flat" as const };
+			return { color: "default" as const, icon: <IconCircleMinus size={16} />, variant: "tertiary" as const };
 	}
 }
 
@@ -48,13 +48,16 @@ function StreamerRow({ streamer }: { streamer: CommunityPageStreamer }) {
 	const statusTone = getStatusTone(streamer.status);
 	const canOpenTwitch = streamer.partner || streamer.plan === "pro";
 	const badgeLabel = streamer.partner ? "Partner" : streamer.plan === "pro" ? "Pro" : "Free";
-	const badgeColor = badgeLabel === "Partner" ? "secondary" : badgeLabel === "Pro" ? "primary" : "default";
-	const badgeVariant = badgeLabel === "Pro" ? "solid" : "flat";
+	const badgeColor = badgeLabel === "Partner" || badgeLabel === "Pro" ? "accent" : "default";
+	const badgeVariant = badgeLabel === "Pro" ? "primary" : "tertiary";
 
 	return (
 		<div className='flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between'>
 			<div className='flex min-w-0 items-center gap-3'>
-				<Avatar alt={streamer.displayName} color={statusTone.color} isBordered radius='full' size='md' src={streamer.avatar} />
+				<Avatar color={statusTone.color} className='rounded-full ring-2 ring-current' size='md'>
+					<Avatar.Image alt={streamer.displayName} src={streamer.avatar} />
+					<Avatar.Fallback>{streamer.displayName.slice(0, 2).toUpperCase()}</Avatar.Fallback>
+				</Avatar>
 				<div className='min-w-0'>
 					<div className='flex flex-wrap items-center gap-2'>
 						<p className='truncate text-base font-semibold text-foreground'>{streamer.displayName}</p>
@@ -83,12 +86,13 @@ function CommunitySection({ group }: { group: CommunityPageGroup }) {
 		<section className='border-t border-default-200 pt-12'>
 			<div className='flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between'>
 				<div className='min-w-0'>
-					<Chip color={tone.color} startContent={tone.icon} variant={tone.variant}>
-						{group.title}
+					<Chip color={tone.color} variant={tone.variant}>
+						{tone.icon}
+						<span>{group.title}</span>
 					</Chip>
 					<p className='mt-3 max-w-3xl text-sm text-default-500'>{group.description}</p>
 				</div>
-				<Chip color='default' className='self-start' variant='flat'>
+				<Chip color='default' className='self-start' variant='tertiary'>
 					{streamers.length} streamer{streamers.length === 1 ? "" : "s"}
 				</Chip>
 			</div>

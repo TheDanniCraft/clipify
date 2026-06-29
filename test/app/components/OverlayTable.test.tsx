@@ -78,7 +78,7 @@ jest.mock("@heroui/react", () => {
 			Input: (props: any) => <input {...props} />,
 		}),
 		Chip: ({ children }: any) => <div>{children}</div>,
-		Divider: () => <hr />,
+		Separator: () => <hr />,
 		Tooltip: ({ children, content }: any) => <div title={typeof content === "string" ? content : ""}>{children}</div>,
 		Popover: ({ children }: any) => <div>{children}</div>,
 		PopoverTrigger: ({ children }: any) => <div>{children}</div>,
@@ -128,8 +128,10 @@ jest.mock("@heroui/react", () => {
 		Spinner: ({ label }: any) => <div>{label}</div>,
 		addToast: jest.fn(),
 		Link: ({ children, href }: any) => <a href={href}>{children}</a>,
-		// eslint-disable-next-line @next/next/no-img-element
-		Avatar: ({ src }: any) => <img src={src} alt='avatar' />,
+		Avatar: Object.assign(({ children }: any) => <div>{children}</div>, {
+			Image: ({ src }: any) => <span data-avatar-src={src} />,
+			Fallback: ({ children }: any) => <span>{children}</span>,
+		}),
 		Skeleton: ({ children, isLoaded }: any) => <div>{isLoaded ? children : "Loading..."}</div>,
 		Tabs: ({ children, onSelectionChange, selectedKey }: any) => (
 			<div>

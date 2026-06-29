@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { getAllPlaylists, getPlaylistClips, previewImportPlaylistClips, savePlaylist, upsertPlaylistClips } from "@actions/database";
-import { addToast, Autocomplete, AutocompleteItem, Button, Card, Checkbox, DateRangePicker, Divider, Image, Input, Link, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, NumberInput, Pagination, Spinner, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow, useDisclosure, TextField, InputGroup, CloseButton } from "@heroui/react";
+import { addToast, Autocomplete, AutocompleteItem, Button, Card, Checkbox, DateRangePicker, Separator, Input, Link, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, NumberInput, Pagination, Spinner, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow, useDisclosure, TextField, InputGroup, CloseButton } from "@heroui/react";
+import Image from "next/image";
 import type { Selection, SortDescriptor } from "@heroui/react";
 
 import { AuthenticatedUser, Game, OverlayType, TwitchClip } from "@types";
@@ -431,7 +432,7 @@ export default function PlaylistPage() {
 							</Button>
 						</div>
 					</Card.Header>
-					<Divider />
+					<Separator />
 					<Card.Content>
 						{isFreePlaylistLimitActive && (
 							<div className='mb-4 rounded-lg border border-default-200 bg-content2 px-3 py-2'>
@@ -505,7 +506,7 @@ export default function PlaylistPage() {
 										}}
 									/>
 									<IconGripVertical size={16} className='text-default-400 cursor-grab' />
-									<Image src={clip.thumbnail_url} alt={clip.title} className='h-12 w-20 rounded object-cover' />
+									<Image unoptimized src={clip.thumbnail_url} alt={clip.title} width={80} height={48} className='h-12 w-20 rounded object-cover' />
 									<div className='min-w-0 flex-1'>
 										<div className='truncate text-sm font-medium'>{clip.title}</div>
 										<div className='text-xs text-default-500'>
@@ -577,7 +578,7 @@ export default function PlaylistPage() {
 									<TableRow key={item.id}>
 										<TableCell>
 											<div className='flex items-center gap-2'>
-												<Image src={item.thumbnail_url} alt={item.title} className='h-8 w-14 rounded object-cover' />
+												<Image unoptimized src={item.thumbnail_url} alt={item.title} width={56} height={32} className='h-8 w-14 rounded object-cover' />
 												<div className='truncate max-w-[250px]'>{item.title}</div>
 											</div>
 										</TableCell>
@@ -637,7 +638,7 @@ export default function PlaylistPage() {
 							{(item) => (
 								<AutocompleteItem key={item.id} textValue={item.name}>
 									<div className='flex items-center gap-2'>
-										{item.box_art_url ? <Image src={item.box_art_url.replace("{width}", "32").replace("{height}", "44")} alt={item.name} className='h-8 w-6 rounded object-cover' /> : null}
+										{item.box_art_url ? <Image unoptimized src={item.box_art_url.replace("{width}", "32").replace("{height}", "44")} alt={item.name} width={24} height={32} className='h-8 w-6 rounded object-cover' /> : null}
 										<span>{item.name}</span>
 									</div>
 								</AutocompleteItem>

@@ -22,7 +22,7 @@ export default function NextErrorPage({ contextLabel, code, title, description, 
 			<div className='relative mx-auto grid min-h-screen w-full max-w-7xl grid-cols-1 items-center gap-10 px-6 py-10 md:px-10 lg:grid-cols-2 lg:gap-16'>
 				<section className='order-2 space-y-6 text-center lg:order-1 lg:text-left'>
 					{showContextBadge ? (
-						<Chip size='sm' variant='flat' className='mx-auto border border-white/30 bg-white/15 text-white lg:mx-0'>
+						<Chip size='sm' variant='tertiary' className='mx-auto border border-white/30 bg-white/15 text-white lg:mx-0'>
 							{contextLabel}
 						</Chip>
 					) : null}

@@ -19,13 +19,15 @@ export default function FeatureCard({ icon, title, description, comingSoon, isNe
 					<div className='flex flex-row items-center justify-between'>
 						<div className='bg-primary/10 w-12 h-12 rounded-lg flex items-center justify-center'>{React.createElement(icon, { className: "text-primary w-6 h-6" })}</div>
 						{comingSoon && (
-							<Chip color='primary' variant='bordered' startContent={<IconConfetti className='p-1' />}>
-								Coming Soon
+							<Chip color='accent' variant='secondary'>
+								<IconConfetti className='p-1' />
+								<span>Coming Soon</span>
 							</Chip>
 						)}
 						{isNew && (
-							<Chip color='primary' variant='shadow' startContent={<IconRocket className='p-1' />}>
-								New
+							<Chip color='accent' variant='primary' className='shadow-lg'>
+								<IconRocket className='p-1' />
+								<span>New</span>
 							</Chip>
 						)}
 					</div>

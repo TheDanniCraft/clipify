@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 
 import type { CampaignOffer } from "@types";
 import BasicNavbar from "@components/LandingPage/basicNavbar";
-import { Accordion, AccordionItem, Chip, Image, Link, Card } from "@heroui/react";
+import { Accordion, AccordionItem, Chip, Link, Card } from "@heroui/react";
+import Image from "next/image";
 
 import { LazyMotion, motion, domAnimation, AnimatePresence } from "motion/react";
 import { IconThumbUp, IconArrowRight, IconPlugConnected, IconLayersDifference, IconMoodSmile, IconCoin, IconAdjustments, IconChevronDown, IconArrowsMove, IconMessageCircle, IconDeviceRemote, IconUsersGroup, IconPlaylist } from "@tabler/icons-react";
@@ -71,7 +72,7 @@ export default function HomePageClient({ campaignOffer }: HomePageClientProps) {
 
 	return (
 		<>
-			{campaignOffer && campaignOffer.showFloatingBanner ? <FloatingBanner icon={campaignOffer.iconUrl ? <Image alt={`${campaignOffer.title} Icon`} src={campaignOffer.iconUrl} width='50' height='50' className='h-[50px] w-[50px] shrink-0 rounded-none object-contain' /> : undefined} title={floatingTitle ?? campaignOffer.title} text={floatingSubtitle ?? campaignOffer.title} cta={floatingBannerCta} /> : null}
+			{campaignOffer && campaignOffer.showFloatingBanner ? <FloatingBanner icon={campaignOffer.iconUrl ? <Image unoptimized alt={`${campaignOffer.title} Icon`} src={campaignOffer.iconUrl} width={50} height={50} className='h-[50px] w-[50px] shrink-0 rounded-none object-contain' /> : undefined} title={floatingTitle ?? campaignOffer.title} text={floatingSubtitle ?? campaignOffer.title} cta={floatingBannerCta} /> : null}
 
 			<div className='bg-gradient-to-br from-primary-800 to-primary-400 h-full'>
 				<BasicNavbar />
@@ -186,7 +187,7 @@ export default function HomePageClient({ campaignOffer }: HomePageClientProps) {
 						}}
 					>
 						<div className='aspect-[16/9] w-auto h-full flex justify-center'>
-							<Image src='./appSkew.webp' alt='App Screenshot' className='w-full h-full object-cover' loading='eager' fetchPriority='high' />
+							<Image src='/appSkew.webp' alt='App Screenshot' width={1920} height={1080} className='h-full w-full object-cover' loading='eager' fetchPriority='high' />
 						</div>
 					</motion.div>
 				</div>
@@ -195,7 +196,7 @@ export default function HomePageClient({ campaignOffer }: HomePageClientProps) {
 			<div className='w-full bg-background py-24 px-4'>
 				<div className='max-w-6xl mx-auto'>
 					<div className='text-center mb-16'>
-						<Chip color='primary' className='mb-4'>
+						<Chip color='accent' className='mb-4'>
 							Features
 						</Chip>
 						<h2 className='text-4xl font-bold mb-4'>Play your Twitch clips, keep your stream alive</h2>
@@ -221,7 +222,7 @@ export default function HomePageClient({ campaignOffer }: HomePageClientProps) {
 			<div className='w-full bg-background py-24 px-4'>
 				<div className='max-w-6xl mx-auto'>
 					<div className='text-center mb-16'>
-						<Chip color='primary' className='mb-4'>
+						<Chip color='accent' className='mb-4'>
 							Pricing
 						</Chip>
 						<h2 className='text-4xl font-bold mb-4'>Complicated pricing? Not with us.</h2>
@@ -235,7 +236,7 @@ export default function HomePageClient({ campaignOffer }: HomePageClientProps) {
 									<Card className='relative bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl shadow-lg'>
 										<Card.Header className='p-4 pb-2'>
 											<div className='flex items-center gap-2 rounded-none'>
-												{campaignOffer.iconUrl ? <Image alt={`${campaignOffer.title} Icon`} className='rounded-none' src={campaignOffer.iconUrl} width={28} /> : null}
+												{campaignOffer.iconUrl ? <Image unoptimized alt={`${campaignOffer.title} Icon`} className='rounded-none' src={campaignOffer.iconUrl} width={28} height={28} /> : null}
 												<h2 className='text-[17px] md:text-[18px] font-semibold leading-[1.1] tracking-tight'>{campaignOffer.title}</h2>
 											</div>
 										</Card.Header>
@@ -273,7 +274,7 @@ export default function HomePageClient({ campaignOffer }: HomePageClientProps) {
 			<div className='w-full bg-background py-24 px-4'>
 				<div className='max-w-6xl mx-auto'>
 					<div className='text-center mb-16'>
-						<Chip color='primary' className='mb-4'>
+						<Chip color='accent' className='mb-4'>
 							Interactive Demo
 						</Chip>
 						<h2 className='text-4xl font-bold mb-4'>See Clipify in action</h2>
@@ -286,7 +287,7 @@ export default function HomePageClient({ campaignOffer }: HomePageClientProps) {
 			<div className='w-full bg-background py-24 px-4'>
 				<div className='max-w-6xl mx-auto'>
 					<div className='text-center mb-16'>
-						<Chip color='primary' className='mb-4'>
+						<Chip color='accent' className='mb-4'>
 							FAQs
 						</Chip>
 						<h2 className='text-4xl font-bold mb-4'>Frequently Asked Questions</h2>

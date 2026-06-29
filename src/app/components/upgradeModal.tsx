@@ -1,5 +1,5 @@
 "use client";
-import { addToast, Button, Chip, Divider, Modal, ModalBody, ModalContent, ModalHeader, Tab, Tabs } from "@heroui/react";
+import { addToast, Button, Chip, Separator, Modal, ModalBody, ModalContent, ModalHeader, Tab, Tabs } from "@heroui/react";
 
 import { IconBolt, IconCheck, IconDiamondFilled, IconSparkles } from "@tabler/icons-react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -124,11 +124,8 @@ export default function UpgradeModal({ isOpen, onOpenChange, user, title, descri
 						{inTrial && (
 							<Chip
 								size='sm'
-								variant='flat'
-								classNames={{
-									base: "border border-amber-300/40 bg-amber-400/20",
-									content: "text-amber-100 font-medium",
-								}}
+								variant='tertiary'
+								className='border border-amber-300/40 bg-amber-400/20 font-medium text-amber-100'
 							>
 								Trial active: {trialDaysLeft <= 1 ? "Ends today" : `${trialDaysLeft} days left`}
 							</Chip>
@@ -146,7 +143,7 @@ export default function UpgradeModal({ isOpen, onOpenChange, user, title, descri
 									<div className='flex items-center justify-between'>
 										<div className='text-xs text-default-500'>Monthly</div>
 										{monthlyHasSale && (
-											<Chip size='sm' color='secondary' variant='flat'>
+											<Chip size='sm' color='accent' variant='tertiary'>
 												Offer
 											</Chip>
 										)}
@@ -171,7 +168,7 @@ export default function UpgradeModal({ isOpen, onOpenChange, user, title, descri
 									<div className='flex items-center justify-between'>
 										<div className='text-xs text-primary-300'>Yearly</div>
 										{yearlyHasSale && (
-											<Chip size='sm' color='secondary' variant='flat'>
+											<Chip size='sm' color='accent' variant='tertiary'>
 												Offer
 											</Chip>
 										)}
@@ -196,7 +193,7 @@ export default function UpgradeModal({ isOpen, onOpenChange, user, title, descri
 						</>
 					)}
 
-					<Divider />
+					<Separator />
 
 					{proTier && (
 						<>
@@ -215,7 +212,7 @@ export default function UpgradeModal({ isOpen, onOpenChange, user, title, descri
 						</>
 					)}
 
-					<Divider className='my-3' />
+					<Separator className='my-3' />
 					<Button onPress={async () => {
 							trackPaywallEvent(plausible, "paywall_cta_click", {
 								source,

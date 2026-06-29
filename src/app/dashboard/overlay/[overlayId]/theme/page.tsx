@@ -7,7 +7,7 @@ import DashboardNavbar from "@components/dashboardNavbar";
 import UpgradeModal from "@components/upgradeModal";
 import { getFeatureAccess, getTrialDaysLeft, isReverseTrialActive } from "@lib/featureAccess";
 import { AuthenticatedUser, Overlay, Plan } from "@types";
-import { addToast, Avatar, Button, Card, Divider, Input, Popover, PopoverContent, PopoverTrigger, Select, SelectItem, Slider, Spinner, Tab, Tabs, useDisclosure, TextField, Label, Description, InputGroup } from "@heroui/react";
+import { addToast, Avatar, Button, Card, Separator, Input, Popover, PopoverContent, PopoverTrigger, Select, SelectItem, Slider, Spinner, Tab, Tabs, useDisclosure, TextField, Label, Description, InputGroup } from "@heroui/react";
 
 import { IconArrowLeft, IconCrown, IconDeviceFloppy, IconPalette } from "@tabler/icons-react";
 import { useParams, useRouter } from "next/navigation";
@@ -748,7 +748,10 @@ function OverlayStylePreview({ overlay, canDrag, onMove, onScaleChange, streamer
 									}}
 								>
 									<div className={`flex items-center ${channelAnchoredRight ? "flex-row-reverse" : ""}`}>
-										<Avatar size='md' src={streamerAvatar} />
+										<Avatar size='md'>
+											<Avatar.Image alt='TheDanniCraft' src={streamerAvatar} />
+											<Avatar.Fallback>TD</Avatar.Fallback>
+										</Avatar>
 										<div className={`text-xs ${channelAnchoredRight ? "mr-2 text-right" : "ml-2 text-left"}`}>
 											<div className='font-semibold'>TheDanniCraft</div>
 											<div className='opacity-80'>Playing Just Chatting</div>
@@ -1079,7 +1082,7 @@ export default function OverlayStylePage() {
 									/>
 								</div>
 							</div>
-							<Divider />
+							<Separator />
 							<div className='grid grid-cols-1 lg:grid-cols-2 gap-3'>
 								<Slider minValue={0} maxValue={100} step={1} value={overlay.playerVolume} label='Player Volume' showTooltip onChange={(value) => setOverlay({ ...overlay, playerVolume: Number(Array.isArray(value) ? value[0] : value) })} />
 								<Slider minValue={0} maxValue={30} step={1} value={overlay.overlayInfoFadeOutSeconds ?? 6} label='Overlay Fade Out (seconds)' showTooltip onChange={(value) => setOverlay({ ...overlay, overlayInfoFadeOutSeconds: Number(Array.isArray(value) ? value[0] : value) })} />

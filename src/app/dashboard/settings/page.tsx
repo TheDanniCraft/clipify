@@ -5,7 +5,7 @@ import { deleteUser, getClipCacheStatus, getSettings, saveSettings } from "@acti
 import ConfirmModal from "@components/confirmModal";
 import DashboardNavbar from "@components/dashboardNavbar";
 import { AuthenticatedUser, Plan, UserSettings } from "@types";
-import { addToast, Avatar, Button, Card, Divider, Form, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Snippet, Spinner, Switch, Tooltip, useDisclosure, TextField, Label, Description, FieldError } from "@heroui/react";
+import { addToast, Avatar, Button, Card, Separator, Form, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Snippet, Spinner, Switch, Tooltip, useDisclosure, TextField, Label, Description, FieldError } from "@heroui/react";
 
 import { IconAlertTriangle, IconArrowLeft, IconCreditCardFilled, IconDatabase, IconDeviceFloppy, IconDiamondFilled, IconInfoCircle, IconRefresh, IconTrash } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
@@ -294,7 +294,10 @@ export default function SettingsPage() {
 					</Card.Header>
 					<Card.Content className='px-6 pt-0 pb-6'>
 						<div className='mb-5 flex items-center'>
-							<Avatar src={user.avatar} size='lg' className='mr-4' />
+							<Avatar size='lg' className='mr-4'>
+								<Avatar.Image alt={user.username} src={user.avatar} />
+								<Avatar.Fallback>{user.username.slice(0, 2).toUpperCase()}</Avatar.Fallback>
+							</Avatar>
 							<div>
 								<p className='text-2xl font-bold'>{user.username}</p>
 								<p className='text-sm font-bold text-muted-foreground'>
@@ -326,7 +329,7 @@ export default function SettingsPage() {
 							)}
 						</div>
 
-						<Divider className='my-6' />
+						<Separator className='my-6' />
 
 						<div className='space-y-6'>
 							<section className='space-y-3'>
@@ -385,7 +388,7 @@ export default function SettingsPage() {
 								</div>
 							</section>
 
-							<Divider />
+							<Separator />
 
 							<Form className='w-full' onSubmit={handleSubmit}>
 								<TextField type='text' isRequired><Label>Command Prefix</Label><Input value={settings?.prefix || ""} maxLength={3} onChange={(e) => {
@@ -533,7 +536,7 @@ export default function SettingsPage() {
 									Save Settings
 								</Button>
 							</Form>
-							<Divider className='my-4' />
+							<Separator className='my-4' />
 							<div className='flex  flex-col gap-2 justify-end'>
 								<Button isDisabled={user.plan !== Plan.Free} onPress={async () => {
 										if (await checkIfSubscriptionExists()) {

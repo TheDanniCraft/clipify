@@ -1,15 +1,14 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState, type ComponentProps } from "react";
-import { Chip, Textarea, Popover, PopoverContent, Listbox, ListboxItem } from "@heroui/react";
+import { Chip, CloseButton, Textarea, Popover, PopoverContent, Listbox, ListboxItem } from "@heroui/react";
 import type { TextAreaProps } from "@heroui/react";
 
 
-type ChipColor = "default" | "primary" | "secondary" | "success" | "warning" | "danger";
-type ChipVariant = "solid" | "bordered" | "flat" | "faded" | "light" | "shadow";
+type ChipColor = "default" | "accent" | "success" | "warning" | "danger";
+type ChipVariant = "primary" | "secondary" | "tertiary" | "soft";
 type ChipSize = "sm" | "md" | "lg";
 
-type ChipClassNames = ComponentProps<typeof Chip>["classNames"];
 type TextareaClassNames = ComponentProps<typeof Textarea>["classNames"];
 
 type PassthroughTextAreaProps = Omit<TextAreaProps, "children" | "value" | "defaultValue" | "onChange" | "onValueChange" | "startContent" | "minRows" | "maxRows" | "disableAutosize" | "classNames">;
@@ -32,7 +31,7 @@ export type TagsInputProps = PassthroughTextAreaProps & {
 	chipColor?: ChipColor;
 	chipVariant?: ChipVariant;
 	chipSize?: ChipSize;
-	chipClassNames?: ChipClassNames;
+	chipClassName?: string;
 
 	suggestionItemClassName?: string;
 	textareaClassNames?: TextareaClassNames;
@@ -63,7 +62,7 @@ export default function TagsInput(props: TagsInputProps) {
 		chipColor,
 		chipVariant,
 		chipSize,
-		chipClassNames,
+		chipClassName,
 
 		suggestionItemClassName,
 		textareaClassNames,
@@ -275,8 +274,9 @@ export default function TagsInput(props: TagsInputProps) {
 					startContent={
 						<div className='flex flex-wrap items-center gap-2 w-full'>
 							{tags.map((t, idx) => (
-								<Chip key={`${t}-${idx}`} onClose={isDisabled || isReadOnly ? undefined : () => removeTag(t)} color={chipColor} variant={chipVariant} size={chipSize} classNames={chipClassNames} className='max-w-full'>
+								<Chip key={`${t}-${idx}`} color={chipColor} variant={chipVariant} size={chipSize} className={["max-w-full", chipClassName].filter(Boolean).join(" ")}>
 									<span className='truncate'>{t}</span>
+									{isDisabled || isReadOnly ? null : <CloseButton aria-label={`Remove ${t}`} onPress={() => removeTag(t)} />}
 								</Chip>
 							))}
 

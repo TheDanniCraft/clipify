@@ -2,7 +2,8 @@
 
 import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { IconBroadcast, IconLock, IconLockOpen2, IconEye, IconEyeOff, IconLayoutSidebarRightExpand, IconPlayerSkipForward, IconPlayerPauseFilled, IconPlayerPlayFilled, IconPlus, IconVolume, IconVolumeOff } from "@tabler/icons-react";
-import { Button, Chip, Image, Input, Progress, Slider, TextField } from "@heroui/react";
+import { Button, Chip, Input, Progress, Slider, TextField } from "@heroui/react";
+import Image from "next/image";
 
 import { getControllerQueuesAction, runControllerAction, type ControllerQueueResponse } from "@actions/controller";
 
@@ -47,7 +48,7 @@ function PanelLabel({ children }: { children: ReactNode }) {
 function QueueRow({ clip, accent }: { clip: ClipSummary; accent?: boolean }) {
 	return (
 		<div className={`grid grid-cols-[52px_minmax(0,1fr)_auto] items-center gap-3 rounded-2xl px-3 py-3 ${accent ? "bg-primary/10" : "bg-transparent hover:bg-default-100"}`}>
-			<div className='flex h-11 w-[52px] items-center justify-center overflow-hidden rounded-xl bg-default-100'>{clip.thumbnailUrl ? <Image src={clip.thumbnailUrl} alt='' width={52} height={44} radius='none' className='h-11 w-[52px] object-cover' /> : <span className='text-[10px] font-semibold uppercase tracking-[0.18em] text-default-400'>Clip</span>}</div>
+			<div className='flex h-11 w-[52px] items-center justify-center overflow-hidden rounded-xl bg-default-100'>{clip.thumbnailUrl ? <Image unoptimized src={clip.thumbnailUrl} alt='' width={52} height={44} className='h-11 w-[52px] object-cover' /> : <span className='text-[10px] font-semibold uppercase tracking-[0.18em] text-default-400'>Clip</span>}</div>
 			<div className='min-w-0'>
 				<div className='truncate text-sm font-medium text-foreground'>{clip.title}</div>
 				<div className='truncate text-xs text-default-500'>{clip.creatorName}</div>
@@ -321,27 +322,31 @@ export default function ControllerClient({ overlayId, controllerToken }: { overl
 				<Surface className='px-4 py-4 sm:px-5'>
 					<div className='grid gap-4 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center'>
 						<div className='flex min-w-0 items-center gap-4'>
-							<div className='flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-default-100'>{nowPlaying?.thumbnailUrl ? <Image src={nowPlaying.thumbnailUrl} alt={nowPlaying.title} width={64} height={64} radius='none' className='h-16 w-16 object-cover' /> : <span className='text-[10px] font-semibold uppercase tracking-[0.18em] text-default-400'>Clip</span>}</div>
+							<div className='flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-default-100'>{nowPlaying?.thumbnailUrl ? <Image unoptimized src={nowPlaying.thumbnailUrl} alt={nowPlaying.title} width={64} height={64} className='h-16 w-16 object-cover' /> : <span className='text-[10px] font-semibold uppercase tracking-[0.18em] text-default-400'>Clip</span>}</div>
 							<div className='min-w-0'>
 								<h1 className='truncate text-2xl font-bold tracking-tight text-foreground sm:text-3xl'>{nowPlaying?.title ?? "No active clip"}</h1>
 								<p className='mt-1 truncate text-sm text-default-500'>{nowPlaying ? `by ${nowPlaying.creatorName}` : `Overlay ${overlayId}`}</p>
 								<div className='mt-2 flex flex-wrap gap-2'>
-									<Chip startContent={controlsUnlocked ? <IconLockOpen2 size={12} /> : <IconLock size={12} />} size='sm' classNames={{ base: controlsUnlocked ? "bg-success/15 text-success-700" : "bg-warning/15 text-warning-700" }}>
+									<Chip size='sm' className={controlsUnlocked ? "bg-success/15 text-success-700" : "bg-warning/15 text-warning-700"}>
+										{controlsUnlocked ? <IconLockOpen2 size={12} /> : <IconLock size={12} />}
 										{controlsUnlocked ? "Controls unlocked" : "Controls locked"}
 									</Chip>
-									<Chip startContent={<IconBroadcast size={12} />} size='sm' classNames={{ base: "bg-default-100 text-foreground" }}>
+									<Chip size='sm' className='bg-default-100 text-foreground'>
+										<IconBroadcast size={12} />
 										{statusText}
 									</Chip>
-									<Chip startContent={<IconPlayerPlayFilled size={12} />} size='sm' classNames={{ base: "bg-default-100 text-foreground" }}>
+									<Chip size='sm' className='bg-default-100 text-foreground'>
+										<IconPlayerPlayFilled size={12} />
 										{stateLabel}
 									</Chip>
-									<Chip startContent={<IconLayoutSidebarRightExpand size={12} />} size='sm' classNames={{ base: "bg-default-100 text-foreground" }}>
+									<Chip size='sm' className='bg-default-100 text-foreground'>
+										<IconLayoutSidebarRightExpand size={12} />
 										{playback.showPlayer ? "Visible" : "Hidden"}
 									</Chip>
-									<Chip size='sm' classNames={{ base: "bg-default-100 text-foreground" }}>
+									<Chip size='sm' className='bg-default-100 text-foreground'>
 										{queueTotal} queued
 									</Chip>
-									<Chip size='sm' classNames={{ base: "bg-default-100 text-foreground" }}>
+									<Chip size='sm' className='bg-default-100 text-foreground'>
 										{upcomingCount} preloaded
 									</Chip>
 								</div>

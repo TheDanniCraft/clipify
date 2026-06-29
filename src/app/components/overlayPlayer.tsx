@@ -322,7 +322,10 @@ function OverlayViewport({
 							{overlay.showChannelInfo && (
 								<PlayerOverlay key={`${videoClip.id}-channel`} left={channelAnchoredRight ? undefined : `${channelInfoPos.x}%`} right={channelAnchoredRight ? `${100 - channelInfoPos.x}%` : undefined} top={channelAnchoredBottom ? undefined : `${channelInfoPos.y}%`} bottom={channelAnchoredBottom ? `${100 - channelInfoPos.y}%` : undefined} scale={overlayScale * channelScale} fadeOutSeconds={overlayFadeOutSeconds} className='w-fit p-2 shadow-lg backdrop-blur-sm' style={themeStyle}>
 									<div className={`flex items-center ${channelMirrored ? "flex-row-reverse" : ""}`}>
-										<Avatar size='md' src={videoClip.brodcasterAvatar || ownerAvatar} />
+										<Avatar size='md'>
+											<Avatar.Image alt={videoClip.broadcaster_name} src={videoClip.brodcasterAvatar || ownerAvatar} />
+											<Avatar.Fallback>{videoClip.broadcaster_name.slice(0, 2).toUpperCase()}</Avatar.Fallback>
+										</Avatar>
 										<div className={`flex flex-col justify-center text-xs ${channelMirrored ? "mr-2 items-end text-right" : "ml-2 items-start text-left"}`}>
 											<span className='font-semibold'>{videoClip.broadcaster_name}</span>
 											<span className='text-xs opacity-80'>Playing {videoClip.game?.name}</span>

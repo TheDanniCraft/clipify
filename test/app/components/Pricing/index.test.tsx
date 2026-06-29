@@ -86,7 +86,7 @@ jest.mock("@heroui/react", () => {
 			Footer: ({ children, ...props }: { children: ReactNode }) => <div {...props}>{children}</div>,
 		}),
 		Chip: ({ children, ...props }: { children: ReactNode }) => <div {...props}>{children}</div>,
-		Divider: () => <hr />,
+		Separator: () => <hr />,
 		Link: ({ children, ...props }: { children: ReactNode }) => <a {...props}>{children}</a>,
 		Spacer: () => <div />,
 		Tab,

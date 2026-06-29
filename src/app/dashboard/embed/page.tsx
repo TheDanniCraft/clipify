@@ -5,7 +5,7 @@ import { getAccessToken, getAllOverlays, getEditorOverlays, getOverlayOwnerPlans
 import { getUsersDetailsBulk } from "@actions/twitch";
 import DashboardNavbar from "@components/dashboardNavbar";
 import { AuthenticatedUser, Overlay } from "@types";
-import { Avatar, Button, Card, Divider, Link, Select, SelectItem, Snippet, Spinner, Switch, Tooltip, useDisclosure } from "@heroui/react";
+import { Avatar, Button, Card, Separator, Link, Select, SelectItem, Snippet, Spinner, Switch, Tooltip, useDisclosure } from "@heroui/react";
 
 import { IconArrowLeft, IconCode, IconEye, IconLink, IconPlayerPlayFilled, IconSparkles, IconVolume } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
@@ -191,7 +191,10 @@ export default function EmbedTool() {
 								{overlays.map((overlay) => (
 									<SelectItem key={overlay.id}>
 										<div className='flex items-center'>
-											<Avatar className='mr-2 h-6 w-6' src={avatars[overlay.ownerId]} />
+											<Avatar className='mr-2 h-6 w-6'>
+												<Avatar.Image alt='' src={avatars[overlay.ownerId]} />
+												<Avatar.Fallback>?</Avatar.Fallback>
+											</Avatar>
 											{overlay.name}
 										</div>
 									</SelectItem>
@@ -259,7 +262,7 @@ export default function EmbedTool() {
 								</Snippet>
 								<p className='text-sm text-gray-500'>You can use this link to embed your overlay (e.g. iframe)</p>
 							</div>
-							<Divider />
+							<Separator />
 							<div>
 								<div className='text-xs uppercase tracking-wide text-gray-500 font-semibold mb-2 flex items-center gap-2'>
 									<IconCode className='h-4 w-4' />

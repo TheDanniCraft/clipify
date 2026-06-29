@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Image, Link } from "@heroui/react";
+import { Link } from "@heroui/react";
+import Image from "next/image";
 
 import BasicNavbar from "@components/LandingPage/basicNavbar";
 
@@ -25,7 +26,7 @@ export default function ImprintPage() {
 							<h1 className='text-4xl font-bold sm:text-5xl'>Imprint</h1>
 							<p className='max-w-2xl text-base text-default-500 sm:text-lg'>Provider information in accordance with Section 5 German Telemedia Act (TMG).</p>
 						</div>
-						<Image src='/clippy/Clippy.svg' alt='Clippy mascot' className='h-24 w-24 sm:h-36 sm:w-36' />
+						<Image src='/clippy/Clippy.svg' alt='Clippy mascot' width={144} height={144} className='h-24 w-24 sm:h-36 sm:w-36' />
 					</div>
 				</div>
 

@@ -66,7 +66,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 								{health.time} | uptime {formatNumber(health.uptimeSec)}s | env {health.app.env}
 							</p>
 						</div>
-						<Chip color={health.status === "ok" ? "success" : health.status === "degraded" ? "warning" : "danger"} variant='flat'>
+						<Chip color={health.status === "ok" ? "success" : health.status === "degraded" ? "warning" : "danger"} variant='tertiary'>
 							{health.status.toUpperCase()}
 						</Chip>
 					</Card.Header>
@@ -101,7 +101,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 							<p className='mt-3 mb-1 text-[11px] font-semibold text-default-500'>By Source</p>
 							<div className='flex flex-wrap gap-1'>
 								{Object.entries(health.entitlements.grantsBySource).map(([source, value]) => (
-									<Chip size='sm' key={source} variant='flat'>
+									<Chip size='sm' key={source} variant='tertiary'>
 										{source}: {formatNumber(value)}
 									</Chip>
 								))}
@@ -109,7 +109,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 							<p className='mt-3 mb-1 text-[11px] font-semibold text-default-500'>By Entitlement</p>
 							<div className='flex flex-wrap gap-1'>
 								{Object.entries(health.entitlements.grantsByEntitlement).map(([entitlement, value]) => (
-									<Chip size='sm' key={entitlement} variant='flat'>
+									<Chip size='sm' key={entitlement} variant='tertiary'>
 										{entitlement}: {formatNumber(value)}
 									</Chip>
 								))}

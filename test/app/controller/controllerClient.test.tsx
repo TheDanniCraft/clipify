@@ -33,7 +33,6 @@ jest.mock("@heroui/react", () => ({
 		</button>
 	),
 	Chip: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
-	Image: ({ alt = "", src }: { alt?: string; src?: string }) => <img alt={alt} src={src} />,
 	Progress: ({ value, "aria-label": ariaLabel }: { value?: number; "aria-label"?: string }) => <progress aria-label={ariaLabel} value={value} max={100} />,
 	Slider: ({ value, onChange, onChangeEnd, isDisabled, "aria-label": ariaLabel }: { value?: number; onChange?: (value: number) => void; onChangeEnd?: (value: number) => void; isDisabled?: boolean; "aria-label"?: string }) => (
 		<input
@@ -102,7 +101,10 @@ async function emitSocketMessage(ws: MockWebSocket | undefined, payload: unknown
 }
 
 function getButtonByText(text: string, index = 0) {
-	return screen.getAllByText(text)[index].closest("button") as HTMLButtonElement;
+	return screen
+		.getAllByText(text)
+		.map((element) => element.closest("button"))
+		.filter((button): button is HTMLButtonElement => button !== null)[index];
 }
 
 describe("controller/[overlayId]/controllerClient", () => {

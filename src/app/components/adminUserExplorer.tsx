@@ -173,12 +173,12 @@ export default function AdminUserExplorer({ users, initialPage, initialTotalPage
 									<span className='text-default-600'>{row.email}</span>
 								</TableCell>
 								<TableCell>
-									<Chip size='sm' variant='flat'>
+									<Chip size='sm' variant='tertiary'>
 										{row.role}
 									</Chip>
 								</TableCell>
 								<TableCell>
-									<Chip size='sm' variant='flat'>
+									<Chip size='sm' variant='tertiary'>
 										{row.plan}
 									</Chip>
 								</TableCell>

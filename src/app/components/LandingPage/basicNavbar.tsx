@@ -1,5 +1,5 @@
 "use client";
-import { Navbar, NavbarBrand, NavbarContent, NavbarItem, NavbarMenu, NavbarMenuItem, NavbarMenuToggle, Link, Divider, cn } from "@heroui/react";
+import { Navbar, NavbarBrand, NavbarContent, NavbarItem, NavbarMenu, NavbarMenuItem, NavbarMenuToggle, Link, Separator, cn } from "@heroui/react";
 import type { NavbarProps } from "@heroui/react";
 
 
@@ -97,7 +97,7 @@ const BasicNavbar = React.forwardRef<HTMLElement, NavbarProps>(({ classNames = {
 						<Link className='mb-2 w-full text-white text-base' href={item.href}>
 							{item.name}
 						</Link>
-						{index < menuItems.length - 1 && <Divider className='opacity-50' />}
+						{index < menuItems.length - 1 && <Separator className='opacity-50' />}
 					</NavbarMenuItem>
 				))}
 			</NavbarMenu>

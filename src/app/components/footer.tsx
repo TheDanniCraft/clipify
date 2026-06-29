@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { Button, Chip, Divider, Form, Image, Input, Link, Modal, ModalContent, Spinner, Tab, Tabs, TextField, Label, FieldError, InputGroup } from "@heroui/react";
+import { Button, Chip, Separator, Form, Input, Link, Modal, ModalContent, Spinner, Tab, Tabs, TextField, Label, FieldError, InputGroup } from "@heroui/react";
+import Image from "next/image";
 
 import { Turnstile } from "nextjs-turnstile";
 import { motion } from "motion/react";
@@ -265,7 +266,7 @@ export default function Footer() {
 
 	return (
 		<>
-			<Divider className='my-4' />
+			<Separator className='my-4' />
 			<footer className='flex w-full flex-col pb-16'>
 				<div className='mx-auto max-w-7xl px-6 pt-16 pb-8 sm:pt-24 lg:px-8 lg:pt-32'>
 					<div className='xl:grid xl:grid-cols-3 xl:gap-8'>
@@ -381,7 +382,7 @@ export default function Footer() {
 							<ModalContent>
 								<div className='p-6'>
 									<div className='text-success-500 mt-2 text-center'>
-										<Image alt='Tada Icon' src='https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Activities/Party%20Popper.png' width='50' height='50' className='mx-auto' />
+										<Image unoptimized alt='Tada Icon' src='https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Activities/Party%20Popper.png' width={50} height={50} className='mx-auto' />
 										<p className='text-lg font-bold'>You&apos;re almost there!</p>
 										<p className='text-xs'>We&apos;ve just sent a confirmation email your way. Check your inbox to finish subscribing-and if you don&apos;t see it, be sure to take a quick look in your spam folder too.</p>
 									</div>
@@ -394,19 +395,9 @@ export default function Footer() {
 						<div>
 							<div className='flex items-center justify-center gap-3 md:justify-start'>
 								<Link href='https://status.thedannicraft.de/status/clipify'>
-									<Chip
-										className='border-none px-0 text-default-500'
-										classNames={{
-											dot: "bg-[var(--chip-dot-bg)]",
-										}}
-										style={
-											{
-												"--chip-dot-bg": statusColor,
-											} as React.CSSProperties
-										}
-										variant='dot'
-									>
-										{statusText}
+									<Chip className='border-none px-0 text-default-500' variant='soft'>
+										<span aria-hidden className='h-2 w-2 rounded-full' style={{ backgroundColor: statusColor }} />
+										<span>{statusText}</span>
 									</Chip>
 								</Link>
 							</div>

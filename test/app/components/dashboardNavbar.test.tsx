@@ -45,8 +45,10 @@ jest.mock("@components/logo", () => ({
 
 jest.mock("@heroui/react", () => {
 	return {
-		Avatar: ({ src }: { src?: string }) => <div data-avatar={src ?? ""} />,
-		Badge: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+		Avatar: Object.assign(({ children }: { children?: React.ReactNode }) => <div>{children}</div>, {
+			Image: ({ src }: { src?: string }) => <span data-avatar={src ?? ""} />,
+			Fallback: ({ children }: { children?: React.ReactNode }) => <span>{children}</span>,
+		}),
 		Button: ({ children, onPress, isDisabled, "aria-label": ariaLabel }: { children: React.ReactNode; onPress?: () => void; isDisabled?: boolean; "aria-label"?: string }) => (
 			<button onClick={onPress} disabled={isDisabled} aria-label={ariaLabel}>
 				{children}

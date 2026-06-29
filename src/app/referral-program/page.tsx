@@ -104,7 +104,7 @@ export default function AffiliateProgram() {
 			<div className='w-full bg-background py-24 px-4'>
 				<div className='max-w-6xl mx-auto'>
 					<div className='text-center mb-16'>
-						<Chip color='primary' className='mb-4'>
+						<Chip color='accent' className='mb-4'>
 							Referral Program
 						</Chip>
 						<h2 className='text-4xl font-bold mb-4'>Share Clipify with friends and get rewarded</h2>
@@ -131,7 +131,7 @@ export default function AffiliateProgram() {
 			<div className='w-full bg-background py-24 px-4'>
 				<div className='max-w-6xl mx-auto'>
 					<div className='text-center mb-16'>
-						<Chip color='primary' className='mb-4'>
+						<Chip color='accent' className='mb-4'>
 							FAQs
 						</Chip>
 						<h2 className='text-4xl font-bold mb-4'>Frequently Asked Questions</h2>
