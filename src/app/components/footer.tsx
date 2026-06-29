@@ -10,7 +10,7 @@ import CommunityTeaser from "@components/LandingPage/communityTeaser";
 import { IconCircleCheckFilled, IconMailFilled, IconMoonFilled, IconSend, IconSunFilled } from "@tabler/icons-react";
 import { useTheme } from "next-themes";
 import axios from "axios";
-import { getPublicCommunityTeaserAction } from "@actions/community";
+import { getPublicCommunityFooterTeaserAction } from "@actions/community";
 import { getEmailProvider, subscribeToNewsletter } from "@actions/newsletter";
 import { usePlausible } from "next-plausible";
 import { isRatelimitError } from "@actions/rateLimit";
@@ -133,7 +133,7 @@ export default function Footer() {
 		let cancelled = false;
 
 		async function loadCommunityPreview() {
-			const streamers = await getPublicCommunityTeaserAction();
+			const streamers = await getPublicCommunityFooterTeaserAction();
 
 			if (!cancelled) {
 				setFooterCommunityPreview(streamers);
@@ -188,46 +188,49 @@ export default function Footer() {
 		[token],
 	);
 
-	const finishSubscribe = useCallback(async (includeNames = true) => {
-		if (!token) {
-			setNewsletterState("error");
-			return;
-		}
-		setNewsletterState("loading");
-
-		try {
-			const res = await subscribeToNewsletter(
-				pendingEmail,
-				token || "",
-				includeNames
-					? {
-							firstName: firstName.trim() || undefined,
-						}
-					: undefined,
-			);
-
-			if (await isRatelimitError(res)) {
-				setNewsletterState("rateLimit");
-				return;
-			}
-			if (res instanceof Error) {
+	const finishSubscribe = useCallback(
+		async (includeNames = true) => {
+			if (!token) {
 				setNewsletterState("error");
 				return;
 			}
+			setNewsletterState("loading");
 
-			setNewsletterState("success");
-			setIsDetailsExpanded(false);
-			setIsSuccessOpen(true);
+			try {
+				const res = await subscribeToNewsletter(
+					pendingEmail,
+					token || "",
+					includeNames
+						? {
+								firstName: firstName.trim() || undefined,
+							}
+						: undefined,
+				);
 
-			plausible("Newsletter Subscription", {
-				props: {
-					emailType: await getEmailProvider(pendingEmail),
-				},
-			});
-		} catch {
-			setNewsletterState("error");
-		}
-	}, [firstName, pendingEmail, plausible, token]);
+				if (await isRatelimitError(res)) {
+					setNewsletterState("rateLimit");
+					return;
+				}
+				if (res instanceof Error) {
+					setNewsletterState("error");
+					return;
+				}
+
+				setNewsletterState("success");
+				setIsDetailsExpanded(false);
+				setIsSuccessOpen(true);
+
+				plausible("Newsletter Subscription", {
+					props: {
+						emailType: await getEmailProvider(pendingEmail),
+					},
+				});
+			} catch {
+				setNewsletterState("error");
+			}
+		},
+		[firstName, pendingEmail, plausible, token],
+	);
 
 	const handleNewsletterSubmit = useCallback(
 		(event: React.FormEvent<HTMLFormElement>) => {
@@ -265,25 +268,27 @@ export default function Footer() {
 			<footer className='flex w-full flex-col pb-16'>
 				<div className='mx-auto max-w-7xl px-6 pt-16 pb-8 sm:pt-24 lg:px-8 lg:pt-32'>
 					<div className='xl:grid xl:grid-cols-3 xl:gap-8'>
-						<div className='space-y-8 md:pr-8'>
+						<div className='space-y-6 md:pr-8'>
 							<div className='flex items-center justify-start'>
 								<Logo size={34} />
 								<span className='text-small font-medium'>Clipify</span>
 							</div>
-							<div>
+							<div className='space-y-4'>
 								<p className='text-small text-default-500'>Need a break? Clipify got you covered. Auto-play clips while you are away - keep your stream alive and your viewers entertained.</p>
 								{communityStreamers.length > 0 ? (
-									<Link href='/community' className='mt-4 inline-flex flex-col items-start gap-3 rounded-2xl border border-default-200 bg-default-100/60 px-4 py-3 transition hover:border-default-300 hover:bg-default-100'>
-										<div className='space-y-0.5'>
-											<p className='text-small font-semibold text-default-700'>Clipify community</p>
-											<p className='text-tiny text-default-500'>{communityStreamers.length} streamer{communityStreamers.length === 1 ? "" : "s"}</p>
+									<Link href='/community' className='inline-flex max-w-fit flex-col items-start gap-2 rounded-large border border-default-200/80 bg-default-100/70 px-3 py-2 transition hover:border-default-300 hover:bg-default-100'>
+										<div className='space-y-0.5 text-left'>
+											<p className='text-sm font-semibold text-default-700'>Clipify community</p>
+											<p className='text-[11px] text-default-500'>
+												{communityStreamers.length} streamer{communityStreamers.length === 1 ? "" : "s"}
+											</p>
 										</div>
-										<CommunityTeaser streamers={communityStreamers} countClassName='ml-2 text-xs font-medium text-default-500' />
+										<CommunityTeaser streamers={communityStreamers} countClassName='ml-2 text-[11px] font-medium text-default-500' />
 									</Link>
 								) : null}
 							</div>
 						</div>
-						<div className='mt-16 grid grid-cols-2 gap-8 xl:col-span-2 xl:mt-0'>
+						<div className='mt-4 grid grid-cols-2 gap-8 xl:col-span-2 xl:mt-0'>
 							<div className='md:grid md:grid-cols-2 md:gap-8'>
 								<div>{renderList({ title: "Features", items: footerNavigation.features })}</div>
 								<div className='mt-10 md:mt-0'>{renderList({ title: "Support", items: footerNavigation.supportOptions })}</div>
@@ -295,7 +300,7 @@ export default function Footer() {
 						</div>
 					</div>
 
-					<div className='rounded-medium bg-default-200/20 my-10 p-4 sm:my-14 sm:p-8 lg:my-16 lg:flex lg:items-center lg:justify-between lg:gap-2'>
+					<div className='rounded-medium bg-default-200/20 mt-4 mb-10 p-4 sm:mt-6 sm:mb-14 sm:p-8 lg:mt-8 lg:mb-16 lg:flex lg:items-center lg:justify-between lg:gap-2'>
 						<div>
 							<h3 className='text-small text-default-600 font-semibold'>Subscribe to our newsletter</h3>
 							<p className='text-small text-default-400 mt-2'>Receive updates on new features, tips and tricks, or offers straight to your email.</p>
