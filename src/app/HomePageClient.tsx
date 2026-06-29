@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
 import type { CampaignOffer } from "@types";
 import BasicNavbar from "@components/LandingPage/basicNavbar";
 import { Accordion, AccordionItem, Button, Chip, Image, Link, Card, CardHeader, CardBody } from "@heroui/react";
@@ -13,6 +15,7 @@ import Footer from "@components/footer";
 import FloatingBanner from "@components/floatingBanner";
 import DemoPlayer from "@components/DemoPlayer";
 import CountdownTimer from "@components/countdownTimer";
+import { getCommunitySnapshotAction } from "@actions/community";
 import type { CommunitySnapshot } from "@lib/community-types";
 
 export function buildCampaignOfferHref(ctaHref: string, utmCampaign?: string | null): string {
@@ -31,15 +34,33 @@ export function buildCampaignOfferHref(ctaHref: string, utmCampaign?: string | n
 
 type HomePageClientProps = {
 	campaignOffer: CampaignOffer | null;
-	communityPreview: CommunitySnapshot | null;
 };
 
-export default function HomePageClient({ campaignOffer, communityPreview }: HomePageClientProps) {
+export default function HomePageClient({ campaignOffer }: HomePageClientProps) {
 	const campaignOfferHref = campaignOffer ? buildCampaignOfferHref(campaignOffer.ctaHref, campaignOffer.utmCampaign) : null;
 	const floatingCtaLabel = campaignOffer?.floatingCtaLabel ?? campaignOffer?.ctaLabel;
 	const floatingTitle = campaignOffer?.floatingTitle ?? campaignOffer?.badgeText ?? campaignOffer?.title;
 	const floatingSubtitle = campaignOffer?.floatingSubtitle ?? campaignOffer?.subtitle ?? campaignOffer?.title;
+	const [communityPreview, setCommunityPreview] = useState<CommunitySnapshot | null>(null);
 	const communityStreamers = communityPreview?.streamers ?? [];
+
+	useEffect(() => {
+		let cancelled = false;
+
+		getCommunitySnapshotAction()
+			.then((payload: CommunitySnapshot) => {
+				if (!cancelled && payload) {
+					setCommunityPreview(payload);
+				}
+			})
+			.catch((error) => {
+				console.error("Error fetching homepage community preview:", error);
+			});
+
+		return () => {
+			cancelled = true;
+		};
+	}, []);
 
 	const floatingBannerCta = campaignOffer ? (
 		<Button as={Link} href={campaignOfferHref ?? campaignOffer.ctaHref} radius='full' className='h-9 px-4 bg-white text-black'>

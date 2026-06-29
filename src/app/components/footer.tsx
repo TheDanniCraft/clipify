@@ -10,6 +10,7 @@ import CommunityTeaser from "@components/LandingPage/communityTeaser";
 import { IconCircleCheckFilled, IconMailFilled, IconMoonFilled, IconSend, IconSunFilled } from "@tabler/icons-react";
 import { useTheme } from "next-themes";
 import axios from "axios";
+import { getCommunitySnapshotAction } from "@actions/community";
 import { getEmailProvider, subscribeToNewsletter } from "@actions/newsletter";
 import { usePlausible } from "next-plausible";
 import { isRatelimitError } from "@actions/rateLimit";
@@ -131,11 +132,10 @@ export default function Footer() {
 	useEffect(() => {
 		let cancelled = false;
 
-		axios
-			.get<CommunitySnapshot>("/api/community-preview")
-			.then((response) => {
+		getCommunitySnapshotAction()
+			.then((snapshot) => {
 				if (!cancelled) {
-					setFooterCommunityPreview(response.data);
+					setFooterCommunityPreview(snapshot);
 				}
 			})
 			.catch((error) => {
