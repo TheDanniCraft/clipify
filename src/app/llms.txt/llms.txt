@@ -138,6 +138,7 @@ Pro plan:
 - Add editors/managers to help run overlays and playlists
 - Theme Studio and advanced layout customization
 - Advanced clip player for embedding in websites
+- Community page visibility with Twitch link
 - Priority support
 - Access to beta and upcoming features
 
@@ -148,6 +149,21 @@ Editor access (Pro):
 - Editors/managers can be added to help manage overlays and playlists.
 - Useful for streamers working with moderators or teams.
 - Avoids sharing full account credentials.
+
+---
+
+Community page:
+
+- Public opt-in creator page
+- Shows Twitch handle, avatar, and channel link
+- Groups creators by Partners, Pro, Now live with Clipify, Now live, and Offline
+- Only opted-in creators appear
+
+Community visibility:
+
+- Off by default
+- Streamers can opt in from settings
+- Only opted-in creators appear on the public community page
 
 ---
 
@@ -178,6 +194,7 @@ Intended audience:
 - Creators who take regular breaks or go AFK
 - Streamers who want to reduce viewer drop-off
 - Streamers who want higher engagement and retention during downtime
+- Streamers who want to appear on the public community page
 
 ---
 

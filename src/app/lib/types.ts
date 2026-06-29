@@ -147,6 +147,16 @@ export type TwitchClipResponse = {
 	is_featured: boolean;
 };
 
+export type TwitchClipDownloadResponseItem = {
+	clip_id: string;
+	landscape_download_url: string | null;
+	portrait_download_url: string | null;
+};
+
+export type TwitchClipDownloadResponse = {
+	data: TwitchClipDownloadResponseItem[];
+};
+
 export type TwitchClipVideoQuality = {
 	quality: string;
 	sourceURL: string;
@@ -185,6 +195,7 @@ export enum EntitlementGrantSource {
 	System = "system",
 	ReverseTrial = "reverse_trial",
 	Promo = "promo",
+	Partner = "partner",
 	Support = "support",
 }
 

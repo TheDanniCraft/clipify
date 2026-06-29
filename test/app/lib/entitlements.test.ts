@@ -146,6 +146,22 @@ describe("lib/entitlements", () => {
 		expect(result).toEqual({ id: "grant-1" });
 	});
 
+	it("creates partner access grants with the partner source", async () => {
+		const insertExecute = jest.fn().mockResolvedValue([{ id: "partner-grant" }]);
+		db.insert.mockImplementation(() => ({
+			values: jest.fn(() => ({
+				returning: jest.fn(() => ({
+					execute: insertExecute,
+				})),
+			})),
+		}));
+
+		const { createPartnerAccessGrant } = await loadEntitlements();
+		const result = await createPartnerAccessGrant({ userId: "partner-user" });
+		expect(result).toEqual({ id: "partner-grant" });
+		expect(db.insert).toHaveBeenCalled();
+	});
+
 	it("ensures reverse trial grant for free user", async () => {
 		const txSelectExecute = jest.fn().mockResolvedValue([]); // no existing grant
 		const txInsertExecute = jest.fn().mockResolvedValue(undefined);

@@ -5,6 +5,7 @@ import { entitlementGrantsTable, editorsTable, overlaysTable, playlistClipsTable
 import { db } from "@/db/client";
 import { and, asc, eq, gt, inArray, isNull, lt, lte, or, sql } from "drizzle-orm";
 import { AuthenticatedUser, Entitlement, EntitlementGrantSource, MaxDurationMode, Plan, PlaybackMode, UserEntitlements } from "@types";
+import { invalidateCommunitySnapshotCache } from "@lib/community";
 
 const PRO_ACCESS = Entitlement.ProAccess;
 type CreateGrantInput = {
@@ -52,7 +53,15 @@ export async function createProAccessGrant(input: CreateGrantInput) {
 		})
 		.returning()
 		.execute();
+	void invalidateCommunitySnapshotCache();
 	return grant ?? null;
+}
+
+export async function createPartnerAccessGrant(input: Omit<CreateGrantInput, "source"> & { source?: never }) {
+	return createProAccessGrant({
+		...input,
+		source: EntitlementGrantSource.Partner,
+	});
 }
 
 export async function ensureReverseTrialGrantForUser(user: Pick<AuthenticatedUser, "id" | "plan">) {
