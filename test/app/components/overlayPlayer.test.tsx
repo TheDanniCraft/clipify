@@ -1,12 +1,12 @@
 import type { ElementType, ReactNode, VideoHTMLAttributes } from "react";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import axios from "axios";
 import OverlayPlayer from "@/app/components/overlayPlayer";
 
 const getAvatar = jest.fn();
 const getDemoClip = jest.fn();
 const getGameDetails = jest.fn();
 const getTwitchClipBatch = jest.fn();
+const getTwitchClipPlaybackUrl = jest.fn();
 const resolvePlayableClip = jest.fn();
 const subscribeToChat = jest.fn();
 
@@ -19,6 +19,7 @@ jest.mock("@actions/twitch", () => ({
 	getDemoClip: (...args: unknown[]) => getDemoClip(...args),
 	getGameDetails: (...args: unknown[]) => getGameDetails(...args),
 	getTwitchClipBatch: (...args: unknown[]) => getTwitchClipBatch(...args),
+	getTwitchClipPlaybackUrl: (...args: unknown[]) => getTwitchClipPlaybackUrl(...args),
 	resolvePlayableClip: (...args: unknown[]) => resolvePlayableClip(...args),
 	subscribeToChat: (...args: unknown[]) => subscribeToChat(...args),
 }));
@@ -142,7 +143,6 @@ function buildOverlay(overrides: Partial<Record<string, unknown>> = {}) {
 
 const playMock = jest.fn().mockResolvedValue(undefined);
 const pauseMock = jest.fn();
-const realConsoleError = console.error;
 
 type SocketListener = (event: { data?: string; type?: string }) => void;
 
@@ -171,21 +171,6 @@ class MockWebSocket {
 			listener(event);
 		}
 	}
-}
-
-function getMediaPayload(slug: string) {
-	return {
-		data: [
-			{
-				data: {
-					clip: {
-						videoQualities: [{ quality: "1080", sourceURL: `https://media.example/${slug}.mp4` }],
-						playbackAccessToken: { signature: `sig-${slug}`, value: `token-${slug}` },
-					},
-				},
-			},
-		],
-	};
 }
 
 async function sendDemoCommand(name: string, data = "") {
@@ -237,16 +222,7 @@ describe("components/overlayPlayer", () => {
 		jest.clearAllMocks();
 		MockWebSocket.instances = [];
 		(globalThis as { WebSocket: typeof WebSocket }).WebSocket = MockWebSocket as never;
-		jest.spyOn(console, "error").mockImplementation((...args: unknown[]) => {
-			const first = args[0];
-			if (typeof first === "string" && first.includes("not wrapped in act")) return;
-			realConsoleError(...(args as Parameters<typeof console.error>));
-		});
-
-		jest.spyOn(axios, "post").mockImplementation((_url: string, body: unknown) => {
-			const slug = ((body as Array<{ variables?: { slug?: string } }>)[0]?.variables?.slug ?? "fallback") as string;
-			return Promise.resolve(getMediaPayload(slug) as never);
-		});
+		getTwitchClipPlaybackUrl.mockImplementation(async (clipId: string) => `https://media.example/${clipId}.mp4`);
 
 		getAvatar.mockResolvedValue("https://avatar.example/owner.png");
 		getGameDetails.mockResolvedValue({ id: "game-1", name: "Game", box_art_url: "", igdb_id: "" });
@@ -1369,32 +1345,15 @@ describe("components/overlayPlayer", () => {
 		await screen.findByText("slotb-rebuild-c");
 	});
 
-	it("handles invalid and failed raw media lookups without rendering broken clips", async () => {
+	it("handles missing playback urls without rendering broken clips", async () => {
 		getTwitchClipBatch.mockResolvedValue([buildClip("invalid-media", { title: "invalid-media-clip" })]);
-		const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => undefined);
-		const axiosSpy = jest.spyOn(axios, "post");
-		axiosSpy.mockResolvedValueOnce({
-			data: [
-				{
-					data: {
-						clip: {
-							videoQualities: [],
-							playbackAccessToken: { signature: "", value: "" },
-						},
-					},
-				},
-			],
-		} as never);
+		getTwitchClipPlaybackUrl.mockResolvedValueOnce(undefined);
 
-		try {
-			render(<OverlayPlayer overlay={buildOverlay()} />);
-			await waitFor(() => {
-				expect(consoleSpy).toHaveBeenCalledWith("Invalid clip data or no video qualities available.");
-			});
-			expect(screen.queryByText("invalid-media-clip")).not.toBeInTheDocument();
-		} finally {
-			consoleSpy.mockRestore();
-		}
+		render(<OverlayPlayer overlay={buildOverlay()} />);
+		await waitFor(() => {
+			expect(getTwitchClipPlaybackUrl).toHaveBeenCalledWith("invalid-media", "owner-1");
+		});
+		expect(screen.queryByText("invalid-media-clip")).not.toBeInTheDocument();
 	});
 
 	it("falls back to empty avatar and unknown game metadata when metadata APIs fail", async () => {
@@ -1452,37 +1411,25 @@ describe("components/overlayPlayer", () => {
 		await waitFor(() => expect(document.createElement).toHaveBeenCalledWith("link"));
 	});
 
-	it("handles raw media lookup axios errors gracefully", async () => {
+	it("handles playback url lookup failures without crashing", async () => {
 		getTwitchClipBatch.mockResolvedValue([buildClip("axios-fail")]);
-		const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => undefined);
-		jest.spyOn(axios, "post").mockRejectedValue(new Error("network error"));
-
-		try {
-			render(<OverlayPlayer overlay={buildOverlay()} />);
-			await waitFor(() => {
-				expect(consoleSpy).toHaveBeenCalledWith("Error fetching raw media URL", expect.any(Error));
-			});
-		} finally {
-			consoleSpy.mockRestore();
-		}
-	});
-
-	it("handles raw media lookup missing best quality", async () => {
-		getTwitchClipBatch.mockResolvedValue([buildClip("no-quality")]);
-		jest.spyOn(axios, "post").mockResolvedValue({
-			data: [
-				{
-					data: {
-						clip: {
-							videoQualities: [null],
-							playbackAccessToken: { signature: "sig", value: "val" },
-						},
-					},
-				},
-			],
-		} as never);
+		getTwitchClipPlaybackUrl.mockRejectedValueOnce(new Error("network error"));
 
 		render(<OverlayPlayer overlay={buildOverlay()} />);
-		// Just ensure it doesn't crash and skips the clip
+		await waitFor(() => {
+			expect(getTwitchClipPlaybackUrl).toHaveBeenCalledWith("axios-fail", "owner-1");
+		});
+		expect(screen.queryByText("clip-axios-fail")).not.toBeInTheDocument();
+	});
+
+	it("handles playback url lookup returning undefined for the next clip", async () => {
+		getTwitchClipBatch.mockResolvedValue([buildClip("no-quality")]);
+		getTwitchClipPlaybackUrl.mockResolvedValueOnce(undefined);
+
+		render(<OverlayPlayer overlay={buildOverlay()} />);
+		await waitFor(() => {
+			expect(getTwitchClipPlaybackUrl).toHaveBeenCalledWith("no-quality", "owner-1");
+		});
+		expect(screen.queryByText("clip-no-quality")).not.toBeInTheDocument();
 	});
 });

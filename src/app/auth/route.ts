@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
 		issuer: "clipify",
 	});
 
-	const scopes = ["user:read:email", "channel:bot", "channel:read:redemptions", "channel:manage:redemptions"];
+	const scopes = ["user:read:email", "channel:bot", "channel:read:redemptions", "channel:manage:redemptions", "channel:manage:clips"];
 
 	const authLink = new URL("https://id.twitch.tv/oauth2/authorize");
 	authLink.searchParams.set("client_id", process.env.TWITCH_CLIENT_ID || "");

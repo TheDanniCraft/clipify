@@ -61,6 +61,7 @@ export default function UpgradeModal({ isOpen, onOpenChange, user, title, descri
 	const yearlySuffix = frequencies.find((f) => f.key === FrequencyEnum.Yearly)?.priceSuffix ?? "per year";
 	const monthlySuffix = frequencies.find((f) => f.key === FrequencyEnum.Monthly)?.priceSuffix ?? "per month";
 	const inTrial = isReverseTrialActive(user);
+	const canUpgrade = effectivePlan === "free" || inTrial;
 	const trialDaysLeft = getTrialDaysLeft(user);
 	const planLabel = effectivePlan === "pro" ? "Pro" : "Free";
 	const hasTrackedImpressionRef = useRef(false);
@@ -234,16 +235,16 @@ export default function UpgradeModal({ isOpen, onOpenChange, user, title, descri
 									cycle: billingCycle,
 								});
 								window.location.href = link;
-							} else {
-								addToast({
-									title: "Error",
-									description: "Failed to generate payment link. Please try again later.",
-									color: "danger",
-								});
-							}
-						}}
-						startContent={<IconDiamondFilled />}
-						isDisabled={user.plan !== "free"}
+						} else {
+							addToast({
+								title: "Error",
+								description: "Failed to generate payment link. Please try again later.",
+								color: "danger",
+							});
+						}
+					}}
+					startContent={<IconDiamondFilled />}
+					isDisabled={!canUpgrade}
 					>
 						{ctaLabel ?? "Upgrade to Pro"}
 					</Button>
