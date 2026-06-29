@@ -302,7 +302,7 @@ export default function HomePageClient({ campaignOffer, communityPreview }: Home
 					</Accordion>
 				</div>
 			</div>
-			<Footer communityPreview={communityPreview} />
+			<Footer />
 		</>
 	);
 }
