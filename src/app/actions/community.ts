@@ -1,6 +1,14 @@
 "use server";
 
 export async function getPublicCommunityTeaserAction() {
+	const { getCommunitySnapshot } = await import("@lib/community");
+	const { buildCommunityTeaserStreamers } = await import("../community/community-data");
+
+	const snapshot = await getCommunitySnapshot();
+	return buildCommunityTeaserStreamers(snapshot);
+}
+
+export async function getPublicCommunityFooterTeaserAction() {
 	const { getCommunitySnapshot, fetchCommunityPageVisibleUserIds } = await import("@lib/community");
 	const { buildCommunityTeaserStreamers } = await import("../community/community-data");
 
