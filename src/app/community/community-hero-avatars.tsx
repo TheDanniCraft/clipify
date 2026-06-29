@@ -1,24 +1,30 @@
 "use client";
 
-import { Avatar, AvatarGroup } from "@heroui/react";
+import { Avatar } from "@heroui/react";
 
-import type { CommunityPageStreamer } from "./community-data";
+import type { CommunityTeaserStreamer } from "@lib/community-types";
 
 type CommunityHeroAvatarsProps = {
-	streamers: CommunityPageStreamer[];
+	streamers: CommunityTeaserStreamer[];
 };
 
 export default function CommunityHeroAvatars({ streamers }: CommunityHeroAvatarsProps) {
+	const maxVisible = 5;
+	const visibleStreamers = streamers.slice(0, maxVisible);
+
 	return (
-		<AvatarGroup
-			isBordered
-			max={5}
-			total={streamers.length}
-			renderCount={(count) => <p className='ms-2 text-sm font-medium text-white/70'>+{count} more</p>}
-		>
-			{streamers.map((streamer) => (
-				<Avatar key={streamer.id} alt={streamer.displayName} src={streamer.avatar} />
+		<div className='flex items-center'>
+			{visibleStreamers.map((streamer, index) => (
+				<Avatar
+					key={streamer.id}
+					alt={streamer.displayName}
+					isBordered
+					className={["relative h-8 w-8 text-tiny", index > 0 ? "-ms-2" : ""].filter(Boolean).join(" ")}
+					src={streamer.avatar}
+					style={{ zIndex: visibleStreamers.length - index }}
+				/>
 			))}
-		</AvatarGroup>
+			{streamers.length > maxVisible ? <p className='ms-2 text-sm font-medium text-white/70'>+{streamers.length - maxVisible} more</p> : null}
+		</div>
 	);
 }

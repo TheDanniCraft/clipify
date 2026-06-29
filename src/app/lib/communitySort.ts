@@ -14,11 +14,11 @@ const planRank: Record<Plan, number> = {
 };
 
 export function compareCommunityStreamers(left: CommunityStreamer, right: CommunityStreamer): number {
-	const partnerDiff = Number(right.partner) - Number(left.partner);
-	if (partnerDiff !== 0) return partnerDiff;
-
 	const statusDiff = statusRank[left.status] - statusRank[right.status];
 	if (statusDiff !== 0) return statusDiff;
+
+	const partnerDiff = Number(right.partner) - Number(left.partner);
+	if (partnerDiff !== 0) return partnerDiff;
 
 	const planDiff = planRank[left.plan] - planRank[right.plan];
 	if (planDiff !== 0) return planDiff;

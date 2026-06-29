@@ -15,8 +15,8 @@ import Footer from "@components/footer";
 import FloatingBanner from "@components/floatingBanner";
 import DemoPlayer from "@components/DemoPlayer";
 import CountdownTimer from "@components/countdownTimer";
-import { getCommunitySnapshotAction } from "@actions/community";
-import type { CommunitySnapshot } from "@lib/community-types";
+import { getPublicCommunityTeaserAction } from "@actions/community";
+import type { CommunityTeaserStreamer } from "@lib/community-types";
 
 export function buildCampaignOfferHref(ctaHref: string, utmCampaign?: string | null): string {
 	if (!utmCampaign) return ctaHref;
@@ -41,19 +41,19 @@ export default function HomePageClient({ campaignOffer }: HomePageClientProps) {
 	const floatingCtaLabel = campaignOffer?.floatingCtaLabel ?? campaignOffer?.ctaLabel;
 	const floatingTitle = campaignOffer?.floatingTitle ?? campaignOffer?.badgeText ?? campaignOffer?.title;
 	const floatingSubtitle = campaignOffer?.floatingSubtitle ?? campaignOffer?.subtitle ?? campaignOffer?.title;
-	const [communityPreview, setCommunityPreview] = useState<CommunitySnapshot | null>(null);
-	const communityStreamers = communityPreview?.streamers ?? [];
+	const [communityPreview, setCommunityPreview] = useState<CommunityTeaserStreamer[] | null>(null);
+	const communityStreamers = communityPreview ?? [];
 
 	useEffect(() => {
 		let cancelled = false;
 
-		getCommunitySnapshotAction()
-			.then((payload: CommunitySnapshot) => {
+		getPublicCommunityTeaserAction()
+			.then((payload: CommunityTeaserStreamer[]) => {
 				if (!cancelled && payload) {
 					setCommunityPreview(payload);
 				}
 			})
-			.catch((error) => {
+			.catch((error: unknown) => {
 				console.error("Error fetching homepage community preview:", error);
 			});
 

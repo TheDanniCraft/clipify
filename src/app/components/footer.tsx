@@ -10,17 +10,17 @@ import CommunityTeaser from "@components/LandingPage/communityTeaser";
 import { IconCircleCheckFilled, IconMailFilled, IconMoonFilled, IconSend, IconSunFilled } from "@tabler/icons-react";
 import { useTheme } from "next-themes";
 import axios from "axios";
-import { getCommunitySnapshotAction } from "@actions/community";
+import { getPublicCommunityTeaserAction } from "@actions/community";
 import { getEmailProvider, subscribeToNewsletter } from "@actions/newsletter";
 import { usePlausible } from "next-plausible";
 import { isRatelimitError } from "@actions/rateLimit";
-import type { CommunitySnapshot } from "@lib/community-types";
+import type { CommunityTeaserStreamer } from "@lib/community-types";
 
 export default function Footer() {
 	const { theme, setTheme } = useTheme();
 	const [statusColor, setStatusColor] = useState("#ffffff");
 	const [statusText, setStatusText] = useState("Loading...");
-	const [footerCommunityPreview, setFooterCommunityPreview] = useState<CommunitySnapshot | null>(null);
+	const [footerCommunityPreview, setFooterCommunityPreview] = useState<CommunityTeaserStreamer[] | null>(null);
 	const plausible = usePlausible();
 	const [newsletterState, setNewsletterState] = useState("default");
 	const [isDetailsExpanded, setIsDetailsExpanded] = useState(false);
@@ -67,7 +67,7 @@ export default function Footer() {
 	const emailSubmitDisabled = newsletterState === "loading" || newsletterState === "success" || (mounted && !token);
 	const detailSubmitDisabled = newsletterState === "loading" || !pendingEmail || (mounted && !token);
 
-	const communityStreamers = footerCommunityPreview?.streamers ?? [];
+	const communityStreamers = useMemo(() => footerCommunityPreview ?? [], [footerCommunityPreview]);
 	const footerNavigation = {
 		features: [
 			{ name: "Easy to Use", href: "#features" },
@@ -132,15 +132,20 @@ export default function Footer() {
 	useEffect(() => {
 		let cancelled = false;
 
-		getCommunitySnapshotAction()
-			.then((snapshot) => {
-				if (!cancelled) {
-					setFooterCommunityPreview(snapshot);
-				}
-			})
-			.catch((error) => {
-				console.error("Error fetching community preview:", error);
-			});
+		async function loadCommunityPreview() {
+			const streamers = await getPublicCommunityTeaserAction();
+
+			if (!cancelled) {
+				setFooterCommunityPreview(streamers);
+			}
+		}
+
+		loadCommunityPreview().catch((error) => {
+			console.error("Error fetching community preview:", error);
+			if (!cancelled) {
+				setFooterCommunityPreview(null);
+			}
+		});
 
 		return () => {
 			cancelled = true;
@@ -271,7 +276,7 @@ export default function Footer() {
 									<Link href='/community' className='mt-4 inline-flex flex-col items-start gap-3 rounded-2xl border border-default-200 bg-default-100/60 px-4 py-3 transition hover:border-default-300 hover:bg-default-100'>
 										<div className='space-y-0.5'>
 											<p className='text-small font-semibold text-default-700'>Clipify community</p>
-											<p className='text-tiny text-default-500'>{footerCommunityPreview?.totalCount ?? communityStreamers.length} streamers</p>
+											<p className='text-tiny text-default-500'>{communityStreamers.length} streamer{communityStreamers.length === 1 ? "" : "s"}</p>
 										</div>
 										<CommunityTeaser streamers={communityStreamers} countClassName='ml-2 text-xs font-medium text-default-500' />
 									</Link>
