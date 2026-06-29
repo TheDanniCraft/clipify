@@ -13,6 +13,7 @@ const getTwitchCacheStaleBatch = jest.fn();
 const setTwitchCache = jest.fn();
 const setTwitchCacheBatch = jest.fn();
 const getAccessTokenInternal = jest.fn();
+const getAccessTokenResultInternal = jest.fn();
 
 const getBaseUrl = jest.fn();
 const isPreview = jest.fn();
@@ -38,6 +39,7 @@ jest.mock("@actions/database", () => ({
 
 jest.mock("@/server/tokens", () => ({
 	getAccessTokenInternal: (...args: unknown[]) => getAccessTokenInternal(...args),
+	getAccessTokenResultInternal: (...args: unknown[]) => getAccessTokenResultInternal(...args),
 }));
 
 jest.mock("@actions/utils", () => ({
@@ -119,6 +121,21 @@ function buildClip(id: string, overrides: Partial<Record<string, unknown>> = {})
 	};
 }
 
+function buildGraphqlClipResponse(clipId: string, sourceUrl: string) {
+	return {
+		data: [
+			{
+				data: {
+					clip: {
+						videoQualities: [{ quality: "1080", sourceURL: sourceUrl }],
+						playbackAccessToken: { signature: `sig-${clipId}`, value: `token-${clipId}` },
+					},
+				},
+			},
+		],
+	};
+}
+
 async function loadTwitch() {
 	return import("@/app/actions/twitch");
 }
@@ -134,7 +151,7 @@ describe("actions/twitch external API and failure handling", () => {
 		process.env.TWITCH_USER_ID = "bot-user";
 
 		getAccessToken.mockResolvedValue({ accessToken: "user-access" });
-		getAccessTokenInternal.mockResolvedValue({ accessToken: "user-access" });
+		getAccessTokenInternal.mockResolvedValue({ accessToken: "user-access", scope: ["channel:manage:clips"] });
 		getTwitchCache.mockResolvedValue(null);
 		getTwitchCacheBatch.mockResolvedValue([]);
 		getTwitchCacheEntry.mockResolvedValue({ hit: false, value: null });
@@ -144,6 +161,10 @@ describe("actions/twitch external API and failure handling", () => {
 		setTwitchCacheBatch.mockResolvedValue(undefined);
 		getBaseUrl.mockResolvedValue("https://clipify.us");
 		isPreview.mockResolvedValue(false);
+		getAccessTokenResultInternal.mockResolvedValue({
+			token: { accessToken: "user-access", scope: ["channel:manage:clips"] },
+			reason: undefined,
+		});
 	});
 
 	it("uses preview callback URL when exchanging access token", async () => {
@@ -527,6 +548,126 @@ describe("actions/twitch external API and failure handling", () => {
 
 		expect(noToken).toBeNull();
 		expect(failed).toBeNull();
+	});
+
+	it("prefers clip downloads and logs rate-limit headers on success", async () => {
+		jest.spyOn(axios, "get").mockResolvedValue({
+			status: 200,
+			headers: {
+				"ratelimit-limit": "100",
+				"ratelimit-remaining": "99",
+				"ratelimit-reset": "123456",
+			},
+			data: {
+				data: [
+					{
+						clip_id: "clip-a",
+						landscape_download_url: "https://download.example/landscape.mp4",
+						portrait_download_url: "https://download.example/portrait.mp4",
+					},
+				],
+			},
+		} as never);
+		const postSpy = jest.spyOn(axios, "post");
+
+		const { getTwitchClipPlaybackUrl } = await loadTwitch();
+		const url = await getTwitchClipPlaybackUrl("clip-a", "owner-1");
+
+		expect(url).toBe("https://download.example/landscape.mp4");
+		expect(postSpy).not.toHaveBeenCalled();
+	});
+
+	it("falls back to portrait download url when landscape is missing", async () => {
+		jest.spyOn(axios, "get").mockResolvedValue({
+			status: 200,
+			headers: {
+				"ratelimit-limit": "100",
+				"ratelimit-remaining": "98",
+				"ratelimit-reset": "123457",
+			},
+			data: {
+				data: [
+					{
+						clip_id: "clip-b",
+						landscape_download_url: null,
+						portrait_download_url: "https://download.example/portrait-only.mp4",
+					},
+				],
+			},
+		} as never);
+
+		const { getTwitchClipPlaybackUrl } = await loadTwitch();
+		const url = await getTwitchClipPlaybackUrl("clip-b", "owner-1");
+
+		expect(url).toBe("https://download.example/portrait-only.mp4");
+	});
+
+	it("falls back to GraphQL when clip download lookup is rate limited", async () => {
+		const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => undefined);
+		const rateLimitError = createAxiosError(429) as AxiosLikeError & {
+			response: AxiosLikeError["response"] & {
+				headers?: Record<string, string>;
+			};
+		};
+		rateLimitError.response = {
+			status: 429,
+			data: { message: "rate limited" },
+			headers: {
+				"ratelimit-limit": "100",
+				"ratelimit-remaining": "0",
+				"ratelimit-reset": "123999",
+			},
+		};
+		jest.spyOn(axios, "get").mockRejectedValue(rateLimitError);
+		jest.spyOn(axios, "post").mockResolvedValue(buildGraphqlClipResponse("clip-c", "https://media.example/clip-c.mp4") as never);
+
+		const { getTwitchClipPlaybackUrl } = await loadTwitch();
+		const url = await getTwitchClipPlaybackUrl("clip-c", "owner-1");
+
+		expect(url).toBe("https://media.example/clip-c.mp4?sig=sig-clip-c&token=token-clip-c");
+		expect(warnSpy).toHaveBeenCalledWith(
+			"Twitch clip download rate limit exhausted",
+			expect.objectContaining({
+				endpoint: "helix/clips/downloads",
+				clipId: "clip-c",
+				creatorId: "owner-1",
+				timestamp: expect.any(String),
+				status: 429,
+				rateLimitLimit: "100",
+				rateLimitRemaining: "0",
+				rateLimitReset: "123999",
+			}),
+		);
+		warnSpy.mockRestore();
+	});
+
+	it("falls back to GraphQL when the broadcaster token is missing", async () => {
+		getAccessTokenResultInternal.mockResolvedValueOnce({ token: null, reason: "missing_token" });
+		const getSpy = jest.spyOn(axios, "get");
+		const postSpy = jest.spyOn(axios, "post").mockResolvedValue(buildGraphqlClipResponse("clip-d", "https://media.example/clip-d.mp4") as never);
+
+		const { getTwitchClipPlaybackUrl } = await loadTwitch();
+		const url = await getTwitchClipPlaybackUrl("clip-d", "owner-1");
+
+		expect(url).toBe("https://media.example/clip-d.mp4?sig=sig-clip-d&token=token-clip-d");
+		expect(getSpy).not.toHaveBeenCalled();
+		expect(postSpy).toHaveBeenCalled();
+	});
+
+	it("falls back to GraphQL when the broadcaster token lacks clip download scope", async () => {
+		getAccessTokenResultInternal.mockResolvedValueOnce({
+			token: { accessToken: "user-access", scope: [] },
+			reason: "missing_clip_download_scope",
+		});
+		const getSpy = jest.spyOn(axios, "get");
+		const postSpy = jest.spyOn(axios, "post").mockResolvedValue(buildGraphqlClipResponse("clip-e", "https://media.example/clip-e.mp4") as never);
+
+		const { getTwitchClipPlaybackUrl } = await loadTwitch();
+		const url = await getTwitchClipPlaybackUrl("clip-e", "owner-1");
+
+		expect(url).toBe("https://media.example/clip-e.mp4?sig=sig-clip-e&token=token-clip-e");
+		expect(getSpy).not.toHaveBeenCalled();
+		expect(postSpy).toHaveBeenCalled();
 	});
 
 	it("returns null force-refresh status without auth and computes status for authenticated users", async () => {

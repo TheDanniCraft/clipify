@@ -50,6 +50,7 @@ describe("app/auth route", () => {
 		expect(location).toContain("client_id=client_id");
 		expect(location).toContain("state=signed-state");
 		expect(location).not.toContain("force_verify=true");
+		expect(new URL(location ?? "").searchParams.get("scope")?.split(" ")).toContain("channel:manage:clips");
 
 		const cookieStore = await cookiesMock.mock.results[0]?.value;
 		expect(cookieStore.set).toHaveBeenCalledWith(

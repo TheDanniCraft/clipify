@@ -1,75 +1,16 @@
 "use client";
 
 import { type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type RefObject, type SyntheticEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ClipQueueItem, ModQueueItem, Overlay, PlaybackMode, TwitchClip, TwitchClipGqlData, TwitchClipGqlResponse, TwitchClipVideoQuality, VideoClip } from "@types";
-import { getAvatar, getDemoClip, getGameDetails, getTwitchClipBatch, resolvePlayableClip, subscribeToChat } from "@actions/twitch";
+import { ClipQueueItem, ModQueueItem, Overlay, PlaybackMode, TwitchClip, VideoClip } from "@types";
+import { getAvatar, getDemoClip, getGameDetails, getTwitchClipBatch, getTwitchClipPlaybackUrl, resolvePlayableClip, subscribeToChat } from "@actions/twitch";
 import PlayerOverlay from "@components/playerOverlay";
 import { Avatar, Button, Link } from "@heroui/react";
 import { motion, AnimatePresence } from "framer-motion";
-import axios from "axios";
 import { getFirstValidQueuedClip, removeFromClipQueue, removeFromModQueue } from "@actions/database";
 import Logo from "@components/logo";
 import { IconAlertTriangle, IconPlayerPauseFilled, IconPlayerPlayFilled, IconVolume, IconVolumeOff } from "@tabler/icons-react";
 import { clamp, getSlotOpacity, parseThemeFontSetting, sanitizeFontCssUrl, trimCache } from "./overlayPlayer.utils";
 import { usePlausible } from "next-plausible";
-
-type VideoQualityWithNumeric = TwitchClipVideoQuality & { numericQuality: number };
-
-async function getRawMediaUrl(clipId: string): Promise<string | undefined> {
-	const query = [
-		{
-			operationName: "VideoAccessToken_Clip",
-			variables: {
-				platform: "web",
-				slug: clipId,
-			},
-			extensions: {
-				persistedQuery: {
-					version: 1,
-					sha256Hash: "993d9a5131f15a37bd16f32342c44ed1e0b1a9b968c6afdb662d2cddd595f6c5",
-				},
-			},
-		},
-	];
-
-	try {
-		const res = await axios.post<TwitchClipGqlResponse>("https://gql.twitch.tv/gql", query, {
-			headers: {
-				"Client-Id": "kimne78kx3ncx6brgo4mv6wki5h1ko",
-				"Content-Type": "application/json",
-			},
-		});
-
-		const clipData = res.data[0]?.data?.clip as TwitchClipGqlData | undefined;
-
-		if (!clipData || !clipData.videoQualities || clipData.videoQualities.length === 0) {
-			console.error("Invalid clip data or no video qualities available.");
-			return undefined;
-		}
-
-		const videoQualities: TwitchClipVideoQuality[] = clipData.videoQualities;
-
-		const sortedByQuality: VideoQualityWithNumeric[] = videoQualities
-			.filter((v) => v && v.quality)
-			.map((v) => ({
-				...v,
-				numericQuality: parseInt(v.quality, 10),
-			}))
-			.sort((a, b) => b.numericQuality - a.numericQuality);
-
-		const bestQuality = sortedByQuality[0];
-		if (!bestQuality) return undefined;
-
-		const clipsVideoSource = bestQuality.sourceURL;
-		const clipsSignature = clipData.playbackAccessToken.signature;
-		const clipsToken = encodeURIComponent(clipData.playbackAccessToken.value);
-
-		return `${clipsVideoSource}?sig=${clipsSignature}&token=${clipsToken}`;
-	} catch (error) {
-		console.error("Error fetching raw media URL", error);
-		return undefined;
-	}
-}
 
 function isInIframe() {
 	return window.self !== window.top;
@@ -678,14 +619,14 @@ export default function OverlayPlayer({
 	const gameInFlightRef = useRef<Map<string, Promise<NonNullable<VideoClip["game"]> | null>>>(new Map());
 	const holdTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-	const getMediaUrlCached = useCallback(async (clipId: string) => {
+	const getMediaUrlCached = useCallback(async (clipId: string, broadcasterId: string) => {
 		const cached = mediaUrlCacheRef.current.get(clipId);
 		if (cached) return cached;
 
 		const inflight = mediaUrlInFlightRef.current.get(clipId);
 		if (inflight) return inflight;
 
-		const promise = getRawMediaUrl(clipId)
+		const promise = getTwitchClipPlaybackUrl(clipId, broadcasterId)
 			.then((url) => {
 				if (url) {
 					mediaUrlCacheRef.current.set(clipId, url);
@@ -693,10 +634,7 @@ export default function OverlayPlayer({
 				}
 				return url;
 			})
-			.catch((error) => {
-				console.error("Error fetching raw media URL", error);
-				return undefined;
-			})
+			.catch(() => undefined)
 			.finally(() => {
 				mediaUrlInFlightRef.current.delete(clipId);
 			});
@@ -773,7 +711,7 @@ export default function OverlayPlayer({
 		async (randomClip: TwitchClip): Promise<VideoClip | null> => {
 			prefetchMetadata(randomClip);
 
-			const mediaUrl = await getMediaUrlCached(randomClip.id);
+		const mediaUrl = await getMediaUrlCached(randomClip.id, overlay.ownerId);
 			if (!mediaUrl) return null;
 
 			const baseGame = isDemoPlayer
@@ -823,7 +761,7 @@ export default function OverlayPlayer({
 
 			return baseClip;
 		},
-		[getMediaUrlCached, getAvatarCached, getGameCached, isDemoPlayer, patchClipById, prefetchMetadata]
+		[getMediaUrlCached, getAvatarCached, getGameCached, isDemoPlayer, overlay.ownerId, patchClipById, prefetchMetadata]
 	);
 
 	const getFirstFromDemoQueue = useCallback(async () => {

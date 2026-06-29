@@ -184,6 +184,7 @@ export const settingsTable = pgTable("userSettings", {
 	marketingOptInAt: timestamp("marketing_opt_in_at", { withTimezone: true }),
 	marketingOptInSource: varchar("marketing_opt_in_source"),
 	useSendProductUpdatesContactId: varchar("usesend_product_updates_contact_id"),
+	showOnCommunityPage: boolean("show_in_community").notNull().default(false),
 });
 
 export const twitchCacheTable = pgTable(

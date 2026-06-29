@@ -129,6 +129,7 @@ export default function SettingsPage() {
 	const isEffectivelyFree = effectivePlan === Plan.Free;
 	const canUpgradeFromBilling = user?.plan === Plan.Free;
 	const receivesProductUpdates = Boolean(settings?.marketingOptIn);
+	const showOnCommunityPage = settings?.showOnCommunityPage ?? false;
 
 	useEffect(() => {
 		if (!user || typeof window === "undefined") return;
@@ -434,6 +435,30 @@ export default function SettingsPage() {
 								</div>
 								<p className='mt-2 text-xs text-default-500'>Opt out anytime here or by using the unsubscribe link in any email.</p>
 								{settings?.marketingOptInAt && <p className='mt-1 text-xs text-default-500'>Consent recorded on {new Date(settings.marketingOptInAt).toLocaleString()}.</p>}
+							</div>
+							<div className='w-full rounded-medium border border-default-200 bg-default-50/40 p-3'>
+								<div className='flex items-start justify-between gap-4'>
+									<div>
+										<p className='font-semibold text-sm'>Community Page</p>
+										<p className='text-xs text-default-500'>Opt in to appear on the public community page with your Twitch handle and channel link.</p>
+									</div>
+									<Switch
+										isSelected={showOnCommunityPage}
+										isDisabled={!settings}
+										onValueChange={(value) => {
+											if (!settings) {
+												return;
+											}
+											setSettings({
+												...settings,
+												showOnCommunityPage: value,
+											});
+										}}
+									>
+										Opt in
+									</Switch>
+								</div>
+								<p className='mt-2 text-xs text-default-500'>Show up on the public community page with your Twitch handle and channel link.</p>
 							</div>
 
 							{isEffectivelyFree && !editorsAccess.allowed && (

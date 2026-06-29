@@ -6,17 +6,21 @@ import { Turnstile } from "nextjs-turnstile";
 import { motion } from "motion/react";
 
 import Logo from "@components/logo";
+import CommunityTeaser from "@components/LandingPage/communityTeaser";
 import { IconCircleCheckFilled, IconMailFilled, IconMoonFilled, IconSend, IconSunFilled } from "@tabler/icons-react";
 import { useTheme } from "next-themes";
 import axios from "axios";
+import { getCommunitySnapshotAction } from "@actions/community";
 import { getEmailProvider, subscribeToNewsletter } from "@actions/newsletter";
 import { usePlausible } from "next-plausible";
 import { isRatelimitError } from "@actions/rateLimit";
+import type { CommunitySnapshot } from "@lib/community-types";
 
 export default function Footer() {
 	const { theme, setTheme } = useTheme();
 	const [statusColor, setStatusColor] = useState("#ffffff");
 	const [statusText, setStatusText] = useState("Loading...");
+	const [footerCommunityPreview, setFooterCommunityPreview] = useState<CommunitySnapshot | null>(null);
 	const plausible = usePlausible();
 	const [newsletterState, setNewsletterState] = useState("default");
 	const [isDetailsExpanded, setIsDetailsExpanded] = useState(false);
@@ -63,8 +67,7 @@ export default function Footer() {
 	const emailSubmitDisabled = newsletterState === "loading" || newsletterState === "success" || (mounted && !token);
 	const detailSubmitDisabled = newsletterState === "loading" || !pendingEmail || (mounted && !token);
 
-	const productHuntSrc = useMemo(() => `https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1052781&theme=${theme === "light" ? "light" : "dark"}`, [theme]);
-
+	const communityStreamers = footerCommunityPreview?.streamers ?? [];
 	const footerNavigation = {
 		features: [
 			{ name: "Easy to Use", href: "#features" },
@@ -124,6 +127,24 @@ export default function Footer() {
 				setStatusColor("#ffffff");
 				setStatusText("Service status unknown");
 			});
+	}, []);
+
+	useEffect(() => {
+		let cancelled = false;
+
+		getCommunitySnapshotAction()
+			.then((snapshot) => {
+				if (!cancelled) {
+					setFooterCommunityPreview(snapshot);
+				}
+			})
+			.catch((error) => {
+				console.error("Error fetching community preview:", error);
+			});
+
+		return () => {
+			cancelled = true;
+		};
 	}, []);
 
 	useEffect(() => {
@@ -246,9 +267,15 @@ export default function Footer() {
 							</div>
 							<div>
 								<p className='text-small text-default-500'>Need a break? Clipify got you covered. Auto-play clips while you are away - keep your stream alive and your viewers entertained.</p>
-								<a href='https://www.producthunt.com/products/clipify-2?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-clipify-us' target='_blank' rel='noopener noreferrer' className='mt-4 inline-block'>
-									<Image src={productHuntSrc} alt='Clipify on Product Hunt' className='h-[52px] w-auto' />
-								</a>
+								{communityStreamers.length > 0 ? (
+									<Link href='/community' className='mt-4 inline-flex flex-col items-start gap-3 rounded-2xl border border-default-200 bg-default-100/60 px-4 py-3 transition hover:border-default-300 hover:bg-default-100'>
+										<div className='space-y-0.5'>
+											<p className='text-small font-semibold text-default-700'>Clipify community</p>
+											<p className='text-tiny text-default-500'>{footerCommunityPreview?.totalCount ?? communityStreamers.length} streamers</p>
+										</div>
+										<CommunityTeaser streamers={communityStreamers} countClassName='ml-2 text-xs font-medium text-default-500' />
+									</Link>
+								) : null}
 							</div>
 						</div>
 						<div className='mt-16 grid grid-cols-2 gap-8 xl:col-span-2 xl:mt-0'>

@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
 import type { CampaignOffer } from "@types";
 import BasicNavbar from "@components/LandingPage/basicNavbar";
 import { Accordion, AccordionItem, Button, Chip, Image, Link, Card, CardHeader, CardBody } from "@heroui/react";
@@ -8,10 +10,13 @@ import { IconThumbUp, IconArrowRight, IconPlugConnected, IconLayersDifference, I
 import FeatureCard from "@components/featureCard";
 import TiersComponent from "@components/Pricing";
 import faqs from "@components/LandingPage/faqs";
+import CommunityTeaser from "@components/LandingPage/communityTeaser";
 import Footer from "@components/footer";
 import FloatingBanner from "@components/floatingBanner";
 import DemoPlayer from "@components/DemoPlayer";
 import CountdownTimer from "@components/countdownTimer";
+import { getCommunitySnapshotAction } from "@actions/community";
+import type { CommunitySnapshot } from "@lib/community-types";
 
 export function buildCampaignOfferHref(ctaHref: string, utmCampaign?: string | null): string {
 	if (!utmCampaign) return ctaHref;
@@ -36,6 +41,26 @@ export default function HomePageClient({ campaignOffer }: HomePageClientProps) {
 	const floatingCtaLabel = campaignOffer?.floatingCtaLabel ?? campaignOffer?.ctaLabel;
 	const floatingTitle = campaignOffer?.floatingTitle ?? campaignOffer?.badgeText ?? campaignOffer?.title;
 	const floatingSubtitle = campaignOffer?.floatingSubtitle ?? campaignOffer?.subtitle ?? campaignOffer?.title;
+	const [communityPreview, setCommunityPreview] = useState<CommunitySnapshot | null>(null);
+	const communityStreamers = communityPreview?.streamers ?? [];
+
+	useEffect(() => {
+		let cancelled = false;
+
+		getCommunitySnapshotAction()
+			.then((payload: CommunitySnapshot) => {
+				if (!cancelled && payload) {
+					setCommunityPreview(payload);
+				}
+			})
+			.catch((error) => {
+				console.error("Error fetching homepage community preview:", error);
+			});
+
+		return () => {
+			cancelled = true;
+		};
+	}, []);
 
 	const floatingBannerCta = campaignOffer ? (
 		<Button as={Link} href={campaignOfferHref ?? campaignOffer.ctaHref} radius='full' className='h-9 px-4 bg-white text-black'>
@@ -134,6 +159,23 @@ export default function HomePageClient({ campaignOffer }: HomePageClientProps) {
 												See our plans
 											</Button>
 										</motion.div>
+
+										{communityStreamers.length > 0 ? (
+											<motion.div
+												key='hero-section-community'
+												animate={{ filter: "blur(0px)", opacity: 1, x: 0 }}
+												className='flex items-center mt-[-16px]'
+												initial={{ filter: "blur(16px)", opacity: 0.1, x: 15 + 1 * 5 }}
+												transition={{
+													bounce: 0,
+													delay: 0.01 * 70,
+													duration: 0.8 + 0.1 * 11,
+													type: "spring",
+												}}
+											>
+												<CommunityTeaser streamers={communityStreamers} countClassName='ml-2 text-xs font-medium text-white/70' />
+											</motion.div>
+										) : null}
 									</AnimatePresence>
 								</motion.div>
 							</LazyMotion>

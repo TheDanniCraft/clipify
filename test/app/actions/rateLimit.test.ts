@@ -9,8 +9,9 @@ const headers = jest.fn();
 
 let headerValues: Record<string, string | null> = {};
 
-jest.mock("rate-limiter-flexible", () => ({
-	RateLimiterMemory,
+jest.mock("rate-limiter-flexible/lib/RateLimiterMemory", () => ({
+	__esModule: true,
+	default: RateLimiterMemory,
 }));
 
 jest.mock("next/headers", () => ({

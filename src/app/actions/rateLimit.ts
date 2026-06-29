@@ -1,6 +1,8 @@
 "use server";
 
-import { RateLimiterMemory, RateLimiterRes } from "rate-limiter-flexible";
+// @ts-expect-error - package does not expose typings for this internal deep import, but it is the runtime-safe narrow path.
+import RateLimiterMemory from "rate-limiter-flexible/lib/RateLimiterMemory";
+import type { RateLimiterRes } from "rate-limiter-flexible";
 
 import { isCoolify } from "@actions/utils";
 
@@ -70,7 +72,11 @@ export async function getUserIP() {
 	return ip || xRealIp || "127.0.0.1";
 }
 
-const rateLimiterMap = new Map<string, RateLimiterMemory>();
+type RateLimiterMemoryInstance = {
+	consume: (key: string | number, pointsToConsume?: number, options?: Record<string, unknown>) => Promise<RateLimiterRes>;
+};
+
+const rateLimiterMap = new Map<string, RateLimiterMemoryInstance>();
 
 export async function tryRateLimit({
 	points,
@@ -90,7 +96,7 @@ export async function tryRateLimit({
 		rateLimiter = new RateLimiterMemory({
 			points,
 			duration,
-		});
+		}) as RateLimiterMemoryInstance;
 		rateLimiterMap.set(key, rateLimiter);
 	}
 

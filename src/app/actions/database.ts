@@ -32,6 +32,7 @@ import { ensureReverseTrialGrantForUser, resolveUserEntitlements, resolveUserEnt
 import { TWITCH_CLIPS_LAUNCH_MS, FREE_PLAYLIST_LIMIT, FREE_PLAYLIST_CLIP_LIMIT } from "@lib/constants";
 import { getAccessTokenInternal, getAccessTokenResultInternal } from "@/server/tokens";
 import { canEditOwnerInternal, requireOverlayAccessInternal, requireOverlaySecretAccessInternal } from "@/server/overlays";
+import { invalidateCommunitySnapshotCache } from "@lib/community";
 
 const TWITCH_CACHE_CLEANUP_INTERVAL_MS = 10 * 60 * 1000;
 let lastTwitchCacheCleanupAt = 0;
@@ -447,6 +448,7 @@ export async function insertUser(user: TwitchUserResponse): Promise<Authenticate
 					marketingOptInAt: new Date(),
 					marketingOptInSource: "soft_opt_in_default",
 					useSendProductUpdatesContactId: null,
+					showOnCommunityPage: false,
 				})
 				.onConflictDoNothing()
 				.execute();
@@ -2017,6 +2019,7 @@ export async function getSettingsServer(userId: string, forceSyncExternal = fals
 				marketingOptInAt: consentRecordedAt,
 				marketingOptInSource: "soft_opt_in_default",
 				useSendProductUpdatesContactId: null,
+				showOnCommunityPage: false,
 				editors: [],
 			};
 
@@ -2041,11 +2044,13 @@ export async function getSettingsServer(userId: string, forceSyncExternal = fals
 					marketingOptInAt: defaultSettings.marketingOptInAt,
 					marketingOptInSource: defaultSettings.marketingOptInSource,
 					useSendProductUpdatesContactId: contactId,
+					showOnCommunityPage: defaultSettings.showOnCommunityPage,
 				})
 				.onConflictDoUpdate({
 					target: settingsTable.id,
 					set: {
 						useSendProductUpdatesContactId: contactId,
+						showOnCommunityPage: defaultSettings.showOnCommunityPage,
 					},
 				})
 				.execute();
@@ -2173,15 +2178,16 @@ export async function saveSettings(settings: UserSettings) {
 		}
 
 		const useSendProductUpdatesContactId = existingSettings?.useSendProductUpdatesContactId ?? null;
+		const showOnCommunityPage = settings.showOnCommunityPage ?? false;
 
 		await db.transaction(async (tx) => {
 			// Upsert settings
 			await tx
 				.insert(settingsTable)
-				.values({ id: userId, prefix, marketingOptIn, marketingOptInAt, marketingOptInSource, useSendProductUpdatesContactId })
+				.values({ id: userId, prefix, marketingOptIn, marketingOptInAt, marketingOptInSource, useSendProductUpdatesContactId, showOnCommunityPage })
 				.onConflictDoUpdate({
 					target: settingsTable.id,
-					set: { prefix, marketingOptIn, marketingOptInAt, marketingOptInSource, useSendProductUpdatesContactId },
+					set: { prefix, marketingOptIn, marketingOptInAt, marketingOptInSource, useSendProductUpdatesContactId, showOnCommunityPage },
 				})
 				.execute();
 
@@ -2220,6 +2226,7 @@ export async function saveSettings(settings: UserSettings) {
 				await db.update(settingsTable).set({ useSendProductUpdatesContactId: syncedContactId }).where(eq(settingsTable.id, userId)).execute();
 			}
 		}
+		void invalidateCommunitySnapshotCache();
 	} catch (error) {
 		console.error("Error saving settings:", error);
 		throw new Error("Failed to save settings");

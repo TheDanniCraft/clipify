@@ -53,6 +53,7 @@ export const tiers: Array<Tier> = [
 			"Append or replace behavior on playlist import",
 			"Channel points integration",
 			"Control your overlay via chat",
+			"Community page shoutout",
 			"Remote control panel for live playback control",
 			"Add editors and managers to help run your overlays",
 			"Advanced clip filtering",
