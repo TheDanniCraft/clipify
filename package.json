@@ -21,7 +21,7 @@
 		"prepare": "next-ws patch && husky"
 	},
 	"dependencies": {
-		"@heroui/react": "^2.8.10",
+		"@heroui/react": "^3.2.1",
 		"@sentry/nextjs": "^10.62.0",
 		"@tabler/icons-react": "^3.44.0",
 		"axios": "^1.18.1",
