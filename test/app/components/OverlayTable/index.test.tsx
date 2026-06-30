@@ -130,10 +130,16 @@ jest.mock("@heroui/react", () => {
 		Chip: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 		Pagination: () => <div />,
 		Separator: () => <div />,
-		Tooltip: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-		Popover: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-		PopoverTrigger: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-		PopoverContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+		Tooltip: Object.assign(({ children }: { children: React.ReactNode }) => <div>{children}</div>, {
+			Trigger: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+			Content: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
+		}),
+		Popover: Object.assign(({ children }: { children: React.ReactNode }) => <div>{children}</div>, {
+			Trigger: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+			Content: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+			Dialog: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+			Arrow: () => null,
+		}),
 		Spinner: () => <div>loading</div>,
 		Link: ({ children }: { children: React.ReactNode }) => <a>{children}</a>,
 		Avatar: Object.assign(({ children }: { children?: React.ReactNode }) => <div>{children}</div>, {

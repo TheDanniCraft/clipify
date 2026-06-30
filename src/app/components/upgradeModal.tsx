@@ -1,5 +1,5 @@
 "use client";
-import { addToast, Button, Chip, Separator, Modal, ModalBody, ModalContent, ModalHeader, Tab, Tabs } from "@heroui/react";
+import { addToast, Button, Chip, Separator, Modal, Tab, Tabs } from "@heroui/react";
 
 import { IconBolt, IconCheck, IconDiamondFilled, IconSparkles } from "@tabler/icons-react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -99,17 +99,20 @@ export default function UpgradeModal({ isOpen, onOpenChange, user, title, descri
 	}, []);
 
 	return (
-		<Modal isOpen={isOpen} onOpenChange={onOpenChange} size='3xl'>
-			<ModalContent className='max-h-[90vh] overflow-y-auto'>
-				<ModalHeader className='flex flex-col gap-3 pr-10'>
+		<Modal>
+			<Modal.Backdrop isOpen={isOpen} onOpenChange={onOpenChange}>
+				<Modal.Container size='lg' className='max-w-3xl'>
+					<Modal.Dialog className='max-h-[90vh] overflow-y-auto'>
+						<Modal.CloseTrigger />
+						<Modal.Header className='flex flex-col gap-3 pr-10'><Modal.Heading>
 					<div className='flex items-center gap-3'>
 						<span className='inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-500/15 text-primary-400'>
 							<IconSparkles size={20} />
 						</span>
 						<p className='text-xl font-semibold leading-tight'>{title ?? "Upgrade to Pro"}</p>
 					</div>
-				</ModalHeader>
-				<ModalBody className='gap-5 pb-6'>
+						</Modal.Heading></Modal.Header>
+						<Modal.Body className='gap-5 pb-6'>
 					<p className='text-base text-default-500'>{description ?? "Unlock advanced features for professional streamers and support the development of Clipify."}</p>
 					{campaignOffer?.showPricingTierPromo ? (
 						<div className='rounded-xl border border-secondary/25 bg-secondary/10 px-4 py-3 text-sm text-default-700'>
@@ -241,8 +244,10 @@ export default function UpgradeModal({ isOpen, onOpenChange, user, title, descri
 						{ctaLabel ?? "Upgrade to Pro"}
 					</Button>
 					<p className='text-xs text-default-400 mb-3'>You can cancel anytime in your billing portal.</p>
-				</ModalBody>
-			</ModalContent>
+						</Modal.Body>
+					</Modal.Dialog>
+				</Modal.Container>
+			</Modal.Backdrop>
 		</Modal>
 	);
 }

@@ -3,7 +3,7 @@ import { Cta, Timer } from "@types";
 
 import React, { useEffect, useState } from "react";
 import { motion } from "motion/react";
-import { Button, Form, Popover, PopoverContent, PopoverTrigger, Spinner, TextField, Label, Description, FieldError, InputGroup } from "@heroui/react";
+import { Button, Form, Popover, Spinner, TextField, Label, Description, FieldError, InputGroup } from "@heroui/react";
 import Image from "next/image";
 
 import { IconCircleCheckFilled, IconMailFilled, IconSend } from "@tabler/icons-react";
@@ -107,13 +107,15 @@ const Construction = ({ endDate, cta }: { endDate?: Date; cta: Cta }) => {
 				)}
 
 				<motion.div initial={{ opacity: 0.1 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 + (endDate ? 0.3 : 0), duration: 0.5 }}>
-					<Popover showArrow offset={10} placement='bottom' backdrop='blur'>
-						<PopoverTrigger>
+					<Popover>
+						<Popover.Trigger>
 							<Button variant='secondary' size='lg' aria-label={cta.text}>{cta.icon}
 								{cta.text}
 							</Button>
-						</PopoverTrigger>
-						<PopoverContent className='p-5 w-[300px] min-w-[300px]'>
+						</Popover.Trigger>
+						<Popover.Content offset={10} placement='bottom' className='w-[300px] min-w-[300px] p-5'>
+							<Popover.Arrow />
+							<Popover.Dialog>
 							<Form onSubmit={subscribe}>
 								<TextField isRequired type='email' className={newsletterState == "success" ? "text-success" : newsletterState == "error" || newsletterState == "rateLimit" ? "text-danger" : "text-default-900"} name='email' isDisabled={newsletterState === "loading" || newsletterState === "success"}><Label>Enter your Email</Label><InputGroup><InputGroup.Prefix>{(() => {
 										switch (newsletterState) {
@@ -149,7 +151,8 @@ const Construction = ({ endDate, cta }: { endDate?: Date; cta: Cta }) => {
 									<p className='text-xs'>We&apos;ve just sent a confirmation email your way. Check your inbox to finish subscribing-and if you don&apos;t see it, be sure to take a quick look in your spam folder too.</p>
 								</div>
 							)}
-						</PopoverContent>
+							</Popover.Dialog>
+						</Popover.Content>
 					</Popover>
 				</motion.div>
 

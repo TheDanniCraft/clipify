@@ -1,5 +1,5 @@
 "use client";
-import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, TableHeader, TableColumn, TableBody, TableRow, TableCell, Button, RadioGroup, Radio, Chip, Pagination, Separator, Tooltip, Popover, PopoverTrigger, PopoverContent, Spinner, addToast, Link, Avatar, Skeleton, Tab, Tabs, useDisclosure, TextField, InputGroup, Label, cn } from "@heroui/react";
+import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, TableHeader, TableColumn, TableBody, TableRow, TableCell, Button, RadioGroup, Radio, Chip, Pagination, Separator, Tooltip, Popover, Spinner, addToast, Link, Avatar, Skeleton, Tab, Tabs, useDisclosure, TextField, InputGroup, Label, cn } from "@heroui/react";
 import type { Selection, SortDescriptor } from "@heroui/react";
 
 import type { ColumnsKey } from "./data";
@@ -431,22 +431,22 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 						<TextField className='min-w-[200px]'><InputGroup><InputGroup.Input placeholder='Search' value={filterValue} onChange={(event) => (onSearchChange)(event.target.value)} className='h-8 text-sm' /><InputGroup.Suffix>{<IconSearch className='text-default-400' width={16} />}</InputGroup.Suffix></InputGroup></TextField>
 						{activeTab === "overlays" && (
 							<div>
-								<Popover placement='bottom'>
-									<PopoverTrigger>
+								<Popover>
+									<Popover.Trigger>
 										<Button className='bg-default-100 text-default-800' size='sm' aria-label='Open Filter Options'>{<IconAdjustmentsHorizontal className='text-default-400' width={16} />}
 											Filter
 										</Button>
-									</PopoverTrigger>
-									<PopoverContent className='w-80'>
-										<div className='flex w-full flex-col gap-6 px-2 py-4'>
+									</Popover.Trigger>
+									<Popover.Content placement='bottom' className='w-80'>
+										<Popover.Dialog><div className='flex w-full flex-col gap-6 px-2 py-4'>
 											<RadioGroup value={statusFilter} onChange={setStatusFilter}>
 												<Label>Status</Label>
 												<Radio value='all'><Radio.Content><Radio.Control><Radio.Indicator /></Radio.Control>All</Radio.Content></Radio>
 												<Radio value='active'><Radio.Content><Radio.Control><Radio.Indicator /></Radio.Control>Active</Radio.Content></Radio>
 												<Radio value='paused'><Radio.Content><Radio.Control><Radio.Indicator /></Radio.Control>Paused</Radio.Content></Radio>
 											</RadioGroup>
-										</div>
-									</PopoverContent>
+										</div></Popover.Dialog>
+									</Popover.Content>
 								</Popover>
 							</div>
 						)}
@@ -895,8 +895,9 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 							) : column.info ? (
 								<div className='flex min-w-[108px] items-center justify-between'>
 									{column.name}
-									<Tooltip content={column.info}>
-										<IconInfoCircle className='text-default-300' height={16} width={16} />
+									<Tooltip delay={0}>
+										<Tooltip.Trigger><IconInfoCircle className='text-default-300' height={16} width={16} /></Tooltip.Trigger>
+										<Tooltip.Content>{column.info}</Tooltip.Content>
 									</Tooltip>
 								</div>
 							) : (

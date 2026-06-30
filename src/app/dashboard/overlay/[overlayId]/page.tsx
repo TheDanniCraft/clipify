@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useParams, useRouter } from "next/navigation";
 import { createPlaylist, getClipCacheStatus, getOverlay, getOverlayOwnerPlan, getPlaylistsForOwner, previewImportPlaylistClips, saveOverlay, savePlaylist, upsertPlaylistClips } from "@actions/database";
-import { addToast, Autocomplete, AutocompleteItem, Button, Card, Checkbox, Chip, DateRangePicker, Separator, Form, Input, Link, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, NumberInput, Select, SelectItem, Slider, Snippet, Spinner, Switch, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow, Tooltip, useDisclosure, TextField, Label, FieldError, InputGroup, CloseButton } from "@heroui/react";
+import { addToast, Autocomplete, AutocompleteItem, Button, Card, Checkbox, Chip, DateRangePicker, Separator, Form, Input, Link, Modal, NumberInput, Select, SelectItem, Slider, Snippet, Spinner, Switch, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow, Tooltip, useDisclosure, TextField, Label, FieldError, InputGroup, CloseButton } from "@heroui/react";
 import Image from "next/image";
 import type { Selection, SortDescriptor } from "@heroui/react";
 
@@ -20,6 +20,7 @@ import TagsInput from "@components/tagsInput";
 import { isTitleBlocked } from "@/app/utils/regexFilter";
 import UpgradeModal from "@components/upgradeModal";
 import ChatwootData from "@components/chatwootData";
+import ControlledModal from "@components/controlledModal";
 import { getTrialDaysLeft, isReverseTrialActive } from "@lib/featureAccess";
 import { usePlausible } from "next-plausible";
 import { trackPaywallEvent } from "@lib/paywallTracking";
@@ -802,13 +803,14 @@ export default function OverlaySettings() {
 												{overlayUrl ?? "Missing secret. Refresh this page to generate one."}
 											</Snippet>
 										</div>
-										<Tooltip content={ownerPlan === Plan.Pro ? "Open remote controller" : "Remote controller is a Pro feature"}>
-											<Button isIconOnly variant='tertiary' isDisabled={!controllerEnabled} aria-label='Open remote controller' onPress={() => {
+									<Tooltip delay={0}>
+										<Tooltip.Trigger><Button isIconOnly variant='tertiary' isDisabled={!controllerEnabled} aria-label='Open remote controller' onPress={() => {
 													if (!controllerUrl || ownerPlan !== Plan.Pro) return;
 													window.open(controllerUrl, "_blank", "noopener,noreferrer");
 												}}>
 												<IconDeviceRemote size={18} />
-											</Button>
+											</Button></Tooltip.Trigger>
+											<Tooltip.Content>{ownerPlan === Plan.Pro ? "Open remote controller" : "Remote controller is a Pro feature"}</Tooltip.Content>
 										</Tooltip>
 										<Button type='submit' isIconOnly isDisabled={!isFormDirty()} aria-label='Save Overlay Settings' variant='primary'>
 											<IconDeviceFloppy />
@@ -943,14 +945,9 @@ export default function OverlaySettings() {
 													}
 													setOverlay({ ...overlay, rewardId: null });
 												}} /> : null}</InputGroup></TextField>
-											<Tooltip
-												content={
-													<div className='px-1 py-2'>
-														<div className='text-tiny'>You can edit the reward through your Twitch dashboard.</div>
-													</div>
-												}
-											>
-												<IconInfoCircle className='text-default-400' />
+											<Tooltip delay={0}>
+												<Tooltip.Trigger><IconInfoCircle className='text-default-400' /></Tooltip.Trigger>
+												<Tooltip.Content><div className='px-1 py-2'><div className='text-tiny'>You can edit the reward through your Twitch dashboard.</div></div></Tooltip.Content>
 											</Tooltip>
 										</div>
 
@@ -962,8 +959,9 @@ export default function OverlaySettings() {
 														<SelectItem key={mode.key}>{mode.label}</SelectItem>
 													))}
 											</Select>
-											<Tooltip content={playbackModeHelpText[overlay.playbackMode] ?? playbackModeHelpText[PlaybackMode.Random]}>
-												<IconInfoCircle className='text-default-400' />
+											<Tooltip delay={0}>
+												<Tooltip.Trigger><IconInfoCircle className='text-default-400' /></Tooltip.Trigger>
+												<Tooltip.Content>{playbackModeHelpText[overlay.playbackMode] ?? playbackModeHelpText[PlaybackMode.Random]}</Tooltip.Content>
 											</Tooltip>
 										</div>
 										{isPlaylistOverlay ? (
@@ -1129,15 +1127,14 @@ export default function OverlaySettings() {
 					</Card>
 				</div>
 
-				<Modal isOpen={isCliplistOpen} onOpenChange={onCliplistOpenChange}>
-					<ModalContent className='flex max-h-[80vh] flex-col overflow-hidden'>
-						<ModalHeader className='flex items-center justify-between gap-3'>
-							<span>Preview Clips</span>
+				<ControlledModal isOpen={isCliplistOpen} onOpenChange={onCliplistOpenChange} dialogClassName='flex max-h-[80vh] flex-col overflow-hidden'>
+						<Modal.Header className='flex items-center justify-between gap-3'>
+							<Modal.Heading>Preview Clips</Modal.Heading>
 							<Switch size='sm' isSelected={previewReviewMode} onChange={setPreviewReviewMode}>
 								<Switch.Content><Switch.Control><Switch.Thumb /></Switch.Control>Review mode</Switch.Content>
 							</Switch>
-						</ModalHeader>
-						<ModalBody className='flex-1 overflow-y-auto'>
+						</Modal.Header>
+						<Modal.Body className='flex-1 overflow-y-auto'>
 							<ul className='space-y-2'>
 								{previewModalClips.map((clip) => (
 									<li key={clip.id} className='flex gap-3 items-center rounded-md p-2 hover:bg-white/5 transition'>
@@ -1156,14 +1153,12 @@ export default function OverlaySettings() {
 									</li>
 								))}
 							</ul>
-						</ModalBody>
-					</ModalContent>
-				</Modal>
+						</Modal.Body>
+				</ControlledModal>
 
-				<Modal isOpen={isPlaylistOpen} onOpenChange={onPlaylistOpenChange} size='2xl'>
-					<ModalContent className='max-h-[85vh] overflow-hidden'>
-						<ModalHeader className='flex items-center justify-between'>
-							<div>{selectedPlaylist ? `Manage Playlist: ${selectedPlaylist.name}` : "Manage Playlist"}</div>
+				<ControlledModal isOpen={isPlaylistOpen} onOpenChange={onPlaylistOpenChange} size='lg' containerClassName='max-w-2xl' dialogClassName='max-h-[85vh] overflow-hidden'>
+						<Modal.Header className='flex items-center justify-between'>
+							<Modal.Heading>{selectedPlaylist ? `Manage Playlist: ${selectedPlaylist.name}` : "Manage Playlist"}</Modal.Heading>
 							<div className='flex items-center gap-2 pr-4'>
 								<Button size='sm' variant='primary' className='font-semibold' onPress={handleOpenAddClips} isDisabled={!selectedPlaylist}>{<IconPlus size={14} />}
 									Add clips
@@ -1179,8 +1174,8 @@ export default function OverlaySettings() {
 									Auto import
 								</Button>
 							</div>
-						</ModalHeader>
-						<ModalBody className='overflow-y-auto'>
+						</Modal.Header>
+						<Modal.Body className='overflow-y-auto'>
 							<div className='mb-2'>
 								<TextField isDisabled={!selectedPlaylist}><Label>Playlist name</Label><Input value={playlistNameDraft} onChange={(event) => (setPlaylistNameDraft)(event.target.value)} placeholder='Playlist name' className='h-8 text-sm' /></TextField>
 							</div>
@@ -1281,8 +1276,8 @@ export default function OverlaySettings() {
 									</li>
 								))}
 							</ul>
-						</ModalBody>
-						<ModalFooter>
+						</Modal.Body>
+						<Modal.Footer>
 							<Button variant='tertiary' onPress={onPlaylistClose}>
 								Close
 							</Button>
@@ -1315,17 +1310,15 @@ export default function OverlaySettings() {
 								}} isDisabled={!overlay.playlistId || !canSaveManagedPlaylist || !playlistNameDraft.trim()} variant='primary'>{<IconDeviceFloppy size={16} />}
 								Save Playlist
 							</Button>
-						</ModalFooter>
-					</ModalContent>
-				</Modal>
+						</Modal.Footer>
+				</ControlledModal>
 
-				<Modal isOpen={isAddClipsOpen} onOpenChange={onAddClipsOpenChange} size='5xl'>
-					<ModalContent className='max-h-[80vh]'>
-						<ModalHeader className='flex flex-col gap-1'>
-							<div>Select clips to add</div>
+				<ControlledModal isOpen={isAddClipsOpen} onOpenChange={onAddClipsOpenChange} size='lg' containerClassName='max-w-5xl' dialogClassName='max-h-[80vh]'>
+						<Modal.Header className='flex flex-col gap-1'>
+							<Modal.Heading>Select clips to add</Modal.Heading>
 							<TextField><InputGroup><InputGroup.Prefix>{<IconSearch size={16} />}</InputGroup.Prefix><InputGroup.Input placeholder='Search by title or creator...' value={cachedClipsFilter} onChange={(event) => (setCachedClipsFilter)(event.target.value)} className='h-8 text-sm' />{cachedClipsFilter ? <CloseButton aria-label='Clear' onPress={() => (setCachedClipsFilter)("")} /> : null}</InputGroup></TextField>
-						</ModalHeader>
-						<ModalBody className='overflow-y-auto'>
+						</Modal.Header>
+						<Modal.Body className='overflow-y-auto'>
 							<Table
 								aria-label='Cached clips table'
 								selectionMode='multiple'
@@ -1371,8 +1364,8 @@ export default function OverlaySettings() {
 									)}
 								</TableBody>
 							</Table>
-						</ModalBody>
-						<ModalFooter>
+						</Modal.Body>
+						<Modal.Footer>
 							{wouldExceedFreeLimit && <div className='mr-auto text-xs text-danger'>Free plan limit is {FREE_PLAYLIST_CLIP_LIMIT} clips per playlist.</div>}
 							<Button variant='tertiary' onPress={onAddClipsOpenChange}>
 								Cancel
@@ -1380,14 +1373,12 @@ export default function OverlaySettings() {
 							<Button onPress={handleAddSelectedClips} isDisabled={selectedIds.length === 0 || wouldExceedFreeLimit} variant='primary'>
 								Add selected clips
 							</Button>
-						</ModalFooter>
-					</ModalContent>
-				</Modal>
+						</Modal.Footer>
+				</ControlledModal>
 
-				<Modal isOpen={isImportOpen} onOpenChange={onImportOpenChange}>
-					<ModalContent>
-						<ModalHeader>Auto Import to Playlist</ModalHeader>
-						<ModalBody className='space-y-4'>
+				<ControlledModal isOpen={isImportOpen} onOpenChange={onImportOpenChange}>
+						<Modal.Header><Modal.Heading>Auto Import to Playlist</Modal.Heading></Modal.Header>
+						<Modal.Body className='space-y-4'>
 							<Autocomplete
 								label='Category / Game'
 								isRequired
@@ -1448,8 +1439,8 @@ export default function OverlaySettings() {
 							<TagsInput fullWidth label='Creator Allowlist' value={importCreatorAllowlist} onValueChange={setImportCreatorAllowlist} />
 							<TagsInput fullWidth label='Creator Denylist' value={importCreatorDenylist} onValueChange={setImportCreatorDenylist} />
 							<TagsInput fullWidth label='Blacklisted Words' value={importBlacklistWords} onValueChange={setImportBlacklistWords} />
-						</ModalBody>
-						<ModalFooter>
+						</Modal.Body>
+						<Modal.Footer>
 							<Button variant='tertiary' onPress={onImportClose}>
 								Cancel
 							</Button>
@@ -1459,17 +1450,15 @@ export default function OverlaySettings() {
 								}} variant='primary'>{<IconDownload size={16} />}
 								Import
 							</Button>
-						</ModalFooter>
-					</ModalContent>
-				</Modal>
+						</Modal.Footer>
+				</ControlledModal>
 
-				<Modal isOpen={pendingImportMode !== null} onOpenChange={() => setPendingImportMode(null)}>
-					<ModalContent>
-						<ModalHeader>Import Behavior</ModalHeader>
-						<ModalBody>
+				<ControlledModal isOpen={pendingImportMode !== null} onOpenChange={() => setPendingImportMode(null)}>
+						<Modal.Header><Modal.Heading>Import Behavior</Modal.Heading></Modal.Header>
+						<Modal.Body>
 							<div className='text-sm text-default-600'>This playlist already has clips. Do you want to replace it or append imported clips?</div>
-						</ModalBody>
-						<ModalFooter>
+						</Modal.Body>
+						<Modal.Footer>
 							<Button variant='tertiary' onPress={async () => {
 									setPendingImportMode(null);
 									await runImport("append");
@@ -1482,53 +1471,48 @@ export default function OverlaySettings() {
 								}} variant='danger'>
 								Replace
 							</Button>
-						</ModalFooter>
-					</ModalContent>
-				</Modal>
+						</Modal.Footer>
+				</ControlledModal>
 
-				<Modal isOpen={isAutoImportLockedOpen} onOpenChange={onAutoImportLockedOpenChange}>
-					<ModalContent>
-						<ModalHeader>Auto Import Requires Pro</ModalHeader>
-						<ModalBody>
+				<ControlledModal isOpen={isAutoImportLockedOpen} onOpenChange={onAutoImportLockedOpenChange}>
+						<Modal.Header><Modal.Heading>Auto Import Requires Pro</Modal.Heading></Modal.Header>
+						<Modal.Body>
 							<div className='text-sm text-default-600'>Auto import is available on Pro. Free includes one playlist with up to {FREE_PLAYLIST_CLIP_LIMIT} clips.</div>
-						</ModalBody>
-						<ModalFooter>
+						</Modal.Body>
+						<Modal.Footer>
 							<Button variant='tertiary' onPress={onAutoImportLockedOpenChange}>
 								Close
 							</Button>
 							<Button onPress={onUpgradeOpen} variant='primary'>
 								Upgrade
 							</Button>
-						</ModalFooter>
-					</ModalContent>
-				</Modal>
+						</Modal.Footer>
+				</ControlledModal>
 
-				<Modal backdrop='blur' isOpen={navGuard.active} onClose={navGuard.reject}>
-					<ModalContent>
-						<ModalHeader>
-							<div className='flex items-center'>
+				<ControlledModal variant='blur' isOpen={navGuard.active} onClose={navGuard.reject}>
+						<Modal.Header>
+							<Modal.Heading className='flex items-center'>
 								<IconAlertTriangle className='mr-2' />
 								Unsaved Changes
-							</div>
-						</ModalHeader>
-						<ModalBody>
+							</Modal.Heading>
+						</Modal.Header>
+						<Modal.Body>
 							<p className='text-sm text-default-700'>
 								You&apos;ve made changes to your <span className='font-semibold text-default-900'>overlay settings</span> that haven&apos;t been saved. If you go back now, <span className='font-semibold text-danger'>those changes will be lost</span>.
 								<br />
 								<br />
 								<span className='font-semibold text-default-900'>Do you want to continue without saving?</span>
 							</p>
-						</ModalBody>
-						<ModalFooter>
+						</Modal.Body>
+						<Modal.Footer>
 							<Button variant='tertiary' onPress={navGuard.reject} aria-label='Cancel'>
 								Cancel
 							</Button>
 							<Button onPress={navGuard.accept} aria-label='Discard Changes' variant='danger'>
 								Discard changes
 							</Button>
-						</ModalFooter>
-					</ModalContent>
-				</Modal>
+						</Modal.Footer>
+				</ControlledModal>
 			</DashboardNavbar>
 
 			{user && <UpgradeModal isOpen={isUpgradeOpen} onOpenChange={onUpgradeOpenChange} user={user} title='Upgrade to unlock Pro overlay features' source='upgrade_modal' feature='advanced_filters' />}

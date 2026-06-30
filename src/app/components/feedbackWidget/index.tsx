@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Button, Form, Input, Link, Popover, PopoverContent, PopoverTrigger, RadioGroup, Spinner, Tab, Tabs, Textarea, TextField, Label, FieldError } from "@heroui/react";
+import { Button, Form, Input, Link, Popover, RadioGroup, Spinner, Tab, Tabs, Textarea, TextField, Label, FieldError } from "@heroui/react";
 import Image from "next/image";
 
 import { IconChevronLeft, IconX } from "@tabler/icons-react";
@@ -55,17 +55,18 @@ export default function FeedbackWidget() {
 	return (
 		<>
 			<div className='fixed bottom-6 right-6 z-50'>
-				<Popover isOpen={open} onOpenChange={setOpen} placement='left' offset={-40} shouldBlockScroll>
-					<PopoverTrigger>
+				<Popover isOpen={open} onOpenChange={setOpen}>
+					<Popover.Trigger>
 						<Button onPress={() => {
 								setOpen(true);
 								setState("default");
 							}} className='fixed top-1/2 right-0 z-50 -translate-y-1/2 rounded-b-[0] shadow-lg text-xs rotate-[-90deg] origin-bottom-right'>
 							Feedback
 						</Button>
-					</PopoverTrigger>
+					</Popover.Trigger>
 
-					<PopoverContent className='p-5 rounded-r-[0] h-screen w-screen sm:h-full sm:m-0 sm:w-full'>
+					<Popover.Content placement='left' offset={-40} className='h-screen w-screen rounded-r-[0] p-5 sm:m-0 sm:h-full sm:w-full'>
+						<Popover.Dialog>
 						<div>
 							<div className='flex justify-between mb-3'>
 								<Button size='sm' isIconOnly variant='tertiary' onPress={() => setState("default")} className={`${state === "default" || state === "loading" ? "invisible" : "visible"}`}>{<IconChevronLeft />}</Button>
@@ -139,7 +140,8 @@ export default function FeedbackWidget() {
 								</div>
 							</div>
 						</div>
-					</PopoverContent>
+						</Popover.Dialog>
+					</Popover.Content>
 				</Popover>
 			</div>
 		</>

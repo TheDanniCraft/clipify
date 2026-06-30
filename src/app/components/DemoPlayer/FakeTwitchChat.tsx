@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "./FakeTwitchChat.css";
-import { Modal, ModalBody, ModalContent, ModalHeader, useDisclosure } from "@heroui/react";
+import { Modal, useDisclosure } from "@heroui/react";
 
 
 type ChatMsg = {
@@ -290,10 +290,13 @@ export default function FakeTwitchChat({ isLive, title = "STREAM CHAT", selfUser
 			)}
 			{(cpArmed || cpError) && <div className={`tchat__redeem ${cpError ? "isError" : ""}`}>{cpError ?? `Redeem reward: ${REWARD_NAME}`}</div>}
 
-			<Modal isOpen={isOpen} onOpenChange={onOpenChange}>
-				<ModalContent>
-					<ModalHeader className='flex flex-col gap-1'>Available Commands</ModalHeader>
-					<ModalBody>
+			<Modal>
+				<Modal.Backdrop isOpen={isOpen} onOpenChange={onOpenChange}>
+					<Modal.Container>
+						<Modal.Dialog>
+							<Modal.CloseTrigger />
+							<Modal.Header className='flex flex-col gap-1'><Modal.Heading>Available Commands</Modal.Heading></Modal.Header>
+							<Modal.Body>
 						{(() => {
 							const cmds = [
 								{
@@ -332,8 +335,10 @@ export default function FakeTwitchChat({ isLive, title = "STREAM CHAT", selfUser
 								</div>
 							);
 						})()}
-					</ModalBody>
-				</ModalContent>
+							</Modal.Body>
+						</Modal.Dialog>
+					</Modal.Container>
+				</Modal.Backdrop>
 			</Modal>
 
 			<form

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState, type ComponentProps } from "react";
-import { Chip, CloseButton, Textarea, Popover, PopoverContent, Listbox, ListboxItem } from "@heroui/react";
+import { Chip, CloseButton, Textarea, Popover, Listbox, ListboxItem } from "@heroui/react";
 import type { TextAreaProps } from "@heroui/react";
 
 
@@ -253,8 +253,8 @@ export default function TagsInput(props: TagsInputProps) {
 	};
 
 	return (
-		<Popover isOpen={isOpen} placement='bottom-start' offset={8}>
-			<div
+		<Popover isOpen={isOpen}>
+			<Popover.Trigger><div
 				ref={rootRef}
 				className={rootClassName}
 				onMouseDown={() => {
@@ -347,9 +347,10 @@ export default function TagsInput(props: TagsInputProps) {
 					}
 					classNames={mergedTextareaClassNames}
 				/>
-			</div>
+			</div></Popover.Trigger>
 
-			<PopoverContent className='w-[--trigger-width] p-1'>
+			<Popover.Content placement='bottom-start' offset={8} className='w-[--trigger-width] p-1'>
+				<Popover.Dialog>
 				<Listbox
 					aria-label='Suggestions'
 					selectionMode='single'
@@ -375,7 +376,8 @@ export default function TagsInput(props: TagsInputProps) {
 						</ListboxItem>
 					))}
 				</Listbox>
-			</PopoverContent>
+				</Popover.Dialog>
+			</Popover.Content>
 		</Popover>
 	);
 }

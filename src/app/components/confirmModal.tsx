@@ -1,5 +1,5 @@
 "use client";
-import { Button, Input, Modal, ModalBody, ModalContent, ModalHeader, TextField, Label, FieldError } from "@heroui/react";
+import { Button, Input, Modal, TextField, Label, FieldError } from "@heroui/react";
 
 import { IconAlertTriangle } from "@tabler/icons-react";
 import { useState } from "react";
@@ -8,15 +8,18 @@ export default function ConfirmModal({ isOpen, onOpenChange, keyword, onConfirm 
 	const [confirmed, setConfirmed] = useState(false);
 
 	return (
-		<Modal isOpen={isOpen} onOpenChange={onOpenChange}>
-			<ModalContent>
-				<ModalHeader>
+		<Modal>
+			<Modal.Backdrop isOpen={isOpen} onOpenChange={onOpenChange}>
+				<Modal.Container>
+					<Modal.Dialog>
+						<Modal.CloseTrigger />
+						<Modal.Header><Modal.Heading>
 					<div className='flex items-center'>
 						<IconAlertTriangle />
 						<p className='ml-2'>Confirm Action</p>
 					</div>
-				</ModalHeader>
-				<ModalBody>
+						</Modal.Heading></Modal.Header>
+						<Modal.Body>
 					<span className='leading-snug'>
 						Are you sure that you want to delete <strong>{keyword}</strong>?
 					</span>
@@ -38,8 +41,10 @@ export default function ConfirmModal({ isOpen, onOpenChange, keyword, onConfirm 
 							Delete
 						</Button>
 					</div>
-				</ModalBody>
-			</ModalContent>
+						</Modal.Body>
+					</Modal.Dialog>
+				</Modal.Container>
+			</Modal.Backdrop>
 		</Modal>
 	);
 }

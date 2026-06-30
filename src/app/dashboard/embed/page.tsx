@@ -200,8 +200,8 @@ export default function EmbedTool() {
 									</SelectItem>
 								))}
 							</Select>
-							<Tooltip content={ownerPlan === "free" ? "This overlay's owner must upgrade to remove Clipify branding" : "Toggle to include Clipify branding on your overlay"}>
-								<span>
+							<Tooltip delay={0}>
+								<Tooltip.Trigger><span>
 									<Switch isSelected={effectiveShowBanner} onChange={setShowBanner} isDisabled={!overlayId || ownerPlan === "free"}>
 										<Switch.Content>
 											<Switch.Control><Switch.Thumb /></Switch.Control>
@@ -211,15 +211,16 @@ export default function EmbedTool() {
 											</span>
 										</Switch.Content>
 									</Switch>
-								</span>
+								</span></Tooltip.Trigger>
+								<Tooltip.Content>{ownerPlan === "free" ? "This overlay's owner must upgrade to remove Clipify branding" : "Toggle to include Clipify branding on your overlay"}</Tooltip.Content>
 							</Tooltip>
 							{ownerPlan === "free" && (
 								<Button variant='primary' onPress={onUpgradeOpen} className='text-white'>
 									Upgrade to remove branding
 								</Button>
 							)}
-							<Tooltip content='Toggle autoplay for this embed'>
-								<span>
+							<Tooltip delay={0}>
+								<Tooltip.Trigger><span>
 									<Switch isSelected={embedAutoplay} onChange={setEmbedAutoplay} isDisabled={!overlayId}>
 										<Switch.Content>
 											<Switch.Control><Switch.Thumb /></Switch.Control>
@@ -229,10 +230,11 @@ export default function EmbedTool() {
 											</span>
 										</Switch.Content>
 									</Switch>
-								</span>
+								</span></Tooltip.Trigger>
+								<Tooltip.Content>Toggle autoplay for this embed</Tooltip.Content>
 							</Tooltip>
-							<Tooltip content='Show clip title, creator and game overlay on the embed'>
-								<span>
+							<Tooltip delay={0}>
+								<Tooltip.Trigger><span>
 									<Switch isSelected={showEmbedOverlay} onChange={setShowEmbedOverlay} isDisabled={!overlayId}>
 										<Switch.Content>
 											<Switch.Control><Switch.Thumb /></Switch.Control>
@@ -242,10 +244,11 @@ export default function EmbedTool() {
 											</span>
 										</Switch.Content>
 									</Switch>
-								</span>
+								</span></Tooltip.Trigger>
+								<Tooltip.Content>Show clip title, creator and game overlay on the embed</Tooltip.Content>
 							</Tooltip>
-							<Tooltip content='Toggle starting muted for this embed'>
-								<span>
+							<Tooltip delay={0}>
+								<Tooltip.Trigger><span>
 									<Switch isSelected={embedMuted} onChange={setEmbedMuted} isDisabled={!overlayId}>
 										<Switch.Content>
 											<Switch.Control><Switch.Thumb /></Switch.Control>
@@ -255,7 +258,8 @@ export default function EmbedTool() {
 											</span>
 										</Switch.Content>
 									</Switch>
-								</span>
+								</span></Tooltip.Trigger>
+								<Tooltip.Content>Toggle starting muted for this embed</Tooltip.Content>
 							</Tooltip>
 							<div>
 								<div className='text-xs uppercase tracking-wide text-gray-500 font-semibold mb-2 flex items-center gap-2'>

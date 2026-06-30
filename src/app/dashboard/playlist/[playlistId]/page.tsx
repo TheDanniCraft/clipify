@@ -3,13 +3,14 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { getAllPlaylists, getPlaylistClips, previewImportPlaylistClips, savePlaylist, upsertPlaylistClips } from "@actions/database";
-import { addToast, Autocomplete, AutocompleteItem, Button, Card, Checkbox, DateRangePicker, Separator, Input, Link, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, NumberInput, Pagination, Spinner, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow, useDisclosure, TextField, InputGroup, CloseButton } from "@heroui/react";
+import { addToast, Autocomplete, AutocompleteItem, Button, Card, Checkbox, DateRangePicker, Separator, Input, Link, Modal, NumberInput, Pagination, Spinner, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow, useDisclosure, TextField, InputGroup, CloseButton } from "@heroui/react";
 import Image from "next/image";
 import type { Selection, SortDescriptor } from "@heroui/react";
 
 import { AuthenticatedUser, Game, OverlayType, TwitchClip } from "@types";
 import { IconAlertTriangle, IconArrowLeft, IconDeviceFloppy, IconDownload, IconGripVertical, IconPlus, IconSearch, IconTrash } from "@tabler/icons-react";
 import DashboardNavbar from "@components/dashboardNavbar";
+import ControlledModal from "@components/controlledModal";
 import { useNavigationGuard } from "next-navigation-guard";
 import { validateAuth } from "@actions/auth";
 import { getCachedClipsByOwner, getGamesDetailsBulk, getTwitchGames } from "@actions/twitch";
@@ -535,13 +536,12 @@ export default function PlaylistPage() {
 				</Card>
 			</div>
 
-			<Modal isOpen={isAddClipsOpen} onOpenChange={onAddClipsOpenChange} size='5xl'>
-				<ModalContent className='max-h-[80vh]'>
-					<ModalHeader className='flex flex-col gap-1'>
-						<div>Select clips to add</div>
+			<ControlledModal isOpen={isAddClipsOpen} onOpenChange={onAddClipsOpenChange} size='lg' containerClassName='max-w-5xl' dialogClassName='max-h-[80vh]'>
+					<Modal.Header className='flex flex-col gap-1'>
+						<Modal.Heading>Select clips to add</Modal.Heading>
 						<TextField><InputGroup><InputGroup.Prefix>{<IconSearch size={16} />}</InputGroup.Prefix><InputGroup.Input placeholder='Search by title or creator...' value={cachedClipsFilter} onChange={(event) => (setCachedClipsFilter)(event.target.value)} className='h-8 text-sm' />{cachedClipsFilter ? <CloseButton aria-label='Clear' onPress={() => (setCachedClipsFilter)("")} /> : null}</InputGroup></TextField>
-					</ModalHeader>
-					<ModalBody className='overflow-y-auto'>
+					</Modal.Header>
+					<Modal.Body className='overflow-y-auto'>
 						<Table
 							aria-label='Cached clips table'
 							selectionMode='multiple'
@@ -593,8 +593,8 @@ export default function PlaylistPage() {
 								)}
 							</TableBody>
 						</Table>
-					</ModalBody>
-					<ModalFooter>
+					</Modal.Body>
+					<Modal.Footer>
 						{wouldExceedFreeLimit && <div className='mr-auto text-xs text-danger'>Free plan limit is {FREE_PLAYLIST_CLIP_LIMIT} clips per playlist.</div>}
 						<Button variant='tertiary' onPress={onAddClipsOpenChange}>
 							Cancel
@@ -602,14 +602,12 @@ export default function PlaylistPage() {
 						<Button onPress={handleAddSelectedClips} isDisabled={selectedIds.length === 0 || wouldExceedFreeLimit} variant='primary'>
 							Add selected clips
 						</Button>
-					</ModalFooter>
-				</ModalContent>
-			</Modal>
+					</Modal.Footer>
+			</ControlledModal>
 
-			<Modal isOpen={isImportOpen} onOpenChange={onImportOpenChange}>
-				<ModalContent>
-					<ModalHeader>Auto Import to Playlist</ModalHeader>
-					<ModalBody className='space-y-4'>
+			<ControlledModal isOpen={isImportOpen} onOpenChange={onImportOpenChange}>
+					<Modal.Header><Modal.Heading>Auto Import to Playlist</Modal.Heading></Modal.Header>
+					<Modal.Body className='space-y-4'>
 						<Autocomplete
 							label='Category / Game'
 							isRequired
@@ -670,8 +668,8 @@ export default function PlaylistPage() {
 						<TagsInput fullWidth label='Creator Allowlist' value={importCreatorAllowlist} onValueChange={setImportCreatorAllowlist} />
 						<TagsInput fullWidth label='Creator Denylist' value={importCreatorDenylist} onValueChange={setImportCreatorDenylist} />
 						<TagsInput fullWidth label='Blacklisted Words' value={importBlacklistWords} onValueChange={setImportBlacklistWords} />
-					</ModalBody>
-					<ModalFooter>
+					</Modal.Body>
+					<Modal.Footer>
 						<Button variant='tertiary' onPress={onImportClose}>
 							Cancel
 						</Button>
@@ -681,34 +679,30 @@ export default function PlaylistPage() {
 							}} variant='primary'>{<IconDownload size={16} />}
 							Import
 						</Button>
-					</ModalFooter>
-				</ModalContent>
-			</Modal>
+					</Modal.Footer>
+			</ControlledModal>
 
-			<Modal isOpen={isAutoImportLockedOpen} onOpenChange={onAutoImportLockedOpenChange}>
-				<ModalContent>
-					<ModalHeader>Auto Import Requires Pro</ModalHeader>
-					<ModalBody>
+			<ControlledModal isOpen={isAutoImportLockedOpen} onOpenChange={onAutoImportLockedOpenChange}>
+					<Modal.Header><Modal.Heading>Auto Import Requires Pro</Modal.Heading></Modal.Header>
+					<Modal.Body>
 						<div className='text-sm text-default-600'>Auto import is available on Pro. Free includes one playlist with up to {FREE_PLAYLIST_CLIP_LIMIT} clips.</div>
-					</ModalBody>
-					<ModalFooter>
+					</Modal.Body>
+					<Modal.Footer>
 						<Button variant='tertiary' onPress={onAutoImportLockedOpenChange}>
 							Close
 						</Button>
 						<Link href='/dashboard/settings' className='inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 font-medium bg-accent text-accent-foreground hover:bg-accent-hover'>
 							Upgrade
 						</Link>
-					</ModalFooter>
-				</ModalContent>
-			</Modal>
+					</Modal.Footer>
+			</ControlledModal>
 
-			<Modal isOpen={pendingImportMode !== null} onOpenChange={() => setPendingImportMode(null)}>
-				<ModalContent>
-					<ModalHeader>Import Behavior</ModalHeader>
-					<ModalBody>
+			<ControlledModal isOpen={pendingImportMode !== null} onOpenChange={() => setPendingImportMode(null)}>
+					<Modal.Header><Modal.Heading>Import Behavior</Modal.Heading></Modal.Header>
+					<Modal.Body>
 						<div className='text-sm text-default-600'>This playlist already has clips. Do you want to replace it or append imported clips?</div>
-					</ModalBody>
-					<ModalFooter>
+					</Modal.Body>
+					<Modal.Footer>
 						<Button variant='tertiary' onPress={async () => {
 								setPendingImportMode(null);
 								await runImport("append");
@@ -721,36 +715,33 @@ export default function PlaylistPage() {
 							}} variant='danger'>
 							Replace
 						</Button>
-					</ModalFooter>
-				</ModalContent>
-			</Modal>
+					</Modal.Footer>
+			</ControlledModal>
 
-			<Modal backdrop='blur' isOpen={navGuard.active} onClose={navGuard.reject}>
-				<ModalContent>
-					<ModalHeader>
-						<div className='flex items-center'>
+			<ControlledModal variant='blur' isOpen={navGuard.active} onClose={navGuard.reject}>
+					<Modal.Header>
+						<Modal.Heading className='flex items-center'>
 							<IconAlertTriangle className='mr-2' />
 							Unsaved Changes
-						</div>
-					</ModalHeader>
-					<ModalBody>
+						</Modal.Heading>
+					</Modal.Header>
+					<Modal.Body>
 						<p className='text-sm text-default-700'>
 							You have unsaved playlist changes. If you leave now, your draft edits will be lost.
 							<br />
 							<br />
 							Do you want to continue without saving?
 						</p>
-					</ModalBody>
-					<ModalFooter>
+					</Modal.Body>
+					<Modal.Footer>
 						<Button variant='tertiary' onPress={navGuard.reject} aria-label='Cancel'>
 							Cancel
 						</Button>
 						<Button onPress={navGuard.accept} aria-label='Discard Changes' variant='danger'>
 							Discard changes
 						</Button>
-					</ModalFooter>
-				</ModalContent>
-			</Modal>
+					</Modal.Footer>
+			</ControlledModal>
 		</DashboardNavbar>
 	);
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { Button, Chip, Separator, Form, Input, Link, Modal, ModalContent, Spinner, Tab, Tabs, TextField, Label, FieldError, InputGroup } from "@heroui/react";
+import { Button, Chip, Separator, Form, Input, Link, Modal, Spinner, Tab, Tabs, TextField, Label, FieldError, InputGroup } from "@heroui/react";
 import Image from "next/image";
 
 import { Turnstile } from "nextjs-turnstile";
@@ -378,16 +378,16 @@ export default function Footer() {
 								{newsletterState === "rateLimit" && <p className='text-xs text-danger pt-1'>Too many attempts. Please wait a moment.</p>}
 							</Form>
 						</div>
-						<Modal isOpen={isSuccessOpen} onOpenChange={(open) => setIsSuccessOpen(open)}>
-							<ModalContent>
-								<div className='p-6'>
+						<Modal>
+							<Modal.Backdrop isOpen={isSuccessOpen} onOpenChange={setIsSuccessOpen}>
+								<Modal.Container><Modal.Dialog><Modal.CloseTrigger /><Modal.Body><div className='p-6'>
 									<div className='text-success-500 mt-2 text-center'>
 										<Image unoptimized alt='Tada Icon' src='https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Activities/Party%20Popper.png' width={50} height={50} className='mx-auto' />
 										<p className='text-lg font-bold'>You&apos;re almost there!</p>
 										<p className='text-xs'>We&apos;ve just sent a confirmation email your way. Check your inbox to finish subscribing-and if you don&apos;t see it, be sure to take a quick look in your spam folder too.</p>
 									</div>
-								</div>
-							</ModalContent>
+								</div></Modal.Body></Modal.Dialog></Modal.Container>
+							</Modal.Backdrop>
 						</Modal>
 					</div>
 

@@ -4,12 +4,10 @@ import { CopyText } from "@/app/components/OverlayTable/copy-text";
 
 jest.mock("@heroui/react", () => ({
 	cn: (...classes: Array<string | undefined>) => classes.filter(Boolean).join(" "),
-	Tooltip: ({ content, children }: { content: React.ReactNode; children: React.ReactNode }) => (
-		<div>
-			<span data-testid='tooltip-content'>{content}</span>
-			{children}
-		</div>
-	),
+	Tooltip: Object.assign(({ children }: { children: React.ReactNode }) => <div>{children}</div>, {
+		Trigger: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+		Content: ({ children }: { children: React.ReactNode }) => <span data-testid='tooltip-content'>{children}</span>,
+	}),
 	Button: ({ onPress, children, "aria-label": ariaLabel }: { onPress?: () => void; children: React.ReactNode; "aria-label"?: string }) => (
 		<button onClick={onPress} aria-label={ariaLabel}>
 			{children}

@@ -155,11 +155,16 @@ jest.mock("@heroui/react", () => {
 		}),
 		Separator: () => <div />,
 		Link: ({ children }: { children: React.ReactNode }) => <a>{children}</a>,
-		Modal: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-		ModalBody: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-		ModalContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-		ModalFooter: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-		ModalHeader: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+		Modal: Object.assign(({ children }: { children: React.ReactNode }) => <div>{children}</div>, {
+			Backdrop: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+			Container: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+			Dialog: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+			CloseTrigger: () => null,
+			Header: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+			Heading: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+			Body: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+			Footer: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+		}),
 		Table: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
 		TableHeader: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
 		TableColumn: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
@@ -168,7 +173,10 @@ jest.mock("@heroui/react", () => {
 		TableCell: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
 		Snippet: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 		Spinner: ({ label }: { label?: string }) => <div>{label}</div>,
-		Tooltip: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+		Tooltip: Object.assign(({ children }: { children: React.ReactNode }) => <div>{children}</div>, {
+			Trigger: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+			Content: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
+		}),
 	};
 });
 

@@ -7,7 +7,7 @@ import DashboardNavbar from "@components/dashboardNavbar";
 import UpgradeModal from "@components/upgradeModal";
 import { getFeatureAccess, getTrialDaysLeft, isReverseTrialActive } from "@lib/featureAccess";
 import { AuthenticatedUser, Overlay, Plan } from "@types";
-import { addToast, Avatar, Button, Card, Separator, Input, Popover, PopoverContent, PopoverTrigger, Select, SelectItem, Slider, Spinner, Tab, Tabs, useDisclosure, TextField, Label, Description, InputGroup } from "@heroui/react";
+import { addToast, Avatar, Button, Card, Separator, Input, Popover, Select, SelectItem, Slider, Spinner, Tab, Tabs, useDisclosure, TextField, Label, Description, InputGroup } from "@heroui/react";
 
 import { IconArrowLeft, IconCrown, IconDeviceFloppy, IconPalette } from "@tabler/icons-react";
 import { useParams, useRouter } from "next/navigation";
@@ -372,11 +372,12 @@ function ThemeColorInput({ label, value, onChange, defaultValue, allowAlpha }: {
 	};
 
 	return (
-		<TextField type='text'><Label>{label}</Label><InputGroup><InputGroup.Input value={value} onChange={(event) => (onChange)(event.target.value)} /><InputGroup.Suffix>{<Popover placement='bottom-end'>
-					<PopoverTrigger>
+		<TextField type='text'><Label>{label}</Label><InputGroup><InputGroup.Input value={value} onChange={(event) => (onChange)(event.target.value)} /><InputGroup.Suffix>{<Popover>
+					<Popover.Trigger>
 						<button type='button' className='h-7 w-7 rounded-md border border-default-300 transition-transform hover:scale-105' style={{ background: preview }} aria-label={`Pick ${label}`} />
-					</PopoverTrigger>
-					<PopoverContent className='p-3'>
+					</Popover.Trigger>
+					<Popover.Content placement='bottom-end' className='p-3'>
+						<Popover.Dialog>
 						<div className='w-[260px] flex flex-col gap-3'>
 							<div className='text-xs text-default-500 flex items-center gap-1'>
 								<IconPalette className='h-3.5 w-3.5' />
@@ -420,7 +421,8 @@ function ThemeColorInput({ label, value, onChange, defaultValue, allowAlpha }: {
 								Reset to default
 							</Button>
 						</div>
-					</PopoverContent>
+						</Popover.Dialog>
+					</Popover.Content>
 				</Popover>}</InputGroup.Suffix></InputGroup></TextField>
 	);
 }

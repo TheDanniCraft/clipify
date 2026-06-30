@@ -5,7 +5,7 @@ import { deleteUser, getClipCacheStatus, getSettings, saveSettings } from "@acti
 import ConfirmModal from "@components/confirmModal";
 import DashboardNavbar from "@components/dashboardNavbar";
 import { AuthenticatedUser, Plan, UserSettings } from "@types";
-import { addToast, Avatar, Button, Card, Separator, Form, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Snippet, Spinner, Switch, Tooltip, useDisclosure, TextField, Label, Description, FieldError } from "@heroui/react";
+import { addToast, Avatar, Button, Card, Separator, Form, Input, Modal, Snippet, Spinner, Switch, Tooltip, useDisclosure, TextField, Label, Description, FieldError } from "@heroui/react";
 
 import { IconAlertTriangle, IconArrowLeft, IconCreditCardFilled, IconDatabase, IconDeviceFloppy, IconDiamondFilled, IconInfoCircle, IconRefresh, IconTrash } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
@@ -16,6 +16,7 @@ import { useNavigationGuard } from "next-navigation-guard";
 import UpgradeModal from "@components/upgradeModal";
 import TagsInput from "@components/tagsInput";
 import ChatwootData from "@components/chatwootData";
+import ControlledModal from "@components/controlledModal";
 import { getFeatureAccess, getTrialDaysLeft, isReverseTrialActive } from "@lib/featureAccess";
 import { usePlausible } from "next-plausible";
 import { trackPaywallEvent } from "@lib/paywallTracking";
@@ -286,8 +287,9 @@ export default function SettingsPage() {
 										{user.id}
 									</Snippet>
 								</div>
-								<Tooltip content='If you contact support, please specify this user ID.'>
-									<IconInfoCircle size={20} className='text-default-400' />
+								<Tooltip delay={0}>
+									<Tooltip.Trigger><IconInfoCircle size={20} className='text-default-400' /></Tooltip.Trigger>
+									<Tooltip.Content>If you contact support, please specify this user ID.</Tooltip.Content>
 								</Tooltip>
 							</div>
 						</div>
@@ -348,10 +350,11 @@ export default function SettingsPage() {
 										Manual refresh: {clipForceRefreshStatus?.canRefresh ? "available now" : `available in ${formatDurationMs(clipForceRefreshStatus?.remainingMs ?? 0)}`}
 									</p>
 									<div className='flex items-center gap-2'>
-										<Tooltip content='Refresh statistics'>
-											<Button isIconOnly size='sm' variant='tertiary' onPress={handleRefreshStats} isPending={isRefreshingStats} aria-label='Refresh statistics'>
+										<Tooltip delay={0}>
+											<Tooltip.Trigger><Button isIconOnly size='sm' variant='tertiary' onPress={handleRefreshStats} isPending={isRefreshingStats} aria-label='Refresh statistics'>
 												{isRefreshingStats ? <Spinner color='current' size='sm' /> : <IconRefresh size={18} />}
-											</Button>
+											</Button></Tooltip.Trigger>
+											<Tooltip.Content>Refresh statistics</Tooltip.Content>
 										</Tooltip>
 										<Button size='sm' variant='secondary' className='font-semibold' isPending={isForceRefreshing} isDisabled={isForceRefreshing || !clipForceRefreshStatus?.canRefresh} onPress={handleForceRefreshCache}>
 											{isForceRefreshing ? <Spinner color='current' size='sm' /> : null}
@@ -561,32 +564,30 @@ export default function SettingsPage() {
 				</Card>
 			</DashboardNavbar>
 
-			<Modal backdrop='blur' isOpen={navGuard.active} onClose={navGuard.reject}>
-				<ModalContent>
-					<ModalHeader>
-						<div className='flex items-center'>
+			<ControlledModal variant='blur' isOpen={navGuard.active} onClose={navGuard.reject}>
+					<Modal.Header>
+						<Modal.Heading className='flex items-center'>
 							<IconAlertTriangle className='mr-2' />
 							Unsaved Changes
-						</div>
-					</ModalHeader>
-					<ModalBody>
+						</Modal.Heading>
+					</Modal.Header>
+					<Modal.Body>
 						<p className='text-sm text-default-700'>
 							You&apos;ve made changes to your <span className='font-semibold text-default-900'> settings</span> that haven&apos;t been saved. If you go back now, <span className='font-semibold text-danger'>those changes will be lost</span>.
 							<br />
 							<br />
 							<span className='font-semibold text-default-900'>Do you want to continue without saving?</span>
 						</p>
-					</ModalBody>
-					<ModalFooter>
+					</Modal.Body>
+					<Modal.Footer>
 						<Button variant='tertiary' onPress={navGuard.reject} aria-label='Cancel'>
 							Cancel
 						</Button>
 						<Button onPress={navGuard.accept} aria-label='Discard Changes' variant='danger'>
 							Discard changes
 						</Button>
-					</ModalFooter>
-				</ModalContent>
-			</Modal>
+					</Modal.Footer>
+			</ControlledModal>
 
 			<UpgradeModal key={`${upgradeIntent.source}-${upgradeIntent.feature}-${upgradeIntent.cycle}`} isOpen={upgradeModalIsOpen} onOpenChange={upgradeModalOnOpenChange} user={user} title='Upgrade Account' source={upgradeIntent.source} feature={upgradeIntent.feature} initialBillingCycle={upgradeIntent.cycle} />
 
