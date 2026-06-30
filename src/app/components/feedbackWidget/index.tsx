@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Button, Form, Input, Link, Popover, RadioGroup, Spinner, Tabs, Textarea, TextField, Label, FieldError } from "@heroui/react";
+import { Button, Form, Input, Link, Popover, RadioGroup, Spinner, Tabs, TextArea, TextField, Label, FieldError } from "@heroui/react";
 import Image from "next/image";
 
 import { IconChevronLeft, IconX } from "@tabler/icons-react";
@@ -86,7 +86,10 @@ export default function FeedbackWidget() {
 											</Tabs.List></Tabs.ListContainer>
 										</Tabs>
 											<TextField name='title' fullWidth isRequired><Label>Title</Label><Input placeholder='' minLength={10} maxLength={32} className='h-8 text-sm' /><FieldError /></TextField>
-											<Textarea name='comment' fullWidth placeholder="I like... / I don't like" minRows={6} maxRows={6} />
+											<TextField fullWidth name='comment'>
+												<Label>Comment</Label>
+												<TextArea className='w-full resize-none' placeholder="I like... / I don't like" rows={6} />
+											</TextField>
 											{type === "feedback" && (
 												<div className='flex justify-between text-2xl w-full'>
 													<RadioGroup name='rating' orientation='horizontal' className='w-full'>

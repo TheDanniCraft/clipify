@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useParams, useRouter } from "next/navigation";
 import { createPlaylist, getClipCacheStatus, getOverlay, getOverlayOwnerPlan, getPlaylistsForOwner, previewImportPlaylistClips, saveOverlay, savePlaylist, upsertPlaylistClips } from "@actions/database";
-import { Button, Card, Checkbox, Chip, ComboBox, Separator, Form, Input, Link, ListBox, Modal, NumberField, Select, Slider, Spinner, Switch, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow, Tooltip, useDisclosure, TextField, Label, Description, FieldError, InputGroup, CloseButton } from "@heroui/react";
+import { Button, Card, Checkbox, Chip, ComboBox, Separator, Form, Input, Link, ListBox, Modal, NumberField, Select, Slider, Spinner, Switch, Table, Tooltip, useDisclosure, TextField, Label, Description, FieldError, InputGroup, CloseButton } from "@heroui/react";
 import { notify as addToast } from "@lib/toast";
 import Image from "next/image";
 import type { Selection, SortDescriptor } from "@heroui/react";
@@ -1330,50 +1330,46 @@ export default function OverlaySettings() {
 							<TextField><InputGroup><InputGroup.Prefix>{<IconSearch size={16} />}</InputGroup.Prefix><InputGroup.Input placeholder='Search by title or creator...' value={cachedClipsFilter} onChange={(event) => (setCachedClipsFilter)(event.target.value)} className='h-8 text-sm' />{cachedClipsFilter ? <CloseButton aria-label='Clear' onPress={() => (setCachedClipsFilter)("")} /> : null}</InputGroup></TextField>
 						</Modal.Header>
 						<Modal.Body className='overflow-y-auto'>
-							<Table
-								aria-label='Cached clips table'
-								selectionMode='multiple'
-								selectedKeys={selectedCachedClipIds}
-								onSelectionChange={setSelectedCachedClipIds}
-								sortDescriptor={cachedClipsSortDescriptor}
-								onSortChange={setCachedClipsSortDescriptor}
-								classNames={{
-									wrapper: "max-h-[56vh]",
-								}}
-							>
-								<TableHeader>
-									<TableColumn key='clip' allowsSorting>
-										Clip
-									</TableColumn>
-									<TableColumn key='creator' allowsSorting>
-										Creator
-									</TableColumn>
-									<TableColumn key='category' allowsSorting>
-										Category
-									</TableColumn>
-									<TableColumn key='views' allowsSorting>
-										Views
-									</TableColumn>
-									<TableColumn key='date' allowsSorting>
-										Date
-									</TableColumn>
-								</TableHeader>
-								<TableBody items={sortedCachedClips} emptyContent={cachedClips === undefined ? <span className='inline-flex items-center gap-2'><Spinner />Loading clips...</span> : <div className='text-default-400'>No clips found in cache.</div>}>
-									{(item) => (
-										<TableRow key={item.id}>
-											<TableCell>
+							<Table>
+								<Table.ScrollContainer className='max-h-[56vh]'>
+									<Table.Content aria-label='Cached clips table' selectionMode='multiple' selectedKeys={selectedCachedClipIds} onSelectionChange={setSelectedCachedClipIds} sortDescriptor={cachedClipsSortDescriptor} onSortChange={setCachedClipsSortDescriptor}>
+								<Table.Header>
+									<Table.Column className='pr-0'><Checkbox aria-label='Select all clips' slot='selection'><Checkbox.Content><Checkbox.Control><Checkbox.Indicator /></Checkbox.Control></Checkbox.Content></Checkbox></Table.Column>
+									<Table.Column id='clip' allowsSorting isRowHeader>
+										{({ sortDirection }) => <Table.SortableColumnHeader sortDirection={sortDirection}>Clip</Table.SortableColumnHeader>}
+									</Table.Column>
+									<Table.Column id='creator' allowsSorting>
+										{({ sortDirection }) => <Table.SortableColumnHeader sortDirection={sortDirection}>Creator</Table.SortableColumnHeader>}
+									</Table.Column>
+									<Table.Column id='category' allowsSorting>
+										{({ sortDirection }) => <Table.SortableColumnHeader sortDirection={sortDirection}>Category</Table.SortableColumnHeader>}
+									</Table.Column>
+									<Table.Column id='views' allowsSorting>
+										{({ sortDirection }) => <Table.SortableColumnHeader sortDirection={sortDirection}>Views</Table.SortableColumnHeader>}
+									</Table.Column>
+									<Table.Column id='date' allowsSorting>
+										{({ sortDirection }) => <Table.SortableColumnHeader sortDirection={sortDirection}>Date</Table.SortableColumnHeader>}
+									</Table.Column>
+								</Table.Header>
+								<Table.Body renderEmptyState={() => cachedClips === undefined ? <span className='inline-flex items-center gap-2 p-4'><Spinner />Loading clips...</span> : <div className='p-4 text-default-400'>No clips found in cache.</div>}>
+									{sortedCachedClips.map((item) => (
+										<Table.Row key={item.id} id={item.id} textValue={item.title}>
+											<Table.Cell className='pr-0'><Checkbox aria-label={`Select ${item.title}`} slot='selection'><Checkbox.Content><Checkbox.Control><Checkbox.Indicator /></Checkbox.Control></Checkbox.Content></Checkbox></Table.Cell>
+											<Table.Cell>
 												<div className='flex items-center gap-2'>
 													<Image unoptimized src={item.thumbnail_url} alt={item.title} width={56} height={32} className='h-8 w-14 rounded object-cover' />
 													<div className='truncate max-w-[250px]'>{item.title}</div>
 												</div>
-											</TableCell>
-											<TableCell>{item.creator_name}</TableCell>
-											<TableCell>{getGameName(item.game_id)}</TableCell>
-											<TableCell>{item.view_count}</TableCell>
-											<TableCell>{new Date(item.created_at).toLocaleDateString()}</TableCell>
-										</TableRow>
-									)}
-								</TableBody>
+											</Table.Cell>
+											<Table.Cell>{item.creator_name}</Table.Cell>
+											<Table.Cell>{getGameName(item.game_id)}</Table.Cell>
+											<Table.Cell>{item.view_count}</Table.Cell>
+											<Table.Cell>{new Date(item.created_at).toLocaleDateString()}</Table.Cell>
+										</Table.Row>
+									))}
+								</Table.Body>
+									</Table.Content>
+								</Table.ScrollContainer>
 							</Table>
 						</Modal.Body>
 						<Modal.Footer>

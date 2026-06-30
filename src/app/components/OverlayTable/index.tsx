@@ -1,5 +1,5 @@
 "use client";
-import { Dropdown, TableHeader, TableColumn, TableBody, TableRow, TableCell, Button, RadioGroup, Radio, Chip, Separator, Tooltip, Popover, Spinner, Link, Avatar, Skeleton, Tabs, useDisclosure, TextField, InputGroup, Label, cn } from "@heroui/react";
+import { Dropdown, Table, Checkbox, Button, RadioGroup, Radio, Chip, Separator, Tooltip, Popover, Spinner, Link, Avatar, Skeleton, Tabs, useDisclosure, TextField, InputGroup, Label, cn } from "@heroui/react";
 import { notify as addToast } from "@lib/toast";
 import type { Selection, SortDescriptor } from "@heroui/react";
 
@@ -8,10 +8,8 @@ import type { AuthenticatedUser, Overlay, TwitchUserResponse } from "@types";
 import { StatusOptions } from "@types";
 import type { Key } from "@react-types/shared";
 
-import dynamic from "next/dynamic";
-const Table = dynamic(() => import("@heroui/react").then((c) => c.Table), { ssr: false }); // Temp fix for issue 4385
 import React, { useMemo, useCallback, useState, useEffect } from "react";
-import { IconAdjustmentsHorizontal, IconArrowsLeftRight, IconChevronDown, IconChevronUp, IconCirclePlus, IconCircuitChangeover, IconCrown, IconInfoCircle, IconMenuDeep, IconPencil, IconReload, IconSearch, IconTrash } from "@tabler/icons-react";
+import { IconAdjustmentsHorizontal, IconArrowsLeftRight, IconChevronDown, IconCirclePlus, IconCircuitChangeover, IconCrown, IconInfoCircle, IconMenuDeep, IconPencil, IconReload, IconSearch, IconTrash } from "@tabler/icons-react";
 import { createOverlay, createPlaylist, deleteOverlay, deletePlaylist, saveOverlay, getAllOverlays, getAllPlaylists, getEditorOverlays, getEditorAccess } from "@actions/database";
 import { validateAuth } from "@actions/auth";
 import UpgradeModal from "@components/upgradeModal";
@@ -55,13 +53,6 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 	const plausible = usePlausible();
 
 	const [statusFilter, setStatusFilter] = React.useState("all");
-
-	const handleOverlayClick = useMemoizedCallback(() => {
-		setSortDescriptor({
-			column: "name",
-			direction: sortDescriptor.direction === "ascending" ? "descending" : "ascending",
-		});
-	});
 
 	const onTabChange = useCallback((key: React.Key) => {
 		setActiveTab(key as "overlays" | "playlists");
@@ -241,10 +232,6 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 
 		return resultKeys;
 	}, [selectedKeys, filteredItems, filterValue]);
-
-	const getOverlayInfoProps = useMemoizedCallback(() => ({
-		onClick: handleOverlayClick,
-	}));
 
 	const renderCell = useCallback(
 		(item: LocalOverlay | LocalPlaylist, columnKey: React.Key) => {
@@ -866,38 +853,24 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 					</Button>
 				</div>
 			)}
-			<Table
-				isHeaderSticky
-				aria-label='Management table'
-				bottomContent={bottomContent}
-				bottomContentPlacement='outside'
-				classNames={{
-					th: "first:w-[30px] first:min-w-[30px] first:max-w-[30px] first:px-1",
-					td: "before:bg-transparent first:w-[30px] first:min-w-[30px] first:max-w-[30px] first:px-1",
-				}}
-				selectedKeys={filterSelectedKeys}
-				selectionMode='multiple'
-				sortDescriptor={sortDescriptor}
-				topContent={topContent}
-				topContentPlacement='outside'
-				onSelectionChange={onSelectionChange}
-				onSortChange={setSortDescriptor}
-				onRowAction={(key) => {
-					router.push(`/dashboard/${activeTab === "overlays" ? "overlay" : "playlist"}/${String(key)}`);
-				}}
-			>
-				<TableHeader columns={headerColumns}>
-					{(column) => (
-						<TableColumn
+			<Table>
+				{topContent}
+				<Table.ScrollContainer>
+					<Table.Content aria-label='Management table' selectedKeys={filterSelectedKeys} selectionMode='multiple' sortDescriptor={sortDescriptor} onSelectionChange={onSelectionChange} onSortChange={setSortDescriptor} onRowAction={(key) => {
+						router.push(`/dashboard/${activeTab === "overlays" ? "overlay" : "playlist"}/${String(key)}`);
+					}}>
+				<Table.Header>
+					<Table.Column className='w-[30px] min-w-[30px] max-w-[30px] px-1'><Checkbox aria-label='Select all items' slot='selection'><Checkbox.Content><Checkbox.Control><Checkbox.Indicator /></Checkbox.Control></Checkbox.Content></Checkbox></Table.Column>
+					{headerColumns.map((column) => (
+						<Table.Column
 							key={column.uid}
-							align={column.uid === "actions" || column.uid === "clipCount" ? "end" : "start"}
+							id={column.uid}
+							allowsSorting={column.uid === "name" || column.uid === "clipCount"}
+							isRowHeader={column.uid === "name"}
 							className={cn([column.uid === "actions" ? "flex items-center justify-end px-[20px]" : "", column.uid === "accessType" ? "w-[48px] min-w-[48px] max-w-[48px] px-1" : "", column.uid === "id" ? "w-[320px] min-w-[320px] max-w-[320px]" : "", column.uid === "clipCount" ? "w-[90px] min-w-[90px] max-w-[90px] text-right" : "", activeTab === "playlists" && column.uid === "name" ? "w-full" : ""])}
 						>
-							{column.uid === "name" ? (
-								<div {...getOverlayInfoProps()} className='flex w-full cursor-pointer items-center justify-between'>
-									{column.name}
-									{column.sortDirection === "ascending" ? <IconChevronUp className='text-default-400' /> : <IconChevronDown className='text-default-400' />}
-								</div>
+							{column.uid === "name" || column.uid === "clipCount" ? (
+								({ sortDirection }) => <Table.SortableColumnHeader sortDirection={sortDirection}>{column.name}</Table.SortableColumnHeader>
 							) : column.info ? (
 								<div className='flex min-w-[108px] items-center justify-between'>
 									{column.name}
@@ -909,12 +882,20 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 							) : (
 								column.name
 							)}
-						</TableColumn>
-					)}
-				</TableHeader>
-					<TableBody emptyContent={activeTab === "overlays" ? overlays === undefined ? <span className='inline-flex items-center gap-2'><Spinner />Loading overlays</span> : <div className='text-default-400'>No overlays found</div> : playlists === undefined ? <span className='inline-flex items-center gap-2'><Spinner />Loading playlists</span> : <div className='text-default-400'>No playlists found</div>} items={sortedItems}>
-					{(item) => <TableRow key={item.id}>{(columnKey) => <TableCell className={cn(columnKey === "accessType" ? "w-[48px] min-w-[48px] max-w-[48px] px-1" : "", columnKey === "id" ? "w-[320px] min-w-[320px] max-w-[320px]" : "", columnKey === "clipCount" ? "w-[90px] min-w-[90px] max-w-[90px] text-right" : "", activeTab === "playlists" && columnKey === "name" ? "w-full" : "")}>{renderCell(item, columnKey)}</TableCell>}</TableRow>}
-				</TableBody>
+						</Table.Column>
+					))}
+				</Table.Header>
+				<Table.Body renderEmptyState={() => activeTab === "overlays" ? overlays === undefined ? <span className='inline-flex items-center gap-2 p-4'><Spinner />Loading overlays</span> : <div className='p-4 text-default-400'>No overlays found</div> : playlists === undefined ? <span className='inline-flex items-center gap-2 p-4'><Spinner />Loading playlists</span> : <div className='p-4 text-default-400'>No playlists found</div>}>
+					{sortedItems.map((item) => (
+						<Table.Row key={item.id} id={item.id} textValue={item.name}>
+							<Table.Cell className='w-[30px] min-w-[30px] max-w-[30px] px-1'><Checkbox aria-label={`Select ${item.name}`} slot='selection'><Checkbox.Content><Checkbox.Control><Checkbox.Indicator /></Checkbox.Control></Checkbox.Content></Checkbox></Table.Cell>
+							{headerColumns.map((column) => <Table.Cell key={column.uid} className={cn(column.uid === "accessType" ? "w-[48px] min-w-[48px] max-w-[48px] px-1" : "", column.uid === "id" ? "w-[320px] min-w-[320px] max-w-[320px]" : "", column.uid === "clipCount" ? "w-[90px] min-w-[90px] max-w-[90px] text-right" : "", activeTab === "playlists" && column.uid === "name" ? "w-full" : "")}>{renderCell(item, column.uid)}</Table.Cell>)}
+						</Table.Row>
+					))}
+				</Table.Body>
+					</Table.Content>
+				</Table.ScrollContainer>
+				<Table.Footer>{bottomContent}</Table.Footer>
 			</Table>
 
 			{currentUser && currentUser.plan === "free" && <UpgradeModal isOpen={isUpgradeOpen} onOpenChange={onUpgradeOpenChange} user={currentUser} title={activeTab === "overlays" ? "Upgrade to add more overlays" : "Upgrade to add more playlists"} source='upgrade_modal' feature={activeTab === "overlays" ? "multi_overlay" : "multi_playlist"} />}

@@ -80,6 +80,11 @@ jest.mock("@heroui/react", () => {
 			Input: (props: any) => <input {...props} />,
 		}),
 		Chip: ({ children }: any) => <div>{children}</div>,
+		Checkbox: Object.assign(({ children }: any) => <span>{children}</span>, {
+			Content: ({ children }: any) => <span>{children}</span>,
+			Control: ({ children }: any) => <span>{children}</span>,
+			Indicator: () => <span />,
+		}),
 		Separator: () => <hr />,
 		Tooltip: Object.assign(({ children }: any) => <div>{children}</div>, {
 			Trigger: ({ children }: any) => <>{children}</>,
@@ -98,13 +103,17 @@ jest.mock("@heroui/react", () => {
 			Item: ({ children, onAction, textValue }: any) => <button onClick={onAction}>{children || textValue}</button>,
 			ItemIndicator: () => null,
 		}),
-		Table: ({ children, topContent, bottomContent }: any) => (
-			<div>
-				{topContent}
-				<table>{children}</table>
-				{bottomContent}
-			</div>
-		),
+		Table: Object.assign(({ children }: any) => <div>{children}</div>, {
+			ScrollContainer: ({ children }: any) => <div>{children}</div>,
+			Content: ({ children }: any) => <table>{children}</table>,
+			Header: ({ children }: any) => <thead><tr>{children}</tr></thead>,
+			Column: ({ children }: any) => <th>{typeof children === "function" ? children({ sortDirection: null }) : children}</th>,
+			SortableColumnHeader: ({ children }: any) => <>{children}</>,
+			Body: ({ children, renderEmptyState }: any) => <tbody>{React.Children.count(children) ? children : <tr><td>{renderEmptyState?.()}</td></tr>}</tbody>,
+			Row: ({ children }: any) => <tr>{children}</tr>,
+			Cell: ({ children }: any) => <td>{children}</td>,
+			Footer: ({ children }: any) => <div>{children}</div>,
+		}),
 		TableHeader: ({ children, columns }: any) => (
 			<thead>
 				<tr>{columns ? columns.map((col: any) => <th key={col.uid}>{typeof children === "function" ? children(col) : col.name}</th>) : children}</tr>
