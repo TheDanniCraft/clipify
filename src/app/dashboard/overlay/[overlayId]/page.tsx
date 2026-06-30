@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useParams, useRouter } from "next/navigation";
 import { createPlaylist, getClipCacheStatus, getOverlay, getOverlayOwnerPlan, getPlaylistsForOwner, previewImportPlaylistClips, saveOverlay, savePlaylist, upsertPlaylistClips } from "@actions/database";
-import { Button, Card, Checkbox, Chip, ComboBox, DateRangePicker, Separator, Form, Input, Link, ListBox, Modal, NumberField, Select, Slider, Spinner, Switch, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow, Tooltip, useDisclosure, TextField, Label, Description, FieldError, InputGroup, CloseButton } from "@heroui/react";
+import { Button, Card, Checkbox, Chip, ComboBox, Separator, Form, Input, Link, ListBox, Modal, NumberField, Select, Slider, Spinner, Switch, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow, Tooltip, useDisclosure, TextField, Label, Description, FieldError, InputGroup, CloseButton } from "@heroui/react";
 import { notify as addToast } from "@lib/toast";
 import Image from "next/image";
 import type { Selection, SortDescriptor } from "@heroui/react";
@@ -22,6 +22,7 @@ import { isTitleBlocked } from "@/app/utils/regexFilter";
 import UpgradeModal from "@components/upgradeModal";
 import ChatwootData from "@components/chatwootData";
 import ControlledModal from "@components/controlledModal";
+import AppDateRangePicker from "@components/appDateRangePicker";
 import CodeSnippet from "@components/codeSnippet";
 import { getTrialDaysLeft, isReverseTrialActive } from "@lib/featureAccess";
 import { usePlausible } from "next-plausible";
@@ -1432,7 +1433,7 @@ export default function OverlaySettings() {
 								</ListBox></ComboBox.Popover>
 							</ComboBox>
 
-							<DateRangePicker
+							<AppDateRangePicker
 								label='Date Range'
 								value={importStartDate && importEndDate ? { start: parseDate(importStartDate), end: parseDate(importEndDate) } : null}
 								onChange={(range) => {

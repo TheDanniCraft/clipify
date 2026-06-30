@@ -1,5 +1,5 @@
 "use client";
-import { Dropdown, TableHeader, TableColumn, TableBody, TableRow, TableCell, Button, RadioGroup, Radio, Chip, Pagination, Separator, Tooltip, Popover, Spinner, Link, Avatar, Skeleton, Tabs, useDisclosure, TextField, InputGroup, Label, cn } from "@heroui/react";
+import { Dropdown, TableHeader, TableColumn, TableBody, TableRow, TableCell, Button, RadioGroup, Radio, Chip, Separator, Tooltip, Popover, Spinner, Link, Avatar, Skeleton, Tabs, useDisclosure, TextField, InputGroup, Label, cn } from "@heroui/react";
 import { notify as addToast } from "@lib/toast";
 import type { Selection, SortDescriptor } from "@heroui/react";
 
@@ -15,6 +15,7 @@ import { IconAdjustmentsHorizontal, IconArrowsLeftRight, IconChevronDown, IconCh
 import { createOverlay, createPlaylist, deleteOverlay, deletePlaylist, saveOverlay, getAllOverlays, getAllPlaylists, getEditorOverlays, getEditorAccess } from "@actions/database";
 import { validateAuth } from "@actions/auth";
 import UpgradeModal from "@components/upgradeModal";
+import AppPagination from "@components/appPagination";
 import { getFeatureAccess, getTrialDaysLeft, isReverseTrialActive } from "@lib/featureAccess";
 import { usePlausible } from "next-plausible";
 import { trackPaywallEvent } from "@lib/paywallTracking";
@@ -824,7 +825,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 	const bottomContent = useMemo(() => {
 		return (
 			<div className='flex flex-col items-center justify-between gap-2 px-2 py-2 sm:flex-row'>
-				<Pagination isCompact showControls showShadow color='primary' page={page} total={pages} onChange={setPage} />
+				<AppPagination page={page} total={pages} onChange={setPage} />
 				<div className='flex items-center justify-end gap-6'>
 					<span className='text-small text-default-400'>{filterSelectedKeys === "all" ? "All items selected" : `${filterSelectedKeys.size} of ${filteredItems.length} selected`}</span>
 					<div className='flex items-center gap-3'>

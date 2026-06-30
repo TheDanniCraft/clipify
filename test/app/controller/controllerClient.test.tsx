@@ -33,7 +33,10 @@ jest.mock("@heroui/react", () => ({
 		</button>
 	),
 	Chip: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
-	Progress: ({ value, "aria-label": ariaLabel }: { value?: number; "aria-label"?: string }) => <progress aria-label={ariaLabel} value={value} max={100} />,
+	ProgressBar: Object.assign(({ children, value, "aria-label": ariaLabel }: { children?: React.ReactNode; value?: number; "aria-label"?: string }) => <div>{children}<progress aria-label={ariaLabel} value={value} max={100} /></div>, {
+		Track: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+		Fill: () => null,
+	}),
 	Slider: Object.assign(({ children, value, onChange, onChangeEnd, isDisabled, "aria-label": ariaLabel }: { children?: React.ReactNode; value?: number; onChange?: (value: number) => void; onChangeEnd?: (value: number) => void; isDisabled?: boolean; "aria-label"?: string }) => (
 		<div>
 			{children}

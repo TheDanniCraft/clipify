@@ -96,6 +96,7 @@ jest.mock("@components/tagsInput", () => ({
 
 jest.mock("@tabler/icons-react", () => new Proxy({}, { get: () => () => <span /> }));
 jest.mock("@lib/toast", () => ({ notify: jest.fn() }));
+jest.mock("@components/appDateRangePicker", () => ({ __esModule: true, default: ({ label }: { label: string }) => <div>{label}</div> }));
 
 jest.mock("@heroui/react", () => {
 	jest.requireActual<typeof import("react")>("react");

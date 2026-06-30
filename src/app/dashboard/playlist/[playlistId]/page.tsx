@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { getAllPlaylists, getPlaylistClips, previewImportPlaylistClips, savePlaylist, upsertPlaylistClips } from "@actions/database";
-import { Button, Card, Checkbox, ComboBox, DateRangePicker, Separator, Input, Label, Link, ListBox, Modal, NumberField, Pagination, Spinner, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow, useDisclosure, TextField, InputGroup, CloseButton } from "@heroui/react";
+import { Button, Card, Checkbox, ComboBox, Separator, Input, Label, Link, ListBox, Modal, NumberField, Spinner, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow, useDisclosure, TextField, InputGroup, CloseButton } from "@heroui/react";
 import { notify as addToast } from "@lib/toast";
 import Image from "next/image";
 import type { Selection, SortDescriptor } from "@heroui/react";
@@ -12,6 +12,8 @@ import { AuthenticatedUser, Game, OverlayType, TwitchClip } from "@types";
 import { IconAlertTriangle, IconArrowLeft, IconDeviceFloppy, IconDownload, IconGripVertical, IconPlus, IconSearch, IconTrash } from "@tabler/icons-react";
 import DashboardNavbar from "@components/dashboardNavbar";
 import ControlledModal from "@components/controlledModal";
+import AppDateRangePicker from "@components/appDateRangePicker";
+import AppPagination from "@components/appPagination";
 import { useNavigationGuard } from "next-navigation-guard";
 import { validateAuth } from "@actions/auth";
 import { getCachedClipsByOwner, getGamesDetailsBulk, getTwitchGames } from "@actions/twitch";
@@ -554,7 +556,7 @@ export default function PlaylistPage() {
 							bottomContent={
 								cachedClipsPagesCount > 1 ? (
 									<div className='flex w-full justify-center gap-4 items-center'>
-										<Pagination isCompact showControls showShadow color='primary' page={cachedClipsPage} total={cachedClipsPagesCount} onChange={setCachedClipsPage} />
+										<AppPagination page={cachedClipsPage} total={cachedClipsPagesCount} onChange={setCachedClipsPage} />
 										<div className='text-xs text-default-400'>{sortedCachedClips.length} clips total</div>
 									</div>
 								) : null
@@ -652,7 +654,7 @@ export default function PlaylistPage() {
 							</ListBox></ComboBox.Popover>
 						</ComboBox>
 
-						<DateRangePicker
+						<AppDateRangePicker
 							label='Date Range'
 							value={importStartDate && importEndDate ? { start: parseDate(importStartDate), end: parseDate(importEndDate) } : null}
 							onChange={(range) => {

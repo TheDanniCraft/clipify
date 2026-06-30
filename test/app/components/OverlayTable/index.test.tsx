@@ -1,5 +1,6 @@
 import React from "react";
 jest.mock("@lib/toast", () => ({ notify: jest.fn() }));
+jest.mock("@components/appPagination", () => ({ __esModule: true, default: () => <div>Pagination</div> }));
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 
 const getAllOverlays = jest.fn();

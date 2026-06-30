@@ -24,6 +24,7 @@ jest.mock("@components/upgradeModal", () => ({
 	__esModule: true,
 	default: () => <div>upgrade-modal</div>,
 }));
+jest.mock("@components/appPagination", () => ({ __esModule: true, default: () => <div>Pagination</div> }));
 
 jest.mock("next-plausible", () => ({
 	usePlausible: () => jest.fn(),

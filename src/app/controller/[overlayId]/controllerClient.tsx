@@ -2,7 +2,7 @@
 
 import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { IconBroadcast, IconLock, IconLockOpen2, IconEye, IconEyeOff, IconLayoutSidebarRightExpand, IconPlayerSkipForward, IconPlayerPauseFilled, IconPlayerPlayFilled, IconPlus, IconVolume, IconVolumeOff } from "@tabler/icons-react";
-import { Button, Chip, Input, Progress, Slider, TextField } from "@heroui/react";
+import { Button, Chip, Input, ProgressBar, Slider, TextField } from "@heroui/react";
 import Image from "next/image";
 
 import { getControllerQueuesAction, runControllerAction, type ControllerQueueResponse } from "@actions/controller";
@@ -357,7 +357,7 @@ export default function ControllerClient({ overlayId, controllerToken }: { overl
 								<span>{formatDuration(syncedCurrentTime)}</span>
 								<span>{formatDuration(nowPlaying?.duration ?? 0)}</span>
 							</div>
-							<Progress className='mt-3' value={Math.round(progressRatio * 100)} size='sm' color='primary' aria-label='Header playback progress' />
+							<ProgressBar className='mt-3' value={Math.round(progressRatio * 100)} size='sm' color='accent' aria-label='Header playback progress'><ProgressBar.Track><ProgressBar.Fill /></ProgressBar.Track></ProgressBar>
 							{controllerHealth === "disconnected" ? <p className='mt-3 text-xs font-medium text-danger'>Disconnected stream. No live heartbeat from the overlay player.</p> : null}
 							{controllerHealth === "player_missing" ? <p className='mt-3 text-xs font-medium text-warning-700'>Connected, but no running player is publishing state.</p> : null}
 						</div>
@@ -374,7 +374,7 @@ export default function ControllerClient({ overlayId, controllerToken }: { overl
 											<span>{formatDuration(syncedCurrentTime)}</span>
 											<span>{formatDuration(nowPlaying?.duration ?? 0)}</span>
 										</div>
-										<Progress className='mt-3' value={Math.round(progressRatio * 100)} size='sm' color='primary' aria-label='Playback progress' />
+										<ProgressBar className='mt-3' value={Math.round(progressRatio * 100)} size='sm' color='accent' aria-label='Playback progress'><ProgressBar.Track><ProgressBar.Fill /></ProgressBar.Track></ProgressBar>
 										<div className='mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center'>
 											<div>
 												<div className='truncate text-sm font-semibold text-foreground'>{nowPlaying?.title ?? "No active clip"}</div>
