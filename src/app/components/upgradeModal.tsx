@@ -1,5 +1,6 @@
 "use client";
-import { addToast, Button, Chip, Separator, Modal, Tabs } from "@heroui/react";
+import { Button, Chip, Separator, Modal, Tabs } from "@heroui/react";
+import { notify as addToast } from "@lib/toast";
 
 import { IconBolt, IconCheck, IconDiamondFilled, IconSparkles } from "@tabler/icons-react";
 import { useEffect, useMemo, useRef, useState } from "react";

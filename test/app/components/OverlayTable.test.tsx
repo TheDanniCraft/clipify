@@ -3,6 +3,7 @@ import OverlayTable from "@/app/components/OverlayTable";
 import { StatusOptions, Plan } from "@types";
 
 const routerPush = jest.fn();
+jest.mock("@lib/toast", () => ({ notify: jest.fn() }));
 jest.mock("next/navigation", () => ({
 	useRouter: () => ({
 		push: routerPush,

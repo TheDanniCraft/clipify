@@ -1,5 +1,6 @@
 "use client";
-import { Dropdown, TableHeader, TableColumn, TableBody, TableRow, TableCell, Button, RadioGroup, Radio, Chip, Pagination, Separator, Tooltip, Popover, Spinner, addToast, Link, Avatar, Skeleton, Tabs, useDisclosure, TextField, InputGroup, Label, cn } from "@heroui/react";
+import { Dropdown, TableHeader, TableColumn, TableBody, TableRow, TableCell, Button, RadioGroup, Radio, Chip, Pagination, Separator, Tooltip, Popover, Spinner, Link, Avatar, Skeleton, Tabs, useDisclosure, TextField, InputGroup, Label, cn } from "@heroui/react";
+import { notify as addToast } from "@lib/toast";
 import type { Selection, SortDescriptor } from "@heroui/react";
 
 import type { ColumnsKey } from "./data";

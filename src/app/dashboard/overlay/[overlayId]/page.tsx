@@ -4,7 +4,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useParams, useRouter } from "next/navigation";
 import { createPlaylist, getClipCacheStatus, getOverlay, getOverlayOwnerPlan, getPlaylistsForOwner, previewImportPlaylistClips, saveOverlay, savePlaylist, upsertPlaylistClips } from "@actions/database";
-import { addToast, Button, Card, Checkbox, Chip, ComboBox, DateRangePicker, Separator, Form, Input, Link, ListBox, Modal, NumberInput, Select, Slider, Spinner, Switch, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow, Tooltip, useDisclosure, TextField, Label, FieldError, InputGroup, CloseButton } from "@heroui/react";
+import { Button, Card, Checkbox, Chip, ComboBox, DateRangePicker, Separator, Form, Input, Link, ListBox, Modal, NumberField, Select, Slider, Spinner, Switch, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow, Tooltip, useDisclosure, TextField, Label, Description, FieldError, InputGroup, CloseButton } from "@heroui/react";
+import { notify as addToast } from "@lib/toast";
 import Image from "next/image";
 import type { Selection, SortDescriptor } from "@heroui/react";
 
@@ -1034,7 +1035,11 @@ export default function OverlaySettings() {
 											</Slider>
 											<div className='mt-1 flex justify-between text-xs text-default-400'><span>0s</span><span>20s</span><span>40s</span><span>60s</span></div>
 										</div>
-												<NumberInput size='sm' minValue={0} defaultValue={overlay.minClipViews} value={overlay.minClipViews} onValueChange={(value) => setOverlay({ ...overlay, minClipViews: Number(value) })} label='Minimum Clip Views' description='Only clips with at least this many views will be shown in the overlay.' className='p-2' />
+												<NumberField minValue={0} defaultValue={overlay.minClipViews} value={overlay.minClipViews} onChange={(value) => setOverlay({ ...overlay, minClipViews: Number(value) })} className='p-2'>
+													<Label>Minimum Clip Views</Label>
+													<NumberField.Group><NumberField.DecrementButton /><NumberField.Input /><NumberField.IncrementButton /></NumberField.Group>
+													<Description>Only clips with at least this many views will be shown in the overlay.</Description>
+												</NumberField>
 
 												<div className='p-2 space-y-2'>
 											<ComboBox
@@ -1441,10 +1446,10 @@ export default function OverlaySettings() {
 								}}
 							/>
 
-							<NumberInput label='Minimum Views' minValue={0} value={importMinViews} onValueChange={(value) => setImportMinViews(Number(value) || 0)} />
+							<NumberField minValue={0} value={importMinViews} onChange={(value) => setImportMinViews(Number(value) || 0)}><Label>Minimum Views</Label><NumberField.Group><NumberField.DecrementButton /><NumberField.Input /><NumberField.IncrementButton /></NumberField.Group></NumberField>
 							<div className='grid grid-cols-1 gap-3 sm:grid-cols-2'>
-								<NumberInput label='Min Duration (sec)' minValue={0} value={importMinDuration} onValueChange={(value) => setImportMinDuration(Number(value) || 0)} />
-								<NumberInput label='Max Duration (sec)' minValue={0} value={importMaxDuration} onValueChange={(value) => setImportMaxDuration(Number(value) || 0)} />
+								<NumberField minValue={0} value={importMinDuration} onChange={(value) => setImportMinDuration(Number(value) || 0)}><Label>Min Duration (sec)</Label><NumberField.Group><NumberField.DecrementButton /><NumberField.Input /><NumberField.IncrementButton /></NumberField.Group></NumberField>
+								<NumberField minValue={0} value={importMaxDuration} onChange={(value) => setImportMaxDuration(Number(value) || 0)}><Label>Max Duration (sec)</Label><NumberField.Group><NumberField.DecrementButton /><NumberField.Input /><NumberField.IncrementButton /></NumberField.Group></NumberField>
 							</div>
 							<TagsInput fullWidth label='Creator Allowlist' value={importCreatorAllowlist} onValueChange={setImportCreatorAllowlist} />
 							<TagsInput fullWidth label='Creator Denylist' value={importCreatorDenylist} onValueChange={setImportCreatorDenylist} />

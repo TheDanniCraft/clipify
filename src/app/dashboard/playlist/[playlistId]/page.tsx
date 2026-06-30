@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { getAllPlaylists, getPlaylistClips, previewImportPlaylistClips, savePlaylist, upsertPlaylistClips } from "@actions/database";
-import { addToast, Button, Card, Checkbox, ComboBox, DateRangePicker, Separator, Input, Label, Link, ListBox, Modal, NumberInput, Pagination, Spinner, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow, useDisclosure, TextField, InputGroup, CloseButton } from "@heroui/react";
+import { Button, Card, Checkbox, ComboBox, DateRangePicker, Separator, Input, Label, Link, ListBox, Modal, NumberField, Pagination, Spinner, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow, useDisclosure, TextField, InputGroup, CloseButton } from "@heroui/react";
+import { notify as addToast } from "@lib/toast";
 import Image from "next/image";
 import type { Selection, SortDescriptor } from "@heroui/react";
 
@@ -665,10 +666,10 @@ export default function PlaylistPage() {
 							}}
 						/>
 
-						<NumberInput label='Minimum Views' minValue={0} value={importMinViews} onValueChange={(value) => setImportMinViews(Number(value) || 0)} />
+						<NumberField minValue={0} value={importMinViews} onChange={(value) => setImportMinViews(Number(value) || 0)}><Label>Minimum Views</Label><NumberField.Group><NumberField.DecrementButton /><NumberField.Input /><NumberField.IncrementButton /></NumberField.Group></NumberField>
 						<div className='grid grid-cols-1 gap-3 sm:grid-cols-2'>
-							<NumberInput label='Min Duration (sec)' minValue={0} value={importMinDuration} onValueChange={(value) => setImportMinDuration(Number(value) || 0)} />
-							<NumberInput label='Max Duration (sec)' minValue={0} value={importMaxDuration} onValueChange={(value) => setImportMaxDuration(Number(value) || 0)} />
+							<NumberField minValue={0} value={importMinDuration} onChange={(value) => setImportMinDuration(Number(value) || 0)}><Label>Min Duration (sec)</Label><NumberField.Group><NumberField.DecrementButton /><NumberField.Input /><NumberField.IncrementButton /></NumberField.Group></NumberField>
+							<NumberField minValue={0} value={importMaxDuration} onChange={(value) => setImportMaxDuration(Number(value) || 0)}><Label>Max Duration (sec)</Label><NumberField.Group><NumberField.DecrementButton /><NumberField.Input /><NumberField.IncrementButton /></NumberField.Group></NumberField>
 						</div>
 						<TagsInput fullWidth label='Creator Allowlist' value={importCreatorAllowlist} onValueChange={setImportCreatorAllowlist} />
 						<TagsInput fullWidth label='Creator Denylist' value={importCreatorDenylist} onValueChange={setImportCreatorDenylist} />

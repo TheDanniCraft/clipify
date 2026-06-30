@@ -1,17 +1,15 @@
 "use client";
-import { HeroUIProvider, ToastProvider } from "@heroui/react";
+import { Toast } from "@heroui/react";
 
 import { NavigationGuardProvider } from "next-navigation-guard";
 import ChatWidget from "@components/chatWidget";
 
 export function Providers({ children }: { children: React.ReactNode }) {
 	return (
-		<HeroUIProvider>
-			<NavigationGuardProvider>
-				<ToastProvider />
+		<NavigationGuardProvider>
+				<Toast.Provider />
 				<ChatWidget />
 				{children}
-			</NavigationGuardProvider>
-		</HeroUIProvider>
+		</NavigationGuardProvider>
 	);
 }

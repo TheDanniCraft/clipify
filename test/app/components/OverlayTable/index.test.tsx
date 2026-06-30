@@ -1,4 +1,5 @@
 import React from "react";
+jest.mock("@lib/toast", () => ({ notify: jest.fn() }));
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 
 const getAllOverlays = jest.fn();

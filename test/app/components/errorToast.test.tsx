@@ -4,10 +4,7 @@ import ErrorToast from "@/app/components/errorToast";
 
 const addToast = jest.fn();
 
-jest.mock("@heroui/react", () => ({
-	addToast: (...args: unknown[]) => addToast(...args),
-	Code: ({ children }: { children: React.ReactNode }) => <code>{children}</code>,
-}));
+jest.mock("@lib/toast", () => ({ notify: (...args: unknown[]) => addToast(...args) }));
 
 describe("components/ErrorToast", () => {
 	beforeEach(() => {

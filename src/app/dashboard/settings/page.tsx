@@ -6,7 +6,8 @@ import ConfirmModal from "@components/confirmModal";
 import DashboardNavbar from "@components/dashboardNavbar";
 import CodeSnippet from "@components/codeSnippet";
 import { AuthenticatedUser, Plan, UserSettings } from "@types";
-import { addToast, Avatar, Button, Card, Separator, Form, Input, Modal, Spinner, Switch, Tooltip, useDisclosure, TextField, Label, Description, FieldError } from "@heroui/react";
+import { Avatar, Button, Card, Separator, Form, Input, Modal, Spinner, Switch, Tooltip, useDisclosure, TextField, Label, Description, FieldError } from "@heroui/react";
+import { notify as addToast } from "@lib/toast";
 
 import { IconAlertTriangle, IconArrowLeft, IconCreditCardFilled, IconDatabase, IconDeviceFloppy, IconDiamondFilled, IconInfoCircle, IconRefresh, IconTrash } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";

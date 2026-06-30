@@ -95,6 +95,7 @@ jest.mock("@components/tagsInput", () => ({
 }));
 
 jest.mock("@tabler/icons-react", () => new Proxy({}, { get: () => () => <span /> }));
+jest.mock("@lib/toast", () => ({ notify: jest.fn() }));
 
 jest.mock("@heroui/react", () => {
 	jest.requireActual<typeof import("react")>("react");
@@ -148,7 +149,12 @@ jest.mock("@heroui/react", () => {
 			Fill: () => null,
 			Thumb: () => null,
 		}),
-		NumberInput: () => <div />,
+		NumberField: Object.assign(({ children }: { children?: React.ReactNode }) => <div>{children}</div>, {
+			Group: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+			Input: () => <input type='number' />,
+			IncrementButton: () => <button type='button'>+</button>,
+			DecrementButton: () => <button type='button'>-</button>,
+		}),
 		DateRangePicker: ({ label }: { label?: string }) => <div>{label}</div>,
 		Card: Object.assign(({ children }: { children: React.ReactNode }) => <div>{children}</div>, {
 			Header: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,

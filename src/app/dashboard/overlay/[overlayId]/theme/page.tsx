@@ -7,7 +7,8 @@ import DashboardNavbar from "@components/dashboardNavbar";
 import UpgradeModal from "@components/upgradeModal";
 import { getFeatureAccess, getTrialDaysLeft, isReverseTrialActive } from "@lib/featureAccess";
 import { AuthenticatedUser, Overlay, Plan } from "@types";
-import { addToast, Avatar, Button, Card, Separator, Input, ListBox, Popover, Select, Slider, Spinner, Tabs, useDisclosure, TextField, Label, Description, InputGroup } from "@heroui/react";
+import { Avatar, Button, Card, Separator, Input, ListBox, Popover, Select, Slider, Spinner, Tabs, useDisclosure, TextField, Label, Description, InputGroup } from "@heroui/react";
+import { notify as addToast } from "@lib/toast";
 
 import { IconArrowLeft, IconCrown, IconDeviceFloppy, IconPalette } from "@tabler/icons-react";
 import { useParams, useRouter } from "next/navigation";

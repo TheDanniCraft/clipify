@@ -1,5 +1,5 @@
 "use client";
-import { addToast } from "@heroui/react";
+import { notify as addToast } from "@lib/toast";
 
 
 export default function ErrorToast({ error, errorCode }: { error: string; errorCode: string }) {
