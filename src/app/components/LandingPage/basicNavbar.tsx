@@ -1,12 +1,9 @@
 "use client";
-import { Navbar, NavbarBrand, NavbarContent, NavbarItem, NavbarMenu, NavbarMenuItem, NavbarMenuToggle, Link, Separator, cn } from "@heroui/react";
-import type { NavbarProps } from "@heroui/react";
-
-
+import { Link, Separator, cn } from "@heroui/react";
 import React from "react";
 
 import Logo from "@components/logo";
-import { IconChevronRight } from "@tabler/icons-react";
+import { IconChevronRight, IconMenu2, IconX } from "@tabler/icons-react";
 
 const menuItems = [
 	{ name: "Home", href: "/#" },
@@ -17,91 +14,88 @@ const menuItems = [
 	{ name: "FAQ", href: "/#faq" },
 ];
 
-const BasicNavbar = React.forwardRef<HTMLElement, NavbarProps>(({ classNames = {}, ...props }, ref) => {
+type BasicNavbarProps = React.ComponentPropsWithoutRef<"nav"> & {
+	classNames?: {
+		base?: string;
+		wrapper?: string;
+		item?: string;
+	};
+	shouldHideOnScroll?: boolean;
+};
+
+const BasicNavbar = React.forwardRef<HTMLElement, BasicNavbarProps>(({ classNames = {}, shouldHideOnScroll = true, className, ...props }, ref) => {
 	const [isMenuOpen, setIsMenuOpen] = React.useState(false);
+	const [isHidden, setIsHidden] = React.useState(false);
+	const lastScrollY = React.useRef(0);
+
+	React.useEffect(() => {
+		if (!shouldHideOnScroll) return;
+		const handleScroll = () => {
+			const currentScrollY = window.scrollY;
+			setIsHidden(currentScrollY > lastScrollY.current && currentScrollY > 64 && !isMenuOpen);
+			lastScrollY.current = currentScrollY;
+		};
+		window.addEventListener("scroll", handleScroll, { passive: true });
+		return () => window.removeEventListener("scroll", handleScroll);
+	}, [isMenuOpen, shouldHideOnScroll]);
+
+	React.useEffect(() => {
+		document.body.style.overflow = isMenuOpen ? "hidden" : "";
+		return () => {
+			document.body.style.overflow = "";
+		};
+	}, [isMenuOpen]);
 
 	return (
-		<Navbar
+		<nav
 			ref={ref}
 			{...props}
-			classNames={{
-				base: cn("border-default-100 bg-transparent", {
-					"bg-default-200/50 dark:bg-default-100/50": isMenuOpen,
-				}),
-				wrapper: "w-full justify-center",
-				item: "hidden md:flex",
-				...classNames,
-			}}
-			height='60px'
-			isMenuOpen={isMenuOpen}
-			onMenuOpenChange={setIsMenuOpen}
-			shouldHideOnScroll
+			className={cn("sticky top-0 z-40 w-full border-default-100 bg-transparent transition-transform duration-300", isMenuOpen && "bg-default-200/50 dark:bg-default-100/50", isHidden && "-translate-y-full", classNames.base, className)}
 		>
-			{/* Left Content */}
-			<NavbarBrand as={Link} href='/'>
-				<div>
+			<header className={cn("mx-auto flex h-[60px] w-full items-center justify-between px-4", classNames.wrapper)}>
+				<Link href='/' className='flex items-center'>
 					<Logo size={34} />
-				</div>
-				<span className='ml-2 text-large font-bold text-white'>Clipify</span>
-			</NavbarBrand>
+					<span className='ml-2 text-large font-bold text-white'>Clipify</span>
+				</Link>
 
-			{/* Center Content */}
-			<NavbarContent justify='center'>
-				{menuItems.map((item, index) => (
-					<NavbarItem className='text-white' key={index}>
-						<Link aria-current='page' className='text-white font-bold text-sm' href={item.href}>
-							{item.name}
-						</Link>
-					</NavbarItem>
-				))}
-			</NavbarContent>
+				<ul className='hidden items-center justify-center gap-4 md:flex'>
+					{menuItems.map((item) => (
+						<li className={cn("text-white", classNames.item)} key={item.href}>
+							<Link className='text-sm font-bold text-white' href={item.href}>{item.name}</Link>
+						</li>
+					))}
+				</ul>
 
-			{/* Right Content */}
-			<NavbarContent className='hidden md:flex' justify='end'>
-				<NavbarItem className='ml-2 !flex gap-2'>
+				<div className='ml-2 hidden items-center gap-2 md:flex'>
 					<Link className='text-white rounded-full inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 font-medium bg-transparent text-foreground hover:bg-default/40' href='/login'>
 						Login
 					</Link>
 					<Link className='bg-default-foreground font-medium text-background rounded-full inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 font-medium bg-transparent text-foreground hover:bg-default/40' href='/login'>
 						Get Started
-					{<IconChevronRight />}</Link>
-				</NavbarItem>
-			</NavbarContent>
-
-			<NavbarMenuToggle className='text-white md:hidden' />
-
-			<NavbarMenu
-				className='top-[calc(var(--navbar-height)_-_1px)] max-h-fit bg-default-200/50 pb-6 pt-6 shadow-medium backdrop-blur-md backdrop-saturate-150 dark:bg-default-100/50'
-				motionProps={{
-					initial: { opacity: 0.1, y: -20 },
-					animate: { opacity: 1, y: 0 },
-					exit: { opacity: 0.1, y: -20 },
-					transition: {
-						ease: "easeInOut",
-						duration: 0.2,
-					},
-				}}
-			>
-				<NavbarMenuItem>
-					<Link href='/login' className='w-full inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 font-medium bg-default text-foreground hover:bg-default/80'>
-						Sign In
+						<IconChevronRight />
 					</Link>
-				</NavbarMenuItem>
-				<NavbarMenuItem className='mb-4'>
-					<Link className='bg-foreground text-background w-full inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 font-medium bg-accent text-accent-foreground hover:bg-accent-hover' href='/login'>
-						Get Started
-					</Link>
-				</NavbarMenuItem>
-				{menuItems.map((item, index) => (
-					<NavbarMenuItem key={`${item}-${index}`}>
-						<Link className='mb-2 w-full text-white text-base' href={item.href}>
-							{item.name}
-						</Link>
-						{index < menuItems.length - 1 && <Separator className='opacity-50' />}
-					</NavbarMenuItem>
-				))}
-			</NavbarMenu>
-		</Navbar>
+				</div>
+
+				<button type='button' className='text-white md:hidden' aria-expanded={isMenuOpen} aria-label='Toggle navigation menu' onClick={() => setIsMenuOpen((open) => !open)}>
+					{isMenuOpen ? <IconX /> : <IconMenu2 />}
+				</button>
+			</header>
+
+			{isMenuOpen ? (
+				<div className='max-h-fit bg-default-200/50 pb-6 pt-6 shadow-medium backdrop-blur-md backdrop-saturate-150 dark:bg-default-100/50 md:hidden'>
+					<ul className='flex flex-col gap-2 px-4'>
+						<li><Link href='/login' onPress={() => setIsMenuOpen(false)} className='inline-flex w-full items-center justify-center gap-2 rounded-full bg-default px-4 py-2 font-medium text-foreground hover:bg-default/80'>Sign In</Link></li>
+						<li className='mb-4'><Link href='/login' onPress={() => setIsMenuOpen(false)} className='inline-flex w-full items-center justify-center gap-2 rounded-full bg-accent px-4 py-2 font-medium text-accent-foreground hover:bg-accent-hover'>Get Started</Link></li>
+						{menuItems.map((item, index) => (
+							<li key={item.href}>
+								<Link className='mb-2 w-full text-base text-white' href={item.href} onPress={() => setIsMenuOpen(false)}>{item.name}</Link>
+								{index < menuItems.length - 1 ? <Separator className='opacity-50' /> : null}
+							</li>
+						))}
+					</ul>
+				</div>
+			) : null}
+		</nav>
 	);
 });
 

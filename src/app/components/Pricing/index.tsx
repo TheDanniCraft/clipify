@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import type { CampaignOffer } from "@types";
-import { Card, Chip, Separator, Link, Spacer, Tab, Tabs, cn } from "@heroui/react";
+import { Card, Chip, Separator, Link, Spacer, Tabs, cn } from "@heroui/react";
 
 
 import { tiers, frequencies } from "./pricing-tiers";
@@ -35,25 +35,19 @@ export default function TiersComponent({ campaignOffer = null }: TiersComponentP
 	return (
 		<div className='relative mx-auto flex max-w-3xl flex-col items-center max-w'>
 			<Tabs
-				classNames={{
-					tab: "data-[hover-unselected=true]:opacity-90",
-				}}
-				size='lg'
 				onSelectionChange={onFrequencyChange}
 				selectedKey={selectedFrequency.key}
 			>
-				<Tab key={FrequencyEnum.Monthly} title='Pay Monthly' />
-				<Tab
-					key={FrequencyEnum.Yearly}
-					aria-label='Pay Yearly'
-					className='pr-1.5'
-					title={
+				<Tabs.ListContainer><Tabs.List aria-label='Billing frequency' className='text-lg'>
+					<Tabs.Tab id={FrequencyEnum.Monthly} className='data-[hover-unselected=true]:opacity-90'>Pay Monthly<Tabs.Indicator /></Tabs.Tab>
+					<Tabs.Tab id={FrequencyEnum.Yearly} aria-label='Pay Yearly' className='pr-1.5 data-[hover-unselected=true]:opacity-90'>
 						<div className='flex items-center gap-2'>
 							<p>Pay Yearly</p>
 							<Chip color='accent'>2 months free</Chip>
 						</div>
-					}
-				/>
+						<Tabs.Indicator />
+					</Tabs.Tab>
+				</Tabs.List></Tabs.ListContainer>
 			</Tabs>
 			<Spacer y={12} />
 			{/* Grid ---> "xs" to "lg" */}

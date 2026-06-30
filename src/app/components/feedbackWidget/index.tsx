@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Button, Form, Input, Link, Popover, RadioGroup, Spinner, Tab, Tabs, Textarea, TextField, Label, FieldError } from "@heroui/react";
+import { Button, Form, Input, Link, Popover, RadioGroup, Spinner, Tabs, Textarea, TextField, Label, FieldError } from "@heroui/react";
 import Image from "next/image";
 
 import { IconChevronLeft, IconX } from "@tabler/icons-react";
@@ -78,11 +78,13 @@ export default function FeedbackWidget() {
 								<div>
 									{state === "default" && (
 										<Form onSubmit={handleSubmit} className='mt-4'>
-											<Tabs selectedKey={type} onSelectionChange={(key) => setType(key as "feedback" | "feature" | "bug")}>
-												<Tab title='💬 Feedback' key='feedback' className='w-full' />
-												<Tab title='🆕 Feature' key='feature' />
-												<Tab title='🐞 Bug' key='bug' />
-											</Tabs>
+										<Tabs selectedKey={type} onSelectionChange={(key) => setType(key as "feedback" | "feature" | "bug")}>
+											<Tabs.ListContainer><Tabs.List aria-label='Feedback type'>
+												<Tabs.Tab id='feedback' className='w-full'>💬 Feedback<Tabs.Indicator /></Tabs.Tab>
+												<Tabs.Tab id='feature'>🆕 Feature<Tabs.Indicator /></Tabs.Tab>
+												<Tabs.Tab id='bug'>🐞 Bug<Tabs.Indicator /></Tabs.Tab>
+											</Tabs.List></Tabs.ListContainer>
+										</Tabs>
 											<TextField name='title' fullWidth isRequired><Label>Title</Label><Input placeholder='' minLength={10} maxLength={32} className='h-8 text-sm' /><FieldError /></TextField>
 											<Textarea name='comment' fullWidth placeholder="I like... / I don't like" minRows={6} maxRows={6} />
 											{type === "feedback" && (

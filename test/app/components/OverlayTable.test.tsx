@@ -139,17 +139,19 @@ jest.mock("@heroui/react", () => {
 			Fallback: ({ children }: any) => <span>{children}</span>,
 		}),
 		Skeleton: ({ children, isLoaded }: any) => <div>{isLoaded ? children : "Loading..."}</div>,
-		Tabs: ({ children, onSelectionChange, selectedKey }: any) => (
-			<div>
-				{React.Children.map(children, (child: any) => {
-					return React.cloneElement(child, {
-						onPress: () => onSelectionChange(child.key),
-						isActive: child.key === selectedKey,
-					});
-				})}
-			</div>
+		Tabs: Object.assign(
+			({ children, onSelectionChange, selectedKey }: any) => (
+				<div data-selected-key={selectedKey}>
+					{React.Children.map(children, (child: any) => React.cloneElement(child, { onSelectionChange }))}
+				</div>
+			),
+			{
+				ListContainer: ({ children, onSelectionChange }: any) => <div>{React.Children.map(children, (child: any) => React.cloneElement(child, { onSelectionChange }))}</div>,
+				List: ({ children, onSelectionChange }: any) => <div>{React.Children.map(children, (child: any) => React.cloneElement(child, { onSelectionChange }))}</div>,
+				Tab: ({ children, id, onSelectionChange }: any) => <button onClick={() => onSelectionChange?.(id)}>{children}</button>,
+				Indicator: () => null,
+			},
 		),
-		Tab: ({ title, onPress }: any) => <button onClick={onPress}>{title}</button>,
 		useDisclosure: () => ({ isOpen: false, onOpen: jest.fn(), onOpenChange: jest.fn() }),
 		Label: ({ children }: any) => <span>{children}</span>,
 		RadioGroup: ({ children, _value, onChange }: any) => <div onChange={(e: any) => onChange(e.target.value)}>{children}</div>,

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { Button, Chip, Separator, Form, Input, Link, Modal, Spinner, Tab, Tabs, TextField, Label, FieldError, InputGroup } from "@heroui/react";
+import { Button, Chip, Separator, Form, Input, Link, Modal, Spinner, Tabs, TextField, Label, FieldError, InputGroup } from "@heroui/react";
 import Image from "next/image";
 
 import { Turnstile } from "nextjs-turnstile";
@@ -404,9 +404,11 @@ export default function Footer() {
 							<p className='text-center text-tiny text-default-400 md:text-start'>&copy; {new Date().getFullYear()} TheDanniCraft. All rights reserved.</p>
 						</div>
 
-						<Tabs onSelectionChange={(key) => setTheme(String(key))} color='primary' selectedKey={theme ?? "dark"}>
-							<Tab title={<IconMoonFilled />} key='dark' aria-label='Switch to dark theme' />
-							<Tab title={<IconSunFilled />} key='light' aria-label='Switch to light theme' />
+						<Tabs onSelectionChange={(key) => setTheme(String(key))} selectedKey={theme ?? "dark"}>
+							<Tabs.ListContainer><Tabs.List aria-label='Color theme'>
+								<Tabs.Tab id='dark' aria-label='Switch to dark theme'><IconMoonFilled /><Tabs.Indicator /></Tabs.Tab>
+								<Tabs.Tab id='light' aria-label='Switch to light theme'><IconSunFilled /><Tabs.Indicator /></Tabs.Tab>
+							</Tabs.List></Tabs.ListContainer>
 						</Tabs>
 					</div>
 				</div>

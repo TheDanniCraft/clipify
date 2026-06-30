@@ -7,7 +7,7 @@ import DashboardNavbar from "@components/dashboardNavbar";
 import UpgradeModal from "@components/upgradeModal";
 import { getFeatureAccess, getTrialDaysLeft, isReverseTrialActive } from "@lib/featureAccess";
 import { AuthenticatedUser, Overlay, Plan } from "@types";
-import { addToast, Avatar, Button, Card, Separator, Input, Popover, Select, SelectItem, Slider, Spinner, Tab, Tabs, useDisclosure, TextField, Label, Description, InputGroup } from "@heroui/react";
+import { addToast, Avatar, Button, Card, Separator, Input, Popover, Select, SelectItem, Slider, Spinner, Tabs, useDisclosure, TextField, Label, Description, InputGroup } from "@heroui/react";
 
 import { IconArrowLeft, IconCrown, IconDeviceFloppy, IconPalette } from "@tabler/icons-react";
 import { useParams, useRouter } from "next/navigation";
@@ -1159,13 +1159,13 @@ export default function OverlayStylePage() {
 												}
 												setOverlay({ ...overlay, themeFontFamily: "inherit" });
 											}}
-											variant='underlined'
-											color='primary'
-											aria-label='Typography Source'
+											variant='primary'
 										>
-											<Tab key='website' title='Website' />
-											<Tab key='system' title='System' />
-											<Tab key='google' title='Google' />
+											<Tabs.ListContainer><Tabs.List aria-label='Typography Source'>
+												<Tabs.Tab id='website'>Website<Tabs.Indicator /></Tabs.Tab>
+												<Tabs.Tab id='system'>System<Tabs.Indicator /></Tabs.Tab>
+												<Tabs.Tab id='google'>Google<Tabs.Indicator /></Tabs.Tab>
+											</Tabs.List></Tabs.ListContainer>
 										</Tabs>
 
 										{currentFontMode === "website" && <p className='text-xs text-default-500'>Using the same default font stack as the Clipify website.</p>}

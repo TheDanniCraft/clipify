@@ -1,5 +1,5 @@
 "use client";
-import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, TableHeader, TableColumn, TableBody, TableRow, TableCell, Button, RadioGroup, Radio, Chip, Pagination, Separator, Tooltip, Popover, Spinner, addToast, Link, Avatar, Skeleton, Tab, Tabs, useDisclosure, TextField, InputGroup, Label, cn } from "@heroui/react";
+import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, TableHeader, TableColumn, TableBody, TableRow, TableCell, Button, RadioGroup, Radio, Chip, Pagination, Separator, Tooltip, Popover, Spinner, addToast, Link, Avatar, Skeleton, Tabs, useDisclosure, TextField, InputGroup, Label, cn } from "@heroui/react";
 import type { Selection, SortDescriptor } from "@heroui/react";
 
 import type { ColumnsKey } from "./data";
@@ -841,8 +841,10 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 		<div className='h-full w-full p-6'>
 			{topBar}
 			<Tabs selectedKey={activeTab} onSelectionChange={onTabChange} className='mb-4'>
-				<Tab key='overlays' title='Overlays' />
-				<Tab key='playlists' title='Playlists' />
+				<Tabs.ListContainer><Tabs.List aria-label='Resource type'>
+					<Tabs.Tab id='overlays'>Overlays<Tabs.Indicator /></Tabs.Tab>
+					<Tabs.Tab id='playlists'>Playlists<Tabs.Indicator /></Tabs.Tab>
+				</Tabs.List></Tabs.ListContainer>
 			</Tabs>
 			{activeTab === "overlays" && currentUser && (currentUser.entitlements?.effectivePlan ?? currentUser.plan) === "free" && !getFeatureAccess(currentUser, "multi_overlay").allowed && (overlays?.filter((o) => o.ownerId === userId).length ?? 0) >= 1 && (
 				<div className='mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning-200 bg-warning-50 px-4 py-3 text-sm text-warning-800'>

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 
 import type { CampaignOffer } from "@types";
 import BasicNavbar from "@components/LandingPage/basicNavbar";
-import { Accordion, AccordionItem, Chip, Link, Card } from "@heroui/react";
+import { Accordion, Chip, Link, Card } from "@heroui/react";
 import Image from "next/image";
 
 import { LazyMotion, motion, domAnimation, AnimatePresence } from "motion/react";
@@ -293,25 +293,19 @@ export default function HomePageClient({ campaignOffer }: HomePageClientProps) {
 						<h2 className='text-4xl font-bold mb-4'>Frequently Asked Questions</h2>
 						<p className='text-foreground-500 text-lg max-w-2xl mx-auto'>Find answers to the most common questions about Clipify.</p>
 					</div>
-					<Accordion
-						fullWidth
-						keepContentMounted
-						className='gap-3'
-						itemClasses={{
-							base: "px-6 !bg-transparent hover:!bg-default-100 !shadow-none data-[open=true]:!bg-default-100",
-							title: "font-medium",
-							trigger: "py-4 md:py-6",
-							content: "pt-0 pb-6 text-base text-default-500",
-							indicator: "data-[open=true]:rotate-180",
-						}}
-						items={faqs}
-						selectionMode='multiple'
-						variant='splitted'
-					>
+					<Accordion allowsMultipleExpanded className='flex flex-col gap-3' variant='default'>
 						{faqs.map((item, i) => (
-							<AccordionItem key={i} indicator={<IconChevronDown width={24} />} title={item.title}>
-								{item.content}
-							</AccordionItem>
+							<Accordion.Item key={item.title} id={String(i)} className='px-6 bg-transparent hover:bg-default-100 shadow-none data-[expanded=true]:bg-default-100'>
+								<Accordion.Heading>
+									<Accordion.Trigger className='py-4 font-medium md:py-6'>
+										<span>{item.title}</span>
+										<Accordion.Indicator><IconChevronDown width={24} /></Accordion.Indicator>
+									</Accordion.Trigger>
+								</Accordion.Heading>
+								<Accordion.Panel>
+									<Accordion.Body className='pt-0 pb-6 text-base text-default-500'>{item.content}</Accordion.Body>
+								</Accordion.Panel>
+							</Accordion.Item>
 						))}
 					</Accordion>
 				</div>

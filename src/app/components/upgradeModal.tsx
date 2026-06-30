@@ -1,5 +1,5 @@
 "use client";
-import { addToast, Button, Chip, Separator, Modal, Tab, Tabs } from "@heroui/react";
+import { addToast, Button, Chip, Separator, Modal, Tabs } from "@heroui/react";
 
 import { IconBolt, IconCheck, IconDiamondFilled, IconSparkles } from "@tabler/icons-react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -137,10 +137,12 @@ export default function UpgradeModal({ isOpen, onOpenChange, user, title, descri
 
 					{(monthly || yearly) && (
 						<>
-							<Tabs selectedKey={billingCycle} onSelectionChange={(key) => setBillingCycle(String(key) as BillingCycle)} size='sm' color='primary' variant='bordered' fullWidth>
-								<Tab key='monthly' title='Monthly' />
-								<Tab key='yearly' title='Yearly' />
-							</Tabs>
+						<Tabs selectedKey={billingCycle} onSelectionChange={(key) => setBillingCycle(String(key) as BillingCycle)} variant='secondary' className='w-full text-sm'>
+							<Tabs.ListContainer className='w-full'><Tabs.List aria-label='Billing cycle' className='w-full'>
+								<Tabs.Tab id='monthly'>Monthly<Tabs.Indicator /></Tabs.Tab>
+								<Tabs.Tab id='yearly'>Yearly<Tabs.Indicator /></Tabs.Tab>
+							</Tabs.List></Tabs.ListContainer>
+						</Tabs>
 							<div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
 								<div className='rounded-xl border border-default-200/60 bg-default-50 p-5'>
 									<div className='flex items-center justify-between'>

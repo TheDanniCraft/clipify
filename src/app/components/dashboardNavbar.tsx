@@ -2,7 +2,7 @@
 
 import { IconMoonFilled, IconSunFilled } from "@tabler/icons-react";
 import { useTheme } from "next-themes";
-import { Autocomplete, AutocompleteItem, Avatar, Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Link, Navbar, NavbarBrand, NavbarContent, NavbarItem, Spacer } from "@heroui/react";
+import { Autocomplete, AutocompleteItem, Avatar, Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Link, Spacer } from "@heroui/react";
 
 import { AuthenticatedUser, CampaignOffer, Role } from "@types";
 import Logo from "@components/logo";
@@ -113,28 +113,20 @@ export default function DashboardNavbar({ children, user, title, tagline }: { ch
 
 	return (
 		<>
-			<Navbar
-				classNames={{
-					base: "bg-primary",
-					wrapper: "px-4 sm:px-6",
-					item: "data-[active=true]:text-primary",
-				}}
-				height='64px'
-			>
-				<NavbarBrand>
-					<Link href='/dashboard'>
+			<nav className='w-full bg-primary'>
+				<header className='flex h-16 w-full items-center px-4 sm:px-6'>
+					<Link href='/dashboard' className='flex items-center'>
 						<Logo width={30} />
 						<Spacer x={2} />
 						<p className='font-bold text-white'>Clipify</p>
 					</Link>
-				</NavbarBrand>
-				<NavbarContent className='ml-auto h-12 max-w-fit items-center gap-0' justify='end'>
-					<NavbarItem>
+					<ul className='ml-auto flex h-12 max-w-fit items-center gap-0'>
+					<li>
 						<Button isIconOnly variant='tertiary' onPress={() => setTheme(theme === "dark" ? "light" : "dark")} aria-label='Toggle Theme' className='rounded-full'>
 							{(theme ?? "dark") === "dark" ? <IconSunFilled className='text-primary-foreground/60' width={24} /> : <IconMoonFilled className='text-primary-foreground/60' width={24} />}
 						</Button>
-					</NavbarItem>
-					<NavbarItem className='px-2'>
+					</li>
+					<li className='px-2'>
 						<Dropdown placement='bottom-end'>
 							<DropdownTrigger>
 								<button className='relative mt-1 h-8 w-8 transition-transform' aria-label='Open profile menu'>
@@ -182,9 +174,10 @@ export default function DashboardNavbar({ children, user, title, tagline }: { ch
 								</DropdownItem>
 							</DropdownMenu>
 						</Dropdown>
-					</NavbarItem>
-				</NavbarContent>
-			</Navbar>
+					</li>
+					</ul>
+				</header>
+			</nav>
 			{showUpgradeItem && campaignOffer?.showDashboardBanner ? (
 				<div className='w-full border-b border-default-200 bg-content1/95'>
 					<div className='mx-auto flex w-full max-w-5xl flex-col gap-2 px-4 py-3 lg:flex-row lg:items-center lg:justify-between lg:px-8'>

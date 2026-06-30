@@ -20,15 +20,13 @@ jest.mock("@tabler/icons-react", () => ({
 jest.mock("@heroui/react", () => {
 	const React = require("react") as typeof import("react");
 
-	function Tabs({ children, selectedKey, onSelectionChange }: { children: ReactNode; selectedKey?: string; onSelectionChange?: (key: string) => void }) {
+	function TabsRoot({ children, selectedKey, onSelectionChange }: { children: ReactNode; selectedKey?: string; onSelectionChange?: (key: string) => void }) {
 		return (
 			<div data-testid='tabs' data-selected-key={selectedKey}>
 				{React.Children.map(children, (child) =>
 					React.isValidElement(child)
 						? React.cloneElement(child, {
-								tabKey: String(child.key ?? ""),
 								onSelect: onSelectionChange,
-								selectedKey,
 							} as Record<string, unknown>)
 						: child,
 				)}
@@ -36,27 +34,15 @@ jest.mock("@heroui/react", () => {
 		);
 	}
 
-	function Tab({
-		children,
-		title,
-		tabKey,
-		onSelect,
-		selectedKey,
-	}: {
-		children?: ReactNode;
-		title: ReactNode;
-		tabKey?: string;
-		onSelect?: (key: string) => void;
-		selectedKey?: string;
-	}) {
-		const safeTabKey = tabKey ?? "";
-		return (
-			<button type='button' data-selected={selectedKey === safeTabKey} onClick={() => onSelect?.(safeTabKey)}>
-				{title}
-				{children}
-			</button>
-		);
-	}
+	const passSelection = ({ children, onSelect }: { children: ReactNode; onSelect?: (key: string) => void }) => (
+		<div>{React.Children.map(children, (child) => React.isValidElement(child) ? React.cloneElement(child, { onSelect } as Record<string, unknown>) : child)}</div>
+	);
+	const Tabs = Object.assign(TabsRoot, {
+		ListContainer: passSelection,
+		List: passSelection,
+		Tab: ({ children, id, onSelect }: { children: ReactNode; id: string; onSelect?: (key: string) => void }) => <button type='button' onClick={() => onSelect?.(id)}>{children}</button>,
+		Indicator: () => null,
+	});
 
 	return {
 		Button: ({
@@ -89,7 +75,6 @@ jest.mock("@heroui/react", () => {
 		Separator: () => <hr />,
 		Link: ({ children, ...props }: { children: ReactNode }) => <a {...props}>{children}</a>,
 		Spacer: () => <div />,
-		Tab,
 		Tabs,
 		cn: (...values: Array<string | false | null | undefined>) => values.filter(Boolean).join(" "),
 	};
