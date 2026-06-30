@@ -1,4 +1,4 @@
-import { Avatar, Chip, Link } from "@heroui/react";
+import { Avatar, Chip, Link } from "@components/heroui-client";
 
 import { IconBroadcast, IconBrandTwitch, IconCircleMinus, IconDiamondFilled, IconPlugConnected, IconSparkles } from "@tabler/icons-react";
 

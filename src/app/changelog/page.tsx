@@ -1,4 +1,4 @@
-import { Card, Chip, Link } from "@heroui/react";
+import { Card, Chip, Link } from "@components/heroui-client";
 
 import Footer from "@components/footer";
 import BasicNavbar from "@components/LandingPage/basicNavbar";

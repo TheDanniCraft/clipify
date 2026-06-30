@@ -3,7 +3,7 @@ import { getAdminExplorerPage } from "@actions/adminView";
 import AdminHealthCharts from "@components/adminHealthCharts";
 import AdminUserExplorer from "@components/adminUserExplorer";
 import DashboardNavbar from "@components/dashboardNavbar";
-import { Card, Chip } from "@heroui/react";
+import { Card, Chip } from "@components/heroui-client";
 
 import { notFound } from "next/navigation";
 import { getInstanceHealthSnapshot } from "@lib/instanceHealth";

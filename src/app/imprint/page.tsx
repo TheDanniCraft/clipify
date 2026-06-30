@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Link } from "@heroui/react";
+import { Link } from "@components/heroui-client";
 import Image from "next/image";
 
 import BasicNavbar from "@components/LandingPage/basicNavbar";

@@ -1,4 +1,4 @@
-import { Link } from "@heroui/react";
+import { Link } from "@components/heroui-client";
 
 import NextErrorPage from "@components/nextErrorPage";
 
