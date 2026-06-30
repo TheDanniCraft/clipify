@@ -133,7 +133,7 @@ export default function AdminUserExplorer({ users, initialPage, initialTotalPage
 			<Card.Content className='gap-3'>
 				<div className='flex flex-col gap-2 sm:flex-row sm:items-end'>
 					<div className='sm:min-w-[320px]'>
-						<TextField name='q'><Label>Search users</Label><InputGroup><InputGroup.Prefix>{<IconSearch className='text-default-400' size={16} />}</InputGroup.Prefix><InputGroup.Input id='user-explorer-search' value={inputValue} onChange={(event) => (setInputValue)(event.target.value)} placeholder='username or user id' variant='secondary' className='h-8 text-sm' /><InputGroup.Suffix>{isLoading ? <Spinner size='sm' /> : null}</InputGroup.Suffix></InputGroup></TextField>
+						<TextField name='q'><Label>Search users</Label><InputGroup variant='secondary'><InputGroup.Prefix>{<IconSearch className='text-default-400' size={16} />}</InputGroup.Prefix><InputGroup.Input id='user-explorer-search' value={inputValue} onChange={(event) => (setInputValue)(event.target.value)} placeholder='username or user id' className='h-8 text-sm' /><InputGroup.Suffix>{isLoading ? <Spinner size='sm' /> : null}</InputGroup.Suffix></InputGroup></TextField>
 					</div>
 				</div>
 

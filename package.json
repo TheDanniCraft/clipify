@@ -21,7 +21,8 @@
 		"prepare": "next-ws patch && husky"
 	},
 	"dependencies": {
-		"@heroui/react": "^2.8.10",
+		"@heroui/react": "^3.2.1",
+		"@heroui/styles": "^3.2.1",
 		"@sentry/nextjs": "^10.62.0",
 		"@tabler/icons-react": "^3.44.0",
 		"axios": "^1.18.1",
@@ -43,12 +44,14 @@
 		"react-dom": "^19.2.6",
 		"recharts": "^3.9.0",
 		"stripe": "^22.3.0",
+		"tailwind-variants": "^3.2.2",
 		"usesend-js": "^1.6.3",
 		"ws": "^8.21.0",
 		"xss": "^1.0.15"
 	},
 	"devDependencies": {
 		"@tailwindcss/postcss": "^4.3.1",
+		"@testing-library/dom": "^10.4.1",
 		"@testing-library/jest-dom": "^6.9.1",
 		"@testing-library/react": "^16.3.2",
 		"@testing-library/user-event": "^14.6.1",

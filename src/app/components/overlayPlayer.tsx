@@ -6,7 +6,7 @@ import { getAvatar, getDemoClip, getGameDetails, getTwitchClipBatch, getTwitchCl
 import PlayerOverlay from "@components/playerOverlay";
 import { Avatar, Link } from "@heroui/react";
 
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import { getFirstValidQueuedClip, removeFromClipQueue, removeFromModQueue } from "@actions/database";
 import Logo from "@components/logo";
 import { IconAlertTriangle, IconPlayerPauseFilled, IconPlayerPlayFilled, IconVolume, IconVolumeOff } from "@tabler/icons-react";

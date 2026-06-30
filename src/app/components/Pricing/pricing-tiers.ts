@@ -28,8 +28,6 @@ export const tiers: Array<Tier> = [
 			"Basic clip player for embedding in websites",
 		],
 		buttonText: "Start for Free",
-		buttonColor: "default",
-		buttonVariant: "solid",
 	},
 	{
 		key: TiersEnum.Pro,
@@ -65,7 +63,5 @@ export const tiers: Array<Tier> = [
 			"Support an independent developer",
 		],
 		buttonText: "Get started",
-		buttonColor: "primary",
-		buttonVariant: "shadow",
 	},
 ];

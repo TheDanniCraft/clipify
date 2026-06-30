@@ -315,7 +315,7 @@ export default function TagsInput(props: TagsInputProps) {
 				</TextField>
 			</div></Popover.Trigger>
 
-			<Popover.Content placement='bottom-start' offset={8} className='w-[--trigger-width] p-1'>
+			<Popover.Content placement='bottom start' offset={8} className='w-[--trigger-width] p-1'>
 				<Popover.Dialog>
 				<ListBox
 					aria-label='Suggestions'

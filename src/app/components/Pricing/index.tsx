@@ -123,7 +123,7 @@ export default function TiersComponent({ campaignOffer = null }: TiersComponentP
 										plan: tier.key,
 										cycle: selectedFrequency.key,
 									});
-								}} className={cn("w-full inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 font-medium bg-accent text-accent-foreground hover:bg-accent-hover", tier.buttonVariant === "shadow" && "shadow-md")}>
+								}} className={cn("w-full inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 font-medium bg-accent text-accent-foreground hover:bg-accent-hover", tier.mostPopular && "shadow-md")}>
 								{tier.buttonText}
 							</Link>
 						</Card.Footer>

@@ -377,7 +377,7 @@ function ThemeColorInput({ label, value, onChange, defaultValue, allowAlpha }: {
 					<Popover.Trigger>
 						<button type='button' className='h-7 w-7 rounded-md border border-default-300 transition-transform hover:scale-105' style={{ background: preview }} aria-label={`Pick ${label}`} />
 					</Popover.Trigger>
-					<Popover.Content placement='bottom-end' className='p-3'>
+					<Popover.Content placement='bottom end' className='p-3'>
 						<Popover.Dialog>
 						<div className='w-[260px] flex flex-col gap-3'>
 							<div className='text-xs text-default-500 flex items-center gap-1'>

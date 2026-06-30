@@ -61,7 +61,7 @@ jest.mock("@heroui/react", () => ({
 	Link: ({ children, ...props }: { children: ReactNode }) => <a {...props}>{children}</a>,
 }));
 
-jest.mock("framer-motion", () => ({
+jest.mock("motion/react", () => ({
 	motion: {
 		video: ({ children, ...props }: VideoHTMLAttributes<HTMLVideoElement>) => <video {...props}>{children}</video>,
 		div: ({ children, ...props }: { children?: ReactNode } & Record<string, unknown>) => <div {...props}>{children}</div>,
