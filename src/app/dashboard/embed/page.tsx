@@ -4,8 +4,9 @@ import { validateAuth } from "@actions/auth";
 import { getAccessToken, getAllOverlays, getEditorOverlays, getOverlayOwnerPlans } from "@actions/database";
 import { getUsersDetailsBulk } from "@actions/twitch";
 import DashboardNavbar from "@components/dashboardNavbar";
+import CodeSnippet from "@components/codeSnippet";
 import { AuthenticatedUser, Overlay } from "@types";
-import { Avatar, Button, Card, Separator, Label, Link, ListBox, Select, Snippet, Spinner, Switch, Tooltip, useDisclosure } from "@heroui/react";
+import { Avatar, Button, Card, Separator, Label, Link, ListBox, Select, Spinner, Switch, Tooltip, useDisclosure } from "@heroui/react";
 
 import { IconArrowLeft, IconCode, IconEye, IconLink, IconPlayerPlayFilled, IconSparkles, IconVolume } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
@@ -265,16 +266,14 @@ export default function EmbedTool() {
 									<IconLink className='h-4 w-4' />
 									Embed link
 								</div>
-								<Snippet
+								<CodeSnippet
 									size='sm'
 									className='w-full max-w-full'
 									symbol=''
-									classNames={{
-										pre: "overflow-hidden whitespace-nowrap",
-									}}
+									preClassName='overflow-hidden whitespace-nowrap'
 								>
 									{overlayId === "" ? "Select an overlay to generate the link" : buildEmbedUrl(overlayId)}
-								</Snippet>
+								</CodeSnippet>
 								<p className='text-sm text-gray-500'>You can use this link to embed your overlay (e.g. iframe)</p>
 							</div>
 							<Separator />
@@ -283,15 +282,13 @@ export default function EmbedTool() {
 									<IconCode className='h-4 w-4' />
 									Embed code
 								</div>
-								<Snippet
+								<CodeSnippet
 									className='w-full max-w-full'
 									symbol=''
-									classNames={{
-										pre: "overflow-hidden whitespace-nowrap",
-									}}
+									preClassName='overflow-hidden whitespace-nowrap'
 								>
 									{overlayId === "" ? "Select an overlay to see the embed code" : `<iframe src="${buildEmbedUrl(overlayId === "" ? "default" : overlayId)}" class="w-full h-full" title="Clipify Overlay" style="width: 100%; aspect-ratio: 16 / 9; border: 0;"></iframe>`}
-								</Snippet>
+								</CodeSnippet>
 							</div>
 						</Card.Content>
 					</Card>

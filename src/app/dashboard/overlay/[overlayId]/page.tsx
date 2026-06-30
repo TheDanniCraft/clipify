@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useParams, useRouter } from "next/navigation";
 import { createPlaylist, getClipCacheStatus, getOverlay, getOverlayOwnerPlan, getPlaylistsForOwner, previewImportPlaylistClips, saveOverlay, savePlaylist, upsertPlaylistClips } from "@actions/database";
-import { addToast, Button, Card, Checkbox, Chip, ComboBox, DateRangePicker, Separator, Form, Input, Link, ListBox, Modal, NumberInput, Select, Slider, Snippet, Spinner, Switch, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow, Tooltip, useDisclosure, TextField, Label, FieldError, InputGroup, CloseButton } from "@heroui/react";
+import { addToast, Button, Card, Checkbox, Chip, ComboBox, DateRangePicker, Separator, Form, Input, Link, ListBox, Modal, NumberInput, Select, Slider, Spinner, Switch, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow, Tooltip, useDisclosure, TextField, Label, FieldError, InputGroup, CloseButton } from "@heroui/react";
 import Image from "next/image";
 import type { Selection, SortDescriptor } from "@heroui/react";
 
@@ -21,6 +21,7 @@ import { isTitleBlocked } from "@/app/utils/regexFilter";
 import UpgradeModal from "@components/upgradeModal";
 import ChatwootData from "@components/chatwootData";
 import ControlledModal from "@components/controlledModal";
+import CodeSnippet from "@components/codeSnippet";
 import { getTrialDaysLeft, isReverseTrialActive } from "@lib/featureAccess";
 import { usePlausible } from "next-plausible";
 import { trackPaywallEvent } from "@lib/paywallTracking";
@@ -793,15 +794,13 @@ export default function OverlaySettings() {
 											</Switch.Content>
 										</Switch>
 										<div className='flex-1 overflow-hidden'>
-											<Snippet
+											<CodeSnippet
 												className='w-full max-w-full'
 												symbol=''
-												classNames={{
-													pre: "overflow-hidden whitespace-nowrap",
-												}}
+												preClassName='overflow-hidden whitespace-nowrap'
 											>
 												{overlayUrl ?? "Missing secret. Refresh this page to generate one."}
-											</Snippet>
+											</CodeSnippet>
 										</div>
 									<Tooltip delay={0}>
 										<Tooltip.Trigger><Button isIconOnly variant='tertiary' isDisabled={!controllerEnabled} aria-label='Open remote controller' onPress={() => {

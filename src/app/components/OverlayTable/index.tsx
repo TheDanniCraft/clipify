@@ -942,11 +942,11 @@ function AvatarCell({ ownerId, userId }: { ownerId: string; userId: string }) {
 	}, [ownerId, userId]);
 
 	return (
-		<Skeleton isLoaded={!loading} className='rounded-full'>
+		loading ? <Skeleton className='h-8 w-8 rounded-full' /> : (
 			<Avatar size='sm'>
 				<Avatar.Image alt='' src={src ?? undefined} />
 				<Avatar.Fallback>?</Avatar.Fallback>
 			</Avatar>
-		</Skeleton>
+		)
 	);
 }

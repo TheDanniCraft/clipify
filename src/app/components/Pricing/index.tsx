@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import type { CampaignOffer } from "@types";
-import { Card, Chip, Separator, Link, Spacer, Tabs, cn } from "@heroui/react";
+import { Card, Chip, Separator, Link, Tabs, cn } from "@heroui/react";
 
 
 import { tiers, frequencies } from "./pricing-tiers";
@@ -49,7 +49,7 @@ export default function TiersComponent({ campaignOffer = null }: TiersComponentP
 					</Tabs.Tab>
 				</Tabs.List></Tabs.ListContainer>
 			</Tabs>
-			<Spacer y={12} />
+			<div className='h-12' aria-hidden='true' />
 			{/* Grid ---> "xs" to "lg" */}
 			<div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
 				{tiers.slice(0, 2).map((tier) => {
@@ -131,7 +131,7 @@ export default function TiersComponent({ campaignOffer = null }: TiersComponentP
 				);
 				})}
 			</div>
-			<Spacer y={12} />
+			<div className='h-12' aria-hidden='true' />
 		</div>
 	);
 }

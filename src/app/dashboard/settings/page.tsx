@@ -4,8 +4,9 @@ import { validateAuth } from "@actions/auth";
 import { deleteUser, getClipCacheStatus, getSettings, saveSettings } from "@actions/database";
 import ConfirmModal from "@components/confirmModal";
 import DashboardNavbar from "@components/dashboardNavbar";
+import CodeSnippet from "@components/codeSnippet";
 import { AuthenticatedUser, Plan, UserSettings } from "@types";
-import { addToast, Avatar, Button, Card, Separator, Form, Input, Modal, Snippet, Spinner, Switch, Tooltip, useDisclosure, TextField, Label, Description, FieldError } from "@heroui/react";
+import { addToast, Avatar, Button, Card, Separator, Form, Input, Modal, Spinner, Switch, Tooltip, useDisclosure, TextField, Label, Description, FieldError } from "@heroui/react";
 
 import { IconAlertTriangle, IconArrowLeft, IconCreditCardFilled, IconDatabase, IconDeviceFloppy, IconDiamondFilled, IconInfoCircle, IconRefresh, IconTrash } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
@@ -277,15 +278,13 @@ export default function SettingsPage() {
 							<Button isIconOnly variant='tertiary' onPress={() => router.push("/dashboard")} aria-label='Back to Dashboard'>{<IconArrowLeft />}</Button>
 							<div className='flex items-center gap-2'>
 								<div className='flex items-center overflow-hidden'>
-									<Snippet
+									<CodeSnippet
 										size='sm'
 										symbol='User ID:'
-										classNames={{
-											pre: "overflow-hidden whitespace-nowrap",
-										}}
+										preClassName='overflow-hidden whitespace-nowrap'
 									>
 										{user.id}
-									</Snippet>
+									</CodeSnippet>
 								</div>
 								<Tooltip delay={0}>
 									<Tooltip.Trigger><IconInfoCircle size={20} className='text-default-400' /></Tooltip.Trigger>

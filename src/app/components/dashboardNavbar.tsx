@@ -2,7 +2,7 @@
 
 import { IconMoonFilled, IconSunFilled } from "@tabler/icons-react";
 import { useTheme } from "next-themes";
-import { Avatar, Button, ComboBox, Dropdown, Input, Label, Link, ListBox, Spacer } from "@heroui/react";
+import { Avatar, Button, ComboBox, Dropdown, Input, Label, Link, ListBox } from "@heroui/react";
 
 import { AuthenticatedUser, CampaignOffer, Role } from "@types";
 import Logo from "@components/logo";
@@ -117,8 +117,7 @@ export default function DashboardNavbar({ children, user, title, tagline }: { ch
 				<header className='flex h-16 w-full items-center px-4 sm:px-6'>
 					<Link href='/dashboard' className='flex items-center'>
 						<Logo width={30} />
-						<Spacer x={2} />
-						<p className='font-bold text-white'>Clipify</p>
+						<p className='ml-2 font-bold text-white'>Clipify</p>
 					</Link>
 					<ul className='ml-auto flex h-12 max-w-fit items-center gap-0'>
 					<li>
