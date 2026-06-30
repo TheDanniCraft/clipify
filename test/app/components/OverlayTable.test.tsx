@@ -89,10 +89,13 @@ jest.mock("@heroui/react", () => {
 			Dialog: ({ children }: any) => <div>{children}</div>,
 			Arrow: () => null,
 		}),
-		Dropdown: ({ children }: any) => <div>{children}</div>,
-		DropdownTrigger: ({ children }: any) => <div>{children}</div>,
-		DropdownMenu: ({ children, items }: any) => <div>{items && typeof children === "function" ? items.map((item: any) => <div key={item.id || item.uid || item.key}>{children(item)}</div>) : children}</div>,
-		DropdownItem: ({ children, onPress, onClick, textValue }: any) => <button onClick={onPress || onClick}>{children || textValue}</button>,
+		Dropdown: Object.assign(({ children }: any) => <div>{children}</div>, {
+			Trigger: ({ children }: any) => <div>{children}</div>,
+			Popover: ({ children }: any) => <div>{children}</div>,
+			Menu: ({ children, items }: any) => <div>{items && typeof children === "function" ? items.map((item: any) => <div key={item.id || item.uid || item.key}>{children(item)}</div>) : children}</div>,
+			Item: ({ children, onAction, textValue }: any) => <button onClick={onAction}>{children || textValue}</button>,
+			ItemIndicator: () => null,
+		}),
 		Table: ({ children, topContent, bottomContent }: any) => (
 			<div>
 				{topContent}

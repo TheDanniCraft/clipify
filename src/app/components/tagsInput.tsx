@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState, type ComponentProps } from "react";
-import { Chip, CloseButton, Textarea, Popover, Listbox, ListboxItem } from "@heroui/react";
+import { Chip, CloseButton, Label, ListBox, Textarea, Popover } from "@heroui/react";
 import type { TextAreaProps } from "@heroui/react";
 
 
@@ -351,7 +351,7 @@ export default function TagsInput(props: TagsInputProps) {
 
 			<Popover.Content placement='bottom-start' offset={8} className='w-[--trigger-width] p-1'>
 				<Popover.Dialog>
-				<Listbox
+				<ListBox
 					aria-label='Suggestions'
 					selectionMode='single'
 					onAction={(key) => {
@@ -360,8 +360,9 @@ export default function TagsInput(props: TagsInputProps) {
 					}}
 				>
 					{filteredSuggestions.map((s) => (
-						<ListboxItem
+						<ListBox.Item
 							key={s}
+							id={s}
 							textValue={s}
 							className={["rounded-medium", "data-[hover=true]:bg-transparent", "data-[hover=true]:ring-1 data-[hover=true]:ring-foreground/15", "data-[focus-visible=true]:outline-none data-[focus-visible=true]:ring-2 data-[focus-visible=true]:ring-primary", suggestionItemClassName].filter(Boolean).join(" ")}
 							onMouseDown={() => {
@@ -372,10 +373,10 @@ export default function TagsInput(props: TagsInputProps) {
 								queueMicrotask(() => inputRef.current?.focus());
 							}}
 						>
-							{s}
-						</ListboxItem>
+							<Label>{s}</Label>
+						</ListBox.Item>
 					))}
-				</Listbox>
+				</ListBox>
 				</Popover.Dialog>
 			</Popover.Content>
 		</Popover>

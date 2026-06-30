@@ -7,7 +7,7 @@ import DashboardNavbar from "@components/dashboardNavbar";
 import UpgradeModal from "@components/upgradeModal";
 import { getFeatureAccess, getTrialDaysLeft, isReverseTrialActive } from "@lib/featureAccess";
 import { AuthenticatedUser, Overlay, Plan } from "@types";
-import { addToast, Avatar, Button, Card, Separator, Input, Popover, Select, SelectItem, Slider, Spinner, Tabs, useDisclosure, TextField, Label, Description, InputGroup } from "@heroui/react";
+import { addToast, Avatar, Button, Card, Separator, Input, ListBox, Popover, Select, Slider, Spinner, Tabs, useDisclosure, TextField, Label, Description, InputGroup } from "@heroui/react";
 
 import { IconArrowLeft, IconCrown, IconDeviceFloppy, IconPalette } from "@tabler/icons-react";
 import { useParams, useRouter } from "next/navigation";
@@ -1093,11 +1093,9 @@ export default function OverlayStylePage() {
 									<Label>Overlay Fade Out (seconds)</Label><Slider.Output /><Slider.Track><Slider.Fill /><Slider.Thumb /></Slider.Track>
 								</Slider>
 								<Select
-									label='Enabled Components'
 									selectionMode='multiple'
-									selectedKeys={selectedComponents}
-									onSelectionChange={(keys) => {
-										if (keys === "all") return;
+									value={Array.from(selectedComponents)}
+									onChange={(keys) => {
 										const selected = new Set(Array.from(keys).map((key) => String(key)));
 										setOverlay({
 											...overlay,
@@ -1108,17 +1106,19 @@ export default function OverlayStylePage() {
 										});
 									}}
 								>
-									<SelectItem key='channel'>Channel Info</SelectItem>
-									<SelectItem key='clip'>Clip Info</SelectItem>
-									<SelectItem key='timer'>Timer</SelectItem>
-									<SelectItem key='progress'>Progress Bar</SelectItem>
+									<Label>Enabled Components</Label>
+									<Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
+									<Select.Popover><ListBox>
+										<ListBox.Item id='channel' textValue='Channel Info'><Label>Channel Info</Label><ListBox.ItemIndicator /></ListBox.Item>
+										<ListBox.Item id='clip' textValue='Clip Info'><Label>Clip Info</Label><ListBox.ItemIndicator /></ListBox.Item>
+										<ListBox.Item id='timer' textValue='Timer'><Label>Timer</Label><ListBox.ItemIndicator /></ListBox.Item>
+										<ListBox.Item id='progress' textValue='Progress Bar'><Label>Progress Bar</Label><ListBox.ItemIndicator /></ListBox.Item>
+									</ListBox></Select.Popover>
 								</Select>
 								<Select
-									label='Visual Effects'
 									selectionMode='multiple'
-									selectedKeys={selectedEffects}
-									onSelectionChange={(keys) => {
-										if (keys === "all") return;
+									value={Array.from(selectedEffects)}
+									onChange={(keys) => {
 										const selected = new Set(Array.from(keys).map((key) => String(key)));
 										setOverlay({
 											...overlay,
@@ -1128,9 +1128,13 @@ export default function OverlayStylePage() {
 										});
 									}}
 								>
-									<SelectItem key='scanlines'>Scanlines</SelectItem>
-									<SelectItem key='static'>Static</SelectItem>
-									<SelectItem key='crt'>CRT (Old TV)</SelectItem>
+									<Label>Visual Effects</Label>
+									<Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
+									<Select.Popover><ListBox>
+										<ListBox.Item id='scanlines' textValue='Scanlines'><Label>Scanlines</Label><ListBox.ItemIndicator /></ListBox.Item>
+										<ListBox.Item id='static' textValue='Static'><Label>Static</Label><ListBox.ItemIndicator /></ListBox.Item>
+										<ListBox.Item id='crt' textValue='CRT (Old TV)'><Label>CRT (Old TV)</Label><ListBox.ItemIndicator /></ListBox.Item>
+									</ListBox></Select.Popover>
 								</Select>
 								<Card className='lg:col-span-2 border border-default-200/80'>
 									<Card.Header className='pb-1'>
@@ -1171,10 +1175,14 @@ export default function OverlayStylePage() {
 										{currentFontMode === "website" && <p className='text-xs text-default-500'>Using the same default font stack as the Clipify website.</p>}
 
 										{currentFontMode === "system" && (
-											<Select selectedKeys={[systemFontOptions.some((opt) => opt.key === parsedThemeFont.fontFamily) ? parsedThemeFont.fontFamily : systemFontOptions[0]?.key || "system-ui"]} onSelectionChange={(value) => setOverlay({ ...overlay, themeFontFamily: encodeThemeFontSetting((value.currentKey as string) || "system-ui", "") })} label='System Font'>
+											<Select value={systemFontOptions.some((opt) => opt.key === parsedThemeFont.fontFamily) ? parsedThemeFont.fontFamily : systemFontOptions[0]?.key || "system-ui"} onChange={(value) => setOverlay({ ...overlay, themeFontFamily: encodeThemeFontSetting((value as string) || "system-ui", "") })}>
+												<Label>System Font</Label>
+												<Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
+												<Select.Popover><ListBox>
 												{systemFontOptions.map((font) => (
-													<SelectItem key={font.key}>{font.label}</SelectItem>
+													<ListBox.Item key={font.key} id={font.key} textValue={font.label}><Label>{font.label}</Label><ListBox.ItemIndicator /></ListBox.Item>
 												))}
+												</ListBox></Select.Popover>
 											</Select>
 										)}
 

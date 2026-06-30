@@ -2,7 +2,7 @@
 
 import { IconMoonFilled, IconSunFilled } from "@tabler/icons-react";
 import { useTheme } from "next-themes";
-import { Autocomplete, AutocompleteItem, Avatar, Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Link, Spacer } from "@heroui/react";
+import { Avatar, Button, ComboBox, Dropdown, Input, Label, Link, ListBox, Spacer } from "@heroui/react";
 
 import { AuthenticatedUser, CampaignOffer, Role } from "@types";
 import Logo from "@components/logo";
@@ -127,8 +127,8 @@ export default function DashboardNavbar({ children, user, title, tagline }: { ch
 						</Button>
 					</li>
 					<li className='px-2'>
-						<Dropdown placement='bottom-end'>
-							<DropdownTrigger>
+						<Dropdown>
+							<Dropdown.Trigger>
 								<button className='relative mt-1 h-8 w-8 transition-transform' aria-label='Open profile menu'>
 									<Avatar size='sm'>
 										<Avatar.Image alt={user?.username ?? "User avatar"} src={user?.avatar} />
@@ -136,43 +136,30 @@ export default function DashboardNavbar({ children, user, title, tagline }: { ch
 									</Avatar>
 									<span aria-label='Online' className='absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-primary bg-success' role='status' />
 								</button>
-							</DropdownTrigger>
-							<DropdownMenu aria-label='Profile Actions' variant='flat'>
-								<DropdownItem key='profile' className='h-14 gap-2'>
-									<p className='font-semibold'>Signed in as</p>
-									<p className='font-semibold'>{user?.username}</p>
-								</DropdownItem>
+							</Dropdown.Trigger>
+							<Dropdown.Popover placement='bottom end'>
+							<Dropdown.Menu aria-label='Profile Actions' disabledKeys={isClearingAdminView ? ["exit_admin_view"] : []}>
+								<Dropdown.Item id='profile' textValue={`Signed in as ${user?.username ?? "user"}`} className='h-14 gap-2'>
+									<Label><span className='block font-semibold'>Signed in as</span><span className='block font-semibold'>{user?.username}</span></Label>
+								</Dropdown.Item>
 								{showUpgradeItem ? (
-									<DropdownItem key='upgrade_to_pro' className='text-primary' onPress={() => router.push("/dashboard/settings?upgrade&cycle=yearly&source=paywall_banner&feature=account_menu")}>
-										Upgrade to Pro
-									</DropdownItem>
+									<Dropdown.Item id='upgrade_to_pro' textValue='Upgrade to Pro' className='text-primary' onAction={() => router.push("/dashboard/settings?upgrade&cycle=yearly&source=paywall_banner&feature=account_menu")}>
+										<Label>Upgrade to Pro</Label>
+									</Dropdown.Item>
 								) : null}
-								<DropdownItem key='settings' onPress={() => router.push("/dashboard/settings")}>
-									My Settings
-								</DropdownItem>
-								<DropdownItem key='embeddable_widgets' onPress={() => router.push("/dashboard/embed")}>
-									Embed Overlay
-								</DropdownItem>
+								<Dropdown.Item id='settings' textValue='My Settings' onAction={() => router.push("/dashboard/settings")}><Label>My Settings</Label></Dropdown.Item>
+								<Dropdown.Item id='embeddable_widgets' textValue='Embed Overlay' onAction={() => router.push("/dashboard/embed")}><Label>Embed Overlay</Label></Dropdown.Item>
 								{canOpenAdminView ? (
-									<DropdownItem key='admin_view' onPress={() => router.push("/admin")}>
-										Open Admin View
-									</DropdownItem>
+									<Dropdown.Item id='admin_view' textValue='Open Admin View' onAction={() => router.push("/admin")}><Label>Open Admin View</Label></Dropdown.Item>
 								) : null}
 								{isImpersonating ? (
-									<DropdownItem key='exit_admin_view' className='text-primary' isDisabled={isClearingAdminView} onPress={handleExitAdminView}>
-										Exit Admin View
-									</DropdownItem>
+									<Dropdown.Item id='exit_admin_view' textValue='Exit Admin View' className='text-primary' onAction={handleExitAdminView}><Label>Exit Admin View</Label></Dropdown.Item>
 								) : null}
-								<DropdownItem key='help_and_feedback' onPress={() => router.push("https://help.clipify.us/")}>
-									Help
-								</DropdownItem>
-								<DropdownItem key='Refer_a_friend' onPress={() => router.push("/referral-program")}>
-									Refer a Friend
-								</DropdownItem>
-								<DropdownItem className='text-danger' key='logout' onPress={() => router.push("/logout")}>
-									Log Out
-								</DropdownItem>
-							</DropdownMenu>
+								<Dropdown.Item id='help_and_feedback' textValue='Help' onAction={() => router.push("https://help.clipify.us/")}><Label>Help</Label></Dropdown.Item>
+								<Dropdown.Item id='refer_a_friend' textValue='Refer a Friend' onAction={() => router.push("/referral-program")}><Label>Refer a Friend</Label></Dropdown.Item>
+								<Dropdown.Item id='logout' textValue='Log Out' variant='danger' onAction={() => router.push("/logout")}><Label>Log Out</Label></Dropdown.Item>
+							</Dropdown.Menu>
+							</Dropdown.Popover>
 						</Dropdown>
 					</li>
 					</ul>
@@ -201,18 +188,11 @@ export default function DashboardNavbar({ children, user, title, tagline }: { ch
 							You are viewing as <span className='font-semibold'>@{user.username}</span>
 						</p>
 						<div className='flex w-full flex-col gap-2 sm:flex-row sm:items-center lg:w-auto'>
-							<Autocomplete
-								size='sm'
+							<ComboBox
 								aria-label='Search and select user for admin view'
-								placeholder='Search users'
 								className='min-w-[380px]'
 								inputValue={switchQuery}
-								isLoading={isLoadingSwitchCandidates}
 								isDisabled={isSwitchingAdminView}
-								variant='bordered'
-								color='default'
-								radius='md'
-								defaultItems={switchOptions}
 								onInputChange={setSwitchQuery}
 								onSelectionChange={(key) => {
 									const nextKey = String(key ?? "");
@@ -222,12 +202,18 @@ export default function DashboardNavbar({ children, user, title, tagline }: { ch
 									void handleSwitchAdminView(nextKey);
 								}}
 							>
-								{(candidate) => (
-									<AutocompleteItem key={candidate.id} textValue={candidate.username}>
-										@{candidate.username}
-									</AutocompleteItem>
-								)}
-							</Autocomplete>
+								<Label className='sr-only'>Search users</Label>
+								<ComboBox.InputGroup>
+									<Input placeholder='Search users' />
+									{isLoadingSwitchCandidates ? <span className='px-1 text-xs text-default-500'>Loading</span> : null}
+									<ComboBox.Trigger />
+								</ComboBox.InputGroup>
+								<ComboBox.Popover>
+									<ListBox items={switchOptions}>
+										{(candidate) => <ListBox.Item id={candidate.id} textValue={candidate.username}><Label>@{candidate.username}</Label><ListBox.ItemIndicator /></ListBox.Item>}
+									</ListBox>
+								</ComboBox.Popover>
+							</ComboBox>
 							<Button size='sm' variant='danger-soft' onPress={handleExitAdminView} isDisabled={isClearingAdminView} className='rounded-md'>
 								Exit
 							</Button>

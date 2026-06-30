@@ -75,10 +75,16 @@ jest.mock("@heroui/react", () => ({
 		Input: (props: React.InputHTMLAttributes<HTMLInputElement>) => <input {...props} />,
 	}),
 	CloseButton: ({ onPress }: { onPress?: () => void }) => <button type='button' aria-label='Clear' onClick={onPress} />,
-	Select: ({ children }: { children?: React.ReactNode }) => <select>{children}</select>,
-	SelectItem: ({ children }: { children?: React.ReactNode }) => <option>{children}</option>,
-	Autocomplete: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
-	AutocompleteItem: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+	Label: ({ children }: { children?: React.ReactNode }) => <label>{children}</label>,
+	ComboBox: Object.assign(({ children }: { children?: React.ReactNode }) => <div>{children}</div>, {
+		InputGroup: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+		Trigger: () => null,
+		Popover: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+	}),
+	ListBox: Object.assign(({ children, items = [] }: { children?: React.ReactNode | ((item: unknown) => React.ReactNode); items?: unknown[] }) => <div>{typeof children === "function" ? items.map((item, index) => <div key={index}>{children(item)}</div>) : children}</div>, {
+		Item: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+		ItemIndicator: () => null,
+	}),
 	Card: Object.assign(({ children }: { children?: React.ReactNode }) => <div>{children}</div>, {
 		Content: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
 		Header: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,

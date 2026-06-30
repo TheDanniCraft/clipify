@@ -99,14 +99,13 @@ jest.mock("@heroui/react", () => {
 		cn: (...classes: Array<string | undefined>) => classes.filter(Boolean).join(" "),
 		addToast: (...args: unknown[]) => addToast(...args),
 		useDisclosure: () => ({ isOpen: false, onOpen: jest.fn(), onOpenChange: jest.fn() }),
-		Dropdown: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-		DropdownTrigger: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-		DropdownMenu: ({ children, items = [] }: { children: React.ReactNode | ((item: unknown) => React.ReactNode); items?: unknown[] }) => (
-			<div>{typeof children === "function" ? (items as unknown[]).map((item, index) => <div key={index}>{children(item)}</div>) : children}</div>
-		),
-		DropdownItem: ({ children, onClick, onPress }: { children: React.ReactNode; onClick?: () => void; onPress?: () => void }) => (
-			<button onClick={() => (onPress ? onPress() : onClick ? onClick() : undefined)}>{children}</button>
-		),
+		Dropdown: Object.assign(({ children }: { children: React.ReactNode }) => <div>{children}</div>, {
+			Trigger: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+			Popover: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+			Menu: ({ children, items = [] }: { children: React.ReactNode | ((item: unknown) => React.ReactNode); items?: unknown[] }) => <div>{typeof children === "function" ? items.map((item, index) => <div key={index}>{children(item)}</div>) : children}</div>,
+			Item: ({ children, onAction }: { children: React.ReactNode; onAction?: () => void }) => <button onClick={onAction}>{children}</button>,
+			ItemIndicator: () => null,
+		}),
 		Table: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 		TableHeader: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 		TableColumn: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,

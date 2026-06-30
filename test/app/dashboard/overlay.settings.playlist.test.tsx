@@ -117,20 +117,21 @@ jest.mock("@heroui/react", () => {
 			Input: (props: React.InputHTMLAttributes<HTMLInputElement>) => <input {...props} />,
 		}),
 		CloseButton: ({ onPress }: { onPress?: () => void }) => <button type='button' aria-label='Clear' onClick={onPress} />,
-		Select: ({ label, children }: { label?: string; children: React.ReactNode }) => (
-			<label>
-				{label}
-				<select>{children}</select>
-			</label>
-		),
-		Autocomplete: ({ label, children }: { label?: string; children?: React.ReactNode }) => (
-			<label>
-				{label}
-				<div>{children}</div>
-			</label>
-		),
-		AutocompleteItem: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
-		SelectItem: ({ children, ...props }: { children: React.ReactNode }) => <option {...props}>{children}</option>,
+		Select: Object.assign(({ children }: { children: React.ReactNode }) => <div>{children}</div>, {
+			Trigger: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+			Value: () => null,
+			Indicator: () => null,
+			Popover: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+		}),
+		ComboBox: Object.assign(({ children }: { children?: React.ReactNode }) => <div>{children}</div>, {
+			InputGroup: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+			Trigger: () => null,
+			Popover: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+		}),
+		ListBox: Object.assign(({ children, items = [] }: { children?: React.ReactNode | ((item: unknown) => React.ReactNode); items?: unknown[] }) => <div>{typeof children === "function" ? items.map((item, index) => <div key={index}>{children(item)}</div>) : children}</div>, {
+			Item: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+			ItemIndicator: () => null,
+		}),
 		Switch: Object.assign(({ children }: { children: React.ReactNode }) => <label>{children}</label>, {
 			Content: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
 			Control: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,

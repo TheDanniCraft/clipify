@@ -44,6 +44,8 @@ jest.mock("@components/logo", () => ({
 }));
 
 jest.mock("@heroui/react", () => {
+	const ReactLib = jest.requireActual<typeof import("react")>("react");
+	const ComboContext = ReactLib.createContext<{ inputValue?: string; onInputChange?: (value: string) => void; onSelectionChange?: (key: string) => void }>({});
 	return {
 		Avatar: Object.assign(({ children }: { children?: React.ReactNode }) => <div>{children}</div>, {
 			Image: ({ src }: { src?: string }) => <span data-avatar={src ?? ""} />,
@@ -54,33 +56,33 @@ jest.mock("@heroui/react", () => {
 				{children}
 			</button>
 		),
-		Dropdown: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-		DropdownItem: ({ children, onPress, isDisabled }: { children: React.ReactNode; onPress?: () => void; isDisabled?: boolean }) => (
-			<button onClick={onPress} disabled={isDisabled}>
-				{children}
-			</button>
+		Dropdown: Object.assign(({ children }: { children: React.ReactNode }) => <div>{children}</div>, {
+			Trigger: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+			Popover: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+			Menu: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+			Item: ({ children, onAction }: { children: React.ReactNode; onAction?: () => void }) => <button onClick={onAction}>{children}</button>,
+		}),
+		ComboBox: Object.assign(
+			({ children, inputValue, onInputChange, onSelectionChange }: { children: React.ReactNode; inputValue?: string; onInputChange?: (value: string) => void; onSelectionChange?: (key: string) => void }) => <ComboContext.Provider value={{ inputValue, onInputChange, onSelectionChange }}><div>{children}</div></ComboContext.Provider>,
+			{
+				InputGroup: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+				Trigger: () => null,
+				Popover: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+			},
 		),
-		DropdownMenu: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-		DropdownTrigger: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-		Autocomplete: ({ inputValue, onInputChange, onSelectionChange, defaultItems }: { inputValue?: string; onInputChange?: (val: string) => void; onSelectionChange?: (key: string) => void; defaultItems?: Array<{ id: string; username: string }> }) => (
-			<div>
-				<input aria-label='admin-switch-search' value={inputValue} onChange={(event) => onInputChange?.(event.target.value)} />
-				<select aria-label='admin-switch-select' onChange={(event) => onSelectionChange?.(event.target.value)}>
-					<option value=''>Select user</option>
-					{(defaultItems ?? []).map((item) => (
-						<option key={item.id} value={item.id}>
-							{item.username}
-						</option>
-					))}
-				</select>
-			</div>
-		),
-		AutocompleteItem: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+		Input: () => {
+			const context = ReactLib.useContext(ComboContext);
+			return <input aria-label='admin-switch-search' value={context.inputValue} onChange={(event) => context.onInputChange?.(event.target.value)} />;
+		},
+		Label: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
+		ListBox: Object.assign(({ children: _children, items = [] }: { children: React.ReactNode | ((item: { id: string; username: string }) => React.ReactNode); items?: Array<{ id: string; username: string }> }) => {
+			const context = ReactLib.useContext(ComboContext);
+			return <select aria-label='admin-switch-select' onChange={(event) => context.onSelectionChange?.(event.target.value)}><option value=''>Select user</option>{items.map((item) => <option key={item.id} value={item.id}>{item.username}</option>)}</select>;
+		}, {
+			Item: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+			ItemIndicator: () => null,
+		}),
 		Link: ({ children, href }: { children: React.ReactNode; href?: string }) => <a href={href}>{children}</a>,
-		Navbar: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-		NavbarBrand: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-		NavbarContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-		NavbarItem: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 		Spacer: () => <span />,
 	};
 });

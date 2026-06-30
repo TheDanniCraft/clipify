@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { getAllPlaylists, getPlaylistClips, previewImportPlaylistClips, savePlaylist, upsertPlaylistClips } from "@actions/database";
-import { addToast, Autocomplete, AutocompleteItem, Button, Card, Checkbox, DateRangePicker, Separator, Input, Link, Modal, NumberInput, Pagination, Spinner, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow, useDisclosure, TextField, InputGroup, CloseButton } from "@heroui/react";
+import { addToast, Button, Card, Checkbox, ComboBox, DateRangePicker, Separator, Input, Label, Link, ListBox, Modal, NumberInput, Pagination, Spinner, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow, useDisclosure, TextField, InputGroup, CloseButton } from "@heroui/react";
 import Image from "next/image";
 import type { Selection, SortDescriptor } from "@heroui/react";
 
@@ -608,14 +608,9 @@ export default function PlaylistPage() {
 			<ControlledModal isOpen={isImportOpen} onOpenChange={onImportOpenChange}>
 					<Modal.Header><Modal.Heading>Auto Import to Playlist</Modal.Heading></Modal.Header>
 					<Modal.Body className='space-y-4'>
-						<Autocomplete
-							label='Category / Game'
+						<ComboBox
 							isRequired
 							allowsCustomValue
-							isClearable
-							placeholder='Type at least 2 characters or choose all'
-							items={importCategoryOptions}
-							isLoading={isSearchingGames}
 							inputValue={importCategoryInput}
 							onInputChange={(value) => {
 								setImportCategoryInput(value);
@@ -636,15 +631,25 @@ export default function PlaylistPage() {
 							}}
 							selectedKey={importCategoryId || null}
 						>
+							<Label>Category / Game</Label>
+							<ComboBox.InputGroup>
+								<Input placeholder='Type at least 2 characters or choose all' />
+								{importCategoryInput ? <button type='button' aria-label='Clear category' onClick={() => { setImportCategoryInput(""); setImportCategoryId(""); }}>×</button> : null}
+								{isSearchingGames ? <span className='px-1 text-xs text-default-500'>Loading</span> : null}
+								<ComboBox.Trigger />
+							</ComboBox.InputGroup>
+							<ComboBox.Popover><ListBox items={importCategoryOptions}>
 							{(item) => (
-								<AutocompleteItem key={item.id} textValue={item.name}>
-									<div className='flex items-center gap-2'>
+								<ListBox.Item id={item.id} textValue={item.name}>
+									<Label className='flex items-center gap-2'>
 										{item.box_art_url ? <Image unoptimized src={item.box_art_url.replace("{width}", "32").replace("{height}", "44")} alt={item.name} width={24} height={32} className='h-8 w-6 rounded object-cover' /> : null}
 										<span>{item.name}</span>
-									</div>
-								</AutocompleteItem>
+									</Label>
+									<ListBox.ItemIndicator />
+								</ListBox.Item>
 							)}
-						</Autocomplete>
+							</ListBox></ComboBox.Popover>
+						</ComboBox>
 
 						<DateRangePicker
 							label='Date Range'

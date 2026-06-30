@@ -1,5 +1,5 @@
 "use client";
-import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem, TableHeader, TableColumn, TableBody, TableRow, TableCell, Button, RadioGroup, Radio, Chip, Pagination, Separator, Tooltip, Popover, Spinner, addToast, Link, Avatar, Skeleton, Tabs, useDisclosure, TextField, InputGroup, Label, cn } from "@heroui/react";
+import { Dropdown, TableHeader, TableColumn, TableBody, TableRow, TableCell, Button, RadioGroup, Radio, Chip, Pagination, Separator, Tooltip, Popover, Spinner, addToast, Link, Avatar, Skeleton, Tabs, useDisclosure, TextField, InputGroup, Label, cn } from "@heroui/react";
 import type { Selection, SortDescriptor } from "@heroui/react";
 
 import type { ColumnsKey } from "./data";
@@ -452,40 +452,42 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 						)}
 						<div>
 							<Dropdown>
-								<DropdownTrigger>
+								<Dropdown.Trigger>
 									<Button className='bg-default-100 text-default-800' size='sm' aria-label='Open Sort Options'>{<IconMenuDeep className='text-default-400' width={16} />}
 										Sort
 									</Button>
-								</DropdownTrigger>
-								<DropdownMenu aria-label='Sort' items={headerColumns.filter((c) => !["actions"].includes(c.uid))}>
+								</Dropdown.Trigger>
+								<Dropdown.Popover><Dropdown.Menu aria-label='Sort' items={headerColumns.filter((c) => !["actions"].includes(c.uid))}>
 									{(item) =>
 										item.name === "" ? null : (
-											<DropdownItem
+											<Dropdown.Item
 												key={item.uid}
-												onPress={() => {
+												id={item.uid}
+												textValue={item.name}
+												onAction={() => {
 													setSortDescriptor({
 														column: item.uid,
 														direction: sortDescriptor.direction === "ascending" ? "descending" : "ascending",
 													});
 												}}
 											>
-												{item.name}
-											</DropdownItem>
+												<Label>{item.name}</Label>
+											</Dropdown.Item>
 										)
 									}
-								</DropdownMenu>
+								</Dropdown.Menu></Dropdown.Popover>
 							</Dropdown>
 						</div>
 						<div>
-							<Dropdown closeOnSelect={false}>
-								<DropdownTrigger>
+							<Dropdown>
+								<Dropdown.Trigger>
 									<Button className='bg-default-100 text-default-800' size='sm' aria-label='Open Column Options'>{<IconArrowsLeftRight className='text-default-400' width={16} />}
 										Columns
 									</Button>
-								</DropdownTrigger>
-								<DropdownMenu disallowEmptySelection aria-label='Columns' items={currentColumns.filter((c) => !["actions"].includes(c.uid))} selectedKeys={visibleColumns} selectionMode='multiple' onSelectionChange={setVisibleColumns}>
-									{(item) => (item.name === "" ? null : <DropdownItem key={item.uid}>{item.name}</DropdownItem>)}
-								</DropdownMenu>
+								</Dropdown.Trigger>
+								<Dropdown.Popover><Dropdown.Menu disallowEmptySelection aria-label='Columns' items={currentColumns.filter((c) => !["actions"].includes(c.uid))} selectedKeys={visibleColumns} selectionMode='multiple' onSelectionChange={setVisibleColumns}>
+									{(item) => (item.name === "" ? null : <Dropdown.Item key={item.uid} id={item.uid} textValue={item.name}><Dropdown.ItemIndicator /><Label>{item.name}</Label></Dropdown.Item>)}
+								</Dropdown.Menu></Dropdown.Popover>
 							</Dropdown>
 						</div>
 					</div>
@@ -496,17 +498,17 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 
 					{(filterSelectedKeys === "all" || filterSelectedKeys.size > 0) && (
 						<Dropdown>
-							<DropdownTrigger>
+							<Dropdown.Trigger>
 								<Button className='bg-default-100 text-default-800' size='sm' variant='tertiary' aria-label='Open Selected Actions'>
 									Selected Actions
 								{<IconChevronDown className='text-default-400' />}</Button>
-							</DropdownTrigger>
-							<DropdownMenu aria-label='Selected Actions'>
+							</Dropdown.Trigger>
+							<Dropdown.Popover><Dropdown.Menu aria-label='Selected Actions'>
 								{activeTab === "overlays" ? (
-									<DropdownItem
-										key='toggleStatus'
-										startContent={<IconCircuitChangeover />}
-										onClick={() => {
+									<Dropdown.Item
+										id='toggleStatus'
+										textValue='Toggle status'
+										onAction={() => {
 											const selectedOverlays = filterSelectedKeys === "all" ? overlays : (filteredItems as LocalOverlay[]).filter((item) => filterSelectedKeys.has(String(item.id)));
 
 											const toggleStatusPromises = selectedOverlays?.map((overlay) => {
@@ -553,16 +555,14 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 												});
 										}}
 									>
-										Toggle status
-									</DropdownItem>
-								) : (
-									<DropdownItem key='none' className='hidden' />
-								)}
-								<DropdownItem
-									key='delete'
-									color='danger'
-									startContent={<IconTrash className='text-danger-500' width={16} />}
-									onClick={() => {
+										<IconCircuitChangeover /><Label>Toggle status</Label>
+									</Dropdown.Item>
+								) : null}
+								<Dropdown.Item
+									id='delete'
+									textValue='Delete'
+									variant='danger'
+									onAction={() => {
 										const selectedItems = filterSelectedKeys === "all" ? (activeTab === "overlays" ? overlays : playlists) : filteredItems.filter((item) => filterSelectedKeys.has(String(item.id)));
 
 										const deletePromises = selectedItems?.map((item) =>
@@ -605,9 +605,9 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 											});
 									}}
 								>
-									Delete
-								</DropdownItem>
-							</DropdownMenu>
+									<IconTrash className='text-danger-500' width={16} /><Label>Delete</Label>
+								</Dropdown.Item>
+							</Dropdown.Menu></Dropdown.Popover>
 						</Dropdown>
 					)}
 				</div>
@@ -635,18 +635,20 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 					</div>
 					{hasAccess ? (
 						<Dropdown>
-							<DropdownTrigger>
+							<Dropdown.Trigger>
 								<Button isDisabled={overlays === undefined} isPending={isLoading} variant='primary'>
 									{isLoading ? <Spinner color='current' size='sm' /> : null}
 									{activeTab === "overlays" ? "Add Overlay" : "Add Playlist"}
 								{<IconCirclePlus width={20} />}</Button>
-							</DropdownTrigger>
+							</Dropdown.Trigger>
 
-							<DropdownMenu aria-label='Actions' items={editorAccessList}>
+							<Dropdown.Popover><Dropdown.Menu aria-label='Actions' items={editorAccessList}>
 								{(item) => (
-									<DropdownItem
+									<Dropdown.Item
 										key={item.id}
-										onPress={async () => {
+										id={item.id}
+										textValue={activeTab === "overlays" ? `Add new overlay for ${item.display_name}` : `Add new playlist for ${item.display_name}`}
+										onAction={async () => {
 											setIsLoading(true);
 											try {
 												if (activeTab === "overlays") {
@@ -687,16 +689,16 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 											}
 										}}
 									>
-										<div className='flex items-center'>
+										<Label className='flex items-center'>
 											<Avatar className='mr-2 h-6 w-6'>
 												<Avatar.Image alt={item.display_name} src={item.profile_image_url} />
 												<Avatar.Fallback>{item.display_name.slice(0, 2).toUpperCase()}</Avatar.Fallback>
 											</Avatar>
 											{activeTab === "overlays" ? `Add new overlay for ${item.display_name}` : `Add new playlist for ${item.display_name}`}
-										</div>
-									</DropdownItem>
+										</Label>
+									</Dropdown.Item>
 								)}
-							</DropdownMenu>
+							</Dropdown.Menu></Dropdown.Popover>
 						</Dropdown>
 					) : (
 						<Button isPending={isLoading} isDisabled={overlays === undefined} onPress={async () => {

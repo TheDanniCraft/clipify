@@ -5,7 +5,7 @@ import { getAccessToken, getAllOverlays, getEditorOverlays, getOverlayOwnerPlans
 import { getUsersDetailsBulk } from "@actions/twitch";
 import DashboardNavbar from "@components/dashboardNavbar";
 import { AuthenticatedUser, Overlay } from "@types";
-import { Avatar, Button, Card, Separator, Link, Select, SelectItem, Snippet, Spinner, Switch, Tooltip, useDisclosure } from "@heroui/react";
+import { Avatar, Button, Card, Separator, Label, Link, ListBox, Select, Snippet, Spinner, Switch, Tooltip, useDisclosure } from "@heroui/react";
 
 import { IconArrowLeft, IconCode, IconEye, IconLink, IconPlayerPlayFilled, IconSparkles, IconVolume } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
@@ -171,34 +171,33 @@ export default function EmbedTool() {
 						</Card.Header>
 						<Card.Content className='flex flex-col gap-4'>
 							<Select
-								selectedKeys={overlayId === "" ? new Set([]) : new Set([overlayId])}
-								onSelectionChange={(selected) => {
-									const nextId = String(Array.from(selected)[0] ?? "");
+								value={overlayId || null}
+								onChange={(selected) => {
+									const nextId = String(selected ?? "");
 									setOverlayId(nextId);
 									const nextPlan = nextId ? ownerPlansByOverlayId[nextId] : undefined;
 									if (!nextId || nextPlan !== "free") {
 										setShowBanner(false);
 									}
 								}}
-								label='Select Overlay'
 								placeholder='Select an overlay to generate embed code'
-								renderValue={() => {
-									const selected = overlayId;
-									const found = overlays.find((o) => o.id === selected);
-									return found ? found.name : undefined;
-								}}
 							>
+								<Label>Select Overlay</Label>
+								<Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
+								<Select.Popover><ListBox>
 								{overlays.map((overlay) => (
-									<SelectItem key={overlay.id}>
-										<div className='flex items-center'>
+									<ListBox.Item key={overlay.id} id={overlay.id} textValue={overlay.name}>
+										<Label className='flex items-center'>
 											<Avatar className='mr-2 h-6 w-6'>
 												<Avatar.Image alt='' src={avatars[overlay.ownerId]} />
 												<Avatar.Fallback>?</Avatar.Fallback>
 											</Avatar>
 											{overlay.name}
-										</div>
-									</SelectItem>
+										</Label>
+										<ListBox.ItemIndicator />
+									</ListBox.Item>
 								))}
+								</ListBox></Select.Popover>
 							</Select>
 							<Tooltip delay={0}>
 								<Tooltip.Trigger><span>

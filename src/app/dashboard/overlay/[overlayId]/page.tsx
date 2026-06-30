@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useParams, useRouter } from "next/navigation";
 import { createPlaylist, getClipCacheStatus, getOverlay, getOverlayOwnerPlan, getPlaylistsForOwner, previewImportPlaylistClips, saveOverlay, savePlaylist, upsertPlaylistClips } from "@actions/database";
-import { addToast, Autocomplete, AutocompleteItem, Button, Card, Checkbox, Chip, DateRangePicker, Separator, Form, Input, Link, Modal, NumberInput, Select, SelectItem, Slider, Snippet, Spinner, Switch, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow, Tooltip, useDisclosure, TextField, Label, FieldError, InputGroup, CloseButton } from "@heroui/react";
+import { addToast, Button, Card, Checkbox, Chip, ComboBox, DateRangePicker, Separator, Form, Input, Link, ListBox, Modal, NumberInput, Select, Slider, Snippet, Spinner, Switch, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow, Tooltip, useDisclosure, TextField, Label, FieldError, InputGroup, CloseButton } from "@heroui/react";
 import Image from "next/image";
 import type { Selection, SortDescriptor } from "@heroui/react";
 
@@ -837,9 +837,9 @@ export default function OverlaySettings() {
 									<div className='w-full flex items-center'>
 										<Select
 											isRequired
-											selectedKeys={[overlay.type]}
-											onSelectionChange={(value) => {
-												const nextType = value.currentKey as OverlayType;
+											value={overlay.type}
+											onChange={(value) => {
+												const nextType = value as OverlayType;
 												const fallbackPlaylistId = playlists[0]?.id ?? null;
 												const nextPlaybackMode = (() => {
 													if (nextType === OverlayType.Playlist) return overlay.playbackMode;
@@ -852,11 +852,14 @@ export default function OverlaySettings() {
 													playbackMode: nextPlaybackMode,
 												});
 											}}
-											label='Overlay Type'
 										>
+											<Label>Overlay Type</Label>
+											<Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
+											<Select.Popover><ListBox>
 											{overlayTypes.map((type) => (
-												<SelectItem key={type.key}>{type.key !== "Queue" ? type.label : type.label}</SelectItem>
+												<ListBox.Item key={type.key} id={type.key} textValue={type.label}><Label>{type.label}</Label><ListBox.ItemIndicator /></ListBox.Item>
 											))}
+											</ListBox></Select.Popover>
 										</Select>
 										<Button isIconOnly onPress={onCliplistOpen} size='lg' className='ml-2'>
 											<span>{filteredPreviewClips.length}</span>
@@ -952,12 +955,16 @@ export default function OverlaySettings() {
 										</div>
 
 										<div className='flex w-full items-center px-2 mb-2 gap-1'>
-											<Select selectedKeys={[overlay.playbackMode]} onSelectionChange={(value) => setOverlay({ ...overlay, playbackMode: value.currentKey as PlaybackMode })} label='Playback Mode' className='flex-1'>
+											<Select value={overlay.playbackMode} onChange={(value) => setOverlay({ ...overlay, playbackMode: value as PlaybackMode })} className='flex-1'>
+												<Label>Playback Mode</Label>
+												<Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
+												<Select.Popover><ListBox>
 												{playbackModes
 													.filter((mode) => mode.key !== PlaybackMode.Order || (isPlaylistOverlay && !!overlay.playlistId))
 													.map((mode) => (
-														<SelectItem key={mode.key}>{mode.label}</SelectItem>
+														<ListBox.Item key={mode.key} id={mode.key} textValue={mode.label}><Label>{mode.label}</Label><ListBox.ItemIndicator /></ListBox.Item>
 													))}
+												</ListBox></Select.Popover>
 											</Select>
 											<Tooltip delay={0}>
 												<Tooltip.Trigger><IconInfoCircle className='text-default-400' /></Tooltip.Trigger>
@@ -968,9 +975,9 @@ export default function OverlaySettings() {
 											<div className='px-2 py-2 space-y-2'>
 												<div className='flex w-full items-center gap-2'>
 													<Select
-														selectedKeys={overlay.playlistId ? [overlay.playlistId] : []}
-														onSelectionChange={async (value) => {
-															const selected = value.currentKey as string;
+														value={overlay.playlistId}
+														onChange={async (value) => {
+															const selected = value as string;
 															if (selected === "create_new") {
 																try {
 																	const playlist = await createPlaylist(currentOverlay.ownerId, "New Playlist");
@@ -988,19 +995,14 @@ export default function OverlaySettings() {
 															}
 															setOverlay({ ...overlay, playlistId: selected ?? null });
 														}}
-														label='Playlist'
 														className='flex-1'
 													>
-														{[
-															...playlists.map((playlist) => (
-																<SelectItem key={playlist.id} textValue={`${playlist.name} (${playlist.clipCount})`}>
-																	{`${playlist.name} (${playlist.clipCount})`}
-																</SelectItem>
-															)),
-															<SelectItem key='create_new' textValue='Create new playlist...'>
-																Create new playlist...
-															</SelectItem>,
-														]}
+														<Label>Playlist</Label>
+														<Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
+														<Select.Popover><ListBox>
+															{playlists.map((playlist) => <ListBox.Item key={playlist.id} id={playlist.id} textValue={`${playlist.name} (${playlist.clipCount})`}><Label>{`${playlist.name} (${playlist.clipCount})`}</Label><ListBox.ItemIndicator /></ListBox.Item>)}
+															<ListBox.Item id='create_new' textValue='Create new playlist...'><Label>Create new playlist...</Label></ListBox.Item>
+														</ListBox></Select.Popover>
 													</Select>
 													<Button onPress={() => {
 															if (!overlay.playlistId) return;
@@ -1036,12 +1038,9 @@ export default function OverlaySettings() {
 												<NumberInput size='sm' minValue={0} defaultValue={overlay.minClipViews} value={overlay.minClipViews} onValueChange={(value) => setOverlay({ ...overlay, minClipViews: Number(value) })} label='Minimum Clip Views' description='Only clips with at least this many views will be shown in the overlay.' className='p-2' />
 
 												<div className='p-2 space-y-2'>
-													<Autocomplete
-														label='Allowed Games / Categories'
-														placeholder='Search and add a game...'
-														items={allowlistGameResults.slice(0, 100)}
-														isLoading={isSearchingAllowlistGames}
-														onInputChange={setAllowlistGameSearch}
+											<ComboBox
+												inputValue={allowlistGameSearch}
+												onInputChange={setAllowlistGameSearch}
 														onSelectionChange={(key) => {
 															if (!key) return;
 															const game = allowlistGameResults.find((g) => g.id === key);
@@ -1051,17 +1050,22 @@ export default function OverlaySettings() {
 																if (game) setGameDetailsById((prev) => ({ ...prev, [id]: game }));
 															}
 															setAllowlistGameSearch("");
-														}}
-													>
-														{(item) => (
-															<AutocompleteItem key={item.id} textValue={item.name}>
-																<div className='flex items-center gap-2'>
-																	{item.box_art_url ? <Image unoptimized src={item.box_art_url.replace("{width}", "32").replace("{height}", "44")} alt={item.name} width={24} height={32} className='h-8 w-6 rounded object-cover' /> : null}
-																	<span>{item.name}</span>
-																</div>
-															</AutocompleteItem>
-														)}
-													</Autocomplete>
+												}}
+											>
+												<Label>Allowed Games / Categories</Label>
+												<ComboBox.InputGroup><Input placeholder='Search and add a game...' />{isSearchingAllowlistGames ? <span className='px-1 text-xs text-default-500'>Loading</span> : null}<ComboBox.Trigger /></ComboBox.InputGroup>
+												<ComboBox.Popover><ListBox items={allowlistGameResults.slice(0, 100)}>
+												{(item) => (
+													<ListBox.Item id={item.id} textValue={item.name}>
+														<Label className='flex items-center gap-2'>
+															{item.box_art_url ? <Image unoptimized src={item.box_art_url.replace("{width}", "32").replace("{height}", "44")} alt={item.name} width={24} height={32} className='h-8 w-6 rounded object-cover' /> : null}
+															<span>{item.name}</span>
+														</Label>
+														<ListBox.ItemIndicator />
+													</ListBox.Item>
+												)}
+												</ListBox></ComboBox.Popover>
+											</ComboBox>
 													<div className='flex flex-wrap gap-1'>
 														{(overlay.categoriesOnly ?? []).map((id) => (
 																	<Chip key={id} size='sm' variant='tertiary'>
@@ -1073,12 +1077,9 @@ export default function OverlaySettings() {
 												</div>
 
 												<div className='p-2 space-y-2'>
-													<Autocomplete
-														label='Blocked Games / Categories'
-														placeholder='Search and block a game...'
-														items={denylistGameResults.slice(0, 100)}
-														isLoading={isSearchingDenylistGames}
-														onInputChange={setDenylistGameSearch}
+											<ComboBox
+												inputValue={denylistGameSearch}
+												onInputChange={setDenylistGameSearch}
 														onSelectionChange={(key) => {
 															if (!key) return;
 															const game = denylistGameResults.find((g) => g.id === key);
@@ -1088,17 +1089,22 @@ export default function OverlaySettings() {
 																if (game) setGameDetailsById((prev) => ({ ...prev, [id]: game }));
 															}
 															setDenylistGameSearch("");
-														}}
-													>
-														{(item) => (
-															<AutocompleteItem key={item.id} textValue={item.name}>
-																<div className='flex items-center gap-2'>
-																	{item.box_art_url ? <Image unoptimized src={item.box_art_url.replace("{width}", "32").replace("{height}", "44")} alt={item.name} width={24} height={32} className='h-8 w-6 rounded object-cover' /> : null}
-																	<span>{item.name}</span>
-																</div>
-															</AutocompleteItem>
-														)}
-													</Autocomplete>
+												}}
+											>
+												<Label>Blocked Games / Categories</Label>
+												<ComboBox.InputGroup><Input placeholder='Search and block a game...' />{isSearchingDenylistGames ? <span className='px-1 text-xs text-default-500'>Loading</span> : null}<ComboBox.Trigger /></ComboBox.InputGroup>
+												<ComboBox.Popover><ListBox items={denylistGameResults.slice(0, 100)}>
+												{(item) => (
+													<ListBox.Item id={item.id} textValue={item.name}>
+														<Label className='flex items-center gap-2'>
+															{item.box_art_url ? <Image unoptimized src={item.box_art_url.replace("{width}", "32").replace("{height}", "44")} alt={item.name} width={24} height={32} className='h-8 w-6 rounded object-cover' /> : null}
+															<span>{item.name}</span>
+														</Label>
+														<ListBox.ItemIndicator />
+													</ListBox.Item>
+												)}
+												</ListBox></ComboBox.Popover>
+											</ComboBox>
 													<div className='flex flex-wrap gap-1'>
 														{(overlay.categoriesBlocked ?? []).map((id) => (
 																	<Chip key={id} size='sm' variant='tertiary' color='danger'>
@@ -1379,14 +1385,9 @@ export default function OverlaySettings() {
 				<ControlledModal isOpen={isImportOpen} onOpenChange={onImportOpenChange}>
 						<Modal.Header><Modal.Heading>Auto Import to Playlist</Modal.Heading></Modal.Header>
 						<Modal.Body className='space-y-4'>
-							<Autocomplete
-								label='Category / Game'
+							<ComboBox
 								isRequired
 								allowsCustomValue
-								isClearable
-								items={importCategoryOptions}
-								isLoading={isSearchingGames}
-								placeholder='Type at least 2 characters or choose all'
 								inputValue={importCategoryInput}
 								onInputChange={(value) => {
 									setImportCategoryInput(value);
@@ -1407,15 +1408,25 @@ export default function OverlaySettings() {
 								}}
 								selectedKey={importCategoryId || null}
 							>
+								<Label>Category / Game</Label>
+								<ComboBox.InputGroup>
+									<Input placeholder='Type at least 2 characters or choose all' />
+									{importCategoryInput ? <button type='button' aria-label='Clear category' onClick={() => { setImportCategoryInput(""); setImportCategoryId(""); }}>×</button> : null}
+									{isSearchingGames ? <span className='px-1 text-xs text-default-500'>Loading</span> : null}
+									<ComboBox.Trigger />
+								</ComboBox.InputGroup>
+								<ComboBox.Popover><ListBox items={importCategoryOptions}>
 								{(item) => (
-									<AutocompleteItem key={item.id} textValue={item.name}>
-										<div className='flex items-center gap-2'>
+									<ListBox.Item id={item.id} textValue={item.name}>
+										<Label className='flex items-center gap-2'>
 											{item.box_art_url ? <Image unoptimized src={item.box_art_url.replace("{width}", "32").replace("{height}", "44")} alt={item.name} width={24} height={32} className='h-8 w-6 rounded object-cover' /> : null}
 											<span>{item.name}</span>
-										</div>
-									</AutocompleteItem>
+										</Label>
+										<ListBox.ItemIndicator />
+									</ListBox.Item>
 								)}
-							</Autocomplete>
+								</ListBox></ComboBox.Popover>
+							</ComboBox>
 
 							<DateRangePicker
 								label='Date Range'
