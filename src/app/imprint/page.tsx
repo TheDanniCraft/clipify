@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Link } from "@components/heroui-client";
+import { Link, LinkIcon } from "@components/heroui-client";
 import Image from "next/image";
 
 import BasicNavbar from "@components/LandingPage/basicNavbar";
@@ -71,7 +71,7 @@ export default function ImprintPage() {
 							The European Commission provides a platform for online dispute resolution (ODR):{" "}
 							<Link href='https://ec.europa.eu/consumers/odr' target='_blank' rel='noopener noreferrer'>
 								https://ec.europa.eu/consumers/odr
-								<Link.Icon />
+								<LinkIcon />
 							</Link>
 							.
 						</p>

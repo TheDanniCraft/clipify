@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Button, Form, Input, Link, Popover, RadioGroup, Spinner, Tabs, TextArea, TextField, Label, FieldError } from "@heroui/react";
+import { Button, Form, Input, Link, LinkIcon, Popover, RadioGroup, Spinner, Tabs, TextArea, TextField, Label, FieldError } from "@heroui/react";
 import Image from "next/image";
 
 import { IconChevronLeft, IconX } from "@tabler/icons-react";
@@ -119,7 +119,7 @@ export default function FeedbackWidget() {
 											{response && "html_url" in response && (
 												<Link href={response.html_url} className='mb-5 underline underline-offset-2 text-sm' target='_blank' rel='noopener noreferrer'>
 													Open feedback
-													<Link.Icon />
+													<LinkIcon />
 												</Link>
 											)}
 										</div>
