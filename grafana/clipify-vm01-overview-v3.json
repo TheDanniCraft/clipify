@@ -6416,12 +6416,390 @@
 								"values": false
 							},
 							"textMode": "auto"
-						}
+						},
+						"options": {}
 					},
 					"version": "v0"
 				}
 			},
 			"version": "v0"
+		},
+		"panel-101": {
+			"kind": "Panel",
+			"spec": {
+				"data": {
+					"kind": "QueryGroup",
+					"spec": {
+						"queries": [
+							{
+								"kind": "PanelQuery",
+								"spec": {
+									"hidden": false,
+									"query": {
+										"datasource": {
+											"name": "efg3es37pgh6ob"
+										},
+										"group": "influxdb",
+										"kind": "DataQuery",
+										"spec": {
+											"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"clipify_vm01\")\n  |> filter(fn: (r) => r[\"_field\"] == \"auth_tokenRows\" or r[\"_field\"] == \"auth_readyForTwitchApiUsers\")\n  |> last()\n  |> pivot(rowKey:[\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> map(fn: (r) => ({ r with _value: float(v: r.auth_readyForTwitchApiUsers) / float(v: r.auth_tokenRows) * 100.0 }))\n  |> keep(columns: [\"_time\", \"_value\"])"
+										},
+										"version": "v0"
+									},
+									"refId": "A"
+								}
+							}
+						],
+						"queryOptions": {},
+						"transformations": []
+					}
+				},
+				"description": "Percentage of users ready for V2 API",
+				"id": 3,
+				"links": [],
+				"title": "V2 Migration Progress",
+				"vizConfig": {
+					"group": "gauge",
+					"kind": "VizConfig",
+					"spec": {
+						"fieldConfig": {
+							"defaults": {
+								"color": {
+									"mode": "thresholds"
+								},
+								"decimals": 2,
+								"thresholds": {
+									"mode": "absolute",
+									"steps": [
+										{
+											"color": "red",
+											"value": 0
+										},
+										{
+											"color": "yellow",
+											"value": 50
+										},
+										{
+											"color": "green",
+											"value": 80
+										}
+									]
+								},
+								"unit": "percent",
+								"min": 0,
+								"max": 100
+							},
+							"overrides": [
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "db_pingMs"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "DB Ping"
+										}
+									]
+								}
+							]
+						},
+						"options": {
+							"barShape": "flat",
+							"barWidthFactor": 0.5,
+							"effects": {
+								"barGlow": false,
+								"centerGlow": false,
+								"gradient": true
+							},
+							"endpointMarker": "point",
+							"minVizHeight": 75,
+							"minVizWidth": 75,
+							"orientation": "auto",
+							"reduceOptions": {
+								"calcs": ["lastNotNull"],
+								"fields": "",
+								"values": false
+							},
+							"segmentCount": 1,
+							"segmentSpacing": 0.3,
+							"shape": "gauge",
+							"showThresholdLabels": false,
+							"showThresholdMarkers": true,
+							"sizing": "auto",
+							"sparkline": true,
+							"textMode": "auto"
+						}
+					},
+					"version": "13.0.0-24139322263"
+				}
+			},
+			"id": 101
+		},
+		"panel-102": {
+			"kind": "Panel",
+			"spec": {
+				"data": {
+					"kind": "QueryGroup",
+					"spec": {
+						"queries": [
+							{
+								"kind": "PanelQuery",
+								"spec": {
+									"hidden": false,
+									"query": {
+										"datasource": {
+											"name": "efg3es37pgh6ob"
+										},
+										"group": "influxdb",
+										"kind": "DataQuery",
+										"spec": {
+											"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"clipify_vm01\")\n  |> filter(fn: (r) => r[\"_field\"] == \"clips_fetches_v2TwitchApi\")\n  |> aggregateWindow(every: v.windowPeriod, fn: max)\n  |> yield(name: \"clips_fetches_v2TwitchApi\")"
+										},
+										"version": "v0"
+									},
+									"refId": "A"
+								}
+							},
+							{
+								"kind": "PanelQuery",
+								"spec": {
+									"hidden": false,
+									"query": {
+										"datasource": {
+											"name": "efg3es37pgh6ob"
+										},
+										"group": "influxdb",
+										"kind": "DataQuery",
+										"spec": {
+											"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"clipify_vm01\")\n  |> filter(fn: (r) => r[\"_field\"] == \"clips_fetches_v1GraphQL\")\n  |> aggregateWindow(every: v.windowPeriod, fn: max)\n  |> yield(name: \"clips_fetches_v1GraphQL\")"
+										},
+										"version": "v0"
+									},
+									"refId": "B"
+								}
+							},
+							{
+								"kind": "PanelQuery",
+								"spec": {
+									"hidden": false,
+									"query": {
+										"datasource": {
+											"name": "efg3es37pgh6ob"
+										},
+										"group": "influxdb",
+										"kind": "DataQuery",
+										"spec": {
+											"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"clipify_vm01\")\n  |> filter(fn: (r) => r[\"_field\"] == \"clips_fetches_v2FallbackGraphQL\")\n  |> aggregateWindow(every: v.windowPeriod, fn: max)\n  |> yield(name: \"clips_fetches_v2FallbackGraphQL\")"
+										},
+										"version": "v0"
+									},
+									"refId": "C"
+								}
+							},
+							{
+								"kind": "PanelQuery",
+								"spec": {
+									"hidden": false,
+									"query": {
+										"datasource": {
+											"name": "efg3es37pgh6ob"
+										},
+										"group": "influxdb",
+										"kind": "DataQuery",
+										"spec": {
+											"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"clipify_vm01\")\n  |> filter(fn: (r) => r[\"_field\"] == \"clips_fetches_v2RateLimited\")\n  |> aggregateWindow(every: v.windowPeriod, fn: max)\n  |> yield(name: \"clips_fetches_v2RateLimited\")"
+										},
+										"version": "v0"
+									},
+									"refId": "D"
+								}
+							}
+						],
+						"queryOptions": {},
+						"transformations": []
+					}
+				},
+				"description": "Clip downloads using V1 vs V2",
+				"id": 13,
+				"links": [],
+				"title": "API Fetch Health & Rate Limits",
+				"vizConfig": {
+					"group": "timeseries",
+					"kind": "VizConfig",
+					"spec": {
+						"fieldConfig": {
+							"defaults": {
+								"color": {
+									"mode": "palette-classic"
+								},
+								"custom": {
+									"axisBorderShow": false,
+									"axisCenteredZero": false,
+									"axisColorMode": "text",
+									"axisLabel": "",
+									"axisPlacement": "auto",
+									"barAlignment": 0,
+									"barWidthFactor": 0.6,
+									"drawStyle": "line",
+									"fillOpacity": 10,
+									"gradientMode": "none",
+									"hideFrom": {
+										"legend": false,
+										"tooltip": false,
+										"viz": false
+									},
+									"insertNulls": false,
+									"lineInterpolation": "linear",
+									"lineWidth": 2,
+									"pointSize": 5,
+									"scaleDistribution": {
+										"type": "linear"
+									},
+									"showPoints": "never",
+									"showValues": false,
+									"spanNulls": false,
+									"stacking": {
+										"group": "A",
+										"mode": "none"
+									},
+									"thresholdsStyle": {
+										"mode": "off"
+									}
+								},
+								"decimals": 2,
+								"thresholds": {
+									"mode": "absolute",
+									"steps": [
+										{
+											"color": "green",
+											"value": 0
+										},
+										{
+											"color": "#EAB839",
+											"value": 180
+										},
+										{
+											"color": "orange",
+											"value": 250
+										},
+										{
+											"color": "red",
+											"value": 400
+										}
+									]
+								},
+								"unit": "ms"
+							},
+							"overrides": [
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "clips_fetches_v2TwitchApi"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "V2 Helix API"
+										},
+										{
+											"id": "color",
+											"value": {
+												"fixedColor": "green",
+												"mode": "fixed"
+											}
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "clips_fetches_v1GraphQL"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "V1 GraphQL"
+										},
+										{
+											"id": "color",
+											"value": {
+												"fixedColor": "grey",
+												"mode": "fixed"
+											}
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "clips_fetches_v2FallbackGraphQL"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "V2 Fallback"
+										},
+										{
+											"id": "color",
+											"value": {
+												"fixedColor": "orange",
+												"mode": "fixed"
+											}
+										}
+									]
+								},
+								{
+									"matcher": {
+										"id": "byName",
+										"options": "clips_fetches_v2RateLimited"
+									},
+									"properties": [
+										{
+											"id": "displayName",
+											"value": "Rate Limited!"
+										},
+										{
+											"id": "color",
+											"value": {
+												"fixedColor": "red",
+												"mode": "fixed"
+											}
+										}
+									]
+								}
+							]
+						},
+						"options": {
+							"annotations": {
+								"clustering": -1,
+								"multiLane": false
+							},
+							"legend": {
+								"calcs": ["lastNotNull"],
+								"displayMode": "list",
+								"placement": "bottom",
+								"showLegend": true
+							},
+							"tooltip": {
+								"hideZeros": false,
+								"mode": "multi",
+								"sort": "none"
+							},
+							"custom": {
+								"fillOpacity": 25,
+								"lineWidth": 2,
+								"stacking": {
+									"group": "A",
+									"mode": "normal"
+								}
+							}
+						}
+					},
+					"version": "13.0.0-24139322263"
+				}
+			},
+			"id": 102
 		}
 	},
 	"layout": {
@@ -7144,6 +7522,46 @@
 											"width": 6,
 											"x": 18,
 											"y": 8
+										}
+									}
+								]
+							}
+						}
+					}
+				},
+				{
+					"kind": "RowsLayoutRow",
+					"spec": {
+						"title": "V2 Migration & Telemetry",
+						"collapse": false,
+						"layout": {
+							"kind": "GridLayout",
+							"spec": {
+								"items": [
+									{
+										"kind": "GridLayoutItem",
+										"spec": {
+											"element": {
+												"kind": "ElementReference",
+												"name": "panel-101"
+											},
+											"height": 8,
+											"width": 6,
+											"x": 0,
+											"y": 0
+										}
+									},
+									{
+										"kind": "GridLayoutItem",
+										"spec": {
+											"element": {
+												"kind": "ElementReference",
+												"name": "panel-102"
+											},
+											"height": 8,
+											"width": 18,
+											"x": 6,
+											"y": 0
 										}
 									}
 								]
