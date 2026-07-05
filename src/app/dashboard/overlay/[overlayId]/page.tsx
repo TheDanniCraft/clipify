@@ -804,7 +804,7 @@ export default function OverlaySettings() {
 											<Switch.Content>
 												<Switch.Control>
 													<Switch.Thumb>
-														<Switch.Icon>{overlay.status === StatusOptions.Active ? <IconPlayerPauseFilled size={12} /> : <IconPlayerPlayFilled size={12} />}</Switch.Icon>
+														<Switch.Icon>{overlay.status === StatusOptions.Active ? <IconPlayerPlayFilled size={12} /> : <IconPlayerPauseFilled size={12} />}</Switch.Icon>
 													</Switch.Thumb>
 												</Switch.Control>
 											</Switch.Content>
