@@ -295,7 +295,10 @@ export async function getTwitchClipPlaybackUrl(clipId: string, broadcasterId: st
 		};
 		recordTwitchRateLimit(rateLimitLog);
 		if (process.env.NODE_ENV !== "test") {
-			fs.appendFile(path.join(process.cwd(), "twitch-rate-limits.jsonl"), JSON.stringify(rateLimitLog) + "\n").catch(console.error);
+			const logsDir = path.join(process.cwd(), "logs");
+			fs.mkdir(logsDir, { recursive: true })
+				.then(() => fs.appendFile(path.join(logsDir, "twitch-rate-limits.jsonl"), JSON.stringify(rateLimitLog) + "\n"))
+				.catch(console.error);
 		}
 
 		if (shouldLogClipDownloadRateLimit(headers, response.status)) {
@@ -322,7 +325,10 @@ export async function getTwitchClipPlaybackUrl(clipId: string, broadcasterId: st
 			};
 			recordTwitchRateLimit(rateLimitLog);
 			if (process.env.NODE_ENV !== "test") {
-				fs.appendFile(path.join(process.cwd(), "twitch-rate-limits.jsonl"), JSON.stringify(rateLimitLog) + "\n").catch(console.error);
+				const logsDir = path.join(process.cwd(), "logs");
+				fs.mkdir(logsDir, { recursive: true })
+					.then(() => fs.appendFile(path.join(logsDir, "twitch-rate-limits.jsonl"), JSON.stringify(rateLimitLog) + "\n"))
+					.catch(console.error);
 			}
 
 			if (shouldLogClipDownloadRateLimit(headers, error.response?.status)) {

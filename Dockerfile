@@ -85,6 +85,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/drizzle.config.ts ./
 COPY --from=builder --chown=nextjs:nodejs /app/drizzle ./drizzle
 
+RUN mkdir -p /app/logs && chown nextjs:nodejs /app/logs
 USER nextjs
 EXPOSE 3000
 
