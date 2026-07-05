@@ -4,6 +4,9 @@
 import axios from "axios";
 import { AuthenticatedUser, Game, Overlay, OverlayType, PlaybackMode, RewardStatus, TwitchApiResponse, TwitchAppAccessTokenResponse, TwitchCacheType, TwitchClip, TwitchClipDownloadResponse, TwitchClipGqlData, TwitchClipGqlResponse, TwitchClipResponse, TwitchClipVideoQuality, TwitchReward, TwitchRewardResponse, TwitchTokenApiResponse, TwitchUserResponse } from "@types";
 import { deleteTwitchCacheByPrefix, deleteTwitchCacheKeys, getAccessToken, getAccessTokenServer, getOverlayBySecret, getOverlayPublic, getPlaylistClipsForOwnerServer, getTwitchCache, getTwitchCacheBatch, getTwitchCacheByPrefixEntries, getTwitchCacheEntry, getTwitchCacheStale, getTwitchCacheStaleBatch, setTwitchCache, setTwitchCacheBatch } from "@actions/database";
+import { type TwitchRateLimitLog, incrementClipFetchFallback, incrementClipFetchRateLimited, incrementClipFetchV1, incrementClipFetchV2, recordTwitchRateLimit } from "@lib/instanceHealth";
+import { promises as fs } from "fs";
+import path from "path";
 import { getAccessTokenInternal, getAccessTokenResultInternal } from "@/server/tokens";
 import { refreshAccessTokenWithContextInternal } from "@/server/twitch-auth";
 import { getBaseUrl, isPreview } from "@actions/utils";
@@ -259,6 +262,7 @@ export async function getTwitchClipPlaybackUrl(clipId: string, broadcasterId: st
 	const token = tokenResult.token;
 
 	if (!token || !hasClipDownloadScope(token.scope)) {
+		incrementClipFetchV1();
 		return getTwitchClipPlaybackUrlFromGraphQL(clipId);
 	}
 
@@ -278,17 +282,56 @@ export async function getTwitchClipPlaybackUrl(clipId: string, broadcasterId: st
 		const clipDownload = response.data.data.find((entry) => entry.clip_id === clipId) ?? response.data.data[0];
 		const url = clipDownload?.landscape_download_url ?? clipDownload?.portrait_download_url ?? undefined;
 		const headers = response.headers as Record<string, unknown>;
+
+		// TODO: remove later (stress testing logging)
+		const attemptLog = buildClipDownloadRateLimitLog(clipId, broadcasterId, timestamp, headers, response.status);
+		const rateLimitLog: TwitchRateLimitLog = {
+			broadcasterId: attemptLog.creatorId,
+			clipId: attemptLog.clipId,
+			limit: attemptLog.rateLimitLimit,
+			remaining: attemptLog.rateLimitRemaining,
+			reset: attemptLog.rateLimitReset,
+			timestamp: attemptLog.timestamp,
+		};
+		recordTwitchRateLimit(rateLimitLog);
+		fs.appendFile(path.join(process.cwd(), "twitch-rate-limits.jsonl"), JSON.stringify(rateLimitLog) + "\n").catch(console.error);
+
 		if (shouldLogClipDownloadRateLimit(headers, response.status)) {
-			logClipDownloadRateLimitExhausted(buildClipDownloadRateLimitLog(clipId, broadcasterId, timestamp, headers, response.status));
+			logClipDownloadRateLimitExhausted(attemptLog);
 		}
 
-		if (url) return url;
+		if (url) {
+			incrementClipFetchV2();
+			return url;
+		}
 	} catch (error) {
 		if (axios.isAxiosError(error)) {
 			const headers = (error.response?.headers ?? undefined) as Record<string, unknown> | undefined;
+
+			// TODO: remove later (stress testing logging)
+			const attemptLog = buildClipDownloadRateLimitLog(clipId, broadcasterId, timestamp, headers, error.response?.status);
+			const rateLimitLog: TwitchRateLimitLog = {
+				broadcasterId: attemptLog.creatorId,
+				clipId: attemptLog.clipId,
+				limit: attemptLog.rateLimitLimit,
+				remaining: attemptLog.rateLimitRemaining,
+				reset: attemptLog.rateLimitReset,
+				timestamp: attemptLog.timestamp,
+			};
+			recordTwitchRateLimit(rateLimitLog);
+			fs.appendFile(path.join(process.cwd(), "twitch-rate-limits.jsonl"), JSON.stringify(rateLimitLog) + "\n").catch(console.error);
+
 			if (shouldLogClipDownloadRateLimit(headers, error.response?.status)) {
-				logClipDownloadRateLimitExhausted(buildClipDownloadRateLimitLog(clipId, broadcasterId, timestamp, headers, error.response?.status));
+				logClipDownloadRateLimitExhausted(attemptLog);
 			}
+
+			if (error.response?.status === 429) {
+				incrementClipFetchRateLimited();
+			} else {
+				incrementClipFetchFallback();
+			}
+		} else {
+			incrementClipFetchFallback();
 		}
 	}
 

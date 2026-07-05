@@ -42,3 +42,4 @@ next-env.d.ts
 
 *.session.sql
 .secrets
+twitch-rate-limits.jsonl

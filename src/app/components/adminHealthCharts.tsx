@@ -40,9 +40,9 @@ function MeasuredChart({ className, children }: { className: string; children: (
 	);
 }
 
-function ChartPanel({ title, children }: { title: string; children: ReactNode }) {
+function ChartPanel({ title, children, className }: { title: string; children: ReactNode; className?: string }) {
 	return (
-		<Card variant='tertiary' className='min-w-0'>
+		<Card variant='tertiary' className={["min-w-0", className].filter(Boolean).join(" ")}>
 			<Card.Header>
 				<p className='text-xs font-semibold text-muted'>{title}</p>
 			</Card.Header>
@@ -145,6 +145,16 @@ export default function AdminHealthCharts({ health }: { health: InstanceHealthSn
 	const communityOptInData = [
 		{ label: "Opted In", value: health.community.optedInUsers, fill: "#17C964" },
 		{ label: "Not Opted In", value: Math.max(0, health.community.totalUsers - health.community.optedInUsers), fill: "#F31260" },
+	];
+	const v2SystemReadinessData = [
+		{ label: "Ready (V2)", value: health.auth.readyForTwitchApiUsers, fill: "#17C964" },
+		{ label: "Legacy (V1)", value: Math.max(0, health.auth.tokenRows - health.auth.readyForTwitchApiUsers), fill: "#F31260" },
+	];
+	const clipFetchesData = [
+		{ label: "V2 Success", value: health.clips.fetches.v2TwitchApi, fill: "#17C964" },
+		{ label: "V1 Legacy", value: health.clips.fetches.v1GraphQL, fill: "#006FEE" },
+		{ label: "V2 Fallback", value: health.clips.fetches.v2FallbackGraphQL, fill: "#F5A524" },
+		{ label: "V2 Rate Ltd", value: health.clips.fetches.v2RateLimited, fill: "#F31260" },
 	];
 	const cacheCompositionData = [
 		{
@@ -280,6 +290,83 @@ export default function AdminHealthCharts({ health }: { health: InstanceHealthSn
 							)}
 						</MeasuredChart>
 					</ChartPanel>
+					<ChartPanel title='V2 System Readiness' className='md:col-span-2'>
+						<MeasuredChart className='h-56 min-w-0'>
+							{(width) => (
+								<PieChart width={width} height={224}>
+									<Tooltip {...tooltipProps} />
+									<Pie data={v2SystemReadinessData} dataKey='value' nameKey='label' cx='50%' cy='50%' outerRadius={Math.min(78, Math.floor(width / 4))} label>
+										{v2SystemReadinessData.map((entry) => (
+											<Cell key={entry.label} fill={entry.fill} />
+										))}
+									</Pie>
+								</PieChart>
+							)}
+						</MeasuredChart>
+					</ChartPanel>
+				</Card.Content>
+			</Card>
+
+			<Card variant='secondary' className='min-w-0 lg:col-span-2'>
+				<Card.Header className='pb-1'>
+					<p className='text-sm font-semibold'>Clip Download Fetches (In-Memory)</p>
+				</Card.Header>
+				<Card.Content className='min-w-0'>
+					<MeasuredChart className='h-56 min-w-0'>
+						{(width) => (
+							<BarChart width={width} height={224} data={clipFetchesData} margin={{ top: 10, right: 8, left: -18, bottom: 4 }}>
+								<CartesianGrid strokeDasharray='4 4' stroke='#d4d4d8' />
+								<XAxis dataKey='label' stroke='#71717a' />
+								<YAxis stroke='#71717a' allowDecimals={false} />
+								<Tooltip {...tooltipProps} />
+								<Bar dataKey='value' radius={[6, 6, 0, 0]}>
+									{clipFetchesData.map((entry) => (
+										<Cell key={entry.label} fill={entry.fill} />
+									))}
+								</Bar>
+							</BarChart>
+						)}
+					</MeasuredChart>
+				</Card.Content>
+			</Card>
+
+			<Card variant='secondary' className='min-w-0 lg:col-span-2'>
+				<Card.Header className='pb-1'>
+					<p className='text-sm font-semibold'>Twitch API Rate Limits (Live Stress Test Monitor)</p>
+				</Card.Header>
+				<Card.Content className='min-w-0'>
+					<div className='overflow-x-auto'>
+						<table className='min-w-full text-left text-sm whitespace-nowrap'>
+							<thead>
+								<tr className='border-b border-default-200'>
+									<th className='py-2 pr-4 font-semibold text-muted'>Time</th>
+									<th className='py-2 pr-4 font-semibold text-muted'>Broadcaster ID</th>
+									<th className='py-2 pr-4 font-semibold text-muted'>Limit</th>
+									<th className='py-2 pr-4 font-semibold text-muted'>Remaining</th>
+									<th className='py-2 font-semibold text-muted'>Reset</th>
+								</tr>
+							</thead>
+							<tbody>
+								{health.twitchRateLimit.history.length === 0 ? (
+									<tr>
+										<td colSpan={5} className='py-4 text-center text-muted'>
+											No API calls yet
+										</td>
+									</tr>
+								) : (
+									health.twitchRateLimit.history.map((log, i) => (
+										<tr key={i} className='border-b border-default-100 last:border-0 hover:bg-default-50'>
+											<td className='py-2 pr-4'>{new Date(log.timestamp).toLocaleTimeString()}</td>
+											<td className='py-2 pr-4 font-mono text-xs'>{log.broadcasterId}</td>
+											<td className='py-2 pr-4 font-mono'>{log.limit ?? "-"}</td>
+											<td className='py-2 pr-4 font-mono text-primary font-bold'>{log.remaining ?? "-"}</td>
+											<td className='py-2 font-mono'>{log.reset ?? "-"}</td>
+										</tr>
+									))
+								)}
+							</tbody>
+						</table>
+					</div>
 				</Card.Content>
 			</Card>
 

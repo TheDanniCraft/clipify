@@ -113,10 +113,22 @@ const healthSnapshot: InstanceHealthSnapshot = {
 		clipQueueDepth: 3,
 		modQueueDepth: 1,
 	},
+	clips: {
+		fetches: {
+			v1GraphQL: 50,
+			v2TwitchApi: 200,
+			v2FallbackGraphQL: 5,
+			v2RateLimited: 2,
+		},
+	},
+	twitchRateLimit: {
+		history: [],
+	},
 	auth: {
 		tokenRows: 10,
 		expiredTokens: 0,
 		expiringIn24h: 2,
+		readyForTwitchApiUsers: 5,
 	},
 	entitlements: {
 		activeGrantUsers: 1,
