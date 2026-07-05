@@ -1351,6 +1351,8 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 	useEffect(() => {
 		let ws: WebSocket | null = null;
 		let removeLoadListener: (() => void) | null = null;
+		let reconnectTimeout: NodeJS.Timeout | null = null;
+		let isUnmounted = false;
 
 		const onWindowMessage = async (event: MessageEvent) => {
 			if (event.origin !== window.location.origin) return;
@@ -1366,7 +1368,7 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 
 		function setupWebSocket() {
 			const wsUrl = getWebSocketUrl();
-			if (!wsUrl) return;
+			if (!wsUrl || isUnmounted) return;
 			ws = new WebSocket(wsUrl);
 			setWebsocket(ws);
 
@@ -1399,6 +1401,9 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 			});
 
 			ws.addEventListener("error", (event) => {
+				if (ws?.readyState === WebSocket.CLOSED || ws?.readyState === WebSocket.CLOSING) {
+					return; // Ignore errors caused by navigation/unmount
+				}
 				const details = {
 					readyState: ws?.readyState,
 					url: ws?.url,
@@ -1406,6 +1411,14 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 				};
 				console.error("WebSocket error", details);
 				ws?.close();
+			});
+
+			ws.addEventListener("close", () => {
+				if (!isUnmounted) {
+					reconnectTimeout = setTimeout(() => {
+						setupWebSocket();
+					}, 2000);
+				}
 			});
 		}
 
@@ -1421,6 +1434,8 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 		if (isDemoPlayer) window.addEventListener("message", onWindowMessage);
 
 		return () => {
+			isUnmounted = true;
+			if (reconnectTimeout) clearTimeout(reconnectTimeout);
 			if (removeLoadListener) removeLoadListener();
 			ws?.close();
 			setWebsocket(null);
