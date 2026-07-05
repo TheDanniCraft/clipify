@@ -2,7 +2,7 @@
 
 import { IconMoonFilled, IconSunFilled } from "@tabler/icons-react";
 import { useTheme } from "next-themes";
-import { Avatar, Button, ComboBox, Dropdown, Input, Label, Link, ListBox } from "@heroui/react";
+import { Avatar, Button, ComboBox, Dropdown, Input, Label, Link, ListBox, Spinner } from "@heroui/react";
 
 import { AuthenticatedUser, CampaignOffer, Role } from "@types";
 import Logo from "@components/logo";
@@ -204,6 +204,8 @@ export default function DashboardNavbar({ children, user, title, tagline }: { ch
 						</p>
 						<div className='flex w-full flex-col gap-2 sm:flex-row sm:items-center lg:w-auto'>
 							<ComboBox
+								allowsEmptyCollection
+								allowsCustomValue
 								aria-label='Search and select user for admin view'
 								className='min-w-[380px]'
 								inputValue={switchQuery}
@@ -220,11 +222,23 @@ export default function DashboardNavbar({ children, user, title, tagline }: { ch
 								<Label className='sr-only'>Search users</Label>
 								<ComboBox.InputGroup>
 									<Input placeholder='Search users' />
-									{isLoadingSwitchCandidates ? <span className='px-1 text-xs text-muted'>Loading</span> : null}
 									<ComboBox.Trigger />
 								</ComboBox.InputGroup>
 								<ComboBox.Popover>
-									<ListBox items={switchOptions}>
+									<ListBox
+										items={switchOptions}
+										renderEmptyState={() => {
+											if (switchQuery.length === 0) return <div className='p-4 text-center text-sm text-muted'>Type to search...</div>;
+											if (isLoadingSwitchCandidates)
+												return (
+													<div className='flex items-center justify-center p-4'>
+														<Spinner size='sm' color='current' />
+													</div>
+												);
+											if (switchQuery.length < 3) return <div className='p-4 text-center text-sm text-muted'>Keep typing...</div>;
+											return <div className='p-4 text-center text-sm text-muted'>No users found.</div>;
+										}}
+									>
 										{(candidate) => (
 											<ListBox.Item id={candidate.id} textValue={candidate.username}>
 												<Label>@{candidate.username}</Label>

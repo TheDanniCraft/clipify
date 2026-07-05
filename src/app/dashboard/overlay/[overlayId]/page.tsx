@@ -192,7 +192,7 @@ export default function OverlaySettings() {
 
 	useEffect(() => {
 		let timeoutId: NodeJS.Timeout;
-		if (allowlistGameSearch && allowlistGameSearch.length >= 1 && user?.id) {
+		if (allowlistGameSearch && allowlistGameSearch.length >= 3 && user?.id) {
 			// eslint-disable-next-line react-hooks/set-state-in-effect
 			setIsSearchingAllowlistGames(true);
 			timeoutId = setTimeout(async () => {
@@ -208,7 +208,7 @@ export default function OverlaySettings() {
 
 	useEffect(() => {
 		let timeoutId: NodeJS.Timeout;
-		if (denylistGameSearch && denylistGameSearch.length >= 1 && user?.id) {
+		if (denylistGameSearch && denylistGameSearch.length >= 3 && user?.id) {
 			// eslint-disable-next-line react-hooks/set-state-in-effect
 			setIsSearchingDenylistGames(true);
 			timeoutId = setTimeout(async () => {
@@ -224,8 +224,9 @@ export default function OverlaySettings() {
 
 	useEffect(() => {
 		let timeoutId: NodeJS.Timeout;
-		const normalizedInput = importCategoryInput.trim().toLowerCase();
-		if (normalizedInput.length >= 1 && normalizedInput !== "all" && normalizedInput !== "all categories" && user?.id) {
+		const normalizedInput = importCategoryInput.toLowerCase().trim();
+
+		if (normalizedInput.length >= 3 && normalizedInput !== "all" && normalizedInput !== "all categories" && user?.id) {
 			// eslint-disable-next-line react-hooks/set-state-in-effect
 			setIsSearchingGames(true);
 			timeoutId = setTimeout(async () => {
@@ -1167,6 +1168,8 @@ export default function OverlaySettings() {
 
 												<div className='flex w-full flex-col gap-2'>
 													<ComboBox
+														allowsEmptyCollection
+														allowsCustomValue
 														fullWidth
 														variant='secondary'
 														inputValue={allowlistGameSearch}
@@ -1185,11 +1188,23 @@ export default function OverlaySettings() {
 														<Label>Allowed Games / Categories</Label>
 														<ComboBox.InputGroup>
 															<Input placeholder='Search and add a game...' />
-															{isSearchingAllowlistGames ? <span className='px-1 text-xs text-muted'>Loading</span> : null}
 															<ComboBox.Trigger />
 														</ComboBox.InputGroup>
 														<ComboBox.Popover>
-															<ListBox items={allowlistGameResults.slice(0, 100)}>
+															<ListBox
+																items={allowlistGameResults.slice(0, 100)}
+																renderEmptyState={() => {
+																	if (allowlistGameSearch.length === 0) return <div className='p-4 text-center text-sm text-muted'>Type to search...</div>;
+																	if (isSearchingAllowlistGames)
+																		return (
+																			<div className='flex items-center justify-center p-4'>
+																				<Spinner size='sm' color='current' />
+																			</div>
+																		);
+																	if (allowlistGameSearch.length < 3) return <div className='p-4 text-center text-sm text-muted'>Keep typing...</div>;
+																	return <div className='p-4 text-center text-sm text-muted'>No games found.</div>;
+																}}
+															>
 																{(item) => (
 																	<ListBox.Item id={item.id} textValue={item.name}>
 																		<Label className='flex items-center gap-2'>
@@ -1204,9 +1219,9 @@ export default function OverlaySettings() {
 													</ComboBox>
 													<div className='flex flex-wrap gap-1'>
 														{(overlay.categoriesOnly ?? []).map((id) => (
-															<Chip key={id} size='sm' variant='tertiary'>
+															<Chip key={id} size='sm' variant='soft'>
 																<span>{getGameName(id)}</span>
-																<CloseButton aria-label={`Remove ${getGameName(id)}`} onPress={() => setOverlay({ ...overlay, categoriesOnly: overlay.categoriesOnly.filter((x) => x !== id) })} />
+																<CloseButton className='-mr-1 scale-75' aria-label={`Remove ${getGameName(id)}`} onPress={() => setOverlay({ ...overlay, categoriesOnly: overlay.categoriesOnly.filter((x) => x !== id) })} />
 															</Chip>
 														))}
 													</div>
@@ -1214,6 +1229,8 @@ export default function OverlaySettings() {
 
 												<div className='flex w-full flex-col gap-2'>
 													<ComboBox
+														allowsEmptyCollection
+														allowsCustomValue
 														fullWidth
 														variant='secondary'
 														inputValue={denylistGameSearch}
@@ -1232,11 +1249,23 @@ export default function OverlaySettings() {
 														<Label>Blocked Games / Categories</Label>
 														<ComboBox.InputGroup>
 															<Input placeholder='Search and block a game...' />
-															{isSearchingDenylistGames ? <span className='px-1 text-xs text-muted'>Loading</span> : null}
 															<ComboBox.Trigger />
 														</ComboBox.InputGroup>
 														<ComboBox.Popover>
-															<ListBox items={denylistGameResults.slice(0, 100)}>
+															<ListBox
+																items={denylistGameResults.slice(0, 100)}
+																renderEmptyState={() => {
+																	if (denylistGameSearch.length === 0) return <div className='p-4 text-center text-sm text-muted'>Type to search...</div>;
+																	if (isSearchingDenylistGames)
+																		return (
+																			<div className='flex items-center justify-center p-4'>
+																				<Spinner size='sm' color='current' />
+																			</div>
+																		);
+																	if (denylistGameSearch.length < 3) return <div className='p-4 text-center text-sm text-muted'>Keep typing...</div>;
+																	return <div className='p-4 text-center text-sm text-muted'>No games found.</div>;
+																}}
+															>
 																{(item) => (
 																	<ListBox.Item id={item.id} textValue={item.name}>
 																		<Label className='flex items-center gap-2'>
@@ -1251,9 +1280,9 @@ export default function OverlaySettings() {
 													</ComboBox>
 													<div className='flex flex-wrap gap-1'>
 														{(overlay.categoriesBlocked ?? []).map((id) => (
-															<Chip key={id} size='sm' variant='tertiary' color='danger'>
+															<Chip key={id} size='sm' variant='soft'>
 																<span>{getGameName(id)}</span>
-																<CloseButton aria-label={`Remove ${getGameName(id)}`} onPress={() => setOverlay({ ...overlay, categoriesBlocked: overlay.categoriesBlocked.filter((x) => x !== id) })} />
+																<CloseButton className='-mr-1 scale-75' aria-label={`Remove ${getGameName(id)}`} onPress={() => setOverlay({ ...overlay, categoriesBlocked: overlay.categoriesBlocked.filter((x) => x !== id) })} />
 															</Chip>
 														))}
 													</div>
@@ -1601,33 +1630,28 @@ export default function OverlaySettings() {
 					</Modal.Header>
 					<Modal.Body className='space-y-4'>
 						<ComboBox
-							fullWidth
-							variant='secondary'
-							isRequired
+							allowsEmptyCollection
 							allowsCustomValue
+							aria-label='Select a game'
 							inputValue={importCategoryInput}
-							onInputChange={(value) => {
-								setImportCategoryInput(value);
-								const normalized = value.trim().toLowerCase();
-								if (!normalized || normalized === "all" || normalized === "all categories") {
-									setImportCategoryId("all");
-									return;
-								}
-								if (value !== (importCategoryOptions.find((item) => item.id === importCategoryId)?.name ?? "")) {
-									setImportCategoryId("");
-								}
-							}}
+							onInputChange={setImportCategoryInput}
 							onSelectionChange={(key) => {
-								const nextId = (key as string) ?? "";
-								setImportCategoryId(nextId);
-								const selected = importCategoryOptions.find((item) => item.id === nextId);
-								setImportCategoryInput(selected?.name ?? "");
+								if (key === "all") {
+									setImportCategoryId("all");
+									setImportCategoryInput("All Categories");
+								} else if (key) {
+									setImportCategoryId(String(key));
+									const game = importCategoryOptions.find((o) => o.id === String(key));
+									if (game) {
+										setImportCategoryInput(game.name);
+									}
+								}
 							}}
-							selectedKey={importCategoryId || null}
+							selectedKey={importCategoryId}
 						>
-							<Label>Category / Game</Label>
+							<Label className='sr-only'>Category</Label>
 							<ComboBox.InputGroup>
-								<Input placeholder='Type at least 2 characters or choose all' />
+								<Input placeholder='Type at least 3 characters or choose all' />
 								{importCategoryInput ? (
 									<button
 										type='button'
@@ -1640,11 +1664,23 @@ export default function OverlaySettings() {
 										×
 									</button>
 								) : null}
-								{isSearchingGames ? <span className='px-1 text-xs text-muted'>Loading</span> : null}
 								<ComboBox.Trigger />
 							</ComboBox.InputGroup>
 							<ComboBox.Popover>
-								<ListBox items={importCategoryOptions}>
+								<ListBox
+									items={importCategoryOptions}
+									renderEmptyState={() => {
+										if (importCategoryInput.length === 0) return <div className='p-4 text-center text-sm text-muted'>Type to search...</div>;
+										if (isSearchingGames)
+											return (
+												<div className='flex items-center justify-center p-4'>
+													<Spinner size='sm' color='current' />
+												</div>
+											);
+										if (importCategoryInput.length < 3) return <div className='p-4 text-center text-sm text-muted'>Keep typing...</div>;
+										return <div className='p-4 text-center text-sm text-muted'>No games found.</div>;
+									}}
+								>
 									{(item) => (
 										<ListBox.Item id={item.id} textValue={item.name}>
 											<Label className='flex items-center gap-2'>

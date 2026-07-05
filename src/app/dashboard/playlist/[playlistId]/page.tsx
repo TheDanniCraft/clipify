@@ -149,7 +149,7 @@ export default function PlaylistPage() {
 	useEffect(() => {
 		let timeoutId: NodeJS.Timeout;
 		const normalizedInput = importCategoryInput.trim().toLowerCase();
-		if (normalizedInput.length >= 1 && normalizedInput !== "all" && normalizedInput !== "all categories" && user) {
+		if (normalizedInput.length >= 3 && normalizedInput !== "all" && normalizedInput !== "all categories" && user) {
 			// eslint-disable-next-line react-hooks/set-state-in-effect
 			setIsSearchingGames(true);
 			timeoutId = setTimeout(async () => {
@@ -674,6 +674,7 @@ export default function PlaylistPage() {
 				<Modal.Body className='space-y-4'>
 					<ComboBox
 						isRequired
+						allowsEmptyCollection
 						allowsCustomValue
 						inputValue={importCategoryInput}
 						onInputChange={(value) => {
@@ -697,7 +698,7 @@ export default function PlaylistPage() {
 					>
 						<Label>Category / Game</Label>
 						<ComboBox.InputGroup>
-							<Input placeholder='Type at least 2 characters or choose all' />
+							<Input placeholder='Type at least 3 characters or choose all' />
 							{importCategoryInput ? (
 								<button
 									type='button'
@@ -710,11 +711,23 @@ export default function PlaylistPage() {
 									×
 								</button>
 							) : null}
-							{isSearchingGames ? <span className='px-1 text-xs text-muted'>Loading</span> : null}
 							<ComboBox.Trigger />
 						</ComboBox.InputGroup>
 						<ComboBox.Popover>
-							<ListBox items={importCategoryOptions}>
+							<ListBox
+								items={importCategoryOptions}
+								renderEmptyState={() => {
+									if (importCategoryInput.length === 0) return <div className='p-4 text-center text-sm text-muted'>Type to search...</div>;
+									if (isSearchingGames)
+										return (
+											<div className='flex items-center justify-center p-4'>
+												<Spinner size='sm' color='current' />
+											</div>
+										);
+									if (importCategoryInput.length < 3) return <div className='p-4 text-center text-sm text-muted'>Keep typing...</div>;
+									return <div className='p-4 text-center text-sm text-muted'>No games found.</div>;
+								}}
+							>
 								{(item) => (
 									<ListBox.Item id={item.id} textValue={item.name}>
 										<Label className='flex items-center gap-2'>
