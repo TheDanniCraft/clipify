@@ -78,12 +78,12 @@ const Construction = ({ endDate, cta }: { endDate?: Date; cta: Cta }) => {
 	}
 
 	return (
-		<div className='min-h-screen min-w-screen flex items-center justify-center bg-gradient-to-br from-primary-800 to-primary-400'>
+		<div className='min-h-screen min-w-screen flex items-center justify-center bg-gradient-to-br from-brand-800 to-brand-400'>
 			<div className='flex flex-col items-center'>
 				<motion.h1 className='text-4xl font-bold mb-2' initial={{ opacity: 0.1, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
 					COMING SOON
 				</motion.h1>
-				<motion.p className='text-default-600 text-lg mb-8' initial={{ opacity: 0.1 }} animate={{ opacity: 1 }} transition={{ delay: 0.3, duration: 0.5 }}>
+				<motion.p className='text-muted text-lg mb-8' initial={{ opacity: 0.1 }} animate={{ opacity: 1 }} transition={{ delay: 0.3, duration: 0.5 }}>
 					This page is under construction
 				</motion.p>
 
@@ -92,7 +92,7 @@ const Construction = ({ endDate, cta }: { endDate?: Date; cta: Cta }) => {
 						{["days", "hours", "minutes", "seconds"].map((key, i) => (
 							<motion.div key={key} className='bg-foreground border shadow-md px-5 py-3 rounded-lg text-center flex flex-col items-center' custom={i} initial={{ opacity: 0.1, x: 15 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.6 + i * 0.2, duration: 0.1 }} style={{ width: "80px" }}>
 								<motion.div
-									className='text-3xl text-default-200 font-semibold'
+									className='text-3xl text-muted font-semibold'
 									initial={{ scale: 0.8, opacity: 0.1 }}
 									animate={{ scale: 1, opacity: 1 }}
 									transition={{ duration: 0.5 }}
@@ -100,7 +100,7 @@ const Construction = ({ endDate, cta }: { endDate?: Date; cta: Cta }) => {
 								>
 									{timeLeft[key as keyof Timer]}
 								</motion.div>
-								<p className='text-xs text-default-300 lowercase'>{key}</p>
+								<p className='text-xs text-muted lowercase'>{key}</p>
 							</motion.div>
 						))}
 					</div>
@@ -108,23 +108,21 @@ const Construction = ({ endDate, cta }: { endDate?: Date; cta: Cta }) => {
 
 				<motion.div initial={{ opacity: 0.1 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 + (endDate ? 0.3 : 0), duration: 0.5 }}>
 					<Popover>
-						<Popover.Trigger>
-							<Button variant='secondary' size='lg' aria-label={cta.text}>{cta.icon}
-								{cta.text}
-							</Button>
-						</Popover.Trigger>
+						<Button variant='secondary' size='lg' aria-label={cta.text}>{cta.icon}
+							{cta.text}
+						</Button>
 						<Popover.Content offset={10} placement='bottom' className='w-[300px] min-w-[300px] p-5'>
 							<Popover.Arrow />
 							<Popover.Dialog>
 							<Form onSubmit={subscribe}>
-								<TextField isRequired type='email' className={newsletterState == "success" ? "text-success" : newsletterState == "error" || newsletterState == "rateLimit" ? "text-danger" : "text-default-900"} name='email' isDisabled={newsletterState === "loading" || newsletterState === "success"}><Label>Enter your Email</Label><InputGroup><InputGroup.Prefix>{(() => {
+								<TextField isRequired type='email' className={newsletterState == "success" ? "text-success" : newsletterState == "error" || newsletterState == "rateLimit" ? "text-danger" : "text-foreground"} name='email' isDisabled={newsletterState === "loading" || newsletterState === "success"}><Label>Enter your Email</Label><InputGroup><InputGroup.Prefix>{(() => {
 										switch (newsletterState) {
 											case "loading":
 												return <Spinner />;
 											case "success":
-												return <IconCircleCheckFilled className='text-success-500' />;
+												return <IconCircleCheckFilled className='text-success' />;
 											default:
-												return <IconMailFilled className='text-default-400' />;
+												return <IconMailFilled className='text-muted' />;
 										}
 									})()}</InputGroup.Prefix><InputGroup.Input placeholder='mail@example.com' onChange={() => {
 										setNewsletterState("default");
@@ -145,7 +143,7 @@ const Construction = ({ endDate, cta }: { endDate?: Date; cta: Cta }) => {
 								<Turnstile siteKey='0x4AAAAAACMFR636JljxhVLl' onSuccess={setToken} onError={() => console.error("Turnstile error")} onExpire={() => setToken(null)} />
 							</Form>
 							{newsletterState === "success" && (
-								<div className='text-success-500 mt-2 text-center'>
+								<div className='text-success mt-2 text-center'>
 									<Image unoptimized alt='Tada Icon' src='https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Activities/Party%20Popper.png' width={50} height={50} className='mx-auto' />
 									<p className='text-lg font-bold'>You&apos;re almost there!</p>
 									<p className='text-xs'>We&apos;ve just sent a confirmation email your way. Check your inbox to finish subscribing-and if you don&apos;t see it, be sure to take a quick look in your spam folder too.</p>
@@ -156,7 +154,7 @@ const Construction = ({ endDate, cta }: { endDate?: Date; cta: Cta }) => {
 					</Popover>
 				</motion.div>
 
-				<motion.footer className='mt-5 text-sm text-default-500' initial={{ opacity: 0.1 }} animate={{ opacity: 1 }} transition={{ delay: 0.9 + (endDate ? 0.3 : 0), duration: 0.5 }}>
+				<motion.footer className='mt-5 text-sm text-muted' initial={{ opacity: 0.1 }} animate={{ opacity: 1 }} transition={{ delay: 0.9 + (endDate ? 0.3 : 0), duration: 0.5 }}>
 					© {new Date().getFullYear()} Clipify. Made by TheDanniCraft
 				</motion.footer>
 			</div>

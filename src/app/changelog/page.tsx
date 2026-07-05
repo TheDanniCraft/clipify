@@ -1,4 +1,4 @@
-import { Card, Chip, Link } from "@components/heroui-client";
+import { Card, CardContent, Chip, Link, LinkIcon } from "@components/heroui-client";
 
 import Footer from "@components/footer";
 import BasicNavbar from "@components/LandingPage/basicNavbar";
@@ -25,14 +25,14 @@ export default async function ChangelogPage() {
 			<div className='min-h-screen bg-background text-foreground p-6'>
 				<div className='max-w-5xl mx-auto'>
 					<h1 className='text-4xl font-bold text-center mb-2 flex items-center justify-center gap-2'>
-						<span className='text-primary'>📝</span>
+						<span className='text-accent'>📝</span>
 						Changelog
-						<span className='text-primary'>📝</span>
+						<span className='text-accent'>📝</span>
 					</h1>
-					<p className='text-center text-default-400 mb-12'>Latest updates and improvements to Clipify</p>
+					<p className='text-center text-muted mb-12'>Latest updates and improvements to Clipify</p>
 
 					<div className='relative'>
-						<div className='absolute left-3.5 top-6 bottom-6 w-0.5 bg-gradient-to-b from-default-400 via-default-400 to-transparent opacity-20 z-0'></div>
+						<div className='absolute left-3.5 top-6 bottom-6 w-0.5 bg-gradient-to-b from-muted via-muted to-transparent opacity-20 z-0'></div>
 						<div className='space-y-6'>
 							{!releases || releases.length === 0 ? (
 								<div className='text-gray-600 text-center py-4'>Error while fetching releases.</div>
@@ -48,10 +48,10 @@ export default async function ChangelogPage() {
 											</div>
 											<div className='flex-1 space-y-1'>
 												<Card className='flex-1 p-4'>
-													<Card.Content>
+													<CardContent>
 														<Link className='pb-2' href={release.html_url} target='_blank' rel='noopener noreferrer'>
 															<h3 className='text-lg font-semibold'>Release {release.name || release.tag_name}</h3>
-															<Link.Icon />
+													<LinkIcon />
 														</Link>
 														<p
 															className='text-sm'
@@ -59,7 +59,7 @@ export default async function ChangelogPage() {
 																__html: xss(release.body).replace(/(?:\r\n|\r|\n)/g, "<br />"),
 															}}
 														/>
-													</Card.Content>
+													</CardContent>
 												</Card>
 												<span className='text-xs mr-4 text-gray-400 ml-auto flex justify-end'>{release.published_at}</span>
 											</div>

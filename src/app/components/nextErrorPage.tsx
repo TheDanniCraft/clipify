@@ -1,5 +1,6 @@
 "use client";
 import { Chip, Link } from "@heroui/react";
+import { buttonVariants } from "@heroui/styles";
 
 import Image from "next/image";
 import type { ReactNode } from "react";
@@ -17,12 +18,12 @@ export default function NextErrorPage({ contextLabel, code, title, description, 
 	const showContextBadge = contextLabel.trim().toLowerCase() !== title.trim().toLowerCase();
 
 	return (
-		<main className='relative min-h-screen overflow-hidden bg-linear-to-br from-primary-800 to-primary-400 text-white'>
+		<main className='relative min-h-screen overflow-hidden bg-linear-to-br from-brand-800 to-brand-400 text-white'>
 			<div className='pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_22%_50%,rgba(255,255,255,0.08),transparent_42%),radial-gradient(circle_at_78%_38%,rgba(255,255,255,0.14),transparent_36%),radial-gradient(circle_at_50%_105%,rgba(9,12,26,0.85),transparent_40%)]' />
 			<div className='relative mx-auto grid min-h-screen w-full max-w-7xl grid-cols-1 items-center gap-10 px-6 py-10 md:px-10 lg:grid-cols-2 lg:gap-16'>
 				<section className='order-2 space-y-6 text-center lg:order-1 lg:text-left'>
 					{showContextBadge ? (
-						<Chip size='sm' variant='tertiary' className='mx-auto border border-white/30 bg-white/15 text-white lg:mx-0'>
+						<Chip size='sm' color='default' variant='soft' className='mx-auto lg:mx-0'>
 							{contextLabel}
 						</Chip>
 					) : null}
@@ -32,7 +33,7 @@ export default function NextErrorPage({ contextLabel, code, title, description, 
 					<div className='flex flex-wrap items-center justify-center gap-3 lg:justify-start'>
 						{actions}
 						{showHomeAction ? (
-							<Link href='/' className='border-white/65 text-white inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 font-medium bg-default text-foreground hover:bg-default/80'>
+							<Link href='/' className={buttonVariants({ variant: "secondary", className: "no-underline" })}>
 								Go home
 							</Link>
 						) : null}

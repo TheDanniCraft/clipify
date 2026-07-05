@@ -1,5 +1,5 @@
 "use client";
-import { Dropdown, Table, Checkbox, Button, RadioGroup, Radio, Chip, Separator, Tooltip, Popover, Spinner, Link, Avatar, Skeleton, Tabs, useDisclosure, TextField, InputGroup, Label, cn } from "@heroui/react";
+import { Dropdown, Table, Checkbox, Button, RadioGroup, Radio, Chip, Separator, Tooltip, Popover, Spinner, Link, Avatar, Skeleton, Tabs, useOverlayState, TextField, InputGroup, Label, cn } from "@heroui/react";
 import { notify as addToast } from "@lib/toast";
 import type { Selection, SortDescriptor } from "@heroui/react";
 
@@ -49,7 +49,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 		column: "name",
 		direction: "ascending",
 	});
-	const { isOpen: isUpgradeOpen, onOpen: onUpgradeOpen, onOpenChange: onUpgradeOpenChange } = useDisclosure();
+	const { isOpen: isUpgradeOpen, open: onUpgradeOpen, setOpen: onUpgradeOpenChange } = useOverlayState();
 	const plausible = usePlausible();
 
 	const [statusFilter, setStatusFilter] = React.useState("all");
@@ -164,6 +164,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 			})
 			.filter((column) => Array.from(visibleColumns).includes(column.uid));
 	}, [visibleColumns, sortDescriptor, currentColumns]);
+	const rowHeaderColumn = headerColumns.find((column) => column.uid === "name")?.uid ?? headerColumns.find((column) => column.uid === "id")?.uid ?? headerColumns.find((column) => column.uid !== "actions")?.uid;
 
 	const itemFilter = useCallback(
 		(col: Overlay | LocalPlaylist) => {
@@ -253,9 +254,9 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 					case "actions":
 						return (
 							<div className='flex items-center justify-end gap-2'>
-								<IconPencil className='cursor-pointer text-default-400' height={18} width={18} />
+								<IconPencil className='cursor-pointer text-muted' height={18} width={18} />
 								<IconTrash
-									className='cursor-pointer text-default-400'
+									className='cursor-pointer text-muted'
 									height={18}
 									width={18}
 									onClick={(event) => {
@@ -308,7 +309,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 						return (
 							<div className='flex items-center justify-end gap-2'>
 								<IconTrash
-									className='cursor-pointer text-default-400'
+									className='cursor-pointer text-muted'
 									height={18}
 									width={18}
 									onClick={async (event) => {
@@ -414,84 +415,73 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 
 	const topContent = useMemo(() => {
 		return (
-			<div className='flex items-center gap-4 overflow-auto px-[6px] py-[4px]'>
-				<div className='flex items-center gap-3'>
-					<div className='flex items-center gap-4'>
-						<TextField className='min-w-[200px]'><InputGroup><InputGroup.Input placeholder='Search' value={filterValue} onChange={(event) => (onSearchChange)(event.target.value)} className='h-8 text-sm' /><InputGroup.Suffix>{<IconSearch className='text-default-400' width={16} />}</InputGroup.Suffix></InputGroup></TextField>
+			<div className='flex flex-wrap items-center gap-2 py-3'>
+				<div className='flex min-w-0 flex-wrap items-center gap-2'>
+					<div className='flex min-w-0 flex-wrap items-center gap-2'>
+						<TextField className='min-w-0 flex-1 sm:min-w-[200px] sm:max-w-xs'><InputGroup variant='secondary'><InputGroup.Input placeholder='Search' value={filterValue} onChange={(event) => (onSearchChange)(event.target.value)} /><InputGroup.Suffix>{<IconSearch className='text-muted' width={16} />}</InputGroup.Suffix></InputGroup></TextField>
 						{activeTab === "overlays" && (
-							<div>
-								<Popover>
-									<Popover.Trigger>
-										<Button className='bg-default-100 text-default-800' size='sm' aria-label='Open Filter Options'>{<IconAdjustmentsHorizontal className='text-default-400' width={16} />}
-											Filter
-										</Button>
-									</Popover.Trigger>
-									<Popover.Content placement='bottom' className='w-80'>
-										<Popover.Dialog><div className='flex w-full flex-col gap-6 px-2 py-4'>
-											<RadioGroup value={statusFilter} onChange={setStatusFilter}>
-												<Label>Status</Label>
-												<Radio value='all'><Radio.Content><Radio.Control><Radio.Indicator /></Radio.Control>All</Radio.Content></Radio>
-												<Radio value='active'><Radio.Content><Radio.Control><Radio.Indicator /></Radio.Control>Active</Radio.Content></Radio>
-												<Radio value='paused'><Radio.Content><Radio.Control><Radio.Indicator /></Radio.Control>Paused</Radio.Content></Radio>
-											</RadioGroup>
-										</div></Popover.Dialog>
-									</Popover.Content>
-								</Popover>
-							</div>
+							<Popover>
+				<Button variant='tertiary' size='sm' aria-label='Open Filter Options'>
+									<IconAdjustmentsHorizontal className='text-muted' width={16} />
+									Filter
+								</Button>
+								<Popover.Content placement='bottom start'>
+									<Popover.Dialog className='min-w-44'>
+						<RadioGroup variant='secondary' value={statusFilter} onChange={setStatusFilter}>
+											<Label>Status</Label>
+											<Radio value='all'><Radio.Content><Radio.Control><Radio.Indicator /></Radio.Control>All</Radio.Content></Radio>
+											<Radio value='active'><Radio.Content><Radio.Control><Radio.Indicator /></Radio.Control>Active</Radio.Content></Radio>
+											<Radio value='paused'><Radio.Content><Radio.Control><Radio.Indicator /></Radio.Control>Paused</Radio.Content></Radio>
+										</RadioGroup>
+									</Popover.Dialog>
+								</Popover.Content>
+							</Popover>
 						)}
-						<div>
-							<Dropdown>
-								<Dropdown.Trigger>
-									<Button className='bg-default-100 text-default-800' size='sm' aria-label='Open Sort Options'>{<IconMenuDeep className='text-default-400' width={16} />}
-										Sort
-									</Button>
-								</Dropdown.Trigger>
-								<Dropdown.Popover><Dropdown.Menu aria-label='Sort' items={headerColumns.filter((c) => !["actions"].includes(c.uid))}>
-									{(item) =>
-										item.name === "" ? null : (
+						<Dropdown>
+			<Button variant='tertiary' size='sm' aria-label='Open Sort Options'>
+									<IconMenuDeep className='text-muted' width={16} />
+									Sort
+							</Button>
+				<Dropdown.Popover><Dropdown.Menu aria-label='Sort' items={headerColumns.filter((column) => column.uid !== "actions" && column.name !== "")} selectedKeys={new Set([String(sortDescriptor.column)])} selectionMode='single'>
+									{(item) => (
 											<Dropdown.Item
 												key={item.uid}
 												id={item.uid}
 												textValue={item.name}
-												onAction={() => {
-													setSortDescriptor({
-														column: item.uid,
-														direction: sortDescriptor.direction === "ascending" ? "descending" : "ascending",
-													});
-												}}
-											>
-												<Label>{item.name}</Label>
+							onAction={() => {
+								setSortDescriptor({
+									column: item.uid,
+									direction: sortDescriptor.column === item.uid && sortDescriptor.direction === "ascending" ? "descending" : "ascending",
+								});
+							}}
+						>
+							<Dropdown.ItemIndicator />
+							<Label>{item.name}</Label>
 											</Dropdown.Item>
-										)
-									}
+									)}
 								</Dropdown.Menu></Dropdown.Popover>
-							</Dropdown>
-						</div>
-						<div>
-							<Dropdown>
-								<Dropdown.Trigger>
-									<Button className='bg-default-100 text-default-800' size='sm' aria-label='Open Column Options'>{<IconArrowsLeftRight className='text-default-400' width={16} />}
-										Columns
-									</Button>
-								</Dropdown.Trigger>
-								<Dropdown.Popover><Dropdown.Menu disallowEmptySelection aria-label='Columns' items={currentColumns.filter((c) => !["actions"].includes(c.uid))} selectedKeys={visibleColumns} selectionMode='multiple' onSelectionChange={setVisibleColumns}>
-									{(item) => (item.name === "" ? null : <Dropdown.Item key={item.uid} id={item.uid} textValue={item.name}><Dropdown.ItemIndicator /><Label>{item.name}</Label></Dropdown.Item>)}
+						</Dropdown>
+						<Dropdown>
+			<Button variant='tertiary' size='sm' aria-label='Open Column Options'>
+									<IconArrowsLeftRight className='text-muted' width={16} />
+									Columns
+							</Button>
+								<Dropdown.Popover><Dropdown.Menu disallowEmptySelection aria-label='Columns' items={currentColumns.filter((column) => column.uid !== "actions" && column.name !== "")} selectedKeys={visibleColumns} selectionMode='multiple' onSelectionChange={setVisibleColumns}>
+									{(item) => <Dropdown.Item key={item.uid} id={item.uid} textValue={item.name}><Dropdown.ItemIndicator /><Label>{item.name}</Label></Dropdown.Item>}
 								</Dropdown.Menu></Dropdown.Popover>
-							</Dropdown>
-						</div>
+						</Dropdown>
 					</div>
 
 					<Separator className='h-5' orientation='vertical' />
 
-					<div className='whitespace-nowrap text-sm text-default-800'>{filterSelectedKeys === "all" ? "All items selected" : `${filterSelectedKeys.size} Selected`}</div>
+					<div className='whitespace-nowrap text-sm text-foreground'>{filterSelectedKeys === "all" ? "All items selected" : `${filterSelectedKeys.size} Selected`}</div>
 
 					{(filterSelectedKeys === "all" || filterSelectedKeys.size > 0) && (
 						<Dropdown>
-							<Dropdown.Trigger>
-								<Button className='bg-default-100 text-default-800' size='sm' variant='tertiary' aria-label='Open Selected Actions'>
-									Selected Actions
-								{<IconChevronDown className='text-default-400' />}</Button>
-							</Dropdown.Trigger>
+			<Button variant='tertiary' size='sm' aria-label='Open Selected Actions'>
+								Selected Actions
+								<IconChevronDown className='text-muted' />
+							</Button>
 							<Dropdown.Popover><Dropdown.Menu aria-label='Selected Actions'>
 								{activeTab === "overlays" ? (
 									<Dropdown.Item
@@ -594,7 +584,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 											});
 									}}
 								>
-									<IconTrash className='text-danger-500' width={16} /><Label>Delete</Label>
+									<IconTrash className='text-danger' width={16} /><Label>Delete</Label>
 								</Dropdown.Item>
 							</Dropdown.Menu></Dropdown.Popover>
 						</Dropdown>
@@ -617,19 +607,18 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 				<div className='flex items-center justify-between'>
 					<div className='flex w-[226px] items-center gap-2'>
 						<h1 className='text-2xl font-[700] leading-[32px]'>{activeTab === "overlays" ? "Overlays" : "Playlists"}</h1>
-						<Chip className='hidden items-center text-default-500 sm:flex' size='sm' variant='tertiary'>
+						<Chip className='hidden items-center text-muted sm:flex' size='sm' variant='tertiary'>
 							{activeTab === "overlays" ? (overlays?.length ?? 0) : (playlists?.length ?? 0)}
 						</Chip>
-						<Button isIconOnly size='sm' variant='tertiary' onPress={reloadOverlays} aria-label='Reload'>{<IconReload className='text-default-400' width={16} />}</Button>
+						<Button isIconOnly size='sm' variant='tertiary' onPress={reloadOverlays} aria-label='Reload'>{<IconReload className='text-muted' width={16} />}</Button>
 					</div>
 					{hasAccess ? (
 						<Dropdown>
-							<Dropdown.Trigger>
-								<Button isDisabled={overlays === undefined} isPending={isLoading} variant='primary'>
-									{isLoading ? <Spinner color='current' size='sm' /> : null}
-									{activeTab === "overlays" ? "Add Overlay" : "Add Playlist"}
-								{<IconCirclePlus width={20} />}</Button>
-							</Dropdown.Trigger>
+							<Button variant='primary' isDisabled={overlays === undefined} isPending={isLoading}>
+								{isLoading ? <Spinner color='current' size='sm' /> : null}
+								{activeTab === "overlays" ? "Add Overlay" : "Add Playlist"}
+								<IconCirclePlus width={20} />
+							</Button>
 
 							<Dropdown.Popover><Dropdown.Menu aria-label='Actions' items={editorAccessList}>
 								{(item) => (
@@ -811,10 +800,10 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 
 	const bottomContent = useMemo(() => {
 		return (
-			<div className='flex flex-col items-center justify-between gap-2 px-2 py-2 sm:flex-row'>
-				<AppPagination page={page} total={pages} onChange={setPage} />
+			<div className='mt-3 flex w-full flex-col items-center justify-between gap-2 px-2 py-2 sm:flex-row'>
+				<AppPagination page={page} total={pages} onChange={setPage} showSinglePage />
 				<div className='flex items-center justify-end gap-6'>
-					<span className='text-small text-default-400'>{filterSelectedKeys === "all" ? "All items selected" : `${filterSelectedKeys.size} of ${filteredItems.length} selected`}</span>
+					<span className='text-sm text-muted'>{filterSelectedKeys === "all" ? "All items selected" : `${filterSelectedKeys.size} of ${filteredItems.length} selected`}</span>
 					<div className='flex items-center gap-3'>
 						<Button isDisabled={page === 1} size='sm' variant='tertiary' onPress={onPreviousPage} aria-label='Previous Page'>
 							Previous
@@ -831,14 +820,14 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 	return (
 		<div className='h-full w-full p-6'>
 			{topBar}
-			<Tabs selectedKey={activeTab} onSelectionChange={onTabChange} className='mb-4'>
-				<Tabs.ListContainer><Tabs.List aria-label='Resource type'>
-					<Tabs.Tab id='overlays'>Overlays<Tabs.Indicator /></Tabs.Tab>
-					<Tabs.Tab id='playlists'>Playlists<Tabs.Indicator /></Tabs.Tab>
+			<Tabs selectedKey={activeTab} onSelectionChange={onTabChange} className='mb-4 w-fit max-w-full'>
+				<Tabs.ListContainer className='w-fit max-w-full'><Tabs.List aria-label='Resource type' className='w-fit max-w-full *:w-fit'>
+					<Tabs.Tab id='overlays' className='flex-none'>Overlays<Tabs.Indicator /></Tabs.Tab>
+					<Tabs.Tab id='playlists' className='flex-none'>Playlists<Tabs.Indicator /></Tabs.Tab>
 				</Tabs.List></Tabs.ListContainer>
 			</Tabs>
 			{activeTab === "overlays" && currentUser && (currentUser.entitlements?.effectivePlan ?? currentUser.plan) === "free" && !getFeatureAccess(currentUser, "multi_overlay").allowed && (overlays?.filter((o) => o.ownerId === userId).length ?? 0) >= 1 && (
-				<div className='mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning-200 bg-warning-50 px-4 py-3 text-sm text-warning-800'>
+				<div className='mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning bg-warning-soft px-4 py-3 text-sm text-warning'>
 					<span>You&apos;re on the Free plan and have reached the overlay limit. Upgrade to add more overlays.</span>
 					<Button variant='tertiary' onPress={onUpgradeOpen}>
 						Upgrade to Pro
@@ -846,28 +835,28 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 				</div>
 			)}
 			{activeTab === "playlists" && currentUser && (currentUser.entitlements?.effectivePlan ?? currentUser.plan) === "free" && !getFeatureAccess(currentUser, "multi_playlist").allowed && (playlists?.filter((p) => p.ownerId === userId).length ?? 0) >= 1 && (
-				<div className='mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning-200 bg-warning-50 px-4 py-3 text-sm text-warning-800'>
+				<div className='mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning bg-warning-soft px-4 py-3 text-sm text-warning'>
 					<span>You&apos;re on the Free plan and have reached the playlist limit. Upgrade to add more playlists.</span>
 					<Button variant='tertiary' onPress={onUpgradeOpen}>
 						Upgrade to Pro
 					</Button>
 				</div>
 			)}
+			{topContent}
 			<Table>
-				{topContent}
 				<Table.ScrollContainer>
 					<Table.Content aria-label='Management table' selectedKeys={filterSelectedKeys} selectionMode='multiple' sortDescriptor={sortDescriptor} onSelectionChange={onSelectionChange} onSortChange={setSortDescriptor} onRowAction={(key) => {
 						router.push(`/dashboard/${activeTab === "overlays" ? "overlay" : "playlist"}/${String(key)}`);
 					}}>
 				<Table.Header>
-					<Table.Column className='w-[30px] min-w-[30px] max-w-[30px] px-1'><Checkbox aria-label='Select all items' slot='selection'><Checkbox.Content><Checkbox.Control><Checkbox.Indicator /></Checkbox.Control></Checkbox.Content></Checkbox></Table.Column>
+					<Table.Column className='pr-0'><Checkbox aria-label='Select all items' slot='selection'><Checkbox.Content><Checkbox.Control><Checkbox.Indicator /></Checkbox.Control></Checkbox.Content></Checkbox></Table.Column>
 					{headerColumns.map((column) => (
 						<Table.Column
 							key={column.uid}
 							id={column.uid}
 							allowsSorting={column.uid === "name" || column.uid === "clipCount"}
-							isRowHeader={column.uid === "name"}
-							className={cn([column.uid === "actions" ? "flex items-center justify-end px-[20px]" : "", column.uid === "accessType" ? "w-[48px] min-w-[48px] max-w-[48px] px-1" : "", column.uid === "id" ? "w-[320px] min-w-[320px] max-w-[320px]" : "", column.uid === "clipCount" ? "w-[90px] min-w-[90px] max-w-[90px] text-right" : "", activeTab === "playlists" && column.uid === "name" ? "w-full" : ""])}
+							isRowHeader={column.uid === rowHeaderColumn}
+							className={cn([column.uid === "actions" ? "flex items-center justify-end px-[20px]" : "", column.uid === "accessType" ? "w-[48px] min-w-[48px] max-w-[48px] px-1" : "", column.uid === "id" ? "min-w-[260px]" : "", column.uid === "clipCount" ? "w-[90px] min-w-[90px] max-w-[90px] text-right" : "", column.uid === "name" ? "min-w-[160px]" : ""])}
 						>
 							{column.uid === "name" || column.uid === "clipCount" ? (
 								({ sortDirection }) => <Table.SortableColumnHeader sortDirection={sortDirection}>{column.name}</Table.SortableColumnHeader>
@@ -875,7 +864,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 								<div className='flex min-w-[108px] items-center justify-between'>
 									{column.name}
 									<Tooltip delay={0}>
-										<Tooltip.Trigger><IconInfoCircle className='text-default-300' height={16} width={16} /></Tooltip.Trigger>
+										<Tooltip.Trigger><IconInfoCircle className='text-muted' height={16} width={16} /></Tooltip.Trigger>
 										<Tooltip.Content>{column.info}</Tooltip.Content>
 									</Tooltip>
 								</div>
@@ -885,18 +874,18 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 						</Table.Column>
 					))}
 				</Table.Header>
-				<Table.Body renderEmptyState={() => activeTab === "overlays" ? overlays === undefined ? <span className='inline-flex items-center gap-2 p-4'><Spinner />Loading overlays</span> : <div className='p-4 text-default-400'>No overlays found</div> : playlists === undefined ? <span className='inline-flex items-center gap-2 p-4'><Spinner />Loading playlists</span> : <div className='p-4 text-default-400'>No playlists found</div>}>
+				<Table.Body renderEmptyState={() => activeTab === "overlays" ? overlays === undefined ? <span className='flex w-full items-center justify-center gap-2 p-4'><Spinner />Loading overlays</span> : <div className='w-full p-4 text-center text-muted'>No overlays found</div> : playlists === undefined ? <span className='flex w-full items-center justify-center gap-2 p-4'><Spinner />Loading playlists</span> : <div className='w-full p-4 text-center text-muted'>No playlists found</div>}>
 					{sortedItems.map((item) => (
 						<Table.Row key={item.id} id={item.id} textValue={item.name}>
-							<Table.Cell className='w-[30px] min-w-[30px] max-w-[30px] px-1'><Checkbox aria-label={`Select ${item.name}`} slot='selection'><Checkbox.Content><Checkbox.Control><Checkbox.Indicator /></Checkbox.Control></Checkbox.Content></Checkbox></Table.Cell>
-							{headerColumns.map((column) => <Table.Cell key={column.uid} className={cn(column.uid === "accessType" ? "w-[48px] min-w-[48px] max-w-[48px] px-1" : "", column.uid === "id" ? "w-[320px] min-w-[320px] max-w-[320px]" : "", column.uid === "clipCount" ? "w-[90px] min-w-[90px] max-w-[90px] text-right" : "", activeTab === "playlists" && column.uid === "name" ? "w-full" : "")}>{renderCell(item, column.uid)}</Table.Cell>)}
+							<Table.Cell className='pr-0'><Checkbox aria-label={`Select ${item.name}`} slot='selection' variant='secondary'><Checkbox.Content><Checkbox.Control><Checkbox.Indicator /></Checkbox.Control></Checkbox.Content></Checkbox></Table.Cell>
+							{headerColumns.map((column) => <Table.Cell key={column.uid} className={cn(column.uid === "accessType" ? "w-[48px] min-w-[48px] max-w-[48px] px-1" : "", column.uid === "id" ? "min-w-[260px]" : "", column.uid === "clipCount" ? "w-[90px] min-w-[90px] max-w-[90px] text-right" : "", column.uid === "name" ? "min-w-[160px]" : "")}>{renderCell(item, column.uid)}</Table.Cell>)}
 						</Table.Row>
 					))}
 				</Table.Body>
 					</Table.Content>
 				</Table.ScrollContainer>
-				<Table.Footer>{bottomContent}</Table.Footer>
 			</Table>
+			{bottomContent}
 
 			{currentUser && currentUser.plan === "free" && <UpgradeModal isOpen={isUpgradeOpen} onOpenChange={onUpgradeOpenChange} user={currentUser} title={activeTab === "overlays" ? "Upgrade to add more overlays" : "Upgrade to add more playlists"} source='upgrade_modal' feature={activeTab === "overlays" ? "multi_overlay" : "multi_playlist"} />}
 		</div>

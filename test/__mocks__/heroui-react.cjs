@@ -51,6 +51,27 @@ const Table = Object.assign(Component, {
 	SortableColumnHeader: Component,
 });
 
+function useOverlayState(options = {}) {
+	const [uncontrolledOpen, setUncontrolledOpen] = React.useState(options.defaultOpen ?? false);
+	const isControlled = options.isOpen !== undefined;
+	const isOpen = isControlled ? options.isOpen : uncontrolledOpen;
+	const setOpen = React.useCallback(
+		(nextOpen) => {
+			if (!isControlled) setUncontrolledOpen(nextOpen);
+			options.onOpenChange?.(nextOpen);
+		},
+		[isControlled, options.onOpenChange],
+	);
+
+	return {
+		isOpen,
+		open: () => setOpen(true),
+		close: () => setOpen(false),
+		toggle: () => setOpen(!isOpen),
+		setOpen,
+	};
+}
+
 module.exports = new Proxy(
 	{
 		Button,
@@ -72,7 +93,7 @@ module.exports = new Proxy(
 		TextField: Component,
 		cn: (...classes) => classes.filter(Boolean).join(" "),
 		toast,
-		useDisclosure: () => ({ isOpen: false, onOpen: () => undefined, onClose: () => undefined, onOpenChange: () => undefined }),
+		useOverlayState,
 	},
 	{
 		get(target, property) {

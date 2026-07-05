@@ -49,7 +49,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
 				<link rel='preconnect' href='https://tag.goadopt.io' crossOrigin='anonymous' />
 				<link rel='preconnect' href='https://affiliate.clipify.us' crossOrigin='anonymous' />
 			</head>
-			<body suppressHydrationWarning>
+			<body className='min-h-screen bg-background text-foreground' suppressHydrationWarning>
 				<AdOptScript />
 				<Script id='affiliate-program-tracker' src='https://affiliate.clipify.us/tracking/program-1.js' strategy='afterInteractive' />
 				<PlausibleClient>

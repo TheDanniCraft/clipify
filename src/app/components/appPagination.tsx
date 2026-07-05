@@ -7,6 +7,7 @@ type AppPaginationProps = {
 	total: number;
 	onChange: (page: number) => void;
 	className?: string;
+	showSinglePage?: boolean;
 };
 
 function pageItems(page: number, total: number): Array<number | "ellipsis-start" | "ellipsis-end"> {
@@ -20,8 +21,8 @@ function pageItems(page: number, total: number): Array<number | "ellipsis-start"
 	return items;
 }
 
-export default function AppPagination({ page, total, onChange, className }: AppPaginationProps) {
-	if (total <= 1) return null;
+export default function AppPagination({ page, total, onChange, className, showSinglePage = false }: AppPaginationProps) {
+	if (total <= 1 && !showSinglePage) return null;
 
 	return (
 		<Pagination className={className} size='sm'>

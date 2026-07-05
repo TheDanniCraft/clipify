@@ -4,15 +4,17 @@ import { validateAuth } from "@actions/auth";
 import { getOverlay, getOverlayOwnerPlan, saveOverlay } from "@actions/database";
 import ChatwootData from "@components/chatwootData";
 import DashboardNavbar from "@components/dashboardNavbar";
+import FullscreenLoadingState from "@components/fullscreenLoadingState";
 import UpgradeModal from "@components/upgradeModal";
 import { getFeatureAccess, getTrialDaysLeft, isReverseTrialActive } from "@lib/featureAccess";
 import { AuthenticatedUser, Overlay, Plan } from "@types";
-import { Avatar, Button, Card, Separator, Input, ListBox, Popover, Select, Slider, Spinner, Tabs, useDisclosure, TextField, Label, Description, InputGroup } from "@heroui/react";
+import type { ColorChannel, ColorSpace } from "@heroui/react";
+import { Alert, Avatar, Button, Card, ColorArea, ColorField, ColorPicker, ColorSlider, ColorSwatch, ColorSwatchPicker, Separator, Input, ListBox, Select, Slider, Tabs, useOverlayState, TextField, Label, Description, parseColor } from "@heroui/react";
 import { notify as addToast } from "@lib/toast";
 
-import { IconArrowLeft, IconCrown, IconDeviceFloppy, IconPalette } from "@tabler/icons-react";
+import { IconArrowLeft, IconCrown, IconDeviceFloppy } from "@tabler/icons-react";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 const FONT_URL_DELIMITER = "||url||";
 const systemFontOptions = [
@@ -55,6 +57,59 @@ type DragTarget = "channel" | "clip" | "timer";
 type ResizeHandle = "tl" | "tr" | "bl" | "br";
 type HorizontalAnchor = "left" | "right";
 type VerticalAnchor = "top" | "bottom";
+
+const RECENT_THEME_COLORS_KEY = "clipify:overlay-theme-recent-colors";
+const RECENT_THEME_COLORS_EVENT = "clipify:overlay-theme-recent-colors-change";
+const MAX_RECENT_THEME_COLORS = 6;
+const COLOR_CHANNELS_BY_SPACE: Record<ColorSpace, ColorChannel[]> = {
+	hsb: ["hue", "saturation", "brightness"],
+	hsl: ["hue", "saturation", "lightness"],
+	rgb: ["red", "green", "blue"],
+};
+
+function readRecentThemeColors() {
+	if (typeof window === "undefined") return [];
+	try {
+		const stored = JSON.parse(window.localStorage.getItem(RECENT_THEME_COLORS_KEY) ?? "[]");
+		return Array.isArray(stored) ? stored.filter((color): color is string => typeof color === "string").slice(0, MAX_RECENT_THEME_COLORS) : [];
+	} catch {
+		return [];
+	}
+}
+
+function useRecentThemeColors() {
+	const serializedColors = useSyncExternalStore(
+		(callback) => {
+			window.addEventListener(RECENT_THEME_COLORS_EVENT, callback);
+			return () => window.removeEventListener(RECENT_THEME_COLORS_EVENT, callback);
+		},
+		() => window.localStorage.getItem(RECENT_THEME_COLORS_KEY) ?? "[]",
+		() => "[]",
+	);
+	const recentColors = useMemo(() => {
+		try {
+			const parsed = JSON.parse(serializedColors);
+			return Array.isArray(parsed) ? parsed.filter((color): color is string => typeof color === "string").slice(0, MAX_RECENT_THEME_COLORS) : [];
+		} catch {
+			return [];
+		}
+	}, [serializedColors]);
+
+	const rememberColor = useCallback((value: string) => {
+		if (typeof window === "undefined") return;
+		let normalized: string;
+		try {
+			normalized = parseColor(value).toString("rgba");
+		} catch {
+			return;
+		}
+		const next = [normalized, ...readRecentThemeColors().filter((color) => color.toLowerCase() !== normalized.toLowerCase())].slice(0, MAX_RECENT_THEME_COLORS);
+		window.localStorage.setItem(RECENT_THEME_COLORS_KEY, JSON.stringify(next));
+		window.dispatchEvent(new CustomEvent<string[]>(RECENT_THEME_COLORS_EVENT, { detail: next }));
+	}, []);
+
+	return { recentColors, rememberColor };
+}
 
 function clamp(value: number, min: number, max: number) {
 	return Math.min(max, Math.max(min, value));
@@ -286,145 +341,95 @@ function parseColorToHsla(rawValue: string): HSLA | null {
 }
 
 function ThemeColorInput({ label, value, onChange, defaultValue, allowAlpha }: { label: string; value: string; onChange: (value: string) => void; defaultValue: string; allowAlpha?: boolean }) {
-	const svRef = useRef<HTMLDivElement | null>(null);
-	const hueRef = useRef<HTMLDivElement | null>(null);
-	const alphaRef = useRef<HTMLDivElement | null>(null);
-	const dragAbortControllerRef = useRef<AbortController | null>(null);
+	const [colorSpace, setColorSpace] = useState<ColorSpace>("rgb");
+	const { recentColors, rememberColor } = useRecentThemeColors();
 	const parsedDefault = useMemo(() => parseColorToHsla(defaultValue) ?? { h: 260, s: 65, l: 52, a: 1 }, [defaultValue]);
 	const parsed = useMemo(() => parseColorToHsla(value) ?? parsedDefault, [parsedDefault, value]);
 	const hsv = useMemo(() => hslToHsv(parsed.h, parsed.s, parsed.l), [parsed.h, parsed.l, parsed.s]);
-	const rgb = useMemo(() => hslToRgb(parsed.h, parsed.s, parsed.l), [parsed.h, parsed.l, parsed.s]);
-	const preview = hslaToCss(parsed, true);
-	const svMarkerLeft = clamp(hsv.s, 2, 98);
-	const svMarkerTop = clamp(100 - hsv.v, 2, 98);
-	const hueMarkerLeft = clamp((hsv.h / 360) * 100, 1, 99);
-	const alphaMarkerLeft = clamp(parsed.a * 100, 1, 99);
-
-	const updateFromHsv = (patch: Partial<{ h: number; s: number; v: number; a: number }>) => {
-		const nextHsv = {
-			h: hsv.h,
-			s: hsv.s,
-			v: hsv.v,
-			...patch,
-		};
-		const nextHsl = hsvToHsl(nextHsv.h, nextHsv.s, nextHsv.v);
-		onChange(
-			hslaToCss(
-				{
-					h: nextHsl.h,
-					s: nextHsl.s,
-					l: nextHsl.l,
-					a: patch.a ?? parsed.a,
-				},
-				!!allowAlpha,
-			),
-		);
-	};
+	const normalizedValue = useMemo(() => {
+		const normalizedHsl = hsvToHsl(hsv.h, hsv.s, hsv.v);
+		return hslaToCss({ ...normalizedHsl, a: parsed.a }, !!allowAlpha);
+	}, [allowAlpha, hsv.h, hsv.s, hsv.v, parsed.a]);
+	const color = useMemo(() => parseColor(normalizedValue), [normalizedValue]);
+	const latestColorRef = useRef(normalizedValue);
+	const swatches = useMemo(
+		() => Array.from(new Set([defaultValue, "#7C3AED", "#9146FF", "#FFFFFF", "#000000", ...recentColors].map((entry) => entry.trim()).filter(Boolean))),
+		[defaultValue, recentColors],
+	);
 
 	useEffect(() => {
-		return () => {
-			dragAbortControllerRef.current?.abort();
-			dragAbortControllerRef.current = null;
-		};
-	}, []);
+		latestColorRef.current = normalizedValue;
+	}, [normalizedValue]);
 
-	const startPointerDrag = (event: React.PointerEvent<HTMLElement>, onMove: (clientX: number, clientY: number) => void) => {
-		event.preventDefault();
-		dragAbortControllerRef.current?.abort();
-		const controller = new AbortController();
-		dragAbortControllerRef.current = controller;
-		const { signal } = controller;
-		onMove(event.clientX, event.clientY);
-		const move = (nextEvent: PointerEvent) => onMove(nextEvent.clientX, nextEvent.clientY);
-		const stop = () => {
-			controller.abort();
-			if (dragAbortControllerRef.current === controller) {
-				dragAbortControllerRef.current = null;
-			}
-		};
-		window.addEventListener("pointermove", move, { signal });
-		window.addEventListener("pointerup", stop, { once: true, signal });
-		window.addEventListener("pointercancel", stop, { once: true, signal });
-	};
-
-	const updateSvFromPointer = (clientX: number, clientY: number) => {
-		const node = svRef.current;
-		if (!node) return;
-		const rect = node.getBoundingClientRect();
-		const s = clamp(((clientX - rect.left) / rect.width) * 100, 0, 100);
-		const v = clamp(100 - ((clientY - rect.top) / rect.height) * 100, 0, 100);
-		updateFromHsv({ s, v });
-	};
-
-	const updateHueFromPointer = (clientX: number) => {
-		const node = hueRef.current;
-		if (!node) return;
-		const rect = node.getBoundingClientRect();
-		const h = clamp(((clientX - rect.left) / rect.width) * 360, 0, 360);
-		updateFromHsv({ h });
-	};
-
-	const updateAlphaFromPointer = (clientX: number) => {
-		const node = alphaRef.current;
-		if (!node) return;
-		const rect = node.getBoundingClientRect();
-		const a = clamp((clientX - rect.left) / rect.width, 0, 1);
-		updateFromHsv({ a });
+	const handleColorChange = (nextColor: Parameters<NonNullable<React.ComponentProps<typeof ColorPicker>["onChange"]>>[0]) => {
+		const nextValue = nextColor.toString(allowAlpha ? "rgba" : "hex");
+		latestColorRef.current = nextValue;
+		onChange(nextValue);
 	};
 
 	return (
-		<TextField type='text'><Label>{label}</Label><InputGroup><InputGroup.Input value={value} onChange={(event) => (onChange)(event.target.value)} /><InputGroup.Suffix>{<Popover>
-					<Popover.Trigger>
-						<button type='button' className='h-7 w-7 rounded-md border border-default-300 transition-transform hover:scale-105' style={{ background: preview }} aria-label={`Pick ${label}`} />
-					</Popover.Trigger>
-					<Popover.Content placement='bottom end' className='p-3'>
-						<Popover.Dialog>
-						<div className='w-[260px] flex flex-col gap-3'>
-							<div className='text-xs text-default-500 flex items-center gap-1'>
-								<IconPalette className='h-3.5 w-3.5' />
-								<span>{label}</span>
-							</div>
-							<div
-								ref={svRef}
-								className='relative h-[138px] rounded-xl border border-default-200 cursor-crosshair overflow-hidden'
-								style={{
-									background: `linear-gradient(to top, #000, transparent), linear-gradient(to right, #fff, transparent), hsl(${Math.round(hsv.h)}, 100%, 50%)`,
-								}}
-								onPointerDown={(event) => startPointerDrag(event, updateSvFromPointer)}
-							>
-								<div
-									className='absolute h-3 w-3 rounded-full border-2 border-white -translate-x-1/2 -translate-y-1/2 pointer-events-none'
-									style={{
-										left: `${svMarkerLeft}%`,
-										top: `${svMarkerTop}%`,
-										boxShadow: "0 0 0 1px rgba(0,0,0,0.85)",
-									}}
-								/>
-							</div>
-							<div ref={hueRef} className='relative h-3 rounded-full border border-default-200 overflow-hidden cursor-pointer' onPointerDown={(event) => startPointerDrag(event, (x) => updateHueFromPointer(x))}>
-								<div className='absolute inset-0 bg-[linear-gradient(90deg,#ff0000,#ffff00,#00ff00,#00ffff,#0000ff,#ff00ff,#ff0000)]' />
-								<div className='absolute top-1/2 h-4 w-2 rounded-full border border-white bg-zinc-900 -translate-y-1/2 -translate-x-1/2 pointer-events-none' style={{ left: `${hueMarkerLeft}%` }} />
-							</div>
-							{allowAlpha ? (
-								<div className='rounded-xl border border-default-200 bg-content2/70 p-2'>
-									<div className='flex items-center justify-between text-[11px] text-default-500 mb-2'>
-										<span>Opacity</span>
-										<span>{Math.round(parsed.a * 100)}%</span>
-									</div>
-									<div ref={alphaRef} className='relative h-5 rounded-lg border border-default-300 overflow-hidden cursor-pointer' onPointerDown={(event) => startPointerDrag(event, (x) => updateAlphaFromPointer(x))}>
-										<div className='absolute inset-0 bg-[linear-gradient(45deg,#d4d4d8_25%,transparent_25%,transparent_50%,#d4d4d8_50%,#d4d4d8_75%,transparent_75%,transparent)] bg-[length:10px_10px]' />
-										<div className='absolute inset-0' style={{ background: `linear-gradient(90deg, rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0), rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 1))` }} />
-										<div className='absolute top-1/2 h-4 w-4 rounded-full border-2 border-white bg-zinc-900/90 -translate-y-1/2 -translate-x-1/2 pointer-events-none' style={{ left: `${alphaMarkerLeft}%`, boxShadow: "0 0 0 1px rgba(0,0,0,0.5)" }} />
-									</div>
-								</div>
-							) : null}
-							<Button size='sm' variant='tertiary' onPress={() => onChange(defaultValue)}>
-								Reset to default
-							</Button>
-						</div>
-						</Popover.Dialog>
-					</Popover.Content>
-				</Popover>}</InputGroup.Suffix></InputGroup></TextField>
+		<ColorPicker
+			value={color}
+			onChange={handleColorChange}
+		>
+			<ColorField fullWidth>
+				<Label>{label}</Label>
+				<ColorField.Group fullWidth variant='secondary'>
+					<ColorField.Input />
+					<ColorField.Suffix className='pe-1'>
+						<ColorPicker.Trigger className='p-1' aria-label={`Pick ${label}`}>
+							<ColorSwatch size='xs' />
+						</ColorPicker.Trigger>
+					</ColorField.Suffix>
+				</ColorField.Group>
+			</ColorField>
+			<ColorPicker.Popover
+				className='max-w-62 gap-2'
+				placement='bottom end'
+				onOpenChange={(isOpen) => {
+					if (!isOpen) rememberColor(latestColorRef.current);
+				}}
+			>
+				<ColorArea aria-label={`${label} color area`} className='max-w-full' colorSpace='hsb' xChannel='saturation' yChannel='brightness'>
+					<ColorArea.Thumb />
+				</ColorArea>
+				<ColorSlider aria-label={`${label} hue`} channel='hue' className='gap-1 px-1' colorSpace='hsb'>
+					<Label>Hue</Label>
+					<ColorSlider.Output className='text-muted' />
+					<ColorSlider.Track><ColorSlider.Thumb /></ColorSlider.Track>
+				</ColorSlider>
+				<Select aria-label='Color space' value={colorSpace} variant='secondary' onChange={(nextSpace) => setColorSpace(nextSpace as ColorSpace)}>
+					<Select.Trigger><Select.Value className='uppercase' /><Select.Indicator /></Select.Trigger>
+					<Select.Popover><ListBox>
+						{Object.keys(COLOR_CHANNELS_BY_SPACE).map((space) => (
+							<ListBox.Item key={space} className='uppercase' id={space} textValue={space}>{space}<ListBox.ItemIndicator /></ListBox.Item>
+						))}
+					</ListBox></Select.Popover>
+				</Select>
+				<div className='grid w-full grid-cols-3 items-center gap-2'>
+					{COLOR_CHANNELS_BY_SPACE[colorSpace].map((channel) => (
+						<ColorField key={channel} aria-label={channel} channel={channel} colorSpace={colorSpace}>
+							<ColorField.Group variant='secondary'><ColorField.Input /></ColorField.Group>
+						</ColorField>
+					))}
+				</div>
+				{allowAlpha ? (
+					<ColorSlider aria-label={`${label} opacity`} channel='alpha' className='gap-1 px-1' colorSpace='rgb'>
+						<Label>Opacity</Label>
+						<ColorSlider.Output className='text-muted' />
+						<ColorSlider.Track><ColorSlider.Thumb /></ColorSlider.Track>
+					</ColorSlider>
+				) : null}
+				<ColorSwatchPicker className='justify-center px-1' size='xs'>
+					{swatches.map((swatch) => (
+						<ColorSwatchPicker.Item key={swatch} color={swatch}>
+							<ColorSwatchPicker.Swatch />
+						</ColorSwatchPicker.Item>
+					))}
+				</ColorSwatchPicker>
+				<Button className='w-full' size='sm' variant='tertiary' onPress={() => onChange(defaultValue)}>Reset to default</Button>
+			</ColorPicker.Popover>
+		</ColorPicker>
 	);
 }
 
@@ -714,7 +719,7 @@ function OverlayStylePreview({ overlay, canDrag, onMove, onScaleChange, streamer
 		<div className='w-full'>
 			<div
 				ref={containerRef}
-				className='relative w-full aspect-video rounded-xl border border-default-200 overflow-hidden bg-[linear-gradient(140deg,#0B1220,#1E293B)]'
+				className='relative w-full aspect-video rounded-xl border border-default overflow-hidden bg-[linear-gradient(140deg,#0B1220,#1E293B)]'
 				onPointerDown={(event) => {
 					if (event.target === event.currentTarget) setSelectedTarget(null);
 				}}
@@ -846,7 +851,7 @@ function OverlayStylePreview({ overlay, canDrag, onMove, onScaleChange, streamer
 					</div>
 				)}
 			</div>
-			<div className='mt-2 text-xs text-default-500'>{canDrag ? "Drag overlay elements to position them. Use arrow keys to nudge selected items (Shift for larger steps)." : dragBlockedReason === "narrow" ? "Drag and drop needs a wider viewport. Increase browser width or use desktop." : "Drag and drop is only supported on desktop. Switch to a desktop browser."}</div>
+			<div className='mt-2 text-xs text-muted'>{canDrag ? "Drag overlay elements to position them. Use arrow keys to nudge selected items (Shift for larger steps)." : dragBlockedReason === "narrow" ? "Drag and drop needs a wider viewport. Increase browser width or use desktop." : "Drag and drop is only supported on desktop. Switch to a desktop browser."}</div>
 		</div>
 	);
 }
@@ -861,7 +866,7 @@ export default function OverlayStylePage() {
 	const [ownerPlan, setOwnerPlan] = useState<Plan | null>(null);
 	const [dragSupported, setDragSupported] = useState(true);
 	const [dragBlockedReason, setDragBlockedReason] = useState<DragBlockedReason | null>(null);
-	const { isOpen: isUpgradeOpen, onOpen: onUpgradeOpen, onOpenChange: onUpgradeOpenChange } = useDisclosure();
+	const { isOpen: isUpgradeOpen, open: onUpgradeOpen, setOpen: onUpgradeOpenChange } = useOverlayState();
 
 	useEffect(() => {
 		async function checkAuth() {
@@ -950,12 +955,7 @@ export default function OverlayStylePage() {
 	}, [safeThemeFontUrl]);
 
 	if (!overlay || !user) {
-		return (
-			<div className='flex items-center justify-center h-screen w-full'>
-				<Spinner />
-				<span>Loading overlay style editor</span>
-			</div>
-		);
+		return <FullscreenLoadingState message='Loading overlay style editor' />;
 	}
 
 	const ownerHasAdvancedAccess = getFeatureAccess(user, "advanced_filters").allowed;
@@ -1017,7 +1017,7 @@ export default function OverlayStylePage() {
 
 				<div className='w-full p-4 md:p-6'>
 					<Card>
-						<Card.Header className='flex items-center justify-between gap-2'>
+						<Card.Header className='flex w-full flex-row items-center justify-between gap-2'>
 							<Button isIconOnly variant='tertiary' aria-label='Back to Overlay Settings' onPress={() => router.push(`/dashboard/overlay/${overlay.id}`)}>
 								<IconArrowLeft />
 							</Button>
@@ -1033,24 +1033,22 @@ export default function OverlayStylePage() {
 						<Card.Content className='flex flex-col gap-4'>
 							<div>
 								{!dragSupported && (
-									<Card className='mb-3 border border-warning-200 bg-warning-50'>
-										<Card.Content className='text-warning-800 text-sm'>{dragBlockedReason === "narrow" ? "Drag & drop needs a wider viewport. Expand your browser width or switch to desktop for layout editing." : "Drag & drop positioning is not supported on mobile or touch-only devices. Switch to a desktop browser for layout editing."}</Card.Content>
-									</Card>
+									<Alert status='warning' className='mb-3'>
+										<Alert.Content><Alert.Description>{dragBlockedReason === "narrow" ? "Drag & drop needs a wider viewport. Expand your browser width or switch to desktop for layout editing." : "Drag & drop positioning is not supported on mobile or touch-only devices. Switch to a desktop browser for layout editing."}</Alert.Description></Alert.Content>
+									</Alert>
 								)}
 								{ownerPlan === Plan.Free && !ownerHasAdvancedAccess ? (
-									<Card className='bg-warning-50 border border-warning-200 mb-2'>
-										<Card.Content>
-											<div className='flex items-center gap-2 mb-1'>
-												<IconCrown className='text-warning-500' />
-												<span className='text-warning-800 font-semibold text-base'>Pro Feature Locked</span>
-											</div>
-											<p className='text-sm text-warning-700'>Theme Studio and drag-and-drop layout are available on Pro.</p>
+									<Alert status='warning'>
+										<Alert.Indicator><IconCrown /></Alert.Indicator>
+										<Alert.Content>
+											<Alert.Title>Pro Feature Locked</Alert.Title>
+											<Alert.Description>Theme Studio and drag-and-drop layout are available on Pro.</Alert.Description>
 											<Button variant='primary' onPress={onUpgradeOpen} className='mt-3 w-full font-semibold'>
 												Upgrade to Pro
 											</Button>
-											<p className='text-xs text-warning-600 text-center mt-2'>{inTrial ? `Trial active: ${trialDaysLeft <= 1 ? "ends today." : `${trialDaysLeft} days left.`}` : "Start Pro now. Cancel anytime."}</p>
-										</Card.Content>
-									</Card>
+											<p className='text-xs text-center mt-2'>{inTrial ? `Trial active: ${trialDaysLeft <= 1 ? "ends today." : `${trialDaysLeft} days left.`}` : "Start Pro now. Cancel anytime."}</p>
+										</Alert.Content>
+									</Alert>
 								) : null}
 
 								<div
@@ -1094,6 +1092,7 @@ export default function OverlayStylePage() {
 									<Label>Overlay Fade Out (seconds)</Label><Slider.Output /><Slider.Track><Slider.Fill /><Slider.Thumb /></Slider.Track>
 								</Slider>
 								<Select
+									variant='secondary'
 									selectionMode='multiple'
 									value={Array.from(selectedComponents)}
 									onChange={(keys) => {
@@ -1117,6 +1116,7 @@ export default function OverlayStylePage() {
 									</ListBox></Select.Popover>
 								</Select>
 								<Select
+									variant='secondary'
 									selectionMode='multiple'
 									value={Array.from(selectedEffects)}
 									onChange={(keys) => {
@@ -1137,11 +1137,11 @@ export default function OverlayStylePage() {
 										<ListBox.Item id='crt' textValue='CRT (Old TV)'><Label>CRT (Old TV)</Label><ListBox.ItemIndicator /></ListBox.Item>
 									</ListBox></Select.Popover>
 								</Select>
-								<Card className='lg:col-span-2 border border-default-200/80'>
+								<Card className='lg:col-span-2 border border-default/80'>
 									<Card.Header className='pb-1'>
 										<div>
 											<div className='text-sm font-semibold'>Typography</div>
-											<div className='text-xs text-default-500'>Pick a font source, then fine-tune only what you need.</div>
+											<div className='text-xs text-muted'>Pick a font source, then fine-tune only what you need.</div>
 										</div>
 									</Card.Header>
 									<Card.Content className='pt-1 flex flex-col gap-3'>
@@ -1173,10 +1173,10 @@ export default function OverlayStylePage() {
 											</Tabs.List></Tabs.ListContainer>
 										</Tabs>
 
-										{currentFontMode === "website" && <p className='text-xs text-default-500'>Using the same default font stack as the Clipify website.</p>}
+										{currentFontMode === "website" && <p className='text-xs text-muted'>Using the same default font stack as the Clipify website.</p>}
 
 										{currentFontMode === "system" && (
-											<Select value={systemFontOptions.some((opt) => opt.key === parsedThemeFont.fontFamily) ? parsedThemeFont.fontFamily : systemFontOptions[0]?.key || "system-ui"} onChange={(value) => setOverlay({ ...overlay, themeFontFamily: encodeThemeFontSetting((value as string) || "system-ui", "") })}>
+											<Select variant='secondary' value={systemFontOptions.some((opt) => opt.key === parsedThemeFont.fontFamily) ? parsedThemeFont.fontFamily : systemFontOptions[0]?.key || "system-ui"} onChange={(value) => setOverlay({ ...overlay, themeFontFamily: encodeThemeFontSetting((value as string) || "system-ui", "") })}>
 												<Label>System Font</Label>
 												<Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
 												<Select.Popover><ListBox>

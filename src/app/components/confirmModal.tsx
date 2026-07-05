@@ -4,7 +4,7 @@ import { Button, Input, Modal, TextField, Label, FieldError } from "@heroui/reac
 import { IconAlertTriangle } from "@tabler/icons-react";
 import { useState } from "react";
 
-export default function ConfirmModal({ isOpen, onOpenChange, keyword, onConfirm }: { isOpen: boolean; onOpenChange: () => void; keyword: string; onConfirm: () => void }) {
+export default function ConfirmModal({ isOpen, onOpenChange, keyword, onConfirm }: { isOpen: boolean; onOpenChange: (isOpen: boolean) => void; keyword: string; onConfirm: () => void }) {
 	const [confirmed, setConfirmed] = useState(false);
 
 	return (
@@ -36,7 +36,7 @@ export default function ConfirmModal({ isOpen, onOpenChange, keyword, onConfirm 
 							}
 						})(event.target.value)} placeholder={keyword} /><FieldError /></TextField>
 					<div className='flex justify-end gap-2'>
-						<Button onPress={onOpenChange}>Cancel</Button>
+						<Button onPress={() => onOpenChange(false)}>Cancel</Button>
 						<Button isDisabled={!confirmed} onPress={onConfirm} variant='danger'>
 							Delete
 						</Button>

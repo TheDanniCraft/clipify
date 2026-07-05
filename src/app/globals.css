@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "@heroui/styles";
+@import "./themes/clipify.css";
 @custom-variant dark (&:is(.dark *));
 
 @theme {
@@ -10,26 +11,24 @@
 	--background-image-hero-vignette: radial-gradient(circle at 50% 25%, black 0%, black 40%, transparent 75%);
 }
 
-@layer base {
-	html,
-	body,
-	input,
-	textarea,
-	select,
-	button,
-	nav,
-	ul,
-	ol,
-	li,
-	div,
-	span,
-	th,
-	td,
-	tr,
-	thead,
-	table {
-		@apply transition-colors duration-250 ease-in-out;
-	}
+html,
+body,
+input,
+textarea,
+select,
+button,
+nav,
+ul,
+ol,
+li,
+div,
+span,
+th,
+td,
+tr,
+thead,
+table {
+	@apply transition-colors duration-[250ms] ease-in-out;
 }
 
 html {

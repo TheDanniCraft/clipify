@@ -54,56 +54,54 @@ export default function FeedbackWidget() {
 
 	return (
 		<>
-			<div className='fixed bottom-6 right-6 z-50'>
+			<div className='fixed right-0 top-1/2 z-50 -translate-y-1/2'>
 				<Popover isOpen={open} onOpenChange={setOpen}>
-					<Popover.Trigger>
-						<Button onPress={() => {
+					<Button variant='tertiary' onPress={() => {
 								setOpen(true);
 								setState("default");
-							}} className='fixed top-1/2 right-0 z-50 -translate-y-1/2 rounded-b-[0] shadow-lg text-xs rotate-[-90deg] origin-bottom-right'>
+							}} className='rounded-b-none text-xs shadow-lg rotate-[-90deg] origin-bottom-right'>
 							Feedback
-						</Button>
-					</Popover.Trigger>
+					</Button>
 
-					<Popover.Content placement='left' offset={-40} className='h-screen w-screen rounded-r-[0] p-5 sm:m-0 sm:h-full sm:w-full'>
+					<Popover.Content placement='left' offset={-40} className='w-[min(22rem,100vw)] rounded-r-none'>
 						<Popover.Dialog>
-						<div>
-							<div className='flex justify-between mb-3'>
+						<div className='min-w-0'>
+							<div className='mb-3 flex justify-between'>
 								<Button size='sm' isIconOnly variant='tertiary' onPress={() => setState("default")} className={`${state === "default" || state === "loading" ? "invisible" : "visible"}`}>{<IconChevronLeft />}</Button>
 								<Button size='sm' isIconOnly variant='tertiary' onPress={() => setOpen(false)}>{<IconX />}</Button>
 							</div>
-							<div className='sm:max-h-[400px] overflow-scroll'>
+							<div className='max-h-[min(32rem,calc(100vh-7rem))] overflow-y-auto px-1 pb-1'>
 								<p className='text-xl font-bold'>Send us your feedback</p>
 								<p className='font-bold'>What would you like to do?</p>
 								<div>
 									{state === "default" && (
-										<Form onSubmit={handleSubmit} className='mt-4'>
-										<Tabs selectedKey={type} onSelectionChange={(key) => setType(key as "feedback" | "feature" | "bug")}>
-											<Tabs.ListContainer><Tabs.List aria-label='Feedback type'>
-												<Tabs.Tab id='feedback' className='w-full'>💬 Feedback<Tabs.Indicator /></Tabs.Tab>
+										<Form onSubmit={handleSubmit} className='mt-4 flex w-full flex-col gap-4'>
+										<Tabs className='w-full' selectedKey={type} onSelectionChange={(key) => setType(key as "feedback" | "feature" | "bug")}>
+							<Tabs.ListContainer className='w-full'><Tabs.List className='w-full whitespace-nowrap' aria-label='Feedback type'>
+								<Tabs.Tab id='feedback'>💬 Feedback<Tabs.Indicator /></Tabs.Tab>
 												<Tabs.Tab id='feature'>🆕 Feature<Tabs.Indicator /></Tabs.Tab>
 												<Tabs.Tab id='bug'>🐞 Bug<Tabs.Indicator /></Tabs.Tab>
 											</Tabs.List></Tabs.ListContainer>
 										</Tabs>
-											<TextField name='title' fullWidth isRequired><Label>Title</Label><Input placeholder='' minLength={10} maxLength={32} className='h-8 text-sm' /><FieldError /></TextField>
-											<TextField fullWidth name='comment'>
+											<TextField name='title' fullWidth variant='secondary' isRequired><Label>Title</Label><Input className='w-full' placeholder='' minLength={10} maxLength={32} /><FieldError /></TextField>
+											<TextField fullWidth variant='secondary' name='comment'>
 												<Label>Comment</Label>
 												<TextArea className='w-full resize-none' placeholder="I like... / I don't like" rows={6} />
 											</TextField>
 											{type === "feedback" && (
-												<div className='flex justify-between text-2xl w-full'>
+												<div className='flex w-full justify-between'>
 													<RadioGroup name='rating' orientation='horizontal' className='w-full'>
-														<div className='w-full flex justify-center'>
-															<FeedbackRatingItem value={RatingValueEnum.BAD} />
-															<FeedbackRatingItem value={RatingValueEnum.POOR} />
-															<FeedbackRatingItem value={RatingValueEnum.NEUTRAL} />
-															<FeedbackRatingItem value={RatingValueEnum.GREAT} />
-															<FeedbackRatingItem value={RatingValueEnum.EXCELLENT} />
+														<div className='flex w-full justify-between gap-1'>
+															<FeedbackRatingItem fullWidth value={RatingValueEnum.BAD} />
+															<FeedbackRatingItem fullWidth value={RatingValueEnum.POOR} />
+															<FeedbackRatingItem fullWidth value={RatingValueEnum.NEUTRAL} />
+															<FeedbackRatingItem fullWidth value={RatingValueEnum.GREAT} />
+															<FeedbackRatingItem fullWidth value={RatingValueEnum.EXCELLENT} />
 														</div>
 													</RadioGroup>
 												</div>
 											)}
-											<Button type='submit' className='w-full'>
+											<Button fullWidth variant='primary' type='submit'>
 												Submit {type === "feedback" ? "Feedback" : type === "bug" ? "Bug Report" : "Feature Request"}
 											</Button>
 										</Form>

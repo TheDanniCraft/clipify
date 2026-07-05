@@ -37,8 +37,8 @@ export default function FloatingBanner({ icon, title, text, cta }: { icon?: Reac
 					</div>
 
 					<div className='flex flex-1 justify-end'>
-						<Button isIconOnly aria-label='Close Banner' className='-m-1' size='sm' variant='tertiary' onPress={handleClose}>
-							<IconX aria-hidden='true' className='text-default-500' width={20} />
+						<Button isIconOnly aria-label='Close Banner' className='-m-1' size='sm' variant='ghost' onPress={handleClose}>
+							<IconX aria-hidden='true' className='text-muted' width={20} />
 						</Button>
 					</div>
 				</div>

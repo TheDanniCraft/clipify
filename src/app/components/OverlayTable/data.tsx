@@ -8,8 +8,8 @@ export const statusOptions = [
 ] as const;
 
 export const statusColorMap: Record<StatusOptions, JSX.Element> = {
-	active: <IconCircleFilled color='hsl(var(--heroui-success))' />,
-	paused: <IconCircleFilled color='hsl(var(--heroui-danger))' />,
+	active: <IconCircleFilled color='var(--success)' />,
+	paused: <IconCircleFilled color='var(--danger)' />,
 };
 
 export type ColumnsKey = "accessType" | "id" | "name" | "status" | "actions" | "clipCount";

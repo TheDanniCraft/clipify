@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import type { CampaignOffer } from "@types";
 import { Card, Chip, Separator, Link, Tabs, cn } from "@heroui/react";
+import { buttonVariants } from "@heroui/styles";
 
 
 import { tiers, frequencies } from "./pricing-tiers";
@@ -33,17 +34,18 @@ export default function TiersComponent({ campaignOffer = null }: TiersComponentP
 	};
 
 	return (
-		<div className='relative mx-auto flex max-w-3xl flex-col items-center max-w'>
+		<div className='relative mx-auto flex max-w-3xl flex-col items-center'>
 			<Tabs
+				className='mx-auto w-fit max-w-full'
 				onSelectionChange={onFrequencyChange}
 				selectedKey={selectedFrequency.key}
 			>
-				<Tabs.ListContainer><Tabs.List aria-label='Billing frequency' className='text-lg'>
-					<Tabs.Tab id={FrequencyEnum.Monthly} className='data-[hover-unselected=true]:opacity-90'>Pay Monthly<Tabs.Indicator /></Tabs.Tab>
-					<Tabs.Tab id={FrequencyEnum.Yearly} aria-label='Pay Yearly' className='pr-1.5 data-[hover-unselected=true]:opacity-90'>
-						<div className='flex items-center gap-2'>
-							<p>Pay Yearly</p>
-							<Chip color='accent'>2 months free</Chip>
+				<Tabs.ListContainer className='mx-auto w-fit max-w-full'><Tabs.List aria-label='Billing frequency' className='mx-auto w-fit max-w-full *:w-fit'>
+					<Tabs.Tab id={FrequencyEnum.Monthly} className='flex-none whitespace-nowrap px-3 data-[hover-unselected=true]:opacity-90'>Pay Monthly<Tabs.Indicator /></Tabs.Tab>
+					<Tabs.Tab id={FrequencyEnum.Yearly} aria-label='Pay Yearly' className='flex-none px-3 data-[hover-unselected=true]:opacity-90'>
+						<div className='flex min-w-0 items-center gap-1'>
+							<p className='whitespace-nowrap'>Pay Yearly</p>
+							<Chip color='accent' size='sm' variant='primary'>2 months free</Chip>
 						</div>
 						<Tabs.Indicator />
 					</Tabs.Tab>
@@ -51,27 +53,27 @@ export default function TiersComponent({ campaignOffer = null }: TiersComponentP
 			</Tabs>
 			<div className='h-12' aria-hidden='true' />
 			{/* Grid ---> "xs" to "lg" */}
-			<div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
+			<div className='grid grid-cols-1 items-stretch gap-4 sm:grid-cols-2'>
 				{tiers.slice(0, 2).map((tier) => {
 					const checkoutHref = `/login?returnUrl=${encodeURIComponent(`/dashboard/settings?upgrade&cycle=${selectedFrequency.key}&source=pricing_page&feature=plan`)}`;
 					const hasPromoPrice = pricingPromoByFrequency[selectedFrequency.key] !== null;
 
 					return (
-						<Card key={tier.key} className={[cn("bg-background/60 p-3 dark:bg-default-100/50", {
-								"!border-small border-primary/50": tier.mostPopular,
-							}), "shadow-md backdrop-blur-md"].filter(Boolean).join(" ")}>
+						<Card key={tier.key} variant='default' className={cn("h-full shadow-md", {
+							"border border-accent/50": tier.mostPopular,
+						})}>
 							{tier.key === "pro" && proPromoEnabled && hasPromoPrice ? (
 								<Chip className='absolute right-4 top-4 shadow-lg' variant='primary' color='accent'>
 									Limited offer
 								</Chip>
 							) : tier.mostPopular ? (
-								<Chip className='absolute right-4 top-4 bg-primary' variant='tertiary'>
+								<Chip className='absolute right-4 top-4' color='accent' variant='primary'>
 									Most Popular
 								</Chip>
 							) : null}
 							<Card.Header className='flex flex-col items-start gap-2 pb-6'>
-								<h2 className='text-large font-medium'>{tier.title}</h2>
-								<p className='text-medium text-default-500'>{tier.description}</p>
+								<h2 className='text-lg font-medium'>{tier.title}</h2>
+								<p className='text-base text-muted'>{tier.description}</p>
 							</Card.Header>
 							<Separator />
 							<Card.Content className='gap-8'>
@@ -80,27 +82,27 @@ export default function TiersComponent({ campaignOffer = null }: TiersComponentP
 										{typeof tier.price !== "string" && tier.key === "pro" && proPromoEnabled && hasPromoPrice ? (
 											<>
 												{/* Old price - smaller, muted, clean strike */}
-												<span className='inline text-xl md:text-2xl font-medium text-default-500/60 line-through decoration-2 decoration-default-500/50 underline-offset-4' aria-hidden='true'>
+												<span className='inline text-xl md:text-2xl font-medium text-muted/60 line-through decoration-2 decoration-muted/50 underline-offset-4' aria-hidden='true'>
 													{tier.price[selectedFrequency.key]}
 												</span>
 
 												{/* New price - bold, tight leading */}
-												<span className='inline text-4xl md:text-5xl font-extrabold leading-none tracking-tight text-secondary'>{formatPromoPrice(pricingPromoByFrequency[selectedFrequency.key])}</span>
+												<span className='inline text-4xl md:text-5xl font-extrabold leading-none tracking-tight text-brand-secondary'>{formatPromoPrice(pricingPromoByFrequency[selectedFrequency.key])}</span>
 
 												{/* Suffix */}
-												<span className='text-small font-medium text-default-400 leading-none'>/{selectedFrequency.priceSuffix}</span>
+												<span className='text-sm font-medium text-muted leading-none'>/{selectedFrequency.priceSuffix}</span>
 											</>
 										) : (
 											<>
 												<span className='inline text-4xl md:text-5xl font-extrabold leading-none tracking-tight'>{typeof tier.price === "string" ? tier.price : tier.price[selectedFrequency.key]}</span>
-												{typeof tier.price !== "string" && <span className='text-small font-medium text-default-400 leading-none'>/{selectedFrequency.priceSuffix}</span>}
+												{typeof tier.price !== "string" && <span className='text-sm font-medium text-muted leading-none'>/{selectedFrequency.priceSuffix}</span>}
 											</>
 										)}
 									</p>
 								</div>
 								<p
 									className={cn("text-xs font-medium h-4", {
-										"text-success-500": tier.key === "pro" && selectedFrequency.key === FrequencyEnum.Yearly,
+										"text-success": tier.key === "pro" && selectedFrequency.key === FrequencyEnum.Yearly,
 										"invisible": !(tier.key === "pro" && selectedFrequency.key === FrequencyEnum.Yearly),
 									})}
 								>
@@ -109,8 +111,8 @@ export default function TiersComponent({ campaignOffer = null }: TiersComponentP
 							<ul className='flex flex-col gap-2'>
 								{tier.features?.map((feature) => (
 									<li key={feature} className='flex items-center gap-2'>
-										<IconCheck className='text-primary' width={24} />
-										<p className='text-default-500'>{feature}</p>
+										<IconCheck className='text-accent' width={24} />
+										<p className='text-muted'>{feature}</p>
 									</li>
 								))}
 							</ul>
@@ -123,7 +125,11 @@ export default function TiersComponent({ campaignOffer = null }: TiersComponentP
 										plan: tier.key,
 										cycle: selectedFrequency.key,
 									});
-								}} className={cn("w-full inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 font-medium bg-accent text-accent-foreground hover:bg-accent-hover", tier.mostPopular && "shadow-md")}>
+								}} className={buttonVariants({
+									fullWidth: true,
+									variant: tier.mostPopular ? "primary" : "secondary",
+									className: cn("no-underline", tier.mostPopular && "shadow-md"),
+								})}>
 								{tier.buttonText}
 							</Link>
 						</Card.Footer>

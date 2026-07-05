@@ -29,7 +29,7 @@ export default function ErrorToast({ error, errorCode }: { error: string; errorC
 					{errorCode && (
 						<>
 							{" and specify this error code: "}
-							<code className='inline-block h-fit whitespace-nowrap rounded-sm bg-danger/20 px-2 py-1 font-mono text-sm font-normal text-danger-600'>{errorCode}</code>
+							<code className='inline-block h-fit whitespace-nowrap rounded-sm bg-danger/20 px-2 py-1 font-mono text-sm font-normal text-danger'>{errorCode}</code>
 						</>
 					)}
 					.

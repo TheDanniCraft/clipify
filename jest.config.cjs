@@ -11,6 +11,7 @@ const customJestConfig = {
 	testMatch: ["<rootDir>/test/**/*.test.ts", "<rootDir>/test/**/*.test.tsx"],
 	moduleNameMapper: {
 		"^@heroui/react$": "<rootDir>/test/__mocks__/heroui-react.cjs",
+		"^@heroui/styles$": "<rootDir>/test/__mocks__/heroui-styles.cjs",
 		"^@/(.*)$": "<rootDir>/src/$1",
 		"^@components/(.*)$": "<rootDir>/src/app/components/$1",
 		"^@css/(.*)$": "<rootDir>/src/app/css/$1",

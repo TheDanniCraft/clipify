@@ -69,7 +69,7 @@ export default function CountdownTimer({ endAt, className = "", tone = "light", 
 	const boxClasses =
 		tone === "light"
 			? "bg-white text-black shadow-sm"
-			: "bg-default-50 text-foreground border border-default-200";
+			: "bg-surface-secondary text-foreground border border-default";
 	const separatorToneClasses = tone === "light" ? "text-white" : "text-foreground";
 	const sizeClasses =
 		size === "sm"

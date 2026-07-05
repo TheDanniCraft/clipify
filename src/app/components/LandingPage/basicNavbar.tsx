@@ -1,5 +1,6 @@
 "use client";
-import { Link, Separator, cn } from "@heroui/react";
+import { Button, Link, Separator, cn } from "@heroui/react";
+import { buttonVariants } from "@heroui/styles";
 import React from "react";
 
 import Logo from "@components/logo";
@@ -50,12 +51,12 @@ const BasicNavbar = React.forwardRef<HTMLElement, BasicNavbarProps>(({ className
 		<nav
 			ref={ref}
 			{...props}
-			className={cn("sticky top-0 z-40 w-full border-default-100 bg-transparent transition-transform duration-300", isMenuOpen && "bg-default-200/50 dark:bg-default-100/50", isHidden && "-translate-y-full", classNames.base, className)}
+			className={cn("sticky top-0 z-40 w-full bg-background/40 backdrop-blur-lg backdrop-saturate-150 transition-transform duration-300", isMenuOpen && "bg-background/70", isHidden && "-translate-y-full", classNames.base, className)}
 		>
-			<header className={cn("mx-auto flex h-[60px] w-full items-center justify-between px-4", classNames.wrapper)}>
+			<header className={cn("mx-auto flex h-[60px] w-full max-w-[1024px] items-center justify-between px-8", classNames.wrapper)}>
 				<Link href='/' className='flex items-center'>
 					<Logo size={34} />
-					<span className='ml-2 text-large font-bold text-white'>Clipify</span>
+					<span className='ml-2 text-lg font-bold text-white'>Clipify</span>
 				</Link>
 
 				<ul className='hidden items-center justify-center gap-4 md:flex'>
@@ -67,25 +68,25 @@ const BasicNavbar = React.forwardRef<HTMLElement, BasicNavbarProps>(({ className
 				</ul>
 
 				<div className='ml-2 hidden items-center gap-2 md:flex'>
-					<Link className='text-white rounded-full inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 font-medium bg-transparent text-foreground hover:bg-default/40' href='/login'>
+					<Link className={cn(buttonVariants({ variant: "ghost" }), "text-white")} href='/login'>
 						Login
 					</Link>
-					<Link className='bg-default-foreground font-medium text-background rounded-full inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 font-medium bg-transparent text-foreground hover:bg-default/40' href='/login'>
+					<Link className={buttonVariants({ variant: "primary", className: "gap-2 bg-accent-foreground text-black hover:bg-accent-foreground/90" })} href='/login'>
 						Get Started
 						<IconChevronRight />
 					</Link>
 				</div>
 
-				<button type='button' className='text-white md:hidden' aria-expanded={isMenuOpen} aria-label='Toggle navigation menu' onClick={() => setIsMenuOpen((open) => !open)}>
+				<Button type='button' isIconOnly variant='ghost' className='text-white md:hidden' aria-expanded={isMenuOpen} aria-label='Toggle navigation menu' onPress={() => setIsMenuOpen((open) => !open)}>
 					{isMenuOpen ? <IconX /> : <IconMenu2 />}
-				</button>
+				</Button>
 			</header>
 
 			{isMenuOpen ? (
-				<div className='max-h-fit bg-default-200/50 pb-6 pt-6 shadow-medium backdrop-blur-md backdrop-saturate-150 dark:bg-default-100/50 md:hidden'>
+				<div className='max-h-fit bg-default/50 pb-6 pt-6 shadow-medium backdrop-blur-md backdrop-saturate-150 dark:bg-surface-secondary/50 md:hidden'>
 					<ul className='flex flex-col gap-2 px-4'>
-						<li><Link href='/login' onPress={() => setIsMenuOpen(false)} className='inline-flex w-full items-center justify-center gap-2 rounded-full bg-default px-4 py-2 font-medium text-foreground hover:bg-default/80'>Sign In</Link></li>
-						<li className='mb-4'><Link href='/login' onPress={() => setIsMenuOpen(false)} className='inline-flex w-full items-center justify-center gap-2 rounded-full bg-accent px-4 py-2 font-medium text-accent-foreground hover:bg-accent-hover'>Get Started</Link></li>
+						<li><Link href='/login' onPress={() => setIsMenuOpen(false)} className={buttonVariants({ variant: "secondary", fullWidth: true })}>Sign In</Link></li>
+						<li className='mb-4'><Link href='/login' onPress={() => setIsMenuOpen(false)} className={buttonVariants({ variant: "primary", fullWidth: true, className: "bg-accent-foreground text-black hover:bg-accent-foreground/90" })}>Get Started</Link></li>
 						{menuItems.map((item, index) => (
 							<li key={item.href}>
 								<Link className='mb-2 w-full text-base text-white' href={item.href} onPress={() => setIsMenuOpen(false)}>{item.name}</Link>

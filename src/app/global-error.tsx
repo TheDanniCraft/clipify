@@ -3,6 +3,7 @@
 import * as Sentry from "@sentry/nextjs";
 import { useEffect } from "react";
 import { Button, Link } from "@heroui/react";
+import { buttonVariants } from "@heroui/styles";
 
 import NextErrorPage from "@components/nextErrorPage";
 
@@ -23,7 +24,7 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
 							<Button onPress={reset} variant='primary'>
 								Try again
 							</Button>
-							<Link href='/dashboard' className='inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 font-medium bg-transparent text-foreground hover:bg-default/40'>
+							<Link href='/dashboard' className={buttonVariants({ variant: "secondary", className: "no-underline" })}>
 								Go to dashboard
 							</Link>
 						</>

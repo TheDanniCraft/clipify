@@ -102,7 +102,7 @@ jest.mock("@heroui/react", () => {
 	jest.requireActual<typeof import("react")>("react");
 	return {
 		addToast: jest.fn(),
-		useDisclosure: () => ({ isOpen: false, onOpen: jest.fn(), onOpenChange: jest.fn() }),
+		useOverlayState: () => ({ isOpen: false, open: jest.fn(), close: jest.fn(), setOpen: jest.fn(), toggle: jest.fn() }),
 		Button: ({ children, onPress, onClick, ...props }: { children?: React.ReactNode; onPress?: () => void; onClick?: () => void }) => (
 			<button {...props} onClick={() => (onPress ? onPress() : onClick ? onClick() : undefined)}>
 				{children}

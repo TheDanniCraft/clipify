@@ -123,9 +123,9 @@ export default function AdminUserExplorer({ users, initialPage, initialTotalPage
 				<div className='flex w-full flex-col gap-1 sm:flex-row sm:items-center sm:justify-between'>
 					<div>
 						<p className='text-sm font-semibold'>User Explorer</p>
-						<p className='text-xs text-default-500'>Search by username or user ID in one field.</p>
+						<p className='text-xs text-muted'>Search by username or user ID in one field.</p>
 					</div>
-					<p className='text-xs text-default-500'>
+					<p className='text-xs text-muted'>
 						Showing {firstRowNumber}-{lastRowNumber} of {new Intl.NumberFormat("en-US").format(totalRows)}
 					</p>
 				</div>
@@ -133,11 +133,11 @@ export default function AdminUserExplorer({ users, initialPage, initialTotalPage
 			<Card.Content className='gap-3'>
 				<div className='flex flex-col gap-2 sm:flex-row sm:items-end'>
 					<div className='sm:min-w-[320px]'>
-						<TextField name='q'><Label>Search users</Label><InputGroup variant='secondary'><InputGroup.Prefix>{<IconSearch className='text-default-400' size={16} />}</InputGroup.Prefix><InputGroup.Input id='user-explorer-search' value={inputValue} onChange={(event) => (setInputValue)(event.target.value)} placeholder='username or user id' className='h-8 text-sm' /><InputGroup.Suffix>{isLoading ? <Spinner size='sm' /> : null}</InputGroup.Suffix></InputGroup></TextField>
+						<TextField name='q'><Label>Search users</Label><InputGroup variant='secondary'><InputGroup.Prefix>{<IconSearch className='text-muted' size={16} />}</InputGroup.Prefix><InputGroup.Input id='user-explorer-search' value={inputValue} onChange={(event) => (setInputValue)(event.target.value)} placeholder='username or user id' className='h-8 text-sm' /><InputGroup.Suffix>{isLoading ? <Spinner size='sm' /> : null}</InputGroup.Suffix></InputGroup></TextField>
 					</div>
 				</div>
 
-				<Table className='rounded-lg border border-default-200'>
+				<Table className='rounded-lg border border-default'>
 					<Table.ScrollContainer>
 						<Table.Content aria-label='Admin user explorer table' className='min-w-[900px]'>
 					<Table.Header>
@@ -151,17 +151,17 @@ export default function AdminUserExplorer({ users, initialPage, initialTotalPage
 							Action
 						</Table.Column>
 					</Table.Header>
-					<Table.Body renderEmptyState={() => <div className='p-4 text-center text-default-500'>No users found.</div>}>
+					<Table.Body renderEmptyState={() => <div className='p-4 text-center text-muted'>No users found.</div>}>
 						{visibleUsers.map((row) => (
 							<Table.Row key={row.id} id={row.id}>
 								<Table.Cell>
 									<span className='font-medium'>@{row.username}</span>
 								</Table.Cell>
 								<Table.Cell>
-									<span className='text-default-600'>{row.id}</span>
+									<span className='text-muted'>{row.id}</span>
 								</Table.Cell>
 								<Table.Cell>
-									<span className='text-default-600'>{row.email}</span>
+									<span className='text-muted'>{row.email}</span>
 								</Table.Cell>
 								<Table.Cell>
 									<Chip size='sm' variant='tertiary'>
@@ -174,7 +174,7 @@ export default function AdminUserExplorer({ users, initialPage, initialTotalPage
 									</Chip>
 								</Table.Cell>
 								<Table.Cell>
-									<span className='text-default-600'>{row.lastLoginLabel}</span>
+									<span className='text-muted'>{row.lastLoginLabel}</span>
 								</Table.Cell>
 								<Table.Cell className='text-right'>
 									<Button size='sm' variant='primary' onPress={() => void handleViewAsUser(row.id)} isPending={switchingUserId === row.id} isDisabled={switchingUserId != null}>
@@ -192,7 +192,7 @@ export default function AdminUserExplorer({ users, initialPage, initialTotalPage
 					<Button size='sm' variant='tertiary' isDisabled={page <= 1 || isLoading} onPress={() => handlePageChange(page - 1)}>
 						Previous
 					</Button>
-					<p className='text-xs text-default-500'>
+					<p className='text-xs text-muted'>
 						Page {page} / {totalPages}
 					</p>
 					<Button size='sm' variant='tertiary' isDisabled={page >= totalPages || isLoading} onPress={() => handlePageChange(page + 1)}>

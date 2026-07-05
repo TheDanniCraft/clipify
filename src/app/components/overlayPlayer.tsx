@@ -282,7 +282,7 @@ function OverlayViewport({
 								event.stopPropagation();
 								onTogglePaused();
 							}}
-							className='h-10 w-10 rounded-full bg-primary text-white shadow-md hover:bg-primary-600 transition flex items-center justify-center'
+							className='h-10 w-10 rounded-full bg-accent text-white shadow-md hover:bg-brand-600 transition flex items-center justify-center'
 							aria-pressed={!paused}
 							aria-label={paused ? "Resume overlay" : "Pause overlay"}
 						>
@@ -291,16 +291,16 @@ function OverlayViewport({
 						<button type='button' onClick={(event) => {
 							event.stopPropagation();
 							onToggleMuted();
-						}} className='h-10 w-10 rounded-full bg-primary text-white shadow-md hover:bg-primary-600 transition flex items-center justify-center' aria-pressed={isMuted} aria-label={isMuted ? "Unmute overlay" : "Mute overlay"}>
+						}} className='h-10 w-10 rounded-full bg-accent text-white shadow-md hover:bg-brand-600 transition flex items-center justify-center' aria-pressed={isMuted} aria-label={isMuted ? "Unmute overlay" : "Mute overlay"}>
 							{isMuted ? <IconVolumeOff className='h-5 w-5 text-zinc-200' /> : <IconVolume className='h-5 w-5 text-white' />}
 						</button>
 					</div>
 
 					{showClickToPlay && (
 						<div className='absolute inset-0 flex items-center justify-center'>
-							<div className='rounded-full bg-primary text-white text-sm sm:text-base px-5 py-2.5 shadow-lg flex items-center gap-2'>
+							<div className='rounded-full bg-accent text-white text-sm sm:text-base px-5 py-2.5 shadow-lg flex items-center gap-2'>
 								<span className='inline-flex items-center justify-center h-7 w-7 rounded-full bg-white'>
-									<IconPlayerPlayFilled className='h-4 w-4 text-primary' />
+									<IconPlayerPlayFilled className='h-4 w-4 text-accent' />
 								</span>
 								<span>Play clips</span>
 							</div>

@@ -13,11 +13,11 @@ interface FeatureCardProps {
 
 export default function FeatureCard({ icon, title, description, comingSoon, isNew }: FeatureCardProps) {
 	return (
-		<Card className='border border-default-200 h-full shadow-sm'>
+		<Card className='border border-default h-full shadow-sm'>
 			<Card.Content className='p-6'>
 				<div className='flex flex-col gap-4'>
 					<div className='flex flex-row items-center justify-between'>
-						<div className='bg-primary/10 w-12 h-12 rounded-lg flex items-center justify-center'>{React.createElement(icon, { className: "text-primary w-6 h-6" })}</div>
+						<div className='bg-accent/10 w-12 h-12 rounded-lg flex items-center justify-center'>{React.createElement(icon, { className: "text-accent w-6 h-6" })}</div>
 						{comingSoon && (
 							<Chip color='accent' variant='secondary'>
 								<IconConfetti className='p-1' />
@@ -32,7 +32,7 @@ export default function FeatureCard({ icon, title, description, comingSoon, isNe
 						)}
 					</div>
 					<h3 className='text-xl font-semibold'>{title}</h3>
-					<p className='text-foreground-500'>{description}</p>
+					<p className='text-muted'>{description}</p>
 				</div>
 			</Card.Content>
 		</Card>

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "./FakeTwitchChat.css";
-import { Modal, useDisclosure } from "@heroui/react";
+import { Modal, useOverlayState } from "@heroui/react";
 
 
 type ChatMsg = {
@@ -157,7 +157,7 @@ export default function FakeTwitchChat({ isLive, title = "STREAM CHAT", selfUser
 	const [input, setInput] = useState("");
 	const [cpArmed, setCpArmed] = useState(false);
 	const [cpError, setCpError] = useState<string | null>(null);
-	const { isOpen, onOpen, onOpenChange } = useDisclosure();
+	const { isOpen, open: onOpen, setOpen: onOpenChange } = useOverlayState();
 
 	const listRef = useRef<HTMLDivElement | null>(null);
 	const [autoScroll, setAutoScroll] = useState(true);
@@ -317,15 +317,15 @@ export default function FakeTwitchChat({ isLive, title = "STREAM CHAT", selfUser
 											<div className='flex items-start justify-between gap-3'>
 												<div>
 													<div className='inline-flex items-center gap-2'>
-														<span className='px-2 py-0.5 rounded-md bg-primary/10 text-primary font-semibold text-sm'>{c.name}</span>
-														<span className='text-sm text-muted-foreground'>{c.desc}</span>
+														<span className='px-2 py-0.5 rounded-md bg-accent/10 text-accent font-semibold text-sm'>{c.name}</span>
+														<span className='text-sm text-muted'>{c.desc}</span>
 													</div>
 												</div>
 											</div>
 
 											<div className='mt-2 flex flex-col gap-2'>
 												{c.examples.map((ex, i) => (
-													<div key={i} className='text-xs font-mono text-muted-foreground bg-muted/40 rounded px-2 py-1 whitespace-normal wrap-break-word'>
+													<div key={i} className='rounded bg-default/40 px-2 py-1 font-mono text-xs text-muted whitespace-normal wrap-break-word'>
 														{ex}
 													</div>
 												))}

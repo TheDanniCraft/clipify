@@ -183,7 +183,7 @@ export default function TagsInput(props: TagsInputProps) {
 	const hasContent = tags.length > 0 || inputValue.length > 0;
 
 	const counterText = hasMax ? `${tags.length}/${maxInputs}` : `${tags.length}`;
-	const counterClassName = isAtLimit ? "text-danger" : "text-foreground-500";
+	const counterClassName = isAtLimit ? "text-danger" : "text-muted";
 
 	const rootClassName = [fullWidth ? "w-full" : "inline-block", className].filter(Boolean).join(" ");
 
@@ -252,9 +252,8 @@ export default function TagsInput(props: TagsInputProps) {
 		if (endsWithDelim) queueMicrotask(() => inputRef.current?.focus());
 	};
 
-	return (
-		<Popover isOpen={isOpen}>
-			<Popover.Trigger><div
+	const field = (
+		<div
 				ref={rootRef}
 				className={rootClassName}
 				onMouseDown={() => {
@@ -264,7 +263,7 @@ export default function TagsInput(props: TagsInputProps) {
 			>
 				<TextField fullWidth={fullWidth} isDisabled={isDisabled} isInvalid={isInvalid ?? derivedIsInvalid} isReadOnly={isReadOnly} isRequired={isRequired} name={name}>
 					{label ? <Label>{label}</Label> : null}
-					<InputGroup fullWidth={fullWidth} className='h-auto min-h-11 flex-wrap gap-2 px-3 py-2'>
+				<InputGroup fullWidth={fullWidth} variant='secondary' className='h-auto min-h-11 flex-wrap gap-2 px-3 py-2'>
 						{tags.length > 0 ? (
 							<InputGroup.Prefix className='flex flex-wrap gap-2 p-0'>
 								{tags.map((t, idx) => (
@@ -307,13 +306,21 @@ export default function TagsInput(props: TagsInputProps) {
 								if (event.key === "Escape") setIsFocused(false);
 							}}
 							placeholder={tags.length === 0 ? placeholder : undefined}
-							className='min-w-[10ch] flex-1 bg-transparent p-0 text-small text-foreground outline-none placeholder:text-foreground-500'
+							className='min-w-[10ch] flex-1 bg-transparent p-0 text-sm text-foreground outline-none placeholder:text-muted'
 						/>
-						{isClearable && hasContent && !isDisabled && !isReadOnly ? <InputGroup.Suffix className='p-0'><Button size='sm' variant='tertiary' onPress={clearAll}>Clear</Button></InputGroup.Suffix> : null}
+						{showCounter ? <InputGroup.Suffix className={["p-0 text-xs tabular-nums", counterClassName].join(" ")}>{counterText}</InputGroup.Suffix> : null}
+						{isClearable && hasContent && !isDisabled && !isReadOnly ? <InputGroup.Suffix className='p-0'><Button size='sm' variant='ghost' onPress={clearAll}>Clear</Button></InputGroup.Suffix> : null}
 					</InputGroup>
-					{errorMessage ?? derivedErrorMessage ? <FieldError>{errorMessage ?? derivedErrorMessage}</FieldError> : description || showCounter ? <Description className='flex items-center justify-between'><span>{description}</span>{showCounter ? <span className={["select-none", counterClassName].join(" ")}>{counterText}</span> : null}</Description> : null}
+					{errorMessage ?? derivedErrorMessage ? <FieldError>{errorMessage ?? derivedErrorMessage}</FieldError> : description ? <Description>{description}</Description> : null}
 				</TextField>
-			</div></Popover.Trigger>
+			</div>
+	);
+
+	if (!suggestions?.length) return field;
+
+	return (
+		<Popover isOpen={isOpen}>
+			<Popover.Trigger className={fullWidth ? "block w-full" : undefined}>{field}</Popover.Trigger>
 
 			<Popover.Content placement='bottom start' offset={8} className='w-[--trigger-width] p-1'>
 				<Popover.Dialog>
@@ -330,7 +337,7 @@ export default function TagsInput(props: TagsInputProps) {
 							key={s}
 							id={s}
 							textValue={s}
-							className={["rounded-medium", "data-[hover=true]:bg-transparent", "data-[hover=true]:ring-1 data-[hover=true]:ring-foreground/15", "data-[focus-visible=true]:outline-none data-[focus-visible=true]:ring-2 data-[focus-visible=true]:ring-primary", suggestionItemClassName].filter(Boolean).join(" ")}
+							className={["rounded-[12px]", "data-[hover=true]:bg-transparent", "data-[hover=true]:ring-1 data-[hover=true]:ring-foreground/15", "data-[focus-visible=true]:outline-none data-[focus-visible=true]:ring-2 data-[focus-visible=true]:ring-accent", suggestionItemClassName].filter(Boolean).join(" ")}
 							onMouseDown={() => {
 								ignoreBlurRef.current = true;
 							}}

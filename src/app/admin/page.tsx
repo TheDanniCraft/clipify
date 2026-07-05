@@ -3,7 +3,7 @@ import { getAdminExplorerPage } from "@actions/adminView";
 import AdminHealthCharts from "@components/adminHealthCharts";
 import AdminUserExplorer from "@components/adminUserExplorer";
 import DashboardNavbar from "@components/dashboardNavbar";
-import { Card, Chip } from "@components/heroui-client";
+import { Alert, Card, CardContent, CardHeader, Chip } from "@components/heroui-client";
 
 import { notFound } from "next/navigation";
 import { getInstanceHealthSnapshot } from "@lib/instanceHealth";
@@ -59,23 +59,23 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 		<DashboardNavbar user={adminUser} title='Admin' tagline='Operational telemetry and account entry points'>
 			<div className='mt-5 flex flex-col gap-4'>
 				<Card>
-					<Card.Header className='flex items-center justify-between pb-1'>
+					<CardHeader className='flex w-full flex-row items-start justify-between pb-1'>
 						<div>
 							<p className='text-sm font-semibold'>Instance Health Snapshot</p>
-							<p className='text-xs text-default-500'>
+							<p className='text-xs text-muted'>
 								{health.time} | uptime {formatNumber(health.uptimeSec)}s | env {health.app.env}
 							</p>
 						</div>
-						<Chip color={health.status === "ok" ? "success" : health.status === "degraded" ? "warning" : "danger"} variant='tertiary'>
+						<Chip className='shrink-0' color={health.status === "ok" ? "success" : health.status === "degraded" ? "warning" : "danger"} variant='tertiary'>
 							{health.status.toUpperCase()}
 						</Chip>
-					</Card.Header>
-					<Card.Content className='pt-0'>
+					</CardHeader>
+					<CardContent className='pt-0'>
 						<AdminHealthCharts health={health} />
-					</Card.Content>
-					<Card.Content className='grid grid-cols-1 gap-3 xl:grid-cols-2'>
-						<div className='rounded-lg border border-default-200 p-3'>
-							<p className='mb-2 text-xs font-semibold text-default-500'>Counts</p>
+					</CardContent>
+					<CardContent className='grid grid-cols-1 gap-3 xl:grid-cols-2'>
+						<div className='rounded-lg border border-default p-3'>
+							<p className='mb-2 text-xs font-semibold text-muted'>Counts</p>
 							<div className='grid grid-cols-2 gap-2 text-xs'>
 								<p>Users: {formatNumber(health.counts.users)}</p>
 								<p>Free: {formatNumber(health.counts.usersFree)}</p>
@@ -88,17 +88,19 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 								<p>Overlays paused: {formatNumber(health.counts.overlaysPaused)}</p>
 								<p>Active owners free: {formatNumber(health.counts.activeOverlayOwnersFree)}</p>
 								<p>Active owners paid: {formatNumber(health.counts.activeOverlayOwnersPaid)}</p>
+								<p>Community page: {formatNumber(health.community.optedInUsers)} / {formatNumber(health.community.totalUsers)}</p>
+								<p>Community opt-in rate: {formatPercent(health.community.optInRate)}</p>
 							</div>
 						</div>
-						<div className='rounded-lg border border-default-200 p-3'>
-							<p className='mb-2 text-xs font-semibold text-default-500'>Entitlements</p>
+						<div className='rounded-lg border border-default p-3'>
+							<p className='mb-2 text-xs font-semibold text-muted'>Entitlements</p>
 							<div className='grid grid-cols-2 gap-2 text-xs'>
 								<p>Grant users: {formatNumber(health.entitlements.activeGrantUsers)}</p>
 								<p>Grant users on free: {formatNumber(health.entitlements.activeGrantUsersOnFree)}</p>
 								<p>Active grants: {formatNumber(health.entitlements.activeGrantCount)}</p>
 								<p>Effective pro estimate: {formatNumber(health.entitlements.effectiveProUsersEstimate)}</p>
 							</div>
-							<p className='mt-3 mb-1 text-[11px] font-semibold text-default-500'>By Source</p>
+							<p className='mt-3 mb-1 text-[11px] font-semibold text-muted'>By Source</p>
 							<div className='flex flex-wrap gap-1'>
 								{Object.entries(health.entitlements.grantsBySource).map(([source, value]) => (
 									<Chip size='sm' key={source} variant='tertiary'>
@@ -106,7 +108,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 									</Chip>
 								))}
 							</div>
-							<p className='mt-3 mb-1 text-[11px] font-semibold text-default-500'>By Entitlement</p>
+							<p className='mt-3 mb-1 text-[11px] font-semibold text-muted'>By Entitlement</p>
 							<div className='flex flex-wrap gap-1'>
 								{Object.entries(health.entitlements.grantsByEntitlement).map(([entitlement, value]) => (
 									<Chip size='sm' key={entitlement} variant='tertiary'>
@@ -115,8 +117,8 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 								))}
 							</div>
 						</div>
-						<div className='rounded-lg border border-default-200 p-3'>
-							<p className='mb-2 text-xs font-semibold text-default-500'>Cache</p>
+						<div className='rounded-lg border border-default p-3'>
+							<p className='mb-2 text-xs font-semibold text-muted'>Cache</p>
 							<div className='grid grid-cols-2 gap-2 text-xs'>
 								<p>Entries total: {formatNumber(health.cache.entriesTotal)}</p>
 								<p>Clip entries: {formatNumber(health.cache.clipEntries)}</p>
@@ -131,12 +133,12 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 								<p>Reads total: {formatNumber(health.cache.globalReadTotal)}</p>
 								<p>Stale hits: {formatNumber(health.cache.globalStaleHits)}</p>
 							</div>
-							<p className='mt-2 text-[11px] text-default-500'>
+							<p className='mt-2 text-[11px] text-muted'>
 								Cache metrics started: {formatDate(health.cache.cacheReadMetricsStartedAt)} | last read: {formatDate(health.cache.lastCacheReadAt)}
 							</p>
 						</div>
-						<div className='rounded-lg border border-default-200 p-3'>
-							<p className='mb-2 text-xs font-semibold text-default-500'>Scheduler + DB</p>
+						<div className='rounded-lg border border-default p-3'>
+							<p className='mb-2 text-xs font-semibold text-muted'>Scheduler + DB</p>
 							<div className='grid grid-cols-2 gap-2 text-xs'>
 								<p>Scheduler started: {health.scheduler.clipCache.startedAt ? "yes" : "no"}</p>
 								<p>Scheduler interval: {formatNumber(health.scheduler.clipCache.intervalMs ?? 0)}ms</p>
@@ -151,13 +153,13 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 								<p>Commit: {health.app.version}</p>
 							</div>
 						</div>
-					</Card.Content>
+					</CardContent>
 				</Card>
 
 				{error ? (
-					<Card className='border border-danger-300 bg-danger-50'>
-						<Card.Content className='text-sm text-danger-700'>Admin action failed: {error}</Card.Content>
-					</Card>
+					<Alert status='danger'>
+						<Alert.Content><Alert.Description>Admin action failed: {error}</Alert.Description></Alert.Content>
+					</Alert>
 				) : null}
 
 				<AdminUserExplorer

@@ -166,7 +166,7 @@ jest.mock("@heroui/react", () => {
 				Indicator: () => null,
 			},
 		),
-		useDisclosure: () => ({ isOpen: false, onOpen: jest.fn(), onOpenChange: jest.fn() }),
+		useOverlayState: () => ({ isOpen: false, open: jest.fn(), close: jest.fn(), setOpen: jest.fn(), toggle: jest.fn() }),
 		Label: ({ children }: any) => <span>{children}</span>,
 		RadioGroup: ({ children, _value, onChange }: any) => <div onChange={(e: any) => onChange(e.target.value)}>{children}</div>,
 		Radio: Object.assign(({ children, value }: any) => (

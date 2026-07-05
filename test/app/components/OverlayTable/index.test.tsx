@@ -100,7 +100,7 @@ jest.mock("@heroui/react", () => {
 	return {
 		cn: (...classes: Array<string | undefined>) => classes.filter(Boolean).join(" "),
 		addToast: (...args: unknown[]) => addToast(...args),
-		useDisclosure: () => ({ isOpen: false, onOpen: jest.fn(), onOpenChange: jest.fn() }),
+		useOverlayState: () => ({ isOpen: false, open: jest.fn(), close: jest.fn(), setOpen: jest.fn(), toggle: jest.fn() }),
 		Dropdown: Object.assign(({ children }: { children: React.ReactNode }) => <div>{children}</div>, {
 			Trigger: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 			Popover: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,

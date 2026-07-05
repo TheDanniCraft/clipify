@@ -17,7 +17,7 @@ export default function CommunityHeroAvatars({ streamers }: CommunityHeroAvatars
 			{visibleStreamers.map((streamer, index) => (
 				<Avatar
 					key={streamer.id}
-					className={["relative h-8 w-8 text-tiny ring-2 ring-background", index > 0 ? "-ms-2" : ""].filter(Boolean).join(" ")}
+					className={["relative h-8 w-8 text-xs ring-2 ring-background", index > 0 ? "-ms-2" : ""].filter(Boolean).join(" ")}
 					style={{ zIndex: visibleStreamers.length - index }}
 				>
 					<Avatar.Image alt={streamer.displayName} src={streamer.avatar} />

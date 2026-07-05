@@ -107,24 +107,24 @@ export default function UpgradeModal({ isOpen, onOpenChange, user, title, descri
 						<Modal.CloseTrigger />
 						<Modal.Header className='flex flex-col gap-3 pr-10'><Modal.Heading>
 					<div className='flex items-center gap-3'>
-						<span className='inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-500/15 text-primary-400'>
+						<span className='inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-500/15 text-brand-400'>
 							<IconSparkles size={20} />
 						</span>
 						<p className='text-xl font-semibold leading-tight'>{title ?? "Upgrade to Pro"}</p>
 					</div>
 						</Modal.Heading></Modal.Header>
 						<Modal.Body className='gap-5 pb-6'>
-					<p className='text-base text-default-500'>{description ?? "Unlock advanced features for professional streamers and support the development of Clipify."}</p>
+					<p className='text-base text-muted'>{description ?? "Unlock advanced features for professional streamers and support the development of Clipify."}</p>
 					{campaignOffer?.showPricingTierPromo ? (
-						<div className='rounded-xl border border-secondary/25 bg-secondary/10 px-4 py-3 text-sm text-default-700'>
-							<div className='font-semibold text-secondary'>{campaignOffer.badgeText ?? campaignOffer.title}</div>
-							<div className='mt-1 text-default-500'>{campaignOffer.subtitle ?? "Campaign pricing is applied automatically at checkout."}</div>
+						<div className='rounded-xl border border-brand-secondary/25 bg-brand-secondary/10 px-4 py-3 text-sm text-foreground'>
+							<div className='font-semibold text-brand-secondary'>{campaignOffer.badgeText ?? campaignOffer.title}</div>
+							<div className='mt-1 text-muted'>{campaignOffer.subtitle ?? "Campaign pricing is applied automatically at checkout."}</div>
 						</div>
 					) : null}
 
-					<div className='flex items-center gap-2 text-xs text-default-400'>
+					<div className='flex items-center gap-2 text-xs text-muted'>
 						<span>Plan:</span>
-						<span className={`${effectivePlan === "free" ? "text-success-400" : "text-primary-300"} ${effectivePlan === "pro" ? "font-bold" : "font-medium"}`}>{planLabel}</span>
+						<span className={`${effectivePlan === "free" ? "text-success" : "text-brand-300"} ${effectivePlan === "pro" ? "font-bold" : "font-medium"}`}>{planLabel}</span>
 						{inTrial && (
 							<Chip
 								size='sm'
@@ -145,9 +145,9 @@ export default function UpgradeModal({ isOpen, onOpenChange, user, title, descri
 							</Tabs.List></Tabs.ListContainer>
 						</Tabs>
 							<div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
-								<div className='rounded-xl border border-default-200/60 bg-default-50 p-5'>
+								<div className='rounded-xl border border-default/60 bg-surface-secondary p-5'>
 									<div className='flex items-center justify-between'>
-										<div className='text-xs text-default-500'>Monthly</div>
+										<div className='text-xs text-muted'>Monthly</div>
 										{monthlyHasSale && (
 											<Chip size='sm' color='accent' variant='tertiary'>
 												Offer
@@ -157,22 +157,22 @@ export default function UpgradeModal({ isOpen, onOpenChange, user, title, descri
 									<div className='mt-1 flex items-center gap-2'>
 										{monthlyHasSale ? (
 											<>
-												<span className='self-center text-sm leading-none text-default-400 line-through'>{formatOriginalPrice(monthly)}</span>
+												<span className='self-center text-sm leading-none text-muted line-through'>{formatOriginalPrice(monthly)}</span>
 												<span className='text-3xl font-semibold leading-none'>{formatPromoPrice(monthlyDiscount)}</span>
 											</>
 										) : (
 											<span className='text-3xl font-semibold leading-none'>{monthly}</span>
 										)}
-										<span className='self-end text-xs text-default-400'>{monthlySuffix}</span>
+										<span className='self-end text-xs text-muted'>{monthlySuffix}</span>
 									</div>
-									<div className='mt-2 inline-flex items-center gap-1 text-xs text-default-500'>
-										<IconBolt size={14} className='text-primary-400' />
+									<div className='mt-2 inline-flex items-center gap-1 text-xs text-muted'>
+										<IconBolt size={14} className='text-brand-400' />
 										Best for trying Pro
 									</div>
 								</div>
-								<div className='rounded-xl border border-primary-300/40 bg-primary-500/10 p-5'>
+								<div className='rounded-xl border border-brand-300/40 bg-brand-500/10 p-5'>
 									<div className='flex items-center justify-between'>
-										<div className='text-xs text-primary-300'>Yearly</div>
+										<div className='text-xs text-brand-300'>Yearly</div>
 										{yearlyHasSale && (
 											<Chip size='sm' color='accent' variant='tertiary'>
 												Offer
@@ -182,15 +182,15 @@ export default function UpgradeModal({ isOpen, onOpenChange, user, title, descri
 									<div className='mt-1 flex items-center gap-2'>
 										{yearlyHasSale ? (
 											<>
-												<span className='self-center text-sm leading-none text-primary-300/80 line-through'>{formatOriginalPrice(yearly)}</span>
-												<span className='text-3xl font-semibold leading-none text-primary-200'>{formatPromoPrice(yearlyDiscount)}</span>
+												<span className='self-center text-sm leading-none text-brand-300/80 line-through'>{formatOriginalPrice(yearly)}</span>
+												<span className='text-3xl font-semibold leading-none text-brand-200'>{formatPromoPrice(yearlyDiscount)}</span>
 											</>
 										) : (
-											<span className='text-3xl font-semibold leading-none text-primary-200'>{yearly}</span>
+											<span className='text-3xl font-semibold leading-none text-brand-200'>{yearly}</span>
 										)}
-										<span className='self-end text-xs text-primary-300'>{yearlySuffix}</span>
+										<span className='self-end text-xs text-brand-300'>{yearlySuffix}</span>
 									</div>
-									<div className='mt-2 inline-flex items-center gap-1 text-xs text-primary-200'>
+									<div className='mt-2 inline-flex items-center gap-1 text-xs text-brand-200'>
 										<IconSparkles size={14} />
 										Best value
 									</div>
@@ -203,14 +203,14 @@ export default function UpgradeModal({ isOpen, onOpenChange, user, title, descri
 
 					{proTier && (
 						<>
-							<p className='mt-3 text-lg text-default-700'>What&apos;s included with Pro</p>
+							<p className='mt-3 text-lg text-foreground'>What&apos;s included with Pro</p>
 							<ul className='mt-1 grid grid-cols-1 gap-x-6 gap-y-2 text-base sm:grid-cols-2'>
 								{proFeatures.map((f) => {
 									const isUnique = uniqueProFeatures.includes(f);
 									return (
 										<li key={f} className='flex items-start gap-2'>
-											<IconCheck size={16} className={isUnique ? "text-primary mt-0.5" : "text-default-400 mt-0.5"} />
-											<p className={isUnique ? "text-default-900 font-medium" : "text-default-500"}>{f}</p>
+											<IconCheck size={16} className={isUnique ? "text-accent mt-0.5" : "text-muted mt-0.5"} />
+											<p className={isUnique ? "text-foreground font-medium" : "text-muted"}>{f}</p>
 										</li>
 									);
 								})}
@@ -246,7 +246,7 @@ export default function UpgradeModal({ isOpen, onOpenChange, user, title, descri
 					}} isDisabled={!canUpgrade} variant='primary'>{<IconDiamondFilled />}
 						{ctaLabel ?? "Upgrade to Pro"}
 					</Button>
-					<p className='text-xs text-default-400 mb-3'>You can cancel anytime in your billing portal.</p>
+					<p className='text-xs text-muted mb-3'>You can cancel anytime in your billing portal.</p>
 						</Modal.Body>
 					</Modal.Dialog>
 				</Modal.Container>

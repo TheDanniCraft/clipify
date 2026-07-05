@@ -62,6 +62,12 @@ export type InstanceHealthSnapshot = {
 		consentSourceCounts: Record<string, number>;
 		optedOutSourceCounts: Record<string, number>;
 	};
+	community: {
+		totalUsers: number;
+		optedInUsers: number;
+		optedOutUsers: number;
+		optInRate: number;
+	};
 	queues: {
 		clipQueueDepth: number;
 		modQueueDepth: number;
@@ -318,7 +324,7 @@ export async function getInstanceHealthSnapshot(): Promise<InstanceHealthSnapsho
 		return acc;
 	}, {});
 
-	const [settingsRows, optedInRows, optedOutRows, newsletterConsentSourceRows, optedOutSourceRows] = await Promise.all([
+	const [settingsRows, optedInRows, optedOutRows, communityOptedInRows, newsletterConsentSourceRows, optedOutSourceRows] = await Promise.all([
 		db
 			.select({ count: count() })
 			.from(settingsTable)
@@ -332,6 +338,11 @@ export async function getInstanceHealthSnapshot(): Promise<InstanceHealthSnapsho
 			.select({ count: count() })
 			.from(settingsTable)
 			.where(eq(settingsTable.marketingOptIn, false))
+			.execute(),
+		db
+			.select({ count: count() })
+			.from(settingsTable)
+			.where(eq(settingsTable.showOnCommunityPage, true))
 			.execute(),
 		db
 			.select({
@@ -359,6 +370,9 @@ export async function getInstanceHealthSnapshot(): Promise<InstanceHealthSnapsho
 		acc[row.source ?? "unknown"] = Number(row.count ?? 0);
 		return acc;
 	}, {});
+	const communityOptedInUsers = Number(communityOptedInRows[0]?.count ?? 0);
+	const communityOptedOutUsers = Math.max(0, usersTotal - communityOptedInUsers);
+	const communityOptInRate = usersTotal > 0 ? communityOptedInUsers / usersTotal : 0;
 
 	const [clipQueueRows, modQueueRows] = await Promise.all([
 		db
@@ -501,6 +515,12 @@ export async function getInstanceHealthSnapshot(): Promise<InstanceHealthSnapsho
 			optedOut: Number(optedOutRows[0]?.count ?? 0),
 			consentSourceCounts,
 			optedOutSourceCounts,
+		},
+		community: {
+			totalUsers: usersTotal,
+			optedInUsers: communityOptedInUsers,
+			optedOutUsers: communityOptedOutUsers,
+			optInRate: communityOptInRate,
 		},
 		queues: {
 			clipQueueDepth: Number(clipQueueRows[0]?.count ?? 0),

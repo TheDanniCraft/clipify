@@ -1,4 +1,4 @@
-import { Avatar, Chip, Link } from "@components/heroui-client";
+import { Avatar, AvatarFallback, AvatarImage, Chip, Link } from "@components/heroui-client";
 
 import { IconBroadcast, IconBrandTwitch, IconCircleMinus, IconDiamondFilled, IconPlugConnected, IconSparkles } from "@tabler/icons-react";
 
@@ -54,9 +54,9 @@ function StreamerRow({ streamer }: { streamer: CommunityPageStreamer }) {
 	return (
 		<div className='flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between'>
 			<div className='flex min-w-0 items-center gap-3'>
-				<Avatar color={statusTone.color} className='rounded-full ring-2 ring-current' size='md'>
-					<Avatar.Image alt={streamer.displayName} src={streamer.avatar} />
-					<Avatar.Fallback>{streamer.displayName.slice(0, 2).toUpperCase()}</Avatar.Fallback>
+				<Avatar color={statusTone.color} variant='soft' className='ring-2 ring-default' size='md'>
+					<AvatarImage alt={streamer.displayName} src={streamer.avatar} />
+					<AvatarFallback>{streamer.displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
 				</Avatar>
 				<div className='min-w-0'>
 					<div className='flex flex-wrap items-center gap-2'>
@@ -65,7 +65,7 @@ function StreamerRow({ streamer }: { streamer: CommunityPageStreamer }) {
 							{badgeLabel}
 						</Chip>
 					</div>
-					<p className='truncate text-sm text-default-500'>@{streamer.username}</p>
+					<p className='truncate text-sm text-muted'>@{streamer.username}</p>
 				</div>
 			</div>
 
@@ -83,20 +83,20 @@ function CommunitySection({ group }: { group: CommunityPageGroup }) {
 	const streamers = group.streamers;
 
 	return (
-		<section className='border-t border-default-200 pt-12'>
+		<section className='border-t border-default pt-12'>
 			<div className='flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between'>
 				<div className='min-w-0'>
 					<Chip color={tone.color} variant={tone.variant}>
 						{tone.icon}
 						<span>{group.title}</span>
 					</Chip>
-					<p className='mt-3 max-w-3xl text-sm text-default-500'>{group.description}</p>
+					<p className='mt-3 max-w-3xl text-sm text-muted'>{group.description}</p>
 				</div>
 				<Chip color='default' className='self-start' variant='tertiary'>
 					{streamers.length} streamer{streamers.length === 1 ? "" : "s"}
 				</Chip>
 			</div>
-			<div className='mt-6 divide-y divide-default-200'>
+			<div className='mt-6 divide-y divide-border'>
 				{streamers.map((streamer) => (
 					<StreamerRow key={`${group.key}:${streamer.id}`} streamer={streamer} />
 				))}
@@ -110,7 +110,7 @@ export default async function CommunityPage() {
 
 	return (
 		<div className='bg-background text-foreground'>
-			<div className='bg-gradient-to-br from-primary-800 to-primary-400 min-h-dvh relative flex flex-col overflow-hidden text-white'>
+			<div className='bg-gradient-to-br from-brand-800 to-brand-400 min-h-dvh relative flex flex-col overflow-hidden text-white'>
 				<BasicNavbar />
 				<div
 					className='
@@ -133,7 +133,7 @@ export default async function CommunityPage() {
 								</h1>
 								<p className='max-w-xl text-lg leading-8 text-white/70'>See how creators are using Clipify in real streams and how the community puts the tool to work.</p>
 								<div className='flex flex-col gap-3 sm:flex-row sm:items-center'>
-									<Link href='/login' className='h-10 w-[163px] bg-white px-[16px] py-[10px] text-small font-medium leading-5 text-black rounded-full inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 font-medium bg-accent text-accent-foreground hover:bg-accent-hover'>
+									<Link href='/login' className='h-10 w-[163px] bg-white px-[16px] py-[10px] text-sm font-medium leading-5 text-black rounded-full inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 font-medium bg-accent text-accent-foreground hover:bg-accent-hover'>
 										Register now
 									</Link>
 								</div>
@@ -150,7 +150,7 @@ export default async function CommunityPage() {
 			<div className='w-full bg-background px-4 py-24'>
 				<div className='mx-auto flex w-full max-w-6xl flex-col'>
 					<div className='mb-6 flex flex-col items-start gap-2'>
-						<p className='max-w-2xl text-sm text-default-500'>Want to be featured here? Create an account, create your first overlay and opt in in Settings.</p>
+						<p className='max-w-2xl text-sm text-muted'>Want to be featured here? Create an account, create your first overlay and opt in in Settings.</p>
 					</div>
 					<div className='mt-4'>
 						{communityGroups.map((group) => (

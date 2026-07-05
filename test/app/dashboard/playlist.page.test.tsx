@@ -63,7 +63,7 @@ jest.mock("@components/appPagination", () => ({ __esModule: true, default: () =>
 
 jest.mock("@heroui/react", () => ({
 	addToast: jest.fn(),
-	useDisclosure: () => ({ isOpen: false, onOpen: jest.fn(), onClose: jest.fn(), onOpenChange: jest.fn() }),
+	useOverlayState: () => ({ isOpen: false, open: jest.fn(), close: jest.fn(), setOpen: jest.fn(), toggle: jest.fn() }),
 	Button: ({ children, onPress, onClick, ...props }: { children?: React.ReactNode; onPress?: () => void; onClick?: () => void }) => (
 		<button {...props} onClick={() => (onPress ? onPress() : onClick ? onClick() : undefined)}>
 			{children}

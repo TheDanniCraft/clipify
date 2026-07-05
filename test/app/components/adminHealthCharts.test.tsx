@@ -91,6 +91,12 @@ const healthSnapshot: InstanceHealthSnapshot = {
 			settings_page_optout: 2,
 		},
 	},
+	community: {
+		totalUsers: 10,
+		optedInUsers: 3,
+		optedOutUsers: 7,
+		optInRate: 0.3,
+	},
 	queues: {
 		clipQueueDepth: 3,
 		modQueueDepth: 1,

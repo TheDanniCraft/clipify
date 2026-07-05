@@ -113,28 +113,26 @@ export default function DashboardNavbar({ children, user, title, tagline }: { ch
 
 	return (
 		<>
-			<nav className='w-full bg-primary'>
-				<header className='flex h-16 w-full items-center px-4 sm:px-6'>
+			<nav className='w-full bg-accent'>
+				<header className='mx-auto flex h-16 w-full max-w-5xl items-center px-4 lg:px-8'>
 					<Link href='/dashboard' className='flex items-center'>
 						<Logo width={30} />
 						<p className='ml-2 font-bold text-white'>Clipify</p>
 					</Link>
 					<ul className='ml-auto flex h-12 max-w-fit items-center gap-0'>
 					<li>
-						<Button isIconOnly variant='tertiary' onPress={() => setTheme(theme === "dark" ? "light" : "dark")} aria-label='Toggle Theme' className='rounded-full'>
-							{(theme ?? "dark") === "dark" ? <IconSunFilled className='text-primary-foreground/60' width={24} /> : <IconMoonFilled className='text-primary-foreground/60' width={24} />}
+						<Button isIconOnly variant='ghost' onPress={() => setTheme(theme === "dark" ? "light" : "dark")} aria-label='Toggle Theme'>
+							{(theme ?? "dark") === "dark" ? <IconSunFilled className='text-accent-foreground/60' width={24} /> : <IconMoonFilled className='text-accent-foreground/60' width={24} />}
 						</Button>
 					</li>
 					<li className='px-2'>
 						<Dropdown>
-							<Dropdown.Trigger>
-								<button className='relative mt-1 h-8 w-8 transition-transform' aria-label='Open profile menu'>
+							<Dropdown.Trigger className='relative mt-1 h-8 w-8 overflow-visible transition-transform' aria-label='Open profile menu'>
 									<Avatar size='sm'>
 										<Avatar.Image alt={user?.username ?? "User avatar"} src={user?.avatar} />
 										<Avatar.Fallback>{user?.username?.slice(0, 2).toUpperCase() ?? "?"}</Avatar.Fallback>
 									</Avatar>
-									<span aria-label='Online' className='absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-primary bg-success' role='status' />
-								</button>
+									<span aria-label='Online' className='absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-accent bg-success' role='status' />
 							</Dropdown.Trigger>
 							<Dropdown.Popover placement='bottom end'>
 							<Dropdown.Menu aria-label='Profile Actions' disabledKeys={isClearingAdminView ? ["exit_admin_view"] : []}>
@@ -142,7 +140,7 @@ export default function DashboardNavbar({ children, user, title, tagline }: { ch
 									<Label><span className='block font-semibold'>Signed in as</span><span className='block font-semibold'>{user?.username}</span></Label>
 								</Dropdown.Item>
 								{showUpgradeItem ? (
-									<Dropdown.Item id='upgrade_to_pro' textValue='Upgrade to Pro' className='text-primary' onAction={() => router.push("/dashboard/settings?upgrade&cycle=yearly&source=paywall_banner&feature=account_menu")}>
+									<Dropdown.Item id='upgrade_to_pro' textValue='Upgrade to Pro' className='text-accent' onAction={() => router.push("/dashboard/settings?upgrade&cycle=yearly&source=paywall_banner&feature=account_menu")}>
 										<Label>Upgrade to Pro</Label>
 									</Dropdown.Item>
 								) : null}
@@ -152,7 +150,7 @@ export default function DashboardNavbar({ children, user, title, tagline }: { ch
 									<Dropdown.Item id='admin_view' textValue='Open Admin View' onAction={() => router.push("/admin")}><Label>Open Admin View</Label></Dropdown.Item>
 								) : null}
 								{isImpersonating ? (
-									<Dropdown.Item id='exit_admin_view' textValue='Exit Admin View' className='text-primary' onAction={handleExitAdminView}><Label>Exit Admin View</Label></Dropdown.Item>
+									<Dropdown.Item id='exit_admin_view' textValue='Exit Admin View' className='text-accent' onAction={handleExitAdminView}><Label>Exit Admin View</Label></Dropdown.Item>
 								) : null}
 								<Dropdown.Item id='help_and_feedback' textValue='Help' onAction={() => router.push("https://help.clipify.us/")}><Label>Help</Label></Dropdown.Item>
 								<Dropdown.Item id='refer_a_friend' textValue='Refer a Friend' onAction={() => router.push("/referral-program")}><Label>Refer a Friend</Label></Dropdown.Item>
@@ -165,11 +163,11 @@ export default function DashboardNavbar({ children, user, title, tagline }: { ch
 				</header>
 			</nav>
 			{showUpgradeItem && campaignOffer?.showDashboardBanner ? (
-				<div className='w-full border-b border-default-200 bg-content1/95'>
+				<div className='w-full border-b border-default bg-surface/95'>
 					<div className='mx-auto flex w-full max-w-5xl flex-col gap-2 px-4 py-3 lg:flex-row lg:items-center lg:justify-between lg:px-8'>
 						<div className='min-w-0'>
-							<p className='text-xs font-semibold uppercase tracking-[0.2em] text-primary'>{campaignOffer.badgeText ?? campaignOffer.title}</p>
-							<p className='truncate text-sm text-default-600'>{campaignOffer.floatingSubtitle ?? "Upgrade today with the active campaign price."}</p>
+							<p className='text-xs font-semibold uppercase tracking-[0.2em] text-accent'>{campaignOffer.badgeText ?? campaignOffer.title}</p>
+							<p className='truncate text-sm text-muted'>{campaignOffer.floatingSubtitle ?? "Upgrade today with the active campaign price."}</p>
 						</div>
 						<div className='flex items-center gap-3 self-start lg:self-auto'>
 							{campaignOffer.endAt ? <CountdownTimer endAt={campaignOffer.endAt} tone='light' size='sm' showSeconds className='scale-90 origin-right' /> : null}
@@ -181,9 +179,9 @@ export default function DashboardNavbar({ children, user, title, tagline }: { ch
 				</div>
 			) : null}
 			{isImpersonating ? (
-				<div className='w-full bg-content1/95'>
+				<div className='w-full bg-surface/95'>
 					<div className='mx-auto flex w-full max-w-5xl flex-col gap-2 px-4 py-2 lg:flex-row lg:items-center lg:justify-between lg:px-8'>
-						<p className='text-xs text-default-700 dark:text-default-300'>
+						<p className='text-xs text-foreground dark:text-muted'>
 							You are viewing as <span className='font-semibold'>@{user.username}</span>
 						</p>
 						<div className='flex w-full flex-col gap-2 sm:flex-row sm:items-center lg:w-auto'>
@@ -204,7 +202,7 @@ export default function DashboardNavbar({ children, user, title, tagline }: { ch
 								<Label className='sr-only'>Search users</Label>
 								<ComboBox.InputGroup>
 									<Input placeholder='Search users' />
-									{isLoadingSwitchCandidates ? <span className='px-1 text-xs text-default-500'>Loading</span> : null}
+									{isLoadingSwitchCandidates ? <span className='px-1 text-xs text-muted'>Loading</span> : null}
 									<ComboBox.Trigger />
 								</ComboBox.InputGroup>
 								<ComboBox.Popover>
@@ -213,11 +211,11 @@ export default function DashboardNavbar({ children, user, title, tagline }: { ch
 									</ListBox>
 								</ComboBox.Popover>
 							</ComboBox>
-							<Button size='sm' variant='danger-soft' onPress={handleExitAdminView} isDisabled={isClearingAdminView} className='rounded-md'>
+							<Button size='sm' variant='danger-soft' onPress={handleExitAdminView} isDisabled={isClearingAdminView}>
 								Exit
 							</Button>
 						</div>
-						{switchError ? <p className='text-[11px] text-danger-600'>{switchError}</p> : null}
+						{switchError ? <p className='text-[11px] text-danger'>{switchError}</p> : null}
 					</div>
 				</div>
 			) : null}
@@ -226,8 +224,8 @@ export default function DashboardNavbar({ children, user, title, tagline }: { ch
 					<div className='w-full max-w-5xl px-4 lg:px-8'>
 						<header className=' flex w-full items-center justify-between'>
 							<div className='flex flex-col'>
-								<h1 className='text-xl font-bold text-default-900 lg:text-3xl'>{title}</h1>
-								<p className='text-small text-default-400 lg:text-medium'>{tagline}</p>
+								<h1 className='text-xl font-bold text-foreground lg:text-3xl'>{title}</h1>
+								<p className='text-sm text-muted lg:text-base'>{tagline}</p>
 							</div>
 						</header>
 						{children}

@@ -18,13 +18,13 @@ export type FeedbackRatingItemProps = {
 
 const FeedbackRatingItem = ({ className, fullWidth, value }: FeedbackRatingItemProps) => {
 	return (
-		<Radio aria-label={value} value={value} className={["flex items-center justify-center text-[30px]", fullWidth ? "flex-1" : "", className].filter(Boolean).join(" ")}>
+		<Radio aria-label={value} value={value} className={["flex min-h-11 items-center justify-center", fullWidth ? "flex-1" : "", className].filter(Boolean).join(" ")}>
 			{({ isSelected, isReadOnly }) => (
 				<Radio.Content>
 					<Radio.Control className='sr-only'>
 						<Radio.Indicator />
 					</Radio.Control>
-					<span className={["pointer-events-none select-none transition-transform", isSelected ? "" : "opacity-40", isReadOnly ? "cursor-default" : "group-data-[pressed=true]:scale-90"].filter(Boolean).join(" ")} aria-label={value}>
+					<span className={["pointer-events-none select-none text-3xl leading-none transition-transform sm:text-4xl", isSelected ? "" : "opacity-40", isReadOnly ? "cursor-default" : "group-data-[pressed=true]:scale-90"].filter(Boolean).join(" ")} aria-label={value}>
 						{emojis[value]}
 					</span>
 				</Radio.Content>

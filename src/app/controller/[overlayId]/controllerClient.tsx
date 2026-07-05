@@ -38,22 +38,22 @@ function getWebSocketUrl() {
 }
 
 function Surface({ children, className = "" }: { children: ReactNode; className?: string }) {
-	return <section className={`rounded-[28px] border border-default-200 bg-content1 shadow-sm ${className}`}>{children}</section>;
+	return <section className={`rounded-[28px] border border-default bg-surface shadow-sm ${className}`}>{children}</section>;
 }
 
 function PanelLabel({ children }: { children: ReactNode }) {
-	return <p className='text-[11px] font-semibold uppercase tracking-[0.22em] text-primary'>{children}</p>;
+	return <p className='text-[11px] font-semibold uppercase tracking-[0.22em] text-accent'>{children}</p>;
 }
 
 function QueueRow({ clip, accent }: { clip: ClipSummary; accent?: boolean }) {
 	return (
-		<div className={`grid grid-cols-[52px_minmax(0,1fr)_auto] items-center gap-3 rounded-2xl px-3 py-3 ${accent ? "bg-primary/10" : "bg-transparent hover:bg-default-100"}`}>
-			<div className='flex h-11 w-[52px] items-center justify-center overflow-hidden rounded-xl bg-default-100'>{clip.thumbnailUrl ? <Image unoptimized src={clip.thumbnailUrl} alt='' width={52} height={44} className='h-11 w-[52px] object-cover' /> : <span className='text-[10px] font-semibold uppercase tracking-[0.18em] text-default-400'>Clip</span>}</div>
+		<div className={`grid grid-cols-[52px_minmax(0,1fr)_auto] items-center gap-3 rounded-2xl px-3 py-3 ${accent ? "bg-accent/10" : "bg-transparent hover:bg-surface-secondary"}`}>
+			<div className='flex h-11 w-[52px] items-center justify-center overflow-hidden rounded-xl bg-surface-secondary'>{clip.thumbnailUrl ? <Image unoptimized src={clip.thumbnailUrl} alt='' width={52} height={44} className='h-11 w-[52px] object-cover' /> : <span className='text-[10px] font-semibold uppercase tracking-[0.18em] text-muted'>Clip</span>}</div>
 			<div className='min-w-0'>
 				<div className='truncate text-sm font-medium text-foreground'>{clip.title}</div>
-				<div className='truncate text-xs text-default-500'>{clip.creatorName}</div>
+				<div className='truncate text-xs text-muted'>{clip.creatorName}</div>
 			</div>
-			<div className='text-xs text-default-500'>{formatDuration(clip.duration)}</div>
+			<div className='text-xs text-muted'>{formatDuration(clip.duration)}</div>
 		</div>
 	);
 }
@@ -322,44 +322,44 @@ export default function ControllerClient({ overlayId, controllerToken }: { overl
 				<Surface className='px-4 py-4 sm:px-5'>
 					<div className='grid gap-4 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center'>
 						<div className='flex min-w-0 items-center gap-4'>
-							<div className='flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-default-100'>{nowPlaying?.thumbnailUrl ? <Image unoptimized src={nowPlaying.thumbnailUrl} alt={nowPlaying.title} width={64} height={64} className='h-16 w-16 object-cover' /> : <span className='text-[10px] font-semibold uppercase tracking-[0.18em] text-default-400'>Clip</span>}</div>
+							<div className='flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-surface-secondary'>{nowPlaying?.thumbnailUrl ? <Image unoptimized src={nowPlaying.thumbnailUrl} alt={nowPlaying.title} width={64} height={64} className='h-16 w-16 object-cover' /> : <span className='text-[10px] font-semibold uppercase tracking-[0.18em] text-muted'>Clip</span>}</div>
 							<div className='min-w-0'>
 								<h1 className='truncate text-2xl font-bold tracking-tight text-foreground sm:text-3xl'>{nowPlaying?.title ?? "No active clip"}</h1>
-								<p className='mt-1 truncate text-sm text-default-500'>{nowPlaying ? `by ${nowPlaying.creatorName}` : `Overlay ${overlayId}`}</p>
+								<p className='mt-1 truncate text-sm text-muted'>{nowPlaying ? `by ${nowPlaying.creatorName}` : `Overlay ${overlayId}`}</p>
 								<div className='mt-2 flex flex-wrap gap-2'>
-									<Chip size='sm' className={controlsUnlocked ? "bg-success/15 text-success-700" : "bg-warning/15 text-warning-700"}>
+									<Chip size='sm' color={controlsUnlocked ? "success" : "warning"} variant='soft'>
 										{controlsUnlocked ? <IconLockOpen2 size={12} /> : <IconLock size={12} />}
 										{controlsUnlocked ? "Controls unlocked" : "Controls locked"}
 									</Chip>
-									<Chip size='sm' className='bg-default-100 text-foreground'>
+									<Chip size='sm'>
 										<IconBroadcast size={12} />
 										{statusText}
 									</Chip>
-									<Chip size='sm' className='bg-default-100 text-foreground'>
+									<Chip size='sm'>
 										<IconPlayerPlayFilled size={12} />
 										{stateLabel}
 									</Chip>
-									<Chip size='sm' className='bg-default-100 text-foreground'>
+									<Chip size='sm'>
 										<IconLayoutSidebarRightExpand size={12} />
 										{playback.showPlayer ? "Visible" : "Hidden"}
 									</Chip>
-									<Chip size='sm' className='bg-default-100 text-foreground'>
+									<Chip size='sm'>
 										{queueTotal} queued
 									</Chip>
-									<Chip size='sm' className='bg-default-100 text-foreground'>
+									<Chip size='sm'>
 										{upcomingCount} preloaded
 									</Chip>
 								</div>
 							</div>
 						</div>
-						<div className='rounded-[24px] bg-default-50 px-4 py-3 xl:min-w-[420px]'>
-							<div className='flex items-center justify-between gap-4 text-xs text-default-500'>
+						<div className='rounded-[24px] bg-surface-secondary px-4 py-3 xl:min-w-[420px]'>
+							<div className='flex items-center justify-between gap-4 text-xs text-muted'>
 								<span>{formatDuration(syncedCurrentTime)}</span>
 								<span>{formatDuration(nowPlaying?.duration ?? 0)}</span>
 							</div>
 							<ProgressBar className='mt-3' value={Math.round(progressRatio * 100)} size='sm' color='accent' aria-label='Header playback progress'><ProgressBar.Track><ProgressBar.Fill /></ProgressBar.Track></ProgressBar>
 							{controllerHealth === "disconnected" ? <p className='mt-3 text-xs font-medium text-danger'>Disconnected stream. No live heartbeat from the overlay player.</p> : null}
-							{controllerHealth === "player_missing" ? <p className='mt-3 text-xs font-medium text-warning-700'>Connected, but no running player is publishing state.</p> : null}
+							{controllerHealth === "player_missing" ? <p className='mt-3 text-xs font-medium text-warning'>Connected, but no running player is publishing state.</p> : null}
 						</div>
 					</div>
 				</Surface>
@@ -369,8 +369,8 @@ export default function ControllerClient({ overlayId, controllerToken }: { overl
 						<div className='p-4 sm:p-5'>
 							<div className='grid gap-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(260px,0.9fr)]'>
 								<div className='flex min-h-[520px] flex-col gap-5'>
-									<div className='rounded-[24px] bg-default-50 p-4'>
-										<div className='flex items-center justify-between gap-4 text-xs text-default-500'>
+									<div className='rounded-[24px] bg-surface-secondary p-4'>
+										<div className='flex items-center justify-between gap-4 text-xs text-muted'>
 											<span>{formatDuration(syncedCurrentTime)}</span>
 											<span>{formatDuration(nowPlaying?.duration ?? 0)}</span>
 										</div>
@@ -378,16 +378,16 @@ export default function ControllerClient({ overlayId, controllerToken }: { overl
 										<div className='mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center'>
 											<div>
 												<div className='truncate text-sm font-semibold text-foreground'>{nowPlaying?.title ?? "No active clip"}</div>
-												<div className='truncate text-xs text-default-500'>{nowPlaying?.creatorName ?? "Waiting for overlay state"}</div>
+												<div className='truncate text-xs text-muted'>{nowPlaying?.creatorName ?? "Waiting for overlay state"}</div>
 											</div>
-											<div className='flex items-center gap-2 rounded-full bg-content1 px-3 py-2'>
-												<Button isIconOnly variant='tertiary' className={[controlsUnlocked ? "bg-success/15 text-success-600" : "bg-warning/15 text-warning-600", "rounded-full"].filter(Boolean).join(" ")} onPress={() => setControlsUnlocked((value) => !value)}>
+											<div className='flex items-center gap-2 rounded-full bg-surface px-3 py-2'>
+												<Button isIconOnly variant='secondary' onPress={() => setControlsUnlocked((value) => !value)}>
 													{controlsUnlocked ? <IconLockOpen2 size={18} /> : <IconLock size={18} />}
 												</Button>
-												<Button isIconOnly variant='tertiary' className='bg-default-200 text-foreground rounded-full' onPress={() => sendCommand(playback.showPlayer ? "hide" : "show")} isDisabled={interactiveControlsDisabled}>
+												<Button isIconOnly variant='secondary' onPress={() => sendCommand(playback.showPlayer ? "hide" : "show")} isDisabled={interactiveControlsDisabled}>
 													{playback.showPlayer ? <IconEyeOff size={18} /> : <IconEye size={18} />}
 												</Button>
-												<Button isIconOnly variant='tertiary' className='bg-default-200 text-foreground rounded-full' onPress={async () => {
+												<Button isIconOnly variant='secondary' onPress={async () => {
 														if (controlsDisabled) return;
 														if (playback.muted) {
 															if ((playback.volume ?? 0) <= 0) {
@@ -400,25 +400,25 @@ export default function ControllerClient({ overlayId, controllerToken }: { overl
 													}} isDisabled={interactiveControlsDisabled}>
 													{playback.muted ? <IconVolumeOff size={18} className='text-danger' /> : <IconVolume size={18} />}
 												</Button>
-												<Button isIconOnly variant='tertiary' className='bg-primary text-white rounded-full' onPress={() => sendCommand(playback.paused ? "play" : "pause")} isDisabled={interactiveControlsDisabled}>
+												<Button isIconOnly variant='primary' onPress={() => sendCommand(playback.paused ? "play" : "pause")} isDisabled={interactiveControlsDisabled}>
 													{playback.paused ? <IconPlayerPlayFilled size={18} /> : <IconPlayerPauseFilled size={18} />}
 												</Button>
-												<Button isIconOnly variant='tertiary' className='bg-default-200 text-foreground rounded-full' onPress={() => sendCommand("skip")} isDisabled={interactiveControlsDisabled}>
+												<Button isIconOnly variant='secondary' onPress={() => sendCommand("skip")} isDisabled={interactiveControlsDisabled}>
 													<IconPlayerSkipForward size={18} />
 												</Button>
 											</div>
 										</div>
 									</div>
 
-									<div className='flex flex-1 flex-col rounded-[24px] bg-default-50 p-4'>
+									<div className='flex flex-1 flex-col rounded-[24px] bg-surface-secondary p-4'>
 										<div className='flex items-center justify-between gap-3'>
 											<div>
 												<div className='text-sm font-semibold text-foreground'>Volume</div>
 											</div>
-											<div className='text-sm font-semibold text-default-500'>{volumeDraft}%</div>
+											<div className='text-sm font-semibold text-muted'>{volumeDraft}%</div>
 										</div>
 										<div className='mt-4 flex items-center gap-3'>
-											{playback.muted ? <IconVolumeOff size={18} className='shrink-0 text-danger' /> : <IconVolume size={18} className='shrink-0 text-default-500' />}
+											{playback.muted ? <IconVolumeOff size={18} className='shrink-0 text-danger' /> : <IconVolume size={18} className='shrink-0 text-muted' />}
 											<Slider
 												minValue={0}
 												maxValue={100}
@@ -439,16 +439,16 @@ export default function ControllerClient({ overlayId, controllerToken }: { overl
 												</Slider.Track>
 											</Slider>
 										</div>
-										{controlsDisabled ? <p className='mt-3 text-xs text-warning-700'>Unlock controls to change volume or mute.</p> : null}
+										{controlsDisabled ? <p className='mt-3 text-xs text-warning'>Unlock controls to change volume or mute.</p> : null}
 									</div>
 								</div>
 
-								<div className='rounded-[24px] bg-default-50 p-4'>
+								<div className='rounded-[24px] bg-surface-secondary p-4'>
 									<div className='flex items-center justify-between gap-3'>
 										<div>
 											<div className='text-sm font-semibold text-foreground'>Add to mod queue</div>
 										</div>
-										<Button isIconOnly variant='tertiary' className='bg-content1 text-foreground rounded-full' isDisabled>
+										<Button isIconOnly variant='secondary' isDisabled>
 											<IconPlus size={16} />
 										</Button>
 									</div>
@@ -458,26 +458,26 @@ export default function ControllerClient({ overlayId, controllerToken }: { overl
 											Add clip
 										</Button>
 									</div>
-									{controlsDisabled ? <p className='mt-3 text-xs text-warning-700'>Unlock controls before queue edits.</p> : null}
-									{modClipFeedback ? <p className={`mt-3 text-sm ${modClipFeedback.tone === "danger" ? "text-danger" : modClipFeedback.tone === "success" ? "text-success-600" : "text-default-500"}`}>{modClipFeedback.text}</p> : null}
+									{controlsDisabled ? <p className='mt-3 text-xs text-warning'>Unlock controls before queue edits.</p> : null}
+									{modClipFeedback ? <p className={`mt-3 text-sm ${modClipFeedback.tone === "danger" ? "text-danger" : modClipFeedback.tone === "success" ? "text-success" : "text-muted"}`}>{modClipFeedback.text}</p> : null}
 								</div>
 							</div>
 						</div>
 					</Surface>
 
 					<Surface className='overflow-hidden'>
-						<div className='border-b border-default-200 px-5 py-4'>
+						<div className='border-b border-default px-5 py-4'>
 							<PanelLabel>Queue</PanelLabel>
 							<h2 className='mt-1 text-xl font-bold text-foreground'>Up next</h2>
-							<p className='mt-1 text-sm text-default-500'>
+							<p className='mt-1 text-sm text-muted'>
 								{upcomingCount} clip{upcomingCount === 1 ? "" : "s"} ready to go.
 							</p>
 						</div>
 						<div className='p-3'>
-							<div className='rounded-[24px] bg-default-50 p-3'>
-								<div className='mb-2 px-2 text-xs font-medium uppercase tracking-[0.2em] text-default-500'>Current</div>
-								{nowPlaying ? <QueueRow clip={nowPlaying} accent /> : <div className='rounded-2xl bg-content1 px-4 py-6 text-center text-sm text-default-500'>Nothing playing.</div>}
-								<div className='mb-2 mt-4 px-2 text-xs font-medium uppercase tracking-[0.2em] text-default-500'>Upcoming</div>
+							<div className='rounded-[24px] bg-surface-secondary p-3'>
+								<div className='mb-2 px-2 text-xs font-medium uppercase tracking-[0.2em] text-muted'>Current</div>
+								{nowPlaying ? <QueueRow clip={nowPlaying} accent /> : <div className='rounded-2xl bg-surface px-4 py-6 text-center text-sm text-muted'>Nothing playing.</div>}
+								<div className='mb-2 mt-4 px-2 text-xs font-medium uppercase tracking-[0.2em] text-muted'>Upcoming</div>
 								{nextClips.length > 0 ? (
 									<div className='grid gap-1'>
 										{nextClips.slice(0, 4).map((clip, idx) => (
@@ -485,29 +485,27 @@ export default function ControllerClient({ overlayId, controllerToken }: { overl
 										))}
 									</div>
 								) : (
-									<div className='rounded-2xl bg-content1 px-4 py-6 text-center text-sm text-default-500'>{isLive ? "No preloaded clip yet." : "Player disconnected."}</div>
+									<div className='rounded-2xl bg-surface px-4 py-6 text-center text-sm text-muted'>{isLive ? "No preloaded clip yet." : "Player disconnected."}</div>
 								)}
 							</div>
-							<div className='rounded-[24px] bg-default-50 p-3'>
-								<div className='mb-2 px-2 text-xs font-medium uppercase tracking-[0.2em] text-default-500'>Mod Queue</div>
-								<div className='grid gap-1'>{modQueue.length > 0 ? modQueue.slice(0, 6).map((clip, idx) => <QueueRow key={`mod-${clip.clipId}-${idx}`} clip={clip} />) : <div className='rounded-2xl bg-content1 px-4 py-6 text-center text-sm text-default-500'>No mod clips queued.</div>}</div>
+							<div className='mt-3 rounded-[24px] bg-surface-secondary p-3'>
+								<div className='mb-2 px-2 text-xs font-medium uppercase tracking-[0.2em] text-muted'>Mod Queue</div>
+								<div className='grid gap-1'>{modQueue.length > 0 ? modQueue.slice(0, 6).map((clip, idx) => <QueueRow key={`mod-${clip.clipId}-${idx}`} clip={clip} />) : <div className='rounded-2xl bg-surface px-4 py-6 text-center text-sm text-muted'>No mod clips queued.</div>}</div>
 							</div>
-							<div className='mt-3 rounded-[24px] bg-default-50 p-3'>
-								<div className='mb-2 px-2 text-xs font-medium uppercase tracking-[0.2em] text-default-500'>Viewer Queue</div>
-								<div className='grid gap-1'>{viewerQueue.length > 0 ? viewerQueue.slice(0, 6).map((clip, idx) => <QueueRow key={`viewer-${clip.clipId}-${idx}`} clip={clip} />) : <div className='rounded-2xl bg-content1 px-4 py-6 text-center text-sm text-default-500'>No viewer clips queued.</div>}</div>
+							<div className='mt-3 rounded-[24px] bg-surface-secondary p-3'>
+								<div className='mb-2 px-2 text-xs font-medium uppercase tracking-[0.2em] text-muted'>Viewer Queue</div>
+								<div className='grid gap-1'>{viewerQueue.length > 0 ? viewerQueue.slice(0, 6).map((clip, idx) => <QueueRow key={`viewer-${clip.clipId}-${idx}`} clip={clip} />) : <div className='rounded-2xl bg-surface px-4 py-6 text-center text-sm text-muted'>No viewer clips queued.</div>}</div>
 							</div>
-							<div className='mt-3 rounded-[24px] bg-default-50 p-3'>
-								<div className='mb-2 flex flex-wrap gap-2 px-2'>
-									<Button size='sm' variant='tertiary' className='rounded-full bg-content1 text-foreground' onPress={() => void executeControllerAction("clear_mod_queue")} isDisabled={interactiveControlsDisabled}>
+							<div className='mt-3 flex flex-wrap justify-end gap-2 px-2'>
+									<Button size='sm' variant='secondary' onPress={() => void executeControllerAction("clear_mod_queue")} isDisabled={interactiveControlsDisabled}>
 										Clear mods
 									</Button>
-									<Button size='sm' variant='tertiary' className='rounded-full bg-content1 text-foreground' onPress={() => void executeControllerAction("clear_viewer_queue")} isDisabled={interactiveControlsDisabled}>
+									<Button size='sm' variant='secondary' onPress={() => void executeControllerAction("clear_viewer_queue")} isDisabled={interactiveControlsDisabled}>
 										Clear viewers
 									</Button>
 									<Button size='sm' variant='danger' className='rounded-full' onPress={() => void executeControllerAction("clear_all_queues")} isDisabled={interactiveControlsDisabled}>
 										Clear all
 									</Button>
-								</div>
 							</div>
 						</div>
 					</Surface>
