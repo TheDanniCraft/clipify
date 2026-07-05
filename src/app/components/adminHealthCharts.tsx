@@ -142,6 +142,10 @@ export default function AdminHealthCharts({ health }: { health: InstanceHealthSn
 		label: source,
 		value,
 	}));
+	const communityOptInData = [
+		{ label: "Opted In", value: health.community.optedInUsers, fill: "#17C964" },
+		{ label: "Not Opted In", value: Math.max(0, health.community.totalUsers - health.community.optedInUsers), fill: "#F31260" },
+	];
 	const cacheCompositionData = [
 		{
 			label: "Cache",
@@ -283,7 +287,7 @@ export default function AdminHealthCharts({ health }: { health: InstanceHealthSn
 				<Card.Header className='pb-1'>
 					<p className='text-sm font-semibold'>Accounts and Playlists</p>
 				</Card.Header>
-				<Card.Content className='grid min-w-0 gap-3 md:grid-cols-2'>
+				<Card.Content className='grid min-w-0 gap-3 md:grid-cols-3'>
 					<ChartPanel title='Account Status'>
 						<MeasuredChart className='h-56 min-w-0'>
 							{(width) => (
@@ -291,6 +295,20 @@ export default function AdminHealthCharts({ health }: { health: InstanceHealthSn
 									<Tooltip {...tooltipProps} />
 									<Pie data={accountStatusData} dataKey='value' nameKey='label' cx='50%' cy='50%' outerRadius={Math.min(78, Math.floor(width / 4))} label>
 										{accountStatusData.map((entry) => (
+											<Cell key={entry.label} fill={entry.fill} />
+										))}
+									</Pie>
+								</PieChart>
+							)}
+						</MeasuredChart>
+					</ChartPanel>
+					<ChartPanel title='Community Page Opt-In'>
+						<MeasuredChart className='h-56 min-w-0'>
+							{(width) => (
+								<PieChart width={width} height={224}>
+									<Tooltip {...tooltipProps} />
+									<Pie data={communityOptInData} dataKey='value' nameKey='label' cx='50%' cy='50%' outerRadius={Math.min(78, Math.floor(width / 4))} label>
+										{communityOptInData.map((entry) => (
 											<Cell key={entry.label} fill={entry.fill} />
 										))}
 									</Pie>

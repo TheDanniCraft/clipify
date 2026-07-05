@@ -85,9 +85,6 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 								<p>Overlays paused: {formatNumber(health.counts.overlaysPaused)}</p>
 								<p>Active owners free: {formatNumber(health.counts.activeOverlayOwnersFree)}</p>
 								<p>Active owners paid: {formatNumber(health.counts.activeOverlayOwnersPaid)}</p>
-								<p>
-									Community page: {formatNumber(health.community.optedInUsers)} / {formatNumber(health.community.totalUsers)}
-								</p>
 								<p>Community opt-in rate: {formatPercent(health.community.optInRate)}</p>
 							</div>
 						</div>
