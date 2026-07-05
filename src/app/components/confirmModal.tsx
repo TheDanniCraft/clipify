@@ -30,11 +30,7 @@ export default function ConfirmModal({ isOpen, onOpenChange, keyword, onConfirm 
 							</p>
 							<TextField className='pt-4' isRequired>
 								<Label>
-									{
-										<>
-											Type <strong>{keyword}</strong> to continue
-										</>
-									}
+									Type <strong>{keyword}</strong> to continue
 								</Label>
 								<Input onChange={(event) => setConfirmed(event.target.value === keyword)} placeholder={keyword} />
 								<FieldError />

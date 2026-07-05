@@ -12,5 +12,5 @@ export default function AdOptScript() {
 		return null;
 	}
 
-	return <Script id='adopt-cmp-injector' src='https://tag.goadopt.io/injector.js?website_code=792b9b29-57f9-4d92-b5f1-313f94ddfacc' strategy='afterInteractive' />;
+	return <Script id='adopt-cmp-injector' src='https://tag.goadopt.io/injector.js?website_code=792b9b29-57f9-4d92-b5f1-313f94ddfacc' strategy='beforeInteractive' />;
 }

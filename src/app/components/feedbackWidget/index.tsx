@@ -72,10 +72,10 @@ export default function FeedbackWidget() {
 							<div className='min-w-0'>
 								<div className='mb-3 flex justify-between'>
 									<Button size='sm' isIconOnly variant='tertiary' onPress={() => setState("default")} className={`${state === "default" || state === "loading" ? "invisible" : "visible"}`}>
-										{<IconChevronLeft />}
+										<IconChevronLeft />
 									</Button>
 									<Button size='sm' isIconOnly variant='tertiary' onPress={() => setOpen(false)}>
-										{<IconX />}
+										<IconX />
 									</Button>
 								</div>
 								<div className='max-h-[min(32rem,calc(100vh-7rem))] overflow-y-auto px-1 pb-1'>
