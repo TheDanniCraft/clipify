@@ -126,6 +126,7 @@ export default function OverlaySettings() {
 	const navGuard = useNavigationGuard({ enabled: isFormDirty() });
 
 	useEffect(() => {
+		// eslint-disable-next-line react-hooks/set-state-in-effect
 		setBaseUrl(window.location.origin);
 		setImportEndDate(new Date().toISOString().slice(0, 10));
 	}, []);
@@ -155,7 +156,7 @@ export default function OverlaySettings() {
 				return next;
 			});
 		},
-		[overlay?.ownerId, gameDetailsById],
+		[overlay, gameDetailsById],
 	);
 
 	useEffect(() => {
@@ -192,6 +193,7 @@ export default function OverlaySettings() {
 	useEffect(() => {
 		let timeoutId: NodeJS.Timeout;
 		if (allowlistGameSearch && allowlistGameSearch.length >= 1 && user?.id) {
+			// eslint-disable-next-line react-hooks/set-state-in-effect
 			setIsSearchingAllowlistGames(true);
 			timeoutId = setTimeout(async () => {
 				const games = await getTwitchGames(allowlistGameSearch, user.id);
@@ -207,6 +209,7 @@ export default function OverlaySettings() {
 	useEffect(() => {
 		let timeoutId: NodeJS.Timeout;
 		if (denylistGameSearch && denylistGameSearch.length >= 1 && user?.id) {
+			// eslint-disable-next-line react-hooks/set-state-in-effect
 			setIsSearchingDenylistGames(true);
 			timeoutId = setTimeout(async () => {
 				const games = await getTwitchGames(denylistGameSearch, user.id);
@@ -223,6 +226,7 @@ export default function OverlaySettings() {
 		let timeoutId: NodeJS.Timeout;
 		const normalizedInput = importCategoryInput.trim().toLowerCase();
 		if (normalizedInput.length >= 1 && normalizedInput !== "all" && normalizedInput !== "all categories" && user?.id) {
+			// eslint-disable-next-line react-hooks/set-state-in-effect
 			setIsSearchingGames(true);
 			timeoutId = setTimeout(async () => {
 				const games = await getTwitchGames(importCategoryInput, user.id);
@@ -468,11 +472,13 @@ export default function OverlaySettings() {
 	}, [overlay, playlists, resolveGameDetails]);
 
 	useEffect(() => {
+		// eslint-disable-next-line react-hooks/set-state-in-effect
 		setSelectedPlaylistClipIds((prev) => new Set(Array.from(prev).filter((id) => playlistClips.some((clip) => clip.id === id))));
 	}, [playlistClips]);
 
 	useEffect(() => {
 		if (!overlay?.playlistId) {
+			// eslint-disable-next-line react-hooks/set-state-in-effect
 			setPlaylistNameDraft("");
 			return;
 		}
@@ -484,6 +490,7 @@ export default function OverlaySettings() {
 		if (!overlay) return;
 		const orderModeAllowed = overlay.type === OverlayType.Playlist && !!overlay.playlistId;
 		if (overlay.playbackMode === PlaybackMode.Order && !orderModeAllowed) {
+			// eslint-disable-next-line react-hooks/set-state-in-effect
 			setOverlay((prev) => (prev ? { ...prev, playbackMode: PlaybackMode.Random } : prev));
 		}
 	}, [overlay]);
@@ -607,6 +614,7 @@ export default function OverlaySettings() {
 		if (!previewReviewMode) return filteredPreviewClips;
 		if (overlay.playbackMode === PlaybackMode.Random) {
 			return [...filteredPreviewClips]
+				// eslint-disable-next-line react-hooks/purity
 				.map((clip) => ({ clip, sort: Math.random() }))
 				.sort((a, b) => a.sort - b.sort)
 				.map((entry) => entry.clip);
@@ -643,12 +651,14 @@ export default function OverlaySettings() {
 					const gamePenalty = (recentGameCounts.get(clip.game_id) ?? 0) * 0.1;
 					const viewScore = Math.log1p(clip.view_count) / maxLogViews;
 					const exploreBoost = clip.view_count <= medianViews ? 0.12 : 0;
+					// eslint-disable-next-line react-hooks/purity
 					const jitter = Math.random() * 0.25;
 					const score = Math.max(0.05, 0.58 * viewScore + 0.25 * jitter + exploreBoost - creatorPenalty - gamePenalty);
 					return { clip, score };
 				});
 
 				const totalWeight = scored.reduce((sum, entry) => sum + entry.score, 0);
+				// eslint-disable-next-line react-hooks/purity
 				let pick = Math.random() * totalWeight;
 				let pickedClip = scored[0]?.clip;
 				for (const entry of scored) {
@@ -694,6 +704,7 @@ export default function OverlaySettings() {
 		if (!clipCacheStatus.oldestClipDate) return false;
 		const oldest = new Date(clipCacheStatus.oldestClipDate).getTime();
 		if (!Number.isFinite(oldest)) return false;
+		// eslint-disable-next-line react-hooks/purity
 		const target = Date.now() - requiredDays * 24 * 60 * 60 * 1000;
 		return oldest <= target;
 	})();

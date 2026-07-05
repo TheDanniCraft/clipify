@@ -1,0 +1,438 @@
+
+C:\Coding\TheDanniCraft-clipify\src\app\components\DemoPlayer\StreamingSoftwareMock.tsx
+  21:16  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Coding\TheDanniCraft-clipify\src\app\components\DemoPlayer\StreamingSoftwareMock.tsx:21:16
+  19 |
+  20 | 	useEffect(() => {
+> 21 | 		if (!isLive) setSeconds(liveSeconds);
+     | 		             ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  22 | 	}, [liveSeconds, isLive]);
+  23 |
+  24 | 	useEffect(() => {  react-hooks/set-state-in-effect
+
+C:\Coding\TheDanniCraft-clipify\src\app\components\adminUserExplorer.tsx
+  50:3  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Coding\TheDanniCraft-clipify\src\app\components\adminUserExplorer.tsx:50:3
+  48 | 		// Re-sync local table/search state when the route is re-rendered with new server payload.
+  49 | 		latestRequestIdRef.current += 1;
+> 50 | 		setInputValue(initialQuery);
+     | 		^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  51 | 		setSearchQuery(initialQuery);
+  52 | 		setPage(initialPage);
+  53 | 		setTotalPages(initialTotalPages);  react-hooks/set-state-in-effect
+
+C:\Coding\TheDanniCraft-clipify\src\app\components\dashboardNavbar.tsx
+  82:3  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Coding\TheDanniCraft-clipify\src\app\components\dashboardNavbar.tsx:82:3
+  80 | 	useEffect(() => {
+  81 | 		if (!isImpersonating) return;
+> 82 | 		setSwitchQuery(user.username);
+     | 		^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  83 | 	}, [isImpersonating, user.username]);
+  84 |
+  85 | 	async function handleExitAdminView() {  react-hooks/set-state-in-effect
+
+C:\Coding\TheDanniCraft-clipify\src\app\components\overlayPlayer.tsx
+  1159:3  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Coding\TheDanniCraft-clipify\src\app\components\overlayPlayer.tsx:1159:3
+  1157 |
+  1158 | 	useEffect(() => {
+> 1159 | 		setActiveCurrentTime(0);
+       | 		^^^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  1160 | 		setActiveDuration(0);
+  1161 | 	}, [videoClip?.id]);
+  1162 |                                           react-hooks/set-state-in-effect
+  1293:4  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Coding\TheDanniCraft-clipify\src\app\components\overlayPlayer.tsx:1293:4
+  1291 | 	useEffect(() => {
+  1292 | 		if (!showPlayer) {
+> 1293 | 			setShowOverlay(false);
+       | 			^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  1294 | 			return;
+  1295 | 		}
+  1296 | 		if (videoClip) setShowOverlay(true);                    react-hooks/set-state-in-effect
+  1353:3  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Coding\TheDanniCraft-clipify\src\app\components\overlayPlayer.tsx:1353:3
+  1351 |
+  1352 | 	useEffect(() => {
+> 1353 | 		setRuntimeVolume(overlay.playerVolume ?? 50);
+       | 		^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  1354 | 	}, [overlay.playerVolume]);
+  1355 |
+  1356 | 	useEffect(() => {                        react-hooks/set-state-in-effect
+  1387:5  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Coding\TheDanniCraft-clipify\src\app\components\overlayPlayer.tsx:1387:5
+  1385 | 			if (clipA?.id !== nextClip.id) {
+  1386 | 				readyARef.current = false;
+> 1387 | 				setClipA(nextClip);
+       | 				^^^^^^^^ Avoid calling setState() directly within an effect
+  1388 | 			}
+  1389 | 		} else {
+  1390 | 			if (clipB?.id !== nextClip.id) {  react-hooks/set-state-in-effect
+
+C:\Coding\TheDanniCraft-clipify\src\app\controller\[overlayId]\controllerClient.tsx
+   93:3   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Coding\TheDanniCraft-clipify\src\app\controller\[overlayId]\controllerClient.tsx:93:3
+  91 |
+  92 | 	useEffect(() => {
+> 93 | 		setMounted(true);
+     | 		^^^^^^^^^^ Avoid calling setState() directly within an effect
+  94 | 		const timer = setInterval(() => setClock((v) => v + 1), 1000);
+  95 | 		return () => clearInterval(timer);
+  96 | 	}, []);                                                                                                                                           react-hooks/set-state-in-effect
+  205:3   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Coding\TheDanniCraft-clipify\src\app\controller\[overlayId]\controllerClient.tsx:205:3
+  203 |
+  204 | 	useEffect(() => {
+> 205 | 		setVolumeDraft(playback.volume);
+      | 		^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  206 | 	}, [playback.volume]);
+  207 |
+  208 | 	const executeControllerAction = async (action: "set_volume" | "clear_mod_queue" | "clear_viewer_queue" | "clear_all_queues" | "add_mod_clip", options?: { volume?: number; clipUrl?: string }) => {  react-hooks/set-state-in-effect
+  265:42  error  Error: Cannot call impure function during render
+
+`Date.now` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+C:\Coding\TheDanniCraft-clipify\src\app\controller\[overlayId]\controllerClient.tsx:265:42
+  263 |
+  264 | 	const lastStateAt = Math.max(lastEventAt ?? 0, nowPlayingUpdatedAt ?? 0, lastHeartbeatAt ?? 0);
+> 265 | 	const isStateFresh = lastStateAt > 0 && Date.now() - lastStateAt < 15_000;
+      | 	                                        ^^^^^^^^^^ Cannot call impure function
+  266 | 	const isHeartbeatFresh = lastHeartbeatAt != null && Date.now() - lastHeartbeatAt < 3_500;
+  267 | 	const isLive = isHeartbeatFresh || socketConnected || isStateFresh;
+  268 | 	const controllerHealth = !isHeartbeatFresh ? "disconnected" : !playerAttached ? "player_missing" : "healthy";                                                                                                                                                                                                react-hooks/purity
+  266:54  error  Error: Cannot call impure function during render
+
+`Date.now` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+C:\Coding\TheDanniCraft-clipify\src\app\controller\[overlayId]\controllerClient.tsx:266:54
+  264 | 	const lastStateAt = Math.max(lastEventAt ?? 0, nowPlayingUpdatedAt ?? 0, lastHeartbeatAt ?? 0);
+  265 | 	const isStateFresh = lastStateAt > 0 && Date.now() - lastStateAt < 15_000;
+> 266 | 	const isHeartbeatFresh = lastHeartbeatAt != null && Date.now() - lastHeartbeatAt < 3_500;
+      | 	                                                    ^^^^^^^^^^ Cannot call impure function
+  267 | 	const isLive = isHeartbeatFresh || socketConnected || isStateFresh;
+  268 | 	const controllerHealth = !isHeartbeatFresh ? "disconnected" : !playerAttached ? "player_missing" : "healthy";
+  269 | 	const statusText = useMemo(() => {                                                                                                                                                react-hooks/purity
+  273:42  error  Error: Cannot call impure function during render
+
+`Date.now` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+C:\Coding\TheDanniCraft-clipify\src\app\controller\[overlayId]\controllerClient.tsx:273:42
+  271 | 		if (controllerHealth === "player_missing") return "No player";
+  272 | 		if (!lastEventAt) return "Connected";
+> 273 | 		return `Live ${Math.max(0, Math.floor((Date.now() - lastEventAt) / 1000))}s ago`;
+      | 		                                       ^^^^^^^^^^ Cannot call impure function
+  274 | 	}, [controllerHealth, lastEventAt]);
+  275 |
+  276 | 	const syncedCurrentTime = useMemo(() => {                                                                                                                                                                                                                                                                                                                                                                              react-hooks/purity
+  280:32  error  Error: Cannot call impure function during render
+
+`Date.now` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+C:\Coding\TheDanniCraft-clipify\src\app\controller\[overlayId]\controllerClient.tsx:280:32
+  278 | 		const base = nowPlaying.currentTime ?? 0;
+  279 | 		if (playback.paused) return base;
+> 280 | 		const elapsed = Math.max(0, (Date.now() - nowPlayingUpdatedAt) / 1000);
+      | 		                             ^^^^^^^^^^ Cannot call impure function
+  281 | 		return Math.min(nowPlaying.duration || 0, base + elapsed);
+  282 | 	}, [nowPlaying, nowPlayingUpdatedAt, playback.paused]);
+  283 |                                                                                                                                                                                                                                                                                                                                                                                      react-hooks/purity
+
+C:\Coding\TheDanniCraft-clipify\src\app\dashboard\overlay\[overlayId]\page.tsx
+  129:3   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Coding\TheDanniCraft-clipify\src\app\dashboard\overlay\[overlayId]\page.tsx:129:3
+  127 |
+  128 | 	useEffect(() => {
+> 129 | 		setBaseUrl(window.location.origin);
+      | 		^^^^^^^^^^ Avoid calling setState() directly within an effect
+  130 | 		setImportEndDate(new Date().toISOString().slice(0, 10));
+  131 | 	}, []);
+  132 |                                                                                                                                                                                                                                                      react-hooks/set-state-in-effect
+  134:3   error  Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `overlay`, but the source dependencies were [overlay?.ownerId, gameDetailsById]. Inferred less specific property than source.
+
+C:\Coding\TheDanniCraft-clipify\src\app\dashboard\overlay\[overlayId]\page.tsx:134:3
+  132 |
+  133 | 	const resolveGameDetails = useCallback(
+> 134 | 		async (clips: TwitchClip[]) => {
+      | 		^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 135 | 			if (!overlay?.ownerId) return;
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 136 | 			const uniqueGameIds = Array.from(new Set(clips.map((clip) => clip.game_id).filter(Boolean)));
+      …
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 156 | 			});
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 157 | 		},
+      | ^^^^ Could not preserve existing manual memoization
+  158 | 		[overlay?.ownerId, gameDetailsById],
+  159 | 	);
+  160 |                                                                                                               react-hooks/preserve-manual-memoization
+  195:4   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Coding\TheDanniCraft-clipify\src\app\dashboard\overlay\[overlayId]\page.tsx:195:4
+  193 | 		let timeoutId: NodeJS.Timeout;
+  194 | 		if (allowlistGameSearch && allowlistGameSearch.length >= 1 && user?.id) {
+> 195 | 			setIsSearchingAllowlistGames(true);
+      | 			^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  196 | 			timeoutId = setTimeout(async () => {
+  197 | 				const games = await getTwitchGames(allowlistGameSearch, user.id);
+  198 | 				setAllowlistGameResults(games);                                                          react-hooks/set-state-in-effect
+  210:4   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Coding\TheDanniCraft-clipify\src\app\dashboard\overlay\[overlayId]\page.tsx:210:4
+  208 | 		let timeoutId: NodeJS.Timeout;
+  209 | 		if (denylistGameSearch && denylistGameSearch.length >= 1 && user?.id) {
+> 210 | 			setIsSearchingDenylistGames(true);
+      | 			^^^^^^^^^^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  211 | 			timeoutId = setTimeout(async () => {
+  212 | 				const games = await getTwitchGames(denylistGameSearch, user.id);
+  213 | 				setDenylistGameResults(games);                                                                react-hooks/set-state-in-effect
+  226:4   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Coding\TheDanniCraft-clipify\src\app\dashboard\overlay\[overlayId]\page.tsx:226:4
+  224 | 		const normalizedInput = importCategoryInput.trim().toLowerCase();
+  225 | 		if (normalizedInput.length >= 1 && normalizedInput !== "all" && normalizedInput !== "all categories" && user?.id) {
+> 226 | 			setIsSearchingGames(true);
+      | 			^^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  227 | 			timeoutId = setTimeout(async () => {
+  228 | 				const games = await getTwitchGames(importCategoryInput, user.id);
+  229 | 				setGameSearchResults(games);  react-hooks/set-state-in-effect
+  471:3   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Coding\TheDanniCraft-clipify\src\app\dashboard\overlay\[overlayId]\page.tsx:471:3
+  469 |
+  470 | 	useEffect(() => {
+> 471 | 		setSelectedPlaylistClipIds((prev) => new Set(Array.from(prev).filter((id) => playlistClips.some((clip) => clip.id === id))));
+      | 		^^^^^^^^^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  472 | 	}, [playlistClips]);
+  473 |
+  474 | 	useEffect(() => {                                                                                                                                                                       react-hooks/set-state-in-effect
+  476:4   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Coding\TheDanniCraft-clipify\src\app\dashboard\overlay\[overlayId]\page.tsx:476:4
+  474 | 	useEffect(() => {
+  475 | 		if (!overlay?.playlistId) {
+> 476 | 			setPlaylistNameDraft("");
+      | 			^^^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  477 | 			return;
+  478 | 		}
+  479 | 		const current = playlists.find((playlist) => playlist.id === overlay.playlistId);                                                                                                                                                                                       react-hooks/set-state-in-effect
+  487:4   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Coding\TheDanniCraft-clipify\src\app\dashboard\overlay\[overlayId]\page.tsx:487:4
+  485 | 		const orderModeAllowed = overlay.type === OverlayType.Playlist && !!overlay.playlistId;
+  486 | 		if (overlay.playbackMode === PlaybackMode.Order && !orderModeAllowed) {
+> 487 | 			setOverlay((prev) => (prev ? { ...prev, playbackMode: PlaybackMode.Random } : prev));
+      | 			^^^^^^^^^^ Avoid calling setState() directly within an effect
+  488 | 		}
+  489 | 	}, [overlay]);
+  490 |                                                                                                 react-hooks/set-state-in-effect
+  610:35  error  Error: Cannot call impure function during render
+
+`Math.random` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+C:\Coding\TheDanniCraft-clipify\src\app\dashboard\overlay\[overlayId]\page.tsx:610:35
+  608 | 		if (overlay.playbackMode === PlaybackMode.Random) {
+  609 | 			return [...filteredPreviewClips]
+> 610 | 				.map((clip) => ({ clip, sort: Math.random() }))
+      | 				                              ^^^^^^^^^^^^^ Cannot call impure function
+  611 | 				.sort((a, b) => a.sort - b.sort)
+  612 | 				.map((entry) => entry.clip);
+  613 | 		}                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               react-hooks/purity
+  646:21  error  Error: Cannot call impure function during render
+
+`Math.random` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+C:\Coding\TheDanniCraft-clipify\src\app\dashboard\overlay\[overlayId]\page.tsx:646:21
+  644 | 					const viewScore = Math.log1p(clip.view_count) / maxLogViews;
+  645 | 					const exploreBoost = clip.view_count <= medianViews ? 0.12 : 0;
+> 646 | 					const jitter = Math.random() * 0.25;
+      | 					               ^^^^^^^^^^^^^ Cannot call impure function
+  647 | 					const score = Math.max(0.05, 0.58 * viewScore + 0.25 * jitter + exploreBoost - creatorPenalty - gamePenalty);
+  648 | 					return { clip, score };
+  649 | 				});                                                                                                                                                                                                                                                                                                                                                                                                                            react-hooks/purity
+  652:16  error  Error: Cannot call impure function during render
+
+`Math.random` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+C:\Coding\TheDanniCraft-clipify\src\app\dashboard\overlay\[overlayId]\page.tsx:652:16
+  650 |
+  651 | 				const totalWeight = scored.reduce((sum, entry) => sum + entry.score, 0);
+> 652 | 				let pick = Math.random() * totalWeight;
+      | 				           ^^^^^^^^^^^^^ Cannot call impure function
+  653 | 				let pickedClip = scored[0]?.clip;
+  654 | 				for (const entry of scored) {
+  655 | 					pick -= entry.score;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               react-hooks/purity
+  697:18  error  Error: Cannot call impure function during render
+
+`Date.now` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+C:\Coding\TheDanniCraft-clipify\src\app\dashboard\overlay\[overlayId]\page.tsx:697:18
+  695 | 		const oldest = new Date(clipCacheStatus.oldestClipDate).getTime();
+  696 | 		if (!Number.isFinite(oldest)) return false;
+> 697 | 		const target = Date.now() - requiredDays * 24 * 60 * 60 * 1000;
+      | 		               ^^^^^^^^^^ Cannot call impure function
+  698 | 		return oldest <= target;
+  699 | 	})();
+  700 | 	const showCoverageWarning = !selectedCoverageReady && overlay.type !== OverlayType.Queue && overlay.type !== OverlayType.Featured && overlay.type !== OverlayType.Playlist;                                                                                                                                                                                                                                                                                                                                                                          react-hooks/purity
+
+C:\Coding\TheDanniCraft-clipify\src\app\dashboard\playlist\[playlistId]\page.tsx
+   64:3  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Coding\TheDanniCraft-clipify\src\app\dashboard\playlist\[playlistId]\page.tsx:64:3
+  62 |
+  63 | 	useEffect(() => {
+> 64 | 		setImportEndDate(new Date().toISOString().slice(0, 10));
+     | 		^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  65 | 	}, []);
+  66 | 	const [importCategoryInput, setImportCategoryInput] = useState("All categories");
+  67 | 	const [importMinViews, setImportMinViews] = useState(0);                                                                                                                                             react-hooks/set-state-in-effect
+  152:4  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Coding\TheDanniCraft-clipify\src\app\dashboard\playlist\[playlistId]\page.tsx:152:4
+  150 | 		const normalizedInput = importCategoryInput.trim().toLowerCase();
+  151 | 		if (normalizedInput.length >= 1 && normalizedInput !== "all" && normalizedInput !== "all categories" && user) {
+> 152 | 			setIsSearchingGames(true);
+      | 			^^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  153 | 			timeoutId = setTimeout(async () => {
+  154 | 				const games = await getTwitchGames(importCategoryInput, user.id);
+  155 | 				setGameSearchResults(games);  react-hooks/set-state-in-effect
+  247:3  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Coding\TheDanniCraft-clipify\src\app\dashboard\playlist\[playlistId]\page.tsx:247:3
+  245 |
+  246 | 	useEffect(() => {
+> 247 | 		setSelectedPlaylistClipIds((prev) => new Set(Array.from(prev).filter((id) => playlistClips.some((clip) => clip.id === id))));
+      | 		^^^^^^^^^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  248 | 	}, [playlistClips]);
+  249 |
+  250 | 	function reorderClips(clips: TwitchClip[], fromId: string, toId: string) {                                                                                                          react-hooks/set-state-in-effect
+
+✖ 28 problems (28 errors, 0 warnings)
+

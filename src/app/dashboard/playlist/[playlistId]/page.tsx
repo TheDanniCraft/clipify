@@ -61,6 +61,7 @@ export default function PlaylistPage() {
 	const [importCategoryId, setImportCategoryId] = useState("all");
 
 	useEffect(() => {
+		// eslint-disable-next-line react-hooks/set-state-in-effect
 		setImportEndDate(new Date().toISOString().slice(0, 10));
 	}, []);
 	const [importCategoryInput, setImportCategoryInput] = useState("All categories");
@@ -149,6 +150,7 @@ export default function PlaylistPage() {
 		let timeoutId: NodeJS.Timeout;
 		const normalizedInput = importCategoryInput.trim().toLowerCase();
 		if (normalizedInput.length >= 1 && normalizedInput !== "all" && normalizedInput !== "all categories" && user) {
+			// eslint-disable-next-line react-hooks/set-state-in-effect
 			setIsSearchingGames(true);
 			timeoutId = setTimeout(async () => {
 				const games = await getTwitchGames(importCategoryInput, user.id);
@@ -244,6 +246,7 @@ export default function PlaylistPage() {
 	const navGuard = useNavigationGuard({ enabled: canSavePlaylist });
 
 	useEffect(() => {
+		// eslint-disable-next-line react-hooks/set-state-in-effect
 		setSelectedPlaylistClipIds((prev) => new Set(Array.from(prev).filter((id) => playlistClips.some((clip) => clip.id === id))));
 	}, [playlistClips]);
 

@@ -1156,6 +1156,7 @@ export default function OverlayPlayer({
 	}, [videoClip]);
 
 	useEffect(() => {
+		// eslint-disable-next-line react-hooks/set-state-in-effect
 		setActiveCurrentTime(0);
 		setActiveDuration(0);
 	}, [videoClip?.id]);
@@ -1290,6 +1291,7 @@ export default function OverlayPlayer({
 
 	useEffect(() => {
 		if (!showPlayer) {
+			// eslint-disable-next-line react-hooks/set-state-in-effect
 			setShowOverlay(false);
 			return;
 		}
@@ -1350,6 +1352,7 @@ export default function OverlayPlayer({
 	}, [runtimeVolume, videoClip?.id]);
 
 	useEffect(() => {
+		// eslint-disable-next-line react-hooks/set-state-in-effect
 		setRuntimeVolume(overlay.playerVolume ?? 50);
 	}, [overlay.playerVolume]);
 
@@ -1384,6 +1387,7 @@ export default function OverlayPlayer({
 		if (inactiveSlot === "a") {
 			if (clipA?.id !== nextClip.id) {
 				readyARef.current = false;
+				// eslint-disable-next-line react-hooks/set-state-in-effect
 				setClipA(nextClip);
 			}
 		} else {

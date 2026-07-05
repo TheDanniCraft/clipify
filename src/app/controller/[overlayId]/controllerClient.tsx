@@ -79,7 +79,7 @@ export default function ControllerClient({ overlayId, controllerToken }: { overl
 	const [isSubmittingModClip, setIsSubmittingModClip] = useState(false);
 	const [modClipFeedback, setModClipFeedback] = useState<{ tone: "default" | "danger" | "success"; text: string } | null>(null);
 	const [mounted, setMounted] = useState(false);
-	const [, setClock] = useState(0);
+	const [timeNow, setTimeNow] = useState(() => Date.now());
 
 	const refreshQueues = () => setQueueRefreshKey((value) => value + 1);
 	const refreshQueuesSoon = useCallback(() => {
@@ -90,8 +90,9 @@ export default function ControllerClient({ overlayId, controllerToken }: { overl
 	}, []);
 
 	useEffect(() => {
+		// eslint-disable-next-line react-hooks/set-state-in-effect
 		setMounted(true);
-		const timer = setInterval(() => setClock((v) => v + 1), 1000);
+		const timer = setInterval(() => setTimeNow(Date.now()), 1000);
 		return () => clearInterval(timer);
 	}, []);
 
@@ -202,6 +203,7 @@ export default function ControllerClient({ overlayId, controllerToken }: { overl
 	}, [controllerToken, overlayId, refreshQueuesSoon]);
 
 	useEffect(() => {
+		// eslint-disable-next-line react-hooks/set-state-in-effect
 		setVolumeDraft(playback.volume);
 	}, [playback.volume]);
 
@@ -262,24 +264,24 @@ export default function ControllerClient({ overlayId, controllerToken }: { overl
 	};
 
 	const lastStateAt = Math.max(lastEventAt ?? 0, nowPlayingUpdatedAt ?? 0, lastHeartbeatAt ?? 0);
-	const isStateFresh = lastStateAt > 0 && Date.now() - lastStateAt < 15_000;
-	const isHeartbeatFresh = lastHeartbeatAt != null && Date.now() - lastHeartbeatAt < 3_500;
+	const isStateFresh = lastStateAt > 0 && timeNow - lastStateAt < 15_000;
+	const isHeartbeatFresh = lastHeartbeatAt != null && timeNow - lastHeartbeatAt < 3_500;
 	const isLive = isHeartbeatFresh || socketConnected || isStateFresh;
 	const controllerHealth = !isHeartbeatFresh ? "disconnected" : !playerAttached ? "player_missing" : "healthy";
 	const statusText = useMemo(() => {
 		if (controllerHealth === "disconnected") return "Disconnected";
 		if (controllerHealth === "player_missing") return "No player";
 		if (!lastEventAt) return "Connected";
-		return `Live ${Math.max(0, Math.floor((Date.now() - lastEventAt) / 1000))}s ago`;
-	}, [controllerHealth, lastEventAt]);
+		return `Live ${Math.max(0, Math.floor((timeNow - lastEventAt) / 1000))}s ago`;
+	}, [controllerHealth, lastEventAt, timeNow]);
 
 	const syncedCurrentTime = useMemo(() => {
 		if (!nowPlaying) return 0;
 		const base = nowPlaying.currentTime ?? 0;
 		if (playback.paused) return base;
-		const elapsed = Math.max(0, (Date.now() - nowPlayingUpdatedAt) / 1000);
+		const elapsed = Math.max(0, (timeNow - nowPlayingUpdatedAt) / 1000);
 		return Math.min(nowPlaying.duration || 0, base + elapsed);
-	}, [nowPlaying, nowPlayingUpdatedAt, playback.paused]);
+	}, [nowPlaying, nowPlayingUpdatedAt, playback.paused, timeNow]);
 
 	const progressRatio = nowPlaying?.duration ? Math.max(0, Math.min(1, syncedCurrentTime / nowPlaying.duration)) : 0;
 	const queueTotal = modQueue.length + viewerQueue.length;

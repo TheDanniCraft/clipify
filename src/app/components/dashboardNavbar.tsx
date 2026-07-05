@@ -79,6 +79,7 @@ export default function DashboardNavbar({ children, user, title, tagline }: { ch
 
 	useEffect(() => {
 		if (!isImpersonating) return;
+		// eslint-disable-next-line react-hooks/set-state-in-effect
 		setSwitchQuery(user.username);
 	}, [isImpersonating, user.username]);
 

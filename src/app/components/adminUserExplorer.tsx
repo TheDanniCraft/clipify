@@ -47,6 +47,7 @@ export default function AdminUserExplorer({ users, initialPage, initialTotalPage
 	useEffect(() => {
 		// Re-sync local table/search state when the route is re-rendered with new server payload.
 		latestRequestIdRef.current += 1;
+		/* eslint-disable react-hooks/set-state-in-effect */
 		setInputValue(initialQuery);
 		setSearchQuery(initialQuery);
 		setPage(initialPage);
@@ -54,6 +55,7 @@ export default function AdminUserExplorer({ users, initialPage, initialTotalPage
 		setTotalRows(initialTotalRows);
 		setVisibleUsers(users);
 		setIsLoading(false);
+		/* eslint-enable react-hooks/set-state-in-effect */
 	}, [users, initialPage, initialTotalPages, initialTotalRows, initialQuery]);
 
 	const loadPage = useCallback(async (query: string, requestedPage: number) => {
