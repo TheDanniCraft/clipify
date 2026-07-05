@@ -121,45 +121,62 @@ export default function DashboardNavbar({ children, user, title, tagline }: { ch
 						<p className='ml-2 font-bold text-white'>Clipify</p>
 					</Link>
 					<ul className='ml-auto flex h-12 max-w-fit items-center gap-0'>
-					<li>
-						<Button isIconOnly variant='ghost' onPress={() => setTheme(theme === "dark" ? "light" : "dark")} aria-label='Toggle Theme'>
-							{(theme ?? "dark") === "dark" ? <IconSunFilled className='text-accent-foreground/60' width={24} /> : <IconMoonFilled className='text-accent-foreground/60' width={24} />}
-						</Button>
-					</li>
-					<li className='px-2'>
-						<Dropdown>
-							<Dropdown.Trigger className='relative mt-1 h-8 w-8 overflow-visible transition-transform' aria-label='Open profile menu'>
+						<li>
+							<Button isIconOnly variant='ghost' onPress={() => setTheme(theme === "dark" ? "light" : "dark")} aria-label='Toggle Theme'>
+								{(theme ?? "dark") === "dark" ? <IconSunFilled className='text-accent-foreground/60' width={24} /> : <IconMoonFilled className='text-accent-foreground/60' width={24} />}
+							</Button>
+						</li>
+						<li className='px-2'>
+							<Dropdown>
+								<Dropdown.Trigger className='relative mt-1 h-8 w-8 overflow-visible transition-transform' aria-label='Open profile menu'>
 									<Avatar size='sm'>
 										<Avatar.Image alt={user?.username ?? "User avatar"} src={user?.avatar} />
 										<Avatar.Fallback>{user?.username?.slice(0, 2).toUpperCase() ?? "?"}</Avatar.Fallback>
 									</Avatar>
 									<span aria-label='Online' className='absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-accent bg-success' role='status' />
-							</Dropdown.Trigger>
-							<Dropdown.Popover placement='bottom end'>
-							<Dropdown.Menu aria-label='Profile Actions' disabledKeys={isClearingAdminView ? ["exit_admin_view"] : []}>
-								<Dropdown.Item id='profile' textValue={`Signed in as ${user?.username ?? "user"}`} className='h-14 gap-2'>
-									<Label><span className='block font-semibold'>Signed in as</span><span className='block font-semibold'>{user?.username}</span></Label>
-								</Dropdown.Item>
-								{showUpgradeItem ? (
-									<Dropdown.Item id='upgrade_to_pro' textValue='Upgrade to Pro' className='text-accent' onAction={() => router.push("/dashboard/settings?upgrade&cycle=yearly&source=paywall_banner&feature=account_menu")}>
-										<Label>Upgrade to Pro</Label>
-									</Dropdown.Item>
-								) : null}
-								<Dropdown.Item id='settings' textValue='My Settings' onAction={() => router.push("/dashboard/settings")}><Label>My Settings</Label></Dropdown.Item>
-								<Dropdown.Item id='embeddable_widgets' textValue='Embed Overlay' onAction={() => router.push("/dashboard/embed")}><Label>Embed Overlay</Label></Dropdown.Item>
-								{canOpenAdminView ? (
-									<Dropdown.Item id='admin_view' textValue='Open Admin View' onAction={() => router.push("/admin")}><Label>Open Admin View</Label></Dropdown.Item>
-								) : null}
-								{isImpersonating ? (
-									<Dropdown.Item id='exit_admin_view' textValue='Exit Admin View' className='text-accent' onAction={handleExitAdminView}><Label>Exit Admin View</Label></Dropdown.Item>
-								) : null}
-								<Dropdown.Item id='help_and_feedback' textValue='Help' onAction={() => router.push("https://help.clipify.us/")}><Label>Help</Label></Dropdown.Item>
-								<Dropdown.Item id='refer_a_friend' textValue='Refer a Friend' onAction={() => router.push("/referral-program")}><Label>Refer a Friend</Label></Dropdown.Item>
-								<Dropdown.Item id='logout' textValue='Log Out' variant='danger' onAction={() => router.push("/logout")}><Label>Log Out</Label></Dropdown.Item>
-							</Dropdown.Menu>
-							</Dropdown.Popover>
-						</Dropdown>
-					</li>
+								</Dropdown.Trigger>
+								<Dropdown.Popover placement='bottom end'>
+									<Dropdown.Menu aria-label='Profile Actions' disabledKeys={isClearingAdminView ? ["exit_admin_view"] : []}>
+										<Dropdown.Item id='profile' textValue={`Signed in as ${user?.username ?? "user"}`} className='h-14 gap-2'>
+											<Label>
+												<span className='block font-semibold'>Signed in as</span>
+												<span className='block font-semibold'>{user?.username}</span>
+											</Label>
+										</Dropdown.Item>
+										{showUpgradeItem ? (
+											<Dropdown.Item id='upgrade_to_pro' textValue='Upgrade to Pro' className='text-accent' onAction={() => router.push("/dashboard/settings?upgrade&cycle=yearly&source=paywall_banner&feature=account_menu")}>
+												<Label>Upgrade to Pro</Label>
+											</Dropdown.Item>
+										) : null}
+										<Dropdown.Item id='settings' textValue='My Settings' onAction={() => router.push("/dashboard/settings")}>
+											<Label>My Settings</Label>
+										</Dropdown.Item>
+										<Dropdown.Item id='embeddable_widgets' textValue='Embed Overlay' onAction={() => router.push("/dashboard/embed")}>
+											<Label>Embed Overlay</Label>
+										</Dropdown.Item>
+										{canOpenAdminView ? (
+											<Dropdown.Item id='admin_view' textValue='Open Admin View' onAction={() => router.push("/admin")}>
+												<Label>Open Admin View</Label>
+											</Dropdown.Item>
+										) : null}
+										{isImpersonating ? (
+											<Dropdown.Item id='exit_admin_view' textValue='Exit Admin View' className='text-accent' onAction={handleExitAdminView}>
+												<Label>Exit Admin View</Label>
+											</Dropdown.Item>
+										) : null}
+										<Dropdown.Item id='help_and_feedback' textValue='Help' onAction={() => router.push("https://help.clipify.us/")}>
+											<Label>Help</Label>
+										</Dropdown.Item>
+										<Dropdown.Item id='refer_a_friend' textValue='Refer a Friend' onAction={() => router.push("/referral-program")}>
+											<Label>Refer a Friend</Label>
+										</Dropdown.Item>
+										<Dropdown.Item id='logout' textValue='Log Out' variant='danger' onAction={() => router.push("/logout")}>
+											<Label>Log Out</Label>
+										</Dropdown.Item>
+									</Dropdown.Menu>
+								</Dropdown.Popover>
+							</Dropdown>
+						</li>
 					</ul>
 				</header>
 			</nav>
@@ -208,7 +225,12 @@ export default function DashboardNavbar({ children, user, title, tagline }: { ch
 								</ComboBox.InputGroup>
 								<ComboBox.Popover>
 									<ListBox items={switchOptions}>
-										{(candidate) => <ListBox.Item id={candidate.id} textValue={candidate.username}><Label>@{candidate.username}</Label><ListBox.ItemIndicator /></ListBox.Item>}
+										{(candidate) => (
+											<ListBox.Item id={candidate.id} textValue={candidate.username}>
+												<Label>@{candidate.username}</Label>
+												<ListBox.ItemIndicator />
+											</ListBox.Item>
+										)}
 									</ListBox>
 								</ComboBox.Popover>
 							</ComboBox>

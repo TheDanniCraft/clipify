@@ -33,21 +33,32 @@ jest.mock("@heroui/react", () => ({
 		</button>
 	),
 	Chip: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
-	ProgressBar: Object.assign(({ children, value, "aria-label": ariaLabel }: { children?: React.ReactNode; value?: number; "aria-label"?: string }) => <div>{children}<progress aria-label={ariaLabel} value={value} max={100} /></div>, {
-		Track: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
-		Fill: () => null,
-	}),
-	Slider: Object.assign(({ children, value, onChange, onChangeEnd, isDisabled, "aria-label": ariaLabel }: { children?: React.ReactNode; value?: number; onChange?: (value: number) => void; onChangeEnd?: (value: number) => void; isDisabled?: boolean; "aria-label"?: string }) => (
-		<div>
-			{children}
-			<input type='range' aria-label={ariaLabel} disabled={isDisabled} value={value} onChange={(event) => onChange?.(Number(event.target.value))} onBlur={(event) => onChangeEnd?.(Number(event.target.value))} />
-		</div>
-	), {
-		Track: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
-		Fill: () => null,
-		Thumb: () => null,
-		Output: () => null,
-	}),
+	ProgressBar: Object.assign(
+		({ children, value, "aria-label": ariaLabel }: { children?: React.ReactNode; value?: number; "aria-label"?: string }) => (
+			<div>
+				{children}
+				<progress aria-label={ariaLabel} value={value} max={100} />
+			</div>
+		),
+		{
+			Track: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+			Fill: () => null,
+		},
+	),
+	Slider: Object.assign(
+		({ children, value, onChange, onChangeEnd, isDisabled, "aria-label": ariaLabel }: { children?: React.ReactNode; value?: number; onChange?: (value: number) => void; onChangeEnd?: (value: number) => void; isDisabled?: boolean; "aria-label"?: string }) => (
+			<div>
+				{children}
+				<input type='range' aria-label={ariaLabel} disabled={isDisabled} value={value} onChange={(event) => onChange?.(Number(event.target.value))} onBlur={(event) => onChangeEnd?.(Number(event.target.value))} />
+			</div>
+		),
+		{
+			Track: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+			Fill: () => null,
+			Thumb: () => null,
+			Output: () => null,
+		},
+	),
 	Input: (props: React.InputHTMLAttributes<HTMLInputElement>) => <input {...props} />,
 }));
 
@@ -364,11 +375,7 @@ describe("controller/[overlayId]/controllerClient", () => {
 			type: "overlay_state",
 			data: {
 				kind: "queue_preview",
-				items: [
-					null,
-					{ nope: true },
-					{ clipId: "next-good" },
-				],
+				items: [null, { nope: true }, { clipId: "next-good" }],
 			},
 		});
 

@@ -35,7 +35,9 @@ function formatPromoPrice(value?: string | number | null) {
 
 function formatOriginalPrice(value?: string | number | null) {
 	if (!value) return value;
-	return String(value).replace(/\s*EUR\b/g, "").trim();
+	return String(value)
+		.replace(/\s*EUR\b/g, "")
+		.trim();
 }
 
 export default function UpgradeModal({ isOpen, onOpenChange, user, title, description, ctaLabel, returnUrl, source = "upgrade_modal", feature = "unknown", initialBillingCycle = "yearly" }: UpgradeModalProps) {
@@ -105,148 +107,159 @@ export default function UpgradeModal({ isOpen, onOpenChange, user, title, descri
 				<Modal.Container size='lg' className='max-w-3xl'>
 					<Modal.Dialog className='max-h-[90vh] overflow-y-auto'>
 						<Modal.CloseTrigger />
-						<Modal.Header className='flex flex-col gap-3 pr-10'><Modal.Heading>
-					<div className='flex items-center gap-3'>
-						<span className='inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-500/15 text-brand-400'>
-							<IconSparkles size={20} />
-						</span>
-						<p className='text-xl font-semibold leading-tight'>{title ?? "Upgrade to Pro"}</p>
-					</div>
-						</Modal.Heading></Modal.Header>
+						<Modal.Header className='flex flex-col gap-3 pr-10'>
+							<Modal.Heading>
+								<div className='flex items-center gap-3'>
+									<span className='inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-500/15 text-brand-400'>
+										<IconSparkles size={20} />
+									</span>
+									<p className='text-xl font-semibold leading-tight'>{title ?? "Upgrade to Pro"}</p>
+								</div>
+							</Modal.Heading>
+						</Modal.Header>
 						<Modal.Body className='gap-5 pb-6'>
-					<p className='text-base text-muted'>{description ?? "Unlock advanced features for professional streamers and support the development of Clipify."}</p>
-					{campaignOffer?.showPricingTierPromo ? (
-						<div className='rounded-xl border border-brand-secondary/25 bg-brand-secondary/10 px-4 py-3 text-sm text-foreground'>
-							<div className='font-semibold text-brand-secondary'>{campaignOffer.badgeText ?? campaignOffer.title}</div>
-							<div className='mt-1 text-muted'>{campaignOffer.subtitle ?? "Campaign pricing is applied automatically at checkout."}</div>
-						</div>
-					) : null}
-
-					<div className='flex items-center gap-2 text-xs text-muted'>
-						<span>Plan:</span>
-						<span className={`${effectivePlan === "free" ? "text-success" : "text-brand-300"} ${effectivePlan === "pro" ? "font-bold" : "font-medium"}`}>{planLabel}</span>
-						{inTrial && (
-							<Chip
-								size='sm'
-								variant='tertiary'
-								className='border border-amber-300/40 bg-amber-400/20 font-medium text-amber-100'
-							>
-								Trial active: {trialDaysLeft <= 1 ? "Ends today" : `${trialDaysLeft} days left`}
-							</Chip>
-						)}
-					</div>
-
-					{(monthly || yearly) && (
-						<>
-						<Tabs selectedKey={billingCycle} onSelectionChange={(key) => setBillingCycle(String(key) as BillingCycle)} variant='secondary' className='w-full text-sm'>
-							<Tabs.ListContainer className='w-full'><Tabs.List aria-label='Billing cycle' className='w-full'>
-								<Tabs.Tab id='monthly'>Monthly<Tabs.Indicator /></Tabs.Tab>
-								<Tabs.Tab id='yearly'>Yearly<Tabs.Indicator /></Tabs.Tab>
-							</Tabs.List></Tabs.ListContainer>
-						</Tabs>
-							<div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
-								<div className='rounded-xl border border-default/60 bg-surface-secondary p-5'>
-									<div className='flex items-center justify-between'>
-										<div className='text-xs text-muted'>Monthly</div>
-										{monthlyHasSale && (
-											<Chip size='sm' color='accent' variant='tertiary'>
-												Offer
-											</Chip>
-										)}
-									</div>
-									<div className='mt-1 flex items-center gap-2'>
-										{monthlyHasSale ? (
-											<>
-												<span className='self-center text-sm leading-none text-muted line-through'>{formatOriginalPrice(monthly)}</span>
-												<span className='text-3xl font-semibold leading-none'>{formatPromoPrice(monthlyDiscount)}</span>
-											</>
-										) : (
-											<span className='text-3xl font-semibold leading-none'>{monthly}</span>
-										)}
-										<span className='self-end text-xs text-muted'>{monthlySuffix}</span>
-									</div>
-									<div className='mt-2 inline-flex items-center gap-1 text-xs text-muted'>
-										<IconBolt size={14} className='text-brand-400' />
-										Best for trying Pro
-									</div>
+							<p className='text-base text-muted'>{description ?? "Unlock advanced features for professional streamers and support the development of Clipify."}</p>
+							{campaignOffer?.showPricingTierPromo ? (
+								<div className='rounded-xl border border-brand-secondary/25 bg-brand-secondary/10 px-4 py-3 text-sm text-foreground'>
+									<div className='font-semibold text-brand-secondary'>{campaignOffer.badgeText ?? campaignOffer.title}</div>
+									<div className='mt-1 text-muted'>{campaignOffer.subtitle ?? "Campaign pricing is applied automatically at checkout."}</div>
 								</div>
-								<div className='rounded-xl border border-brand-300/40 bg-brand-500/10 p-5'>
-									<div className='flex items-center justify-between'>
-										<div className='text-xs text-brand-300'>Yearly</div>
-										{yearlyHasSale && (
-											<Chip size='sm' color='accent' variant='tertiary'>
-												Offer
-											</Chip>
-										)}
-									</div>
-									<div className='mt-1 flex items-center gap-2'>
-										{yearlyHasSale ? (
-											<>
-												<span className='self-center text-sm leading-none text-brand-300/80 line-through'>{formatOriginalPrice(yearly)}</span>
-												<span className='text-3xl font-semibold leading-none text-brand-200'>{formatPromoPrice(yearlyDiscount)}</span>
-											</>
-										) : (
-											<span className='text-3xl font-semibold leading-none text-brand-200'>{yearly}</span>
-										)}
-										<span className='self-end text-xs text-brand-300'>{yearlySuffix}</span>
-									</div>
-									<div className='mt-2 inline-flex items-center gap-1 text-xs text-brand-200'>
-										<IconSparkles size={14} />
-										Best value
-									</div>
-								</div>
+							) : null}
+
+							<div className='flex items-center gap-2 text-xs text-muted'>
+								<span>Plan:</span>
+								<span className={`${effectivePlan === "free" ? "text-success" : "text-brand-300"} ${effectivePlan === "pro" ? "font-bold" : "font-medium"}`}>{planLabel}</span>
+								{inTrial && (
+									<Chip size='sm' variant='tertiary' className='border border-amber-300/40 bg-amber-400/20 font-medium text-amber-100'>
+										Trial active: {trialDaysLeft <= 1 ? "Ends today" : `${trialDaysLeft} days left`}
+									</Chip>
+								)}
 							</div>
-						</>
-					)}
 
-					<Separator />
+							{(monthly || yearly) && (
+								<>
+									<Tabs selectedKey={billingCycle} onSelectionChange={(key) => setBillingCycle(String(key) as BillingCycle)} variant='secondary' className='w-full text-sm'>
+										<Tabs.ListContainer className='w-full'>
+											<Tabs.List aria-label='Billing cycle' className='w-full'>
+												<Tabs.Tab id='monthly'>
+													Monthly
+													<Tabs.Indicator />
+												</Tabs.Tab>
+												<Tabs.Tab id='yearly'>
+													Yearly
+													<Tabs.Indicator />
+												</Tabs.Tab>
+											</Tabs.List>
+										</Tabs.ListContainer>
+									</Tabs>
+									<div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
+										<div className='rounded-xl border border-default/60 bg-surface-secondary p-5'>
+											<div className='flex items-center justify-between'>
+												<div className='text-xs text-muted'>Monthly</div>
+												{monthlyHasSale && (
+													<Chip size='sm' color='accent' variant='tertiary'>
+														Offer
+													</Chip>
+												)}
+											</div>
+											<div className='mt-1 flex items-center gap-2'>
+												{monthlyHasSale ? (
+													<>
+														<span className='self-center text-sm leading-none text-muted line-through'>{formatOriginalPrice(monthly)}</span>
+														<span className='text-3xl font-semibold leading-none'>{formatPromoPrice(monthlyDiscount)}</span>
+													</>
+												) : (
+													<span className='text-3xl font-semibold leading-none'>{monthly}</span>
+												)}
+												<span className='self-end text-xs text-muted'>{monthlySuffix}</span>
+											</div>
+											<div className='mt-2 inline-flex items-center gap-1 text-xs text-muted'>
+												<IconBolt size={14} className='text-brand-400' />
+												Best for trying Pro
+											</div>
+										</div>
+										<div className='rounded-xl border border-brand-300/40 bg-brand-500/10 p-5'>
+											<div className='flex items-center justify-between'>
+												<div className='text-xs text-brand-300'>Yearly</div>
+												{yearlyHasSale && (
+													<Chip size='sm' color='accent' variant='tertiary'>
+														Offer
+													</Chip>
+												)}
+											</div>
+											<div className='mt-1 flex items-center gap-2'>
+												{yearlyHasSale ? (
+													<>
+														<span className='self-center text-sm leading-none text-brand-300/80 line-through'>{formatOriginalPrice(yearly)}</span>
+														<span className='text-3xl font-semibold leading-none text-brand-200'>{formatPromoPrice(yearlyDiscount)}</span>
+													</>
+												) : (
+													<span className='text-3xl font-semibold leading-none text-brand-200'>{yearly}</span>
+												)}
+												<span className='self-end text-xs text-brand-300'>{yearlySuffix}</span>
+											</div>
+											<div className='mt-2 inline-flex items-center gap-1 text-xs text-brand-200'>
+												<IconSparkles size={14} />
+												Best value
+											</div>
+										</div>
+									</div>
+								</>
+							)}
 
-					{proTier && (
-						<>
-							<p className='mt-3 text-lg text-foreground'>What&apos;s included with Pro</p>
-							<ul className='mt-1 grid grid-cols-1 gap-x-6 gap-y-2 text-base sm:grid-cols-2'>
-								{proFeatures.map((f) => {
-									const isUnique = uniqueProFeatures.includes(f);
-									return (
-										<li key={f} className='flex items-start gap-2'>
-											<IconCheck size={16} className={isUnique ? "text-accent mt-0.5" : "text-muted mt-0.5"} />
-											<p className={isUnique ? "text-foreground font-medium" : "text-muted"}>{f}</p>
-										</li>
-									);
-								})}
-							</ul>
-						</>
-					)}
+							<Separator />
 
-					<Separator className='my-3' />
-					<Button onPress={async () => {
-							trackPaywallEvent(plausible, "paywall_cta_click", {
-								source,
-								feature,
-								plan: user.plan,
-								cycle: billingCycle,
-							});
-							const link = await generatePaymentLink(billingCycle, returnUrl ?? (typeof window !== "undefined" ? window.location.href : undefined), window.numok?.getStripeMetadata(), source);
+							{proTier && (
+								<>
+									<p className='mt-3 text-lg text-foreground'>What&apos;s included with Pro</p>
+									<ul className='mt-1 grid grid-cols-1 gap-x-6 gap-y-2 text-base sm:grid-cols-2'>
+										{proFeatures.map((f) => {
+											const isUnique = uniqueProFeatures.includes(f);
+											return (
+												<li key={f} className='flex items-start gap-2'>
+													<IconCheck size={16} className={isUnique ? "text-accent mt-0.5" : "text-muted mt-0.5"} />
+													<p className={isUnique ? "text-foreground font-medium" : "text-muted"}>{f}</p>
+												</li>
+											);
+										})}
+									</ul>
+								</>
+							)}
 
-							if (link) {
-								trackPaywallEvent(plausible, "checkout_start", {
-									source,
-									feature,
-									plan: user.plan,
-									cycle: billingCycle,
-								});
-								window.location.href = link;
-						} else {
-							addToast({
-								title: "Error",
-								description: "Failed to generate payment link. Please try again later.",
-								color: "danger",
-							});
-						}
-					}} isDisabled={!canUpgrade} variant='primary'>{<IconDiamondFilled />}
-						{ctaLabel ?? "Upgrade to Pro"}
-					</Button>
-					<p className='text-xs text-muted mb-3'>You can cancel anytime in your billing portal.</p>
+							<Separator className='my-3' />
+							<Button
+								onPress={async () => {
+									trackPaywallEvent(plausible, "paywall_cta_click", {
+										source,
+										feature,
+										plan: user.plan,
+										cycle: billingCycle,
+									});
+									const link = await generatePaymentLink(billingCycle, returnUrl ?? (typeof window !== "undefined" ? window.location.href : undefined), window.numok?.getStripeMetadata(), source);
+
+									if (link) {
+										trackPaywallEvent(plausible, "checkout_start", {
+											source,
+											feature,
+											plan: user.plan,
+											cycle: billingCycle,
+										});
+										window.location.href = link;
+									} else {
+										addToast({
+											title: "Error",
+											description: "Failed to generate payment link. Please try again later.",
+											color: "danger",
+										});
+									}
+								}}
+								isDisabled={!canUpgrade}
+								variant='primary'
+							>
+								{<IconDiamondFilled />}
+								{ctaLabel ?? "Upgrade to Pro"}
+							</Button>
+							<p className='text-xs text-muted mb-3'>You can cancel anytime in your billing portal.</p>
 						</Modal.Body>
 					</Modal.Dialog>
 				</Modal.Container>

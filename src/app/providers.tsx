@@ -7,9 +7,9 @@ import ChatWidget from "@components/chatWidget";
 export function Providers({ children }: { children: React.ReactNode }) {
 	return (
 		<NavigationGuardProvider>
-				<Toast.Provider />
-				<ChatWidget />
-				{children}
+			<Toast.Provider />
+			<ChatWidget />
+			{children}
 		</NavigationGuardProvider>
 	);
 }

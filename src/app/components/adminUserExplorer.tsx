@@ -135,57 +135,66 @@ export default function AdminUserExplorer({ users, initialPage, initialTotalPage
 			<Card.Content className='gap-3'>
 				<div className='flex flex-col gap-2 sm:flex-row sm:items-end'>
 					<div className='sm:min-w-[320px]'>
-						<TextField name='q'><Label>Search users</Label><InputGroup variant='secondary'><InputGroup.Prefix>{<IconSearch className='text-muted' size={16} />}</InputGroup.Prefix><InputGroup.Input id='user-explorer-search' value={inputValue} onChange={(event) => (setInputValue)(event.target.value)} placeholder='username or user id' className='h-8 text-sm' /><InputGroup.Suffix>{isLoading ? <Spinner size='sm' /> : null}</InputGroup.Suffix></InputGroup></TextField>
+						<TextField name='q'>
+							<Label>Search users</Label>
+							<InputGroup variant='secondary'>
+								<InputGroup.Prefix>{<IconSearch className='text-muted' size={16} />}</InputGroup.Prefix>
+								<InputGroup.Input id='user-explorer-search' value={inputValue} onChange={(event) => setInputValue(event.target.value)} placeholder='username or user id' className='h-8 text-sm' />
+								<InputGroup.Suffix>{isLoading ? <Spinner size='sm' /> : null}</InputGroup.Suffix>
+							</InputGroup>
+						</TextField>
 					</div>
 				</div>
 
 				<Table className='rounded-lg border border-default'>
 					<Table.ScrollContainer>
 						<Table.Content aria-label='Admin user explorer table' className='min-w-[900px]'>
-					<Table.Header>
-						<Table.Column id='username' isRowHeader>Username</Table.Column>
-						<Table.Column id='id'>User ID</Table.Column>
-						<Table.Column id='email'>Email</Table.Column>
-						<Table.Column id='role'>Role</Table.Column>
-						<Table.Column id='plan'>Plan</Table.Column>
-						<Table.Column id='lastLogin'>Last Login</Table.Column>
-						<Table.Column id='action' className='text-end'>
-							Action
-						</Table.Column>
-					</Table.Header>
-					<Table.Body renderEmptyState={() => <div className='p-4 text-center text-muted'>No users found.</div>}>
-						{visibleUsers.map((row) => (
-							<Table.Row key={row.id} id={row.id}>
-								<Table.Cell>
-									<span className='font-medium'>@{row.username}</span>
-								</Table.Cell>
-								<Table.Cell>
-									<span className='text-muted'>{row.id}</span>
-								</Table.Cell>
-								<Table.Cell>
-									<span className='text-muted'>{row.email}</span>
-								</Table.Cell>
-								<Table.Cell>
-									<Chip size='sm' variant='tertiary'>
-										{row.role}
-									</Chip>
-								</Table.Cell>
-								<Table.Cell>
-									<Chip size='sm' variant='tertiary'>
-										{row.plan}
-									</Chip>
-								</Table.Cell>
-								<Table.Cell>
-									<span className='text-muted'>{row.lastLoginLabel}</span>
-								</Table.Cell>
-								<Table.Cell className='text-right'>
-									<Button size='sm' variant='primary' onPress={() => void handleViewAsUser(row.id)} isPending={switchingUserId === row.id} isDisabled={switchingUserId != null}>
-										View as User
-									</Button>
-								</Table.Cell>
-							</Table.Row>
-						))}
-					</Table.Body>
+							<Table.Header>
+								<Table.Column id='username' isRowHeader>
+									Username
+								</Table.Column>
+								<Table.Column id='id'>User ID</Table.Column>
+								<Table.Column id='email'>Email</Table.Column>
+								<Table.Column id='role'>Role</Table.Column>
+								<Table.Column id='plan'>Plan</Table.Column>
+								<Table.Column id='lastLogin'>Last Login</Table.Column>
+								<Table.Column id='action' className='text-end'>
+									Action
+								</Table.Column>
+							</Table.Header>
+							<Table.Body renderEmptyState={() => <div className='p-4 text-center text-muted'>No users found.</div>}>
+								{visibleUsers.map((row) => (
+									<Table.Row key={row.id} id={row.id}>
+										<Table.Cell>
+											<span className='font-medium'>@{row.username}</span>
+										</Table.Cell>
+										<Table.Cell>
+											<span className='text-muted'>{row.id}</span>
+										</Table.Cell>
+										<Table.Cell>
+											<span className='text-muted'>{row.email}</span>
+										</Table.Cell>
+										<Table.Cell>
+											<Chip size='sm' variant='tertiary'>
+												{row.role}
+											</Chip>
+										</Table.Cell>
+										<Table.Cell>
+											<Chip size='sm' variant='tertiary'>
+												{row.plan}
+											</Chip>
+										</Table.Cell>
+										<Table.Cell>
+											<span className='text-muted'>{row.lastLoginLabel}</span>
+										</Table.Cell>
+										<Table.Cell className='text-right'>
+											<Button size='sm' variant='primary' onPress={() => void handleViewAsUser(row.id)} isPending={switchingUserId === row.id} isDisabled={switchingUserId != null}>
+												View as User
+											</Button>
+										</Table.Cell>
+									</Table.Row>
+								))}
+							</Table.Body>
 						</Table.Content>
 					</Table.ScrollContainer>
 				</Table>

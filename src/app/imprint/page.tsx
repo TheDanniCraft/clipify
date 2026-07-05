@@ -84,26 +84,17 @@ export default function ImprintPage() {
 
 					<section className='border-b border-default pb-6'>
 						<h2 className='mb-4 text-2xl font-semibold'>Liability for Content</h2>
-						<p>
-							As a service provider, we are responsible for our own content on these pages under general laws. However, we are not obliged to monitor transmitted or stored third-party
-							information or investigate circumstances indicating illegal activity. Obligations to remove or block the use of information under general laws remain unaffected.
-						</p>
+						<p>As a service provider, we are responsible for our own content on these pages under general laws. However, we are not obliged to monitor transmitted or stored third-party information or investigate circumstances indicating illegal activity. Obligations to remove or block the use of information under general laws remain unaffected.</p>
 					</section>
 
 					<section className='border-b border-default pb-6'>
 						<h2 className='mb-4 text-2xl font-semibold'>Liability for Links</h2>
-						<p>
-							Our site contains links to external websites of third parties, over whose content we have no control. Therefore, we cannot accept any liability for external content.
-							The respective provider or operator of the linked pages is always responsible for their content.
-						</p>
+						<p>Our site contains links to external websites of third parties, over whose content we have no control. Therefore, we cannot accept any liability for external content. The respective provider or operator of the linked pages is always responsible for their content.</p>
 					</section>
 
 					<section>
 						<h2 className='mb-4 text-2xl font-semibold'>Copyright</h2>
-						<p>
-							Content and works created by the site operator on these pages are subject to copyright law. Reproduction, editing, distribution, and any type of use beyond the limits of
-							copyright law require the written consent of the respective author or creator.
-						</p>
+						<p>Content and works created by the site operator on these pages are subject to copyright law. Reproduction, editing, distribution, and any type of use beyond the limits of copyright law require the written consent of the respective author or creator.</p>
 					</section>
 				</div>
 			</div>

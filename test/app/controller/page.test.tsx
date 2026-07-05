@@ -75,11 +75,7 @@ describe("app/controller/[overlayId]/page", () => {
 
 		render(await Page({ params: Promise.resolve({ overlayId: "ov-1" }), searchParams: Promise.resolve({}) }));
 
-		expect(jwtSign).toHaveBeenCalledWith(
-			{ overlayId: "ov-1", userId: "user-1" },
-			process.env.JWT_SECRET,
-			expect.objectContaining({ issuer: "clipify-controller", expiresIn: "12h" }),
-		);
+		expect(jwtSign).toHaveBeenCalledWith({ overlayId: "ov-1", userId: "user-1" }, process.env.JWT_SECRET, expect.objectContaining({ issuer: "clipify-controller", expiresIn: "12h" }));
 		expect(screen.getByText("controller-client:ov-1:signed-controller-token")).toBeInTheDocument();
 	});
 });

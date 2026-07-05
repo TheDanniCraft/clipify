@@ -2,25 +2,7 @@
 
 import { tokenTable, usersTable, overlaysTable, playlistsTable, playlistClipsTable, queueTable, settingsTable, modQueueTable, editorsTable, twitchCacheTable } from "@/db/schema";
 import { db, QueryClient } from "@/db/client";
-import {
-	AuthenticatedUser,
-	ClipQueueItem,
-	ModQueueItem,
-	Overlay,
-	Playlist,
-	TwitchUserResponse,
-	TwitchTokenApiResponse,
-	UserToken,
-	Plan,
-	Role,
-	UserSettings,
-	TwitchCacheType,
-	StatusOptions,
-	OverlayType,
-	PlaybackMode,
-	MaxDurationMode,
-	TwitchClip,
-} from "@types";
+import { AuthenticatedUser, ClipQueueItem, ModQueueItem, Overlay, Playlist, TwitchUserResponse, TwitchTokenApiResponse, UserToken, Plan, Role, UserSettings, TwitchCacheType, StatusOptions, OverlayType, PlaybackMode, MaxDurationMode, TwitchClip } from "@types";
 import { getTwitchClipLookup, getUserDetails, getUsersDetailsBulk, subscribeToReward, syncOwnerClipCache } from "@actions/twitch";
 import { syncProductUpdatesContact, getProductUpdatesSubscriptionStatus } from "@actions/newsletter";
 import { isTitleBlocked } from "@/app/utils/regexFilter";
@@ -1878,10 +1860,7 @@ export async function getFirstFromModQueueByBroadcasterId(broadcasterId: string)
 	}
 }
 
-export async function getFirstValidQueuedClip(
-	overlayId: string,
-	secret?: string,
-): Promise<{ clip: TwitchClip; queueItem: ModQueueItem | ClipQueueItem } | null> {
+export async function getFirstValidQueuedClip(overlayId: string, secret?: string): Promise<{ clip: TwitchClip; queueItem: ModQueueItem | ClipQueueItem } | null> {
 	try {
 		const overlay = await requireOverlaySecretAccess(overlayId, secret);
 		if (!overlay) return null;
@@ -2031,7 +2010,7 @@ export async function getSettingsServer(userId: string, forceSyncExternal = fals
 							userId,
 							username: userRow.username,
 							source: "soft_opt_in",
-					  })
+						})
 					: null;
 
 			// Insert default settings directly to avoid recursion with saveSettings auth checks
@@ -2497,4 +2476,3 @@ export async function deleteTwitchCacheByPrefix(type: TwitchCacheType, keyPrefix
 		return 0;
 	}
 }
-

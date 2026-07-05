@@ -16,14 +16,7 @@ jest.mock("@tabler/icons-react", () => ({
 
 describe("components/FloatingBanner", () => {
 	it("renders content and dismisses on close", () => {
-		render(
-			<FloatingBanner
-				icon={<span>icon</span>}
-				title='Update'
-				text='New feature is live'
-				cta={<button>Try now</button>}
-			/>,
-		);
+		render(<FloatingBanner icon={<span>icon</span>} title='Update' text='New feature is live' cta={<button>Try now</button>} />);
 
 		expect(screen.getByText("Update")).toBeInTheDocument();
 		expect(screen.getByText("New feature is live")).toBeInTheDocument();

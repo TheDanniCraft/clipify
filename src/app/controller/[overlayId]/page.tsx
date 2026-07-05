@@ -6,19 +6,7 @@ import { Plan } from "@types";
 import ControllerClient from "./controllerClient";
 import { redirect } from "next/navigation";
 
-function AccessSurface({
-	eyebrow,
-	title,
-	description,
-	ctaLabel,
-	ctaHref,
-}: {
-	eyebrow: string;
-	title: string;
-	description: string;
-	ctaLabel?: string;
-	ctaHref?: string;
-}) {
+function AccessSurface({ eyebrow, title, description, ctaLabel, ctaHref }: { eyebrow: string; title: string; description: string; ctaLabel?: string; ctaHref?: string }) {
 	return (
 		<main className='min-h-screen bg-background px-6 py-12'>
 			<div className='mx-auto flex min-h-[calc(100vh-6rem)] w-full max-w-3xl items-center justify-center'>
@@ -41,12 +29,7 @@ function AccessSurface({
 	);
 }
 
-export default async function ControllerPage({
-	params,
-}: {
-	params: Promise<{ overlayId: string }>;
-	searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
-}) {
+export default async function ControllerPage({ params }: { params: Promise<{ overlayId: string }>; searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
 	const { overlayId } = await params;
 	const user = await validateAuth();
 
@@ -61,22 +44,10 @@ export default async function ControllerPage({
 
 	const ownerPlan = await getOverlayOwnerPlanPublic(overlayId);
 	if (ownerPlan !== Plan.Pro) {
-		return (
-			<AccessSurface
-				eyebrow='Pro Feature'
-				title='This feature is Pro only'
-				description='The remote control panel is available on Clipify Pro. Upgrade the overlay owner account to unlock live playback controls.'
-				ctaLabel='Upgrade now'
-				ctaHref='/dashboard/settings'
-			/>
-		);
+		return <AccessSurface eyebrow='Pro Feature' title='This feature is Pro only' description='The remote control panel is available on Clipify Pro. Upgrade the overlay owner account to unlock live playback controls.' ctaLabel='Upgrade now' ctaHref='/dashboard/settings' />;
 	}
 
-	const controllerToken = jwt.sign(
-		{ overlayId, userId: user.id },
-		process.env.JWT_SECRET!,
-		{ algorithm: "HS256", issuer: "clipify-controller", expiresIn: "12h" },
-	);
+	const controllerToken = jwt.sign({ overlayId, userId: user.id }, process.env.JWT_SECRET!, { algorithm: "HS256", issuer: "clipify-controller", expiresIn: "12h" });
 
 	return <ControllerClient overlayId={overlayId} controllerToken={controllerToken} />;
 }

@@ -72,7 +72,8 @@ function StreamerRow({ streamer }: { streamer: CommunityPageStreamer }) {
 			{canOpenTwitch ? (
 				<Link href={streamer.twitchUrl} rel='noreferrer' target='_blank' className='rounded-full inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 font-medium bg-transparent text-foreground hover:bg-default/40 text-sm'>
 					Open Twitch
-				{<IconBrandTwitch size={16} />}</Link>
+					{<IconBrandTwitch size={16} />}
+				</Link>
 			) : null}
 		</div>
 	);

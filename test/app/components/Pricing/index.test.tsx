@@ -34,34 +34,20 @@ jest.mock("@heroui/react", () => {
 		);
 	}
 
-	const passSelection = ({ children, onSelect }: { children: ReactNode; onSelect?: (key: string) => void }) => (
-		<div>{React.Children.map(children, (child) => React.isValidElement(child) ? React.cloneElement(child, { onSelect } as Record<string, unknown>) : child)}</div>
-	);
+	const passSelection = ({ children, onSelect }: { children: ReactNode; onSelect?: (key: string) => void }) => <div>{React.Children.map(children, (child) => (React.isValidElement(child) ? React.cloneElement(child, { onSelect } as Record<string, unknown>) : child))}</div>;
 	const Tabs = Object.assign(TabsRoot, {
 		ListContainer: passSelection,
 		List: passSelection,
-		Tab: ({ children, id, onSelect }: { children: ReactNode; id: string; onSelect?: (key: string) => void }) => <button type='button' onClick={() => onSelect?.(id)}>{children}</button>,
+		Tab: ({ children, id, onSelect }: { children: ReactNode; id: string; onSelect?: (key: string) => void }) => (
+			<button type='button' onClick={() => onSelect?.(id)}>
+				{children}
+			</button>
+		),
 		Indicator: () => null,
 	});
 
 	return {
-		Button: ({
-			children,
-			onPress,
-			as: _as,
-			fullWidth: _fullWidth,
-			color: _color,
-			variant: _variant,
-			...props
-		}: {
-			children: ReactNode;
-			onPress?: () => void;
-			as?: unknown;
-			fullWidth?: boolean;
-			color?: string;
-			variant?: string;
-			[key: string]: unknown;
-		}) => (
+		Button: ({ children, onPress, as: _as, fullWidth: _fullWidth, color: _color, variant: _variant, ...props }: { children: ReactNode; onPress?: () => void; as?: unknown; fullWidth?: boolean; color?: string; variant?: string; [key: string]: unknown }) => (
 			<button type='button' onClick={onPress} {...props}>
 				{children}
 			</button>
@@ -84,32 +70,30 @@ describe("components/Pricing index", () => {
 	it("shows campaign-configured promo copy on the pro tier", () => {
 		render(
 			<TiersComponent
-				campaignOffer={
-					{
-						id: "offer-1",
-						name: "Launch Offer",
-						slug: "launch-offer",
-						isEnabled: true,
-						startAt: "2026-01-01T00:00:00.000Z",
-						endAt: null,
-						priority: 100,
-						showFloatingBanner: true,
-						showPricingCard: true,
-						showPricingTierPromo: true,
-						title: "Launch Offer",
-						subtitle: "for 50% OFF your first year.",
-						badgeText: "We're launched!",
-						ctaLabel: "Register To Claim Offer",
-						floatingCtaLabel: "Claim Now",
-						ctaHref: "/redeem?code=EARLYCLIPPY",
-						offerCode: "EARLYCLIPPY",
-						utmCampaign: "launch_offer",
-						pricingMonthlyPromo: 1,
-						pricingYearlyPromo: 10,
-						iconUrl: null,
-						updated: null,
-					}
-				}
+				campaignOffer={{
+					id: "offer-1",
+					name: "Launch Offer",
+					slug: "launch-offer",
+					isEnabled: true,
+					startAt: "2026-01-01T00:00:00.000Z",
+					endAt: null,
+					priority: 100,
+					showFloatingBanner: true,
+					showPricingCard: true,
+					showPricingTierPromo: true,
+					title: "Launch Offer",
+					subtitle: "for 50% OFF your first year.",
+					badgeText: "We're launched!",
+					ctaLabel: "Register To Claim Offer",
+					floatingCtaLabel: "Claim Now",
+					ctaHref: "/redeem?code=EARLYCLIPPY",
+					offerCode: "EARLYCLIPPY",
+					utmCampaign: "launch_offer",
+					pricingMonthlyPromo: 1,
+					pricingYearlyPromo: 10,
+					iconUrl: null,
+					updated: null,
+				}}
 			/>,
 		);
 

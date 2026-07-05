@@ -28,15 +28,29 @@ export default function AppPagination({ page, total, onChange, className, showSi
 		<Pagination className={className} size='sm'>
 			<Pagination.Content>
 				<Pagination.Item>
-					<Pagination.Previous isDisabled={page <= 1} onPress={() => onChange(page - 1)}><Pagination.PreviousIcon /><span className='sr-only'>Previous</span></Pagination.Previous>
+					<Pagination.Previous isDisabled={page <= 1} onPress={() => onChange(page - 1)}>
+						<Pagination.PreviousIcon />
+						<span className='sr-only'>Previous</span>
+					</Pagination.Previous>
 				</Pagination.Item>
-				{pageItems(page, total).map((item) => item === "ellipsis-start" || item === "ellipsis-end" ? (
-					<Pagination.Item key={item}><Pagination.Ellipsis /></Pagination.Item>
-				) : (
-					<Pagination.Item key={item}><Pagination.Link isActive={item === page} onPress={() => onChange(item)}>{item}</Pagination.Link></Pagination.Item>
-				))}
+				{pageItems(page, total).map((item) =>
+					item === "ellipsis-start" || item === "ellipsis-end" ? (
+						<Pagination.Item key={item}>
+							<Pagination.Ellipsis />
+						</Pagination.Item>
+					) : (
+						<Pagination.Item key={item}>
+							<Pagination.Link isActive={item === page} onPress={() => onChange(item)}>
+								{item}
+							</Pagination.Link>
+						</Pagination.Item>
+					),
+				)}
 				<Pagination.Item>
-					<Pagination.Next isDisabled={page >= total} onPress={() => onChange(page + 1)}><span className='sr-only'>Next</span><Pagination.NextIcon /></Pagination.Next>
+					<Pagination.Next isDisabled={page >= total} onPress={() => onChange(page + 1)}>
+						<span className='sr-only'>Next</span>
+						<Pagination.NextIcon />
+					</Pagination.Next>
 				</Pagination.Item>
 			</Pagination.Content>
 		</Pagination>

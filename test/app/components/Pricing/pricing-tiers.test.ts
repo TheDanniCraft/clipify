@@ -13,4 +13,3 @@ describe("components/Pricing/pricing-tiers", () => {
 		expect(frequencies.map((frequency) => frequency.key)).toEqual(["yearly", "monthly"]);
 	});
 });
-

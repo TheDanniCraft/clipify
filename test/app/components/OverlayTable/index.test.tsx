@@ -62,17 +62,19 @@ jest.mock("@lib/featureAccess", () => ({
 	isReverseTrialActive: () => false,
 }));
 
-jest.mock("@tabler/icons-react", () =>
-	new Proxy(
-		{},
-		{
-			get: () => {
-				const MockIcon = () => <span />;
-				MockIcon.displayName = "MockIcon";
-				return MockIcon;
+jest.mock(
+	"@tabler/icons-react",
+	() =>
+		new Proxy(
+			{},
+			{
+				get: () => {
+					const MockIcon = () => <span />;
+					MockIcon.displayName = "MockIcon";
+					return MockIcon;
+				},
 			},
-		},
-	),
+		),
 );
 
 jest.mock("next/dynamic", () => {
@@ -163,17 +165,12 @@ jest.mock("@heroui/react", () => {
 			Fallback: ({ children }: { children?: React.ReactNode }) => <span>{children}</span>,
 		}),
 		Skeleton: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-		Tabs: Object.assign(
-			({ children, onSelectionChange }: { children: React.ReactNode; onSelectionChange?: (key: string) => void }) => (
-				<div>{ReactLib.Children.map(children, (child) => ReactLib.isValidElement(child) ? ReactLib.cloneElement(child, { onSelectionChange } as Record<string, unknown>) : child)}</div>
-			),
-			{
-				ListContainer: ({ children, onSelectionChange }: { children: React.ReactNode; onSelectionChange?: (key: string) => void }) => <div>{ReactLib.Children.map(children, (child) => ReactLib.isValidElement(child) ? ReactLib.cloneElement(child, { onSelectionChange } as Record<string, unknown>) : child)}</div>,
-				List: ({ children, onSelectionChange }: { children: React.ReactNode; onSelectionChange?: (key: string) => void }) => <div>{ReactLib.Children.map(children, (child) => ReactLib.isValidElement(child) ? ReactLib.cloneElement(child, { onSelectionChange } as Record<string, unknown>) : child)}</div>,
-				Tab: ({ children, id, onSelectionChange }: { children: React.ReactNode; id: string; onSelectionChange?: (key: string) => void }) => <button onClick={() => onSelectionChange?.(id)}>{children}</button>,
-				Indicator: () => null,
-			},
-		),
+		Tabs: Object.assign(({ children, onSelectionChange }: { children: React.ReactNode; onSelectionChange?: (key: string) => void }) => <div>{ReactLib.Children.map(children, (child) => (ReactLib.isValidElement(child) ? ReactLib.cloneElement(child, { onSelectionChange } as Record<string, unknown>) : child))}</div>, {
+			ListContainer: ({ children, onSelectionChange }: { children: React.ReactNode; onSelectionChange?: (key: string) => void }) => <div>{ReactLib.Children.map(children, (child) => (ReactLib.isValidElement(child) ? ReactLib.cloneElement(child, { onSelectionChange } as Record<string, unknown>) : child))}</div>,
+			List: ({ children, onSelectionChange }: { children: React.ReactNode; onSelectionChange?: (key: string) => void }) => <div>{ReactLib.Children.map(children, (child) => (ReactLib.isValidElement(child) ? ReactLib.cloneElement(child, { onSelectionChange } as Record<string, unknown>) : child))}</div>,
+			Tab: ({ children, id, onSelectionChange }: { children: React.ReactNode; id: string; onSelectionChange?: (key: string) => void }) => <button onClick={() => onSelectionChange?.(id)}>{children}</button>,
+			Indicator: () => null,
+		}),
 	};
 });
 

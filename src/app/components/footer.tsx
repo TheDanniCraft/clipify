@@ -305,94 +305,125 @@ export default function Footer() {
 
 					<Card variant='secondary' className='mt-4 mb-10 sm:mt-6 sm:mb-14 lg:mt-8 lg:mb-16'>
 						<Card.Content className='flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between'>
-						<div className='shrink-0'>
-							<h3 className='text-sm text-muted font-semibold'>Subscribe to our newsletter</h3>
-							<p className='text-sm text-muted mt-2'>Receive updates on new features, tips and tricks, or offers straight to your email.</p>
-						</div>
-						<div className='w-full lg:max-w-md'>
-							<Form className='w-full space-y-3' onSubmit={handleNewsletterSubmit}>
-								<motion.div
-									className='relative w-full'
-									animate={{
-										height: isDetailsExpanded ? stepHeights.name : stepHeights.email,
-									}}
-									transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-								>
+							<div className='shrink-0'>
+								<h3 className='text-sm text-muted font-semibold'>Subscribe to our newsletter</h3>
+								<p className='text-sm text-muted mt-2'>Receive updates on new features, tips and tricks, or offers straight to your email.</p>
+							</div>
+							<div className='w-full lg:max-w-md'>
+								<Form className='w-full space-y-3' onSubmit={handleNewsletterSubmit}>
 									<motion.div
-										ref={emailStepRef}
-										className={isDetailsExpanded ? "absolute inset-0 w-full" : "relative w-full"}
+										className='relative w-full'
 										animate={{
-											opacity: isDetailsExpanded ? 0 : 1,
-											y: isDetailsExpanded ? -8 : 0,
-											pointerEvents: isDetailsExpanded ? "none" : "auto",
+											height: isDetailsExpanded ? stepHeights.name : stepHeights.email,
 										}}
-										transition={{ duration: 0.2, ease: "easeOut" }}
+										transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
 									>
-										<TextField fullWidth isRequired type='email' className={newsletterState == "success" ? "text-success" : newsletterState == "error" || newsletterState == "rateLimit" ? "text-danger" : "text-foreground"} name='email' isDisabled={newsletterState === "loading" || newsletterState === "success"}><InputGroup fullWidth variant='secondary'><InputGroup.Prefix>{(() => {
-												switch (newsletterState) {
-													case "loading":
-														return <Spinner />;
-													case "success":
-														return <IconCircleCheckFilled className='text-success' />;
-													default:
-														return <IconMailFilled className='text-muted' />;
-												}
-											})()}</InputGroup.Prefix><InputGroup.Input placeholder='mail@example.com' onChange={() => {
-												setNewsletterState("default");
-											}} /><InputGroup.Suffix>{<Button size='sm' isIconOnly type='submit' isDisabled={emailSubmitDisabled} aria-label='Continue newsletter signup' variant='primary'>
-													<IconSend className='text-white' />
-												</Button>}</InputGroup.Suffix></InputGroup><FieldError /></TextField>
+										<motion.div
+											ref={emailStepRef}
+											className={isDetailsExpanded ? "absolute inset-0 w-full" : "relative w-full"}
+											animate={{
+												opacity: isDetailsExpanded ? 0 : 1,
+												y: isDetailsExpanded ? -8 : 0,
+												pointerEvents: isDetailsExpanded ? "none" : "auto",
+											}}
+											transition={{ duration: 0.2, ease: "easeOut" }}
+										>
+											<TextField fullWidth isRequired type='email' className={newsletterState == "success" ? "text-success" : newsletterState == "error" || newsletterState == "rateLimit" ? "text-danger" : "text-foreground"} name='email' isDisabled={newsletterState === "loading" || newsletterState === "success"}>
+												<InputGroup fullWidth variant='secondary'>
+													<InputGroup.Prefix>
+														{(() => {
+															switch (newsletterState) {
+																case "loading":
+																	return <Spinner />;
+																case "success":
+																	return <IconCircleCheckFilled className='text-success' />;
+																default:
+																	return <IconMailFilled className='text-muted' />;
+															}
+														})()}
+													</InputGroup.Prefix>
+													<InputGroup.Input
+														placeholder='mail@example.com'
+														onChange={() => {
+															setNewsletterState("default");
+														}}
+													/>
+													<InputGroup.Suffix>
+														{
+															<Button size='sm' isIconOnly type='submit' isDisabled={emailSubmitDisabled} aria-label='Continue newsletter signup' variant='primary'>
+																<IconSend className='text-white' />
+															</Button>
+														}
+													</InputGroup.Suffix>
+												</InputGroup>
+												<FieldError />
+											</TextField>
+										</motion.div>
+										<motion.div
+											ref={nameStepRef}
+											className={isDetailsExpanded ? "relative w-full space-y-3" : "absolute inset-0 w-full space-y-3"}
+											animate={{
+												opacity: isDetailsExpanded ? 1 : 0,
+												y: isDetailsExpanded ? 0 : 8,
+												pointerEvents: isDetailsExpanded ? "auto" : "none",
+											}}
+											transition={{ duration: 0.24, ease: "easeOut" }}
+										>
+											<div className='rounded-[8px] border border-default px-3 py-2 text-xs text-muted'>Subscribing as {pendingEmail}</div>
+											<TextField fullWidth>
+												<Label>How should we call you?</Label>
+												<Input fullWidth variant='secondary' placeholder={firstNamePlaceholder} value={firstName} onChange={(event) => setFirstName(event.target.value)} />
+											</TextField>
+											<div className='flex flex-wrap items-center gap-2'>
+												<Button
+													type='button'
+													variant='tertiary'
+													onPress={() => {
+														setIsDetailsExpanded(false);
+														setNewsletterState("default");
+													}}
+													isDisabled={newsletterState === "loading"}
+												>
+													Back
+												</Button>
+												<Button type='button' variant='tertiary' onPress={() => finishSubscribe(false)} isDisabled={detailSubmitDisabled}>
+													Skip
+												</Button>
+												<Button type='submit' isDisabled={detailSubmitDisabled} variant='primary'>
+													Add and subscribe
+												</Button>
+											</div>
+										</motion.div>
 									</motion.div>
-									<motion.div
-										ref={nameStepRef}
-										className={isDetailsExpanded ? "relative w-full space-y-3" : "absolute inset-0 w-full space-y-3"}
-										animate={{
-											opacity: isDetailsExpanded ? 1 : 0,
-											y: isDetailsExpanded ? 0 : 8,
-											pointerEvents: isDetailsExpanded ? "auto" : "none",
-										}}
-										transition={{ duration: 0.24, ease: "easeOut" }}
-									>
-										<div className='rounded-[8px] border border-default px-3 py-2 text-xs text-muted'>Subscribing as {pendingEmail}</div>
-										<TextField fullWidth><Label>How should we call you?</Label><Input fullWidth variant='secondary' placeholder={firstNamePlaceholder} value={firstName} onChange={(event) => setFirstName(event.target.value)} /></TextField>
-										<div className='flex flex-wrap items-center gap-2'>
-											<Button type='button' variant='tertiary' onPress={() => {
-													setIsDetailsExpanded(false);
-													setNewsletterState("default");
-												}} isDisabled={newsletterState === "loading"}>
-												Back
-											</Button>
-											<Button type='button' variant='tertiary' onPress={() => finishSubscribe(false)} isDisabled={detailSubmitDisabled}>
-												Skip
-											</Button>
-											<Button type='submit' isDisabled={detailSubmitDisabled} variant='primary'>
-												Add and subscribe
-											</Button>
-										</div>
-									</motion.div>
-								</motion.div>
-								<div className='pt-1'>
-									<Turnstile siteKey='0x4AAAAAACMFR636JljxhVLl' onSuccess={setToken} onError={(error) => console.error("Turnstile error:", error)} onExpire={() => setToken(null)} />
-								</div>
-								{newsletterState === "loading" && <p className='text-xs text-muted pt-1'>Subscribing...</p>}
-								{newsletterState === "captcha" && <p className='text-xs text-muted pt-1'>Please complete the CAPTCHA first.</p>}
-								{newsletterState === "error" && <p className='text-xs text-danger pt-1'>Could not subscribe right now. Please try again.</p>}
-								{newsletterState === "rateLimit" && <p className='text-xs text-danger pt-1'>Too many attempts. Please wait a moment.</p>}
-							</Form>
-						</div>
+									<div className='pt-1'>
+										<Turnstile siteKey='0x4AAAAAACMFR636JljxhVLl' onSuccess={setToken} onError={(error) => console.error("Turnstile error:", error)} onExpire={() => setToken(null)} />
+									</div>
+									{newsletterState === "loading" && <p className='text-xs text-muted pt-1'>Subscribing...</p>}
+									{newsletterState === "captcha" && <p className='text-xs text-muted pt-1'>Please complete the CAPTCHA first.</p>}
+									{newsletterState === "error" && <p className='text-xs text-danger pt-1'>Could not subscribe right now. Please try again.</p>}
+									{newsletterState === "rateLimit" && <p className='text-xs text-danger pt-1'>Too many attempts. Please wait a moment.</p>}
+								</Form>
+							</div>
 						</Card.Content>
 					</Card>
-						<Modal>
-							<Modal.Backdrop isOpen={isSuccessOpen} onOpenChange={setIsSuccessOpen}>
-								<Modal.Container><Modal.Dialog><Modal.CloseTrigger /><Modal.Body><div className='p-6'>
-									<div className='text-success mt-2 text-center'>
-										<Image unoptimized alt='Tada Icon' src='https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Activities/Party%20Popper.png' width={50} height={50} className='mx-auto' />
-										<p className='text-lg font-bold'>You&apos;re almost there!</p>
-										<p className='text-xs'>We&apos;ve just sent a confirmation email your way. Check your inbox to finish subscribing-and if you don&apos;t see it, be sure to take a quick look in your spam folder too.</p>
-									</div>
-								</div></Modal.Body></Modal.Dialog></Modal.Container>
-							</Modal.Backdrop>
-						</Modal>
+					<Modal>
+						<Modal.Backdrop isOpen={isSuccessOpen} onOpenChange={setIsSuccessOpen}>
+							<Modal.Container>
+								<Modal.Dialog>
+									<Modal.CloseTrigger />
+									<Modal.Body>
+										<div className='p-6'>
+											<div className='text-success mt-2 text-center'>
+												<Image unoptimized alt='Tada Icon' src='https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Activities/Party%20Popper.png' width={50} height={50} className='mx-auto' />
+												<p className='text-lg font-bold'>You&apos;re almost there!</p>
+												<p className='text-xs'>We&apos;ve just sent a confirmation email your way. Check your inbox to finish subscribing-and if you don&apos;t see it, be sure to take a quick look in your spam folder too.</p>
+											</div>
+										</div>
+									</Modal.Body>
+								</Modal.Dialog>
+							</Modal.Container>
+						</Modal.Backdrop>
+					</Modal>
 
 					<div className='flex flex-wrap justify-between gap-2 pt-8'>
 						<div>
@@ -408,10 +439,18 @@ export default function Footer() {
 						</div>
 
 						<Tabs className='w-fit' onSelectionChange={(key) => setTheme(String(key))} selectedKey={theme ?? "dark"}>
-							<Tabs.ListContainer className='w-fit'><Tabs.List aria-label='Color theme' className='w-fit *:w-fit'>
-								<Tabs.Tab id='dark' className='flex-none' aria-label='Switch to dark theme'><IconMoonFilled /><Tabs.Indicator /></Tabs.Tab>
-								<Tabs.Tab id='light' className='flex-none' aria-label='Switch to light theme'><IconSunFilled /><Tabs.Indicator /></Tabs.Tab>
-							</Tabs.List></Tabs.ListContainer>
+							<Tabs.ListContainer className='w-fit'>
+								<Tabs.List aria-label='Color theme' className='w-fit *:w-fit'>
+									<Tabs.Tab id='dark' className='flex-none' aria-label='Switch to dark theme'>
+										<IconMoonFilled />
+										<Tabs.Indicator />
+									</Tabs.Tab>
+									<Tabs.Tab id='light' className='flex-none' aria-label='Switch to light theme'>
+										<IconSunFilled />
+										<Tabs.Indicator />
+									</Tabs.Tab>
+								</Tabs.List>
+							</Tabs.ListContainer>
 						</Tabs>
 					</div>
 				</div>

@@ -250,19 +250,12 @@ export async function getInstanceHealthSnapshot(): Promise<InstanceHealthSnapsho
 
 	const [playlistsTotal, playlistClipRows, nonEmptyPlaylistsRows, overlaysWithPlaylistRows, activeOverlaysWithPlaylistRows] = await Promise.all([
 		countRows(playlistsTable),
-		db
-			.select({ count: count() })
-			.from(playlistClipsTable)
-			.execute(),
+		db.select({ count: count() }).from(playlistClipsTable).execute(),
 		db
 			.select({ count: countDistinct(playlistClipsTable.playlistId) })
 			.from(playlistClipsTable)
 			.execute(),
-		db
-			.select({ count: count() })
-			.from(overlaysTable)
-			.where(isNotNull(overlaysTable.playlistId))
-			.execute(),
+		db.select({ count: count() }).from(overlaysTable).where(isNotNull(overlaysTable.playlistId)).execute(),
 		db
 			.select({ count: count() })
 			.from(overlaysTable)
@@ -277,11 +270,7 @@ export async function getInstanceHealthSnapshot(): Promise<InstanceHealthSnapsho
 	const avgClipsPerPlaylist = playlistsTotal > 0 ? playlistClipCount / playlistsTotal : 0;
 
 	const [overlaysWithRewardRows, activeOverlaysWithRewardRows, uniqueRewardIdsRows, ownersWithRewardRows, overlaysByTypeRows, overlaysByPlaybackModeRows] = await Promise.all([
-		db
-			.select({ count: count() })
-			.from(overlaysTable)
-			.where(isNotNull(overlaysTable.rewardId))
-			.execute(),
+		db.select({ count: count() }).from(overlaysTable).where(isNotNull(overlaysTable.rewardId)).execute(),
 		db
 			.select({ count: count() })
 			.from(overlaysTable)
@@ -325,25 +314,10 @@ export async function getInstanceHealthSnapshot(): Promise<InstanceHealthSnapsho
 	}, {});
 
 	const [settingsRows, optedInRows, optedOutRows, communityOptedInRows, newsletterConsentSourceRows, optedOutSourceRows] = await Promise.all([
-		db
-			.select({ count: count() })
-			.from(settingsTable)
-			.execute(),
-		db
-			.select({ count: count() })
-			.from(settingsTable)
-			.where(eq(settingsTable.marketingOptIn, true))
-			.execute(),
-		db
-			.select({ count: count() })
-			.from(settingsTable)
-			.where(eq(settingsTable.marketingOptIn, false))
-			.execute(),
-		db
-			.select({ count: count() })
-			.from(settingsTable)
-			.where(eq(settingsTable.showOnCommunityPage, true))
-			.execute(),
+		db.select({ count: count() }).from(settingsTable).execute(),
+		db.select({ count: count() }).from(settingsTable).where(eq(settingsTable.marketingOptIn, true)).execute(),
+		db.select({ count: count() }).from(settingsTable).where(eq(settingsTable.marketingOptIn, false)).execute(),
+		db.select({ count: count() }).from(settingsTable).where(eq(settingsTable.showOnCommunityPage, true)).execute(),
 		db
 			.select({
 				source: settingsTable.marketingOptInSource,
@@ -374,27 +348,11 @@ export async function getInstanceHealthSnapshot(): Promise<InstanceHealthSnapsho
 	const communityOptedOutUsers = Math.max(0, usersTotal - communityOptedInUsers);
 	const communityOptInRate = usersTotal > 0 ? communityOptedInUsers / usersTotal : 0;
 
-	const [clipQueueRows, modQueueRows] = await Promise.all([
-		db
-			.select({ count: count() })
-			.from(queueTable)
-			.execute(),
-		db
-			.select({ count: count() })
-			.from(modQueueTable)
-			.execute(),
-	]);
+	const [clipQueueRows, modQueueRows] = await Promise.all([db.select({ count: count() }).from(queueTable).execute(), db.select({ count: count() }).from(modQueueTable).execute()]);
 
 	const [tokenRows, expiredTokensRows, expiringIn24hRows] = await Promise.all([
-		db
-			.select({ count: count() })
-			.from(tokenTable)
-			.execute(),
-		db
-			.select({ count: count() })
-			.from(tokenTable)
-			.where(lt(tokenTable.expiresAt, now))
-			.execute(),
+		db.select({ count: count() }).from(tokenTable).execute(),
+		db.select({ count: count() }).from(tokenTable).where(lt(tokenTable.expiresAt, now)).execute(),
 		db
 			.select({ count: count() })
 			.from(tokenTable)

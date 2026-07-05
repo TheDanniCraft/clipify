@@ -345,12 +345,8 @@ export default function ControllerClient({ overlayId, controllerToken }: { overl
 										<IconLayoutSidebarRightExpand size={12} />
 										{playback.showPlayer ? "Visible" : "Hidden"}
 									</Chip>
-									<Chip size='sm'>
-										{queueTotal} queued
-									</Chip>
-									<Chip size='sm'>
-										{upcomingCount} preloaded
-									</Chip>
+									<Chip size='sm'>{queueTotal} queued</Chip>
+									<Chip size='sm'>{upcomingCount} preloaded</Chip>
 								</div>
 							</div>
 						</div>
@@ -359,7 +355,11 @@ export default function ControllerClient({ overlayId, controllerToken }: { overl
 								<span>{formatDuration(syncedCurrentTime)}</span>
 								<span>{formatDuration(nowPlaying?.duration ?? 0)}</span>
 							</div>
-							<ProgressBar className='mt-3' value={Math.round(progressRatio * 100)} size='sm' color='accent' aria-label='Header playback progress'><ProgressBar.Track><ProgressBar.Fill /></ProgressBar.Track></ProgressBar>
+							<ProgressBar className='mt-3' value={Math.round(progressRatio * 100)} size='sm' color='accent' aria-label='Header playback progress'>
+								<ProgressBar.Track>
+									<ProgressBar.Fill />
+								</ProgressBar.Track>
+							</ProgressBar>
 							{controllerHealth === "disconnected" ? <p className='mt-3 text-xs font-medium text-danger'>Disconnected stream. No live heartbeat from the overlay player.</p> : null}
 							{controllerHealth === "player_missing" ? <p className='mt-3 text-xs font-medium text-warning'>Connected, but no running player is publishing state.</p> : null}
 						</div>
@@ -376,7 +376,11 @@ export default function ControllerClient({ overlayId, controllerToken }: { overl
 											<span>{formatDuration(syncedCurrentTime)}</span>
 											<span>{formatDuration(nowPlaying?.duration ?? 0)}</span>
 										</div>
-										<ProgressBar className='mt-3' value={Math.round(progressRatio * 100)} size='sm' color='accent' aria-label='Playback progress'><ProgressBar.Track><ProgressBar.Fill /></ProgressBar.Track></ProgressBar>
+										<ProgressBar className='mt-3' value={Math.round(progressRatio * 100)} size='sm' color='accent' aria-label='Playback progress'>
+											<ProgressBar.Track>
+												<ProgressBar.Fill />
+											</ProgressBar.Track>
+										</ProgressBar>
 										<div className='mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center'>
 											<div>
 												<div className='truncate text-sm font-semibold text-foreground'>{nowPlaying?.title ?? "No active clip"}</div>
@@ -389,7 +393,10 @@ export default function ControllerClient({ overlayId, controllerToken }: { overl
 												<Button isIconOnly variant='secondary' onPress={() => sendCommand(playback.showPlayer ? "hide" : "show")} isDisabled={interactiveControlsDisabled}>
 													{playback.showPlayer ? <IconEyeOff size={18} /> : <IconEye size={18} />}
 												</Button>
-												<Button isIconOnly variant='secondary' onPress={async () => {
+												<Button
+													isIconOnly
+													variant='secondary'
+													onPress={async () => {
 														if (controlsDisabled) return;
 														if (playback.muted) {
 															if ((playback.volume ?? 0) <= 0) {
@@ -399,7 +406,9 @@ export default function ControllerClient({ overlayId, controllerToken }: { overl
 															return;
 														}
 														sendCommand("mute");
-													}} isDisabled={interactiveControlsDisabled}>
+													}}
+													isDisabled={interactiveControlsDisabled}
+												>
 													{playback.muted ? <IconVolumeOff size={18} className='text-danger' /> : <IconVolume size={18} />}
 												</Button>
 												<Button isIconOnly variant='primary' onPress={() => sendCommand(playback.paused ? "play" : "pause")} isDisabled={interactiveControlsDisabled}>
@@ -455,7 +464,9 @@ export default function ControllerClient({ overlayId, controllerToken }: { overl
 										</Button>
 									</div>
 									<div className='mt-4 flex flex-col gap-3 sm:flex-row'>
-										<TextField type='url' className='flex-1' isDisabled={interactiveControlsDisabled || isSubmittingModClip}><Input value={modClipUrl} onChange={(event) => setModClipUrl(event.target.value)} aria-label='Mod queue clip URL' placeholder='https://clips.twitch.tv/...' className='rounded-full' /></TextField>
+										<TextField type='url' className='flex-1' isDisabled={interactiveControlsDisabled || isSubmittingModClip}>
+											<Input value={modClipUrl} onChange={(event) => setModClipUrl(event.target.value)} aria-label='Mod queue clip URL' placeholder='https://clips.twitch.tv/...' className='rounded-full' />
+										</TextField>
 										<Button className='h-11 px-5 font-semibold rounded-full' onPress={() => void submitModClip()} isDisabled={interactiveControlsDisabled || isSubmittingModClip || modClipUrl.trim().length === 0} variant='primary'>
 											Add clip
 										</Button>
@@ -499,15 +510,15 @@ export default function ControllerClient({ overlayId, controllerToken }: { overl
 								<div className='grid gap-1'>{viewerQueue.length > 0 ? viewerQueue.slice(0, 6).map((clip, idx) => <QueueRow key={`viewer-${clip.clipId}-${idx}`} clip={clip} />) : <div className='rounded-2xl bg-surface px-4 py-6 text-center text-sm text-muted'>No viewer clips queued.</div>}</div>
 							</div>
 							<div className='mt-3 flex flex-wrap justify-end gap-2 px-2'>
-									<Button size='sm' variant='secondary' onPress={() => void executeControllerAction("clear_mod_queue")} isDisabled={interactiveControlsDisabled}>
-										Clear mods
-									</Button>
-									<Button size='sm' variant='secondary' onPress={() => void executeControllerAction("clear_viewer_queue")} isDisabled={interactiveControlsDisabled}>
-										Clear viewers
-									</Button>
-									<Button size='sm' variant='danger' className='rounded-full' onPress={() => void executeControllerAction("clear_all_queues")} isDisabled={interactiveControlsDisabled}>
-										Clear all
-									</Button>
+								<Button size='sm' variant='secondary' onPress={() => void executeControllerAction("clear_mod_queue")} isDisabled={interactiveControlsDisabled}>
+									Clear mods
+								</Button>
+								<Button size='sm' variant='secondary' onPress={() => void executeControllerAction("clear_viewer_queue")} isDisabled={interactiveControlsDisabled}>
+									Clear viewers
+								</Button>
+								<Button size='sm' variant='danger' className='rounded-full' onPress={() => void executeControllerAction("clear_all_queues")} isDisabled={interactiveControlsDisabled}>
+									Clear all
+								</Button>
 							</div>
 						</div>
 					</Surface>

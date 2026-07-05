@@ -5,7 +5,11 @@ import { RoadmapItem } from "@/app/components/roadmap/roadmapItem";
 
 jest.mock("@heroui/react", () => ({
 	Card: ({ children, className }: { children: React.ReactNode; className?: string }) => <div className={className}>{children}</div>,
-	Chip: ({ children, className }: { children: React.ReactNode; className?: string }) => <span data-testid='status-chip' className={className}>{children}</span>,
+	Chip: ({ children, className }: { children: React.ReactNode; className?: string }) => (
+		<span data-testid='status-chip' className={className}>
+			{children}
+		</span>
+	),
 }));
 
 jest.mock("@tabler/icons-react", () => ({

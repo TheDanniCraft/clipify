@@ -45,8 +45,6 @@ describe("lib/tokenCrypto", () => {
 
 		process.env.DB_SECRET_KEY = Buffer.alloc(16, 1).toString("base64");
 		const wrongLength = await loadCrypto();
-		expect(() => wrongLength.encryptToken("x", "aad")).toThrow(
-			"DB_SECRET_KEY must be base64 for exactly 32 bytes (AES-256 key)",
-		);
+		expect(() => wrongLength.encryptToken("x", "aad")).toThrow("DB_SECRET_KEY must be base64 for exactly 32 bytes (AES-256 key)");
 	});
 });

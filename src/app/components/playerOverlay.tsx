@@ -1,27 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 
-export default function PlayerOverlay({
-	children,
-	top,
-	bottom,
-	left,
-	right,
-	scale,
-	fadeOutSeconds,
-	className,
-	style,
-}: {
-	children: React.ReactNode;
-	top?: string;
-	bottom?: string;
-	left?: string;
-	right?: string;
-	scale?: number;
-	fadeOutSeconds?: number;
-	className?: string;
-	style?: React.CSSProperties;
-}) {
+export default function PlayerOverlay({ children, top, bottom, left, right, scale, fadeOutSeconds, className, style }: { children: React.ReactNode; top?: string; bottom?: string; left?: string; right?: string; scale?: number; fadeOutSeconds?: number; className?: string; style?: React.CSSProperties }) {
 	const [show, setShow] = useState(false);
 
 	useEffect(() => {

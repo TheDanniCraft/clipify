@@ -222,12 +222,12 @@ describe("lib/campaignOffers selectActiveCampaignOffer", () => {
 			.mockResolvedValueOnce({
 				ok: false,
 				status: 400,
-				text: async () => 'Bad filter',
+				text: async () => "Bad filter",
 			})
 			.mockResolvedValueOnce({
 				ok: false,
 				status: 400,
-				text: async () => 'Bad sort',
+				text: async () => "Bad sort",
 			})
 			.mockResolvedValueOnce({
 				ok: true,
@@ -261,11 +261,7 @@ describe("lib/campaignOffers selectActiveCampaignOffer", () => {
 		getPocketBaseAuthToken.mockResolvedValue("pb-token");
 		const fetchMock = jest.fn().mockResolvedValue({
 			ok: true,
-			json: async () =>
-				makeListResponse([
-					makeRecord({ id: "broken-top", priority: 10, ctaHref: undefined }),
-					makeRecord({ id: "valid-fallback", priority: 5, slug: "fallback-offer" }),
-				]),
+			json: async () => makeListResponse([makeRecord({ id: "broken-top", priority: 10, ctaHref: undefined }), makeRecord({ id: "valid-fallback", priority: 5, slug: "fallback-offer" })]),
 		});
 		(global as typeof global & { fetch: typeof fetch }).fetch = fetchMock as unknown as typeof fetch;
 
@@ -342,12 +338,8 @@ describe("lib/campaignOffers selectActiveCampaignOffer", () => {
 
 		const mod = await loadCampaignOffersModule();
 		await expect(mod.getActiveCampaignOffer()).resolves.toBeNull();
-		expect(consoleWarn).toHaveBeenCalledWith(
-			"[campaign_offers] failed to load records",
-			expect.objectContaining({ error: "network down" }),
-		);
+		expect(consoleWarn).toHaveBeenCalledWith("[campaign_offers] failed to load records", expect.objectContaining({ error: "network down" }));
 
 		consoleWarn.mockRestore();
 	});
 });
-

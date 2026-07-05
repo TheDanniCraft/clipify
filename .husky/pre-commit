@@ -1,2 +1,2 @@
-bun run app:lint
+bun run git:staged
 bun run app:typecheck

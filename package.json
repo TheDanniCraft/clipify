@@ -10,6 +10,8 @@
 		"app:check-action-manifest": "node scripts/check-server-action-manifest.mjs",
 		"app:start": "next start",
 		"app:lint": "eslint .",
+		"app:prettier": "prettier --write .",
+		"git:staged": "lint-staged",
 		"app:typecheck": "tsc --noEmit",
 		"test": "jest --runInBand",
 		"test:watch": "jest --watch",
@@ -69,11 +71,22 @@
 		"husky": "^9.1.7",
 		"jest": "^30.4.2",
 		"jest-environment-jsdom": "^30.4.1",
+		"lint-staged": "^17.0.8",
+		"prettier": "^3.9.4",
 		"tailwindcss": "^4.3.2",
 		"tsx": "^4.23.0",
 		"typescript": "^6.0.3"
 	},
 	"patchedDependencies": {
 		"next@16.1.6": "patches/next@16.1.6.patch"
+	},
+	"lint-staged": {
+		"*.{ts,tsx,js,jsx}": [
+			"eslint --fix",
+			"prettier --write"
+		],
+		"*.{json,css,md}": [
+			"prettier --write"
+		]
 	}
 }

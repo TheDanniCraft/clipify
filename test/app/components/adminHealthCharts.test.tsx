@@ -12,16 +12,28 @@ jest.mock("@heroui/react", () => ({
 
 jest.mock("recharts", () => ({
 	ResponsiveContainer: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-	BarChart: ({ children, width }: { children: React.ReactNode; width?: number }) => <div data-testid='bar-chart' data-width={String(width ?? "")}>{children}</div>,
+	BarChart: ({ children, width }: { children: React.ReactNode; width?: number }) => (
+		<div data-testid='bar-chart' data-width={String(width ?? "")}>
+			{children}
+		</div>
+	),
 	Bar: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
 	Cell: () => null,
 	CartesianGrid: () => null,
 	XAxis: () => null,
 	YAxis: () => null,
 	Tooltip: () => null,
-	PieChart: ({ children, width }: { children: React.ReactNode; width?: number }) => <div data-testid='pie-chart' data-width={String(width ?? "")}>{children}</div>,
+	PieChart: ({ children, width }: { children: React.ReactNode; width?: number }) => (
+		<div data-testid='pie-chart' data-width={String(width ?? "")}>
+			{children}
+		</div>
+	),
 	Pie: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
-	RadialBarChart: ({ children, width }: { children: React.ReactNode; width?: number }) => <div data-testid='radial-chart' data-width={String(width ?? "")}>{children}</div>,
+	RadialBarChart: ({ children, width }: { children: React.ReactNode; width?: number }) => (
+		<div data-testid='radial-chart' data-width={String(width ?? "")}>
+			{children}
+		</div>
+	),
 	PolarAngleAxis: () => null,
 	RadialBar: () => null,
 }));

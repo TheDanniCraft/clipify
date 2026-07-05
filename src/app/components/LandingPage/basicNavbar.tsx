@@ -48,11 +48,7 @@ const BasicNavbar = React.forwardRef<HTMLElement, BasicNavbarProps>(({ className
 	}, [isMenuOpen]);
 
 	return (
-		<nav
-			ref={ref}
-			{...props}
-			className={cn("sticky top-0 z-40 w-full bg-background/40 backdrop-blur-lg backdrop-saturate-150 transition-transform duration-300", isMenuOpen && "bg-background/70", isHidden && "-translate-y-full", classNames.base, className)}
-		>
+		<nav ref={ref} {...props} className={cn("sticky top-0 z-40 w-full bg-background/40 backdrop-blur-lg backdrop-saturate-150 transition-transform duration-300", isMenuOpen && "bg-background/70", isHidden && "-translate-y-full", classNames.base, className)}>
 			<header className={cn("mx-auto flex h-[60px] w-full max-w-[1024px] items-center justify-between px-8", classNames.wrapper)}>
 				<Link href='/' className='flex items-center'>
 					<Logo size={34} />
@@ -62,7 +58,9 @@ const BasicNavbar = React.forwardRef<HTMLElement, BasicNavbarProps>(({ className
 				<ul className='hidden items-center justify-center gap-4 md:flex'>
 					{menuItems.map((item) => (
 						<li className={cn("text-white", classNames.item)} key={item.href}>
-							<Link className='text-sm font-bold text-white' href={item.href}>{item.name}</Link>
+							<Link className='text-sm font-bold text-white' href={item.href}>
+								{item.name}
+							</Link>
 						</li>
 					))}
 				</ul>
@@ -85,11 +83,21 @@ const BasicNavbar = React.forwardRef<HTMLElement, BasicNavbarProps>(({ className
 			{isMenuOpen ? (
 				<div className='max-h-fit bg-default/50 pb-6 pt-6 shadow-medium backdrop-blur-md backdrop-saturate-150 dark:bg-surface-secondary/50 md:hidden'>
 					<ul className='flex flex-col gap-2 px-4'>
-						<li><Link href='/login' onPress={() => setIsMenuOpen(false)} className={buttonVariants({ variant: "secondary", fullWidth: true })}>Sign In</Link></li>
-						<li className='mb-4'><Link href='/login' onPress={() => setIsMenuOpen(false)} className={buttonVariants({ variant: "primary", fullWidth: true, className: "bg-accent-foreground text-black hover:bg-accent-foreground/90" })}>Get Started</Link></li>
+						<li>
+							<Link href='/login' onPress={() => setIsMenuOpen(false)} className={buttonVariants({ variant: "secondary", fullWidth: true })}>
+								Sign In
+							</Link>
+						</li>
+						<li className='mb-4'>
+							<Link href='/login' onPress={() => setIsMenuOpen(false)} className={buttonVariants({ variant: "primary", fullWidth: true, className: "bg-accent-foreground text-black hover:bg-accent-foreground/90" })}>
+								Get Started
+							</Link>
+						</li>
 						{menuItems.map((item, index) => (
 							<li key={item.href}>
-								<Link className='mb-2 w-full text-base text-white' href={item.href} onPress={() => setIsMenuOpen(false)}>{item.name}</Link>
+								<Link className='mb-2 w-full text-base text-white' href={item.href} onPress={() => setIsMenuOpen(false)}>
+									{item.name}
+								</Link>
 								{index < menuItems.length - 1 ? <Separator className='opacity-50' /> : null}
 							</li>
 						))}

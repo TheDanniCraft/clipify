@@ -115,16 +115,8 @@ describe("actions/feedbackWidget", () => {
 				html_url: "https://feedback.clipify.us/posts/42/ui-polish",
 			}),
 		);
-		expect(axiosPost).toHaveBeenCalledWith(
-			"https://feedback.clipify.us/api/v1/posts/42/tags/feedback",
-			{},
-			expect.any(Object),
-		);
-		expect(axiosPost).toHaveBeenCalledWith(
-			"https://feedback.clipify.us/api/v1/posts/42/tags/excellent",
-			{},
-			expect.any(Object),
-		);
+		expect(axiosPost).toHaveBeenCalledWith("https://feedback.clipify.us/api/v1/posts/42/tags/feedback", {}, expect.any(Object));
+		expect(axiosPost).toHaveBeenCalledWith("https://feedback.clipify.us/api/v1/posts/42/tags/excellent", {}, expect.any(Object));
 	});
 
 	it("maps feedback service errors to stable error messages", async () => {

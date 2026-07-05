@@ -44,15 +44,7 @@ describe("components/adminUserExplorer", () => {
 	});
 
 	it("initializes search input from server-provided query", () => {
-		render(
-			<AdminUserExplorer
-				users={[]}
-				initialPage={2}
-				initialTotalPages={3}
-				initialTotalRows={60}
-				initialQuery='alice'
-			/>,
-		);
+		render(<AdminUserExplorer users={[]} initialPage={2} initialTotalPages={3} initialTotalRows={60} initialQuery='alice' />);
 
 		expect(screen.getByRole("textbox")).toHaveValue("alice");
 		expect(screen.getByText("Page 2 / 3")).toBeInTheDocument();

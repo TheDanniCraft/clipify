@@ -461,11 +461,7 @@ describe("components/overlayPlayer", () => {
 	});
 
 	it("uses sequential candidates in order mode and falls back when first clip is not playable", async () => {
-		const ordered = [
-			buildClip("order-1", { title: "order-title-1", view_count: 300 }),
-			buildClip("order-2", { title: "order-title-2", view_count: 200 }),
-			buildClip("order-3", { title: "order-title-3", view_count: 100 }),
-		];
+		const ordered = [buildClip("order-1", { title: "order-title-1", view_count: 300 }), buildClip("order-2", { title: "order-title-2", view_count: 200 }), buildClip("order-3", { title: "order-title-3", view_count: 100 })];
 		getTwitchClipBatch.mockResolvedValue(ordered);
 		resolvePlayableClip.mockImplementation(async (_ownerId: string, clip: { id?: string }) => {
 			if (clip.id === "order-1") return null;

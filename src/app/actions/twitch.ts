@@ -77,7 +77,7 @@ function toClipCacheKey(ownerId: string, clipId: string) {
 }
 
 function parseCachedClipValue(value: CachedClipValue | TwitchClip | null | undefined): TwitchClip | null {
-/* istanbul ignore next */
+	/* istanbul ignore next */
 	if (!value || typeof value !== "object") return null;
 	if ("clip" in value && value.clip) return value.clip;
 	if ("id" in value && typeof value.id === "string") return value as TwitchClip;
@@ -92,7 +92,11 @@ function buildGameSearchQueries(query: string): string[] {
 	const base = query.trim();
 	const normalized = normalizeGameSearchText(base);
 	const spaced = base.toLowerCase().replace(/[-_]+/g, " ").replace(/\s+/g, " ").trim();
-	const compact = base.toLowerCase().replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+	const compact = base
+		.toLowerCase()
+		.replace(/[^a-z0-9]+/g, " ")
+		.replace(/\s+/g, " ")
+		.trim();
 	const fallbackPrefix = normalized.length > 5 ? normalized.slice(0, 6) : "";
 
 	return Array.from(new Set([base, spaced, compact, normalized, fallbackPrefix].filter((entry) => entry.length >= 2)));
@@ -131,23 +135,23 @@ function getRateLimitResumeAt(error: unknown, nowMs: number): string | null {
 	const retryAfterRaw = error.response?.headers?.["retry-after"];
 	const resetRaw = error.response?.headers?.["ratelimit-reset"];
 
-/* istanbul ignore next */
+	/* istanbul ignore next */
 	const retryAfterSeconds = Number.parseInt(Array.isArray(retryAfterRaw) ? retryAfterRaw[0] : (retryAfterRaw ?? "").toString(), 10);
-/* istanbul ignore next */
+	/* istanbul ignore next */
 	if (Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0) {
 		return new Date(nowMs + retryAfterSeconds * 1000).toISOString();
 	}
 
-/* istanbul ignore next */
+	/* istanbul ignore next */
 	const resetSeconds = Number.parseInt(Array.isArray(resetRaw) ? resetRaw[0] : (resetRaw ?? "").toString(), 10);
-/* istanbul ignore next */
+	/* istanbul ignore next */
 	if (Number.isFinite(resetSeconds) && resetSeconds > 0) {
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		return new Date(resetSeconds * 1000).toISOString();
 	}
 
 	// Fallback: back off one minute when Twitch does not provide explicit headers.
-/* istanbul ignore next */
+	/* istanbul ignore next */
 	return new Date(nowMs + 60_000).toISOString();
 }
 
@@ -174,13 +178,7 @@ function logClipDownloadRateLimitExhausted(entry: ClipDownloadAttemptLog) {
 	console.warn("Twitch clip download rate limit exhausted", entry);
 }
 
-function buildClipDownloadRateLimitLog(
-	clipId: string,
-	creatorId: string,
-	timestamp: string,
-	headers?: Record<string, unknown>,
-	status?: number,
-): ClipDownloadAttemptLog {
+function buildClipDownloadRateLimitLog(clipId: string, creatorId: string, timestamp: string, headers?: Record<string, unknown>, status?: number): ClipDownloadAttemptLog {
 	return {
 		endpoint: "helix/clips/downloads",
 		clipId,
@@ -289,9 +287,7 @@ export async function getTwitchClipPlaybackUrl(clipId: string, broadcasterId: st
 		if (axios.isAxiosError(error)) {
 			const headers = (error.response?.headers ?? undefined) as Record<string, unknown> | undefined;
 			if (shouldLogClipDownloadRateLimit(headers, error.response?.status)) {
-				logClipDownloadRateLimitExhausted(
-					buildClipDownloadRateLimitLog(clipId, broadcasterId, timestamp, headers, error.response?.status),
-				);
+				logClipDownloadRateLimitExhausted(buildClipDownloadRateLimitLog(clipId, broadcasterId, timestamp, headers, error.response?.status));
 			}
 		}
 	}
@@ -301,7 +297,7 @@ export async function getTwitchClipPlaybackUrl(clipId: string, broadcasterId: st
 
 async function getClipSyncState(ownerId: string): Promise<ClipSyncState> {
 	const state = await getTwitchCache<ClipSyncState>(TwitchCacheType.Clip, CLIP_SYNC_STATE_KEY(ownerId));
-/* istanbul ignore next */
+	/* istanbul ignore next */
 	return state ?? {};
 }
 
@@ -311,7 +307,7 @@ async function setClipSyncState(ownerId: string, state: ClipSyncState) {
 
 async function getClipForceRefreshState(ownerId: string): Promise<ClipForceRefreshState> {
 	const state = await getTwitchCache<ClipForceRefreshState>(TwitchCacheType.Clip, CLIP_FORCE_REFRESH_KEY(ownerId));
-/* istanbul ignore next */
+	/* istanbul ignore next */
 	return state ?? {};
 }
 
@@ -328,7 +324,7 @@ export async function getCachedClipsByOwner(ownerId: string, limit?: number): Pr
 		const value = entry.value as CachedClipValue | TwitchClip;
 		if ((value as CachedClipValue).unavailable) {
 			const lastValidatedAt = (value as CachedClipValue).lastValidatedAt;
-/* istanbul ignore next */
+			/* istanbul ignore next */
 			const parsed = lastValidatedAt ? Date.parse(lastValidatedAt) : Number.NaN;
 			const stale = !Number.isFinite(parsed) || Date.now() - parsed >= CLIP_VALIDATION_STALE_MS;
 			if (!stale) continue;
@@ -337,7 +333,7 @@ export async function getCachedClipsByOwner(ownerId: string, limit?: number): Pr
 		if (!clip?.id) continue;
 		if (deduped.has(clip.id)) continue;
 		deduped.set(clip.id, clip);
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		if (boundedLimit && deduped.size >= boundedLimit) break;
 	}
 	return Array.from(deduped.values());
@@ -345,7 +341,7 @@ export async function getCachedClipsByOwner(ownerId: string, limit?: number): Pr
 
 async function internalSearchTwitchGames(query: string, authUserId: string): Promise<Game[]> {
 	const token = await getAccessToken(authUserId);
-/* istanbul ignore next */
+	/* istanbul ignore next */
 	if (!token) return [];
 
 	try {
@@ -355,7 +351,7 @@ async function internalSearchTwitchGames(query: string, authUserId: string): Pro
 				axios.get<TwitchApiResponse<Game>>("https://api.twitch.tv/helix/search/categories", {
 					headers: {
 						Authorization: `Bearer ${token.accessToken}`,
-/* istanbul ignore next */
+						/* istanbul ignore next */
 						"Client-Id": process.env.TWITCH_CLIENT_ID || "",
 					},
 					params: { query: searchQuery, first: 100 },
@@ -365,7 +361,7 @@ async function internalSearchTwitchGames(query: string, authUserId: string): Pro
 		const exactResponse = await axios.get<TwitchApiResponse<Game>>("https://api.twitch.tv/helix/games", {
 			headers: {
 				Authorization: `Bearer ${token.accessToken}`,
-/* istanbul ignore next */
+				/* istanbul ignore next */
 				"Client-Id": process.env.TWITCH_CLIENT_ID || "",
 			},
 			params: { name: query },
@@ -387,7 +383,7 @@ async function internalSearchTwitchGames(query: string, authUserId: string): Pro
 			.slice(0, 100);
 
 		const CACHE_TTL_SECONDS = 60 * 60 * 24 * 30; // 30 days
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		if (games.length > 0) {
 			await setTwitchCacheBatch(
 				TwitchCacheType.Game,
@@ -401,16 +397,16 @@ async function internalSearchTwitchGames(query: string, authUserId: string): Pro
 
 		return games;
 	} catch (error) {
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		logTwitchError("Error searching Twitch games", error);
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		return [];
 	}
 }
 
 export async function getTwitchGames(query: string, authUserId: string): Promise<Game[]> {
 	const normalizedQuery = query.trim().toLowerCase();
-/* istanbul ignore next */
+	/* istanbul ignore next */
 	if (!normalizedQuery) return [];
 
 	const entry = await getTwitchCacheEntry<Game[]>(TwitchCacheType.GameQuery, normalizedQuery);
@@ -418,27 +414,27 @@ export async function getTwitchGames(query: string, authUserId: string): Promise
 	const FRESH_THRESHOLD_MS = 1000 * 60 * 1; // 1 minute
 	const STALE_THRESHOLD_MS = 1000 * 60 * 60 * 24; // 24 hours
 
-/* istanbul ignore next */
+	/* istanbul ignore next */
 	if (entry.hit && entry.value && entry.fetchedAt) {
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		const ageMs = Date.now() - entry.fetchedAt.getTime();
 
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		if (ageMs < FRESH_THRESHOLD_MS) {
 			// Very fresh - return immediately
-/* istanbul ignore next */
+			/* istanbul ignore next */
 			return entry.value;
 		}
 
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		if (ageMs < STALE_THRESHOLD_MS) {
 			// Stale but usable - return immediately and refresh in background for next time
-/* istanbul ignore next */
+			/* istanbul ignore next */
 			internalSearchTwitchGames(query, authUserId).catch((err) => {
-/* istanbul ignore next */
+				/* istanbul ignore next */
 				console.error("Background Twitch game search refresh failed:", err);
 			});
-/* istanbul ignore next */
+			/* istanbul ignore next */
 			return entry.value;
 		}
 		// Too old - fall through to foreground fetch
@@ -463,14 +459,14 @@ export async function resolvePlayableClip(ownerId: string, clip: TwitchClip): Pr
 	const key = toClipCacheKey(ownerId, clip.id);
 	const cached = await getTwitchCache<CachedClipValue | TwitchClip>(TwitchCacheType.Clip, key);
 	const nowIso = new Date().toISOString();
-/* istanbul ignore next */
+	/* istanbul ignore next */
 	const cachedValue = cached && typeof cached === "object" ? (cached as CachedClipValue | TwitchClip) : null;
 	const cachedClip = parseCachedClipValue(cachedValue);
 	const isStaleValidation = (lastValidatedAt?: string): boolean => {
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		if (!lastValidatedAt) return true;
 		const timestamp = Date.parse(lastValidatedAt);
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		if (!Number.isFinite(timestamp)) return true;
 		return Date.now() - timestamp >= CLIP_VALIDATION_STALE_MS;
 	};
@@ -478,11 +474,11 @@ export async function resolvePlayableClip(ownerId: string, clip: TwitchClip): Pr
 	if (cachedValue && "unavailable" in cachedValue && (cachedValue as CachedClipValue).unavailable) {
 		const lastValidatedAt = (cachedValue as CachedClipValue).lastValidatedAt;
 		const stale = isStaleValidation(lastValidatedAt);
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		if (!stale) return null;
 	}
 
-/* istanbul ignore next */
+	/* istanbul ignore next */
 	const lastValidatedAt = cachedValue && "lastValidatedAt" in (cachedValue as CachedClipValue) ? (cachedValue as CachedClipValue).lastValidatedAt : undefined;
 	const stale = isStaleValidation(lastValidatedAt);
 	if (!stale) {
@@ -492,7 +488,7 @@ export async function resolvePlayableClip(ownerId: string, clip: TwitchClip): Pr
 	const fresh = await getTwitchClip(clip.id, ownerId);
 	if (!fresh) {
 		await setTwitchCache(TwitchCacheType.Clip, key, {
-/* istanbul ignore next */
+			/* istanbul ignore next */
 			clip: cachedClip ?? clip,
 			unavailable: true,
 			lastSeenAt: (cachedValue as CachedClipValue | null)?.lastSeenAt ?? nowIso,
@@ -545,7 +541,7 @@ async function listEventSubSubscriptions(type?: string): Promise<EventSubSubscri
 			const response = await axios.get<TwitchApiResponse<EventSubSubscription>>(url, {
 				headers: {
 					Authorization: `Bearer ${token.access_token}`,
-/* istanbul ignore next */
+					/* istanbul ignore next */
 					"Client-Id": process.env.TWITCH_CLIENT_ID || "",
 				},
 				params: {
@@ -578,7 +574,7 @@ async function deleteEventSubSubscription(id: string): Promise<boolean> {
 		await axios.delete(url, {
 			headers: {
 				Authorization: `Bearer ${token.access_token}`,
-/* istanbul ignore next */
+				/* istanbul ignore next */
 				"Client-Id": process.env.TWITCH_CLIENT_ID || "",
 			},
 			params: {
@@ -596,12 +592,12 @@ async function clearEventSubSubscriptionsByTypeAndCondition({ type, conditionMat
 	const subscriptions = await listEventSubSubscriptions(type);
 
 	const targets = subscriptions.filter((sub) => {
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		if (sub.type !== type) return false;
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		if (!sub.condition) return false;
 		for (const [key, value] of Object.entries(conditionMatch)) {
-/* istanbul ignore next */
+			/* istanbul ignore next */
 			if (sub.condition[key] !== value) return false;
 		}
 		return true;
@@ -630,9 +626,9 @@ export async function exchangeAccesToken(code: string): Promise<TwitchTokenApiRe
 	try {
 		const response = await axios.post<TwitchTokenApiResponse>(url, null, {
 			params: {
-/* istanbul ignore next */
+				/* istanbul ignore next */
 				client_id: process.env.TWITCH_CLIENT_ID || "",
-/* istanbul ignore next */
+				/* istanbul ignore next */
 				client_secret: process.env.TWITCH_CLIENT_SECRET || "",
 				code: code,
 				grant_type: "authorization_code",
@@ -667,9 +663,9 @@ export async function getAppAccessToken(): Promise<TwitchAppAccessTokenResponse 
 	try {
 		const response = await axios.post<TwitchAppAccessTokenResponse>(url, null, {
 			params: {
-/* istanbul ignore next */
+				/* istanbul ignore next */
 				client_id: process.env.TWITCH_CLIENT_ID || "",
-/* istanbul ignore next */
+				/* istanbul ignore next */
 				client_secret: process.env.TWITCH_CLIENT_SECRET || "",
 				grant_type: "client_credentials",
 			},
@@ -687,11 +683,11 @@ export async function getUserDetails(accessToken: string): Promise<TwitchUserRes
 		const response = await axios.get<TwitchApiResponse<TwitchUserResponse>>(url, {
 			headers: {
 				Authorization: `Bearer ${accessToken}`,
-/* istanbul ignore next */
+				/* istanbul ignore next */
 				"Client-Id": process.env.TWITCH_CLIENT_ID || "",
 			},
 		});
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		return response.data.data[0] || null;
 	} catch (error) {
 		logTwitchError("Error fetching user details", error);
@@ -705,7 +701,7 @@ export async function getUsersDetailsBulk({ userIds, userNames, accessToken }: {
 	const ids = userIds ? Array.from(new Set(userIds)) : [];
 
 	try {
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		if ((!userIds || userIds.length === 0) && (!userNames || userNames.length === 0)) {
 			return [];
 		}
@@ -715,7 +711,7 @@ export async function getUsersDetailsBulk({ userIds, userNames, accessToken }: {
 			return [];
 		}
 
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		if ((userIds?.length ?? 0) >= 100 || (userNames?.length ?? 0) >= 100) {
 			console.error("You cannot provide more than 100 userIds or userNames");
 			return [];
@@ -724,7 +720,7 @@ export async function getUsersDetailsBulk({ userIds, userNames, accessToken }: {
 		let cachedUsers: TwitchUserResponse[] = [];
 		let missingIds = ids;
 
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		if (ids.length > 0) {
 			cachedUsers = await getTwitchCacheBatch<TwitchUserResponse>(TwitchCacheType.User, ids);
 			const cachedIds = new Set(cachedUsers.map((u) => u.id));
@@ -735,15 +731,15 @@ export async function getUsersDetailsBulk({ userIds, userNames, accessToken }: {
 		const response = await axios.get<TwitchApiResponse<TwitchUserResponse>>(url, {
 			headers: {
 				Authorization: `Bearer ${accessToken}`,
-/* istanbul ignore next */
+				/* istanbul ignore next */
 				"Client-Id": process.env.TWITCH_CLIENT_ID || "",
 			},
-/* istanbul ignore next */
+			/* istanbul ignore next */
 			params: missingIds.length > 0 ? { id: missingIds } : { login: userNames },
 		});
 
 		const fresh = response.data.data;
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		if (fresh.length > 0) {
 			await setTwitchCacheBatch(
 				TwitchCacheType.User,
@@ -755,7 +751,7 @@ export async function getUsersDetailsBulk({ userIds, userNames, accessToken }: {
 		if (cachedUsers.length > 0) return [...cachedUsers, ...fresh];
 		return fresh;
 	} catch (error) {
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		if (ids.length > 0) {
 			const staleUsers = await getTwitchCacheStaleBatch<TwitchUserResponse>(TwitchCacheType.User, ids);
 			if (staleUsers.length > 0) return staleUsers;
@@ -789,13 +785,13 @@ export async function createChannelReward(userId: string): Promise<TwitchRewardR
 			{
 				headers: {
 					Authorization: `Bearer ${token.accessToken}`,
-/* istanbul ignore next */
+					/* istanbul ignore next */
 					"Client-Id": process.env.TWITCH_CLIENT_ID || "",
 				},
 			},
 		);
 
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		return response.data.data[0] || null;
 	} catch (error) {
 		logTwitchError("Error fetching channel rewards", error);
@@ -819,7 +815,7 @@ export async function removeChannelReward(rewardId: string, userId: string): Pro
 			},
 			headers: {
 				Authorization: `Bearer ${token.accessToken}`,
-/* istanbul ignore next */
+				/* istanbul ignore next */
 				"Client-Id": process.env.TWITCH_CLIENT_ID || "",
 			},
 		});
@@ -851,10 +847,7 @@ export async function getTwitchClip(clipId: string, creatorId: string): Promise<
 	return result.clip;
 }
 
-export async function getTwitchClipLookup(
-	clipId: string,
-	creatorId: string,
-): Promise<{ clip: TwitchClip | null; status: "ok" | "not_found" | "transient_error" }> {
+export async function getTwitchClipLookup(clipId: string, creatorId: string): Promise<{ clip: TwitchClip | null; status: "ok" | "not_found" | "transient_error" }> {
 	const url = "https://api.twitch.tv/helix/clips";
 	const token = await getAccessTokenInternal(creatorId);
 
@@ -899,7 +892,7 @@ async function getCurrentCategoryGameId(ownerId: string, accessToken: string): P
 			},
 		});
 
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		return response.data.data[0]?.game_id || null;
 	} catch (error) {
 		logTwitchError("Error fetching current category", error);
@@ -930,11 +923,11 @@ async function runIncrementalSync(ownerId: string, accessToken: string, nextStat
 	} catch (error) {
 		logTwitchError("Error fetching incremental clip sync page", error);
 		const resumeAt = getRateLimitResumeAt(error, nowMs);
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		if (resumeAt) {
-/* istanbul ignore next */
+			/* istanbul ignore next */
 			nextState.rateLimitedUntil = resumeAt;
-/* istanbul ignore next */
+			/* istanbul ignore next */
 			return { requestsUsed, rateLimited: true };
 		}
 		return { requestsUsed, rateLimited: false };
@@ -1002,7 +995,7 @@ async function runBackfillSync(ownerId: string, accessToken: string, nextState: 
 				} catch (error) {
 					if (axios.isAxiosError(error) && error.response?.status === 429) {
 						const resumeAt = getRateLimitResumeAt(error, nowMs);
-/* istanbul ignore next */
+						/* istanbul ignore next */
 						if (resumeAt) {
 							nextState.rateLimitedUntil = resumeAt;
 						}
@@ -1047,16 +1040,16 @@ async function runBackfillSync(ownerId: string, accessToken: string, nextState: 
 					nextState.backfillWindowEnd = new Date(currentStartMs).toISOString();
 					nextState.backfillCursor = undefined;
 
-/* istanbul ignore next */
+					/* istanbul ignore next */
 					if (hitLimitInWindow) {
-/* istanbul ignore next */
+						/* istanbul ignore next */
 						nextState.backfillWindowSizeMs = MIN_WINDOW_MS;
-/* istanbul ignore next */
+						/* istanbul ignore next */
 						console.warn(`Clip backfill hit 1,000 limit within minimum window (${MIN_WINDOW_MS / 60000}m) for owner ${ownerId}. Some clips might be missing.`);
-/* istanbul ignore next */
+						/* istanbul ignore next */
 					} else if (windowFailed) {
 						// Preserve window size on error
-/* istanbul ignore next */
+						/* istanbul ignore next */
 						nextState.backfillWindowSizeMs = windowSizeMs;
 					} else {
 						if (clipsFetchedInWindow < 100 && windowSizeMs < MAX_WINDOW_MS) {
@@ -1070,7 +1063,7 @@ async function runBackfillSync(ownerId: string, accessToken: string, nextState: 
 						nextState.backfillComplete = true;
 					}
 				}
-/* istanbul ignore next */
+				/* istanbul ignore next */
 			} else if (windowFailed) {
 				// Abort backfill for this run if a window failed completely to avoid infinite retry loop.
 				break;
@@ -1080,14 +1073,14 @@ async function runBackfillSync(ownerId: string, accessToken: string, nextState: 
 		nextState.lastBackfillSyncAt = new Date(nowMs).toISOString();
 	} catch (error) {
 		// Only log if it's NOT a 429, because 429s are expected and handled via rateLimitedUntil
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		if (!axios.isAxiosError(error) || error.response?.status !== 429) {
-/* istanbul ignore next */
+			/* istanbul ignore next */
 			logTwitchError("Error in backfill sync run", error);
 		}
 
 		const resumeAt = getRateLimitResumeAt(error, nowMs);
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		if (resumeAt) {
 			nextState.rateLimitedUntil = resumeAt;
 		}
@@ -1115,7 +1108,7 @@ export async function syncOwnerClipCache(ownerId: string, ensurePackSize = 0): P
 				ownerBackfillLowerBoundMs = Math.max(TWITCH_CLIPS_LAUNCH_MS, parsedLowerBoundMs);
 			}
 		} catch {
-/* istanbul ignore next */
+			/* istanbul ignore next */
 			ownerBackfillLowerBoundMs = TWITCH_CLIPS_LAUNCH_MS;
 		}
 
@@ -1137,7 +1130,7 @@ export async function syncOwnerClipCache(ownerId: string, ensurePackSize = 0): P
 		const isSyncDue = (lastSyncAt: string | undefined, intervalMs: number): boolean => {
 			if (!lastSyncAt) return true;
 			const parsed = Date.parse(lastSyncAt);
-/* istanbul ignore next */
+			/* istanbul ignore next */
 			if (!Number.isFinite(parsed)) return true;
 			return now - parsed >= intervalMs;
 		};
@@ -1180,22 +1173,22 @@ export async function getCreatorSyncProgress(ownerId: string) {
 	const totalDuration = now - TWITCH_CLIPS_LAUNCH_MS;
 
 	let syncProgress = 0;
-/* istanbul ignore next */
+	/* istanbul ignore next */
 	if (syncState.backfillComplete) {
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		syncProgress = 1; // 100%
-/* istanbul ignore next */
+		/* istanbul ignore next */
 	} else if (syncState.backfillWindowEnd) {
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		const endMs = new Date(syncState.backfillWindowEnd).getTime();
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		if (Number.isFinite(endMs) && totalDuration > 0) {
 			// Clamp endMs to now to avoid negative progress when end timestamp is in the future.
-/* istanbul ignore next */
+			/* istanbul ignore next */
 			const effectiveEndMs = Math.min(endMs, now);
-/* istanbul ignore next */
+			/* istanbul ignore next */
 			const progress = (now - effectiveEndMs) / totalDuration;
-/* istanbul ignore next */
+			/* istanbul ignore next */
 			syncProgress = Math.max(0, Math.min(1, progress));
 		}
 	}
@@ -1272,7 +1265,7 @@ export async function getTwitchClips(overlay: Overlay, type?: OverlayType, skipF
 	}
 
 	if (overlayType === OverlayType.Playlist) {
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		if (!overlay.playlistId) return [];
 		clips = await getPlaylistClipsForOwnerServer(overlay.ownerId, overlay.playlistId);
 	} else {
@@ -1300,7 +1293,7 @@ export async function getTwitchClips(overlay: Overlay, type?: OverlayType, skipF
 				const currentGameId = await getCurrentCategoryGameId(overlay.ownerId, token.accessToken);
 				if (currentGameId) {
 					const sameCategoryClips = clips.filter((clip) => clip.game_id === currentGameId);
-/* istanbul ignore next */
+					/* istanbul ignore next */
 					if (sameCategoryClips.length > 0) {
 						clips = sameCategoryClips;
 					}
@@ -1331,13 +1324,13 @@ export async function getTwitchClips(overlay: Overlay, type?: OverlayType, skipF
 		}
 
 		// Filter for selected clip creators
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		const allowedCreators = (overlay.clipCreatorsOnly ?? []).map((name) => name.toLowerCase());
 		if (allowedCreators.length > 0) {
 			clips = clips.filter((clip) => allowedCreators.includes(clip.creator_name.toLowerCase()) || allowedCreators.includes(clip.creator_id.toLowerCase()));
 		}
 
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		const blockedCreators = (overlay.clipCreatorsBlocked ?? []).map((name) => name.toLowerCase());
 		if (blockedCreators.length > 0) {
 			clips = clips.filter((clip) => !blockedCreators.includes(clip.creator_name.toLowerCase()) && !blockedCreators.includes(clip.creator_id.toLowerCase()));
@@ -1349,7 +1342,7 @@ export async function getTwitchClips(overlay: Overlay, type?: OverlayType, skipF
 		});
 
 		if (overlay.playbackMode === "top") {
-/* istanbul ignore next */
+			/* istanbul ignore next */
 			clips.sort((a, b) => b.view_count - a.view_count || b.created_at.localeCompare(a.created_at));
 		}
 	}
@@ -1359,12 +1352,12 @@ export async function getTwitchClips(overlay: Overlay, type?: OverlayType, skipF
 
 /* istanbul ignore next */
 export async function getTwitchClipBatch(overlayId: string, overlaySecret?: string, type?: OverlayType, excludeClipIds: string[] = [], count = 50, skipFilter?: boolean): Promise<TwitchClip[]> {
-/* istanbul ignore next */
+	/* istanbul ignore next */
 	const overlay = overlaySecret ? await getOverlayBySecret(overlayId, overlaySecret) : await getOverlayPublic(overlayId);
-/* istanbul ignore next */
+	/* istanbul ignore next */
 	if (!overlay) return [];
 	const all = await getTwitchClips(overlay, type, skipFilter);
-/* istanbul ignore next */
+	/* istanbul ignore next */
 	if (all.length === 0) return [];
 
 	const exclude = new Set(excludeClipIds);
@@ -1387,19 +1380,19 @@ export async function getTwitchClipBatch(overlayId: string, overlaySecret?: stri
 			const recentCreatorCounts = new Map<string, number>();
 			const recentGameCounts = new Map<string, number>();
 			for (const clip of recent.slice(-20)) {
-/* istanbul ignore next */
+				/* istanbul ignore next */
 				const creatorKey = clip.creator_id || clip.creator_name;
 				recentCreatorCounts.set(creatorKey, (recentCreatorCounts.get(creatorKey) ?? 0) + 1);
 				recentGameCounts.set(clip.game_id, (recentGameCounts.get(clip.game_id) ?? 0) + 1);
 			}
 
 			const sortedViews = remaining.map((clip) => clip.view_count).sort((a, b) => a - b);
-/* istanbul ignore next */
+			/* istanbul ignore next */
 			const medianViews = sortedViews.length > 0 ? sortedViews[Math.floor(sortedViews.length / 2)] : 0;
 			const maxLogViews = Math.log1p(Math.max(1, ...sortedViews));
 
 			const scored = remaining.map((clip) => {
-/* istanbul ignore next */
+				/* istanbul ignore next */
 				const creatorKey = clip.creator_id || clip.creator_name;
 				const creatorPenalty = (recentCreatorCounts.get(creatorKey) ?? 0) * 0.12;
 				const gamePenalty = (recentGameCounts.get(clip.game_id) ?? 0) * 0.1;
@@ -1415,14 +1408,14 @@ export async function getTwitchClipBatch(overlayId: string, overlaySecret?: stri
 			let picked = scored[0]?.clip;
 			for (const entry of scored) {
 				pick -= entry.score;
-/* istanbul ignore next */
+				/* istanbul ignore next */
 				if (pick <= 0) {
 					picked = entry.clip;
 					break;
 				}
 			}
 
-/* istanbul ignore next */
+			/* istanbul ignore next */
 			if (!picked) break;
 			ordered.push(picked);
 			recent.push(picked);
@@ -1457,7 +1450,7 @@ export async function getDemoClip(clipId: string): Promise<TwitchClip | null> {
 		const response = await axios.get<TwitchApiResponse<TwitchClipResponse>>(url, {
 			headers: {
 				Authorization: `Bearer ${token.access_token}`,
-/* istanbul ignore next */
+				/* istanbul ignore next */
 				"Client-Id": process.env.TWITCH_CLIENT_ID || "",
 			},
 			params: {
@@ -1481,10 +1474,10 @@ export async function getAvatar(userId: string, authUserId: string): Promise<str
 	const AVATAR_CACHE_TTL_SECONDS = 60 * 60 * 6;
 
 	const cached = await getTwitchCache<string>(TwitchCacheType.Avatar, userId);
-/* istanbul ignore next */
+	/* istanbul ignore next */
 	if (cached !== null) return cached || undefined;
 
-/* istanbul ignore next */
+	/* istanbul ignore next */
 	let accessToken = authUserId ? (await getAccessTokenServer(authUserId))?.accessToken : undefined;
 	if (!accessToken) {
 		const appToken = await getAppAccessToken();
@@ -1500,21 +1493,21 @@ export async function getAvatar(userId: string, authUserId: string): Promise<str
 		const response = await axios.get<TwitchApiResponse<TwitchUserResponse>>(url, {
 			headers: {
 				Authorization: `Bearer ${accessToken}`,
-/* istanbul ignore next */
+				/* istanbul ignore next */
 				"Client-Id": process.env.TWITCH_CLIENT_ID || "",
 			},
 			params: {
 				id: userId,
 			},
 		});
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		const avatar = response.data.data[0]?.profile_image_url || "";
 		await setTwitchCache(TwitchCacheType.Avatar, userId, avatar, AVATAR_CACHE_TTL_SECONDS);
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		return avatar || undefined;
 	} catch (error) {
 		const stale = await getTwitchCacheStale<string>(TwitchCacheType.Avatar, userId);
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		if (stale !== null) return stale || undefined;
 		logTwitchError("Error fetching avatar", error);
 		return undefined;
@@ -1539,21 +1532,21 @@ export async function getGamesDetailsBulk(gameIds: string[], authUserId: string)
 		return gameIds.map((id) => gamesById.get(id)).filter((game): game is Game => !!game);
 	}
 
-/* istanbul ignore next */
+	/* istanbul ignore next */
 	let accessToken = authUserId ? (await getAccessTokenServer(authUserId))?.accessToken : undefined;
-/* istanbul ignore next */
+	/* istanbul ignore next */
 	if (!accessToken) {
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		const appToken = await getAppAccessToken();
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		accessToken = appToken?.access_token;
 	}
 
-/* istanbul ignore next */
+	/* istanbul ignore next */
 	if (!accessToken) {
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		console.error("No access token found for authUserId:", authUserId);
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		return gameIds.map((id) => gamesById.get(id)).filter((game): game is Game => !!game);
 	}
 
@@ -1583,7 +1576,7 @@ export async function getGamesDetailsBulk(gameIds: string[], authUserId: string)
 			const chunkGamesById = new Map(games.map((g) => [g.id, g]));
 			await setTwitchCacheBatch(
 				TwitchCacheType.Game,
-/* istanbul ignore next */
+				/* istanbul ignore next */
 				chunk.map((id) => ({ key: id, value: chunkGamesById.get(id) || null })),
 				GAME_CACHE_TTL_SECONDS,
 			);
@@ -1591,9 +1584,9 @@ export async function getGamesDetailsBulk(gameIds: string[], authUserId: string)
 
 		return gameIds.map((id) => gamesById.get(id)).filter((game): game is Game => !!game);
 	} catch (error) {
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		logTwitchError("Error fetching bulk game details", error);
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		return gameIds.map((id) => gamesById.get(id)).filter((game): game is Game => !!game);
 	}
 }
@@ -1606,7 +1599,7 @@ export async function getGameDetails(gameId: string, authUserId: string): Promis
 	const cachedEntry = await getTwitchCacheEntry<Game | null>(TwitchCacheType.Game, cacheKey);
 	if (cachedEntry.hit) return cachedEntry.value;
 
-/* istanbul ignore next */
+	/* istanbul ignore next */
 	let accessToken = authUserId ? (await getAccessTokenServer(authUserId))?.accessToken : undefined;
 	if (!accessToken) {
 		const appToken = await getAppAccessToken();
@@ -1622,14 +1615,14 @@ export async function getGameDetails(gameId: string, authUserId: string): Promis
 		const response = await axios.get<TwitchApiResponse<Game>>(url, {
 			headers: {
 				Authorization: `Bearer ${accessToken}`,
-/* istanbul ignore next */
+				/* istanbul ignore next */
 				"Client-Id": process.env.TWITCH_CLIENT_ID || "",
 			},
 			params: {
 				id: gameId,
 			},
 		});
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		const game = response.data.data[0] || null;
 		await setTwitchCache(TwitchCacheType.Game, cacheKey, game, GAME_CACHE_TTL_SECONDS);
 		return game;
@@ -1654,7 +1647,7 @@ export async function getReward(userId: string, rewardId: string): Promise<Twitc
 		const response = await axios.get<TwitchApiResponse<TwitchReward>>(url, {
 			headers: {
 				Authorization: `Bearer ${token.accessToken}`,
-/* istanbul ignore next */
+				/* istanbul ignore next */
 				"Client-Id": process.env.TWITCH_CLIENT_ID || "",
 			},
 			params: {
@@ -1662,7 +1655,7 @@ export async function getReward(userId: string, rewardId: string): Promise<Twitc
 				broadcaster_id: userId,
 			},
 		});
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		return response.data.data[0] || null;
 	} catch (error) {
 		if (axios.isAxiosError(error) && error.response?.status === 404) {
@@ -1708,7 +1701,7 @@ export async function subscribeToReward(userId: string, rewardId: string): Promi
 			{
 				headers: {
 					Authorization: `Bearer ${token.access_token}`,
-/* istanbul ignore next */
+					/* istanbul ignore next */
 					"Client-Id": process.env.TWITCH_CLIENT_ID || "",
 				},
 			},
@@ -1745,7 +1738,7 @@ export async function subscribeToReward(userId: string, rewardId: string): Promi
 							{
 								headers: {
 									Authorization: `Bearer ${token.access_token}`,
-/* istanbul ignore next */
+									/* istanbul ignore next */
 									"Client-Id": process.env.TWITCH_CLIENT_ID || "",
 								},
 							},
@@ -1783,7 +1776,7 @@ export async function updateRedemptionStatus(userId: string, redemptionId: strin
 			{
 				headers: {
 					Authorization: `Bearer ${token.accessToken}`,
-/* istanbul ignore next */
+					/* istanbul ignore next */
 					"Client-Id": process.env.TWITCH_CLIENT_ID || "",
 				},
 				params: {
@@ -1822,7 +1815,7 @@ export async function subscribeToChat(userId: string) {
 				version: "1",
 				condition: {
 					broadcaster_user_id: userId,
-/* istanbul ignore next */
+					/* istanbul ignore next */
 					user_id: process.env.TWITCH_USER_ID || "",
 				},
 				transport: {
@@ -1834,7 +1827,7 @@ export async function subscribeToChat(userId: string) {
 			{
 				headers: {
 					Authorization: `Bearer ${token.access_token}`,
-/* istanbul ignore next */
+					/* istanbul ignore next */
 					"Client-Id": process.env.TWITCH_CLIENT_ID || "",
 				},
 			},
@@ -1847,12 +1840,12 @@ export async function subscribeToChat(userId: string) {
 					type: "channel.chat.message",
 					conditionMatch: {
 						broadcaster_user_id: userId,
-/* istanbul ignore next */
+						/* istanbul ignore next */
 						user_id: process.env.TWITCH_USER_ID || "",
 					},
 				});
 
-/* istanbul ignore next */
+				/* istanbul ignore next */
 				if (deleted > 0) {
 					try {
 						await axios.post(
@@ -1862,7 +1855,7 @@ export async function subscribeToChat(userId: string) {
 								version: "1",
 								condition: {
 									broadcaster_user_id: userId,
-/* istanbul ignore next */
+									/* istanbul ignore next */
 									user_id: process.env.TWITCH_USER_ID || "",
 								},
 								transport: {
@@ -1874,7 +1867,7 @@ export async function subscribeToChat(userId: string) {
 							{
 								headers: {
 									Authorization: `Bearer ${token.access_token}`,
-/* istanbul ignore next */
+									/* istanbul ignore next */
 									"Client-Id": process.env.TWITCH_CLIENT_ID || "",
 								},
 							},
@@ -1909,13 +1902,13 @@ export async function sendChatMessage(userId: string, message: string) {
 			{
 				message,
 				broadcaster_id: userId,
-/* istanbul ignore next */
+				/* istanbul ignore next */
 				sender_id: process.env.TWITCH_USER_ID || "",
 			},
 			{
 				headers: {
 					Authorization: `Bearer ${token.access_token}`,
-/* istanbul ignore next */
+					/* istanbul ignore next */
 					"Client-Id": process.env.TWITCH_CLIENT_ID || "",
 				},
 			},
@@ -1958,5 +1951,3 @@ export async function handleClip(input: string, broadcasterId: string) {
 
 	return clip;
 }
-
-

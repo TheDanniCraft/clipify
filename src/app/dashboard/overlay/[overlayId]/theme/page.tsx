@@ -352,10 +352,7 @@ function ThemeColorInput({ label, value, onChange, defaultValue, allowAlpha }: {
 	}, [allowAlpha, hsv.h, hsv.s, hsv.v, parsed.a]);
 	const color = useMemo(() => parseColor(normalizedValue), [normalizedValue]);
 	const latestColorRef = useRef(normalizedValue);
-	const swatches = useMemo(
-		() => Array.from(new Set([defaultValue, "#7C3AED", "#9146FF", "#FFFFFF", "#000000", ...recentColors].map((entry) => entry.trim()).filter(Boolean))),
-		[defaultValue, recentColors],
-	);
+	const swatches = useMemo(() => Array.from(new Set([defaultValue, "#7C3AED", "#9146FF", "#FFFFFF", "#000000", ...recentColors].map((entry) => entry.trim()).filter(Boolean))), [defaultValue, recentColors]);
 
 	useEffect(() => {
 		latestColorRef.current = normalizedValue;
@@ -368,10 +365,7 @@ function ThemeColorInput({ label, value, onChange, defaultValue, allowAlpha }: {
 	};
 
 	return (
-		<ColorPicker
-			value={color}
-			onChange={handleColorChange}
-		>
+		<ColorPicker value={color} onChange={handleColorChange}>
 			<ColorField fullWidth>
 				<Label>{label}</Label>
 				<ColorField.Group fullWidth variant='secondary'>
@@ -396,20 +390,32 @@ function ThemeColorInput({ label, value, onChange, defaultValue, allowAlpha }: {
 				<ColorSlider aria-label={`${label} hue`} channel='hue' className='gap-1 px-1' colorSpace='hsb'>
 					<Label>Hue</Label>
 					<ColorSlider.Output className='text-muted' />
-					<ColorSlider.Track><ColorSlider.Thumb /></ColorSlider.Track>
+					<ColorSlider.Track>
+						<ColorSlider.Thumb />
+					</ColorSlider.Track>
 				</ColorSlider>
 				<Select aria-label='Color space' value={colorSpace} variant='secondary' onChange={(nextSpace) => setColorSpace(nextSpace as ColorSpace)}>
-					<Select.Trigger><Select.Value className='uppercase' /><Select.Indicator /></Select.Trigger>
-					<Select.Popover><ListBox>
-						{Object.keys(COLOR_CHANNELS_BY_SPACE).map((space) => (
-							<ListBox.Item key={space} className='uppercase' id={space} textValue={space}>{space}<ListBox.ItemIndicator /></ListBox.Item>
-						))}
-					</ListBox></Select.Popover>
+					<Select.Trigger>
+						<Select.Value className='uppercase' />
+						<Select.Indicator />
+					</Select.Trigger>
+					<Select.Popover>
+						<ListBox>
+							{Object.keys(COLOR_CHANNELS_BY_SPACE).map((space) => (
+								<ListBox.Item key={space} className='uppercase' id={space} textValue={space}>
+									{space}
+									<ListBox.ItemIndicator />
+								</ListBox.Item>
+							))}
+						</ListBox>
+					</Select.Popover>
 				</Select>
 				<div className='grid w-full grid-cols-3 items-center gap-2'>
 					{COLOR_CHANNELS_BY_SPACE[colorSpace].map((channel) => (
 						<ColorField key={channel} aria-label={channel} channel={channel} colorSpace={colorSpace}>
-							<ColorField.Group variant='secondary'><ColorField.Input /></ColorField.Group>
+							<ColorField.Group variant='secondary'>
+								<ColorField.Input />
+							</ColorField.Group>
 						</ColorField>
 					))}
 				</div>
@@ -417,7 +423,9 @@ function ThemeColorInput({ label, value, onChange, defaultValue, allowAlpha }: {
 					<ColorSlider aria-label={`${label} opacity`} channel='alpha' className='gap-1 px-1' colorSpace='rgb'>
 						<Label>Opacity</Label>
 						<ColorSlider.Output className='text-muted' />
-						<ColorSlider.Track><ColorSlider.Thumb /></ColorSlider.Track>
+						<ColorSlider.Track>
+							<ColorSlider.Thumb />
+						</ColorSlider.Track>
 					</ColorSlider>
 				) : null}
 				<ColorSwatchPicker className='justify-center px-1' size='xs'>
@@ -427,7 +435,9 @@ function ThemeColorInput({ label, value, onChange, defaultValue, allowAlpha }: {
 						</ColorSwatchPicker.Item>
 					))}
 				</ColorSwatchPicker>
-				<Button className='w-full' size='sm' variant='tertiary' onPress={() => onChange(defaultValue)}>Reset to default</Button>
+				<Button className='w-full' size='sm' variant='tertiary' onPress={() => onChange(defaultValue)}>
+					Reset to default
+				</Button>
 			</ColorPicker.Popover>
 		</ColorPicker>
 	);
@@ -1025,7 +1035,8 @@ export default function OverlayStylePage() {
 								<Button variant='tertiary' onPress={handleResetThemeDefaults}>
 									Reset Theme
 								</Button>
-								<Button onPress={handleSave} isDisabled={!isFormDirty} variant='primary'>{<IconDeviceFloppy />}
+								<Button onPress={handleSave} isDisabled={!isFormDirty} variant='primary'>
+									{<IconDeviceFloppy />}
 									Save Style
 								</Button>
 							</div>
@@ -1034,12 +1045,16 @@ export default function OverlayStylePage() {
 							<div>
 								{!dragSupported && (
 									<Alert status='warning' className='mb-3'>
-										<Alert.Content><Alert.Description>{dragBlockedReason === "narrow" ? "Drag & drop needs a wider viewport. Expand your browser width or switch to desktop for layout editing." : "Drag & drop positioning is not supported on mobile or touch-only devices. Switch to a desktop browser for layout editing."}</Alert.Description></Alert.Content>
+										<Alert.Content>
+											<Alert.Description>{dragBlockedReason === "narrow" ? "Drag & drop needs a wider viewport. Expand your browser width or switch to desktop for layout editing." : "Drag & drop positioning is not supported on mobile or touch-only devices. Switch to a desktop browser for layout editing."}</Alert.Description>
+										</Alert.Content>
 									</Alert>
 								)}
 								{ownerPlan === Plan.Free && !ownerHasAdvancedAccess ? (
 									<Alert status='warning'>
-										<Alert.Indicator><IconCrown /></Alert.Indicator>
+										<Alert.Indicator>
+											<IconCrown />
+										</Alert.Indicator>
 										<Alert.Content>
 											<Alert.Title>Pro Feature Locked</Alert.Title>
 											<Alert.Description>Theme Studio and drag-and-drop layout are available on Pro.</Alert.Description>
@@ -1086,10 +1101,20 @@ export default function OverlayStylePage() {
 							<Separator />
 							<div className='grid grid-cols-1 lg:grid-cols-2 gap-3'>
 								<Slider minValue={0} maxValue={100} step={1} value={overlay.playerVolume} onChange={(value) => setOverlay({ ...overlay, playerVolume: Number(Array.isArray(value) ? value[0] : value) })}>
-									<Label>Player Volume</Label><Slider.Output /><Slider.Track><Slider.Fill /><Slider.Thumb /></Slider.Track>
+									<Label>Player Volume</Label>
+									<Slider.Output />
+									<Slider.Track>
+										<Slider.Fill />
+										<Slider.Thumb />
+									</Slider.Track>
 								</Slider>
 								<Slider minValue={0} maxValue={30} step={1} value={overlay.overlayInfoFadeOutSeconds ?? 6} onChange={(value) => setOverlay({ ...overlay, overlayInfoFadeOutSeconds: Number(Array.isArray(value) ? value[0] : value) })}>
-									<Label>Overlay Fade Out (seconds)</Label><Slider.Output /><Slider.Track><Slider.Fill /><Slider.Thumb /></Slider.Track>
+									<Label>Overlay Fade Out (seconds)</Label>
+									<Slider.Output />
+									<Slider.Track>
+										<Slider.Fill />
+										<Slider.Thumb />
+									</Slider.Track>
 								</Slider>
 								<Select
 									variant='secondary'
@@ -1107,13 +1132,30 @@ export default function OverlayStylePage() {
 									}}
 								>
 									<Label>Enabled Components</Label>
-									<Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
-									<Select.Popover><ListBox>
-										<ListBox.Item id='channel' textValue='Channel Info'><Label>Channel Info</Label><ListBox.ItemIndicator /></ListBox.Item>
-										<ListBox.Item id='clip' textValue='Clip Info'><Label>Clip Info</Label><ListBox.ItemIndicator /></ListBox.Item>
-										<ListBox.Item id='timer' textValue='Timer'><Label>Timer</Label><ListBox.ItemIndicator /></ListBox.Item>
-										<ListBox.Item id='progress' textValue='Progress Bar'><Label>Progress Bar</Label><ListBox.ItemIndicator /></ListBox.Item>
-									</ListBox></Select.Popover>
+									<Select.Trigger>
+										<Select.Value />
+										<Select.Indicator />
+									</Select.Trigger>
+									<Select.Popover>
+										<ListBox>
+											<ListBox.Item id='channel' textValue='Channel Info'>
+												<Label>Channel Info</Label>
+												<ListBox.ItemIndicator />
+											</ListBox.Item>
+											<ListBox.Item id='clip' textValue='Clip Info'>
+												<Label>Clip Info</Label>
+												<ListBox.ItemIndicator />
+											</ListBox.Item>
+											<ListBox.Item id='timer' textValue='Timer'>
+												<Label>Timer</Label>
+												<ListBox.ItemIndicator />
+											</ListBox.Item>
+											<ListBox.Item id='progress' textValue='Progress Bar'>
+												<Label>Progress Bar</Label>
+												<ListBox.ItemIndicator />
+											</ListBox.Item>
+										</ListBox>
+									</Select.Popover>
 								</Select>
 								<Select
 									variant='secondary'
@@ -1130,12 +1172,26 @@ export default function OverlayStylePage() {
 									}}
 								>
 									<Label>Visual Effects</Label>
-									<Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
-									<Select.Popover><ListBox>
-										<ListBox.Item id='scanlines' textValue='Scanlines'><Label>Scanlines</Label><ListBox.ItemIndicator /></ListBox.Item>
-										<ListBox.Item id='static' textValue='Static'><Label>Static</Label><ListBox.ItemIndicator /></ListBox.Item>
-										<ListBox.Item id='crt' textValue='CRT (Old TV)'><Label>CRT (Old TV)</Label><ListBox.ItemIndicator /></ListBox.Item>
-									</ListBox></Select.Popover>
+									<Select.Trigger>
+										<Select.Value />
+										<Select.Indicator />
+									</Select.Trigger>
+									<Select.Popover>
+										<ListBox>
+											<ListBox.Item id='scanlines' textValue='Scanlines'>
+												<Label>Scanlines</Label>
+												<ListBox.ItemIndicator />
+											</ListBox.Item>
+											<ListBox.Item id='static' textValue='Static'>
+												<Label>Static</Label>
+												<ListBox.ItemIndicator />
+											</ListBox.Item>
+											<ListBox.Item id='crt' textValue='CRT (Old TV)'>
+												<Label>CRT (Old TV)</Label>
+												<ListBox.ItemIndicator />
+											</ListBox.Item>
+										</ListBox>
+									</Select.Popover>
 								</Select>
 								<Card className='lg:col-span-2 border border-default/80'>
 									<Card.Header className='pb-1'>
@@ -1166,11 +1222,22 @@ export default function OverlayStylePage() {
 											}}
 											variant='primary'
 										>
-											<Tabs.ListContainer><Tabs.List aria-label='Typography Source'>
-												<Tabs.Tab id='website'>Website<Tabs.Indicator /></Tabs.Tab>
-												<Tabs.Tab id='system'>System<Tabs.Indicator /></Tabs.Tab>
-												<Tabs.Tab id='google'>Google<Tabs.Indicator /></Tabs.Tab>
-											</Tabs.List></Tabs.ListContainer>
+											<Tabs.ListContainer>
+												<Tabs.List aria-label='Typography Source'>
+													<Tabs.Tab id='website'>
+														Website
+														<Tabs.Indicator />
+													</Tabs.Tab>
+													<Tabs.Tab id='system'>
+														System
+														<Tabs.Indicator />
+													</Tabs.Tab>
+													<Tabs.Tab id='google'>
+														Google
+														<Tabs.Indicator />
+													</Tabs.Tab>
+												</Tabs.List>
+											</Tabs.ListContainer>
 										</Tabs>
 
 										{currentFontMode === "website" && <p className='text-xs text-muted'>Using the same default font stack as the Clipify website.</p>}
@@ -1178,22 +1245,42 @@ export default function OverlayStylePage() {
 										{currentFontMode === "system" && (
 											<Select variant='secondary' value={systemFontOptions.some((opt) => opt.key === parsedThemeFont.fontFamily) ? parsedThemeFont.fontFamily : systemFontOptions[0]?.key || "system-ui"} onChange={(value) => setOverlay({ ...overlay, themeFontFamily: encodeThemeFontSetting((value as string) || "system-ui", "") })}>
 												<Label>System Font</Label>
-												<Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
-												<Select.Popover><ListBox>
-												{systemFontOptions.map((font) => (
-													<ListBox.Item key={font.key} id={font.key} textValue={font.label}><Label>{font.label}</Label><ListBox.ItemIndicator /></ListBox.Item>
-												))}
-												</ListBox></Select.Popover>
+												<Select.Trigger>
+													<Select.Value />
+													<Select.Indicator />
+												</Select.Trigger>
+												<Select.Popover>
+													<ListBox>
+														{systemFontOptions.map((font) => (
+															<ListBox.Item key={font.key} id={font.key} textValue={font.label}>
+																<Label>{font.label}</Label>
+																<ListBox.ItemIndicator />
+															</ListBox.Item>
+														))}
+													</ListBox>
+												</Select.Popover>
 											</Select>
 										)}
 
 										{currentFontMode === "google" && (
 											<div className='grid grid-cols-1 lg:grid-cols-2 gap-3'>
-												<TextField type='text'><Label>Google Font Family</Label><Input value={googleFontFamily} onChange={(event) => ((value) => {
-														const family = (value || "Poppins").trim();
-														setOverlay({ ...overlay, themeFontFamily: encodeThemeFontSetting(`${family}, sans-serif`, buildGoogleFontUrl(family)) });
-													})(event.target.value)} /><Description>Example: Poppins, Space Grotesk, Roboto Slab</Description></TextField>
-												<TextField type='text' isReadOnly><Label>Google CSS URL</Label><Input value={safeThemeFontUrl} /></TextField>
+												<TextField type='text'>
+													<Label>Google Font Family</Label>
+													<Input
+														value={googleFontFamily}
+														onChange={(event) =>
+															((value) => {
+																const family = (value || "Poppins").trim();
+																setOverlay({ ...overlay, themeFontFamily: encodeThemeFontSetting(`${family}, sans-serif`, buildGoogleFontUrl(family)) });
+															})(event.target.value)
+														}
+													/>
+													<Description>Example: Poppins, Space Grotesk, Roboto Slab</Description>
+												</TextField>
+												<TextField type='text' isReadOnly>
+													<Label>Google CSS URL</Label>
+													<Input value={safeThemeFontUrl} />
+												</TextField>
 											</div>
 										)}
 									</Card.Content>

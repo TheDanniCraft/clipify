@@ -5,7 +5,6 @@ import type { CampaignOffer } from "@types";
 import { Card, Chip, Separator, Link, Tabs, cn } from "@heroui/react";
 import { buttonVariants } from "@heroui/styles";
 
-
 import { tiers, frequencies } from "./pricing-tiers";
 import { IconCheck } from "@tabler/icons-react";
 import { FrequencyEnum } from "./pricing-types";
@@ -35,21 +34,24 @@ export default function TiersComponent({ campaignOffer = null }: TiersComponentP
 
 	return (
 		<div className='relative mx-auto flex max-w-3xl flex-col items-center'>
-			<Tabs
-				className='mx-auto w-fit max-w-full'
-				onSelectionChange={onFrequencyChange}
-				selectedKey={selectedFrequency.key}
-			>
-				<Tabs.ListContainer className='mx-auto w-fit max-w-full'><Tabs.List aria-label='Billing frequency' className='mx-auto w-fit max-w-full *:w-fit'>
-					<Tabs.Tab id={FrequencyEnum.Monthly} className='flex-none whitespace-nowrap px-3 data-[hover-unselected=true]:opacity-90'>Pay Monthly<Tabs.Indicator /></Tabs.Tab>
-					<Tabs.Tab id={FrequencyEnum.Yearly} aria-label='Pay Yearly' className='flex-none px-3 data-[hover-unselected=true]:opacity-90'>
-						<div className='flex min-w-0 items-center gap-1'>
-							<p className='whitespace-nowrap'>Pay Yearly</p>
-							<Chip color='accent' size='sm' variant='primary'>2 months free</Chip>
-						</div>
-						<Tabs.Indicator />
-					</Tabs.Tab>
-				</Tabs.List></Tabs.ListContainer>
+			<Tabs className='mx-auto w-fit max-w-full' onSelectionChange={onFrequencyChange} selectedKey={selectedFrequency.key}>
+				<Tabs.ListContainer className='mx-auto w-fit max-w-full'>
+					<Tabs.List aria-label='Billing frequency' className='mx-auto w-fit max-w-full *:w-fit'>
+						<Tabs.Tab id={FrequencyEnum.Monthly} className='flex-none whitespace-nowrap px-3 data-[hover-unselected=true]:opacity-90'>
+							Pay Monthly
+							<Tabs.Indicator />
+						</Tabs.Tab>
+						<Tabs.Tab id={FrequencyEnum.Yearly} aria-label='Pay Yearly' className='flex-none px-3 data-[hover-unselected=true]:opacity-90'>
+							<div className='flex min-w-0 items-center gap-1'>
+								<p className='whitespace-nowrap'>Pay Yearly</p>
+								<Chip color='accent' size='sm' variant='primary'>
+									2 months free
+								</Chip>
+							</div>
+							<Tabs.Indicator />
+						</Tabs.Tab>
+					</Tabs.List>
+				</Tabs.ListContainer>
 			</Tabs>
 			<div className='h-12' aria-hidden='true' />
 			{/* Grid ---> "xs" to "lg" */}
@@ -59,9 +61,13 @@ export default function TiersComponent({ campaignOffer = null }: TiersComponentP
 					const hasPromoPrice = pricingPromoByFrequency[selectedFrequency.key] !== null;
 
 					return (
-						<Card key={tier.key} variant='default' className={cn("h-full shadow-md", {
-							"border border-accent/50": tier.mostPopular,
-						})}>
+						<Card
+							key={tier.key}
+							variant='default'
+							className={cn("h-full shadow-md", {
+								"border border-accent/50": tier.mostPopular,
+							})}
+						>
 							{tier.key === "pro" && proPromoEnabled && hasPromoPrice ? (
 								<Chip className='absolute right-4 top-4 shadow-lg' variant='primary' color='accent'>
 									Limited offer
@@ -103,38 +109,43 @@ export default function TiersComponent({ campaignOffer = null }: TiersComponentP
 								<p
 									className={cn("text-xs font-medium h-4", {
 										"text-success": tier.key === "pro" && selectedFrequency.key === FrequencyEnum.Yearly,
-										"invisible": !(tier.key === "pro" && selectedFrequency.key === FrequencyEnum.Yearly),
+										invisible: !(tier.key === "pro" && selectedFrequency.key === FrequencyEnum.Yearly),
 									})}
 								>
 									Save 2 months with yearly billing
 								</p>
-							<ul className='flex flex-col gap-2'>
-								{tier.features?.map((feature) => (
-									<li key={feature} className='flex items-center gap-2'>
-										<IconCheck className='text-accent' width={24} />
-										<p className='text-muted'>{feature}</p>
-									</li>
-								))}
-							</ul>
-						</Card.Content>
-						<Card.Footer>
-							<Link href={checkoutHref} aria-label={tier.buttonText} onPress={() => {
-									trackPaywallEvent(plausible, "paywall_cta_click", {
-										source: "pricing_page",
-										feature: "plan",
-										plan: tier.key,
-										cycle: selectedFrequency.key,
-									});
-								}} className={buttonVariants({
-									fullWidth: true,
-									variant: tier.mostPopular ? "primary" : "secondary",
-									className: cn("no-underline", tier.mostPopular && "shadow-md"),
-								})}>
-								{tier.buttonText}
-							</Link>
-						</Card.Footer>
-					</Card>
-				);
+								<ul className='flex flex-col gap-2'>
+									{tier.features?.map((feature) => (
+										<li key={feature} className='flex items-center gap-2'>
+											<IconCheck className='text-accent' width={24} />
+											<p className='text-muted'>{feature}</p>
+										</li>
+									))}
+								</ul>
+							</Card.Content>
+							<Card.Footer>
+								<Link
+									href={checkoutHref}
+									aria-label={tier.buttonText}
+									onPress={() => {
+										trackPaywallEvent(plausible, "paywall_cta_click", {
+											source: "pricing_page",
+											feature: "plan",
+											plan: tier.key,
+											cycle: selectedFrequency.key,
+										});
+									}}
+									className={buttonVariants({
+										fullWidth: true,
+										variant: tier.mostPopular ? "primary" : "secondary",
+										className: cn("no-underline", tier.mostPopular && "shadow-md"),
+									})}
+								>
+									{tier.buttonText}
+								</Link>
+							</Card.Footer>
+						</Card>
+					);
 				})}
 			</div>
 			<div className='h-12' aria-hidden='true' />

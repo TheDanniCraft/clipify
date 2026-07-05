@@ -418,57 +418,92 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 			<div className='flex flex-wrap items-center gap-2 py-3'>
 				<div className='flex min-w-0 flex-wrap items-center gap-2'>
 					<div className='flex min-w-0 flex-wrap items-center gap-2'>
-						<TextField className='min-w-0 flex-1 sm:min-w-[200px] sm:max-w-xs'><InputGroup variant='secondary'><InputGroup.Input placeholder='Search' value={filterValue} onChange={(event) => (onSearchChange)(event.target.value)} /><InputGroup.Suffix>{<IconSearch className='text-muted' width={16} />}</InputGroup.Suffix></InputGroup></TextField>
+						<TextField className='min-w-0 flex-1 sm:min-w-[200px] sm:max-w-xs'>
+							<InputGroup variant='secondary'>
+								<InputGroup.Input placeholder='Search' value={filterValue} onChange={(event) => onSearchChange(event.target.value)} />
+								<InputGroup.Suffix>{<IconSearch className='text-muted' width={16} />}</InputGroup.Suffix>
+							</InputGroup>
+						</TextField>
 						{activeTab === "overlays" && (
 							<Popover>
-				<Button variant='tertiary' size='sm' aria-label='Open Filter Options'>
+								<Button variant='tertiary' size='sm' aria-label='Open Filter Options'>
 									<IconAdjustmentsHorizontal className='text-muted' width={16} />
 									Filter
 								</Button>
 								<Popover.Content placement='bottom start'>
 									<Popover.Dialog className='min-w-44'>
-						<RadioGroup variant='secondary' value={statusFilter} onChange={setStatusFilter}>
+										<RadioGroup variant='secondary' value={statusFilter} onChange={setStatusFilter}>
 											<Label>Status</Label>
-											<Radio value='all'><Radio.Content><Radio.Control><Radio.Indicator /></Radio.Control>All</Radio.Content></Radio>
-											<Radio value='active'><Radio.Content><Radio.Control><Radio.Indicator /></Radio.Control>Active</Radio.Content></Radio>
-											<Radio value='paused'><Radio.Content><Radio.Control><Radio.Indicator /></Radio.Control>Paused</Radio.Content></Radio>
+											<Radio value='all'>
+												<Radio.Content>
+													<Radio.Control>
+														<Radio.Indicator />
+													</Radio.Control>
+													All
+												</Radio.Content>
+											</Radio>
+											<Radio value='active'>
+												<Radio.Content>
+													<Radio.Control>
+														<Radio.Indicator />
+													</Radio.Control>
+													Active
+												</Radio.Content>
+											</Radio>
+											<Radio value='paused'>
+												<Radio.Content>
+													<Radio.Control>
+														<Radio.Indicator />
+													</Radio.Control>
+													Paused
+												</Radio.Content>
+											</Radio>
 										</RadioGroup>
 									</Popover.Dialog>
 								</Popover.Content>
 							</Popover>
 						)}
 						<Dropdown>
-			<Button variant='tertiary' size='sm' aria-label='Open Sort Options'>
-									<IconMenuDeep className='text-muted' width={16} />
-									Sort
+							<Button variant='tertiary' size='sm' aria-label='Open Sort Options'>
+								<IconMenuDeep className='text-muted' width={16} />
+								Sort
 							</Button>
-				<Dropdown.Popover><Dropdown.Menu aria-label='Sort' items={headerColumns.filter((column) => column.uid !== "actions" && column.name !== "")} selectedKeys={new Set([String(sortDescriptor.column)])} selectionMode='single'>
+							<Dropdown.Popover>
+								<Dropdown.Menu aria-label='Sort' items={headerColumns.filter((column) => column.uid !== "actions" && column.name !== "")} selectedKeys={new Set([String(sortDescriptor.column)])} selectionMode='single'>
 									{(item) => (
-											<Dropdown.Item
-												key={item.uid}
-												id={item.uid}
-												textValue={item.name}
-							onAction={() => {
-								setSortDescriptor({
-									column: item.uid,
-									direction: sortDescriptor.column === item.uid && sortDescriptor.direction === "ascending" ? "descending" : "ascending",
-								});
-							}}
-						>
-							<Dropdown.ItemIndicator />
-							<Label>{item.name}</Label>
-											</Dropdown.Item>
+										<Dropdown.Item
+											key={item.uid}
+											id={item.uid}
+											textValue={item.name}
+											onAction={() => {
+												setSortDescriptor({
+													column: item.uid,
+													direction: sortDescriptor.column === item.uid && sortDescriptor.direction === "ascending" ? "descending" : "ascending",
+												});
+											}}
+										>
+											<Dropdown.ItemIndicator />
+											<Label>{item.name}</Label>
+										</Dropdown.Item>
 									)}
-								</Dropdown.Menu></Dropdown.Popover>
+								</Dropdown.Menu>
+							</Dropdown.Popover>
 						</Dropdown>
 						<Dropdown>
-			<Button variant='tertiary' size='sm' aria-label='Open Column Options'>
-									<IconArrowsLeftRight className='text-muted' width={16} />
-									Columns
+							<Button variant='tertiary' size='sm' aria-label='Open Column Options'>
+								<IconArrowsLeftRight className='text-muted' width={16} />
+								Columns
 							</Button>
-								<Dropdown.Popover><Dropdown.Menu disallowEmptySelection aria-label='Columns' items={currentColumns.filter((column) => column.uid !== "actions" && column.name !== "")} selectedKeys={visibleColumns} selectionMode='multiple' onSelectionChange={setVisibleColumns}>
-									{(item) => <Dropdown.Item key={item.uid} id={item.uid} textValue={item.name}><Dropdown.ItemIndicator /><Label>{item.name}</Label></Dropdown.Item>}
-								</Dropdown.Menu></Dropdown.Popover>
+							<Dropdown.Popover>
+								<Dropdown.Menu disallowEmptySelection aria-label='Columns' items={currentColumns.filter((column) => column.uid !== "actions" && column.name !== "")} selectedKeys={visibleColumns} selectionMode='multiple' onSelectionChange={setVisibleColumns}>
+									{(item) => (
+										<Dropdown.Item key={item.uid} id={item.uid} textValue={item.name}>
+											<Dropdown.ItemIndicator />
+											<Label>{item.name}</Label>
+										</Dropdown.Item>
+									)}
+								</Dropdown.Menu>
+							</Dropdown.Popover>
 						</Dropdown>
 					</div>
 
@@ -478,115 +513,119 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 
 					{(filterSelectedKeys === "all" || filterSelectedKeys.size > 0) && (
 						<Dropdown>
-			<Button variant='tertiary' size='sm' aria-label='Open Selected Actions'>
+							<Button variant='tertiary' size='sm' aria-label='Open Selected Actions'>
 								Selected Actions
 								<IconChevronDown className='text-muted' />
 							</Button>
-							<Dropdown.Popover><Dropdown.Menu aria-label='Selected Actions'>
-								{activeTab === "overlays" ? (
+							<Dropdown.Popover>
+								<Dropdown.Menu aria-label='Selected Actions'>
+									{activeTab === "overlays" ? (
+										<Dropdown.Item
+											id='toggleStatus'
+											textValue='Toggle status'
+											onAction={() => {
+												const selectedOverlays = filterSelectedKeys === "all" ? overlays : (filteredItems as LocalOverlay[]).filter((item) => filterSelectedKeys.has(String(item.id)));
+
+												const toggleStatusPromises = selectedOverlays?.map((overlay) => {
+													const newStatus: StatusOptions = overlay.status === StatusOptions.Active ? StatusOptions.Paused : StatusOptions.Active;
+													return saveOverlay(overlay.id, { status: newStatus }).then((updated) => ({
+														ok: Boolean(updated),
+														id: overlay.id,
+														status: newStatus,
+													}));
+												});
+
+												Promise.all(toggleStatusPromises ?? [])
+													.then((results) => {
+														const failed = results.filter((r) => !r.ok);
+														if (failed.length > 0) {
+															addToast({
+																title: "Error",
+																description: "One or more overlays could not be updated.",
+																color: "danger",
+															});
+															return;
+														}
+
+														setOverlays((prev) =>
+															prev
+																? prev.map((o) => {
+																		const match = results.find((r) => r.id === o.id && r.ok);
+																		return match ? { ...o, status: match.status } : o;
+																	})
+																: [],
+														);
+														addToast({
+															title: "Status Updated",
+															description: `${selectedOverlays?.length ?? 0} Overlay${(selectedOverlays?.length ?? 0) > 1 ? "s" : ""} status have been updated.`,
+															color: "success",
+														});
+													})
+													.catch(() => {
+														addToast({
+															title: "Error",
+															description: "An error occurred while updating the status of one or more overlays.",
+															color: "danger",
+														});
+													});
+											}}
+										>
+											<IconCircuitChangeover />
+											<Label>Toggle status</Label>
+										</Dropdown.Item>
+									) : null}
 									<Dropdown.Item
-										id='toggleStatus'
-										textValue='Toggle status'
+										id='delete'
+										textValue='Delete'
+										variant='danger'
 										onAction={() => {
-											const selectedOverlays = filterSelectedKeys === "all" ? overlays : (filteredItems as LocalOverlay[]).filter((item) => filterSelectedKeys.has(String(item.id)));
+											const selectedItems = filterSelectedKeys === "all" ? (activeTab === "overlays" ? overlays : playlists) : filteredItems.filter((item) => filterSelectedKeys.has(String(item.id)));
 
-											const toggleStatusPromises = selectedOverlays?.map((overlay) => {
-												const newStatus: StatusOptions = overlay.status === StatusOptions.Active ? StatusOptions.Paused : StatusOptions.Active;
-												return saveOverlay(overlay.id, { status: newStatus }).then((updated) => ({
-													ok: Boolean(updated),
-													id: overlay.id,
-													status: newStatus,
-												}));
-											});
+											const deletePromises = selectedItems?.map((item) =>
+												(activeTab === "overlays" ? deleteOverlay(item.id) : deletePlaylist(item.id)).then((ok) => ({
+													ok: Boolean(ok),
+													id: item.id,
+												})),
+											);
 
-											Promise.all(toggleStatusPromises ?? [])
+											Promise.all(deletePromises ?? [])
 												.then((results) => {
 													const failed = results.filter((r) => !r.ok);
 													if (failed.length > 0) {
 														addToast({
 															title: "Error",
-															description: "One or more overlays could not be updated.",
+															description: `One or more ${activeTab} could not be deleted.`,
 															color: "danger",
 														});
 														return;
 													}
 
-													setOverlays((prev) =>
-														prev
-															? prev.map((o) => {
-																	const match = results.find((r) => r.id === o.id && r.ok);
-																	return match ? { ...o, status: match.status } : o;
-																})
-															: [],
-													);
+													if (activeTab === "overlays") {
+														setOverlays((prev) => (prev ? prev.filter((o) => !results.some((r) => r.ok && r.id === o.id)) : []));
+													} else {
+														setPlaylists((prev) => (prev ? prev.filter((p) => !results.some((r) => r.ok && r.id === p.id)) : []));
+													}
+													setSelectedKeys(new Set([]));
 													addToast({
-														title: "Status Updated",
-														description: `${selectedOverlays?.length ?? 0} Overlay${(selectedOverlays?.length ?? 0) > 1 ? "s" : ""} status have been updated.`,
+														title: "Successfully deleted",
+														description: `${selectedItems?.length ?? 0} ${activeTab === "overlays" ? "Overlay" : "Playlist"}${(selectedItems?.length ?? 0) > 1 ? "s" : ""} have been deleted.`,
 														color: "success",
 													});
 												})
 												.catch(() => {
 													addToast({
 														title: "Error",
-														description: "An error occurred while updating the status of one or more overlays.",
+														description: `An error occurred while deleting one or more ${activeTab}.`,
 														color: "danger",
 													});
 												});
 										}}
 									>
-										<IconCircuitChangeover /><Label>Toggle status</Label>
+										<IconTrash className='text-danger' width={16} />
+										<Label>Delete</Label>
 									</Dropdown.Item>
-								) : null}
-								<Dropdown.Item
-									id='delete'
-									textValue='Delete'
-									variant='danger'
-									onAction={() => {
-										const selectedItems = filterSelectedKeys === "all" ? (activeTab === "overlays" ? overlays : playlists) : filteredItems.filter((item) => filterSelectedKeys.has(String(item.id)));
-
-										const deletePromises = selectedItems?.map((item) =>
-											(activeTab === "overlays" ? deleteOverlay(item.id) : deletePlaylist(item.id)).then((ok) => ({
-												ok: Boolean(ok),
-												id: item.id,
-											})),
-										);
-
-										Promise.all(deletePromises ?? [])
-											.then((results) => {
-												const failed = results.filter((r) => !r.ok);
-												if (failed.length > 0) {
-													addToast({
-														title: "Error",
-														description: `One or more ${activeTab} could not be deleted.`,
-														color: "danger",
-													});
-													return;
-												}
-
-												if (activeTab === "overlays") {
-													setOverlays((prev) => (prev ? prev.filter((o) => !results.some((r) => r.ok && r.id === o.id)) : []));
-												} else {
-													setPlaylists((prev) => (prev ? prev.filter((p) => !results.some((r) => r.ok && r.id === p.id)) : []));
-												}
-												setSelectedKeys(new Set([]));
-												addToast({
-													title: "Successfully deleted",
-													description: `${selectedItems?.length ?? 0} ${activeTab === "overlays" ? "Overlay" : "Playlist"}${(selectedItems?.length ?? 0) > 1 ? "s" : ""} have been deleted.`,
-													color: "success",
-												});
-											})
-											.catch(() => {
-												addToast({
-													title: "Error",
-													description: `An error occurred while deleting one or more ${activeTab}.`,
-													color: "danger",
-												});
-											});
-									}}
-								>
-									<IconTrash className='text-danger' width={16} /><Label>Delete</Label>
-								</Dropdown.Item>
-							</Dropdown.Menu></Dropdown.Popover>
+								</Dropdown.Menu>
+							</Dropdown.Popover>
 						</Dropdown>
 					)}
 				</div>
@@ -610,7 +649,9 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 						<Chip className='hidden items-center text-muted sm:flex' size='sm' variant='tertiary'>
 							{activeTab === "overlays" ? (overlays?.length ?? 0) : (playlists?.length ?? 0)}
 						</Chip>
-						<Button isIconOnly size='sm' variant='tertiary' onPress={reloadOverlays} aria-label='Reload'>{<IconReload className='text-muted' width={16} />}</Button>
+						<Button isIconOnly size='sm' variant='tertiary' onPress={reloadOverlays} aria-label='Reload'>
+							{<IconReload className='text-muted' width={16} />}
+						</Button>
 					</div>
 					{hasAccess ? (
 						<Dropdown>
@@ -620,66 +661,71 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 								<IconCirclePlus width={20} />
 							</Button>
 
-							<Dropdown.Popover><Dropdown.Menu aria-label='Actions' items={editorAccessList}>
-								{(item) => (
-									<Dropdown.Item
-										key={item.id}
-										id={item.id}
-										textValue={activeTab === "overlays" ? `Add new overlay for ${item.display_name}` : `Add new playlist for ${item.display_name}`}
-										onAction={async () => {
-											setIsLoading(true);
-											try {
-												if (activeTab === "overlays") {
-													const overlay = await createOverlay(item.id);
-													if (!overlay) {
-														addToast({
-															title: "Error",
-															description: "Failed to create overlay. The owner may be on the Free plan or you lack permissions.",
-															color: "danger",
-														});
-														if (currentUser?.id === item.id) {
-															onUpgradeOpen();
+							<Dropdown.Popover>
+								<Dropdown.Menu aria-label='Actions' items={editorAccessList}>
+									{(item) => (
+										<Dropdown.Item
+											key={item.id}
+											id={item.id}
+											textValue={activeTab === "overlays" ? `Add new overlay for ${item.display_name}` : `Add new playlist for ${item.display_name}`}
+											onAction={async () => {
+												setIsLoading(true);
+												try {
+													if (activeTab === "overlays") {
+														const overlay = await createOverlay(item.id);
+														if (!overlay) {
+															addToast({
+																title: "Error",
+																description: "Failed to create overlay. The owner may be on the Free plan or you lack permissions.",
+																color: "danger",
+															});
+															if (currentUser?.id === item.id) {
+																onUpgradeOpen();
+															}
+															return;
 														}
+														router.push(`/dashboard/overlay/${overlay.id}`);
 														return;
 													}
-													router.push(`/dashboard/overlay/${overlay.id}`);
-													return;
-												}
 
-												const playlist = await createPlaylist(item.id, `Playlist ${ownerPlaylistsCount + 1}`);
-												if (!playlist) {
+													const playlist = await createPlaylist(item.id, `Playlist ${ownerPlaylistsCount + 1}`);
+													if (!playlist) {
+														addToast({
+															title: "Error",
+															description: "Failed to create playlist.",
+															color: "danger",
+														});
+														return;
+													}
+													router.push(`/dashboard/playlist/${playlist.id}`);
+												} catch {
 													addToast({
 														title: "Error",
-														description: "Failed to create playlist.",
+														description: activeTab === "overlays" ? "Failed to create overlay. Please try again." : "Failed to create playlist. Please try again.",
 														color: "danger",
 													});
-													return;
+												} finally {
+													setIsLoading(false);
 												}
-												router.push(`/dashboard/playlist/${playlist.id}`);
-											} catch {
-												addToast({
-													title: "Error",
-													description: activeTab === "overlays" ? "Failed to create overlay. Please try again." : "Failed to create playlist. Please try again.",
-													color: "danger",
-												});
-											} finally {
-												setIsLoading(false);
-											}
-										}}
-									>
-										<Label className='flex items-center'>
-											<Avatar className='mr-2 h-6 w-6'>
-												<Avatar.Image alt={item.display_name} src={item.profile_image_url} />
-												<Avatar.Fallback>{item.display_name.slice(0, 2).toUpperCase()}</Avatar.Fallback>
-											</Avatar>
-											{activeTab === "overlays" ? `Add new overlay for ${item.display_name}` : `Add new playlist for ${item.display_name}`}
-										</Label>
-									</Dropdown.Item>
-								)}
-							</Dropdown.Menu></Dropdown.Popover>
+											}}
+										>
+											<Label className='flex items-center'>
+												<Avatar className='mr-2 h-6 w-6'>
+													<Avatar.Image alt={item.display_name} src={item.profile_image_url} />
+													<Avatar.Fallback>{item.display_name.slice(0, 2).toUpperCase()}</Avatar.Fallback>
+												</Avatar>
+												{activeTab === "overlays" ? `Add new overlay for ${item.display_name}` : `Add new playlist for ${item.display_name}`}
+											</Label>
+										</Dropdown.Item>
+									)}
+								</Dropdown.Menu>
+							</Dropdown.Popover>
 						</Dropdown>
 					) : (
-						<Button isPending={isLoading} isDisabled={overlays === undefined} onPress={async () => {
+						<Button
+							isPending={isLoading}
+							isDisabled={overlays === undefined}
+							onPress={async () => {
 								setIsLoading(true);
 
 								if (activeTab === "overlays" && effectivePlan === "free" && ownerOverlaysCount >= 1 && !multiOverlayAccess.allowed) {
@@ -768,10 +814,13 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 										});
 										setIsLoading(false);
 									});
-							}} variant='primary'>
+							}}
+							variant='primary'
+						>
 							{isLoading ? <Spinner color='current' size='sm' /> : null}
 							{activeTab === "overlays" ? "Add Overlay" : "Add Playlist"}
-						{<IconCirclePlus width={20} />}</Button>
+							{<IconCirclePlus width={20} />}
+						</Button>
 					)}
 				</div>
 				{currentUser?.plan === "free" && inTrial && (
@@ -782,14 +831,19 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 								Trial active: <strong className='text-amber-100'>{trialDaysLeft <= 1 ? "Ends today" : `${trialDaysLeft} days left`}</strong>. Lock in Pro before your trial ends.
 							</span>
 						</div>
-						<Button size='sm' variant='primary' className='font-semibold text-black' onPress={() => {
+						<Button
+							size='sm'
+							variant='primary'
+							className='font-semibold text-black'
+							onPress={() => {
 								trackPaywallEvent(plausible, "paywall_cta_click", {
 									source: "paywall_banner",
 									feature: "trial_active",
 									plan: currentUser?.plan ?? "free",
 								});
 								onUpgradeOpen();
-							}}>
+							}}
+						>
 							Upgrade now
 						</Button>
 					</div>
@@ -821,10 +875,18 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 		<div className='h-full w-full p-6'>
 			{topBar}
 			<Tabs selectedKey={activeTab} onSelectionChange={onTabChange} className='mb-4 w-fit max-w-full'>
-				<Tabs.ListContainer className='w-fit max-w-full'><Tabs.List aria-label='Resource type' className='w-fit max-w-full *:w-fit'>
-					<Tabs.Tab id='overlays' className='flex-none'>Overlays<Tabs.Indicator /></Tabs.Tab>
-					<Tabs.Tab id='playlists' className='flex-none'>Playlists<Tabs.Indicator /></Tabs.Tab>
-				</Tabs.List></Tabs.ListContainer>
+				<Tabs.ListContainer className='w-fit max-w-full'>
+					<Tabs.List aria-label='Resource type' className='w-fit max-w-full *:w-fit'>
+						<Tabs.Tab id='overlays' className='flex-none'>
+							Overlays
+							<Tabs.Indicator />
+						</Tabs.Tab>
+						<Tabs.Tab id='playlists' className='flex-none'>
+							Playlists
+							<Tabs.Indicator />
+						</Tabs.Tab>
+					</Tabs.List>
+				</Tabs.ListContainer>
 			</Tabs>
 			{activeTab === "overlays" && currentUser && (currentUser.entitlements?.effectivePlan ?? currentUser.plan) === "free" && !getFeatureAccess(currentUser, "multi_overlay").allowed && (overlays?.filter((o) => o.ownerId === userId).length ?? 0) >= 1 && (
 				<div className='mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning bg-warning-soft px-4 py-3 text-sm text-warning'>
@@ -845,43 +907,93 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 			{topContent}
 			<Table>
 				<Table.ScrollContainer>
-					<Table.Content aria-label='Management table' selectedKeys={filterSelectedKeys} selectionMode='multiple' sortDescriptor={sortDescriptor} onSelectionChange={onSelectionChange} onSortChange={setSortDescriptor} onRowAction={(key) => {
-						router.push(`/dashboard/${activeTab === "overlays" ? "overlay" : "playlist"}/${String(key)}`);
-					}}>
-				<Table.Header>
-					<Table.Column className='pr-0'><Checkbox aria-label='Select all items' slot='selection'><Checkbox.Content><Checkbox.Control><Checkbox.Indicator /></Checkbox.Control></Checkbox.Content></Checkbox></Table.Column>
-					{headerColumns.map((column) => (
-						<Table.Column
-							key={column.uid}
-							id={column.uid}
-							allowsSorting={column.uid === "name" || column.uid === "clipCount"}
-							isRowHeader={column.uid === rowHeaderColumn}
-							className={cn([column.uid === "actions" ? "flex items-center justify-end px-[20px]" : "", column.uid === "accessType" ? "w-[48px] min-w-[48px] max-w-[48px] px-1" : "", column.uid === "id" ? "min-w-[260px]" : "", column.uid === "clipCount" ? "w-[90px] min-w-[90px] max-w-[90px] text-right" : "", column.uid === "name" ? "min-w-[160px]" : ""])}
+					<Table.Content
+						aria-label='Management table'
+						selectedKeys={filterSelectedKeys}
+						selectionMode='multiple'
+						sortDescriptor={sortDescriptor}
+						onSelectionChange={onSelectionChange}
+						onSortChange={setSortDescriptor}
+						onRowAction={(key) => {
+							router.push(`/dashboard/${activeTab === "overlays" ? "overlay" : "playlist"}/${String(key)}`);
+						}}
+					>
+						<Table.Header>
+							<Table.Column className='pr-0'>
+								<Checkbox aria-label='Select all items' slot='selection'>
+									<Checkbox.Content>
+										<Checkbox.Control>
+											<Checkbox.Indicator />
+										</Checkbox.Control>
+									</Checkbox.Content>
+								</Checkbox>
+							</Table.Column>
+							{headerColumns.map((column) => (
+								<Table.Column
+									key={column.uid}
+									id={column.uid}
+									allowsSorting={column.uid === "name" || column.uid === "clipCount"}
+									isRowHeader={column.uid === rowHeaderColumn}
+									className={cn([column.uid === "actions" ? "flex items-center justify-end px-[20px]" : "", column.uid === "accessType" ? "w-[48px] min-w-[48px] max-w-[48px] px-1" : "", column.uid === "id" ? "min-w-[260px]" : "", column.uid === "clipCount" ? "w-[90px] min-w-[90px] max-w-[90px] text-right" : "", column.uid === "name" ? "min-w-[160px]" : ""])}
+								>
+									{column.uid === "name" || column.uid === "clipCount" ? (
+										({ sortDirection }) => <Table.SortableColumnHeader sortDirection={sortDirection}>{column.name}</Table.SortableColumnHeader>
+									) : column.info ? (
+										<div className='flex min-w-[108px] items-center justify-between'>
+											{column.name}
+											<Tooltip delay={0}>
+												<Tooltip.Trigger>
+													<IconInfoCircle className='text-muted' height={16} width={16} />
+												</Tooltip.Trigger>
+												<Tooltip.Content>{column.info}</Tooltip.Content>
+											</Tooltip>
+										</div>
+									) : (
+										column.name
+									)}
+								</Table.Column>
+							))}
+						</Table.Header>
+						<Table.Body
+							renderEmptyState={() =>
+								activeTab === "overlays" ? (
+									overlays === undefined ? (
+										<span className='flex w-full items-center justify-center gap-2 p-4'>
+											<Spinner />
+											Loading overlays
+										</span>
+									) : (
+										<div className='w-full p-4 text-center text-muted'>No overlays found</div>
+									)
+								) : playlists === undefined ? (
+									<span className='flex w-full items-center justify-center gap-2 p-4'>
+										<Spinner />
+										Loading playlists
+									</span>
+								) : (
+									<div className='w-full p-4 text-center text-muted'>No playlists found</div>
+								)
+							}
 						>
-							{column.uid === "name" || column.uid === "clipCount" ? (
-								({ sortDirection }) => <Table.SortableColumnHeader sortDirection={sortDirection}>{column.name}</Table.SortableColumnHeader>
-							) : column.info ? (
-								<div className='flex min-w-[108px] items-center justify-between'>
-									{column.name}
-									<Tooltip delay={0}>
-										<Tooltip.Trigger><IconInfoCircle className='text-muted' height={16} width={16} /></Tooltip.Trigger>
-										<Tooltip.Content>{column.info}</Tooltip.Content>
-									</Tooltip>
-								</div>
-							) : (
-								column.name
-							)}
-						</Table.Column>
-					))}
-				</Table.Header>
-				<Table.Body renderEmptyState={() => activeTab === "overlays" ? overlays === undefined ? <span className='flex w-full items-center justify-center gap-2 p-4'><Spinner />Loading overlays</span> : <div className='w-full p-4 text-center text-muted'>No overlays found</div> : playlists === undefined ? <span className='flex w-full items-center justify-center gap-2 p-4'><Spinner />Loading playlists</span> : <div className='w-full p-4 text-center text-muted'>No playlists found</div>}>
-					{sortedItems.map((item) => (
-						<Table.Row key={item.id} id={item.id} textValue={item.name}>
-							<Table.Cell className='pr-0'><Checkbox aria-label={`Select ${item.name}`} slot='selection' variant='secondary'><Checkbox.Content><Checkbox.Control><Checkbox.Indicator /></Checkbox.Control></Checkbox.Content></Checkbox></Table.Cell>
-							{headerColumns.map((column) => <Table.Cell key={column.uid} className={cn(column.uid === "accessType" ? "w-[48px] min-w-[48px] max-w-[48px] px-1" : "", column.uid === "id" ? "min-w-[260px]" : "", column.uid === "clipCount" ? "w-[90px] min-w-[90px] max-w-[90px] text-right" : "", column.uid === "name" ? "min-w-[160px]" : "")}>{renderCell(item, column.uid)}</Table.Cell>)}
-						</Table.Row>
-					))}
-				</Table.Body>
+							{sortedItems.map((item) => (
+								<Table.Row key={item.id} id={item.id} textValue={item.name}>
+									<Table.Cell className='pr-0'>
+										<Checkbox aria-label={`Select ${item.name}`} slot='selection' variant='secondary'>
+											<Checkbox.Content>
+												<Checkbox.Control>
+													<Checkbox.Indicator />
+												</Checkbox.Control>
+											</Checkbox.Content>
+										</Checkbox>
+									</Table.Cell>
+									{headerColumns.map((column) => (
+										<Table.Cell key={column.uid} className={cn(column.uid === "accessType" ? "w-[48px] min-w-[48px] max-w-[48px] px-1" : "", column.uid === "id" ? "min-w-[260px]" : "", column.uid === "clipCount" ? "w-[90px] min-w-[90px] max-w-[90px] text-right" : "", column.uid === "name" ? "min-w-[160px]" : "")}>
+											{renderCell(item, column.uid)}
+										</Table.Cell>
+									))}
+								</Table.Row>
+							))}
+						</Table.Body>
 					</Table.Content>
 				</Table.ScrollContainer>
 			</Table>
@@ -913,12 +1025,12 @@ function AvatarCell({ ownerId, userId }: { ownerId: string; userId: string }) {
 		};
 	}, [ownerId, userId]);
 
-	return (
-		loading ? <Skeleton className='h-8 w-8 rounded-full' /> : (
-			<Avatar size='sm'>
-				<Avatar.Image alt='' src={src ?? undefined} />
-				<Avatar.Fallback>?</Avatar.Fallback>
-			</Avatar>
-		)
+	return loading ? (
+		<Skeleton className='h-8 w-8 rounded-full' />
+	) : (
+		<Avatar size='sm'>
+			<Avatar.Image alt='' src={src ?? undefined} />
+			<Avatar.Fallback>?</Avatar.Fallback>
+		</Avatar>
 	);
 }

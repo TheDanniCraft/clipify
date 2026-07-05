@@ -13,34 +13,38 @@ export default function ConfirmModal({ isOpen, onOpenChange, keyword, onConfirm 
 				<Modal.Container>
 					<Modal.Dialog>
 						<Modal.CloseTrigger />
-						<Modal.Header><Modal.Heading>
-					<div className='flex items-center'>
-						<IconAlertTriangle />
-						<p className='ml-2'>Confirm Action</p>
-					</div>
-						</Modal.Heading></Modal.Header>
+						<Modal.Header>
+							<Modal.Heading>
+								<div className='flex items-center'>
+									<IconAlertTriangle />
+									<p className='ml-2'>Confirm Action</p>
+								</div>
+							</Modal.Heading>
+						</Modal.Header>
 						<Modal.Body>
-					<span className='leading-snug'>
-						Are you sure that you want to delete <strong>{keyword}</strong>?
-					</span>
-					<p className='leading-snug'>
-						<strong>This action is irreversible!</strong>
-					</p>
-					<TextField className='pt-4' isRequired><Label>{<>
-								Type <strong>{keyword}</strong> to continue
-							</>}</Label><Input onChange={(event) => ((e) => {
-							if (e === keyword) {
-								setConfirmed(true);
-							} else {
-								setConfirmed(false);
-							}
-						})(event.target.value)} placeholder={keyword} /><FieldError /></TextField>
-					<div className='flex justify-end gap-2'>
-						<Button onPress={() => onOpenChange(false)}>Cancel</Button>
-						<Button isDisabled={!confirmed} onPress={onConfirm} variant='danger'>
-							Delete
-						</Button>
-					</div>
+							<span className='leading-snug'>
+								Are you sure that you want to delete <strong>{keyword}</strong>?
+							</span>
+							<p className='leading-snug'>
+								<strong>This action is irreversible!</strong>
+							</p>
+							<TextField className='pt-4' isRequired>
+								<Label>
+									{
+										<>
+											Type <strong>{keyword}</strong> to continue
+										</>
+									}
+								</Label>
+								<Input onChange={(event) => setConfirmed(event.target.value === keyword)} placeholder={keyword} />
+								<FieldError />
+							</TextField>
+							<div className='flex justify-end gap-2'>
+								<Button onPress={() => onOpenChange(false)}>Cancel</Button>
+								<Button isDisabled={!confirmed} onPress={onConfirm} variant='danger'>
+									Delete
+								</Button>
+							</div>
 						</Modal.Body>
 					</Modal.Dialog>
 				</Modal.Container>

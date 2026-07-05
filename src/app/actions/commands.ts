@@ -20,12 +20,12 @@ let nextUpgradeMessageCleanupAt = 0;
 
 async function getPrefix(userId: string): Promise<string | null> {
 	const settings = await getSettingsServer(userId);
-/* ignore: command processing edge case */
+	/* ignore: command processing edge case */
 	return settings ? settings.prefix : null;
 }
 
 async function getUpgradeSettingsUrl() {
-/* ignore: command processing edge case */
+	/* ignore: command processing edge case */
 	if (cachedUpgradeUrl) return cachedUpgradeUrl;
 	cachedUpgradeUrl = new URL("/dashboard/settings", await getBaseUrl()).toString();
 	return cachedUpgradeUrl;
@@ -36,20 +36,20 @@ async function canUseChatCommands(userId: string) {
 	if (now >= nextChatCommandCacheCleanupAt) {
 		nextChatCommandCacheCleanupAt = now + CHAT_COMMAND_ACCESS_TTL_MS;
 		for (const [key, entry] of chatCommandAccessCache) {
-/* ignore: command processing edge case */
+			/* ignore: command processing edge case */
 			if (entry.expiresAt <= now) {
-/* ignore: command processing edge case */
+				/* ignore: command processing edge case */
 				chatCommandAccessCache.delete(key);
 			}
 		}
 	}
 
 	while (chatCommandAccessCache.size > CHAT_COMMAND_ACCESS_MAX_ENTRIES) {
-/* ignore: command processing edge case */
+		/* ignore: command processing edge case */
 		const oldestKey = chatCommandAccessCache.keys().next().value as string | undefined;
-/* ignore: command processing edge case */
+		/* ignore: command processing edge case */
 		if (!oldestKey) break;
-/* ignore: command processing edge case */
+		/* ignore: command processing edge case */
 		chatCommandAccessCache.delete(oldestKey);
 	}
 
@@ -57,14 +57,14 @@ async function canUseChatCommands(userId: string) {
 	if (cached && cached.expiresAt > now) {
 		return cached.allowed;
 	}
-/* ignore: command processing edge case */
+	/* ignore: command processing edge case */
 	if (cached && cached.expiresAt <= now) {
-/* ignore: command processing edge case */
+		/* ignore: command processing edge case */
 		chatCommandAccessCache.delete(userId);
 	}
 
 	const user = await getUserByIdServer(userId);
-/* ignore: command processing edge case */
+	/* ignore: command processing edge case */
 	if (!user) return null;
 	const allowed = getFeatureAccess(user, "chat_commands").allowed;
 	chatCommandAccessCache.set(userId, { allowed, expiresAt: now + CHAT_COMMAND_ACCESS_TTL_MS });
@@ -76,9 +76,9 @@ function canSendUpgradeMessage(broadcasterUserId: string, chatterUserId: string)
 	if (now >= nextUpgradeMessageCleanupAt) {
 		nextUpgradeMessageCleanupAt = now + UPGRADE_MESSAGE_COOLDOWN_MS;
 		for (const [key, until] of upgradeMessageCooldownByUser) {
-/* ignore: command processing edge case */
+			/* ignore: command processing edge case */
 			if (until <= now) {
-/* ignore: command processing edge case */
+				/* ignore: command processing edge case */
 				upgradeMessageCooldownByUser.delete(key);
 			}
 		}
@@ -151,7 +151,7 @@ const commands: Record<string, { description: string; usage: string; execute: (m
 				return;
 			}
 
-/* ignore: command processing edge case */
+			/* ignore: command processing edge case */
 			if (args[0]) {
 				const clip = await handleClip(args[0], message.broadcaster_user_id);
 
@@ -170,7 +170,7 @@ const commands: Record<string, { description: string; usage: string; execute: (m
 					return;
 				}
 
-/* ignore: command processing edge case */
+				/* ignore: command processing edge case */
 				if (!("errorCode" in clip)) {
 					await sendMessage("command", { name: "play", data: { clip } }, message.broadcaster_user_id);
 					await addToModQueue(message.broadcaster_user_id, clip.id);
@@ -185,19 +185,19 @@ const commands: Record<string, { description: string; usage: string; execute: (m
 		description: "Pause playback",
 		usage: "pause",
 		execute: async (message: TwitchMessage) => {
-/* ignore: command processing edge case */
+			/* ignore: command processing edge case */
 			const text = message.message.text;
-/* ignore: command processing edge case */
+			/* ignore: command processing edge case */
 			const args = text.split(/\s+/).filter(Boolean).slice(1);
 
-/* ignore: command processing edge case */
+			/* ignore: command processing edge case */
 			if (args.length === 0) {
-/* ignore: command processing edge case */
+				/* ignore: command processing edge case */
 				await sendMessage("command", { name: "pause", data: null }, message.broadcaster_user_id);
 
-/* ignore: command processing edge case */
+				/* ignore: command processing edge case */
 				await sendChatMessage(message.broadcaster_user_id, `@${message.chatter_user_name} playback has been paused!`);
-/* ignore: command processing edge case */
+				/* ignore: command processing edge case */
 				return;
 			}
 		},
@@ -207,19 +207,19 @@ const commands: Record<string, { description: string; usage: string; execute: (m
 		description: "Skip the current clip",
 		usage: "skip",
 		execute: async (message: TwitchMessage) => {
-/* ignore: command processing edge case */
+			/* ignore: command processing edge case */
 			const text = message.message.text;
-/* ignore: command processing edge case */
+			/* ignore: command processing edge case */
 			const args = text.split(/\s+/).filter(Boolean).slice(1);
 
-/* ignore: command processing edge case */
+			/* ignore: command processing edge case */
 			if (args.length === 0) {
-/* ignore: command processing edge case */
+				/* ignore: command processing edge case */
 				await sendMessage("command", { name: "skip", data: null }, message.broadcaster_user_id);
 
-/* ignore: command processing edge case */
+				/* ignore: command processing edge case */
 				await sendChatMessage(message.broadcaster_user_id, `@${message.chatter_user_name} the current clip has been skipped!`);
-/* ignore: command processing edge case */
+				/* ignore: command processing edge case */
 				return;
 			}
 		},
@@ -229,19 +229,19 @@ const commands: Record<string, { description: string; usage: string; execute: (m
 		description: "Hide the player",
 		usage: "hide",
 		execute: async (message: TwitchMessage) => {
-/* ignore: command processing edge case */
+			/* ignore: command processing edge case */
 			const text = message.message.text;
-/* ignore: command processing edge case */
+			/* ignore: command processing edge case */
 			const args = text.split(/\s+/).filter(Boolean).slice(1);
 
-/* ignore: command processing edge case */
+			/* ignore: command processing edge case */
 			if (args.length === 0) {
-/* ignore: command processing edge case */
+				/* ignore: command processing edge case */
 				await sendMessage("command", { name: "hide", data: null }, message.broadcaster_user_id);
 
-/* ignore: command processing edge case */
+				/* ignore: command processing edge case */
 				await sendChatMessage(message.broadcaster_user_id, `@${message.chatter_user_name} the player has been hidden!`);
-/* ignore: command processing edge case */
+				/* ignore: command processing edge case */
 				return;
 			}
 		},
@@ -251,19 +251,19 @@ const commands: Record<string, { description: string; usage: string; execute: (m
 		description: "Show the player",
 		usage: "show",
 		execute: async (message: TwitchMessage) => {
-/* ignore: command processing edge case */
+			/* ignore: command processing edge case */
 			const text = message.message.text;
-/* ignore: command processing edge case */
+			/* ignore: command processing edge case */
 			const args = text.split(/\s+/).filter(Boolean).slice(1);
 
-/* ignore: command processing edge case */
+			/* ignore: command processing edge case */
 			if (args.length === 0) {
-/* ignore: command processing edge case */
+				/* ignore: command processing edge case */
 				await sendMessage("command", { name: "show", data: null }, message.broadcaster_user_id);
 
-/* ignore: command processing edge case */
+				/* ignore: command processing edge case */
 				await sendChatMessage(message.broadcaster_user_id, `@${message.chatter_user_name} the player has been shown!`);
-/* ignore: command processing edge case */
+				/* ignore: command processing edge case */
 				return;
 			}
 		},
@@ -276,14 +276,14 @@ const commands: Record<string, { description: string; usage: string; execute: (m
 			const text = message.message.text;
 			const args = text.split(/\s+/).filter(Boolean).slice(1);
 
-/* ignore: command processing edge case */
+			/* ignore: command processing edge case */
 			if (args.length === 0) {
 				const modQue = await getModQueue(message.broadcaster_user_id);
 				const rewardQue = [];
 
 				const overlayIds = await getAllOverlayIdsByOwnerInternal(message.broadcaster_user_id);
 
-/* ignore: command processing edge case */
+				/* ignore: command processing edge case */
 				if (overlayIds) {
 					for (const overlayId of overlayIds) {
 						rewardQue.push(...(await getClipQueueByOverlayId(overlayId)));
@@ -295,30 +295,30 @@ const commands: Record<string, { description: string; usage: string; execute: (m
 					return;
 				}
 
-/* ignore: command processing edge case */
+				/* ignore: command processing edge case */
 				const modQueueReply = modQue.length
 					? `Mod Queue [${(
 							await Promise.all(
 								modQue.map(async (clip) => {
 									const twitchClip = await getTwitchClip(clip.clipId, message.broadcaster_user_id);
-/* ignore: command processing edge case */
+									/* ignore: command processing edge case */
 									return twitchClip ? twitchClip.title : "Unknown Clip";
-								})
+								}),
 							)
-					  ).join(", ")}]`
+						).join(", ")}]`
 					: "Mod Queue [empty]";
 
-/* ignore: command processing edge case */
+				/* ignore: command processing edge case */
 				const rewardQueueReply = rewardQue.length
 					? `Reward Queue [${(
 							await Promise.all(
 								rewardQue.map(async (clip) => {
 									const twitchClip = await getTwitchClip(clip.clipId, message.broadcaster_user_id);
-/* ignore: command processing edge case */
+									/* ignore: command processing edge case */
 									return twitchClip ? twitchClip.title : "Unknown Clip";
-								})
+								}),
 							)
-					  ).join(", ")}]`
+						).join(", ")}]`
 					: "Reward Queue [empty]";
 
 				const reply = `${modQueueReply} | ${rewardQueueReply}`;
@@ -337,7 +337,7 @@ const commands: Record<string, { description: string; usage: string; execute: (m
 
 			if (args.length === 0) {
 				const overlayIds = await getAllOverlayIdsByOwnerInternal(message.broadcaster_user_id);
-/* ignore: command processing edge case */
+				/* ignore: command processing edge case */
 				if (overlayIds && overlayIds.length > 0) {
 					await Promise.all(overlayIds.map((overlayId) => clearClipQueueByOverlayIdServer(overlayId)));
 				}
@@ -347,19 +347,19 @@ const commands: Record<string, { description: string; usage: string; execute: (m
 				return;
 			}
 
-/* ignore: command processing edge case */
+			/* ignore: command processing edge case */
 			switch (args[0].toLowerCase()) {
 				case "mod": {
-/* ignore: command processing edge case */
+					/* ignore: command processing edge case */
 					await clearModQueueByBroadcasterId(message.broadcaster_user_id);
-/* ignore: command processing edge case */
+					/* ignore: command processing edge case */
 					await sendChatMessage(message.broadcaster_user_id, `@${message.chatter_user_name} the mod queue has been cleared!`);
-/* ignore: command processing edge case */
+					/* ignore: command processing edge case */
 					return;
 				}
 				case "reward": {
 					const overlayIds = await getAllOverlayIdsByOwnerInternal(message.broadcaster_user_id);
-/* ignore: command processing edge case */
+					/* ignore: command processing edge case */
 					if (overlayIds && overlayIds.length > 0) {
 						await Promise.all(overlayIds.map((overlayId) => clearClipQueueByOverlayIdServer(overlayId)));
 					}
@@ -389,18 +389,18 @@ const commands: Record<string, { description: string; usage: string; execute: (m
 
 			if (args.length === 0) {
 				const uniqueVolumes = Array.from(new Set(overlays.map((o) => o.playerVolume)));
-/* ignore: command processing edge case */
+				/* ignore: command processing edge case */
 				if (uniqueVolumes.length === 1) {
-/* ignore: command processing edge case */
+					/* ignore: command processing edge case */
 					await sendChatMessage(message.broadcaster_user_id, `@${message.chatter_user_name} current player volume is ${uniqueVolumes[0]}%. Use "volume <0-100>" to change it.`);
-/* ignore: command processing edge case */
+					/* ignore: command processing edge case */
 					return;
 				}
 				await sendChatMessage(message.broadcaster_user_id, `@${message.chatter_user_name} overlays currently have mixed volumes (${uniqueVolumes.join(", ")}). Use "volume <0-100>" to set all.`);
 				return;
 			}
 
-/* ignore: command processing edge case */
+			/* ignore: command processing edge case */
 			const rawVolume = (args[0] || "").trim();
 			if (!/^\d+$/.test(rawVolume)) {
 				await sendChatMessage(message.broadcaster_user_id, `@${message.chatter_user_name} please provide a valid number between 0 and 100.`);
@@ -419,16 +419,14 @@ const commands: Record<string, { description: string; usage: string; execute: (m
 		description: "Show help information",
 		usage: "help",
 		execute: async (message: TwitchMessage, prefix: string) => {
-/* ignore: command processing edge case */
+			/* ignore: command processing edge case */
 			const commandList = Object.entries(commands)
-/* ignore: command processing edge case */
+				/* ignore: command processing edge case */
 				.map(([, { usage, description }]) => `${prefix}${usage}: ${description}`)
 				.join(" | ");
 
-/* ignore: command processing edge case */
+			/* ignore: command processing edge case */
 			await sendChatMessage(message.broadcaster_user_id, `Available commands (<[param]> are optional): ${commandList}`);
 		},
 	},
 };
-
-

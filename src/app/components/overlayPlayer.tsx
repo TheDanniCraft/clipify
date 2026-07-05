@@ -52,13 +52,7 @@ function PoweredByBadge({ className }: { className: string }) {
 
 function ResolutionWarning({ width, height }: { width: number; height: number }) {
 	return (
-		<motion.div
-			initial={{ opacity: 0, y: -10 }}
-			animate={{ opacity: 1, y: 0 }}
-			exit={{ opacity: 0, y: -10 }}
-			className='absolute left-4 right-4 top-4 z-[120] pointer-events-none'
-			data-testid='icon-alert'
-		>
+		<motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className='absolute left-4 right-4 top-4 z-[120] pointer-events-none' data-testid='icon-alert'>
 			<div className='mx-auto max-w-3xl rounded-lg border border-amber-300 bg-amber-50/95 px-4 py-3 shadow-xl'>
 				<div className='flex items-start gap-3 text-amber-900'>
 					<div className='mt-0.5 h-8 w-8 min-w-8 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-700'>
@@ -200,17 +194,8 @@ function OverlayViewport({
 	viewportHeight,
 }: OverlayViewportProps) {
 	return (
-		<div
-			className='relative w-screen h-screen group'
-			role={showClickToPlay ? "button" : undefined}
-			tabIndex={showClickToPlay ? 0 : -1}
-			aria-label={showClickToPlay ? "Play clips" : undefined}
-			onClick={showClickToPlay ? onStartRequested : undefined}
-			onKeyDown={onStartKeyDown}
-		>
-			<AnimatePresence>
-				{showResolutionWarning && <ResolutionWarning width={viewportWidth} height={viewportHeight} />}
-			</AnimatePresence>
+		<div className='relative w-screen h-screen group' role={showClickToPlay ? "button" : undefined} tabIndex={showClickToPlay ? 0 : -1} aria-label={showClickToPlay ? "Play clips" : undefined} onClick={showClickToPlay ? onStartRequested : undefined} onKeyDown={onStartKeyDown}>
+			<AnimatePresence>{showResolutionWarning && <ResolutionWarning width={viewportWidth} height={viewportHeight} />}</AnimatePresence>
 			{(clipA?.mediaUrl || clipB?.mediaUrl) && (
 				<>
 					<motion.video
@@ -288,10 +273,16 @@ function OverlayViewport({
 						>
 							{paused ? <IconPlayerPlayFilled className='h-5 w-5 text-white' /> : <IconPlayerPauseFilled className='h-5 w-5 text-white' />}
 						</button>
-						<button type='button' onClick={(event) => {
-							event.stopPropagation();
-							onToggleMuted();
-						}} className='h-10 w-10 rounded-full bg-accent text-white shadow-md hover:bg-brand-600 transition flex items-center justify-center' aria-pressed={isMuted} aria-label={isMuted ? "Unmute overlay" : "Mute overlay"}>
+						<button
+							type='button'
+							onClick={(event) => {
+								event.stopPropagation();
+								onToggleMuted();
+							}}
+							className='h-10 w-10 rounded-full bg-accent text-white shadow-md hover:bg-brand-600 transition flex items-center justify-center'
+							aria-pressed={isMuted}
+							aria-label={isMuted ? "Unmute overlay" : "Mute overlay"}
+						>
 							{isMuted ? <IconVolumeOff className='h-5 w-5 text-zinc-200' /> : <IconVolume className='h-5 w-5 text-white' />}
 						</button>
 					</div>
@@ -335,17 +326,7 @@ function OverlayViewport({
 							)}
 
 							{overlay.showClipInfo && (
-								<PlayerOverlay
-									key={`${videoClip.id}-clip`}
-									left={clipAnchoredRight ? undefined : `${clipInfoPos.x}%`}
-									right={clipAnchoredRight ? `${100 - clipInfoPos.x}%` : undefined}
-									top={clipAnchoredBottom ? undefined : `${clipInfoPos.y}%`}
-									bottom={clipAnchoredBottom ? `${100 - clipInfoPos.y}%` : undefined}
-									scale={overlayScale * clipScale}
-									fadeOutSeconds={overlayFadeOutSeconds}
-									className='w-fit p-2 shadow-lg backdrop-blur-sm max-w-[min(360px,42vw)]'
-									style={themeStyle}
-								>
+								<PlayerOverlay key={`${videoClip.id}-clip`} left={clipAnchoredRight ? undefined : `${clipInfoPos.x}%`} right={clipAnchoredRight ? `${100 - clipInfoPos.x}%` : undefined} top={clipAnchoredBottom ? undefined : `${clipInfoPos.y}%`} bottom={clipAnchoredBottom ? `${100 - clipInfoPos.y}%` : undefined} scale={overlayScale * clipScale} fadeOutSeconds={overlayFadeOutSeconds} className='w-fit p-2 shadow-lg backdrop-blur-sm max-w-[min(360px,42vw)]' style={themeStyle}>
 									<div className={`flex flex-col break-normal ${clipAnchoredRight ? "items-end text-right" : "items-start text-left"}`}>
 										<span className='font-bold'>{videoClip.title}</span>
 										<span className='text-xs opacity-80 mt-1'>clipped by {videoClip.creator_name}</span>
@@ -392,25 +373,7 @@ function OverlayViewport({
 	);
 }
 
-export default function OverlayPlayer({
-	overlay,
-	isEmbed,
-	showBanner,
-	showEmbedOverlay,
-	isDemoPlayer,
-	embedMuted,
-	embedAutoplay,
-	overlaySecret,
-}: {
-	overlay: Overlay;
-	isEmbed?: boolean;
-	showBanner?: boolean;
-	showEmbedOverlay?: boolean;
-	isDemoPlayer?: boolean;
-	embedMuted?: boolean;
-	embedAutoplay?: boolean;
-	overlaySecret?: string;
-}) {
+export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedOverlay, isDemoPlayer, embedMuted, embedAutoplay, overlaySecret }: { overlay: Overlay; isEmbed?: boolean; showBanner?: boolean; showEmbedOverlay?: boolean; isDemoPlayer?: boolean; embedMuted?: boolean; embedAutoplay?: boolean; overlaySecret?: string }) {
 	const plausible = usePlausible();
 	const CROSSFADE_SECONDS = 0.7;
 	const CROSSFADE_MS = Math.round(CROSSFADE_SECONDS * 1000);
@@ -542,14 +505,7 @@ export default function OverlayPlayer({
 
 	const refreshClipPool = useCallback(async () => {
 		try {
-			const excludeIds = Array.from(
-				new Set([
-					...playedClipsRef.current,
-					...(clipRef.current?.id ? [clipRef.current.id] : []),
-					...(nextClipRef.current?.id ? [nextClipRef.current.id] : []),
-					...clipPoolRef.current.map((clip) => clip.id),
-				]),
-			);
+			const excludeIds = Array.from(new Set([...playedClipsRef.current, ...(clipRef.current?.id ? [clipRef.current.id] : []), ...(nextClipRef.current?.id ? [nextClipRef.current.id] : []), ...clipPoolRef.current.map((clip) => clip.id)]));
 			const fetched = await getTwitchClipBatch(overlay.id, overlaySecret, overlay.type, excludeIds, clipPackSize);
 			if (!Array.isArray(fetched)) return fetched;
 			const deduped = new Map<string, TwitchClip>();
@@ -579,12 +535,7 @@ export default function OverlayPlayer({
 		try {
 			const url = new URL(raw);
 			const host = url.hostname.toLowerCase();
-			const isTwitchHost =
-				host === "twitch.tv" ||
-				host === "www.twitch.tv" ||
-				host === "clips.twitch.tv" ||
-				host.endsWith(".twitch.tv") ||
-				host.endsWith(".clips.twitch.tv");
+			const isTwitchHost = host === "twitch.tv" || host === "www.twitch.tv" || host === "clips.twitch.tv" || host.endsWith(".twitch.tv") || host.endsWith(".clips.twitch.tv");
 			if (!isTwitchHost) return null;
 
 			const clipMatch = url.pathname.match(/\/clip\/([^\/\?]+)/);
@@ -701,7 +652,7 @@ export default function OverlayPlayer({
 			getAvatarCached(randomClip.broadcaster_id).catch(() => "");
 			getGameCached(randomClip.game_id, randomClip.broadcaster_id).catch(() => null);
 		},
-		[getAvatarCached, getGameCached]
+		[getAvatarCached, getGameCached],
 	);
 
 	const patchClipById = useCallback((id: string, patch: Partial<VideoClip>) => {
@@ -715,7 +666,7 @@ export default function OverlayPlayer({
 		async (randomClip: TwitchClip): Promise<VideoClip | null> => {
 			prefetchMetadata(randomClip);
 
-		const mediaUrl = await getMediaUrlCached(randomClip.id, overlay.ownerId);
+			const mediaUrl = await getMediaUrlCached(randomClip.id, overlay.ownerId);
 			if (!mediaUrl) return null;
 
 			const baseGame = isDemoPlayer
@@ -732,9 +683,7 @@ export default function OverlayPlayer({
 						igdb_id: "",
 					};
 
-			const cachedAvatar = avatarCacheRef.current.has(randomClip.broadcaster_id)
-				? avatarCacheRef.current.get(randomClip.broadcaster_id) ?? ""
-				: "";
+			const cachedAvatar = avatarCacheRef.current.has(randomClip.broadcaster_id) ? (avatarCacheRef.current.get(randomClip.broadcaster_id) ?? "") : "";
 			const cachedGame =
 				(gameCacheRef.current.has(randomClip.game_id) ? gameCacheRef.current.get(randomClip.game_id) : null) ??
 				(isDemoPlayer
@@ -742,7 +691,7 @@ export default function OverlayPlayer({
 							id: "",
 							name: "Demo Mode",
 							box_art_url: "",
-							igdb_id: "" ,
+							igdb_id: "",
 						}
 					: baseGame);
 
@@ -765,7 +714,7 @@ export default function OverlayPlayer({
 
 			return baseClip;
 		},
-		[getMediaUrlCached, getAvatarCached, getGameCached, isDemoPlayer, overlay.ownerId, patchClipById, prefetchMetadata]
+		[getMediaUrlCached, getAvatarCached, getGameCached, isDemoPlayer, overlay.ownerId, patchClipById, prefetchMetadata],
 	);
 
 	const getFirstFromDemoQueue = useCallback(async () => {
@@ -938,10 +887,7 @@ export default function OverlayPlayer({
 		async (queueItem: ModQueueItem | ClipQueueItem | null | undefined) => {
 			if (!queueItem) return;
 			nextQueueItemRef.current = null;
-			await Promise.allSettled([
-				removeFromModQueue(queueItem.id, overlay.id, overlaySecret),
-				removeFromClipQueue(queueItem.id, overlay.id, overlaySecret),
-			]);
+			await Promise.allSettled([removeFromModQueue(queueItem.id, overlay.id, overlaySecret), removeFromClipQueue(queueItem.id, overlay.id, overlaySecret)]);
 		},
 		[overlay.id, overlaySecret],
 	);
@@ -1214,7 +1160,7 @@ export default function OverlayPlayer({
 			const liveDuration = activeVideo?.duration;
 			const liveCurrentTime = activeVideo?.currentTime;
 			const resolvedDuration = Number.isFinite(liveDuration) && (liveDuration ?? 0) > 0 ? (liveDuration ?? 0) : activeDuration || videoClip?.duration || 0;
-			const resolvedCurrentTime = Number.isFinite(liveCurrentTime) ? Math.max(0, liveCurrentTime ?? 0) : activeCurrentTime ?? 0;
+			const resolvedCurrentTime = Number.isFinite(liveCurrentTime) ? Math.max(0, liveCurrentTime ?? 0) : (activeCurrentTime ?? 0);
 			const nextItems = [nextClipRef.current]
 				.filter((entry): entry is NonNullable<typeof entry> => Boolean(entry))
 				.map((entry) => ({

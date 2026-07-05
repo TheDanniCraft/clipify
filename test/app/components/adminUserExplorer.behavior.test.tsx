@@ -212,15 +212,7 @@ describe("components/adminUserExplorer behavior", () => {
 
 		getAdminExplorerPage.mockReturnValueOnce(slow).mockReturnValueOnce(fast);
 
-		render(
-			<AdminUserExplorer
-				users={[{ id: "u0", username: "base", email: "base@example.com", role: "user", plan: "free", lastLoginLabel: "now" }]}
-				initialPage={1}
-				initialTotalPages={1}
-				initialTotalRows={1}
-				initialQuery=''
-			/>,
-		);
+		render(<AdminUserExplorer users={[{ id: "u0", username: "base", email: "base@example.com", role: "user", plan: "free", lastLoginLabel: "now" }]} initialPage={1} initialTotalPages={1} initialTotalRows={1} initialQuery='' />);
 
 		const input = screen.getByRole("textbox");
 		fireEvent.change(input, { target: { value: "a" } });
@@ -316,29 +308,13 @@ describe("components/adminUserExplorer behavior", () => {
 	});
 
 	it("resyncs local explorer state when new server props arrive", async () => {
-		const { rerender } = render(
-			<AdminUserExplorer
-				users={[{ id: "u1", username: "alice", email: "alice@example.com", role: "user", plan: "free", lastLoginLabel: "now" }]}
-				initialPage={1}
-				initialTotalPages={1}
-				initialTotalRows={1}
-				initialQuery='alice'
-			/>,
-		);
+		const { rerender } = render(<AdminUserExplorer users={[{ id: "u1", username: "alice", email: "alice@example.com", role: "user", plan: "free", lastLoginLabel: "now" }]} initialPage={1} initialTotalPages={1} initialTotalRows={1} initialQuery='alice' />);
 
 		expect(screen.getByRole("textbox")).toHaveValue("alice");
 		expect(screen.getByText("Page 1 / 1")).toBeInTheDocument();
 		expect(screen.getByText("@alice")).toBeInTheDocument();
 
-		rerender(
-			<AdminUserExplorer
-				users={[{ id: "u2", username: "bob", email: "bob@example.com", role: "user", plan: "free", lastLoginLabel: "later" }]}
-				initialPage={2}
-				initialTotalPages={3}
-				initialTotalRows={60}
-				initialQuery='bob'
-			/>,
-		);
+		rerender(<AdminUserExplorer users={[{ id: "u2", username: "bob", email: "bob@example.com", role: "user", plan: "free", lastLoginLabel: "later" }]} initialPage={2} initialTotalPages={3} initialTotalRows={60} initialQuery='bob' />);
 
 		expect(screen.getByRole("textbox")).toHaveValue("bob");
 		expect(screen.getByText("Page 2 / 3")).toBeInTheDocument();

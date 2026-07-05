@@ -1,7 +1,6 @@
 "use client";
 import { notify as addToast } from "@lib/toast";
 
-
 export default function ErrorToast({ error, errorCode }: { error: string; errorCode: string }) {
 	if (error) {
 		let errorMessage;

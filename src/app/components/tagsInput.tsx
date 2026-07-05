@@ -3,7 +3,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Button, Chip, CloseButton, Description, FieldError, InputGroup, Label, ListBox, Popover, TextField } from "@heroui/react";
 
-
 type ChipColor = "default" | "accent" | "success" | "warning" | "danger";
 type ChipVariant = "primary" | "secondary" | "tertiary" | "soft";
 type ChipSize = "sm" | "md" | "lg";
@@ -254,66 +253,74 @@ export default function TagsInput(props: TagsInputProps) {
 
 	const field = (
 		<div
-				ref={rootRef}
-				className={rootClassName}
-				onMouseDown={() => {
-					if (isDisabled || isReadOnly) return;
-					queueMicrotask(() => inputRef.current?.focus());
-				}}
-			>
-				<TextField fullWidth={fullWidth} isDisabled={isDisabled} isInvalid={isInvalid ?? derivedIsInvalid} isReadOnly={isReadOnly} isRequired={isRequired} name={name}>
-					{label ? <Label>{label}</Label> : null}
+			ref={rootRef}
+			className={rootClassName}
+			onMouseDown={() => {
+				if (isDisabled || isReadOnly) return;
+				queueMicrotask(() => inputRef.current?.focus());
+			}}
+		>
+			<TextField fullWidth={fullWidth} isDisabled={isDisabled} isInvalid={isInvalid ?? derivedIsInvalid} isReadOnly={isReadOnly} isRequired={isRequired} name={name}>
+				{label ? <Label>{label}</Label> : null}
 				<InputGroup fullWidth={fullWidth} variant='secondary' className='h-auto min-h-11 flex-wrap gap-2 px-3 py-2'>
-						{tags.length > 0 ? (
-							<InputGroup.Prefix className='flex flex-wrap gap-2 p-0'>
-								{tags.map((t, idx) => (
-									<Chip key={`${t}-${idx}`} color={chipColor} variant={chipVariant} size={chipSize} className={["max-w-full", chipClassName].filter(Boolean).join(" ")}>
-										<span className='truncate'>{t}</span>
-										{isDisabled || isReadOnly ? null : <CloseButton aria-label={`Remove ${t}`} onPress={() => removeTag(t)} />}
-									</Chip>
-								))}
-							</InputGroup.Prefix>
-						) : null}
-						<InputGroup.Input
-							ref={inputRef}
-							aria-label={ariaLabel}
-							enterKeyHint='done'
-							disabled={isDisabled || isAtLimit}
-							readOnly={isReadOnly}
-							value={inputValue}
-							onChange={handleInputChange}
-							onFocus={() => {
-								if (!isDisabled && !isReadOnly) setIsFocused(true);
-							}}
-							onBlur={() => {
-								if (ignoreBlurRef.current) return;
-								setIsFocused(false);
-							}}
-							onKeyDown={(event) => {
-								if (isDisabled || isReadOnly) return;
-								if (event.key === "Enter") {
-									const token = normalize(inputValue);
-									if (!token) return;
-									event.preventDefault();
-									addTag(token);
-									return;
-								}
-								if (event.key === "Backspace" && !inputValue && tags.length > 0) {
-									event.preventDefault();
-									removeTag(tags[tags.length - 1]);
-									return;
-								}
-								if (event.key === "Escape") setIsFocused(false);
-							}}
-							placeholder={tags.length === 0 ? placeholder : undefined}
-							className='min-w-[10ch] flex-1 bg-transparent p-0 text-sm text-foreground outline-none placeholder:text-muted'
-						/>
-						{showCounter ? <InputGroup.Suffix className={["p-0 text-xs tabular-nums", counterClassName].join(" ")}>{counterText}</InputGroup.Suffix> : null}
-						{isClearable && hasContent && !isDisabled && !isReadOnly ? <InputGroup.Suffix className='p-0'><Button size='sm' variant='ghost' onPress={clearAll}>Clear</Button></InputGroup.Suffix> : null}
-					</InputGroup>
-					{errorMessage ?? derivedErrorMessage ? <FieldError>{errorMessage ?? derivedErrorMessage}</FieldError> : description ? <Description>{description}</Description> : null}
-				</TextField>
-			</div>
+					{tags.length > 0 ? (
+						<InputGroup.Prefix className='flex flex-wrap gap-2 p-0'>
+							{tags.map((t, idx) => (
+								<Chip key={`${t}-${idx}`} color={chipColor} variant={chipVariant} size={chipSize} className={["max-w-full", chipClassName].filter(Boolean).join(" ")}>
+									<span className='truncate'>{t}</span>
+									{isDisabled || isReadOnly ? null : <CloseButton aria-label={`Remove ${t}`} onPress={() => removeTag(t)} />}
+								</Chip>
+							))}
+						</InputGroup.Prefix>
+					) : null}
+					<InputGroup.Input
+						ref={inputRef}
+						aria-label={ariaLabel}
+						enterKeyHint='done'
+						disabled={isDisabled || isAtLimit}
+						readOnly={isReadOnly}
+						value={inputValue}
+						onChange={handleInputChange}
+						onFocus={() => {
+							if (!isDisabled && !isReadOnly) setIsFocused(true);
+						}}
+						onBlur={() => {
+							if (ignoreBlurRef.current) return;
+							setIsFocused(false);
+						}}
+						onKeyDown={(event) => {
+							if (isDisabled || isReadOnly) return;
+							if (event.key === "Enter") {
+								const token = normalize(inputValue);
+								if (!token) return;
+								event.preventDefault();
+								addTag(token);
+								return;
+							}
+							if (event.key === "Backspace" && !inputValue && tags.length > 0) {
+								event.preventDefault();
+								removeTag(tags[tags.length - 1]);
+								return;
+							}
+							if (event.key === "Escape") setIsFocused(false);
+						}}
+						placeholder={tags.length === 0 ? placeholder : undefined}
+						className='min-w-[10ch] flex-1 bg-transparent p-0 text-sm text-foreground outline-none placeholder:text-muted'
+					/>
+					{showCounter || (isClearable && hasContent && !isDisabled && !isReadOnly) ? (
+						<InputGroup.Suffix className='flex items-center gap-2 p-0'>
+							{showCounter && <span className={["text-xs tabular-nums", counterClassName].join(" ")}>{counterText}</span>}
+							{isClearable && hasContent && !isDisabled && !isReadOnly && (
+								<Button size='sm' variant='ghost' onPress={clearAll}>
+									Clear
+								</Button>
+							)}
+						</InputGroup.Suffix>
+					) : null}
+				</InputGroup>
+				{(errorMessage ?? derivedErrorMessage) ? <FieldError>{errorMessage ?? derivedErrorMessage}</FieldError> : description ? <Description>{description}</Description> : null}
+			</TextField>
+		</div>
 	);
 
 	if (!suggestions?.length) return field;
@@ -324,32 +331,32 @@ export default function TagsInput(props: TagsInputProps) {
 
 			<Popover.Content placement='bottom start' offset={8} className='w-[--trigger-width] p-1'>
 				<Popover.Dialog>
-				<ListBox
-					aria-label='Suggestions'
-					selectionMode='single'
-					onAction={(key) => {
-						if (isAtLimit || isDisabled || isReadOnly) return;
-						addTag(String(key));
-					}}
-				>
-					{filteredSuggestions.map((s) => (
-						<ListBox.Item
-							key={s}
-							id={s}
-							textValue={s}
-							className={["rounded-[12px]", "data-[hover=true]:bg-transparent", "data-[hover=true]:ring-1 data-[hover=true]:ring-foreground/15", "data-[focus-visible=true]:outline-none data-[focus-visible=true]:ring-2 data-[focus-visible=true]:ring-accent", suggestionItemClassName].filter(Boolean).join(" ")}
-							onMouseDown={() => {
-								ignoreBlurRef.current = true;
-							}}
-							onMouseUp={() => {
-								ignoreBlurRef.current = false;
-								queueMicrotask(() => inputRef.current?.focus());
-							}}
-						>
-							<Label>{s}</Label>
-						</ListBox.Item>
-					))}
-				</ListBox>
+					<ListBox
+						aria-label='Suggestions'
+						selectionMode='single'
+						onAction={(key) => {
+							if (isAtLimit || isDisabled || isReadOnly) return;
+							addTag(String(key));
+						}}
+					>
+						{filteredSuggestions.map((s) => (
+							<ListBox.Item
+								key={s}
+								id={s}
+								textValue={s}
+								className={["rounded-[12px]", "data-[hovered=true]:bg-transparent", "data-[hovered=true]:ring-1 data-[hovered=true]:ring-foreground/15", "data-[focus-visible=true]:outline-none data-[focus-visible=true]:ring-2 data-[focus-visible=true]:ring-accent", suggestionItemClassName].filter(Boolean).join(" ")}
+								onMouseDown={() => {
+									ignoreBlurRef.current = true;
+								}}
+								onMouseUp={() => {
+									ignoreBlurRef.current = false;
+									queueMicrotask(() => inputRef.current?.focus());
+								}}
+							>
+								<Label>{s}</Label>
+							</ListBox.Item>
+						))}
+					</ListBox>
 				</Popover.Dialog>
 			</Popover.Content>
 		</Popover>

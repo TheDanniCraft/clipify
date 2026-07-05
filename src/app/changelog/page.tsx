@@ -42,7 +42,7 @@ export default async function ChangelogPage() {
 									.map((release: GithubRelease) => (
 										<div key={release.id} className='flex items-start gap-6 relative'>
 											<div className='relative z-10 flex items-center justify-center'>
-											<Chip color='accent' size='sm' className='my-2'>
+												<Chip color='accent' size='sm' className='my-2'>
 													{release.name || release.tag_name}
 												</Chip>
 											</div>
@@ -51,7 +51,7 @@ export default async function ChangelogPage() {
 													<CardContent>
 														<Link className='pb-2' href={release.html_url} target='_blank' rel='noopener noreferrer'>
 															<h3 className='text-lg font-semibold'>Release {release.name || release.tag_name}</h3>
-													<LinkIcon />
+															<LinkIcon />
 														</Link>
 														<p
 															className='text-sm'

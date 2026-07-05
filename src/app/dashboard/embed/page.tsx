@@ -109,8 +109,7 @@ export default function EmbedTool() {
 		return `${baseUrl}/embed/${id}${query ? `?${query}` : ""}`;
 	};
 
-	if (isInitializing)
-		return <FullscreenLoadingState message='Loading embed tool...' />;
+	if (isInitializing) return <FullscreenLoadingState message='Loading embed tool...' />;
 
 	if (initializationError) {
 		return (

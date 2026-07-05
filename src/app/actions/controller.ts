@@ -20,9 +20,7 @@ export type ControllerQueueResponse = {
 	viewerQueue: QueueItem[];
 };
 
-export type ControllerActionResult =
-	| { ok: true; volume?: number; clip?: Omit<QueueItem, "id"> }
-	| { ok: false; error: string; status: number };
+export type ControllerActionResult = { ok: true; volume?: number; clip?: Omit<QueueItem, "id"> } | { ok: false; error: string; status: number };
 
 async function requireProOverlay(overlayId: string) {
 	const overlay = await getOverlayWithEditAccess(overlayId);
@@ -81,10 +79,7 @@ export async function getControllerQueuesAction(overlayId: string): Promise<Cont
 	return { overlayId, modQueue, viewerQueue };
 }
 
-export async function runControllerAction(
-	overlayId: string,
-	body: { action?: string; volume?: number; clipUrl?: string } | null,
-): Promise<ControllerActionResult> {
+export async function runControllerAction(overlayId: string, body: { action?: string; volume?: number; clipUrl?: string } | null): Promise<ControllerActionResult> {
 	const action = body?.action;
 
 	if (!action) {

@@ -149,9 +149,12 @@ export default function HomePageClient({ campaignOffer }: HomePageClientProps) {
 											</Link>
 											<Link className={buttonVariants({ variant: "outline", className: "w-[163px] gap-2 border-white text-white hover:bg-white/10" })} href='#pricing'>
 												See our plans
-											{<span className='pointer-events-none flex h-[22px] w-[22px] items-center justify-center rounded-full bg-white'>
+												{
+													<span className='pointer-events-none flex h-[22px] w-[22px] items-center justify-center rounded-full bg-white'>
 														<IconArrowRight className='text-black' width={16} />
-													</span>}</Link>
+													</span>
+												}
+											</Link>
 										</motion.div>
 
 										{communityStreamers.length > 0 ? (
@@ -300,7 +303,9 @@ export default function HomePageClient({ campaignOffer }: HomePageClientProps) {
 								<Accordion.Heading>
 									<Accordion.Trigger className='px-6 py-5 text-base md:py-6'>
 										<span>{item.title}</span>
-										<Accordion.Indicator><IconChevronDown width={24} /></Accordion.Indicator>
+										<Accordion.Indicator>
+											<IconChevronDown width={24} />
+										</Accordion.Indicator>
 									</Accordion.Trigger>
 								</Accordion.Heading>
 								<Accordion.Panel>

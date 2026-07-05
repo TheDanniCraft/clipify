@@ -1,7 +1,6 @@
 "use client";
 import { Avatar } from "@heroui/react";
 
-
 import type { CommunityTeaserStreamer } from "@lib/community-types";
 
 type CommunityHeroAvatarsProps = {
@@ -15,11 +14,7 @@ export default function CommunityHeroAvatars({ streamers }: CommunityHeroAvatars
 	return (
 		<div className='flex items-center'>
 			{visibleStreamers.map((streamer, index) => (
-				<Avatar
-					key={streamer.id}
-					className={["relative h-8 w-8 text-xs ring-2 ring-background", index > 0 ? "-ms-2" : ""].filter(Boolean).join(" ")}
-					style={{ zIndex: visibleStreamers.length - index }}
-				>
+				<Avatar key={streamer.id} className={["relative h-8 w-8 text-xs ring-2 ring-background", index > 0 ? "-ms-2" : ""].filter(Boolean).join(" ")} style={{ zIndex: visibleStreamers.length - index }}>
 					<Avatar.Image alt={streamer.displayName} src={streamer.avatar} />
 					<Avatar.Fallback>{streamer.displayName.slice(0, 2).toUpperCase()}</Avatar.Fallback>
 				</Avatar>

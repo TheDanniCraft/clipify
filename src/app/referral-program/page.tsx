@@ -30,7 +30,8 @@ export default function AffiliateProgram() {
 						<div className='flex flex-col items-start gap-6'>
 							<Button variant='secondary'>
 								Clipify Public Affiliate Program
-							{<IconArrowRight className='flex-none outline-hidden [&>path]:stroke-2' width={20} />}</Button>
+								{<IconArrowRight className='flex-none outline-hidden [&>path]:stroke-2' width={20} />}
+							</Button>
 
 							<div className='text-left text-[clamp(40px,10vw,44px)] leading-[1.1] font-bold tracking-tighter sm:text-[64px] text-white'>
 								<div className='bg-hero-section-title bg-clip-text text-transparent'>
@@ -54,9 +55,12 @@ export default function AffiliateProgram() {
 								</Link>
 								<Link className='border-white/60 text-sm h-10 border-2 px-4 py-2.5 leading-5 font-semibold text-white rounded-full inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 font-medium bg-default text-foreground hover:bg-default/80' href='#details'>
 									See Details
-								{<span className='bg-white pointer-events-none flex h-[22px] w-[22px] items-center justify-center rounded-full'>
+									{
+										<span className='bg-white pointer-events-none flex h-[22px] w-[22px] items-center justify-center rounded-full'>
 											<IconArrowRight className='text-default-foreground [&>path]:stroke-[2.5]' width={16} />
-										</span>}</Link>
+										</span>
+									}
+								</Link>
 							</div>
 						</div>
 
@@ -143,7 +147,9 @@ export default function AffiliateProgram() {
 								<Accordion.Heading>
 									<Accordion.Trigger className='px-6 py-5 text-base md:py-6'>
 										<span>{item.title}</span>
-										<Accordion.Indicator><IconChevronDown width={24} /></Accordion.Indicator>
+										<Accordion.Indicator>
+											<IconChevronDown width={24} />
+										</Accordion.Indicator>
 									</Accordion.Trigger>
 								</Accordion.Heading>
 								<Accordion.Panel>

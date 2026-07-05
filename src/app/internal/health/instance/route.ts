@@ -33,12 +33,9 @@ export async function GET(request: NextRequest) {
 
 	const health = await getInstanceHealthSnapshot();
 
-	return Response.json(
-		health,
-		{
-			headers: {
-				"Cache-Control": "no-store",
-			},
+	return Response.json(health, {
+		headers: {
+			"Cache-Control": "no-store",
 		},
-	);
+	});
 }

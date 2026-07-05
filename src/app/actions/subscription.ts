@@ -29,12 +29,12 @@ let stripe: Stripe | null = null;
 
 /* istanbul ignore next */
 export async function getStripe() {
-/* istanbul ignore next */
+	/* istanbul ignore next */
 	if (stripe) {
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		return stripe;
 	}
-/* istanbul ignore next */
+	/* istanbul ignore next */
 	stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "");
 
 	return stripe;
@@ -47,9 +47,9 @@ export async function getPlans() {
 
 async function getAuthorizedUser() {
 	const authUser = await validateAuth(false);
-/* istanbul ignore next */
+	/* istanbul ignore next */
 	if (!authUser) {
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		throw new Error("Unauthorized");
 	}
 	return authUser;
@@ -91,9 +91,9 @@ export async function generatePaymentLink(billingCycle: BillingCycle, returnUrl?
 	const cookieStore = await cookies();
 	const products = await getPlans();
 	const selectedPrice = products[billingCycle];
-/* istanbul ignore next */
+	/* istanbul ignore next */
 	if (!selectedPrice) {
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		throw new Error(`Missing Stripe price for billing cycle: ${billingCycle}`);
 	}
 
@@ -104,11 +104,11 @@ export async function generatePaymentLink(billingCycle: BillingCycle, returnUrl?
 		if (!returnUrl) return defaultReturnUrl;
 		try {
 			const resolved = new URL(returnUrl, baseUrl);
-/* istanbul ignore next */
+			/* istanbul ignore next */
 			if (resolved.origin !== baseUrl.origin) return defaultReturnUrl;
 			return resolved.toString();
 		} catch {
-/* istanbul ignore next */
+			/* istanbul ignore next */
 			return defaultReturnUrl;
 		}
 	})();
@@ -119,18 +119,18 @@ export async function generatePaymentLink(billingCycle: BillingCycle, returnUrl?
 			email: authUser.email,
 			metadata: {
 				userId: authUser.id,
-/* istanbul ignore next */
+				/* istanbul ignore next */
 				source: source ?? "upgrade_modal",
 			},
 		});
 		stripeCustomerId = customer.id;
 		const persisted = await persistStripeCustomerId(authUser.id, customer.id);
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		if (!persisted) {
-/* istanbul ignore next */
+			/* istanbul ignore next */
 			throw new Error("Failed to persist Stripe customer ID");
 		}
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		console.info("[entitlements] stripe_customer_created_on_intent", { userId: authUser.id, customerId: customer.id, source: source ?? "upgrade_modal" });
 	}
 
@@ -145,7 +145,7 @@ export async function generatePaymentLink(billingCycle: BillingCycle, returnUrl?
 			code: offerCode,
 			limit: 1,
 		});
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		promo = promoList.data.length ? promoList.data[0] : null;
 	}
 
@@ -182,18 +182,18 @@ export async function generatePaymentLink(billingCycle: BillingCycle, returnUrl?
 		session = await createSession(true);
 	} catch (error) {
 		const err = error as Stripe.StripeRawError;
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		const msg = err?.message || "";
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		const code = err?.code || "";
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		const promoNotRedeemable = code === "promotion_code_not_redeemable" || msg.includes("promotion code cannot be redeemed");
 
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		if (promo && promoNotRedeemable) {
 			session = await createSession(false);
 		} else {
-/* istanbul ignore next */
+			/* istanbul ignore next */
 			throw error;
 		}
 	}
@@ -217,5 +217,3 @@ export async function getPortalLink() {
 
 	return session.url;
 }
-
-

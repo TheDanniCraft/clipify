@@ -110,7 +110,6 @@ async function handleNotification(bodyText: string): Promise<Response | null> {
 			if (res) return res;
 			break;
 		}
-
 	}
 
 	return null;

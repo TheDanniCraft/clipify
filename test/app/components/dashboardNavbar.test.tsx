@@ -63,7 +63,11 @@ jest.mock("@heroui/react", () => {
 			Item: ({ children, onAction }: { children: React.ReactNode; onAction?: () => void }) => <button onClick={onAction}>{children}</button>,
 		}),
 		ComboBox: Object.assign(
-			({ children, inputValue, onInputChange, onSelectionChange }: { children: React.ReactNode; inputValue?: string; onInputChange?: (value: string) => void; onSelectionChange?: (key: string) => void }) => <ComboContext.Provider value={{ inputValue, onInputChange, onSelectionChange }}><div>{children}</div></ComboContext.Provider>,
+			({ children, inputValue, onInputChange, onSelectionChange }: { children: React.ReactNode; inputValue?: string; onInputChange?: (value: string) => void; onSelectionChange?: (key: string) => void }) => (
+				<ComboContext.Provider value={{ inputValue, onInputChange, onSelectionChange }}>
+					<div>{children}</div>
+				</ComboContext.Provider>
+			),
 			{
 				InputGroup: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 				Trigger: () => null,
@@ -75,13 +79,25 @@ jest.mock("@heroui/react", () => {
 			return <input aria-label='admin-switch-search' value={context.inputValue} onChange={(event) => context.onInputChange?.(event.target.value)} />;
 		},
 		Label: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
-		ListBox: Object.assign(({ children: _children, items = [] }: { children: React.ReactNode | ((item: { id: string; username: string }) => React.ReactNode); items?: Array<{ id: string; username: string }> }) => {
-			const context = ReactLib.useContext(ComboContext);
-			return <select aria-label='admin-switch-select' onChange={(event) => context.onSelectionChange?.(event.target.value)}><option value=''>Select user</option>{items.map((item) => <option key={item.id} value={item.id}>{item.username}</option>)}</select>;
-		}, {
-			Item: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-			ItemIndicator: () => null,
-		}),
+		ListBox: Object.assign(
+			({ children: _children, items = [] }: { children: React.ReactNode | ((item: { id: string; username: string }) => React.ReactNode); items?: Array<{ id: string; username: string }> }) => {
+				const context = ReactLib.useContext(ComboContext);
+				return (
+					<select aria-label='admin-switch-select' onChange={(event) => context.onSelectionChange?.(event.target.value)}>
+						<option value=''>Select user</option>
+						{items.map((item) => (
+							<option key={item.id} value={item.id}>
+								{item.username}
+							</option>
+						))}
+					</select>
+				);
+			},
+			{
+				Item: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+				ItemIndicator: () => null,
+			},
+		),
 		Link: ({ children, href }: { children: React.ReactNode; href?: string }) => <a href={href}>{children}</a>,
 		Spacer: () => <span />,
 	};

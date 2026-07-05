@@ -272,19 +272,19 @@ export default function SettingsPage() {
 				<Card className='mt-4'>
 					<Card.Header>
 						<div className='flex items-center gap-2 w-full justify-between'>
-							<Button isIconOnly variant='tertiary' onPress={() => router.push("/dashboard")} aria-label='Back to Dashboard'>{<IconArrowLeft />}</Button>
+							<Button isIconOnly variant='tertiary' onPress={() => router.push("/dashboard")} aria-label='Back to Dashboard'>
+								{<IconArrowLeft />}
+							</Button>
 							<div className='flex items-center gap-2'>
 								<div className='flex items-center overflow-hidden'>
-									<CodeSnippet
-										size='sm'
-										symbol='User ID:'
-										preClassName='overflow-hidden whitespace-nowrap'
-									>
+									<CodeSnippet size='sm' symbol='User ID:' preClassName='overflow-hidden whitespace-nowrap'>
 										{user.id}
 									</CodeSnippet>
 								</div>
 								<Tooltip delay={0}>
-									<Tooltip.Trigger><IconInfoCircle size={20} className='text-muted' /></Tooltip.Trigger>
+									<Tooltip.Trigger>
+										<IconInfoCircle size={20} className='text-muted' />
+									</Tooltip.Trigger>
 									<Tooltip.Content>If you contact support, please specify this user ID.</Tooltip.Content>
 								</Tooltip>
 							</div>
@@ -305,12 +305,14 @@ export default function SettingsPage() {
 						</div>
 						<div className='mb-6 flex flex-wrap gap-3'>
 							{canUpgradeFromBilling && (
-								<Button isDisabled={!canUpgradeFromBilling} onPress={upgradeModalOnOpen} aria-label='Upgrade Account' variant='primary'>{<IconDiamondFilled />}
+								<Button isDisabled={!canUpgradeFromBilling} onPress={upgradeModalOnOpen} aria-label='Upgrade Account' variant='primary'>
+									{<IconDiamondFilled />}
 									Upgrade Account
 								</Button>
 							)}
 							{user.plan !== Plan.Free && (
-								<Button onPress={async () => {
+								<Button
+									onPress={async () => {
 										const link = await getPortalLink();
 										if (link) {
 											window.location.href = link;
@@ -321,7 +323,10 @@ export default function SettingsPage() {
 												color: "danger",
 											});
 										}
-									}} variant='primary'>{<IconCreditCardFilled />}
+									}}
+									variant='primary'
+								>
+									{<IconCreditCardFilled />}
 									Manage Subscription
 								</Button>
 							)}
@@ -342,14 +347,14 @@ export default function SettingsPage() {
 									<span className={`text-xs font-semibold ${clipCacheStatus?.backfillComplete ? "text-success" : "text-warning"}`}>{clipCacheStatus?.backfillComplete ? "Complete" : "Syncing"}</span>
 								</div>
 								<div className='flex flex-wrap items-center justify-between gap-2'>
-									<p className='text-xs text-muted'>
-										Manual refresh: {clipForceRefreshStatus?.canRefresh ? "available now" : `available in ${formatDurationMs(clipForceRefreshStatus?.remainingMs ?? 0)}`}
-									</p>
+									<p className='text-xs text-muted'>Manual refresh: {clipForceRefreshStatus?.canRefresh ? "available now" : `available in ${formatDurationMs(clipForceRefreshStatus?.remainingMs ?? 0)}`}</p>
 									<div className='flex items-center gap-2'>
 										<Tooltip delay={0}>
-											<Tooltip.Trigger><Button isIconOnly size='sm' variant='tertiary' onPress={handleRefreshStats} isPending={isRefreshingStats} aria-label='Refresh statistics'>
-												{isRefreshingStats ? <Spinner color='current' size='sm' /> : <IconRefresh size={18} />}
-											</Button></Tooltip.Trigger>
+											<Tooltip.Trigger>
+												<Button isIconOnly size='sm' variant='tertiary' onPress={handleRefreshStats} isPending={isRefreshingStats} aria-label='Refresh statistics'>
+													{isRefreshingStats ? <Spinner color='current' size='sm' /> : <IconRefresh size={18} />}
+												</Button>
+											</Tooltip.Trigger>
 											<Tooltip.Content>Refresh statistics</Tooltip.Content>
 										</Tooltip>
 										<Button size='sm' variant='danger' className='font-semibold' isPending={isForceRefreshing} isDisabled={isForceRefreshing || !clipForceRefreshStatus?.canRefresh} onPress={handleForceRefreshCache}>
@@ -390,69 +395,87 @@ export default function SettingsPage() {
 							<Separator />
 
 							<Form className='flex w-full flex-col gap-4' onSubmit={handleSubmit}>
-								<TextField fullWidth variant='secondary' type='text' isRequired><Label>Command Prefix</Label><Input className='w-full' value={settings?.prefix || ""} maxLength={3} onChange={(e) => {
-										if (!settings) {
-											return;
-										}
-										const value = e.target.value.trim();
-										if (value.length <= 3) {
-											setSettings({ ...settings, prefix: value });
-										}
-									}} /><Description>Maximum of 3 characters. This prefix will be used for all bot commands.</Description><FieldError /></TextField>
+								<TextField fullWidth variant='secondary' type='text' isRequired>
+									<Label>Command Prefix</Label>
+									<Input
+										className='w-full'
+										value={settings?.prefix || ""}
+										maxLength={3}
+										onChange={(e) => {
+											if (!settings) {
+												return;
+											}
+											const value = e.target.value.trim();
+											if (value.length <= 3) {
+												setSettings({ ...settings, prefix: value });
+											}
+										}}
+									/>
+									<Description>Maximum of 3 characters. This prefix will be used for all bot commands.</Description>
+									<FieldError />
+								</TextField>
 								<Card variant='secondary' className='w-full'>
 									<Card.Content>
-									<div className='flex items-center justify-between gap-4'>
-										<div>
-											<p className='font-semibold text-sm'>Email Preferences</p>
-											<p className='text-xs text-muted'>Product updates and occasional special offers.</p>
+										<div className='flex items-center justify-between gap-4'>
+											<div>
+												<p className='font-semibold text-sm'>Email Preferences</p>
+												<p className='text-xs text-muted'>Product updates and occasional special offers.</p>
+											</div>
+											<Switch
+												isSelected={receivesProductUpdates}
+												isDisabled={!settings}
+												aria-label='Receive emails'
+												onChange={(value) => {
+													if (!settings) {
+														return;
+													}
+													setSettings({
+														...settings,
+														marketingOptIn: value,
+														marketingOptInSource: value ? "settings_page_explicit_optin" : "settings_page_optout",
+													});
+												}}
+											>
+												<Switch.Content>
+													<Switch.Control>
+														<Switch.Thumb />
+													</Switch.Control>
+												</Switch.Content>
+											</Switch>
 										</div>
-										<Switch
-											isSelected={receivesProductUpdates}
-											isDisabled={!settings}
-											aria-label='Receive emails'
-											onChange={(value) => {
-												if (!settings) {
-													return;
-												}
-												setSettings({
-													...settings,
-													marketingOptIn: value,
-													marketingOptInSource: value ? "settings_page_explicit_optin" : "settings_page_optout",
-												});
-											}}
-										>
-											<Switch.Content><Switch.Control><Switch.Thumb /></Switch.Control></Switch.Content>
-										</Switch>
-									</div>
-									<p className='mt-2 text-xs text-muted'>Opt out anytime here or by using the unsubscribe link in any email.</p>
-									{settings?.marketingOptInAt && <p className='mt-1 text-xs text-muted'>Consent recorded on {new Date(settings.marketingOptInAt).toLocaleString()}.</p>}
+										<p className='mt-2 text-xs text-muted'>Opt out anytime here or by using the unsubscribe link in any email.</p>
+										{settings?.marketingOptInAt && <p className='mt-1 text-xs text-muted'>Consent recorded on {new Date(settings.marketingOptInAt).toLocaleString()}.</p>}
 									</Card.Content>
 								</Card>
 								<Card variant='secondary' className='w-full'>
 									<Card.Content>
-									<div className='flex items-center justify-between gap-4'>
-										<div>
-											<p className='font-semibold text-sm'>Community Page</p>
-											<p className='text-xs text-muted'>Opt in to appear on the public community page with your Twitch handle and channel link.</p>
+										<div className='flex items-center justify-between gap-4'>
+											<div>
+												<p className='font-semibold text-sm'>Community Page</p>
+												<p className='text-xs text-muted'>Opt in to appear on the public community page with your Twitch handle and channel link.</p>
+											</div>
+											<Switch
+												isSelected={showOnCommunityPage}
+												isDisabled={!settings}
+												aria-label='Show on community page'
+												onChange={(value) => {
+													if (!settings) {
+														return;
+													}
+													setSettings({
+														...settings,
+														showOnCommunityPage: value,
+													});
+												}}
+											>
+												<Switch.Content>
+													<Switch.Control>
+														<Switch.Thumb />
+													</Switch.Control>
+												</Switch.Content>
+											</Switch>
 										</div>
-										<Switch
-											isSelected={showOnCommunityPage}
-											isDisabled={!settings}
-											aria-label='Show on community page'
-											onChange={(value) => {
-												if (!settings) {
-													return;
-												}
-												setSettings({
-													...settings,
-													showOnCommunityPage: value,
-												});
-											}}
-										>
-											<Switch.Content><Switch.Control><Switch.Thumb /></Switch.Control></Switch.Content>
-										</Switch>
-									</div>
-									<p className='mt-2 text-xs text-muted'>Show up on the public community page with your Twitch handle and channel link.</p>
+										<p className='mt-2 text-xs text-muted'>Show up on the public community page with your Twitch handle and channel link.</p>
 									</Card.Content>
 								</Card>
 
@@ -469,7 +492,9 @@ export default function SettingsPage() {
 													<li>Remote control panel for live playback</li>
 													<li>Priority support</li>
 												</ul>
-												<Button variant='primary' onPress={async () => {
+												<Button
+													variant='primary'
+													onPress={async () => {
 														if (!user) return;
 														trackPaywallEvent(plausible, "paywall_cta_click", {
 															source: "paywall_banner",
@@ -495,7 +520,9 @@ export default function SettingsPage() {
 																color: "danger",
 															});
 														}
-													}} className='mt-3 w-full font-semibold'>
+													}}
+													className='mt-3 w-full font-semibold'
+												>
 													Upgrade to Pro
 												</Button>
 												<p className='text-xs text-center mt-2'>{inTrial ? `Trial active: ${trialDaysLeft <= 1 ? "ends today." : `${trialDaysLeft} days left.`}` : "Start Pro now. Cancel anytime."}</p>
@@ -537,13 +564,17 @@ export default function SettingsPage() {
 									/>
 								</div>
 
-								<Button fullWidth type='submit' isDisabled={!isFormDirty()} aria-label='Save Settings' variant='primary'>{<IconDeviceFloppy />}
+								<Button fullWidth type='submit' isDisabled={!isFormDirty()} aria-label='Save Settings' variant='primary'>
+									{<IconDeviceFloppy />}
 									Save Settings
 								</Button>
 							</Form>
 							<Separator className='my-4' />
 							<div className='flex  flex-col gap-2 justify-end'>
-								<Button fullWidth isDisabled={user.plan !== Plan.Free} onPress={async () => {
+								<Button
+									fullWidth
+									isDisabled={user.plan !== Plan.Free}
+									onPress={async () => {
 										if (await checkIfSubscriptionExists()) {
 											return addToast({
 												title: "Active Subscription",
@@ -552,7 +583,10 @@ export default function SettingsPage() {
 											});
 										}
 										deleteModalOnOpen();
-									}} variant='danger'>{<IconTrash />}
+									}}
+									variant='danger'
+								>
+									{<IconTrash />}
 									Delete Account
 								</Button>
 								{user.plan !== Plan.Free && <span className='text-sm text-gray-500'>You must cancel your subscription and wait for it to expire before deleting your account.</span>}
@@ -563,28 +597,28 @@ export default function SettingsPage() {
 			</DashboardNavbar>
 
 			<ControlledModal variant='blur' isOpen={navGuard.active} onClose={navGuard.reject}>
-					<Modal.Header>
-						<Modal.Heading className='flex items-center'>
-							<IconAlertTriangle className='mr-2' />
-							Unsaved Changes
-						</Modal.Heading>
-					</Modal.Header>
-					<Modal.Body>
-						<p className='text-sm text-foreground'>
-							You&apos;ve made changes to your <span className='font-semibold text-foreground'> settings</span> that haven&apos;t been saved. If you go back now, <span className='font-semibold text-danger'>those changes will be lost</span>.
-							<br />
-							<br />
-							<span className='font-semibold text-foreground'>Do you want to continue without saving?</span>
-						</p>
-					</Modal.Body>
-					<Modal.Footer>
-						<Button variant='tertiary' onPress={navGuard.reject} aria-label='Cancel'>
-							Cancel
-						</Button>
-						<Button onPress={navGuard.accept} aria-label='Discard Changes' variant='danger'>
-							Discard changes
-						</Button>
-					</Modal.Footer>
+				<Modal.Header>
+					<Modal.Heading className='flex items-center'>
+						<IconAlertTriangle className='mr-2' />
+						Unsaved Changes
+					</Modal.Heading>
+				</Modal.Header>
+				<Modal.Body>
+					<p className='text-sm text-foreground'>
+						You&apos;ve made changes to your <span className='font-semibold text-foreground'> settings</span> that haven&apos;t been saved. If you go back now, <span className='font-semibold text-danger'>those changes will be lost</span>.
+						<br />
+						<br />
+						<span className='font-semibold text-foreground'>Do you want to continue without saving?</span>
+					</p>
+				</Modal.Body>
+				<Modal.Footer>
+					<Button variant='tertiary' onPress={navGuard.reject} aria-label='Cancel'>
+						Cancel
+					</Button>
+					<Button onPress={navGuard.accept} aria-label='Discard Changes' variant='danger'>
+						Discard changes
+					</Button>
+				</Modal.Footer>
 			</ControlledModal>
 
 			<UpgradeModal key={`${upgradeIntent.source}-${upgradeIntent.feature}-${upgradeIntent.cycle}`} isOpen={upgradeModalIsOpen} onOpenChange={upgradeModalOnOpenChange} user={user} title='Upgrade Account' source={upgradeIntent.source} feature={upgradeIntent.feature} initialBillingCycle={upgradeIntent.cycle} />
@@ -607,4 +641,3 @@ export default function SettingsPage() {
 		</>
 	);
 }
-

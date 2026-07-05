@@ -108,47 +108,68 @@ const Construction = ({ endDate, cta }: { endDate?: Date; cta: Cta }) => {
 
 				<motion.div initial={{ opacity: 0.1 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 + (endDate ? 0.3 : 0), duration: 0.5 }}>
 					<Popover>
-						<Button variant='secondary' size='lg' aria-label={cta.text}>{cta.icon}
+						<Button variant='secondary' size='lg' aria-label={cta.text}>
+							{cta.icon}
 							{cta.text}
 						</Button>
 						<Popover.Content offset={10} placement='bottom' className='w-[300px] min-w-[300px] p-5'>
 							<Popover.Arrow />
 							<Popover.Dialog>
-							<Form onSubmit={subscribe}>
-								<TextField isRequired type='email' className={newsletterState == "success" ? "text-success" : newsletterState == "error" || newsletterState == "rateLimit" ? "text-danger" : "text-foreground"} name='email' isDisabled={newsletterState === "loading" || newsletterState === "success"}><Label>Enter your Email</Label><InputGroup><InputGroup.Prefix>{(() => {
-										switch (newsletterState) {
-											case "loading":
-												return <Spinner />;
-											case "success":
-												return <IconCircleCheckFilled className='text-success' />;
-											default:
-												return <IconMailFilled className='text-muted' />;
-										}
-									})()}</InputGroup.Prefix><InputGroup.Input placeholder='mail@example.com' onChange={() => {
-										setNewsletterState("default");
-									}} /><InputGroup.Suffix>{<Button size='sm' isIconOnly type='submit' isDisabled={newsletterState === "loading" || newsletterState === "success"} aria-label='Subscribe to newsletter' variant='primary'>
-											<IconSend className='text-white' />
-										</Button>}</InputGroup.Suffix></InputGroup><Description>{(() => {
-										switch (newsletterState) {
-											case "loading":
-												return "Subscribing...";
-											case "error":
-												return "An error occurred. Please try again. If the error persists, please contact the team.";
-											case "rateLimit":
-												return "Please wait before trying again.";
-											default:
-												return "";
-										}
-									})()}</Description><FieldError /></TextField>
-								<Turnstile siteKey='0x4AAAAAACMFR636JljxhVLl' onSuccess={setToken} onError={() => console.error("Turnstile error")} onExpire={() => setToken(null)} />
-							</Form>
-							{newsletterState === "success" && (
-								<div className='text-success mt-2 text-center'>
-									<Image unoptimized alt='Tada Icon' src='https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Activities/Party%20Popper.png' width={50} height={50} className='mx-auto' />
-									<p className='text-lg font-bold'>You&apos;re almost there!</p>
-									<p className='text-xs'>We&apos;ve just sent a confirmation email your way. Check your inbox to finish subscribing-and if you don&apos;t see it, be sure to take a quick look in your spam folder too.</p>
-								</div>
-							)}
+								<Form onSubmit={subscribe}>
+									<TextField isRequired type='email' className={newsletterState == "success" ? "text-success" : newsletterState == "error" || newsletterState == "rateLimit" ? "text-danger" : "text-foreground"} name='email' isDisabled={newsletterState === "loading" || newsletterState === "success"}>
+										<Label>Enter your Email</Label>
+										<InputGroup>
+											<InputGroup.Prefix>
+												{(() => {
+													switch (newsletterState) {
+														case "loading":
+															return <Spinner />;
+														case "success":
+															return <IconCircleCheckFilled className='text-success' />;
+														default:
+															return <IconMailFilled className='text-muted' />;
+													}
+												})()}
+											</InputGroup.Prefix>
+											<InputGroup.Input
+												placeholder='mail@example.com'
+												onChange={() => {
+													setNewsletterState("default");
+												}}
+											/>
+											<InputGroup.Suffix>
+												{
+													<Button size='sm' isIconOnly type='submit' isDisabled={newsletterState === "loading" || newsletterState === "success"} aria-label='Subscribe to newsletter' variant='primary'>
+														<IconSend className='text-white' />
+													</Button>
+												}
+											</InputGroup.Suffix>
+										</InputGroup>
+										<Description>
+											{(() => {
+												switch (newsletterState) {
+													case "loading":
+														return "Subscribing...";
+													case "error":
+														return "An error occurred. Please try again. If the error persists, please contact the team.";
+													case "rateLimit":
+														return "Please wait before trying again.";
+													default:
+														return "";
+												}
+											})()}
+										</Description>
+										<FieldError />
+									</TextField>
+									<Turnstile siteKey='0x4AAAAAACMFR636JljxhVLl' onSuccess={setToken} onError={() => console.error("Turnstile error")} onExpire={() => setToken(null)} />
+								</Form>
+								{newsletterState === "success" && (
+									<div className='text-success mt-2 text-center'>
+										<Image unoptimized alt='Tada Icon' src='https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Activities/Party%20Popper.png' width={50} height={50} className='mx-auto' />
+										<p className='text-lg font-bold'>You&apos;re almost there!</p>
+										<p className='text-xs'>We&apos;ve just sent a confirmation email your way. Check your inbox to finish subscribing-and if you don&apos;t see it, be sure to take a quick look in your spam folder too.</p>
+									</div>
+								)}
 							</Popover.Dialog>
 						</Popover.Content>
 					</Popover>

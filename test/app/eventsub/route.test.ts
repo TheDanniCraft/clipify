@@ -34,7 +34,10 @@ jest.mock("@actions/commands", () => ({
 }));
 
 function signBody(secret: string, messageId: string, timestamp: string, body: string) {
-	const digest = crypto.createHmac("sha256", secret).update(messageId + timestamp + body).digest("hex");
+	const digest = crypto
+		.createHmac("sha256", secret)
+		.update(messageId + timestamp + body)
+		.digest("hex");
 	return `sha256=${digest}`;
 }
 
@@ -250,10 +253,7 @@ describe("app/eventsub route", () => {
 		const missingReq = createSignedRequest("secret", "notification", missingBody);
 		const missingRes = await POST(missingReq as never);
 		expect(missingRes.status).toBe(200);
-		expect(sendChatMessage).toHaveBeenCalledWith(
-			"owner-1",
-			expect.stringContaining("requested clip could not be found"),
-		);
+		expect(sendChatMessage).toHaveBeenCalledWith("owner-1", expect.stringContaining("requested clip could not be found"));
 
 		handleClip.mockResolvedValueOnce({ errorCode: 4 });
 		const wrongChannelBody = JSON.stringify({
@@ -269,10 +269,7 @@ describe("app/eventsub route", () => {
 		const wrongChannelReq = createSignedRequest("secret", "notification", wrongChannelBody);
 		const wrongChannelRes = await POST(wrongChannelReq as never);
 		expect(wrongChannelRes.status).toBe(200);
-		expect(sendChatMessage).toHaveBeenCalledWith(
-			"owner-1",
-			expect.stringContaining("only use clips taken from this channel"),
-		);
+		expect(sendChatMessage).toHaveBeenCalledWith("owner-1", expect.stringContaining("only use clips taken from this channel"));
 		expect(updateRedemptionStatus).toHaveBeenCalledTimes(2);
 	});
 

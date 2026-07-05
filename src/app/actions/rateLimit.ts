@@ -38,9 +38,7 @@ export async function getUserIP() {
 	if (!isDev && !hasWarnedUntrustedProxy) {
 		const isKnownProvider = isVercel || isCoolifyEnv || isCloudflare || isDigitalOcean || isFastly || isAkamai || isGoogleCloud;
 		if (!isKnownProvider) {
-			console.warn(
-				"[security] Potentially untrusted proxy detected. Rate limiting may be impacted if clients can spoof IP headers (e.g. X-Forwarded-For). Ensure your reverse proxy (Nginx/Traefik/Caddy) is configured to overwrite these headers."
-			);
+			console.warn("[security] Potentially untrusted proxy detected. Rate limiting may be impacted if clients can spoof IP headers (e.g. X-Forwarded-For). Ensure your reverse proxy (Nginx/Traefik/Caddy) is configured to overwrite these headers.");
 			hasWarnedUntrustedProxy = true;
 		}
 	}
@@ -78,17 +76,7 @@ type RateLimiterMemoryInstance = {
 
 const rateLimiterMap = new Map<string, RateLimiterMemoryInstance>();
 
-export async function tryRateLimit({
-	points,
-	duration,
-	key,
-	identifier,
-}: {
-	points: number;
-	duration: number;
-	key: string;
-	identifier?: string;
-}) {
+export async function tryRateLimit({ points, duration, key, identifier }: { points: number; duration: number; key: string; identifier?: string }) {
 	const id = identifier || (await getUserIP());
 	let rateLimiter = rateLimiterMap.get(key);
 
@@ -117,4 +105,3 @@ export async function isRatelimitError(error: unknown) {
 
 	return false;
 }
-

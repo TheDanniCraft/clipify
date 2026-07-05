@@ -50,10 +50,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 	const error = (toSingle(params.error) ?? "").trim();
 	const initialQuery = (toSingle(params.q) ?? "").trim();
 	const initialPage = toPositiveInt(toSingle(params.page), 1);
-	const [health, explorer] = await Promise.all([
-		getInstanceHealthSnapshot(),
-		getAdminExplorerPage(initialQuery, initialPage, 25),
-	]);
+	const [health, explorer] = await Promise.all([getInstanceHealthSnapshot(), getAdminExplorerPage(initialQuery, initialPage, 25)]);
 
 	return (
 		<DashboardNavbar user={adminUser} title='Admin' tagline='Operational telemetry and account entry points'>
@@ -88,7 +85,9 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 								<p>Overlays paused: {formatNumber(health.counts.overlaysPaused)}</p>
 								<p>Active owners free: {formatNumber(health.counts.activeOverlayOwnersFree)}</p>
 								<p>Active owners paid: {formatNumber(health.counts.activeOverlayOwnersPaid)}</p>
-								<p>Community page: {formatNumber(health.community.optedInUsers)} / {formatNumber(health.community.totalUsers)}</p>
+								<p>
+									Community page: {formatNumber(health.community.optedInUsers)} / {formatNumber(health.community.totalUsers)}
+								</p>
 								<p>Community opt-in rate: {formatPercent(health.community.optInRate)}</p>
 							</div>
 						</div>
@@ -158,7 +157,9 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 
 				{error ? (
 					<Alert status='danger'>
-						<Alert.Content><Alert.Description>Admin action failed: {error}</Alert.Description></Alert.Content>
+						<Alert.Content>
+							<Alert.Description>Admin action failed: {error}</Alert.Description>
+						</Alert.Content>
 					</Alert>
 				) : null}
 

@@ -67,10 +67,13 @@ jest.mock("@/db/schema", () => ({
 jest.mock("drizzle-orm", () => ({
 	eq: jest.fn(),
 	inArray: jest.fn(),
-	sql: Object.assign(jest.fn(() => "sql"), {
-		join: jest.fn((parts: unknown[], separator = " ") => parts.join(String(separator))),
-		raw: jest.fn((value: unknown) => String(value)),
-	}),
+	sql: Object.assign(
+		jest.fn(() => "sql"),
+		{
+			join: jest.fn((parts: unknown[], separator = " ") => parts.join(String(separator))),
+			raw: jest.fn((value: unknown) => String(value)),
+		},
+	),
 }));
 
 function buildClip(id: string) {
@@ -129,7 +132,8 @@ describe("actions/twitch syncOwnerClipCache", () => {
 			backfillWindowEnd: new Date(TWITCH_CLIPS_LAUNCH_MS + 24 * 60 * 60 * 1000).toISOString(),
 			backfillWindowSizeMs: 7 * 24 * 60 * 60 * 1000,
 		});
-		jest.spyOn(axios, "get")
+		jest
+			.spyOn(axios, "get")
 			.mockResolvedValueOnce({
 				data: {
 					data: [buildClip("clip-1")],
@@ -306,7 +310,8 @@ describe("actions/twitch syncOwnerClipCache", () => {
 			backfillWindowEnd: new Date(TWITCH_CLIPS_LAUNCH_MS + 24 * 60 * 60 * 1000).toISOString(),
 			backfillComplete: false,
 		});
-		jest.spyOn(axios, "get")
+		jest
+			.spyOn(axios, "get")
 			.mockRejectedValueOnce(new Error("incremental failed"))
 			.mockResolvedValueOnce({
 				data: {
@@ -350,7 +355,8 @@ describe("actions/twitch syncOwnerClipCache", () => {
 			backfillComplete: false,
 			lastIncrementalSyncAt: new Date().toISOString(),
 		});
-		jest.spyOn(axios, "get")
+		jest
+			.spyOn(axios, "get")
 			.mockResolvedValueOnce({
 				data: {
 					data: [buildClip("clip-backfill-1")],
@@ -496,7 +502,10 @@ describe("actions/twitch syncOwnerClipCache", () => {
 			},
 		};
 
-		jest.spyOn(axios, "get").mockResolvedValueOnce(page1 as never).mockRejectedValueOnce(error429);
+		jest
+			.spyOn(axios, "get")
+			.mockResolvedValueOnce(page1 as never)
+			.mockRejectedValueOnce(error429);
 		// Mock axios.isAxiosError
 		jest.spyOn(axios, "isAxiosError").mockImplementation((e) => e === error429);
 
@@ -545,7 +554,10 @@ describe("actions/twitch syncOwnerClipCache", () => {
 				headers: { "retry-after": "60" },
 			},
 		};
-		jest.spyOn(axios, "get").mockResolvedValueOnce(page1 as never).mockRejectedValueOnce(error429);
+		jest
+			.spyOn(axios, "get")
+			.mockResolvedValueOnce(page1 as never)
+			.mockRejectedValueOnce(error429);
 		jest.spyOn(axios, "isAxiosError").mockImplementation((e) => e === error429);
 
 		const { syncOwnerClipCache } = await import("@/app/actions/twitch");
@@ -661,7 +673,8 @@ describe("actions/twitch syncOwnerClipCache", () => {
 		});
 
 		const transientError = new Error("transient twitch error");
-		jest.spyOn(axios, "get")
+		jest
+			.spyOn(axios, "get")
 			.mockResolvedValueOnce({
 				data: {
 					data: [buildClip("partial-window-clip")],
@@ -797,7 +810,8 @@ describe("actions/twitch syncOwnerClipCache", () => {
 			lastIncrementalSyncAt: new Date().toISOString(),
 		});
 
-		jest.spyOn(axios, "get")
+		jest
+			.spyOn(axios, "get")
 			.mockResolvedValueOnce({
 				data: {
 					data: Array.from({ length: 100 }, (_, i) => buildClip(`full-page-${i}`)),

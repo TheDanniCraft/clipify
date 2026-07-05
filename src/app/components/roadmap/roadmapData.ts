@@ -29,7 +29,7 @@ export function normalizeRoadmapStatus(value?: string | null): RoadmapStatus {
 			return RoadmapStatus.Planned;
 		case "Future":
 			return RoadmapStatus.Future;
-	default:
+		default:
 			return RoadmapStatus.Planned;
 	}
 }

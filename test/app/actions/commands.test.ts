@@ -113,20 +113,14 @@ describe("actions/commands", () => {
 	it("responds with unknown command message", async () => {
 		const { handleCommand } = await loadCommands();
 		await handleCommand(buildMessage("!doesnotexist"));
-		expect(sendChatMessage).toHaveBeenCalledWith(
-			"owner-1",
-			expect.stringContaining('unknown command. Use "!help"'),
-		);
+		expect(sendChatMessage).toHaveBeenCalledWith("owner-1", expect.stringContaining('unknown command. Use "!help"'));
 	});
 
 	it("gates chat commands when feature access is denied", async () => {
 		getFeatureAccess.mockReturnValue({ allowed: false });
 		const { handleCommand } = await loadCommands();
 		await handleCommand(buildMessage("!play"));
-		expect(sendChatMessage).toHaveBeenCalledWith(
-			"owner-1",
-			expect.stringContaining("chat commands are a Pro feature"),
-		);
+		expect(sendChatMessage).toHaveBeenCalledWith("owner-1", expect.stringContaining("chat commands are a Pro feature"));
 	});
 
 	it("executes !play without args and resumes playback", async () => {
@@ -140,10 +134,7 @@ describe("actions/commands", () => {
 		handleClip.mockResolvedValue({ errorCode: 1 });
 		const { handleCommand } = await loadCommands();
 		await handleCommand(buildMessage("!play invalid-url"));
-		expect(sendChatMessage).toHaveBeenCalledWith(
-			"owner-1",
-			expect.stringContaining("please provide a valid Twitch clip URL"),
-		);
+		expect(sendChatMessage).toHaveBeenCalledWith("owner-1", expect.stringContaining("please provide a valid Twitch clip URL"));
 	});
 
 	it("does not handle commands for non-text message fragments", async () => {
@@ -169,11 +160,7 @@ describe("actions/commands", () => {
 		handleClip.mockResolvedValue({ id: "clip-77", title: "Huge clutch" });
 		const { handleCommand } = await loadCommands();
 		await handleCommand(buildMessage("!play https://clips.twitch.tv/Clip77"));
-		expect(sendMessage).toHaveBeenCalledWith(
-			"command",
-			{ name: "play", data: { clip: expect.objectContaining({ id: "clip-77" }) } },
-			"owner-1",
-		);
+		expect(sendMessage).toHaveBeenCalledWith("command", { name: "play", data: { clip: expect.objectContaining({ id: "clip-77" }) } }, "owner-1");
 		expect(addToModQueue).toHaveBeenCalledWith("owner-1", "clip-77");
 		expect(sendChatMessage).toHaveBeenCalledWith("owner-1", expect.stringContaining("has been added to the queue"));
 	});
@@ -202,17 +189,12 @@ describe("actions/commands", () => {
 		getModQueue.mockResolvedValue([{ clipId: "mod-clip-1" }]);
 		getAllOverlayIdsByOwnerInternal.mockResolvedValue(["overlay-1"]);
 		getClipQueueByOverlayId.mockResolvedValue([{ clipId: "reward-clip-1" }]);
-		getTwitchClip
-			.mockResolvedValueOnce({ id: "mod-clip-1", title: "Mod Clip" })
-			.mockResolvedValueOnce(null);
+		getTwitchClip.mockResolvedValueOnce({ id: "mod-clip-1", title: "Mod Clip" }).mockResolvedValueOnce(null);
 
 		const { handleCommand } = await loadCommands();
 		await handleCommand(buildMessage("!queue"));
 
-		expect(sendChatMessage).toHaveBeenCalledWith(
-			"owner-1",
-			expect.stringContaining("Mod Queue [Mod Clip] | Reward Queue [Unknown Clip]"),
-		);
+		expect(sendChatMessage).toHaveBeenCalledWith("owner-1", expect.stringContaining("Mod Queue [Mod Clip] | Reward Queue [Unknown Clip]"));
 	});
 
 	it("clears only reward queues for !clearqueue reward", async () => {
@@ -266,4 +248,3 @@ describe("actions/commands", () => {
 		expect(sendChatMessage).toHaveBeenCalledWith("owner-1", expect.stringContaining("100%"));
 	});
 });
-

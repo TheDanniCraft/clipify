@@ -20,7 +20,7 @@ export const Status = memo(
 				<span className='px-1 text-foreground'>{status}</span>
 			</div>
 		);
-	})
+	}),
 );
 
 Status.displayName = "Status";

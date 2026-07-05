@@ -613,11 +613,13 @@ export default function OverlaySettings() {
 	const previewModalClips = (() => {
 		if (!previewReviewMode) return filteredPreviewClips;
 		if (overlay.playbackMode === PlaybackMode.Random) {
-			return [...filteredPreviewClips]
-				// eslint-disable-next-line react-hooks/purity
-				.map((clip) => ({ clip, sort: Math.random() }))
-				.sort((a, b) => a.sort - b.sort)
-				.map((entry) => entry.clip);
+			return (
+				[...filteredPreviewClips]
+					// eslint-disable-next-line react-hooks/purity
+					.map((clip) => ({ clip, sort: Math.random() }))
+					.sort((a, b) => a.sort - b.sort)
+					.map((entry) => entry.clip)
+			);
 		}
 		if (overlay.playbackMode === PlaybackMode.Order) {
 			return filteredPreviewClips;
