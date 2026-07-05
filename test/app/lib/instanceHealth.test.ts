@@ -86,6 +86,7 @@ jest.mock("drizzle-orm", () => ({
 	countDistinct: jest.fn(),
 	like: jest.fn(),
 	notLike: jest.fn(),
+	arrayContains: jest.fn(),
 }));
 
 jest.mock("@actions/database", () => ({
@@ -160,6 +161,7 @@ describe("lib/instanceHealth", () => {
 			[{ count: 10 }], // tokenRows
 			[{ count: 0 }], // expiredTokensRows
 			[{ count: 2 }], // expiringIn24hRows
+			[{ count: 5 }], // readyForTwitchApiUsersRows
 			[
 				{ type: "clip", count: 100 },
 				{ type: "avatar", count: 20 },
@@ -464,6 +466,7 @@ describe("lib/instanceHealth", () => {
 			[], // tokenRows
 			[], // expiredTokensRows
 			[], // expiringIn24hRows
+			[], // readyForTwitchApiUsersRows
 			[], // cacheTotals
 			[], // unavailableClipsRows
 			[], // clipSyncStatesRows

@@ -294,7 +294,9 @@ export async function getTwitchClipPlaybackUrl(clipId: string, broadcasterId: st
 			timestamp: attemptLog.timestamp,
 		};
 		recordTwitchRateLimit(rateLimitLog);
-		fs.appendFile(path.join(process.cwd(), "twitch-rate-limits.jsonl"), JSON.stringify(rateLimitLog) + "\n").catch(console.error);
+		if (process.env.NODE_ENV !== "test") {
+			fs.appendFile(path.join(process.cwd(), "twitch-rate-limits.jsonl"), JSON.stringify(rateLimitLog) + "\n").catch(console.error);
+		}
 
 		if (shouldLogClipDownloadRateLimit(headers, response.status)) {
 			logClipDownloadRateLimitExhausted(attemptLog);
@@ -319,7 +321,9 @@ export async function getTwitchClipPlaybackUrl(clipId: string, broadcasterId: st
 				timestamp: attemptLog.timestamp,
 			};
 			recordTwitchRateLimit(rateLimitLog);
-			fs.appendFile(path.join(process.cwd(), "twitch-rate-limits.jsonl"), JSON.stringify(rateLimitLog) + "\n").catch(console.error);
+			if (process.env.NODE_ENV !== "test") {
+				fs.appendFile(path.join(process.cwd(), "twitch-rate-limits.jsonl"), JSON.stringify(rateLimitLog) + "\n").catch(console.error);
+			}
 
 			if (shouldLogClipDownloadRateLimit(headers, error.response?.status)) {
 				logClipDownloadRateLimitExhausted(attemptLog);

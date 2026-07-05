@@ -356,7 +356,7 @@ export default function AdminHealthCharts({ health }: { health: InstanceHealthSn
 								) : (
 									health.twitchRateLimit.history.map((log, i) => (
 										<tr key={i} className='border-b border-default-100 last:border-0 hover:bg-default-50'>
-											<td className='py-2 pr-4'>{new Date(log.timestamp).toLocaleTimeString()}</td>
+											<td className='py-2 pr-4'>{new Date(log.timestamp).toISOString().substring(11, 19) + " UTC"}</td>
 											<td className='py-2 pr-4 font-mono text-xs'>{log.broadcasterId}</td>
 											<td className='py-2 pr-4 font-mono'>{log.limit ?? "-"}</td>
 											<td className='py-2 pr-4 font-mono text-primary font-bold'>{log.remaining ?? "-"}</td>
@@ -643,8 +643,8 @@ export default function AdminHealthCharts({ health }: { health: InstanceHealthSn
 				<Card.Content className='h-56 gap-3'>
 					<div className='rounded-lg border border-brand-300/40 bg-gradient-to-r from-brand-500/15 via-brand-400/10 to-transparent p-3'>
 						<p className='text-xs font-semibold uppercase tracking-wide text-muted'>DB Ping</p>
-						<p className='text-3xl font-semibold text-accent'>{dbPing.toLocaleString()}ms</p>
-						<p className='text-xs text-muted'>Health aggregation: {healthAggregation.toLocaleString()}ms</p>
+						<p className='text-3xl font-semibold text-accent'>{dbPing.toLocaleString("en-US")}ms</p>
+						<p className='text-xs text-muted'>Health aggregation: {healthAggregation.toLocaleString("en-US")}ms</p>
 					</div>
 					<ChartPanel title='Run Success vs Failure'>
 						<div className='mt-2 flex h-4 w-full overflow-hidden rounded-full bg-default'>
