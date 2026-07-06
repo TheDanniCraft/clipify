@@ -2,6 +2,10 @@ import { varchar, pgTable, check, timestamp, uuid, integer, text, uniqueIndex, p
 import {
 	type Role,
 	type Plan,
+	type PassType,
+	type RunnerStatus,
+	type StreamMode,
+	type StreamState,
 	type StatusOptions,
 	type OverlayType,
 	type TwitchCacheType,
@@ -11,6 +15,10 @@ import {
 	type MaxDurationMode,
 	Role as RoleEnumValues,
 	Plan as PlanEnumValues,
+	PassType as PassTypeEnumValues,
+	RunnerStatus as RunnerStatusEnumValues,
+	StreamMode as StreamModeEnumValues,
+	StreamState as StreamStateEnumValues,
 	StatusOptions as StatusOptionsEnumValues,
 	OverlayType as OverlayTypeEnumValues,
 	TwitchCacheType as TwitchCacheTypeEnumValues,
@@ -27,6 +35,10 @@ function enumToPgEnum<T extends Record<string, unknown>>(myEnum: T): [T[keyof T]
 
 export const roleEnum = pgEnum("role", enumToPgEnum(RoleEnumValues));
 export const planEnum = pgEnum("plan", enumToPgEnum(PlanEnumValues));
+export const passTypeEnum = pgEnum("pass_type", enumToPgEnum(PassTypeEnumValues));
+export const runnerStatusEnum = pgEnum("runner_status", enumToPgEnum(RunnerStatusEnumValues));
+export const streamModeEnum = pgEnum("stream_mode", enumToPgEnum(StreamModeEnumValues));
+export const streamStateEnum = pgEnum("stream_state", enumToPgEnum(StreamStateEnumValues));
 export const statusOptionsEnum = pgEnum("status_options", enumToPgEnum(StatusOptionsEnumValues));
 export const overlayTypeEnum = pgEnum("overlay_type", enumToPgEnum(OverlayTypeEnumValues));
 export const playbackModeEnum = pgEnum("playback_mode", enumToPgEnum(PlaybackModeEnumValues));
@@ -242,3 +254,41 @@ export const adminImpersonationSessionsTable = pgTable(
 	},
 	(t) => [index("admin_impersonation_sessions_admin_idx").on(t.adminUserId, t.startedAt), index("admin_impersonation_sessions_target_idx").on(t.targetUserId, t.startedAt)],
 );
+
+export const userPassesTable = pgTable("user_passes", {
+	id: uuid("id").notNull().defaultRandom().primaryKey(),
+	userId: varchar("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+	passType: passTypeEnum("pass_type").$type<PassType>().notNull(),
+	stripeSubscriptionId: varchar("stripe_subscription_id"),
+	active: boolean("active").notNull().default(true),
+	expiresAt: timestamp("expires_at", { withTimezone: true }),
+	createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const runnersTable = pgTable("runners", {
+	id: uuid("id").notNull().defaultRandom().primaryKey(),
+	ownerId: varchar("owner_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+	name: varchar("name").notNull(),
+	token: varchar("token").notNull().unique(),
+	status: runnerStatusEnum("status").$type<RunnerStatus>().notNull().default(RunnerStatusEnumValues.Offline),
+	lastHeartbeatAt: timestamp("last_heartbeat_at", { withTimezone: true }),
+	osInfo: varchar("os_info"),
+	version: varchar("version"),
+	createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const streamSessionsTable = pgTable("stream_sessions", {
+	id: uuid("id").notNull().defaultRandom().primaryKey(),
+	ownerId: varchar("owner_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+	runnerId: uuid("runner_id").references(() => runnersTable.id, { onDelete: "set null" }),
+	overlayId: uuid("overlay_id").notNull().references(() => overlaysTable.id, { onDelete: "cascade" }),
+	mode: streamModeEnum("mode").$type<StreamMode>().notNull(),
+	encryptedStreamKey: text("encrypted_stream_key"),
+	rtmpUrl: varchar("rtmp_url").notNull().default("rtmp://live.twitch.tv/app"),
+	desiredState: streamStateEnum("desired_state").$type<StreamState>().notNull().default(StreamStateEnumValues.Stopped),
+	actualState: streamStateEnum("actual_state").$type<StreamState>().notNull().default(StreamStateEnumValues.Stopped),
+	resolution: varchar("resolution").notNull().default("1080p"),
+	fps: integer("fps").notNull().default(60),
+	lastError: text("last_error"),
+	updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});

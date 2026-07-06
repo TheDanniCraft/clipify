@@ -48,6 +48,12 @@ export default async function Overlay({ params, searchParams }: { params: Promis
 
 	await touchOverlay(overlay.id);
 
+	const rawShowFallbackBanner = Array.isArray(sp.showFallbackBanner) ? sp.showFallbackBanner[0] : sp.showFallbackBanner;
+	const showFallbackBanner = rawShowFallbackBanner === "true";
+
+	const rawStandby = Array.isArray(sp.standby) ? sp.standby[0] : sp.standby;
+	const standby = rawStandby === "true";
+
 	return (
 		<>
 			<style>{`
@@ -60,8 +66,14 @@ export default async function Overlay({ params, searchParams }: { params: Promis
 					__html: "window.$chatwoot = window.$chatwoot || {}; window.$chatwoot.disabled = true;",
 				}}
 			/>
-			<div className='flex flex-col justify-center items-center h-screen w-screen'>
-				<OverlayPlayer overlay={overlay} overlaySecret={secret} />
+			<div className='flex flex-col justify-center items-center h-screen w-screen relative'>
+				{showFallbackBanner && (
+					<div className="absolute top-0 left-0 w-full bg-danger text-white text-center py-2 px-4 z-50 shadow-md flex items-center justify-center gap-2 font-medium">
+						<span className="animate-pulse">🔴</span>
+						Stream disconnected - Stream will be back soon
+					</div>
+				)}
+				<OverlayPlayer overlay={overlay} overlaySecret={secret} initialStandby={standby} showFallbackBanner={showFallbackBanner} />
 			</div>
 		</>
 	);

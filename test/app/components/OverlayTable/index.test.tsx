@@ -46,9 +46,18 @@ jest.mock("@actions/auth", () => ({
 	validateAuth: (...args: unknown[]) => validateAuth(...args),
 }));
 
+jest.mock("@actions/runner", () => ({
+	createRunner: jest.fn(),
+	deleteRunner: jest.fn(),
+	getAllRunners: jest.fn().mockResolvedValue([]),
+	getStreamSessionsForRunner: jest.fn().mockResolvedValue([]),
+	setStreamDesiredState: jest.fn(),
+}));
+
 jest.mock("@actions/twitch", () => ({
 	getAvatar: (...args: unknown[]) => getAvatar(...args),
 	getUsersDetailsBulk: (...args: unknown[]) => getUsersDetailsBulk(...args),
+	searchCategories: jest.fn(),
 }));
 
 jest.mock("@components/upgradeModal", () => ({

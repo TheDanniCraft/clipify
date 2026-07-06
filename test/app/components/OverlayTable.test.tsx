@@ -64,6 +64,14 @@ jest.mock("@actions/twitch", () => ({
 	getAvatar: (...args: any[]) => getAvatar(...args),
 }));
 
+jest.mock("@actions/runner", () => ({
+	createRunner: jest.fn(),
+	deleteRunner: jest.fn(),
+	getAllRunners: jest.fn().mockResolvedValue([]),
+	getStreamSessionsForRunner: jest.fn().mockResolvedValue([]),
+	setStreamDesiredState: jest.fn(),
+}));
+
 jest.mock("@heroui/react", () => {
 	const React = require("react");
 	return {

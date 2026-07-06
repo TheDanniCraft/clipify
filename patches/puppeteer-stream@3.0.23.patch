@@ -1,0 +1,17 @@
+diff --git a/dist/PuppeteerStream.js b/dist/PuppeteerStream.js
+index 52a5541773c54e1dd6153c76a24e6ee36543ca45..fcab9b4058e000bb25df1d6871ebf1fc41ec7239 100644
+--- a/dist/PuppeteerStream.js
++++ b/dist/PuppeteerStream.js
+@@ -81,7 +81,11 @@ async function launch(arg1, opts) {
+     }
+     if (!Array.isArray(opts.enableExtensions))
+         opts.enableExtensions = [];
+-    opts.enableExtensions.push(path.join(__dirname, "..", "extension"));
++    if (opts.extensionPath) {
++        opts.enableExtensions.push(opts.extensionPath);
++    } else {
++        opts.enableExtensions.push(path.join(__dirname, "..", "extension"));
++    }
+     opts.pipe = true;
+     addToArgs("--autoplay-policy=no-user-gesture-required");
+     addToArgs("--auto-accept-this-tab-capture");

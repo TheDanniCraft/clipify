@@ -1,6 +1,6 @@
 import type { SVGProps } from "react";
 import { InferSelectModel } from "drizzle-orm";
-import type { entitlementGrantsTable, modQueueTable, overlaysTable, playlistClipsTable, playlistsTable, settingsTable, tokenTable, usersTable, queueTable, twitchCacheTable } from "@/db/schema";
+import type { entitlementGrantsTable, modQueueTable, overlaysTable, playlistClipsTable, playlistsTable, settingsTable, tokenTable, usersTable, queueTable, twitchCacheTable, userPassesTable, runnersTable, streamSessionsTable } from "@/db/schema";
 
 export class RateLimitError extends Error {
 	constructor() {
@@ -187,6 +187,27 @@ export enum Plan {
 	Pro = "pro",
 }
 
+export enum PassType {
+	Runner = "runner",
+}
+
+export enum RunnerStatus {
+	Online = "online",
+	Offline = "offline",
+}
+
+export enum StreamMode {
+	AlwaysOn = "24/7",
+	Failsafe = "failsafe",
+}
+
+export enum StreamState {
+	Stopped = "stopped",
+	Starting = "starting",
+	Running = "running",
+	Error = "error",
+}
+
 export enum Entitlement {
 	ProAccess = "pro_access",
 }
@@ -232,6 +253,9 @@ export enum StatusOptions {
 export type Overlay = InferSelectModel<typeof overlaysTable>;
 export type Playlist = InferSelectModel<typeof playlistsTable>;
 export type PlaylistClip = InferSelectModel<typeof playlistClipsTable>;
+export type UserPass = InferSelectModel<typeof userPassesTable>;
+export type Runner = InferSelectModel<typeof runnersTable>;
+export type StreamSession = InferSelectModel<typeof streamSessionsTable>;
 
 export type ClipQueueItem = InferSelectModel<typeof queueTable>;
 export type ModQueueItem = InferSelectModel<typeof modQueueTable>;

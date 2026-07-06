@@ -22,6 +22,10 @@ COPY . .
 
 RUN bun run app:build
 
+# Build the runner binaries and place them into the public folder
+RUN mkdir -p public/downloads && \
+    bun build --compile --target=bun-windows-x64-baseline src/runner/index.ts --outfile public/downloads/ClipifyRunner.exe && \
+    bun build --compile --target=bun-linux-x64-baseline src/runner/index.ts --outfile public/downloads/ClipifyRunner-linux
 
 # -------------------------
 # runner (production)

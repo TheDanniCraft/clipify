@@ -9,8 +9,9 @@ import { StatusOptions } from "@types";
 import type { Key } from "@react-types/shared";
 
 import React, { useMemo, useCallback, useState, useEffect } from "react";
-import { IconAdjustmentsHorizontal, IconArrowsLeftRight, IconChevronDown, IconCirclePlus, IconCircuitChangeover, IconCrown, IconInfoCircle, IconMenuDeep, IconPencil, IconReload, IconSearch, IconTrash } from "@tabler/icons-react";
+import { IconAdjustmentsHorizontal, IconArrowsLeftRight, IconChevronDown, IconCirclePlus, IconCircuitChangeover, IconCrown, IconInfoCircle, IconMenuDeep, IconPencil, IconReload, IconSearch, IconTrash, IconServer } from "@tabler/icons-react";
 import { createOverlay, createPlaylist, deleteOverlay, deletePlaylist, saveOverlay, getAllOverlays, getAllPlaylists, getEditorOverlays, getEditorAccess } from "@actions/database";
+import { createRunner, getAllRunners } from "@actions/runner";
 import { validateAuth } from "@actions/auth";
 import UpgradeModal from "@components/upgradeModal";
 import AppPagination from "@components/appPagination";
@@ -22,7 +23,7 @@ import { CopyText } from "./copy-text";
 
 import { useMemoizedCallback } from "./use-memoized-callback";
 
-import { columns, INITIAL_VISIBLE_COLUMNS, INITIAL_VISIBLE_PLAYLIST_COLUMNS, playlistColumns } from "./data";
+import { columns, INITIAL_VISIBLE_COLUMNS, INITIAL_VISIBLE_PLAYLIST_COLUMNS, INITIAL_VISIBLE_RUNNER_COLUMNS, playlistColumns, runnerColumns } from "./data";
 import { Status } from "./Status";
 import { useRouter } from "next/navigation";
 import { getAvatar, getUsersDetailsBulk } from "@actions/twitch";
@@ -31,14 +32,17 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 	const router = useRouter();
 	type LocalOverlay = Overlay & { accessType?: "owner" | "editor" };
 	type LocalPlaylist = { id: string; ownerId: string; name: string; clipCount: number; accessType?: "owner" | "editor" };
+	type LocalRunner = { id: string; ownerId: string; name: string; status: string; createdAt: Date; lastHeartbeatAt: Date | null };
 
 	const [overlays, setOverlays] = useState<LocalOverlay[]>();
 	const [playlists, setPlaylists] = useState<LocalPlaylist[]>();
-	const [activeTab, setActiveTab] = useState<"overlays" | "playlists">("overlays");
+	const [runners, setRunners] = useState<LocalRunner[]>();
+	const [activeTab, setActiveTab] = useState<"overlays" | "playlists" | "runners">("overlays");
 	const [filterValue, setFilterValue] = useState("");
 	const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set([]));
 	const [visibleOverlayColumns, setVisibleOverlayColumns] = useState<Selection>(new Set(INITIAL_VISIBLE_COLUMNS));
 	const [visiblePlaylistColumns, setVisiblePlaylistColumns] = useState<Selection>(new Set(INITIAL_VISIBLE_PLAYLIST_COLUMNS));
+	const [visibleRunnerColumns, setVisibleRunnerColumns] = useState<Selection>(new Set(INITIAL_VISIBLE_RUNNER_COLUMNS));
 	const [rowsPerPage] = useState(10);
 	const [page, setPage] = useState(1);
 	const [isLoading, setIsLoading] = useState(false);
@@ -55,7 +59,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 	const [statusFilter, setStatusFilter] = React.useState("all");
 
 	const onTabChange = useCallback((key: React.Key) => {
-		setActiveTab(key as "overlays" | "playlists");
+		setActiveTab(key as "overlays" | "playlists" | "runners");
 		setFilterValue("");
 		setSelectedKeys(new Set([]));
 		setPage(1);
@@ -65,15 +69,16 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 		});
 	}, []);
 
-	const visibleColumns = activeTab === "overlays" ? visibleOverlayColumns : visiblePlaylistColumns;
-	const setVisibleColumns = activeTab === "overlays" ? setVisibleOverlayColumns : setVisiblePlaylistColumns;
-	const currentColumns = activeTab === "overlays" ? columns : playlistColumns;
+	const visibleColumns = activeTab === "overlays" ? visibleOverlayColumns : activeTab === "playlists" ? visiblePlaylistColumns : visibleRunnerColumns;
+	const setVisibleColumns = activeTab === "overlays" ? setVisibleOverlayColumns : activeTab === "playlists" ? setVisiblePlaylistColumns : setVisibleRunnerColumns;
+	const currentColumns = activeTab === "overlays" ? columns : activeTab === "playlists" ? playlistColumns : runnerColumns;
 
 	useEffect(() => {
 		async function fetchOverlays() {
 			try {
 				const overlaysData = await getAllOverlays(userId);
 				const playlistsData = await getAllPlaylists(userId);
+				const runnersData = await getAllRunners(userId);
 				const editorOverlays = await getEditorOverlays(userId);
 
 				const combinedOverlays: LocalOverlay[] = [...(overlaysData ?? []).map((o) => ({ ...o, accessType: "owner" as const })), ...(editorOverlays ?? []).map((o) => ({ ...o, accessType: "editor" as const }))];
@@ -87,6 +92,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 
 				setOverlays(combinedOverlays ?? undefined);
 				setPlaylists(combinedPlaylists ?? undefined);
+				setRunners(runnersData ?? undefined);
 			} catch (error) {
 				console.error("Failed to fetch overlays:", error);
 			}
@@ -167,7 +173,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 	const rowHeaderColumn = headerColumns.find((column) => column.uid === "name")?.uid ?? headerColumns.find((column) => column.uid === "id")?.uid ?? headerColumns.find((column) => column.uid !== "actions")?.uid;
 
 	const itemFilter = useCallback(
-		(col: Overlay | LocalPlaylist) => {
+		(col: Overlay | LocalPlaylist | LocalRunner) => {
 			if (activeTab === "overlays") {
 				const overlay = col as Overlay;
 				const allStatus = statusFilter === "all";
@@ -179,7 +185,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 	);
 
 	const filteredItems = useMemo(() => {
-		const rawItems = activeTab === "overlays" ? overlays || [] : playlists || [];
+		const rawItems = activeTab === "overlays" ? overlays || [] : activeTab === "playlists" ? playlists || [] : runners || [];
 		let filtered = [...rawItems];
 
 		if (filterValue) {
@@ -189,7 +195,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 		filtered = filtered.filter(itemFilter);
 
 		return filtered;
-	}, [filterValue, overlays, playlists, itemFilter, activeTab]);
+	}, [filterValue, overlays, playlists, runners, itemFilter, activeTab]);
 
 	const pages = Math.ceil(filteredItems.length / rowsPerPage) || 1;
 
@@ -201,8 +207,8 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 	}, [page, filteredItems, rowsPerPage]);
 
 	const sortedItems = useMemo(() => {
-		return [...items].sort((a: LocalOverlay | LocalPlaylist, b: LocalOverlay | LocalPlaylist) => {
-			const col = sortDescriptor.column as keyof (LocalOverlay | LocalPlaylist);
+		return [...items].sort((a: LocalOverlay | LocalPlaylist | LocalRunner, b: LocalOverlay | LocalPlaylist | LocalRunner) => {
+			const col = sortDescriptor.column as keyof (LocalOverlay | LocalPlaylist | LocalRunner);
 
 			const first = (a as Record<string, unknown>)[col];
 			const second = (b as Record<string, unknown>)[col];
@@ -235,7 +241,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 	}, [selectedKeys, filteredItems, filterValue]);
 
 	const renderCell = useCallback(
-		(item: LocalOverlay | LocalPlaylist, columnKey: React.Key) => {
+		(item: LocalOverlay | LocalPlaylist | LocalRunner, columnKey: React.Key) => {
 			const key = columnKey as ColumnsKey;
 
 			if (activeTab === "overlays") {
@@ -294,7 +300,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 					default:
 						return cellValue;
 				}
-			} else {
+			} else if (activeTab === "playlists") {
 				const playlist = item as LocalPlaylist;
 				switch (key) {
 					case "id":
@@ -339,6 +345,37 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 						);
 					default:
 						return (playlist as Record<string, unknown>)[key] as React.ReactNode;
+				}
+			} else {
+				const runner = item as LocalRunner;
+				switch (key) {
+					case "id":
+						return <CopyText textClassName='whitespace-nowrap'>{runner.id}</CopyText>;
+					case "name":
+						return <div className='font-semibold'>{runner.name}</div>;
+					case "status":
+						return (
+							<div className="flex items-center gap-2">
+								<IconServer className="text-muted" width={16} />
+								<span className={runner.status === "online" ? "text-success" : "text-muted"}>{runner.status}</span>
+							</div>
+						);
+					case "actions":
+						return (
+							<div className='flex items-center justify-end gap-2'>
+								<IconTrash 
+									className='cursor-pointer text-muted' 
+									height={18} 
+									width={18} 
+									onClick={(event) => {
+										event.stopPropagation();
+										// Call deleteRunner here when implemented
+									}}
+								/>
+							</div>
+						);
+					default:
+						return (runner as Record<string, unknown>)[key] as React.ReactNode;
 				}
 			}
 		},
@@ -398,6 +435,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 	const reloadOverlays = useMemoizedCallback(async () => {
 		const overlaysData = await getAllOverlays(userId);
 		const playlistsData = await getAllPlaylists(userId);
+		const runnersData = await getAllRunners(userId);
 		const editorOverlays = await getEditorOverlays(userId);
 
 		const combinedOverlays: LocalOverlay[] = [...(overlaysData ?? []).map((o) => ({ ...o, accessType: "owner" as const })), ...(editorOverlays ?? []).map((o) => ({ ...o, accessType: "editor" as const }))];
@@ -411,6 +449,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 
 		setOverlays(combinedOverlays ?? undefined);
 		setPlaylists(combinedPlaylists ?? undefined);
+		setRunners(runnersData ?? undefined);
 	});
 
 	const topContent = useMemo(() => {
@@ -645,9 +684,9 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 			<div className='mb-[12px]'>
 				<div className='flex items-center justify-between'>
 					<div className='flex w-[226px] items-center gap-2'>
-						<h1 className='text-2xl font-[700] leading-[32px]'>{activeTab === "overlays" ? "Overlays" : "Playlists"}</h1>
+						<h1 className='text-2xl font-[700] leading-[32px]'>{activeTab === "overlays" ? "Overlays" : activeTab === "playlists" ? "Playlists" : "Runners"}</h1>
 						<Chip className='hidden items-center text-muted sm:flex' size='sm' variant='tertiary'>
-							{activeTab === "overlays" ? (overlays?.length ?? 0) : (playlists?.length ?? 0)}
+							{activeTab === "overlays" ? (overlays?.length ?? 0) : activeTab === "playlists" ? (playlists?.length ?? 0) : (runners?.length ?? 0)}
 						</Chip>
 						<Button isIconOnly size='sm' variant='tertiary' onPress={reloadOverlays} aria-label='Reload'>
 							{<IconReload className='text-muted' width={16} />}
@@ -657,7 +696,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 						<Dropdown>
 							<Button variant='primary' isDisabled={overlays === undefined} isPending={isLoading}>
 								{isLoading ? <Spinner color='current' size='sm' /> : null}
-								{activeTab === "overlays" ? "Add Overlay" : "Add Playlist"}
+								{activeTab === "overlays" ? "Add Overlay" : activeTab === "playlists" ? "Add Playlist" : "Add Runner"}
 								<IconCirclePlus width={20} />
 							</Button>
 
@@ -667,7 +706,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 										<Dropdown.Item
 											key={item.id}
 											id={item.id}
-											textValue={activeTab === "overlays" ? `Add new overlay for ${item.display_name}` : `Add new playlist for ${item.display_name}`}
+											textValue={activeTab === "overlays" ? `Add new overlay for ${item.display_name}` : activeTab === "playlists" ? `Add new playlist for ${item.display_name}` : `Add new runner for ${item.display_name}`}
 											onAction={async () => {
 												setIsLoading(true);
 												try {
@@ -688,6 +727,20 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 														return;
 													}
 
+													if (activeTab === "runners") {
+														const newRunner = await createRunner(item.id, "New Hardware Node");
+														if (!newRunner.success) {
+															addToast({
+																title: "Error",
+																description: "Failed to create runner.",
+																color: "danger",
+															});
+															return;
+														}
+														router.push(`/dashboard/runners/${newRunner.runner?.id}`);
+														return;
+													}
+
 													const playlist = await createPlaylist(item.id, `Playlist ${ownerPlaylistsCount + 1}`);
 													if (!playlist) {
 														addToast({
@@ -701,7 +754,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 												} catch {
 													addToast({
 														title: "Error",
-														description: activeTab === "overlays" ? "Failed to create overlay. Please try again." : "Failed to create playlist. Please try again.",
+														description: activeTab === "overlays" ? "Failed to create overlay. Please try again." : activeTab === "playlists" ? "Failed to create playlist. Please try again." : "Failed to create runner. Please try again.",
 														color: "danger",
 													});
 												} finally {
@@ -714,7 +767,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 													<Avatar.Image alt={item.display_name} src={item.profile_image_url} />
 													<Avatar.Fallback>{item.display_name.slice(0, 2).toUpperCase()}</Avatar.Fallback>
 												</Avatar>
-												{activeTab === "overlays" ? `Add new overlay for ${item.display_name}` : `Add new playlist for ${item.display_name}`}
+												{activeTab === "overlays" ? `Add new overlay for ${item.display_name}` : activeTab === "playlists" ? `Add new playlist for ${item.display_name}` : `Add new runner for ${item.display_name}`}
 											</Label>
 										</Dropdown.Item>
 									)}
@@ -726,6 +779,10 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 							isPending={isLoading}
 							isDisabled={overlays === undefined}
 							onPress={async () => {
+								if (activeTab === "runners") {
+									// In a real implementation this would likely open a modal to create a runner
+									return;
+								}
 								setIsLoading(true);
 
 								if (activeTab === "overlays" && effectivePlan === "free" && ownerOverlaysCount >= 1 && !multiOverlayAccess.allowed) {
@@ -850,7 +907,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 				)}
 			</div>
 		);
-	}, [activeTab, overlays, playlists, userId, currentUser, reloadOverlays, isLoading, hasAccess, editorAccessList, plausible, onUpgradeOpen, router]);
+	}, [activeTab, overlays, playlists, runners?.length, userId, currentUser, reloadOverlays, isLoading, hasAccess, editorAccessList, plausible, onUpgradeOpen, router]);
 
 	const bottomContent = useMemo(() => {
 		return (
@@ -878,11 +935,15 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 				<Tabs.ListContainer className='w-fit max-w-full'>
 					<Tabs.List aria-label='Resource type' className='w-fit max-w-full *:w-fit'>
 						<Tabs.Tab id='overlays' className='flex-none'>
-							Overlays
+							<Label>Overlays</Label>
 							<Tabs.Indicator />
 						</Tabs.Tab>
 						<Tabs.Tab id='playlists' className='flex-none'>
-							Playlists
+							<Label>Playlists</Label>
+							<Tabs.Indicator />
+						</Tabs.Tab>
+						<Tabs.Tab id='runners' className='flex-none'>
+							<Label>Runners</Label>
 							<Tabs.Indicator />
 						</Tabs.Tab>
 					</Tabs.List>
@@ -915,7 +976,11 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 						onSelectionChange={onSelectionChange}
 						onSortChange={setSortDescriptor}
 						onRowAction={(key) => {
-							router.push(`/dashboard/${activeTab === "overlays" ? "overlay" : "playlist"}/${String(key)}`);
+							if (activeTab === "runners") {
+								router.push(`/dashboard/runners/${String(key)}`);
+							} else {
+								router.push(`/dashboard/${activeTab === "overlays" ? "overlay" : "playlist"}/${String(key)}`);
+							}
 						}}
 					>
 						<Table.Header>
@@ -955,25 +1020,36 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 							))}
 						</Table.Header>
 						<Table.Body
-							renderEmptyState={() =>
-								activeTab === "overlays" ? (
-									overlays === undefined ? (
+							renderEmptyState={() => {
+								if (activeTab === "overlays") {
+									return overlays === undefined ? (
 										<span className='flex w-full items-center justify-center gap-2 p-4'>
 											<Spinner />
 											Loading overlays
 										</span>
 									) : (
 										<div className='w-full p-4 text-center text-muted'>No overlays found</div>
-									)
-								) : playlists === undefined ? (
-									<span className='flex w-full items-center justify-center gap-2 p-4'>
-										<Spinner />
-										Loading playlists
-									</span>
-								) : (
-									<div className='w-full p-4 text-center text-muted'>No playlists found</div>
-								)
-							}
+									);
+								} else if (activeTab === "playlists") {
+									return playlists === undefined ? (
+										<span className='flex w-full items-center justify-center gap-2 p-4'>
+											<Spinner />
+											Loading playlists
+										</span>
+									) : (
+										<div className='w-full p-4 text-center text-muted'>No playlists found</div>
+									);
+								} else {
+									return runners === undefined ? (
+										<span className='flex w-full items-center justify-center gap-2 p-4'>
+											<Spinner />
+											Loading runners
+										</span>
+									) : (
+										<div className='w-full p-4 text-center text-muted'>No runners found</div>
+									);
+								}
+							}}
 						>
 							{sortedItems.map((item) => (
 								<Table.Row key={item.id} id={item.id} textValue={item.name}>
