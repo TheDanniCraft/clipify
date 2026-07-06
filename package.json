@@ -3,10 +3,10 @@
 	"version": "0.1.0",
 	"private": true,
 	"scripts": {
-		"app:dev": "infisical run --env=dev --watch -- next dev --webpack",
+		"app:dev": "infisical run --env=dev --watch -- next dev",
 		"app:webhook": "stripe listen --forward-to localhost:3000/payment/webhook",
 		"app:eventsub": "ngrok http 3000 --url https://well-free-wildcat.ngrok-free.app",
-		"app:build": "next build --webpack",
+		"app:build": "next build",
 		"app:check-action-manifest": "node scripts/check-server-action-manifest.mjs",
 		"app:start": "next start",
 		"app:lint": "eslint .",
