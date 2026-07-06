@@ -1,34 +1,4 @@
 /*
- * Clipify application palette.
- * Keep this block when replacing the generated HeroUI theme below.
- */
-@theme inline {
-	--color-brand: #5f06f5;
-	--color-brand-foreground: #ffffff;
-	--color-brand-50: #f4e9ff;
-	--color-brand-100: #e6ccfe;
-	--color-brand-200: #cb9afe;
-	--color-brand-300: #aa68fc;
-	--color-brand-400: #8d42f9;
-	--color-brand-500: #5f06f5;
-	--color-brand-600: #4904d2;
-	--color-brand-700: #3603b0;
-	--color-brand-800: #26018e;
-	--color-brand-900: #1a0175;
-	--color-brand-secondary: #d23b5d;
-	--color-brand-secondary-50: #f8d0d6;
-	--color-brand-secondary-100: #f0a8b3;
-	--color-brand-secondary-200: #e77d91;
-	--color-brand-secondary-300: #e05a6f;
-	--color-brand-secondary-400: #d73a4d;
-	--color-brand-secondary-500: #d23b5d;
-	--color-brand-secondary-600: #b72f4f;
-	--color-brand-secondary-700: #9b2440;
-	--color-brand-secondary-800: #7f1932;
-	--color-brand-secondary-900: #631127;
-}
-
-/*
  * HeroUI Pro Theme
  * Add this to your globals.css after importing @heroui/styles
  * @see https://heroui.com/docs/react/getting-started/theming
@@ -56,14 +26,12 @@
 	--success: oklch(73.29% 0.1941 154.47);
 	--success-foreground: oklch(21.03% 0.0059 154.47);
 	--warning: oklch(78.19% 0.159 75.99);
-	--warning-foreground: oklch(21.03% 0.0059 75.99);
 	--danger: oklch(65.32% 0.2335 29.4);
-	--danger-foreground: oklch(99.11% 0 0);
 	--field-border: oklch(90% 0 284.36);
 	--border: oklch(90% 0 284.36);
 	--separator: oklch(92% 0 284.36);
 	--background-secondary: color-mix(in oklab, var(--background) 98%, var(--foreground) 2%);
-	--background-tertiary: color-mix(in oklab, var(--background) 96%, var(--foreground) 4%);
+	--background-tertiary: color-mix(in oklab, var(--background) 96%, var(--foreground) 5%);
 }
 
 .dark,
@@ -75,19 +43,17 @@
 	--scrollbar: oklch(70.5% 0 284.36);
 	--surface: oklch(21.03% 0 284.36);
 	--surface-secondary: oklch(25.7% 0 284.36);
-	--surface-secondary-foreground: var(--foreground);
+	--surface-secondary-foreground: oklch(25.7% 0 284.36);
 	--surface-tertiary: oklch(27.21% 0 284.36);
-	--surface-tertiary-foreground: var(--foreground);
+	--surface-tertiary-foreground: oklch(27.21% 0 284.36);
 	--overlay: oklch(21.03% 0 284.36);
 	--default: oklch(27.4% 0 284.36);
 	--accent: oklch(48.8% 0.2839 284.35);
 	--accent-foreground: oklch(99.11% 0 0);
 	--success: oklch(73.29% 0.1941 154.47);
 	--success-foreground: oklch(21.03% 0.0059 154.47);
-	--warning: oklch(82.03% 0.1392 80);
-	--warning-foreground: oklch(21.03% 0.0059 80);
-	--danger: oklch(59.4% 0.1973 28.29);
-	--danger-foreground: oklch(99.11% 0 0);
+	--warning: oklch(78.19% 0.1584 72.32);
+	--danger: oklch(61.93% 0.2419 11.32);
 	--field-background: oklch(21.03% 0 284.36);
 	--field-placeholder: oklch(70.5% 0 284.36);
 	--field-border: oklch(28% 0 284.36);
@@ -95,5 +61,5 @@
 	--border: oklch(28% 0 284.36);
 	--separator: oklch(25% 0 284.36);
 	--background-secondary: color-mix(in oklab, var(--background) 98%, var(--foreground) 2%);
-	--background-tertiary: color-mix(in oklab, var(--background) 96%, var(--foreground) 4%);
+	--background-tertiary: color-mix(in oklab, var(--background) 96%, var(--foreground) 5%);
 }

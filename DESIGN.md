@@ -15,9 +15,9 @@ colors:
     accent-hover: "#693EF8"
     accent-soft: "rgba(95, 6, 245, 0.12)"
     accent-soft-foreground: "#7E6DFD"
-    danger: "#DB3C32"
+    danger: "#F31260"
     success: "#00CA6E"
-    warning: "#F3B94D"
+    warning: "#F5A524"
     border: "#292929"
     default: "#272727"
     focus: "#5F06F5"
@@ -48,10 +48,10 @@ colors:
     border-secondary: "#434343"
     border-tertiary: "#5C5C5C"
     danger-foreground: "#FCFCFC"
-    danger-hover: "#E15548"
-    danger-soft: "rgba(219, 60, 50, 0.15)"
-    danger-soft-foreground: "#EB796B"
-    danger-soft-hover: "rgba(219, 60, 50, 0.2)"
+    danger-hover: "#F8416F"
+    danger-soft: "rgba(243, 18, 96, 0.15)"
+    danger-soft-foreground: "#FE6E89"
+    danger-soft-hover: "rgba(243, 18, 96, 0.2)"
     default-foreground: "#FCFCFC"
     default-hover: "#2E2E2E"
     default-soft: "rgba(39, 39, 39, 0.5)"
@@ -71,11 +71,11 @@ colors:
     surface-hover: "#272727"
     surface-secondary-foreground: "#FCFCFC"
     surface-tertiary-foreground: "#FCFCFC"
-    warning-foreground: "#1A1815"
-    warning-hover: "#DAA748"
-    warning-soft: "rgba(243, 185, 77, 0.12)"
-    warning-soft-foreground: "#F6CC85"
-    warning-soft-hover: "rgba(243, 185, 77, 0.16)"
+    warning-foreground: "#18181B"
+    warning-hover: "#DC962A"
+    warning-soft: "rgba(245, 165, 36, 0.12)"
+    warning-soft-foreground: "#F8BE72"
+    warning-soft-hover: "rgba(245, 165, 36, 0.16)"
   light:
     backdrop: "rgba(0, 0, 0, 0.5)"
     background: "#F5F5F5"
@@ -146,8 +146,8 @@ colors:
     surface-hover: "#EAEAEA"
     surface-secondary-foreground: "#18181B"
     surface-tertiary-foreground: "#18181B"
-    warning-foreground: "#1A1815"
-    warning-hover: "#D99821"
+    warning-foreground: "#18181B"
+    warning-hover: "#D89824"
     warning-soft: "rgba(241, 168, 27, 0.15)"
     warning-soft-foreground: "#83602C"
     warning-soft-hover: "rgba(241, 168, 27, 0.2)"
@@ -268,9 +268,9 @@ Use semantic HeroUI tokens and Tailwind utilities in product code. The raw value
 | `accent-hover`                 | `#693EF8`                  | `#693EF8`                  | `accent / 90% + accent-foreground / 10%`                                          | `--accent-hover`                 | Prefer HeroUI hover states; use `bg-accent-hover` only for custom surfaces | Accent hover state. Derived automatically from accent and accent-foreground.                     |
 | `accent-soft`                  | `rgba(95, 6, 245, 0.15)`   | `rgba(95, 6, 245, 0.12)`   | `Light: accent / 15% + transparent; Dark: accent / 12% + transparent`             | `--accent-soft`                  | `bg-accent-soft text-accent-soft-foreground` for selected or soft emphasis | Subtle accent background. A low-opacity tint for soft emphasis and selections.                   |
 | `accent-soft-foreground`       | `#4623AE`                  | `#7E6DFD`                  | `Light: accent / 70% + foreground / 30%; Dark: accent / 80% + foreground / 30%`   | `--accent-soft-foreground`       | Prefer the HeroUI token for accent-soft-foreground.                        | Text color on accent-soft backgrounds. Mixed from accent and foreground for accessible contrast. |
-| `danger`                       | `#FF3A2B`                  | `#DB3C32`                  | `Light: oklch(65.32% 0.2335 29.40); Dark: oklch(59.40% 0.1973 28.29)`             | `--danger`                       | `Button variant="danger"` or `text-danger` for destructive states          | Represents destructive, irreversible, or critical actions and states.                            |
+| `danger`                       | `#FF3A2B`                  | `#F31260`                  | `Light: oklch(65.32% 0.2335 29.40); Dark: oklch(61.93% 0.2419 11.32)`             | `--danger`                       | `Button variant="danger"` or `text-danger` for destructive states          | Represents destructive, irreversible, or critical actions and states.                            |
 | `success`                      | `#00CA6E`                  | `#00CA6E`                  | `oklch(73.29% 0.1941 154.47)`                                                     | `--success`                      | `text-success` or HeroUI success status components                         | Communicates positive outcomes, confirmations, and completion states.                            |
-| `warning`                      | `#F1A81B`                  | `#F3B94D`                  | `Light: oklch(78.19% 0.1590 75.99); Dark: oklch(82.03% 0.1392 80.00)`             | `--warning`                      | `text-warning` for caution states                                          | Indicates caution or actions that require attention but are not destructive.                     |
+| `warning`                      | `#F1A81B`                  | `#F5A524`                  | `Light: oklch(78.19% 0.1590 75.99); Dark: oklch(78.19% 0.1584 72.32)`             | `--warning`                      | `text-warning` for caution states                                          | Indicates caution or actions that require attention but are not destructive.                     |
 | `border`                       | `#DEDEDE`                  | `#292929`                  | `Light: oklch(90.00% 0.0000 284.36); Dark: oklch(28.00% 0.0000 284.36)`           | `--border`                       | `border-border`                                                            | Default border color for containers and interactive elements.                                    |
 | `default`                      | `#EBEBEB`                  | `#272727`                  | `Light: oklch(94.00% 0.0000 284.36); Dark: oklch(27.40% 0.0000 284.36)`           | `--default`                      | `bg-default text-default-foreground` for neutral controls                  | Neutral interactive background. Used for chips, tags, and secondary controls.                    |
 | `focus`                        | `#5F06F5`                  | `#5F06F5`                  | `= accent`                                                                        | `--focus`                        | Keyboard focus rings                                                       | Focus ring color for keyboard navigation indicators.                                             |
@@ -300,11 +300,11 @@ Use semantic HeroUI tokens and Tailwind utilities in product code. The raw value
 | `background-tertiary`          | `#E8E8E9`                  | `#191919`                  | `background / 96% + foreground / 5%`                                              | `--background-tertiary`          | Prefer the HeroUI token for background-tertiary.                           | More prominently tinted background for layered sections.                                         |
 | `border-secondary`             | `#C6C6C7`                  | `#434343`                  | `surface / 78% + surface-foreground / 22%`                                        | `--border-secondary`             | Prefer the HeroUI token for border-secondary.                              | Medium-contrast border for stronger visual separation.                                           |
 | `border-tertiary`              | `#A8A8A9`                  | `#5C5C5C`                  | `surface / 66% + surface-foreground / 34%`                                        | `--border-tertiary`              | Prefer the HeroUI token for border-tertiary.                               | High-contrast border for maximum definition.                                                     |
-| `danger-foreground`            | `#FCFCFC`                  | `#FCFCFC`                  | `oklch(99.11% 0.0000 0.00)`                                                       | `--danger-foreground`            | Prefer the HeroUI token for danger-foreground.                             | Text/icon color on danger backgrounds.                                                           |
-| `danger-hover`                 | `#FF5745`                  | `#E15548`                  | `danger / 90% + danger-foreground / 10%`                                          | `--danger-hover`                 | Prefer the HeroUI token for danger-hover.                                  | Hover state for danger backgrounds.                                                              |
-| `danger-soft`                  | `rgba(255, 58, 43, 0.15)`  | `rgba(219, 60, 50, 0.15)`  | `danger / 15% + transparent`                                                      | `--danger-soft`                  | Prefer the HeroUI token for danger-soft.                                   | Subtle danger background for soft emphasis.                                                      |
-| `danger-soft-foreground`       | `#A4352C`                  | `#EB796B`                  | `Light: danger / 70% + foreground / 40%; Dark: danger / 80% + foreground / 30%`   | `--danger-soft-foreground`       | Prefer the HeroUI token for danger-soft-foreground.                        | Text color on danger-soft backgrounds.                                                           |
-| `danger-soft-hover`            | `rgba(255, 58, 43, 0.2)`   | `rgba(219, 60, 50, 0.2)`   | `danger / 20% + transparent`                                                      | `--danger-soft-hover`            | Prefer the HeroUI token for danger-soft-hover.                             | Hover state for danger-soft backgrounds.                                                         |
+| `danger-foreground`            | `#FCFCFC`                  | `#FCFCFC`                  | `= snow`                                                                          | `--danger-foreground`            | Prefer the HeroUI token for danger-foreground.                             | Text/icon color on danger backgrounds.                                                           |
+| `danger-hover`                 | `#FF5745`                  | `#F8416F`                  | `danger / 90% + danger-foreground / 10%`                                          | `--danger-hover`                 | Prefer the HeroUI token for danger-hover.                                  | Hover state for danger backgrounds.                                                              |
+| `danger-soft`                  | `rgba(255, 58, 43, 0.15)`  | `rgba(243, 18, 96, 0.15)`  | `danger / 15% + transparent`                                                      | `--danger-soft`                  | Prefer the HeroUI token for danger-soft.                                   | Subtle danger background for soft emphasis.                                                      |
+| `danger-soft-foreground`       | `#A4352C`                  | `#FE6E89`                  | `Light: danger / 70% + foreground / 40%; Dark: danger / 80% + foreground / 30%`   | `--danger-soft-foreground`       | Prefer the HeroUI token for danger-soft-foreground.                        | Text color on danger-soft backgrounds.                                                           |
+| `danger-soft-hover`            | `rgba(255, 58, 43, 0.2)`   | `rgba(243, 18, 96, 0.2)`   | `danger / 20% + transparent`                                                      | `--danger-soft-hover`            | Prefer the HeroUI token for danger-soft-hover.                             | Hover state for danger-soft backgrounds.                                                         |
 | `default-foreground`           | `#18181B`                  | `#FCFCFC`                  | `Light: = eclipse; Dark: = snow`                                                  | `--default-foreground`           | Prefer the HeroUI token for default-foreground.                            | Text/icon color on default backgrounds.                                                          |
 | `default-hover`                | `#E1E1E2`                  | `#2E2E2E`                  | `default / 96% + default-foreground / 4%`                                         | `--default-hover`                | Prefer the HeroUI token for default-hover.                                 | Hover state for default backgrounds.                                                             |
 | `default-soft`                 | `rgba(235, 235, 235, 0.5)` | `rgba(39, 39, 39, 0.5)`    | `default / 50% + transparent`                                                     | `--default-soft`                 | Prefer the HeroUI token for default-soft.                                  | Subtle default background for neutral soft emphasis.                                             |
@@ -324,11 +324,11 @@ Use semantic HeroUI tokens and Tailwind utilities in product code. The raw value
 | `surface-hover`                | `#EAEAEA`                  | `#272727`                  | `surface / 92% + surface-foreground / 8%`                                         | `--surface-hover`                | Prefer the HeroUI token for surface-hover.                                 | Hover state for surface containers.                                                              |
 | `surface-secondary-foreground` | `#18181B`                  | `#FCFCFC`                  | `= foreground`                                                                    | `--surface-secondary-foreground` | Prefer the HeroUI token for surface-secondary-foreground.                  | Text color on secondary surfaces.                                                                |
 | `surface-tertiary-foreground`  | `#18181B`                  | `#FCFCFC`                  | `= foreground`                                                                    | `--surface-tertiary-foreground`  | Prefer the HeroUI token for surface-tertiary-foreground.                   | Text color on tertiary surfaces.                                                                 |
-| `warning-foreground`           | `#1A1815`                  | `#1A1815`                  | `Light: oklch(21.03% 0.0059 75.99); Dark: oklch(21.03% 0.0059 80.00)`             | `--warning-foreground`           | Prefer the HeroUI token for warning-foreground.                            | Text/icon color on warning backgrounds.                                                          |
-| `warning-hover`                | `#D99821`                  | `#DAA748`                  | `warning / 90% + warning-foreground / 10%`                                        | `--warning-hover`                | Prefer the HeroUI token for warning-hover.                                 | Hover state for warning backgrounds.                                                             |
-| `warning-soft`                 | `rgba(241, 168, 27, 0.15)` | `rgba(243, 185, 77, 0.12)` | `Light: warning / 15% + transparent; Dark: warning / 12% + transparent`           | `--warning-soft`                 | Prefer the HeroUI token for warning-soft.                                  | Subtle warning background for soft emphasis.                                                     |
-| `warning-soft-foreground`      | `#83602C`                  | `#F6CC85`                  | `Light: warning / 80% + foreground / 70%; Dark: warning / 80% + foreground / 30%` | `--warning-soft-foreground`      | Prefer the HeroUI token for warning-soft-foreground.                       | Text color on warning-soft backgrounds.                                                          |
-| `warning-soft-hover`           | `rgba(241, 168, 27, 0.2)`  | `rgba(243, 185, 77, 0.16)` | `Light: warning / 20% + transparent; Dark: warning / 16% + transparent`           | `--warning-soft-hover`           | Prefer the HeroUI token for warning-soft-hover.                            | Hover state for warning-soft backgrounds.                                                        |
+| `warning-foreground`           | `#18181B`                  | `#18181B`                  | `= eclipse`                                                                       | `--warning-foreground`           | Prefer the HeroUI token for warning-foreground.                            | Text/icon color on warning backgrounds.                                                          |
+| `warning-hover`                | `#D89824`                  | `#DC962A`                  | `warning / 90% + warning-foreground / 10%`                                        | `--warning-hover`                | Prefer the HeroUI token for warning-hover.                                 | Hover state for warning backgrounds.                                                             |
+| `warning-soft`                 | `rgba(241, 168, 27, 0.15)` | `rgba(245, 165, 36, 0.12)` | `Light: warning / 15% + transparent; Dark: warning / 12% + transparent`           | `--warning-soft`                 | Prefer the HeroUI token for warning-soft.                                  | Subtle warning background for soft emphasis.                                                     |
+| `warning-soft-foreground`      | `#83602C`                  | `#F8BE72`                  | `Light: warning / 80% + foreground / 70%; Dark: warning / 80% + foreground / 30%` | `--warning-soft-foreground`      | Prefer the HeroUI token for warning-soft-foreground.                       | Text color on warning-soft backgrounds.                                                          |
+| `warning-soft-hover`           | `rgba(241, 168, 27, 0.2)`  | `rgba(245, 165, 36, 0.16)` | `Light: warning / 20% + transparent; Dark: warning / 16% + transparent`           | `--warning-soft-hover`           | Prefer the HeroUI token for warning-soft-hover.                            | Hover state for warning-soft backgrounds.                                                        |
 
 ## Typography
 
