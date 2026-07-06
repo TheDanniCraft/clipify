@@ -32,7 +32,7 @@ export default async function RoadmapPage() {
 					) : (
 						<div className='rounded-3xl border border-default bg-surface px-6 py-16 text-center'>
 							<h2 className='text-2xl font-semibold'>Roadmap unavailable</h2>
-							<p className='mt-3 text-muted'>The roadmap is currently not available from the CMS. Please try again shortly.</p>
+							<p className='mt-3 text-muted'>Can&apos;t load roadmap right now.</p>
 						</div>
 					)}
 				</div>

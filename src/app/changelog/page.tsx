@@ -35,7 +35,7 @@ export default async function ChangelogPage() {
 						<div className='absolute left-3.5 top-6 bottom-6 w-0.5 bg-gradient-to-b from-muted via-muted to-transparent opacity-20 z-0'></div>
 						<div className='space-y-6'>
 							{!releases || releases.length === 0 ? (
-								<div className='text-gray-600 text-center py-4'>Error while fetching releases.</div>
+								<div className='text-gray-600 text-center py-4'>Can&apos;t load changelog right now.</div>
 							) : (
 								releases
 									.filter((release: GithubRelease) => release.prerelease === false)
