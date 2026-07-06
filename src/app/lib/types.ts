@@ -573,4 +573,3 @@ declare global {
 		};
 	}
 }
-

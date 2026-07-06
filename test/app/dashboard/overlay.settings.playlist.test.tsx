@@ -95,55 +95,95 @@ jest.mock("@components/tagsInput", () => ({
 }));
 
 jest.mock("@tabler/icons-react", () => new Proxy({}, { get: () => () => <span /> }));
+jest.mock("@lib/toast", () => ({ notify: jest.fn() }));
+jest.mock("@components/appDateRangePicker", () => ({ __esModule: true, default: ({ label }: { label: string }) => <div>{label}</div> }));
 
 jest.mock("@heroui/react", () => {
 	jest.requireActual<typeof import("react")>("react");
 	return {
 		addToast: jest.fn(),
-		useDisclosure: () => ({ isOpen: false, onOpen: jest.fn(), onOpenChange: jest.fn() }),
+		useOverlayState: () => ({ isOpen: false, open: jest.fn(), close: jest.fn(), setOpen: jest.fn(), toggle: jest.fn() }),
 		Button: ({ children, onPress, onClick, ...props }: { children?: React.ReactNode; onPress?: () => void; onClick?: () => void }) => (
 			<button {...props} onClick={() => (onPress ? onPress() : onClick ? onClick() : undefined)}>
 				{children}
 			</button>
 		),
 		Form: ({ children, onSubmit }: { children: React.ReactNode; onSubmit?: (event: React.FormEvent<HTMLFormElement>) => void }) => <form onSubmit={onSubmit}>{children}</form>,
-		Input: ({ label, value, onValueChange, ...props }: { label?: string; value?: string; onValueChange?: (value: string) => void }) => (
-			<label>
-				{label}
-				<input {...props} value={value ?? ""} onChange={(event) => onValueChange?.(event.target.value)} />
-			</label>
-		),
-		Select: ({ label, children }: { label?: string; children: React.ReactNode }) => (
-			<label>
-				{label}
-				<select>{children}</select>
-			</label>
-		),
-		Autocomplete: ({ label, children }: { label?: string; children?: React.ReactNode }) => (
-			<label>
-				{label}
-				<div>{children}</div>
-			</label>
-		),
-		AutocompleteItem: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
-		SelectItem: ({ children, ...props }: { children: React.ReactNode }) => <option {...props}>{children}</option>,
-		Switch: ({ children }: { children: React.ReactNode }) => <label>{children}</label>,
-		Checkbox: ({ children }: { children?: React.ReactNode }) => <label>{children}</label>,
-		Slider: () => <div />,
-		NumberInput: () => <div />,
+		TextField: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+		Label: ({ children }: { children: React.ReactNode }) => <label>{children}</label>,
+		FieldError: () => null,
+		Input: (props: React.InputHTMLAttributes<HTMLInputElement>) => <input {...props} />,
+		InputGroup: Object.assign(({ children }: { children: React.ReactNode }) => <div>{children}</div>, {
+			Prefix: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
+			Suffix: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
+			Input: (props: React.InputHTMLAttributes<HTMLInputElement>) => <input {...props} />,
+		}),
+		CloseButton: ({ onPress }: { onPress?: () => void }) => <button type='button' aria-label='Clear' onClick={onPress} />,
+		Select: Object.assign(({ children }: { children: React.ReactNode }) => <div>{children}</div>, {
+			Trigger: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+			Value: () => null,
+			Indicator: () => null,
+			Popover: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+		}),
+		ComboBox: Object.assign(({ children }: { children?: React.ReactNode }) => <div>{children}</div>, {
+			InputGroup: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+			Trigger: () => null,
+			Popover: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+		}),
+		ListBox: Object.assign(({ children, items = [] }: { children?: React.ReactNode | ((item: unknown) => React.ReactNode); items?: unknown[] }) => <div>{typeof children === "function" ? items.map((item, index) => <div key={index}>{children(item)}</div>) : children}</div>, {
+			Item: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+			ItemIndicator: () => null,
+		}),
+		Switch: Object.assign(({ children }: { children: React.ReactNode }) => <label>{children}</label>, {
+			Content: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
+			Control: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
+			Thumb: () => <span />,
+		}),
+		Checkbox: Object.assign(({ children }: { children?: React.ReactNode }) => <label>{children}</label>, {
+			Content: ({ children }: { children?: React.ReactNode }) => <span>{children}</span>,
+			Control: ({ children }: { children?: React.ReactNode }) => <span>{children}</span>,
+			Indicator: () => null,
+		}),
+		Slider: Object.assign(({ children }: { children?: React.ReactNode }) => <div>{children}</div>, {
+			Output: () => null,
+			Track: ({ children }: { children?: React.ReactNode | ((value: { state: { values: number[] } }) => React.ReactNode) }) => <div>{typeof children === "function" ? children({ state: { values: [0, 60] } }) : children}</div>,
+			Fill: () => null,
+			Thumb: () => null,
+		}),
+		NumberField: Object.assign(({ children }: { children?: React.ReactNode }) => <div>{children}</div>, {
+			Group: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+			Input: () => <input type='number' />,
+			IncrementButton: () => <button type='button'>+</button>,
+			DecrementButton: () => <button type='button'>-</button>,
+		}),
 		DateRangePicker: ({ label }: { label?: string }) => <div>{label}</div>,
-		Card: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-		CardHeader: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-		CardBody: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-		Divider: () => <div />,
+		Card: Object.assign(({ children }: { children: React.ReactNode }) => <div>{children}</div>, {
+			Header: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+			Content: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+		}),
+		Separator: () => <div />,
 		Link: ({ children }: { children: React.ReactNode }) => <a>{children}</a>,
-		Modal: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-		ModalBody: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-		ModalContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-		ModalFooter: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-		ModalHeader: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-		Image: () => <div />,
-		Table: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+		Modal: Object.assign(({ children }: { children: React.ReactNode }) => <div>{children}</div>, {
+			Backdrop: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+			Container: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+			Dialog: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+			CloseTrigger: () => null,
+			Header: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+			Heading: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+			Body: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+			Footer: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+		}),
+		Table: Object.assign(({ children }: { children?: React.ReactNode }) => <div>{children}</div>, {
+			ScrollContainer: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+			Content: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+			Header: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+			Column: ({ children }: { children?: React.ReactNode | ((props: { sortDirection: null }) => React.ReactNode) }) => <div>{typeof children === "function" ? children({ sortDirection: null }) : children}</div>,
+			SortableColumnHeader: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
+			Body: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+			Row: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+			Cell: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+			Footer: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+		}),
 		TableHeader: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
 		TableColumn: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
 		TableBody: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
@@ -151,7 +191,10 @@ jest.mock("@heroui/react", () => {
 		TableCell: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
 		Snippet: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 		Spinner: ({ label }: { label?: string }) => <div>{label}</div>,
-		Tooltip: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+		Tooltip: Object.assign(({ children }: { children: React.ReactNode }) => <div>{children}</div>, {
+			Trigger: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+			Content: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
+		}),
 	};
 });
 

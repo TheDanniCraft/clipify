@@ -48,9 +48,12 @@ describe("getGamesDetailsBulk", () => {
 
 		expect(result).toHaveLength(2);
 		expect(result[0].name).toBe("Game 1");
-		expect(axios.get).toHaveBeenCalledWith(expect.stringContaining("/helix/games"), expect.objectContaining({
-			params: { id: mockGameIds }
-		}));
+		expect(axios.get).toHaveBeenCalledWith(
+			expect.stringContaining("/helix/games"),
+			expect.objectContaining({
+				params: { id: mockGameIds },
+			}),
+		);
 		expect(setTwitchCacheBatch).toHaveBeenCalled();
 	});
 
@@ -68,11 +71,14 @@ describe("getGamesDetailsBulk", () => {
 		const result = await getGamesDetailsBulk(mockGameIds, mockUserId);
 
 		expect(result).toHaveLength(2);
-		expect(result.find(g => g.id === "123")).toBeDefined();
-		expect(result.find(g => g.id === "456")).toBeDefined();
-		expect(axios.get).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
-			params: { id: ["123"] }
-		}));
+		expect(result.find((g) => g.id === "123")).toBeDefined();
+		expect(result.find((g) => g.id === "456")).toBeDefined();
+		expect(axios.get).toHaveBeenCalledWith(
+			expect.anything(),
+			expect.objectContaining({
+				params: { id: ["123"] },
+			}),
+		);
 		expect(result.map((g) => g.id)).toEqual(["123", "456"]);
 	});
 

@@ -1,18 +1,13 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState, type ComponentProps } from "react";
-import { Chip, Textarea, Popover, PopoverContent, Listbox, ListboxItem, type TextAreaProps } from "@heroui/react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Button, Chip, CloseButton, Description, FieldError, InputGroup, Label, ListBox, Popover, TextField } from "@heroui/react";
 
-type ChipColor = "default" | "primary" | "secondary" | "success" | "warning" | "danger";
-type ChipVariant = "solid" | "bordered" | "flat" | "faded" | "light" | "shadow";
+type ChipColor = "default" | "accent" | "success" | "warning" | "danger";
+type ChipVariant = "primary" | "secondary" | "tertiary" | "soft";
 type ChipSize = "sm" | "md" | "lg";
 
-type ChipClassNames = ComponentProps<typeof Chip>["classNames"];
-type TextareaClassNames = ComponentProps<typeof Textarea>["classNames"];
-
-type PassthroughTextAreaProps = Omit<TextAreaProps, "children" | "value" | "defaultValue" | "onChange" | "onValueChange" | "startContent" | "minRows" | "maxRows" | "disableAutosize" | "classNames">;
-
-export type TagsInputProps = PassthroughTextAreaProps & {
+export type TagsInputProps = {
 	suggestions?: string[];
 
 	value?: string[];
@@ -30,13 +25,23 @@ export type TagsInputProps = PassthroughTextAreaProps & {
 	chipColor?: ChipColor;
 	chipVariant?: ChipVariant;
 	chipSize?: ChipSize;
-	chipClassNames?: ChipClassNames;
+	chipClassName?: string;
 
 	suggestionItemClassName?: string;
-	textareaClassNames?: TextareaClassNames;
 
 	className?: string;
 	showCounter?: boolean;
+	label?: React.ReactNode;
+	description?: React.ReactNode;
+	errorMessage?: React.ReactNode;
+	placeholder?: string;
+	name?: string;
+	fullWidth?: boolean;
+	isDisabled?: boolean;
+	isReadOnly?: boolean;
+	isClearable?: boolean;
+	isInvalid?: boolean;
+	isRequired?: boolean;
 };
 
 const DELIM_RE = /[,\s]+/g;
@@ -61,22 +66,25 @@ export default function TagsInput(props: TagsInputProps) {
 		chipColor,
 		chipVariant,
 		chipSize,
-		chipClassNames,
+		chipClassName,
 
 		suggestionItemClassName,
-		textareaClassNames,
-
 		className,
 		showCounter = true,
-
-		...textareaProps
+		label,
+		description,
+		errorMessage,
+		placeholder,
+		name,
+		fullWidth,
+		isDisabled = false,
+		isReadOnly = false,
+		isClearable = false,
+		isInvalid,
+		isRequired,
 	} = props;
 
-	const isDisabled = Boolean(textareaProps.isDisabled);
-	const isReadOnly = Boolean(textareaProps.isReadOnly);
-	const isClearable = Boolean(textareaProps.isClearable);
-
-	const ariaLabel = typeof textareaProps.label === "string" ? textareaProps.label : "Tags input";
+	const ariaLabel = typeof label === "string" ? label : "Tags input";
 
 	const isControlled = value !== undefined;
 
@@ -172,19 +180,11 @@ export default function TagsInput(props: TagsInputProps) {
 	const isOpen = !isDisabled && !isReadOnly && isFocused && filteredSuggestions.length > 0 && !isAtLimit;
 
 	const hasContent = tags.length > 0 || inputValue.length > 0;
-	const syntheticValue = hasContent ? " " : "";
 
 	const counterText = hasMax ? `${tags.length}/${maxInputs}` : `${tags.length}`;
-	const counterClassName = isAtLimit ? "text-danger" : "text-foreground-500";
+	const counterClassName = isAtLimit ? "text-danger" : "text-muted";
 
-	const mergedTextareaClassNames: TextareaClassNames = {
-		...textareaClassNames,
-		inputWrapper: ["h-auto min-h-11", textareaClassNames?.inputWrapper].filter(Boolean).join(" "),
-		innerWrapper: ["h-auto items-start flex-wrap", textareaClassNames?.innerWrapper].filter(Boolean).join(" "),
-		input: ["sr-only !w-0 !h-0 !p-0 !m-0", textareaClassNames?.input].filter(Boolean).join(" "),
-	};
-
-	const rootClassName = [textareaProps.fullWidth ? "w-full" : "inline-block", className].filter(Boolean).join(" ");
+	const rootClassName = [fullWidth ? "w-full" : "inline-block", className].filter(Boolean).join(" ");
 
 	useEffect(() => {
 		if (!onHeightChange) return;
@@ -251,129 +251,114 @@ export default function TagsInput(props: TagsInputProps) {
 		if (endsWithDelim) queueMicrotask(() => inputRef.current?.focus());
 	};
 
-	return (
-		<Popover isOpen={isOpen} placement='bottom-start' offset={8}>
-			<div
-				ref={rootRef}
-				className={rootClassName}
-				onMouseDown={() => {
-					if (isDisabled || isReadOnly) return;
-					queueMicrotask(() => inputRef.current?.focus());
-				}}
-			>
-				<Textarea
-					{...textareaProps}
-					isInvalid={textareaProps.isInvalid ?? derivedIsInvalid}
-					errorMessage={textareaProps.errorMessage ?? derivedErrorMessage}
-					minRows={1}
-					maxRows={1}
-					disableAutosize={false}
-					value={syntheticValue}
-					onValueChange={() => {}}
-					startContent={
-						<div className='flex flex-wrap items-center gap-2 w-full'>
+	const field = (
+		<div
+			ref={rootRef}
+			className={rootClassName}
+			onMouseDown={() => {
+				if (isDisabled || isReadOnly) return;
+				queueMicrotask(() => inputRef.current?.focus());
+			}}
+		>
+			<TextField fullWidth={fullWidth} isDisabled={isDisabled} isInvalid={isInvalid ?? derivedIsInvalid} isReadOnly={isReadOnly} isRequired={isRequired} name={name}>
+				{label ? <Label>{label}</Label> : null}
+				<InputGroup fullWidth={fullWidth} variant='secondary' className='h-auto min-h-11 flex-wrap gap-2 px-3 py-2'>
+					{tags.length > 0 ? (
+						<InputGroup.Prefix className='flex flex-wrap gap-2 p-0'>
 							{tags.map((t, idx) => (
-								<Chip key={`${t}-${idx}`} onClose={isDisabled || isReadOnly ? undefined : () => removeTag(t)} color={chipColor} variant={chipVariant} size={chipSize} classNames={chipClassNames} className='max-w-full'>
+								<Chip key={`${t}-${idx}`} color={chipColor} variant={chipVariant} size={chipSize} className={["max-w-full", chipClassName].filter(Boolean).join(" ")}>
 									<span className='truncate'>{t}</span>
+									{isDisabled || isReadOnly ? null : <CloseButton aria-label={`Remove ${t}`} onPress={() => removeTag(t)} />}
 								</Chip>
 							))}
+						</InputGroup.Prefix>
+					) : null}
+					<InputGroup.Input
+						ref={inputRef}
+						aria-label={ariaLabel}
+						enterKeyHint='done'
+						disabled={isDisabled || isAtLimit}
+						readOnly={isReadOnly}
+						value={inputValue}
+						onChange={handleInputChange}
+						onFocus={() => {
+							if (!isDisabled && !isReadOnly) setIsFocused(true);
+						}}
+						onBlur={() => {
+							if (ignoreBlurRef.current) return;
+							setIsFocused(false);
+						}}
+						onKeyDown={(event) => {
+							if (isDisabled || isReadOnly) return;
+							if (event.key === "Enter") {
+								const token = normalize(inputValue);
+								if (!token) return;
+								event.preventDefault();
+								addTag(token);
+								return;
+							}
+							if (event.key === "Backspace" && !inputValue && tags.length > 0) {
+								event.preventDefault();
+								removeTag(tags[tags.length - 1]);
+								return;
+							}
+							if (event.key === "Escape") setIsFocused(false);
+						}}
+						placeholder={tags.length === 0 ? placeholder : undefined}
+						className='min-w-[10ch] flex-1 bg-transparent p-0 text-sm text-foreground outline-none placeholder:text-muted'
+					/>
+					{showCounter || (isClearable && hasContent && !isDisabled && !isReadOnly) ? (
+						<InputGroup.Suffix className='flex items-center gap-2 p-0'>
+							{showCounter && <span className={["text-xs tabular-nums", counterClassName].join(" ")}>{counterText}</span>}
+							{isClearable && hasContent && !isDisabled && !isReadOnly && (
+								<Button size='sm' variant='ghost' onPress={clearAll}>
+									Clear
+								</Button>
+							)}
+						</InputGroup.Suffix>
+					) : null}
+				</InputGroup>
+				{(errorMessage ?? derivedErrorMessage) ? <FieldError>{errorMessage ?? derivedErrorMessage}</FieldError> : description ? <Description>{description}</Description> : null}
+			</TextField>
+		</div>
+	);
 
-							<input
-								ref={inputRef}
-								aria-label={ariaLabel}
-								enterKeyHint='done'
-								disabled={isDisabled || isReadOnly || isAtLimit}
-								value={inputValue}
-								onChange={handleInputChange}
-								onFocus={() => {
-									if (!isDisabled && !isReadOnly) setIsFocused(true);
+	if (!suggestions?.length) return field;
+
+	return (
+		<Popover isOpen={isOpen}>
+			<Popover.Trigger className={fullWidth ? "block w-full" : undefined}>{field}</Popover.Trigger>
+
+			<Popover.Content placement='bottom start' offset={8} className='w-[--trigger-width] p-1'>
+				<Popover.Dialog>
+					<ListBox
+						aria-label='Suggestions'
+						selectionMode='single'
+						onAction={(key) => {
+							if (isAtLimit || isDisabled || isReadOnly) return;
+							addTag(String(key));
+						}}
+					>
+						{filteredSuggestions.map((s) => (
+							<ListBox.Item
+								key={s}
+								id={s}
+								textValue={s}
+								className={["rounded-[12px]", "data-[hovered=true]:bg-transparent", "data-[hovered=true]:ring-1 data-[hovered=true]:ring-foreground/15", "data-[focus-visible=true]:outline-none data-[focus-visible=true]:ring-2 data-[focus-visible=true]:ring-accent", suggestionItemClassName].filter(Boolean).join(" ")}
+								onMouseDown={() => {
+									ignoreBlurRef.current = true;
 								}}
-								onBlur={() => {
-									if (ignoreBlurRef.current) return;
-									setIsFocused(false);
+								onMouseUp={() => {
+									ignoreBlurRef.current = false;
+									queueMicrotask(() => inputRef.current?.focus());
 								}}
-								onKeyDown={(e) => {
-									if (isDisabled || isReadOnly) return;
-
-									if (e.key === "Enter") {
-										const t = normalize(inputValue);
-										if (!t) return;
-										e.preventDefault();
-										addTag(t);
-										return;
-									}
-
-									if (e.key === "Backspace" && !inputValue && tags.length > 0) {
-										e.preventDefault();
-										removeTag(tags[tags.length - 1]);
-										return;
-									}
-
-									if (e.key === "Escape") setIsFocused(false);
-								}}
-								placeholder={tags.length === 0 ? textareaProps.placeholder : undefined}
-								className={["bg-transparent outline-none", "flex-1 min-w-[10ch]", "text-small text-foreground", "placeholder:text-foreground-500", "leading-5 py-0"].join(" ")}
-							/>
-
-							<div className='w-full flex items-center justify-between mt-1'>
-								{isClearable && hasContent && !isDisabled && !isReadOnly ? (
-									<button
-										type='button'
-										className='text-tiny text-foreground-500 hover:text-foreground'
-										onMouseDown={() => {
-											ignoreBlurRef.current = true;
-										}}
-										onMouseUp={() => {
-											ignoreBlurRef.current = false;
-											queueMicrotask(() => inputRef.current?.focus());
-										}}
-										onClick={(e) => {
-											e.preventDefault();
-											e.stopPropagation();
-											clearAll();
-										}}
-									>
-										Clear
-									</button>
-								) : (
-									<span />
-								)}
-
-								{showCounter ? <span className={["text-tiny select-none", counterClassName].join(" ")}>{counterText}</span> : null}
-							</div>
-						</div>
-					}
-					classNames={mergedTextareaClassNames}
-				/>
-			</div>
-
-			<PopoverContent className='w-[--trigger-width] p-1'>
-				<Listbox
-					aria-label='Suggestions'
-					selectionMode='single'
-					onAction={(key) => {
-						if (isAtLimit || isDisabled || isReadOnly) return;
-						addTag(String(key));
-					}}
-				>
-					{filteredSuggestions.map((s) => (
-						<ListboxItem
-							key={s}
-							textValue={s}
-							className={["rounded-medium", "data-[hover=true]:bg-transparent", "data-[hover=true]:ring-1 data-[hover=true]:ring-foreground/15", "data-[focus-visible=true]:outline-none data-[focus-visible=true]:ring-2 data-[focus-visible=true]:ring-primary", suggestionItemClassName].filter(Boolean).join(" ")}
-							onMouseDown={() => {
-								ignoreBlurRef.current = true;
-							}}
-							onMouseUp={() => {
-								ignoreBlurRef.current = false;
-								queueMicrotask(() => inputRef.current?.focus());
-							}}
-						>
-							{s}
-						</ListboxItem>
-					))}
-				</Listbox>
-			</PopoverContent>
+							>
+								<Label>{s}</Label>
+							</ListBox.Item>
+						))}
+					</ListBox>
+				</Popover.Dialog>
+			</Popover.Content>
 		</Popover>
 	);
 }

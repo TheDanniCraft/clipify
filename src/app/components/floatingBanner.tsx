@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { ReactNode } from "react";
 import { Button } from "@heroui/react";
+
 import { IconX } from "@tabler/icons-react";
 
 export default function FloatingBanner({ icon, title, text, cta }: { icon?: ReactNode; title: string; text: string; cta?: ReactNode }) {
@@ -36,8 +37,8 @@ export default function FloatingBanner({ icon, title, text, cta }: { icon?: Reac
 					</div>
 
 					<div className='flex flex-1 justify-end'>
-						<Button isIconOnly aria-label='Close Banner' className='-m-1' size='sm' variant='light' onPress={handleClose}>
-							<IconX aria-hidden='true' className='text-default-500' width={20} />
+						<Button isIconOnly aria-label='Close Banner' className='-m-1' size='sm' variant='ghost' onPress={handleClose}>
+							<IconX aria-hidden='true' className='text-muted' width={20} />
 						</Button>
 					</div>
 				</div>

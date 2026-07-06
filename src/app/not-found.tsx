@@ -1,4 +1,6 @@
-import { Button, Link } from "@heroui/react";
+import { Link } from "@components/heroui-client";
+import { buttonVariants } from "@heroui/styles";
+
 import NextErrorPage from "@components/nextErrorPage";
 
 export default function NotFound() {
@@ -8,9 +10,9 @@ export default function NotFound() {
 			title='Oops, page not found'
 			description='We could not find that page. It may have been moved, renamed, or deleted.'
 			actions={
-				<Button as={Link} href='/dashboard' color='primary'>
+				<Link href='/dashboard' className={buttonVariants({ variant: "primary", className: "no-underline" })}>
 					Go to dashboard
-				</Button>
+				</Link>
 			}
 		/>
 	);

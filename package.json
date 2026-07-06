@@ -3,13 +3,15 @@
 	"version": "0.1.0",
 	"private": true,
 	"scripts": {
-		"app:dev": "infisical run --env=dev --watch -- next dev --webpack",
+		"app:dev": "infisical run --env=dev --watch -- next dev",
 		"app:webhook": "stripe listen --forward-to localhost:3000/payment/webhook",
 		"app:eventsub": "ngrok http 3000 --url https://well-free-wildcat.ngrok-free.app",
-		"app:build": "next build --webpack",
+		"app:build": "next build",
 		"app:check-action-manifest": "node scripts/check-server-action-manifest.mjs",
 		"app:start": "next start",
 		"app:lint": "eslint .",
+		"app:prettier": "prettier --write .",
+		"git:staged": "lint-staged",
 		"app:typecheck": "tsc --noEmit",
 		"test": "jest --runInBand",
 		"test:watch": "jest --watch",
@@ -21,7 +23,8 @@
 		"prepare": "next-ws patch && husky"
 	},
 	"dependencies": {
-		"@heroui/react": "^2.8.10",
+		"@heroui/react": "^3.2.1",
+		"@heroui/styles": "^3.2.1",
 		"@sentry/nextjs": "^10.63.0",
 		"@tabler/icons-react": "^3.44.0",
 		"axios": "^1.18.1",
@@ -43,12 +46,14 @@
 		"react-dom": "^19.2.7",
 		"recharts": "^3.9.2",
 		"stripe": "^22.3.0",
+		"tailwind-variants": "^3.2.2",
 		"usesend-js": "^1.6.3",
 		"ws": "^8.21.0",
 		"xss": "^1.0.15"
 	},
 	"devDependencies": {
 		"@tailwindcss/postcss": "^4.3.2",
+		"@testing-library/dom": "^10.4.1",
 		"@testing-library/jest-dom": "^6.9.1",
 		"@testing-library/react": "^16.3.2",
 		"@testing-library/user-event": "^14.6.1",
@@ -66,11 +71,22 @@
 		"husky": "^9.1.7",
 		"jest": "^30.4.2",
 		"jest-environment-jsdom": "^30.4.1",
+		"lint-staged": "^17.0.8",
+		"prettier": "^3.9.4",
 		"tailwindcss": "^4.3.2",
 		"tsx": "^4.23.0",
 		"typescript": "^6.0.3"
 	},
 	"patchedDependencies": {
 		"next@16.1.6": "patches/next@16.1.6.patch"
+	},
+	"lint-staged": {
+		"*.{ts,tsx,js,jsx}": [
+			"eslint --fix",
+			"prettier --write"
+		],
+		"*.{json,css,md}": [
+			"prettier --write"
+		]
 	}
 }

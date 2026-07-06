@@ -1,6 +1,5 @@
 "use client";
-
-import { addToast, Code } from "@heroui/react";
+import { notify as addToast } from "@lib/toast";
 
 export default function ErrorToast({ error, errorCode }: { error: string; errorCode: string }) {
 	if (error) {
@@ -29,7 +28,7 @@ export default function ErrorToast({ error, errorCode }: { error: string; errorC
 					{errorCode && (
 						<>
 							{" and specify this error code: "}
-							<Code color='danger'>{errorCode}</Code>
+							<code className='inline-block h-fit whitespace-nowrap rounded-sm bg-danger/20 px-2 py-1 font-mono text-sm font-normal text-danger'>{errorCode}</code>
 						</>
 					)}
 					.

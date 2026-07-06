@@ -3,6 +3,7 @@ import OverlayTable from "@/app/components/OverlayTable";
 import { StatusOptions, Plan } from "@types";
 
 const routerPush = jest.fn();
+jest.mock("@lib/toast", () => ({ notify: jest.fn() }));
 jest.mock("next/navigation", () => ({
 	useRouter: () => ({
 		push: routerPush,
@@ -23,6 +24,7 @@ jest.mock("@components/upgradeModal", () => ({
 	__esModule: true,
 	default: () => <div>upgrade-modal</div>,
 }));
+jest.mock("@components/appPagination", () => ({ __esModule: true, default: () => <div>Pagination</div> }));
 
 jest.mock("next-plausible", () => ({
 	usePlausible: () => jest.fn(),
@@ -71,24 +73,61 @@ jest.mock("@heroui/react", () => {
 				{isLoading ? "Loading..." : children}
 			</button>
 		),
-		Input: ({ value, onValueChange, placeholder }: any) => <input value={value} onChange={(e) => onValueChange(e.target.value)} placeholder={placeholder} />,
+		TextField: ({ children }: any) => <div>{children}</div>,
+		InputGroup: Object.assign(({ children }: any) => <div>{children}</div>, {
+			Prefix: ({ children }: any) => <span>{children}</span>,
+			Suffix: ({ children }: any) => <span>{children}</span>,
+			Input: (props: any) => <input {...props} />,
+		}),
 		Chip: ({ children }: any) => <div>{children}</div>,
-		Divider: () => <hr />,
-		Tooltip: ({ children, content }: any) => <div title={typeof content === "string" ? content : ""}>{children}</div>,
-		Popover: ({ children }: any) => <div>{children}</div>,
-		PopoverTrigger: ({ children }: any) => <div>{children}</div>,
-		PopoverContent: ({ children }: any) => <div>{children}</div>,
-		Dropdown: ({ children }: any) => <div>{children}</div>,
-		DropdownTrigger: ({ children }: any) => <div>{children}</div>,
-		DropdownMenu: ({ children, items }: any) => <div>{items && typeof children === "function" ? items.map((item: any) => <div key={item.id || item.uid || item.key}>{children(item)}</div>) : children}</div>,
-		DropdownItem: ({ children, onPress, onClick, textValue }: any) => <button onClick={onPress || onClick}>{children || textValue}</button>,
-		Table: ({ children, topContent, bottomContent }: any) => (
-			<div>
-				{topContent}
-				<table>{children}</table>
-				{bottomContent}
-			</div>
-		),
+		Checkbox: Object.assign(({ children }: any) => <span>{children}</span>, {
+			Content: ({ children }: any) => <span>{children}</span>,
+			Control: ({ children }: any) => <span>{children}</span>,
+			Indicator: () => <span />,
+		}),
+		Separator: () => <hr />,
+		Tooltip: Object.assign(({ children }: any) => <div>{children}</div>, {
+			Trigger: ({ children }: any) => <>{children}</>,
+			Content: ({ children }: any) => <span>{children}</span>,
+		}),
+		Popover: Object.assign(({ children }: any) => <div>{children}</div>, {
+			Trigger: ({ children }: any) => <>{children}</>,
+			Content: ({ children }: any) => <div>{children}</div>,
+			Dialog: ({ children }: any) => <div>{children}</div>,
+			Arrow: () => null,
+		}),
+		Dropdown: Object.assign(({ children }: any) => <div>{children}</div>, {
+			Trigger: ({ children }: any) => <div>{children}</div>,
+			Popover: ({ children }: any) => <div>{children}</div>,
+			Menu: ({ children, items }: any) => <div>{items && typeof children === "function" ? items.map((item: any) => <div key={item.id || item.uid || item.key}>{children(item)}</div>) : children}</div>,
+			Item: ({ children, onAction, textValue }: any) => <button onClick={onAction}>{children || textValue}</button>,
+			ItemIndicator: () => null,
+		}),
+		Table: Object.assign(({ children }: any) => <div>{children}</div>, {
+			ScrollContainer: ({ children }: any) => <div>{children}</div>,
+			Content: ({ children }: any) => <table>{children}</table>,
+			Header: ({ children }: any) => (
+				<thead>
+					<tr>{children}</tr>
+				</thead>
+			),
+			Column: ({ children }: any) => <th>{typeof children === "function" ? children({ sortDirection: null }) : children}</th>,
+			SortableColumnHeader: ({ children }: any) => <>{children}</>,
+			Body: ({ children, renderEmptyState }: any) => (
+				<tbody>
+					{React.Children.count(children) ? (
+						children
+					) : (
+						<tr>
+							<td>{renderEmptyState?.()}</td>
+						</tr>
+					)}
+				</tbody>
+			),
+			Row: ({ children }: any) => <tr>{children}</tr>,
+			Cell: ({ children }: any) => <td>{children}</td>,
+			Footer: ({ children }: any) => <div>{children}</div>,
+		}),
 		TableHeader: ({ children, columns }: any) => (
 			<thead>
 				<tr>{columns ? columns.map((col: any) => <th key={col.uid}>{typeof children === "function" ? children(col) : col.name}</th>) : children}</tr>
@@ -123,27 +162,32 @@ jest.mock("@heroui/react", () => {
 		Spinner: ({ label }: any) => <div>{label}</div>,
 		addToast: jest.fn(),
 		Link: ({ children, href }: any) => <a href={href}>{children}</a>,
-		// eslint-disable-next-line @next/next/no-img-element
-		Avatar: ({ src }: any) => <img src={src} alt='avatar' />,
+		Avatar: Object.assign(({ children }: any) => <div>{children}</div>, {
+			Image: ({ src }: any) => <span data-avatar-src={src} />,
+			Fallback: ({ children }: any) => <span>{children}</span>,
+		}),
 		Skeleton: ({ children, isLoaded }: any) => <div>{isLoaded ? children : "Loading..."}</div>,
-		Tabs: ({ children, onSelectionChange, selectedKey }: any) => (
-			<div>
-				{React.Children.map(children, (child: any) => {
-					return React.cloneElement(child, {
-						onPress: () => onSelectionChange(child.key),
-						isActive: child.key === selectedKey,
-					});
-				})}
-			</div>
-		),
-		Tab: ({ title, onPress }: any) => <button onClick={onPress}>{title}</button>,
-		useDisclosure: () => ({ isOpen: false, onOpen: jest.fn(), onOpenChange: jest.fn() }),
-		RadioGroup: ({ children, _value, onValueChange }: any) => <div onChange={(e: any) => onValueChange(e.target.value)}>{children}</div>,
-		Radio: ({ children, value }: any) => (
-			<label>
-				<input type='radio' value={value} />
-				{children}
-			</label>
+		Tabs: Object.assign(({ children, onSelectionChange, selectedKey }: any) => <div data-selected-key={selectedKey}>{React.Children.map(children, (child: any) => React.cloneElement(child, { onSelectionChange }))}</div>, {
+			ListContainer: ({ children, onSelectionChange }: any) => <div>{React.Children.map(children, (child: any) => React.cloneElement(child, { onSelectionChange }))}</div>,
+			List: ({ children, onSelectionChange }: any) => <div>{React.Children.map(children, (child: any) => React.cloneElement(child, { onSelectionChange }))}</div>,
+			Tab: ({ children, id, onSelectionChange }: any) => <button onClick={() => onSelectionChange?.(id)}>{children}</button>,
+			Indicator: () => null,
+		}),
+		useOverlayState: () => ({ isOpen: false, open: jest.fn(), close: jest.fn(), setOpen: jest.fn(), toggle: jest.fn() }),
+		Label: ({ children }: any) => <span>{children}</span>,
+		RadioGroup: ({ children, _value, onChange }: any) => <div onChange={(e: any) => onChange(e.target.value)}>{children}</div>,
+		Radio: Object.assign(
+			({ children, value }: any) => (
+				<label>
+					<input type='radio' value={value} />
+					{children}
+				</label>
+			),
+			{
+				Content: ({ children }: any) => <span>{children}</span>,
+				Control: ({ children }: any) => <span>{children}</span>,
+				Indicator: () => null,
+			},
 		),
 	};
 });

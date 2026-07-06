@@ -2,14 +2,7 @@ import { Plan } from "@types";
 
 import { compareCommunityStreamers } from "@lib/communitySort";
 
-import type {
-	CommunityPageGroup,
-	CommunityPageGroupKey,
-	CommunityPageStreamer,
-	CommunitySnapshot,
-	CommunityTeaserStreamer,
-	CommunityStreamer,
-} from "@lib/community-types";
+import type { CommunityPageGroup, CommunityPageGroupKey, CommunityPageStreamer, CommunitySnapshot, CommunityTeaserStreamer, CommunityStreamer } from "@lib/community-types";
 
 type CommunityPageGroupDefinition = {
 	key: CommunityPageGroupKey;
@@ -76,11 +69,18 @@ function filterVisible(streamer: CommunityStreamer, visibleUserIds?: ReadonlySet
 }
 
 export function buildCommunityTeaserStreamers(snapshot: CommunitySnapshot, visibleUserIds?: ReadonlySet<string>, limit = 5): CommunityTeaserStreamer[] {
-	return snapshot.streamers.filter((streamer) => filterVisible(streamer, visibleUserIds)).sort(compareCommunityStreamers).slice(0, limit).map(toTeaserStreamer);
+	return snapshot.streamers
+		.filter((streamer) => filterVisible(streamer, visibleUserIds))
+		.sort(compareCommunityStreamers)
+		.slice(0, limit)
+		.map(toTeaserStreamer);
 }
 
 export function buildCommunityPageGroups(snapshot: CommunitySnapshot, visibleUserIds?: ReadonlySet<string>): CommunityPageGroup[] {
-	const streamers = snapshot.streamers.filter((streamer) => filterVisible(streamer, visibleUserIds)).sort(compareCommunityStreamers).map(toPublicPageStreamer);
+	const streamers = snapshot.streamers
+		.filter((streamer) => filterVisible(streamer, visibleUserIds))
+		.sort(compareCommunityStreamers)
+		.map(toPublicPageStreamer);
 	const groups = groupDefinitions.map((group) => ({
 		key: group.key,
 		title: group.title,

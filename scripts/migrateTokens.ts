@@ -63,9 +63,7 @@ async function main() {
 			if (updates.length > 0) {
 				await client.query("BEGIN");
 				try {
-					const values = updates
-						.map((_, i) => `($${i * 3 + 1}, $${i * 3 + 2}, $${i * 3 + 3})`)
-						.join(", ");
+					const values = updates.map((_, i) => `($${i * 3 + 1}, $${i * 3 + 2}, $${i * 3 + 3})`).join(", ");
 					const params = updates.flatMap((u) => [u.accessEnc, u.refreshEnc, u.id]);
 
 					await client.query(

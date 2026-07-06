@@ -26,39 +26,40 @@ jest.mock("@tabler/icons-react", () => ({
 }));
 
 jest.mock("@heroui/react", () => ({
+	TextField: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 	Button: ({ children, onPress, isDisabled, isIconOnly: _isIconOnly, radius: _radius, variant: _variant, color: _color, ...props }: { children?: React.ReactNode; onPress?: () => void; isDisabled?: boolean; isIconOnly?: boolean; radius?: string; variant?: string; color?: string }) => (
 		<button {...props} disabled={isDisabled} onClick={() => onPress?.()}>
 			{children}
 		</button>
 	),
 	Chip: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
-	Image: ({ alt = "", src }: { alt?: string; src?: string }) => <img alt={alt} src={src} />,
-	Progress: ({ value, "aria-label": ariaLabel }: { value?: number; "aria-label"?: string }) => <progress aria-label={ariaLabel} value={value} max={100} />,
-	Slider: ({ value, onChange, onChangeEnd, isDisabled, "aria-label": ariaLabel }: { value?: number; onChange?: (value: number) => void; onChangeEnd?: (value: number) => void; isDisabled?: boolean; "aria-label"?: string }) => (
-		<input
-			type='range'
-			aria-label={ariaLabel}
-			disabled={isDisabled}
-			value={value}
-			onChange={(event) => onChange?.(Number(event.target.value))}
-			onBlur={(event) => onChangeEnd?.(Number(event.target.value))}
-		/>
+	ProgressBar: Object.assign(
+		({ children, value, "aria-label": ariaLabel }: { children?: React.ReactNode; value?: number; "aria-label"?: string }) => (
+			<div>
+				{children}
+				<progress aria-label={ariaLabel} value={value} max={100} />
+			</div>
+		),
+		{
+			Track: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+			Fill: () => null,
+		},
 	),
-	Input: ({
-		value,
-		onChange,
-		isDisabled,
-		"aria-label": ariaLabel,
-		placeholder,
-		type,
-	}: {
-		value?: string;
-		onChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
-		isDisabled?: boolean;
-		"aria-label"?: string;
-		placeholder?: string;
-		type?: string;
-	}) => <input type={type ?? "text"} aria-label={ariaLabel} placeholder={placeholder} disabled={isDisabled} value={value} onChange={onChange} />,
+	Slider: Object.assign(
+		({ children, value, onChange, onChangeEnd, isDisabled, "aria-label": ariaLabel }: { children?: React.ReactNode; value?: number; onChange?: (value: number) => void; onChangeEnd?: (value: number) => void; isDisabled?: boolean; "aria-label"?: string }) => (
+			<div>
+				{children}
+				<input type='range' aria-label={ariaLabel} disabled={isDisabled} value={value} onChange={(event) => onChange?.(Number(event.target.value))} onBlur={(event) => onChangeEnd?.(Number(event.target.value))} />
+			</div>
+		),
+		{
+			Track: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+			Fill: () => null,
+			Thumb: () => null,
+			Output: () => null,
+		},
+	),
+	Input: (props: React.InputHTMLAttributes<HTMLInputElement>) => <input {...props} />,
 }));
 
 type SocketListener = (event: { data?: string; type?: string }) => void;
@@ -115,7 +116,10 @@ async function emitSocketMessage(ws: MockWebSocket | undefined, payload: unknown
 }
 
 function getButtonByText(text: string, index = 0) {
-	return screen.getAllByText(text)[index].closest("button") as HTMLButtonElement;
+	return screen
+		.getAllByText(text)
+		.map((element) => element.closest("button"))
+		.filter((button): button is HTMLButtonElement => button !== null)[index];
 }
 
 describe("controller/[overlayId]/controllerClient", () => {
@@ -371,11 +375,7 @@ describe("controller/[overlayId]/controllerClient", () => {
 			type: "overlay_state",
 			data: {
 				kind: "queue_preview",
-				items: [
-					null,
-					{ nope: true },
-					{ clipId: "next-good" },
-				],
+				items: [null, { nope: true }, { clipId: "next-good" }],
 			},
 		});
 

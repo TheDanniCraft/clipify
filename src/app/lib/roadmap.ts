@@ -123,7 +123,9 @@ async function fetchRoadmapItemsFromPocketBase(): Promise<RoadmapItemData[]> {
 		}
 
 		const payload = (await response.json()) as PocketBaseListResponse<PocketBaseRoadmapRecord>;
-		return sortRoadmapRecords(payload.items ?? []).map(mapRecord).filter((item): item is RoadmapItemData => Boolean(item));
+		return sortRoadmapRecords(payload.items ?? [])
+			.map(mapRecord)
+			.filter((item): item is RoadmapItemData => Boolean(item));
 	} catch (error) {
 		console.warn("[roadmap] failed to load cms roadmap", {
 			error: error instanceof Error ? error.message : String(error),

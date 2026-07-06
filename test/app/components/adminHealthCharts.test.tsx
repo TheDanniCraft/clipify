@@ -4,23 +4,36 @@ import AdminHealthCharts from "@/app/components/adminHealthCharts";
 import type { InstanceHealthSnapshot } from "@/app/lib/instanceHealth";
 
 jest.mock("@heroui/react", () => ({
-	Card: ({ children }: { children: React.ReactNode }) => <section>{children}</section>,
-	CardHeader: ({ children }: { children: React.ReactNode }) => <header>{children}</header>,
-	CardBody: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+	Card: Object.assign(({ children }: { children: React.ReactNode }) => <section>{children}</section>, {
+		Header: ({ children }: { children: React.ReactNode }) => <header>{children}</header>,
+		Content: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+	}),
 }));
 
 jest.mock("recharts", () => ({
 	ResponsiveContainer: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-	BarChart: ({ children, width }: { children: React.ReactNode; width?: number }) => <div data-testid='bar-chart' data-width={String(width ?? "")}>{children}</div>,
+	BarChart: ({ children, width }: { children: React.ReactNode; width?: number }) => (
+		<div data-testid='bar-chart' data-width={String(width ?? "")}>
+			{children}
+		</div>
+	),
 	Bar: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
 	Cell: () => null,
 	CartesianGrid: () => null,
 	XAxis: () => null,
 	YAxis: () => null,
 	Tooltip: () => null,
-	PieChart: ({ children, width }: { children: React.ReactNode; width?: number }) => <div data-testid='pie-chart' data-width={String(width ?? "")}>{children}</div>,
+	PieChart: ({ children, width }: { children: React.ReactNode; width?: number }) => (
+		<div data-testid='pie-chart' data-width={String(width ?? "")}>
+			{children}
+		</div>
+	),
 	Pie: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
-	RadialBarChart: ({ children, width }: { children: React.ReactNode; width?: number }) => <div data-testid='radial-chart' data-width={String(width ?? "")}>{children}</div>,
+	RadialBarChart: ({ children, width }: { children: React.ReactNode; width?: number }) => (
+		<div data-testid='radial-chart' data-width={String(width ?? "")}>
+			{children}
+		</div>
+	),
 	PolarAngleAxis: () => null,
 	RadialBar: () => null,
 }));
@@ -90,14 +103,32 @@ const healthSnapshot: InstanceHealthSnapshot = {
 			settings_page_optout: 2,
 		},
 	},
+	community: {
+		totalUsers: 10,
+		optedInUsers: 3,
+		optedOutUsers: 7,
+		optInRate: 0.3,
+	},
 	queues: {
 		clipQueueDepth: 3,
 		modQueueDepth: 1,
+	},
+	clips: {
+		fetches: {
+			v1GraphQL: 50,
+			v2TwitchApi: 200,
+			v2FallbackGraphQL: 5,
+			v2RateLimited: 2,
+		},
+	},
+	twitchRateLimit: {
+		history: [],
 	},
 	auth: {
 		tokenRows: 10,
 		expiredTokens: 0,
 		expiringIn24h: 2,
+		readyForTwitchApiUsers: 5,
 	},
 	entitlements: {
 		activeGrantUsers: 1,

@@ -1,12 +1,10 @@
 "use client";
-
-import type { NavbarProps } from "@heroui/react";
-
+import { Button, Link, Separator, cn } from "@heroui/react";
+import { buttonVariants } from "@heroui/styles";
 import React from "react";
-import { Navbar, NavbarBrand, NavbarContent, NavbarItem, NavbarMenu, NavbarMenuItem, NavbarMenuToggle, Link, Button, Divider, cn } from "@heroui/react";
 
 import Logo from "@components/logo";
-import { IconChevronRight } from "@tabler/icons-react";
+import { IconChevronRight, IconMenu2, IconX } from "@tabler/icons-react";
 
 const menuItems = [
 	{ name: "Home", href: "/#" },
@@ -17,91 +15,96 @@ const menuItems = [
 	{ name: "FAQ", href: "/#faq" },
 ];
 
-const BasicNavbar = React.forwardRef<HTMLElement, NavbarProps>(({ classNames = {}, ...props }, ref) => {
+type BasicNavbarProps = React.ComponentPropsWithoutRef<"nav"> & {
+	classNames?: {
+		base?: string;
+		wrapper?: string;
+		item?: string;
+	};
+	shouldHideOnScroll?: boolean;
+};
+
+const BasicNavbar = React.forwardRef<HTMLElement, BasicNavbarProps>(({ classNames = {}, shouldHideOnScroll = true, className, ...props }, ref) => {
 	const [isMenuOpen, setIsMenuOpen] = React.useState(false);
+	const [isHidden, setIsHidden] = React.useState(false);
+	const lastScrollY = React.useRef(0);
+
+	React.useEffect(() => {
+		if (!shouldHideOnScroll) return;
+		const handleScroll = () => {
+			const currentScrollY = window.scrollY;
+			setIsHidden(currentScrollY > lastScrollY.current && currentScrollY > 64 && !isMenuOpen);
+			lastScrollY.current = currentScrollY;
+		};
+		window.addEventListener("scroll", handleScroll, { passive: true });
+		return () => window.removeEventListener("scroll", handleScroll);
+	}, [isMenuOpen, shouldHideOnScroll]);
+
+	React.useEffect(() => {
+		document.body.style.overflow = isMenuOpen ? "hidden" : "";
+		return () => {
+			document.body.style.overflow = "";
+		};
+	}, [isMenuOpen]);
 
 	return (
-		<Navbar
-			ref={ref}
-			{...props}
-			classNames={{
-				base: cn("border-default-100 bg-transparent", {
-					"bg-default-200/50 dark:bg-default-100/50": isMenuOpen,
-				}),
-				wrapper: "w-full justify-center",
-				item: "hidden md:flex",
-				...classNames,
-			}}
-			height='60px'
-			isMenuOpen={isMenuOpen}
-			onMenuOpenChange={setIsMenuOpen}
-			shouldHideOnScroll
-		>
-			{/* Left Content */}
-			<NavbarBrand as={Link} href='/'>
-				<div>
+		<nav ref={ref} {...props} className={cn("sticky top-0 z-40 w-full bg-background/40 backdrop-blur-lg backdrop-saturate-150 transition-transform duration-300", isMenuOpen && "bg-background/70", isHidden && "-translate-y-full", classNames.base, className)}>
+			<header className={cn("mx-auto flex h-[60px] w-full max-w-[1024px] items-center justify-between px-8", classNames.wrapper)}>
+				<Link href='/' className='flex items-center'>
 					<Logo size={34} />
-				</div>
-				<span className='ml-2 text-large font-bold text-white'>Clipify</span>
-			</NavbarBrand>
+					<span className='ml-2 text-lg font-bold text-white'>Clipify</span>
+				</Link>
 
-			{/* Center Content */}
-			<NavbarContent justify='center'>
-				{menuItems.map((item, index) => (
-					<NavbarItem className='text-white' key={index}>
-						<Link aria-current='page' className='text-white font-bold' href={item.href} size='sm'>
-							{item.name}
-						</Link>
-					</NavbarItem>
-				))}
-			</NavbarContent>
+				<ul className='hidden items-center justify-center gap-4 md:flex'>
+					{menuItems.map((item) => (
+						<li className={cn("text-white", classNames.item)} key={item.href}>
+							<Link className='text-sm font-bold text-white' href={item.href}>
+								{item.name}
+							</Link>
+						</li>
+					))}
+				</ul>
 
-			{/* Right Content */}
-			<NavbarContent className='hidden md:flex' justify='end'>
-				<NavbarItem className='ml-2 !flex gap-2'>
-					<Button className='text-white' radius='full' variant='light' as={Link} href='/login'>
+				<div className='ml-2 hidden items-center gap-2 md:flex'>
+					<Link className={cn(buttonVariants({ variant: "ghost" }), "text-white")} href='/login'>
 						Login
-					</Button>
-					<Button className='bg-default-foreground font-medium text-background' color='secondary' endContent={<IconChevronRight />} radius='full' variant='flat' as={Link} href='/login'>
+					</Link>
+					<Link className={buttonVariants({ variant: "primary", className: "gap-2 bg-accent-foreground text-black hover:bg-accent-foreground/90" })} href='/login'>
 						Get Started
-					</Button>
-				</NavbarItem>
-			</NavbarContent>
+						<IconChevronRight />
+					</Link>
+				</div>
 
-			<NavbarMenuToggle className='text-white md:hidden' />
+				<Button type='button' isIconOnly variant='ghost' className='text-white md:hidden' aria-expanded={isMenuOpen} aria-label='Toggle navigation menu' onPress={() => setIsMenuOpen((open) => !open)}>
+					{isMenuOpen ? <IconX /> : <IconMenu2 />}
+				</Button>
+			</header>
 
-			<NavbarMenu
-				className='top-[calc(var(--navbar-height)_-_1px)] max-h-fit bg-default-200/50 pb-6 pt-6 shadow-medium backdrop-blur-md backdrop-saturate-150 dark:bg-default-100/50'
-				motionProps={{
-					initial: { opacity: 0.1, y: -20 },
-					animate: { opacity: 1, y: 0 },
-					exit: { opacity: 0.1, y: -20 },
-					transition: {
-						ease: "easeInOut",
-						duration: 0.2,
-					},
-				}}
-			>
-				<NavbarMenuItem>
-					<Button fullWidth as={Link} href='/login' variant='faded'>
-						Sign In
-					</Button>
-				</NavbarMenuItem>
-				<NavbarMenuItem className='mb-4'>
-					<Button fullWidth as={Link} className='bg-foreground text-background' href='/login'>
-						Get Started
-					</Button>
-				</NavbarMenuItem>
-				{menuItems.map((item, index) => (
-					<NavbarMenuItem key={`${item}-${index}`}>
-						<Link className='mb-2 w-full text-white' href={item.href} size='md'>
-							{item.name}
-						</Link>
-						{index < menuItems.length - 1 && <Divider className='opacity-50' />}
-					</NavbarMenuItem>
-				))}
-			</NavbarMenu>
-		</Navbar>
+			{isMenuOpen ? (
+				<div className='max-h-fit bg-default/50 pb-6 pt-6 shadow-medium backdrop-blur-md backdrop-saturate-150 dark:bg-surface-secondary/50 md:hidden'>
+					<ul className='flex flex-col gap-2 px-4'>
+						<li>
+							<Link href='/login' onPress={() => setIsMenuOpen(false)} className={buttonVariants({ variant: "secondary", fullWidth: true })}>
+								Sign In
+							</Link>
+						</li>
+						<li className='mb-4'>
+							<Link href='/login' onPress={() => setIsMenuOpen(false)} className={buttonVariants({ variant: "primary", fullWidth: true, className: "bg-accent-foreground text-black hover:bg-accent-foreground/90" })}>
+								Get Started
+							</Link>
+						</li>
+						{menuItems.map((item, index) => (
+							<li key={item.href}>
+								<Link className='mb-2 w-full text-base text-white' href={item.href} onPress={() => setIsMenuOpen(false)}>
+									{item.name}
+								</Link>
+								{index < menuItems.length - 1 ? <Separator className='opacity-50' /> : null}
+							</li>
+						))}
+					</ul>
+				</div>
+			) : null}
+		</nav>
 	);
 });
 

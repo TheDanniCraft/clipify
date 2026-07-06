@@ -200,13 +200,7 @@ describe("actions/twitch playback and cache behavior", () => {
 
 	it("filters numeric time-window overlay types and drops invalid created_at values", async () => {
 		const now = Date.now();
-		getTwitchCacheByPrefixEntries.mockResolvedValue(
-			cacheEntriesFromClips([
-				buildClip("recent-clip", { created_at: new Date(now - 6 * 60 * 60 * 1000).toISOString() }),
-				buildClip("old-clip", { created_at: new Date(now - 10 * 24 * 60 * 60 * 1000).toISOString() }),
-				buildClip("invalid-date", { created_at: "not-a-date" }),
-			]),
-		);
+		getTwitchCacheByPrefixEntries.mockResolvedValue(cacheEntriesFromClips([buildClip("recent-clip", { created_at: new Date(now - 6 * 60 * 60 * 1000).toISOString() }), buildClip("old-clip", { created_at: new Date(now - 10 * 24 * 60 * 60 * 1000).toISOString() }), buildClip("invalid-date", { created_at: "not-a-date" })]));
 
 		const { getTwitchClips } = await loadTwitch();
 		const lastDay = await getTwitchClips(buildOverlay(), "1" as never, true);
@@ -217,12 +211,7 @@ describe("actions/twitch playback and cache behavior", () => {
 	});
 
 	it("ignores non-numeric overlay type values and leaves clip list unchanged", async () => {
-		getTwitchCacheByPrefixEntries.mockResolvedValue(
-			cacheEntriesFromClips([
-				buildClip("clip-a"),
-				buildClip("clip-b"),
-			]),
-		);
+		getTwitchCacheByPrefixEntries.mockResolvedValue(cacheEntriesFromClips([buildClip("clip-a"), buildClip("clip-b")]));
 
 		const { getTwitchClips } = await loadTwitch();
 		const clips = await getTwitchClips(buildOverlay(), "not-a-number" as never, true);
@@ -258,13 +247,7 @@ describe("actions/twitch playback and cache behavior", () => {
 	});
 
 	it("matches creator allow and block lists by id case-insensitively", async () => {
-		getTwitchCacheByPrefixEntries.mockResolvedValue(
-			cacheEntriesFromClips([
-				buildClip("allowed-id", { creator_id: "Creator-Allowed", creator_name: "Someone", title: "clean", duration: 20, view_count: 50 }),
-				buildClip("blocked-id", { creator_id: "Creator-Blocked", creator_name: "Someone", title: "clean", duration: 20, view_count: 50 }),
-				buildClip("not-listed", { creator_id: "Creator-Other", creator_name: "Someone", title: "clean", duration: 20, view_count: 50 }),
-			]),
-		);
+		getTwitchCacheByPrefixEntries.mockResolvedValue(cacheEntriesFromClips([buildClip("allowed-id", { creator_id: "Creator-Allowed", creator_name: "Someone", title: "clean", duration: 20, view_count: 50 }), buildClip("blocked-id", { creator_id: "Creator-Blocked", creator_name: "Someone", title: "clean", duration: 20, view_count: 50 }), buildClip("not-listed", { creator_id: "Creator-Other", creator_name: "Someone", title: "clean", duration: 20, view_count: 50 })]));
 
 		const { getTwitchClips } = await loadTwitch();
 		const clips = await getTwitchClips(
@@ -278,16 +261,10 @@ describe("actions/twitch playback and cache behavior", () => {
 	});
 
 	it("filters by categoriesOnly and categoriesBlocked", async () => {
-		getTwitchCacheByPrefixEntries.mockResolvedValue(
-			cacheEntriesFromClips([
-				buildClip("cat-allowed", { game_id: "123" }),
-				buildClip("cat-blocked", { game_id: "456" }),
-				buildClip("cat-other", { game_id: "789" }),
-			]),
-		);
+		getTwitchCacheByPrefixEntries.mockResolvedValue(cacheEntriesFromClips([buildClip("cat-allowed", { game_id: "123" }), buildClip("cat-blocked", { game_id: "456" }), buildClip("cat-other", { game_id: "789" })]));
 
 		const { getTwitchClips } = await loadTwitch();
-		
+
 		// Test categoriesOnly
 		const onlyClips = await getTwitchClips(
 			buildOverlay({
@@ -401,13 +378,7 @@ describe("actions/twitch playback and cache behavior", () => {
 
 	it("uses created_at as top-mode tie-breaker when view counts are equal", async () => {
 		getOverlayPublic.mockResolvedValue(buildOverlay({ playbackMode: "top" }));
-		getTwitchCacheByPrefixEntries.mockResolvedValue(
-			cacheEntriesFromClips([
-				buildClip("older", { view_count: 100, created_at: "2026-03-01T00:00:00.000Z" }),
-				buildClip("newer", { view_count: 100, created_at: "2026-03-09T00:00:00.000Z" }),
-				buildClip("lower", { view_count: 10, created_at: "2026-03-10T00:00:00.000Z" }),
-			]),
-		);
+		getTwitchCacheByPrefixEntries.mockResolvedValue(cacheEntriesFromClips([buildClip("older", { view_count: 100, created_at: "2026-03-01T00:00:00.000Z" }), buildClip("newer", { view_count: 100, created_at: "2026-03-09T00:00:00.000Z" }), buildClip("lower", { view_count: 10, created_at: "2026-03-10T00:00:00.000Z" })]));
 
 		const { getTwitchClipBatch } = await loadTwitch();
 		const batch = await getTwitchClipBatch("overlay-1", undefined, undefined, [], 3, true);
@@ -418,9 +389,7 @@ describe("actions/twitch playback and cache behavior", () => {
 	it("keeps serving cached clips when incremental sync API call fails", async () => {
 		connect.mockResolvedValue(createLockClient(true));
 		getTwitchCache.mockResolvedValue({});
-		getTwitchCacheByPrefixEntries.mockResolvedValue([
-			{ key: "clip:owner-1:cached-1", value: buildClip("cached-1", { view_count: 42 }) },
-		]);
+		getTwitchCacheByPrefixEntries.mockResolvedValue([{ key: "clip:owner-1:cached-1", value: buildClip("cached-1", { view_count: 42 }) }]);
 		const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => undefined);
 		jest.spyOn(axios, "get").mockRejectedValue(new Error("twitch incremental down"));
 
@@ -466,13 +435,7 @@ describe("actions/twitch playback and cache behavior", () => {
 
 	it("builds ordered batches for order playback mode", async () => {
 		getOverlayPublic.mockResolvedValue(buildOverlay({ playbackMode: "order" }));
-		getTwitchCacheByPrefixEntries.mockResolvedValue(
-			cacheEntriesFromClips([
-				buildClip("o1", { view_count: 30 }),
-				buildClip("o2", { view_count: 20 }),
-				buildClip("o3", { view_count: 10 }),
-			]),
-		);
+		getTwitchCacheByPrefixEntries.mockResolvedValue(cacheEntriesFromClips([buildClip("o1", { view_count: 30 }), buildClip("o2", { view_count: 20 }), buildClip("o3", { view_count: 10 })]));
 
 		const { getTwitchClipBatch } = await loadTwitch();
 		const batch = await getTwitchClipBatch("overlay-1", undefined, undefined, [], 2, true);
@@ -482,13 +445,7 @@ describe("actions/twitch playback and cache behavior", () => {
 
 	it("falls back to all candidates in random mode when exclusions remove the full set and clamps batch size", async () => {
 		getOverlayPublic.mockResolvedValue(buildOverlay({ playbackMode: "random" }));
-		getTwitchCacheByPrefixEntries.mockResolvedValue(
-			cacheEntriesFromClips([
-				buildClip("rand-a", { view_count: 10 }),
-				buildClip("rand-b", { view_count: 20 }),
-				buildClip("rand-c", { view_count: 30 }),
-			]),
-		);
+		getTwitchCacheByPrefixEntries.mockResolvedValue(cacheEntriesFromClips([buildClip("rand-a", { view_count: 10 }), buildClip("rand-b", { view_count: 20 }), buildClip("rand-c", { view_count: 30 })]));
 		jest.spyOn(Math, "random").mockReturnValue(0.3);
 
 		const { getTwitchClipBatch } = await loadTwitch();
@@ -502,14 +459,7 @@ describe("actions/twitch playback and cache behavior", () => {
 
 	it("respects exclusions in smart-shuffle mode and keeps output unique", async () => {
 		getOverlayPublic.mockResolvedValue(buildOverlay({ playbackMode: "smart_shuffle" }));
-		getTwitchCacheByPrefixEntries.mockResolvedValue(
-			cacheEntriesFromClips([
-				buildClip("smart-a", { view_count: 10, creator_id: "ca", creator_name: "ca", game_id: "ga" }),
-				buildClip("smart-b", { view_count: 20, creator_id: "cb", creator_name: "cb", game_id: "gb" }),
-				buildClip("smart-c", { view_count: 30, creator_id: "cc", creator_name: "cc", game_id: "gc" }),
-				buildClip("smart-d", { view_count: 40, creator_id: "cd", creator_name: "cd", game_id: "gd" }),
-			]),
-		);
+		getTwitchCacheByPrefixEntries.mockResolvedValue(cacheEntriesFromClips([buildClip("smart-a", { view_count: 10, creator_id: "ca", creator_name: "ca", game_id: "ga" }), buildClip("smart-b", { view_count: 20, creator_id: "cb", creator_name: "cb", game_id: "gb" }), buildClip("smart-c", { view_count: 30, creator_id: "cc", creator_name: "cc", game_id: "gc" }), buildClip("smart-d", { view_count: 40, creator_id: "cd", creator_name: "cd", game_id: "gd" })]));
 		jest.spyOn(Math, "random").mockReturnValue(0.2);
 
 		const { getTwitchClipBatch } = await loadTwitch();
@@ -690,5 +640,4 @@ describe("actions/twitch playback and cache behavior", () => {
 
 		expect(clips.map((clip) => clip.id)).toEqual(["dup", "kept"]);
 	});
-
 });

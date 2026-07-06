@@ -50,8 +50,10 @@ jest.mock("@tabler/icons-react", () => ({
 }));
 
 jest.mock("@heroui/react", () => ({
-	// eslint-disable-next-line @next/next/no-img-element
-	Avatar: ({ src }: { src?: string }) => <img alt='avatar' src={src || undefined} />,
+	Avatar: Object.assign(({ children }: { children?: ReactNode }) => <div>{children}</div>, {
+		Image: ({ src }: { src?: string }) => <span data-avatar-src={src || undefined} />,
+		Fallback: ({ children }: { children?: ReactNode }) => <span>{children}</span>,
+	}),
 	Button: ({ as, children, ...props }: { as?: ElementType; children: ReactNode }) => {
 		const Component = as ?? "button";
 		return <Component {...props}>{children}</Component>;
@@ -59,7 +61,7 @@ jest.mock("@heroui/react", () => ({
 	Link: ({ children, ...props }: { children: ReactNode }) => <a {...props}>{children}</a>,
 }));
 
-jest.mock("framer-motion", () => ({
+jest.mock("motion/react", () => ({
 	motion: {
 		video: ({ children, ...props }: VideoHTMLAttributes<HTMLVideoElement>) => <video {...props}>{children}</video>,
 		div: ({ children, ...props }: { children?: ReactNode } & Record<string, unknown>) => <div {...props}>{children}</div>,
@@ -459,11 +461,7 @@ describe("components/overlayPlayer", () => {
 	});
 
 	it("uses sequential candidates in order mode and falls back when first clip is not playable", async () => {
-		const ordered = [
-			buildClip("order-1", { title: "order-title-1", view_count: 300 }),
-			buildClip("order-2", { title: "order-title-2", view_count: 200 }),
-			buildClip("order-3", { title: "order-title-3", view_count: 100 }),
-		];
+		const ordered = [buildClip("order-1", { title: "order-title-1", view_count: 300 }), buildClip("order-2", { title: "order-title-2", view_count: 200 }), buildClip("order-3", { title: "order-title-3", view_count: 100 })];
 		getTwitchClipBatch.mockResolvedValue(ordered);
 		resolvePlayableClip.mockImplementation(async (_ownerId: string, clip: { id?: string }) => {
 			if (clip.id === "order-1") return null;

@@ -4,8 +4,11 @@ import { validateAuth } from "@actions/auth";
 import { getAccessToken, getAllOverlays, getEditorOverlays, getOverlayOwnerPlans } from "@actions/database";
 import { getUsersDetailsBulk } from "@actions/twitch";
 import DashboardNavbar from "@components/dashboardNavbar";
+import CodeSnippet from "@components/codeSnippet";
+import FullscreenLoadingState from "@components/fullscreenLoadingState";
 import { AuthenticatedUser, Overlay } from "@types";
-import { Avatar, Button, Card, CardBody, CardHeader, Divider, Link, Select, SelectItem, Snippet, Spinner, Switch, Tooltip, useDisclosure } from "@heroui/react";
+import { Avatar, Button, Card, Separator, Label, Link, ListBox, Select, Switch, Tooltip, useOverlayState } from "@heroui/react";
+
 import { IconArrowLeft, IconCode, IconEye, IconLink, IconPlayerPlayFilled, IconSparkles, IconVolume } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -29,7 +32,7 @@ export default function EmbedTool() {
 	const [ownerPlansByOverlayId, setOwnerPlansByOverlayId] = useState<Record<string, string>>({});
 	const [isInitializing, setIsInitializing] = useState<boolean>(true);
 	const [initializationError, setInitializationError] = useState<string | null>(null);
-	const { isOpen: isUpgradeOpen, onOpen: onUpgradeOpen, onOpenChange: onUpgradeOpenChange } = useDisclosure();
+	const { isOpen: isUpgradeOpen, open: onUpgradeOpen, setOpen: onUpgradeOpenChange } = useOverlayState();
 
 	useEffect(() => {
 		async function setup() {
@@ -106,22 +109,17 @@ export default function EmbedTool() {
 		return `${baseUrl}/embed/${id}${query ? `?${query}` : ""}`;
 	};
 
-	if (isInitializing)
-		return (
-			<div className='flex flex-col items-center justify-center w-full h-screen'>
-				<Spinner label='Loading embed tool...' />
-			</div>
-		);
+	if (isInitializing) return <FullscreenLoadingState message='Loading embed tool...' />;
 
 	if (initializationError) {
 		return (
 			<div className='flex flex-col items-center justify-center w-full h-screen gap-4 px-6 text-center'>
-				<p className='text-danger-400 text-sm'>{initializationError}</p>
+				<p className='text-danger text-sm'>{initializationError}</p>
 				<div className='flex items-center gap-2'>
-					<Button color='primary' onPress={() => window.location.reload()}>
+					<Button onPress={() => window.location.reload()} variant='primary'>
 						Retry
 					</Button>
-					<Button variant='flat' onPress={() => router.push("/logout")}>
+					<Button variant='tertiary' onPress={() => router.push("/logout")}>
 						Log out
 					</Button>
 				</div>
@@ -131,22 +129,18 @@ export default function EmbedTool() {
 
 	if (overlays.length === 0) {
 		if (!user) {
-			return (
-				<div className='flex flex-col items-center justify-center w-full h-screen'>
-					<Spinner label='Loading embed tool...' />
-				</div>
-			);
+			return <FullscreenLoadingState message='Loading embed tool...' />;
 		}
 		return (
 			<DashboardNavbar user={user} title='Embed Widget Tool' tagline='Generate embed codes for your overlays'>
 				<div className='mx-auto max-w-xl w-full px-6 py-12'>
 					<Card>
-						<CardBody className='flex flex-col gap-4'>
-							<p className='text-default-700'>Create your first overlay to unlock the embed tool.</p>
-							<Button color='primary' onPress={() => router.push("/dashboard")}>
+						<Card.Content className='flex flex-col gap-4'>
+							<p className='text-foreground'>Create your first overlay to unlock the embed tool.</p>
+							<Button onPress={() => router.push("/dashboard")} variant='primary'>
 								Create first overlay
 							</Button>
-						</CardBody>
+						</Card.Content>
 					</Card>
 				</div>
 			</DashboardNavbar>
@@ -160,134 +154,163 @@ export default function EmbedTool() {
 			<DashboardNavbar user={user!} title='Embed Widget Tool' tagline='Generate embed codes for your overlays'>
 				<div className='px-6 md:px-12 lg:px-16 py-8 grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 items-start max-w-7xl mx-auto w-full'>
 					<Card>
-						<CardHeader>
+						<Card.Header>
 							<div className='flex items-center gap-2'>
-								<Button isIconOnly variant='light' startContent={<IconArrowLeft />} onPress={() => router.push("/dashboard")} aria-label='Back to Dashboard' />
+								<Button isIconOnly variant='tertiary' onPress={() => router.push("/dashboard")} aria-label='Back to Dashboard'>
+									{<IconArrowLeft />}
+								</Button>
 								<h2 className='text-2xl font-bold flex items-center gap-2'>Select Overlay</h2>
 							</div>
-						</CardHeader>
-						<CardBody className='flex flex-col gap-4'>
+						</Card.Header>
+						<Card.Content className='flex flex-col gap-4'>
 							<Select
-								selectedKeys={overlayId === "" ? new Set([]) : new Set([overlayId])}
-								onSelectionChange={(selected) => {
-									const nextId = String(Array.from(selected)[0] ?? "");
+								variant='secondary'
+								value={overlayId || null}
+								onChange={(selected) => {
+									const nextId = String(selected ?? "");
 									setOverlayId(nextId);
 									const nextPlan = nextId ? ownerPlansByOverlayId[nextId] : undefined;
 									if (!nextId || nextPlan !== "free") {
 										setShowBanner(false);
 									}
 								}}
-								label='Select Overlay'
 								placeholder='Select an overlay to generate embed code'
-								renderValue={() => {
-									const selected = overlayId;
-									const found = overlays.find((o) => o.id === selected);
-									return found ? found.name : undefined;
-								}}
 							>
-								{overlays.map((overlay) => (
-									<SelectItem key={overlay.id}>
-										<div className='flex items-center'>
-											<Avatar className='mr-2 h-6 w-6' src={avatars[overlay.ownerId]} />
-											{overlay.name}
-										</div>
-									</SelectItem>
-								))}
+								<Label>Select Overlay</Label>
+								<Select.Trigger>
+									<Select.Value />
+									<Select.Indicator />
+								</Select.Trigger>
+								<Select.Popover>
+									<ListBox>
+										{overlays.map((overlay) => (
+											<ListBox.Item key={overlay.id} id={overlay.id} textValue={overlay.name}>
+												<Label className='flex items-center'>
+													<Avatar className='mr-2 h-6 w-6'>
+														<Avatar.Image alt='' src={avatars[overlay.ownerId]} />
+														<Avatar.Fallback>?</Avatar.Fallback>
+													</Avatar>
+													{overlay.name}
+												</Label>
+												<ListBox.ItemIndicator />
+											</ListBox.Item>
+										))}
+									</ListBox>
+								</Select.Popover>
 							</Select>
-							<Tooltip content={ownerPlan === "free" ? "This overlay's owner must upgrade to remove Clipify branding" : "Toggle to include Clipify branding on your overlay"}>
-								<span>
-									<Switch isSelected={effectiveShowBanner} onValueChange={setShowBanner} isDisabled={!overlayId || ownerPlan === "free"}>
-										<span className='flex items-center gap-2'>
-											<IconSparkles className='h-4 w-4 text-primary' />
-											Enable Clipify Branding
-										</span>
-									</Switch>
-								</span>
+							<Tooltip delay={0}>
+								<Tooltip.Trigger>
+									<span>
+										<Switch size='lg' isSelected={effectiveShowBanner} onChange={setShowBanner} isDisabled={!overlayId || ownerPlan === "free"}>
+											<Switch.Content>
+												<Switch.Control>
+													<Switch.Thumb />
+												</Switch.Control>
+												<span className='flex items-center gap-2'>
+													<IconSparkles className='h-4 w-4 text-accent' />
+													Enable Clipify Branding
+												</span>
+											</Switch.Content>
+										</Switch>
+									</span>
+								</Tooltip.Trigger>
+								<Tooltip.Content>{ownerPlan === "free" ? "This overlay's owner must upgrade to remove Clipify branding" : "Toggle to include Clipify branding on your overlay"}</Tooltip.Content>
 							</Tooltip>
 							{ownerPlan === "free" && (
-								<Button variant='solid' color='primary' onPress={onUpgradeOpen} className='text-white'>
+								<Button variant='primary' onPress={onUpgradeOpen} className='text-white'>
 									Upgrade to remove branding
 								</Button>
 							)}
-							<Tooltip content='Toggle autoplay for this embed'>
-								<span>
-									<Switch isSelected={embedAutoplay} onValueChange={setEmbedAutoplay} isDisabled={!overlayId}>
-										<span className='flex items-center gap-2'>
-											<IconPlayerPlayFilled className='h-4 w-4 text-emerald-500' />
-											Autoplay (skip click-to-play)
-										</span>
-									</Switch>
-								</span>
+							<Tooltip delay={0}>
+								<Tooltip.Trigger>
+									<span>
+										<Switch size='lg' isSelected={embedAutoplay} onChange={setEmbedAutoplay} isDisabled={!overlayId}>
+											<Switch.Content>
+												<Switch.Control>
+													<Switch.Thumb />
+												</Switch.Control>
+												<span className='flex items-center gap-2'>
+													<IconPlayerPlayFilled className='h-4 w-4 text-emerald-500' />
+													Autoplay (skip click-to-play)
+												</span>
+											</Switch.Content>
+										</Switch>
+									</span>
+								</Tooltip.Trigger>
+								<Tooltip.Content>Toggle autoplay for this embed</Tooltip.Content>
 							</Tooltip>
-							<Tooltip content='Show clip title, creator and game overlay on the embed'>
-								<span>
-									<Switch isSelected={showEmbedOverlay} onValueChange={setShowEmbedOverlay} isDisabled={!overlayId}>
-										<span className='flex items-center gap-2'>
-											<IconEye className='h-4 w-4 text-purple-500' />
-											Show clip overlay
-										</span>
-									</Switch>
-								</span>
+							<Tooltip delay={0}>
+								<Tooltip.Trigger>
+									<span>
+										<Switch size='lg' isSelected={showEmbedOverlay} onChange={setShowEmbedOverlay} isDisabled={!overlayId}>
+											<Switch.Content>
+												<Switch.Control>
+													<Switch.Thumb />
+												</Switch.Control>
+												<span className='flex items-center gap-2'>
+													<IconEye className='h-4 w-4 text-purple-500' />
+													Show clip overlay
+												</span>
+											</Switch.Content>
+										</Switch>
+									</span>
+								</Tooltip.Trigger>
+								<Tooltip.Content>Show clip title, creator and game overlay on the embed</Tooltip.Content>
 							</Tooltip>
-							<Tooltip content='Toggle starting muted for this embed'>
-								<span>
-									<Switch isSelected={embedMuted} onValueChange={setEmbedMuted} isDisabled={!overlayId}>
-										<span className='flex items-center gap-2'>
-											<IconVolume className='h-4 w-4 text-blue-500' />
-											Start muted
-										</span>
-									</Switch>
-								</span>
+							<Tooltip delay={0}>
+								<Tooltip.Trigger>
+									<span>
+										<Switch size='lg' isSelected={embedMuted} onChange={setEmbedMuted} isDisabled={!overlayId}>
+											<Switch.Content>
+												<Switch.Control>
+													<Switch.Thumb />
+												</Switch.Control>
+												<span className='flex items-center gap-2'>
+													<IconVolume className='h-4 w-4 text-blue-500' />
+													Start muted
+												</span>
+											</Switch.Content>
+										</Switch>
+									</span>
+								</Tooltip.Trigger>
+								<Tooltip.Content>Toggle starting muted for this embed</Tooltip.Content>
 							</Tooltip>
 							<div>
 								<div className='text-xs uppercase tracking-wide text-gray-500 font-semibold mb-2 flex items-center gap-2'>
 									<IconLink className='h-4 w-4' />
 									Embed link
 								</div>
-								<Snippet
-									size='sm'
-									className='w-full max-w-full'
-									symbol=''
-									classNames={{
-										pre: "overflow-hidden whitespace-nowrap",
-									}}
-								>
+								<CodeSnippet size='sm' className='w-full max-w-full' symbol='' preClassName='overflow-hidden whitespace-nowrap'>
 									{overlayId === "" ? "Select an overlay to generate the link" : buildEmbedUrl(overlayId)}
-								</Snippet>
+								</CodeSnippet>
 								<p className='text-sm text-gray-500'>You can use this link to embed your overlay (e.g. iframe)</p>
 							</div>
-							<Divider />
+							<Separator />
 							<div>
 								<div className='text-xs uppercase tracking-wide text-gray-500 font-semibold mb-2 flex items-center gap-2'>
 									<IconCode className='h-4 w-4' />
 									Embed code
 								</div>
-								<Snippet
-									className='w-full max-w-full'
-									symbol=''
-									classNames={{
-										pre: "overflow-hidden whitespace-nowrap",
-									}}
-								>
+								<CodeSnippet className='w-full max-w-full' symbol='' preClassName='overflow-hidden whitespace-nowrap'>
 									{overlayId === "" ? "Select an overlay to see the embed code" : `<iframe src="${buildEmbedUrl(overlayId === "" ? "default" : overlayId)}" class="w-full h-full" title="Clipify Overlay" style="width: 100%; aspect-ratio: 16 / 9; border: 0;"></iframe>`}
-								</Snippet>
+								</CodeSnippet>
 							</div>
-						</CardBody>
+						</Card.Content>
 					</Card>
 
 					<Card>
-						<CardHeader>
+						<Card.Header>
 							<h2 className='text-2xl font-bold flex items-center gap-2'>
-								<IconEye className='h-5 w-5 text-primary' />
+								<IconEye className='h-5 w-5 text-accent' />
 								Preview
 							</h2>
-						</CardHeader>
-						<CardBody className='flex flex-col px-5 pb-5 w-full items-center justify-center'>
+						</Card.Header>
+						<Card.Content className='flex flex-col px-5 pb-5 w-full items-center justify-center'>
 							<iframe referrerPolicy='strict-origin-when-cross-origin' src={buildEmbedUrl(overlayId === "" ? "default" : overlayId)} className='w-full aspect-video rounded-lg' title='Overlay Preview' />
 							{ownerPlan === "free" && (
 								<p className='text-sm text-warning font-medium mt-2'>
 									Your current plan allows you to use the embed tool with Clipify branding.{" "}
-									<Link color='warning' className='text-sm' underline='always' href='/dashboard/settings'>
+									<Link className='text-sm text-warning underline underline-offset-2' href='/dashboard/settings'>
 										Upgrade now
 									</Link>{" "}
 									to remove the branding.
@@ -295,7 +318,7 @@ export default function EmbedTool() {
 							)}
 
 							{ownerPlan !== "free" && effectiveShowBanner && <p className='text-sm text-success font-medium mt-2'>You enabled Clipify branding for this embed. Thanks for supporting Clipify!</p>}
-						</CardBody>
+						</Card.Content>
 					</Card>
 				</div>
 			</DashboardNavbar>

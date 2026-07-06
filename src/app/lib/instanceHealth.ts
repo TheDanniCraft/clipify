@@ -3,10 +3,46 @@ import { db } from "@/db/client";
 import { entitlementGrantsTable, modQueueTable, overlaysTable, playlistClipsTable, playlistsTable, queueTable, settingsTable, tokenTable, twitchCacheTable, usersTable } from "@/db/schema";
 import { getTwitchCacheReadMetricsSnapshot } from "@actions/database";
 import { getClipCacheSchedulerStats } from "@lib/clipCacheScheduler";
-import { and, count, countDistinct, eq, gt, isNotNull, isNull, like, lt, lte, notLike, or, sql } from "drizzle-orm";
+import { and, arrayContains, count, countDistinct, eq, gt, isNotNull, isNull, like, lt, lte, notLike, or, sql } from "drizzle-orm";
 import { Entitlement, EntitlementGrantSource, OverlayType, PlaybackMode, Plan, StatusOptions, TwitchCacheType } from "@types";
 
 type HealthStatus = "ok" | "degraded" | "down";
+
+let v1GraphQLFetches = 0;
+let v2TwitchApiFetches = 0;
+let v2FallbackGraphQLFetches = 0;
+let v2RateLimitedFetches = 0;
+
+export type TwitchRateLimitLog = {
+	broadcasterId: string;
+	clipId: string;
+	limit: string | null;
+	remaining: string | null;
+	reset: string | null;
+	timestamp: string;
+};
+
+const twitchRateLimitHistory: TwitchRateLimitLog[] = [];
+
+export function incrementClipFetchV1() {
+	v1GraphQLFetches++;
+}
+export function incrementClipFetchV2() {
+	v2TwitchApiFetches++;
+}
+export function incrementClipFetchFallback() {
+	v2FallbackGraphQLFetches++;
+}
+export function incrementClipFetchRateLimited() {
+	v2RateLimitedFetches++;
+}
+
+export function recordTwitchRateLimit(log: TwitchRateLimitLog) {
+	twitchRateLimitHistory.unshift(log);
+	if (twitchRateLimitHistory.length > 50) {
+		twitchRateLimitHistory.pop();
+	}
+}
 
 export type InstanceHealthSnapshot = {
 	status: HealthStatus;
@@ -62,14 +98,32 @@ export type InstanceHealthSnapshot = {
 		consentSourceCounts: Record<string, number>;
 		optedOutSourceCounts: Record<string, number>;
 	};
+	community: {
+		totalUsers: number;
+		optedInUsers: number;
+		optedOutUsers: number;
+		optInRate: number;
+	};
 	queues: {
 		clipQueueDepth: number;
 		modQueueDepth: number;
+	};
+	clips: {
+		fetches: {
+			v1GraphQL: number;
+			v2TwitchApi: number;
+			v2FallbackGraphQL: number;
+			v2RateLimited: number;
+		};
+	};
+	twitchRateLimit: {
+		history: TwitchRateLimitLog[];
 	};
 	auth: {
 		tokenRows: number;
 		expiredTokens: number;
 		expiringIn24h: number;
+		readyForTwitchApiUsers: number;
 	};
 	entitlements: {
 		activeGrantUsers: number;
@@ -117,7 +171,7 @@ async function countWhereOverlays(status: StatusOptions) {
 	return Number(result[0]?.count ?? 0);
 }
 
-export async function getInstanceHealthSnapshot(): Promise<InstanceHealthSnapshot> {
+export async function getInstanceHealthSnapshot<TExclude extends keyof InstanceHealthSnapshot = never>(options?: { exclude?: TExclude[] }): Promise<Omit<InstanceHealthSnapshot, TExclude>> {
 	const started = Date.now();
 	const dbPingStarted = Date.now();
 	await db.execute(sql`select 1`);
@@ -244,19 +298,12 @@ export async function getInstanceHealthSnapshot(): Promise<InstanceHealthSnapsho
 
 	const [playlistsTotal, playlistClipRows, nonEmptyPlaylistsRows, overlaysWithPlaylistRows, activeOverlaysWithPlaylistRows] = await Promise.all([
 		countRows(playlistsTable),
-		db
-			.select({ count: count() })
-			.from(playlistClipsTable)
-			.execute(),
+		db.select({ count: count() }).from(playlistClipsTable).execute(),
 		db
 			.select({ count: countDistinct(playlistClipsTable.playlistId) })
 			.from(playlistClipsTable)
 			.execute(),
-		db
-			.select({ count: count() })
-			.from(overlaysTable)
-			.where(isNotNull(overlaysTable.playlistId))
-			.execute(),
+		db.select({ count: count() }).from(overlaysTable).where(isNotNull(overlaysTable.playlistId)).execute(),
 		db
 			.select({ count: count() })
 			.from(overlaysTable)
@@ -271,11 +318,7 @@ export async function getInstanceHealthSnapshot(): Promise<InstanceHealthSnapsho
 	const avgClipsPerPlaylist = playlistsTotal > 0 ? playlistClipCount / playlistsTotal : 0;
 
 	const [overlaysWithRewardRows, activeOverlaysWithRewardRows, uniqueRewardIdsRows, ownersWithRewardRows, overlaysByTypeRows, overlaysByPlaybackModeRows] = await Promise.all([
-		db
-			.select({ count: count() })
-			.from(overlaysTable)
-			.where(isNotNull(overlaysTable.rewardId))
-			.execute(),
+		db.select({ count: count() }).from(overlaysTable).where(isNotNull(overlaysTable.rewardId)).execute(),
 		db
 			.select({ count: count() })
 			.from(overlaysTable)
@@ -318,21 +361,11 @@ export async function getInstanceHealthSnapshot(): Promise<InstanceHealthSnapsho
 		return acc;
 	}, {});
 
-	const [settingsRows, optedInRows, optedOutRows, newsletterConsentSourceRows, optedOutSourceRows] = await Promise.all([
-		db
-			.select({ count: count() })
-			.from(settingsTable)
-			.execute(),
-		db
-			.select({ count: count() })
-			.from(settingsTable)
-			.where(eq(settingsTable.marketingOptIn, true))
-			.execute(),
-		db
-			.select({ count: count() })
-			.from(settingsTable)
-			.where(eq(settingsTable.marketingOptIn, false))
-			.execute(),
+	const [settingsRows, optedInRows, optedOutRows, communityOptedInRows, newsletterConsentSourceRows, optedOutSourceRows] = await Promise.all([
+		db.select({ count: count() }).from(settingsTable).execute(),
+		db.select({ count: count() }).from(settingsTable).where(eq(settingsTable.marketingOptIn, true)).execute(),
+		db.select({ count: count() }).from(settingsTable).where(eq(settingsTable.marketingOptIn, false)).execute(),
+		db.select({ count: count() }).from(settingsTable).where(eq(settingsTable.showOnCommunityPage, true)).execute(),
 		db
 			.select({
 				source: settingsTable.marketingOptInSource,
@@ -359,32 +392,24 @@ export async function getInstanceHealthSnapshot(): Promise<InstanceHealthSnapsho
 		acc[row.source ?? "unknown"] = Number(row.count ?? 0);
 		return acc;
 	}, {});
+	const communityOptedInUsers = Number(communityOptedInRows[0]?.count ?? 0);
+	const communityOptedOutUsers = Math.max(0, usersTotal - communityOptedInUsers);
+	const communityOptInRate = usersTotal > 0 ? communityOptedInUsers / usersTotal : 0;
 
-	const [clipQueueRows, modQueueRows] = await Promise.all([
-		db
-			.select({ count: count() })
-			.from(queueTable)
-			.execute(),
-		db
-			.select({ count: count() })
-			.from(modQueueTable)
-			.execute(),
-	]);
+	const [clipQueueRows, modQueueRows] = await Promise.all([db.select({ count: count() }).from(queueTable).execute(), db.select({ count: count() }).from(modQueueTable).execute()]);
 
-	const [tokenRows, expiredTokensRows, expiringIn24hRows] = await Promise.all([
-		db
-			.select({ count: count() })
-			.from(tokenTable)
-			.execute(),
-		db
-			.select({ count: count() })
-			.from(tokenTable)
-			.where(lt(tokenTable.expiresAt, now))
-			.execute(),
+	const [tokenRows, expiredTokensRows, expiringIn24hRows, readyForTwitchApiUsersRows] = await Promise.all([
+		db.select({ count: count() }).from(tokenTable).execute(),
+		db.select({ count: count() }).from(tokenTable).where(lt(tokenTable.expiresAt, now)).execute(),
 		db
 			.select({ count: count() })
 			.from(tokenTable)
 			.where(and(gt(tokenTable.expiresAt, now), lte(tokenTable.expiresAt, in24h)))
+			.execute(),
+		db
+			.select({ count: count() })
+			.from(tokenTable)
+			.where(or(arrayContains(tokenTable.scope, ["channel:manage:clips"]), arrayContains(tokenTable.scope, ["editor:manage:clips"])))
 			.execute(),
 	]);
 
@@ -448,7 +473,7 @@ export async function getInstanceHealthSnapshot(): Promise<InstanceHealthSnapsho
 	if (dbPingMs > 2000 || healthAggregationMs > 2000 || (scheduler.totalRuns > 0 && scheduler.totalFailures / scheduler.totalRuns > 0.15)) status = "degraded";
 	if (dbPingMs > 5000 || healthAggregationMs > 5000) status = "down";
 
-	return {
+	const health = {
 		status,
 		time: now.toISOString(),
 		uptimeSec: Math.floor(process.uptime()),
@@ -502,14 +527,32 @@ export async function getInstanceHealthSnapshot(): Promise<InstanceHealthSnapsho
 			consentSourceCounts,
 			optedOutSourceCounts,
 		},
+		community: {
+			totalUsers: usersTotal,
+			optedInUsers: communityOptedInUsers,
+			optedOutUsers: communityOptedOutUsers,
+			optInRate: communityOptInRate,
+		},
 		queues: {
 			clipQueueDepth: Number(clipQueueRows[0]?.count ?? 0),
 			modQueueDepth: Number(modQueueRows[0]?.count ?? 0),
+		},
+		clips: {
+			fetches: {
+				v1GraphQL: v1GraphQLFetches,
+				v2TwitchApi: v2TwitchApiFetches,
+				v2FallbackGraphQL: v2FallbackGraphQLFetches,
+				v2RateLimited: v2RateLimitedFetches,
+			},
+		},
+		twitchRateLimit: {
+			history: twitchRateLimitHistory,
 		},
 		auth: {
 			tokenRows: Number(tokenRows[0]?.count ?? 0),
 			expiredTokens: Number(expiredTokensRows[0]?.count ?? 0),
 			expiringIn24h: Number(expiringIn24hRows[0]?.count ?? 0),
+			readyForTwitchApiUsers: Number(readyForTwitchApiUsersRows[0]?.count ?? 0),
 		},
 		entitlements: {
 			activeGrantUsers,
@@ -546,4 +589,13 @@ export async function getInstanceHealthSnapshot(): Promise<InstanceHealthSnapsho
 			healthAggregationMs,
 		},
 	};
+
+	if (options?.exclude) {
+		for (const key of options.exclude) {
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			delete (health as any)[key];
+		}
+	}
+
+	return health as Omit<InstanceHealthSnapshot, TExclude>;
 }

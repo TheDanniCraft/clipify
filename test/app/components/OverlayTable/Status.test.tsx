@@ -15,13 +15,13 @@ describe("components/OverlayTable/Status", () => {
 	it("renders active status with active icon color", () => {
 		render(<Status status={StatusOptions.Active} />);
 		expect(screen.getByText(StatusOptions.Active)).toBeInTheDocument();
-		expect(screen.getByTestId("status-icon")).toHaveAttribute("data-color", "hsl(var(--heroui-success))");
+		expect(screen.getByTestId("status-icon")).toHaveAttribute("data-color", "var(--success)");
 	});
 
 	it("renders paused status and merges className", () => {
 		const { container } = render(<Status status={StatusOptions.Paused} className='extra-class' />);
 		expect(screen.getByText(StatusOptions.Paused)).toBeInTheDocument();
-		expect(screen.getByTestId("status-icon")).toHaveAttribute("data-color", "hsl(var(--heroui-danger))");
+		expect(screen.getByTestId("status-icon")).toHaveAttribute("data-color", "var(--danger)");
 		expect(container.firstChild).toHaveClass("extra-class");
 	});
 });

@@ -3,7 +3,9 @@ import { Cta, Timer } from "@types";
 
 import React, { useEffect, useState } from "react";
 import { motion } from "motion/react";
-import { Button, Form, Image, Input, Popover, PopoverContent, PopoverTrigger, Spinner } from "@heroui/react";
+import { Button, Form, Popover, Spinner, TextField, Label, Description, FieldError, InputGroup } from "@heroui/react";
+import Image from "next/image";
+
 import { IconCircleCheckFilled, IconMailFilled, IconSend } from "@tabler/icons-react";
 import { subscribeToNewsletter, getEmailProvider } from "@actions/newsletter";
 import { usePlausible } from "next-plausible";
@@ -76,12 +78,12 @@ const Construction = ({ endDate, cta }: { endDate?: Date; cta: Cta }) => {
 	}
 
 	return (
-		<div className='min-h-screen min-w-screen flex items-center justify-center bg-gradient-to-br from-primary-800 to-primary-400'>
+		<div className='min-h-screen min-w-screen flex items-center justify-center bg-gradient-to-br from-brand-800 to-brand-400'>
 			<div className='flex flex-col items-center'>
 				<motion.h1 className='text-4xl font-bold mb-2' initial={{ opacity: 0.1, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
 					COMING SOON
 				</motion.h1>
-				<motion.p className='text-default-600 text-lg mb-8' initial={{ opacity: 0.1 }} animate={{ opacity: 1 }} transition={{ delay: 0.3, duration: 0.5 }}>
+				<motion.p className='text-muted text-lg mb-8' initial={{ opacity: 0.1 }} animate={{ opacity: 1 }} transition={{ delay: 0.3, duration: 0.5 }}>
 					This page is under construction
 				</motion.p>
 
@@ -90,7 +92,7 @@ const Construction = ({ endDate, cta }: { endDate?: Date; cta: Cta }) => {
 						{["days", "hours", "minutes", "seconds"].map((key, i) => (
 							<motion.div key={key} className='bg-foreground border shadow-md px-5 py-3 rounded-lg text-center flex flex-col items-center' custom={i} initial={{ opacity: 0.1, x: 15 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.6 + i * 0.2, duration: 0.1 }} style={{ width: "80px" }}>
 								<motion.div
-									className='text-3xl text-default-200 font-semibold'
+									className='text-3xl text-muted font-semibold'
 									initial={{ scale: 0.8, opacity: 0.1 }}
 									animate={{ scale: 1, opacity: 1 }}
 									transition={{ duration: 0.5 }}
@@ -98,75 +100,82 @@ const Construction = ({ endDate, cta }: { endDate?: Date; cta: Cta }) => {
 								>
 									{timeLeft[key as keyof Timer]}
 								</motion.div>
-								<p className='text-xs text-default-300 lowercase'>{key}</p>
+								<p className='text-xs text-muted lowercase'>{key}</p>
 							</motion.div>
 						))}
 					</div>
 				)}
 
 				<motion.div initial={{ opacity: 0.1 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 + (endDate ? 0.3 : 0), duration: 0.5 }}>
-					<Popover showArrow offset={10} placement='bottom' backdrop='blur'>
-						<PopoverTrigger>
-							<Button variant='faded' size='lg' startContent={cta.icon} aria-label={cta.text}>
-								{cta.text}
-							</Button>
-						</PopoverTrigger>
-						<PopoverContent className='p-5 w-[300px] min-w-[300px]'>
-							<Form onSubmit={subscribe}>
-								<Input
-									isRequired
-									label='Enter your Email'
-									placeholder='mail@example.com'
-									type='email'
-									labelPlacement='outside'
-									className={newsletterState == "success" ? "text-success" : newsletterState == "error" || newsletterState == "rateLimit" ? "text-danger" : "text-default-900"}
-									description={(() => {
-										switch (newsletterState) {
-											case "loading":
-												return "Subscribing...";
-											case "error":
-												return "An error occurred. Please try again. If the error persists, please contact the team.";
-											case "rateLimit":
-												return "Please wait before trying again.";
-											default:
-												return "";
-										}
-									})()}
-									startContent={(() => {
-										switch (newsletterState) {
-											case "loading":
-												return <Spinner />;
-											case "success":
-												return <IconCircleCheckFilled className='text-success-500' />;
-											default:
-												return <IconMailFilled className='text-default-400' />;
-										}
-									})()}
-									onChange={() => {
-										setNewsletterState("default");
-									}}
-									name='email'
-									isDisabled={newsletterState === "loading" || newsletterState === "success"}
-									endContent={
-										<Button color='primary' size='sm' isIconOnly type='submit' disabled={newsletterState === "loading" || newsletterState === "success"} aria-label='Subscribe to newsletter'>
-											<IconSend className='text-white' />
-										</Button>
-									}
-								/>
-								<Turnstile siteKey='0x4AAAAAACMFR636JljxhVLl' onSuccess={setToken} onError={() => console.error("Turnstile error")} onExpire={() => setToken(null)} />
-							</Form>
-							{newsletterState === "success" && (
-								<div className='text-success-500 mt-2 text-center'>
-									<Image alt='Tada Icon' src='https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Activities/Party%20Popper.png' width='50' height='50' className='mx-auto' />
-									<p className='text-lg font-bold'>You&apos;re almost there!</p>
-									<p className='text-xs'>We&apos;ve just sent a confirmation email your way. Check your inbox to finish subscribing-and if you don&apos;t see it, be sure to take a quick look in your spam folder too.</p>
-								</div>
-							)}
-						</PopoverContent>
+					<Popover>
+						<Button variant='secondary' size='lg' aria-label={cta.text}>
+							{cta.icon}
+							{cta.text}
+						</Button>
+						<Popover.Content offset={10} placement='bottom' className='w-[300px] min-w-[300px] p-5'>
+							<Popover.Arrow />
+							<Popover.Dialog>
+								<Form onSubmit={subscribe}>
+									<TextField isRequired type='email' className={newsletterState == "success" ? "text-success" : newsletterState == "error" || newsletterState == "rateLimit" ? "text-danger" : "text-foreground"} name='email' isDisabled={newsletterState === "loading" || newsletterState === "success"}>
+										<Label>Enter your Email</Label>
+										<InputGroup>
+											<InputGroup.Prefix>
+												{(() => {
+													switch (newsletterState) {
+														case "loading":
+															return <Spinner />;
+														case "success":
+															return <IconCircleCheckFilled className='text-success' />;
+														default:
+															return <IconMailFilled className='text-muted' />;
+													}
+												})()}
+											</InputGroup.Prefix>
+											<InputGroup.Input
+												placeholder='mail@example.com'
+												onChange={() => {
+													setNewsletterState("default");
+												}}
+											/>
+											<InputGroup.Suffix>
+												{
+													<Button size='sm' isIconOnly type='submit' isDisabled={newsletterState === "loading" || newsletterState === "success"} aria-label='Subscribe to newsletter' variant='primary'>
+														<IconSend className='text-white' />
+													</Button>
+												}
+											</InputGroup.Suffix>
+										</InputGroup>
+										<Description>
+											{(() => {
+												switch (newsletterState) {
+													case "loading":
+														return "Subscribing...";
+													case "error":
+														return "An error occurred. Please try again. If the error persists, please contact the team.";
+													case "rateLimit":
+														return "Please wait before trying again.";
+													default:
+														return "";
+												}
+											})()}
+										</Description>
+										<FieldError />
+									</TextField>
+									<Turnstile siteKey='0x4AAAAAACMFR636JljxhVLl' onSuccess={setToken} onError={() => console.error("Turnstile error")} onExpire={() => setToken(null)} />
+								</Form>
+								{newsletterState === "success" && (
+									<div className='text-success mt-2 text-center'>
+										<Image unoptimized alt='Tada Icon' src='https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Activities/Party%20Popper.png' width={50} height={50} className='mx-auto' />
+										<p className='text-lg font-bold'>You&apos;re almost there!</p>
+										<p className='text-xs'>We&apos;ve just sent a confirmation email your way. Check your inbox to finish subscribing-and if you don&apos;t see it, be sure to take a quick look in your spam folder too.</p>
+									</div>
+								)}
+							</Popover.Dialog>
+						</Popover.Content>
 					</Popover>
 				</motion.div>
 
-				<motion.footer className='mt-5 text-sm text-default-500' initial={{ opacity: 0.1 }} animate={{ opacity: 1 }} transition={{ delay: 0.9 + (endDate ? 0.3 : 0), duration: 0.5 }}>
+				<motion.footer className='mt-5 text-sm text-muted' initial={{ opacity: 0.1 }} animate={{ opacity: 1 }} transition={{ delay: 0.9 + (endDate ? 0.3 : 0), duration: 0.5 }}>
 					© {new Date().getFullYear()} Clipify. Made by TheDanniCraft
 				</motion.footer>
 			</div>

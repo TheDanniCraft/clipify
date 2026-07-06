@@ -68,10 +68,13 @@ jest.mock("drizzle-orm", () => ({
 	eq: jest.fn(),
 	and: jest.fn(),
 	gt: jest.fn(),
-	sql: Object.assign(jest.fn(() => "sql"), {
-		join: jest.fn((parts: unknown[], separator = " ") => parts.join(String(separator))),
-		raw: jest.fn((value: unknown) => String(value)),
-	}),
+	sql: Object.assign(
+		jest.fn(() => "sql"),
+		{
+			join: jest.fn((parts: unknown[], separator = " ") => parts.join(String(separator))),
+			raw: jest.fn((value: unknown) => String(value)),
+		},
+	),
 	inArray: jest.fn(),
 	lte: jest.fn(),
 	or: jest.fn(),
@@ -83,6 +86,7 @@ jest.mock("drizzle-orm", () => ({
 	countDistinct: jest.fn(),
 	like: jest.fn(),
 	notLike: jest.fn(),
+	arrayContains: jest.fn(),
 }));
 
 jest.mock("@actions/database", () => ({
@@ -149,6 +153,7 @@ describe("lib/instanceHealth", () => {
 			[{ count: 10 }], // settingsRows
 			[{ count: 8 }], // optedInRows
 			[{ count: 2 }], // optedOutRows
+			[{ count: 3 }], // communityOptedInRows
 			[{ source: "soft_opt_in_default", count: 6 }], // newsletterConsentSourceRows
 			[{ source: "settings_page_optout", count: 2 }], // optedOutReasonRows
 			[{ count: 3 }], // clipQueueRows
@@ -156,6 +161,7 @@ describe("lib/instanceHealth", () => {
 			[{ count: 10 }], // tokenRows
 			[{ count: 0 }], // expiredTokensRows
 			[{ count: 2 }], // expiringIn24hRows
+			[{ count: 5 }], // readyForTwitchApiUsersRows
 			[
 				{ type: "clip", count: 100 },
 				{ type: "avatar", count: 20 },
@@ -199,6 +205,12 @@ describe("lib/instanceHealth", () => {
 		expect(snapshot.counts.overlaysTotal).toBe(20);
 		expect(snapshot.entitlements.activeGrantUsers).toBe(2);
 		expect(snapshot.entitlements.activeGrantUsersOnFree).toBe(1);
+		expect(snapshot.community).toEqual({
+			totalUsers: 10,
+			optedInUsers: 3,
+			optedOutUsers: 7,
+			optInRate: 0.3,
+		});
 		expect(snapshot.cache.entriesTotal).toBe(135);
 		expect(snapshot.cache.clipEntries).toBe(100);
 		expect(snapshot.cache.backfillCompleteRatio).toBeCloseTo(2 / 3, 1);
@@ -267,6 +279,7 @@ describe("lib/instanceHealth", () => {
 			[{ count: 10 }], // settingsRows
 			[{ count: 8 }], // optedInRows
 			[{ count: 2 }], // optedOutRows
+			[{ count: 3 }], // communityOptedInRows
 			[{ source: "soft_opt_in_default", count: 6 }], // newsletterConsentSourceRows
 			[{ source: "settings_page_optout", count: 2 }], // optedOutReasonRows
 			[{ count: 3 }], // clipQueueRows
@@ -384,6 +397,7 @@ describe("lib/instanceHealth", () => {
 			[{ count: 0 }], // settingsRows
 			[{ count: 0 }], // optedInRows
 			[{ count: 0 }], // optedOutRows
+			[{ count: 0 }], // communityOptedInRows
 			[], // newsletterConsentSourceRows
 			[], // optedOutReasonRows
 			[{ count: 0 }], // clipQueueRows
@@ -407,6 +421,7 @@ describe("lib/instanceHealth", () => {
 		expect(snapshot.cache.clipEntries).toBe(0);
 		expect(snapshot.cache.entriesTotal).toBe(0);
 		expect(snapshot.entitlements.activeGrantCount).toBe(0);
+		expect(snapshot.community).toEqual({ totalUsers: 0, optedInUsers: 0, optedOutUsers: 0, optInRate: 0 });
 		expect(snapshot.status).toBe("ok");
 	});
 
@@ -443,6 +458,7 @@ describe("lib/instanceHealth", () => {
 			[], // settingsRows
 			[], // optedInRows
 			[], // optedOutRows
+			[], // communityOptedInRows
 			[], // newsletterConsentSourceRows
 			[], // optedOutReasonRows
 			[], // clipQueueRows
@@ -450,6 +466,7 @@ describe("lib/instanceHealth", () => {
 			[], // tokenRows
 			[], // expiredTokensRows
 			[], // expiringIn24hRows
+			[], // readyForTwitchApiUsersRows
 			[], // cacheTotals
 			[], // unavailableClipsRows
 			[], // clipSyncStatesRows

@@ -1,5 +1,6 @@
 import React, { forwardRef, memo } from "react";
 import { cn } from "@heroui/react";
+
 import { StatusOptions } from "@types";
 import { statusColorMap } from "./data";
 
@@ -14,12 +15,12 @@ export const Status = memo(
 		const statusColor = statusColorMap[status];
 
 		return (
-			<div ref={forwardedRef} className={cn("flex w-fit items-center gap-[2px] rounded-lg bg-default-100 px-2 py-1", className)}>
+			<div ref={forwardedRef} className={cn("flex w-fit items-center gap-[2px] rounded-lg bg-surface-secondary px-2 py-1", className)}>
 				{statusColor}
-				<span className='px-1 text-default-800'>{status}</span>
+				<span className='px-1 text-foreground'>{status}</span>
 			</div>
 		);
-	})
+	}),
 );
 
 Status.displayName = "Status";

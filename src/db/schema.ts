@@ -49,7 +49,9 @@ export const usersTable = pgTable("users", {
 	disabledReason: varchar("disabled_reason"),
 	stripeCustomerId: varchar("stripe_customer_id"),
 	createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-	twitchCreatedAt: timestamp("twitch_created_at", { withTimezone: true }).default(sql`'2016-05-01T00:00:00.000Z'::timestamptz`).notNull(),
+	twitchCreatedAt: timestamp("twitch_created_at", { withTimezone: true })
+		.default(sql`'2016-05-01T00:00:00.000Z'::timestamptz`)
+		.notNull(),
 	updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 	lastLogin: timestamp("last_login", { withTimezone: true }),
 	lastEntitlementReconciledAt: timestamp("last_entitlement_reconciled_at", { withTimezone: true }),
@@ -88,8 +90,7 @@ export const overlaysTable = pgTable("overlays", {
 	name: varchar("name").notNull(),
 	status: statusOptionsEnum("status").$type<StatusOptions>().notNull(),
 	type: overlayTypeEnum("type").$type<OverlayType>().notNull(),
-	playlistId: uuid("playlist_id")
-		.references(() => playlistsTable.id, { onDelete: "set null" }),
+	playlistId: uuid("playlist_id").references(() => playlistsTable.id, { onDelete: "set null" }),
 	rewardId: varchar("reward_id"),
 	createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 	updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
@@ -158,21 +159,29 @@ export const playlistClipsTable = pgTable(
 	(t) => [primaryKey({ columns: [t.playlistId, t.clipId] }), index("playlist_clips_position_idx").on(t.playlistId, t.position)],
 );
 
-export const queueTable = pgTable("clipQueue", {
-	id: uuid("id").notNull().defaultRandom().primaryKey(),
-	overlayId: uuid("overlay_id")
-		.notNull()
-		.references(() => overlaysTable.id, { onDelete: "cascade" }),
-	clipId: varchar("clip_id").notNull(),
-	queuedAt: timestamp("queued_at", { withTimezone: true }).defaultNow().notNull(),
-}, (t) => [index("clip_queue_overlay_queued_at_idx").on(t.overlayId, t.queuedAt)]);
+export const queueTable = pgTable(
+	"clipQueue",
+	{
+		id: uuid("id").notNull().defaultRandom().primaryKey(),
+		overlayId: uuid("overlay_id")
+			.notNull()
+			.references(() => overlaysTable.id, { onDelete: "cascade" }),
+		clipId: varchar("clip_id").notNull(),
+		queuedAt: timestamp("queued_at", { withTimezone: true }).defaultNow().notNull(),
+	},
+	(t) => [index("clip_queue_overlay_queued_at_idx").on(t.overlayId, t.queuedAt)],
+);
 
-export const modQueueTable = pgTable("modQueue", {
-	id: uuid("id").notNull().defaultRandom().primaryKey(),
-	broadcasterId: varchar("broadcaster_id").notNull(),
-	clipId: varchar("clip_id").notNull(),
-	queuedAt: timestamp("queued_at", { withTimezone: true }).defaultNow().notNull(),
-}, (t) => [index("mod_queue_broadcaster_queued_at_idx").on(t.broadcasterId, t.queuedAt)]);
+export const modQueueTable = pgTable(
+	"modQueue",
+	{
+		id: uuid("id").notNull().defaultRandom().primaryKey(),
+		broadcasterId: varchar("broadcaster_id").notNull(),
+		clipId: varchar("clip_id").notNull(),
+		queuedAt: timestamp("queued_at", { withTimezone: true }).defaultNow().notNull(),
+	},
+	(t) => [index("mod_queue_broadcaster_queued_at_idx").on(t.broadcasterId, t.queuedAt)],
+);
 
 export const settingsTable = pgTable("userSettings", {
 	id: varchar("id")

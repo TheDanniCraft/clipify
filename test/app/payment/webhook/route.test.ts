@@ -439,4 +439,3 @@ describe("app/payment/webhook route", () => {
 		await expect(res.json()).resolves.toEqual({ error: "db write failed" });
 	});
 });
-

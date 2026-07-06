@@ -219,14 +219,7 @@ export async function resolveUserEntitlementsForUsers(users: EntitlementUserRef[
 	const grants = await db
 		.select()
 		.from(entitlementGrantsTable)
-		.where(
-			and(
-				eq(entitlementGrantsTable.entitlement, PRO_ACCESS),
-				lte(entitlementGrantsTable.startsAt, now),
-				or(isNull(entitlementGrantsTable.endsAt), gt(entitlementGrantsTable.endsAt, now)),
-				or(inArray(entitlementGrantsTable.userId, freeUserIds), isNull(entitlementGrantsTable.userId)),
-			),
-		)
+		.where(and(eq(entitlementGrantsTable.entitlement, PRO_ACCESS), lte(entitlementGrantsTable.startsAt, now), or(isNull(entitlementGrantsTable.endsAt), gt(entitlementGrantsTable.endsAt, now)), or(inArray(entitlementGrantsTable.userId, freeUserIds), isNull(entitlementGrantsTable.userId))))
 		.orderBy(asc(entitlementGrantsTable.userId), asc(entitlementGrantsTable.startsAt))
 		.execute();
 
@@ -343,7 +336,10 @@ export async function reconcileFreeConstraintsIfNeeded(user: EntitlementUserRef,
 			const clips = await tx.select().from(playlistClipsTable).where(eq(playlistClipsTable.playlistId, keptPlaylist.id)).orderBy(asc(playlistClipsTable.position)).execute();
 			const removeClipIds = clips.slice(50).map((clip) => clip.clipId);
 			if (removeClipIds.length > 0) {
-				await tx.delete(playlistClipsTable).where(and(eq(playlistClipsTable.playlistId, keptPlaylist.id), inArray(playlistClipsTable.clipId, removeClipIds))).execute();
+				await tx
+					.delete(playlistClipsTable)
+					.where(and(eq(playlistClipsTable.playlistId, keptPlaylist.id), inArray(playlistClipsTable.clipId, removeClipIds)))
+					.execute();
 			}
 		}
 

@@ -1,5 +1,6 @@
 import React from "react";
-import { Card, Chip } from "@heroui/react";
+import { Card, Chip } from "@components/heroui-client";
+
 import { RoadmapStatus, RoadmapItemData, type RoadmapColor } from "./roadmapData";
 import * as TablerIcons from "@tabler/icons-react";
 import { IconBolt, IconChevronRight, type Icon } from "@tabler/icons-react";
@@ -69,7 +70,7 @@ export const RoadmapItem: React.FC<RoadmapItemProps> = ({ icon, color, title, de
 				<div className={`w-7 h-7 rounded-full border-4 border-background ${getStatusColor(status)}`}></div>
 			</div>
 
-			<Card className='flex-1 p-6 bg-content1 border-none'>
+			<Card className='flex-1 p-6'>
 				<div className='space-y-4'>
 					<div className='flex items-start'>
 						<div className={`p-3 rounded-md ${getIconColorClasses(color)} mr-4`}>
@@ -77,21 +78,21 @@ export const RoadmapItem: React.FC<RoadmapItemProps> = ({ icon, color, title, de
 						</div>
 						<div className='flex-1'>
 							<h3 className='text-xl font-semibold mb-1'>{title}</h3>
-							<p className='text-default-400'>{description}</p>
+							<p className='text-muted'>{description}</p>
 						</div>
 					</div>
 
 					<div className='flex items-center gap-3'>
-						<Chip variant='flat' size='sm' className={`${getChipColor(status)}`}>
+						<Chip variant='tertiary' size='sm' className={`${getChipColor(status)}`}>
 							{status}
 						</Chip>
-						<span className='text-default-400'>{timeframe}</span>
+						<span className='text-muted'>{timeframe}</span>
 					</div>
 
 					<div className='grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2 pt-2'>
 						{features.map((feature, index) => (
-							<div key={index} className='flex items-center gap-2 text-default-400 py-1'>
-								<IconChevronRight className='text-default-500 w-4 h-4 flex-shrink-0' />
+							<div key={index} className='flex items-center gap-2 text-muted py-1'>
+								<IconChevronRight className='text-muted w-4 h-4 flex-shrink-0' />
 								<span>{feature}</span>
 							</div>
 						))}

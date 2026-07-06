@@ -28,23 +28,28 @@ jest.mock("@heroui/react", () => ({
 			{children}
 		</button>
 	),
-	Card: ({ children }: { children: React.ReactNode }) => <section>{children}</section>,
-	CardBody: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-	CardHeader: ({ children }: { children: React.ReactNode }) => <header>{children}</header>,
+	Card: Object.assign(({ children }: { children: React.ReactNode }) => <section>{children}</section>, {
+		Content: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+		Header: ({ children }: { children: React.ReactNode }) => <header>{children}</header>,
+	}),
 	Chip: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
-	Input: ({ value, onValueChange, endContent }: { value?: string; onValueChange?: (v: string) => void; endContent?: React.ReactNode }) => (
-		<div>
-			<input
-				value={value}
-				onChange={(e) => {
-					if (onValueChange) onValueChange(e.target.value);
-				}}
-			/>
-			{endContent}
-		</div>
-	),
+	TextField: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+	Label: ({ children }: { children: React.ReactNode }) => <label>{children}</label>,
+	InputGroup: Object.assign(({ children }: { children: React.ReactNode }) => <div>{children}</div>, {
+		Prefix: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
+		Suffix: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
+		Input: (props: React.InputHTMLAttributes<HTMLInputElement>) => <input {...props} />,
+	}),
 	Spinner: () => <div>Loading...</div>,
-	Table: ({ children }: { children: React.ReactNode }) => <table>{children}</table>,
+	Table: Object.assign(({ children }: { children: React.ReactNode }) => <table>{children}</table>, {
+		ScrollContainer: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+		Content: ({ children }: { children: React.ReactNode }) => <tbody>{children}</tbody>,
+		Header: ({ children }: { children: React.ReactNode }) => <tr>{children}</tr>,
+		Column: ({ children }: { children: React.ReactNode }) => <th>{children}</th>,
+		Body: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+		Row: ({ children }: { children: React.ReactNode }) => <tr>{children}</tr>,
+		Cell: ({ children }: { children: React.ReactNode }) => <td>{children}</td>,
+	}),
 	TableBody: ({ children }: { children: React.ReactNode }) => <tbody>{children}</tbody>,
 	TableCell: ({ children }: { children: React.ReactNode }) => <td>{children}</td>,
 	TableColumn: ({ children }: { children: React.ReactNode }) => <th>{children}</th>,
@@ -207,15 +212,7 @@ describe("components/adminUserExplorer behavior", () => {
 
 		getAdminExplorerPage.mockReturnValueOnce(slow).mockReturnValueOnce(fast);
 
-		render(
-			<AdminUserExplorer
-				users={[{ id: "u0", username: "base", email: "base@example.com", role: "user", plan: "free", lastLoginLabel: "now" }]}
-				initialPage={1}
-				initialTotalPages={1}
-				initialTotalRows={1}
-				initialQuery=''
-			/>,
-		);
+		render(<AdminUserExplorer users={[{ id: "u0", username: "base", email: "base@example.com", role: "user", plan: "free", lastLoginLabel: "now" }]} initialPage={1} initialTotalPages={1} initialTotalRows={1} initialQuery='' />);
 
 		const input = screen.getByRole("textbox");
 		fireEvent.change(input, { target: { value: "a" } });
@@ -311,29 +308,13 @@ describe("components/adminUserExplorer behavior", () => {
 	});
 
 	it("resyncs local explorer state when new server props arrive", async () => {
-		const { rerender } = render(
-			<AdminUserExplorer
-				users={[{ id: "u1", username: "alice", email: "alice@example.com", role: "user", plan: "free", lastLoginLabel: "now" }]}
-				initialPage={1}
-				initialTotalPages={1}
-				initialTotalRows={1}
-				initialQuery='alice'
-			/>,
-		);
+		const { rerender } = render(<AdminUserExplorer users={[{ id: "u1", username: "alice", email: "alice@example.com", role: "user", plan: "free", lastLoginLabel: "now" }]} initialPage={1} initialTotalPages={1} initialTotalRows={1} initialQuery='alice' />);
 
 		expect(screen.getByRole("textbox")).toHaveValue("alice");
 		expect(screen.getByText("Page 1 / 1")).toBeInTheDocument();
 		expect(screen.getByText("@alice")).toBeInTheDocument();
 
-		rerender(
-			<AdminUserExplorer
-				users={[{ id: "u2", username: "bob", email: "bob@example.com", role: "user", plan: "free", lastLoginLabel: "later" }]}
-				initialPage={2}
-				initialTotalPages={3}
-				initialTotalRows={60}
-				initialQuery='bob'
-			/>,
-		);
+		rerender(<AdminUserExplorer users={[{ id: "u2", username: "bob", email: "bob@example.com", role: "user", plan: "free", lastLoginLabel: "later" }]} initialPage={2} initialTotalPages={3} initialTotalRows={60} initialQuery='bob' />);
 
 		expect(screen.getByRole("textbox")).toHaveValue("bob");
 		expect(screen.getByText("Page 2 / 3")).toBeInTheDocument();

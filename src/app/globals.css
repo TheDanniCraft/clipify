@@ -1,6 +1,6 @@
 @import "tailwindcss";
-@plugin '../../hero.ts';
-@source '../../node_modules/@heroui/theme/dist/**/*.{js,ts,jsx,tsx}';
+@import "@heroui/styles";
+@import "./themes/clipify.css";
 @custom-variant dark (&:is(.dark *));
 
 @theme {
@@ -11,26 +11,47 @@
 	--background-image-hero-vignette: radial-gradient(circle at 50% 25%, black 0%, black 40%, transparent 75%);
 }
 
-@layer base {
-	html,
-	body,
-	input,
-	textarea,
-	select,
-	button,
-	nav,
-	ul,
-	ol,
-	li,
-	div,
-	span,
-	th,
-	td,
-	tr,
-	thead,
-	table {
-		@apply transition-colors duration-250 ease-in-out;
-	}
+@theme {
+	/* 
+	 * Backwards Compatibility: Derive the legacy brand 50-900 scale from the base accent color.
+	 * This allows the old `brand-*` utility classes to continue working seamlessly while
+	 * clipify.css remains the single source of truth for the base colors.
+	 */
+	--color-brand-50: color-mix(in srgb, var(--accent) 9%, white);
+	--color-brand-100: color-mix(in srgb, var(--accent) 20%, white);
+	--color-brand-200: color-mix(in srgb, var(--accent) 40%, white);
+	--color-brand-300: color-mix(in srgb, var(--accent) 59%, white);
+	--color-brand-400: color-mix(in srgb, var(--accent) 75%, white);
+	--color-brand-500: var(--accent);
+	--color-brand-600: color-mix(in srgb, var(--accent) 84%, black);
+	--color-brand-700: color-mix(in srgb, var(--accent) 71%, black);
+	--color-brand-800: color-mix(in srgb, var(--accent) 57%, black);
+	--color-brand-900: color-mix(in srgb, var(--accent) 46%, black);
+
+	/* 
+	 * Backwards Compatibility: Map legacy brand-secondary directly to the HeroUI danger color.
+	 */
+	--color-brand-secondary: var(--danger);
+}
+
+html,
+body,
+input,
+textarea,
+select,
+button,
+nav,
+ul,
+ol,
+li,
+div,
+span,
+th,
+td,
+tr,
+thead,
+table {
+	@apply transition-colors duration-[250ms] ease-in-out;
 }
 
 html {

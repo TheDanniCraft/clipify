@@ -66,13 +66,13 @@ jest.mock("@/db/client", () => ({
 		update: jest.fn(() => ({
 			set: (payload: Record<string, unknown>) => {
 				updateSetCalls.push(payload);
-				return ({
-				where: () => ({
+				return {
+					where: () => ({
+						execute: async () => [],
+						returning: () => ({ execute: async () => [] }),
+					}),
 					execute: async () => [],
-					returning: () => ({ execute: async () => [] }),
-				}),
-				execute: async () => [],
-				});
+				};
 			},
 		})),
 		delete: (..._args: unknown[]) => dbDelete(..._args),
@@ -89,13 +89,13 @@ jest.mock("@/db/client", () => ({
 				update: jest.fn(() => ({
 					set: (payload: Record<string, unknown>) => {
 						updateSetCalls.push(payload);
-						return ({
-						where: () => ({
+						return {
+							where: () => ({
+								execute: async () => [],
+								returning: () => ({ execute: async () => [] }),
+							}),
 							execute: async () => [],
-							returning: () => ({ execute: async () => [] }),
-						}),
-						execute: async () => [],
-						});
+						};
 					},
 				})),
 				delete: (..._args: unknown[]) => dbDelete(..._args),

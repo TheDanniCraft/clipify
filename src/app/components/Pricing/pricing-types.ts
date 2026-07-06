@@ -1,5 +1,3 @@
-import type { ButtonProps } from "@heroui/react";
-
 export enum TiersEnum {
 	Free = "free",
 	Pro = "pro",
@@ -34,6 +32,4 @@ export type Tier = {
 	featured?: boolean;
 	features?: string[];
 	buttonText: string;
-	buttonColor?: ButtonProps["color"];
-	buttonVariant: ButtonProps["variant"];
 };

@@ -20,15 +20,13 @@ jest.mock("@tabler/icons-react", () => ({
 jest.mock("@heroui/react", () => {
 	const React = require("react") as typeof import("react");
 
-	function Tabs({ children, selectedKey, onSelectionChange }: { children: ReactNode; selectedKey?: string; onSelectionChange?: (key: string) => void }) {
+	function TabsRoot({ children, selectedKey, onSelectionChange }: { children: ReactNode; selectedKey?: string; onSelectionChange?: (key: string) => void }) {
 		return (
 			<div data-testid='tabs' data-selected-key={selectedKey}>
 				{React.Children.map(children, (child) =>
 					React.isValidElement(child)
 						? React.cloneElement(child, {
-								tabKey: String(child.key ?? ""),
 								onSelect: onSelectionChange,
-								selectedKey,
 							} as Record<string, unknown>)
 						: child,
 				)}
@@ -36,59 +34,33 @@ jest.mock("@heroui/react", () => {
 		);
 	}
 
-	function Tab({
-		children,
-		title,
-		tabKey,
-		onSelect,
-		selectedKey,
-	}: {
-		children?: ReactNode;
-		title: ReactNode;
-		tabKey?: string;
-		onSelect?: (key: string) => void;
-		selectedKey?: string;
-	}) {
-		const safeTabKey = tabKey ?? "";
-		return (
-			<button type='button' data-selected={selectedKey === safeTabKey} onClick={() => onSelect?.(safeTabKey)}>
-				{title}
+	const passSelection = ({ children, onSelect }: { children: ReactNode; onSelect?: (key: string) => void }) => <div>{React.Children.map(children, (child) => (React.isValidElement(child) ? React.cloneElement(child, { onSelect } as Record<string, unknown>) : child))}</div>;
+	const Tabs = Object.assign(TabsRoot, {
+		ListContainer: passSelection,
+		List: passSelection,
+		Tab: ({ children, id, onSelect }: { children: ReactNode; id: string; onSelect?: (key: string) => void }) => (
+			<button type='button' onClick={() => onSelect?.(id)}>
 				{children}
 			</button>
-		);
-	}
+		),
+		Indicator: () => null,
+	});
 
 	return {
-		Button: ({
-			children,
-			onPress,
-			as: _as,
-			fullWidth: _fullWidth,
-			color: _color,
-			variant: _variant,
-			...props
-		}: {
-			children: ReactNode;
-			onPress?: () => void;
-			as?: unknown;
-			fullWidth?: boolean;
-			color?: string;
-			variant?: string;
-			[key: string]: unknown;
-		}) => (
+		Button: ({ children, onPress, as: _as, fullWidth: _fullWidth, color: _color, variant: _variant, ...props }: { children: ReactNode; onPress?: () => void; as?: unknown; fullWidth?: boolean; color?: string; variant?: string; [key: string]: unknown }) => (
 			<button type='button' onClick={onPress} {...props}>
 				{children}
 			</button>
 		),
-		Card: ({ children, isBlurred: _isBlurred, shadow: _shadow, ...props }: { children: ReactNode; isBlurred?: boolean; shadow?: string; [key: string]: unknown }) => <div {...props}>{children}</div>,
-		CardBody: ({ children, ...props }: { children: ReactNode }) => <div {...props}>{children}</div>,
-		CardFooter: ({ children, ...props }: { children: ReactNode }) => <div {...props}>{children}</div>,
-		CardHeader: ({ children, ...props }: { children: ReactNode }) => <div {...props}>{children}</div>,
+		Card: Object.assign(({ children, ...props }: { children: ReactNode; [key: string]: unknown }) => <div {...props}>{children}</div>, {
+			Header: ({ children, ...props }: { children: ReactNode }) => <div {...props}>{children}</div>,
+			Content: ({ children, ...props }: { children: ReactNode }) => <div {...props}>{children}</div>,
+			Footer: ({ children, ...props }: { children: ReactNode }) => <div {...props}>{children}</div>,
+		}),
 		Chip: ({ children, ...props }: { children: ReactNode }) => <div {...props}>{children}</div>,
-		Divider: () => <hr />,
+		Separator: () => <hr />,
 		Link: ({ children, ...props }: { children: ReactNode }) => <a {...props}>{children}</a>,
 		Spacer: () => <div />,
-		Tab,
 		Tabs,
 		cn: (...values: Array<string | false | null | undefined>) => values.filter(Boolean).join(" "),
 	};
@@ -98,32 +70,30 @@ describe("components/Pricing index", () => {
 	it("shows campaign-configured promo copy on the pro tier", () => {
 		render(
 			<TiersComponent
-				campaignOffer={
-					{
-						id: "offer-1",
-						name: "Launch Offer",
-						slug: "launch-offer",
-						isEnabled: true,
-						startAt: "2026-01-01T00:00:00.000Z",
-						endAt: null,
-						priority: 100,
-						showFloatingBanner: true,
-						showPricingCard: true,
-						showPricingTierPromo: true,
-						title: "Launch Offer",
-						subtitle: "for 50% OFF your first year.",
-						badgeText: "We're launched!",
-						ctaLabel: "Register To Claim Offer",
-						floatingCtaLabel: "Claim Now",
-						ctaHref: "/redeem?code=EARLYCLIPPY",
-						offerCode: "EARLYCLIPPY",
-						utmCampaign: "launch_offer",
-						pricingMonthlyPromo: 1,
-						pricingYearlyPromo: 10,
-						iconUrl: null,
-						updated: null,
-					}
-				}
+				campaignOffer={{
+					id: "offer-1",
+					name: "Launch Offer",
+					slug: "launch-offer",
+					isEnabled: true,
+					startAt: "2026-01-01T00:00:00.000Z",
+					endAt: null,
+					priority: 100,
+					showFloatingBanner: true,
+					showPricingCard: true,
+					showPricingTierPromo: true,
+					title: "Launch Offer",
+					subtitle: "for 50% OFF your first year.",
+					badgeText: "We're launched!",
+					ctaLabel: "Register To Claim Offer",
+					floatingCtaLabel: "Claim Now",
+					ctaHref: "/redeem?code=EARLYCLIPPY",
+					offerCode: "EARLYCLIPPY",
+					utmCampaign: "launch_offer",
+					pricingMonthlyPromo: 1,
+					pricingYearlyPromo: 10,
+					iconUrl: null,
+					updated: null,
+				}}
 			/>,
 		);
 

@@ -117,12 +117,7 @@ describe("actions/subscription", () => {
 		checkoutCreate.mockResolvedValue({ url: "https://checkout.stripe.test/session-1" });
 
 		const { generatePaymentLink } = await loadSubscription();
-		const result = await generatePaymentLink(
-			"monthly",
-			"/dashboard/settings",
-			undefined,
-			"upgrade_modal",
-		);
+		const result = await generatePaymentLink("monthly", "/dashboard/settings", undefined, "upgrade_modal");
 
 		expect(customersCreate).toHaveBeenCalledWith(
 			expect.objectContaining({
@@ -160,9 +155,7 @@ describe("actions/subscription", () => {
 			.mockResolvedValueOnce({ url: "https://checkout.stripe.test/session-fallback" });
 
 		const { generatePaymentLink } = await loadSubscription();
-		const result = await generatePaymentLink(
-			"yearly",
-		);
+		const result = await generatePaymentLink("yearly");
 
 		expect(checkoutCreate).toHaveBeenCalledTimes(2);
 		expect(checkoutCreate.mock.calls[0]?.[0]).toEqual(expect.objectContaining({ discounts: [{ promotion_code: "promo_1" }] }));
@@ -172,9 +165,7 @@ describe("actions/subscription", () => {
 
 	it("returns portal links and enforces customer requirement", async () => {
 		const { getPortalLink } = await loadSubscription();
-		await expect(getPortalLink()).rejects.toThrow(
-			"User does not have a Stripe customer ID",
-		);
+		await expect(getPortalLink()).rejects.toThrow("User does not have a Stripe customer ID");
 
 		validateAuth.mockResolvedValue({
 			id: "user-1",
@@ -182,8 +173,6 @@ describe("actions/subscription", () => {
 			stripeCustomerId: "cus_123",
 		});
 		portalCreate.mockResolvedValue({ url: "https://billing.stripe.test/portal" });
-		await expect(getPortalLink()).resolves.toBe(
-			"https://billing.stripe.test/portal",
-		);
+		await expect(getPortalLink()).resolves.toBe("https://billing.stripe.test/portal");
 	});
 });

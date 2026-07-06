@@ -4,7 +4,10 @@ import { useEffect, useState } from "react";
 
 import type { CampaignOffer } from "@types";
 import BasicNavbar from "@components/LandingPage/basicNavbar";
-import { Accordion, AccordionItem, Button, Chip, Image, Link, Card, CardHeader, CardBody } from "@heroui/react";
+import { Accordion, Chip, Link, Card } from "@heroui/react";
+import { buttonVariants } from "@heroui/styles";
+import Image from "next/image";
+
 import { LazyMotion, motion, domAnimation, AnimatePresence } from "motion/react";
 import { IconThumbUp, IconArrowRight, IconPlugConnected, IconLayersDifference, IconMoodSmile, IconCoin, IconAdjustments, IconChevronDown, IconArrowsMove, IconMessageCircle, IconDeviceRemote, IconUsersGroup, IconPlaylist } from "@tabler/icons-react";
 import FeatureCard from "@components/featureCard";
@@ -63,16 +66,16 @@ export default function HomePageClient({ campaignOffer }: HomePageClientProps) {
 	}, []);
 
 	const floatingBannerCta = campaignOffer ? (
-		<Button as={Link} href={campaignOfferHref ?? campaignOffer.ctaHref} radius='full' className='h-9 px-4 bg-white text-black'>
+		<Link href={campaignOfferHref ?? campaignOffer.ctaHref} className={buttonVariants({ variant: "primary", size: "sm", className: "bg-accent-foreground text-accent hover:bg-accent-foreground/90" })}>
 			{floatingCtaLabel}
-		</Button>
+		</Link>
 	) : undefined;
 
 	return (
 		<>
-			{campaignOffer && campaignOffer.showFloatingBanner ? <FloatingBanner icon={campaignOffer.iconUrl ? <Image alt={`${campaignOffer.title} Icon`} src={campaignOffer.iconUrl} width='50' height='50' className='h-[50px] w-[50px] shrink-0 rounded-none object-contain' /> : undefined} title={floatingTitle ?? campaignOffer.title} text={floatingSubtitle ?? campaignOffer.title} cta={floatingBannerCta} /> : null}
+			{campaignOffer && campaignOffer.showFloatingBanner ? <FloatingBanner icon={campaignOffer.iconUrl ? <Image unoptimized alt={`${campaignOffer.title} Icon`} src={campaignOffer.iconUrl} width={50} height={50} className='h-[50px] w-[50px] shrink-0 rounded-none object-contain' /> : undefined} title={floatingTitle ?? campaignOffer.title} text={floatingSubtitle ?? campaignOffer.title} cta={floatingBannerCta} /> : null}
 
-			<div className='bg-gradient-to-br from-primary-800 to-primary-400 h-full'>
+			<div className='bg-gradient-to-br from-brand-800 to-brand-400 h-full'>
 				<BasicNavbar />
 				<div id='#' className='relative flex h-screen min-h-dvh w-full flex-col overflow-hidden'>
 					<main className='container mx-auto mt-[80px] flex max-w-[1024px] flex-col items-start px-8'>
@@ -92,7 +95,7 @@ export default function HomePageClient({ campaignOffer }: HomePageClientProps) {
 										kick: { width: "auto" },
 									}}
 								>
-									<AnimatePresence mode='wait'>
+									<AnimatePresence>
 										<motion.div
 											key='hero-section-title'
 											animate={{ filter: "blur(0px)", opacity: 1, x: 0 }}
@@ -141,23 +144,17 @@ export default function HomePageClient({ campaignOffer }: HomePageClientProps) {
 												type: "spring",
 											}}
 										>
-											<Button className='h-10 w-[163px] bg-white px-[16px] py-[10px] text-small font-medium leading-5 text-black' radius='full' as={Link} href='/login'>
+											<Link className={buttonVariants({ variant: "primary", className: "w-[163px] bg-accent-foreground text-black hover:bg-accent-foreground/90" })} href='/login'>
 												Get Started
-											</Button>
-											<Button
-												className='h-10 w-[163px] border-1 border-white px-[16px] py-[10px] text-small font-medium leading-5 text-white'
-												endContent={
+											</Link>
+											<Link className={buttonVariants({ variant: "outline", className: "w-[163px] gap-2 border-white text-white hover:bg-white/10" })} href='#pricing'>
+												See our plans
+												{
 													<span className='pointer-events-none flex h-[22px] w-[22px] items-center justify-center rounded-full bg-white'>
 														<IconArrowRight className='text-black' width={16} />
 													</span>
 												}
-												radius='full'
-												variant='bordered'
-												as={Link}
-												href='#pricing'
-											>
-												See our plans
-											</Button>
+											</Link>
 										</motion.div>
 
 										{communityStreamers.length > 0 ? (
@@ -194,7 +191,7 @@ export default function HomePageClient({ campaignOffer }: HomePageClientProps) {
 						}}
 					>
 						<div className='aspect-[16/9] w-auto h-full flex justify-center'>
-							<Image src='./appSkew.webp' alt='App Screenshot' className='w-full h-full object-cover' loading='eager' fetchPriority='high' />
+							<Image src='/appSkew.webp' alt='App Screenshot' width={1920} height={1080} className='h-full w-full object-cover' loading='eager' fetchPriority='high' />
 						</div>
 					</motion.div>
 				</div>
@@ -203,11 +200,11 @@ export default function HomePageClient({ campaignOffer }: HomePageClientProps) {
 			<div className='w-full bg-background py-24 px-4'>
 				<div className='max-w-6xl mx-auto'>
 					<div className='text-center mb-16'>
-						<Chip color='primary' className='mb-4'>
+						<Chip color='accent' variant='primary' className='mb-4'>
 							Features
 						</Chip>
 						<h2 className='text-4xl font-bold mb-4'>Play your Twitch clips, keep your stream alive</h2>
-						<p className='text-foreground-500 text-lg max-w-2xl mx-auto'>Clipify automatically plays your best Twitch clips to keep your channel active and your viewers engaged-even when you&apos;re away.</p>
+						<p className='text-muted text-lg max-w-2xl mx-auto'>Clipify automatically plays your best Twitch clips to keep your channel active and your viewers engaged-even when you&apos;re away.</p>
 					</div>
 					<div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16'>
 						<FeatureCard title='Easy to Use' description='Intuitive interface designed for effortless setup and management.' icon={IconThumbUp} />
@@ -229,11 +226,11 @@ export default function HomePageClient({ campaignOffer }: HomePageClientProps) {
 			<div className='w-full bg-background py-24 px-4'>
 				<div className='max-w-6xl mx-auto'>
 					<div className='text-center mb-16'>
-						<Chip color='primary' className='mb-4'>
+						<Chip color='accent' variant='primary' className='mb-4'>
 							Pricing
 						</Chip>
 						<h2 className='text-4xl font-bold mb-4'>Complicated pricing? Not with us.</h2>
-						<p className='text-foreground-500 text-lg max-w-2xl mx-auto'>Just two options: free forever, or unlock everything with Pro.</p>
+						<p className='text-muted text-lg max-w-2xl mx-auto'>Just two options: free forever, or unlock everything with Pro.</p>
 
 						{campaignOffer && campaignOffer.showPricingCard ? (
 							<div className='mx-auto w-full max-w-md mt-12'>
@@ -241,14 +238,14 @@ export default function HomePageClient({ campaignOffer }: HomePageClientProps) {
 									<div className='absolute -inset-1 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 blur-2xl opacity-60'></div>
 
 									<Card className='relative bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl shadow-lg'>
-										<CardHeader className='p-4 pb-2'>
+										<Card.Header className='p-4 pb-2'>
 											<div className='flex items-center gap-2 rounded-none'>
-												{campaignOffer.iconUrl ? <Image alt={`${campaignOffer.title} Icon`} className='rounded-none' src={campaignOffer.iconUrl} width={28} /> : null}
+												{campaignOffer.iconUrl ? <Image unoptimized alt={`${campaignOffer.title} Icon`} className='rounded-none' src={campaignOffer.iconUrl} width={28} height={28} /> : null}
 												<h2 className='text-[17px] md:text-[18px] font-semibold leading-[1.1] tracking-tight'>{campaignOffer.title}</h2>
 											</div>
-										</CardHeader>
+										</Card.Header>
 
-										<CardBody className='px-4 pb-4 space-y-3'>
+										<Card.Content className='px-4 pb-4 space-y-3'>
 											<p className='text-base'>
 												{campaignOffer.offerCode ? (
 													<>
@@ -265,10 +262,10 @@ export default function HomePageClient({ campaignOffer }: HomePageClientProps) {
 												</div>
 											) : null}
 
-											<Button as={Link} href={campaignOfferHref ?? campaignOffer.ctaHref} className='w-full bg-white text-purple-700 font-medium py-2 rounded-lg hover:opacity-90 transition'>
+											<Link href={campaignOfferHref ?? campaignOffer.ctaHref} className={buttonVariants({ variant: "primary", fullWidth: true, className: "bg-accent-foreground text-accent hover:bg-accent-foreground/90" })}>
 												{campaignOffer.ctaLabel}
-											</Button>
-										</CardBody>
+											</Link>
+										</Card.Content>
 									</Card>
 								</div>
 							</div>
@@ -281,11 +278,11 @@ export default function HomePageClient({ campaignOffer }: HomePageClientProps) {
 			<div className='w-full bg-background py-24 px-4'>
 				<div className='max-w-6xl mx-auto'>
 					<div className='text-center mb-16'>
-						<Chip color='primary' className='mb-4'>
+						<Chip color='accent' variant='primary' className='mb-4'>
 							Interactive Demo
 						</Chip>
 						<h2 className='text-4xl font-bold mb-4'>See Clipify in action</h2>
-						<p className='text-foreground-500 text-lg max-w-2xl mx-auto'>Try our live demo to preview how clips play and how overlays behave on your stream.</p>
+						<p className='text-muted text-lg max-w-2xl mx-auto'>Try our live demo to preview how clips play and how overlays behave on your stream.</p>
 					</div>
 					<DemoPlayer />
 				</div>
@@ -294,31 +291,27 @@ export default function HomePageClient({ campaignOffer }: HomePageClientProps) {
 			<div className='w-full bg-background py-24 px-4'>
 				<div className='max-w-6xl mx-auto'>
 					<div className='text-center mb-16'>
-						<Chip color='primary' className='mb-4'>
+						<Chip color='accent' variant='primary' className='mb-4'>
 							FAQs
 						</Chip>
 						<h2 className='text-4xl font-bold mb-4'>Frequently Asked Questions</h2>
-						<p className='text-foreground-500 text-lg max-w-2xl mx-auto'>Find answers to the most common questions about Clipify.</p>
+						<p className='text-muted text-lg max-w-2xl mx-auto'>Find answers to the most common questions about Clipify.</p>
 					</div>
-					<Accordion
-						fullWidth
-						keepContentMounted
-						className='gap-3'
-						itemClasses={{
-							base: "px-6 !bg-transparent hover:!bg-default-100 !shadow-none data-[open=true]:!bg-default-100",
-							title: "font-medium",
-							trigger: "py-4 md:py-6",
-							content: "pt-0 pb-6 text-base text-default-500",
-							indicator: "data-[open=true]:rotate-180",
-						}}
-						items={faqs}
-						selectionMode='multiple'
-						variant='splitted'
-					>
+					<Accordion allowsMultipleExpanded variant='default'>
 						{faqs.map((item, i) => (
-							<AccordionItem key={i} indicator={<IconChevronDown width={24} />} title={item.title}>
-								{item.content}
-							</AccordionItem>
+							<Accordion.Item key={item.title} id={String(i)}>
+								<Accordion.Heading>
+									<Accordion.Trigger className='px-6 py-5 text-base md:py-6'>
+										<span>{item.title}</span>
+										<Accordion.Indicator>
+											<IconChevronDown width={24} />
+										</Accordion.Indicator>
+									</Accordion.Trigger>
+								</Accordion.Heading>
+								<Accordion.Panel>
+									<Accordion.Body className='px-6 pb-6 text-base leading-relaxed'>{item.content}</Accordion.Body>
+								</Accordion.Panel>
+							</Accordion.Item>
 						))}
 					</Accordion>
 				</div>

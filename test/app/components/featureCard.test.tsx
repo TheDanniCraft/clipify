@@ -3,8 +3,9 @@ import { render, screen } from "@testing-library/react";
 import FeatureCard from "@/app/components/featureCard";
 
 jest.mock("@heroui/react", () => ({
-	Card: ({ children }: { children: React.ReactNode }) => <div data-testid='card'>{children}</div>,
-	CardBody: ({ children }: { children: React.ReactNode }) => <div data-testid='card-body'>{children}</div>,
+	Card: Object.assign(({ children }: { children: React.ReactNode }) => <div data-testid='card'>{children}</div>, {
+		Content: ({ children }: { children: React.ReactNode }) => <div data-testid='card-body'>{children}</div>,
+	}),
 	Chip: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
 }));
 

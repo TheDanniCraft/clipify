@@ -1,7 +1,8 @@
 "use client";
 
 import { type ReactNode, useEffect, useRef, useState } from "react";
-import { Card, CardBody, CardHeader } from "@heroui/react";
+import { Card } from "@heroui/react";
+
 import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, PolarAngleAxis, RadialBar, RadialBarChart, Tooltip, XAxis, YAxis } from "recharts";
 import type { InstanceHealthSnapshot } from "@lib/instanceHealth";
 
@@ -36,6 +37,17 @@ function MeasuredChart({ className, children }: { className: string; children: (
 		<div ref={wrapperRef} className={className}>
 			{width > 0 ? children(width) : null}
 		</div>
+	);
+}
+
+function ChartPanel({ title, children, className }: { title: string; children: ReactNode; className?: string }) {
+	return (
+		<Card variant='tertiary' className={["min-w-0", className].filter(Boolean).join(" ")}>
+			<Card.Header>
+				<p className='text-xs font-semibold text-muted'>{title}</p>
+			</Card.Header>
+			<Card.Content className='min-w-0'>{children}</Card.Content>
+		</Card>
 	);
 }
 
@@ -130,6 +142,20 @@ export default function AdminHealthCharts({ health }: { health: InstanceHealthSn
 		label: source,
 		value,
 	}));
+	const communityOptInData = [
+		{ label: "Opted In", value: health.community.optedInUsers, fill: "#17C964" },
+		{ label: "Not Opted In", value: Math.max(0, health.community.totalUsers - health.community.optedInUsers), fill: "#F31260" },
+	];
+	const v2SystemReadinessData = [
+		{ label: "Ready (V2)", value: health.auth.readyForTwitchApiUsers, fill: "#17C964" },
+		{ label: "Legacy (V1)", value: Math.max(0, health.auth.tokenRows - health.auth.readyForTwitchApiUsers), fill: "#F31260" },
+	];
+	const clipFetchesData = [
+		{ label: "V2 Success", value: health.clips.fetches.v2TwitchApi, fill: "#17C964" },
+		{ label: "V1 Legacy", value: health.clips.fetches.v1GraphQL, fill: "#006FEE" },
+		{ label: "V2 Fallback", value: health.clips.fetches.v2FallbackGraphQL, fill: "#F5A524" },
+		{ label: "V2 Rate Ltd", value: health.clips.fetches.v2RateLimited, fill: "#F31260" },
+	];
 	const cacheCompositionData = [
 		{
 			label: "Cache",
@@ -165,11 +191,11 @@ export default function AdminHealthCharts({ health }: { health: InstanceHealthSn
 
 	return (
 		<div className='grid grid-cols-1 gap-3 lg:grid-cols-2'>
-			<Card className='min-w-0 lg:col-span-2'>
-				<CardHeader className='pb-1'>
+			<Card variant='secondary' className='min-w-0 lg:col-span-2'>
+				<Card.Header className='pb-1'>
 					<p className='text-sm font-semibold'>Active Users Trend</p>
-				</CardHeader>
-				<CardBody className='min-w-0'>
+				</Card.Header>
+				<Card.Content className='min-w-0'>
 					<MeasuredChart className='h-64 min-w-0'>
 						{(width) => (
 							<BarChart width={width} height={256} data={activityData} margin={{ top: 10, right: 8, left: -18, bottom: 4 }}>
@@ -185,14 +211,14 @@ export default function AdminHealthCharts({ health }: { health: InstanceHealthSn
 							</BarChart>
 						)}
 					</MeasuredChart>
-				</CardBody>
+				</Card.Content>
 			</Card>
 
-			<Card className='min-w-0'>
-				<CardHeader className='pb-1'>
+			<Card variant='secondary' className='min-w-0'>
+				<Card.Header className='pb-1'>
 					<p className='text-sm font-semibold'>User Activity Segments</p>
-				</CardHeader>
-				<CardBody className='min-w-0'>
+				</Card.Header>
+				<Card.Content className='min-w-0'>
 					<MeasuredChart className='h-56 min-w-0'>
 						{(width) => (
 							<BarChart width={width} height={224} data={userActivitySegments} margin={{ top: 10, right: 8, left: -18, bottom: 4 }}>
@@ -208,14 +234,14 @@ export default function AdminHealthCharts({ health }: { health: InstanceHealthSn
 							</BarChart>
 						)}
 					</MeasuredChart>
-				</CardBody>
+				</Card.Content>
 			</Card>
 
-			<Card className='min-w-0'>
-				<CardHeader className='pb-1'>
+			<Card variant='secondary' className='min-w-0'>
+				<Card.Header className='pb-1'>
 					<p className='text-sm font-semibold'>User Plan Split</p>
-				</CardHeader>
-				<CardBody className='min-w-0'>
+				</Card.Header>
+				<Card.Content className='min-w-0'>
 					<MeasuredChart className='h-56 min-w-0'>
 						{(width) => (
 							<PieChart width={width} height={224}>
@@ -228,16 +254,15 @@ export default function AdminHealthCharts({ health }: { health: InstanceHealthSn
 							</PieChart>
 						)}
 					</MeasuredChart>
-				</CardBody>
+				</Card.Content>
 			</Card>
 
-			<Card className='min-w-0 lg:col-span-2'>
-				<CardHeader className='pb-1'>
+			<Card variant='secondary' className='min-w-0 lg:col-span-2'>
+				<Card.Header className='pb-1'>
 					<p className='text-sm font-semibold'>Overlay Distribution</p>
-				</CardHeader>
-				<CardBody className='grid min-w-0 gap-3 md:grid-cols-2'>
-					<div className='rounded-lg border border-default-200 p-3'>
-						<p className='mb-2 text-xs font-semibold text-default-500'>Overlay State</p>
+				</Card.Header>
+				<Card.Content className='grid min-w-0 gap-3 md:grid-cols-2'>
+					<ChartPanel title='Overlay State'>
 						<MeasuredChart className='h-56 min-w-0'>
 							{(width) => (
 								<PieChart width={width} height={224}>
@@ -250,9 +275,8 @@ export default function AdminHealthCharts({ health }: { health: InstanceHealthSn
 								</PieChart>
 							)}
 						</MeasuredChart>
-					</div>
-					<div className='rounded-lg border border-default-200 p-3'>
-						<p className='mb-2 text-xs font-semibold text-default-500'>Active Owner Plans</p>
+					</ChartPanel>
+					<ChartPanel title='Active Owner Plans'>
 						<MeasuredChart className='h-56 min-w-0'>
 							{(width) => (
 								<PieChart width={width} height={224}>
@@ -265,17 +289,93 @@ export default function AdminHealthCharts({ health }: { health: InstanceHealthSn
 								</PieChart>
 							)}
 						</MeasuredChart>
-					</div>
-				</CardBody>
+					</ChartPanel>
+					<ChartPanel title='V2 System Readiness' className='md:col-span-2'>
+						<MeasuredChart className='h-56 min-w-0'>
+							{(width) => (
+								<PieChart width={width} height={224}>
+									<Tooltip {...tooltipProps} />
+									<Pie data={v2SystemReadinessData} dataKey='value' nameKey='label' cx='50%' cy='50%' outerRadius={Math.min(78, Math.floor(width / 4))} label>
+										{v2SystemReadinessData.map((entry) => (
+											<Cell key={entry.label} fill={entry.fill} />
+										))}
+									</Pie>
+								</PieChart>
+							)}
+						</MeasuredChart>
+					</ChartPanel>
+				</Card.Content>
 			</Card>
 
-			<Card className='min-w-0 lg:col-span-2'>
-				<CardHeader className='pb-1'>
+			<Card variant='secondary' className='min-w-0 lg:col-span-2'>
+				<Card.Header className='pb-1'>
+					<p className='text-sm font-semibold'>Clip Download Fetches (In-Memory)</p>
+				</Card.Header>
+				<Card.Content className='min-w-0'>
+					<MeasuredChart className='h-56 min-w-0'>
+						{(width) => (
+							<BarChart width={width} height={224} data={clipFetchesData} margin={{ top: 10, right: 8, left: -18, bottom: 4 }}>
+								<CartesianGrid strokeDasharray='4 4' stroke='#d4d4d8' />
+								<XAxis dataKey='label' stroke='#71717a' />
+								<YAxis stroke='#71717a' allowDecimals={false} />
+								<Tooltip {...tooltipProps} />
+								<Bar dataKey='value' radius={[6, 6, 0, 0]}>
+									{clipFetchesData.map((entry) => (
+										<Cell key={entry.label} fill={entry.fill} />
+									))}
+								</Bar>
+							</BarChart>
+						)}
+					</MeasuredChart>
+				</Card.Content>
+			</Card>
+
+			<Card variant='secondary' className='min-w-0 lg:col-span-2'>
+				<Card.Header className='pb-1'>
+					<p className='text-sm font-semibold'>Twitch API Rate Limits (Live Stress Test Monitor)</p>
+				</Card.Header>
+				<Card.Content className='min-w-0'>
+					<div className='overflow-x-auto'>
+						<table className='min-w-full text-left text-sm whitespace-nowrap'>
+							<thead>
+								<tr className='border-b border-default-200'>
+									<th className='py-2 pr-4 font-semibold text-muted'>Time</th>
+									<th className='py-2 pr-4 font-semibold text-muted'>Broadcaster ID</th>
+									<th className='py-2 pr-4 font-semibold text-muted'>Limit</th>
+									<th className='py-2 pr-4 font-semibold text-muted'>Remaining</th>
+									<th className='py-2 font-semibold text-muted'>Reset</th>
+								</tr>
+							</thead>
+							<tbody>
+								{health.twitchRateLimit.history.length === 0 ? (
+									<tr>
+										<td colSpan={5} className='py-4 text-center text-muted'>
+											No API calls yet
+										</td>
+									</tr>
+								) : (
+									health.twitchRateLimit.history.map((log, i) => (
+										<tr key={i} className='border-b border-default-100 last:border-0 hover:bg-default-50'>
+											<td className='py-2 pr-4'>{new Date(log.timestamp).toISOString().substring(11, 19) + " UTC"}</td>
+											<td className='py-2 pr-4 font-mono text-xs'>{log.broadcasterId}</td>
+											<td className='py-2 pr-4 font-mono'>{log.limit ?? "-"}</td>
+											<td className='py-2 pr-4 font-mono text-primary font-bold'>{log.remaining ?? "-"}</td>
+											<td className='py-2 font-mono'>{log.reset ?? "-"}</td>
+										</tr>
+									))
+								)}
+							</tbody>
+						</table>
+					</div>
+				</Card.Content>
+			</Card>
+
+			<Card variant='secondary' className='min-w-0 lg:col-span-2'>
+				<Card.Header className='pb-1'>
 					<p className='text-sm font-semibold'>Accounts and Playlists</p>
-				</CardHeader>
-				<CardBody className='grid min-w-0 gap-3 md:grid-cols-2'>
-					<div className='rounded-lg border border-default-200 p-3'>
-						<p className='mb-2 text-xs font-semibold text-default-500'>Account Status</p>
+				</Card.Header>
+				<Card.Content className='grid min-w-0 gap-3 md:grid-cols-3'>
+					<ChartPanel title='Account Status'>
 						<MeasuredChart className='h-56 min-w-0'>
 							{(width) => (
 								<PieChart width={width} height={224}>
@@ -288,9 +388,22 @@ export default function AdminHealthCharts({ health }: { health: InstanceHealthSn
 								</PieChart>
 							)}
 						</MeasuredChart>
-					</div>
-					<div className='rounded-lg border border-default-200 p-3'>
-						<p className='mb-2 text-xs font-semibold text-default-500'>Playlist Coverage</p>
+					</ChartPanel>
+					<ChartPanel title='Community Page Opt-In'>
+						<MeasuredChart className='h-56 min-w-0'>
+							{(width) => (
+								<PieChart width={width} height={224}>
+									<Tooltip {...tooltipProps} />
+									<Pie data={communityOptInData} dataKey='value' nameKey='label' cx='50%' cy='50%' outerRadius={Math.min(78, Math.floor(width / 4))} label>
+										{communityOptInData.map((entry) => (
+											<Cell key={entry.label} fill={entry.fill} />
+										))}
+									</Pie>
+								</PieChart>
+							)}
+						</MeasuredChart>
+					</ChartPanel>
+					<ChartPanel title='Playlist Coverage'>
 						<MeasuredChart className='h-56 min-w-0'>
 							{(width) => (
 								<BarChart width={width} height={224} data={playlistCoverageData} margin={{ top: 10, right: 8, left: -18, bottom: 24 }}>
@@ -306,17 +419,16 @@ export default function AdminHealthCharts({ health }: { health: InstanceHealthSn
 								</BarChart>
 							)}
 						</MeasuredChart>
-					</div>
-				</CardBody>
+					</ChartPanel>
+				</Card.Content>
 			</Card>
 
-			<Card className='min-w-0 lg:col-span-2'>
-				<CardHeader className='pb-1'>
+			<Card variant='secondary' className='min-w-0 lg:col-span-2'>
+				<Card.Header className='pb-1'>
 					<p className='text-sm font-semibold'>Reason Breakdown</p>
-				</CardHeader>
-				<CardBody className='grid min-w-0 gap-3 md:grid-cols-2'>
-					<div className='rounded-lg border border-default-200 p-3'>
-						<p className='mb-2 text-xs font-semibold text-default-500'>Disabled Reasons</p>
+				</Card.Header>
+				<Card.Content className='grid min-w-0 gap-3 md:grid-cols-2'>
+					<ChartPanel title='Disabled Reasons'>
 						<MeasuredChart className='h-56 min-w-0'>
 							{(width) => (
 								<BarChart width={width} height={224} data={disabledReasonData} margin={{ top: 10, right: 8, left: -18, bottom: 24 }}>
@@ -328,9 +440,8 @@ export default function AdminHealthCharts({ health }: { health: InstanceHealthSn
 								</BarChart>
 							)}
 						</MeasuredChart>
-					</div>
-					<div className='rounded-lg border border-default-200 p-3'>
-						<p className='mb-2 text-xs font-semibold text-default-500'>Opt-out Sources</p>
+					</ChartPanel>
+					<ChartPanel title='Opt-out Sources'>
 						<MeasuredChart className='h-56 min-w-0'>
 							{(width) => (
 								<BarChart width={width} height={224} data={optedOutSourceData} margin={{ top: 10, right: 8, left: -18, bottom: 24 }}>
@@ -342,15 +453,15 @@ export default function AdminHealthCharts({ health }: { health: InstanceHealthSn
 								</BarChart>
 							)}
 						</MeasuredChart>
-					</div>
-				</CardBody>
+					</ChartPanel>
+				</Card.Content>
 			</Card>
 
-			<Card className='min-w-0 lg:col-span-2'>
-				<CardHeader className='pb-1'>
+			<Card variant='secondary' className='min-w-0 lg:col-span-2'>
+				<Card.Header className='pb-1'>
 					<p className='text-sm font-semibold'>Entitlement Sources</p>
-				</CardHeader>
-				<CardBody className='min-w-0'>
+				</Card.Header>
+				<Card.Content className='min-w-0'>
 					<MeasuredChart className='h-64 min-w-0'>
 						{(width) => (
 							<BarChart width={width} height={256} data={entitlementSourceData} margin={{ top: 10, right: 8, left: -18, bottom: 28 }}>
@@ -362,16 +473,15 @@ export default function AdminHealthCharts({ health }: { health: InstanceHealthSn
 							</BarChart>
 						)}
 					</MeasuredChart>
-				</CardBody>
+				</Card.Content>
 			</Card>
 
-			<Card className='min-w-0 lg:col-span-2'>
-				<CardHeader className='pb-1'>
+			<Card variant='secondary' className='min-w-0 lg:col-span-2'>
+				<Card.Header className='pb-1'>
 					<p className='text-sm font-semibold'>Newsletter and Auth Ops</p>
-				</CardHeader>
-				<CardBody className='grid min-w-0 gap-3 md:grid-cols-3'>
-					<div className='rounded-lg border border-default-200 p-3'>
-						<p className='mb-2 text-xs font-semibold text-default-500'>Consent Sources</p>
+				</Card.Header>
+				<Card.Content className='grid min-w-0 gap-3 md:grid-cols-3'>
+					<ChartPanel title='Consent Sources'>
 						<MeasuredChart className='h-56 min-w-0'>
 							{(width) => (
 								<BarChart width={width} height={224} data={newsletterConsentSourceData} margin={{ top: 10, right: 8, left: -18, bottom: 30 }}>
@@ -383,9 +493,8 @@ export default function AdminHealthCharts({ health }: { health: InstanceHealthSn
 								</BarChart>
 							)}
 						</MeasuredChart>
-					</div>
-					<div className='rounded-lg border border-default-200 p-3'>
-						<p className='mb-2 text-xs font-semibold text-default-500'>Queue Depth</p>
+					</ChartPanel>
+					<ChartPanel title='Queue Depth'>
 						<MeasuredChart className='h-56 min-w-0'>
 							{(width) => (
 								<BarChart width={width} height={224} data={queueDepthData} margin={{ top: 10, right: 8, left: -18, bottom: 20 }}>
@@ -401,9 +510,8 @@ export default function AdminHealthCharts({ health }: { health: InstanceHealthSn
 								</BarChart>
 							)}
 						</MeasuredChart>
-					</div>
-					<div className='rounded-lg border border-default-200 p-3'>
-						<p className='mb-2 text-xs font-semibold text-default-500'>Token Health</p>
+					</ChartPanel>
+					<ChartPanel title='Token Health'>
 						<MeasuredChart className='h-56 min-w-0'>
 							{(width) => (
 								<BarChart width={width} height={224} data={tokenHealthData} margin={{ top: 10, right: 8, left: -18, bottom: 20 }}>
@@ -419,17 +527,16 @@ export default function AdminHealthCharts({ health }: { health: InstanceHealthSn
 								</BarChart>
 							)}
 						</MeasuredChart>
-					</div>
-				</CardBody>
+					</ChartPanel>
+				</Card.Content>
 			</Card>
 
-			<Card className='min-w-0 lg:col-span-2'>
-				<CardHeader className='pb-1'>
+			<Card variant='secondary' className='min-w-0 lg:col-span-2'>
+				<Card.Header className='pb-1'>
 					<p className='text-sm font-semibold'>Rewards and Overlay Config</p>
-				</CardHeader>
-				<CardBody className='grid min-w-0 gap-3 md:grid-cols-3'>
-					<div className='rounded-lg border border-default-200 p-3'>
-						<p className='mb-2 text-xs font-semibold text-default-500'>Reward Usage</p>
+				</Card.Header>
+				<Card.Content className='grid min-w-0 gap-3 md:grid-cols-3'>
+					<ChartPanel title='Reward Usage'>
 						<MeasuredChart className='h-56 min-w-0'>
 							{(width) => (
 								<BarChart width={width} height={224} data={rewardUsageData} margin={{ top: 10, right: 8, left: -18, bottom: 20 }}>
@@ -445,9 +552,8 @@ export default function AdminHealthCharts({ health }: { health: InstanceHealthSn
 								</BarChart>
 							)}
 						</MeasuredChart>
-					</div>
-					<div className='rounded-lg border border-default-200 p-3'>
-						<p className='mb-2 text-xs font-semibold text-default-500'>Overlay Types</p>
+					</ChartPanel>
+					<ChartPanel title='Overlay Types'>
 						<MeasuredChart className='h-56 min-w-0'>
 							{(width) => (
 								<BarChart width={width} height={224} data={overlayTypeData} margin={{ top: 10, right: 8, left: -18, bottom: 30 }}>
@@ -459,9 +565,8 @@ export default function AdminHealthCharts({ health }: { health: InstanceHealthSn
 								</BarChart>
 							)}
 						</MeasuredChart>
-					</div>
-					<div className='rounded-lg border border-default-200 p-3'>
-						<p className='mb-2 text-xs font-semibold text-default-500'>Playback Modes</p>
+					</ChartPanel>
+					<ChartPanel title='Playback Modes'>
 						<MeasuredChart className='h-56 min-w-0'>
 							{(width) => (
 								<BarChart width={width} height={224} data={playbackModeData} margin={{ top: 10, right: 8, left: -18, bottom: 30 }}>
@@ -473,15 +578,15 @@ export default function AdminHealthCharts({ health }: { health: InstanceHealthSn
 								</BarChart>
 							)}
 						</MeasuredChart>
-					</div>
-				</CardBody>
+					</ChartPanel>
+				</Card.Content>
 			</Card>
 
-			<Card className='min-w-0 lg:col-span-2'>
-				<CardHeader className='pb-1'>
+			<Card variant='secondary' className='min-w-0 lg:col-span-2'>
+				<Card.Header className='pb-1'>
 					<p className='text-sm font-semibold'>Cache Composition</p>
-				</CardHeader>
-				<CardBody className='min-w-0'>
+				</Card.Header>
+				<Card.Content className='min-w-0'>
 					<MeasuredChart className='h-64 min-w-0'>
 						{(width) => (
 							<BarChart layout='vertical' width={width} height={256} data={cacheCompositionData} margin={{ top: 10, right: 8, left: -18, bottom: 4 }}>
@@ -496,14 +601,14 @@ export default function AdminHealthCharts({ health }: { health: InstanceHealthSn
 							</BarChart>
 						)}
 					</MeasuredChart>
-				</CardBody>
+				</Card.Content>
 			</Card>
 
-			<Card className='min-w-0'>
-				<CardHeader className='pb-1'>
+			<Card variant='secondary' className='min-w-0'>
+				<Card.Header className='pb-1'>
 					<p className='text-sm font-semibold'>Health Gauges</p>
-				</CardHeader>
-				<CardBody className='grid h-56 min-w-0 grid-cols-2 gap-2'>
+				</Card.Header>
+				<Card.Content className='grid h-56 min-w-0 grid-cols-2 gap-2'>
 					<div className='flex flex-col items-center justify-center'>
 						<MeasuredChart className='h-[120px] w-full min-w-0'>
 							{(width) => (
@@ -513,7 +618,7 @@ export default function AdminHealthCharts({ health }: { health: InstanceHealthSn
 								</RadialBarChart>
 							)}
 						</MeasuredChart>
-						<p className='text-xs text-default-500'>Cache Hit</p>
+						<p className='text-xs text-muted'>Cache Hit</p>
 						<p className='text-sm font-semibold'>{formatPercent(health.cache.globalReadHitRate)}</p>
 					</div>
 					<div className='flex flex-col items-center justify-center'>
@@ -525,35 +630,34 @@ export default function AdminHealthCharts({ health }: { health: InstanceHealthSn
 								</RadialBarChart>
 							)}
 						</MeasuredChart>
-						<p className='text-xs text-default-500'>Backfill</p>
+						<p className='text-xs text-muted'>Backfill</p>
 						<p className='text-sm font-semibold'>{formatPercent(health.cache.backfillCompleteRatio)}</p>
 					</div>
-				</CardBody>
+				</Card.Content>
 			</Card>
 
-			<Card className='min-w-0'>
-				<CardHeader className='pb-1'>
+			<Card variant='secondary' className='min-w-0'>
+				<Card.Header className='pb-1'>
 					<p className='text-sm font-semibold'>Scheduler Reliability</p>
-				</CardHeader>
-				<CardBody className='h-56 gap-3'>
-					<div className='rounded-lg border border-primary-300/40 bg-gradient-to-r from-primary-500/15 via-primary-400/10 to-transparent p-3'>
-						<p className='text-xs font-semibold uppercase tracking-wide text-default-500'>DB Ping</p>
-						<p className='text-3xl font-semibold text-primary'>{dbPing.toLocaleString()}ms</p>
-						<p className='text-xs text-default-500'>Health aggregation: {healthAggregation.toLocaleString()}ms</p>
+				</Card.Header>
+				<Card.Content className='h-56 gap-3'>
+					<div className='rounded-lg border border-brand-300/40 bg-gradient-to-r from-brand-500/15 via-brand-400/10 to-transparent p-3'>
+						<p className='text-xs font-semibold uppercase tracking-wide text-muted'>DB Ping</p>
+						<p className='text-3xl font-semibold text-accent'>{dbPing.toLocaleString("en-US")}ms</p>
+						<p className='text-xs text-muted'>Health aggregation: {healthAggregation.toLocaleString("en-US")}ms</p>
 					</div>
-					<div className='rounded-lg border border-default-200 p-3'>
-						<p className='text-xs font-semibold text-default-500'>Run Success vs Failure</p>
-						<div className='mt-2 flex h-4 w-full overflow-hidden rounded-full bg-default-200'>
+					<ChartPanel title='Run Success vs Failure'>
+						<div className='mt-2 flex h-4 w-full overflow-hidden rounded-full bg-default'>
 							<div className='h-full bg-success' style={{ width: `${Math.round(successRatio * 100)}%` }} />
 							<div className='h-full bg-danger' style={{ width: `${Math.round(failureRatio * 100)}%` }} />
 						</div>
-						<div className='mt-2 flex items-center justify-between text-xs text-default-500'>
+						<div className='mt-2 flex items-center justify-between text-xs text-muted'>
 							<span>Success: {successRuns}</span>
 							<span>Failures: {totalFailures}</span>
 							<span>Total: {totalRuns}</span>
 						</div>
-					</div>
-				</CardBody>
+					</ChartPanel>
+				</Card.Content>
 			</Card>
 		</div>
 	);

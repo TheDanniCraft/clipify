@@ -70,20 +70,14 @@ describe("actions/controller", () => {
 	it("returns mapped mod and viewer queues", async () => {
 		getClipQueueByOverlayId.mockResolvedValue([{ id: "viewer-1", clipId: "clip-viewer" }]);
 		getModQueue.mockResolvedValue([{ id: "mod-1", clipId: "clip-mod" }]);
-		getTwitchCache
-			.mockResolvedValueOnce({ clip: { id: "clip-viewer", title: "Viewer Clip", creator_name: "alice", duration: 11, thumbnail_url: "https://viewer" } })
-			.mockResolvedValueOnce(null);
+		getTwitchCache.mockResolvedValueOnce({ clip: { id: "clip-viewer", title: "Viewer Clip", creator_name: "alice", duration: 11, thumbnail_url: "https://viewer" } }).mockResolvedValueOnce(null);
 		getTwitchClip.mockResolvedValueOnce({ id: "clip-mod", title: "Mod Clip", creator_name: "bob", duration: 22, thumbnail_url: "https://mod" });
 		const { getControllerQueuesAction } = await import("@/app/actions/controller");
 
 		await expect(getControllerQueuesAction("ov-1")).resolves.toEqual({
 			overlayId: "ov-1",
-			viewerQueue: [
-				{ id: "viewer-1", clipId: "clip-viewer", title: "Viewer Clip", creatorName: "alice", duration: 11, thumbnailUrl: "https://viewer" },
-			],
-			modQueue: [
-				{ id: "mod-1", clipId: "clip-mod", title: "Mod Clip", creatorName: "bob", duration: 22, thumbnailUrl: "https://mod" },
-			],
+			viewerQueue: [{ id: "viewer-1", clipId: "clip-viewer", title: "Viewer Clip", creatorName: "alice", duration: 11, thumbnailUrl: "https://viewer" }],
+			modQueue: [{ id: "mod-1", clipId: "clip-mod", title: "Mod Clip", creatorName: "bob", duration: 22, thumbnailUrl: "https://mod" }],
 		});
 	});
 

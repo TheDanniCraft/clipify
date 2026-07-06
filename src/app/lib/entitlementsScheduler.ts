@@ -1,11 +1,10 @@
 import { reconcileRevokedUsersBatch } from "@lib/entitlements";
 
 declare global {
-	 
 	var __entitlementsSchedulerStarted: boolean | undefined;
-	 
+
 	var __entitlementsSchedulerTimer: ReturnType<typeof setInterval> | undefined;
-	 
+
 	var __entitlementsSchedulerRunning: boolean | undefined;
 }
 

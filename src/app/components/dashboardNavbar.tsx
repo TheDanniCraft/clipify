@@ -2,7 +2,8 @@
 
 import { IconMoonFilled, IconSunFilled } from "@tabler/icons-react";
 import { useTheme } from "next-themes";
-import { Autocomplete, AutocompleteItem, Avatar, Badge, Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Link, Navbar, NavbarBrand, NavbarContent, NavbarItem, Spacer } from "@heroui/react";
+import { Avatar, Button, ComboBox, Dropdown, Input, Label, Link, ListBox, Spinner } from "@heroui/react";
+
 import { AuthenticatedUser, CampaignOffer, Role } from "@types";
 import Logo from "@components/logo";
 import CountdownTimer from "@components/countdownTimer";
@@ -78,6 +79,7 @@ export default function DashboardNavbar({ children, user, title, tagline }: { ch
 
 	useEffect(() => {
 		if (!isImpersonating) return;
+		// eslint-disable-next-line react-hooks/set-state-in-effect
 		setSwitchQuery(user.username);
 	}, [isImpersonating, user.username]);
 
@@ -112,94 +114,82 @@ export default function DashboardNavbar({ children, user, title, tagline }: { ch
 
 	return (
 		<>
-			<Navbar
-				classNames={{
-					base: "bg-primary",
-					wrapper: "px-4 sm:px-6",
-					item: "data-[active=true]:text-primary",
-				}}
-				height='64px'
-			>
-				<NavbarBrand>
-					<Link href='/dashboard'>
+			<nav className='w-full bg-accent'>
+				<header className='mx-auto flex h-16 w-full max-w-5xl items-center px-4 lg:px-8'>
+					<Link href='/dashboard' className='flex items-center'>
 						<Logo width={30} />
-						<Spacer x={2} />
-						<p className='font-bold text-white'>Clipify</p>
+						<p className='ml-2 font-bold text-white'>Clipify</p>
 					</Link>
-				</NavbarBrand>
-				<NavbarContent className='ml-auto h-12 max-w-fit items-center gap-0' justify='end'>
-					<NavbarItem>
-						<Button isIconOnly radius='full' variant='light' onPress={() => setTheme(theme === "dark" ? "light" : "dark")} aria-label='Toggle Theme'>
-							{(theme ?? "dark") === "dark" ? <IconSunFilled className='text-primary-foreground/60' width={24} /> : <IconMoonFilled className='text-primary-foreground/60' width={24} />}
-						</Button>
-					</NavbarItem>
-					<NavbarItem className='px-2'>
-						<Dropdown placement='bottom-end'>
-							<DropdownTrigger>
-								<button className='mt-1 h-8 w-8 transition-transform' aria-label='Open profile menu'>
-									<Badge
-										classNames={{
-											badge: "border-primary",
-										}}
-										color='success'
-										content=''
-										placement='bottom-right'
-										shape='circle'
-									>
-										<Avatar size='sm' src={user?.avatar} />
-									</Badge>
-								</button>
-							</DropdownTrigger>
-							<DropdownMenu aria-label='Profile Actions' variant='flat'>
-								<DropdownItem key='profile' className='h-14 gap-2'>
-									<p className='font-semibold'>Signed in as</p>
-									<p className='font-semibold'>{user?.username}</p>
-								</DropdownItem>
-								{showUpgradeItem ? (
-									<DropdownItem key='upgrade_to_pro' className='text-primary' onPress={() => router.push("/dashboard/settings?upgrade&cycle=yearly&source=paywall_banner&feature=account_menu")}>
-										Upgrade to Pro
-									</DropdownItem>
-								) : null}
-								<DropdownItem key='settings' onPress={() => router.push("/dashboard/settings")}>
-									My Settings
-								</DropdownItem>
-								<DropdownItem key='embeddable_widgets' onPress={() => router.push("/dashboard/embed")}>
-									Embed Overlay
-								</DropdownItem>
-								{canOpenAdminView ? (
-									<DropdownItem key='admin_view' onPress={() => router.push("/admin")}>
-										Open Admin View
-									</DropdownItem>
-								) : null}
-								{isImpersonating ? (
-									<DropdownItem key='exit_admin_view' className='text-primary' isDisabled={isClearingAdminView} onPress={handleExitAdminView}>
-										Exit Admin View
-									</DropdownItem>
-								) : null}
-								<DropdownItem key='help_and_feedback' onPress={() => router.push("https://help.clipify.us/")}>
-									Help
-								</DropdownItem>
-								<DropdownItem key='Refer_a_friend' onPress={() => router.push("/referral-program")}>
-									Refer a Friend
-								</DropdownItem>
-								<DropdownItem className='text-danger' key='logout' onPress={() => router.push("/logout")}>
-									Log Out
-								</DropdownItem>
-							</DropdownMenu>
-						</Dropdown>
-					</NavbarItem>
-				</NavbarContent>
-			</Navbar>
+					<ul className='ml-auto flex h-12 max-w-fit items-center gap-0'>
+						<li>
+							<Button isIconOnly variant='ghost' onPress={() => setTheme(theme === "dark" ? "light" : "dark")} aria-label='Toggle Theme'>
+								{(theme ?? "dark") === "dark" ? <IconSunFilled className='text-accent-foreground/60' width={24} /> : <IconMoonFilled className='text-accent-foreground/60' width={24} />}
+							</Button>
+						</li>
+						<li className='px-2'>
+							<Dropdown>
+								<Dropdown.Trigger className='relative mt-1 h-8 w-8 overflow-visible transition-transform' aria-label='Open profile menu'>
+									<Avatar size='sm'>
+										<Avatar.Image alt={user?.username ?? "User avatar"} src={user?.avatar} />
+										<Avatar.Fallback>{user?.username?.slice(0, 2).toUpperCase() ?? "?"}</Avatar.Fallback>
+									</Avatar>
+									<span aria-label='Online' className='absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-accent bg-success' role='status' />
+								</Dropdown.Trigger>
+								<Dropdown.Popover placement='bottom end'>
+									<Dropdown.Menu aria-label='Profile Actions' disabledKeys={isClearingAdminView ? ["exit_admin_view"] : []}>
+										<Dropdown.Item id='profile' textValue={`Signed in as ${user?.username ?? "user"}`} className='h-14 gap-2'>
+											<Label>
+												<span className='block font-semibold'>Signed in as</span>
+												<span className='block font-semibold'>{user?.username}</span>
+											</Label>
+										</Dropdown.Item>
+										{showUpgradeItem ? (
+											<Dropdown.Item id='upgrade_to_pro' textValue='Upgrade to Pro' className='text-accent' onAction={() => router.push("/dashboard/settings?upgrade&cycle=yearly&source=paywall_banner&feature=account_menu")}>
+												<Label>Upgrade to Pro</Label>
+											</Dropdown.Item>
+										) : null}
+										<Dropdown.Item id='settings' textValue='My Settings' onAction={() => router.push("/dashboard/settings")}>
+											<Label>My Settings</Label>
+										</Dropdown.Item>
+										<Dropdown.Item id='embeddable_widgets' textValue='Embed Overlay' onAction={() => router.push("/dashboard/embed")}>
+											<Label>Embed Overlay</Label>
+										</Dropdown.Item>
+										{canOpenAdminView ? (
+											<Dropdown.Item id='admin_view' textValue='Open Admin View' onAction={() => router.push("/admin")}>
+												<Label>Open Admin View</Label>
+											</Dropdown.Item>
+										) : null}
+										{isImpersonating ? (
+											<Dropdown.Item id='exit_admin_view' textValue='Exit Admin View' className='text-accent' onAction={handleExitAdminView}>
+												<Label>Exit Admin View</Label>
+											</Dropdown.Item>
+										) : null}
+										<Dropdown.Item id='help_and_feedback' textValue='Help' onAction={() => router.push("https://help.clipify.us/")}>
+											<Label>Help</Label>
+										</Dropdown.Item>
+										<Dropdown.Item id='refer_a_friend' textValue='Refer a Friend' onAction={() => router.push("/referral-program")}>
+											<Label>Refer a Friend</Label>
+										</Dropdown.Item>
+										<Dropdown.Item id='logout' textValue='Log Out' variant='danger' onAction={() => router.push("/logout")}>
+											<Label>Log Out</Label>
+										</Dropdown.Item>
+									</Dropdown.Menu>
+								</Dropdown.Popover>
+							</Dropdown>
+						</li>
+					</ul>
+				</header>
+			</nav>
 			{showUpgradeItem && campaignOffer?.showDashboardBanner ? (
-				<div className='w-full border-b border-default-200 bg-content1/95'>
+				<div className='w-full border-b border-default bg-surface/95'>
 					<div className='mx-auto flex w-full max-w-5xl flex-col gap-2 px-4 py-3 lg:flex-row lg:items-center lg:justify-between lg:px-8'>
 						<div className='min-w-0'>
-							<p className='text-xs font-semibold uppercase tracking-[0.2em] text-primary'>{campaignOffer.badgeText ?? campaignOffer.title}</p>
-							<p className='truncate text-sm text-default-600'>{campaignOffer.floatingSubtitle ?? "Upgrade today with the active campaign price."}</p>
+							<p className='text-xs font-semibold uppercase tracking-[0.2em] text-accent'>{campaignOffer.badgeText ?? campaignOffer.title}</p>
+							<p className='truncate text-sm text-muted'>{campaignOffer.floatingSubtitle ?? "Upgrade today with the active campaign price."}</p>
 						</div>
 						<div className='flex items-center gap-3 self-start lg:self-auto'>
 							{campaignOffer.endAt ? <CountdownTimer endAt={campaignOffer.endAt} tone='light' size='sm' showSeconds className='scale-90 origin-right' /> : null}
-							<Button size='sm' color='primary' onPress={() => router.push("/dashboard/settings?upgrade&cycle=yearly&source=paywall_banner&feature=active_campaign")}>
+							<Button size='sm' onPress={() => router.push("/dashboard/settings?upgrade&cycle=yearly&source=paywall_banner&feature=active_campaign")} variant='primary'>
 								Upgrade Today
 							</Button>
 						</div>
@@ -207,24 +197,19 @@ export default function DashboardNavbar({ children, user, title, tagline }: { ch
 				</div>
 			) : null}
 			{isImpersonating ? (
-				<div className='w-full bg-content1/95'>
+				<div className='w-full bg-surface/95'>
 					<div className='mx-auto flex w-full max-w-5xl flex-col gap-2 px-4 py-2 lg:flex-row lg:items-center lg:justify-between lg:px-8'>
-						<p className='text-xs text-default-700 dark:text-default-300'>
+						<p className='text-xs text-foreground dark:text-muted'>
 							You are viewing as <span className='font-semibold'>@{user.username}</span>
 						</p>
 						<div className='flex w-full flex-col gap-2 sm:flex-row sm:items-center lg:w-auto'>
-							<Autocomplete
-								size='sm'
+							<ComboBox
+								allowsEmptyCollection
+								allowsCustomValue
 								aria-label='Search and select user for admin view'
-								placeholder='Search users'
 								className='min-w-[380px]'
 								inputValue={switchQuery}
-								isLoading={isLoadingSwitchCandidates}
 								isDisabled={isSwitchingAdminView}
-								variant='bordered'
-								color='default'
-								radius='md'
-								defaultItems={switchOptions}
 								onInputChange={setSwitchQuery}
 								onSelectionChange={(key) => {
 									const nextKey = String(key ?? "");
@@ -234,17 +219,40 @@ export default function DashboardNavbar({ children, user, title, tagline }: { ch
 									void handleSwitchAdminView(nextKey);
 								}}
 							>
-								{(candidate) => (
-									<AutocompleteItem key={candidate.id} textValue={candidate.username}>
-										@{candidate.username}
-									</AutocompleteItem>
-								)}
-							</Autocomplete>
-							<Button size='sm' color='danger' variant='flat' radius='md' onPress={handleExitAdminView} isDisabled={isClearingAdminView}>
+								<Label className='sr-only'>Search users</Label>
+								<ComboBox.InputGroup>
+									<Input placeholder='Search users' />
+									<ComboBox.Trigger />
+								</ComboBox.InputGroup>
+								<ComboBox.Popover>
+									<ListBox
+										items={switchOptions}
+										renderEmptyState={() => {
+											if (switchQuery.length === 0) return <div className='p-4 text-center text-sm text-muted'>Type to search...</div>;
+											if (isLoadingSwitchCandidates)
+												return (
+													<div className='flex items-center justify-center p-4'>
+														<Spinner size='sm' color='current' />
+													</div>
+												);
+											if (switchQuery.length < 3) return <div className='p-4 text-center text-sm text-muted'>Keep typing...</div>;
+											return <div className='p-4 text-center text-sm text-muted'>No users found.</div>;
+										}}
+									>
+										{(candidate) => (
+											<ListBox.Item id={candidate.id} textValue={candidate.username}>
+												<Label>@{candidate.username}</Label>
+												<ListBox.ItemIndicator />
+											</ListBox.Item>
+										)}
+									</ListBox>
+								</ComboBox.Popover>
+							</ComboBox>
+							<Button size='sm' variant='danger-soft' onPress={handleExitAdminView} isDisabled={isClearingAdminView}>
 								Exit
 							</Button>
 						</div>
-						{switchError ? <p className='text-[11px] text-danger-600'>{switchError}</p> : null}
+						{switchError ? <p className='text-[11px] text-danger'>{switchError}</p> : null}
 					</div>
 				</div>
 			) : null}
@@ -253,8 +261,8 @@ export default function DashboardNavbar({ children, user, title, tagline }: { ch
 					<div className='w-full max-w-5xl px-4 lg:px-8'>
 						<header className=' flex w-full items-center justify-between'>
 							<div className='flex flex-col'>
-								<h1 className='text-xl font-bold text-default-900 lg:text-3xl'>{title}</h1>
-								<p className='text-small text-default-400 lg:text-medium'>{tagline}</p>
+								<h1 className='text-xl font-bold text-foreground lg:text-3xl'>{title}</h1>
+								<p className='text-sm text-muted lg:text-base'>{tagline}</p>
 							</div>
 						</header>
 						{children}

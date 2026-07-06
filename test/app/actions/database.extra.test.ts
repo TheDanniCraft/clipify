@@ -17,20 +17,20 @@ function queueTableResult(tableName: string, value: unknown) {
 function makeSelectChain(tableName?: string) {
 	const chain: Record<string, any> = {};
 	chain.from = (table: any) => {
-        chain._tableName = typeof table === "string" ? table : (table && typeof table === "object" ? Object.values(table)[0] : undefined);
-        return chain;
-    };
+		chain._tableName = typeof table === "string" ? table : table && typeof table === "object" ? Object.values(table)[0] : undefined;
+		return chain;
+	};
 	chain.where = () => chain;
 	chain.limit = () => chain;
 	chain.inArray = () => chain;
 	chain.orderBy = () => chain;
 	chain.execute = async () => {
-        const name = tableName || chain._tableName;
-        if (name && tableResults.has(name) && tableResults.get(name)!.length > 0) {
-            return tableResults.get(name)!.shift();
-        }
-        return [];
-    };
+		const name = tableName || chain._tableName;
+		if (name && tableResults.has(name) && tableResults.get(name)!.length > 0) {
+			return tableResults.get(name)!.shift();
+		}
+		return [];
+	};
 	return chain;
 }
 
@@ -65,23 +65,26 @@ jest.mock("@/db/schema", () => ({
 }));
 
 jest.mock("drizzle-orm", () => {
-    const original = jest.requireActual("drizzle-orm");
-    return {
-        ...original,
-        eq: jest.fn(() => "eq"),
-        and: jest.fn(() => "and"),
-        or: jest.fn(() => "or"),
-        isNull: jest.fn(() => "isNull"),
-        inArray: jest.fn(() => "inArray"),
-        lt: jest.fn(() => "lt"),
-        gt: jest.fn(() => "gt"),
-        desc: jest.fn(() => "desc"),
-        max: jest.fn(() => "max"),
-        sql: Object.assign(jest.fn(() => "sql"), {
-            join: jest.fn((parts) => parts.join(" ")),
-            raw: jest.fn((val) => String(val)),
-        }),
-    };
+	const original = jest.requireActual("drizzle-orm");
+	return {
+		...original,
+		eq: jest.fn(() => "eq"),
+		and: jest.fn(() => "and"),
+		or: jest.fn(() => "or"),
+		isNull: jest.fn(() => "isNull"),
+		inArray: jest.fn(() => "inArray"),
+		lt: jest.fn(() => "lt"),
+		gt: jest.fn(() => "gt"),
+		desc: jest.fn(() => "desc"),
+		max: jest.fn(() => "max"),
+		sql: Object.assign(
+			jest.fn(() => "sql"),
+			{
+				join: jest.fn((parts) => parts.join(" ")),
+				raw: jest.fn((val) => String(val)),
+			},
+		),
+	};
 });
 
 const validateAuth = jest.fn();
@@ -136,13 +139,15 @@ describe("database.extra.test.ts", () => {
 	it("getEditorAccess handles error", async () => {
 		const { getEditorAccess } = loadDatabaseActions();
 		validateAuth.mockResolvedValue({ id: "user-1" });
-        dbSelect.mockImplementationOnce(() => ({
-            from: () => ({
-                where: () => ({
-                    execute: async () => { throw new Error("DB error"); }
-                })
-            })
-        }));
+		dbSelect.mockImplementationOnce(() => ({
+			from: () => ({
+				where: () => ({
+					execute: async () => {
+						throw new Error("DB error");
+					},
+				}),
+			}),
+		}));
 		await expect(getEditorAccess("user-1")).rejects.toThrow("Failed to check editor access");
 	});
 
@@ -199,7 +204,7 @@ describe("database.extra.test.ts", () => {
 	it("getClipCacheStatus returns status", async () => {
 		const { getClipCacheStatus } = loadDatabaseActions();
 		validateAuth.mockResolvedValue({ id: "owner-1" });
-		
+
 		// canEditOwner check (requireUser + editor check)
 		queueTableResult("editors", []); // editorRows empty
 
@@ -258,5 +263,4 @@ describe("database.extra.test.ts", () => {
 		const result = await getAllOverlayIdsByOwner("owner-1");
 		expect(result).toEqual(["ov-1"]);
 	});
-
 });

@@ -3,17 +3,24 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { getAllPlaylists, getPlaylistClips, previewImportPlaylistClips, savePlaylist, upsertPlaylistClips } from "@actions/database";
-import { addToast, Autocomplete, AutocompleteItem, Button, Card, CardBody, CardHeader, Checkbox, DateRangePicker, Divider, Image, Input, Link, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, NumberInput, Pagination, Spinner, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow, useDisclosure } from "@heroui/react";
+import { Button, Card, Checkbox, ComboBox, Separator, Input, Label, Link, ListBox, Modal, NumberField, Spinner, Table, useOverlayState, TextField, InputGroup, CloseButton } from "@heroui/react";
+import { notify as addToast } from "@lib/toast";
+import Image from "next/image";
+import type { Selection, SortDescriptor } from "@heroui/react";
+
 import { AuthenticatedUser, Game, OverlayType, TwitchClip } from "@types";
 import { IconAlertTriangle, IconArrowLeft, IconDeviceFloppy, IconDownload, IconGripVertical, IconPlus, IconSearch, IconTrash } from "@tabler/icons-react";
 import DashboardNavbar from "@components/dashboardNavbar";
+import FullscreenLoadingState from "@components/fullscreenLoadingState";
+import ControlledModal from "@components/controlledModal";
+import AppDateRangePicker from "@components/appDateRangePicker";
+import AppPagination from "@components/appPagination";
 import { useNavigationGuard } from "next-navigation-guard";
 import { validateAuth } from "@actions/auth";
 import { getCachedClipsByOwner, getGamesDetailsBulk, getTwitchGames } from "@actions/twitch";
 import { getFeatureAccess } from "@lib/featureAccess";
 import TagsInput from "@components/tagsInput";
 import { parseDate } from "@internationalized/date";
-import type { Selection, SortDescriptor } from "@heroui/react";
 
 const ALL_CATEGORIES_OPTION: Game = {
 	id: "all",
@@ -54,6 +61,7 @@ export default function PlaylistPage() {
 	const [importCategoryId, setImportCategoryId] = useState("all");
 
 	useEffect(() => {
+		// eslint-disable-next-line react-hooks/set-state-in-effect
 		setImportEndDate(new Date().toISOString().slice(0, 10));
 	}, []);
 	const [importCategoryInput, setImportCategoryInput] = useState("All categories");
@@ -69,9 +77,9 @@ export default function PlaylistPage() {
 	const [savedPlaylistClipIds, setSavedPlaylistClipIds] = useState<string[]>([]);
 	const gameDetailsByIdRef = useRef<Record<string, Game>>({});
 
-	const { isOpen: isImportOpen, onOpen: onImportOpen, onClose: onImportClose, onOpenChange: onImportOpenChange } = useDisclosure();
-	const { isOpen: isAddClipsOpen, onOpen: onAddClipsOpen, onOpenChange: onAddClipsOpenChange } = useDisclosure();
-	const { isOpen: isAutoImportLockedOpen, onOpen: onAutoImportLockedOpen, onOpenChange: onAutoImportLockedOpenChange } = useDisclosure();
+	const { isOpen: isImportOpen, open: onImportOpen, close: onImportClose, setOpen: onImportOpenChange } = useOverlayState();
+	const { isOpen: isAddClipsOpen, open: onAddClipsOpen, close: onAddClipsClose, setOpen: onAddClipsOpenChange } = useOverlayState();
+	const { isOpen: isAutoImportLockedOpen, open: onAutoImportLockedOpen, close: onAutoImportLockedClose, setOpen: onAutoImportLockedOpenChange } = useOverlayState();
 
 	useEffect(() => {
 		gameDetailsByIdRef.current = gameDetailsById;
@@ -141,7 +149,8 @@ export default function PlaylistPage() {
 	useEffect(() => {
 		let timeoutId: NodeJS.Timeout;
 		const normalizedInput = importCategoryInput.trim().toLowerCase();
-		if (normalizedInput.length >= 1 && normalizedInput !== "all" && normalizedInput !== "all categories" && user) {
+		if (normalizedInput.length >= 3 && normalizedInput !== "all" && normalizedInput !== "all categories" && user) {
+			// eslint-disable-next-line react-hooks/set-state-in-effect
 			setIsSearchingGames(true);
 			timeoutId = setTimeout(async () => {
 				const games = await getTwitchGames(importCategoryInput, user.id);
@@ -237,6 +246,7 @@ export default function PlaylistPage() {
 	const navGuard = useNavigationGuard({ enabled: canSavePlaylist });
 
 	useEffect(() => {
+		// eslint-disable-next-line react-hooks/set-state-in-effect
 		setSelectedPlaylistClipIds((prev) => new Set(Array.from(prev).filter((id) => playlistClips.some((clip) => clip.id === id))));
 	}, [playlistClips]);
 
@@ -279,7 +289,7 @@ export default function PlaylistPage() {
 		} catch (error) {
 			console.error("Failed to load cached clips:", error);
 			addToast({ title: "Failed to load clips", color: "danger" });
-			onAddClipsOpenChange();
+			onAddClipsClose();
 		} finally {
 			setIsLoadingCachedClips(false);
 		}
@@ -305,7 +315,7 @@ export default function PlaylistPage() {
 				return Array.from(nextById.values());
 			});
 			setSelectedCachedClipIds(new Set([]));
-			onAddClipsOpenChange();
+			onAddClipsClose();
 		} catch {
 			addToast({ title: "Failed to add clips", color: "danger" });
 		}
@@ -349,11 +359,7 @@ export default function PlaylistPage() {
 	}
 
 	if (!isPlaylistResolved || !user) {
-		return (
-			<div className='flex h-screen w-full flex-col items-center justify-center'>
-				<Spinner label='Loading playlist' />
-			</div>
-		);
+		return <FullscreenLoadingState message='Loading playlist' />;
 	}
 
 	if (!playlist) {
@@ -361,13 +367,14 @@ export default function PlaylistPage() {
 			<DashboardNavbar user={user} title='Playlist Management' tagline='Manage your curated clip sets'>
 				<div className='flex w-full justify-center p-4'>
 					<Card className='w-full max-w-2xl'>
-						<CardBody className='flex flex-col items-center gap-4 py-10 text-center'>
+						<Card.Content className='flex flex-col items-center gap-4 py-10 text-center'>
 							<div className='text-xl font-semibold'>Playlist not found</div>
-							<div className='text-sm text-default-500'>This playlist may not exist anymore, or you might not have access.</div>
-							<Button startContent={<IconArrowLeft size={16} />} onPress={() => router.push("/dashboard")}>
+							<div className='text-sm text-muted'>This playlist may not exist anymore, or you might not have access.</div>
+							<Button onPress={() => router.push("/dashboard")}>
+								{<IconArrowLeft size={16} />}
 								Back to Dashboard
 							</Button>
-						</CardBody>
+						</Card.Content>
 					</Card>
 				</div>
 			</DashboardNavbar>
@@ -378,20 +385,22 @@ export default function PlaylistPage() {
 		<DashboardNavbar user={user!} title='Playlist Management' tagline='Manage your curated clip sets'>
 			<div className='flex flex-col items-center justify-center w-full p-4'>
 				<Card className='w-full max-w-4xl'>
-					<CardHeader className='justify-between'>
+					<Card.Header className='justify-between'>
 						<div className='flex items-center gap-2'>
-							<Button isIconOnly variant='light' onPress={() => router.push("/dashboard")}>
+							<Button isIconOnly variant='tertiary' onPress={() => router.push("/dashboard")}>
 								<IconArrowLeft />
 							</Button>
-							<Input value={playlistNameDraft} onValueChange={setPlaylistNameDraft} size='sm' className='min-w-[260px]' placeholder='Playlist name' />
+							<TextField className='min-w-[260px]'>
+								<Input value={playlistNameDraft} onChange={(event) => setPlaylistNameDraft(event.target.value)} placeholder='Playlist name' className='h-8 text-sm' />
+							</TextField>
 						</div>
 						<div className='flex items-center gap-2'>
-							<Button color='primary' variant='solid' startContent={<IconPlus size={18} />} className='font-semibold px-4' onPress={handleOpenAddClips}>
+							<Button variant='primary' className='font-semibold px-4' onPress={handleOpenAddClips}>
+								{<IconPlus size={18} />}
 								Add Clips
 							</Button>
 							<Button
-								variant='flat'
-								startContent={<IconDownload size={16} />}
+								variant='tertiary'
 								onPress={() => {
 									if (canUseAutoImport) {
 										onImportOpen();
@@ -400,11 +409,10 @@ export default function PlaylistPage() {
 									onAutoImportLockedOpen();
 								}}
 							>
+								{<IconDownload size={16} />}
 								Auto Import
 							</Button>
 							<Button
-								color='primary'
-								startContent={<IconDeviceFloppy size={16} />}
 								onPress={async () => {
 									if (!playlistId) return;
 									const nextName = playlistNameDraft.trim();
@@ -433,31 +441,33 @@ export default function PlaylistPage() {
 									addToast({ title: "Playlist saved", color: "success" });
 								}}
 								isDisabled={!canSavePlaylist || !playlistNameDraft.trim()}
+								variant='primary'
 							>
+								{<IconDeviceFloppy size={16} />}
 								Save Playlist
 							</Button>
 						</div>
-					</CardHeader>
-					<Divider />
-					<CardBody>
+					</Card.Header>
+					<Separator />
+					<Card.Content>
 						{isFreePlaylistLimitActive && (
-							<div className='mb-4 rounded-lg border border-default-200 bg-content2 px-3 py-2'>
-								<div className='mb-2 flex items-center justify-between text-xs text-default-600'>
+							<div className='mb-4 rounded-lg border border-default bg-surface-secondary px-3 py-2'>
+								<div className='mb-2 flex items-center justify-between text-xs text-muted'>
 									<span>Free plan usage</span>
 									<span>
 										{playlistClipUsage}/{FREE_PLAYLIST_CLIP_LIMIT}
 									</span>
 								</div>
-								<div className='h-2 rounded-full bg-default-200'>
-									<div className='h-2 rounded-full bg-primary' style={{ width: `${playlistClipUsagePercent}%` }} />
+								<div className='h-2 rounded-full bg-default'>
+									<div className='h-2 rounded-full bg-accent' style={{ width: `${playlistClipUsagePercent}%` }} />
 								</div>
 							</div>
 						)}
-						<div className='mb-4 text-sm text-default-500'>Reorder clips as needed. Changes are applied when you click Save Playlist.</div>
+						<div className='mb-4 text-sm text-muted'>Reorder clips as needed. Changes are applied when you click Save Playlist.</div>
 						<div className='mb-3 flex items-center gap-2'>
 							<Button
 								size='sm'
-								variant='flat'
+								variant='tertiary'
 								onPress={() => {
 									if (playlistClips.length === 0) return;
 									setSelectedPlaylistClipIds(new Set(playlistClips.map((clip) => clip.id)));
@@ -466,13 +476,12 @@ export default function PlaylistPage() {
 							>
 								Select all
 							</Button>
-							<Button size='sm' variant='light' onPress={() => setSelectedPlaylistClipIds(new Set())} isDisabled={selectedPlaylistClipIds.size === 0}>
+							<Button size='sm' variant='tertiary' onPress={() => setSelectedPlaylistClipIds(new Set())} isDisabled={selectedPlaylistClipIds.size === 0}>
 								Clear
 							</Button>
 							<Button
 								size='sm'
-								color='danger'
-								variant='flat'
+								variant='danger-soft'
 								onPress={() => {
 									if (selectedPlaylistClipIds.size === 0) return;
 									setPlaylistClips((prev) => prev.filter((clip) => !selectedPlaylistClipIds.has(clip.id)));
@@ -509,11 +518,12 @@ export default function PlaylistPage() {
 										setDraggedClipId(null);
 										setDragOverClipId(null);
 									}}
-									className={`flex items-center gap-3 rounded border px-3 py-2 transition-colors ${draggedClipId === clip.id ? "opacity-55 border-default-300 bg-content2" : ""} ${dragOverClipId === clip.id && draggedClipId !== clip.id ? "border-primary bg-primary/10" : "border-default-200 bg-content1 hover:bg-content2"}`}
+									className={`flex items-center gap-3 rounded border px-3 py-2 transition-colors ${draggedClipId === clip.id ? "opacity-55 border-default bg-surface-secondary" : ""} ${dragOverClipId === clip.id && draggedClipId !== clip.id ? "border-accent bg-accent/10" : "border-default bg-surface hover:bg-surface-secondary"}`}
 								>
 									<Checkbox
+										aria-label={`Select ${clip.title}`}
 										isSelected={selectedPlaylistClipIds.has(clip.id)}
-										onValueChange={(checked) => {
+										onChange={(checked) => {
 											setSelectedPlaylistClipIds((prev) => {
 												const next = new Set(prev);
 												if (checked) next.add(clip.id);
@@ -521,19 +531,24 @@ export default function PlaylistPage() {
 												return next;
 											});
 										}}
-									/>
-									<IconGripVertical size={16} className='text-default-400 cursor-grab' />
-									<Image src={clip.thumbnail_url} alt={clip.title} className='h-12 w-20 rounded object-cover' />
+									>
+										<Checkbox.Content>
+											<Checkbox.Control>
+												<Checkbox.Indicator />
+											</Checkbox.Control>
+										</Checkbox.Content>
+									</Checkbox>
+									<IconGripVertical size={16} className='text-muted cursor-grab' />
+									<Image unoptimized src={clip.thumbnail_url} alt={clip.title} width={80} height={48} className='h-12 w-20 rounded object-cover' />
 									<div className='min-w-0 flex-1'>
 										<div className='truncate text-sm font-medium'>{clip.title}</div>
-										<div className='text-xs text-default-500'>
+										<div className='text-xs text-muted'>
 											{clip.creator_name} • {clip.view_count} views • {clip.duration}s
 										</div>
 									</div>
 									<Button
 										isIconOnly
-										variant='light'
-										color='danger'
+										variant='danger-soft'
 										onPress={async () => {
 											const next = playlistClips.filter((c) => c.id !== clip.id);
 											setPlaylistClips(next);
@@ -548,239 +563,316 @@ export default function PlaylistPage() {
 									</Button>
 								</li>
 							))}
-							{playlistClips.length === 0 && <div className='py-12 text-center text-default-400 border-2 border-dashed border-default-200 rounded-lg'>This playlist is empty. Add clips to get started!</div>}
+							{playlistClips.length === 0 && <div className='py-12 text-center text-muted border-2 border-dashed border-default rounded-lg'>This playlist is empty. Add clips to get started!</div>}
 						</ul>
-					</CardBody>
+					</Card.Content>
 				</Card>
 			</div>
 
-			<Modal isOpen={isAddClipsOpen} onOpenChange={onAddClipsOpenChange} size='5xl'>
-				<ModalContent className='max-h-[80vh]'>
-					<ModalHeader className='flex flex-col gap-1'>
-						<div>Select clips to add</div>
-						<Input size='sm' placeholder='Search by title or creator...' startContent={<IconSearch size={16} />} value={cachedClipsFilter} onValueChange={setCachedClipsFilter} isClearable />
-					</ModalHeader>
-					<ModalBody className='overflow-y-auto'>
-						<Table
-							aria-label='Cached clips table'
-							selectionMode='multiple'
-							selectedKeys={selectedCachedClipIds}
-							onSelectionChange={setSelectedCachedClipIds}
-							sortDescriptor={cachedClipsSortDescriptor}
-							onSortChange={setCachedClipsSortDescriptor}
-							classNames={{ wrapper: "max-h-[56vh]" }}
-							bottomContent={
-								cachedClipsPagesCount > 1 ? (
-									<div className='flex w-full justify-center gap-4 items-center'>
-										<Pagination isCompact showControls showShadow color='primary' page={cachedClipsPage} total={cachedClipsPagesCount} onChange={setCachedClipsPage} />
-										<div className='text-xs text-default-400'>{sortedCachedClips.length} clips total</div>
-									</div>
-								) : null
+			<ControlledModal isOpen={isAddClipsOpen} onOpenChange={onAddClipsOpenChange} size='lg' containerClassName='max-w-5xl' dialogClassName='max-h-[80vh]'>
+				<Modal.Header className='flex flex-col gap-1'>
+					<Modal.Heading>Select clips to add</Modal.Heading>
+					<TextField>
+						<InputGroup>
+							<InputGroup.Prefix>{<IconSearch size={16} />}</InputGroup.Prefix>
+							<InputGroup.Input placeholder='Search by title or creator...' value={cachedClipsFilter} onChange={(event) => setCachedClipsFilter(event.target.value)} className='h-8 text-sm' />
+							{cachedClipsFilter ? <CloseButton aria-label='Clear' onPress={() => setCachedClipsFilter("")} /> : null}
+						</InputGroup>
+					</TextField>
+				</Modal.Header>
+				<Modal.Body className='overflow-y-auto'>
+					<Table>
+						<Table.ScrollContainer className='max-h-[56vh]'>
+							<Table.Content aria-label='Cached clips table' selectionMode='multiple' selectedKeys={selectedCachedClipIds} onSelectionChange={setSelectedCachedClipIds} sortDescriptor={cachedClipsSortDescriptor} onSortChange={setCachedClipsSortDescriptor}>
+								<Table.Header>
+									<Table.Column className='pr-0'>
+										<Checkbox aria-label='Select all clips' slot='selection'>
+											<Checkbox.Content>
+												<Checkbox.Control>
+													<Checkbox.Indicator />
+												</Checkbox.Control>
+											</Checkbox.Content>
+										</Checkbox>
+									</Table.Column>
+									<Table.Column id='clip' allowsSorting isRowHeader>
+										{({ sortDirection }) => <Table.SortableColumnHeader sortDirection={sortDirection}>Clip</Table.SortableColumnHeader>}
+									</Table.Column>
+									<Table.Column id='creator' allowsSorting>
+										{({ sortDirection }) => <Table.SortableColumnHeader sortDirection={sortDirection}>Creator</Table.SortableColumnHeader>}
+									</Table.Column>
+									<Table.Column id='category' allowsSorting>
+										{({ sortDirection }) => <Table.SortableColumnHeader sortDirection={sortDirection}>Category</Table.SortableColumnHeader>}
+									</Table.Column>
+									<Table.Column id='views' allowsSorting>
+										{({ sortDirection }) => <Table.SortableColumnHeader sortDirection={sortDirection}>Views</Table.SortableColumnHeader>}
+									</Table.Column>
+									<Table.Column id='date' allowsSorting>
+										{({ sortDirection }) => <Table.SortableColumnHeader sortDirection={sortDirection}>Date</Table.SortableColumnHeader>}
+									</Table.Column>
+								</Table.Header>
+								<Table.Body
+									renderEmptyState={() =>
+										cachedClips === undefined ? (
+											<span className='inline-flex items-center gap-2 p-4'>
+												<Spinner />
+												Loading clips...
+											</span>
+										) : (
+											<div className='p-4 text-muted'>No clips found in cache.</div>
+										)
+									}
+								>
+									{(paginatedCachedClips ?? []).map((item) => (
+										<Table.Row key={item.id} id={item.id} textValue={item.title}>
+											<Table.Cell className='pr-0'>
+												<Checkbox aria-label={`Select ${item.title}`} slot='selection'>
+													<Checkbox.Content>
+														<Checkbox.Control>
+															<Checkbox.Indicator />
+														</Checkbox.Control>
+													</Checkbox.Content>
+												</Checkbox>
+											</Table.Cell>
+											<Table.Cell>
+												<div className='flex items-center gap-2'>
+													<Image unoptimized src={item.thumbnail_url} alt={item.title} width={56} height={32} className='h-8 w-14 rounded object-cover' />
+													<div className='truncate max-w-[250px]'>{item.title}</div>
+												</div>
+											</Table.Cell>
+											<Table.Cell>{item.creator_name}</Table.Cell>
+											<Table.Cell>{getGameName(item.game_id)}</Table.Cell>
+											<Table.Cell>{item.view_count}</Table.Cell>
+											<Table.Cell>{new Date(item.created_at).toLocaleDateString()}</Table.Cell>
+										</Table.Row>
+									))}
+								</Table.Body>
+							</Table.Content>
+						</Table.ScrollContainer>
+						{cachedClipsPagesCount > 1 ? (
+							<Table.Footer className='flex w-full justify-center gap-4 items-center'>
+								<AppPagination page={cachedClipsPage} total={cachedClipsPagesCount} onChange={setCachedClipsPage} />
+								<div className='text-xs text-muted'>{sortedCachedClips.length} clips total</div>
+							</Table.Footer>
+						) : null}
+					</Table>
+				</Modal.Body>
+				<Modal.Footer>
+					{wouldExceedFreeLimit && <div className='mr-auto text-xs text-danger'>Free plan limit is {FREE_PLAYLIST_CLIP_LIMIT} clips per playlist.</div>}
+					<Button variant='tertiary' onPress={onAddClipsClose}>
+						Cancel
+					</Button>
+					<Button onPress={handleAddSelectedClips} isDisabled={selectedIds.length === 0 || wouldExceedFreeLimit} variant='primary'>
+						Add selected clips
+					</Button>
+				</Modal.Footer>
+			</ControlledModal>
+
+			<ControlledModal isOpen={isImportOpen} onOpenChange={onImportOpenChange}>
+				<Modal.Header>
+					<Modal.Heading>Auto Import to Playlist</Modal.Heading>
+				</Modal.Header>
+				<Modal.Body className='space-y-4'>
+					<ComboBox
+						isRequired
+						allowsEmptyCollection
+						allowsCustomValue
+						inputValue={importCategoryInput}
+						onInputChange={(value) => {
+							setImportCategoryInput(value);
+							const normalized = value.trim().toLowerCase();
+							if (!normalized || normalized === "all" || normalized === "all categories") {
+								setImportCategoryId("all");
+								return;
 							}
-						>
-							<TableHeader>
-								<TableColumn key='clip' allowsSorting>
-									Clip
-								</TableColumn>
-								<TableColumn key='creator' allowsSorting>
-									Creator
-								</TableColumn>
-								<TableColumn key='category' allowsSorting>
-									Category
-								</TableColumn>
-								<TableColumn key='views' allowsSorting>
-									Views
-								</TableColumn>
-								<TableColumn key='date' allowsSorting>
-									Date
-								</TableColumn>
-							</TableHeader>
-							<TableBody items={paginatedCachedClips ?? []} emptyContent={cachedClips === undefined ? <Spinner label='Loading clips...' /> : <div className='text-default-400'>No clips found in cache.</div>}>
-								{(item) => (
-									<TableRow key={item.id}>
-										<TableCell>
-											<div className='flex items-center gap-2'>
-												<Image src={item.thumbnail_url} alt={item.title} className='h-8 w-14 rounded object-cover' />
-												<div className='truncate max-w-[250px]'>{item.title}</div>
+							if (value !== (importCategoryOptions.find((item) => item.id === importCategoryId)?.name ?? "")) {
+								setImportCategoryId("");
+							}
+						}}
+						onSelectionChange={(key) => {
+							const nextId = (key as string) ?? "";
+							setImportCategoryId(nextId);
+							const selected = importCategoryOptions.find((item) => item.id === nextId);
+							setImportCategoryInput(selected?.name ?? "");
+						}}
+						selectedKey={importCategoryId || null}
+					>
+						<Label>Category / Game</Label>
+						<ComboBox.InputGroup>
+							<Input placeholder='Type at least 3 characters or choose all' />
+							{importCategoryInput ? (
+								<button
+									type='button'
+									aria-label='Clear category'
+									onClick={() => {
+										setImportCategoryInput("");
+										setImportCategoryId("");
+									}}
+								>
+									×
+								</button>
+							) : null}
+							<ComboBox.Trigger />
+						</ComboBox.InputGroup>
+						<ComboBox.Popover>
+							<ListBox
+								items={importCategoryOptions}
+								renderEmptyState={() => {
+									if (importCategoryInput.length === 0) return <div className='p-4 text-center text-sm text-muted'>Type to search...</div>;
+									if (isSearchingGames)
+										return (
+											<div className='flex items-center justify-center p-4'>
+												<Spinner size='sm' color='current' />
 											</div>
-										</TableCell>
-										<TableCell>{item.creator_name}</TableCell>
-										<TableCell>{getGameName(item.game_id)}</TableCell>
-										<TableCell>{item.view_count}</TableCell>
-										<TableCell>{new Date(item.created_at).toLocaleDateString()}</TableCell>
-									</TableRow>
+										);
+									if (importCategoryInput.length < 3) return <div className='p-4 text-center text-sm text-muted'>Keep typing...</div>;
+									return <div className='p-4 text-center text-sm text-muted'>No games found.</div>;
+								}}
+							>
+								{(item) => (
+									<ListBox.Item id={item.id} textValue={item.name}>
+										<Label className='flex items-center gap-2'>
+											{item.box_art_url ? <Image unoptimized src={item.box_art_url.replace("{width}", "32").replace("{height}", "44")} alt={item.name} width={24} height={32} className='h-8 w-6 rounded object-cover' /> : null}
+											<span>{item.name}</span>
+										</Label>
+										<ListBox.ItemIndicator />
+									</ListBox.Item>
 								)}
-							</TableBody>
-						</Table>
-					</ModalBody>
-					<ModalFooter>
-						{wouldExceedFreeLimit && <div className='mr-auto text-xs text-danger'>Free plan limit is {FREE_PLAYLIST_CLIP_LIMIT} clips per playlist.</div>}
-						<Button variant='light' onPress={onAddClipsOpenChange}>
-							Cancel
-						</Button>
-						<Button color='primary' onPress={handleAddSelectedClips} isDisabled={selectedIds.length === 0 || wouldExceedFreeLimit}>
-							Add selected clips
-						</Button>
-					</ModalFooter>
-				</ModalContent>
-			</Modal>
+							</ListBox>
+						</ComboBox.Popover>
+					</ComboBox>
 
-			<Modal isOpen={isImportOpen} onOpenChange={onImportOpenChange}>
-				<ModalContent>
-					<ModalHeader>Auto Import to Playlist</ModalHeader>
-					<ModalBody className='space-y-4'>
-						<Autocomplete
-							label='Category / Game'
-							isRequired
-							allowsCustomValue
-							isClearable
-							placeholder='Type at least 2 characters or choose all'
-							items={importCategoryOptions}
-							isLoading={isSearchingGames}
-							inputValue={importCategoryInput}
-							onInputChange={(value) => {
-								setImportCategoryInput(value);
-								const normalized = value.trim().toLowerCase();
-								if (!normalized || normalized === "all" || normalized === "all categories") {
-									setImportCategoryId("all");
-									return;
-								}
-								if (value !== (importCategoryOptions.find((item) => item.id === importCategoryId)?.name ?? "")) {
-									setImportCategoryId("");
-								}
-							}}
-							onSelectionChange={(key) => {
-								const nextId = (key as string) ?? "";
-								setImportCategoryId(nextId);
-								const selected = importCategoryOptions.find((item) => item.id === nextId);
-								setImportCategoryInput(selected?.name ?? "");
-							}}
-							selectedKey={importCategoryId || null}
-						>
-							{(item) => (
-								<AutocompleteItem key={item.id} textValue={item.name}>
-									<div className='flex items-center gap-2'>
-										{item.box_art_url ? <Image src={item.box_art_url.replace("{width}", "32").replace("{height}", "44")} alt={item.name} className='h-8 w-6 rounded object-cover' /> : null}
-										<span>{item.name}</span>
-									</div>
-								</AutocompleteItem>
-							)}
-						</Autocomplete>
+					<AppDateRangePicker
+						label='Date Range'
+						value={importStartDate && importEndDate ? { start: parseDate(importStartDate), end: parseDate(importEndDate) } : null}
+						onChange={(range) => {
+							if (!range) {
+								setImportStartDate(DEFAULT_IMPORT_START_DATE);
+								setImportEndDate(new Date().toISOString().slice(0, 10));
+								return;
+							}
+							setImportStartDate(range.start.toString());
+							setImportEndDate(range.end.toString());
+						}}
+					/>
 
-						<DateRangePicker
-							label='Date Range'
-							value={importStartDate && importEndDate ? { start: parseDate(importStartDate), end: parseDate(importEndDate) } : null}
-							onChange={(range) => {
-								if (!range) {
-									setImportStartDate(DEFAULT_IMPORT_START_DATE);
-									setImportEndDate(new Date().toISOString().slice(0, 10));
-									return;
-								}
-								setImportStartDate(range.start.toString());
-								setImportEndDate(range.end.toString());
-							}}
-						/>
+					<NumberField minValue={0} value={importMinViews} onChange={(value) => setImportMinViews(Number(value) || 0)}>
+						<Label>Minimum Views</Label>
+						<NumberField.Group>
+							<NumberField.DecrementButton />
+							<NumberField.Input />
+							<NumberField.IncrementButton />
+						</NumberField.Group>
+					</NumberField>
+					<div className='grid grid-cols-1 gap-3 sm:grid-cols-2'>
+						<NumberField minValue={0} value={importMinDuration} onChange={(value) => setImportMinDuration(Number(value) || 0)}>
+							<Label>Min Duration (sec)</Label>
+							<NumberField.Group>
+								<NumberField.DecrementButton />
+								<NumberField.Input />
+								<NumberField.IncrementButton />
+							</NumberField.Group>
+						</NumberField>
+						<NumberField minValue={0} value={importMaxDuration} onChange={(value) => setImportMaxDuration(Number(value) || 0)}>
+							<Label>Max Duration (sec)</Label>
+							<NumberField.Group>
+								<NumberField.DecrementButton />
+								<NumberField.Input />
+								<NumberField.IncrementButton />
+							</NumberField.Group>
+						</NumberField>
+					</div>
+					<TagsInput fullWidth label='Creator Allowlist' value={importCreatorAllowlist} onValueChange={setImportCreatorAllowlist} />
+					<TagsInput fullWidth label='Creator Denylist' value={importCreatorDenylist} onValueChange={setImportCreatorDenylist} />
+					<TagsInput fullWidth label='Blacklisted Words' value={importBlacklistWords} onValueChange={setImportBlacklistWords} />
+				</Modal.Body>
+				<Modal.Footer>
+					<Button variant='tertiary' onPress={onImportClose}>
+						Cancel
+					</Button>
+					<Button
+						isDisabled={!canUseAutoImport || !playlistId || !importCategoryId}
+						onPress={() => {
+							if (playlistClips.length > 0) setPendingImportMode("append");
+							else runImport("replace");
+						}}
+						variant='primary'
+					>
+						{<IconDownload size={16} />}
+						Import
+					</Button>
+				</Modal.Footer>
+			</ControlledModal>
 
-						<NumberInput label='Minimum Views' minValue={0} value={importMinViews} onValueChange={(value) => setImportMinViews(Number(value) || 0)} />
-						<div className='grid grid-cols-1 gap-3 sm:grid-cols-2'>
-							<NumberInput label='Min Duration (sec)' minValue={0} value={importMinDuration} onValueChange={(value) => setImportMinDuration(Number(value) || 0)} />
-							<NumberInput label='Max Duration (sec)' minValue={0} value={importMaxDuration} onValueChange={(value) => setImportMaxDuration(Number(value) || 0)} />
-						</div>
-						<TagsInput fullWidth label='Creator Allowlist' value={importCreatorAllowlist} onValueChange={setImportCreatorAllowlist} />
-						<TagsInput fullWidth label='Creator Denylist' value={importCreatorDenylist} onValueChange={setImportCreatorDenylist} />
-						<TagsInput fullWidth label='Blacklisted Words' value={importBlacklistWords} onValueChange={setImportBlacklistWords} />
-					</ModalBody>
-					<ModalFooter>
-						<Button variant='light' onPress={onImportClose}>
-							Cancel
-						</Button>
-						<Button
-							color='primary'
-							startContent={<IconDownload size={16} />}
-							isDisabled={!canUseAutoImport || !playlistId || !importCategoryId}
-							onPress={() => {
-								if (playlistClips.length > 0) setPendingImportMode("append");
-								else runImport("replace");
-							}}
-						>
-							Import
-						</Button>
-					</ModalFooter>
-				</ModalContent>
-			</Modal>
+			<ControlledModal isOpen={isAutoImportLockedOpen} onOpenChange={onAutoImportLockedOpenChange}>
+				<Modal.Header>
+					<Modal.Heading>Auto Import Requires Pro</Modal.Heading>
+				</Modal.Header>
+				<Modal.Body>
+					<div className='text-sm text-muted'>Auto import is available on Pro. Free includes one playlist with up to {FREE_PLAYLIST_CLIP_LIMIT} clips.</div>
+				</Modal.Body>
+				<Modal.Footer>
+					<Button variant='tertiary' onPress={onAutoImportLockedClose}>
+						Close
+					</Button>
+					<Link href='/dashboard/settings' className='inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 font-medium bg-accent text-accent-foreground hover:bg-accent-hover'>
+						Upgrade
+					</Link>
+				</Modal.Footer>
+			</ControlledModal>
 
-			<Modal isOpen={isAutoImportLockedOpen} onOpenChange={onAutoImportLockedOpenChange}>
-				<ModalContent>
-					<ModalHeader>Auto Import Requires Pro</ModalHeader>
-					<ModalBody>
-						<div className='text-sm text-default-600'>Auto import is available on Pro. Free includes one playlist with up to {FREE_PLAYLIST_CLIP_LIMIT} clips.</div>
-					</ModalBody>
-					<ModalFooter>
-						<Button variant='light' onPress={onAutoImportLockedOpenChange}>
-							Close
-						</Button>
-						<Button as={Link} href='/dashboard/settings' color='primary'>
-							Upgrade
-						</Button>
-					</ModalFooter>
-				</ModalContent>
-			</Modal>
+			<ControlledModal isOpen={pendingImportMode !== null} onOpenChange={() => setPendingImportMode(null)}>
+				<Modal.Header>
+					<Modal.Heading>Import Behavior</Modal.Heading>
+				</Modal.Header>
+				<Modal.Body>
+					<div className='text-sm text-muted'>This playlist already has clips. Do you want to replace it or append imported clips?</div>
+				</Modal.Body>
+				<Modal.Footer>
+					<Button
+						variant='tertiary'
+						onPress={async () => {
+							setPendingImportMode(null);
+							await runImport("append");
+						}}
+					>
+						Append
+					</Button>
+					<Button
+						onPress={async () => {
+							setPendingImportMode(null);
+							await runImport("replace");
+						}}
+						variant='danger'
+					>
+						Replace
+					</Button>
+				</Modal.Footer>
+			</ControlledModal>
 
-			<Modal isOpen={pendingImportMode !== null} onOpenChange={() => setPendingImportMode(null)}>
-				<ModalContent>
-					<ModalHeader>Import Behavior</ModalHeader>
-					<ModalBody>
-						<div className='text-sm text-default-600'>This playlist already has clips. Do you want to replace it or append imported clips?</div>
-					</ModalBody>
-					<ModalFooter>
-						<Button
-							variant='light'
-							onPress={async () => {
-								setPendingImportMode(null);
-								await runImport("append");
-							}}
-						>
-							Append
-						</Button>
-						<Button
-							color='danger'
-							onPress={async () => {
-								setPendingImportMode(null);
-								await runImport("replace");
-							}}
-						>
-							Replace
-						</Button>
-					</ModalFooter>
-				</ModalContent>
-			</Modal>
-
-			<Modal backdrop='blur' isOpen={navGuard.active} onClose={navGuard.reject}>
-				<ModalContent>
-					<ModalHeader>
-						<div className='flex items-center'>
-							<IconAlertTriangle className='mr-2' />
-							Unsaved Changes
-						</div>
-					</ModalHeader>
-					<ModalBody>
-						<p className='text-sm text-default-700'>
-							You have unsaved playlist changes. If you leave now, your draft edits will be lost.
-							<br />
-							<br />
-							Do you want to continue without saving?
-						</p>
-					</ModalBody>
-					<ModalFooter>
-						<Button variant='light' onPress={navGuard.reject} aria-label='Cancel'>
-							Cancel
-						</Button>
-						<Button color='danger' onPress={navGuard.accept} aria-label='Discard Changes'>
-							Discard changes
-						</Button>
-					</ModalFooter>
-				</ModalContent>
-			</Modal>
+			<ControlledModal variant='blur' isOpen={navGuard.active} onClose={navGuard.reject}>
+				<Modal.Header>
+					<Modal.Heading className='flex items-center'>
+						<IconAlertTriangle className='mr-2' />
+						Unsaved Changes
+					</Modal.Heading>
+				</Modal.Header>
+				<Modal.Body>
+					<p className='text-sm text-foreground'>
+						You have unsaved playlist changes. If you leave now, your draft edits will be lost.
+						<br />
+						<br />
+						Do you want to continue without saving?
+					</p>
+				</Modal.Body>
+				<Modal.Footer>
+					<Button variant='tertiary' onPress={navGuard.reject} aria-label='Cancel'>
+						Cancel
+					</Button>
+					<Button onPress={navGuard.accept} aria-label='Discard Changes' variant='danger'>
+						Discard changes
+					</Button>
+				</Modal.Footer>
+			</ControlledModal>
 		</DashboardNavbar>
 	);
 }

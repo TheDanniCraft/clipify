@@ -69,10 +69,7 @@ describe("actions/websocket", () => {
 		getOverlayBySecret.mockResolvedValue(null);
 		const { handleMessage } = await loadWebsocketActions();
 		const client = createClient();
-		await handleMessage(
-			Buffer.from(JSON.stringify({ type: "subscribe", data: { overlayId: "ov-1", secret: "wrong" } })),
-			client as never,
-		);
+		await handleMessage(Buffer.from(JSON.stringify({ type: "subscribe", data: { overlayId: "ov-1", secret: "wrong" } })), client as never);
 		expect(getOverlayBySecret).toHaveBeenCalledWith("ov-1", "wrong");
 		expect(client.close).toHaveBeenCalledWith(4002);
 	});
@@ -83,10 +80,7 @@ describe("actions/websocket", () => {
 		const { handleMessage } = await loadWebsocketActions();
 		const client = createClient();
 
-		await handleMessage(
-			Buffer.from(JSON.stringify({ type: "subscribe", data: { overlayId: "ov-1", secret: "sec-1" } })),
-			client as never,
-		);
+		await handleMessage(Buffer.from(JSON.stringify({ type: "subscribe", data: { overlayId: "ov-1", secret: "sec-1" } })), client as never);
 
 		expect(clearTimeoutSpy).toHaveBeenCalledWith(client.subscribeDeadline);
 		expect(client.ownerId).toBe("owner-1");
@@ -104,10 +98,7 @@ describe("actions/websocket", () => {
 		const { handleMessage } = await loadWebsocketActions();
 		const client = createClient();
 
-		await handleMessage(
-			Buffer.from(JSON.stringify({ type: "subscribe", data: { overlayId: "ov-1", controllerToken: "signed-token", role: "controller" } })),
-			client as never,
-		);
+		await handleMessage(Buffer.from(JSON.stringify({ type: "subscribe", data: { overlayId: "ov-1", controllerToken: "signed-token", role: "controller" } })), client as never);
 
 		expect(jwtVerify).toHaveBeenCalledWith("signed-token", process.env.JWT_SECRET, expect.objectContaining({ issuer: "clipify-controller" }));
 		expect(getOverlayPublic).toHaveBeenCalledWith("ov-1");
@@ -127,10 +118,7 @@ describe("actions/websocket", () => {
 		const { handleMessage } = await loadWebsocketActions();
 		const client = createClient();
 
-		await handleMessage(
-			Buffer.from(JSON.stringify({ type: "subscribe", data: { overlayId: "ov-1", controllerToken: "bad-token", role: "controller" } })),
-			client as never,
-		);
+		await handleMessage(Buffer.from(JSON.stringify({ type: "subscribe", data: { overlayId: "ov-1", controllerToken: "bad-token", role: "controller" } })), client as never);
 
 		expect(client.close).toHaveBeenCalledWith(4002);
 		expect(getOverlayPublic).not.toHaveBeenCalled();

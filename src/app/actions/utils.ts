@@ -17,7 +17,7 @@ export async function getBaseUrl(): Promise<URL> {
 			.split(",")
 			.map((part) => part.trim())
 			.filter(Boolean);
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		url = parts[0] || rawCoolifyUrl.trim();
 	} else if (process.env.NODE_ENV === "development") {
 		url = "http://localhost:3000";
@@ -45,5 +45,3 @@ export async function safeReturnUrl(input?: string | string[] | null) {
 	if (v.startsWith("//")) return null;
 	return v;
 }
-
-

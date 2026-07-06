@@ -1,4 +1,6 @@
 import React from "react";
+jest.mock("@lib/toast", () => ({ notify: jest.fn() }));
+jest.mock("@components/appPagination", () => ({ __esModule: true, default: () => <div>Pagination</div> }));
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 
 const getAllOverlays = jest.fn();
@@ -60,17 +62,19 @@ jest.mock("@lib/featureAccess", () => ({
 	isReverseTrialActive: () => false,
 }));
 
-jest.mock("@tabler/icons-react", () =>
-	new Proxy(
-		{},
-		{
-			get: () => {
-				const MockIcon = () => <span />;
-				MockIcon.displayName = "MockIcon";
-				return MockIcon;
+jest.mock(
+	"@tabler/icons-react",
+	() =>
+		new Proxy(
+			{},
+			{
+				get: () => {
+					const MockIcon = () => <span />;
+					MockIcon.displayName = "MockIcon";
+					return MockIcon;
+				},
 			},
-		},
-	),
+		),
 );
 
 jest.mock("next/dynamic", () => {
@@ -98,45 +102,75 @@ jest.mock("@heroui/react", () => {
 	return {
 		cn: (...classes: Array<string | undefined>) => classes.filter(Boolean).join(" "),
 		addToast: (...args: unknown[]) => addToast(...args),
-		useDisclosure: () => ({ isOpen: false, onOpen: jest.fn(), onOpenChange: jest.fn() }),
-		Dropdown: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-		DropdownTrigger: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-		DropdownMenu: ({ children, items = [] }: { children: React.ReactNode | ((item: unknown) => React.ReactNode); items?: unknown[] }) => (
-			<div>{typeof children === "function" ? (items as unknown[]).map((item, index) => <div key={index}>{children(item)}</div>) : children}</div>
-		),
-		DropdownItem: ({ children, onClick, onPress }: { children: React.ReactNode; onClick?: () => void; onPress?: () => void }) => (
-			<button onClick={() => (onPress ? onPress() : onClick ? onClick() : undefined)}>{children}</button>
-		),
-		Table: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+		useOverlayState: () => ({ isOpen: false, open: jest.fn(), close: jest.fn(), setOpen: jest.fn(), toggle: jest.fn() }),
+		Dropdown: Object.assign(({ children }: { children: React.ReactNode }) => <div>{children}</div>, {
+			Trigger: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+			Popover: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+			Menu: ({ children, items = [] }: { children: React.ReactNode | ((item: unknown) => React.ReactNode); items?: unknown[] }) => <div>{typeof children === "function" ? items.map((item, index) => <div key={index}>{children(item)}</div>) : children}</div>,
+			Item: ({ children, onAction }: { children: React.ReactNode; onAction?: () => void }) => <button onClick={onAction}>{children}</button>,
+			ItemIndicator: () => null,
+		}),
+		Table: Object.assign(({ children }: { children: React.ReactNode }) => <div>{children}</div>, {
+			ScrollContainer: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+			Content: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+			Header: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+			Column: ({ children }: { children: React.ReactNode | ((props: { sortDirection: null }) => React.ReactNode) }) => <div>{typeof children === "function" ? children({ sortDirection: null }) : children}</div>,
+			SortableColumnHeader: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+			Body: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+			Row: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+			Cell: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+			Footer: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+		}),
+		Checkbox: Object.assign(({ children }: { children?: React.ReactNode }) => <span>{children}</span>, {
+			Content: ({ children }: { children?: React.ReactNode }) => <span>{children}</span>,
+			Control: ({ children }: { children?: React.ReactNode }) => <span>{children}</span>,
+			Indicator: () => null,
+		}),
 		TableHeader: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 		TableColumn: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 		TableBody: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 		TableRow: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 		TableCell: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-		Input: ({ value, onValueChange, placeholder }: { value?: string; onValueChange?: (value: string) => void; placeholder?: string }) => <input value={value ?? ""} placeholder={placeholder} onChange={(event) => onValueChange?.(event.target.value)} />,
+		TextField: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+		InputGroup: Object.assign(({ children }: { children: React.ReactNode }) => <div>{children}</div>, {
+			Prefix: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
+			Suffix: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
+			Input: (props: React.InputHTMLAttributes<HTMLInputElement>) => <input {...props} />,
+		}),
 		Button: ({ children, onPress, onClick }: { children: React.ReactNode; onPress?: () => void; onClick?: () => void }) => <button onClick={() => (onPress ? onPress() : onClick ? onClick() : undefined)}>{children}</button>,
+		Label: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
 		RadioGroup: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-		Radio: ({ children }: { children: React.ReactNode }) => <label>{children}</label>,
+		Radio: Object.assign(({ children }: { children: React.ReactNode }) => <label>{children}</label>, {
+			Content: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
+			Control: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
+			Indicator: () => null,
+		}),
 		Chip: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 		Pagination: () => <div />,
-		Divider: () => <div />,
-		Tooltip: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-		Popover: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-		PopoverTrigger: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-		PopoverContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+		Separator: () => <div />,
+		Tooltip: Object.assign(({ children }: { children: React.ReactNode }) => <div>{children}</div>, {
+			Trigger: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+			Content: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
+		}),
+		Popover: Object.assign(({ children }: { children: React.ReactNode }) => <div>{children}</div>, {
+			Trigger: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+			Content: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+			Dialog: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+			Arrow: () => null,
+		}),
 		Spinner: () => <div>loading</div>,
 		Link: ({ children }: { children: React.ReactNode }) => <a>{children}</a>,
-		Avatar: () => <div />,
+		Avatar: Object.assign(({ children }: { children?: React.ReactNode }) => <div>{children}</div>, {
+			Image: () => <span />,
+			Fallback: ({ children }: { children?: React.ReactNode }) => <span>{children}</span>,
+		}),
 		Skeleton: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-		Tab: () => null,
-		Tabs: ({ children, onSelectionChange }: { children: React.ReactNode; onSelectionChange?: (key: string) => void }) => (
-			<div>
-				{ReactLib.Children.map(children, (child) => {
-					if (!ReactLib.isValidElement<{ title?: React.ReactNode }>(child)) return null;
-					return <button onClick={() => onSelectionChange?.(String(child.key))}>{child.props.title}</button>;
-				})}
-			</div>
-		),
+		Tabs: Object.assign(({ children, onSelectionChange }: { children: React.ReactNode; onSelectionChange?: (key: string) => void }) => <div>{ReactLib.Children.map(children, (child) => (ReactLib.isValidElement(child) ? ReactLib.cloneElement(child, { onSelectionChange } as Record<string, unknown>) : child))}</div>, {
+			ListContainer: ({ children, onSelectionChange }: { children: React.ReactNode; onSelectionChange?: (key: string) => void }) => <div>{ReactLib.Children.map(children, (child) => (ReactLib.isValidElement(child) ? ReactLib.cloneElement(child, { onSelectionChange } as Record<string, unknown>) : child))}</div>,
+			List: ({ children, onSelectionChange }: { children: React.ReactNode; onSelectionChange?: (key: string) => void }) => <div>{ReactLib.Children.map(children, (child) => (ReactLib.isValidElement(child) ? ReactLib.cloneElement(child, { onSelectionChange } as Record<string, unknown>) : child))}</div>,
+			Tab: ({ children, id, onSelectionChange }: { children: React.ReactNode; id: string; onSelectionChange?: (key: string) => void }) => <button onClick={() => onSelectionChange?.(id)}>{children}</button>,
+			Indicator: () => null,
+		}),
 	};
 });
 

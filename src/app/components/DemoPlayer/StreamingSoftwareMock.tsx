@@ -15,11 +15,15 @@ type StreamingSoftwareMockProps = {
 };
 
 export default function StreamingSoftwareMock({ children, title = "OBS Studio - Profile: Default - Scenes: Clipify Pause", aspectRatio = "16 / 9", isLive = true, liveSeconds = 12 * 60 + 43, style, statusRightText = "CPU: 4.2%   60.00 / 60.00 FPS" }: StreamingSoftwareMockProps) {
+	const [prevIsLive, setPrevIsLive] = useState(isLive);
+	const [prevLiveSeconds, setPrevLiveSeconds] = useState(liveSeconds);
 	const [seconds, setSeconds] = useState(liveSeconds);
 
-	useEffect(() => {
+	if (isLive !== prevIsLive || liveSeconds !== prevLiveSeconds) {
+		setPrevIsLive(isLive);
+		setPrevLiveSeconds(liveSeconds);
 		if (!isLive) setSeconds(liveSeconds);
-	}, [liveSeconds, isLive]);
+	}
 
 	useEffect(() => {
 		if (!isLive) return;

@@ -1,10 +1,8 @@
 "use client";
-
+import { ScrollShadow, cn } from "@heroui/react";
 import type { ScrollShadowProps } from "@heroui/react";
 
 import React from "react";
-import { ScrollShadow } from "@heroui/react";
-import { cn } from "@heroui/react";
 
 interface ScrollingBannerProps extends ScrollShadowProps {
 	isReverse?: boolean;
@@ -37,7 +35,7 @@ const ScrollingBanner = React.forwardRef<HTMLDivElement, ScrollingBannerProps>((
 					"overflow-x-hidden": !isVertical,
 					"max-h-[calc(100vh_-_200px)]": isVertical,
 				},
-				className
+				className,
 			)}
 			style={{
 				// @ts-expect-error: Custom CSS property '--gap' is not recognized by TypeScript style definitions

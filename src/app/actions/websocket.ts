@@ -47,9 +47,9 @@ export async function handleMessage(buffer: RawData, client: WebSocket) {
 	switch (messageObj.type) {
 		case "subscribe": {
 			const payload = messageObj.data as { overlayId?: string; secret?: string; controllerToken?: string; role?: unknown } | string;
-/* istanbul ignore next */
+			/* istanbul ignore next */
 			const overlayId = typeof payload === "string" ? payload : payload?.overlayId;
-/* istanbul ignore next */
+			/* istanbul ignore next */
 			const secret = typeof payload === "string" ? undefined : payload?.secret;
 			const controllerToken = typeof payload === "string" ? undefined : payload?.controllerToken;
 			const requestedRole = typeof payload === "string" ? undefined : payload?.role;
@@ -101,7 +101,7 @@ export async function handleMessage(buffer: RawData, client: WebSocket) {
 					client.close(4002);
 					return;
 				}
-/* istanbul ignore next */
+				/* istanbul ignore next */
 				overlay = await getOverlayBySecret(overlayId, secret).catch(() => null);
 				if (!overlay) {
 					client.close(4002);
@@ -155,13 +155,13 @@ export async function handleMessage(buffer: RawData, client: WebSocket) {
 export async function sendMessage(type: string, data: object, broadcasterId?: string, overlayId?: string) {
 	if (overlayId) {
 		const clients = overlaySubscribers.get(overlayId);
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		broadcastToClients(type, data, clients);
 		return;
 	}
 	if (broadcasterId) {
 		const clients = ownerSubscribers.get(broadcasterId);
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		broadcastToClients(type, data, clients);
 	} else {
 		for (const clients of overlaySubscribers.values()) {
@@ -169,5 +169,3 @@ export async function sendMessage(type: string, data: object, broadcasterId?: st
 		}
 	}
 }
-
-

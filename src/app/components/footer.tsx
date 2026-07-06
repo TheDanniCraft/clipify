@@ -1,7 +1,9 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { Button, Chip, Divider, Form, Image, Input, Link, Modal, ModalContent, Spinner, Tab, Tabs } from "@heroui/react";
+import { Button, Card, Chip, Separator, Form, Input, Link, Modal, Spinner, Tabs, TextField, Label, FieldError, InputGroup } from "@heroui/react";
+import Image from "next/image";
+
 import { Turnstile } from "nextjs-turnstile";
 import { motion } from "motion/react";
 
@@ -79,6 +81,7 @@ export default function Footer() {
 		supportOptions: [
 			{ name: "Pricing", href: "#pricing" },
 			{ name: "FAQs", href: "#faq" },
+			{ name: "Community", href: "/community" },
 			{ name: "Help Center", href: "https://help.clipify.us/" },
 			{ name: "Service Status", href: "https://status.thedannicraft.de/status/clipify" },
 		],
@@ -104,15 +107,15 @@ export default function Footer() {
 			.then((response) => {
 				switch (response.data.status) {
 					case "DOWN":
-						setStatusColor("hsl(var(--heroui-danger))");
+						setStatusColor("var(--danger)");
 						setStatusText("Major outage");
 						break;
 					case "UP":
-						setStatusColor("hsl(var(--heroui-success))");
+						setStatusColor("var(--success)");
 						setStatusText("All systems operational");
 						break;
 					case "PARTIAL":
-						setStatusColor("hsl(var(--heroui-warning))");
+						setStatusColor("var(--warning)");
 						setStatusText("Partial outage");
 						break;
 					case "MAINTENANCE":
@@ -247,11 +250,11 @@ export default function Footer() {
 	const renderList = useCallback(
 		({ title, items }: { title: string; items: { name: string; href: string }[] }) => (
 			<div>
-				<h3 className='text-small text-default-600 font-semibold'>{title}</h3>
+				<h3 className='text-sm text-muted font-semibold'>{title}</h3>
 				<ul className='mt-2 space-y-0.5'>
 					{items.map((item) => (
 						<li key={item.name}>
-							<Link className='text-default-400' href={item.href} size='sm'>
+							<Link className='text-muted text-sm' href={item.href}>
 								{item.name}
 							</Link>
 						</li>
@@ -264,26 +267,26 @@ export default function Footer() {
 
 	return (
 		<>
-			<Divider className='my-4' />
 			<footer className='flex w-full flex-col pb-16'>
+				<Separator />
 				<div className='mx-auto max-w-7xl px-6 pt-16 pb-8 sm:pt-24 lg:px-8 lg:pt-32'>
 					<div className='xl:grid xl:grid-cols-3 xl:gap-8'>
 						<div className='space-y-6 md:pr-8'>
 							<div className='flex items-center justify-start'>
 								<Logo size={34} />
-								<span className='text-small font-medium'>Clipify</span>
+								<span className='text-sm font-medium'>Clipify</span>
 							</div>
 							<div className='space-y-4'>
-								<p className='text-small text-default-500'>Need a break? Clipify got you covered. Auto-play clips while you are away - keep your stream alive and your viewers entertained.</p>
+								<p className='text-sm text-muted'>Need a break? Clipify got you covered. Auto-play clips while you are away - keep your stream alive and your viewers entertained.</p>
 								{communityStreamers.length > 0 ? (
-									<Link href='/community' className='inline-flex max-w-fit flex-col items-start gap-2 rounded-large border border-default-200/80 bg-default-100/70 px-3 py-2 transition hover:border-default-300 hover:bg-default-100'>
+									<Link href='/community' className='inline-flex max-w-fit flex-col items-start gap-2 rounded-[14px] border border-default/80 bg-surface-secondary/70 px-3 py-2 transition hover:border-default hover:bg-surface-secondary'>
 										<div className='space-y-0.5 text-left'>
-											<p className='text-sm font-semibold text-default-700'>Clipify community</p>
-											<p className='text-[11px] text-default-500'>
+											<p className='text-sm font-semibold text-foreground'>Clipify community</p>
+											<p className='text-[11px] text-muted'>
 												{communityStreamers.length} streamer{communityStreamers.length === 1 ? "" : "s"}
 											</p>
 										</div>
-										<CommunityTeaser streamers={communityStreamers} countClassName='ml-2 text-[11px] font-medium text-default-500' />
+										<CommunityTeaser streamers={communityStreamers} countClassName='ml-2 text-[11px] font-medium text-muted' />
 									</Link>
 								) : null}
 							</div>
@@ -300,139 +303,154 @@ export default function Footer() {
 						</div>
 					</div>
 
-					<div className='rounded-medium bg-default-200/20 mt-4 mb-10 p-4 sm:mt-6 sm:mb-14 sm:p-8 lg:mt-8 lg:mb-16 lg:flex lg:items-center lg:justify-between lg:gap-2'>
-						<div>
-							<h3 className='text-small text-default-600 font-semibold'>Subscribe to our newsletter</h3>
-							<p className='text-small text-default-400 mt-2'>Receive updates on new features, tips and tricks, or offers straight to your email.</p>
-						</div>
-						<div className='w-full lg:max-w-md'>
-							<Form onSubmit={handleNewsletterSubmit}>
-								<motion.div
-									className='relative w-full overflow-hidden'
-									animate={{
-										height: isDetailsExpanded ? stepHeights.name : stepHeights.email,
-									}}
-									transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-								>
+					<Card variant='secondary' className='mt-4 mb-10 sm:mt-6 sm:mb-14 lg:mt-8 lg:mb-16'>
+						<Card.Content className='flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between'>
+							<div className='shrink-0'>
+								<h3 className='text-sm text-muted font-semibold'>Subscribe to our newsletter</h3>
+								<p className='text-sm text-muted mt-2'>Receive updates on new features, tips and tricks, or offers straight to your email.</p>
+							</div>
+							<div className='w-full lg:max-w-md'>
+								<Form className='w-full space-y-3' onSubmit={handleNewsletterSubmit}>
 									<motion.div
-										ref={emailStepRef}
-										className={isDetailsExpanded ? "absolute inset-0 w-full" : "relative w-full"}
+										className='relative w-full'
 										animate={{
-											opacity: isDetailsExpanded ? 0 : 1,
-											y: isDetailsExpanded ? -8 : 0,
-											pointerEvents: isDetailsExpanded ? "none" : "auto",
+											height: isDetailsExpanded ? stepHeights.name : stepHeights.email,
 										}}
-										transition={{ duration: 0.2, ease: "easeOut" }}
+										transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
 									>
-										<Input
-											isRequired
-											placeholder='mail@example.com'
-											type='email'
-											labelPlacement='outside'
-											className={newsletterState == "success" ? "text-success" : newsletterState == "error" || newsletterState == "rateLimit" ? "text-danger" : "text-default-900"}
-											startContent={(() => {
-												switch (newsletterState) {
-													case "loading":
-														return <Spinner />;
-													case "success":
-														return <IconCircleCheckFilled className='text-success-500' />;
-													default:
-														return <IconMailFilled className='text-default-400' />;
-												}
-											})()}
-											onChange={() => {
-												setNewsletterState("default");
+										<motion.div
+											ref={emailStepRef}
+											className={isDetailsExpanded ? "absolute inset-0 w-full" : "relative w-full"}
+											animate={{
+												opacity: isDetailsExpanded ? 0 : 1,
+												y: isDetailsExpanded ? -8 : 0,
+												pointerEvents: isDetailsExpanded ? "none" : "auto",
 											}}
-											name='email'
-											isDisabled={newsletterState === "loading" || newsletterState === "success"}
-											endContent={
-												<Button color='primary' size='sm' isIconOnly type='submit' isDisabled={emailSubmitDisabled} aria-label='Continue newsletter signup'>
-													<IconSend className='text-white' />
+											transition={{ duration: 0.2, ease: "easeOut" }}
+										>
+											<TextField fullWidth isRequired type='email' className={newsletterState == "success" ? "text-success" : newsletterState == "error" || newsletterState == "rateLimit" ? "text-danger" : "text-foreground"} name='email' isDisabled={newsletterState === "loading" || newsletterState === "success"}>
+												<InputGroup fullWidth variant='secondary'>
+													<InputGroup.Prefix>
+														{(() => {
+															switch (newsletterState) {
+																case "loading":
+																	return <Spinner />;
+																case "success":
+																	return <IconCircleCheckFilled className='text-success' />;
+																default:
+																	return <IconMailFilled className='text-muted' />;
+															}
+														})()}
+													</InputGroup.Prefix>
+													<InputGroup.Input
+														placeholder='mail@example.com'
+														onChange={() => {
+															setNewsletterState("default");
+														}}
+													/>
+													<InputGroup.Suffix>
+														{
+															<Button size='sm' isIconOnly type='submit' isDisabled={emailSubmitDisabled} aria-label='Continue newsletter signup' variant='primary'>
+																<IconSend className='text-white' />
+															</Button>
+														}
+													</InputGroup.Suffix>
+												</InputGroup>
+												<FieldError />
+											</TextField>
+										</motion.div>
+										<motion.div
+											ref={nameStepRef}
+											className={isDetailsExpanded ? "relative w-full space-y-3" : "absolute inset-0 w-full space-y-3"}
+											animate={{
+												opacity: isDetailsExpanded ? 1 : 0,
+												y: isDetailsExpanded ? 0 : 8,
+												pointerEvents: isDetailsExpanded ? "auto" : "none",
+											}}
+											transition={{ duration: 0.24, ease: "easeOut" }}
+										>
+											<div className='rounded-[8px] border border-default px-3 py-2 text-xs text-muted'>Subscribing as {pendingEmail}</div>
+											<TextField fullWidth>
+												<Label>How should we call you?</Label>
+												<Input fullWidth variant='secondary' placeholder={firstNamePlaceholder} value={firstName} onChange={(event) => setFirstName(event.target.value)} />
+											</TextField>
+											<div className='flex flex-wrap items-center gap-2'>
+												<Button
+													type='button'
+													variant='tertiary'
+													onPress={() => {
+														setIsDetailsExpanded(false);
+														setNewsletterState("default");
+													}}
+													isDisabled={newsletterState === "loading"}
+												>
+													Back
 												</Button>
-											}
-										/>
+												<Button type='button' variant='tertiary' onPress={() => finishSubscribe(false)} isDisabled={detailSubmitDisabled}>
+													Skip
+												</Button>
+												<Button type='submit' isDisabled={detailSubmitDisabled} variant='primary'>
+													Add and subscribe
+												</Button>
+											</div>
+										</motion.div>
 									</motion.div>
-									<motion.div
-										ref={nameStepRef}
-										className={isDetailsExpanded ? "relative w-full space-y-3" : "absolute inset-0 w-full space-y-3"}
-										animate={{
-											opacity: isDetailsExpanded ? 1 : 0,
-											y: isDetailsExpanded ? 0 : 8,
-											pointerEvents: isDetailsExpanded ? "auto" : "none",
-										}}
-										transition={{ duration: 0.24, ease: "easeOut" }}
-									>
-										<div className='rounded-small border border-default-200 px-3 py-2 text-xs text-default-500'>Subscribing as {pendingEmail}</div>
-										<Input size='sm' label='How should we call you?' placeholder={firstNamePlaceholder} value={firstName} onChange={(event) => setFirstName(event.target.value)} />
-										<div className='flex flex-wrap items-center gap-2'>
-											<Button
-												type='button'
-												variant='light'
-												onPress={() => {
-													setIsDetailsExpanded(false);
-													setNewsletterState("default");
-												}}
-												isDisabled={newsletterState === "loading"}
-											>
-												Back
-											</Button>
-											<Button type='button' variant='flat' onPress={() => finishSubscribe(false)} isDisabled={detailSubmitDisabled}>
-												Skip
-											</Button>
-											<Button type='submit' color='primary' isDisabled={detailSubmitDisabled}>
-												Add and subscribe
-											</Button>
-										</div>
-									</motion.div>
-								</motion.div>
-								<div className='pt-1'>
-									<Turnstile siteKey='0x4AAAAAACMFR636JljxhVLl' onSuccess={setToken} onError={(error) => console.error("Turnstile error:", error)} onExpire={() => setToken(null)} />
-								</div>
-								{newsletterState === "loading" && <p className='text-xs text-default-500 pt-1'>Subscribing...</p>}
-								{newsletterState === "captcha" && <p className='text-xs text-default-500 pt-1'>Please complete the CAPTCHA first.</p>}
-								{newsletterState === "error" && <p className='text-xs text-danger pt-1'>Could not subscribe right now. Please try again.</p>}
-								{newsletterState === "rateLimit" && <p className='text-xs text-danger pt-1'>Too many attempts. Please wait a moment.</p>}
-							</Form>
-						</div>
-						<Modal isOpen={isSuccessOpen} onOpenChange={(open) => setIsSuccessOpen(open)}>
-							<ModalContent>
-								<div className='p-6'>
-									<div className='text-success-500 mt-2 text-center'>
-										<Image alt='Tada Icon' src='https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Activities/Party%20Popper.png' width='50' height='50' className='mx-auto' />
-										<p className='text-lg font-bold'>You&apos;re almost there!</p>
-										<p className='text-xs'>We&apos;ve just sent a confirmation email your way. Check your inbox to finish subscribing-and if you don&apos;t see it, be sure to take a quick look in your spam folder too.</p>
+									<div className='pt-1'>
+										<Turnstile siteKey='0x4AAAAAACMFR636JljxhVLl' onSuccess={setToken} onError={(error) => console.error("Turnstile error:", error)} onExpire={() => setToken(null)} />
 									</div>
-								</div>
-							</ModalContent>
-						</Modal>
-					</div>
+									{newsletterState === "loading" && <p className='text-xs text-muted pt-1'>Subscribing...</p>}
+									{newsletterState === "captcha" && <p className='text-xs text-muted pt-1'>Please complete the CAPTCHA first.</p>}
+									{newsletterState === "error" && <p className='text-xs text-danger pt-1'>Could not subscribe right now. Please try again.</p>}
+									{newsletterState === "rateLimit" && <p className='text-xs text-danger pt-1'>Too many attempts. Please wait a moment.</p>}
+								</Form>
+							</div>
+						</Card.Content>
+					</Card>
+					<Modal>
+						<Modal.Backdrop isOpen={isSuccessOpen} onOpenChange={setIsSuccessOpen}>
+							<Modal.Container>
+								<Modal.Dialog>
+									<Modal.CloseTrigger />
+									<Modal.Body>
+										<div className='p-6'>
+											<div className='text-success mt-2 text-center'>
+												<Image unoptimized alt='Tada Icon' src='https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Activities/Party%20Popper.png' width={50} height={50} className='mx-auto' />
+												<p className='text-lg font-bold'>You&apos;re almost there!</p>
+												<p className='text-xs'>We&apos;ve just sent a confirmation email your way. Check your inbox to finish subscribing-and if you don&apos;t see it, be sure to take a quick look in your spam folder too.</p>
+											</div>
+										</div>
+									</Modal.Body>
+								</Modal.Dialog>
+							</Modal.Container>
+						</Modal.Backdrop>
+					</Modal>
 
 					<div className='flex flex-wrap justify-between gap-2 pt-8'>
 						<div>
 							<div className='flex items-center justify-center gap-3 md:justify-start'>
 								<Link href='https://status.thedannicraft.de/status/clipify'>
-									<Chip
-										className='border-none px-0 text-default-500'
-										classNames={{
-											dot: "bg-[var(--chip-dot-bg)]",
-										}}
-										style={
-											{
-												"--chip-dot-bg": statusColor,
-											} as React.CSSProperties
-										}
-										variant='dot'
-									>
-										{statusText}
+									<Chip className='px-0 text-muted' variant='tertiary'>
+										<span aria-hidden className='h-2 w-2 rounded-full' style={{ backgroundColor: statusColor }} />
+										<span>{statusText}</span>
 									</Chip>
 								</Link>
 							</div>
-							<p className='text-center text-tiny text-default-400 md:text-start'>&copy; {new Date().getFullYear()} TheDanniCraft. All rights reserved.</p>
+							<p className='text-center text-xs text-muted md:text-start'>&copy; {new Date().getFullYear()} TheDanniCraft. All rights reserved.</p>
 						</div>
 
-						<Tabs onSelectionChange={(key) => setTheme(String(key))} color='primary' selectedKey={theme ?? "dark"}>
-							<Tab title={<IconMoonFilled />} key='dark' aria-label='Switch to dark theme' />
-							<Tab title={<IconSunFilled />} key='light' aria-label='Switch to light theme' />
+						<Tabs className='w-fit' onSelectionChange={(key) => setTheme(String(key))} selectedKey={theme ?? "dark"}>
+							<Tabs.ListContainer className='w-fit'>
+								<Tabs.List aria-label='Color theme' className='w-fit *:w-fit'>
+									<Tabs.Tab id='dark' className='flex-none' aria-label='Switch to dark theme'>
+										<IconMoonFilled />
+										<Tabs.Indicator />
+									</Tabs.Tab>
+									<Tabs.Tab id='light' className='flex-none' aria-label='Switch to light theme'>
+										<IconSunFilled />
+										<Tabs.Indicator />
+									</Tabs.Tab>
+								</Tabs.List>
+							</Tabs.ListContainer>
 						</Tabs>
 					</div>
 				</div>

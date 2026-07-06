@@ -1,0 +1,65 @@
+/*
+ * HeroUI Pro Theme
+ * Add this to your globals.css after importing @heroui/styles
+ * @see https://heroui.com/docs/react/getting-started/theming
+ */
+
+/*
+ * Font: Inter
+ * Load this font in your app:
+ * <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet" />
+ */
+:root,
+.light,
+.default,
+[data-theme="light"],
+[data-theme="default"] {
+	/* Theme Colors */
+	--background: oklch(97.02% 0.0001 263.28);
+	--muted: oklch(55.17% 0 284.36);
+	--scrollbar: oklch(87.1% 0 284.36);
+	--surface-secondary: oklch(95.24% 0 284.36);
+	--surface-tertiary: oklch(93.73% 0 284.36);
+	--default: oklch(94% 0 284.36);
+	--accent: oklch(48.8% 0.2839 284.35);
+	--accent-foreground: oklch(99.11% 0 0);
+	--success: oklch(73.29% 0.1941 154.47);
+	--success-foreground: oklch(21.03% 0.0059 154.47);
+	--warning: oklch(74.65% 0.1645 67.39);
+	--danger: oklch(61.31% 0.2258 20.68);
+	--field-border: oklch(90% 0 284.36);
+	--border: oklch(90% 0 284.36);
+	--separator: oklch(92% 0 284.36);
+	--background-secondary: color-mix(in oklab, var(--background) 98%, var(--foreground) 2%);
+	--background-tertiary: color-mix(in oklab, var(--background) 96%, var(--foreground) 5%);
+}
+
+.dark,
+[data-theme="dark"] {
+	color-scheme: dark;
+	/* Theme Colors */
+	--background: oklch(17.3% 0 263.28);
+	--muted: oklch(70.5% 0 284.36);
+	--scrollbar: oklch(70.5% 0 284.36);
+	--surface: oklch(21.03% 0 284.36);
+	--surface-secondary: oklch(25.7% 0 284.36);
+	--surface-secondary-foreground: oklch(25.7% 0 284.36);
+	--surface-tertiary: oklch(27.21% 0 284.36);
+	--surface-tertiary-foreground: oklch(27.21% 0 284.36);
+	--overlay: oklch(21.03% 0 284.36);
+	--default: oklch(27.4% 0 284.36);
+	--accent: oklch(48.8% 0.2839 284.35);
+	--accent-foreground: oklch(99.11% 0 0);
+	--success: oklch(73.29% 0.1941 154.47);
+	--success-foreground: oklch(21.03% 0.0059 154.47);
+	--warning: oklch(78.19% 0.1584 72.32);
+	--danger: oklch(61.93% 0.2419 11.32);
+	--field-background: oklch(21.03% 0 284.36);
+	--field-placeholder: oklch(70.5% 0 284.36);
+	--field-border: oklch(28% 0 284.36);
+	--segment: oklch(39.64% 0 284.36);
+	--border: oklch(28% 0 284.36);
+	--separator: oklch(25% 0 284.36);
+	--background-secondary: color-mix(in oklab, var(--background) 98%, var(--foreground) 2%);
+	--background-tertiary: color-mix(in oklab, var(--background) 96%, var(--foreground) 5%);
+}

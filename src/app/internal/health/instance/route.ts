@@ -31,14 +31,11 @@ export async function GET(request: NextRequest) {
 		return new Response("Unauthorized", { status: 401 });
 	}
 
-	const health = await getInstanceHealthSnapshot();
+	const health = await getInstanceHealthSnapshot({ exclude: ["twitchRateLimit"] });
 
-	return Response.json(
-		health,
-		{
-			headers: {
-				"Cache-Control": "no-store",
-			},
+	return Response.json(health, {
+		headers: {
+			"Cache-Control": "no-store",
 		},
-	);
+	});
 }

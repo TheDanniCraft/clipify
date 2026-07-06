@@ -34,9 +34,9 @@ export async function submitFeedback(feedback: Feedback): Promise<FiderPost | nu
 	if (!process.env.FIDER_BASE_URL) {
 		throw new Error("FIDER_BASE_URL not set");
 	}
-/* istanbul ignore next */
+	/* istanbul ignore next */
 	if (!process.env.FIDER_API_KEY) {
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		throw new Error("FIDER_API_KEY not set");
 	}
 
@@ -74,13 +74,13 @@ async function createUser(name: string, email: string, userId: string): Promise<
 					Authorization: `Bearer ${apiToken}`,
 					"Content-Type": "application/json",
 				},
-			}
+			},
 		);
 		return response.data;
 	} catch (error) {
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		if (axios.isAxiosError(error)) {
-/* istanbul ignore next */
+			/* istanbul ignore next */
 			console.error("Axios error creating user:", error.response?.data || error.message);
 		} else {
 			console.error("Error creating user:", error);
@@ -105,41 +105,41 @@ async function createFeedback(fiderUserId: number, feedback: Feedback): Promise<
 					"Content-Type": "application/json",
 					"X-Fider-UserID": fiderUserId,
 				},
-			}
+			},
 		);
 
 		await tagPost(response.data.id, feedbackTypeTagMap[feedback.type]);
 
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		if (feedback.type == "feedback" && feedback.feedback.rating) {
 			let ratingTag: string;
-/* istanbul ignore next */
+			/* istanbul ignore next */
 			switch (feedback.feedback.rating) {
 				case "bad":
-/* istanbul ignore next */
+					/* istanbul ignore next */
 					ratingTag = "bad";
-/* istanbul ignore next */
+					/* istanbul ignore next */
 					break;
 				case "poor":
-/* istanbul ignore next */
+					/* istanbul ignore next */
 					ratingTag = "poor";
-/* istanbul ignore next */
+					/* istanbul ignore next */
 					break;
 				case "neutral":
-/* istanbul ignore next */
+					/* istanbul ignore next */
 					ratingTag = "neutral";
-/* istanbul ignore next */
+					/* istanbul ignore next */
 					break;
 				case "great":
-/* istanbul ignore next */
+					/* istanbul ignore next */
 					ratingTag = "great";
-/* istanbul ignore next */
+					/* istanbul ignore next */
 					break;
 				case "excellent":
 					ratingTag = "excellent";
 					break;
 				default:
-/* istanbul ignore next */
+					/* istanbul ignore next */
 					ratingTag = "neutral";
 			}
 			await tagPost(response.data.id, ratingTag);
@@ -147,15 +147,15 @@ async function createFeedback(fiderUserId: number, feedback: Feedback): Promise<
 
 		return response.data;
 	} catch (error) {
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		if (axios.isAxiosError(error)) {
-/* istanbul ignore next */
+			/* istanbul ignore next */
 			console.error("Axios error creating feedback:", error.response?.data || error.message);
 		} else {
-/* istanbul ignore next */
+			/* istanbul ignore next */
 			console.error("Error creating feedback:", error);
 		}
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		throw new Error("Failed to create feedback");
 	}
 }
@@ -170,20 +170,18 @@ async function tagPost(postId: number, tag: string): Promise<void> {
 					Authorization: `Bearer ${apiToken}`,
 					"Content-Type": "application/json",
 				},
-			}
+			},
 		);
 	} catch (error) {
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		if (axios.isAxiosError(error)) {
-/* istanbul ignore next */
+			/* istanbul ignore next */
 			console.error("Axios error tagging post:", error.response?.data || error.message);
 		} else {
-/* istanbul ignore next */
+			/* istanbul ignore next */
 			console.error("Error tagging post:", error);
 		}
-/* istanbul ignore next */
+		/* istanbul ignore next */
 		throw new Error("Failed to tag post");
 	}
 }
-
-

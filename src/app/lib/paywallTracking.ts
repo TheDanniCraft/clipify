@@ -7,4 +7,3 @@ type PlausibleFn = (eventName: string, options?: { props?: Record<string, string
 export function trackPaywallEvent(plausible: PlausibleFn, eventName: PaywallEvent, props?: Record<string, string | number | boolean | null | undefined>) {
 	plausible(eventName, { props });
 }
-

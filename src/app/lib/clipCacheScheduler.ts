@@ -4,13 +4,12 @@ const CLIP_CACHE_SYNC_BATCH_SIZE = 25;
 const CLIP_CACHE_SYNC_LOCK_KEY = "clip_cache_scheduler";
 
 declare global {
-	 
 	var __clipCacheSchedulerStarted: boolean | undefined;
-	 
+
 	var __clipCacheSchedulerTimer: ReturnType<typeof setInterval> | undefined;
-	 
+
 	var __clipCacheSchedulerRunning: boolean | undefined;
-	 
+
 	var __clipCacheSchedulerStats:
 		| {
 				startedAt: string;
