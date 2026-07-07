@@ -1,9 +1,10 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { launch, getStream } from "puppeteer-stream";
 import type { Browser, Page } from "puppeteer-core";
 import { spawn, type ChildProcess } from "child_process";
-import NodeMediaServer from "node-media-server";
 import * as os from "os";
 import * as path from "path";
+import * as fs from "fs";
 import { ensureDependencies } from "./downloader";
 import { writeExtension } from "./extension";
 
@@ -21,7 +22,7 @@ function startTCPProxy() {
 	console.log(`[TCP Proxy] Starting on port 1935...`);
 	proxyServer = net.createServer((clientSocket) => {
 		console.log(`[TCP Proxy] Connection received from ${clientSocket.remoteAddress}`);
-		
+
 		// 1. Emit obsConnected so Engine can start FFmpeg listening on 1936
 		proxyEvents.emit("obsConnected");
 
@@ -38,7 +39,7 @@ function startTCPProxy() {
 			}
 
 			forwardSocket = new net.Socket();
-			
+
 			forwardSocket.on("error", (err: unknown) => {
 				const error = err as NodeJS.ErrnoException;
 				if (error.code === "ECONNREFUSED" && retryCount < 50) {
@@ -52,7 +53,7 @@ function startTCPProxy() {
 
 			forwardSocket.connect(1936, "127.0.0.1", () => {
 				console.log(`[TCP Proxy] Connected to local FFmpeg on 1936. Piping data...`);
-				
+
 				// Only destroy the client when the FFmpeg connection intentionally closes AFTER a successful connection
 				forwardSocket!.on("close", () => {
 					clientSocket.destroy();
@@ -83,9 +84,8 @@ function startTCPProxy() {
 }
 
 export class Engine {
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	private browser: Browser | null = null;
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+
 	private page: Page | null = null;
 	private ffmpeg: ChildProcess | null = null;
 	private obsForwarder: ChildProcess | null = null;
@@ -94,7 +94,7 @@ export class Engine {
 	// In failsafe mode, are we currently forwarding OBS instead of Puppeteer?
 	private isForwardingObs: boolean = false;
 	private expectedCloudLoopExit: boolean = false;
-	
+
 	private chromePath: string = "";
 	private ffmpegPath: string = "ffmpeg";
 	private extPath: string = "";
@@ -107,26 +107,28 @@ export class Engine {
 		public readonly fps: number = 60,
 		public readonly resolution: string = "1080p",
 		public readonly mode: "24_7" | "failsafe" = "24_7",
-		public readonly apiBase: string = "http://localhost:3000"
+		public readonly apiBase: string = "http://localhost:3000",
 	) {}
 
 	private handleObsConnected = () => {
 		if (!this.isRunning) return;
 		if (this.mode !== "failsafe") return;
-		
+
 		console.log(`[Engine] OBS Connected to TCP Proxy. Switching to OBS Forwarder...`);
 		this.isForwardingObs = true;
-		
+
 		// Stop streaming Cloud Loop to YouTube
 		this.stopCloudLoopStream();
 
 		// Tell Chromium to pause clips
 		if (this.page) {
-			this.page.evaluate(() => {
-				if (typeof (window as any).stopFallback === "function") {
-					(window as any).stopFallback();
-				}
-			}).catch(err => console.error("[Engine] Failed to stop fallback:", err));
+			this.page
+				.evaluate(() => {
+					if (typeof (window as any).stopFallback === "function") {
+						(window as any).stopFallback();
+					}
+				})
+				.catch((err) => console.error("[Engine] Failed to stop fallback:", err));
 		}
 
 		// Start forwarding local RTMP to destination
@@ -140,7 +142,7 @@ export class Engine {
 
 		console.log(`[Engine] OBS Disconnected. Falling back to Cloud Loop...`);
 		this.isForwardingObs = false;
-		
+
 		// Stop OBS Forwarder
 		if (this.obsForwarder) {
 			this.obsForwarder.kill("SIGINT");
@@ -149,11 +151,12 @@ export class Engine {
 
 		// Tell Chromium to play clips (now handled safely inside startCloudLoopStream)
 		// Start streaming Cloud Loop to YouTube
-		this.startCloudLoopStream().catch(err => console.error("[Engine] Failed to start cloud loop stream:", err));
+		this.startCloudLoopStream().catch((err) => console.error("[Engine] Failed to start cloud loop stream:", err));
 	};
 
 	async start() {
 		if (this.isRunning) return;
+		this.isRunning = true;
 		console.log(`[Engine] Ensuring dependencies are ready...`);
 		const deps = await ensureDependencies();
 		this.chromePath = deps.chromePath;
@@ -162,7 +165,6 @@ export class Engine {
 		this.extPath = path.join(os.homedir(), ".clipify-runner", "extension");
 		writeExtension(this.extPath);
 
-		this.isRunning = true;
 		console.log(`[Engine] Starting stream for overlay ${this.overlayId} in ${this.mode} mode...`);
 
 		if (this.mode === "failsafe") {
@@ -183,11 +185,12 @@ export class Engine {
 	}
 
 	private mediaStream: any = null;
+	public ffmpegStatus: string = "Starting... ⏳";
 
 	private async startChromiumBackground() {
 		if (this.browser) return;
 		console.log(`[Engine] Launching Puppeteer...`);
-		this.browser = await launch({
+		this.browser = (await launch({
 			executablePath: this.chromePath,
 			extensionPath: this.extPath,
 			headless: "new",
@@ -195,16 +198,11 @@ export class Engine {
 				width: 1920,
 				height: 1080,
 			},
-			args: [
-				"--no-sandbox",
-				"--disable-setuid-sandbox",
-				"--autoplay-policy=no-user-gesture-required",
-				"--window-size=1920,1080",
-			],
-		});
+			args: ["--no-sandbox", "--disable-setuid-sandbox", "--autoplay-policy=no-user-gesture-required", "--window-size=1920,1080"],
+		})) as any;
 
-		this.page = await this.browser.newPage();
-		
+		this.page = await this.browser!.newPage();
+
 		let overlayUrl = `${this.apiBase}/overlay/${this.overlayId}?secret=${this.overlaySecret}`;
 		if (this.mode === "failsafe") {
 			overlayUrl += "&showFallbackBanner=true&standby=true";
@@ -212,6 +210,45 @@ export class Engine {
 
 		console.log(`[Engine] Navigating to ${overlayUrl}`);
 		await this.page.goto(overlayUrl, { waitUntil: "networkidle2" });
+	}
+
+	private monitorFFmpeg(child: any, name: string) {
+		let lastLogTime = 0;
+		let lastErrorLine = "";
+
+		child.stderr.on("data", (data: Buffer) => {
+			const text = data.toString();
+
+			const lines = text
+				.split("\n")
+				.map((l) => l.trim())
+				.filter((l) => l.length > 0);
+			if (lines.length > 0) {
+				lastErrorLine = lines[lines.length - 1];
+			}
+
+			if (text.includes("bitrate=")) {
+				const now = Date.now();
+				if (now - lastLogTime > 1000) {
+					const bitrateMatch = text.match(/bitrate=\s*([\d.]+\s*kbits\/s)/);
+					const fpsMatch = text.match(/fps=\s*([\d.]+)/);
+					const timeMatch = text.match(/time=([\d:.]+)/);
+
+					if (bitrateMatch) {
+						this.ffmpegStatus = `Healthy 🟢 | FPS: ${fpsMatch ? fpsMatch[1] : "?"} | Bitrate: ${bitrateMatch[1]} | Uptime: ${timeMatch ? timeMatch[1] : "?"}`;
+						lastLogTime = now;
+					}
+				}
+			}
+		});
+
+		child.on("close", (code: number) => {
+			this.ffmpegStatus = `Stopped 🔴 (Code: ${code})`;
+			console.log(`[${name}] Exited with code ${code}`);
+			if (code !== 0 && code !== null) {
+				console.error(`[${name}] 🔴 Stopped unexpectedly. Last log: ${lastErrorLine}`);
+			}
+		});
 	}
 
 	private async startCloudLoopStream() {
@@ -233,42 +270,30 @@ export class Engine {
 						maxWidth: this.resolution === "1080p" ? 1920 : 1280,
 						minHeight: this.resolution === "1080p" ? 1080 : 720,
 						maxHeight: this.resolution === "1080p" ? 1080 : 720,
-					}
-				}
+					},
+				} as any,
 			});
 
 			if (this.mode === "failsafe" && this.page) {
-				this.page.evaluate(() => {
-					if (typeof (window as any).startFallback === "function") {
-						(window as any).startFallback();
-					}
-				}).catch((err: unknown) => console.error("[Engine] Failed to start fallback:", err));
+				this.page
+					.evaluate(() => {
+						if (typeof (window as any).startFallback === "function") {
+							(window as any).startFallback();
+						}
+					})
+					.catch((err: unknown) => console.error("[Engine] Failed to start fallback:", err));
 			}
 
 			console.log(`[Engine] Spawning Cloud Loop FFmpeg...`);
 			const fullRtmpUrl = this.streamKey ? `${this.rtmpUrl}/${this.streamKey}` : this.rtmpUrl;
-			
-			this.ffmpeg = spawn(this.ffmpegPath, [
-				"-y",
-				"-thread_queue_size", "1024",
-				"-i", "-", 
-				"-c:v", "libx264",
-				"-preset", "veryfast",
-				"-b:v", "4500k",
-				"-maxrate", "4500k",
-				"-bufsize", "9000k",
-				"-pix_fmt", "yuv420p",
-				"-g", `${this.fps * 2}`, 
-				"-r", `${this.fps}`,
-				"-c:a", "aac",
-				"-b:a", "160k",
-				"-ar", "44100",
-				"-f", "flv",
-				fullRtmpUrl,
-			]);
 
-			this.ffmpeg.on("close", (code) => {
-				console.log(`[Engine] Cloud Loop FFmpeg exited with code ${code}`);
+			const previewPath = path.join(os.tmpdir(), `clipify-preview-${this.overlayId}.jpg`);
+			this.ffmpeg = spawn(this.ffmpegPath, ["-y", "-thread_queue_size", "1024", "-i", "-", "-c:v", "libx264", "-preset", "veryfast", "-b:v", "4500k", "-maxrate", "4500k", "-bufsize", "9000k", "-pix_fmt", "yuv420p", "-g", `${this.fps * 2}`, "-r", `${this.fps}`, "-c:a", "aac", "-b:a", "160k", "-ar", "44100", "-f", "flv", fullRtmpUrl, "-map", "0:v:0", "-f", "image2", "-update", "1", "-r", "1", previewPath], { windowsHide: true });
+
+			this.monitorFFmpeg(this.ffmpeg, "Cloud Loop FFmpeg");
+			this.startPreviewUploader(previewPath);
+
+			this.ffmpeg.on("close", () => {
 				if (this.expectedCloudLoopExit) {
 					// Intentionally stopped
 					return;
@@ -288,7 +313,6 @@ export class Engine {
 			});
 			this.mediaStream.pipe(this.ffmpeg.stdin!);
 			console.log(`[Engine] Cloud Loop successfully started to ${this.rtmpUrl}`);
-
 		} catch (error) {
 			console.error(`[Engine] Failed to start cloud loop stream:`, error);
 			if (!this.isForwardingObs) await this.stop();
@@ -298,27 +322,46 @@ export class Engine {
 
 	private startObsForwarder() {
 		const fullRtmpUrl = this.streamKey ? `${this.rtmpUrl}/${this.streamKey}` : this.rtmpUrl;
-		
+
 		console.log(`[Engine] Spawning FFmpeg to forward local OBS (port 1936) -> ${fullRtmpUrl}...`);
-		
+
+		const previewPath = path.join(os.tmpdir(), `clipify-preview-${this.overlayId}.jpg`);
 		// FFmpeg acts as the RTMP server on port 1936. TCP Proxy connects to it.
 		// -listen 1 tells FFmpeg to accept one incoming RTMP connection.
-		this.obsForwarder = spawn(this.ffmpegPath, [
-			"-y",
-			"-listen", "1",
-			"-i", "rtmp://127.0.0.1:1936",
-			"-c", "copy",
-			"-f", "flv",
-			fullRtmpUrl,
-		]);
+		this.obsForwarder = spawn(this.ffmpegPath, ["-y", "-listen", "1", "-i", "rtmp://127.0.0.1:1936", "-c", "copy", "-f", "flv", fullRtmpUrl, "-map", "0:v:0", "-f", "image2", "-update", "1", "-r", "1", previewPath], { windowsHide: true });
 
-		this.obsForwarder.on("close", (code) => {
-			console.log(`[Engine] OBS Forwarder exited with code ${code}`);
-		});
+		this.monitorFFmpeg(this.obsForwarder, "OBS Forwarder");
+		this.startPreviewUploader(previewPath);
+	}
+
+	private previewInterval: NodeJS.Timeout | null = null;
+
+	private startPreviewUploader(previewPath: string) {
+		if (this.previewInterval) clearInterval(this.previewInterval);
+		this.previewInterval = setInterval(() => {
+			if (!fs.existsSync(previewPath)) return;
+			try {
+				const base64 = fs.readFileSync(previewPath, { encoding: "base64" });
+				const dataUrl = `data:image/jpeg;base64,${base64}`;
+
+				fetch(`${this.apiBase}/api/runner/preview`, {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({ overlayId: this.overlayId, secret: this.overlaySecret, image: dataUrl }),
+				}).catch(() => {});
+			} catch {
+				// ignore read errors
+			}
+		}, 2000);
 	}
 
 	private stopCloudLoopStream() {
 		this.expectedCloudLoopExit = true;
+		if (this.previewInterval) {
+			clearInterval(this.previewInterval);
+			this.previewInterval = null;
+		}
+
 		if (this.mediaStream) {
 			this.mediaStream.destroy();
 			this.mediaStream = null;
@@ -355,7 +398,7 @@ export class Engine {
 			this.obsForwarder.kill("SIGINT");
 			this.obsForwarder = null;
 		}
-		
+
 		console.log(`[Engine] Stream stopped.`);
 	}
 }

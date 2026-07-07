@@ -68,6 +68,7 @@ jest.mock("@actions/runner", () => ({
 	createRunner: jest.fn(),
 	deleteRunner: jest.fn(),
 	getAllRunners: jest.fn().mockResolvedValue([]),
+	getAllStreamSessions: jest.fn().mockResolvedValue([]),
 	getStreamSessionsForRunner: jest.fn().mockResolvedValue([]),
 	setStreamDesiredState: jest.fn(),
 }));

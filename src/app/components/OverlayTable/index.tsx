@@ -9,9 +9,9 @@ import { StatusOptions } from "@types";
 import type { Key } from "@react-types/shared";
 
 import React, { useMemo, useCallback, useState, useEffect } from "react";
-import { IconAdjustmentsHorizontal, IconArrowsLeftRight, IconChevronDown, IconCirclePlus, IconCircuitChangeover, IconCrown, IconInfoCircle, IconMenuDeep, IconPencil, IconReload, IconSearch, IconTrash, IconServer } from "@tabler/icons-react";
+import { IconAdjustmentsHorizontal, IconArrowsLeftRight, IconChevronDown, IconCirclePlus, IconCircuitChangeover, IconCrown, IconInfoCircle, IconMenuDeep, IconPencil, IconReload, IconSearch, IconTrash } from "@tabler/icons-react";
 import { createOverlay, createPlaylist, deleteOverlay, deletePlaylist, saveOverlay, getAllOverlays, getAllPlaylists, getEditorOverlays, getEditorAccess } from "@actions/database";
-import { createRunner, getAllRunners } from "@actions/runner";
+import { createRunner, getAllRunners, getAllStreamSessions } from "@actions/runner";
 import { validateAuth } from "@actions/auth";
 import UpgradeModal from "@components/upgradeModal";
 import AppPagination from "@components/appPagination";
@@ -32,7 +32,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 	const router = useRouter();
 	type LocalOverlay = Overlay & { accessType?: "owner" | "editor" };
 	type LocalPlaylist = { id: string; ownerId: string; name: string; clipCount: number; accessType?: "owner" | "editor" };
-	type LocalRunner = { id: string; ownerId: string; name: string; status: string; createdAt: Date; lastHeartbeatAt: Date | null };
+	type LocalRunner = { id: string; ownerId: string; name: string; status: string; createdAt: Date; lastHeartbeatAt: Date | null; streamState?: string; streamError?: string | null };
 
 	const [overlays, setOverlays] = useState<LocalOverlay[]>();
 	const [playlists, setPlaylists] = useState<LocalPlaylist[]>();
@@ -79,6 +79,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 				const overlaysData = await getAllOverlays(userId);
 				const playlistsData = await getAllPlaylists(userId);
 				const runnersData = await getAllRunners(userId);
+				const streamSessionsData = await getAllStreamSessions(userId);
 				const editorOverlays = await getEditorOverlays(userId);
 
 				const combinedOverlays: LocalOverlay[] = [...(overlaysData ?? []).map((o) => ({ ...o, accessType: "owner" as const })), ...(editorOverlays ?? []).map((o) => ({ ...o, accessType: "editor" as const }))];
@@ -89,10 +90,14 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 					clipCount: playlist.clipCount,
 					accessType: playlist.accessType,
 				}));
+				const combinedRunners: LocalRunner[] = (runnersData ?? []).map((r) => {
+					const session = streamSessionsData?.find((s) => s.runnerId === r.id);
+					return { ...r, streamState: session?.actualState, streamError: session?.lastError };
+				});
 
 				setOverlays(combinedOverlays ?? undefined);
 				setPlaylists(combinedPlaylists ?? undefined);
-				setRunners(runnersData ?? undefined);
+				setRunners(combinedRunners ?? undefined);
 			} catch (error) {
 				console.error("Failed to fetch overlays:", error);
 			}
@@ -354,19 +359,38 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 					case "name":
 						return <div className='font-semibold'>{runner.name}</div>;
 					case "status":
+						let statusText = "Offline";
+						let color: "default" | "success" | "danger" = "default";
+
+						if (runner.status === "online") {
+							if (runner.streamState === "running") {
+								statusText = "Streaming";
+								color = "danger";
+							} else {
+								statusText = "Online";
+								color = "success";
+							}
+						}
+
 						return (
-							<div className="flex items-center gap-2">
-								<IconServer className="text-muted" width={16} />
-								<span className={runner.status === "online" ? "text-success" : "text-muted"}>{runner.status}</span>
+							<div className='flex items-center gap-2'>
+								<Chip color={color} variant='soft' size='sm'>
+									{statusText}
+								</Chip>
+								{runner.streamError && (
+									<Chip color='warning' variant='soft' size='sm'>
+										Error
+									</Chip>
+								)}
 							</div>
 						);
 					case "actions":
 						return (
 							<div className='flex items-center justify-end gap-2'>
-								<IconTrash 
-									className='cursor-pointer text-muted' 
-									height={18} 
-									width={18} 
+								<IconTrash
+									className='cursor-pointer text-muted'
+									height={18}
+									width={18}
 									onClick={(event) => {
 										event.stopPropagation();
 										// Call deleteRunner here when implemented
@@ -436,6 +460,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 		const overlaysData = await getAllOverlays(userId);
 		const playlistsData = await getAllPlaylists(userId);
 		const runnersData = await getAllRunners(userId);
+		const streamSessionsData = await getAllStreamSessions(userId);
 		const editorOverlays = await getEditorOverlays(userId);
 
 		const combinedOverlays: LocalOverlay[] = [...(overlaysData ?? []).map((o) => ({ ...o, accessType: "owner" as const })), ...(editorOverlays ?? []).map((o) => ({ ...o, accessType: "editor" as const }))];
@@ -446,10 +471,14 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 			clipCount: playlist.clipCount,
 			accessType: playlist.accessType,
 		}));
+		const combinedRunners: LocalRunner[] = (runnersData ?? []).map((r) => {
+			const session = streamSessionsData?.find((s) => s.runnerId === r.id);
+			return { ...r, streamState: session?.actualState, streamError: session?.lastError };
+		});
 
 		setOverlays(combinedOverlays ?? undefined);
 		setPlaylists(combinedPlaylists ?? undefined);
-		setRunners(runnersData ?? undefined);
+		setRunners(combinedRunners ?? undefined);
 	});
 
 	const topContent = useMemo(() => {

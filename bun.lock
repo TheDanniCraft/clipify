@@ -10,6 +10,7 @@
         "@puppeteer/browsers": "^3.0.6",
         "@sentry/nextjs": "^10.63.0",
         "@tabler/icons-react": "^3.44.0",
+        "@types/ffbinaries": "^1.1.5",
         "axios": "^1.18.1",
         "dotenv": "^17.4.2",
         "drizzle-orm": "^0.45.2",
@@ -724,6 +725,8 @@
     "@types/d3-timer": ["@types/d3-timer@3.0.2", "", {}, "sha512-Ps3T8E8dZDam6fUyNiMkekK3XUsaUEik+idO9/YjPtfj2qruF8tFBXS7XhtE4iIXBLxhmLjP3SXpLhVf21I9Lw=="],
 
     "@types/estree": ["@types/estree@1.0.9", "", {}, "sha512-GhdPgy1el4/ImP05X05Uw4cw2/M93BCUmnEvWZNStlCzEKME4Fkk+YpoA5OiHNQmoS7Cafb8Xa3Pya8m1Qrzeg=="],
+
+    "@types/ffbinaries": ["@types/ffbinaries@1.1.5", "", {}, "sha512-+0XR38PSlYRvVpd3WnyTdNSx0qTl7dbqzGMXop6YIUBuEKIRBs2MiNBxyD8bnap//uG5taWszT2XKt8Hf1+GVQ=="],
 
     "@types/istanbul-lib-coverage": ["@types/istanbul-lib-coverage@2.0.6", "", {}, "sha512-2QF/t/auWm0lsy8XtKVPG19v3sSOQlJe/YHZgfjb/KBBHOGSV+J2q/S671rcq9uTBrLAXmZpqJiaQbMT+zNU1w=="],
 

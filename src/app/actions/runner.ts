@@ -12,7 +12,7 @@ async function hasAccess(ownerId: string, userId: string) {
 	if (ownerId === userId) return true;
 	const editorRows = await getEditorAccess(ownerId);
 	if (!editorRows) return false;
-	return editorRows.some(e => e.editorId === userId);
+	return editorRows.some((e) => e.editorId === userId);
 }
 
 export async function createRunner(ownerId: string, name: string) {
@@ -23,7 +23,8 @@ export async function createRunner(ownerId: string, name: string) {
 		// Generate a secure random token for the runner to authenticate with
 		const token = `cl_run_${randomBytes(24).toString("hex")}`;
 
-		const [newRunner] = await db.insert(runnersTable)
+		const [newRunner] = await db
+			.insert(runnersTable)
 			.values({
 				ownerId,
 				name,
@@ -44,9 +45,10 @@ export async function deleteRunner(runnerId: string, ownerId: string) {
 		const user = await validateAuth();
 		if (!user || !(await hasAccess(ownerId, user.id))) return { success: false, error: "Unauthorized" };
 
-		await db.delete(runnersTable)
+		await db
+			.delete(runnersTable)
 			// Ensure only the owner can delete it (or admin check, omitted for prototype)
-			.where(and(eq(runnersTable.id, runnerId), eq(runnersTable.ownerId, ownerId))); 
+			.where(and(eq(runnersTable.id, runnerId), eq(runnersTable.ownerId, ownerId)));
 
 		revalidatePath("/dashboard/runners");
 		return { success: true };
@@ -60,24 +62,14 @@ import { streamSessionsTable } from "@/db/schema";
 import { encryptString } from "@/app/lib/encryption";
 import type { StreamMode, StreamState } from "@/app/lib/types";
 
-export async function upsertStreamSession(data: {
-	id?: string;
-	ownerId: string;
-	runnerId: string;
-	overlayId: string;
-	mode: StreamMode;
-	streamKey: string;
-	rtmpUrl: string;
-	resolution?: string;
-	fps?: number;
-}) {
+export async function upsertStreamSession(data: { id?: string; ownerId: string; runnerId: string; overlayId: string; mode: StreamMode; streamKey: string; clearStreamKey?: boolean; rtmpUrl: string; resolution?: string; fps?: number }) {
 	try {
 		const user = await validateAuth();
 		if (!user || !(await hasAccess(data.ownerId, user.id))) return { success: false, error: "Unauthorized" };
 
 		if (data.id) {
 			// Update existing
-			const updatePayload: any = {
+			const updatePayload: Record<string, unknown> = {
 				runnerId: data.runnerId,
 				overlayId: data.overlayId,
 				mode: data.mode,
@@ -85,13 +77,13 @@ export async function upsertStreamSession(data: {
 				resolution: data.resolution || "1080p",
 				fps: data.fps || 60,
 			};
-			if (data.streamKey) {
+			if (data.clearStreamKey) {
+				updatePayload.encryptedStreamKey = null;
+			} else if (data.streamKey) {
 				updatePayload.encryptedStreamKey = encryptString(data.streamKey);
 			}
 
-			await db.update(streamSessionsTable)
-				.set(updatePayload)
-				.where(eq(streamSessionsTable.id, data.id));
+			await db.update(streamSessionsTable).set(updatePayload).where(eq(streamSessionsTable.id, data.id));
 		} else {
 			// Insert new
 			await db.insert(streamSessionsTable).values({
@@ -123,9 +115,7 @@ export async function setStreamDesiredState(sessionId: string, state: StreamStat
 		const session = await db.query.streamSessionsTable.findFirst({ where: eq(streamSessionsTable.id, sessionId) });
 		if (!session || !(await hasAccess(session.ownerId, user.id))) return { success: false, error: "Unauthorized" };
 
-		await db.update(streamSessionsTable)
-			.set({ desiredState: state })
-			.where(eq(streamSessionsTable.id, sessionId));
+		await db.update(streamSessionsTable).set({ desiredState: state }).where(eq(streamSessionsTable.id, sessionId));
 
 		revalidatePath("/dashboard/runners");
 		return { success: true };

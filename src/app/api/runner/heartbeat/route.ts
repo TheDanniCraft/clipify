@@ -26,15 +26,17 @@ export async function POST(req: Request) {
 
 		// 2. Parse payload
 		const body = await req.json();
-		const { os, version, actualStates } = body;
+		const { os, version, actualStates, hostname } = body;
 
 		// 3. Update Runner Status
-		await db.update(runnersTable)
+		await db
+			.update(runnersTable)
 			.set({
 				lastHeartbeatAt: new Date(),
 				status: RunnerStatus.Online,
 				osInfo: os,
 				version: version,
+				...(runner.name === "New Hardware Node" && hostname ? { name: hostname } : {}),
 			})
 			.where(eq(runnersTable.id, runner.id));
 
@@ -48,30 +50,30 @@ export async function POST(req: Request) {
 		if (actualStates && typeof actualStates === "object") {
 			for (const sessionId of Object.keys(actualStates)) {
 				const state = actualStates[sessionId];
-				await db.update(streamSessionsTable)
-					.set({ actualState: state })
-					.where(eq(streamSessionsTable.id, sessionId));
+				await db.update(streamSessionsTable).set({ actualState: state }).where(eq(streamSessionsTable.id, sessionId));
 			}
 		}
 
 		// 6. Build jobs for the runner based on desiredState
-		const jobs = await Promise.all(sessions.map(async (session: StreamSession) => {
-			const overlay = await db.query.overlaysTable.findFirst({
-				where: eq(overlaysTable.id, session.overlayId),
-			});
-			return {
-				id: session.id,
-				overlayId: session.overlayId,
-				overlaySecret: overlay?.secret || "",
-				mode: session.mode,
-				desiredState: session.desiredState,
-				resolution: session.resolution,
-				fps: session.fps,
-				rtmpUrl: session.rtmpUrl,
-				// Decrypt stream key if it's supposed to be running
-				streamKey: session.desiredState === "running" && session.encryptedStreamKey ? decryptString(session.encryptedStreamKey) : null, 
-			};
-		}));
+		const jobs = await Promise.all(
+			sessions.map(async (session: StreamSession) => {
+				const overlay = await db.query.overlaysTable.findFirst({
+					where: eq(overlaysTable.id, session.overlayId),
+				});
+				return {
+					id: session.id,
+					overlayId: session.overlayId,
+					overlaySecret: overlay?.secret || "",
+					mode: session.mode,
+					desiredState: session.desiredState,
+					resolution: session.resolution,
+					fps: session.fps,
+					rtmpUrl: session.rtmpUrl,
+					// Decrypt stream key if it's supposed to be running
+					streamKey: session.desiredState === "running" && session.encryptedStreamKey ? decryptString(session.encryptedStreamKey) : null,
+				};
+			}),
+		);
 
 		// 7. Check if an update is available (Hardcoded for prototype)
 		const LATEST_VERSION = "1.0.0";
