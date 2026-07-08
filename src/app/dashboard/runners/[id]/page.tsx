@@ -215,6 +215,32 @@ export default function RunnerPage() {
 					<Separator />
 
 					<Card.Content className='grid grid-cols-1 md:grid-cols-2 gap-8 p-6'>
+						{/* Installation Instructions for New Runners */}
+						{!runner.lastHeartbeatAt && (
+							<div className='col-span-1 md:col-span-2 bg-primary/10 border border-primary/20 rounded-xl p-6 flex flex-col items-center justify-center text-center gap-4 mb-4'>
+								<h2 className='text-2xl font-bold text-primary'>Setup Your Runner</h2>
+								<p className='text-muted-foreground max-w-2xl text-sm'>This runner has not been connected yet. To get started, download the runner executable for your operating system. Once downloaded, start it in your terminal and provide the runner token shown in the authentication section below.</p>
+								<div className='flex flex-wrap gap-4 mt-2'>
+									<Button
+										variant='primary'
+										onPress={() => {
+											window.location.href = "/downloads/runner/clipify-runner-windows.exe";
+										}}
+									>
+										Download for Windows (.exe)
+									</Button>
+									<Button
+										variant='secondary'
+										onPress={() => {
+											window.location.href = "/downloads/runner/clipify-runner-linux";
+										}}
+									>
+										Download for Linux
+									</Button>
+								</div>
+							</div>
+						)}
+
 						{/* Left Column: Status Details */}
 						<div className='flex flex-col gap-6'>
 							<div className='flex flex-col gap-2'>
@@ -405,6 +431,19 @@ export default function RunnerPage() {
 									<Button variant='primary' onPress={handleSave} isPending={isSaving} className='sm:w-auto w-full'>
 										{isSaving ? <Spinner size='sm' color='current' /> : "Save Configuration"}
 									</Button>
+
+									{runner.lastHeartbeatAt && (
+										<Button
+											variant='secondary'
+											onPress={() => {
+												const isWindows = navigator.userAgent.toLowerCase().includes("win");
+												window.location.href = `/downloads/runner/clipify-runner-${isWindows ? "windows.exe" : "linux"}`;
+											}}
+											className='sm:w-auto w-full'
+										>
+											Download Latest Runner
+										</Button>
+									)}
 
 									{streamSessions[0]?.id && (
 										<div className='flex gap-3 sm:ml-auto w-full sm:w-auto'>

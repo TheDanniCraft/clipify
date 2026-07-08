@@ -4,10 +4,11 @@ import * as path from "path";
 import * as readline from "readline";
 import { Engine } from "./engine";
 import { ConsoleUI } from "./logger";
+import { checkForUpdates, cleanupOldVersions } from "./updater";
 
 import { getBaseUrl } from "../app/actions/utils";
 
-const RUNNER_VERSION = "1.0.0";
+let RUNNER_VERSION = "unknown";
 
 // Track actual states and active engines locally
 const actualStates: Record<string, string> = {};
@@ -88,10 +89,6 @@ async function pollHeartbeat(token: string, apiBase: string) {
 }
 
 async function main() {
-	console.log("==========================================");
-	console.log(`=       Clipify Runner (v${RUNNER_VERSION})        =`);
-	console.log("==========================================");
-
 	const args = process.argv.slice(2);
 	const tokenArgIndex = args.indexOf("--token");
 	let token = tokenArgIndex !== -1 ? args[tokenArgIndex + 1] : undefined;
@@ -154,6 +151,13 @@ async function main() {
 	if (apiBase === "https://clipify.us" && process.env.NODE_ENV !== "production") {
 		apiBase = "http://localhost:3000";
 	}
+
+	await cleanupOldVersions();
+	RUNNER_VERSION = await checkForUpdates(apiBase);
+
+	console.log("==========================================");
+	console.log(`=       Clipify Runner (v${RUNNER_VERSION.substring(0, 8)})        =`);
+	console.log("==========================================");
 
 	console.log(`[Info] Token loaded. API Base URL is ${apiBase}. Starting polling loop...`);
 
