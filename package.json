@@ -13,7 +13,7 @@
 		"app:prettier": "prettier --write .",
 		"git:staged": "lint-staged",
 		"app:typecheck": "tsc --noEmit",
-		"runner:dev": "bun --watch run src/runner/index.ts",
+		"runner:dev": "tsx watch src/runner/index.ts",
 		"runner:build": "tsx scripts/build-runner.ts",
 		"test": "jest --runInBand",
 		"test:watch": "jest --watch",
