@@ -68,8 +68,8 @@ export default async function Overlay({ params, searchParams }: { params: Promis
 			/>
 			<div className='flex flex-col justify-center items-center h-screen w-screen relative'>
 				{showFallbackBanner && (
-					<div className="absolute top-0 left-0 w-full bg-danger text-white text-center py-2 px-4 z-50 shadow-md flex items-center justify-center gap-2 font-medium">
-						<span className="animate-pulse">🔴</span>
+					<div className='absolute top-0 left-0 w-full bg-danger text-white text-center py-2 px-4 z-[8] shadow-md flex items-center justify-center gap-2 font-medium'>
+						<span className='animate-pulse'>🔴</span>
 						Stream disconnected - Stream will be back soon
 					</div>
 				)}

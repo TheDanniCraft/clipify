@@ -13,7 +13,7 @@
 		"app:prettier": "prettier --write .",
 		"git:staged": "lint-staged",
 		"app:typecheck": "tsc --noEmit",
-		"runner:dev": "esbuild src/runner/index.ts --bundle --platform=node --external:puppeteer-stream --external:puppeteer-core --external:puppeteer --outfile=build/runner.js && bun run build/runner.js",
+		"runner:dev": "bun --watch run src/runner/index.ts",
 		"runner:build": "tsx scripts/build-runner.ts",
 		"test": "jest --runInBand",
 		"test:watch": "jest --watch",
@@ -22,7 +22,8 @@
 		"db:generate": "drizzle-kit generate",
 		"db:migrate": "drizzle-kit migrate",
 		"db:studio": "infisical run --env=dev -- drizzle-kit studio",
-		"prepare": "next-ws patch && husky"
+		"prepare": "next-ws patch && husky",
+		"stream:test": "tsx scripts/stream-test.ts"
 	},
 	"dependencies": {
 		"@heroui/react": "^3.2.1",
@@ -34,7 +35,6 @@
 		"axios": "^1.18.1",
 		"dotenv": "^17.4.2",
 		"drizzle-orm": "^0.45.2",
-		"ffbinaries": "^1.1.6",
 		"fluent-ffmpeg": "^2.1.3",
 		"jsonwebtoken": "^9.0.3",
 		"minimatch": "^10.2.5",

@@ -1,10 +1,10 @@
+import * as fs from "fs";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { launch, getStream } from "puppeteer-stream";
 import type { Browser, Page } from "puppeteer-core";
 import { spawn, type ChildProcess } from "child_process";
 import * as os from "os";
 import * as path from "path";
-import * as fs from "fs";
 import { ensureDependencies } from "./downloader";
 import { writeExtension } from "./extension";
 
@@ -28,9 +28,15 @@ function startTCPProxy() {
 
 		let retryCount = 0;
 		let forwardSocket: net.Socket | null = null;
+		let earlyData: Buffer[] = [];
+		let isPiping = false;
 
-		// Buffer initial packets from OBS until FFmpeg is ready
-		clientSocket.pause();
+		// Buffer initial packets manually due to a bug in Bun's net.Socket.pause()
+		clientSocket.on("data", (chunk: any) => {
+			if (!isPiping) {
+				earlyData.push(chunk as Buffer);
+			}
+		});
 
 		const connectToFFmpeg = () => {
 			if (forwardSocket) {
@@ -53,6 +59,13 @@ function startTCPProxy() {
 
 			forwardSocket.connect(1936, "127.0.0.1", () => {
 				console.log(`[TCP Proxy] Connected to local FFmpeg on 1936. Piping data...`);
+				isPiping = true;
+
+				// Flush buffered data first
+				for (const chunk of earlyData) {
+					forwardSocket!.write(chunk);
+				}
+				earlyData = [];
 
 				// Only destroy the client when the FFmpeg connection intentionally closes AFTER a successful connection
 				forwardSocket!.on("close", () => {
@@ -61,7 +74,6 @@ function startTCPProxy() {
 
 				clientSocket.pipe(forwardSocket!);
 				forwardSocket!.pipe(clientSocket);
-				clientSocket.resume();
 			});
 		};
 
@@ -95,6 +107,9 @@ export class Engine {
 	private isForwardingObs: boolean = false;
 	private expectedCloudLoopExit: boolean = false;
 
+	private transitionPromise: Promise<void> = Promise.resolve();
+	private activeObsConnections = 0;
+
 	private chromePath: string = "";
 	private ffmpegPath: string = "ffmpeg";
 	private extPath: string = "";
@@ -110,48 +125,87 @@ export class Engine {
 		public readonly apiBase: string = "http://localhost:3000",
 	) {}
 
+	private killProcessAndWait(child: ChildProcess, name: string, signal: NodeJS.Signals = "SIGINT"): Promise<void> {
+		return new Promise<void>((resolve) => {
+			if (child.killed || child.exitCode !== null || child.signalCode !== null) {
+				resolve();
+				return;
+			}
+
+			const timeout = setTimeout(() => {
+				console.log(`[Engine] ${name} did not exit gracefully, force killing with SIGKILL...`);
+				child.kill("SIGKILL");
+			}, 5000);
+
+			const onClose = () => {
+				clearTimeout(timeout);
+				resolve();
+			};
+
+			child.once("close", onClose);
+			child.kill(signal);
+		});
+	}
+
 	private handleObsConnected = () => {
-		if (!this.isRunning) return;
-		if (this.mode !== "failsafe") return;
+		this.activeObsConnections++;
+		if (this.activeObsConnections > 1) return;
 
-		console.log(`[Engine] OBS Connected to TCP Proxy. Switching to OBS Forwarder...`);
-		this.isForwardingObs = true;
+		this.transitionPromise = this.transitionPromise
+			.then(async () => {
+				if (!this.isRunning) return;
+				if (this.mode !== "failsafe") return;
 
-		// Stop streaming Cloud Loop to YouTube
-		this.stopCloudLoopStream();
+				console.log(`[Engine] OBS Connected to TCP Proxy. Switching to OBS Forwarder...`);
+				this.isForwardingObs = true;
 
-		// Tell Chromium to pause clips
-		if (this.page) {
-			this.page
-				.evaluate(() => {
-					if (typeof (window as any).stopFallback === "function") {
-						(window as any).stopFallback();
-					}
-				})
-				.catch((err) => console.error("[Engine] Failed to stop fallback:", err));
-		}
+				// Stop streaming Cloud Loop to YouTube
+				await this.stopCloudLoopStream();
 
-		// Start forwarding local RTMP to destination
-		this.startObsForwarder();
+				// Stop previous obsForwarder if it was running (fix zombie FFmpeg processes)
+				await this.stopObsForwarder();
+
+				if (!this.isRunning) return;
+
+				// Tell Chromium to pause clips
+				if (this.page) {
+					this.page
+						.evaluate(() => {
+							if (typeof (window as any).stopFallback === "function") {
+								(window as any).stopFallback();
+							}
+						})
+						.catch((err) => console.error("[Engine] Failed to stop fallback:", err));
+				}
+
+				// Start forwarding local RTMP to destination
+				this.startObsForwarder();
+			})
+			.catch((err) => console.error("[Engine] Error in handleObsConnected transition:", err));
 	};
 
 	private handleObsDisconnected = () => {
-		if (!this.isRunning) return;
-		if (this.mode !== "failsafe") return;
-		if (!this.isForwardingObs) return;
+		this.activeObsConnections = Math.max(0, this.activeObsConnections - 1);
+		if (this.activeObsConnections > 0) return;
 
-		console.log(`[Engine] OBS Disconnected. Falling back to Cloud Loop...`);
-		this.isForwardingObs = false;
+		this.transitionPromise = this.transitionPromise
+			.then(async () => {
+				if (!this.isRunning) return;
+				if (this.mode !== "failsafe") return;
 
-		// Stop OBS Forwarder
-		if (this.obsForwarder) {
-			this.obsForwarder.kill("SIGINT");
-			this.obsForwarder = null;
-		}
+				console.log(`[Engine] OBS Disconnected. Falling back to Cloud Loop...`);
+				this.isForwardingObs = false;
 
-		// Tell Chromium to play clips (now handled safely inside startCloudLoopStream)
-		// Start streaming Cloud Loop to YouTube
-		this.startCloudLoopStream().catch((err) => console.error("[Engine] Failed to start cloud loop stream:", err));
+				// Stop OBS Forwarder
+				await this.stopObsForwarder();
+
+				if (!this.isRunning) return;
+
+				// Tell Chromium to play clips (now handled safely inside startCloudLoopStream)
+				// Start streaming Cloud Loop to YouTube
+				await this.startCloudLoopStream().catch((err) => console.error("[Engine] Failed to start cloud loop stream:", err));
+			})
+			.catch((err) => console.error("[Engine] Error in handleObsDisconnected transition:", err));
 	};
 
 	async start() {
@@ -355,7 +409,7 @@ export class Engine {
 		}, 2000);
 	}
 
-	private stopCloudLoopStream() {
+	private async stopCloudLoopStream() {
 		this.expectedCloudLoopExit = true;
 		if (this.previewInterval) {
 			clearInterval(this.previewInterval);
@@ -368,8 +422,22 @@ export class Engine {
 		}
 
 		if (this.ffmpeg) {
-			this.ffmpeg.kill("SIGINT");
+			const child = this.ffmpeg;
 			this.ffmpeg = null;
+			if (child.stdin) {
+				try {
+					child.stdin.end();
+				} catch {}
+			}
+			await this.killProcessAndWait(child, "Cloud Loop FFmpeg", "SIGKILL");
+		}
+	}
+
+	private async stopObsForwarder() {
+		if (this.obsForwarder) {
+			const child = this.obsForwarder;
+			this.obsForwarder = null;
+			await this.killProcessAndWait(child, "OBS Forwarder");
 		}
 	}
 
@@ -391,13 +459,9 @@ export class Engine {
 			proxyEvents.off("obsDisconnected", this.handleObsDisconnected);
 		}
 
-		this.stopCloudLoopStream();
+		await this.stopCloudLoopStream();
 		await this.stopChromiumBackground();
-
-		if (this.obsForwarder) {
-			this.obsForwarder.kill("SIGINT");
-			this.obsForwarder = null;
-		}
+		await this.stopObsForwarder();
 
 		console.log(`[Engine] Stream stopped.`);
 	}

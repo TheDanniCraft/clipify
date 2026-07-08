@@ -47,18 +47,30 @@ async function pollHeartbeat(token: string, apiBase: string) {
 		for (const job of data.jobs || []) {
 			console.log(`  - Job [${job.id}]: Mode=${job.mode}, DesiredState=${job.desiredState}`);
 
-			if (job.desiredState === "running" && actualStates[job.id] !== "running") {
-				console.log(`  -> Starting engine for job ${job.id}...`);
-				actualStates[job.id] = "running";
+			if (job.desiredState === "running") {
+				const existingEngine = activeEngines[job.id];
+				const needsRestart = existingEngine && (existingEngine.mode !== job.mode || existingEngine.rtmpUrl !== job.rtmpUrl || existingEngine.streamKey !== job.streamKey || existingEngine.overlayId !== job.overlayId);
 
-				// Spawn Engine
-				const engine = new Engine(job.overlayId, job.rtmpUrl, job.overlaySecret, job.streamKey, job.fps, job.resolution, job.mode, apiBase);
-				activeEngines[job.id] = engine;
-				engine.start().catch((err) => {
-					console.error(`[Error] Engine failed to start for job ${job.id}:`, err);
-					actualStates[job.id] = "error";
-					engine.isRunning = false;
-				});
+				if (actualStates[job.id] !== "running" || needsRestart) {
+					if (needsRestart) {
+						console.log(`  -> Restarting engine for job ${job.id} due to parameter change...`);
+						await existingEngine.stop();
+						delete activeEngines[job.id];
+					} else {
+						console.log(`  -> Starting engine for job ${job.id}...`);
+					}
+
+					actualStates[job.id] = "running";
+
+					// Spawn Engine
+					const engine = new Engine(job.overlayId, job.rtmpUrl, job.overlaySecret, job.streamKey, job.fps, job.resolution, job.mode, apiBase);
+					activeEngines[job.id] = engine;
+					engine.start().catch((err) => {
+						console.error(`[Error] Engine failed to start for job ${job.id}:`, err);
+						actualStates[job.id] = "error";
+						engine.isRunning = false;
+					});
+				}
 			} else if (job.desiredState === "stopped" && (actualStates[job.id] === "running" || actualStates[job.id] === "error")) {
 				console.log(`  -> Stopping engine for job ${job.id}...`);
 				actualStates[job.id] = "stopped";
