@@ -8,6 +8,9 @@ import { checkForUpdates, cleanupOldVersions } from "./updater";
 
 import { getBaseUrl } from "../app/actions/utils";
 
+import { extractBakedConfig } from "./bootstrap";
+import { loadCredentials, saveCredentials } from "./storage";
+
 let RUNNER_VERSION = "unknown";
 
 // Track actual states and active engines locally
@@ -39,9 +42,8 @@ async function pollHeartbeat(token: string, apiBase: string) {
 		const data = await response.json();
 
 		if (data.updateAvailable) {
-			console.log(`[Updater] A new version is available: ${data.latestVersion}!`);
-			console.log(`[Updater] Please download it from: ${data.downloadUrl}`);
-			// TODO: Implement actual auto-download and replacement logic here
+			// Auto-update is handled by checkForUpdates() on startup.
+			// No action needed here to prevent log spam.
 		}
 
 		console.log(`[Jobs] Received ${data.jobs?.length || 0} jobs.`);
@@ -96,61 +98,88 @@ async function main() {
 	const urlArgIndex = args.findIndex((arg) => arg === "--url" || arg === "--api");
 	const overrideUrl = urlArgIndex !== -1 ? args[urlArgIndex + 1] : undefined;
 
-	// 2. Check Environment Variable
+	let bakedConfig = extractBakedConfig(process.execPath);
+	if (bakedConfig) {
+		console.log("[Info] Found baked configuration in executable.");
+	}
+
+	const savedConfig = await loadCredentials();
+	let localConfig: any = {
+		runnerId: savedConfig.runnerId,
+		apiBase: savedConfig.apiBase,
+		token: savedConfig.token,
+	};
+
+	// Idiotenschutz: Runner ID Mismatch Prevention
+	if (bakedConfig?.runnerId && localConfig?.runnerId) {
+		if (bakedConfig.runnerId !== localConfig.runnerId) {
+			console.error("\n==========================================================================");
+			console.error("[FATAL ERROR] Runner ID Mismatch!");
+			console.error("This executable was built for a different Runner than your system is currently configured for.");
+			console.error("Running multiple runners on the same machine is not officially supported.");
+			console.error("If you want to switch back to this Runner, please download a fresh executable from your dashboard.");
+			console.error("==========================================================================\n");
+			process.exit(1);
+		}
+	}
+
+	let apiBase = overrideUrl || process.env.CLIPIFY_API_URL || bakedConfig?.apiBase || localConfig.apiBase || "http://localhost:3000";
+
+	// Bootstrap Token Exchange
+	if (bakedConfig?.bootstrapToken) {
+		console.log("[Bootstrap] Exchanging one-time bootstrap token for runner token...");
+		try {
+			const res = await fetch(`${apiBase}/api/runner/bootstrap`, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ bootstrapToken: bakedConfig.bootstrapToken }),
+			});
+			if (!res.ok) {
+				console.error("\n[FATAL ERROR] Bootstrap failed! This executable has likely already been initialized.");
+				console.error("Please download a fresh executable from your dashboard if you need to re-authenticate.\n");
+				process.exit(1);
+			}
+			const data = await res.json();
+			localConfig.token = data.token;
+			localConfig.runnerId = data.runnerId;
+			await saveCredentials({
+				runnerId: localConfig.runnerId,
+				apiBase: apiBase,
+				token: localConfig.token,
+			});
+			console.log("[Bootstrap] Successfully initialized and saved runner config.");
+		} catch (error) {
+			console.error("[FATAL ERROR] Network error during bootstrap:", error);
+			process.exit(1);
+		}
+	}
+
+	if (!token) {
+		token = localConfig.token;
+	}
+
 	if (!token) {
 		token = process.env.CLIPIFY_TOKEN;
 	}
 
-	const configPath = path.join(os.homedir(), ".clipify-runner-config.json");
-
-	// 3. Check Config File
-
 	if (!token) {
-		try {
-			if (fs.existsSync(configPath)) {
-				const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
-				if (config.token) token = config.token;
-			}
-		} catch (error) {
-			console.error("[Warning] Failed to read config file:", error);
-		}
+		console.error("\n==========================================================================");
+		console.error("[FATAL ERROR] Missing Runner Token.");
+		console.error("Please provide your Runner Token via the --token argument or the CLIPIFY_TOKEN environment variable.");
+		console.error("==========================================================================\n");
+		process.exit(1);
 	}
 
-	if (!token) {
-		const rl = readline.createInterface({
-			input: process.stdin,
-			output: process.stdout,
+	if (!localConfig.token || localConfig.token !== token) {
+		// Save manually provided token
+		await saveCredentials({
+			runnerId: localConfig.runnerId,
+			apiBase: apiBase,
+			token: token,
 		});
-
-		token = await new Promise<string>((resolve) => {
-			rl.question("Please enter your Clipify Runner Token: ", (answer) => {
-				rl.close();
-				resolve(answer.trim());
-			});
-		});
-
-		if (!token) {
-			console.error("Error: Token cannot be empty.");
-			process.exit(1);
-		}
-
-		try {
-			fs.writeFileSync(configPath, JSON.stringify({ token }), "utf-8");
-			console.log(`[Info] Token saved to ${configPath} for future use.`);
-		} catch (error) {
-			console.error("[Warning] Failed to save token to config file:", error);
-		}
 	}
 
 	ConsoleUI.init();
-
-	const BAKED_API_URL = process.env.BAKED_API_URL || "";
-	let apiBase = overrideUrl || process.env.CLIPIFY_API_URL || BAKED_API_URL || (await getBaseUrl()).toString().replace(/\/$/, "");
-
-	// Default to localhost if running via runner:dev (where NODE_ENV is not explicitly production)
-	if (apiBase === "https://clipify.us" && process.env.NODE_ENV !== "production") {
-		apiBase = "http://localhost:3000";
-	}
 
 	await cleanupOldVersions();
 	RUNNER_VERSION = await checkForUpdates(apiBase);

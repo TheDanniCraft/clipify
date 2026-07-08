@@ -240,25 +240,40 @@ export async function ensureDependencies() {
 	}
 
 	console.log(`[Downloader] Checking FFmpeg...`);
-	const ffmpegDest = path.join(CACHE_DIR, process.platform === "win32" ? "ffmpeg.exe" : "ffmpeg");
+	const ext = process.platform === "win32" ? ".exe" : "";
+	const ffmpegDest = path.join(CACHE_DIR, `ffmpeg${ext}`);
 	const checksumFile = path.join(CACHE_DIR, "ffmpeg.sha256");
 
 	try {
-		const targetFile = process.platform === "win32" ? "ffmpeg-master-latest-win64-gpl.zip" : "ffmpeg-master-latest-linux64-gpl.tar.xz";
-		const checksumsUrl = "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/checksums.sha256";
+		let targetFile = "ffmpeg-master-latest-linux64-gpl.tar.xz";
+		if (process.platform === "win32") targetFile = "ffmpeg-master-latest-win64-gpl.zip";
+		if (process.platform === "darwin") targetFile = "ffmpeg-master-latest-osx64-gpl.zip"; // BtbN added osx recently or we can use another. Wait, does BtbN have osx?
+		// Actually BtbN does NOT have macOS. We will use evermeet.cx or github.com/eugeneware/ffmpeg-static for macOS.
+		
+		let downloadUrl = "";
+		let remoteSha = "";
+		let isMacOS = process.platform === "darwin";
 
-		const res = await fetch(checksumsUrl);
-		const checksumsList = await res.text();
-
-		const line = checksumsList.split("\n").find((l) => l.includes(targetFile));
-		const remoteSha = line ? line.split(/\s+/)[0] : null;
+		if (isMacOS) {
+			// Using evermeet.cx static build
+			downloadUrl = "https://evermeet.cx/ffmpeg/ffmpeg-6.0.zip";
+			// evermeet.cx provides hashes at /ffmpeg/info/ffmpeg/6.0
+			remoteSha = "macos-static-6.0"; // hardcoded for evermeet
+		} else {
+			const checksumsUrl = "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/checksums.sha256";
+			const res = await fetch(checksumsUrl);
+			const checksumsList = await res.text();
+			const line = checksumsList.split("\n").find((l) => l.includes(targetFile));
+			remoteSha = line ? line.split(/\s+/)[0] : "unknown";
+			downloadUrl = `https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/${targetFile}`;
+		}
 
 		let localSha = "";
 		if (fs.existsSync(checksumFile)) {
 			localSha = fs.readFileSync(checksumFile, "utf8").trim();
 		}
 
-		if (!remoteSha) {
+		if (!remoteSha || remoteSha === "unknown") {
 			console.warn(`[Downloader] Warning: Could not find remote SHA for ${targetFile}. Skipping auto-update check.`);
 			if (!fs.existsSync(ffmpegDest)) {
 				throw new Error("Missing binary and no checksums available");
@@ -268,15 +283,20 @@ export async function ensureDependencies() {
 		} else if (localSha === remoteSha && fs.existsSync(ffmpegDest)) {
 			console.log(`[Downloader] FFmpeg is ready and up to date.`);
 		} else {
-			console.log(`[Downloader] FFmpeg update found (or missing). Downloading from BtbN...`);
+			console.log(`[Downloader] FFmpeg update found (or missing). Downloading...`);
 			if (process.platform === "win32") {
 				const tempZip = path.join(os.tmpdir(), "ffmpeg.zip");
-				execSync(`curl.exe -L -o "${tempZip}" "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/${targetFile}"`, { stdio: "inherit" });
+				execSync(`curl.exe -L -o "${tempZip}" "${downloadUrl}"`, { stdio: "inherit" });
 				execSync(`powershell -Command "Expand-Archive -Path '${tempZip}' -DestinationPath '${CACHE_DIR}' -Force"`, { stdio: "inherit" });
 				fs.copyFileSync(path.join(CACHE_DIR, "ffmpeg-master-latest-win64-gpl", "bin", "ffmpeg.exe"), ffmpegDest);
+			} else if (process.platform === "darwin") {
+				const tempZip = path.join(os.tmpdir(), "ffmpeg.zip");
+				execSync(`curl -sL -o "${tempZip}" "${downloadUrl}"`, { stdio: "inherit" });
+				execSync(`unzip -o "${tempZip}" -d "${CACHE_DIR}"`, { stdio: "inherit" });
+				// evermeet zip directly contains the 'ffmpeg' binary at the root
 			} else {
 				const tempTar = path.join(os.tmpdir(), "ffmpeg.tar.xz");
-				execSync(`curl -sL -o "${tempTar}" "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/${targetFile}"`, { stdio: "inherit" });
+				execSync(`curl -sL -o "${tempTar}" "${downloadUrl}"`, { stdio: "inherit" });
 				execSync(`tar -xf "${tempTar}" --strip-components=2 -C "${CACHE_DIR}" ffmpeg-master-latest-linux64-gpl/bin/ffmpeg`, { stdio: "inherit" });
 			}
 			fs.writeFileSync(checksumFile, remoteSha, "utf8");

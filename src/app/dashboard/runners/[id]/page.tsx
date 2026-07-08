@@ -5,8 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import { validateAuth } from "@actions/auth";
 import { getRunner, getStreamSessionsForRunner, upsertStreamSession, setStreamDesiredState } from "@actions/runner";
 import { getAllOverlays } from "@actions/database";
-import { Button, Card, Label, Select, Spinner, TextField, ListBox, Input, Chip, Separator } from "@heroui/react";
-import { IconCopy, IconCheck, IconPlayerPlay, IconPlayerStop, IconArrowLeft, IconTrash } from "@tabler/icons-react";
+import { Button, Card, Label, Select, Spinner, TextField, ListBox, Input, Chip, Separator, Accordion, AccordionItem } from "@heroui/react";
+import { IconCopy, IconCheck, IconPlayerPlay, IconPlayerStop, IconArrowLeft, IconTrash, IconBrandWindows, IconTerminal2, IconBrandApple } from "@tabler/icons-react";
 import { notify } from "@lib/toast";
 import FullscreenLoadingState from "@components/fullscreenLoadingState";
 import { runnersTable, streamSessionsTable } from "@/db/schema";
@@ -217,31 +217,43 @@ export default function RunnerPage() {
 					<Card.Content className='grid grid-cols-1 md:grid-cols-2 gap-8 p-6'>
 						{/* Installation Instructions for New Runners */}
 						{!runner.lastHeartbeatAt && (
-							<div className='col-span-1 md:col-span-2 bg-primary/10 border border-primary/20 rounded-xl p-6 flex flex-col items-center justify-center text-center gap-4 mb-4'>
-								<h2 className='text-2xl font-bold text-primary'>Setup Your Runner</h2>
-								<p className='text-muted-foreground max-w-2xl text-sm'>This runner has not been connected yet. To get started, download the runner executable for your operating system. Once downloaded, start it in your terminal and provide the runner token shown in the authentication section below.</p>
-								<div className='flex flex-wrap gap-4 mt-2'>
+							<div className='col-span-1 md:col-span-2 flex flex-col items-center justify-center p-8 mt-4 gap-6'>
+								<h2 className='text-3xl font-bold text-primary'>Setup Your Runner</h2>
+								<p className='text-muted-foreground max-w-2xl text-center text-base'>This runner has not been connected yet. To get started, download the runner executable for your operating system. The configuration is baked directly into the executable, so you don't need to copy any tokens manually. Just run it!</p>
+								<div className='flex flex-col sm:flex-row gap-4 mt-6'>
 									<Button
-										variant='primary'
+										variant='secondary'
 										onPress={() => {
-											window.location.href = "/downloads/runner/clipify-runner-windows.exe";
+											window.location.href = `/api/runner/download?os=windows&runnerId=${runner.id}`;
 										}}
 									>
-										Download for Windows (.exe)
+										<IconBrandWindows size={20} /> Download for Windows
 									</Button>
 									<Button
 										variant='secondary'
 										onPress={() => {
-											window.location.href = "/downloads/runner/clipify-runner-linux";
+											window.location.href = `/api/runner/download?os=linux&runnerId=${runner.id}`;
 										}}
 									>
-										Download for Linux
+										<IconTerminal2 size={20} /> Download for Linux
+									</Button>
+									<Button
+										variant='secondary'
+										onPress={() => {
+											window.location.href = `/api/runner/download?os=macos&runnerId=${runner.id}`;
+										}}
+									>
+										<IconBrandApple size={20} /> Download for MacOS
 									</Button>
 								</div>
+								<p className='text-sm text-muted/80 max-w-lg mt-8 text-center bg-secondary/30 p-4 rounded-lg'>Note: The Clipify Runner is configured globally per machine. Running multiple different runners on the same machine is not supported. To switch to a different runner, simply download a new executable from its specific dashboard.</p>
 							</div>
 						)}
 
-						{/* Left Column: Status Details */}
+						{/* Only show configuration and telemetry if the runner is active */}
+						{runner.lastHeartbeatAt && (
+							<>
+								{/* Left Column: Status Details */}
 						<div className='flex flex-col gap-6'>
 							<div className='flex flex-col gap-2'>
 								<div className='flex items-center justify-between'>
@@ -304,17 +316,30 @@ export default function RunnerPage() {
 						{/* Right Column: Configuration */}
 						<div className='flex flex-col gap-8'>
 							<div className='flex flex-col gap-4'>
-								<h2 className='text-lg font-semibold'>Authentication</h2>
-								<TextField variant='secondary'>
-									<Label>Runner Token</Label>
-									<div className='flex gap-2'>
-										<Input readOnly value={runner.token} type='password' className='font-mono text-sm flex-1' />
-										<Button isIconOnly variant='secondary' onPress={copyToken}>
-											{copied ? <IconCheck size={18} className='text-success' /> : <IconCopy size={18} />}
-										</Button>
+								<details className="group border border-divider rounded-lg [&_summary::-webkit-details-marker]:hidden">
+									<summary className="flex cursor-pointer items-center justify-between gap-1.5 rounded-lg p-4 font-medium">
+										<span className="text-sm font-semibold">Advanced / Docker Setup</span>
+										<span className="transition duration-300 group-open:-rotate-180">
+											<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-5">
+												<path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+											</svg>
+										</span>
+									</summary>
+									<div className="px-4 pb-4">
+										<div className='flex flex-col gap-2'>
+											<TextField variant='secondary'>
+												<Label>Manual Runner Token</Label>
+												<div className='flex gap-2'>
+													<Input readOnly value={runner.token} type='password' className='font-mono text-sm flex-1' />
+													<Button isIconOnly variant='secondary' onPress={copyToken}>
+														{copied ? <IconCheck size={18} className='text-success' /> : <IconCopy size={18} />}
+													</Button>
+												</div>
+											</TextField>
+											<p className='text-xs text-muted mt-1'>If you run this via Docker or in a headless CI environment, use this token as the <code>CLIPIFY_TOKEN</code> environment variable.</p>
+										</div>
 									</div>
-								</TextField>
-								<p className='text-xs text-muted -mt-2'>Use this token when starting your local runner binary.</p>
+								</details>
 							</div>
 
 							<div className='flex flex-col gap-5'>
@@ -437,7 +462,7 @@ export default function RunnerPage() {
 											variant='secondary'
 											onPress={() => {
 												const isWindows = navigator.userAgent.toLowerCase().includes("win");
-												window.location.href = `/downloads/runner/clipify-runner-${isWindows ? "windows.exe" : "linux"}`;
+												window.location.href = `/api/runner/download?os=${isWindows ? "windows" : "linux"}&runnerId=${runner.id}`;
 											}}
 											className='sm:w-auto w-full'
 										>
@@ -458,6 +483,8 @@ export default function RunnerPage() {
 								</div>
 							</div>
 						</div>
+							</>
+						)}
 					</Card.Content>
 				</Card>
 			</div>

@@ -1,5 +1,7 @@
 import * as readline from "readline";
 import * as fs from "fs";
+import * as path from "path";
+import * as os from "os";
 
 export class ConsoleUI {
 	private static pinnedLines: string[] = [];
@@ -55,7 +57,9 @@ export class ConsoleUI {
 		const logLine = `[${timestamp}] ${unstyledMsg}\n`;
 
 		try {
-			fs.appendFileSync("runner.log", logLine);
+			const configDir = path.join(os.homedir(), ".clipify-runner");
+			if (!fs.existsSync(configDir)) fs.mkdirSync(configDir, { recursive: true, mode: 0o700 });
+			fs.appendFileSync(path.join(configDir, "runner.log"), logLine);
 		} catch {}
 
 		this.clearStatusBar();
