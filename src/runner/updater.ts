@@ -69,8 +69,9 @@ export async function checkForUpdates(apiBase: string): Promise<string> {
 
 	// 2. Fetch remote version
 	const isWindows = process.platform === "win32";
-	const osKey = isWindows ? "windows" : "linux";
-	const binaryName = isWindows ? "clipify-runner-windows.exe" : "clipify-runner-linux";
+	const isMacOS = process.platform === "darwin";
+	const osKey = isWindows ? "windows" : isMacOS && process.arch === "arm64" ? "macosArm" : isMacOS ? "macos" : "linux";
+	const binaryName = isWindows ? "clipify-runner-windows.exe" : isMacOS && process.arch === "arm64" ? "clipify-runner-macos-arm64" : isMacOS ? "clipify-runner-macos" : "clipify-runner-linux";
 
 	try {
 		const res = await fetch(`${apiBase}/api/runner/version`);

@@ -11,7 +11,7 @@ import type { Key } from "@react-types/shared";
 import React, { useMemo, useCallback, useState, useEffect } from "react";
 import { IconAdjustmentsHorizontal, IconArrowsLeftRight, IconChevronDown, IconCirclePlus, IconCircuitChangeover, IconCrown, IconInfoCircle, IconMenuDeep, IconPencil, IconReload, IconSearch, IconTrash } from "@tabler/icons-react";
 import { createOverlay, createPlaylist, deleteOverlay, deletePlaylist, saveOverlay, getAllOverlays, getAllPlaylists, getEditorOverlays, getEditorAccess } from "@actions/database";
-import { createRunner, getAllRunners, getAllStreamSessions } from "@actions/runner";
+import { createRunner, deleteRunner, getAllRunners, getAllStreamSessions } from "@actions/runner";
 import { validateAuth } from "@actions/auth";
 import UpgradeModal from "@components/upgradeModal";
 import AppPagination from "@components/appPagination";
@@ -25,11 +25,14 @@ import { useMemoizedCallback } from "./use-memoized-callback";
 
 import { columns, INITIAL_VISIBLE_COLUMNS, INITIAL_VISIBLE_PLAYLIST_COLUMNS, INITIAL_VISIBLE_RUNNER_COLUMNS, playlistColumns, runnerColumns } from "./data";
 import { Status } from "./Status";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { getAvatar, getUsersDetailsBulk } from "@actions/twitch";
+
+const dashboardTabs = new Set(["overlays", "playlists", "runners"]);
 
 export default function OverlayTable({ userId, accessToken }: { userId: string; accessToken: string }) {
 	const router = useRouter();
+	const searchParams = useSearchParams();
 	type LocalOverlay = Overlay & { accessType?: "owner" | "editor" };
 	type LocalPlaylist = { id: string; ownerId: string; name: string; clipCount: number; accessType?: "owner" | "editor" };
 	type LocalRunner = { id: string; ownerId: string; name: string; status: string; createdAt: Date; lastHeartbeatAt: Date | null; streamState?: string; streamError?: string | null };
@@ -37,7 +40,10 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 	const [overlays, setOverlays] = useState<LocalOverlay[]>();
 	const [playlists, setPlaylists] = useState<LocalPlaylist[]>();
 	const [runners, setRunners] = useState<LocalRunner[]>();
-	const [activeTab, setActiveTab] = useState<"overlays" | "playlists" | "runners">("overlays");
+	const [activeTab, setActiveTab] = useState<"overlays" | "playlists" | "runners">(() => {
+		const tab = searchParams.get("tab");
+		return dashboardTabs.has(tab ?? "") ? (tab as "overlays" | "playlists" | "runners") : "overlays";
+	});
 	const [filterValue, setFilterValue] = useState("");
 	const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set([]));
 	const [visibleOverlayColumns, setVisibleOverlayColumns] = useState<Selection>(new Set(INITIAL_VISIBLE_COLUMNS));
@@ -388,12 +394,31 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 						return (
 							<div className='flex items-center justify-end gap-2'>
 								<IconTrash
-									className='cursor-pointer text-muted'
+									className='cursor-pointer text-danger transition-opacity hover:opacity-80'
 									height={18}
 									width={18}
-									onClick={(event) => {
+									onClick={async (event) => {
 										event.stopPropagation();
-										// Call deleteRunner here when implemented
+										try {
+											const result = await deleteRunner(runner.id, runner.ownerId);
+											if (!result.success) {
+												addToast({
+													title: "Failed to delete runner",
+													description: result.error || "Unable to delete the runner. Please check your permissions and try again.",
+													color: "danger",
+												});
+												return;
+											}
+
+											setRunners((prev) => (prev ?? []).filter((entry) => entry.id !== runner.id));
+											addToast({ title: "Runner deleted", color: "success" });
+										} catch {
+											addToast({
+												title: "Failed to delete runner",
+												description: "An unexpected error occurred while deleting the runner.",
+												color: "danger",
+											});
+										}
 									}}
 								/>
 							</div>
@@ -809,7 +834,27 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 							isDisabled={overlays === undefined}
 							onPress={async () => {
 								if (activeTab === "runners") {
-									// In a real implementation this would likely open a modal to create a runner
+									setIsLoading(true);
+									try {
+										const newRunner = await createRunner(userId, "New Hardware Node");
+										if (!newRunner.success) {
+											addToast({
+												title: "Error",
+												description: "Failed to create runner.",
+												color: "danger",
+											});
+											return;
+										}
+										router.push(`/dashboard/runners/${newRunner.runner?.id}`);
+									} catch {
+										addToast({
+											title: "Error",
+											description: "Failed to create runner. Please try again.",
+											color: "danger",
+										});
+									} finally {
+										setIsLoading(false);
+									}
 									return;
 								}
 								setIsLoading(true);

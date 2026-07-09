@@ -1,4 +1,4 @@
-import { saveCredentials, loadCredentials, clearCredentials } from "../../src/runner/storage";
+import { saveCredentials, loadCredentials } from "../../src/runner/storage";
 import { Entry } from "@napi-rs/keyring";
 import * as fs from "fs";
 
@@ -31,7 +31,7 @@ describe("Storage Service", () => {
 			JSON.stringify({
 				runnerId: "test-runner-123",
 				apiBase: "https://demo.clipify.us",
-			})
+			}),
 		);
 
 		await saveCredentials(mockCredentials);
@@ -71,17 +71,13 @@ describe("Storage Service", () => {
 				runnerId: "test-runner-123",
 				apiBase: "https://demo.clipify.us",
 				token: "secret-token", // Fallback was saved!
-			})
+			}),
 		);
 
 		await saveCredentials(mockCredentials);
 
 		// The token should have been written to the fallback config
-		expect(fs.writeFileSync).toHaveBeenCalledWith(
-			expect.any(String),
-			expect.stringContaining('"token": "secret-token"'),
-			expect.objectContaining({ mode: 0o600 })
-		);
+		expect(fs.writeFileSync).toHaveBeenCalledWith(expect.any(String), expect.stringContaining('"token": "secret-token"'), expect.objectContaining({ mode: 0o600 }));
 
 		// Load
 		const loaded = await loadCredentials();

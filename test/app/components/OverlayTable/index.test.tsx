@@ -20,6 +20,7 @@ const push = jest.fn();
 
 jest.mock("next/navigation", () => ({
 	useRouter: () => ({ push }),
+	useSearchParams: () => new URLSearchParams(),
 }));
 
 jest.mock("next-plausible", () => ({

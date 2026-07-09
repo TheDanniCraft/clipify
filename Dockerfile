@@ -16,16 +16,37 @@ RUN --mount=type=cache,target=/root/.bun \
 FROM oven/bun:1 AS builder
 WORKDIR /app
 ARG COOLIFY_URL
+ARG TARGETARCH
+ARG LDID_VERSION=v2.1.5-procursus7
+ARG LDID_SHA_AMD64=4b8862b2fefa2cd7fa8f88cb0310779619aeaa8c72d6aff22f019b470f2fa99a
+ARG LDID_SHA_ARM64=bddd525902f242d4cdf7aa40a7f0c2c85c42ab9440d58664251e8738ef0c565d
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-RUN bun run app:build
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends ca-certificates curl; \
+    rm -rf /var/lib/apt/lists/*; \
+    BUILD_ARCH="${TARGETARCH:-$(uname -m)}"; \
+    case "${BUILD_ARCH}" in \
+    amd64|x86_64) \
+    LDID_ARCH="x86_64"; \
+    LDID_SHA="${LDID_SHA_AMD64}"; \
+    ;; \
+    arm64|aarch64) \
+    LDID_ARCH="aarch64"; \
+    LDID_SHA="${LDID_SHA_ARM64}"; \
+    ;; \
+    *) echo "Unsupported arch: ${BUILD_ARCH}" && exit 1 ;; \
+    esac; \
+    url="https://github.com/ProcursusTeam/ldid/releases/download/${LDID_VERSION}/ldid_linux_${LDID_ARCH}"; \
+    curl -fsSL "$url" -o /usr/local/bin/ldid; \
+    echo "${LDID_SHA}  /usr/local/bin/ldid" | sha256sum -c -; \
+    chmod +x /usr/local/bin/ldid; \
+    ldid --version || true
 
-# Build the runner binaries and place them into the public folder
-RUN mkdir -p public/downloads && \
-    bun build --compile --target=bun-windows-x64-baseline src/runner/index.ts --outfile public/downloads/ClipifyRunner.exe && \
-    bun build --compile --target=bun-linux-x64-baseline src/runner/index.ts --outfile public/downloads/ClipifyRunner-linux
+RUN bun run app:build && bun run runner:build
 
 # -------------------------
 # runner (production)

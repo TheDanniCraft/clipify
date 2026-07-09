@@ -1,21 +1,181 @@
 import * as os from "os";
-import * as fs from "fs";
-import * as path from "path";
+import { spawn, spawnSync } from "child_process";
 import * as readline from "readline";
 import { Engine } from "./engine";
 import { ConsoleUI } from "./logger";
 import { checkForUpdates, cleanupOldVersions } from "./updater";
 
-import { getBaseUrl } from "../app/actions/utils";
-
 import { extractBakedConfig } from "./bootstrap";
-import { loadCredentials, saveCredentials } from "./storage";
+import { loadCredentials, saveCredentials, type RunnerCredentials } from "./storage";
 
 let RUNNER_VERSION = "unknown";
+const DEVELOPMENT_API_BASE = "http://localhost:3000";
 
 // Track actual states and active engines locally
 const actualStates: Record<string, string> = {};
 const activeEngines: Record<string, Engine> = {};
+
+function getRunnerOsInfo() {
+	return `${os.type()} ${os.release()} ${os.arch()}`;
+}
+
+interface EnrollmentStartResponse {
+	deviceCode: string;
+	userCode: string;
+	verificationUri: string;
+	expiresAt: string;
+	pollInterval: number;
+}
+
+interface EnrollmentApprovedResponse {
+	status: "approved";
+	apiBase: string;
+	runnerId: string;
+	token: string;
+}
+
+class RunnerConfigurationError extends Error {
+	constructor(message: string) {
+		super(message);
+		this.name = "RunnerConfigurationError";
+	}
+}
+
+function sleep(ms: number) {
+	return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function normalizeApiBase(apiBase: string) {
+	return apiBase.replace(/\/+$/, "");
+}
+
+function isSourceRunnerExecution() {
+	const normalizedArgs = process.argv.map((arg) => arg.replace(/\\/g, "/"));
+	return normalizedArgs.some((arg) => arg.endsWith("src/runner/index.ts"));
+}
+
+function resolveApiBase(options: { overrideUrl?: string; bakedApiBase?: string; localApiBase?: string; hasLocalToken: boolean }) {
+	const explicitApiBase = options.overrideUrl || process.env.CLIPIFY_API_URL || options.bakedApiBase || process.env.BAKED_API_URL;
+	if (explicitApiBase) return normalizeApiBase(explicitApiBase);
+
+	if (isSourceRunnerExecution() && !options.hasLocalToken) return DEVELOPMENT_API_BASE;
+	if (options.localApiBase) return normalizeApiBase(options.localApiBase);
+
+	throw new RunnerConfigurationError("This runner is missing its Clipify connection settings.");
+}
+
+function openBrowser(url: string) {
+	const platform = process.platform;
+	const command = platform === "win32" ? "cmd" : platform === "darwin" ? "open" : "xdg-open";
+	const args = platform === "win32" ? ["/c", "start", "", url] : [url];
+
+	if (platform === "linux") {
+		const hasGraphicalSession = Boolean(process.env.DISPLAY || process.env.WAYLAND_DISPLAY);
+		const hasXdgOpen = spawnSync("which", ["xdg-open"], { stdio: "ignore" }).status === 0;
+		if (!hasGraphicalSession || !hasXdgOpen) {
+			return;
+		}
+	}
+
+	try {
+		const child = spawn(command, args, { detached: true, stdio: "ignore" });
+		child.on("error", () => {});
+		child.unref();
+	} catch {
+		// The enrollment URL and code are printed below, so browser auto-open is best effort.
+	}
+}
+
+async function startRunnerEnrollment(apiBase: string, runnerId?: string) {
+	const startUrl = `${apiBase}/api/runner/enroll/start`;
+	const startResponse = await fetch(startUrl, {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify({
+			os: getRunnerOsInfo(),
+			hostname: os.hostname(),
+			version: RUNNER_VERSION,
+			runnerId,
+		}),
+	});
+
+	if (!startResponse.ok) {
+		const responseText = await startResponse.text().catch(() => "");
+		const responseSuffix = responseText ? `: ${responseText}` : "";
+		throw new Error(`Enrollment start failed with status ${startResponse.status} at ${startUrl}${responseSuffix}`);
+	}
+
+	return (await startResponse.json()) as EnrollmentStartResponse;
+}
+
+function printEnrollmentInstructions(enrollment: EnrollmentStartResponse) {
+	console.log("==========================================");
+	console.log("=       Clipify Runner Enrollment        =");
+	console.log("==========================================");
+	console.log(`[Enrollment] Open this URL on any device: ${enrollment.verificationUri}`);
+	console.log(`[Enrollment] Code: ${enrollment.userCode}`);
+	console.log("[Enrollment] If no browser opens, open the URL manually and enter the code.");
+	console.log("[Enrollment] Waiting for approval...");
+}
+
+function updateEnrollmentCodeLine(userCode: string) {
+	if (!process.stdout.isTTY) {
+		console.log(`[Enrollment] Code: ${userCode}`);
+		return;
+	}
+
+	readline.moveCursor(process.stdout, 0, -3);
+	readline.cursorTo(process.stdout, 0);
+	readline.clearLine(process.stdout, 0);
+	process.stdout.write(`[Enrollment] Code: ${userCode}`);
+	readline.cursorTo(process.stdout, 0);
+	readline.moveCursor(process.stdout, 0, 3);
+}
+
+async function enrollRunner(apiBase: string, runnerId?: string): Promise<Required<RunnerCredentials>> {
+	console.log("[Enrollment] No runner token found. Starting browser enrollment...");
+	let hasPrintedInstructions = false;
+
+	while (true) {
+		const enrollment = await startRunnerEnrollment(apiBase, runnerId);
+
+		if (hasPrintedInstructions) {
+			updateEnrollmentCodeLine(enrollment.userCode);
+		} else {
+			printEnrollmentInstructions(enrollment);
+			openBrowser(enrollment.verificationUri);
+			hasPrintedInstructions = true;
+		}
+
+		const expiresAt = new Date(enrollment.expiresAt).getTime();
+		const pollIntervalMs = Math.max(1, enrollment.pollInterval || 3) * 1000;
+
+		while (Date.now() < expiresAt) {
+			await sleep(pollIntervalMs);
+			const pollResponse = await fetch(`${apiBase}/api/runner/enroll/poll`, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ deviceCode: enrollment.deviceCode }),
+			});
+
+			if (pollResponse.status === 202) continue;
+			if (pollResponse.status === 410) break;
+			if (!pollResponse.ok) {
+				const responseText = await pollResponse.text().catch(() => "");
+				const responseSuffix = responseText ? `: ${responseText}` : "";
+				throw new Error(`Enrollment poll failed with status ${pollResponse.status}${responseSuffix}`);
+			}
+
+			const approved = (await pollResponse.json()) as EnrollmentApprovedResponse;
+			if (approved.status === "approved") {
+				const credentials = { runnerId: approved.runnerId, apiBase: approved.apiBase, token: approved.token };
+				await saveCredentials(credentials);
+				console.log("[Enrollment] Runner approved and credentials saved.");
+				return credentials;
+			}
+		}
+	}
+}
 
 async function pollHeartbeat(token: string, apiBase: string) {
 	try {
@@ -27,7 +187,7 @@ async function pollHeartbeat(token: string, apiBase: string) {
 				Authorization: `Bearer ${token}`,
 			},
 			body: JSON.stringify({
-				os: `${os.type()} ${os.release()}`,
+				os: getRunnerOsInfo(),
 				hostname: os.hostname(),
 				version: RUNNER_VERSION,
 				actualStates,
@@ -98,13 +258,13 @@ async function main() {
 	const urlArgIndex = args.findIndex((arg) => arg === "--url" || arg === "--api");
 	const overrideUrl = urlArgIndex !== -1 ? args[urlArgIndex + 1] : undefined;
 
-	let bakedConfig = extractBakedConfig(process.execPath);
+	const bakedConfig = extractBakedConfig(process.execPath);
 	if (bakedConfig) {
 		console.log("[Info] Found baked configuration in executable.");
 	}
 
 	const savedConfig = await loadCredentials();
-	let localConfig: any = {
+	const localConfig: RunnerCredentials = {
 		runnerId: savedConfig.runnerId,
 		apiBase: savedConfig.apiBase,
 		token: savedConfig.token,
@@ -123,7 +283,25 @@ async function main() {
 		}
 	}
 
-	let apiBase = overrideUrl || process.env.CLIPIFY_API_URL || bakedConfig?.apiBase || localConfig.apiBase || "http://localhost:3000";
+	let apiBase: string;
+	try {
+		apiBase = resolveApiBase({
+			overrideUrl,
+			bakedApiBase: bakedConfig?.apiBase,
+			localApiBase: localConfig.apiBase,
+			hasLocalToken: Boolean(localConfig.token),
+		});
+	} catch (error) {
+		if (error instanceof RunnerConfigurationError) {
+			console.error("\n==========================================================================");
+			console.error("[FATAL ERROR] Runner setup is incomplete.");
+			console.error("Please download a fresh runner from your Clipify dashboard and run that file.");
+			console.error("If this keeps happening, contact Clipify support.");
+			console.error("==========================================================================\n");
+			process.exit(1);
+		}
+		throw error;
+	}
 
 	// Bootstrap Token Exchange
 	if (bakedConfig?.bootstrapToken) {
@@ -163,19 +341,35 @@ async function main() {
 	}
 
 	if (!token) {
-		console.error("\n==========================================================================");
-		console.error("[FATAL ERROR] Missing Runner Token.");
-		console.error("Please provide your Runner Token via the --token argument or the CLIPIFY_TOKEN environment variable.");
-		console.error("==========================================================================\n");
+		try {
+			const enrolledConfig = await enrollRunner(apiBase, bakedConfig?.runnerId || localConfig.runnerId);
+			localConfig.runnerId = enrolledConfig.runnerId;
+			localConfig.apiBase = enrolledConfig.apiBase;
+			localConfig.token = enrolledConfig.token;
+			apiBase = enrolledConfig.apiBase;
+			token = enrolledConfig.token;
+		} catch (error) {
+			console.error("\n==========================================================================");
+			console.error("[FATAL ERROR] Runner enrollment failed.");
+			console.error(error);
+			console.error("==========================================================================\n");
+			process.exit(1);
+		}
+	}
+
+	if (!token) {
+		console.error("[FATAL ERROR] Missing Runner Token after enrollment.");
 		process.exit(1);
 	}
 
-	if (!localConfig.token || localConfig.token !== token) {
+	const runnerToken = token;
+
+	if (!localConfig.token || localConfig.token !== runnerToken) {
 		// Save manually provided token
 		await saveCredentials({
 			runnerId: localConfig.runnerId,
 			apiBase: apiBase,
-			token: token,
+			token: runnerToken,
 		});
 	}
 
@@ -185,13 +379,13 @@ async function main() {
 	RUNNER_VERSION = await checkForUpdates(apiBase);
 
 	console.log("==========================================");
-	console.log(`=       Clipify Runner (v${RUNNER_VERSION.substring(0, 8)})        =`);
+	console.log(`=       Clipify Runner (${RUNNER_VERSION.substring(0, 8)})        =`);
 	console.log("==========================================");
 
 	console.log(`[Info] Token loaded. API Base URL is ${apiBase}. Starting polling loop...`);
 
 	// Poll immediately
-	await pollHeartbeat(token, apiBase);
+	await pollHeartbeat(runnerToken, apiBase);
 
 	// Update UI real-time
 	setInterval(() => {
@@ -203,7 +397,7 @@ async function main() {
 	}, 1000);
 
 	// Poll every 10 seconds
-	setInterval(() => pollHeartbeat(token as string, apiBase), 10 * 1000);
+	setInterval(() => pollHeartbeat(runnerToken, apiBase), 10 * 1000);
 }
 
 main().catch(console.error);

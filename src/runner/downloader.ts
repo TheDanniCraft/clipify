@@ -249,10 +249,10 @@ export async function ensureDependencies() {
 		if (process.platform === "win32") targetFile = "ffmpeg-master-latest-win64-gpl.zip";
 		if (process.platform === "darwin") targetFile = "ffmpeg-master-latest-osx64-gpl.zip"; // BtbN added osx recently or we can use another. Wait, does BtbN have osx?
 		// Actually BtbN does NOT have macOS. We will use evermeet.cx or github.com/eugeneware/ffmpeg-static for macOS.
-		
+
 		let downloadUrl = "";
 		let remoteSha = "";
-		let isMacOS = process.platform === "darwin";
+		const isMacOS = process.platform === "darwin";
 
 		if (isMacOS) {
 			// Using evermeet.cx static build

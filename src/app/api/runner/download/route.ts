@@ -1,10 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
-import { validateAuth } from "@/app/actions/auth";
+import { validateAuth } from "@actions/auth";
 import { db } from "@/db/client";
-import { runnersTable } from "@/db/schema";
+import { editorsTable, runnersTable } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import path from "path";
 import fs from "fs/promises";
+
+const binaryNames: Record<string, string> = {
+	windows: "clipify-runner-windows.exe",
+	linux: "clipify-runner-linux",
+	macos: "clipify-runner-macos",
+	"macos-arm64": "clipify-runner-macos-arm64",
+};
+
+async function canAccessRunner(ownerId: string, userId: string) {
+	if (ownerId === userId) return true;
+	const editor = await db.query.editorsTable.findFirst({
+		where: and(eq(editorsTable.userId, ownerId), eq(editorsTable.editorId, userId)),
+	});
+	return Boolean(editor);
+}
 
 export async function GET(req: NextRequest) {
 	const user = await validateAuth();
@@ -13,51 +28,31 @@ export async function GET(req: NextRequest) {
 	}
 
 	const searchParams = req.nextUrl.searchParams;
-	const osParam = searchParams.get("os");
+	const osParam = searchParams.get("os") || "";
 	const runnerId = searchParams.get("runnerId");
+	const binaryName = binaryNames[osParam];
 
-	if (!osParam || !["windows", "linux", "macos"].includes(osParam)) {
+	if (!binaryName) {
 		return NextResponse.json({ error: "Invalid OS parameter" }, { status: 400 });
 	}
 	if (!runnerId) {
 		return NextResponse.json({ error: "Missing runnerId parameter" }, { status: 400 });
 	}
 
-	// Verify runner ownership
 	const runner = await db.query.runnersTable.findFirst({
-		where: and(eq(runnersTable.id, runnerId), eq(runnersTable.ownerId, user.id)),
+		where: eq(runnersTable.id, runnerId),
 	});
 
-	if (!runner) {
+	if (!runner || !(await canAccessRunner(runner.ownerId, user.id))) {
 		return NextResponse.json({ error: "Runner not found or unauthorized" }, { status: 404 });
 	}
 
-	// Read binary
-	const ext = osParam === "windows" ? ".exe" : "";
-	const binaryName = `clipify-runner-${osParam}${ext}`;
 	const binaryPath = path.join(process.cwd(), "public", "downloads", "runner", binaryName);
 
 	try {
 		const binaryBuffer = await fs.readFile(binaryPath);
 
-		// Generate bootstrap token
-		const bootstrapToken = crypto.randomUUID();
-
-		// Save to DB
-		await db.update(runnersTable).set({ bootstrapToken }).where(eq(runnersTable.id, runnerId));
-
-		// Inject Config Block
-		const apiBase = req.nextUrl.origin;
-		const configBlock = `\n\n\n___CLIPIFY_CONFIG_START____${JSON.stringify({
-			apiBase,
-			bootstrapToken,
-			runnerId,
-		})}___CLIPIFY_CONFIG_END____\n\n\n`;
-
-		const configBuffer = Buffer.from(configBlock, "utf-8");
-		const finalBuffer = Buffer.concat([binaryBuffer, configBuffer]);
-
-		return new NextResponse(finalBuffer, {
+		return new NextResponse(binaryBuffer, {
 			status: 200,
 			headers: {
 				"Content-Type": "application/octet-stream",

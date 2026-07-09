@@ -62,7 +62,7 @@ export async function loadCredentials(): Promise<RunnerCredentials> {
 			if (config.apiBase) result.apiBase = config.apiBase;
 			if (config.token) result.token = config.token; // Fallback token
 		}
-	} catch (error) {
+	} catch {
 		// Ignore parse errors, file might not exist or be corrupted
 	}
 
@@ -74,7 +74,7 @@ export async function loadCredentials(): Promise<RunnerCredentials> {
 			if (keyringToken) {
 				result.token = keyringToken;
 			}
-		} catch (error) {
+		} catch {
 			// Keyring might not be available or entry doesn't exist
 		}
 	}
@@ -87,7 +87,7 @@ export async function clearCredentials(runnerId: string) {
 	try {
 		const entry = new Entry(SERVICE_NAME, runnerId);
 		await entry.deletePassword();
-	} catch (error) {
+	} catch {
 		// Ignore
 	}
 
@@ -96,7 +96,7 @@ export async function clearCredentials(runnerId: string) {
 		if (fs.existsSync(CONFIG_PATH)) {
 			fs.unlinkSync(CONFIG_PATH);
 		}
-	} catch (error) {
+	} catch {
 		// Ignore
 	}
 }

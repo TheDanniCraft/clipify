@@ -5,9 +5,10 @@ import path from "path";
 import crypto from "crypto";
 import * as resedit from "resedit";
 
+import { resolveBaseUrl } from "../src/app/lib/baseUrl";
+
 import { loadEnvConfig } from "@next/env";
 loadEnvConfig(process.cwd());
-
 
 function getFileHash(filePath: string): string {
 	const fileBuffer = fs.readFileSync(filePath);
@@ -16,7 +17,17 @@ function getFileHash(filePath: string): string {
 	return hashSum.digest("hex");
 }
 
+function getLdidPath(): string | null {
+	try {
+		return execSync("command -v ldid", { encoding: "utf-8", stdio: ["ignore", "pipe", "ignore"] }).trim() || null;
+	} catch {
+		return null;
+	}
+}
+
 async function main() {
+	const bakedApiUrl = (process.env.CLIPIFY_RUNNER_API_URL ? new URL(process.env.CLIPIFY_RUNNER_API_URL) : resolveBaseUrl()).toString().replace(/\/$/, "");
+	console.log(`[Builder] Baking runner API URL: ${bakedApiUrl}`);
 
 	// 2. Bundle the runner and inject the URL as a constant
 	await build({
@@ -25,13 +36,24 @@ async function main() {
 		platform: "node",
 		outfile: "build/runner.js",
 		external: ["puppeteer-stream", "puppeteer-core", "puppeteer", "@napi-rs/keyring"],
-		define: {},
+		define: {
+			"process.env.BAKED_API_URL": JSON.stringify(bakedApiUrl),
+		},
 	});
 
 	console.log(`[Builder] Bundled successfully. Compiling executable with pkg...`);
+	const ldidPath = getLdidPath();
+	const pkgEnv = { ...process.env };
+	if (ldidPath) {
+		const ldidDir = path.dirname(ldidPath);
+		pkgEnv.PATH = `${ldidDir}${path.delimiter}${pkgEnv.PATH || ""}`;
+		console.log(`[Builder] macOS ad-hoc signing available via ldid: ${ldidPath}`);
+	} else {
+		console.warn(`[Builder] macOS ad-hoc signing skipped; build in Docker for signed macOS artifacts.`);
+	}
 
 	// 3. Compile binaries using pkg
-	execSync("npx pkg build/runner.js --public -t node18-win-x64,node18-linux-x64,node18-macos-x64,node18-macos-arm64 --out-path build/", { stdio: "inherit" });
+	execSync('npx pkg build/runner.js --public --public-packages "*" --no-bytecode -t node18-win-x64,node18-linux-x64,node18-macos-x64,node18-macos-arm64 --out-path build/', { stdio: "inherit", env: pkgEnv });
 
 	console.log(`[Builder] Runner executables generated successfully in build/!`);
 
@@ -41,9 +63,9 @@ async function main() {
 		fs.mkdirSync(downloadsDir, { recursive: true });
 	}
 
-	const winBinarySrc = path.join(process.cwd(), "build", "runner-win.exe");
-	const linuxBinarySrc = path.join(process.cwd(), "build", "runner-linux");
-	const macosX64BinarySrc = path.join(process.cwd(), "build", "runner-macos");
+	const winBinarySrc = path.join(process.cwd(), "build", "runner-win-x64.exe");
+	const linuxBinarySrc = path.join(process.cwd(), "build", "runner-linux-x64");
+	const macosX64BinarySrc = path.join(process.cwd(), "build", "runner-macos-x64");
 	const macosArmBinarySrc = path.join(process.cwd(), "build", "runner-macos-arm64");
 
 	const winBinaryDest = path.join(downloadsDir, "clipify-runner-windows.exe");
@@ -65,7 +87,7 @@ async function main() {
 					res.entries,
 					1,
 					1033,
-					iconFile.icons.map(i => i.data)
+					iconFile.icons.map((i) => i.data),
 				);
 				res.outputResource(exe);
 				fs.writeFileSync(winBinaryDest, Buffer.from(exe.generate()));

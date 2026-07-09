@@ -373,7 +373,7 @@ function OverlayViewport({
 	);
 }
 
-export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedOverlay, isDemoPlayer, embedMuted, embedAutoplay, overlaySecret, initialStandby, showFallbackBanner }: { overlay: Overlay; isEmbed?: boolean; showBanner?: boolean; showEmbedOverlay?: boolean; isDemoPlayer?: boolean; embedMuted?: boolean; embedAutoplay?: boolean; overlaySecret?: string; initialStandby?: boolean; showFallbackBanner?: boolean }) {
+export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedOverlay, isDemoPlayer, embedMuted, embedAutoplay, overlaySecret, initialStandby }: { overlay: Overlay; isEmbed?: boolean; showBanner?: boolean; showEmbedOverlay?: boolean; isDemoPlayer?: boolean; embedMuted?: boolean; embedAutoplay?: boolean; overlaySecret?: string; initialStandby?: boolean; showFallbackBanner?: boolean }) {
 	const plausible = usePlausible();
 	const CROSSFADE_SECONDS = 0.7;
 	const CROSSFADE_MS = Math.round(CROSSFADE_SECONDS * 1000);
@@ -418,12 +418,12 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 	}, [isStandby]);
 
 	const embedBehaviorEnabled = !!isEmbed && !isDemoPlayer;
-	const [paused, setPaused] = useState<boolean>(initialStandby ? true : (embedBehaviorEnabled ? !embedAutoplay : false));
+	const [paused, setPaused] = useState<boolean>(initialStandby ? true : embedBehaviorEnabled ? !embedAutoplay : false);
 	const [isMuted, setIsMuted] = useState<boolean>(embedBehaviorEnabled ? !!embedMuted : false);
 	const [runtimeVolume, setRuntimeVolume] = useState<number>(overlay.playerVolume ?? 50);
 	const [ownerAvatar, setOwnerAvatar] = useState<string>("");
 	const [isDocumentVisible, setIsDocumentVisible] = useState<boolean>(true);
-	const [hasUserStarted, setHasUserStarted] = useState<boolean>(initialStandby ? true : (!embedBehaviorEnabled || !!embedAutoplay));
+	const [hasUserStarted, setHasUserStarted] = useState<boolean>(initialStandby ? true : !embedBehaviorEnabled || !!embedAutoplay);
 	const [websocket, setWebsocket] = useState<WebSocket | null>(null);
 	const [clipPool, setClipPool] = useState<TwitchClip[]>([]);
 	const clipPoolRef = useRef<TwitchClip[]>([]);
@@ -432,18 +432,18 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 
 	useEffect(() => {
 		if (typeof window !== "undefined") {
-			(window as any).startFallback = () => {
+			const fallbackWindow = window as Window & { startFallback?: () => void; stopFallback?: () => void };
+			fallbackWindow.startFallback = () => {
 				console.log("[OverlayPlayer] Received startFallback");
 				setIsStandby(false);
 				setPaused(false);
 			};
-			(window as any).stopFallback = () => {
+			fallbackWindow.stopFallback = () => {
 				console.log("[OverlayPlayer] Received stopFallback");
 				setIsStandby(true);
 				setPaused(true);
 			};
 		}
-	// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
 	useEffect(() => {

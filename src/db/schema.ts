@@ -257,7 +257,9 @@ export const adminImpersonationSessionsTable = pgTable(
 
 export const userPassesTable = pgTable("user_passes", {
 	id: uuid("id").notNull().defaultRandom().primaryKey(),
-	userId: varchar("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+	userId: varchar("user_id")
+		.notNull()
+		.references(() => usersTable.id, { onDelete: "cascade" }),
 	passType: passTypeEnum("pass_type").$type<PassType>().notNull(),
 	stripeSubscriptionId: varchar("stripe_subscription_id"),
 	active: boolean("active").notNull().default(true),
@@ -267,7 +269,9 @@ export const userPassesTable = pgTable("user_passes", {
 
 export const runnersTable = pgTable("runners", {
 	id: uuid("id").notNull().defaultRandom().primaryKey(),
-	ownerId: varchar("owner_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+	ownerId: varchar("owner_id")
+		.notNull()
+		.references(() => usersTable.id, { onDelete: "cascade" }),
 	name: varchar("name").notNull(),
 	token: varchar("token").notNull().unique(),
 	bootstrapToken: varchar("bootstrap_token").unique(),
@@ -278,11 +282,34 @@ export const runnersTable = pgTable("runners", {
 	createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
+export const runnerEnrollmentsTable = pgTable(
+	"runner_enrollments",
+	{
+		id: uuid("id").notNull().defaultRandom().primaryKey(),
+		deviceCode: varchar("device_code").notNull().unique(),
+		userCode: varchar("user_code").notNull().unique(),
+		apiBase: varchar("api_base").notNull(),
+		hostname: varchar("hostname"),
+		osInfo: varchar("os_info"),
+		version: varchar("version"),
+		ownerId: varchar("owner_id").references(() => usersTable.id, { onDelete: "cascade" }),
+		runnerId: uuid("runner_id").references(() => runnersTable.id, { onDelete: "cascade" }),
+		expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+		approvedAt: timestamp("approved_at", { withTimezone: true }),
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+	},
+	(t) => [index("runner_enrollments_device_code_idx").on(t.deviceCode), index("runner_enrollments_user_code_idx").on(t.userCode), index("runner_enrollments_expires_at_idx").on(t.expiresAt)],
+);
+
 export const streamSessionsTable = pgTable("stream_sessions", {
 	id: uuid("id").notNull().defaultRandom().primaryKey(),
-	ownerId: varchar("owner_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
+	ownerId: varchar("owner_id")
+		.notNull()
+		.references(() => usersTable.id, { onDelete: "cascade" }),
 	runnerId: uuid("runner_id").references(() => runnersTable.id, { onDelete: "set null" }),
-	overlayId: uuid("overlay_id").notNull().references(() => overlaysTable.id, { onDelete: "cascade" }),
+	overlayId: uuid("overlay_id")
+		.notNull()
+		.references(() => overlaysTable.id, { onDelete: "cascade" }),
 	mode: streamModeEnum("mode").$type<StreamMode>().notNull(),
 	encryptedStreamKey: text("encrypted_stream_key"),
 	rtmpUrl: varchar("rtmp_url").notNull().default("rtmp://live.twitch.tv/app"),

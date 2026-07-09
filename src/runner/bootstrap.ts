@@ -1,12 +1,18 @@
 import * as fs from "fs";
 
-export function extractBakedConfig(execPath: string): any {
+export interface BakedRunnerConfig {
+	apiBase?: string;
+	bootstrapToken?: string;
+	runnerId?: string;
+}
+
+export function extractBakedConfig(execPath: string): BakedRunnerConfig | null {
 	try {
 		const fd = fs.openSync(execPath, "r");
 		const stat = fs.fstatSync(fd);
 		const readLen = Math.min(2048, stat.size);
 		const buffer = Buffer.alloc(readLen);
-		
+
 		// Read the last `readLen` bytes of the file
 		fs.readSync(fd, buffer, 0, readLen, stat.size - readLen);
 		fs.closeSync(fd);
@@ -16,7 +22,7 @@ export function extractBakedConfig(execPath: string): any {
 		if (match && match[1]) {
 			return JSON.parse(match[1]);
 		}
-	} catch (error) {
+	} catch {
 		// Ignore
 	}
 	return null;

@@ -1,7 +1,5 @@
 import { extractBakedConfig } from "../bootstrap";
 import fs from "fs";
-import path from "path";
-import os from "os";
 
 jest.mock("fs");
 
@@ -17,7 +15,7 @@ describe("Bootstrap Config Extraction", () => {
 			runnerId: "runner-999",
 		};
 		const configBlock = `\n\n\n___CLIPIFY_CONFIG_START____${JSON.stringify(mockConfig)}___CLIPIFY_CONFIG_END____\n\n\n`;
-		
+
 		const fakeBinary = Buffer.from("FAKE_BINARY_DATA" + configBlock, "utf-8");
 
 		(fs.openSync as jest.Mock).mockReturnValue(1);

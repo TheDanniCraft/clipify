@@ -1,18 +1,20 @@
 "use server";
 
 import { db } from "@/db/client";
-import { runnersTable } from "@/db/schema";
+import { editorsTable, runnersTable } from "@/db/schema";
 import { revalidatePath } from "next/cache";
 import { randomBytes } from "crypto";
+import fs from "fs";
+import path from "path";
 import { eq, and } from "drizzle-orm";
 import { validateAuth } from "./auth";
-import { getEditorAccess } from "./database";
 
 async function hasAccess(ownerId: string, userId: string) {
 	if (ownerId === userId) return true;
-	const editorRows = await getEditorAccess(ownerId);
-	if (!editorRows) return false;
-	return editorRows.some((e) => e.editorId === userId);
+	const editor = await db.query.editorsTable.findFirst({
+		where: and(eq(editorsTable.userId, ownerId), eq(editorsTable.editorId, userId)),
+	});
+	return Boolean(editor);
 }
 
 export async function createRunner(ownerId: string, name: string) {
@@ -163,6 +165,26 @@ export async function getRunner(runnerId: string, ownerId: string) {
 		});
 	} catch (error) {
 		console.error("Failed to fetch runner:", error);
+		return null;
+	}
+}
+
+export async function getRunnerVersionManifest() {
+	try {
+		const versionPath = path.join(process.cwd(), "public", "downloads", "runner", "version.json");
+		if (!fs.existsSync(versionPath)) return null;
+
+		const parsed = JSON.parse(fs.readFileSync(versionPath, "utf-8")) as Partial<Record<"windows" | "linux" | "macos" | "macosArm" | "updatedAt", unknown>>;
+
+		return {
+			windows: typeof parsed.windows === "string" ? parsed.windows : null,
+			linux: typeof parsed.linux === "string" ? parsed.linux : null,
+			macos: typeof parsed.macos === "string" ? parsed.macos : null,
+			macosArm: typeof parsed.macosArm === "string" ? parsed.macosArm : null,
+			updatedAt: typeof parsed.updatedAt === "string" ? parsed.updatedAt : null,
+		};
+	} catch (error) {
+		console.error("Failed to read runner version manifest:", error);
 		return null;
 	}
 }

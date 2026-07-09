@@ -1,7 +1,7 @@
 /** @jest-environment node */
 export {};
 
-import { getGamesDetailsBulk } from "@/app/actions/twitch";
+import { getGamesDetailsBulk } from "@actions/twitch";
 import axios from "axios";
 import { getTwitchCacheBatch, setTwitchCacheBatch, getAccessTokenServer } from "@actions/database";
 import { TwitchCacheType } from "@types";

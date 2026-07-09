@@ -31,7 +31,13 @@ describe("Engine (Raw Logic Tests)", () => {
 
 		mockSpawn = spawn as jest.Mock;
 		mockSpawn.mockReturnValue({
+			killed: false,
+			exitCode: null,
+			signalCode: null,
 			on: jest.fn(),
+			once: jest.fn((event, cb) => {
+				if (event === "close") cb();
+			}),
 			stdin: { on: jest.fn(), end: jest.fn() },
 			stderr: { on: jest.fn() },
 			kill: jest.fn(),
@@ -99,9 +105,7 @@ describe("Engine (Raw Logic Tests)", () => {
 		// Simulate OBS connecting to the proxy port 1935
 		proxyEvents.emit("obsConnected");
 
-		// Wait for microtasks
-		await Promise.resolve();
-		await Promise.resolve();
+		await (engine as unknown as { transitionPromise: Promise<void> }).transitionPromise;
 
 		// Should spawn OBS Forwarder
 		expect(mockSpawn).toHaveBeenCalledWith("/mock/ffmpeg", expect.arrayContaining(["-listen", "1", "-i", "rtmp://127.0.0.1:1936"]), expect.any(Object));
@@ -117,13 +121,11 @@ describe("Engine (Raw Logic Tests)", () => {
 
 		// OBS Connects
 		proxyEvents.emit("obsConnected");
-		await Promise.resolve();
-		await Promise.resolve();
+		await (engine as unknown as { transitionPromise: Promise<void> }).transitionPromise;
 
 		// OBS Disconnects
 		proxyEvents.emit("obsDisconnected");
-		await Promise.resolve();
-		await Promise.resolve();
+		await (engine as unknown as { transitionPromise: Promise<void> }).transitionPromise;
 
 		// Should fallback to Cloud Loop
 		expect(mockSpawn).toHaveBeenCalledWith("/mock/ffmpeg", expect.arrayContaining(["-i", "-", "-c:v", "libx264"]), expect.any(Object));

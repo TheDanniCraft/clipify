@@ -8,6 +8,7 @@ jest.mock("next/navigation", () => ({
 	useRouter: () => ({
 		push: routerPush,
 	}),
+	useSearchParams: () => new URLSearchParams(),
 }));
 
 const trackPaywallEvent = jest.fn();
