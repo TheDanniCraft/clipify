@@ -170,6 +170,15 @@ jest.mock("@heroui/react", () => {
 		}),
 		Spinner: () => <div>loading</div>,
 		Link: ({ children }: { children: React.ReactNode }) => <a>{children}</a>,
+		Modal: Object.assign(({ children }: { children: React.ReactNode }) => <div>{children}</div>, {
+			Backdrop: ({ children, isOpen }: { children: React.ReactNode; isOpen: boolean }) => (isOpen ? <div>{children}</div> : null),
+			Container: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+			Dialog: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+			CloseTrigger: () => null,
+			Header: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+			Heading: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+			Body: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+		}),
 		Avatar: Object.assign(({ children }: { children?: React.ReactNode }) => <div>{children}</div>, {
 			Image: () => <span />,
 			Fallback: ({ children }: { children?: React.ReactNode }) => <span>{children}</span>,

@@ -100,6 +100,12 @@ jest.mock("@heroui/react", () => ({
 	DateRangePicker: () => <div />,
 	Separator: () => <div />,
 	Link: ({ children }: { children?: React.ReactNode }) => <a>{children}</a>,
+	Tabs: Object.assign(({ children }: { children?: React.ReactNode }) => <div>{children}</div>, {
+		ListContainer: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+		List: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+		Tab: ({ children }: { children?: React.ReactNode }) => <button>{children}</button>,
+		Indicator: () => null,
+	}),
 	Modal: Object.assign(({ children }: { children?: React.ReactNode }) => <div>{children}</div>, {
 		Backdrop: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
 		Container: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
@@ -115,6 +121,11 @@ jest.mock("@heroui/react", () => ({
 		Input: () => <input type='number' />,
 		IncrementButton: () => <button type='button'>+</button>,
 		DecrementButton: () => <button type='button'>-</button>,
+	}),
+	Slider: Object.assign(({ children }: { children?: React.ReactNode }) => <div>{children}</div>, {
+		Track: ({ children }: { children?: React.ReactNode | ((props: { state: { values: number[] } }) => React.ReactNode) }) => <div>{typeof children === "function" ? children({ state: { values: [0, 60] } }) : children}</div>,
+		Fill: () => <span />,
+		Thumb: () => <span />,
 	}),
 	Pagination: () => <div />,
 	Spinner: ({ label }: { label?: string }) => <div>{label}</div>,

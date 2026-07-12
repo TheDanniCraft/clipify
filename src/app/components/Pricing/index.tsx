@@ -148,6 +148,28 @@ export default function TiersComponent({ campaignOffer = null }: TiersComponentP
 					);
 				})}
 			</div>
+			<Card variant='secondary' className='mt-4 w-full border border-accent/30'>
+				<Card.Content className='flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between'>
+					<div>
+						<div className='flex items-center gap-2'>
+							<h2 className='font-semibold'>Self-hosted Runner add-on</h2>
+							<Chip size='sm' variant='tertiary'>
+								Optional
+							</Chip>
+						</div>
+						<p className='mt-1 text-sm text-muted'>Available with Free or Pro. Run unlimited Runner installations on hardware you provide.</p>
+						<p className='mt-1 text-xs text-muted'>
+							Hosting, bandwidth, hardware, and electricity are not included. <Link href='mailto:contact@clipify.us?subject=Managed%20Runner'>Need Managed Runner?</Link>
+						</p>
+					</div>
+					<div className='flex shrink-0 items-center gap-3'>
+						<p className='font-semibold tabular-nums'>{selectedFrequency.key === FrequencyEnum.Yearly ? "30 EUR/year" : "3 EUR/month"}</p>
+						<Link href={`/login?returnUrl=${encodeURIComponent(`/dashboard/settings?addon=runner&cycle=${selectedFrequency.key}&source=pricing_page`)}`} className={buttonVariants({ variant: "primary", className: "no-underline" })}>
+							Add Runner
+						</Link>
+					</div>
+				</Card.Content>
+			</Card>
 			<div className='h-12' aria-hidden='true' />
 		</div>
 	);

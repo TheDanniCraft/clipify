@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { getAllPlaylists, getPlaylistClips, previewImportPlaylistClips, savePlaylist, upsertPlaylistClips } from "@actions/database";
-import { Button, Card, Checkbox, ComboBox, Separator, Input, Label, Link, ListBox, Modal, NumberField, Spinner, Table, useOverlayState, TextField, InputGroup, CloseButton } from "@heroui/react";
+import { Button, Card, Checkbox, ComboBox, Separator, Input, Label, Link, ListBox, Modal, NumberField, Slider, Spinner, Table, Tabs, useOverlayState, TextField, InputGroup, CloseButton } from "@heroui/react";
 import { notify as addToast } from "@lib/toast";
 import Image from "next/image";
 import type { Selection, SortDescriptor } from "@heroui/react";
@@ -57,23 +57,22 @@ export default function PlaylistPage() {
 	const [dragOverClipId, setDragOverClipId] = useState<string | null>(null);
 
 	const [importStartDate, setImportStartDate] = useState(DEFAULT_IMPORT_START_DATE);
-	const [importEndDate, setImportEndDate] = useState("");
+	const [importEndDate, setImportEndDate] = useState(() => new Date().toISOString().slice(0, 10));
 	const [importCategoryId, setImportCategoryId] = useState("all");
 
-	useEffect(() => {
-		// eslint-disable-next-line react-hooks/set-state-in-effect
-		setImportEndDate(new Date().toISOString().slice(0, 10));
-	}, []);
 	const [importCategoryInput, setImportCategoryInput] = useState("All categories");
 	const [importMinViews, setImportMinViews] = useState(0);
 	const [importMinDuration, setImportMinDuration] = useState(0);
-	const [importMaxDuration, setImportMaxDuration] = useState(0);
+	const [importMaxDuration, setImportMaxDuration] = useState(60);
 	const [importBlacklistWords, setImportBlacklistWords] = useState<string[]>([]);
 	const [importCreatorAllowlist, setImportCreatorAllowlist] = useState<string[]>([]);
 	const [importCreatorDenylist, setImportCreatorDenylist] = useState<string[]>([]);
 	const [gameSearchResults, setGameSearchResults] = useState<Game[]>([]);
 	const [isSearchingGames, setIsSearchingGames] = useState(false);
-	const [pendingImportMode, setPendingImportMode] = useState<"append" | "replace" | null>(null);
+	const [importPreviewClips, setImportPreviewClips] = useState<TwitchClip[]>([]);
+	const [selectedImportClipIds, setSelectedImportClipIds] = useState<Set<string>>(new Set());
+	const [importPreviewMode, setImportPreviewMode] = useState<"append" | "replace">("append");
+	const [isImportPreviewOpen, setIsImportPreviewOpen] = useState(false);
 	const [savedPlaylistClipIds, setSavedPlaylistClipIds] = useState<string[]>([]);
 	const gameDetailsByIdRef = useRef<Record<string, Game>>({});
 
@@ -336,19 +335,12 @@ export default function PlaylistPage() {
 				clipCreatorsOnly: importCreatorAllowlist,
 				clipCreatorsBlocked: importCreatorDenylist,
 			});
-			if (mode === "replace") {
-				setPlaylistClips(imported);
-			} else {
-				setPlaylistClips((prev) => {
-					const nextById = new Map(prev.map((clip) => [clip.id, clip]));
-					for (const clip of imported) nextById.set(clip.id, clip);
-					return Array.from(nextById.values());
-				});
-			}
-			await resolveGameDetails(imported);
-			addToast({ title: `Imported ${imported.length} clips into draft`, color: "success" });
-			setPendingImportMode(null);
+			setImportPreviewClips(imported);
+			setSelectedImportClipIds(new Set(imported.map((clip) => clip.id)));
+			setImportPreviewMode(mode);
+			setIsImportPreviewOpen(true);
 			onImportClose();
+			await resolveGameDetails(imported);
 		} catch (error) {
 			addToast({
 				title: "Import failed",
@@ -356,6 +348,22 @@ export default function PlaylistPage() {
 				color: "danger",
 			});
 		}
+	}
+
+	function applyImportPreview() {
+		const selected = importPreviewClips.filter((clip) => selectedImportClipIds.has(clip.id));
+		if (selected.length === 0) return;
+		if (importPreviewMode === "replace") {
+			setPlaylistClips(selected);
+		} else {
+			setPlaylistClips((previous) => {
+				const nextById = new Map(previous.map((clip) => [clip.id, clip]));
+				for (const clip of selected) nextById.set(clip.id, clip);
+				return Array.from(nextById.values());
+			});
+		}
+		setIsImportPreviewOpen(false);
+		addToast({ title: `Added ${selected.length} clips to draft`, color: "success" });
 	}
 
 	if (!isPlaylistResolved || !user) {
@@ -385,7 +393,7 @@ export default function PlaylistPage() {
 		<DashboardNavbar user={user!} title='Playlist Management' tagline='Manage your curated clip sets'>
 			<div className='flex flex-col items-center justify-center w-full p-4'>
 				<Card className='w-full max-w-4xl'>
-					<Card.Header className='justify-between'>
+					<Card.Header className='flex flex-col items-stretch gap-3'>
 						<div className='flex items-center gap-2'>
 							<Button isIconOnly variant='tertiary' onPress={() => router.push("/dashboard")}>
 								<IconArrowLeft />
@@ -394,7 +402,7 @@ export default function PlaylistPage() {
 								<Input value={playlistNameDraft} onChange={(event) => setPlaylistNameDraft(event.target.value)} placeholder='Playlist name' className='h-8 text-sm' />
 							</TextField>
 						</div>
-						<div className='flex items-center gap-2'>
+						<div className='flex flex-wrap items-center gap-2 pt-1'>
 							<Button variant='primary' className='font-semibold px-4' onPress={handleOpenAddClips}>
 								{<IconPlus size={18} />}
 								Add Clips
@@ -676,46 +684,27 @@ export default function PlaylistPage() {
 						isRequired
 						allowsEmptyCollection
 						allowsCustomValue
+						fullWidth
+						variant='secondary'
 						inputValue={importCategoryInput}
-						onInputChange={(value) => {
-							setImportCategoryInput(value);
-							const normalized = value.trim().toLowerCase();
-							if (!normalized || normalized === "all" || normalized === "all categories") {
-								setImportCategoryId("all");
-								return;
-							}
-							if (value !== (importCategoryOptions.find((item) => item.id === importCategoryId)?.name ?? "")) {
-								setImportCategoryId("");
-							}
-						}}
+						onInputChange={setImportCategoryInput}
 						onSelectionChange={(key) => {
-							const nextId = (key as string) ?? "";
+							if (!key) return;
+							const nextId = String(key);
 							setImportCategoryId(nextId);
 							const selected = importCategoryOptions.find((item) => item.id === nextId);
-							setImportCategoryInput(selected?.name ?? "");
+							if (selected) setImportCategoryInput(selected.name);
 						}}
 						selectedKey={importCategoryId || null}
 					>
 						<Label>Category / Game</Label>
 						<ComboBox.InputGroup>
-							<Input placeholder='Type at least 3 characters or choose all' />
-							{importCategoryInput ? (
-								<button
-									type='button'
-									aria-label='Clear category'
-									onClick={() => {
-										setImportCategoryInput("");
-										setImportCategoryId("");
-									}}
-								>
-									×
-								</button>
-							) : null}
+							<Input placeholder='Search and add a game...' />
 							<ComboBox.Trigger />
 						</ComboBox.InputGroup>
 						<ComboBox.Popover>
 							<ListBox
-								items={importCategoryOptions}
+								items={importCategoryOptions.slice(0, 100)}
 								renderEmptyState={() => {
 									if (importCategoryInput.length === 0) return <div className='p-4 text-center text-sm text-muted'>Type to search...</div>;
 									if (isSearchingGames)
@@ -743,6 +732,8 @@ export default function PlaylistPage() {
 
 					<AppDateRangePicker
 						label='Date Range'
+						variant='secondary'
+						fullWidth
 						value={importStartDate && importEndDate ? { start: parseDate(importStartDate), end: parseDate(importEndDate) } : null}
 						onChange={(range) => {
 							if (!range) {
@@ -755,7 +746,7 @@ export default function PlaylistPage() {
 						}}
 					/>
 
-					<NumberField minValue={0} value={importMinViews} onChange={(value) => setImportMinViews(Number(value) || 0)}>
+					<NumberField fullWidth variant='secondary' minValue={0} value={importMinViews} onChange={(value) => setImportMinViews(Number(value) || 0)}>
 						<Label>Minimum Views</Label>
 						<NumberField.Group>
 							<NumberField.DecrementButton />
@@ -763,23 +754,37 @@ export default function PlaylistPage() {
 							<NumberField.IncrementButton />
 						</NumberField.Group>
 					</NumberField>
-					<div className='grid grid-cols-1 gap-3 sm:grid-cols-2'>
-						<NumberField minValue={0} value={importMinDuration} onChange={(value) => setImportMinDuration(Number(value) || 0)}>
-							<Label>Min Duration (sec)</Label>
-							<NumberField.Group>
-								<NumberField.DecrementButton />
-								<NumberField.Input />
-								<NumberField.IncrementButton />
-							</NumberField.Group>
-						</NumberField>
-						<NumberField minValue={0} value={importMaxDuration} onChange={(value) => setImportMaxDuration(Number(value) || 0)}>
-							<Label>Max Duration (sec)</Label>
-							<NumberField.Group>
-								<NumberField.DecrementButton />
-								<NumberField.Input />
-								<NumberField.IncrementButton />
-							</NumberField.Group>
-						</NumberField>
+					<Slider
+						minValue={0}
+						maxValue={60}
+						step={1}
+						value={[importMinDuration, importMaxDuration]}
+						onChange={(value: number | number[]) => {
+							const [min, max] = Array.isArray(value) ? (value as [number, number]) : [value, value];
+							setImportMinDuration(min);
+							setImportMaxDuration(max);
+						}}
+					>
+						<Label>Clip duration</Label>
+						<div className='text-sm text-muted'>
+							{importMinDuration}s–{importMaxDuration}s
+						</div>
+						<Slider.Track className='mt-2'>
+							{({ state }) => (
+								<>
+									<Slider.Fill />
+									{state.values.map((_, index) => (
+										<Slider.Thumb key={index} index={index} />
+									))}
+								</>
+							)}
+						</Slider.Track>
+					</Slider>
+					<div className='mt-1 flex justify-between text-xs text-muted'>
+						<span>0s</span>
+						<span>20s</span>
+						<span>40s</span>
+						<span>60s</span>
 					</div>
 					<TagsInput fullWidth label='Creator Allowlist' value={importCreatorAllowlist} onValueChange={setImportCreatorAllowlist} />
 					<TagsInput fullWidth label='Creator Denylist' value={importCreatorDenylist} onValueChange={setImportCreatorDenylist} />
@@ -792,8 +797,7 @@ export default function PlaylistPage() {
 					<Button
 						isDisabled={!canUseAutoImport || !playlistId || !importCategoryId}
 						onPress={() => {
-							if (playlistClips.length > 0) setPendingImportMode("append");
-							else runImport("replace");
+							runImport(playlistClips.length > 0 ? "append" : "replace");
 						}}
 						variant='primary'
 					>
@@ -820,32 +824,74 @@ export default function PlaylistPage() {
 				</Modal.Footer>
 			</ControlledModal>
 
-			<ControlledModal isOpen={pendingImportMode !== null} onOpenChange={() => setPendingImportMode(null)}>
+			<ControlledModal isOpen={isImportPreviewOpen} onOpenChange={setIsImportPreviewOpen} size='lg' containerClassName='max-w-4xl' dialogClassName='max-h-[85vh]'>
 				<Modal.Header>
-					<Modal.Heading>Import Behavior</Modal.Heading>
+					<Modal.Heading>Review imported clips</Modal.Heading>
 				</Modal.Header>
-				<Modal.Body>
-					<div className='text-sm text-muted'>This playlist already has clips. Do you want to replace it or append imported clips?</div>
+				<Modal.Body className='space-y-3 overflow-y-auto'>
+					<p className='text-sm text-muted'>Found {importPreviewClips.length} matching clips. Select the clips to add to this playlist.</p>
+					<div className='flex items-center justify-between rounded-lg border border-default bg-surface-secondary px-3 py-2 text-sm'>
+						<span>{selectedImportClipIds.size} selected</span>
+						<Button size='sm' variant='tertiary' onPress={() => setSelectedImportClipIds(new Set(importPreviewClips.map((clip) => clip.id)))}>
+							Select all
+						</Button>
+					</div>
+					<div className='space-y-2'>
+						{importPreviewClips.map((clip) => (
+							<div key={clip.id} className='flex items-center gap-3 rounded-lg border border-default/60 bg-surface-secondary p-3'>
+								<Checkbox
+									aria-label={`Select ${clip.title}`}
+									isSelected={selectedImportClipIds.has(clip.id)}
+									onChange={(selected) =>
+										setSelectedImportClipIds((previous) => {
+											const next = new Set(previous);
+											if (selected) next.add(clip.id);
+											else next.delete(clip.id);
+											return next;
+										})
+									}
+								>
+									<Checkbox.Content>
+										<Checkbox.Control>
+											<Checkbox.Indicator />
+										</Checkbox.Control>
+									</Checkbox.Content>
+								</Checkbox>
+								<Image unoptimized src={clip.thumbnail_url} alt={clip.title} width={64} height={36} className='h-9 w-16 rounded object-cover' />
+								<div className='min-w-0 flex-1'>
+									<p className='truncate text-sm font-medium'>{clip.title}</p>
+									<p className='text-xs text-muted'>
+										{clip.creator_name} · {clip.view_count} views · {clip.duration}s
+									</p>
+								</div>
+							</div>
+						))}
+						{importPreviewClips.length === 0 && <p className='py-8 text-center text-sm text-muted'>No clips matched these filters.</p>}
+					</div>
 				</Modal.Body>
-				<Modal.Footer>
-					<Button
-						variant='tertiary'
-						onPress={async () => {
-							setPendingImportMode(null);
-							await runImport("append");
-						}}
-					>
-						Append
-					</Button>
-					<Button
-						onPress={async () => {
-							setPendingImportMode(null);
-							await runImport("replace");
-						}}
-						variant='danger'
-					>
-						Replace
-					</Button>
+				<Modal.Footer className='flex-col items-stretch gap-3'>
+					<Tabs selectedKey={importPreviewMode} onSelectionChange={(key) => setImportPreviewMode(String(key) as "append" | "replace")} className='w-full'>
+						<Tabs.ListContainer className='w-full'>
+							<Tabs.List aria-label='Import behavior' className='w-full'>
+								<Tabs.Tab id='append' className='flex-1'>
+									Append
+									<Tabs.Indicator />
+								</Tabs.Tab>
+								<Tabs.Tab id='replace' className='flex-1'>
+									Replace
+									<Tabs.Indicator />
+								</Tabs.Tab>
+							</Tabs.List>
+						</Tabs.ListContainer>
+					</Tabs>
+					<div className='flex justify-end gap-2'>
+						<Button variant='tertiary' onPress={() => setIsImportPreviewOpen(false)}>
+							Cancel
+						</Button>
+						<Button variant='primary' isDisabled={selectedImportClipIds.size === 0} onPress={applyImportPreview}>
+							{importPreviewMode === "replace" ? `Replace ${playlistClips.length} clip${playlistClips.length === 1 ? "" : "s"}` : `Add ${selectedImportClipIds.size} clip${selectedImportClipIds.size === 1 ? "" : "s"}`}
+						</Button>
+					</div>
 				</Modal.Footer>
 			</ControlledModal>
 
