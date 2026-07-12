@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db/client";
 import { runnersTable } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { Entitlement } from "@types";
+import { hasActiveEntitlement } from "@lib/entitlements";
 
 export async function POST(req: NextRequest) {
 	try {
@@ -18,6 +20,11 @@ export async function POST(req: NextRequest) {
 
 		if (!runner) {
 			return NextResponse.json({ error: "Invalid or already used bootstrap token" }, { status: 401 });
+		}
+
+		if (!(await hasActiveEntitlement(runner.ownerId, Entitlement.RunnerAccess))) {
+			await db.update(runnersTable).set({ bootstrapToken: null }).where(eq(runnersTable.id, runner.id));
+			return NextResponse.json({ error: "Runner add-on required", code: "entitlement_required" }, { status: 403 });
 		}
 
 		// Immediately burn the bootstrap token (Single-Use)

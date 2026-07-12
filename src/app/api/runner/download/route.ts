@@ -5,6 +5,8 @@ import { editorsTable, runnersTable } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import path from "path";
 import fs from "fs/promises";
+import { hasActiveEntitlement } from "@lib/entitlements";
+import { Entitlement } from "@types";
 
 const binaryNames: Record<string, string> = {
 	windows: "clipify-runner-windows.exe",
@@ -45,6 +47,9 @@ export async function GET(req: NextRequest) {
 
 	if (!runner || !(await canAccessRunner(runner.ownerId, user.id))) {
 		return NextResponse.json({ error: "Runner not found or unauthorized" }, { status: 404 });
+	}
+	if (!(await hasActiveEntitlement(runner.ownerId, Entitlement.RunnerAccess))) {
+		return NextResponse.json({ error: "Runner add-on required", code: "entitlement_required" }, { status: 403 });
 	}
 
 	const binaryPath = path.join(process.cwd(), "public", "downloads", "runner", binaryName);

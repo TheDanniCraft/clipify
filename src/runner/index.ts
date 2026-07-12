@@ -226,7 +226,7 @@ async function pollHeartbeat(token: string, apiBase: string) {
 					actualStates[job.id] = "running";
 
 					// Spawn Engine
-					const engine = new Engine(job.overlayId, job.rtmpUrl, job.overlaySecret, job.streamKey, job.fps, job.resolution, job.mode, apiBase);
+					const engine = new Engine(job.overlayId, job.rtmpUrl, job.overlaySecret, job.streamKey, job.fps, job.resolution, job.mode, apiBase, token);
 					activeEngines[job.id] = engine;
 					engine.start().catch((err) => {
 						console.error(`[Error] Engine failed to start for job ${job.id}:`, err);

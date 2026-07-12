@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 
 import { db } from "@/db/client";
 import { runnerEnrollmentsTable, runnersTable } from "@/db/schema";
+import { tryRateLimit } from "@actions/rateLimit";
 
 const ENROLLMENT_TTL_MS = 15 * 60 * 1000;
 const POLL_INTERVAL_SECONDS = 3;
@@ -23,6 +24,9 @@ function createUserCode() {
 
 export async function POST(req: NextRequest) {
 	try {
+		const limit = await tryRateLimit({ key: "runner-enrollment-start", points: 10, duration: 60 });
+		if (!limit.success) return NextResponse.json({ error: "Too many enrollment attempts" }, { status: 429, headers: { "Retry-After": "60" } });
+
 		const body = (await req.json().catch(() => ({}))) as { hostname?: unknown; os?: unknown; version?: unknown; runnerId?: unknown };
 		const apiBase = req.nextUrl.origin;
 		const deviceCode = createDeviceCode();

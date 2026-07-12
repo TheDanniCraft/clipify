@@ -123,6 +123,7 @@ export class Engine {
 		public readonly resolution: string = "1080p",
 		public readonly mode: "24_7" | "failsafe" = "24_7",
 		public readonly apiBase: string = "http://localhost:3000",
+		public readonly runnerToken: string = "",
 	) {}
 
 	private killProcessAndWait(child: ChildProcess, name: string, signal: NodeJS.Signals = "SIGINT"): Promise<void> {
@@ -400,8 +401,8 @@ export class Engine {
 
 				fetch(`${this.apiBase}/api/runner/preview`, {
 					method: "POST",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify({ overlayId: this.overlayId, secret: this.overlaySecret, image: dataUrl }),
+					headers: { "Content-Type": "application/json", Authorization: `Bearer ${this.runnerToken}` },
+					body: JSON.stringify({ overlayId: this.overlayId, image: dataUrl }),
 				}).catch(() => {});
 			} catch {
 				// ignore read errors

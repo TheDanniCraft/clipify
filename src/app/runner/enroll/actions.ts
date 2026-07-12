@@ -6,9 +6,11 @@ import { and, desc, eq, inArray, isNull } from "drizzle-orm";
 import { validateAuth } from "@actions/auth";
 import { db } from "@/db/client";
 import { editorsTable, runnerEnrollmentsTable, runnersTable, usersTable } from "@/db/schema";
-import { normalizeUserCode } from "./code";
+import { isValidUserCode, normalizeUserCode } from "./code";
+import { hasActiveEntitlement } from "@lib/entitlements";
+import { Entitlement } from "@types";
 
-export type RunnerEnrollActionState = { status: "idle" } | { status: "missing-code" } | { status: "invalid-code" } | { status: "expired" } | { status: "unauthorized" } | { status: "missing-runner" } | { status: "no-pending-runners" } | { status: "runner-unavailable"; code: string } | { status: "approved"; runnerId: string } | { status: "already-approved"; runnerId: string };
+export type RunnerEnrollActionState = { status: "idle" } | { status: "missing-code" } | { status: "invalid-code" } | { status: "expired" } | { status: "unauthorized" } | { status: "entitlement-required" } | { status: "missing-runner" } | { status: "no-pending-runners" } | { status: "runner-unavailable"; code: string } | { status: "approved"; runnerId: string } | { status: "already-approved"; runnerId: string };
 
 export type PendingRunnerOption = {
 	id: string;
@@ -59,6 +61,8 @@ export async function getAccessiblePendingRunners(userId: string): Promise<Pendi
 }
 
 async function getValidEnrollment(code: string) {
+	if (!isValidUserCode(code)) return { status: "invalid" as const };
+
 	const enrollment = await db.query.runnerEnrollmentsTable.findFirst({
 		where: eq(runnerEnrollmentsTable.userCode, code),
 	});
@@ -106,6 +110,7 @@ async function approveRunnerEnrollment(code: string, runnerId?: string): Promise
 	}
 
 	if (!runner || !(await canAccessOwner(runner.ownerId, user.id))) return { status: "unauthorized" };
+	if (!(await hasActiveEntitlement(runner.ownerId, Entitlement.RunnerAccess))) return { status: "entitlement-required" };
 
 	await db
 		.update(runnersTable)

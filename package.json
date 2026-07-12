@@ -105,7 +105,8 @@
 	},
 	"pkg": {
 		"assets": [
-			"node_modules/@napi-rs/keyring*/**/*.node"
+			"node_modules/@napi-rs/keyring-linux-x64-gnu/keyring.linux-x64-gnu.node",
+			"node_modules/@napi-rs/keyring-linux-x64-musl/keyring.linux-x64-musl.node"
 		]
 	}
 }

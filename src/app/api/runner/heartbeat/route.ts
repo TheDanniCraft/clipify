@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
+import { createHash } from "crypto";
 import { db } from "@/db/client";
 import { runnersTable, streamSessionsTable, overlaysTable } from "@/db/schema";
 import { eq, InferSelectModel } from "drizzle-orm";
-import { RunnerStatus } from "@types";
+import { Entitlement, RunnerStatus, StreamState } from "@types";
 import { decryptString } from "@/app/lib/encryption";
+import { hasActiveEntitlement } from "@lib/entitlements";
+import { tryRateLimit } from "@actions/rateLimit";
 
 type StreamSession = InferSelectModel<typeof streamSessionsTable>;
 
@@ -15,6 +18,9 @@ export async function POST(req: Request) {
 			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 		}
 		const token = authHeader.split(" ")[1];
+		const identifier = createHash("sha256").update(token).digest("hex");
+		const limit = await tryRateLimit({ key: "runner-heartbeat", points: 12, duration: 60, identifier });
+		if (!limit.success) return NextResponse.json({ error: "Too many heartbeats" }, { status: 429, headers: { "Retry-After": "60" } });
 
 		const runner = await db.query.runnersTable.findFirst({
 			where: eq(runnersTable.token, token),
@@ -22,6 +28,11 @@ export async function POST(req: Request) {
 
 		if (!runner) {
 			return NextResponse.json({ error: "Invalid runner token" }, { status: 401 });
+		}
+
+		if (!(await hasActiveEntitlement(runner.ownerId, Entitlement.RunnerAccess))) {
+			await db.update(streamSessionsTable).set({ desiredState: StreamState.Stopped }).where(eq(streamSessionsTable.runnerId, runner.id));
+			return NextResponse.json({ error: "Runner add-on required", code: "entitlement_required", jobs: [] }, { status: 403 });
 		}
 
 		// 2. Parse payload
@@ -48,8 +59,11 @@ export async function POST(req: Request) {
 		// 5. Update actual states in DB (if the runner reported them)
 		// For a rough prototype, we might skip full state reconciliation and just send desired state
 		if (actualStates && typeof actualStates === "object") {
+			const allowedSessionIds = new Set(sessions.map((session) => session.id));
 			for (const sessionId of Object.keys(actualStates)) {
+				if (!allowedSessionIds.has(sessionId)) continue;
 				const state = actualStates[sessionId];
+				if (!Object.values(StreamState).includes(state)) continue;
 				await db.update(streamSessionsTable).set({ actualState: state }).where(eq(streamSessionsTable.id, sessionId));
 			}
 		}

@@ -1,15 +1,26 @@
 import NextLink from "next/link";
+import type { ReactNode } from "react";
 import { buttonVariants } from "@heroui/styles";
 import { IconAlertCircle, IconCircleCheck, IconCircleX } from "@tabler/icons-react";
 
 import type { RunnerEnrollActionState } from "./actions";
+import RunnerCreateCta from "./runner-create-cta";
 
 type RunnerEnrollResultProps = {
 	state: Exclude<RunnerEnrollActionState, { status: "idle" }>;
 	onReset?: () => void;
 };
 
-function getResultContent(state: RunnerEnrollResultProps["state"]) {
+type ResultContent = {
+	tone: "success" | "warning" | "danger";
+	title: string;
+	description: string;
+	actionHref: string | null;
+	actionLabel: string;
+	actionComponent?: ReactNode;
+};
+
+function getResultContent(state: RunnerEnrollResultProps["state"]): ResultContent {
 	if (state.status === "approved") {
 		return {
 			tone: "success" as const,
@@ -50,6 +61,16 @@ function getResultContent(state: RunnerEnrollResultProps["state"]) {
 		};
 	}
 
+	if (state.status === "entitlement-required") {
+		return {
+			tone: "warning" as const,
+			title: "Runner add-on required",
+			description: "The runner owner needs the Self-hosted Runner add-on before this device can be enrolled.",
+			actionHref: "/dashboard/settings?addon=runner",
+			actionLabel: "View Runner add-on",
+		};
+	}
+
 	if (state.status === "runner-unavailable") {
 		return {
 			tone: "warning" as const,
@@ -64,9 +85,10 @@ function getResultContent(state: RunnerEnrollResultProps["state"]) {
 		return {
 			tone: "warning" as const,
 			title: "No runner available",
-			description: "Create or download a runner from your dashboard, then enter the new code.",
-			actionHref: "/dashboard",
-			actionLabel: "Open dashboard",
+			description: "Create a runner now, then enter the new code here.",
+			actionHref: null,
+			actionLabel: "Create runner",
+			actionComponent: <RunnerCreateCta />,
 		};
 	}
 
@@ -112,12 +134,14 @@ export default function RunnerEnrollResult({ state, onReset }: RunnerEnrollResul
 				<h1 className='text-2xl font-semibold'>{result.title}</h1>
 				<p className='text-sm text-muted-foreground'>{result.description}</p>
 			</div>
-			{canReset ? (
+			{result.actionComponent ? (
+				result.actionComponent
+			) : canReset ? (
 				<button type='button' className={buttonVariants({ variant: "secondary" })} onClick={onReset}>
 					{result.actionLabel}
 				</button>
 			) : (
-				<NextLink href={result.actionHref} className={buttonVariants({ variant: result.tone === "success" ? "primary" : "secondary" })}>
+				<NextLink href={result.actionHref ?? "/runner/enroll"} className={buttonVariants({ variant: result.tone === "success" ? "primary" : "secondary" })}>
 					{result.actionLabel}
 				</NextLink>
 			)}

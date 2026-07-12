@@ -35,7 +35,6 @@ async function main() {
 		bundle: true,
 		platform: "node",
 		outfile: "build/runner.js",
-		external: ["puppeteer-stream", "puppeteer-core", "puppeteer", "@napi-rs/keyring"],
 		define: {
 			"process.env.BAKED_API_URL": JSON.stringify(bakedApiUrl),
 		},
@@ -53,7 +52,7 @@ async function main() {
 	}
 
 	// 3. Compile binaries using pkg
-	execSync('npx pkg build/runner.js --public --public-packages "*" --no-bytecode -t node18-win-x64,node18-linux-x64,node18-macos-x64,node18-macos-arm64 --out-path build/', { stdio: "inherit", env: pkgEnv });
+	execSync("npx pkg build/runner.js -t node18-win-x64,node18-linux-x64,node18-macos-x64,node18-macos-arm64 --out-path build/", { stdio: "inherit", env: pkgEnv });
 
 	console.log(`[Builder] Runner executables generated successfully in build/!`);
 

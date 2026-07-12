@@ -1,13 +1,16 @@
 "use server";
 
 import { db } from "@/db/client";
-import { editorsTable, runnersTable } from "@/db/schema";
+import { editorsTable, overlaysTable, runnersTable, usersTable } from "@/db/schema";
 import { revalidatePath } from "next/cache";
 import { randomBytes } from "crypto";
 import fs from "fs";
 import path from "path";
 import { eq, and } from "drizzle-orm";
 import { validateAuth } from "./auth";
+import { redirect } from "next/navigation";
+import { hasActiveEntitlement } from "@lib/entitlements";
+import { Entitlement, RunnerStatus, StreamState } from "@types";
 
 async function hasAccess(ownerId: string, userId: string) {
 	if (ownerId === userId) return true;
@@ -17,10 +20,16 @@ async function hasAccess(ownerId: string, userId: string) {
 	return Boolean(editor);
 }
 
+async function ownerHasRunnerAccess(ownerId: string) {
+	const owner = await db.query.usersTable.findFirst({ where: eq(usersTable.id, ownerId) });
+	return Boolean(owner && (await hasActiveEntitlement(owner.id, Entitlement.RunnerAccess)));
+}
+
 export async function createRunner(ownerId: string, name: string) {
 	try {
 		const user = await validateAuth();
 		if (!user || !(await hasAccess(ownerId, user.id))) return { success: false, error: "Unauthorized" };
+		if (!(await ownerHasRunnerAccess(ownerId))) return { success: false, error: "Runner add-on required", code: "ENTITLEMENT_REQUIRED" as const };
 
 		// Generate a secure random token for the runner to authenticate with
 		const token = `cl_run_${randomBytes(24).toString("hex")}`;
@@ -38,6 +47,20 @@ export async function createRunner(ownerId: string, name: string) {
 		return { success: true, runner: newRunner };
 	} catch (error) {
 		console.error("Failed to create runner:", error);
+		return { success: false, error: "Failed to create runner" };
+	}
+}
+
+export async function createOwnRunner(name: string) {
+	try {
+		const user = await validateAuth();
+		if (!user) {
+			redirect(`/auth?returnUrl=${encodeURIComponent("/runner/enroll")}`);
+		}
+
+		return await createRunner(user.id, name);
+	} catch (error) {
+		console.error("Failed to create own runner:", error);
 		return { success: false, error: "Failed to create runner" };
 	}
 }
@@ -60,14 +83,57 @@ export async function deleteRunner(runnerId: string, ownerId: string) {
 	}
 }
 
+export async function unlinkRunner(runnerId: string, ownerId: string) {
+	try {
+		const user = await validateAuth();
+		if (!user || !(await hasAccess(ownerId, user.id))) return { success: false, error: "Unauthorized" };
+
+		const runner = await db.query.runnersTable.findFirst({
+			where: and(eq(runnersTable.id, runnerId), eq(runnersTable.ownerId, ownerId)),
+		});
+
+		if (!runner) return { success: false, error: "Runner not found", code: "NOT_FOUND" as const };
+
+		const revokedToken = `cl_run_${randomBytes(24).toString("hex")}`;
+		await db
+			.update(runnersTable)
+			.set({
+				token: revokedToken,
+				bootstrapToken: null,
+				status: RunnerStatus.Offline,
+				lastHeartbeatAt: null,
+			})
+			.where(and(eq(runnersTable.id, runnerId), eq(runnersTable.ownerId, ownerId)));
+
+		await db
+			.update(streamSessionsTable)
+			.set({
+				desiredState: StreamState.Stopped,
+			})
+			.where(and(eq(streamSessionsTable.runnerId, runnerId), eq(streamSessionsTable.ownerId, ownerId)));
+
+		revalidatePath("/dashboard/runners");
+		revalidatePath(`/dashboard/runners/${runnerId}`);
+		return { success: true };
+	} catch (error) {
+		console.error("Failed to unlink runner:", error);
+		return { success: false, error: "Failed to unlink runner" };
+	}
+}
+
 import { streamSessionsTable } from "@/db/schema";
 import { encryptString } from "@/app/lib/encryption";
-import type { StreamMode, StreamState } from "@/app/lib/types";
+import type { StreamMode } from "@/app/lib/types";
 
 export async function upsertStreamSession(data: { id?: string; ownerId: string; runnerId: string; overlayId: string; mode: StreamMode; streamKey: string; clearStreamKey?: boolean; rtmpUrl: string; resolution?: string; fps?: number }) {
 	try {
 		const user = await validateAuth();
 		if (!user || !(await hasAccess(data.ownerId, user.id))) return { success: false, error: "Unauthorized" };
+		if (!(await ownerHasRunnerAccess(data.ownerId))) return { success: false, error: "Runner add-on required", code: "ENTITLEMENT_REQUIRED" as const };
+		const [runner, overlay] = await Promise.all([db.query.runnersTable.findFirst({ where: and(eq(runnersTable.id, data.runnerId), eq(runnersTable.ownerId, data.ownerId)) }), db.query.overlaysTable.findFirst({ where: and(eq(overlaysTable.id, data.overlayId), eq(overlaysTable.ownerId, data.ownerId)) })]);
+		if (!runner || !overlay) return { success: false, error: "Runner or overlay not found", code: "NOT_FOUND" as const };
+		const existingForOverlay = await db.query.streamSessionsTable.findFirst({ where: eq(streamSessionsTable.overlayId, data.overlayId) });
+		if (existingForOverlay && existingForOverlay.id !== data.id) return { success: false, error: "This overlay already has a stream session", code: "CONFLICT" as const };
 
 		if (data.id) {
 			// Update existing
@@ -116,6 +182,7 @@ export async function setStreamDesiredState(sessionId: string, state: StreamStat
 		// Ensure the session belongs to the user or an editor
 		const session = await db.query.streamSessionsTable.findFirst({ where: eq(streamSessionsTable.id, sessionId) });
 		if (!session || !(await hasAccess(session.ownerId, user.id))) return { success: false, error: "Unauthorized" };
+		if (!(await ownerHasRunnerAccess(session.ownerId))) return { success: false, error: "Runner add-on required", code: "ENTITLEMENT_REQUIRED" as const };
 
 		await db.update(streamSessionsTable).set({ desiredState: state }).where(eq(streamSessionsTable.id, sessionId));
 

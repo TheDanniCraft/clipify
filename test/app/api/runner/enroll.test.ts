@@ -19,6 +19,10 @@ jest.mock("@/app/actions/auth", () => ({
 	validateAuth: () => validateAuthMock(),
 }));
 
+jest.mock("@actions/rateLimit", () => ({
+	tryRateLimit: jest.fn().mockResolvedValue({ success: true, remaining: 9 }),
+}));
+
 describe("runner enrollment routes", () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
@@ -40,6 +44,12 @@ describe("runner enrollment routes", () => {
 		expect(body).not.toHaveProperty("verificationUriComplete");
 		expect(body.userCode).toMatch(/^[A-Z0-9]{4}-[A-Z0-9]{4}$/);
 		expect(values).toHaveBeenCalledWith(expect.objectContaining({ apiBase: "https://beta-315.clipify.cloud.thedannicraft.de", hostname: "vm-1" }));
+	});
+
+	it("rejects malformed enrollment codes before lookup", async () => {
+		const { isValidUserCode } = await import("@/app/runner/enroll/code");
+		expect(isValidUserCode("1111111")).toBe(false);
+		expect(isValidUserCode("V48H-VKN5")).toBe(true);
 	});
 
 	it("returns pending while enrollment is not approved", async () => {

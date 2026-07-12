@@ -6,7 +6,7 @@ import { IconAlertCircle } from "@tabler/icons-react";
 import { validateAuth } from "@actions/auth";
 import { Card, CardContent } from "@components/heroui-client";
 import { getAccessiblePendingRunners } from "../actions";
-import { normalizeUserCode } from "../code";
+import { isValidUserCode, normalizeUserCode } from "../code";
 import RunnerSelectForm from "./runner-select-form";
 
 type RunnerSelectPageProps = {
@@ -21,7 +21,7 @@ export default async function RunnerSelectPage({ searchParams }: RunnerSelectPag
 	const params = await searchParams;
 	const rawCode = readParam(params.code);
 	const code = rawCode ? normalizeUserCode(rawCode) : "";
-	if (!code) redirect("/runner/enroll");
+	if (!code || !isValidUserCode(code)) redirect("/runner/enroll");
 
 	const user = await validateAuth();
 	if (!user) {

@@ -3,12 +3,13 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { validateAuth } from "@actions/auth";
-import { getRunner, getRunnerVersionManifest, getStreamSessionsForRunner, upsertStreamSession, setStreamDesiredState } from "@actions/runner";
+import { getRunner, getRunnerVersionManifest, getStreamSessionsForRunner, upsertStreamSession, setStreamDesiredState, unlinkRunner } from "@actions/runner";
 import { getAllOverlays } from "@actions/database";
-import { Button, Card, Label, Select, Spinner, TextField, ListBox, Input, Chip, Separator, Modal, Dropdown } from "@heroui/react";
-import { IconCopy, IconCheck, IconPlayerPlay, IconPlayerStop, IconArrowLeft, IconTrash, IconBrandWindows, IconTerminal2, IconBrandApple, IconAlertTriangle, IconCircleCheck } from "@tabler/icons-react";
+import { Button, Card, Label, Select, Spinner, TextField, ListBox, Input, Chip, Separator, Modal, Dropdown, Tooltip } from "@heroui/react";
+import { IconCopy, IconCheck, IconPlayerPlay, IconPlayerStop, IconArrowLeft, IconTrash, IconBrandWindows, IconTerminal2, IconBrandApple, IconAlertTriangle, IconCircleCheck, IconUnlink } from "@tabler/icons-react";
 import { notify } from "@lib/toast";
 import FullscreenLoadingState from "@components/fullscreenLoadingState";
+import ConfirmModal from "@components/confirmModal";
 import { runnersTable, streamSessionsTable } from "@/db/schema";
 import { InferSelectModel } from "drizzle-orm";
 import DashboardNavbar from "@components/dashboardNavbar";
@@ -96,6 +97,7 @@ export default function RunnerPage() {
 	const [streamKey, setStreamKey] = useState("");
 	const [overlayId, setOverlayId] = useState("");
 	const [mode, setMode] = useState<StreamMode>(StreamMode.AlwaysOn);
+	const [isUnlinkConfirmOpen, setIsUnlinkConfirmOpen] = useState(false);
 	const hasMounted = useRef(false);
 
 	useEffect(() => {
@@ -235,6 +237,17 @@ export default function RunnerPage() {
 		}
 	};
 
+	const handleUnlinkRunner = async () => {
+		const res = await unlinkRunner(runner.id, runner.ownerId);
+		if (res.success) {
+			notify({ title: "Runner unlinked", description: "The runner token was revoked.", color: "success" });
+			router.refresh();
+			return;
+		}
+
+		notify({ title: "Error", description: res.error || "Failed to unlink runner.", color: "danger" });
+	};
+
 	const getRunnerDownloadUrl = (platform: RunnerPlatform) => `/api/runner/download?os=${platform}&runnerId=${runner.id}`;
 
 	const handleRunnerDownload = (platform: RunnerPlatform) => {
@@ -340,6 +353,8 @@ export default function RunnerPage() {
 
 	const runnerVersionState = getRunnerVersionState(runner, runnerVersionManifest);
 	const runnerVersionLabel = formatRunnerVersion(runner.version);
+	const isRunnerStreaming = runner.status === "online" && streamSessions[0]?.actualState === "running";
+	const canUnlinkRunner = !isRunnerStreaming;
 
 	return (
 		<DashboardNavbar user={user} title='Runner Settings' tagline='Configure hardware streaming'>
@@ -352,21 +367,47 @@ export default function RunnerPage() {
 							</Button>
 							<h1 className='text-xl font-bold'>Runner Settings</h1>
 						</div>
-						<div className='flex items-center gap-2'>
+						<div className='flex items-center gap-1.5'>
 							{runner.status === "online" ? (
-								streamSessions[0]?.actualState === "running" ? (
-									<Chip color='danger' variant='soft'>
-										Streaming (LIVE)
-									</Chip>
-								) : (
-									<Chip color='success' variant='soft'>
-										Online
-									</Chip>
-								)
+								<div className='flex items-center gap-1.5'>
+									{isRunnerStreaming ? (
+										<Chip color='danger' variant='soft'>
+											Streaming (LIVE)
+										</Chip>
+									) : (
+										<Chip color='success' variant='soft'>
+											Online
+										</Chip>
+									)}
+									<Tooltip delay={0}>
+										<Tooltip.Trigger>
+											<span>
+												<Button size='sm' variant='ghost' className='h-6 min-w-6 px-1.5 text-foreground' onPress={() => setIsUnlinkConfirmOpen(true)} aria-label='Unlink runner' isDisabled={!canUnlinkRunner}>
+													<IconUnlink size={13} />
+												</Button>
+											</span>
+										</Tooltip.Trigger>
+										<Tooltip.Content>{canUnlinkRunner ? "Unlink runner and revoke its token" : "Stop this runner to unlink"}</Tooltip.Content>
+									</Tooltip>
+								</div>
 							) : (
-								<Chip color='default' variant='soft'>
-									Offline
-								</Chip>
+								<div className='flex items-center gap-1.5 rounded-full border border-success/20 bg-success/10 px-2.5 py-1 text-success'>
+									<span className='relative flex h-2.5 w-2.5'>
+										<span className='absolute inline-flex h-full w-full animate-ping rounded-full bg-success/60 opacity-75' />
+										<span className='relative inline-flex h-2.5 w-2.5 rounded-full bg-success' />
+									</span>
+									<span className='text-sm font-medium leading-none'>Connected</span>
+									<Tooltip delay={0}>
+										<Tooltip.Trigger>
+											<span>
+												<Button size='sm' variant='ghost' className='h-6 min-w-6 px-1.5 text-foreground' onPress={() => setIsUnlinkConfirmOpen(true)} aria-label='Unlink runner' isDisabled={!canUnlinkRunner}>
+													<IconUnlink size={13} />
+												</Button>
+											</span>
+										</Tooltip.Trigger>
+										<Tooltip.Content>{canUnlinkRunner ? "Unlink runner and revoke its token" : "Stop this runner to unlink"}</Tooltip.Content>
+									</Tooltip>
+								</div>
 							)}
 						</div>
 					</Card.Header>
@@ -377,7 +418,7 @@ export default function RunnerPage() {
 						{!runner.lastHeartbeatAt && (
 							<div className='col-span-1 md:col-span-2 flex flex-col items-center justify-center p-8 mt-4 gap-6'>
 								<h2 className='text-3xl font-bold text-primary'>Setup Your Runner</h2>
-								<p className='text-muted-foreground max-w-2xl text-center text-base'>This runner has not been connected yet. Download the runner for your operating system, run it, and approve the browser enrollment prompt. The runner will connect to this Clipify environment automatically.</p>
+								<p className='text-muted-foreground max-w-2xl text-center text-base'>This runner is linked to your account but has not checked in yet. Download the runner for your operating system, run it, and approve the browser enrollment prompt. The runner will connect to this Clipify environment automatically.</p>
 								<div className='flex flex-col sm:flex-row gap-4 mt-6'>
 									<Button
 										variant='secondary'
@@ -653,6 +694,18 @@ export default function RunnerPage() {
 						</Modal.Container>
 					</Modal.Backdrop>
 				</Modal>
+				<ConfirmModal
+					isOpen={isUnlinkConfirmOpen}
+					onOpenChange={setIsUnlinkConfirmOpen}
+					title='Unlink runner'
+					description='This will disconnect the runner from this account and revoke its access.'
+					confirmLabel='Unlink'
+					cancelLabel='Cancel'
+					onConfirm={async () => {
+						await handleUnlinkRunner();
+						setIsUnlinkConfirmOpen(false);
+					}}
+				/>
 			</div>
 		</DashboardNavbar>
 	);
