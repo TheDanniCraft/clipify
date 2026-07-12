@@ -2,7 +2,6 @@ import { varchar, pgTable, check, timestamp, uuid, integer, text, uniqueIndex, p
 import {
 	type Role,
 	type Plan,
-	type PassType,
 	type RunnerStatus,
 	type StreamMode,
 	type StreamState,
@@ -11,11 +10,11 @@ import {
 	type TwitchCacheType,
 	type Entitlement,
 	type EntitlementGrantSource,
+	type BillingProduct,
 	type PlaybackMode,
 	type MaxDurationMode,
 	Role as RoleEnumValues,
 	Plan as PlanEnumValues,
-	PassType as PassTypeEnumValues,
 	RunnerStatus as RunnerStatusEnumValues,
 	StreamMode as StreamModeEnumValues,
 	StreamState as StreamStateEnumValues,
@@ -35,7 +34,6 @@ function enumToPgEnum<T extends Record<string, unknown>>(myEnum: T): [T[keyof T]
 
 export const roleEnum = pgEnum("role", enumToPgEnum(RoleEnumValues));
 export const planEnum = pgEnum("plan", enumToPgEnum(PlanEnumValues));
-export const passTypeEnum = pgEnum("pass_type", enumToPgEnum(PassTypeEnumValues));
 export const runnerStatusEnum = pgEnum("runner_status", enumToPgEnum(RunnerStatusEnumValues));
 export const streamModeEnum = pgEnum("stream_mode", enumToPgEnum(StreamModeEnumValues));
 export const streamStateEnum = pgEnum("stream_state", enumToPgEnum(StreamStateEnumValues));
@@ -229,12 +227,14 @@ export const entitlementGrantsTable = pgTable(
 		entitlement: entitlementEnum("entitlement").$type<Entitlement>().notNull().default(EntitlementEnumValues.ProAccess),
 		source: entitlementGrantSourceEnum("source").$type<EntitlementGrantSource>().notNull().default(EntitlementGrantSourceEnumValues.System),
 		reason: varchar("reason"),
+		externalReference: varchar("external_reference"),
 		startsAt: timestamp("starts_at", { withTimezone: true }).defaultNow().notNull(),
 		endsAt: timestamp("ends_at", { withTimezone: true }),
+		revokedAt: timestamp("revoked_at", { withTimezone: true }),
 		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 	},
-	(t) => [index("entitlement_grants_user_lookup_idx").on(t.userId, t.entitlement, t.startsAt, t.endsAt), index("entitlement_grants_global_lookup_idx").on(t.entitlement, t.startsAt, t.endsAt)],
+	(t) => [index("entitlement_grants_user_lookup_idx").on(t.userId, t.entitlement, t.startsAt, t.endsAt), index("entitlement_grants_global_lookup_idx").on(t.entitlement, t.startsAt, t.endsAt), uniqueIndex("entitlement_grants_external_ref_unique").on(t.source, t.externalReference, t.entitlement)],
 );
 
 export const adminImpersonationSessionsTable = pgTable(
@@ -255,16 +255,53 @@ export const adminImpersonationSessionsTable = pgTable(
 	(t) => [index("admin_impersonation_sessions_admin_idx").on(t.adminUserId, t.startedAt), index("admin_impersonation_sessions_target_idx").on(t.targetUserId, t.startedAt)],
 );
 
-export const userPassesTable = pgTable("user_passes", {
-	id: uuid("id").notNull().defaultRandom().primaryKey(),
-	userId: varchar("user_id")
-		.notNull()
-		.references(() => usersTable.id, { onDelete: "cascade" }),
-	passType: passTypeEnum("pass_type").$type<PassType>().notNull(),
-	stripeSubscriptionId: varchar("stripe_subscription_id"),
-	active: boolean("active").notNull().default(true),
-	expiresAt: timestamp("expires_at", { withTimezone: true }),
-	createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+export const billingSubscriptionsTable = pgTable(
+	"billing_subscriptions",
+	{
+		id: varchar("id").notNull().primaryKey(),
+		userId: varchar("user_id")
+			.notNull()
+			.references(() => usersTable.id, { onDelete: "cascade" }),
+		stripeCustomerId: varchar("stripe_customer_id").notNull(),
+		status: varchar("status").notNull(),
+		currentPeriodStart: timestamp("current_period_start", { withTimezone: true }),
+		currentPeriodEnd: timestamp("current_period_end", { withTimezone: true }),
+		cancelAtPeriodEnd: boolean("cancel_at_period_end").notNull().default(false),
+		canceledAt: timestamp("canceled_at", { withTimezone: true }),
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+	},
+	(t) => [index("billing_subscriptions_user_idx").on(t.userId), index("billing_subscriptions_customer_status_idx").on(t.stripeCustomerId, t.status)],
+);
+
+export const billingSubscriptionItemsTable = pgTable(
+	"billing_subscription_items",
+	{
+		id: varchar("id").notNull().primaryKey(),
+		subscriptionId: varchar("subscription_id")
+			.notNull()
+			.references(() => billingSubscriptionsTable.id, { onDelete: "cascade" }),
+		productKey: varchar("product_key").$type<BillingProduct>().notNull(),
+		stripeProductId: varchar("stripe_product_id").notNull(),
+		stripePriceId: varchar("stripe_price_id").notNull(),
+		unitAmount: integer("unit_amount"),
+		currency: varchar("currency").notNull(),
+		billingInterval: varchar("billing_interval").notNull(),
+		quantity: integer("quantity").notNull().default(1),
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+	},
+	(t) => [uniqueIndex("billing_subscription_product_unique").on(t.subscriptionId, t.productKey), index("billing_subscription_items_product_idx").on(t.productKey)],
+);
+
+export const billingWebhookEventsTable = pgTable("billing_webhook_events", {
+	id: varchar("id").notNull().primaryKey(),
+	eventType: varchar("event_type").notNull(),
+	status: varchar("status").notNull().default("processing"),
+	lastError: text("last_error"),
+	retryCount: integer("retry_count").notNull().default(0),
+	receivedAt: timestamp("received_at", { withTimezone: true }).defaultNow().notNull(),
+	processedAt: timestamp("processed_at", { withTimezone: true }),
 });
 
 export const runnersTable = pgTable("runners", {

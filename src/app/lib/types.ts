@@ -1,6 +1,6 @@
 import type { SVGProps } from "react";
 import { InferSelectModel } from "drizzle-orm";
-import type { entitlementGrantsTable, modQueueTable, overlaysTable, playlistClipsTable, playlistsTable, settingsTable, tokenTable, usersTable, queueTable, twitchCacheTable, userPassesTable, runnersTable, streamSessionsTable } from "@/db/schema";
+import type { entitlementGrantsTable, modQueueTable, overlaysTable, playlistClipsTable, playlistsTable, settingsTable, tokenTable, usersTable, queueTable, twitchCacheTable, runnersTable, streamSessionsTable } from "@/db/schema";
 
 export class RateLimitError extends Error {
 	constructor() {
@@ -187,10 +187,6 @@ export enum Plan {
 	Pro = "pro",
 }
 
-export enum PassType {
-	Runner = "runner",
-}
-
 export enum RunnerStatus {
 	Online = "online",
 	Offline = "offline",
@@ -210,6 +206,7 @@ export enum StreamState {
 
 export enum Entitlement {
 	ProAccess = "pro_access",
+	RunnerAccess = "runner_access",
 }
 
 export enum EntitlementGrantSource {
@@ -218,12 +215,21 @@ export enum EntitlementGrantSource {
 	Promo = "promo",
 	Partner = "partner",
 	Support = "support",
+	Billing = "billing",
+	ManagedContract = "managed_contract",
+}
+
+export enum BillingProduct {
+	Pro = "pro",
+	RunnerSelfHosted = "runner_self_hosted",
 }
 
 export type EffectivePlan = "free" | "pro";
 export type EntitlementSource = "billing" | "reverse_trial" | "grant";
 export type UserEntitlements = {
 	effectivePlan: EffectivePlan;
+	proAccess: boolean;
+	runnerAccess: boolean;
 	isBillingPro: boolean;
 	reverseTrialActive: boolean;
 	trialEndsAt: Date | string | null;
@@ -253,7 +259,6 @@ export enum StatusOptions {
 export type Overlay = InferSelectModel<typeof overlaysTable>;
 export type Playlist = InferSelectModel<typeof playlistsTable>;
 export type PlaylistClip = InferSelectModel<typeof playlistClipsTable>;
-export type UserPass = InferSelectModel<typeof userPassesTable>;
 export type Runner = InferSelectModel<typeof runnersTable>;
 export type StreamSession = InferSelectModel<typeof streamSessionsTable>;
 

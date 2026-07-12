@@ -6,6 +6,8 @@ type TestUser = Pick<AuthenticatedUser, "plan" | "createdAt" | "entitlements">;
 
 function buildEntitlements(partial?: Partial<UserEntitlements>): UserEntitlements {
 	return {
+		proAccess: false,
+		runnerAccess: false,
 		effectivePlan: "free",
 		isBillingPro: false,
 		reverseTrialActive: false,

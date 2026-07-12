@@ -1,10 +1,11 @@
 /* istanbul ignore file */
 "use server";
 
-import { entitlementGrantsTable, editorsTable, overlaysTable, playlistClipsTable, playlistsTable, usersTable } from "@/db/schema";
+import { entitlementGrantsTable, editorsTable, overlaysTable, playlistClipsTable, playlistsTable, runnerEnrollmentsTable, runnersTable, streamSessionsTable, usersTable } from "@/db/schema";
 import { db } from "@/db/client";
-import { and, asc, eq, gt, inArray, isNull, lt, lte, or, sql } from "drizzle-orm";
-import { AuthenticatedUser, Entitlement, EntitlementGrantSource, MaxDurationMode, Plan, PlaybackMode, UserEntitlements } from "@types";
+import { and, asc, eq, exists, gt, inArray, isNull, lt, lte, or, sql } from "drizzle-orm";
+import { randomBytes } from "crypto";
+import { AuthenticatedUser, Entitlement, EntitlementGrantSource, MaxDurationMode, Plan, PlaybackMode, RunnerStatus, StreamState, UserEntitlements } from "@types";
 import { invalidateCommunitySnapshotCache } from "@lib/community";
 
 const PRO_ACCESS = Entitlement.ProAccess;
@@ -25,16 +26,20 @@ function isHybridEntitlementsEnabled() {
 	return ["1", "true", "yes", "on"].includes(raw.toLowerCase());
 }
 
-export async function hasActiveProGrant(userId: string, now = new Date()) {
+export async function hasActiveEntitlement(userId: string, entitlement: Entitlement, now = new Date()) {
 	if (!isHybridEntitlementsEnabled()) return false;
 	const rows = await db
 		.select()
 		.from(entitlementGrantsTable)
-		.where(and(eq(entitlementGrantsTable.entitlement, PRO_ACCESS), lte(entitlementGrantsTable.startsAt, now), or(isNull(entitlementGrantsTable.endsAt), gt(entitlementGrantsTable.endsAt, now)), or(eq(entitlementGrantsTable.userId, userId), isNull(entitlementGrantsTable.userId))))
+		.where(and(eq(entitlementGrantsTable.entitlement, entitlement), isNull(entitlementGrantsTable.revokedAt), lte(entitlementGrantsTable.startsAt, now), or(isNull(entitlementGrantsTable.endsAt), gt(entitlementGrantsTable.endsAt, now)), or(eq(entitlementGrantsTable.userId, userId), isNull(entitlementGrantsTable.userId))))
 		.limit(1)
 		.execute();
 
 	return rows.length > 0;
+}
+
+export async function hasActiveProGrant(userId: string, now = new Date()) {
+	return hasActiveEntitlement(userId, PRO_ACCESS, now);
 }
 
 export async function createProAccessGrant(input: CreateGrantInput) {
@@ -129,6 +134,8 @@ export async function resolveUserEntitlements(user: EntitlementUserRef): Promise
 	if (isBillingPro) {
 		return {
 			effectivePlan: "pro",
+			proAccess: true,
+			runnerAccess: await hasActiveEntitlement(user.id, Entitlement.RunnerAccess, now),
 			isBillingPro: true,
 			reverseTrialActive: false,
 			trialEndsAt: null,
@@ -140,6 +147,8 @@ export async function resolveUserEntitlements(user: EntitlementUserRef): Promise
 	if (!isHybridEntitlementsEnabled()) {
 		return {
 			effectivePlan: "free",
+			proAccess: false,
+			runnerAccess: await hasActiveEntitlement(user.id, Entitlement.RunnerAccess, now),
 			isBillingPro: false,
 			reverseTrialActive: false,
 			trialEndsAt: null,
@@ -151,7 +160,7 @@ export async function resolveUserEntitlements(user: EntitlementUserRef): Promise
 	const grants = await db
 		.select()
 		.from(entitlementGrantsTable)
-		.where(and(eq(entitlementGrantsTable.entitlement, PRO_ACCESS), lte(entitlementGrantsTable.startsAt, now), or(isNull(entitlementGrantsTable.endsAt), gt(entitlementGrantsTable.endsAt, now)), or(eq(entitlementGrantsTable.userId, user.id), isNull(entitlementGrantsTable.userId))))
+		.where(and(eq(entitlementGrantsTable.entitlement, PRO_ACCESS), isNull(entitlementGrantsTable.revokedAt), lte(entitlementGrantsTable.startsAt, now), or(isNull(entitlementGrantsTable.endsAt), gt(entitlementGrantsTable.endsAt, now)), or(eq(entitlementGrantsTable.userId, user.id), isNull(entitlementGrantsTable.userId))))
 		.orderBy(asc(entitlementGrantsTable.userId), asc(entitlementGrantsTable.startsAt))
 		.execute();
 
@@ -160,6 +169,8 @@ export async function resolveUserEntitlements(user: EntitlementUserRef): Promise
 		const isReverseTrialGrant = grant.source === EntitlementGrantSource.ReverseTrial;
 		return {
 			effectivePlan: "pro",
+			proAccess: true,
+			runnerAccess: await hasActiveEntitlement(user.id, Entitlement.RunnerAccess, now),
 			isBillingPro: false,
 			reverseTrialActive: isReverseTrialGrant,
 			trialEndsAt: grant.endsAt ?? null,
@@ -171,6 +182,8 @@ export async function resolveUserEntitlements(user: EntitlementUserRef): Promise
 
 	return {
 		effectivePlan: "free",
+		proAccess: false,
+		runnerAccess: await hasActiveEntitlement(user.id, Entitlement.RunnerAccess, now),
 		isBillingPro: false,
 		reverseTrialActive: false,
 		trialEndsAt: null,
@@ -190,6 +203,8 @@ export async function resolveUserEntitlementsForUsers(users: EntitlementUserRef[
 		if (user.plan === Plan.Pro) {
 			result.set(user.id, {
 				effectivePlan: "pro",
+				proAccess: true,
+				runnerAccess: await hasActiveEntitlement(user.id, Entitlement.RunnerAccess, now),
 				isBillingPro: true,
 				reverseTrialActive: false,
 				trialEndsAt: null,
@@ -205,6 +220,8 @@ export async function resolveUserEntitlementsForUsers(users: EntitlementUserRef[
 		for (const user of freeUsers) {
 			result.set(user.id, {
 				effectivePlan: "free",
+				proAccess: false,
+				runnerAccess: await hasActiveEntitlement(user.id, Entitlement.RunnerAccess, now),
 				isBillingPro: false,
 				reverseTrialActive: false,
 				trialEndsAt: null,
@@ -219,7 +236,7 @@ export async function resolveUserEntitlementsForUsers(users: EntitlementUserRef[
 	const grants = await db
 		.select()
 		.from(entitlementGrantsTable)
-		.where(and(eq(entitlementGrantsTable.entitlement, PRO_ACCESS), lte(entitlementGrantsTable.startsAt, now), or(isNull(entitlementGrantsTable.endsAt), gt(entitlementGrantsTable.endsAt, now)), or(inArray(entitlementGrantsTable.userId, freeUserIds), isNull(entitlementGrantsTable.userId))))
+		.where(and(eq(entitlementGrantsTable.entitlement, PRO_ACCESS), isNull(entitlementGrantsTable.revokedAt), lte(entitlementGrantsTable.startsAt, now), or(isNull(entitlementGrantsTable.endsAt), gt(entitlementGrantsTable.endsAt, now)), or(inArray(entitlementGrantsTable.userId, freeUserIds), isNull(entitlementGrantsTable.userId))))
 		.orderBy(asc(entitlementGrantsTable.userId), asc(entitlementGrantsTable.startsAt))
 		.execute();
 
@@ -240,6 +257,8 @@ export async function resolveUserEntitlementsForUsers(users: EntitlementUserRef[
 			const isReverseTrialGrant = grant.source === EntitlementGrantSource.ReverseTrial;
 			result.set(user.id, {
 				effectivePlan: "pro",
+				proAccess: true,
+				runnerAccess: await hasActiveEntitlement(user.id, Entitlement.RunnerAccess, now),
 				isBillingPro: false,
 				reverseTrialActive: isReverseTrialGrant,
 				trialEndsAt: grant.endsAt ?? null,
@@ -252,6 +271,8 @@ export async function resolveUserEntitlementsForUsers(users: EntitlementUserRef[
 
 		result.set(user.id, {
 			effectivePlan: "free",
+			proAccess: false,
+			runnerAccess: await hasActiveEntitlement(user.id, Entitlement.RunnerAccess, now),
 			isBillingPro: false,
 			reverseTrialActive: false,
 			trialEndsAt: null,
@@ -355,6 +376,42 @@ export async function reconcileFreeConstraintsIfNeeded(user: EntitlementUserRef,
 	});
 }
 
+/**
+ * Disable self-hosted runners after runner_access is no longer active.
+ * Runner records are intentionally preserved so the user can reactivate and
+ * enroll a machine again, but every credential is rotated immediately.
+ */
+export async function suspendRunnersForOwner(ownerId: string, reason = "runner_entitlement_lost") {
+	return db.transaction(async (tx) => {
+		const runners = await tx.select({ id: runnersTable.id }).from(runnersTable).where(eq(runnersTable.ownerId, ownerId)).orderBy(runnersTable.id).execute();
+		if (runners.length === 0) return { runners: 0, sessions: 0 };
+
+		const now = new Date();
+		for (const runner of runners) {
+			await tx
+				.update(runnersTable)
+				.set({
+					token: `cl_run_${randomBytes(24).toString("hex")}`,
+					bootstrapToken: null,
+					status: RunnerStatus.Offline,
+					lastHeartbeatAt: null,
+				})
+				.where(eq(runnersTable.id, runner.id))
+				.execute();
+		}
+
+		const sessionResult = await tx.update(streamSessionsTable).set({ desiredState: StreamState.Stopped, updatedAt: now, lastError: "Runner add-on is inactive" }).where(eq(streamSessionsTable.ownerId, ownerId)).execute();
+
+		await tx
+			.delete(runnerEnrollmentsTable)
+			.where(and(eq(runnerEnrollmentsTable.ownerId, ownerId), isNull(runnerEnrollmentsTable.approvedAt)))
+			.execute();
+
+		console.info("[entitlements] runners_suspended", { ownerId, reason, runners: runners.length });
+		return { runners: runners.length, sessions: Number(sessionResult.rowCount ?? 0) };
+	});
+}
+
 export async function reconcileRevokedUsersBatch(batchSize = 100, reconciliationCooldownHours = 6) {
 	if (!isHybridEntitlementsEnabled()) {
 		return { candidates: 0, reconciled: 0 };
@@ -374,7 +431,7 @@ export async function reconcileRevokedUsersBatch(batchSize = 100, reconciliation
 		const candidates = await db
 			.select()
 			.from(usersTable)
-			.where(and(eq(usersTable.plan, Plan.Free), or(isNull(usersTable.lastEntitlementReconciledAt), lt(usersTable.lastEntitlementReconciledAt, reconciliationCutoff))))
+			.where(and(or(eq(usersTable.plan, Plan.Free), exists(db.select({ id: runnersTable.id }).from(runnersTable).where(eq(runnersTable.ownerId, usersTable.id)))), or(isNull(usersTable.lastEntitlementReconciledAt), lt(usersTable.lastEntitlementReconciledAt, reconciliationCutoff))))
 			.orderBy(asc(usersTable.createdAt))
 			.limit(batchSize)
 			.execute();
@@ -386,10 +443,15 @@ export async function reconcileRevokedUsersBatch(batchSize = 100, reconciliation
 				effectivePlan: "free" as const,
 				isBillingPro: false,
 				reverseTrialActive: false,
+				proAccess: false,
+				runnerAccess: false,
 				trialEndsAt: null,
 				hasActiveGrant: false,
 				source: "reverse_trial" as const,
 			};
+			if (!entitlements.runnerAccess) {
+				await suspendRunnersForOwner(user.id);
+			}
 			if (entitlements.effectivePlan !== "free") {
 				await db
 					.update(usersTable)

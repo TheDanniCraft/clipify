@@ -46,6 +46,7 @@ type PartialUser = { id: string; plan: Plan };
 describe("lib/entitlements", () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
+		selectExecute.mockResolvedValue([]);
 		process.env.ENTITLEMENTS_HYBRID_ENABLED = "1";
 	});
 
@@ -59,7 +60,7 @@ describe("lib/entitlements", () => {
 				source: "billing",
 			}),
 		);
-		expect(db.select).not.toHaveBeenCalled();
+		expect(db.select).toHaveBeenCalledTimes(1);
 	});
 
 	it("returns free entitlements when hybrid grants are disabled", async () => {
@@ -99,6 +100,7 @@ describe("lib/entitlements", () => {
 	});
 
 	it("resolves entitlements in bulk for mixed users with global grants", async () => {
+		selectExecute.mockResolvedValueOnce([]); // Runner entitlement for the billing-Pro user.
 		selectExecute.mockResolvedValueOnce([
 			{
 				userId: null,
