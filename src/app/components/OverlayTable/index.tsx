@@ -31,6 +31,10 @@ import { getAvatar, getUsersDetailsBulk } from "@actions/twitch";
 
 const dashboardTabs = new Set(["overlays", "playlists", "runners"]);
 
+function TableEmptyState({ children }: { children: React.ReactNode }) {
+	return <div className='flex min-h-24 w-full items-center justify-center rounded-b-2xl border-b border-separator-tertiary/50 bg-surface px-4 py-3 text-center'>{children}</div>;
+}
+
 export default function OverlayTable({ userId, accessToken }: { userId: string; accessToken: string }) {
 	const router = useRouter();
 	const searchParams = useSearchParams();
@@ -1207,47 +1211,59 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 							renderEmptyState={() => {
 								if (activeTab === "overlays") {
 									return overlays === undefined ? (
-										<span className='flex w-full items-center justify-center gap-2 p-4'>
-											<Spinner />
-											Loading overlays
-										</span>
+										<TableEmptyState>
+											<span className='flex items-center justify-center gap-2'>
+												<Spinner />
+												Loading overlays
+											</span>
+										</TableEmptyState>
 									) : (
-										<div className='w-full p-4 text-center text-muted'>No overlays found</div>
+										<TableEmptyState>
+											<span className='text-muted'>No overlays found</span>
+										</TableEmptyState>
 									);
 								} else if (activeTab === "playlists") {
 									return playlists === undefined ? (
-										<span className='flex w-full items-center justify-center gap-2 p-4'>
-											<Spinner />
-											Loading playlists
-										</span>
+										<TableEmptyState>
+											<span className='flex items-center justify-center gap-2'>
+												<Spinner />
+												Loading playlists
+											</span>
+										</TableEmptyState>
 									) : (
-										<div className='w-full p-4 text-center text-muted'>No playlists found</div>
+										<TableEmptyState>
+											<span className='text-muted'>No playlists found</span>
+										</TableEmptyState>
 									);
 								} else {
 									return runners === undefined ? (
-										<span className='flex w-full items-center justify-center gap-2 p-4'>
-											<Spinner />
-											Loading runners
-										</span>
+										<TableEmptyState>
+											<span className='flex items-center justify-center gap-2'>
+												<Spinner />
+												Loading runners
+											</span>
+										</TableEmptyState>
 									) : (
-										<div className='flex w-full flex-col items-center gap-2 p-6 text-center'>
-											{currentUser?.entitlements?.runnerAccess ? (
-												<>
-													<p className='text-muted'>No runners found</p>
-													<Button size='sm' variant='secondary' onPress={() => router.push("/runner/enroll")}>
-														Create runner
-													</Button>
-												</>
-											) : (
-												<>
-													<p className='font-medium text-foreground'>Runner add-on required</p>
-													<p className='max-w-md text-sm text-muted'>Purchase the self-hosted Runner add-on to create and connect runners.</p>
-													<Button size='sm' variant='primary' onPress={onUpgradeOpen}>
-														{currentUser?.entitlements?.effectivePlan === "pro" ? "Add Runner add-on" : "Upgrade with Runner"}
-													</Button>
-												</>
-											)}
-										</div>
+										<TableEmptyState>
+											<div className='flex flex-col items-center gap-2'>
+												{currentUser?.entitlements?.runnerAccess ? (
+													<>
+														<p className='text-muted'>No runners found</p>
+														<Button size='sm' variant='secondary' onPress={() => router.push("/runner/enroll")}>
+															Create runner
+														</Button>
+													</>
+												) : (
+													<>
+														<p className='font-medium text-foreground'>Runner add-on required</p>
+														<p className='max-w-md text-sm text-muted'>Purchase the self-hosted Runner add-on to create and connect runners.</p>
+														<Button size='sm' variant='primary' onPress={onUpgradeOpen}>
+															{currentUser?.entitlements?.effectivePlan === "pro" ? "Add Runner add-on" : "Upgrade with Runner"}
+														</Button>
+													</>
+												)}
+											</div>
+										</TableEmptyState>
 									);
 								}
 							}}
