@@ -87,6 +87,15 @@ export default function AdminHealthCharts({ health }: { health: InstanceHealthSn
 		{ label: "Active", value: health.counts.overlaysActive, fill: "#17C964" },
 		{ label: "Paused", value: health.counts.overlaysPaused, fill: "#F31260" },
 	];
+	const runnerStateData = [
+		{ label: "Online", value: health.runners.online, fill: "#17C964" },
+		{ label: "Offline", value: health.runners.offline, fill: "#F31260" },
+	];
+	const runnerStreamData = [
+		{ label: "Desired", value: health.runners.streamsDesiredRunning, fill: "#006FEE" },
+		{ label: "Running", value: health.runners.streamsActuallyRunning, fill: "#17C964" },
+		{ label: "Errored", value: health.runners.streamsErrored, fill: "#F31260" },
+	];
 	const overlayOwnerData = [
 		{ label: "Free Owners", value: health.counts.activeOverlayOwnersFree, fill: "#006FEE" },
 		{ label: "Paid Owners", value: health.counts.activeOverlayOwnersPaid, fill: "#9353D3" },
@@ -191,6 +200,44 @@ export default function AdminHealthCharts({ health }: { health: InstanceHealthSn
 
 	return (
 		<div className='grid grid-cols-1 gap-3 lg:grid-cols-2'>
+			<Card variant='secondary' className='min-w-0 lg:col-span-2'>
+				<Card.Header className='pb-1'>
+					<p className='text-sm font-semibold'>Runner and Add-on Health</p>
+				</Card.Header>
+				<Card.Content className='grid min-w-0 gap-3 md:grid-cols-2'>
+					<ChartPanel title={`Runners (${health.runners.total} total)`}>
+						<MeasuredChart className='h-56 min-w-0'>
+							{(width) => (
+								<PieChart width={width} height={224}>
+									<Tooltip {...tooltipProps} />
+									<Pie data={runnerStateData} dataKey='value' nameKey='label' cx='50%' cy='50%' outerRadius={Math.min(78, Math.floor(width / 4))} label>
+										{runnerStateData.map((entry) => (
+											<Cell key={entry.label} fill={entry.fill} />
+										))}
+									</Pie>
+								</PieChart>
+							)}
+						</MeasuredChart>
+					</ChartPanel>
+					<ChartPanel title={`Runner subscriptions (${health.billing.runnerSubscriptionsActive} active)`}>
+						<MeasuredChart className='h-56 min-w-0'>
+							{(width) => (
+								<BarChart width={width} height={224} data={runnerStreamData} margin={{ top: 10, right: 8, left: -18, bottom: 20 }}>
+									<CartesianGrid strokeDasharray='4 4' stroke='#d4d4d8' />
+									<XAxis dataKey='label' stroke='#71717a' />
+									<YAxis stroke='#71717a' allowDecimals={false} />
+									<Tooltip {...tooltipProps} />
+									<Bar dataKey='value' radius={[6, 6, 0, 0]}>
+										{runnerStreamData.map((entry) => (
+											<Cell key={entry.label} fill={entry.fill} />
+										))}
+									</Bar>
+								</BarChart>
+							)}
+						</MeasuredChart>
+					</ChartPanel>
+				</Card.Content>
+			</Card>
 			<Card variant='secondary' className='min-w-0 lg:col-span-2'>
 				<Card.Header className='pb-1'>
 					<p className='text-sm font-semibold'>Active Users Trend</p>

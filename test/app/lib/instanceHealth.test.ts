@@ -29,7 +29,12 @@ jest.mock("@/db/schema", () => ({
 		startsAt: "startsAt",
 		endsAt: "endsAt",
 		userId: "userId",
+		revokedAt: "revokedAt",
 	},
+	billingSubscriptionsTable: { id: "id", status: "status", cancelAtPeriodEnd: "cancelAtPeriodEnd" },
+	billingSubscriptionItemsTable: { subscriptionId: "subscriptionId", productKey: "productKey", unitAmount: "unitAmount", billingInterval: "billingInterval" },
+	runnersTable: { id: "id", ownerId: "ownerId", status: "status", osInfo: "osInfo", version: "version" },
+	streamSessionsTable: { id: "id", desiredState: "desiredState", actualState: "actualState", lastError: "lastError" },
 	overlaysTable: {
 		status: "status",
 		ownerId: "ownerId",
@@ -162,6 +167,16 @@ describe("lib/instanceHealth", () => {
 			[{ count: 0 }], // expiredTokensRows
 			[{ count: 2 }], // expiringIn24hRows
 			[{ count: 5 }], // readyForTwitchApiUsersRows
+			[], // billingItems
+			[{ count: 0 }], // runnerCountRows
+			[{ count: 0 }], // onlineRunnerRows
+			[{ count: 0 }], // runnerOwnerRows
+			[{ count: 0 }], // streamCountRows
+			[{ count: 0 }], // desiredRunningRows
+			[{ count: 0 }], // actualRunningRows
+			[{ count: 0 }], // streamErrorRows
+			[], // runnersByOsRows
+			[], // runnersByVersionRows
 			[
 				{ type: "clip", count: 100 },
 				{ type: "avatar", count: 20 },
