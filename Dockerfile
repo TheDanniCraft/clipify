@@ -46,7 +46,7 @@ RUN set -eux; \
     chmod +x /usr/local/bin/ldid; \
     ldid --version || true
 
-RUN bun run app:build && bun run runner:build
+RUN test -x /app/node_modules/.bin/pkg && bun run app:build && bun scripts/build-runner.ts
 
 # -------------------------
 # runner (production)

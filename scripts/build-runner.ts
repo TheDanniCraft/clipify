@@ -1,5 +1,5 @@
 import { build } from "esbuild";
-import { execSync } from "child_process";
+import { execFileSync, execSync } from "child_process";
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
@@ -53,7 +53,9 @@ async function main() {
 	}
 
 	// 3. Compile binaries using pkg
-	execSync("npx pkg build/runner.js -t node18-win-x64,node18-linux-x64,node18-macos-x64,node18-macos-arm64 --out-path build/", { stdio: "inherit", env: pkgEnv });
+	const pkgBin = path.join(process.cwd(), "node_modules", ".bin", process.platform === "win32" ? "pkg.cmd" : "pkg");
+	if (!fs.existsSync(pkgBin)) throw new Error(`pkg executable not found at ${pkgBin}`);
+	execFileSync(pkgBin, ["build/runner.js", "-t", "node18-win-x64,node18-linux-x64,node18-macos-x64,node18-macos-arm64", "--out-path", "build/"], { stdio: "inherit", env: pkgEnv });
 
 	console.log(`[Builder] Runner executables generated successfully in build/!`);
 
@@ -113,4 +115,7 @@ async function main() {
 	console.log(`[Builder] Hashes generated:`, hashes);
 }
 
-main().catch(console.error);
+main().catch((error) => {
+	console.error(error);
+	process.exitCode = 1;
+});
