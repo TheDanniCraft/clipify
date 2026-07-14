@@ -11,6 +11,7 @@ import { Entitlement } from "@types";
 const binaryNames: Record<string, string> = {
 	windows: "clipify-runner-windows.exe",
 	linux: "clipify-runner-linux",
+	"linux-arm64": "clipify-runner-linux-arm64",
 	macos: "clipify-runner-macos",
 	"macos-arm64": "clipify-runner-macos-arm64",
 };

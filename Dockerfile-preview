@@ -27,7 +27,7 @@ COPY . .
 
 RUN set -eux; \
     apt-get update; \
-    apt-get install -y --no-install-recommends ca-certificates curl; \
+    apt-get install -y --no-install-recommends ca-certificates curl qemu-user-static; \
     rm -rf /var/lib/apt/lists/*; \
     BUILD_ARCH="${TARGETARCH:-$(uname -m)}"; \
     case "${BUILD_ARCH}" in \
@@ -47,7 +47,15 @@ RUN set -eux; \
     chmod +x /usr/local/bin/ldid; \
     ldid --version || true
 
-RUN test -x /app/node_modules/.bin/pkg && bun run app:build && RUNNER_PKG_TARGETS=node18-win-x64,node18-linux-x64,node18-macos-x64 bun scripts/build-runner.ts
+RUN --mount=type=cache,target=/root/.pkg-cache \
+    set -eux; \
+    test -x /app/node_modules/.bin/pkg; \
+    command -v qemu-aarch64-static; \
+    bun run app:build; \
+    PKG_CACHE_PATH=/root/.pkg-cache \
+    PKG_QEMU_AARCH64=/usr/bin/qemu-aarch64-static \
+    RUNNER_PKG_TARGETS=node22-win-x64,node22-linux-x64,node22-linux-arm64,node22-macos-x64,node22-macos-arm64 \
+    bun scripts/build-runner.ts
 
 
 # -------------------------

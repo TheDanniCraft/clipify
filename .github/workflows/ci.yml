@@ -29,7 +29,7 @@ jobs:
       # compute the cache key once so downstream jobs can reuse it
       - name: 🔑 Compute cache key
         id: compute-key
-        run: echo "key=${{ runner.os }}-deps-${{ hashFiles('**/bun.lock') }}" >> "$GITHUB_OUTPUT"
+        run: echo "key=${{ runner.os }}-deps-${{ hashFiles('**/bun.lock', 'package.json', 'patches/*.patch') }}" >> "$GITHUB_OUTPUT"
 
       # try to restore an existing cache
       - name: ♻️ Restore Bun & node_modules cache
@@ -46,6 +46,9 @@ jobs:
       - name: 📦 Install dependencies
         if: steps.restore.outputs.cache-hit != 'true'
         run: bun install --frozen-lockfile
+
+      - name: 🧩 Validate all Bun package patches
+        run: node -e 'const fs=require("fs"); const p=require("./package.json"); for (const [specifier, patch] of Object.entries(p.patchedDependencies ?? {})) { if (!fs.existsSync(patch)) throw new Error(`Missing patch file: ${patch}`); const packageName = specifier.slice(0, specifier.lastIndexOf("@")); const patchText = fs.readFileSync(patch, "utf8"); for (const file of [...patchText.matchAll(/^\+\+\+ b\/(.+)$/gm)].map((m) => m[1]).filter((file) => file !== "/dev/null")) { const target = `node_modules/${packageName}/${file}`; if (!fs.existsSync(target)) throw new Error(`Patch target missing for ${specifier}: ${target}`); } }'
 
       # save a new cache entry when we had a miss
       - name: 💾 Save Bun & node_modules cache

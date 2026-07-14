@@ -38,9 +38,10 @@ async function downloadFile(url: string, dest: string): Promise<void> {
 function getUpdateTarget(): UpdateTarget {
 	const isWindows = process.platform === "win32";
 	const isMacOS = process.platform === "darwin";
+	const isLinuxArm64 = process.platform === "linux" && process.arch === "arm64";
 	return {
-		osKey: isWindows ? "windows" : isMacOS && process.arch === "arm64" ? "macosArm" : isMacOS ? "macos" : "linux",
-		binaryName: isWindows ? "clipify-runner-windows.exe" : isMacOS && process.arch === "arm64" ? "clipify-runner-macos-arm64" : isMacOS ? "clipify-runner-macos" : "clipify-runner-linux",
+		osKey: isWindows ? "windows" : isLinuxArm64 ? "linuxArm" : isMacOS && process.arch === "arm64" ? "macosArm" : isMacOS ? "macos" : "linux",
+		binaryName: isWindows ? "clipify-runner-windows.exe" : isLinuxArm64 ? "clipify-runner-linux-arm64" : isMacOS && process.arch === "arm64" ? "clipify-runner-macos-arm64" : isMacOS ? "clipify-runner-macos" : "clipify-runner-linux",
 	};
 }
 

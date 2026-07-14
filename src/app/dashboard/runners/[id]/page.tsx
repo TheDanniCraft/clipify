@@ -17,12 +17,13 @@ import { AuthenticatedUser, Overlay, StreamMode, StreamState, RunnerStatus } fro
 
 type Runner = InferSelectModel<typeof runnersTable>;
 type StreamSession = InferSelectModel<typeof streamSessionsTable>;
-type RunnerPlatform = "windows" | "linux" | "macos" | "macos-arm64";
+type RunnerPlatform = "windows" | "linux" | "linux-arm64" | "macos" | "macos-arm64";
 type RunnerVersionManifest = Awaited<ReturnType<typeof getRunnerVersionManifest>>;
 
 const runnerPlatformLabels: Record<RunnerPlatform, string> = {
 	windows: "Windows",
-	linux: "Linux",
+	linux: "Linux x64",
+	"linux-arm64": "Linux ARM64",
 	macos: "macOS Intel",
 	"macos-arm64": "macOS Apple Silicon",
 };
@@ -42,14 +43,17 @@ function getRunnerVersionHashes(osInfo: string | null | undefined, manifest: Run
 
 	const normalizedOs = osInfo?.toLowerCase() ?? "";
 	if (normalizedOs.includes("windows")) return manifest.windows ? [normalizeRunnerVersion(manifest.windows)] : [];
-	if (normalizedOs.includes("linux")) return manifest.linux ? [normalizeRunnerVersion(manifest.linux)] : [];
+	if (normalizedOs.includes("linux")) {
+		if (normalizedOs.includes("arm64") || normalizedOs.includes("aarch64")) return manifest.linuxArm ? [normalizeRunnerVersion(manifest.linuxArm)] : [];
+		return manifest.linux ? [normalizeRunnerVersion(manifest.linux)] : [];
+	}
 	if (normalizedOs.includes("darwin") || normalizedOs.includes("mac")) {
 		if (normalizedOs.includes("arm64") || normalizedOs.includes("aarch64")) return manifest.macosArm ? [normalizeRunnerVersion(manifest.macosArm)] : [];
 		if (normalizedOs.includes("x64") || normalizedOs.includes("x86_64")) return manifest.macos ? [normalizeRunnerVersion(manifest.macos)] : [];
 		return [manifest.macos, manifest.macosArm].filter((hash): hash is string => Boolean(hash)).map(normalizeRunnerVersion);
 	}
 
-	return [manifest.windows, manifest.linux, manifest.macos, manifest.macosArm].filter((hash): hash is string => Boolean(hash)).map(normalizeRunnerVersion);
+	return [manifest.windows, manifest.linux, manifest.linuxArm, manifest.macos, manifest.macosArm].filter((hash): hash is string => Boolean(hash)).map(normalizeRunnerVersion);
 }
 
 function getRunnerVersionState(runner: Runner, manifest: RunnerVersionManifest) {
@@ -64,7 +68,7 @@ function getRunnerVersionState(runner: Runner, manifest: RunnerVersionManifest) 
 function getRunnerPlatformFromOs(osInfo: string | null | undefined) {
 	const normalizedOs = osInfo?.toLowerCase() ?? "";
 	if (normalizedOs.includes("windows")) return "windows" as const;
-	if (normalizedOs.includes("linux")) return "linux" as const;
+	if (normalizedOs.includes("linux")) return normalizedOs.includes("arm64") || normalizedOs.includes("aarch64") ? ("linux-arm64" as const) : ("linux" as const);
 	if (normalizedOs.includes("darwin") || normalizedOs.includes("mac")) {
 		if (normalizedOs.includes("arm64") || normalizedOs.includes("aarch64")) return "macos-arm64" as const;
 		if (normalizedOs.includes("x64") || normalizedOs.includes("x86_64")) return "macos" as const;
@@ -257,7 +261,7 @@ export default function RunnerPage() {
 
 	const renderPlatformIcon = (platform: RunnerPlatform) => {
 		if (platform === "windows") return <IconBrandWindows size={18} />;
-		if (platform === "linux") return <IconTerminal2 size={18} />;
+		if (platform === "linux" || platform === "linux-arm64") return <IconTerminal2 size={18} />;
 		return <IconBrandApple size={18} />;
 	};
 
@@ -322,15 +326,16 @@ export default function RunnerPage() {
 			);
 		}
 
-		if (installPlatform === "linux") {
+		if (installPlatform === "linux" || installPlatform === "linux-arm64") {
+			const linuxBinaryName = installPlatform === "linux-arm64" ? "clipify-runner-linux-arm64" : "clipify-runner-linux";
 			return (
 				<ol className='list-decimal space-y-2 pl-5 text-sm text-muted-foreground'>
 					<li>Open a terminal in your Downloads folder.</li>
 					<li>
-						Run <code className='rounded bg-secondary px-1.5 py-0.5 text-foreground'>chmod +x clipify-runner-linux</code>.
+						Run <code className='rounded bg-secondary px-1.5 py-0.5 text-foreground'>chmod +x {linuxBinaryName}</code>.
 					</li>
 					<li>
-						Run <code className='rounded bg-secondary px-1.5 py-0.5 text-foreground'>./clipify-runner-linux</code>.
+						Run <code className='rounded bg-secondary px-1.5 py-0.5 text-foreground'>./{linuxBinaryName}</code>.
 					</li>
 					<li>Open the enrollment URL shown by the runner on any device and enter the code.</li>
 				</ol>

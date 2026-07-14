@@ -241,11 +241,12 @@ export async function getRunnerVersionManifest() {
 		const versionPath = path.join(process.cwd(), "public", "downloads", "runner", "version.json");
 		if (!fs.existsSync(versionPath)) return null;
 
-		const parsed = JSON.parse(fs.readFileSync(versionPath, "utf-8")) as Partial<Record<"windows" | "linux" | "macos" | "macosArm" | "updatedAt", unknown>>;
+		const parsed = JSON.parse(fs.readFileSync(versionPath, "utf-8")) as Partial<Record<"windows" | "linux" | "linuxArm" | "macos" | "macosArm" | "updatedAt", unknown>>;
 
 		return {
 			windows: typeof parsed.windows === "string" ? parsed.windows : null,
 			linux: typeof parsed.linux === "string" ? parsed.linux : null,
+			linuxArm: typeof parsed.linuxArm === "string" ? parsed.linuxArm : null,
 			macos: typeof parsed.macos === "string" ? parsed.macos : null,
 			macosArm: typeof parsed.macosArm === "string" ? parsed.macosArm : null,
 			updatedAt: typeof parsed.updatedAt === "string" ? parsed.updatedAt : null,

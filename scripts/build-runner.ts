@@ -35,13 +35,14 @@ async function main() {
 		bundle: true,
 		platform: "node",
 		outfile: "build/runner.js",
+		external: ["@napi-rs/keyring"],
 		loader: { ".node": "file" },
 		define: {
 			"process.env.BAKED_API_URL": JSON.stringify(bakedApiUrl),
 		},
 	});
 
-	console.log(`[Builder] Bundled successfully. Compiling executable with pkg...`);
+	console.log(`[Builder] Bundled successfully. Compiling executables with @yao-pkg/pkg...`);
 	const ldidPath = getLdidPath();
 	const pkgEnv = { ...process.env };
 	if (ldidPath) {
@@ -52,10 +53,10 @@ async function main() {
 		console.warn(`[Builder] macOS ad-hoc signing skipped; build in Docker for signed macOS artifacts.`);
 	}
 
-	// 3. Compile binaries using pkg
+	// 3. Compile binaries using @yao-pkg/pkg
 	const pkgBin = path.join(process.cwd(), "node_modules", ".bin", process.platform === "win32" ? "pkg.cmd" : "pkg");
-	if (!fs.existsSync(pkgBin)) throw new Error(`pkg executable not found at ${pkgBin}`);
-	const pkgTargets = process.env.RUNNER_PKG_TARGETS ?? "node18-win-x64,node18-linux-x64,node18-macos-x64,node18-macos-arm64";
+	if (!fs.existsSync(pkgBin)) throw new Error(`@yao-pkg/pkg executable not found at ${pkgBin}`);
+	const pkgTargets = process.env.RUNNER_PKG_TARGETS ?? "node22-win-x64,node22-linux-x64,node22-linux-arm64,node22-macos-x64,node22-macos-arm64";
 	console.log(`[Builder] Packaging targets: ${pkgTargets}`);
 	execFileSync(pkgBin, ["build/runner.js", "-t", pkgTargets, "--out-path", "build/"], { stdio: "inherit", env: pkgEnv });
 
@@ -67,17 +68,21 @@ async function main() {
 		fs.mkdirSync(downloadsDir, { recursive: true });
 	}
 
-	const winBinarySrc = path.join(process.cwd(), "build", "runner-win-x64.exe");
-	const linuxBinarySrc = path.join(process.cwd(), "build", "runner-linux-x64");
-	const macosX64BinarySrc = path.join(process.cwd(), "build", "runner-macos-x64");
-	const macosArmBinarySrc = path.join(process.cwd(), "build", "runner-macos-arm64");
+	const requestedTargets = new Set(pkgTargets.split(",").map((target) => target.trim()));
+	const findGeneratedBinary = (target: string, ...names: string[]) => (requestedTargets.has(target) ? names.map((name) => path.join(process.cwd(), "build", name)).find((candidate) => fs.existsSync(candidate)) : undefined);
+	const winBinarySrc = findGeneratedBinary("node22-win-x64", "runner-win-x64.exe", "runner-win.exe", "runner.exe");
+	const linuxBinarySrc = findGeneratedBinary("node22-linux-x64", "runner-linux-x64", "runner-linux", "runner");
+	const linuxArmBinarySrc = findGeneratedBinary("node22-linux-arm64", "runner-linux-arm64", "runner-linux", "runner");
+	const macosX64BinarySrc = findGeneratedBinary("node22-macos-x64", "runner-macos-x64", "runner-macos", "runner");
+	const macosArmBinarySrc = findGeneratedBinary("node22-macos-arm64", "runner-macos-arm64", "runner-macos", "runner");
 
 	const winBinaryDest = path.join(downloadsDir, "clipify-runner-windows.exe");
 	const linuxBinaryDest = path.join(downloadsDir, "clipify-runner-linux");
+	const linuxArmBinaryDest = path.join(downloadsDir, "clipify-runner-linux-arm64");
 	const macosX64BinaryDest = path.join(downloadsDir, "clipify-runner-macos");
 	const macosArmBinaryDest = path.join(downloadsDir, "clipify-runner-macos-arm64");
 
-	if (fs.existsSync(winBinarySrc)) {
+	if (winBinarySrc) {
 		fs.copyFileSync(winBinarySrc, winBinaryDest);
 		try {
 			console.log(`[Builder] Setting executable icon...`);
@@ -100,13 +105,15 @@ async function main() {
 			console.warn(`[Builder] Failed to set executable icon:`, e);
 		}
 	}
-	if (fs.existsSync(linuxBinarySrc)) fs.copyFileSync(linuxBinarySrc, linuxBinaryDest);
-	if (fs.existsSync(macosX64BinarySrc)) fs.copyFileSync(macosX64BinarySrc, macosX64BinaryDest);
-	if (fs.existsSync(macosArmBinarySrc)) fs.copyFileSync(macosArmBinarySrc, macosArmBinaryDest);
+	if (linuxBinarySrc) fs.copyFileSync(linuxBinarySrc, linuxBinaryDest);
+	if (linuxArmBinarySrc) fs.copyFileSync(linuxArmBinarySrc, linuxArmBinaryDest);
+	if (macosX64BinarySrc) fs.copyFileSync(macosX64BinarySrc, macosX64BinaryDest);
+	if (macosArmBinarySrc) fs.copyFileSync(macosArmBinarySrc, macosArmBinaryDest);
 
 	const hashes = {
 		windows: fs.existsSync(winBinaryDest) ? getFileHash(winBinaryDest) : null,
 		linux: fs.existsSync(linuxBinaryDest) ? getFileHash(linuxBinaryDest) : null,
+		linuxArm: fs.existsSync(linuxArmBinaryDest) ? getFileHash(linuxArmBinaryDest) : null,
 		macos: fs.existsSync(macosX64BinaryDest) ? getFileHash(macosX64BinaryDest) : null,
 		macosArm: fs.existsSync(macosArmBinaryDest) ? getFileHash(macosArmBinaryDest) : null,
 		updatedAt: new Date().toISOString(),

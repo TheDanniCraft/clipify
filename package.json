@@ -83,7 +83,7 @@
 		"jest": "^30.4.2",
 		"jest-environment-jsdom": "^30.4.1",
 		"lint-staged": "^17.0.8",
-		"pkg": "^5.8.1",
+		"@yao-pkg/pkg": "6.21.0",
 		"prettier": "^3.9.5",
 		"resedit": "^3.0.2",
 		"tailwindcss": "^4.3.2",
@@ -91,8 +91,9 @@
 		"typescript": "^6.0.3"
 	},
 	"patchedDependencies": {
-		"next@16.1.6": "patches/next@16.1.6.patch",
-		"puppeteer-stream@3.0.23": "patches/puppeteer-stream@3.0.23.patch"
+		"next@16.1.6": "patches/next.patch",
+		"puppeteer-stream@3.0.23": "patches/puppeteer-stream.patch",
+		"@yao-pkg/pkg@6.21.0": "patches/yao-pkg-qemu.patch"
 	},
 	"lint-staged": {
 		"*.{ts,tsx,js,jsx}": [
@@ -105,8 +106,7 @@
 	},
 	"pkg": {
 		"assets": [
-			"node_modules/@napi-rs/keyring-linux-x64-gnu/keyring.linux-x64-gnu.node",
-			"node_modules/@napi-rs/keyring-linux-x64-musl/keyring.linux-x64-musl.node"
+			"node_modules/@napi-rs/keyring-*/**/*.node"
 		]
 	}
 }
