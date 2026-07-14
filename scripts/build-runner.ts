@@ -57,15 +57,8 @@ async function main() {
 	const pkgBin = path.join(process.cwd(), "node_modules", ".bin", process.platform === "win32" ? "pkg.cmd" : "pkg");
 	if (!fs.existsSync(pkgBin)) throw new Error(`@yao-pkg/pkg executable not found at ${pkgBin}`);
 	const pkgTargets = process.env.RUNNER_PKG_TARGETS ?? "node24-win-x64,node24-linux-x64,node24-linux-arm64,node24-macos-x64,node24-macos-arm64";
-	const targets = pkgTargets
-		.split(",")
-		.map((target) => target.trim())
-		.filter(Boolean);
-	console.log(`[Builder] Packaging targets: ${targets.join(",")}`);
-	for (const target of targets) {
-		console.log(`[Builder] Packaging ${target} with bytecode`);
-		execFileSync(pkgBin, ["build/runner.js", "-t", target, "--out-path", "build/"], { stdio: "inherit", env: pkgEnv });
-	}
+	console.log(`[Builder] Packaging targets: ${pkgTargets}`);
+	execFileSync(pkgBin, ["build/runner.js", "-t", pkgTargets, "--out-path", "build/"], { stdio: "inherit", env: pkgEnv });
 
 	console.log(`[Builder] Runner executables generated successfully in build/!`);
 

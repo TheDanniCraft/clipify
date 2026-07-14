@@ -381,6 +381,7 @@ export default function RunnerPage() {
 	const runnerVersionLabel = formatRunnerVersion(runner.version);
 	const isRunnerStreaming = runner.status === "online" && streamSessions[0]?.actualState === "running";
 	const canUnlinkRunner = !isRunnerStreaming;
+	const runnerConnectionLabel = runner.lastHeartbeatAt ? "Offline" : "Not connected";
 
 	return (
 		<DashboardNavbar user={user} title='Runner Settings' tagline='Configure hardware streaming'>
@@ -417,12 +418,9 @@ export default function RunnerPage() {
 									</Tooltip>
 								</div>
 							) : (
-								<div className='flex items-center gap-1.5 rounded-full border border-success/20 bg-success/10 px-2.5 py-1 text-success'>
-									<span className='relative flex h-2.5 w-2.5'>
-										<span className='absolute inline-flex h-full w-full animate-ping rounded-full bg-success/60 opacity-75' />
-										<span className='relative inline-flex h-2.5 w-2.5 rounded-full bg-success' />
-									</span>
-									<span className='text-sm font-medium leading-none'>Connected</span>
+								<div className='flex items-center gap-1.5 rounded-full border border-warning/20 bg-warning/10 px-2.5 py-1 text-warning'>
+									<span className='h-2.5 w-2.5 rounded-full bg-warning' />
+									<span className='text-sm font-medium leading-none'>{runnerConnectionLabel}</span>
 									<Tooltip delay={0}>
 										<Tooltip.Trigger>
 											<span>
@@ -703,7 +701,8 @@ export default function RunnerPage() {
 								</Modal.Header>
 								<Modal.Body className='gap-5'>
 									{installPlatform && (
-										<Button variant='secondary' className='w-fit' onPress={() => window.location.assign(getRunnerDownloadUrl(installPlatform))}>
+										<Button variant='secondary' className='w-fit self-center' onPress={() => window.location.assign(getRunnerDownloadUrl(installPlatform))}>
+											<IconDownload size={18} />
 											Download again
 										</Button>
 									)}
