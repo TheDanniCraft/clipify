@@ -56,9 +56,16 @@ async function main() {
 	// 3. Compile binaries using @yao-pkg/pkg
 	const pkgBin = path.join(process.cwd(), "node_modules", ".bin", process.platform === "win32" ? "pkg.cmd" : "pkg");
 	if (!fs.existsSync(pkgBin)) throw new Error(`@yao-pkg/pkg executable not found at ${pkgBin}`);
-	const pkgTargets = process.env.RUNNER_PKG_TARGETS ?? "node22-win-x64,node22-linux-x64,node22-linux-arm64,node22-macos-x64,node22-macos-arm64";
-	console.log(`[Builder] Packaging targets: ${pkgTargets}`);
-	execFileSync(pkgBin, ["build/runner.js", "-t", pkgTargets, "--out-path", "build/"], { stdio: "inherit", env: pkgEnv });
+	const pkgTargets = process.env.RUNNER_PKG_TARGETS ?? "node24-win-x64,node24-linux-x64,node24-linux-arm64,node24-macos-x64,node24-macos-arm64";
+	const targets = pkgTargets
+		.split(",")
+		.map((target) => target.trim())
+		.filter(Boolean);
+	console.log(`[Builder] Packaging targets: ${targets.join(",")}`);
+	for (const target of targets) {
+		console.log(`[Builder] Packaging ${target} with bytecode`);
+		execFileSync(pkgBin, ["build/runner.js", "-t", target, "--out-path", "build/"], { stdio: "inherit", env: pkgEnv });
+	}
 
 	console.log(`[Builder] Runner executables generated successfully in build/!`);
 
@@ -70,11 +77,11 @@ async function main() {
 
 	const requestedTargets = new Set(pkgTargets.split(",").map((target) => target.trim()));
 	const findGeneratedBinary = (target: string, ...names: string[]) => (requestedTargets.has(target) ? names.map((name) => path.join(process.cwd(), "build", name)).find((candidate) => fs.existsSync(candidate)) : undefined);
-	const winBinarySrc = findGeneratedBinary("node22-win-x64", "runner-win-x64.exe", "runner-win.exe", "runner.exe");
-	const linuxBinarySrc = findGeneratedBinary("node22-linux-x64", "runner-linux-x64", "runner-linux", "runner");
-	const linuxArmBinarySrc = findGeneratedBinary("node22-linux-arm64", "runner-linux-arm64", "runner-linux", "runner");
-	const macosX64BinarySrc = findGeneratedBinary("node22-macos-x64", "runner-macos-x64", "runner-macos", "runner");
-	const macosArmBinarySrc = findGeneratedBinary("node22-macos-arm64", "runner-macos-arm64", "runner-macos", "runner");
+	const winBinarySrc = findGeneratedBinary("node24-win-x64", "runner-win-x64.exe", "runner-win.exe", "runner.exe");
+	const linuxBinarySrc = findGeneratedBinary("node24-linux-x64", "runner-linux-x64", "runner-linux", "runner");
+	const linuxArmBinarySrc = findGeneratedBinary("node24-linux-arm64", "runner-linux-arm64", "runner-linux", "runner");
+	const macosX64BinarySrc = findGeneratedBinary("node24-macos-x64", "runner-macos-x64", "runner-macos", "runner");
+	const macosArmBinarySrc = findGeneratedBinary("node24-macos-arm64", "runner-macos-arm64", "runner-macos", "runner");
 
 	const winBinaryDest = path.join(downloadsDir, "clipify-runner-windows.exe");
 	const linuxBinaryDest = path.join(downloadsDir, "clipify-runner-linux");

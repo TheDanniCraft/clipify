@@ -6,7 +6,7 @@ import { checkForUpdates, cleanupOldVersions } from "./updater";
 import { openBrowser } from "./browser";
 
 import { extractBakedConfig } from "./bootstrap";
-import { loadCredentials, saveCredentials, type RunnerCredentials } from "./storage";
+import { clearCredentials, loadCredentials, saveCredentials, type RunnerCredentials } from "./storage";
 
 let RUNNER_VERSION = "unknown";
 const DEVELOPMENT_API_BASE = "http://localhost:3000";
@@ -202,7 +202,7 @@ async function processHeartbeatJob(job: HeartbeatJob, apiBase: string, token: st
 	}
 }
 
-async function pollHeartbeat(token: string, apiBase: string) {
+async function pollHeartbeat(token: string, apiBase: string, runnerId?: string): Promise<boolean> {
 	try {
 		console.log(`[Heartbeat] Polling ${apiBase}/api/runner/heartbeat...`);
 		const response = await fetch(`${apiBase}/api/runner/heartbeat`, {
@@ -212,17 +212,24 @@ async function pollHeartbeat(token: string, apiBase: string) {
 		});
 		if (!response.ok) {
 			console.error(`[Error] API returned status ${response.status}`);
-			return;
+			if (response.status === 401 && runnerId && !process.env.CLIPIFY_TOKEN) {
+				await clearCredentials(runnerId);
+				console.error("[Runner] Local credentials were revoked. Please start the runner again to enroll it.");
+				return false;
+			}
+			return true;
 		}
 		const data = await response.json();
 		console.log(`[Jobs] Received ${data.jobs?.length || 0} jobs.`);
 		for (const job of (data.jobs || []) as HeartbeatJob[]) await processHeartbeatJob(job, apiBase, token);
+		return true;
 	} catch (error) {
 		console.error(`[Error] Failed to poll heartbeat:`, error);
+		return true;
 	}
 }
 
-async function initializeRunner(args: string[]): Promise<{ apiBase: string; token: string }> {
+async function initializeRunner(args: string[]): Promise<{ apiBase: string; token: string; runnerId?: string }> {
 	const tokenArgIndex = args.indexOf("--token");
 	let token = tokenArgIndex !== -1 ? args[tokenArgIndex + 1] : undefined;
 	const urlArgIndex = args.findIndex((arg) => arg === "--url" || arg === "--api");
@@ -343,11 +350,11 @@ async function initializeRunner(args: string[]): Promise<{ apiBase: string; toke
 		});
 	}
 
-	return { apiBase, token: runnerToken };
+	return { apiBase, token: runnerToken, runnerId: localConfig.runnerId };
 }
 
 async function main() {
-	const { apiBase, token } = await initializeRunner(process.argv.slice(2));
+	const { apiBase, token, runnerId } = await initializeRunner(process.argv.slice(2));
 	ConsoleUI.init();
 
 	await cleanupOldVersions();
@@ -360,7 +367,7 @@ async function main() {
 	console.log(`[Info] Token loaded. API Base URL is ${apiBase}. Starting polling loop...`);
 
 	// Poll immediately
-	await pollHeartbeat(token, apiBase);
+	if (!(await pollHeartbeat(token, apiBase, runnerId))) process.exit(1);
 
 	// Update UI real-time
 	setInterval(() => {
@@ -372,7 +379,9 @@ async function main() {
 	}, 1000);
 
 	// Poll every 10 seconds
-	setInterval(() => pollHeartbeat(token, apiBase), 10 * 1000);
+	setInterval(async () => {
+		if (!(await pollHeartbeat(token, apiBase, runnerId))) process.exit(1);
+	}, 10 * 1000);
 }
 
 main().catch(console.error);

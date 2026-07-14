@@ -6,7 +6,7 @@ import { validateAuth } from "@actions/auth";
 import { getRunner, getRunnerVersionManifest, getStreamSessionsForRunner, upsertStreamSession, setStreamDesiredState, unlinkRunner } from "@actions/runner";
 import { getAllOverlays } from "@actions/database";
 import { Button, Card, Label, Select, Spinner, TextField, ListBox, Input, Chip, Separator, Modal, Dropdown, Tooltip } from "@heroui/react";
-import { IconCopy, IconCheck, IconPlayerPlay, IconPlayerStop, IconArrowLeft, IconTrash, IconBrandWindows, IconTerminal2, IconBrandApple, IconAlertTriangle, IconCircleCheck, IconUnlink } from "@tabler/icons-react";
+import { IconCopy, IconCheck, IconDownload, IconPlayerPlay, IconPlayerStop, IconArrowLeft, IconTrash, IconBrandWindows, IconTerminal2, IconBrandApple, IconAlertTriangle, IconCircleCheck, IconUnlink } from "@tabler/icons-react";
 import { notify } from "@lib/toast";
 import FullscreenLoadingState from "@components/fullscreenLoadingState";
 import ConfirmModal from "@components/confirmModal";
@@ -457,7 +457,7 @@ export default function RunnerPage() {
 									{renderLinuxDownloadDropdown("Download for Linux")}
 									{renderMacOSDownloadDropdown("Download for macOS")}
 								</div>
-								<p className='text-sm text-muted/80 max-w-lg mt-8 text-center bg-secondary/30 p-4 rounded-lg'>Note: The Clipify Runner stores one configuration per machine. To switch accounts or environments, clear the local runner config and run enrollment again.</p>
+								<p className='text-sm text-muted/80 max-w-lg mt-8 text-center bg-secondary/30 p-4 rounded-lg'>This runner is currently connected to one Clipify account. To use it with another account or environment, unlink it here and start the runner again.</p>
 							</div>
 						)}
 

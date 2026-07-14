@@ -54,7 +54,7 @@ RUN --mount=type=cache,target=/root/.pkg-cache \
     bun run app:build; \
     PKG_CACHE_PATH=/root/.pkg-cache \
     PKG_QEMU_AARCH64=/usr/bin/qemu-aarch64-static \
-    RUNNER_PKG_TARGETS=node22-win-x64,node22-linux-x64,node22-linux-arm64,node22-macos-x64,node22-macos-arm64 \
+    RUNNER_PKG_TARGETS=node24-win-x64,node24-linux-x64,node24-linux-arm64,node24-macos-x64,node24-macos-arm64 \
     bun scripts/build-runner.ts
 
 
