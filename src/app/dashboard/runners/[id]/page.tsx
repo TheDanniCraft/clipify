@@ -265,6 +265,27 @@ export default function RunnerPage() {
 		return <IconBrandApple size={18} />;
 	};
 
+	const renderLinuxDownloadDropdown = (label: string, isDisabled = false, variant: "secondary" | "primary" = "secondary", className?: string) => (
+		<Dropdown>
+			<Dropdown.Trigger>
+				<Button variant={variant} isDisabled={isDisabled} className={className}>
+					<IconTerminal2 size={18} />
+					{label}
+				</Button>
+			</Dropdown.Trigger>
+			<Dropdown.Popover>
+				<Dropdown.Menu aria-label='Select Linux runner build'>
+					<Dropdown.Item id='linux-x64' textValue='Linux x64' onAction={() => handleRunnerDownload("linux")}>
+						Linux x64
+					</Dropdown.Item>
+					<Dropdown.Item id='linux-arm64' textValue='Linux ARM64' onAction={() => handleRunnerDownload("linux-arm64")}>
+						Linux ARM64
+					</Dropdown.Item>
+				</Dropdown.Menu>
+			</Dropdown.Popover>
+		</Dropdown>
+	);
+
 	const renderMacOSDownloadDropdown = (label: string, isDisabled = false, variant: "secondary" | "primary" = "secondary", className?: string) => (
 		<Dropdown>
 			<Dropdown.Trigger>
@@ -433,14 +454,7 @@ export default function RunnerPage() {
 									>
 										<IconBrandWindows size={20} /> Download for Windows
 									</Button>
-									<Button
-										variant='secondary'
-										onPress={() => {
-											handleRunnerDownload("linux");
-										}}
-									>
-										<IconTerminal2 size={20} /> Download for Linux
-									</Button>
+									{renderLinuxDownloadDropdown("Download for Linux")}
 									{renderMacOSDownloadDropdown("Download for macOS")}
 								</div>
 								<p className='text-sm text-muted/80 max-w-lg mt-8 text-center bg-secondary/30 p-4 rounded-lg'>Note: The Clipify Runner stores one configuration per machine. To switch accounts or environments, clear the local runner config and run enrollment again.</p>

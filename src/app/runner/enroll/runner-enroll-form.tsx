@@ -1,10 +1,13 @@
 "use client";
 
-import { useActionState, useMemo, useRef, useState } from "react";
+import { useActionState, useMemo, useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Button, InputOTP, Label, REGEXP_ONLY_DIGITS_AND_CHARS } from "@heroui/react";
+import { IconPlus } from "@tabler/icons-react";
 
 import { submitRunnerEnrollCode } from "./actions";
 import RunnerEnrollResult from "./runner-enroll-result";
+import { createOwnRunner } from "@actions/runner";
 
 function compactCode(code: string) {
 	return code
@@ -19,9 +22,12 @@ function formatCode(code: string) {
 }
 
 function RunnerEnrollFormContent({ onReset }: { onReset: () => void }) {
+	const router = useRouter();
 	const [state, formAction, isPending] = useActionState(submitRunnerEnrollCode, { status: "idle" });
 	const formRef = useRef<HTMLFormElement>(null);
 	const [value, setValue] = useState("");
+	const [createError, setCreateError] = useState<string | null>(null);
+	const [isCreatingRunner, startCreatingRunner] = useTransition();
 	const formattedCode = useMemo(() => formatCode(value), [value]);
 	const hasSubmittedRef = useRef(false);
 
@@ -30,6 +36,20 @@ function RunnerEnrollFormContent({ onReset }: { onReset: () => void }) {
 		hasSubmittedRef.current = true;
 		requestAnimationFrame(() => {
 			formRef.current?.requestSubmit();
+		});
+	};
+
+	const handleCreateRunner = () => {
+		setCreateError(null);
+		startCreatingRunner(async () => {
+			const result = await createOwnRunner("New Hardware Node");
+			if (!result.success || !result.runner) {
+				setCreateError(result.error === "Runner add-on required" ? "The Self-hosted Runner add-on is required before creating a runner." : "Failed to create runner. Please try again.");
+				return;
+			}
+
+			router.push(`/dashboard/runners/${result.runner.id}`);
+			router.refresh();
 		});
 	};
 
@@ -88,6 +108,15 @@ function RunnerEnrollFormContent({ onReset }: { onReset: () => void }) {
 					Continue
 				</Button>
 			</form>
+			<div className='border-t border-divider pt-4 text-center'>
+				<p className='text-sm text-muted-foreground'>Don&apos;t have a runner code yet?</p>
+				<Button type='button' variant='secondary' className='mt-2' onPress={handleCreateRunner} isPending={isCreatingRunner} isDisabled={isPending || isCreatingRunner}>
+					<IconPlus size={16} />
+					Create a new runner
+				</Button>
+				<p className='mt-2 text-xs text-muted-foreground'>Already started a runner? Enter the code shown in its terminal above.</p>
+				{createError ? <p className='mt-2 text-sm text-danger'>{createError}</p> : null}
+			</div>
 		</>
 	);
 }
