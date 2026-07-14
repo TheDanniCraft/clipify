@@ -1,12 +1,12 @@
 import os from "os";
 import path from "path";
 import fs from "fs";
-import { install, resolveBuildId, Browser } from "@puppeteer/browsers";
+import { install, resolveBuildId, computeExecutablePath, Browser } from "@puppeteer/browsers";
 import { execSync } from "child_process";
 
 const CACHE_DIR = path.join(os.homedir(), ".clipify-runner", "bin");
 
-export async function ensureDependencies() {
+async function ensureChromeDependencies(): Promise<string> {
 	if (!fs.existsSync(CACHE_DIR)) {
 		fs.mkdirSync(CACHE_DIR, { recursive: true });
 	}
@@ -239,7 +239,12 @@ export async function ensureDependencies() {
 		}
 	}
 
+	return executablePath;
+}
+
+async function ensureFfmpegDependencies(): Promise<string> {
 	console.log(`[Downloader] Checking FFmpeg...`);
+
 	const ext = process.platform === "win32" ? ".exe" : "";
 	const ffmpegDest = path.join(CACHE_DIR, `ffmpeg${ext}`);
 	const checksumFile = path.join(CACHE_DIR, "ffmpeg.sha256");
@@ -317,12 +322,18 @@ export async function ensureDependencies() {
 		console.warn(`[Downloader] Warning: Could not chmod FFmpeg binary:`, err);
 	}
 
-	return { chromePath: executablePath, ffmpegPath: ffmpegDest };
+	return ffmpegDest;
+}
+
+export async function ensureDependencies() {
+	if (!fs.existsSync(CACHE_DIR)) fs.mkdirSync(CACHE_DIR, { recursive: true });
+	const chromePath = await ensureChromeDependencies();
+	const ffmpegPath = await ensureFfmpegDependencies();
+	return { chromePath, ffmpegPath };
 }
 
 async function resolveExistingBrowser(buildId: string) {
 	// Let puppeteer/browsers compute it for us
-	const { computeExecutablePath } = await import("@puppeteer/browsers");
 	return computeExecutablePath({
 		browser: Browser.CHROME,
 		buildId,

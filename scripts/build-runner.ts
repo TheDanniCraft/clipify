@@ -35,6 +35,7 @@ async function main() {
 		bundle: true,
 		platform: "node",
 		outfile: "build/runner.js",
+		loader: { ".node": "file" },
 		define: {
 			"process.env.BAKED_API_URL": JSON.stringify(bakedApiUrl),
 		},

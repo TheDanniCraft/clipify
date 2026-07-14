@@ -1,9 +1,9 @@
 import * as os from "os";
-import { spawn, spawnSync } from "child_process";
 import * as readline from "readline";
 import { Engine } from "./engine";
 import { ConsoleUI } from "./logger";
 import { checkForUpdates, cleanupOldVersions } from "./updater";
+import { openBrowser } from "./browser";
 
 import { extractBakedConfig } from "./bootstrap";
 import { loadCredentials, saveCredentials, type RunnerCredentials } from "./storage";
@@ -62,28 +62,6 @@ function resolveApiBase(options: { overrideUrl?: string; bakedApiBase?: string; 
 	if (options.localApiBase) return normalizeApiBase(options.localApiBase);
 
 	throw new RunnerConfigurationError("This runner is missing its Clipify connection settings.");
-}
-
-function openBrowser(url: string) {
-	const platform = process.platform;
-	const command = platform === "win32" ? "cmd" : platform === "darwin" ? "open" : "xdg-open";
-	const args = platform === "win32" ? ["/c", "start", "", url] : [url];
-
-	if (platform === "linux") {
-		const hasGraphicalSession = Boolean(process.env.DISPLAY || process.env.WAYLAND_DISPLAY);
-		const hasXdgOpen = spawnSync("which", ["xdg-open"], { stdio: "ignore" }).status === 0;
-		if (!hasGraphicalSession || !hasXdgOpen) {
-			return;
-		}
-	}
-
-	try {
-		const child = spawn(command, args, { detached: true, stdio: "ignore" });
-		child.on("error", () => {});
-		child.unref();
-	} catch {
-		// The enrollment URL and code are printed below, so browser auto-open is best effort.
-	}
 }
 
 async function startRunnerEnrollment(apiBase: string, runnerId?: string) {
@@ -177,84 +155,76 @@ async function enrollRunner(apiBase: string, runnerId?: string): Promise<Require
 	}
 }
 
+type HeartbeatJob = {
+	id: string;
+	mode: "24_7" | "failsafe";
+	rtmpUrl: string;
+	overlaySecret: string;
+	streamKey: string;
+	overlayId: string;
+	fps: number;
+	resolution: string;
+	desiredState: "running" | "stopped";
+};
+
+async function processHeartbeatJob(job: HeartbeatJob, apiBase: string, token: string) {
+	console.log(`  - Job [${job.id}]: Mode=${job.mode}, DesiredState=${job.desiredState}`);
+	const existingEngine = activeEngines[job.id];
+	const needsRestart = Boolean(existingEngine && (existingEngine.mode !== job.mode || existingEngine.rtmpUrl !== job.rtmpUrl || existingEngine.streamKey !== job.streamKey || existingEngine.overlayId !== job.overlayId));
+
+	if (job.desiredState === "running" && (actualStates[job.id] !== "running" || needsRestart)) {
+		if (needsRestart && existingEngine) {
+			console.log(`  -> Restarting engine for job ${job.id} due to parameter change...`);
+			await existingEngine.stop();
+			delete activeEngines[job.id];
+		} else {
+			console.log(`  -> Starting engine for job ${job.id}...`);
+		}
+
+		actualStates[job.id] = "running";
+		const engine = new Engine(job.overlayId, job.rtmpUrl, job.overlaySecret, job.streamKey, job.fps, job.resolution, job.mode, apiBase, token);
+		activeEngines[job.id] = engine;
+		engine.start().catch((err) => {
+			console.error(`[Error] Engine failed to start for job ${job.id}:`, err);
+			actualStates[job.id] = "error";
+			engine.isRunning = false;
+		});
+		return;
+	}
+
+	if (job.desiredState === "stopped" && (actualStates[job.id] === "running" || actualStates[job.id] === "error")) {
+		console.log(`  -> Stopping engine for job ${job.id}...`);
+		actualStates[job.id] = "stopped";
+		if (existingEngine) {
+			await existingEngine.stop();
+			delete activeEngines[job.id];
+		}
+	}
+}
+
 async function pollHeartbeat(token: string, apiBase: string) {
 	try {
 		console.log(`[Heartbeat] Polling ${apiBase}/api/runner/heartbeat...`);
 		const response = await fetch(`${apiBase}/api/runner/heartbeat`, {
 			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-				Authorization: `Bearer ${token}`,
-			},
-			body: JSON.stringify({
-				os: getRunnerOsInfo(),
-				hostname: os.hostname(),
-				version: RUNNER_VERSION,
-				actualStates,
-			}),
+			headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+			body: JSON.stringify({ os: getRunnerOsInfo(), hostname: os.hostname(), version: RUNNER_VERSION, actualStates }),
 		});
-
 		if (!response.ok) {
 			console.error(`[Error] API returned status ${response.status}`);
 			return;
 		}
-
 		const data = await response.json();
-
-		if (data.updateAvailable) {
-			// Auto-update is handled by checkForUpdates() on startup.
-			// No action needed here to prevent log spam.
-		}
-
 		console.log(`[Jobs] Received ${data.jobs?.length || 0} jobs.`);
-		for (const job of data.jobs || []) {
-			console.log(`  - Job [${job.id}]: Mode=${job.mode}, DesiredState=${job.desiredState}`);
-
-			if (job.desiredState === "running") {
-				const existingEngine = activeEngines[job.id];
-				const needsRestart = existingEngine && (existingEngine.mode !== job.mode || existingEngine.rtmpUrl !== job.rtmpUrl || existingEngine.streamKey !== job.streamKey || existingEngine.overlayId !== job.overlayId);
-
-				if (actualStates[job.id] !== "running" || needsRestart) {
-					if (needsRestart) {
-						console.log(`  -> Restarting engine for job ${job.id} due to parameter change...`);
-						await existingEngine.stop();
-						delete activeEngines[job.id];
-					} else {
-						console.log(`  -> Starting engine for job ${job.id}...`);
-					}
-
-					actualStates[job.id] = "running";
-
-					// Spawn Engine
-					const engine = new Engine(job.overlayId, job.rtmpUrl, job.overlaySecret, job.streamKey, job.fps, job.resolution, job.mode, apiBase, token);
-					activeEngines[job.id] = engine;
-					engine.start().catch((err) => {
-						console.error(`[Error] Engine failed to start for job ${job.id}:`, err);
-						actualStates[job.id] = "error";
-						engine.isRunning = false;
-					});
-				}
-			} else if (job.desiredState === "stopped" && (actualStates[job.id] === "running" || actualStates[job.id] === "error")) {
-				console.log(`  -> Stopping engine for job ${job.id}...`);
-				actualStates[job.id] = "stopped";
-
-				// Kill Engine
-				if (activeEngines[job.id]) {
-					await activeEngines[job.id].stop();
-					delete activeEngines[job.id];
-				}
-			}
-		}
+		for (const job of (data.jobs || []) as HeartbeatJob[]) await processHeartbeatJob(job, apiBase, token);
 	} catch (error) {
 		console.error(`[Error] Failed to poll heartbeat:`, error);
 	}
 }
 
-async function main() {
-	const args = process.argv.slice(2);
+async function initializeRunner(args: string[]): Promise<{ apiBase: string; token: string }> {
 	const tokenArgIndex = args.indexOf("--token");
 	let token = tokenArgIndex !== -1 ? args[tokenArgIndex + 1] : undefined;
-
 	const urlArgIndex = args.findIndex((arg) => arg === "--url" || arg === "--api");
 	const overrideUrl = urlArgIndex !== -1 ? args[urlArgIndex + 1] : undefined;
 
@@ -373,6 +343,11 @@ async function main() {
 		});
 	}
 
+	return { apiBase, token: runnerToken };
+}
+
+async function main() {
+	const { apiBase, token } = await initializeRunner(process.argv.slice(2));
 	ConsoleUI.init();
 
 	await cleanupOldVersions();
@@ -385,7 +360,7 @@ async function main() {
 	console.log(`[Info] Token loaded. API Base URL is ${apiBase}. Starting polling loop...`);
 
 	// Poll immediately
-	await pollHeartbeat(runnerToken, apiBase);
+	await pollHeartbeat(token, apiBase);
 
 	// Update UI real-time
 	setInterval(() => {
@@ -397,7 +372,7 @@ async function main() {
 	}, 1000);
 
 	// Poll every 10 seconds
-	setInterval(() => pollHeartbeat(runnerToken, apiBase), 10 * 1000);
+	setInterval(() => pollHeartbeat(token, apiBase), 10 * 1000);
 }
 
 main().catch(console.error);

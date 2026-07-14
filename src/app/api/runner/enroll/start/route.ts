@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { randomBytes } from "crypto";
+import { randomBytes, randomInt } from "crypto";
 import { eq } from "drizzle-orm";
 
 import { db } from "@/db/client";
@@ -17,7 +17,7 @@ function createUserCode() {
 	const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 	let value = "";
 	for (let i = 0; i < 8; i += 1) {
-		value += alphabet[randomBytes(1)[0] % alphabet.length];
+		value += alphabet[randomInt(alphabet.length)];
 	}
 	return `${value.slice(0, 4)}-${value.slice(4)}`;
 }
