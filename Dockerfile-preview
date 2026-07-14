@@ -47,7 +47,7 @@ RUN set -eux; \
     chmod +x /usr/local/bin/ldid; \
     ldid --version || true
 
-RUN test -x /app/node_modules/.bin/pkg && bun run app:build && bun scripts/build-runner.ts
+RUN test -x /app/node_modules/.bin/pkg && bun run app:build && RUNNER_PKG_TARGETS=node18-win-x64,node18-linux-x64,node18-macos-x64 bun scripts/build-runner.ts
 
 
 # -------------------------

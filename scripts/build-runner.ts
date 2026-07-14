@@ -55,7 +55,9 @@ async function main() {
 	// 3. Compile binaries using pkg
 	const pkgBin = path.join(process.cwd(), "node_modules", ".bin", process.platform === "win32" ? "pkg.cmd" : "pkg");
 	if (!fs.existsSync(pkgBin)) throw new Error(`pkg executable not found at ${pkgBin}`);
-	execFileSync(pkgBin, ["build/runner.js", "-t", "node18-win-x64,node18-linux-x64,node18-macos-x64,node18-macos-arm64", "--out-path", "build/"], { stdio: "inherit", env: pkgEnv });
+	const pkgTargets = process.env.RUNNER_PKG_TARGETS ?? "node18-win-x64,node18-linux-x64,node18-macos-x64,node18-macos-arm64";
+	console.log(`[Builder] Packaging targets: ${pkgTargets}`);
+	execFileSync(pkgBin, ["build/runner.js", "-t", pkgTargets, "--out-path", "build/"], { stdio: "inherit", env: pkgEnv });
 
 	console.log(`[Builder] Runner executables generated successfully in build/!`);
 
