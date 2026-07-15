@@ -20,7 +20,9 @@ export async function GET(req: NextRequest) {
 		return NextResponse.json({ error: "Invalid OS parameter" }, { status: 400 });
 	}
 	const isPreview = process.env.IS_PREVIEW === "true";
-	const previewPrId = isPreview ? previewPrIdFromHost(req.nextUrl.hostname) : undefined;
+	const forwardedHost = req.headers.get("x-forwarded-host")?.split(",")[0]?.trim();
+	const requestHost = (forwardedHost || req.headers.get("host") || req.nextUrl.hostname).split(":")[0];
+	const previewPrId = isPreview ? previewPrIdFromHost(requestHost) : undefined;
 	if (isPreview && previewPrId === undefined) return NextResponse.json({ error: "Invalid preview host", code: "runner_preview_host_invalid" }, { status: 400 });
 	try {
 		const { buffer, artifact, source, sourceFingerprint } = await getRunnerArtifact(platform, previewPrId === undefined ? undefined : { previewPrId });
