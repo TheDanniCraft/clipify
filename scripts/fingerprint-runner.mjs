@@ -2,9 +2,7 @@ import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 
 const roots = [
-  "src/runner",
-  "runner",
-  "runner-build-config.json",
+  "packages/runner",
   "scripts/fingerprint-runner.mjs",
   "scripts/run-runner-self-test.mjs",
   "scripts/write-runner-metadata.mjs",

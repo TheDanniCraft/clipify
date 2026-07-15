@@ -51,7 +51,7 @@ function normalizeApiBase(apiBase: string) {
 
 function isSourceRunnerExecution() {
 	const normalizedArgs = process.argv.map((arg) => arg.replace(/\\/g, "/"));
-	return normalizedArgs.some((arg) => arg.endsWith("src/runner/index.ts"));
+	return normalizedArgs.some((arg) => arg.endsWith("packages/runner/src/index.ts"));
 }
 
 function resolveApiBase(options: { overrideUrl?: string; bakedApiBase?: string; localApiBase?: string; hasLocalToken: boolean }) {

@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 import * as resedit from "resedit";
 
 const runnerRoot = path.dirname(fileURLToPath(import.meta.url));
-const projectRoot = path.resolve(runnerRoot, "..");
+const projectRoot = path.resolve(runnerRoot, "../..");
 const buildRoot = path.join(runnerRoot, "build");
 const downloadsDir = path.join(projectRoot, "public", "downloads", "runner");
 
@@ -29,7 +29,7 @@ const normalizedApiUrl = new URL(bakedApiUrl).toString().replace(/\/$/, "");
 console.log(`[Builder] Baking runner API URL: ${normalizedApiUrl}`);
 
 await build({
-  entryPoints: [path.join(projectRoot, "src", "runner", "index.ts")],
+  entryPoints: [path.join(runnerRoot, "src", "index.ts")],
   bundle: true,
   platform: "node",
   outfile: path.join(buildRoot, "runner.js"),

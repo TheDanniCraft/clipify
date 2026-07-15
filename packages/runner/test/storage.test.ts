@@ -1,4 +1,4 @@
-import { saveCredentials, loadCredentials } from "../../src/runner/storage";
+import { saveCredentials, loadCredentials } from "../src/storage";
 import { Entry } from "@napi-rs/keyring";
 import * as fs from "fs";
 

@@ -47,4 +47,4 @@ runner.log
 /public/downloads/runner/
 
 # Isolated Runner dependencies
-/runner/node_modules/
+/packages/runner/node_modules/

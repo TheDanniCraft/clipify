@@ -6,7 +6,6 @@ WORKDIR /app
 
 COPY package.json bun.lock ./
 COPY patches ./patches
-
 RUN --mount=type=cache,target=/root/.bun \
     bun install --frozen-lockfile
 
@@ -23,6 +22,8 @@ ARG LDID_SHA_ARM64=bddd525902f242d4cdf7aa40a7f0c2c85c42ab9440d58664251e8738ef0c5
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+COPY packages/runner/package.json packages/runner/bun.lock ./packages/runner/
+COPY packages/runner/patches ./packages/runner/patches
 
 RUN set -eux; \
     apt-get update; \
@@ -48,13 +49,15 @@ RUN set -eux; \
 
 RUN --mount=type=cache,target=/root/.pkg-cache \
     set -eux; \
-    test -x /app/node_modules/.bin/pkg; \
-    command -v qemu-aarch64-static; \
     bun run app:build; \
+    cd packages/runner; \
+    bun install --frozen-lockfile; \
+    test -x node_modules/.bin/pkg; \
+    command -v qemu-aarch64-static; \
     PKG_CACHE_PATH=/root/.pkg-cache \
     PKG_QEMU_AARCH64=/usr/bin/qemu-aarch64-static \
     RUNNER_PKG_TARGETS=node24-win-x64,node24-linux-x64,node24-linux-arm64,node24-macos-x64,node24-macos-arm64 \
-    bun scripts/build-runner.ts
+    bun build.mjs
 
 # -------------------------
 # runner (production)

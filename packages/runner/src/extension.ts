@@ -3,7 +3,9 @@ import path from "path";
 
 export function writeExtension(dir: string) {
 	fs.mkdirSync(dir, { recursive: true });
-	fs.writeFileSync(path.join(dir, "manifest.json"), `{
+	fs.writeFileSync(
+		path.join(dir, "manifest.json"),
+		`{
 	"name": "Video Capture",
 	"version": "0.1.0",
 	"key": "ackedhmjjinfocdcekpnbdocpmiffaac",
@@ -26,15 +28,24 @@ export function writeExtension(dir: string) {
 		}
 	}
 }
-`);
-	fs.writeFileSync(path.join(dir, "background.js"), `chrome.commands.onCommand.addListener(async (command) => {
+`,
+	);
+	fs.writeFileSync(
+		path.join(dir, "background.js"),
+		`chrome.commands.onCommand.addListener(async (command) => {
     if (command !== 'invoke-action')
         return; // noop to fix (Extension has not been invoked for the current page (see activeTab permission))
 });
-`);
-	fs.writeFileSync(path.join(dir, "options.html"), `<script type="module" src="options.js"></script>
-`);
-	fs.writeFileSync(path.join(dir, "options.js"), `const recorders = {};
+`,
+	);
+	fs.writeFileSync(
+		path.join(dir, "options.html"),
+		`<script type="module" src="options.js"></script>
+`,
+	);
+	fs.writeFileSync(
+		path.join(dir, "options.js"),
+		`const recorders = {};
 const START_RECORDING = async ({ index, video, audio, frameSize, audioBitsPerSecond, videoBitsPerSecond, bitsPerSecond, mimeType, videoConstraints, audioConstraints, delay, tabId, }) => {
     console.log("[PUPPETEER_STREAM] START_RECORDING", JSON.stringify({
         index,
@@ -133,5 +144,6 @@ const STOP_RECORDING = async (index) => {
 globalThis.START_RECORDING = START_RECORDING;
 globalThis.STOP_RECORDING = STOP_RECORDING;
 export {};
-`);
+`,
+	);
 }

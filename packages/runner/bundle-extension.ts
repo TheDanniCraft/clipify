@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 
-const extPath = "node_modules/puppeteer-stream/extension";
+const extPath = "packages/runner/node_modules/puppeteer-stream/extension";
 const files = ["manifest.json", "background.js", "options.html", "options.js"];
 
 let out = `import fs from "fs";
@@ -19,4 +19,4 @@ files.forEach((f) => {
 
 out += "}\n";
 
-fs.writeFileSync("src/runner/extension.ts", out);
+fs.writeFileSync("packages/runner/src/extension.ts", out);
