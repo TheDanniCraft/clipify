@@ -28,7 +28,8 @@ const PRODUCTS: Record<"dev" | "prod", Record<BillingProduct, ProductPrices>> = 
 };
 
 export function getBillingCatalog() {
-	return PRODUCTS[process.env.NODE_ENV === "production" ? "prod" : "dev"];
+	const environment = process.env.APP_ENV ?? (process.env.NODE_ENV === "production" ? "prod" : "dev");
+	return PRODUCTS[environment === "production" ? "prod" : "dev"];
 }
 
 export function getPriceId(product: BillingProduct, cycle: BillingCycle) {
