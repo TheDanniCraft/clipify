@@ -142,8 +142,8 @@ jobs:
       RUNNER_REPOSITORY: ghcr.io/${{ github.repository_owner }}/clipify-runner
       RUNNER_FINGERPRINT: ${{ needs.prepare-context.outputs.source-fingerprint }}
       RUNNER_COMMIT: ${{ needs.prepare-context.outputs.source-commit }}
-      ARTIFACT_ROOT: ${{ runner.temp }}/runner-artifacts
-      RUNNER_ARTIFACT_WORK: ${{ runner.temp }}/runner-artifact-work
+      ARTIFACT_ROOT: ${{ github.workspace }}/runner-artifacts
+      RUNNER_ARTIFACT_WORK: ${{ github.workspace }}/runner-artifact-work
     steps:
       - uses: actions/checkout@v4
         with:
@@ -234,6 +234,6 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: runner-published-manifest-${{ needs.prepare-context.outputs.source-fingerprint }}
-          path: ${{ runner.temp }}/runner-artifact-work/manifest.json
+          path: ${{ github.workspace }}/runner-artifact-work/manifest.json
           retention-days: 7
           if-no-files-found: error
