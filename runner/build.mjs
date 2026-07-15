@@ -8,7 +8,7 @@ import * as resedit from "resedit";
 
 const runnerRoot = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(runnerRoot, "..");
-const buildRoot = path.join(projectRoot, "build");
+const buildRoot = path.join(runnerRoot, "build");
 const downloadsDir = path.join(projectRoot, "public", "downloads", "runner");
 
 function getFileHash(filePath) {

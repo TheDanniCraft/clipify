@@ -15,5 +15,10 @@
 		"@yao-pkg/pkg": "6.21.0",
 		"esbuild": "^0.28.1",
 		"resedit": "^3.0.2"
+	},
+	"pkg": {
+		"assets": [
+			"node_modules/@napi-rs/keyring-*/**/*.node"
+		]
 	}
 }
