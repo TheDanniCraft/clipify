@@ -43,9 +43,11 @@ export type RunnerManifest = {
 
 export class RunnerArtifactUnavailableError extends Error {
 	readonly code = "runner_artifact_unavailable";
-	constructor(message = "Runner artifacts are not available yet") {
+	readonly httpStatus?: number;
+	constructor(message = "Runner artifacts are not available yet", httpStatus?: number) {
 		super(message);
 		this.name = "RunnerArtifactUnavailableError";
+		this.httpStatus = httpStatus;
 	}
 }
 
@@ -131,7 +133,7 @@ async function registryJson(url: string) {
 	const response = await registryFetch(url, {
 		Accept: "application/vnd.oci.image.manifest.v1+json, application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.index.v1+json",
 	});
-	if (!response.ok) throw new Error(`Runner registry request failed: HTTP ${response.status}`);
+	if (!response.ok) throw new RunnerArtifactUnavailableError(`Runner registry request failed: HTTP ${response.status}`, response.status);
 	return (await response.json()) as Record<string, unknown>;
 }
 
@@ -173,7 +175,7 @@ async function fetchLayerFile(tag: string, wantedPath: string): Promise<Buffer> 
 		if (!layer.digest) continue;
 		const blobUrl = `https://${repository}/v2/${repository.replace(/^ghcr\.io\//, "")}/blobs/${layer.digest}`;
 		const response = await registryFetch(blobUrl);
-		if (!response.ok) throw new Error(`Runner blob request failed: HTTP ${response.status}`);
+		if (!response.ok) throw new RunnerArtifactUnavailableError(`Runner blob request failed: HTTP ${response.status}`, response.status);
 		const contents = Buffer.from(await response.arrayBuffer());
 		try {
 			return tarFile(contents, wantedPath);
@@ -223,7 +225,7 @@ export async function getRunnerManifest(): Promise<RunnerManifest> {
 		} catch (error) {
 			const fallback = await readCachedManifest(fingerprint);
 			if (fallback) return fallback;
-			throw new RunnerArtifactUnavailableError(error instanceof Error ? error.message : "Runner manifest unavailable");
+			throw new RunnerArtifactUnavailableError(error instanceof Error ? error.message : "Runner manifest unavailable", error instanceof RunnerArtifactUnavailableError ? error.httpStatus : undefined);
 		}
 	})();
 	manifestPromises.set(fingerprint, promise);

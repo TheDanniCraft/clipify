@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getRunnerArtifact, platformForBinaryName } from "@lib/runnerArtifacts";
+import { getRunnerArtifact, platformForBinaryName, RunnerArtifactUnavailableError } from "@lib/runnerArtifacts";
 
 export async function GET(_request: Request, { params }: { params: Promise<{ filename: string }> }) {
 	const { filename } = await params;
@@ -19,6 +19,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ fil
 		});
 	} catch (error) {
 		console.error("Error serving public Runner binary:", error);
-		return NextResponse.json({ error: "Runner artifact is still being prepared", code: "runner_artifact_pending" }, { status: 503, headers: { "Retry-After": "30" } });
+		const unavailable = error instanceof RunnerArtifactUnavailableError;
+		const status = unavailable && error.httpStatus === 404 ? 404 : 503;
+		return NextResponse.json({ error: status === 404 ? "Runner artifact not found" : "Runner binary temporarily unavailable", code: status === 404 ? "runner_artifact_unavailable" : "runner_artifact_pending" }, { status, headers: { "Retry-After": "30" } });
 	}
 }

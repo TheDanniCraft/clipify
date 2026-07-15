@@ -7,6 +7,7 @@ import { db } from "@/db/client";
 import { billingSubscriptionItemsTable, billingSubscriptionsTable, entitlementGrantsTable, usersTable } from "@/db/schema";
 import { getProductForPrice } from "@lib/billingCatalog";
 import { BillingProduct, Entitlement, EntitlementGrantSource, Plan } from "@types";
+import { reconcileUserEntitlements } from "@lib/entitlements";
 
 const ENTITLED_STATUSES: Stripe.Subscription.Status[] = ["active", "trialing", "past_due"];
 
@@ -124,4 +125,6 @@ export async function recomputeBillingEntitlements(userId: string, customerId: s
 			target: [entitlementGrantsTable.source, entitlementGrantsTable.externalReference, entitlementGrantsTable.entitlement],
 			set: { userId, revokedAt: hasRunner ? null : now, endsAt: null, updatedAt: now },
 		});
+
+	await reconcileUserEntitlements(userId);
 }

@@ -252,11 +252,10 @@ export default function RunnerPage() {
 		notify({ title: "Error", description: res.error || "Failed to unlink runner.", color: "danger" });
 	};
 
-	const getRunnerDownloadUrl = (platform: RunnerPlatform) => `/api/runner/download?os=${platform}&runnerId=${runner.id}`;
+	const getRunnerDownloadUrl = (platform: RunnerPlatform) => `/api/runner/download?os=${platform}`;
 
 	const handleRunnerDownload = (platform: RunnerPlatform) => {
 		setInstallPlatform(platform);
-		window.location.assign(getRunnerDownloadUrl(platform));
 	};
 
 	const renderPlatformIcon = (platform: RunnerPlatform) => {
@@ -701,10 +700,10 @@ export default function RunnerPage() {
 								</Modal.Header>
 								<Modal.Body className='gap-5'>
 									{installPlatform && (
-										<Button variant='secondary' className='w-fit self-center' onPress={() => window.location.assign(getRunnerDownloadUrl(installPlatform))}>
+										<a href={getRunnerDownloadUrl(installPlatform)} download className='inline-flex w-fit self-center items-center justify-center gap-2 rounded-full bg-surface-secondary px-4 py-2 text-sm font-medium hover:bg-surface-tertiary'>
 											<IconDownload size={18} />
 											Download again
-										</Button>
+										</a>
 									)}
 									{renderInstallSteps()}
 								</Modal.Body>

@@ -4,8 +4,7 @@
 import { entitlementGrantsTable, editorsTable, overlaysTable, playlistClipsTable, playlistsTable, runnerEnrollmentsTable, runnersTable, streamSessionsTable, usersTable } from "@/db/schema";
 import { db } from "@/db/client";
 import { and, asc, eq, exists, gt, inArray, isNull, lt, lte, or, sql } from "drizzle-orm";
-import { randomBytes } from "crypto";
-import { AuthenticatedUser, Entitlement, EntitlementGrantSource, MaxDurationMode, Plan, PlaybackMode, RunnerStatus, StreamState, UserEntitlements } from "@types";
+import { AuthenticatedUser, Entitlement, EntitlementGrantSource, MaxDurationMode, Plan, PlaybackMode, UserEntitlements } from "@types";
 import { invalidateCommunitySnapshotCache } from "@lib/community";
 
 const PRO_ACCESS = Entitlement.ProAccess;
@@ -376,40 +375,33 @@ export async function reconcileFreeConstraintsIfNeeded(user: EntitlementUserRef,
 	});
 }
 
-/**
- * Disable self-hosted runners after runner_access is no longer active.
- * Runner records are intentionally preserved so the user can reactivate and
- * enroll a machine again, but every credential is rotated immediately.
- */
-export async function suspendRunnersForOwner(ownerId: string, reason = "runner_entitlement_lost") {
+/** Permanently remove self-hosted runners after runner_access is no longer active. */
+export async function deleteRunnersForOwner(ownerId: string, reason = "runner_entitlement_lost") {
 	return db.transaction(async (tx) => {
 		const runners = await tx.select({ id: runnersTable.id }).from(runnersTable).where(eq(runnersTable.ownerId, ownerId)).orderBy(runnersTable.id).execute();
 		if (runners.length === 0) return { runners: 0, sessions: 0 };
 
-		const now = new Date();
-		for (const runner of runners) {
-			await tx
-				.update(runnersTable)
-				.set({
-					token: `cl_run_${randomBytes(24).toString("hex")}`,
-					bootstrapToken: null,
-					status: RunnerStatus.Offline,
-					lastHeartbeatAt: null,
-				})
-				.where(eq(runnersTable.id, runner.id))
-				.execute();
-		}
-
-		const sessionResult = await tx.update(streamSessionsTable).set({ desiredState: StreamState.Stopped, updatedAt: now, lastError: "Runner add-on is inactive" }).where(eq(streamSessionsTable.ownerId, ownerId)).execute();
-
+		const sessionResult = await tx.delete(streamSessionsTable).where(eq(streamSessionsTable.ownerId, ownerId)).execute();
+		await tx.delete(runnersTable).where(eq(runnersTable.ownerId, ownerId)).execute();
 		await tx
 			.delete(runnerEnrollmentsTable)
 			.where(and(eq(runnerEnrollmentsTable.ownerId, ownerId), isNull(runnerEnrollmentsTable.approvedAt)))
 			.execute();
 
-		console.info("[entitlements] runners_suspended", { ownerId, reason, runners: runners.length });
+		console.info("[entitlements] runners_deleted", { ownerId, reason, runners: runners.length });
 		return { runners: runners.length, sessions: Number(sessionResult.rowCount ?? 0) };
 	});
+}
+
+export async function reconcileUserEntitlements(userId: string) {
+	if (!isHybridEntitlementsEnabled()) return { runners: 0, sessions: 0 };
+	const user = await db.query.usersTable.findFirst({ where: eq(usersTable.id, userId) });
+	if (!user) return { runners: 0, sessions: 0 };
+	const entitlements = await resolveUserEntitlements(user);
+	const runnerResult = entitlements.runnerAccess ? { runners: 0, sessions: 0 } : await deleteRunnersForOwner(user.id);
+	if (entitlements.effectivePlan === "free") await reconcileFreeConstraintsIfNeeded(user, entitlements);
+	else await db.update(usersTable).set({ updatedAt: new Date(), lastEntitlementReconciledAt: new Date() }).where(eq(usersTable.id, user.id)).execute();
+	return runnerResult;
 }
 
 export async function reconcileRevokedUsersBatch(batchSize = 100, reconciliationCooldownHours = 6) {
@@ -436,34 +428,9 @@ export async function reconcileRevokedUsersBatch(batchSize = 100, reconciliation
 			.limit(batchSize)
 			.execute();
 
-		const entitlementsByUserId = await resolveUserEntitlementsForUsers(candidates);
 		let reconciled = 0;
 		for (const user of candidates) {
-			const entitlements = entitlementsByUserId.get(user.id) ?? {
-				effectivePlan: "free" as const,
-				isBillingPro: false,
-				reverseTrialActive: false,
-				proAccess: false,
-				runnerAccess: false,
-				trialEndsAt: null,
-				hasActiveGrant: false,
-				source: "reverse_trial" as const,
-			};
-			if (!entitlements.runnerAccess) {
-				await suspendRunnersForOwner(user.id);
-			}
-			if (entitlements.effectivePlan !== "free") {
-				await db
-					.update(usersTable)
-					.set({
-						updatedAt: new Date(),
-						lastEntitlementReconciledAt: new Date(),
-					})
-					.where(eq(usersTable.id, user.id))
-					.execute();
-				continue;
-			}
-			await reconcileFreeConstraintsIfNeeded(user, entitlements);
+			await reconcileUserEntitlements(user.id);
 			reconciled += 1;
 		}
 
