@@ -661,7 +661,6 @@ export default function RunnerPage() {
 												<Label>RTMP URL</Label>
 												<Input value={rtmpUrl} onChange={(e) => setRtmpUrl(e.target.value)} disabled={preset !== "custom"} />
 											</TextField>
-											{preset === "custom" && <p className='text-xs text-warning-600 dark:text-warning-400'>Custom RTMP targets may not require a stream key. Leave it empty if your server does not use one.</p>}
 
 											<TextField variant='secondary'>
 												<Label>Stream Key {streamKeyRequired ? "(Required)" : "(Optional)"}</Label>
@@ -691,7 +690,7 @@ export default function RunnerPage() {
 														</Button>
 													)}
 												</div>
-												<p className='text-xs text-muted mt-1'>Leave blank if embedded in the custom RTMP URL.</p>
+												<p className='text-xs text-muted mt-1'>{preset === "custom" ? "Custom RTMP targets may not require a stream key. Leave blank if embedded in the custom RTMP URL." : "A stream key is required for this platform."}</p>
 											</TextField>
 										</div>
 

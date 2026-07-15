@@ -155,6 +155,10 @@ async function enrollRunner(apiBase: string, runnerId?: string): Promise<Require
 	}
 }
 
+function requiresStreamKey(rtmpUrl: string) {
+	return rtmpUrl === "rtmp://live.twitch.tv/app" || rtmpUrl === "rtmp://a.rtmp.youtube.com/live2";
+}
+
 type HeartbeatJob = {
 	id: string;
 	mode: "24_7" | "24/7" | "failsafe";
@@ -175,8 +179,8 @@ async function processHeartbeatJob(job: HeartbeatJob, apiBase: string, token: st
 
 	console.log(`  - Job [${job.id}]: Mode=${mode}, DesiredState=${job.desiredState}`);
 
-	if (job.desiredState === "running" && !streamKey) {
-		console.error(`[Error] Missing stream key for running job ${job.id}; refusing to start engine.`);
+	if (job.desiredState === "running" && requiresStreamKey(job.rtmpUrl) && !streamKey) {
+		console.error(`[Error] Missing stream key for Twitch/YouTube job ${job.id}; refusing to start engine.`);
 		if (existingEngine) {
 			await existingEngine.stop();
 			delete activeEngines[job.id];
