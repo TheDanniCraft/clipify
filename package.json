@@ -14,7 +14,7 @@
 		"git:staged": "lint-staged",
 		"app:typecheck": "tsc --noEmit",
 		"runner:dev": "tsx watch packages/runner/src/index.ts",
-		"runner:build": "bun packages/runner/build.mjs",
+		"runner:build": "NODE_ENV=development bun packages/runner/build.mjs",
 		"test": "jest --runInBand",
 		"test:watch": "jest --watch",
 		"test:coverage": "jest --coverage --runInBand",

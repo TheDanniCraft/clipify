@@ -25,6 +25,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read
   packages: write
 
 jobs:
@@ -36,6 +37,7 @@ jobs:
       ref: ${{ steps.context.outputs.ref }}
       source-fingerprint: ${{ steps.context.outputs.source-fingerprint }}
       source-commit: ${{ steps.context.outputs.source-commit }}
+      api-url: ${{ steps.context.outputs.api-url }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -45,6 +47,7 @@ jobs:
       - id: context
         env:
           CHECKOUT_REF: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           git config core.autocrlf false
           context="$(node scripts/fingerprint-runner.mjs --json)"
@@ -53,6 +56,18 @@ jobs:
           echo "ref=$CHECKOUT_REF" >> "$GITHUB_OUTPUT"
           echo "source-fingerprint=$fingerprint" >> "$GITHUB_OUTPUT"
           echo "source-commit=$commit" >> "$GITHUB_OUTPUT"
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            pr_number="${{ github.event.pull_request.number }}"
+          else
+            pr_number="$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/pulls" --jq '.[0].number' 2>/dev/null || true)"
+          fi
+          if [ -n "$pr_number" ]; then
+            api_url="https://beta-${pr_number}.clipify.cloud.thedannicraft.de"
+          else
+            api_url="https://clipify.us"
+          fi
+          echo "api-url=$api_url" >> "$GITHUB_OUTPUT"
+          echo "Runner API: $api_url"
           echo "Runner source: $commit ($fingerprint)"
 
   build:
@@ -92,7 +107,7 @@ jobs:
       - name: 🛠️ Build runner
         working-directory: packages/runner
         env:
-          CLIPIFY_RUNNER_API_URL: https://runner-build.invalid
+          CLIPIFY_RUNNER_API_URL: ${{ needs.prepare-context.outputs.api-url }}
           PKG_CACHE_PATH: ${{ runner.temp }}/pkg-cache
           RUNNER_PKG_TARGETS: ${{ matrix.target }}
         run: bun build.mjs

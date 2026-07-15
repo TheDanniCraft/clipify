@@ -245,8 +245,9 @@ async function pollHeartbeat(token: string, apiBase: string, runnerId?: string):
 async function initializeRunner(args: string[]): Promise<{ apiBase: string; token: string; runnerId?: string }> {
 	const tokenArgIndex = args.indexOf("--token");
 	let token = tokenArgIndex !== -1 ? args[tokenArgIndex + 1] : undefined;
-	const urlArgIndex = args.findIndex((arg) => arg === "--url" || arg === "--api");
-	const overrideUrl = urlArgIndex !== -1 ? args[urlArgIndex + 1] : undefined;
+	const urlArgIndex = args.findIndex((arg) => arg === "--url" || arg === "--api" || arg === "--api-url");
+	const inlineUrlArg = args.find((arg) => arg.startsWith("--api-url="));
+	const overrideUrl = inlineUrlArg ? inlineUrlArg.slice("--api-url=".length) : urlArgIndex !== -1 ? args[urlArgIndex + 1] : undefined;
 
 	const bakedConfig = extractBakedConfig(process.execPath);
 	if (bakedConfig) {

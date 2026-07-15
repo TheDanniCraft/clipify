@@ -23,7 +23,8 @@ function getLdidPath() {
   }
 }
 
-const bakedApiUrl = process.env.CLIPIFY_RUNNER_API_URL;
+// Prefer an explicit deployment URL. Local development targets the local app, while a non-CI fallback remains usable for released binaries.
+const bakedApiUrl = process.env.CLIPIFY_RUNNER_API_URL || (process.env.CI ? undefined : process.env.NODE_ENV === "development" ? "http://localhost:3000" : "https://clipify.us");
 if (!bakedApiUrl) throw new Error("CLIPIFY_RUNNER_API_URL is required for Runner packaging");
 const normalizedApiUrl = new URL(bakedApiUrl).toString().replace(/\/$/, "");
 console.log(`[Builder] Baking runner API URL: ${normalizedApiUrl}`);
