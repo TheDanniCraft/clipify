@@ -157,9 +157,9 @@ export default function TiersComponent({ campaignOffer = null }: TiersComponentP
 								Optional
 							</Chip>
 						</div>
-						<p className='mt-1 text-sm text-muted'>Available with Free or Pro. Run unlimited Runner installations on hardware you provide.</p>
+						<p className='mt-1 text-sm text-muted'>Available with Free or Pro. Automatically play your clips 24/7 or keep them available as a failsafe when your OBS setup goes offline.</p>
 						<p className='mt-1 text-xs text-muted'>
-							Hosting, bandwidth, hardware, and electricity are not included. <Link href='mailto:contact@clipify.us?subject=Managed%20Runner'>Need Managed Runner?</Link>
+							The Runner uses a computer and network connection you provide. <Link href='mailto:contact@clipify.us?subject=Managed%20Runner'>Need Managed Runner?</Link>
 						</p>
 					</div>
 					<div className='flex shrink-0 items-center gap-3'>
