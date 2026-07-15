@@ -7,6 +7,7 @@ on:
       - "scripts/build-runner.ts"
       - "scripts/fingerprint-runner.mjs"
       - "scripts/check-runner-native.mjs"
+      - "scripts/run-runner-self-test.mjs"
       - "scripts/write-runner-metadata.mjs"
       - "scripts/validate-runner-matrix.mjs"
       - "runner-build-config.json"
@@ -21,6 +22,7 @@ on:
       - "scripts/build-runner.ts"
       - "scripts/fingerprint-runner.mjs"
       - "scripts/check-runner-native.mjs"
+      - "scripts/run-runner-self-test.mjs"
       - "scripts/write-runner-metadata.mjs"
       - "scripts/validate-runner-matrix.mjs"
       - "runner-build-config.json"
@@ -97,15 +99,12 @@ jobs:
           RUNNER_PKG_TARGETS: ${{ matrix.target }}
         run: bun scripts/build-runner.ts
       - name: Smoke-test executable
-        if: runner.os != 'Windows'
         shell: bash
         run: |
-          chmod +x "public/downloads/runner/${{ matrix.binary }}"
-          timeout 20s "public/downloads/runner/${{ matrix.binary }}" --self-test
-      - name: Smoke-test executable on Windows
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: '& "$env:GITHUB_WORKSPACE/public/downloads/runner/${{ matrix.binary }}" --self-test'
+          if [ "$RUNNER_OS" != "Windows" ]; then
+            chmod +x "public/downloads/runner/${{ matrix.binary }}"
+          fi
+          node scripts/run-runner-self-test.mjs "public/downloads/runner/${{ matrix.binary }}"
       - name: Write artifact metadata
         env:
           RUNNER_ARTIFACT_DIR: ${{ runner.temp }}/runner-artifact

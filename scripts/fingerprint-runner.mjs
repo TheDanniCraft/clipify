@@ -3,8 +3,8 @@ import { execFileSync } from "node:child_process";
 
 const roots = [
   "src/runner", "scripts/build-runner.ts", "scripts/fingerprint-runner.mjs",
-  "scripts/check-runner-native.mjs", "scripts/write-runner-metadata.mjs",
-  "scripts/validate-runner-matrix.mjs", "runner-build-config.json", "package.json",
+  "scripts/check-runner-native.mjs", "scripts/run-runner-self-test.mjs",
+  "scripts/write-runner-metadata.mjs", "scripts/validate-runner-matrix.mjs", "runner-build-config.json", "package.json",
   "bun.lock", "patches/yao-pkg-qemu.patch", ".github/workflows/runner-native.yml",
 ];
 const git = (args) => execFileSync("git", args, { encoding: "buffer" });
