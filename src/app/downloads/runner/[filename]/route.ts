@@ -21,6 +21,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ fil
 		console.error("Error serving public Runner binary:", error);
 		const unavailable = error instanceof RunnerArtifactUnavailableError;
 		const status = unavailable && error.httpStatus === 404 ? 404 : 503;
-		return NextResponse.json({ error: status === 404 ? "Runner artifact not found" : "Runner binary temporarily unavailable", code: status === 404 ? "runner_artifact_unavailable" : "runner_artifact_pending" }, { status, headers: { "Retry-After": "30" } });
+		const localMissing = process.env.RUNNER_ARTIFACT_SOURCE === "local" && status === 404;
+		return NextResponse.json({ error: localMissing && error instanceof Error ? error.message : status === 404 ? "Runner artifact not found" : "Runner binary temporarily unavailable", code: localMissing ? "runner_artifact_local_missing" : status === 404 ? "runner_artifact_unavailable" : "runner_artifact_pending" }, { status, headers: { "Retry-After": "30" } });
 	}
 }

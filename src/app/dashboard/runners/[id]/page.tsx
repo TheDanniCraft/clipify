@@ -256,6 +256,13 @@ export default function RunnerPage() {
 
 	const handleRunnerDownload = (platform: RunnerPlatform) => {
 		setInstallPlatform(platform);
+		const link = document.createElement("a");
+		link.href = getRunnerDownloadUrl(platform);
+		link.download = "";
+		link.rel = "noopener";
+		document.body.appendChild(link);
+		link.click();
+		link.remove();
 	};
 
 	const renderPlatformIcon = (platform: RunnerPlatform) => {
@@ -266,11 +273,9 @@ export default function RunnerPage() {
 
 	const renderLinuxDownloadDropdown = (label: string, isDisabled = false, variant: "secondary" | "primary" = "secondary", className?: string) => (
 		<Dropdown>
-			<Dropdown.Trigger>
-				<Button variant={variant} isDisabled={isDisabled} className={className}>
-					<IconTerminal2 size={18} />
-					{label}
-				</Button>
+			<Dropdown.Trigger isDisabled={isDisabled} className={["button button--md", `button--${variant}`, "inline-flex items-center justify-center gap-2", className].filter(Boolean).join(" ")}>
+				<IconTerminal2 size={18} />
+				{label}
 			</Dropdown.Trigger>
 			<Dropdown.Popover>
 				<Dropdown.Menu aria-label='Select Linux runner build'>
@@ -287,11 +292,9 @@ export default function RunnerPage() {
 
 	const renderMacOSDownloadDropdown = (label: string, isDisabled = false, variant: "secondary" | "primary" = "secondary", className?: string) => (
 		<Dropdown>
-			<Dropdown.Trigger>
-				<Button variant={variant} isDisabled={isDisabled} className={className}>
-					<IconBrandApple size={18} />
-					{label}
-				</Button>
+			<Dropdown.Trigger isDisabled={isDisabled} className={["button button--md", `button--${variant}`, "inline-flex items-center justify-center gap-2", className].filter(Boolean).join(" ")}>
+				<IconBrandApple size={18} />
+				{label}
 			</Dropdown.Trigger>
 			<Dropdown.Popover>
 				<Dropdown.Menu aria-label='Select macOS runner build'>
@@ -698,9 +701,9 @@ export default function RunnerPage() {
 									<Modal.Heading>Install Clipify Runner for {installPlatform ? runnerPlatformLabels[installPlatform] : ""}</Modal.Heading>
 									<p className='text-sm text-muted-foreground'>Download starting. If it does not start, click the button below.</p>
 								</Modal.Header>
-								<Modal.Body className='gap-5'>
+								<Modal.Body className='flex flex-col gap-5'>
 									{installPlatform && (
-										<a href={getRunnerDownloadUrl(installPlatform)} download className='inline-flex w-fit self-center items-center justify-center gap-2 rounded-full bg-surface-secondary px-4 py-2 text-sm font-medium hover:bg-surface-tertiary'>
+										<a href={getRunnerDownloadUrl(installPlatform)} download className='button button--md button--primary self-center inline-flex w-fit items-center justify-center gap-2'>
 											<IconDownload size={18} />
 											Download again
 										</a>

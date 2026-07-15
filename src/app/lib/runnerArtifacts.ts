@@ -55,9 +55,13 @@ const repository = (process.env.RUNNER_OCI_REPOSITORY ?? "ghcr.io/thedannicraft/
 	.replace(/^https?:\/\//, "")
 	.replace(/\/$/, "")
 	.toLowerCase();
+const repositoryHost = repository.split("/")[0];
+const repositoryPath = repository.slice(repositoryHost.length + 1);
+const registryBaseUrl = `https://${repositoryHost}`;
 const cacheRoot = process.env.RUNNER_CACHE_DIR ?? path.join(os.tmpdir(), "clipify-runner-cache");
+const localArtifactRoot = process.env.RUNNER_LOCAL_ARTIFACT_DIR ?? path.join(process.cwd(), "public", "downloads", "runner");
 const manifestPromises = new Map<string, Promise<RunnerManifest>>();
-const artifactPromises = new Map<string, Promise<{ buffer: Buffer; artifact: RunnerArtifact; source: "oci" }>>();
+const artifactPromises = new Map<string, Promise<{ buffer: Buffer; artifact: RunnerArtifact; source: "oci" | "local" }>>();
 
 function currentFingerprint() {
 	if (!/^[0-9a-f]{64}$/.test(RUNNER_CONTEXT.sourceFingerprint)) throw new RunnerArtifactUnavailableError("This deployment has no Runner source fingerprint");
@@ -133,7 +137,9 @@ async function registryJson(url: string) {
 	const response = await registryFetch(url, {
 		Accept: "application/vnd.oci.image.manifest.v1+json, application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.index.v1+json",
 	});
-	if (!response.ok) throw new RunnerArtifactUnavailableError(`Runner registry request failed: HTTP ${response.status}`, response.status);
+	if (!response.ok) {
+		throw new RunnerArtifactUnavailableError(`Runner manifest request failed: HTTP ${response.status}`, response.status);
+	}
 	return (await response.json()) as Record<string, unknown>;
 }
 
@@ -156,9 +162,7 @@ function tarFile(buffer: Buffer, wantedPath: string): Buffer {
 }
 
 async function fetchLayerFile(tag: string, wantedPath: string): Promise<Buffer> {
-	const reference = `${repository}:${tag}`;
-	console.info("[Runner] Resolving OCI artifact", { reference, wantedPath });
-	const manifestUrl = `https://${repository}/v2/${repository.replace(/^ghcr\.io\//, "")}/manifests/${encodeURIComponent(tag)}`;
+	const manifestUrl = `${registryBaseUrl}/v2/${repositoryPath}/manifests/${encodeURIComponent(tag)}`;
 	let manifest = await registryJson(manifestUrl);
 	if (Array.isArray(manifest.manifests)) {
 		const selected = (manifest.manifests as Array<Record<string, unknown>>).find((entry) => {
@@ -166,16 +170,18 @@ async function fetchLayerFile(tag: string, wantedPath: string): Promise<Buffer> 
 			return platform?.os === "linux" && platform?.architecture === "amd64";
 		});
 		if (!selected?.digest) throw new Error(`No linux/amd64 OCI manifest found for ${tag}`);
-		manifest = await registryJson(`https://${repository}/v2/${repository.replace(/^ghcr\.io\//, "")}/manifests/${selected.digest}`);
+		manifest = await registryJson(`${registryBaseUrl}/v2/${repositoryPath}/manifests/${selected.digest}`);
 	}
 	const layers = manifest.layers as Array<Record<string, string>> | undefined;
 	if (!layers?.length) throw new Error(`No OCI layers found for ${tag}`);
 
 	for (const layer of layers) {
 		if (!layer.digest) continue;
-		const blobUrl = `https://${repository}/v2/${repository.replace(/^ghcr\.io\//, "")}/blobs/${layer.digest}`;
+		const blobUrl = `${registryBaseUrl}/v2/${repositoryPath}/blobs/${layer.digest}`;
 		const response = await registryFetch(blobUrl);
-		if (!response.ok) throw new RunnerArtifactUnavailableError(`Runner blob request failed: HTTP ${response.status}`, response.status);
+		if (!response.ok) {
+			throw new RunnerArtifactUnavailableError(`Runner blob request failed: HTTP ${response.status}`, response.status);
+		}
 		const contents = Buffer.from(await response.arrayBuffer());
 		try {
 			return tarFile(contents, wantedPath);
@@ -259,7 +265,21 @@ async function withFileLock(lockPath: string, callback: () => Promise<void>) {
 	}
 }
 
+async function readLocalRunnerArtifact(platform: RunnerPlatform) {
+	const filename = LEGACY_BINARY_NAMES[platform];
+	const filePath = path.join(localArtifactRoot, filename);
+	const buffer = await fsp.readFile(filePath).catch(() => undefined);
+	if (!buffer) throw new RunnerArtifactUnavailableError("Local Runner binary missing: " + filename + ". Run bun run runner:build.", 404);
+	const sha256 = hash(buffer);
+	return { buffer, artifact: { platform, target: "local", filename, sha256, size: buffer.byteLength, oci: { reference: "local", digest: `sha256:${sha256}` } }, source: "local" as const };
+}
+
+function isLocalArtifactSource() {
+	return process.env.RUNNER_ARTIFACT_SOURCE === "local";
+}
+
 export async function getRunnerArtifact(platform: RunnerPlatform) {
+	if (isLocalArtifactSource()) return readLocalRunnerArtifact(platform);
 	const fingerprint = currentFingerprint();
 	const key = `${fingerprint}:${platform}`;
 	const existing = artifactPromises.get(key);
@@ -329,6 +349,11 @@ export type RunnerVersionInfo = {
 
 export async function getRunnerVersionInfo(): Promise<RunnerVersionInfo | null> {
 	try {
+		if (isLocalArtifactSource()) {
+			const artifacts = (await Promise.all(RUNNER_PLATFORMS.map((platform) => readLocalRunnerArtifact(platform).catch(() => undefined)))).filter((artifact): artifact is Awaited<ReturnType<typeof readLocalRunnerArtifact>> => Boolean(artifact)).map(({ artifact }) => artifact);
+			const byPlatform = (platform: RunnerPlatform) => artifacts.find((artifact) => artifact.platform === platform)?.sha256 ?? null;
+			return { sourceFingerprint: "local", sourceCommit: "local", repository: "local", windows: byPlatform("windows-x64"), linux: byPlatform("linux-x64"), linuxArm: byPlatform("linux-arm64"), macos: byPlatform("macos-x64"), macosArm: byPlatform("macos-arm64"), updatedAt: null, artifacts };
+		}
 		const manifest = await getRunnerManifest();
 		const byPlatform = (platform: RunnerPlatform) => manifest.artifacts.find((artifact) => artifact.platform === platform)?.sha256 ?? null;
 		return {
