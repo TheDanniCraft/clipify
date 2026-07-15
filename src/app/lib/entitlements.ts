@@ -393,15 +393,18 @@ export async function deleteRunnersForOwner(ownerId: string, reason = "runner_en
 	});
 }
 
-export async function reconcileUserEntitlements(userId: string) {
-	if (!isHybridEntitlementsEnabled()) return { runners: 0, sessions: 0 };
-	const user = await db.query.usersTable.findFirst({ where: eq(usersTable.id, userId) });
-	if (!user) return { runners: 0, sessions: 0 };
-	const entitlements = await resolveUserEntitlements(user);
+async function reconcileResolvedUserEntitlements(user: EntitlementUserRef, entitlements: UserEntitlements) {
 	const runnerResult = entitlements.runnerAccess ? { runners: 0, sessions: 0 } : await deleteRunnersForOwner(user.id);
 	if (entitlements.effectivePlan === "free") await reconcileFreeConstraintsIfNeeded(user, entitlements);
 	else await db.update(usersTable).set({ updatedAt: new Date(), lastEntitlementReconciledAt: new Date() }).where(eq(usersTable.id, user.id)).execute();
 	return runnerResult;
+}
+
+export async function reconcileUserEntitlements(userId: string) {
+	if (!isHybridEntitlementsEnabled()) return { runners: 0, sessions: 0 };
+	const user = await db.query.usersTable.findFirst({ where: eq(usersTable.id, userId) });
+	if (!user) return { runners: 0, sessions: 0 };
+	return reconcileResolvedUserEntitlements(user, await resolveUserEntitlements(user));
 }
 
 export async function reconcileRevokedUsersBatch(batchSize = 100, reconciliationCooldownHours = 6) {
@@ -428,9 +431,11 @@ export async function reconcileRevokedUsersBatch(batchSize = 100, reconciliation
 			.limit(batchSize)
 			.execute();
 
+		const entitlementsByUserId = await resolveUserEntitlementsForUsers(candidates);
 		let reconciled = 0;
 		for (const user of candidates) {
-			await reconcileUserEntitlements(user.id);
+			const entitlements = entitlementsByUserId.get(user.id);
+			if (entitlements) await reconcileResolvedUserEntitlements(user, entitlements);
 			reconciled += 1;
 		}
 
