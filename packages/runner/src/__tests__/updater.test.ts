@@ -59,22 +59,5 @@ describe("Updater logic", () => {
 		expect(fs.renameSync).not.toHaveBeenCalled();
 	});
 
-	it("should trigger update if hashes do not match", async () => {
-		// This test would require mocking http/https streams, which is complex.
-		// We can just verify it fetches the version and detects mismatch.
-		(fs.readFileSync as jest.Mock).mockReturnValue("fake-buffer");
-		const mockHash = { update: jest.fn(), digest: jest.fn().mockReturnValue("hash123") };
-		(crypto.createHash as jest.Mock).mockReturnValue(mockHash);
-		(fs.existsSync as jest.Mock).mockReturnValue(true);
-
-		(global.fetch as jest.Mock).mockResolvedValue({
-			ok: true,
-			json: async () => ({ windows: "hash456", linux: "hash456" }),
-		});
-
-		// To prevent the real downloadFile from running and hanging the test since we didn't mock http/https,
-		// we will just assert that it starts the process.
-		// Actually, let's mock downloadFile or avoid full execution.
-		// In a real test, we would mock the downloadFile function using jest.mock('../updater').
-	});
+	it.todo("should apply an update after a verified hash mismatch");
 });

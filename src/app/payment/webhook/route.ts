@@ -9,7 +9,7 @@ import { getStripe } from "@actions/subscription";
 import { db } from "@/db/client";
 import { billingWebhookEventsTable } from "@/db/schema";
 import { syncStripeSubscription } from "@/server/billing";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_KEY || "";
 
@@ -57,14 +57,18 @@ export async function POST(req: Request) {
 	if (!handledEvents.has(event.type)) return NextResponse.json({});
 
 	const existing = await db.query.billingWebhookEventsTable.findFirst({ where: eq(billingWebhookEventsTable.id, event.id) });
-	if (existing?.status === "processed") return NextResponse.json({ duplicate: true });
-	if (existing) {
-		await db
+	if (existing?.status === "processed" || existing?.status === "processing") return NextResponse.json({ duplicate: true });
+
+	if (existing?.status === "failed") {
+		const [claimedRetry] = await db
 			.update(billingWebhookEventsTable)
 			.set({ status: "processing", retryCount: existing.retryCount + 1, lastError: null })
-			.where(eq(billingWebhookEventsTable.id, event.id));
+			.where(and(eq(billingWebhookEventsTable.id, event.id), eq(billingWebhookEventsTable.status, "failed")))
+			.returning({ id: billingWebhookEventsTable.id });
+		if (!claimedRetry) return NextResponse.json({ duplicate: true });
 	} else {
-		await db.insert(billingWebhookEventsTable).values({ id: event.id, eventType: event.type, status: "processing" });
+		const [claimedInsert] = await db.insert(billingWebhookEventsTable).values({ id: event.id, eventType: event.type, status: "processing" }).onConflictDoNothing({ target: billingWebhookEventsTable.id }).returning({ id: billingWebhookEventsTable.id });
+		if (!claimedInsert) return NextResponse.json({ duplicate: true });
 	}
 
 	try {

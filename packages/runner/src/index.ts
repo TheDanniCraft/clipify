@@ -157,10 +157,10 @@ async function enrollRunner(apiBase: string, runnerId?: string): Promise<Require
 
 type HeartbeatJob = {
 	id: string;
-	mode: "24_7" | "failsafe";
+	mode: "24_7" | "24/7" | "failsafe";
 	rtmpUrl: string;
 	overlaySecret: string;
-	streamKey: string;
+	streamKey: string | null;
 	overlayId: string;
 	fps: number;
 	resolution: string;
@@ -168,9 +168,22 @@ type HeartbeatJob = {
 };
 
 async function processHeartbeatJob(job: HeartbeatJob, apiBase: string, token: string) {
-	console.log(`  - Job [${job.id}]: Mode=${job.mode}, DesiredState=${job.desiredState}`);
+	const mode = job.mode === "24/7" ? "24_7" : job.mode;
+	const streamKey = job.streamKey ?? "";
 	const existingEngine = activeEngines[job.id];
-	const needsRestart = Boolean(existingEngine && (existingEngine.mode !== job.mode || existingEngine.rtmpUrl !== job.rtmpUrl || existingEngine.streamKey !== job.streamKey || existingEngine.overlayId !== job.overlayId));
+	const needsRestart = Boolean(existingEngine && (existingEngine.mode !== mode || existingEngine.rtmpUrl !== job.rtmpUrl || existingEngine.streamKey !== streamKey || existingEngine.overlayId !== job.overlayId));
+
+	console.log(`  - Job [${job.id}]: Mode=${mode}, DesiredState=${job.desiredState}`);
+
+	if (job.desiredState === "running" && !streamKey) {
+		console.error(`[Error] Missing stream key for running job ${job.id}; refusing to start engine.`);
+		if (existingEngine) {
+			await existingEngine.stop();
+			delete activeEngines[job.id];
+		}
+		actualStates[job.id] = "error";
+		return;
+	}
 
 	if (job.desiredState === "running" && (actualStates[job.id] !== "running" || needsRestart)) {
 		if (needsRestart && existingEngine) {
@@ -182,7 +195,7 @@ async function processHeartbeatJob(job: HeartbeatJob, apiBase: string, token: st
 		}
 
 		actualStates[job.id] = "running";
-		const engine = new Engine(job.overlayId, job.rtmpUrl, job.overlaySecret, job.streamKey, job.fps, job.resolution, job.mode, apiBase, token);
+		const engine = new Engine(job.overlayId, job.rtmpUrl, job.overlaySecret, streamKey, job.fps, job.resolution, mode, apiBase, token);
 		activeEngines[job.id] = engine;
 		engine.start().catch((err) => {
 			console.error(`[Error] Engine failed to start for job ${job.id}:`, err);

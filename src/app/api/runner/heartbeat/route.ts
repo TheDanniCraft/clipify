@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createHash } from "crypto";
 import { db } from "@/db/client";
 import { runnersTable, streamSessionsTable, overlaysTable } from "@/db/schema";
-import { eq, InferSelectModel } from "drizzle-orm";
+import { eq, inArray, InferSelectModel } from "drizzle-orm";
 import { Entitlement, RunnerStatus, StreamState } from "@types";
 import { decryptString } from "@/app/lib/encryption";
 import { hasActiveEntitlement } from "@lib/entitlements";
@@ -60,34 +60,35 @@ export async function POST(req: Request) {
 		// For a rough prototype, we might skip full state reconciliation and just send desired state
 		if (actualStates && typeof actualStates === "object") {
 			const allowedSessionIds = new Set(sessions.map((session) => session.id));
-			for (const sessionId of Object.keys(actualStates)) {
-				if (!allowedSessionIds.has(sessionId)) continue;
-				const state = actualStates[sessionId];
-				if (!Object.values(StreamState).includes(state)) continue;
-				await db.update(streamSessionsTable).set({ actualState: state }).where(eq(streamSessionsTable.id, sessionId));
-			}
+			await Promise.all(
+				Object.keys(actualStates).flatMap((sessionId) => {
+					if (!allowedSessionIds.has(sessionId)) return [];
+					const state = actualStates[sessionId];
+					if (!Object.values(StreamState).includes(state)) return [];
+					return [db.update(streamSessionsTable).set({ actualState: state }).where(eq(streamSessionsTable.id, sessionId))];
+				}),
+			);
 		}
 
 		// 6. Build jobs for the runner based on desiredState
-		const jobs = await Promise.all(
-			sessions.map(async (session: StreamSession) => {
-				const overlay = await db.query.overlaysTable.findFirst({
-					where: eq(overlaysTable.id, session.overlayId),
-				});
-				return {
-					id: session.id,
-					overlayId: session.overlayId,
-					overlaySecret: overlay?.secret || "",
-					mode: session.mode,
-					desiredState: session.desiredState,
-					resolution: session.resolution,
-					fps: session.fps,
-					rtmpUrl: session.rtmpUrl,
-					// Decrypt stream key if it's supposed to be running
-					streamKey: session.desiredState === "running" && session.encryptedStreamKey ? decryptString(session.encryptedStreamKey) : null,
-				};
-			}),
-		);
+		const overlayIds = [...new Set(sessions.map((session) => session.overlayId))];
+		const overlays = overlayIds.length ? await db.query.overlaysTable.findMany({ where: inArray(overlaysTable.id, overlayIds) }) : [];
+		const overlaysById = new Map(overlays.map((overlay) => [overlay.id, overlay]));
+		const jobs = sessions.map((session: StreamSession) => {
+			const overlay = overlaysById.get(session.overlayId);
+			return {
+				id: session.id,
+				overlayId: session.overlayId,
+				overlaySecret: overlay?.secret || "",
+				mode: session.mode,
+				desiredState: session.desiredState,
+				resolution: session.resolution,
+				fps: session.fps,
+				rtmpUrl: session.rtmpUrl,
+				// Decrypt stream key if it's supposed to be running
+				streamKey: session.desiredState === "running" && session.encryptedStreamKey ? decryptString(session.encryptedStreamKey) : null,
+			};
+		});
 
 		// 7. Check if an update is available (Hardcoded for prototype)
 		const LATEST_VERSION = "1.0.0";

@@ -5,11 +5,26 @@ const getStripe = jest.fn();
 const syncStripeSubscription = jest.fn();
 const findEvent = jest.fn();
 const insertValues = jest.fn();
+const insertReturning = jest.fn();
 const updateWhere = jest.fn();
 
 const updateBuilder = {
 	set: jest.fn(),
-	where: (...args: unknown[]) => updateWhere(...args),
+	where: () => updateBuilder,
+	returning: () => updateWhere(),
+};
+type InsertBuilder = {
+	values: (...args: unknown[]) => InsertBuilder;
+	onConflictDoNothing: jest.Mock;
+	returning: () => unknown;
+};
+const insertBuilder: InsertBuilder = {
+	values: (...args: unknown[]) => {
+		insertValues(...args);
+		return insertBuilder;
+	},
+	onConflictDoNothing: jest.fn(() => insertBuilder),
+	returning: () => insertReturning(),
 };
 updateBuilder.set.mockImplementation(() => updateBuilder);
 
@@ -19,7 +34,7 @@ jest.mock("@/server/billing", () => ({ syncStripeSubscription: (...args: unknown
 jest.mock("@/db/client", () => ({
 	db: {
 		query: { billingWebhookEventsTable: { findFirst: (...args: unknown[]) => findEvent(...args) } },
-		insert: jest.fn(() => ({ values: (...args: unknown[]) => insertValues(...args) })),
+		insert: jest.fn(() => insertBuilder),
 		update: jest.fn(() => updateBuilder),
 	},
 }));
@@ -36,7 +51,8 @@ describe("app/payment/webhook route", () => {
 		headersMock.mockResolvedValue({ get: () => "sig_header" });
 		findEvent.mockResolvedValue(undefined);
 		insertValues.mockResolvedValue(undefined);
-		updateWhere.mockResolvedValue(undefined);
+		insertReturning.mockResolvedValue([{ id: "claimed" }]);
+		updateWhere.mockResolvedValue([{ id: "claimed" }]);
 		syncStripeSubscription.mockResolvedValue(undefined);
 	});
 

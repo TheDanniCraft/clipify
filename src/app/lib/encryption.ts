@@ -1,13 +1,16 @@
 import crypto from "crypto";
 
 // Ensure this matches the 32-byte secret required for AES-256
-// In production, this should come from process.env.ENCRYPTION_SECRET
-const ENCRYPTION_SECRET = process.env.ENCRYPTION_SECRET || "0123456789abcdef0123456789abcdef"; // 32 chars for local dev fallback
+const configuredSecret = process.env.ENCRYPTION_SECRET;
+if (process.env.NODE_ENV === "production" && !configuredSecret) {
+	throw new Error("ENCRYPTION_SECRET environment variable is required in production");
+}
+
+const ENCRYPTION_SECRET = configuredSecret || "0123456789abcdef0123456789abcdef"; // 32 chars for local dev fallback
 
 const ALGORITHM = "aes-256-gcm";
 const IV_LENGTH = 16;
 const SALT_LENGTH = 16;
-
 
 /**
  * Encrypts a string using AES-256-GCM.
