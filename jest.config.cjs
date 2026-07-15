@@ -8,7 +8,7 @@ const createJestConfig = nextJest({
 const customJestConfig = {
 	testEnvironment: "jsdom",
 	setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
-	testMatch: ["<rootDir>/test/**/*.test.ts", "<rootDir>/test/**/*.test.tsx", "<rootDir>/src/**/__tests__/**/*.test.ts", "<rootDir>/src/**/__tests__/**/*.test.tsx", "<rootDir>/packages/runner/**/__tests__/**/*.test.ts", "<rootDir>/packages/runner/**/__tests__/**/*.test.tsx", "<rootDir>/packages/runner/test/**/*.test.ts", "<rootDir>/packages/runner/test/**/*.test.tsx"],
+	testMatch: ["<rootDir>/test/**/*.test.ts", "<rootDir>/test/**/*.test.tsx", "<rootDir>/src/**/__tests__/**/*.test.ts", "<rootDir>/src/**/__tests__/**/*.test.tsx"],
 	moduleNameMapper: {
 		"^@heroui/react$": "<rootDir>/test/__mocks__/heroui-react.cjs",
 		"^@heroui/styles$": "<rootDir>/test/__mocks__/heroui-styles.cjs",

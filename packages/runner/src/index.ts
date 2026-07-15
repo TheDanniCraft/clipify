@@ -219,7 +219,7 @@ async function pollHeartbeat(token: string, apiBase: string, runnerId?: string):
 			}
 			return true;
 		}
-		const data = await response.json();
+		const data = (await response.json()) as { jobs?: HeartbeatJob[] };
 		console.log(`[Jobs] Received ${data.jobs?.length || 0} jobs.`);
 		for (const job of (data.jobs || []) as HeartbeatJob[]) await processHeartbeatJob(job, apiBase, token);
 		return true;
@@ -294,7 +294,7 @@ async function initializeRunner(args: string[]): Promise<{ apiBase: string; toke
 				console.error("Please download a fresh executable from your dashboard if you need to re-authenticate.\n");
 				process.exit(1);
 			}
-			const data = await res.json();
+			const data = (await res.json()) as { token: string; runnerId: string };
 			localConfig.token = data.token;
 			localConfig.runnerId = data.runnerId;
 			await saveCredentials({

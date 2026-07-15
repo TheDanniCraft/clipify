@@ -1,18 +1,15 @@
 import { NextResponse } from "next/server";
-import fs from "fs";
-import path from "path";
+import { getRunnerVersionManifest } from "@actions/runner";
 
 export async function GET() {
 	try {
-		const versionPath = path.join(process.cwd(), "public", "downloads", "runner", "version.json");
-		if (!fs.existsSync(versionPath)) {
-			return NextResponse.json({ error: "Version file not found" }, { status: 404 });
+		const manifest = await getRunnerVersionManifest();
+		if (!manifest) {
+			return NextResponse.json({ error: "Runner artifacts are still being prepared", code: "runner_artifact_pending" }, { status: 503, headers: { "Retry-After": "30" } });
 		}
-
-		const versionData = JSON.parse(fs.readFileSync(versionPath, "utf-8"));
-		return NextResponse.json(versionData);
+		return NextResponse.json(manifest, { headers: { "Cache-Control": "public, max-age=30, stale-while-revalidate=300" } });
 	} catch (error) {
-		console.error("Error reading version file:", error);
-		return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+		console.error("Error resolving Runner manifest:", error);
+		return NextResponse.json({ error: "Runner manifest unavailable", code: "runner_artifact_unavailable" }, { status: 503, headers: { "Retry-After": "30" } });
 	}
 }

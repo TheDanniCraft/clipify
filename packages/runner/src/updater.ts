@@ -51,7 +51,7 @@ async function fetchRemoteHash(apiBase: string, osKey: string): Promise<string |
 		console.warn(`[Updater] Failed to check for updates: HTTP ${res.status}`);
 		return undefined;
 	}
-	const data = await res.json();
+	const data = (await res.json()) as Partial<Record<string, string>>;
 	return data[osKey];
 }
 

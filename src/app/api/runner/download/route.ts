@@ -3,17 +3,16 @@ import { validateAuth } from "@actions/auth";
 import { db } from "@/db/client";
 import { editorsTable, runnersTable } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
-import path from "path";
-import fs from "fs/promises";
 import { hasActiveEntitlement } from "@lib/entitlements";
 import { Entitlement } from "@types";
+import { getRunnerArtifact, getRunnerContext, type RunnerPlatform } from "@lib/runnerArtifacts";
 
-const binaryNames: Record<string, string> = {
-	windows: "clipify-runner-windows.exe",
-	linux: "clipify-runner-linux",
-	"linux-arm64": "clipify-runner-linux-arm64",
-	macos: "clipify-runner-macos",
-	"macos-arm64": "clipify-runner-macos-arm64",
+const platforms: Record<string, RunnerPlatform> = {
+	windows: "windows-x64",
+	linux: "linux-x64",
+	"linux-arm64": "linux-arm64",
+	macos: "macos-x64",
+	"macos-arm64": "macos-arm64",
 };
 
 async function canAccessRunner(ownerId: string, userId: string) {
@@ -33,9 +32,9 @@ export async function GET(req: NextRequest) {
 	const searchParams = req.nextUrl.searchParams;
 	const osParam = searchParams.get("os") || "";
 	const runnerId = searchParams.get("runnerId");
-	const binaryName = binaryNames[osParam];
+	const platform = platforms[osParam];
 
-	if (!binaryName) {
+	if (!platform) {
 		return NextResponse.json({ error: "Invalid OS parameter" }, { status: 400 });
 	}
 	if (!runnerId) {
@@ -53,20 +52,23 @@ export async function GET(req: NextRequest) {
 		return NextResponse.json({ error: "Runner add-on required", code: "entitlement_required" }, { status: 403 });
 	}
 
-	const binaryPath = path.join(process.cwd(), "public", "downloads", "runner", binaryName);
-
 	try {
-		const binaryBuffer = await fs.readFile(binaryPath);
+		const { buffer, artifact, source } = await getRunnerArtifact(platform);
 
-		return new NextResponse(binaryBuffer, {
+		return new NextResponse(buffer as unknown as BodyInit, {
 			status: 200,
 			headers: {
 				"Content-Type": "application/octet-stream",
-				"Content-Disposition": `attachment; filename="${binaryName}"`,
+				"Content-Length": String(buffer.byteLength),
+				"Content-Disposition": `attachment; filename="${artifact.filename}"`,
+				ETag: `"${artifact.sha256}"`,
+				"X-Runner-Source-Fingerprint": getRunnerContext().sourceFingerprint,
+				"X-Runner-Artifact-Source": source,
 			},
 		});
 	} catch (error) {
 		console.error("Error serving runner binary:", error);
-		return NextResponse.json({ error: "Binary not found or build missing" }, { status: 500 });
+		const unavailable = error instanceof Error && error.name === "RunnerArtifactUnavailableError";
+		return NextResponse.json({ error: unavailable ? "Runner artifact is still being prepared" : "Runner binary unavailable", code: unavailable ? "runner_artifact_pending" : "runner_artifact_unavailable" }, { status: 503, headers: { "Retry-After": "30" } });
 	}
 }

@@ -48,6 +48,8 @@ RUN set -eux; \
     chmod +x /usr/local/bin/ldid; \
     ldid --version || true
 
+RUN node scripts/fingerprint-runner.mjs --write-context src/app/lib/runnerContext.generated.ts
+
 RUN --mount=type=cache,target=/root/.pkg-cache \
     set -eux; \
     bun run app:build; \
