@@ -139,7 +139,7 @@ jobs:
     if: github.event_name == 'push' && needs.validate.result == 'success'
     runs-on: ubuntu-latest
     env:
-      RUNNER_REPOSITORY: ghcr.io/${{ github.repository_owner }}/clipify-runner
+      RUNNER_REPOSITORY: ghcr.io/thedannicraft/clipify-runner
       RUNNER_FINGERPRINT: ${{ needs.prepare-context.outputs.source-fingerprint }}
       RUNNER_COMMIT: ${{ needs.prepare-context.outputs.source-commit }}
       ARTIFACT_ROOT: ${{ github.workspace }}/runner-artifacts
