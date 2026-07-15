@@ -154,6 +154,8 @@ function tarFile(buffer: Buffer, wantedPath: string): Buffer {
 }
 
 async function fetchLayerFile(tag: string, wantedPath: string): Promise<Buffer> {
+	const reference = `${repository}:${tag}`;
+	console.info("[Runner] Resolving OCI artifact", { reference, wantedPath });
 	const manifestUrl = `https://${repository}/v2/${repository.replace(/^ghcr\.io\//, "")}/manifests/${encodeURIComponent(tag)}`;
 	let manifest = await registryJson(manifestUrl);
 	if (Array.isArray(manifest.manifests)) {
@@ -165,12 +167,23 @@ async function fetchLayerFile(tag: string, wantedPath: string): Promise<Buffer> 
 		manifest = await registryJson(`https://${repository}/v2/${repository.replace(/^ghcr\.io\//, "")}/manifests/${selected.digest}`);
 	}
 	const layers = manifest.layers as Array<Record<string, string>> | undefined;
-	const layer = layers?.[0];
-	if (!layer?.digest) throw new Error(`No OCI layer found for ${tag}`);
-	const blobUrl = `https://${repository}/v2/${repository.replace(/^ghcr\.io\//, "")}/blobs/${layer.digest}`;
-	const response = await registryFetch(blobUrl);
-	if (!response.ok) throw new Error(`Runner blob request failed: HTTP ${response.status}`);
-	return tarFile(Buffer.from(await response.arrayBuffer()), wantedPath);
+	if (!layers?.length) throw new Error(`No OCI layers found for ${tag}`);
+
+	for (const layer of layers) {
+		if (!layer.digest) continue;
+		const blobUrl = `https://${repository}/v2/${repository.replace(/^ghcr\.io\//, "")}/blobs/${layer.digest}`;
+		const response = await registryFetch(blobUrl);
+		if (!response.ok) throw new Error(`Runner blob request failed: HTTP ${response.status}`);
+		const contents = Buffer.from(await response.arrayBuffer());
+		try {
+			return tarFile(contents, wantedPath);
+		} catch (error) {
+			if (error instanceof Error && error.message === `OCI layer does not contain ${wantedPath}`) continue;
+			throw error;
+		}
+	}
+
+	throw new Error(`OCI layers do not contain ${wantedPath}`);
 }
 
 function validateManifest(value: unknown, fingerprint: string): RunnerManifest {
