@@ -2,7 +2,7 @@ import crypto from "crypto";
 
 // Ensure this matches the 32-byte secret required for AES-256
 const configuredSecret = process.env.ENCRYPTION_SECRET;
-if (process.env.NODE_ENV === "production" && !configuredSecret) {
+if (process.env.NODE_ENV === "production" && process.env.NEXT_PHASE !== "phase-production-build" && !configuredSecret) {
 	throw new Error("ENCRYPTION_SECRET environment variable is required in production");
 }
 
