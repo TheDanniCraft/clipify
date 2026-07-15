@@ -28,6 +28,10 @@ permissions:
   pull-requests: read
   packages: write
 
+concurrency:
+  group: runner-native-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   prepare-context:
     name: 🧭 Prepare Runner context
@@ -38,6 +42,7 @@ jobs:
       source-fingerprint: ${{ steps.context.outputs.source-fingerprint }}
       source-commit: ${{ steps.context.outputs.source-commit }}
       api-url: ${{ steps.context.outputs.api-url }}
+      pr-number: ${{ steps.context.outputs.pr-number }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -66,6 +71,7 @@ jobs:
           else
             api_url="https://clipify.us"
           fi
+          echo "pr-number=$pr_number" >> "$GITHUB_OUTPUT"
           echo "api-url=$api_url" >> "$GITHUB_OUTPUT"
           echo "Runner API: $api_url"
           echo "Runner source: $commit ($fingerprint)"
@@ -157,6 +163,7 @@ jobs:
       RUNNER_REPOSITORY: ghcr.io/thedannicraft/clipify-runner
       RUNNER_FINGERPRINT: ${{ needs.prepare-context.outputs.source-fingerprint }}
       RUNNER_COMMIT: ${{ needs.prepare-context.outputs.source-commit }}
+      RUNNER_PR_NUMBER: ${{ needs.prepare-context.outputs.pr-number }}
       ARTIFACT_ROOT: ${{ github.workspace }}/runner-artifacts
       RUNNER_ARTIFACT_WORK: ${{ github.workspace }}/runner-artifact-work
     steps:
@@ -246,6 +253,47 @@ jobs:
             docker buildx build --platform linux/amd64 --provenance=false --sbom=false --push -t "$reference" "$manifest_dir"
           fi
           echo "Published Runner manifest: $reference"
+
+      - name: 🔁 Update Preview Runner alias
+        if: needs.prepare-context.outputs.pr-number != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          current_head="$(gh api "repos/$GITHUB_REPOSITORY/pulls/$RUNNER_PR_NUMBER" --jq '.head.sha')"
+          if [ "$current_head" != "$RUNNER_COMMIT" ]; then
+            echo "Skipping Preview alias: workflow commit $RUNNER_COMMIT is no longer the PR head ($current_head)."
+            exit 0
+          fi
+
+          immutable="$RUNNER_REPOSITORY:fp-$RUNNER_FINGERPRINT-manifest"
+          alias="$RUNNER_REPOSITORY:pr-$RUNNER_PR_NUMBER-latest-manifest"
+          existing_manifest="$RUNNER_ARTIFACT_WORK/existing-preview-alias-manifest.json"
+          if docker pull "$alias" >/dev/null 2>&1; then
+            container="$(docker create "$alias")"
+            trap 'docker rm "$container" >/dev/null 2>&1 || true' EXIT
+            docker cp "$container:/manifest.json" "$existing_manifest"
+            existing_commit="$(node -e 'const fs=require("fs"); const m=JSON.parse(fs.readFileSync(process.argv[1])); process.stdout.write(m.sourceCommit || "")' "$existing_manifest")"
+            if [ -n "$existing_commit" ] && [ "$existing_commit" != "$RUNNER_COMMIT" ]; then
+              comparison="$(gh api "repos/$GITHUB_REPOSITORY/compare/$existing_commit...$RUNNER_COMMIT" --jq '.status' 2>/dev/null || true)"
+              if [ "$comparison" = "behind" ]; then
+                echo "Skipping Preview alias: existing alias points to newer commit $existing_commit."
+                exit 0
+              fi
+            fi
+          fi
+
+          docker buildx imagetools create \
+            --tag "$alias" \
+            "$immutable"
+
+          docker pull "$alias" >/dev/null
+          container="$(docker create "$alias")"
+          trap 'docker rm "$container" >/dev/null 2>&1 || true' EXIT
+          docker cp "$container:/manifest.json" "$RUNNER_ARTIFACT_WORK/verified-preview-alias-manifest.json"
+          cmp -s "$RUNNER_ARTIFACT_WORK/manifest.json" "$RUNNER_ARTIFACT_WORK/verified-preview-alias-manifest.json"
+          echo "Updated and verified Preview Runner alias: $alias"
       - uses: actions/upload-artifact@v4
         with:
           name: runner-published-manifest-${{ needs.prepare-context.outputs.source-fingerprint }}

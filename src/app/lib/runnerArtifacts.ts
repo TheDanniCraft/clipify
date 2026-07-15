@@ -7,21 +7,14 @@ import { RUNNER_CONTEXT } from "./runnerContext.generated";
 
 export const RUNNER_PLATFORMS = ["windows-x64", "linux-x64", "linux-arm64", "macos-x64", "macos-arm64"] as const;
 export type RunnerPlatform = (typeof RUNNER_PLATFORMS)[number];
+const PREVIEW_HOST_PATTERN = /^beta-([1-9][0-9]*)\.clipify\.cloud\.thedannicraft\.de$/;
 
-const LEGACY_BINARY_NAMES: Record<RunnerPlatform, string> = {
+const LOCAL_BINARY_NAMES: Record<RunnerPlatform, string> = {
 	"windows-x64": "clipify-runner-windows.exe",
 	"linux-x64": "clipify-runner-linux",
 	"linux-arm64": "clipify-runner-linux-arm64",
 	"macos-x64": "clipify-runner-macos",
 	"macos-arm64": "clipify-runner-macos-arm64",
-};
-
-const LEGACY_OS_KEYS: Record<RunnerPlatform, "windows" | "linux" | "linuxArm" | "macos" | "macosArm"> = {
-	"windows-x64": "windows",
-	"linux-x64": "linux",
-	"linux-arm64": "linuxArm",
-	"macos-x64": "macos",
-	"macos-arm64": "macosArm",
 };
 
 export type RunnerArtifact = {
@@ -40,6 +33,26 @@ export type RunnerManifest = {
 	repository: string;
 	artifacts: RunnerArtifact[];
 };
+
+export type RunnerArtifactSelector = { previewPrId?: number };
+
+export function previewPrIdFromHost(hostname: string): number | undefined {
+	const normalized = hostname.trim().toLowerCase().replace(/\.$/, "");
+	const match = PREVIEW_HOST_PATTERN.exec(normalized);
+	if (!match) return undefined;
+	const id = Number(match[1]);
+	return Number.isSafeInteger(id) && id > 0 ? id : undefined;
+}
+
+function previewSelectorFromEnvironment(): RunnerArtifactSelector | undefined {
+	if (process.env.IS_PREVIEW !== "true") return undefined;
+	const configured = process.env.COOLIFY_FQDN ?? process.env.COOLIFY_URL;
+	if (!configured) throw new RunnerArtifactUnavailableError("Preview deployment host is not configured", 400);
+	const hostname = new URL(configured.includes("://") ? configured : `https://${configured}`).hostname;
+	const previewPrId = previewPrIdFromHost(hostname);
+	if (previewPrId === undefined) throw new RunnerArtifactUnavailableError("Invalid preview deployment host", 400);
+	return { previewPrId };
+}
 
 export class RunnerArtifactUnavailableError extends Error {
 	readonly code = "runner_artifact_unavailable";
@@ -61,7 +74,8 @@ const registryBaseUrl = `https://${repositoryHost}`;
 const cacheRoot = process.env.RUNNER_CACHE_DIR ?? path.join(os.tmpdir(), "clipify-runner-cache");
 const localArtifactRoot = process.env.RUNNER_LOCAL_ARTIFACT_DIR ?? path.join(process.cwd(), "public", "downloads", "runner");
 const manifestPromises = new Map<string, Promise<RunnerManifest>>();
-const artifactPromises = new Map<string, Promise<{ buffer: Buffer; artifact: RunnerArtifact; source: "oci" | "local" }>>();
+const previewManifestPromises = new Map<string, Promise<RunnerManifest>>();
+const artifactPromises = new Map<string, Promise<{ buffer: Buffer; artifact: RunnerArtifact; source: "oci" | "local"; sourceFingerprint: string }>>();
 
 function currentFingerprint() {
 	if (!/^[0-9a-f]{64}$/.test(RUNNER_CONTEXT.sourceFingerprint)) throw new RunnerArtifactUnavailableError("This deployment has no Runner source fingerprint");
@@ -162,7 +176,8 @@ function tarFile(buffer: Buffer, wantedPath: string): Buffer {
 }
 
 async function fetchLayerFile(tag: string, wantedPath: string): Promise<Buffer> {
-	const manifestUrl = `${registryBaseUrl}/v2/${repositoryPath}/manifests/${encodeURIComponent(tag)}`;
+	const manifestRef = tag.startsWith("sha256:") ? tag : encodeURIComponent(tag);
+	const manifestUrl = `${registryBaseUrl}/v2/${repositoryPath}/manifests/${manifestRef}`;
 	let manifest = await registryJson(manifestUrl);
 	if (Array.isArray(manifest.manifests)) {
 		const selected = (manifest.manifests as Array<Record<string, unknown>>).find((entry) => {
@@ -194,14 +209,15 @@ async function fetchLayerFile(tag: string, wantedPath: string): Promise<Buffer> 
 	throw new Error(`OCI layers do not contain ${wantedPath}`);
 }
 
-function validateManifest(value: unknown, fingerprint: string): RunnerManifest {
+function validateManifest(value: unknown, fingerprint?: string): RunnerManifest {
 	const manifest = value as Partial<RunnerManifest>;
-	if (manifest.schemaVersion !== 1 || manifest.sourceFingerprint !== fingerprint || manifest.repository !== repository || !Array.isArray(manifest.artifacts)) throw new Error("Invalid Runner manifest");
+	if (manifest.schemaVersion !== 1 || !/^[0-9a-f]{64}$/.test(manifest.sourceFingerprint ?? "") || (fingerprint !== undefined && manifest.sourceFingerprint !== fingerprint) || manifest.repository !== repository || !Array.isArray(manifest.artifacts)) throw new Error("Invalid Runner manifest");
 	const artifacts = manifest.artifacts as RunnerArtifact[];
 	if (artifacts.length !== RUNNER_PLATFORMS.length || new Set(artifacts.map((artifact) => artifact.platform)).size !== artifacts.length) throw new Error("Incomplete Runner manifest");
+	const sourceFingerprint = manifest.sourceFingerprint as string;
 	for (const platform of RUNNER_PLATFORMS) {
 		const artifact = artifacts.find((entry) => entry.platform === platform);
-		if (!artifact || !/^[0-9a-f]{64}$/.test(artifact.sha256) || !/^sha256:[0-9a-f]{64}$/.test(artifact.oci?.digest ?? "") || artifact.oci.reference !== `${repository}:fp-${fingerprint}-${platform}`) throw new Error(`Invalid Runner artifact entry for ${platform}`);
+		if (!artifact || !/^[0-9a-f]{64}$/.test(artifact.sha256) || !/^sha256:[0-9a-f]{64}$/.test(artifact.oci?.digest ?? "") || artifact.oci.reference !== `${repository}:fp-${sourceFingerprint}-${platform}`) throw new Error(`Invalid Runner artifact entry for ${platform}`);
 	}
 	return manifest as RunnerManifest;
 }
@@ -214,7 +230,29 @@ async function readCachedManifest(fingerprint: string) {
 	}
 }
 
-export async function getRunnerManifest(): Promise<RunnerManifest> {
+async function getPreviewRunnerManifest(prId: number): Promise<RunnerManifest> {
+	const tag = `pr-${prId}-latest-manifest`;
+	const existing = previewManifestPromises.get(tag);
+	if (existing) return existing;
+	const promise = (async () => {
+		try {
+			const raw = await fetchLayerFile(tag, "manifest.json");
+			const manifest = validateManifest(JSON.parse(raw.toString("utf8")));
+			return manifest;
+		} catch (error) {
+			throw new RunnerArtifactUnavailableError(error instanceof Error ? error.message : "Preview Runner manifest unavailable", error instanceof RunnerArtifactUnavailableError ? error.httpStatus : undefined);
+		}
+	})();
+	previewManifestPromises.set(tag, promise);
+	try {
+		return await promise;
+	} finally {
+		previewManifestPromises.delete(tag);
+	}
+}
+
+export async function getRunnerManifest(selector?: RunnerArtifactSelector): Promise<RunnerManifest> {
+	if (selector?.previewPrId !== undefined) return getPreviewRunnerManifest(selector.previewPrId);
 	const fingerprint = currentFingerprint();
 	const cached = await readCachedManifest(fingerprint);
 	if (cached) return cached;
@@ -266,31 +304,32 @@ async function withFileLock(lockPath: string, callback: () => Promise<void>) {
 }
 
 async function readLocalRunnerArtifact(platform: RunnerPlatform) {
-	const filename = LEGACY_BINARY_NAMES[platform];
+	const filename = LOCAL_BINARY_NAMES[platform];
 	const filePath = path.join(localArtifactRoot, filename);
 	const buffer = await fsp.readFile(filePath).catch(() => undefined);
 	if (!buffer) throw new RunnerArtifactUnavailableError("Local Runner binary missing: " + filename + ". Run bun run runner:build.", 404);
 	const sha256 = hash(buffer);
-	return { buffer, artifact: { platform, target: "local", filename, sha256, size: buffer.byteLength, oci: { reference: "local", digest: `sha256:${sha256}` } }, source: "local" as const };
+	return { buffer, artifact: { platform, target: "local", filename, sha256, size: buffer.byteLength, oci: { reference: "local", digest: `sha256:${sha256}` } }, source: "local" as const, sourceFingerprint: "local" };
 }
 
 function isLocalArtifactSource() {
 	return process.env.RUNNER_ARTIFACT_SOURCE === "local";
 }
 
-export async function getRunnerArtifact(platform: RunnerPlatform) {
+export async function getRunnerArtifact(platform: RunnerPlatform, selector?: RunnerArtifactSelector) {
 	if (isLocalArtifactSource()) return readLocalRunnerArtifact(platform);
-	const fingerprint = currentFingerprint();
-	const key = `${fingerprint}:${platform}`;
+	const fingerprint = selector?.previewPrId !== undefined ? undefined : currentFingerprint();
+	const key = `${selector?.previewPrId ?? fingerprint}:${platform}`;
 	const existing = artifactPromises.get(key);
 	if (existing) return existing;
 	const promise = (async () => {
-		const manifest = await getRunnerManifest();
+		const manifest = await getRunnerManifest(selector);
 		const artifact = manifest.artifacts.find((entry) => entry.platform === platform);
-		if (!artifact) throw new RunnerArtifactUnavailableError(`Runner artifact missing for ${platform}`);
-		const destination = cachePath(fingerprint, artifact.filename);
+		const selectedFingerprint = manifest.sourceFingerprint;
+		if (!artifact || !/^[0-9a-f]{64}$/.test(artifact.sha256) || !/^sha256:[0-9a-f]{64}$/.test(artifact.oci?.digest ?? "") || artifact.oci.reference !== `${repository}:fp-${selectedFingerprint}-${platform}`) throw new Error(`Invalid Runner artifact entry for ${platform}`);
+		const destination = cachePath(selectedFingerprint, artifact.filename);
 		const cached = await fsp.readFile(destination).catch(() => undefined);
-		if (cached && hash(cached) === artifact.sha256) return { buffer: cached, artifact, source: "oci" as const };
+		if (cached && hash(cached) === artifact.sha256) return { buffer: cached, artifact, source: "oci" as const, sourceFingerprint: selectedFingerprint };
 		try {
 			let result: Buffer | undefined;
 			await withFileLock(`${destination}.lock`, async () => {
@@ -299,13 +338,13 @@ export async function getRunnerArtifact(platform: RunnerPlatform) {
 					result = lockedCached;
 					return;
 				}
-				result = await fetchLayerFile(`fp-${fingerprint}-${platform}`, `runner/${artifact.filename}`);
+				result = await fetchLayerFile(artifact.oci.digest, `runner/${artifact.filename}`);
 				if (hash(result) !== artifact.sha256) throw new Error(`Runner artifact hash mismatch for ${platform}`);
 				await fsp.mkdir(path.dirname(destination), { recursive: true });
 				await fsp.writeFile(`${destination}.part`, result);
 				await fsp.rename(`${destination}.part`, destination);
 			});
-			return { buffer: result!, artifact, source: "oci" as const };
+			return { buffer: result!, artifact, source: "oci" as const, sourceFingerprint: selectedFingerprint };
 		} catch (error) {
 			throw error;
 		}
@@ -316,22 +355,6 @@ export async function getRunnerArtifact(platform: RunnerPlatform) {
 	} finally {
 		artifactPromises.delete(key);
 	}
-}
-
-export function platformForLegacyOs(os: string): RunnerPlatform | undefined {
-	return (Object.entries(LEGACY_OS_KEYS).find(([, key]) => key === os)?.[0] as RunnerPlatform | undefined) ?? undefined;
-}
-
-export function platformForBinaryName(filename: string): RunnerPlatform | undefined {
-	return (Object.entries(LEGACY_BINARY_NAMES).find(([, name]) => name === filename)?.[0] as RunnerPlatform | undefined) ?? undefined;
-}
-
-export function legacyVersionKey(platform: RunnerPlatform) {
-	return LEGACY_OS_KEYS[platform];
-}
-
-export function legacyBinaryName(platform: RunnerPlatform) {
-	return LEGACY_BINARY_NAMES[platform];
 }
 
 export type RunnerVersionInfo = {
@@ -354,7 +377,8 @@ export async function getRunnerVersionInfo(): Promise<RunnerVersionInfo | null> 
 			const byPlatform = (platform: RunnerPlatform) => artifacts.find((artifact) => artifact.platform === platform)?.sha256 ?? null;
 			return { sourceFingerprint: "local", sourceCommit: "local", repository: "local", windows: byPlatform("windows-x64"), linux: byPlatform("linux-x64"), linuxArm: byPlatform("linux-arm64"), macos: byPlatform("macos-x64"), macosArm: byPlatform("macos-arm64"), updatedAt: null, artifacts };
 		}
-		const manifest = await getRunnerManifest();
+		const selector = previewSelectorFromEnvironment();
+		const manifest = await getRunnerManifest(selector);
 		const byPlatform = (platform: RunnerPlatform) => manifest.artifacts.find((artifact) => artifact.platform === platform)?.sha256 ?? null;
 		return {
 			sourceFingerprint: manifest.sourceFingerprint,

@@ -4,7 +4,7 @@ import { spawn } from "child_process";
 import https from "https";
 import http from "http";
 
-type UpdateTarget = { osKey: string; binaryName: string };
+type UpdateTarget = { osKey: string };
 
 function getFileHash(filePath: string): string {
 	const fileBuffer = fs.readFileSync(filePath);
@@ -41,7 +41,6 @@ function getUpdateTarget(): UpdateTarget {
 	const isLinuxArm64 = process.platform === "linux" && process.arch === "arm64";
 	return {
 		osKey: isWindows ? "windows" : isLinuxArm64 ? "linuxArm" : isMacOS && process.arch === "arm64" ? "macosArm" : isMacOS ? "macos" : "linux",
-		binaryName: isWindows ? "clipify-runner-windows.exe" : isLinuxArm64 ? "clipify-runner-linux-arm64" : isMacOS && process.arch === "arm64" ? "clipify-runner-macos-arm64" : isMacOS ? "clipify-runner-macos" : "clipify-runner-linux",
 	};
 }
 
@@ -55,11 +54,11 @@ async function fetchRemoteHash(apiBase: string, osKey: string): Promise<string |
 	return data[osKey];
 }
 
-async function applyUpdate(apiBase: string, binaryName: string, remoteHash: string): Promise<void> {
+async function applyUpdate(apiBase: string, osKey: string, remoteHash: string): Promise<void> {
 	const execPath = process.execPath;
 	const newPath = `${execPath}.new`;
 	const oldPath = `${execPath}.old`;
-	await downloadFile(`${apiBase}/downloads/runner/${binaryName}`, newPath);
+	await downloadFile(`${apiBase}/api/runner/download?os=${encodeURIComponent(osKey)}`, newPath);
 
 	if (getFileHash(newPath) !== remoteHash) {
 		console.error("[Updater] Downloaded file hash mismatch! Aborting update.");
@@ -104,7 +103,7 @@ export async function checkForUpdates(apiBase: string): Promise<string> {
 		return localVersion;
 	}
 
-	const { osKey, binaryName } = getUpdateTarget();
+	const { osKey } = getUpdateTarget();
 	try {
 		const remoteHash = await fetchRemoteHash(apiBase, osKey);
 		if (!remoteHash) {
@@ -114,7 +113,7 @@ export async function checkForUpdates(apiBase: string): Promise<string> {
 		if (localVersion !== remoteHash) {
 			console.log(`[Updater] Update found! Local: ${localVersion}, Remote: ${remoteHash}`);
 			console.log("[Updater] Downloading new version...");
-			await applyUpdate(apiBase, binaryName, remoteHash);
+			await applyUpdate(apiBase, osKey, remoteHash);
 		} else {
 			console.log("[Updater] Runner is up to date.");
 		}
