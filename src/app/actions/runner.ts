@@ -135,8 +135,6 @@ export async function upsertStreamSession(data: { id?: string; ownerId: string; 
 		if (!(await ownerHasRunnerAccess(data.ownerId))) return { success: false, error: "Runner add-on required", code: "ENTITLEMENT_REQUIRED" as const };
 		const [runner, overlay] = await Promise.all([db.query.runnersTable.findFirst({ where: and(eq(runnersTable.id, data.runnerId), eq(runnersTable.ownerId, data.ownerId)) }), db.query.overlaysTable.findFirst({ where: and(eq(overlaysTable.id, data.overlayId), eq(overlaysTable.ownerId, data.ownerId)) })]);
 		if (!runner || !overlay) return { success: false, error: "Runner or overlay not found", code: "NOT_FOUND" as const };
-		const existingForOverlay = await db.query.streamSessionsTable.findFirst({ where: eq(streamSessionsTable.overlayId, data.overlayId) });
-		if (existingForOverlay && existingForOverlay.id !== data.id) return { success: false, error: "This overlay already has a stream session", code: "CONFLICT" as const };
 		if (!data.rtmpUrl.trim()) return { success: false, error: "An RTMP URL is required", code: "RTMP_URL_REQUIRED" as const };
 
 		if (streamKeyRequiredForUrl(data.rtmpUrl) && !data.streamKey && (!data.id || data.clearStreamKey)) return { success: false, error: "A stream key is required for Twitch or YouTube", code: "STREAM_KEY_REQUIRED" as const };

@@ -5,7 +5,7 @@ import { Entry } from "@napi-rs/keyring";
 
 const CONFIG_DIR = path.join(os.homedir(), ".clipify-runner");
 const CONFIG_PATH = path.join(CONFIG_DIR, "config.json");
-const SERVICE_NAME = "com.clipify.runner";
+const SERVICE_NAME = "us.clipify.runner";
 
 export interface RunnerCredentials {
 	runnerId?: string;
@@ -28,8 +28,8 @@ export async function saveCredentials(credentials: RunnerCredentials) {
 			const entry = new Entry(SERVICE_NAME, credentials.runnerId);
 			await entry.setPassword(credentials.token);
 			keyringSuccess = true;
-		} catch (error) {
-			console.warn("[Storage] Warning: Failed to save token to Keyring. Falling back to config.json.", error);
+		} catch {
+			console.warn("[Storage] Keyring unavailable; saving credentials to config.json instead.");
 		}
 	}
 
@@ -63,13 +63,18 @@ export async function loadCredentials(): Promise<RunnerCredentials> {
 		// Ignore parse errors, file might not exist or be corrupted
 	}
 
-	if (result.runnerId) {
-		try {
-			const entry = new Entry(SERVICE_NAME, result.runnerId);
-			const keyringToken = await entry.getPassword();
-			if (keyringToken) result.token = keyringToken;
-		} catch {
-			// Keyring might not be available or entry doesn't exist.
+	if (result.runnerId && !result.token) {
+		for (const serviceName of [SERVICE_NAME]) {
+			try {
+				const entry = new Entry(serviceName, result.runnerId);
+				const keyringToken = await entry.getPassword();
+				if (keyringToken) {
+					result.token = keyringToken;
+					break;
+				}
+			} catch {
+				// Try the next namespace; the keyring may be unavailable or the entry may not exist.
+			}
 		}
 	}
 
@@ -77,11 +82,13 @@ export async function loadCredentials(): Promise<RunnerCredentials> {
 }
 
 export async function clearCredentials(runnerId: string) {
-	try {
-		const entry = new Entry(SERVICE_NAME, runnerId);
-		await entry.deletePassword();
-	} catch {
-		// Ignore unavailable keyring entries.
+	for (const serviceName of [SERVICE_NAME]) {
+		try {
+			const entry = new Entry(serviceName, runnerId);
+			await entry.deletePassword();
+		} catch {
+			// Ignore unavailable keyring entries.
+		}
 	}
 
 	try {

@@ -15,8 +15,7 @@ async function ensureChromeDependencies(): Promise<string> {
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	const buildId = await resolveBuildId(Browser.CHROME, process.platform as any, "stable");
 
-	const browserPath = path.join(CACHE_DIR, "chrome", process.platform, buildId);
-	let executablePath = "";
+	let executablePath = await resolveExistingBrowser(buildId);
 
 	let shouldInstallDeps = false;
 	const checkCmd = (cmd: string) => {
@@ -39,7 +38,7 @@ async function ensureChromeDependencies(): Promise<string> {
 		shouldInstallDeps = true;
 	}
 
-	if (!fs.existsSync(browserPath)) {
+	if (!fs.existsSync(executablePath)) {
 		console.log(`[Downloader] Downloading Chromium (${buildId}). This may take a minute...`);
 		try {
 			const installed = await install({

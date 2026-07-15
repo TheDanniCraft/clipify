@@ -8,6 +8,9 @@ import { openBrowser } from "./browser";
 import { extractBakedConfig } from "./bootstrap";
 import { clearCredentials, loadCredentials, saveCredentials, type RunnerCredentials } from "./storage";
 
+// Keep dependency deprecation noise out of the end-user runner console.
+if (process.env.NODE_ENV !== "test") process.noDeprecation = true;
+
 let RUNNER_VERSION = "unknown";
 const DEVELOPMENT_API_BASE = "http://localhost:3000";
 

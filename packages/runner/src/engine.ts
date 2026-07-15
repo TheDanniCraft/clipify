@@ -10,6 +10,13 @@ import { writeExtension } from "./extension";
 
 import * as net from "net";
 
+declare global {
+	interface Window {
+		startFallback?: () => void;
+		stopFallback?: () => void;
+	}
+}
+
 // Singleton TCP Proxy Server to avoid port conflicts
 let proxyServer: net.Server | null = null;
 
@@ -172,8 +179,8 @@ export class Engine {
 				if (this.page) {
 					this.page
 						.evaluate(() => {
-							if (typeof (window as any).stopFallback === "function") {
-								(window as any).stopFallback();
+							if (typeof window.stopFallback === "function") {
+								window.stopFallback();
 							}
 						})
 						.catch((err) => console.error("[Engine] Failed to stop fallback:", err));
@@ -332,8 +339,8 @@ export class Engine {
 			if (this.mode === "failsafe" && this.page) {
 				this.page
 					.evaluate(() => {
-						if (typeof (window as any).startFallback === "function") {
-							(window as any).startFallback();
+						if (typeof window.startFallback === "function") {
+							window.startFallback();
 						}
 					})
 					.catch((err: unknown) => console.error("[Engine] Failed to start fallback:", err));
