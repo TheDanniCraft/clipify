@@ -95,6 +95,7 @@ export default function RunnerPage() {
 	const [previewImage, setPreviewImage] = useState<string | null>(null);
 	const [previewLoading, setPreviewLoading] = useState(true);
 	const [installPlatform, setInstallPlatform] = useState<RunnerPlatform | null>(null);
+	const [downloadCountdown, setDownloadCountdown] = useState(0);
 
 	const [preset, setPreset] = useState<string>("custom");
 	const [rtmpUrl, setRtmpUrl] = useState("");
@@ -103,6 +104,11 @@ export default function RunnerPage() {
 	const [mode, setMode] = useState<StreamMode>(StreamMode.AlwaysOn);
 	const [isUnlinkConfirmOpen, setIsUnlinkConfirmOpen] = useState(false);
 	const hasMounted = useRef(false);
+	useEffect(() => {
+		if (!installPlatform) return;
+		const timer = window.setInterval(() => setDownloadCountdown((value) => Math.max(0, value - 1)), 1000);
+		return () => window.clearInterval(timer);
+	}, [installPlatform]);
 
 	useEffect(() => {
 		if (!user) return;
@@ -255,6 +261,7 @@ export default function RunnerPage() {
 	const getRunnerDownloadUrl = (platform: RunnerPlatform) => `/api/runner/download?os=${platform}`;
 
 	const handleRunnerDownload = (platform: RunnerPlatform) => {
+		setDownloadCountdown(5);
 		setInstallPlatform(platform);
 		const link = document.createElement("a");
 		link.href = getRunnerDownloadUrl(platform);
@@ -693,7 +700,15 @@ export default function RunnerPage() {
 					</Card.Content>
 				</Card>
 				<Modal>
-					<Modal.Backdrop isOpen={!!installPlatform} onOpenChange={(isOpen) => !isOpen && setInstallPlatform(null)}>
+					<Modal.Backdrop
+						isOpen={!!installPlatform}
+						onOpenChange={(isOpen) => {
+							if (!isOpen) {
+								setInstallPlatform(null);
+								setDownloadCountdown(0);
+							}
+						}}
+					>
 						<Modal.Container size='lg'>
 							<Modal.Dialog>
 								<Modal.CloseTrigger />
@@ -703,10 +718,10 @@ export default function RunnerPage() {
 								</Modal.Header>
 								<Modal.Body className='flex flex-col gap-5'>
 									{installPlatform && (
-										<a href={getRunnerDownloadUrl(installPlatform)} download className='button button--md button--primary self-center inline-flex w-fit items-center justify-center gap-2'>
+										<Button isDisabled={downloadCountdown > 0} variant='primary' onPress={() => handleRunnerDownload(installPlatform)} className='self-center inline-flex w-fit items-center justify-center gap-2'>
 											<IconDownload size={18} />
-											Download again
-										</a>
+											Download again{downloadCountdown > 0 ? ` (${downloadCountdown})` : ""}
+										</Button>
 									)}
 									{renderInstallSteps()}
 								</Modal.Body>

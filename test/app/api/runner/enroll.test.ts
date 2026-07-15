@@ -24,8 +24,16 @@ jest.mock("@actions/rateLimit", () => ({
 }));
 
 describe("runner enrollment routes", () => {
+	const originalCoolifyUrl = process.env.COOLIFY_URL;
+
 	beforeEach(() => {
 		jest.clearAllMocks();
+		process.env.COOLIFY_URL = "https://beta-315.clipify.cloud.thedannicraft.de";
+	});
+
+	afterEach(() => {
+		if (originalCoolifyUrl === undefined) delete process.env.COOLIFY_URL;
+		else process.env.COOLIFY_URL = originalCoolifyUrl;
 	});
 
 	it("starts enrollment with verification URL on the request origin", async () => {
