@@ -55,7 +55,7 @@ const repository = (process.env.RUNNER_OCI_REPOSITORY ?? "ghcr.io/thedannicraft/
 	.toLowerCase();
 const cacheRoot = process.env.RUNNER_CACHE_DIR ?? path.join(os.tmpdir(), "clipify-runner-cache");
 const manifestPromises = new Map<string, Promise<RunnerManifest>>();
-const artifactPromises = new Map<string, Promise<{ buffer: Buffer; artifact: RunnerArtifact; source: "oci" | "local" }>>();
+const artifactPromises = new Map<string, Promise<{ buffer: Buffer; artifact: RunnerArtifact; source: "oci" }>>();
 
 function currentFingerprint() {
 	if (!/^[0-9a-f]{64}$/.test(RUNNER_CONTEXT.sourceFingerprint)) throw new RunnerArtifactUnavailableError("This deployment has no Runner source fingerprint");
@@ -226,12 +226,7 @@ export async function getRunnerArtifact(platform: RunnerPlatform) {
 			});
 			return { buffer: result!, artifact, source: "oci" as const };
 		} catch (error) {
-			const message = error instanceof Error ? error.message : "";
-			if (process.env.RUNNER_ALLOW_LOCAL_FALLBACK === "false" || /hash mismatch|invalid Runner manifest|Incomplete Runner manifest|Invalid Runner artifact/i.test(message)) throw error;
-			const localPath = path.join(process.cwd(), "public", "downloads", "runner", artifact.filename);
-			const local = await fsp.readFile(localPath).catch(() => undefined);
-			if (!local || hash(local) !== artifact.sha256) throw error;
-			return { buffer: local, artifact, source: "local" as const };
+			throw error;
 		}
 	})();
 	artifactPromises.set(key, promise);
@@ -288,23 +283,7 @@ export async function getRunnerVersionInfo(): Promise<RunnerVersionInfo | null> 
 			artifacts: manifest.artifacts,
 		};
 	} catch {
-		if (process.env.RUNNER_ALLOW_LOCAL_FALLBACK === "false") return null;
-		try {
-			const legacy = JSON.parse(await fsp.readFile(path.join(process.cwd(), "public", "downloads", "runner", "version.json"), "utf8")) as Record<string, unknown>;
-			return {
-				sourceFingerprint: RUNNER_CONTEXT.sourceFingerprint,
-				sourceCommit: RUNNER_CONTEXT.sourceCommit,
-				repository,
-				windows: typeof legacy.windows === "string" ? legacy.windows : null,
-				linux: typeof legacy.linux === "string" ? legacy.linux : null,
-				linuxArm: typeof legacy.linuxArm === "string" ? legacy.linuxArm : null,
-				macos: typeof legacy.macos === "string" ? legacy.macos : null,
-				macosArm: typeof legacy.macosArm === "string" ? legacy.macosArm : null,
-				updatedAt: typeof legacy.updatedAt === "string" ? legacy.updatedAt : null,
-			};
-		} catch {
-			return null;
-		}
+		return null;
 	}
 }
 
