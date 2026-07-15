@@ -58,6 +58,10 @@ async function main() {
 	if (!fs.existsSync(pkgBin)) throw new Error(`@yao-pkg/pkg executable not found at ${pkgBin}`);
 	const pkgTargets = process.env.RUNNER_PKG_TARGETS ?? "node24-win-x64,node24-linux-x64,node24-linux-arm64,node24-macos-x64,node24-macos-arm64";
 	console.log(`[Builder] Packaging targets: ${pkgTargets}`);
+	// Avoid selecting an executable left behind by an earlier single-target build.
+	for (const generatedName of ["runner", "runner.exe", "runner-win.exe", "runner-win-x64.exe", "runner-linux", "runner-linux-x64", "runner-linux-arm64", "runner-macos", "runner-macos-x64", "runner-macos-arm64"]) {
+		fs.rmSync(path.join(process.cwd(), "build", generatedName), { force: true });
+	}
 	execFileSync(pkgBin, ["build/runner.js", "-t", pkgTargets, "--out-path", "build/"], { stdio: "inherit", env: pkgEnv });
 
 	console.log(`[Builder] Runner executables generated successfully in build/!`);

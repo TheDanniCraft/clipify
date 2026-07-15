@@ -354,6 +354,11 @@ async function initializeRunner(args: string[]): Promise<{ apiBase: string; toke
 }
 
 async function main() {
+	if (process.argv.includes("--self-test")) {
+		console.log("Clipify Runner self-test passed");
+		return;
+	}
+
 	const { apiBase, token, runnerId } = await initializeRunner(process.argv.slice(2));
 	ConsoleUI.init();
 
