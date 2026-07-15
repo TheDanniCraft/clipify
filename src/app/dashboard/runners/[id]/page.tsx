@@ -77,6 +77,10 @@ function getRunnerPlatformFromOs(osInfo: string | null | undefined) {
 	return null;
 }
 
+function requiresStreamKey(rtmpUrl: string) {
+	return rtmpUrl === "rtmp://live.twitch.tv/app" || rtmpUrl === "rtmp://a.rtmp.youtube.com/live2";
+}
+
 export default function RunnerPage() {
 	const params = useParams() as { id: string };
 	const router = useRouter();
@@ -211,10 +215,19 @@ export default function RunnerPage() {
 			setRtmpUrl("rtmp://live.twitch.tv/app");
 		} else if (value === "youtube") {
 			setRtmpUrl("rtmp://a.rtmp.youtube.com/live2");
+		} else {
+			setRtmpUrl("");
 		}
 	};
 
+	const streamKeyRequired = requiresStreamKey(rtmpUrl);
+	const streamConfigValid = Boolean(overlayId && rtmpUrl.trim() && (!streamKeyRequired || streamKey.trim() || (streamSessions[0]?.encryptedStreamKey && !clearStreamKey)));
+
 	const handleSave = async () => {
+		if (!streamConfigValid) {
+			notify({ title: "Incomplete stream configuration", description: streamKeyRequired ? "Enter a stream key before saving." : "Select an overlay and enter an RTMP URL before saving.", color: "warning" });
+			return;
+		}
 		setIsSaving(true);
 		const res = await upsertStreamSession({
 			id: streamSessions[0]?.id,
@@ -238,6 +251,10 @@ export default function RunnerPage() {
 	};
 
 	const handleAction = async (state: "started" | "stopped") => {
+		if (state === "started" && !streamConfigValid) {
+			notify({ title: "Incomplete stream configuration", description: streamKeyRequired ? "Enter a stream key before starting." : "Select an overlay and enter an RTMP URL before starting.", color: "warning" });
+			return;
+		}
 		if (!streamSessions[0]?.id) return;
 		const res = await setStreamDesiredState(streamSessions[0].id, state === "started" ? StreamState.Running : StreamState.Stopped);
 		if (res.success) {
@@ -418,7 +435,7 @@ export default function RunnerPage() {
 									<Tooltip delay={0}>
 										<Tooltip.Trigger>
 											<span>
-												<Button size='sm' variant='ghost' className='h-6 min-w-6 px-1.5 text-foreground' onPress={() => setIsUnlinkConfirmOpen(true)} aria-label='Unlink runner' isDisabled={!canUnlinkRunner}>
+												<Button size='sm' variant='ghost' className='h-6 min-w-6 px-1.5 text-danger' onPress={() => setIsUnlinkConfirmOpen(true)} aria-label='Unlink runner' isDisabled={!canUnlinkRunner}>
 													<IconUnlink size={13} />
 												</Button>
 											</span>
@@ -642,11 +659,12 @@ export default function RunnerPage() {
 										<div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
 											<TextField variant='secondary'>
 												<Label>RTMP URL</Label>
-												<Input value={rtmpUrl} onChange={(e) => setRtmpUrl(e.target.value)} readOnly={preset !== "custom"} />
+												<Input value={rtmpUrl} onChange={(e) => setRtmpUrl(e.target.value)} disabled={preset !== "custom"} />
 											</TextField>
+											{preset === "custom" && <p className='text-xs text-warning-600 dark:text-warning-400'>Custom RTMP targets may not require a stream key. Leave it empty if your server does not use one.</p>}
 
 											<TextField variant='secondary'>
-												<Label>Stream Key (Optional)</Label>
+												<Label>Stream Key {streamKeyRequired ? "(Required)" : "(Optional)"}</Label>
 												<div className='relative w-full'>
 													<Input
 														type='password'
@@ -678,13 +696,13 @@ export default function RunnerPage() {
 										</div>
 
 										<div className='flex flex-col sm:flex-row gap-3 mt-6 pt-6 border-t border-divider'>
-											<Button variant='primary' onPress={handleSave} isPending={isSaving} className='sm:w-auto w-full'>
+											<Button variant='primary' onPress={handleSave} isDisabled={!streamConfigValid} isPending={isSaving} className='sm:w-auto w-full'>
 												{isSaving ? <Spinner size='sm' color='current' /> : "Save Configuration"}
 											</Button>
 
 											{streamSessions[0]?.id && (
 												<div className='flex gap-3 sm:ml-auto w-full sm:w-auto'>
-													<Button className='bg-success text-success-foreground' onPress={() => handleAction("started")} isDisabled={runner?.status !== RunnerStatus.Online || streamSessions[0]?.desiredState === StreamState.Running}>
+													<Button className='bg-success text-success-foreground' onPress={() => handleAction("started")} isDisabled={runner?.status !== RunnerStatus.Online || streamSessions[0]?.desiredState === StreamState.Running || !streamConfigValid}>
 														<IconPlayerPlay size={18} /> Start
 													</Button>
 													<Button className='bg-danger text-danger-foreground' onPress={() => handleAction("stopped")} isDisabled={streamSessions[0]?.desiredState === StreamState.Stopped}>

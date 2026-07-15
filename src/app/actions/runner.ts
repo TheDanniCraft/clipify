@@ -19,6 +19,10 @@ async function hasAccess(ownerId: string, userId: string) {
 	return Boolean(editor);
 }
 
+function streamKeyRequiredForUrl(rtmpUrl: string) {
+	return rtmpUrl === "rtmp://live.twitch.tv/app" || rtmpUrl === "rtmp://a.rtmp.youtube.com/live2";
+}
+
 async function ownerHasRunnerAccess(ownerId: string) {
 	const owner = await db.query.usersTable.findFirst({ where: eq(usersTable.id, ownerId) });
 	return Boolean(owner && (await hasActiveEntitlement(owner.id, Entitlement.RunnerAccess)));
@@ -133,7 +137,9 @@ export async function upsertStreamSession(data: { id?: string; ownerId: string; 
 		if (!runner || !overlay) return { success: false, error: "Runner or overlay not found", code: "NOT_FOUND" as const };
 		const existingForOverlay = await db.query.streamSessionsTable.findFirst({ where: eq(streamSessionsTable.overlayId, data.overlayId) });
 		if (existingForOverlay && existingForOverlay.id !== data.id) return { success: false, error: "This overlay already has a stream session", code: "CONFLICT" as const };
+		if (!data.rtmpUrl.trim()) return { success: false, error: "An RTMP URL is required", code: "RTMP_URL_REQUIRED" as const };
 
+		if (streamKeyRequiredForUrl(data.rtmpUrl) && !data.streamKey && (!data.id || data.clearStreamKey)) return { success: false, error: "A stream key is required for Twitch or YouTube", code: "STREAM_KEY_REQUIRED" as const };
 		if (data.id) {
 			// Update existing
 			const updatePayload: Record<string, unknown> = {
@@ -182,6 +188,7 @@ export async function setStreamDesiredState(sessionId: string, state: StreamStat
 		const session = await db.query.streamSessionsTable.findFirst({ where: eq(streamSessionsTable.id, sessionId) });
 		if (!session || !(await hasAccess(session.ownerId, user.id))) return { success: false, error: "Unauthorized" };
 		if (!(await ownerHasRunnerAccess(session.ownerId))) return { success: false, error: "Runner add-on required", code: "ENTITLEMENT_REQUIRED" as const };
+		if (state === StreamState.Running && streamKeyRequiredForUrl(session.rtmpUrl) && !session.encryptedStreamKey) return { success: false, error: "A stream key is required for Twitch or YouTube", code: "STREAM_KEY_REQUIRED" as const };
 
 		await db.update(streamSessionsTable).set({ desiredState: state }).where(eq(streamSessionsTable.id, sessionId));
 
