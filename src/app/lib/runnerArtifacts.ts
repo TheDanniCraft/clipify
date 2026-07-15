@@ -77,13 +77,59 @@ function authHeaders(): HeadersInit {
 	return { Authorization: `Basic ${Buffer.from(`${username}:${token}`).toString("base64")}` };
 }
 
+let bearerToken: string | undefined;
+let bearerTokenPromise: Promise<string> | undefined;
+
+function bearerChallenge(value: string | null) {
+	if (!value || !/^Bearer\s/i.test(value)) return undefined;
+	const parameters = Object.fromEntries([...value.matchAll(/([a-z]+)="([^"]*)"/gi)].map((match) => [match[1].toLowerCase(), match[2]]));
+	if (!parameters.realm) return undefined;
+	return parameters;
+}
+
+async function getBearerToken(challenge: Record<string, string>) {
+	if (bearerToken) return bearerToken;
+	if (!bearerTokenPromise) {
+		bearerTokenPromise = (async () => {
+			const tokenUrl = new URL(challenge.realm);
+			if (challenge.service) tokenUrl.searchParams.set("service", challenge.service);
+			if (challenge.scope) tokenUrl.searchParams.set("scope", challenge.scope);
+			const response = await fetch(tokenUrl, { headers: authHeaders(), cache: "no-store" });
+			if (!response.ok) throw new Error(`Runner registry token request failed: HTTP ${response.status}`);
+			const body = (await response.json()) as { token?: string; access_token?: string };
+			const token = body.token ?? body.access_token;
+			if (!token) throw new Error("Runner registry token response did not contain a token");
+			bearerToken = token;
+			return token;
+		})().finally(() => {
+			bearerTokenPromise = undefined;
+		});
+	}
+	return bearerTokenPromise;
+}
+
+async function registryFetch(url: string, headers: HeadersInit = {}) {
+	const request = (authorization?: string) =>
+		fetch(url, {
+			headers: { ...headers, ...authHeaders(), ...(authorization ? { Authorization: authorization } : {}) },
+			cache: "no-store",
+		});
+
+	let response = await request(bearerToken ? `Bearer ${bearerToken}` : undefined);
+	if (response.status === 401) {
+		const challenge = bearerChallenge(response.headers.get("www-authenticate"));
+		if (challenge) {
+			bearerToken = undefined;
+			const token = await getBearerToken(challenge);
+			response = await request(`Bearer ${token}`);
+		}
+	}
+	return response;
+}
+
 async function registryJson(url: string) {
-	const response = await fetch(url, {
-		headers: {
-			Accept: "application/vnd.oci.image.manifest.v1+json, application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.index.v1+json",
-			...authHeaders(),
-		},
-		cache: "no-store",
+	const response = await registryFetch(url, {
+		Accept: "application/vnd.oci.image.manifest.v1+json, application/vnd.docker.distribution.manifest.v2+json, application/vnd.oci.image.index.v1+json",
 	});
 	if (!response.ok) throw new Error(`Runner registry request failed: HTTP ${response.status}`);
 	return (await response.json()) as Record<string, unknown>;
@@ -122,7 +168,7 @@ async function fetchLayerFile(tag: string, wantedPath: string): Promise<Buffer> 
 	const layer = layers?.[0];
 	if (!layer?.digest) throw new Error(`No OCI layer found for ${tag}`);
 	const blobUrl = `https://${repository}/v2/${repository.replace(/^ghcr\.io\//, "")}/blobs/${layer.digest}`;
-	const response = await fetch(blobUrl, { headers: authHeaders(), cache: "no-store" });
+	const response = await registryFetch(blobUrl);
 	if (!response.ok) throw new Error(`Runner blob request failed: HTTP ${response.status}`);
 	return tarFile(Buffer.from(await response.arrayBuffer()), wantedPath);
 }
