@@ -34,7 +34,7 @@ await build({
   bundle: true,
   platform: "node",
   outfile: path.join(buildRoot, "runner.js"),
-  external: ["@napi-rs/keyring"],
+  external: ["puppeteer-stream", "puppeteer-core", "puppeteer", "@napi-rs/keyring"],
   loader: { ".node": "file" },
   nodePaths: [path.join(runnerRoot, "node_modules")],
   define: { "process.env.BAKED_API_URL": JSON.stringify(normalizedApiUrl) },
@@ -60,7 +60,7 @@ console.log(`[Builder] Packaging targets: ${pkgTargets}`);
 for (const generatedName of ["runner", "runner.exe", "runner-win.exe", "runner-win-x64.exe", "runner-linux", "runner-linux-x64", "runner-linux-arm64", "runner-macos", "runner-macos-x64", "runner-macos-arm64"]) {
   fs.rmSync(path.join(buildRoot, generatedName), { force: true });
 }
-const pkgArgs = process.platform === "win32" ? [pkgScript, path.join(buildRoot, "runner.js"), "-t", pkgTargets, "--out-path", buildRoot] : [path.join(buildRoot, "runner.js"), "-t", pkgTargets, "--out-path", buildRoot];
+const pkgArgs = process.platform === "win32" ? [pkgScript, path.join(buildRoot, "runner.js"), "-t", pkgTargets, "--public", "--public-packages", "*", "--out-path", buildRoot] : [path.join(buildRoot, "runner.js"), "-t", pkgTargets, "--public", "--public-packages", "*", "--out-path", buildRoot];
 execFileSync(pkgBin, pkgArgs, { stdio: "inherit", env: pkgEnv });
 console.log("[Builder] Runner executables generated successfully in build/!");
 
