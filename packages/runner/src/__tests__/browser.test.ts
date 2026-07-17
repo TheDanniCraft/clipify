@@ -19,12 +19,12 @@ describe("openBrowser", () => {
 		expect(spawn).not.toHaveBeenCalled();
 	});
 
-	it("opens web URLs with explorer.exe on Windows without a shell", () => {
+	it("opens web URLs through the Windows default handler without a visible shell", () => {
 		Object.defineProperty(process, "platform", { value: "win32" });
 		const url = "https://clipify.us/runner/enroll?code=%26whoami";
 
 		openBrowser(url);
 
-		expect(spawn).toHaveBeenCalledWith("explorer.exe", [url], { detached: true, stdio: "ignore" });
+		expect(spawn).toHaveBeenCalledWith("cmd.exe", ["/d", "/s", "/c", "start", "", url], { detached: true, stdio: "ignore", windowsHide: true });
 	});
 });

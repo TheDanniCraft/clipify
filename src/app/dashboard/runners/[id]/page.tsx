@@ -450,7 +450,7 @@ export default function RunnerPage() {
 									<Tooltip delay={0}>
 										<Tooltip.Trigger>
 											<span>
-												<Button size='sm' variant='ghost' className='h-6 min-w-6 px-1.5 text-foreground' onPress={() => setIsUnlinkConfirmOpen(true)} aria-label='Unlink runner' isDisabled={!canUnlinkRunner}>
+												<Button size='sm' variant='ghost' className='h-6 min-w-6 px-1.5 text-danger' onPress={() => setIsUnlinkConfirmOpen(true)} aria-label='Unlink runner' isDisabled={!canUnlinkRunner}>
 													<IconUnlink size={13} />
 												</Button>
 											</span>
