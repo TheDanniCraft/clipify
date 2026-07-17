@@ -14,6 +14,7 @@ declare global {
 	interface Window {
 		startFallback?: () => void;
 		stopFallback?: () => void;
+		startRunnerPlayback?: () => void;
 	}
 }
 
@@ -268,6 +269,8 @@ export class Engine {
 		let overlayUrl = `${this.apiBase}/overlay/${this.overlayId}?secret=${this.overlaySecret}`;
 		if (this.mode === "failsafe") {
 			overlayUrl += "&showFallbackBanner=true&standby=true";
+		} else {
+			overlayUrl += "&standby=true";
 		}
 
 		console.log(`[Engine] Navigating to ${overlayUrl}`);
@@ -336,14 +339,14 @@ export class Engine {
 				} as any,
 			});
 
-			if (this.mode === "failsafe" && this.page) {
+			if (this.page) {
+				const playbackFunction = this.mode === "failsafe" ? "startFallback" : "startRunnerPlayback";
 				this.page
-					.evaluate(() => {
-						if (typeof window.startFallback === "function") {
-							window.startFallback();
-						}
-					})
-					.catch((err: unknown) => console.error("[Engine] Failed to start fallback:", err));
+					.evaluate((functionName) => {
+						const startPlayback = window[functionName as "startFallback" | "startRunnerPlayback"];
+						if (typeof startPlayback === "function") startPlayback();
+					}, playbackFunction)
+					.catch((err: unknown) => console.error(`[Engine] Failed to start ${playbackFunction}:`, err));
 			}
 
 			console.log(`[Engine] Spawning Cloud Loop FFmpeg...`);

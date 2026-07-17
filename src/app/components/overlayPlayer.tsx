@@ -432,7 +432,12 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 
 	useEffect(() => {
 		if (typeof window !== "undefined") {
-			const fallbackWindow = window as Window & { startFallback?: () => void; stopFallback?: () => void };
+			const fallbackWindow = window as Window & { startFallback?: () => void; stopFallback?: () => void; startRunnerPlayback?: () => void };
+			fallbackWindow.startRunnerPlayback = () => {
+				console.log("[OverlayPlayer] Received startRunnerPlayback");
+				setIsStandby(false);
+				setPaused(false);
+			};
 			fallbackWindow.startFallback = () => {
 				console.log("[OverlayPlayer] Received startFallback");
 				setIsStandby(false);
