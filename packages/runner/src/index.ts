@@ -222,7 +222,7 @@ async function processHeartbeatJob(job: HeartbeatJob, apiBase: string, token: st
 	}
 }
 
-async function pollHeartbeat(token: string, apiBase: string, runnerId?: string): Promise<boolean> {
+async function pollHeartbeat(token: string, apiBase: string, runnerId?: string): Promise<"ok" | "reauth"> {
 	try {
 		console.log(`[Heartbeat] Polling ${apiBase}/api/runner/heartbeat...`);
 		const response = await fetch(`${apiBase}/api/runner/heartbeat`, {
@@ -232,31 +232,31 @@ async function pollHeartbeat(token: string, apiBase: string, runnerId?: string):
 		});
 		if (!response.ok) {
 			console.error(`[Error] API returned status ${response.status}`);
-			if (response.status === 401 && runnerId && !process.env.CLIPIFY_TOKEN) {
+			if (response.status === 401 && !process.env.CLIPIFY_TOKEN) {
 				await clearCredentials(runnerId);
-				console.error("[Runner] Local credentials were revoked. Please start the runner again to enroll it.");
-				return false;
+				console.error("[Runner] Credentials invalid or revoked. Starting new enrollment...");
+				return "reauth";
 			}
-			return true;
+			return "ok";
 		}
 		const data = (await response.json()) as { jobs?: HeartbeatJob[] };
 		console.log(`[Jobs] Received ${data.jobs?.length || 0} jobs.`);
 		for (const job of (data.jobs || []) as HeartbeatJob[]) await processHeartbeatJob(job, apiBase, token);
-		return true;
+		return "ok";
 	} catch (error) {
 		console.error(`[Error] Failed to poll heartbeat:`, error);
-		return true;
+		return "ok";
 	}
 }
 
-async function initializeRunner(args: string[]): Promise<{ apiBase: string; token: string; runnerId?: string }> {
+async function initializeRunner(args: string[], forceReenrollment = false): Promise<{ apiBase: string; token: string; runnerId?: string }> {
 	const tokenArgIndex = args.indexOf("--token");
 	let token = tokenArgIndex !== -1 ? args[tokenArgIndex + 1] : undefined;
 	const urlArgIndex = args.findIndex((arg) => arg === "--url" || arg === "--api" || arg === "--api-url");
 	const inlineUrlArg = args.find((arg) => arg.startsWith("--api-url="));
 	const overrideUrl = inlineUrlArg ? inlineUrlArg.slice("--api-url=".length) : urlArgIndex !== -1 ? args[urlArgIndex + 1] : undefined;
 
-	const bakedConfig = extractBakedConfig(process.execPath);
+	const bakedConfig = forceReenrollment ? null : extractBakedConfig(process.execPath);
 	if (bakedConfig) {
 		console.log("[Info] Found baked configuration in executable.");
 	}
@@ -374,13 +374,28 @@ async function initializeRunner(args: string[]): Promise<{ apiBase: string; toke
 	return { apiBase, token: runnerToken, runnerId: localConfig.runnerId };
 }
 
+async function stopActiveEngines() {
+	const engines = Object.entries(activeEngines);
+	await Promise.all(
+		engines.map(async ([id, engine]) => {
+			try {
+				await engine.stop();
+			} catch (error) {
+				console.error(`[Runner] Failed to stop engine ${id} during re-enrollment:`, error);
+			}
+			delete activeEngines[id];
+			delete actualStates[id];
+		}),
+	);
+}
+
 async function main() {
 	if (process.argv.includes("--self-test")) {
 		console.log("Clipify Runner self-test passed");
 		process.exit(0);
 	}
 
-	const { apiBase, token, runnerId } = await initializeRunner(process.argv.slice(2));
+	let { apiBase, token, runnerId } = await initializeRunner(process.argv.slice(2));
 	ConsoleUI.init();
 
 	await cleanupOldVersions();
@@ -392,9 +407,6 @@ async function main() {
 
 	console.log(`[Info] Token loaded. API Base URL is ${apiBase}. Starting polling loop...`);
 
-	// Poll immediately
-	if (!(await pollHeartbeat(token, apiBase, runnerId))) process.exit(1);
-
 	// Update UI real-time
 	setInterval(() => {
 		const pinned = [`Connection: Online 🟢`, `Jobs Active: ${Object.keys(activeEngines).length}`];
@@ -404,10 +416,21 @@ async function main() {
 		ConsoleUI.setPinned(pinned);
 	}, 1000);
 
-	// Poll every 10 seconds
-	setInterval(async () => {
-		if (!(await pollHeartbeat(token, apiBase, runnerId))) process.exit(1);
-	}, 10 * 1000);
+	const runnerArgs = process.argv.slice(2);
+	while (true) {
+		const heartbeatStatus = await pollHeartbeat(token, apiBase, runnerId);
+		if (heartbeatStatus === "reauth") {
+			await stopActiveEngines();
+			const reauthenticated = await initializeRunner([...runnerArgs, "--api-url", apiBase], true);
+			apiBase = reauthenticated.apiBase;
+			token = reauthenticated.token;
+			runnerId = reauthenticated.runnerId;
+			RUNNER_VERSION = await checkForUpdates(apiBase);
+			console.log(`[Info] Re-enrollment complete. API Base URL is ${apiBase}.`);
+			continue;
+		}
+		await sleep(10 * 1000);
+	}
 }
 
 main().catch(console.error);

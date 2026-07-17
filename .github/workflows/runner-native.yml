@@ -52,6 +52,7 @@ jobs:
       - id: context
         env:
           CHECKOUT_REF: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
           GH_TOKEN: ${{ github.token }}
         run: |
           git config core.autocrlf false
@@ -63,8 +64,10 @@ jobs:
           echo "source-commit=$commit" >> "$GITHUB_OUTPUT"
           if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
             pr_number="${{ github.event.pull_request.number }}"
-          else
+          elif [ "$GITHUB_REF_NAME" != "$DEFAULT_BRANCH" ]; then
             pr_number="$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/pulls" --jq '.[0].number' 2>/dev/null || true)"
+          else
+            pr_number=""
           fi
           if [ -n "$pr_number" ]; then
             api_url="https://beta-${pr_number}.clipify.cloud.thedannicraft.de"
@@ -164,6 +167,7 @@ jobs:
       RUNNER_FINGERPRINT: ${{ needs.prepare-context.outputs.source-fingerprint }}
       RUNNER_COMMIT: ${{ needs.prepare-context.outputs.source-commit }}
       RUNNER_PR_NUMBER: ${{ needs.prepare-context.outputs.pr-number }}
+      RUNNER_ARTIFACT_TAG_PREFIX: ${{ needs.prepare-context.outputs.pr-number != '' && format('pr-{0}-fp-', needs.prepare-context.outputs.pr-number) || 'fp-' }}
       ARTIFACT_ROOT: ${{ github.workspace }}/runner-artifacts
       RUNNER_ARTIFACT_WORK: ${{ github.workspace }}/runner-artifact-work
     steps:
@@ -205,7 +209,7 @@ jobs:
               echo "Missing artifact directory for $platform" >&2
               exit 1
             fi
-            reference="$RUNNER_REPOSITORY:fp-$RUNNER_FINGERPRINT-$platform"
+            reference="$RUNNER_REPOSITORY:${RUNNER_ARTIFACT_TAG_PREFIX}$RUNNER_FINGERPRINT-$platform"
             metadata="$directory/metadata.json"
             binary="$directory/$(node -e 'const m=require(process.argv[1]); process.stdout.write(m.filename)' "$metadata")"
             dockerfile="$directory/Dockerfile"
@@ -232,12 +236,12 @@ jobs:
         run: |
           set -euo pipefail
           node -e 'const fs=require("fs"); const out={}; for(const p of ["windows-x64","linux-x64","linux-arm64","macos-x64","macos-arm64"]) out[p]=fs.readFileSync(process.argv[1]+"/"+p+".digest","utf8").trim(); fs.writeFileSync(process.argv[2], JSON.stringify(out, null, 2)+"\n")' "$RUNNER_ARTIFACT_WORK" "$RUNNER_ARTIFACT_WORK/oci-digests.json"
-          node scripts/create-runner-manifest.mjs --root "$ARTIFACT_ROOT" --fingerprint "$RUNNER_FINGERPRINT" --commit "$RUNNER_COMMIT" --repository "$RUNNER_REPOSITORY" --oci-digests "$RUNNER_ARTIFACT_WORK/oci-digests.json" --output "$RUNNER_ARTIFACT_WORK/manifest.json"
+          node scripts/create-runner-manifest.mjs --root "$ARTIFACT_ROOT" --fingerprint "$RUNNER_FINGERPRINT" --commit "$RUNNER_COMMIT" --repository "$RUNNER_REPOSITORY" --artifact-tag-prefix "$RUNNER_ARTIFACT_TAG_PREFIX" --oci-digests "$RUNNER_ARTIFACT_WORK/oci-digests.json" --output "$RUNNER_ARTIFACT_WORK/manifest.json"
       - name: 📌 Publish immutable manifest
         shell: bash
         run: |
           set -euo pipefail
-          reference="$RUNNER_REPOSITORY:fp-$RUNNER_FINGERPRINT-manifest"
+          reference="$RUNNER_REPOSITORY:${RUNNER_ARTIFACT_TAG_PREFIX}$RUNNER_FINGERPRINT-manifest"
           manifest_dir="$RUNNER_ARTIFACT_WORK/manifest-image"
           mkdir -p "$manifest_dir"
           cp "$RUNNER_ARTIFACT_WORK/manifest.json" "$manifest_dir/manifest.json"
@@ -255,6 +259,7 @@ jobs:
           echo "Published Runner manifest: $reference"
 
       - name: 🔁 Update Preview Runner alias
+        id: preview-alias
         if: needs.prepare-context.outputs.pr-number != ''
         env:
           GH_TOKEN: ${{ github.token }}
@@ -264,10 +269,11 @@ jobs:
           current_head="$(gh api "repos/$GITHUB_REPOSITORY/pulls/$RUNNER_PR_NUMBER" --jq '.head.sha')"
           if [ "$current_head" != "$RUNNER_COMMIT" ]; then
             echo "Skipping Preview alias: workflow commit $RUNNER_COMMIT is no longer the PR head ($current_head)."
+            echo "updated=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          immutable="$RUNNER_REPOSITORY:fp-$RUNNER_FINGERPRINT-manifest"
+          immutable="$RUNNER_REPOSITORY:${RUNNER_ARTIFACT_TAG_PREFIX}$RUNNER_FINGERPRINT-manifest"
           alias="$RUNNER_REPOSITORY:pr-$RUNNER_PR_NUMBER-latest-manifest"
           existing_manifest="$RUNNER_ARTIFACT_WORK/existing-preview-alias-manifest.json"
           if docker pull "$alias" >/dev/null 2>&1; then
@@ -294,6 +300,33 @@ jobs:
           docker cp "$container:/manifest.json" "$RUNNER_ARTIFACT_WORK/verified-preview-alias-manifest.json"
           cmp -s "$RUNNER_ARTIFACT_WORK/manifest.json" "$RUNNER_ARTIFACT_WORK/verified-preview-alias-manifest.json"
           echo "Updated and verified Preview Runner alias: $alias"
+          echo "updated=true" >> "$GITHUB_OUTPUT"
+      - name: 🧹 Remove superseded PR Runner versions
+        if: needs.prepare-context.outputs.pr-number != '' && steps.preview-alias.outputs.updated == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          versions="$(gh api --paginate --slurp "user/packages/container/clipify-runner/versions?per_page=100" 2>/dev/null)"
+          if [ $? -ne 0 ]; then
+            echo "Warning: could not list GHCR versions; leaving superseded PR artifacts in place." >&2
+            exit 0
+          fi
+          ids="$(printf '%s' "$versions" | node scripts/runner-package-cleanup.mjs --pr "$RUNNER_PR_NUMBER" --mode superseded --keep-fingerprint "$RUNNER_FINGERPRINT" 2>/dev/null)"
+          if [ $? -ne 0 ]; then
+            echo "Warning: could not select superseded PR artifacts; leaving them in place." >&2
+            exit 0
+          fi
+          set -e
+          while IFS= read -r id; do
+            [ -n "$id" ] || continue
+            echo "Deleting superseded GHCR package version $id for PR #$RUNNER_PR_NUMBER"
+            if ! gh api --method DELETE "user/packages/container/clipify-runner/versions/$id" >/dev/null; then
+              echo "Warning: failed to delete GHCR package version $id; continuing." >&2
+            fi
+          done <<< "$ids"
       - uses: actions/upload-artifact@v4
         with:
           name: runner-published-manifest-${{ needs.prepare-context.outputs.source-fingerprint }}

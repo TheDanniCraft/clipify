@@ -31,6 +31,7 @@ jobs:
               - "scripts/write-runner-metadata.mjs"
               - "scripts/validate-runner-matrix.mjs"
               - "scripts/create-runner-manifest.mjs"
+              - "scripts/runner-package-cleanup.mjs"
               - ".github/workflows/runner-native.yml"
 
   deps:

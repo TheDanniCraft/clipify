@@ -47,7 +47,7 @@ describe("Engine (Raw Logic Tests)", () => {
 		mockLaunch.mockResolvedValue({
 			newPage: jest.fn().mockResolvedValue({
 				goto: jest.fn().mockResolvedValue(null),
-				evaluate: jest.fn().mockResolvedValue(null),
+				evaluate: jest.fn().mockResolvedValue(true),
 			}),
 			close: jest.fn().mockResolvedValue(null),
 		});

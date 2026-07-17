@@ -25,6 +25,10 @@ let proxyServer: net.Server | null = null;
 import { EventEmitter } from "events";
 export const proxyEvents = new EventEmitter();
 
+const CAPTURE_ATTEMPT_TIMEOUT_MS = 15_000;
+const CAPTURE_MAX_ATTEMPTS = 3;
+const CAPTURE_RETRY_DELAY_MS = 5_000;
+
 function startTCPProxy() {
 	if (proxyServer) return;
 	console.log(`[TCP Proxy] Starting on port 1935...`);
@@ -212,7 +216,7 @@ export class Engine {
 
 				// Tell Chromium to play clips (now handled safely inside startCloudLoopStream)
 				// Start streaming Cloud Loop to YouTube
-				await this.startCloudLoopStream().catch((err) => console.error("[Engine] Failed to start cloud loop stream:", err));
+				await this.startCloudLoopStreamWithRetry().catch((err) => console.error("[Engine] Failed to start cloud loop stream:", err));
 			})
 			.catch((err) => console.error("[Engine] Error in handleObsDisconnected transition:", err));
 	};
@@ -241,7 +245,7 @@ export class Engine {
 
 		if (this.mode === "24_7") {
 			// Start streaming Cloud Loop immediately for 24/7 mode
-			await this.startCloudLoopStream();
+			await this.startCloudLoopStreamWithRetry();
 		} else {
 			console.log(`[Engine] Deferred Initialization: Failsafe is standing by. Waiting for first OBS connection...`);
 		}
@@ -316,6 +320,48 @@ export class Engine {
 		});
 	}
 
+	private async startCloudLoopStreamWithTimeout() {
+		let timeoutId: NodeJS.Timeout | undefined;
+		try {
+			return await Promise.race([
+				this.startCloudLoopStream(),
+				new Promise<never>((_, reject) => {
+					timeoutId = setTimeout(() => reject(new Error(`Capture startup timed out after ${CAPTURE_ATTEMPT_TIMEOUT_MS / 1000}s`)), CAPTURE_ATTEMPT_TIMEOUT_MS);
+				}),
+			]);
+		} finally {
+			if (timeoutId) clearTimeout(timeoutId);
+		}
+	}
+
+	private async startCloudLoopStreamWithRetry() {
+		let lastError: unknown = new Error("Cloud loop capture did not start");
+
+		for (let attempt = 1; attempt <= CAPTURE_MAX_ATTEMPTS; attempt++) {
+			this.ffmpegStatus = `Starting (capture attempt ${attempt}/${CAPTURE_MAX_ATTEMPTS})... ⏳`;
+			console.log(`[Engine] Capture startup attempt ${attempt}/${CAPTURE_MAX_ATTEMPTS}...`);
+
+			try {
+				await this.startCloudLoopStreamWithTimeout();
+				return;
+			} catch (error) {
+				lastError = error;
+				this.ffmpegStatus = "Capture startup failed 🔴";
+				console.error(`[Engine] Capture startup failed on attempt ${attempt}/${CAPTURE_MAX_ATTEMPTS}:`, error);
+				await this.stopCloudLoopStream();
+				await this.stopChromiumBackground();
+
+				if (attempt === CAPTURE_MAX_ATTEMPTS || !this.isRunning) break;
+				console.log(`[Engine] Retrying capture startup in ${CAPTURE_RETRY_DELAY_MS / 1000}s...`);
+				await new Promise((resolve) => setTimeout(resolve, CAPTURE_RETRY_DELAY_MS));
+				if (!this.isRunning) break;
+				await this.startChromiumBackground();
+			}
+		}
+
+		throw lastError;
+	}
+
 	private async startCloudLoopStream() {
 		this.expectedCloudLoopExit = false;
 		if (this.ffmpeg || !this.isRunning || this.isForwardingObs || !this.page) return;
@@ -341,12 +387,13 @@ export class Engine {
 
 			if (this.page) {
 				const playbackFunction = this.mode === "failsafe" ? "startFallback" : "startRunnerPlayback";
-				this.page
-					.evaluate((functionName) => {
-						const startPlayback = window[functionName as "startFallback" | "startRunnerPlayback"];
-						if (typeof startPlayback === "function") startPlayback();
-					}, playbackFunction)
-					.catch((err: unknown) => console.error(`[Engine] Failed to start ${playbackFunction}:`, err));
+				const playbackStarted = await this.page.evaluate((functionName) => {
+					const startPlayback = window[functionName as "startFallback" | "startRunnerPlayback"];
+					if (typeof startPlayback !== "function") return false;
+					startPlayback();
+					return true;
+				}, playbackFunction);
+				if (!playbackStarted) throw new Error(`Missing ${playbackFunction} function in overlay`);
 			}
 
 			console.log(`[Engine] Spawning Cloud Loop FFmpeg...`);
@@ -380,7 +427,6 @@ export class Engine {
 			console.log(`[Engine] Cloud Loop successfully started to ${this.rtmpUrl}`);
 		} catch (error) {
 			console.error(`[Engine] Failed to start cloud loop stream:`, error);
-			if (!this.isForwardingObs) await this.stop();
 			throw error;
 		}
 	}

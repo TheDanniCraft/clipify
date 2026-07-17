@@ -36,6 +36,11 @@ export type RunnerManifest = {
 
 export type RunnerArtifactSelector = { previewPrId?: number };
 
+function artifactReference(fingerprint: string, platform: RunnerPlatform, previewPrId?: number) {
+	const prefix = previewPrId === undefined ? "fp-" : `pr-${previewPrId}-fp-`;
+	return `${repository}:${prefix}${fingerprint}-${platform}`;
+}
+
 export function previewPrIdFromHost(hostname: string): number | undefined {
 	const normalized = hostname.trim().toLowerCase().replace(/\.$/, "");
 	const match = PREVIEW_HOST_PATTERN.exec(normalized);
@@ -209,7 +214,7 @@ async function fetchLayerFile(tag: string, wantedPath: string): Promise<Buffer> 
 	throw new Error(`OCI layers do not contain ${wantedPath}`);
 }
 
-function validateManifest(value: unknown, fingerprint?: string): RunnerManifest {
+function validateManifest(value: unknown, fingerprint?: string, previewPrId?: number): RunnerManifest {
 	const manifest = value as Partial<RunnerManifest>;
 	if (manifest.schemaVersion !== 1 || !/^[0-9a-f]{64}$/.test(manifest.sourceFingerprint ?? "") || (fingerprint !== undefined && manifest.sourceFingerprint !== fingerprint) || manifest.repository !== repository || !Array.isArray(manifest.artifacts)) throw new Error("Invalid Runner manifest");
 	const artifacts = manifest.artifacts as RunnerArtifact[];
@@ -217,7 +222,7 @@ function validateManifest(value: unknown, fingerprint?: string): RunnerManifest 
 	const sourceFingerprint = manifest.sourceFingerprint as string;
 	for (const platform of RUNNER_PLATFORMS) {
 		const artifact = artifacts.find((entry) => entry.platform === platform);
-		if (!artifact || !/^[0-9a-f]{64}$/.test(artifact.sha256) || !/^sha256:[0-9a-f]{64}$/.test(artifact.oci?.digest ?? "") || artifact.oci.reference !== `${repository}:fp-${sourceFingerprint}-${platform}`) throw new Error(`Invalid Runner artifact entry for ${platform}`);
+		if (!artifact || !/^[0-9a-f]{64}$/.test(artifact.sha256) || !/^sha256:[0-9a-f]{64}$/.test(artifact.oci?.digest ?? "") || artifact.oci.reference !== artifactReference(sourceFingerprint, platform, previewPrId)) throw new Error(`Invalid Runner artifact entry for ${platform}`);
 	}
 	return manifest as RunnerManifest;
 }
@@ -237,7 +242,7 @@ async function getPreviewRunnerManifest(prId: number): Promise<RunnerManifest> {
 	const promise = (async () => {
 		try {
 			const raw = await fetchLayerFile(tag, "manifest.json");
-			const manifest = validateManifest(JSON.parse(raw.toString("utf8")));
+			const manifest = validateManifest(JSON.parse(raw.toString("utf8")), undefined, prId);
 			return manifest;
 		} catch (error) {
 			throw new RunnerArtifactUnavailableError(error instanceof Error ? error.message : "Preview Runner manifest unavailable", error instanceof RunnerArtifactUnavailableError ? error.httpStatus : undefined);
@@ -326,7 +331,7 @@ export async function getRunnerArtifact(platform: RunnerPlatform, selector?: Run
 		const manifest = await getRunnerManifest(selector);
 		const artifact = manifest.artifacts.find((entry) => entry.platform === platform);
 		const selectedFingerprint = manifest.sourceFingerprint;
-		if (!artifact || !/^[0-9a-f]{64}$/.test(artifact.sha256) || !/^sha256:[0-9a-f]{64}$/.test(artifact.oci?.digest ?? "") || artifact.oci.reference !== `${repository}:fp-${selectedFingerprint}-${platform}`) throw new Error(`Invalid Runner artifact entry for ${platform}`);
+		if (!artifact || !/^[0-9a-f]{64}$/.test(artifact.sha256) || !/^sha256:[0-9a-f]{64}$/.test(artifact.oci?.digest ?? "") || artifact.oci.reference !== artifactReference(selectedFingerprint, platform, selector?.previewPrId)) throw new Error(`Invalid Runner artifact entry for ${platform}`);
 		const destination = cachePath(selectedFingerprint, artifact.filename);
 		const cached = await fsp.readFile(destination).catch(() => undefined);
 		if (cached && hash(cached) === artifact.sha256) return { buffer: cached, artifact, source: "oci" as const, sourceFingerprint: selectedFingerprint };

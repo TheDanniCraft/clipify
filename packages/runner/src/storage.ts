@@ -81,13 +81,15 @@ export async function loadCredentials(): Promise<RunnerCredentials> {
 	return result;
 }
 
-export async function clearCredentials(runnerId: string) {
-	for (const serviceName of [SERVICE_NAME]) {
-		try {
-			const entry = new Entry(serviceName, runnerId);
-			await entry.deletePassword();
-		} catch {
-			// Ignore unavailable keyring entries.
+export async function clearCredentials(runnerId?: string) {
+	if (runnerId) {
+		for (const serviceName of [SERVICE_NAME]) {
+			try {
+				const entry = new Entry(serviceName, runnerId);
+				await entry.deletePassword();
+			} catch {
+				// Ignore unavailable keyring entries.
+			}
 		}
 	}
 
