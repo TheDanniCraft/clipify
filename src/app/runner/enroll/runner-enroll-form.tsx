@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useMemo, useRef, useState, useTransition } from "react";
+import { useActionState, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button, InputOTP, Label, REGEXP_ONLY_DIGITS_AND_CHARS } from "@heroui/react";
 import { IconPlus } from "@tabler/icons-react";
@@ -21,15 +21,24 @@ function formatCode(code: string) {
 	return compact.length > 4 ? `${compact.slice(0, 4)}-${compact.slice(4)}` : compact;
 }
 
-function RunnerEnrollFormContent({ onReset }: { onReset: () => void }) {
+function RunnerEnrollFormContent({ onReset, initialCode }: { onReset: () => void; initialCode?: string }) {
 	const router = useRouter();
 	const [state, formAction, isPending] = useActionState(submitRunnerEnrollCode, { status: "idle" });
 	const formRef = useRef<HTMLFormElement>(null);
-	const [value, setValue] = useState("");
+	const [value, setValue] = useState(() => compactCode(initialCode ?? ""));
 	const [createError, setCreateError] = useState<string | null>(null);
 	const [isCreatingRunner, startCreatingRunner] = useTransition();
 	const formattedCode = useMemo(() => formatCode(value), [value]);
 	const hasSubmittedRef = useRef(false);
+
+	useEffect(() => {
+		const code = compactCode(initialCode ?? "");
+		if (code.length !== 8 || hasSubmittedRef.current) return;
+		setValue(code);
+		hasSubmittedRef.current = true;
+		const frame = requestAnimationFrame(() => formRef.current?.requestSubmit());
+		return () => cancelAnimationFrame(frame);
+	}, [initialCode]);
 
 	const submitCompletedCode = () => {
 		if (hasSubmittedRef.current) return;
@@ -121,7 +130,17 @@ function RunnerEnrollFormContent({ onReset }: { onReset: () => void }) {
 	);
 }
 
-export default function RunnerEnrollForm() {
+export default function RunnerEnrollForm({ initialCode }: { initialCode?: string }) {
 	const [resetKey, setResetKey] = useState(0);
-	return <RunnerEnrollFormContent key={resetKey} onReset={() => setResetKey((key) => key + 1)} />;
+	const [code, setCode] = useState(initialCode);
+	return (
+		<RunnerEnrollFormContent
+			key={resetKey}
+			initialCode={code}
+			onReset={() => {
+				setCode(undefined);
+				setResetKey((key) => key + 1);
+			}}
+		/>
+	);
 }

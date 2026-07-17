@@ -57,6 +57,7 @@ export async function POST(req: NextRequest) {
 		});
 
 		const verificationUri = new URL("/runner/enroll", apiBase);
+		verificationUri.searchParams.set("code", userCode);
 
 		return NextResponse.json({
 			deviceCode,
