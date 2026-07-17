@@ -48,7 +48,7 @@ describe("runner enrollment routes", () => {
 
 		expect(res.status).toBe(200);
 		const body = await res.json();
-		expect(body.verificationUri).toBe("https://beta-315.clipify.cloud.thedannicraft.de/runner/enroll");
+		expect(body.verificationUri).toMatch(/^https:\/\/beta-315\.clipify\.cloud\.thedannicraft\.de\/runner\/enroll\?code=[A-Z0-9]{4}-[A-Z0-9]{4}$/);
 		expect(body).not.toHaveProperty("verificationUriComplete");
 		expect(body.userCode).toMatch(/^[A-Z0-9]{4}-[A-Z0-9]{4}$/);
 		expect(values).toHaveBeenCalledWith(expect.objectContaining({ apiBase: "https://beta-315.clipify.cloud.thedannicraft.de", hostname: "vm-1" }));
