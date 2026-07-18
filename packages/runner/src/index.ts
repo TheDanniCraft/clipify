@@ -13,7 +13,6 @@ if (process.env.NODE_ENV !== "test") process.noDeprecation = true;
 
 let RUNNER_VERSION = "unknown";
 const DEVELOPMENT_API_BASE = "http://localhost:3000";
-const ALLOW_DANGEROUS_PUBLIC_RTMP_FLAG = "--allow-dangerous-public-rtmp";
 
 // Track actual states and active engines locally
 const actualStates: Record<string, string> = {};
@@ -217,8 +216,9 @@ type HeartbeatJob = {
 type RtmpReachabilityStatus = "reachable" | "not_reachable" | "unknown";
 
 async function checkPublicRtmpReachability(apiBase: string, token: string): Promise<{ status: RtmpReachabilityStatus; reachableIps: string[] }> {
+	let startedProxyForCheck = false;
 	try {
-		await startTCPProxy();
+		startedProxyForCheck = await startTCPProxy();
 		const startResponse = await fetch(`${apiBase}/api/runner/reachability/start`, {
 			method: "POST",
 			headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -253,10 +253,18 @@ async function checkPublicRtmpReachability(apiBase: string, token: string): Prom
 	} catch (error) {
 		console.warn("[Security] RTMP reachability check failed. Continuing without blocking.", error);
 		return { status: "unknown", reachableIps: [] };
+	} finally {
+		if (startedProxyForCheck) {
+			try {
+				await stopTCPProxy();
+			} catch (error) {
+				console.warn("[Security] Failed to stop the temporary RTMP reachability listener.", error);
+			}
+		}
 	}
 }
 
-async function processHeartbeatJob(job: HeartbeatJob, apiBase: string, token: string, allowDangerousPublicRtmp: boolean) {
+async function processHeartbeatJob(job: HeartbeatJob, apiBase: string, token: string) {
 	const mode = job.mode === "24/7" ? "24_7" : job.mode;
 	const streamKey = job.streamKey ?? "";
 	const existingEngine = activeEngines[job.id];
@@ -285,20 +293,15 @@ async function processHeartbeatJob(job: HeartbeatJob, apiBase: string, token: st
 			console.log(`  -> Starting engine for job ${job.id}...`);
 		}
 
-		if (mode === "failsafe" && !allowDangerousPublicRtmp) {
+		if (mode === "failsafe") {
 			const reachability = await checkPublicRtmpReachability(apiBase, token);
 			if (reachability.status === "reachable") {
 				console.error("==========================================================================");
-				console.error("[SECURITY BLOCK] RTMP ingest port 1935 is reachable from the public internet.");
+				console.error("[SECURITY WARNING] RTMP ingest port 1935 is reachable from the public internet.");
 				console.error("Anyone who can reach this port could stream into this runner while it is active.");
-				console.error("Protect port 1935 with firewall/private-network rules, or start the runner with:");
-				console.error(`  ${ALLOW_DANGEROUS_PUBLIC_RTMP_FLAG}`);
-				console.error("Only use that flag after you have reviewed and accepted this risk.");
+				console.error("Protect port 1935 with firewall or private-network rules. The runner will continue starting.");
 				if (reachability.reachableIps.length > 0) console.error(`Reachable address(es): ${reachability.reachableIps.join(", ")}`);
 				console.error("==========================================================================");
-				actualStates[job.id] = "error";
-				await stopRtmpProxyIfUnused();
-				return;
 			}
 		}
 
@@ -326,7 +329,7 @@ async function processHeartbeatJob(job: HeartbeatJob, apiBase: string, token: st
 	}
 }
 
-async function pollHeartbeat(token: string, apiBase: string, allowDangerousPublicRtmp: boolean, runnerId?: string): Promise<"ok" | "reauth"> {
+async function pollHeartbeat(token: string, apiBase: string, runnerId?: string): Promise<"ok" | "reauth"> {
 	try {
 		console.log(`[Heartbeat] Polling ${apiBase}/api/runner/heartbeat...`);
 		const response = await fetch(`${apiBase}/api/runner/heartbeat`, {
@@ -345,7 +348,7 @@ async function pollHeartbeat(token: string, apiBase: string, allowDangerousPubli
 		}
 		const data = (await response.json()) as { jobs?: HeartbeatJob[] };
 		console.log(`[Jobs] Received ${data.jobs?.length || 0} jobs.`);
-		for (const job of (data.jobs || []) as HeartbeatJob[]) await processHeartbeatJob(job, apiBase, token, allowDangerousPublicRtmp);
+		for (const job of (data.jobs || []) as HeartbeatJob[]) await processHeartbeatJob(job, apiBase, token);
 		return "ok";
 	} catch (error) {
 		console.error(`[Error] Failed to poll heartbeat:`, error);
@@ -353,14 +356,12 @@ async function pollHeartbeat(token: string, apiBase: string, allowDangerousPubli
 	}
 }
 
-async function initializeRunner(args: string[], forceReenrollment = false): Promise<{ apiBase: string; token: string; runnerId?: string; allowDangerousPublicRtmp: boolean }> {
+async function initializeRunner(args: string[], forceReenrollment = false): Promise<{ apiBase: string; token: string; runnerId?: string }> {
 	const tokenArgIndex = args.indexOf("--token");
 	let token = tokenArgIndex !== -1 ? args[tokenArgIndex + 1] : undefined;
 	const urlArgIndex = args.findIndex((arg) => arg === "--url" || arg === "--api" || arg === "--api-url");
 	const inlineUrlArg = args.find((arg) => arg.startsWith("--api-url="));
 	const overrideUrl = inlineUrlArg ? inlineUrlArg.slice("--api-url=".length) : urlArgIndex !== -1 ? args[urlArgIndex + 1] : undefined;
-	const allowDangerousPublicRtmpCliArg = args.includes(ALLOW_DANGEROUS_PUBLIC_RTMP_FLAG);
-	const allowDangerousPublicRtmpRuntimeOverride = allowDangerousPublicRtmpCliArg || process.env.CLIPIFY_ALLOW_DANGEROUS_PUBLIC_RTMP === "1";
 
 	const bakedConfig = forceReenrollment ? null : extractBakedConfig(process.execPath);
 	if (bakedConfig) {
@@ -372,9 +373,7 @@ async function initializeRunner(args: string[], forceReenrollment = false): Prom
 		runnerId: savedConfig.runnerId,
 		apiBase: savedConfig.apiBase,
 		token: savedConfig.token,
-		allowDangerousPublicRtmp: savedConfig.allowDangerousPublicRtmp,
 	};
-	if (allowDangerousPublicRtmpRuntimeOverride) localConfig.allowDangerousPublicRtmp = true;
 
 	// Idiotenschutz: Runner ID Mismatch Prevention
 	if (bakedConfig?.runnerId && localConfig?.runnerId) {
@@ -430,7 +429,6 @@ async function initializeRunner(args: string[], forceReenrollment = false): Prom
 				runnerId: localConfig.runnerId,
 				apiBase: apiBase,
 				token: localConfig.token,
-				allowDangerousPublicRtmp: localConfig.allowDangerousPublicRtmp,
 			});
 			console.log("[Bootstrap] Successfully initialized and saved runner config.");
 		} catch (error) {
@@ -477,21 +475,10 @@ async function initializeRunner(args: string[], forceReenrollment = false): Prom
 			runnerId: localConfig.runnerId,
 			apiBase: apiBase,
 			token: runnerToken,
-			allowDangerousPublicRtmp: localConfig.allowDangerousPublicRtmp,
 		});
 	}
 
-	if (allowDangerousPublicRtmpCliArg && savedConfig.allowDangerousPublicRtmp !== true) {
-		await saveCredentials({
-			runnerId: localConfig.runnerId,
-			apiBase: apiBase,
-			token: runnerToken,
-			allowDangerousPublicRtmp: true,
-		});
-		console.warn(`[Security] ${ALLOW_DANGEROUS_PUBLIC_RTMP_FLAG} enabled and saved. Public RTMP exposure will not block this runner.`);
-	}
-
-	return { apiBase, token: runnerToken, runnerId: localConfig.runnerId, allowDangerousPublicRtmp: localConfig.allowDangerousPublicRtmp === true };
+	return { apiBase, token: runnerToken, runnerId: localConfig.runnerId };
 }
 
 async function stopActiveEngines() {
@@ -516,7 +503,7 @@ async function main() {
 		process.exit(0);
 	}
 
-	let { apiBase, token, runnerId, allowDangerousPublicRtmp } = await initializeRunner(process.argv.slice(2));
+	let { apiBase, token, runnerId } = await initializeRunner(process.argv.slice(2));
 	ConsoleUI.init();
 
 	await cleanupOldVersions();
@@ -539,14 +526,13 @@ async function main() {
 
 	const runnerArgs = process.argv.slice(2);
 	while (true) {
-		const heartbeatStatus = await pollHeartbeat(token, apiBase, allowDangerousPublicRtmp, runnerId);
+		const heartbeatStatus = await pollHeartbeat(token, apiBase, runnerId);
 		if (heartbeatStatus === "reauth") {
 			await stopActiveEngines();
 			const reauthenticated = await initializeRunner([...runnerArgs, "--api-url", apiBase], true);
 			apiBase = reauthenticated.apiBase;
 			token = reauthenticated.token;
 			runnerId = reauthenticated.runnerId;
-			allowDangerousPublicRtmp = reauthenticated.allowDangerousPublicRtmp;
 			RUNNER_VERSION = await checkForUpdates(apiBase);
 			console.log(`[Info] Re-enrollment complete. API Base URL is ${apiBase}.`);
 			continue;

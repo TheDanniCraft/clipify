@@ -11,7 +11,6 @@ export interface RunnerCredentials {
 	runnerId?: string;
 	apiBase?: string;
 	token?: string;
-	allowDangerousPublicRtmp?: boolean;
 }
 
 function ensureConfigDir() {
@@ -37,7 +36,6 @@ export async function saveCredentials(credentials: RunnerCredentials) {
 	const configToSave: RunnerCredentials = {
 		runnerId: credentials.runnerId,
 		apiBase: credentials.apiBase,
-		allowDangerousPublicRtmp: credentials.allowDangerousPublicRtmp,
 	};
 
 	if (!keyringSuccess && credentials.token) {
@@ -60,7 +58,6 @@ export async function loadCredentials(): Promise<RunnerCredentials> {
 			if (config.runnerId) result.runnerId = config.runnerId;
 			if (config.apiBase) result.apiBase = config.apiBase;
 			if (config.token) result.token = config.token;
-			if (config.allowDangerousPublicRtmp === true) result.allowDangerousPublicRtmp = true;
 		}
 	} catch {
 		// Ignore parse errors, file might not exist or be corrupted

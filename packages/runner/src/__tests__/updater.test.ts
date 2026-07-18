@@ -1,6 +1,7 @@
-import { checkForUpdates, cleanupOldVersions } from "../updater";
+import { checkForUpdates, cleanupOldVersions, launchUpdatedRunner } from "../updater";
 import fs from "fs";
 import crypto from "crypto";
+import { spawn } from "child_process";
 
 jest.mock("fs");
 jest.mock("crypto");
@@ -34,6 +35,24 @@ describe("Updater logic", () => {
 		await expect(cleanupOldVersions()).resolves.not.toThrow();
 	});
 
+	it("should retry Windows sharing violations while cleaning up the old executable", async () => {
+		(fs.existsSync as jest.Mock).mockReturnValue(true);
+		(fs.unlinkSync as jest.Mock)
+			.mockImplementationOnce(() => {
+				throw Object.assign(new Error("in use"), { code: "EPERM" });
+			})
+			.mockImplementationOnce(() => undefined);
+		const timeoutSpy = jest.spyOn(global, "setTimeout").mockImplementation(((callback: () => void) => {
+			callback();
+			return {} as NodeJS.Timeout;
+		}) as typeof setTimeout);
+
+		await cleanupOldVersions();
+
+		expect(fs.unlinkSync).toHaveBeenCalledTimes(2);
+		timeoutSpy.mockRestore();
+	});
+
 	it("should not auto-update in dev mode", async () => {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		delete (process as any).pkg;
@@ -57,6 +76,16 @@ describe("Updater logic", () => {
 		const version = await checkForUpdates("http://localhost:3000");
 		expect(version).toBe("hash123");
 		expect(fs.renameSync).not.toHaveBeenCalled();
+	});
+
+	it("should restart an updated runner in the existing console", () => {
+		launchUpdatedRunner("/path/to/clipify-runner.exe", ["--api-url", "https://clipify.example"]);
+
+		expect(spawn).toHaveBeenCalledWith("/path/to/clipify-runner.exe", ["--api-url", "https://clipify.example"], {
+			detached: false,
+			stdio: "inherit",
+			windowsHide: false,
+		});
 	});
 
 	it.todo("should apply an update after a verified hash mismatch");

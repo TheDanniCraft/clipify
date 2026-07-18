@@ -73,21 +73,33 @@ async function applyUpdate(apiBase: string, osKey: string, remoteHash: string): 
 	fs.renameSync(newPath, execPath);
 	console.log("[Updater] Update applied! Restarting runner...");
 
-	const child = spawn(execPath, process.argv.slice(2), { detached: true, stdio: "ignore" });
-	child.unref();
+	launchUpdatedRunner(execPath, process.argv.slice(2));
 	process.exit(0);
+}
+
+export function launchUpdatedRunner(execPath: string, args: string[]) {
+	return spawn(execPath, args, { detached: false, stdio: "inherit", windowsHide: false });
 }
 
 export async function cleanupOldVersions() {
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	if (!(process as any).pkg) return;
 	const oldPath = `${process.execPath}.old`;
-	if (fs.existsSync(oldPath)) {
+	if (!fs.existsSync(oldPath)) return;
+
+	for (let attempt = 0; attempt < 20; attempt++) {
 		try {
 			fs.unlinkSync(oldPath);
 			console.log("[Updater] Cleaned up old version file.");
-		} catch (e) {
-			console.warn("[Updater] Failed to clean up old version file, will retry next time:", e);
+			return;
+		} catch (error) {
+			const code = (error as NodeJS.ErrnoException).code;
+			const canRetry = process.platform === "win32" && (code === "EPERM" || code === "EACCES" || code === "EBUSY");
+			if (!canRetry || attempt === 19) {
+				console.warn("[Updater] Failed to clean up old version file, will retry next time:", error);
+				return;
+			}
+			await new Promise((resolve) => setTimeout(resolve, 100));
 		}
 	}
 }

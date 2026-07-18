@@ -21,6 +21,7 @@ declare global {
 // Singleton TCP Proxy Server to avoid port conflicts
 let proxyServer: net.Server | null = null;
 let proxyClosePromise: Promise<void> | null = null;
+const proxySockets = new Set<net.Socket>();
 
 // We use an event emitter to notify the engine about stream events
 import { EventEmitter } from "events";
@@ -57,14 +58,19 @@ export async function stopTCPProxy() {
 	if (!proxyServer) return;
 	const server = proxyServer;
 	proxyServer = null;
-	proxyClosePromise = new Promise<void>((resolve, reject) => {
+	const closePromise = new Promise<void>((resolve, reject) => {
 		server.close((error) => {
-			proxyClosePromise = null;
 			if (error) reject(error);
 			else resolve();
 		});
+		for (const socket of proxySockets) socket.destroy();
 	});
-	return proxyClosePromise;
+	proxyClosePromise = closePromise;
+	try {
+		await closePromise;
+	} finally {
+		if (proxyClosePromise === closePromise) proxyClosePromise = null;
+	}
 }
 
 export async function startTCPProxy() {
@@ -72,6 +78,7 @@ export async function startTCPProxy() {
 	if (proxyServer) return Promise.resolve(false);
 	console.log(`[TCP Proxy] Starting on port ${RTMP_PROXY_PORT}...`);
 	const server = net.createServer((clientSocket) => {
+		proxySockets.add(clientSocket);
 		console.log(`[TCP Proxy] Connection received from ${clientSocket.remoteAddress}`);
 
 		let retryCount = 0;
@@ -80,8 +87,11 @@ export async function startTCPProxy() {
 		let isPiping = false;
 		let hasStartedForwarding = false;
 		let probeBuffer = Buffer.alloc(0);
+		let retryTimeout: NodeJS.Timeout | null = null;
+		let clientClosed = false;
 
 		const connectToFFmpeg = () => {
+			if (clientClosed) return;
 			if (forwardSocket) {
 				forwardSocket.removeAllListeners();
 				forwardSocket.destroy();
@@ -93,7 +103,8 @@ export async function startTCPProxy() {
 				const error = err as NodeJS.ErrnoException;
 				if (error.code === "ECONNREFUSED" && retryCount < 50) {
 					retryCount++;
-					setTimeout(() => connectToFFmpeg(), 100);
+					retryTimeout = setTimeout(() => connectToFFmpeg(), 100);
+					retryTimeout.unref?.();
 				} else {
 					console.error(`[TCP Proxy] Failed to connect to local FFmpeg:`, err);
 					clientSocket.destroy();
@@ -159,6 +170,9 @@ export async function startTCPProxy() {
 		});
 
 		clientSocket.on("close", () => {
+			clientClosed = true;
+			proxySockets.delete(clientSocket);
+			if (retryTimeout) clearTimeout(retryTimeout);
 			console.log(`[TCP Proxy] Client disconnected`);
 			if (forwardSocket) forwardSocket.destroy();
 			if (hasStartedForwarding) proxyEvents.emit("obsDisconnected");
