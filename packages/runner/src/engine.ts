@@ -20,6 +20,7 @@ declare global {
 
 // Singleton TCP Proxy Server to avoid port conflicts
 let proxyServer: net.Server | null = null;
+let proxyClosePromise: Promise<void> | null = null;
 
 // We use an event emitter to notify the engine about stream events
 import { EventEmitter } from "events";
@@ -51,14 +52,23 @@ function consumeRtmpProbeNonce(nonce: string) {
 	return true;
 }
 
-export function stopTCPProxy() {
+export async function stopTCPProxy() {
+	if (proxyClosePromise) return proxyClosePromise;
 	if (!proxyServer) return;
 	const server = proxyServer;
 	proxyServer = null;
-	server.close();
+	proxyClosePromise = new Promise<void>((resolve, reject) => {
+		server.close((error) => {
+			proxyClosePromise = null;
+			if (error) reject(error);
+			else resolve();
+		});
+	});
+	return proxyClosePromise;
 }
 
-export function startTCPProxy() {
+export async function startTCPProxy() {
+	if (proxyClosePromise) await proxyClosePromise;
 	if (proxyServer) return Promise.resolve(false);
 	console.log(`[TCP Proxy] Starting on port ${RTMP_PROXY_PORT}...`);
 	const server = net.createServer((clientSocket) => {

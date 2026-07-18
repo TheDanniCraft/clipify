@@ -19,9 +19,9 @@ const ALLOW_DANGEROUS_PUBLIC_RTMP_FLAG = "--allow-dangerous-public-rtmp";
 const actualStates: Record<string, string> = {};
 const activeEngines: Record<string, Engine> = {};
 
-function stopRtmpProxyIfUnused() {
+async function stopRtmpProxyIfUnused() {
 	const hasFailsafeEngine = Object.values(activeEngines).some((engine) => engine.mode === "failsafe" && engine.isRunning);
-	if (!hasFailsafeEngine) stopTCPProxy();
+	if (!hasFailsafeEngine) await stopTCPProxy();
 }
 
 function getRunnerOsInfo() {
@@ -255,7 +255,7 @@ async function checkPublicRtmpReachability(apiBase: string, token: string): Prom
 		console.warn("[Security] RTMP reachability check failed. Continuing without blocking.", error);
 		return { status: "unknown", reachableIps: [] };
 	} finally {
-		if (startedProxyForCheck) stopTCPProxy();
+		if (startedProxyForCheck) await stopTCPProxy();
 	}
 }
 
@@ -272,7 +272,7 @@ async function processHeartbeatJob(job: HeartbeatJob, apiBase: string, token: st
 		if (existingEngine) {
 			await existingEngine.stop();
 			delete activeEngines[job.id];
-			stopRtmpProxyIfUnused();
+			await stopRtmpProxyIfUnused();
 		}
 		actualStates[job.id] = "error";
 		return;
@@ -283,7 +283,7 @@ async function processHeartbeatJob(job: HeartbeatJob, apiBase: string, token: st
 			console.log(`  -> Restarting engine for job ${job.id} due to parameter change...`);
 			await existingEngine.stop();
 			delete activeEngines[job.id];
-			stopRtmpProxyIfUnused();
+			await stopRtmpProxyIfUnused();
 		} else {
 			console.log(`  -> Starting engine for job ${job.id}...`);
 		}
@@ -311,7 +311,7 @@ async function processHeartbeatJob(job: HeartbeatJob, apiBase: string, token: st
 			console.error(`[Error] Engine failed to start for job ${job.id}:`, err);
 			actualStates[job.id] = "error";
 			engine.isRunning = false;
-			stopRtmpProxyIfUnused();
+			void stopRtmpProxyIfUnused();
 		});
 		return;
 	}
@@ -322,7 +322,7 @@ async function processHeartbeatJob(job: HeartbeatJob, apiBase: string, token: st
 		if (existingEngine) {
 			await existingEngine.stop();
 			delete activeEngines[job.id];
-			stopRtmpProxyIfUnused();
+			await stopRtmpProxyIfUnused();
 		}
 	}
 }
@@ -508,7 +508,7 @@ async function stopActiveEngines() {
 			delete actualStates[id];
 		}),
 	);
-	stopRtmpProxyIfUnused();
+	await stopRtmpProxyIfUnused();
 }
 
 async function main() {

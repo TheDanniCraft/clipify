@@ -11,7 +11,7 @@ jest.mock("net", () => ({
 		once: jest.fn(),
 		off: jest.fn(),
 		listen: jest.fn((port, cb) => cb && cb()),
-		close: jest.fn(),
+		close: jest.fn((cb) => cb && cb()),
 	}),
 }));
 jest.mock("../downloader", () => ({
