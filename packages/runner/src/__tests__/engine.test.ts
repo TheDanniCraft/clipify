@@ -8,7 +8,10 @@ jest.mock("puppeteer-stream");
 jest.mock("fs");
 jest.mock("net", () => ({
 	createServer: jest.fn().mockReturnValue({
+		once: jest.fn(),
+		off: jest.fn(),
 		listen: jest.fn((port, cb) => cb && cb()),
+		close: jest.fn(),
 	}),
 }));
 jest.mock("../downloader", () => ({
