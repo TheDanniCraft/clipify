@@ -276,7 +276,12 @@ jobs:
           immutable="$RUNNER_REPOSITORY:${RUNNER_ARTIFACT_TAG_PREFIX}$RUNNER_FINGERPRINT-manifest"
           alias="$RUNNER_REPOSITORY:pr-$RUNNER_PR_NUMBER-latest-manifest"
           existing_manifest="$RUNNER_ARTIFACT_WORK/existing-preview-alias-manifest.json"
+          previous_alias_version_id=""
           if docker pull "$alias" >/dev/null 2>&1; then
+            versions="$(gh api --paginate --slurp "user/packages/container/clipify-runner/versions?per_page=100" 2>/dev/null || true)"
+            if [ -n "$versions" ]; then
+              previous_alias_version_id="$(printf '%s' "$versions" | node scripts/runner-package-cleanup.mjs --pr "$RUNNER_PR_NUMBER" --mode preview-alias 2>/dev/null | head -n 1 || true)"
+            fi
             container="$(docker create "$alias" /bin/sh)"
             trap 'docker rm "$container" >/dev/null 2>&1 || true' EXIT
             docker cp "$container:/manifest.json" "$existing_manifest"
@@ -300,6 +305,12 @@ jobs:
           docker cp "$container:/manifest.json" "$RUNNER_ARTIFACT_WORK/verified-preview-alias-manifest.json"
           cmp -s "$RUNNER_ARTIFACT_WORK/manifest.json" "$RUNNER_ARTIFACT_WORK/verified-preview-alias-manifest.json"
           echo "Updated and verified Preview Runner alias: $alias"
+          if [ -n "$previous_alias_version_id" ]; then
+            echo "Deleting previous Preview Runner alias GHCR version $previous_alias_version_id for PR #$RUNNER_PR_NUMBER"
+            if ! gh api --method DELETE "user/packages/container/clipify-runner/versions/$previous_alias_version_id" >/dev/null; then
+              echo "Warning: failed to delete previous Preview Runner alias GHCR version $previous_alias_version_id; continuing." >&2
+            fi
+          fi
           echo "updated=true" >> "$GITHUB_OUTPUT"
       - name: 🧹 Remove superseded PR Runner versions
         if: needs.prepare-context.outputs.pr-number != '' && steps.preview-alias.outputs.updated == 'true'
