@@ -217,9 +217,8 @@ type HeartbeatJob = {
 type RtmpReachabilityStatus = "reachable" | "not_reachable" | "unknown";
 
 async function checkPublicRtmpReachability(apiBase: string, token: string): Promise<{ status: RtmpReachabilityStatus; reachableIps: string[] }> {
-	let startedProxyForCheck = false;
 	try {
-		startedProxyForCheck = await startTCPProxy();
+		await startTCPProxy();
 		const startResponse = await fetch(`${apiBase}/api/runner/reachability/start`, {
 			method: "POST",
 			headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -254,8 +253,6 @@ async function checkPublicRtmpReachability(apiBase: string, token: string): Prom
 	} catch (error) {
 		console.warn("[Security] RTMP reachability check failed. Continuing without blocking.", error);
 		return { status: "unknown", reachableIps: [] };
-	} finally {
-		if (startedProxyForCheck) await stopTCPProxy();
 	}
 }
 
@@ -300,6 +297,7 @@ async function processHeartbeatJob(job: HeartbeatJob, apiBase: string, token: st
 				if (reachability.reachableIps.length > 0) console.error(`Reachable address(es): ${reachability.reachableIps.join(", ")}`);
 				console.error("==========================================================================");
 				actualStates[job.id] = "error";
+				await stopRtmpProxyIfUnused();
 				return;
 			}
 		}
@@ -311,6 +309,7 @@ async function processHeartbeatJob(job: HeartbeatJob, apiBase: string, token: st
 			console.error(`[Error] Engine failed to start for job ${job.id}:`, err);
 			actualStates[job.id] = "error";
 			engine.isRunning = false;
+			if (activeEngines[job.id] === engine) delete activeEngines[job.id];
 			void stopRtmpProxyIfUnused();
 		});
 		return;
