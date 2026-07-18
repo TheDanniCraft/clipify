@@ -81,7 +81,7 @@ export function launchUpdatedRunner(execPath: string, args: string[]) {
 	return spawn(execPath, args, { detached: false, stdio: "inherit", windowsHide: false });
 }
 
-export async function cleanupOldVersions() {
+export async function cleanupOldVersions(platform = process.platform) {
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	if (!(process as any).pkg) return;
 	const oldPath = `${process.execPath}.old`;
@@ -94,7 +94,7 @@ export async function cleanupOldVersions() {
 			return;
 		} catch (error) {
 			const code = (error as NodeJS.ErrnoException).code;
-			const canRetry = process.platform === "win32" && (code === "EPERM" || code === "EACCES" || code === "EBUSY");
+			const canRetry = platform === "win32" && (code === "EPERM" || code === "EACCES" || code === "EBUSY");
 			if (!canRetry || attempt === 19) {
 				console.warn("[Updater] Failed to clean up old version file, will retry next time:", error);
 				return;

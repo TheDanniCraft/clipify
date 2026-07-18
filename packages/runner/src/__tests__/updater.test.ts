@@ -47,7 +47,7 @@ describe("Updater logic", () => {
 			return {} as NodeJS.Timeout;
 		}) as typeof setTimeout);
 
-		await cleanupOldVersions();
+		await cleanupOldVersions("win32");
 
 		expect(fs.unlinkSync).toHaveBeenCalledTimes(2);
 		timeoutSpy.mockRestore();
