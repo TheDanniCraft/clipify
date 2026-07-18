@@ -1,6 +1,6 @@
 import * as os from "os";
 import * as readline from "readline";
-import { Engine } from "./engine";
+import { activateRtmpProbeNonce, Engine, startTCPProxy, stopTCPProxy } from "./engine";
 import { ConsoleUI } from "./logger";
 import { checkForUpdates, cleanupOldVersions } from "./updater";
 import { openBrowser } from "./browser";
@@ -13,10 +13,16 @@ if (process.env.NODE_ENV !== "test") process.noDeprecation = true;
 
 let RUNNER_VERSION = "unknown";
 const DEVELOPMENT_API_BASE = "http://localhost:3000";
+const ALLOW_DANGEROUS_PUBLIC_RTMP_FLAG = "--allow-dangerous-public-rtmp";
 
 // Track actual states and active engines locally
 const actualStates: Record<string, string> = {};
 const activeEngines: Record<string, Engine> = {};
+
+function stopRtmpProxyIfUnused() {
+	const hasFailsafeEngine = Object.values(activeEngines).some((engine) => engine.mode === "failsafe" && engine.isRunning);
+	if (!hasFailsafeEngine) stopTCPProxy();
+}
 
 function getRunnerOsInfo() {
 	return `${os.type()} ${os.release()} ${os.arch()}`;
@@ -50,6 +56,40 @@ function sleep(ms: number) {
 
 function normalizeApiBase(apiBase: string) {
 	return apiBase.replace(/\/+$/, "");
+}
+
+function normalizeIpCandidate(value: unknown) {
+	if (typeof value !== "string") return null;
+	let address = value.trim();
+	if (!address) return null;
+	address = address.split("%")[0].toLowerCase();
+	if (address.startsWith("::ffff:")) address = address.slice("::ffff:".length);
+	return address;
+}
+
+function isPublicRoutableAddress(value: unknown) {
+	const address = normalizeIpCandidate(value);
+	if (!address) return false;
+
+	const ipv4 = address.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+	if (ipv4) {
+		const [a, b, c] = ipv4.slice(1).map(Number);
+		if ([a, b, c, Number(ipv4[4])].some((octet) => !Number.isInteger(octet) || octet < 0 || octet > 255)) return false;
+		return !(a === 0 || a === 10 || a === 127 || (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || (a === 100 && b >= 64 && b <= 127) || (a === 192 && b === 0) || (a === 192 && b === 0 && c === 2) || (a === 198 && (b === 18 || b === 19)) || (a === 198 && b === 51 && c === 100) || (a === 203 && b === 0 && c === 113) || a >= 224);
+	}
+
+	return !(address === "::1" || address === "::" || address.startsWith("fe80:") || address.startsWith("fc") || address.startsWith("fd") || address.startsWith("ff") || address.startsWith("2001:db8:"));
+}
+
+function getPublicRoutableInterfaceIps() {
+	return [
+		...new Set(
+			Object.values(os.networkInterfaces())
+				.flatMap((entries) => entries ?? [])
+				.filter((entry) => !entry.internal && isPublicRoutableAddress(entry.address))
+				.map((entry) => entry.address),
+		),
+	];
 }
 
 function isSourceRunnerExecution() {
@@ -113,7 +153,7 @@ function updateEnrollmentCodeLine(userCode: string) {
 	readline.moveCursor(process.stdout, 0, 3);
 }
 
-async function enrollRunner(apiBase: string, runnerId?: string): Promise<Required<RunnerCredentials>> {
+async function enrollRunner(apiBase: string, runnerId?: string): Promise<Required<Pick<RunnerCredentials, "runnerId" | "apiBase" | "token">>> {
 	console.log("[Enrollment] No runner token found. Starting browser enrollment...");
 	let hasPrintedInstructions = false;
 
@@ -174,11 +214,56 @@ type HeartbeatJob = {
 	desiredState: "running" | "stopped";
 };
 
-async function processHeartbeatJob(job: HeartbeatJob, apiBase: string, token: string) {
+type RtmpReachabilityStatus = "reachable" | "not_reachable" | "unknown";
+
+async function checkPublicRtmpReachability(apiBase: string, token: string): Promise<{ status: RtmpReachabilityStatus; reachableIps: string[] }> {
+	let startedProxyForCheck = false;
+	try {
+		startedProxyForCheck = await startTCPProxy();
+		const startResponse = await fetch(`${apiBase}/api/runner/reachability/start`, {
+			method: "POST",
+			headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+			body: JSON.stringify({ candidateIps: getPublicRoutableInterfaceIps() }),
+		});
+
+		if (!startResponse.ok) {
+			console.warn(`[Security] RTMP reachability check could not start (status ${startResponse.status}). Continuing without blocking.`);
+			return { status: "unknown", reachableIps: [] };
+		}
+
+		const startData = (await startResponse.json()) as { checkId?: string; nonce?: string; ipsToCheck?: string[] };
+		if (!startData.checkId || !startData.nonce || !Array.isArray(startData.ipsToCheck) || startData.ipsToCheck.length === 0) {
+			return { status: "not_reachable", reachableIps: [] };
+		}
+
+		activateRtmpProbeNonce(startData.nonce);
+		const executeResponse = await fetch(`${apiBase}/api/runner/reachability/execute`, {
+			method: "POST",
+			headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+			body: JSON.stringify({ checkId: startData.checkId }),
+		});
+
+		if (!executeResponse.ok) {
+			console.warn(`[Security] RTMP reachability check could not complete (status ${executeResponse.status}). Continuing without blocking.`);
+			return { status: "unknown", reachableIps: [] };
+		}
+
+		const executeData = (await executeResponse.json()) as { status?: RtmpReachabilityStatus; reachableIps?: string[] };
+		if (executeData.status === "reachable") return { status: "reachable", reachableIps: executeData.reachableIps ?? [] };
+		return { status: "not_reachable", reachableIps: [] };
+	} catch (error) {
+		console.warn("[Security] RTMP reachability check failed. Continuing without blocking.", error);
+		return { status: "unknown", reachableIps: [] };
+	} finally {
+		if (startedProxyForCheck) stopTCPProxy();
+	}
+}
+
+async function processHeartbeatJob(job: HeartbeatJob, apiBase: string, token: string, allowDangerousPublicRtmp: boolean) {
 	const mode = job.mode === "24/7" ? "24_7" : job.mode;
 	const streamKey = job.streamKey ?? "";
 	const existingEngine = activeEngines[job.id];
-	const needsRestart = Boolean(existingEngine && (existingEngine.mode !== mode || existingEngine.rtmpUrl !== job.rtmpUrl || existingEngine.streamKey !== streamKey || existingEngine.overlayId !== job.overlayId));
+	const needsRestart = Boolean(existingEngine && (existingEngine.mode !== mode || existingEngine.rtmpUrl !== job.rtmpUrl || existingEngine.streamKey !== streamKey || existingEngine.overlayId !== job.overlayId || existingEngine.fps !== job.fps || existingEngine.resolution !== job.resolution));
 
 	console.log(`  - Job [${job.id}]: Mode=${mode}, DesiredState=${job.desiredState}`);
 
@@ -187,6 +272,7 @@ async function processHeartbeatJob(job: HeartbeatJob, apiBase: string, token: st
 		if (existingEngine) {
 			await existingEngine.stop();
 			delete activeEngines[job.id];
+			stopRtmpProxyIfUnused();
 		}
 		actualStates[job.id] = "error";
 		return;
@@ -197,8 +283,25 @@ async function processHeartbeatJob(job: HeartbeatJob, apiBase: string, token: st
 			console.log(`  -> Restarting engine for job ${job.id} due to parameter change...`);
 			await existingEngine.stop();
 			delete activeEngines[job.id];
+			stopRtmpProxyIfUnused();
 		} else {
 			console.log(`  -> Starting engine for job ${job.id}...`);
+		}
+
+		if (mode === "failsafe" && !allowDangerousPublicRtmp) {
+			const reachability = await checkPublicRtmpReachability(apiBase, token);
+			if (reachability.status === "reachable") {
+				console.error("==========================================================================");
+				console.error("[SECURITY BLOCK] RTMP ingest port 1935 is reachable from the public internet.");
+				console.error("Anyone who can reach this port could stream into this runner while it is active.");
+				console.error("Protect port 1935 with firewall/private-network rules, or start the runner with:");
+				console.error(`  ${ALLOW_DANGEROUS_PUBLIC_RTMP_FLAG}`);
+				console.error("Only use that flag after you have reviewed and accepted this risk.");
+				if (reachability.reachableIps.length > 0) console.error(`Reachable address(es): ${reachability.reachableIps.join(", ")}`);
+				console.error("==========================================================================");
+				actualStates[job.id] = "error";
+				return;
+			}
 		}
 
 		actualStates[job.id] = "running";
@@ -208,6 +311,7 @@ async function processHeartbeatJob(job: HeartbeatJob, apiBase: string, token: st
 			console.error(`[Error] Engine failed to start for job ${job.id}:`, err);
 			actualStates[job.id] = "error";
 			engine.isRunning = false;
+			stopRtmpProxyIfUnused();
 		});
 		return;
 	}
@@ -218,11 +322,12 @@ async function processHeartbeatJob(job: HeartbeatJob, apiBase: string, token: st
 		if (existingEngine) {
 			await existingEngine.stop();
 			delete activeEngines[job.id];
+			stopRtmpProxyIfUnused();
 		}
 	}
 }
 
-async function pollHeartbeat(token: string, apiBase: string, runnerId?: string): Promise<"ok" | "reauth"> {
+async function pollHeartbeat(token: string, apiBase: string, allowDangerousPublicRtmp: boolean, runnerId?: string): Promise<"ok" | "reauth"> {
 	try {
 		console.log(`[Heartbeat] Polling ${apiBase}/api/runner/heartbeat...`);
 		const response = await fetch(`${apiBase}/api/runner/heartbeat`, {
@@ -241,7 +346,7 @@ async function pollHeartbeat(token: string, apiBase: string, runnerId?: string):
 		}
 		const data = (await response.json()) as { jobs?: HeartbeatJob[] };
 		console.log(`[Jobs] Received ${data.jobs?.length || 0} jobs.`);
-		for (const job of (data.jobs || []) as HeartbeatJob[]) await processHeartbeatJob(job, apiBase, token);
+		for (const job of (data.jobs || []) as HeartbeatJob[]) await processHeartbeatJob(job, apiBase, token, allowDangerousPublicRtmp);
 		return "ok";
 	} catch (error) {
 		console.error(`[Error] Failed to poll heartbeat:`, error);
@@ -249,12 +354,14 @@ async function pollHeartbeat(token: string, apiBase: string, runnerId?: string):
 	}
 }
 
-async function initializeRunner(args: string[], forceReenrollment = false): Promise<{ apiBase: string; token: string; runnerId?: string }> {
+async function initializeRunner(args: string[], forceReenrollment = false): Promise<{ apiBase: string; token: string; runnerId?: string; allowDangerousPublicRtmp: boolean }> {
 	const tokenArgIndex = args.indexOf("--token");
 	let token = tokenArgIndex !== -1 ? args[tokenArgIndex + 1] : undefined;
 	const urlArgIndex = args.findIndex((arg) => arg === "--url" || arg === "--api" || arg === "--api-url");
 	const inlineUrlArg = args.find((arg) => arg.startsWith("--api-url="));
 	const overrideUrl = inlineUrlArg ? inlineUrlArg.slice("--api-url=".length) : urlArgIndex !== -1 ? args[urlArgIndex + 1] : undefined;
+	const allowDangerousPublicRtmpCliArg = args.includes(ALLOW_DANGEROUS_PUBLIC_RTMP_FLAG);
+	const allowDangerousPublicRtmpRuntimeOverride = allowDangerousPublicRtmpCliArg || process.env.CLIPIFY_ALLOW_DANGEROUS_PUBLIC_RTMP === "1";
 
 	const bakedConfig = forceReenrollment ? null : extractBakedConfig(process.execPath);
 	if (bakedConfig) {
@@ -266,7 +373,9 @@ async function initializeRunner(args: string[], forceReenrollment = false): Prom
 		runnerId: savedConfig.runnerId,
 		apiBase: savedConfig.apiBase,
 		token: savedConfig.token,
+		allowDangerousPublicRtmp: savedConfig.allowDangerousPublicRtmp,
 	};
+	if (allowDangerousPublicRtmpRuntimeOverride) localConfig.allowDangerousPublicRtmp = true;
 
 	// Idiotenschutz: Runner ID Mismatch Prevention
 	if (bakedConfig?.runnerId && localConfig?.runnerId) {
@@ -322,6 +431,7 @@ async function initializeRunner(args: string[], forceReenrollment = false): Prom
 				runnerId: localConfig.runnerId,
 				apiBase: apiBase,
 				token: localConfig.token,
+				allowDangerousPublicRtmp: localConfig.allowDangerousPublicRtmp,
 			});
 			console.log("[Bootstrap] Successfully initialized and saved runner config.");
 		} catch (error) {
@@ -368,10 +478,21 @@ async function initializeRunner(args: string[], forceReenrollment = false): Prom
 			runnerId: localConfig.runnerId,
 			apiBase: apiBase,
 			token: runnerToken,
+			allowDangerousPublicRtmp: localConfig.allowDangerousPublicRtmp,
 		});
 	}
 
-	return { apiBase, token: runnerToken, runnerId: localConfig.runnerId };
+	if (allowDangerousPublicRtmpCliArg && savedConfig.allowDangerousPublicRtmp !== true) {
+		await saveCredentials({
+			runnerId: localConfig.runnerId,
+			apiBase: apiBase,
+			token: runnerToken,
+			allowDangerousPublicRtmp: true,
+		});
+		console.warn(`[Security] ${ALLOW_DANGEROUS_PUBLIC_RTMP_FLAG} enabled and saved. Public RTMP exposure will not block this runner.`);
+	}
+
+	return { apiBase, token: runnerToken, runnerId: localConfig.runnerId, allowDangerousPublicRtmp: localConfig.allowDangerousPublicRtmp === true };
 }
 
 async function stopActiveEngines() {
@@ -387,6 +508,7 @@ async function stopActiveEngines() {
 			delete actualStates[id];
 		}),
 	);
+	stopRtmpProxyIfUnused();
 }
 
 async function main() {
@@ -395,7 +517,7 @@ async function main() {
 		process.exit(0);
 	}
 
-	let { apiBase, token, runnerId } = await initializeRunner(process.argv.slice(2));
+	let { apiBase, token, runnerId, allowDangerousPublicRtmp } = await initializeRunner(process.argv.slice(2));
 	ConsoleUI.init();
 
 	await cleanupOldVersions();
@@ -418,13 +540,14 @@ async function main() {
 
 	const runnerArgs = process.argv.slice(2);
 	while (true) {
-		const heartbeatStatus = await pollHeartbeat(token, apiBase, runnerId);
+		const heartbeatStatus = await pollHeartbeat(token, apiBase, allowDangerousPublicRtmp, runnerId);
 		if (heartbeatStatus === "reauth") {
 			await stopActiveEngines();
 			const reauthenticated = await initializeRunner([...runnerArgs, "--api-url", apiBase], true);
 			apiBase = reauthenticated.apiBase;
 			token = reauthenticated.token;
 			runnerId = reauthenticated.runnerId;
+			allowDangerousPublicRtmp = reauthenticated.allowDangerousPublicRtmp;
 			RUNNER_VERSION = await checkForUpdates(apiBase);
 			console.log(`[Info] Re-enrollment complete. API Base URL is ${apiBase}.`);
 			continue;

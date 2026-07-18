@@ -125,8 +125,8 @@ export default function RunnerPage() {
 				if (fetchedSessions) setStreamSessions(fetchedSessions);
 				setRunnerVersionManifest(fetchedVersionManifest);
 
-				if (fetchedRunner?.status === "online" && fetchedSessions[0]?.actualState === "running" && fetchedSessions[0]?.overlayId) {
-					const res = await fetch(`/api/runner/preview?overlayId=${fetchedSessions[0].overlayId}`);
+				if (fetchedRunner?.status === "online" && fetchedSessions[0]?.actualState === "running") {
+					const res = await fetch(`/api/runner/preview?runnerId=${params.id}`);
 					if (res.ok) {
 						const data = await res.json();
 						if (data.image) setPreviewImage(data.image);

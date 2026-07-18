@@ -154,7 +154,12 @@ export async function upsertStreamSession(data: { id?: string; ownerId: string; 
 				updatePayload.encryptedStreamKey = encryptString(data.streamKey);
 			}
 
-			await db.update(streamSessionsTable).set(updatePayload).where(eq(streamSessionsTable.id, data.id));
+			const [updatedSession] = await db
+				.update(streamSessionsTable)
+				.set(updatePayload)
+				.where(and(eq(streamSessionsTable.id, data.id), eq(streamSessionsTable.ownerId, data.ownerId)))
+				.returning({ id: streamSessionsTable.id });
+			if (!updatedSession) return { success: false, error: "Stream session not found", code: "NOT_FOUND" as const };
 		} else {
 			// Insert new
 			await db.insert(streamSessionsTable).values({

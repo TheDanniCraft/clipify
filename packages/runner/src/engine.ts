@@ -28,27 +28,48 @@ export const proxyEvents = new EventEmitter();
 const CAPTURE_ATTEMPT_TIMEOUT_MS = 15_000;
 const CAPTURE_MAX_ATTEMPTS = 3;
 const CAPTURE_RETRY_DELAY_MS = 5_000;
+const RTMP_PROXY_PORT = 1935;
+const RTMP_PROBE_PREFIX = "CLIPIFY_RTMP_PROBE ";
+const MAX_PROBE_BYTES = 512;
 
-function startTCPProxy() {
-	if (proxyServer) return;
-	console.log(`[TCP Proxy] Starting on port 1935...`);
-	proxyServer = net.createServer((clientSocket) => {
+const activeProbeNonces = new Map<string, NodeJS.Timeout>();
+
+export function activateRtmpProbeNonce(nonce: string, ttlMs = 30_000) {
+	if (!/^[A-Za-z0-9_-]{16,128}$/.test(nonce)) return;
+	const existingTimeout = activeProbeNonces.get(nonce);
+	if (existingTimeout) clearTimeout(existingTimeout);
+	const timeout = setTimeout(() => activeProbeNonces.delete(nonce), ttlMs);
+	timeout.unref?.();
+	activeProbeNonces.set(nonce, timeout);
+}
+
+function consumeRtmpProbeNonce(nonce: string) {
+	const timeout = activeProbeNonces.get(nonce);
+	if (!timeout) return false;
+	clearTimeout(timeout);
+	activeProbeNonces.delete(nonce);
+	return true;
+}
+
+export function stopTCPProxy() {
+	if (!proxyServer) return;
+	const server = proxyServer;
+	proxyServer = null;
+	server.close();
+}
+
+export function startTCPProxy() {
+	if (proxyServer) return Promise.resolve(false);
+	console.log(`[TCP Proxy] Starting on port ${RTMP_PROXY_PORT}...`);
+	const server = net.createServer((clientSocket) => {
 		console.log(`[TCP Proxy] Connection received from ${clientSocket.remoteAddress}`);
-
-		// 1. Emit obsConnected so Engine can start FFmpeg listening on 1936
-		proxyEvents.emit("obsConnected");
 
 		let retryCount = 0;
 		let forwardSocket: net.Socket | null = null;
 		let earlyData: Buffer[] = [];
 		let isPiping = false;
-
-		// Buffer initial packets manually due to a bug in Bun's net.Socket.pause()
-		clientSocket.on("data", (chunk: any) => {
-			if (!isPiping) {
-				earlyData.push(chunk as Buffer);
-			}
-		});
+		let hasStartedForwarding = false;
+		let probeBuffer = Buffer.alloc(0);
 
 		const connectToFFmpeg = () => {
 			if (forwardSocket) {
@@ -89,21 +110,67 @@ function startTCPProxy() {
 			});
 		};
 
+		const startForwarding = () => {
+			if (hasStartedForwarding) return;
+			hasStartedForwarding = true;
+			proxyEvents.emit("obsConnected");
+			connectToFFmpeg();
+		};
+
+		// Buffer initial packets manually due to a bug in Bun's net.Socket.pause().
+		// Probe sockets are handled before they can trigger OBS forwarding.
+		clientSocket.on("data", (chunk: any) => {
+			const data = chunk as Buffer;
+			if (!isPiping) {
+				earlyData.push(data);
+			}
+			if (hasStartedForwarding) return;
+
+			if (probeBuffer.length < MAX_PROBE_BYTES) {
+				probeBuffer = Buffer.concat([probeBuffer, data]).subarray(0, MAX_PROBE_BYTES);
+			}
+
+			const probeText = probeBuffer.toString("utf8");
+			if (probeText.startsWith(RTMP_PROBE_PREFIX)) {
+				if (!probeText.includes("\n") && probeBuffer.length < MAX_PROBE_BYTES) return;
+				const probeLine = probeText.split(/\r?\n/, 1)[0] ?? "";
+				const nonce = probeLine.slice(RTMP_PROBE_PREFIX.length).trim();
+				if (consumeRtmpProbeNonce(nonce)) {
+					clientSocket.end("OK\n");
+				} else {
+					clientSocket.destroy();
+				}
+				return;
+			}
+
+			if (!RTMP_PROBE_PREFIX.startsWith(probeText) || probeBuffer.length >= MAX_PROBE_BYTES) {
+				startForwarding();
+			}
+		});
+
 		clientSocket.on("close", () => {
 			console.log(`[TCP Proxy] Client disconnected`);
 			if (forwardSocket) forwardSocket.destroy();
-			proxyEvents.emit("obsDisconnected");
+			if (hasStartedForwarding) proxyEvents.emit("obsDisconnected");
 		});
 
 		clientSocket.on("error", (err) => {
 			console.error(`[TCP Proxy] Client error:`, err);
 		});
-
-		connectToFFmpeg();
 	});
+	proxyServer = server;
 
-	proxyServer.listen(1935, () => {
-		console.log(`[TCP Proxy] Listening on port 1935`);
+	return new Promise<boolean>((resolve, reject) => {
+		const handleListenError = (error: Error) => {
+			if (proxyServer === server) proxyServer = null;
+			reject(error);
+		};
+		server.once("error", handleListenError);
+		server.listen(RTMP_PROXY_PORT, () => {
+			server.off("error", handleListenError);
+			console.log(`[TCP Proxy] Listening on port ${RTMP_PROXY_PORT}`);
+			resolve(true);
+		});
 	});
 }
 
@@ -235,7 +302,7 @@ export class Engine {
 		console.log(`[Engine] Starting stream for overlay ${this.overlayId} in ${this.mode} mode...`);
 
 		if (this.mode === "failsafe") {
-			startTCPProxy();
+			await startTCPProxy();
 			proxyEvents.on("obsConnected", this.handleObsConnected);
 			proxyEvents.on("obsDisconnected", this.handleObsDisconnected);
 		}
