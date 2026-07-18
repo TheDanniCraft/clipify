@@ -499,7 +499,44 @@ async function stopActiveEngines() {
 	await stopRtmpProxyIfUnused();
 }
 
+let shutdownPromise: Promise<void> | null = null;
+
+function shutdownRunner(reason: string, logReason = true) {
+	if (shutdownPromise) return shutdownPromise;
+
+	shutdownPromise = (async () => {
+		if (logReason) console.log(`[Runner] Shutting down (${reason})...`);
+		const forceExitTimer = setTimeout(() => process.exit(1), 8_000);
+		forceExitTimer.unref?.();
+		try {
+			await stopActiveEngines();
+		} catch (error) {
+			console.error("[Runner] Shutdown cleanup failed:", error);
+		} finally {
+			clearTimeout(forceExitTimer);
+			process.exit(0);
+		}
+	})();
+
+	return shutdownPromise;
+}
+
+function installShutdownHandlers() {
+	const shutdownSignals: NodeJS.Signals[] = ["SIGINT", "SIGTERM", "SIGHUP"];
+	if (process.platform === "win32") shutdownSignals.push("SIGBREAK");
+	for (const signal of shutdownSignals) {
+		process.once(signal, () => void shutdownRunner(signal));
+	}
+
+	const handleConsoleError = (error: NodeJS.ErrnoException) => {
+		if (error.code === "EPIPE") void shutdownRunner("console disconnected", false);
+	};
+	process.stdout.on("error", handleConsoleError);
+	process.stderr.on("error", handleConsoleError);
+}
+
 async function main() {
+	installShutdownHandlers();
 	if (process.argv.includes("--self-test")) {
 		console.log("Clipify Runner self-test passed");
 		process.exit(0);
