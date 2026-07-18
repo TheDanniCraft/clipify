@@ -4,6 +4,7 @@ import { activateRtmpProbeNonce, Engine, startTCPProxy, stopTCPProxy } from "./e
 import { ConsoleUI } from "./logger";
 import { checkForUpdates, cleanupOldVersions } from "./updater";
 import { openBrowser } from "./browser";
+import { getRtmpReachabilityConfirmation, type RtmpReachabilityStatus } from "./reachability";
 
 import { extractBakedConfig } from "./bootstrap";
 import { clearCredentials, loadCredentials, saveCredentials, type RunnerCredentials } from "./storage";
@@ -213,8 +214,6 @@ type HeartbeatJob = {
 	desiredState: "running" | "stopped";
 };
 
-type RtmpReachabilityStatus = "reachable" | "not_reachable" | "unknown";
-
 async function checkPublicRtmpReachability(apiBase: string, token: string): Promise<{ status: RtmpReachabilityStatus; reachableIps: string[] }> {
 	let startedProxyForCheck = false;
 	try {
@@ -232,7 +231,7 @@ async function checkPublicRtmpReachability(apiBase: string, token: string): Prom
 
 		const startData = (await startResponse.json()) as { checkId?: string; nonce?: string; ipsToCheck?: string[] };
 		if (!startData.checkId || !startData.nonce || !Array.isArray(startData.ipsToCheck) || startData.ipsToCheck.length === 0) {
-			return { status: "not_reachable", reachableIps: [] };
+			return { status: "skipped", reachableIps: [] };
 		}
 
 		activateRtmpProbeNonce(startData.nonce);
@@ -249,7 +248,8 @@ async function checkPublicRtmpReachability(apiBase: string, token: string): Prom
 
 		const executeData = (await executeResponse.json()) as { status?: RtmpReachabilityStatus; reachableIps?: string[] };
 		if (executeData.status === "reachable") return { status: "reachable", reachableIps: executeData.reachableIps ?? [] };
-		return { status: "not_reachable", reachableIps: [] };
+		if (executeData.status === "not_reachable") return { status: "not_reachable", reachableIps: [] };
+		return { status: "unknown", reachableIps: [] };
 	} catch (error) {
 		console.warn("[Security] RTMP reachability check failed. Continuing without blocking.", error);
 		return { status: "unknown", reachableIps: [] };
@@ -295,6 +295,8 @@ async function processHeartbeatJob(job: HeartbeatJob, apiBase: string, token: st
 
 		if (mode === "failsafe") {
 			const reachability = await checkPublicRtmpReachability(apiBase, token);
+			const confirmation = getRtmpReachabilityConfirmation(reachability.status);
+			if (confirmation) console.log(confirmation);
 			if (reachability.status === "reachable") {
 				console.error("==========================================================================");
 				console.error("[SECURITY WARNING] RTMP ingest port 1935 is reachable from the public internet.");
