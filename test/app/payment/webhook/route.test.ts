@@ -99,4 +99,32 @@ describe("app/payment/webhook route", () => {
 		await expect(response.json()).resolves.toEqual({ duplicate: true });
 		expect(syncStripeSubscription).not.toHaveBeenCalled();
 	});
+
+	it("returns a retryable response while another worker holds a fresh processing lease", async () => {
+		findEvent.mockResolvedValue({ id: "evt_busy", status: "processing", processingStartedAt: new Date(), retryCount: 0 });
+		getStripe.mockResolvedValue({ webhooks: { constructEvent: jest.fn(() => ({ id: "evt_busy", type: "customer.subscription.updated", data: { object: { id: "sub_1" } } })) } });
+		const { POST } = await loadRoute();
+
+		const response = await POST(new Request("http://localhost/payment/webhook", { method: "POST", body: "payload" }));
+
+		expect(response.status).toBe(503);
+		expect(response.headers.get("Retry-After")).toBe("30");
+		expect(syncStripeSubscription).not.toHaveBeenCalled();
+	});
+
+	it("reclaims a stale processing lease and finishes the event", async () => {
+		const subscription = { id: "sub_1", customer: "cus_1", items: { data: [] } };
+		findEvent.mockResolvedValue({ id: "evt_stale", status: "processing", processingStartedAt: new Date(Date.now() - 10 * 60 * 1000), retryCount: 0 });
+		getStripe.mockResolvedValue({
+			webhooks: { constructEvent: jest.fn(() => ({ id: "evt_stale", type: "customer.subscription.updated", data: { object: { id: "sub_1" } } })) },
+			subscriptions: { retrieve: jest.fn().mockResolvedValue(subscription) },
+		});
+		const { POST } = await loadRoute();
+
+		const response = await POST(new Request("http://localhost/payment/webhook", { method: "POST", body: "payload" }));
+
+		expect(response.status).toBe(200);
+		expect(updateWhere).toHaveBeenCalled();
+		expect(syncStripeSubscription).toHaveBeenCalledWith(subscription);
+	});
 });

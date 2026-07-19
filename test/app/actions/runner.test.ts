@@ -8,6 +8,7 @@ const mockRevalidatePath = jest.fn();
 const mockEditorFindFirst = jest.fn();
 const mockOwnerFindFirst = jest.fn();
 const mockRunnerFindFirst = jest.fn();
+const mockRunnerFindMany = jest.fn();
 const mockOverlayFindFirst = jest.fn();
 const mockUpdateReturning = jest.fn();
 
@@ -25,7 +26,7 @@ const mockDb = {
 	query: {
 		editorsTable: { findFirst: (...args: unknown[]) => mockEditorFindFirst(...args) },
 		usersTable: { findFirst: (...args: unknown[]) => mockOwnerFindFirst(...args) },
-		runnersTable: { findFirst: (...args: unknown[]) => mockRunnerFindFirst(...args) },
+		runnersTable: { findFirst: (...args: unknown[]) => mockRunnerFindFirst(...args), findMany: (...args: unknown[]) => mockRunnerFindMany(...args) },
 		overlaysTable: { findFirst: (...args: unknown[]) => mockOverlayFindFirst(...args) },
 	},
 	update: jest.fn(() => mockUpdateBuilder),
@@ -96,5 +97,27 @@ describe("actions/runner", () => {
 
 		expect(result).toEqual({ success: false, error: "Stream session not found", code: "NOT_FOUND" });
 		expect(mockRevalidatePath).not.toHaveBeenCalled();
+	});
+
+	it("projects runner reads without bearer or bootstrap tokens", async () => {
+		mockRunnerFindMany.mockResolvedValue([]);
+		const { getAllRunners, getRunner } = await import("@/app/actions/runner");
+
+		await getAllRunners("owner-1");
+		await getRunner("runner-1", "owner-1");
+
+		for (const call of [mockRunnerFindMany.mock.calls[0][0], mockRunnerFindFirst.mock.calls.at(-1)?.[0]]) {
+			expect(call.columns).toEqual(expect.objectContaining({ id: true, ownerId: true, name: true, status: true }));
+			expect(call.columns).not.toHaveProperty("token");
+			expect(call.columns).not.toHaveProperty("bootstrapToken");
+		}
+	});
+
+	it("only selects the bearer token through the explicit token action", async () => {
+		mockRunnerFindFirst.mockResolvedValue({ token: "cl_run_secret" });
+		const { getRunnerToken } = await import("@/app/actions/runner");
+
+		await expect(getRunnerToken("runner-1", "owner-1")).resolves.toEqual({ success: true, token: "cl_run_secret" });
+		expect(mockRunnerFindFirst.mock.calls.at(-1)?.[0].columns).toEqual({ token: true });
 	});
 });

@@ -301,6 +301,7 @@ export const billingWebhookEventsTable = pgTable("billing_webhook_events", {
 	lastError: text("last_error"),
 	retryCount: integer("retry_count").notNull().default(0),
 	receivedAt: timestamp("received_at", { withTimezone: true }).defaultNow().notNull(),
+	processingStartedAt: timestamp("processing_started_at", { withTimezone: true }),
 	processedAt: timestamp("processed_at", { withTimezone: true }),
 });
 

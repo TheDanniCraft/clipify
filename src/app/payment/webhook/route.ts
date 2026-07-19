@@ -9,9 +9,37 @@ import { getStripe } from "@actions/subscription";
 import { db } from "@/db/client";
 import { billingWebhookEventsTable } from "@/db/schema";
 import { syncStripeSubscription } from "@/server/billing";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull, lt, or } from "drizzle-orm";
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_KEY || "";
+const WEBHOOK_PROCESSING_LEASE_MS = 5 * 60 * 1000;
+
+type WebhookClaim = { status: "claimed"; processingStartedAt: Date } | { status: "processed" } | { status: "busy" };
+
+async function claimWebhookEvent(event: Stripe.Event, now = new Date()): Promise<WebhookClaim> {
+	const staleBefore = new Date(now.getTime() - WEBHOOK_PROCESSING_LEASE_MS);
+	let existing = await db.query.billingWebhookEventsTable.findFirst({ where: eq(billingWebhookEventsTable.id, event.id) });
+
+	if (!existing) {
+		const [inserted] = await db.insert(billingWebhookEventsTable).values({ id: event.id, eventType: event.type, status: "processing", processingStartedAt: now }).onConflictDoNothing({ target: billingWebhookEventsTable.id }).returning({ id: billingWebhookEventsTable.id });
+		if (inserted) return { status: "claimed", processingStartedAt: now };
+
+		existing = await db.query.billingWebhookEventsTable.findFirst({ where: eq(billingWebhookEventsTable.id, event.id) });
+	}
+
+	if (!existing) return { status: "busy" };
+	if (existing.status === "processed") return { status: "processed" };
+	if (existing.status === "processing" && existing.processingStartedAt && existing.processingStartedAt >= staleBefore) return { status: "busy" };
+
+	const claimCondition = existing.status === "failed" ? and(eq(billingWebhookEventsTable.id, event.id), eq(billingWebhookEventsTable.status, "failed")) : and(eq(billingWebhookEventsTable.id, event.id), eq(billingWebhookEventsTable.status, "processing"), or(isNull(billingWebhookEventsTable.processingStartedAt), lt(billingWebhookEventsTable.processingStartedAt, staleBefore)));
+	const [claimed] = await db
+		.update(billingWebhookEventsTable)
+		.set({ status: "processing", processingStartedAt: now, retryCount: existing.retryCount + 1, lastError: null })
+		.where(claimCondition)
+		.returning({ id: billingWebhookEventsTable.id });
+
+	return claimed ? { status: "claimed", processingStartedAt: now } : { status: "busy" };
+}
 
 async function getCanonicalSubscription(stripe: Stripe, subscription: string | Stripe.Subscription | null) {
 	const subscriptionId = typeof subscription === "string" ? subscription : subscription?.id;
@@ -56,28 +84,18 @@ export async function POST(req: Request) {
 	const handledEvents = new Set(["checkout.session.completed", "customer.subscription.created", "customer.subscription.updated", "customer.subscription.deleted"]);
 	if (!handledEvents.has(event.type)) return NextResponse.json({});
 
-	const existing = await db.query.billingWebhookEventsTable.findFirst({ where: eq(billingWebhookEventsTable.id, event.id) });
-	if (existing?.status === "processed" || existing?.status === "processing") return NextResponse.json({ duplicate: true });
-
-	if (existing?.status === "failed") {
-		const [claimedRetry] = await db
-			.update(billingWebhookEventsTable)
-			.set({ status: "processing", retryCount: existing.retryCount + 1, lastError: null })
-			.where(and(eq(billingWebhookEventsTable.id, event.id), eq(billingWebhookEventsTable.status, "failed")))
-			.returning({ id: billingWebhookEventsTable.id });
-		if (!claimedRetry) return NextResponse.json({ duplicate: true });
-	} else {
-		const [claimedInsert] = await db.insert(billingWebhookEventsTable).values({ id: event.id, eventType: event.type, status: "processing" }).onConflictDoNothing({ target: billingWebhookEventsTable.id }).returning({ id: billingWebhookEventsTable.id });
-		if (!claimedInsert) return NextResponse.json({ duplicate: true });
-	}
+	const claim = await claimWebhookEvent(event);
+	if (claim.status === "processed") return NextResponse.json({ duplicate: true });
+	if (claim.status === "busy") return NextResponse.json({ error: "Webhook event is already being processed" }, { status: 503, headers: { "Retry-After": "30" } });
+	const leaseCondition = and(eq(billingWebhookEventsTable.id, event.id), eq(billingWebhookEventsTable.status, "processing"), eq(billingWebhookEventsTable.processingStartedAt, claim.processingStartedAt));
 
 	try {
 		await processEvent(stripe, event);
-		await db.update(billingWebhookEventsTable).set({ status: "processed", processedAt: new Date(), lastError: null }).where(eq(billingWebhookEventsTable.id, event.id));
+		await db.update(billingWebhookEventsTable).set({ status: "processed", processingStartedAt: null, processedAt: new Date(), lastError: null }).where(leaseCondition);
 		return NextResponse.json({});
 	} catch (error) {
 		const message = error instanceof Error ? error.message : "Unknown Stripe webhook error";
-		await db.update(billingWebhookEventsTable).set({ status: "failed", lastError: message }).where(eq(billingWebhookEventsTable.id, event.id));
+		await db.update(billingWebhookEventsTable).set({ status: "failed", processingStartedAt: null, lastError: message }).where(leaseCondition);
 		console.error(`Stripe webhook failed: ${message} | EVENT TYPE: ${event.type}`);
 		return NextResponse.json({ error: message }, { status: 500 });
 	}

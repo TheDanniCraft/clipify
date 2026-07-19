@@ -3,19 +3,19 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { validateAuth } from "@actions/auth";
-import { getRunner, getRunnerVersionManifest, getStreamSessionsForRunner, upsertStreamSession, setStreamDesiredState, unlinkRunner } from "@actions/runner";
+import { getRunner, getRunnerToken, getRunnerVersionManifest, getStreamSessionsForRunner, upsertStreamSession, setStreamDesiredState, unlinkRunner } from "@actions/runner";
 import { getAllOverlays } from "@actions/database";
 import { Button, Card, Label, Select, Spinner, TextField, ListBox, Input, Chip, Separator, Modal, Dropdown, Tooltip } from "@heroui/react";
 import { IconCopy, IconCheck, IconDownload, IconPlayerPlay, IconPlayerStop, IconArrowLeft, IconTrash, IconBrandWindows, IconTerminal2, IconBrandApple, IconAlertTriangle, IconCircleCheck, IconUnlink } from "@tabler/icons-react";
 import { notify } from "@lib/toast";
 import FullscreenLoadingState from "@components/fullscreenLoadingState";
 import ConfirmModal from "@components/confirmModal";
-import { runnersTable, streamSessionsTable } from "@/db/schema";
+import { streamSessionsTable } from "@/db/schema";
 import { InferSelectModel } from "drizzle-orm";
 import DashboardNavbar from "@components/dashboardNavbar";
 import { AuthenticatedUser, Overlay, StreamMode, StreamState, RunnerStatus } from "@types";
 
-type Runner = InferSelectModel<typeof runnersTable>;
+type Runner = NonNullable<Awaited<ReturnType<typeof getRunner>>>;
 type StreamSession = InferSelectModel<typeof streamSessionsTable>;
 type RunnerPlatform = "windows" | "linux" | "linux-arm64" | "macos" | "macos-arm64";
 type RunnerVersionManifest = Awaited<ReturnType<typeof getRunnerVersionManifest>>;
@@ -94,6 +94,8 @@ export default function RunnerPage() {
 
 	const [clearStreamKey, setClearStreamKey] = useState<boolean>(false);
 	const [copied, setCopied] = useState(false);
+	const [manualToken, setManualToken] = useState<string | null>(null);
+	const [isLoadingToken, setIsLoadingToken] = useState(false);
 	const [isSaving, setIsSaving] = useState(false);
 
 	const [previewImage, setPreviewImage] = useState<string | null>(null);
@@ -201,8 +203,17 @@ export default function RunnerPage() {
 		return <FullscreenLoadingState message='Loading runner configuration' />;
 	}
 
-	const copyToken = () => {
-		navigator.clipboard.writeText(runner.token);
+	const copyToken = async () => {
+		setIsLoadingToken(true);
+		const result = manualToken ? { success: true, token: manualToken } : await getRunnerToken(runner.id, runner.ownerId);
+		setIsLoadingToken(false);
+		if (!result.success || !result.token) {
+			notify({ title: "Error", description: "Failed to reveal the runner token.", color: "danger" });
+			return;
+		}
+
+		setManualToken(result.token);
+		await navigator.clipboard.writeText(result.token);
 		setCopied(true);
 		setTimeout(() => setCopied(false), 2000);
 	};
@@ -267,6 +278,7 @@ export default function RunnerPage() {
 	const handleUnlinkRunner = async () => {
 		const res = await unlinkRunner(runner.id, runner.ownerId);
 		if (res.success) {
+			setManualToken(null);
 			notify({ title: "Runner unlinked", description: "The runner token was revoked.", color: "success" });
 			router.refresh();
 			return;
@@ -550,8 +562,8 @@ export default function RunnerPage() {
 												<TextField variant='secondary'>
 													<Label>Manual Runner Token</Label>
 													<div className='flex gap-2'>
-														<Input readOnly value={runner.token} type='password' className='font-mono text-sm flex-1' />
-														<Button isIconOnly variant='secondary' onPress={copyToken}>
+														<Input readOnly value={manualToken ?? ""} placeholder='Reveal and copy on demand' type='password' className='font-mono text-sm flex-1' />
+														<Button isIconOnly variant='secondary' onPress={copyToken} isPending={isLoadingToken} aria-label='Reveal and copy runner token'>
 															{copied ? <IconCheck size={18} className='text-success' /> : <IconCopy size={18} />}
 														</Button>
 													</div>

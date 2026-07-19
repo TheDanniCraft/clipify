@@ -96,6 +96,19 @@ export default function AdminHealthCharts({ health }: { health: InstanceHealthSn
 		{ label: "Running", value: health.runners.streamsActuallyRunning, fill: "#17C964" },
 		{ label: "Errored", value: health.runners.streamsErrored, fill: "#F31260" },
 	];
+	const runnerModeData = [
+		{ label: "24/7", value: health.runners.byMode["24/7"], fill: "#006FEE" },
+		{ label: "Failsafe", value: health.runners.byMode.failsafe, fill: "#F5A524" },
+	];
+	const runnerDestinationData = [
+		{ label: "YouTube", value: health.runners.byDestination.youtube, fill: "#F31260" },
+		{ label: "Twitch", value: health.runners.byDestination.twitch, fill: "#9353D3" },
+		{ label: "Custom", value: health.runners.byDestination.custom, fill: "#17C964" },
+	];
+	const runnerDestinationByModeData = [
+		{ label: "24/7", YouTube: health.runners.byModeAndDestination["24/7"].youtube, Twitch: health.runners.byModeAndDestination["24/7"].twitch, Custom: health.runners.byModeAndDestination["24/7"].custom },
+		{ label: "Failsafe", YouTube: health.runners.byModeAndDestination.failsafe.youtube, Twitch: health.runners.byModeAndDestination.failsafe.twitch, Custom: health.runners.byModeAndDestination.failsafe.custom },
+	];
 	const overlayOwnerData = [
 		{ label: "Free Owners", value: health.counts.activeOverlayOwnersFree, fill: "#006FEE" },
 		{ label: "Paid Owners", value: health.counts.activeOverlayOwnersPaid, fill: "#9353D3" },
@@ -198,46 +211,92 @@ export default function AdminHealthCharts({ health }: { health: InstanceHealthSn
 		},
 	];
 
+	const runnerHealthSection = (
+		<Card variant='secondary' className='min-w-0 lg:col-span-2'>
+			<Card.Header className='pb-1'>
+				<p className='text-sm font-semibold'>Runner and Add-on Health</p>
+			</Card.Header>
+			<Card.Content className='grid min-w-0 gap-3 md:grid-cols-2'>
+				<ChartPanel title={`Runners (${health.runners.total} total)`}>
+					<MeasuredChart className='h-56 min-w-0'>
+						{(width) => (
+							<PieChart width={width} height={224}>
+								<Tooltip {...tooltipProps} />
+								<Pie data={runnerStateData} dataKey='value' nameKey='label' cx='50%' cy='50%' outerRadius={Math.min(78, Math.floor(width / 4))} label>
+									{runnerStateData.map((entry) => (
+										<Cell key={entry.label} fill={entry.fill} />
+									))}
+								</Pie>
+							</PieChart>
+						)}
+					</MeasuredChart>
+				</ChartPanel>
+				<ChartPanel title={`Runner subscriptions (${health.billing.runnerSubscriptionsActive} active)`}>
+					<MeasuredChart className='h-56 min-w-0'>
+						{(width) => (
+							<BarChart width={width} height={224} data={runnerStreamData} margin={{ top: 10, right: 8, left: -18, bottom: 20 }}>
+								<CartesianGrid strokeDasharray='4 4' stroke='#d4d4d8' />
+								<XAxis dataKey='label' stroke='#71717a' />
+								<YAxis stroke='#71717a' allowDecimals={false} />
+								<Tooltip {...tooltipProps} />
+								<Bar dataKey='value' radius={[6, 6, 0, 0]}>
+									{runnerStreamData.map((entry) => (
+										<Cell key={entry.label} fill={entry.fill} />
+									))}
+								</Bar>
+							</BarChart>
+						)}
+					</MeasuredChart>
+				</ChartPanel>
+				<ChartPanel title={`Stream sessions by mode (${health.runners.streamSessionsTotal} total)`}>
+					<MeasuredChart className='h-56 min-w-0'>
+						{(width) => (
+							<PieChart width={width} height={224}>
+								<Tooltip {...tooltipProps} />
+								<Pie data={runnerModeData} dataKey='value' nameKey='label' cx='50%' cy='50%' outerRadius={Math.min(78, Math.floor(width / 4))} label>
+									{runnerModeData.map((entry) => (
+										<Cell key={entry.label} fill={entry.fill} />
+									))}
+								</Pie>
+							</PieChart>
+						)}
+					</MeasuredChart>
+				</ChartPanel>
+				<ChartPanel title={`Stream destinations (${health.runners.streamSessionsTotal} total)`}>
+					<MeasuredChart className='h-56 min-w-0'>
+						{(width) => (
+							<PieChart width={width} height={224}>
+								<Tooltip {...tooltipProps} />
+								<Pie data={runnerDestinationData} dataKey='value' nameKey='label' cx='50%' cy='50%' outerRadius={Math.min(78, Math.floor(width / 4))} label>
+									{runnerDestinationData.map((entry) => (
+										<Cell key={entry.label} fill={entry.fill} />
+									))}
+								</Pie>
+							</PieChart>
+						)}
+					</MeasuredChart>
+				</ChartPanel>
+				<ChartPanel title='Destinations by stream mode' className='md:col-span-2'>
+					<MeasuredChart className='h-56 min-w-0'>
+						{(width) => (
+							<BarChart width={width} height={224} data={runnerDestinationByModeData} margin={{ top: 10, right: 8, left: -18, bottom: 20 }}>
+								<CartesianGrid strokeDasharray='4 4' stroke='#d4d4d8' />
+								<XAxis dataKey='label' stroke='#71717a' />
+								<YAxis stroke='#71717a' allowDecimals={false} />
+								<Tooltip {...tooltipProps} />
+								<Bar dataKey='YouTube' stackId='destinations' fill='#F31260' />
+								<Bar dataKey='Twitch' stackId='destinations' fill='#9353D3' />
+								<Bar dataKey='Custom' stackId='destinations' fill='#17C964' radius={[6, 6, 0, 0]} />
+							</BarChart>
+						)}
+					</MeasuredChart>
+				</ChartPanel>
+			</Card.Content>
+		</Card>
+	);
+
 	return (
 		<div className='grid grid-cols-1 gap-3 lg:grid-cols-2'>
-			<Card variant='secondary' className='min-w-0 lg:col-span-2'>
-				<Card.Header className='pb-1'>
-					<p className='text-sm font-semibold'>Runner and Add-on Health</p>
-				</Card.Header>
-				<Card.Content className='grid min-w-0 gap-3 md:grid-cols-2'>
-					<ChartPanel title={`Runners (${health.runners.total} total)`}>
-						<MeasuredChart className='h-56 min-w-0'>
-							{(width) => (
-								<PieChart width={width} height={224}>
-									<Tooltip {...tooltipProps} />
-									<Pie data={runnerStateData} dataKey='value' nameKey='label' cx='50%' cy='50%' outerRadius={Math.min(78, Math.floor(width / 4))} label>
-										{runnerStateData.map((entry) => (
-											<Cell key={entry.label} fill={entry.fill} />
-										))}
-									</Pie>
-								</PieChart>
-							)}
-						</MeasuredChart>
-					</ChartPanel>
-					<ChartPanel title={`Runner subscriptions (${health.billing.runnerSubscriptionsActive} active)`}>
-						<MeasuredChart className='h-56 min-w-0'>
-							{(width) => (
-								<BarChart width={width} height={224} data={runnerStreamData} margin={{ top: 10, right: 8, left: -18, bottom: 20 }}>
-									<CartesianGrid strokeDasharray='4 4' stroke='#d4d4d8' />
-									<XAxis dataKey='label' stroke='#71717a' />
-									<YAxis stroke='#71717a' allowDecimals={false} />
-									<Tooltip {...tooltipProps} />
-									<Bar dataKey='value' radius={[6, 6, 0, 0]}>
-										{runnerStreamData.map((entry) => (
-											<Cell key={entry.label} fill={entry.fill} />
-										))}
-									</Bar>
-								</BarChart>
-							)}
-						</MeasuredChart>
-					</ChartPanel>
-				</Card.Content>
-			</Card>
 			<Card variant='secondary' className='min-w-0 lg:col-span-2'>
 				<Card.Header className='pb-1'>
 					<p className='text-sm font-semibold'>Active Users Trend</p>
@@ -522,6 +581,8 @@ export default function AdminHealthCharts({ health }: { health: InstanceHealthSn
 					</MeasuredChart>
 				</Card.Content>
 			</Card>
+
+			{runnerHealthSection}
 
 			<Card variant='secondary' className='min-w-0 lg:col-span-2'>
 				<Card.Header className='pb-1'>

@@ -6,8 +6,9 @@ import { db } from "@/db/client";
 import { editorsTable, runnersTable, streamSessionsTable } from "@/db/schema";
 import { validateAuth } from "@actions/auth";
 import { tryRateLimit } from "@actions/rateLimit";
+import { RunnerPreviewCache } from "@lib/runnerPreviewCache";
 
-const previewCache = new Map<string, { image: string; timestamp: number }>();
+const previewCache = new RunnerPreviewCache();
 
 async function canAccessOwner(ownerId: string, userId: string) {
 	if (ownerId === userId) return true;
@@ -40,9 +41,10 @@ export async function POST(req: Request) {
 		const limit = await tryRateLimit({ key: "runner-preview", points: 40, duration: 60, identifier });
 		if (!limit.success) return NextResponse.json({ error: "Too many previews" }, { status: 429, headers: { "Retry-After": "60" } });
 
-		previewCache.set(runner.id, { image, timestamp: Date.now() });
+		previewCache.set(runner.id, image);
 		return NextResponse.json({ success: true });
-	} catch {
+	} catch (error) {
+		console.error("Runner preview upload failed:", error);
 		return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
 	}
 }
@@ -59,10 +61,5 @@ export async function GET(req: Request) {
 	if (!runner) return NextResponse.json({ error: "Runner not found" }, { status: 404 });
 	if (!(await canAccessOwner(runner.ownerId, user.id))) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-	const data = previewCache.get(runner.id);
-	if (!data || Date.now() - data.timestamp > 15000) {
-		return NextResponse.json({ image: null });
-	}
-
-	return NextResponse.json({ image: data.image });
+	return NextResponse.json({ image: previewCache.get(runner.id) });
 }

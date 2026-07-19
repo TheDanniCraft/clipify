@@ -34,7 +34,7 @@ jest.mock("@/db/schema", () => ({
 	billingSubscriptionsTable: { id: "id", status: "status", cancelAtPeriodEnd: "cancelAtPeriodEnd" },
 	billingSubscriptionItemsTable: { subscriptionId: "subscriptionId", productKey: "productKey", unitAmount: "unitAmount", billingInterval: "billingInterval" },
 	runnersTable: { id: "id", ownerId: "ownerId", status: "status", osInfo: "osInfo", version: "version" },
-	streamSessionsTable: { id: "id", desiredState: "desiredState", actualState: "actualState", lastError: "lastError" },
+	streamSessionsTable: { id: "id", desiredState: "desiredState", actualState: "actualState", lastError: "lastError", mode: "mode", rtmpUrl: "rtmpUrl" },
 	overlaysTable: {
 		status: "status",
 		ownerId: "ownerId",
@@ -178,6 +178,11 @@ describe("lib/instanceHealth", () => {
 			[], // runnersByOsRows
 			[], // runnersByVersionRows
 			[
+				{ mode: "24/7", destination: "youtube", count: 2 },
+				{ mode: "failsafe", destination: "twitch", count: 1 },
+				{ mode: "failsafe", destination: "custom", count: 3 },
+			], // streamsByModeAndDestinationRows
+			[
 				{ type: "clip", count: 100 },
 				{ type: "avatar", count: 20 },
 				{ type: "game", count: 15 },
@@ -230,6 +235,9 @@ describe("lib/instanceHealth", () => {
 		expect(snapshot.cache.clipEntries).toBe(100);
 		expect(snapshot.cache.backfillCompleteRatio).toBeCloseTo(2 / 3, 1);
 		expect(snapshot.scheduler.clipCache.totalRuns).toBe(10);
+		expect(snapshot.runners.byMode).toEqual({ "24/7": 2, failsafe: 4 });
+		expect(snapshot.runners.byDestination).toEqual({ youtube: 2, twitch: 1, custom: 3 });
+		expect(snapshot.runners.byModeAndDestination.failsafe).toEqual({ youtube: 0, twitch: 1, custom: 3 });
 		expect(snapshot.cache.globalReadHitRate).toBe(0.9);
 		expect(snapshot.status).toBe("ok");
 		expect(snapshot.db.pingMs).toBeGreaterThanOrEqual(0);

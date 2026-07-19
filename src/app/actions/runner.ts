@@ -11,6 +11,28 @@ import { hasActiveEntitlement } from "@lib/entitlements";
 import { Entitlement, RunnerStatus, StreamState } from "@types";
 import { getRunnerVersionInfo } from "@lib/runnerArtifacts";
 
+const publicRunnerColumns = {
+	id: true,
+	ownerId: true,
+	name: true,
+	status: true,
+	lastHeartbeatAt: true,
+	osInfo: true,
+	version: true,
+	createdAt: true,
+} as const;
+
+const publicRunnerSelection = {
+	id: runnersTable.id,
+	ownerId: runnersTable.ownerId,
+	name: runnersTable.name,
+	status: runnersTable.status,
+	lastHeartbeatAt: runnersTable.lastHeartbeatAt,
+	osInfo: runnersTable.osInfo,
+	version: runnersTable.version,
+	createdAt: runnersTable.createdAt,
+};
+
 async function hasAccess(ownerId: string, userId: string) {
 	if (ownerId === userId) return true;
 	const editor = await db.query.editorsTable.findFirst({
@@ -44,7 +66,7 @@ export async function createRunner(ownerId: string, name: string) {
 				name,
 				token,
 			})
-			.returning();
+			.returning(publicRunnerSelection);
 
 		revalidatePath("/dashboard/runners");
 		return { success: true, runner: newRunner };
@@ -210,6 +232,7 @@ export async function getAllRunners(ownerId: string) {
 
 		return await db.query.runnersTable.findMany({
 			where: eq(runnersTable.ownerId, ownerId),
+			columns: publicRunnerColumns,
 		});
 	} catch (error) {
 		console.error("Failed to fetch runners:", error);
@@ -238,10 +261,29 @@ export async function getRunner(runnerId: string, ownerId: string) {
 
 		return await db.query.runnersTable.findFirst({
 			where: and(eq(runnersTable.id, runnerId), eq(runnersTable.ownerId, ownerId)),
+			columns: publicRunnerColumns,
 		});
 	} catch (error) {
 		console.error("Failed to fetch runner:", error);
 		return null;
+	}
+}
+
+export async function getRunnerToken(runnerId: string, ownerId: string) {
+	try {
+		const user = await validateAuth();
+		if (!user || !(await hasAccess(ownerId, user.id))) return { success: false, error: "Unauthorized" };
+
+		const runner = await db.query.runnersTable.findFirst({
+			where: and(eq(runnersTable.id, runnerId), eq(runnersTable.ownerId, ownerId)),
+			columns: { token: true },
+		});
+		if (!runner) return { success: false, error: "Runner not found" };
+
+		return { success: true, token: runner.token };
+	} catch (error) {
+		console.error("Failed to fetch runner token:", error);
+		return { success: false, error: "Failed to fetch runner token" };
 	}
 }
 
