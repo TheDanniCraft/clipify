@@ -72,7 +72,7 @@
 		"jest": "^30.4.2",
 		"jest-environment-jsdom": "^30.4.1",
 		"lint-staged": "^17.0.8",
-		"prettier": "^3.9.5",
+		"prettier": "^3.9.6",
 		"tailwindcss": "^4.3.3",
 		"tsx": "^4.23.1",
 		"typescript": "^6.0.3"
