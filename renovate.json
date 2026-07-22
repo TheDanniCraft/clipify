@@ -11,6 +11,10 @@
 	"commitMessageExtra": " to {{newVersion}}",
 	"packageRules": [
 		{
+			"matchDepTypes": ["patchedDependencies"],
+			"groupName": "Bun patched dependency updates"
+		},
+		{
 			"groupName": "next/react ecosystem",
 			"matchPackageNames": ["/^next$/", "/^react$/", "/^react-dom$/", "/^eslint-config-next$/", "/^next-/"]
 		},
@@ -41,6 +45,17 @@
 		{
 			"matchManagers": ["dockerfile"],
 			"groupName": "docker images"
+		}
+	],
+	"customManagers": [
+		{
+			"customType": "regex",
+			"description": "Keep Bun patchedDependencies bound to the installed package version",
+			"managerFilePatterns": ["/(^|\\/)package\\.json$/"],
+			"matchStrings": ["(?<depName>(?:@[^\"@/]+/)?[^\"@]+)@(?<currentValue>[^\"]+)\"\\s*:\\s*\"(?<patchFile>patches/[^\" ]+\\.patch)\""],
+			"depTypeTemplate": "patchedDependencies",
+			"datasourceTemplate": "npm",
+			"versioningTemplate": "npm"
 		}
 	]
 }

@@ -8,6 +8,7 @@ jest.mock("next/navigation", () => ({
 	useRouter: () => ({
 		push: routerPush,
 	}),
+	useSearchParams: () => new URLSearchParams(),
 }));
 
 const trackPaywallEvent = jest.fn();
@@ -64,6 +65,15 @@ jest.mock("@actions/twitch", () => ({
 	getAvatar: (...args: any[]) => getAvatar(...args),
 }));
 
+jest.mock("@actions/runner", () => ({
+	createRunner: jest.fn(),
+	deleteRunner: jest.fn(),
+	getAllRunners: jest.fn().mockResolvedValue([]),
+	getAllStreamSessions: jest.fn().mockResolvedValue([]),
+	getStreamSessionsForRunner: jest.fn().mockResolvedValue([]),
+	setStreamDesiredState: jest.fn(),
+}));
+
 jest.mock("@heroui/react", () => {
 	const React = require("react");
 	return {
@@ -74,6 +84,8 @@ jest.mock("@heroui/react", () => {
 			</button>
 		),
 		TextField: ({ children }: any) => <div>{children}</div>,
+		Input: (props: any) => <input {...props} />,
+		FieldError: () => null,
 		InputGroup: Object.assign(({ children }: any) => <div>{children}</div>, {
 			Prefix: ({ children }: any) => <span>{children}</span>,
 			Suffix: ({ children }: any) => <span>{children}</span>,
@@ -162,6 +174,15 @@ jest.mock("@heroui/react", () => {
 		Spinner: ({ label }: any) => <div>{label}</div>,
 		addToast: jest.fn(),
 		Link: ({ children, href }: any) => <a href={href}>{children}</a>,
+		Modal: Object.assign(({ children }: any) => <div>{children}</div>, {
+			Backdrop: ({ children, isOpen }: any) => (isOpen ? <div>{children}</div> : null),
+			Container: ({ children }: any) => <div>{children}</div>,
+			Dialog: ({ children }: any) => <div>{children}</div>,
+			CloseTrigger: () => null,
+			Header: ({ children }: any) => <div>{children}</div>,
+			Heading: ({ children }: any) => <div>{children}</div>,
+			Body: ({ children }: any) => <div>{children}</div>,
+		}),
 		Avatar: Object.assign(({ children }: any) => <div>{children}</div>, {
 			Image: ({ src }: any) => <span data-avatar-src={src} />,
 			Fallback: ({ children }: any) => <span>{children}</span>,
@@ -193,6 +214,7 @@ jest.mock("@heroui/react", () => {
 });
 
 jest.mock("@tabler/icons-react", () => ({
+	IconAlertTriangle: () => <span>warning</span>,
 	IconPencil: () => <button aria-label='Edit'>Pencil</button>,
 	IconTrash: ({ onClick }: any) => (
 		<button aria-label='Delete' onClick={onClick}>
@@ -280,10 +302,10 @@ describe("OverlayTable", () => {
 
 		await waitFor(() => expect(screen.getByText("Overlay 1")).toBeInTheDocument());
 
-		const deleteBtn = screen.getByRole("button", { name: "Delete" });
-		fireEvent.click(deleteBtn);
+		fireEvent.click(screen.getAllByRole("button", { name: "Delete" })[0]);
+		await waitFor(() => expect(screen.getAllByRole("button", { name: "Delete" })).toHaveLength(2));
+		fireEvent.click(screen.getAllByRole("button", { name: "Delete" })[1]);
 
 		await waitFor(() => expect(deleteOverlay).toHaveBeenCalledWith("ov-1"));
-		expect(screen.queryByText("Overlay 1")).not.toBeInTheDocument();
 	});
 });

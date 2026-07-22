@@ -9,10 +9,12 @@ import { StatusOptions } from "@types";
 import type { Key } from "@react-types/shared";
 
 import React, { useMemo, useCallback, useState, useEffect } from "react";
-import { IconAdjustmentsHorizontal, IconArrowsLeftRight, IconChevronDown, IconCirclePlus, IconCircuitChangeover, IconCrown, IconInfoCircle, IconMenuDeep, IconPencil, IconReload, IconSearch, IconTrash } from "@tabler/icons-react";
+import { IconAdjustmentsHorizontal, IconArrowsLeftRight, IconChevronDown, IconCirclePlus, IconCircuitChangeover, IconCrown, IconInfoCircle, IconMenuDeep, IconPencil, IconReload, IconSearch, IconTrash, IconUnlink } from "@tabler/icons-react";
 import { createOverlay, createPlaylist, deleteOverlay, deletePlaylist, saveOverlay, getAllOverlays, getAllPlaylists, getEditorOverlays, getEditorAccess } from "@actions/database";
+import { createRunner, deleteRunner, getAllRunners, getAllStreamSessions, unlinkRunner } from "@actions/runner";
 import { validateAuth } from "@actions/auth";
 import UpgradeModal from "@components/upgradeModal";
+import ConfirmModal from "@components/confirmModal";
 import AppPagination from "@components/appPagination";
 import { getFeatureAccess, getTrialDaysLeft, isReverseTrialActive } from "@lib/featureAccess";
 import { usePlausible } from "next-plausible";
@@ -22,23 +24,36 @@ import { CopyText } from "./copy-text";
 
 import { useMemoizedCallback } from "./use-memoized-callback";
 
-import { columns, INITIAL_VISIBLE_COLUMNS, INITIAL_VISIBLE_PLAYLIST_COLUMNS, playlistColumns } from "./data";
+import { columns, INITIAL_VISIBLE_COLUMNS, INITIAL_VISIBLE_PLAYLIST_COLUMNS, INITIAL_VISIBLE_RUNNER_COLUMNS, playlistColumns, runnerColumns } from "./data";
 import { Status } from "./Status";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { getAvatar, getUsersDetailsBulk } from "@actions/twitch";
+
+const dashboardTabs = new Set(["overlays", "playlists", "runners"]);
+
+function TableEmptyState({ children }: { children: React.ReactNode }) {
+	return <div className='flex min-h-24 w-full items-center justify-center rounded-b-2xl border-b border-separator-tertiary/50 bg-surface px-4 py-3 text-center'>{children}</div>;
+}
 
 export default function OverlayTable({ userId, accessToken }: { userId: string; accessToken: string }) {
 	const router = useRouter();
+	const searchParams = useSearchParams();
 	type LocalOverlay = Overlay & { accessType?: "owner" | "editor" };
 	type LocalPlaylist = { id: string; ownerId: string; name: string; clipCount: number; accessType?: "owner" | "editor" };
+	type LocalRunner = { id: string; ownerId: string; name: string; status: string; createdAt: Date; lastHeartbeatAt: Date | null; streamState?: string; streamError?: string | null; isLinked?: boolean };
 
 	const [overlays, setOverlays] = useState<LocalOverlay[]>();
 	const [playlists, setPlaylists] = useState<LocalPlaylist[]>();
-	const [activeTab, setActiveTab] = useState<"overlays" | "playlists">("overlays");
+	const [runners, setRunners] = useState<LocalRunner[]>();
+	const [activeTab, setActiveTab] = useState<"overlays" | "playlists" | "runners">(() => {
+		const tab = searchParams.get("tab");
+		return dashboardTabs.has(tab ?? "") ? (tab as "overlays" | "playlists" | "runners") : "overlays";
+	});
 	const [filterValue, setFilterValue] = useState("");
 	const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set([]));
 	const [visibleOverlayColumns, setVisibleOverlayColumns] = useState<Selection>(new Set(INITIAL_VISIBLE_COLUMNS));
 	const [visiblePlaylistColumns, setVisiblePlaylistColumns] = useState<Selection>(new Set(INITIAL_VISIBLE_PLAYLIST_COLUMNS));
+	const [visibleRunnerColumns, setVisibleRunnerColumns] = useState<Selection>(new Set(INITIAL_VISIBLE_RUNNER_COLUMNS));
 	const [rowsPerPage] = useState(10);
 	const [page, setPage] = useState(1);
 	const [isLoading, setIsLoading] = useState(false);
@@ -49,13 +64,16 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 		column: "name",
 		direction: "ascending",
 	});
+	const [deleteRequest, setDeleteRequest] = useState<null | { kind: "overlay" | "playlist" | "runner"; id: string; name: string }>(null);
+	const [unlinkRequest, setUnlinkRequest] = useState<null | { kind: "runner"; ids: string[]; name: string }>(null);
 	const { isOpen: isUpgradeOpen, open: onUpgradeOpen, setOpen: onUpgradeOpenChange } = useOverlayState();
 	const plausible = usePlausible();
 
 	const [statusFilter, setStatusFilter] = React.useState("all");
+	const [runnerLinkFilter, setRunnerLinkFilter] = React.useState("all");
 
 	const onTabChange = useCallback((key: React.Key) => {
-		setActiveTab(key as "overlays" | "playlists");
+		setActiveTab(key as "overlays" | "playlists" | "runners");
 		setFilterValue("");
 		setSelectedKeys(new Set([]));
 		setPage(1);
@@ -65,15 +83,17 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 		});
 	}, []);
 
-	const visibleColumns = activeTab === "overlays" ? visibleOverlayColumns : visiblePlaylistColumns;
-	const setVisibleColumns = activeTab === "overlays" ? setVisibleOverlayColumns : setVisiblePlaylistColumns;
-	const currentColumns = activeTab === "overlays" ? columns : playlistColumns;
+	const visibleColumns = activeTab === "overlays" ? visibleOverlayColumns : activeTab === "playlists" ? visiblePlaylistColumns : visibleRunnerColumns;
+	const setVisibleColumns = activeTab === "overlays" ? setVisibleOverlayColumns : activeTab === "playlists" ? setVisiblePlaylistColumns : setVisibleRunnerColumns;
+	const currentColumns = activeTab === "overlays" ? columns : activeTab === "playlists" ? playlistColumns : runnerColumns;
 
 	useEffect(() => {
 		async function fetchOverlays() {
 			try {
 				const overlaysData = await getAllOverlays(userId);
 				const playlistsData = await getAllPlaylists(userId);
+				const runnersData = await getAllRunners(userId);
+				const streamSessionsData = await getAllStreamSessions(userId);
 				const editorOverlays = await getEditorOverlays(userId);
 
 				const combinedOverlays: LocalOverlay[] = [...(overlaysData ?? []).map((o) => ({ ...o, accessType: "owner" as const })), ...(editorOverlays ?? []).map((o) => ({ ...o, accessType: "editor" as const }))];
@@ -84,9 +104,14 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 					clipCount: playlist.clipCount,
 					accessType: playlist.accessType,
 				}));
+				const combinedRunners: LocalRunner[] = (runnersData ?? []).map((r) => {
+					const session = streamSessionsData?.find((s) => s.runnerId === r.id);
+					return { ...r, streamState: session?.actualState, streamError: session?.lastError };
+				});
 
 				setOverlays(combinedOverlays ?? undefined);
 				setPlaylists(combinedPlaylists ?? undefined);
+				setRunners(combinedRunners ?? undefined);
 			} catch (error) {
 				console.error("Failed to fetch overlays:", error);
 			}
@@ -167,19 +192,24 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 	const rowHeaderColumn = headerColumns.find((column) => column.uid === "name")?.uid ?? headerColumns.find((column) => column.uid === "id")?.uid ?? headerColumns.find((column) => column.uid !== "actions")?.uid;
 
 	const itemFilter = useCallback(
-		(col: Overlay | LocalPlaylist) => {
+		(col: Overlay | LocalPlaylist | LocalRunner) => {
 			if (activeTab === "overlays") {
 				const overlay = col as Overlay;
 				const allStatus = statusFilter === "all";
 				return allStatus || statusFilter === overlay.status.toLowerCase();
 			}
+			if (activeTab === "runners") {
+				const runner = col as LocalRunner;
+				if (runnerLinkFilter === "linked") return Boolean(runner.lastHeartbeatAt);
+				if (runnerLinkFilter === "not_linked") return !runner.lastHeartbeatAt;
+			}
 			return true;
 		},
-		[statusFilter, activeTab],
+		[statusFilter, activeTab, runnerLinkFilter],
 	);
 
 	const filteredItems = useMemo(() => {
-		const rawItems = activeTab === "overlays" ? overlays || [] : playlists || [];
+		const rawItems = activeTab === "overlays" ? overlays || [] : activeTab === "playlists" ? playlists || [] : runners || [];
 		let filtered = [...rawItems];
 
 		if (filterValue) {
@@ -189,7 +219,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 		filtered = filtered.filter(itemFilter);
 
 		return filtered;
-	}, [filterValue, overlays, playlists, itemFilter, activeTab]);
+	}, [filterValue, overlays, playlists, runners, itemFilter, activeTab]);
 
 	const pages = Math.ceil(filteredItems.length / rowsPerPage) || 1;
 
@@ -201,8 +231,8 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 	}, [page, filteredItems, rowsPerPage]);
 
 	const sortedItems = useMemo(() => {
-		return [...items].sort((a: LocalOverlay | LocalPlaylist, b: LocalOverlay | LocalPlaylist) => {
-			const col = sortDescriptor.column as keyof (LocalOverlay | LocalPlaylist);
+		return [...items].sort((a: LocalOverlay | LocalPlaylist | LocalRunner, b: LocalOverlay | LocalPlaylist | LocalRunner) => {
+			const col = sortDescriptor.column as keyof (LocalOverlay | LocalPlaylist | LocalRunner);
 
 			const first = (a as Record<string, unknown>)[col];
 			const second = (b as Record<string, unknown>)[col];
@@ -235,7 +265,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 	}, [selectedKeys, filteredItems, filterValue]);
 
 	const renderCell = useCallback(
-		(item: LocalOverlay | LocalPlaylist, columnKey: React.Key) => {
+		(item: LocalOverlay | LocalPlaylist | LocalRunner, columnKey: React.Key) => {
 			const key = columnKey as ColumnsKey;
 
 			if (activeTab === "overlays") {
@@ -261,32 +291,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 									width={18}
 									onClick={(event) => {
 										event.stopPropagation();
-
-										deleteOverlay(overlay.id)
-											.then((deleted) => {
-												if (!deleted) {
-													addToast({
-														title: "Error",
-														description: "Unable to delete the overlay. Please check your permissions and try again.",
-														color: "danger",
-													});
-													return;
-												}
-												setOverlays((prev) => (prev ? prev.filter((o) => o.id !== overlay.id) : []));
-
-												addToast({
-													title: "Successfully deleted",
-													description: `Overlay "${overlay.name}" has been deleted.`,
-													color: "success",
-												});
-											})
-											.catch(() => {
-												addToast({
-													title: "Error",
-													description: "An error occurred while deleting the overlay.",
-													color: "danger",
-												});
-											});
+										setDeleteRequest({ kind: "overlay", id: overlay.id, name: overlay.name });
 									}}
 								/>
 							</div>
@@ -294,7 +299,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 					default:
 						return cellValue;
 				}
-			} else {
+			} else if (activeTab === "playlists") {
 				const playlist = item as LocalPlaylist;
 				switch (key) {
 					case "id":
@@ -312,33 +317,75 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 									className='cursor-pointer text-muted'
 									height={18}
 									width={18}
-									onClick={async (event) => {
+									onClick={(event) => {
 										event.stopPropagation();
-										try {
-											const ok = await deletePlaylist(playlist.id);
-											if (!ok) {
-												addToast({
-													title: "Failed to delete playlist",
-													description: "Unable to delete the playlist. Please check your permissions and try again.",
-													color: "danger",
-												});
-												return;
-											}
-											setPlaylists((prev) => (prev ?? []).filter((entry) => entry.id !== playlist.id));
-											addToast({ title: "Playlist deleted", color: "success" });
-										} catch {
-											addToast({
-												title: "Failed to delete playlist",
-												description: "An unexpected error occurred while deleting the playlist.",
-												color: "danger",
-											});
-										}
+										setDeleteRequest({ kind: "playlist", id: playlist.id, name: playlist.name });
 									}}
 								/>
 							</div>
 						);
 					default:
 						return (playlist as Record<string, unknown>)[key] as React.ReactNode;
+				}
+			} else {
+				const runner = item as LocalRunner;
+				switch (key) {
+					case "id":
+						return <CopyText textClassName='whitespace-nowrap'>{runner.id}</CopyText>;
+					case "name":
+						return <div className='font-semibold'>{runner.name}</div>;
+					case "status":
+						let statusText = "Offline";
+						let color: "default" | "success" | "danger" = "default";
+
+						if (runner.status === "online") {
+							if (runner.streamState === "running") {
+								statusText = "Streaming";
+								color = "danger";
+							} else {
+								statusText = "Online";
+								color = "success";
+							}
+						}
+
+						return (
+							<div className='flex items-center gap-2'>
+								<Chip color={color} variant='soft' size='sm'>
+									{statusText}
+								</Chip>
+								{runner.streamError && (
+									<Chip color='warning' variant='soft' size='sm'>
+										Error
+									</Chip>
+								)}
+							</div>
+						);
+					case "linked":
+						return runner.lastHeartbeatAt ? (
+							<Chip color='success' variant='soft' size='sm'>
+								Linked
+							</Chip>
+						) : (
+							<Chip color='default' variant='soft' size='sm'>
+								Not linked
+							</Chip>
+						);
+					case "actions":
+						return (
+							<div className='flex items-center justify-end gap-2'>
+								<IconTrash
+									className='cursor-pointer text-danger transition-opacity hover:opacity-80'
+									height={18}
+									width={18}
+									onClick={(event) => {
+										event.stopPropagation();
+										setDeleteRequest({ kind: "runner", id: runner.id, name: runner.name });
+									}}
+								/>
+							</div>
+						);
+					default:
+						return (runner as Record<string, unknown>)[key] as React.ReactNode;
 				}
 			}
 		},
@@ -398,6 +445,8 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 	const reloadOverlays = useMemoizedCallback(async () => {
 		const overlaysData = await getAllOverlays(userId);
 		const playlistsData = await getAllPlaylists(userId);
+		const runnersData = await getAllRunners(userId);
+		const streamSessionsData = await getAllStreamSessions(userId);
 		const editorOverlays = await getEditorOverlays(userId);
 
 		const combinedOverlays: LocalOverlay[] = [...(overlaysData ?? []).map((o) => ({ ...o, accessType: "owner" as const })), ...(editorOverlays ?? []).map((o) => ({ ...o, accessType: "editor" as const }))];
@@ -408,9 +457,103 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 			clipCount: playlist.clipCount,
 			accessType: playlist.accessType,
 		}));
+		const combinedRunners: LocalRunner[] = (runnersData ?? []).map((r) => {
+			const session = streamSessionsData?.find((s) => s.runnerId === r.id);
+			return { ...r, streamState: session?.actualState, streamError: session?.lastError };
+		});
 
 		setOverlays(combinedOverlays ?? undefined);
 		setPlaylists(combinedPlaylists ?? undefined);
+		setRunners(combinedRunners ?? undefined);
+	});
+
+	const confirmDelete = useMemoizedCallback(async () => {
+		if (!deleteRequest) return;
+
+		try {
+			if (deleteRequest.kind === "overlay") {
+				const deleted = await deleteOverlay(deleteRequest.id);
+				if (!deleted) throw new Error("Failed to delete overlay");
+				setOverlays((prev) => (prev ? prev.filter((o) => o.id !== deleteRequest.id) : []));
+				addToast({ title: "Successfully deleted", description: `Overlay "${deleteRequest.name}" has been deleted.`, color: "success" });
+			} else if (deleteRequest.kind === "playlist") {
+				const deleted = await deletePlaylist(deleteRequest.id);
+				if (!deleted) throw new Error("Failed to delete playlist");
+				setPlaylists((prev) => (prev ? prev.filter((p) => p.id !== deleteRequest.id) : []));
+				addToast({ title: "Playlist deleted", description: `Playlist "${deleteRequest.name}" has been deleted.`, color: "success" });
+			} else {
+				const result = await deleteRunner(deleteRequest.id, userId);
+				if (!result.success) throw new Error(result.error || "Failed to delete runner");
+				setRunners((prev) => (prev ? prev.filter((r) => r.id !== deleteRequest.id) : []));
+				addToast({ title: "Runner deleted", description: `Runner "${deleteRequest.name}" has been deleted.`, color: "success" });
+			}
+			setDeleteRequest(null);
+		} catch (error) {
+			addToast({
+				title: "Error",
+				description: error instanceof Error ? error.message : "An error occurred while deleting the item.",
+				color: "danger",
+			});
+		}
+	});
+
+	const confirmUnlink = useMemoizedCallback(async () => {
+		if (!unlinkRequest) return;
+
+		try {
+			const results = await Promise.all(unlinkRequest.ids.map((runnerId) => unlinkRunner(runnerId, userId)));
+			const failed = results.filter((result) => !result.success);
+			if (failed.length > 0) {
+				throw new Error(failed[0]?.error || "Failed to unlink one or more runners");
+			}
+
+			setRunners((prev) =>
+				prev
+					? prev.map((runner) =>
+							unlinkRequest.ids.includes(runner.id)
+								? {
+										...runner,
+										status: "offline",
+										lastHeartbeatAt: null,
+										streamState: "stopped",
+										streamError: runner.streamError,
+									}
+								: runner,
+						)
+					: [],
+			);
+			addToast({
+				title: "Runner unlinked",
+				description: `${unlinkRequest.ids.length} runner${unlinkRequest.ids.length > 1 ? "s" : ""} have been unlinked.`,
+				color: "success",
+			});
+			setUnlinkRequest(null);
+		} catch (error) {
+			addToast({
+				title: "Error",
+				description: error instanceof Error ? error.message : "An error occurred while unlinking the runners.",
+				color: "danger",
+			});
+		}
+	});
+
+	const openBulkUnlink = useMemoizedCallback(() => {
+		const selectedRunners = filterSelectedKeys === "all" ? runners : (filteredItems as LocalRunner[]).filter((item) => filterSelectedKeys.has(String(item.id)));
+		const unlinkable = selectedRunners?.filter((runner) => runner.lastHeartbeatAt) ?? [];
+		if (unlinkable.length === 0) {
+			addToast({
+				title: "Nothing to unlink",
+				description: "Select one or more connected runners first.",
+				color: "warning",
+			});
+			return;
+		}
+
+		setUnlinkRequest({
+			kind: "runner",
+			ids: unlinkable.map((runner) => runner.id),
+			name: unlinkable.length === 1 ? unlinkable[0].name : `${unlinkable.length} runners`,
+		});
 	});
 
 	const topContent = useMemo(() => {
@@ -456,6 +599,45 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 														<Radio.Indicator />
 													</Radio.Control>
 													Paused
+												</Radio.Content>
+											</Radio>
+										</RadioGroup>
+									</Popover.Dialog>
+								</Popover.Content>
+							</Popover>
+						)}
+						{activeTab === "runners" && (
+							<Popover>
+								<Button variant='tertiary' size='sm' className='text-foreground' aria-label='Open Filter Options'>
+									<IconAdjustmentsHorizontal className='text-muted' width={16} />
+									Filter
+								</Button>
+								<Popover.Content placement='bottom start'>
+									<Popover.Dialog className='min-w-44'>
+										<RadioGroup variant='secondary' value={runnerLinkFilter} onChange={setRunnerLinkFilter}>
+											<Label>Linked status</Label>
+											<Radio value='all'>
+												<Radio.Content>
+													<Radio.Control>
+														<Radio.Indicator />
+													</Radio.Control>
+													All
+												</Radio.Content>
+											</Radio>
+											<Radio value='linked'>
+												<Radio.Content>
+													<Radio.Control>
+														<Radio.Indicator />
+													</Radio.Control>
+													Linked
+												</Radio.Content>
+											</Radio>
+											<Radio value='not_linked'>
+												<Radio.Content>
+													<Radio.Control>
+														<Radio.Indicator />
+													</Radio.Control>
+													Not linked
 												</Radio.Content>
 											</Radio>
 										</RadioGroup>
@@ -574,6 +756,12 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 											<Label>Toggle status</Label>
 										</Dropdown.Item>
 									) : null}
+									{activeTab === "runners" ? (
+										<Dropdown.Item id='unlink' textValue='Unlink' variant='default' onAction={openBulkUnlink}>
+											<IconUnlink className='text-muted' width={16} />
+											<Label>Unlink</Label>
+										</Dropdown.Item>
+									) : null}
 									<Dropdown.Item
 										id='delete'
 										textValue='Delete'
@@ -645,9 +833,9 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 			<div className='mb-[12px]'>
 				<div className='flex items-center justify-between'>
 					<div className='flex w-[226px] items-center gap-2'>
-						<h1 className='text-2xl font-[700] leading-[32px]'>{activeTab === "overlays" ? "Overlays" : "Playlists"}</h1>
+						<h1 className='text-2xl font-[700] leading-[32px]'>{activeTab === "overlays" ? "Overlays" : activeTab === "playlists" ? "Playlists" : "Runners"}</h1>
 						<Chip className='hidden items-center text-muted sm:flex' size='sm' variant='tertiary'>
-							{activeTab === "overlays" ? (overlays?.length ?? 0) : (playlists?.length ?? 0)}
+							{activeTab === "overlays" ? (overlays?.length ?? 0) : activeTab === "playlists" ? (playlists?.length ?? 0) : (runners?.length ?? 0)}
 						</Chip>
 						<Button isIconOnly size='sm' variant='tertiary' onPress={reloadOverlays} aria-label='Reload'>
 							{<IconReload className='text-muted' width={16} />}
@@ -657,7 +845,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 						<Dropdown>
 							<Button variant='primary' isDisabled={overlays === undefined} isPending={isLoading}>
 								{isLoading ? <Spinner color='current' size='sm' /> : null}
-								{activeTab === "overlays" ? "Add Overlay" : "Add Playlist"}
+								{activeTab === "overlays" ? "Add Overlay" : activeTab === "playlists" ? "Add Playlist" : "Add Runner"}
 								<IconCirclePlus width={20} />
 							</Button>
 
@@ -667,7 +855,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 										<Dropdown.Item
 											key={item.id}
 											id={item.id}
-											textValue={activeTab === "overlays" ? `Add new overlay for ${item.display_name}` : `Add new playlist for ${item.display_name}`}
+											textValue={activeTab === "overlays" ? `Add new overlay for ${item.display_name}` : activeTab === "playlists" ? `Add new playlist for ${item.display_name}` : `Add new runner for ${item.display_name}`}
 											onAction={async () => {
 												setIsLoading(true);
 												try {
@@ -688,6 +876,24 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 														return;
 													}
 
+													if (activeTab === "runners") {
+														if (currentUser?.id === item.id && !currentUser.entitlements?.runnerAccess) {
+															onUpgradeOpen();
+															return;
+														}
+														const newRunner = await createRunner(item.id, "New Hardware Node");
+														if (!newRunner.success) {
+															addToast({
+																title: "Error",
+																description: "Failed to create runner.",
+																color: "danger",
+															});
+															return;
+														}
+														router.push(`/dashboard/runners/${newRunner.runner?.id}`);
+														return;
+													}
+
 													const playlist = await createPlaylist(item.id, `Playlist ${ownerPlaylistsCount + 1}`);
 													if (!playlist) {
 														addToast({
@@ -701,7 +907,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 												} catch {
 													addToast({
 														title: "Error",
-														description: activeTab === "overlays" ? "Failed to create overlay. Please try again." : "Failed to create playlist. Please try again.",
+														description: activeTab === "overlays" ? "Failed to create overlay. Please try again." : activeTab === "playlists" ? "Failed to create playlist. Please try again." : "Failed to create runner. Please try again.",
 														color: "danger",
 													});
 												} finally {
@@ -714,7 +920,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 													<Avatar.Image alt={item.display_name} src={item.profile_image_url} />
 													<Avatar.Fallback>{item.display_name.slice(0, 2).toUpperCase()}</Avatar.Fallback>
 												</Avatar>
-												{activeTab === "overlays" ? `Add new overlay for ${item.display_name}` : `Add new playlist for ${item.display_name}`}
+												{activeTab === "overlays" ? `Add new overlay for ${item.display_name}` : activeTab === "playlists" ? `Add new playlist for ${item.display_name}` : `Add new runner for ${item.display_name}`}
 											</Label>
 										</Dropdown.Item>
 									)}
@@ -726,6 +932,34 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 							isPending={isLoading}
 							isDisabled={overlays === undefined}
 							onPress={async () => {
+								if (activeTab === "runners") {
+									if (!currentUser?.entitlements?.runnerAccess) {
+										onUpgradeOpen();
+										return;
+									}
+									setIsLoading(true);
+									try {
+										const newRunner = await createRunner(userId, "New Hardware Node");
+										if (!newRunner.success) {
+											addToast({
+												title: "Error",
+												description: "Failed to create runner.",
+												color: "danger",
+											});
+											return;
+										}
+										router.push(`/dashboard/runners/${newRunner.runner?.id}`);
+									} catch {
+										addToast({
+											title: "Error",
+											description: "Failed to create runner. Please try again.",
+											color: "danger",
+										});
+									} finally {
+										setIsLoading(false);
+									}
+									return;
+								}
 								setIsLoading(true);
 
 								if (activeTab === "overlays" && effectivePlan === "free" && ownerOverlaysCount >= 1 && !multiOverlayAccess.allowed) {
@@ -850,7 +1084,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 				)}
 			</div>
 		);
-	}, [activeTab, overlays, playlists, userId, currentUser, reloadOverlays, isLoading, hasAccess, editorAccessList, plausible, onUpgradeOpen, router]);
+	}, [activeTab, overlays, playlists, runners?.length, userId, currentUser, reloadOverlays, isLoading, hasAccess, editorAccessList, plausible, onUpgradeOpen, router]);
 
 	const bottomContent = useMemo(() => {
 		return (
@@ -878,11 +1112,15 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 				<Tabs.ListContainer className='w-fit max-w-full'>
 					<Tabs.List aria-label='Resource type' className='w-fit max-w-full *:w-fit'>
 						<Tabs.Tab id='overlays' className='flex-none'>
-							Overlays
+							<Label>Overlays</Label>
 							<Tabs.Indicator />
 						</Tabs.Tab>
 						<Tabs.Tab id='playlists' className='flex-none'>
-							Playlists
+							<Label>Playlists</Label>
+							<Tabs.Indicator />
+						</Tabs.Tab>
+						<Tabs.Tab id='runners' className='flex-none'>
+							<Label>Runners</Label>
 							<Tabs.Indicator />
 						</Tabs.Tab>
 					</Tabs.List>
@@ -904,6 +1142,17 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 					</Button>
 				</div>
 			)}
+			{activeTab === "runners" && currentUser && !currentUser.entitlements?.runnerAccess && (
+				<div className='mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning bg-warning-soft px-4 py-3 text-sm text-warning'>
+					<div>
+						<p className='font-medium'>Self-hosted runners are an optional add-on.</p>
+						<p className='text-xs text-warning/80'>Purchase the Runner add-on to create, connect, and stream with runners. Your Free or Pro limits still apply.</p>
+					</div>
+					<Button variant='tertiary' onPress={onUpgradeOpen}>
+						{currentUser.entitlements?.effectivePlan === "pro" ? "Add Runner add-on" : "Upgrade with Runner"}
+					</Button>
+				</div>
+			)}
 			{topContent}
 			<Table>
 				<Table.ScrollContainer>
@@ -915,7 +1164,11 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 						onSelectionChange={onSelectionChange}
 						onSortChange={setSortDescriptor}
 						onRowAction={(key) => {
-							router.push(`/dashboard/${activeTab === "overlays" ? "overlay" : "playlist"}/${String(key)}`);
+							if (activeTab === "runners") {
+								router.push(`/dashboard/runners/${String(key)}`);
+							} else {
+								router.push(`/dashboard/${activeTab === "overlays" ? "overlay" : "playlist"}/${String(key)}`);
+							}
 						}}
 					>
 						<Table.Header>
@@ -955,25 +1208,65 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 							))}
 						</Table.Header>
 						<Table.Body
-							renderEmptyState={() =>
-								activeTab === "overlays" ? (
-									overlays === undefined ? (
-										<span className='flex w-full items-center justify-center gap-2 p-4'>
-											<Spinner />
-											Loading overlays
-										</span>
+							renderEmptyState={() => {
+								if (activeTab === "overlays") {
+									return overlays === undefined ? (
+										<TableEmptyState>
+											<span className='flex items-center justify-center gap-2'>
+												<Spinner />
+												Loading overlays
+											</span>
+										</TableEmptyState>
 									) : (
-										<div className='w-full p-4 text-center text-muted'>No overlays found</div>
-									)
-								) : playlists === undefined ? (
-									<span className='flex w-full items-center justify-center gap-2 p-4'>
-										<Spinner />
-										Loading playlists
-									</span>
-								) : (
-									<div className='w-full p-4 text-center text-muted'>No playlists found</div>
-								)
-							}
+										<TableEmptyState>
+											<span className='text-muted'>No overlays found</span>
+										</TableEmptyState>
+									);
+								} else if (activeTab === "playlists") {
+									return playlists === undefined ? (
+										<TableEmptyState>
+											<span className='flex items-center justify-center gap-2'>
+												<Spinner />
+												Loading playlists
+											</span>
+										</TableEmptyState>
+									) : (
+										<TableEmptyState>
+											<span className='text-muted'>No playlists found</span>
+										</TableEmptyState>
+									);
+								} else {
+									return runners === undefined ? (
+										<TableEmptyState>
+											<span className='flex items-center justify-center gap-2'>
+												<Spinner />
+												Loading runners
+											</span>
+										</TableEmptyState>
+									) : (
+										<TableEmptyState>
+											<div className='flex flex-col items-center gap-2'>
+												{currentUser?.entitlements?.runnerAccess ? (
+													<>
+														<p className='text-muted'>No runners found</p>
+														<Button size='sm' variant='secondary' onPress={() => router.push("/runner/enroll")}>
+															Create runner
+														</Button>
+													</>
+												) : (
+													<>
+														<p className='font-medium text-foreground'>Runner add-on required</p>
+														<p className='max-w-md text-sm text-muted'>Purchase the self-hosted Runner add-on to create and connect runners.</p>
+														<Button size='sm' variant='primary' onPress={onUpgradeOpen}>
+															{currentUser?.entitlements?.effectivePlan === "pro" ? "Add Runner add-on" : "Upgrade with Runner"}
+														</Button>
+													</>
+												)}
+											</div>
+										</TableEmptyState>
+									);
+								}
+							}}
 						>
 							{sortedItems.map((item) => (
 								<Table.Row key={item.id} id={item.id} textValue={item.name}>
@@ -999,7 +1292,43 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 			</Table>
 			{bottomContent}
 
-			{currentUser && currentUser.plan === "free" && <UpgradeModal isOpen={isUpgradeOpen} onOpenChange={onUpgradeOpenChange} user={currentUser} title={activeTab === "overlays" ? "Upgrade to add more overlays" : "Upgrade to add more playlists"} source='upgrade_modal' feature={activeTab === "overlays" ? "multi_overlay" : "multi_playlist"} />}
+			<ConfirmModal
+				isOpen={deleteRequest !== null}
+				onOpenChange={(isOpen) => {
+					if (!isOpen) setDeleteRequest(null);
+				}}
+				title={deleteRequest?.kind === "runner" ? "Delete runner" : deleteRequest?.kind === "playlist" ? "Delete playlist" : "Delete overlay"}
+				description={deleteRequest?.kind === "runner" ? `Delete "${deleteRequest.name}" permanently? This will remove the runner and revoke access.` : deleteRequest?.kind === "playlist" ? `Delete playlist "${deleteRequest.name}" permanently? This cannot be undone.` : `Delete overlay "${deleteRequest?.name ?? ""}" permanently? This cannot be undone.`}
+				confirmLabel='Delete'
+				cancelLabel='Cancel'
+				onConfirm={confirmDelete}
+			/>
+
+			<ConfirmModal
+				isOpen={unlinkRequest !== null}
+				onOpenChange={(isOpen) => {
+					if (!isOpen) setUnlinkRequest(null);
+				}}
+				title='Unlink runners'
+				description={unlinkRequest?.ids.length === 1 ? `Unlink "${unlinkRequest.name}" from this account?` : `Unlink ${unlinkRequest?.ids.length ?? 0} connected runners from this account?`}
+				confirmLabel='Unlink'
+				cancelLabel='Cancel'
+				keyword='UNLINK'
+				onConfirm={confirmUnlink}
+			/>
+
+			{currentUser && (
+				<UpgradeModal
+					isOpen={isUpgradeOpen}
+					onOpenChange={onUpgradeOpenChange}
+					user={currentUser}
+					title={activeTab === "overlays" ? "Upgrade to add more overlays" : activeTab === "playlists" ? "Upgrade to add more playlists" : currentUser.entitlements?.effectivePlan === "pro" ? "Add the Runner add-on" : "Upgrade with Runner"}
+					description={activeTab === "runners" ? "Run Clipify overlays from your own computer with the self-hosted Runner add-on." : undefined}
+					source='upgrade_modal'
+					feature={activeTab === "overlays" ? "multi_overlay" : activeTab === "playlists" ? "multi_playlist" : "runner_access"}
+					mode={activeTab === "runners" ? "runner_addon" : "plan"}
+				/>
+			)}
 		</div>
 	);
 }

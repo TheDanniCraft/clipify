@@ -12,10 +12,11 @@ export const statusColorMap: Record<StatusOptions, JSX.Element> = {
 	paused: <IconCircleFilled color='var(--danger)' />,
 };
 
-export type ColumnsKey = "accessType" | "id" | "name" | "status" | "actions" | "clipCount";
+export type ColumnsKey = "accessType" | "id" | "name" | "status" | "linked" | "actions" | "clipCount";
 
 export const INITIAL_VISIBLE_COLUMNS: ColumnsKey[] = ["accessType", "id", "name", "status", "actions"];
 export const INITIAL_VISIBLE_PLAYLIST_COLUMNS: ColumnsKey[] = ["accessType", "id", "name", "clipCount", "actions"];
+export const INITIAL_VISIBLE_RUNNER_COLUMNS: ColumnsKey[] = ["id", "name", "status", "linked", "actions"];
 
 export const columns = [
 	{ name: "", uid: "accessType", sortDirection: "ascending" },
@@ -30,5 +31,13 @@ export const playlistColumns = [
 	{ name: "Playlist ID", uid: "id" },
 	{ name: "Playlist Name", uid: "name", sortDirection: "ascending" },
 	{ name: "Clips", uid: "clipCount", sortDirection: "ascending" },
+	{ name: "Actions", uid: "actions" },
+];
+
+export const runnerColumns = [
+	{ name: "Runner ID", uid: "id" },
+	{ name: "Runner Name", uid: "name", sortDirection: "ascending" },
+	{ name: "Status", uid: "status", sortDirection: "ascending" },
+	{ name: "Linked", uid: "linked", info: "Whether the runner is attached to this account" },
 	{ name: "Actions", uid: "actions" },
 ];

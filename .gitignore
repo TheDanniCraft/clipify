@@ -43,3 +43,8 @@ next-env.d.ts
 *.session.sql
 .secrets
 /logs/
+runner.log
+/public/downloads/runner/
+
+# Isolated Runner dependencies
+/packages/runner/node_modules/

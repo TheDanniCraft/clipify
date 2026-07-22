@@ -2,15 +2,22 @@ import { varchar, pgTable, check, timestamp, uuid, integer, text, uniqueIndex, p
 import {
 	type Role,
 	type Plan,
+	type RunnerStatus,
+	type StreamMode,
+	type StreamState,
 	type StatusOptions,
 	type OverlayType,
 	type TwitchCacheType,
 	type Entitlement,
 	type EntitlementGrantSource,
+	type BillingProduct,
 	type PlaybackMode,
 	type MaxDurationMode,
 	Role as RoleEnumValues,
 	Plan as PlanEnumValues,
+	RunnerStatus as RunnerStatusEnumValues,
+	StreamMode as StreamModeEnumValues,
+	StreamState as StreamStateEnumValues,
 	StatusOptions as StatusOptionsEnumValues,
 	OverlayType as OverlayTypeEnumValues,
 	TwitchCacheType as TwitchCacheTypeEnumValues,
@@ -27,6 +34,9 @@ function enumToPgEnum<T extends Record<string, unknown>>(myEnum: T): [T[keyof T]
 
 export const roleEnum = pgEnum("role", enumToPgEnum(RoleEnumValues));
 export const planEnum = pgEnum("plan", enumToPgEnum(PlanEnumValues));
+export const runnerStatusEnum = pgEnum("runner_status", enumToPgEnum(RunnerStatusEnumValues));
+export const streamModeEnum = pgEnum("stream_mode", enumToPgEnum(StreamModeEnumValues));
+export const streamStateEnum = pgEnum("stream_state", enumToPgEnum(StreamStateEnumValues));
 export const statusOptionsEnum = pgEnum("status_options", enumToPgEnum(StatusOptionsEnumValues));
 export const overlayTypeEnum = pgEnum("overlay_type", enumToPgEnum(OverlayTypeEnumValues));
 export const playbackModeEnum = pgEnum("playback_mode", enumToPgEnum(PlaybackModeEnumValues));
@@ -217,12 +227,14 @@ export const entitlementGrantsTable = pgTable(
 		entitlement: entitlementEnum("entitlement").$type<Entitlement>().notNull().default(EntitlementEnumValues.ProAccess),
 		source: entitlementGrantSourceEnum("source").$type<EntitlementGrantSource>().notNull().default(EntitlementGrantSourceEnumValues.System),
 		reason: varchar("reason"),
+		externalReference: varchar("external_reference"),
 		startsAt: timestamp("starts_at", { withTimezone: true }).defaultNow().notNull(),
 		endsAt: timestamp("ends_at", { withTimezone: true }),
+		revokedAt: timestamp("revoked_at", { withTimezone: true }),
 		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 	},
-	(t) => [index("entitlement_grants_user_lookup_idx").on(t.userId, t.entitlement, t.startsAt, t.endsAt), index("entitlement_grants_global_lookup_idx").on(t.entitlement, t.startsAt, t.endsAt)],
+	(t) => [index("entitlement_grants_user_lookup_idx").on(t.userId, t.entitlement, t.startsAt, t.endsAt), index("entitlement_grants_global_lookup_idx").on(t.entitlement, t.startsAt, t.endsAt), uniqueIndex("entitlement_grants_external_ref_unique").on(t.source, t.externalReference, t.entitlement)],
 );
 
 export const adminImpersonationSessionsTable = pgTable(
@@ -242,3 +254,107 @@ export const adminImpersonationSessionsTable = pgTable(
 	},
 	(t) => [index("admin_impersonation_sessions_admin_idx").on(t.adminUserId, t.startedAt), index("admin_impersonation_sessions_target_idx").on(t.targetUserId, t.startedAt)],
 );
+
+export const billingSubscriptionsTable = pgTable(
+	"billing_subscriptions",
+	{
+		id: varchar("id").notNull().primaryKey(),
+		userId: varchar("user_id")
+			.notNull()
+			.references(() => usersTable.id, { onDelete: "cascade" }),
+		stripeCustomerId: varchar("stripe_customer_id").notNull(),
+		status: varchar("status").notNull(),
+		currentPeriodStart: timestamp("current_period_start", { withTimezone: true }),
+		currentPeriodEnd: timestamp("current_period_end", { withTimezone: true }),
+		cancelAtPeriodEnd: boolean("cancel_at_period_end").notNull().default(false),
+		canceledAt: timestamp("canceled_at", { withTimezone: true }),
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+	},
+	(t) => [index("billing_subscriptions_user_idx").on(t.userId), index("billing_subscriptions_customer_status_idx").on(t.stripeCustomerId, t.status)],
+);
+
+export const billingSubscriptionItemsTable = pgTable(
+	"billing_subscription_items",
+	{
+		id: varchar("id").notNull().primaryKey(),
+		subscriptionId: varchar("subscription_id")
+			.notNull()
+			.references(() => billingSubscriptionsTable.id, { onDelete: "cascade" }),
+		productKey: varchar("product_key").$type<BillingProduct>().notNull(),
+		stripeProductId: varchar("stripe_product_id").notNull(),
+		stripePriceId: varchar("stripe_price_id").notNull(),
+		unitAmount: integer("unit_amount"),
+		currency: varchar("currency").notNull(),
+		billingInterval: varchar("billing_interval").notNull(),
+		quantity: integer("quantity").notNull().default(1),
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+	},
+	(t) => [uniqueIndex("billing_subscription_product_unique").on(t.subscriptionId, t.productKey), index("billing_subscription_items_product_idx").on(t.productKey)],
+);
+
+export const billingWebhookEventsTable = pgTable("billing_webhook_events", {
+	id: varchar("id").notNull().primaryKey(),
+	eventType: varchar("event_type").notNull(),
+	status: varchar("status").notNull().default("processing"),
+	lastError: text("last_error"),
+	retryCount: integer("retry_count").notNull().default(0),
+	receivedAt: timestamp("received_at", { withTimezone: true }).defaultNow().notNull(),
+	processingStartedAt: timestamp("processing_started_at", { withTimezone: true }),
+	processedAt: timestamp("processed_at", { withTimezone: true }),
+});
+
+export const runnersTable = pgTable("runners", {
+	id: uuid("id").notNull().defaultRandom().primaryKey(),
+	ownerId: varchar("owner_id")
+		.notNull()
+		.references(() => usersTable.id, { onDelete: "cascade" }),
+	name: varchar("name").notNull(),
+	token: varchar("token").notNull().unique(),
+	bootstrapToken: varchar("bootstrap_token").unique(),
+	status: runnerStatusEnum("status").$type<RunnerStatus>().notNull().default(RunnerStatusEnumValues.Offline),
+	lastHeartbeatAt: timestamp("last_heartbeat_at", { withTimezone: true }),
+	osInfo: varchar("os_info"),
+	version: varchar("version"),
+	createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const runnerEnrollmentsTable = pgTable(
+	"runner_enrollments",
+	{
+		id: uuid("id").notNull().defaultRandom().primaryKey(),
+		deviceCode: varchar("device_code").notNull().unique(),
+		userCode: varchar("user_code").notNull().unique(),
+		apiBase: varchar("api_base").notNull(),
+		hostname: varchar("hostname"),
+		osInfo: varchar("os_info"),
+		version: varchar("version"),
+		ownerId: varchar("owner_id").references(() => usersTable.id, { onDelete: "cascade" }),
+		runnerId: uuid("runner_id").references(() => runnersTable.id, { onDelete: "cascade" }),
+		expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+		approvedAt: timestamp("approved_at", { withTimezone: true }),
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+	},
+	(t) => [index("runner_enrollments_device_code_idx").on(t.deviceCode), index("runner_enrollments_user_code_idx").on(t.userCode), index("runner_enrollments_expires_at_idx").on(t.expiresAt)],
+);
+
+export const streamSessionsTable = pgTable("stream_sessions", {
+	id: uuid("id").notNull().defaultRandom().primaryKey(),
+	ownerId: varchar("owner_id")
+		.notNull()
+		.references(() => usersTable.id, { onDelete: "cascade" }),
+	runnerId: uuid("runner_id").references(() => runnersTable.id, { onDelete: "set null" }),
+	overlayId: uuid("overlay_id")
+		.notNull()
+		.references(() => overlaysTable.id, { onDelete: "cascade" }),
+	mode: streamModeEnum("mode").$type<StreamMode>().notNull(),
+	encryptedStreamKey: text("encrypted_stream_key"),
+	rtmpUrl: varchar("rtmp_url").notNull().default("rtmp://live.twitch.tv/app"),
+	desiredState: streamStateEnum("desired_state").$type<StreamState>().notNull().default(StreamStateEnumValues.Stopped),
+	actualState: streamStateEnum("actual_state").$type<StreamState>().notNull().default(StreamStateEnumValues.Stopped),
+	resolution: varchar("resolution").notNull().default("1080p"),
+	fps: integer("fps").notNull().default(60),
+	lastError: text("last_error"),
+	updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});

@@ -3,7 +3,7 @@
 	"version": "0.1.0",
 	"private": true,
 	"scripts": {
-		"app:dev": "infisical run --env=dev --watch -- next dev",
+		"app:dev": "RUNNER_ARTIFACT_SOURCE=local infisical run --env=dev --watch -- next dev",
 		"app:webhook": "stripe listen --forward-to localhost:3000/payment/webhook",
 		"app:eventsub": "ngrok http 3000 --url https://well-free-wildcat.ngrok-free.app",
 		"app:build": "next build",
@@ -20,7 +20,10 @@
 		"db:generate": "drizzle-kit generate",
 		"db:migrate": "drizzle-kit migrate",
 		"db:studio": "infisical run --env=dev -- drizzle-kit studio",
-		"prepare": "next-ws patch && husky"
+		"prepare": "next-ws patch && husky",
+		"runner:dev": "tsx watch packages/runner/src/index.ts",
+		"runner:build": "NODE_ENV=development bun packages/runner/build.mjs",
+		"stream:test": "tsx scripts/stream-test.ts"
 	},
 	"dependencies": {
 		"@heroui/react": "^3.2.2",
@@ -49,7 +52,9 @@
 		"tailwind-variants": "^3.2.2",
 		"usesend-js": "^1.6.3",
 		"ws": "^8.21.1",
-		"xss": "^1.0.15"
+		"xss": "^1.0.15",
+		"@types/ffbinaries": "^1.1.5",
+		"fluent-ffmpeg": "^2.1.3"
 	},
 	"devDependencies": {
 		"@tailwindcss/postcss": "^4.3.3",
@@ -75,7 +80,8 @@
 		"prettier": "^3.9.6",
 		"tailwindcss": "^4.3.3",
 		"tsx": "^4.23.1",
-		"typescript": "^6.0.3"
+		"typescript": "^6.0.3",
+		"@types/node-media-server": "^2.3.7"
 	},
 	"patchedDependencies": {
 		"next@16.1.6": "patches/next@16.1.6.patch"

@@ -72,6 +72,16 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 					</CardContent>
 					<CardContent className='grid grid-cols-1 gap-3 xl:grid-cols-2'>
 						<div className='rounded-lg border border-default p-3'>
+							<p className='mb-2 text-xs font-semibold text-muted'>Runner Billing</p>
+							<div className='grid grid-cols-2 gap-2 text-xs'>
+								<p>Runner subscriptions: {formatNumber(health.billing.runnerSubscriptionsActive)}</p>
+								<p>Past due: {formatNumber(health.billing.runnerSubscriptionsPastDue)}</p>
+								<p>Canceling: {formatNumber(health.billing.runnerSubscriptionsCanceling)}</p>
+								<p>Runner MRR: €{(health.billing.runnerMonthlyRecurringRevenueCents / 100).toFixed(2)}</p>
+								<p>Runner ARR: €{(health.billing.runnerAnnualRecurringRevenueCents / 100).toFixed(2)}</p>
+							</div>
+						</div>
+						<div className='rounded-lg border border-default p-3'>
 							<p className='mb-2 text-xs font-semibold text-muted'>Counts</p>
 							<div className='grid grid-cols-2 gap-2 text-xs'>
 								<p>Users: {formatNumber(health.counts.users)}</p>

@@ -1,4 +1,4 @@
-import { isPreview, isCoolify, getBaseUrl, safeReturnUrl } from "@/app/actions/utils";
+import { isPreview, isCoolify, getBaseUrl, safeReturnUrl } from "@actions/utils";
 
 describe("actions/utils", () => {
 	const originalEnv = process.env;

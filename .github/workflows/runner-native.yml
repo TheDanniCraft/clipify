@@ -1,0 +1,346 @@
+name: 🏃 Native Runner validation
+
+on:
+  push:
+    paths:
+      - "packages/runner/**"
+      - "packages/runner/build-config.json"
+      - "scripts/fingerprint-runner.mjs"
+      - "scripts/run-runner-self-test.mjs"
+      - "scripts/write-runner-metadata.mjs"
+      - "scripts/validate-runner-matrix.mjs"
+      - "scripts/create-runner-manifest.mjs"
+      - ".github/workflows/runner-native.yml"
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - "packages/runner/**"
+      - "packages/runner/build-config.json"
+      - "scripts/fingerprint-runner.mjs"
+      - "scripts/run-runner-self-test.mjs"
+      - "scripts/write-runner-metadata.mjs"
+      - "scripts/validate-runner-matrix.mjs"
+      - "scripts/create-runner-manifest.mjs"
+      - ".github/workflows/runner-native.yml"
+
+permissions:
+  contents: read
+  pull-requests: read
+  packages: write
+
+concurrency:
+  group: runner-native-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  prepare-context:
+    name: 🧭 Prepare Runner context
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.fork == true
+    runs-on: ubuntu-latest
+    outputs:
+      ref: ${{ steps.context.outputs.ref }}
+      source-fingerprint: ${{ steps.context.outputs.source-fingerprint }}
+      source-commit: ${{ steps.context.outputs.source-commit }}
+      api-url: ${{ steps.context.outputs.api-url }}
+      pr-number: ${{ steps.context.outputs.pr-number }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - id: context
+        env:
+          CHECKOUT_REF: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config core.autocrlf false
+          context="$(node scripts/fingerprint-runner.mjs --json)"
+          fingerprint="$(node -e 'const fs=require("fs"); console.log(JSON.parse(fs.readFileSync(0, "utf8")).sourceFingerprint)' <<<"$context")"
+          commit="$(node -e 'const fs=require("fs"); console.log(JSON.parse(fs.readFileSync(0, "utf8")).sourceCommit)' <<<"$context")"
+          echo "ref=$CHECKOUT_REF" >> "$GITHUB_OUTPUT"
+          echo "source-fingerprint=$fingerprint" >> "$GITHUB_OUTPUT"
+          echo "source-commit=$commit" >> "$GITHUB_OUTPUT"
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            pr_number="${{ github.event.pull_request.number }}"
+          elif [ "$GITHUB_REF_NAME" != "$DEFAULT_BRANCH" ]; then
+            pr_number="$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/pulls" --jq '.[0].number' 2>/dev/null || true)"
+          else
+            pr_number=""
+          fi
+          if [ -n "$pr_number" ]; then
+            api_url="https://beta-${pr_number}.clipify.cloud.thedannicraft.de"
+          else
+            api_url="https://clipify.us"
+          fi
+          echo "pr-number=$pr_number" >> "$GITHUB_OUTPUT"
+          echo "api-url=$api_url" >> "$GITHUB_OUTPUT"
+          echo "Runner API: $api_url"
+          echo "Runner source: $commit ($fingerprint)"
+
+  build:
+    name: 🏗️ Build Runner
+    needs: prepare-context
+    if: needs.prepare-context.result == 'success'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { platform: windows-x64, target: node24-win-x64, runner: windows-latest, binary: clipify-runner-windows.exe }
+          - { platform: linux-x64, target: node24-linux-x64, runner: ubuntu-latest, binary: clipify-runner-linux }
+          - { platform: linux-arm64, target: node24-linux-arm64, runner: ubuntu-24.04-arm, binary: clipify-runner-linux-arm64 }
+          - { platform: macos-x64, target: node24-macos-x64, runner: macos-15-intel, binary: clipify-runner-macos }
+          - { platform: macos-arm64, target: node24-macos-arm64, runner: macos-14, binary: clipify-runner-macos-arm64 }
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare-context.outputs.ref }}
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - name: 📦 Install Runner dependencies
+        working-directory: packages/runner
+        run: bun install --frozen-lockfile
+      - name: 🔐 Verify native keyring binding
+        working-directory: packages/runner
+        run: node check-native.mjs
+      - name: 🔏 Verify shared source fingerprint
+        shell: bash
+        env:
+          EXPECTED_FINGERPRINT: ${{ needs.prepare-context.outputs.source-fingerprint }}
+        run: test "$(node scripts/fingerprint-runner.mjs --fingerprint)" = "$EXPECTED_FINGERPRINT"
+      - name: 🛠️ Build runner
+        working-directory: packages/runner
+        env:
+          CLIPIFY_RUNNER_API_URL: ${{ needs.prepare-context.outputs.api-url }}
+          PKG_CACHE_PATH: ${{ runner.temp }}/pkg-cache
+          RUNNER_PKG_TARGETS: ${{ matrix.target }}
+        run: bun build.mjs
+      - name: 🧪 Smoke-test executable
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" != "Windows" ]; then
+            chmod +x "public/downloads/runner/${{ matrix.binary }}"
+          fi
+          node scripts/run-runner-self-test.mjs "public/downloads/runner/${{ matrix.binary }}"
+      - name: 📝 Write artifact metadata
+        env:
+          RUNNER_ARTIFACT_DIR: ${{ runner.temp }}/runner-artifact
+        run: node scripts/write-runner-metadata.mjs --platform "${{ matrix.platform }}" --target "${{ matrix.target }}" --binary "public/downloads/runner/${{ matrix.binary }}" --fingerprint "${{ needs.prepare-context.outputs.source-fingerprint }}" --commit "${{ needs.prepare-context.outputs.source-commit }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: runner-${{ matrix.platform }}-${{ needs.prepare-context.outputs.source-fingerprint }}
+          path: ${{ runner.temp }}/runner-artifact
+          retention-days: 7
+          if-no-files-found: error
+
+  validate:
+    name: ✅ Validate Runner matrix
+    needs: [prepare-context, build]
+    if: needs.prepare-context.result == 'success' && needs.build.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+          ref: ${{ needs.prepare-context.outputs.ref }}
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: runner-*-${{ needs.prepare-context.outputs.source-fingerprint }}
+          path: ${{ runner.temp }}/runner-artifacts
+          merge-multiple: false
+      - name: 🔎 Validate complete matrix
+        run: node scripts/validate-runner-matrix.mjs "${{ runner.temp }}/runner-artifacts" "${{ needs.prepare-context.outputs.source-fingerprint }}"
+
+  publish:
+    name: 📦 Publish Runner OCI artifacts
+    needs: [prepare-context, build, validate]
+    if: github.event_name == 'push' && needs.validate.result == 'success'
+    runs-on: ubuntu-latest
+    env:
+      RUNNER_REPOSITORY: ghcr.io/thedannicraft/clipify-runner
+      RUNNER_FINGERPRINT: ${{ needs.prepare-context.outputs.source-fingerprint }}
+      RUNNER_COMMIT: ${{ needs.prepare-context.outputs.source-commit }}
+      RUNNER_PR_NUMBER: ${{ needs.prepare-context.outputs.pr-number }}
+      RUNNER_ARTIFACT_TAG_PREFIX: ${{ needs.prepare-context.outputs.pr-number != '' && format('pr-{0}-fp-', needs.prepare-context.outputs.pr-number) || 'fp-' }}
+      ARTIFACT_ROOT: ${{ github.workspace }}/runner-artifacts
+      RUNNER_ARTIFACT_WORK: ${{ github.workspace }}/runner-artifact-work
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare-context.outputs.ref }}
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@v3
+      - name: 🔐 Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: runner-*-${{ needs.prepare-context.outputs.source-fingerprint }}
+          path: ${{ env.ARTIFACT_ROOT }}
+          merge-multiple: false
+      - name: 🔎 Revalidate complete Runner matrix
+        run: node scripts/validate-runner-matrix.mjs "$ARTIFACT_ROOT" "$RUNNER_FINGERPRINT"
+      - name: 🧱 Publish immutable platform artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_ARTIFACT_WORK"
+          for platform in windows-x64 linux-x64 linux-arm64 macos-x64 macos-arm64; do
+            directory=""
+            for candidate in "$ARTIFACT_ROOT"/*; do
+              [ -f "$candidate/metadata.json" ] || continue
+              candidate_platform="$(node -e 'const m=require(process.argv[1]); process.stdout.write(m.platform)' "$candidate/metadata.json")"
+              if [ "$candidate_platform" = "$platform" ]; then
+                directory="$candidate"
+                break
+              fi
+            done
+            if [ -z "$directory" ]; then
+              echo "Missing artifact directory for $platform" >&2
+              exit 1
+            fi
+            reference="$RUNNER_REPOSITORY:${RUNNER_ARTIFACT_TAG_PREFIX}$RUNNER_FINGERPRINT-$platform"
+            metadata="$directory/metadata.json"
+            binary="$directory/$(node -e 'const m=require(process.argv[1]); process.stdout.write(m.filename)' "$metadata")"
+            dockerfile="$directory/Dockerfile"
+            printf 'FROM scratch\nCOPY metadata.json /metadata.json\nCOPY %s /runner/%s\n' "$(basename "$binary")" "$(basename "$binary")" > "$dockerfile"
+            if docker buildx imagetools inspect "$reference" >/dev/null 2>&1; then
+              echo "Checking existing immutable artifact $reference"
+              docker pull "$reference" >/dev/null
+              container="$(docker create "$reference" /bin/sh)"
+              docker cp "$container:/metadata.json" "$RUNNER_ARTIFACT_WORK/$platform.metadata.json"
+              docker rm "$container" >/dev/null
+              node -e 'const fs=require("fs"); const expected=JSON.parse(fs.readFileSync(process.argv[1])); const actual=JSON.parse(fs.readFileSync(process.argv[2])); for(const k of ["platform","target","filename","sourceFingerprint","sha256","size"]) if(expected[k]!==actual[k]) throw new Error(`Existing artifact mismatch in ${k}`)' "$metadata" "$RUNNER_ARTIFACT_WORK/$platform.metadata.json"
+            else
+              docker buildx build --platform linux/amd64 --provenance=false --sbom=false --push -t "$reference" "$directory"
+            fi
+            digest="$(docker buildx imagetools inspect "$reference" | awk '/^Digest:/ { print $2; exit }')"
+            case "$digest" in
+              sha256:????????????????????????????????????????????????????????????????) ;;
+              *) echo "Could not determine digest for $reference" >&2; exit 1 ;;
+            esac
+            printf '%s\n' "$digest" > "$RUNNER_ARTIFACT_WORK/$platform.digest"
+          done
+      - name: 🧾 Create deterministic Runner manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          node -e 'const fs=require("fs"); const out={}; for(const p of ["windows-x64","linux-x64","linux-arm64","macos-x64","macos-arm64"]) out[p]=fs.readFileSync(process.argv[1]+"/"+p+".digest","utf8").trim(); fs.writeFileSync(process.argv[2], JSON.stringify(out, null, 2)+"\n")' "$RUNNER_ARTIFACT_WORK" "$RUNNER_ARTIFACT_WORK/oci-digests.json"
+          node scripts/create-runner-manifest.mjs --root "$ARTIFACT_ROOT" --fingerprint "$RUNNER_FINGERPRINT" --commit "$RUNNER_COMMIT" --repository "$RUNNER_REPOSITORY" --artifact-tag-prefix "$RUNNER_ARTIFACT_TAG_PREFIX" --oci-digests "$RUNNER_ARTIFACT_WORK/oci-digests.json" --output "$RUNNER_ARTIFACT_WORK/manifest.json"
+      - name: 📌 Publish immutable manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          reference="$RUNNER_REPOSITORY:${RUNNER_ARTIFACT_TAG_PREFIX}$RUNNER_FINGERPRINT-manifest"
+          manifest_dir="$RUNNER_ARTIFACT_WORK/manifest-image"
+          mkdir -p "$manifest_dir"
+          cp "$RUNNER_ARTIFACT_WORK/manifest.json" "$manifest_dir/manifest.json"
+          printf 'FROM scratch\nCOPY manifest.json /manifest.json\n' > "$manifest_dir/Dockerfile"
+          if docker buildx imagetools inspect "$reference" >/dev/null 2>&1; then
+            echo "Checking existing immutable manifest $reference"
+            docker pull "$reference" >/dev/null
+            container="$(docker create "$reference" /bin/sh)"
+            docker cp "$container:/manifest.json" "$RUNNER_ARTIFACT_WORK/existing-manifest.json"
+            docker rm "$container" >/dev/null
+            cmp -s "$RUNNER_ARTIFACT_WORK/manifest.json" "$RUNNER_ARTIFACT_WORK/existing-manifest.json" || { echo "Existing manifest differs; refusing to overwrite" >&2; exit 1; }
+          else
+            docker buildx build --platform linux/amd64 --provenance=false --sbom=false --push -t "$reference" "$manifest_dir"
+          fi
+          echo "Published Runner manifest: $reference"
+
+      - name: 🔁 Update Preview Runner alias
+        id: preview-alias
+        if: needs.prepare-context.outputs.pr-number != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          current_head="$(gh api "repos/$GITHUB_REPOSITORY/pulls/$RUNNER_PR_NUMBER" --jq '.head.sha')"
+          if [ "$current_head" != "$RUNNER_COMMIT" ]; then
+            echo "Skipping Preview alias: workflow commit $RUNNER_COMMIT is no longer the PR head ($current_head)."
+            echo "updated=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          immutable="$RUNNER_REPOSITORY:${RUNNER_ARTIFACT_TAG_PREFIX}$RUNNER_FINGERPRINT-manifest"
+          alias="$RUNNER_REPOSITORY:pr-$RUNNER_PR_NUMBER-latest-manifest"
+          existing_manifest="$RUNNER_ARTIFACT_WORK/existing-preview-alias-manifest.json"
+          previous_alias_version_id=""
+          if docker pull "$alias" >/dev/null 2>&1; then
+            versions="$(gh api --paginate --slurp "user/packages/container/clipify-runner/versions?per_page=100" 2>/dev/null || true)"
+            if [ -n "$versions" ]; then
+              previous_alias_version_id="$(printf '%s' "$versions" | node scripts/runner-package-cleanup.mjs --pr "$RUNNER_PR_NUMBER" --mode preview-alias 2>/dev/null | head -n 1 || true)"
+            fi
+            container="$(docker create "$alias" /bin/sh)"
+            trap 'docker rm "$container" >/dev/null 2>&1 || true' EXIT
+            docker cp "$container:/manifest.json" "$existing_manifest"
+            existing_commit="$(node -e 'const fs=require("fs"); const m=JSON.parse(fs.readFileSync(process.argv[1])); process.stdout.write(m.sourceCommit || "")' "$existing_manifest")"
+            if [ -n "$existing_commit" ] && [ "$existing_commit" != "$RUNNER_COMMIT" ]; then
+              comparison="$(gh api "repos/$GITHUB_REPOSITORY/compare/$existing_commit...$RUNNER_COMMIT" --jq '.status' 2>/dev/null || true)"
+              if [ "$comparison" = "behind" ]; then
+                echo "Skipping Preview alias: existing alias points to newer commit $existing_commit."
+                exit 0
+              fi
+            fi
+          fi
+
+          docker buildx imagetools create \
+            --tag "$alias" \
+            "$immutable"
+
+          docker pull "$alias" >/dev/null
+          container="$(docker create "$alias" /bin/sh)"
+          trap 'docker rm "$container" >/dev/null 2>&1 || true' EXIT
+          docker cp "$container:/manifest.json" "$RUNNER_ARTIFACT_WORK/verified-preview-alias-manifest.json"
+          cmp -s "$RUNNER_ARTIFACT_WORK/manifest.json" "$RUNNER_ARTIFACT_WORK/verified-preview-alias-manifest.json"
+          echo "Updated and verified Preview Runner alias: $alias"
+          if [ -n "$previous_alias_version_id" ]; then
+            echo "Deleting previous Preview Runner alias GHCR version $previous_alias_version_id for PR #$RUNNER_PR_NUMBER"
+            if ! gh api --method DELETE "user/packages/container/clipify-runner/versions/$previous_alias_version_id" >/dev/null; then
+              echo "Warning: failed to delete previous Preview Runner alias GHCR version $previous_alias_version_id; continuing." >&2
+            fi
+          fi
+          echo "updated=true" >> "$GITHUB_OUTPUT"
+      - name: 🧹 Remove superseded PR Runner versions
+        if: needs.prepare-context.outputs.pr-number != '' && steps.preview-alias.outputs.updated == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          versions="$(gh api --paginate --slurp "user/packages/container/clipify-runner/versions?per_page=100" 2>/dev/null)"
+          if [ $? -ne 0 ]; then
+            echo "Warning: could not list GHCR versions; leaving superseded PR artifacts in place." >&2
+            exit 0
+          fi
+          ids="$(printf '%s' "$versions" | node scripts/runner-package-cleanup.mjs --pr "$RUNNER_PR_NUMBER" --mode superseded --keep-fingerprint "$RUNNER_FINGERPRINT" 2>/dev/null)"
+          if [ $? -ne 0 ]; then
+            echo "Warning: could not select superseded PR artifacts; leaving them in place." >&2
+            exit 0
+          fi
+          set -e
+          while IFS= read -r id; do
+            [ -n "$id" ] || continue
+            echo "Deleting superseded GHCR package version $id for PR #$RUNNER_PR_NUMBER"
+            if ! gh api --method DELETE "user/packages/container/clipify-runner/versions/$id" >/dev/null; then
+              echo "Warning: failed to delete GHCR package version $id; continuing." >&2
+            fi
+          done <<< "$ids"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: runner-published-manifest-${{ needs.prepare-context.outputs.source-fingerprint }}
+          path: ${{ github.workspace }}/runner-artifact-work/manifest.json
+          retention-days: 7
+          if-no-files-found: error

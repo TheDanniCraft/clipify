@@ -1,4 +1,5 @@
 import { drizzle } from "drizzle-orm/node-postgres";
+import * as schema from "./schema";
 import { Pool } from "pg";
 
 declare global {
@@ -14,7 +15,7 @@ const pool =
 globalThis.__dbPool = pool;
 
 export const dbPool = pool;
-export const db = drizzle(pool);
+export const db = drizzle(pool, { schema });
 export type DatabaseClient = typeof db;
 export type TransactionClient = Parameters<Parameters<DatabaseClient["transaction"]>[0]>[0];
 export type QueryClient = DatabaseClient | TransactionClient;

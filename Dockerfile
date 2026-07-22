@@ -6,7 +6,6 @@ WORKDIR /app
 
 COPY package.json bun.lock ./
 COPY patches ./patches
-
 RUN --mount=type=cache,target=/root/.bun \
     bun install --frozen-lockfile
 
@@ -19,9 +18,9 @@ ARG COOLIFY_URL
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+RUN node scripts/fingerprint-runner.mjs --write-context src/app/lib/runnerContext.generated.ts
 
 RUN bun run app:build
-
 
 # -------------------------
 # runner (production)

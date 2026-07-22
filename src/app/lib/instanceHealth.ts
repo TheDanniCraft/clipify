@@ -1,10 +1,10 @@
 /* istanbul ignore file */
 import { db } from "@/db/client";
-import { entitlementGrantsTable, modQueueTable, overlaysTable, playlistClipsTable, playlistsTable, queueTable, settingsTable, tokenTable, twitchCacheTable, usersTable } from "@/db/schema";
+import { billingSubscriptionItemsTable, billingSubscriptionsTable, entitlementGrantsTable, modQueueTable, overlaysTable, playlistClipsTable, playlistsTable, queueTable, runnersTable, settingsTable, streamSessionsTable, tokenTable, twitchCacheTable, usersTable } from "@/db/schema";
 import { getTwitchCacheReadMetricsSnapshot } from "@actions/database";
 import { getClipCacheSchedulerStats } from "@lib/clipCacheScheduler";
 import { and, arrayContains, count, countDistinct, eq, gt, isNotNull, isNull, like, lt, lte, notLike, or, sql } from "drizzle-orm";
-import { Entitlement, EntitlementGrantSource, OverlayType, PlaybackMode, Plan, StatusOptions, TwitchCacheType } from "@types";
+import { BillingProduct, Entitlement, EntitlementGrantSource, OverlayType, PlaybackMode, Plan, RunnerStatus, StatusOptions, StreamMode, StreamState, TwitchCacheType } from "@types";
 
 type HealthStatus = "ok" | "degraded" | "down";
 
@@ -133,6 +133,29 @@ export type InstanceHealthSnapshot = {
 		grantsBySource: Record<string, number>;
 		grantsByEntitlement: Record<string, number>;
 	};
+	billing: {
+		activeSubscriptions: number;
+		runnerSubscriptionsActive: number;
+		runnerSubscriptionsPastDue: number;
+		runnerSubscriptionsCanceling: number;
+		runnerMonthlyRecurringRevenueCents: number;
+		runnerAnnualRecurringRevenueCents: number;
+	};
+	runners: {
+		total: number;
+		online: number;
+		offline: number;
+		owners: number;
+		streamSessionsTotal: number;
+		streamsDesiredRunning: number;
+		streamsActuallyRunning: number;
+		streamsErrored: number;
+		byOs: Record<string, number>;
+		byVersion: Record<string, number>;
+		byMode: Record<StreamMode, number>;
+		byDestination: Record<RunnerDestination, number>;
+		byModeAndDestination: Record<StreamMode, Record<RunnerDestination, number>>;
+	};
 	cache: {
 		entriesTotal: number;
 		clipEntries: number;
@@ -160,6 +183,14 @@ export type InstanceHealthSnapshot = {
 		healthAggregationMs: number;
 	};
 };
+
+type RunnerDestination = "youtube" | "twitch" | "custom";
+
+const runnerDestinations: RunnerDestination[] = ["youtube", "twitch", "custom"];
+
+function emptyDestinationCounts(): Record<RunnerDestination, number> {
+	return { youtube: 0, twitch: 0, custom: 0 };
+}
 
 async function countRows(table: typeof usersTable | typeof overlaysTable | typeof playlistsTable) {
 	const result = await db.select({ count: count() }).from(table).execute();
@@ -262,14 +293,14 @@ export async function getInstanceHealthSnapshot<TExclude extends keyof InstanceH
 			count: count(),
 		})
 		.from(entitlementGrantsTable)
-		.where(and(lte(entitlementGrantsTable.startsAt, sql`now()`), or(isNull(entitlementGrantsTable.endsAt), gt(entitlementGrantsTable.endsAt, sql`now()`))))
+		.where(and(isNull(entitlementGrantsTable.revokedAt), lte(entitlementGrantsTable.startsAt, sql`now()`), or(isNull(entitlementGrantsTable.endsAt), gt(entitlementGrantsTable.endsAt, sql`now()`))))
 		.groupBy(entitlementGrantsTable.source, entitlementGrantsTable.entitlement)
 		.execute();
 
 	const activeGrantUsersResult = await db
 		.select({ count: countDistinct(entitlementGrantsTable.userId) })
 		.from(entitlementGrantsTable)
-		.where(and(lte(entitlementGrantsTable.startsAt, sql`now()`), or(isNull(entitlementGrantsTable.endsAt), gt(entitlementGrantsTable.endsAt, sql`now()`)), isNotNull(entitlementGrantsTable.userId)))
+		.where(and(isNull(entitlementGrantsTable.revokedAt), lte(entitlementGrantsTable.startsAt, sql`now()`), or(isNull(entitlementGrantsTable.endsAt), gt(entitlementGrantsTable.endsAt, sql`now()`)), isNotNull(entitlementGrantsTable.userId)))
 		.execute();
 	const activeGrantUsers = Number(activeGrantUsersResult[0]?.count ?? 0);
 
@@ -277,7 +308,7 @@ export async function getInstanceHealthSnapshot<TExclude extends keyof InstanceH
 		.select({ count: countDistinct(entitlementGrantsTable.userId) })
 		.from(entitlementGrantsTable)
 		.innerJoin(usersTable, eq(entitlementGrantsTable.userId, usersTable.id))
-		.where(and(lte(entitlementGrantsTable.startsAt, sql`now()`), or(isNull(entitlementGrantsTable.endsAt), gt(entitlementGrantsTable.endsAt, sql`now()`)), isNotNull(entitlementGrantsTable.userId), eq(usersTable.plan, Plan.Free)))
+		.where(and(isNull(entitlementGrantsTable.revokedAt), lte(entitlementGrantsTable.startsAt, sql`now()`), or(isNull(entitlementGrantsTable.endsAt), gt(entitlementGrantsTable.endsAt, sql`now()`)), isNotNull(entitlementGrantsTable.userId), eq(usersTable.plan, Plan.Free)))
 		.execute();
 	const activeGrantUsersOnFree = Number(activeGrantUsersOnFreeResult[0]?.count ?? 0);
 	const activeGrantCount = activeGrants.reduce((sum, row) => sum + Number(row.count ?? 0), 0);
@@ -422,6 +453,42 @@ export async function getInstanceHealthSnapshot<TExclude extends keyof InstanceH
 		return acc;
 	}, {});
 
+	const streamDestination = sql<RunnerDestination>`case
+		when lower(${streamSessionsTable.rtmpUrl}) ~ '^rtmps?://(?:[^/@]+@)?(?:[^/:@]+\.)*youtube\.com(?::[0-9]+)?(?:/|$)' then 'youtube'
+		when lower(${streamSessionsTable.rtmpUrl}) ~ '^rtmps?://(?:[^/@]+@)?(?:[^/:@]+\.)*twitch\.tv(?::[0-9]+)?(?:/|$)' then 'twitch'
+		else 'custom'
+	end`;
+	const [billingItems, runnerCountRows, onlineRunnerRows, runnerOwnerRows, streamCountRows, desiredRunningRows, actualRunningRows, streamErrorRows, runnersByOsRows, runnersByVersionRows, streamsByModeAndDestinationRows] = await Promise.all([
+		db.select({ subscriptionId: billingSubscriptionsTable.id, productKey: billingSubscriptionItemsTable.productKey, status: billingSubscriptionsTable.status, cancelAtPeriodEnd: billingSubscriptionsTable.cancelAtPeriodEnd, unitAmount: billingSubscriptionItemsTable.unitAmount, interval: billingSubscriptionItemsTable.billingInterval }).from(billingSubscriptionItemsTable).innerJoin(billingSubscriptionsTable, eq(billingSubscriptionItemsTable.subscriptionId, billingSubscriptionsTable.id)),
+		db.select({ count: count() }).from(runnersTable),
+		db.select({ count: count() }).from(runnersTable).where(eq(runnersTable.status, RunnerStatus.Online)),
+		db.select({ count: countDistinct(runnersTable.ownerId) }).from(runnersTable),
+		db.select({ count: count() }).from(streamSessionsTable),
+		db.select({ count: count() }).from(streamSessionsTable).where(eq(streamSessionsTable.desiredState, StreamState.Running)),
+		db.select({ count: count() }).from(streamSessionsTable).where(eq(streamSessionsTable.actualState, StreamState.Running)),
+		db.select({ count: count() }).from(streamSessionsTable).where(eq(streamSessionsTable.actualState, StreamState.Error)),
+		db.select({ value: runnersTable.osInfo, count: count() }).from(runnersTable).groupBy(runnersTable.osInfo),
+		db.select({ value: runnersTable.version, count: count() }).from(runnersTable).groupBy(runnersTable.version),
+		db.select({ mode: streamSessionsTable.mode, destination: streamDestination, count: count() }).from(streamSessionsTable).groupBy(streamSessionsTable.mode, streamDestination),
+	]);
+	const activeBillingStatuses = new Set(["active", "trialing", "past_due"]);
+	const runnerBillingItems = billingItems.filter((item) => item.productKey === BillingProduct.RunnerSelfHosted);
+	const byOs = Object.fromEntries(runnersByOsRows.map((row) => [row.value ?? "unknown", Number(row.count ?? 0)]));
+	const byVersion = Object.fromEntries(runnersByVersionRows.map((row) => [row.value ?? "unknown", Number(row.count ?? 0)]));
+	const byMode: Record<StreamMode, number> = { [StreamMode.AlwaysOn]: 0, [StreamMode.Failsafe]: 0 };
+	const byDestination = emptyDestinationCounts();
+	const byModeAndDestination: Record<StreamMode, Record<RunnerDestination, number>> = {
+		[StreamMode.AlwaysOn]: emptyDestinationCounts(),
+		[StreamMode.Failsafe]: emptyDestinationCounts(),
+	};
+	for (const row of streamsByModeAndDestinationRows) {
+		if (!Object.values(StreamMode).includes(row.mode) || !runnerDestinations.includes(row.destination)) continue;
+		const value = Number(row.count ?? 0);
+		byMode[row.mode] += value;
+		byDestination[row.destination] += value;
+		byModeAndDestination[row.mode][row.destination] += value;
+	}
+
 	const cacheTotals = await db
 		.select({
 			type: twitchCacheTable.type,
@@ -561,6 +628,29 @@ export async function getInstanceHealthSnapshot<TExclude extends keyof InstanceH
 			effectiveProUsersEstimate,
 			grantsBySource,
 			grantsByEntitlement,
+		},
+		billing: {
+			activeSubscriptions: new Set(billingItems.filter((item) => activeBillingStatuses.has(item.status)).map((item) => item.subscriptionId)).size,
+			runnerSubscriptionsActive: runnerBillingItems.filter((item) => activeBillingStatuses.has(item.status)).length,
+			runnerSubscriptionsPastDue: runnerBillingItems.filter((item) => item.status === "past_due").length,
+			runnerSubscriptionsCanceling: runnerBillingItems.filter((item) => item.cancelAtPeriodEnd).length,
+			runnerMonthlyRecurringRevenueCents: runnerBillingItems.filter((item) => activeBillingStatuses.has(item.status) && item.interval === "month").reduce((sum, item) => sum + Number(item.unitAmount ?? 0), 0),
+			runnerAnnualRecurringRevenueCents: runnerBillingItems.filter((item) => activeBillingStatuses.has(item.status)).reduce((sum, item) => sum + Number(item.unitAmount ?? 0) * (item.interval === "month" ? 12 : 1), 0),
+		},
+		runners: {
+			total: Number(runnerCountRows[0]?.count ?? 0),
+			online: Number(onlineRunnerRows[0]?.count ?? 0),
+			offline: Math.max(0, Number(runnerCountRows[0]?.count ?? 0) - Number(onlineRunnerRows[0]?.count ?? 0)),
+			owners: Number(runnerOwnerRows[0]?.count ?? 0),
+			streamSessionsTotal: Number(streamCountRows[0]?.count ?? 0),
+			streamsDesiredRunning: Number(desiredRunningRows[0]?.count ?? 0),
+			streamsActuallyRunning: Number(actualRunningRows[0]?.count ?? 0),
+			streamsErrored: Number(streamErrorRows[0]?.count ?? 0),
+			byOs,
+			byVersion,
+			byMode,
+			byDestination,
+			byModeAndDestination,
 		},
 		cache: {
 			entriesTotal: cacheTotalEntries,

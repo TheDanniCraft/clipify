@@ -1,0 +1,15 @@
+{
+	"compilerOptions": {
+		"target": "ES2024",
+		"lib": ["DOM", "ESNext"],
+		"strict": true,
+		"noEmit": true,
+		"esModuleInterop": true,
+		"module": "ESNext",
+		"moduleResolution": "Bundler",
+		"allowJs": true,
+		"skipLibCheck": true,
+		"types": ["node", "jest"]
+	},
+	"include": ["src/**/*.ts", "test/**/*.ts"]
+}

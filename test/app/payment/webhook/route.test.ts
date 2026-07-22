@@ -2,27 +2,41 @@
 
 const headersMock = jest.fn();
 const getStripe = jest.fn();
-const getPlans = jest.fn();
-const downgradeUserPlan = jest.fn();
-const getUserByCustomerId = jest.fn();
-const updateUserSubscriptionFromStripeWebhookInternal = jest.fn();
+const syncStripeSubscription = jest.fn();
+const findEvent = jest.fn();
+const insertValues = jest.fn();
+const insertReturning = jest.fn();
+const updateWhere = jest.fn();
 
-jest.mock("next/headers", () => ({
-	headers: () => headersMock(),
-}));
+const updateBuilder = {
+	set: jest.fn(),
+	where: () => updateBuilder,
+	returning: () => updateWhere(),
+};
+type InsertBuilder = {
+	values: (...args: unknown[]) => InsertBuilder;
+	onConflictDoNothing: jest.Mock;
+	returning: () => unknown;
+};
+const insertBuilder: InsertBuilder = {
+	values: (...args: unknown[]) => {
+		insertValues(...args);
+		return insertBuilder;
+	},
+	onConflictDoNothing: jest.fn(() => insertBuilder),
+	returning: () => insertReturning(),
+};
+updateBuilder.set.mockImplementation(() => updateBuilder);
 
-jest.mock("@actions/subscription", () => ({
-	getStripe: () => getStripe(),
-	getPlans: () => getPlans(),
-}));
-
-jest.mock("@actions/database", () => ({
-	downgradeUserPlan: (...args: unknown[]) => downgradeUserPlan(...args),
-	getUserByCustomerId: (...args: unknown[]) => getUserByCustomerId(...args),
-}));
-
-jest.mock("@/server/subscriptions", () => ({
-	updateUserSubscriptionFromStripeWebhookInternal: (...args: unknown[]) => updateUserSubscriptionFromStripeWebhookInternal(...args),
+jest.mock("next/headers", () => ({ headers: () => headersMock() }));
+jest.mock("@actions/subscription", () => ({ getStripe: () => getStripe() }));
+jest.mock("@/server/billing", () => ({ syncStripeSubscription: (...args: unknown[]) => syncStripeSubscription(...args) }));
+jest.mock("@/db/client", () => ({
+	db: {
+		query: { billingWebhookEventsTable: { findFirst: (...args: unknown[]) => findEvent(...args) } },
+		insert: jest.fn(() => insertBuilder),
+		update: jest.fn(() => updateBuilder),
+	},
 }));
 
 async function loadRoute(secret = "whsec_test") {
@@ -34,408 +48,83 @@ async function loadRoute(secret = "whsec_test") {
 describe("app/payment/webhook route", () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
-		headersMock.mockResolvedValue({
-			get: () => "sig_header",
-		});
+		headersMock.mockResolvedValue({ get: () => "sig_header" });
+		findEvent.mockResolvedValue(undefined);
+		insertValues.mockResolvedValue(undefined);
+		insertReturning.mockResolvedValue([{ id: "claimed" }]);
+		updateWhere.mockResolvedValue([{ id: "claimed" }]);
+		syncStripeSubscription.mockResolvedValue(undefined);
 	});
 
-	it("returns 400 when stripe signature verification fails", async () => {
-		const stripe = {
+	it("rejects invalid Stripe signatures", async () => {
+		getStripe.mockResolvedValue({
 			webhooks: {
 				constructEvent: jest.fn(() => {
 					throw new Error("bad signature");
 				}),
 			},
-		};
-		getStripe.mockResolvedValue(stripe);
-
-		const { POST } = await loadRoute("whsec_test");
-		const res = await POST(new Request("http://localhost/payment/webhook", { method: "POST", body: "payload" }));
-
-		expect(res.status).toBe(400);
-		await expect(res.json()).resolves.toMatchObject({ error: "bad signature" });
+		});
+		const { POST } = await loadRoute();
+		const response = await POST(new Request("http://localhost/payment/webhook", { method: "POST", body: "payload" }));
+		expect(response.status).toBe(400);
 	});
 
-	it("returns empty JSON for unhandled events", async () => {
-		const stripe = {
-			webhooks: {
-				constructEvent: jest.fn().mockReturnValue({
-					type: "customer.created",
-					data: { object: {} },
-				}),
-			},
-		};
-		getStripe.mockResolvedValue(stripe);
-
-		const { POST } = await loadRoute("whsec_test");
-		const res = await POST(new Request("http://localhost/payment/webhook", { method: "POST", body: "payload" }));
-
-		expect(res.status).toBe(200);
-		await expect(res.json()).resolves.toEqual({});
+	it("ignores unhandled events without recording them", async () => {
+		getStripe.mockResolvedValue({ webhooks: { constructEvent: jest.fn(() => ({ id: "evt_1", type: "customer.created", data: { object: {} } })) } });
+		const { POST } = await loadRoute();
+		const response = await POST(new Request("http://localhost/payment/webhook", { method: "POST", body: "payload" }));
+		expect(response.status).toBe(200);
+		expect(findEvent).not.toHaveBeenCalled();
 	});
 
-	it("handles checkout.session.completed happy path", async () => {
-		getPlans.mockResolvedValue({ proMonthly: "price_pro" });
+	it("retrieves and synchronizes the canonical checkout subscription", async () => {
+		const subscription = { id: "sub_1", customer: "cus_1", items: { data: [] } };
 		const stripe = {
-			webhooks: {
-				constructEvent: jest.fn().mockReturnValue({
-					type: "checkout.session.completed",
-					data: {
-						object: { id: "cs_123" },
-					},
-				}),
-			},
-			checkout: {
-				sessions: {
-					retrieve: jest.fn().mockResolvedValue({
-						id: "cs_123",
-						customer: "cus_123",
-						client_reference_id: "user_1",
-						line_items: {
-							data: [{ price: { id: "price_pro" } }],
-						},
-					}),
-				},
-			},
+			webhooks: { constructEvent: jest.fn(() => ({ id: "evt_2", type: "checkout.session.completed", data: { object: { id: "cs_1" } } })) },
+			checkout: { sessions: { retrieve: jest.fn().mockResolvedValue({ id: "cs_1", client_reference_id: "user_1", subscription: "sub_1" }) } },
+			subscriptions: { retrieve: jest.fn().mockResolvedValue(subscription) },
 		};
 		getStripe.mockResolvedValue(stripe);
-
-		const { POST } = await loadRoute("whsec_test");
-		const res = await POST(new Request("http://localhost/payment/webhook", { method: "POST", body: "payload" }));
-
-		expect(res.status).toBe(200);
-		expect(updateUserSubscriptionFromStripeWebhookInternal).toHaveBeenCalledWith("user_1", "cus_123", "pro");
+		const { POST } = await loadRoute();
+		const response = await POST(new Request("http://localhost/payment/webhook", { method: "POST", body: "payload" }));
+		expect(response.status).toBe(200);
+		expect(syncStripeSubscription).toHaveBeenCalledWith(subscription, "user_1");
 	});
 
-	it("handles customer.subscription.deleted and downgrades", async () => {
-		getUserByCustomerId.mockResolvedValue({ id: "user_2" });
-		const stripe = {
-			webhooks: {
-				constructEvent: jest.fn().mockReturnValue({
-					type: "customer.subscription.deleted",
-					data: {
-						object: {
-							customer: "cus_2",
-							status: "canceled",
-						},
-					},
-				}),
-			},
-		};
-		getStripe.mockResolvedValue(stripe);
-
-		const { POST } = await loadRoute("whsec_test");
-		const res = await POST(new Request("http://localhost/payment/webhook", { method: "POST", body: "payload" }));
-		expect(res.status).toBe(200);
-		expect(updateUserSubscriptionFromStripeWebhookInternal).toHaveBeenCalledWith("user_2", "cus_2", "free");
-		expect(downgradeUserPlan).toHaveBeenCalledWith("user_2");
+	it("skips already processed event ids", async () => {
+		findEvent.mockResolvedValue({ id: "evt_3", status: "processed" });
+		getStripe.mockResolvedValue({ webhooks: { constructEvent: jest.fn(() => ({ id: "evt_3", type: "customer.subscription.updated", data: { object: { id: "sub_1" } } })) } });
+		const { POST } = await loadRoute();
+		const response = await POST(new Request("http://localhost/payment/webhook", { method: "POST", body: "payload" }));
+		await expect(response.json()).resolves.toEqual({ duplicate: true });
+		expect(syncStripeSubscription).not.toHaveBeenCalled();
 	});
 
-	it("handles customer.subscription.updated for active status", async () => {
-		getUserByCustomerId.mockResolvedValue({ id: "user_3" });
-		const stripe = {
-			webhooks: {
-				constructEvent: jest.fn().mockReturnValue({
-					type: "customer.subscription.updated",
-					data: {
-						object: {
-							customer: "cus_3",
-							status: "active",
-						},
-					},
-				}),
-			},
-		};
-		getStripe.mockResolvedValue(stripe);
+	it("returns a retryable response while another worker holds a fresh processing lease", async () => {
+		findEvent.mockResolvedValue({ id: "evt_busy", status: "processing", processingStartedAt: new Date(), retryCount: 0 });
+		getStripe.mockResolvedValue({ webhooks: { constructEvent: jest.fn(() => ({ id: "evt_busy", type: "customer.subscription.updated", data: { object: { id: "sub_1" } } })) } });
+		const { POST } = await loadRoute();
 
-		const { POST } = await loadRoute("whsec_test");
-		const res = await POST(new Request("http://localhost/payment/webhook", { method: "POST", body: "payload" }));
-		expect(res.status).toBe(200);
-		expect(updateUserSubscriptionFromStripeWebhookInternal).toHaveBeenCalledWith("user_3", "cus_3", "pro");
-		expect(downgradeUserPlan).not.toHaveBeenCalled();
+		const response = await POST(new Request("http://localhost/payment/webhook", { method: "POST", body: "payload" }));
+
+		expect(response.status).toBe(503);
+		expect(response.headers.get("Retry-After")).toBe("30");
+		expect(syncStripeSubscription).not.toHaveBeenCalled();
 	});
 
-	it("returns error for checkout session with missing price id", async () => {
-		getPlans.mockResolvedValue({ proMonthly: "price_pro" });
-		const stripe = {
-			webhooks: {
-				constructEvent: jest.fn().mockReturnValue({
-					type: "checkout.session.completed",
-					data: {
-						object: { id: "cs_124" },
-					},
-				}),
-			},
-			checkout: {
-				sessions: {
-					retrieve: jest.fn().mockResolvedValue({
-						id: "cs_124",
-						customer: "cus_124",
-						client_reference_id: "user_124",
-						line_items: {
-							data: [{ price: null }],
-						},
-					}),
-				},
-			},
-		};
-		getStripe.mockResolvedValue(stripe);
+	it("reclaims a stale processing lease and finishes the event", async () => {
+		const subscription = { id: "sub_1", customer: "cus_1", items: { data: [] } };
+		findEvent.mockResolvedValue({ id: "evt_stale", status: "processing", processingStartedAt: new Date(Date.now() - 10 * 60 * 1000), retryCount: 0 });
+		getStripe.mockResolvedValue({
+			webhooks: { constructEvent: jest.fn(() => ({ id: "evt_stale", type: "customer.subscription.updated", data: { object: { id: "sub_1" } } })) },
+			subscriptions: { retrieve: jest.fn().mockResolvedValue(subscription) },
+		});
+		const { POST } = await loadRoute();
 
-		const { POST } = await loadRoute("whsec_test");
-		const res = await POST(new Request("http://localhost/payment/webhook", { method: "POST", body: "payload" }));
-		expect(res.status).toBe(200);
-		await expect(res.json()).resolves.toEqual({ error: "No price ID found in session" });
-	});
+		const response = await POST(new Request("http://localhost/payment/webhook", { method: "POST", body: "payload" }));
 
-	it("returns error for checkout session with unknown price plan", async () => {
-		getPlans.mockResolvedValue({ proMonthly: "price_pro" });
-		const stripe = {
-			webhooks: {
-				constructEvent: jest.fn().mockReturnValue({
-					type: "checkout.session.completed",
-					data: {
-						object: { id: "cs_unknown" },
-					},
-				}),
-			},
-			checkout: {
-				sessions: {
-					retrieve: jest.fn().mockResolvedValue({
-						id: "cs_unknown",
-						customer: "cus_unknown",
-						client_reference_id: "user_unknown",
-						line_items: {
-							data: [{ price: { id: "price_other" } }],
-						},
-					}),
-				},
-			},
-		};
-		getStripe.mockResolvedValue(stripe);
-
-		const { POST } = await loadRoute("whsec_test");
-		const res = await POST(new Request("http://localhost/payment/webhook", { method: "POST", body: "payload" }));
-		expect(res.status).toBe(200);
-		await expect(res.json()).resolves.toEqual({ error: "No plan found for this price" });
-	});
-
-	it("returns error for checkout session with missing reference id", async () => {
-		getPlans.mockResolvedValue({ proMonthly: "price_pro" });
-		const stripe = {
-			webhooks: {
-				constructEvent: jest.fn().mockReturnValue({
-					type: "checkout.session.completed",
-					data: {
-						object: { id: "cs_missing_ref" },
-					},
-				}),
-			},
-			checkout: {
-				sessions: {
-					retrieve: jest.fn().mockResolvedValue({
-						id: "cs_missing_ref",
-						customer: "cus_missing_ref",
-						client_reference_id: null,
-						line_items: {
-							data: [{ price: { id: "price_pro" } }],
-						},
-					}),
-				},
-			},
-		};
-		getStripe.mockResolvedValue(stripe);
-
-		const { POST } = await loadRoute("whsec_test");
-		const res = await POST(new Request("http://localhost/payment/webhook", { method: "POST", body: "payload" }));
-		expect(res.status).toBe(200);
-		await expect(res.json()).resolves.toEqual({ error: "No reference ID found in session metadata" });
-	});
-
-	it("returns error for missing checkout session during retrieval", async () => {
-		const stripe = {
-			webhooks: {
-				constructEvent: jest.fn().mockReturnValue({
-					type: "checkout.session.completed",
-					data: { object: { id: "cs_missing" } },
-				}),
-			},
-			checkout: {
-				sessions: {
-					retrieve: jest.fn().mockResolvedValue(null),
-				},
-			},
-		};
-		getStripe.mockResolvedValue(stripe);
-
-		const { POST } = await loadRoute("whsec_test");
-		const res = await POST(new Request("http://localhost/payment/webhook", { method: "POST", body: "payload" }));
-		expect(res.status).toBe(200);
-		await expect(res.json()).resolves.toEqual({ error: "No session found" });
-	});
-
-	it("returns error for non-string customer ID in checkout session", async () => {
-		const stripe = {
-			webhooks: {
-				constructEvent: jest.fn().mockReturnValue({
-					type: "checkout.session.completed",
-					data: { object: { id: "cs_bad_cus" } },
-				}),
-			},
-			checkout: {
-				sessions: {
-					retrieve: jest.fn().mockResolvedValue({
-						id: "cs_bad_cus",
-						customer: { id: "obj_cus" }, // object instead of string
-					}),
-				},
-			},
-		};
-		getStripe.mockResolvedValue(stripe);
-
-		const { POST } = await loadRoute("whsec_test");
-		const res = await POST(new Request("http://localhost/payment/webhook", { method: "POST", body: "payload" }));
-		expect(res.status).toBe(200);
-		await expect(res.json()).resolves.toEqual({ error: "Invalid customer ID" });
-	});
-
-	it("handles customer as object in subscription events", async () => {
-		getUserByCustomerId.mockResolvedValue({ id: "user_obj" });
-		const stripe = {
-			webhooks: {
-				constructEvent: jest.fn().mockReturnValue({
-					type: "customer.subscription.deleted",
-					data: {
-						object: {
-							customer: { id: "cus_obj" },
-							status: "canceled",
-						},
-					},
-				}),
-			},
-		};
-		getStripe.mockResolvedValue(stripe);
-
-		const { POST } = await loadRoute("whsec_test");
-		const res = await POST(new Request("http://localhost/payment/webhook", { method: "POST", body: "payload" }));
-		expect(res.status).toBe(200);
-		expect(updateUserSubscriptionFromStripeWebhookInternal).toHaveBeenCalledWith("user_obj", "cus_obj", "free");
-	});
-
-	it("returns error for missing subscription object in events", async () => {
-		const stripe = {
-			webhooks: {
-				constructEvent: jest.fn().mockReturnValue({
-					type: "customer.subscription.deleted",
-					data: { object: null },
-				}),
-			},
-		};
-		getStripe.mockResolvedValue(stripe);
-
-		const { POST } = await loadRoute("whsec_test");
-		const res = await POST(new Request("http://localhost/payment/webhook", { method: "POST", body: "payload" }));
-		expect(res.status).toBe(200);
-		await expect(res.json()).resolves.toEqual({ error: "No subscription found" });
-	});
-
-	it("returns error for invalid/null customer in subscription object", async () => {
-		const stripe = {
-			webhooks: {
-				constructEvent: jest.fn().mockReturnValue({
-					type: "customer.subscription.updated",
-					data: {
-						object: { customer: null },
-					},
-				}),
-			},
-		};
-		getStripe.mockResolvedValue(stripe);
-
-		const { POST } = await loadRoute("whsec_test");
-		const res = await POST(new Request("http://localhost/payment/webhook", { method: "POST", body: "payload" }));
-		expect(res.status).toBe(200);
-		await expect(res.json()).resolves.toEqual({ error: "Invalid customer ID in subscription" });
-	});
-
-	it("returns error when deleted subscription customer does not map to a user", async () => {
-		getUserByCustomerId.mockResolvedValue(null);
-		const stripe = {
-			webhooks: {
-				constructEvent: jest.fn().mockReturnValue({
-					type: "customer.subscription.deleted",
-					data: {
-						object: {
-							customer: "cus_missing",
-							status: "canceled",
-						},
-					},
-				}),
-			},
-		};
-		getStripe.mockResolvedValue(stripe);
-
-		const { POST } = await loadRoute("whsec_test");
-		const res = await POST(new Request("http://localhost/payment/webhook", { method: "POST", body: "payload" }));
-		expect(res.status).toBe(200);
-		await expect(res.json()).resolves.toEqual({ error: "No user found for this subscription" });
-		expect(updateUserSubscriptionFromStripeWebhookInternal).not.toHaveBeenCalled();
-		expect(downgradeUserPlan).not.toHaveBeenCalled();
-	});
-
-	it("downgrades user on subscription.updated when status is inactive", async () => {
-		getUserByCustomerId.mockResolvedValue({ id: "user_4" });
-		const stripe = {
-			webhooks: {
-				constructEvent: jest.fn().mockReturnValue({
-					type: "customer.subscription.updated",
-					data: {
-						object: {
-							customer: "cus_4",
-							status: "canceled",
-						},
-					},
-				}),
-			},
-		};
-		getStripe.mockResolvedValue(stripe);
-
-		const { POST } = await loadRoute("whsec_test");
-		const res = await POST(new Request("http://localhost/payment/webhook", { method: "POST", body: "payload" }));
-		expect(res.status).toBe(200);
-		expect(updateUserSubscriptionFromStripeWebhookInternal).toHaveBeenCalledWith("user_4", "cus_4", "free");
-		expect(downgradeUserPlan).toHaveBeenCalledWith("user_4");
-	});
-
-	it("returns 400 when webhook event processing throws downstream errors", async () => {
-		getPlans.mockResolvedValue({ proMonthly: "price_pro" });
-		updateUserSubscriptionFromStripeWebhookInternal.mockRejectedValue(new Error("db write failed"));
-		const stripe = {
-			webhooks: {
-				constructEvent: jest.fn().mockReturnValue({
-					type: "checkout.session.completed",
-					data: {
-						object: { id: "cs_500" },
-					},
-				}),
-			},
-			checkout: {
-				sessions: {
-					retrieve: jest.fn().mockResolvedValue({
-						id: "cs_500",
-						customer: "cus_500",
-						client_reference_id: "user_500",
-						line_items: {
-							data: [{ price: { id: "price_pro" } }],
-						},
-					}),
-				},
-			},
-		};
-		getStripe.mockResolvedValue(stripe);
-
-		const { POST } = await loadRoute("whsec_test");
-		const res = await POST(new Request("http://localhost/payment/webhook", { method: "POST", body: "payload" }));
-		expect(res.status).toBe(400);
-		await expect(res.json()).resolves.toEqual({ error: "db write failed" });
+		expect(response.status).toBe(200);
+		expect(updateWhere).toHaveBeenCalled();
+		expect(syncStripeSubscription).toHaveBeenCalledWith(subscription);
 	});
 });

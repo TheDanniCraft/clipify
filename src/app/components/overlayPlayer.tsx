@@ -373,13 +373,15 @@ function OverlayViewport({
 	);
 }
 
-export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedOverlay, isDemoPlayer, embedMuted, embedAutoplay, overlaySecret }: { overlay: Overlay; isEmbed?: boolean; showBanner?: boolean; showEmbedOverlay?: boolean; isDemoPlayer?: boolean; embedMuted?: boolean; embedAutoplay?: boolean; overlaySecret?: string }) {
+export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedOverlay, isDemoPlayer, embedMuted, embedAutoplay, overlaySecret, initialStandby }: { overlay: Overlay; isEmbed?: boolean; showBanner?: boolean; showEmbedOverlay?: boolean; isDemoPlayer?: boolean; embedMuted?: boolean; embedAutoplay?: boolean; overlaySecret?: string; initialStandby?: boolean; showFallbackBanner?: boolean }) {
 	const plausible = usePlausible();
 	const CROSSFADE_SECONDS = 0.7;
 	const CROSSFADE_MS = Math.round(CROSSFADE_SECONDS * 1000);
 	const SHOW_FADE_SECONDS = 0.6;
 	const HOLD_FRAME_SECONDS = 0.08;
 	const HOLD_TIMEOUT_MS = 1500;
+
+	const [isStandby, setIsStandby] = useState<boolean>(!!initialStandby);
 
 	const [videoClip, setVideoClip] = useState<VideoClip | null>(null);
 	const [nextClip, setNextClip] = useState<VideoClip | null>(null);
@@ -409,19 +411,45 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 	}, [nextClip]);
 
 	const [showOverlay, setShowOverlay] = useState<boolean>(false);
-	const [showPlayer, setShowPlayer] = useState<boolean>(true);
+	const [showPlayer, setShowPlayer] = useState<boolean>(!initialStandby);
+	useEffect(() => {
+		// eslint-disable-next-line react-hooks/set-state-in-effect
+		setShowPlayer(!isStandby);
+	}, [isStandby]);
+
 	const embedBehaviorEnabled = !!isEmbed && !isDemoPlayer;
-	const [paused, setPaused] = useState<boolean>(embedBehaviorEnabled ? !embedAutoplay : false);
+	const [paused, setPaused] = useState<boolean>(initialStandby ? true : embedBehaviorEnabled ? !embedAutoplay : false);
 	const [isMuted, setIsMuted] = useState<boolean>(embedBehaviorEnabled ? !!embedMuted : false);
 	const [runtimeVolume, setRuntimeVolume] = useState<number>(overlay.playerVolume ?? 50);
 	const [ownerAvatar, setOwnerAvatar] = useState<string>("");
 	const [isDocumentVisible, setIsDocumentVisible] = useState<boolean>(true);
-	const [hasUserStarted, setHasUserStarted] = useState<boolean>(!embedBehaviorEnabled || !!embedAutoplay);
+	const [hasUserStarted, setHasUserStarted] = useState<boolean>(initialStandby ? true : !embedBehaviorEnabled || !!embedAutoplay);
 	const [websocket, setWebsocket] = useState<WebSocket | null>(null);
 	const [clipPool, setClipPool] = useState<TwitchClip[]>([]);
 	const clipPoolRef = useRef<TwitchClip[]>([]);
 	const [viewportSize, setViewportSize] = useState({ width: 0, height: 0 });
 	const showResolutionWarning = !isDemoPlayer && !isEmbed && viewportSize.width > 0 && viewportSize.height > 0 && (viewportSize.width !== 1920 || viewportSize.height !== 1080);
+
+	useEffect(() => {
+		if (typeof window !== "undefined") {
+			const fallbackWindow = window as Window & { startFallback?: () => void; stopFallback?: () => void; startRunnerPlayback?: () => void };
+			fallbackWindow.startRunnerPlayback = () => {
+				console.log("[OverlayPlayer] Received startRunnerPlayback");
+				setIsStandby(false);
+				setPaused(false);
+			};
+			fallbackWindow.startFallback = () => {
+				console.log("[OverlayPlayer] Received startFallback");
+				setIsStandby(false);
+				setPaused(false);
+			};
+			fallbackWindow.stopFallback = () => {
+				console.log("[OverlayPlayer] Received stopFallback");
+				setIsStandby(true);
+				setPaused(true);
+			};
+		}
+	}, []);
 
 	useEffect(() => {
 		if (typeof window === "undefined") return;

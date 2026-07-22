@@ -12,7 +12,7 @@ import { getAdminViewCandidates, stopAdminView, switchAdminView, type AdminViewC
 import { getActiveCampaignOfferAction } from "@actions/campaignOffers";
 import { useEffect, useMemo, useState } from "react";
 
-export default function DashboardNavbar({ children, user, title, tagline }: { children: React.ReactNode; user: AuthenticatedUser; title: string; tagline: string }) {
+export default function DashboardNavbar({ children, user, title, tagline }: { children?: React.ReactNode; user: AuthenticatedUser; title: string; tagline: string }) {
 	const { theme, setTheme } = useTheme();
 	const router = useRouter();
 	const [isClearingAdminView, setIsClearingAdminView] = useState(false);

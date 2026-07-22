@@ -10,13 +10,15 @@ type AppDateRangePickerProps = {
 	value: DateRange | null;
 	onChange: (value: DateRange | null) => void;
 	className?: string;
+	variant?: "primary" | "secondary";
+	fullWidth?: boolean;
 };
 
-export default function AppDateRangePicker({ label, value, onChange, className }: AppDateRangePickerProps) {
+export default function AppDateRangePicker({ label, value, onChange, className, variant = "primary", fullWidth = false }: AppDateRangePickerProps) {
 	return (
-		<DateRangePicker className={className} value={value} onChange={onChange}>
+		<DateRangePicker className={`${fullWidth ? "w-full" : ""} ${className ?? ""}`.trim()} value={value} onChange={onChange}>
 			<Label>{label}</Label>
-			<DateField.Group fullWidth>
+			<DateField.Group fullWidth variant={variant}>
 				<DateField.Input slot='start'>{(segment) => <DateField.Segment segment={segment} />}</DateField.Input>
 				<DateRangePicker.RangeSeparator />
 				<DateField.Input slot='end'>{(segment) => <DateField.Segment segment={segment} />}</DateField.Input>
