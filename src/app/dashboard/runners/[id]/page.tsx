@@ -493,7 +493,6 @@ export default function RunnerPage() {
 									{renderLinuxDownloadDropdown("Download for Linux")}
 									{renderMacOSDownloadDropdown("Download for macOS")}
 								</div>
-								<p className='text-sm text-muted/80 max-w-lg mt-8 text-center bg-secondary/30 p-4 rounded-lg'>This runner is linked to this account. Start it to complete the connection; once connected, its status will appear here automatically.</p>
 							</div>
 						)}
 
