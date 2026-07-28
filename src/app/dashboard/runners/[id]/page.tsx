@@ -480,7 +480,7 @@ export default function RunnerPage() {
 						{!runner.lastHeartbeatAt && (
 							<div className='col-span-1 md:col-span-2 flex flex-col items-center justify-center p-8 mt-4 gap-6'>
 								<h2 className='text-3xl font-bold text-primary'>Setup Your Runner</h2>
-								<p className='text-muted-foreground max-w-2xl text-center text-base'>This runner is linked to your account but has not checked in yet. Download the runner for your operating system, run it, and approve the browser enrollment prompt. The runner will connect to this Clipify environment automatically.</p>
+								<p className='text-muted-foreground max-w-2xl text-center text-base'>This runner is linked to your account but is not connected yet. Download the runner for your operating system, run it, and approve the browser enrollment prompt. It will connect to this Clipify environment automatically.</p>
 								<div className='flex flex-col sm:flex-row gap-4 mt-6'>
 									<Button
 										variant='secondary'
@@ -493,7 +493,7 @@ export default function RunnerPage() {
 									{renderLinuxDownloadDropdown("Download for Linux")}
 									{renderMacOSDownloadDropdown("Download for macOS")}
 								</div>
-								<p className='text-sm text-muted/80 max-w-lg mt-8 text-center bg-secondary/30 p-4 rounded-lg'>This runner is currently connected to one Clipify account. To use it with another account or environment, unlink it here and start the runner again.</p>
+								<p className='text-sm text-muted/80 max-w-lg mt-8 text-center bg-secondary/30 p-4 rounded-lg'>This runner is linked to this account. Start it to complete the connection; once connected, its status will appear here automatically.</p>
 							</div>
 						)}
 
