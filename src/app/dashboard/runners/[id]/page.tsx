@@ -5,8 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import { validateAuth } from "@actions/auth";
 import { getRunner, getRunnerToken, getRunnerVersionManifest, getStreamSessionsForRunner, upsertStreamSession, setStreamDesiredState, unlinkRunner } from "@actions/runner";
 import { getAllOverlays } from "@actions/database";
-import { Button, Card, Label, Select, Spinner, TextField, ListBox, Input, Chip, Separator, Modal, Dropdown, Tooltip } from "@heroui/react";
-import { IconCopy, IconCheck, IconEye, IconDownload, IconPlayerPlay, IconPlayerStop, IconArrowLeft, IconTrash, IconBrandWindows, IconTerminal2, IconBrandApple, IconAlertTriangle, IconCircleCheck, IconUnlink } from "@tabler/icons-react";
+import { Accordion, Button, Card, Label, Select, Spinner, TextField, ListBox, Input, Chip, Separator, Modal, Dropdown, Tooltip } from "@heroui/react";
+import { IconCopy, IconCheck, IconEye, IconChevronDown, IconDownload, IconPlayerPlay, IconPlayerStop, IconArrowLeft, IconTrash, IconBrandWindows, IconTerminal2, IconBrandApple, IconAlertTriangle, IconCircleCheck, IconUnlink } from "@tabler/icons-react";
 import { notify } from "@lib/toast";
 import FullscreenLoadingState from "@components/fullscreenLoadingState";
 import ConfirmModal from "@components/confirmModal";
@@ -550,38 +550,42 @@ export default function RunnerPage() {
 
 									{renderLatestRunnerDownload()}
 
-									<details className='group border border-divider rounded-lg [&_summary::-webkit-details-marker]:hidden'>
-										<summary className='flex cursor-pointer items-center justify-between gap-1.5 rounded-lg p-4 font-medium'>
-											<span className='text-sm font-semibold'>Advanced / Docker Setup</span>
-											<span className='transition duration-300 group-open:-rotate-180'>
-												<svg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' strokeWidth='1.5' stroke='currentColor' className='size-5'>
-													<path strokeLinecap='round' strokeLinejoin='round' d='M19.5 8.25l-7.5 7.5-7.5-7.5' />
-												</svg>
-											</span>
-										</summary>
-										<div className='px-4 pb-4'>
-											<TextField variant='secondary'>
-												<Label>Manual Runner Token</Label>
-												<div className='flex gap-2'>
-													<Input readOnly value={manualToken ? (isTokenVisible ? manualToken : "••••••••••••••••") : tokenError ? "Token unavailable" : "Loading token…"} placeholder='Loading runner token…' type='text' className='font-mono text-sm flex-1' />
-													<Tooltip delay={0}>
-														<Tooltip.Trigger>
-															<Button isIconOnly variant='secondary' onPress={revealToken} isDisabled={!manualToken || isLoadingToken} aria-label={isTokenVisible ? "Hide runner token" : "Reveal runner token"}>
-																<IconEye size={18} />
+									<Accordion variant='default'>
+										<Accordion.Item id='advanced-runner-setup'>
+											<Accordion.Heading>
+												<Accordion.Trigger className='px-4 py-4 text-sm font-semibold'>
+													Advanced / Docker Setup
+													<Accordion.Indicator>
+														<IconChevronDown size={18} />
+													</Accordion.Indicator>
+												</Accordion.Trigger>
+											</Accordion.Heading>
+											<Accordion.Panel>
+												<Accordion.Body className='px-4 pb-4'>
+													<TextField variant='secondary'>
+														<Label>Manual Runner Token</Label>
+														<div className='flex gap-2'>
+															<Input readOnly value={manualToken ? (isTokenVisible ? manualToken : "••••••••••••••••") : tokenError ? "Token unavailable" : "Loading token…"} placeholder='Loading runner token…' type='text' className='font-mono text-sm flex-1' />
+															<Tooltip delay={0}>
+																<Tooltip.Trigger>
+																	<Button isIconOnly variant='secondary' onPress={revealToken} isDisabled={!manualToken || isLoadingToken} aria-label={isTokenVisible ? "Hide runner token" : "Reveal runner token"}>
+																		<IconEye size={18} />
+																	</Button>
+																</Tooltip.Trigger>
+																<Tooltip.Content>{isTokenVisible ? "Hide runner token" : "Reveal runner token"}</Tooltip.Content>
+															</Tooltip>
+															<Button isIconOnly variant='secondary' onPress={copyToken} isDisabled={!manualToken || isLoadingToken} aria-label='Copy runner token'>
+																{copied ? <IconCheck size={18} className='text-success' /> : <IconCopy size={18} />}
 															</Button>
-														</Tooltip.Trigger>
-														<Tooltip.Content>{isTokenVisible ? "Hide runner token" : "Reveal runner token"}</Tooltip.Content>
-													</Tooltip>
-													<Button isIconOnly variant='secondary' onPress={copyToken} isDisabled={!manualToken || isLoadingToken} aria-label='Copy runner token'>
-														{copied ? <IconCheck size={18} className='text-success' /> : <IconCopy size={18} />}
-													</Button>
-												</div>
-											</TextField>
-											<p className='text-xs text-muted mt-1'>
-												If you run this via Docker or in a headless CI environment, use this token as the <code>CLIPIFY_TOKEN</code> environment variable.
-											</p>
-										</div>
-									</details>
+														</div>
+													</TextField>
+													<p className='text-xs text-muted mt-1'>
+														If you run this via Docker or in a headless CI environment, use this token as the <code>CLIPIFY_TOKEN</code> environment variable.
+													</p>
+												</Accordion.Body>
+											</Accordion.Panel>
+										</Accordion.Item>
+									</Accordion>
 
 									<div className='flex flex-col gap-2 mt-4'>
 										<h2 className='text-lg font-semibold'>Live Stream Preview</h2>
@@ -714,7 +718,7 @@ export default function RunnerPage() {
 											</TextField>
 										</div>
 
-										<div className='flex flex-col sm:flex-row gap-3 mt-auto pt-6 border-t border-divider'>
+										<div className='flex flex-col sm:flex-row gap-3 mt-auto pb-6 pt-6 border-t border-divider'>
 											<Button variant='primary' onPress={handleSave} isDisabled={!streamConfigValid} isPending={isSaving} className='sm:w-auto w-full'>
 												{isSaving ? <Spinner size='sm' color='current' /> : "Save Configuration"}
 											</Button>
