@@ -151,6 +151,7 @@ const pauseMock = jest.fn();
 type SocketListener = (event: { data?: string; type?: string }) => void;
 
 class MockWebSocket {
+	static OPEN = 1;
 	static instances: MockWebSocket[] = [];
 	readyState = 1;
 	url: string;
@@ -205,6 +206,17 @@ function setVideoTiming(video: HTMLVideoElement, duration: number, currentTime: 
 		configurable: true,
 		writable: true,
 		value: currentTime,
+	});
+}
+
+async function prepareInactiveVideo(activeClipId?: string) {
+	await waitFor(() => {
+		const videos = Array.from(document.querySelectorAll("video")) as HTMLVideoElement[];
+		const activeVideo = activeClipId ? videos.find((video) => video.src.includes(activeClipId)) : videos[0];
+		expect(activeVideo).toBeTruthy();
+		setVideoTiming(activeVideo!, 10, 2);
+		fireEvent.timeUpdate(activeVideo!);
+		expect(document.querySelectorAll("video").length).toBeGreaterThanOrEqual(2);
 	});
 }
 
@@ -521,9 +533,7 @@ describe("components/overlayPlayer", () => {
 		try {
 			render(<OverlayPlayer overlay={buildOverlay({ playbackMode: "smart_shuffle" })} />);
 			await screen.findByText("smart-played-1");
-			await waitFor(() => {
-				expect(document.querySelectorAll("video").length).toBeGreaterThanOrEqual(2);
-			});
+			await prepareInactiveVideo();
 
 			const videos = Array.from(document.querySelectorAll("video")) as HTMLVideoElement[];
 			const slotA = videos.find((video) => video.src.includes("smart-played-1")) as HTMLVideoElement | undefined;
@@ -771,9 +781,7 @@ describe("components/overlayPlayer", () => {
 		render(<OverlayPlayer overlay={buildOverlay({ playbackMode: "top" })} />);
 		await screen.findByText("crossfade-a");
 
-		await waitFor(() => {
-			expect(document.querySelectorAll("video").length).toBeGreaterThanOrEqual(2);
-		});
+		await prepareInactiveVideo();
 
 		const videos = Array.from(document.querySelectorAll("video")) as HTMLVideoElement[];
 		const slotA = videos[0]!;
@@ -798,9 +806,7 @@ describe("components/overlayPlayer", () => {
 		render(<OverlayPlayer overlay={buildOverlay({ playbackMode: "top" })} />);
 		await screen.findByText("hold-a");
 
-		await waitFor(() => {
-			expect(document.querySelectorAll("video").length).toBeGreaterThanOrEqual(2);
-		});
+		await prepareInactiveVideo();
 
 		const videos = Array.from(document.querySelectorAll("video")) as HTMLVideoElement[];
 		const slotA = videos[0]!;
@@ -823,9 +829,7 @@ describe("components/overlayPlayer", () => {
 
 		render(<OverlayPlayer overlay={buildOverlay({ playbackMode: "top" })} />);
 		await screen.findByText("hold-toggle-a");
-		await waitFor(() => {
-			expect(document.querySelectorAll("video").length).toBeGreaterThanOrEqual(2);
-		});
+		await prepareInactiveVideo();
 
 		const slotA = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("hold-toggle-a")) as HTMLVideoElement | undefined;
 		expect(slotA).toBeTruthy();
@@ -858,9 +862,7 @@ describe("components/overlayPlayer", () => {
 		try {
 			render(<OverlayPlayer overlay={buildOverlay({ playbackMode: "top" })} />);
 			await screen.findByText("hold-skip-a");
-			await waitFor(() => {
-				expect(document.querySelectorAll("video").length).toBeGreaterThanOrEqual(2);
-			});
+			await prepareInactiveVideo();
 
 			const slotA = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("hold-skip-a")) as HTMLVideoElement | undefined;
 			expect(slotA).toBeTruthy();
@@ -893,9 +895,7 @@ describe("components/overlayPlayer", () => {
 		try {
 			render(<OverlayPlayer overlay={buildOverlay({ playbackMode: "top" })} />);
 			await screen.findByText("hold-slota-a");
-			await waitFor(() => {
-				expect(document.querySelectorAll("video").length).toBeGreaterThanOrEqual(2);
-			});
+			await prepareInactiveVideo();
 
 			const slotA = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("hold-slota-a")) as HTMLVideoElement | undefined;
 			expect(slotA).toBeTruthy();
@@ -922,9 +922,7 @@ describe("components/overlayPlayer", () => {
 		try {
 			render(<OverlayPlayer overlay={buildOverlay({ playbackMode: "top" })} />);
 			await screen.findByText("hold-slotb-a");
-			await waitFor(() => {
-				expect(document.querySelectorAll("video").length).toBeGreaterThanOrEqual(2);
-			});
+			await prepareInactiveVideo();
 
 			const initialSlotA = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("hold-slotb-a")) as HTMLVideoElement | undefined;
 			const initialSlotB = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("hold-slotb-b")) as HTMLVideoElement | undefined;
@@ -939,6 +937,7 @@ describe("components/overlayPlayer", () => {
 				jest.advanceTimersByTime(750);
 			});
 			await screen.findByText("hold-slotb-b");
+			await prepareInactiveVideo("hold-slotb-b");
 			await waitFor(() => {
 				const hasPrefetchedSlotA = Array.from(document.querySelectorAll("video")).some((video) => (video as HTMLVideoElement).src.includes("hold-slotb-c"));
 				expect(hasPrefetchedSlotA).toBe(true);
@@ -989,6 +988,7 @@ describe("components/overlayPlayer", () => {
 
 		render(<OverlayPlayer overlay={buildOverlay({ playbackMode: "top" })} />);
 		await screen.findByText("error-a");
+		await prepareInactiveVideo();
 
 		const videos = Array.from(document.querySelectorAll("video")) as HTMLVideoElement[];
 		fireEvent.error(videos[0]!);
@@ -1003,6 +1003,7 @@ describe("components/overlayPlayer", () => {
 
 		render(<OverlayPlayer overlay={buildOverlay({ playbackMode: "top" })} />);
 		await screen.findByText("ended-a");
+		await prepareInactiveVideo();
 
 		const videos = Array.from(document.querySelectorAll("video")) as HTMLVideoElement[];
 		fireEvent.ended(videos[0]!);
@@ -1103,13 +1104,10 @@ describe("components/overlayPlayer", () => {
 		removeFromClipQueue.mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error("prefetched clip remove failed"));
 		render(<OverlayPlayer overlay={buildOverlay({ playbackMode: "top" })} />);
 		await screen.findByText("prefetch-catch-a");
+		await prepareInactiveVideo();
 		await waitFor(() => {
-			const hasPrefetchedLink = Array.from(document.querySelectorAll('link[rel="preload"]')).some((link) => (link as HTMLLinkElement).href.includes("prefetch-catch-b"));
-			expect(hasPrefetchedLink).toBe(true);
-		});
-
-		await act(async () => {
-			await new Promise((resolve) => setTimeout(resolve, 100));
+			const hasPrefetchedSlot = Array.from(document.querySelectorAll("video")).some((video) => (video as HTMLVideoElement).src.includes("prefetch-catch-b"));
+			expect(hasPrefetchedSlot).toBe(true);
 		});
 
 		const ws = MockWebSocket.instances[0];
@@ -1174,9 +1172,7 @@ describe("components/overlayPlayer", () => {
 
 		render(<OverlayPlayer overlay={buildOverlay({ playbackMode: "top" })} />);
 		await screen.findByText("slotb-a");
-		await waitFor(() => {
-			expect(document.querySelectorAll("video").length).toBeGreaterThanOrEqual(2);
-		});
+		await prepareInactiveVideo();
 
 		const slotA = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("slotb-a")) as HTMLVideoElement;
 		const slotB = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("slotb-b")) as HTMLVideoElement;
@@ -1202,9 +1198,7 @@ describe("components/overlayPlayer", () => {
 
 		render(<OverlayPlayer overlay={buildOverlay({ playbackMode: "top" })} />);
 		await screen.findByText("slotbend-a");
-		await waitFor(() => {
-			expect(document.querySelectorAll("video").length).toBeGreaterThanOrEqual(2);
-		});
+		await prepareInactiveVideo();
 
 		const slotA = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("slotbend-a")) as HTMLVideoElement;
 		const slotB = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("slotbend-b")) as HTMLVideoElement;
@@ -1229,6 +1223,7 @@ describe("components/overlayPlayer", () => {
 
 		render(<OverlayPlayer overlay={buildOverlay({ playbackMode: "top" })} />);
 		await screen.findByText("inactiveb-a");
+		await prepareInactiveVideo();
 		await waitFor(() => {
 			const hasPrefetchedSlotB = Array.from(document.querySelectorAll("video")).some((video) => (video as HTMLVideoElement).src.includes("inactiveb-b"));
 			expect(hasPrefetchedSlotB).toBe(true);
@@ -1261,9 +1256,7 @@ describe("components/overlayPlayer", () => {
 
 		render(<OverlayPlayer overlay={buildOverlay({ playbackMode: "top" })} />);
 		await screen.findByText("inactivea-a");
-		await waitFor(() => {
-			expect(document.querySelectorAll("video").length).toBeGreaterThanOrEqual(2);
-		});
+		await prepareInactiveVideo();
 
 		const initialSlotA = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("inactivea-a")) as HTMLVideoElement | undefined;
 		const initialSlotB = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("inactivea-b")) as HTMLVideoElement | undefined;
@@ -1278,6 +1271,7 @@ describe("components/overlayPlayer", () => {
 			jest.advanceTimersByTime(750);
 		});
 		await screen.findByText("inactivea-b");
+		await prepareInactiveVideo("inactivea-b");
 		await waitFor(() => {
 			const hasPrefetchedSlotA = Array.from(document.querySelectorAll("video")).some((video) => (video as HTMLVideoElement).src.includes("inactivea-c"));
 			expect(hasPrefetchedSlotA).toBe(true);
@@ -1310,9 +1304,7 @@ describe("components/overlayPlayer", () => {
 
 		render(<OverlayPlayer overlay={buildOverlay({ playbackMode: "top" })} />);
 		await screen.findByText("slotb-rebuild-a");
-		await waitFor(() => {
-			expect(document.querySelectorAll("video").length).toBeGreaterThanOrEqual(2);
-		});
+		await prepareInactiveVideo();
 
 		const initialSlotA = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("slotb-rebuild-a")) as HTMLVideoElement | undefined;
 		const initialSlotB = Array.from(document.querySelectorAll("video")).find((video) => (video as HTMLVideoElement).src.includes("slotb-rebuild-b")) as HTMLVideoElement | undefined;
@@ -1327,6 +1319,7 @@ describe("components/overlayPlayer", () => {
 			jest.advanceTimersByTime(750);
 		});
 		await screen.findByText("slotb-rebuild-b");
+		await prepareInactiveVideo("slotb-rebuild-b");
 		await waitFor(() => {
 			const hasPrefetchedSlotA = Array.from(document.querySelectorAll("video")).some((video) => (video as HTMLVideoElement).src.includes("slotb-rebuild-c"));
 			expect(hasPrefetchedSlotA).toBe(true);
@@ -1397,16 +1390,162 @@ describe("components/overlayPlayer", () => {
 		}
 	});
 
-	it("covers preloadVideo catch block", async () => {
-		const originalCreateElement = document.createElement;
-		jest.spyOn(document, "createElement").mockImplementation((tagName: string) => {
-			if (tagName === "link") throw new Error("DOM failure");
-			return originalCreateElement.call(document, tagName);
+	it("does not create a separate video preload link", async () => {
+		const createElementSpy = jest.spyOn(document, "createElement");
+		getTwitchClipBatch.mockResolvedValue([buildClip("no-link-preload")]);
+		render(<OverlayPlayer overlay={buildOverlay()} />);
+		await screen.findByText("clip-no-link-preload");
+		expect(createElementSpy.mock.calls.some(([tagName]) => tagName === "link")).toBe(false);
+	});
+
+	it("does not mount the inactive media resource until the prepare window", async () => {
+		getTwitchClipBatch.mockResolvedValue([buildClip("prepare-a"), buildClip("prepare-b")]);
+		render(<OverlayPlayer overlay={buildOverlay({ playbackMode: "top" })} />);
+		await screen.findByText("clip-prepare-a");
+		await waitFor(() => expect(getTwitchClipPlaybackUrl).toHaveBeenCalledWith("prepare-b", "owner-1"));
+		await act(async () => {
+			await Promise.resolve();
+			await Promise.resolve();
+			await Promise.resolve();
 		});
 
-		getTwitchClipBatch.mockResolvedValue([buildClip("preload-fail")]);
-		render(<OverlayPlayer overlay={buildOverlay()} />);
-		await waitFor(() => expect(document.createElement).toHaveBeenCalledWith("link"));
+		const activeVideo = document.querySelector("video") as HTMLVideoElement;
+		expect(document.querySelectorAll("video")).toHaveLength(1);
+		setVideoTiming(activeVideo, 30, 21.9);
+		fireEvent.timeUpdate(activeVideo);
+		expect(document.querySelectorAll("video")).toHaveLength(1);
+
+		await prepareInactiveVideo();
+	});
+
+	it("keeps initial standby inert until runner playback is started", async () => {
+		getTwitchClipBatch.mockResolvedValue([buildClip("standby-a")]);
+		render(<OverlayPlayer overlay={buildOverlay()} initialStandby />);
+		await act(async () => Promise.resolve());
+		expect(document.querySelector("video")).not.toBeInTheDocument();
+		expect(playMock).not.toHaveBeenCalled();
+
+		await act(async () => {
+			(window as typeof window & { startRunnerPlayback?: () => void }).startRunnerPlayback?.();
+		});
+		await screen.findByText("clip-standby-a");
+		expect(document.querySelector("video")).toBeInTheDocument();
+	});
+
+	it("does not finish an initial load after playback returns to standby", async () => {
+		let resolveMediaUrl: ((url: string) => void) | undefined;
+		const standbyClip = buildClip("standby-race");
+		getFirstValidQueuedClip.mockResolvedValue({ clip: standbyClip, queueItem: { id: "standby-q1", clipId: standbyClip.id } });
+		getTwitchClipPlaybackUrl.mockImplementationOnce(
+			() =>
+				new Promise<string>((resolve) => {
+					resolveMediaUrl = resolve;
+				}),
+		);
+		render(<OverlayPlayer overlay={buildOverlay()} initialStandby />);
+
+		await act(async () => {
+			(window as typeof window & { startRunnerPlayback?: () => void }).startRunnerPlayback?.();
+		});
+		await waitFor(() => expect(resolveMediaUrl).toBeDefined());
+
+		await act(async () => {
+			(window as typeof window & { stopFallback?: () => void }).stopFallback?.();
+			resolveMediaUrl?.("https://media.example/standby-race.mp4");
+			await Promise.resolve();
+			await Promise.resolve();
+		});
+
+		expect(screen.queryByText("clip-standby-race")).not.toBeInTheDocument();
+		expect(document.querySelector("video")).not.toBeInTheDocument();
+		expect(removeFromModQueue).not.toHaveBeenCalled();
+		expect(removeFromClipQueue).not.toHaveBeenCalled();
+	});
+
+	it("retries playback when currentTime silently stops progressing", async () => {
+		jest.useFakeTimers();
+		Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "visible" });
+		getTwitchClipBatch.mockResolvedValue([buildClip("frozen-a"), buildClip("frozen-b")]);
+		render(<OverlayPlayer overlay={buildOverlay({ playbackMode: "top" })} />);
+		await screen.findByText("clip-frozen-a");
+		const activeVideo = document.querySelector("video") as HTMLVideoElement;
+		setVideoTiming(activeVideo, 60, 1);
+		await act(async () => {
+			fireEvent.play(activeVideo);
+			await Promise.resolve();
+		});
+		playMock.mockClear();
+
+		for (let second = 0; second < 8; second += 1) {
+			await act(async () => {
+				jest.advanceTimersByTime(1_000);
+				await Promise.resolve();
+			});
+		}
+		expect(playMock).toHaveBeenCalledTimes(1);
+	});
+
+	it("retries the watchdog after recovery cannot advance to another clip", async () => {
+		jest.useFakeTimers();
+		Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "visible" });
+		const loadMock = jest.spyOn(HTMLMediaElement.prototype, "load").mockImplementation(function (this: HTMLMediaElement) {
+			this.dispatchEvent(new Event("loadedmetadata"));
+		});
+		const warnMock = jest.spyOn(console, "warn").mockImplementation(() => undefined);
+		getTwitchClipBatch.mockResolvedValue([buildClip("frozen-alone"), buildClip("unplayable-b"), buildClip("unplayable-c")]);
+		resolvePlayableClip.mockImplementation(async (_ownerId: string, clip: { id: string }) => (clip.id === "frozen-alone" ? clip : null));
+
+		try {
+			render(<OverlayPlayer overlay={buildOverlay({ playbackMode: "top" })} />);
+			await screen.findByText("clip-frozen-alone");
+			const activeVideo = document.querySelector("video") as HTMLVideoElement;
+			setVideoTiming(activeVideo, 60, 1);
+			await act(async () => {
+				fireEvent.play(activeVideo);
+				await Promise.resolve();
+			});
+			playMock.mockClear();
+
+			for (let second = 0; second < 10; second += 1) {
+				await act(async () => {
+					jest.advanceTimersByTime(1_000);
+					await Promise.resolve();
+					await Promise.resolve();
+				});
+			}
+
+			expect(screen.getByText("clip-frozen-alone")).toBeInTheDocument();
+			expect(warnMock).toHaveBeenCalledWith(
+				"Clip playback recovery result",
+				expect.objectContaining({
+					outcome: "advance_failed",
+					attempts: [expect.objectContaining({ attempt: "play" }), expect.objectContaining({ attempt: "reload" }), expect.objectContaining({ attempt: "advance" })],
+				}),
+			);
+			const attemptsAfterFirstRecovery = playMock.mock.calls.length;
+			const socket = MockWebSocket.instances[0];
+			const playbackReports = socket.send.mock.calls.map(([message]) => JSON.parse(message as string)).filter((message) => message.type === "state_update" && message.data?.kind === "playback_issue");
+			expect(playbackReports).toHaveLength(1);
+			expect(playbackReports[0].data).toEqual(
+				expect.objectContaining({
+					outcome: "advance_failed",
+					attempts: [expect.objectContaining({ attempt: "play" }), expect.objectContaining({ attempt: "reload" }), expect.objectContaining({ attempt: "advance" })],
+				}),
+			);
+
+			for (let second = 0; second < 7; second += 1) {
+				await act(async () => {
+					jest.advanceTimersByTime(1_000);
+					await Promise.resolve();
+				});
+			}
+			expect(playMock.mock.calls.length).toBeGreaterThan(attemptsAfterFirstRecovery);
+			const reportsAfterRetry = socket.send.mock.calls.map(([message]) => JSON.parse(message as string)).filter((message) => message.type === "state_update" && message.data?.kind === "playback_issue");
+			expect(reportsAfterRetry).toHaveLength(1);
+		} finally {
+			loadMock.mockRestore();
+			warnMock.mockRestore();
+		}
 	});
 
 	it("handles playback url lookup failures without crashing", async () => {

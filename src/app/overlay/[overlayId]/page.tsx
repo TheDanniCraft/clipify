@@ -11,6 +11,8 @@ export default async function Overlay({ params, searchParams }: { params: Promis
 	const sp = await searchParams;
 	const rawSecret = Array.isArray(sp.secret) ? sp.secret[0] : sp.secret;
 	const secret = typeof rawSecret === "string" ? rawSecret : "";
+	const rawStandby = Array.isArray(sp.standby) ? sp.standby[0] : sp.standby;
+	const initialStandby = rawStandby === "true";
 
 	if (!secret) {
 		return (
@@ -51,9 +53,6 @@ export default async function Overlay({ params, searchParams }: { params: Promis
 	const rawShowFallbackBanner = Array.isArray(sp.showFallbackBanner) ? sp.showFallbackBanner[0] : sp.showFallbackBanner;
 	const showFallbackBanner = rawShowFallbackBanner === "true";
 
-	const rawStandby = Array.isArray(sp.standby) ? sp.standby[0] : sp.standby;
-	const standby = rawStandby === "true";
-
 	return (
 		<>
 			<style>{`
@@ -73,7 +72,7 @@ export default async function Overlay({ params, searchParams }: { params: Promis
 						Stream disconnected - Stream will be back soon
 					</div>
 				)}
-				<OverlayPlayer overlay={overlay} overlaySecret={secret} initialStandby={standby} showFallbackBanner={showFallbackBanner} />
+				<OverlayPlayer overlay={overlay} overlaySecret={secret} initialStandby={initialStandby} showFallbackBanner={showFallbackBanner} />
 			</div>
 		</>
 	);
