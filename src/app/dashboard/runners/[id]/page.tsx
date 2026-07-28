@@ -6,7 +6,7 @@ import { validateAuth } from "@actions/auth";
 import { getRunner, getRunnerToken, getRunnerVersionManifest, getStreamSessionsForRunner, upsertStreamSession, setStreamDesiredState, unlinkRunner } from "@actions/runner";
 import { getAllOverlays } from "@actions/database";
 import { Button, Card, Label, Select, Spinner, TextField, ListBox, Input, Chip, Separator, Modal, Dropdown, Tooltip } from "@heroui/react";
-import { IconCopy, IconCheck, IconDownload, IconPlayerPlay, IconPlayerStop, IconArrowLeft, IconTrash, IconBrandWindows, IconTerminal2, IconBrandApple, IconAlertTriangle, IconCircleCheck, IconUnlink } from "@tabler/icons-react";
+import { IconCopy, IconCheck, IconEye, IconDownload, IconPlayerPlay, IconPlayerStop, IconArrowLeft, IconTrash, IconBrandWindows, IconTerminal2, IconBrandApple, IconAlertTriangle, IconCircleCheck, IconUnlink } from "@tabler/icons-react";
 import { notify } from "@lib/toast";
 import FullscreenLoadingState from "@components/fullscreenLoadingState";
 import ConfirmModal from "@components/confirmModal";
@@ -95,6 +95,8 @@ export default function RunnerPage() {
 	const [clearStreamKey, setClearStreamKey] = useState<boolean>(false);
 	const [copied, setCopied] = useState(false);
 	const [manualToken, setManualToken] = useState<string | null>(null);
+	const [isTokenVisible, setIsTokenVisible] = useState(false);
+	const [tokenError, setTokenError] = useState<string | null>(null);
 	const [isLoadingToken, setIsLoadingToken] = useState(false);
 	const [isSaving, setIsSaving] = useState(false);
 
@@ -162,7 +164,7 @@ export default function RunnerPage() {
 			}
 			setUser(authUser);
 
-			const [fetchedRunner, fetchedSessions, fetchedOverlays, fetchedVersionManifest] = await Promise.all([getRunner(params.id, authUser.id), getStreamSessionsForRunner(params.id, authUser.id), getAllOverlays(authUser.id), getRunnerVersionManifest()]);
+			const [fetchedRunner, fetchedSessions, fetchedOverlays, fetchedVersionManifest, fetchedToken] = await Promise.all([getRunner(params.id, authUser.id), getStreamSessionsForRunner(params.id, authUser.id), getAllOverlays(authUser.id), getRunnerVersionManifest(), getRunnerToken(params.id, authUser.id)]);
 
 			if (!fetchedRunner) {
 				router.push("/dashboard");
@@ -173,6 +175,10 @@ export default function RunnerPage() {
 			setRunnerVersionManifest(fetchedVersionManifest);
 			setStreamSessions(fetchedSessions);
 			setOverlays(fetchedOverlays || []);
+
+			if (fetchedToken.success && fetchedToken.token) setManualToken(fetchedToken.token);
+			else setTokenError("Runner token could not be loaded.");
+			setIsLoadingToken(false);
 
 			const session = fetchedSessions[0];
 			if (session) {
@@ -203,17 +209,14 @@ export default function RunnerPage() {
 		return <FullscreenLoadingState message='Loading runner configuration' />;
 	}
 
-	const copyToken = async () => {
-		setIsLoadingToken(true);
-		const result = manualToken ? { success: true, token: manualToken } : await getRunnerToken(runner.id, runner.ownerId);
-		setIsLoadingToken(false);
-		if (!result.success || !result.token) {
-			notify({ title: "Error", description: "Failed to reveal the runner token.", color: "danger" });
-			return;
-		}
+	const revealToken = () => {
+		if (!manualToken) return;
+		setIsTokenVisible((visible) => !visible);
+	};
 
-		setManualToken(result.token);
-		await navigator.clipboard.writeText(result.token);
+	const copyToken = async () => {
+		if (!manualToken) return;
+		await navigator.clipboard.writeText(manualToken);
 		setCopied(true);
 		setTimeout(() => setCopied(false), 2000);
 	};
@@ -557,20 +560,21 @@ export default function RunnerPage() {
 											</span>
 										</summary>
 										<div className='px-4 pb-4'>
-											<div className='flex flex-col gap-2'>
-												<TextField variant='secondary'>
-													<Label>Manual Runner Token</Label>
-													<div className='flex gap-2'>
-														<Input readOnly value={manualToken ?? ""} placeholder='Reveal and copy on demand' type='password' className='font-mono text-sm flex-1' />
-														<Button isIconOnly variant='secondary' onPress={copyToken} isPending={isLoadingToken} aria-label='Reveal and copy runner token'>
-															{copied ? <IconCheck size={18} className='text-success' /> : <IconCopy size={18} />}
-														</Button>
-													</div>
-												</TextField>
-												<p className='text-xs text-muted mt-1'>
-													If you run this via Docker or in a headless CI environment, use this token as the <code>CLIPIFY_TOKEN</code> environment variable.
-												</p>
-											</div>
+											<TextField variant='secondary'>
+												<Label>Manual Runner Token</Label>
+												<div className='flex gap-2'>
+													<Input readOnly value={manualToken ? (isTokenVisible ? manualToken : "••••••••••••••••") : tokenError ? "Token unavailable" : "Loading token…"} placeholder='Loading runner token…' type='text' className='font-mono text-sm flex-1' />
+													<Button variant='secondary' onPress={revealToken} isDisabled={!manualToken || isLoadingToken} aria-label={isTokenVisible ? "Hide runner token" : "Reveal runner token"}>
+														<IconEye size={18} /> {isTokenVisible ? "Hide" : "Reveal"}
+													</Button>
+													<Button isIconOnly variant='secondary' onPress={copyToken} isDisabled={!manualToken || isLoadingToken} aria-label='Copy runner token'>
+														{copied ? <IconCheck size={18} className='text-success' /> : <IconCopy size={18} />}
+													</Button>
+												</div>
+											</TextField>
+											<p className='text-xs text-muted mt-1'>
+												If you run this via Docker or in a headless CI environment, use this token as the <code>CLIPIFY_TOKEN</code> environment variable.
+											</p>
 										</div>
 									</details>
 
