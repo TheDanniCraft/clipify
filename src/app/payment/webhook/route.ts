@@ -49,7 +49,8 @@ async function getCanonicalSubscription(stripe: Stripe, subscription: string | S
 
 async function processEvent(stripe: Stripe, event: Stripe.Event) {
 	switch (event.type) {
-		case "checkout.session.completed": {
+		case "checkout.session.completed":
+		case "checkout.session.async_payment_succeeded": {
 			const session = await stripe.checkout.sessions.retrieve((event.data.object as Stripe.Checkout.Session).id, { expand: ["subscription"] });
 			const subscription = await getCanonicalSubscription(stripe, session.subscription);
 			await syncStripeSubscription(subscription, session.client_reference_id);
@@ -81,7 +82,7 @@ export async function POST(req: Request) {
 		return NextResponse.json({ error: message }, { status: 400 });
 	}
 
-	const handledEvents = new Set(["checkout.session.completed", "customer.subscription.created", "customer.subscription.updated", "customer.subscription.deleted"]);
+	const handledEvents = new Set(["checkout.session.completed", "checkout.session.async_payment_succeeded", "customer.subscription.created", "customer.subscription.updated", "customer.subscription.deleted"]);
 	if (!handledEvents.has(event.type)) return NextResponse.json({});
 
 	const claim = await claimWebhookEvent(event);

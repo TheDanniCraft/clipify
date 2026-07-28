@@ -21,8 +21,8 @@ const PRODUCTS: Record<"dev" | "prod", Record<BillingProduct, ProductPrices>> = 
 			yearly: "price_1S83Y2B0sp7KYCWL0YDGoqjG",
 		},
 		[BillingProduct.RunnerSelfHosted]: {
-			monthly: process.env.STRIPE_RUNNER_MONTHLY_PRICE_ID ?? "",
-			yearly: process.env.STRIPE_RUNNER_YEARLY_PRICE_ID ?? "",
+			monthly: "price_1TyChaB0sp7KYCWLCcW0BNTZ",
+			yearly: "price_1TyChhB0sp7KYCWLBVMtucQJ",
 		},
 	},
 };

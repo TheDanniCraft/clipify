@@ -91,6 +91,20 @@ describe("app/payment/webhook route", () => {
 		expect(syncStripeSubscription).toHaveBeenCalledWith(subscription, "user_1");
 	});
 
+	it("synchronizes subscriptions after an asynchronous checkout succeeds", async () => {
+		const subscription = { id: "sub_async", customer: "cus_async", items: { data: [] } };
+		const stripe = {
+			webhooks: { constructEvent: jest.fn(() => ({ id: "evt_async", type: "checkout.session.async_payment_succeeded", data: { object: { id: "cs_async" } } })) },
+			checkout: { sessions: { retrieve: jest.fn().mockResolvedValue({ id: "cs_async", client_reference_id: "user_async", subscription: "sub_async" }) } },
+			subscriptions: { retrieve: jest.fn().mockResolvedValue(subscription) },
+		};
+		getStripe.mockResolvedValue(stripe);
+		const { POST } = await loadRoute();
+		const response = await POST(new Request("http://localhost/payment/webhook", { method: "POST", body: "payload" }));
+		expect(response.status).toBe(200);
+		expect(syncStripeSubscription).toHaveBeenCalledWith(subscription, "user_async");
+	});
+
 	it("skips already processed event ids", async () => {
 		findEvent.mockResolvedValue({ id: "evt_3", status: "processed" });
 		getStripe.mockResolvedValue({ webhooks: { constructEvent: jest.fn(() => ({ id: "evt_3", type: "customer.subscription.updated", data: { object: { id: "sub_1" } } })) } });
