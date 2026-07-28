@@ -564,9 +564,14 @@ export default function RunnerPage() {
 												<Label>Manual Runner Token</Label>
 												<div className='flex gap-2'>
 													<Input readOnly value={manualToken ? (isTokenVisible ? manualToken : "••••••••••••••••") : tokenError ? "Token unavailable" : "Loading token…"} placeholder='Loading runner token…' type='text' className='font-mono text-sm flex-1' />
-													<Button variant='secondary' onPress={revealToken} isDisabled={!manualToken || isLoadingToken} aria-label={isTokenVisible ? "Hide runner token" : "Reveal runner token"}>
-														<IconEye size={18} /> {isTokenVisible ? "Hide" : "Reveal"}
-													</Button>
+													<Tooltip delay={0}>
+														<Tooltip.Trigger>
+															<Button isIconOnly variant='secondary' onPress={revealToken} isDisabled={!manualToken || isLoadingToken} aria-label={isTokenVisible ? "Hide runner token" : "Reveal runner token"}>
+																<IconEye size={18} />
+															</Button>
+														</Tooltip.Trigger>
+														<Tooltip.Content>{isTokenVisible ? "Hide runner token" : "Reveal runner token"}</Tooltip.Content>
+													</Tooltip>
 													<Button isIconOnly variant='secondary' onPress={copyToken} isDisabled={!manualToken || isLoadingToken} aria-label='Copy runner token'>
 														{copied ? <IconCheck size={18} className='text-success' /> : <IconCopy size={18} />}
 													</Button>
@@ -598,8 +603,8 @@ export default function RunnerPage() {
 								</div>
 
 								{/* Right Column: Configuration */}
-								<div className='flex flex-col gap-8'>
-									<div className='flex flex-col gap-5'>
+								<div className='flex flex-col gap-8 h-full'>
+									<div className='flex flex-col gap-5 flex-1'>
 										<h3 className='text-lg font-semibold'>Stream Configuration</h3>
 
 										<Select value={overlayId || null} onChange={(selected) => setOverlayId(String(selected ?? ""))} variant='secondary'>
@@ -709,7 +714,7 @@ export default function RunnerPage() {
 											</TextField>
 										</div>
 
-										<div className='flex flex-col sm:flex-row gap-3 mt-6 pt-6 border-t border-divider'>
+										<div className='flex flex-col sm:flex-row gap-3 mt-auto pt-6 border-t border-divider'>
 											<Button variant='primary' onPress={handleSave} isDisabled={!streamConfigValid} isPending={isSaving} className='sm:w-auto w-full'>
 												{isSaving ? <Spinner size='sm' color='current' /> : "Save Configuration"}
 											</Button>
