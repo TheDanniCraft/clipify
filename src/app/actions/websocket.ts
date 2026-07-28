@@ -143,6 +143,14 @@ export async function handleMessage(buffer: RawData, client: WebSocket) {
 				client.close(4003);
 				return;
 			}
+			const statePayload = payload as Record<string, unknown>;
+			if (statePayload.kind === "playback_issue") {
+				console.warn("Overlay playback issue", {
+					...statePayload,
+					overlayId: client.overlayId,
+					ownerId: client.ownerId,
+				});
+			}
 			broadcastToClients("overlay_state", payload as object, overlaySubscribers.get(client.overlayId), client);
 			return;
 		}

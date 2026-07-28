@@ -11,6 +11,8 @@ export default async function Overlay({ params, searchParams }: { params: Promis
 	const sp = await searchParams;
 	const rawSecret = Array.isArray(sp.secret) ? sp.secret[0] : sp.secret;
 	const secret = typeof rawSecret === "string" ? rawSecret : "";
+	const rawStandby = Array.isArray(sp.standby) ? sp.standby[0] : sp.standby;
+	const initialStandby = rawStandby === "true";
 
 	if (!secret) {
 		return (
@@ -61,7 +63,7 @@ export default async function Overlay({ params, searchParams }: { params: Promis
 				}}
 			/>
 			<div className='flex flex-col justify-center items-center h-screen w-screen'>
-				<OverlayPlayer overlay={overlay} overlaySecret={secret} />
+				<OverlayPlayer overlay={overlay} overlaySecret={secret} initialStandby={initialStandby} />
 			</div>
 		</>
 	);
