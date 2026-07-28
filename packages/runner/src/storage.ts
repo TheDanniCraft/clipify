@@ -1,6 +1,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
+import { execFileSync } from "child_process";
 import { Entry } from "@napi-rs/keyring";
 
 const CONFIG_DIR = path.join(os.homedir(), ".clipify-runner");
@@ -16,6 +17,17 @@ export interface RunnerCredentials {
 function ensureConfigDir() {
 	if (!fs.existsSync(CONFIG_DIR)) {
 		fs.mkdirSync(CONFIG_DIR, { recursive: true, mode: 0o700 });
+	}
+}
+function restrictConfigFile() {
+	try {
+		fs.chmodSync(CONFIG_PATH, 0o600);
+	} catch {}
+	if (process.platform !== "win32" || !process.env.USERNAME) return;
+	try {
+		execFileSync("icacls", [CONFIG_PATH, "/inheritance:r", "/grant:r", `${process.env.USERNAME}:F`], { stdio: "ignore", windowsHide: true });
+	} catch {
+		console.warn("[Storage] Could not restrict Windows config ACL; keeping the default profile ACL.");
 	}
 }
 
@@ -46,6 +58,7 @@ export async function saveCredentials(credentials: RunnerCredentials) {
 		encoding: "utf-8",
 		mode: 0o600, // Read/Write only for owner
 	});
+	restrictConfigFile();
 }
 
 export async function loadCredentials(): Promise<RunnerCredentials> {

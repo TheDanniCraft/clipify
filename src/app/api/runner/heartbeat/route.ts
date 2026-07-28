@@ -90,15 +90,8 @@ export async function POST(req: Request) {
 			};
 		});
 
-		// 7. Check if an update is available (Hardcoded for prototype)
-		const LATEST_VERSION = "1.0.0";
-		const updateAvailable = version !== LATEST_VERSION;
-
 		return NextResponse.json({
 			success: true,
-			updateAvailable,
-			latestVersion: LATEST_VERSION,
-			downloadUrl: "https://clipify.io/downloads/ClipifyRunner.exe", // Mock for now
 			jobs,
 		});
 	} catch (error) {

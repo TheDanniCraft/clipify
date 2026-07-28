@@ -1,8 +1,6 @@
 import fs from "fs";
 import crypto from "crypto";
 import { spawn } from "child_process";
-import https from "https";
-import http from "http";
 
 type UpdateTarget = { osKey: string };
 
@@ -14,25 +12,18 @@ function getFileHash(filePath: string): string {
 }
 
 async function downloadFile(url: string, dest: string): Promise<void> {
-	return new Promise((resolve, reject) => {
-		const client = url.startsWith("https") ? https : http;
-		client
-			.get(url, (response) => {
-				if (response.statusCode === 200) {
-					const file = fs.createWriteStream(dest);
-					response.pipe(file);
-					file.on("finish", () => {
-						file.close();
-						resolve();
-					});
-				} else {
-					reject(new Error(`Failed to download file: ${response.statusCode}`));
-				}
-			})
-			.on("error", (err) => {
-				fs.unlink(dest, () => reject(err));
-			});
-	});
+	const parsedUrl = new URL(url);
+	if (!["http:", "https:"].includes(parsedUrl.protocol)) throw new Error(`Unsupported update URL protocol: ${parsedUrl.protocol}`);
+	try {
+		const response = await fetch(parsedUrl, { signal: AbortSignal.timeout(5 * 60 * 1000) });
+		if (!response.ok) throw new Error(`Failed to download file: ${response.status}`);
+		fs.writeFileSync(dest, Buffer.from(await response.arrayBuffer()));
+	} catch (error) {
+		try {
+			fs.unlinkSync(dest);
+		} catch {}
+		throw error;
+	}
 }
 
 function getUpdateTarget(): UpdateTarget {
@@ -43,7 +34,6 @@ function getUpdateTarget(): UpdateTarget {
 		osKey: isWindows ? "windows" : isLinuxArm64 ? "linuxArm" : isMacOS && process.arch === "arm64" ? "macosArm" : isMacOS ? "macos" : "linux",
 	};
 }
-
 async function fetchRemoteHash(apiBase: string, osKey: string): Promise<string | undefined> {
 	const res = await fetch(`${apiBase}/api/runner/version`);
 	if (!res.ok) {

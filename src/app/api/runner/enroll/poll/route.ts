@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
+import { createHash } from "crypto";
 import { eq } from "drizzle-orm";
 
 import { db } from "@/db/client";
 import { runnerEnrollmentsTable, runnersTable } from "@/db/schema";
+import { tryRateLimit } from "@actions/rateLimit";
 
 export async function POST(req: Request) {
 	try {
@@ -10,6 +12,10 @@ export async function POST(req: Request) {
 		if (typeof body.deviceCode !== "string" || !body.deviceCode) {
 			return NextResponse.json({ error: "Missing deviceCode" }, { status: 400 });
 		}
+
+		const identifier = createHash("sha256").update(body.deviceCode).digest("hex");
+		const limit = await tryRateLimit({ key: "runner-enrollment-poll", points: 30, duration: 60, identifier });
+		if (!limit.success) return NextResponse.json({ error: "Too many enrollment polls" }, { status: 429, headers: { "Retry-After": "60" } });
 
 		const enrollment = await db.query.runnerEnrollmentsTable.findFirst({
 			where: eq(runnerEnrollmentsTable.deviceCode, body.deviceCode),

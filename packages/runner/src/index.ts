@@ -331,7 +331,7 @@ async function processHeartbeatJob(job: HeartbeatJob, apiBase: string, token: st
 	}
 }
 
-async function pollHeartbeat(token: string, apiBase: string, runnerId?: string): Promise<"ok" | "reauth"> {
+async function pollHeartbeat(token: string, apiBase: string, runnerId?: string): Promise<"ok" | "reauth" | "retry"> {
 	try {
 		console.log(`[Heartbeat] Polling ${apiBase}/api/runner/heartbeat...`);
 		const response = await fetch(`${apiBase}/api/runner/heartbeat`, {
@@ -346,7 +346,7 @@ async function pollHeartbeat(token: string, apiBase: string, runnerId?: string):
 				console.error("[Runner] Credentials invalid or revoked. Starting new enrollment...");
 				return "reauth";
 			}
-			return "ok";
+			return "retry";
 		}
 		const data = (await response.json()) as { jobs?: HeartbeatJob[] };
 		console.log(`[Jobs] Received ${data.jobs?.length || 0} jobs.`);
@@ -354,7 +354,7 @@ async function pollHeartbeat(token: string, apiBase: string, runnerId?: string):
 		return "ok";
 	} catch (error) {
 		console.error(`[Error] Failed to poll heartbeat:`, error);
-		return "ok";
+		return "retry";
 	}
 }
 
@@ -564,6 +564,7 @@ async function main() {
 	}, 1000);
 
 	const runnerArgs = process.argv.slice(2);
+	let heartbeatFailures = 0;
 	while (true) {
 		const heartbeatStatus = await pollHeartbeat(token, apiBase, runnerId);
 		if (heartbeatStatus === "reauth") {
@@ -573,10 +574,19 @@ async function main() {
 			token = reauthenticated.token;
 			runnerId = reauthenticated.runnerId;
 			RUNNER_VERSION = await checkForUpdates(apiBase);
+			heartbeatFailures = 0;
 			console.log(`[Info] Re-enrollment complete. API Base URL is ${apiBase}.`);
 			continue;
 		}
-		await sleep(10 * 1000);
+		if (heartbeatStatus === "retry") {
+			heartbeatFailures += 1;
+			const retryDelayMs = Math.min(120_000, 10_000 * 2 ** Math.min(heartbeatFailures - 1, 3));
+			console.warn(`[Heartbeat] Retrying in ${retryDelayMs / 1000}s.`);
+			await sleep(retryDelayMs);
+		} else {
+			heartbeatFailures = 0;
+			await sleep(10 * 1000);
+		}
 	}
 }
 
