@@ -202,3 +202,19 @@ jobs:
       - name: 🧪 Test Runner
         working-directory: packages/runner
         run: bun run test
+
+  runner-manifest:
+    name: 📋 Verify Runner manifest extraction
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📋 Test scratch-image manifest extraction
+        run: |
+          set -euo pipefail
+          manifest_dir="$(mktemp -d)"
+          printf '{"schemaVersion":1}\n' > "$manifest_dir/manifest.json"
+          printf 'FROM scratch\nCOPY manifest.json /manifest.json\n' > "$manifest_dir/Dockerfile"
+          docker build --tag clipify-runner-manifest-test "$manifest_dir"
+          container="$(docker create clipify-runner-manifest-test /bin/true)"
+          trap 'docker rm "$container" >/dev/null 2>&1 || true; rm -rf "$manifest_dir"' EXIT
+          docker cp "$container:/manifest.json" "$manifest_dir/copied-manifest.json"
+          cmp "$manifest_dir/manifest.json" "$manifest_dir/copied-manifest.json"
