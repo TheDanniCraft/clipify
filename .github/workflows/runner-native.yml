@@ -217,7 +217,7 @@ jobs:
             if docker buildx imagetools inspect "$reference" >/dev/null 2>&1; then
               echo "Checking existing immutable artifact $reference"
               docker pull "$reference" >/dev/null
-              container="$(docker create "$reference" /bin/sh)"
+              container="$(docker create "$reference" /bin/true)"
               docker cp "$container:/metadata.json" "$RUNNER_ARTIFACT_WORK/$platform.metadata.json"
               docker rm "$container" >/dev/null
               node -e 'const fs=require("fs"); const expected=JSON.parse(fs.readFileSync(process.argv[1])); const actual=JSON.parse(fs.readFileSync(process.argv[2])); for(const k of ["platform","target","filename","sourceFingerprint","sha256","size"]) if(expected[k]!==actual[k]) throw new Error(`Existing artifact mismatch in ${k}`)' "$metadata" "$RUNNER_ARTIFACT_WORK/$platform.metadata.json"
@@ -249,7 +249,7 @@ jobs:
           if docker buildx imagetools inspect "$reference" >/dev/null 2>&1; then
             echo "Checking existing immutable manifest $reference"
             docker pull "$reference" >/dev/null
-            container="$(docker create "$reference" /bin/sh)"
+            container="$(docker create "$reference" /bin/true)"
             docker cp "$container:/manifest.json" "$RUNNER_ARTIFACT_WORK/existing-manifest.json"
             docker rm "$container" >/dev/null
             cmp -s "$RUNNER_ARTIFACT_WORK/manifest.json" "$RUNNER_ARTIFACT_WORK/existing-manifest.json" || { echo "Existing manifest differs; refusing to overwrite" >&2; exit 1; }
@@ -282,7 +282,7 @@ jobs:
             if [ -n "$versions" ]; then
               previous_alias_version_id="$(printf '%s' "$versions" | node scripts/runner-package-cleanup.mjs --pr "$RUNNER_PR_NUMBER" --mode preview-alias 2>/dev/null | head -n 1 || true)"
             fi
-            container="$(docker create "$alias" /bin/sh)"
+            container="$(docker create "$alias" /bin/true)"
             trap 'docker rm "$container" >/dev/null 2>&1 || true' EXIT
             docker cp "$container:/manifest.json" "$existing_manifest"
             existing_commit="$(node -e 'const fs=require("fs"); const m=JSON.parse(fs.readFileSync(process.argv[1])); process.stdout.write(m.sourceCommit || "")' "$existing_manifest")"
@@ -300,7 +300,7 @@ jobs:
             "$immutable"
 
           docker pull "$alias" >/dev/null
-          container="$(docker create "$alias" /bin/sh)"
+          container="$(docker create "$alias" /bin/true)"
           trap 'docker rm "$container" >/dev/null 2>&1 || true' EXIT
           docker cp "$container:/manifest.json" "$RUNNER_ARTIFACT_WORK/verified-preview-alias-manifest.json"
           cmp -s "$RUNNER_ARTIFACT_WORK/manifest.json" "$RUNNER_ARTIFACT_WORK/verified-preview-alias-manifest.json"

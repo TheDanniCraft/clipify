@@ -38,7 +38,7 @@ jobs:
         run: |
           set -euo pipefail
           docker pull "$RUNNER_REPOSITORY:fp-$RUNNER_FINGERPRINT-manifest"
-          container="$(docker create "$RUNNER_REPOSITORY:fp-$RUNNER_FINGERPRINT-manifest")"
+          container="$(docker create "$RUNNER_REPOSITORY:fp-$RUNNER_FINGERPRINT-manifest" /bin/true)"
           trap 'docker rm "$container" >/dev/null 2>&1 || true' EXIT
           docker cp "$container:/manifest.json" /tmp/runner-manifest.json
 
