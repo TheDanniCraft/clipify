@@ -2,6 +2,7 @@ name: 🏃 Native Runner validation
 
 on:
   push:
+    branches: ["**"]
     paths:
       - "packages/runner/**"
       - "packages/runner/build-config.json"
