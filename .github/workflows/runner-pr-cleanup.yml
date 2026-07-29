@@ -20,7 +20,7 @@ jobs:
       RUNNER_PACKAGE: clipify-runner
       RUNNER_PR_NUMBER: ${{ github.event.pull_request.number }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.event.pull_request.base.ref }}
           fetch-depth: 1
