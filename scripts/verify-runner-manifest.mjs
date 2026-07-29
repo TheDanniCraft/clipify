@@ -13,6 +13,7 @@ const repository = args
 	.replace(/^https?:\/\//, "")
 	.replace(/\/$/, "")
 	.toLowerCase();
+const artifactTagPrefix = args.get("--artifact-tag-prefix") ?? "fp-";
 
 if (manifest.schemaVersion !== 1) throw new Error("Unsupported Runner manifest schema");
 if (manifest.sourceFingerprint !== args.get("--fingerprint")) throw new Error("Runner manifest fingerprint does not match the production source");
@@ -25,7 +26,7 @@ for (const platform of platforms) {
 	if (!artifact) throw new Error(`Runner manifest is missing ${platform}`);
 	if (!/^[0-9a-f]{64}$/.test(artifact.sha256 ?? "")) throw new Error(`Invalid Runner SHA-256 for ${platform}`);
 	if (!/^sha256:[0-9a-f]{64}$/.test(artifact.oci?.digest ?? "")) throw new Error(`Invalid Runner OCI digest for ${platform}`);
-	const expectedReference = `${repository}:fp-${args.get("--fingerprint")}-${platform}`;
+	const expectedReference = `${repository}:${artifactTagPrefix}${args.get("--fingerprint")}-${platform}`;
 	if (artifact.oci.reference !== expectedReference) throw new Error(`Runner OCI reference mismatch for ${platform}`);
 }
 

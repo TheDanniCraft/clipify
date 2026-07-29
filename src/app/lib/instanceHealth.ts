@@ -3,15 +3,22 @@ import { db } from "@/db/client";
 import { billingSubscriptionItemsTable, billingSubscriptionsTable, entitlementGrantsTable, modQueueTable, overlaysTable, playlistClipsTable, playlistsTable, queueTable, runnersTable, settingsTable, streamSessionsTable, tokenTable, twitchCacheTable, usersTable } from "@/db/schema";
 import { getTwitchCacheReadMetricsSnapshot } from "@actions/database";
 import { getClipCacheSchedulerStats } from "@lib/clipCacheScheduler";
-import { and, arrayContains, count, countDistinct, eq, gt, isNotNull, isNull, like, lt, lte, notLike, or, sql } from "drizzle-orm";
+import { and, arrayContains, count, countDistinct, eq, gt, isNotNull, isNull, like, lt, lte, or, sql } from "drizzle-orm";
 import { BillingProduct, Entitlement, EntitlementGrantSource, OverlayType, PlaybackMode, Plan, RunnerStatus, StatusOptions, StreamMode, StreamState, TwitchCacheType } from "@types";
 
 type HealthStatus = "ok" | "degraded" | "down";
 
-let v1GraphQLFetches = 0;
-let v2TwitchApiFetches = 0;
-let v2FallbackGraphQLFetches = 0;
-let v2RateLimitedFetches = 0;
+type ClipFetchMetrics = {
+	v1GraphQL: number;
+	v2TwitchApi: number;
+	v2FallbackGraphQL: number;
+	v2RateLimited: number;
+	twitchRateLimitHistory: TwitchRateLimitLog[];
+};
+
+declare global {
+	var __clipFetchMetrics: ClipFetchMetrics | undefined;
+}
 
 export type TwitchRateLimitLog = {
 	broadcasterId: string;
@@ -22,25 +29,37 @@ export type TwitchRateLimitLog = {
 	timestamp: string;
 };
 
-const twitchRateLimitHistory: TwitchRateLimitLog[] = [];
+function getClipFetchMetricsStore(): ClipFetchMetrics {
+	if (!globalThis.__clipFetchMetrics) {
+		globalThis.__clipFetchMetrics = {
+			v1GraphQL: 0,
+			v2TwitchApi: 0,
+			v2FallbackGraphQL: 0,
+			v2RateLimited: 0,
+			twitchRateLimitHistory: [],
+		};
+	}
+	return globalThis.__clipFetchMetrics;
+}
 
 export function incrementClipFetchV1() {
-	v1GraphQLFetches++;
+	getClipFetchMetricsStore().v1GraphQL += 1;
 }
 export function incrementClipFetchV2() {
-	v2TwitchApiFetches++;
+	getClipFetchMetricsStore().v2TwitchApi += 1;
 }
 export function incrementClipFetchFallback() {
-	v2FallbackGraphQLFetches++;
+	getClipFetchMetricsStore().v2FallbackGraphQL += 1;
 }
 export function incrementClipFetchRateLimited() {
-	v2RateLimitedFetches++;
+	getClipFetchMetricsStore().v2RateLimited += 1;
 }
 
 export function recordTwitchRateLimit(log: TwitchRateLimitLog) {
-	twitchRateLimitHistory.unshift(log);
-	if (twitchRateLimitHistory.length > 50) {
-		twitchRateLimitHistory.pop();
+	const history = getClipFetchMetricsStore().twitchRateLimitHistory;
+	history.unshift(log);
+	if (history.length > 50) {
+		history.pop();
 	}
 }
 
@@ -503,21 +522,21 @@ export async function getInstanceHealthSnapshot<TExclude extends keyof InstanceH
 	const avatarEntries = Number(cacheTotals.find((row) => row.type === TwitchCacheType.Avatar)?.count ?? 0);
 	const gameEntries = Number(cacheTotals.find((row) => row.type === TwitchCacheType.Game)?.count ?? 0);
 
-	const [unavailableClipsRows, clipSyncStatesRows, clipSyncCompleteRows, staleValidatedRows] = await Promise.all([
+	const [unavailableClipsRows, clipSyncProgressRows, staleValidatedRows] = await Promise.all([
 		db
 			.select({ count: count() })
 			.from(twitchCacheTable)
 			.where(and(eq(twitchCacheTable.type, TwitchCacheType.Clip), like(twitchCacheTable.value, '%"unavailable":true%')))
 			.execute(),
 		db
-			.select({ count: count() })
-			.from(twitchCacheTable)
-			.where(and(eq(twitchCacheTable.type, TwitchCacheType.Clip), like(twitchCacheTable.key, "clip-sync:%"), notLike(twitchCacheTable.key, "clip-sync-force:%")))
-			.execute(),
-		db
-			.select({ count: count() })
-			.from(twitchCacheTable)
-			.where(and(eq(twitchCacheTable.type, TwitchCacheType.Clip), like(twitchCacheTable.key, "clip-sync:%"), notLike(twitchCacheTable.key, "clip-sync-force:%"), like(twitchCacheTable.value, '%"backfillComplete":true%')))
+			.select({
+				states: countDistinct(overlaysTable.ownerId),
+				complete: sql<number>`count(distinct ${overlaysTable.ownerId}) filter (where ${twitchCacheTable.value} like '%"backfillComplete":true%')`,
+			})
+			.from(overlaysTable)
+			.innerJoin(usersTable, eq(usersTable.id, overlaysTable.ownerId))
+			.leftJoin(twitchCacheTable, and(eq(twitchCacheTable.type, TwitchCacheType.Clip), eq(twitchCacheTable.key, sql`'clip-sync:' || ${overlaysTable.ownerId}`)))
+			.where(and(eq(overlaysTable.status, StatusOptions.Active), eq(usersTable.disabled, false)))
 			.execute(),
 		db
 			.select({ count: count() })
@@ -528,12 +547,13 @@ export async function getInstanceHealthSnapshot<TExclude extends keyof InstanceH
 
 	const unavailableClips = Number(unavailableClipsRows[0]?.count ?? 0);
 	const staleValidatedClips = Number(staleValidatedRows[0]?.count ?? 0);
-	const clipSyncStates = Number(clipSyncStatesRows[0]?.count ?? 0);
-	const clipSyncCompleteCount = Number(clipSyncCompleteRows[0]?.count ?? 0);
+	const clipSyncStates = Number(clipSyncProgressRows[0]?.states ?? 0);
+	const clipSyncCompleteCount = Number(clipSyncProgressRows[0]?.complete ?? 0);
 	const backfillCompleteRatio = clipSyncStates > 0 ? clipSyncCompleteCount / clipSyncStates : 0;
 
 	const scheduler = getClipCacheSchedulerStats();
 	const cacheReads = await getTwitchCacheReadMetricsSnapshot();
+	const clipFetchMetrics = getClipFetchMetricsStore();
 	const healthAggregationMs = Date.now() - started;
 
 	let status: HealthStatus = "ok";
@@ -606,14 +626,14 @@ export async function getInstanceHealthSnapshot<TExclude extends keyof InstanceH
 		},
 		clips: {
 			fetches: {
-				v1GraphQL: v1GraphQLFetches,
-				v2TwitchApi: v2TwitchApiFetches,
-				v2FallbackGraphQL: v2FallbackGraphQLFetches,
-				v2RateLimited: v2RateLimitedFetches,
+				v1GraphQL: clipFetchMetrics.v1GraphQL,
+				v2TwitchApi: clipFetchMetrics.v2TwitchApi,
+				v2FallbackGraphQL: clipFetchMetrics.v2FallbackGraphQL,
+				v2RateLimited: clipFetchMetrics.v2RateLimited,
 			},
 		},
 		twitchRateLimit: {
-			history: twitchRateLimitHistory,
+			history: clipFetchMetrics.twitchRateLimitHistory,
 		},
 		auth: {
 			tokenRows: Number(tokenRows[0]?.count ?? 0),

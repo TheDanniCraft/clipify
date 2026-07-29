@@ -17,7 +17,6 @@ import { canEditOwnerInternal, requireOverlayAccessInternal, requireOverlaySecre
 import { invalidateCommunitySnapshotCache } from "@lib/community";
 
 const TWITCH_CACHE_CLEANUP_INTERVAL_MS = 10 * 60 * 1000;
-let lastTwitchCacheCleanupAt = 0;
 const FONT_URL_DELIMITER = "||url||";
 const ALLOWED_FONT_CSS_HOSTS = new Set(["fonts.googleapis.com"]);
 const HEX_COLOR_PATTERN = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
@@ -54,6 +53,7 @@ type CacheReadMetrics = {
 
 declare global {
 	var __twitchCacheReadMetrics: CacheReadMetrics | undefined;
+	var __lastTwitchCacheCleanupAt: number | undefined;
 }
 
 function summarizeError(error: unknown): string {
@@ -111,8 +111,8 @@ export async function getTwitchCacheReadMetricsSnapshot() {
 
 const cleanupTwitchCacheIfNeeded = async (now: Date) => {
 	/* istanbul ignore next: cache cleanup interval guard */
-	if (now.getTime() - lastTwitchCacheCleanupAt < TWITCH_CACHE_CLEANUP_INTERVAL_MS) return;
-	lastTwitchCacheCleanupAt = now.getTime();
+	if (now.getTime() - (globalThis.__lastTwitchCacheCleanupAt ?? 0) < TWITCH_CACHE_CLEANUP_INTERVAL_MS) return;
+	globalThis.__lastTwitchCacheCleanupAt = now.getTime();
 	await db.delete(twitchCacheTable).where(lt(twitchCacheTable.expiresAt, now)).execute();
 };
 

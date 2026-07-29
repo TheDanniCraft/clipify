@@ -129,6 +129,7 @@ describe("actions/database cache logic", () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
 		selectQueue.length = 0;
+		globalThis.__lastTwitchCacheCleanupAt = undefined;
 		dbSelect.mockImplementation(() => makeSelectChain());
 		dbInsert.mockImplementation(() => makeInsertChain());
 		dbDelete.mockImplementation(() => makeDeleteChain());

@@ -77,7 +77,7 @@ const repositoryHost = repository.split("/")[0];
 const repositoryPath = repository.slice(repositoryHost.length + 1);
 const registryBaseUrl = `https://${repositoryHost}`;
 const cacheRoot = process.env.RUNNER_CACHE_DIR ?? path.join(os.tmpdir(), "clipify-runner-cache");
-const localArtifactRoot = process.env.RUNNER_LOCAL_ARTIFACT_DIR ?? path.join(process.cwd(), "public", "downloads", "runner");
+const localArtifactRoot = process.env.RUNNER_LOCAL_ARTIFACT_DIR ?? path.join(/* turbopackIgnore: true */ process.cwd(), "public", "downloads", "runner");
 const manifestPromises = new Map<string, Promise<RunnerManifest>>();
 const previewManifestPromises = new Map<string, Promise<RunnerManifest>>();
 const artifactPromises = new Map<string, Promise<{ buffer: Buffer; artifact: RunnerArtifact; source: "oci" | "local"; sourceFingerprint: string }>>();
@@ -88,7 +88,7 @@ function currentFingerprint() {
 }
 
 function cachePath(...parts: string[]) {
-	return path.join(cacheRoot, ...parts);
+	return path.join(/* turbopackIgnore: true */ cacheRoot, ...parts);
 }
 
 function hash(buffer: Buffer) {
@@ -229,7 +229,7 @@ function validateManifest(value: unknown, fingerprint?: string, previewPrId?: nu
 
 async function readCachedManifest(fingerprint: string) {
 	try {
-		return validateManifest(JSON.parse(await fsp.readFile(cachePath(`manifest-${fingerprint}.json`), "utf8")), fingerprint);
+		return validateManifest(JSON.parse(await fsp.readFile(/* turbopackIgnore: true */ cachePath(`manifest-${fingerprint}.json`), "utf8")), fingerprint);
 	} catch {
 		return undefined;
 	}
@@ -310,8 +310,8 @@ async function withFileLock(lockPath: string, callback: () => Promise<void>) {
 
 async function readLocalRunnerArtifact(platform: RunnerPlatform) {
 	const filename = LOCAL_BINARY_NAMES[platform];
-	const filePath = path.join(localArtifactRoot, filename);
-	const buffer = await fsp.readFile(filePath).catch(() => undefined);
+	const filePath = path.join(/* turbopackIgnore: true */ localArtifactRoot, filename);
+	const buffer = await fsp.readFile(/* turbopackIgnore: true */ filePath).catch(() => undefined);
 	if (!buffer) throw new RunnerArtifactUnavailableError("Local Runner binary missing: " + filename + ". Run bun run runner:build.", 404);
 	const sha256 = hash(buffer);
 	return { buffer, artifact: { platform, target: "local", filename, sha256, size: buffer.byteLength, oci: { reference: "local", digest: `sha256:${sha256}` } }, source: "local" as const, sourceFingerprint: "local" };
@@ -333,12 +333,12 @@ export async function getRunnerArtifact(platform: RunnerPlatform, selector?: Run
 		const selectedFingerprint = manifest.sourceFingerprint;
 		if (!artifact || !/^[0-9a-f]{64}$/.test(artifact.sha256) || !/^sha256:[0-9a-f]{64}$/.test(artifact.oci?.digest ?? "") || artifact.oci.reference !== artifactReference(selectedFingerprint, platform, selector?.previewPrId)) throw new Error(`Invalid Runner artifact entry for ${platform}`);
 		const destination = cachePath(selectedFingerprint, artifact.filename);
-		const cached = await fsp.readFile(destination).catch(() => undefined);
+		const cached = await fsp.readFile(/* turbopackIgnore: true */ destination).catch(() => undefined);
 		if (cached && hash(cached) === artifact.sha256) return { buffer: cached, artifact, source: "oci" as const, sourceFingerprint: selectedFingerprint };
 		try {
 			let result: Buffer | undefined;
 			await withFileLock(`${destination}.lock`, async () => {
-				const lockedCached = await fsp.readFile(destination).catch(() => undefined);
+				const lockedCached = await fsp.readFile(/* turbopackIgnore: true */ destination).catch(() => undefined);
 				if (lockedCached && hash(lockedCached) === artifact.sha256) {
 					result = lockedCached;
 					return;

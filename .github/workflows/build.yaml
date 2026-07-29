@@ -37,8 +37,19 @@ jobs:
           RUNNER_FINGERPRINT: ${{ steps.context.outputs.fingerprint }}
         run: |
           set -euo pipefail
-          docker pull "$RUNNER_REPOSITORY:fp-$RUNNER_FINGERPRINT-manifest"
-          container="$(docker create "$RUNNER_REPOSITORY:fp-$RUNNER_FINGERPRINT-manifest" /bin/true)"
+          reference="$RUNNER_REPOSITORY:fp-$RUNNER_FINGERPRINT-manifest"
+          for attempt in $(seq 1 30); do
+            if docker pull "$reference"; then
+              break
+            fi
+            if [ "$attempt" -eq 30 ]; then
+              echo "Runner manifest was not published within 10 minutes: $reference" >&2
+              exit 1
+            fi
+            echo "Runner manifest is not available yet; retrying in 20 seconds ($attempt/30)..."
+            sleep 20
+          done
+          container="$(docker create "$reference" /bin/true)"
           trap 'docker rm "$container" >/dev/null 2>&1 || true' EXIT
           docker cp "$container:/manifest.json" /tmp/runner-manifest.json
 
