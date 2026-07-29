@@ -106,6 +106,7 @@ function makeQuery(rows: unknown[]) {
 	const query = {
 		from: () => query,
 		innerJoin: () => query,
+		leftJoin: () => query,
 		where: () => query,
 		groupBy: () => query,
 		orderBy: () => query,
@@ -119,6 +120,7 @@ describe("lib/instanceHealth", () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
 		dbExecute.mockResolvedValue([]);
+		globalThis.__clipFetchMetrics = undefined;
 
 		const selectQueue: unknown[][] = [
 			[{ count: 10 }], // usersTotal
@@ -188,8 +190,7 @@ describe("lib/instanceHealth", () => {
 				{ type: "game", count: 15 },
 			], // cacheTotals
 			[{ count: 4 }], // unavailableClipsRows
-			[{ count: 3 }], // clipSyncStatesRows
-			[{ count: 2 }], // clipSyncCompleteRows
+			[{ states: 3, complete: 2 }], // clipSyncProgressRows
 			[{ count: 5 }], // staleValidatedRows
 		];
 		dbSelect.mockImplementation(() => makeQuery(selectQueue.shift() ?? []));
@@ -242,6 +243,33 @@ describe("lib/instanceHealth", () => {
 		expect(snapshot.status).toBe("ok");
 		expect(snapshot.db.pingMs).toBeGreaterThanOrEqual(0);
 		expect(snapshot.db.healthAggregationMs).toBeGreaterThanOrEqual(snapshot.db.pingMs);
+	});
+
+	it("shares clip fetch metrics with the health snapshot through globalThis", async () => {
+		const { getInstanceHealthSnapshot, incrementClipFetchFallback, incrementClipFetchRateLimited, incrementClipFetchV1, incrementClipFetchV2, recordTwitchRateLimit } = await import("@/app/lib/instanceHealth");
+		incrementClipFetchV1();
+		incrementClipFetchV2();
+		incrementClipFetchV2();
+		incrementClipFetchFallback();
+		incrementClipFetchRateLimited();
+		recordTwitchRateLimit({
+			broadcasterId: "owner-1",
+			clipId: "clip-1",
+			limit: "100",
+			remaining: "99",
+			reset: "123",
+			timestamp: "2026-03-09T00:00:00.000Z",
+		});
+
+		const snapshot = await getInstanceHealthSnapshot();
+
+		expect(snapshot.clips.fetches).toEqual({
+			v1GraphQL: 1,
+			v2TwitchApi: 2,
+			v2FallbackGraphQL: 1,
+			v2RateLimited: 1,
+		});
+		expect(snapshot.twitchRateLimit.history).toHaveLength(1);
 	});
 
 	it("returns degraded status when scheduler failure ratio is high", async () => {
@@ -316,8 +344,7 @@ describe("lib/instanceHealth", () => {
 				{ type: "game", count: 15 },
 			], // cacheTotals
 			[{ count: 0 }], // unavailableClipsRows
-			[{ count: 0 }], // clipSyncStatesRows
-			[{ count: 0 }], // clipSyncCompleteRows
+			[{ states: 0, complete: 0 }], // clipSyncProgressRows
 			[{ count: 4 }], // staleValidatedRows
 		];
 		dbSelect.mockImplementation(() => makeQuery(selectQueue.shift() ?? []));
@@ -430,8 +457,7 @@ describe("lib/instanceHealth", () => {
 			[{ count: 0 }], // expiringIn24hRows
 			[], // cacheTotals (empty)
 			[{ count: 0 }], // unavailableClipsRows
-			[{ count: 0 }], // clipSyncStatesRows
-			[{ count: 0 }], // clipSyncCompleteRows
+			[{ states: 0, complete: 0 }], // clipSyncProgressRows
 			[{ count: 0 }], // staleValidatedRows
 		];
 		dbSelect.mockImplementation(() => makeQuery(selectQueue.shift() ?? []));
@@ -492,8 +518,7 @@ describe("lib/instanceHealth", () => {
 			[], // readyForTwitchApiUsersRows
 			[], // cacheTotals
 			[], // unavailableClipsRows
-			[], // clipSyncStatesRows
-			[], // clipSyncCompleteRows
+			[], // clipSyncProgressRows
 			[], // staleValidatedRows
 		];
 		dbSelect.mockImplementation(() => makeQuery(selectQueue.shift() ?? []));
