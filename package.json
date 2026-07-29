@@ -32,7 +32,7 @@
 		"drizzle-orm": "^0.45.2",
 		"jsonwebtoken": "^9.0.3",
 		"minimatch": "^10.2.6",
-		"motion": "^12.42.2",
+		"motion": "^12.43.0",
 		"next": "^16.2.12",
 		"next-navigation-guard": "^0.2.0",
 		"next-plausible": "^4.0.0",
