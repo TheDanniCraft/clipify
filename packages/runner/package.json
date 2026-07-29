@@ -17,7 +17,7 @@
 		"@yao-pkg/pkg": "6.21.0",
 		"esbuild": "^0.28.1",
 		"resedit": "^3.0.2",
-		"@swc/core": "^1.15.4",
+		"@swc/core": "^1.15.47",
 		"@swc/jest": "^0.2.39",
 		"@types/jest": "^30.0.0",
 		"@types/node": "^26.1.1",
