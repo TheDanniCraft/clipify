@@ -1,0 +1,42 @@
+name: 🧹 Cleanup closed Preview Runner artifacts
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: runner-native-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    name: 🧹 Delete PR Runner artifacts
+    runs-on: ubuntu-latest
+    env:
+      RUNNER_PACKAGE: clipify-runner
+      RUNNER_PR_NUMBER: ${{ github.event.pull_request.number }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.ref }}
+          fetch-depth: 1
+          persist-credentials: false
+      - name: 🧹 Delete PR-scoped GHCR versions
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          versions="$(gh api --paginate --slurp "user/packages/container/$RUNNER_PACKAGE/versions?per_page=100")"
+          ids="$(printf '%s' "$versions" | node scripts/runner-package-cleanup.mjs --pr "$RUNNER_PR_NUMBER" --mode closed)"
+          while IFS= read -r id; do
+            [ -n "$id" ] || continue
+            echo "Deleting GHCR package version $id for PR #$RUNNER_PR_NUMBER"
+            if ! gh api --method DELETE "user/packages/container/$RUNNER_PACKAGE/versions/$id" >/dev/null; then
+              echo "Warning: failed to delete GHCR package version $id; continuing." >&2
+            fi
+          done <<< "$ids"

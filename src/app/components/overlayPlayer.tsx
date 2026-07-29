@@ -382,6 +382,7 @@ type OverlayPlayerProps = {
 	embedAutoplay?: boolean;
 	overlaySecret?: string;
 	initialStandby?: boolean;
+	showFallbackBanner?: boolean;
 };
 
 type RunnerPlaybackWindow = Window & {
@@ -392,6 +393,8 @@ type RunnerPlaybackWindow = Window & {
 
 export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedOverlay, isDemoPlayer, embedMuted, embedAutoplay, overlaySecret, initialStandby = false }: OverlayPlayerProps) {
 	const plausible = usePlausible();
+
+	const [isStandby, setIsStandby] = useState<boolean>(!!initialStandby);
 
 	const [videoClip, setVideoClip] = useState<VideoClip | null>(null);
 	const [nextClip, setNextClip] = useState<VideoClip | null>(null);
@@ -421,9 +424,12 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 	}, [nextClip]);
 
 	const [showOverlay, setShowOverlay] = useState<boolean>(false);
-	const [isStandby, setIsStandby] = useState<boolean>(initialStandby);
 	const isStandbyRef = useRef(initialStandby);
 	const [showPlayer, setShowPlayer] = useState<boolean>(!initialStandby);
+	useEffect(() => {
+		// eslint-disable-next-line react-hooks/set-state-in-effect
+		setShowPlayer(!isStandby);
+	}, [isStandby]);
 	const embedBehaviorEnabled = !!isEmbed && !isDemoPlayer;
 	const [paused, setPaused] = useState<boolean>(initialStandby ? true : embedBehaviorEnabled ? !embedAutoplay : false);
 	const [isMuted, setIsMuted] = useState<boolean>(embedBehaviorEnabled ? !!embedMuted : false);

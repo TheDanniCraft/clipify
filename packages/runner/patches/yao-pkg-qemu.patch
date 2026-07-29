@@ -1,0 +1,21 @@
+diff --git a/lib-es5/fabricator.js b/lib-es5/fabricator.js
+index 6bd46aa360fbfab999b2ffa260d17c11ed070e54..9ea6542bc7369d773bb7d45d5f07b2b4213650b7 100644
+--- a/lib-es5/fabricator.js
++++ b/lib-es5/fabricator.js
+@@ -48,11 +48,14 @@ function fabricate(bakes, fabricator, snap, body, cb) {
+         return !['--prof', '--v8-options', '--trace-opt', '--trace-deopt'].includes(bake2);
+     });
+     const cmd = fabricator.binaryPath;
+-    const key = JSON.stringify([cmd, activeBakes]);
++    const useQemuAarch64 = process.platform === "linux" && process.arch === "x64" && fabricator.platform === "linuxstatic" && fabricator.arch === "arm64" && process.env.PKG_QEMU_AARCH64;
++    const spawnCommand = useQemuAarch64 ? process.env.PKG_QEMU_AARCH64 : cmd;
++    const spawnArgs = useQemuAarch64 ? [cmd, ...activeBakes, "-e", script] : activeBakes.concat("-e", script);
++    const key = JSON.stringify([spawnCommand, spawnArgs]);
+     let child = children[key];
+     if (!child) {
+         const stderr = log_1.log.debugMode ? process.stdout : 'ignore';
+-        children[key] = (0, child_process_1.spawn)(cmd, activeBakes.concat('-e', script), {
++        children[key] = (0, child_process_1.spawn)(spawnCommand, spawnArgs, {
+             stdio: ['pipe', 'pipe', stderr],
+             env: { PKG_EXECPATH: 'PKG_INVOKE_NODEJS' },
+         });

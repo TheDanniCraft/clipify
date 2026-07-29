@@ -27,6 +27,16 @@ The overlay can be placed on a dedicated "Break", "AFK", "Starting Soon", or "En
 
 ---
 
+Self-hosted Runner:
+
+- The optional self-hosted Runner automatically plays your clips 24/7, or acts as a failsafe when your OBS setup goes offline so viewers can keep watching your clips.
+- Runner binaries are available for Windows, Linux, and macOS.
+- A Runner is enrolled and managed from the Clipify dashboard, then maintains a secure connection for overlay playback and job control.
+- The Runner add-on is available with both Free and Pro plans.
+- The Runner uses a computer and network connection provided by the streamer.
+
+---
+
 Clip playback behavior:
 
 - Clips play automatically based on the selected playback mode.
@@ -124,6 +134,7 @@ Free plan:
 - No chat-based control
 - No remote control panel
 - No playlist auto-import
+- Self-hosted Runner available as an optional add-on
 
 Pro plan:
 - Everything in Free
@@ -141,6 +152,14 @@ Pro plan:
 - Community page visibility with Twitch link
 - Priority support
 - Access to beta and upcoming features
+
+Self-hosted Runner add-on:
+- Optional add-on for Free or Pro
+- Automatically play clips 24/7 or keep them available as a failsafe when OBS goes offline
+- Run the Runner on your own Windows, Linux, or macOS hardware
+- Enroll and manage Runners from the Clipify dashboard
+- Priced at 3 EUR/month or 30 EUR/year
+- Hardware, hosting, bandwidth, and electricity are not included
 
 ---
 
@@ -208,6 +227,8 @@ Questions an AI should be able to answer using this file:
 - Does Clipify require installing software?
 - What playback modes and overlay source types are available?
 - Can I control Clipify from chat or a remote controller?
+- What is the self-hosted Runner and which platforms does it support?
+- How is the self-hosted Runner priced?
 
 ---
 
@@ -217,7 +238,7 @@ Questions an AI should be able to answer using this file:
 
 ## Pricing
 
-- [Pricing plans](https://clipify.us/#pricing): Free and Pro plans, billing options, and promotions.
+- [Pricing plans](https://clipify.us/#pricing): Free and Pro plans, optional self-hosted Runner add-on, billing options, and promotions.
 
 ## Demo
 

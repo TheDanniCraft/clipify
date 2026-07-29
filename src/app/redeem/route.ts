@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
-import { getBaseUrl, safeReturnUrl } from "../actions/utils";
+import { getBaseUrl, safeReturnUrl } from "@actions/utils";
 
 export async function GET(request: NextRequest) {
 	const cookieStore = await cookies();

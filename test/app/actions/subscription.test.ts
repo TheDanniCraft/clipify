@@ -87,12 +87,12 @@ describe("actions/subscription", () => {
 	});
 
 	it("resolves plan ids by environment", async () => {
-		process.env = { ...process.env, NODE_ENV: "production" };
+		process.env = { ...process.env, NODE_ENV: "production", APP_ENV: "production" };
 		const { getPlans } = await loadSubscription();
 		const prodPlans = await getPlans();
 		expect(prodPlans.monthly).toBe("price_1S83PSB0sp7KYCWLzhUkxodR");
 
-		process.env = { ...process.env, NODE_ENV: "development" };
+		process.env = { ...process.env, NODE_ENV: "development", APP_ENV: "development" };
 		const devPlans = await getPlans();
 		expect(devPlans.monthly).toBe("price_1SnM3MBg46KdNQq5MjHMYyYw");
 	});

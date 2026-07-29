@@ -22,8 +22,16 @@ const faqs: Faq[] = [
 		content: "Normally, Clipify automatically selects clips based on your filters (e.g. last week). But with Playlists, you can handpick specific clips to play, even in a custom order. This gives you full control over the content that gets showcased on your stream.",
 	},
 	{
+		title: "What is the self-hosted Runner?",
+		content: "The self-hosted Runner automatically plays your clips 24/7, or acts as a failsafe when your OBS setup goes offline so viewers can keep watching your clips. It runs on your own Windows, Linux, or macOS computer and connects securely to your Clipify account.",
+	},
+	{
 		title: "Is there a free version of Clipify?",
-		content: "Yes, Clipify offers a free version with basic features. You can also upgrade to Pro for additional features.",
+		content: "Yes, Clipify offers a free version with basic features. You can upgrade to Pro for additional features, or add the optional self-hosted Runner to either plan.",
+	},
+	{
+		title: "How much does the Runner add-on cost?",
+		content: "The self-hosted Runner is an optional add-on available with Free or Pro. It costs 3 EUR per month or 30 EUR per year. The Runner uses a computer and network connection you provide.",
 	},
 	{
 		title: "Can I embed Clipify on my website?",

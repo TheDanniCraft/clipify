@@ -9,7 +9,7 @@ import { buttonVariants } from "@heroui/styles";
 import Image from "next/image";
 
 import { LazyMotion, motion, domAnimation, AnimatePresence } from "motion/react";
-import { IconThumbUp, IconArrowRight, IconPlugConnected, IconLayersDifference, IconMoodSmile, IconCoin, IconAdjustments, IconChevronDown, IconArrowsMove, IconMessageCircle, IconDeviceRemote, IconUsersGroup, IconPlaylist } from "@tabler/icons-react";
+import { IconThumbUp, IconArrowRight, IconPlugConnected, IconLayersDifference, IconMoodSmile, IconCoin, IconAdjustments, IconChevronDown, IconMessageCircle, IconDeviceRemote, IconUsersGroup, IconPlaylist } from "@tabler/icons-react";
 import FeatureCard from "@components/featureCard";
 import TiersComponent from "@components/Pricing";
 import faqs from "@components/LandingPage/faqs";
@@ -218,7 +218,7 @@ export default function HomePageClient({ campaignOffer }: HomePageClientProps) {
 						<FeatureCard title='Theme Studio' description='Build your own overlay look with drag-and-drop cards, custom colors/fonts/effects, timer, and progress bar styling.' icon={IconCoin} />
 						<FeatureCard title='Editors & Managers' description='Give trusted teammates access to manage overlays and playlists without sharing your full account credentials.' icon={IconUsersGroup} />
 						<FeatureCard title='Chat Commands' description='Control playback, queue and volume directly from Twitch chat while live.' icon={IconMessageCircle} />
-						<FeatureCard title='Live Layout Editor' description='Drag, resize, and nudge overlay cards with keyboard controls for clean stream scenes.' icon={IconArrowsMove} />
+						<FeatureCard title='Self-hosted Runners' description='Automatically play your clips 24/7, or keep them running as a failsafe when your OBS setup goes offline.' icon={IconPlugConnected} />
 					</div>
 				</div>
 			</div>
@@ -230,7 +230,7 @@ export default function HomePageClient({ campaignOffer }: HomePageClientProps) {
 							Pricing
 						</Chip>
 						<h2 className='text-4xl font-bold mb-4'>Complicated pricing? Not with us.</h2>
-						<p className='text-muted text-lg max-w-2xl mx-auto'>Just two options: free forever, or unlock everything with Pro.</p>
+						<p className='text-muted text-lg max-w-2xl mx-auto'>Choose Free or Pro, then add self-hosted Runners when you want to run Clipify from your own hardware.</p>
 
 						{campaignOffer && campaignOffer.showPricingCard ? (
 							<div className='mx-auto w-full max-w-md mt-12'>

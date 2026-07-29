@@ -1,41 +1,18 @@
 /* istanbul ignore file */
 "use server";
 
+import { isCoolifyEnv, isPreviewEnv, resolveBaseUrl } from "@/app/lib/baseUrl";
+
 export async function isPreview() {
-	return String(process.env.IS_PREVIEW).toLowerCase() === "true";
+	return isPreviewEnv();
 }
 
 export async function isCoolify() {
-	return Object.keys(process.env).some((key) => /^COOLIFY_/.test(key));
+	return isCoolifyEnv();
 }
 
 export async function getBaseUrl(): Promise<URL> {
-	let url: string;
-	if (process.env.COOLIFY_URL) {
-		const rawCoolifyUrl = process.env.COOLIFY_URL;
-		const parts = rawCoolifyUrl
-			.split(",")
-			.map((part) => part.trim())
-			.filter(Boolean);
-		/* istanbul ignore next */
-		url = parts[0] || rawCoolifyUrl.trim();
-	} else if (process.env.NODE_ENV === "development") {
-		url = "http://localhost:3000";
-	} else {
-		url = "https://clipify.us/";
-	}
-
-	if (!/^https?:\/\//.test(url)) {
-		url = `http://${url}`;
-	}
-
-	// If we are running inside coolify we need to strip the port and append a schema
-	if (await isCoolify()) {
-		const hostname = new URL(url).hostname;
-		url = `https://${hostname}`;
-	}
-
-	return new URL(url);
+	return resolveBaseUrl();
 }
 
 export async function safeReturnUrl(input?: string | string[] | null) {
