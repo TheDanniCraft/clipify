@@ -39,7 +39,6 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       cache-key: ${{ steps.compute-key.outputs.key }}
-      cache-hit: ${{ steps.restore.outputs.cache-hit }}
     steps:
       - name: 📥 Check out repository
         uses: actions/checkout@v7
@@ -52,7 +51,7 @@ jobs:
       # compute the cache key once so downstream jobs can reuse it
       - name: 🔑 Compute cache key
         id: compute-key
-        run: echo "key=${{ runner.os }}-deps-${{ hashFiles('**/bun.lock') }}" >> "$GITHUB_OUTPUT"
+        run: echo "key=${{ runner.os }}-deps-${{ hashFiles('**/bun.lock', '**/package.json', '**/patches/*.patch') }}" >> "$GITHUB_OUTPUT"
 
       # try to restore an existing cache
       - name: ♻️ Restore Bun & node_modules cache
@@ -65,10 +64,12 @@ jobs:
             **/node_modules
           key: ${{ steps.compute-key.outputs.key }}
 
-      # only install if the cache did not exist
-      - name: 📦 Install dependencies
-        if: steps.restore.outputs.cache-hit != 'true'
+      # Always validate the lockfile and patches, even when node_modules came from cache.
+      - name: 📦 Validate and install dependencies
         run: bun install --frozen-lockfile
+
+      - name: 🩹 Verify patched dependencies
+        run: node scripts/validate-patched-dependencies.mjs
 
       # save a new cache entry when we had a miss
       - name: 💾 Save Bun & node_modules cache
@@ -193,6 +194,9 @@ jobs:
       - name: 📦 Install Runner dependencies
         working-directory: packages/runner
         run: bun install --frozen-lockfile
+      - name: 🩹 Verify Runner patched dependencies
+        working-directory: packages/runner
+        run: node ../../scripts/validate-patched-dependencies.mjs
       - name: 🔐 Verify native keyring binding
         working-directory: packages/runner
         run: node check-native.mjs
