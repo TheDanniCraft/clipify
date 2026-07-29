@@ -124,7 +124,6 @@ export async function unlinkRunner(runnerId: string, ownerId: string) {
 			.update(runnersTable)
 			.set({
 				token: revokedToken,
-				bootstrapToken: null,
 				status: RunnerStatus.Offline,
 				lastHeartbeatAt: null,
 			})

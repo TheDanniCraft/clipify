@@ -6,7 +6,6 @@ import { checkForUpdates, cleanupOldVersions } from "./updater";
 import { openBrowser } from "./browser";
 import { getRtmpReachabilityConfirmation, type RtmpReachabilityStatus } from "./reachability";
 
-import { extractBakedConfig } from "./bootstrap";
 import { clearCredentials, loadCredentials, saveCredentials, type RunnerCredentials } from "./storage";
 
 // Keep dependency deprecation noise out of the end-user runner console.
@@ -97,8 +96,8 @@ function isSourceRunnerExecution() {
 	return normalizedArgs.some((arg) => arg.endsWith("packages/runner/src/index.ts"));
 }
 
-function resolveApiBase(options: { overrideUrl?: string; bakedApiBase?: string; localApiBase?: string; hasLocalToken: boolean }) {
-	const explicitApiBase = options.overrideUrl || process.env.CLIPIFY_API_URL || options.bakedApiBase || process.env.BAKED_API_URL;
+function resolveApiBase(options: { overrideUrl?: string; localApiBase?: string; hasLocalToken: boolean }) {
+	const explicitApiBase = options.overrideUrl || process.env.CLIPIFY_API_URL || process.env.BAKED_API_URL;
 	if (explicitApiBase) return normalizeApiBase(explicitApiBase);
 
 	if (isSourceRunnerExecution() && !options.hasLocalToken) return DEVELOPMENT_API_BASE;
@@ -358,17 +357,12 @@ async function pollHeartbeat(token: string, apiBase: string, runnerId?: string):
 	}
 }
 
-async function initializeRunner(args: string[], forceReenrollment = false): Promise<{ apiBase: string; token: string; runnerId?: string }> {
+async function initializeRunner(args: string[]): Promise<{ apiBase: string; token: string; runnerId?: string }> {
 	const tokenArgIndex = args.indexOf("--token");
 	let token = tokenArgIndex !== -1 ? args[tokenArgIndex + 1] : undefined;
 	const urlArgIndex = args.findIndex((arg) => arg === "--url" || arg === "--api" || arg === "--api-url");
 	const inlineUrlArg = args.find((arg) => arg.startsWith("--api-url="));
 	const overrideUrl = inlineUrlArg ? inlineUrlArg.slice("--api-url=".length) : urlArgIndex !== -1 ? args[urlArgIndex + 1] : undefined;
-
-	const bakedConfig = forceReenrollment ? null : extractBakedConfig(process.execPath);
-	if (bakedConfig) {
-		console.log("[Info] Found baked configuration in executable.");
-	}
 
 	const savedConfig = await loadCredentials();
 	const localConfig: RunnerCredentials = {
@@ -377,24 +371,10 @@ async function initializeRunner(args: string[], forceReenrollment = false): Prom
 		token: savedConfig.token,
 	};
 
-	// Idiotenschutz: Runner ID Mismatch Prevention
-	if (bakedConfig?.runnerId && localConfig?.runnerId) {
-		if (bakedConfig.runnerId !== localConfig.runnerId) {
-			console.error("\n==========================================================================");
-			console.error("[FATAL ERROR] Runner ID Mismatch!");
-			console.error("This executable was built for a different Runner than your system is currently configured for.");
-			console.error("Running multiple runners on the same machine is not officially supported.");
-			console.error("If you want to switch back to this Runner, please download a fresh executable from your dashboard.");
-			console.error("==========================================================================\n");
-			process.exit(1);
-		}
-	}
-
 	let apiBase: string;
 	try {
 		apiBase = resolveApiBase({
 			overrideUrl,
-			bakedApiBase: bakedConfig?.apiBase,
 			localApiBase: localConfig.apiBase,
 			hasLocalToken: Boolean(localConfig.token),
 		});
@@ -410,35 +390,6 @@ async function initializeRunner(args: string[], forceReenrollment = false): Prom
 		throw error;
 	}
 
-	// Bootstrap Token Exchange
-	if (bakedConfig?.bootstrapToken) {
-		console.log("[Bootstrap] Exchanging one-time bootstrap token for runner token...");
-		try {
-			const res = await fetch(`${apiBase}/api/runner/bootstrap`, {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ bootstrapToken: bakedConfig.bootstrapToken }),
-			});
-			if (!res.ok) {
-				console.error("\n[FATAL ERROR] Bootstrap failed! This executable has likely already been initialized.");
-				console.error("Please download a fresh executable from your dashboard if you need to re-authenticate.\n");
-				process.exit(1);
-			}
-			const data = (await res.json()) as { token: string; runnerId: string };
-			localConfig.token = data.token;
-			localConfig.runnerId = data.runnerId;
-			await saveCredentials({
-				runnerId: localConfig.runnerId,
-				apiBase: apiBase,
-				token: localConfig.token,
-			});
-			console.log("[Bootstrap] Successfully initialized and saved runner config.");
-		} catch (error) {
-			console.error("[FATAL ERROR] Network error during bootstrap:", error);
-			process.exit(1);
-		}
-	}
-
 	if (!token) {
 		token = localConfig.token;
 	}
@@ -449,7 +400,7 @@ async function initializeRunner(args: string[], forceReenrollment = false): Prom
 
 	if (!token) {
 		try {
-			const enrolledConfig = await enrollRunner(apiBase, bakedConfig?.runnerId || localConfig.runnerId);
+			const enrolledConfig = await enrollRunner(apiBase, localConfig.runnerId);
 			localConfig.runnerId = enrolledConfig.runnerId;
 			localConfig.apiBase = enrolledConfig.apiBase;
 			localConfig.token = enrolledConfig.token;
@@ -569,7 +520,7 @@ async function main() {
 		const heartbeatStatus = await pollHeartbeat(token, apiBase, runnerId);
 		if (heartbeatStatus === "reauth") {
 			await stopActiveEngines();
-			const reauthenticated = await initializeRunner([...runnerArgs, "--api-url", apiBase], true);
+			const reauthenticated = await initializeRunner([...runnerArgs, "--api-url", apiBase]);
 			apiBase = reauthenticated.apiBase;
 			token = reauthenticated.token;
 			runnerId = reauthenticated.runnerId;

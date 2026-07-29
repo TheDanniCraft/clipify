@@ -99,7 +99,7 @@ describe("actions/runner", () => {
 		expect(mockRevalidatePath).not.toHaveBeenCalled();
 	});
 
-	it("projects runner reads without bearer or bootstrap tokens", async () => {
+	it("projects runner reads without bearer tokens", async () => {
 		mockRunnerFindMany.mockResolvedValue([]);
 		const { getAllRunners, getRunner } = await import("@/app/actions/runner");
 
@@ -109,7 +109,6 @@ describe("actions/runner", () => {
 		for (const call of [mockRunnerFindMany.mock.calls[0][0], mockRunnerFindFirst.mock.calls.at(-1)?.[0]]) {
 			expect(call.columns).toEqual(expect.objectContaining({ id: true, ownerId: true, name: true, status: true }));
 			expect(call.columns).not.toHaveProperty("token");
-			expect(call.columns).not.toHaveProperty("bootstrapToken");
 		}
 	});
 

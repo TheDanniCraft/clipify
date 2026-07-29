@@ -312,7 +312,6 @@ export const runnersTable = pgTable("runners", {
 		.references(() => usersTable.id, { onDelete: "cascade" }),
 	name: varchar("name").notNull(),
 	token: varchar("token").notNull().unique(),
-	bootstrapToken: varchar("bootstrap_token").unique(),
 	status: runnerStatusEnum("status").$type<RunnerStatus>().notNull().default(RunnerStatusEnumValues.Offline),
 	lastHeartbeatAt: timestamp("last_heartbeat_at", { withTimezone: true }),
 	osInfo: varchar("os_info"),
