@@ -11,6 +11,7 @@ on:
       - "scripts/write-runner-metadata.mjs"
       - "scripts/validate-runner-matrix.mjs"
       - "scripts/create-runner-manifest.mjs"
+      - "scripts/verify-runner-manifest.mjs"
       - ".github/workflows/runner-native.yml"
   pull_request:
     types: [opened, synchronize, reopened]
@@ -22,6 +23,7 @@ on:
       - "scripts/write-runner-metadata.mjs"
       - "scripts/validate-runner-matrix.mjs"
       - "scripts/create-runner-manifest.mjs"
+      - "scripts/verify-runner-manifest.mjs"
       - ".github/workflows/runner-native.yml"
 
 permissions:
@@ -184,6 +186,28 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: ♻️ Reuse existing immutable Runner manifest
+        id: existing-manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_ARTIFACT_WORK"
+          reference="$RUNNER_REPOSITORY:${RUNNER_ARTIFACT_TAG_PREFIX}$RUNNER_FINGERPRINT-manifest"
+          if ! docker buildx imagetools inspect "$reference" >/dev/null 2>&1; then
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "Reusing existing immutable Runner manifest $reference"
+          docker pull "$reference" >/dev/null
+          container="$(docker create "$reference" /bin/true)"
+          trap 'docker rm "$container" >/dev/null 2>&1 || true' EXIT
+          docker cp "$container:/manifest.json" "$RUNNER_ARTIFACT_WORK/manifest.json"
+          node scripts/verify-runner-manifest.mjs \
+            --manifest "$RUNNER_ARTIFACT_WORK/manifest.json" \
+            --fingerprint "$RUNNER_FINGERPRINT" \
+            --repository "$RUNNER_REPOSITORY" \
+            --artifact-tag-prefix "$RUNNER_ARTIFACT_TAG_PREFIX"
+          echo "exists=true" >> "$GITHUB_OUTPUT"
       - uses: actions/download-artifact@v4
         with:
           pattern: runner-*-${{ needs.prepare-context.outputs.source-fingerprint }}
@@ -192,6 +216,7 @@ jobs:
       - name: 🔎 Revalidate complete Runner matrix
         run: node scripts/validate-runner-matrix.mjs "$ARTIFACT_ROOT" "$RUNNER_FINGERPRINT"
       - name: 🧱 Publish immutable platform artifacts
+        if: steps.existing-manifest.outputs.exists != 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -216,12 +241,18 @@ jobs:
             dockerfile="$directory/Dockerfile"
             printf 'FROM scratch\nCOPY metadata.json /metadata.json\nCOPY %s /runner/%s\n' "$(basename "$binary")" "$(basename "$binary")" > "$dockerfile"
             if docker buildx imagetools inspect "$reference" >/dev/null 2>&1; then
-              echo "Checking existing immutable artifact $reference"
+              echo "Reusing existing immutable artifact $reference"
               docker pull "$reference" >/dev/null
               container="$(docker create "$reference" /bin/true)"
-              docker cp "$container:/metadata.json" "$RUNNER_ARTIFACT_WORK/$platform.metadata.json"
+              existing_metadata="$RUNNER_ARTIFACT_WORK/$platform.metadata.json"
+              existing_binary="$RUNNER_ARTIFACT_WORK/$platform.binary"
+              docker cp "$container:/metadata.json" "$existing_metadata"
+              node -e 'const fs=require("fs"); const expected=JSON.parse(fs.readFileSync(process.argv[1])); const actual=JSON.parse(fs.readFileSync(process.argv[2])); for(const k of ["platform","target","filename","sourceFingerprint"]) if(expected[k]!==actual[k]) throw new Error(`Existing artifact mismatch in ${k}`)' "$metadata" "$existing_metadata"
+              docker cp "$container:/runner/$(basename "$binary")" "$existing_binary"
               docker rm "$container" >/dev/null
-              node -e 'const fs=require("fs"); const expected=JSON.parse(fs.readFileSync(process.argv[1])); const actual=JSON.parse(fs.readFileSync(process.argv[2])); for(const k of ["platform","target","filename","sourceFingerprint","sha256","size"]) if(expected[k]!==actual[k]) throw new Error(`Existing artifact mismatch in ${k}`)' "$metadata" "$RUNNER_ARTIFACT_WORK/$platform.metadata.json"
+              node -e 'const crypto=require("crypto"); const fs=require("fs"); const metadata=JSON.parse(fs.readFileSync(process.argv[1])); const binary=fs.readFileSync(process.argv[2]); const sha256=crypto.createHash("sha256").update(binary).digest("hex"); if(metadata.sha256!==sha256) throw new Error("Existing artifact SHA-256 is invalid"); if(metadata.size!==binary.length) throw new Error("Existing artifact size is invalid")' "$existing_metadata" "$existing_binary"
+              cp "$existing_metadata" "$metadata"
+              cp "$existing_binary" "$binary"
             else
               docker buildx build --platform linux/amd64 --provenance=false --sbom=false --push -t "$reference" "$directory"
             fi
@@ -233,12 +264,14 @@ jobs:
             printf '%s\n' "$digest" > "$RUNNER_ARTIFACT_WORK/$platform.digest"
           done
       - name: 🧾 Create deterministic Runner manifest
+        if: steps.existing-manifest.outputs.exists != 'true'
         shell: bash
         run: |
           set -euo pipefail
           node -e 'const fs=require("fs"); const out={}; for(const p of ["windows-x64","linux-x64","linux-arm64","macos-x64","macos-arm64"]) out[p]=fs.readFileSync(process.argv[1]+"/"+p+".digest","utf8").trim(); fs.writeFileSync(process.argv[2], JSON.stringify(out, null, 2)+"\n")' "$RUNNER_ARTIFACT_WORK" "$RUNNER_ARTIFACT_WORK/oci-digests.json"
           node scripts/create-runner-manifest.mjs --root "$ARTIFACT_ROOT" --fingerprint "$RUNNER_FINGERPRINT" --commit "$RUNNER_COMMIT" --repository "$RUNNER_REPOSITORY" --artifact-tag-prefix "$RUNNER_ARTIFACT_TAG_PREFIX" --oci-digests "$RUNNER_ARTIFACT_WORK/oci-digests.json" --output "$RUNNER_ARTIFACT_WORK/manifest.json"
       - name: 📌 Publish immutable manifest
+        if: steps.existing-manifest.outputs.exists != 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -248,12 +281,17 @@ jobs:
           cp "$RUNNER_ARTIFACT_WORK/manifest.json" "$manifest_dir/manifest.json"
           printf 'FROM scratch\nCOPY manifest.json /manifest.json\n' > "$manifest_dir/Dockerfile"
           if docker buildx imagetools inspect "$reference" >/dev/null 2>&1; then
-            echo "Checking existing immutable manifest $reference"
+            echo "Reusing existing immutable manifest $reference"
             docker pull "$reference" >/dev/null
             container="$(docker create "$reference" /bin/true)"
             docker cp "$container:/manifest.json" "$RUNNER_ARTIFACT_WORK/existing-manifest.json"
             docker rm "$container" >/dev/null
-            cmp -s "$RUNNER_ARTIFACT_WORK/manifest.json" "$RUNNER_ARTIFACT_WORK/existing-manifest.json" || { echo "Existing manifest differs; refusing to overwrite" >&2; exit 1; }
+            node scripts/verify-runner-manifest.mjs \
+              --manifest "$RUNNER_ARTIFACT_WORK/existing-manifest.json" \
+              --fingerprint "$RUNNER_FINGERPRINT" \
+              --repository "$RUNNER_REPOSITORY" \
+              --artifact-tag-prefix "$RUNNER_ARTIFACT_TAG_PREFIX"
+            cp "$RUNNER_ARTIFACT_WORK/existing-manifest.json" "$RUNNER_ARTIFACT_WORK/manifest.json"
           else
             docker buildx build --platform linux/amd64 --provenance=false --sbom=false --push -t "$reference" "$manifest_dir"
           fi

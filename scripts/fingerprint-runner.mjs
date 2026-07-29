@@ -3,7 +3,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
 
-const roots = ["packages/runner", "scripts/fingerprint-runner.mjs", "scripts/run-runner-self-test.mjs", "scripts/write-runner-metadata.mjs", "scripts/validate-runner-matrix.mjs", ".github/workflows/runner-native.yml"];
+const roots = ["packages/runner", "scripts/fingerprint-runner.mjs", "scripts/run-runner-self-test.mjs", "scripts/write-runner-metadata.mjs", "scripts/validate-runner-matrix.mjs", "scripts/create-runner-manifest.mjs", "scripts/verify-runner-manifest.mjs", ".github/workflows/runner-native.yml"];
 const git = (args) => execFileSync("git", args, { encoding: "buffer" });
 const gitCommit = () => {
 	try {
