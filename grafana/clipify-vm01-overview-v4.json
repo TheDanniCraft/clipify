@@ -6724,7 +6724,7 @@
 										{
 											"id": "color",
 											"value": {
-												"fixedColor": "grey",
+												"fixedColor": "#808080",
 												"mode": "fixed"
 											}
 										}
