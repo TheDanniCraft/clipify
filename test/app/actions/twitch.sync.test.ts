@@ -283,7 +283,8 @@ describe("actions/twitch syncOwnerClipCache", () => {
 
 		// Incremental fetch uses deficit (5) then backfill loop exhausts budget or completes
 		expect(getSpy).toHaveBeenCalled();
-		expect(getSpy.mock.calls[0]?.[1]?.params?.first).toBe(5);
+		const requestConfig = getSpy.mock.calls[0]?.[1] as { params?: { first?: number } } | undefined;
+		expect(requestConfig?.params?.first).toBe(5);
 	});
 
 	it("skips sync work when incremental and backfill are not due", async () => {
