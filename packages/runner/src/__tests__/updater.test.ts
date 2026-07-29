@@ -1,4 +1,4 @@
-import { checkForUpdates, cleanupOldVersions, launchUpdatedRunner } from "../updater";
+import { checkForUpdates, cleanupOldVersions, launchUpdatedRunner, launchWindowsUpdateHelper } from "../updater";
 import fs from "fs";
 import crypto from "crypto";
 import { spawn } from "child_process";
@@ -108,6 +108,22 @@ describe("Updater logic", () => {
 			stdio: "inherit",
 			windowsHide: false,
 		});
+	});
+
+	it("should schedule a detached Windows update after the current process exits", () => {
+		const unref = jest.fn();
+		(spawn as jest.Mock).mockReturnValue({ unref });
+
+		launchWindowsUpdateHelper("C:\\Program Files\\Clipify\\runner.exe", "C:\\Program Files\\Clipify\\runner.exe.new", "C:\\Program Files\\Clipify\\runner.exe.old", ["--api-url", "https://clipify.example/a path", "--name", 'runner "one"'], 1234);
+
+		expect(spawn).toHaveBeenCalledWith("powershell.exe", expect.arrayContaining(["-EncodedCommand", expect.any(String)]), { detached: true, stdio: "ignore", windowsHide: true });
+		const spawnArgs = (spawn as jest.Mock).mock.calls[0][1] as string[];
+		const script = Buffer.from(spawnArgs.at(-1)!, "base64").toString("utf16le");
+		expect(script).toContain("Wait-Process -Id 1234");
+		expect(script).toContain("Move-Item -LiteralPath 'C:\\Program Files\\Clipify\\runner.exe.new'");
+		expect(script).toContain("Start-Process -FilePath 'C:\\Program Files\\Clipify\\runner.exe'");
+		expect(script).toContain('runner \\\"one\\\"');
+		expect(unref).toHaveBeenCalled();
 	});
 
 	it.todo("should apply an update after a verified hash mismatch");

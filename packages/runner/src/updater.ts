@@ -60,7 +60,13 @@ async function applyUpdate(apiBase: string, osKey: string, remoteHash: string): 
 	}
 
 	console.log("[Updater] Download verified. Applying update...");
-	if (process.platform !== "win32") fs.chmodSync(newPath, 0o755);
+	if (process.platform === "win32") {
+		console.log("[Updater] Scheduling update for after the runner exits...");
+		launchWindowsUpdateHelper(execPath, newPath, oldPath, process.argv.slice(2), process.pid);
+		process.exit(0);
+	}
+
+	fs.chmodSync(newPath, 0o755);
 	if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
 	fs.renameSync(execPath, oldPath);
 	fs.renameSync(newPath, execPath);
@@ -72,6 +78,44 @@ async function applyUpdate(apiBase: string, osKey: string, remoteHash: string): 
 
 export function launchUpdatedRunner(execPath: string, args: string[]) {
 	return spawn(execPath, args, { detached: false, stdio: "inherit", windowsHide: false });
+}
+
+function quotePowerShell(value: string): string {
+	return `'${value.replace(/'/g, "''")}'`;
+}
+
+// Start-Process accepts one native argument string on Windows PowerShell. Quote it
+// using the Windows command-line rules so runner options survive the restart.
+function quoteWindowsArgument(value: string): string {
+	if (value.length > 0 && !/[\s"]/u.test(value)) return value;
+	let quoted = '"';
+	let backslashes = 0;
+	for (const character of value) {
+		if (character === "\\") {
+			backslashes++;
+		} else if (character === '"') {
+			quoted += "\\".repeat(backslashes * 2 + 1) + '"';
+			backslashes = 0;
+		} else {
+			quoted += "\\".repeat(backslashes) + character;
+			backslashes = 0;
+		}
+	}
+	return quoted + "\\".repeat(backslashes * 2) + '"';
+}
+
+export function launchWindowsUpdateHelper(execPath: string, newPath: string, oldPath: string, args: string[], pid: number) {
+	const argumentLine = args.map(quoteWindowsArgument).join(" ");
+	const restart = argumentLine ? `Start-Process -FilePath ${quotePowerShell(execPath)} -ArgumentList ${quotePowerShell(argumentLine)}` : `Start-Process -FilePath ${quotePowerShell(execPath)}`;
+	const script = [`Wait-Process -Id ${pid} -ErrorAction SilentlyContinue`, `Remove-Item -LiteralPath ${quotePowerShell(oldPath)} -Force -ErrorAction SilentlyContinue`, `Move-Item -LiteralPath ${quotePowerShell(execPath)} -Destination ${quotePowerShell(oldPath)} -Force`, `Move-Item -LiteralPath ${quotePowerShell(newPath)} -Destination ${quotePowerShell(execPath)} -Force`, restart].join("; ");
+	const encodedCommand = Buffer.from(script, "utf16le").toString("base64");
+	const helper = spawn("powershell.exe", ["-NoLogo", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-EncodedCommand", encodedCommand], {
+		detached: true,
+		stdio: "ignore",
+		windowsHide: true,
+	});
+	helper.unref();
+	return helper;
 }
 
 export async function cleanupOldVersions(platform = process.platform) {
