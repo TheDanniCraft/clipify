@@ -4,6 +4,9 @@ import { spawn } from "child_process";
 
 type UpdateTarget = { osKey: string };
 
+const WINDOWS_CLEANUP_ATTEMPTS = 125;
+const WINDOWS_CLEANUP_MAX_DELAY_MS = 500;
+
 function getFileHash(filePath: string): string {
 	const fileBuffer = fs.readFileSync(filePath);
 	const hashSum = crypto.createHash("sha256");
@@ -77,7 +80,8 @@ export async function cleanupOldVersions(platform = process.platform) {
 	const oldPath = `${process.execPath}.old`;
 	if (!fs.existsSync(oldPath)) return;
 
-	for (let attempt = 0; attempt < 20; attempt++) {
+	const maxAttempts = platform === "win32" ? WINDOWS_CLEANUP_ATTEMPTS : 1;
+	for (let attempt = 0; attempt < maxAttempts; attempt++) {
 		try {
 			fs.unlinkSync(oldPath);
 			console.log("[Updater] Cleaned up old version file.");
@@ -85,11 +89,12 @@ export async function cleanupOldVersions(platform = process.platform) {
 		} catch (error) {
 			const code = (error as NodeJS.ErrnoException).code;
 			const canRetry = platform === "win32" && (code === "EPERM" || code === "EACCES" || code === "EBUSY");
-			if (!canRetry || attempt === 19) {
+			if (!canRetry || attempt === maxAttempts - 1) {
 				console.warn("[Updater] Failed to clean up old version file, will retry next time:", error);
 				return;
 			}
-			await new Promise((resolve) => setTimeout(resolve, 100));
+			const retryDelayMs = Math.min(50 * 2 ** Math.min(attempt, 4), WINDOWS_CLEANUP_MAX_DELAY_MS);
+			await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
 		}
 	}
 }

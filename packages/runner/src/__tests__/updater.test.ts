@@ -53,6 +53,28 @@ describe("Updater logic", () => {
 		timeoutSpy.mockRestore();
 	});
 
+	it("keeps retrying long enough for a retiring Windows executable to release its lock", async () => {
+		(fs.existsSync as jest.Mock).mockReturnValue(true);
+		for (let attempt = 0; attempt < 25; attempt++) {
+			(fs.unlinkSync as jest.Mock).mockImplementationOnce(() => {
+				throw Object.assign(new Error("in use"), { code: "EBUSY" });
+			});
+		}
+		(fs.unlinkSync as jest.Mock).mockImplementationOnce(() => undefined);
+		const delays: number[] = [];
+		const timeoutSpy = jest.spyOn(global, "setTimeout").mockImplementation(((callback: () => void, delay?: number) => {
+			delays.push(delay ?? 0);
+			callback();
+			return {} as NodeJS.Timeout;
+		}) as typeof setTimeout);
+
+		await cleanupOldVersions("win32");
+
+		expect(fs.unlinkSync).toHaveBeenCalledTimes(26);
+		expect(delays.reduce((total, delay) => total + delay, 0)).toBeGreaterThan(2_000);
+		timeoutSpy.mockRestore();
+	});
+
 	it("should not auto-update in dev mode", async () => {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		delete (process as any).pkg;

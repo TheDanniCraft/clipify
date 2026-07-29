@@ -493,10 +493,13 @@ async function main() {
 		process.exit(0);
 	}
 
+	const oldVersionCleanup = cleanupOldVersions();
+	await Promise.race([oldVersionCleanup, sleep(5_000)]);
+	void oldVersionCleanup;
+
 	let { apiBase, token, runnerId } = await initializeRunner(process.argv.slice(2));
 	ConsoleUI.init();
 
-	await cleanupOldVersions();
 	RUNNER_VERSION = await checkForUpdates(apiBase);
 
 	console.log("==========================================");
