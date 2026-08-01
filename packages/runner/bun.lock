@@ -15,7 +15,7 @@
         "@swc/jest": "^0.2.39",
         "@types/jest": "^30.0.0",
         "@types/node": "^26.1.2",
-        "@yao-pkg/pkg": "6.21.0",
+        "@yao-pkg/pkg": "6.22.0",
         "esbuild": "^0.28.1",
         "jest": "^30.4.2",
         "resedit": "^3.0.2",
@@ -25,7 +25,6 @@
   },
   "patchedDependencies": {
     "puppeteer-stream@3.0.23": "patches/puppeteer-stream.patch",
-    "@yao-pkg/pkg@6.21.0": "patches/yao-pkg-qemu.patch",
   },
   "packages": {
     "@babel/code-frame": ["@babel/code-frame@7.29.7", "", { "dependencies": { "@babel/helper-validator-identifier": "^7.29.7", "js-tokens": "^4.0.0", "picocolors": "^1.1.1" } }, "sha512-Aup7aUOfpbAUg2ROOJN6Iw5f9DMBlzu0mIkm/malLQFN/YQgO48wCj0Kxa3sEHJvPVFg7siR+qRInwXd2qhQKw=="],
@@ -362,9 +361,9 @@
 
     "@unrs/resolver-binding-win32-x64-msvc": ["@unrs/resolver-binding-win32-x64-msvc@1.12.2", "", { "os": "win32", "cpu": "x64" }, "sha512-nAB74NfSNKknqQ1RrYj6uz8FcXEomu/MATJZxh/x+BArzN2U3JbOYC0APYzUIGhVY3m5hRxA8VPNdPBoG8txlA=="],
 
-    "@yao-pkg/pkg": ["@yao-pkg/pkg@6.21.0", "", { "dependencies": { "@babel/generator": "^7.23.0", "@babel/parser": "^7.23.0", "@babel/traverse": "^7.23.0", "@babel/types": "^7.23.0", "@roberts_lando/vfs": "^0.3.3", "@yao-pkg/pkg-fetch": "3.6.4", "esbuild": "^0.28.1", "into-stream": "^9.1.0", "multistream": "^4.1.0", "picocolors": "^1.1.0", "picomatch": "^4.0.2", "postject": "^1.0.0-alpha.6", "prebuild-install": "^7.1.1", "resolve": "^1.22.10", "resolve.exports": "^2.0.3", "stream-meter": "^1.0.4", "tar": "^7.5.7", "tinyglobby": "^0.2.11", "unzipper": "^0.12.3" }, "bin": { "pkg": "lib-es5/bin.js" } }, "sha512-dZl2C7rdwwEI4tv7WW+Cvnl+2K8OqHKUXfNQRq3mZCTC4degoFx1jA4d5wOn9d8lHrUy58xuEt1eJD0pTddW5w=="],
+    "@yao-pkg/pkg": ["@yao-pkg/pkg@6.22.0", "", { "dependencies": { "@babel/generator": "^7.23.0", "@babel/parser": "^7.23.0", "@babel/traverse": "^7.23.0", "@babel/types": "^7.23.0", "@roberts_lando/vfs": "^0.3.3", "@yao-pkg/pkg-fetch": "3.6.5", "esbuild": "^0.28.1", "into-stream": "^9.1.0", "multistream": "^4.1.0", "picocolors": "^1.1.0", "picomatch": "^4.0.2", "postject": "^1.0.0-alpha.6", "prebuild-install": "^7.1.1", "resolve": "^1.22.10", "resolve.exports": "^2.0.3", "stream-meter": "^1.0.4", "tar": "^7.5.7", "tinyglobby": "^0.2.11", "unzipper": "^0.12.3" }, "bin": { "pkg": "lib-es5/bin.js" } }, "sha512-u+ZgwLsvEFB+Q1rA+IGymgxnm+anl1qGJWsTH6hDHyy2cCiOvMteDNK7NgqFYxN/zdithtORIlCsYSyhAXAgQA=="],
 
-    "@yao-pkg/pkg-fetch": ["@yao-pkg/pkg-fetch@3.6.4", "", { "dependencies": { "picocolors": "^1.1.0", "progress": "^2.0.3", "semver": "^7.3.5", "tar-fs": "^3.1.1", "undici": "^7.28.0", "yargs": "^16.2.0" }, "bin": { "pkg-fetch": "lib-es5/bin.js" } }, "sha512-2JXvS9HbMudLlzEjSaJ7bLNnF/WlTv7iaTAJp2Tk8pBsgwCyL9p4rIN8cztHlyZF7qVzr1EaBjd7DQooFk0azQ=="],
+    "@yao-pkg/pkg-fetch": ["@yao-pkg/pkg-fetch@3.6.5", "", { "dependencies": { "picocolors": "^1.1.0", "progress": "^2.0.3", "semver": "^7.3.5", "tar-fs": "^3.1.1", "undici": "^7.28.0", "yargs": "^16.2.0" }, "bin": { "pkg-fetch": "lib-es5/bin.js" } }, "sha512-Sd1Hff7imsF2rcZ2GLQuIzVm2fc3Za+nE4KSWPTwIYegN/r90UFg3bq0MLSugbWQaVht72zzxV0MiKE0wvT1zA=="],
 
     "agent-base": ["agent-base@7.1.4", "", {}, "sha512-MnA+YT8fwfJPgBx3m60MNqakm30XOkyIoH1y6huTQvC0PwZG7ki8NacLBcrPbNoo8vEZy7Jpuk7+jMO+CUovTQ=="],
 
