@@ -14,7 +14,7 @@
 		"puppeteer-stream": "^3.0.23"
 	},
 	"devDependencies": {
-		"@yao-pkg/pkg": "6.21.0",
+		"@yao-pkg/pkg": "6.22.0",
 		"esbuild": "^0.28.1",
 		"resedit": "^3.0.2",
 		"@swc/core": "^1.15.47",
@@ -31,6 +31,6 @@
 	},
 	"patchedDependencies": {
 		"puppeteer-stream@3.0.23": "patches/puppeteer-stream.patch",
-		"@yao-pkg/pkg@6.21.0": "patches/yao-pkg-qemu.patch"
+		"@yao-pkg/pkg@6.22.0": "patches/yao-pkg-qemu.patch"
 	}
 }
