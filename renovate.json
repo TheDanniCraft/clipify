@@ -11,8 +11,21 @@
 	"commitMessageExtra": " to {{newVersion}}",
 	"packageRules": [
 		{
+			"description": "Give Bun npm updates a package-specific group",
+			"matchManagers": ["bun"],
+			"matchDatasources": ["npm"],
+			"matchFileNames": ["**/package.json"],
+			"groupName": "{{{depName}}} dependency update",
+			"additionalBranchPrefix": "npm/"
+		},
+		{
+			"description": "Join patchedDependencies with their Bun dependency update",
+			"matchManagers": ["custom.regex"],
 			"matchDepTypes": ["patchedDependencies"],
-			"groupName": "Bun patched dependency updates"
+			"matchDatasources": ["npm"],
+			"matchFileNames": ["**/package.json"],
+			"groupName": "{{{depName}}} dependency update",
+			"additionalBranchPrefix": "npm/"
 		},
 		{
 			"groupName": "next/react ecosystem",
