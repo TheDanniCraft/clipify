@@ -22,20 +22,20 @@ const faqs: Faq[] = [
 		content: "Normally, Clipify automatically selects clips based on your filters (e.g. last week). But with Playlists, you can handpick specific clips to play, even in a custom order. This gives you full control over the content that gets showcased on your stream.",
 	},
 	{
-		title: "What is the self-hosted Runner?",
-		content: "The self-hosted Runner automatically plays your clips 24/7, or acts as a failsafe when your OBS setup goes offline so viewers can keep watching your clips. It runs on your own Windows, Linux, or macOS computer and connects securely to your Clipify account.",
+		title: "What is the self-hosted Runner and what does it cost?",
+		content: "The self-hosted Runner automatically plays your clips 24/7 or acts as a failsafe when your OBS setup goes offline. It runs on your own Windows, Linux, or macOS computer and is available with Free or Pro for 3 EUR per month or 30 EUR per year.",
 	},
 	{
 		title: "Is there a free version of Clipify?",
 		content: "Yes, Clipify offers a free version with basic features. You can upgrade to Pro for additional features, or add the optional self-hosted Runner to either plan.",
 	},
 	{
-		title: "How much does the Runner add-on cost?",
-		content: "The self-hosted Runner is an optional add-on available with Free or Pro. It costs 3 EUR per month or 30 EUR per year. The Runner uses a computer and network connection you provide.",
+		title: "What is a Clipify Creator Page?",
+		content: "A Creator Page is your shareable Clipify profile for Twitch clips. It combines your creator details with your clips, lets visitors sort and filter them, and can be linked from your website, social profiles, or Twitch panels. Pro adds detailed traffic and clip-engagement analytics.",
 	},
 	{
-		title: "Can I embed Clipify on my website?",
-		content: "Yes, Clipify provides an embed feature that allows you to showcase your clips on your website or blog.",
+		title: "How can I showcase my clips on my website?",
+		content: "Use Clipify Elements to add a responsive clip gallery that opens clips in a website-level player modal. The Clip Player also remains available as a traditional iframe. Free includes one branded gallery, while Pro adds unlimited galleries, advanced filters, custom styling, and branding control.",
 	},
 	{
 		title: "Can I allow others to manage my overlay settings (mods, managers etc.)?",

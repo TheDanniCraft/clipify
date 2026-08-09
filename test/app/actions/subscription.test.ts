@@ -7,11 +7,13 @@ const customersCreate = jest.fn();
 const checkoutCreate = jest.fn();
 const promotionCodesList = jest.fn();
 const portalCreate = jest.fn();
+const pricesList = jest.fn();
 
 const validateAuth = jest.fn();
 const getBaseUrl = jest.fn();
 const cookies = jest.fn();
 const getActiveCampaignOffer = jest.fn();
+const resolveUserEntitlements = jest.fn();
 
 const updateExecute = jest.fn();
 
@@ -57,6 +59,10 @@ jest.mock("@lib/campaignOffers", () => ({
 	getActiveCampaignOffer: (...args: unknown[]) => getActiveCampaignOffer(...args),
 }));
 
+jest.mock("@lib/entitlements", () => ({
+	resolveUserEntitlements: (...args: unknown[]) => resolveUserEntitlements(...args),
+}));
+
 async function loadSubscription() {
 	jest.resetModules();
 	return import("@/app/actions/subscription");
@@ -73,11 +79,21 @@ describe("actions/subscription", () => {
 			stripeCustomerId: null,
 		});
 		getActiveCampaignOffer.mockResolvedValue(null);
+		resolveUserEntitlements.mockResolvedValue({ proAccess: false, runnerAccess: false, reverseTrialActive: false });
+		pricesList.mockResolvedValue({
+			data: [
+				{ id: "price_current_pro_monthly", lookup_key: "clipify_pro_monthly", unit_amount: 200, currency: "eur", product: "prod_pro" },
+				{ id: "price_current_pro_yearly", lookup_key: "clipify_pro_yearly", unit_amount: 2000, currency: "eur", product: "prod_pro" },
+				{ id: "price_current_runner_monthly", lookup_key: "clipify_runner_monthly", unit_amount: 300, currency: "eur", product: "prod_runner" },
+				{ id: "price_current_runner_yearly", lookup_key: "clipify_runner_yearly", unit_amount: 3000, currency: "eur", product: "prod_runner" },
+			],
+		});
 		cookies.mockResolvedValue({
 			get: () => undefined,
 		});
 		updateExecute.mockResolvedValue([{ id: "user-1" }]);
 		stripeCtor.mockReturnValue({
+			prices: { list: (...args: unknown[]) => pricesList(...args) },
 			subscriptions: { list: (...args: unknown[]) => subscriptionsList(...args) },
 			customers: { create: (...args: unknown[]) => customersCreate(...args) },
 			checkout: { sessions: { create: (...args: unknown[]) => checkoutCreate(...args) } },
@@ -86,15 +102,15 @@ describe("actions/subscription", () => {
 		});
 	});
 
-	it("resolves plan ids by environment", async () => {
+	it("resolves current plan ids through Stripe lookup keys", async () => {
 		process.env = { ...process.env, NODE_ENV: "production", APP_ENV: "production" };
 		const { getPlans } = await loadSubscription();
 		const prodPlans = await getPlans();
-		expect(prodPlans.monthly).toBe("price_1S83PSB0sp7KYCWLzhUkxodR");
+		expect(prodPlans.monthly).toBe("price_current_pro_monthly");
 
 		process.env = { ...process.env, NODE_ENV: "development", APP_ENV: "development" };
 		const devPlans = await getPlans();
-		expect(devPlans.monthly).toBe("price_1SnM3MBg46KdNQq5MjHMYyYw");
+		expect(devPlans.monthly).toBe("price_current_pro_monthly");
 	});
 
 	it("checks existing subscriptions based on blocking statuses", async () => {
@@ -133,6 +149,37 @@ describe("actions/subscription", () => {
 			}),
 		);
 		expect(result).toBe("https://checkout.stripe.test/session-1");
+	});
+
+	it("allows purchasing paid Pro while a reverse trial is active", async () => {
+		resolveUserEntitlements.mockResolvedValue({
+			proAccess: true,
+			runnerAccess: false,
+			reverseTrialActive: true,
+			source: "reverse_trial",
+		});
+		customersCreate.mockResolvedValue({ id: "cus_reverse_trial" });
+		checkoutCreate.mockResolvedValue({ url: "https://checkout.stripe.test/reverse-trial-upgrade" });
+
+		const { generatePaymentLink } = await loadSubscription();
+		await expect(generatePaymentLink("yearly", "/dashboard/settings", undefined, "pricing_page")).resolves.toBe("https://checkout.stripe.test/reverse-trial-upgrade");
+
+		expect(checkoutCreate).toHaveBeenCalledWith(expect.objectContaining({ mode: "subscription", customer: "cus_reverse_trial" }));
+	});
+
+	it("does not sell a duplicate Pro subscription over a non-trial grant", async () => {
+		resolveUserEntitlements.mockResolvedValue({
+			proAccess: true,
+			runnerAccess: false,
+			reverseTrialActive: false,
+			hasActiveGrant: true,
+			source: "grant",
+		});
+
+		const { generatePaymentLink } = await loadSubscription();
+		await expect(generatePaymentLink("monthly", "/dashboard/settings", undefined, "pricing_page")).rejects.toThrow("You already own every selected product");
+		expect(checkoutCreate).not.toHaveBeenCalled();
+		expect(customersCreate).not.toHaveBeenCalled();
 	});
 
 	it("retries checkout without promo discount when code is not redeemable", async () => {

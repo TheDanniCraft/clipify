@@ -98,6 +98,7 @@ jest.mock("@/db/schema", () => ({
 	overlaysTable: { id: "overlays.id", ownerId: "overlays.owner_id", secret: "overlays.secret", status: "overlays.status", updatedAt: "overlays.updated_at" },
 	playlistsTable: { id: "playlists.id", ownerId: "playlists.owner_id", createdAt: "playlists.created_at" },
 	playlistClipsTable: { playlistId: "playlist_clips.playlist_id", clipId: "playlist_clips.clip_id", position: "playlist_clips.position" },
+	galleriesTable: { id: "galleries.id", ownerId: "galleries.owner_id", playlistId: "galleries.playlist_id", createdAt: "galleries.created_at" },
 	queueTable: { id: "queue.id", overlayId: "queue.overlay_id", queuedAt: "queue.queued_at" },
 	settingsTable: { id: "settings.id" },
 	modQueueTable: { id: "mod_queue.id", broadcasterId: "mod_queue.broadcaster_id", queuedAt: "mod_queue.queued_at" },
@@ -243,6 +244,7 @@ describe("database.ts coverage tests", () => {
 		const { downgradeUserPlan } = await loadDatabaseActions();
 		queueSelectResult([]); // overlays
 		queueSelectResult([]); // playlists
+		queueSelectResult([]); // galleries
 		await downgradeUserPlan("user-1");
 		expect(dbDelete).not.toHaveBeenCalled();
 	});
@@ -251,6 +253,7 @@ describe("database.ts coverage tests", () => {
 		const { downgradeUserPlan } = await loadDatabaseActions();
 		queueSelectResult([{ id: "ov1" }]); // overlays
 		queueSelectResult([{ id: "pl1" }, { id: "pl2" }]); // playlists
+		queueSelectResult([]); // galleries
 		queueSelectResult([{ clipId: "c1" }]); // playlist clips
 		await downgradeUserPlan("user-1");
 		expect(dbDelete).toHaveBeenCalled();

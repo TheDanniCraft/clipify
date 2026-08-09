@@ -1,5 +1,5 @@
 import { BillingProduct } from "@types";
-import { getBillingCatalog, getAllConfiguredPriceIds } from "../billingCatalog";
+import { getBillingCatalog, getAllConfiguredPriceIds, getPriceLookupKey, getPriceLookupKeys } from "../billingCatalog";
 
 describe("billing catalog", () => {
 	const mutableEnv = process.env as Record<string, string | undefined>;
@@ -34,5 +34,11 @@ describe("billing catalog", () => {
 	it("keeps the development Runner prices in development", () => {
 		process.env.APP_ENV = "development";
 		expect(getBillingCatalog()[BillingProduct.RunnerSelfHosted]).toEqual({ monthly: "price_1TsLIKBg46KdNQq5wLcoek8z", yearly: "price_1TsLILBg46KdNQq5sJNQa1Ka" });
+	});
+
+	it("uses stable lookup keys for purchasable products", () => {
+		expect(getPriceLookupKey(BillingProduct.Pro, "monthly")).toBe("clipify_pro_monthly");
+		expect(getPriceLookupKey(BillingProduct.RunnerSelfHosted, "yearly")).toBe("clipify_runner_yearly");
+		expect(getPriceLookupKeys(BillingProduct.Pro, "monthly")).toEqual(["clipify_pro_monthly"]);
 	});
 });

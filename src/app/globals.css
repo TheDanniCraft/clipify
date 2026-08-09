@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "@heroui/styles";
+@import "@heroui-pro/react/css";
 @import "./themes/clipify.css";
 @custom-variant dark (&:is(.dark *));
 

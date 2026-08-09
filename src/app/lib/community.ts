@@ -10,14 +10,13 @@ import { getAppAccessToken, getUsersDetailsBulk } from "@actions/twitch";
 
 import type { CommunitySnapshot, CommunityStreamer, CommunityStreamerStatus } from "./community-types";
 import { compareCommunityStreamers } from "./communitySort";
+import { PLAUSIBLE_BASE_URL, PLAUSIBLE_SITE_ID } from "./plausibleConfig";
 
 const TWITCH_BATCH_LIMIT = 100;
 const COMMUNITY_SNAPSHOT_CACHE_TYPE = TwitchCacheType.User;
 const COMMUNITY_SNAPSHOT_CACHE_KEY = "community:snapshot";
 const COMMUNITY_SNAPSHOT_CACHE_TTL_SECONDS = 120;
 const COMMUNITY_REFRESH_LOCK_KEY = "community_snapshot_refresh";
-const PLAUSIBLE_BASE_URL = (process.env.PLAUSIBLE_BASE_URL || "https://analytics.thedannicraft.de").replace(/\/+$/, "");
-const PLAUSIBLE_SITE_ID = process.env.PLAUSIBLE_SITE_ID || "clipify.us";
 const PLAUSIBLE_WINDOW_MINUTES = 5;
 
 type CommunityUserRow = {
@@ -189,7 +188,7 @@ export async function fetchCommunityPageVisibleUserIds(ownerIds: string[]): Prom
 		const rows = await db
 			.select({ id: settingsTable.id })
 			.from(settingsTable)
-			.where(and(inArray(settingsTable.id, ownerIds), eq(settingsTable.showOnCommunityPage, true)))
+			.where(and(inArray(settingsTable.id, ownerIds), eq(settingsTable.creatorPageEnabled, true), or(eq(settingsTable.creatorPageVisibility, "discoverable"), and(isNull(settingsTable.creatorPageVisibility), eq(settingsTable.showOnCommunityPage, true)))))
 			.execute();
 
 		for (const row of rows) {

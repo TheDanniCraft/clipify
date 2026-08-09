@@ -4,6 +4,11 @@ export type BillingCycle = "monthly" | "yearly";
 
 type ProductPrices = Record<BillingCycle, string>;
 
+const LOOKUP_KEYS: Record<BillingProduct, ProductPrices> = {
+	[BillingProduct.Pro]: { monthly: "clipify_pro_monthly", yearly: "clipify_pro_yearly" },
+	[BillingProduct.RunnerSelfHosted]: { monthly: "clipify_runner_monthly", yearly: "clipify_runner_yearly" },
+};
+
 const PRODUCTS: Record<"dev" | "prod", Record<BillingProduct, ProductPrices>> = {
 	dev: {
 		[BillingProduct.Pro]: {
@@ -36,6 +41,14 @@ export function getPriceId(product: BillingProduct, cycle: BillingCycle) {
 	const priceId = getBillingCatalog()[product]?.[cycle];
 	if (!priceId) throw new Error(`Missing Stripe price for ${product}:${cycle}`);
 	return priceId;
+}
+
+export function getPriceLookupKey(product: BillingProduct, cycle: BillingCycle) {
+	return LOOKUP_KEYS[product][cycle];
+}
+
+export function getPriceLookupKeys(product: BillingProduct, cycle: BillingCycle) {
+	return [getPriceLookupKey(product, cycle)];
 }
 
 export function getProductForPrice(priceId: string) {

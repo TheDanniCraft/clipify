@@ -730,6 +730,23 @@ export async function getAppAccessToken(): Promise<TwitchAppAccessTokenResponse 
 	}
 }
 
+export async function getCreatorTwitchDetails(username: string, ownerId: string) {
+	const token = await getAppAccessToken();
+	if (!token) return { profile: null, live: null };
+	const profiles = await getUsersDetailsBulk({ userNames: [username], accessToken: token.access_token });
+	const profile = profiles.find((entry) => entry.id === ownerId) ?? profiles[0] ?? null;
+	try {
+		const response = await axios.get<TwitchApiResponse<{ id: string; user_id: string; user_name: string; game_name: string; title: string; viewer_count: number; started_at: string; thumbnail_url: string }>>("https://api.twitch.tv/helix/streams", {
+			headers: { Authorization: `Bearer ${token.access_token}`, "Client-Id": process.env.TWITCH_CLIENT_ID || "" },
+			params: { user_id: ownerId, first: 1 },
+		});
+		return { profile, live: response.data.data[0] ?? null };
+	} catch (error) {
+		logTwitchError("Error fetching creator live status", error);
+		return { profile, live: null };
+	}
+}
+
 export async function getUserDetails(accessToken: string): Promise<TwitchUserResponse | null> {
 	const url = "https://api.twitch.tv/helix/users";
 	try {

@@ -2,7 +2,7 @@
 import type { AuthenticatedUser } from "@types";
 import { Plan } from "@types";
 
-export type FeatureKey = "multi_overlay" | "multi_playlist" | "chat_commands" | "advanced_filters" | "editors";
+export type FeatureKey = "multi_overlay" | "multi_playlist" | "multi_gallery" | "gallery_advanced" | "gallery_styling" | "gallery_runtime_styling" | "creator_page_social_preview" | "creator_page_analytics" | "chat_commands" | "advanced_filters" | "editors";
 export type AccessContext = { allowed: boolean; reason?: "trial" | "free_limit" | "trial_expired" | "pro_required" };
 
 export function isReverseTrialActive(user: Pick<AuthenticatedUser, "plan" | "createdAt" | "entitlements">) {
@@ -36,7 +36,13 @@ export function getFeatureAccess(user: Pick<AuthenticatedUser, "plan" | "created
 	switch (feature) {
 		case "multi_overlay":
 		case "multi_playlist":
+		case "multi_gallery":
 			return { allowed: false, reason: "free_limit" };
+		case "gallery_advanced":
+		case "gallery_styling":
+		case "gallery_runtime_styling":
+		case "creator_page_social_preview":
+		case "creator_page_analytics":
 		case "chat_commands":
 		case "advanced_filters":
 		case "editors":

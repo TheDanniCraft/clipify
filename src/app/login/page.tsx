@@ -6,13 +6,15 @@ import ErrorToast from "@components/errorToast";
 import { validateAuth } from "@actions/auth";
 import { redirect } from "next/navigation";
 import NextLink from "next/link";
+import { readCheckoutIntent } from "@/server/checkoutIntent";
 
 export default async function Login({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
 	const { error, errorCode, returnUrl } = await searchParams;
 
+	const checkoutIntent = await readCheckoutIntent();
 	const loggedInUser = await validateAuth();
 	if (loggedInUser) {
-		redirect("/dashboard");
+		redirect(checkoutIntent ? "/checkout/continue" : "/dashboard");
 	}
 
 	const ru = typeof returnUrl === "string" ? returnUrl : "";

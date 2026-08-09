@@ -41,7 +41,23 @@ const nextConfigPromise = Promise.resolve(drizzle).then(
 						headers: [...baseSecurityHeaders, { key: "Content-Security-Policy", value: "frame-ancestors *;" }],
 					},
 					{
-						source: "/:path((?!demoPlayer$|embed/[^/]+/?$).*)",
+						source: "/gallery/:galleryId/frame",
+						headers: [...baseSecurityHeaders, { key: "Content-Security-Policy", value: "frame-ancestors *;" }],
+					},
+					{
+						source: "/dashboard/galleries/:galleryId/preview/clip/:clipId",
+						headers: [...baseSecurityHeaders, { key: "Content-Security-Policy", value: "frame-ancestors *;" }],
+					},
+					{
+						source: "/gallery/:galleryId/clip/:clipId",
+						headers: [...baseSecurityHeaders, { key: "Content-Security-Policy", value: "frame-ancestors *;" }],
+					},
+					{
+						source: "/elements/:path*",
+						headers: [...baseSecurityHeaders, { key: "Access-Control-Allow-Origin", value: "*" }, { key: "Cache-Control", value: "public, max-age=300, s-maxage=86400" }],
+					},
+					{
+						source: "/:path((?!demoPlayer$|embed/[^/]+/?$|gallery/[^/]+/frame/?$|gallery/[^/]+/clip/[^/]+/?$|dashboard/galleries/[^/]+/preview/clip/[^/]+/?$).*)",
 						headers: [...baseSecurityHeaders, { key: "X-Frame-Options", value: "DENY" }, { key: "Content-Security-Policy", value: "frame-ancestors 'none';" }],
 					},
 				];

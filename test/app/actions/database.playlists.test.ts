@@ -44,6 +44,12 @@ const playlistClipsTable = {
 	clipId: "playlist_clips.clip_id",
 	position: "playlist_clips.position",
 };
+const galleriesTable = {
+	id: "galleries.id",
+	ownerId: "galleries.owner_id",
+	playlistId: "galleries.playlist_id",
+	createdAt: "galleries.created_at",
+};
 
 function queueSelectResult(value: unknown) {
 	selectQueue.push(value);
@@ -144,6 +150,7 @@ jest.mock("@/db/schema", () => ({
 	overlaysTable,
 	playlistsTable,
 	playlistClipsTable,
+	galleriesTable,
 	queueTable: {},
 	settingsTable: {},
 	modQueueTable: {},
@@ -905,7 +912,7 @@ describe("actions/database playlist logic", () => {
 		expect(insertCalls.some((call) => call.table === overlaysTable)).toBe(true);
 	});
 
-	it("downgradeUserPlan trims overlays/playlists and caps kept playlist to 50 clips", async () => {
+	it("downgradeUserPlan trims overlays, removes extra playlists, normalizes galleries, and caps the oldest playlist to 50 clips", async () => {
 		queueSelectResult([
 			{ id: "overlay-1", ownerId: "owner-1" },
 			{ id: "overlay-2", ownerId: "owner-1" },
@@ -914,6 +921,7 @@ describe("actions/database playlist logic", () => {
 			{ id: "playlist-1", ownerId: "owner-1" },
 			{ id: "playlist-2", ownerId: "owner-1" },
 		]);
+		queueSelectResult([]);
 		queueSelectResult(
 			Array.from({ length: 52 }, (_unused, index) => ({
 				playlistId: "playlist-1",
@@ -926,7 +934,7 @@ describe("actions/database playlist logic", () => {
 		await downgradeUserPlan("owner-1");
 
 		expect(deleteCalls.filter((call) => call.table === overlaysTable).length).toBeGreaterThan(0);
-		expect(deleteCalls.filter((call) => call.table === playlistsTable).length).toBeGreaterThan(0);
+		expect(deleteCalls.filter((call) => call.table === playlistsTable)).toHaveLength(1);
 		expect(deleteCalls.filter((call) => call.table === playlistClipsTable).length).toBeGreaterThan(0);
 		const overlayReset = updateCalls.find((call) => call.table === overlaysTable);
 		expect(overlayReset?.set).toEqual(expect.objectContaining({ playlistId: null, rewardId: null, minClipViews: 0 }));

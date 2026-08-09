@@ -4,15 +4,17 @@ import { validateAuth } from "@actions/auth";
 import { deleteUser, getClipCacheStatus, getSettings, saveSettings } from "@actions/database";
 import ConfirmModal from "@components/confirmModal";
 import DashboardNavbar from "@components/dashboardNavbar";
+import DashboardUserAvatar from "@components/dashboardUserAvatar";
 import CodeSnippet from "@components/codeSnippet";
 import FullscreenLoadingState from "@components/fullscreenLoadingState";
 import { AuthenticatedUser, Plan, UserSettings } from "@types";
-import { Alert, Avatar, Button, Card, Separator, Form, Input, Modal, Spinner, Switch, Tabs, Tooltip, useOverlayState, TextField, Label, Description, FieldError } from "@heroui/react";
+import { Alert, Button, Card, Separator, Form, Input, Link, Modal, Spinner, Switch, Tabs, Tooltip, useOverlayState, TextField, TextArea, Label, Description, FieldError } from "@heroui/react";
 import { notify as addToast } from "@lib/toast";
 
-import { IconAlertTriangle, IconArrowLeft, IconDatabase, IconDeviceFloppy, IconInfoCircle, IconRefresh, IconTrash } from "@tabler/icons-react";
+import { IconAlertTriangle, IconDatabase, IconDeviceFloppy, IconInfoCircle, IconRefresh, IconTrash } from "@tabler/icons-react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useState, type Dispatch, type SetStateAction } from "react";
 import { generatePaymentLink, checkIfSubscriptionExists } from "@actions/subscription";
 import { forceRefreshOwnClipCache, getOwnClipForceRefreshStatus } from "@actions/twitch";
 import { useNavigationGuard } from "next-navigation-guard";
@@ -21,6 +23,7 @@ import BillingPanel from "./billing-panel";
 import TagsInput from "@components/tagsInput";
 import ChatwootData from "@components/chatwootData";
 import ControlledModal from "@components/controlledModal";
+import CreatorAnalyticsCard from "@components/creator/CreatorAnalyticsCard";
 import { getFeatureAccess, getTrialDaysLeft, isReverseTrialActive } from "@lib/featureAccess";
 import { usePlausible } from "next-plausible";
 import { trackPaywallEvent } from "@lib/paywallTracking";
@@ -44,17 +47,39 @@ type ClipForceRefreshStatusState = {
 	canRefresh: boolean;
 } | null;
 
+type SettingsSection = "settings" | "creator" | "billing";
+
+const SettingsSectionTabs = memo(function SettingsSectionTabs({ selectedKey, setSelectedKey }: { selectedKey: SettingsSection; setSelectedKey: Dispatch<SetStateAction<SettingsSection>> }) {
+	return (
+		<Tabs selectedKey={selectedKey} onSelectionChange={(key) => setSelectedKey(String(key) as SettingsSection)} className='w-full' variant='primary'>
+			<Tabs.ListContainer className='w-full'>
+				<Tabs.List aria-label='Settings sections' className='w-full'>
+					<Tabs.Tab id='settings'>
+						Settings
+						<Tabs.Indicator />
+					</Tabs.Tab>
+					<Tabs.Tab id='creator'>
+						Creator Page
+						<Tabs.Indicator />
+					</Tabs.Tab>
+					<Tabs.Tab id='billing'>
+						Billing
+						<Tabs.Indicator />
+					</Tabs.Tab>
+				</Tabs.List>
+			</Tabs.ListContainer>
+		</Tabs>
+	);
+});
+
 export default function SettingsPage() {
 	const [user, setUser] = useState<AuthenticatedUser | null>(null);
 	const { isOpen: upgradeModalIsOpen, open: upgradeModalOnOpen, setOpen: upgradeModalOnOpenChange } = useOverlayState();
-	const [upgradeMode, setUpgradeMode] = useState<"plan" | "runner_addon">(() => {
+	const [upgradeMode] = useState<"plan" | "runner_addon">(() => {
 		if (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("addon") === "runner") return "runner_addon";
 		return "plan";
 	});
-	const [sectionTab, setSectionTab] = useState<"settings" | "billing">(() => {
-		if (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("addon") === "runner") return "billing";
-		return "settings";
-	});
+	const [sectionTab, setSectionTab] = useState<SettingsSection>("settings");
 	const { isOpen: deleteModalIsOpen, open: deleteModalOnOpen, setOpen: deleteModalOnOpenChange } = useOverlayState();
 	const [timer, setTimer] = useState<number>(0);
 	const [settings, setSettings] = useState<UserSettings | null>(null);
@@ -143,7 +168,23 @@ export default function SettingsPage() {
 	const isEffectivelyFree = effectivePlan === Plan.Free;
 	const canUpgradeFromBilling = user?.plan === Plan.Free;
 	const receivesProductUpdates = Boolean(settings?.marketingOptIn);
-	const showOnCommunityPage = settings?.showOnCommunityPage ?? false;
+	const creatorPageDiscoverable = settings?.creatorPageVisibility ? settings.creatorPageVisibility === "discoverable" : (settings?.showOnCommunityPage ?? false);
+	const creatorSocialTitle = settings?.creatorPageSocialTitle?.trim() || `${user?.username ?? "Creator"}'s Twitch clips`;
+	const creatorSocialDescription = settings?.creatorPageSocialDescription?.trim() || `Watch clips from ${user?.username ?? "this creator"} on Clipify.`;
+
+	useEffect(() => {
+		let cancelled = false;
+		queueMicrotask(() => {
+			if (cancelled) return;
+			const params = new URLSearchParams(window.location.search);
+			const requestedTab = params.get("tab");
+			if (requestedTab === "creator" || requestedTab === "billing") setSectionTab(requestedTab);
+			else if (params.has("billing") || params.has("checkout") || params.get("addon") === "runner") setSectionTab("billing");
+		});
+		return () => {
+			cancelled = true;
+		};
+	}, []);
 
 	useEffect(() => {
 		if (!user || typeof window === "undefined") return;
@@ -160,6 +201,8 @@ export default function SettingsPage() {
 	}, [upgradeModalOnOpen, user]);
 
 	const editorsAccess = user ? getFeatureAccess(user, "editors") : { allowed: false as const };
+	const creatorAnalyticsAccess = user ? getFeatureAccess(user, "creator_page_analytics") : { allowed: false as const };
+	const creatorSocialPreviewAccess = user ? getFeatureAccess(user, "creator_page_social_preview") : { allowed: false as const };
 	const inTrial = user ? isReverseTrialActive(user) : false;
 	const trialDaysLeft = user ? getTrialDaysLeft(user) : 0;
 	const trialSummaryLabel = trialDaysLeft <= 1 ? "Ends today" : `${trialDaysLeft} days left`;
@@ -285,29 +328,125 @@ export default function SettingsPage() {
 			<ChatwootData user={user} />
 
 			<DashboardNavbar user={user} title='Settings' tagline='Manage your settings'>
-				<Tabs selectedKey={sectionTab} onSelectionChange={(key) => setSectionTab(String(key) as "settings" | "billing")} className='mt-4 w-full'>
-					<Tabs.ListContainer className='w-full'>
-						<Tabs.List aria-label='Settings sections' className='w-full'>
-							<Tabs.Tab id='settings'>
-								Settings
-								<Tabs.Indicator />
-							</Tabs.Tab>
-							<Tabs.Tab id='billing'>
-								Billing
-								<Tabs.Indicator />
-							</Tabs.Tab>
-						</Tabs.List>
-					</Tabs.ListContainer>
-				</Tabs>
+				<div className='mt-4 flex w-full flex-col gap-2'>
+					<SettingsSectionTabs selectedKey={sectionTab} setSelectedKey={setSectionTab} />
+				</div>
 				{sectionTab === "billing" ? (
 					<BillingPanel />
+				) : sectionTab === "creator" ? (
+					<Card className='mt-4'>
+						<Card.Header>
+							<p className='text-xl font-semibold'>Creator Page</p>
+							<p className='text-sm text-muted'>Manage your public Clipify profile, discovery visibility, and analytics.</p>
+						</Card.Header>
+						<Separator />
+						<Card.Content className='flex flex-col gap-6 p-6'>
+							<Form className='flex w-full flex-col gap-6' onSubmit={handleSubmit}>
+								<section className='space-y-4' aria-labelledby='creator-page-availability-heading'>
+									<div>
+										<h3 id='creator-page-availability-heading' className='text-base font-semibold'>
+											Page availability
+										</h3>
+										<p className='text-xs text-muted'>Control your shareable Creator Page and the profile information shown on it.</p>
+									</div>
+									<div className='flex items-center justify-between gap-6'>
+										<div className='min-w-0'>
+											<p className='text-sm font-semibold'>Enable Creator Page</p>
+											<p className='text-xs text-muted'>Your shareable Clipify profile with all cached clips, Twitch details, and live status.</p>
+											{settings?.creatorPageEnabled !== false ? (
+												<Link className='mt-2 text-xs' href={`/creators/${encodeURIComponent(user.username)}`} target='_blank' rel='noopener noreferrer'>
+													Open Creator Page
+													<Link.Icon />
+												</Link>
+											) : null}
+										</div>
+										<Switch isSelected={settings?.creatorPageEnabled !== false} isDisabled={!settings} aria-label='Enable creator page' onChange={(value) => settings && setSettings({ ...settings, creatorPageEnabled: value })}>
+											<Switch.Content>
+												<Switch.Control>
+													<Switch.Thumb />
+												</Switch.Control>
+											</Switch.Content>
+										</Switch>
+									</div>
+									<Separator />
+									<div className='flex items-center justify-between gap-6'>
+										<div className='min-w-0'>
+											<p className='text-sm font-semibold'>Show Twitch bio</p>
+											<p className='text-xs text-muted'>Use your Twitch channel description in the profile card.</p>
+										</div>
+										<Switch isSelected={settings?.creatorPageShowBio !== false} isDisabled={!settings || settings.creatorPageEnabled === false} aria-label='Show Twitch bio' onChange={(value) => settings && setSettings({ ...settings, creatorPageShowBio: value })}>
+											<Switch.Content>
+												<Switch.Control>
+													<Switch.Thumb />
+												</Switch.Control>
+											</Switch.Content>
+										</Switch>
+									</div>
+								</section>
+								<Separator />
+								<section className='space-y-4' aria-labelledby='creator-social-preview-heading'>
+									<div>
+										<h3 id='creator-social-preview-heading' className='text-base font-semibold'>
+											Social preview
+										</h3>
+										<p className='text-xs text-muted'>Preview and customize how your Creator Page appears when its link is shared.</p>
+									</div>
+									<div className='grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.9fr)]'>
+										{creatorSocialPreviewAccess.allowed ? (
+											<div className='space-y-3'>
+												<TextField value={settings?.creatorPageSocialTitle ?? ""} onChange={(value) => settings && setSettings({ ...settings, creatorPageSocialTitle: value })} variant='secondary' maxLength={120} isDisabled={!settings || settings.creatorPageEnabled === false}>
+													<Label>Preview title</Label>
+													<Input placeholder={`${user.username}'s Twitch clips`} />
+													<Description>Optional, up to 120 characters.</Description>
+												</TextField>
+												<TextField value={settings?.creatorPageSocialDescription ?? ""} onChange={(value) => settings && setSettings({ ...settings, creatorPageSocialDescription: value })} variant='secondary' maxLength={240} isDisabled={!settings || settings.creatorPageEnabled === false}>
+													<Label>Preview description</Label>
+													<TextArea rows={3} placeholder={`Watch clips from ${user.username} on Clipify.`} />
+													<Description>Optional, up to 240 characters.</Description>
+												</TextField>
+											</div>
+										) : (
+											<Alert status='warning'>
+												<Alert.Content>
+													<Alert.Title>Custom social previews are a Pro feature</Alert.Title>
+													<Alert.Description>Upgrade to control the title and description shown when people share your Creator Page.</Alert.Description>
+												</Alert.Content>
+												<Button size='sm' variant='tertiary' onPress={upgradeModalOnOpen}>
+													Upgrade to Pro
+												</Button>
+											</Alert>
+										)}
+										<div className='overflow-hidden rounded-xl border border-default/60 bg-surface-secondary shadow-sm' aria-label='Social preview example'>
+											<div className='relative aspect-[1.91/1] bg-background'>
+												<Image src='/og-image.png' alt='Clipify social preview image' fill sizes='(min-width: 1024px) 40vw, 100vw' className='object-cover' />
+											</div>
+											<div className='space-y-1 p-4'>
+												<p className='line-clamp-2 text-sm font-semibold'>{creatorSocialTitle}</p>
+												<p className='line-clamp-2 text-xs text-muted'>{creatorSocialDescription}</p>
+												<p className='pt-1 text-[11px] uppercase tracking-wide text-muted'>clipify.us</p>
+											</div>
+										</div>
+									</div>
+								</section>
+								<Separator />
+								<p className='text-xs text-muted'>
+									Search-engine and Clipify Discovery visibility is managed under <Link onPress={() => setSectionTab("settings")}>Settings</Link>.
+								</p>
+								<Button fullWidth type='submit' isDisabled={!isFormDirty()} aria-label='Save Creator Page Settings' variant='primary'>
+									<IconDeviceFloppy /> Save Creator Page Settings
+								</Button>
+							</Form>
+							<Separator />
+							<div>
+								<h3 className='mb-3 text-base font-semibold'>Creator Page Analytics</h3>
+								<CreatorAnalyticsCard allowed={creatorAnalyticsAccess.allowed} onUpgrade={upgradeModalOnOpen} />
+							</div>
+						</Card.Content>
+					</Card>
 				) : (
 					<Card className='mt-4'>
 						<Card.Header>
-							<div className='flex items-center gap-2 w-full justify-between'>
-								<Button isIconOnly variant='tertiary' onPress={() => router.push("/dashboard")} aria-label='Back to Dashboard'>
-									{<IconArrowLeft />}
-								</Button>
+							<div className='flex w-full items-center justify-end'>
 								<div className='flex items-center gap-2'>
 									<div className='flex items-center overflow-hidden'>
 										<CodeSnippet size='sm' symbol='User ID:' preClassName='overflow-hidden whitespace-nowrap'>
@@ -324,11 +463,8 @@ export default function SettingsPage() {
 							</div>
 						</Card.Header>
 						<Card.Content className='px-6 pt-0 pb-6'>
-							<div className='mb-5 flex items-center'>
-								<Avatar size='lg' className='mr-4'>
-									<Avatar.Image alt={user.username} src={user.avatar} />
-									<Avatar.Fallback>{user.username.slice(0, 2).toUpperCase()}</Avatar.Fallback>
-								</Avatar>
+							<div className='mb-5 flex items-center gap-3'>
+								<DashboardUserAvatar username={user.username} avatar={user.avatar} />
 								<div>
 									<p className='text-2xl font-bold'>{user.username}</p>
 									<p className='text-sm font-bold text-muted'>
@@ -454,24 +590,11 @@ export default function SettingsPage() {
 									<Card variant='secondary' className='w-full'>
 										<Card.Content>
 											<div className='flex items-center justify-between gap-4'>
-												<div>
-													<p className='font-semibold text-sm'>Community Page</p>
-													<p className='text-xs text-muted'>Opt in to appear on the public community page with your Twitch handle and channel link.</p>
+												<div className='min-w-0'>
+													<p className='text-sm font-semibold'>Search engines and Clipify Discovery</p>
+													<p className='text-xs text-muted'>Controls whether your Creator Page appears in search, the sitemap, and Clipify discovery. The direct URL continues to work when disabled.</p>
 												</div>
-												<Switch
-													isSelected={showOnCommunityPage}
-													isDisabled={!settings}
-													aria-label='Show on community page'
-													onChange={(value) => {
-														if (!settings) {
-															return;
-														}
-														setSettings({
-															...settings,
-															showOnCommunityPage: value,
-														});
-													}}
-												>
+												<Switch isSelected={creatorPageDiscoverable} isDisabled={!settings || settings.creatorPageEnabled === false} aria-label='Appear in search engines and Clipify Discovery' onChange={(value) => settings && setSettings({ ...settings, showOnCommunityPage: value, creatorPageVisibility: value ? "discoverable" : "unlisted" })}>
 													<Switch.Content>
 														<Switch.Control>
 															<Switch.Thumb />
@@ -479,10 +602,11 @@ export default function SettingsPage() {
 													</Switch.Content>
 												</Switch>
 											</div>
-											<p className='mt-2 text-xs text-muted'>Show up on the public community page with your Twitch handle and channel link.</p>
+											<p className='mt-2 text-xs text-muted'>
+												Creator Page availability and profile content are configured in the <Link onPress={() => setSectionTab("creator")}>Creator Page tab</Link>.
+											</p>
 										</Card.Content>
 									</Card>
-
 									{isEffectivelyFree && !editorsAccess.allowed && (
 										<div className='w-full mb-4'>
 											<Alert status='warning'>

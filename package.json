@@ -26,14 +26,31 @@
 		"stream:test": "tsx scripts/stream-test.ts"
 	},
 	"dependencies": {
+		"@heroui-pro/react": "^1.0.0-beta.8",
 		"@heroui/react": "^3.2.3",
 		"@heroui/styles": "^3.2.3",
+		"@number-flow/react": ">=0.5.0",
+		"@react-aria/utils": ">=3.34.1",
 		"@sentry/nextjs": "^10.69.0",
 		"@tabler/icons-react": "^3.46.0",
+		"@tiptap/core": ">=3.23.6",
+		"@tiptap/extension-link": ">=3.23.6",
+		"@tiptap/extension-underline": ">=3.23.6",
+		"@tiptap/extensions": ">=3.23.6",
+		"@tiptap/pm": ">=3.23.6",
+		"@tiptap/react": ">=3.23.6",
+		"@tiptap/starter-kit": ">=3.23.6",
+		"@tiptap/suggestion": ">=3.23.6",
+		"@types/ffbinaries": "^1.1.5",
 		"axios": "^1.19.0",
 		"dotenv": "^17.4.2",
 		"drizzle-orm": "^0.45.2",
+		"embla-carousel": ">=8.6.0",
+		"embla-carousel-react": ">=8.6.0",
+		"fluent-ffmpeg": "^2.1.3",
 		"jsonwebtoken": "^9.0.3",
+		"maplibre-gl": ">=6.0.0",
+		"marked": ">=18.0.0",
 		"minimatch": "^10.2.6",
 		"motion": "^12.43.0",
 		"next": "^16.2.12",
@@ -46,15 +63,21 @@
 		"rate-limiter-flexible": "^11.2.0",
 		"re2js": "^2.8.6",
 		"react": "^19.2.8",
+		"react-aria-components": ">=1.19.0",
 		"react-dom": "^19.2.8",
+		"react-markdown": ">=10.1.0",
+		"react-resizable-panels": ">=4.10.0",
 		"recharts": "^3.10.1",
+		"remark-breaks": ">=4.0.0",
+		"remark-gfm": ">=4.0.0",
+		"shiki": ">=4.0.0",
+		"streamdown": ">=2.5.0",
 		"stripe": "^22.4.0",
+		"tailwind-merge": ">=3.4.0",
 		"tailwind-variants": "^3.3.0",
 		"usesend-js": "^1.6.3",
 		"ws": "^8.21.1",
-		"xss": "^1.0.15",
-		"@types/ffbinaries": "^1.1.5",
-		"fluent-ffmpeg": "^2.1.3"
+		"xss": "^1.0.15"
 	},
 	"devDependencies": {
 		"@tailwindcss/postcss": "^4.3.3",
@@ -94,5 +117,10 @@
 		"*.{json,css,md}": [
 			"prettier --write"
 		]
-	}
+	},
+	"trustedDependencies": [
+		"heroui-pro",
+		"@heroui-pro/react",
+		"heroui-native-pro"
+	]
 }

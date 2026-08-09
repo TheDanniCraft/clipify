@@ -13,8 +13,15 @@ jest.mock("@lib/paywallTracking", () => ({
 	trackPaywallEvent: jest.fn(),
 }));
 
+jest.mock("@/app/components/Pricing/ProSetupModal", () => ({
+	__esModule: true,
+	default: ({ isOpen }: { isOpen: boolean }) => (isOpen ? <div>Shared Pro setup</div> : null),
+}));
+
 jest.mock("@tabler/icons-react", () => ({
+	IconArrowRight: () => <svg data-testid='icon-arrow-right' />,
 	IconCheck: () => <svg data-testid='icon-check' />,
+	IconHeart: () => <svg data-testid='icon-heart' />,
 }));
 
 jest.mock("@heroui/react", () => {
@@ -67,9 +74,15 @@ jest.mock("@heroui/react", () => {
 });
 
 describe("components/Pricing index", () => {
+	const pricing = {
+		pro: { monthly: { amount: 2, currency: "EUR", formatted: "2 EUR" }, yearly: { amount: 20, currency: "EUR", formatted: "20 EUR" } },
+		runner: { monthly: { amount: 3, currency: "EUR", formatted: "3 EUR" }, yearly: { amount: 30, currency: "EUR", formatted: "30 EUR" } },
+	};
+
 	it("shows campaign-configured promo copy on the pro tier", () => {
 		render(
 			<TiersComponent
+				pricing={pricing}
 				campaignOffer={{
 					id: "offer-1",
 					name: "Launch Offer",
@@ -107,10 +120,22 @@ describe("components/Pricing index", () => {
 	});
 
 	it("falls back to non-promo pricing when there is no active campaign", () => {
-		render(<TiersComponent />);
+		render(<TiersComponent pricing={pricing} />);
 
 		expect(screen.queryByText("Limited offer")).not.toBeInTheDocument();
 		expect(screen.getAllByText("2 months free").length).toBeGreaterThan(0);
 		expect(screen.getByText("20 EUR")).toBeInTheDocument();
+	});
+
+	it("keeps the cards concise and links to the full comparison", () => {
+		render(<TiersComponent pricing={pricing} />);
+
+		expect(screen.getByText("One branded website gallery")).toBeInTheDocument();
+		expect(screen.queryByText("Append or replace behavior on playlist import")).not.toBeInTheDocument();
+		expect(screen.getByText(/directly supports an independent developer/i)).toBeInTheDocument();
+		expect(screen.getByRole("link", { name: /Compare all features/i })).toHaveAttribute("href", "/pricing");
+		expect(screen.queryByRole("link", { name: "Add Runner" })).not.toBeInTheDocument();
+		fireEvent.click(screen.getByRole("button", { name: "Get Pro" }));
+		expect(screen.getByText("Shared Pro setup")).toBeInTheDocument();
 	});
 });

@@ -52,6 +52,21 @@ jest.mock("@/db/schema", () => ({
 	settingsTable: {
 		marketingOptIn: "marketingOptIn",
 		marketingOptInSource: "marketingOptInSource",
+		showOnCommunityPage: "showOnCommunityPage",
+		creatorPageEnabled: "creatorPageEnabled",
+		creatorPageVisibility: "creatorPageVisibility",
+		creatorPageShowBio: "creatorPageShowBio",
+	},
+	galleriesTable: {
+		published: "published",
+		ownerId: "ownerId",
+		source: "source",
+		playlistId: "playlistId",
+		layout: "layout",
+	},
+	plausibleStatsCacheTable: {
+		expiresAt: "expiresAt",
+		lastErrorAt: "lastErrorAt",
 	},
 	queueTable: {
 		id: "id",
@@ -192,6 +207,14 @@ describe("lib/instanceHealth", () => {
 			[{ count: 4 }], // unavailableClipsRows
 			[{ states: 3, complete: 2 }], // clipSyncProgressRows
 			[{ count: 5 }], // staleValidatedRows
+			[{ total: 4, published: 3, owners: 2, curated: 2, live: 2, orphaned: 0 }], // galleryRows
+			[
+				{ layout: "grid", count: 2 },
+				{ layout: "list", count: 1 },
+				{ layout: "carousel", count: 1 },
+			], // galleryLayoutRows
+			[{ discoverable: 6, unlisted: 2, disabled: 1, showBio: 7 }], // creatorPageRows
+			[{ entries: 3, valid: 2, expired: 1, errors: 0 }], // analyticsCacheRows
 		];
 		dbSelect.mockImplementation(() => makeQuery(selectQueue.shift() ?? []));
 
