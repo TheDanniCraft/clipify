@@ -42,7 +42,7 @@
 		"next-themes": "^0.4.6",
 		"next-ws": "^2.2.10",
 		"nextjs-turnstile": "^1.0.5",
-		"pg": "^8.22.0",
+		"pg": "^8.23.0",
 		"rate-limiter-flexible": "^11.2.0",
 		"re2js": "^2.8.6",
 		"react": "^19.2.8",
