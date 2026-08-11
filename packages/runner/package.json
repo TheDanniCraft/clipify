@@ -9,18 +9,18 @@
 	},
 	"dependencies": {
 		"@napi-rs/keyring": "^1.3.0",
-		"@puppeteer/browsers": "^3.0.6",
-		"puppeteer-core": "^25.4.0",
+		"@puppeteer/browsers": "^3.2.0",
+		"puppeteer-core": "^25.6.0",
 		"puppeteer-stream": "^3.0.23"
 	},
 	"devDependencies": {
 		"@yao-pkg/pkg": "6.22.0",
-		"esbuild": "^0.28.1",
+		"esbuild": "^0.28.2",
 		"resedit": "^3.0.2",
 		"@swc/core": "^1.15.47",
 		"@swc/jest": "^0.2.39",
 		"@types/jest": "^30.0.0",
-		"@types/node": "^26.1.2",
+		"@types/node": "^26.2.0",
 		"jest": "^30.4.2",
 		"typescript": "^6.0.3"
 	},
