@@ -66,6 +66,8 @@ jobs:
 
       # Always validate the lockfile and patches, even when node_modules came from cache.
       - name: 📦 Validate and install dependencies
+        env:
+          HEROUI_AUTH_TOKEN: ${{ secrets.HEROUI_AUTH_TOKEN }}
         run: bun install --frozen-lockfile
 
       - name: 🩹 Verify patched dependencies
