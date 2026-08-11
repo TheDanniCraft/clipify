@@ -7,7 +7,7 @@ describe("isEmbeddedRoute", () => {
 		expect(isEmbeddedRoute(pathname)).toBe(true);
 	});
 
-	it.each(["/", "/creators/the_danni_craft", "/dashboard/galleries/gallery-id"])("keeps public-page scripts available on %s", (pathname) => {
+	it.each(["/", "/gallery", "/galleryish", "/creators/the_danni_craft", "/dashboard/galleries/gallery-id"])("keeps public-page scripts available on %s", (pathname) => {
 		expect(isEmbeddedRoute(pathname)).toBe(false);
 	});
 

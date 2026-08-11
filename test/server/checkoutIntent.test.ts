@@ -56,4 +56,10 @@ describe("checkout intent", () => {
 		expect(decodeCheckoutIntent(`${encoded}x`)).toBeNull();
 		expect(() => encodeCheckoutIntent({ products: [] as never[], source: "pricing_page", entrypoint: "direct_cta" })).toThrow("Invalid checkout intent");
 	});
+
+	it("reports a missing signing secret explicitly", async () => {
+		const { encodeCheckoutIntent } = await import("@/server/checkoutIntent");
+		delete process.env.JWT_SECRET;
+		expect(() => encodeCheckoutIntent({ products: [{ product: BillingProduct.Pro, billingCycle: "monthly" }], source: "pricing_page", entrypoint: "direct_cta" })).toThrow("JWT_SECRET is not configured");
+	});
 });

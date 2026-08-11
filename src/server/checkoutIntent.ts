@@ -46,7 +46,9 @@ function isIntent(value: string | JwtPayload): value is JwtPayload & CheckoutInt
 export function encodeCheckoutIntent(input: Omit<CheckoutIntent, "v" | "nonce"> & { nonce?: string }) {
 	const payload: CheckoutIntent = { ...input, v: 1, nonce: input.nonce ?? crypto.randomUUID() };
 	if (!isIntent(payload as unknown as JwtPayload)) throw new Error("Invalid checkout intent");
-	return jwt.sign(payload, process.env.JWT_SECRET!, { algorithm: "HS256", issuer: CHECKOUT_INTENT_ISSUER, audience: CHECKOUT_INTENT_AUDIENCE });
+	const secret = process.env.JWT_SECRET;
+	if (!secret) throw new Error("JWT_SECRET is not configured");
+	return jwt.sign(payload, secret, { algorithm: "HS256", issuer: CHECKOUT_INTENT_ISSUER, audience: CHECKOUT_INTENT_AUDIENCE });
 }
 
 export function decodeCheckoutIntent(value: string | undefined): CheckoutIntent | null {

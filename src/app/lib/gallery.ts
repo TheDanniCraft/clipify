@@ -141,24 +141,24 @@ export function resolveLiveGalleryClips(gallery: Gallery, clips: TwitchClip[], n
 		end = gallery.liveCustomEnd ?? now;
 	}
 
-	const includes = new Set(gallery.includeCategories.map((value) => value.toLocaleLowerCase()));
-	const excludes = new Set(gallery.excludeCategories.map((value) => value.toLocaleLowerCase()));
-	const allowedCreators = new Set(gallery.creatorAllowlist.map((value) => value.toLocaleLowerCase()));
-	const blockedCreators = new Set(gallery.creatorBlocklist.map((value) => value.toLocaleLowerCase()));
-	const blockedTitles = gallery.titleBlacklist.map((value) => value.toLocaleLowerCase());
+	const includes = new Set(gallery.includeCategories.map((value) => value.toLowerCase()));
+	const excludes = new Set(gallery.excludeCategories.map((value) => value.toLowerCase()));
+	const allowedCreators = new Set(gallery.creatorAllowlist.map((value) => value.toLowerCase()));
+	const blockedCreators = new Set(gallery.creatorBlocklist.map((value) => value.toLowerCase()));
+	const blockedTitles = gallery.titleBlacklist.map((value) => value.toLowerCase());
 
 	const filtered = clips.filter((clip) => {
 		const created = Date.parse(clip.created_at);
 		if (!Number.isFinite(created) || (start && created < start.getTime()) || created > end.getTime()) return false;
 		if (clip.view_count < gallery.minimumViews || clip.duration < gallery.minimumDuration) return false;
 		if (gallery.maximumDuration > 0 && clip.duration > gallery.maximumDuration) return false;
-		const game = clip.game_id.toLocaleLowerCase();
+		const game = clip.game_id.toLowerCase();
 		if (includes.size > 0 && !includes.has(game)) return false;
 		if (excludes.has(game)) return false;
-		const creator = clip.creator_name.toLocaleLowerCase();
+		const creator = clip.creator_name.toLowerCase();
 		if (allowedCreators.size > 0 && !allowedCreators.has(creator)) return false;
 		if (blockedCreators.has(creator)) return false;
-		const title = clip.title.toLocaleLowerCase();
+		const title = clip.title.toLowerCase();
 		return !blockedTitles.some((term) => title.includes(term));
 	});
 

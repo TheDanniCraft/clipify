@@ -91,6 +91,19 @@ describe("gallery domain rules", () => {
 		expect(second).toEqual(first);
 	});
 
+	it("uses locale-independent casing for live filters", () => {
+		const localeLowerCase = jest.spyOn(String.prototype, "toLocaleLowerCase").mockImplementation(function (this: string) {
+			return String(this).replaceAll("I", "ı").toLowerCase();
+		});
+		const configured = gallery({ liveTimeWindow: "all", includeCategories: ["I"], creatorAllowlist: ["Iris"], titleBlacklist: ["I"] });
+		const matching = clip("matching", "2026-08-03T10:00:00Z", 50, { game_id: "i", creator_name: "IRIS", title: "Allowed" });
+		const blocked = clip("blocked", "2026-08-03T09:00:00Z", 50, { game_id: "i", creator_name: "IRIS", title: "Contains I" });
+
+		expect(resolveLiveGalleryClips(configured, [matching, blocked], new Date("2026-08-04T00:00:00Z")).map((item) => item.id)).toEqual(["matching"]);
+		expect(localeLowerCase).not.toHaveBeenCalled();
+		localeLowerCase.mockRestore();
+	});
+
 	it("maps custom date ranges to a Free preset and preserves the oldest gallery publication", () => {
 		expect(closestFreeTimeWindow(new Date("2026-07-29T00:00:00Z"), new Date("2026-08-03T00:00:00Z"), new Date("2026-08-03T00:00:00Z"))).toBe("7d");
 		expect(downgradeGalleryPatch(gallery({ liveTimeWindow: "custom", liveCustomStart: new Date("2026-07-29T00:00:00Z"), liveCustomEnd: new Date("2026-08-03T00:00:00Z") }), true).published).toBe(true);
