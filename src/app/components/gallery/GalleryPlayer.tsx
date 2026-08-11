@@ -106,8 +106,8 @@ export default function GalleryPlayer({ gallery, clips, initialIndex, initialPla
 	useEffect(() => {
 		if (!api) return;
 		const onKeyDown = (event: KeyboardEvent) => {
-			const target = event.target as HTMLElement | null;
-			if (target?.matches("input, textarea, select, [contenteditable=true]")) return;
+			const target = event.target;
+			if (target instanceof Element && target.matches("input, textarea, select, [contenteditable=true]")) return;
 			if (event.key === "ArrowLeft") {
 				event.preventDefault();
 				api.scrollPrev();
