@@ -3,15 +3,15 @@ diff --git a/dist/server/lib/router-utils/proxy-request.js b/dist/server/lib/rou
 +++ b/dist/server/lib/router-utils/proxy-request.js
 @@ -1,4 +1,5 @@
  "use strict";
-+const { ProxyServer } = require('next/dist/compiled/httpxy');
++require('next/dist/compiled/httpxy');
  Object.defineProperty(exports, "__esModule", {
      value: true
  });
-@@ -27,12 +28,12 @@ async function proxyRequest(req, res, parsedUrl, upgradeHead, reqBody, proxyTime
+@@ -27,12 +28,13 @@ async function proxyRequest(req, res, parsedUrl, upgradeHead, reqBody, proxyTime
      // We just make sure this is a valid URL since httpxy would only parse it
      // lazily on the `web()`/`ws()` call.
      const target = new URL(_url.default.format(parsedUrl));
--    const { ProxyServer } = require('next/dist/compiled/httpxy');
+     const { ProxyServer } = require('next/dist/compiled/httpxy');
      const proxy = new ProxyServer({
          target,
          changeOrigin: true,
@@ -21,7 +21,7 @@ diff --git a/dist/server/lib/router-utils/proxy-request.js b/dist/server/lib/rou
          // we limit proxy requests to 30s by default, in development
          // we don't time out WebSocket requests to allow proxying
          proxyTimeout: proxyTimeout === null ? undefined : proxyTimeout || 30000,
-@@ -48,6 +49,8 @@ async function proxyRequest(req, res, parsedUrl, upgradeHead, reqBody, proxyTime
+@@ -48,6 +50,8 @@ async function proxyRequest(req, res, parsedUrl, upgradeHead, reqBody, proxyTime
      // object will detect the disconnect, and we can abort the proxy's
      // connection.
      proxy.on('proxyReq', (proxyReq)=>{
