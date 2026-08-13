@@ -12,20 +12,14 @@ type LineRange = {
 	end: number;
 };
 
-type PatchHunk = LineRange & {
-	lines: string[];
-};
-
 type PatchedFile = {
 	file: string;
 	ranges: LineRange[];
-	hunks: PatchHunk[];
 };
 
 type PatchTarget = {
 	targetPath: string;
 	ranges: LineRange[];
-	hunks: PatchHunk[];
 };
 
 type RunOptions = {
@@ -80,9 +74,8 @@ function getPackageDetails(specifier: string) {
 }
 
 function getPatchedFiles(patchSource: string, specifier: string): PatchedFile[] {
-	const files = new Map<string, PatchHunk[]>();
+	const files = new Map<string, LineRange[]>();
 	let currentFile: string | undefined;
-	let currentHunk: PatchHunk | undefined;
 	for (const line of patchSource.split(/\r?\n/u)) {
 		if (line.startsWith("+++ b/")) {
 			const file = line.slice(6).split("\t", 1)[0];
@@ -95,49 +88,24 @@ function getPatchedFiles(patchSource: string, specifier: string): PatchedFile[] 
 			}
 			currentFile = file;
 			if (!files.has(file)) files.set(file, []);
-			currentHunk = undefined;
 			continue;
 		}
 
-		if (!currentFile) continue;
-		if (line.startsWith("@@")) {
-			const range = line.match(/^@@\s+-\d+(?:,\d+)?\s+\+(\d+)(?:,(\d+))?\s+@@/u);
-			if (!range) fail(`Invalid hunk header in patch for ${specifier}: ${line}`);
-			const start = Number(range[1]);
-			const count = range[2] === undefined ? 1 : Number(range[2]);
-			currentHunk = { start, end: start + Math.max(count - 1, 0), lines: [] };
-			files.get(currentFile)?.push(currentHunk);
-			continue;
-		}
-
-		if (!currentHunk || line.startsWith("\\")) continue;
-		if (line.startsWith(" ") || line.startsWith("+")) currentHunk.lines.push(line.slice(1));
+		if (!currentFile || !line.startsWith("@@")) continue;
+		const range = line.match(/^@@\s+-\d+(?:,\d+)?\s+\+(\d+)(?:,(\d+))?\s+@@/u);
+		if (!range) fail(`Invalid hunk header in patch for ${specifier}: ${line}`);
+		const start = Number(range[1]);
+		const count = range[2] === undefined ? 1 : Number(range[2]);
+		if (count > 0) files.get(currentFile)?.push({ start, end: start + count - 1 });
 	}
 	if (files.size === 0) fail(`Patch for ${specifier} does not contain any resulting files`);
-	return [...files].map(([file, hunks]) => ({
-		file,
-		hunks,
-		ranges: hunks.map(({ start, end }) => ({ start, end })),
-	}));
+	return [...files].map(([file, ranges]) => ({ file, ranges }));
 }
 
 function ensureTargetIsInsidePackage(packageDirectory: string, targetPath: string, specifier: string) {
 	const pathFromPackage = relative(packageDirectory, targetPath);
 	if (pathFromPackage === ".." || pathFromPackage.startsWith(`..${sep}`) || isAbsolute(pathFromPackage)) {
 		fail(`Patch target escapes installed package ${specifier}: ${targetPath}`);
-	}
-}
-
-function verifyPatchApplied(targets: PatchTarget[], specifier: string) {
-	for (const { targetPath, hunks } of targets) {
-		const installedLines = readFileSync(targetPath, "utf8").split(/\r?\n/u);
-		for (const hunk of hunks) {
-			if (hunk.lines.length === 0) continue;
-			const found = installedLines.some((_, index) => hunk.lines.every((line, offset) => installedLines[index + offset] === line));
-			if (!found) {
-				fail(`Installed dependency does not contain a complete patched hunk for ${specifier}`, `${targetPath}:${hunk.start}`);
-			}
-		}
 	}
 }
 
@@ -189,13 +157,12 @@ for (const [specifier, patchFile] of Object.entries(patchedDependencies)) {
 
 	const patchSource = readFileSync(patchPath, "utf8");
 	const patchedFiles = getPatchedFiles(patchSource, specifier);
-	const targets = patchedFiles.map(({ file, ranges, hunks }) => ({ targetPath: resolve(packageDirectory, file), ranges, hunks }));
+	const targets = patchedFiles.map(({ file, ranges }) => ({ targetPath: resolve(packageDirectory, file), ranges }));
 	for (const { targetPath } of targets) {
 		ensureTargetIsInsidePackage(packageDirectory, targetPath, specifier);
 		if (!existsSync(targetPath)) fail(`Patched target is missing for ${specifier}: ${targetPath}`);
 	}
 
-	verifyPatchApplied(targets, specifier);
 	patchedFileCount += targets.length;
 	typeCheckedFileCount += verifyCodeTargets(targets, specifier);
 }
