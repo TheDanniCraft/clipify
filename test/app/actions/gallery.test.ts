@@ -6,6 +6,7 @@ const getCachedClipsByOwner = jest.fn();
 const getTwitchClipPlaybackUrl = jest.fn();
 const resolveUserEntitlements = jest.fn();
 const getFeatureAccess = jest.fn();
+const canResolvePublicClipPlayback = jest.fn();
 const revalidatePath = jest.fn();
 
 const selectResults: unknown[] = [];
@@ -50,6 +51,7 @@ jest.mock("@actions/twitch", () => ({ getCachedClipsByOwner: (...args: unknown[]
 jest.mock("@/db/client", () => ({ db }));
 jest.mock("@lib/entitlements", () => ({ resolveUserEntitlements: (...args: unknown[]) => resolveUserEntitlements(...args) }));
 jest.mock("@lib/featureAccess", () => ({ getFeatureAccess: (...args: unknown[]) => getFeatureAccess(...args) }));
+jest.mock("@actions/rateLimit", () => ({ canResolvePublicClipPlayback: (...args: unknown[]) => canResolvePublicClipPlayback(...args) }));
 jest.mock("next/cache", () => ({ revalidatePath: (...args: unknown[]) => revalidatePath(...args) }));
 
 const gallery = (patch: Partial<Gallery> = {}): Gallery => ({
@@ -112,13 +114,14 @@ const loadActions = async () => import("@actions/gallery");
 describe("gallery actions", () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
-		for (const mock of [validateAuth, getPlaylistClipsForOwnerServer, getCachedClipsByOwner, getTwitchClipPlaybackUrl, resolveUserEntitlements, getFeatureAccess, revalidatePath]) mock.mockReset();
+		for (const mock of [validateAuth, getPlaylistClipsForOwnerServer, getCachedClipsByOwner, getTwitchClipPlaybackUrl, resolveUserEntitlements, getFeatureAccess, canResolvePublicClipPlayback, revalidatePath]) mock.mockReset();
 		selectResults.length = 0;
 		insertedRows.length = 0;
 		updatedRows.length = 0;
 		validateAuth.mockResolvedValue({ id: "owner", plan: "free" });
 		resolveUserEntitlements.mockResolvedValue({ effectivePlan: "free" });
 		getFeatureAccess.mockReturnValue({ allowed: false });
+		canResolvePublicClipPlayback.mockResolvedValue(true);
 		getCachedClipsByOwner.mockResolvedValue([clip("a"), clip("b")]);
 		getPlaylistClipsForOwnerServer.mockResolvedValue([clip("playlist")]);
 		getTwitchClipPlaybackUrl.mockResolvedValue("https://video.example/clip.mp4");
@@ -319,5 +322,19 @@ describe("gallery actions", () => {
 		resolveUserEntitlements.mockResolvedValueOnce({ effectivePlan: "pro" });
 		getTwitchClipPlaybackUrl.mockRejectedValueOnce(new Error("failed"));
 		await expect(getPublicGalleryPlayer("gallery-1", "a")).resolves.toMatchObject({ playbackUrl: null });
+	});
+
+	it("authorizes uncached public playback against the gallery owner's budget", async () => {
+		const { getPublicGalleryPlayer } = await loadActions();
+		const owner = { id: "owner", username: "Alice", avatar: null, disabled: false, plan: "pro" };
+		queueSelect([{ gallery: gallery(), owner }]);
+		resolveUserEntitlements.mockResolvedValueOnce({ effectivePlan: "pro" });
+		getTwitchClipPlaybackUrl.mockImplementationOnce(async (_clipId: string, _broadcasterId: string, options: { authorizeFetch: () => Promise<boolean> }) => {
+			await options.authorizeFetch();
+			return "https://video.example/clip.mp4";
+		});
+
+		await expect(getPublicGalleryPlayer("gallery-1", "a")).resolves.toMatchObject({ playbackUrl: "https://video.example/clip.mp4" });
+		expect(canResolvePublicClipPlayback).toHaveBeenCalledWith("owner");
 	});
 });
