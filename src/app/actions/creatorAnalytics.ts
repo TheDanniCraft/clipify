@@ -7,6 +7,7 @@ import { resolveUserEntitlements } from "@lib/entitlements";
 import { getFeatureAccess } from "@lib/featureAccess";
 import { createCreatorAnalyticsCsv, fillEmptyCreatorAnalyticsRange, parsePlausibleCreatorAnalytics, recordCreatorAnalyticsMetric, type CreatorAnalyticsData, type CreatorAnalyticsExportDataset, type PlausibleCreatorPayload } from "@lib/plausibleCreatorAnalytics";
 import { PLAUSIBLE_BASE_URL, PLAUSIBLE_SITE_ID } from "@lib/plausibleConfig";
+import { PLAUSIBLE_EVENTS } from "@lib/plausibleEvents";
 import { and, eq, inArray } from "drizzle-orm";
 
 const CACHE_TTL_MS = 10 * 60 * 1000;
@@ -44,8 +45,8 @@ async function ownerForActor(actorId: string, ownerId: string) {
 async function loadCreatorAnalytics(owner: typeof usersTable.$inferSelect, range?: CreatorAnalyticsRange | null): Promise<(CreatorAnalyticsData & { stale: boolean; fetchedAt: string }) | null> {
 	const validRange = normalizedRange(range);
 	const dateRange: "30d" | [string, string] = validRange ? [validRange.start, validRange.end] : "30d";
-	const cacheKey = validRange ? `creator-page:analytics:v5:${validRange.start}:${validRange.end}` : "creator-page:analytics:v5:30d";
-	const legacyCacheKeys = validRange ? [`creator-page:analytics:v4:${validRange.start}:${validRange.end}`, `creator-page:analytics:v3:${validRange.start}:${validRange.end}`] : ["creator-page:analytics:v4:30d", "creator-page:analytics:v3:30d", "creator-page:analytics:v2:30d"];
+	const cacheKey = validRange ? `creator-page:analytics:v6:${validRange.start}:${validRange.end}` : "creator-page:analytics:v6:30d";
+	const legacyCacheKeys = validRange ? [`creator-page:analytics:v5:${validRange.start}:${validRange.end}`, `creator-page:analytics:v4:${validRange.start}:${validRange.end}`, `creator-page:analytics:v3:${validRange.start}:${validRange.end}`] : ["creator-page:analytics:v5:30d", "creator-page:analytics:v4:30d", "creator-page:analytics:v3:30d", "creator-page:analytics:v2:30d"];
 	const readableCacheKeys = [cacheKey, ...legacyCacheKeys];
 	const cacheRows = await db
 		.select()
@@ -83,7 +84,7 @@ async function loadCreatorAnalytics(owner: typeof usersTable.$inferSelect, range
 			}
 			return response.json() as Promise<unknown>;
 		};
-		const playbackFilters = [...baseQuery.filters, ["is", "event:goal", ["Playback Start"]]];
+		const playbackFilters = [...baseQuery.filters, ["is", "event:goal", [PLAUSIBLE_EVENTS.clipPlayed]]];
 		const [overview, timeseries, acquisition, locations, technology, playbackOverview, playbackTimeseries] = await Promise.all([
 			query("overview", { metrics: ["visitors", "pageviews", "visits", "bounce_rate", "time_on_page", "scroll_depth"] }),
 			query("timeseries", { metrics: ["visitors", "pageviews", "visits", "bounce_rate", "time_on_page", "scroll_depth"], dimensions: ["time:day"], include: { time_labels: true } }),

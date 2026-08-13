@@ -6,6 +6,7 @@ import { IconPlayerPauseFilled, IconPlayerPlayFilled, IconRefresh, IconVolume, I
 import type { Gallery, TwitchClip } from "@types";
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { usePlausible } from "next-plausible";
+import { PLAUSIBLE_EVENTS } from "@lib/plausibleEvents";
 
 type CarouselApi = {
 	on: (event: "select", callback: () => void) => void;
@@ -186,7 +187,7 @@ export default function GalleryPlayer({ gallery, clips, initialIndex, initialPla
 												muted={muted}
 												onPlay={() => {
 													setPlaying(true);
-													plausible("Playback Start", { props: { surface: "gallery", galleryId: gallery.id, clipId: item.id } });
+													plausible(PLAUSIBLE_EVENTS.clipPlayed, { props: { surface: "gallery", galleryId: gallery.id, clipId: item.id } });
 												}}
 												onPause={() => setPlaying(false)}
 												onTimeUpdate={(event) => setElapsed(event.currentTarget.currentTime)}

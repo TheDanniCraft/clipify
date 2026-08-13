@@ -9,6 +9,7 @@ import type { TwitchClip } from "@types";
 import Link from "next/link";
 import { usePlausible } from "next-plausible";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { PLAUSIBLE_EVENTS } from "@lib/plausibleEvents";
 
 type Creator = {
 	username: string;
@@ -82,7 +83,7 @@ function ClipDialog({ username, clips, index, onIndexChange, onClose }: { userna
 							onPlay={() => {
 								if (playbackTracked.current) return;
 								playbackTracked.current = true;
-								plausible("Playback Start", { props: { surface: "creator_page", creator: username, clipId: clip.id } });
+								plausible(PLAUSIBLE_EVENTS.clipPlayed, { props: { surface: "creator_page", creator: username, clipId: clip.id } });
 							}}
 						/>
 					) : playbackUrl === undefined ? (
