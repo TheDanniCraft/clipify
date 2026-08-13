@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import jwt, { type JwtPayload } from "jsonwebtoken";
 import * as Sentry from "@sentry/nextjs";
+import { logServerError } from "@lib/serverLogger";
 
 import { exchangeAccesToken } from "@actions/twitch";
 import { setAccessToken, touchUser } from "@actions/database";
@@ -115,6 +116,7 @@ export async function GET(request: NextRequest) {
 		return NextResponse.redirect(returnUrl);
 	} catch (error) {
 		const errorCode = await Sentry.captureException(error);
+		logServerError("OAuth callback failed", error, { route: "/callback" });
 		return authUser(undefined, "serverError", errorCode);
 	}
 }

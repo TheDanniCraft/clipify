@@ -1,6 +1,7 @@
 "use client";
 
 import * as Sentry from "@sentry/nextjs";
+import { reportFrontendError } from "@lib/telemetry";
 import { useEffect } from "react";
 import { Button, Link } from "@heroui/react";
 import { buttonVariants } from "@heroui/styles";
@@ -10,6 +11,7 @@ import NextErrorPage from "@components/nextErrorPage";
 export default function GlobalError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
 	useEffect(() => {
 		Sentry.captureException(error);
+		reportFrontendError(error, "global_error_boundary");
 	}, [error]);
 
 	return (

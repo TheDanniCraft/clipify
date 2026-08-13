@@ -6,6 +6,7 @@ import { getBaseUrl } from "@actions/utils";
 import PlausibleClient from "./PlausibleClient";
 import Script from "next/script";
 import AdOptScript from "./components/AdOptScript";
+import TelemetryProvider from "./components/TelemetryProvider";
 
 const baseUrl = await getBaseUrl();
 const manifestUrl = new URL("manifest.webmanifest", baseUrl);
@@ -50,6 +51,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
 				<link rel='preconnect' href='https://affiliate.clipify.us' crossOrigin='anonymous' />
 			</head>
 			<body className='min-h-screen bg-background text-foreground' suppressHydrationWarning>
+				<TelemetryProvider />
 				<AdOptScript />
 				<Script id='affiliate-program-tracker' src='https://affiliate.clipify.us/tracking/program-1.js' strategy='afterInteractive' />
 				<PlausibleClient>
