@@ -4,6 +4,7 @@
 	"type": "module",
 	"scripts": {
 		"build": "node build.mjs",
+		"patches:validate": "bun ../../scripts/validate-patched-dependencies.ts",
 		"typecheck": "tsc --noEmit",
 		"test": "jest --runInBand --forceExit"
 	},

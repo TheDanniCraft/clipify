@@ -11,6 +11,7 @@
 		"app:start": "next start",
 		"app:lint": "eslint .",
 		"app:prettier": "prettier --write .",
+		"patches:validate": "bun scripts/validate-patched-dependencies.ts",
 		"git:staged": "lint-staged",
 		"app:typecheck": "tsc --noEmit",
 		"test": "jest --runInBand",

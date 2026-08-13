@@ -10,4 +10,12 @@ const result = spawnSync(process.execPath, [require.resolve("next/dist/bin/next"
 });
 
 if (result.error) throw result.error;
-process.exit(result.status ?? 1);
+if (result.status !== 0) process.exit(result.status ?? 1);
+
+const verification = spawnSync("bun", [require.resolve("./validate-patched-dependencies.ts"), "--node-modules", ".next/standalone/node_modules"], {
+	stdio: "inherit",
+	env: { ...process.env, NODE_ENV: "production" },
+});
+
+if (verification.error) throw verification.error;
+process.exit(verification.status ?? 1);
