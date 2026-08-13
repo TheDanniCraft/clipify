@@ -65,6 +65,17 @@ describe("plausibleCreatorAnalytics", () => {
 		]);
 	});
 
+	it("labels missing location dimensions as unknown", () => {
+		const analytics = parsePlausibleCreatorAnalytics({
+			overview: { results: [{ metrics: [1, 1, 1, 0, 0, 0] }] },
+			locations: { results: [{ dimensions: ["", "", ""], metrics: [1] }] },
+		});
+
+		expect(analytics.breakdowns.countries[0]?.name).toBe("Unknown");
+		expect(analytics.breakdowns.regions[0]?.name).toBe("Unknown");
+		expect(analytics.breakdowns.cities[0]?.name).toBe("Unknown");
+	});
+
 	it("derives clip plays, plays per visit, and playback rate from playback events", () => {
 		const analytics = parsePlausibleCreatorAnalytics({
 			overview: { results: [{ metrics: [8, 18, 10, 30, 60, 70] }] },

@@ -30,7 +30,7 @@ export default async function CreatorPage({ params }: { params: Promise<{ twitch
 	return (
 		<>
 			<BasicNavbar />
-			<CreatorPageClient creator={data.creator} initialItems={data.items} initialCursor={data.nextCursor} today={today} />
+			<CreatorPageClient creator={data.creator} initialItems={data.items} initialCursor={data.nextCursor} initialTotal={data.total} today={today} />
 			<Footer />
 		</>
 	);

@@ -109,10 +109,10 @@ function dimension(row: PlausibleRow, index: number) {
 	return typeof value === "string" ? value.trim() : "";
 }
 
-function breakdown(payload: unknown, dimensionIndex: number, totalVisits: number, label?: (row: PlausibleRow) => string) {
+function breakdown(payload: unknown, dimensionIndex: number, totalVisits: number, label?: (row: PlausibleRow) => string, emptyLabel = "Direct / None") {
 	const totals = new Map<string, number>();
 	for (const row of rows(payload)) {
-		const name = (label?.(row) ?? dimension(row, dimensionIndex)) || "Direct / None";
+		const name = (label?.(row) ?? dimension(row, dimensionIndex)) || emptyLabel;
 		totals.set(name, (totals.get(name) ?? 0) + number(row.metrics?.[0]));
 	}
 	return [...totals.entries()].map(([name, visits]) => ({ name, visits, percentage: totalVisits > 0 ? Math.min(100, (visits / totalVisits) * 100) : 0 })).sort((a, b) => b.visits - a.visits);
@@ -168,9 +168,9 @@ export function parsePlausibleCreatorAnalytics(payload: PlausibleCreatorPayload)
 			utmSources: breakdown(payload.acquisition, 2, metrics.visits),
 			mediums: breakdown(payload.acquisition, 3, metrics.visits),
 			campaigns: breakdown(payload.acquisition, 4, metrics.visits),
-			countries: breakdown(payload.locations, 0, metrics.visits),
-			regions: breakdown(payload.locations, 1, metrics.visits, (row) => joinedLocation(row, [1, 0])),
-			cities: breakdown(payload.locations, 2, metrics.visits, (row) => joinedLocation(row, [2, 1, 0])),
+			countries: breakdown(payload.locations, 0, metrics.visits, undefined, "Unknown"),
+			regions: breakdown(payload.locations, 1, metrics.visits, (row) => joinedLocation(row, [1, 0]), "Unknown"),
+			cities: breakdown(payload.locations, 2, metrics.visits, (row) => joinedLocation(row, [2, 1, 0]), "Unknown"),
 			devices: breakdown(payload.technology, 0, metrics.visits),
 			browsers: breakdown(payload.technology, 1, metrics.visits),
 			operatingSystems: breakdown(payload.technology, 2, metrics.visits),

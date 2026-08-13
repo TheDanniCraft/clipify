@@ -256,7 +256,7 @@ async function getTwitchClipPlaybackUrlFromGraphQL(clipId: string): Promise<stri
 	}
 }
 
-export async function getTwitchClipPlaybackUrl(clipId: string, broadcasterId: string): Promise<string | undefined> {
+async function resolveTwitchClipPlaybackUrl(clipId: string, broadcasterId: string): Promise<string | undefined> {
 	const timestamp = new Date().toISOString();
 	const tokenResult = await getAccessTokenResultInternal(broadcasterId);
 	const token = tokenResult.token;
@@ -346,6 +346,49 @@ export async function getTwitchClipPlaybackUrl(clipId: string, broadcasterId: st
 	}
 
 	return getTwitchClipPlaybackUrlFromGraphQL(clipId);
+}
+
+const CLIP_PLAYBACK_URL_TTL_MS = 60_000;
+const MAX_CLIP_PLAYBACK_URLS = 1_000;
+const clipPlaybackUrlCache = new Map<string, { url: string; expiresAt: number }>();
+const clipPlaybackUrlRequests = new Map<string, Promise<string | undefined>>();
+
+type ClipPlaybackUrlOptions = {
+	authorizeFetch?: () => boolean | Promise<boolean>;
+};
+
+function cacheClipPlaybackUrl(key: string, url: string) {
+	const now = Date.now();
+	for (const [cachedKey, entry] of clipPlaybackUrlCache) {
+		if (entry.expiresAt <= now) clipPlaybackUrlCache.delete(cachedKey);
+	}
+	while (clipPlaybackUrlCache.size >= MAX_CLIP_PLAYBACK_URLS) {
+		const oldestKey = clipPlaybackUrlCache.keys().next().value as string | undefined;
+		if (!oldestKey) break;
+		clipPlaybackUrlCache.delete(oldestKey);
+	}
+	clipPlaybackUrlCache.set(key, { url, expiresAt: now + CLIP_PLAYBACK_URL_TTL_MS });
+}
+
+export async function getTwitchClipPlaybackUrl(clipId: string, broadcasterId: string, options: ClipPlaybackUrlOptions = {}): Promise<string | undefined> {
+	const key = `${broadcasterId}:${clipId}`;
+	const cached = clipPlaybackUrlCache.get(key);
+	if (cached && cached.expiresAt > Date.now()) return cached.url;
+	if (cached) clipPlaybackUrlCache.delete(key);
+
+	const pending = clipPlaybackUrlRequests.get(key);
+	if (pending) return pending;
+	if (options.authorizeFetch && !(await options.authorizeFetch())) return undefined;
+
+	const request = resolveTwitchClipPlaybackUrl(clipId, broadcasterId);
+	clipPlaybackUrlRequests.set(key, request);
+	try {
+		const url = await request;
+		if (url) cacheClipPlaybackUrl(key, url);
+		return url;
+	} finally {
+		clipPlaybackUrlRequests.delete(key);
+	}
 }
 
 async function getClipSyncState(ownerId: string): Promise<ClipSyncState> {

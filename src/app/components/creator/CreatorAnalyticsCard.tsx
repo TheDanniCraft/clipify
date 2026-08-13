@@ -14,7 +14,6 @@ import { useEffect, useMemo, useState } from "react";
 
 type Data = Awaited<ReturnType<typeof getOwnCreatorAnalytics>>;
 type MetricKey = "visitors" | "pageviews" | "visits" | "bounceRate" | "timeOnPage" | "scrollDepth" | "clipPlays" | "playsPerVisit" | "playRate";
-type IconStatus = "danger" | "success" | "warning";
 
 const compactNumber = new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 });
 const dateFormatter = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
@@ -43,7 +42,7 @@ function metricTrend(points: CreatorAnalyticsTimeseriesPoint[], key: MetricKey, 
 	return { label: `${change >= 0 ? "+" : ""}${change.toFixed(1)}%`, trend: change > 0 ? ("up" as const) : change < 0 ? ("down" as const) : ("neutral" as const) };
 }
 
-function MetricCard({ title, value, valueKey, points, icon, color, iconStatus, iconClassName, suffix, average }: { title: string; value: number; valueKey: MetricKey; points: CreatorAnalyticsTimeseriesPoint[]; icon: React.ReactNode; color: string; iconStatus?: IconStatus; iconClassName?: string; suffix?: string; average?: boolean }) {
+function MetricCard({ title, value, valueKey, points, icon, color, suffix, average }: { title: string; value: number; valueKey: MetricKey; points: CreatorAnalyticsTimeseriesPoint[]; icon: React.ReactNode; color: string; suffix?: string; average?: boolean }) {
 	const trend = metricTrend(points, valueKey, average);
 	const chartData = points.length
 		? points.map((point) => ({ label: point.date, value: point[valueKey] }))
@@ -54,9 +53,7 @@ function MetricCard({ title, value, valueKey, points, icon, color, iconStatus, i
 	return (
 		<KPI>
 			<KPI.Header>
-				<KPI.Icon status={iconStatus} className={iconClassName}>
-					{icon}
-				</KPI.Icon>
+				<KPI.Icon style={{ color, background: `color-mix(in oklch, ${color} 12%, transparent)` }}>{icon}</KPI.Icon>
 				<KPI.Title>{title}</KPI.Title>
 			</KPI.Header>
 			<KPI.Content>
@@ -371,15 +368,15 @@ export default function CreatorAnalyticsCard({ allowed, onUpgrade }: { allowed: 
 				</div>
 			</div>
 			<div className={`grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3 ${loading ? "opacity-60" : ""}`} aria-busy={loading}>
-				<MetricCard title='Unique visitors' value={data.metrics.visitors} valueKey='visitors' points={data.timeseries} icon={<IconUsers size={18} />} color='var(--color-success)' iconStatus='success' />
-				<MetricCard title='Visits' value={data.metrics.visits} valueKey='visits' points={data.timeseries} icon={<IconChartBar size={18} />} color='var(--chart-2)' iconClassName='text-[var(--chart-2)] [background:color-mix(in_oklch,var(--chart-2)_12%,transparent)]' />
-				<MetricCard title='Pageviews' value={data.metrics.pageviews} valueKey='pageviews' points={data.timeseries} icon={<IconEye size={18} />} color='var(--color-accent)' iconClassName='bg-accent/10 text-accent' />
-				<MetricCard title='Bounce rate' value={data.metrics.bounceRate} valueKey='bounceRate' points={data.timeseries} icon={<IconActivity size={18} />} color='var(--color-warning)' iconStatus='warning' suffix='%' average />
-				<MetricCard title='Time on page' value={Math.round(data.metrics.timeOnPage)} valueKey='timeOnPage' points={data.timeseries} icon={<IconClock size={18} />} color='var(--chart-4)' iconClassName='text-[var(--chart-4)] [background:color-mix(in_oklch,var(--chart-4)_12%,transparent)]' suffix='s' average />
-				<MetricCard title='Scroll depth' value={data.metrics.scrollDepth} valueKey='scrollDepth' points={data.timeseries} icon={<IconChartDots size={18} />} color='var(--chart-3)' iconClassName='text-[var(--chart-3)] [background:color-mix(in_oklch,var(--chart-3)_12%,transparent)]' suffix='%' average />
-				<MetricCard title='Clip plays' value={data.metrics.clipPlays} valueKey='clipPlays' points={data.timeseries} icon={<IconPlayerPlay size={18} />} color='var(--chart-5)' iconClassName='text-[var(--chart-5)] [background:color-mix(in_oklch,var(--chart-5)_12%,transparent)]' />
-				<MetricCard title='Clip plays per visit' value={data.metrics.playsPerVisit} valueKey='playsPerVisit' points={data.timeseries} icon={<IconRepeat size={18} />} color='var(--chart-2)' iconClassName='text-[var(--chart-2)] [background:color-mix(in_oklch,var(--chart-2)_12%,transparent)]' average />
-				<MetricCard title='Playback rate' value={data.metrics.playRate} valueKey='playRate' points={data.timeseries} icon={<IconPercentage size={18} />} color='var(--color-success)' iconStatus='success' suffix='%' average />
+				<MetricCard title='Unique visitors' value={data.metrics.visitors} valueKey='visitors' points={data.timeseries} icon={<IconUsers size={18} />} color='var(--chart-1)' />
+				<MetricCard title='Visits' value={data.metrics.visits} valueKey='visits' points={data.timeseries} icon={<IconChartBar size={18} />} color='var(--chart-1)' />
+				<MetricCard title='Pageviews' value={data.metrics.pageviews} valueKey='pageviews' points={data.timeseries} icon={<IconEye size={18} />} color='var(--chart-1)' />
+				<MetricCard title='Bounce rate' value={data.metrics.bounceRate} valueKey='bounceRate' points={data.timeseries} icon={<IconActivity size={18} />} color='var(--chart-2)' suffix='%' average />
+				<MetricCard title='Time on page' value={Math.round(data.metrics.timeOnPage)} valueKey='timeOnPage' points={data.timeseries} icon={<IconClock size={18} />} color='var(--chart-3)' suffix='s' average />
+				<MetricCard title='Scroll depth' value={data.metrics.scrollDepth} valueKey='scrollDepth' points={data.timeseries} icon={<IconChartDots size={18} />} color='var(--chart-4)' suffix='%' average />
+				<MetricCard title='Clip plays' value={data.metrics.clipPlays} valueKey='clipPlays' points={data.timeseries} icon={<IconPlayerPlay size={18} />} color='var(--chart-5)' />
+				<MetricCard title='Clip plays per visit' value={data.metrics.playsPerVisit} valueKey='playsPerVisit' points={data.timeseries} icon={<IconRepeat size={18} />} color='var(--chart-5)' average />
+				<MetricCard title='Playback rate' value={data.metrics.playRate} valueKey='playRate' points={data.timeseries} icon={<IconPercentage size={18} />} color='var(--chart-5)' suffix='%' average />
 			</div>
 			<Tabs defaultSelectedKey='acquisition' variant='secondary' className='w-full'>
 				<Tabs.ListContainer className='w-full'>

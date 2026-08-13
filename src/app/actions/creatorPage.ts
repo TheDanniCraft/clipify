@@ -6,6 +6,7 @@ import { getCachedClipsByOwner, getCreatorTwitchDetails, getTwitchClipPlaybackUr
 import { queryCreatorClips, resolveCreatorPageVisibility, type CreatorClipQuery } from "@lib/creatorPage";
 import { resolveUserEntitlements } from "@lib/entitlements";
 import { getFeatureAccess } from "@lib/featureAccess";
+import { canResolvePublicClipPlayback } from "@actions/rateLimit";
 import { eq, sql } from "drizzle-orm";
 
 async function getCreator(username: string) {
@@ -61,7 +62,7 @@ export async function getCreatorClipPlayback(username: string, clipId: string) {
 	if (!clip) return null;
 	let playbackUrl: string | null = null;
 	try {
-		playbackUrl = (await getTwitchClipPlaybackUrl(clip.id, clip.broadcaster_id)) ?? null;
+		playbackUrl = (await getTwitchClipPlaybackUrl(clip.id, clip.broadcaster_id, { authorizeFetch: () => canResolvePublicClipPlayback(creator.user.id) })) ?? null;
 	} catch {
 		playbackUrl = null;
 	}

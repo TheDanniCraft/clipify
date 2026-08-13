@@ -10,6 +10,7 @@ import Link from "next/link";
 import { usePlausible } from "next-plausible";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { PLAUSIBLE_EVENTS } from "@lib/plausibleEvents";
+import { useQualifiedPlayback } from "@/app/hooks/useQualifiedPlayback";
 
 type Creator = {
 	username: string;
@@ -25,12 +26,14 @@ type Creator = {
 const numberFormatter = new Intl.NumberFormat("en-US");
 const clipDateFormatter = new Intl.DateTimeFormat("en-US", { year: "numeric", month: "short", day: "numeric", timeZone: "UTC" });
 
-function ClipDialog({ username, clips, index, onIndexChange, onClose }: { username: string; clips: TwitchClip[]; index: number; onIndexChange: (index: number) => void; onClose: () => void }) {
+function ClipDialog({ username, clips, index, total, hasMore, loadingMore, onIndexChange, onNext, onClose }: { username: string; clips: TwitchClip[]; index: number; total: number; hasMore: boolean; loadingMore: boolean; onIndexChange: (index: number) => void; onNext: () => void; onClose: () => void }) {
 	const dialogRef = useRef<HTMLDialogElement>(null);
-	const playbackTracked = useRef(false);
 	const [playbackUrl, setPlaybackUrl] = useState<string | null | undefined>();
 	const clip = clips[index];
 	const plausible = usePlausible();
+	const qualifiedPlayback = useQualifiedPlayback(clip.id, () => {
+		plausible(PLAUSIBLE_EVENTS.clipPlayed, { props: { surface: "creator_page", creator: username, clipId: clip.id } });
+	});
 	useEffect(() => {
 		const dialog = dialogRef.current;
 		if (dialog && !dialog.open) dialog.showModal();
@@ -53,18 +56,20 @@ function ClipDialog({ username, clips, index, onIndexChange, onClose }: { userna
 			const target = event.target as HTMLElement | null;
 			if (target?.matches("input,textarea,select,[contenteditable=true]")) return;
 			if (event.key === "ArrowLeft" && index > 0) onIndexChange(index - 1);
-			if (event.key === "ArrowRight" && index < clips.length - 1) onIndexChange(index + 1);
+			if (event.key === "ArrowRight" && (index < clips.length - 1 || hasMore)) onNext();
 		};
 		window.addEventListener("keydown", keydown);
 		return () => window.removeEventListener("keydown", keydown);
-	}, [clips.length, index, onIndexChange]);
+	}, [clips.length, hasMore, index, onIndexChange, onNext]);
 	return (
 		<dialog ref={dialogRef} onClose={onClose} className='m-auto h-dvh w-screen max-w-none bg-transparent p-0 backdrop:bg-black/75 sm:h-auto sm:max-h-[calc(100dvh-48px)] sm:w-[min(960px,calc(100vw-48px))] sm:rounded-2xl'>
 			<section className='flex h-full flex-col overflow-hidden bg-zinc-950 text-white sm:h-auto sm:rounded-2xl'>
 				<header className='flex items-center justify-between gap-3 p-4'>
 					<div className='min-w-0'>
 						<h1 className='truncate font-semibold'>{clip.title}</h1>
-						<p className='text-sm text-zinc-400'>{clip.creator_name}</p>
+						<p className='text-sm text-zinc-400'>
+							{clip.creator_name} · {numberFormatter.format(clip.view_count)} views · {clipDateFormatter.format(new Date(clip.created_at))}
+						</p>
 					</div>
 					<Button isIconOnly variant='tertiary' aria-label='Close clip' onPress={onClose}>
 						<IconX />
@@ -72,20 +77,7 @@ function ClipDialog({ username, clips, index, onIndexChange, onClose }: { userna
 				</header>
 				<div className='relative flex aspect-video w-full shrink-0 items-center justify-center bg-black'>
 					{playbackUrl ? (
-						<video
-							key={clip.id}
-							src={playbackUrl}
-							poster={clip.thumbnail_url}
-							controls
-							autoPlay
-							playsInline
-							className='h-full w-full object-contain'
-							onPlay={() => {
-								if (playbackTracked.current) return;
-								playbackTracked.current = true;
-								plausible(PLAUSIBLE_EVENTS.clipPlayed, { props: { surface: "creator_page", creator: username, clipId: clip.id } });
-							}}
-						/>
+						<video key={clip.id} src={playbackUrl} poster={clip.thumbnail_url} controls autoPlay playsInline className='h-full w-full object-contain' onPlaying={qualifiedPlayback.onPlaying} onPause={qualifiedPlayback.onPause} onWaiting={qualifiedPlayback.onWaiting} onEnded={qualifiedPlayback.onEnded} />
 					) : playbackUrl === undefined ? (
 						<span className='text-zinc-400'>Loading clip…</span>
 					) : (
@@ -101,11 +93,11 @@ function ClipDialog({ username, clips, index, onIndexChange, onClose }: { userna
 					<Button isIconOnly variant='secondary' aria-label='Previous clip' isDisabled={index === 0} onPress={() => onIndexChange(index - 1)}>
 						<IconArrowLeft />
 					</Button>
-					<Button isIconOnly variant='secondary' aria-label='Next clip' isDisabled={index === clips.length - 1} onPress={() => onIndexChange(index + 1)}>
+					<Button isIconOnly variant='secondary' aria-label='Next clip' isDisabled={index === clips.length - 1 && !hasMore} isPending={loadingMore && index === clips.length - 1} onPress={onNext}>
 						<IconArrowRight />
 					</Button>
 					<span className='text-sm text-zinc-400'>
-						{index + 1} / {clips.length}
+						{index + 1} / {total}
 					</span>
 					<div className='flex-1' />
 					<Button variant='tertiary' onPress={() => window.open(clip.url, "_blank", "noopener,noreferrer")}>
@@ -117,20 +109,27 @@ function ClipDialog({ username, clips, index, onIndexChange, onClose }: { userna
 	);
 }
 
-export default function CreatorPageClient({ creator, initialItems, initialCursor, today }: { creator: Creator; initialItems: TwitchClip[]; initialCursor: string | null; today: string }) {
+export default function CreatorPageClient({ creator, initialItems, initialCursor, initialTotal, today }: { creator: Creator; initialItems: TwitchClip[]; initialCursor: string | null; initialTotal: number; today: string }) {
 	const todayDate = new Date(`${today}T00:00:00Z`);
 	const date = (offsetDays: number) => parseDate(new Date(todayDate.getTime() - offsetDays * 86_400_000).toISOString().slice(0, 10));
 	const [clips, setClips] = useState(initialItems);
 	const [cursor, setCursor] = useState(initialCursor);
+	const [total, setTotal] = useState(initialTotal);
 	const [sort, setSort] = useState<"most_viewed" | "newest">("most_viewed");
 	const [range, setRange] = useState<{ start: ReturnType<typeof parseDate>; end: ReturnType<typeof parseDate> } | null>(() => ({ start: date(30), end: date(0) }));
 	const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 	const [loading, setLoading] = useState(false);
 	const sentinel = useRef<HTMLDivElement>(null);
+	const cardRefs = useRef(new Map<string, HTMLButtonElement>());
+	const loadPromise = useRef<Promise<Awaited<ReturnType<typeof getCreatorClipPage>>> | null>(null);
 	const load = useCallback(
 		async (nextCursor: string | null, replace = false, nextSort = sort, nextRange = range) => {
-			setLoading(true);
-			try {
+			if (loadPromise.current) {
+				const currentResult = await loadPromise.current;
+				if (!replace) return currentResult;
+			}
+			const request = (async () => {
+				setLoading(true);
 				const data = await getCreatorClipPage(creator.username, {
 					sort: nextSort,
 					start: nextRange ? new Date(`${nextRange.start.toString()}T00:00:00Z`) : null,
@@ -138,10 +137,17 @@ export default function CreatorPageClient({ creator, initialItems, initialCursor
 					cursor: nextCursor,
 					pageSize: 24,
 				});
-				if (!data) return;
+				if (!data) return null;
 				setClips((current) => (replace ? data.items : [...current, ...data.items.filter((item) => !current.some((entry) => entry.id === item.id))]));
 				setCursor(data.nextCursor);
+				setTotal(data.total);
+				return data;
+			})();
+			loadPromise.current = request;
+			try {
+				return await request;
 			} finally {
+				loadPromise.current = null;
 				setLoading(false);
 			}
 		},
@@ -166,6 +172,29 @@ export default function CreatorPageClient({ creator, initialItems, initialCursor
 		observer.observe(sentinel.current);
 		return () => observer.disconnect();
 	}, [cursor, load, loading]);
+	const selectClip = useCallback((index: number) => {
+		setSelectedIndex(index);
+	}, []);
+	useEffect(() => {
+		if (selectedIndex === null || !clips[selectedIndex]) return;
+		const card = cardRefs.current.get(clips[selectedIndex].id);
+		requestAnimationFrame(() => card?.scrollIntoView({ behavior: "smooth", block: "nearest" }));
+	}, [clips, selectedIndex]);
+	const selectNextClip = useCallback(async () => {
+		if (selectedIndex === null) return;
+		if (selectedIndex < clips.length - 1) {
+			selectClip(selectedIndex + 1);
+			return;
+		}
+		if (!cursor) return;
+		const knownIds = new Set(clips.map((clip) => clip.id));
+		const data = await load(cursor);
+		if (data?.items.some((clip) => !knownIds.has(clip.id))) selectClip(selectedIndex + 1);
+	}, [clips, cursor, load, selectClip, selectedIndex]);
+	useEffect(() => {
+		if (selectedIndex === null || !cursor || selectedIndex < clips.length - 6) return;
+		void load(cursor);
+	}, [clips.length, cursor, load, selectedIndex]);
 	const presets = [
 		{ label: "Last 7 days", value: { start: date(7), end: date(0) } },
 		{ label: "Last 30 days", value: { start: date(30), end: date(0) } },
@@ -230,7 +259,16 @@ export default function CreatorPageClient({ creator, initialItems, initialCursor
 					{clips.length ? (
 						<div className='grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3'>
 							{clips.map((clip, index) => (
-								<button key={clip.id} type='button' className='group overflow-hidden rounded-2xl border border-divider bg-surface text-left transition hover:-translate-y-0.5 hover:shadow-lg' onClick={() => setSelectedIndex(index)}>
+								<button
+									key={clip.id}
+									ref={(node) => {
+										if (node) cardRefs.current.set(clip.id, node);
+										else cardRefs.current.delete(clip.id);
+									}}
+									type='button'
+									className='group overflow-hidden rounded-2xl border border-divider bg-surface text-left transition hover:-translate-y-0.5 hover:shadow-lg'
+									onClick={() => selectClip(index)}
+								>
 									<div className='relative aspect-video overflow-hidden bg-black'>
 										<img src={clip.thumbnail_url} alt='' loading='lazy' className='h-full w-full object-cover transition group-hover:scale-[1.02]' />
 										<span className='absolute inset-0 grid place-items-center opacity-0 transition group-hover:opacity-100'>
@@ -263,7 +301,7 @@ export default function CreatorPageClient({ creator, initialItems, initialCursor
 					Create your own clip page
 				</Link>
 			</footer>
-			{selectedIndex !== null ? <ClipDialog key={clips[selectedIndex].id} username={creator.username} clips={clips} index={selectedIndex} onIndexChange={setSelectedIndex} onClose={() => setSelectedIndex(null)} /> : null}
+			{selectedIndex !== null && clips[selectedIndex] ? <ClipDialog key={clips[selectedIndex].id} username={creator.username} clips={clips} index={selectedIndex} total={total} hasMore={Boolean(cursor)} loadingMore={loading} onIndexChange={selectClip} onNext={() => void selectNextClip()} onClose={() => setSelectedIndex(null)} /> : null}
 		</main>
 	);
 }

@@ -7,6 +7,7 @@ import type { Gallery, TwitchClip } from "@types";
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { usePlausible } from "next-plausible";
 import { PLAUSIBLE_EVENTS } from "@lib/plausibleEvents";
+import { useQualifiedPlayback } from "@/app/hooks/useQualifiedPlayback";
 
 type CarouselApi = {
 	on: (event: "select", callback: () => void) => void;
@@ -43,6 +44,9 @@ export default function GalleryPlayer({ gallery, clips, initialIndex, initialPla
 	const clip = clips[selectedIndex];
 	const playbackUrl = playbackUrls[clip.id];
 	const plausible = usePlausible();
+	const qualifiedPlayback = useQualifiedPlayback(clip.id, () => {
+		plausible(PLAUSIBLE_EVENTS.clipPlayed, { props: { surface: "gallery", galleryId: gallery.id, clipId: clip.id } });
+	});
 
 	useEffect(() => {
 		let expectedParentOrigin = "";
@@ -187,9 +191,14 @@ export default function GalleryPlayer({ gallery, clips, initialIndex, initialPla
 												muted={muted}
 												onPlay={() => {
 													setPlaying(true);
-													plausible(PLAUSIBLE_EVENTS.clipPlayed, { props: { surface: "gallery", galleryId: gallery.id, clipId: item.id } });
 												}}
-												onPause={() => setPlaying(false)}
+												onPlaying={qualifiedPlayback.onPlaying}
+												onPause={() => {
+													setPlaying(false);
+													qualifiedPlayback.onPause();
+												}}
+												onWaiting={qualifiedPlayback.onWaiting}
+												onEnded={qualifiedPlayback.onEnded}
 												onTimeUpdate={(event) => setElapsed(event.currentTarget.currentTime)}
 												onDurationChange={(event) => setDuration(event.currentTarget.duration || item.duration)}
 												onError={() => setPlaybackUrls((current) => ({ ...current, [item.id]: null }))}

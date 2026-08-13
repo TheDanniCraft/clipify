@@ -94,6 +94,10 @@ describe("GalleryPlayer", () => {
 		await act(async () => undefined);
 		expect(play).toHaveBeenCalled();
 		expect(screen.getByRole("button", { name: "Pause" })).toBeInTheDocument();
+		fireEvent.playing(video);
+		act(() => jest.advanceTimersByTime(4_999));
+		expect(plausible).not.toHaveBeenCalledWith("clip_played", expect.anything());
+		act(() => jest.advanceTimersByTime(1));
 		expect(plausible).toHaveBeenCalledWith("clip_played", expect.objectContaining({ props: expect.objectContaining({ galleryId: "gallery-1", clipId: "one" }) }));
 		Object.defineProperty(video, "paused", { configurable: true, value: false });
 		fireEvent.click(screen.getByRole("button", { name: "Pause" }));
