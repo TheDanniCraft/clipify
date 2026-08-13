@@ -7,6 +7,7 @@ import { parseDate } from "@internationalized/date";
 import { IconArrowLeft, IconArrowRight, IconBrandTwitch, IconExternalLink, IconPlayerPlayFilled, IconX } from "@tabler/icons-react";
 import type { TwitchClip } from "@types";
 import Link from "next/link";
+import { usePlausible } from "next-plausible";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 type Creator = {
@@ -25,8 +26,10 @@ const clipDateFormatter = new Intl.DateTimeFormat("en-US", { year: "numeric", mo
 
 function ClipDialog({ username, clips, index, onIndexChange, onClose }: { username: string; clips: TwitchClip[]; index: number; onIndexChange: (index: number) => void; onClose: () => void }) {
 	const dialogRef = useRef<HTMLDialogElement>(null);
+	const playbackTracked = useRef(false);
 	const [playbackUrl, setPlaybackUrl] = useState<string | null | undefined>();
 	const clip = clips[index];
+	const plausible = usePlausible();
 	useEffect(() => {
 		const dialog = dialogRef.current;
 		if (dialog && !dialog.open) dialog.showModal();
@@ -68,7 +71,20 @@ function ClipDialog({ username, clips, index, onIndexChange, onClose }: { userna
 				</header>
 				<div className='relative flex aspect-video w-full shrink-0 items-center justify-center bg-black'>
 					{playbackUrl ? (
-						<video key={clip.id} src={playbackUrl} poster={clip.thumbnail_url} controls autoPlay playsInline className='h-full w-full object-contain' />
+						<video
+							key={clip.id}
+							src={playbackUrl}
+							poster={clip.thumbnail_url}
+							controls
+							autoPlay
+							playsInline
+							className='h-full w-full object-contain'
+							onPlay={() => {
+								if (playbackTracked.current) return;
+								playbackTracked.current = true;
+								plausible("Playback Start", { props: { surface: "creator_page", creator: username, clipId: clip.id } });
+							}}
+						/>
 					) : playbackUrl === undefined ? (
 						<span className='text-zinc-400'>Loading clip…</span>
 					) : (

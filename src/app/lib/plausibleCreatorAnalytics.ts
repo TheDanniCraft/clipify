@@ -5,6 +5,9 @@ export type CreatorAnalyticsMetrics = {
 	bounceRate: number;
 	timeOnPage: number;
 	scrollDepth: number;
+	clipPlays: number;
+	playsPerVisit: number;
+	playRate: number;
 };
 
 export type CreatorAnalyticsTimeseriesPoint = CreatorAnalyticsMetrics & { date: string };
@@ -34,6 +37,8 @@ export type PlausibleCreatorPayload = {
 	acquisition?: unknown;
 	locations?: unknown;
 	technology?: unknown;
+	playbackOverview?: unknown;
+	playbackTimeseries?: unknown;
 };
 
 export type CreatorAnalyticsExportDataset = "daily" | "acquisition" | "locations" | "technology";
@@ -73,7 +78,25 @@ function metricsFromRow(row: PlausibleRow | undefined, metricNames: readonly unk
 		const index = metricNames.indexOf(name);
 		return index >= 0 ? number(metrics[index]) : 0;
 	};
-	return { visitors: value("visitors"), pageviews: value("pageviews"), visits: value("visits"), bounceRate: value("bounce_rate"), timeOnPage: value("time_on_page"), scrollDepth: value("scroll_depth") };
+	return { visitors: value("visitors"), pageviews: value("pageviews"), visits: value("visits"), bounceRate: value("bounce_rate"), timeOnPage: value("time_on_page"), scrollDepth: value("scroll_depth"), clipPlays: 0, playsPerVisit: 0, playRate: 0 };
+}
+
+function playbackMetricsFromRow(row: PlausibleRow | undefined, metricNames: readonly unknown[], visits: number) {
+	const metric = (name: "events" | "visits") => {
+		const index = metricNames.indexOf(name);
+		return index >= 0 ? number(row?.metrics?.[index]) : 0;
+	};
+	const clipPlays = metric("events");
+	const playbackVisits = metric("visits");
+	return {
+		clipPlays,
+		playsPerVisit: visits > 0 ? clipPlays / visits : 0,
+		playRate: visits > 0 ? Math.min(100, (playbackVisits / visits) * 100) : 0,
+	};
+}
+
+function playbackMetrics(payload: unknown, visits: number) {
+	return playbackMetricsFromRow(rows(payload)[0], responseMetricNames(payload), visits);
 }
 
 function responseMetricNames(payload: unknown) {
@@ -121,17 +144,24 @@ export function parsePlausibleCreatorMetrics(payload: unknown): CreatorAnalytics
 }
 
 export function parsePlausibleCreatorAnalytics(payload: PlausibleCreatorPayload): CreatorAnalyticsData {
-	const metrics = parsePlausibleCreatorMetrics(payload.overview);
+	const baseMetrics = parsePlausibleCreatorMetrics(payload.overview);
+	const metrics = { ...baseMetrics, ...playbackMetrics(payload.playbackOverview, baseMetrics.visits) };
+	const playbackByDate = new Map(rows(payload.playbackTimeseries).map((row) => [dimension(row, 0), row] as const));
+	const playbackMetricNames = responseMetricNames(payload.playbackTimeseries);
 	const parsedTimeseries = new Map(
 		rows(payload.timeseries)
-			.map((row) => ({ date: dimension(row, 0), ...metricsFromRow(row, responseMetricNames(payload.timeseries)) }))
+			.map((row) => {
+				const date = dimension(row, 0);
+				const base = metricsFromRow(row, responseMetricNames(payload.timeseries));
+				return { date, ...base, ...playbackMetricsFromRow(playbackByDate.get(date), playbackMetricNames, base.visits) };
+			})
 			.filter((point) => point.date)
 			.map((point) => [point.date, point] as const),
 	);
 	const labels = timeLabels(payload.timeseries);
 	return {
 		metrics,
-		timeseries: labels.length ? labels.map((date) => parsedTimeseries.get(date) ?? { date, visitors: 0, pageviews: 0, visits: 0, bounceRate: 0, timeOnPage: 0, scrollDepth: 0 }) : [...parsedTimeseries.values()],
+		timeseries: labels.length ? labels.map((date) => parsedTimeseries.get(date) ?? { date, visitors: 0, pageviews: 0, visits: 0, bounceRate: 0, timeOnPage: 0, scrollDepth: 0, clipPlays: 0, playsPerVisit: 0, playRate: 0 }) : [...parsedTimeseries.values()],
 		breakdowns: {
 			sources: breakdown(payload.acquisition, 0, metrics.visits),
 			channels: breakdown(payload.acquisition, 1, metrics.visits),
@@ -175,7 +205,7 @@ function csvCell(value: string | number) {
 export function createCreatorAnalyticsCsv(data: CreatorAnalyticsData, dataset: CreatorAnalyticsExportDataset) {
 	let rowsToExport: Array<Array<string | number>>;
 	if (dataset === "daily") {
-		rowsToExport = [["Date", "Unique visitors", "Visits", "Pageviews", "Bounce rate", "Time on page (seconds)", "Scroll depth (percent)"], ...data.timeseries.map((point) => [point.date, point.visitors, point.visits, point.pageviews, point.bounceRate, point.timeOnPage, point.scrollDepth])];
+		rowsToExport = [["Date", "Unique visitors", "Visits", "Pageviews", "Bounce rate", "Time on page (seconds)", "Scroll depth (percent)", "Clip plays", "Plays per visit", "Playback rate (percent)"], ...data.timeseries.map((point) => [point.date, point.visitors, point.visits, point.pageviews, point.bounceRate, point.timeOnPage, point.scrollDepth, point.clipPlays, point.playsPerVisit, point.playRate])];
 	} else {
 		const groups: Array<[string, CreatorAnalyticsBreakdownItem[]]> =
 			dataset === "acquisition"

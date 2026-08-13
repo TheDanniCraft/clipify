@@ -44,23 +44,24 @@ async function ownerForActor(actorId: string, ownerId: string) {
 async function loadCreatorAnalytics(owner: typeof usersTable.$inferSelect, range?: CreatorAnalyticsRange | null): Promise<(CreatorAnalyticsData & { stale: boolean; fetchedAt: string }) | null> {
 	const validRange = normalizedRange(range);
 	const dateRange: "30d" | [string, string] = validRange ? [validRange.start, validRange.end] : "30d";
-	const cacheKey = validRange ? `creator-page:analytics:v4:${validRange.start}:${validRange.end}` : "creator-page:analytics:v4:30d";
-	const legacyCacheKeys = validRange ? [`creator-page:analytics:v3:${validRange.start}:${validRange.end}`] : ["creator-page:analytics:v3:30d", "creator-page:analytics:v2:30d"];
+	const cacheKey = validRange ? `creator-page:analytics:v5:${validRange.start}:${validRange.end}` : "creator-page:analytics:v5:30d";
+	const legacyCacheKeys = validRange ? [`creator-page:analytics:v4:${validRange.start}:${validRange.end}`, `creator-page:analytics:v3:${validRange.start}:${validRange.end}`] : ["creator-page:analytics:v4:30d", "creator-page:analytics:v3:30d", "creator-page:analytics:v2:30d"];
 	const readableCacheKeys = [cacheKey, ...legacyCacheKeys];
 	const cacheRows = await db
 		.select()
 		.from(plausibleStatsCacheTable)
 		.where(and(eq(plausibleStatsCacheTable.ownerId, owner.id), inArray(plausibleStatsCacheTable.cacheKey, readableCacheKeys)))
 		.execute();
-	const cached = cacheRows.find((row) => row.cacheKey === cacheKey) ?? legacyCacheKeys.map((key) => cacheRows.find((row) => row.cacheKey === key)).find(Boolean);
+	const currentCached = cacheRows.find((row) => row.cacheKey === cacheKey);
+	const cached = currentCached ?? legacyCacheKeys.map((key) => cacheRows.find((row) => row.cacheKey === key)).find(Boolean);
 	const parseResult = (payload: PlausibleCreatorPayload, fetchedAt: Date, stale: boolean) => {
 		const end = validRange?.end ?? fetchedAt.toISOString().slice(0, 10);
 		const start = validRange?.start ?? new Date(new Date(`${end}T00:00:00Z`).getTime() - 29 * 86_400_000).toISOString().slice(0, 10);
 		return { ...fillEmptyCreatorAnalyticsRange(parsePlausibleCreatorAnalytics(payload), start, end), stale, fetchedAt: fetchedAt.toISOString() };
 	};
-	if (cached && cached.expiresAt.getTime() > Date.now()) {
+	if (currentCached && currentCached.expiresAt.getTime() > Date.now()) {
 		recordCreatorAnalyticsMetric("hits");
-		return parseResult(JSON.parse(cached.value) as PlausibleCreatorPayload, cached.fetchedAt, false);
+		return parseResult(JSON.parse(currentCached.value) as PlausibleCreatorPayload, currentCached.fetchedAt, false);
 	}
 	recordCreatorAnalyticsMetric("misses");
 	const apiKey = process.env.PLAUSIBLE_API_KEY;
@@ -82,14 +83,17 @@ async function loadCreatorAnalytics(owner: typeof usersTable.$inferSelect, range
 			}
 			return response.json() as Promise<unknown>;
 		};
-		const [overview, timeseries, acquisition, locations, technology] = await Promise.all([
+		const playbackFilters = [...baseQuery.filters, ["is", "event:goal", ["Playback Start"]]];
+		const [overview, timeseries, acquisition, locations, technology, playbackOverview, playbackTimeseries] = await Promise.all([
 			query("overview", { metrics: ["visitors", "pageviews", "visits", "bounce_rate", "time_on_page", "scroll_depth"] }),
 			query("timeseries", { metrics: ["visitors", "pageviews", "visits", "bounce_rate", "time_on_page", "scroll_depth"], dimensions: ["time:day"], include: { time_labels: true } }),
 			query("acquisition", { metrics: ["visits"], dimensions: ["visit:source", "visit:channel", "visit:utm_source", "visit:utm_medium", "visit:utm_campaign"], pagination: { limit: 500 } }),
 			query("locations", { metrics: ["visits"], dimensions: ["visit:country_name", "visit:region_name", "visit:city_name"], pagination: { limit: 500 } }),
 			query("technology", { metrics: ["visits"], dimensions: ["visit:device", "visit:browser", "visit:os"], pagination: { limit: 500 } }),
+			query("playback overview", { metrics: ["events", "visits"], filters: playbackFilters }),
+			query("playback timeseries", { metrics: ["events", "visits"], filters: playbackFilters, dimensions: ["time:day"], include: { time_labels: true } }),
 		]);
-		const payload: PlausibleCreatorPayload = { overview, timeseries, acquisition, locations, technology };
+		const payload: PlausibleCreatorPayload = { overview, timeseries, acquisition, locations, technology, playbackOverview, playbackTimeseries };
 		const fetchedAt = new Date();
 		await db
 			.insert(plausibleStatsCacheTable)

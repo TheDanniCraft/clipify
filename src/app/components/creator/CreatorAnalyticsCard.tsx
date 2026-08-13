@@ -8,12 +8,12 @@ import { Alert, Button, Card, Description, Label, ListBox, Modal, Select, Spinne
 import { AreaChart } from "@heroui-pro/react/area-chart";
 import { ChartTooltip } from "@heroui-pro/react/chart-tooltip";
 import { KPI } from "@heroui-pro/react/kpi";
-import { IconActivity, IconChartBar, IconChartDots, IconClock, IconDownload, IconEye, IconUsers } from "@tabler/icons-react";
+import { IconActivity, IconChartBar, IconChartDots, IconClock, IconDownload, IconEye, IconPercentage, IconPlayerPlay, IconRepeat, IconUsers } from "@tabler/icons-react";
 import { getLocalTimeZone, today } from "@internationalized/date";
 import { useEffect, useMemo, useState } from "react";
 
 type Data = Awaited<ReturnType<typeof getOwnCreatorAnalytics>>;
-type MetricKey = "visitors" | "pageviews" | "visits" | "bounceRate" | "timeOnPage" | "scrollDepth";
+type MetricKey = "visitors" | "pageviews" | "visits" | "bounceRate" | "timeOnPage" | "scrollDepth" | "clipPlays" | "playsPerVisit" | "playRate";
 type IconStatus = "danger" | "success" | "warning";
 
 const compactNumber = new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 });
@@ -152,29 +152,34 @@ function BreakdownExplorer({ label, groups }: { label: string; groups: Array<{ i
 function ExportModal({ isOpen, onOpenChange, range }: { isOpen: boolean; onOpenChange: (open: boolean) => void; range: AppDateRange | null }) {
 	const [targets, setTargets] = useState<CreatorAnalyticsExportTarget[]>([]);
 	const [ownerId, setOwnerId] = useState("");
-	const [dataset, setDataset] = useState<CreatorAnalyticsExportDataset>("daily");
+	const [datasets, setDatasets] = useState<CreatorAnalyticsExportDataset[]>([]);
 	const [exportRange, setExportRange] = useState<AppDateRange | null>(range);
 	const [isExporting, setIsExporting] = useState(false);
 	useEffect(() => {
 		if (isOpen) {
 			void getCreatorAnalyticsExportTargets().then((next) => {
+				setDatasets([]);
+				setExportRange(range);
 				setTargets(next);
 				setOwnerId((current) => current || next[0]?.id || "");
 			});
 		}
 	}, [isOpen, range]);
 	async function download() {
-		if (!ownerId || !exportRange) return;
+		if (!ownerId || !exportRange || datasets.length === 0) return;
 		setIsExporting(true);
 		try {
-			const result = await exportCreatorAnalytics({ ownerId, dataset, range: serializableRange(exportRange) });
-			if (!result) throw new Error("Export unavailable");
-			const url = URL.createObjectURL(new Blob([result.csv], { type: "text/csv;charset=utf-8" }));
-			const anchor = document.createElement("a");
-			anchor.href = url;
-			anchor.download = result.filename;
-			anchor.click();
-			URL.revokeObjectURL(url);
+			const results = await Promise.all(datasets.map((dataset) => exportCreatorAnalytics({ ownerId, dataset, range: serializableRange(exportRange) })));
+			if (results.some((result) => !result)) throw new Error("Export unavailable");
+			for (const result of results) {
+				if (!result) continue;
+				const url = URL.createObjectURL(new Blob([result.csv], { type: "text/csv;charset=utf-8" }));
+				const anchor = document.createElement("a");
+				anchor.href = url;
+				anchor.download = result.filename;
+				anchor.click();
+				URL.revokeObjectURL(url);
+			}
 			onOpenChange(false);
 		} catch {
 			notify({ title: "Export failed", description: "The analytics CSV could not be generated.", color: "danger" });
@@ -229,12 +234,13 @@ function ExportModal({ isOpen, onOpenChange, range }: { isOpen: boolean; onOpenC
 									{ label: "Last 90 days", value: lastDays(90) },
 								]}
 							/>
-							<Select fullWidth variant='secondary' value={dataset} onChange={(value) => setDataset(String(value) as CreatorAnalyticsExportDataset)}>
-								<Label>Dataset</Label>
+							<Select fullWidth variant='secondary' selectionMode='multiple' placeholder='Select datasets' value={datasets} onChange={(value) => setDatasets((Array.isArray(value) ? value : []).map(String).filter((item): item is CreatorAnalyticsExportDataset => ["daily", "acquisition", "locations", "technology"].includes(item)))}>
+								<Label>Datasets</Label>
 								<Select.Trigger>
 									<Select.Value />
 									<Select.Indicator />
 								</Select.Trigger>
+								<Description>Select one or more datasets. Each selection is downloaded as its own CSV file.</Description>
 								<Select.Popover>
 									<ListBox>
 										<ListBox.Item id='daily' textValue='Daily metrics'>
@@ -261,7 +267,7 @@ function ExportModal({ isOpen, onOpenChange, range }: { isOpen: boolean; onOpenC
 							<Button slot='close' variant='tertiary'>
 								Cancel
 							</Button>
-							<Button variant='primary' isPending={isExporting} isDisabled={!ownerId || !exportRange} onPress={download}>
+							<Button variant='primary' isPending={isExporting} isDisabled={!ownerId || !exportRange || datasets.length === 0} onPress={download}>
 								<IconDownload size={18} />
 								Download CSV
 							</Button>
@@ -371,6 +377,9 @@ export default function CreatorAnalyticsCard({ allowed, onUpgrade }: { allowed: 
 				<MetricCard title='Bounce rate' value={data.metrics.bounceRate} valueKey='bounceRate' points={data.timeseries} icon={<IconActivity size={18} />} color='var(--color-warning)' iconStatus='warning' suffix='%' average />
 				<MetricCard title='Time on page' value={Math.round(data.metrics.timeOnPage)} valueKey='timeOnPage' points={data.timeseries} icon={<IconClock size={18} />} color='var(--chart-4)' iconClassName='text-[var(--chart-4)] [background:color-mix(in_oklch,var(--chart-4)_12%,transparent)]' suffix='s' average />
 				<MetricCard title='Scroll depth' value={data.metrics.scrollDepth} valueKey='scrollDepth' points={data.timeseries} icon={<IconChartDots size={18} />} color='var(--chart-3)' iconClassName='text-[var(--chart-3)] [background:color-mix(in_oklch,var(--chart-3)_12%,transparent)]' suffix='%' average />
+				<MetricCard title='Clip plays' value={data.metrics.clipPlays} valueKey='clipPlays' points={data.timeseries} icon={<IconPlayerPlay size={18} />} color='var(--chart-5)' iconClassName='text-[var(--chart-5)] [background:color-mix(in_oklch,var(--chart-5)_12%,transparent)]' />
+				<MetricCard title='Clip plays per visit' value={data.metrics.playsPerVisit} valueKey='playsPerVisit' points={data.timeseries} icon={<IconRepeat size={18} />} color='var(--chart-2)' iconClassName='text-[var(--chart-2)] [background:color-mix(in_oklch,var(--chart-2)_12%,transparent)]' average />
+				<MetricCard title='Playback rate' value={data.metrics.playRate} valueKey='playRate' points={data.timeseries} icon={<IconPercentage size={18} />} color='var(--color-success)' iconStatus='success' suffix='%' average />
 			</div>
 			<Tabs defaultSelectedKey='acquisition' variant='secondary' className='w-full'>
 				<Tabs.ListContainer className='w-full'>
