@@ -167,8 +167,8 @@ export default function GalleryPlayer({ gallery, clips, initialIndex, initialPla
 	};
 
 	return (
-		<div className='flex min-h-dvh w-screen items-center justify-center bg-transparent p-0 sm:p-6'>
-			<section ref={surfaceRef} className='flex min-h-dvh w-full max-w-[var(--clipify-modal-width,960px)] flex-col overflow-hidden bg-zinc-950 text-white shadow-2xl sm:min-h-0 sm:rounded-2xl' style={{ "--clipify-modal-width": `${gallery.desktopModalWidth}px` } as CSSProperties}>
+		<div className='flex w-full items-center justify-center bg-transparent p-0 sm:p-6'>
+			<section ref={surfaceRef} className='flex w-full max-w-[var(--clipify-modal-width,960px)] flex-col overflow-hidden bg-zinc-950 text-white shadow-2xl sm:rounded-2xl' style={{ "--clipify-modal-width": `${gallery.desktopModalWidth}px` } as CSSProperties}>
 				<header className='flex items-center justify-between gap-3 px-4 py-3'>
 					<div className='min-w-0'>
 						<h1 className='truncate text-sm font-semibold'>{clip.title}</h1>

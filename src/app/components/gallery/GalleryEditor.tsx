@@ -2,17 +2,19 @@
 
 import { getGalleryDraftPreview, saveGallery } from "@actions/gallery";
 import AppDateRangePicker from "@components/appDateRangePicker";
+import ControlledModal from "@components/controlledModal";
 import CodeSnippet from "@components/codeSnippet";
 import GalleryInlinePreview from "@components/gallery/GalleryInlinePreview";
 import TagsInput from "@components/tagsInput";
 import { notify as addToast } from "@lib/toast";
-import { Alert, Button, Card, Checkbox, ColorArea, ColorField, ColorPicker, ColorSlider, ColorSwatch, ColorSwatchPicker, Description, FieldError, Form, Input, Label, Link, ListBox, NumberField, parseColor, Select, Separator, Switch, TextField, Tooltip } from "@heroui/react";
+import { Alert, Button, Card, Checkbox, ColorArea, ColorField, ColorPicker, ColorSlider, ColorSwatch, ColorSwatchPicker, Description, FieldError, Form, Input, Label, Link, ListBox, Modal, NumberField, parseColor, Select, Separator, Switch, TextField, Tooltip } from "@heroui/react";
 import { buttonVariants } from "@heroui/styles";
 import { parseDate } from "@internationalized/date";
-import { IconArrowLeft, IconCrown, IconDeviceFloppy, IconPlayerPauseFilled, IconPlayerPlayFilled, IconRestore } from "@tabler/icons-react";
+import { IconAlertTriangle, IconArrowLeft, IconCrown, IconDeviceFloppy, IconPlayerPauseFilled, IconPlayerPlayFilled, IconRestore } from "@tabler/icons-react";
 import type { Gallery, Playlist, TwitchClip } from "@types";
 import { useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigationGuard } from "next-navigation-guard";
 import { CLIPIFY_ELEMENTS_HELP_URL, FREE_PLAYLIST_CLIP_LIMIT } from "@lib/constants";
 import type { GalleryPatch } from "@lib/gallery";
 
@@ -156,12 +158,15 @@ function GalleryColorPicker({ label, value, defaultValue, onChange, isDisabled, 
 export default function GalleryEditor({ initialGallery, playlists, canUseAdvanced, canUseStyling, previewClips, previewOwnerName, showPreviewAttribution }: { initialGallery: Gallery; playlists: Playlist[]; canUseAdvanced: boolean; canUseStyling: boolean; previewClips: TwitchClip[]; previewOwnerName: string; showPreviewAttribution: boolean }) {
 	const router = useRouter();
 	const [gallery, setGallery] = useState(initialGallery);
+	const [savedGallery, setSavedGallery] = useState(initialGallery);
 	const [saving, setSaving] = useState(false);
 	const [livePreviewClips, setLivePreviewClips] = useState(previewClips);
 	const [previewUpdating, setPreviewUpdating] = useState(false);
 	const [previewError, setPreviewError] = useState(false);
 	const initialPreview = useRef(true);
 	const ownerPlaylists = useMemo(() => playlists.filter((playlist) => playlist.ownerId === gallery.ownerId), [gallery.ownerId, playlists]);
+	const isGalleryDirty = useMemo(() => JSON.stringify(gallery) !== JSON.stringify(savedGallery), [gallery, savedGallery]);
+	const navGuard = useNavigationGuard({ enabled: isGalleryDirty });
 	const customDateRange = useMemo(() => {
 		if (!gallery.liveCustomStart || !gallery.liveCustomEnd) return null;
 		return {
@@ -228,6 +233,7 @@ export default function GalleryEditor({ initialGallery, playlists, canUseAdvance
 		try {
 			const saved = await saveGallery(gallery.id, gallery);
 			if (!saved) throw new Error("Gallery could not be saved");
+			setSavedGallery(saved);
 			setGallery(saved);
 			addToast({ title: "Gallery settings saved", description: "Your gallery settings have been saved successfully.", color: "success" });
 			return saved;
@@ -290,7 +296,7 @@ export default function GalleryEditor({ initialGallery, playlists, canUseAdvance
 							<div className='flex-1' />
 							<Tooltip delay={0}>
 								<Tooltip.Trigger>
-									<Button type='submit' isIconOnly isPending={saving} isDisabled={saving} aria-label='Save Gallery Settings' variant='primary'>
+									<Button type='submit' isIconOnly isPending={saving} isDisabled={saving || !isGalleryDirty} aria-label='Save Gallery Settings' variant='primary'>
 										<IconDeviceFloppy />
 									</Button>
 								</Tooltip.Trigger>
@@ -503,6 +509,31 @@ export default function GalleryEditor({ initialGallery, playlists, canUseAdvance
 					</Form>
 				</Card.Content>
 			</Card>
+
+			<ControlledModal variant='blur' isOpen={navGuard.active} onClose={navGuard.reject}>
+				<Modal.Header>
+					<Modal.Heading className='flex items-center'>
+						<IconAlertTriangle className='mr-2' />
+						Unsaved Changes
+					</Modal.Heading>
+				</Modal.Header>
+				<Modal.Body>
+					<p className='text-sm text-foreground'>
+						You&apos;ve made changes to your <span className='font-semibold text-foreground'>gallery settings</span> that haven&apos;t been saved. If you go back now, <span className='font-semibold text-danger'>those changes will be lost</span>.
+						<br />
+						<br />
+						<span className='font-semibold text-foreground'>Do you want to continue without saving?</span>
+					</p>
+				</Modal.Body>
+				<Modal.Footer>
+					<Button variant='tertiary' onPress={navGuard.reject} aria-label='Cancel'>
+						Cancel
+					</Button>
+					<Button onPress={navGuard.accept} aria-label='Discard Changes' variant='danger'>
+						Discard changes
+					</Button>
+				</Modal.Footer>
+			</ControlledModal>
 		</div>
 	);
 }

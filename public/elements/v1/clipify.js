@@ -73,6 +73,7 @@ class ClipifyGalleryElement extends ClipifyBaseElement {
 		this._dialogFrame = null;
 		this._dialogPort = null;
 		this._failureTimer = null;
+		this._escapeHandler = null;
 		this._previousOverflow = "";
 		this._scrollLockActive = false;
 		this._allowRuntimeStyles = false;
@@ -104,9 +105,9 @@ class ClipifyGalleryElement extends ClipifyBaseElement {
 		frame.title = "Clipify clip gallery";
 		frame.loading = "lazy";
 		frame.referrerPolicy = "strict-origin";
-		frame.src = new URL(`/gallery/${encodeURIComponent(galleryId)}/frame`, CLIPIFY_ORIGIN).href;
 		wrap.append(frame);
 		this._connectFrame(frame, "gallery", galleryId);
+		frame.src = new URL(`/gallery/${encodeURIComponent(galleryId)}/frame`, CLIPIFY_ORIGIN).href;
 	}
 
 	_onPort(port, elementType, resourceId) {
@@ -136,12 +137,16 @@ class ClipifyGalleryElement extends ClipifyBaseElement {
 		fallbackClose.ariaLabel = "Close Clipify player";
 		fallbackClose.textContent = "×";
 		fallbackClose.hidden = true;
+		const failureNotice = document.createElement("div");
+		failureNotice.hidden = true;
+		failureNotice.style.cssText = "position:absolute;left:12px;right:64px;bottom:12px;z-index:3;padding:10px 12px;border-radius:12px;background:rgb(24 24 27 / 0.92);color:#fff;font:13px/1.4 system-ui;box-shadow:0 10px 28px rgb(0 0 0 / 28%);";
+		failureNotice.textContent = "Clipify could not fully initialize this modal. The page may block modal dialogs or cross-window messaging.";
 		const frame = document.createElement("iframe");
 		frame.title = "Clipify clip player";
 		frame.allow = "autoplay";
 		frame.referrerPolicy = "strict-origin";
 		frame.src = new URL(`/gallery/${encodeURIComponent(galleryId)}/clip/${encodeURIComponent(clipId)}`, CLIPIFY_ORIGIN).href;
-		dialog.append(frame, fallbackClose);
+		dialog.append(frame, failureNotice, fallbackClose);
 		document.body.append(dialog);
 		this._dialog = dialog;
 		this._dialogFrame = frame;
@@ -152,12 +157,14 @@ class ClipifyGalleryElement extends ClipifyBaseElement {
 		}
 		this._failureTimer = setTimeout(() => {
 			fallbackClose.hidden = false;
+			failureNotice.hidden = false;
 		}, 8000);
 		frame.addEventListener(
 			"load",
 			() => {
 				if (!frame.contentWindow) {
 					fallbackClose.hidden = false;
+					failureNotice.hidden = false;
 					return;
 				}
 				const channel = new MessageChannel();
@@ -170,6 +177,7 @@ class ClipifyGalleryElement extends ClipifyBaseElement {
 						clearTimeout(this._failureTimer);
 						this._failureTimer = null;
 						fallbackClose.hidden = true;
+						failureNotice.hidden = true;
 					}
 					if (message.type === "resize" && Number.isFinite(message.height) && matchMedia("(min-width: 640px)").matches) {
 						const height = Math.min(window.innerHeight - 48, Math.max(320, Math.ceil(message.height)));
@@ -182,11 +190,33 @@ class ClipifyGalleryElement extends ClipifyBaseElement {
 			{ once: true },
 		);
 		fallbackClose.addEventListener("click", () => this._closeDialog(true), { once: true });
+		dialog.addEventListener(
+			"cancel",
+			(event) => {
+				event.preventDefault();
+				this._closeDialog(true);
+			},
+			{ once: true },
+		);
+		this._escapeHandler = (event) => {
+			if (event.key !== "Escape" || !this._dialog) return;
+			event.preventDefault();
+			this._closeDialog(true);
+		};
+		document.addEventListener("keydown", this._escapeHandler, true);
 		dialog.addEventListener("close", () => this._closeDialog(true), { once: true });
 		dialog.addEventListener("click", (event) => {
 			if (event.target === dialog) this._closeDialog(true);
 		});
-		dialog.showModal();
+		try {
+			dialog.showModal();
+		} catch (error) {
+			console.warn("[Clipify] modal showModal() failed, falling back to non-modal dialog", error);
+			dialog.setAttribute("open", "");
+			dialog.style.zIndex = "2147483647";
+			fallbackClose.hidden = false;
+			failureNotice.hidden = false;
+		}
 	}
 
 	_closeDialog(restoreFocus) {
@@ -206,6 +236,10 @@ class ClipifyGalleryElement extends ClipifyBaseElement {
 			document.documentElement.style.overflow = this._previousOverflow;
 			this._previousOverflow = "";
 			this._scrollLockActive = false;
+		}
+		if (this._escapeHandler) {
+			document.removeEventListener("keydown", this._escapeHandler, true);
+			this._escapeHandler = null;
 		}
 		if (restoreFocus) {
 			this._port?.postMessage({ version: VERSION, type: "restore-focus", elementType: "gallery", resourceId: this.getAttribute("gallery-id") });
