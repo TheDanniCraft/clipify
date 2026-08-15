@@ -72,6 +72,7 @@ class ClipifyGalleryElement extends ClipifyBaseElement {
 		this._dialog = null;
 		this._dialogFrame = null;
 		this._dialogPort = null;
+		this._dialogMessageHandler = null;
 		this._failureTimer = null;
 		this._escapeHandler = null;
 		this._previousOverflow = "";
@@ -174,6 +175,13 @@ class ClipifyGalleryElement extends ClipifyBaseElement {
 			};
 			frame.contentWindow.postMessage({ version: VERSION, type: "clipify:init", elementType: "player", resourceId: galleryId, clipId, styles: runtime }, CLIPIFY_ORIGIN, [channel.port2]);
 		};
+		this._dialogMessageHandler = (event) => {
+			if (initialized || event.source !== frame.contentWindow) return;
+			const message = event.data;
+			if (!message || message.version !== VERSION || message.type !== "clipify:hello" || message.elementType !== "player" || message.resourceId !== galleryId || message.clipId !== clipId) return;
+			sendInit();
+		};
+		window.addEventListener("message", this._dialogMessageHandler);
 		if (!this._scrollLockActive) {
 			this._previousOverflow = document.documentElement.style.overflow;
 			this._scrollLockActive = true;
@@ -228,6 +236,10 @@ class ClipifyGalleryElement extends ClipifyBaseElement {
 	_closeDialog(restoreFocus) {
 		clearTimeout(this._failureTimer);
 		this._failureTimer = null;
+		if (this._dialogMessageHandler) {
+			window.removeEventListener("message", this._dialogMessageHandler);
+			this._dialogMessageHandler = null;
+		}
 		this._dialogPort?.close();
 		this._dialogPort = null;
 		this._dialogFrame?.remove();

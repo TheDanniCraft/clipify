@@ -8,8 +8,18 @@ export default async function GalleryClipPage({ params }: { params: Promise<{ ga
 		(() => {
 			try {
 				if (window.parent === window) return;
-				const parentOrigin = document.referrer ? new URL(document.referrer).origin : "*";
-				window.parent.postMessage({ version: 1, type: "clipify:hello", elementType: "player", resourceId: ${JSON.stringify(galleryId)}, clipId: ${JSON.stringify(clipId)} }, parentOrigin);
+				const state = window.__clipifyPlayerBootstrap || (window.__clipifyPlayerBootstrap = { pendingInit: null, listenerInstalled: false });
+				if (!state.listenerInstalled) {
+					window.addEventListener("message", (event) => {
+						const message = event.data;
+						if (!message || message.version !== 1 || message.type !== "clipify:init" || message.elementType !== "player" || message.resourceId !== ${JSON.stringify(galleryId)} || message.clipId !== ${JSON.stringify(clipId)} || !event.ports[0]) return;
+						state.pendingInit = { data: message, port: event.ports[0] };
+						event.stopImmediatePropagation();
+						window.dispatchEvent(new Event("clipify:player-init"));
+					});
+					state.listenerInstalled = true;
+				}
+				window.parent.postMessage({ version: 1, type: "clipify:hello", elementType: "player", resourceId: ${JSON.stringify(galleryId)}, clipId: ${JSON.stringify(clipId)} }, "*");
 			} catch {}
 		})();
 	`;

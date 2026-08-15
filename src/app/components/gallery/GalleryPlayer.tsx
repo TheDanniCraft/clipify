@@ -17,6 +17,23 @@ type CarouselApi = {
 	scrollNext: () => void;
 };
 
+type PlayerBootstrapInit = {
+	data: {
+		version: number;
+		type: string;
+		elementType: string;
+		resourceId: string;
+		clipId: string;
+		styles?: Record<string, string>;
+	};
+	port: MessagePort;
+};
+
+type PlayerBootstrapState = {
+	pendingInit: PlayerBootstrapInit | null;
+	listenerInstalled: boolean;
+};
+
 type Props = {
 	gallery: Gallery;
 	clips: TwitchClip[];
@@ -47,6 +64,23 @@ export default function GalleryPlayer({ gallery, clips, initialIndex, initialPla
 	const qualifiedPlayback = useQualifiedPlayback(clip.id, () => {
 		plausible(PLAUSIBLE_EVENTS.clipPlayed, { props: { surface: "gallery", galleryId: gallery.id, clipId: clip.id } });
 	});
+	const consumeBootstrapInit = useCallback(() => {
+		const bootstrap = window as Window & { __clipifyPlayerBootstrap?: PlayerBootstrapState };
+		const pendingInit = bootstrap.__clipifyPlayerBootstrap?.pendingInit;
+		if (!pendingInit) return false;
+		const { data, port } = pendingInit;
+		if (data.version !== PROTOCOL_VERSION || data.type !== "clipify:init" || data.elementType !== "player" || data.resourceId !== gallery.id || data.clipId !== clips[initialIndex].id) return false;
+		bootstrap.__clipifyPlayerBootstrap!.pendingInit = null;
+		portRef.current?.close();
+		portRef.current = port;
+		portRef.current.start();
+		portRef.current.postMessage({ version: PROTOCOL_VERSION, type: "ready", elementType: "player", resourceId: gallery.id, clipId: clips[initialIndex].id });
+		window.requestAnimationFrame(() => {
+			const height = surfaceRef.current?.scrollHeight;
+			if (height) portRef.current?.postMessage({ version: PROTOCOL_VERSION, type: "resize", elementType: "player", resourceId: gallery.id, height });
+		});
+		return true;
+	}, [clips, gallery.id, initialIndex]);
 	const closePlayer = useCallback(() => {
 		portRef.current?.postMessage({ version: PROTOCOL_VERSION, type: "close", elementType: "player", resourceId: gallery.id });
 	}, [gallery.id]);
@@ -56,23 +90,16 @@ export default function GalleryPlayer({ gallery, clips, initialIndex, initialPla
 	}, [playbackUrl, selectedIndex, volume]);
 
 	useEffect(() => {
-		const onMessage = (event: MessageEvent) => {
-			if (event.data?.version !== PROTOCOL_VERSION || event.data?.type !== "clipify:init" || event.data?.elementType !== "player" || event.data?.resourceId !== gallery.id || event.data?.clipId !== clips[initialIndex].id || !event.ports[0]) return;
-			portRef.current?.close();
-			portRef.current = event.ports[0];
-			portRef.current.start();
-			portRef.current.postMessage({ version: PROTOCOL_VERSION, type: "ready", elementType: "player", resourceId: gallery.id, clipId: clips[initialIndex].id });
-			window.requestAnimationFrame(() => {
-				const height = surfaceRef.current?.scrollHeight;
-				if (height) portRef.current?.postMessage({ version: PROTOCOL_VERSION, type: "resize", elementType: "player", resourceId: gallery.id, height });
-			});
+		consumeBootstrapInit();
+		const onPlayerInit = () => {
+			consumeBootstrapInit();
 		};
-		window.addEventListener("message", onMessage);
+		window.addEventListener("clipify:player-init", onPlayerInit);
 		return () => {
-			window.removeEventListener("message", onMessage);
+			window.removeEventListener("clipify:player-init", onPlayerInit);
 			portRef.current?.close();
 		};
-	}, [clips, gallery.id, initialIndex]);
+	}, [consumeBootstrapInit]);
 
 	useEffect(() => {
 		const surface = surfaceRef.current;

@@ -211,11 +211,18 @@ describe("GalleryPlayer", () => {
 
 	it("validates the parent channel, reports size and sequence, closes, and cleans up", () => {
 		const port = { start: jest.fn(), close: jest.fn(), postMessage: jest.fn(), onmessage: null };
+		(window as Window & { __clipifyPlayerBootstrap?: { pendingInit: { data: { version: number; type: string; elementType: string; resourceId: string; clipId: string }; port: MessagePort } | null; listenerInstalled: boolean } }).__clipifyPlayerBootstrap = {
+			pendingInit: {
+				data: { version: 1, type: "clipify:init", elementType: "player", resourceId: "gallery-1", clipId: "one" },
+				port: port as unknown as MessagePort,
+			},
+			listenerInstalled: true,
+		};
 		const { container, unmount } = render(<GalleryPlayer gallery={buildGallery()} clips={clips} initialIndex={0} initialPlaybackUrl='https://video.example/one.mp4' ownerName='Alice' showAttribution={false} />);
 		const surface = container.querySelector("section") as HTMLElement;
 		Object.defineProperty(surface, "scrollHeight", { configurable: true, value: 500 });
 
-		act(() => window.dispatchEvent(new MessageEvent("message", { origin: "https://wrong.example", source: window, data: { version: 1, type: "clipify:init", elementType: "player", resourceId: "gallery-1", clipId: "one" }, ports: [port as unknown as MessagePort] })));
+		act(() => window.dispatchEvent(new Event("clipify:player-init")));
 		expect(port.start).toHaveBeenCalled();
 		expect(port.postMessage).toHaveBeenCalledWith(expect.objectContaining({ type: "ready", clipId: "one" }));
 		act(() => {
