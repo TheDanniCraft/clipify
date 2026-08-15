@@ -56,14 +56,8 @@ export default function GalleryPlayer({ gallery, clips, initialIndex, initialPla
 	}, [playbackUrl, selectedIndex, volume]);
 
 	useEffect(() => {
-		let expectedParentOrigin = "";
-		try {
-			expectedParentOrigin = document.referrer ? new URL(document.referrer).origin : "";
-		} catch {
-			expectedParentOrigin = "";
-		}
 		const onMessage = (event: MessageEvent) => {
-			if (!expectedParentOrigin || event.origin !== expectedParentOrigin || event.source !== window.parent || event.data?.version !== PROTOCOL_VERSION || event.data?.type !== "clipify:init" || event.data?.elementType !== "player" || event.data?.resourceId !== gallery.id || event.data?.clipId !== clips[initialIndex].id || !event.ports[0]) return;
+			if (event.data?.version !== PROTOCOL_VERSION || event.data?.type !== "clipify:init" || event.data?.elementType !== "player" || event.data?.resourceId !== gallery.id || event.data?.clipId !== clips[initialIndex].id || !event.ports[0]) return;
 			portRef.current?.close();
 			portRef.current = event.ports[0];
 			portRef.current.start();
@@ -134,20 +128,11 @@ export default function GalleryPlayer({ gallery, clips, initialIndex, initialPla
 	}, [api]);
 
 	useEffect(() => {
-		let expectedParentOrigin = "";
-		try {
-			expectedParentOrigin = document.referrer ? new URL(document.referrer).origin : "";
-		} catch {
-			expectedParentOrigin = "";
-		}
 		const onEscape = (event: KeyboardEvent) => {
 			const target = event.target;
 			if (event.key !== "Escape" || (target instanceof Element && target.matches("input, textarea, select, [contenteditable=true]"))) return;
 			event.preventDefault();
 			closePlayer();
-			if (expectedParentOrigin) {
-				window.parent.postMessage({ version: PROTOCOL_VERSION, type: "clipify:close", elementType: "player", resourceId: gallery.id, clipId: clip.id }, expectedParentOrigin);
-			}
 		};
 		window.addEventListener("keydown", onEscape, true);
 		return () => window.removeEventListener("keydown", onEscape, true);

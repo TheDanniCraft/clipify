@@ -216,8 +216,6 @@ describe("GalleryPlayer", () => {
 		Object.defineProperty(surface, "scrollHeight", { configurable: true, value: 500 });
 
 		act(() => window.dispatchEvent(new MessageEvent("message", { origin: "https://wrong.example", source: window, data: { version: 1, type: "clipify:init", elementType: "player", resourceId: "gallery-1", clipId: "one" }, ports: [port as unknown as MessagePort] })));
-		expect(port.start).not.toHaveBeenCalled();
-		act(() => window.dispatchEvent(new MessageEvent("message", { origin: "https://host.example", source: window, data: { version: 1, type: "clipify:init", elementType: "player", resourceId: "gallery-1", clipId: "one" }, ports: [port as unknown as MessagePort] })));
 		expect(port.start).toHaveBeenCalled();
 		expect(port.postMessage).toHaveBeenCalledWith(expect.objectContaining({ type: "ready", clipId: "one" }));
 		act(() => {
