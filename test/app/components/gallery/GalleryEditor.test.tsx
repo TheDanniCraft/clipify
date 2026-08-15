@@ -13,6 +13,14 @@ let previewClips = [buildClip("initial")];
 jest.mock("@actions/gallery", () => ({ saveGallery: (...args: unknown[]) => saveGallery(...args), getGalleryDraftPreview: (...args: unknown[]) => getGalleryDraftPreview(...args) }));
 jest.mock("@lib/toast", () => ({ notify: (...args: unknown[]) => notify(...args) }));
 jest.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
+jest.mock("next-navigation-guard", () => ({
+	NavigationGuardProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+	useNavigationGuard: () => ({
+		active: false,
+		reject: jest.fn(),
+		accept: jest.fn(),
+	}),
+}));
 jest.mock("@components/gallery/GalleryInlinePreview", () => ({
 	__esModule: true,
 	default: ({ gallery, clips, isUpdating, hasError }: { gallery: ReturnType<typeof buildGallery>; clips: ReturnType<typeof buildClip>[]; isUpdating?: boolean; hasError?: boolean }) => {
@@ -267,14 +275,14 @@ describe("GalleryEditor", () => {
 	});
 
 	it("reports null and thrown save failures and always unlocks the form", async () => {
-		const { rerender } = render(<GalleryEditor initialGallery={buildGallery()} playlists={[]} canUseAdvanced canUseStyling previewClips={[]} previewOwnerName='Alice' showPreviewAttribution={false} />);
+		render(<GalleryEditor initialGallery={buildGallery()} playlists={[]} canUseAdvanced canUseStyling previewClips={[]} previewOwnerName='Alice' showPreviewAttribution={false} />);
+		fireEvent.change(screen.getByDisplayValue("Highlights"), { target: { value: "Gallery Name Updated" } });
 		saveGallery.mockResolvedValueOnce(null);
 		fireEvent.click(screen.getByRole("button", { name: "Save Gallery Settings" }));
 		await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.objectContaining({ title: "Save failed", description: "Gallery could not be saved" })));
 		expect(screen.getByRole("button", { name: "Save Gallery Settings" })).not.toBeDisabled();
 
 		saveGallery.mockRejectedValueOnce("unknown");
-		rerender(<GalleryEditor initialGallery={buildGallery()} playlists={[]} canUseAdvanced canUseStyling previewClips={[]} previewOwnerName='Alice' showPreviewAttribution={false} />);
 		fireEvent.click(screen.getByRole("button", { name: "Save Gallery Settings" }));
 		await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.objectContaining({ title: "Save failed", description: "Please try again." })));
 	});

@@ -13,8 +13,8 @@ import { parseDate } from "@internationalized/date";
 import { IconAlertTriangle, IconArrowLeft, IconCrown, IconDeviceFloppy, IconPlayerPauseFilled, IconPlayerPlayFilled, IconRestore } from "@tabler/icons-react";
 import type { Gallery, Playlist, TwitchClip } from "@types";
 import { useRouter } from "next/navigation";
+import { NavigationGuardProvider, useNavigationGuard } from "next-navigation-guard";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigationGuard } from "next-navigation-guard";
 import { CLIPIFY_ELEMENTS_HELP_URL, FREE_PLAYLIST_CLIP_LIMIT } from "@lib/constants";
 import type { GalleryPatch } from "@lib/gallery";
 
@@ -155,7 +155,15 @@ function GalleryColorPicker({ label, value, defaultValue, onChange, isDisabled, 
 	);
 }
 
-export default function GalleryEditor({ initialGallery, playlists, canUseAdvanced, canUseStyling, previewClips, previewOwnerName, showPreviewAttribution }: { initialGallery: Gallery; playlists: Playlist[]; canUseAdvanced: boolean; canUseStyling: boolean; previewClips: TwitchClip[]; previewOwnerName: string; showPreviewAttribution: boolean }) {
+export default function GalleryEditor(props: { initialGallery: Gallery; playlists: Playlist[]; canUseAdvanced: boolean; canUseStyling: boolean; previewClips: TwitchClip[]; previewOwnerName: string; showPreviewAttribution: boolean }) {
+	return (
+		<NavigationGuardProvider>
+			<GalleryEditorContent {...props} />
+		</NavigationGuardProvider>
+	);
+}
+
+function GalleryEditorContent({ initialGallery, playlists, canUseAdvanced, canUseStyling, previewClips, previewOwnerName, showPreviewAttribution }: { initialGallery: Gallery; playlists: Playlist[]; canUseAdvanced: boolean; canUseStyling: boolean; previewClips: TwitchClip[]; previewOwnerName: string; showPreviewAttribution: boolean }) {
 	const router = useRouter();
 	const [gallery, setGallery] = useState(initialGallery);
 	const [savedGallery, setSavedGallery] = useState(initialGallery);
