@@ -231,7 +231,9 @@ describe("GalleryPlayer", () => {
 			jest.runOnlyPendingTimers();
 		});
 		expect(port.postMessage).toHaveBeenCalledTimes(resizeCalls);
-		fireEvent.click(screen.getByRole("button", { name: "Close player" }));
+		fireEvent.keyDown(window, { key: "Escape" });
+		expect(port.postMessage).toHaveBeenCalledWith(expect.objectContaining({ type: "close" }));
+		fireEvent.click(screen.getAllByRole("button", { name: "Close player" })[0]);
 		expect(port.postMessage).toHaveBeenCalledWith(expect.objectContaining({ type: "close" }));
 		unmount();
 		expect(port.close).toHaveBeenCalled();

@@ -47,6 +47,9 @@ export default function GalleryPlayer({ gallery, clips, initialIndex, initialPla
 	const qualifiedPlayback = useQualifiedPlayback(clip.id, () => {
 		plausible(PLAUSIBLE_EVENTS.clipPlayed, { props: { surface: "gallery", galleryId: gallery.id, clipId: clip.id } });
 	});
+	const closePlayer = useCallback(() => {
+		portRef.current?.postMessage({ version: PROTOCOL_VERSION, type: "close", elementType: "player", resourceId: gallery.id });
+	}, [gallery.id]);
 
 	useEffect(() => {
 		if (videoRef.current) videoRef.current.volume = volume;
@@ -130,6 +133,26 @@ export default function GalleryPlayer({ gallery, clips, initialIndex, initialPla
 		return () => window.removeEventListener("keydown", onKeyDown);
 	}, [api]);
 
+	useEffect(() => {
+		let expectedParentOrigin = "";
+		try {
+			expectedParentOrigin = document.referrer ? new URL(document.referrer).origin : "";
+		} catch {
+			expectedParentOrigin = "";
+		}
+		const onEscape = (event: KeyboardEvent) => {
+			const target = event.target;
+			if (event.key !== "Escape" || (target instanceof Element && target.matches("input, textarea, select, [contenteditable=true]"))) return;
+			event.preventDefault();
+			closePlayer();
+			if (expectedParentOrigin) {
+				window.parent.postMessage({ version: PROTOCOL_VERSION, type: "clipify:close", elementType: "player", resourceId: gallery.id, clipId: clip.id }, expectedParentOrigin);
+			}
+		};
+		window.addEventListener("keydown", onEscape, true);
+		return () => window.removeEventListener("keydown", onEscape, true);
+	}, [clip.id, closePlayer, gallery.id]);
+
 	const loadSelected = useCallback(
 		async (force = false) => {
 			if (!force && clip.id in playbackUrls) return;
@@ -174,7 +197,7 @@ export default function GalleryPlayer({ gallery, clips, initialIndex, initialPla
 						<h1 className='truncate text-sm font-semibold'>{clip.title}</h1>
 						<p className='truncate text-xs text-zinc-400'>{clip.creator_name}</p>
 					</div>
-					<Button isIconOnly aria-label='Close player' variant='tertiary' onPress={() => portRef.current?.postMessage({ version: PROTOCOL_VERSION, type: "close", elementType: "player", resourceId: gallery.id })}>
+					<Button isIconOnly aria-label='Close player' variant='tertiary' onPress={closePlayer}>
 						<IconX size={20} />
 					</Button>
 				</header>
@@ -284,6 +307,9 @@ export default function GalleryPlayer({ gallery, clips, initialIndex, initialPla
 							}
 						}}
 					/>
+					<Button isIconOnly aria-label='Close player' className='shrink-0' variant='tertiary' onPress={closePlayer}>
+						<IconX size={18} />
+					</Button>
 				</div>
 				{showAttribution ? (
 					<a className='pb-3 text-center text-xs text-zinc-400' href={`https://clipify.us/gallery?utm_source=clipify_gallery&utm_medium=attribution&utm_campaign=${encodeURIComponent(gallery.id)}`} target='_blank' rel='noreferrer'>

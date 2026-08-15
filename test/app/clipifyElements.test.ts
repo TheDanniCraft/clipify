@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import { act } from "@testing-library/react";
 
 const moduleSource = readFileSync(path.join(process.cwd(), "public/elements/v1/clipify.js"), "utf8").replace("new URL(import.meta.url)", 'new URL("https://clipify.us/elements/v1/clipify.js")');
 
@@ -146,6 +147,7 @@ describe("Clipify Elements v1", () => {
 
 		attachFrameWindow(playerFrame);
 		playerFrame.dispatchEvent(new Event("load"));
+		act(() => jest.runOnlyPendingTimers());
 		const playerPort = channels.at(-1)!.port1;
 		playerPort.onmessage?.({ data: { version: 1, type: "resize", elementType: "player", resourceId: "gallery-one", height: 500 } } as MessageEvent);
 		expect(dialog.style.height).toBe("500px");
