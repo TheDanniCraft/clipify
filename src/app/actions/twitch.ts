@@ -435,6 +435,18 @@ export async function getCachedClipsByOwner(ownerId: string, limit?: number): Pr
 	return Array.from(deduped.values());
 }
 
+export async function getCachedClipByOwner(ownerId: string, clipId: string): Promise<TwitchClip | null> {
+	if (!ownerId || !clipId) return null;
+	const value = await getTwitchCache<CachedClipValue | TwitchClip>(TwitchCacheType.Clip, toClipCacheKey(ownerId, clipId));
+	if (!value) return null;
+	if ((value as CachedClipValue).unavailable) {
+		const lastValidatedAt = (value as CachedClipValue).lastValidatedAt;
+		const parsed = lastValidatedAt ? Date.parse(lastValidatedAt) : Number.NaN;
+		if (Number.isFinite(parsed) && Date.now() - parsed < CLIP_VALIDATION_STALE_MS) return null;
+	}
+	return parseCachedClipValue(value);
+}
+
 async function internalSearchTwitchGames(query: string, authUserId: string): Promise<Game[]> {
 	const token = await getAccessToken(authUserId);
 	/* istanbul ignore next */

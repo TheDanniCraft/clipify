@@ -1,6 +1,6 @@
 "use client";
 
-import { exportCreatorAnalytics, getCreatorAnalyticsExportTargets, getOwnCreatorAnalytics, type CreatorAnalyticsExportTarget } from "@actions/creatorAnalytics";
+import { exportCreatorAnalyticsBundle, getCreatorAnalyticsExportTargets, getOwnCreatorAnalytics, type CreatorAnalyticsExportTarget } from "@actions/creatorAnalytics";
 import AppDateRangePicker, { type AppDateRange } from "@components/appDateRangePicker";
 import type { CreatorAnalyticsBreakdownItem, CreatorAnalyticsExportDataset, CreatorAnalyticsTimeseriesPoint } from "@lib/plausibleCreatorAnalytics";
 import { notify } from "@lib/toast";
@@ -166,10 +166,9 @@ function ExportModal({ isOpen, onOpenChange, range }: { isOpen: boolean; onOpenC
 		if (!ownerId || !exportRange || datasets.length === 0) return;
 		setIsExporting(true);
 		try {
-			const results = await Promise.all(datasets.map((dataset) => exportCreatorAnalytics({ ownerId, dataset, range: serializableRange(exportRange) })));
-			if (results.some((result) => !result)) throw new Error("Export unavailable");
+			const results = await exportCreatorAnalyticsBundle({ ownerId, datasets, range: serializableRange(exportRange) });
+			if (!results) throw new Error("Export unavailable");
 			for (const result of results) {
-				if (!result) continue;
 				const url = URL.createObjectURL(new Blob([result.csv], { type: "text/csv;charset=utf-8" }));
 				const anchor = document.createElement("a");
 				anchor.href = url;

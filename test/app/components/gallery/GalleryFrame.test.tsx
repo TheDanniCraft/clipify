@@ -72,6 +72,7 @@ describe("GalleryFrame", () => {
 		expect(screen.queryByText("Creator one")).not.toBeInTheDocument();
 		expect(screen.queryByText(/views/)).not.toBeInTheDocument();
 		expect(screen.getByRole("time")).toHaveAttribute("datetime", clip.created_at);
+		expect(screen.getByRole("time")).toHaveTextContent("Aug 1, 2026");
 		expect(screen.queryByText(/Powered by Clipify/)).not.toBeInTheDocument();
 
 		rerender(<GalleryFrame gallery={buildGallery({ layout: "carousel", carouselShowNavigation: true, carouselShowIndicators: true })} clips={[clip]} ownerName='Alice' showAttribution={false} />);

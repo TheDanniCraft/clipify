@@ -49,6 +49,10 @@ export default function GalleryPlayer({ gallery, clips, initialIndex, initialPla
 	});
 
 	useEffect(() => {
+		if (videoRef.current) videoRef.current.volume = volume;
+	}, [playbackUrl, selectedIndex, volume]);
+
+	useEffect(() => {
 		let expectedParentOrigin = "";
 		try {
 			expectedParentOrigin = document.referrer ? new URL(document.referrer).origin : "";

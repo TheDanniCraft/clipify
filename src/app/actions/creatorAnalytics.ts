@@ -15,6 +15,9 @@ const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 export type CreatorAnalyticsRange = { start: string; end: string };
 export type CreatorAnalyticsExportTarget = { id: string; username: string; avatar: string; isSelf: boolean };
+export type CreatorAnalyticsExportResult = { filename: string; csv: string };
+
+const CREATOR_ANALYTICS_EXPORT_DATASETS: CreatorAnalyticsExportDataset[] = ["daily", "acquisition", "locations", "technology"];
 
 function normalizedRange(range?: CreatorAnalyticsRange | null): CreatorAnalyticsRange | null {
 	if (!range || !ISO_DATE.test(range.start) || !ISO_DATE.test(range.end) || range.start > range.end) return null;
@@ -136,17 +139,23 @@ export async function getCreatorAnalyticsExportTargets(): Promise<CreatorAnalyti
 	return [{ id: actor.id, username: actor.username, avatar: actor.avatar, isSelf: true }, ...eligibleManaged.sort((a, b) => a.username.localeCompare(b.username))];
 }
 
-export async function exportCreatorAnalytics(input: { ownerId: string; range?: CreatorAnalyticsRange | null; dataset: CreatorAnalyticsExportDataset }) {
+export async function exportCreatorAnalyticsBundle(input: { ownerId: string; range?: CreatorAnalyticsRange | null; datasets: CreatorAnalyticsExportDataset[] }): Promise<CreatorAnalyticsExportResult[] | null> {
 	const actor = await validateAuth();
-	if (!actor || !["daily", "acquisition", "locations", "technology"].includes(input.dataset)) return null;
+	const datasets = [...new Set(input.datasets)];
+	if (!actor || datasets.length === 0 || datasets.some((dataset) => !CREATOR_ANALYTICS_EXPORT_DATASETS.includes(dataset))) return null;
 	const owner = await ownerForActor(actor.id, input.ownerId);
 	if (!owner) return null;
 	const analytics = await loadCreatorAnalytics(owner, input.range);
 	if (!analytics) return null;
 	const range = normalizedRange(input.range);
 	const rangeLabel = range ? `${range.start}_${range.end}` : "last-30-days";
-	return {
-		filename: `clipify-${owner.username}-${input.dataset}-${rangeLabel}.csv`.replace(/[^a-zA-Z0-9._-]/g, "-"),
-		csv: createCreatorAnalyticsCsv(analytics, input.dataset),
-	};
+	return datasets.map((dataset) => ({
+		filename: `clipify-${owner.username}-${dataset}-${rangeLabel}.csv`.replace(/[^a-zA-Z0-9._-]/g, "-"),
+		csv: createCreatorAnalyticsCsv(analytics, dataset),
+	}));
+}
+
+export async function exportCreatorAnalytics(input: { ownerId: string; range?: CreatorAnalyticsRange | null; dataset: CreatorAnalyticsExportDataset }) {
+	const results = await exportCreatorAnalyticsBundle({ ownerId: input.ownerId, range: input.range, datasets: [input.dataset] });
+	return results?.[0] ?? null;
 }

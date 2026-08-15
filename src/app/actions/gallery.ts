@@ -7,7 +7,7 @@ import { db } from "@/db/client";
 import { editorsTable, galleriesTable, playlistsTable, usersTable } from "@/db/schema";
 import { FREE_GALLERY_LIMIT, downgradeGalleryPatch, normalizeGalleryPatch, resolveLiveGalleryClips, type GalleryPatch } from "@lib/gallery";
 import { canResolvePublicClipPlayback } from "@actions/rateLimit";
-import { and, asc, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import type { Gallery, TwitchClip } from "@types";
 import { resolveUserEntitlements } from "@lib/entitlements";
@@ -108,6 +108,7 @@ export async function createGallery(ownerId: string, name = "My clip gallery") {
 	const isPro = user.id === ownerId ? getFeatureAccess(user, "multi_gallery").allowed : await ownerIsPro(ownerId);
 	return db.transaction(async (tx) => {
 		if (!isPro) {
+			await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${`clipify:free-gallery:${ownerId}`}, 0))`);
 			const existing = await tx.select({ id: galleriesTable.id }).from(galleriesTable).where(eq(galleriesTable.ownerId, ownerId)).execute();
 			if (existing.length >= FREE_GALLERY_LIMIT) throw new Error("Free plan allows one gallery");
 		}

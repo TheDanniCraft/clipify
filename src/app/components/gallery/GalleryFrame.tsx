@@ -14,6 +14,8 @@ type Props = {
 };
 
 const PROTOCOL_VERSION = 1;
+const viewCountFormatter = new Intl.NumberFormat("en-US");
+const createdAtFormatter = new Intl.DateTimeFormat("en-US", { year: "numeric", month: "short", day: "numeric", timeZone: "UTC" });
 
 function formatDuration(duration: number) {
 	const minutes = Math.floor(duration / 60);
@@ -31,8 +33,8 @@ function ClipCard({ clip, gallery, onSelect, horizontal = false }: { clip: Twitc
 				{gallery.showTitle ? <span className={styles.title}>{clip.title}</span> : null}
 				<span className={styles.details}>
 					{gallery.showCreator ? <span>{clip.creator_name}</span> : null}
-					{gallery.showViews ? <span>{clip.view_count.toLocaleString()} views</span> : null}
-					{gallery.showCreatedAt ? <time dateTime={clip.created_at}>{new Date(clip.created_at).toLocaleDateString()}</time> : null}
+					{gallery.showViews ? <span>{viewCountFormatter.format(clip.view_count)} views</span> : null}
+					{gallery.showCreatedAt ? <time dateTime={clip.created_at}>{createdAtFormatter.format(new Date(clip.created_at))}</time> : null}
 				</span>
 			</span>
 		</button>

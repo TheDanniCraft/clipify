@@ -84,6 +84,7 @@ describe("GalleryPlayer", () => {
 		const { container } = render(<GalleryPlayer gallery={buildGallery({ desktopModalWidth: 900 })} clips={clips} initialIndex={0} initialPlaybackUrl='https://video.example/one.mp4' ownerName='Alice' showAttribution />);
 		const video = container.querySelector("video") as HTMLVideoElement;
 		expect(video).toHaveAttribute("src", "https://video.example/one.mp4");
+		expect(video.volume).toBe(0.8);
 		expect(container.querySelectorAll("video")).toHaveLength(1);
 		expect(container.querySelectorAll("img")).toHaveLength(1);
 		expect(screen.getByText("First")).toBeInTheDocument();
@@ -183,13 +184,16 @@ describe("GalleryPlayer", () => {
 	});
 
 	it("navigates through the carousel, ignores form key events, and releases old media", async () => {
+		(global.fetch as jest.Mock).mockResolvedValueOnce({ ok: true, json: async () => ({ playbackUrl: "https://video.example/two.mp4" }) });
 		const { container, unmount } = render(<GalleryPlayer gallery={buildGallery()} clips={clips} initialIndex={0} initialPlaybackUrl='https://video.example/one.mp4' ownerName='Alice' showAttribution={false} />);
 		await waitFor(() => expect(carouselApi.on).toHaveBeenCalledWith("select", expect.any(Function)));
+		fireEvent.change(screen.getByLabelText("Volume"), { target: { value: "0.35" } });
 		carouselApi.selectedScrollSnap.mockReturnValueOnce(1);
 		act(() => selectCallback?.());
 		expect(pause).toHaveBeenCalled();
 		expect(screen.getByText("Second")).toBeInTheDocument();
 		expect(screen.getByText("0:00 / 1:20")).toBeInTheDocument();
+		await waitFor(() => expect((container.querySelector("video") as HTMLVideoElement | null)?.volume).toBe(0.35));
 
 		fireEvent.keyDown(window, { key: "ArrowLeft" });
 		fireEvent.keyDown(window, { key: "ArrowRight" });

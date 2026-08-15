@@ -2412,6 +2412,52 @@ export async function getTwitchCacheByPrefixEntries<T>(type: TwitchCacheType, ke
 	}
 }
 
+export async function getCachedClipPageByOwner(ownerId: string, query: { sort?: "newest" | "most_viewed"; start?: Date | null; end?: Date | null; cursor?: string | null; pageSize?: number }) {
+	try {
+		if (!ownerId) return { items: [] as TwitchClip[], nextCursor: null as string | null, total: 0 };
+		const now = new Date();
+		const keyPrefix = `clip:${ownerId}:`;
+		const escapedPrefix = escapeLikePattern(keyPrefix);
+		const payload = sql`coalesce(${twitchCacheTable.value}::jsonb -> 'clip', ${twitchCacheTable.value}::jsonb)`;
+		const clipId = sql<string>`${payload} ->> 'id'`;
+		const createdAt = sql<Date>`nullif(${payload} ->> 'created_at', '')::timestamptz`;
+		const viewCount = sql<number>`coalesce(nullif(${payload} ->> 'view_count', '')::bigint, 0)`;
+		const conditions = [eq(twitchCacheTable.type, TwitchCacheType.Clip), sql`${twitchCacheTable.key} LIKE ${`${escapedPrefix}%`} ESCAPE '\\'`, or(isNull(twitchCacheTable.expiresAt), gt(twitchCacheTable.expiresAt, now)), sql`coalesce((${twitchCacheTable.value}::jsonb ->> 'unavailable')::boolean, false) = false`, sql`${clipId} is not null`, sql`${createdAt} is not null`];
+		if (query.start) conditions.push(sql`${createdAt} >= ${query.start}`);
+		if (query.end) conditions.push(sql`${createdAt} < ${new Date(query.end.getTime() + 86_400_000)}`);
+		const where = and(...conditions);
+		const pageSize = Math.min(48, Math.max(1, Math.floor(query.pageSize ?? 24)));
+		const offset = Math.max(0, Number.parseInt(query.cursor ?? "0", 10) || 0);
+		const order = query.sort === "newest" ? [desc(createdAt), asc(clipId)] : [desc(viewCount), desc(createdAt), asc(clipId)];
+		const [rows, totals] = await Promise.all([
+			db
+				.select({ value: twitchCacheTable.value })
+				.from(twitchCacheTable)
+				.where(where)
+				.orderBy(...order)
+				.limit(pageSize + 1)
+				.offset(offset)
+				.execute(),
+			db
+				.select({ count: sql<number>`count(*)::int` })
+				.from(twitchCacheTable)
+				.where(where)
+				.execute(),
+		]);
+		const items: TwitchClip[] = [];
+		for (const row of rows.slice(0, pageSize)) {
+			const value = parseCacheJson<{ clip?: TwitchClip } | TwitchClip>(row.value, `getCachedClipPageByOwner:${ownerId}`);
+			if (!value) continue;
+			const clip = (value as { clip?: TwitchClip }).clip ?? (value as TwitchClip);
+			if (clip?.id) items.push(clip);
+		}
+		return { items, nextCursor: rows.length > pageSize ? String(offset + pageSize) : null, total: totals[0]?.count ?? 0 };
+	} catch (error) {
+		console.error("Error reading cached clip page:", error);
+		return { items: [] as TwitchClip[], nextCursor: null as string | null, total: 0 };
+	}
+}
+
 // Stale batch read: ignore expiresAt and return last known values if present.
 export async function getTwitchCacheStaleBatch<T>(type: TwitchCacheType, keys: string[]): Promise<T[]> {
 	try {

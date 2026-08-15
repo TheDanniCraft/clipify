@@ -40,8 +40,9 @@ const dbDelete = jest.fn(() => {
 	chain.execute = dbDeleteExecute;
 	return chain;
 });
-type DbMock = { select: typeof dbSelect; insert: typeof dbInsert; update: typeof dbUpdate; delete: typeof dbDelete; transaction: jest.Mock };
-const db: DbMock = { select: dbSelect, insert: dbInsert, update: dbUpdate, delete: dbDelete, transaction: jest.fn() };
+const dbExecute = jest.fn().mockResolvedValue(undefined);
+type DbMock = { select: typeof dbSelect; insert: typeof dbInsert; update: typeof dbUpdate; delete: typeof dbDelete; execute: typeof dbExecute; transaction: jest.Mock };
+const db: DbMock = { select: dbSelect, insert: dbInsert, update: dbUpdate, delete: dbDelete, execute: dbExecute, transaction: jest.fn() };
 const dbTransaction = db.transaction;
 dbTransaction.mockImplementation(async (callback: (tx: DbMock) => unknown) => callback(db));
 
@@ -218,6 +219,8 @@ describe("gallery actions", () => {
 		insertedRows.push([gallery({ name: "My clip gallery" })]);
 		await expect(createGallery("owner", "   ")).resolves.toMatchObject({ name: "My clip gallery" });
 		expect(dbInsert).toHaveBeenCalled();
+		expect(dbExecute).toHaveBeenCalledTimes(2);
+		expect(dbExecute.mock.invocationCallOrder[0]).toBeLessThan(dbSelect.mock.invocationCallOrder[0]);
 	});
 
 	it("lets direct and managed Pro owners create multiple galleries", async () => {
