@@ -6,13 +6,14 @@ import CodeSnippet from "@components/codeSnippet";
 import GalleryInlinePreview from "@components/gallery/GalleryInlinePreview";
 import TagsInput from "@components/tagsInput";
 import { notify as addToast } from "@lib/toast";
-import { Alert, Button, Card, Checkbox, ColorArea, ColorField, ColorPicker, ColorSlider, ColorSwatch, ColorSwatchPicker, Description, FieldError, Form, Input, Label, ListBox, NumberField, parseColor, Select, Separator, Switch, TextField, Tooltip } from "@heroui/react";
+import { Alert, Button, Card, Checkbox, ColorArea, ColorField, ColorPicker, ColorSlider, ColorSwatch, ColorSwatchPicker, Description, FieldError, Form, Input, Label, Link, ListBox, NumberField, parseColor, Select, Separator, Switch, TextField, Tooltip } from "@heroui/react";
+import { buttonVariants } from "@heroui/styles";
 import { parseDate } from "@internationalized/date";
-import { IconArrowLeft, IconCrown, IconDeviceFloppy, IconPlayerPauseFilled, IconPlayerPlayFilled, IconRestore, IconTools } from "@tabler/icons-react";
+import { IconArrowLeft, IconCrown, IconDeviceFloppy, IconPlayerPauseFilled, IconPlayerPlayFilled, IconRestore } from "@tabler/icons-react";
 import type { Gallery, Playlist, TwitchClip } from "@types";
 import { useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
-import { FREE_PLAYLIST_CLIP_LIMIT } from "@lib/constants";
+import { CLIPIFY_ELEMENTS_HELP_URL, FREE_PLAYLIST_CLIP_LIMIT } from "@lib/constants";
 import type { GalleryPatch } from "@lib/gallery";
 
 type SelectOption = { value: string; label: string };
@@ -487,15 +488,15 @@ export default function GalleryEditor({ initialGallery, playlists, canUseAdvance
 
 						<Separator />
 
-						<SettingsSection title='Integration' description='Interactive galleries use Clipify Elements so the clip modal can cover the host website. Raw gallery iframes are intentionally unsupported.'>
+						<SettingsSection title='Integration' description='Copy the gallery element below, then install Clipify Elements once on your website. Raw gallery iframes are intentionally unsupported.'>
 							<CodeSnippet symbol='' className='w-full' preClassName='overflow-x-auto whitespace-nowrap'>
-								{gallery.id}
+								{`<clipify-gallery gallery-id="${gallery.id}"></clipify-gallery>`}
 							</CodeSnippet>
 							<div className='flex flex-wrap gap-2'>
-								<Button type='button' variant='secondary' onPress={() => router.push(`/dashboard/tools?tool=gallery&gallery=${gallery.id}`)}>
-									<IconTools size={17} />
-									Open in Tools
-								</Button>
+								<Link href={CLIPIFY_ELEMENTS_HELP_URL} target='_blank' rel='noopener noreferrer' className={buttonVariants({ variant: "secondary" })}>
+									Install Clipify Elements
+									<Link.Icon />
+								</Link>
 							</div>
 							{!gallery.published ? <p className='text-xs text-muted'>You can preview drafts above. Publish and save before using the element on an external website.</p> : null}
 						</SettingsSection>

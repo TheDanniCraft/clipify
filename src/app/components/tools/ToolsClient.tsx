@@ -6,12 +6,11 @@ import CodeSnippet from "@components/codeSnippet";
 import GalleryInlinePreview from "@components/gallery/GalleryInlinePreview";
 import { Button, Card, Label, Link, ListBox, Select, Separator, Switch, Tabs } from "@heroui/react";
 import { buttonVariants } from "@heroui/styles";
+import { CLIPIFY_ELEMENTS_HELP_URL } from "@lib/constants";
 import { IconArrowLeft } from "@tabler/icons-react";
 import type { Gallery, Overlay } from "@types";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-
-const CLIPIFY_ELEMENTS_HELP_URL = "https://help.clipify.us/hc/clipify/articles/install-clipify-elements";
 
 function CopyField({ label, value, description }: { label: string; value: string; description?: string }) {
 	return (

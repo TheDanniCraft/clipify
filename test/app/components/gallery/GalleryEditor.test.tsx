@@ -64,6 +64,7 @@ jest.mock("@heroui/react", () => {
 		</button>
 	));
 	Button.displayName = "MockButton";
+	const Link = Object.assign(({ children, ...props }: any) => <a {...props}>{children}</a>, { Icon: () => <span aria-hidden='true'>external</span> });
 	const SelectRoot = ({ children, value, onChange, isDisabled }: any) => (
 		<div>
 			{children}
@@ -113,7 +114,7 @@ jest.mock("@heroui/react", () => {
 		if (value === "invalid") throw new Error("invalid");
 		return { toString: () => value };
 	};
-	const components: Record<PropertyKey, any> = { Alert: Compound, Button, Card: Compound, Checkbox, ColorArea: Compound, ColorField: Compound, ColorPicker, ColorSlider: Compound, ColorSwatch: Div, ColorSwatchPicker: Compound, Description: Div, FieldError: Div, Form, Input, Label: Div, ListBox: Compound, NumberField, parseColor, Select, Separator: Div, Switch, TextField: Div, Tooltip: Compound };
+	const components: Record<PropertyKey, any> = { Alert: Compound, Button, Card: Compound, Checkbox, ColorArea: Compound, ColorField: Compound, ColorPicker, ColorSlider: Compound, ColorSwatch: Div, ColorSwatchPicker: Compound, Description: Div, FieldError: Div, Form, Input, Label: Div, Link, ListBox: Compound, NumberField, parseColor, Select, Separator: Div, Switch, TextField: Div, Tooltip: Compound };
 	return new Proxy(components, { get: (target, property) => (property in target ? target[property] : Compound) });
 });
 
@@ -152,7 +153,7 @@ describe("GalleryEditor", () => {
 		}
 	});
 
-	it("shows draft preview failures and keeps internal navigation in the router", async () => {
+	it("shows draft preview failures and direct integration guidance", async () => {
 		jest.useFakeTimers();
 		try {
 			getGalleryDraftPreview.mockResolvedValueOnce(null).mockRejectedValueOnce(new Error("preview failed"));
@@ -175,8 +176,9 @@ describe("GalleryEditor", () => {
 			});
 			expect(screen.getByTestId("preview")).toHaveTextContent("error");
 
-			fireEvent.click(screen.getByRole("button", { name: "Open in Tools" }));
-			expect(push).toHaveBeenCalledWith("/dashboard/tools?tool=gallery&gallery=gallery-1");
+			const installationLink = screen.getByRole("link", { name: /Install Clipify Elements/i });
+			expect(installationLink).toHaveAttribute("href", "https://help.clipify.us/hc/clipify/articles/install-clipify-elements");
+			expect(screen.getByText('<clipify-gallery gallery-id="gallery-1"></clipify-gallery>')).toBeInTheDocument();
 		} finally {
 			jest.useRealTimers();
 		}
@@ -187,7 +189,7 @@ describe("GalleryEditor", () => {
 		expect(screen.getByText("Gallery Settings")).toBeInTheDocument();
 		expect(screen.getByText("Draft")).toBeInTheDocument();
 		expect(screen.getByText("Website Preview")).toBeInTheDocument();
-		expect(screen.getByText("gallery-1")).toBeInTheDocument();
+		expect(screen.getByText(/ID:/)).toHaveTextContent("ID: gallery-1");
 		fireEvent.click(screen.getByRole("button", { name: "Back to dashboard" }));
 		expect(push).toHaveBeenCalledWith("/dashboard");
 
