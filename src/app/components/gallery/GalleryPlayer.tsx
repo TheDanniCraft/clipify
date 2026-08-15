@@ -307,9 +307,6 @@ export default function GalleryPlayer({ gallery, clips, initialIndex, initialPla
 							}
 						}}
 					/>
-					<Button isIconOnly aria-label='Close player' className='shrink-0' variant='tertiary' onPress={closePlayer}>
-						<IconX size={18} />
-					</Button>
 				</div>
 				{showAttribution ? (
 					<a className='pb-3 text-center text-xs text-zinc-400' href={`https://clipify.us/gallery?utm_source=clipify_gallery&utm_medium=attribution&utm_campaign=${encodeURIComponent(gallery.id)}`} target='_blank' rel='noreferrer'>

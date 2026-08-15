@@ -233,7 +233,7 @@ describe("GalleryPlayer", () => {
 		expect(port.postMessage).toHaveBeenCalledTimes(resizeCalls);
 		fireEvent.keyDown(window, { key: "Escape" });
 		expect(port.postMessage).toHaveBeenCalledWith(expect.objectContaining({ type: "close" }));
-		fireEvent.click(screen.getAllByRole("button", { name: "Close player" })[0]);
+		fireEvent.click(screen.getByRole("button", { name: "Close player" }));
 		expect(port.postMessage).toHaveBeenCalledWith(expect.objectContaining({ type: "close" }));
 		unmount();
 		expect(port.close).toHaveBeenCalled();
