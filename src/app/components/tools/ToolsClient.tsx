@@ -6,7 +6,7 @@ import CodeSnippet from "@components/codeSnippet";
 import GalleryInlinePreview from "@components/gallery/GalleryInlinePreview";
 import { Button, Card, Label, Link, ListBox, Select, Separator, Switch, Tabs } from "@heroui/react";
 import { buttonVariants } from "@heroui/styles";
-import { IconArrowLeft, IconCode } from "@tabler/icons-react";
+import { IconArrowLeft } from "@tabler/icons-react";
 import type { Gallery, Overlay } from "@types";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -174,7 +174,7 @@ export default function ToolsClient({ overlays, galleries, initialTool, initialG
 					</Card.Content>
 					<Card.Footer className='flex flex-wrap gap-2'>
 						<Link href={CLIPIFY_ELEMENTS_HELP_URL} target='_blank' rel='noopener noreferrer' className={buttonVariants({ variant: "primary" })}>
-							<IconCode size={18} /> Install Clipify Elements
+							Install Clipify Elements
 							<Link.Icon />
 						</Link>
 						{tool === "gallery" && galleryId ? (
