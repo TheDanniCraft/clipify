@@ -1,23 +1,26 @@
 import React from "react";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import GalleryEditor from "@components/gallery/GalleryEditor";
 import { buildClip, buildGallery } from "../../gallery/fixtures";
 
 const saveGallery = jest.fn();
+const getGalleryDraftPreview = jest.fn();
 const notify = jest.fn();
 const push = jest.fn();
 let previewGallery = buildGallery();
+let previewClips = [buildClip("initial")];
 
-jest.mock("@actions/gallery", () => ({ saveGallery: (...args: unknown[]) => saveGallery(...args) }));
+jest.mock("@actions/gallery", () => ({ saveGallery: (...args: unknown[]) => saveGallery(...args), getGalleryDraftPreview: (...args: unknown[]) => getGalleryDraftPreview(...args) }));
 jest.mock("@lib/toast", () => ({ notify: (...args: unknown[]) => notify(...args) }));
 jest.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
 jest.mock("@components/gallery/GalleryInlinePreview", () => ({
 	__esModule: true,
-	default: ({ gallery }: { gallery: ReturnType<typeof buildGallery> }) => {
+	default: ({ gallery, clips, isUpdating, hasError }: { gallery: ReturnType<typeof buildGallery>; clips: ReturnType<typeof buildClip>[]; isUpdating?: boolean; hasError?: boolean }) => {
 		previewGallery = gallery;
+		previewClips = clips;
 		return (
 			<div data-testid='preview'>
-				{gallery.name}:{gallery.layout}:{gallery.theme}
+				{gallery.name}:{gallery.layout}:{gallery.theme}:{clips.map((clip) => clip.id).join(",")}:{isUpdating ? "updating" : "ready"}:{hasError ? "error" : "ok"}
 			</div>
 		);
 	},
@@ -121,7 +124,62 @@ describe("GalleryEditor", () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
 		previewGallery = buildGallery();
+		previewClips = [buildClip("initial")];
 		saveGallery.mockImplementation(async (_id, next) => next);
+		getGalleryDraftPreview.mockImplementation(async (_id, patch) => ({ clips: patch.source === "live" ? [buildClip("live-preview")] : [] }));
+	});
+
+	it("refreshes source and filter clips live without saving", async () => {
+		jest.useFakeTimers();
+		try {
+			render(<GalleryEditor initialGallery={buildGallery({ source: "curated", playlistId: "playlist-owner" })} playlists={[playlist("playlist-owner", "owner", "Owner playlist")]} canUseAdvanced canUseStyling previewClips={[buildClip("curated-preview")]} previewOwnerName='Alice' showPreviewAttribution={false} />);
+			expect(previewClips.map((clip) => clip.id)).toEqual(["curated-preview"]);
+			fireEvent.change(selectWith("curated"), { target: { value: "live" } });
+			expect(previewGallery.playlistId).toBeNull();
+			expect(previewClips).toEqual([]);
+			expect(screen.getByTestId("preview")).toHaveTextContent("updating");
+			await act(async () => {
+				jest.advanceTimersByTime(200);
+				await Promise.resolve();
+				await Promise.resolve();
+			});
+			expect(getGalleryDraftPreview).toHaveBeenCalledWith("gallery-1", expect.objectContaining({ source: "live", playlistId: null }));
+			expect(previewClips.map((clip) => clip.id)).toEqual(["live-preview"]);
+			expect(screen.getByText("All time")).toBeInTheDocument();
+			expect(saveGallery).not.toHaveBeenCalled();
+		} finally {
+			jest.useRealTimers();
+		}
+	});
+
+	it("shows draft preview failures and keeps internal navigation in the router", async () => {
+		jest.useFakeTimers();
+		try {
+			getGalleryDraftPreview.mockResolvedValueOnce(null).mockRejectedValueOnce(new Error("preview failed"));
+			render(<GalleryEditor initialGallery={buildGallery({ source: "live", liveSort: "newest" })} playlists={[]} canUseAdvanced canUseStyling previewClips={[buildClip("initial")]} previewOwnerName='Alice' showPreviewAttribution={false} />);
+
+			fireEvent.change(selectWith("newest"), { target: { value: "most_viewed" } });
+			await act(async () => {
+				jest.advanceTimersByTime(200);
+				await Promise.resolve();
+				await Promise.resolve();
+			});
+			expect(screen.getByTestId("preview")).toHaveTextContent("error");
+			expect(screen.getByTestId("preview")).toHaveTextContent("ready");
+
+			fireEvent.change(selectWith("most_viewed"), { target: { value: "newest" } });
+			await act(async () => {
+				jest.advanceTimersByTime(200);
+				await Promise.resolve();
+				await Promise.resolve();
+			});
+			expect(screen.getByTestId("preview")).toHaveTextContent("error");
+
+			fireEvent.click(screen.getByRole("button", { name: "Open in Tools" }));
+			expect(push).toHaveBeenCalledWith("/dashboard/tools?tool=gallery&gallery=gallery-1");
+		} finally {
+			jest.useRealTimers();
+		}
 	});
 
 	it("renders the dashboard style, filters playlists, navigates, publishes, edits, and saves", async () => {

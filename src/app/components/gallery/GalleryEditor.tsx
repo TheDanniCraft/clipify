@@ -1,6 +1,6 @@
 "use client";
 
-import { saveGallery } from "@actions/gallery";
+import { getGalleryDraftPreview, saveGallery } from "@actions/gallery";
 import AppDateRangePicker from "@components/appDateRangePicker";
 import CodeSnippet from "@components/codeSnippet";
 import GalleryInlinePreview from "@components/gallery/GalleryInlinePreview";
@@ -11,8 +11,9 @@ import { parseDate } from "@internationalized/date";
 import { IconArrowLeft, IconCrown, IconDeviceFloppy, IconPlayerPauseFilled, IconPlayerPlayFilled, IconRestore, IconTools } from "@tabler/icons-react";
 import type { Gallery, Playlist, TwitchClip } from "@types";
 import { useRouter } from "next/navigation";
-import { type ReactNode, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { FREE_PLAYLIST_CLIP_LIMIT } from "@lib/constants";
+import type { GalleryPatch } from "@lib/gallery";
 
 type SelectOption = { value: string; label: string };
 
@@ -155,6 +156,10 @@ export default function GalleryEditor({ initialGallery, playlists, canUseAdvance
 	const router = useRouter();
 	const [gallery, setGallery] = useState(initialGallery);
 	const [saving, setSaving] = useState(false);
+	const [livePreviewClips, setLivePreviewClips] = useState(previewClips);
+	const [previewUpdating, setPreviewUpdating] = useState(false);
+	const [previewError, setPreviewError] = useState(false);
+	const initialPreview = useRef(true);
 	const ownerPlaylists = useMemo(() => playlists.filter((playlist) => playlist.ownerId === gallery.ownerId), [gallery.ownerId, playlists]);
 	const customDateRange = useMemo(() => {
 		if (!gallery.liveCustomStart || !gallery.liveCustomEnd) return null;
@@ -164,6 +169,58 @@ export default function GalleryEditor({ initialGallery, playlists, canUseAdvance
 		};
 	}, [gallery.liveCustomEnd, gallery.liveCustomStart]);
 	const update = <K extends keyof Gallery>(key: K, value: Gallery[K]) => setGallery((current) => ({ ...current, [key]: value }));
+	const previewDraft = useMemo<GalleryPatch>(
+		() => ({
+			source: gallery.source,
+			playlistId: gallery.source === "curated" ? gallery.playlistId : null,
+			liveSort: gallery.liveSort,
+			liveTimeWindow: gallery.liveTimeWindow,
+			liveCustomStart: gallery.liveCustomStart,
+			liveCustomEnd: gallery.liveCustomEnd,
+			liveResultLimit: gallery.liveResultLimit,
+			includeCategories: gallery.includeCategories,
+			excludeCategories: gallery.excludeCategories,
+			minimumViews: gallery.minimumViews,
+			minimumDuration: gallery.minimumDuration,
+			maximumDuration: gallery.maximumDuration,
+			titleBlacklist: gallery.titleBlacklist,
+			creatorAllowlist: gallery.creatorAllowlist,
+			creatorBlocklist: gallery.creatorBlocklist,
+		}),
+		[gallery.creatorAllowlist, gallery.creatorBlocklist, gallery.excludeCategories, gallery.includeCategories, gallery.liveCustomEnd, gallery.liveCustomStart, gallery.liveResultLimit, gallery.liveSort, gallery.liveTimeWindow, gallery.maximumDuration, gallery.minimumDuration, gallery.minimumViews, gallery.playlistId, gallery.source, gallery.titleBlacklist],
+	);
+
+	useEffect(() => {
+		if (initialPreview.current) {
+			initialPreview.current = false;
+			return;
+		}
+		let cancelled = false;
+		setPreviewUpdating(true);
+		setPreviewError(false);
+		setLivePreviewClips([]);
+		const timer = window.setTimeout(() => {
+			void getGalleryDraftPreview(gallery.id, previewDraft)
+				.then((preview) => {
+					if (cancelled) return;
+					if (!preview) {
+						setPreviewError(true);
+						return;
+					}
+					setLivePreviewClips(preview.clips);
+				})
+				.catch(() => {
+					if (!cancelled) setPreviewError(true);
+				})
+				.finally(() => {
+					if (!cancelled) setPreviewUpdating(false);
+				});
+		}, 200);
+		return () => {
+			cancelled = true;
+			window.clearTimeout(timer);
+		};
+	}, [gallery.id, previewDraft]);
 
 	const save = async () => {
 		setSaving(true);
@@ -254,14 +311,20 @@ export default function GalleryEditor({ initialGallery, playlists, canUseAdvance
 										{ value: "curated", label: "Curated playlist" },
 										{ value: "live", label: "Live clips" },
 									]}
-									onChange={(value) => update("source", value as Gallery["source"])}
+									onChange={(value) =>
+										setGallery((current) => ({
+											...current,
+											source: value as Gallery["source"],
+											playlistId: value === "live" ? null : current.playlistId,
+										}))
+									}
 								/>
 								{gallery.source === "curated" ? <GallerySelect label='Playlist' value={gallery.playlistId ?? "none"} options={[{ value: "none", label: "Select a playlist" }, ...ownerPlaylists.map((playlist) => ({ value: playlist.id, label: playlist.name }))]} onChange={(value) => update("playlistId", value === "none" ? null : value)} /> : null}
 							</div>
 							{gallery.source === "live" ? (
 								<div className='grid w-full gap-4 sm:grid-cols-3'>
 									<GallerySelect label='Sort' value={gallery.liveSort} options={[{ value: "newest", label: "Newest" }, { value: "most_viewed", label: "Most viewed" }, ...(canUseAdvanced ? [{ value: "stable_random", label: "Stable random" }] : [])]} onChange={(value) => update("liveSort", value as Gallery["liveSort"])} />
-									<GallerySelect label='Time Window' value={gallery.liveTimeWindow} options={[{ value: "today", label: "Today" }, { value: "7d", label: "Last 7 days" }, { value: "30d", label: "Last 30 days" }, { value: "all", label: "All cached history" }, ...(canUseAdvanced ? [{ value: "custom", label: "Custom dates" }] : [])]} onChange={(value) => update("liveTimeWindow", value as Gallery["liveTimeWindow"])} />
+									<GallerySelect label='Time Window' value={gallery.liveTimeWindow} options={[{ value: "today", label: "Today" }, { value: "7d", label: "Last 7 days" }, { value: "30d", label: "Last 30 days" }, { value: "all", label: "All time" }, ...(canUseAdvanced ? [{ value: "custom", label: "Custom dates" }] : [])]} onChange={(value) => update("liveTimeWindow", value as Gallery["liveTimeWindow"])} />
 									<GalleryNumber label='Clip Limit' value={gallery.liveResultLimit} minValue={1} maxValue={canUseAdvanced ? 100 : FREE_PLAYLIST_CLIP_LIMIT} onChange={(value) => update("liveResultLimit", value)} />
 								</div>
 							) : null}
@@ -282,7 +345,7 @@ export default function GalleryEditor({ initialGallery, playlists, canUseAdvance
 						<Separator />
 
 						<SettingsSection title='Website Preview' description='Layout and styling update here immediately. Select a clip to test the real website-level player modal.'>
-							<GalleryInlinePreview gallery={gallery} clips={previewClips} ownerName={previewOwnerName} showAttribution={showPreviewAttribution} />
+							<GalleryInlinePreview gallery={gallery} clips={livePreviewClips} ownerName={previewOwnerName} showAttribution={showPreviewAttribution} isUpdating={previewUpdating} hasError={previewError} />
 						</SettingsSection>
 
 						<Separator />
@@ -429,7 +492,7 @@ export default function GalleryEditor({ initialGallery, playlists, canUseAdvance
 								{gallery.id}
 							</CodeSnippet>
 							<div className='flex flex-wrap gap-2'>
-								<Button type='button' variant='secondary' onPress={() => window.location.assign(`/dashboard/tools?tool=gallery&gallery=${gallery.id}`)}>
+								<Button type='button' variant='secondary' onPress={() => router.push(`/dashboard/tools?tool=gallery&gallery=${gallery.id}`)}>
 									<IconTools size={17} />
 									Open in Tools
 								</Button>

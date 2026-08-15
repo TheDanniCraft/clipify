@@ -2,7 +2,7 @@
 
 import { validateAuth } from "@actions/auth";
 import { getPlaylistClipsForOwnerServer } from "@actions/database";
-import { getCachedClipsByOwner, getTwitchClipPlaybackUrl } from "@actions/twitch";
+import { getCachedClipByOwner, getCachedClipsByOwner, getTwitchClipPlaybackUrl } from "@actions/twitch";
 import { db } from "@/db/client";
 import { editorsTable, galleriesTable, playlistsTable, usersTable } from "@/db/schema";
 import { FREE_GALLERY_LIMIT, downgradeGalleryPatch, normalizeGalleryPatch, resolveLiveGalleryClips, type GalleryPatch } from "@lib/gallery";
@@ -87,19 +87,34 @@ export async function getGalleryPreview(galleryId: string) {
 	};
 }
 
+export async function getGalleryDraftPreview(galleryId: string, patch: GalleryPatch) {
+	const context = await requireGalleryAccess(galleryId);
+	if (!context) return null;
+	const normalized = normalizeGalleryPatch(context.gallery, patch, Boolean(context.isPro));
+	const effectiveGallery = { ...context.gallery, ...normalized } as Gallery;
+	if (effectiveGallery.source === "curated" && effectiveGallery.playlistId && !(await validatePlaylist(effectiveGallery.ownerId, effectiveGallery.playlistId))) return null;
+	return { clips: await resolveClips(effectiveGallery) };
+}
+
 export async function getGalleryPreviewPlayer(galleryId: string, clipId: string) {
 	const bundle = await getGalleryPreview(galleryId);
 	if (!bundle) return null;
-	const selectedIndex = bundle.clips.findIndex((clip) => clip.id === clipId);
-	if (selectedIndex < 0) return null;
+	let clips = bundle.clips;
+	let selectedIndex = clips.findIndex((clip) => clip.id === clipId);
+	if (selectedIndex < 0) {
+		const draftClip = await getCachedClipByOwner(bundle.gallery.ownerId, clipId);
+		if (!draftClip) return null;
+		clips = [draftClip];
+		selectedIndex = 0;
+	}
 	let playbackUrl: string | null = null;
 	try {
-		const clip = bundle.clips[selectedIndex];
+		const clip = clips[selectedIndex];
 		playbackUrl = (await getTwitchClipPlaybackUrl(clip.id, clip.broadcaster_id)) ?? null;
 	} catch {
 		playbackUrl = null;
 	}
-	return { ...bundle, selectedIndex, playbackUrl };
+	return { ...bundle, clips, selectedIndex, playbackUrl };
 }
 
 export async function createGallery(ownerId: string, name = "My clip gallery") {

@@ -6,7 +6,7 @@ import type { Gallery, TwitchClip } from "@types";
 import { useRef, useState, type CSSProperties } from "react";
 import GalleryFrame from "./GalleryFrame";
 
-export default function GalleryInlinePreview({ gallery, clips, ownerName, showAttribution }: { gallery: Gallery; clips: TwitchClip[]; ownerName: string; showAttribution: boolean }) {
+export default function GalleryInlinePreview({ gallery, clips, ownerName, showAttribution, isUpdating = false, hasError = false }: { gallery: Gallery; clips: TwitchClip[]; ownerName: string; showAttribution: boolean; isUpdating?: boolean; hasError?: boolean }) {
 	const dialogRef = useRef<HTMLDialogElement>(null);
 	const [selectedClip, setSelectedClip] = useState<TwitchClip | null>(null);
 
@@ -28,6 +28,8 @@ export default function GalleryInlinePreview({ gallery, clips, ownerName, showAt
 					<span className='size-2.5 rounded-full bg-amber-400' />
 					<span className='size-2.5 rounded-full bg-green-400' />
 					<span className='ml-2 text-[11px] text-black/45 dark:text-white/50'>Website preview</span>
+					{isUpdating ? <span className='ml-auto text-[11px] text-black/45 dark:text-white/50'>Updating...</span> : null}
+					{hasError ? <span className='ml-auto text-[11px] text-danger'>Preview unavailable</span> : null}
 				</div>
 				<div className='p-4 sm:p-6'>
 					<p className='mb-3 text-xs font-semibold uppercase tracking-wider text-black/50 dark:text-white/55'>Featured clips</p>

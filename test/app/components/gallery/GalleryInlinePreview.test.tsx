@@ -45,6 +45,13 @@ describe("GalleryInlinePreview", () => {
 		expect(dialog.style.getPropertyValue("--gallery-backdrop")).toBe("rgba(1,2,3,.5)");
 	});
 
+	it("shows live update and failure states in the website chrome", () => {
+		const { rerender } = render(<GalleryInlinePreview gallery={buildGallery()} clips={[]} ownerName='Alice' showAttribution={false} isUpdating />);
+		expect(screen.getByText("Updating...")).toBeInTheDocument();
+		rerender(<GalleryInlinePreview gallery={buildGallery()} clips={[]} ownerName='Alice' showAttribution={false} hasError />);
+		expect(screen.getByText("Preview unavailable")).toBeInTheDocument();
+	});
+
 	it("closes and removes the player through the button and native dialog close", () => {
 		const { container } = render(<GalleryInlinePreview gallery={buildGallery()} clips={[buildClip("one")]} ownerName='Alice' showAttribution={false} />);
 		fireEvent.click(screen.getByRole("button", { name: "Open first clip" }));

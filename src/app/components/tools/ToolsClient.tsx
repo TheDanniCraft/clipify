@@ -3,14 +3,15 @@
 import { getGalleryPreview } from "@actions/gallery";
 import ClipifyElementPreview from "@components/clipifyElementPreview";
 import CodeSnippet from "@components/codeSnippet";
-import ControlledModal from "@components/controlledModal";
 import GalleryInlinePreview from "@components/gallery/GalleryInlinePreview";
-import { Button, Card, Label, Link, ListBox, Modal, Select, Separator, Switch, Tabs } from "@heroui/react";
+import { Button, Card, Label, Link, ListBox, Select, Separator, Switch, Tabs } from "@heroui/react";
 import { buttonVariants } from "@heroui/styles";
 import { IconArrowLeft, IconCode } from "@tabler/icons-react";
 import type { Gallery, Overlay } from "@types";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+
+const CLIPIFY_ELEMENTS_HELP_URL = "https://help.clipify.us/hc/clipify/articles/install-clipify-elements";
 
 function CopyField({ label, value, description }: { label: string; value: string; description?: string }) {
 	return (
@@ -68,7 +69,6 @@ export default function ToolsClient({ overlays, galleries, initialTool, initialG
 	const [autoplay, setAutoplay] = useState(false);
 	const [showBanner, setShowBanner] = useState(false);
 	const [showOverlay, setShowOverlay] = useState(false);
-	const [installOpen, setInstallOpen] = useState(false);
 	const [galleryPreview, setGalleryPreview] = useState<Awaited<ReturnType<typeof getGalleryPreview>>>(null);
 	const overlay = overlays.find((item) => item.id === overlayId);
 	const gallery = galleries.find((item) => item.id === galleryId);
@@ -83,8 +83,6 @@ export default function ToolsClient({ overlays, galleries, initialTool, initialG
 	const playerElement = `<clipify-player player-id="${overlayId || "actual-player-id"}"${muted ? " muted" : ""}${autoplay ? " autoplay" : ""}${showBanner ? " show-banner" : ""}${showOverlay ? " show-overlay" : ""}></clipify-player>`;
 	const playerIframe = `<iframe src="${playerUrl}" title="Clipify player" allow="autoplay" loading="lazy" referrerpolicy="strict-origin" style="width:100%;aspect-ratio:16/9;border:0"></iframe>`;
 	const galleryElement = `<clipify-gallery gallery-id="${galleryId || "actual-gallery-id"}"></clipify-gallery>`;
-	const moduleSnippet = `<script type="module" src="${origin}/elements/v1/clipify.js"></script>`;
-	const selectedElement = tool === "player" ? playerElement : galleryElement;
 
 	useEffect(() => {
 		let active = true;
@@ -175,9 +173,10 @@ export default function ToolsClient({ overlays, galleries, initialTool, initialG
 						)}
 					</Card.Content>
 					<Card.Footer className='flex flex-wrap gap-2'>
-						<Button variant='primary' onPress={() => setInstallOpen(true)}>
+						<Link href={CLIPIFY_ELEMENTS_HELP_URL} target='_blank' rel='noopener noreferrer' className={buttonVariants({ variant: "primary" })}>
 							<IconCode size={18} /> Install Clipify Elements
-						</Button>
+							<Link.Icon />
+						</Link>
 						{tool === "gallery" && galleryId ? (
 							<Link href={`/dashboard/galleries/${galleryId}`} className={buttonVariants({ variant: "tertiary" })}>
 								Configure gallery
@@ -200,30 +199,6 @@ export default function ToolsClient({ overlays, galleries, initialTool, initialG
 					</Card.Content>
 				</Card>
 			</div>
-
-			<ControlledModal isOpen={installOpen} onOpenChange={setInstallOpen} size='lg'>
-				<Modal.Header>
-					<Modal.Heading>Install Clipify Elements</Modal.Heading>
-				</Modal.Header>
-				<Modal.Body className='space-y-5'>
-					<p className='text-sm text-muted'>Add the framework-neutral module once, then place as many Clipify elements as you need.</p>
-					<CopyField label='1. Add the module once' value={moduleSnippet} />
-					<CopyField label='2. Place the element' value={selectedElement} />
-					<CopyField label='Complete snippet' value={`${moduleSnippet}\n${selectedElement}`} />
-					<div className='space-y-2 text-sm'>
-						<p>In plain HTML or a site builder, put the module in custom site code and the element in an HTML/embed block. React, Vue and Svelte can render the same custom-element markup.</p>
-						<p>Iframe installation remains available only for Clip Player. Restrictive CSPs must allow {origin} for scripts, frames, images and media.</p>
-						<a className='text-accent underline' href='https://help.clipify.us/' target='_blank' rel='noreferrer'>
-							Open the Clipify Help Center
-						</a>
-					</div>
-				</Modal.Body>
-				<Modal.Footer>
-					<Button variant='primary' onPress={() => setInstallOpen(false)}>
-						Done
-					</Button>
-				</Modal.Footer>
-			</ControlledModal>
 		</div>
 	);
 }
