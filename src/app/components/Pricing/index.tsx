@@ -151,7 +151,7 @@ export default function TiersComponent({ campaignOffer = null, context = "public
 			{showRunner ? (
 				<Card variant='secondary' className='mt-4 w-full border border-accent/30'>
 					<Card.Content className='flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between'>
-						<div>
+						<div className='min-w-0 flex-1'>
 							<div className='flex flex-wrap items-center gap-2'>
 								<h2 className='font-semibold'>{runnerAddon.title} add-on</h2>
 								<Chip size='sm' variant='tertiary'>
@@ -164,7 +164,7 @@ export default function TiersComponent({ campaignOffer = null, context = "public
 								Need a managed Runner?
 							</Link>
 						</div>
-						<div className='flex shrink-0 flex-wrap items-center gap-3'>
+						<div className='flex shrink-0 flex-col gap-2 sm:items-end sm:text-right'>
 							<p className='font-semibold tabular-nums'>
 								{runtimePricing.runner[selectedFrequency.key].formatted} / {selectedFrequency.key === FrequencyEnum.Monthly ? "month" : "year"}
 							</p>
@@ -173,7 +173,7 @@ export default function TiersComponent({ campaignOffer = null, context = "public
 									Add Runner
 								</Link>
 							) : (
-								<p className='max-w-48 text-right text-xs text-muted'>Select Get Pro to include it during setup.</p>
+								<p className='max-w-52 text-xs text-muted'>Select Get Pro to include it during setup.</p>
 							)}
 						</div>
 					</Card.Content>
