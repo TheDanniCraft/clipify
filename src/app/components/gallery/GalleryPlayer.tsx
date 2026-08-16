@@ -4,7 +4,7 @@ import { Carousel } from "@heroui-pro/react/carousel";
 import { Button } from "@heroui/react";
 import { IconPlayerPauseFilled, IconPlayerPlayFilled, IconRefresh, IconVolume, IconVolumeOff, IconX } from "@tabler/icons-react";
 import type { Gallery, TwitchClip } from "@types";
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { usePlausible } from "next-plausible";
 import { PLAUSIBLE_EVENTS } from "@lib/plausibleEvents";
 import { useQualifiedPlayback } from "@/app/hooks/useQualifiedPlayback";
@@ -64,6 +64,11 @@ export default function GalleryPlayer({ gallery, clips, initialIndex, initialPla
 	const qualifiedPlayback = useQualifiedPlayback(clip.id, () => {
 		plausible(PLAUSIBLE_EVENTS.clipPlayed, { props: { surface: "gallery", galleryId: gallery.id, clipId: clip.id } });
 	});
+	const syncPlayingState = useCallback(() => {
+		const video = videoRef.current;
+		if (!video) return;
+		setPlaying(!video.paused && !video.ended);
+	}, []);
 	const consumeBootstrapInit = useCallback(() => {
 		const bootstrap = window as Window & { __clipifyPlayerBootstrap?: PlayerBootstrapState };
 		const pendingInit = bootstrap.__clipifyPlayerBootstrap?.pendingInit;
@@ -88,6 +93,28 @@ export default function GalleryPlayer({ gallery, clips, initialIndex, initialPla
 	useEffect(() => {
 		if (videoRef.current) videoRef.current.volume = volume;
 	}, [playbackUrl, selectedIndex, volume]);
+
+	useLayoutEffect(() => {
+		syncPlayingState();
+	}, [playbackUrl, selectedIndex, syncPlayingState]);
+
+	useEffect(() => {
+		const video = videoRef.current;
+		if (!video) return;
+		const syncPlaying = () => setPlaying(true);
+		const syncPaused = () => setPlaying(false);
+		video.addEventListener("play", syncPlaying);
+		video.addEventListener("playing", syncPlaying);
+		video.addEventListener("pause", syncPaused);
+		video.addEventListener("ended", syncPaused);
+		syncPlayingState();
+		return () => {
+			video.removeEventListener("play", syncPlaying);
+			video.removeEventListener("playing", syncPlaying);
+			video.removeEventListener("pause", syncPaused);
+			video.removeEventListener("ended", syncPaused);
+		};
+	}, [playbackUrl, selectedIndex, syncPlayingState]);
 
 	useEffect(() => {
 		consumeBootstrapInit();
@@ -193,15 +220,16 @@ export default function GalleryPlayer({ gallery, clips, initialIndex, initialPla
 		const video = videoRef.current;
 		if (!video) return;
 		if (video.paused) {
+			setPlaying(true);
 			try {
 				await video.play();
-				setPlaying(true);
 			} catch {
 				setPlaying(false);
 			}
 		} else {
 			video.pause();
 			setPlaying(false);
+			syncPlayingState();
 		}
 	};
 
@@ -232,14 +260,8 @@ export default function GalleryPlayer({ gallery, clips, initialIndex, initialPla
 												autoPlay
 												preload='metadata'
 												muted={muted}
-												onPlay={() => {
-													setPlaying(true);
-												}}
 												onPlaying={qualifiedPlayback.onPlaying}
-												onPause={() => {
-													setPlaying(false);
-													qualifiedPlayback.onPause();
-												}}
+												onPause={qualifiedPlayback.onPause}
 												onWaiting={qualifiedPlayback.onWaiting}
 												onEnded={qualifiedPlayback.onEnded}
 												onTimeUpdate={(event) => setElapsed(event.currentTarget.currentTime)}
