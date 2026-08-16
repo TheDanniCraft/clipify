@@ -219,8 +219,11 @@ describe("GalleryPlayer", () => {
 			listenerInstalled: true,
 		};
 		const { container, unmount } = render(<GalleryPlayer gallery={buildGallery()} clips={clips} initialIndex={0} initialPlaybackUrl='https://video.example/one.mp4' ownerName='Alice' showAttribution={false} />);
-		const surface = container.querySelector("section") as HTMLElement;
-		Object.defineProperty(surface, "scrollHeight", { configurable: true, value: 500 });
+		const shell = container.firstElementChild as HTMLDivElement;
+		Object.defineProperty(shell, "getBoundingClientRect", {
+			configurable: true,
+			value: () => ({ width: 960, height: 500, top: 0, left: 0, right: 960, bottom: 500, x: 0, y: 0, toJSON: () => ({}) }),
+		});
 
 		act(() => window.dispatchEvent(new Event("clipify:player-init")));
 		expect(port.start).toHaveBeenCalled();

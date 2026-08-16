@@ -56,7 +56,7 @@ export default function GalleryPlayer({ gallery, clips, initialIndex, initialPla
 	const [duration, setDuration] = useState(clips[initialIndex].duration);
 	const [api, setApi] = useState<CarouselApi | null>(null);
 	const videoRef = useRef<HTMLVideoElement | null>(null);
-	const surfaceRef = useRef<HTMLElement | null>(null);
+	const shellRef = useRef<HTMLDivElement | null>(null);
 	const portRef = useRef<MessagePort | null>(null);
 	const clip = clips[selectedIndex];
 	const playbackUrl = playbackUrls[clip.id];
@@ -76,7 +76,7 @@ export default function GalleryPlayer({ gallery, clips, initialIndex, initialPla
 		portRef.current.start();
 		portRef.current.postMessage({ version: PROTOCOL_VERSION, type: "ready", elementType: "player", resourceId: gallery.id, clipId: clips[initialIndex].id });
 		window.requestAnimationFrame(() => {
-			const height = surfaceRef.current?.scrollHeight;
+			const height = Math.ceil(shellRef.current?.getBoundingClientRect().height ?? 0);
 			if (height) portRef.current?.postMessage({ version: PROTOCOL_VERSION, type: "resize", elementType: "player", resourceId: gallery.id, height });
 		});
 		return true;
@@ -102,14 +102,14 @@ export default function GalleryPlayer({ gallery, clips, initialIndex, initialPla
 	}, [consumeBootstrapInit]);
 
 	useEffect(() => {
-		const surface = surfaceRef.current;
+		const surface = shellRef.current;
 		if (!surface || typeof ResizeObserver === "undefined") return;
 		let previousHeight = 0;
 		let animationFrame = 0;
 		const observer = new ResizeObserver(() => {
 			window.cancelAnimationFrame(animationFrame);
 			animationFrame = window.requestAnimationFrame(() => {
-				const height = Math.ceil(surface.scrollHeight);
+				const height = Math.ceil(surface.getBoundingClientRect().height);
 				if (height === previousHeight) return;
 				previousHeight = height;
 				portRef.current?.postMessage({ version: PROTOCOL_VERSION, type: "resize", elementType: "player", resourceId: gallery.id, height });
@@ -195,15 +195,19 @@ export default function GalleryPlayer({ gallery, clips, initialIndex, initialPla
 		if (video.paused) {
 			try {
 				await video.play();
+				setPlaying(true);
 			} catch {
 				setPlaying(false);
 			}
-		} else video.pause();
+		} else {
+			video.pause();
+			setPlaying(false);
+		}
 	};
 
 	return (
-		<div className='flex w-full items-center justify-center bg-transparent p-0 sm:p-6'>
-			<section ref={surfaceRef} className='flex w-full max-w-[var(--clipify-modal-width,960px)] flex-col overflow-hidden bg-zinc-950 text-white shadow-2xl sm:rounded-2xl' style={{ "--clipify-modal-width": `${gallery.desktopModalWidth}px` } as CSSProperties}>
+		<div ref={shellRef} className='flex w-full items-center justify-center bg-transparent p-0 sm:p-6'>
+			<section className='flex w-full max-w-[var(--clipify-modal-width,960px)] flex-col overflow-hidden bg-zinc-950 text-white shadow-2xl sm:rounded-2xl' style={{ "--clipify-modal-width": `${gallery.desktopModalWidth}px` } as CSSProperties}>
 				<header className='flex items-center justify-between gap-3 px-4 py-3'>
 					<div className='min-w-0'>
 						<h1 className='truncate text-sm font-semibold'>{clip.title}</h1>
