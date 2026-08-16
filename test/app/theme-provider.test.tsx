@@ -28,9 +28,10 @@ describe("ThemeProvider", () => {
 		expect(screen.getByTestId("next-themes-provider")).toBeInTheDocument();
 		expect(screen.getByText("content")).toBeInTheDocument();
 		expect(nextThemesProvider).toHaveBeenCalledTimes(1);
+		expect(nextThemesProvider).toHaveBeenCalledWith(expect.objectContaining({ enableColorScheme: true }));
 	});
 
-	it("skips next-themes for embedded routes", () => {
+	it("disables color-scheme for embedded routes", () => {
 		currentPathname = "/gallery/gallery-1/frame";
 		render(
 			<ThemeProvider>
@@ -38,8 +39,9 @@ describe("ThemeProvider", () => {
 			</ThemeProvider>,
 		);
 
-		expect(screen.queryByTestId("next-themes-provider")).toBeNull();
+		expect(screen.getByTestId("next-themes-provider")).toBeInTheDocument();
 		expect(screen.getByText("content")).toBeInTheDocument();
-		expect(nextThemesProvider).not.toHaveBeenCalled();
+		expect(nextThemesProvider).toHaveBeenCalledTimes(1);
+		expect(nextThemesProvider).toHaveBeenCalledWith(expect.objectContaining({ enableColorScheme: false }));
 	});
 });
