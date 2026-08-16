@@ -1,6 +1,9 @@
 .frame {
 	container-type: inline-size;
 	width: 100%;
+	min-height: 100%;
+	display: flex;
+	flex-direction: column;
 	background: var(--clipify-background, transparent);
 	color: var(--clipify-text, #fff);
 }

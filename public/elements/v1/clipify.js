@@ -95,7 +95,7 @@ class ClipifyGalleryElement extends ClipifyBaseElement {
 		this._destroyFrame();
 		this._allowRuntimeStyles = false;
 		const galleryId = this.getAttribute("gallery-id")?.trim();
-		this._root.innerHTML = `<style>:host{display:block;width:100%;contain:layout style}.wrap{display:block;width:100%;min-height:320px}.frame{display:block;width:100%;height:320px;border:0;background:transparent}.error{padding:20px;border:1px solid #ef4444;border-radius:12px;font:14px/1.5 system-ui;color:#b91c1c}</style><div class="wrap"></div>`;
+		this._root.innerHTML = `<style>:host{display:block;width:100%;height:100vh;min-height:100vh;contain:layout style}.wrap{display:block;width:100%;height:100%;min-height:100%}.frame{display:block;width:100%;height:100%;border:0;background:transparent}.error{padding:20px;border:1px solid #ef4444;border-radius:12px;font:14px/1.5 system-ui;color:#b91c1c}</style><div class="wrap"></div>`;
 		const wrap = this._root.querySelector(".wrap");
 		if (!galleryId) {
 			wrap.innerHTML = `<div class="error">A gallery-id is required.</div>`;
@@ -117,7 +117,9 @@ class ClipifyGalleryElement extends ClipifyBaseElement {
 			if (!message || message.version !== VERSION || message.elementType !== elementType || message.resourceId !== resourceId) return;
 			if (message.type === "ready") this._allowRuntimeStyles = message.allowRuntimeStyles === true;
 			if (message.type === "resize" && Number.isFinite(message.height)) {
+				const currentHeight = Math.max(Math.ceil(this._frame?.getBoundingClientRect().height ?? 0), window.innerHeight);
 				const height = Math.min(10_000, Math.max(120, Math.ceil(message.height)));
+				if (height <= currentHeight) return;
 				if (this._frame && this._frame.style.height !== `${height}px`) this._frame.style.height = `${height}px`;
 			}
 			if (message.type === "selected-clip" && typeof message.clipId === "string") this._openDialog(resourceId, message.clipId);

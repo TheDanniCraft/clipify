@@ -29,6 +29,10 @@ function attachFrameWindow(frame: HTMLIFrameElement) {
 
 describe("Clipify Elements v1", () => {
 	beforeAll(() => {
+		Object.defineProperty(window, "innerHeight", {
+			configurable: true,
+			value: 900,
+		});
 		Object.defineProperty(window, "MessageChannel", {
 			configurable: true,
 			value: class {
@@ -76,10 +80,11 @@ describe("Clipify Elements v1", () => {
 		expect(customElements.get("clipify-player")).toBeDefined();
 	});
 
-	it("renders a transparent, responsive gallery frame and reacts to ID changes", () => {
+	it("renders a transparent, viewport-filling gallery frame and reacts to ID changes", () => {
 		const element = document.createElement("clipify-gallery");
 		element.setAttribute("gallery-id", "gallery-one");
 		document.body.append(element);
+		expect(moduleSource).toContain("height:100vh;min-height:100vh");
 		const firstFrame = element.shadowRoot?.querySelector("iframe") as HTMLIFrameElement;
 		expect(firstFrame.src).toBe("https://clipify.us/gallery/gallery-one/frame");
 		expect(firstFrame.referrerPolicy).toBe("strict-origin");
@@ -120,7 +125,7 @@ describe("Clipify Elements v1", () => {
 		channel.port1.onmessage?.({ data: { version: 1, type: "resize", elementType: "gallery", resourceId: "gallery-one", height: 12_000 } } as MessageEvent);
 		expect(frame.style.height).toBe("10000px");
 		channel.port1.onmessage?.({ data: { version: 1, type: "resize", elementType: "gallery", resourceId: "gallery-one", height: 1 } } as MessageEvent);
-		expect(frame.style.height).toBe("120px");
+		expect(frame.style.height).toBe("10000px");
 	});
 
 	it("opens and closes the host dialog while restoring scroll and card focus", () => {

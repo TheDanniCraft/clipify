@@ -34,10 +34,11 @@ describe("gallery frame page", () => {
 		getHeader.mockImplementation((name: string) => (name === "sec-fetch-dest" ? "iframe" : null));
 		const Page = (await import("@/app/gallery/[galleryId]/frame/page")).default;
 
-		render(await Page({ params: Promise.resolve({ galleryId: "gallery-1" }) }));
+		const { container } = render(await Page({ params: Promise.resolve({ galleryId: "gallery-1" }) }));
 
 		expect(screen.getByText("gallery-frame:alice")).toBeInTheDocument();
 		expect(getPublicGallery).toHaveBeenCalledWith("gallery-1");
+		expect(container.querySelector("style")).toHaveTextContent("html,body,#root{height:100%;background:transparent!important}body{margin:0;padding:0;min-height:100%!important}");
 	});
 
 	it.each([null, "document"])("returns not found for destination %s", async (destination) => {
