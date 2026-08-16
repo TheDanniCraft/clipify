@@ -10,7 +10,7 @@ function installDocumentStyles() {
 	style.textContent = `
 		dialog[data-clipify-dialog="v1"] { all: initial; position: fixed; inset: 0; box-sizing: border-box; width: min(var(--clipify-dialog-modal-width, 960px), calc(100vw - 48px), calc(133.333dvh - 64px)); height: auto; aspect-ratio: 4 / 3; max-width: none; max-height: calc(100dvh - 48px); margin: auto; padding: 0; border: 0; overflow: visible; background: transparent; color: white; }
 		dialog[data-clipify-dialog="v1"]::backdrop { background: var(--clipify-dialog-modal-backdrop, rgb(0 0 0 / 72%)); }
-		dialog[data-clipify-dialog="v1"] > iframe { display: block; width: 100%; height: 100%; border: 0; background: transparent; color-scheme: light dark; }
+		dialog[data-clipify-dialog="v1"] > iframe { display: block; width: 100%; height: 100%; border: 0; background: transparent; color-scheme: normal; }
 		dialog[data-clipify-dialog="v1"] > button { position: absolute; z-index: 2; top: max(12px, env(safe-area-inset-top)); right: max(12px, env(safe-area-inset-right)); width: 42px; height: 42px; border: 0; border-radius: 999px; background: #18181b; color: #fff; font: 28px/1 sans-serif; cursor: pointer; }
 		@media (max-width: 639px) { dialog[data-clipify-dialog="v1"] { width: 100vw; height: 100dvh; } }
 	`;
