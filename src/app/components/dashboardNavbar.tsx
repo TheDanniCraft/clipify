@@ -1,6 +1,6 @@
 "use client";
 
-import { IconMoonFilled, IconSunFilled } from "@tabler/icons-react";
+import { IconDiamondFilled, IconMoonFilled, IconSunFilled } from "@tabler/icons-react";
 import { useTheme } from "next-themes";
 import { Button, ComboBox, Dropdown, Input, Label, Link, ListBox, Spinner } from "@heroui/react";
 
@@ -141,7 +141,8 @@ export default function DashboardNavbar({ children, user, title, tagline }: { ch
 											</Label>
 										</Dropdown.Item>
 										{showUpgradeItem ? (
-											<Dropdown.Item id='upgrade_to_pro' textValue='Upgrade to Pro' className='text-accent' onAction={() => router.push("/dashboard/settings?upgrade&cycle=yearly&source=paywall_banner&feature=account_menu")}>
+											<Dropdown.Item id='upgrade_to_pro' textValue='Upgrade to Pro' className='bg-accent text-accent-foreground data-[hovered]:bg-accent-hover' onAction={() => router.push("/dashboard/settings?upgrade&cycle=yearly&source=paywall_banner&feature=account_menu")}>
+												<IconDiamondFilled aria-hidden='true' size={16} />
 												<Label>Upgrade to Pro</Label>
 											</Dropdown.Item>
 										) : null}

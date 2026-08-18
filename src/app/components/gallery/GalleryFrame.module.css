@@ -125,13 +125,22 @@
 	padding-inline: calc(var(--clipify-gap, 16px) / 2);
 }
 .attribution {
-	display: block;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
 	width: fit-content;
 	margin: 14px auto 0;
-	color: inherit;
-	opacity: 0.72;
+	padding: 6px 10px;
+	border-radius: 999px;
+	background: var(--clipify-accent, #7c3aed);
+	color: #fff;
 	font-size: 12px;
+	font-weight: 600;
 	text-decoration: none;
+}
+
+.attribution:hover {
+	text-decoration: underline;
 }
 .empty {
 	padding: 32px;
