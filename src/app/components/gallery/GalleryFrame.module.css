@@ -56,7 +56,6 @@
 	border-radius: var(--clipify-radius, 16px);
 	overflow: hidden;
 	cursor: pointer;
-	box-shadow: 0 8px 30px rgb(0 0 0 / 18%);
 }
 
 .card:focus-visible {
