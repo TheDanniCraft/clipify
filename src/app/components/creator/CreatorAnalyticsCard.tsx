@@ -1,6 +1,6 @@
 "use client";
 
-import { exportCreatorAnalyticsBundle, getCreatorAnalyticsExportTargets, getOwnCreatorAnalytics, type CreatorAnalyticsExportTarget } from "@actions/creatorAnalytics";
+import { exportCreatorAnalyticsBundle, getCreatorAnalytics, getCreatorAnalyticsExportTargets, getOwnCreatorAnalytics, type CreatorAnalyticsExportTarget } from "@actions/creatorAnalytics";
 import AppDateRangePicker, { type AppDateRange } from "@components/appDateRangePicker";
 import type { CreatorAnalyticsBreakdownItem, CreatorAnalyticsExportDataset, CreatorAnalyticsTimeseriesPoint } from "@lib/plausibleCreatorAnalytics";
 import { notify } from "@lib/toast";
@@ -278,6 +278,8 @@ function ExportModal({ isOpen, onOpenChange, range }: { isOpen: boolean; onOpenC
 export default function CreatorAnalyticsCard({ allowed, onUpgrade }: { allowed: boolean; onUpgrade?: () => void }) {
 	const [data, setData] = useState<Data>(null);
 	const [range, setRange] = useState<AppDateRange | null>(null);
+	const [targets, setTargets] = useState<CreatorAnalyticsExportTarget[]>([]);
+	const [selectedOwnerId, setSelectedOwnerId] = useState("");
 	const [loading, setLoading] = useState(allowed);
 	const exportModal = useOverlayState();
 	const presets = useMemo(
@@ -289,6 +291,19 @@ export default function CreatorAnalyticsCard({ allowed, onUpgrade }: { allowed: 
 		[],
 	);
 	useEffect(() => {
+		if (!allowed) return;
+		let cancelled = false;
+		void getCreatorAnalyticsExportTargets().then((next) => {
+			if (cancelled) return;
+			setTargets(next);
+			setSelectedOwnerId(next.find((target) => target.isSelf)?.id ?? next[0]?.id ?? "");
+			if (next.length === 0) setLoading(false);
+		});
+		return () => {
+			cancelled = true;
+		};
+	}, [allowed]);
+	useEffect(() => {
 		let cancelled = false;
 		void Promise.resolve().then(() => {
 			if (!cancelled) setRange(lastDays(30));
@@ -298,9 +313,9 @@ export default function CreatorAnalyticsCard({ allowed, onUpgrade }: { allowed: 
 		};
 	}, []);
 	useEffect(() => {
-		if (!allowed || !range) return;
+		if (!allowed || !range || !selectedOwnerId) return;
 		let cancelled = false;
-		void getOwnCreatorAnalytics(serializableRange(range))
+		void getCreatorAnalytics(selectedOwnerId, serializableRange(range))
 			.then((next) => {
 				if (!cancelled) setData(next);
 			})
@@ -310,11 +325,16 @@ export default function CreatorAnalyticsCard({ allowed, onUpgrade }: { allowed: 
 		return () => {
 			cancelled = true;
 		};
-	}, [allowed, range]);
+	}, [allowed, range, selectedOwnerId]);
 	const changeRange = (next: AppDateRange | null) => {
 		if (!next) return;
 		setLoading(true);
 		setRange(next);
+	};
+	const changeOwner = (ownerId: string) => {
+		if (!ownerId || ownerId === selectedOwnerId) return;
+		setLoading(true);
+		setSelectedOwnerId(ownerId);
 	};
 	if (!allowed)
 		return (
@@ -359,6 +379,25 @@ export default function CreatorAnalyticsCard({ allowed, onUpgrade }: { allowed: 
 					</p>
 				</div>
 				<div className='flex flex-col gap-2 sm:flex-row sm:items-end'>
+					{targets.length > 1 ? (
+						<Select aria-label='Creator analytics channel' value={selectedOwnerId || null} onChange={(value) => changeOwner(String(value))} className='w-full sm:w-60' variant='secondary'>
+							<Label>Creator</Label>
+							<Select.Trigger>
+								<Select.Value />
+								<Select.Indicator />
+							</Select.Trigger>
+							<Select.Popover>
+								<ListBox>
+									{targets.map((target) => (
+										<ListBox.Item key={target.id} id={target.id} textValue={target.username}>
+											<Label>{target.isSelf ? `${target.username} (you)` : target.username}</Label>
+											<ListBox.ItemIndicator />
+										</ListBox.Item>
+									))}
+								</ListBox>
+							</Select.Popover>
+						</Select>
+					) : null}
 					<AppDateRangePicker label='Analytics period' value={range} onChange={changeRange} variant='secondary' presets={presets} />
 					<Button variant='secondary' onPress={exportModal.open}>
 						<IconDownload size={18} />

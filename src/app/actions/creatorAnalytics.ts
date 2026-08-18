@@ -125,6 +125,13 @@ export async function getOwnCreatorAnalytics(range?: CreatorAnalyticsRange | nul
 	return loadCreatorAnalytics(user, range);
 }
 
+export async function getCreatorAnalytics(ownerId: string, range?: CreatorAnalyticsRange | null) {
+	const actor = await validateAuth();
+	if (!actor) return null;
+	const owner = await ownerForActor(actor.id, ownerId);
+	return owner ? loadCreatorAnalytics(owner, range) : null;
+}
+
 export async function getCreatorAnalyticsExportTargets(): Promise<CreatorAnalyticsExportTarget[]> {
 	const actor = await validateAuth();
 	if (!actor) return [];

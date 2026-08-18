@@ -38,7 +38,7 @@ describe("gallery frame page", () => {
 
 		expect(screen.getByText("gallery-frame:alice")).toBeInTheDocument();
 		expect(getPublicGallery).toHaveBeenCalledWith("gallery-1");
-		expect(container.querySelector("style")).toHaveTextContent("html,body,#root{height:100%;background:transparent!important}body{margin:0;padding:0;min-height:100%!important}");
+		expect(container.querySelector("style")).toHaveTextContent("html,body,#root{height:100%;background:transparent!important}html{color-scheme:normal!important}body{margin:0;padding:0;min-height:100%!important}");
 	});
 
 	it.each([null, "document"])("returns not found for destination %s", async (destination) => {

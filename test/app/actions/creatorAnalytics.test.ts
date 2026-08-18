@@ -57,4 +57,25 @@ describe("creator analytics exports", () => {
 		expect(dbSelect).not.toHaveBeenCalled();
 		expect(global.fetch).not.toHaveBeenCalled();
 	});
+
+	it("loads analytics for a managed creator after checking editor access", async () => {
+		validateAuth.mockResolvedValue({ id: "editor", username: "Editor" });
+		selectRows.push([{ userId: "managed" }], [{ id: "managed", username: "ManagedCreator", plan: "pro" }], []);
+		const { getCreatorAnalytics } = await import("@actions/creatorAnalytics");
+
+		const result = await getCreatorAnalytics("managed", { start: "2026-08-01", end: "2026-08-02" });
+
+		expect(result).not.toBeNull();
+		expect(resolveUserEntitlements).toHaveBeenCalledWith(expect.objectContaining({ id: "managed" }));
+		expect(global.fetch).toHaveBeenCalledTimes(7);
+	});
+
+	it("does not expose analytics for a creator the actor does not manage", async () => {
+		validateAuth.mockResolvedValue({ id: "editor", username: "Editor" });
+		selectRows.push([]);
+		const { getCreatorAnalytics } = await import("@actions/creatorAnalytics");
+
+		await expect(getCreatorAnalytics("other", { start: "2026-08-01", end: "2026-08-02" })).resolves.toBeNull();
+		expect(global.fetch).not.toHaveBeenCalled();
+	});
 });
