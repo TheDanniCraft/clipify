@@ -154,7 +154,7 @@ export default function GalleryFrame({ gallery, clips, ownerName, showAttributio
 			) : null}
 			{showAttribution ? (
 				<a className={styles.attribution} href={`https://clipify.us/gallery?utm_source=clipify_gallery&utm_medium=attribution&utm_campaign=${encodeURIComponent(gallery.id)}`} target='_blank' rel='noreferrer'>
-					Clip gallery by {ownerName} · Powered by Clipify
+					Clips from {ownerName} · Powered by Clipify
 				</a>
 			) : null}
 		</main>

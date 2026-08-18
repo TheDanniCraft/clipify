@@ -88,7 +88,7 @@ describe("GalleryPlayer", () => {
 		expect(container.querySelectorAll("video")).toHaveLength(1);
 		expect(container.querySelectorAll("img")).toHaveLength(1);
 		expect(screen.getByText("First")).toBeInTheDocument();
-		expect(screen.getByText(/Clip gallery by Alice/)).toBeInTheDocument();
+		expect(screen.getByText(/Clips from Alice/)).toBeInTheDocument();
 
 		Object.defineProperty(video, "paused", { configurable: true, value: true });
 		fireEvent.click(screen.getByRole("button", { name: "Play" }));

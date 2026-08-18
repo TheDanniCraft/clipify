@@ -55,7 +55,7 @@ describe("GalleryFrame", () => {
 		expect(screen.getByText((content) => /^1[.,]234 views$/.test(content))).toBeInTheDocument();
 		expect(screen.getByText("1:05")).toBeInTheDocument();
 		expect(screen.queryByRole("time")).not.toBeInTheDocument();
-		expect(screen.getByRole("link", { name: /Clip gallery by Alice/i })).toHaveAttribute("href", expect.stringContaining("utm_campaign=gallery-1"));
+		expect(screen.getByRole("link", { name: /Clips from Alice/i })).toHaveAttribute("href", expect.stringContaining("utm_campaign=gallery-1"));
 		const main = container.querySelector("main") as HTMLElement;
 		expect(main.style.getPropertyValue("--clipify-accent")).toBe("#7C3AED");
 		expect(main.style.getPropertyValue("--clipify-radius")).toBe("16px");

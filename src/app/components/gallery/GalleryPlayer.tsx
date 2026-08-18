@@ -348,7 +348,7 @@ export default function GalleryPlayer({ gallery, clips, initialIndex, initialPla
 				</div>
 				{showAttribution ? (
 					<a className='mx-auto mb-3 inline-flex rounded-full bg-accent px-3 py-1.5 text-center text-xs font-semibold text-accent-foreground hover:underline' href={`https://clipify.us/gallery?utm_source=clipify_gallery&utm_medium=attribution&utm_campaign=${encodeURIComponent(gallery.id)}`} target='_blank' rel='noreferrer'>
-						Clip gallery by {ownerName} · Powered by Clipify
+						Clips from {ownerName} · Powered by Clipify
 					</a>
 				) : null}
 			</section>
