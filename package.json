@@ -36,7 +36,7 @@
 		"jsonwebtoken": "^9.0.3",
 		"minimatch": "^10.2.6",
 		"motion": "^13.1.0",
-		"next": "^16.3.0",
+		"next": "^16.3.1",
 		"next-navigation-guard": "^0.2.0",
 		"next-plausible": "^4.0.0",
 		"next-themes": "^0.4.6",
@@ -72,7 +72,7 @@
 		"@vercel/nft": "^1.10.2",
 		"drizzle-kit": "^0.31.10",
 		"eslint": "^9.39.5",
-		"eslint-config-next": "^16.3.0",
+		"eslint-config-next": "^16.3.1",
 		"husky": "^9.1.7",
 		"jest": "^30.4.2",
 		"jest-environment-jsdom": "^30.4.1",
@@ -84,7 +84,7 @@
 		"@types/node-media-server": "^2.3.7"
 	},
 	"patchedDependencies": {
-		"next@16.3.0": "patches/next.patch"
+		"next@16.3.1": "patches/next.patch"
 	},
 	"lint-staged": {
 		"*.{ts,tsx,js,jsx}": [
