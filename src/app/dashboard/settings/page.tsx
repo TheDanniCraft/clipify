@@ -15,7 +15,7 @@ import { IconAlertTriangle, IconDatabase, IconDeviceFloppy, IconInfoCircle, Icon
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { memo, useEffect, useMemo, useState, type Dispatch, type SetStateAction } from "react";
-import { generatePaymentLink, checkIfSubscriptionExists } from "@actions/subscription";
+import { checkIfSubscriptionExists } from "@actions/subscription";
 import { forceRefreshOwnClipCache, getOwnClipForceRefreshStatus } from "@actions/twitch";
 import { useNavigationGuard } from "next-navigation-guard";
 import UpgradeModal from "@components/upgradeModal";
@@ -631,23 +631,7 @@ export default function SettingsPage() {
 																cycle: "yearly",
 															});
 
-															const link = await generatePaymentLink("yearly", window.location.href, window.numok?.getStripeMetadata(), "paywall_banner");
-
-															if (link) {
-																trackPaywallEvent(plausible, "checkout_start", {
-																	source: "paywall_banner",
-																	feature: "editors",
-																	plan: user.plan,
-																	cycle: "yearly",
-																});
-																window.location.href = link;
-															} else {
-																addToast({
-																	title: "Error",
-																	description: "Failed to generate payment link. Please try again later.",
-																	color: "danger",
-																});
-															}
+															upgradeModalOnOpen();
 														}}
 														className='mt-3 w-full font-semibold'
 													>
