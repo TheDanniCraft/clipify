@@ -55,18 +55,17 @@ export default function UpgradeModal({ isOpen, onOpenChange, user, title, descri
 	const freeTier = useMemo(() => tiers.find((t) => t.key === TiersEnum.Free), []);
 	const proFeatures = proTier?.features ?? [];
 	const uniqueProFeatures = proFeatures.filter((f) => !(freeTier?.features ?? []).includes(f) && f !== "Everything in Free");
-	const price = typeof proTier?.price === "string" ? undefined : proTier?.price;
-	const discountedPrice = typeof proTier?.discountedPrice === "string" ? undefined : proTier?.discountedPrice;
+	const proBillingOption = billingOptions.find((option) => option.key === BillingProduct.Pro);
 	const pricingPromoByFrequency = {
 		[FrequencyEnum.Monthly]: campaignOffer?.showPricingTierPromo ? campaignOffer.pricingMonthlyPromo : null,
 		[FrequencyEnum.Yearly]: campaignOffer?.showPricingTierPromo ? campaignOffer.pricingYearlyPromo : null,
 	};
-	const monthly = price?.[FrequencyEnum.Monthly];
-	const yearly = price?.[FrequencyEnum.Yearly];
-	const monthlyDiscount = pricingPromoByFrequency[FrequencyEnum.Monthly] ?? discountedPrice?.[FrequencyEnum.Monthly];
-	const yearlyDiscount = pricingPromoByFrequency[FrequencyEnum.Yearly] ?? discountedPrice?.[FrequencyEnum.Yearly];
-	const monthlyHasSale = Boolean(monthly && monthlyDiscount && monthlyDiscount !== monthly);
-	const yearlyHasSale = Boolean(yearly && yearlyDiscount && yearlyDiscount !== yearly);
+	const monthly = proBillingOption?.prices.monthly.formatted;
+	const yearly = proBillingOption?.prices.yearly.formatted;
+	const monthlyDiscount = pricingPromoByFrequency[FrequencyEnum.Monthly];
+	const yearlyDiscount = pricingPromoByFrequency[FrequencyEnum.Yearly];
+	const monthlyHasSale = Boolean(campaignOffer?.showPricingTierPromo && monthly && monthlyDiscount);
+	const yearlyHasSale = Boolean(campaignOffer?.showPricingTierPromo && yearly && yearlyDiscount);
 	const yearlySuffix = frequencies.find((f) => f.key === FrequencyEnum.Yearly)?.priceSuffix ?? "per year";
 	const monthlySuffix = frequencies.find((f) => f.key === FrequencyEnum.Monthly)?.priceSuffix ?? "per month";
 	const inTrial = isReverseTrialActive(user);
@@ -164,20 +163,46 @@ export default function UpgradeModal({ isOpen, onOpenChange, user, title, descri
 							) : null}
 
 							{!runnerAddonOnly && (
-								<div className='flex items-center gap-2 text-xs text-muted'>
-									<span>Plan:</span>
-									<span className={`${effectivePlan === "free" ? "text-success" : "text-brand-300"} ${effectivePlan === "pro" ? "font-bold" : "font-medium"}`}>{planLabel}</span>
-									{inTrial && (
-										<Chip size='sm' variant='tertiary' className='border border-amber-300/40 bg-amber-400/20 font-medium text-amber-100'>
-											Trial active: {trialDaysLeft <= 1 ? "Ends today" : `${trialDaysLeft} days left`}
-										</Chip>
-									)}
+								<div className='flex flex-wrap items-center justify-between gap-3 text-xs text-muted'>
+									<div className='flex items-center gap-2'>
+										<span>Plan:</span>
+										<span className={`${effectivePlan === "free" ? "text-success" : "text-brand-300"} ${effectivePlan === "pro" ? "font-bold" : "font-medium"}`}>{planLabel}</span>
+										{inTrial && (
+											<Chip size='sm' variant='tertiary' className='border border-amber-300/40 bg-amber-400/20 font-medium text-amber-100'>
+												Trial active: {trialDaysLeft <= 1 ? "Ends today" : `${trialDaysLeft} days left`}
+											</Chip>
+										)}
+									</div>
+									{proBillingOption && !proBillingOption.owned ? (
+										<Tabs
+											selectedKey={cycleFor(proBillingOption)}
+											onSelectionChange={(key) => {
+												const cycle = String(key) as BillingCycle;
+												setBillingCycle(cycle);
+												setProductCycles((previous) => new Map(previous).set(proBillingOption.key, cycle));
+											}}
+											className='w-fit'
+										>
+											<Tabs.ListContainer>
+												<Tabs.List aria-label='Pro billing frequency'>
+													<Tabs.Tab id='monthly'>
+														Monthly
+														<Tabs.Indicator />
+													</Tabs.Tab>
+													<Tabs.Tab id='yearly'>
+														Yearly
+														<Tabs.Indicator />
+													</Tabs.Tab>
+												</Tabs.List>
+											</Tabs.ListContainer>
+										</Tabs>
+									) : null}
 								</div>
 							)}
 
 							{!runnerAddonOnly && (monthly || yearly) && (
 								<>
-									<div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
+									<div className='mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2'>
 										<div className='rounded-xl border border-default/60 bg-surface-secondary p-5'>
 											<div className='flex items-center justify-between'>
 												<div className='text-xs text-muted'>Monthly</div>
@@ -266,22 +291,6 @@ export default function UpgradeModal({ isOpen, onOpenChange, user, title, descri
 														<p className='text-xs text-muted'>{primaryOption.owned ? "Already included on your account" : primaryOption.description}</p>
 													</div>
 													<div className='flex items-center gap-3'>
-														{!primaryOption.owned && (
-															<Tabs selectedKey={cycleFor(primaryOption)} onSelectionChange={(key) => setProductCycles((previous) => new Map(previous).set(primaryOption.key, String(key) as BillingCycle))} className='w-fit'>
-																<Tabs.ListContainer>
-																	<Tabs.List aria-label={`${primaryOption.label} billing frequency`}>
-																		<Tabs.Tab id='monthly'>
-																			Monthly
-																			<Tabs.Indicator />
-																		</Tabs.Tab>
-																		<Tabs.Tab id='yearly'>
-																			Yearly
-																			<Tabs.Indicator />
-																		</Tabs.Tab>
-																	</Tabs.List>
-																</Tabs.ListContainer>
-															</Tabs>
-														)}
 														<span className='shrink-0 text-sm font-semibold'>{primaryOption.owned ? "Included" : primaryOption.prices[cycleFor(primaryOption)].formatted}</span>
 													</div>
 												</div>
