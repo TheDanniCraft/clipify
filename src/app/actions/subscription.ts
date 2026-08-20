@@ -13,7 +13,8 @@ import { billingSubscriptionItemsTable, billingSubscriptionsTable, usersTable } 
 import { eq } from "drizzle-orm";
 import { getActiveCampaignOffer } from "@lib/campaignOffers";
 import { tryRateLimit } from "@actions/rateLimit";
-import { resolveUserEntitlements } from "@lib/entitlements";
+import { getActiveEntitlementGrant, resolveUserEntitlements } from "@lib/entitlements";
+import { Entitlement, EntitlementGrantSource } from "@types";
 import { isProductOwnedByEntitlement } from "@lib/billingOwnership";
 
 export type BillingCycle = "monthly" | "yearly";
@@ -44,6 +45,7 @@ export type BillingOverview = {
 		currentPeriodEnd: string | null;
 		cancelAtPeriodEnd: boolean;
 		source: "billing" | "grant";
+		grantSource: EntitlementGrantSource | null;
 	}>;
 	canManageInApp: boolean;
 };
@@ -112,21 +114,22 @@ export async function getBillingOverview(): Promise<BillingOverview> {
 	const activeRows = rows.filter(({ subscription }) => ["active", "trialing", "past_due", "unpaid"].includes(subscription.status));
 	const subscription = activeRows[0]?.subscription;
 	const products: BillingOverview["products"] = activeRows.flatMap(({ item, subscription: rowSubscription }) =>
-		item ? [{ key: item.productKey, label: BILLING_PRODUCT_INFO[item.productKey]?.label ?? item.productKey, active: true, billingInterval: item.billingInterval === "year" ? ("yearly" as const) : ("monthly" as const), unitAmount: item.unitAmount, currency: item.currency.toUpperCase(), currentPeriodEnd: rowSubscription.currentPeriodEnd?.toISOString() ?? null, cancelAtPeriodEnd: Boolean(rowSubscription.cancelAtPeriodEnd), source: "billing" as const }] : [],
+		item ? [{ key: item.productKey, label: BILLING_PRODUCT_INFO[item.productKey]?.label ?? item.productKey, active: true, billingInterval: item.billingInterval === "year" ? ("yearly" as const) : ("monthly" as const), unitAmount: item.unitAmount, currency: item.currency.toUpperCase(), currentPeriodEnd: rowSubscription.currentPeriodEnd?.toISOString() ?? null, cancelAtPeriodEnd: Boolean(rowSubscription.cancelAtPeriodEnd), source: "billing" as const, grantSource: null }] : [],
 	);
 	const entitlements = await resolveUserEntitlements(authUser);
+	const runnerGrant = entitlements.runnerAccess ? await getActiveEntitlementGrant(authUser.id, Entitlement.RunnerAccess) : null;
 	if (entitlements.proAccess && !products.some((product) => product.key === BillingProduct.Pro)) {
-		products.push({ key: BillingProduct.Pro, label: BILLING_PRODUCT_INFO[BillingProduct.Pro].label, active: true, billingInterval: null, unitAmount: null, currency: "EUR", currentPeriodEnd: entitlements.trialEndsAt ? new Date(entitlements.trialEndsAt).toISOString() : null, cancelAtPeriodEnd: false, source: "grant" });
+		products.push({ key: BillingProduct.Pro, label: BILLING_PRODUCT_INFO[BillingProduct.Pro].label, active: true, billingInterval: null, unitAmount: null, currency: "EUR", currentPeriodEnd: entitlements.trialEndsAt ? new Date(entitlements.trialEndsAt).toISOString() : null, cancelAtPeriodEnd: false, source: "grant", grantSource: entitlements.grantSource ?? null });
 	}
 	if (entitlements.runnerAccess && !products.some((product) => product.key === BillingProduct.RunnerSelfHosted)) {
-		products.push({ key: BillingProduct.RunnerSelfHosted, label: BILLING_PRODUCT_INFO[BillingProduct.RunnerSelfHosted].label, active: true, billingInterval: null, unitAmount: null, currency: "EUR", currentPeriodEnd: null, cancelAtPeriodEnd: false, source: "grant" });
+		products.push({ key: BillingProduct.RunnerSelfHosted, label: BILLING_PRODUCT_INFO[BillingProduct.RunnerSelfHosted].label, active: true, billingInterval: null, unitAmount: null, currency: "EUR", currentPeriodEnd: runnerGrant?.endsAt?.toISOString() ?? null, cancelAtPeriodEnd: false, source: "grant", grantSource: runnerGrant?.source ?? null });
 	}
 	return {
 		status: subscription?.status ?? (entitlements.proAccess || entitlements.runnerAccess ? "active" : "inactive"),
 		currentPeriodEnd: subscription?.currentPeriodEnd?.toISOString() ?? null,
 		cancelAtPeriodEnd: Boolean(subscription?.cancelAtPeriodEnd),
 		products,
-		canManageInApp: products.length === 1,
+		canManageInApp: Boolean(authUser.stripeCustomerId),
 	};
 }
 

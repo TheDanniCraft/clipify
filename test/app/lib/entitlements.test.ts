@@ -279,6 +279,14 @@ describe("lib/entitlements", () => {
 		expect(result.trialEndsAt).toEqual(g2.endsAt);
 	});
 
+	it("returns the effective active grant for any entitlement", async () => {
+		const { getActiveEntitlementGrant } = await loadEntitlements();
+		const now = new Date();
+		const shorter = { id: "short", source: EntitlementGrantSource.ReverseTrial, startsAt: new Date(now.getTime() - 1000), endsAt: new Date(now.getTime() + 1000), entitlement: "runner_access" };
+		const longer = { id: "long", source: EntitlementGrantSource.Support, startsAt: new Date(now.getTime() - 500), endsAt: new Date(now.getTime() + 2000), entitlement: "runner_access" };
+		selectExecute.mockResolvedValue([shorter, longer]);
+		await expect(getActiveEntitlementGrant("u1", "runner_access" as any, now)).resolves.toBe(longer);
+	});
 	it("reconciles free constraints with multiple overlays and playlists", async () => {
 		const { reconcileFreeConstraintsIfNeeded } = await loadEntitlements();
 		const user = { id: "u1", plan: Plan.Free };

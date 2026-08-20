@@ -80,19 +80,21 @@ export default function BillingPanel() {
 					<Card variant='secondary'>
 						<Card.Header className='flex w-full flex-col items-start gap-3 text-left sm:flex-row sm:items-center sm:justify-between'>
 							<div>
-								<p className='text-lg font-semibold'>Current subscription</p>
-								<p className='text-sm text-muted'>Manage your plan, add-ons, and renewal status.</p>
+								<p className='text-lg font-semibold'>Current plan</p>
+								<p className='text-sm text-muted'>Manage your plan, add-ons, and billing status.</p>
 							</div>
-							<Button
-								variant='secondary'
-								onPress={async () => {
-									const link = await getPortalLink();
-									if (link) window.location.href = link;
-								}}
-							>
-								<IconCreditCardFilled />
-								Manage billing
-							</Button>
+							{overview?.canManageInApp && (
+								<Button
+									variant='secondary'
+									onPress={async () => {
+										const link = await getPortalLink();
+										if (link) window.location.href = link;
+									}}
+								>
+									<IconCreditCardFilled />
+									Manage billing
+								</Button>
+							)}
 						</Card.Header>
 						<Card.Content className='grid gap-4 sm:grid-cols-3'>
 							<div>
@@ -100,18 +102,19 @@ export default function BillingPanel() {
 								<p className='font-semibold capitalize'>{overview?.status ?? "Inactive"}</p>
 							</div>
 							<div>
-								<p className='text-xs text-muted'>Renewals</p>
+								<p className='text-xs text-muted'>Access & billing</p>
 								<div className='space-y-1'>
 									{overview?.products.length ? (
 										overview.products.map((product) => (
 											<p key={product.key} className='font-semibold'>
-												{product.label}: {formatDate(product.currentPeriodEnd)}
+												{product.label}: {product.source === "billing" ? (product.cancelAtPeriodEnd ? "Ends " : "Renews ") + formatDate(product.currentPeriodEnd) : product.currentPeriodEnd ? (product.grantSource === "reverse_trial" ? "Included until " : "Available until ") + formatDate(product.currentPeriodEnd) : "Included"}
 											</p>
 										))
 									) : (
 										<p className='font-semibold'>—</p>
 									)}
 								</div>
+								{overview?.products.some((product) => product.grantSource === "reverse_trial") && <p className='text-xs text-muted'>Pro is included with your new account for 7 days. It ends automatically and you won&apos;t be charged.</p>}
 							</div>
 							<div>
 								<p className='text-xs text-muted'>Products</p>
@@ -155,13 +158,13 @@ export default function BillingPanel() {
 											</Checkbox>
 											<div>
 												<p className='font-medium'>{option.label}</p>
-												<p className='text-xs text-muted'>{locked ? "Granted access" : option.description}</p>
+												<p className='text-xs text-muted'>{locked ? "Included access" : option.description}</p>
 											</div>
 										</div>
 										<div className='flex items-center gap-3'>
 											{option.owned ? (
 												<Chip color={canceling ? "warning" : "success"} variant='soft'>
-													{canceling ? `Canceling · Ends ${formatDate(product?.currentPeriodEnd ?? null)}` : product?.currentPeriodEnd ? `Active · Renews ${formatDate(product.currentPeriodEnd)}` : "Active"}
+													{product ? (product.source === "billing" ? (product.cancelAtPeriodEnd ? "Ends " : "Renews ") + formatDate(product.currentPeriodEnd) : product.currentPeriodEnd ? (product.grantSource === "reverse_trial" ? "Included until " : "Available until ") + formatDate(product.currentPeriodEnd) : "Included") : "Included"}
 												</Chip>
 											) : (
 												<Tabs

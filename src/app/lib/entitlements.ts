@@ -104,7 +104,7 @@ export async function ensureReverseTrialGrantForUser(user: Pick<AuthenticatedUse
 	});
 }
 
-function pickBestGrant(grants: ActiveGrant[]) {
+export function pickBestGrant(grants: ActiveGrant[]) {
 	if (grants.length === 0) return null;
 	return grants.reduce((best, current) => {
 		const bestEndsAt = best.endsAt;
@@ -124,6 +124,17 @@ function pickBestGrant(grants: ActiveGrant[]) {
 		}
 		return current.startsAt > best.startsAt ? current : best;
 	});
+}
+
+export async function getActiveEntitlementGrant(userId: string, entitlement: Entitlement, now = new Date()) {
+	if (!isHybridEntitlementsEnabled()) return null;
+	const grants = await db
+		.select()
+		.from(entitlementGrantsTable)
+		.where(and(eq(entitlementGrantsTable.entitlement, entitlement), isNull(entitlementGrantsTable.revokedAt), lte(entitlementGrantsTable.startsAt, now), or(isNull(entitlementGrantsTable.endsAt), gt(entitlementGrantsTable.endsAt, now)), or(eq(entitlementGrantsTable.userId, userId), isNull(entitlementGrantsTable.userId))))
+		.orderBy(asc(entitlementGrantsTable.userId), asc(entitlementGrantsTable.startsAt))
+		.execute();
+	return pickBestGrant(grants);
 }
 
 export async function resolveUserEntitlements(user: EntitlementUserRef): Promise<UserEntitlements> {
@@ -156,14 +167,7 @@ export async function resolveUserEntitlements(user: EntitlementUserRef): Promise
 		};
 	}
 
-	const grants = await db
-		.select()
-		.from(entitlementGrantsTable)
-		.where(and(eq(entitlementGrantsTable.entitlement, PRO_ACCESS), isNull(entitlementGrantsTable.revokedAt), lte(entitlementGrantsTable.startsAt, now), or(isNull(entitlementGrantsTable.endsAt), gt(entitlementGrantsTable.endsAt, now)), or(eq(entitlementGrantsTable.userId, user.id), isNull(entitlementGrantsTable.userId))))
-		.orderBy(asc(entitlementGrantsTable.userId), asc(entitlementGrantsTable.startsAt))
-		.execute();
-
-	const grant = pickBestGrant(grants);
+	const grant = await getActiveEntitlementGrant(user.id, PRO_ACCESS, now);
 	if (grant) {
 		const isReverseTrialGrant = grant.source === EntitlementGrantSource.ReverseTrial;
 		return {
