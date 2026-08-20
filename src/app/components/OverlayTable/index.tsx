@@ -1178,7 +1178,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 						<Button
 							size='sm'
 							variant='primary'
-							className='font-semibold text-black'
+							className='font-semibold'
 							onPress={() => {
 								trackPaywallEvent(plausible, "paywall_cta_click", {
 									source: "paywall_banner",
