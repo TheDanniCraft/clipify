@@ -77,6 +77,20 @@ export const usersTable = pgTable("users", {
 	lastEntitlementReconciledAt: timestamp("last_entitlement_reconciled_at", { withTimezone: true }),
 });
 
+export const userContentStatesTable = pgTable(
+	"user_content_states",
+	{
+		userId: varchar("user_id")
+			.notNull()
+			.references(() => usersTable.id, { onDelete: "cascade" }),
+		contentKey: varchar("content_key").notNull(),
+		state: varchar("state").notNull(),
+		stateUntil: timestamp("state_until", { withTimezone: true }),
+		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+	},
+	(t) => [primaryKey({ columns: [t.userId, t.contentKey] })],
+);
+
 export const editorsTable = pgTable(
 	"editors",
 	{
