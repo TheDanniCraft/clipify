@@ -1,6 +1,7 @@
 name: 🗃️ Generate Migrations
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - master
@@ -39,7 +40,7 @@ jobs:
       - name: 🚀 Commit and push migrations
         uses: stefanzweifel/git-auto-commit-action@v7
         with:
-          commit_message: "🗃️ Update migration files (from ${{ github.event.after}})"
+          commit_message: "🗃️ Update migration files (from ${{ github.event.after || github.sha }})"
           file_pattern: drizzle/*
           commit_author: "${{ steps.import-gpg.outputs.name }} <${{ steps.import-gpg.outputs.email }}>"
           commit_user_name: ${{ steps.import-gpg.outputs.name }}
