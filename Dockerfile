@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:1.10
+
 # -------------------------
 # deps (install node_modules)
 # -------------------------
@@ -7,6 +9,7 @@ WORKDIR /app
 COPY package.json bun.lock ./
 COPY patches ./patches
 RUN --mount=type=cache,target=/root/.bun \
+    --mount=type=secret,id=HEROUI_AUTH_TOKEN,env=HEROUI_AUTH_TOKEN,required=true \
     bun install --frozen-lockfile
 
 # -------------------------
