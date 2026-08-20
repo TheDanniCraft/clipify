@@ -183,6 +183,11 @@ describe("GalleryPlayer", () => {
 		unmount();
 	});
 
+	it("can hide its close button when the containing modal owns that control", () => {
+		render(<GalleryPlayer gallery={buildGallery()} clips={clips} initialIndex={0} initialPlaybackUrl='https://video.example/one.mp4' ownerName='Alice' showAttribution={false} showCloseButton={false} />);
+		expect(screen.queryByRole("button", { name: "Close player" })).not.toBeInTheDocument();
+	});
+
 	it("navigates through the carousel, ignores form key events, and releases old media", async () => {
 		(global.fetch as jest.Mock).mockResolvedValueOnce({ ok: true, json: async () => ({ playbackUrl: "https://video.example/two.mp4" }) });
 		const { container, unmount } = render(<GalleryPlayer gallery={buildGallery()} clips={clips} initialIndex={0} initialPlaybackUrl='https://video.example/one.mp4' ownerName='Alice' showAttribution={false} />);

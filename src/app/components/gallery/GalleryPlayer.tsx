@@ -41,11 +41,12 @@ type Props = {
 	initialPlaybackUrl: string | null;
 	ownerName: string;
 	showAttribution: boolean;
+	showCloseButton?: boolean;
 };
 
 const PROTOCOL_VERSION = 1;
 
-export default function GalleryPlayer({ gallery, clips, initialIndex, initialPlaybackUrl, ownerName, showAttribution }: Props) {
+export default function GalleryPlayer({ gallery, clips, initialIndex, initialPlaybackUrl, ownerName, showAttribution, showCloseButton = true }: Props) {
 	const [selectedIndex, setSelectedIndex] = useState(initialIndex);
 	const [playbackUrls, setPlaybackUrls] = useState<Record<string, string | null>>(initialPlaybackUrl ? { [clips[initialIndex].id]: initialPlaybackUrl } : {});
 	const [loading, setLoading] = useState(!initialPlaybackUrl);
@@ -241,9 +242,11 @@ export default function GalleryPlayer({ gallery, clips, initialIndex, initialPla
 						<h1 className='truncate text-sm font-semibold'>{clip.title}</h1>
 						<p className='truncate text-xs text-zinc-400'>{clip.creator_name}</p>
 					</div>
-					<Button isIconOnly aria-label='Close player' variant='tertiary' onPress={closePlayer}>
-						<IconX size={20} />
-					</Button>
+					{showCloseButton ? (
+						<Button isIconOnly aria-label='Close player' variant='tertiary' onPress={closePlayer}>
+							<IconX size={20} />
+						</Button>
+					) : null}
 				</header>
 				<div className='w-full shrink-0 px-0 sm:px-4'>
 					<Carousel type='modal' opts={{ startIndex: initialIndex }} setApi={(nextApi: unknown) => setApi(nextApi as CarouselApi)}>

@@ -22,7 +22,7 @@ jest.mock("@actions/gallery", () => ({
 jest.mock("next/navigation", () => ({ redirect: (path: string) => redirect(path), notFound: () => notFound() }));
 jest.mock("@components/dashboardNavbar", () => ({ __esModule: true, default: ({ children }: { children: React.ReactNode }) => <div>{children}</div> }));
 jest.mock("@components/gallery/GalleryEditor", () => ({ __esModule: true, default: ({ canUseAdvanced, previewOwnerName }: { canUseAdvanced: boolean; previewOwnerName: string }) => <div>{`editor:${canUseAdvanced}:${previewOwnerName}`}</div> }));
-jest.mock("@components/gallery/GalleryPlayerClientOnly", () => ({ __esModule: true, default: ({ initialIndex }: { initialIndex: number }) => <div>{`preview-player:${initialIndex}`}</div> }));
+jest.mock("@components/gallery/GalleryPlayerClientOnly", () => ({ __esModule: true, default: ({ initialIndex, showCloseButton }: { initialIndex: number; showCloseButton?: boolean }) => <div>{`preview-player:${initialIndex}:${String(showCloseButton)}`}</div> }));
 
 describe("gallery dashboard pages", () => {
 	beforeEach(() => {
@@ -60,7 +60,7 @@ describe("gallery dashboard pages", () => {
 		getGalleryPreviewPlayer.mockResolvedValue({ gallery: {}, clips: [], selectedIndex: 1, playbackUrl: "video", ownerName: "alice", showAttribution: false });
 		const Page = (await import("@/app/dashboard/galleries/[galleryId]/preview/clip/[clipId]/page")).default;
 		render(await Page({ params: Promise.resolve({ galleryId: "gallery", clipId: "clip" }) }));
-		expect(screen.getByText("preview-player:1")).toBeInTheDocument();
+		expect(screen.getByText("preview-player:1:false")).toBeInTheDocument();
 		getGalleryPreviewPlayer.mockResolvedValue(null);
 		await expect(Page({ params: Promise.resolve({ galleryId: "gallery", clipId: "missing" }) })).rejects.toThrow("NEXT_NOT_FOUND");
 	});

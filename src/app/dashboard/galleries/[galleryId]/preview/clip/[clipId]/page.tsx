@@ -6,5 +6,5 @@ export default async function GalleryPreviewPlayerPage({ params }: { params: Pro
 	const { galleryId, clipId } = await params;
 	const player = await getGalleryPreviewPlayer(galleryId, clipId);
 	if (!player) notFound();
-	return <GalleryPlayerClientOnly gallery={player.gallery} clips={player.clips} initialIndex={player.selectedIndex} initialPlaybackUrl={player.playbackUrl} ownerName={player.ownerName} showAttribution={player.showAttribution} />;
+	return <GalleryPlayerClientOnly gallery={player.gallery} clips={player.clips} initialIndex={player.selectedIndex} initialPlaybackUrl={player.playbackUrl} ownerName={player.ownerName} showAttribution={player.showAttribution} showCloseButton={false} />;
 }
