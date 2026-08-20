@@ -36,7 +36,7 @@
 		"@tabler/icons-react": "^3.46.0",
 		"@tiptap/core": ">=3.30.2",
 		"@tiptap/extension-link": ">=3.23.6",
-		"@tiptap/extension-underline": ">=3.23.6",
+		"@tiptap/extension-underline": ">=3.30.2",
 		"@tiptap/extensions": ">=3.23.6",
 		"@tiptap/pm": ">=3.23.6",
 		"@tiptap/react": ">=3.23.6",
