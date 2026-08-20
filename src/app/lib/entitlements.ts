@@ -104,7 +104,7 @@ export async function ensureReverseTrialGrantForUser(user: Pick<AuthenticatedUse
 	});
 }
 
-export function pickBestGrant(grants: ActiveGrant[]) {
+function pickBestGrant(grants: ActiveGrant[]) {
 	if (grants.length === 0) return null;
 	return grants.reduce((best, current) => {
 		const bestEndsAt = best.endsAt;
