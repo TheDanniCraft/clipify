@@ -22,7 +22,9 @@ jobs:
       - name: 🍞 Set up Bun
         uses: oven-sh/setup-bun@v2
       - name: 📦 Install dependencies
-        run: bun install
+        env:
+          HEROUI_AUTH_TOKEN: ${{ secrets.HEROUI_AUTH_TOKEN }}
+        run: bun install --frozen-lockfile
       - name: 📝 Generate migrations
         run: bun run db:generate
 

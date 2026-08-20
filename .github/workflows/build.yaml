@@ -128,6 +128,8 @@ jobs:
           context: .
           push: true
           labels: ${{ steps.meta.outputs.labels }}
+          secrets: |
+            HEROUI_AUTH_TOKEN=${{ secrets.HEROUI_AUTH_TOKEN }}
           outputs: type=image,name=ghcr.io/${{ env.REPO_NAME }},push-by-digest=true,name-canonical=true,push=true
 
           cache-from: type=gha,scope=clipify-build-and-push-${{ matrix.platform }}
