@@ -17,6 +17,12 @@ function formatDate(value: string | null) {
 	return new Date(value).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
 }
 
+function productAccessLabel(product: BillingOverview["products"][number]) {
+	if (product.source === "billing") return `${product.cancelAtPeriodEnd ? "Ends" : "Renews"} ${formatDate(product.currentPeriodEnd)}`;
+	if (!product.currentPeriodEnd) return "Included";
+	return `${product.grantSource === "reverse_trial" ? "Included until" : "Available until"} ${formatDate(product.currentPeriodEnd)}`;
+}
+
 export default function BillingPanel() {
 	const [overview, setOverview] = useState<BillingOverview | null>(null);
 	const [options, setOptions] = useState<BillingProductOption[]>([]);
@@ -50,7 +56,6 @@ export default function BillingPanel() {
 		);
 
 	const owned = new Set(overview?.products.map((product) => product.key) ?? []);
-	const hasSubscription = Boolean(overview?.products.length);
 	const additions = options.filter((option) => selectedProducts.has(option.key) && !owned.has(option.key)).map((option) => ({ option, billingCycle: selectedProducts.get(option.key) ?? ("yearly" as BillingCycle) }));
 	const removals = options.filter((option) => !selectedProducts.has(option.key) && owned.has(option.key));
 	const reactivations = options.filter((option) => selectedProducts.has(option.key) && overview?.products.some((product) => product.key === option.key && product.cancelAtPeriodEnd));
@@ -59,6 +64,10 @@ export default function BillingPanel() {
 	const proPricing = options.find((option) => option.key === BillingProduct.Pro)?.prices;
 	const runnerPricing = options.find((option) => option.key === BillingProduct.RunnerSelfHosted)?.prices;
 	const pricing: RuntimePricing | null = proPricing && runnerPricing ? { pro: proPricing, runner: runnerPricing } : null;
+	const planProduct = overview?.products.find((product) => product.key === BillingProduct.Pro);
+	const addOnProducts = overview?.products.filter((product) => product.key !== BillingProduct.Pro) ?? [];
+	const planLabel = planProduct?.grantSource === "reverse_trial" ? "Pro trial" : (planProduct?.label ?? "Free");
+	const accessLabel = planProduct ? productAccessLabel(planProduct) : "—";
 
 	return (
 		<div className='mt-4 space-y-4'>
@@ -102,24 +111,25 @@ export default function BillingPanel() {
 								<p className='font-semibold capitalize'>{overview?.status ?? "Inactive"}</p>
 							</div>
 							<div>
-								<p className='text-xs text-muted'>Access & billing</p>
-								<div className='space-y-1'>
-									{overview?.products.length ? (
-										overview.products.map((product) => (
-											<p key={product.key} className='font-semibold'>
-												{product.label}: {product.source === "billing" ? (product.cancelAtPeriodEnd ? "Ends " : "Renews ") + formatDate(product.currentPeriodEnd) : product.currentPeriodEnd ? (product.grantSource === "reverse_trial" ? "Included until " : "Available until ") + formatDate(product.currentPeriodEnd) : "Included"}
-											</p>
-										))
-									) : (
-										<p className='font-semibold'>—</p>
-									)}
-								</div>
-								{overview?.products.some((product) => product.grantSource === "reverse_trial") && <p className='text-xs text-muted'>Pro is included with your new account for 7 days. It ends automatically and you won&apos;t be charged.</p>}
+								<p className='text-xs text-muted'>Plan</p>
+								<p className='font-semibold'>{planLabel}</p>
 							</div>
 							<div>
-								<p className='text-xs text-muted'>Products</p>
-								<p className='font-semibold'>{hasSubscription ? overview?.products.map((product) => product.label).join(" + ") : "No active subscription"}</p>
+								<p className='text-xs text-muted'>Access until</p>
+								<p className='font-semibold'>{accessLabel}</p>
 							</div>
+							{addOnProducts.map((product) => (
+								<div key={product.key} className='grid gap-4 sm:col-span-3 sm:grid-cols-3'>
+									<div>
+										<p className='text-xs text-muted'>Add-on</p>
+										<p className='font-semibold'>{product.label}</p>
+									</div>
+									<div className='sm:col-start-3'>
+										<p className='text-xs text-muted'>Access</p>
+										<p className='font-semibold'>{productAccessLabel(product)}</p>
+									</div>
+								</div>
+							))}
 						</Card.Content>
 					</Card>
 
