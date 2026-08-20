@@ -238,7 +238,7 @@ Questions an AI should be able to answer using this file:
 
 ## Pricing
 
-- [Pricing plans](https://clipify.us/#pricing): Free and Pro plans, optional self-hosted Runner add-on, billing options, and promotions.
+- [Pricing plans](https://clipify.us/pricing): Free and Pro plans, a complete feature comparison, optional self-hosted Runner add-on, billing options, and promotions.
 
 ## Demo
 

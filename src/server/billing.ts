@@ -5,7 +5,7 @@ import { and, eq, inArray } from "drizzle-orm";
 
 import { db } from "@/db/client";
 import { billingSubscriptionItemsTable, billingSubscriptionsTable, entitlementGrantsTable, usersTable } from "@/db/schema";
-import { getProductForPrice } from "@lib/billingCatalog";
+import { resolveBillingProductForPrice } from "@/server/billingCatalog";
 import { BillingProduct, Entitlement, EntitlementGrantSource, Plan } from "@types";
 import { reconcileUserEntitlements } from "@lib/entitlements";
 
@@ -36,25 +36,28 @@ export async function syncStripeSubscription(subscription: Stripe.Subscription, 
 	if (!userId) throw new Error(`No Clipify user found for Stripe customer ${customerId}`);
 
 	const period = subscriptionPeriod(subscription);
-	const items = subscription.items.data
-		.map((item) => {
-			const productKey = getProductForPrice(item.price.id);
-			const productId = stripeId(item.price.product);
-			if (!productKey || !productId || !item.price.recurring) return null;
-			return {
-				id: item.id,
-				subscriptionId: subscription.id,
-				productKey,
-				stripeProductId: productId,
-				stripePriceId: item.price.id,
-				unitAmount: item.price.unit_amount,
-				currency: item.price.currency,
-				billingInterval: item.price.recurring.interval,
-				quantity: item.quantity ?? 1,
-				updatedAt: new Date(),
-			};
-		})
-		.filter((item): item is NonNullable<typeof item> => item !== null);
+	const items = (
+		await Promise.all(
+			subscription.items.data.map(async (item) => {
+				const productKey = await resolveBillingProductForPrice(item.price);
+				const productId = stripeId(item.price.product);
+				if (!productKey) throw new Error(`Unable to resolve billing product for Stripe price ${item.price.id}`);
+				if (!productId || !item.price.recurring) throw new Error(`Stripe subscription item ${item.id} is missing recurring product data`);
+				return {
+					id: item.id,
+					subscriptionId: subscription.id,
+					productKey,
+					stripeProductId: productId,
+					stripePriceId: item.price.id,
+					unitAmount: item.price.unit_amount,
+					currency: item.price.currency,
+					billingInterval: item.price.recurring.interval,
+					quantity: item.quantity ?? 1,
+					updatedAt: new Date(),
+				};
+			}),
+		)
+	).filter((item): item is NonNullable<typeof item> => item !== null);
 
 	await db.transaction(async (tx) => {
 		await tx

@@ -3,7 +3,8 @@
 
 import Stripe from "stripe";
 import { BillingProduct, NumokStripeMetadata } from "@types";
-import { getBillingCatalog, getPriceId, getProductForPrice } from "@lib/billingCatalog";
+import { resolveBillingCatalog, resolveBillingPrice, resolveBillingProductForPrice } from "@/server/billingCatalog";
+import { getStripe as getServerStripe } from "@/server/stripe";
 import { getBaseUrl } from "@actions/utils";
 import { cookies } from "next/headers";
 import { validateAuth } from "@actions/auth";
@@ -12,7 +13,9 @@ import { billingSubscriptionItemsTable, billingSubscriptionsTable, usersTable } 
 import { eq } from "drizzle-orm";
 import { getActiveCampaignOffer } from "@lib/campaignOffers";
 import { tryRateLimit } from "@actions/rateLimit";
-import { resolveUserEntitlements } from "@lib/entitlements";
+import { getActiveEntitlementGrant, resolveUserEntitlements } from "@lib/entitlements";
+import { Entitlement, EntitlementGrantSource } from "@types";
+import { isProductOwnedByEntitlement } from "@lib/billingOwnership";
 
 export type BillingCycle = "monthly" | "yearly";
 export type PaywallSource = "pricing_page" | "upgrade_modal" | "paywall_banner";
@@ -42,64 +45,37 @@ export type BillingOverview = {
 		currentPeriodEnd: string | null;
 		cancelAtPeriodEnd: boolean;
 		source: "billing" | "grant";
+		grantSource: EntitlementGrantSource | null;
 	}>;
 	canManageInApp: boolean;
 };
-
-const billingPriceCache = new Map<string, { expiresAt: number; value: { amount: number | null; currency: string; formatted: string } }>();
-const BILLING_PRICE_CACHE_MS = 10 * 60 * 1000;
 
 const BILLING_PRODUCT_INFO: Record<BillingProduct, { label: string; description: string; category: "plan" | "addon" }> = {
 	[BillingProduct.Pro]: { label: "Pro", description: "Unlock multiple overlays, unlimited playlists, advanced filters, and Pro features.", category: "plan" },
 	[BillingProduct.RunnerSelfHosted]: { label: "Self-hosted Runner", description: "Run Clipify overlays from your own computer or server.", category: "addon" },
 };
 
-let stripe: Stripe | null = null;
-
-/* istanbul ignore next */
-export async function getStripe() {
-	/* istanbul ignore next */
-	if (stripe) {
-		/* istanbul ignore next */
-		return stripe;
-	}
-	/* istanbul ignore next */
-	stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "");
-
-	return stripe;
-}
-
 export async function getPlans() {
-	return getBillingCatalog()[BillingProduct.Pro];
+	const catalog = await resolveBillingCatalog();
+	return { monthly: catalog[BillingProduct.Pro].monthly.priceId, yearly: catalog[BillingProduct.Pro].yearly.priceId };
 }
 
-async function getCachedStripePrice(priceId: string) {
-	const cached = billingPriceCache.get(priceId);
-	if (cached && cached.expiresAt > Date.now()) return cached.value;
-	const stripe = await getStripe();
-	const price = await stripe.prices.retrieve(priceId);
-	const amount = typeof price.unit_amount === "number" ? price.unit_amount / 100 : null;
-	const currency = price.currency.toUpperCase();
-	const value = {
-		amount,
-		currency,
-		formatted: amount === null ? "Unavailable" : new Intl.NumberFormat("en", { style: "currency", currency }).format(amount),
-	};
-	billingPriceCache.set(priceId, { expiresAt: Date.now() + BILLING_PRICE_CACHE_MS, value });
-	return value;
+export async function getStripe() {
+	return getServerStripe();
 }
 
 export async function getBillingProductOptions(primaryProduct: BillingProduct) {
 	const authUser = await getAuthorizedUser();
 	const entitlements = await resolveUserEntitlements(authUser);
-	const catalog = getBillingCatalog();
+	const catalog = await resolveBillingCatalog();
 	let preferredBillingCycle: BillingCycle | null = null;
 	if (authUser.stripeCustomerId) {
-		const stripe = await getStripe();
+		const stripe = getServerStripe();
 		const subscriptions = await stripe.subscriptions.list({ customer: authUser.stripeCustomerId, status: "all", limit: 100 });
 		for (const subscription of subscriptions.data) {
 			if (!["active", "trialing", "past_due", "unpaid"].includes(subscription.status)) continue;
-			const proItem = subscription.items.data.find((item) => getProductForPrice(item.price.id) === BillingProduct.Pro);
+			const mappedItems = await Promise.all(subscription.items.data.map(async (item) => ({ item, product: await resolveBillingProductForPrice(item.price, stripe) })));
+			const proItem = mappedItems.find((entry) => entry.product === BillingProduct.Pro)?.item;
 			if (proItem?.price.recurring?.interval === "month") {
 				preferredBillingCycle = "monthly";
 				break;
@@ -112,13 +88,12 @@ export async function getBillingProductOptions(primaryProduct: BillingProduct) {
 		products.map(async (product) => {
 			const prices = await Promise.all(
 				(["monthly", "yearly"] as BillingCycle[]).map(async (cycle) => {
-					const priceId = catalog[product]?.[cycle];
-					if (!priceId) return { amount: null, currency: "EUR", formatted: "Unavailable" };
-					return getCachedStripePrice(priceId);
+					const price = catalog[product]?.[cycle];
+					return price ? { amount: price.amount, currency: price.currency, formatted: price.formatted } : { amount: null, currency: "EUR", formatted: "Unavailable" };
 				}),
 			);
 			const ownedBySubscription = await checkIfSubscriptionExists(product);
-			const ownedByEntitlement = product === BillingProduct.Pro ? entitlements.proAccess : product === BillingProduct.RunnerSelfHosted ? entitlements.runnerAccess : false;
+			const ownedByEntitlement = isProductOwnedByEntitlement(product, entitlements);
 			const owned = ownedBySubscription || ownedByEntitlement;
 			return {
 				key: product,
@@ -139,21 +114,22 @@ export async function getBillingOverview(): Promise<BillingOverview> {
 	const activeRows = rows.filter(({ subscription }) => ["active", "trialing", "past_due", "unpaid"].includes(subscription.status));
 	const subscription = activeRows[0]?.subscription;
 	const products: BillingOverview["products"] = activeRows.flatMap(({ item, subscription: rowSubscription }) =>
-		item ? [{ key: item.productKey, label: BILLING_PRODUCT_INFO[item.productKey]?.label ?? item.productKey, active: true, billingInterval: item.billingInterval === "year" ? ("yearly" as const) : ("monthly" as const), unitAmount: item.unitAmount, currency: item.currency.toUpperCase(), currentPeriodEnd: rowSubscription.currentPeriodEnd?.toISOString() ?? null, cancelAtPeriodEnd: Boolean(rowSubscription.cancelAtPeriodEnd), source: "billing" as const }] : [],
+		item ? [{ key: item.productKey, label: BILLING_PRODUCT_INFO[item.productKey]?.label ?? item.productKey, active: true, billingInterval: item.billingInterval === "year" ? ("yearly" as const) : ("monthly" as const), unitAmount: item.unitAmount, currency: item.currency.toUpperCase(), currentPeriodEnd: rowSubscription.currentPeriodEnd?.toISOString() ?? null, cancelAtPeriodEnd: Boolean(rowSubscription.cancelAtPeriodEnd), source: "billing" as const, grantSource: null }] : [],
 	);
 	const entitlements = await resolveUserEntitlements(authUser);
+	const runnerGrant = entitlements.runnerAccess ? await getActiveEntitlementGrant(authUser.id, Entitlement.RunnerAccess) : null;
 	if (entitlements.proAccess && !products.some((product) => product.key === BillingProduct.Pro)) {
-		products.push({ key: BillingProduct.Pro, label: BILLING_PRODUCT_INFO[BillingProduct.Pro].label, active: true, billingInterval: null, unitAmount: null, currency: "EUR", currentPeriodEnd: entitlements.trialEndsAt ? new Date(entitlements.trialEndsAt).toISOString() : null, cancelAtPeriodEnd: false, source: "grant" });
+		products.push({ key: BillingProduct.Pro, label: BILLING_PRODUCT_INFO[BillingProduct.Pro].label, active: true, billingInterval: null, unitAmount: null, currency: "EUR", currentPeriodEnd: entitlements.trialEndsAt ? new Date(entitlements.trialEndsAt).toISOString() : null, cancelAtPeriodEnd: false, source: "grant", grantSource: entitlements.grantSource ?? null });
 	}
 	if (entitlements.runnerAccess && !products.some((product) => product.key === BillingProduct.RunnerSelfHosted)) {
-		products.push({ key: BillingProduct.RunnerSelfHosted, label: BILLING_PRODUCT_INFO[BillingProduct.RunnerSelfHosted].label, active: true, billingInterval: null, unitAmount: null, currency: "EUR", currentPeriodEnd: null, cancelAtPeriodEnd: false, source: "grant" });
+		products.push({ key: BillingProduct.RunnerSelfHosted, label: BILLING_PRODUCT_INFO[BillingProduct.RunnerSelfHosted].label, active: true, billingInterval: null, unitAmount: null, currency: "EUR", currentPeriodEnd: runnerGrant?.endsAt?.toISOString() ?? null, cancelAtPeriodEnd: false, source: "grant", grantSource: runnerGrant?.source ?? null });
 	}
 	return {
 		status: subscription?.status ?? (entitlements.proAccess || entitlements.runnerAccess ? "active" : "inactive"),
 		currentPeriodEnd: subscription?.currentPeriodEnd?.toISOString() ?? null,
 		cancelAtPeriodEnd: Boolean(subscription?.cancelAtPeriodEnd),
 		products,
-		canManageInApp: products.length === 1,
+		canManageInApp: Boolean(authUser.stripeCustomerId),
 	};
 }
 
@@ -163,7 +139,7 @@ export async function scheduleProductCancellation(product: BillingProduct, cance
 	const match = rows.find(({ item, subscription }) => item.productKey === product && ["active", "trialing", "past_due", "unpaid"].includes(subscription.status));
 	if (!match) return { success: false, error: "Subscription product not found", code: "NOT_FOUND" as const };
 	if (rows.some(({ subscription }) => subscription.id === match.subscription.id && rows.filter((row) => row.subscription.id === subscription.id).length > 1)) return { success: false, error: "This product is bundled with another product. Manage it in the billing portal.", code: "BUNDLED_SUBSCRIPTION" as const };
-	const stripe = await getStripe();
+	const stripe = getServerStripe();
 	await stripe.subscriptions.update(match.subscription.id, { cancel_at_period_end: cancel });
 	return { success: true };
 }
@@ -184,7 +160,7 @@ export async function checkIfSubscriptionExists(productKey?: BillingProduct) {
 		return false;
 	}
 
-	const stripe = await getStripe();
+	const stripe = getServerStripe();
 
 	const subscriptions = await stripe.subscriptions.list({
 		customer: authUser.stripeCustomerId,
@@ -193,7 +169,13 @@ export async function checkIfSubscriptionExists(productKey?: BillingProduct) {
 	});
 
 	const blockingStatuses: Stripe.Subscription.Status[] = ["active", "trialing", "past_due", "unpaid"];
-	return subscriptions.data.some((subscription) => blockingStatuses.includes(subscription.status) && (!productKey || (subscription.items?.data ?? []).some((item) => getProductForPrice(item.price.id) === productKey)));
+	for (const subscription of subscriptions.data) {
+		if (!blockingStatuses.includes(subscription.status)) continue;
+		if (!productKey) return true;
+		const products = await Promise.all((subscription.items?.data ?? []).map((item) => resolveBillingProductForPrice(item.price, stripe)));
+		if (products.includes(productKey)) return true;
+	}
+	return false;
 }
 
 async function persistStripeCustomerId(userId: string, customerId: string) {
@@ -209,33 +191,36 @@ async function persistStripeCustomerId(userId: string, customerId: string) {
 	return result.length > 0;
 }
 
-export async function generateCheckout(productKeys: BillingProduct[] | Array<{ product: BillingProduct; billingCycle: BillingCycle }>, billingCycle: BillingCycle = "yearly", returnUrl?: string, numokMetadata?: NumokStripeMetadata, source?: PaywallSource) {
+export async function generateCheckout(productKeys: BillingProduct[] | Array<{ product: BillingProduct; billingCycle: BillingCycle }>, billingCycle: BillingCycle = "yearly", returnUrl?: string, numokMetadata?: NumokStripeMetadata, source?: PaywallSource, checkoutOptions?: { idempotencyKey?: string; successUrl?: string; cancelUrl?: string }) {
 	const authUser = await getAuthorizedUser();
 	const selectedProducts = Array.from(new Map(productKeys.map((entry) => (typeof entry === "string" ? [entry, { product: entry, billingCycle }] : [`${entry.product}:${entry.billingCycle}`, entry]))).values());
 	if (selectedProducts.length === 0) throw new Error("Select at least one product");
 	const limit = await tryRateLimit({ key: "billing-checkout", points: 5, duration: 300, identifier: authUser.id });
 	if (!limit.success) throw new Error("RATE_LIMITED: Please wait before starting another checkout");
-	const ownership = await Promise.all(selectedProducts.map(async (entry) => ({ ...entry, owned: await checkIfSubscriptionExists(entry.product) })));
+	const entitlements = await resolveUserEntitlements(authUser);
+	const ownership = await Promise.all(selectedProducts.map(async (entry) => ({ ...entry, owned: (await checkIfSubscriptionExists(entry.product)) || isProductOwnedByEntitlement(entry.product, entitlements) })));
 	const productsToBuy = ownership.filter((entry) => !entry.owned).map((entry) => entry.product);
 	if (productsToBuy.length === 0) throw new Error("You already own every selected product");
 	const cookieStore = await cookies();
-	const selectedPrices = ownership.filter((entry) => !entry.owned).map((entry) => getPriceId(entry.product, entry.billingCycle));
+	const selectedPrices = await Promise.all(ownership.filter((entry) => !entry.owned).map(async (entry) => (await resolveBillingPrice(entry.product, entry.billingCycle)).priceId));
 
-	const stripe = await getStripe();
+	const stripe = getServerStripe();
 	const baseUrl = await getBaseUrl();
 	const defaultReturnUrl = new URL("/dashboard/settings", baseUrl).toString();
-	const cancelUrl = (() => {
-		if (!returnUrl) return defaultReturnUrl;
-		try {
-			const resolved = new URL(returnUrl, baseUrl);
-			/* istanbul ignore next */
-			if (resolved.origin !== baseUrl.origin) return defaultReturnUrl;
-			return resolved.toString();
-		} catch {
-			/* istanbul ignore next */
-			return defaultReturnUrl;
-		}
-	})();
+	const cancelUrl =
+		checkoutOptions?.cancelUrl ??
+		(() => {
+			if (!returnUrl) return defaultReturnUrl;
+			try {
+				const resolved = new URL(returnUrl, baseUrl);
+				/* istanbul ignore next */
+				if (resolved.origin !== baseUrl.origin) return defaultReturnUrl;
+				return resolved.toString();
+			} catch {
+				/* istanbul ignore next */
+				return defaultReturnUrl;
+			}
+		})();
 	let stripeCustomerId = authUser.stripeCustomerId ?? null;
 
 	if (!stripeCustomerId) {
@@ -278,7 +263,7 @@ export async function generateCheckout(productKeys: BillingProduct[] | Array<{ p
 		client_reference_id: authUser.id,
 		mode: "subscription",
 		subscription_data: { metadata: { userId: authUser.id, products: productsToBuy.join(",") } },
-		success_url: defaultReturnUrl,
+		success_url: checkoutOptions?.successUrl ?? defaultReturnUrl,
 		cancel_url: cancelUrl,
 		customer: stripeCustomerId,
 		metadata: {
@@ -301,10 +286,12 @@ export async function generateCheckout(productKeys: BillingProduct[] | Array<{ p
 	};
 
 	const createSession = async (usePromo: boolean) => {
-		return stripe.checkout.sessions.create({
+		const params: Stripe.Checkout.SessionCreateParams = {
 			...baseSessionParams,
 			...(usePromo && promo ? { discounts: [{ promotion_code: promo.id }] } : { allow_promotion_codes: true }),
-		});
+		};
+		const idempotencyKey = checkoutOptions?.idempotencyKey ? `${checkoutOptions.idempotencyKey}:${usePromo && promo ? "promo" : "standard"}` : undefined;
+		return idempotencyKey ? stripe.checkout.sessions.create(params, { idempotencyKey }) : stripe.checkout.sessions.create(params);
 	};
 
 	let session: Stripe.Checkout.Session;
@@ -345,7 +332,7 @@ export async function getPortalLink() {
 		throw new Error("User does not have a Stripe customer ID");
 	}
 
-	const stripe = await getStripe();
+	const stripe = getServerStripe();
 	const baseUrl = await getBaseUrl();
 
 	const session = await stripe.billingPortal.sessions.create({

@@ -131,6 +131,24 @@ describe("actions/rateLimit", () => {
 		expect(blocked.success).toBe(false);
 	});
 
+	it("reserves a shared owner budget for public clip playback", async () => {
+		consume.mockResolvedValue({ remainingPoints: 10 });
+		const { canResolvePublicClipPlayback } = await loadRateLimit();
+
+		await expect(canResolvePublicClipPlayback("owner-1")).resolves.toBe(true);
+		expect(RateLimiterMemory).toHaveBeenNthCalledWith(1, { points: 30, duration: 60 });
+		expect(RateLimiterMemory).toHaveBeenNthCalledWith(2, { points: 60, duration: 60 });
+		expect(consume).toHaveBeenNthCalledWith(2, "owner-1", 1);
+	});
+
+	it("does not consume the owner budget after a visitor is blocked", async () => {
+		consume.mockRejectedValueOnce({ msBeforeNext: 10_000 });
+		const { canResolvePublicClipPlayback } = await loadRateLimit();
+
+		await expect(canResolvePublicClipPlayback("owner-1")).resolves.toBe(false);
+		expect(consume).toHaveBeenCalledTimes(1);
+	});
+
 	it("detects rate-limit errors by error name", async () => {
 		const { isRatelimitError } = await loadRateLimit();
 		const rateError = new Error("too many");

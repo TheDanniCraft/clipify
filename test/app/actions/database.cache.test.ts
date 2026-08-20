@@ -24,6 +24,7 @@ function makeSelectChain() {
 	chain.from = () => chain;
 	chain.where = () => chain;
 	chain.limit = () => chain;
+	chain.offset = () => chain;
 	chain.orderBy = () => chain;
 	chain.execute = async () => (selectQueue.length > 0 ? selectQueue.shift() : []);
 	return chain;
@@ -86,6 +87,7 @@ jest.mock("drizzle-orm", () => ({
 		},
 	),
 	desc: jest.fn(() => "desc"),
+	asc: jest.fn(() => "asc"),
 }));
 
 jest.mock("@actions/auth", () => ({
@@ -198,6 +200,23 @@ describe("actions/database cache logic", () => {
 			{ key: "prefix:1", value: { id: 1 } },
 			{ key: "prefix:2", value: { id: 2 } },
 		]);
+	});
+
+	it("paginates cached creator clips without loading the complete cache", async () => {
+		const { getCachedClipPageByOwner } = await loadDatabaseActions();
+		queueSelectResult([{ value: JSON.stringify({ clip: { id: "clip-1" } }) }, { value: JSON.stringify({ id: "clip-2" }) }, { value: JSON.stringify({ clip: { id: "clip-3" } }) }]);
+		queueSelectResult([{ count: 8 }]);
+		const result = await getCachedClipPageByOwner("owner", { sort: "most_viewed", start: new Date("2026-01-01T00:00:00Z"), end: new Date("2026-01-31T00:00:00Z"), cursor: "2", pageSize: 2 });
+		expect(result).toEqual({ items: [{ id: "clip-1" }, { id: "clip-2" }], nextCursor: "4", total: 8 });
+	});
+
+	it("handles empty owners and cached clip page query failures", async () => {
+		const { getCachedClipPageByOwner } = await loadDatabaseActions();
+		await expect(getCachedClipPageByOwner("", {})).resolves.toEqual({ items: [], nextCursor: null, total: 0 });
+		dbSelect.mockImplementationOnce(() => {
+			throw new Error("DB Error");
+		});
+		await expect(getCachedClipPageByOwner("owner", {})).resolves.toEqual({ items: [], nextCursor: null, total: 0 });
 	});
 
 	it("gets twitch cache stale batch correctly", async () => {

@@ -108,6 +108,9 @@ jobs:
       - name: 📦 Install Runner dependencies
         working-directory: packages/runner
         run: bun install --frozen-lockfile
+      - name: 🩹 Verify Runner patched dependencies
+        working-directory: packages/runner
+        run: bun run patches:validate
       - name: 🔐 Verify native keyring binding
         working-directory: packages/runner
         run: node check-native.mjs

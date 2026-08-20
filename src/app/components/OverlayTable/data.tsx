@@ -12,10 +12,11 @@ export const statusColorMap: Record<StatusOptions, JSX.Element> = {
 	paused: <IconCircleFilled color='var(--danger)' />,
 };
 
-export type ColumnsKey = "accessType" | "id" | "name" | "status" | "linked" | "actions" | "clipCount";
+export type ColumnsKey = "accessType" | "id" | "name" | "status" | "linked" | "actions" | "clipCount" | "source" | "published" | "layout";
 
 export const INITIAL_VISIBLE_COLUMNS: ColumnsKey[] = ["accessType", "id", "name", "status", "actions"];
 export const INITIAL_VISIBLE_PLAYLIST_COLUMNS: ColumnsKey[] = ["accessType", "id", "name", "clipCount", "actions"];
+export const INITIAL_VISIBLE_GALLERY_COLUMNS: ColumnsKey[] = ["accessType", "id", "name", "source", "published", "actions"];
 export const INITIAL_VISIBLE_RUNNER_COLUMNS: ColumnsKey[] = ["id", "name", "status", "linked", "actions"];
 
 export const columns = [
@@ -31,6 +32,16 @@ export const playlistColumns = [
 	{ name: "Playlist ID", uid: "id" },
 	{ name: "Playlist Name", uid: "name", sortDirection: "ascending" },
 	{ name: "Clips", uid: "clipCount", sortDirection: "ascending" },
+	{ name: "Actions", uid: "actions" },
+];
+
+export const galleryColumns = [
+	{ name: "", uid: "accessType", sortDirection: "ascending" },
+	{ name: "Gallery ID", uid: "id" },
+	{ name: "Gallery Name", uid: "name", sortDirection: "ascending" },
+	{ name: "Source", uid: "source", sortDirection: "ascending" },
+	{ name: "Status", uid: "published", sortDirection: "ascending" },
+	{ name: "Layout", uid: "layout", sortDirection: "ascending" },
 	{ name: "Actions", uid: "actions" },
 ];
 

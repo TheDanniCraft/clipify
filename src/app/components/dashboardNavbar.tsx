@@ -1,12 +1,13 @@
 "use client";
 
-import { IconMoonFilled, IconSunFilled } from "@tabler/icons-react";
+import { IconDiamondFilled, IconMoonFilled, IconSunFilled } from "@tabler/icons-react";
 import { useTheme } from "next-themes";
-import { Avatar, Button, ComboBox, Dropdown, Input, Label, Link, ListBox, Spinner } from "@heroui/react";
+import { Button, ComboBox, Dropdown, Input, Label, Link, ListBox, Spinner } from "@heroui/react";
 
 import { AuthenticatedUser, CampaignOffer, Role } from "@types";
 import Logo from "@components/logo";
 import CountdownTimer from "@components/countdownTimer";
+import DashboardUserAvatar from "@components/dashboardUserAvatar";
 import { useRouter } from "next/navigation";
 import { getAdminViewCandidates, stopAdminView, switchAdminView, type AdminViewCandidate } from "@actions/adminView";
 import { getActiveCampaignOfferAction } from "@actions/campaignOffers";
@@ -128,12 +129,8 @@ export default function DashboardNavbar({ children, user, title, tagline }: { ch
 						</li>
 						<li className='px-2'>
 							<Dropdown>
-								<Dropdown.Trigger className='relative mt-1 h-8 w-8 overflow-visible transition-transform' aria-label='Open profile menu'>
-									<Avatar size='sm'>
-										<Avatar.Image alt={user?.username ?? "User avatar"} src={user?.avatar} />
-										<Avatar.Fallback>{user?.username?.slice(0, 2).toUpperCase() ?? "?"}</Avatar.Fallback>
-									</Avatar>
-									<span aria-label='Online' className='absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-accent bg-success' role='status' />
+								<Dropdown.Trigger className='mt-1 h-8 w-8 overflow-visible transition-transform' aria-label='Open profile menu'>
+									<DashboardUserAvatar username={user?.username ?? "User"} avatar={user?.avatar ?? ""} showStatus />
 								</Dropdown.Trigger>
 								<Dropdown.Popover placement='bottom end'>
 									<Dropdown.Menu aria-label='Profile Actions' disabledKeys={isClearingAdminView ? ["exit_admin_view"] : []}>
@@ -144,15 +141,16 @@ export default function DashboardNavbar({ children, user, title, tagline }: { ch
 											</Label>
 										</Dropdown.Item>
 										{showUpgradeItem ? (
-											<Dropdown.Item id='upgrade_to_pro' textValue='Upgrade to Pro' className='text-accent' onAction={() => router.push("/dashboard/settings?upgrade&cycle=yearly&source=paywall_banner&feature=account_menu")}>
+											<Dropdown.Item id='upgrade_to_pro' textValue='Upgrade to Pro' className='bg-accent text-accent-foreground data-[hovered]:bg-accent-hover' onAction={() => router.push("/dashboard/settings?upgrade&cycle=yearly&source=paywall_banner&feature=account_menu")}>
+												<IconDiamondFilled aria-hidden='true' size={16} />
 												<Label>Upgrade to Pro</Label>
 											</Dropdown.Item>
 										) : null}
 										<Dropdown.Item id='settings' textValue='My Settings' onAction={() => router.push("/dashboard/settings")}>
 											<Label>My Settings</Label>
 										</Dropdown.Item>
-										<Dropdown.Item id='embeddable_widgets' textValue='Embed Overlay' onAction={() => router.push("/dashboard/embed")}>
-											<Label>Embed Overlay</Label>
+										<Dropdown.Item id='embeddable_widgets' textValue='Tools' onAction={() => router.push("/dashboard/tools")}>
+											<Label>Tools</Label>
 										</Dropdown.Item>
 										{canOpenAdminView ? (
 											<Dropdown.Item id='admin_view' textValue='Open Admin View' onAction={() => router.push("/admin")}>

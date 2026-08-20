@@ -602,6 +602,29 @@ describe("actions/twitch external API and failure handling", () => {
 		expect(url).toBe("https://download.example/portrait-only.mp4");
 	});
 
+	it("reuses temporary playback urls and deduplicates concurrent lookups", async () => {
+		const getSpy = jest.spyOn(axios, "get").mockResolvedValue({ status: 200, headers: {}, data: { data: [{ clip_id: "clip-cache", landscape_download_url: "https://download.example/cached.mp4" }] } } as never);
+		const { getTwitchClipPlaybackUrl } = await loadTwitch();
+		const first = getTwitchClipPlaybackUrl("clip-cache", "owner-1");
+		const second = getTwitchClipPlaybackUrl("clip-cache", "owner-1");
+
+		await expect(Promise.all([first, second])).resolves.toEqual(["https://download.example/cached.mp4", "https://download.example/cached.mp4"]);
+		await expect(getTwitchClipPlaybackUrl("clip-cache", "owner-1")).resolves.toBe("https://download.example/cached.mp4");
+		expect(getSpy).toHaveBeenCalledTimes(1);
+	});
+
+	it("does not contact Twitch when a public playback budget rejects the lookup", async () => {
+		const getSpy = jest.spyOn(axios, "get");
+		const postSpy = jest.spyOn(axios, "post");
+		const authorizeFetch = jest.fn().mockResolvedValue(false);
+		const { getTwitchClipPlaybackUrl } = await loadTwitch();
+
+		await expect(getTwitchClipPlaybackUrl("clip-limited", "owner-1", { authorizeFetch })).resolves.toBeUndefined();
+		expect(authorizeFetch).toHaveBeenCalledTimes(1);
+		expect(getSpy).not.toHaveBeenCalled();
+		expect(postSpy).not.toHaveBeenCalled();
+	});
+
 	it("falls back to GraphQL when clip download lookup is rate limited", async () => {
 		const warnSpy = jest.spyOn(console, "warn").mockImplementation(() => undefined);
 		const rateLimitError = createAxiosError(429) as AxiosLikeError & {

@@ -1,22 +1,24 @@
 "use client";
 
+import { Button, DateField, DateRangePicker, Label, RangeCalendar } from "@heroui/react";
+import type { ComponentProps } from "react";
 import type { DateValue } from "@internationalized/date";
-import { DateField, DateRangePicker, Label, RangeCalendar } from "@heroui/react";
 
-type DateRange = { start: DateValue; end: DateValue };
+export type AppDateRange = { start: DateValue; end: DateValue };
 
 type AppDateRangePickerProps = {
 	label: string;
-	value: DateRange | null;
-	onChange: (value: DateRange | null) => void;
+	value: AppDateRange | null;
+	onChange: (value: AppDateRange | null) => void;
 	className?: string;
 	variant?: "primary" | "secondary";
 	fullWidth?: boolean;
+	presets?: Array<{ label: string; value: AppDateRange | null }>;
 };
 
-export default function AppDateRangePicker({ label, value, onChange, className, variant = "primary", fullWidth = false }: AppDateRangePickerProps) {
+export default function AppDateRangePicker({ label, value, onChange, className, variant = "primary", fullWidth = false, presets = [] }: AppDateRangePickerProps) {
 	return (
-		<DateRangePicker className={`${fullWidth ? "w-full" : ""} ${className ?? ""}`.trim()} value={value} onChange={onChange}>
+		<DateRangePicker className={`${fullWidth ? "w-full" : ""} ${className ?? ""}`.trim()} value={value as ComponentProps<typeof DateRangePicker>["value"]} onChange={(nextValue) => onChange(nextValue as unknown as AppDateRange | null)}>
 			<Label>{label}</Label>
 			<DateField.Group fullWidth variant={variant}>
 				<DateField.Input slot='start'>{(segment) => <DateField.Segment segment={segment} />}</DateField.Input>
@@ -29,6 +31,15 @@ export default function AppDateRangePicker({ label, value, onChange, className, 
 				</DateField.Suffix>
 			</DateField.Group>
 			<DateRangePicker.Popover>
+				{presets.length > 0 ? (
+					<div className='flex flex-wrap gap-2 border-b border-divider p-3'>
+						{presets.map((preset) => (
+							<Button key={preset.label} size='sm' variant='tertiary' onPress={() => onChange(preset.value)}>
+								{preset.label}
+							</Button>
+						))}
+					</div>
+				) : null}
 				<RangeCalendar aria-label={label}>
 					<RangeCalendar.Header>
 						<RangeCalendar.YearPickerTrigger>

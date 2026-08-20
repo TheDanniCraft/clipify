@@ -5,12 +5,14 @@ import crypto from "crypto";
 import jwt from "jsonwebtoken";
 
 import { getBaseUrl, isPreview, safeReturnUrl } from "@actions/utils";
+import { readCheckoutIntent } from "@/server/checkoutIntent";
 
 export async function GET(req: NextRequest) {
 	const url = new URL(req.url);
 	const cookieStore = await cookies();
 
-	const returnUrl = (await safeReturnUrl(url.searchParams.get("returnUrl"))) || null;
+	const checkoutIntent = await readCheckoutIntent();
+	const returnUrl = checkoutIntent ? "/checkout/continue" : (await safeReturnUrl(url.searchParams.get("returnUrl"))) || null;
 
 	const nonce = crypto.randomUUID();
 	cookieStore.set("auth_nonce", nonce, {

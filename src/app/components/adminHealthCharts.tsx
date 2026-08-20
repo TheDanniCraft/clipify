@@ -82,6 +82,27 @@ export default function AdminHealthCharts({ health }: { health: InstanceHealthSn
 		{ label: "Free", value: health.counts.usersFree, fill: "#9353D3" },
 		{ label: "Paid", value: health.counts.usersPaid, fill: "#17C964" },
 	];
+	const galleryData = health.galleries
+		? [
+				{ label: "Published", value: health.galleries.published, fill: "#17C964" },
+				{ label: "Draft", value: health.galleries.draft, fill: "#F5A524" },
+				{ label: "Orphaned", value: health.galleries.orphanedCurated, fill: "#F31260" },
+			]
+		: [];
+	const creatorPageData = health.creatorPages
+		? [
+				{ label: "Discoverable", value: health.creatorPages.discoverable, fill: "#17C964" },
+				{ label: "Unlisted", value: health.creatorPages.unlisted, fill: "#F5A524" },
+				{ label: "Disabled", value: health.creatorPages.disabled, fill: "#F31260" },
+			]
+		: [];
+	const analyticsCacheData = health.analyticsCache
+		? [
+				{ label: "Valid", value: health.analyticsCache.valid, fill: "#17C964" },
+				{ label: "Expired", value: health.analyticsCache.expired, fill: "#F5A524" },
+				{ label: "Errors", value: health.analyticsCache.entriesWithErrors, fill: "#F31260" },
+			]
+		: [];
 
 	const overlayStateData = [
 		{ label: "Active", value: health.counts.overlaysActive, fill: "#17C964" },
@@ -297,6 +318,38 @@ export default function AdminHealthCharts({ health }: { health: InstanceHealthSn
 
 	return (
 		<div className='grid grid-cols-1 gap-3 lg:grid-cols-2'>
+			{health.galleries && health.creatorPages && health.analyticsCache ? (
+				<Card variant='secondary' className='min-w-0 lg:col-span-2'>
+					<Card.Header>
+						<p className='text-sm font-semibold'>Galleries, Creator Pages, and Analytics Cache</p>
+					</Card.Header>
+					<Card.Content className='grid min-w-0 gap-3 md:grid-cols-3'>
+						{[
+							["Gallery inventory", galleryData],
+							["Creator Page visibility", creatorPageData],
+							["Analytics cache health", analyticsCacheData],
+						].map(([title, data]) => (
+							<ChartPanel key={title as string} title={title as string}>
+								<MeasuredChart className='h-56 min-w-0'>
+									{(width) => (
+										<BarChart width={width} height={224} data={data as typeof galleryData} margin={{ top: 10, right: 8, left: -18, bottom: 24 }}>
+											<CartesianGrid strokeDasharray='4 4' stroke='#d4d4d8' />
+											<XAxis dataKey='label' stroke='#71717a' angle={-14} textAnchor='end' height={42} />
+											<YAxis stroke='#71717a' allowDecimals={false} />
+											<Tooltip {...tooltipProps} />
+											<Bar dataKey='value' radius={[6, 6, 0, 0]}>
+												{(data as typeof galleryData).map((entry) => (
+													<Cell key={entry.label} fill={entry.fill} />
+												))}
+											</Bar>
+										</BarChart>
+									)}
+								</MeasuredChart>
+							</ChartPanel>
+						))}
+					</Card.Content>
+				</Card>
+			) : null}
 			<Card variant='secondary' className='min-w-0 lg:col-span-2'>
 				<Card.Header className='pb-1'>
 					<p className='text-sm font-semibold'>Active Users Trend</p>

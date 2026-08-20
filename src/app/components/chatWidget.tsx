@@ -1,10 +1,16 @@
 import { useEffect } from "react";
+import { usePathname } from "next/navigation";
+import { isEmbeddedRoute } from "@lib/embeddedRoutes";
 
 const CHATWOOT_BASE_URL = "https://chat.cloud.thedannicraft.de";
 const CHATWOOT_WEBSITE_TOKEN = "new6uhVJwGhe8PCG8jxRMeiC";
 
 const ChatWidget = () => {
+	const pathname = usePathname();
+	const isEmbedded = isEmbeddedRoute(pathname);
+
 	useEffect(() => {
+		if (isEmbedded) return;
 		window.chatwootSettings = {
 			hideMessageBubble: false,
 			position: "left",
@@ -39,7 +45,7 @@ const ChatWidget = () => {
 				chatwootWidget.remove();
 			}
 		};
-	}, []);
+	}, [isEmbedded]);
 
 	return null;
 };

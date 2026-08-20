@@ -13,6 +13,11 @@ import {
 	type BillingProduct,
 	type PlaybackMode,
 	type MaxDurationMode,
+	type GallerySource,
+	type GalleryLayout,
+	type GalleryLiveSort,
+	type GalleryTimeWindow,
+	type GalleryTheme,
 	Role as RoleEnumValues,
 	Plan as PlanEnumValues,
 	RunnerStatus as RunnerStatusEnumValues,
@@ -45,6 +50,11 @@ export const twitchCacheTypeEnum = pgEnum("twitch_cache_type", enumToPgEnum(Twit
 export const entitlementEnum = pgEnum("entitlement", enumToPgEnum(EntitlementEnumValues));
 export const entitlementGrantSourceEnum = pgEnum("entitlement_grant_source", enumToPgEnum(EntitlementGrantSourceEnumValues));
 export const accountDisableTypeEnum = pgEnum("account_disable_type", ["manual", "automatic"]);
+export const gallerySourceEnum = pgEnum("gallery_source", ["curated", "live"]);
+export const galleryLayoutEnum = pgEnum("gallery_layout", ["grid", "list", "carousel"]);
+export const galleryLiveSortEnum = pgEnum("gallery_live_sort", ["newest", "most_viewed", "stable_random"]);
+export const galleryTimeWindowEnum = pgEnum("gallery_time_window", ["today", "7d", "30d", "all", "custom"]);
+export const galleryThemeEnum = pgEnum("gallery_theme", ["light", "dark", "system"]);
 
 export const usersTable = pgTable("users", {
 	id: varchar("id").notNull().primaryKey(),
@@ -66,6 +76,20 @@ export const usersTable = pgTable("users", {
 	lastLogin: timestamp("last_login", { withTimezone: true }),
 	lastEntitlementReconciledAt: timestamp("last_entitlement_reconciled_at", { withTimezone: true }),
 });
+
+export const userContentStatesTable = pgTable(
+	"user_content_states",
+	{
+		userId: varchar("user_id")
+			.notNull()
+			.references(() => usersTable.id, { onDelete: "cascade" }),
+		contentKey: varchar("content_key").notNull(),
+		state: varchar("state").notNull(),
+		stateUntil: timestamp("state_until", { withTimezone: true }),
+		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+	},
+	(t) => [primaryKey({ columns: [t.userId, t.contentKey] })],
+);
 
 export const editorsTable = pgTable(
 	"editors",
@@ -169,6 +193,67 @@ export const playlistClipsTable = pgTable(
 	(t) => [primaryKey({ columns: [t.playlistId, t.clipId] }), index("playlist_clips_position_idx").on(t.playlistId, t.position)],
 );
 
+export const galleriesTable = pgTable(
+	"galleries",
+	{
+		id: uuid("id").notNull().defaultRandom().primaryKey(),
+		ownerId: varchar("owner_id")
+			.notNull()
+			.references(() => usersTable.id, { onDelete: "cascade" }),
+		name: varchar("name").notNull(),
+		published: boolean("published").notNull().default(false),
+		source: gallerySourceEnum("source").$type<GallerySource>().notNull().default("curated"),
+		playlistId: uuid("playlist_id").references(() => playlistsTable.id, { onDelete: "set null" }),
+
+		layout: galleryLayoutEnum("layout").$type<GalleryLayout>().notNull().default("grid"),
+		gridAuto: boolean("grid_auto").notNull().default(true),
+		gridMobileColumns: integer("grid_mobile_columns").notNull().default(1),
+		gridTabletColumns: integer("grid_tablet_columns").notNull().default(3),
+		gridDesktopColumns: integer("grid_desktop_columns").notNull().default(4),
+		listDensity: varchar("list_density").notNull().default("comfortable"),
+		carouselMobileCards: integer("carousel_mobile_cards").notNull().default(1),
+		carouselTabletCards: integer("carousel_tablet_cards").notNull().default(2),
+		carouselDesktopCards: integer("carousel_desktop_cards").notNull().default(3),
+		carouselShowNavigation: boolean("carousel_show_navigation").notNull().default(true),
+		carouselShowIndicators: boolean("carousel_show_indicators").notNull().default(true),
+		showTitle: boolean("show_title").notNull().default(true),
+		showCreator: boolean("show_creator").notNull().default(true),
+		showViews: boolean("show_views").notNull().default(true),
+		showDuration: boolean("show_duration").notNull().default(true),
+		showCreatedAt: boolean("show_created_at").notNull().default(false),
+
+		liveSort: galleryLiveSortEnum("live_sort").$type<GalleryLiveSort>().notNull().default("newest"),
+		liveTimeWindow: galleryTimeWindowEnum("live_time_window").$type<GalleryTimeWindow>().notNull().default("30d"),
+		liveCustomStart: timestamp("live_custom_start", { withTimezone: true }),
+		liveCustomEnd: timestamp("live_custom_end", { withTimezone: true }),
+		liveResultLimit: integer("live_result_limit").notNull().default(12),
+		includeCategories: varchar("include_categories").array().notNull().default([]),
+		excludeCategories: varchar("exclude_categories").array().notNull().default([]),
+		minimumViews: integer("minimum_views").notNull().default(0),
+		minimumDuration: integer("minimum_duration").notNull().default(0),
+		maximumDuration: integer("maximum_duration").notNull().default(0),
+		titleBlacklist: varchar("title_blacklist").array().notNull().default([]),
+		creatorAllowlist: varchar("creator_allowlist").array().notNull().default([]),
+		creatorBlocklist: varchar("creator_blocklist").array().notNull().default([]),
+
+		theme: galleryThemeEnum("theme").$type<GalleryTheme>().notNull().default("system"),
+		accentColor: varchar("accent_color").notNull().default("#7C3AED"),
+		backgroundMode: varchar("background_mode").notNull().default("transparent"),
+		backgroundColor: varchar("background_color").notNull().default("#000000"),
+		cardSurfaceColor: varchar("card_surface_color").notNull().default("#18181B"),
+		textColor: varchar("text_color").notNull().default("#FFFFFF"),
+		cardRadius: integer("card_radius").notNull().default(16),
+		gap: integer("gap").notNull().default(16),
+		thumbnailTreatment: varchar("thumbnail_treatment").notNull().default("cover"),
+		modalBackdrop: varchar("modal_backdrop").notNull().default("rgba(0,0,0,0.72)"),
+		desktopModalWidth: integer("desktop_modal_width").notNull().default(960),
+
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+	},
+	(t) => [index("galleries_owner_created_at_idx").on(t.ownerId, t.createdAt), index("galleries_playlist_idx").on(t.playlistId)],
+);
+
 export const queueTable = pgTable(
 	"clipQueue",
 	{
@@ -204,7 +289,30 @@ export const settingsTable = pgTable("userSettings", {
 	marketingOptInSource: varchar("marketing_opt_in_source"),
 	useSendProductUpdatesContactId: varchar("usesend_product_updates_contact_id"),
 	showOnCommunityPage: boolean("show_in_community").notNull().default(false),
+	creatorPageEnabled: boolean("creator_page_enabled").notNull().default(true),
+	// Null preserves the old Community Page choice during rollout: true maps to
+	// discoverable and false maps to unlisted. Newly-created settings explicitly
+	// store "discoverable".
+	creatorPageVisibility: varchar("creator_page_visibility"),
+	creatorPageShowBio: boolean("creator_page_show_bio").notNull().default(true),
+	creatorPageSocialTitle: varchar("creator_page_social_title"),
+	creatorPageSocialDescription: varchar("creator_page_social_description"),
 });
+
+export const plausibleStatsCacheTable = pgTable(
+	"plausible_stats_cache",
+	{
+		ownerId: varchar("owner_id")
+			.notNull()
+			.references(() => usersTable.id, { onDelete: "cascade" }),
+		cacheKey: varchar("cache_key").notNull(),
+		value: text("value").notNull(),
+		fetchedAt: timestamp("fetched_at", { withTimezone: true }).defaultNow().notNull(),
+		expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+		lastErrorAt: timestamp("last_error_at", { withTimezone: true }),
+	},
+	(t) => [primaryKey({ columns: [t.ownerId, t.cacheKey] }), index("plausible_stats_cache_expiry_idx").on(t.expiresAt)],
+);
 
 export const twitchCacheTable = pgTable(
 	"twitchCache",

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { Button, Card, Chip, Separator, Form, Input, Link, Modal, Spinner, Tabs, TextField, Label, FieldError, InputGroup } from "@heroui/react";
+import { Button, Card, Separator, Form, Input, Link, Modal, Spinner, Tabs, TextField, Label, FieldError, InputGroup } from "@heroui/react";
 import Image from "next/image";
 
 import { Turnstile } from "nextjs-turnstile";
@@ -79,7 +79,7 @@ export default function Footer() {
 			{ name: "Channel Points Integration", href: "#features" },
 		],
 		supportOptions: [
-			{ name: "Pricing", href: "#pricing" },
+			{ name: "Pricing", href: "/pricing" },
 			{ name: "FAQs", href: "#faq" },
 			{ name: "Community", href: "/community" },
 			{ name: "Help Center", href: "https://help.clipify.us/" },
@@ -428,11 +428,11 @@ export default function Footer() {
 					<div className='flex flex-wrap justify-between gap-2 pt-8'>
 						<div>
 							<div className='flex items-center justify-center gap-3 md:justify-start'>
-								<Link href='https://status.thedannicraft.de/status/clipify'>
-									<Chip className='px-0 text-muted' variant='tertiary'>
+								<Link href='https://status.thedannicraft.de/status/clipify' className='text-muted'>
+									<span className='inline-flex items-center gap-2 text-xs font-medium'>
 										<span aria-hidden className='h-2 w-2 rounded-full' style={{ backgroundColor: statusColor }} />
 										<span>{statusText}</span>
-									</Chip>
+									</span>
 								</Link>
 							</div>
 							<p className='text-center text-xs text-muted md:text-start'>&copy; {new Date().getFullYear()} TheDanniCraft. All rights reserved.</p>

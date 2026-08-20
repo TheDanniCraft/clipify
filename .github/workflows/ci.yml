@@ -66,10 +66,12 @@ jobs:
 
       # Always validate the lockfile and patches, even when node_modules came from cache.
       - name: 📦 Validate and install dependencies
+        env:
+          HEROUI_AUTH_TOKEN: ${{ secrets.HEROUI_AUTH_TOKEN }}
         run: bun install --frozen-lockfile
 
       - name: 🩹 Verify patched dependencies
-        run: node scripts/validate-patched-dependencies.mjs
+        run: bun run patches:validate
 
       # save a new cache entry when we had a miss
       - name: 💾 Save Bun & node_modules cache
@@ -196,7 +198,7 @@ jobs:
         run: bun install --frozen-lockfile
       - name: 🩹 Verify Runner patched dependencies
         working-directory: packages/runner
-        run: node ../../scripts/validate-patched-dependencies.mjs
+        run: bun run patches:validate
       - name: 🔐 Verify native keyring binding
         working-directory: packages/runner
         run: node check-native.mjs

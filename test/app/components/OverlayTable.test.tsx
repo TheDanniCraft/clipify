@@ -40,6 +40,9 @@ const createPlaylist = jest.fn();
 const deleteOverlay = jest.fn();
 const deletePlaylist = jest.fn();
 const saveOverlay = jest.fn();
+const getAllGalleries = jest.fn();
+const createGallery = jest.fn();
+const deleteGallery = jest.fn();
 
 jest.mock("@actions/database", () => ({
 	getAllOverlays: (...args: any[]) => getAllOverlays(...args),
@@ -51,6 +54,12 @@ jest.mock("@actions/database", () => ({
 	deleteOverlay: (...args: any[]) => deleteOverlay(...args),
 	deletePlaylist: (...args: any[]) => deletePlaylist(...args),
 	saveOverlay: (...args: any[]) => saveOverlay(...args),
+}));
+
+jest.mock("@actions/gallery", () => ({
+	getAllGalleries: (...args: any[]) => getAllGalleries(...args),
+	createGallery: (...args: any[]) => createGallery(...args),
+	deleteGallery: (...args: any[]) => deleteGallery(...args),
 }));
 
 const validateAuth = jest.fn();
@@ -258,9 +267,21 @@ describe("OverlayTable", () => {
 		getActiveCampaignOfferAction.mockResolvedValue(null);
 		getAllOverlays.mockResolvedValue([{ id: "ov-1", name: "Overlay 1", status: StatusOptions.Active, ownerId: userId }]);
 		getAllPlaylists.mockResolvedValue([{ id: "pl-1", name: "Playlist 1", ownerId: userId, clipCount: 5 }]);
+		getAllGalleries.mockResolvedValue([{ id: "gallery-1", name: "Best clips", ownerId: userId, source: "curated", published: true, layout: "grid" }]);
 		getEditorOverlays.mockResolvedValue([]);
 		getEditorAccess.mockResolvedValue([]);
 		validateAuth.mockResolvedValue({ id: userId, plan: Plan.Pro });
+	});
+
+	it("renders galleries in the shared management table", async () => {
+		render(<OverlayTable userId={userId} accessToken={accessToken} />);
+
+		await waitFor(() => expect(screen.getByText("Overlay 1")).toBeInTheDocument());
+		fireEvent.click(screen.getByText("Galleries"));
+
+		await waitFor(() => expect(screen.getByText("Best clips")).toBeInTheDocument());
+		expect(screen.getByText("Published")).toBeInTheDocument();
+		expect(routerPush).not.toHaveBeenCalled();
 	});
 
 	it("renders overlays by default and can switch to playlists", async () => {

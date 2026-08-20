@@ -188,8 +188,8 @@ describe("components/dashboardNavbar", () => {
 		fireEvent.click(screen.getByText("My Settings"));
 		expect(routerPush).toHaveBeenCalledWith("/dashboard/settings");
 
-		fireEvent.click(screen.getByText("Embed Overlay"));
-		expect(routerPush).toHaveBeenCalledWith("/dashboard/embed");
+		fireEvent.click(screen.getByText("Tools"));
+		expect(routerPush).toHaveBeenCalledWith("/dashboard/tools");
 
 		fireEvent.click(screen.getByText("Help"));
 		expect(routerPush).toHaveBeenCalledWith("https://help.clipify.us/");

@@ -1,6 +1,6 @@
 import type { SVGProps } from "react";
 import { InferSelectModel } from "drizzle-orm";
-import type { entitlementGrantsTable, modQueueTable, overlaysTable, playlistClipsTable, playlistsTable, settingsTable, tokenTable, usersTable, queueTable, twitchCacheTable, runnersTable, streamSessionsTable } from "@/db/schema";
+import type { entitlementGrantsTable, galleriesTable, modQueueTable, overlaysTable, playlistClipsTable, playlistsTable, settingsTable, tokenTable, usersTable, queueTable, twitchCacheTable, runnersTable, streamSessionsTable, plausibleStatsCacheTable } from "@/db/schema";
 
 export class RateLimitError extends Error {
 	constructor() {
@@ -250,6 +250,8 @@ export type EntitlementGrant = InferSelectModel<typeof entitlementGrantsTable>;
 export type UserToken = InferSelectModel<typeof tokenTable>;
 
 export type UserSettings = InferSelectModel<typeof settingsTable> & { editors: string[] };
+export type CreatorPageVisibility = "discoverable" | "unlisted";
+export type PlausibleStatsCache = InferSelectModel<typeof plausibleStatsCacheTable>;
 
 export enum StatusOptions {
 	Active = "active",
@@ -259,6 +261,7 @@ export enum StatusOptions {
 export type Overlay = InferSelectModel<typeof overlaysTable>;
 export type Playlist = InferSelectModel<typeof playlistsTable>;
 export type PlaylistClip = InferSelectModel<typeof playlistClipsTable>;
+export type Gallery = InferSelectModel<typeof galleriesTable>;
 export type Runner = InferSelectModel<typeof runnersTable>;
 export type StreamSession = InferSelectModel<typeof streamSessionsTable>;
 
@@ -291,6 +294,12 @@ export enum MaxDurationMode {
 }
 
 export type AccessType = "owner" | "editor";
+
+export type GallerySource = "curated" | "live";
+export type GalleryLayout = "grid" | "list" | "carousel";
+export type GalleryLiveSort = "newest" | "most_viewed" | "stable_random";
+export type GalleryTimeWindow = "today" | "7d" | "30d" | "all" | "custom";
+export type GalleryTheme = "light" | "dark" | "system";
 
 export type TwitchClipBody = {
 	broadcaster_id: string;

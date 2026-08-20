@@ -1,10 +1,11 @@
 /* istanbul ignore file */
 import { db } from "@/db/client";
-import { billingSubscriptionItemsTable, billingSubscriptionsTable, entitlementGrantsTable, modQueueTable, overlaysTable, playlistClipsTable, playlistsTable, queueTable, runnersTable, settingsTable, streamSessionsTable, tokenTable, twitchCacheTable, usersTable } from "@/db/schema";
+import { billingSubscriptionItemsTable, billingSubscriptionsTable, entitlementGrantsTable, galleriesTable, modQueueTable, overlaysTable, plausibleStatsCacheTable, playlistClipsTable, playlistsTable, queueTable, runnersTable, settingsTable, streamSessionsTable, tokenTable, twitchCacheTable, usersTable } from "@/db/schema";
 import { getTwitchCacheReadMetricsSnapshot } from "@actions/database";
 import { getClipCacheSchedulerStats } from "@lib/clipCacheScheduler";
 import { and, arrayContains, count, countDistinct, eq, gt, isNotNull, isNull, like, lt, lte, or, sql } from "drizzle-orm";
 import { BillingProduct, Entitlement, EntitlementGrantSource, OverlayType, PlaybackMode, Plan, RunnerStatus, StatusOptions, StreamMode, StreamState, TwitchCacheType } from "@types";
+import { getCreatorAnalyticsRuntimeMetrics } from "@lib/plausibleCreatorAnalytics";
 
 type HealthStatus = "ok" | "degraded" | "down";
 
@@ -122,6 +123,37 @@ export type InstanceHealthSnapshot = {
 		optedInUsers: number;
 		optedOutUsers: number;
 		optInRate: number;
+	};
+	galleries?: {
+		total: number;
+		published: number;
+		draft: number;
+		owners: number;
+		curated: number;
+		live: number;
+		orphanedCurated: number;
+		byLayout: Record<string, number>;
+	};
+	creatorPages?: {
+		discoverable: number;
+		unlisted: number;
+		disabled: number;
+		showBio: number;
+	};
+	analyticsCache?: {
+		entries: number;
+		valid: number;
+		expired: number;
+		entriesWithErrors: number;
+		hits: number;
+		misses: number;
+		hitRate: number;
+		apiRequests: number;
+		apiFailures: number;
+		rateLimited: number;
+		staleFallbacks: number;
+		averageLatencyMs: number;
+		lastFetchAt: string | null;
 	};
 	queues: {
 		clipQueueDepth: number;
@@ -554,6 +586,30 @@ export async function getInstanceHealthSnapshot<TExclude extends keyof InstanceH
 	const scheduler = getClipCacheSchedulerStats();
 	const cacheReads = await getTwitchCacheReadMetricsSnapshot();
 	const clipFetchMetrics = getClipFetchMetricsStore();
+	const [galleryRows, galleryLayoutRows, creatorPageRows, analyticsCacheRows] = await Promise.all([
+		db
+			.select({ total: count(), published: sql<number>`count(*) filter (where ${galleriesTable.published} = true)`, owners: countDistinct(galleriesTable.ownerId), curated: sql<number>`count(*) filter (where ${galleriesTable.source} = 'curated')`, live: sql<number>`count(*) filter (where ${galleriesTable.source} = 'live')`, orphaned: sql<number>`count(*) filter (where ${galleriesTable.source} = 'curated' and ${galleriesTable.playlistId} is null)` })
+			.from(galleriesTable)
+			.execute(),
+		db.select({ layout: galleriesTable.layout, count: count() }).from(galleriesTable).groupBy(galleriesTable.layout).execute(),
+		db
+			.select({
+				discoverable: sql<number>`count(*) filter (where ${settingsTable.creatorPageEnabled} = true and (${settingsTable.creatorPageVisibility} = 'discoverable' or (${settingsTable.creatorPageVisibility} is null and ${settingsTable.showOnCommunityPage} = true)))`,
+				unlisted: sql<number>`count(*) filter (where ${settingsTable.creatorPageEnabled} = true and (${settingsTable.creatorPageVisibility} = 'unlisted' or (${settingsTable.creatorPageVisibility} is null and ${settingsTable.showOnCommunityPage} = false)))`,
+				disabled: sql<number>`count(*) filter (where ${settingsTable.creatorPageEnabled} = false)`,
+				showBio: sql<number>`count(*) filter (where ${settingsTable.creatorPageEnabled} = true and ${settingsTable.creatorPageShowBio} = true)`,
+			})
+			.from(settingsTable)
+			.execute(),
+		db
+			.select({ entries: count(), valid: sql<number>`count(*) filter (where ${plausibleStatsCacheTable.expiresAt} > now())`, expired: sql<number>`count(*) filter (where ${plausibleStatsCacheTable.expiresAt} <= now())`, errors: sql<number>`count(*) filter (where ${plausibleStatsCacheTable.lastErrorAt} is not null)` })
+			.from(plausibleStatsCacheTable)
+			.execute(),
+	]);
+	const galleryAggregate = galleryRows[0];
+	const creatorAggregate = creatorPageRows[0];
+	const analyticsAggregate = analyticsCacheRows[0];
+	const analyticsRuntime = getCreatorAnalyticsRuntimeMetrics();
 	const healthAggregationMs = Date.now() - started;
 
 	let status: HealthStatus = "ok";
@@ -619,6 +675,37 @@ export async function getInstanceHealthSnapshot<TExclude extends keyof InstanceH
 			optedInUsers: communityOptedInUsers,
 			optedOutUsers: communityOptedOutUsers,
 			optInRate: communityOptInRate,
+		},
+		galleries: {
+			total: Number(galleryAggregate?.total ?? 0),
+			published: Number(galleryAggregate?.published ?? 0),
+			draft: Math.max(0, Number(galleryAggregate?.total ?? 0) - Number(galleryAggregate?.published ?? 0)),
+			owners: Number(galleryAggregate?.owners ?? 0),
+			curated: Number(galleryAggregate?.curated ?? 0),
+			live: Number(galleryAggregate?.live ?? 0),
+			orphanedCurated: Number(galleryAggregate?.orphaned ?? 0),
+			byLayout: Object.fromEntries(galleryLayoutRows.map((row) => [row.layout, Number(row.count ?? 0)])),
+		},
+		creatorPages: {
+			discoverable: Number(creatorAggregate?.discoverable ?? 0),
+			unlisted: Number(creatorAggregate?.unlisted ?? 0),
+			disabled: Number(creatorAggregate?.disabled ?? 0),
+			showBio: Number(creatorAggregate?.showBio ?? 0),
+		},
+		analyticsCache: {
+			entries: Number(analyticsAggregate?.entries ?? 0),
+			valid: Number(analyticsAggregate?.valid ?? 0),
+			expired: Number(analyticsAggregate?.expired ?? 0),
+			entriesWithErrors: Number(analyticsAggregate?.errors ?? 0),
+			hits: analyticsRuntime.hits,
+			misses: analyticsRuntime.misses,
+			hitRate: analyticsRuntime.hitRate,
+			apiRequests: analyticsRuntime.apiRequests,
+			apiFailures: analyticsRuntime.apiFailures,
+			rateLimited: analyticsRuntime.rateLimited,
+			staleFallbacks: analyticsRuntime.staleFallbacks,
+			averageLatencyMs: analyticsRuntime.averageLatencyMs,
+			lastFetchAt: analyticsRuntime.lastFetchAt,
 		},
 		queues: {
 			clipQueueDepth: Number(clipQueueRows[0]?.count ?? 0),

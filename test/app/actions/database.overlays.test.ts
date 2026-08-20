@@ -112,6 +112,7 @@ jest.mock("@/db/schema", () => ({
 	tokenTable: {},
 	playlistsTable: { ownerId: "playlists.owner_id", id: "playlists.id", createdAt: "playlists.created_at" },
 	playlistClipsTable: { playlistId: "playlist_clips.playlist_id", clipId: "playlist_clips.clip_id", position: "playlist_clips.position" },
+	galleriesTable: { id: "galleries.id", ownerId: "galleries.owner_id", playlistId: "galleries.playlist_id", createdAt: "galleries.created_at" },
 	queueTable: {},
 	settingsTable: { id: "settings.id" },
 	modQueueTable: {},
@@ -293,6 +294,7 @@ describe("actions/database overlay logic", () => {
 		const { downgradeUserPlan } = await loadDatabaseActions();
 		queueSelectResult([{ id: "ov-1" }, { id: "ov-2" }]); // overlays select
 		queueSelectResult([{ id: "pl-1" }, { id: "pl-2" }]); // playlists select
+		queueSelectResult([]); // galleries select
 		queueSelectResult([
 			{ id: "clip-1", clipId: "c1" },
 			{ id: "clip-2", clipId: "c2" },
@@ -300,6 +302,8 @@ describe("actions/database overlay logic", () => {
 
 		await downgradeUserPlan("user-1");
 		expect(deleteCalls.length).toBeGreaterThan(0);
+		expect(updateSetCalls).toContainEqual(expect.objectContaining({ playlistId: null, published: false }));
+		expect(deleteCalls).toContainEqual({ table: expect.objectContaining({ id: "playlists.id" }) });
 	});
 
 	describe("error cases", () => {

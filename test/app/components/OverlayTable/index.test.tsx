@@ -7,6 +7,9 @@ const getAllOverlays = jest.fn();
 const getEditorOverlays = jest.fn();
 const getAllPlaylists = jest.fn();
 const getEditorAccess = jest.fn();
+const getAllGalleries = jest.fn();
+const createGallery = jest.fn();
+const deleteGallery = jest.fn();
 const createOverlay = jest.fn();
 const createPlaylist = jest.fn();
 const deleteOverlay = jest.fn();
@@ -41,6 +44,12 @@ jest.mock("@actions/database", () => ({
 	deleteOverlay: (...args: unknown[]) => deleteOverlay(...args),
 	deletePlaylist: (...args: unknown[]) => deletePlaylist(...args),
 	saveOverlay: (...args: unknown[]) => saveOverlay(...args),
+}));
+
+jest.mock("@actions/gallery", () => ({
+	getAllGalleries: (...args: unknown[]) => getAllGalleries(...args),
+	createGallery: (...args: unknown[]) => createGallery(...args),
+	deleteGallery: (...args: unknown[]) => deleteGallery(...args),
 }));
 
 jest.mock("@actions/auth", () => ({
@@ -257,6 +266,7 @@ describe("components/OverlayTable/index", () => {
 		getAllOverlays.mockResolvedValue([buildOverlay()]);
 		getEditorOverlays.mockResolvedValue([]);
 		getAllPlaylists.mockResolvedValue([{ id: "playlist-1", ownerId: "owner-1", name: "Roadmap", clipCount: 2, accessType: "owner" }]);
+		getAllGalleries.mockResolvedValue([]);
 		getEditorAccess.mockResolvedValue([]);
 		getUsersDetailsBulk.mockResolvedValue([]);
 		getAvatar.mockResolvedValue(null);

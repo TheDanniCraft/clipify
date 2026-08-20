@@ -98,6 +98,13 @@ export async function tryRateLimit({ points, duration, key, identifier }: { poin
 		});
 }
 
+export async function canResolvePublicClipPlayback(ownerId: string) {
+	const visitorLimit = await tryRateLimit({ key: "public-clip-playback-visitor", points: 30, duration: 60 });
+	if (!visitorLimit.success) return false;
+	const ownerLimit = await tryRateLimit({ key: "public-clip-playback-owner", points: 60, duration: 60, identifier: ownerId });
+	return ownerLimit.success;
+}
+
 export async function isRatelimitError(error: unknown) {
 	if (error instanceof Error && error.name == "RateLimitError") {
 		return true;

@@ -1,6 +1,6 @@
 "use server";
 
-import { tokenTable, usersTable, overlaysTable, playlistsTable, playlistClipsTable, queueTable, settingsTable, modQueueTable, editorsTable, twitchCacheTable } from "@/db/schema";
+import { tokenTable, usersTable, overlaysTable, playlistsTable, playlistClipsTable, galleriesTable, queueTable, settingsTable, modQueueTable, editorsTable, twitchCacheTable } from "@/db/schema";
 import { db, QueryClient } from "@/db/client";
 import { AuthenticatedUser, ClipQueueItem, ModQueueItem, Overlay, Playlist, TwitchUserResponse, TwitchTokenApiResponse, UserToken, Plan, Role, UserSettings, TwitchCacheType, StatusOptions, OverlayType, PlaybackMode, MaxDurationMode, TwitchClip } from "@types";
 import { getTwitchClipLookup, getUserDetails, getUsersDetailsBulk, subscribeToReward, syncOwnerClipCache } from "@actions/twitch";
@@ -15,6 +15,7 @@ import { TWITCH_CLIPS_LAUNCH_MS, FREE_PLAYLIST_LIMIT, FREE_PLAYLIST_CLIP_LIMIT }
 import { getAccessTokenInternal, getAccessTokenResultInternal } from "@/server/tokens";
 import { canEditOwnerInternal, requireOverlayAccessInternal, requireOverlaySecretAccessInternal } from "@/server/overlays";
 import { invalidateCommunitySnapshotCache } from "@lib/community";
+import { downgradeGalleryPatch } from "@lib/gallery";
 
 const TWITCH_CACHE_CLEANUP_INTERVAL_MS = 10 * 60 * 1000;
 const FONT_URL_DELIMITER = "||url||";
@@ -430,7 +431,10 @@ export async function insertUser(user: TwitchUserResponse): Promise<Authenticate
 					marketingOptInAt: new Date(),
 					marketingOptInSource: "soft_opt_in_default",
 					useSendProductUpdatesContactId: null,
-					showOnCommunityPage: false,
+					showOnCommunityPage: true,
+					creatorPageEnabled: true,
+					creatorPageVisibility: "discoverable",
+					creatorPageShowBio: true,
 				})
 				.onConflictDoNothing()
 				.execute();
@@ -1105,6 +1109,7 @@ export async function deletePlaylist(playlistId: string) {
 			// Clear overlay references first to avoid FK delete failures in environments
 			// where the constraint might not be ON DELETE SET NULL yet.
 			await tx.update(overlaysTable).set({ playlistId: null, updatedAt: new Date() }).where(eq(overlaysTable.playlistId, playlistId)).execute();
+			await tx.update(galleriesTable).set({ playlistId: null, published: false, updatedAt: new Date() }).where(eq(galleriesTable.playlistId, playlistId)).execute();
 			await tx.delete(playlistsTable).where(eq(playlistsTable.id, playlistId)).execute();
 		});
 
@@ -1525,10 +1530,30 @@ export async function createOverlay(userId: string) {
 
 export async function downgradeUserPlan(userId: string) {
 	await db.transaction(async (tx) => {
-		const [overlays, playlists] = await Promise.all([tx.select().from(overlaysTable).where(eq(overlaysTable.ownerId, userId)).execute(), tx.select().from(playlistsTable).where(eq(playlistsTable.ownerId, userId)).orderBy(playlistsTable.createdAt).execute()]);
+		const [overlays, playlists, galleries] = await Promise.all([tx.select().from(overlaysTable).where(eq(overlaysTable.ownerId, userId)).execute(), tx.select().from(playlistsTable).where(eq(playlistsTable.ownerId, userId)).orderBy(playlistsTable.createdAt).execute(), tx.select().from(galleriesTable).where(eq(galleriesTable.ownerId, userId)).orderBy(galleriesTable.createdAt).execute()]);
 
-		if (overlays.length === 0 && playlists.length === 0) {
+		if (overlays.length === 0 && playlists.length === 0 && galleries.length === 0) {
 			return;
+		}
+
+		if (galleries.length > 0) {
+			const [keptGallery, ...galleriesToDelete] = galleries;
+			if (galleriesToDelete.length > 0) {
+				await tx
+					.delete(galleriesTable)
+					.where(
+						inArray(
+							galleriesTable.id,
+							galleriesToDelete.map((gallery) => gallery.id),
+						),
+					)
+					.execute();
+			}
+			await tx
+				.update(galleriesTable)
+				.set({ ...downgradeGalleryPatch(keptGallery, true), updatedAt: new Date() })
+				.where(eq(galleriesTable.id, keptGallery.id))
+				.execute();
 		}
 
 		if (overlays.length > 0) {
@@ -1596,15 +1621,9 @@ export async function downgradeUserPlan(userId: string) {
 			const [keptPlaylist, ...playlistsToDelete] = playlists;
 
 			if (playlistsToDelete.length > 0) {
-				await tx
-					.delete(playlistsTable)
-					.where(
-						inArray(
-							playlistsTable.id,
-							playlistsToDelete.map((p) => p.id),
-						),
-					)
-					.execute();
+				const playlistIds = playlistsToDelete.map((playlist) => playlist.id);
+				await tx.update(galleriesTable).set({ playlistId: null, published: false, updatedAt: new Date() }).where(inArray(galleriesTable.playlistId, playlistIds)).execute();
+				await tx.delete(playlistsTable).where(inArray(playlistsTable.id, playlistIds)).execute();
 			}
 
 			const keptRows = await tx.select().from(playlistClipsTable).where(eq(playlistClipsTable.playlistId, keptPlaylist.id)).orderBy(playlistClipsTable.position).execute();
@@ -1998,7 +2017,12 @@ export async function getSettingsServer(userId: string, forceSyncExternal = fals
 				marketingOptInAt: consentRecordedAt,
 				marketingOptInSource: "soft_opt_in_default",
 				useSendProductUpdatesContactId: null,
-				showOnCommunityPage: false,
+				showOnCommunityPage: true,
+				creatorPageEnabled: true,
+				creatorPageVisibility: "discoverable",
+				creatorPageShowBio: true,
+				creatorPageSocialTitle: null,
+				creatorPageSocialDescription: null,
 				editors: [],
 			};
 
@@ -2024,6 +2048,9 @@ export async function getSettingsServer(userId: string, forceSyncExternal = fals
 					marketingOptInSource: defaultSettings.marketingOptInSource,
 					useSendProductUpdatesContactId: contactId,
 					showOnCommunityPage: defaultSettings.showOnCommunityPage,
+					creatorPageEnabled: defaultSettings.creatorPageEnabled,
+					creatorPageVisibility: defaultSettings.creatorPageVisibility,
+					creatorPageShowBio: defaultSettings.creatorPageShowBio,
 				})
 				.onConflictDoUpdate({
 					target: settingsTable.id,
@@ -2158,15 +2185,21 @@ export async function saveSettings(settings: UserSettings) {
 
 		const useSendProductUpdatesContactId = existingSettings?.useSendProductUpdatesContactId ?? null;
 		const showOnCommunityPage = settings.showOnCommunityPage ?? false;
+		const creatorPageEnabled = settings.creatorPageEnabled !== false;
+		const creatorPageVisibility = settings.creatorPageVisibility === "unlisted" ? "unlisted" : "discoverable";
+		const creatorPageShowBio = settings.creatorPageShowBio !== false;
+		const socialPreviewAccess = getFeatureAccess(authedUser, "creator_page_social_preview").allowed;
+		const creatorPageSocialTitle = socialPreviewAccess ? settings.creatorPageSocialTitle?.trim().slice(0, 120) || null : null;
+		const creatorPageSocialDescription = socialPreviewAccess ? settings.creatorPageSocialDescription?.trim().slice(0, 240) || null : null;
 
 		await db.transaction(async (tx) => {
 			// Upsert settings
 			await tx
 				.insert(settingsTable)
-				.values({ id: userId, prefix, marketingOptIn, marketingOptInAt, marketingOptInSource, useSendProductUpdatesContactId, showOnCommunityPage })
+				.values({ id: userId, prefix, marketingOptIn, marketingOptInAt, marketingOptInSource, useSendProductUpdatesContactId, showOnCommunityPage, creatorPageEnabled, creatorPageVisibility, creatorPageShowBio, creatorPageSocialTitle, creatorPageSocialDescription })
 				.onConflictDoUpdate({
 					target: settingsTable.id,
-					set: { prefix, marketingOptIn, marketingOptInAt, marketingOptInSource, useSendProductUpdatesContactId, showOnCommunityPage },
+					set: { prefix, marketingOptIn, marketingOptInAt, marketingOptInSource, useSendProductUpdatesContactId, showOnCommunityPage, creatorPageEnabled, creatorPageVisibility, creatorPageShowBio, creatorPageSocialTitle, creatorPageSocialDescription },
 				})
 				.execute();
 
@@ -2376,6 +2409,52 @@ export async function getTwitchCacheByPrefixEntries<T>(type: TwitchCacheType, ke
 	} catch (error) {
 		console.error("Error reading twitch cache by prefix:", error);
 		return [];
+	}
+}
+
+export async function getCachedClipPageByOwner(ownerId: string, query: { sort?: "newest" | "most_viewed"; start?: Date | null; end?: Date | null; cursor?: string | null; pageSize?: number }) {
+	try {
+		if (!ownerId) return { items: [] as TwitchClip[], nextCursor: null as string | null, total: 0 };
+		const now = new Date();
+		const keyPrefix = `clip:${ownerId}:`;
+		const escapedPrefix = escapeLikePattern(keyPrefix);
+		const payload = sql`coalesce(${twitchCacheTable.value}::jsonb -> 'clip', ${twitchCacheTable.value}::jsonb)`;
+		const clipId = sql<string>`${payload} ->> 'id'`;
+		const createdAt = sql<Date>`nullif(${payload} ->> 'created_at', '')::timestamptz`;
+		const viewCount = sql<number>`coalesce(nullif(${payload} ->> 'view_count', '')::bigint, 0)`;
+		const conditions = [eq(twitchCacheTable.type, TwitchCacheType.Clip), sql`${twitchCacheTable.key} LIKE ${`${escapedPrefix}%`} ESCAPE '\\'`, or(isNull(twitchCacheTable.expiresAt), gt(twitchCacheTable.expiresAt, now)), sql`coalesce((${twitchCacheTable.value}::jsonb ->> 'unavailable')::boolean, false) = false`, sql`${clipId} is not null`, sql`${createdAt} is not null`];
+		if (query.start) conditions.push(sql`${createdAt} >= ${query.start}`);
+		if (query.end) conditions.push(sql`${createdAt} < ${new Date(query.end.getTime() + 86_400_000)}`);
+		const where = and(...conditions);
+		const pageSize = Math.min(48, Math.max(1, Math.floor(query.pageSize ?? 24)));
+		const offset = Math.max(0, Number.parseInt(query.cursor ?? "0", 10) || 0);
+		const order = query.sort === "newest" ? [desc(createdAt), asc(clipId)] : [desc(viewCount), desc(createdAt), asc(clipId)];
+		const [rows, totals] = await Promise.all([
+			db
+				.select({ value: twitchCacheTable.value })
+				.from(twitchCacheTable)
+				.where(where)
+				.orderBy(...order)
+				.limit(pageSize + 1)
+				.offset(offset)
+				.execute(),
+			db
+				.select({ count: sql<number>`count(*)::int` })
+				.from(twitchCacheTable)
+				.where(where)
+				.execute(),
+		]);
+		const items: TwitchClip[] = [];
+		for (const row of rows.slice(0, pageSize)) {
+			const value = parseCacheJson<{ clip?: TwitchClip } | TwitchClip>(row.value, `getCachedClipPageByOwner:${ownerId}`);
+			if (!value) continue;
+			const clip = (value as { clip?: TwitchClip }).clip ?? (value as TwitchClip);
+			if (clip?.id) items.push(clip);
+		}
+		return { items, nextCursor: rows.length > pageSize ? String(offset + pageSize) : null, total: totals[0]?.count ?? 0 };
+	} catch (error) {
+		console.error("Error reading cached clip page:", error);
+		return { items: [] as TwitchClip[], nextCursor: null as string | null, total: 0 };
 	}
 }
 

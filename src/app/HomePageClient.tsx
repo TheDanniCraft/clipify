@@ -9,7 +9,7 @@ import { buttonVariants } from "@heroui/styles";
 import Image from "next/image";
 
 import { LazyMotion, motion, domAnimation, AnimatePresence } from "motion/react";
-import { IconThumbUp, IconArrowRight, IconPlugConnected, IconLayersDifference, IconMoodSmile, IconCoin, IconAdjustments, IconChevronDown, IconMessageCircle, IconDeviceRemote, IconUsersGroup, IconPlaylist } from "@tabler/icons-react";
+import { IconThumbUp, IconArrowRight, IconPlugConnected, IconLayersDifference, IconMoodSmile, IconCoin, IconAdjustments, IconChevronDown, IconDeviceRemote, IconUsersGroup, IconPlaylist, IconWorld } from "@tabler/icons-react";
 import FeatureCard from "@components/featureCard";
 import TiersComponent from "@components/Pricing";
 import faqs from "@components/LandingPage/faqs";
@@ -20,6 +20,7 @@ import DemoPlayer from "@components/DemoPlayer";
 import CountdownTimer from "@components/countdownTimer";
 import { getPublicCommunityTeaserAction } from "@actions/community";
 import type { CommunityTeaserStreamer } from "@lib/community-types";
+import type { RuntimePricing } from "@components/Pricing/pricing-types";
 
 export function buildCampaignOfferHref(ctaHref: string, utmCampaign?: string | null): string {
 	if (!utmCampaign) return ctaHref;
@@ -37,9 +38,10 @@ export function buildCampaignOfferHref(ctaHref: string, utmCampaign?: string | n
 
 type HomePageClientProps = {
 	campaignOffer: CampaignOffer | null;
+	pricing: RuntimePricing;
 };
 
-export default function HomePageClient({ campaignOffer }: HomePageClientProps) {
+export default function HomePageClient({ campaignOffer, pricing }: HomePageClientProps) {
 	const campaignOfferHref = campaignOffer ? buildCampaignOfferHref(campaignOffer.ctaHref, campaignOffer.utmCampaign) : null;
 	const floatingCtaLabel = campaignOffer?.floatingCtaLabel ?? campaignOffer?.ctaLabel;
 	const floatingTitle = campaignOffer?.floatingTitle ?? campaignOffer?.badgeText ?? campaignOffer?.title;
@@ -147,7 +149,7 @@ export default function HomePageClient({ campaignOffer }: HomePageClientProps) {
 											<Link className={buttonVariants({ variant: "primary", className: "w-[163px] bg-accent-foreground text-black hover:bg-accent-foreground/90" })} href='/login'>
 												Get Started
 											</Link>
-											<Link className={buttonVariants({ variant: "outline", className: "w-[163px] gap-2 border-white text-white hover:bg-white/10" })} href='#pricing'>
+											<Link className={buttonVariants({ variant: "outline", className: "w-[163px] gap-2 border-white text-white hover:bg-white/10" })} href='/pricing'>
 												See our plans
 												{
 													<span className='pointer-events-none flex h-[22px] w-[22px] items-center justify-center rounded-full bg-white'>
@@ -214,10 +216,10 @@ export default function HomePageClient({ campaignOffer }: HomePageClientProps) {
 						<FeatureCard title='Smart Playback Modes' description='Switch between Random, Top, and Smart Shuffle playback, plus advanced creator and category filters with Pro.' icon={IconAdjustments} />
 						<FeatureCard title='Multiple Overlays' description='Create as many overlays as you like, use them for AFK screens, at the starting or end screens of your stream, or anywhere you want.' icon={IconLayersDifference} />
 						<FeatureCard title='Channel Points Integration' description='Let viewers trigger clip playback with Twitch channel points and keep chat engaged during breaks.' icon={IconCoin} />
-						<FeatureCard title='Remote Control Panel' description='Open a dedicated live controller to pause, skip, mute, manage queues, and monitor overlay playback from a phone or second screen.' icon={IconDeviceRemote} />
+						<FeatureCard title='Live Playback Controls' description='Control clips from Twitch chat or use the dedicated remote panel on your phone or second monitor to pause, skip, mute, manage queues, and monitor playback while live.' icon={IconDeviceRemote} />
 						<FeatureCard title='Theme Studio' description='Build your own overlay look with drag-and-drop cards, custom colors/fonts/effects, timer, and progress bar styling.' icon={IconCoin} />
 						<FeatureCard title='Editors & Managers' description='Give trusted teammates access to manage overlays and playlists without sharing your full account credentials.' icon={IconUsersGroup} />
-						<FeatureCard title='Chat Commands' description='Control playback, queue and volume directly from Twitch chat while live.' icon={IconMessageCircle} />
+						<FeatureCard title='Creator Pages & Galleries' description='Share a home for all your clips or embed responsive galleries on your own website with Clipify Elements.' icon={IconWorld} />
 						<FeatureCard title='Self-hosted Runners' description='Automatically play your clips 24/7, or keep them running as a failsafe when your OBS setup goes offline.' icon={IconPlugConnected} />
 					</div>
 				</div>
@@ -272,7 +274,7 @@ export default function HomePageClient({ campaignOffer }: HomePageClientProps) {
 						) : null}
 					</div>
 				</div>
-				<TiersComponent campaignOffer={campaignOffer} />
+				<TiersComponent campaignOffer={campaignOffer} pricing={pricing} />
 			</div>
 			<div id='demo' />
 			<div className='w-full bg-background py-24 px-4'>

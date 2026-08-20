@@ -1,0 +1,53 @@
+{
+	"title": "Clipify VM01 Overview v5",
+	"uid": "clipify-vm01-v5",
+	"tags": ["clipify", "vm01", "galleries", "creator-pages"],
+	"timezone": "browser",
+	"schemaVersion": 41,
+	"version": 1,
+	"refresh": "30s",
+	"time": { "from": "now-30d", "to": "now" },
+	"panels": [
+		{
+			"id": 201,
+			"title": "Gallery Inventory",
+			"type": "timeseries",
+			"gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+			"datasource": { "type": "influxdb", "uid": "efg3es37pgh6ob" },
+			"targets": [{ "refId": "A", "query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"clipify_vm01\")\n  |> filter(fn: (r) => r._field == \"galleries_total\" or r._field == \"galleries_published\" or r._field == \"galleries_draft\" or r._field == \"galleries_orphanedCurated\")" }],
+			"fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 12 } }, "overrides": [] },
+			"options": { "legend": { "displayMode": "table", "placement": "bottom" }, "tooltip": { "mode": "multi" } }
+		},
+		{
+			"id": 202,
+			"title": "Gallery Configuration",
+			"type": "timeseries",
+			"gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+			"datasource": { "type": "influxdb", "uid": "efg3es37pgh6ob" },
+			"targets": [{ "refId": "A", "query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"clipify_vm01\")\n  |> filter(fn: (r) => r._field == \"galleries_curated\" or r._field == \"galleries_live\" or r._field =~ /^galleries_byLayout_/ )" }],
+			"fieldConfig": { "defaults": { "color": { "mode": "palette-classic" } }, "overrides": [] },
+			"options": { "legend": { "displayMode": "table", "placement": "bottom" }, "tooltip": { "mode": "multi" } }
+		},
+		{
+			"id": 203,
+			"title": "Creator Page Visibility",
+			"type": "timeseries",
+			"gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+			"datasource": { "type": "influxdb", "uid": "efg3es37pgh6ob" },
+			"targets": [{ "refId": "A", "query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"clipify_vm01\")\n  |> filter(fn: (r) => r._field == \"creatorPages_discoverable\" or r._field == \"creatorPages_unlisted\" or r._field == \"creatorPages_disabled\" or r._field == \"creatorPages_showBio\")" }],
+			"fieldConfig": { "defaults": { "color": { "mode": "palette-classic" } }, "overrides": [] },
+			"options": { "legend": { "displayMode": "table", "placement": "bottom" }, "tooltip": { "mode": "multi" } }
+		},
+		{
+			"id": 204,
+			"title": "Creator Analytics Cache Health",
+			"type": "timeseries",
+			"gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+			"description": "Operational cache/API metrics only. Pageviews, clip opens, playback counts, and resource identifiers are intentionally excluded.",
+			"datasource": { "type": "influxdb", "uid": "efg3es37pgh6ob" },
+			"targets": [{ "refId": "A", "query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"clipify_vm01\")\n  |> filter(fn: (r) => r._field == \"analyticsCache_valid\" or r._field == \"analyticsCache_expired\" or r._field == \"analyticsCache_apiFailures\" or r._field == \"analyticsCache_rateLimited\" or r._field == \"analyticsCache_staleFallbacks\")" }],
+			"fieldConfig": { "defaults": { "color": { "mode": "palette-classic" } }, "overrides": [] },
+			"options": { "legend": { "displayMode": "table", "placement": "bottom" }, "tooltip": { "mode": "multi" } }
+		}
+	]
+}
