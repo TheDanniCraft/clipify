@@ -41,7 +41,7 @@
 		"@tiptap/pm": ">=3.30.6",
 		"@tiptap/react": ">=3.30.6",
 		"@tiptap/starter-kit": ">=3.30.6",
-		"@tiptap/suggestion": ">=3.30.2",
+		"@tiptap/suggestion": ">=3.31.0",
 		"@types/ffbinaries": "^1.1.5",
 		"axios": "^1.19.0",
 		"dotenv": "^17.4.2",
