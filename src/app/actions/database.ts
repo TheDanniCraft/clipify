@@ -377,7 +377,7 @@ async function requireOverlaySecretAccess(overlayId: string, secret?: string): P
 export async function insertUser(user: TwitchUserResponse): Promise<AuthenticatedUser> {
 	try {
 		const twitchCreatedAt = parseTwitchCreatedAtOrDefault(user.created_at);
-		const existing = await db.select({ id: usersTable.id, disabled: usersTable.disabled, disableType: usersTable.disableType }).from(usersTable).where(eq(usersTable.id, user.id)).limit(1).execute();
+		const existing = await db.select({ id: usersTable.id, disabled: usersTable.disabled, disableType: usersTable.disableType, memberNumber: usersTable.memberNumber }).from(usersTable).where(eq(usersTable.id, user.id)).limit(1).execute();
 		const isNewUser = existing.length === 0;
 		const dbUser = await db
 			.insert(usersTable)
@@ -389,6 +389,7 @@ export async function insertUser(user: TwitchUserResponse): Promise<Authenticate
 				role: Role.User,
 				plan: Plan.Free,
 				twitchCreatedAt,
+				memberNumber: isNewUser ? sql<number>`nextval('clipify_member_number_seq') + (SELECT count(*)::int FROM ${usersTable} WHERE ${usersTable.memberNumber} IS NULL)` : (existing[0]?.memberNumber ?? null),
 			})
 			.onConflictDoUpdate({
 				target: usersTable.id,

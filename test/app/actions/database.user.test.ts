@@ -26,6 +26,7 @@ const usersTable = {
 	updatedAt: "users.updated_at",
 	lastLogin: "users.last_login",
 	createdAt: "users.created_at",
+	memberNumber: "users.member_number",
 };
 
 function queueSelectResult(value: unknown) {
@@ -360,15 +361,17 @@ describe("actions/database user logic", () => {
 		const result = await insertUser(user);
 		expect(result).toBeDefined();
 		expect(insertCalls.length).toBeGreaterThan(0);
+		expect(insertCalls[0].memberNumber).toBe("sql");
 	});
 
 	it("inserts existing user and re-enables if automatic", async () => {
 		const { insertUser } = await loadDatabaseActions();
-		queueSelectResult([{ id: "u-1", disabled: true, disableType: "automatic" }]); // existing select
+		queueSelectResult([{ id: "u-1", disabled: true, disableType: "automatic", memberNumber: 42 }]); // existing select
 
 		const user = makeTwitchUser();
 		await insertUser(user);
 		expect(updateCalls.some((u) => u.disabled === false)).toBe(true);
+		expect(insertCalls[0].memberNumber).toBe(42);
 	});
 
 	it("inserts existing user and does NOT re-enable if manual", async () => {

@@ -1,0 +1,86 @@
+import BadgeGrid from "@components/membership/BadgeGrid";
+import MemberCard from "@components/membership/MemberCard";
+import MemberCardActions from "@components/membership/MemberCardActions";
+import { getPublicMemberProfile } from "@lib/membership";
+import { IconArrowLeft, IconRosetteDiscountCheck } from "@tabler/icons-react";
+import type { Metadata } from "next";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+
+type MemberPageProps = { params: Promise<{ username: string }> };
+
+export async function generateMetadata({ params }: MemberPageProps): Promise<Metadata> {
+	const { username } = await params;
+	const profile = await getPublicMemberProfile(username);
+	if (!profile) return {};
+
+	const publicPath = `/members/${encodeURIComponent(profile.username)}`;
+	const imageUrl = `/api/member-card/public/${encodeURIComponent(profile.username)}`;
+	const title = `${profile.username}'s Clipify Member Card`;
+	const description = `See ${profile.username}'s place in the Clipify community and the badges they have collected.`;
+
+	return {
+		title,
+		description,
+		alternates: { canonical: publicPath },
+		openGraph: { title, description, url: publicPath, type: "profile", images: [{ url: imageUrl, width: 1200, height: 1200, alt: title }] },
+		twitter: { card: "summary_large_image", title, description, images: [imageUrl] },
+	};
+}
+
+export default async function PublicMemberPage({ params }: MemberPageProps) {
+	const { username } = await params;
+	const profile = await getPublicMemberProfile(username);
+	if (!profile) notFound();
+
+	const imageUrl = `/api/member-card/public/${encodeURIComponent(profile.username)}`;
+
+	return (
+		<main className='relative isolate min-h-screen overflow-hidden bg-[#07080d] text-white'>
+			<div aria-hidden='true' className='pointer-events-none absolute inset-0 -z-20 bg-[radial-gradient(circle_at_50%_-10%,rgba(99,102,241,0.3),transparent_36%),radial-gradient(circle_at_12%_68%,rgba(34,211,238,0.16),transparent_28%),radial-gradient(circle_at_88%_76%,rgba(168,85,247,0.16),transparent_30%)]' />
+			<div aria-hidden='true' className='pointer-events-none absolute inset-0 -z-10 opacity-[0.12] [background-image:linear-gradient(rgba(255,255,255,.12)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.12)_1px,transparent_1px)] [background-size:56px_56px] [mask-image:linear-gradient(to_bottom,black,transparent_82%)]' />
+
+			<nav className='mx-auto flex w-full max-w-6xl items-center justify-between px-5 py-6 sm:px-8'>
+				<Link href='/' className='inline-flex items-center gap-2 text-sm font-semibold text-white/65 transition-colors hover:text-white'>
+					<IconArrowLeft aria-hidden='true' size={18} />
+					Clipify
+				</Link>
+				<span className='inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-white/60 backdrop-blur-xl'>
+					<IconRosetteDiscountCheck aria-hidden='true' size={16} className='text-cyan-300' />
+					Official Member Card
+				</span>
+			</nav>
+
+			<section className='mx-auto grid w-full max-w-6xl items-center gap-14 px-5 pb-20 pt-8 sm:px-8 lg:grid-cols-[1fr_420px] lg:gap-20 lg:pt-16'>
+				<div className='max-w-2xl text-center lg:text-left'>
+					<p className='text-xs font-semibold uppercase tracking-[0.28em] text-cyan-300/80'>A place in Clipify history</p>
+					<h1 className='mt-5 text-balance text-4xl font-bold tracking-[-0.04em] sm:text-6xl'>
+						This card belongs to <span className='bg-gradient-to-r from-indigo-300 via-white to-cyan-300 bg-clip-text text-transparent'>{profile.username}</span>
+					</h1>
+					<p className='mx-auto mt-6 max-w-xl text-pretty text-base leading-7 text-white/55 lg:mx-0 lg:text-lg'>A permanent record of their place in the community, made to collect the badges and moments that matter along the way.</p>
+					<div className='mt-8 flex justify-center lg:justify-start'>
+						<MemberCardActions username={profile.username} imageUrl={imageUrl} />
+					</div>
+				</div>
+
+				<div className='relative mx-auto w-full max-w-[390px] lg:mx-0'>
+					<div aria-hidden='true' className='absolute inset-x-6 bottom-0 top-20 rounded-full bg-gradient-to-b from-indigo-500/25 to-cyan-400/20 blur-[80px]' />
+					<MemberCard profile={profile} />
+					<p className='mt-8 text-center text-xs text-white/35'>Move your pointer across the card</p>
+				</div>
+			</section>
+
+			{profile.badges.length > 0 ? (
+				<section className='mx-auto w-full max-w-6xl px-5 pb-24 sm:px-8'>
+					<div className='rounded-[2rem] border border-white/10 bg-white/[0.045] p-6 shadow-2xl backdrop-blur-xl sm:p-8'>
+						<p className='text-xs font-semibold uppercase tracking-[0.22em] text-white/40'>Badge collection</p>
+						<h2 className='mt-2 text-2xl font-bold tracking-tight'>Recognition that stays with you</h2>
+						<div className='mt-6 text-foreground'>
+							<BadgeGrid badges={profile.badges} />
+						</div>
+					</div>
+				</section>
+			) : null}
+		</main>
+	);
+}

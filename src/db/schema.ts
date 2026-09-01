@@ -1,4 +1,4 @@
-import { varchar, pgTable, check, timestamp, uuid, integer, text, uniqueIndex, primaryKey, index, pgEnum, boolean } from "drizzle-orm/pg-core";
+import { varchar, pgTable, check, timestamp, uuid, integer, text, uniqueIndex, primaryKey, index, pgEnum, pgSequence, boolean } from "drizzle-orm/pg-core";
 import {
 	type Role,
 	type Plan,
@@ -56,26 +56,62 @@ export const galleryLiveSortEnum = pgEnum("gallery_live_sort", ["newest", "most_
 export const galleryTimeWindowEnum = pgEnum("gallery_time_window", ["today", "7d", "30d", "all", "custom"]);
 export const galleryThemeEnum = pgEnum("gallery_theme", ["light", "dark", "system"]);
 
-export const usersTable = pgTable("users", {
-	id: varchar("id").notNull().primaryKey(),
-	email: varchar("email").notNull(),
-	username: varchar("username").notNull(),
-	avatar: varchar("avatar").notNull(),
-	role: roleEnum("role").$type<Role>().notNull(),
-	plan: planEnum("plan").$type<Plan>().notNull(),
-	disabled: boolean("disabled").notNull().default(false),
-	disableType: accountDisableTypeEnum("disable_type"),
-	disabledAt: timestamp("disabled_at", { withTimezone: true }),
-	disabledReason: varchar("disabled_reason"),
-	stripeCustomerId: varchar("stripe_customer_id"),
+export const memberNumberSequence = pgSequence("clipify_member_number_seq");
+
+export const usersTable = pgTable(
+	"users",
+	{
+		id: varchar("id").notNull().primaryKey(),
+		email: varchar("email").notNull(),
+		username: varchar("username").notNull(),
+		avatar: varchar("avatar").notNull(),
+		role: roleEnum("role").$type<Role>().notNull(),
+		plan: planEnum("plan").$type<Plan>().notNull(),
+		disabled: boolean("disabled").notNull().default(false),
+		disableType: accountDisableTypeEnum("disable_type"),
+		disabledAt: timestamp("disabled_at", { withTimezone: true }),
+		disabledReason: varchar("disabled_reason"),
+		stripeCustomerId: varchar("stripe_customer_id"),
+		memberNumber: integer("member_number"),
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+		twitchCreatedAt: timestamp("twitch_created_at", { withTimezone: true })
+			.default(sql`'2016-05-01T00:00:00.000Z'::timestamptz`)
+			.notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+		lastLogin: timestamp("last_login", { withTimezone: true }),
+		lastEntitlementReconciledAt: timestamp("last_entitlement_reconciled_at", { withTimezone: true }),
+	},
+	(t) => [
+		uniqueIndex("users_member_number_unique")
+			.on(t.memberNumber)
+			.where(sql`${t.memberNumber} > 0`),
+	],
+);
+
+export const badgesTable = pgTable("badges", {
+	slug: varchar("slug", { length: 64 }).notNull().primaryKey(),
+	name: varchar("name", { length: 80 }).notNull(),
+	description: text("description").notNull(),
+	icon: varchar("icon", { length: 64 }),
+	priority: integer("priority").notNull().default(0),
 	createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-	twitchCreatedAt: timestamp("twitch_created_at", { withTimezone: true })
-		.default(sql`'2016-05-01T00:00:00.000Z'::timestamptz`)
-		.notNull(),
-	updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
-	lastLogin: timestamp("last_login", { withTimezone: true }),
-	lastEntitlementReconciledAt: timestamp("last_entitlement_reconciled_at", { withTimezone: true }),
 });
+
+export const userBadgesTable = pgTable(
+	"user_badges",
+	{
+		userId: varchar("user_id")
+			.notNull()
+			.references(() => usersTable.id, { onDelete: "cascade" }),
+		badgeSlug: varchar("badge_slug", { length: 64 })
+			.notNull()
+			.references(() => badgesTable.slug, { onDelete: "cascade" }),
+		awardedAt: timestamp("awarded_at", { withTimezone: true }).defaultNow().notNull(),
+		awardedBy: varchar("awarded_by"),
+		source: varchar("source", { length: 80 }),
+	},
+	(t) => [primaryKey({ columns: [t.userId, t.badgeSlug] }), index("user_badges_badge_slug_idx").on(t.badgeSlug)],
+);
 
 export const userContentStatesTable = pgTable(
 	"user_content_states",

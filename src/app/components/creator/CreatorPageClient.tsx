@@ -2,7 +2,7 @@
 
 import { getCreatorClipPage, getCreatorClipPlayback } from "@actions/creatorPage";
 import AppDateRangePicker from "@components/appDateRangePicker";
-import { Button, Card, Label, ListBox, Select } from "@heroui/react";
+import { Button, Card, Chip, Label, ListBox, Select } from "@heroui/react";
 import { parseDate } from "@internationalized/date";
 import { IconArrowLeft, IconArrowRight, IconBrandTwitch, IconExternalLink, IconPlayerPlayFilled, IconX } from "@tabler/icons-react";
 import type { TwitchClip } from "@types";
@@ -11,12 +11,16 @@ import { usePlausible } from "next-plausible";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { PLAUSIBLE_EVENTS } from "@lib/plausibleEvents";
 import { useQualifiedPlayback } from "@/app/hooks/useQualifiedPlayback";
+import type { MemberBadgeView } from "@lib/membership";
+import { formatMemberNumber } from "@lib/membershipFormat";
 
 type Creator = {
 	username: string;
 	avatar: string;
 	description: string;
 	createdAt: Date | string;
+	memberNumber?: number | null;
+	badges?: MemberBadgeView[];
 	visibility: "discoverable" | "unlisted";
 	twitchBadge: string | null;
 	clipifyBadge: string;
@@ -216,6 +220,16 @@ export default function CreatorPageClient({ creator, initialItems, initialCursor
 								<div className='mt-2 flex flex-wrap gap-2'>
 									{creator.twitchBadge ? <span className='rounded-full bg-secondary px-2 py-1 text-xs'>{creator.twitchBadge}</span> : null}
 									<span className='rounded-full bg-brand-500/15 px-2 py-1 text-xs text-brand-400'>{creator.clipifyBadge}</span>
+									{creator.memberNumber != null ? (
+										<Chip size='sm' variant='secondary'>
+											{formatMemberNumber(creator.memberNumber ?? null)}
+										</Chip>
+									) : null}
+									{(creator.badges ?? []).map((badge) => (
+										<Chip key={badge.slug} size='sm' variant='secondary'>
+											{badge.name}
+										</Chip>
+									))}
 								</div>
 							</div>
 							{creator.description ? <p className='text-sm text-muted'>{creator.description}</p> : null}
@@ -229,6 +243,9 @@ export default function CreatorPageClient({ creator, initialItems, initialCursor
 							) : null}
 							<Button variant='primary' onPress={() => window.open(`https://twitch.tv/${encodeURIComponent(creator.username)}`, "_blank", "noopener,noreferrer")}>
 								<IconBrandTwitch size={18} /> Twitch profile
+							</Button>
+							<Button variant='secondary' onPress={() => window.open(`/members/${encodeURIComponent(creator.username)}`, "_blank", "noopener,noreferrer")}>
+								<IconExternalLink size={18} /> Member Card
 							</Button>
 						</Card.Content>
 					</Card>

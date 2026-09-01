@@ -15,7 +15,8 @@ export async function generateMetadata({ params }: { params: Promise<{ twitchUse
 		title: preview.title,
 		description: preview.description,
 		robots: creator.visibility === "discoverable" ? { index: true, follow: true } : { index: false, follow: false },
-		openGraph: { title: preview.openGraphTitle, description: preview.openGraphDescription, images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "Clipify Creator Page" }] },
+		openGraph: { title: preview.openGraphTitle, description: preview.openGraphDescription, images: [{ url: `/api/member-card/public/${encodeURIComponent(creator.username)}`, width: 1200, height: 1200, alt: `${creator.username}'s Clipify Member Card` }] },
+		twitter: { card: "summary_large_image", title: preview.openGraphTitle, description: preview.openGraphDescription, images: [`/api/member-card/public/${encodeURIComponent(creator.username)}`] },
 	};
 }
 

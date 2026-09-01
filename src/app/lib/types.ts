@@ -1,6 +1,6 @@
 import type { SVGProps } from "react";
 import { InferSelectModel } from "drizzle-orm";
-import type { entitlementGrantsTable, galleriesTable, modQueueTable, overlaysTable, playlistClipsTable, playlistsTable, settingsTable, tokenTable, usersTable, queueTable, twitchCacheTable, runnersTable, streamSessionsTable, plausibleStatsCacheTable } from "@/db/schema";
+import type { badgesTable, entitlementGrantsTable, galleriesTable, modQueueTable, overlaysTable, playlistClipsTable, playlistsTable, settingsTable, tokenTable, userBadgesTable, usersTable, queueTable, twitchCacheTable, runnersTable, streamSessionsTable, plausibleStatsCacheTable } from "@/db/schema";
 
 export class RateLimitError extends Error {
 	constructor() {
@@ -245,6 +245,8 @@ export type AdminViewContext = {
 	adminUsername?: string;
 };
 export type AuthenticatedUser = DbUser & { entitlements?: UserEntitlements; adminView?: AdminViewContext };
+export type Badge = InferSelectModel<typeof badgesTable>;
+export type UserBadge = InferSelectModel<typeof userBadgesTable>;
 export type EntitlementGrant = InferSelectModel<typeof entitlementGrantsTable>;
 
 export type UserToken = InferSelectModel<typeof tokenTable>;

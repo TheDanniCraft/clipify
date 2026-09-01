@@ -6,6 +6,7 @@ import { getCachedClipByOwner, getCreatorTwitchDetails, getTwitchClipPlaybackUrl
 import { resolveCreatorPageVisibility, type CreatorClipQuery } from "@lib/creatorPage";
 import { resolveUserEntitlements } from "@lib/entitlements";
 import { getFeatureAccess } from "@lib/featureAccess";
+import { getMemberBadges } from "@lib/membership";
 import { canResolvePublicClipPlayback } from "@actions/rateLimit";
 import { getCachedClipPageByOwner } from "@actions/database";
 import { eq, sql } from "drizzle-orm";
@@ -32,6 +33,7 @@ const getCreatorPresentation = cache(async (username: string) => {
 	const twitchBadge = twitch.profile?.broadcaster_type === "partner" ? "Twitch Partner" : twitch.profile?.broadcaster_type === "affiliate" ? "Twitch Affiliate" : null;
 	const clipifyBadge = creator.entitlements.grantSource === "partner" ? "Clipify Partner" : creator.entitlements.effectivePlan === "pro" ? "Clipify Pro" : "Clipify Creator";
 	const socialPreviewAccess = getFeatureAccess({ ...creator.user, entitlements: creator.entitlements }, "creator_page_social_preview").allowed;
+	const badges = await getMemberBadges(creator.user.id);
 	return {
 		ownerId: creator.user.id,
 		creator: {
@@ -40,6 +42,8 @@ const getCreatorPresentation = cache(async (username: string) => {
 			avatar: twitch.profile?.profile_image_url || creator.user.avatar,
 			description: creator.settings?.creatorPageShowBio === false ? "" : twitch.profile?.description || "",
 			createdAt: creator.user.createdAt,
+			memberNumber: creator.user.memberNumber,
+			badges,
 			visibility: creator.visibility,
 			twitchBadge,
 			clipifyBadge,
