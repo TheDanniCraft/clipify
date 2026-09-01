@@ -34,7 +34,7 @@
 		"@react-aria/utils": ">=3.34.1",
 		"@sentry/nextjs": "^10.73.0",
 		"@tabler/icons-react": "^3.46.0",
-		"@tiptap/core": ">=3.30.6",
+		"@tiptap/core": ">=3.31.0",
 		"@tiptap/extension-link": ">=3.31.0",
 		"@tiptap/extension-underline": ">=3.30.6",
 		"@tiptap/extensions": ">=3.30.6",
