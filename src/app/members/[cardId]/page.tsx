@@ -3,6 +3,7 @@ import MemberCard from "@components/membership/MemberCard";
 import MemberCardActions from "@components/membership/MemberCardActions";
 import { getPublicMemberProfile } from "@lib/membership";
 import { memberCardPath, memberCardImagePath } from "@lib/memberCardLinks";
+import { clipifyShareDescription } from "@lib/memberCardShare";
 import { IconArrowLeft, IconRosetteDiscountCheck } from "@tabler/icons-react";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -18,7 +19,7 @@ export async function generateMetadata({ params }: MemberPageProps): Promise<Met
 	const publicPath = memberCardPath(profile.cardId);
 	const imageUrl = memberCardImagePath(profile.cardId);
 	const title = `${profile.username}'s Clipify Member Card`;
-	const description = `See ${profile.username}'s place in the Clipify community and the badges they have collected.`;
+	const description = `Meet ${profile.username} from the Clipify community. ${clipifyShareDescription}`;
 
 	return {
 		title,

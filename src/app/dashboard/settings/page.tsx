@@ -331,9 +331,6 @@ export default function SettingsPage() {
 			<DashboardNavbar user={user} title='Settings' tagline='Manage your settings'>
 				<div className='mt-4 flex w-full flex-col gap-2'>
 					<SettingsSectionTabs selectedKey={sectionTab} setSelectedKey={setSectionTab} />
-					<Link href='/dashboard/member-card' className='self-end text-sm'>
-						Your Member Card & badges <Link.Icon />
-					</Link>
 				</div>
 				{sectionTab === "billing" ? (
 					<BillingPanel />

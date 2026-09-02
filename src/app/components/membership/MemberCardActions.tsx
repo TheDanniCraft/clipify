@@ -1,35 +1,43 @@
 "use client";
 
-import { Button, Dropdown, Label } from "@heroui/react";
+import { Button, Description, Dropdown, Label } from "@heroui/react";
 import { memberCardPath } from "@lib/memberCardLinks";
+import { memberCardShareText } from "@lib/memberCardShare";
 import { IconBrandDiscord, IconBrandLinkedin, IconBrandWhatsapp, IconBrandX, IconChevronDown, IconCopy, IconDownload, IconShare3 } from "@tabler/icons-react";
 import { useState } from "react";
 
 export default function MemberCardActions({ username, cardId, memberNumber, imageUrl = "/api/member-card", isOwner = false }: { username: string; cardId: string; memberNumber: number | null; imageUrl?: string; isOwner?: boolean }) {
 	const [feedback, setFeedback] = useState("");
 	const [manualLink, setManualLink] = useState("");
+	const [manualPost, setManualPost] = useState("");
 	const title = `${username}'s Clipify Member Card`;
-	const text = isOwner ? (memberNumber && memberNumber > 0 ? `I'm member #${memberNumber} on Clipify. Here's my card!` : "I'm part of the Clipify community. Here's my member card!") : `Check out ${username}'s Clipify member card${memberNumber && memberNumber > 0 ? ` — member #${memberNumber}` : ""}.`;
+	const text = memberCardShareText(username, memberNumber, isOwner);
 	const downloadUrl = `${imageUrl}${imageUrl.includes("?") ? "&" : "?"}download=1`;
 
-	async function copy(url: string, discord = false) {
+	async function copy(url: string, destination: "link" | "discord" | "linkedin" = "link") {
+		const value = destination === "link" ? url : `${text}\n${url}`;
 		try {
-			await navigator.clipboard.writeText(discord ? `${text}\n${url}` : url);
+			await navigator.clipboard.writeText(value);
 			setManualLink("");
-			setFeedback(discord ? "Copied! Paste it into your Discord chat." : "Member card link copied.");
+			setManualPost("");
+			setFeedback(destination === "linkedin" ? "Post text copied. Paste it into your LinkedIn post." : destination === "discord" ? "Copied! Paste it into your Discord chat." : "Member card link copied.");
 		} catch {
-			setManualLink(url);
-			setFeedback("Copy this link to share your card.");
+			setManualLink(destination === "link" ? url : "");
+			setManualPost(destination === "link" ? "" : value);
+			setFeedback(destination === "link" ? "Copy this link to share your card." : "Copy this text and paste it into your post.");
 		}
 	}
 
 	async function share(action: string) {
 		const url = new URL(memberCardPath(cardId), window.location.origin).href;
 		setFeedback("");
-		if (action === "copy" || action === "discord") return copy(url, action === "discord");
+		setManualLink("");
+		setManualPost("");
+		if (action === "copy" || action === "discord") return copy(url, action === "discord" ? "discord" : "link");
 		if (action === "more") {
 			if (!navigator.share) return copy(url);
 			try {
+				if (navigator.canShare && !navigator.canShare({ title, text, url })) return copy(url);
 				await navigator.share({ title, text, url });
 			} catch (error) {
 				if (error instanceof DOMException && error.name === "AbortError") return;
@@ -43,6 +51,8 @@ export default function MemberCardActions({ username, cardId, memberNumber, imag
 			whatsapp: `https://wa.me/?${new URLSearchParams({ text: `${text} ${url}` })}`,
 		};
 		if (destinations[action]) window.open(destinations[action], "_blank", "noopener,noreferrer");
+		// Open the composer during the click's user activation, before awaiting clipboard work.
+		if (action === "linkedin") await copy(url, "linkedin");
 	}
 
 	return (
@@ -65,7 +75,10 @@ export default function MemberCardActions({ username, cardId, memberNumber, imag
 							</Dropdown.Item>
 							<Dropdown.Item id='linkedin' textValue='Share to LinkedIn'>
 								<IconBrandLinkedin aria-hidden='true' size={18} />
-								<Label>LinkedIn</Label>
+								<div className='flex flex-col'>
+									<Label>LinkedIn</Label>
+									<Description>Copy post text and open LinkedIn</Description>
+								</div>
 							</Dropdown.Item>
 							<Dropdown.Item id='x' textValue='Share to X'>
 								<IconBrandX aria-hidden='true' size={18} />
@@ -79,9 +92,9 @@ export default function MemberCardActions({ username, cardId, memberNumber, imag
 								<IconBrandWhatsapp aria-hidden='true' size={18} />
 								<Label>WhatsApp</Label>
 							</Dropdown.Item>
-							<Dropdown.Item id='more' textValue='More sharing options'>
+							<Dropdown.Item id='more' textValue='Share via device'>
 								<IconShare3 aria-hidden='true' size={18} />
-								<Label>More options…</Label>
+								<Label>Share via device…</Label>
 							</Dropdown.Item>
 						</Dropdown.Menu>
 					</Dropdown.Popover>
@@ -94,6 +107,7 @@ export default function MemberCardActions({ username, cardId, memberNumber, imag
 				{feedback}
 			</p>
 			{manualLink ? <input aria-label='Member card link' readOnly value={manualLink} onFocus={(event) => event.currentTarget.select()} className='w-full rounded-lg border border-border bg-surface p-2 text-sm text-foreground' /> : null}
+			{manualPost ? <textarea aria-label='Share post text' readOnly value={manualPost} rows={7} onFocus={(event) => event.currentTarget.select()} className='w-full rounded-lg border border-border bg-surface p-2 text-sm text-foreground' /> : null}
 		</div>
 	);
 }

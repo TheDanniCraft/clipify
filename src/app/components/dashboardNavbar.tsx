@@ -149,8 +149,8 @@ export default function DashboardNavbar({ children, user, title, tagline }: { ch
 										<Dropdown.Item id='settings' textValue='My Settings' onAction={() => router.push("/dashboard/settings")}>
 											<Label>My Settings</Label>
 										</Dropdown.Item>
-										<Dropdown.Item id='member_card' textValue='Member Card' onAction={() => router.push("/dashboard/member-card")}>
-											<Label>Member Card</Label>
+										<Dropdown.Item id='member_card' textValue='Badges' onAction={() => router.push("/dashboard/member-card")}>
+											<Label>Badges</Label>
 										</Dropdown.Item>
 										<Dropdown.Item id='embeddable_widgets' textValue='Tools' onAction={() => router.push("/dashboard/tools")}>
 											<Label>Tools</Label>
