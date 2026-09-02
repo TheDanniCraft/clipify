@@ -4,6 +4,7 @@ import { db } from "@/db/client";
 import { badgesTable, userBadgesTable, usersTable } from "@/db/schema";
 import { and, asc, desc, eq } from "drizzle-orm";
 import { isMemberCardId } from "@lib/memberCardLinks";
+import { memberCardIdExpression, memberCardIdForUser } from "@/server/memberCardId";
 
 export type MemberBadgeView = {
 	slug: string;
@@ -42,7 +43,6 @@ export async function getMemberProfile(userId: string): Promise<MemberProfile | 
 	const [member] = await db
 		.select({
 			username: usersTable.username,
-			cardId: usersTable.memberCardId,
 			avatar: usersTable.avatar,
 			memberNumber: usersTable.memberNumber,
 			joinedAt: usersTable.createdAt,
@@ -56,7 +56,7 @@ export async function getMemberProfile(userId: string): Promise<MemberProfile | 
 
 	const badges = await getMemberBadges(userId);
 
-	return { ...member, badges };
+	return { ...member, cardId: memberCardIdForUser(userId), badges };
 }
 
 export async function getPublicMemberProfile(cardId: string): Promise<MemberProfile | null> {
@@ -64,18 +64,17 @@ export async function getPublicMemberProfile(cardId: string): Promise<MemberProf
 	const [member] = await db
 		.select({
 			id: usersTable.id,
-			cardId: usersTable.memberCardId,
 			avatar: usersTable.avatar,
 			username: usersTable.username,
 			memberNumber: usersTable.memberNumber,
 			joinedAt: usersTable.createdAt,
 		})
 		.from(usersTable)
-		.where(and(eq(usersTable.memberCardId, cardId), eq(usersTable.disabled, false)))
+		.where(and(eq(memberCardIdExpression(usersTable.id), cardId), eq(usersTable.disabled, false)))
 		.limit(1)
 		.execute();
 
 	if (!member) return null;
 	const badges = await getMemberBadges(member.id);
-	return { cardId: member.cardId, avatar: member.avatar, username: member.username, memberNumber: member.memberNumber, joinedAt: member.joinedAt, badges };
+	return { cardId: memberCardIdForUser(member.id), avatar: member.avatar, username: member.username, memberNumber: member.memberNumber, joinedAt: member.joinedAt, badges };
 }

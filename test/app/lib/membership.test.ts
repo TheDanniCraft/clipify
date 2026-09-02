@@ -1,6 +1,7 @@
 /** @jest-environment node */
 import { PgDialect } from "drizzle-orm/pg-core";
 import { getMemberProfile, getPublicMemberProfile } from "@lib/membership";
+import { memberCardIdForUser } from "@/server/memberCardId";
 
 const execute = jest.fn();
 const where = jest.fn();
@@ -19,8 +20,8 @@ const select = jest.fn(() => {
 	return chain;
 });
 jest.mock("@/db/client", () => ({ db: { select: () => select() } }));
-const cardId = "025dcf9a-10f5-47ad-a6f0-cbe1151b6fbc";
-const member = { id: "twitch-id", cardId, username: "clipper", avatar: "", memberNumber: null, joinedAt: new Date("2026-01-02") };
+const cardId = memberCardIdForUser("twitch-id");
+const member = { id: "twitch-id", username: "clipper", avatar: "", memberNumber: null, joinedAt: new Date("2026-01-02") };
 
 describe("member profile lookup", () => {
 	beforeEach(() => {
@@ -36,9 +37,11 @@ describe("member profile lookup", () => {
 		const profile = await getPublicMemberProfile(cardId);
 		expect(profile).toEqual({ cardId, username: "clipper", avatar: "", memberNumber: null, joinedAt: member.joinedAt, badges: [] });
 		const query = new PgDialect().sqlToQuery(where.mock.calls[0][0]);
-		expect(query.sql).toContain('"users"."member_card_id"');
+		expect(query.sql).toContain("sha256");
+		expect(query.sql).toContain('"users"."id"');
+		expect(query.sql).not.toContain("member_card_id");
 		expect(query.sql).toContain('"users"."disabled"');
-		expect(query.params).toEqual([cardId, false]);
+		expect(query.params.slice(-2)).toEqual([cardId, false]);
 	});
 	it("returns null for an unknown or disabled account", async () => {
 		execute.mockResolvedValueOnce([]);

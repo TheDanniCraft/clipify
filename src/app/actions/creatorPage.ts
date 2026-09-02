@@ -7,6 +7,7 @@ import { resolveCreatorPageVisibility, type CreatorClipQuery } from "@lib/creato
 import { resolveUserEntitlements } from "@lib/entitlements";
 import { getFeatureAccess } from "@lib/featureAccess";
 import { getMemberBadges } from "@lib/membership";
+import { memberCardIdForUser } from "@/server/memberCardId";
 import { canResolvePublicClipPlayback } from "@actions/rateLimit";
 import { getCachedClipPageByOwner } from "@actions/database";
 import { eq, sql } from "drizzle-orm";
@@ -43,7 +44,7 @@ const getCreatorPresentation = cache(async (username: string) => {
 			description: creator.settings?.creatorPageShowBio === false ? "" : twitch.profile?.description || "",
 			createdAt: creator.user.createdAt,
 			memberNumber: creator.user.memberNumber,
-			memberCardId: creator.user.memberCardId,
+			memberCardId: memberCardIdForUser(creator.user.id),
 			badges,
 			visibility: creator.visibility,
 			twitchBadge,
