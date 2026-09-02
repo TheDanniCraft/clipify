@@ -16,6 +16,7 @@ import { getAccessTokenInternal, getAccessTokenResultInternal } from "@/server/t
 import { canEditOwnerInternal, requireOverlayAccessInternal, requireOverlaySecretAccessInternal } from "@/server/overlays";
 import { invalidateCommunitySnapshotCache } from "@lib/community";
 import { downgradeGalleryPatch } from "@lib/gallery";
+import { allocateMemberNumber } from "@/server/memberNumbers";
 
 const TWITCH_CACHE_CLEANUP_INTERVAL_MS = 10 * 60 * 1000;
 const FONT_URL_DELIMITER = "||url||";
@@ -389,7 +390,7 @@ export async function insertUser(user: TwitchUserResponse): Promise<Authenticate
 				role: Role.User,
 				plan: Plan.Free,
 				twitchCreatedAt,
-				memberNumber: isNewUser ? sql<number>`nextval('clipify_member_number_seq') + (SELECT count(*)::int FROM ${usersTable} WHERE ${usersTable.memberNumber} IS NULL)` : (existing[0]?.memberNumber ?? null),
+				memberNumber: isNewUser ? await allocateMemberNumber() : (existing[0]?.memberNumber ?? null),
 			})
 			.onConflictDoUpdate({
 				target: usersTable.id,

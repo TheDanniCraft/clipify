@@ -1,4 +1,4 @@
-import { varchar, pgTable, check, timestamp, uuid, integer, text, uniqueIndex, primaryKey, index, pgEnum, pgSequence, boolean } from "drizzle-orm/pg-core";
+import { varchar, pgTable, check, timestamp, uuid, integer, text, uniqueIndex, primaryKey, index, pgEnum, boolean } from "drizzle-orm/pg-core";
 import {
 	type Role,
 	type Plan,
@@ -56,7 +56,15 @@ export const galleryLiveSortEnum = pgEnum("gallery_live_sort", ["newest", "most_
 export const galleryTimeWindowEnum = pgEnum("gallery_time_window", ["today", "7d", "30d", "all", "custom"]);
 export const galleryThemeEnum = pgEnum("gallery_theme", ["light", "dark", "system"]);
 
-export const memberNumberSequence = pgSequence("clipify_member_number_seq");
+export const memberNumberAllocatorTable = pgTable(
+	"member_number_allocator",
+	{
+		id: integer("id").primaryKey(),
+		legacyReservedThrough: integer("legacy_reserved_through").notNull(),
+		lastAllocated: integer("last_allocated").notNull(),
+	},
+	(t) => [check("member_number_allocator_singleton", sql`${t.id} = 1`), check("member_number_allocator_range", sql`${t.legacyReservedThrough} >= 0 AND ${t.lastAllocated} >= ${t.legacyReservedThrough}`)],
+);
 
 export const usersTable = pgTable(
 	"users",

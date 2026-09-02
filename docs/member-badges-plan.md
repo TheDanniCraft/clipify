@@ -14,7 +14,9 @@
 - Add a premium public Member Card page, authenticated and public image endpoints, native sharing, PNG download, a settings Badges section, and Creator Page badges.
 - Add internal idempotent definition/grant/revoke functions for future billing and admin workflows.
 
-The member-number sequence is declared in the Drizzle schema so CI can generate it. Until backfill, every new registration receives the next sequence value plus the number of legacy `NULL` accounts, reserving the existing population's range without guessing its order. Existing accounts remain `NULL` until the legacy backfill is reviewed. A member number of `0` is the explicit fallback for legacy accounts whose order cannot be reconstructed. Positive values are unique; multiple legacy accounts may safely use `0`.
+The singleton member-number allocator is declared in the Drizzle schema so CI can generate it. On first allocation it reserves a fixed legacy range using the greater of the current population and highest existing number. Every allocation atomically increments its persisted high-water mark using PostgreSQL ON CONFLICT; later user deletions or backfills never shrink the reservation or reuse numbers. Existing accounts remain `NULL` until the legacy backfill is reviewed. A member number of `0` is the explicit fallback for legacy accounts whose order cannot be reconstructed. Positive values are unique; multiple legacy accounts may safely use `0`. Failed or concurrent duplicate signups can leave harmless gaps; numbers are permanent, not a live population count.
+
+This schema replaces the unmerged sequence-based prototype. If that prototype has already been deployed to any persistent environment, review historical issued numbers before initializing the new allocator; surviving user rows cannot reconstruct deleted issued numbers. Never delete or reset the allocator row.
 
 PostgreSQL does not retain a reliable, automatic row-creation timestamp when the schema did not store one. System columns such as `xmin` identify row versions/transactions, are affected by updates and vacuum/freeze behavior, and must not be used as durable membership order.
 
@@ -23,9 +25,11 @@ PostgreSQL does not retain a reliable, automatic row-creation timestamp when the
 1. Export legacy accounts with Twitch ID, username, available Clipify timestamps, Twitch account creation date, and any older operational evidence.
 2. Produce a proposed deterministic ordering, then manually resolve accounts whose Clipify `created_at` was introduced by the historical migration.
 3. Assign `0` to accounts whose relative order cannot be supported by evidence.
-4. Dry-run uniqueness and range checks. Reconstructed accounts use positive values within the legacy range; newer sequence-assigned accounts remain above that range.
+4. Dry-run uniqueness and range checks. Reconstructed accounts use positive values within the fixed legacy range; newer allocated accounts remain above that range.
 5. Apply the reviewed mapping in one transaction using the included `member-badges-backfill.sql` runbook and retain the reviewed input as an audit artifact outside the application repository.
 6. Only after this backfill, use member ordering as evidence for Founder eligibility.
+
+The SQL runbook locks the allocator before the users table, seeds the reservation if needed, rejects changes to assigned numbers, and never resets the counter. It can be rerun with the same mapping, including legacy zero values.
 
 ## Planned badges
 

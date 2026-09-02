@@ -4,6 +4,15 @@
 
 BEGIN;
 
+-- Same lock order as allocation: allocator first, then users.
+-- Reserve once even if backfill happens before the first post-release signup.
+LOCK TABLE member_number_allocator IN EXCLUSIVE MODE;
+LOCK TABLE users IN SHARE ROW EXCLUSIVE MODE;
+INSERT INTO member_number_allocator (id, legacy_reserved_through, last_allocated)
+SELECT 1, baseline, baseline
+FROM (SELECT GREATEST(COUNT(*), COALESCE(MAX(member_number), 0))::integer AS baseline FROM users) AS seed
+ON CONFLICT (id) DO NOTHING;
+
 CREATE TEMP TABLE member_number_backfill (
 	user_id varchar PRIMARY KEY,
 	member_number integer NOT NULL CHECK (member_number >= 0)
@@ -34,30 +43,36 @@ BEGIN
 	) THEN
 		RAISE EXCEPTION 'Backfill contains unknown user IDs';
 	END IF;
+
+	IF EXISTS (
+		SELECT 1 FROM member_number_backfill
+		WHERE member_number > (SELECT legacy_reserved_through FROM member_number_allocator WHERE id = 1)
+	) THEN
+		RAISE EXCEPTION 'Backfill number exceeds the reserved legacy range';
+	END IF;
+
+	IF EXISTS (
+		SELECT 1 FROM member_number_backfill mapping JOIN users ON users.id = mapping.user_id
+		WHERE users.member_number IS NOT NULL AND users.member_number <> mapping.member_number
+	) THEN
+		RAISE EXCEPTION 'Backfill cannot change an already assigned member number';
+	END IF;
 END $$;
 
 UPDATE users
 SET member_number = mapping.member_number
 FROM member_number_backfill mapping
-WHERE users.id = mapping.user_id;
+WHERE users.id = mapping.user_id AND users.member_number IS NULL;
 
 DO $$
 BEGIN
 	IF EXISTS (SELECT 1 FROM users WHERE member_number IS NULL) THEN
-		RAISE EXCEPTION 'Backfill must resolve every legacy account before resetting the sequence';
+		RAISE EXCEPTION 'Backfill must resolve every legacy account';
 	END IF;
 END $$;
 
--- Keep all future signups above both the current population reservation and reviewed numbers.
-SELECT setval(
-	'clipify_member_number_seq',
-	GREATEST(
-		(SELECT COUNT(*) FROM users),
-		COALESCE((SELECT MAX(member_number) FROM users WHERE member_number > 0), 0),
-		1
-	),
-	true
-);
+-- Never reset the allocator: it also remembers allocated numbers whose user
+-- insert failed, is still in flight, or was subsequently deleted.
 
 -- Review before committing.
 SELECT id, username, created_at, twitch_created_at, member_number

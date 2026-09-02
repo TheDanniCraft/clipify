@@ -9,6 +9,8 @@ const dbSelect = jest.fn();
 const dbInsert = jest.fn();
 const dbUpdate = jest.fn();
 const dbDelete = jest.fn();
+const allocateMemberNumber = jest.fn(async () => 101);
+jest.mock("@/server/memberNumbers", () => ({ allocateMemberNumber: () => allocateMemberNumber() }));
 
 const usersTable = {
 	id: "users.id",
@@ -361,7 +363,8 @@ describe("actions/database user logic", () => {
 		const result = await insertUser(user);
 		expect(result).toBeDefined();
 		expect(insertCalls.length).toBeGreaterThan(0);
-		expect(insertCalls[0].memberNumber).toBe("sql");
+		expect(insertCalls[0].memberNumber).toBe(101);
+		expect(allocateMemberNumber).toHaveBeenCalledTimes(1);
 	});
 
 	it("inserts existing user and re-enables if automatic", async () => {
@@ -372,6 +375,15 @@ describe("actions/database user logic", () => {
 		await insertUser(user);
 		expect(updateCalls.some((u) => u.disabled === false)).toBe(true);
 		expect(insertCalls[0].memberNumber).toBe(42);
+		expect(allocateMemberNumber).not.toHaveBeenCalled();
+	});
+
+	it.each([null, 0])("preserves legacy member number %s on login without allocating", async (memberNumber) => {
+		const { insertUser } = await loadDatabaseActions();
+		queueSelectResult([{ id: "u-1", memberNumber }]);
+		await insertUser(makeTwitchUser());
+		expect(insertCalls[0].memberNumber).toBe(memberNumber);
+		expect(allocateMemberNumber).not.toHaveBeenCalled();
 	});
 
 	it("inserts existing user and does NOT re-enable if manual", async () => {

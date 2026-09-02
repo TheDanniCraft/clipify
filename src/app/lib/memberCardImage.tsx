@@ -57,7 +57,7 @@ export function createMemberCardImage(profile: MemberProfile, download = false) 
 		{
 			width: 1200,
 			height: 1200,
-			headers: download ? { "Content-Disposition": `attachment; filename="clipify-member-${profile.username}.png"` } : { "Cache-Control": "private, no-store" },
+			headers: { "Cache-Control": "private, no-store", ...(download ? { "Content-Disposition": `attachment; filename="clipify-member-${profile.username}.png"` } : {}) },
 		},
 	);
 }
