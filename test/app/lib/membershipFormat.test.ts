@@ -12,12 +12,12 @@ describe("membership formatting", () => {
 	});
 
 	it("formats known join dates in UTC", () => {
-		expect(formatMemberSince("2026-04-09T23:30:00.000Z", 101)).toBe("Apr 9, 2026");
+		expect(formatMemberSince("2026-04-09T23:30:00.000Z")).toBe("Apr 9, 2026");
 	});
 
-	it("does not invent a join date for legacy accounts", () => {
-		expect(formatMemberSince("2026-01-01", null)).toBe("Pending backfill");
-		expect(formatMemberSince("2026-01-01", 0)).toBe("Before records");
-		expect(formatMemberSince("not-a-date", 101)).toBe("Unknown");
+	it("uses the stored timestamp independently of member-number backfill", () => {
+		expect(formatMemberSince("2026-01-01")).toBe("Jan 1, 2026");
+		expect(formatMemberSince(new Date("2026-01-01"))).toBe("Jan 1, 2026");
+		expect(formatMemberSince("not-a-date")).toBe("Unknown");
 	});
 });

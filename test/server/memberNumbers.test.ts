@@ -9,6 +9,8 @@ jest.mock("server-only", () => ({}));
 jest.mock("@/db/client", () => ({ db: { execute: (...args: unknown[]) => execute(...args) } }));
 
 import { allocateMemberNumber, memberNumberAllocationQuery } from "@/server/memberNumbers";
+import { usersTable } from "@/db/schema";
+import type { SQL } from "drizzle-orm";
 
 const dialect = new PgDialect();
 declare const PGlite: typeof import("@electric-sql/pglite").PGlite;
@@ -59,6 +61,24 @@ describe("persisted member-number allocator (embedded PostgreSQL)", () => {
 
 	it("starts at one for an empty community", async () => {
 		expect(await allocateMemberNumber()).toBe(1);
+	});
+
+	it("populates distinct card UUIDs for existing and new users without changing identity", async () => {
+		await legacyMembers(2);
+		const column = usersTable.memberCardId;
+		expect(column.notNull && column.isUnique && column.hasDefault).toBe(true);
+		const defaultSql = dialect.sqlToQuery(column.default as SQL).sql;
+		await database.exec(`ALTER TABLE users ADD COLUMN member_card_id uuid DEFAULT ${defaultSql} NOT NULL UNIQUE`);
+		try {
+			const before = await database.query<{ id: string; member_card_id: string }>("SELECT id, member_card_id FROM users ORDER BY id");
+			await database.exec("UPDATE users SET username = 'renamed' WHERE id = '1'; INSERT INTO users (id) VALUES ('new')");
+			const after = await database.query<{ id: string; member_card_id: string }>("SELECT id, member_card_id FROM users ORDER BY id");
+			expect(after.rows.slice(0, 2)).toEqual(before.rows);
+			expect(new Set(after.rows.map((row) => row.member_card_id)).size).toBe(3);
+			for (const row of after.rows) expect(row.member_card_id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+		} finally {
+			await database.exec("ALTER TABLE users DROP COLUMN member_card_id");
+		}
 	});
 
 	it("reserves the existing population without modifying legacy accounts", async () => {

@@ -1,16 +1,12 @@
 "use client";
 
 import { validateAuth } from "@actions/auth";
-import { getOwnMemberProfile } from "@actions/membership";
 import { deleteUser, getClipCacheStatus, getSettings, saveSettings } from "@actions/database";
 import ConfirmModal from "@components/confirmModal";
 import DashboardNavbar from "@components/dashboardNavbar";
 import DashboardUserAvatar from "@components/dashboardUserAvatar";
 import CodeSnippet from "@components/codeSnippet";
 import FullscreenLoadingState from "@components/fullscreenLoadingState";
-import BadgeGrid from "@components/membership/BadgeGrid";
-import MemberCard from "@components/membership/MemberCard";
-import MemberCardActions from "@components/membership/MemberCardActions";
 import { AuthenticatedUser, Plan, UserSettings } from "@types";
 import { Alert, Button, Card, Separator, Form, Input, Link, Modal, Spinner, Switch, Tabs, Tooltip, useOverlayState, TextField, TextArea, Label, Description, FieldError } from "@heroui/react";
 import { notify as addToast } from "@lib/toast";
@@ -31,7 +27,6 @@ import CreatorAnalyticsCard from "@components/creator/CreatorAnalyticsCard";
 import { getFeatureAccess, getTrialDaysLeft, isReverseTrialActive } from "@lib/featureAccess";
 import { usePlausible } from "next-plausible";
 import { trackPaywallEvent } from "@lib/paywallTracking";
-import type { MemberProfile } from "@lib/membership";
 import type { BillingCycle, PaywallSource } from "@actions/subscription";
 
 type ClipCacheStatusState = {
@@ -52,7 +47,7 @@ type ClipForceRefreshStatusState = {
 	canRefresh: boolean;
 } | null;
 
-type SettingsSection = "settings" | "creator" | "badges" | "billing";
+type SettingsSection = "settings" | "creator" | "billing";
 
 const SettingsSectionTabs = memo(function SettingsSectionTabs({ selectedKey, setSelectedKey }: { selectedKey: SettingsSection; setSelectedKey: Dispatch<SetStateAction<SettingsSection>> }) {
 	return (
@@ -65,10 +60,6 @@ const SettingsSectionTabs = memo(function SettingsSectionTabs({ selectedKey, set
 					</Tabs.Tab>
 					<Tabs.Tab id='creator'>
 						Creator Page
-						<Tabs.Indicator />
-					</Tabs.Tab>
-					<Tabs.Tab id='badges'>
-						Badges
 						<Tabs.Indicator />
 					</Tabs.Tab>
 					<Tabs.Tab id='billing'>
@@ -92,7 +83,6 @@ export default function SettingsPage() {
 	const { isOpen: deleteModalIsOpen, open: deleteModalOnOpen, setOpen: deleteModalOnOpenChange } = useOverlayState();
 	const [timer, setTimer] = useState<number>(0);
 	const [settings, setSettings] = useState<UserSettings | null>(null);
-	const [memberProfile, setMemberProfile] = useState<MemberProfile | null>(null);
 	const [baseSettings, setBaseSettings] = useState<UserSettings | null>(null);
 	const [clipCacheStatus, setClipCacheStatus] = useState<ClipCacheStatusState | null>(null);
 	const [clipForceRefreshStatus, setClipForceRefreshStatus] = useState<ClipForceRefreshStatusState>(null);
@@ -148,10 +138,9 @@ export default function SettingsPage() {
 	useEffect(() => {
 		async function fetchSettings() {
 			if (!user) return;
-			const [fetchedSettings, fetchedMemberProfile] = await Promise.all([getSettings(user.id, true), getOwnMemberProfile()]);
+			const fetchedSettings = await getSettings(user.id, true);
 			setSettings(fetchedSettings);
 			setBaseSettings(fetchedSettings);
-			setMemberProfile(fetchedMemberProfile);
 			const status = await getClipCacheStatus(user.id);
 			setClipCacheStatus(status);
 			const forceStatus = await getOwnClipForceRefreshStatus();
@@ -189,14 +178,14 @@ export default function SettingsPage() {
 			if (cancelled) return;
 			const params = new URLSearchParams(window.location.search);
 			const requestedTab = params.get("tab");
-			if (requestedTab === "creator" || requestedTab === "badges" || requestedTab === "billing") setSectionTab(requestedTab);
-			else if (requestedTab === "achievements") setSectionTab("badges");
+			if (requestedTab === "creator" || requestedTab === "billing") setSectionTab(requestedTab);
+			else if (requestedTab === "badges" || requestedTab === "achievements") router.replace("/dashboard/member-card");
 			else if (params.has("billing") || params.has("checkout") || params.get("addon") === "runner") setSectionTab("billing");
 		});
 		return () => {
 			cancelled = true;
 		};
-	}, []);
+	}, [router]);
 
 	useEffect(() => {
 		if (!user || typeof window === "undefined") return;
@@ -342,37 +331,12 @@ export default function SettingsPage() {
 			<DashboardNavbar user={user} title='Settings' tagline='Manage your settings'>
 				<div className='mt-4 flex w-full flex-col gap-2'>
 					<SettingsSectionTabs selectedKey={sectionTab} setSelectedKey={setSectionTab} />
+					<Link href='/dashboard/member-card' className='self-end text-sm'>
+						Your Member Card & badges <Link.Icon />
+					</Link>
 				</div>
 				{sectionTab === "billing" ? (
 					<BillingPanel />
-				) : sectionTab === "badges" ? (
-					<Card className='mt-4'>
-						<Card.Header>
-							<Card.Title>Member Card & Badges</Card.Title>
-							<Card.Description>Your permanent Clipify identity and the recognition you have received.</Card.Description>
-						</Card.Header>
-						<Separator />
-						<Card.Content className='grid gap-8 p-6 lg:grid-cols-[minmax(280px,360px)_1fr] lg:items-start'>
-							{memberProfile ? (
-								<div className='flex flex-col items-center gap-4'>
-									<MemberCard profile={memberProfile} />
-									<MemberCardActions username={memberProfile.username} imageUrl={`/api/member-card/public/${encodeURIComponent(memberProfile.username)}`} />
-								</div>
-							) : (
-								<Spinner aria-label='Loading member card' />
-							)}
-							<div className='space-y-4'>
-								<div>
-									<h3 className='font-semibold'>Your badges</h3>
-									<p className='text-sm text-muted'>Badges recognize milestones and permanent status across Clipify.</p>
-								</div>
-								<BadgeGrid badges={memberProfile?.badges ?? []} />
-								<Button variant='secondary' onPress={() => router.push("/dashboard/member-card")}>
-									Open full Member Card
-								</Button>
-							</div>
-						</Card.Content>
-					</Card>
 				) : sectionTab === "creator" ? (
 					<Card className='mt-4'>
 						<Card.Header>

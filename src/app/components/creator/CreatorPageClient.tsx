@@ -13,6 +13,7 @@ import { PLAUSIBLE_EVENTS } from "@lib/plausibleEvents";
 import { useQualifiedPlayback } from "@/app/hooks/useQualifiedPlayback";
 import type { MemberBadgeView } from "@lib/membership";
 import { formatMemberNumber } from "@lib/membershipFormat";
+import { memberCardPath } from "@lib/memberCardLinks";
 
 type Creator = {
 	username: string;
@@ -20,6 +21,7 @@ type Creator = {
 	description: string;
 	createdAt: Date | string;
 	memberNumber?: number | null;
+	memberCardId?: string;
 	badges?: MemberBadgeView[];
 	visibility: "discoverable" | "unlisted";
 	twitchBadge: string | null;
@@ -244,7 +246,7 @@ export default function CreatorPageClient({ creator, initialItems, initialCursor
 							<Button variant='primary' onPress={() => window.open(`https://twitch.tv/${encodeURIComponent(creator.username)}`, "_blank", "noopener,noreferrer")}>
 								<IconBrandTwitch size={18} /> Twitch profile
 							</Button>
-							<Button variant='secondary' onPress={() => window.open(`/members/${encodeURIComponent(creator.username)}`, "_blank", "noopener,noreferrer")}>
+							<Button variant='secondary' isDisabled={!creator.memberCardId} onPress={() => creator.memberCardId && window.open(memberCardPath(creator.memberCardId), "_blank", "noopener,noreferrer")}>
 								<IconExternalLink size={18} /> Member Card
 							</Button>
 						</Card.Content>

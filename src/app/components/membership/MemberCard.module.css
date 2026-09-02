@@ -1,0 +1,175 @@
+.stage {
+	width: 100%;
+	max-width: 360px;
+	perspective: 1400px;
+}
+.card {
+	--pointer-x: 50%;
+	--pointer-y: 40%;
+	--rotate-x: 0deg;
+	--rotate-y: 0deg;
+	position: relative;
+	isolation: isolate;
+	aspect-ratio: 0.68;
+	border-radius: 28px;
+	padding: 28px;
+	overflow: hidden;
+	color: #fff;
+	border: 1px solid #b99aeb55;
+	background: radial-gradient(ellipse at 0% 0%, #6355a064, transparent 55%), radial-gradient(ellipse at 100% 100%, #8d42f930, transparent 50%), #100c1b;
+	box-shadow:
+		inset 0 0 0 5px #ffffff03,
+		inset 0 0 0 6px #b99aeb15,
+		0 28px 65px -28px #26018eaa,
+		0 8px 24px #0005;
+	transform: rotateX(var(--rotate-x)) rotateY(var(--rotate-y));
+	transition:
+		transform 350ms ease-out,
+		box-shadow 350ms ease-out;
+}
+.card[data-active="true"] {
+	transform: rotateX(var(--rotate-x)) rotateY(var(--rotate-y)) translateY(-6px);
+	box-shadow:
+		inset 0 0 0 5px #ffffff03,
+		inset 0 0 0 6px #b99aeb30,
+		0 35px 85px -22px #8d42f980,
+		0 12px 34px #0006;
+}
+.foil,
+.symbols,
+.glare {
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	z-index: -1;
+}
+.foil {
+	background: repeating-linear-gradient(115deg, #ffffff05 0px, #ffffff05 1px, transparent 1px, transparent 4px), linear-gradient(125deg, transparent 10%, #b99aeb18 35%, #ffffff08 40%, transparent 55%, #8d42f924 75%, transparent);
+	background-size:
+		auto,
+		200% 200%;
+	background-position:
+		center,
+		var(--pointer-x) var(--pointer-y);
+}
+.symbols {
+	/* Embossed play marks and glints emerge under the pointer's light. */
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='76' height='88' viewBox='0 0 76 88'%3E%3Cpath d='M15 14 33 24 15 34Z M20 19 38 29 20 39Z' fill='none' stroke='%23d8c2ff' stroke-width='.8'/%3E%3Cpath d='M57 53v12m-6-6h12' stroke='%23d8c2ff' stroke-width='.7'/%3E%3C/svg%3E");
+	opacity: 0.08;
+	mask-image: radial-gradient(ellipse at var(--pointer-x) var(--pointer-y), black 10%, transparent 65%);
+	transition: opacity 300ms;
+}
+.card[data-active="true"] .symbols {
+	opacity: 0.55;
+}
+.glare {
+	background: radial-gradient(circle at var(--pointer-x) var(--pointer-y), #eee3ff30, #8d42f918 26%, transparent 60%);
+	opacity: 0;
+	transition: opacity 300ms;
+}
+.card[data-active="true"] .glare {
+	opacity: 1;
+}
+.content {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+}
+.edition {
+	font-size: 8px;
+	letter-spacing: 0.18em;
+	color: #cfb9eb99;
+}
+.identity {
+	margin-block: auto;
+	min-width: 0;
+	text-align: center;
+	padding-block: 28px;
+}
+.avatarRing {
+	margin: 0 auto 20px;
+	width: 106px;
+	height: 106px;
+	padding: 4px;
+	border-radius: 50%;
+	background: linear-gradient(135deg, #b99aebbb, #413f9240, #8d42f9aa);
+	box-shadow: 0 0 36px #8d42f933;
+}
+.avatar,
+.avatarFallback {
+	width: 96px;
+	height: 96px;
+	border-radius: 50%;
+	border: 3px solid #171020;
+	object-fit: cover;
+}
+.avatarFallback {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: #302045;
+	color: #ddc4ff;
+	font-size: 30px;
+	font-weight: 700;
+}
+.username {
+	font-size: clamp(20px, 6vw, 30px);
+	font-weight: 750;
+	letter-spacing: -0.04em;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.badge {
+	display: inline-block;
+	max-width: 100%;
+	margin-top: 12px;
+	padding: 6px 12px;
+	border-radius: 999px;
+	border: 1px solid #b99aeb35;
+	background: #8d42f915;
+	color: #decafa;
+	font-size: 10px;
+	font-weight: 600;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	overflow-wrap: anywhere;
+}
+.rule {
+	height: 1px;
+	margin-bottom: 20px;
+	background: linear-gradient(90deg, #b99aeb55, #b99aeb08);
+}
+.label {
+	color: #c9b6de99;
+	font-size: 9px;
+	letter-spacing: 0.16em;
+	text-transform: uppercase;
+}
+.value {
+	margin-top: 5px;
+	font-size: 13px;
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
+}
+.footer {
+	margin-top: 22px;
+	color: #bba6d166;
+	text-align: center;
+	font-size: 7px;
+	letter-spacing: 0.22em;
+}
+@media (prefers-reduced-motion: reduce) {
+	.card,
+	.card[data-active="true"] {
+		transform: none;
+		transition: none;
+	}
+	.foil {
+		background-position: center;
+	}
+	.symbols,
+	.glare {
+		transition: none;
+	}
+}

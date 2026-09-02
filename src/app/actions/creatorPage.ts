@@ -43,6 +43,7 @@ const getCreatorPresentation = cache(async (username: string) => {
 			description: creator.settings?.creatorPageShowBio === false ? "" : twitch.profile?.description || "",
 			createdAt: creator.user.createdAt,
 			memberNumber: creator.user.memberNumber,
+			memberCardId: creator.user.memberCardId,
 			badges,
 			visibility: creator.visibility,
 			twitchBadge,

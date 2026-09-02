@@ -20,7 +20,7 @@ export default async function MemberCardPage() {
 			<main className='mx-auto grid w-full max-w-5xl gap-8 px-4 py-8 lg:grid-cols-[minmax(280px,360px)_1fr] lg:items-start lg:px-8'>
 				<div className='flex flex-col items-center gap-4'>
 					<MemberCard profile={profile} />
-					<MemberCardActions username={profile.username} imageUrl={`/api/member-card/public/${encodeURIComponent(profile.username)}`} />
+					<MemberCardActions username={profile.username} cardId={profile.cardId} memberNumber={profile.memberNumber} isOwner />
 				</div>
 
 				<Card className='w-full'>

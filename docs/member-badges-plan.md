@@ -11,7 +11,7 @@
 - Add a stable member number for new registrations without guessing numbers for legacy accounts.
 - Reuse the existing `users.created_at`; do not add a second join-date field.
 - Add an empty badge catalog and an award join table. No badges or awards are seeded.
-- Add a premium public Member Card page, authenticated and public image endpoints, native sharing, PNG download, a settings Badges section, and Creator Page badges.
+- Add a premium public Member Card page, authenticated and public image endpoints, a social-share menu, PNG download, and Creator Page badges. The dashboard Member Card is the home for the badge collection; Settings links there instead of duplicating it.
 - Add internal idempotent definition/grant/revoke functions for future billing and admin workflows.
 
 The singleton member-number allocator is declared in the Drizzle schema so CI can generate it. On first allocation it reserves a fixed legacy range using the greater of the current population and highest existing number. Every allocation atomically increments its persisted high-water mark using PostgreSQL ON CONFLICT; later user deletions or backfills never shrink the reservation or reuse numbers. Existing accounts remain `NULL` until the legacy backfill is reviewed. A member number of `0` is the explicit fallback for legacy accounts whose order cannot be reconstructed. Positive values are unique; multiple legacy accounts may safely use `0`. Failed or concurrent duplicate signups can leave harmless gaps; numbers are permanent, not a live population count.
@@ -19,6 +19,10 @@ The singleton member-number allocator is declared in the Drizzle schema so CI ca
 This schema replaces the unmerged sequence-based prototype. If that prototype has already been deployed to any persistent environment, review historical issued numbers before initializing the new allocator; surviving user rows cannot reconstruct deleted issued numbers. Never delete or reset the allocator row.
 
 PostgreSQL does not retain a reliable, automatic row-creation timestamp when the schema did not store one. System columns such as `xmin` identify row versions/transactions, are affected by updates and vacuum/freeze behavior, and must not be used as durable membership order.
+
+The card displays the stored `users.created_at` independently of member-number assignment. Migration 0005 populated older accounts with its execution timestamp (`DEFAULT now()`); this is not evidence of their original signup order.
+
+Public URLs use `/members/<member_card_id>` and `/api/member-card/public/<member_card_id>`. The new unique UUID field is generated randomly by PostgreSQL for existing rows when CI's generated schema migration is applied, and for new rows by its database default. It is not derived from the Twitch ID, changes neither `users.id` nor member numbering, and survives username changes. Username URLs no longer resolve. No opt-in or privacy settings are added: anyone with the URL can view the card, and enabled Creator Pages link to it. Pages request no search indexing, but UUIDs and noindex are not access controls.
 
 ## Phase 2: legacy member-number backfill
 
