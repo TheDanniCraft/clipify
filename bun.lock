@@ -14,7 +14,7 @@
         "@tabler/icons-react": "^3.46.0",
         "@tiptap/core": ">=3.31.2",
         "@tiptap/extension-link": ">=3.31.0",
-        "@tiptap/extension-underline": ">=3.31.0",
+        "@tiptap/extension-underline": ">=3.31.2",
         "@tiptap/extensions": ">=3.31.0",
         "@tiptap/pm": ">=3.31.0",
         "@tiptap/react": ">=3.31.0",
@@ -849,7 +849,7 @@
 
     "@tiptap/extension-text": ["@tiptap/extension-text@3.31.0", "", { "peerDependencies": { "@tiptap/core": "3.31.0" } }, "sha512-K+8nIKgNNBiL1+AarcuzvPoRpjuFk5qOe9MM/n9O3HyTTLeWNfRV/zFifcpSoHmhf0QvEAXqmnxDiIpyCpy9+g=="],
 
-    "@tiptap/extension-underline": ["@tiptap/extension-underline@3.31.0", "", { "peerDependencies": { "@tiptap/core": "3.31.0" } }, "sha512-B4VK5nu0UdKl7OiMvIcjDPMYmhe8+v1B763Is/GzPSJOMstUHRqAqPx2AsPla6A4UGuZwTx//ajVa5QAGionZQ=="],
+    "@tiptap/extension-underline": ["@tiptap/extension-underline@3.31.2", "", { "peerDependencies": { "@tiptap/core": "3.31.2" } }, "sha512-8XNTcr6+26rPOPdmycPRo1F+bSUdbXMkjm1Hy+iPdOXgVSzixSIGM9t/lYltsgx8WAoXzYezWJIPinDaUkAHBQ=="],
 
     "@tiptap/extensions": ["@tiptap/extensions@3.31.0", "", { "peerDependencies": { "@tiptap/core": "3.31.0", "@tiptap/pm": "3.31.0" } }, "sha512-WOv9Y1VjhzAYycrIGPygwmLkoO/UdFYFE5uDWN+FJWMui5sLmLrmfKtOOYzeWIevxomFGix/wl5hqaVGIev1+g=="],
 
@@ -2840,6 +2840,8 @@
     "@testing-library/jest-dom/dom-accessibility-api": ["dom-accessibility-api@0.6.3", "", {}, "sha512-7ZgogeTnjuHbo+ct10G9Ffp0mif17idi0IyWNVA/wcwcm7NPOD/WEHVP3n7n3MhXqxoIYm8d6MuZohYWIZ4T3w=="],
 
     "@tiptap/starter-kit/@tiptap/core": ["@tiptap/core@3.31.0", "", { "peerDependencies": { "@tiptap/pm": "3.31.0" } }, "sha512-SY3yE2ACharFvk0BKgotV6SbwV8R4tN5fGtWOM6deY4JNF3v6CXOD78RFwjs2HSohGWBRyJVPDvrX9nfi8Nsxg=="],
+
+    "@tiptap/starter-kit/@tiptap/extension-underline": ["@tiptap/extension-underline@3.31.0", "", { "peerDependencies": { "@tiptap/core": "3.31.0" } }, "sha512-B4VK5nu0UdKl7OiMvIcjDPMYmhe8+v1B763Is/GzPSJOMstUHRqAqPx2AsPla6A4UGuZwTx//ajVa5QAGionZQ=="],
 
     "@types/jest/pretty-format": ["pretty-format@30.4.1", "", { "dependencies": { "@jest/schemas": "30.4.1", "ansi-styles": "^5.2.0", "react-is-18": "npm:react-is@^18.3.1", "react-is-19": "npm:react-is@^19.2.5" } }, "sha512-K6KiKMHTL4jjX4u3Kir2EW07nRfcqVTXIImx50wbjHQTcZPgg+gjVeNTIT3l3L1Rd4UefxfogquC9J37SoFyyw=="],
 
