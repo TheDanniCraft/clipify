@@ -69,6 +69,14 @@ describe("member-card image routes", () => {
 		expect(response.headers.get("Cache-Control")).toBe("private, no-store");
 	});
 
+	it("sanitizes stored usernames before using them in download headers", async () => {
+		getMemberProfile.mockResolvedValue({ ...profile, username: 'member"\r\nname' });
+		const { GET } = await import("@/app/api/member-card/route");
+		const response = await GET(request("?download=1"));
+		expect(response.status).toBe(200);
+		expect(response.headers.get("Content-Disposition")).toBe('attachment; filename="clipify-member-member___name.png"');
+	});
+
 	it("embeds the Twitch avatar without following redirects", async () => {
 		const fetchAvatar = jest.spyOn(global, "fetch").mockResolvedValue(new Response(new Uint8Array([1, 2, 3]), { headers: { "Content-Type": "image/png" } }));
 		getMemberProfile.mockResolvedValue({ ...profile, avatar: "https://static-cdn.jtvnw.net/avatar.png" });

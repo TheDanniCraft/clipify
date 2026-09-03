@@ -23,6 +23,7 @@ async function loadAvatar(value: string): Promise<string | null> {
 export async function createMemberCardImage(profile: MemberProfile, download = false) {
 	const featuredBadge = profile.badges[0]?.name ?? "Clipify Member";
 	const avatar = await loadAvatar(profile.avatar);
+	const filenameUsername = profile.username.replace(/[^a-z0-9_-]/gi, "_") || "member";
 
 	return new ImageResponse(
 		<div
@@ -93,7 +94,7 @@ export async function createMemberCardImage(profile: MemberProfile, download = f
 		{
 			width: 1200,
 			height: 1200,
-			headers: { "Cache-Control": "private, no-store", ...(download ? { "Content-Disposition": `attachment; filename="clipify-member-${profile.username}.png"` } : {}) },
+			headers: { "Cache-Control": "private, no-store", ...(download ? { "Content-Disposition": `attachment; filename="clipify-member-${filenameUsername}.png"` } : {}) },
 		},
 	);
 }
