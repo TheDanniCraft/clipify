@@ -40,7 +40,7 @@
 		"@tiptap/extensions": ">=3.31.2",
 		"@tiptap/pm": ">=3.31.2",
 		"@tiptap/react": ">=3.31.0",
-		"@tiptap/starter-kit": ">=3.31.0",
+		"@tiptap/starter-kit": ">=3.31.2",
 		"@tiptap/suggestion": ">=3.31.0",
 		"@types/ffbinaries": "^1.1.5",
 		"axios": "^1.20.0",
