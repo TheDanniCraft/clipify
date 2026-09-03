@@ -32,7 +32,7 @@ jest.mock("@heroui/react", () => {
 const cardId = "025dcf9a-10f5-47ad-a6f0-cbe1151b6fbc";
 const url = `http://localhost/members/${cardId}`;
 const writeText = jest.fn();
-const shareText = "I'm part of the Clipify community — member #20!\n\nClipify keeps your chat engaged with your best Twitch clips—even when you're taking a break.\n\nProud to be part of it:";
+const shareText = "I'm part of the Clipify community — member #20!\n\nClipify keeps your chat engaged with your best Twitch clips, even when you're taking a break.\n\nProud to be part of it:";
 describe("MemberCardActions", () => {
 	beforeEach(() => {
 		writeText.mockReset().mockResolvedValue(undefined);

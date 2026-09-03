@@ -1,4 +1,4 @@
-export const clipifyShareDescription = "Clipify keeps your chat engaged with your best Twitch clips—even when you're taking a break.";
+export const clipifyShareDescription = "Clipify keeps your chat engaged with your best Twitch clips, even when you're taking a break.";
 
 export function memberCardShareText(username: string, memberNumber: number | null, isOwner: boolean): string {
 	const number = memberNumber !== null && memberNumber > 0 ? ` — member #${memberNumber}` : "";
