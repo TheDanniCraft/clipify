@@ -32,6 +32,8 @@ describe("derived member card UUIDs (embedded PostgreSQL)", () => {
 	it.each(["1", "123456789", "9876543210", "user-with-symbols\\'", "ümlaut-你好"])("matches the application derivation for %s", async (id) => {
 		const query = dialect.sqlToQuery(sql`SELECT ${memberCardIdExpression(sql`${id}::text`)} AS card_id`);
 		const result = await database.query<{ card_id: string }>(query.sql, query.params);
+		expect(query.sql).toContain("sha256");
+		expect(query.sql).not.toContain("digest(");
 		expect(result.rows).toEqual([{ card_id: memberCardIdForUser(id) }]);
 		expect(result.rows[0].card_id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-8[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
 	});
