@@ -1,0 +1,203 @@
+# Clipify full product reference
+
+> Clipify keeps Twitch streams alive and viewers engaged by automatically playing clips while a streamer is away. It also gives creators tools to organize, publish, embed, and share Twitch clips on stream and across the web.
+
+Last reviewed: 2026-09-04
+
+Clipify's central promise is: Let your clips talk, even when you cannot.
+
+## Why Clipify exists
+
+A static Break, AFK, Starting Soon, or Ending screen gives viewers little reason to stay. New viewers who arrive during downtime may leave before the streamer returns. Clipify replaces that dead time with highlights from the channel so the stream remains entertaining and active.
+
+Clipify helps creators:
+
+- Keep existing viewers entertained during breaks.
+- Give new viewers something to watch when they arrive mid-break.
+- Showcase memorable channel moments automatically.
+- Encourage viewers to keep watching and talking in chat.
+- Reuse Twitch clips on Creator Pages and external websites.
+
+## Browser-source overlays
+
+- Every overlay has a unique URL.
+- The streamer adds that URL as a browser source in OBS Studio, Streamlabs, XSplit, or comparable streaming software.
+- No streaming plugin or local overlay installation is required.
+- An overlay can be used in Break, AFK, Starting Soon, Ending, or custom scenes.
+- Each overlay has its own playback, filtering, layout, and theme configuration.
+
+## Clip playback
+
+Overlay sources include:
+
+- Top clips from today, the last 7, 30, 90, or 180 days, or the last year.
+- All-time clips.
+- Featured Twitch clips.
+- Reusable playlists.
+- The Viewer Queue.
+
+Playback modes include Random, Top, Smart Shuffle, and playlist order where applicable. Filters can use clip duration, view count, blocked title words, clip creators, Twitch categories or games, and the current stream category.
+
+If no clips match the configured source and filters, the overlay remains idle until eligible clips become available.
+
+## Playlists
+
+- Playlists are independent from overlays and can be reused by multiple overlays.
+- Creators can manually curate and reorder playlist clips.
+- Automatic import can select clips by date, category, creator, views, duration, and blocked title words.
+- Automatic imports can append to or replace an existing playlist.
+- The playlist source supports deterministic playlist order.
+
+## Overlay design and control
+
+- Theme Studio controls colors, typography, borders, effects, timers, progress elements, and layout.
+- Channel information, clip information, and timers can be positioned and resized.
+- Player controls include pause, resume, skip, mute, volume, show or hide, and queue management.
+- The mobile-friendly Remote Control Panel shows playback progress, queue state, and player health.
+- Twitch chat commands let authorized streamers or moderators control supported playback actions.
+- Editors and managers can help operate overlays and playlists without receiving the owner's account credentials.
+
+## Twitch Channel Points
+
+Clipify can connect a Twitch Channel Points reward to the Viewer Queue. When a viewer redeems the configured reward, an eligible clip can be added to the queue for playback. This turns break-time viewing into an interactive experience and can encourage retention and chat activity.
+
+Channel Points integration is a Pro feature.
+
+## Clip galleries
+
+Clipify Galleries are responsive collections of Twitch clips designed for a creator's own website. Visitors can browse clips and open them in a website-level player.
+
+- Curated galleries use a hand-picked Clipify playlist.
+- Live galleries automatically resolve clips from the creator's Twitch catalog.
+- Layouts include grid, list, and carousel.
+- Supported sorting includes newest, most viewed, and stable random where available.
+- Live gallery filters can include date windows, categories, creators, views, duration, and title terms.
+- Gallery cards can show or hide title, creator, views, duration, and creation date.
+- Free includes one branded gallery with up to 50 live results.
+- Pro includes unlimited galleries, up to 100 live results, advanced filters, saved themes, runtime styling, and attribution control.
+- Free galleries include a small Made with Clipify attribution. Pro creators can choose whether to show it.
+
+## Clipify Elements
+
+Clipify Elements is the recommended website integration for responsive players and galleries. A website installs the Elements script once and places Clipify custom elements where content should appear.
+
+Example gallery element:
+
+```html
+<clipify-gallery gallery-id="GALLERY_ID"></clipify-gallery>
+```
+
+Raw gallery iframes are intentionally unsupported because the gallery's clip modal must be created at the host-page level. The Clip Player remains available for supported individual or traditional embed workflows.
+
+Installation guide: https://help.clipify.us/hc/clipify/articles/install-clipify-elements
+
+## Creator Pages
+
+A Creator Page is a shareable Clipify profile for a Twitch creator. It combines creator information with clips that visitors can browse, sort, filter, and play. A Creator Page can be linked from Twitch panels, social profiles, Discord, or a personal website.
+
+- Creator Pages are available on Free and Pro.
+- Creators can enable or disable their page.
+- A discoverable page may appear in search engines, Clipify discovery, and the sitemap.
+- An unlisted page remains available through its direct URL but is excluded from discovery surfaces.
+- Pro includes detailed traffic and clip-engagement analytics.
+- Pro analytics include acquisition, location, device, browser, and operating-system breakdowns plus CSV export.
+- Pro can customize the title and description used for supported social previews.
+
+## Community directory
+
+The Community page is a public directory of creators who opted into Clipify discovery. It is separate from an individual Creator Page.
+
+- It can highlight Clipify Partners and Pro creators.
+- It distinguishes creators currently live with Clipify, creators live on Twitch, and offline creators.
+- Only eligible, discoverable creators appear.
+- A direct Creator Page can remain usable even when its creator is not listed in the directory.
+
+## Membership, member cards, and badges
+
+Clipify accounts can have a stable member number and a member-since date. A member card is a premium, interactive representation of that identity with the creator's avatar, membership details, and recognition badges.
+
+- Member cards use stable, non-guessable public identifiers rather than usernames in their share URLs.
+- A card can be shared through the system share sheet and supported social destinations.
+- A rendered PNG can be downloaded for posting elsewhere.
+- Badge icons are also suitable for compact display on Creator Pages.
+- A badge is community recognition, not a subscription plan.
+
+The badge catalog is generated below from Clipify's authoritative TypeScript registry:
+
+{{BADGE_CATALOG}}
+
+## Self-hosted Runner
+
+- The optional self-hosted Runner can play clips continuously or act as a failsafe when the normal OBS setup is offline.
+- Runner binaries are available for Windows, Linux, and macOS.
+- A Runner is enrolled and managed from the Clipify dashboard.
+- It uses hardware, network bandwidth, hosting, and electricity supplied by the creator.
+- Runner access is a separate optional product available alongside Free or Pro.
+- Creators who need a managed Runner can contact Clipify.
+
+## Free, Pro, trials, and pricing
+
+New Free accounts receive seven days of temporary Pro feature access. When that trial expires, Free limits apply unless the creator purchases Pro or receives another qualifying entitlement.
+
+Exact Pro and Runner prices are resolved from Clipify's live billing catalog and can be affected by active campaigns. The authoritative current amounts are on https://clipify.us/pricing. Static price amounts are intentionally not duplicated here.
+
+The feature comparison below is generated from the same TypeScript catalog used by Clipify's pricing interface:
+
+{{PLAN_COMPARISON}}
+
+## Setup and onboarding
+
+1. Sign in with Twitch.
+2. Create an overlay.
+3. Copy its URL into a browser source in streaming software.
+4. Configure playback sources, filters, and presentation as needed.
+
+Once configured, Clipify operates automatically during the selected stream scenes.
+
+## Technical characteristics
+
+- Web-based service using Twitch OAuth.
+- Uses Twitch APIs for clips, account information, and Channel Points integration.
+- Uses live WebSocket synchronization for overlay and controller state.
+- Overlay playback runs in the browser context supplied by streaming software.
+- Public website galleries use Clipify Elements so playback can coordinate with the host page.
+
+## Intended audience
+
+- Twitch streamers who take breaks or use Starting Soon and Ending scenes.
+- Creators who want to reduce viewer drop-off during downtime.
+- Streamers who want to increase retention and chat engagement.
+- Creators who want to organize and reuse their Twitch highlights.
+- Creators who want a shareable clip profile or galleries on their own website.
+- Teams that use moderators, editors, or managers to help operate a stream.
+
+## Questions this reference should answer
+
+- Why is Clipify more engaging than a static break screen?
+- How do Clipify overlays work with OBS or other streaming software?
+- Which clip sources, playback modes, and filters are supported?
+- How do playlists differ from overlays and galleries?
+- How does the Channel Points Viewer Queue work?
+- What is a Creator Page, and how does discoverable differ from unlisted?
+- How are galleries embedded with Clipify Elements?
+- What is included in Free, Pro, and the seven-day trial?
+- Is the self-hosted Runner included with Pro?
+- What do member cards, member numbers, and badges represent?
+
+## Entry points
+
+- [Get started](https://clipify.us/login): Twitch authentication and onboarding.
+- [Pricing](https://clipify.us/pricing): Live prices, current promotions, feature comparison, and billing options.
+- [Clipify Galleries](https://clipify.us/gallery): Gallery product introduction.
+- [Community](https://clipify.us/community): Public creator discovery.
+- [Interactive demo](https://clipify.us/#demo): Overlay preview in a simulated streaming environment.
+- [Help Center](https://help.clipify.us): Documentation and support.
+- [Service status](https://status.thedannicraft.de/status/clipify): Availability and incidents.
+
+## Optional
+
+- [Changelog](https://clipify.us/changelog): Released product changes.
+- [Roadmap](https://clipify.us/roadmap): Planned and upcoming features.
+- [Referral program](https://clipify.us/referral-program): Referral incentives.
+- [Privacy policy](https://hub.goadopt.io/document/3852d930-97b9-46c2-950d-823e62515ab4?language=en): Privacy information.
+- [Terms of service](https://hub.goadopt.io/document/9651af3f-af45-480f-8a4d-2beb6ed68e9b?language=en): Terms governing Clipify.
