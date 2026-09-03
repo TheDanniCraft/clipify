@@ -29,8 +29,8 @@ describe("badge registry writes", () => {
 		execute.mockResolvedValue([{ ok: true }]);
 	});
 	it("records only the user award without a database catalog write", async () => {
-		await awardBadgeInternal({ userId: "274252231", badge: "beta-member", source: "manual-test" });
-		expect(values).toHaveBeenCalledWith({ userId: "274252231", badge: "beta-member", source: "manual-test", awardedBy: null });
+		await awardBadgeInternal({ userId: "274252231", badge: "beta-tester", source: "manual-test" });
+		expect(values).toHaveBeenCalledWith({ userId: "274252231", badge: "beta-tester", source: "manual-test", awardedBy: null });
 		expect(inserts).toHaveLength(1);
 	});
 });

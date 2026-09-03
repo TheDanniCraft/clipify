@@ -16,7 +16,7 @@
 
 The share menu offers link copying, LinkedIn, X, Discord-ready text, WhatsApp, and **Share via device…**. Device sharing uses the browser's native Web Share API (HTTPS and browser support required); unavailable/failed sharing falls back to copying the card link, then a selectable link if clipboard access fails. Cancelling the native picker does not copy or download anything. LinkedIn opens its URL composer and copies ready-to-paste post text; other text-capable destinations receive the community introduction plus a short explanation of Clipify. A failed post-text copy provides selectable text instead. Download remains a separate PNG attachment.
 
-`member-badge-test.sql` is an optional, manually executed test-data example for user `274252231`, not a migration or automatic seed. It grants a display-only Beta Member test badge, not beta access or entitlements.
+`member-badge-test.sql` is an optional, manually executed example for user `274252231`, not a migration or automatic seed. It grants the `beta-tester` badge as recognition only; it does not grant beta access or entitlements.
 
 The code registry is authoritative for badge slugs, names, descriptions, Tabler icon keys, and priority. `badgeSlugs` is derived from the registry keys and passed to Drizzle's `pgEnum`, so TypeScript and PostgreSQL accept the same values without duplicating a list. The `user_badges` table stores only ownership and audit metadata. Adding or removing a registry entry is therefore a database schema change that CI must turn into a reviewed Drizzle migration; no migration is created manually in this branch. Rendering resolves all presentation metadata from code.
 
@@ -43,7 +43,7 @@ Public lookup compares the derived UUID in PostgreSQL, without loading all user 
 
 The SQL runbook locks the allocator before the users table, seeds the reservation if needed, rejects changes to assigned numbers, and never resets the counter. It can be rerun with the same mapping, including legacy zero values.
 
-## Planned badges
+## Badge catalog
 
 ### Founder
 
@@ -59,11 +59,23 @@ The SQL runbook locks the allocator before the users table, seeds the reservatio
 - Rollout: define the campaign's start/end timestamps and eligible Stripe products; award idempotently from verified billing data or a reviewed bulk job. Email copy should state the exact deadline and timezone.
 - Abuse controls: never award from a client-side success page or an unverified email address; use the Stripe customer/account relationship already stored by Clipify.
 
-### Beta Access
+### Clipify Partner
 
-- Eligibility: participation in a specifically named Clipify beta, using an explicit allow-list or recorded beta enrollment.
-- Permanence: keep it as a commemorative badge after the beta closes.
-- Rollout: defer until beta enrollment has a reliable source of truth; add one registry entry per meaningful beta only if users should distinguish them.
+- Eligibility: an explicitly approved Clipify partnership.
+- Permanence: remains as recognition after it is awarded, independently of entitlement calculations.
+- Rollout: award explicitly with an auditable source. Do not derive it during reads or logins; an automated grant workflow can be added later when partnership lifecycle rules are settled.
+
+### Beta Tester
+
+- Eligibility: people who actively tested and helped shape Clipify in its earliest phase.
+- Permanence: remains as commemorative recognition after the beta closes.
+- Rollout: award manually from a reviewed list, using `beta-tester` as the registry and PostgreSQL enum value.
+
+### Contributor
+
+- Eligibility: meaningful bug reports, feature ideas, product feedback, or other contributions that improved Clipify.
+- Permanence: remains after it is awarded.
+- Rollout: award manually with an auditable source describing the contribution or campaign.
 
 ## Follow-up admin UI
 

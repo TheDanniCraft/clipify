@@ -13,11 +13,15 @@ describe("badge catalog", () => {
 	});
 	it("accepts catalog slugs and rejects arbitrary database values", () => {
 		expect(isBadgeSlug("founder")).toBe(true);
-		expect(isBadgeSlug("beta-member-test")).toBe(true);
+		expect(isBadgeSlug("beta-tester")).toBe(true);
+		expect(isBadgeSlug("partner")).toBe(true);
+		expect(isBadgeSlug("contributor")).toBe(true);
+		expect(isBadgeSlug("beta-member-test")).toBe(false);
 		expect(isBadgeSlug("constructor")).toBe(false);
 		expect(isBadgeSlug("made-up-badge")).toBe(false);
 	});
 	it("derives the PostgreSQL enum values from the registry", () => {
+		expect(badgeSlugs).toEqual(["founder", "founder-supporter", "partner", "beta-tester", "contributor"]);
 		expect(badgeSlugs).toEqual(Object.keys(badgeCatalog));
 		expect(badgeEnum.enumValues).toEqual(badgeSlugs);
 	});

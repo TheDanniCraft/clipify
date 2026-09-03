@@ -62,12 +62,12 @@ describe("member profile lookup", () => {
 		const founderDate = new Date("2026-01-02");
 		const betaDate = new Date("2026-01-01");
 		execute.mockResolvedValue([
-			{ slug: "beta-member", awardedAt: betaDate },
+			{ slug: "beta-tester", awardedAt: betaDate },
 			{ slug: "founder", awardedAt: founderDate },
 		]);
 		await expect(getMemberBadges("twitch-id")).resolves.toEqual([
 			{ slug: "founder", name: "Founder", description: "One of the first 100 registered Clipify accounts.", icon: "crown", priority: 100, awardedAt: founderDate },
-			{ slug: "beta-member", name: "Beta Member", description: "Helped shape Clipify during its beta.", icon: "flask", priority: 80, awardedAt: betaDate },
+			{ slug: "beta-tester", name: "Beta Tester", description: "Helped test and shape Clipify in its earliest days.", icon: "flask", priority: 80, awardedAt: betaDate },
 		]);
 	});
 });

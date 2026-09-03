@@ -9,7 +9,7 @@ let database: PGliteDatabase;
 const script = readFileSync(join(process.cwd(), "docs/member-badge-test.sql"), "utf8");
 const badgeEnumValues = badgeSlugs.map((slug) => `'${slug}'`).join(", ");
 
-describe("manual Beta Member test badge SQL", () => {
+describe("manual Beta Tester badge SQL", () => {
 	beforeAll(async () => {
 		database = new PGlite();
 		// Isolated fixture matching the generated enum and award table; never a migration.
@@ -32,7 +32,7 @@ describe("manual Beta Member test badge SQL", () => {
 		const first = await database.query("SELECT * FROM user_badges");
 		await database.exec(script);
 		expect((await database.query("SELECT * FROM user_badges")).rows).toEqual(first.rows);
-		expect(first.rows).toEqual([expect.objectContaining({ user_id: "274252231", badge: "beta-member-test", source: "manual-test" })]);
+		expect(first.rows).toEqual([expect.objectContaining({ user_id: "274252231", badge: "beta-tester", source: "manual-test" })]);
 	});
 
 	it("does not leave an award behind when the target user is missing", async () => {

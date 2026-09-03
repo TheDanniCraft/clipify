@@ -32,13 +32,13 @@ jest.mock("@heroui/react", () => {
 	};
 });
 
-const badge = { slug: "beta-member-test", name: "Beta Member", description: "Helped test Clipify early.", icon: "flask", awardedAt: new Date("2026-01-01") } as const satisfies MemberBadgeView;
+const badge = { slug: "beta-tester", name: "Beta Tester", description: "Helped test Clipify early.", icon: "flask", awardedAt: new Date("2026-01-01") } as const satisfies MemberBadgeView;
 
 describe("compact badge icons", () => {
 	it("uses the beta icon without displaying a permanent description card", () => {
 		const { container } = render(<BadgeGrid badges={[badge]} />);
 		expect(screen.getByRole("list", { name: "Awarded badges" })).toBeInTheDocument();
-		expect(screen.getByRole("button", { name: "Beta Member: Helped test Clipify early." })).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Beta Tester: Helped test Clipify early." })).toBeInTheDocument();
 		expect(container.querySelector('[data-badge-icon="flask"]')).toBeInTheDocument();
 		expect(screen.queryByText(badge.description)).not.toBeInTheDocument();
 	});

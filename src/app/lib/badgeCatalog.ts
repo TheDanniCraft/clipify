@@ -18,21 +18,27 @@ export const badgeCatalog = {
 	},
 	"founder-supporter": {
 		name: "Founder Supporter",
-		description: "Supported Clipify during its founding chapter.",
+		description: "One of the first people to support Clipify commercially.",
 		icon: "heart",
 		priority: 90,
 	},
-	"beta-member": {
-		name: "Beta Member",
-		description: "Helped shape Clipify during its beta.",
+	partner: {
+		name: "Clipify Partner",
+		description: "An official partner helping Clipify and its community grow.",
+		icon: "shield",
+		priority: 85,
+	},
+	"beta-tester": {
+		name: "Beta Tester",
+		description: "Helped test and shape Clipify in its earliest days.",
 		icon: "flask",
 		priority: 80,
 	},
-	"beta-member-test": {
-		name: "Beta Member",
-		description: "A test badge for previewing the Clipify badge experience.",
-		icon: "flask",
-		priority: 10,
+	contributor: {
+		name: "Contributor",
+		description: "Made Clipify better through feedback, ideas, or bug reports.",
+		icon: "sparkles",
+		priority: 70,
 	},
 } as const satisfies Record<string, BadgeDefinition>;
 
