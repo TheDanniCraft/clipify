@@ -3,6 +3,7 @@ import { PgDialect } from "drizzle-orm/pg-core";
 import { getMemberBadges, getMemberProfile, getPublicMemberProfile } from "@lib/membership";
 import { memberCardIdForUser } from "@/server/memberCardId";
 
+const mockResolveAutomaticBadgeAwards = jest.fn();
 const execute = jest.fn();
 const where = jest.fn();
 const select = jest.fn(() => {
@@ -20,6 +21,7 @@ const select = jest.fn(() => {
 	return chain;
 });
 jest.mock("@/db/client", () => ({ db: { select: () => select() } }));
+jest.mock("@/server/membership", () => ({ resolveAutomaticBadgeAwards: (...args: unknown[]) => mockResolveAutomaticBadgeAwards(...args) }));
 const cardId = memberCardIdForUser("twitch-id");
 const member = { id: "twitch-id", username: "clipper", avatar: "", memberNumber: null, joinedAt: new Date("2026-01-02") };
 
@@ -27,6 +29,7 @@ describe("member profile lookup", () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
 		execute.mockReset();
+		mockResolveAutomaticBadgeAwards.mockResolvedValue([]);
 	});
 	it.each(["clipper", "12345678", "invalid-uuid"])("does not fall back to username or Twitch ID: %s", async (id) => {
 		expect(await getPublicMemberProfile(id)).toBeNull();
@@ -69,5 +72,11 @@ describe("member profile lookup", () => {
 			{ slug: "founder", name: "Founder", description: "One of the first 100 registered Clipify accounts.", icon: "crown", priority: 100, awardedAt: founderDate },
 			{ slug: "beta-tester", name: "Beta Tester", description: "Helped test and shape Clipify in its earliest days.", icon: "flask", priority: 80, awardedAt: betaDate },
 		]);
+	});
+	it("merges active automatic badges and ignores stored copies of them", async () => {
+		const partnerDate = new Date("2026-02-01");
+		execute.mockResolvedValue([{ slug: "partner", awardedAt: new Date("2026-01-01") }]);
+		mockResolveAutomaticBadgeAwards.mockResolvedValue([{ slug: "partner", awardedAt: partnerDate }]);
+		await expect(getMemberBadges("partner-user")).resolves.toEqual([{ slug: "partner", name: "Clipify Partner", description: "An official partner helping Clipify and its community grow.", icon: "shield", priority: 85, awardedAt: partnerDate }]);
 	});
 });

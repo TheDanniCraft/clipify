@@ -32,7 +32,7 @@ jest.mock("@heroui/react", () => {
 	};
 });
 
-const badge = { slug: "beta-tester", name: "Beta Tester", description: "Helped test Clipify early.", icon: "flask", awardedAt: new Date("2026-01-01") } as const satisfies MemberBadgeView;
+const badge = { slug: "beta-tester", name: "Beta Tester", description: "Helped test Clipify early.", icon: "flask", priority: 80, awardedAt: new Date("2026-01-01") } as const satisfies MemberBadgeView;
 
 describe("compact badge icons", () => {
 	it("uses the beta icon without displaying a permanent description card", () => {

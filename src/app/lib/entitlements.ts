@@ -61,11 +61,22 @@ export async function createProAccessGrant(input: CreateGrantInput) {
 	return grant ?? null;
 }
 
-export async function createPartnerAccessGrant(input: Omit<CreateGrantInput, "source"> & { source?: never }) {
+export async function createPartnerAccessGrant(input: Omit<CreateGrantInput, "source" | "userId"> & { userId: string; source?: never }) {
 	return createProAccessGrant({
 		...input,
 		source: EntitlementGrantSource.Partner,
 	});
+}
+
+export async function getActivePartnerAccessGrant(userId: string, now = new Date()) {
+	const [grant] = await db
+		.select()
+		.from(entitlementGrantsTable)
+		.where(and(eq(entitlementGrantsTable.userId, userId), eq(entitlementGrantsTable.entitlement, PRO_ACCESS), eq(entitlementGrantsTable.source, EntitlementGrantSource.Partner), isNull(entitlementGrantsTable.revokedAt), lte(entitlementGrantsTable.startsAt, now), or(isNull(entitlementGrantsTable.endsAt), gt(entitlementGrantsTable.endsAt, now))))
+		.orderBy(asc(entitlementGrantsTable.startsAt))
+		.limit(1)
+		.execute();
+	return grant ?? null;
 }
 
 export async function ensureReverseTrialGrantForUser(user: Pick<AuthenticatedUser, "id" | "plan">) {

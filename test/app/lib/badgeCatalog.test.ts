@@ -1,4 +1,4 @@
-import { badgeCatalog, badgeIconKeys, badgeSlugs, isBadgeSlug } from "@lib/badgeCatalog";
+import { badgeCatalog, badgeConditionKeys, badgeIconKeys, badgeSlugs, isBadgeSlug } from "@lib/badgeCatalog";
 import { badgeEnum } from "@/db/schema";
 
 describe("badge catalog", () => {
@@ -9,7 +9,16 @@ describe("badge catalog", () => {
 			expect(badge.description).not.toBe("");
 			expect(badgeIconKeys).toContain(badge.icon);
 			expect(Number.isInteger(badge.priority)).toBe(true);
+			if ("condition" in badge) expect(badgeConditionKeys).toContain(badge.condition);
 		}
+	});
+	it("adds conditions only to status-backed badges", () => {
+		expect(badgeCatalog.partner.condition).toBe("active-partner-grant");
+		expect(
+			Object.entries(badgeCatalog)
+				.filter(([, badge]) => "condition" in badge)
+				.map(([slug]) => slug),
+		).toEqual(["partner"]);
 	});
 	it("accepts catalog slugs and rejects arbitrary database values", () => {
 		expect(isBadgeSlug("founder")).toBe(true);

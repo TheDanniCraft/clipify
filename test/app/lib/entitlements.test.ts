@@ -1,5 +1,6 @@
 /** @jest-environment node */
 import { Plan, EntitlementGrantSource } from "@types";
+import { PgDialect } from "drizzle-orm/pg-core";
 
 const selectExecute = jest.fn();
 const deleteExecute = jest.fn();
@@ -178,6 +179,25 @@ describe("lib/entitlements", () => {
 				source: EntitlementGrantSource.Partner,
 			}),
 		);
+	});
+
+	it("finds the active partner grant used by automatic badges", async () => {
+		const startsAt = new Date("2026-03-01T00:00:00.000Z");
+		const now = new Date("2026-03-02T00:00:00.000Z");
+		selectExecute.mockResolvedValueOnce([{ id: "partner-grant", startsAt }]);
+		const { getActivePartnerAccessGrant } = await loadEntitlements();
+		await expect(getActivePartnerAccessGrant("partner-user", now)).resolves.toEqual({ id: "partner-grant", startsAt });
+		expect(queryBuilder.where).toHaveBeenCalledTimes(1);
+		const query = new PgDialect().sqlToQuery(queryBuilder.where.mock.calls[0][0]);
+		expect(query.sql).toContain('"entitlement_grants"."revoked_at" is null');
+		expect(query.params).toEqual(expect.arrayContaining(["partner-user", "pro_access", "partner", now.toISOString()]));
+		expect(queryBuilder.orderBy).toHaveBeenCalledTimes(1);
+		expect(queryBuilder.limit).toHaveBeenCalledWith(1);
+	});
+
+	it("returns no automatic Partner badge source when no active grant matches", async () => {
+		const { getActivePartnerAccessGrant } = await loadEntitlements();
+		await expect(getActivePartnerAccessGrant("former-partner")).resolves.toBeNull();
 	});
 
 	it("ensures reverse trial grant for free user", async () => {

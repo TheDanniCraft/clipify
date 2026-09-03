@@ -7,6 +7,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ card
 	if (!profile) return new Response("Member not found", { status: 404 });
 	const response = await createMemberCardImage(profile, new URL(request.url).searchParams.get("download") === "1");
 	response.headers.set("X-Robots-Tag", "noindex");
-	response.headers.set("Cache-Control", "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400");
+	// Status-backed badges can change through grant revocation or expiry without a URL change.
+	response.headers.set("Cache-Control", "no-store");
 	return response;
 }

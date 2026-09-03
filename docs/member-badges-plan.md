@@ -18,7 +18,7 @@ The share menu offers link copying, LinkedIn, X, Discord-ready text, WhatsApp, a
 
 `member-badge-test.sql` is an optional, manually executed example for user `274252231`, not a migration or automatic seed. It grants the `beta-tester` badge as recognition only; it does not grant beta access or entitlements.
 
-The code registry is authoritative for badge slugs, names, descriptions, Tabler icon keys, and priority. `badgeSlugs` is derived from the registry keys and passed to Drizzle's `pgEnum`, so TypeScript and PostgreSQL accept the same values without duplicating a list. The `user_badges` table stores only ownership and audit metadata. Adding or removing a registry entry is therefore a database schema change that CI must turn into a reviewed Drizzle migration; no migration is created manually in this branch. Rendering resolves all presentation metadata from code.
+The code registry is authoritative for badge slugs, names, descriptions, Tabler icon keys, priority, and optional automatic conditions. `badgeSlugs` is derived from the registry keys and passed to Drizzle's `pgEnum`, so TypeScript and PostgreSQL accept the same values without duplicating a list. Conditions are declarative names whose exhaustive server-side resolver map contains the database query; raw SQL and executable functions do not live in the schema-imported catalog. The `user_badges` table stores only manual ownership and audit metadata. Condition-backed badges are resolved from their existing source of truth and are not duplicated as award rows. Adding or removing a registry entry is therefore a database schema change that CI must turn into a reviewed Drizzle migration; no migration is created manually in this branch. Rendering resolves all presentation metadata from code.
 
 The singleton member-number allocator is declared in the Drizzle schema so CI can generate it. On first allocation it reserves a fixed legacy range using the greater of the current population and highest existing number. Every allocation atomically increments its persisted high-water mark using PostgreSQL ON CONFLICT; later user deletions or backfills never shrink the reservation or reuse numbers. Existing accounts remain `NULL` until the legacy backfill is reviewed. A member number of `0` is the explicit fallback for legacy accounts whose order cannot be reconstructed. Positive values are unique; multiple legacy accounts may safely use `0`. Failed or concurrent duplicate signups can leave harmless gaps; numbers are permanent, not a live population count.
 
@@ -61,9 +61,10 @@ The SQL runbook locks the allocator before the users table, seeds the reservatio
 
 ### Clipify Partner
 
-- Eligibility: an explicitly approved Clipify partnership.
-- Permanence: remains as recognition after it is awarded, independently of entitlement calculations.
-- Rollout: award explicitly with an auditable source. Do not derive it during reads or logins; an automated grant workflow can be added later when partnership lifecycle rules are settled.
+- Eligibility: a currently active, user-specific `pro_access` grant whose source is `partner`.
+- Lifecycle: the badge is resolved automatically from the grant's start, end, and revocation state. Adding a partner grant makes it appear; expiring or revoking the grant removes it on the next read.
+- Consistency: the Partner badge is not written to `user_badges`, and stale manual Partner rows are ignored, so the entitlement grant remains the single source of truth.
+- Freshness: public card images use `no-store` because their URL is permanent while condition-backed status can change.
 
 ### Beta Tester
 

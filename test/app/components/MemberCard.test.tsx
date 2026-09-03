@@ -32,7 +32,7 @@ describe("MemberCard", () => {
 	});
 
 	it("shows awarded badges and keeps the stored date for member zero", () => {
-		render(<MemberCard profile={{ ...profile, memberNumber: 0, badges: [{ slug: "founder", name: "Founder", description: "", icon: "crown", awardedAt: new Date() }] }} />);
+		render(<MemberCard profile={{ ...profile, memberNumber: 0, badges: [{ slug: "founder", name: "Founder", description: "", icon: "crown", priority: 100, awardedAt: new Date() }] }} />);
 		expect(screen.getByText("Founder")).toBeInTheDocument();
 		expect(screen.getByText("Early member")).toBeInTheDocument();
 		expect(screen.getByText("Jan 2, 2026")).toBeInTheDocument();

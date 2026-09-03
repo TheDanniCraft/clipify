@@ -116,21 +116,21 @@ describe("member-card image routes", () => {
 		expect(response.headers.has("Content-Disposition")).toBe(false);
 	});
 
-	it("serves a cacheable public PNG without requiring authentication", async () => {
+	it("serves a fresh public PNG without requiring authentication", async () => {
 		const { GET } = await import("@/app/api/member-card/public/[cardId]/route");
 		const response = await GET(request(), context);
 		expect(response.status).toBe(200);
 		expect(response.headers.get("Content-Type")).toBe("image/png");
-		expect(response.headers.get("Cache-Control")).toBe("public, max-age=300, s-maxage=3600, stale-while-revalidate=86400");
+		expect(response.headers.get("Cache-Control")).toBe("no-store");
 		expect(getPublicMemberProfile).toHaveBeenCalledWith(cardId);
 		expect(response.headers.get("X-Robots-Tag")).toBe("noindex");
 		expect(validateAuth).not.toHaveBeenCalled();
 	});
 
-	it("preserves attachment headers when adding public caching", async () => {
+	it("preserves attachment headers without caching public downloads", async () => {
 		const { GET } = await import("@/app/api/member-card/public/[cardId]/route");
 		const response = await GET(request("?download=1"), context);
 		expect(response.headers.get("Content-Disposition")).toBe('attachment; filename="clipify-member-member_42.png"');
-		expect(response.headers.get("Cache-Control")).toContain("public");
+		expect(response.headers.get("Cache-Control")).toBe("no-store");
 	});
 });

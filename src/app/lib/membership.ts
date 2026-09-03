@@ -6,12 +6,14 @@ import { and, asc, eq } from "drizzle-orm";
 import { isMemberCardId } from "@lib/memberCardLinks";
 import { memberCardIdExpression, memberCardIdForUser } from "@/server/memberCardId";
 import { badgeCatalog, type BadgeIconKey, type BadgeSlug } from "@lib/badgeCatalog";
+import { resolveAutomaticBadgeAwards } from "@/server/membership";
 
 export type MemberBadgeView = {
 	slug: BadgeSlug;
 	name: string;
 	description: string;
 	icon: BadgeIconKey;
+	priority: number;
 	awardedAt: Date;
 };
 
@@ -25,16 +27,25 @@ export type MemberProfile = {
 };
 
 export async function getMemberBadges(userId: string): Promise<MemberBadgeView[]> {
-	const awards = await db
-		.select({
-			slug: userBadgesTable.badge,
-			awardedAt: userBadgesTable.awardedAt,
+	const [storedAwards, automaticAwards] = await Promise.all([
+		db
+			.select({
+				slug: userBadgesTable.badge,
+				awardedAt: userBadgesTable.awardedAt,
+			})
+			.from(userBadgesTable)
+			.where(eq(userBadgesTable.userId, userId))
+			.orderBy(asc(userBadgesTable.awardedAt))
+			.execute(),
+		resolveAutomaticBadgeAwards(userId),
+	]);
+	const awards = [...storedAwards.filter((award) => !("condition" in badgeCatalog[award.slug])), ...automaticAwards];
+	return awards
+		.map((award) => {
+			const definition = badgeCatalog[award.slug];
+			return { slug: award.slug, name: definition.name, description: definition.description, icon: definition.icon, priority: definition.priority, awardedAt: award.awardedAt };
 		})
-		.from(userBadgesTable)
-		.where(eq(userBadgesTable.userId, userId))
-		.orderBy(asc(userBadgesTable.awardedAt))
-		.execute();
-	return awards.map((award) => ({ slug: award.slug, ...badgeCatalog[award.slug], awardedAt: award.awardedAt })).sort((left, right) => badgeCatalog[right.slug].priority - badgeCatalog[left.slug].priority || left.awardedAt.getTime() - right.awardedAt.getTime());
+		.sort((left, right) => badgeCatalog[right.slug].priority - badgeCatalog[left.slug].priority || left.awardedAt.getTime() - right.awardedAt.getTime());
 }
 
 export async function getMemberProfile(userId: string): Promise<MemberProfile | null> {
