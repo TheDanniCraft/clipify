@@ -32,7 +32,7 @@ import {
 	MaxDurationMode as MaxDurationModeEnumValues,
 } from "@types";
 import { sql } from "drizzle-orm";
-import type { BadgeSlug } from "@lib/badgeCatalog";
+import { badgeSlugs } from "@lib/badgeCatalog";
 
 function enumToPgEnum<T extends Record<string, unknown>>(myEnum: T): [T[keyof T], ...T[keyof T][]] {
 	return Object.values(myEnum).map((value: unknown) => `${value}`) as [T[keyof T], ...T[keyof T][]];
@@ -56,6 +56,7 @@ export const galleryLayoutEnum = pgEnum("gallery_layout", ["grid", "list", "caro
 export const galleryLiveSortEnum = pgEnum("gallery_live_sort", ["newest", "most_viewed", "stable_random"]);
 export const galleryTimeWindowEnum = pgEnum("gallery_time_window", ["today", "7d", "30d", "all", "custom"]);
 export const galleryThemeEnum = pgEnum("gallery_theme", ["light", "dark", "system"]);
+export const badgeEnum = pgEnum("badge", badgeSlugs);
 
 export const memberNumberAllocatorTable = pgTable(
 	"member_number_allocator",
@@ -97,25 +98,13 @@ export const usersTable = pgTable(
 	],
 );
 
-export const badgesTable = pgTable("badges", {
-	slug: varchar("slug", { length: 64 }).$type<BadgeSlug>().notNull().primaryKey(),
-	name: varchar("name", { length: 80 }).notNull(),
-	description: text("description").notNull(),
-	icon: varchar("icon", { length: 64 }),
-	priority: integer("priority").notNull().default(0),
-	createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-});
-
 export const userBadgesTable = pgTable(
 	"user_badges",
 	{
 		userId: varchar("user_id")
 			.notNull()
 			.references(() => usersTable.id, { onDelete: "cascade" }),
-		badgeSlug: varchar("badge_slug", { length: 64 })
-			.$type<BadgeSlug>()
-			.notNull()
-			.references(() => badgesTable.slug, { onDelete: "cascade" }),
+		badgeSlug: badgeEnum("badge_slug").notNull(),
 		awardedAt: timestamp("awarded_at", { withTimezone: true }).defaultNow().notNull(),
 		awardedBy: varchar("awarded_by"),
 		source: varchar("source", { length: 80 }),

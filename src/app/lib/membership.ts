@@ -5,7 +5,7 @@ import { userBadgesTable, usersTable } from "@/db/schema";
 import { and, asc, eq } from "drizzle-orm";
 import { isMemberCardId } from "@lib/memberCardLinks";
 import { memberCardIdExpression, memberCardIdForUser } from "@/server/memberCardId";
-import { badgeCatalog, isBadgeSlug, type BadgeIconKey, type BadgeSlug } from "@lib/badgeCatalog";
+import { badgeCatalog, type BadgeIconKey, type BadgeSlug } from "@lib/badgeCatalog";
 
 export type MemberBadgeView = {
 	slug: BadgeSlug;
@@ -34,10 +34,7 @@ export async function getMemberBadges(userId: string): Promise<MemberBadgeView[]
 		.where(eq(userBadgesTable.userId, userId))
 		.orderBy(asc(userBadgesTable.awardedAt))
 		.execute();
-	return awards
-		.filter((award): award is typeof award & { slug: BadgeSlug } => isBadgeSlug(award.slug))
-		.map((award) => ({ slug: award.slug, ...badgeCatalog[award.slug], awardedAt: award.awardedAt }))
-		.sort((left, right) => badgeCatalog[right.slug].priority - badgeCatalog[left.slug].priority || left.awardedAt.getTime() - right.awardedAt.getTime());
+	return awards.map((award) => ({ slug: award.slug, ...badgeCatalog[award.slug], awardedAt: award.awardedAt })).sort((left, right) => badgeCatalog[right.slug].priority - badgeCatalog[left.slug].priority || left.awardedAt.getTime() - right.awardedAt.getTime());
 }
 
 export async function getMemberProfile(userId: string): Promise<MemberProfile | null> {

@@ -10,15 +10,15 @@
 
 - Add a stable member number for new registrations without guessing numbers for legacy accounts.
 - Reuse the existing `users.created_at`; do not add a second join-date field.
-- Define badge identity and presentation in the type-safe `badgeCatalog` code registry, backed by a small database catalog and an award join table. No badges or awards are seeded automatically.
+- Define badge identity and presentation in the type-safe `badgeCatalog` code registry. The database stores only the generated badge enum and user awards; no badge catalog or awards are seeded automatically.
 - Add a premium public Member Card page, authenticated and public image endpoints, a social-share menu, PNG download, and Creator Page badges. The account menu's **Badges** entry opens the Member Card and badge collection; Settings has no duplicate link or collection.
-- Add internal idempotent definition/grant/revoke functions for future billing and admin workflows.
+- Add internal idempotent grant/revoke functions for future billing and admin workflows.
 
 The share menu offers link copying, LinkedIn, X, Discord-ready text, WhatsApp, and **Share via device…**. Device sharing uses the browser's native Web Share API (HTTPS and browser support required); unavailable/failed sharing falls back to copying the card link, then a selectable link if clipboard access fails. Cancelling the native picker does not copy or download anything. LinkedIn opens its URL composer and copies ready-to-paste post text; other text-capable destinations receive the community introduction plus a short explanation of Clipify. A failed post-text copy provides selectable text instead. Download remains a separate PNG attachment.
 
 `member-badge-test.sql` is an optional, manually executed test-data example for user `274252231`, not a migration or automatic seed. It grants a display-only Beta Member test badge, not beta access or entitlements.
 
-The code registry is authoritative for badge slugs, names, descriptions, icon keys, and priority. Drizzle's varchar columns use the inferred `BadgeSlug` union for compile-time checks without a PostgreSQL enum or a schema migration per new badge. Internal awards accept only registered slugs and first upsert the matching definition into the database catalog; the database retains foreign-key integrity, award history, and reporting. Rendering resolves metadata from code and ignores unknown legacy database slugs. Importing the Drizzle schema never performs database writes.
+The code registry is authoritative for badge slugs, names, descriptions, Tabler icon keys, and priority. `badgeSlugs` is derived from the registry keys and passed to Drizzle's `pgEnum`, so TypeScript and PostgreSQL accept the same values without duplicating a list. The `user_badges` table stores only ownership and audit metadata. Adding or removing a registry entry is therefore a database schema change that CI must turn into a reviewed Drizzle migration; no migration is created manually in this branch. Rendering resolves all presentation metadata from code.
 
 The singleton member-number allocator is declared in the Drizzle schema so CI can generate it. On first allocation it reserves a fixed legacy range using the greater of the current population and highest existing number. Every allocation atomically increments its persisted high-water mark using PostgreSQL ON CONFLICT; later user deletions or backfills never shrink the reservation or reuse numbers. Existing accounts remain `NULL` until the legacy backfill is reviewed. A member number of `0` is the explicit fallback for legacy accounts whose order cannot be reconstructed. Positive values are unique; multiple legacy accounts may safely use `0`. Failed or concurrent duplicate signups can leave harmless gaps; numbers are permanent, not a live population count.
 
@@ -49,7 +49,7 @@ The SQL runbook locks the allocator before the users table, seeds the reservatio
 
 - Eligibility: the first 100 registered Clipify accounts, based on the reviewed legacy ordering rather than Twitch account age.
 - Permanence: never expires after award.
-- Rollout: create the `founder` definition, preview the exact 100-account grant list, then bulk-award with an auditable `source` such as `founder_backfill_2026`.
+- Rollout: ensure the `founder` enum value is deployed, preview the exact 100-account grant list, then bulk-award with an auditable `source` such as `founder_backfill_2026`.
 - Card behavior: highest display priority so `Founder` is the default card status.
 
 ### Founder Supporter
@@ -63,11 +63,11 @@ The SQL runbook locks the allocator before the users table, seeds the reservatio
 
 - Eligibility: participation in a specifically named Clipify beta, using an explicit allow-list or recorded beta enrollment.
 - Permanence: keep it as a commemorative badge after the beta closes.
-- Rollout: defer until beta enrollment has a reliable source of truth; create one badge per meaningful beta only if users should distinguish them.
+- Rollout: defer until beta enrollment has a reliable source of truth; add one registry entry per meaningful beta only if users should distinguish them.
 
 ## Follow-up admin UI
 
-- Badge definition management with immutable slugs and configurable display priority. The internal service functions already exist in `src/server/membership.ts`.
+- Badge definitions remain code-reviewed in `src/app/lib/badgeCatalog.ts`; they are not editable through an admin UI.
 - Single-account grant/revoke controls restricted to admins. The data model already records actor, source, and timestamp.
 - Bulk grant import with validation, preview, idempotency, and a dry-run report.
 - Optional user choice of featured badge once accounts commonly hold more than one.

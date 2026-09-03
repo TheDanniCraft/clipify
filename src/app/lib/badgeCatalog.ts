@@ -38,6 +38,9 @@ export const badgeCatalog = {
 
 export type BadgeSlug = keyof typeof badgeCatalog;
 
+/** PostgreSQL enum values, derived from the registry so there is one source of truth. */
+export const badgeSlugs = Object.keys(badgeCatalog) as [BadgeSlug, ...BadgeSlug[]];
+
 export function isBadgeSlug(value: string): value is BadgeSlug {
 	return Object.hasOwn(badgeCatalog, value);
 }

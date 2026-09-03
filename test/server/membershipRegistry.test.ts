@@ -1,6 +1,5 @@
 /** @jest-environment node */
-import { awardBadgeInternal, syncBadgeDefinitionInternal } from "@/server/membership";
-import { badgeCatalog } from "@lib/badgeCatalog";
+import { awardBadgeInternal } from "@/server/membership";
 
 const execute = jest.fn();
 const values = jest.fn();
@@ -14,7 +13,6 @@ jest.mock("@/db/client", () => ({
 					values(input);
 					return chain;
 				},
-				onConflictDoUpdate: () => chain,
 				onConflictDoNothing: () => chain,
 				returning: () => chain,
 				execute,
@@ -30,13 +28,9 @@ describe("badge registry writes", () => {
 		inserts.length = 0;
 		execute.mockResolvedValue([{ ok: true }]);
 	});
-	it("synchronizes the exact registered definition", async () => {
-		await syncBadgeDefinitionInternal("founder");
-		expect(values).toHaveBeenCalledWith({ slug: "founder", ...badgeCatalog.founder });
-	});
-	it("synchronizes the catalog before recording an award", async () => {
+	it("records only the user award without a database catalog write", async () => {
 		await awardBadgeInternal({ userId: "274252231", badgeSlug: "beta-member", source: "manual-test" });
-		expect(values.mock.calls).toEqual([[{ slug: "beta-member", ...badgeCatalog["beta-member"] }], [{ userId: "274252231", badgeSlug: "beta-member", source: "manual-test", awardedBy: null }]]);
-		expect(inserts).toHaveLength(2);
+		expect(values).toHaveBeenCalledWith({ userId: "274252231", badgeSlug: "beta-member", source: "manual-test", awardedBy: null });
+		expect(inserts).toHaveLength(1);
 	});
 });

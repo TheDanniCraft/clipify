@@ -82,14 +82,7 @@ ORDER BY CASE WHEN member_number = 0 THEN 1 ELSE 0 END, member_number NULLS LAST
 COMMIT;
 
 -- Run only after the first 100 positive member numbers have been reviewed and approved.
--- INSERT INTO badges (slug, name, description, icon, priority)
--- VALUES ('founder', 'Founder', 'One of the first 100 registered Clipify members.', 'crown', 100)
--- ON CONFLICT (slug) DO UPDATE
--- SET name = EXCLUDED.name,
---     description = EXCLUDED.description,
---     icon = EXCLUDED.icon,
---     priority = EXCLUDED.priority;
---
+-- The founder badge must already exist in the generated PostgreSQL badge enum.
 -- INSERT INTO user_badges (user_id, badge_slug, source)
 -- SELECT id, 'founder', 'founder_backfill_2026'
 -- FROM users

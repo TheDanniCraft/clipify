@@ -58,12 +58,11 @@ describe("member profile lookup", () => {
 		expect(await getMemberProfile("twitch-id")).toMatchObject({ cardId, avatar: "" });
 		expect(new PgDialect().sqlToQuery(where.mock.calls[0][0]).params).toEqual(["twitch-id"]);
 	});
-	it("resolves presentation from the code registry and ignores unknown stored slugs", async () => {
+	it("resolves presentation from the code registry and orders badges by priority", async () => {
 		const founderDate = new Date("2026-01-02");
 		const betaDate = new Date("2026-01-01");
 		execute.mockResolvedValue([
 			{ slug: "beta-member", awardedAt: betaDate },
-			{ slug: "unknown-row", awardedAt: new Date("2025-01-01") },
 			{ slug: "founder", awardedAt: founderDate },
 		]);
 		await expect(getMemberBadges("twitch-id")).resolves.toEqual([

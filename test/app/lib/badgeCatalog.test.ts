@@ -1,4 +1,5 @@
-import { badgeCatalog, badgeIconKeys, isBadgeSlug } from "@lib/badgeCatalog";
+import { badgeCatalog, badgeIconKeys, badgeSlugs, isBadgeSlug } from "@lib/badgeCatalog";
+import { badgeEnum } from "@/db/schema";
 
 describe("badge catalog", () => {
 	it("centrally defines every badge's presentation", () => {
@@ -15,5 +16,9 @@ describe("badge catalog", () => {
 		expect(isBadgeSlug("beta-member-test")).toBe(true);
 		expect(isBadgeSlug("constructor")).toBe(false);
 		expect(isBadgeSlug("made-up-badge")).toBe(false);
+	});
+	it("derives the PostgreSQL enum values from the registry", () => {
+		expect(badgeSlugs).toEqual(Object.keys(badgeCatalog));
+		expect(badgeEnum.enumValues).toEqual(badgeSlugs);
 	});
 });
