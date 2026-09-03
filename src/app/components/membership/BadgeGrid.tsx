@@ -1,5 +1,5 @@
 import type { MemberBadgeView } from "@lib/membership";
-import { Chip } from "@heroui/react";
+import BadgeIcon from "@components/membership/BadgeIcon";
 import { IconSparkles } from "@tabler/icons-react";
 
 export default function BadgeGrid({ badges, emptyDescription = "Special badges will appear here automatically when they are awarded." }: { badges: MemberBadgeView[]; emptyDescription?: string }) {
@@ -16,16 +16,10 @@ export default function BadgeGrid({ badges, emptyDescription = "Special badges w
 	}
 
 	return (
-		<ul className='grid gap-3 sm:grid-cols-2'>
+		<ul className='flex flex-wrap items-center gap-2' aria-label='Awarded badges'>
 			{badges.map((badge) => (
-				<li key={badge.slug} className='rounded-2xl border border-default bg-surface-secondary/40 p-4'>
-					<div className='flex items-center justify-between gap-3'>
-						<p className='font-semibold text-foreground'>{badge.name}</p>
-						<Chip size='sm' variant='secondary'>
-							Awarded
-						</Chip>
-					</div>
-					<p className='mt-2 text-sm text-muted'>{badge.description}</p>
+				<li key={badge.slug}>
+					<BadgeIcon badge={badge} />
 				</li>
 			))}
 		</ul>

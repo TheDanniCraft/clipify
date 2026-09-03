@@ -10,7 +10,7 @@ describe("member card share copy", () => {
 	it("does not claim ownership when a visitor shares another member's card", () => {
 		const text = memberCardShareText("clipper", 20, false);
 		expect(text).toContain("Meet clipper from the Clipify community — member #20!");
-		expect(text).toContain("See their member card:");
+		expect(text).toContain("Part of the community:");
 		expect(text).not.toContain("I'm");
 	});
 	it("keeps normal owner posts within X's text budget with a shortened link", () => {

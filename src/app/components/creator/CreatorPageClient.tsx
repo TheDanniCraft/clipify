@@ -14,6 +14,7 @@ import { useQualifiedPlayback } from "@/app/hooks/useQualifiedPlayback";
 import type { MemberBadgeView } from "@lib/membership";
 import { formatMemberNumber } from "@lib/membershipFormat";
 import { memberCardPath } from "@lib/memberCardLinks";
+import BadgeIcon from "@components/membership/BadgeIcon";
 
 type Creator = {
 	username: string;
@@ -228,9 +229,7 @@ export default function CreatorPageClient({ creator, initialItems, initialCursor
 										</Chip>
 									) : null}
 									{(creator.badges ?? []).map((badge) => (
-										<Chip key={badge.slug} size='sm' variant='secondary'>
-											{badge.name}
-										</Chip>
+										<BadgeIcon key={badge.slug} badge={badge} />
 									))}
 								</div>
 							</div>

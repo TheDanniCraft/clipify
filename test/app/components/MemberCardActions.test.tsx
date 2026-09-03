@@ -32,7 +32,7 @@ jest.mock("@heroui/react", () => {
 const cardId = "025dcf9a-10f5-47ad-a6f0-cbe1151b6fbc";
 const url = `http://localhost/members/${cardId}`;
 const writeText = jest.fn();
-const shareText = "I'm part of the Clipify community — member #20!\n\nClipify turns Twitch clips into stream overlays, playlists and shareable galleries, keeping your best moments playing even during breaks.\n\nHere's my member card:";
+const shareText = "I'm part of the Clipify community — member #20!\n\nClipify keeps your chat engaged with your best Twitch clips—even when you're taking a break.\n\nProud to be part of it:";
 describe("MemberCardActions", () => {
 	beforeEach(() => {
 		writeText.mockReset().mockResolvedValue(undefined);
@@ -70,7 +70,7 @@ describe("MemberCardActions", () => {
 		if (platform === "LinkedIn") {
 			await waitFor(() => expect(writeText).toHaveBeenCalledWith(`${shareText}\n${url}`));
 			expect(await screen.findByText("Post text copied. Paste it into your LinkedIn post.")).toBeInTheDocument();
-		} else expect(target.searchParams.get("text")).toContain("Clipify turns Twitch clips into stream overlays");
+		} else expect(target.searchParams.get("text")).toContain("Clipify keeps your chat engaged");
 	});
 	it("provides a selectable link when clipboard access fails", async () => {
 		writeText.mockRejectedValue(new Error("denied"));
