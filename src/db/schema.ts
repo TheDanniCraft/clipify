@@ -104,12 +104,12 @@ export const userBadgesTable = pgTable(
 		userId: varchar("user_id")
 			.notNull()
 			.references(() => usersTable.id, { onDelete: "cascade" }),
-		badgeSlug: badgeEnum("badge_slug").notNull(),
+		badge: badgeEnum("badge").notNull(),
 		awardedAt: timestamp("awarded_at", { withTimezone: true }).defaultNow().notNull(),
 		awardedBy: varchar("awarded_by"),
 		source: varchar("source", { length: 80 }),
 	},
-	(t) => [primaryKey({ columns: [t.userId, t.badgeSlug] }), index("user_badges_badge_slug_idx").on(t.badgeSlug)],
+	(t) => [primaryKey({ columns: [t.userId, t.badge] }), index("user_badges_badge_idx").on(t.badge)],
 );
 
 export const userContentStatesTable = pgTable(

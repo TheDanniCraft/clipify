@@ -3,16 +3,16 @@
 -- Re-running is safe; an existing award is not overwritten.
 BEGIN;
 
-INSERT INTO user_badges (user_id, badge_slug, awarded_by, source)
+INSERT INTO user_badges (user_id, badge, awarded_by, source)
 VALUES ('274252231', 'beta-member-test', '274252231', 'manual-test')
-ON CONFLICT (user_id, badge_slug) DO NOTHING;
+ON CONFLICT (user_id, badge) DO NOTHING;
 
 COMMIT;
 
-SELECT badge_slug, user_id, awarded_at
+SELECT badge, user_id, awarded_at
 FROM user_badges
-WHERE user_id = '274252231' AND badge_slug = 'beta-member-test';
+WHERE user_id = '274252231' AND badge = 'beta-member-test';
 
 -- Optional cleanup of this test award (run separately):
 -- DELETE FROM user_badges
--- WHERE user_id = '274252231' AND badge_slug = 'beta-member-test' AND source = 'manual-test';
+-- WHERE user_id = '274252231' AND badge = 'beta-member-test' AND source = 'manual-test';

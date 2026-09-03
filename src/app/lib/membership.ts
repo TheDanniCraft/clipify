@@ -27,7 +27,7 @@ export type MemberProfile = {
 export async function getMemberBadges(userId: string): Promise<MemberBadgeView[]> {
 	const awards = await db
 		.select({
-			slug: userBadgesTable.badgeSlug,
+			slug: userBadgesTable.badge,
 			awardedAt: userBadgesTable.awardedAt,
 		})
 		.from(userBadgesTable)

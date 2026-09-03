@@ -83,8 +83,8 @@ COMMIT;
 
 -- Run only after the first 100 positive member numbers have been reviewed and approved.
 -- The founder badge must already exist in the generated PostgreSQL badge enum.
--- INSERT INTO user_badges (user_id, badge_slug, source)
+-- INSERT INTO user_badges (user_id, badge, source)
 -- SELECT id, 'founder', 'founder_backfill_2026'
 -- FROM users
 -- WHERE member_number BETWEEN 1 AND 100
--- ON CONFLICT (user_id, badge_slug) DO NOTHING;
+-- ON CONFLICT (user_id, badge) DO NOTHING;

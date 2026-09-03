@@ -16,7 +16,7 @@ describe("manual Beta Member test badge SQL", () => {
 		await database.exec(`
 			CREATE TABLE users (id varchar PRIMARY KEY);
 			CREATE TYPE badge AS ENUM (${badgeEnumValues});
-			CREATE TABLE user_badges (user_id varchar NOT NULL REFERENCES users(id), badge_slug badge NOT NULL, awarded_at timestamptz NOT NULL DEFAULT now(), awarded_by varchar, source varchar(80), PRIMARY KEY(user_id, badge_slug));
+			CREATE TABLE user_badges (user_id varchar NOT NULL REFERENCES users(id), badge badge NOT NULL, awarded_at timestamptz NOT NULL DEFAULT now(), awarded_by varchar, source varchar(80), PRIMARY KEY(user_id, badge));
 		`);
 	}, 30000);
 	beforeEach(async () => {
@@ -32,7 +32,7 @@ describe("manual Beta Member test badge SQL", () => {
 		const first = await database.query("SELECT * FROM user_badges");
 		await database.exec(script);
 		expect((await database.query("SELECT * FROM user_badges")).rows).toEqual(first.rows);
-		expect(first.rows).toEqual([expect.objectContaining({ user_id: "274252231", badge_slug: "beta-member-test", source: "manual-test" })]);
+		expect(first.rows).toEqual([expect.objectContaining({ user_id: "274252231", badge: "beta-member-test", source: "manual-test" })]);
 	});
 
 	it("does not leave an award behind when the target user is missing", async () => {
@@ -43,6 +43,6 @@ describe("manual Beta Member test badge SQL", () => {
 
 	it("rejects badge values that are not defined by the registry", async () => {
 		await database.exec("INSERT INTO users VALUES ('274252231')");
-		await expect(database.exec("INSERT INTO user_badges (user_id, badge_slug) VALUES ('274252231', 'made-up-badge')")).rejects.toThrow();
+		await expect(database.exec("INSERT INTO user_badges (user_id, badge) VALUES ('274252231', 'made-up-badge')")).rejects.toThrow();
 	});
 });
