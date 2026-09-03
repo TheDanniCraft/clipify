@@ -1,6 +1,6 @@
 /** @jest-environment node */
 import { PgDialect } from "drizzle-orm/pg-core";
-import { getMemberProfile, getPublicMemberProfile } from "@lib/membership";
+import { getMemberBadges, getMemberProfile, getPublicMemberProfile } from "@lib/membership";
 import { memberCardIdForUser } from "@/server/memberCardId";
 
 const execute = jest.fn();
@@ -57,5 +57,18 @@ describe("member profile lookup", () => {
 		execute.mockResolvedValueOnce([owner]).mockResolvedValueOnce([]);
 		expect(await getMemberProfile("twitch-id")).toMatchObject({ cardId, avatar: "" });
 		expect(new PgDialect().sqlToQuery(where.mock.calls[0][0]).params).toEqual(["twitch-id"]);
+	});
+	it("resolves presentation from the code registry and ignores unknown stored slugs", async () => {
+		const founderDate = new Date("2026-01-02");
+		const betaDate = new Date("2026-01-01");
+		execute.mockResolvedValue([
+			{ slug: "beta-member", awardedAt: betaDate },
+			{ slug: "unknown-row", awardedAt: new Date("2025-01-01") },
+			{ slug: "founder", awardedAt: founderDate },
+		]);
+		await expect(getMemberBadges("twitch-id")).resolves.toEqual([
+			{ slug: "founder", name: "Founder", description: "One of the first 100 registered Clipify accounts.", icon: "crown", priority: 100, awardedAt: founderDate },
+			{ slug: "beta-member", name: "Beta Member", description: "Helped shape Clipify during its beta.", icon: "flask", priority: 80, awardedAt: betaDate },
+		]);
 	});
 });

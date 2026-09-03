@@ -3,6 +3,8 @@ import userEvent from "@testing-library/user-event";
 import BadgeIcon from "@components/membership/BadgeIcon";
 import BadgeGrid from "@components/membership/BadgeGrid";
 import type { ReactNode } from "react";
+import type { BadgeIconKey } from "@lib/badgeCatalog";
+import type { MemberBadgeView } from "@lib/membership";
 
 jest.mock("@heroui/react", () => {
 	const React = jest.requireActual<typeof import("react")>("react");
@@ -30,7 +32,7 @@ jest.mock("@heroui/react", () => {
 	};
 });
 
-const badge = { slug: "beta-member-test", name: "Beta Member", description: "Helped test Clipify early.", icon: null, awardedAt: new Date("2026-01-01") };
+const badge = { slug: "beta-member-test", name: "Beta Member", description: "Helped test Clipify early.", icon: "flask", awardedAt: new Date("2026-01-01") } as const satisfies MemberBadgeView;
 
 describe("compact badge icons", () => {
 	it("uses the beta icon without displaying a permanent description card", () => {
@@ -58,8 +60,9 @@ describe("compact badge icons", () => {
 		await user.click(screen.getByRole("button"));
 		expect(await screen.findByRole("tooltip")).toHaveTextContent(badge.description);
 	});
-	it.each(["not-an-icon", "constructor", "https://example.com/icon.svg"])("falls back safely for an unknown catalog icon: %s", (icon) => {
-		const { container } = render(<BadgeIcon badge={{ ...badge, slug: "custom", icon }} />);
+	it.each(["not-an-icon", "constructor", "https://example.com/icon.svg"])("falls back safely for an unknown catalog icon at runtime: %s", (icon) => {
+		const malformed = { ...badge, slug: "custom", icon: icon as BadgeIconKey } as unknown as MemberBadgeView;
+		const { container } = render(<BadgeIcon badge={malformed} />);
 		expect(container.querySelector('[data-badge-icon="badge"]')).toBeInTheDocument();
 	});
 	it("honors a known catalog icon", () => {

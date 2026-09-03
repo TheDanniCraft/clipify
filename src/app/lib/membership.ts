@@ -1,16 +1,17 @@
 import "server-only";
 
 import { db } from "@/db/client";
-import { badgesTable, userBadgesTable, usersTable } from "@/db/schema";
-import { and, asc, desc, eq } from "drizzle-orm";
+import { userBadgesTable, usersTable } from "@/db/schema";
+import { and, asc, eq } from "drizzle-orm";
 import { isMemberCardId } from "@lib/memberCardLinks";
 import { memberCardIdExpression, memberCardIdForUser } from "@/server/memberCardId";
+import { badgeCatalog, isBadgeSlug, type BadgeIconKey, type BadgeSlug } from "@lib/badgeCatalog";
 
 export type MemberBadgeView = {
-	slug: string;
+	slug: BadgeSlug;
 	name: string;
 	description: string;
-	icon: string | null;
+	icon: BadgeIconKey;
 	awardedAt: Date;
 };
 
@@ -24,19 +25,19 @@ export type MemberProfile = {
 };
 
 export async function getMemberBadges(userId: string): Promise<MemberBadgeView[]> {
-	return db
+	const awards = await db
 		.select({
-			slug: badgesTable.slug,
-			name: badgesTable.name,
-			description: badgesTable.description,
-			icon: badgesTable.icon,
+			slug: userBadgesTable.badgeSlug,
 			awardedAt: userBadgesTable.awardedAt,
 		})
 		.from(userBadgesTable)
-		.innerJoin(badgesTable, eq(userBadgesTable.badgeSlug, badgesTable.slug))
 		.where(eq(userBadgesTable.userId, userId))
-		.orderBy(desc(badgesTable.priority), asc(userBadgesTable.awardedAt))
+		.orderBy(asc(userBadgesTable.awardedAt))
 		.execute();
+	return awards
+		.filter((award): award is typeof award & { slug: BadgeSlug } => isBadgeSlug(award.slug))
+		.map((award) => ({ slug: award.slug, ...badgeCatalog[award.slug], awardedAt: award.awardedAt }))
+		.sort((left, right) => badgeCatalog[right.slug].priority - badgeCatalog[left.slug].priority || left.awardedAt.getTime() - right.awardedAt.getTime());
 }
 
 export async function getMemberProfile(userId: string): Promise<MemberProfile | null> {

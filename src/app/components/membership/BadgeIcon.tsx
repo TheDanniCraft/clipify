@@ -3,15 +3,15 @@
 import { Button, Tooltip } from "@heroui/react";
 import { IconCrown, IconFlask, IconHeart, IconRosetteDiscountCheck, IconShieldCheck, IconSparkles, IconStar } from "@tabler/icons-react";
 import type { MemberBadgeView } from "@lib/membership";
+import type { BadgeIconKey } from "@lib/badgeCatalog";
 import { useState } from "react";
 
 // The catalog's icon field selects a known glyph, never arbitrary markup or URLs.
-const icons = { crown: IconCrown, flask: IconFlask, heart: IconHeart, shield: IconShieldCheck, sparkles: IconSparkles, star: IconStar, badge: IconRosetteDiscountCheck };
-const defaults: Record<string, keyof typeof icons> = { founder: "crown", "founder-supporter": "heart", "beta-member": "flask", "beta-member-test": "flask" };
+const icons: Record<BadgeIconKey, typeof IconCrown> = { crown: IconCrown, flask: IconFlask, heart: IconHeart, shield: IconShieldCheck, sparkles: IconSparkles, star: IconStar, badge: IconRosetteDiscountCheck };
 
 export default function BadgeIcon({ badge }: { badge: Pick<MemberBadgeView, "slug" | "name" | "description" | "icon"> }) {
 	const [isOpen, setIsOpen] = useState(false);
-	const key = badge.icon && Object.hasOwn(icons, badge.icon) ? (badge.icon as keyof typeof icons) : Object.hasOwn(defaults, badge.slug) ? defaults[badge.slug] : "badge";
+	const key = Object.hasOwn(icons, badge.icon) ? badge.icon : "badge";
 	const Icon = icons[key];
 	return (
 		<Tooltip delay={150} isOpen={isOpen} onOpenChange={setIsOpen}>

@@ -32,6 +32,7 @@ import {
 	MaxDurationMode as MaxDurationModeEnumValues,
 } from "@types";
 import { sql } from "drizzle-orm";
+import type { BadgeSlug } from "@lib/badgeCatalog";
 
 function enumToPgEnum<T extends Record<string, unknown>>(myEnum: T): [T[keyof T], ...T[keyof T][]] {
 	return Object.values(myEnum).map((value: unknown) => `${value}`) as [T[keyof T], ...T[keyof T][]];
@@ -97,7 +98,7 @@ export const usersTable = pgTable(
 );
 
 export const badgesTable = pgTable("badges", {
-	slug: varchar("slug", { length: 64 }).notNull().primaryKey(),
+	slug: varchar("slug", { length: 64 }).$type<BadgeSlug>().notNull().primaryKey(),
 	name: varchar("name", { length: 80 }).notNull(),
 	description: text("description").notNull(),
 	icon: varchar("icon", { length: 64 }),
@@ -112,6 +113,7 @@ export const userBadgesTable = pgTable(
 			.notNull()
 			.references(() => usersTable.id, { onDelete: "cascade" }),
 		badgeSlug: varchar("badge_slug", { length: 64 })
+			.$type<BadgeSlug>()
 			.notNull()
 			.references(() => badgesTable.slug, { onDelete: "cascade" }),
 		awardedAt: timestamp("awarded_at", { withTimezone: true }).defaultNow().notNull(),
