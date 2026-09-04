@@ -6,7 +6,7 @@ import { badgeSlugs } from "@lib/badgeCatalog";
 
 declare const PGlite: typeof import("@electric-sql/pglite").PGlite;
 let database: PGliteDatabase;
-const script = readFileSync(join(process.cwd(), "docs/member-badge-test.sql"), "utf8");
+const script = readFileSync(join(process.cwd(), "scripts/member-badge-test.sql"), "utf8");
 const badgeEnumValues = badgeSlugs.map((slug) => `'${slug}'`).join(", ");
 
 describe("manual Beta Tester badge SQL", () => {

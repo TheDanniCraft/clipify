@@ -13,7 +13,7 @@ import { allocateMemberNumber, memberNumberAllocationQuery } from "@/server/memb
 const dialect = new PgDialect();
 declare const PGlite: typeof import("@electric-sql/pglite").PGlite;
 let database: PGliteDatabase;
-const runbook = readFileSync(join(process.cwd(), "docs/member-badges-backfill.sql"), "utf8");
+const runbook = readFileSync(join(process.cwd(), "scripts/member-badges-backfill.sql"), "utf8");
 
 async function legacyMembers(count = 100) {
 	await database.query("INSERT INTO users (id) SELECT n::text FROM generate_series(1, $1::integer) n", [count]);
