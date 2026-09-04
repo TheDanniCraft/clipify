@@ -15,6 +15,7 @@ const getCachedClipPageByOwner = jest.fn();
 const resolveUserEntitlements = jest.fn();
 const getFeatureAccess = jest.fn();
 const canResolvePublicClipPlayback = jest.fn();
+const getMemberBadges = jest.fn();
 
 jest.mock("@/db/client", () => ({ db: { select: () => dbSelect() } }));
 jest.mock("@actions/twitch", () => ({
@@ -26,6 +27,7 @@ jest.mock("@actions/database", () => ({ getCachedClipPageByOwner: (...args: unkn
 jest.mock("@lib/entitlements", () => ({ resolveUserEntitlements: (...args: unknown[]) => resolveUserEntitlements(...args) }));
 jest.mock("@lib/featureAccess", () => ({ getFeatureAccess: (...args: unknown[]) => getFeatureAccess(...args) }));
 jest.mock("@actions/rateLimit", () => ({ canResolvePublicClipPlayback: (...args: unknown[]) => canResolvePublicClipPlayback(...args) }));
+jest.mock("@lib/membership", () => ({ getMemberBadges: (...args: unknown[]) => getMemberBadges(...args) }));
 jest.mock("react", () => ({
 	cache: (fn: (...args: unknown[]) => unknown) => {
 		const values = new Map<string, unknown>();
@@ -54,6 +56,7 @@ describe("creator page actions", () => {
 		getCreatorTwitchDetails.mockResolvedValue({ profile: { profile_image_url: "profile.png", description: "Creator bio", broadcaster_type: "partner" }, live: null });
 		getCachedClipPageByOwner.mockResolvedValue({ items: [{ id: "clip-1" }], nextCursor: null, total: 1 });
 		canResolvePublicClipPlayback.mockResolvedValue(true);
+		getMemberBadges.mockResolvedValue([]);
 	});
 
 	it("shares creator presentation data between metadata and the page without loading clips for metadata", async () => {
@@ -64,6 +67,7 @@ describe("creator page actions", () => {
 		await expect(getCreatorPage("Alice", { pageSize: 24 })).resolves.toMatchObject({ items: [{ id: "clip-1" }], total: 1 });
 		expect(dbSelect).toHaveBeenCalledTimes(1);
 		expect(getCreatorTwitchDetails).toHaveBeenCalledTimes(1);
+		expect(getMemberBadges).toHaveBeenCalledWith("owner");
 		expect(getCachedClipPageByOwner).toHaveBeenCalledWith("owner", { pageSize: 24 });
 	});
 

@@ -1,5 +1,6 @@
 /** @jest-environment node */
 export {};
+jest.mock("@/server/memberNumbers", () => ({ allocateMemberNumber: async () => 101 }));
 
 const selectQueue: unknown[] = [];
 const dbSelect = jest.fn();

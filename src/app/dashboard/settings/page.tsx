@@ -179,12 +179,13 @@ export default function SettingsPage() {
 			const params = new URLSearchParams(window.location.search);
 			const requestedTab = params.get("tab");
 			if (requestedTab === "creator" || requestedTab === "billing") setSectionTab(requestedTab);
+			else if (requestedTab === "badges" || requestedTab === "achievements") router.replace("/dashboard/member-card");
 			else if (params.has("billing") || params.has("checkout") || params.get("addon") === "runner") setSectionTab("billing");
 		});
 		return () => {
 			cancelled = true;
 		};
-	}, []);
+	}, [router]);
 
 	useEffect(() => {
 		if (!user || typeof window === "undefined") return;

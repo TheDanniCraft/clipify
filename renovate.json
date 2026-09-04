@@ -2,6 +2,15 @@
 	"$schema": "https://docs.renovatebot.com/renovate-schema.json",
 	"extends": ["config:recommended"],
 	"rangeStrategy": "bump",
+	"minimumReleaseAge": "7 days",
+	"minimumReleaseAgeBehaviour": "timestamp-required",
+	"internalChecksFilter": "strict",
+	"internalChecksAsSuccess": true,
+	"prCreation": "not-pending",
+	"timezone": "Europe/Berlin",
+	"schedule": ["* 0-3 * * *"],
+	"updateNotScheduled": false,
+	"prHourlyLimit": 1,
 	"branchPrefix": "renovate/",
 	"additionalBranchPrefix": "{{{manager}}}/",
 	"labels": ["dependencies", "renovate"],
@@ -58,8 +67,19 @@
 		{
 			"matchManagers": ["dockerfile"],
 			"groupName": "docker images"
+		},
+		{
+			"description": "Group routine updates into one daily pull request",
+			"matchUpdateTypes": ["minor", "patch"],
+			"groupName": "daily non-major dependency updates",
+			"groupSlug": "daily-non-major"
 		}
 	],
+	"vulnerabilityAlerts": {
+		"minimumReleaseAge": null,
+		"schedule": [],
+		"prCreation": "immediate"
+	},
 	"customManagers": [
 		{
 			"customType": "regex",

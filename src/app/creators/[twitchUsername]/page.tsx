@@ -3,6 +3,7 @@ import CreatorPageClient from "@components/creator/CreatorPageClient";
 import Footer from "@components/footer";
 import BasicNavbar from "@components/LandingPage/basicNavbar";
 import { resolveCreatorPageMetadata } from "@lib/creatorPage";
+import { memberCardImagePath } from "@lib/memberCardLinks";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
@@ -15,7 +16,8 @@ export async function generateMetadata({ params }: { params: Promise<{ twitchUse
 		title: preview.title,
 		description: preview.description,
 		robots: creator.visibility === "discoverable" ? { index: true, follow: true } : { index: false, follow: false },
-		openGraph: { title: preview.openGraphTitle, description: preview.openGraphDescription, images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "Clipify Creator Page" }] },
+		openGraph: { title: preview.openGraphTitle, description: preview.openGraphDescription, images: [{ url: memberCardImagePath(creator.memberCardId), width: 1200, height: 1200, alt: `${creator.username}'s Clipify Member Card` }] },
+		twitter: { card: "summary_large_image", title: preview.openGraphTitle, description: preview.openGraphDescription, images: [memberCardImagePath(creator.memberCardId)] },
 	};
 }
 

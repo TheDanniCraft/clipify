@@ -8,7 +8,10 @@ const createJestConfig = nextJest({
 const customJestConfig = {
 	testEnvironment: "jsdom",
 	setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
-	testMatch: ["<rootDir>/test/**/*.test.ts", "<rootDir>/test/**/*.test.tsx", "<rootDir>/src/**/__tests__/**/*.test.ts", "<rootDir>/src/**/__tests__/**/*.test.tsx"],
+	// Keep the checkout path out of globs: Windows escapes a dot-prefixed
+	// worktree directory in <rootDir>, preventing test discovery.
+	roots: ["<rootDir>/test", "<rootDir>/src"],
+	testMatch: ["**/test/**/*.test.ts", "**/test/**/*.test.tsx", "**/src/**/__tests__/**/*.test.ts", "**/src/**/__tests__/**/*.test.tsx"],
 	moduleNameMapper: {
 		"^@heroui/react$": "<rootDir>/test/__mocks__/heroui-react.cjs",
 		"^@heroui/styles$": "<rootDir>/test/__mocks__/heroui-styles.cjs",

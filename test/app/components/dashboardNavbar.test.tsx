@@ -201,6 +201,16 @@ describe("components/dashboardNavbar", () => {
 		expect(routerPush).toHaveBeenCalledWith("/logout");
 	});
 
+	it("opens the card and badge collection from the Badges menu entry", () => {
+		render(
+			<DashboardNavbar user={mockUser({})} title='Dashboard' tagline='Test'>
+				Content
+			</DashboardNavbar>,
+		);
+		fireEvent.click(screen.getByText("Badges"));
+		expect(routerPush).toHaveBeenCalledWith("/dashboard/member-card");
+	});
+
 	it("shows admin view for admins", () => {
 		render(
 			<DashboardNavbar user={mockUser({ role: "admin" })} title='T' tagline='T'>

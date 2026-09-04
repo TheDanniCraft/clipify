@@ -32,6 +32,7 @@ import {
 	MaxDurationMode as MaxDurationModeEnumValues,
 } from "@types";
 import { sql } from "drizzle-orm";
+import { badgeSlugs } from "@lib/badgeCatalog";
 
 function enumToPgEnum<T extends Record<string, unknown>>(myEnum: T): [T[keyof T], ...T[keyof T][]] {
 	return Object.values(myEnum).map((value: unknown) => `${value}`) as [T[keyof T], ...T[keyof T][]];
@@ -55,27 +56,61 @@ export const galleryLayoutEnum = pgEnum("gallery_layout", ["grid", "list", "caro
 export const galleryLiveSortEnum = pgEnum("gallery_live_sort", ["newest", "most_viewed", "stable_random"]);
 export const galleryTimeWindowEnum = pgEnum("gallery_time_window", ["today", "7d", "30d", "all", "custom"]);
 export const galleryThemeEnum = pgEnum("gallery_theme", ["light", "dark", "system"]);
+export const badgeEnum = pgEnum("badge", badgeSlugs);
 
-export const usersTable = pgTable("users", {
-	id: varchar("id").notNull().primaryKey(),
-	email: varchar("email").notNull(),
-	username: varchar("username").notNull(),
-	avatar: varchar("avatar").notNull(),
-	role: roleEnum("role").$type<Role>().notNull(),
-	plan: planEnum("plan").$type<Plan>().notNull(),
-	disabled: boolean("disabled").notNull().default(false),
-	disableType: accountDisableTypeEnum("disable_type"),
-	disabledAt: timestamp("disabled_at", { withTimezone: true }),
-	disabledReason: varchar("disabled_reason"),
-	stripeCustomerId: varchar("stripe_customer_id"),
-	createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-	twitchCreatedAt: timestamp("twitch_created_at", { withTimezone: true })
-		.default(sql`'2016-05-01T00:00:00.000Z'::timestamptz`)
-		.notNull(),
-	updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
-	lastLogin: timestamp("last_login", { withTimezone: true }),
-	lastEntitlementReconciledAt: timestamp("last_entitlement_reconciled_at", { withTimezone: true }),
-});
+export const memberNumberAllocatorTable = pgTable(
+	"member_number_allocator",
+	{
+		id: integer("id").primaryKey(),
+		legacyReservedThrough: integer("legacy_reserved_through").notNull(),
+		lastAllocated: integer("last_allocated").notNull(),
+	},
+	(t) => [check("member_number_allocator_singleton", sql`${t.id} = 1`), check("member_number_allocator_range", sql`${t.legacyReservedThrough} >= 0 AND ${t.lastAllocated} >= ${t.legacyReservedThrough}`)],
+);
+
+export const usersTable = pgTable(
+	"users",
+	{
+		id: varchar("id").notNull().primaryKey(),
+		email: varchar("email").notNull(),
+		username: varchar("username").notNull(),
+		avatar: varchar("avatar").notNull(),
+		role: roleEnum("role").$type<Role>().notNull(),
+		plan: planEnum("plan").$type<Plan>().notNull(),
+		disabled: boolean("disabled").notNull().default(false),
+		disableType: accountDisableTypeEnum("disable_type"),
+		disabledAt: timestamp("disabled_at", { withTimezone: true }),
+		disabledReason: varchar("disabled_reason"),
+		stripeCustomerId: varchar("stripe_customer_id"),
+		memberNumber: integer("member_number"),
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+		twitchCreatedAt: timestamp("twitch_created_at", { withTimezone: true })
+			.default(sql`'2016-05-01T00:00:00.000Z'::timestamptz`)
+			.notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+		lastLogin: timestamp("last_login", { withTimezone: true }),
+		lastEntitlementReconciledAt: timestamp("last_entitlement_reconciled_at", { withTimezone: true }),
+	},
+	(t) => [
+		uniqueIndex("users_member_number_unique")
+			.on(t.memberNumber)
+			.where(sql`${t.memberNumber} > 0`),
+	],
+);
+
+export const userBadgesTable = pgTable(
+	"user_badges",
+	{
+		userId: varchar("user_id")
+			.notNull()
+			.references(() => usersTable.id, { onDelete: "cascade" }),
+		badge: badgeEnum("badge").notNull(),
+		awardedAt: timestamp("awarded_at", { withTimezone: true }).defaultNow().notNull(),
+		awardedBy: varchar("awarded_by"),
+		source: varchar("source", { length: 80 }),
+	},
+	(t) => [primaryKey({ columns: [t.userId, t.badge] }), index("user_badges_badge_idx").on(t.badge)],
+);
 
 export const userContentStatesTable = pgTable(
 	"user_content_states",

@@ -16,6 +16,7 @@ import { getAccessTokenInternal, getAccessTokenResultInternal } from "@/server/t
 import { canEditOwnerInternal, requireOverlayAccessInternal, requireOverlaySecretAccessInternal } from "@/server/overlays";
 import { invalidateCommunitySnapshotCache } from "@lib/community";
 import { downgradeGalleryPatch } from "@lib/gallery";
+import { allocateMemberNumber } from "@/server/memberNumbers";
 
 const TWITCH_CACHE_CLEANUP_INTERVAL_MS = 10 * 60 * 1000;
 const FONT_URL_DELIMITER = "||url||";
@@ -377,7 +378,7 @@ async function requireOverlaySecretAccess(overlayId: string, secret?: string): P
 export async function insertUser(user: TwitchUserResponse): Promise<AuthenticatedUser> {
 	try {
 		const twitchCreatedAt = parseTwitchCreatedAtOrDefault(user.created_at);
-		const existing = await db.select({ id: usersTable.id, disabled: usersTable.disabled, disableType: usersTable.disableType }).from(usersTable).where(eq(usersTable.id, user.id)).limit(1).execute();
+		const existing = await db.select({ id: usersTable.id, disabled: usersTable.disabled, disableType: usersTable.disableType, memberNumber: usersTable.memberNumber }).from(usersTable).where(eq(usersTable.id, user.id)).limit(1).execute();
 		const isNewUser = existing.length === 0;
 		const dbUser = await db
 			.insert(usersTable)
@@ -389,6 +390,7 @@ export async function insertUser(user: TwitchUserResponse): Promise<Authenticate
 				role: Role.User,
 				plan: Plan.Free,
 				twitchCreatedAt,
+				memberNumber: isNewUser ? await allocateMemberNumber() : (existing[0]?.memberNumber ?? null),
 			})
 			.onConflictDoUpdate({
 				target: usersTable.id,
