@@ -58,9 +58,9 @@ function buildMessage(text: string, extras?: Partial<Record<string, unknown>>) {
 		broadcaster_user_id: "owner-1",
 		broadcaster_user_name: "Owner",
 		broadcaster_user_login: "owner",
-		chatter_user_id: "viewer-1",
-		chatter_user_name: "Viewer",
-		chatter_user_login: "viewer",
+		chatter_user_id: "owner-1",
+		chatter_user_name: "Owner",
+		chatter_user_login: "owner",
 		message_id: "msg-1",
 		message: {
 			text,
@@ -107,20 +107,30 @@ describe("actions/commands", () => {
 		const { isMod } = await loadCommands();
 		await expect(isMod(buildMessage("x", { chatter_user_id: "owner-1" }))).resolves.toBe(true);
 		await expect(isMod(buildMessage("x", { badges: [{ set_id: "moderator", id: "1", info: "" }] }))).resolves.toBe(true);
-		await expect(isMod(buildMessage("x"))).resolves.toBe(false);
+		await expect(isMod(buildMessage("x", { chatter_user_id: "viewer-1" }))).resolves.toBe(false);
 	});
 
-	it("responds with unknown command message", async () => {
+	it("remains silent for unknown commands", async () => {
 		const { handleCommand } = await loadCommands();
 		await handleCommand(buildMessage("!doesnotexist"));
-		expect(sendChatMessage).toHaveBeenCalledWith("owner-1", expect.stringContaining('unknown command. Use "!help"'));
+		expect(sendChatMessage).not.toHaveBeenCalled();
+		expect(getFeatureAccess).not.toHaveBeenCalled();
 	});
 
-	it("gates chat commands when feature access is denied", async () => {
+	it("explains Pro gating and prefix conflicts to broadcasters and moderators", async () => {
 		getFeatureAccess.mockReturnValue({ allowed: false });
 		const { handleCommand } = await loadCommands();
 		await handleCommand(buildMessage("!play"));
-		expect(sendChatMessage).toHaveBeenCalledWith("owner-1", expect.stringContaining("chat commands are a Pro feature"));
+		expect(sendChatMessage).toHaveBeenCalledWith("owner-1", expect.stringContaining("wasn't run because chat commands require Pro"));
+		expect(sendChatMessage).toHaveBeenCalledWith("owner-1", expect.stringContaining("change Clipify's command prefix"));
+	});
+
+	it("remains silent for ordinary viewers on Free channels", async () => {
+		getFeatureAccess.mockReturnValue({ allowed: false });
+		const { handleCommand } = await loadCommands();
+		await handleCommand(buildMessage("!play", { chatter_user_id: "viewer-1", chatter_user_name: "Viewer", chatter_user_login: "viewer" }));
+		expect(sendChatMessage).not.toHaveBeenCalled();
+		expect(getFeatureAccess).not.toHaveBeenCalled();
 	});
 
 	it("executes !play without args and resumes playback", async () => {
@@ -148,12 +158,12 @@ describe("actions/commands", () => {
 		expect(sendChatMessage).not.toHaveBeenCalled();
 	});
 
-	it("sends one upgrade message per user during cooldown when commands are gated", async () => {
+	it("does not suppress repeated intentional commands from privileged users", async () => {
 		getFeatureAccess.mockReturnValue({ allowed: false });
 		const { handleCommand } = await loadCommands();
 		await handleCommand(buildMessage("!play"));
 		await handleCommand(buildMessage("!play"));
-		expect(sendChatMessage).toHaveBeenCalledTimes(1);
+		expect(sendChatMessage).toHaveBeenCalledTimes(2);
 	});
 
 	it("queues a valid clip for !play and notifies chat", async () => {

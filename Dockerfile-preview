@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:1.26
+
 # -------------------------
 # deps
 # -------------------------
@@ -16,12 +18,19 @@ RUN --mount=type=cache,target=/root/.bun \
 FROM oven/bun:1 AS builder
 WORKDIR /app
 ARG COOLIFY_URL
+ARG SOURCE_COMMIT
+ARG SENTRY_RELEASE
+ARG SENTRY_RELEASE_PREFIX=clipify-preview
+ENV IS_PREVIEW=true
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN node scripts/fingerprint-runner.mjs --write-context src/app/lib/runnerContext.generated.ts
 
-RUN bun run app:build
+RUN --mount=type=secret,id=SENTRY_DSN,env=SENTRY_DSN \
+    --mount=type=secret,id=SENTRY_AUTH_TOKEN,env=SENTRY_AUTH_TOKEN \
+    SENTRY_RELEASE="${SENTRY_RELEASE:-${SENTRY_RELEASE_PREFIX}@${SOURCE_COMMIT:-local}}" \
+    bun run app:build
 
 # -------------------------
 # runner (preview)
