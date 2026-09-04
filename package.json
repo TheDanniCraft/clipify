@@ -91,7 +91,7 @@
 		"@types/node": "^26.4.1",
 		"@types/pg": "^8.23.1",
 		"@types/react": "^19.2.18",
-		"@types/react-dom": "^19.2.5",
+		"@types/react-dom": "^19.2.7",
 		"@types/ws": "^8.18.1",
 		"@vercel/nft": "^1.11.0",
 		"drizzle-kit": "^0.31.10",
