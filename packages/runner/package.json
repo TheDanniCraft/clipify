@@ -10,14 +10,14 @@
 	},
 	"dependencies": {
 		"@napi-rs/keyring": "^1.3.0",
-		"@puppeteer/browsers": "^3.2.1",
-		"puppeteer-core": "^25.8.0",
+		"@puppeteer/browsers": "^3.2.2",
+		"puppeteer-core": "^25.10.0",
 		"puppeteer-stream": "^3.0.23"
 	},
 	"devDependencies": {
 		"@yao-pkg/pkg": "6.22.0",
 		"esbuild": "^0.28.2",
-		"resedit": "^3.0.2",
+		"resedit": "^3.1.0",
 		"@swc/core": "^1.16.1",
 		"@swc/jest": "^0.2.39",
 		"@types/jest": "^30.0.0",
