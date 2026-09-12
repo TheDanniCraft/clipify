@@ -5,7 +5,7 @@ import { handleClip, sendChatMessage, updateRedemptionStatus } from "@actions/tw
 import { addToClipQueue, getOverlayByRewardId } from "@actions/database";
 import { RewardStatus, EventSubNotification, RewardRedemptionEvent, TwitchMessage } from "@types";
 import { sendMessage } from "@actions/websocket";
-import { handleCommand, isCommand, isMod } from "@actions/commands";
+import { handleCommand, isCommand } from "@actions/commands";
 
 function parseEventSub<T = Record<string, unknown>>(body: string): EventSubNotification<T> {
 	return JSON.parse(body) as EventSubNotification<T>;
@@ -98,8 +98,8 @@ async function handleNotification(bodyText: string): Promise<Response | null> {
 	switch (notification.subscription.type) {
 		case "channel.chat.message": {
 			const event = notification.event as TwitchMessage;
-			if ((await isCommand(event)) && (await isMod(event))) {
-				handleCommand(event);
+			if (await isCommand(event)) {
+				await handleCommand(event);
 			}
 			break;
 		}

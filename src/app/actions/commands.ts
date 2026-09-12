@@ -11,12 +11,9 @@ import { getBaseUrl } from "@actions/utils";
 
 const CHAT_COMMAND_ACCESS_TTL_MS = 60_000;
 const CHAT_COMMAND_ACCESS_MAX_ENTRIES = 1000;
-const UPGRADE_MESSAGE_COOLDOWN_MS = 30_000;
 const chatCommandAccessCache = new Map<string, { allowed: boolean; expiresAt: number }>();
-const upgradeMessageCooldownByUser = new Map<string, number>();
 let cachedUpgradeUrl: string | null = null;
 let nextChatCommandCacheCleanupAt = 0;
-let nextUpgradeMessageCleanupAt = 0;
 
 async function getPrefix(userId: string): Promise<string | null> {
 	const settings = await getSettingsServer(userId);
@@ -71,26 +68,6 @@ async function canUseChatCommands(userId: string) {
 	return allowed;
 }
 
-function canSendUpgradeMessage(broadcasterUserId: string, chatterUserId: string) {
-	const now = Date.now();
-	if (now >= nextUpgradeMessageCleanupAt) {
-		nextUpgradeMessageCleanupAt = now + UPGRADE_MESSAGE_COOLDOWN_MS;
-		for (const [key, until] of upgradeMessageCooldownByUser) {
-			/* ignore: command processing edge case */
-			if (until <= now) {
-				/* ignore: command processing edge case */
-				upgradeMessageCooldownByUser.delete(key);
-			}
-		}
-	}
-
-	const key = `${broadcasterUserId}:${chatterUserId}`;
-	const until = upgradeMessageCooldownByUser.get(key) ?? 0;
-	if (until > now) return false;
-	upgradeMessageCooldownByUser.set(key, now + UPGRADE_MESSAGE_COOLDOWN_MS);
-	return true;
-}
-
 export async function isCommand(message: TwitchMessage): Promise<boolean> {
 	const prefix = await getPrefix(message.broadcaster_user_id);
 	if (!prefix) return false;
@@ -115,21 +92,22 @@ export async function handleCommand(message: TwitchMessage): Promise<void> {
 		return;
 	}
 
+	const commandName = firstFragment.text.slice(prefix.length).trimStart().split(/\s+/)?.[0]?.toLowerCase();
+	const command = commands[commandName];
+	// A shared Twitch prefix does not tell us which bot an unknown command was
+	// intended for, so unknown names must never produce chat output.
+	if (!command) return;
+
+	// Only the broadcaster and moderators may run Clipify chat commands. Ordinary
+	// viewers remain silent even when they enter a valid command on a Free channel.
+	if (!(await isMod(message))) return;
+
 	const allowed = await canUseChatCommands(message.broadcaster_user_id);
 	if (allowed == null) return;
 
 	if (!allowed) {
-		if (canSendUpgradeMessage(message.broadcaster_user_id, message.chatter_user_id)) {
-			const upgradeUrl = await getUpgradeSettingsUrl();
-			await sendChatMessage(message.broadcaster_user_id, `@${message.chatter_user_name} chat commands are a Pro feature. Upgrade in dashboard settings: ${upgradeUrl}`);
-		}
-		return;
-	}
-
-	const commandName = firstFragment.text.slice(prefix.length).trimStart().split(/\s+/)?.[0]?.toLowerCase();
-	const command = commands[commandName];
-	if (!command) {
-		await sendChatMessage(message.broadcaster_user_id, `@${message.chatter_user_name} unknown command. Use "${prefix}help" to see the list of available commands.`);
+		const settingsUrl = await getUpgradeSettingsUrl();
+		await sendChatMessage(message.broadcaster_user_id, `@${message.chatter_user_name} this Clipify command wasn't run because chat commands require Pro. To prevent conflicts with other bots, the broadcaster can change Clipify's command prefix in Dashboard Settings: ${settingsUrl}`);
 		return;
 	}
 
