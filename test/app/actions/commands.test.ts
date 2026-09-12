@@ -117,6 +117,13 @@ describe("actions/commands", () => {
 		expect(getFeatureAccess).not.toHaveBeenCalled();
 	});
 
+	it.each(["constructor", "toString", "__proto__"])("treats inherited object property %s as an unknown command", async (commandName) => {
+		const { handleCommand } = await loadCommands();
+		await expect(handleCommand(buildMessage(`!${commandName}`))).resolves.toBeUndefined();
+		expect(sendChatMessage).not.toHaveBeenCalled();
+		expect(getFeatureAccess).not.toHaveBeenCalled();
+	});
+
 	it("explains Pro gating and prefix conflicts to broadcasters and moderators", async () => {
 		getFeatureAccess.mockReturnValue({ allowed: false });
 		const { handleCommand } = await loadCommands();

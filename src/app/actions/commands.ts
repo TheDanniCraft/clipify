@@ -93,7 +93,7 @@ export async function handleCommand(message: TwitchMessage): Promise<void> {
 	}
 
 	const commandName = firstFragment.text.slice(prefix.length).trimStart().split(/\s+/)?.[0]?.toLowerCase();
-	const command = commands[commandName];
+	const command = Object.hasOwn(commands, commandName) ? commands[commandName] : undefined;
 	// A shared Twitch prefix does not tell us which bot an unknown command was
 	// intended for, so unknown names must never produce chat output.
 	if (!command) return;

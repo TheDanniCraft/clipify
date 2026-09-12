@@ -1,6 +1,6 @@
 import type { NextConfig } from "next";
 import { withPlausibleProxy } from "next-plausible";
-import { withSentryConfig } from "@sentry/nextjs";
+import { withSentryConfig } from "@sentry/nextjs/config";
 import crypto from "crypto";
 import path from "path";
 import { nodeFileTrace } from "@vercel/nft";
