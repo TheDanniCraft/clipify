@@ -10,7 +10,6 @@ const getOverlayByRewardId = jest.fn();
 const sendMessage = jest.fn();
 const handleCommand = jest.fn();
 const isCommand = jest.fn();
-const isMod = jest.fn();
 
 jest.mock("@actions/twitch", () => ({
 	handleClip: (...args: unknown[]) => handleClip(...args),
@@ -30,7 +29,6 @@ jest.mock("@actions/websocket", () => ({
 jest.mock("@actions/commands", () => ({
 	handleCommand: (...args: unknown[]) => handleCommand(...args),
 	isCommand: (...args: unknown[]) => isCommand(...args),
-	isMod: (...args: unknown[]) => isMod(...args),
 }));
 
 function signBody(secret: string, messageId: string, timestamp: string, body: string) {
@@ -149,10 +147,9 @@ describe("app/eventsub route", () => {
 		await expect(res.text()).resolves.toBe("Invalid JSON payload");
 	});
 
-	it("runs chat command handling only for mod commands", async () => {
+	it("passes prefixed chat messages to centralized command handling", async () => {
 		const { POST } = await loadRoute("secret");
 		isCommand.mockResolvedValue(true);
-		isMod.mockResolvedValue(true);
 
 		const body = JSON.stringify({
 			subscription: { type: "channel.chat.message" },
@@ -165,23 +162,9 @@ describe("app/eventsub route", () => {
 		expect(handleCommand).toHaveBeenCalledTimes(1);
 	});
 
-	it("ignores chat command notifications for non-mod or non-command messages", async () => {
+	it("ignores chat messages without the configured command prefix", async () => {
 		const { POST } = await loadRoute("secret");
-		isCommand.mockResolvedValue(true);
-		isMod.mockResolvedValue(false);
-
-		const nonModBody = JSON.stringify({
-			subscription: { type: "channel.chat.message" },
-			event: { message: { text: "!help", fragments: [{ type: "text", text: "!help" }] } },
-		});
-
-		const nonModReq = createSignedRequest("secret", "notification", nonModBody);
-		const nonModRes = await POST(nonModReq as never);
-		expect(nonModRes.status).toBe(204);
-		expect(handleCommand).not.toHaveBeenCalled();
-
 		isCommand.mockResolvedValue(false);
-		isMod.mockResolvedValue(true);
 		const plainBody = JSON.stringify({
 			subscription: { type: "channel.chat.message" },
 			event: { message: { text: "hello", fragments: [{ type: "text", text: "hello" }] } },
