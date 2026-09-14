@@ -9,8 +9,11 @@ const addToClipQueue = jest.fn();
 const getOverlayByRewardId = jest.fn();
 const sendMessage = jest.fn();
 const handleCommand = jest.fn();
-const isCommand = jest.fn();
-const isMod = jest.fn();
+const afterCallbacks: Array<() => void | Promise<void>> = [];
+
+jest.mock("next/server", () => ({
+	after: (callback: () => void | Promise<void>) => afterCallbacks.push(callback),
+}));
 
 jest.mock("@actions/twitch", () => ({
 	handleClip: (...args: unknown[]) => handleClip(...args),
@@ -29,9 +32,11 @@ jest.mock("@actions/websocket", () => ({
 
 jest.mock("@actions/commands", () => ({
 	handleCommand: (...args: unknown[]) => handleCommand(...args),
-	isCommand: (...args: unknown[]) => isCommand(...args),
-	isMod: (...args: unknown[]) => isMod(...args),
 }));
+
+async function runAfterCallbacks() {
+	await Promise.all(afterCallbacks.splice(0).map((callback) => callback()));
+}
 
 function signBody(secret: string, messageId: string, timestamp: string, body: string) {
 	const digest = crypto
@@ -64,6 +69,7 @@ async function loadRoute(secret?: string) {
 describe("app/eventsub route", () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
+		afterCallbacks.length = 0;
 	});
 
 	it("returns 500 when webhook secret is missing", async () => {
@@ -149,10 +155,8 @@ describe("app/eventsub route", () => {
 		await expect(res.text()).resolves.toBe("Invalid JSON payload");
 	});
 
-	it("runs chat command handling only for mod commands", async () => {
+	it("acknowledges chat messages before running centralized command handling", async () => {
 		const { POST } = await loadRoute("secret");
-		isCommand.mockResolvedValue(true);
-		isMod.mockResolvedValue(true);
 
 		const body = JSON.stringify({
 			subscription: { type: "channel.chat.message" },
@@ -162,26 +166,17 @@ describe("app/eventsub route", () => {
 		const req = createSignedRequest("secret", "notification", body);
 		const res = await POST(req as never);
 		expect(res.status).toBe(204);
+		expect(handleCommand).not.toHaveBeenCalled();
+
+		await runAfterCallbacks();
 		expect(handleCommand).toHaveBeenCalledTimes(1);
 	});
 
-	it("ignores chat command notifications for non-mod or non-command messages", async () => {
+	it("reports deferred chat-command failures without changing the acknowledgement", async () => {
 		const { POST } = await loadRoute("secret");
-		isCommand.mockResolvedValue(true);
-		isMod.mockResolvedValue(false);
-
-		const nonModBody = JSON.stringify({
-			subscription: { type: "channel.chat.message" },
-			event: { message: { text: "!help", fragments: [{ type: "text", text: "!help" }] } },
-		});
-
-		const nonModReq = createSignedRequest("secret", "notification", nonModBody);
-		const nonModRes = await POST(nonModReq as never);
-		expect(nonModRes.status).toBe(204);
-		expect(handleCommand).not.toHaveBeenCalled();
-
-		isCommand.mockResolvedValue(false);
-		isMod.mockResolvedValue(true);
+		const error = new Error("command failed");
+		handleCommand.mockRejectedValue(error);
+		const consoleError = jest.spyOn(console, "error").mockImplementation(() => undefined);
 		const plainBody = JSON.stringify({
 			subscription: { type: "channel.chat.message" },
 			event: { message: { text: "hello", fragments: [{ type: "text", text: "hello" }] } },
@@ -189,7 +184,10 @@ describe("app/eventsub route", () => {
 		const plainReq = createSignedRequest("secret", "notification", plainBody);
 		const plainRes = await POST(plainReq as never);
 		expect(plainRes.status).toBe(204);
-		expect(handleCommand).not.toHaveBeenCalled();
+
+		await runAfterCallbacks();
+		expect(consoleError).toHaveBeenCalledWith("Error handling chat command:", error);
+		consoleError.mockRestore();
 	});
 
 	it("cancels reward redemption when user input is missing", async () => {

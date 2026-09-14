@@ -1,11 +1,11 @@
 /* istanbul ignore file */
-import { NextRequest } from "next/server";
+import { after, NextRequest } from "next/server";
 import crypto from "crypto";
 import { handleClip, sendChatMessage, updateRedemptionStatus } from "@actions/twitch";
 import { addToClipQueue, getOverlayByRewardId } from "@actions/database";
 import { RewardStatus, EventSubNotification, RewardRedemptionEvent, TwitchMessage } from "@types";
 import { sendMessage } from "@actions/websocket";
-import { handleCommand, isCommand, isMod } from "@actions/commands";
+import { handleCommand } from "@actions/commands";
 
 function parseEventSub<T = Record<string, unknown>>(body: string): EventSubNotification<T> {
 	return JSON.parse(body) as EventSubNotification<T>;
@@ -98,9 +98,13 @@ async function handleNotification(bodyText: string): Promise<Response | null> {
 	switch (notification.subscription.type) {
 		case "channel.chat.message": {
 			const event = notification.event as TwitchMessage;
-			if ((await isCommand(event)) && (await isMod(event))) {
-				handleCommand(event);
-			}
+			after(async () => {
+				try {
+					await handleCommand(event);
+				} catch (error) {
+					console.error("Error handling chat command:", error);
+				}
+			});
 			break;
 		}
 
