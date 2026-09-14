@@ -17,6 +17,7 @@ import { getEmailProvider, subscribeToNewsletter } from "@actions/newsletter";
 import { usePlausible } from "next-plausible";
 import { isRatelimitError } from "@actions/rateLimit";
 import type { CommunityTeaserStreamer } from "@lib/community-types";
+import { ConsentDialogLink } from "@c15t/nextjs/components/consent-dialog-link";
 
 export default function Footer() {
 	const { theme, setTheme } = useTheme();
@@ -298,7 +299,10 @@ export default function Footer() {
 							</div>
 							<div className='md:grid md:grid-cols-2 md:gap-8'>
 								<div>{renderList({ title: "About Us", items: footerNavigation.aboutUs })}</div>
-								<div className='mt-10 md:mt-0'>{renderList({ title: "Legal", items: footerNavigation.legal })}</div>
+								<div className='mt-10 md:mt-0'>
+									{renderList({ title: "Legal", items: footerNavigation.legal })}
+									<ConsentDialogLink className='mt-1 inline-block text-sm text-muted'>Privacy preferences</ConsentDialogLink>
+								</div>
 							</div>
 						</div>
 					</div>

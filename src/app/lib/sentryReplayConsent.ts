@@ -1,63 +1,29 @@
 import * as Sentry from "@sentry/nextjs";
 import { sentryReplaySessionSampleRate } from "../../../sentry.shared.config";
 
-export type AdoptConsent = {
-	optInTags?: string[];
-	optOutTags?: string[];
-};
+export async function applySentryReplayConsent(hasMeasurementConsent: boolean) {
+	const client = Sentry.getClient();
+	if (!client) return;
 
-type AdoptTag = {
-	id: string;
-	name: string;
-};
-
-type AdoptWebsiteData = {
-	tags?: AdoptTag[];
-};
-
-const ADOPT_WEBSITE_DATA_URL = "https://disclaimer-api.goadopt.io/api/tag/disclaimer-info/792b9b29-57f9-4d92-b5f1-313f94ddfacc";
-const SENTRY_REPLAY_TAG_NAME = "Sentry Session Replay";
-
-let replayTagIdPromise: Promise<string | null> | null = null;
-let replayMode: "off" | "buffer" | "session" = "off";
-
-async function getReplayTagId() {
-	if (!replayTagIdPromise) {
-		replayTagIdPromise = fetch(ADOPT_WEBSITE_DATA_URL)
-			.then(async (response) => {
-				if (!response.ok) return null;
-				const websiteData = (await response.json()) as AdoptWebsiteData;
-				return websiteData.tags?.find((tag) => tag.name.trim().toLowerCase() === SENTRY_REPLAY_TAG_NAME.toLowerCase())?.id ?? null;
-			})
-			.catch(() => null);
-	}
-
-	return replayTagIdPromise;
-}
-
-export async function applySentryReplayConsent(consent: AdoptConsent) {
-	const replay = Sentry.getReplay();
-	if (!replay) return;
-
-	const replayTagId = await getReplayTagId();
-	const hasConsent = Boolean(replayTagId && consent.optInTags?.includes(replayTagId));
-
-	if (!hasConsent) {
-		if (replayMode !== "off") {
-			await replay.stop();
-			replayMode = "off";
-		}
+	if (!hasMeasurementConsent) {
+		// Do not flush a final segment after consent was withdrawn.
+		await Sentry.getReplay()?.stop({ flush: false });
 		return;
 	}
 
-	if (replayMode !== "off") return;
+	if (Sentry.getReplay()) return;
 
-	if (Math.random() < sentryReplaySessionSampleRate) {
-		replay.start();
-		replayMode = "session";
-		return;
-	}
-
-	replay.startBuffering();
-	replayMode = "buffer";
+	// Integration setup samples only after consent. Its error buffer therefore
+	// cannot record pre-consent interactions.
+	const options = client.getOptions() as ReturnType<typeof client.getOptions> & { replaysSessionSampleRate?: number; replaysOnErrorSampleRate?: number };
+	options.replaysSessionSampleRate = sentryReplaySessionSampleRate;
+	options.replaysOnErrorSampleRate = 1;
+	Sentry.addIntegration(
+		Sentry.replayIntegration({
+			maskAllText: true,
+			maskAllInputs: true,
+			blockAllMedia: true,
+			block: ["iframe", ".sentry-block", "[data-sentry-block]"],
+		}),
+	);
 }
