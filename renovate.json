@@ -76,7 +76,7 @@
 		},
 		{
 			"description": "Keep c15t frontend and backend in sync",
-			"matchPackageNames": ["/^@c15t//"],
+			"matchPackageNames": ["c15t", "/^@c15t//"],
 			"groupName": "c15t consent stack"
 		}
 	],

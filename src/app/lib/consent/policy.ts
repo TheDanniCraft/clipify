@@ -1,8 +1,9 @@
 import { policyBuilder } from "@c15t/backend";
+import { CONSENT_LIFETIME_DAYS } from "./lifetime";
 
 const worldwideConsent = {
 	model: "opt-in" as const,
-	expiryDays: 180,
+	expiryDays: CONSENT_LIFETIME_DAYS,
 	scopeMode: "strict" as const,
 	categories: ["necessary", "functionality", "measurement", "marketing"],
 	preselectedCategories: ["necessary"],
