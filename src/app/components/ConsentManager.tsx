@@ -13,6 +13,11 @@ import { hadMeasurementConsentAtPageLoad, setBrowserMeasurementConsent } from "@
 import { applySentryReplayConsent } from "@lib/sentryReplayConsent";
 import { AffiliateTracker } from "./AffiliateTracker";
 import { clearRevokedConsentStorage } from "@lib/consent/cleanup";
+import { clearExpiredStoredConsent } from "@lib/consent/storageExpiry";
+
+// c15t hydrates from localStorage before /init finishes. Drop expired local proof
+// before its provider can expose optional categories to integrations.
+if (typeof window !== "undefined") clearExpiredStoredConsent();
 
 function ConsentIntegrations() {
 	const { has, hasConsented, consentInfo } = useConsentManager();
