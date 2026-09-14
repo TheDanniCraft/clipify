@@ -4,7 +4,7 @@ import { Providers } from "./providers";
 import ThemeProvider from "./theme-provider";
 import { getBaseUrl } from "@actions/utils";
 import PlausibleClient from "./PlausibleClient";
-import AdOptScript from "./components/AdOptScript";
+import ConsentManager from "./components/ConsentManager";
 
 const baseUrl = await getBaseUrl();
 const manifestUrl = new URL("manifest.webmanifest", baseUrl);
@@ -47,12 +47,13 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
 				<meta name='apple-mobile-web-app-title' content='Clipify' />
 			</head>
 			<body className='min-h-screen bg-background text-foreground' suppressHydrationWarning>
-				<AdOptScript />
-				<PlausibleClient>
-					<ThemeProvider>
-						<Providers>{children}</Providers>
-					</ThemeProvider>
-				</PlausibleClient>
+				<ConsentManager>
+					<PlausibleClient>
+						<ThemeProvider>
+							<Providers>{children}</Providers>
+						</ThemeProvider>
+					</PlausibleClient>
+				</ConsentManager>
 			</body>
 		</html>
 	);

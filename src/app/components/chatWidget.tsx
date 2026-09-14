@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { isEmbeddedRoute } from "@lib/embeddedRoutes";
+import { useConsentManager } from "@c15t/nextjs";
 
 const CHATWOOT_BASE_URL = "https://chat.cloud.thedannicraft.de";
 const CHATWOOT_WEBSITE_TOKEN = "new6uhVJwGhe8PCG8jxRMeiC";
@@ -8,9 +9,11 @@ const CHATWOOT_WEBSITE_TOKEN = "new6uhVJwGhe8PCG8jxRMeiC";
 const ChatWidget = () => {
 	const pathname = usePathname();
 	const isEmbedded = isEmbeddedRoute(pathname);
+	const { has, hasConsented } = useConsentManager();
+	const allowed = !isEmbedded && hasConsented() && has("functionality");
 
 	useEffect(() => {
-		if (isEmbedded) return;
+		if (!allowed) return;
 		window.chatwootSettings = {
 			hideMessageBubble: false,
 			position: "left",
@@ -45,7 +48,7 @@ const ChatWidget = () => {
 				chatwootWidget.remove();
 			}
 		};
-	}, [isEmbedded]);
+	}, [allowed]);
 
 	return null;
 };

@@ -1,44 +1,21 @@
 /** @jest-environment node */
 
+const getClient = jest.fn();
 const getReplay = jest.fn();
-const fetchMock = jest.fn();
-
-Object.defineProperty(globalThis, "fetch", {
-	configurable: true,
-	writable: true,
-	value: fetchMock,
-});
+const addIntegration = jest.fn();
+const replayIntegration = jest.fn((_options: unknown) => ({ name: "Replay" }));
+const getOptions = jest.fn(() => ({ replaysSessionSampleRate: 0, replaysOnErrorSampleRate: 0 }));
 
 jest.mock("@sentry/nextjs", () => ({
+	getClient: (...args: unknown[]) => getClient(...args),
 	getReplay: (...args: unknown[]) => getReplay(...args),
+	addIntegration: (...args: unknown[]) => addIntegration(...args),
+	replayIntegration: (options: unknown) => replayIntegration(options),
 }));
 
 jest.mock("../../../sentry.shared.config", () => ({
 	sentryReplaySessionSampleRate: 0.5,
 }));
-
-type ReplayMock = {
-	start: jest.Mock;
-	startBuffering: jest.Mock;
-	stop: jest.Mock;
-};
-
-function createReplay(): ReplayMock {
-	return {
-		start: jest.fn(),
-		startBuffering: jest.fn(),
-		stop: jest.fn().mockResolvedValue(undefined),
-	};
-}
-
-function mockAdOptTags(tags?: Array<{ id: string; name: string }>) {
-	fetchMock.mockResolvedValue(
-		new Response(JSON.stringify({ tags }), {
-			status: 200,
-			headers: { "Content-Type": "application/json" },
-		}),
-	);
-}
 
 async function loadReplayConsent() {
 	jest.resetModules();
@@ -47,67 +24,45 @@ async function loadReplayConsent() {
 
 describe("sentryReplayConsent", () => {
 	beforeEach(() => {
-		jest.restoreAllMocks();
 		jest.clearAllMocks();
-	});
-
-	it("does nothing when the Replay integration is unavailable", async () => {
+		getClient.mockReturnValue({ getOptions });
 		getReplay.mockReturnValue(undefined);
-		const { applySentryReplayConsent } = await loadReplayConsent();
-
-		await applySentryReplayConsent({ optInTags: ["replay-tag"] });
-
-		expect(getReplay).toHaveBeenCalledTimes(1);
+		getOptions.mockReturnValue({ replaysSessionSampleRate: 0, replaysOnErrorSampleRate: 0 });
 	});
 
-	it("keeps Replay disabled when the AdOpt replay tag is missing", async () => {
-		const replay = createReplay();
-		getReplay.mockReturnValue(replay);
-		mockAdOptTags([{ id: "other-tag", name: "Other service" }]);
+	it("does nothing when Sentry has no client", async () => {
+		getClient.mockReturnValue(undefined);
 		const { applySentryReplayConsent } = await loadReplayConsent();
-
-		await applySentryReplayConsent({ optInTags: ["other-tag"] });
-
-		expect(replay.start).not.toHaveBeenCalled();
-		expect(replay.startBuffering).not.toHaveBeenCalled();
+		await applySentryReplayConsent(true);
+		expect(addIntegration).not.toHaveBeenCalled();
 	});
 
-	it("starts a sampled Replay session for a matching consent tag", async () => {
-		const replay = createReplay();
-		getReplay.mockReturnValue(replay);
-		mockAdOptTags([{ id: "replay-tag", name: "  sentry session replay  " }]);
-		jest.spyOn(Math, "random").mockReturnValue(0.25);
+	it("never starts Replay without measurement consent", async () => {
 		const { applySentryReplayConsent } = await loadReplayConsent();
-
-		await applySentryReplayConsent({ optInTags: ["replay-tag"] });
-
-		expect(replay.start).toHaveBeenCalledTimes(1);
-		expect(replay.startBuffering).not.toHaveBeenCalled();
+		await applySentryReplayConsent(false);
+		expect(addIntegration).not.toHaveBeenCalled();
 	});
 
-	it("starts buffering when the consented session is outside the sample", async () => {
-		const replay = createReplay();
-		getReplay.mockReturnValue(replay);
-		mockAdOptTags([{ id: "replay-tag", name: "Sentry Session Replay" }]);
-		jest.spyOn(Math, "random").mockReturnValue(0.75);
+	it("adds a masked Replay integration only after measurement consent", async () => {
 		const { applySentryReplayConsent } = await loadReplayConsent();
-
-		await applySentryReplayConsent({ optInTags: ["replay-tag"] });
-
-		expect(replay.startBuffering).toHaveBeenCalledTimes(1);
-		expect(replay.start).not.toHaveBeenCalled();
+		await applySentryReplayConsent(true);
+		expect(getOptions()).toEqual({ replaysSessionSampleRate: 0.5, replaysOnErrorSampleRate: 1 });
+		expect(replayIntegration).toHaveBeenCalledWith(expect.objectContaining({ maskAllText: true, maskAllInputs: true, blockAllMedia: true }));
+		expect(addIntegration).toHaveBeenCalledTimes(1);
 	});
 
-	it("stops an active Replay after consent is withdrawn", async () => {
-		const replay = createReplay();
-		getReplay.mockReturnValue(replay);
-		mockAdOptTags([{ id: "replay-tag", name: "Sentry Session Replay" }]);
-		jest.spyOn(Math, "random").mockReturnValue(0.25);
+	it("does not add Replay twice", async () => {
+		getReplay.mockReturnValue({ stop: jest.fn() });
 		const { applySentryReplayConsent } = await loadReplayConsent();
+		await applySentryReplayConsent(true);
+		expect(addIntegration).not.toHaveBeenCalled();
+	});
 
-		await applySentryReplayConsent({ optInTags: ["replay-tag"] });
-		await applySentryReplayConsent({ optOutTags: ["replay-tag"] });
-
-		expect(replay.stop).toHaveBeenCalledTimes(1);
+	it("stops Replay without flushing after consent is withdrawn", async () => {
+		const stop = jest.fn().mockResolvedValue(undefined);
+		getReplay.mockReturnValue({ stop });
+		const { applySentryReplayConsent } = await loadReplayConsent();
+		await applySentryReplayConsent(false);
+		expect(stop).toHaveBeenCalledWith({ flush: false });
 	});
 });
