@@ -2,6 +2,7 @@
 
 import { dbPool } from "@/db/client";
 
+import { captureUnexpectedError } from "@lib/sentryServer";
 const RETENTION_YEARS = 3;
 const RUN_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
@@ -45,6 +46,7 @@ export function startConsentRetentionScheduler() {
 		try {
 			await pruneConsentProof();
 		} catch (error) {
+			captureUnexpectedError(error, "consent-retention-scheduler", "prune-consent-proof");
 			console.error("[consent] retention_prune_failed", error);
 		} finally {
 			globalThis.__consentRetentionSchedulerRunning = false;

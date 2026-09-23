@@ -10,6 +10,7 @@ import { redirect } from "next/navigation";
 import { hasActiveEntitlement } from "@lib/entitlements";
 import { Entitlement, RunnerStatus, StreamState } from "@types";
 import { getRunnerVersionInfo } from "@lib/runnerArtifacts";
+import { captureUnexpectedError } from "@lib/sentryServer";
 
 const publicRunnerColumns = {
 	id: true,
@@ -72,6 +73,7 @@ export async function createRunner(ownerId: string, name: string) {
 		return { success: true, runner: newRunner };
 	} catch (error) {
 		console.error("Failed to create runner:", error);
+		captureUnexpectedError(error, "runner-actions", "create-runner");
 		return { success: false, error: "Failed to create runner" };
 	}
 }
@@ -86,6 +88,7 @@ export async function createOwnRunner(name: string) {
 		return await createRunner(user.id, name);
 	} catch (error) {
 		console.error("Failed to create own runner:", error);
+		captureUnexpectedError(error, "runner-actions", "create-own-runner");
 		return { success: false, error: "Failed to create runner" };
 	}
 }
@@ -104,6 +107,7 @@ export async function deleteRunner(runnerId: string, ownerId: string) {
 		return { success: true };
 	} catch (error) {
 		console.error("Failed to delete runner:", error);
+		captureUnexpectedError(error, "runner-actions", "delete-runner");
 		return { success: false, error: "Failed to delete runner" };
 	}
 }
@@ -141,6 +145,7 @@ export async function unlinkRunner(runnerId: string, ownerId: string) {
 		return { success: true };
 	} catch (error) {
 		console.error("Failed to unlink runner:", error);
+		captureUnexpectedError(error, "runner-actions", "unlink-runner");
 		return { success: false, error: "Failed to unlink runner" };
 	}
 }
@@ -199,6 +204,7 @@ export async function upsertStreamSession(data: { id?: string; ownerId: string; 
 		return { success: true };
 	} catch (error) {
 		console.error("Failed to upsert stream session:", error);
+		captureUnexpectedError(error, "runner-actions", "upsert-stream-session");
 		return { success: false, error: "Failed to save stream session" };
 	}
 }
@@ -220,6 +226,7 @@ export async function setStreamDesiredState(sessionId: string, state: StreamStat
 		return { success: true };
 	} catch (error) {
 		console.error("Failed to set stream state:", error);
+		captureUnexpectedError(error, "runner-actions", "set-stream-state");
 		return { success: false, error: "Failed to set state" };
 	}
 }
@@ -235,6 +242,7 @@ export async function getAllRunners(ownerId: string) {
 		});
 	} catch (error) {
 		console.error("Failed to fetch runners:", error);
+		captureUnexpectedError(error, "runner-actions", "fetch-runners");
 		return [];
 	}
 }
@@ -249,6 +257,7 @@ export async function getAllStreamSessions(ownerId: string) {
 		});
 	} catch (error) {
 		console.error("Failed to fetch stream sessions:", error);
+		captureUnexpectedError(error, "runner-actions", "fetch-stream-sessions");
 		return [];
 	}
 }
@@ -264,6 +273,7 @@ export async function getRunner(runnerId: string, ownerId: string) {
 		});
 	} catch (error) {
 		console.error("Failed to fetch runner:", error);
+		captureUnexpectedError(error, "runner-actions", "fetch-runner");
 		return null;
 	}
 }
@@ -282,6 +292,7 @@ export async function getRunnerToken(runnerId: string, ownerId: string) {
 		return { success: true, token: runner.token };
 	} catch (error) {
 		console.error("Failed to fetch runner token:", error);
+		captureUnexpectedError(error, "runner-actions", "fetch-runner-token");
 		return { success: false, error: "Failed to fetch runner token" };
 	}
 }
@@ -300,6 +311,7 @@ export async function getStreamSessionsForRunner(runnerId: string, ownerId: stri
 		});
 	} catch (error) {
 		console.error("Failed to fetch stream sessions for runner:", error);
+		captureUnexpectedError(error, "runner-actions", "fetch-runner-sessions");
 		return [];
 	}
 }

@@ -11,6 +11,24 @@ const sendMessage = jest.fn();
 const handleCommand = jest.fn();
 const afterCallbacks: Array<() => void | Promise<void>> = [];
 
+const captureUnexpectedError = jest.fn();
+const sentryLoggerError = jest.fn();
+const sentryLoggerWarn = jest.fn();
+const sentryMetricCount = jest.fn();
+
+jest.mock("@lib/sentryServer", () => ({
+	captureUnexpectedError: (...args: unknown[]) => captureUnexpectedError(...args),
+}));
+
+jest.mock("@sentry/nextjs", () => ({
+	startSpan: (options: unknown, callback: () => unknown) => {
+		void options;
+		return callback();
+	},
+	logger: { error: (...args: unknown[]) => sentryLoggerError(...args), warn: (...args: unknown[]) => sentryLoggerWarn(...args) },
+	metrics: { count: (...args: unknown[]) => sentryMetricCount(...args) },
+}));
+
 jest.mock("next/server", () => ({
 	after: (callback: () => void | Promise<void>) => afterCallbacks.push(callback),
 }));
@@ -176,7 +194,6 @@ describe("app/eventsub route", () => {
 		const { POST } = await loadRoute("secret");
 		const error = new Error("command failed");
 		handleCommand.mockRejectedValue(error);
-		const consoleError = jest.spyOn(console, "error").mockImplementation(() => undefined);
 		const plainBody = JSON.stringify({
 			subscription: { type: "channel.chat.message" },
 			event: { message: { text: "hello", fragments: [{ type: "text", text: "hello" }] } },
@@ -186,8 +203,7 @@ describe("app/eventsub route", () => {
 		expect(plainRes.status).toBe(204);
 
 		await runAfterCallbacks();
-		expect(consoleError).toHaveBeenCalledWith("Error handling chat command:", error);
-		consoleError.mockRestore();
+		expect(captureUnexpectedError).toHaveBeenCalledWith(error, "twitch-eventsub", "chat-command");
 	});
 
 	it("cancels reward redemption when user input is missing", async () => {

@@ -5,6 +5,7 @@ import { db } from "@/db/client";
 import { runnersTable } from "@/db/schema";
 import { getUserIP, tryRateLimit } from "@actions/rateLimit";
 import { createRunnerReachabilityCheck } from "@lib/runnerReachability";
+import { captureUnexpectedError } from "@lib/sentryServer";
 
 export const runtime = "nodejs";
 
@@ -29,6 +30,7 @@ export async function POST(req: Request) {
 		return NextResponse.json(check);
 	} catch (error) {
 		console.error("Runner reachability start error:", error);
+		captureUnexpectedError(error, "runner-api", "reachability-start");
 		return NextResponse.json({ error: "Failed to start reachability check" }, { status: 500 });
 	}
 }

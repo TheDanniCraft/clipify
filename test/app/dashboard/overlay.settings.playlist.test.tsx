@@ -74,7 +74,7 @@ jest.mock("@components/dashboardNavbar", () => ({
 	default: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }));
 
-jest.mock("@components/feedbackWidget", () => ({
+jest.mock("@components/SentryFeedbackWidget", () => ({
 	__esModule: true,
 	default: () => <div />,
 }));

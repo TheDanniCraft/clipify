@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getRunnerVersionManifest } from "@actions/runner";
+import { captureUnexpectedError } from "@lib/sentryServer";
 
 export async function GET() {
 	try {
@@ -10,6 +11,7 @@ export async function GET() {
 		return NextResponse.json(manifest, { headers: { "Cache-Control": "public, max-age=30, stale-while-revalidate=300" } });
 	} catch (error) {
 		console.error("Error resolving Runner manifest:", error);
+		captureUnexpectedError(error, "runner-api", "version-manifest");
 		return NextResponse.json({ error: "Runner manifest unavailable", code: "runner_artifact_unavailable" }, { status: 503, headers: { "Retry-After": "30" } });
 	}
 }

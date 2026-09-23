@@ -3,11 +3,15 @@ const isPreview = process.env.IS_PREVIEW === "true";
 export const sentryEnvironment = isPreview ? "preview" : process.env.NODE_ENV === "production" ? "production" : "development";
 export const sentryEnabled = sentryEnvironment !== "development" && Boolean(process.env.SENTRY_DSN);
 export const sentryRelease = process.env.SENTRY_RELEASE || undefined;
-export const sentryTraceSampleRate = sentryEnvironment === "preview" ? 1 : sentryEnvironment === "production" ? 0.1 : 0;
+// At Clipify's current traffic level we prefer complete traces over extrapolated
+// performance data. Errors are never sampled by this setting.
+export const sentryTraceSampleRate = sentryEnvironment === "development" ? 0 : 1;
 export const sentryReplaySessionSampleRate = sentryEnvironment === "preview" ? 0.2 : sentryEnvironment === "production" ? 0.01 : 0;
+export const sentryProfileSampleRate = sentryEnvironment === "development" ? 0 : 0.001;
 
-// Keep operational context while preventing request values and user content from
-// being attached to errors and performance spans.
+// Keep useful operational context and parameterized SQL while preventing the SDK
+// from automatically attaching high-risk values. Project-level Sentry scrubbers
+// provide the second line of defence.
 export const sentryDataCollection = {
 	userInfo: false,
 	cookies: false,

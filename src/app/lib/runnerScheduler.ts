@@ -2,6 +2,7 @@ import { db } from "@/db/client";
 import { runnersTable } from "@/db/schema";
 import { eq, and, lt } from "drizzle-orm";
 import { RunnerStatus } from "@types";
+import { captureUnexpectedError } from "@lib/sentryServer";
 
 const RUNNER_CHECK_INTERVAL_MS = 15_000;
 
@@ -15,15 +16,12 @@ export function startRunnerScheduler() {
 			// Find runners that are marked "online" but haven't sent a heartbeat in >30 seconds
 			const thirtySecondsAgo = new Date(Date.now() - 30 * 1000);
 
-			await db.update(runnersTable)
+			await db
+				.update(runnersTable)
 				.set({ status: RunnerStatus.Offline })
-				.where(
-					and(
-						eq(runnersTable.status, RunnerStatus.Online),
-						lt(runnersTable.lastHeartbeatAt, thirtySecondsAgo)
-					)
-				);
+				.where(and(eq(runnersTable.status, RunnerStatus.Online), lt(runnersTable.lastHeartbeatAt, thirtySecondsAgo)));
 		} catch (error) {
+			captureUnexpectedError(error, "runner-scheduler", "mark-offline");
 			console.error("[RunnerScheduler] Error marking runners offline:", error);
 		}
 	};

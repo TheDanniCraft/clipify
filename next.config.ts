@@ -21,6 +21,7 @@ const nextConfigPromise = Promise.resolve(drizzle).then(
 			async headers() {
 				const baseSecurityHeaders = [
 					{ key: "X-Content-Type-Options", value: "nosniff" },
+					{ key: "Document-Policy", value: "js-profiling" },
 					{ key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
 					{
 						key: "Permissions-Policy",

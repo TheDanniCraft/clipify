@@ -8,6 +8,7 @@ import { decryptString } from "@/app/lib/encryption";
 import { hasActiveEntitlement } from "@lib/entitlements";
 import { tryRateLimit } from "@actions/rateLimit";
 
+import { captureUnexpectedError } from "@lib/sentryServer";
 type StreamSession = InferSelectModel<typeof streamSessionsTable>;
 
 export async function POST(req: Request) {
@@ -96,6 +97,7 @@ export async function POST(req: Request) {
 		});
 	} catch (error) {
 		console.error("Heartbeat Error:", error);
+		captureUnexpectedError(error, "runner-api", "heartbeat");
 		return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
 	}
 }

@@ -1,6 +1,7 @@
 /* istanbul ignore file */
 
 import { refreshCommunitySnapshot } from "@lib/community";
+import { captureUnexpectedError } from "@lib/sentryServer";
 
 declare global {
 	var __communitySnapshotSchedulerStarted: boolean | undefined;
@@ -32,6 +33,7 @@ export function startCommunitySnapshotScheduler() {
 		try {
 			await refreshCommunitySnapshot();
 		} catch (error) {
+			captureUnexpectedError(error, "community-scheduler", "refresh-snapshot");
 			console.error("[community] scheduler_run_failed", error);
 		} finally {
 			globalThis.__communitySnapshotSchedulerRunning = false;
