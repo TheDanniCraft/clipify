@@ -15,7 +15,7 @@ const nextConfigPromise = Promise.resolve(drizzle).then(
 		({
 			output: "standalone",
 			outputFileTracingIncludes: {
-				"**": [...drizzle],
+				"**": [...drizzle, "./node_modules/@sentry/profiling-node/**", "./node_modules/@sentry/node-cpu-profiler/**"],
 			},
 			poweredByHeader: false,
 			async headers() {
