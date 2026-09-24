@@ -5,10 +5,11 @@ import { useEffect, useRef, useState } from "react";
 import * as Sentry from "@sentry/nextjs";
 import { ConsentManagerProvider, useConsentManager } from "@c15t/nextjs";
 import { useHeadlessConsentUI } from "@c15t/nextjs/headless";
-import { Button, Card } from "@heroui/react";
+import { Button, Card, Modal, Switch } from "@heroui/react";
+import { IconCookie, IconLock, IconSettings, IconShieldCheck } from "@tabler/icons-react";
 import { usePathname } from "next/navigation";
 import { isEmbeddedRoute } from "@lib/embeddedRoutes";
-import { consentCategoryDetails, consentServices } from "@lib/consent/registry";
+import { consentCategoryDetails, consentServices, necessaryConsentServices } from "@lib/consent/registry";
 import { hadMeasurementConsentAtPageLoad, setBrowserMeasurementConsent } from "@lib/consent/browserMeasurement";
 import { applySentryReplayConsent } from "@lib/sentryReplayConsent";
 import { AffiliateTracker } from "./AffiliateTracker";
@@ -55,103 +56,137 @@ function ConsentIntegrations() {
 function ConsentInterface() {
 	const pathname = usePathname();
 	const embedded = isEmbeddedRoute(pathname);
-	const { banner, dialog, openDialog, performBannerAction, performDialogAction, saveCustomPreferences } = useHeadlessConsentUI();
+	const { banner, dialog, openDialog, closeUI, performBannerAction, performDialogAction, saveCustomPreferences } = useHeadlessConsentUI();
 	const { consentCategories, consentTypes, consents, selectedConsents, setSelectedConsent } = useConsentManager();
-	const [pending, setPending] = useState(false);
+	const [pendingAction, setPendingAction] = useState<string | null>(null);
+	const pending = pendingAction !== null;
 
 	if (embedded) return null;
 
 	const visibleCategories = consentTypes.filter((type) => type.display && consentCategories.includes(type.name));
 
-	async function save(action: () => Promise<unknown>) {
-		setPending(true);
+	async function save(actionName: string, action: () => Promise<unknown>) {
+		setPendingAction(actionName);
 		try {
 			await action();
 		} finally {
-			setPending(false);
+			setPendingAction(null);
 		}
 	}
 
 	if (dialog.isVisible) {
 		return (
-			<div className='fixed inset-0 z-[100] flex items-end justify-center bg-black/60 p-4 sm:items-center' role='presentation'>
-				<Card variant='secondary' className='max-h-[90vh] w-full max-w-xl overflow-y-auto shadow-2xl' role='dialog' aria-modal='true' aria-labelledby='consent-dialog-title'>
-					<Card.Content className='space-y-5 p-5 sm:p-6'>
-						<div>
-							<h2 id='consent-dialog-title' className='text-xl font-semibold'>
-								Privacy preferences
-							</h2>
-							<p className='mt-1 text-sm text-muted'>Choose which optional services Clipify may load. You can change this at any time in the footer.</p>
-						</div>
-						<div className='divide-y divide-default'>
+			<Modal.Backdrop isOpen onOpenChange={(isOpen) => !isOpen && closeUI()} variant='blur' className='z-[100] bg-black/70'>
+				<Modal.Container size='lg' placement='center' scroll='inside'>
+					<Modal.Dialog aria-labelledby='consent-dialog-title' aria-describedby='consent-dialog-description' className='overflow-hidden border border-default bg-surface shadow-2xl'>
+						<Modal.CloseTrigger />
+						<Modal.Header className='border-b border-default px-5 py-5 sm:px-7'>
+							<Modal.Icon className='bg-accent-soft text-accent-soft-foreground'>
+								<IconShieldCheck className='size-5' aria-hidden='true' />
+							</Modal.Icon>
+							<Modal.Heading id='consent-dialog-title'>Privacy preferences</Modal.Heading>
+							<p id='consent-dialog-description' className='mt-1.5 max-w-2xl text-sm leading-6 text-muted'>
+								Choose which optional services Clipify may use. Essential security and consent storage always remain active. You can change these choices at any time in the footer.
+							</p>
+						</Modal.Header>
+						<Modal.Body className='space-y-3 px-5 py-5 sm:px-7'>
 							{visibleCategories.map((type) => {
 								const category = type.name as keyof typeof consentCategoryDetails;
 								const details = consentCategoryDetails[category];
-								const services = consentServices.filter((service) => service.category === category);
+								const services = category === "necessary" ? necessaryConsentServices : consentServices.filter((service) => service.category === category);
+								const isNecessary = category === "necessary";
+								const isSelected = isNecessary || (selectedConsents[type.name] ?? consents[type.name] ?? false);
+
 								return (
-									<label key={type.name} className='flex items-start justify-between gap-4 py-4'>
-										<span>
-											<span className='block font-medium'>{details?.title ?? type.name}</span>
-											<span className='mt-1 block text-sm text-muted'>{details?.description ?? type.description}</span>
-											{services.length > 0 && <span className='mt-2 block text-xs text-muted'>Services: {services.map((service) => service.name).join(", ")}</span>}
-										</span>
-										<input type='checkbox' className='mt-1 size-5 shrink-0 accent-accent' checked={category === "necessary" || (selectedConsents[type.name] ?? consents[type.name] ?? false)} disabled={type.disabled || category === "necessary" || pending} onChange={(event) => setSelectedConsent(type.name, event.target.checked)} />
-									</label>
+									<section key={type.name} className='rounded-2xl border border-default bg-surface-secondary p-4 sm:p-5'>
+										<div className='flex items-start justify-between gap-4'>
+											<div className='min-w-0'>
+												<div className='flex flex-wrap items-center gap-2'>
+													{isNecessary && <IconLock className='size-4 shrink-0 text-success' aria-hidden='true' />}
+													<h3 className='font-semibold'>{details?.title ?? type.name}</h3>
+													{isNecessary && <span className='rounded-full bg-success-soft px-2 py-0.5 text-xs font-medium text-success-soft-foreground'>Always active</span>}
+												</div>
+												<p className='mt-1 text-sm leading-5 text-muted'>{details?.description ?? type.description}</p>
+											</div>
+											<Switch aria-label={`Allow ${details?.title ?? type.name}`} isSelected={isSelected} isDisabled={type.disabled || isNecessary || pending} onChange={(selected) => setSelectedConsent(type.name, selected)}>
+												<Switch.Content>
+													<Switch.Control>
+														<Switch.Thumb />
+													</Switch.Control>
+												</Switch.Content>
+											</Switch>
+										</div>
+										{services.length > 0 && (
+											<ul className='mt-4 grid gap-2 border-t border-default pt-3 sm:grid-cols-2'>
+												{services.map((service) => (
+													<li key={service.id} className='text-xs leading-5 text-muted'>
+														<span className='font-medium text-foreground'>{service.name}</span> — {service.description}
+													</li>
+												))}
+											</ul>
+										)}
+									</section>
 								);
 							})}
-						</div>
-						<p className='text-xs text-muted'>Cookieless Plausible statistics and minimized operational error reports do not use optional browser storage. See our privacy policy for details.</p>
-						<div className='flex flex-wrap gap-2'>
-							<Button variant='secondary' isDisabled={pending} onPress={() => void save(() => performDialogAction("reject"))}>
+							<p className='text-xs leading-5 text-muted'>Cookieless Plausible statistics and minimized operational error reports do not use optional browser storage. See our privacy policy for details.</p>
+						</Modal.Body>
+						<Modal.Footer className='flex flex-col-reverse gap-2 border-t border-default px-5 py-4 sm:flex-row sm:justify-end sm:px-7'>
+							<Button variant='outline' isDisabled={pending} isPending={pendingAction === "reject"} onPress={() => void save("reject", () => performDialogAction("reject"))}>
 								Reject optional
 							</Button>
-							<Button variant='secondary' isDisabled={pending} onPress={() => void save(saveCustomPreferences)}>
+							<Button variant='secondary' isDisabled={pending} isPending={pendingAction === "save"} onPress={() => void save("save", saveCustomPreferences)}>
 								Save choices
 							</Button>
-							<Button variant='secondary' isDisabled={pending} onPress={() => void save(() => performDialogAction("accept"))}>
+							<Button isDisabled={pending} isPending={pendingAction === "accept"} onPress={() => void save("accept", () => performDialogAction("accept"))}>
 								Accept all
 							</Button>
-						</div>
-					</Card.Content>
-				</Card>
-			</div>
+						</Modal.Footer>
+					</Modal.Dialog>
+				</Modal.Container>
+			</Modal.Backdrop>
 		);
 	}
 
 	if (!banner.isVisible) return null;
 
 	return (
-		<aside className='fixed right-4 bottom-4 left-4 z-[100] sm:left-auto sm:w-[420px]' aria-labelledby='consent-banner-title'>
-			<Card variant='secondary' className='border border-default shadow-2xl'>
-				<Card.Content className='space-y-4 p-5'>
-					<div>
-						<h2 id='consent-banner-title' className='text-lg font-semibold'>
-							Your privacy choices
-						</h2>
-						<p className='mt-1 text-sm text-muted'>We use optional services for support, performance measurement and affiliate attribution. Nothing optional loads until you choose.</p>
+		<aside className='fixed inset-x-3 bottom-3 z-[100] sm:inset-x-5 sm:bottom-5 lg:inset-x-8' aria-labelledby='consent-banner-title'>
+			<Card variant='secondary' className='mx-auto w-full max-w-[1500px] overflow-hidden border border-default bg-surface/95 shadow-2xl backdrop-blur-xl'>
+				<Card.Content className='grid gap-5 p-4 sm:p-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center lg:gap-8 lg:px-7'>
+					<div className='flex min-w-0 items-start gap-3 sm:gap-4'>
+						<div className='flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent-soft-foreground sm:size-11'>
+							<IconCookie className='size-5 sm:size-6' aria-hidden='true' />
+						</div>
+						<div className='min-w-0'>
+							<h2 id='consent-banner-title' className='text-base font-semibold sm:text-lg'>
+								Your privacy, your choice
+							</h2>
+							<p className='mt-1 max-w-3xl text-sm leading-5 text-muted'>We use optional services for support, real-world performance measurement and affiliate attribution. Essential security services always remain active.</p>
+							<p className='mt-2 text-xs text-muted'>
+								Read our{" "}
+								<a className='font-medium text-foreground underline underline-offset-2' href='https://hub.goadopt.io/document/3852d930-97b9-46c2-950d-823e62515ab4?language=en'>
+									Privacy Policy
+								</a>{" "}
+								and{" "}
+								<a className='font-medium text-foreground underline underline-offset-2' href='https://hub.goadopt.io/document/535d4dc1-7b66-4b96-9bff-bc6e0e47587d?language=en'>
+									Cookie Policy
+								</a>
+								.
+							</p>
+						</div>
 					</div>
-					<div className='flex flex-col gap-2 sm:flex-row sm:flex-wrap'>
-						<Button variant='secondary' isDisabled={pending} onPress={() => void save(() => performBannerAction("reject"))}>
+					<div className='grid gap-2 sm:grid-cols-3 lg:flex lg:items-center'>
+						<Button variant='tertiary' isDisabled={pending} onPress={openDialog}>
+							<IconSettings className='size-4' aria-hidden='true' />
+							Preferences
+						</Button>
+						<Button variant='outline' isDisabled={pending} isPending={pendingAction === "reject"} onPress={() => void save("reject", () => performBannerAction("reject"))}>
 							Reject optional
 						</Button>
-						<Button variant='secondary' isDisabled={pending} onPress={openDialog}>
-							Manage preferences
-						</Button>
-						<Button variant='secondary' isDisabled={pending} onPress={() => void save(() => performBannerAction("accept"))}>
+						<Button isDisabled={pending} isPending={pendingAction === "accept"} onPress={() => void save("accept", () => performBannerAction("accept"))}>
 							Accept all
 						</Button>
 					</div>
-					<p className='text-xs text-muted'>
-						Read our{" "}
-						<a className='underline' href='https://hub.goadopt.io/document/3852d930-97b9-46c2-950d-823e62515ab4?language=en'>
-							Privacy Policy
-						</a>{" "}
-						and{" "}
-						<a className='underline' href='https://hub.goadopt.io/document/535d4dc1-7b66-4b96-9bff-bc6e0e47587d?language=en'>
-							Cookie Policy
-						</a>
-						.
-					</p>
 				</Card.Content>
 			</Card>
 		</aside>

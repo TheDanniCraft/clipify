@@ -25,6 +25,19 @@ export const consentServices = [
 	},
 ] as const;
 
+export const necessaryConsentServices = [
+	{
+		id: "consent-storage",
+		name: "Privacy preferences",
+		description: "Stores your privacy choice so Clipify can apply it across visits.",
+	},
+	{
+		id: "cloudflare-turnstile",
+		name: "Cloudflare Turnstile",
+		description: "Protects forms from automated abuse without advertising or cross-site tracking.",
+	},
+] as const;
+
 export type OptionalConsentCategory = (typeof consentServices)[number]["category"];
 
 export const consentCategoryDetails = {
