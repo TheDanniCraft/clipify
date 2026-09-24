@@ -143,6 +143,7 @@ function Save-FeatureJson {
             }
         } catch {
             # File is corrupt or unreadable - overwrite it
+            Write-Verbose 'Existing feature metadata could not be read and will be overwritten.'
         }
     }
 
