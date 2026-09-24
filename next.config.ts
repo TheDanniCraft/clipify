@@ -89,7 +89,20 @@ export default nextConfigPromise.then((resolvedConfig) => {
 			authToken: process.env.SENTRY_AUTH_TOKEN,
 			widenClientFileUpload: true,
 			tunnelRoute: "/monitor",
-			silent: !process.env.CI,
+			release: {
+				name: process.env.SENTRY_RELEASE,
+				create: true,
+				finalize: true,
+				setCommits: {
+					auto: true,
+					ignoreMissing: true,
+					ignoreEmpty: true,
+				},
+				deploy: {
+					env: process.env.IS_PREVIEW === "true" ? "preview" : "production",
+				},
+			},
+			silent: false,
 			sourcemaps: {
 				deleteSourcemapsAfterUpload: true,
 			},

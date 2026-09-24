@@ -26,15 +26,15 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN node scripts/fingerprint-runner.mjs --write-context src/app/lib/runnerContext.generated.ts
 
-RUN --mount=type=secret,id=SENTRY_DSN,env=SENTRY_DSN \
-    --mount=type=secret,id=SENTRY_AUTH_TOKEN,env=SENTRY_AUTH_TOKEN \
+RUN --mount=type=secret,id=SENTRY_DSN,env=SENTRY_DSN,required=true \
+    --mount=type=secret,id=SENTRY_AUTH_TOKEN,env=SENTRY_AUTH_TOKEN,required=true \
     SENTRY_RELEASE="${SENTRY_RELEASE:-${SENTRY_RELEASE_PREFIX}@${SOURCE_COMMIT:-local}}" \
     bun run app:build
 
 # -------------------------
 # runner (production)
 # -------------------------
-FROM oven/bun:1 AS runner
+FROM node:24-bookworm-slim AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
@@ -97,4 +97,4 @@ RUN mkdir -p /app/logs && chown nextjs:nodejs /app/logs
 USER nextjs
 EXPOSE 3000
 
-CMD ["infisical", "run", "--projectId", "4bea168c-8d4c-4086-b755-f04fdc5305a1", "--command", "bun run db:migrate && node server.js || sleep infinity"]
+CMD ["infisical", "run", "--projectId", "4bea168c-8d4c-4086-b755-f04fdc5305a1", "--command", "node node_modules/drizzle-kit/bin.cjs migrate && node server.js || sleep infinity"]
