@@ -2,6 +2,9 @@ import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { isEmbeddedRoute } from "@lib/embeddedRoutes";
 import { useConsentManager } from "@c15t/nextjs";
+import { Button } from "@heroui/react";
+import { IconMessageCircle } from "@tabler/icons-react";
+import { OPEN_CONSENT_PREFERENCES_EVENT, type OpenConsentPreferencesDetail } from "@lib/consent/events";
 
 const CHATWOOT_BASE_URL = "https://chat.cloud.thedannicraft.de";
 const CHATWOOT_WEBSITE_TOKEN = "new6uhVJwGhe8PCG8jxRMeiC";
@@ -50,7 +53,17 @@ const ChatWidget = () => {
 		};
 	}, [allowed]);
 
-	return null;
+	if (isEmbedded || allowed) return null;
+
+	function openSupportConsent() {
+		window.dispatchEvent(new CustomEvent<OpenConsentPreferencesDetail>(OPEN_CONSENT_PREFERENCES_EVENT, { detail: { category: "functionality" } }));
+	}
+
+	return (
+		<Button isIconOnly aria-label='Enable support chat' className='fixed bottom-5 left-5 z-[80] size-14 rounded-full shadow-xl' onPress={openSupportConsent}>
+			<IconMessageCircle className='size-6' aria-hidden='true' />
+		</Button>
+	);
 };
 
 export default ChatWidget;

@@ -1,5 +1,6 @@
 "use client";
 
+import type { Key } from "@heroui/react";
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import * as Sentry from "@sentry/nextjs";
@@ -14,6 +15,7 @@ import { hadMeasurementConsentAtPageLoad, setBrowserMeasurementConsent } from "@
 import { applySentryReplayConsent } from "@lib/sentryReplayConsent";
 import { clearRevokedConsentStorage } from "@lib/consent/cleanup";
 import { clearExpiredStoredConsent } from "@lib/consent/storageExpiry";
+import { OPEN_CONSENT_PREFERENCES_EVENT, type OpenConsentPreferencesDetail } from "@lib/consent/events";
 
 // c15t hydrates from localStorage before /init finishes. Drop expired local proof
 // before its provider can expose optional categories to integrations.
@@ -59,7 +61,21 @@ function ConsentInterface() {
 	const { consents, selectedConsents, setSelectedConsent, getDisplayedConsents, hasConsented } = useConsentManager();
 	const [pendingAction, setPendingAction] = useState<string | null>(null);
 	const [returnToBanner, setReturnToBanner] = useState(false);
+	const [preferencesRequested, setPreferencesRequested] = useState(false);
+	const [expandedCategories, setExpandedCategories] = useState<Set<Key>>(new Set());
 	const pending = pendingAction !== null;
+
+	useEffect(() => {
+		function openRequestedPreferences(event: Event) {
+			const detail = (event as CustomEvent<OpenConsentPreferencesDetail>).detail;
+			setReturnToBanner(!hasConsented());
+			setExpandedCategories(detail?.category ? new Set([detail.category]) : new Set());
+			setPreferencesRequested(true);
+		}
+
+		window.addEventListener(OPEN_CONSENT_PREFERENCES_EVENT, openRequestedPreferences);
+		return () => window.removeEventListener(OPEN_CONSENT_PREFERENCES_EVENT, openRequestedPreferences);
+	}, [hasConsented]);
 
 	if (embedded) return null;
 
@@ -70,6 +86,7 @@ function ConsentInterface() {
 		try {
 			await action();
 			setReturnToBanner(false);
+			setPreferencesRequested(false);
 		} finally {
 			setPendingAction(null);
 		}
@@ -77,10 +94,13 @@ function ConsentInterface() {
 
 	function showPreferencesFromBanner() {
 		setReturnToBanner(true);
+		setExpandedCategories(new Set());
+		setPreferencesRequested(true);
 		openDialog();
 	}
 
 	function leavePreferences() {
+		setPreferencesRequested(false);
 		if (returnToBanner) {
 			setReturnToBanner(false);
 			openBanner({ force: true });
@@ -133,7 +153,7 @@ function ConsentInterface() {
 		);
 	}
 
-	if (dialog.isVisible) {
+	if (dialog.isVisible || preferencesRequested) {
 		return (
 			<>
 				{returnToBanner && !hasConsented() && renderBanner(true)}
@@ -155,7 +175,7 @@ function ConsentInterface() {
 								</div>
 							</Modal.Header>
 							<Modal.Body className='px-4 py-4 sm:px-6'>
-								<Accordion variant='surface' className='w-full overflow-hidden rounded-xl border border-default'>
+								<Accordion expandedKeys={expandedCategories} onExpandedChange={setExpandedCategories} variant='surface' className='w-full overflow-hidden rounded-xl border border-default'>
 									{visibleCategories.map((type) => {
 										const category = type.name as keyof typeof consentCategoryDetails;
 										const details = consentCategoryDetails[category];
@@ -168,7 +188,7 @@ function ConsentInterface() {
 											<Accordion.Item key={type.name} id={type.name}>
 												<div className='group flex min-h-12 items-center gap-3 px-3 transition-colors hover:bg-surface-secondary sm:px-4'>
 													<Accordion.Heading className='min-w-0 flex-1'>
-														<Accordion.Trigger className='py-3 hover:bg-transparent'>
+														<Accordion.Trigger className='gap-2.5 py-3 hover:bg-transparent'>
 															<CategoryIcon className={`size-4 shrink-0 ${isNecessary ? "text-success" : "text-muted"}`} aria-hidden='true' />
 															<span className='min-w-0 flex-1 text-left text-sm font-medium'>{details?.title ?? type.name}</span>
 															{isNecessary && <span className='text-xs text-muted'>Always active</span>}
