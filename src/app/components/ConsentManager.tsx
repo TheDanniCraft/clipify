@@ -6,7 +6,7 @@ import * as Sentry from "@sentry/nextjs";
 import { ConsentManagerProvider, useConsentManager } from "@c15t/nextjs";
 import { useHeadlessConsentUI } from "@c15t/nextjs/headless";
 import { Button, Card, Modal, Switch } from "@heroui/react";
-import { IconCookie, IconLock, IconSettings, IconShieldCheck } from "@tabler/icons-react";
+import { IconArrowLeft, IconCookie, IconLock, IconSettings, IconShieldCheck, IconX } from "@tabler/icons-react";
 import { usePathname } from "next/navigation";
 import { isEmbeddedRoute } from "@lib/embeddedRoutes";
 import { consentCategoryDetails, consentServices, necessaryConsentServices } from "@lib/consent/registry";
@@ -56,9 +56,10 @@ function ConsentIntegrations() {
 function ConsentInterface() {
 	const pathname = usePathname();
 	const embedded = isEmbeddedRoute(pathname);
-	const { banner, dialog, openDialog, closeUI, performBannerAction, performDialogAction, saveCustomPreferences } = useHeadlessConsentUI();
+	const { banner, dialog, openBanner, openDialog, closeUI, performBannerAction, performDialogAction, saveCustomPreferences } = useHeadlessConsentUI();
 	const { consentCategories, consentTypes, consents, selectedConsents, setSelectedConsent } = useConsentManager();
 	const [pendingAction, setPendingAction] = useState<string | null>(null);
+	const [returnToBanner, setReturnToBanner] = useState(false);
 	const pending = pendingAction !== null;
 
 	if (embedded) return null;
@@ -69,17 +70,35 @@ function ConsentInterface() {
 		setPendingAction(actionName);
 		try {
 			await action();
+			setReturnToBanner(false);
 		} finally {
 			setPendingAction(null);
 		}
 	}
 
+	function showPreferencesFromBanner() {
+		setReturnToBanner(true);
+		openDialog();
+	}
+
+	function leavePreferences() {
+		if (returnToBanner) {
+			setReturnToBanner(false);
+			openBanner({ force: true });
+			return;
+		}
+
+		closeUI();
+	}
+
 	if (dialog.isVisible) {
 		return (
-			<Modal.Backdrop isOpen onOpenChange={(isOpen) => !isOpen && closeUI()} variant='blur' className='z-[100] bg-black/70'>
+			<Modal.Backdrop isOpen onOpenChange={(isOpen) => !isOpen && leavePreferences()} variant='blur' className='z-[100] bg-black/70'>
 				<Modal.Container size='lg' placement='center' scroll='inside'>
-					<Modal.Dialog aria-labelledby='consent-dialog-title' aria-describedby='consent-dialog-description' className='overflow-hidden border border-default bg-surface shadow-2xl'>
-						<Modal.CloseTrigger />
+					<Modal.Dialog aria-labelledby='consent-dialog-title' aria-describedby='consent-dialog-description' className='relative overflow-hidden border border-default bg-surface shadow-2xl'>
+						<Button isIconOnly aria-label={returnToBanner ? "Back to cookie choices" : "Close privacy preferences"} variant='tertiary' className='absolute top-4 right-4 z-10' onPress={leavePreferences}>
+							{returnToBanner ? <IconArrowLeft className='size-5' aria-hidden='true' /> : <IconX className='size-5' aria-hidden='true' />}
+						</Button>
 						<Modal.Header className='border-b border-default px-5 py-5 sm:px-7'>
 							<Modal.Icon className='bg-accent-soft text-accent-soft-foreground'>
 								<IconShieldCheck className='size-5' aria-hidden='true' />
@@ -131,6 +150,10 @@ function ConsentInterface() {
 							<p className='text-xs leading-5 text-muted'>Cookieless Plausible statistics and minimized operational error reports do not use optional browser storage. See our privacy policy for details.</p>
 						</Modal.Body>
 						<Modal.Footer className='flex flex-col-reverse gap-2 border-t border-default px-5 py-4 sm:flex-row sm:justify-end sm:px-7'>
+							<Button variant='tertiary' isDisabled={pending} onPress={leavePreferences} className='sm:mr-auto'>
+								{returnToBanner && <IconArrowLeft className='size-4' aria-hidden='true' />}
+								{returnToBanner ? "Back" : "Close"}
+							</Button>
 							<Button variant='outline' isDisabled={pending} isPending={pendingAction === "reject"} onPress={() => void save("reject", () => performDialogAction("reject"))}>
 								Reject optional
 							</Button>
@@ -176,7 +199,7 @@ function ConsentInterface() {
 						</div>
 					</div>
 					<div className='grid gap-2 sm:grid-cols-3 lg:flex lg:items-center'>
-						<Button variant='tertiary' isDisabled={pending} onPress={openDialog}>
+						<Button variant='tertiary' isDisabled={pending} onPress={showPreferencesFromBanner}>
 							<IconSettings className='size-4' aria-hidden='true' />
 							Preferences
 						</Button>
