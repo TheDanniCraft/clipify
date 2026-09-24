@@ -7,7 +7,7 @@ import * as Sentry from "@sentry/nextjs";
 import { ConsentManagerProvider, useConsentManager } from "@c15t/nextjs";
 import { useHeadlessConsentUI } from "@c15t/nextjs/headless";
 import { Accordion, Button, Card, Modal, Switch } from "@heroui/react";
-import { IconActivity, IconBuilding, IconChevronDown, IconCookie, IconDatabase, IconLock, IconSettings, IconShieldCheck, IconWorld } from "@tabler/icons-react";
+import { IconActivity, IconBuilding, IconCheck, IconChevronDown, IconCookie, IconDatabase, IconDeviceFloppy, IconLock, IconSettings, IconShieldCheck, IconWorld, IconX } from "@tabler/icons-react";
 import { usePathname } from "next/navigation";
 import { isEmbeddedRoute } from "@lib/embeddedRoutes";
 import { consentCategoryDetails, consentServices, necessaryConsentServices } from "@lib/consent/registry";
@@ -15,7 +15,7 @@ import { hadMeasurementConsentAtPageLoad, setBrowserMeasurementConsent } from "@
 import { applySentryReplayConsent } from "@lib/sentryReplayConsent";
 import { clearRevokedConsentStorage } from "@lib/consent/cleanup";
 import { clearExpiredStoredConsent } from "@lib/consent/storageExpiry";
-import { OPEN_CONSENT_PREFERENCES_EVENT, type OpenConsentPreferencesDetail } from "@lib/consent/events";
+import { CONSENT_PREFERENCES_VISIBILITY_EVENT, OPEN_CONSENT_PREFERENCES_EVENT, type ConsentPreferencesVisibilityDetail, type OpenConsentPreferencesDetail } from "@lib/consent/events";
 
 // c15t hydrates from localStorage before /init finishes. Drop expired local proof
 // before its provider can expose optional categories to integrations.
@@ -64,6 +64,7 @@ function ConsentInterface() {
 	const [preferencesRequested, setPreferencesRequested] = useState(false);
 	const [expandedCategories, setExpandedCategories] = useState<Set<Key>>(new Set());
 	const pending = pendingAction !== null;
+	const preferencesVisible = dialog.isVisible || preferencesRequested;
 
 	useEffect(() => {
 		function openRequestedPreferences(event: Event) {
@@ -76,6 +77,10 @@ function ConsentInterface() {
 		window.addEventListener(OPEN_CONSENT_PREFERENCES_EVENT, openRequestedPreferences);
 		return () => window.removeEventListener(OPEN_CONSENT_PREFERENCES_EVENT, openRequestedPreferences);
 	}, [hasConsented]);
+
+	useEffect(() => {
+		window.dispatchEvent(new CustomEvent<ConsentPreferencesVisibilityDetail>(CONSENT_PREFERENCES_VISIBILITY_EVENT, { detail: { visible: preferencesVisible } }));
+	}, [preferencesVisible]);
 
 	if (embedded) return null;
 
@@ -153,7 +158,7 @@ function ConsentInterface() {
 		);
 	}
 
-	if (dialog.isVisible || preferencesRequested) {
+	if (preferencesVisible) {
 		return (
 			<>
 				{returnToBanner && !hasConsented() && renderBanner(true)}
@@ -161,20 +166,16 @@ function ConsentInterface() {
 					<Modal.Container size='lg' placement='center' scroll='inside'>
 						<Modal.Dialog aria-labelledby='consent-dialog-title' aria-describedby='consent-dialog-description' className='relative overflow-hidden border border-default bg-surface shadow-2xl'>
 							<Modal.CloseTrigger aria-label='Close privacy preferences' />
-							<Modal.Header className='border-b border-default px-5 py-4 pr-14 sm:px-6 sm:pr-14'>
-								<div className='flex items-center gap-3'>
-									<Modal.Icon className='shrink-0 bg-accent-soft text-accent-soft-foreground'>
-										<IconShieldCheck className='size-5' aria-hidden='true' />
-									</Modal.Icon>
-									<div className='min-w-0'>
-										<Modal.Heading id='consent-dialog-title'>Privacy preferences</Modal.Heading>
-										<p id='consent-dialog-description' className='mt-0.5 text-sm leading-5 text-muted'>
-											Choose which optional categories Clipify may use.
-										</p>
-									</div>
-								</div>
+							<Modal.Header className='flex-row items-center gap-3 border-b border-default px-5 py-4 pr-14 sm:px-6 sm:pr-14'>
+								<Modal.Icon className='shrink-0 bg-accent-soft text-accent-soft-foreground'>
+									<IconShieldCheck className='size-5' aria-hidden='true' />
+								</Modal.Icon>
+								<Modal.Heading id='consent-dialog-title'>Privacy preferences</Modal.Heading>
 							</Modal.Header>
-							<Modal.Body className='px-4 py-4 sm:px-6'>
+							<Modal.Body className='space-y-4 px-4 py-4 sm:px-6'>
+								<p id='consent-dialog-description' className='text-sm leading-5 text-muted'>
+									Choose which optional categories Clipify may use.
+								</p>
 								<Accordion expandedKeys={expandedCategories} onExpandedChange={setExpandedCategories} variant='surface' className='w-full overflow-hidden rounded-xl border border-default'>
 									{visibleCategories.map((type) => {
 										const category = type.name as keyof typeof consentCategoryDetails;
@@ -240,14 +241,17 @@ function ConsentInterface() {
 									})}
 								</Accordion>
 							</Modal.Body>
-							<Modal.Footer className='flex flex-col gap-2 border-t border-default px-4 py-3 sm:flex-row sm:justify-center sm:px-6'>
-								<Button size='sm' variant='outline' isDisabled={pending} isPending={pendingAction === "reject"} onPress={() => void save("reject", () => performDialogAction("reject"))}>
+							<Modal.Footer className='flex flex-col gap-2 border-t border-default px-4 py-4 sm:flex-row sm:justify-center sm:px-6'>
+								<Button variant='outline' isDisabled={pending} isPending={pendingAction === "reject"} onPress={() => void save("reject", () => performDialogAction("reject"))}>
+									<IconX className='size-4' aria-hidden='true' />
 									Reject optional
 								</Button>
-								<Button size='sm' variant='secondary' isDisabled={pending} isPending={pendingAction === "save"} onPress={() => void save("save", saveCustomPreferences)}>
+								<Button variant='secondary' isDisabled={pending} isPending={pendingAction === "save"} onPress={() => void save("save", saveCustomPreferences)}>
+									<IconDeviceFloppy className='size-4' aria-hidden='true' />
 									Save choices
 								</Button>
-								<Button size='sm' isDisabled={pending} isPending={pendingAction === "accept"} onPress={() => void save("accept", () => performDialogAction("accept"))}>
+								<Button isDisabled={pending} isPending={pendingAction === "accept"} onPress={() => void save("accept", () => performDialogAction("accept"))}>
+									<IconCheck className='size-4' aria-hidden='true' />
 									Accept all
 								</Button>
 							</Modal.Footer>

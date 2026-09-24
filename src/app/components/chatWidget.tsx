@@ -1,10 +1,10 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { isEmbeddedRoute } from "@lib/embeddedRoutes";
 import { useConsentManager } from "@c15t/nextjs";
 import { Button } from "@heroui/react";
 import { IconMessageCircle } from "@tabler/icons-react";
-import { OPEN_CONSENT_PREFERENCES_EVENT, type OpenConsentPreferencesDetail } from "@lib/consent/events";
+import { CONSENT_PREFERENCES_VISIBILITY_EVENT, OPEN_CONSENT_PREFERENCES_EVENT, type ConsentPreferencesVisibilityDetail, type OpenConsentPreferencesDetail } from "@lib/consent/events";
 
 const CHATWOOT_BASE_URL = "https://chat.cloud.thedannicraft.de";
 const CHATWOOT_WEBSITE_TOKEN = "new6uhVJwGhe8PCG8jxRMeiC";
@@ -13,7 +13,17 @@ const ChatWidget = () => {
 	const pathname = usePathname();
 	const isEmbedded = isEmbeddedRoute(pathname);
 	const { has, hasConsented } = useConsentManager();
+	const [preferencesVisible, setPreferencesVisible] = useState(false);
 	const allowed = !isEmbedded && hasConsented() && has("functionality");
+
+	useEffect(() => {
+		function updatePreferencesVisibility(event: Event) {
+			setPreferencesVisible((event as CustomEvent<ConsentPreferencesVisibilityDetail>).detail.visible);
+		}
+
+		window.addEventListener(CONSENT_PREFERENCES_VISIBILITY_EVENT, updatePreferencesVisibility);
+		return () => window.removeEventListener(CONSENT_PREFERENCES_VISIBILITY_EVENT, updatePreferencesVisibility);
+	}, []);
 
 	useEffect(() => {
 		if (!allowed) return;
@@ -53,14 +63,15 @@ const ChatWidget = () => {
 		};
 	}, [allowed]);
 
-	if (isEmbedded || allowed) return null;
+	if (isEmbedded || allowed || preferencesVisible) return null;
 
 	function openSupportConsent() {
+		setPreferencesVisible(true);
 		window.dispatchEvent(new CustomEvent<OpenConsentPreferencesDetail>(OPEN_CONSENT_PREFERENCES_EVENT, { detail: { category: "functionality" } }));
 	}
 
 	return (
-		<Button isIconOnly aria-label='Enable support chat' className='fixed bottom-5 left-5 z-[80] size-14 rounded-full shadow-xl' onPress={openSupportConsent}>
+		<Button isIconOnly aria-label='Enable support chat' className='fixed bottom-5 left-5 z-[110] size-14 rounded-full shadow-xl' onPress={openSupportConsent}>
 			<IconMessageCircle className='size-6' aria-hidden='true' />
 		</Button>
 	);
