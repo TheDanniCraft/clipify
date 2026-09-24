@@ -13,8 +13,8 @@ import { isEmbeddedRoute } from "@lib/embeddedRoutes";
 import { consentCategoryDetails, consentServices, necessaryConsentServices } from "@lib/consent/registry";
 import { hadMeasurementConsentAtPageLoad, setBrowserMeasurementConsent } from "@lib/consent/browserMeasurement";
 import { applySentryReplayConsent } from "@lib/sentryReplayConsent";
-import { clearRevokedConsentStorage } from "@lib/consent/cleanup";
 import { clearExpiredStoredConsent } from "@lib/consent/storageExpiry";
+import { reloadAfterConsentSave } from "@lib/consent/reload";
 import { CONSENT_PREFERENCES_VISIBILITY_EVENT, OPEN_CONSENT_PREFERENCES_EVENT, type ConsentPreferencesVisibilityDetail, type OpenConsentPreferencesDetail } from "@lib/consent/events";
 
 // c15t hydrates from localStorage before /init finishes. Drop expired local proof
@@ -86,12 +86,22 @@ function ConsentInterface() {
 
 	const visibleCategories = getDisplayedConsents();
 
-	async function save(actionName: string, action: () => Promise<unknown>) {
+	function preferencesAfter(actionName: "accept" | "reject" | "save") {
+		const preferences = { ...consents };
+		for (const type of visibleCategories) {
+			if (actionName === "accept") preferences[type.name] = true;
+			else if (actionName === "reject") preferences[type.name] = type.name === "necessary";
+			else preferences[type.name] = type.name === "necessary" || (selectedConsents[type.name] ?? consents[type.name] ?? false);
+		}
+		return preferences;
+	}
+
+	async function save(actionName: "accept" | "reject" | "save", action: () => Promise<unknown>) {
 		setPendingAction(actionName);
 		try {
+			const preferences = preferencesAfter(actionName);
 			await action();
-			setReturnToBanner(false);
-			setPreferencesRequested(false);
+			reloadAfterConsentSave(preferences);
 		} finally {
 			setPendingAction(null);
 		}
@@ -269,7 +279,7 @@ function ConsentInterface() {
 
 export default function ConsentManager({ children }: { children: ReactNode }) {
 	return (
-		<ConsentManagerProvider options={{ mode: "hosted", backendURL: "/api/c15t", consentCategories: ["necessary", "functionality", "measurement"], store: { reloadOnConsentRevoked: true, callbacks: { onBeforeConsentRevocationReload: ({ preferences }) => clearRevokedConsentStorage(preferences) } } }}>
+		<ConsentManagerProvider options={{ mode: "hosted", backendURL: "/api/c15t", consentCategories: ["necessary", "functionality", "measurement"], store: { reloadOnConsentRevoked: false } }}>
 			<ConsentIntegrations />
 			<ConsentInterface />
 			{children}

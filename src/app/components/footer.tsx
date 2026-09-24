@@ -300,7 +300,7 @@ export default function Footer() {
 								<div>{renderList({ title: "About Us", items: footerNavigation.aboutUs })}</div>
 								<div className='mt-10 md:mt-0'>
 									{renderList({ title: "Legal", items: footerNavigation.legal })}
-									<ConsentDialogLink className='mt-1 inline-block text-sm text-muted'>Privacy preferences</ConsentDialogLink>
+									<ConsentDialogLink className='mt-1 inline-block text-sm text-muted underline underline-offset-2'>Cookie preferences</ConsentDialogLink>
 								</div>
 							</div>
 						</div>

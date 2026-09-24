@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { isEmbeddedRoute } from "@lib/embeddedRoutes";
 import { useConsentManager, useConsentScript } from "@c15t/nextjs";
+import { useHeadlessConsentUI } from "@c15t/nextjs/headless";
 import { Button } from "@heroui/react";
 import { IconMessageCircle } from "@tabler/icons-react";
 import { CONSENT_PREFERENCES_VISIBILITY_EVENT, OPEN_CONSENT_PREFERENCES_EVENT, type ConsentPreferencesVisibilityDetail, type OpenConsentPreferencesDetail } from "@lib/consent/events";
@@ -11,6 +12,7 @@ const ChatWidget = () => {
 	const pathname = usePathname();
 	const isEmbedded = isEmbeddedRoute(pathname);
 	const { has } = useConsentManager();
+	const { openDialog } = useHeadlessConsentUI();
 	const [preferencesVisible, setPreferencesVisible] = useState(false);
 	const allowed = !isEmbedded && has("functionality");
 	useConsentScript({
@@ -33,6 +35,7 @@ const ChatWidget = () => {
 
 	function openSupportConsent() {
 		setPreferencesVisible(true);
+		openDialog();
 		window.dispatchEvent(new CustomEvent<OpenConsentPreferencesDetail>(OPEN_CONSENT_PREFERENCES_EVENT, { detail: { category: "functionality" } }));
 	}
 

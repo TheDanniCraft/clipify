@@ -6,6 +6,7 @@ import { chatwootConsentScript } from "@/app/lib/consent/chatwoot";
 
 const mockHas = jest.fn();
 const mockUseConsentScript = jest.fn();
+const mockOpenDialog = jest.fn();
 
 jest.mock("next/navigation", () => ({
 	usePathname: () => "/",
@@ -18,6 +19,10 @@ jest.mock("@/app/lib/embeddedRoutes", () => ({
 jest.mock("@c15t/nextjs", () => ({
 	useConsentManager: () => ({ has: mockHas }),
 	useConsentScript: (options: unknown) => mockUseConsentScript(options),
+}));
+
+jest.mock("@c15t/nextjs/headless", () => ({
+	useHeadlessConsentUI: () => ({ openDialog: mockOpenDialog }),
 }));
 
 jest.mock("@heroui/react", () => ({
@@ -47,6 +52,7 @@ describe("components/ChatWidget", () => {
 
 		expect(mockUseConsentScript).toHaveBeenCalledWith(expect.objectContaining({ script: chatwootConsentScript, enabled: true }));
 		fireEvent.click(screen.getByRole("button", { name: "Enable support chat" }));
+		expect(mockOpenDialog).toHaveBeenCalledTimes(1);
 		expect(openPreferences).toHaveBeenCalledTimes(1);
 
 		window.removeEventListener(OPEN_CONSENT_PREFERENCES_EVENT, openPreferences);
