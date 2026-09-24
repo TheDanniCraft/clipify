@@ -194,9 +194,6 @@ describe("components/dashboardNavbar", () => {
 		fireEvent.click(screen.getByText("Help"));
 		expect(routerPush).toHaveBeenCalledWith("https://help.clipify.us/");
 
-		fireEvent.click(screen.getByText("Refer a Friend"));
-		expect(routerPush).toHaveBeenCalledWith("/referral-program");
-
 		fireEvent.click(screen.getByText("Log Out"));
 		expect(routerPush).toHaveBeenCalledWith("/logout");
 	});

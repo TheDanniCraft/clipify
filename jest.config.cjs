@@ -40,7 +40,6 @@ const customJestConfig = {
 		"src/app/payment/**/*.{ts,tsx}",
 		"src/app/store/**/*.{ts,tsx}",
 		"!src/app/components/DemoPlayer/**",
-		"!src/app/components/AffiliatePage/**",
 		"!src/app/components/LandingPage/**",
 		"!src/app/components/chatWidget.tsx",
 		"!src/app/components/construction.tsx",

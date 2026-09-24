@@ -90,7 +90,6 @@ export default function Footer() {
 			{ name: "Latest News", href: "/changelog" },
 			{ name: "Roadmap", href: "/roadmap" },
 			{ name: "Collaborations", href: "https://help.clipify.us/hc/clipify/articles/1756597294-collaborations" },
-			{ name: "Referral Program", href: "/referral-program" },
 			{ name: "Climate Initiative", href: "https://climate.stripe.com/FaGAVC" },
 		],
 		legal: [
