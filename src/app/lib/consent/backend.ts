@@ -4,6 +4,7 @@ import { createHmac } from "node:crypto";
 import { c15tInstance } from "@c15t/backend";
 import { drizzleAdapter } from "@c15t/backend/db/adapters/drizzle";
 import { db } from "@/db/client";
+import { getConsentTrustedOrigins } from "./origins";
 import { consentPolicyPacks } from "./policy";
 
 let c15t: ReturnType<typeof c15tInstance> | undefined;
@@ -20,7 +21,7 @@ export function getC15t() {
 		basePath: "/api/c15t",
 		adapter: drizzleAdapter({ db, provider: "postgresql" }),
 		tablePrefix: "c15t_",
-		trustedOrigins: ["https://clipify.us", "https://www.clipify.us", "http://localhost:3000", ...(process.env.NEXT_PUBLIC_BASE_URL ? [process.env.NEXT_PUBLIC_BASE_URL] : [])],
+		trustedOrigins: getConsentTrustedOrigins(),
 		disableGeoLocation: true,
 		ipAddress: { tracking: false },
 		openapi: { enabled: false },
