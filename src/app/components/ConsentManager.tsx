@@ -6,13 +6,12 @@ import * as Sentry from "@sentry/nextjs";
 import { ConsentManagerProvider, useConsentManager } from "@c15t/nextjs";
 import { useHeadlessConsentUI } from "@c15t/nextjs/headless";
 import { Accordion, Button, Card, Modal, Switch } from "@heroui/react";
-import { IconArrowLeft, IconChevronDown, IconCookie, IconLock, IconSettings, IconShieldCheck, IconX } from "@tabler/icons-react";
+import { IconActivity, IconBuilding, IconChevronDown, IconCookie, IconDatabase, IconLock, IconSettings, IconShieldCheck, IconWorld } from "@tabler/icons-react";
 import { usePathname } from "next/navigation";
 import { isEmbeddedRoute } from "@lib/embeddedRoutes";
 import { consentCategoryDetails, consentServices, necessaryConsentServices } from "@lib/consent/registry";
 import { hadMeasurementConsentAtPageLoad, setBrowserMeasurementConsent } from "@lib/consent/browserMeasurement";
 import { applySentryReplayConsent } from "@lib/sentryReplayConsent";
-import { AffiliateTracker } from "./AffiliateTracker";
 import { clearRevokedConsentStorage } from "@lib/consent/cleanup";
 import { clearExpiredStoredConsent } from "@lib/consent/storageExpiry";
 
@@ -50,7 +49,7 @@ function ConsentIntegrations() {
 		}
 	}, [measurement, consentInfo?.time]);
 
-	return <AffiliateTracker />;
+	return null;
 }
 
 function ConsentInterface() {
@@ -105,7 +104,7 @@ function ConsentInterface() {
 									Your privacy choices
 								</h2>
 								<p className='mt-0.5 text-xs leading-5 text-muted sm:text-sm'>
-									Optional support, measurement and affiliate services stay off until you choose. Essential security remains active.{" "}
+									Optional support and measurement services stay off until you choose. Essential security remains active.{" "}
 									<a className='font-medium text-foreground underline underline-offset-2' href='https://hub.goadopt.io/document/3852d930-97b9-46c2-950d-823e62515ab4?language=en'>
 										Privacy
 									</a>{" "}
@@ -139,35 +138,38 @@ function ConsentInterface() {
 			<>
 				{returnToBanner && !hasConsented() && renderBanner(true)}
 				<Modal.Backdrop isOpen onOpenChange={(isOpen) => !isOpen && leavePreferences()} variant='blur' className='z-[100] bg-black/65'>
-					<Modal.Container size='md' placement='center' scroll='inside'>
+					<Modal.Container size='lg' placement='center' scroll='inside'>
 						<Modal.Dialog aria-labelledby='consent-dialog-title' aria-describedby='consent-dialog-description' className='relative overflow-hidden border border-default bg-surface shadow-2xl'>
-							<Button isIconOnly aria-label={returnToBanner ? "Back to cookie choices" : "Close privacy preferences"} variant='tertiary' className='absolute top-4 right-4 z-10' onPress={leavePreferences}>
-								{returnToBanner ? <IconArrowLeft className='size-5' aria-hidden='true' /> : <IconX className='size-5' aria-hidden='true' />}
-							</Button>
+							<Modal.CloseTrigger aria-label='Close privacy preferences' />
 							<Modal.Header className='border-b border-default px-5 py-4 pr-14 sm:px-6 sm:pr-14'>
-								<Modal.Icon className='bg-accent-soft text-accent-soft-foreground'>
-									<IconShieldCheck className='size-5' aria-hidden='true' />
-								</Modal.Icon>
-								<Modal.Heading id='consent-dialog-title'>Privacy preferences</Modal.Heading>
-								<p id='consent-dialog-description' className='mt-1 text-sm leading-5 text-muted'>
-									Choose which optional categories Clipify may use.
-								</p>
+								<div className='flex items-center gap-3'>
+									<Modal.Icon className='shrink-0 bg-accent-soft text-accent-soft-foreground'>
+										<IconShieldCheck className='size-5' aria-hidden='true' />
+									</Modal.Icon>
+									<div className='min-w-0'>
+										<Modal.Heading id='consent-dialog-title'>Privacy preferences</Modal.Heading>
+										<p id='consent-dialog-description' className='mt-0.5 text-sm leading-5 text-muted'>
+											Choose which optional categories Clipify may use.
+										</p>
+									</div>
+								</div>
 							</Modal.Header>
 							<Modal.Body className='px-4 py-4 sm:px-6'>
-								<Accordion allowsMultipleExpanded variant='surface' className='w-full overflow-hidden rounded-xl border border-default'>
+								<Accordion variant='surface' className='w-full overflow-hidden rounded-xl border border-default'>
 									{visibleCategories.map((type) => {
 										const category = type.name as keyof typeof consentCategoryDetails;
 										const details = consentCategoryDetails[category];
 										const services = category === "necessary" ? necessaryConsentServices : consentServices.filter((service) => service.category === category);
 										const isNecessary = category === "necessary";
 										const isSelected = isNecessary || (selectedConsents[type.name] ?? consents[type.name] ?? false);
+										const CategoryIcon = category === "necessary" ? IconLock : category === "functionality" ? IconSettings : IconActivity;
 
 										return (
 											<Accordion.Item key={type.name} id={type.name}>
-												<div className='flex min-h-12 items-center gap-3 px-3 sm:px-4'>
+												<div className='group flex min-h-12 items-center gap-3 px-3 transition-colors hover:bg-surface-secondary sm:px-4'>
 													<Accordion.Heading className='min-w-0 flex-1'>
-														<Accordion.Trigger className='py-3'>
-															{isNecessary && <IconLock className='size-4 shrink-0 text-success' aria-hidden='true' />}
+														<Accordion.Trigger className='py-3 hover:bg-transparent'>
+															<CategoryIcon className={`size-4 shrink-0 ${isNecessary ? "text-success" : "text-muted"}`} aria-hidden='true' />
 															<span className='min-w-0 flex-1 text-left text-sm font-medium'>{details?.title ?? type.name}</span>
 															{isNecessary && <span className='text-xs text-muted'>Always active</span>}
 															<Accordion.Indicator>
@@ -188,20 +190,24 @@ function ConsentInterface() {
 														<p className='text-xs leading-5 text-muted'>{details?.description ?? type.description}</p>
 														<ul className='space-y-2'>
 															{services.map((service) => (
-																<li key={service.id} className='rounded-lg border border-default bg-surface p-3'>
-																	<div className='flex flex-wrap items-center justify-between gap-2'>
-																		<span className='text-sm font-medium'>{service.name}</span>
-																		<span className='text-xs text-muted'>{service.scope}</span>
-																	</div>
+																<li key={service.id} className='rounded-lg border border-default bg-surface px-3 py-2.5'>
+																	<span className='text-sm font-medium'>{service.name}</span>
 																	<p className='mt-1 text-xs leading-5 text-muted'>{service.description}</p>
-																	<dl className='mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs'>
-																		<div className='flex gap-1'>
-																			<dt className='text-muted'>Provider:</dt>
-																			<dd>{service.provider}</dd>
+																	<dl className='mt-2 flex flex-wrap gap-1.5 text-xs text-muted'>
+																		<div className='flex min-w-0 items-center gap-1 rounded-md bg-surface-secondary px-2 py-1' title={`Provider: ${service.provider}`}>
+																			<IconBuilding className='size-3.5 shrink-0' aria-hidden='true' />
+																			<dt className='sr-only'>Provider</dt>
+																			<dd className='truncate'>{service.provider}</dd>
 																		</div>
-																		<div className='flex gap-1'>
-																			<dt className='text-muted'>Storage:</dt>
-																			<dd>{service.storage}</dd>
+																		<div className='flex min-w-0 items-center gap-1 rounded-md bg-surface-secondary px-2 py-1' title={`Storage: ${service.storage}`}>
+																			<IconDatabase className='size-3.5 shrink-0' aria-hidden='true' />
+																			<dt className='sr-only'>Storage</dt>
+																			<dd className='truncate'>{service.storage}</dd>
+																		</div>
+																		<div className='flex min-w-0 items-center gap-1 rounded-md bg-surface-secondary px-2 py-1' title={`Scope: ${service.scope}`}>
+																			<IconWorld className='size-3.5 shrink-0' aria-hidden='true' />
+																			<dt className='sr-only'>Scope</dt>
+																			<dd className='truncate'>{service.scope}</dd>
 																		</div>
 																	</dl>
 																</li>
@@ -214,11 +220,7 @@ function ConsentInterface() {
 									})}
 								</Accordion>
 							</Modal.Body>
-							<Modal.Footer className='flex flex-col-reverse gap-2 border-t border-default px-4 py-3 sm:flex-row sm:justify-end sm:px-6'>
-								<Button size='sm' variant='tertiary' isDisabled={pending} onPress={leavePreferences} className='sm:mr-auto'>
-									{returnToBanner && <IconArrowLeft className='size-4' aria-hidden='true' />}
-									{returnToBanner ? "Back" : "Close"}
-								</Button>
+							<Modal.Footer className='flex flex-col gap-2 border-t border-default px-4 py-3 sm:flex-row sm:justify-center sm:px-6'>
 								<Button size='sm' variant='outline' isDisabled={pending} isPending={pendingAction === "reject"} onPress={() => void save("reject", () => performDialogAction("reject"))}>
 									Reject optional
 								</Button>
@@ -243,7 +245,7 @@ function ConsentInterface() {
 
 export default function ConsentManager({ children }: { children: ReactNode }) {
 	return (
-		<ConsentManagerProvider options={{ mode: "hosted", backendURL: "/api/c15t", consentCategories: ["necessary", "functionality", "measurement", "marketing"], store: { reloadOnConsentRevoked: true, callbacks: { onBeforeConsentRevocationReload: ({ preferences }) => clearRevokedConsentStorage(preferences) } } }}>
+		<ConsentManagerProvider options={{ mode: "hosted", backendURL: "/api/c15t", consentCategories: ["necessary", "functionality", "measurement"], store: { reloadOnConsentRevoked: true, callbacks: { onBeforeConsentRevocationReload: ({ preferences }) => clearRevokedConsentStorage(preferences) } } }}>
 			<ConsentIntegrations />
 			<ConsentInterface />
 			{children}

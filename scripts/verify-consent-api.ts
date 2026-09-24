@@ -37,7 +37,7 @@ try {
 	assert.equal(init.policy.model, "opt-in");
 	assert.equal(init.policy.consent.scopeMode, "strict");
 	assert.equal(init.policy.consent.expiryDays, 180);
-	assert.deepEqual(init.policy.consent.categories, ["necessary", "functionality", "measurement", "marketing"]);
+	assert.deepEqual(init.policy.consent.categories, ["necessary", "functionality", "measurement"]);
 	assert.deepEqual(init.policy.consent.preselectedCategories, ["necessary"]);
 	assert.equal(init.policy.proof.storeIp, false);
 	assert.equal(init.policy.proof.storeUserAgent, false);
@@ -48,7 +48,7 @@ try {
 		type: "cookie_banner",
 		subjectId: "sub_testrejection",
 		domain: "localhost",
-		preferences: { necessary: true, functionality: false, measurement: false, marketing: false },
+		preferences: { necessary: true, functionality: false, measurement: false },
 		givenAt: Date.now(),
 	};
 	const saveResponse = await handler(

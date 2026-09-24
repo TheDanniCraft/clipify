@@ -5,7 +5,7 @@ const worldwideConsent = {
 	model: "opt-in" as const,
 	expiryDays: CONSENT_LIFETIME_DAYS,
 	scopeMode: "strict" as const,
-	categories: ["necessary", "functionality", "measurement", "marketing"],
+	categories: ["necessary", "functionality", "measurement"],
 	preselectedCategories: ["necessary"],
 	uiMode: "banner" as const,
 	banner: { allowedActions: ["accept", "reject", "customize"] as ("accept" | "reject" | "customize")[] },

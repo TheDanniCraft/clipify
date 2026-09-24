@@ -26,15 +26,6 @@ export const consentServices = [
 		storage: "No cookies",
 		scope: "Third-party service",
 	},
-	{
-		id: "affiliate-tracker",
-		name: "Affiliate tracking",
-		category: "marketing",
-		description: "Attributes visits and referrals to our affiliate program.",
-		provider: "Clipify Affiliate",
-		storage: "Cookie",
-		scope: "External domain",
-	},
 ] as const;
 
 export const necessaryConsentServices = [
@@ -70,9 +61,5 @@ export const consentCategoryDetails = {
 	measurement: {
 		title: "Measurement",
 		description: "Helps us understand real-world performance and diagnose issues with masked session replay.",
-	},
-	marketing: {
-		title: "Marketing",
-		description: "Supports affiliate and referral attribution.",
 	},
 } as const;
