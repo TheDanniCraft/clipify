@@ -3,6 +3,23 @@
 const getActiveOverlayOwnerIdsForClipSync = jest.fn();
 const syncOwnerClipCache = jest.fn();
 const connect = jest.fn();
+const mockCaptureCheckIn = jest.fn(() => "check-in-id");
+const mockMetricCount = jest.fn();
+const mockMetricDistribution = jest.fn();
+const mockMetricGauge = jest.fn();
+
+jest.mock("@sentry/nextjs", () => ({
+	captureCheckIn: mockCaptureCheckIn,
+	captureException: jest.fn(),
+	withScope: (callback: (scope: { setTag: (key: string, value: string) => void }) => unknown) => callback({ setTag: jest.fn() }),
+	logger: { error: jest.fn(), info: jest.fn() },
+	metrics: {
+		count: mockMetricCount,
+		distribution: mockMetricDistribution,
+		gauge: mockMetricGauge,
+	},
+	startSpan: (_context: unknown, callback: () => unknown) => callback(),
+}));
 
 jest.mock("@actions/database", () => ({
 	getActiveOverlayOwnerIdsForClipSync: (...args: unknown[]) => getActiveOverlayOwnerIdsForClipSync(...args),
@@ -173,13 +190,17 @@ describe("lib/clipCacheScheduler", () => {
 		};
 		connect.mockResolvedValue(lockClient);
 
-		const { startClipCacheScheduler } = await loadScheduler();
+		const { startClipCacheScheduler, getClipCacheSchedulerStats } = await loadScheduler();
 		startClipCacheScheduler();
 		await flushAsyncWork();
 
 		expect(getActiveOverlayOwnerIdsForClipSync).not.toHaveBeenCalled();
 		expect(syncOwnerClipCache).not.toHaveBeenCalled();
 		expect(lockClient.release).toHaveBeenCalled();
+		expect(mockCaptureCheckIn).not.toHaveBeenCalled();
+		expect(mockMetricCount).toHaveBeenCalledWith("clip_cache.scheduler.runs", 1, { attributes: { status: "skipped" } });
+		expect(mockMetricCount).not.toHaveBeenCalledWith("clip_cache.scheduler.runs", 1, { attributes: { status: "succeeded" } });
+		expect(getClipCacheSchedulerStats().totalRuns).toBe(0);
 	});
 
 	it("does not start a second scheduler loop once already started", async () => {

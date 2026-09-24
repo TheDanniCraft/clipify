@@ -65,17 +65,22 @@ export function startClipCacheScheduler() {
 		const started = Date.now();
 		globalThis.__clipCacheSchedulerRunning = true;
 		let lockAcquired = false;
-		let runFailed = false;
+		let outcome: "pending" | "skipped" | "succeeded" | "failed" = "pending";
 		let ownerCount = 0;
-		const checkInId = Sentry.captureCheckIn({ monitorSlug: "clip-cache-scheduler", status: "in_progress" }, CLIP_CACHE_MONITOR_CONFIG);
-		Sentry.metrics.count("clip_cache.scheduler.runs", 1, { attributes: { status: "attempted" } });
+		let checkInId: string | undefined;
 		let lockClient: { query: (text: string, values?: unknown[]) => Promise<unknown>; release: () => void } | null = null;
 		try {
 			const [{ getActiveOverlayOwnerIdsForClipSync }, { syncOwnerClipCache }, { dbPool }] = await Promise.all([import("@actions/database"), import("@actions/twitch"), import("@/db/client")]);
 			lockClient = await dbPool.connect();
 			const lockResult = (await lockClient.query("select pg_try_advisory_lock(hashtext($1)) as locked", [CLIP_CACHE_SYNC_LOCK_KEY])) as { rows?: Array<{ locked?: boolean }> };
 			lockAcquired = Boolean(lockResult.rows?.[0]?.locked);
-			if (!lockAcquired) return;
+			if (!lockAcquired) {
+				outcome = "skipped";
+				Sentry.metrics.count("clip_cache.scheduler.runs", 1, { attributes: { status: "skipped" } });
+				return;
+			}
+			checkInId = Sentry.captureCheckIn({ monitorSlug: "clip-cache-scheduler", status: "in_progress" }, CLIP_CACHE_MONITOR_CONFIG);
+			Sentry.metrics.count("clip_cache.scheduler.runs", 1, { attributes: { status: "attempted" } });
 			const ownerIds = await getActiveOverlayOwnerIdsForClipSync(batchSize);
 			ownerCount = ownerIds.length;
 			for (const ownerId of ownerIds) {
@@ -85,8 +90,9 @@ export function startClipCacheScheduler() {
 				globalThis.__clipCacheSchedulerStats.lastRunOwnerCount = ownerIds.length;
 				globalThis.__clipCacheSchedulerStats.lastError = null;
 			}
+			outcome = "succeeded";
 		} catch (error) {
-			runFailed = true;
+			outcome = "failed";
 			captureUnexpectedError(error, "clip-cache-scheduler", "run");
 			Sentry.logger.error("Clip cache scheduler failed", { component: "clip-cache-scheduler" });
 			Sentry.metrics.count("clip_cache.scheduler.runs", 1, { attributes: { status: "failed" } });
@@ -105,14 +111,16 @@ export function startClipCacheScheduler() {
 			lockClient?.release();
 			globalThis.__clipCacheSchedulerRunning = false;
 			const durationMs = Date.now() - started;
-			if (!runFailed) {
+			if (outcome === "succeeded") {
 				Sentry.metrics.count("clip_cache.scheduler.runs", 1, { attributes: { status: "succeeded" } });
 				Sentry.logger.info("Clip cache scheduler completed", { component: "clip-cache-scheduler", owner_count: ownerCount, duration_ms: durationMs });
 			}
-			Sentry.metrics.distribution("clip_cache.scheduler.duration", durationMs, { unit: "millisecond" });
-			Sentry.metrics.gauge("clip_cache.scheduler.owner_count", ownerCount);
-			Sentry.captureCheckIn({ monitorSlug: "clip-cache-scheduler", status: runFailed ? "error" : "ok", checkInId, duration: durationMs / 1000 });
-			if (globalThis.__clipCacheSchedulerStats) {
+			if (outcome !== "skipped") {
+				Sentry.metrics.distribution("clip_cache.scheduler.duration", durationMs, { unit: "millisecond" });
+				Sentry.metrics.gauge("clip_cache.scheduler.owner_count", ownerCount);
+				if (checkInId) Sentry.captureCheckIn({ monitorSlug: "clip-cache-scheduler", status: outcome === "failed" ? "error" : "ok", checkInId, duration: durationMs / 1000 });
+			}
+			if (globalThis.__clipCacheSchedulerStats && outcome !== "skipped") {
 				globalThis.__clipCacheSchedulerStats.totalRuns += 1;
 				globalThis.__clipCacheSchedulerStats.lastRunAt = new Date().toISOString();
 				globalThis.__clipCacheSchedulerStats.lastRunDurationMs = durationMs;
