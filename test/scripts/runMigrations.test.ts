@@ -28,6 +28,8 @@ describe("container database migrations", () => {
 	it("reconciles the schema directly for preview deployments", () => {
 		const contents = readFileSync(join(process.cwd(), "Dockerfile-preview"), "utf8");
 
+		expect(contents).toContain("ENV NODE_ENV=production");
+		expect(contents).not.toContain("ENV NODE_ENV=development");
 		expect(contents).toContain("node node_modules/drizzle-kit/bin.cjs push && node server.js");
 		expect(contents).toContain("/app/drizzle.config.ts ./drizzle.config.ts");
 		expect(contents).toContain("/app/tsconfig.json ./tsconfig.json");

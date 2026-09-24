@@ -38,7 +38,7 @@ RUN --mount=type=secret,id=SENTRY_DSN,env=SENTRY_DSN,required=true \
 FROM node:24-bookworm-slim AS runner
 WORKDIR /app
 
-ENV NODE_ENV=development
+ENV NODE_ENV=production
 ENV IS_PREVIEW=true
 ENV INFISICAL_API_URL=https://infisical.thedannicraft.de
 ENV PORT=3000
