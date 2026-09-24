@@ -147,7 +147,6 @@ function ConsentInterface() {
 									</section>
 								);
 							})}
-							<p className='text-xs leading-5 text-muted'>Cookieless Plausible statistics and minimized operational error reports do not use optional browser storage. See our privacy policy for details.</p>
 						</Modal.Body>
 						<Modal.Footer className='flex flex-col-reverse gap-2 border-t border-default px-5 py-4 sm:flex-row sm:justify-end sm:px-7'>
 							<Button variant='tertiary' isDisabled={pending} onPress={leavePreferences} className='sm:mr-auto'>
