@@ -16,10 +16,23 @@ describe("container database migrations", () => {
 		expect(result.stderr).toContain("DATABASE_URL is required to run database migrations");
 	});
 
-	it.each(["Dockerfile", "Dockerfile-preview"])("uses the non-interactive-safe migrator in %s", (dockerfile) => {
-		const contents = readFileSync(join(process.cwd(), dockerfile), "utf8");
+	it("uses the migration journal for production", () => {
+		const contents = readFileSync(join(process.cwd(), "Dockerfile"), "utf8");
 
 		expect(contents).toContain("node scripts/run-migrations.mjs && node server.js");
+		expect(contents).not.toContain("drizzle-kit/bin.cjs migrate");
+		expect(contents).not.toContain("drizzle-kit/bin.cjs push");
+		expect(contents).not.toContain("sleep infinity");
+	});
+
+	it("reconciles the schema directly for preview deployments", () => {
+		const contents = readFileSync(join(process.cwd(), "Dockerfile-preview"), "utf8");
+
+		expect(contents).toContain("node node_modules/drizzle-kit/bin.cjs push && node server.js");
+		expect(contents).toContain("/app/drizzle.config.ts ./drizzle.config.ts");
+		expect(contents).toContain("/app/tsconfig.json ./tsconfig.json");
+		expect(contents).toContain("/app/src ./src");
+		expect(contents).not.toContain("node scripts/run-migrations.mjs");
 		expect(contents).not.toContain("drizzle-kit/bin.cjs migrate");
 		expect(contents).not.toContain("sleep infinity");
 	});
