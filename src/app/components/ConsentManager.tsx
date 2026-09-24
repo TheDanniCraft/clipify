@@ -57,14 +57,14 @@ function ConsentInterface() {
 	const pathname = usePathname();
 	const embedded = isEmbeddedRoute(pathname);
 	const { banner, dialog, openBanner, openDialog, closeUI, performBannerAction, performDialogAction, saveCustomPreferences } = useHeadlessConsentUI();
-	const { consentCategories, consentTypes, consents, selectedConsents, setSelectedConsent } = useConsentManager();
+	const { consents, selectedConsents, setSelectedConsent, getDisplayedConsents } = useConsentManager();
 	const [pendingAction, setPendingAction] = useState<string | null>(null);
 	const [returnToBanner, setReturnToBanner] = useState(false);
 	const pending = pendingAction !== null;
 
 	if (embedded) return null;
 
-	const visibleCategories = consentTypes.filter((type) => type.display && consentCategories.includes(type.name));
+	const visibleCategories = getDisplayedConsents();
 
 	async function save(actionName: string, action: () => Promise<unknown>) {
 		setPendingAction(actionName);
