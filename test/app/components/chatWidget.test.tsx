@@ -4,7 +4,6 @@ import ChatWidget from "@/app/components/chatWidget";
 import { OPEN_CONSENT_PREFERENCES_EVENT } from "@/app/lib/consent/events";
 import { chatwootConsentScript } from "@/app/lib/consent/chatwoot";
 
-const mockHas = jest.fn();
 const mockUseConsentScript = jest.fn();
 const mockOpenDialog = jest.fn();
 
@@ -17,7 +16,6 @@ jest.mock("@/app/lib/embeddedRoutes", () => ({
 }));
 
 jest.mock("@c15t/nextjs", () => ({
-	useConsentManager: () => ({ has: mockHas }),
 	useConsentScript: (options: unknown) => mockUseConsentScript(options),
 }));
 
@@ -40,7 +38,8 @@ jest.mock("@tabler/icons-react", () => ({
 describe("components/ChatWidget", () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
-		mockHas.mockReturnValue(false);
+		delete window.chatwootSDK;
+		delete window.$chatwoot;
 		mockUseConsentScript.mockReturnValue({ status: "blocked" });
 	});
 
@@ -58,8 +57,16 @@ describe("components/ChatWidget", () => {
 		window.removeEventListener(OPEN_CONSENT_PREFERENCES_EVENT, openPreferences);
 	});
 
-	it("removes the consent launcher as soon as functionality is granted", () => {
-		mockHas.mockImplementation((category: string) => category === "functionality");
+	it.each(["idle", "loading", "ready", "error"])("does not compete with Chatwoot while the consent script is %s", (status) => {
+		mockUseConsentScript.mockReturnValue({ status });
+
+		render(<ChatWidget />);
+
+		expect(screen.queryByRole("button", { name: "Enable support chat" })).not.toBeInTheDocument();
+	});
+
+	it("does not render over an already available Chatwoot widget even if consent state is stale", () => {
+		window.$chatwoot = {} as NonNullable<Window["$chatwoot"]>;
 
 		render(<ChatWidget />);
 
