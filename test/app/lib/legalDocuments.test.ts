@@ -6,7 +6,7 @@ describe("legal document manifest", () => {
 	it("exposes exactly the five required unique local routes", () => {
 		const routes = legalDocuments.map((document) => document.route);
 
-		expect(routes).toEqual(["/legal/privacy", "/legal/cookies", "/legal/terms", "/legal/privacy-requests", "/imprint"]);
+		expect(routes).toEqual(["/legal/privacy", "/legal/cookies", "/legal/terms", "/legal/privacy-requests", "/legal/imprint"]);
 		expect(new Set(routes).size).toBe(routes.length);
 		for (const route of routes) {
 			expect(route).toMatch(/^\/(?!\/)/);

@@ -17,7 +17,7 @@ const legalDestinations = [
 	{ name: "Privacy Policy", path: "/legal/privacy" },
 	{ name: "Cookie Policy", path: "/legal/cookies" },
 	{ name: "Terms of Service", path: "/legal/terms" },
-	{ name: "Imprint", path: "/imprint" },
+	{ name: "Imprint", path: "/legal/imprint" },
 	{ name: "Request Data Removal", path: "/legal/privacy-requests" },
 ] as const;
 
@@ -37,7 +37,7 @@ const reviewedAuditDeclarations: InventoryDeclaration[] = [
 
 Given("a visitor is on a public Clipify page", async ({ page }) => {
 	playwrightTest.slow();
-	const response = await page.goto("/imprint");
+	const response = await page.goto("/legal/imprint");
 	expect(response?.ok()).toBe(true);
 });
 
@@ -95,7 +95,7 @@ Given("a visitor opens the privacy policy at a {int} pixel viewport", async ({ p
 When("they inspect its semantic and keyboard navigation", async ({ page }) => {
 	await expect(page.getByRole("main")).toBeVisible();
 	await expect(page.getByRole("article")).toBeVisible();
-	await expect(page.getByRole("navigation", { name: "Legal documents" })).toBeVisible();
+	await expect(page.getByRole("tablist", { name: "Legal documents" })).toBeVisible();
 });
 
 Then("the legal document remains readable and every legal destination is keyboard reachable", async ({ page }) => {
@@ -107,13 +107,13 @@ Then("the legal document remains readable and every legal destination is keyboar
 		return result.violations.filter(({ impact }) => impact === "serious" || impact === "critical").map(({ id, impact, nodes }) => ({ id, impact, nodes }));
 	});
 	expect(seriousViolations).toEqual([]);
-	const legalLinks = page.getByRole("navigation", { name: "Legal documents" }).getByRole("link");
-	await expect(legalLinks).toHaveCount(5);
-	await legalLinks.first().focus();
-	await expect(legalLinks.first()).toBeFocused();
+	const legalTabs = page.getByRole("tablist", { name: "Legal documents" }).getByRole("tab");
+	await expect(legalTabs).toHaveCount(5);
+	await legalTabs.first().focus();
+	await expect(legalTabs.first()).toBeFocused();
 	for (let index = 1; index < 5; index += 1) {
-		await page.keyboard.press("Tab");
-		await expect(legalLinks.nth(index)).toBeFocused();
+		await page.keyboard.press("ArrowRight");
+		await expect(legalTabs.nth(index)).toBeFocused();
 	}
 });
 
@@ -130,7 +130,7 @@ Then("every declared category and service is disclosed with its operating detail
 });
 
 When("they activate cookie preferences from the legal document", async ({ page }) => {
-	await page.getByRole("region", { name: "Service and storage declarations" }).getByRole("button", { name: "Cookie preferences", exact: true }).click();
+	await page.getByRole("main").getByRole("button", { name: "Cookie preferences", exact: true }).click();
 });
 
 Then("the existing privacy preferences dialog opens without leaving the cookie policy", async ({ page }) => {
@@ -151,7 +151,7 @@ Then("the complete disclosures remain readable without claiming a saved preferen
 	await expect(page.getByRole("region", { name: "Service and storage declarations" })).toBeVisible();
 	for (const category of Object.values(consentCategoryDetails)) await expect(page.getByRole("heading", { name: category.title, exact: true })).toBeVisible();
 	const storedBefore = await page.evaluate(() => localStorage.getItem("c15t"));
-	await page.getByRole("region", { name: "Service and storage declarations" }).getByRole("button", { name: "Cookie preferences", exact: true }).click();
+	await page.getByRole("main").getByRole("button", { name: "Cookie preferences", exact: true }).click();
 	await expect(page.getByRole("dialog", { name: "Privacy preferences" })).toBeVisible();
 	expect(failedConsentRequests.get(page)).not.toEqual([]);
 	expect(await page.evaluate(() => localStorage.getItem("c15t"))).toBe(storedBefore);
@@ -169,7 +169,7 @@ When("they inspect the rights and response guidance", async ({ page }) => {
 
 Then("supported rights, verification, response stages, and complaint options are shown", async ({ page }) => {
 	const article = page.getByRole("article");
-	for (const value of [...privacyRequestGuidance.intentions, privacyRequestGuidance.verification, ...privacyRequestGuidance.processStages, ...privacyRequestGuidance.complaintRoutes]) {
+	for (const value of [...privacyRequestGuidance.requestTypes.flatMap(({ title, description }) => [title, description]), privacyRequestGuidance.verification, ...Object.values(privacyRequestGuidance.processStageDetails), ...privacyRequestGuidance.complaintRoutes]) {
 		await expect(article).toContainText(value);
 	}
 });
@@ -185,7 +185,7 @@ Then("an accessible durable email route is available without signing in", async 
 });
 
 When("they inspect applicability and lawful limits", async ({ page }) => {
-	await expect(page.getByRole("heading", { name: "Applicability and lawful limits" })).toBeVisible();
+	await expect(page.getByRole("heading", { name: "When a request can be limited" })).toBeVisible();
 });
 
 Then("no right, timeline, or outcome is promised unconditionally", async ({ page }) => {
@@ -265,7 +265,7 @@ Given("a visitor opens the terms of service", async ({ page }) => {
 });
 
 When("they inspect account, paid-plan, and self-hosted Runner terms", async ({ page }) => {
-	for (const title of ["Accounts and security", "Paid plans and billing", "Self-hosted Runner"]) await expect(page.getByRole("heading", { name: title, exact: true })).toBeVisible();
+	for (const title of ["5. Accounts and authentication", "10. Paid plans, billing, and renewal", "12. Self-hosted Runner"]) await expect(page.getByRole("heading", { name: title, exact: true })).toBeVisible();
 });
 
 Then("the complete contractual topics are available before commitment", async ({ page }) => {

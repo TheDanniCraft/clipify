@@ -15,14 +15,34 @@ export const metadata: Metadata = {
 export default function CookiesPage() {
 	return (
 		<LegalDocumentLayout document={cookieDocument}>
+			<div className='mb-10 space-y-8 border-b border-default pb-10'>
+				<section aria-labelledby='what-are-cookies'>
+					<h2 id='what-are-cookies' className='text-2xl font-semibold tracking-tight'>
+						What are cookies and similar technologies?
+					</h2>
+					<p className='mt-3 max-w-3xl leading-7 text-foreground/75'>Cookies are small text records stored by your browser. Local storage and session storage are similar browser features used to remember information on a device. Some Clipify features also contact an external service without storing a cookie.</p>
+				</section>
+				<section aria-labelledby='how-we-use-storage'>
+					<h2 id='how-we-use-storage' className='text-2xl font-semibold tracking-tight'>
+						How Clipify uses them
+					</h2>
+					<p className='mt-3 max-w-3xl leading-7 text-foreground/75'>Strictly necessary storage protects sign-in, remembers privacy choices, and secures protected forms. Optional functionality enables live support. Optional measurement helps diagnose browser performance and errors. Clipify does not use advertising cookies or sell browser activity.</p>
+				</section>
+				<section aria-labelledby='manage-cookie-choices'>
+					<h2 id='manage-cookie-choices' className='text-2xl font-semibold tracking-tight'>
+						Your choices
+					</h2>
+					<p className='mt-3 max-w-3xl leading-7 text-foreground/75'>Optional services stay disabled until you choose them. You can accept, reject, or change optional categories at any time. Withdrawing consent affects future processing and reloads the page so the updated choice is applied consistently.</p>
+					<div className='mt-5 inline-flex rounded-full border border-default px-4 py-2 text-sm font-medium text-primary underline-offset-4 hover:underline'>
+						<CookiePreferencesLink />
+					</div>
+				</section>
+			</div>
 			<section aria-labelledby='service-declarations-title'>
 				<h2 id='service-declarations-title' className='text-2xl font-semibold tracking-tight'>
 					Service and storage declarations
 				</h2>
 				<p className='mt-3 max-w-3xl leading-7 text-foreground/75'>This complete declared inventory is the authoritative description of services and browser storage used by Clipify.</p>
-				<div className='mt-5 inline-flex rounded-full border border-white/15 px-4 py-2 text-sm font-medium text-primary underline-offset-4 hover:underline'>
-					<CookiePreferencesLink />
-				</div>
 				<div className='mt-8 space-y-10'>
 					{categories.map((category) => (
 						<section key={category.id} aria-labelledby={`category-${category.id}`}>

@@ -23,7 +23,7 @@ describe("legal link migration", () => {
 		const userFacingSources = sources.map(({ content }) => content).join("\n");
 
 		expect(sources.filter(({ content }) => /goadopt\.io/i.test(content)).map(({ path }) => path)).toEqual([]);
-		for (const route of ["/legal/privacy", "/legal/cookies", "/legal/terms", "/legal/privacy-requests"]) {
+		for (const route of ["/legal/privacy", "/legal/cookies", "/legal/terms", "/legal/privacy-requests", "/legal/imprint"]) {
 			expect(userFacingSources).toContain(route);
 		}
 	});

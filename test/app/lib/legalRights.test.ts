@@ -11,16 +11,17 @@ describe("privacy request guidance", () => {
 	});
 
 	it("requires safe and proportionate identity verification", () => {
-		expect(privacyRequestGuidance.initialRequestDoNotInclude).toEqual(["passwords", "authentication secrets", "Twitch tokens", "full payment credentials"]);
-		expect(privacyRequestGuidance.verification).toMatch(/sufficient identity and authority.*before.*disclos|delet/i);
+		expect(privacyRequestGuidance.initialRequestDoNotInclude).toEqual(expect.arrayContaining(["passwords", "authentication secrets", "Twitch access or refresh tokens"]));
+		expect(privacyRequestGuidance.verification).toMatch(/reasonably needed.*identity and authority/i);
+		expect(privacyRequestGuidance.verification).toMatch(/do not require a passport/i);
 	});
 
 	it("qualifies rights and outcomes", () => {
 		const guidance = privacyRequestGuidance.qualifications.join(" ");
 
-		expect(guidance).toMatch(/where applicable/i);
-		expect(guidance).toMatch(/lawful exception/i);
-		expect(guidance).toMatch(/retention obligation/i);
-		expect(guidance).toMatch(/extension|refusal/i);
+		expect(guidance).toMatch(/legal requirements/i);
+		expect(guidance).toMatch(/retained for tax/i);
+		expect(privacyRequestGuidance.timing).toMatch(/within one month/i);
+		expect(privacyRequestGuidance.costs).toMatch(/normally free/i);
 	});
 });

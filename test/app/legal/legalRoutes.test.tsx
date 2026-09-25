@@ -1,5 +1,9 @@
 import { render, screen, within } from "@testing-library/react";
 
+jest.mock("next/navigation", () => ({
+	useRouter: () => ({ push: jest.fn() }),
+}));
+
 jest.mock("@components/legal/CookiePreferencesLink", () => ({
 	__esModule: true,
 	default: () => <button type='button'>Cookie preferences</button>,
@@ -8,6 +12,7 @@ import PrivacyPage, { metadata as privacyMetadata } from "../../../src/app/legal
 import CookiesPage, { metadata as cookiesMetadata } from "../../../src/app/legal/cookies/page";
 import TermsPage, { metadata as termsMetadata } from "../../../src/app/legal/terms/page";
 import PrivacyRequestsPage, { metadata as privacyRequestsMetadata } from "../../../src/app/legal/privacy-requests/page";
+import ImprintPage, { metadata as imprintMetadata } from "../../../src/app/legal/imprint/page";
 import { privacyPolicySections } from "@lib/legal/documents";
 import { privacyRequestGuidance } from "@lib/legal/rights";
 import { termsSections } from "@lib/legal/terms";
@@ -59,6 +64,16 @@ describe("local legal routes", () => {
 		expect(screen.getByRole("link", { name: privacyRequestGuidance.contact.email })).toHaveAttribute("href", `mailto:${privacyRequestGuidance.contact.email}`);
 		expect(screen.getByText(/no Clipify account is required/i)).toBeInTheDocument();
 		for (const qualification of privacyRequestGuidance.qualifications) expect(screen.getByRole("article")).toHaveTextContent(qualification);
-		for (const stage of privacyRequestGuidance.processStages) expect(screen.getByRole("article")).toHaveTextContent(stage);
+		for (const detail of Object.values(privacyRequestGuidance.processStageDetails)) expect(screen.getByRole("article")).toHaveTextContent(detail);
+		expect(screen.getByRole("article")).toHaveTextContent(privacyRequestGuidance.timing);
+	});
+
+	it("renders imprint inside the shared legal center", () => {
+		render(<ImprintPage />);
+
+		expect(imprintMetadata.title).toBe("Imprint | Clipify");
+		expect(screen.getByRole("heading", { level: 1, name: "Imprint" })).toBeInTheDocument();
+		expect(screen.getByRole("heading", { name: /Section 5 DDG/i })).toBeInTheDocument();
+		expect(screen.queryByText(/German Telemedia Act|EU Dispute Resolution/i)).not.toBeInTheDocument();
 	});
 });

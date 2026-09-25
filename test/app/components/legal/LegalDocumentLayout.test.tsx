@@ -2,6 +2,29 @@ import { render, screen } from "@testing-library/react";
 import LegalDocumentLayout from "@components/legal/LegalDocumentLayout";
 import { legalDocuments } from "@lib/legal/documents";
 
+jest.mock("next/navigation", () => ({
+	useRouter: () => ({ push: jest.fn() }),
+}));
+
+jest.mock("@components/legal/LegalDocumentTabs", () => ({
+	__esModule: true,
+	default: ({ activeDocumentId, children }: { activeDocumentId: string; children: React.ReactNode }) => {
+		const { legalDocuments: documents } = jest.requireActual("@lib/legal/documents");
+		return (
+			<>
+				<div role='tablist' aria-label='Legal documents'>
+					{documents.map((item: { id: string; title: string }) => (
+						<button key={item.id} role='tab' aria-selected={item.id === activeDocumentId}>
+							{item.title}
+						</button>
+					))}
+				</div>
+				{children}
+			</>
+		);
+	},
+}));
+
 describe("LegalDocumentLayout", () => {
 	it("renders document metadata", () => {
 		const document = legalDocuments.find(({ id }) => id === "privacy");
@@ -15,7 +38,7 @@ describe("LegalDocumentLayout", () => {
 
 		expect(screen.getByRole("main")).toBeInTheDocument();
 		expect(screen.getByRole("heading", { level: 1, name: "Privacy Policy" })).toBeInTheDocument();
-		expect(screen.getByText("Version 1.0.0")).toBeInTheDocument();
+		expect(screen.getByText("Version 1.1.0")).toBeInTheDocument();
 		expect(screen.getByText("Effective September 25, 2026")).toBeInTheDocument();
 		expect(screen.getByText(document!.description)).toBeInTheDocument();
 		expect(screen.queryByText(document!.scope)).not.toBeInTheDocument();
@@ -26,10 +49,10 @@ describe("LegalDocumentLayout", () => {
 		const document = legalDocuments.find(({ id }) => id === "privacy");
 		render(<LegalDocumentLayout document={document!}>Policy content</LegalDocumentLayout>);
 
-		const links = screen.getAllByRole("link");
-		expect(links).toHaveLength(5);
-		expect(links.map((link) => link.getAttribute("href"))).toEqual(legalDocuments.map(({ route }) => route));
-		expect(screen.getByRole("link", { name: "Privacy Policy" })).toHaveAttribute("aria-current", "page");
-		expect(screen.getByRole("link", { name: "Cookie Policy" })).not.toHaveAttribute("aria-current");
+		const tabs = screen.getAllByRole("tab");
+		expect(tabs).toHaveLength(5);
+		expect(tabs.map((tab) => tab.textContent)).toEqual(legalDocuments.map(({ title }) => title));
+		expect(screen.getByRole("tab", { name: "Privacy Policy" })).toHaveAttribute("aria-selected", "true");
+		expect(screen.getByRole("tab", { name: "Cookie Policy" })).toHaveAttribute("aria-selected", "false");
 	});
 });
