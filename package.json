@@ -11,12 +11,19 @@
 		"app:start": "next start",
 		"app:lint": "eslint .",
 		"app:prettier": "prettier --write .",
+		"app:prettier:check": "bun scripts/check-prettier.mjs",
 		"patches:validate": "bun scripts/validate-patched-dependencies.ts",
 		"git:staged": "lint-staged",
 		"app:typecheck": "tsc --noEmit",
 		"test": "jest --runInBand",
 		"test:watch": "jest --watch",
 		"test:coverage": "jest --coverage --runInBand",
+		"test:acceptance": "playwright test --project=acceptance-chromium",
+		"test:bdd": "bddgen && playwright test --project=bdd-chromium",
+		"test:compliance": "jest --runInBand test/compliance/inventory-audit.test.ts && playwright test --project=compliance-chromium",
+		"test:e2e": "bddgen && playwright test",
+		"test:e2e:server": "next dev --webpack --hostname 127.0.0.1 --port 3107",
+		"test:e2e:ui": "bddgen && playwright test --ui",
 		"db:push": "infisical run --env=dev -- drizzle-kit push",
 		"db:generate": "drizzle-kit generate",
 		"db:migrate": "drizzle-kit migrate",
@@ -86,6 +93,8 @@
 	},
 	"devDependencies": {
 		"@electric-sql/pglite": "^0.5.8",
+		"@fast-check/jest": "^2.3.0",
+		"@playwright/test": "^1.63.0",
 		"@tailwindcss/postcss": "^4.3.3",
 		"@testing-library/dom": "^10.4.1",
 		"@testing-library/jest-dom": "^7.0.1",
@@ -94,26 +103,32 @@
 		"@types/jest": "^30.0.0",
 		"@types/jsonwebtoken": "^9.0.10",
 		"@types/node": "^26.4.1",
+		"@types/node-media-server": "^2.3.7",
 		"@types/pg": "^8.23.1",
 		"@types/react": "^19.2.18",
 		"@types/react-dom": "^19.2.7",
 		"@types/ws": "^8.18.1",
 		"@vercel/nft": "^1.11.0",
+		"axe-core": "^4.13.0",
 		"drizzle-kit": "^0.31.10",
 		"eslint": "^9.39.5",
 		"eslint-config-next": "^16.3.4",
+		"fast-check": "^4.10.2",
 		"husky": "^9.1.7",
 		"jest": "^30.5.1",
 		"jest-environment-jsdom": "^30.5.1",
 		"lint-staged": "^17.5.0",
+		"playwright-bdd": "^9.2.1",
 		"prettier": "^3.9.6",
 		"tailwindcss": "^4.3.3",
 		"tsx": "^4.23.13",
-		"typescript": "^6.0.3",
-		"@types/node-media-server": "^2.3.7"
+		"typescript": "^6.0.3"
 	},
 	"patchedDependencies": {
 		"next@16.3.4": "patches/next.patch"
+	},
+	"overrides": {
+		"tar": "^7.5.22"
 	},
 	"lint-staged": {
 		"*.{ts,tsx,js,jsx}": [

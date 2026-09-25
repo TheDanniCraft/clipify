@@ -1,0 +1,15 @@
+node_modules/
+.git/
+.github/
+.next/
+.next-playwright/
+coverage/
+playwright-report/
+test-results/
+blob-report/
+compliance-results/
+.features-gen/
+*.log*
+.env*
+Dockerfile*
+.dockerignore

@@ -48,5 +48,5 @@ export default defineConfig([
 		},
 	},
 
-	globalIgnores([".next/**", "out/**", "build/**", "coverage/**", "next-env.d.ts", "node_modules/**"]),
+	globalIgnores([".next/**", ".next-playwright/**", ".features-gen/**", "playwright-report/**", "test-results/**", "blob-report/**", "out/**", "build/**", "coverage/**", "next-env.d.ts", "node_modules/**"]),
 ]);

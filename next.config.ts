@@ -14,6 +14,7 @@ const nextConfigPromise = Promise.resolve(drizzle).then(
 	(drizzle) =>
 		({
 			output: "standalone",
+			distDir: process.env.E2E_TEST_MODE === "true" ? ".next-playwright" : ".next",
 			outputFileTracingIncludes: {
 				"**": [...drizzle, "./node_modules/@sentry/profiling-node/**", "./node_modules/@sentry/node-cpu-profiler/**"],
 			},
@@ -75,6 +76,7 @@ export default nextConfigPromise.then((resolvedConfig) => {
 			SENTRY_DSN: process.env.SENTRY_DSN ?? "",
 			SENTRY_RELEASE: process.env.SENTRY_RELEASE ?? "",
 			IS_PREVIEW: process.env.IS_PREVIEW === "true" ? "true" : "false",
+			E2E_TEST_MODE: process.env.E2E_TEST_MODE === "true" ? "true" : "false",
 		},
 	};
 

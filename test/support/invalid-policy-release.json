@@ -1,0 +1,17 @@
+{
+	"documents": [
+		{
+			"id": "privacy",
+			"title": "",
+			"route": "/legal/privacy",
+			"version": "1.0.0",
+			"effectiveDate": "2026-09-25",
+			"updatedDate": "2026-09-25",
+			"scope": "EU/EEA and German baseline"
+		}
+	],
+	"services": [],
+	"references": [],
+	"operatorFactsConfirmed": true,
+	"auditResult": "pass"
+}

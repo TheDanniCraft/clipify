@@ -12,9 +12,15 @@
 
 # testing
 /coverage
+/playwright-report/
+/test-results/
+/compliance-results/
+/blob-report/
+/.features-gen/
 
 # next.js
 /.next/
+/.next-playwright/
 /out/
 
 # production

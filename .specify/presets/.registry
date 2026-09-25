@@ -5,7 +5,7 @@
       "version": "1.3.0",
       "source": "local",
       "manifest_hash": "sha256:476bcd1a8820a41e727c98691df78d8bd2d265c5876686ddd492dbd550678da9",
-      "enabled": true,
+      "enabled": false,
       "priority": 10,
       "registered_commands": {
         "codex": [

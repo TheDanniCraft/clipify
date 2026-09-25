@@ -16,6 +16,7 @@ import { applySentryReplayConsent } from "@lib/sentryReplayConsent";
 import { clearExpiredStoredConsent } from "@lib/consent/storageExpiry";
 import { reloadAfterConsentSave } from "@lib/consent/reload";
 import { CONSENT_PREFERENCES_VISIBILITY_EVENT, OPEN_CONSENT_PREFERENCES_EVENT, type ConsentPreferencesVisibilityDetail, type OpenConsentPreferencesDetail } from "@lib/consent/events";
+import { legalDocumentRoutes } from "@lib/legal/documents";
 
 // c15t hydrates from localStorage before /init finishes. Drop expired local proof
 // before its provider can expose optional categories to integrations.
@@ -140,11 +141,11 @@ function ConsentInterface() {
 								</h2>
 								<p className='mt-0.5 text-xs leading-5 text-muted sm:text-sm'>
 									Optional support and measurement services stay off until you choose. Essential security remains active.{" "}
-									<a className='font-medium text-foreground underline underline-offset-2' href='https://hub.goadopt.io/document/3852d930-97b9-46c2-950d-823e62515ab4?language=en'>
+									<a className='font-medium text-foreground underline underline-offset-2' href={legalDocumentRoutes.privacy}>
 										Privacy
 									</a>{" "}
 									·{" "}
-									<a className='font-medium text-foreground underline underline-offset-2' href='https://hub.goadopt.io/document/535d4dc1-7b66-4b96-9bff-bc6e0e47587d?language=en'>
+									<a className='font-medium text-foreground underline underline-offset-2' href={legalDocumentRoutes.cookies}>
 										Cookies
 									</a>
 								</p>
