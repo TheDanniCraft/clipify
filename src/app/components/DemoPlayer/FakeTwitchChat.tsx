@@ -26,6 +26,7 @@ type Props = {
 	rateMs?: number;
 	maxMessages?: number;
 	seed?: string;
+	viewerCount?: number;
 	onCommand?: (cmd: string, args: string[], raw: string) => void;
 	onRedeem?: (rewardName: string, input: string) => void;
 };
@@ -147,7 +148,7 @@ function isTwitchClipUrl(text: string) {
 	}
 }
 
-export default function FakeTwitchChat({ isLive, variant = "clipify", title = "STREAM CHAT", selfUser = "you", selfColor = "#eab308", initialCount = 14, rateMs = 900, maxMessages = 50, seed = "fake-chat", onCommand, onRedeem }: Props) {
+export default function FakeTwitchChat({ isLive, variant = "clipify", title = "STREAM CHAT", selfUser = "you", selfColor = "#eab308", initialCount = 14, rateMs = 900, maxMessages = 50, seed = "fake-chat", viewerCount, onCommand, onRedeem }: Props) {
 	const phrases = variant === "clipify" ? PHRASES : WAITING_PHRASES;
 	const [msgs, setMsgs] = useState<ChatMsg[]>(() => {
 		const rng = mulberry32(hashSeed(`${seed}-${variant}`));
@@ -250,7 +251,12 @@ export default function FakeTwitchChat({ isLive, variant = "clipify", title = "S
 				<div className='tchat__title'>{title}</div>
 				<div className={`tchat__status ${isLive ? "live" : ""}`}>
 					{isLive && <span className='tchat__liveDot' aria-hidden />}
-					{headerRight}
+					<span>{headerRight}</span>
+					{isLive && viewerCount !== undefined && (
+						<span className={`tchat__viewers ${variant === "brb" ? "isDropping" : ""}`} aria-label={`${viewerCount} simulated viewers`}>
+							{viewerCount.toLocaleString()} viewers
+						</span>
+					)}
 				</div>
 			</div>
 

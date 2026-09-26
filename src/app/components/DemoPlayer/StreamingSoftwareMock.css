@@ -144,6 +144,13 @@
 	gap: 6px;
 }
 
+.obs__sceneHint {
+	margin: 0 0 8px;
+	font-size: 10px;
+	line-height: 1.35;
+	color: rgba(255, 255, 255, 0.58);
+}
+
 .obs__row {
 	height: 28px;
 	display: flex;
@@ -162,6 +169,50 @@
 	background: #1e4fb8;
 	border-color: rgba(255, 255, 255, 0.12);
 	color: rgba(255, 255, 255, 0.96);
+}
+
+.obs__sceneButton {
+	width: 100%;
+	font-family: inherit;
+	text-align: left;
+	cursor: pointer;
+}
+
+.obs__sceneButton:hover:not(.obs__row--selected) {
+	background: #292e38;
+	color: rgba(255, 255, 255, 0.94);
+}
+
+.obs__sceneButton:focus-visible {
+	outline: 2px solid #76a5ff;
+	outline-offset: 1px;
+}
+
+.obs__tryBadge {
+	margin-left: auto;
+	padding: 2px 5px;
+	border: 1px solid rgba(196, 181, 253, 0.42);
+	border-radius: 999px;
+	background: rgba(124, 58, 237, 0.2);
+	color: #ddd6fe;
+	font-size: 9px;
+	font-weight: 700;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	animation: obsTryPulse 1.8s ease-in-out infinite;
+}
+
+@keyframes obsTryPulse {
+	50% {
+		border-color: rgba(196, 181, 253, 0.8);
+		background: rgba(124, 58, 237, 0.42);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.obs__tryBadge {
+		animation: none;
+	}
 }
 
 .obs__icon {

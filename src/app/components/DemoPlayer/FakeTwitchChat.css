@@ -51,6 +51,18 @@
 	opacity: 1;
 }
 
+.tchat__viewers {
+	padding-left: 6px;
+	border-left: 1px solid rgba(255, 255, 255, 0.16);
+	color: rgba(255, 255, 255, 0.74);
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+}
+
+.tchat__viewers.isDropping {
+	color: #fb7185;
+}
+
 @keyframes tchatPulse {
 	0% {
 		transform: scale(1);

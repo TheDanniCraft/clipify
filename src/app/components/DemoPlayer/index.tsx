@@ -38,44 +38,19 @@ export default function DemoPlayer() {
 	};
 
 	return (
-		<div className='demoComparison'>
-			<div className='demoComparison__toolbar'>
-				<div>
-					<p className='demoComparison__eyebrow'>Simulated stream break</p>
-					<p className='demoComparison__description'>See how the break experience changes when clips keep playing.</p>
-				</div>
-
-				<div className='demoComparison__controls'>
-					<div className='demoComparison__toggle' role='group' aria-label='Compare the stream break experience'>
-						<button type='button' className={mode === "clipify" ? "isActive" : undefined} aria-pressed={mode === "clipify"} onClick={() => selectMode("clipify")}>
-							With Clipify
-						</button>
-						<button type='button' className={mode === "brb" ? "isActive" : undefined} aria-pressed={mode === "brb"} onClick={() => selectMode("brb")}>
-							Without Clipify
-						</button>
+		<div className='w-full'>
+			<StreamingWithChatMock iframeRef={iframeRef as RefObject<HTMLIFrameElement>} chatVariant={mode} viewerCount={viewerCount} onChatVariantChange={selectMode}>
+				{mode === "clipify" ? (
+					<iframe referrerPolicy='strict-origin-when-cross-origin' ref={iframeRef} className='w-full h-full' src='/demoPlayer' title='Interactive demo player' />
+				) : (
+					<div className='demoComparison__brb' role='img' aria-label='A static be right back screen'>
+						<div className='demoComparison__brbGlow' aria-hidden />
+						<p>Stream paused</p>
+						<h3>Be right back</h3>
+						<span>Hang tight — the stream will continue soon.</span>
 					</div>
-
-					<div className={`demoComparison__viewers ${mode === "brb" ? "isDropping" : ""}`} aria-live='polite'>
-						<span className='demoComparison__liveDot' aria-hidden />
-						<strong>{viewerCount}</strong> viewers
-					</div>
-				</div>
-			</div>
-
-			<div className='w-full'>
-				<StreamingWithChatMock iframeRef={iframeRef as RefObject<HTMLIFrameElement>} chatVariant={mode}>
-					{mode === "clipify" ? (
-						<iframe referrerPolicy='strict-origin-when-cross-origin' ref={iframeRef} className='w-full h-full' src='/demoPlayer' title='Interactive demo player' />
-					) : (
-						<div className='demoComparison__brb' role='img' aria-label='A static be right back screen'>
-							<div className='demoComparison__brbGlow' aria-hidden />
-							<p>Stream paused</p>
-							<h3>Be right back</h3>
-							<span>Hang tight — the stream will continue soon.</span>
-						</div>
-					)}
-				</StreamingWithChatMock>
-			</div>
+				)}
+			</StreamingWithChatMock>
 		</div>
 	);
 }
