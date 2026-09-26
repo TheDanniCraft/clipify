@@ -1,0 +1,42 @@
+# Dependencies and generated build/test output
+.git/
+node_modules/
+**/node_modules/
+.next/
+.next-playwright/
+out/
+build/
+coverage/
+playwright-report/
+test-results/
+compliance-results/
+blob-report/
+.features-gen/
+.heroui-docs/
+.codex-worktrees/
+.fallow/
+.agents/
+.specify/
+graphify-out/
+logs/
+public/downloads/runner/
+AGENTS.md
+.infisical.json
+
+# Generated or high-churn metadata without architectural value
+drizzle/meta/
+bun.lock
+*.tsbuildinfo
+next-env.d.ts
+
+# Separate work in progress; index it on its own branch later
+packages/video/
+
+# App icons and generated social/manifest artwork are assets, not architecture
+public/appSkew.webp
+public/og-image.png
+public/web-app-manifest-*.png
+public/clippy/Clippy.svg
+src/app/apple-icon.png
+src/app/icon*.png
+src/app/icon*.svg
