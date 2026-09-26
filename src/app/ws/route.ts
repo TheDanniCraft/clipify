@@ -1,6 +1,7 @@
 import { WebSocket, WebSocketServer } from "ws";
 import { removeSubscriber } from "@store/overlaySubscribers";
 import { handleMessage } from "@actions/websocket";
+import { recordWebSocketDisconnected, recordWebSocketRejected } from "@lib/operationalHealth";
 
 let heartbeatInterval: NodeJS.Timeout | null = null;
 
@@ -39,6 +40,7 @@ export function UPGRADE(client: WebSocket, server: WebSocketServer) {
 	client.role = "overlay";
 	client.subscribeDeadline = setTimeout(() => {
 		if ((!client.ownerId || !client.overlayId) && client.readyState === client.OPEN) {
+			recordWebSocketRejected("subscribe_timeout");
 			client.close(4001);
 		}
 	}, 10 * 1000);
@@ -49,6 +51,7 @@ export function UPGRADE(client: WebSocket, server: WebSocketServer) {
 
 	const cleanup = async () => {
 		clearTimeout(client.subscribeDeadline);
+		recordWebSocketDisconnected(client);
 		if (client.ownerId && client.overlayId) removeSubscriber(client.ownerId, client.overlayId, client);
 	};
 

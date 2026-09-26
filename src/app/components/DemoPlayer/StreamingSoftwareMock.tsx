@@ -12,12 +12,15 @@ type StreamingSoftwareMockProps = {
 
 	style?: CSSProperties;
 	statusRightText?: string;
+	demoMode?: "clipify" | "brb";
+	onDemoModeChange?: (mode: "clipify" | "brb") => void;
 };
 
-export default function StreamingSoftwareMock({ children, title = "OBS Studio - Profile: Default - Scenes: Clipify Pause", aspectRatio = "16 / 9", isLive = true, liveSeconds = 12 * 60 + 43, style, statusRightText = "CPU: 4.2%   60.00 / 60.00 FPS" }: StreamingSoftwareMockProps) {
+export default function StreamingSoftwareMock({ children, title = "OBS Studio - Profile: Default - Scenes: Clipify Pause", aspectRatio = "16 / 9", isLive = true, liveSeconds = 12 * 60 + 43, style, statusRightText = "CPU: 4.2%   60.00 / 60.00 FPS", demoMode, onDemoModeChange }: StreamingSoftwareMockProps) {
 	const [prevIsLive, setPrevIsLive] = useState(isLive);
 	const [prevLiveSeconds, setPrevLiveSeconds] = useState(liveSeconds);
 	const [seconds, setSeconds] = useState(liveSeconds);
+	const [hasSwitchedScene, setHasSwitchedScene] = useState(false);
 
 	if (isLive !== prevIsLive || liveSeconds !== prevLiveSeconds) {
 		setPrevIsLive(isLive);
@@ -33,6 +36,11 @@ export default function StreamingSoftwareMock({ children, title = "OBS Studio - 
 
 	const time = formatHMS(seconds);
 	const mixer = useFakeMixer(isLive);
+	const isStaticBreak = demoMode === "brb";
+	const selectScene = (mode: "clipify" | "brb") => {
+		setHasSwitchedScene(true);
+		onDemoModeChange?.(mode);
+	};
 
 	return (
 		<div className='obs' style={style}>
@@ -58,8 +66,30 @@ export default function StreamingSoftwareMock({ children, title = "OBS Studio - 
 
 			<div className='obs__docks'>
 				<Dock title='Scenes'>
+					{demoMode && (
+						<div className='obs__sceneHint'>
+							<span className='obs__sceneHintIcon' aria-hidden>
+								↘
+							</span>
+							<span>
+								<strong>Try it</strong>
+								Switch scenes and watch the audience react.
+							</span>
+						</div>
+					)}
 					<div className='obs__list'>
-						<div className='obs__row obs__row--selected'>Scene</div>
+						{demoMode ? (
+							<>
+								<button type='button' className={`obs__row obs__sceneButton ${demoMode === "clipify" ? "obs__row--selected" : ""}`} aria-pressed={demoMode === "clipify"} onClick={() => selectScene("clipify")}>
+									With Clipify
+								</button>
+								<button type='button' className={`obs__row obs__sceneButton ${demoMode === "brb" ? "obs__row--selected" : ""} ${!hasSwitchedScene && demoMode === "clipify" ? "obs__sceneButton--suggested" : ""}`} aria-pressed={demoMode === "brb"} onClick={() => selectScene("brb")}>
+									Without Clipify
+								</button>
+							</>
+						) : (
+							<div className='obs__row obs__row--selected'>Scene</div>
+						)}
 					</div>
 					<DockFooter />
 				</Dock>
@@ -68,9 +98,11 @@ export default function StreamingSoftwareMock({ children, title = "OBS Studio - 
 					<div className='obs__list'>
 						<div className='obs__row'>
 							<span className='obs__icon' aria-hidden>
-								⦿
+								{isStaticBreak ? "▧" : "⦿"}
 							</span>
-							Browser
+							<span className='obs__sourceName' title={isStaticBreak ? "Image · BRB Screen" : "Browser · Clipify Overlay"}>
+								{isStaticBreak ? "Image · BRB Screen" : "Browser · Clipify Overlay"}
+							</span>
 							<span className='obs__spacer' />
 							<span className='obs__tinyIcon' aria-hidden title='Visible'>
 								👁
@@ -84,8 +116,8 @@ export default function StreamingSoftwareMock({ children, title = "OBS Studio - 
 				</Dock>
 
 				<Dock title='Audio Mixer'>
-					<MixerRow label='Desktop Audio' level={mixer.desktop.level} peak={mixer.desktop.peak} rightDb={formatDb(mixer.desktop.level)} />
-					<MixerRow label='Mic/Aux' level={mixer.mic.level} peak={mixer.mic.peak} rightDb={formatDb(mixer.mic.level)} />
+					<MixerRow label='Desktop Audio' level={isStaticBreak ? 0.025 : mixer.desktop.level} peak={isStaticBreak ? 0.04 : mixer.desktop.peak} rightDb={formatDb(isStaticBreak ? 0.025 : mixer.desktop.level)} />
+					<MixerRow label='Mic/Aux' level={isStaticBreak ? 0.01 : mixer.mic.level} peak={isStaticBreak ? 0.015 : mixer.mic.peak} rightDb={formatDb(isStaticBreak ? 0.01 : mixer.mic.level)} />
 					<MixerRow label='Music' level={mixer.music.level} peak={mixer.music.peak} muted rightDb='MUTE' />
 				</Dock>
 

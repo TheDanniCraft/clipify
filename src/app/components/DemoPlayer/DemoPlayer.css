@@ -1,0 +1,49 @@
+.demoComparison__brb {
+	position: relative;
+	display: grid;
+	height: 100%;
+	place-content: center;
+	place-items: center;
+	overflow: hidden;
+	padding: 24px;
+	background: linear-gradient(135deg, rgb(9 13 25 / 92%), rgb(24 16 42 / 94%)), repeating-linear-gradient(135deg, transparent 0 28px, rgb(255 255 255 / 3%) 28px 29px);
+	color: white;
+	text-align: center;
+}
+
+.demoComparison__brbGlow {
+	position: absolute;
+	width: 52%;
+	aspect-ratio: 1;
+	border-radius: 999px;
+	background: color-mix(in srgb, var(--accent) 28%, transparent);
+	filter: blur(70px);
+}
+
+.demoComparison__brb p,
+.demoComparison__brb h3,
+.demoComparison__brb span {
+	position: relative;
+}
+
+.demoComparison__brb p {
+	margin: 0 0 8px;
+	font-size: clamp(0.65rem, 1.2vw, 0.9rem);
+	font-weight: 700;
+	letter-spacing: 0.16em;
+	text-transform: uppercase;
+	color: #c4b5fd;
+}
+
+.demoComparison__brb h3 {
+	margin: 0;
+	font-size: clamp(1.5rem, 4.5vw, 3.75rem);
+	font-weight: 850;
+	letter-spacing: -0.04em;
+}
+
+.demoComparison__brb span {
+	margin-top: 9px;
+	font-size: clamp(0.7rem, 1.35vw, 1rem);
+	color: rgb(255 255 255 / 68%);
+}

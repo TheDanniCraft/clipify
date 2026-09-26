@@ -7,6 +7,7 @@ import { getOverlayBySecret, getOverlayOwnerPlanPublic, getOverlayPublic } from 
 import { RawData } from "ws";
 import { ownerSubscribers, overlaySubscribers, addSubscriber } from "@store/overlaySubscribers";
 import { Plan } from "@types";
+import { recordOverlayStateUpdate, recordWebSocketRejected, recordWebSocketSubscribed } from "@lib/operationalHealth";
 
 type ControllerTokenPayload = {
 	overlayId: string;
@@ -33,11 +34,13 @@ export async function handleMessage(buffer: RawData, client: WebSocket) {
 		parsedMessage = JSON.parse(message);
 	} catch (error) {
 		console.error("Failed to parse WebSocket message:", error);
+		recordWebSocketRejected("invalid_message");
 		client.close(4003);
 		return;
 	}
 
 	if (!parsedMessage || typeof parsedMessage !== "object") {
+		recordWebSocketRejected("invalid_message");
 		client.close(4003);
 		return;
 	}
@@ -55,6 +58,7 @@ export async function handleMessage(buffer: RawData, client: WebSocket) {
 			const requestedRole = typeof payload === "string" ? undefined : payload?.role;
 
 			if (requestedRole !== undefined && requestedRole !== "overlay" && requestedRole !== "controller") {
+				recordWebSocketRejected("invalid_subscription");
 				client.close(4003);
 				return;
 			}
@@ -62,6 +66,7 @@ export async function handleMessage(buffer: RawData, client: WebSocket) {
 			const role = typeof payload === "string" ? "overlay" : (requestedRole ?? "overlay");
 
 			if (!overlayId) {
+				recordWebSocketRejected("invalid_subscription");
 				client.close(4002);
 				return;
 			}
@@ -69,6 +74,7 @@ export async function handleMessage(buffer: RawData, client: WebSocket) {
 			let overlay: Awaited<ReturnType<typeof getOverlayBySecret>> | null = null;
 			if (role === "controller") {
 				if (!controllerToken) {
+					recordWebSocketRejected("unauthorized");
 					client.close(4002);
 					return;
 				}
@@ -79,31 +85,37 @@ export async function handleMessage(buffer: RawData, client: WebSocket) {
 						issuer: "clipify-controller",
 					}) as ControllerTokenPayload;
 				} catch {
+					recordWebSocketRejected("unauthorized");
 					client.close(4002);
 					return;
 				}
 				if (!decoded?.overlayId || decoded.overlayId !== overlayId || !decoded.userId) {
+					recordWebSocketRejected("unauthorized");
 					client.close(4002);
 					return;
 				}
 				overlay = await getOverlayPublic(overlayId).catch(() => null);
 				if (!overlay) {
+					recordWebSocketRejected("unauthorized");
 					client.close(4002);
 					return;
 				}
 				const ownerPlan = await getOverlayOwnerPlanPublic(overlay.id).catch(() => null);
 				if (ownerPlan !== Plan.Pro) {
+					recordWebSocketRejected("unauthorized");
 					client.close(4002);
 					return;
 				}
 			} else {
 				if (!secret) {
+					recordWebSocketRejected("unauthorized");
 					client.close(4002);
 					return;
 				}
 				/* istanbul ignore next */
 				overlay = await getOverlayBySecret(overlayId, secret).catch(() => null);
 				if (!overlay) {
+					recordWebSocketRejected("unauthorized");
 					client.close(4002);
 					return;
 				}
@@ -114,6 +126,7 @@ export async function handleMessage(buffer: RawData, client: WebSocket) {
 			client.role = role;
 			clearTimeout(client.subscribeDeadline);
 			addSubscriber(overlay.ownerId, overlay.id, client);
+			recordWebSocketSubscribed(client, overlay.id, overlay.ownerId, role);
 
 			client.send(`subscribed ${overlay.id}`);
 			return;
@@ -144,6 +157,7 @@ export async function handleMessage(buffer: RawData, client: WebSocket) {
 				return;
 			}
 			const statePayload = payload as Record<string, unknown>;
+			recordOverlayStateUpdate(client, statePayload);
 			if (statePayload.kind === "playback_issue") {
 				console.warn("Overlay playback issue", {
 					...statePayload,
