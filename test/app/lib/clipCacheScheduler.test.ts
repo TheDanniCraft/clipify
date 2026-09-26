@@ -66,6 +66,7 @@ describe("lib/clipCacheScheduler", () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
 		resetSchedulerGlobals();
+		delete process.env.IS_PREVIEW;
 	});
 
 	afterEach(() => {
@@ -127,6 +128,29 @@ describe("lib/clipCacheScheduler", () => {
 		expect(getActiveOverlayOwnerIdsForClipSync).toHaveBeenCalledWith(25);
 		expect(syncOwnerClipCache).toHaveBeenCalledWith("owner-a");
 		expect(syncOwnerClipCache).toHaveBeenCalledWith("owner-b");
+		expect(lockClient.release).toHaveBeenCalled();
+	});
+
+	it("does not create Sentry monitor check-ins for preview deployments", async () => {
+		process.env = { ...process.env, NODE_ENV: "production", IS_PREVIEW: "true" };
+		delete process.env.NEXT_PHASE;
+
+		const lockClient = {
+			query: jest
+				.fn()
+				.mockResolvedValueOnce({ rows: [{ locked: true }] })
+				.mockResolvedValue({ rows: [] }),
+			release: jest.fn(),
+		};
+		connect.mockResolvedValue(lockClient);
+		getActiveOverlayOwnerIdsForClipSync.mockResolvedValue([]);
+
+		const { startClipCacheScheduler } = await loadScheduler();
+		startClipCacheScheduler();
+		await flushAsyncWork();
+		await flushAsyncWork();
+
+		expect(mockCaptureCheckIn).not.toHaveBeenCalled();
 		expect(lockClient.release).toHaveBeenCalled();
 	});
 

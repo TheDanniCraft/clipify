@@ -117,6 +117,16 @@ describe("actions/commands", () => {
 		expect(getFeatureAccess).not.toHaveBeenCalled();
 	});
 
+	it("ignores EventSub messages for broadcasters that no longer exist", async () => {
+		getUserByIdServer.mockResolvedValue(null);
+		const { handleCommand } = await loadCommands();
+
+		await expect(handleCommand(buildMessage("!play"))).resolves.toBeUndefined();
+
+		expect(getSettings).not.toHaveBeenCalled();
+		expect(sendChatMessage).not.toHaveBeenCalled();
+	});
+
 	it.each(["constructor", "toString", "__proto__"])("treats inherited object property %s as an unknown command", async (commandName) => {
 		const { handleCommand } = await loadCommands();
 		await expect(handleCommand(buildMessage(`!${commandName}`))).resolves.toBeUndefined();
