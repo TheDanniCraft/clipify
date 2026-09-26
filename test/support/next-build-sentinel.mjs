@@ -1,0 +1,1 @@
+console.log("NEXT_BUILD_SENTINEL_INVOKED");

@@ -9,6 +9,7 @@ import { getStripe } from "@actions/subscription";
 import { db } from "@/db/client";
 import { billingWebhookEventsTable } from "@/db/schema";
 import { syncStripeSubscription } from "@/server/billing";
+import { captureUnexpectedError } from "@lib/sentryServer";
 import { and, eq, isNull, lt, or } from "drizzle-orm";
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_KEY || "";
@@ -98,6 +99,7 @@ export async function POST(req: Request) {
 		const message = error instanceof Error ? error.message : "Unknown Stripe webhook error";
 		await db.update(billingWebhookEventsTable).set({ status: "failed", processingStartedAt: null, lastError: message }).where(leaseCondition);
 		console.error(`Stripe webhook failed: ${message} | EVENT TYPE: ${event.type}`);
+		captureUnexpectedError(error, "stripe-webhook", event.type);
 		return NextResponse.json({ error: message }, { status: 500 });
 	}
 }

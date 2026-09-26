@@ -1,12 +1,14 @@
 /* istanbul ignore file */
-import { NextRequest } from "next/server";
+import { after, NextRequest } from "next/server";
 import crypto from "crypto";
+import * as Sentry from "@sentry/nextjs";
 import { handleClip, sendChatMessage, updateRedemptionStatus } from "@actions/twitch";
 import { addToClipQueue, getOverlayByRewardId } from "@actions/database";
 import { RewardStatus, EventSubNotification, RewardRedemptionEvent, TwitchMessage } from "@types";
 import { sendMessage } from "@actions/websocket";
-import { handleCommand, isCommand, isMod } from "@actions/commands";
+import { handleCommand } from "@actions/commands";
 
+import { captureUnexpectedError } from "@lib/sentryServer";
 function parseEventSub<T = Record<string, unknown>>(body: string): EventSubNotification<T> {
 	return JSON.parse(body) as EventSubNotification<T>;
 }
@@ -20,7 +22,7 @@ async function getRequiredHeaders(headers: Headers): Promise<{ messageId: string
 	const messageType = headers.get("Twitch-Eventsub-Message-Type");
 
 	if (!messageId || !timestamp || !signature || !messageType) {
-		console.error("Missing required headers:", { messageId, timestamp, signature, messageType });
+		console.warn("Missing required EventSub headers.");
 		return { error: new Response("Missing required headers", { status: 400 }) };
 	}
 
@@ -86,7 +88,9 @@ async function handleRewardRedemption(notification: EventSubNotification<RewardR
 			}
 		}
 	} catch (error) {
-		console.error("Error processing reward redemption:", error);
+		captureUnexpectedError(error, "twitch-eventsub", "reward-redemption");
+		Sentry.logger.error("EventSub reward redemption failed", { component: "twitch-eventsub" });
+		Sentry.metrics.count("eventsub.failures", 1, { attributes: { operation: "reward-redemption" } });
 	}
 
 	return null;
@@ -94,19 +98,26 @@ async function handleRewardRedemption(notification: EventSubNotification<RewardR
 
 async function handleNotification(bodyText: string): Promise<Response | null> {
 	const notification = parseEventSub<Record<string, unknown>>(bodyText);
+	Sentry.metrics.count("eventsub.notifications", 1, { attributes: { subscription_type: notification.subscription.type } });
 
 	switch (notification.subscription.type) {
 		case "channel.chat.message": {
 			const event = notification.event as TwitchMessage;
-			if ((await isCommand(event)) && (await isMod(event))) {
-				handleCommand(event);
-			}
+			after(async () => {
+				try {
+					await Sentry.startSpan({ name: "Handle Twitch chat command", op: "task" }, () => handleCommand(event));
+				} catch (error) {
+					captureUnexpectedError(error, "twitch-eventsub", "chat-command");
+					Sentry.logger.error("EventSub chat command failed", { component: "twitch-eventsub" });
+					Sentry.metrics.count("eventsub.failures", 1, { attributes: { operation: "chat-command" } });
+				}
+			});
 			break;
 		}
 
 		case "channel.channel_points_custom_reward_redemption.add": {
 			const rewardNotif = notification as EventSubNotification<RewardRedemptionEvent>;
-			const res = await handleRewardRedemption(rewardNotif);
+			const res = await Sentry.startSpan({ name: "Handle Twitch reward redemption", op: "task" }, () => handleRewardRedemption(rewardNotif));
 			if (res) return res;
 			break;
 		}
@@ -129,7 +140,7 @@ export async function POST(request: NextRequest) {
 	const body = await request.text();
 
 	if (!isValidSignature(signature, timestamp, messageId, body)) {
-		console.error("Invalid signature:", { signature });
+		console.warn("Invalid EventSub signature.");
 		return new Response("Invalid signature", { status: 403 });
 	}
 
@@ -144,7 +155,9 @@ export async function POST(request: NextRequest) {
 					console.error("Invalid EventSub notification payload");
 					return new Response("Invalid JSON payload", { status: 400 });
 				}
-				console.error("Error handling EventSub notification:", error);
+				captureUnexpectedError(error, "twitch-eventsub", "notification");
+				Sentry.logger.error("EventSub notification failed", { component: "twitch-eventsub" });
+				Sentry.metrics.count("eventsub.failures", 1, { attributes: { operation: "notification" } });
 				return new Response(null, { status: 204 });
 			}
 		}
@@ -171,6 +184,11 @@ export async function POST(request: NextRequest) {
 			}
 
 			console.log(`${notification.subscription?.type} notifications revoked!`);
+			Sentry.logger.warn("EventSub subscription revoked", {
+				subscription_type: notification.subscription?.type ?? "unknown",
+				status: notification.subscription?.status ?? "unknown",
+				component: "twitch-eventsub",
+			});
 			console.log(`reason: ${notification.subscription?.status}`);
 			console.log(`condition: ${JSON.stringify(notification.subscription?.condition, null, 4)}`);
 

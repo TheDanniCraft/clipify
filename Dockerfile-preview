@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:1.26
+
 # -------------------------
 # deps
 # -------------------------
@@ -16,20 +18,27 @@ RUN --mount=type=cache,target=/root/.bun \
 FROM oven/bun:1 AS builder
 WORKDIR /app
 ARG COOLIFY_URL
+ARG SOURCE_COMMIT
+ARG SENTRY_RELEASE
+ARG SENTRY_RELEASE_PREFIX=clipify-preview
+ENV IS_PREVIEW=true
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN node scripts/fingerprint-runner.mjs --write-context src/app/lib/runnerContext.generated.ts
 
-RUN bun run app:build
+RUN --mount=type=secret,id=SENTRY_DSN,env=SENTRY_DSN,required=true \
+    --mount=type=secret,id=SENTRY_AUTH_TOKEN,env=SENTRY_AUTH_TOKEN,required=true \
+    SENTRY_RELEASE="${SENTRY_RELEASE:-${SENTRY_RELEASE_PREFIX}@${SOURCE_COMMIT:-local}}" \
+    bun run app:build
 
 # -------------------------
 # runner (preview)
 # -------------------------
-FROM oven/bun:1 AS runner
+FROM node:24-bookworm-slim AS runner
 WORKDIR /app
 
-ENV NODE_ENV=development
+ENV NODE_ENV=production
 ENV IS_PREVIEW=true
 ENV INFISICAL_API_URL=https://infisical.thedannicraft.de
 ENV PORT=3000
@@ -81,11 +90,12 @@ RUN set -eux; \
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/drizzle.config.ts ./
-COPY --from=builder --chown=nextjs:nodejs /app/src/db/schema.ts ./src/db/schema.ts
+COPY --from=builder --chown=nextjs:nodejs /app/drizzle.config.ts ./drizzle.config.ts
+COPY --from=builder --chown=nextjs:nodejs /app/tsconfig.json ./tsconfig.json
+COPY --from=builder --chown=nextjs:nodejs /app/src ./src
 
 RUN mkdir -p /app/logs && chown nextjs:nodejs /app/logs
 USER nextjs
 EXPOSE 3000
 
-CMD ["infisical", "run", "--projectId", "4bea168c-8d4c-4086-b755-f04fdc5305a1", "--command", "bun run db:push && bun server.js || sleep infinity"]
+CMD ["infisical", "run", "--projectId", "4bea168c-8d4c-4086-b755-f04fdc5305a1", "--command", "node node_modules/drizzle-kit/bin.cjs push && node server.js"]

@@ -3,6 +3,7 @@
 
 import { NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
+import * as Sentry from "@sentry/nextjs";
 import { AuthenticatedUser, Role } from "@types";
 import { cookies } from "next/headers";
 import { getBaseUrl } from "@actions/utils";
@@ -76,15 +77,18 @@ export async function validateAuth(skipUserCheck = false) {
 	const cookieUser = token ? ((await getUserFromCookie(token.value)) as AuthenticatedUser | null) : null;
 
 	if (!cookieUser) {
+		Sentry.setUser(null);
 		return false;
 	}
 
 	const actorUser = await getUserById(cookieUser.id);
 	if (!actorUser) {
+		Sentry.setUser(null);
 		return false;
 	}
 
 	const { effectiveUser, adminView } = await resolveEffectiveUser(actorUser, cookieStore);
+	Sentry.setUser({ id: effectiveUser.id });
 
 	if (skipUserCheck) {
 		/* ignore: auth edge case / redirect handling */
@@ -112,8 +116,10 @@ export async function validateAdminAuth(skipUserCheck = false) {
 
 	const adminUser = await getUserById(cookieUser.id);
 	if (!adminUser || adminUser.role !== Role.Admin) {
+		Sentry.setUser(null);
 		return false;
 	}
+	Sentry.setUser({ id: adminUser.id });
 
 	if (skipUserCheck) {
 		return adminUser;

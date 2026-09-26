@@ -1,0 +1,30 @@
+export const privacyRequestGuidance = {
+	intentions: ["access", "correction", "deletion", "portability", "restriction", "objection", "consent withdrawal", "complaint or privacy question"],
+	requestTypes: [
+		{ title: "Confirm or access data", description: "Ask whether we process personal data about you and, where applicable, receive a copy together with the required processing information." },
+		{ title: "Correct data", description: "Ask us to correct inaccurate personal data or complete information that is incomplete." },
+		{ title: "Delete data", description: "Ask us to erase data that is no longer needed or is otherwise subject to a valid deletion request." },
+		{ title: "Restrict or object", description: "Ask us to restrict particular processing or object to processing based on legitimate interests." },
+		{ title: "Receive portable data", description: "Where the legal conditions apply, ask for data you supplied in a structured, commonly used, machine-readable format." },
+		{ title: "Withdraw consent", description: "Withdraw an optional consent for future processing. Cookie preferences and account email settings provide immediate controls for those choices." },
+	],
+	contact: { email: "contact@clipify.us", accountRequired: false },
+	processStages: ["submission", "identity verification", "assessment", "response"],
+	processStageDetails: {
+		submission: "Tell us which right you want to exercise and, if possible, the Twitch account, Clipify feature, email address, or support conversation concerned. You do not need to quote a law or use a specific form.",
+		"identity verification": "We compare the request with information already associated with the account. We may ask you to sign in, confirm control of the Twitch-linked email address, reply from an address already on file, or provide another proportionate account detail.",
+		assessment: "We locate relevant systems, check the scope of the request, protect the rights of other people, and determine whether a legal exception or retention obligation applies.",
+		response: "We respond electronically unless another appropriate format is requested. A data copy is provided securely, and we explain any partial fulfillment, extension, or refusal together with available complaint rights.",
+	},
+	complaintRoutes: ["Contact Clipify directly at contact@clipify.us", "Contact the data-protection authority responsible for your residence, workplace, or the alleged infringement", "For Clipify's German establishment, contact the State Commissioner for Data Protection and Freedom of Information Baden-Württemberg (LfDI Baden-Württemberg)"],
+	initialRequestDoNotInclude: ["passwords", "authentication secrets", "Twitch access or refresh tokens", "complete payment-card details", "a passport or identity-card copy unless we specifically explain why it is necessary"],
+	verification: "We request only the additional information reasonably needed to confirm identity and authority for the risk of the request. We do not require a passport, an office visit, or unrelated personal information by default.",
+	timing: "We normally respond without undue delay and within one month after receiving the request. Where a request is complex or numerous, applicable law may allow up to two additional months; if so, we explain the extension within the first month.",
+	costs: "Requests are normally free. Where permitted by law, we may charge a reasonable fee or refuse to act on a request that is manifestly unfounded or excessive, especially because it is repetitive, and we will explain that decision.",
+	qualifications: [
+		"Rights apply where the relevant legal requirements and circumstances are met.",
+		"Deletion does not require us to erase data that must be retained for tax, accounting, security, fraud-prevention, contractual, or legal-claim purposes.",
+		"A response must not disclose another person's personal data, confidential information, or information that would undermine security.",
+		"If we cannot identify the person or data concerned after reasonable steps, we explain what additional information is needed or why we cannot act.",
+	],
+} as const;

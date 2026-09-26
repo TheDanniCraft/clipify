@@ -603,8 +603,8 @@ declare global {
 			setUser: (user: unknown, options?: unknown) => void;
 			showPopoutButton: boolean;
 			showUnreadMessagesDialog: boolean;
-			toggle: (state?: boolean) => void;
-			toggleBubbleVisibility: (visible: boolean) => void;
+			toggle?: (state?: "open" | "close") => void;
+			toggleBubbleVisibility?: (visibility: "show" | "hide") => void;
 			unavailableMessage: string;
 			welcomeDescription: string;
 			welcomeTitle: string;

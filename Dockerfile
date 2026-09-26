@@ -18,17 +18,23 @@ RUN --mount=type=cache,target=/root/.bun \
 FROM oven/bun:1 AS builder
 WORKDIR /app
 ARG COOLIFY_URL
+ARG SOURCE_COMMIT
+ARG SENTRY_RELEASE
+ARG SENTRY_RELEASE_PREFIX=clipify
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN node scripts/fingerprint-runner.mjs --write-context src/app/lib/runnerContext.generated.ts
 
-RUN bun run app:build
+RUN --mount=type=secret,id=SENTRY_DSN,env=SENTRY_DSN,required=true \
+    --mount=type=secret,id=SENTRY_AUTH_TOKEN,env=SENTRY_AUTH_TOKEN,required=true \
+    SENTRY_RELEASE="${SENTRY_RELEASE:-${SENTRY_RELEASE_PREFIX}@${SOURCE_COMMIT:-local}}" \
+    bun run app:build
 
 # -------------------------
 # runner (production)
 # -------------------------
-FROM oven/bun:1 AS runner
+FROM node:24-bookworm-slim AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
@@ -84,11 +90,11 @@ RUN set -eux; \
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/drizzle.config.ts ./
 COPY --from=builder --chown=nextjs:nodejs /app/drizzle ./drizzle
+COPY --from=builder --chown=nextjs:nodejs /app/scripts/run-migrations.mjs ./scripts/run-migrations.mjs
 
 RUN mkdir -p /app/logs && chown nextjs:nodejs /app/logs
 USER nextjs
 EXPOSE 3000
 
-CMD ["infisical", "run", "--projectId", "4bea168c-8d4c-4086-b755-f04fdc5305a1", "--command", "bun run db:migrate && bun server.js || sleep infinity"]
+CMD ["infisical", "run", "--projectId", "4bea168c-8d4c-4086-b755-f04fdc5305a1", "--command", "node scripts/run-migrations.mjs && node server.js"]

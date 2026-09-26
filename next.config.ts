@@ -1,6 +1,6 @@
 import type { NextConfig } from "next";
 import { withPlausibleProxy } from "next-plausible";
-import { withSentryConfig } from "@sentry/nextjs";
+import { withSentryConfig } from "@sentry/nextjs/config";
 import crypto from "crypto";
 import path from "path";
 import { nodeFileTrace } from "@vercel/nft";
@@ -8,18 +8,21 @@ import { nodeFileTrace } from "@vercel/nft";
 const drizzle = nodeFileTrace([require.resolve("drizzle-kit"), require.resolve("drizzle-orm"), path.resolve(path.dirname(require.resolve("drizzle-kit")), "bin.cjs")]).then((drizzle) => [...drizzle.fileList, "./node_modules/.bin/drizzle-kit", "./node_modules/drizzle-orm/**", "./node_modules/drizzle-kit/**"]);
 const plausibleScriptName = process.env.NEXT_PUBLIC_PLAUSIBLE_SCRIPT_NAME ?? process.env.PLAUSIBLE_SCRIPT_NAME ?? `${crypto.randomInt(1000, 10000)}-${crypto.randomBytes(8).toString("hex")}`;
 const plausibleSrc = "https://analytics.thedannicraft.de/js/pa-plTnxxmoxCSO3VJloWzAG.js";
+const replayContentSecurityPolicy = (frameAncestors: string) => `frame-ancestors ${frameAncestors}; frame-src 'self' https://challenges.cloudflare.com https://chat.cloud.thedannicraft.de; worker-src 'self' blob:; child-src 'self' blob:;`;
 
 const nextConfigPromise = Promise.resolve(drizzle).then(
 	(drizzle) =>
 		({
 			output: "standalone",
+			distDir: process.env.E2E_TEST_MODE === "true" ? ".next-playwright" : ".next",
 			outputFileTracingIncludes: {
-				"**": [...drizzle],
+				"**": [...drizzle, "./node_modules/@sentry/profiling-node/**", "./node_modules/@sentry/node-cpu-profiler/**"],
 			},
 			poweredByHeader: false,
 			async headers() {
 				const baseSecurityHeaders = [
 					{ key: "X-Content-Type-Options", value: "nosniff" },
+					{ key: "Document-Policy", value: "js-profiling" },
 					{ key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
 					{
 						key: "Permissions-Policy",
@@ -34,23 +37,23 @@ const nextConfigPromise = Promise.resolve(drizzle).then(
 				return [
 					{
 						source: "/demoPlayer",
-						headers: [...baseSecurityHeaders, { key: "X-Frame-Options", value: "SAMEORIGIN" }, { key: "Content-Security-Policy", value: "frame-ancestors 'self';" }],
+						headers: [...baseSecurityHeaders, { key: "X-Frame-Options", value: "SAMEORIGIN" }, { key: "Content-Security-Policy", value: replayContentSecurityPolicy("'self'") }],
 					},
 					{
 						source: "/embed/:overlayId",
-						headers: [...baseSecurityHeaders, { key: "Content-Security-Policy", value: "frame-ancestors *;" }],
+						headers: [...baseSecurityHeaders, { key: "Content-Security-Policy", value: replayContentSecurityPolicy("*") }],
 					},
 					{
 						source: "/gallery/:galleryId/frame",
-						headers: [...baseSecurityHeaders, { key: "Content-Security-Policy", value: "frame-ancestors *;" }],
+						headers: [...baseSecurityHeaders, { key: "Content-Security-Policy", value: replayContentSecurityPolicy("*") }],
 					},
 					{
 						source: "/dashboard/galleries/:galleryId/preview/clip/:clipId",
-						headers: [...baseSecurityHeaders, { key: "Content-Security-Policy", value: "frame-ancestors *;" }],
+						headers: [...baseSecurityHeaders, { key: "Content-Security-Policy", value: replayContentSecurityPolicy("*") }],
 					},
 					{
 						source: "/gallery/:galleryId/clip/:clipId",
-						headers: [...baseSecurityHeaders, { key: "Content-Security-Policy", value: "frame-ancestors *;" }],
+						headers: [...baseSecurityHeaders, { key: "Content-Security-Policy", value: replayContentSecurityPolicy("*") }],
 					},
 					{
 						source: "/elements/:path*",
@@ -58,21 +61,53 @@ const nextConfigPromise = Promise.resolve(drizzle).then(
 					},
 					{
 						source: "/:path((?!demoPlayer$|embed/[^/]+/?$|gallery/[^/]+/frame/?$|gallery/[^/]+/clip/[^/]+/?$|dashboard/galleries/[^/]+/preview/clip/[^/]+/?$).*)",
-						headers: [...baseSecurityHeaders, { key: "X-Frame-Options", value: "DENY" }, { key: "Content-Security-Policy", value: "frame-ancestors 'none';" }],
+						headers: [...baseSecurityHeaders, { key: "X-Frame-Options", value: "DENY" }, { key: "Content-Security-Policy", value: replayContentSecurityPolicy("'none'") }],
 					},
 				];
 			},
 		}) as NextConfig,
 );
 
-export default nextConfigPromise.then((resolvedConfig) =>
-	withSentryConfig(
+export default nextConfigPromise.then((resolvedConfig) => {
+	const configWithSentryBuildEnvironment: NextConfig = {
+		...resolvedConfig,
+		env: {
+			...resolvedConfig.env,
+			SENTRY_DSN: process.env.SENTRY_DSN ?? "",
+			SENTRY_RELEASE: process.env.SENTRY_RELEASE ?? "",
+			IS_PREVIEW: process.env.IS_PREVIEW === "true" ? "true" : "false",
+			E2E_TEST_MODE: process.env.E2E_TEST_MODE === "true" ? "true" : "false",
+		},
+	};
+
+	return withSentryConfig(
 		withPlausibleProxy({
 			src: plausibleSrc!,
 			scriptPath: `/js/${plausibleScriptName}.js`,
-		})(resolvedConfig),
+		})(configWithSentryBuildEnvironment),
 		{
+			org: "thedannicraft",
+			project: "clipify",
+			authToken: process.env.SENTRY_AUTH_TOKEN,
+			widenClientFileUpload: true,
 			tunnelRoute: "/monitor",
+			release: {
+				name: process.env.SENTRY_RELEASE,
+				create: true,
+				finalize: true,
+				setCommits: {
+					auto: true,
+					ignoreMissing: true,
+					ignoreEmpty: true,
+				},
+				deploy: {
+					env: process.env.IS_PREVIEW === "true" ? "preview" : "production",
+				},
+			},
+			silent: false,
+			sourcemaps: {
+				deleteSourcemapsAfterUpload: true,
+			},
 		},
-	),
-);
+	);
+});

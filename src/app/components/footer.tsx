@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { Button, Card, Separator, Form, Input, Link, Modal, Spinner, Tabs, TextField, Label, FieldError, InputGroup } from "@heroui/react";
+import { Button, Card, Separator, Form, Input, Link, Modal, Spinner, TextField, Label, FieldError, InputGroup } from "@heroui/react";
 import Image from "next/image";
 
 import { Turnstile } from "nextjs-turnstile";
@@ -17,11 +17,15 @@ import { getEmailProvider, subscribeToNewsletter } from "@actions/newsletter";
 import { usePlausible } from "next-plausible";
 import { isRatelimitError } from "@actions/rateLimit";
 import type { CommunityTeaserStreamer } from "@lib/community-types";
+import { ConsentDialogLink } from "@c15t/nextjs/components/consent-dialog-link";
+import { legalDocumentRoutes } from "@lib/legal/documents";
+
+const isE2ETestMode = process.env.E2E_TEST_MODE === "true";
 
 export default function Footer() {
-	const { theme, setTheme } = useTheme();
+	const { setTheme } = useTheme();
 	const [statusColor, setStatusColor] = useState("#ffffff");
-	const [statusText, setStatusText] = useState("Loading...");
+	const [statusText, setStatusText] = useState(isE2ETestMode ? "Test environment" : "Loading...");
 	const [footerCommunityPreview, setFooterCommunityPreview] = useState<CommunityTeaserStreamer[] | null>(null);
 	const plausible = usePlausible();
 	const [newsletterState, setNewsletterState] = useState("default");
@@ -89,19 +93,19 @@ export default function Footer() {
 			{ name: "Latest News", href: "/changelog" },
 			{ name: "Roadmap", href: "/roadmap" },
 			{ name: "Collaborations", href: "https://help.clipify.us/hc/clipify/articles/1756597294-collaborations" },
-			{ name: "Referral Program", href: "/referral-program" },
 			{ name: "Climate Initiative", href: "https://climate.stripe.com/FaGAVC" },
 		],
 		legal: [
-			{ name: "Imprint", href: "/imprint" },
-			{ name: "Privacy Policy", href: "https://hub.goadopt.io/document/3852d930-97b9-46c2-950d-823e62515ab4?language=en" },
-			{ name: "Cookie Policy", href: "https://hub.goadopt.io/document/535d4dc1-7b66-4b96-9bff-bc6e0e47587d?language=en" },
-			{ name: "Terms of Service", href: "https://hub.goadopt.io/document/9651af3f-af45-480f-8a4d-2beb6ed68e9b?language=en" },
-			{ name: "Request Data Removal", href: "https://hub.goadopt.io/privacy-hub/07b752d8-6dc2-4831-9c53-b5038623ddf4?language=en&legislation=gdpr&websiteId=b03e3c81-5d51-4e76-8610-8259e1b06086&disclaimerId=792b9b29-57f9-4d92-b5f1-313f94ddfacc&visitorId=9b705dd6-cc3e-4a91-9dad-f7acb8bd6a7c" },
+			{ name: "Imprint", href: legalDocumentRoutes.imprint },
+			{ name: "Privacy Policy", href: legalDocumentRoutes.privacy },
+			{ name: "Cookie Policy", href: legalDocumentRoutes.cookies },
+			{ name: "Terms of Service", href: legalDocumentRoutes.terms },
+			{ name: "Request Data Removal", href: legalDocumentRoutes.privacyRequests },
 		],
 	};
 
 	useEffect(() => {
+		if (isE2ETestMode) return;
 		axios
 			.get("https://api.status.thedannicraft.de/clipify", {})
 			.then((response) => {
@@ -133,6 +137,7 @@ export default function Footer() {
 	}, []);
 
 	useEffect(() => {
+		if (isE2ETestMode) return;
 		let cancelled = false;
 
 		async function loadCommunityPreview() {
@@ -298,7 +303,10 @@ export default function Footer() {
 							</div>
 							<div className='md:grid md:grid-cols-2 md:gap-8'>
 								<div>{renderList({ title: "About Us", items: footerNavigation.aboutUs })}</div>
-								<div className='mt-10 md:mt-0'>{renderList({ title: "Legal", items: footerNavigation.legal })}</div>
+								<div className='mt-10 md:mt-0'>
+									{renderList({ title: "Legal", items: footerNavigation.legal })}
+									<ConsentDialogLink className='link mt-1 text-sm text-muted'>Cookie preferences</ConsentDialogLink>
+								</div>
 							</div>
 						</div>
 					</div>
@@ -395,9 +403,11 @@ export default function Footer() {
 											</div>
 										</motion.div>
 									</motion.div>
-									<div className='pt-1'>
-										<Turnstile siteKey='0x4AAAAAACMFR636JljxhVLl' onSuccess={setToken} onError={(error) => console.error("Turnstile error:", error)} onExpire={() => setToken(null)} />
-									</div>
+									{!isE2ETestMode && (
+										<div className='pt-1'>
+											<Turnstile siteKey='0x4AAAAAACMFR636JljxhVLl' onSuccess={setToken} onError={(error) => console.error("Turnstile error:", error)} onExpire={() => setToken(null)} />
+										</div>
+									)}
 									{newsletterState === "loading" && <p className='text-xs text-muted pt-1'>Subscribing...</p>}
 									{newsletterState === "captcha" && <p className='text-xs text-muted pt-1'>Please complete the CAPTCHA first.</p>}
 									{newsletterState === "error" && <p className='text-xs text-danger pt-1'>Could not subscribe right now. Please try again.</p>}
@@ -438,20 +448,14 @@ export default function Footer() {
 							<p className='text-center text-xs text-muted md:text-start'>&copy; {new Date().getFullYear()} TheDanniCraft. All rights reserved.</p>
 						</div>
 
-						<Tabs className='w-fit' onSelectionChange={(key) => setTheme(String(key))} selectedKey={theme ?? "dark"}>
-							<Tabs.ListContainer className='w-fit'>
-								<Tabs.List aria-label='Color theme' className='w-fit *:w-fit'>
-									<Tabs.Tab id='dark' className='flex-none' aria-label='Switch to dark theme'>
-										<IconMoonFilled />
-										<Tabs.Indicator />
-									</Tabs.Tab>
-									<Tabs.Tab id='light' className='flex-none' aria-label='Switch to light theme'>
-										<IconSunFilled />
-										<Tabs.Indicator />
-									</Tabs.Tab>
-								</Tabs.List>
-							</Tabs.ListContainer>
-						</Tabs>
+						<div role='group' aria-label='Color theme' className='flex w-fit gap-1 rounded-full border border-default p-1'>
+							<Button isIconOnly size='sm' variant='ghost' aria-label='Switch to dark theme' onPress={() => setTheme("dark")}>
+								<IconMoonFilled />
+							</Button>
+							<Button isIconOnly size='sm' variant='ghost' aria-label='Switch to light theme' onPress={() => setTheme("light")}>
+								<IconSunFilled />
+							</Button>
+						</div>
 					</div>
 				</div>
 			</footer>

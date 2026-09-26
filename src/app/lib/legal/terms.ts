@@ -1,0 +1,130 @@
+import type { LegalDocumentSection } from "./documents";
+
+export const termsSections: readonly LegalDocumentSection[] = [
+	{
+		id: "acceptance",
+		title: "1. Agreement to these Terms",
+		summary: "These Terms govern your access to clipify.us, the Clipify web application, public pages and overlays, and related services (together, the Service).",
+		details: ["By creating an account, purchasing a plan, installing the self-hosted Runner, or otherwise using the Service, you agree to these Terms. If you do not agree, do not use the Service. Mandatory rights that cannot lawfully be waived remain unaffected."],
+	},
+	{
+		id: "provider",
+		title: "2. Provider and contact",
+		summary: "The Service is provided by Daniel Trui, Frankenweg 12, 75438 Knittlingen, Germany, trading as Clipify.",
+		details: ["Questions about these Terms can be sent to contact@clipify.us. The Imprint contains the complete provider and contact information."],
+	},
+	{
+		id: "eligibility",
+		title: "3. Eligibility",
+		summary: "You must be at least 13 years old, meet Twitch's minimum-age requirements, and be legally able to enter this agreement.",
+		details: ["If applicable law does not allow you to agree independently, a parent or legal guardian must review and authorize your use. If you use Clipify for an organization, you confirm that you have authority to bind it to these Terms."],
+	},
+	{
+		id: "service-scope",
+		title: "4. The Clipify Service",
+		summary: "Clipify provides Twitch-oriented clip playback, overlays, playlists, moderation and chat tools, creator pages, galleries, analytics, and related account features.",
+		details: ["The exact features, limits, and availability depend on your plan and the current product description. Some features are experimental, marked beta, depend on third-party platforms, or require a browser source, Twitch authorization, or separately installed Runner."],
+	},
+	{
+		id: "accounts",
+		title: "5. Accounts and authentication",
+		summary: "Accounts are created and authenticated through Twitch OAuth. Clipify does not issue a separate password.",
+		items: ["Keep your Twitch account and any device running the Runner secure.", "Provide accurate information and keep your contact details current.", "Do not share account access or use another person's account without authorization.", "Tell us promptly at contact@clipify.us if you suspect unauthorized access or misuse."],
+		details: ["You are responsible for activity performed through your account unless it results from a security failure for which Clipify is legally responsible."],
+	},
+	{
+		id: "external-platforms",
+		title: "6. Twitch and other third-party services",
+		summary: "Clipify is an independent service and is not affiliated with or endorsed by Twitch Interactive, Inc.",
+		details: ["Your use of Twitch, Stripe, and other connected services remains subject to their terms and policies. Changes, outages, rate limits, revoked permissions, removed content, or enforcement decisions by those providers can limit Clipify features. We are not responsible for a third party's service, but we will take reasonable steps to reduce avoidable disruption within our control."],
+	},
+	{
+		id: "acceptable-use",
+		title: "7. Acceptable use",
+		summary: "Use Clipify lawfully, responsibly, and only in ways compatible with these Terms and the rights of others.",
+		items: [
+			"Do not attack, overload, scrape at unreasonable volume, reverse-engineer protected portions, bypass plan or technical limits, or interfere with the Service.",
+			"Do not attempt unauthorized access, probe another user's data, expose credentials, distribute malware, or misuse security findings.",
+			"Do not use Clipify to display, transmit, or organize unlawful, infringing, deceptive, abusive, or harmful content.",
+			"Do not impersonate another person, manipulate billing or entitlements, or use automation in a way that violates Twitch rules or applicable law.",
+			"Do not resell, sublicense, or provide Clipify itself as a competing hosted service without written permission.",
+		],
+		details: ["Good-faith security research must follow the repository SECURITY.md policy and must not harm users, access unnecessary data, or disrupt the Service."],
+	},
+	{
+		id: "user-content",
+		title: "8. Your content and permissions",
+		summary: "You retain your rights in content and configuration you provide, while third-party content remains owned by its respective owner.",
+		details: [
+			"You grant Clipify a limited, non-exclusive, worldwide license to host, cache, process, reproduce, and display that content only as needed to provide, secure, and improve the features you request. This license ends when the content is deleted, except for temporary backups, legal retention, or content made public and independently retained by others.",
+			"You are responsible for having the permissions needed to use clips, images, text, audio, and other content in your overlays or public pages. Clipify may remove or restrict content when reasonably necessary to comply with law, third-party rights, platform rules, or these Terms.",
+		],
+	},
+	{
+		id: "intellectual-property",
+		title: "9. Clipify intellectual property",
+		summary: "Clipify's software, branding, interface, documentation, and original content are protected by intellectual-property law.",
+		details: ["We grant you a limited, revocable, non-exclusive, non-transferable right to use the hosted Service during the agreement. Open-source components and any published source code remain governed by their stated licenses. No other rights are granted by implication."],
+	},
+	{
+		id: "billing",
+		title: "10. Paid plans, billing, and renewal",
+		summary: "Prices, billing periods, taxes, feature limits, and renewal terms are shown before you complete checkout.",
+		details: ["Payments are processed by Stripe. By starting a recurring subscription, you authorize the displayed recurring charge until cancellation. You are responsible for keeping the selected payment method valid and for any legally applicable taxes.", "If payment fails or remains overdue, paid features may be restricted after reasonable notice. Price or plan changes apply prospectively and will be communicated where advance notice is required."],
+	},
+	{
+		id: "cancellation",
+		title: "11. Cancellation, withdrawal, and refunds",
+		summary: "You can cancel a subscription so that it does not renew after the current paid period.",
+		details: ["Cancellation does not automatically refund an already started billing period. Statutory withdrawal, refund, warranty, and consumer rights remain unaffected. Where digital performance begins before a statutory withdrawal period expires, any consent or acknowledgement required by law will be requested during checkout."],
+	},
+	{
+		id: "runner-responsibilities",
+		title: "12. Self-hosted Runner",
+		summary: "The optional Runner is installed and operated in an environment you control, not on Clipify-managed infrastructure.",
+		items: ["You are responsible for the host machine, operating system, network access, credentials, backups, updates, monitoring, and physical security.", "Do not distribute Runner credentials or expose its management interfaces beyond what is required for operation.", "You must follow third-party software licenses and the laws that apply to your own hosting environment."],
+		details: ["Clipify can provide documentation and reasonable support but cannot guarantee or control the security, uptime, or configuration of a user-operated machine."],
+	},
+	{
+		id: "availability-and-changes",
+		title: "13. Availability, maintenance, and changes",
+		summary: "We aim to operate Clipify reliably, but uninterrupted or error-free availability is not guaranteed.",
+		details: ["Maintenance, security incidents, third-party outages, technical changes, or capacity limits can interrupt features. We may improve, replace, or discontinue functionality. For a material adverse change to a paid core feature, we will provide proportionate notice and any remedy required by applicable law."],
+	},
+	{
+		id: "suspension-and-termination",
+		title: "14. Suspension and termination",
+		summary: "You may stop using Clipify at any time and may request account deletion through the Privacy Requests page.",
+		details: ["We may suspend or terminate access where reasonably necessary because of a material breach, unlawful use, security risk, harm to other users, non-payment, or loss of a required third-party integration. Except where immediate action is necessary, we will provide reasonable notice and an opportunity to remedy a remediable breach. Statutory termination rights remain unaffected."],
+	},
+	{
+		id: "disclaimers",
+		title: "15. Service limitations",
+		summary: "Clipify is provided according to the agreed feature description and applicable law; third-party content and services remain outside our control.",
+		details: ["We do not guarantee that every Twitch clip remains available, that third-party APIs remain unchanged, or that user-supplied content is accurate or lawful. Nothing in these Terms excludes statutory conformity, warranty, or consumer protections that apply to you."],
+	},
+	{
+		id: "mandatory-law-liability",
+		title: "16. Liability",
+		summary: "We are liable without limitation for intent and gross negligence, injury to life, body, or health, guarantees we expressly give, and liability that cannot legally be limited.",
+		details: ["For slight negligence affecting an essential contractual obligation, liability is limited to damage that was typical and reasonably foreseeable when the agreement was made. An essential obligation is one whose performance makes the agreement possible and on which you may ordinarily rely. Otherwise, liability for slight negligence is excluded to the extent permitted by law. These limitations also apply to our representatives and agents."],
+	},
+	{
+		id: "changes-to-terms",
+		title: "17. Changes to these Terms",
+		summary: "We may update these Terms for legal, security, technical, or service changes.",
+		details: ["The current version and effective date appear at the top. Material changes will be communicated with reasonable notice where required. If your consent is legally required, the change will not bind you until consent is obtained. Continuing to use the Service after a validly notified effective date constitutes acceptance only where permitted by law."],
+	},
+	{
+		id: "governing-law",
+		title: "18. Governing law and disputes",
+		summary: "German law applies, excluding the UN Convention on Contracts for the International Sale of Goods, to the extent that this choice is legally permitted.",
+		details: ["If you are a consumer, this choice does not deprive you of mandatory protections of the country in which you habitually reside. Statutory jurisdiction rules apply. Please contact us first so we can try to resolve a concern. We are not willing or obliged to participate in dispute-resolution proceedings before a consumer arbitration board."],
+	},
+	{
+		id: "severability",
+		title: "19. Final provisions",
+		summary: "If an individual provision is invalid or unenforceable, the remaining Terms continue to apply.",
+		details: ["Failure to enforce a provision once is not a permanent waiver. You may not transfer this agreement without our consent where consent is legally required; we may transfer it as part of a lawful business succession while preserving applicable rights. The English version governs unless mandatory law requires another language or interpretation."],
+	},
+];

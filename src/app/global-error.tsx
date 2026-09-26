@@ -1,16 +1,13 @@
 "use client";
 
-import * as Sentry from "@sentry/nextjs";
-import { useEffect } from "react";
 import { Button, Link } from "@heroui/react";
 import { buttonVariants } from "@heroui/styles";
 
 import NextErrorPage from "@components/nextErrorPage";
+import { formatErrorReference, useSentryEventId } from "@lib/useSentryEventId";
 
 export default function GlobalError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
-	useEffect(() => {
-		Sentry.captureException(error);
-	}, [error]);
+	const eventId = useSentryEventId(error);
 
 	return (
 		<html>
@@ -18,7 +15,7 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
 				<NextErrorPage
 					contextLabel='Oops, something went wrong'
 					title='We could not load the app'
-					description='Something unexpected happened. We logged the issue automatically, and your data is safe.'
+					description={`Something unexpected happened. We logged the issue automatically, and your data is safe.${formatErrorReference(eventId)}`}
 					actions={
 						<>
 							<Button onPress={reset} variant='primary'>

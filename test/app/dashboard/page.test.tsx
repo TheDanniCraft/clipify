@@ -37,7 +37,7 @@ jest.mock("@components/dashboardNavbar", () => ({
 	),
 }));
 
-jest.mock("@components/feedbackWidget", () => ({
+jest.mock("@components/SentryFeedbackWidget", () => ({
 	__esModule: true,
 	default: () => <div>feedback-widget</div>,
 }));

@@ -42,12 +42,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 			changeFrequency: "monthly",
 			priority: 0.7,
 		},
-		{
-			url: `${baseUrl}referral-program`,
-			lastModified: new Date(),
-			changeFrequency: "monthly",
-			priority: 0.7,
-		},
 		...creators.map((creator) => ({
 			url: new URL(`/creators/${encodeURIComponent(creator.username.toLowerCase())}`, baseUrl).toString(),
 			lastModified: creator.updatedAt ?? new Date(),

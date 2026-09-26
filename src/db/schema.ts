@@ -500,3 +500,6 @@ export const streamSessionsTable = pgTable("stream_sessions", {
 	lastError: text("last_error"),
 	updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
+
+// Generated from @c15t/backend's current FumaDB schema.
+export * from "./c15t-schema";

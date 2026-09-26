@@ -14,6 +14,5 @@ describe("isEmbeddedRoute", () => {
 	it("does not preconnect globally to optional third-party script hosts", () => {
 		const layout = readFileSync(path.join(process.cwd(), "src/app/layout.tsx"), "utf8");
 		expect(layout).not.toContain("rel='preconnect' href='https://tag.goadopt.io'");
-		expect(layout).not.toContain("rel='preconnect' href='https://affiliate.clipify.us'");
 	});
 });

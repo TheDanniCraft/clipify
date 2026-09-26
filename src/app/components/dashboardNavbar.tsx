@@ -168,9 +168,6 @@ export default function DashboardNavbar({ children, user, title, tagline }: { ch
 										<Dropdown.Item id='help_and_feedback' textValue='Help' onAction={() => router.push("https://help.clipify.us/")}>
 											<Label>Help</Label>
 										</Dropdown.Item>
-										<Dropdown.Item id='refer_a_friend' textValue='Refer a Friend' onAction={() => router.push("/referral-program")}>
-											<Label>Refer a Friend</Label>
-										</Dropdown.Item>
 										<Dropdown.Item id='logout' textValue='Log Out' variant='danger' onAction={() => router.push("/logout")}>
 											<Label>Log Out</Label>
 										</Dropdown.Item>

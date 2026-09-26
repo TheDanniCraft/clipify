@@ -1,4 +1,5 @@
 import { reconcileRevokedUsersBatch } from "@lib/entitlements";
+import { captureUnexpectedError } from "@lib/sentryServer";
 
 declare global {
 	var __entitlementsSchedulerStarted: boolean | undefined;
@@ -28,6 +29,7 @@ export function startEntitlementsScheduler() {
 		try {
 			await reconcileRevokedUsersBatch(batchSize, cooldownHours);
 		} catch (error) {
+			captureUnexpectedError(error, "entitlements-scheduler", "reconcile-revoked-users");
 			console.error("[entitlements] scheduler_run_failed", error);
 		} finally {
 			globalThis.__entitlementsSchedulerRunning = false;

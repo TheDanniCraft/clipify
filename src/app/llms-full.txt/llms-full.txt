@@ -198,6 +198,7 @@ Once configured, Clipify operates automatically during the selected stream scene
 
 - [Changelog](https://clipify.us/changelog): Released product changes.
 - [Roadmap](https://clipify.us/roadmap): Planned and upcoming features.
-- [Referral program](https://clipify.us/referral-program): Referral incentives.
-- [Privacy policy](https://hub.goadopt.io/document/3852d930-97b9-46c2-950d-823e62515ab4?language=en): Privacy information.
-- [Terms of service](https://hub.goadopt.io/document/9651af3f-af45-480f-8a4d-2beb6ed68e9b?language=en): Terms governing Clipify.
+- [Privacy policy](https://clipify.us/legal/privacy): Privacy information.
+- [Cookie policy](https://clipify.us/legal/cookies): Cookie and comparable storage information.
+- [Terms of service](https://clipify.us/legal/terms): Terms governing Clipify.
+- [Privacy requests](https://clipify.us/legal/privacy-requests): How to exercise privacy rights.

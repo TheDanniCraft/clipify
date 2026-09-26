@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getRunnerArtifact, previewPrIdFromHost, RunnerArtifactUnavailableError, type RunnerPlatform } from "@lib/runnerArtifacts";
+import { captureUnexpectedError } from "@lib/sentryServer";
 
 const DOWNLOAD_PLATFORMS: Record<string, RunnerPlatform> = {
 	windows: "windows-x64",
@@ -41,6 +42,7 @@ export async function GET(req: NextRequest) {
 	} catch (error) {
 		console.error("Error serving runner binary:", error);
 		const unavailable = error instanceof RunnerArtifactUnavailableError;
+		if (!(error instanceof RunnerArtifactUnavailableError)) captureUnexpectedError(error, "runner-api", "artifact-download");
 		const status = unavailable && error.httpStatus === 404 && !isPreview ? 404 : 503;
 		const localMissing = process.env.RUNNER_ARTIFACT_SOURCE === "local" && status === 404;
 		return NextResponse.json({ error: localMissing && error instanceof Error ? error.message : status === 404 ? "Runner artifact not found" : "Runner binary temporarily unavailable", code: localMissing ? "runner_artifact_local_missing" : status === 404 ? "runner_artifact_unavailable" : "runner_artifact_pending" }, { status, headers: { "Retry-After": "30" } });

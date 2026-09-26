@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db/client";
 import { runnerEnrollmentsTable, runnersTable } from "@/db/schema";
 import { tryRateLimit } from "@actions/rateLimit";
+import { captureUnexpectedError } from "@lib/sentryServer";
 
 export async function POST(req: Request) {
 	try {
@@ -46,6 +47,7 @@ export async function POST(req: Request) {
 		});
 	} catch (error) {
 		console.error("Runner enrollment poll error:", error);
+		captureUnexpectedError(error, "runner-api", "enrollment-poll");
 		return NextResponse.json({ error: "Failed to poll runner enrollment" }, { status: 500 });
 	}
 }

@@ -6,6 +6,7 @@ import { db } from "@/db/client";
 import { runnerEnrollmentsTable, runnersTable } from "@/db/schema";
 import { tryRateLimit } from "@actions/rateLimit";
 import { resolveBaseUrl } from "@/app/lib/baseUrl";
+import { captureUnexpectedError } from "@lib/sentryServer";
 
 const ENROLLMENT_TTL_MS = 15 * 60 * 1000;
 const POLL_INTERVAL_SECONDS = 3;
@@ -68,6 +69,7 @@ export async function POST(req: NextRequest) {
 		});
 	} catch (error) {
 		console.error("Runner enrollment start error:", error);
+		captureUnexpectedError(error, "runner-api", "enrollment-start");
 		return NextResponse.json({ error: "Failed to start runner enrollment" }, { status: 500 });
 	}
 }

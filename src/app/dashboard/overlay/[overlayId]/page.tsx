@@ -17,7 +17,7 @@ import { useNavigationGuard } from "next-navigation-guard";
 import { validateAuth } from "@actions/auth";
 import { createChannelReward, getCachedClipsByOwner, getGameDetails, getReward, getTwitchClips, getTwitchGames, removeChannelReward } from "@actions/twitch";
 import { REWARD_NOT_FOUND } from "@lib/twitchErrors";
-import FeedbackWidget from "@components/feedbackWidget";
+import FeedbackWidget from "@components/SentryFeedbackWidget";
 import TagsInput from "@components/tagsInput";
 import { isTitleBlocked } from "@/app/utils/regexFilter";
 import UpgradeModal from "@components/upgradeModal";

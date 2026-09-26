@@ -73,6 +73,11 @@
 			"matchUpdateTypes": ["minor", "patch"],
 			"groupName": "daily non-major dependency updates",
 			"groupSlug": "daily-non-major"
+		},
+		{
+			"description": "Keep c15t frontend and backend in sync",
+			"matchPackageNames": ["c15t", "/^@c15t//"],
+			"groupName": "c15t consent stack"
 		}
 	],
 	"vulnerabilityAlerts": {

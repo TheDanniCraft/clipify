@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import OverlayTable from "@components/OverlayTable";
 import DashboardNavbar from "@components/dashboardNavbar";
 import { validateAuth } from "@actions/auth";
-import FeedbackWidget from "@components/feedbackWidget";
+import FeedbackWidget from "@components/SentryFeedbackWidget";
 import { getAccessTokenResult } from "@actions/database";
 import ChatwootData from "@components/chatwootData";
 
