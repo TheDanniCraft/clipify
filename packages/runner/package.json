@@ -9,9 +9,9 @@
 		"test": "jest --runInBand --forceExit"
 	},
 	"dependencies": {
-		"@napi-rs/keyring": "^2.0.0",
+		"@napi-rs/keyring": "^2.1.0",
 		"@puppeteer/browsers": "^3.2.2",
-		"puppeteer-core": "^25.10.0",
+		"puppeteer-core": "^25.11.0",
 		"puppeteer-stream": "^3.0.23"
 	},
 	"devDependencies": {
@@ -21,8 +21,8 @@
 		"@swc/core": "^1.16.2",
 		"@swc/jest": "^0.2.39",
 		"@types/jest": "^30.0.0",
-		"@types/node": "^26.4.1",
-		"jest": "^30.5.1",
+		"@types/node": "^26.6.2",
+		"jest": "^30.5.2",
 		"typescript": "^6.0.3"
 	},
 	"pkg": {
