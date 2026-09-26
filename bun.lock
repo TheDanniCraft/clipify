@@ -103,7 +103,6 @@
   ],
   "patchedDependencies": {
     "next@16.3.4": "patches/next.patch",
-    "next-ws@2.2.14": "patches/next-ws@2.2.14.patch",
   },
   "overrides": {
     "tar": "^7.5.22",
