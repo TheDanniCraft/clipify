@@ -66,16 +66,25 @@ export default function StreamingSoftwareMock({ children, title = "OBS Studio - 
 
 			<div className='obs__docks'>
 				<Dock title='Scenes'>
-					{demoMode && <p className='obs__sceneHint'>Try it: switch scenes and watch the audience react.</p>}
+					{demoMode && (
+						<div className='obs__sceneHint'>
+							<span className='obs__sceneHintIcon' aria-hidden>
+								↘
+							</span>
+							<span>
+								<strong>Try it</strong>
+								Switch scenes and watch the audience react.
+							</span>
+						</div>
+					)}
 					<div className='obs__list'>
 						{demoMode ? (
 							<>
 								<button type='button' className={`obs__row obs__sceneButton ${demoMode === "clipify" ? "obs__row--selected" : ""}`} aria-pressed={demoMode === "clipify"} onClick={() => selectScene("clipify")}>
 									With Clipify
 								</button>
-								<button type='button' className={`obs__row obs__sceneButton ${demoMode === "brb" ? "obs__row--selected" : ""}`} aria-pressed={demoMode === "brb"} onClick={() => selectScene("brb")}>
+								<button type='button' className={`obs__row obs__sceneButton ${demoMode === "brb" ? "obs__row--selected" : ""} ${!hasSwitchedScene && demoMode === "clipify" ? "obs__sceneButton--suggested" : ""}`} aria-pressed={demoMode === "brb"} onClick={() => selectScene("brb")}>
 									Without Clipify
-									{!hasSwitchedScene && demoMode === "clipify" && <span className='obs__tryBadge'>Try me</span>}
 								</button>
 							</>
 						) : (
@@ -91,7 +100,9 @@ export default function StreamingSoftwareMock({ children, title = "OBS Studio - 
 							<span className='obs__icon' aria-hidden>
 								{isStaticBreak ? "▧" : "⦿"}
 							</span>
-							{isStaticBreak ? "Image · BRB Screen" : "Browser · Clipify Overlay"}
+							<span className='obs__sourceName' title={isStaticBreak ? "Image · BRB Screen" : "Browser · Clipify Overlay"}>
+								{isStaticBreak ? "Image · BRB Screen" : "Browser · Clipify Overlay"}
+							</span>
 							<span className='obs__spacer' />
 							<span className='obs__tinyIcon' aria-hidden title='Visible'>
 								👁

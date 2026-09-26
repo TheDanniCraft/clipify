@@ -58,13 +58,15 @@ describe("components/DemoPlayer", () => {
 			</StreamingSoftwareMock>,
 		);
 
-		expect(screen.getByText("Try it: switch scenes and watch the audience react.")).toBeInTheDocument();
-		expect(screen.getByText("Try me")).toBeInTheDocument();
+		expect(screen.getByText("Try it")).toBeInTheDocument();
+		expect(screen.getByText("Switch scenes and watch the audience react.")).toBeInTheDocument();
 		expect(screen.getByText("Browser · Clipify Overlay")).toBeInTheDocument();
 
-		fireEvent.click(screen.getByRole("button", { name: /Without Clipify/ }));
+		const comparisonScene = screen.getByRole("button", { name: "Without Clipify" });
+		expect(comparisonScene).toHaveClass("obs__sceneButton--suggested");
+		fireEvent.click(comparisonScene);
 		expect(onDemoModeChange).toHaveBeenCalledWith("brb");
-		expect(screen.queryByText("Try me")).not.toBeInTheDocument();
+		expect(comparisonScene).not.toHaveClass("obs__sceneButton--suggested");
 
 		rerender(
 			<StreamingSoftwareMock isLive={false} demoMode='brb' onDemoModeChange={onDemoModeChange}>

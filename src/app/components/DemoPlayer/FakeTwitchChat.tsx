@@ -249,12 +249,16 @@ export default function FakeTwitchChat({ isLive, variant = "clipify", title = "S
 		<div className='tchat'>
 			<div className='tchat__header'>
 				<div className='tchat__title'>{title}</div>
-				<div className={`tchat__status ${isLive ? "live" : ""}`}>
-					{isLive && <span className='tchat__liveDot' aria-hidden />}
-					<span>{headerRight}</span>
+				<div className='tchat__headerMeta'>
+					<div className={`tchat__status ${isLive ? "live" : ""}`}>
+						{isLive && <span className='tchat__liveDot' aria-hidden />}
+						<span>{headerRight}</span>
+					</div>
 					{isLive && viewerCount !== undefined && (
 						<span className={`tchat__viewers ${variant === "brb" ? "isDropping" : ""}`} aria-label={`${viewerCount} simulated viewers`}>
-							{viewerCount.toLocaleString()} viewers
+							<span className='tchat__viewerIcon' aria-hidden />
+							<strong>{viewerCount.toLocaleString()}</strong>
+							<span> viewers</span>
 						</span>
 					)}
 				</div>
