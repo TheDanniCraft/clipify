@@ -1991,7 +1991,9 @@ export async function getSettings(userId: string, forceSyncExternal = false): Pr
 			throw new Error("Unauthorized");
 		}
 
-		return getSettingsServer(userId, forceSyncExternal);
+		const settings = await getSettingsServer(userId, forceSyncExternal);
+		if (!settings) throw new Error("User not found");
+		return settings;
 	} catch (error) {
 		console.error("Error fetching settings:", error);
 		throw new Error("Failed to fetch settings");
@@ -2002,14 +2004,15 @@ export async function getSettings(userId: string, forceSyncExternal = false): Pr
  * Server-only version that bypasses user session validation.
  * Use only for internal server actions (e.g., EventSub, chat commands).
  */
-export async function getSettingsServer(userId: string, forceSyncExternal = false): Promise<UserSettings> {
+export async function getSettingsServer(userId: string, forceSyncExternal = false): Promise<UserSettings | null> {
 	try {
 		const settingsWithoutEditors = await db.select().from(settingsTable).where(eq(settingsTable.id, userId)).limit(1).execute();
 
 		if (settingsWithoutEditors.length === 0) {
 			const userRows = await db.select({ createdAt: usersTable.createdAt, email: usersTable.email, username: usersTable.username }).from(usersTable).where(eq(usersTable.id, userId)).limit(1).execute();
 			const userRow = userRows[0];
-			const consentRecordedAt = userRow?.createdAt ?? new Date();
+			if (!userRow) return null;
+			const consentRecordedAt = userRow.createdAt;
 
 			// Save default settings
 			const defaultSettings: UserSettings = {
@@ -2029,7 +2032,7 @@ export async function getSettingsServer(userId: string, forceSyncExternal = fals
 			};
 
 			const contactId =
-				userRow && userRow.email && userRow.username
+				userRow.email && userRow.username
 					? await syncProductUpdatesContact({
 							email: userRow.email,
 							subscribed: true,

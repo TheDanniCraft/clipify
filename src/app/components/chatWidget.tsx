@@ -18,6 +18,10 @@ function isChatwootAvailable() {
 	return Boolean(window.chatwootSDK || window.$chatwoot || document.querySelector("#chatwoot_live_chat_widget, iframe[src*='chat.cloud.thedannicraft.de']"));
 }
 
+function isChatwootWidgetMounted() {
+	return Boolean(document.querySelector(".woot--bubble-holder") && document.querySelector(".woot-widget-holder"));
+}
+
 const ChatWidget = () => {
 	const pathname = usePathname();
 	const isEmbedded = isEmbeddedRoute(pathname);
@@ -34,7 +38,7 @@ const ChatWidget = () => {
 	useEffect(() => {
 		function syncChatwootVisibility() {
 			const chatwoot = window.$chatwoot;
-			if (!chatwoot) return;
+			if (!chatwoot || !isChatwootWidgetMounted()) return;
 
 			if (isEmbedded || scriptStatus !== "ready") {
 				chatwoot.toggle?.("close");
