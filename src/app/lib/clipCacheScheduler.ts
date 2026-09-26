@@ -1,6 +1,7 @@
 /* istanbul ignore file */
 import * as Sentry from "@sentry/nextjs";
 import { captureUnexpectedError } from "@lib/sentryServer";
+import { getOperationalEnvironment, operationalCount, operationalDuration, operationalGauge } from "@lib/operationalHealth";
 
 const CLIP_CACHE_SYNC_INTERVAL_MS = 60_000;
 const CLIP_CACHE_SYNC_BATCH_SIZE = 25;
@@ -43,7 +44,7 @@ function shouldRunScheduler() {
 }
 
 function shouldReportMonitorCheckIns() {
-	return process.env.IS_PREVIEW !== "true";
+	return getOperationalEnvironment() === "production";
 }
 
 export function startClipCacheScheduler() {
@@ -80,13 +81,13 @@ export function startClipCacheScheduler() {
 			lockAcquired = Boolean(lockResult.rows?.[0]?.locked);
 			if (!lockAcquired) {
 				outcome = "skipped";
-				Sentry.metrics.count("clip_cache.scheduler.runs", 1, { attributes: { status: "skipped" } });
+				operationalCount("clipify.clip_cache.scheduler.runs", 1, { status: "skipped" });
 				return;
 			}
 			if (shouldReportMonitorCheckIns()) {
 				checkInId = Sentry.captureCheckIn({ monitorSlug: "clip-cache-scheduler", status: "in_progress" }, CLIP_CACHE_MONITOR_CONFIG);
 			}
-			Sentry.metrics.count("clip_cache.scheduler.runs", 1, { attributes: { status: "attempted" } });
+			operationalCount("clipify.clip_cache.scheduler.runs", 1, { status: "attempted" });
 			const ownerIds = await getActiveOverlayOwnerIdsForClipSync(batchSize);
 			ownerCount = ownerIds.length;
 			for (const ownerId of ownerIds) {
@@ -101,7 +102,7 @@ export function startClipCacheScheduler() {
 			outcome = "failed";
 			captureUnexpectedError(error, "clip-cache-scheduler", "run");
 			Sentry.logger.error("Clip cache scheduler failed", { component: "clip-cache-scheduler" });
-			Sentry.metrics.count("clip_cache.scheduler.runs", 1, { attributes: { status: "failed" } });
+			operationalCount("clipify.clip_cache.scheduler.runs", 1, { status: "failed" });
 			if (globalThis.__clipCacheSchedulerStats) {
 				globalThis.__clipCacheSchedulerStats.totalFailures += 1;
 				globalThis.__clipCacheSchedulerStats.lastError = error instanceof Error ? error.message : String(error);
@@ -118,12 +119,12 @@ export function startClipCacheScheduler() {
 			globalThis.__clipCacheSchedulerRunning = false;
 			const durationMs = Date.now() - started;
 			if (outcome === "succeeded") {
-				Sentry.metrics.count("clip_cache.scheduler.runs", 1, { attributes: { status: "succeeded" } });
+				operationalCount("clipify.clip_cache.scheduler.runs", 1, { status: "succeeded" });
 				Sentry.logger.info("Clip cache scheduler completed", { component: "clip-cache-scheduler", owner_count: ownerCount, duration_ms: durationMs });
 			}
 			if (outcome !== "skipped") {
-				Sentry.metrics.distribution("clip_cache.scheduler.duration", durationMs, { unit: "millisecond" });
-				Sentry.metrics.gauge("clip_cache.scheduler.owner_count", ownerCount);
+				operationalDuration("clipify.clip_cache.scheduler.duration", durationMs);
+				operationalGauge("clipify.clip_cache.scheduler.owner_count", ownerCount);
 				if (checkInId) Sentry.captureCheckIn({ monitorSlug: "clip-cache-scheduler", status: outcome === "failed" ? "error" : "ok", checkInId, duration: durationMs / 1000 });
 			}
 			if (globalThis.__clipCacheSchedulerStats && outcome !== "skipped") {

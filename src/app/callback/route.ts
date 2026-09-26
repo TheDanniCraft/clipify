@@ -7,6 +7,7 @@ import { exchangeAccesToken } from "@actions/twitch";
 import { setAccessToken, touchUser } from "@actions/database";
 import { authUser, clearAdminViewCookieForAuthFlow } from "@actions/auth";
 import { getBaseUrl } from "@actions/utils";
+import { operationalCount, operationalDuration } from "@lib/operationalHealth";
 
 type OAuthStatePayload = JwtPayload & {
 	nonce: string;
@@ -45,6 +46,11 @@ function getSafeReturnUrl(returnUrl: string | null, baseUrl: URL) {
 }
 
 export async function GET(request: NextRequest) {
+	const started = Date.now();
+	const recordOutcome = (outcome: string) => {
+		operationalCount("clipify.auth.callback", 1, { outcome });
+		operationalDuration("clipify.auth.callback_duration", Date.now() - started, { outcome });
+	};
 	try {
 		const url = new URL(request.url);
 		const cookieStore = await cookies();
@@ -53,10 +59,12 @@ export async function GET(request: NextRequest) {
 		const state = url.searchParams.get("state");
 
 		if (!code) {
+			recordOutcome("missing_code");
 			return authUser(undefined, "codeError");
 		}
 
 		if (!state || !state.trim()) {
+			recordOutcome("missing_state");
 			return authUser(undefined, "stateError");
 		}
 
@@ -68,27 +76,32 @@ export async function GET(request: NextRequest) {
 			});
 		} catch (e) {
 			console.error("Invalid state", e);
+			recordOutcome("invalid_state");
 			return authUser(undefined, "stateError");
 		}
 
 		if (!isOAuthStatePayload(decoded)) {
+			recordOutcome("invalid_state_payload");
 			return authUser(undefined, "stateError");
 		}
 		const payload = decoded;
 
 		const cookieNonce = cookieStore.get("auth_nonce")?.value;
 		if (!cookieNonce || payload.nonce !== cookieNonce) {
+			recordOutcome("nonce_mismatch");
 			return authUser(undefined, "stateError");
 		}
 		cookieStore.set("auth_nonce", "", { path: "/", maxAge: 0 });
 
 		const token = await exchangeAccesToken(code);
 		if (!token?.access_token) {
+			recordOutcome("token_exchange_failed");
 			return authUser(undefined, "codeError");
 		}
 
 		const user = await setAccessToken(token);
 		if (!user) {
+			recordOutcome("user_sync_failed");
 			return authUser(undefined, "userError");
 		}
 
@@ -112,8 +125,10 @@ export async function GET(request: NextRequest) {
 
 		await touchUser(user.id);
 
+		recordOutcome("success");
 		return NextResponse.redirect(returnUrl);
 	} catch (error) {
+		recordOutcome("unexpected_error");
 		const errorCode = await Sentry.captureException(error);
 		return authUser(undefined, "serverError", errorCode);
 	}

@@ -11,6 +11,9 @@ const addSubscriber = jest.fn();
 const jwtVerify = jest.fn();
 const ownerSubscribers = new Map<string, Set<unknown>>();
 const overlaySubscribers = new Map<string, Set<unknown>>();
+const recordWebSocketSubscribed = jest.fn();
+const recordWebSocketRejected = jest.fn();
+const recordOverlayStateUpdate = jest.fn();
 
 jest.mock("jsonwebtoken", () => ({
 	verify: (...args: unknown[]) => jwtVerify(...args),
@@ -26,6 +29,12 @@ jest.mock("@store/overlaySubscribers", () => ({
 	ownerSubscribers,
 	overlaySubscribers,
 	addSubscriber: (...args: unknown[]) => addSubscriber(...args),
+}));
+
+jest.mock("@lib/operationalHealth", () => ({
+	recordWebSocketSubscribed: (...args: unknown[]) => recordWebSocketSubscribed(...args),
+	recordWebSocketRejected: (...args: unknown[]) => recordWebSocketRejected(...args),
+	recordOverlayStateUpdate: (...args: unknown[]) => recordOverlayStateUpdate(...args),
 }));
 
 async function loadWebsocketActions() {
@@ -87,6 +96,7 @@ describe("actions/websocket", () => {
 		expect(client.overlayId).toBe("ov-1");
 		expect(client.role).toBe("overlay");
 		expect(addSubscriber).toHaveBeenCalledWith("owner-1", "ov-1", client);
+		expect(recordWebSocketSubscribed).toHaveBeenCalledWith(client, "ov-1", "owner-1", "overlay");
 		expect(client.send).toHaveBeenCalledWith("subscribed ov-1");
 	});
 
