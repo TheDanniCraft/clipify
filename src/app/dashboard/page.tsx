@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import OverlayTable from "@components/OverlayTable";
 import DashboardNavbar from "@components/dashboardNavbar";
 import { validateAuth } from "@actions/auth";
-import FeedbackWidget from "@components/SentryFeedbackWidget";
 import { getAccessTokenResult } from "@actions/database";
 import ChatwootData from "@components/chatwootData";
 
@@ -18,7 +17,6 @@ export default async function Dashboard() {
 	return (
 		<>
 			<ChatwootData user={user} />
-			<FeedbackWidget />
 			<DashboardNavbar user={user} title='Dashboard' tagline='Manage your overlays'>
 				<OverlayTable userId={user.id} accessToken={tokenResult.token.accessToken} />
 			</DashboardNavbar>

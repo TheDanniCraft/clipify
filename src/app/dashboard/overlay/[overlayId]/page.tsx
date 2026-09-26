@@ -17,7 +17,6 @@ import { useNavigationGuard } from "next-navigation-guard";
 import { validateAuth } from "@actions/auth";
 import { createChannelReward, getCachedClipsByOwner, getGameDetails, getReward, getTwitchClips, getTwitchGames, removeChannelReward } from "@actions/twitch";
 import { REWARD_NOT_FOUND } from "@lib/twitchErrors";
-import FeedbackWidget from "@components/SentryFeedbackWidget";
 import TagsInput from "@components/tagsInput";
 import { isTitleBlocked } from "@/app/utils/regexFilter";
 import UpgradeModal from "@components/upgradeModal";
@@ -770,8 +769,6 @@ export default function OverlaySettings() {
 			<ChatwootData user={user} overlay={overlay} />
 
 			<DashboardNavbar user={user!} title='Overlay Settings' tagline='Manage your overlays'>
-				<FeedbackWidget />
-
 				<div className='flex flex-col items-center justify-center w-full p-4'>
 					<Card className='w-full max-w-4xl'>
 						<Card.Header className='flex w-full flex-row items-center justify-between gap-4'>
