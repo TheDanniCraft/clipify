@@ -118,12 +118,13 @@ describe("actions/commands", () => {
 	});
 
 	it("ignores EventSub messages for broadcasters that no longer exist", async () => {
-		getUserByIdServer.mockResolvedValue(null);
+		getSettings.mockResolvedValue(null);
 		const { handleCommand } = await loadCommands();
 
 		await expect(handleCommand(buildMessage("!play"))).resolves.toBeUndefined();
 
-		expect(getSettings).not.toHaveBeenCalled();
+		expect(getSettings).toHaveBeenCalledWith("owner-1");
+		expect(getUserByIdServer).not.toHaveBeenCalled();
 		expect(sendChatMessage).not.toHaveBeenCalled();
 	});
 

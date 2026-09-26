@@ -16,8 +16,6 @@ let cachedUpgradeUrl: string | null = null;
 let nextChatCommandCacheCleanupAt = 0;
 
 async function getPrefix(userId: string): Promise<string | null> {
-	const user = await getUserByIdServer(userId);
-	if (!user) return null;
 	const settings = await getSettingsServer(userId);
 	/* ignore: command processing edge case */
 	return settings ? settings.prefix : null;
