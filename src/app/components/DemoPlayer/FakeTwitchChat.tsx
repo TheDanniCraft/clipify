@@ -18,6 +18,7 @@ type ChatMsg = {
 
 type Props = {
 	isLive: boolean;
+	variant?: "clipify" | "brb";
 	title?: string;
 	selfUser?: string;
 	selfColor?: string;
@@ -51,6 +52,8 @@ const USERS = [
 ];
 
 const PHRASES = ["lol", "nice", "W", "LMAO", "clean", "pog", "gg", ":fire:", ":joy:", ":skull:", "first", "omg", "no way", "that was pog", "so good", "brb", "hype", "what", "haha", "clap", "nice clip", "insane", "<3"];
+
+const WAITING_PHRASES = ["Any idea when they’ll be back?", "BRB screen again?", "I’ll check back later", "Did I miss something?", "Still waiting…", "Where did everyone go?", "This break is getting long", "See you after the break"];
 
 const EMOTES: Record<string, string> = {
 	fire: "🔥",
@@ -89,9 +92,9 @@ function uidFromRng(rng: () => number) {
 	return `s${Math.floor(rng() * 1_000_000_000).toString(36)}`;
 }
 
-function makeSeededMsg(rng: () => number): ChatMsg {
+function makeSeededMsg(rng: () => number, phrases: readonly string[]): ChatMsg {
 	const u = USERS[Math.floor(rng() * USERS.length)];
-	const text = PHRASES[Math.floor(rng() * PHRASES.length)];
+	const text = phrases[Math.floor(rng() * phrases.length)];
 	return {
 		id: uidFromRng(rng),
 		user: u.user,
@@ -107,9 +110,9 @@ function uid() {
 	return Math.random().toString(36).slice(2, 10);
 }
 
-function makeLiveMsg(): ChatMsg {
+function makeLiveMsg(phrases: readonly string[]): ChatMsg {
 	const u = USERS[Math.floor(Math.random() * USERS.length)];
-	const text = PHRASES[Math.floor(Math.random() * PHRASES.length)];
+	const text = phrases[Math.floor(Math.random() * phrases.length)];
 	return {
 		id: uid(),
 		user: u.user,
@@ -144,12 +147,13 @@ function isTwitchClipUrl(text: string) {
 	}
 }
 
-export default function FakeTwitchChat({ isLive, title = "STREAM CHAT", selfUser = "you", selfColor = "#eab308", initialCount = 14, rateMs = 900, maxMessages = 50, seed = "fake-chat", onCommand, onRedeem }: Props) {
+export default function FakeTwitchChat({ isLive, variant = "clipify", title = "STREAM CHAT", selfUser = "you", selfColor = "#eab308", initialCount = 14, rateMs = 900, maxMessages = 50, seed = "fake-chat", onCommand, onRedeem }: Props) {
+	const phrases = variant === "clipify" ? PHRASES : WAITING_PHRASES;
 	const [msgs, setMsgs] = useState<ChatMsg[]>(() => {
-		const rng = mulberry32(hashSeed(seed));
+		const rng = mulberry32(hashSeed(`${seed}-${variant}`));
 		const count = Math.max(0, Math.min(initialCount, maxMessages));
 		const out: ChatMsg[] = [];
-		for (let i = 0; i < count; i++) out.push(makeSeededMsg(rng));
+		for (let i = 0; i < count; i++) out.push(makeSeededMsg(rng, phrases));
 		return out;
 	});
 
@@ -181,10 +185,10 @@ export default function FakeTwitchChat({ isLive, title = "STREAM CHAT", selfUser
 			t = window.setTimeout(
 				() => {
 					if (stopped) return;
-					pushMessage(makeLiveMsg());
+					pushMessage(makeLiveMsg(phrases));
 					schedule();
 				},
-				Math.round(rateMs * jitter),
+				Math.round(rateMs * (variant === "clipify" ? jitter : jitter * 2.4)),
 			);
 		};
 
@@ -193,7 +197,7 @@ export default function FakeTwitchChat({ isLive, title = "STREAM CHAT", selfUser
 			stopped = true;
 			if (t) window.clearTimeout(t);
 		};
-	}, [isLive, rateMs, pushMessage]);
+	}, [isLive, phrases, rateMs, pushMessage, variant]);
 
 	useEffect(() => {
 		if (!autoScroll) return;
@@ -285,11 +289,12 @@ export default function FakeTwitchChat({ isLive, title = "STREAM CHAT", selfUser
 				))}
 			</div>
 
-			{!cpArmed && (
+			{variant === "clipify" && !cpArmed && (
 				<div className={"tchat__hint"} onClick={onOpen}>
 					Click to see a list of commands
 				</div>
 			)}
+			{variant === "brb" && <div className='tchat__hint tchat__hint--passive'>The break is getting quiet…</div>}
 			{(cpArmed || cpError) && <div className={`tchat__redeem ${cpError ? "isError" : ""}`}>{cpError ?? `Redeem reward: ${REWARD_NAME}`}</div>}
 
 			<Modal>
@@ -359,7 +364,8 @@ export default function FakeTwitchChat({ isLive, title = "STREAM CHAT", selfUser
 						setCpError(null);
 						setCpArmed((v) => !v);
 					}}
-					disabled={!isLive}
+					disabled={!isLive || variant === "brb"}
+					aria-label={variant === "clipify" ? "Redeem a clip" : "Clip rewards unavailable without Clipify"}
 				>
 					⬤
 				</button>
