@@ -1,5 +1,5 @@
 import * as Sentry from "@sentry/nextjs";
-import { sentryProfileSampleRate, sentryReplaySessionSampleRate } from "../../../sentry.shared.config";
+import { sentryBrowserProfileSampleRate, sentryReplaySessionSampleRate } from "../../../sentry.shared.config";
 
 type BrowserConsentOptions = ReturnType<NonNullable<ReturnType<typeof Sentry.getClient>>["getOptions"]> & {
 	profileLifecycle?: "manual" | "trace";
@@ -41,7 +41,7 @@ export async function applySentryReplayConsent(hasMeasurementConsent: boolean) {
 		);
 	}
 
-	options.profileSessionSampleRate = sentryProfileSampleRate;
+	options.profileSessionSampleRate = sentryBrowserProfileSampleRate;
 	options.profileLifecycle = "manual";
 	if (!client.getIntegrationByName("BrowserProfiling")) {
 		Sentry.addIntegration(Sentry.browserProfilingIntegration());

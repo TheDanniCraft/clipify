@@ -115,5 +115,7 @@ describe("lib/operationalHealth", () => {
 			attributes: { outcome: "success", aggregation: "average" },
 		});
 		expect(metricGauge).toHaveBeenCalledWith("clipify.runner.nodes", 1, { attributes: { state: "online" } });
+		expect(metricGauge).toHaveBeenCalledWith("clipify.runtime.memory.rss", expect.any(Number), { unit: "byte" });
+		expect(metricGauge).toHaveBeenCalledWith("clipify.runtime.memory.heap_used", expect.any(Number), { unit: "byte" });
 	});
 });

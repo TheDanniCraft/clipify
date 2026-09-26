@@ -1,6 +1,6 @@
 import * as Sentry from "@sentry/nextjs";
 import { nodeProfilingIntegration } from "@sentry/profiling-node";
-import { sentryDataCollection, sentryEnabled, sentryEnvironment, sentryProfileSampleRate, sentryRelease, sentryTraceSampleRate } from "./sentry.shared.config";
+import { sentryDataCollection, sentryEnabled, sentryEnvironment, sentryNodeProfileSampleRate, sentryRelease, sentryTraceSampleRate } from "./sentry.shared.config";
 import { beforeSendError, beforeSendLog, beforeSendMetric, beforeSendSpan, beforeSendTransaction } from "./sentry.privacy";
 
 Sentry.init({
@@ -19,6 +19,6 @@ Sentry.init({
 	beforeSendMetric,
 	beforeBreadcrumb: (breadcrumb) => ({ timestamp: breadcrumb.timestamp, category: breadcrumb.category, type: breadcrumb.type, level: breadcrumb.level }),
 	tracesSampleRate: sentryTraceSampleRate,
-	profilesSampleRate: sentryProfileSampleRate,
+	profilesSampleRate: sentryNodeProfileSampleRate,
 	integrations: (defaults) => [...defaults, Sentry.consoleLoggingIntegration({ levels: ["warn", "error"] }), nodeProfilingIntegration()],
 });

@@ -336,6 +336,17 @@ function drainBufferedMetrics() {
 	return { counters, gauges, durations };
 }
 
+function collectProcessMemory() {
+	const memory = process.memoryUsage();
+	return {
+		rss: memory.rss,
+		heapUsed: memory.heapUsed,
+		heapTotal: memory.heapTotal,
+		external: memory.external,
+		arrayBuffers: memory.arrayBuffers,
+	};
+}
+
 export async function publishOperationalHealthSnapshot(now = Date.now()) {
 	const started = Date.now();
 	const store = getStore();
@@ -359,6 +370,7 @@ export async function publishOperationalHealthSnapshot(now = Date.now()) {
 	const connections = { overlay: 0, controller: 0 };
 	for (const connection of store.connections.values()) connections[connection.role] += 1;
 	const buffered = drainBufferedMetrics();
+	const memory = collectProcessMemory();
 	const snapshot = {
 		timestamp: new Date(now).toISOString(),
 		environment: getOperationalEnvironment(),
@@ -370,6 +382,7 @@ export async function publishOperationalHealthSnapshot(now = Date.now()) {
 		queues: { viewer: viewerQueues, moderator: moderatorQueues },
 		runners: database.runners,
 		streams: database.streams,
+		memory,
 		buffered,
 		collectionDurationMs: Date.now() - started,
 	};
@@ -394,6 +407,11 @@ export async function publishOperationalHealthSnapshot(now = Date.now()) {
 	Sentry.metrics.gauge("clipify.runner.nodes", database.runners.total, { attributes: { state: "total" } });
 	Sentry.metrics.gauge("clipify.runner.nodes", database.runners.online, { attributes: { state: "online" } });
 	for (const [state, value] of Object.entries(database.streams)) Sentry.metrics.gauge("clipify.runner.streams", value, { attributes: { state } });
+	Sentry.metrics.gauge("clipify.runtime.memory.rss", memory.rss, { unit: "byte" });
+	Sentry.metrics.gauge("clipify.runtime.memory.heap_used", memory.heapUsed, { unit: "byte" });
+	Sentry.metrics.gauge("clipify.runtime.memory.heap_total", memory.heapTotal, { unit: "byte" });
+	Sentry.metrics.gauge("clipify.runtime.memory.external", memory.external, { unit: "byte" });
+	Sentry.metrics.gauge("clipify.runtime.memory.array_buffers", memory.arrayBuffers, { unit: "byte" });
 	for (const metric of buffered.counters) Sentry.metrics.count(metric.name, metric.value, { attributes: metric.attributes });
 	for (const metric of buffered.gauges) Sentry.metrics.gauge(metric.name, metric.value, { attributes: metric.attributes });
 	for (const metric of buffered.durations) {

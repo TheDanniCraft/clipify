@@ -8,7 +8,10 @@ export const sentryRelease = process.env.SENTRY_RELEASE || undefined;
 // performance data. Errors are never sampled by this setting.
 export const sentryTraceSampleRate = sentryEnvironment === "development" ? 0 : 1;
 export const sentryReplaySessionSampleRate = isE2ETest ? 1 : sentryEnvironment === "preview" ? 0.2 : sentryEnvironment === "production" ? 0.01 : 0;
-export const sentryProfileSampleRate = sentryEnvironment === "development" ? 0 : 0.001;
+// Node profiling has a substantially larger sponsored allowance than browser UI
+// profiling, so keep their sampling controls independent.
+export const sentryNodeProfileSampleRate = sentryEnvironment === "production" ? 0.05 : 0;
+export const sentryBrowserProfileSampleRate = sentryEnvironment === "production" ? 0.001 : 0;
 
 // Keep useful operational context and parameterized SQL while preventing the SDK
 // from automatically attaching high-risk values. Project-level Sentry scrubbers
