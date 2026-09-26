@@ -228,6 +228,16 @@ describe("actions/database settings logic", () => {
 		expect(insertCalls.some((call) => call.table === settingsTable)).toBe(true);
 	});
 
+	it("does not create settings for a user that no longer exists", async () => {
+		const { getSettingsServer } = await loadDatabaseActions();
+		queueSelectResult([]); // settings select
+		queueSelectResult([]); // user existence select
+
+		await expect(getSettingsServer("deleted-user")).resolves.toBeNull();
+		expect(insertCalls.some((call) => call.table === settingsTable)).toBe(false);
+		expect(syncProductUpdatesContact).not.toHaveBeenCalled();
+	});
+
 	it("saves settings correctly", async () => {
 		const { saveSettings } = await loadDatabaseActions();
 		queueSelectResult([{ disabled: false }]); // getAccessToken userRow

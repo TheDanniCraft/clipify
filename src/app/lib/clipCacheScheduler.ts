@@ -42,6 +42,10 @@ function shouldRunScheduler() {
 	return process.env.NODE_ENV !== "test";
 }
 
+function shouldReportMonitorCheckIns() {
+	return process.env.IS_PREVIEW !== "true";
+}
+
 export function startClipCacheScheduler() {
 	if (!shouldRunScheduler()) return;
 	if (globalThis.__clipCacheSchedulerStarted) return;
@@ -79,7 +83,9 @@ export function startClipCacheScheduler() {
 				Sentry.metrics.count("clip_cache.scheduler.runs", 1, { attributes: { status: "skipped" } });
 				return;
 			}
-			checkInId = Sentry.captureCheckIn({ monitorSlug: "clip-cache-scheduler", status: "in_progress" }, CLIP_CACHE_MONITOR_CONFIG);
+			if (shouldReportMonitorCheckIns()) {
+				checkInId = Sentry.captureCheckIn({ monitorSlug: "clip-cache-scheduler", status: "in_progress" }, CLIP_CACHE_MONITOR_CONFIG);
+			}
 			Sentry.metrics.count("clip_cache.scheduler.runs", 1, { attributes: { status: "attempted" } });
 			const ownerIds = await getActiveOverlayOwnerIdsForClipSync(batchSize);
 			ownerCount = ownerIds.length;
