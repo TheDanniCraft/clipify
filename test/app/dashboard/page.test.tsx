@@ -37,11 +37,6 @@ jest.mock("@components/dashboardNavbar", () => ({
 	),
 }));
 
-jest.mock("@components/SentryFeedbackWidget", () => ({
-	__esModule: true,
-	default: () => <div>feedback-widget</div>,
-}));
-
 jest.mock("@components/chatwootData", () => ({
 	__esModule: true,
 	default: ({ user }: { user: { id: string } }) => <div>{`chatwoot:${user.id}`}</div>,
@@ -90,7 +85,6 @@ describe("app/dashboard/page", () => {
 		expect(screen.getByText("dashboard-navbar:user-1")).toBeInTheDocument();
 		expect(screen.getByText("overlay-table:user-1:access-token")).toBeInTheDocument();
 		expect(screen.getByText("chatwoot:user-1")).toBeInTheDocument();
-		expect(screen.getByText("feedback-widget")).toBeInTheDocument();
 	});
 
 	it("renders dashboard for an admin user after login", async () => {
