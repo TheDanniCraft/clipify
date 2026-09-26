@@ -42,7 +42,7 @@
 		"@number-flow/react": ">=0.6.2",
 		"@react-aria/utils": ">=3.34.1",
 		"@sentry/nextjs": "^10.75.0",
-		"@sentry/profiling-node": "10.75.0",
+		"@sentry/profiling-node": "10.75.3",
 		"@tabler/icons-react": "^3.47.0",
 		"@tiptap/core": ">=3.31.3",
 		"@tiptap/extension-link": ">=3.31.3",
@@ -125,7 +125,7 @@
 		"typescript": "^6.0.3"
 	},
 	"patchedDependencies": {
-		"next@16.3.5": "patches/next.patch"
+		"next@16.3.6": "patches/next.patch"
 	},
 	"overrides": {
 		"tar": "^7.5.22"
