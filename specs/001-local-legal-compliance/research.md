@@ -56,17 +56,17 @@ Other jurisdictions are revisited only when Clipify establishes or targets opera
 - Database-authored policies: rejected because version control and code review are stronger for the current team size.
 - Raw Markdown files: viable, but deferred because bundling and validation would require an additional content-loading path while React/TypeScript content is already native to the application.
 
-## Decision 5: Keep current-device inspection supplemental and private
+## Decision 5: Omit current-device inspection from the public policy
 
-**Decision**: The cookie policy may show a client-only “active on this device” view containing storage names and types, never values. The complete declared inventory remains authoritative.
+**Decision**: The cookie policy presents only the complete reviewed service and storage inventory. It does not inspect or display the visitor's current browser-storage state. Value-free runtime observation remains confined to the automated compliance audit.
 
-**Rationale**: Browser JavaScript cannot see HTTP-only cookies and only observes current state. Showing names can help users diagnose consent without transmitting potentially sensitive values.
+**Rationale**: Browser JavaScript cannot see HTTP-only cookies and observes only a timing-dependent subset of current state. Presenting that subset alongside the legal inventory adds a second metadata and explanation surface and risks confusing visitors about what Clipify may use versus what happens to be visible at one moment.
 
 **Alternatives considered**:
 
 - Send device storage to the server: rejected as unnecessary data collection.
 - Present detected storage as complete: rejected as misleading.
-- Omit device inspection: acceptable fallback, but the supplemental view improves transparency when clearly scoped.
+- Show a labeled supplemental snapshot: rejected after UX review because it remains incomplete, timing-dependent, and duplicative of the reviewed inventory.
 
 ## Decision 6: Audit representative flows in a real browser
 

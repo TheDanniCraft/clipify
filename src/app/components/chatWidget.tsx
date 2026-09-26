@@ -32,6 +32,25 @@ const ChatWidget = () => {
 	});
 
 	useEffect(() => {
+		function syncChatwootVisibility() {
+			const chatwoot = window.$chatwoot;
+			if (!chatwoot) return;
+
+			if (isEmbedded || scriptStatus !== "ready") {
+				chatwoot.toggle?.("close");
+				chatwoot.toggleBubbleVisibility?.("hide");
+				return;
+			}
+
+			chatwoot.toggleBubbleVisibility?.("show");
+		}
+
+		syncChatwootVisibility();
+		window.addEventListener("chatwoot:ready", syncChatwootVisibility);
+		return () => window.removeEventListener("chatwoot:ready", syncChatwootVisibility);
+	}, [isEmbedded, scriptStatus]);
+
+	useEffect(() => {
 		function updateChatwootState() {
 			setChatwootState({ checked: true, available: isChatwootAvailable() });
 		}

@@ -77,10 +77,10 @@ Feature: Local legal and privacy center
       | category-move      |
 
   @ATDD-US1-003 @A12 @US4 @FR-008 @EC-003
-  Scenario: The cookie policy does not expose current-device storage values
+  Scenario: The cookie policy does not expose current-device storage state
     Given an approved local storage name contains a private value
     When a visitor opens the cookie policy
-    Then the policy keeps the declared inventory authoritative without exposing the private value
+    Then the policy keeps the declared inventory authoritative without exposing current-device state
 
   @ATDD-US3-002 @US3 @FR-016
   Scenario: A prospective user can review the complete service terms

@@ -27,7 +27,7 @@ One behavior represents each acceptance criterion in `spec.md`, in criterion ord
 | A9  | Rights guidance qualifies applicability and lawful exceptions instead of promising an unconditional result                                                        | US3, EC-006, EC-007                         | example | DONE  | `test/bdd/features/local-legal-compliance.feature::@ATDD-US3-001 @A9`               |
 | A10 | A changed storage key, script, or external origin is reported against the reviewed declaration and blocks release when undeclared                                 | US4, FR-018, FR-019, SC-005                 | example | DONE  | `test/bdd/features/local-legal-compliance.feature::@ATDD-US4-001 @A10`              |
 | A11 | A material purpose, recipient, legal-basis, or consent-category change requires a policy-version review and a recorded renewed-consent/notice decision            | US4, FR-017, EC-005, SC-008                 | example | DONE  | `test/bdd/features/local-legal-compliance.feature::@ATDD-US4-002 @A11`              |
-| A12 | A partial current-device inspection is labeled supplemental while the complete declaration remains visible and no storage value is exposed                        | US4, FR-008, EC-003                         | example | DONE  | `test/bdd/features/local-legal-compliance.feature::@ATDD-US1-003 @A12`              |
+| A12 | The cookie policy keeps the reviewed inventory authoritative and exposes neither a current-device snapshot nor storage values                                     | US4, FR-008, EC-003                         | example | DONE  | `test/bdd/features/local-legal-compliance.feature::@ATDD-US1-003 @A12`              |
 
 A1 planning unblock: U32-U37 now cover the missing shared layout, legal navigation, and four new public route compositions. Its recorded Red remains valid until those behaviors and the existing imprint route work end to end.
 
@@ -60,12 +60,12 @@ Historical evidence classification: A2, A3, A4, and A6-A11 are `TEST_AFTER`. The
 | U9  | Every external origin maps to exactly one service or an explicit reviewed platform exception                                                                    | FR-007, FR-019, SC-005 | example  | DONE  | `test/app/lib/consentRegistry.test.ts::assigns each external origin to exactly one service`                                                                     |
 | U10 | Every service maps to at least one policy section and one audit flow                                                                                            | FR-023                 | example  | DONE  | `test/app/lib/consentRegistry.test.ts::maps every service to existing policy sections and reviewed audit flows`                                                 |
 
-### `src/app/components/legal/DeviceStorageInspector.tsx`
+### Authoritative inventory without device inspection
 
-| id  | behavior                                                                                                                                       | traces         | kind    | state | test                                                                                                               |
-| --- | ---------------------------------------------------------------------------------------------------------------------------------------------- | -------------- | ------- | ----- | ------------------------------------------------------------------------------------------------------------------ |
-| U11 | Device inspection renders approved storage names and types but never values and never transmits inspected values                               | FR-008, EC-003 | example | DONE  | `test/app/components/legal/DeviceStorageInspector.test.tsx::renders storage names and types without values`        |
-| U12 | Partial or unavailable browser visibility is labeled supplemental and never replaces the complete declared inventory with an empty-state claim | FR-008, EC-003 | example | DONE  | `test/app/components/legal/DeviceStorageInspector.test.tsx::labels unavailable browser visibility as supplemental` |
+| id  | behavior                                                                                                  | traces         | kind       | state      | test                                                                                                                  |
+| --- | --------------------------------------------------------------------------------------------------------- | -------------- | ---------- | ---------- | --------------------------------------------------------------------------------------------------------------------- |
+| U11 | Historical inspector behavior; superseded by the approved decision not to expose runtime device state     | FR-008, EC-003 | retired    | SUPERSEDED | Removed `test/app/components/legal/DeviceStorageInspector.test.tsx`                                                   |
+| U12 | The cookie policy renders the complete reviewed inventory and no “Activity visible on this device” region | FR-008, EC-003 | regression | DONE       | `test/app/legal/legalRoutes.test.tsx::renders cookie route`; `test/bdd/features/local-legal-compliance.feature::@A12` |
 
 ### `src/app/lib/legal/consentProjection.ts`
 

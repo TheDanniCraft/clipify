@@ -3,9 +3,11 @@ import { sentryDataCollection, sentryEnabled, sentryEnvironment, sentryRelease, 
 import { browserMeasurementAllowed } from "./src/app/lib/consent/browserMeasurement";
 import { beforeSendError, beforeSendLog, beforeSendMetric, beforeSendSpan, beforeSendTransaction } from "./sentry.privacy";
 
+const isE2ETest = process.env.E2E_TEST_MODE === "true";
+
 Sentry.init({
-	dsn: process.env.SENTRY_DSN,
-	enabled: sentryEnabled,
+	dsn: isE2ETest ? "https://public@o0.ingest.de.sentry.io/0" : process.env.SENTRY_DSN,
+	enabled: isE2ETest || sentryEnabled,
 	environment: sentryEnvironment,
 	release: sentryRelease,
 	dataCollection: sentryDataCollection,
@@ -19,6 +21,14 @@ Sentry.init({
 	beforeSendLog,
 	beforeSendMetric,
 	beforeBreadcrumb: (breadcrumb) => ({ timestamp: breadcrumb.timestamp, category: breadcrumb.category, type: breadcrumb.type, level: breadcrumb.level }),
+	// Browser compliance tests exercise the real SDK lifecycle without sending
+	// synthetic events to Sentry or depending on external network access.
+	transport: isE2ETest
+		? () => ({
+				send: async () => ({ statusCode: 200 }),
+				flush: async () => true,
+			})
+		: undefined,
 	// Replay is added dynamically only after c15t grants measurement consent.
 	replaysSessionSampleRate: 0,
 	replaysOnErrorSampleRate: 0,

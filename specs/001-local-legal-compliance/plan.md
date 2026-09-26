@@ -14,7 +14,7 @@ Replace all GoAdopt-hosted documents and privacy-request links with one local, v
 
 **Primary Dependencies**: `@c15t/nextjs`, `@c15t/backend`, HeroUI v3, existing React Markdown/rendering dependencies; planned dev-only `@playwright/test` and `playwright-bdd`
 
-**Storage**: Version-controlled structured legal content and compliance registry; existing PostgreSQL/c15t consent persistence remains unchanged; browser cookies/local/session storage are inspected but values are not retained
+**Storage**: Version-controlled structured legal content and compliance registry; existing PostgreSQL/c15t consent persistence remains unchanged; automated browser audits inspect cookie/local/session-storage names but never retain values
 
 **Testing**: Jest 30 with Testing Library for TDD; Playwright plus executable Gherkin bindings for shared ATDD/BDD evidence and runtime compliance audit
 
@@ -22,7 +22,7 @@ Replace all GoAdopt-hosted documents and privacy-request links with one local, v
 
 **Project Type**: Next.js full-stack web application
 
-**Performance Goals**: Legal pages server-render without third-party dependencies; registry rendering adds no external request; current-device inspection completes within 100 ms for normal browser storage volumes; audit runtime remains suitable for PR CI
+**Performance Goals**: Legal pages server-render without third-party dependencies; registry rendering adds no external request; the cookie policy performs no runtime device-storage inspection; audit runtime remains suitable for PR CI
 
 **Constraints**: English-only first release; no new legal CMS/service/container; no automatic data deletion/export; no storage values collected; no universal compliance claim; no changes to c15t categories, persistence, API, reload, activation, revocation, cleanup, or UI semantics
 
@@ -30,7 +30,7 @@ Replace all GoAdopt-hosted documents and privacy-request links with one local, v
 
 ## Constitution Check
 
-The project constitution is still the uninitialized Spec Kit placeholder and therefore defines no enforceable project-specific gates. The active repository rules and test-first preset supply the binding gates:
+The ratified Clipify constitution and active repository rules define the binding gates:
 
 - Gitmoji commits and existing project conventions remain mandatory.
 - Production logic follows red-green-refactor with recorded Red evidence.
@@ -80,8 +80,7 @@ src/app/
 │   └── legal/
 │       ├── LegalDocument.tsx
 │       ├── LegalNavigation.tsx
-│       ├── ServiceDisclosureTable.tsx
-│       └── DeviceStorageInspector.tsx
+│       └── ServiceDisclosureTable.tsx
 └── lib/
     ├── consent/
     │   └── registry.ts
@@ -130,10 +129,10 @@ scripts/
 
 ### Phase 3: Local legal and rights experience
 
-1. Red: add component/route tests for local navigation, document metadata, required topics, cookie-preference entry points, device-inspector privacy, and request-channel behavior.
+1. Red: add component/route tests for local navigation, document metadata, required topics, cookie-preference entry points, authoritative inventory presentation, and request-channel behavior.
 2. Green: implement shared legal layout and the privacy, cookie, terms, and privacy-request pages.
 3. Write one independent English document set from verified facts and EU/German source requirements.
-4. Embed service/storage tables from the registry and a supplemental client-only device inspector that never exposes values.
+4. Embed service/storage tables from the registry and omit partial runtime device inspection from the public policy.
 5. Replace GoAdopt links in consent UI, footer, login, and machine-readable site documents.
 
 ### Phase 4: Existing consent-interface integration

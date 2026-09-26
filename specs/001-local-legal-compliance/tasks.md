@@ -50,13 +50,13 @@
 
 **Goal**: Visitors can reach readable, local privacy and cookie documents that accurately describe Clipify's operator, processing, services, storage, and current product behavior without relying on GoAdopt.
 
-**Independent test**: From the public site, visit every local legal route and footer/login consent link; verify required topics, metadata, responsive/keyboard access, no GoAdopt navigation, and safe supplemental device-storage disclosure.
+**Independent test**: From the public site, visit every local legal route and footer/login consent link; verify required topics, metadata, responsive/keyboard access, no GoAdopt navigation, and an authoritative cookie inventory without runtime device inspection.
 
 ### Scenario Specification
 
 - [x] T011 [US1] [ATDD] [A1] [A3] Define `@ATDD-US1-001` for local legal navigation, required metadata, English content, 320px layout, and keyboard access in `test/bdd/features/local-legal-compliance.feature`
 - [x] T012 [US1] [ATDD] [A6] Define `@ATDD-US1-002` for readable disclosures when JavaScript or the consent backend is unavailable, without claiming a saved preference, in `test/bdd/features/local-legal-compliance.feature`
-- [x] T013 [US1] [ATDD] [A12] Define `@ATDD-US1-003` for a clearly supplemental, partial device-storage view in `test/bdd/features/local-legal-compliance.feature`
+- [x] T013 [US1] [ATDD] [A12] Define `@ATDD-US1-003` for the authoritative inventory boundary; the final approved scenario omits partial runtime device inspection in `test/bdd/features/local-legal-compliance.feature`
 - [x] T014 [US1] [GATE] [A1] [A3] [A6] [A12] Register ATDD-US1-001–003 as the shared BDD-owned ATDD/BDD evidence and add their source relationships and examples in `specs/001-local-legal-compliance/test-traceability.md`
 
 ### Slice 1 — Local Document Model, Privacy Content, and Public Routes
@@ -86,18 +86,18 @@
 - [x] T030 [P] [US1] [U4] Update machine-readable legal URLs in `src/app/llms.txt/llms.txt` and `src/app/llms-full.txt/llms-full.txt`
 - [x] T032 [US1] [U4] Refactor the shared legal-route constants without changing destinations in `src/app/lib/legal/documents.ts`
 
-### Slice 3 — Service Registry Disclosure and Supplemental Device View
+### Slice 3 — Service Registry Disclosure and Authoritative Inventory
 
 - [x] T033 [US1] [ATDD] [A6] [A12] Implement failing bindings for `@ATDD-US1-002` and `@ATDD-US1-003` in `test/bdd/steps/local-legal-compliance.steps.ts`
 - [x] T034 [P] [US1] [TDD] [U5] [U6] [U7] [U8] [U9] [U10] Create failing `TDD-US1-004` tests for complete, consistent purpose/provider/storage/recipient/retention/legal-basis disclosure metadata in `test/app/lib/consentRegistry.test.ts`
-- [x] T035 [P] [US1] [TDD] [U11] [U12] Create failing `TDD-US1-005` tests proving the device inspector lists only approved keys/patterns, never values, and labels its view as partial in `test/app/components/legal/DeviceStorageInspector.test.tsx`
+- [x] T035 [P] [US1] [TDD] [U11] [U12] Historical device-inspector tests completed during the original slice; this requirement was superseded by the approved T170–T172 removal decision
 - [x] T036 [US1] [GATE] [A2] [A6] [A12] [U5] [U6] [U7] [U8] [U9] [U10] [U11] [U12] Run `@ATDD-US1-002`, `@ATDD-US1-003`, `TDD-US1-004`, and `TDD-US1-005`; confirm intended Red failures and record them in `specs/001-local-legal-compliance/test-traceability.md`
 - [x] T037 [US1] [U5] [U6] [U7] [U8] [U9] [U10] Add document-only disclosure metadata to existing service definitions without changing consent behavior in `src/app/lib/consent/registry.ts`
 - [x] T038 [P] [US1] [A2] [A4] [U5] [U9] [U10] Implement the read-only service and storage disclosure view in `src/app/components/legal/ServiceDisclosure.tsx`
-- [x] T039 [P] [US1] [A12] [U11] [U12] Implement the safe, value-free, supplemental browser storage inspector in `src/app/components/legal/DeviceStorageInspector.tsx`
-- [x] T040 [US1] [A2] [A4] [A12] [U5] [U10] [U11] [U12] Compose verified service disclosures and the supplemental device view into `src/app/legal/cookies/page.tsx`
+- [x] T039 [P] [US1] [A12] [U11] [U12] Historical supplemental inspector implementation; removed after the approved T170–T172 requirement revision
+- [x] T040 [US1] [A2] [A4] [A12] [U5] [U10] [U11] [U12] Compose verified service disclosures into `src/app/legal/cookies/page.tsx`; the final approved composition omits runtime device inspection
 - [x] T041 [US1] [GATE] [A2] [A6] [A12] [U5] [U6] [U7] [U8] [U9] [U10] [U11] [U12] Rerun `@ATDD-US1-002`, `@ATDD-US1-003`, `TDD-US1-004`, and `TDD-US1-005`; record Green evidence in `specs/001-local-legal-compliance/test-traceability.md`
-- [x] T042 [US1] [A2] [A4] [A12] [U5] [U10] [U11] [U12] Refactor disclosure presentation while preserving registry completeness and value-free inspection in `src/app/components/legal/ServiceDisclosure.tsx` and `src/app/components/legal/DeviceStorageInspector.tsx`
+- [x] T042 [US1] [A2] [A4] [A12] [U5] [U10] [U11] [U12] Refactor disclosure presentation while preserving registry completeness; the inspector portion was superseded by T170–T172
 
 ### User Story 1 Completion
 
@@ -259,7 +259,7 @@
 
 - [x] T124 [US4] [GATE] [A10] Run the disclosure-drift acceptance scenario to Green and retain its compliance-audit evidence in `specs/001-local-legal-compliance/test-summary.md`
 - [x] T125 [US4] [GATE] [A11] Run the material-change review acceptance scenario to Green and update its status in `specs/001-local-legal-compliance/test-traceability.md`
-- [x] T126 [US4] [GATE] [A12] Run the supplemental-device-view acceptance scenario to Green and record defects, audit findings, and separate future consent-engine work in `specs/001-local-legal-compliance/defect-log.md`
+- [x] T126 [US4] [GATE] [A12] Run the authoritative-inventory acceptance scenario to Green and prove the public policy exposes neither runtime device state nor storage values
 - [x] T127 [US4] [GATE] Record US4 execution totals, coverage, risks, evidence links, and Go/No-Go recommendation in `specs/001-local-legal-compliance/test-summary.md`
 
 **Checkpoint**: Publication drift is detectable and blocking without modifying c15t or claiming universal legal compliance.
@@ -404,7 +404,7 @@ T117: Provenance tests in test/app/lib/legalTraceability.test.ts
 - [x] T155 [BDD] [MED] Resolve Finding 8 by moving US/FR/SC tags from the feature to their owning scenarios while preserving one stable scenario ID per scenario; verify generated tags with `bun run test:bdd`
 - [x] T156 [US1] [ATDD] [A3] [MED] Resolve Finding 9 with real Tab traversal and an automated accessibility check against the live 320px legal page; verify with `bunx playwright test --project=bdd-chromium --grep "@A3"`
 - [x] T157 [GATE] [MED] Resolve Finding 10 so a clean `bun run test:e2e` starts and stops its managed Next server and exits zero twice consecutively on Windows and CI Linux
-- [x] T158 [TDD] [LOW] Resolve Finding 11 by moving `fetch` and browser-storage cleanup into guaranteed test teardown; verify with `bunx jest test/app/components/legal/DeviceStorageInspector.test.tsx --runInBand`
+- [x] T158 [TDD] [LOW] Historical remediation for the former inspector test; superseded when T170–T172 removed that feature and test
 - [x] T159 [GATE] Rerun `/speckit.tdd.verify` after T148-T158 and retain the new verdict in `specs/001-local-legal-compliance/tdd/verification.md`
 
 ---
@@ -423,3 +423,13 @@ T117: Provenance tests in test/app/lib/legalTraceability.test.ts
 - [x] T167 [US4] [ATDD] [MED] Resolve Finding 9 by closing browser contexts in guaranteed cleanup and waiting on reviewed request/readiness conditions before inventory capture; verify twice with `bun run test:compliance`
 - [x] T168 [US4] [TDD] [MED] Resolve Finding 10 by pinning the exact valid policy-release baseline before the invalid-input table; verify with `bunx jest test/app/lib/legalPublication.test.ts --runInBand`
 - [x] T169 [US2] [TDD] [LOW] Resolve Finding 11 by restoring browser history in guaranteed teardown in `test/app/components/legal/CookiePreferencesLink.test.tsx`; verify with `bunx jest test/app/components/legal/CookiePreferencesLink.test.tsx --runInBand`
+
+---
+
+## Phase 10: Approved device-inspector removal
+
+**Decision**: The public cookie policy uses the complete reviewed inventory and does not show a partial, timing-dependent snapshot of storage visible to the current browser. Historical implementation evidence remains in the cycle log; active requirements and artifacts reflect the approved final behavior.
+
+- [x] T170 [US1] [SPEC] [A12] Replace the supplemental-device-view requirement with the authoritative-inventory boundary across `spec.md`, `plan.md`, `research.md`, contracts, test inventory, and traceability
+- [x] T171 [US1] [CLEANUP] Remove the unused `DeviceStorageInspector` production component and its superseded isolated test
+- [x] T172 [US1] [GATE] Verify the existing route and BDD regressions prove that the complete inventory remains visible and no current-device storage region is rendered

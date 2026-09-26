@@ -18,16 +18,16 @@ This feature publishes one English, Clipify-hosted document set using the EU/EEA
 
 `Green` means the owning executable passed; it does not imply test-first ordering. Valid Red evidence and Red-to-Green transitions are retained in [tdd/cycle-log.md](tdd/cycle-log.md). A2, A3, A4, and A6-A11 are explicitly classified `TEST_AFTER`. `ATDD-US3-002`, `ATDD-US4-003`, and `ATDD-US4-004` also have Green execution evidence but no behavior-level Red and are recorded as test-after rather than as TDD evidence.
 
-| Artifact IDs     | Owner      | Artifact / command                                                                      | Status | Evidence                                            |
-| ---------------- | ---------- | --------------------------------------------------------------------------------------- | ------ | --------------------------------------------------- |
-| TDD-US1-001–005  | TDD        | Legal manifest, content, registry, migration, and device tests; `bun run test:coverage` | Green  | 159 suites / 1,238 tests passed                     |
-| TDD-US2-001–004  | TDD        | Consent projection, classification, boundary, and preferences tests                     | Green  | Coverage report and cycle log                       |
-| TDD-US3-001–002  | TDD        | Rights and terms tests                                                                  | Green  | Coverage report and cycle log                       |
-| TDD-US4-001–005  | TDD        | Versioning, audit, publication, scope, and provenance tests                             | Green  | Coverage report and cycle log                       |
-| ATDD-US1-001–003 | ATDD + BDD | `test/bdd/features/local-legal-compliance.feature`; `bun run test:bdd`                  | Green  | All mapped rows passed                              |
-| ATDD-US2-001–004 | ATDD + BDD | Same owning feature and bindings                                                        | Green  | All mapped rows passed                              |
-| ATDD-US3-001–002 | ATDD + BDD | Same owning feature and bindings                                                        | Green  | All mapped rows passed                              |
-| ATDD-US4-001–004 | ATDD + BDD | Same owning feature and bindings                                                        | Green  | All mapped rows passed, including four A11 examples |
+| Artifact IDs     | Owner      | Artifact / command                                                                                       | Status | Evidence                                                      |
+| ---------------- | ---------- | -------------------------------------------------------------------------------------------------------- | ------ | ------------------------------------------------------------- |
+| TDD-US1-001–005  | TDD        | Legal manifest, content, registry, migration, and authoritative-inventory tests; `bun run test:coverage` | Green  | Route regression supersedes the retired device-inspector test |
+| TDD-US2-001–004  | TDD        | Consent projection, classification, boundary, and preferences tests                                      | Green  | Coverage report and cycle log                                 |
+| TDD-US3-001–002  | TDD        | Rights and terms tests                                                                                   | Green  | Coverage report and cycle log                                 |
+| TDD-US4-001–005  | TDD        | Versioning, audit, publication, scope, and provenance tests                                              | Green  | Coverage report and cycle log                                 |
+| ATDD-US1-001–003 | ATDD + BDD | `test/bdd/features/local-legal-compliance.feature`; `bun run test:bdd`                                   | Green  | All mapped rows passed                                        |
+| ATDD-US2-001–004 | ATDD + BDD | Same owning feature and bindings                                                                         | Green  | All mapped rows passed                                        |
+| ATDD-US3-001–002 | ATDD + BDD | Same owning feature and bindings                                                                         | Green  | All mapped rows passed                                        |
+| ATDD-US4-001–004 | ATDD + BDD | Same owning feature and bindings                                                                         | Green  | All mapped rows passed, including four A11 examples           |
 
 The Gherkin scenarios own both ATDD and BDD evidence because each visible behavior example is also its stakeholder release boundary; duplicate scenarios would provide no independent evidence.
 
@@ -53,15 +53,15 @@ All FR-001–023, SC-001–010, EC-001–008, and US1–US4 identifiers have one
 
 ## Scenario Coverage Matrix
 
-| Boundary                                                            | Scenario evidence              | Result |
-| ------------------------------------------------------------------- | ------------------------------ | ------ |
-| Local routes, metadata, narrow layout, keyboard access              | ATDD-US1-001                   | Green  |
-| Consent-backend degradation and supplemental value-free device view | ATDD-US1-002–003, ATDD-US2-004 | Green  |
-| Complete category/service disclosure and existing dialog            | ATDD-US2-001–003               | Green  |
-| Privacy requests, no-account contact, qualifications                | ATDD-US3-001                   | Green  |
-| Accounts, paid plans, and self-hosted Runner terms                  | ATDD-US3-002                   | Green  |
-| Unknown storage/origin and material-change classes                  | ATDD-US4-001–002               | Green  |
-| Missing publication metadata and reviewed regional scope            | ATDD-US4-003–004               | Green  |
+| Boundary                                                                                  | Scenario evidence              | Result |
+| ----------------------------------------------------------------------------------------- | ------------------------------ | ------ |
+| Local routes, metadata, narrow layout, keyboard access                                    | ATDD-US1-001                   | Green  |
+| Consent-backend degradation and authoritative inventory without runtime device inspection | ATDD-US1-002–003, ATDD-US2-004 | Green  |
+| Complete category/service disclosure and existing dialog                                  | ATDD-US2-001–003               | Green  |
+| Privacy requests, no-account contact, qualifications                                      | ATDD-US3-001                   | Green  |
+| Accounts, paid plans, and self-hosted Runner terms                                        | ATDD-US3-002                   | Green  |
+| Unknown storage/origin and material-change classes                                        | ATDD-US4-001–002               | Green  |
+| Missing publication metadata and reviewed regional scope                                  | ATDD-US4-003–004               | Green  |
 
 ## Quality Gate Results
 

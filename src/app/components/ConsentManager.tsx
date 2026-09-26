@@ -64,6 +64,7 @@ function ConsentInterface() {
 	const [returnToBanner, setReturnToBanner] = useState(false);
 	const [preferencesRequested, setPreferencesRequested] = useState(false);
 	const [expandedCategories, setExpandedCategories] = useState<Set<Key>>(new Set());
+	const [saveError, setSaveError] = useState<string | null>(null);
 	const pending = pendingAction !== null;
 	const preferencesVisible = dialog.isVisible || preferencesRequested;
 
@@ -97,12 +98,20 @@ function ConsentInterface() {
 		return preferences;
 	}
 
-	async function save(actionName: "accept" | "reject" | "save", action: () => Promise<unknown>) {
+	async function save(actionName: "accept" | "reject" | "save", action: () => Promise<unknown>, surface: "banner" | "dialog") {
 		setPendingAction(actionName);
+		setSaveError(null);
 		try {
 			const preferences = preferencesAfter(actionName);
 			await action();
 			reloadAfterConsentSave(preferences);
+		} catch {
+			setSaveError("We couldn't save your privacy choices. Please try again.");
+			if (surface === "banner") openBanner({ force: true });
+			else {
+				setPreferencesRequested(true);
+				openDialog();
+			}
 		} finally {
 			setPendingAction(null);
 		}
@@ -156,13 +165,18 @@ function ConsentInterface() {
 								<IconSettings className='size-4' aria-hidden='true' />
 								Preferences
 							</Button>
-							<Button size='sm' variant='outline' isDisabled={pending} isPending={pendingAction === "reject"} onPress={() => void save("reject", () => performBannerAction("reject"))}>
+							<Button size='sm' variant='outline' isDisabled={pending} isPending={pendingAction === "reject"} onPress={() => void save("reject", () => performBannerAction("reject"), "banner")}>
 								Reject optional
 							</Button>
-							<Button size='sm' isDisabled={pending} isPending={pendingAction === "accept"} onPress={() => void save("accept", () => performBannerAction("accept"))}>
+							<Button size='sm' isDisabled={pending} isPending={pendingAction === "accept"} onPress={() => void save("accept", () => performBannerAction("accept"), "banner")}>
 								Accept all
 							</Button>
 						</div>
+						{saveError && (
+							<p role='alert' className='text-sm text-danger lg:col-span-2'>
+								{saveError}
+							</p>
+						)}
 					</Card.Content>
 				</Card>
 			</aside>
@@ -251,17 +265,22 @@ function ConsentInterface() {
 										);
 									})}
 								</Accordion>
+								{saveError && (
+									<p role='alert' className='text-sm text-danger'>
+										{saveError}
+									</p>
+								)}
 							</Modal.Body>
 							<Modal.Footer className='flex flex-col gap-2 border-t border-default px-4 py-4 sm:flex-row sm:justify-center sm:px-6'>
-								<Button variant='outline' isDisabled={pending} isPending={pendingAction === "reject"} onPress={() => void save("reject", () => performDialogAction("reject"))}>
+								<Button variant='outline' isDisabled={pending} isPending={pendingAction === "reject"} onPress={() => void save("reject", () => performDialogAction("reject"), "dialog")}>
 									<IconX className='size-4' aria-hidden='true' />
 									Reject optional
 								</Button>
-								<Button variant='secondary' isDisabled={pending} isPending={pendingAction === "save"} onPress={() => void save("save", saveCustomPreferences)}>
+								<Button variant='secondary' isDisabled={pending} isPending={pendingAction === "save"} onPress={() => void save("save", saveCustomPreferences, "dialog")}>
 									<IconDeviceFloppy className='size-4' aria-hidden='true' />
 									Save choices
 								</Button>
-								<Button isDisabled={pending} isPending={pendingAction === "accept"} onPress={() => void save("accept", () => performDialogAction("accept"))}>
+								<Button isDisabled={pending} isPending={pendingAction === "accept"} onPress={() => void save("accept", () => performDialogAction("accept"), "dialog")}>
 									<IconCheck className='size-4' aria-hidden='true' />
 									Accept all
 								</Button>

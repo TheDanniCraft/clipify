@@ -6,7 +6,7 @@
 
 **Status**: Draft
 
-**Input**: Replace GoAdopt-hosted legal documents and privacy requests with an independently maintained Clipify legal and privacy center. Reuse the consent inventory to disclose services and device storage accurately, support consent management from the cookie policy, and publish one English document set based on the German operator's EU legal baseline.
+**Input**: Replace GoAdopt-hosted legal documents and privacy requests with an independently maintained Clipify legal and privacy center. Reuse the reviewed consent inventory to disclose services and browser storage accurately, support consent management from the cookie policy, and publish one English document set based on the German operator's EU legal baseline. Do not present a partial runtime snapshot of storage found on the visitor's device as legal disclosure.
 
 ## User Scenarios & Testing _(mandatory)_
 
@@ -86,13 +86,13 @@ As the Clipify operator, I can update one reviewed service inventory and detect 
 
 1. **Given** a declared service changes its storage or network behavior, **When** the compliance audit runs, **Then** the difference is reported against the reviewed inventory.
 2. **Given** a processing purpose or consent category changes materially, **When** the change is prepared for release, **Then** a policy-version review and renewed-consent decision are required.
-3. **Given** a visitor inspects activity on their device, **When** the browser cannot expose a storage item such as an HTTP-only cookie, **Then** the device view is clearly supplemental and the complete declared inventory remains visible.
+3. **Given** a visitor opens the cookie policy, **When** the browser could expose only a partial and timing-dependent subset of storage, **Then** the page relies on the complete reviewed inventory and does not present a current-device inspection as legal disclosure.
 
 ### Edge Cases
 
 - **EC-001**: JavaScript is disabled or the consent service is temporarily unavailable; legal content remains readable and does not claim that a preference was changed.
 - **EC-002**: A service creates a dynamic or suffixed storage key; the inventory supports reviewed patterns without accepting unrelated keys.
-- **EC-003**: A browser exposes only part of the device state; the page never presents runtime detection as the exhaustive legal inventory.
+- **EC-003**: A browser can expose only part of the device state; the public policy omits runtime device inspection and presents the complete reviewed inventory instead.
 - **EC-004**: The existing c15t preferences interface is temporarily unavailable; the legal documents remain readable and the preference entry point fails clearly without simulating a saved choice.
 - **EC-005**: A previously accepted purpose is materially changed; the old consent is not treated as authorization for the new purpose.
 - **EC-006**: A privacy request cannot be safely fulfilled without identity verification or must be retained because of a legal obligation; the requester receives a clear process rather than an unconditional promise.
@@ -110,7 +110,7 @@ As the Clipify operator, I can update one reviewed service inventory and detect 
 - **FR-005**: The privacy policy MUST account for relevant processing in account authentication, Twitch integrations, payments, communications, support, security, consent records, analytics, observability, application logs, and self-hosted components based on verified product behavior.
 - **FR-006**: The cookie policy MUST disclose cookies and all comparable terminal-storage or access technologies, including local storage, session storage, scripts, tags, pixels, link decoration, and external network services where present.
 - **FR-007**: Every declared service MUST expose a reviewed category, purpose, provider, data or storage classes, storage names or bounded patterns, domain or origin, lifetime or retention criterion, first- or third-party status, recipient and location information, consent requirement, and revocation behavior where applicable.
-- **FR-008**: The complete declared inventory MUST be the authoritative disclosure; any current-device view MUST be labeled supplemental, MUST NOT expose stored values, and MUST NOT transmit inspected values to the server.
+- **FR-008**: The complete reviewed inventory MUST be the authoritative public disclosure. The cookie policy MUST NOT enumerate a visitor's runtime browser-storage state or expose stored values; runtime observations are limited to value-free automated compliance evidence.
 - **FR-009**: Visitors MUST be able to open the existing cookie-preferences interface directly from the cookie policy and footer.
 - **FR-010**: This feature MUST NOT change c15t categories, default choices, consent persistence, consent API behavior, reload behavior, service activation, revocation, or cleanup semantics.
 - **FR-011**: The cookie policy MUST explain the currently configured categories and link each category to its declared services without duplicating consent state or introducing a second preference store.
@@ -177,7 +177,7 @@ As the Clipify operator, I can update one reviewed service inventory and detect 
 | US3           | User Story             | Exercise privacy rights                                         | Required | Required | Required | Rights content and reachable request-channel evidence                              |
 | US4           | User Story             | Keep disclosures aligned                                        | Required | Required | Required | Registry, audit, material-change, and release-gate evidence                        |
 | FR-001–FR-003 | Functional Requirement | Local documents, migration, presentation                        | Required | Required | Required | Route/link contract, responsive and accessible navigation scenarios                |
-| FR-004–FR-008 | Functional Requirement | Privacy and storage disclosure completeness                     | Required | Required | Required | Schema validation, rendered policy scenarios, and device-inspector privacy checks  |
+| FR-004–FR-008 | Functional Requirement | Privacy and storage disclosure completeness                     | Required | Required | Required | Schema validation, rendered policy scenarios, and authoritative-inventory checks   |
 | FR-009–FR-013 | Functional Requirement | Existing consent integration and service classification         | Required | Required | Required | Read-only category projection, dialog entry, fallback, and disclosure scenarios    |
 | FR-014–FR-016 | Functional Requirement | Rights and terms content                                        | Required | Required | Required | Required-section validation and user-facing request scenarios                      |
 | FR-017–FR-020 | Functional Requirement | Versioning, audit, and publication gates                        | Required | Required | Required | Material-change and undeclared-behavior failure scenarios                          |
@@ -209,11 +209,11 @@ Feature: Local legal center
     And no preference change is represented as saved
 
   @ATDD-US1-003 @EC-003
-  Scenario: Device activity is clearly supplemental
+  Scenario: The cookie policy avoids partial device inspection
     Given the browser cannot expose every stored item
-    When the visitor compares current-device activity with the cookie policy
-    Then the complete declared inventory remains visible
-    And no storage value is displayed or transmitted
+    When the visitor opens the cookie policy
+    Then the complete reviewed inventory remains visible
+    And no current-device storage snapshot or stored value is displayed
 
 @ATDD @BDD @US2 @FR-009 @FR-010 @FR-011 @FR-012 @FR-013 @SC-003 @SC-004
 Feature: Legal disclosures connect to existing preferences
@@ -297,24 +297,24 @@ Feature: Compliance evidence gates release
 
 ### TDD Test Inventory _(mandatory)_
 
-| Test ID     | Source ID(s)                   | Test Level       | Planned Path                                              | Intent                                                                 | Expected Initial Failure                |
-| ----------- | ------------------------------ | ---------------- | --------------------------------------------------------- | ---------------------------------------------------------------------- | --------------------------------------- |
-| TDD-US1-001 | FR-001, FR-003                 | Unit             | `src/app/lib/legal/documents.test.ts`                     | Validate required document metadata and local routes                   | Legal manifest does not exist           |
-| TDD-US1-002 | FR-004, FR-005, FR-016         | Unit             | `src/app/lib/legal/content.test.ts`                       | Validate mandatory privacy and terms topics                            | Local legal content does not exist      |
-| TDD-US1-003 | FR-002, SC-001                 | Integration      | `src/app/lib/legal/linkMigration.test.ts`                 | Detect GoAdopt URLs in user-facing sources                             | Existing links remain                   |
-| TDD-US1-004 | FR-007, FR-008                 | Unit             | `src/app/lib/consent/registry.test.ts`                    | Validate disclosure completeness and safe device projection            | Registry lacks compliance fields        |
-| TDD-US1-005 | EC-003, FR-008                 | Component        | `src/app/components/legal/DeviceStorage.test.tsx`         | Hide values and label incomplete browser visibility                    | Component is missing                    |
-| TDD-US2-001 | FR-009, FR-010                 | Component        | `src/app/components/legal/CookiePreferencesLink.test.tsx` | Open the existing preferences interface without owning consent state   | Legal preference entry point is missing |
-| TDD-US2-002 | FR-011, EC-004                 | Integration      | `src/app/lib/legal/consentProjection.test.ts`             | Project existing categories into documents and handle unavailable UI   | Read-only projection is missing         |
-| TDD-US2-003 | FR-010                         | Regression       | `src/app/lib/legal/consentBoundary.test.ts`               | Prove document code cannot mutate c15t configuration or persistence    | Scope boundary is not enforced          |
-| TDD-US2-004 | FR-012, FR-013                 | Unit             | `src/app/lib/legal/serviceClassification.test.ts`         | Validate necessary and always-on disclosure consistency                | Classification validation is missing    |
-| TDD-US3-001 | FR-014, FR-015, EC-006, EC-007 | Unit             | `src/app/lib/legal/rights.test.ts`                        | Validate rights, qualifications, verification, and request route       | Rights manifest does not exist          |
-| TDD-US3-002 | FR-016                         | Unit             | `src/app/lib/legal/terms.test.ts`                         | Validate business terms topics and operator-confirmed facts            | Terms content does not exist            |
-| TDD-US4-001 | FR-017, EC-005                 | Unit             | `src/app/lib/legal/versioning.test.ts`                    | Classify material changes and require review decisions                 | Versioning rule is missing              |
-| TDD-US4-002 | FR-018, FR-019, EC-002         | Integration      | `tests/compliance/inventory-audit.test.ts`                | Compare exact and bounded observed storage/origins                     | Browser audit is missing                |
-| TDD-US4-003 | FR-020, EC-008                 | Build validation | `scripts/validate-legal-content.test.ts`                  | Reject incomplete or inconsistent publication inputs                   | Publication validator is missing        |
-| TDD-US4-004 | FR-021, SC-010                 | Unit             | `src/app/lib/legal/scope.test.ts`                         | Require one EU/German-baseline document strategy without global claims | Legal-scope record is missing           |
-| TDD-US4-005 | FR-022, FR-023                 | Quality gate     | `tests/compliance/provenance-and-traceability.test.ts`    | Require source notes and declaration-to-audit mappings                 | Evidence registry is missing            |
+| Test ID     | Source ID(s)                   | Test Level       | Planned Path                                              | Intent                                                                  | Expected Initial Failure                |
+| ----------- | ------------------------------ | ---------------- | --------------------------------------------------------- | ----------------------------------------------------------------------- | --------------------------------------- |
+| TDD-US1-001 | FR-001, FR-003                 | Unit             | `src/app/lib/legal/documents.test.ts`                     | Validate required document metadata and local routes                    | Legal manifest does not exist           |
+| TDD-US1-002 | FR-004, FR-005, FR-016         | Unit             | `src/app/lib/legal/content.test.ts`                       | Validate mandatory privacy and terms topics                             | Local legal content does not exist      |
+| TDD-US1-003 | FR-002, SC-001                 | Integration      | `src/app/lib/legal/linkMigration.test.ts`                 | Detect GoAdopt URLs in user-facing sources                              | Existing links remain                   |
+| TDD-US1-004 | FR-007, FR-008                 | Unit             | `src/app/lib/consent/registry.test.ts`                    | Validate disclosure completeness and value-free audit declarations      | Registry lacks compliance fields        |
+| TDD-US1-005 | EC-003, FR-008                 | Route component  | `test/app/legal/legalRoutes.test.tsx`                     | Keep the reviewed inventory authoritative and omit runtime device state | Device inspector remains rendered       |
+| TDD-US2-001 | FR-009, FR-010                 | Component        | `src/app/components/legal/CookiePreferencesLink.test.tsx` | Open the existing preferences interface without owning consent state    | Legal preference entry point is missing |
+| TDD-US2-002 | FR-011, EC-004                 | Integration      | `src/app/lib/legal/consentProjection.test.ts`             | Project existing categories into documents and handle unavailable UI    | Read-only projection is missing         |
+| TDD-US2-003 | FR-010                         | Regression       | `src/app/lib/legal/consentBoundary.test.ts`               | Prove document code cannot mutate c15t configuration or persistence     | Scope boundary is not enforced          |
+| TDD-US2-004 | FR-012, FR-013                 | Unit             | `src/app/lib/legal/serviceClassification.test.ts`         | Validate necessary and always-on disclosure consistency                 | Classification validation is missing    |
+| TDD-US3-001 | FR-014, FR-015, EC-006, EC-007 | Unit             | `src/app/lib/legal/rights.test.ts`                        | Validate rights, qualifications, verification, and request route        | Rights manifest does not exist          |
+| TDD-US3-002 | FR-016                         | Unit             | `src/app/lib/legal/terms.test.ts`                         | Validate business terms topics and operator-confirmed facts             | Terms content does not exist            |
+| TDD-US4-001 | FR-017, EC-005                 | Unit             | `src/app/lib/legal/versioning.test.ts`                    | Classify material changes and require review decisions                  | Versioning rule is missing              |
+| TDD-US4-002 | FR-018, FR-019, EC-002         | Integration      | `tests/compliance/inventory-audit.test.ts`                | Compare exact and bounded observed storage/origins                      | Browser audit is missing                |
+| TDD-US4-003 | FR-020, EC-008                 | Build validation | `scripts/validate-legal-content.test.ts`                  | Reject incomplete or inconsistent publication inputs                    | Publication validator is missing        |
+| TDD-US4-004 | FR-021, SC-010                 | Unit             | `src/app/lib/legal/scope.test.ts`                         | Require one EU/German-baseline document strategy without global claims  | Legal-scope record is missing           |
+| TDD-US4-005 | FR-022, FR-023                 | Quality gate     | `tests/compliance/provenance-and-traceability.test.ts`    | Require source notes and declaration-to-audit mappings                  | Evidence registry is missing            |
 
 ### Scenario Coverage Matrix _(mandatory)_
 
@@ -322,7 +322,7 @@ Feature: Compliance evidence gates release
 | -------------------------- | ------------ | ---------------- | ----------------- | -------------------------------------------------- | ----------------- | ---------------- | ------------------------------------------------------------------------------- |
 | ATDD-US1-001               | ATDD         | ATDD, BDD        | US1               | All local legal links and metadata                 | Positive          | Public UI        | Same end-to-end journey proves behavior and release acceptance                  |
 | ATDD-US1-002               | ATDD         | ATDD, BDD        | EC-001            | No scripting or consent backend                    | Negative          | Public UI        | Verifies resilient disclosure and privacy-safe failure                          |
-| ATDD-US1-003               | ATDD         | ATDD, BDD        | EC-003            | Partial browser visibility                         | Boundary          | Cookie policy UI | Prevents a misleading exhaustive claim                                          |
+| ATDD-US1-003               | ATDD         | ATDD, BDD        | EC-003            | Partial browser visibility                         | Boundary          | Cookie policy UI | Prevents a partial runtime snapshot from appearing as legal disclosure          |
 | ATDD-US2-001               | ATDD         | ATDD, BDD        | FR-010            | Existing c15t categories                           | Boundary          | Cookie policy UI | Proves the document is a read-only projection                                   |
 | ATDD-US2-002:necessary     | ATDD         | ATDD, BDD        | FR-012            | Strictly necessary                                 | Positive          | Cookie policy UI | Required category disclosure                                                    |
 | ATDD-US2-002:functionality | ATDD         | ATDD, BDD        | FR-011            | Functionality                                      | Positive          | Cookie policy UI | Required category disclosure                                                    |
@@ -341,5 +341,5 @@ Feature: Compliance evidence gates release
 - Every functional requirement, success criterion, and edge case maps to either a listed TDD artifact, ATDD scenario, or both.
 - The ATDD-owned Gherkin suite also carries BDD evidence because observable user behavior and stakeholder release acceptance are identical for these end-to-end flows; unit and integration behavior is not duplicated there.
 - Scenario outline examples enumerate every existing consent category as a disclosure class. Material-change classes are exhaustively covered by rule tests and represented by one release-workflow scenario.
-- Negative paths cover unavailable scripting, partial device visibility, unavailable preference UI, request qualifications, unknown observed behavior, material changes, and incomplete publication data.
+- Negative paths cover unavailable scripting, omission of partial device inspection, unavailable preference UI, request qualifications, unknown observed behavior, material changes, and incomplete publication data.
 - Every planned executable artifact has one owning suite.

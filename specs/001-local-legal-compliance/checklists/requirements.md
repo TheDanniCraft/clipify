@@ -42,5 +42,6 @@
 ## Notes
 
 - Validation completed in one pass with no unresolved clarification markers.
+- Revalidated on 2026-09-26 after the approved removal of the partial current-device inspector; FR-008, EC-003, A12, contracts, plan, tasks, and traceability now consistently require the complete reviewed inventory without a runtime device snapshot.
 - Framework and file-path details appear only in the mandatory test-first addendum, not in stakeholder requirements.
 - Legal correctness remains subject to factual operator confirmation and proportionate qualified review; the specification does not claim universal legal compliance.

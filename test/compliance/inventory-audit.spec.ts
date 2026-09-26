@@ -87,7 +87,6 @@ async function collectConsentEnabledFlow(browser: Browser) {
 		const requestedOrigins = observeRequestedOrigins(page);
 		await page.addInitScript(() => {
 			localStorage.setItem("c15t", JSON.stringify({ consents: { necessary: true, functionality: true, measurement: true }, consentInfo: { time: Date.now() } }));
-			sessionStorage.setItem("sentryReplaySession", "compliance-placeholder-without-user-data");
 		});
 		await page.route(`${CHATWOOT_BASE_URL}/packs/js/sdk.js`, (route) =>
 			route.fulfill({
@@ -99,6 +98,7 @@ async function collectConsentEnabledFlow(browser: Browser) {
 		await expect(page.locator(`script[src="${CHATWOOT_BASE_URL}/packs/js/sdk.js"]`)).toHaveCount(1);
 		await expect.poll(() => page.evaluate((key) => localStorage.getItem(key), `chatwoot_available_agents_${CHATWOOT_WEBSITE_TOKEN}`)).not.toBeNull();
 		await expect.poll(() => page.evaluate(() => Boolean((window as typeof window & { $chatwoot?: unknown }).$chatwoot))).toBe(true);
+		await expect.poll(() => page.evaluate(() => sessionStorage.getItem("sentryReplaySession"))).not.toBeNull();
 		await waitForDocumentReady(page);
 		return collectInventory(page, "public:consent-enabled", requestedOrigins);
 	});
@@ -111,7 +111,6 @@ test("the real browser inventory satisfies the release gate and injected drift b
 	await writeInventoryEvidence(evidencePath, result);
 	await testInfo.attach("compliance-inventory", { path: evidencePath, contentType: "application/json" });
 
-	expect(JSON.stringify(result)).not.toContain("compliance-placeholder-without-user-data");
 	expect(result.missingObservations).toEqual([]);
 	expect(result.differences).toEqual([]);
 	expect(result.result).toBe("pass");

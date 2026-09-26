@@ -27,7 +27,7 @@ Every service declaration provides:
 5. Every external origin belongs to one service or an explicit platform exception.
 6. Existing activation, revocation, and cleanup behavior may be documented but is not modified by this feature.
 7. Every service appears in at least one legal disclosure section and one audit flow.
-8. Device inspection exposes names and types only, never values.
+8. Automated browser-audit evidence records declared names, types, and origins only, never storage values; the public policy does not expose runtime device inspection.
 
 ## Change classification
 

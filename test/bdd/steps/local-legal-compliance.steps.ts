@@ -253,7 +253,7 @@ Given("an approved local storage name contains a private value", async ({ page }
 	await page.addInitScript(() => localStorage.setItem("chatwoot_available_agents_smoke", "private-evidence-value"));
 });
 
-Then("the policy keeps the declared inventory authoritative without exposing the private value", async ({ page }) => {
+Then("the policy keeps the declared inventory authoritative without exposing current-device state", async ({ page }) => {
 	await expect(page.getByRole("region", { name: "Service and storage declarations" })).toBeVisible();
 	await expect(page.getByRole("region", { name: "Activity visible on this device" })).toHaveCount(0);
 	await expect(page.getByText("private-evidence-value", { exact: true })).toHaveCount(0);
