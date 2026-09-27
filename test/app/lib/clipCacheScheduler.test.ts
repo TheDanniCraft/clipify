@@ -7,6 +7,9 @@ const mockCaptureCheckIn = jest.fn(() => "check-in-id");
 const mockMetricCount = jest.fn();
 const mockMetricDistribution = jest.fn();
 const mockMetricGauge = jest.fn();
+const operationalCount = jest.fn();
+const operationalDuration = jest.fn();
+const operationalGauge = jest.fn();
 
 jest.mock("@sentry/nextjs", () => ({
 	captureCheckIn: mockCaptureCheckIn,
@@ -27,6 +30,13 @@ jest.mock("@actions/database", () => ({
 
 jest.mock("@actions/twitch", () => ({
 	syncOwnerClipCache: (...args: unknown[]) => syncOwnerClipCache(...args),
+}));
+
+jest.mock("@lib/operationalHealth", () => ({
+	getOperationalEnvironment: () => (process.env.IS_PREVIEW === "true" ? "preview" : process.env.NODE_ENV === "production" ? "production" : "development"),
+	operationalCount: (...args: unknown[]) => operationalCount(...args),
+	operationalDuration: (...args: unknown[]) => operationalDuration(...args),
+	operationalGauge: (...args: unknown[]) => operationalGauge(...args),
 }));
 
 jest.mock("@/db/client", () => ({
@@ -222,8 +232,8 @@ describe("lib/clipCacheScheduler", () => {
 		expect(syncOwnerClipCache).not.toHaveBeenCalled();
 		expect(lockClient.release).toHaveBeenCalled();
 		expect(mockCaptureCheckIn).not.toHaveBeenCalled();
-		expect(mockMetricCount).toHaveBeenCalledWith("clip_cache.scheduler.runs", 1, { attributes: { status: "skipped" } });
-		expect(mockMetricCount).not.toHaveBeenCalledWith("clip_cache.scheduler.runs", 1, { attributes: { status: "succeeded" } });
+		expect(operationalCount).toHaveBeenCalledWith("clipify.clip_cache.scheduler.runs", 1, { status: "skipped" });
+		expect(operationalCount).not.toHaveBeenCalledWith("clipify.clip_cache.scheduler.runs", 1, { status: "succeeded" });
 		expect(getClipCacheSchedulerStats().totalRuns).toBe(0);
 	});
 

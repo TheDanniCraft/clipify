@@ -1289,13 +1289,14 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 				playerAttached: true,
 				showPlayer,
 				paused,
+				standby: isStandby,
 				currentClipId: clipRef.current?.id ?? null,
 				nextClipId: nextClipRef.current?.id ?? null,
 			});
 		}, 1000);
 
 		return () => clearInterval(timer);
-	}, [overlay.id, paused, sendStateUpdate, showPlayer]);
+	}, [isStandby, overlay.id, paused, sendStateUpdate, showPlayer]);
 
 	useEffect(() => {
 		if (!showPlayer) {

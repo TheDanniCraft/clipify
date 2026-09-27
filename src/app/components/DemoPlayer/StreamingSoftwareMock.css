@@ -144,6 +144,37 @@
 	gap: 6px;
 }
 
+.obs__sceneHint {
+	display: flex;
+	align-items: flex-start;
+	gap: 6px;
+	margin: 0 0 9px;
+	padding: 7px;
+	border: 1px solid rgba(167, 139, 250, 0.42);
+	border-radius: 6px;
+	background: linear-gradient(135deg, rgba(124, 58, 237, 0.24), rgba(76, 29, 149, 0.08));
+	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+	font-size: 10px;
+	line-height: 1.35;
+	color: rgba(255, 255, 255, 0.72);
+}
+
+.obs__sceneHint strong {
+	display: block;
+	margin-bottom: 1px;
+	color: #ddd6fe;
+	font-size: 10px;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+}
+
+.obs__sceneHintIcon {
+	color: #c4b5fd;
+	font-size: 14px;
+	font-weight: 800;
+	line-height: 1;
+}
+
 .obs__row {
 	height: 28px;
 	display: flex;
@@ -156,12 +187,58 @@
 	background: #1f232b;
 	border-radius: 4px;
 	min-width: 0;
+	overflow: hidden;
+	white-space: nowrap;
 }
 
 .obs__row--selected {
 	background: #1e4fb8;
 	border-color: rgba(255, 255, 255, 0.12);
 	color: rgba(255, 255, 255, 0.96);
+}
+
+.obs__sceneButton {
+	width: 100%;
+	font-family: inherit;
+	text-align: left;
+	cursor: pointer;
+}
+
+.obs__sceneButton:hover:not(.obs__row--selected) {
+	background: #292e38;
+	color: rgba(255, 255, 255, 0.94);
+}
+
+.obs__sceneButton:focus-visible {
+	outline: 2px solid #76a5ff;
+	outline-offset: 1px;
+}
+
+.obs__sceneButton--suggested:not(.obs__row--selected) {
+	border-color: rgba(167, 139, 250, 0.78);
+	box-shadow: inset 0 0 0 1px rgba(167, 139, 250, 0.18);
+	animation: obsSceneSuggestion 1.8s ease-in-out infinite;
+}
+
+@keyframes obsSceneSuggestion {
+	50% {
+		border-color: rgba(196, 181, 253, 1);
+		background: rgba(124, 58, 237, 0.22);
+		box-shadow: 0 0 10px rgba(124, 58, 237, 0.36);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.obs__sceneButton--suggested:not(.obs__row--selected) {
+		animation: none;
+	}
+}
+
+.obs__sourceName {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 .obs__icon {

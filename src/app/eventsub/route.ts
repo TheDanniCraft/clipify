@@ -9,6 +9,7 @@ import { sendMessage } from "@actions/websocket";
 import { handleCommand } from "@actions/commands";
 
 import { captureUnexpectedError } from "@lib/sentryServer";
+import { operationalCount } from "@lib/operationalHealth";
 function parseEventSub<T = Record<string, unknown>>(body: string): EventSubNotification<T> {
 	return JSON.parse(body) as EventSubNotification<T>;
 }
@@ -90,7 +91,7 @@ async function handleRewardRedemption(notification: EventSubNotification<RewardR
 	} catch (error) {
 		captureUnexpectedError(error, "twitch-eventsub", "reward-redemption");
 		Sentry.logger.error("EventSub reward redemption failed", { component: "twitch-eventsub" });
-		Sentry.metrics.count("eventsub.failures", 1, { attributes: { operation: "reward-redemption" } });
+		operationalCount("clipify.eventsub.failures", 1, { operation: "reward-redemption" });
 	}
 
 	return null;
@@ -98,7 +99,7 @@ async function handleRewardRedemption(notification: EventSubNotification<RewardR
 
 async function handleNotification(bodyText: string): Promise<Response | null> {
 	const notification = parseEventSub<Record<string, unknown>>(bodyText);
-	Sentry.metrics.count("eventsub.notifications", 1, { attributes: { subscription_type: notification.subscription.type } });
+	operationalCount("clipify.eventsub.notifications", 1, { subscription_type: notification.subscription.type });
 
 	switch (notification.subscription.type) {
 		case "channel.chat.message": {
@@ -109,7 +110,7 @@ async function handleNotification(bodyText: string): Promise<Response | null> {
 				} catch (error) {
 					captureUnexpectedError(error, "twitch-eventsub", "chat-command");
 					Sentry.logger.error("EventSub chat command failed", { component: "twitch-eventsub" });
-					Sentry.metrics.count("eventsub.failures", 1, { attributes: { operation: "chat-command" } });
+					operationalCount("clipify.eventsub.failures", 1, { operation: "chat-command" });
 				}
 			});
 			break;
@@ -157,7 +158,7 @@ export async function POST(request: NextRequest) {
 				}
 				captureUnexpectedError(error, "twitch-eventsub", "notification");
 				Sentry.logger.error("EventSub notification failed", { component: "twitch-eventsub" });
-				Sentry.metrics.count("eventsub.failures", 1, { attributes: { operation: "notification" } });
+				operationalCount("clipify.eventsub.failures", 1, { operation: "notification" });
 				return new Response(null, { status: 204 });
 			}
 		}

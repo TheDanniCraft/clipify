@@ -2,19 +2,20 @@ Gitmoji Guide for AI Assistants
 Purpose
 
 This guide helps AI assistants understand and use gitmoji convention when creating commits. Using emojis on commit messages provides an easy way of identifying the purpose or intention of a commit with only looking at the emojis used. Gitmoji use emojis to make commit messages more expressive and easier to understand at a glance.
-Official Specification
+Repository Convention
 
-A gitmoji commit message is composed using the following pieces:
+A commit message is composed using the following pieces:
 
-    intention: The intention you want to express with the commit, using an emoji from the gitmoji list. Either in the :shortcode: or unicode format.
-    scope: An optional string that adds contextual information for the scope of the change.
-    message: A brief explanation of the change.
+    intention: The intention you want to express with the commit, using one Unicode emoji from the gitmoji list.
+    message: A brief, natural-language explanation of the change in imperative mood.
 
 Format
 
-<intention> [scope?][:?] <message>
+<intention> <imperative message>
 
 [optional body]
+
+Do not add Conventional Commit prefixes or scopes such as `feat:`, `fix:`, `docs:`, `refactor:`, or `chore:`. Match the repository's existing history: after the emoji, begin directly with a capitalized action verb such as `Add`, `Fix`, `Refine`, `Move`, `Show`, `Guard`, `Bump`, or `Resolve`.
 
 Gitmoji reference
 
@@ -29,7 +30,7 @@ Selecting the correct emoji
 
 Examples
 
-✨ feat: Add user authentication system
+✨ Add user authentication system
 
 Implement JWT-based authentication with login and registration endpoints.
 Closes #123
@@ -38,7 +39,7 @@ Closes #123
 
 Added null check before accessing user properties to prevent crashes.
 
-📝 docs: Update installation instructions
+📝 Update installation instructions
 
 Added step-by-step guide for setting up the development environment.
 

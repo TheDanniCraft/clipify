@@ -34,6 +34,13 @@
 	letter-spacing: 0.08em;
 }
 
+.tchat__headerMeta {
+	display: inline-flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 6px;
+}
+
 .tchat__status {
 	display: inline-flex;
 	align-items: center;
@@ -49,6 +56,60 @@
 	color: #ff4d4d;
 	border-color: rgba(255, 77, 77, 0.5);
 	opacity: 1;
+}
+
+.tchat__viewers {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 4px 8px;
+	border: 1px solid rgba(167, 139, 250, 0.48);
+	border-radius: 999px;
+	background: rgba(124, 58, 237, 0.18);
+	color: rgba(255, 255, 255, 0.78);
+	font-size: 11px;
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+}
+
+.tchat__viewers strong {
+	color: #fff;
+	font-size: 12px;
+	font-weight: 800;
+}
+
+.tchat__viewerIcon {
+	position: relative;
+	width: 12px;
+	height: 8px;
+	border: 1.5px solid #c4b5fd;
+	border-radius: 50% / 60%;
+}
+
+.tchat__viewerIcon::after {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	width: 3px;
+	height: 3px;
+	border-radius: 999px;
+	background: #c4b5fd;
+	content: "";
+	transform: translate(-50%, -50%);
+}
+
+.tchat__viewers.isDropping {
+	border-color: rgba(251, 113, 133, 0.55);
+	background: rgba(190, 24, 93, 0.18);
+	color: #fda4af;
+}
+
+.tchat__viewers.isDropping .tchat__viewerIcon {
+	border-color: #fda4af;
+}
+
+.tchat__viewers.isDropping .tchat__viewerIcon::after {
+	background: #fda4af;
 }
 
 @keyframes tchatPulse {
@@ -178,6 +239,13 @@
 	padding-top: 5px;
 	padding-bottom: 5px;
 	cursor: pointer;
+}
+
+.tchat__hint--passive {
+	background: rgba(255, 255, 255, 0.06);
+	border-color: rgba(255, 255, 255, 0.12);
+	color: rgba(255, 255, 255, 0.62);
+	cursor: default;
 }
 
 .tchat__redeem {

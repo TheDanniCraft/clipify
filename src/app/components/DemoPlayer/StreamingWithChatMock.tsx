@@ -19,11 +19,14 @@ type Props = {
 
 	showChat?: boolean;
 	chatWidth?: number;
+	chatVariant?: "clipify" | "brb";
+	viewerCount?: number;
+	onChatVariantChange?: (variant: "clipify" | "brb") => void;
 
 	iframeRef?: React.RefObject<HTMLIFrameElement>;
 };
 
-export default function StreamingWithChatMock({ children, showChat = true, chatWidth = 320, iframeRef, ...obsProps }: Props) {
+export default function StreamingWithChatMock({ children, showChat = true, chatWidth = 320, chatVariant = "clipify", viewerCount, onChatVariantChange, iframeRef, ...obsProps }: Props) {
 	const mainRef = useRef<HTMLDivElement | null>(null);
 	const [obsHeight, setObsHeight] = useState<number | null>(null);
 
@@ -43,7 +46,7 @@ export default function StreamingWithChatMock({ children, showChat = true, chatW
 	return (
 		<div className='streamLayout' style={obsProps.style}>
 			<div className='streamLayout__main' ref={mainRef}>
-				<StreamingSoftwareMock {...obsProps} style={undefined}>
+				<StreamingSoftwareMock {...obsProps} style={undefined} demoMode={chatVariant} onDemoModeChange={onChatVariantChange}>
 					{children}
 				</StreamingSoftwareMock>
 			</div>
@@ -57,7 +60,10 @@ export default function StreamingWithChatMock({ children, showChat = true, chatW
 					}}
 				>
 					<FakeTwitchChat
+						key={chatVariant}
 						isLive={obsProps.isLive ?? true}
+						variant={chatVariant}
+						viewerCount={viewerCount}
 						onCommand={(cmd, args) => {
 							if (args.length > 0) {
 								iframeRef?.current?.contentWindow?.postMessage({ name: cmd, data: args[0] });

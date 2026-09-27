@@ -15,6 +15,7 @@ import { dbPool } from "@/db/client";
 import { REWARD_NOT_FOUND } from "@lib/twitchErrors";
 import { validateAuth } from "@actions/auth";
 import { TWITCH_CLIPS_LAUNCH_MS } from "@lib/constants";
+import { operationalCount, operationalDuration } from "@lib/operationalHealth";
 
 export async function logTwitchError(context: string, error: unknown) {
 	if (axios.isAxiosError(error) && error.response) {
@@ -263,6 +264,7 @@ async function resolveTwitchClipPlaybackUrl(clipId: string, broadcasterId: strin
 
 	if (!token || !hasClipDownloadScope(token.scope)) {
 		incrementClipFetchV1();
+		operationalCount("clipify.clip_fetch.sources", 1, { source: "graphql", reason: "missing_download_scope" });
 		return getTwitchClipPlaybackUrlFromGraphQL(clipId);
 	}
 
@@ -307,8 +309,10 @@ async function resolveTwitchClipPlaybackUrl(clipId: string, broadcasterId: strin
 
 		if (url) {
 			incrementClipFetchV2();
+			operationalCount("clipify.clip_fetch.sources", 1, { source: "twitch_api", outcome: "success" });
 			return url;
 		}
+		operationalCount("clipify.clip_fetch.sources", 1, { source: "twitch_api", outcome: "empty" });
 	} catch (error) {
 		if (axios.isAxiosError(error)) {
 			const headers = (error.response?.headers ?? undefined) as Record<string, unknown> | undefined;
@@ -337,14 +341,18 @@ async function resolveTwitchClipPlaybackUrl(clipId: string, broadcasterId: strin
 
 			if (error.response?.status === 429) {
 				incrementClipFetchRateLimited();
+				operationalCount("clipify.clip_fetch.sources", 1, { source: "twitch_api", outcome: "rate_limited" });
 			} else {
 				incrementClipFetchFallback();
+				operationalCount("clipify.clip_fetch.sources", 1, { source: "twitch_api", outcome: "fallback" });
 			}
 		} else {
 			incrementClipFetchFallback();
+			operationalCount("clipify.clip_fetch.sources", 1, { source: "twitch_api", outcome: "fallback" });
 		}
 	}
 
+	operationalCount("clipify.clip_fetch.sources", 1, { source: "graphql", reason: "api_fallback" });
 	return getTwitchClipPlaybackUrlFromGraphQL(clipId);
 }
 
@@ -371,21 +379,38 @@ function cacheClipPlaybackUrl(key: string, url: string) {
 }
 
 export async function getTwitchClipPlaybackUrl(clipId: string, broadcasterId: string, options: ClipPlaybackUrlOptions = {}): Promise<string | undefined> {
+	const started = Date.now();
 	const key = `${broadcasterId}:${clipId}`;
 	const cached = clipPlaybackUrlCache.get(key);
-	if (cached && cached.expiresAt > Date.now()) return cached.url;
+	if (cached && cached.expiresAt > Date.now()) {
+		operationalCount("clipify.clip_fetch.requests", 1, { outcome: "cache_hit" });
+		return cached.url;
+	}
 	if (cached) clipPlaybackUrlCache.delete(key);
 
 	const pending = clipPlaybackUrlRequests.get(key);
-	if (pending) return pending;
-	if (options.authorizeFetch && !(await options.authorizeFetch())) return undefined;
+	if (pending) {
+		operationalCount("clipify.clip_fetch.requests", 1, { outcome: "coalesced" });
+		return pending;
+	}
+	if (options.authorizeFetch && !(await options.authorizeFetch())) {
+		operationalCount("clipify.clip_fetch.requests", 1, { outcome: "not_authorized" });
+		return undefined;
+	}
 
 	const request = resolveTwitchClipPlaybackUrl(clipId, broadcasterId);
 	clipPlaybackUrlRequests.set(key, request);
 	try {
 		const url = await request;
 		if (url) cacheClipPlaybackUrl(key, url);
+		const outcome = url ? "success" : "unavailable";
+		operationalCount("clipify.clip_fetch.requests", 1, { outcome });
+		operationalDuration("clipify.clip_fetch.duration", Date.now() - started, { outcome });
 		return url;
+	} catch (error) {
+		operationalCount("clipify.clip_fetch.requests", 1, { outcome: "failed" });
+		operationalDuration("clipify.clip_fetch.duration", Date.now() - started, { outcome: "failed" });
+		throw error;
 	} finally {
 		clipPlaybackUrlRequests.delete(key);
 	}

@@ -9,30 +9,42 @@ import { hasActiveEntitlement } from "@lib/entitlements";
 import { tryRateLimit } from "@actions/rateLimit";
 
 import { captureUnexpectedError } from "@lib/sentryServer";
+import { operationalCount, operationalDuration } from "@lib/operationalHealth";
 type StreamSession = InferSelectModel<typeof streamSessionsTable>;
 
 export async function POST(req: Request) {
+	const started = Date.now();
+	const recordOutcome = (outcome: string) => {
+		operationalCount("clipify.runner.heartbeats", 1, { outcome });
+		operationalDuration("clipify.runner.heartbeat_duration", Date.now() - started, { outcome });
+	};
 	try {
 		// 1. Authenticate the Runner
 		const authHeader = req.headers.get("authorization");
 		if (!authHeader || !authHeader.startsWith("Bearer ")) {
+			recordOutcome("unauthorized");
 			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 		}
 		const token = authHeader.split(" ")[1];
 		const identifier = createHash("sha256").update(token).digest("hex");
 		const limit = await tryRateLimit({ key: "runner-heartbeat", points: 12, duration: 60, identifier });
-		if (!limit.success) return NextResponse.json({ error: "Too many heartbeats" }, { status: 429, headers: { "Retry-After": "60" } });
+		if (!limit.success) {
+			recordOutcome("rate_limited");
+			return NextResponse.json({ error: "Too many heartbeats" }, { status: 429, headers: { "Retry-After": "60" } });
+		}
 
 		const runner = await db.query.runnersTable.findFirst({
 			where: eq(runnersTable.token, token),
 		});
 
 		if (!runner) {
+			recordOutcome("invalid_token");
 			return NextResponse.json({ error: "Invalid runner token" }, { status: 401 });
 		}
 
 		if (!(await hasActiveEntitlement(runner.ownerId, Entitlement.RunnerAccess))) {
 			await db.update(streamSessionsTable).set({ desiredState: StreamState.Stopped }).where(eq(streamSessionsTable.runnerId, runner.id));
+			recordOutcome("entitlement_required");
 			return NextResponse.json({ error: "Runner add-on required", code: "entitlement_required", jobs: [] }, { status: 403 });
 		}
 
@@ -91,11 +103,13 @@ export async function POST(req: Request) {
 			};
 		});
 
+		recordOutcome("success");
 		return NextResponse.json({
 			success: true,
 			jobs,
 		});
 	} catch (error) {
+		recordOutcome("unexpected_error");
 		console.error("Heartbeat Error:", error);
 		captureUnexpectedError(error, "runner-api", "heartbeat");
 		return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

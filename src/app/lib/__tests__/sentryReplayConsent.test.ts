@@ -28,7 +28,7 @@ jest.mock("@sentry/nextjs", () => ({
 }));
 
 jest.mock("../../../../sentry.shared.config", () => ({
-	sentryProfileSampleRate: 0.001,
+	sentryBrowserProfileSampleRate: 0.001,
 	sentryReplaySessionSampleRate: 0.01,
 }));
 
