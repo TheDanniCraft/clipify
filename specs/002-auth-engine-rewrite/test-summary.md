@@ -122,6 +122,7 @@ US1 continuity and US3 authorization are implemented and independently Green. US
 | 2026-09-28 | `bunx playwright test --project=atdd-chromium --grep "@US5"`                                                      | Green              | 8/8 owner lifecycle acceptance examples passed                                                                                                                                             |
 | 2026-09-28 | `bunx playwright test --project=bdd-chromium --grep "@US5"`                                                       | Green              | 7/7 owner-only denial and staged notice examples passed                                                                                                                                    |
 | 2026-09-28 | Deletion-boundary deliberate mutant assertion                                                                     | Green mutant guard | Changing exact-boundary eligibility from `>=` to `>` fails the at-boundary assertion                                                                                                       |
+| 2026-09-28 | Focused lifecycle production-adapter regression                                                                   | Green              | 7 suites, 89 tests; central suspended-account denial, recovery-only routing, overlay pause, Stripe timestamp propagation, deletion choices, and UI-facing action validation pass           |
 
 ## Checkpoint Regression Evidence
 

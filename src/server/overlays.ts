@@ -1,7 +1,7 @@
 import "server-only";
 
 import { db } from "@/db/client";
-import { editorsTable, overlaysTable, usersTable } from "@/db/schema";
+import { creatorAccountsTable, editorsTable, overlaysTable, usersTable } from "@/db/schema";
 import { validateAuth } from "@actions/auth";
 import { AuthenticatedUser, Overlay } from "@types";
 import { and, eq } from "drizzle-orm";
@@ -54,12 +54,14 @@ export async function getOverlayRuntimeAccessInternal(overlayId: string, channel
 	if (!overlay) return { allowed: false, reason: "not-found" };
 
 	const ownerRows = await db.select({ disabled: usersTable.disabled, disabledReason: usersTable.disabledReason }).from(usersTable).where(eq(usersTable.id, overlay.ownerId)).limit(1).execute();
+	const accountRows = (await db.select({ status: creatorAccountsTable.status }).from(creatorAccountsTable).where(eq(creatorAccountsTable.creatorId, overlay.ownerId)).limit(1).execute()) ?? [];
+	const accountStatus = accountRows[0]?.status;
 	return evaluateOverlayRuntimeAccess({
 		channel,
 		overlay,
 		presentedSecret,
-		ownerSuspended: ownerRows[0]?.disabled === true,
-		ownerDisabledReason: ownerRows[0]?.disabledReason,
+		ownerSuspended: ownerRows[0]?.disabled === true || accountStatus === "suspended" || accountStatus === "purge_eligible",
+		ownerDisabledReason: ownerRows[0]?.disabledReason ?? (accountStatus === "suspended" || accountStatus === "purge_eligible" ? "account_deletion" : null),
 	});
 }
 

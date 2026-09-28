@@ -10,6 +10,10 @@ export async function proxy(request: NextRequest) {
 	if (!actor) {
 		return authUser(request.nextUrl.pathname);
 	}
+	const recoveryPath = "/dashboard/settings/account/recovery";
+	if ((actor.accountStatus === "suspended" || actor.accountStatus === "purge_eligible") && request.nextUrl.pathname !== recoveryPath) {
+		return NextResponse.redirect(new URL(recoveryPath, request.url));
+	}
 
 	if (isAdminRoute && actor.user.role !== Role.Admin) {
 		return NextResponse.redirect(new URL("/dashboard", request.url));

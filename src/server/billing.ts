@@ -1,7 +1,7 @@
 import "server-only";
 
 import Stripe from "stripe";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 
 import { db } from "@/db/client";
 import { billingSubscriptionItemsTable, billingSubscriptionsTable, entitlementGrantsTable, usersTable } from "@/db/schema";
@@ -28,7 +28,7 @@ function subscriptionPeriod(subscription: Stripe.Subscription) {
 	};
 }
 
-export async function syncStripeSubscription(subscription: Stripe.Subscription, fallbackUserId?: string | null) {
+export async function syncStripeSubscription(subscription: Stripe.Subscription, fallbackUserId?: string | null, stripeEventCreated = subscription.created) {
 	const customerId = stripeId(subscription.customer);
 	if (!customerId) throw new Error("Stripe subscription has no customer ID");
 
@@ -59,8 +59,8 @@ export async function syncStripeSubscription(subscription: Stripe.Subscription, 
 		)
 	).filter((item): item is NonNullable<typeof item> => item !== null);
 
-	await db.transaction(async (tx) => {
-		await tx
+	const applied = await db.transaction(async (tx) => {
+		const [updated] = await tx
 			.insert(billingSubscriptionsTable)
 			.values({
 				id: subscription.id,
@@ -71,6 +71,7 @@ export async function syncStripeSubscription(subscription: Stripe.Subscription, 
 				currentPeriodEnd: period.end,
 				cancelAtPeriodEnd: subscription.cancel_at_period_end,
 				canceledAt: unixDate(subscription.canceled_at),
+				latestStripeEventCreated: stripeEventCreated,
 				updatedAt: new Date(),
 			})
 			.onConflictDoUpdate({
@@ -81,16 +82,22 @@ export async function syncStripeSubscription(subscription: Stripe.Subscription, 
 					currentPeriodEnd: period.end,
 					cancelAtPeriodEnd: subscription.cancel_at_period_end,
 					canceledAt: unixDate(subscription.canceled_at),
+					latestStripeEventCreated: stripeEventCreated,
 					updatedAt: new Date(),
 				},
-			});
+				setWhere: sql`${billingSubscriptionsTable.latestStripeEventCreated} < ${stripeEventCreated}`,
+			})
+			.returning({ id: billingSubscriptionsTable.id });
+		if (!updated) return false;
 
 		await tx.delete(billingSubscriptionItemsTable).where(eq(billingSubscriptionItemsTable.subscriptionId, subscription.id));
 		if (items.length > 0) await tx.insert(billingSubscriptionItemsTable).values(items);
+		return true;
 	});
+	if (!applied) return { userId, items: [], ignoredAsStale: true };
 
 	await recomputeBillingEntitlements(userId, customerId);
-	return { userId, items };
+	return { userId, items, ignoredAsStale: false };
 }
 
 export async function recomputeBillingEntitlements(userId: string, customerId: string) {

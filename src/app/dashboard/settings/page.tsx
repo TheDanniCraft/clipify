@@ -1,7 +1,7 @@
 "use client";
 
 import { validateAuth } from "@actions/auth";
-import { deleteUser, getClipCacheStatus, getSettings, saveSettings } from "@actions/database";
+import { getClipCacheStatus, getSettings, saveSettings } from "@actions/database";
 import ConfirmModal from "@components/confirmModal";
 import DashboardNavbar from "@components/dashboardNavbar";
 import DashboardUserAvatar from "@components/dashboardUserAvatar";
@@ -15,7 +15,7 @@ import { IconAlertTriangle, IconDatabase, IconDeviceFloppy, IconInfoCircle, Icon
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { memo, useEffect, useMemo, useState, type Dispatch, type SetStateAction } from "react";
-import { checkIfSubscriptionExists } from "@actions/subscription";
+import { exportAccountData, requestAccountDeletion } from "@actions/subscription";
 import { forceRefreshOwnClipCache, getOwnClipForceRefreshStatus } from "@actions/twitch";
 import { useNavigationGuard } from "next-navigation-guard";
 import UpgradeModal from "@components/upgradeModal";
@@ -81,6 +81,7 @@ export default function SettingsPage() {
 	});
 	const [sectionTab, setSectionTab] = useState<SettingsSection>("settings");
 	const { isOpen: deleteModalIsOpen, open: deleteModalOnOpen, setOpen: deleteModalOnOpenChange } = useOverlayState();
+	const [deletionChoice, setDeletionChoice] = useState<"paid_through" | "immediate">("paid_through");
 	const [timer, setTimer] = useState<number>(0);
 	const [settings, setSettings] = useState<UserSettings | null>(null);
 	const [baseSettings, setBaseSettings] = useState<UserSettings | null>(null);
@@ -686,23 +687,29 @@ export default function SettingsPage() {
 								<div className='flex  flex-col gap-2 justify-end'>
 									<Button
 										fullWidth
-										isDisabled={user.plan !== Plan.Free}
+										variant='secondary'
 										onPress={async () => {
-											if (await checkIfSubscriptionExists()) {
-												return addToast({
-													title: "Active Subscription",
-													description: "You have an active subscription. Please cancel it before deleting your account.",
-													color: "danger",
-												});
+											try {
+												const data = await exportAccountData();
+												const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }));
+												const link = document.createElement("a");
+												link.href = url;
+												link.download = `clipify-account-${user.id}.json`;
+												link.click();
+												URL.revokeObjectURL(url);
+											} catch (error) {
+												addToast({ title: "Export unavailable", description: error instanceof Error && error.message === "RECENT_AUTH_REQUIRED" ? "Sign out and sign back in, then retry within five minutes." : "Please retry or contact support.", color: "danger" });
 											}
-											deleteModalOnOpen();
 										}}
-										variant='danger'
 									>
-										{<IconTrash />}
-										Delete Account
+										<IconDatabase />
+										Export Account Data
 									</Button>
-									{user.plan !== Plan.Free && <span className='text-sm text-gray-500'>You must cancel your subscription and wait for it to expire before deleting your account.</span>}
+									<Button fullWidth onPress={deleteModalOnOpen} variant='danger'>
+										{<IconTrash />}
+										Schedule Account Deletion
+									</Button>
+									<span className='text-sm text-gray-500'>Your resources are retained during a 30-day recovery period. Losing Pro access never deletes them.</span>
 								</div>
 							</div>
 						</Card.Content>
@@ -751,15 +758,40 @@ export default function SettingsPage() {
 				isOpen={deleteModalIsOpen}
 				onOpenChange={deleteModalOnOpenChange}
 				keyword={user.username}
+				title='Schedule account deletion'
+				confirmLabel={deletionChoice === "paid_through" ? "Schedule deletion" : "Delete after confirmation"}
+				content={
+					<div className='space-y-4'>
+						<p className='text-sm'>Choose when dashboard, overlay, and integration suspension begins. Stripe remains responsible for billing lifecycle messages; Clipify sends recovery and data-deletion reminders.</p>
+						<div className='grid gap-2'>
+							<Button variant={deletionChoice === "paid_through" ? "primary" : "secondary"} onPress={() => setDeletionChoice("paid_through")}>
+								After paid access ends (recommended)
+							</Button>
+							<p className='text-xs text-muted'>Renewal stops and suspension starts on the paid-through date. If there is no paid period, suspension starts now.</p>
+							<Button variant={deletionChoice === "immediate" ? "danger" : "secondary"} onPress={() => setDeletionChoice("immediate")}>
+								Suspend now
+							</Button>
+							<p className='text-xs text-muted'>Sessions are revoked immediately. Billing ends under the displayed cancellation and refund policy; resources remain recoverable for 30 days.</p>
+						</div>
+					</div>
+				}
 				onConfirm={async () => {
 					addToast({
-						title: "Deleting...",
-						description: "Your account is being deleted. You will be redirected soon.",
-						color: "danger",
+						title: "Scheduling deletion...",
+						description: "Clipify is recording your choice and recovery window.",
+						color: "warning",
 					});
-
-					await deleteUser(user.id);
-					router.push("/logout");
+					try {
+						const result = await requestAccountDeletion(deletionChoice);
+						if (result.status === "suspended") {
+							router.push("/login?returnUrl=%2Fdashboard%2Fsettings%2Faccount%2Frecovery");
+							return;
+						}
+						deleteModalOnOpenChange(false);
+						addToast({ title: "Deletion scheduled", description: `Access remains available until ${new Date(result.suspensionAt).toLocaleString()}.`, color: "success" });
+					} catch (error) {
+						addToast({ title: "Deletion was not scheduled", description: error instanceof Error && error.message === "RECENT_AUTH_REQUIRED" ? "Sign out and sign back in, then retry within five minutes." : "Please retry or contact support.", color: "danger" });
+					}
 				}}
 			/>
 		</>

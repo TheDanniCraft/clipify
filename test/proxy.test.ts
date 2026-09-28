@@ -89,4 +89,20 @@ describe("proxy", () => {
 
 		await expect(proxy(request)).resolves.toEqual({ kind: "next" });
 	});
+
+	it("redirects a suspended creator to the authenticated recovery route", async () => {
+		getAuthActorContext.mockResolvedValue({ accountStatus: "suspended", user: { id: "user-1", role: "user" } });
+		const { proxy } = await import("@/proxy");
+		const request = { nextUrl: { pathname: "/dashboard" }, url: "https://clipify.us/dashboard" } as unknown as Parameters<typeof proxy>[0];
+
+		await expect(proxy(request)).resolves.toEqual({ kind: "redirect", url: "https://clipify.us/dashboard/settings/account/recovery" });
+	});
+
+	it("allows a suspended creator to open only the recovery route", async () => {
+		getAuthActorContext.mockResolvedValue({ accountStatus: "suspended", user: { id: "user-1", role: "user" } });
+		const { proxy } = await import("@/proxy");
+		const request = { nextUrl: { pathname: "/dashboard/settings/account/recovery" }, url: "https://clipify.us/dashboard/settings/account/recovery" } as unknown as Parameters<typeof proxy>[0];
+
+		await expect(proxy(request)).resolves.toEqual({ kind: "next" });
+	});
 });

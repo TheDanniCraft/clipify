@@ -105,6 +105,20 @@ describe("app/payment/webhook route", () => {
 		expect(syncStripeSubscription).toHaveBeenCalledWith(subscription, "user_async");
 	});
 
+	it("forwards the signed Stripe event timestamp for monotonic subscription updates", async () => {
+		const subscription = { id: "sub_ordered", customer: "cus_ordered", items: { data: [] } };
+		getStripe.mockResolvedValue({
+			webhooks: { constructEvent: jest.fn(() => ({ id: "evt_ordered", type: "customer.subscription.updated", created: 1_801_046_400, data: { object: { id: "sub_ordered" } } })) },
+			subscriptions: { retrieve: jest.fn().mockResolvedValue(subscription) },
+		});
+		const { POST } = await loadRoute();
+
+		const response = await POST(new Request("http://localhost/payment/webhook", { method: "POST", body: "payload" }));
+
+		expect(response.status).toBe(200);
+		expect(syncStripeSubscription).toHaveBeenCalledWith(subscription, null, 1_801_046_400);
+	});
+
 	it("skips already processed event ids", async () => {
 		findEvent.mockResolvedValue({ id: "evt_3", status: "processed" });
 		getStripe.mockResolvedValue({ webhooks: { constructEvent: jest.fn(() => ({ id: "evt_3", type: "customer.subscription.updated", data: { object: { id: "sub_1" } } })) } });

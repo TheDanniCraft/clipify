@@ -21,8 +21,10 @@ export async function requireAuthSession(requestHeaders?: Headers) {
 export type ActorContext = {
 	authUserId: string;
 	sessionId: string;
+	authenticatedAt: Date;
 	creatorId: string;
 	activeOrganizationId: string | null;
+	accountStatus: "active" | "suspension_scheduled" | "suspended" | "purge_eligible";
 	user: AuthenticatedUser;
 };
 
@@ -31,6 +33,7 @@ type SessionEnvelope = {
 		id: string;
 		userId: string;
 		expiresAt: Date | string;
+		createdAt: Date | string;
 		activeOrganizationId?: string | null;
 	};
 };
@@ -51,15 +54,22 @@ export async function getAuthActorContext(requestHeaders?: Headers): Promise<Act
 
 	const activeOrganizationId = envelope.session.activeOrganizationId ?? null;
 	let creatorId: string | undefined;
+	let accountStatus: ActorContext["accountStatus"] | undefined;
 	if (activeOrganizationId) {
-		const accounts = await db.select({ creatorId: creatorAccountsTable.creatorId }).from(creatorAccountsTable).where(eq(creatorAccountsTable.organizationId, activeOrganizationId)).limit(1).execute();
+		const accounts = await db.select({ creatorId: creatorAccountsTable.creatorId, status: creatorAccountsTable.status }).from(creatorAccountsTable).where(eq(creatorAccountsTable.organizationId, activeOrganizationId)).limit(1).execute();
 		creatorId = accounts[0]?.creatorId;
+		accountStatus = accounts[0]?.status;
 	}
 	if (!creatorId) {
 		const links = await db.select({ creatorId: creatorIdentityLinksTable.creatorId }).from(creatorIdentityLinksTable).where(eq(creatorIdentityLinksTable.authUserId, decision.authUserId)).limit(1).execute();
 		creatorId = links[0]?.creatorId;
 	}
 	if (!creatorId) return null;
+	if (!accountStatus) {
+		const accounts = await db.select({ status: creatorAccountsTable.status }).from(creatorAccountsTable).where(eq(creatorAccountsTable.creatorId, creatorId)).limit(1).execute();
+		accountStatus = accounts[0]?.status;
+	}
+	if (!accountStatus) return null;
 
 	const users = await db.select().from(usersTable).where(eq(usersTable.id, creatorId)).limit(1).execute();
 	const user = users[0];
@@ -68,8 +78,10 @@ export async function getAuthActorContext(requestHeaders?: Headers): Promise<Act
 	return {
 		authUserId: decision.authUserId,
 		sessionId: decision.sessionId,
+		authenticatedAt: envelope.session.createdAt instanceof Date ? envelope.session.createdAt : new Date(envelope.session.createdAt),
 		creatorId,
 		activeOrganizationId,
+		accountStatus,
 		user,
 	};
 }

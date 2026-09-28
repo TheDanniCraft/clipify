@@ -136,7 +136,7 @@ describe("actions/auth", () => {
 			if (!payload.id) return null;
 			const rows = await dbSelect().from().where().limit().execute();
 			const user = rows[0];
-			return user ? { authUserId: "auth-user-1", sessionId: "session-1", creatorId: payload.id, activeOrganizationId: null, user } : null;
+			return user ? { authUserId: "auth-user-1", sessionId: "session-1", authenticatedAt: new Date(), creatorId: payload.id, activeOrganizationId: null, accountStatus: "active", user } : null;
 		});
 	});
 
@@ -168,6 +168,13 @@ describe("actions/auth", () => {
 	it("returns false when no auth token exists", async () => {
 		const { validateAuth } = await loadAuth();
 		await expect(validateAuth(false)).resolves.toBe(false);
+	});
+
+	it("denies ordinary server actions while account deletion is suspended", async () => {
+		getAuthActorContext.mockResolvedValue({ authUserId: "auth-user-1", sessionId: "session-1", authenticatedAt: new Date(), creatorId: "user-1", activeOrganizationId: "org-1", accountStatus: "suspended", user: { id: "user-1", role: "user" } });
+		const { validateAuth } = await loadAuth();
+		await expect(validateAuth(false)).resolves.toBe(false);
+		expect(resolveUserEntitlements).not.toHaveBeenCalled();
 	});
 
 	it("resolves admin-view target user when skipUserCheck is enabled", async () => {

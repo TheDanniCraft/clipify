@@ -1,4 +1,4 @@
-import { varchar, pgTable, check, timestamp, uuid, integer, text, uniqueIndex, primaryKey, index, pgEnum, boolean, jsonb } from "drizzle-orm/pg-core";
+import { varchar, pgTable, check, timestamp, uuid, integer, bigint, text, uniqueIndex, primaryKey, index, pgEnum, boolean, jsonb } from "drizzle-orm/pg-core";
 import {
 	type Role,
 	type Plan,
@@ -615,6 +615,7 @@ export const billingSubscriptionsTable = pgTable(
 		currentPeriodEnd: timestamp("current_period_end", { withTimezone: true }),
 		cancelAtPeriodEnd: boolean("cancel_at_period_end").notNull().default(false),
 		canceledAt: timestamp("canceled_at", { withTimezone: true }),
+		latestStripeEventCreated: bigint("latest_stripe_event_created", { mode: "number" }).notNull().default(0),
 		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 	},

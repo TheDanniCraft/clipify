@@ -71,6 +71,10 @@ export async function validateAuth(skipUserCheck = false) {
 		Sentry.setUser(null);
 		return false;
 	}
+	if (actor.accountStatus === "suspended" || actor.accountStatus === "purge_eligible") {
+		Sentry.setUser(null);
+		return false;
+	}
 	const actorUser = actor.user;
 
 	const { effectiveUser, adminView } = await resolveEffectiveUser(actorUser, cookieStore);
@@ -95,6 +99,7 @@ export async function validateAdminAuth(skipUserCheck = false) {
 		/* ignore: auth edge case / redirect handling */
 		return false;
 	}
+	if (actor.accountStatus === "suspended" || actor.accountStatus === "purge_eligible") return false;
 
 	const adminUser = actor.user;
 	if (!adminUser || adminUser.role !== Role.Admin) {

@@ -92,6 +92,12 @@ export interface StripeLifecycleEvent {
 
 const TERMINAL_DELETION_STATUSES = new Set<DeletionStatus>(["recovered", "purged", "cancelled"]);
 
+export function assertOwnerAndRecent(actor: LifecycleActor, now: Date) {
+	if (actor.accountRole !== "owner") throw new Error("OWNER_REQUIRED");
+	const age = now.getTime() - actor.authenticatedAt.getTime();
+	if (!Number.isFinite(age) || age < 0 || age > RECENT_AUTH_MAX_AGE_MS) throw new Error("RECENT_AUTH_REQUIRED");
+}
+
 export class AccountLifecycleService {
 	private readonly now: () => Date;
 	private readonly generateId: () => string;
@@ -172,9 +178,7 @@ export class AccountLifecycleService {
 	}
 
 	assertOwnerAndRecent(actor: LifecycleActor) {
-		if (actor.accountRole !== "owner") throw new Error("OWNER_REQUIRED");
-		const age = this.now().getTime() - actor.authenticatedAt.getTime();
-		if (!Number.isFinite(age) || age < 0 || age > RECENT_AUTH_MAX_AGE_MS) throw new Error("RECENT_AUTH_REQUIRED");
+		assertOwnerAndRecent(actor, this.now());
 	}
 
 	audit(actor: LifecycleActor, occurredAt: Date, action: string, outcome: LifecycleAuditEvent["outcome"], reason?: string): LifecycleAuditEvent {
