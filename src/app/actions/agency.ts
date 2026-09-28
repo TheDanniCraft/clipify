@@ -57,9 +57,18 @@ export async function revokeAgencyLinkFormAction(formData: FormData) {
 }
 
 export async function allocateAgencyLicenseFormAction(formData: FormData) {
-	await allocateDatabaseAgencyLicense({ linkId: value(formData, "linkId"), sourceReference: value(formData, "sourceReference") });
+	const creatorOrganizationId = value(formData, "creatorOrganizationId");
+	const destination = creatorOrganizationId ? `/dashboard/agency?creator=${encodeURIComponent(creatorOrganizationId)}` : "/dashboard/agency";
+	try {
+		await allocateDatabaseAgencyLicense({ linkId: value(formData, "linkId"), sourceReference: value(formData, "sourceReference") });
+	} catch (error) {
+		const separator = destination.includes("?") ? "&" : "?";
+		redirect(`${destination}${separator}error=${encodeURIComponent(errorCode(error))}`);
+	}
 	revalidatePath("/dashboard/agency");
 	revalidatePath("/dashboard/agency/allocations");
+	const separator = destination.includes("?") ? "&" : "?";
+	redirect(`${destination}${separator}allocated=1`);
 }
 
 export async function removeAgencyLicenseFormAction(formData: FormData) {

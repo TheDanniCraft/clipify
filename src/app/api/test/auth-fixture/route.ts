@@ -1,16 +1,19 @@
 /* istanbul ignore file -- exercised only by the real Playwright server against an isolated test database. */
 import { createHmac, randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
-import { and, eq, inArray, like } from "drizzle-orm";
+import { and, eq, inArray, like, or } from "drizzle-orm";
 import { auth } from "@/auth/config";
 import { db } from "@/db/client";
 import { member, organization, user as authUser } from "@/db/auth-schema";
-import { accountDeletionRequestsTable, agencyAccountsTable, agencyCreatorLinksTable, creatorAccountsTable, creatorIdentityLinksTable, overlaysTable, usersTable } from "@/db/schema";
+import { accountDeletionRequestsTable, agencyAccountsTable, agencyCreatorLinksTable, auditEventsTable, creatorAccountsTable, creatorIdentityLinksTable, notificationOutboxTable, overlaysTable, usersTable } from "@/db/schema";
 import { OverlayType, Plan, Role, StatusOptions } from "@types";
 
 const FIXTURE_AUTHORIZATION = "Bearer clipify-playwright-auth-fixture";
 
 type FixtureContext = "creator" | "agency";
+type FixtureActorRole = "user" | "admin";
+type FixtureDeletionState = "none" | "suspended";
+type FixtureAgencyLinkStatus = "proposed" | "accepted";
 
 function fixtureRequestAllowed(request: Request) {
 	if (process.env.APP_ENV !== "test" || process.env.E2E_TEST_MODE !== "true") return false;
@@ -24,8 +27,11 @@ function signedCookieValue(value: string, secret: string) {
 
 export async function POST(request: Request) {
 	if (!fixtureRequestAllowed(request)) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
-	const body = (await request.json().catch(() => ({}))) as { activeContext?: FixtureContext };
+	const body = (await request.json().catch(() => ({}))) as { activeContext?: FixtureContext; actorRole?: FixtureActorRole; deletionState?: FixtureDeletionState; agencyLinkStatus?: FixtureAgencyLinkStatus };
 	const activeContext: FixtureContext = body.activeContext === "agency" ? "agency" : "creator";
+	const actorRole: FixtureActorRole = body.actorRole === "admin" ? "admin" : "user";
+	const deletionState: FixtureDeletionState = body.deletionState === "none" ? "none" : "suspended";
+	const agencyLinkStatus: FixtureAgencyLinkStatus = body.agencyLinkStatus === "proposed" ? "proposed" : "accepted";
 	const fixtureId = randomUUID();
 	const authUserId = `e2e-auth-${fixtureId}`;
 	const creatorId = `e2e-creator-${fixtureId}`;
@@ -39,7 +45,7 @@ export async function POST(request: Request) {
 
 	await db.transaction(async (tx) => {
 		await tx.insert(authUser).values({ id: authUserId, name: "Clipify E2E Owner", email: `e2e-${fixtureId}@example.invalid`, emailVerified: true, createdAt: now, updatedAt: now });
-		await tx.insert(usersTable).values({ id: creatorId, email: `e2e-${fixtureId}@example.invalid`, username: `e2e_${fixtureId.replaceAll("-", "").slice(0, 12)}`, avatar: "https://example.invalid/e2e-avatar.png", role: Role.User, plan: Plan.Pro, createdAt: now, updatedAt: now, lastLogin: now });
+		await tx.insert(usersTable).values({ id: creatorId, email: `e2e-${fixtureId}@example.invalid`, username: `e2e_${fixtureId.replaceAll("-", "").slice(0, 12)}`, avatar: "https://example.invalid/e2e-avatar.png", role: actorRole === "admin" ? Role.Admin : Role.User, plan: Plan.Pro, createdAt: now, updatedAt: now, lastLogin: now });
 		await tx.insert(organization).values([
 			{ id: creatorOrganizationId, name: "E2E Creator Account", slug: `e2e-creator-${fixtureId}`, createdAt: now, metadata: JSON.stringify({ accountType: "creator" }) },
 			{ id: agencyOrganizationId, name: "E2E Agency Account", slug: `e2e-agency-${fixtureId}`, createdAt: now, metadata: JSON.stringify({ accountType: "agency" }) },
@@ -51,9 +57,9 @@ export async function POST(request: Request) {
 		await tx.insert(creatorAccountsTable).values({ organizationId: creatorOrganizationId, creatorId, status: "active", createdAt: now, updatedAt: now });
 		await tx.insert(creatorIdentityLinksTable).values({ creatorId, authUserId, source: "admin_repair", createdAt: now, updatedAt: now });
 		await tx.insert(agencyAccountsTable).values({ organizationId: agencyOrganizationId, status: "active", commercialReference: "e2e-commercial-reference", creatorSeatLimit: 2, provisionedBy: authUserId, createdAt: now, updatedAt: now });
-		await tx.insert(agencyCreatorLinksTable).values({ id: agencyLinkId, agencyOrganizationId, creatorOrganizationId, status: "accepted", permissionCeiling: ["overlay:read", "analytics:read"], proposedBy: authUserId, proposedAt: now, acceptedBy: authUserId, acceptedAt: now, createdAt: now, updatedAt: now });
-		await tx.insert(accountDeletionRequestsTable).values({ id: deletionRequestId, organizationId: creatorOrganizationId, choice: "immediate", status: "suspended", requestedBy: authUserId, requestedAt: now, suspensionAt: now, suspendedAt: now, purgeEligibleAt, stripeSnapshot: {}, version: 1, createdAt: now, updatedAt: now });
-		await tx.insert(overlaysTable).values({ id: overlayId, ownerId: creatorId, secret: `e2e-secret-${fixtureId}`, name: "E2E continuity overlay", status: StatusOptions.Paused, type: OverlayType.All, createdAt: now, updatedAt: now });
+		await tx.insert(agencyCreatorLinksTable).values({ id: agencyLinkId, agencyOrganizationId, creatorOrganizationId, status: agencyLinkStatus, permissionCeiling: ["overlay:read", "analytics:read"], proposedBy: authUserId, proposedAt: now, acceptedBy: agencyLinkStatus === "accepted" ? authUserId : null, acceptedAt: agencyLinkStatus === "accepted" ? now : null, createdAt: now, updatedAt: now });
+		if (deletionState === "suspended") await tx.insert(accountDeletionRequestsTable).values({ id: deletionRequestId, organizationId: creatorOrganizationId, choice: "immediate", status: "suspended", requestedBy: authUserId, requestedAt: now, suspensionAt: now, suspendedAt: now, purgeEligibleAt, stripeSnapshot: {}, version: 1, createdAt: now, updatedAt: now });
+		await tx.insert(overlaysTable).values({ id: overlayId, ownerId: creatorId, secret: `e2e-secret-${fixtureId}`, name: "E2E continuity overlay", status: deletionState === "suspended" ? StatusOptions.Paused : StatusOptions.Active, type: OverlayType.All, createdAt: now, updatedAt: now });
 	});
 
 	const context = await auth.$context;
@@ -73,7 +79,16 @@ export async function DELETE(request: Request) {
 	const body = (await request.json().catch(() => ({}))) as { authUserId?: string; creatorId?: string; organizationIds?: string[]; cleanupAll?: boolean };
 	if (body.cleanupAll) {
 		await db.transaction(async (tx) => {
-			await tx.delete(organization).where(like(organization.id, "e2e-%"));
+			const fixtureOrganizations = await tx
+				.select({ id: organization.id })
+				.from(organization)
+				.where(or(like(organization.id, "e2e-%"), like(organization.name, "E2E ATDD Agency %")));
+			const organizationIds = fixtureOrganizations.map(({ id }) => id);
+			if (organizationIds.length) {
+				await tx.delete(notificationOutboxTable).where(inArray(notificationOutboxTable.authorityOrganizationId, organizationIds));
+				await tx.delete(auditEventsTable).where(inArray(auditEventsTable.accountOrganizationId, organizationIds));
+				await tx.delete(organization).where(inArray(organization.id, organizationIds));
+			}
 			await tx.delete(usersTable).where(like(usersTable.id, "e2e-creator-%"));
 			await tx.delete(authUser).where(like(authUser.id, "e2e-auth-%"));
 		});

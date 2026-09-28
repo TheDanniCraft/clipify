@@ -4,8 +4,9 @@ import { PERMISSIONS } from "@/auth/permissions";
 
 export const dynamic = "force-dynamic";
 
-export default async function AgencyDashboardPage({ searchParams }: { searchParams: Promise<{ creator?: string | string[] }> }) {
-	const requestedCreator = (await searchParams).creator;
+export default async function AgencyDashboardPage({ searchParams }: { searchParams: Promise<{ creator?: string | string[]; error?: string | string[]; allocated?: string | string[] }> }) {
+	const params = await searchParams;
+	const requestedCreator = params.creator;
 	const overview = await getAgencyOverviewAction(typeof requestedCreator === "string" ? requestedCreator : undefined);
 	const creatorContext = overview.creatorContext;
 	return (
@@ -13,6 +14,8 @@ export default async function AgencyDashboardPage({ searchParams }: { searchPara
 			<header>
 				<p className='text-sm text-muted'>Agency</p>
 				<h1 className='text-2xl font-semibold'>Creator management</h1>
+				{params.allocated === "1" ? <p className='rounded-lg border border-success p-3 text-success'>Creator license allocated.</p> : null}
+				{typeof params.error === "string" ? <p className='rounded-lg border border-danger p-3 text-danger'>Allocation failed: {params.error}</p> : null}
 				<p className='text-sm text-muted'>
 					{overview.occupiedSeats} of {overview.account.creatorSeatLimit} creator seats occupied. Team members do not consume seats.
 				</p>
@@ -71,6 +74,7 @@ export default async function AgencyDashboardPage({ searchParams }: { searchPara
 							{link.status === "accepted" && !overview.allocations.some((allocation) => allocation.linkId === link.id && ["active", "removal_scheduled"].includes(allocation.status)) ? (
 								<form action={allocateAgencyLicenseFormAction} className='mt-2 flex gap-2'>
 									<input type='hidden' name='linkId' value={link.id} />
+									<input type='hidden' name='creatorOrganizationId' value={link.creatorOrganizationId} />
 									<input required name='sourceReference' placeholder='Commercial allocation reference' className='flex-1 rounded-lg border border-default bg-surface px-3 py-2' />
 									<button className='rounded-lg border border-default px-3 py-2'>Allocate Pro seat</button>
 								</form>

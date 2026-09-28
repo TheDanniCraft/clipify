@@ -1,4 +1,5 @@
 import { createBdd } from "playwright-bdd";
+import type { Page } from "@playwright/test";
 import { TWITCH_REQUIRED_SCOPES } from "@/auth/providers/twitch";
 import { acceptInvitation, createInvitation, type InvitationRepository, type InvitationState } from "@/auth/invitations";
 import { authorize } from "@/auth/authorize";
@@ -21,8 +22,32 @@ import { createAuthenticatedFixture, expect, test } from "../support/auth-engine
 const { Given, When, Then } = createBdd(test);
 
 const AGENCY_ATDD_NOW = new Date("2026-09-28T12:00:00.000Z");
+const DATABASE_ACTION_TIMEOUT_MS = 90_000;
 
-Given("a Clipify administrator provisioned an Agency Account after custom commercial terms were agreed", async ({ authWorld }) => {
+async function prepareInteractivePage(page: Page) {
+	await page.waitForLoadState("networkidle", { timeout: 30_000 });
+	const reject = page.getByRole("button", { name: "Reject optional" });
+	if (await reject.isVisible()) {
+		const persisted = page.waitForResponse((response) => response.url().includes("/api/c15t/subjects") && response.request().method() === "POST" && response.ok());
+		const refreshed = page.waitForNavigation({ waitUntil: "networkidle", timeout: 30_000 });
+		await reject.click();
+		await Promise.all([persisted, refreshed]);
+	}
+}
+
+Given("a Clipify administrator provisioned an Agency Account after custom commercial terms were agreed", async ({ page, request, context, authWorld }) => {
+	const fixture = await createAuthenticatedFixture(request, context, { actorRole: "admin", deletionState: "none" });
+	const agencyName = `E2E ATDD Agency ${fixture.fixture.authUserId.slice(-8)}`;
+	await page.goto("/admin/agencies");
+	await expect(page.getByRole("heading", { name: "Agency accounts" })).toBeVisible({ timeout: 30_000 });
+	await prepareInteractivePage(page);
+	await page.getByLabel("Agency name").fill(agencyName);
+	await page.getByLabel("First owner email").fill(`e2e-agency-owner-${fixture.fixture.authUserId.slice(-8)}@example.invalid`);
+	await page.getByLabel("Commercial reference").fill("e2e-atdd-contract");
+	await page.getByLabel("Creator seats").fill("2");
+	await page.getByRole("button", { name: "Provision and invite owner" }).click();
+	await expect(page.getByText("Agency invitation created.", { exact: true })).toBeVisible({ timeout: DATABASE_ACTION_TIMEOUT_MS });
+	await expect(page.getByText(agencyName, { exact: false })).toBeVisible();
 	const state = createAgencyState();
 	const service = new AgencyService(
 		state,
@@ -49,7 +74,9 @@ Then("the owner can sign in by email code without connecting Twitch", async ({ a
 	expect(state.memberships[0]?.authUserId).toBe("agency-owner-atdd");
 });
 
-Given("an agency requests access to an independent Creator Account with one staff member authorized by an agency role", async ({ authWorld }) => {
+Given("an agency requests access to an independent Creator Account with one staff member authorized by an agency role", async ({ request, context, authWorld }) => {
+	const fixture = await createAuthenticatedFixture(request, context, { agencyLinkStatus: "proposed", deletionState: "none" });
+	authWorld.values.set("realAgencyFixture", fixture);
 	const state = createAgencyState({ accounts: [{ organizationId: "agency-atdd", name: "ATDD Agency", status: "active", commercialReference: "custom-contract", provisionedBy: "admin-atdd", createdAt: AGENCY_ATDD_NOW, updatedAt: AGENCY_ATDD_NOW }] });
 	const service = new AgencyService(
 		state,
@@ -63,8 +90,13 @@ Given("an agency requests access to an independent Creator Account with one staf
 	authWorld.values.set("creatorOwner", "creator-owner-atdd");
 });
 
-When("the creator owner accepts the request with a creator-approved permission set", async ({ authWorld }) => {
+When("the creator owner accepts the request with a creator-approved permission set", async ({ page, authWorld }) => {
 	await (authWorld.values.get("agencyService") as AgencyService).acceptLink({ actor: { authUserId: "creator-owner-atdd", organizationId: "creator-atdd", role: "owner" }, linkId: "link-atdd", permissionCeiling: ["overlay:read"] });
+	await page.goto("/dashboard/settings/agencies");
+	await expect(page.getByRole("heading", { name: "Agency access" })).toBeVisible({ timeout: 30_000 });
+	await prepareInteractivePage(page);
+	await page.getByRole("button", { name: "Approve agency access" }).click();
+	await expect(page.getByText("accepted", { exact: true })).toBeVisible({ timeout: DATABASE_ACTION_TIMEOUT_MS });
 });
 
 Then("the staff member can manage the creator only through permissions present in both sets", async ({ authWorld }) => {
@@ -76,7 +108,9 @@ Then("the creator owner remains the owner", async ({ authWorld }) => {
 	expect(authWorld.values.get("creatorOwner")).toBe("creator-owner-atdd");
 });
 
-Given("an agency has an available paid creator license and an accepted creator link", async ({ authWorld }) => {
+Given("an agency has an available paid creator license and an accepted creator link", async ({ request, context, authWorld }) => {
+	const fixture = await createAuthenticatedFixture(request, context, { activeContext: "agency", agencyLinkStatus: "accepted", deletionState: "none" });
+	authWorld.values.set("realAgencyFixture", fixture);
 	const state = createAllocationState({ seatLimit: 1, memberCount: 25, acceptedLinkIds: ["link-atdd"] });
 	authWorld.values.set("allocationState", state);
 	authWorld.values.set(
@@ -89,8 +123,16 @@ Given("an agency has an available paid creator license and an accepted creator l
 	);
 });
 
-When("the agency allocates the license to that creator", async ({ authWorld }) => {
+When("the agency allocates the license to that creator", async ({ page, authWorld }) => {
 	await (authWorld.values.get("allocationService") as AgencyAllocationService).allocate({ linkId: "link-atdd", creatorId: "creator-atdd", sourceReference: "custom-contract" });
+	const fixture = authWorld.values.get("realAgencyFixture") as { fixture: { creatorOrganizationId: string } };
+	await page.goto(`/dashboard/agency?creator=${encodeURIComponent(fixture.fixture.creatorOrganizationId)}`);
+	await expect(page.getByRole("heading", { name: "Creator management" })).toBeVisible({ timeout: 30_000 });
+	await prepareInteractivePage(page);
+	await page.getByPlaceholder("Commercial allocation reference").fill("e2e-atdd-allocation");
+	await page.getByRole("button", { name: "Allocate Pro seat" }).click();
+	await expect(page.getByText("Creator license allocated.", { exact: true })).toBeVisible({ timeout: DATABASE_ACTION_TIMEOUT_MS });
+	await expect(page.getByText("1 of 2 creator seats occupied.", { exact: false })).toBeVisible({ timeout: DATABASE_ACTION_TIMEOUT_MS });
 });
 
 Then("the creator receives the agency-funded capabilities", async ({ authWorld }) => {

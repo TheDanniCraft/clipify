@@ -24,13 +24,13 @@ The authenticated Chromium smoke harness uses uniquely prefixed, automatically c
 
 ## US4 Agency Evidence
 
-| Date       | Command                                                    | Result | Evidence summary                                                                                                                                     |
-| ---------- | ---------------------------------------------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 2026-09-28 | Three focused US4 Jest suites                              | Green  | 3 suites, 67 tests; provisioning/link state, all-permission intersection, seat/grace/union/deletion release, and five deduplicated notice boundaries |
-| 2026-09-28 | `bun run test:atdd -- --grep "@US4"`                       | Green  | 3/3 agency acceptance journeys: owner activation, creator-approved access, and paid creator allocation                                               |
-| 2026-09-28 | `bun run test:bdd -- --grep "@US4"`                        | Green  | 11/11 tagged scenarios; all 3 auth-rewrite agency journeys plus 8 existing legal US4 scenarios                                                       |
-| 2026-09-28 | `infisical run --env=dev -- bun run test:atdd --workers=1` | Green  | 20/20 passed against the disposable development database, including the persisted-session US2 dashboard boundary                                     |
-| 2026-09-28 | Typecheck and focused entitlement/agency regression        | Green  | Production database/actions/UI/scheduler and agency-funded entitlement integration typecheck; 4 suites/85 tests pass                                 |
+| Date       | Command                                                                                             | Result | Evidence summary                                                                                                                                     |
+| ---------- | --------------------------------------------------------------------------------------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-09-28 | Three focused US4 Jest suites                                                                       | Green  | 3 suites, 67 tests; provisioning/link state, all-permission intersection, seat/grace/union/deletion release, and five deduplicated notice boundaries |
+| 2026-09-28 | `infisical run --env=dev -- bunx playwright test --project=atdd-chromium --grep "@US4" --workers=1` | Green  | 3/3 real UI/server journeys in 2.4 minutes: admin provisioning, creator approval, and paid allocation with persisted occupied-seat feedback          |
+| 2026-09-28 | `bun run test:bdd -- --grep "@US4"`                                                                 | Green  | 11/11 tagged scenarios; all 3 auth-rewrite agency journeys plus 8 existing legal US4 scenarios                                                       |
+| 2026-09-28 | `infisical run --env=dev -- bun run test:atdd --workers=1`                                          | Green  | 20/20 passed against the disposable development database, including the persisted-session US2 dashboard boundary                                     |
+| 2026-09-28 | Typecheck and focused entitlement/agency regression                                                 | Green  | Production database/actions/UI/scheduler and agency-funded entitlement integration typecheck; 4 suites/85 tests pass                                 |
 
 ## Foundational Harness Evidence
 

@@ -9,8 +9,15 @@ export type AuthFixture = {
 	fixture: { authUserId: string; creatorId: string; creatorOrganizationId: string; agencyOrganizationId: string; overlayId: string; overlaySecret: string };
 };
 
-export async function createAuthenticatedFixture(request: APIRequestContext, context: BrowserContext, activeContext: "creator" | "agency" = "creator") {
-	const response = await request.post("/api/test/auth-fixture", { headers: fixtureHeaders, data: { activeContext } });
+export type AuthFixtureOptions = {
+	activeContext?: "creator" | "agency";
+	actorRole?: "user" | "admin";
+	deletionState?: "none" | "suspended";
+	agencyLinkStatus?: "proposed" | "accepted";
+};
+
+export async function createAuthenticatedFixture(request: APIRequestContext, context: BrowserContext, options: AuthFixtureOptions = {}) {
+	const response = await request.post("/api/test/auth-fixture", { headers: fixtureHeaders, data: options });
 	expect(response.ok(), await response.text()).toBe(true);
 	const fixture = (await response.json()) as AuthFixture;
 	await context.addCookies([fixture.cookie]);

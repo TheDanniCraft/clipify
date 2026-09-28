@@ -295,7 +295,7 @@ description: "Dependency-ordered implementation tasks for the Creator Identity a
 ### Scenario definitions and bindings
 
 - [x] T141 [US4] [ATDD] Add `ATDD-US4-003`, `ATDD-US4-001`, and `ATDD-US4-002` with shared-role rationales to `test/atdd/features/auth-engine-rewrite.feature`
-- [ ] T142 [US4] [ATDD] Bind admin provisioning, creator approval, and allocation outcomes through real server/UI boundaries in `test/atdd/steps/auth-engine-rewrite.steps.ts`
+- [x] T142 [US4] [ATDD] Bind admin provisioning, creator approval, and allocation outcomes through real server/UI boundaries in `test/atdd/steps/auth-engine-rewrite.steps.ts`
 - [x] T143 [US4] [BDD] Add `BDD-US4-001`, `BDD-US4-003`, and `BDD-US4-002` for revocation, intersection denial, and seven-day grace/data preservation in `test/bdd/features/auth-engine-rewrite.feature`
 - [x] T144 [US4] [BDD] Bind US4 revocation/intersection/allocation behavior with controlled sessions, clock, entitlements, seats, and mail in `test/bdd/steps/auth-engine-rewrite.steps.ts`
 - [x] T145 [US4] [GATE] Register all US4 scenario/example rows and shared-role rationales in `specs/002-auth-engine-rewrite/test-traceability.md`

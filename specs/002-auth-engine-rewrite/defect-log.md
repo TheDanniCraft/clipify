@@ -43,6 +43,8 @@ Track product, test, environment, and governance issues affecting feature readin
 | AUTH-006  | Changed auth adapter coverage is below the release floor                      | Coverage gate        | High     | High     | Open     | Auth implementation | `bun run test:coverage` | T177 changed-code coverage gate                                  | Add database/session/mail/agency adapter tests; do not lower the 90%/95% policy        |
 | AUTH-007  | Database-backed US2 ATDD exceeded the generic browser timeout                 | ATDD-US2-001         | Low      | High     | Verified | Auth implementation | Focused ATDD            | T023 real-session acceptance boundary                            | ATDD project uses the authenticated acceptance timeout                                 |
 | AUTH-008  | Login smoke retained the retired link role                                    | BDD-SMOKE-001        | Low      | High     | Verified | Auth implementation | Aggregate BDD           | T038 aggregate behavior gate                                     | Smoke asserts the Better Auth sign-in button role                                      |
+| AUTH-009  | Focused ATDD bypassed BDD wrapper regeneration                                | T142 Red probe       | Low      | Low      | Verified | Auth implementation | Focused ATDD            | T142 real agency boundaries                                      | Regenerate bindings before direct Playwright execution                                 |
+| AUTH-010  | US4 ATDD interacted before route-specific hydration                           | T142 Green probe     | Low      | High     | Verified | Auth implementation | Focused ATDD            | T142 real agency boundaries                                      | Wait for network idle and use an explicit database-action budget                       |
 
 ## Defect Details
 
@@ -128,7 +130,7 @@ Track product, test, environment, and governance issues affecting feature readin
 - **Expected Result**: the Twitch authorization contract, persisted Better Auth session, and protected dashboard entry complete under the acceptance journey's explicit timeout.
 - **Actual Result**: the Next.js development server compiled the database-backed dashboard route after the generic 60-second Playwright timeout; fixture cleanup then observed the already-closed request context.
 - **Root Cause / Investigation Notes**: authenticated acceptance runs already declare a 120-second test timeout, but the equivalent ATDD journey inherited the global 60-second default despite exercising the same cold Next.js/database boundary. A first correction placed `test.setTimeout()` in the step module; generated `playwright-bdd` tests do not inherit that module-level override, so the enforced project timeout remained 60 seconds.
-- **Resolution Plan**: declare the same 120-second timeout on the generated ATDD Playwright project, rerun ATDD-US2-001 against the disposable development database, and retain global teardown as the failure-safe cleanup boundary.
+- **Resolution Plan**: declare an explicit database-backed timeout on the generated ATDD Playwright project, rerun ATDD-US2-001 against the disposable development database, and retain global teardown as the failure-safe cleanup boundary. The initial 120-second ceiling was later raised to 180 seconds when T142 added multiple cold server-action boundaries.
 - **Verification Evidence**: `infisical run --env=dev -- bunx playwright test --project=atdd-chromium --grep ATDD-US2-001 --workers=1` passed 1/1; the browser journey completed in 1.4 minutes and the full managed server run in 2.1 minutes.
 - **Approval / Risk Acceptance**: none. This is test-harness timing only; no production behavior is being relaxed.
 
@@ -145,6 +147,34 @@ Track product, test, environment, and governance issues affecting feature readin
 - **Resolution Plan**: assert the implemented button role, rerun BDD-SMOKE-001, then rerun the aggregate BDD gate.
 - **Verification Evidence**: `bunx playwright test --project=bdd-chromium --grep BDD-SMOKE-001 --workers=1` passed 1/1, followed by `bun run test:bdd --workers=1` passing 69/69.
 - **Approval / Risk Acceptance**: none. Production semantics and accessible name remain unchanged.
+
+### AUTH-009 - Focused ATDD bypassed BDD wrapper regeneration
+
+- **Status**: Verified
+- **Severity / Priority**: Low / Low
+- **Affected Source IDs**: US4
+- **Affected Artifact IDs**: ATDD-US4-001–003, T142
+- **Detected During**: focused Red-state execution for real agency server/UI bindings
+- **Expected Result**: the new steps reach the fixture route and fail on the intentionally unsupported admin/proposed fixture states.
+- **Actual Result**: direct `playwright test` reused stale `.features-gen` wrappers, so newly requested built-in fixtures were undefined.
+- **Root Cause / Investigation Notes**: the focused command omitted `bddgen`; package-level `test:atdd` already performs generation before Playwright.
+- **Resolution**: regenerate the wrappers before focused direct Playwright execution and retain the package command as the canonical aggregate gate.
+- **Verification Evidence**: wrapper regeneration succeeds; the regenerated focused Red probe is retained separately.
+- **Approval / Risk Acceptance**: none. No product or test assertion failed.
+
+### AUTH-010 - US4 ATDD interacted before route-specific hydration
+
+- **Status**: Verified
+- **Severity / Priority**: Low / High
+- **Affected Source IDs**: US4, FR-027
+- **Affected Artifact IDs**: ATDD-US4-003, T142
+- **Detected During**: focused Green-state execution for the real agency allocation boundary
+- **Expected Result**: submitting a valid allocation displays the newly occupied creator seat in the selected creator context.
+- **Actual Result**: combined cold-server runs intermittently retained the pre-action form; an allocation trace contained no action POST, while an admin trace contained a POST that was still pending when the 30-second assertion expired.
+- **Root Cause / Investigation Notes**: rejecting optional cookies persisted consent and triggered a same-page refresh after the test began filling the business form. Playwright retried the detached submit button on the replacement form, but the required allocation reference had been cleared, so native validation suppressed the POST. Cold database-backed development actions can also exceed the generic assertion timeout.
+- **Resolution**: register the consent persistence and automatic same-page navigation waits before rejecting optional cookies, then await both before populating business forms; use a 90-second database-action assertion budget within a 180-second ATDD ceiling; include the selected creator organization in the allocation form; and redirect to a distinct success URL with explicit result feedback.
+- **Verification Evidence**: focused ATDD-US4-003 passes against the disposable development database.
+- **Approval / Risk Acceptance**: none. The redirect preserves the current creator selection and exposes committed state.
 
 ## Open Defect Review
 
@@ -169,16 +199,18 @@ The completed US1–US5 story gates introduced no open product defects. US2 focu
 | AUTH-006  | Current branch                  | Changed-code coverage command                  | Fail    | T177                | Pending            |
 | AUTH-007  | Current branch                  | Focused database-backed ATDD-US2-001           | Pass    | ATDD-US2-001        | Codex / 2026-09-28 |
 | AUTH-008  | Current branch                  | Focused and aggregate BDD                      | Pass    | BDD-SMOKE-001       | Codex / 2026-09-28 |
+| AUTH-009  | Current branch                  | `bunx bddgen` before focused ATDD              | Pass    | T142 Red probe      | Codex / 2026-09-28 |
+| AUTH-010  | Current branch                  | Focused database-backed ATDD-US4-003           | Pass    | ATDD-US4-003        | Codex / 2026-09-28 |
 
 ## Defect Metrics
 
-| Metric                       | Value | Notes                                                                                                                    |
-| ---------------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------ |
-| Total defects                | 9     | One open tooling issue, one blocked environment issue, one open coverage issue, and six verified test-integration issues |
-| Open Critical / High defects | 1     | AUTH-006 blocks the changed-code coverage gate                                                                           |
-| Deferred defects             | 0     | No accepted risks                                                                                                        |
-| Reopened defects             | 0     |                                                                                                                          |
-| Escaped defects              | 0     |                                                                                                                          |
+| Metric                       | Value | Notes                                                                                                                      |
+| ---------------------------- | ----- | -------------------------------------------------------------------------------------------------------------------------- |
+| Total defects                | 11    | One open tooling issue, one blocked environment issue, one open coverage issue, and eight verified test-integration issues |
+| Open Critical / High defects | 1     | AUTH-006 blocks the changed-code coverage gate                                                                             |
+| Deferred defects             | 0     | No accepted risks                                                                                                          |
+| Reopened defects             | 0     |                                                                                                                            |
+| Escaped defects              | 0     |                                                                                                                            |
 
 ## Baseline Evidence
 
