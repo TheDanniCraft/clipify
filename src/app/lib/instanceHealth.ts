@@ -1,9 +1,10 @@
 /* istanbul ignore file */
 import { db } from "@/db/client";
-import { billingSubscriptionItemsTable, billingSubscriptionsTable, entitlementGrantsTable, galleriesTable, modQueueTable, overlaysTable, plausibleStatsCacheTable, playlistClipsTable, playlistsTable, queueTable, runnersTable, settingsTable, streamSessionsTable, tokenTable, twitchCacheTable, usersTable } from "@/db/schema";
+import { billingSubscriptionItemsTable, billingSubscriptionsTable, entitlementGrantsTable, galleriesTable, modQueueTable, overlaysTable, plausibleStatsCacheTable, playlistClipsTable, playlistsTable, queueTable, runnersTable, settingsTable, streamSessionsTable, twitchCacheTable, usersTable } from "@/db/schema";
+import { account as authAccountTable } from "@/db/auth-schema";
 import { getTwitchCacheReadMetricsSnapshot } from "@actions/database";
 import { getClipCacheSchedulerStats } from "@lib/clipCacheScheduler";
-import { and, arrayContains, count, countDistinct, eq, gt, isNotNull, isNull, like, lt, lte, or, sql } from "drizzle-orm";
+import { and, count, countDistinct, eq, gt, isNotNull, isNull, like, lt, lte, or, sql } from "drizzle-orm";
 import { BillingProduct, Entitlement, EntitlementGrantSource, OverlayType, PlaybackMode, Plan, RunnerStatus, StatusOptions, StreamMode, StreamState, TwitchCacheType } from "@types";
 import { getCreatorAnalyticsRuntimeMetrics } from "@lib/plausibleCreatorAnalytics";
 
@@ -481,17 +482,21 @@ export async function getInstanceHealthSnapshot<TExclude extends keyof InstanceH
 	const [clipQueueRows, modQueueRows] = await Promise.all([db.select({ count: count() }).from(queueTable).execute(), db.select({ count: count() }).from(modQueueTable).execute()]);
 
 	const [tokenRows, expiredTokensRows, expiringIn24hRows, readyForTwitchApiUsersRows] = await Promise.all([
-		db.select({ count: count() }).from(tokenTable).execute(),
-		db.select({ count: count() }).from(tokenTable).where(lt(tokenTable.expiresAt, now)).execute(),
+		db.select({ count: count() }).from(authAccountTable).where(eq(authAccountTable.providerId, "twitch")).execute(),
 		db
 			.select({ count: count() })
-			.from(tokenTable)
-			.where(and(gt(tokenTable.expiresAt, now), lte(tokenTable.expiresAt, in24h)))
+			.from(authAccountTable)
+			.where(and(eq(authAccountTable.providerId, "twitch"), lt(authAccountTable.accessTokenExpiresAt, now)))
 			.execute(),
 		db
 			.select({ count: count() })
-			.from(tokenTable)
-			.where(or(arrayContains(tokenTable.scope, ["channel:manage:clips"]), arrayContains(tokenTable.scope, ["editor:manage:clips"])))
+			.from(authAccountTable)
+			.where(and(eq(authAccountTable.providerId, "twitch"), gt(authAccountTable.accessTokenExpiresAt, now), lte(authAccountTable.accessTokenExpiresAt, in24h)))
+			.execute(),
+		db
+			.select({ count: count() })
+			.from(authAccountTable)
+			.where(and(eq(authAccountTable.providerId, "twitch"), sql`${authAccountTable.scope} ~ '(^| )(channel:manage:clips|editor:manage:clips)( |$)'`))
 			.execute(),
 	]);
 

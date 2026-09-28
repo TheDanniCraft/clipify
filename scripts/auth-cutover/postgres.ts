@@ -1,10 +1,10 @@
 import { createHash, randomUUID } from "node:crypto";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { Pool, type PoolClient } from "pg";
 import { symmetricEncrypt } from "better-auth/crypto";
 import { decryptToken } from "../../src/app/lib/tokenCrypto";
-import { buildManifest, verifyManifest, type CutoverManifest } from "./manifest";
+import { buildManifest, signManifest, verifyManifest, verifyManifestSignature, type CutoverManifest } from "./manifest";
 import { verifyBackupAttestation, type BackupAttestation } from "./preflight";
 
 export type CutoverCounts = {
@@ -29,14 +29,16 @@ function requiredSetting(environment: NodeJS.ProcessEnv, name: string): string {
 	return value;
 }
 
-function assertRehearsalTarget(databaseUrl: string, environment: NodeJS.ProcessEnv): URL {
-	if (environment.AUTH_CUTOVER_ENV !== "rehearsal") throw new Error("REHEARSAL_TARGET_REQUIRED");
+function assertCutoverTarget(databaseUrl: string, environment: NodeJS.ProcessEnv): URL {
+	const cutoverEnvironment = environment.AUTH_CUTOVER_ENV;
+	if (cutoverEnvironment !== "rehearsal" && cutoverEnvironment !== "production") throw new Error("CUTOVER_ENVIRONMENT_REQUIRED");
+	if (cutoverEnvironment === "production" && environment.AUTH_CUTOVER_PRODUCTION_APPROVED !== "1") throw new Error("PRODUCTION_TARGET_APPROVAL_REQUIRED");
 	const parsed = new URL(databaseUrl);
 	if (!new Set(["postgres:", "postgresql:"]).has(parsed.protocol)) throw new Error("POSTGRES_TARGET_REQUIRED");
 	const database = decodeURIComponent(parsed.pathname.replace(/^\//, ""));
 	if (!database) throw new Error("DATABASE_NAME_REQUIRED");
 	const looksDisposable = /(?:rehearsal|test|dev|development|scratch|sandbox)/i.test(database);
-	if (!looksDisposable && environment.AUTH_CUTOVER_ALLOW_DEFAULT_DATABASE !== "1") throw new Error("DISPOSABLE_DATABASE_NAME_REQUIRED");
+	if (cutoverEnvironment === "rehearsal" && !looksDisposable && environment.AUTH_CUTOVER_ALLOW_DEFAULT_DATABASE !== "1") throw new Error("DISPOSABLE_DATABASE_NAME_REQUIRED");
 	return parsed;
 }
 
@@ -60,7 +62,7 @@ export class PostgresCutoverRepository {
 	readonly #databaseName: string;
 
 	constructor(databaseUrl: string, environment: NodeJS.ProcessEnv = process.env) {
-		const parsed = assertRehearsalTarget(databaseUrl, environment);
+		const parsed = assertCutoverTarget(databaseUrl, environment);
 		this.#databaseName = decodeURIComponent(parsed.pathname.replace(/^\//, ""));
 		this.#pool = new Pool({ connectionString: databaseUrl, max: 2, connectionTimeoutMillis: 15_000, application_name: "clipify-auth-cutover" });
 	}
@@ -245,6 +247,48 @@ export class PostgresCutoverRepository {
 		await this.#pool.query("UPDATE public.migration_runs SET status = 'validated', updated_at = now() WHERE id = $1", [runId]);
 		return { ...values, valid: true };
 	}
+
+	async runSmoke(runId: string, expected: CutoverCounts): Promise<Record<string, true>> {
+		const result = await this.#pool.query<Record<string, boolean>>(
+			`SELECT
+				NOT EXISTS (SELECT 1 FROM public.creator_accounts ca LEFT JOIN public.creator_identity_links cil ON cil.creator_id = ca.creator_id LEFT JOIN auth.account a ON a.user_id = cil.auth_user_id AND a.provider_id = 'twitch' WHERE cil.creator_id IS NULL OR a.id IS NULL) AS "sign-in",
+				NOT EXISTS (SELECT 1 FROM public.creator_accounts ca LEFT JOIN public.creator_identity_links cil ON cil.creator_id = ca.creator_id LEFT JOIN auth.member m ON m.organization_id = ca.organization_id AND m.user_id = cil.auth_user_id AND m.role = 'owner' WHERE m.id IS NULL) AS "allow-deny",
+				NOT EXISTS (SELECT 1 FROM public.overlays o LEFT JOIN public.users u ON u.id = o.owner_id WHERE u.id IS NULL) AS overlay,
+				(SELECT count(*) FROM auth.account WHERE provider_id = 'twitch' AND refresh_token IS NOT NULL AND refresh_token ~ '^[0-9a-f]+$') = $1 AS refresh,
+				(SELECT count(*) FROM public.billing_subscriptions) = $2 AS subscription,
+				(SELECT count(*) FROM public.entitlement_grants) = $3 AS entitlement,
+				NOT EXISTS (SELECT 1 FROM public.notification_outbox WHERE payload::text ~* '"[^"]*(secret|token|password|credential|authorization|cookie|otp)[^"]*"[[:space:]]*:') AS outbox`,
+			[expected.legacyTokens, expected.subscriptions, expected.entitlements],
+		);
+		const row = result.rows[0];
+		if (!row || Object.values(row).some((value) => value !== true)) {
+			await this.#pool.query("UPDATE public.migration_runs SET status = 'maintenance_blocked', updated_at = now() WHERE id = $1", [runId]);
+			throw new Error("CUTOVER_SMOKE_FAILED");
+		}
+		return row as Record<string, true>;
+	}
+
+	async reopen(runId: string): Promise<void> {
+		const client = await this.#pool.connect();
+		try {
+			await client.query("BEGIN");
+			const result = await client.query<{ status: string }>("SELECT status::text FROM public.migration_runs WHERE id = $1 FOR UPDATE", [runId]);
+			if (result.rows[0]?.status !== "validated") throw new Error("CUTOVER_NOT_VALIDATED");
+			await client.query("UPDATE public.migration_runs SET status = 'switched', updated_at = now() WHERE id = $1", [runId]);
+			await client.query("UPDATE public.migration_runs SET status = 'reopened', updated_at = now(), completed_at = now() WHERE id = $1", [runId]);
+			await client.query("COMMIT");
+		} catch (error) {
+			await client.query("ROLLBACK").catch(() => undefined);
+			throw error;
+		} finally {
+			client.release();
+		}
+	}
+
+	async getRunStatus(runId: string): Promise<string | null> {
+		const result = await this.#pool.query<{ status: string }>("SELECT status::text FROM public.migration_runs WHERE id = $1", [runId]);
+		return result.rows[0]?.status ?? null;
+	}
 }
 
 export async function runPostgresDryRun(environment: NodeJS.ProcessEnv = process.env) {
@@ -306,6 +350,47 @@ export async function runPostgresValidate(environment: NodeJS.ProcessEnv = proce
 		if (inspection.sourceFingerprint !== manifest.sourceFingerprint) throw new Error("SOURCE_FINGERPRINT_MISMATCH");
 		const validation = await repository.validateBackfill(runId, manifest.counts as CutoverCounts);
 		return { mode: "validate" as const, runId, sourceFingerprint: manifest.sourceFingerprint, maintenance: true, status: "validated" as const, ...validation };
+	} finally {
+		await repository.close();
+	}
+}
+
+export async function runPostgresSmoke(environment: NodeJS.ProcessEnv = process.env) {
+	if (environment.AUTH_CUTOVER_REOPEN_APPROVED !== "1") throw new Error("REOPEN_APPROVAL_REQUIRED");
+	const databaseUrl = requiredSetting(environment, "AUTH_CUTOVER_DATABASE_URL");
+	const runId = requiredSetting(environment, "AUTH_CUTOVER_RUN_ID");
+	const artifactDir = resolve(requiredSetting(environment, "AUTH_CUTOVER_ARTIFACT_DIR"));
+	const manifestPath = resolve(requiredSetting(environment, "AUTH_CUTOVER_MANIFEST_PATH"));
+	const signingSecret = requiredSetting(environment, "BETTER_AUTH_SECRET");
+	const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as CutoverManifest;
+	if (!verifyManifest(manifest) || manifest.runId !== runId || !manifest.counts) throw new Error("MANIFEST_INVALID");
+	const repository = new PostgresCutoverRepository(databaseUrl, environment);
+	try {
+		const finalManifestPath = resolve(artifactDir, `${runId}.final-manifest.json`);
+		if ((await repository.getRunStatus(runId)) === "reopened") {
+			if (!existsSync(finalManifestPath)) throw new Error("FINAL_MANIFEST_MISSING");
+			const persisted = JSON.parse(readFileSync(finalManifestPath, "utf8")) as CutoverManifest & { signature?: string };
+			if (!persisted.signature || persisted.runId !== runId || persisted.status !== "reopened" || !verifyManifest(persisted) || !verifyManifestSignature(persisted, persisted.signature, signingSecret)) throw new Error("FINAL_MANIFEST_INVALID");
+			return { mode: "smoke" as const, runId, status: "reopened" as const, maintenance: false, manifestPath: finalManifestPath, manifestChecksum: persisted.checksum, manifestSignature: persisted.signature };
+		}
+		const inspection = await repository.inspectSource();
+		if (inspection.sourceFingerprint !== manifest.sourceFingerprint) throw new Error("SOURCE_FINGERPRINT_MISMATCH");
+		const smoke = { passed: true as const, checks: await repository.runSmoke(runId, manifest.counts as CutoverCounts) };
+		await repository.reopen(runId);
+		const finalManifest = buildManifest({
+			runId,
+			sourceFingerprint: manifest.sourceFingerprint,
+			versions: manifest.versions,
+			createdAt: new Date().toISOString(),
+			mode: "smoke",
+			counts: manifest.counts,
+			status: "reopened",
+			smoke,
+		});
+		const signature = signManifest(finalManifest, signingSecret);
+		mkdirSync(artifactDir, { recursive: true });
+		writeFileSync(finalManifestPath, `${JSON.stringify({ ...finalManifest, signature }, null, 2)}\n`, { encoding: "utf8", flag: "wx" });
+		return { mode: "smoke" as const, runId, status: "reopened" as const, maintenance: false, manifestPath: finalManifestPath, manifestChecksum: finalManifest.checksum, manifestSignature: signature };
 	} finally {
 		await repository.close();
 	}

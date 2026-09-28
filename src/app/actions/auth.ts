@@ -64,6 +64,8 @@ export async function authUser(returnUrl?: string, error?: string, errorCode?: s
 
 /* ignore: auth edge case / redirect handling */
 export async function validateAuth(skipUserCheck = false) {
+	const { isAuthCutoverMaintenanceActive } = await import("@/server/maintenance");
+	if (await isAuthCutoverMaintenanceActive()) return false;
 	const cookieStore = await cookies();
 	const { getAuthActorContext } = await import("@/auth/session");
 	const actor = await getAuthActorContext();
@@ -93,6 +95,8 @@ export async function validateAuth(skipUserCheck = false) {
 
 /* ignore: auth edge case / redirect handling */
 export async function validateAdminAuth(skipUserCheck = false) {
+	const { isAuthCutoverMaintenanceActive } = await import("@/server/maintenance");
+	if (await isAuthCutoverMaintenanceActive()) return false;
 	const { getAuthActorContext } = await import("@/auth/session");
 	const actor = await getAuthActorContext();
 	if (!actor) {

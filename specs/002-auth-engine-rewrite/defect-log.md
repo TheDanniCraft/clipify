@@ -5,7 +5,7 @@
 **Traceability**: [test-traceability.md](./test-traceability.md)  
 **Test Summary**: [test-summary.md](./test-summary.md)  
 **Created**: 2026-09-27  
-**Last Updated**: 2026-09-28
+**Last Updated**: 2026-09-29
 
 ## Purpose and Scope
 
@@ -49,8 +49,21 @@ Track product, test, environment, and governance issues affecting feature readin
 | AUTH-012  | Authenticated fixture defaulted omitted deletion state to suspended            | Aggregate ATDD       | Medium   | High     | Verified | Test infrastructure | `bun run test:atdd`     | ATDD-US2-001                                                     | Default to active and require suspended state explicitly                               |
 | AUTH-013  | One-process E2E matrix exhausted the Next.js development-server heap           | T176 E2E gate        | Medium   | High     | Verified | Test infrastructure | `bun run test:e2e`      | `scripts/run-e2e-gate.ts`                                        | Restart Playwright and its server between project suites                               |
 | AUTH-014  | Legal-page axe audit included injected support-widget onboarding markup        | T176 BDD gate        | Low      | High     | Verified | Test infrastructure | Aggregate E2E runner    | Narrow-viewport legal accessibility scenario                     | Scope axe to the legal main while retaining page keyboard checks                       |
+| AUTH-016  | Better Auth OAuth onboarding lacks atomic creator/workspace provisioning       | US2 / FR-001–FR-003  | Critical | High     | Blocked  | Auth implementation | Cutover readiness audit | `src/auth/config.ts`, `src/auth/creator-onboarding.ts`           | Requires explicit approval for a custom PostgreSQL trigger migration                   |
 
 ## Defect Details
+
+### AUTH-016 - Better Auth OAuth onboarding lacks atomic creator/workspace provisioning
+
+- **Status**: Blocked
+- **Severity / Priority**: Critical / High
+- **Affected Source IDs**: US2, FR-001–FR-003, SC-003
+- **Detected During**: final cutover-readiness audit
+- **Expected Result**: inserting a new Twitch provider account atomically creates the stable creator record, creator organization, identity link, and owner membership in the same transaction.
+- **Actual Result**: `src/auth/config.ts` references a PostgreSQL trigger that is not present; `src/auth/creator-onboarding.ts` is currently an isolated domain model used by tests and performance checks, not by the Better Auth OAuth callback.
+- **Investigation**: Better Auth 1.7.6 queues `databaseHooks.*.create.after` until after its adapter transaction commits. Application hooks therefore cannot extend the OAuth transaction. An account `before` hook using the global Drizzle client would use a different connection and cannot safely satisfy the foreign-key and rollback contract.
+- **Required Resolution**: add a reviewed, idempotent PostgreSQL trigger/function as an explicitly approved custom migration, then prove rollback, retry, and real OAuth-account insertion behavior on disposable PostgreSQL. Ordinary Drizzle generation cannot express this trigger.
+- **Approval / Risk Acceptance**: pending the repository-required exact user authorization for this custom migration; production cutover remains No-Go.
 
 ### PLAN-001 - SpecKit template resolver does not expose installed test-governance templates
 
@@ -248,41 +261,43 @@ Track product, test, environment, and governance issues affecting feature readin
 
 The completed US1–US5 story gates introduced no open product defects. US2 focused TDD (10 tests), database-backed ATDD (20/20 aggregate), and BDD (69/69 aggregate) are Green. The two US2 harness regressions are verified fixed. A US1 regression probe found and corrected a duplicate disabled-owner lookup before checkpoint closure. PLAN-001 remains an unrelated planning-tooling issue with no release impact on the implemented authorization slices.
 
-| Defect ID | Release Impact               | Required Decision            | Decision Owner        | Due Date                         | Notes                                                                                                                                         |
-| --------- | ---------------------------- | ---------------------------- | --------------------- | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| PLAN-001  | No product release impact    | Fix tooling independently    | SpecKit tooling owner | Before next feature planning run | Fallback preserved required report structure                                                                                                  |
-| AUTH-006  | Blocks release coverage gate | Add focused adapter coverage | Auth implementation   | Before T177 can close            | Global coverage passes, but changed auth/lifecycle/agency aggregate is 51.17% branches, 66.05% functions, 57.48% lines, and 55.74% statements |
+| Defect ID | Release Impact               | Required Decision                                         | Decision Owner        | Due Date                                          | Notes                                                                                                                                         |
+| --------- | ---------------------------- | --------------------------------------------------------- | --------------------- | ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| PLAN-001  | No product release impact    | Fix tooling independently                                 | SpecKit tooling owner | Before next feature planning run                  | Fallback preserved required report structure                                                                                                  |
+| AUTH-006  | Blocks release coverage gate | Add focused adapter coverage                              | Auth implementation   | Before T177 can close                             | Global coverage passes, but changed auth/lifecycle/agency aggregate is 51.17% branches, 66.05% functions, 57.48% lines, and 55.74% statements |
+| AUTH-016  | Blocks new creator sign-in   | Approve and implement atomic PostgreSQL trigger migration | Auth implementation   | Before any cutover rehearsal can authorize reopen | Better Auth post-create hooks run after commit and cannot atomically provision Clipify creator ownership                                      |
 
 ## Verification and Regression Closure
 
-| Defect ID | Fix Artifact / PR | Verification Test or Gate                      | Result  | Evidence Link       | Verified By / Date |
-| --------- | ----------------- | ---------------------------------------------- | ------- | ------------------- | ------------------ |
-| PLAN-001  | Pending           | Three template resolver commands               | Blocked | N/A                 | Pending            |
-| AUTH-001  | Current branch    | `bun run test:auth`                            | Pass    | TDD-US2-001         | Codex / 2026-09-28 |
-| AUTH-002  | Current branch    | `bun run test`                                 | Pass    | Full suite          | Codex / 2026-09-28 |
-| AUTH-003  | Current branch    | Focused US5 suites                             | Pass    | TDD-US5-001–003     | Codex / 2026-09-28 |
-| AUTH-004  | Current branch    | Lifecycle adapter regression                   | Pass    | 7 suites / 89 tests | Codex / 2026-09-28 |
-| AUTH-005  | Current branch    | `infisical run --env=dev -- bun run app:build` | Pass    | T179                | Codex / 2026-09-28 |
-| AUTH-006  | Current branch    | Changed-code coverage command                  | Fail    | T177                | Pending            |
-| AUTH-007  | Current branch    | Focused database-backed ATDD-US2-001           | Pass    | ATDD-US2-001        | Codex / 2026-09-28 |
-| AUTH-008  | Current branch    | Focused and aggregate BDD                      | Pass    | BDD-SMOKE-001       | Codex / 2026-09-28 |
-| AUTH-009  | Current branch    | `bunx bddgen` before focused ATDD              | Pass    | T142 Red probe      | Codex / 2026-09-28 |
-| AUTH-010  | Current branch    | Focused database-backed ATDD-US4-003           | Pass    | ATDD-US4-003        | Codex / 2026-09-28 |
-| AUTH-011  | Current branch    | Focused settings regression and aggregate US5  | Pass    | ATDD-US5-001        | Codex / 2026-09-28 |
-| AUTH-012  | Current branch    | Focused ATDD-US2-001 and acceptance lifecycle  | Pass    | ATDD-US2-001 / T176 | Codex / 2026-09-28 |
-| AUTH-013  | Current branch    | Segmented aggregate E2E projects               | Pass    | T176                | Codex / 2026-09-28 |
-| AUTH-014  | Current branch    | Focused narrow-viewport legal BDD              | Pass    | Existing A3         | Codex / 2026-09-28 |
-| AUTH-015  | Current branch    | Focused database settings and coverage suites  | Pass    | T191–T193           | Codex / 2026-09-28 |
+| Defect ID | Fix Artifact / PR | Verification Test or Gate                        | Result  | Evidence Link       | Verified By / Date |
+| --------- | ----------------- | ------------------------------------------------ | ------- | ------------------- | ------------------ |
+| PLAN-001  | Pending           | Three template resolver commands                 | Blocked | N/A                 | Pending            |
+| AUTH-001  | Current branch    | `bun run test:auth`                              | Pass    | TDD-US2-001         | Codex / 2026-09-28 |
+| AUTH-002  | Current branch    | `bun run test`                                   | Pass    | Full suite          | Codex / 2026-09-28 |
+| AUTH-003  | Current branch    | Focused US5 suites                               | Pass    | TDD-US5-001–003     | Codex / 2026-09-28 |
+| AUTH-004  | Current branch    | Lifecycle adapter regression                     | Pass    | 7 suites / 89 tests | Codex / 2026-09-28 |
+| AUTH-005  | Current branch    | `infisical run --env=dev -- bun run app:build`   | Pass    | T179                | Codex / 2026-09-28 |
+| AUTH-006  | Current branch    | Changed-code coverage command                    | Fail    | T177                | Pending            |
+| AUTH-007  | Current branch    | Focused database-backed ATDD-US2-001             | Pass    | ATDD-US2-001        | Codex / 2026-09-28 |
+| AUTH-008  | Current branch    | Focused and aggregate BDD                        | Pass    | BDD-SMOKE-001       | Codex / 2026-09-28 |
+| AUTH-009  | Current branch    | `bunx bddgen` before focused ATDD                | Pass    | T142 Red probe      | Codex / 2026-09-28 |
+| AUTH-010  | Current branch    | Focused database-backed ATDD-US4-003             | Pass    | ATDD-US4-003        | Codex / 2026-09-28 |
+| AUTH-011  | Current branch    | Focused settings regression and aggregate US5    | Pass    | ATDD-US5-001        | Codex / 2026-09-28 |
+| AUTH-012  | Current branch    | Focused ATDD-US2-001 and acceptance lifecycle    | Pass    | ATDD-US2-001 / T176 | Codex / 2026-09-28 |
+| AUTH-013  | Current branch    | Segmented aggregate E2E projects                 | Pass    | T176                | Codex / 2026-09-28 |
+| AUTH-014  | Current branch    | Focused narrow-viewport legal BDD                | Pass    | Existing A3         | Codex / 2026-09-28 |
+| AUTH-015  | Current branch    | Focused database settings and coverage suites    | Pass    | T191–T193           | Codex / 2026-09-28 |
+| AUTH-016  | Pending approval  | Real OAuth-account insertion rollback/retry test | Blocked | US2 / T182          | Pending            |
 
 ## Defect Metrics
 
-| Metric                       | Value | Notes                                                                                                                                        |
-| ---------------------------- | ----- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| Total defects                | 16    | One open tooling issue, one blocked environment issue, one open coverage issue, and thirteen verified implementation/test-integration issues |
-| Open Critical / High defects | 1     | AUTH-006 blocks the changed-code coverage gate                                                                                               |
-| Deferred defects             | 0     | No accepted risks                                                                                                                            |
-| Reopened defects             | 0     |                                                                                                                                              |
-| Escaped defects              | 0     |                                                                                                                                              |
+| Metric                       | Value | Notes                                                                                                           |
+| ---------------------------- | ----- | --------------------------------------------------------------------------------------------------------------- |
+| Total defects                | 17    | One open tooling issue, two open release blockers, and fourteen verified implementation/test-integration issues |
+| Open Critical / High defects | 2     | AUTH-006 blocks changed-code coverage; AUTH-016 blocks atomic new-creator onboarding                            |
+| Deferred defects             | 0     | No accepted risks                                                                                               |
+| Reopened defects             | 0     |                                                                                                                 |
+| Escaped defects              | 0     |                                                                                                                 |
 
 ## Baseline Evidence
 
@@ -297,7 +312,7 @@ The completed US1–US5 story gates introduced no open product defects. US2 focu
 ## Required Checks
 
 - [x] Every unexpected planning failure has an entry.
-- [x] No Critical or High defect is open.
+- [ ] No Critical or High defect is open. AUTH-006 and AUTH-016 remain release blockers.
 - [x] No deferred defect or risk acceptance exists.
 - [ ] Fixed defects link verification evidence. PLAN-001 is still Open.
 - [x] Counts and impact match `test-summary.md`.

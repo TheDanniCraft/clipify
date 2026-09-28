@@ -24,6 +24,16 @@ type DryRunResult = {
 	};
 };
 
+type SmokeResult = {
+	mode: "smoke";
+	runId: string;
+	status: "reopened";
+	maintenance: false;
+	manifestPath: string;
+	manifestChecksum: string;
+	manifestSignature: string;
+};
+
 function invokeCli(args: string[], artifactDir: string, environment: Partial<NodeJS.ProcessEnv> = {}) {
 	return spawnSync("bun", ["scripts/auth-cutover.ts", ...args], {
 		cwd: process.cwd(),
@@ -113,8 +123,8 @@ describePostgres("TDD-US6-004 real cutover CLI", () => {
 			AUTH_CUTOVER_BACKUP_ATTESTATION: attestationPath,
 		};
 		const first = invokeCli(["apply"], artifacts, environment);
-		expect(first.status).toBe(0);
 		expect(first.stderr).toBe("");
+		expect(first.status).toBe(0);
 		expect(JSON.parse(first.stdout)).toEqual(expect.objectContaining({ mode: "apply", runId: dryRun.runId, maintenance: true, status: "migrating", creators: dryRun.counts.creators, owners: dryRun.counts.creators, credentials: dryRun.counts.legacyTokens, anomalies: 0 }));
 
 		const persisted = await pool.query<{ auth_users: string; accounts: string; owners: string; operations: string; checkpoints: string; status: string }>(
@@ -139,21 +149,88 @@ describePostgres("TDD-US6-004 real cutover CLI", () => {
 
 	it("validates every persisted identity, membership, credential, and anomaly invariant", async () => {
 		const result = invokeCli(["validate"], artifacts, { AUTH_CUTOVER_RUN_ID: dryRun.runId, AUTH_CUTOVER_MANIFEST_PATH: dryRun.manifestPath });
-		expect(result.status).toBe(0);
 		expect(result.stderr).toBe("");
+		expect(result.status).toBe(0);
 		expect(JSON.parse(result.stdout)).toEqual(expect.objectContaining({ mode: "validate", runId: dryRun.runId, status: "validated", maintenance: true, valid: true, creators: dryRun.counts.creators, owners: dryRun.counts.creators, operations: dryRun.counts.legacyEditors, credentials: dryRun.counts.legacyTokens, anomalies: 0 }));
 		const persisted = await pool.query<{ status: string }>("SELECT status::text FROM public.migration_runs WHERE id = $1", [dryRun.runId]);
 		expect(persisted.rows[0]?.status).toBe("validated");
 	});
 
-	it("rejects a database that is not explicitly marked as a rehearsal target", () => {
+	it("fails closed until reopening is explicitly approved, then persists smoke and a signed final manifest", async () => {
+		const blocked = invokeCli(["smoke"], artifacts, {
+			AUTH_CUTOVER_RUN_ID: dryRun.runId,
+			AUTH_CUTOVER_MANIFEST_PATH: dryRun.manifestPath,
+		});
+		expect(blocked.status).not.toBe(0);
+		expect(blocked.stderr).toContain("REOPEN_APPROVAL_REQUIRED");
+		const beforeApproval = await pool.query<{ status: string }>("SELECT status::text FROM public.migration_runs WHERE id = $1", [dryRun.runId]);
+		expect(beforeApproval.rows[0]?.status).toBe("validated");
+
+		const result = invokeCli(["smoke"], artifacts, {
+			AUTH_CUTOVER_RUN_ID: dryRun.runId,
+			AUTH_CUTOVER_MANIFEST_PATH: dryRun.manifestPath,
+			AUTH_CUTOVER_REOPEN_APPROVED: "1",
+		});
+		expect(result.status).toBe(0);
+		expect(result.stderr).toBe("");
+		const output = JSON.parse(result.stdout) as SmokeResult;
+		expect(output).toEqual({
+			mode: "smoke",
+			runId: dryRun.runId,
+			status: "reopened",
+			maintenance: false,
+			manifestPath: expect.any(String),
+			manifestChecksum: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+			manifestSignature: expect.stringMatching(/^hmac-sha256:[a-f0-9]{64}$/),
+		});
+		const finalManifest = JSON.parse(readFileSync(output.manifestPath, "utf8")) as Record<string, unknown>;
+		expect(finalManifest).toEqual(
+			expect.objectContaining({
+				runId: dryRun.runId,
+				status: "reopened",
+				smoke: expect.objectContaining({ passed: true }),
+				checksum: output.manifestChecksum,
+				signature: output.manifestSignature,
+			}),
+		);
+		const persisted = await pool.query<{ status: string }>("SELECT status::text FROM public.migration_runs WHERE id = $1", [dryRun.runId]);
+		expect(persisted.rows[0]?.status).toBe("reopened");
+
+		const rerun = invokeCli(["smoke"], artifacts, {
+			AUTH_CUTOVER_RUN_ID: dryRun.runId,
+			AUTH_CUTOVER_MANIFEST_PATH: dryRun.manifestPath,
+			AUTH_CUTOVER_REOPEN_APPROVED: "1",
+		});
+		expect(rerun.stderr).toBe("");
+		expect(rerun.status).toBe(0);
+		expect(JSON.parse(rerun.stdout)).toEqual(output);
+	});
+
+	it("rejects production targeting without an explicit one-shot production approval", () => {
 		const result = spawnSync("bun", ["scripts/auth-cutover.ts", "dry-run"], {
 			cwd: process.cwd(),
 			encoding: "utf8",
 			env: { ...process.env, AUTH_CUTOVER_DATABASE_URL: databaseUrl, AUTH_CUTOVER_ENV: "production", AUTH_CUTOVER_ARTIFACT_DIR: artifacts },
 		});
 		expect(result.status).not.toBe(0);
-		expect(result.stderr).toContain("REHEARSAL_TARGET_REQUIRED");
+		expect(result.stderr).toContain("PRODUCTION_TARGET_APPROVAL_REQUIRED");
 		expect(result.stderr).not.toContain(databaseUrl);
+	});
+
+	it("permits a read-only production dry-run only with explicit one-shot approval", () => {
+		const result = spawnSync("bun", ["scripts/auth-cutover.ts", "dry-run"], {
+			cwd: process.cwd(),
+			encoding: "utf8",
+			env: {
+				...process.env,
+				AUTH_CUTOVER_DATABASE_URL: databaseUrl,
+				AUTH_CUTOVER_ENV: "production",
+				AUTH_CUTOVER_PRODUCTION_APPROVED: "1",
+				AUTH_CUTOVER_ARTIFACT_DIR: artifacts,
+			},
+		});
+		expect(result.stderr).toBe("");
+		expect(result.status).toBe(0);
+		expect(JSON.parse(result.stdout)).toEqual(expect.objectContaining({ mode: "dry-run", sourceFingerprint: dryRun.sourceFingerprint }));
 	});
 });

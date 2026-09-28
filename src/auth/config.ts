@@ -96,7 +96,7 @@ export const auth = betterAuth({
 	],
 });
 
-// Creator/account/owner creation is enforced by the reviewed PostgreSQL
-// trigger in the auth foundation migration. Because it fires on the Better
-// Auth account insert, every domain record shares Better Auth's OAuth database
-// transaction and rolls back with it.
+// New Twitch-account provisioning is intentionally not claimed here. Better
+// Auth runs database `after` hooks only after its adapter transaction commits,
+// so atomic creator/organization/owner creation requires the separately
+// reviewed PostgreSQL trigger tracked as AUTH-016 before production cutover.

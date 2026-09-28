@@ -152,10 +152,10 @@ const twitch = {
 };
 jest.mock("@actions/twitch", () => twitch);
 
-const twitchAuth = {
-	refreshAccessTokenWithContextInternal: jest.fn(),
-};
-jest.mock("@/server/twitch-auth", () => twitchAuth);
+const getBetterAuthProviderAccessToken = jest.fn();
+jest.mock("@/server/provider-credentials", () => ({
+	getBetterAuthProviderAccessToken: (...args: unknown[]) => getBetterAuthProviderAccessToken(...args),
+}));
 
 const newsletter = {
 	syncProductUpdatesContact: jest.fn(),
@@ -175,11 +175,6 @@ jest.mock("@lib/entitlements", () => ({
 
 jest.mock("@lib/featureAccess", () => ({
 	getFeatureAccess: jest.fn(() => ({ allowed: true })),
-}));
-
-jest.mock("@lib/tokenCrypto", () => ({
-	encryptToken: jest.fn((val) => val),
-	decryptToken: jest.fn((val) => val),
 }));
 
 Object.defineProperty(global, "crypto", {
@@ -208,6 +203,7 @@ describe("database.ts coverage tests", () => {
 		twitch.getTwitchClipLookup.mockReset();
 		twitch.getUserDetails.mockReset();
 		twitch.getUsersDetailsBulk.mockReset();
+		getBetterAuthProviderAccessToken.mockReset();
 	});
 
 	it("covers importPlaylistClips pro check", async () => {
@@ -1217,58 +1213,34 @@ describe("database.ts coverage tests", () => {
 			expect(result).toEqual({ token: null, reason: "token_row_missing" });
 		});
 
-		it("getAccessTokenResult returns token_decrypt_failed on decryption error", async () => {
+		it("getAccessTokenResult returns refresh_failed when Better Auth rejects credential access", async () => {
 			const { getAccessTokenResult } = loadDatabaseActions();
-			const { decryptToken } = require("@lib/tokenCrypto");
-			decryptToken.mockImplementationOnce(() => {
-				throw new Error("fail");
-			});
 			queueSelectResult([{ disabled: false }]); // user check
-			queueSelectResult([{ accessToken: "at", refreshToken: "rt" }]); // token check
-			const result = await getAccessTokenResult("user-1");
-			expect(result).toEqual({ token: null, reason: "token_decrypt_failed" });
-		});
-
-		it("getAccessTokenResult refreshes token if expired", async () => {
-			const { getAccessTokenResult } = loadDatabaseActions();
-			const now = new Date();
-			const expiredAt = new Date(now.getTime() - 1000);
-			queueSelectResult([{ disabled: false }]); // user check
-			queueSelectResult([{ accessToken: "at", refreshToken: "rt", expiresAt: expiredAt, scope: ["s"], tokenType: "Bearer" }]); // token check
-
-			twitchAuth.refreshAccessTokenWithContextInternal.mockResolvedValueOnce({
-				token: { access_token: "new-at", refresh_token: "new-rt", expires_in: 3600, scope: ["s"], token_type: "Bearer" },
-				invalidRefreshToken: false,
-			});
-
-			const result = await getAccessTokenResult("user-1");
-			expect(result.token?.accessToken).toBe("new-at");
-			expect(twitchAuth.refreshAccessTokenWithContextInternal).toHaveBeenCalledWith("rt", "user-1");
-		});
-
-		it("getAccessTokenResult handles refresh failure", async () => {
-			const { getAccessTokenResult } = loadDatabaseActions();
-			const expiredAt = new Date(Date.now() - 1000);
-			queueSelectResult([{ disabled: false }]); // user check
-			queueSelectResult([{ accessToken: "at", refreshToken: "rt", expiresAt: expiredAt }]); // token check
-
-			twitchAuth.refreshAccessTokenWithContextInternal.mockResolvedValueOnce({ token: null, invalidRefreshToken: false });
-
+			getBetterAuthProviderAccessToken.mockRejectedValueOnce(new Error("provider failure"));
 			const result = await getAccessTokenResult("user-1");
 			expect(result).toEqual({ token: null, reason: "refresh_failed" });
 		});
 
-		it("getAccessTokenResult handles invalid refresh token and disables user", async () => {
+		it("getAccessTokenResult delegates refresh and rotation to Better Auth", async () => {
 			const { getAccessTokenResult } = loadDatabaseActions();
-			const expiredAt = new Date(Date.now() - 1000);
 			queueSelectResult([{ disabled: false }]); // user check
-			queueSelectResult([{ accessToken: "at", refreshToken: "rt", expiresAt: expiredAt }]); // token check
-
-			twitchAuth.refreshAccessTokenWithContextInternal.mockResolvedValueOnce({ token: null, invalidRefreshToken: true });
+			getBetterAuthProviderAccessToken.mockResolvedValueOnce({
+				accessToken: "new-at",
+				accessTokenExpiresAt: new Date(Date.now() + 3_600_000),
+				scopes: ["s"],
+			});
 
 			const result = await getAccessTokenResult("user-1");
-			expect(result).toEqual({ token: null, reason: "refresh_invalid_token" });
-			expect(dbUpdate).toHaveBeenCalled(); // disableUserAccess call
+			expect(result.token?.accessToken).toBe("new-at");
+			expect(getBetterAuthProviderAccessToken).toHaveBeenCalledWith("user-1");
+		});
+
+		it("getAccessTokenResult reports a missing Better Auth Twitch account", async () => {
+			const { getAccessTokenResult } = loadDatabaseActions();
+			queueSelectResult([{ disabled: false }]); // user check
+			getBetterAuthProviderAccessToken.mockResolvedValueOnce(null);
+			const result = await getAccessTokenResult("user-1");
+			expect(result).toEqual({ token: null, reason: "token_row_missing" });
 		});
 
 		it("getAccessTokenResult throws error on database failure", async () => {
@@ -1284,13 +1256,13 @@ describe("database.ts coverage tests", () => {
 			// Mocking result of the internal result function to be success
 			validateAuth.mockResolvedValueOnce({ id: "user-1", role: "user" });
 			queueSelectResult([{ disabled: false }]); // getAccessTokenResult -> getAccessTokenResult -> user check
-			queueSelectResult([{ accessToken: "at", refreshToken: "rt", expiresAt: new Date(Date.now() + 1000000) }]); // token check
+			getBetterAuthProviderAccessToken.mockResolvedValueOnce({ accessToken: "at", accessTokenExpiresAt: new Date(Date.now() + 1_000_000), scopes: [] });
 
 			const token1 = await getAccessToken("user-1");
 			expect(token1?.accessToken).toBe("at");
 
 			queueSelectResult([{ disabled: false }]); // getAccessTokenServer -> getAccessTokenResult -> user check
-			queueSelectResult([{ accessToken: "at2", refreshToken: "rt2", expiresAt: new Date(Date.now() + 1000000) }]); // token check
+			getBetterAuthProviderAccessToken.mockResolvedValueOnce({ accessToken: "at2", accessTokenExpiresAt: new Date(Date.now() + 1_000_000), scopes: [] });
 			const token2 = await getAccessTokenServer("user-1");
 			expect(token2?.accessToken).toBe("at2");
 		});

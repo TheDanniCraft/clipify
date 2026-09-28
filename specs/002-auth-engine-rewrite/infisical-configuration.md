@@ -14,11 +14,15 @@ and inject them into the application process.
 
 ## Better Auth
 
-| Name                     | Development shape          | Requirement                                                                                 |
-| ------------------------ | -------------------------- | ------------------------------------------------------------------------------------------- |
-| `BETTER_AUTH_SECRET`     | Infisical-generated secret | At least 32 random characters; distinct per environment.                                    |
-| `RATE_LIMIT_HASH_SECRET` | Infisical-generated secret | HMAC key for stored identity/network limiter signals; distinct per environment.             |
-| `AUTH_CUTOVER_RUNTIME`   | `legacy`                   | Switch to `better-auth` only after invariant validation; controls the sole token authority. |
+| Name                     | Development shape          | Requirement                                                                     |
+| ------------------------ | -------------------------- | ------------------------------------------------------------------------------- |
+| `BETTER_AUTH_SECRET`     | Infisical-generated secret | At least 32 random characters; distinct per environment.                        |
+| `RATE_LIMIT_HASH_SECRET` | Infisical-generated secret | HMAC key for stored identity/network limiter signals; distinct per environment. |
+
+There is no persistent auth-runtime feature flag. Better Auth account storage
+is the only production Twitch credential authority. Cutover approvals and run
+identifiers are one-shot operator inputs supplied only to the migration process;
+they are not application configuration stored in Infisical.
 
 Better Auth's base URL is resolved through the shared `resolveBaseUrl()`
 policy: the first `COOLIFY_URL` in a Coolify container, localhost during local

@@ -2,18 +2,28 @@
 
 ## Command surface
 
-Planned package commands:
+Package commands (all configuration and credentials are injected into the
+process; no database URL or secret is accepted as an argument):
 
 ```text
-bun run auth:migrate -- --dry-run --source <database-url> --artifact-dir <path>
-bun run auth:migrate -- --apply --run-id <id> --backup-attestation <path>
-bun run auth:migrate -- --resume --run-id <id>
-bun run auth:migrate -- --validate --run-id <id>
-bun run auth:migrate -- --smoke --run-id <id>
+bun run auth:migrate -- dry-run
+bun run auth:migrate -- apply
+bun run auth:migrate -- resume
+bun run auth:migrate -- validate
+bun run auth:migrate -- smoke
 bun run auth:legacy-check
 ```
 
-Credentials are supplied through secret environment/configuration, never CLI values or logs. Production `--apply` requires maintenance mode, the exact dry-run source fingerprint, a verified fresh backup attestation, and explicit operator confirmation. Restore has no command in this workflow; it follows a separately authorized runbook.
+`AUTH_CUTOVER_DATABASE_URL`, `AUTH_CUTOVER_ARTIFACT_DIR`, run/manifest paths,
+and approval markers are process-scoped inputs. Rehearsal uses
+`AUTH_CUTOVER_ENV=rehearsal` and a disposable database. Production requires
+`AUTH_CUTOVER_ENV=production` plus the one-shot
+`AUTH_CUTOVER_PRODUCTION_APPROVED=1`; apply separately requires
+`AUTH_CUTOVER_OPERATOR_APPROVED=1`, and reopen requires
+`AUTH_CUTOVER_REOPEN_APPROVED=1`. None of these approvals are persistent
+application feature flags. Production apply remains bound to the exact dry-run
+source fingerprint and a verified fresh backup attestation. Restore has no
+command in this workflow; it follows a separately authorized runbook.
 
 ## Phases and checkpoints
 

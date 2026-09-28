@@ -11,6 +11,7 @@ const dbUpdate = jest.fn();
 const verifyToken = jest.fn();
 const resolveUserEntitlements = jest.fn();
 const getAuthActorContext = jest.fn();
+const isAuthCutoverMaintenanceActive = jest.fn();
 
 jest.mock("jsonwebtoken", () => ({
 	__esModule: true,
@@ -70,6 +71,10 @@ jest.mock("@/auth/session", () => ({
 	getAuthActorContext: (...args: unknown[]) => getAuthActorContext(...args),
 }));
 
+jest.mock("@/server/maintenance", () => ({
+	isAuthCutoverMaintenanceActive: (...args: unknown[]) => isAuthCutoverMaintenanceActive(...args),
+}));
+
 let cookieValues: Record<string, string> = {};
 let cookieSet: jest.Mock;
 
@@ -98,6 +103,7 @@ async function loadAuth() {
 describe("actions/auth", () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
+		isAuthCutoverMaintenanceActive.mockResolvedValue(false);
 		process.env.JWT_SECRET = "jwt-secret";
 		cookieValues = {};
 		cookieSet = jest.fn();
@@ -168,6 +174,15 @@ describe("actions/auth", () => {
 	it("returns false when no auth token exists", async () => {
 		const { validateAuth } = await loadAuth();
 		await expect(validateAuth(false)).resolves.toBe(false);
+	});
+
+	it("denies user and admin actions while auth cutover maintenance is active", async () => {
+		isAuthCutoverMaintenanceActive.mockResolvedValue(true);
+		const { validateAdminAuth, validateAuth } = await loadAuth();
+
+		await expect(validateAuth(false)).resolves.toBe(false);
+		await expect(validateAdminAuth(false)).resolves.toBe(false);
+		expect(getAuthActorContext).not.toHaveBeenCalled();
 	});
 
 	it("denies ordinary server actions while account deletion is suspended", async () => {

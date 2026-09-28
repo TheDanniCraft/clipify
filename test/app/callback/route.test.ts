@@ -58,13 +58,15 @@ describe("app/callback/route", () => {
 		clearAdminViewCookieForAuthFlow.mockResolvedValue(undefined);
 	});
 
-	it("cleans admin-view cookies/sessions on successful callback", async () => {
+	it("retires every legacy callback without exchanging or storing credentials", async () => {
 		const { GET } = await import("@/app/callback/route");
 		const request = { url: "https://clipify.us/callback?code=abc&state=signed-state" } as Parameters<typeof GET>[0];
 
 		await GET(request);
 
-		expect(clearAdminViewCookieForAuthFlow).toHaveBeenCalledTimes(1);
-		expect(jwtSign).not.toHaveBeenCalled();
+		expect(authUser).toHaveBeenCalledWith(undefined, "legacyCallbackRetired");
+		expect(exchangeAccesToken).not.toHaveBeenCalled();
+		expect(setAccessToken).not.toHaveBeenCalled();
+		expect(clearAdminViewCookieForAuthFlow).not.toHaveBeenCalled();
 	});
 });

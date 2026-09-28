@@ -74,14 +74,18 @@ jest.mock("@/db/schema", () => ({
 	modQueueTable: {
 		id: "id",
 	},
-	tokenTable: {
-		expiresAt: "expiresAt",
-	},
 	twitchCacheTable: {
 		type: "type",
 		key: "key",
 		value: "value",
 		fetchedAt: "fetchedAt",
+	},
+}));
+jest.mock("@/db/auth-schema", () => ({
+	account: {
+		providerId: "providerId",
+		accessTokenExpiresAt: "accessTokenExpiresAt",
+		scope: "scope",
 	},
 }));
 jest.mock("drizzle-orm", () => ({

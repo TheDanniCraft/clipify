@@ -10,7 +10,13 @@ const dbInsert = jest.fn();
 const dbUpdate = jest.fn();
 const dbDelete = jest.fn();
 const allocateMemberNumber = jest.fn(async () => 101);
+const getAccessTokenResultInternal = jest.fn();
+const getAccessTokenInternal = jest.fn();
 jest.mock("@/server/memberNumbers", () => ({ allocateMemberNumber: () => allocateMemberNumber() }));
+jest.mock("@/server/tokens", () => ({
+	getAccessTokenResultInternal: (...args: unknown[]) => getAccessTokenResultInternal(...args),
+	getAccessTokenInternal: (...args: unknown[]) => getAccessTokenInternal(...args),
+}));
 
 const usersTable = {
 	id: "users.id",
@@ -268,92 +274,19 @@ describe("actions/database user logic", () => {
 		expect(result).toBeNull();
 	});
 
-	it("sets access token correctly", async () => {
-		const { setAccessToken } = await loadDatabaseActions();
-		twitch.getUserDetails.mockResolvedValue({ id: "user-1", login: "user1" });
-
-		const result = await setAccessToken({
-			access_token: "at",
-			refresh_token: "rt",
-			expires_in: 3600,
-			scope: ["user:read:email"],
-			token_type: "bearer",
-		});
-
-		expect(result).toBeDefined();
-		expect(dbInsert).toHaveBeenCalled();
-		expect(insertCalls.some((c) => c.accessToken === "at" && c.refreshToken === "rt")).toBe(true);
-	});
-
-	it("handles failure to get user details in setAccessToken", async () => {
-		const { setAccessToken } = await loadDatabaseActions();
-		twitch.getUserDetails.mockResolvedValue(null);
-		await expect(setAccessToken({} as any)).rejects.toThrow("Failed to set access token");
-	});
-
-	it("getAccessTokenResult returns user_disabled when user is disabled", async () => {
+	it("delegates token resolution to the Better Auth-backed server boundary", async () => {
 		const { getAccessTokenResult } = await loadDatabaseActions();
-		queueSelectResult([{ disabled: true }]);
+		getAccessTokenResultInternal.mockResolvedValue({ token: null, reason: "user_disabled" });
 		const result = await getAccessTokenResult("user-1");
 		expect(result).toEqual({ token: null, reason: "user_disabled" });
+		expect(getAccessTokenResultInternal).toHaveBeenCalledWith("user-1");
 	});
 
-	it("getAccessTokenResult returns token_row_missing when no token in DB", async () => {
+	it("preserves a successful Better Auth token result", async () => {
 		const { getAccessTokenResult } = await loadDatabaseActions();
-		queueSelectResult([{ disabled: false }]); // userRow
-		queueSelectResult([]); // token rows
+		getAccessTokenResultInternal.mockResolvedValue({ token: { id: "user-1", accessToken: "better-auth-token" } });
 		const result = await getAccessTokenResult("user-1");
-		expect(result).toEqual({ token: null, reason: "token_row_missing" });
-	});
-
-	it("getAccessTokenResult returns token_decrypt_failed when decryption fails", async () => {
-		const { getAccessTokenResult } = await loadDatabaseActions();
-		queueSelectResult([{ disabled: false }]);
-		queueSelectResult([{ accessToken: "at", refreshToken: "rt", expiresAt: new Date(Date.now() + 10000) }]);
-		tokenCrypto.decryptToken.mockImplementation(() => {
-			throw new Error("decrypt error");
-		});
-
-		const result = await getAccessTokenResult("user-1");
-		expect(result).toEqual({ token: null, reason: "token_decrypt_failed" });
-	});
-
-	it("getAccessTokenResult refreshes token when expired", async () => {
-		const { getAccessTokenResult } = await loadDatabaseActions();
-		const now = Date.now();
-		queueSelectResult([{ disabled: false }]);
-		queueSelectResult([{ accessToken: "at", refreshToken: "rt", expiresAt: new Date(now - 1000), scope: [], tokenType: "bearer" }]);
-
-		twitchAuth.refreshAccessTokenWithContextInternal.mockResolvedValue({
-			token: { access_token: "new-at", refresh_token: "new-rt", expires_in: 3600, scope: [], token_type: "bearer" },
-		});
-
-		const result = await getAccessTokenResult("user-1");
-		expect(result.token?.accessToken).toBe("new-at");
-		expect(twitchAuth.refreshAccessTokenWithContextInternal).toHaveBeenCalledWith("rt", "user-1");
-	});
-
-	it("getAccessTokenResult handles refresh failure", async () => {
-		const { getAccessTokenResult } = await loadDatabaseActions();
-		queueSelectResult([{ disabled: false }]);
-		queueSelectResult([{ accessToken: "at", refreshToken: "rt", expiresAt: new Date(Date.now() - 1000) }]);
-
-		twitchAuth.refreshAccessTokenWithContextInternal.mockResolvedValue({ token: null, invalidRefreshToken: false });
-
-		const result = await getAccessTokenResult("user-1");
-		expect(result).toEqual({ token: null, reason: "refresh_failed" });
-	});
-
-	it("getAccessTokenResult handles invalid refresh token and disables user", async () => {
-		const { getAccessTokenResult } = await loadDatabaseActions();
-		queueSelectResult([{ disabled: false }]);
-		queueSelectResult([{ accessToken: "at", refreshToken: "rt", expiresAt: new Date(Date.now() - 1000) }]);
-
-		twitchAuth.refreshAccessTokenWithContextInternal.mockResolvedValue({ token: null, invalidRefreshToken: true });
-
-		const result = await getAccessTokenResult("user-1");
-		expect(result).toEqual({ token: null, reason: "refresh_invalid_token" });
-		expect(dbUpdate).toHaveBeenCalled(); // disableUserAccess
+		expect(result.token?.accessToken).toBe("better-auth-token");
 	});
 
 	it("inserts new user correctly", async () => {

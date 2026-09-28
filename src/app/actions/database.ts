@@ -1,14 +1,13 @@
 "use server";
 
-import { tokenTable, usersTable, overlaysTable, playlistsTable, playlistClipsTable, galleriesTable, queueTable, settingsTable, modQueueTable, twitchCacheTable } from "@/db/schema";
+import { usersTable, overlaysTable, playlistsTable, playlistClipsTable, galleriesTable, queueTable, settingsTable, modQueueTable, twitchCacheTable } from "@/db/schema";
 import { db, QueryClient } from "@/db/client";
-import { AuthenticatedUser, ClipQueueItem, ModQueueItem, Overlay, Playlist, TwitchUserResponse, TwitchTokenApiResponse, UserToken, Plan, Role, UserSettings, TwitchCacheType, StatusOptions, OverlayType, PlaybackMode, MaxDurationMode, TwitchClip } from "@types";
-import { getTwitchClipLookup, getUserDetails, subscribeToReward, syncOwnerClipCache } from "@actions/twitch";
+import { AuthenticatedUser, ClipQueueItem, ModQueueItem, Overlay, Playlist, TwitchUserResponse, UserToken, Plan, Role, UserSettings, TwitchCacheType, StatusOptions, OverlayType, PlaybackMode, MaxDurationMode, TwitchClip } from "@types";
+import { getTwitchClipLookup, subscribeToReward, syncOwnerClipCache } from "@actions/twitch";
 import { syncProductUpdatesContact, getProductUpdatesSubscriptionStatus } from "@actions/newsletter";
 import { isTitleBlocked } from "@/app/utils/regexFilter";
 import { eq, inArray, and, or, isNull, lt, gt, sql, desc, max, asc } from "drizzle-orm";
 import { validateAuth, validateAdminAuth } from "@actions/auth";
-import { encryptToken } from "@lib/tokenCrypto";
 import { getFeatureAccess } from "@lib/featureAccess";
 import { ensureReverseTrialGrantForUser, resolveUserEntitlements, resolveUserEntitlementsForUsers } from "@lib/entitlements";
 import { TWITCH_CLIPS_LAUNCH_MS, FREE_PLAYLIST_LIMIT, FREE_PLAYLIST_CLIP_LIMIT } from "@lib/constants";
@@ -572,48 +571,6 @@ export async function isUserDisabledByIdServer(id: string): Promise<boolean> {
 	}
 }
 
-export async function setAccessToken(token: TwitchTokenApiResponse): Promise<AuthenticatedUser | null> {
-	try {
-		const user = await getUserDetails(token.access_token);
-		if (!user) {
-			throw new Error("Failed to get user details");
-		}
-
-		const dbUser = await insertUser(user);
-
-		const expiresAt = new Date(Date.now() + token.expires_in * 1000);
-
-		const aad = `twitchUser:${user.id}:oauth`;
-
-		await db
-			.insert(tokenTable)
-			.values({
-				id: user.id,
-				accessToken: encryptToken(token.access_token, aad),
-				refreshToken: encryptToken(token.refresh_token, aad),
-				expiresAt: expiresAt,
-				scope: token.scope,
-				tokenType: token.token_type,
-			})
-			.onConflictDoUpdate({
-				target: tokenTable.id,
-				set: {
-					accessToken: encryptToken(token.access_token, aad),
-					refreshToken: encryptToken(token.refresh_token, aad),
-					expiresAt: expiresAt,
-					scope: token.scope,
-					tokenType: token.token_type,
-				},
-			})
-			.execute();
-
-		return dbUser;
-	} catch (error) {
-		console.error("Error setting access token:", error);
-		throw new Error("Failed to set access token");
-	}
-}
-
 export async function getAccessToken(userId: string): Promise<UserToken | null> {
 	const result = await getAccessTokenResult(userId);
 	return result.token;
@@ -631,7 +588,7 @@ export async function getAccessTokenServer(userId: string): Promise<UserToken | 
 	return getAccessTokenInternal(userId);
 }
 
-export async function getAccessTokenResult(userId: string): Promise<{ token: UserToken | null; reason?: "unauthorized" | "user_disabled" | "token_row_missing" | "token_decrypt_failed" | "refresh_invalid_token" | "refresh_failed" }> {
+export async function getAccessTokenResult(userId: string): Promise<{ token: UserToken | null; reason?: "unauthorized" | "user_disabled" | "token_row_missing" | "refresh_failed" }> {
 	const authedUser = await validateAuth(true);
 	if (!authedUser || (authedUser.id !== userId && authedUser.role !== Role.Admin)) {
 		return { token: null, reason: "unauthorized" };
@@ -643,7 +600,7 @@ export async function getAccessTokenResult(userId: string): Promise<{ token: Use
 /**
  * Server-only version that bypasses user session validation.
  */
-export async function getOwnAccessTokenResult(): Promise<{ token: UserToken | null; reason?: "unauthorized" | "user_disabled" | "token_row_missing" | "token_decrypt_failed" | "refresh_invalid_token" | "refresh_failed" }> {
+export async function getOwnAccessTokenResult(): Promise<{ token: UserToken | null; reason?: "unauthorized" | "user_disabled" | "token_row_missing" | "refresh_failed" }> {
 	const authedUser = await validateAuth(true);
 	if (!authedUser) {
 		return { token: null, reason: "unauthorized" };

@@ -8,7 +8,6 @@ import { type TwitchRateLimitLog, incrementClipFetchFallback, incrementClipFetch
 import { promises as fs } from "fs";
 import path from "path";
 import { getAccessTokenInternal, getAccessTokenResultInternal } from "@/server/tokens";
-import { refreshAccessTokenWithContextInternal } from "@/server/twitch-auth";
 import { getBaseUrl, isPreview } from "@actions/utils";
 import { isTitleBlocked } from "@/app/utils/regexFilter";
 import { dbPool } from "@/db/client";
@@ -773,22 +772,6 @@ export async function exchangeAccesToken(code: string): Promise<TwitchTokenApiRe
 		logTwitchError("Error exchanging access token", error);
 		return null;
 	}
-}
-
-export async function refreshAccessToken(refreshToken: string): Promise<TwitchTokenApiResponse | null> {
-	const result = await refreshAccessTokenWithContextInternal(refreshToken);
-	return result.token;
-}
-
-export type RefreshAccessTokenResult = {
-	token: TwitchTokenApiResponse | null;
-	invalidRefreshToken: boolean;
-	status?: number;
-	message?: string;
-};
-
-export async function refreshAccessTokenWithContext(refreshToken: string, userId?: string): Promise<RefreshAccessTokenResult> {
-	return refreshAccessTokenWithContextInternal(refreshToken, userId);
 }
 
 export async function getAppAccessToken(): Promise<TwitchAppAccessTokenResponse | null> {

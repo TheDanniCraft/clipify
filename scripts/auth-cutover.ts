@@ -1,11 +1,12 @@
 import { parseCutoverCommand } from "./auth-cutover/state-machine";
-import { runPostgresApply, runPostgresDryRun, runPostgresValidate } from "./auth-cutover/postgres";
+import { runPostgresApply, runPostgresDryRun, runPostgresSmoke, runPostgresValidate } from "./auth-cutover/postgres";
 
 export async function runCutoverCli(argv: string[], environment: NodeJS.ProcessEnv = process.env) {
 	const command = parseCutoverCommand(argv);
 	if (command.mode === "dry-run") return runPostgresDryRun(environment);
 	if (command.mode === "apply" || command.mode === "resume") return runPostgresApply(environment);
 	if (command.mode === "validate") return runPostgresValidate(environment);
+	if (command.mode === "smoke") return runPostgresSmoke(environment);
 	throw new Error(`CUTOVER_MODE_NOT_IMPLEMENTED:${command.mode}`);
 }
 

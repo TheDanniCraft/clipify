@@ -1,5 +1,6 @@
 /** @jest-environment node */
 import { buildManifest, checkpointIdempotencyKey, executeCheckpointBatch, parseCutoverCommand, transitionCutover, type CutoverRun } from "../../../scripts/auth-cutover/state-machine";
+import { requiresCutoverMaintenance } from "../../../src/server/maintenance";
 
 const run = (): CutoverRun => ({ id: "run-001", status: "created", maintenance: false, checkpoints: {} });
 
@@ -31,6 +32,20 @@ describe("TDD-US6-001 cutover state machine", () => {
 		const switched = transitionCutover({ ...migrating, status: "validated" }, "switched");
 		expect(switched.maintenance).toBe(true);
 		expect(transitionCutover(switched, "reopened").maintenance).toBe(false);
+	});
+
+	it.each([
+		["created", false],
+		["preflighted", false],
+		["backup_verified", false],
+		["migrating", true],
+		["validated", true],
+		["switched", true],
+		["maintenance_blocked", true],
+		["reopened", false],
+		["contracted", false],
+	] as const)("maps persisted %s state to application maintenance=%s", (status, expected) => {
+		expect(requiresCutoverMaintenance(status)).toBe(expected);
 	});
 
 	it("rolls a partial batch back and advances its cursor only after commit", async () => {
