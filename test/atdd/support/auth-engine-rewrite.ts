@@ -6,7 +6,7 @@ const fixtureHeaders = { Authorization: "Bearer clipify-playwright-auth-fixture"
 
 export type AuthFixture = {
 	cookie: { name: string; value: string; domain: string; path: string; httpOnly: boolean; secure: boolean; sameSite: "Lax" };
-	fixture: { authUserId: string; creatorId: string; creatorOrganizationId: string; agencyOrganizationId: string; overlayId: string; overlaySecret: string };
+	fixture: { authUserId: string; creatorId: string; creatorOrganizationId: string; agencyOrganizationId: string; overlayId: string; overlaySecret: string; deletionRequestId: string | null; username: string; billingCurrentPeriodEnd: string | null };
 };
 
 export type AuthFixtureOptions = {
@@ -14,6 +14,7 @@ export type AuthFixtureOptions = {
 	actorRole?: "user" | "admin";
 	deletionState?: "none" | "suspended";
 	agencyLinkStatus?: "proposed" | "accepted";
+	billingState?: "none" | "active";
 };
 
 export async function createAuthenticatedFixture(request: APIRequestContext, context: BrowserContext, options: AuthFixtureOptions = {}) {

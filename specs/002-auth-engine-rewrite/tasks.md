@@ -248,7 +248,7 @@ description: "Dependency-ordered implementation tasks for the Creator Identity a
 ### Scenario definitions and bindings
 
 - [x] T116 [US5] [ATDD] Add `ATDD-US5-001` through `ATDD-US5-004` with all owner-operation, recovery-boundary, recovery-flow, and deletion-choice examples to `test/atdd/features/auth-engine-rewrite.feature`
-- [ ] T117 [US5] [ATDD] Bind US5 account/subscription/deletion/recovery entry points to the real server and UI boundary in `test/atdd/steps/auth-engine-rewrite.steps.ts`
+- [x] T117 [US5] [ATDD] Bind US5 account/subscription/deletion/recovery entry points to the real server and UI boundary in `test/atdd/steps/auth-engine-rewrite.steps.ts`
 - [x] T118 [US5] [BDD] Add `BDD-US5-001` owner-only denial and `BDD-US5-002` request/30/7/3/1/0-day notices to `test/bdd/features/auth-engine-rewrite.feature`
 - [x] T119 [US5] [BDD] Bind every US5 denial and notice boundary with a controlled clock and captured mail in `test/bdd/steps/auth-engine-rewrite.steps.ts`
 - [x] T120 [US5] [GATE] Register all US5 scenario/example rows and dual-role rationales as Planned in `specs/002-auth-engine-rewrite/test-traceability.md`
@@ -280,7 +280,7 @@ description: "Dependency-ordered implementation tasks for the Creator Identity a
 - [x] T137 [US5] Implement versioned deletion/recovery notification templates that distinguish feature loss from data deletion and contain no credentials in `src/server/notifications/templates/account-lifecycle.ts`
 - [x] T138 [US5] [GATE] Re-run `TDD-US5-002`, all US5 BDD/ATDD scenarios, and the deletion-timing deliberate mutant check Green; record evidence in `specs/002-auth-engine-rewrite/test-traceability.md`
 - [x] T139 [US5] Refactor schedulers/templates while boundary, dedupe, and recovery evidence remains Green in `src/server/account-lifecycle/recovery.ts`
-- [ ] T140 [US5] [GATE] Update US5 artifact statuses, execution totals, defects, Stripe-mail ownership, and residual legal-retention risks in `specs/002-auth-engine-rewrite/test-traceability.md`, `specs/002-auth-engine-rewrite/defect-log.md`, and `specs/002-auth-engine-rewrite/test-summary.md`
+- [x] T140 [US5] [GATE] Update US5 artifact statuses, execution totals, defects, Stripe-mail ownership, and residual legal-retention risks in `specs/002-auth-engine-rewrite/test-traceability.md`, `specs/002-auth-engine-rewrite/defect-log.md`, and `specs/002-auth-engine-rewrite/test-summary.md`
 
 **Checkpoint**: US5 is independently testable and no paid-access loss deletes creator resources.
 

@@ -149,6 +149,7 @@ export default function BillingPanel() {
 									<div key={option.key} className='flex flex-wrap items-center justify-between gap-3 rounded-xl border border-default/60 bg-surface-secondary p-4'>
 										<div className='flex items-center gap-3'>
 											<Checkbox
+												aria-label={option.label}
 												isSelected={checked}
 												isDisabled={locked}
 												onChange={(selected) =>

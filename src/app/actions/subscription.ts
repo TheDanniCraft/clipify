@@ -21,6 +21,10 @@ import type { DeletionChoice } from "@/server/account-lifecycle/service";
 export type BillingCycle = "monthly" | "yearly";
 export type PaywallSource = "pricing_page" | "upgrade_modal" | "paywall_banner";
 
+function usesE2EBillingAdapter() {
+	return process.env.APP_ENV === "test" && process.env.E2E_TEST_MODE === "true";
+}
+
 export type BillingProductOption = {
 	key: BillingProduct;
 	label: string;
@@ -71,6 +75,7 @@ export async function requestAccountDeletion(choice: DeletionChoice) {
 	return requestDatabaseAccountDeletion({
 		choice,
 		mutateBilling: async (subscription, selectedChoice) => {
+			if (usesE2EBillingAdapter()) return;
 			const stripe = getServerStripe();
 			if (selectedChoice === "paid_through") {
 				await stripe.subscriptions.update(subscription.id, { cancel_at_period_end: true });
@@ -172,8 +177,12 @@ export async function scheduleProductCancellation(product: BillingProduct, cance
 	const match = rows.find(({ item, subscription }) => item.productKey === product && ["active", "trialing", "past_due", "unpaid"].includes(subscription.status));
 	if (!match) return { success: false, error: "Subscription product not found", code: "NOT_FOUND" as const };
 	if (rows.some(({ subscription }) => subscription.id === match.subscription.id && rows.filter((row) => row.subscription.id === subscription.id).length > 1)) return { success: false, error: "This product is bundled with another product. Manage it in the billing portal.", code: "BUNDLED_SUBSCRIPTION" as const };
-	const stripe = getServerStripe();
-	await stripe.subscriptions.update(match.subscription.id, { cancel_at_period_end: cancel });
+	if (usesE2EBillingAdapter()) {
+		await db.update(billingSubscriptionsTable).set({ cancelAtPeriodEnd: cancel, updatedAt: new Date() }).where(eq(billingSubscriptionsTable.id, match.subscription.id));
+	} else {
+		const stripe = getServerStripe();
+		await stripe.subscriptions.update(match.subscription.id, { cancel_at_period_end: cancel });
+	}
 	return { success: true };
 }
 

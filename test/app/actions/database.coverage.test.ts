@@ -744,14 +744,14 @@ describe("database.ts coverage tests", () => {
 		// We can test this by triggering saveSettings
 		const { saveSettings } = loadDatabaseActions();
 		queueSelectResult([{ disabled: true }]); // getAccessToken userRow
-		await expect(saveSettings({ id: "user-1" } as any)).rejects.toThrow("Could not retrieve access token.");
+		await expect(saveSettings({ id: "user-1", editors: ["editor1"] } as any)).rejects.toThrow("Could not retrieve access token.");
 	});
 
 	it("covers getAccessToken invalid token rows", async () => {
 		const { saveSettings } = loadDatabaseActions();
 		queueSelectResult([{ disabled: false }]); // userRow
 		queueSelectResult([]); // no token
-		await expect(saveSettings({ id: "user-1" } as any)).rejects.toThrow("Could not retrieve access token.");
+		await expect(saveSettings({ id: "user-1", editors: ["editor1"] } as any)).rejects.toThrow("Could not retrieve access token.");
 	});
 
 	it("covers saveSettings catch block", async () => {
@@ -761,7 +761,7 @@ describe("database.ts coverage tests", () => {
 		twitch.getUserDetails.mockResolvedValue({ login: "u1" });
 		queueSelectResult(new Error("DB Error")); // existingSettingsRows select error
 
-		await expect(saveSettings({ id: "user-1" } as any)).rejects.toThrow("Failed to save settings");
+		await expect(saveSettings({ id: "user-1", editors: ["editor1"] } as any)).rejects.toThrow("Failed to save settings");
 	});
 
 	it("covers getTwitchCacheEntry parse error", async () => {

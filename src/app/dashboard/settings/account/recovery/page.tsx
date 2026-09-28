@@ -33,12 +33,18 @@ export default async function AccountRecoveryPage() {
 							Permanent-erasure eligibility: <strong>{request.purgeEligibleAt ? new Date(request.purgeEligibleAt).toLocaleString() : "30 days after suspension"}</strong>
 						</p>
 					</div>
-					<p className='text-sm'>For security, recovery requires a normal sign-in and identity confirmation within the last five minutes. The recovery link itself never signs you in.</p>
-					<form action={recover}>
-						<button type='submit' className='rounded-lg bg-accent px-4 py-2 font-medium text-accent-foreground'>
-							Recover my account
-						</button>
-					</form>
+					{request.recoveryPeriodEnded ? (
+						<p className='text-sm font-medium text-danger'>Recovery period ended. This account can no longer be restored through self-service recovery.</p>
+					) : (
+						<>
+							<p className='text-sm'>For security, recovery requires a normal sign-in and identity confirmation within the last five minutes. The recovery link itself never signs you in.</p>
+							<form action={recover}>
+								<button type='submit' className='rounded-lg bg-accent px-4 py-2 font-medium text-accent-foreground'>
+									Recover my account
+								</button>
+							</form>
+						</>
+					)}
 				</div>
 			</section>
 		</DashboardNavbar>

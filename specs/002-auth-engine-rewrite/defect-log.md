@@ -32,19 +32,20 @@ Track product, test, environment, and governance issues affecting feature readin
 
 ## Defect Summary
 
-| Defect ID | Title                                                                         | Source / Evidence ID | Severity | Priority | Status   | Owner               | Detected By             | Evidence Link                                                    | Target / Resolution                                                                    |
-| --------- | ----------------------------------------------------------------------------- | -------------------- | -------- | -------- | -------- | ------------------- | ----------------------- | ---------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| PLAN-001  | SpecKit template resolver does not expose installed test-governance templates | Planning gate        | Low      | Low      | Open     | SpecKit tooling     | `/speckit.plan`         | `.specify/presets/test-first-governance/templates/`              | Repair resolver before the next feature plan; exact installed templates used here      |
-| AUTH-001  | Twitch identity test depended on a locally generated migration artifact       | TDD-US2-001          | Low      | High     | Verified | Auth implementation | Checkpoint suite        | `test/auth-engine-rewrite/integration/twitch-identity.test.ts`   | Replaced trigger-specific evidence with application transaction and stable-ID evidence |
-| AUTH-002  | Legacy Jest boundaries did not support Better Auth schema/session imports     | Pre-push regression  | Medium   | High     | Verified | Auth implementation | `bun run test`          | Legacy database action and proxy suites                          | Extended Drizzle mocks and isolated the proxy session boundary                         |
-| AUTH-003  | US5 test fixture imported an incompatible aggregate harness                   | TDD-US5-001          | Low      | Low      | Verified | Auth implementation | Focused Red/Green       | `test/auth-engine-rewrite/integration/account-lifecycle.test.ts` | Imported the isolated clock helper and removed a fixture-name collision                |
-| AUTH-004  | Production lifecycle imports and test doubles crossed legacy Jest boundaries  | TDD-US5-001          | Medium   | High     | Verified | Auth implementation | Adapter regression      | Subscription, overlay, and webhook focused suites                | Isolated Better Auth imports and extended lifecycle-aware test boundaries              |
-| AUTH-005  | Infisical dev lacks required WebAuthn build settings                          | Build gate           | Medium   | High     | Blocked  | Environment owner   | `bun run app:build`     | T179 production build gate                                       | Add `WEBAUTHN_RP_NAME`, `WEBAUTHN_RP_ID`, and `WEBAUTHN_ORIGIN` to the dev environment |
-| AUTH-006  | Changed auth adapter coverage is below the release floor                      | Coverage gate        | High     | High     | Open     | Auth implementation | `bun run test:coverage` | T177 changed-code coverage gate                                  | Add database/session/mail/agency adapter tests; do not lower the 90%/95% policy        |
-| AUTH-007  | Database-backed US2 ATDD exceeded the generic browser timeout                 | ATDD-US2-001         | Low      | High     | Verified | Auth implementation | Focused ATDD            | T023 real-session acceptance boundary                            | ATDD project uses the authenticated acceptance timeout                                 |
-| AUTH-008  | Login smoke retained the retired link role                                    | BDD-SMOKE-001        | Low      | High     | Verified | Auth implementation | Aggregate BDD           | T038 aggregate behavior gate                                     | Smoke asserts the Better Auth sign-in button role                                      |
-| AUTH-009  | Focused ATDD bypassed BDD wrapper regeneration                                | T142 Red probe       | Low      | Low      | Verified | Auth implementation | Focused ATDD            | T142 real agency boundaries                                      | Regenerate bindings before direct Playwright execution                                 |
-| AUTH-010  | US4 ATDD interacted before route-specific hydration                           | T142 Green probe     | Low      | High     | Verified | Auth implementation | Focused ATDD            | T142 real agency boundaries                                      | Wait for network idle and use an explicit database-action budget                       |
+| Defect ID | Title                                                                          | Source / Evidence ID | Severity | Priority | Status   | Owner               | Detected By             | Evidence Link                                                    | Target / Resolution                                                                    |
+| --------- | ------------------------------------------------------------------------------ | -------------------- | -------- | -------- | -------- | ------------------- | ----------------------- | ---------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| PLAN-001  | SpecKit template resolver does not expose installed test-governance templates  | Planning gate        | Low      | Low      | Open     | SpecKit tooling     | `/speckit.plan`         | `.specify/presets/test-first-governance/templates/`              | Repair resolver before the next feature plan; exact installed templates used here      |
+| AUTH-001  | Twitch identity test depended on a locally generated migration artifact        | TDD-US2-001          | Low      | High     | Verified | Auth implementation | Checkpoint suite        | `test/auth-engine-rewrite/integration/twitch-identity.test.ts`   | Replaced trigger-specific evidence with application transaction and stable-ID evidence |
+| AUTH-002  | Legacy Jest boundaries did not support Better Auth schema/session imports      | Pre-push regression  | Medium   | High     | Verified | Auth implementation | `bun run test`          | Legacy database action and proxy suites                          | Extended Drizzle mocks and isolated the proxy session boundary                         |
+| AUTH-003  | US5 test fixture imported an incompatible aggregate harness                    | TDD-US5-001          | Low      | Low      | Verified | Auth implementation | Focused Red/Green       | `test/auth-engine-rewrite/integration/account-lifecycle.test.ts` | Imported the isolated clock helper and removed a fixture-name collision                |
+| AUTH-004  | Production lifecycle imports and test doubles crossed legacy Jest boundaries   | TDD-US5-001          | Medium   | High     | Verified | Auth implementation | Adapter regression      | Subscription, overlay, and webhook focused suites                | Isolated Better Auth imports and extended lifecycle-aware test boundaries              |
+| AUTH-005  | Infisical dev lacks required WebAuthn build settings                           | Build gate           | Medium   | High     | Blocked  | Environment owner   | `bun run app:build`     | T179 production build gate                                       | Add `WEBAUTHN_RP_NAME`, `WEBAUTHN_RP_ID`, and `WEBAUTHN_ORIGIN` to the dev environment |
+| AUTH-006  | Changed auth adapter coverage is below the release floor                       | Coverage gate        | High     | High     | Open     | Auth implementation | `bun run test:coverage` | T177 changed-code coverage gate                                  | Add database/session/mail/agency adapter tests; do not lower the 90%/95% policy        |
+| AUTH-007  | Database-backed US2 ATDD exceeded the generic browser timeout                  | ATDD-US2-001         | Low      | High     | Verified | Auth implementation | Focused ATDD            | T023 real-session acceptance boundary                            | ATDD project uses the authenticated acceptance timeout                                 |
+| AUTH-008  | Login smoke retained the retired link role                                     | BDD-SMOKE-001        | Low      | High     | Verified | Auth implementation | Aggregate BDD           | T038 aggregate behavior gate                                     | Smoke asserts the Better Auth sign-in button role                                      |
+| AUTH-009  | Focused ATDD bypassed BDD wrapper regeneration                                 | T142 Red probe       | Low      | Low      | Verified | Auth implementation | Focused ATDD            | T142 real agency boundaries                                      | Regenerate bindings before direct Playwright execution                                 |
+| AUTH-010  | US4 ATDD interacted before route-specific hydration                            | T142 Green probe     | Low      | High     | Verified | Auth implementation | Focused ATDD            | T142 real agency boundaries                                      | Wait for network idle and use an explicit database-action budget                       |
+| AUTH-011  | Account settings unnecessarily required a Twitch token when no editors existed | ATDD-US5-001         | Medium   | High     | Verified | Auth implementation | Real UI/server US5 ATDD | `test/app/actions/database.settings.test.ts`                     | Resolve Twitch identities only when editor usernames are present                       |
 
 ## Defect Details
 
@@ -176,6 +177,20 @@ Track product, test, environment, and governance issues affecting feature readin
 - **Verification Evidence**: focused ATDD-US4-003 passes against the disposable development database.
 - **Approval / Risk Acceptance**: none. The redirect preserves the current creator selection and exposes committed state.
 
+### AUTH-011 - Account settings unnecessarily required a Twitch token when no editors existed
+
+- **Status**: Verified
+- **Severity / Priority**: Medium / High
+- **Affected Source IDs**: US5, SC-005
+- **Affected Artifact IDs**: ATDD-US5-001
+- **Detected During**: real UI/server US5 acceptance binding
+- **Expected Result**: an authenticated owner can update account and Creator Page settings without a Twitch token when no legacy editor usernames need provider resolution.
+- **Actual Result**: `saveSettings` fetched Twitch identity unconditionally, so an unrelated setting update failed with `Could not retrieve access token.`
+- **Root Cause / Investigation Notes**: legacy editor-name filtering was coupled to the entire settings mutation instead of the editor-resolution branch.
+- **Resolution**: fetch Twitch credentials and resolve provider usernames only when the submitted editor list is non-empty; retain the existing token failure for editor mutations.
+- **Verification Evidence**: focused database-action regressions pass 119/119, TypeScript passes, and finalized database-backed US5 ATDD passes 8/8 in 3.8 minutes.
+- **Approval / Risk Acceptance**: none.
+
 ## Open Defect Review
 
 The completed US1–US5 story gates introduced no open product defects. US2 focused TDD (10 tests), database-backed ATDD (20/20 aggregate), and BDD (69/69 aggregate) are Green. The two US2 harness regressions are verified fixed. A US1 regression probe found and corrected a duplicate disabled-owner lookup before checkpoint closure. PLAN-001 remains an unrelated planning-tooling issue with no release impact on the implemented authorization slices.
@@ -201,16 +216,17 @@ The completed US1–US5 story gates introduced no open product defects. US2 focu
 | AUTH-008  | Current branch                  | Focused and aggregate BDD                      | Pass    | BDD-SMOKE-001       | Codex / 2026-09-28 |
 | AUTH-009  | Current branch                  | `bunx bddgen` before focused ATDD              | Pass    | T142 Red probe      | Codex / 2026-09-28 |
 | AUTH-010  | Current branch                  | Focused database-backed ATDD-US4-003           | Pass    | ATDD-US4-003        | Codex / 2026-09-28 |
+| AUTH-011  | Current branch                  | Focused settings regression and aggregate US5  | Pass    | ATDD-US5-001        | Codex / 2026-09-28 |
 
 ## Defect Metrics
 
-| Metric                       | Value | Notes                                                                                                                      |
-| ---------------------------- | ----- | -------------------------------------------------------------------------------------------------------------------------- |
-| Total defects                | 11    | One open tooling issue, one blocked environment issue, one open coverage issue, and eight verified test-integration issues |
-| Open Critical / High defects | 1     | AUTH-006 blocks the changed-code coverage gate                                                                             |
-| Deferred defects             | 0     | No accepted risks                                                                                                          |
-| Reopened defects             | 0     |                                                                                                                            |
-| Escaped defects              | 0     |                                                                                                                            |
+| Metric                       | Value | Notes                                                                                                                                    |
+| ---------------------------- | ----- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Total defects                | 12    | One open tooling issue, one blocked environment issue, one open coverage issue, and nine verified implementation/test-integration issues |
+| Open Critical / High defects | 1     | AUTH-006 blocks the changed-code coverage gate                                                                                           |
+| Deferred defects             | 0     | No accepted risks                                                                                                                        |
+| Reopened defects             | 0     |                                                                                                                                          |
+| Escaped defects              | 0     |                                                                                                                                          |
 
 ## Baseline Evidence
 

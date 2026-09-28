@@ -2137,23 +2137,22 @@ export async function saveSettings(settings: UserSettings) {
 	/* istanbul ignore next: feature access guard */
 	const effectiveEditors = editorsAccess.allowed ? editors : [];
 
-	const accessToken = await getAccessToken(userId);
-	if (!accessToken) throw new Error("Could not retrieve access token.");
-
-	// Fetch the user's username (login) to filter out self from editors
-	const userDetails = await getUserDetails(accessToken.accessToken);
-	const userLogin = userDetails?.login;
-	// Clean + dedupe editor names (and never include self)
-	const editorNames = Array.from(new Set(effectiveEditors.filter((name) => name && name !== userLogin)));
-
-	// Do network calls BEFORE the transaction (keeps tx short)
 	let rows: Array<{ userId: string; editorId: string }> = [];
 
-	if (editorNames.length > 0) {
-		const users = await getUsersDetailsBulk({
-			userNames: editorNames,
-			accessToken: accessToken.accessToken,
-		});
+	// Twitch is only needed when legacy editor usernames must be resolved. Account
+	// settings that do not contain editors remain available without a provider token.
+	if (effectiveEditors.length > 0) {
+		const accessToken = await getAccessToken(userId);
+		if (!accessToken) throw new Error("Could not retrieve access token.");
+		const userDetails = await getUserDetails(accessToken.accessToken);
+		const userLogin = userDetails?.login;
+		const editorNames = Array.from(new Set(effectiveEditors.filter((name) => name && name !== userLogin)));
+		const users = editorNames.length
+			? await getUsersDetailsBulk({
+					userNames: editorNames,
+					accessToken: accessToken.accessToken,
+				})
+			: [];
 
 		/* istanbul ignore next: user batch mapping */
 		rows = (users ?? []).filter((u): u is TwitchUserResponse => !!u?.id).map((u) => ({ userId: settings.id, editorId: u.id }));

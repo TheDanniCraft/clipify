@@ -17,7 +17,7 @@ import { evaluateDeletionBoundary, recoverDeletion } from "@/server/account-life
 import { AgencyService, createAgencyState } from "@/server/agencies/service";
 import { AgencyAllocationService, createAllocationState } from "@/server/agencies/allocations";
 import { resolveAgencyAccess } from "@/server/agencies/access";
-import { createAuthenticatedFixture, expect, test } from "../support/auth-engine-rewrite";
+import { createAuthenticatedFixture, expect, test, type AuthFixture } from "../support/auth-engine-rewrite";
 
 const { Given, When, Then } = createBdd(test);
 
@@ -347,15 +347,50 @@ function lifecycleOwner(authenticatedAt = LIFECYCLE_NOW): LifecycleActor {
 	return { authUserId: "owner-lifecycle", sessionId: "session-lifecycle", organizationId: "creator-org-lifecycle", accountRole: "owner", authenticatedAt };
 }
 
-Given("a recently authenticated creator account owner", async ({ authWorld }) => {
+Given("a recently authenticated creator account owner", async ({ request, context, authWorld }) => {
+	const fixture = await createAuthenticatedFixture(request, context, { deletionState: "none", billingState: "active" });
+	authWorld.values.set("realLifecycleFixture", fixture);
 	authWorld.values.set("lifecycleRepository", new LifecycleScenarioRepository());
 	authWorld.values.set("lifecycleService", new AccountLifecycleService(authWorld.values.get("lifecycleRepository") as LifecycleScenarioRepository, { now: () => LIFECYCLE_NOW }));
 });
 
-When(/^the owner (updates account information|requests an account export|cancels the subscription)$/, async ({ authWorld }, operation: string) => {
+When(/^the owner (updates account information|requests an account export|cancels the subscription)$/, async ({ page, authWorld }, operation: string) => {
 	const service = authWorld.values.get("lifecycleService") as AccountLifecycleService;
 	const mapped = operation === "updates account information" ? "update" : operation === "requests an account export" ? "export" : "subscription:cancel";
 	const decision = await service.authorizeOwnerOperation(lifecycleOwner(), mapped);
+	await page.goto("/dashboard/settings");
+	await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible({ timeout: 30_000 });
+	await prepareInteractivePage(page);
+	if (operation === "updates account information") {
+		await page.getByRole("tab", { name: "Creator Page" }).click();
+		const creatorPageSwitch = page.getByRole("switch", { name: "Enable creator page" });
+		await expect(creatorPageSwitch).toBeVisible({ timeout: DATABASE_ACTION_TIMEOUT_MS });
+		await expect(creatorPageSwitch).toBeEnabled({ timeout: DATABASE_ACTION_TIMEOUT_MS });
+		await creatorPageSwitch.setChecked(false, { force: true });
+		await expect(creatorPageSwitch).not.toBeChecked();
+		const saveCreatorPage = page.getByRole("button", { name: "Save Creator Page Settings" });
+		await expect(saveCreatorPage).toBeEnabled();
+		await saveCreatorPage.click();
+		await expect(page.getByText("Settings saved", { exact: true })).toBeVisible({ timeout: DATABASE_ACTION_TIMEOUT_MS });
+	} else if (operation === "requests an account export") {
+		const downloadStarted = page.waitForEvent("download");
+		await page.getByRole("button", { name: "Export Account Data" }).click();
+		const download = await downloadStarted;
+		expect(download.suggestedFilename()).toContain("clipify-account-");
+	} else {
+		await page.getByRole("tab", { name: "Billing" }).click();
+		const pro = page.getByRole("checkbox", { name: "Pro" });
+		await expect(pro).toBeVisible({ timeout: DATABASE_ACTION_TIMEOUT_MS });
+		await pro.setChecked(false, { force: true });
+		await expect(pro).not.toBeChecked();
+		const saveChanges = page.getByRole("button", { name: "Save changes", exact: true });
+		await expect(saveChanges).toBeEnabled();
+		await saveChanges.click();
+		const dialog = page.getByRole("dialog");
+		await expect(dialog.getByRole("heading", { name: "Review subscription changes" })).toBeVisible();
+		await dialog.getByRole("button", { name: "Save changes", exact: true }).click();
+		await expect(page.getByText("Changes saved", { exact: true })).toBeVisible({ timeout: DATABASE_ACTION_TIMEOUT_MS });
+	}
 	authWorld.values.set("ownerOperation", { operation, decision, effectiveAt: mapped === "subscription:cancel" ? LIFECYCLE_PERIOD_END : undefined });
 });
 
@@ -366,33 +401,52 @@ Then(/^(the changes are recorded for that account|an export is prepared without 
 	if (expectedResult.includes("displayed date")) expect(operation.effectiveAt).toEqual(LIFECYCLE_PERIOD_END);
 });
 
-Given("deletion suspension has begun for a creator account", async ({ authWorld }) => {
+Given("deletion suspension has begun for a creator account", async ({ request, context, authWorld }) => {
+	const fixture = await createAuthenticatedFixture(request, context, { deletionState: "suspended" });
+	authWorld.values.set("realLifecycleFixture", fixture);
 	const repository = new LifecycleScenarioRepository();
 	const service = new AccountLifecycleService(repository, { now: () => LIFECYCLE_NOW });
-	const request = await service.requestDeletion(lifecycleOwner(), { choice: "immediate" });
+	const domainRequest = await service.requestDeletion(lifecycleOwner(), { choice: "immediate" });
 	authWorld.values.set("lifecycleRepository", repository);
-	authWorld.values.set("deletionRequest", request);
+	authWorld.values.set("deletionRequest", domainRequest);
 });
 
-When(/^(.+) has elapsed$/, async ({ authWorld }, recoveryTime: string) => {
-	const request = authWorld.values.get("deletionRequest") as { status: "suspended"; purgeEligibleAt: Date };
-	const now = recoveryTime === "less than 30 days" ? new Date(request.purgeEligibleAt.getTime() - 1) : request.purgeEligibleAt;
-	authWorld.values.set("deletionBoundary", evaluateDeletionBoundary(request, now));
+When(/^(.+) has elapsed$/, async ({ page, request, authWorld }, recoveryTime: string) => {
+	const deletionRequest = authWorld.values.get("deletionRequest") as { status: "suspended"; purgeEligibleAt: Date };
+	const now = recoveryTime === "less than 30 days" ? new Date(deletionRequest.purgeEligibleAt.getTime() - 1) : deletionRequest.purgeEligibleAt;
+	authWorld.values.set("deletionBoundary", evaluateDeletionBoundary(deletionRequest, now));
+	const fixture = authWorld.values.get("realLifecycleFixture") as AuthFixture;
+	if (recoveryTime === "at least 30 days") {
+		const adjusted = await request.patch("/api/test/auth-fixture", { headers: { Authorization: "Bearer clipify-playwright-auth-fixture" }, data: { deletionRequestId: fixture.fixture.deletionRequestId, deletionBoundary: "expired" } });
+		expect(adjusted.ok(), await adjusted.text()).toBe(true);
+	}
+	await page.goto("/dashboard/settings/account/recovery");
+	await expect(page.getByRole("heading", { name: "Account suspended pending deletion" })).toBeVisible({ timeout: 30_000 });
+	await prepareInteractivePage(page);
+	authWorld.values.set("realDeletionBoundary", {
+		recoverable: await page.getByRole("button", { name: "Recover my account" }).isVisible(),
+		ended: await page.getByText("Recovery period ended", { exact: false }).isVisible(),
+	});
 });
 
 Then(/^the account (.+)$/, async ({ authWorld }, outcome: string) => {
 	expect(authWorld.values.get("deletionBoundary")).toBe(outcome.includes("remains recoverable") ? "recoverable" : "purge_eligible");
+	const real = authWorld.values.get("realDeletionBoundary") as { recoverable: boolean; ended: boolean };
+	expect(real.recoverable).toBe(outcome.includes("remains recoverable"));
+	expect(real.ended).toBe(outcome.includes("eligible for permanent erasure"));
 });
 
-Given("a suspended creator account with a recovery entry point", async ({ authWorld }) => {
+Given("a suspended creator account with a recovery entry point", async ({ request, context, authWorld }) => {
+	const fixture = await createAuthenticatedFixture(request, context, { deletionState: "suspended" });
+	authWorld.values.set("realLifecycleFixture", fixture);
 	const repository = new LifecycleScenarioRepository();
 	const service = new AccountLifecycleService(repository, { now: () => LIFECYCLE_NOW });
-	const request = await service.requestDeletion(lifecycleOwner(), { choice: "immediate" });
+	const domainRequest = await service.requestDeletion(lifecycleOwner(), { choice: "immediate" });
 	authWorld.values.set("lifecycleRepository", repository);
-	authWorld.values.set("deletionRequest", request);
+	authWorld.values.set("deletionRequest", domainRequest);
 });
 
-When("the owner signs in confirms identity and cancels deletion before 30 days", async ({ authWorld }) => {
+When("the owner signs in confirms identity and cancels deletion before 30 days", async ({ page, authWorld }) => {
 	const repository = authWorld.values.get("lifecycleRepository") as LifecycleScenarioRepository;
 	const request = authWorld.values.get("deletionRequest") as { id: string };
 	const recoveryAt = new Date(LIFECYCLE_NOW.getTime() + 10 * 24 * 60 * 60 * 1000);
@@ -411,12 +465,19 @@ When("the owner signs in confirms identity and cancels deletion before 30 days",
 		linkOnlyError = error;
 	}
 	authWorld.values.set("recoveryResult", { recovered, effects, linkOnlyError });
+	await page.goto("/dashboard/settings/account/recovery");
+	await expect(page.getByRole("heading", { name: "Account suspended pending deletion" })).toBeVisible({ timeout: 30_000 });
+	await prepareInteractivePage(page);
+	await page.getByRole("button", { name: "Recover my account" }).click();
+	await expect(page).toHaveURL(/\/dashboard$/, { timeout: DATABASE_ACTION_TIMEOUT_MS });
+	authWorld.values.set("realRecoveryCompleted", true);
 });
 
 Then("account dashboard overlay and integration access are restored", async ({ authWorld }) => {
 	const result = authWorld.values.get("recoveryResult") as { recovered: { status: string }; effects: string[] };
 	expect(result.recovered.status).toBe("recovered");
 	expect(result.effects).toEqual(["runtime"]);
+	expect(authWorld.values.get("realRecoveryCompleted")).toBe(true);
 });
 
 Then("the recovery entry point alone cannot authenticate the owner", async ({ authWorld }) => {
@@ -427,16 +488,31 @@ Then("billing and agency allocations are not restarted", async ({ authWorld }) =
 	expect((authWorld.values.get("recoveryResult") as { effects: string[] }).effects).not.toEqual(expect.arrayContaining(["billing", "allocation"]));
 });
 
-Given("a recently authenticated owner with paid access through a future date", async ({ authWorld }) => {
+Given("a recently authenticated owner with paid access through a future date", async ({ request, context, authWorld }) => {
+	const fixture = await createAuthenticatedFixture(request, context, { deletionState: "none", billingState: "active" });
+	authWorld.values.set("realLifecycleFixture", fixture);
 	authWorld.values.set("lifecycleRepository", new LifecycleScenarioRepository());
 });
 
-When(/^the owner chooses (.+)$/, async ({ authWorld }, deletionChoice: string) => {
+When(/^the owner chooses (.+)$/, async ({ page, authWorld }, deletionChoice: string) => {
 	const repository = authWorld.values.get("lifecycleRepository") as LifecycleScenarioRepository;
 	const effects: string[] = [];
 	const request = await new AccountLifecycleService(repository, { now: () => LIFECYCLE_NOW, revokeSessions: async () => void effects.push("sessions"), pauseRuntime: async () => void effects.push("runtime") }).requestDeletion(lifecycleOwner(), {
 		choice: deletionChoice === "delete now" ? "immediate" : "paid_through",
 	});
+	const fixture = authWorld.values.get("realLifecycleFixture") as AuthFixture;
+	const username = fixture.fixture.username;
+	await page.goto("/dashboard/settings");
+	await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible({ timeout: 30_000 });
+	await prepareInteractivePage(page);
+	await page.getByRole("button", { name: "Schedule Account Deletion" }).click();
+	const dialog = page.getByRole("dialog");
+	if (deletionChoice === "delete now") await dialog.getByRole("button", { name: "Suspend now" }).click();
+	await dialog.getByPlaceholder(username).fill(username);
+	await dialog.getByRole("button", { name: deletionChoice === "delete now" ? "Delete after confirmation" : "Schedule deletion" }).click();
+	if (deletionChoice === "delete now") await expect(page).toHaveURL(/\/login\?returnUrl=/, { timeout: DATABASE_ACTION_TIMEOUT_MS });
+	else await expect(page.getByText("Deletion scheduled", { exact: true })).toBeVisible({ timeout: DATABASE_ACTION_TIMEOUT_MS });
+	authWorld.values.set("realDeletionChoiceCompleted", true);
 	authWorld.values.set("deletionChoiceResult", { request, effects });
 });
 
@@ -444,6 +520,7 @@ Then(/^suspension starts (.+)$/, async ({ authWorld }, expected: string) => {
 	const result = authWorld.values.get("deletionChoiceResult") as { request: { suspensionAt: Date }; effects: string[] };
 	expect(result.request.suspensionAt).toEqual(expected.includes("paid-through") ? LIFECYCLE_PERIOD_END : LIFECYCLE_NOW);
 	if (expected.includes("data retained")) expect((authWorld.values.get("lifecycleRepository") as LifecycleScenarioRepository).state.resources).toHaveLength(1);
+	expect(authWorld.values.get("realDeletionChoiceCompleted")).toBe(true);
 });
 
 Then("Stripe remains responsible for billing lifecycle notices", async ({ authWorld }) => {

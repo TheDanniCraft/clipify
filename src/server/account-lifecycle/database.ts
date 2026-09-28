@@ -153,6 +153,7 @@ export async function recoverDatabaseAccountDeletion(input: { requestId: string;
 }
 
 export async function getDatabaseAccountDeletionOverview() {
+	const now = new Date();
 	const actor = await getAuthActorContext();
 	if (!actor) throw new Error("AUTHENTICATION_REQUIRED");
 	const organizationId = actor.activeOrganizationId ?? (await db.select({ organizationId: creatorAccountsTable.organizationId }).from(creatorAccountsTable).where(eq(creatorAccountsTable.creatorId, actor.creatorId)).limit(1))[0]?.organizationId;
@@ -163,7 +164,14 @@ export async function getDatabaseAccountDeletionOverview() {
 		.where(and(eq(accountDeletionRequestsTable.organizationId, organizationId), inArray(accountDeletionRequestsTable.status, NONTERMINAL_DELETION_STATUSES)))
 		.limit(1);
 	const request = rows[0];
-	return request ? { ...request, suspensionAt: request.suspensionAt.toISOString(), purgeEligibleAt: request.purgeEligibleAt?.toISOString() ?? null } : null;
+	return request
+		? {
+				...request,
+				suspensionAt: request.suspensionAt.toISOString(),
+				purgeEligibleAt: request.purgeEligibleAt?.toISOString() ?? null,
+				recoveryPeriodEnded: request.status === "purge_eligible" || !request.purgeEligibleAt || now >= request.purgeEligibleAt,
+			}
+		: null;
 }
 
 export async function suspendDueDatabaseAccountDeletions(input: { now?: Date; limit?: number } = {}) {

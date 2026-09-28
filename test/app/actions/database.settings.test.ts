@@ -292,11 +292,6 @@ describe("actions/database settings logic", () => {
 
 	it("handles error in saveSettings", async () => {
 		const { saveSettings } = await loadDatabaseActions();
-		queueSelectResult([{ disabled: false }]); // usersTable in getAccessToken
-		queueSelectResult([{ accessToken: "at", refreshToken: "rt", expiresAt: new Date(Date.now() + 3600000) }]); // tokenTable in getAccessToken
-
-		dbSelect.mockImplementationOnce(() => makeSelectChain()); // usersTable
-		dbSelect.mockImplementationOnce(() => makeSelectChain()); // tokenTable
 		dbSelect.mockImplementationOnce(() => {
 			throw new Error("DB Error");
 		}); // settingsTable
@@ -314,8 +309,6 @@ describe("actions/database settings logic", () => {
 
 	it("saves settings with explicit opt-in source", async () => {
 		const { saveSettings } = await loadDatabaseActions();
-		queueSelectResult([{ disabled: false }]); // getAccessToken userRow
-		queueSelectResult([{ accessToken: "at", refreshToken: "rt", expiresAt: new Date(Date.now() + 3600000) }]); // getAccessToken tokenRow
 		queueSelectResult([{ id: "user-1", marketingOptIn: false }]); // existing settings select
 
 		await saveSettings({
