@@ -163,6 +163,14 @@ describe("gallery actions", () => {
 		expect(resolveUserEntitlements).toHaveBeenCalledWith({ id: "owner", plan: "pro" });
 	});
 
+	it("keeps managed gallery access Free when the owner record disappears", async () => {
+		const { getGallery } = await loadActions();
+		validateAuth.mockResolvedValue({ id: "editor", plan: "free" });
+		queueSelect([gallery()], [{ userId: "owner" }], []);
+		await expect(getGallery("gallery-1")).resolves.toEqual(gallery());
+		expect(resolveUserEntitlements).not.toHaveBeenCalled();
+	});
+
 	it("builds owner previews for live Free galleries with downgrade and attribution", async () => {
 		const { getGalleryPreview } = await loadActions();
 		queueSelect([gallery({ liveResultLimit: 99, liveSort: "stable_random", accentColor: "#123456" })], [{ username: "Alice" }]);
@@ -225,6 +233,17 @@ describe("gallery actions", () => {
 		getFeatureAccess.mockReturnValueOnce({ allowed: true });
 		await expect(getGalleryDraftPreview("gallery-1", { source: "curated", playlistId: "playlist" })).resolves.toMatchObject({ clips: [{ id: "playlist" }] });
 		expect(getPlaylistClipsForOwnerServer).toHaveBeenLastCalledWith("owner", "playlist");
+	});
+
+	it("rejects an inaccessible draft playlist and a missing draft clip", async () => {
+		const { getGalleryDraftPreview, getGalleryPreviewPlayer } = await loadActions();
+		queueSelect([gallery({ source: "live" })], []);
+		getFeatureAccess.mockReturnValueOnce({ allowed: true });
+		await expect(getGalleryDraftPreview("gallery-1", { source: "curated", playlistId: "foreign" })).resolves.toBeNull();
+
+		queueSelect([gallery({ source: "curated", playlistId: null })], [{ username: "Alice" }]);
+		getFeatureAccess.mockReturnValueOnce({ allowed: true });
+		await expect(getGalleryPreviewPlayer("gallery-1", "missing")).resolves.toBeNull();
 	});
 
 	it("rejects unauthorized gallery creation", async () => {
@@ -296,6 +315,14 @@ describe("gallery actions", () => {
 		await expect(saveGallery("gallery-1", { source: "curated", playlistId: "playlist", published: true })).resolves.toBeNull();
 	});
 
+	it("authorizes an explicit publication-state change", async () => {
+		const { saveGallery } = await loadActions();
+		const unpublished = gallery({ published: false });
+		queueSelect([gallery()]);
+		updatedRows.push([unpublished]);
+		await expect(saveGallery("gallery-1", { published: false })).resolves.toEqual(unpublished);
+	});
+
 	it("returns null when saving without access", async () => {
 		const { saveGallery } = await loadActions();
 		validateAuth.mockResolvedValue(null);
@@ -352,6 +379,12 @@ describe("gallery actions", () => {
 		resolveUserEntitlements.mockResolvedValueOnce({ effectivePlan: "pro" });
 		getTwitchClipPlaybackUrl.mockRejectedValueOnce(new Error("failed"));
 		await expect(getPublicGalleryPlayer("gallery-1", "a")).resolves.toMatchObject({ playbackUrl: null });
+	});
+
+	it("returns null when the public gallery bundle is unavailable", async () => {
+		const { getPublicGalleryPlayer } = await loadActions();
+		queueSelect([]);
+		await expect(getPublicGalleryPlayer("gallery-1", "a")).resolves.toBeNull();
 	});
 
 	it("authorizes uncached public playback against the gallery owner's budget", async () => {

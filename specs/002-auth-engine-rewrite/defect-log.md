@@ -32,13 +32,15 @@ Track product, test, environment, and governance issues affecting feature readin
 
 ## Defect Summary
 
-| Defect ID | Title                                                                         | Source / Evidence ID | Severity | Priority | Status   | Owner               | Detected By        | Evidence Link                                                    | Target / Resolution                                                                    |
-| --------- | ----------------------------------------------------------------------------- | -------------------- | -------- | -------- | -------- | ------------------- | ------------------ | ---------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| PLAN-001  | SpecKit template resolver does not expose installed test-governance templates | Planning gate        | Low      | Low      | Open     | SpecKit tooling     | `/speckit.plan`    | `.specify/presets/test-first-governance/templates/`              | Repair resolver before the next feature plan; exact installed templates used here      |
-| AUTH-001  | Twitch identity test depended on a locally generated migration artifact       | TDD-US2-001          | Low      | High     | Verified | Auth implementation | Checkpoint suite   | `test/auth-engine-rewrite/integration/twitch-identity.test.ts`   | Replaced trigger-specific evidence with application transaction and stable-ID evidence |
-| AUTH-002  | Legacy Jest boundaries did not support Better Auth schema/session imports     | Pre-push regression  | Medium   | High     | Verified | Auth implementation | `bun run test`     | Legacy database action and proxy suites                          | Extended Drizzle mocks and isolated the proxy session boundary                         |
-| AUTH-003  | US5 test fixture imported an incompatible aggregate harness                   | TDD-US5-001          | Low      | Low      | Verified | Auth implementation | Focused Red/Green  | `test/auth-engine-rewrite/integration/account-lifecycle.test.ts` | Imported the isolated clock helper and removed a fixture-name collision                |
-| AUTH-004  | Production lifecycle imports and test doubles crossed legacy Jest boundaries  | TDD-US5-001          | Medium   | High     | Verified | Auth implementation | Adapter regression | Subscription, overlay, and webhook focused suites                | Isolated Better Auth imports and extended lifecycle-aware test boundaries              |
+| Defect ID | Title                                                                         | Source / Evidence ID | Severity | Priority | Status   | Owner               | Detected By             | Evidence Link                                                    | Target / Resolution                                                                    |
+| --------- | ----------------------------------------------------------------------------- | -------------------- | -------- | -------- | -------- | ------------------- | ----------------------- | ---------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| PLAN-001  | SpecKit template resolver does not expose installed test-governance templates | Planning gate        | Low      | Low      | Open     | SpecKit tooling     | `/speckit.plan`         | `.specify/presets/test-first-governance/templates/`              | Repair resolver before the next feature plan; exact installed templates used here      |
+| AUTH-001  | Twitch identity test depended on a locally generated migration artifact       | TDD-US2-001          | Low      | High     | Verified | Auth implementation | Checkpoint suite        | `test/auth-engine-rewrite/integration/twitch-identity.test.ts`   | Replaced trigger-specific evidence with application transaction and stable-ID evidence |
+| AUTH-002  | Legacy Jest boundaries did not support Better Auth schema/session imports     | Pre-push regression  | Medium   | High     | Verified | Auth implementation | `bun run test`          | Legacy database action and proxy suites                          | Extended Drizzle mocks and isolated the proxy session boundary                         |
+| AUTH-003  | US5 test fixture imported an incompatible aggregate harness                   | TDD-US5-001          | Low      | Low      | Verified | Auth implementation | Focused Red/Green       | `test/auth-engine-rewrite/integration/account-lifecycle.test.ts` | Imported the isolated clock helper and removed a fixture-name collision                |
+| AUTH-004  | Production lifecycle imports and test doubles crossed legacy Jest boundaries  | TDD-US5-001          | Medium   | High     | Verified | Auth implementation | Adapter regression      | Subscription, overlay, and webhook focused suites                | Isolated Better Auth imports and extended lifecycle-aware test boundaries              |
+| AUTH-005  | Infisical dev lacks required WebAuthn build settings                          | Build gate           | Medium   | High     | Blocked  | Environment owner   | `bun run app:build`     | T179 production build gate                                       | Add `WEBAUTHN_RP_NAME`, `WEBAUTHN_RP_ID`, and `WEBAUTHN_ORIGIN` to the dev environment |
+| AUTH-006  | Changed auth adapter coverage is below the release floor                      | Coverage gate        | High     | High     | Open     | Auth implementation | `bun run test:coverage` | T177 changed-code coverage gate                                  | Add database/session/mail/agency adapter tests; do not lower the 90%/95% policy        |
 
 ## Defect Details
 
@@ -118,38 +120,43 @@ Track product, test, environment, and governance issues affecting feature readin
 
 The completed US1, US3, and US4 gates introduced no open product defects. US4 focused TDD (67 tests), scoped ATDD (3/3), and scoped BDD (all three auth-rewrite agency journeys) are Green; the aggregate ATDD run's sole failure is the pre-existing US2 test server's intentionally invalid database endpoint, not an agency defect. A US1 regression probe found and corrected a duplicate disabled-owner lookup before checkpoint closure. PLAN-001 remains an unrelated planning-tooling issue with no release impact on the implemented authorization slices.
 
-| Defect ID | Release Impact            | Required Decision         | Decision Owner        | Due Date                         | Notes                                        |
-| --------- | ------------------------- | ------------------------- | --------------------- | -------------------------------- | -------------------------------------------- |
-| PLAN-001  | No product release impact | Fix tooling independently | SpecKit tooling owner | Before next feature planning run | Fallback preserved required report structure |
+| Defect ID | Release Impact                     | Required Decision                     | Decision Owner        | Due Date                         | Notes                                                                                                                                         |
+| --------- | ---------------------------------- | ------------------------------------- | --------------------- | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| PLAN-001  | No product release impact          | Fix tooling independently             | SpecKit tooling owner | Before next feature planning run | Fallback preserved required report structure                                                                                                  |
+| AUTH-005  | Blocks production build validation | Configure three WebAuthn dev settings | Environment owner     | Before T179 can close            | Plain and Infisical-backed builds both fail closed; no fallback values were invented                                                          |
+| AUTH-006  | Blocks release coverage gate       | Add focused adapter coverage          | Auth implementation   | Before T177 can close            | Global coverage passes, but changed auth/lifecycle/agency aggregate is 51.17% branches, 66.05% functions, 57.48% lines, and 55.74% statements |
 
 ## Verification and Regression Closure
 
-| Defect ID | Fix Artifact / PR | Verification Test or Gate        | Result  | Evidence Link       | Verified By / Date |
-| --------- | ----------------- | -------------------------------- | ------- | ------------------- | ------------------ |
-| PLAN-001  | Pending           | Three template resolver commands | Blocked | N/A                 | Pending            |
-| AUTH-001  | Current branch    | `bun run test:auth`              | Pass    | TDD-US2-001         | Codex / 2026-09-28 |
-| AUTH-002  | Current branch    | `bun run test`                   | Pass    | Full suite          | Codex / 2026-09-28 |
-| AUTH-003  | Current branch    | Focused US5 suites               | Pass    | TDD-US5-001–003     | Codex / 2026-09-28 |
-| AUTH-004  | Current branch    | Lifecycle adapter regression     | Pass    | 7 suites / 89 tests | Codex / 2026-09-28 |
+| Defect ID | Fix Artifact / PR               | Verification Test or Gate                      | Result  | Evidence Link       | Verified By / Date |
+| --------- | ------------------------------- | ---------------------------------------------- | ------- | ------------------- | ------------------ |
+| PLAN-001  | Pending                         | Three template resolver commands               | Blocked | N/A                 | Pending            |
+| AUTH-001  | Current branch                  | `bun run test:auth`                            | Pass    | TDD-US2-001         | Codex / 2026-09-28 |
+| AUTH-002  | Current branch                  | `bun run test`                                 | Pass    | Full suite          | Codex / 2026-09-28 |
+| AUTH-003  | Current branch                  | Focused US5 suites                             | Pass    | TDD-US5-001–003     | Codex / 2026-09-28 |
+| AUTH-004  | Current branch                  | Lifecycle adapter regression                   | Pass    | 7 suites / 89 tests | Codex / 2026-09-28 |
+| AUTH-005  | Pending Infisical configuration | `infisical run --env=dev -- bun run app:build` | Blocked | T179                | Pending            |
+| AUTH-006  | Current branch                  | Changed-code coverage command                  | Fail    | T177                | Pending            |
 
 ## Defect Metrics
 
-| Metric                       | Value | Notes                                                         |
-| ---------------------------- | ----- | ------------------------------------------------------------- |
-| Total defects                | 5     | One open tooling issue; four verified test-integration issues |
-| Open Critical / High defects | 0     | No product execution has occurred                             |
-| Deferred defects             | 0     | No accepted risks                                             |
-| Reopened defects             | 0     |                                                               |
-| Escaped defects              | 0     |                                                               |
+| Metric                       | Value | Notes                                                                                                                     |
+| ---------------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------- |
+| Total defects                | 7     | One open tooling issue, one blocked environment issue, one open coverage issue, and four verified test-integration issues |
+| Open Critical / High defects | 1     | AUTH-006 blocks the changed-code coverage gate                                                                            |
+| Deferred defects             | 0     | No accepted risks                                                                                                         |
+| Reopened defects             | 0     |                                                                                                                           |
+| Escaped defects              | 0     |                                                                                                                           |
 
 ## Baseline Evidence
 
-| Date       | Command                 | Result | Evidence summary                                                                 |
-| ---------- | ----------------------- | ------ | -------------------------------------------------------------------------------- |
-| 2026-09-27 | `bun run test`          | Pass   | 163 suites and 1,254 tests passed in 189.497 seconds                             |
-| 2026-09-27 | `bun run app:typecheck` | Pass   | TypeScript completed with no errors                                              |
-| 2026-09-27 | `bun run app:lint`      | Pass   | Zero errors; four pre-existing `@next/next/no-img-element` optimization warnings |
-| 2026-09-28 | `bun run test`          | Pass   | 176 suites and 1,537 tests passed after Better Auth test-boundary integration    |
+| Date       | Command                        | Result | Evidence summary                                                                 |
+| ---------- | ------------------------------ | ------ | -------------------------------------------------------------------------------- |
+| 2026-09-27 | `bun run test`                 | Pass   | 163 suites and 1,254 tests passed in 189.497 seconds                             |
+| 2026-09-27 | `bun run app:typecheck`        | Pass   | TypeScript completed with no errors                                              |
+| 2026-09-27 | `bun run app:lint`             | Pass   | Zero errors; four pre-existing `@next/next/no-img-element` optimization warnings |
+| 2026-09-28 | `bun run test`                 | Pass   | 176 suites and 1,537 tests passed after Better Auth test-boundary integration    |
+| 2026-09-28 | `bun audit --audit-level=high` | Pass   | 1,344 packages checked; no High or Critical vulnerabilities found                |
 
 ## Required Checks
 
