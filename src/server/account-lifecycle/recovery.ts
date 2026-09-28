@@ -1,4 +1,4 @@
-import { AccountLifecycleService, type AccountDeletionRequest, type AccountLifecycleRepository, type LifecycleActor } from "./service";
+import { AccountLifecycleService, compareAndSetDeletionRequest, type AccountDeletionRequest, type AccountLifecycleRepository, type LifecycleActor } from "./service";
 
 export type DeletionBoundary = "recoverable" | "purge_eligible";
 
@@ -30,10 +30,8 @@ export async function recoverDeletion(
 		if (request.status !== "suspended" || evaluateDeletionBoundary(request, input.now) !== "recoverable") throw new Error("RECOVERY_PERIOD_ENDED");
 		const account = state.accounts.find((candidate) => candidate.organizationId === actor.organizationId);
 		if (!account) throw new Error("ACCOUNT_NOT_FOUND");
-		request.status = "recovered";
-		request.recoveredBy = actor.authUserId;
-		request.recoveredAt = input.now;
-		request.version += 1;
+		const transitioned = compareAndSetDeletionRequest(request, { version: request.version, status: "suspended" }, { status: "recovered", patch: { recoveredBy: actor.authUserId, recoveredAt: input.now } });
+		if (!transitioned) throw new Error("DELETION_STATE_CHANGED");
 		account.status = "active";
 		account.suspensionAt = undefined;
 		account.purgeEligibleAt = undefined;

@@ -1,4 +1,4 @@
-import { AccountLifecycleService, type AccountLifecycleRepository, type AccountLifecycleState, type LifecycleActor } from "@/server/account-lifecycle/service";
+import { AccountLifecycleService, compareAndSetDeletionRequest, type AccountDeletionRequest, type AccountLifecycleRepository, type AccountLifecycleState, type LifecycleActor } from "@/server/account-lifecycle/service";
 import { recentAuthBoundary } from "../../support/auth-engine-rewrite/time";
 
 const NOW = new Date("2026-09-28T12:00:00.000Z");
@@ -34,6 +34,14 @@ function member(authenticatedAt = NOW): LifecycleActor {
 }
 
 describe("TDD-US5-001 account and subscription lifecycle", () => {
+	it("applies lifecycle transitions only to the expected version and state", () => {
+		const request = { id: "delete", organizationId: "org", choice: "immediate", status: "suspended", requestedBy: "owner", requestedAt: NOW, suspensionAt: NOW, stripeSnapshot: {}, version: 4 } satisfies AccountDeletionRequest;
+		expect(compareAndSetDeletionRequest(request, { version: 3, status: "suspended" }, { status: "recovered" })).toBe(false);
+		expect(request).toMatchObject({ status: "suspended", version: 4 });
+		expect(compareAndSetDeletionRequest(request, { version: 4, status: "scheduled" }, { status: "recovered" })).toBe(false);
+		expect(compareAndSetDeletionRequest(request, { version: 4, status: "suspended" }, { status: "recovered", patch: { recoveredBy: "owner", recoveredAt: NOW } })).toBe(true);
+		expect(request).toMatchObject({ status: "recovered", version: 5, recoveredBy: "owner", recoveredAt: NOW });
+	});
 	it.each(["read", "update", "export", "subscription:read", "subscription:manage", "subscription:cancel"] as const)("allows a recently authenticated owner to perform %s", async (operation) => {
 		const service = new AccountLifecycleService(new MemoryRepository(), { now: () => NOW });
 		await expect(service.authorizeOwnerOperation(owner(), operation)).resolves.toEqual(expect.objectContaining({ organizationId: "org_creator" }));

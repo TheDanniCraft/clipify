@@ -92,6 +92,12 @@ export interface StripeLifecycleEvent {
 
 const TERMINAL_DELETION_STATUSES = new Set<DeletionStatus>(["recovered", "purged", "cancelled"]);
 
+export function compareAndSetDeletionRequest(request: AccountDeletionRequest, expected: { version: number; status: DeletionStatus }, transition: { status: DeletionStatus; patch?: Partial<Omit<AccountDeletionRequest, "id" | "organizationId" | "version" | "status">> }): boolean {
+	if (request.version !== expected.version || request.status !== expected.status) return false;
+	Object.assign(request, transition.patch ?? {}, { status: transition.status, version: expected.version + 1 });
+	return true;
+}
+
 export function assertOwnerAndRecent(actor: LifecycleActor, now: Date) {
 	if (actor.accountRole !== "owner") throw new Error("OWNER_REQUIRED");
 	const age = now.getTime() - actor.authenticatedAt.getTime();

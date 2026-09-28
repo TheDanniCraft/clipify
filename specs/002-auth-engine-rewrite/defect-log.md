@@ -100,7 +100,7 @@ Track product, test, environment, and governance issues affecting feature readin
 - **Expected Result**: the lifecycle test loads only its controlled recent-auth clock helper.
 - **Actual Result**: the aggregate support barrel initialized an unrelated fixture that expected `structuredClone` in the Jest environment; a constructor parameter also shadowed the fixture factory.
 - **Resolution**: imported the isolated time helper directly and renamed the fixture factory.
-- **Verification Evidence**: all three focused US5 suites pass (29 tests), followed by a clean TypeScript run.
+- **Verification Evidence**: all three focused US5 suites pass (30 tests), followed by a clean TypeScript run.
 - **Approval / Risk Acceptance**: none.
 
 ### AUTH-004 - Production lifecycle imports and test doubles crossed legacy Jest boundaries
