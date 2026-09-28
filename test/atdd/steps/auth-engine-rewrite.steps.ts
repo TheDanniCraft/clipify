@@ -202,7 +202,7 @@ Then("the creator receives a recoverable Better Auth sign-in path", async () => 
 Given("an unchanged live overlay URL and runtime secret", async ({ authWorld }) => {
 	const overlay = { id: "overlay-atdd", ownerId: "creator-atdd", secret: "stable-runtime-secret" };
 	authWorld.values.set("overlay", overlay);
-	authWorld.values.set("overlayReference", { url: `https://clipify.dev/embed/${overlay.id}`, secret: overlay.secret });
+	authWorld.values.set("overlayReference", { url: `https://clipify.us/embed/${overlay.id}`, secret: overlay.secret });
 });
 
 When("dashboard authentication is unavailable during cutover", async ({ authWorld }) => {

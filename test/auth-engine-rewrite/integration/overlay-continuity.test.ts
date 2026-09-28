@@ -35,7 +35,7 @@ describe("TDD-US1-002 dashboard-independent overlay continuity", () => {
 	});
 
 	it("preserves the browser-source URL and secret byte-for-byte", () => {
-		const before = { url: `https://clipify.dev/embed/${overlay.id}`, secret: overlay.secret };
+		const before = { url: `https://clipify.us/embed/${overlay.id}`, secret: overlay.secret };
 		expect(preserveOverlayRuntimeReference(before)).toEqual(before);
 		expect(preserveOverlayRuntimeReference(before).url).toBe(before.url);
 		expect(preserveOverlayRuntimeReference(before).secret).toBe(before.secret);

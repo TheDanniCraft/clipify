@@ -39,7 +39,7 @@ Track product, test, environment, and governance issues affecting feature readin
 | AUTH-002  | Legacy Jest boundaries did not support Better Auth schema/session imports      | Pre-push regression  | Medium   | High     | Verified | Auth implementation | `bun run test`          | Legacy database action and proxy suites                          | Extended Drizzle mocks and isolated the proxy session boundary                         |
 | AUTH-003  | US5 test fixture imported an incompatible aggregate harness                    | TDD-US5-001          | Low      | Low      | Verified | Auth implementation | Focused Red/Green       | `test/auth-engine-rewrite/integration/account-lifecycle.test.ts` | Imported the isolated clock helper and removed a fixture-name collision                |
 | AUTH-004  | Production lifecycle imports and test doubles crossed legacy Jest boundaries   | TDD-US5-001          | Medium   | High     | Verified | Auth implementation | Adapter regression      | Subscription, overlay, and webhook focused suites                | Isolated Better Auth imports and extended lifecycle-aware test boundaries              |
-| AUTH-005  | Infisical dev lacks required WebAuthn build settings                           | Build gate           | Medium   | High     | Blocked  | Environment owner   | `bun run app:build`     | T179 production build gate                                       | Add `WEBAUTHN_RP_NAME`, `WEBAUTHN_RP_ID`, and `WEBAUTHN_ORIGIN` to the dev environment |
+| AUTH-005  | WebAuthn duplicated the shared application-origin configuration                | Build gate           | Medium   | High     | Verified | Auth implementation | `bun run app:build`     | T179 production build gate                                       | Derive RP ID and origin from the reviewed shared `resolveBaseUrl()` policy             |
 | AUTH-006  | Changed auth adapter coverage is below the release floor                       | Coverage gate        | High     | High     | Open     | Auth implementation | `bun run test:coverage` | T177 changed-code coverage gate                                  | Add database/session/mail/agency adapter tests; do not lower the 90%/95% policy        |
 | AUTH-007  | Database-backed US2 ATDD exceeded the generic browser timeout                  | ATDD-US2-001         | Low      | High     | Verified | Auth implementation | Focused ATDD            | T023 real-session acceptance boundary                            | ATDD project uses the authenticated acceptance timeout                                 |
 | AUTH-008  | Login smoke retained the retired link role                                     | BDD-SMOKE-001        | Low      | High     | Verified | Auth implementation | Aggregate BDD           | T038 aggregate behavior gate                                     | Smoke asserts the Better Auth sign-in button role                                      |
@@ -248,32 +248,31 @@ Track product, test, environment, and governance issues affecting feature readin
 
 The completed US1–US5 story gates introduced no open product defects. US2 focused TDD (10 tests), database-backed ATDD (20/20 aggregate), and BDD (69/69 aggregate) are Green. The two US2 harness regressions are verified fixed. A US1 regression probe found and corrected a duplicate disabled-owner lookup before checkpoint closure. PLAN-001 remains an unrelated planning-tooling issue with no release impact on the implemented authorization slices.
 
-| Defect ID | Release Impact                     | Required Decision                     | Decision Owner        | Due Date                         | Notes                                                                                                                                         |
-| --------- | ---------------------------------- | ------------------------------------- | --------------------- | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| PLAN-001  | No product release impact          | Fix tooling independently             | SpecKit tooling owner | Before next feature planning run | Fallback preserved required report structure                                                                                                  |
-| AUTH-005  | Blocks production build validation | Configure three WebAuthn dev settings | Environment owner     | Before T179 can close            | Plain and Infisical-backed builds both fail closed; no fallback values were invented                                                          |
-| AUTH-006  | Blocks release coverage gate       | Add focused adapter coverage          | Auth implementation   | Before T177 can close            | Global coverage passes, but changed auth/lifecycle/agency aggregate is 51.17% branches, 66.05% functions, 57.48% lines, and 55.74% statements |
+| Defect ID | Release Impact               | Required Decision            | Decision Owner        | Due Date                         | Notes                                                                                                                                         |
+| --------- | ---------------------------- | ---------------------------- | --------------------- | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| PLAN-001  | No product release impact    | Fix tooling independently    | SpecKit tooling owner | Before next feature planning run | Fallback preserved required report structure                                                                                                  |
+| AUTH-006  | Blocks release coverage gate | Add focused adapter coverage | Auth implementation   | Before T177 can close            | Global coverage passes, but changed auth/lifecycle/agency aggregate is 51.17% branches, 66.05% functions, 57.48% lines, and 55.74% statements |
 
 ## Verification and Regression Closure
 
-| Defect ID | Fix Artifact / PR               | Verification Test or Gate                      | Result  | Evidence Link       | Verified By / Date |
-| --------- | ------------------------------- | ---------------------------------------------- | ------- | ------------------- | ------------------ |
-| PLAN-001  | Pending                         | Three template resolver commands               | Blocked | N/A                 | Pending            |
-| AUTH-001  | Current branch                  | `bun run test:auth`                            | Pass    | TDD-US2-001         | Codex / 2026-09-28 |
-| AUTH-002  | Current branch                  | `bun run test`                                 | Pass    | Full suite          | Codex / 2026-09-28 |
-| AUTH-003  | Current branch                  | Focused US5 suites                             | Pass    | TDD-US5-001–003     | Codex / 2026-09-28 |
-| AUTH-004  | Current branch                  | Lifecycle adapter regression                   | Pass    | 7 suites / 89 tests | Codex / 2026-09-28 |
-| AUTH-005  | Pending Infisical configuration | `infisical run --env=dev -- bun run app:build` | Blocked | T179                | Pending            |
-| AUTH-006  | Current branch                  | Changed-code coverage command                  | Fail    | T177                | Pending            |
-| AUTH-007  | Current branch                  | Focused database-backed ATDD-US2-001           | Pass    | ATDD-US2-001        | Codex / 2026-09-28 |
-| AUTH-008  | Current branch                  | Focused and aggregate BDD                      | Pass    | BDD-SMOKE-001       | Codex / 2026-09-28 |
-| AUTH-009  | Current branch                  | `bunx bddgen` before focused ATDD              | Pass    | T142 Red probe      | Codex / 2026-09-28 |
-| AUTH-010  | Current branch                  | Focused database-backed ATDD-US4-003           | Pass    | ATDD-US4-003        | Codex / 2026-09-28 |
-| AUTH-011  | Current branch                  | Focused settings regression and aggregate US5  | Pass    | ATDD-US5-001        | Codex / 2026-09-28 |
-| AUTH-012  | Current branch                  | Focused ATDD-US2-001 and acceptance lifecycle  | Pass    | ATDD-US2-001 / T176 | Codex / 2026-09-28 |
-| AUTH-013  | Current branch                  | Segmented aggregate E2E projects               | Pass    | T176                | Codex / 2026-09-28 |
-| AUTH-014  | Current branch                  | Focused narrow-viewport legal BDD              | Pass    | Existing A3         | Codex / 2026-09-28 |
-| AUTH-015  | Current branch                  | Focused database settings and coverage suites  | Pass    | T191–T193           | Codex / 2026-09-28 |
+| Defect ID | Fix Artifact / PR | Verification Test or Gate                      | Result  | Evidence Link       | Verified By / Date |
+| --------- | ----------------- | ---------------------------------------------- | ------- | ------------------- | ------------------ |
+| PLAN-001  | Pending           | Three template resolver commands               | Blocked | N/A                 | Pending            |
+| AUTH-001  | Current branch    | `bun run test:auth`                            | Pass    | TDD-US2-001         | Codex / 2026-09-28 |
+| AUTH-002  | Current branch    | `bun run test`                                 | Pass    | Full suite          | Codex / 2026-09-28 |
+| AUTH-003  | Current branch    | Focused US5 suites                             | Pass    | TDD-US5-001–003     | Codex / 2026-09-28 |
+| AUTH-004  | Current branch    | Lifecycle adapter regression                   | Pass    | 7 suites / 89 tests | Codex / 2026-09-28 |
+| AUTH-005  | Current branch    | `infisical run --env=dev -- bun run app:build` | Pass    | T179                | Codex / 2026-09-28 |
+| AUTH-006  | Current branch    | Changed-code coverage command                  | Fail    | T177                | Pending            |
+| AUTH-007  | Current branch    | Focused database-backed ATDD-US2-001           | Pass    | ATDD-US2-001        | Codex / 2026-09-28 |
+| AUTH-008  | Current branch    | Focused and aggregate BDD                      | Pass    | BDD-SMOKE-001       | Codex / 2026-09-28 |
+| AUTH-009  | Current branch    | `bunx bddgen` before focused ATDD              | Pass    | T142 Red probe      | Codex / 2026-09-28 |
+| AUTH-010  | Current branch    | Focused database-backed ATDD-US4-003           | Pass    | ATDD-US4-003        | Codex / 2026-09-28 |
+| AUTH-011  | Current branch    | Focused settings regression and aggregate US5  | Pass    | ATDD-US5-001        | Codex / 2026-09-28 |
+| AUTH-012  | Current branch    | Focused ATDD-US2-001 and acceptance lifecycle  | Pass    | ATDD-US2-001 / T176 | Codex / 2026-09-28 |
+| AUTH-013  | Current branch    | Segmented aggregate E2E projects               | Pass    | T176                | Codex / 2026-09-28 |
+| AUTH-014  | Current branch    | Focused narrow-viewport legal BDD              | Pass    | Existing A3         | Codex / 2026-09-28 |
+| AUTH-015  | Current branch    | Focused database settings and coverage suites  | Pass    | T191–T193           | Codex / 2026-09-28 |
 
 ## Defect Metrics
 

@@ -847,7 +847,7 @@ describe("actions/twitch external API and failure handling", () => {
 
 	it("uses preview callback and logs generic subscribe-to-reward failures", async () => {
 		isPreview.mockResolvedValue(true);
-		getBaseUrl.mockResolvedValue("https://preview.clipify.dev");
+		getBaseUrl.mockResolvedValue("https://preview.clipify.us");
 		let eventSubPayload: Record<string, unknown> | null = null;
 		jest.spyOn(axios, "post").mockImplementation((url: string, body?: unknown) => {
 			if (url.includes("/oauth2/token")) {
@@ -864,7 +864,7 @@ describe("actions/twitch external API and failure handling", () => {
 		const { subscribeToReward } = await loadTwitch();
 		await expect(subscribeToReward("owner-1", "reward-1")).resolves.toBeUndefined();
 
-		expect((eventSubPayload as { transport?: { callback?: string } } | null)?.transport?.callback).toBe("https://preview.clipify.dev/eventsub");
+		expect((eventSubPayload as { transport?: { callback?: string } } | null)?.transport?.callback).toBe("https://preview.clipify.us/eventsub");
 		expect(consoleSpy).toHaveBeenCalled();
 	});
 
@@ -946,7 +946,7 @@ describe("actions/twitch external API and failure handling", () => {
 		let oauthCalls = 0;
 		let chatSubscribeAttempts = 0;
 		isPreview.mockResolvedValue(true);
-		getBaseUrl.mockResolvedValue("https://preview.clipify.dev");
+		getBaseUrl.mockResolvedValue("https://preview.clipify.us");
 		jest.spyOn(axios, "post").mockImplementation((url: string, body?: unknown) => {
 			if (url.includes("/oauth2/token")) {
 				oauthCalls += 1;
@@ -956,7 +956,7 @@ describe("actions/twitch external API and failure handling", () => {
 			if (url.includes("/eventsub/subscriptions")) {
 				chatSubscribeAttempts += 1;
 				const callback = (body as { transport?: { callback?: string } })?.transport?.callback;
-				if (callback !== "https://preview.clipify.dev/eventsub") {
+				if (callback !== "https://preview.clipify.us/eventsub") {
 					throw new Error("unexpected callback");
 				}
 				if (chatSubscribeAttempts === 1) return Promise.reject(createAxiosError(429));

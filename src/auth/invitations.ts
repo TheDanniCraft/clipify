@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { addMembership, type MembershipRecord } from "./memberships";
 import { sendTeamInvitation } from "./transactional-mail";
+import { resolveBaseUrl } from "@/app/lib/baseUrl";
 
 const INVITATION_LIFETIME_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -114,9 +115,7 @@ export async function createPersistedInvitation(input: { headers: Headers; organ
 			resend: true,
 		},
 	});
-	const baseUrl = process.env.BETTER_AUTH_URL;
-	if (!baseUrl) throw new Error("BETTER_AUTH_URL must be injected by Infisical");
-	const invitationUrl = new URL("/accept-invitation", baseUrl);
+	const invitationUrl = new URL("/accept-invitation", resolveBaseUrl());
 	invitationUrl.searchParams.set("invitationId", invitation.id);
 	if (input.delivery === "copy-and-email") {
 		await sendTeamInvitation({

@@ -8,10 +8,10 @@ import { TWITCH_ADDITIONAL_SCOPES } from "./providers/twitch";
 import { betterAuthOrganizationRoles, clipifyAccessControl } from "./organization-access";
 import { EMAIL_OTP_POLICY } from "./credential-policy";
 import { sendAuthOtp } from "./transactional-mail";
+import { resolveBaseUrl } from "@/app/lib/baseUrl";
 
 function generationFallback(name: string): string | undefined {
 	if (!process.argv.includes("generate") && process.env.APP_ENV !== "test") return undefined;
-	if (name === "BETTER_AUTH_URL") return "http://localhost:3000";
 	if (name === "BETTER_AUTH_SECRET") return "schema-generation-only-secret-at-least-32-characters";
 	return `schema-generation-${name.toLowerCase()}`;
 }
@@ -22,11 +22,8 @@ function requiredSetting(name: string, legacyName?: string): string {
 	return value;
 }
 
-const baseURL = process.env.BETTER_AUTH_URL ?? process.env.NEXT_PUBLIC_BASE_URL ?? generationFallback("BETTER_AUTH_URL");
-const trustedOrigins = (process.env.BETTER_AUTH_TRUSTED_ORIGINS ?? baseURL ?? "")
-	.split(",")
-	.map((origin) => origin.trim())
-	.filter(Boolean);
+const resolvedBaseUrl = resolveBaseUrl();
+const baseURL = resolvedBaseUrl.origin;
 
 export const auth = betterAuth({
 	appName: "Clipify",
@@ -37,7 +34,6 @@ export const auth = betterAuth({
 		schemaName: "auth",
 		schema,
 	}),
-	trustedOrigins,
 	socialProviders: {
 		twitch: {
 			clientId: requiredSetting("TWITCH_CLIENT_ID"),
@@ -85,9 +81,9 @@ export const auth = betterAuth({
 			sendVerificationOTP: sendAuthOtp,
 		}),
 		passkey({
-			rpName: requiredSetting("WEBAUTHN_RP_NAME"),
-			rpID: requiredSetting("WEBAUTHN_RP_ID"),
-			origin: requiredSetting("WEBAUTHN_ORIGIN"),
+			rpName: "Clipify",
+			rpID: resolvedBaseUrl.hostname,
+			origin: resolvedBaseUrl.origin,
 		}),
 		organization({
 			ac: clipifyAccessControl,
