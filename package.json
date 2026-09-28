@@ -33,7 +33,7 @@
 		"test:bdd": "bddgen && playwright test --project=bdd-chromium",
 		"test:compliance": "jest --runInBand test/compliance/inventory-audit.test.ts && playwright test --project=compliance-chromium",
 		"test:migration-policy": "node --test scripts/check-drizzle-migration-policy.test.mjs",
-		"test:e2e": "bddgen && playwright test",
+		"test:e2e": "bun scripts/run-e2e-gate.ts",
 		"test:e2e:server": "next dev --webpack --hostname 127.0.0.1 --port 3107",
 		"test:e2e:ui": "bddgen && playwright test --ui",
 		"db:push": "infisical run --env=dev -- drizzle-kit push",

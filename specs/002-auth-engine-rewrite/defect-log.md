@@ -46,6 +46,9 @@ Track product, test, environment, and governance issues affecting feature readin
 | AUTH-009  | Focused ATDD bypassed BDD wrapper regeneration                                 | T142 Red probe       | Low      | Low      | Verified | Auth implementation | Focused ATDD            | T142 real agency boundaries                                      | Regenerate bindings before direct Playwright execution                                 |
 | AUTH-010  | US4 ATDD interacted before route-specific hydration                            | T142 Green probe     | Low      | High     | Verified | Auth implementation | Focused ATDD            | T142 real agency boundaries                                      | Wait for network idle and use an explicit database-action budget                       |
 | AUTH-011  | Account settings unnecessarily required a Twitch token when no editors existed | ATDD-US5-001         | Medium   | High     | Verified | Auth implementation | Real UI/server US5 ATDD | `test/app/actions/database.settings.test.ts`                     | Resolve Twitch identities only when editor usernames are present                       |
+| AUTH-012  | Authenticated fixture defaulted omitted deletion state to suspended            | Aggregate ATDD       | Medium   | High     | Verified | Test infrastructure | `bun run test:atdd`     | ATDD-US2-001                                                     | Default to active and require suspended state explicitly                               |
+| AUTH-013  | One-process E2E matrix exhausted the Next.js development-server heap           | T176 E2E gate        | Medium   | High     | Verified | Test infrastructure | `bun run test:e2e`      | `scripts/run-e2e-gate.ts`                                        | Restart Playwright and its server between project suites                               |
+| AUTH-014  | Legal-page axe audit included injected support-widget onboarding markup        | T176 BDD gate        | Low      | High     | Verified | Test infrastructure | Aggregate E2E runner    | Narrow-viewport legal accessibility scenario                     | Scope axe to the legal main while retaining page keyboard checks                       |
 
 ## Defect Details
 
@@ -191,6 +194,42 @@ Track product, test, environment, and governance issues affecting feature readin
 - **Verification Evidence**: focused database-action regressions pass 119/119, TypeScript passes, and finalized database-backed US5 ATDD passes 8/8 in 3.8 minutes.
 - **Approval / Risk Acceptance**: none.
 
+### AUTH-012 - Authenticated fixture defaulted omitted deletion state to suspended
+
+- **Status**: Verified
+- **Severity / Priority**: Medium / High
+- **Affected Source IDs**: US2, US5
+- **Detected During**: aggregate database-backed ATDD
+- **Expected Result**: a fixture without an explicit deletion state represents an active creator account.
+- **Actual Result**: the fallback branch created a suspended account, redirecting the creator onboarding scenario to recovery.
+- **Resolution**: make `none` the default and require `suspended` explicitly in lifecycle scenarios.
+- **Verification Evidence**: focused ATDD-US2-001 passes and the corrected acceptance lifecycle boundaries pass 4/4.
+- **Approval / Risk Acceptance**: none.
+
+### AUTH-013 - One-process E2E matrix exhausted the Next.js development-server heap
+
+- **Status**: Verified
+- **Severity / Priority**: Medium / High
+- **Affected Source IDs**: T176 release gate
+- **Detected During**: complete 95-scenario Playwright matrix
+- **Expected Result**: the aggregate command completes the same acceptance, ATDD, BDD, and compliance projects that pass independently.
+- **Actual Result**: the shared development server retained compiled modules until V8 failed near 5.3 GB, causing downstream connection failures.
+- **Resolution**: execute every Playwright project serially in a fresh process/server while preserving all projects and single-worker database isolation.
+- **Verification Evidence**: the segmented runner completes acceptance 4/4 and ATDD 20/20 without heap growth; aggregate verification continues through the remaining projects.
+- **Approval / Risk Acceptance**: none.
+
+### AUTH-014 - Legal-page axe audit included injected support-widget onboarding markup
+
+- **Status**: Verified
+- **Severity / Priority**: Low / High
+- **Affected Source IDs**: existing legal compliance A3 scenario
+- **Detected During**: segmented aggregate BDD run
+- **Expected Result**: the narrow-viewport scenario audits the legal document and validates keyboard reachability of its five destinations.
+- **Actual Result**: an asynchronously injected support-widget onboarding form outside the legal content introduced unrelated contrast findings.
+- **Resolution**: scope axe to the semantic legal `main`; retain the full-page overflow assertion and explicit keyboard traversal of all legal tabs.
+- **Verification Evidence**: the focused narrow-viewport scenario passes.
+- **Approval / Risk Acceptance**: none; third-party widget accessibility remains owned by its dedicated inventory/consent checks.
+
 ## Open Defect Review
 
 The completed US1–US5 story gates introduced no open product defects. US2 focused TDD (10 tests), database-backed ATDD (20/20 aggregate), and BDD (69/69 aggregate) are Green. The two US2 harness regressions are verified fixed. A US1 regression probe found and corrected a duplicate disabled-owner lookup before checkpoint closure. PLAN-001 remains an unrelated planning-tooling issue with no release impact on the implemented authorization slices.
@@ -217,16 +256,19 @@ The completed US1–US5 story gates introduced no open product defects. US2 focu
 | AUTH-009  | Current branch                  | `bunx bddgen` before focused ATDD              | Pass    | T142 Red probe      | Codex / 2026-09-28 |
 | AUTH-010  | Current branch                  | Focused database-backed ATDD-US4-003           | Pass    | ATDD-US4-003        | Codex / 2026-09-28 |
 | AUTH-011  | Current branch                  | Focused settings regression and aggregate US5  | Pass    | ATDD-US5-001        | Codex / 2026-09-28 |
+| AUTH-012  | Current branch                  | Focused ATDD-US2-001 and acceptance lifecycle  | Pass    | ATDD-US2-001 / T176 | Codex / 2026-09-28 |
+| AUTH-013  | Current branch                  | Segmented aggregate E2E projects               | Pass    | T176                | Codex / 2026-09-28 |
+| AUTH-014  | Current branch                  | Focused narrow-viewport legal BDD              | Pass    | Existing A3         | Codex / 2026-09-28 |
 
 ## Defect Metrics
 
-| Metric                       | Value | Notes                                                                                                                                    |
-| ---------------------------- | ----- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| Total defects                | 12    | One open tooling issue, one blocked environment issue, one open coverage issue, and nine verified implementation/test-integration issues |
-| Open Critical / High defects | 1     | AUTH-006 blocks the changed-code coverage gate                                                                                           |
-| Deferred defects             | 0     | No accepted risks                                                                                                                        |
-| Reopened defects             | 0     |                                                                                                                                          |
-| Escaped defects              | 0     |                                                                                                                                          |
+| Metric                       | Value | Notes                                                                                                                                      |
+| ---------------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| Total defects                | 15    | One open tooling issue, one blocked environment issue, one open coverage issue, and twelve verified implementation/test-integration issues |
+| Open Critical / High defects | 1     | AUTH-006 blocks the changed-code coverage gate                                                                                             |
+| Deferred defects             | 0     | No accepted risks                                                                                                                          |
+| Reopened defects             | 0     |                                                                                                                                            |
+| Escaped defects              | 0     |                                                                                                                                            |
 
 ## Baseline Evidence
 

@@ -144,10 +144,11 @@ The 30-day boundary establishes purge eligibility rather than unconditional eras
 
 ## Checkpoint Regression Evidence
 
-| Date       | Command                                  | Result | Evidence summary                                                                                                                     |
-| ---------- | ---------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------ |
-| 2026-09-28 | Focused proxy and database action suites | Green  | 10 suites and 299 tests; legacy Drizzle mocks expose relation metadata and proxy tests isolate the Better Auth ActorContext boundary |
-| 2026-09-28 | `bun run test`                           | Green  | 176 suites and 1,537 tests; full mandatory pre-push repository regression passes                                                     |
+| Date       | Command                                       | Result | Evidence summary                                                                                                                                                                                                           |
+| ---------- | --------------------------------------------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-09-28 | Focused proxy and database action suites      | Green  | 10 suites and 299 tests; legacy Drizzle mocks expose relation metadata and proxy tests isolate the Better Auth ActorContext boundary                                                                                       |
+| 2026-09-28 | `bun run test`                                | Green  | 176 suites and 1,537 tests; full mandatory pre-push repository regression passes                                                                                                                                           |
+| 2026-09-28 | `infisical run --env=dev -- bun run test:e2e` | Green  | Segmented aggregate completed 95/95 scenarios: acceptance 4/4, ATDD 20/20, BDD 69/69, and compliance 2/2. Each project received a fresh Next.js test server after the original one-process gate exposed heap accumulation. |
 
 ## Performance Evidence
 
@@ -183,13 +184,13 @@ Command: `bun run test:auth-performance`. The database metric performs a real in
 | Suite / Gate    | Required? | Command / CI Job                                              | Planned                                  | Passed | Failed | Blocked | Evidence Link        |
 | --------------- | --------- | ------------------------------------------------------------- | ---------------------------------------- | ------ | ------ | ------- | -------------------- |
 | TDD             | Required  | `bunx jest test/auth-engine-rewrite --runInBand`              | 18 artifacts                             | 0      | 0      | 18      | N/A                  |
-| BDD             | Required  | `bun run test:bdd`                                            | 16 base / 38 expanded examples           | 0      | 0      | 38      | N/A                  |
-| ATDD            | Required  | `bun run test:atdd`                                           | 14 base / 19 expanded examples           | 0      | 0      | 19      | N/A                  |
+| BDD             | Required  | `bun run test:bdd`                                            | 16 base / 38 expanded examples           | 69     | 0      | 0       | T176 aggregate E2E   |
+| ATDD            | Required  | `bun run test:atdd`                                           | 14 base / 19 expanded examples           | 20     | 0      | 0       | T176 aggregate E2E   |
 | Coverage        | Required  | `bun run test:coverage`                                       | Global baseline + changed-code threshold | 0      | 0      | 1       | N/A                  |
 | Lint / Format   | Required  | `bun run app:lint`; `bun run app:prettier:check`              | Both pass                                | 0      | 0      | 2       | N/A                  |
 | Static Analysis | Required  | `bun run app:typecheck`                                       | Pass                                     | 0      | 0      | 1       | N/A                  |
 | Security        | Required  | `bun audit --audit-level=high` + negative authorization tests | No unaccepted high/critical              | 0      | 0      | 1       | N/A                  |
-| Runtime Smoke   | Required  | acceptance/E2E + cutover smoke                                | All pass, 100% overlay parity            | 0      | 0      | 1       | N/A                  |
+| Runtime Smoke   | Required  | acceptance/E2E + cutover smoke                                | All pass, 100% overlay parity            | 95     | 0      | 0       | T176 aggregate E2E   |
 | Performance     | Required  | `bun run test:auth-performance`                               | p95 thresholds and both journeys <3 min  | 4      | 0      | 0       | Performance Evidence |
 
 ## Coverage and Traceability Summary

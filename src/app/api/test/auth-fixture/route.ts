@@ -31,7 +31,7 @@ export async function POST(request: Request) {
 	const body = (await request.json().catch(() => ({}))) as { activeContext?: FixtureContext; actorRole?: FixtureActorRole; deletionState?: FixtureDeletionState; agencyLinkStatus?: FixtureAgencyLinkStatus; billingState?: FixtureBillingState };
 	const activeContext: FixtureContext = body.activeContext === "agency" ? "agency" : "creator";
 	const actorRole: FixtureActorRole = body.actorRole === "admin" ? "admin" : "user";
-	const deletionState: FixtureDeletionState = body.deletionState === "none" ? "none" : "suspended";
+	const deletionState: FixtureDeletionState = body.deletionState === "suspended" ? "suspended" : "none";
 	const agencyLinkStatus: FixtureAgencyLinkStatus = body.agencyLinkStatus === "proposed" ? "proposed" : "accepted";
 	const billingState: FixtureBillingState = body.billingState === "active" ? "active" : "none";
 	const fixtureId = randomUUID();

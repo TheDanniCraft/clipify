@@ -102,8 +102,10 @@ Then("the legal document remains readable and every legal destination is keyboar
 	expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 	await page.addScriptTag({ content: axe.source });
 	const seriousViolations = await page.evaluate(async () => {
-		const axeApi = (window as typeof window & { axe: { run: (root: Document) => Promise<{ violations: { id: string; impact: string | null; nodes: { target: string[]; html: string; failureSummary?: string }[] }[] }> } }).axe;
-		const result = await axeApi.run(document);
+		const axeApi = (window as typeof window & { axe: { run: (root: Element) => Promise<{ violations: { id: string; impact: string | null; nodes: { target: string[]; html: string; failureSummary?: string }[] }[] }> } }).axe;
+		const legalMain = document.querySelector("main");
+		if (!legalMain) throw new Error("LEGAL_MAIN_NOT_FOUND");
+		const result = await axeApi.run(legalMain);
 		return result.violations.filter(({ impact }) => impact === "serious" || impact === "critical").map(({ id, impact, nodes }) => ({ id, impact, nodes }));
 	});
 	expect(seriousViolations).toEqual([]);
