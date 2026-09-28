@@ -47,6 +47,30 @@ Feature: Creator identity and delegated team access
       | copy-link     |
       | optional-email |
 
+  # Shared ATDD/BDD ownership: these agency journeys prove creator ownership,
+  # live intersection, and creator-seat semantics at the stakeholder boundary.
+  @US4 @ATDD-US4-003
+  Scenario: Provisioned agency owner activates the Agency Account
+    Given a Clipify administrator provisioned an Agency Account after custom commercial terms were agreed
+    When its designated first owner verifies the invited email and accepts the invitation
+    Then the person becomes the Agency Account owner
+    And the owner can sign in by email code without connecting Twitch
+
+  @US4 @ATDD-US4-001
+  Scenario: Agency gains access after creator approval
+    Given an agency requests access to an independent Creator Account with one staff member authorized by an agency role
+    When the creator owner accepts the request with a creator-approved permission set
+    Then the staff member can manage the creator only through permissions present in both sets
+    And the creator owner remains the owner
+
+  @US4 @ATDD-US4-002
+  Scenario: Agency allocates a paid creator license
+    Given an agency has an available paid creator license and an accepted creator link
+    When the agency allocates the license to that creator
+    Then the creator receives the agency-funded capabilities
+    And creator and agency team members do not consume additional creator licenses
+    And the creator receives one transactional allocation notice
+
   # Shared ATDD/BDD ownership: owner lifecycle journeys exercise the release
   # boundary; the non-owner denial and mail timing live in the BDD feature.
   @US5 @ATDD-US5-001

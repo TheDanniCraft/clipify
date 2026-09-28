@@ -3,6 +3,7 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import { and, eq, inArray, lte } from "drizzle-orm";
 import { db } from "@/db/client";
+import * as databaseSchema from "@/db/schema";
 import { accountDeletionRequestsTable, auditEventsTable, billingSubscriptionsTable, creatorAccountsTable, entitlementGrantsTable, galleriesTable, notificationOutboxTable, overlaysTable, playlistsTable, runnersTable, usersTable } from "@/db/schema";
 import { member as authMemberTable, session as authSessionTable, user as authUserTable } from "@/db/auth-schema";
 import { getAuthActorContext, type ActorContext } from "@/auth/session";
@@ -107,7 +108,15 @@ export async function requestDatabaseAccountDeletion(input: { choice: DeletionCh
 			correlationId: `account-deletion:${requestId}`,
 			metadata: { choice: input.choice, suspensionAt: suspensionAt.toISOString(), purgeEligibleAt: purgeEligibleAt.toISOString() },
 		});
-		if (suspended) await tx.delete(authSessionTable).where(eq(authSessionTable.userId, actor.authUserId));
+		if (suspended) {
+			const agencyLicenseAllocationsTable = databaseSchema.agencyLicenseAllocationsTable as typeof databaseSchema.agencyLicenseAllocationsTable | undefined;
+			if (agencyLicenseAllocationsTable)
+				await tx
+					.update(agencyLicenseAllocationsTable)
+					.set({ status: "released_by_deletion", endsAt: now, updatedAt: now })
+					.where(and(eq(agencyLicenseAllocationsTable.creatorId, actor.creatorId), inArray(agencyLicenseAllocationsTable.status, ["active", "removal_scheduled"])));
+			await tx.delete(authSessionTable).where(eq(authSessionTable.userId, actor.authUserId));
+		}
 	});
 
 	return { id: requestId, choice: input.choice, status: suspended ? ("suspended" as const) : ("scheduled" as const), suspensionAt: suspensionAt.toISOString(), purgeEligibleAt: suspended ? purgeEligibleAt.toISOString() : null };
@@ -183,6 +192,13 @@ export async function suspendDueDatabaseAccountDeletions(input: { now?: Date; li
 				.returning({ id: accountDeletionRequestsTable.id });
 			if (!updated) return false;
 			await tx.update(creatorAccountsTable).set({ status: "suspended", suspensionAt: now, purgeEligibleAt, updatedAt: now }).where(eq(creatorAccountsTable.organizationId, request.organizationId));
+			const creator = await tx.select({ creatorId: creatorAccountsTable.creatorId }).from(creatorAccountsTable).where(eq(creatorAccountsTable.organizationId, request.organizationId)).limit(1);
+			const agencyLicenseAllocationsTable = databaseSchema.agencyLicenseAllocationsTable as typeof databaseSchema.agencyLicenseAllocationsTable | undefined;
+			if (creator[0] && agencyLicenseAllocationsTable)
+				await tx
+					.update(agencyLicenseAllocationsTable)
+					.set({ status: "released_by_deletion", endsAt: now, updatedAt: now })
+					.where(and(eq(agencyLicenseAllocationsTable.creatorId, creator[0].creatorId), inArray(agencyLicenseAllocationsTable.status, ["active", "removal_scheduled"])));
 			if (request.requestedBy) await tx.delete(authSessionTable).where(eq(authSessionTable.userId, request.requestedBy));
 			const identity = request.requestedBy ? await tx.select({ email: authUserTable.email }).from(authUserTable).where(eq(authUserTable.id, request.requestedBy)).limit(1) : [];
 			const recipient = identity[0]?.email;

@@ -94,6 +94,31 @@ Feature: Identity and team access behavior
       | account-deletion      | success |
       | account-deletion      | denied  |
 
+  @US4 @BDD-US4-001
+  Scenario: Creator revokes agency access
+    Given an agency has active access to a Creator Account
+    When the creator owner revokes the link
+    Then agency-derived access ends immediately
+    And direct creator-team memberships remain unchanged
+
+  @US4 @BDD-US4-003
+  Scenario: Agency staff access is limited by both authorization boundaries
+    Given an agency staff role permits overlay deletion but the creator-approved agency permission set does not
+    When that staff member attempts to delete the creator's overlay
+    Then the server rejects the operation
+    And the overlay remains unchanged
+
+  @US4 @BDD-US4-002
+  Scenario: Removing agency funding provides non-abusable grace and preserves data
+    Given a creator has both creator-owned benefits and an agency-funded allocation
+    When the agency schedules the allocation for removal
+    Then the creator keeps the agency-funded capabilities for seven days
+    And the allocation continues consuming its agency seat during that grace period
+    And after grace only the agency-funded capabilities are removed
+    And creator-owned benefits remain active
+    And no creator data is deleted
+    And the creator receives notices when removal is scheduled, when 3 and 1 days remain, and when access ends
+
   @US5 @BDD-US5-001
   Scenario: Non-owner cannot delete the account
     Given a team member has every delegable permission

@@ -116,7 +116,7 @@ Track product, test, environment, and governance issues affecting feature readin
 
 ## Open Defect Review
 
-The completed US1 and US3 gates introduced no product defects. A US1 regression probe found and corrected a duplicate disabled-owner lookup before checkpoint closure; the 167-fixture parity rerun is Green. PLAN-001 remains an unrelated planning-tooling issue with no release impact on the implemented authorization slices.
+The completed US1, US3, and US4 gates introduced no open product defects. US4 focused TDD (67 tests), scoped ATDD (3/3), and scoped BDD (all three auth-rewrite agency journeys) are Green; the aggregate ATDD run's sole failure is the pre-existing US2 test server's intentionally invalid database endpoint, not an agency defect. A US1 regression probe found and corrected a duplicate disabled-owner lookup before checkpoint closure. PLAN-001 remains an unrelated planning-tooling issue with no release impact on the implemented authorization slices.
 
 | Defect ID | Release Impact            | Required Decision         | Decision Owner        | Due Date                         | Notes                                        |
 | --------- | ------------------------- | ------------------------- | --------------------- | -------------------------------- | -------------------------------------------- |

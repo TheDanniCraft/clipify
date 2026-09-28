@@ -13,9 +13,98 @@ import { executeCutoverWorkflow, runCutoverSmoke, type SmokeChecks } from "../..
 import { scanLegacyConsumers } from "../../../scripts/auth-cutover/legacy-scan";
 import { AccountLifecycleService, type AccountLifecycleRepository, type AccountLifecycleState, type LifecycleActor } from "@/server/account-lifecycle/service";
 import { evaluateDeletionBoundary, recoverDeletion } from "@/server/account-lifecycle/recovery";
+import { AgencyService, createAgencyState } from "@/server/agencies/service";
+import { AgencyAllocationService, createAllocationState } from "@/server/agencies/allocations";
+import { resolveAgencyAccess } from "@/server/agencies/access";
 import { expect, test } from "../support/auth-engine-rewrite";
 
 const { Given, When, Then } = createBdd(test);
+
+const AGENCY_ATDD_NOW = new Date("2026-09-28T12:00:00.000Z");
+
+Given("a Clipify administrator provisioned an Agency Account after custom commercial terms were agreed", async ({ authWorld }) => {
+	const state = createAgencyState();
+	const service = new AgencyService(
+		state,
+		() => AGENCY_ATDD_NOW,
+		() => "agency-atdd",
+	);
+	await service.provision({ actor: { authUserId: "admin-atdd", organizationId: null, role: "platform-admin" }, name: "ATDD Agency", ownerEmail: "owner@example.invalid", commercialReference: "custom-contract" });
+	authWorld.values.set("agencyState", state);
+	authWorld.values.set("agencyService", service);
+});
+
+When("its designated first owner verifies the invited email and accepts the invitation", async ({ authWorld }) => {
+	await (authWorld.values.get("agencyService") as AgencyService).activateFirstOwner({ agencyOrganizationId: "agency-atdd", authUserId: "agency-owner-atdd", verifiedEmail: "owner@example.invalid" });
+});
+
+Then("the person becomes the Agency Account owner", async ({ authWorld }) => {
+	const state = authWorld.values.get("agencyState") as ReturnType<typeof createAgencyState>;
+	expect(state.memberships).toContainEqual(expect.objectContaining({ organizationId: "agency-atdd", authUserId: "agency-owner-atdd", role: "owner" }));
+});
+
+Then("the owner can sign in by email code without connecting Twitch", async ({ authWorld }) => {
+	const state = authWorld.values.get("agencyState") as ReturnType<typeof createAgencyState>;
+	expect(state.accounts[0]).toMatchObject({ status: "active" });
+	expect(state.memberships[0]?.authUserId).toBe("agency-owner-atdd");
+});
+
+Given("an agency requests access to an independent Creator Account with one staff member authorized by an agency role", async ({ authWorld }) => {
+	const state = createAgencyState({ accounts: [{ organizationId: "agency-atdd", name: "ATDD Agency", status: "active", commercialReference: "custom-contract", provisionedBy: "admin-atdd", createdAt: AGENCY_ATDD_NOW, updatedAt: AGENCY_ATDD_NOW }] });
+	const service = new AgencyService(
+		state,
+		() => AGENCY_ATDD_NOW,
+		() => "link-atdd",
+	);
+	await service.proposeLink({ actor: { authUserId: "agency-owner-atdd", organizationId: "agency-atdd", role: "owner" }, creatorOrganizationId: "creator-atdd", permissionCeiling: ["overlay:read", "overlay:delete"] });
+	authWorld.values.set("agencyState", state);
+	authWorld.values.set("agencyService", service);
+	authWorld.values.set("agencyRolePermissions", ["overlay:read", "overlay:delete"]);
+	authWorld.values.set("creatorOwner", "creator-owner-atdd");
+});
+
+When("the creator owner accepts the request with a creator-approved permission set", async ({ authWorld }) => {
+	await (authWorld.values.get("agencyService") as AgencyService).acceptLink({ actor: { authUserId: "creator-owner-atdd", organizationId: "creator-atdd", role: "owner" }, linkId: "link-atdd", permissionCeiling: ["overlay:read"] });
+});
+
+Then("the staff member can manage the creator only through permissions present in both sets", async ({ authWorld }) => {
+	const state = authWorld.values.get("agencyState") as ReturnType<typeof createAgencyState>;
+	expect(resolveAgencyAccess({ membershipActive: true, linkStatus: state.links[0]?.status ?? null, rolePermissions: authWorld.values.get("agencyRolePermissions") as ["overlay:read", "overlay:delete"], permissionCeiling: state.links[0]?.permissionCeiling ?? [] })).toEqual(["overlay:read"]);
+});
+
+Then("the creator owner remains the owner", async ({ authWorld }) => {
+	expect(authWorld.values.get("creatorOwner")).toBe("creator-owner-atdd");
+});
+
+Given("an agency has an available paid creator license and an accepted creator link", async ({ authWorld }) => {
+	const state = createAllocationState({ seatLimit: 1, memberCount: 25, acceptedLinkIds: ["link-atdd"] });
+	authWorld.values.set("allocationState", state);
+	authWorld.values.set(
+		"allocationService",
+		new AgencyAllocationService(
+			state,
+			() => AGENCY_ATDD_NOW,
+			() => "allocation-atdd",
+		),
+	);
+});
+
+When("the agency allocates the license to that creator", async ({ authWorld }) => {
+	await (authWorld.values.get("allocationService") as AgencyAllocationService).allocate({ linkId: "link-atdd", creatorId: "creator-atdd", sourceReference: "custom-contract" });
+});
+
+Then("the creator receives the agency-funded capabilities", async ({ authWorld }) => {
+	expect((authWorld.values.get("allocationService") as AgencyAllocationService).hasAgencyBenefit("creator-atdd")).toBe(true);
+});
+
+Then("creator and agency team members do not consume additional creator licenses", async ({ authWorld }) => {
+	expect((authWorld.values.get("allocationService") as AgencyAllocationService).occupiedSeats()).toBe(1);
+});
+
+Then("the creator receives one transactional allocation notice", async ({ authWorld }) => {
+	const state = authWorld.values.get("allocationState") as ReturnType<typeof createAllocationState>;
+	expect(state.notifications.filter((notice) => notice.type === "granted")).toHaveLength(1);
+});
 
 class AtddBackfillRepository implements BackfillRepository {
 	state: BackfillState = { creators: [], resources: [], subscriptions: [], entitlements: [], authUsers: [], providerAccounts: [], organizations: [], memberships: [], identityLinks: [], anomalies: [] };

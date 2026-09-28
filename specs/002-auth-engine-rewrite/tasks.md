@@ -267,7 +267,7 @@ description: "Dependency-ordered implementation tasks for the Creator Identity a
 - [x] T127 [US5] [TDD] Implement `TDD-US5-001` first for owner read/update/export, subscription read/manage/cancel, non-owner denial, five-minute recent-auth boundaries, paid-through versus immediate choice, authenticated Stripe event ordering/signature, suspension effects, owner-only transitions, and immutable account-deletion audit outcomes in `test/auth-engine-rewrite/integration/account-lifecycle.test.ts`
 - [x] T128 [US5] [GATE] Run `bunx jest test/auth-engine-rewrite/integration/account-lifecycle.test.ts --runInBand`, prove intentional Red, and mark `TDD-US5-001` Red in `specs/002-auth-engine-rewrite/test-traceability.md`
 - [x] T129 [US5] Add `account_deletion_requests` with one nonterminal request, `paid_through|immediate`, `scheduled|suspended|recovered|purge_eligible|purged|cancelled`, actual-suspension-plus-30-days eligibility, actors/times, and redacted Stripe snapshot in `src/db/schema.ts`; defer generated `drizzle/` output to the master-owned migration workflow
-- [ ] T130 [US5] Implement owner/recent-auth account update/export/subscription/deletion transitions, session revocation, overlay/integration pause, agency-allocation release, and authenticated Stripe webhook state in `src/server/account-lifecycle/service.ts`, `src/app/actions/subscription.ts`, and `src/app/payment/webhook/route.ts`
+- [x] T130 [US5] Implement owner/recent-auth account update/export/subscription/deletion transitions, session revocation, overlay/integration pause, agency-allocation release, and authenticated Stripe webhook state in `src/server/account-lifecycle/service.ts`, `src/app/actions/subscription.ts`, and `src/app/payment/webhook/route.ts`
 - [x] T131 [US5] Implement settings UI that defaults to paid-through, offers explicit delete-now consequences, and never delegates account deletion in the repository's combined `src/app/dashboard/settings/page.tsx` surface and authenticated `src/app/dashboard/settings/account/recovery/page.tsx` route
 - [ ] T132 [US5] [GATE] Re-run `TDD-US5-001` and owner/non-owner ATDD/BDD cases Green; record evidence in `specs/002-auth-engine-rewrite/test-traceability.md`
 - [ ] T133 [US5] Refactor lifecycle transitions with compare-and-set semantics while focused suites remain Green in `src/server/account-lifecycle/service.ts`
@@ -294,42 +294,42 @@ description: "Dependency-ordered implementation tasks for the Creator Identity a
 
 ### Scenario definitions and bindings
 
-- [ ] T141 [US4] [ATDD] Add `ATDD-US4-003`, `ATDD-US4-001`, and `ATDD-US4-002` with shared-role rationales to `test/atdd/features/auth-engine-rewrite.feature`
+- [x] T141 [US4] [ATDD] Add `ATDD-US4-003`, `ATDD-US4-001`, and `ATDD-US4-002` with shared-role rationales to `test/atdd/features/auth-engine-rewrite.feature`
 - [ ] T142 [US4] [ATDD] Bind admin provisioning, creator approval, and allocation outcomes through real server/UI boundaries in `test/atdd/steps/auth-engine-rewrite.steps.ts`
-- [ ] T143 [US4] [BDD] Add `BDD-US4-001`, `BDD-US4-003`, and `BDD-US4-002` for revocation, intersection denial, and seven-day grace/data preservation in `test/bdd/features/auth-engine-rewrite.feature`
-- [ ] T144 [US4] [BDD] Bind US4 revocation/intersection/allocation behavior with controlled sessions, clock, entitlements, seats, and mail in `test/bdd/steps/auth-engine-rewrite.steps.ts`
-- [ ] T145 [US4] [GATE] Register all US4 scenario/example rows and shared-role rationales as Planned in `specs/002-auth-engine-rewrite/test-traceability.md`
+- [x] T143 [US4] [BDD] Add `BDD-US4-001`, `BDD-US4-003`, and `BDD-US4-002` for revocation, intersection denial, and seven-day grace/data preservation in `test/bdd/features/auth-engine-rewrite.feature`
+- [x] T144 [US4] [BDD] Bind US4 revocation/intersection/allocation behavior with controlled sessions, clock, entitlements, seats, and mail in `test/bdd/steps/auth-engine-rewrite.steps.ts`
+- [x] T145 [US4] [GATE] Register all US4 scenario/example rows and shared-role rationales in `specs/002-auth-engine-rewrite/test-traceability.md`
 
 ### Slice US4-A — Agency provisioning and creator-owned link lifecycle
 
 - [x] T146 [US4] [TDD] Implement `TDD-US4-001` first for admin-only provisioning, `provisioned|owner_invited|active|suspended|closed`, first-owner email activation, proposed/accepted/revoked links, one non-revoked pair, explicit ceiling validation, owner-only accept/reduce/revoke, no ownership transfer, immediate next-operation revocation, and immutable agency-link audit outcomes in `test/auth-engine-rewrite/integration/agency-links.test.ts`
 - [x] T147 [US4] [GATE] Run `bunx jest test/auth-engine-rewrite/integration/agency-links.test.ts --runInBand`, prove intentional Red, and mark `TDD-US4-001` Red in `specs/002-auth-engine-rewrite/test-traceability.md`
 - [x] T148 [US4] Add `agency_accounts` and `agency_creator_links` with the exact statuses, non-secret commercial reference, provisioner, actors/times, validated ceiling, and uniqueness constraints in `src/db/schema.ts` (generated `drizzle/` artifacts are intentionally master-workflow-owned)
-- [ ] T149 [US4] Implement trusted admin provisioning, first-owner invitation activation, creator-owner link proposal/accept/reduce/revoke, audit intents, and agency-access notification intents in `src/server/agencies/service.ts`
-- [ ] T150 [US4] Implement admin and creator approval UI while labeling public pricing as contact/custom pricing in `src/app/admin/agencies/page.tsx`, `src/app/dashboard/settings/agencies/page.tsx`, and `src/app/components/Pricing/index.tsx`
-- [ ] T151 [US4] [GATE] Re-run `TDD-US4-001` and agency provisioning/link scenarios Green; record evidence in `specs/002-auth-engine-rewrite/test-traceability.md`
-- [ ] T152 [US4] Refactor agency state transitions while immediate-revocation evidence remains Green in `src/server/agencies/service.ts`
+- [x] T149 [US4] Implement trusted admin provisioning, first-owner invitation activation, creator-owner link proposal/accept/reduce/revoke, audit intents, and agency-access notification intents in `src/server/agencies/service.ts`
+- [x] T150 [US4] Implement admin and creator approval UI while labeling public pricing as contact/custom pricing in `src/app/admin/agencies/page.tsx`, `src/app/dashboard/settings/agencies/page.tsx`, and `src/app/components/Pricing/index.tsx`
+- [x] T151 [US4] [GATE] Re-run `TDD-US4-001` and agency provisioning/link scenarios Green; record evidence in `specs/002-auth-engine-rewrite/test-traceability.md`
+- [x] T152 [US4] Refactor agency state transitions while immediate-revocation evidence remains Green in `src/server/agencies/service.ts`
 
 ### Slice US4-B — Live permission intersection
 
 - [x] T153 [US4] [TDD] Implement `TDD-US4-002` first as properties for `activeAgencyRolePermissions ∩ acceptedCreatorLinkCeiling`, absent/revoked membership/link, reduced ceiling, stale sessions, owner/direct independence, every permission class, ownership, entitlement, and denied-mutation immutability in `test/auth-engine-rewrite/property/agency-authorization.test.ts`
 - [x] T154 [US4] [GATE] Run `bunx jest test/auth-engine-rewrite/property/agency-authorization.test.ts --runInBand`, prove intentional Red, and mark `TDD-US4-002` Red in `specs/002-auth-engine-rewrite/test-traceability.md`
-- [ ] T155 [US4] Add agency-path resolution to the central evaluator without persisting effective permissions in sessions in `src/auth/authorize.ts`
+- [x] T155 [US4] Add agency-path resolution to the central evaluator without persisting effective permissions in sessions in `src/auth/authorize.ts`
 - [ ] T156 [US4] Implement agency staff role management and linked-creator context selection without duplicate creator memberships in `src/server/agencies/access.ts` and `src/app/dashboard/agency/page.tsx`
-- [ ] T157 [US4] [GATE] Re-run `TDD-US4-002`, `BDD-US4-001`, and `BDD-US4-003` Green; record matrix evidence in `specs/002-auth-engine-rewrite/test-traceability.md`
-- [ ] T158 [US4] Refactor live intersection queries while property suites remain Green in `src/server/agencies/access.ts`
+- [x] T157 [US4] [GATE] Re-run `TDD-US4-002`, `BDD-US4-001`, and `BDD-US4-003` Green; record matrix evidence in `specs/002-auth-engine-rewrite/test-traceability.md`
+- [x] T158 [US4] Refactor live intersection queries while property suites remain Green in `src/server/agencies/access.ts`
 
 ### Slice US4-C — Creator-seat allocation, entitlement union, and grace
 
 - [x] T159 [US4] [TDD] Implement `TDD-US4-003` first for `active|removal_scheduled|ended|released_by_deletion`, seat availability, linked-creator requirement, members consuming zero seats, active/removal-scheduled consuming one seat, source union, request+7-day boundary, overlapping creator benefits, deletion release/no recovery reclaim, concurrent allocation, immutable allocation audit outcomes, event dedupe, and grant/7/3/1/end notices in `test/auth-engine-rewrite/integration/agency-allocations.test.ts`
 - [x] T160 [US4] [GATE] Run `bunx jest test/auth-engine-rewrite/integration/agency-allocations.test.ts --runInBand`, prove intentional Red, and mark `TDD-US4-003` Red in `specs/002-auth-engine-rewrite/test-traceability.md`
 - [x] T161 [US4] Add `agency_license_allocations` with exact statuses, effective/request/end times, source reference, and concurrency/seat constraints in `src/db/schema.ts` (generated `drizzle/` artifacts are intentionally master-workflow-owned)
-- [ ] T162 [US4] Implement allocation/grace/seat accounting and entitlement-source union without data deletion in `src/server/agencies/allocations.ts` and `src/server/entitlements.ts`
-- [ ] T163 [US4] Implement allocation/removal UI with effective date, occupied-seat grace, exact downgrade effects, and creator/team-member distinction in `src/app/dashboard/agency/allocations/page.tsx`
+- [x] T162 [US4] Implement allocation/grace/seat accounting and entitlement-source union without data deletion in `src/server/agencies/allocations.ts` and `src/server/entitlements.ts`
+- [x] T163 [US4] Implement allocation/removal UI with effective date, occupied-seat grace, exact downgrade effects, and creator/team-member distinction in `src/app/dashboard/agency/allocations/page.tsx`
 - [x] T164 [US4] Implement allocation notification templates for grant, removal scheduled, 3 days, 1 day, and ended in `src/server/notifications/templates/agency-allocation.ts`
-- [ ] T165 [US4] [GATE] Re-run `TDD-US4-003`, all US4 BDD/ATDD scenarios, and seat/data-preservation checks Green; record evidence in `specs/002-auth-engine-rewrite/test-traceability.md`
-- [ ] T166 [US4] Refactor allocation/entitlement scheduling while focused suites remain Green in `src/server/agencies/allocations.ts`
-- [ ] T167 [US4] [GATE] Update US4 artifact statuses, notification counts, seat invariants, defects, risks, and summary in `specs/002-auth-engine-rewrite/test-traceability.md`, `specs/002-auth-engine-rewrite/defect-log.md`, and `specs/002-auth-engine-rewrite/test-summary.md`
+- [x] T165 [US4] [GATE] Re-run `TDD-US4-003`, all US4 BDD/ATDD scenarios, and seat/data-preservation checks Green; record evidence in `specs/002-auth-engine-rewrite/test-traceability.md`
+- [x] T166 [US4] Refactor allocation/entitlement scheduling while focused suites remain Green in `src/server/agencies/allocations.ts`
+- [x] T167 [US4] [GATE] Update US4 artifact statuses, notification counts, seat invariants, defects, risks, and summary in `specs/002-auth-engine-rewrite/test-traceability.md`, `specs/002-auth-engine-rewrite/defect-log.md`, and `specs/002-auth-engine-rewrite/test-summary.md`
 
 **Checkpoint**: US4 is independently testable and never transfers creator ownership or charges human members as creator seats.
 

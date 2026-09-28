@@ -1,6 +1,7 @@
 /* istanbul ignore file */
 "use server";
 
+import * as databaseSchema from "@/db/schema";
 import { entitlementGrantsTable, runnersTable, streamSessionsTable, usersTable } from "@/db/schema";
 import { db } from "@/db/client";
 import { and, asc, eq, exists, gt, inArray, isNull, lt, lte, or, sql } from "drizzle-orm";
@@ -39,6 +40,18 @@ export async function hasActiveEntitlement(userId: string, entitlement: Entitlem
 
 export async function hasActiveProGrant(userId: string, now = new Date()) {
 	return hasActiveEntitlement(userId, PRO_ACCESS, now);
+}
+
+export async function hasActiveAgencyAllocation(userId: string, now = new Date()) {
+	const agencyLicenseAllocationsTable = databaseSchema.agencyLicenseAllocationsTable as typeof databaseSchema.agencyLicenseAllocationsTable | undefined;
+	if (!agencyLicenseAllocationsTable) return false;
+	const rows = await db
+		.select({ id: agencyLicenseAllocationsTable.id })
+		.from(agencyLicenseAllocationsTable)
+		.where(and(eq(agencyLicenseAllocationsTable.creatorId, userId), lte(agencyLicenseAllocationsTable.effectiveAt, now), inArray(agencyLicenseAllocationsTable.status, ["active", "removal_scheduled"]), or(isNull(agencyLicenseAllocationsTable.endsAt), gt(agencyLicenseAllocationsTable.endsAt, now))))
+		.limit(1)
+		.execute();
+	return rows.length > 0;
 }
 
 export async function createProAccessGrant(input: CreateGrantInput) {
@@ -162,6 +175,7 @@ export async function resolveUserEntitlements(user: EntitlementUserRef): Promise
 			trialEndsAt: null,
 			hasActiveGrant: false,
 			source: "billing",
+			sources: ["billing"],
 		};
 	}
 
@@ -191,6 +205,22 @@ export async function resolveUserEntitlements(user: EntitlementUserRef): Promise
 			hasActiveGrant: true,
 			grantSource: grant.source,
 			source: isReverseTrialGrant ? "reverse_trial" : "grant",
+			sources: [isReverseTrialGrant ? "reverse_trial" : "grant"],
+		};
+	}
+
+	const agencyAllocationActive = await hasActiveAgencyAllocation(user.id, now);
+	if (agencyAllocationActive) {
+		return {
+			effectivePlan: "pro",
+			proAccess: true,
+			runnerAccess: await hasActiveEntitlement(user.id, Entitlement.RunnerAccess, now),
+			isBillingPro: false,
+			reverseTrialActive: false,
+			trialEndsAt: null,
+			hasActiveGrant: false,
+			source: "agency",
+			sources: ["agency"],
 		};
 	}
 
@@ -224,6 +254,7 @@ export async function resolveUserEntitlementsForUsers(users: EntitlementUserRef[
 				trialEndsAt: null,
 				hasActiveGrant: false,
 				source: "billing",
+				sources: ["billing"],
 			});
 		}
 	}
@@ -265,6 +296,29 @@ export async function resolveUserEntitlementsForUsers(users: EntitlementUserRef[
 		grantsForUser.push(grant);
 	}
 
+	const globalGrants = grantByUserId.get("__global__") ?? [];
+	const freeUsersWithoutGrant = freeUsers.filter((user) => (grantByUserId.get(user.id)?.length ?? 0) === 0 && globalGrants.length === 0);
+	const agencyLicenseAllocationsTable = databaseSchema.agencyLicenseAllocationsTable as typeof databaseSchema.agencyLicenseAllocationsTable | undefined;
+	const agencyAllocations =
+		agencyLicenseAllocationsTable && freeUsersWithoutGrant.length > 0
+			? await db
+					.select({ creatorId: agencyLicenseAllocationsTable.creatorId })
+					.from(agencyLicenseAllocationsTable)
+					.where(
+						and(
+							inArray(
+								agencyLicenseAllocationsTable.creatorId,
+								freeUsersWithoutGrant.map((user) => user.id),
+							),
+							lte(agencyLicenseAllocationsTable.effectiveAt, now),
+							inArray(agencyLicenseAllocationsTable.status, ["active", "removal_scheduled"]),
+							or(isNull(agencyLicenseAllocationsTable.endsAt), gt(agencyLicenseAllocationsTable.endsAt, now)),
+						),
+					)
+					.execute()
+			: [];
+	const agencyCreatorIds = new Set(agencyAllocations.map((allocation) => allocation.creatorId));
+
 	for (const user of freeUsers) {
 		const grant = pickBestGrant([...(grantByUserId.get(user.id) ?? []), ...(grantByUserId.get("__global__") ?? [])]);
 		if (grant) {
@@ -279,6 +333,22 @@ export async function resolveUserEntitlementsForUsers(users: EntitlementUserRef[
 				hasActiveGrant: true,
 				grantSource: grant.source,
 				source: isReverseTrialGrant ? "reverse_trial" : "grant",
+				sources: [isReverseTrialGrant ? "reverse_trial" : "grant"],
+			});
+			continue;
+		}
+
+		if (agencyCreatorIds.has(user.id)) {
+			result.set(user.id, {
+				effectivePlan: "pro",
+				proAccess: true,
+				runnerAccess: await hasActiveEntitlement(user.id, Entitlement.RunnerAccess, now),
+				isBillingPro: false,
+				reverseTrialActive: false,
+				trialEndsAt: null,
+				hasActiveGrant: false,
+				source: "agency",
+				sources: ["agency"],
 			});
 			continue;
 		}

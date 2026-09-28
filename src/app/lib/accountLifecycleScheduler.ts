@@ -1,4 +1,5 @@
 import { suspendDueDatabaseAccountDeletions } from "@/server/account-lifecycle/database";
+import { endDueDatabaseAgencyAllocations } from "@/server/agencies/database";
 import { captureUnexpectedError } from "@lib/sentryServer";
 
 declare global {
@@ -16,7 +17,7 @@ export function startAccountLifecycleScheduler() {
 		if (globalThis.__accountLifecycleSchedulerRunning) return;
 		globalThis.__accountLifecycleSchedulerRunning = true;
 		try {
-			await suspendDueDatabaseAccountDeletions();
+			await Promise.all([suspendDueDatabaseAccountDeletions(), endDueDatabaseAgencyAllocations()]);
 		} catch (error) {
 			captureUnexpectedError(error, "account-lifecycle-scheduler", "suspend-due-deletions");
 			console.error("[account-lifecycle] scheduler_run_failed", error);

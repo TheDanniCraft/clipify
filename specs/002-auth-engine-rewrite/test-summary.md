@@ -9,16 +9,26 @@
 
 ## Executive Summary
 
-| Item                         | Result                                                                                                                   |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| Overall Test Status          | In progress — US1, US3, and US5 core Green; US2/US6 partial; US4 domain core Green with production/UI bindings remaining |
-| Release Recommendation       | No-Go                                                                                                                    |
-| Scope Covered                | Planned coverage for US1–US6, FR-001–FR-031, SC-001–SC-012, EC-001–EC-015                                                |
-| Primary Evidence Location    | [test-traceability.md](./test-traceability.md) and story evidence below                                                  |
-| Open Critical / High Defects | 0                                                                                                                        |
-| Approved Exceptions          | 0                                                                                                                        |
+| Item                         | Result                                                                                          |
+| ---------------------------- | ----------------------------------------------------------------------------------------------- |
+| Overall Test Status          | In progress — US1, US3, US4, and US5 core Green; US2/US6 partial and final release gates remain |
+| Release Recommendation       | No-Go                                                                                           |
+| Scope Covered                | Planned coverage for US1–US6, FR-001–FR-031, SC-001–SC-012, EC-001–EC-015                       |
+| Primary Evidence Location    | [test-traceability.md](./test-traceability.md) and story evidence below                         |
+| Open Critical / High Defects | 0                                                                                               |
+| Approved Exceptions          | 0                                                                                               |
 
-US1 continuity and US3 authorization are implemented and independently Green. US2 identity, US6 cutover tooling, and US5 non-destructive downgrade have partial Green evidence; agency, full account lifecycle, final cutover rehearsal, and release gates remain open, so the feature is not releasable. The only open issue is a low-severity SpecKit template-resolution problem with no product impact; two implementation test-integration defects are verified closed.
+US1 continuity, US3 authorization, US4 agency management, and the US5 lifecycle core are independently Green. US2 identity, US6 cutover tooling, final production-shaped rehearsal, coverage, performance, and release gates remain open, so the feature is not yet releasable.
+
+## US4 Agency Evidence
+
+| Date       | Command                                             | Result  | Evidence summary                                                                                                                                                |
+| ---------- | --------------------------------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-09-28 | Three focused US4 Jest suites                       | Green   | 3 suites, 67 tests; provisioning/link state, all-permission intersection, seat/grace/union/deletion release, and five deduplicated notice boundaries            |
+| 2026-09-28 | `bun run test:atdd -- --grep "@US4"`                | Green   | 3/3 agency acceptance journeys: owner activation, creator-approved access, and paid creator allocation                                                          |
+| 2026-09-28 | `bun run test:bdd -- --grep "@US4"`                 | Green   | 11/11 tagged scenarios; all 3 auth-rewrite agency journeys plus 8 existing legal US4 scenarios                                                                  |
+| 2026-09-28 | `bun run test:atdd`                                 | Partial | 19/20 passed; only the pre-existing US2 Twitch route failed because the test server used its intentional `127.0.0.1:1` database endpoint; every US4 case passed |
+| 2026-09-28 | Typecheck and focused entitlement/agency regression | Green   | Production database/actions/UI/scheduler and agency-funded entitlement integration typecheck; 4 suites/85 tests pass                                            |
 
 ## Foundational Harness Evidence
 

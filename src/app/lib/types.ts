@@ -225,7 +225,7 @@ export enum BillingProduct {
 }
 
 export type EffectivePlan = "free" | "pro";
-export type EntitlementSource = "billing" | "reverse_trial" | "grant";
+export type EntitlementSource = "billing" | "reverse_trial" | "grant" | "agency";
 export type UserEntitlements = {
 	effectivePlan: EffectivePlan;
 	proAccess: boolean;
@@ -236,6 +236,7 @@ export type UserEntitlements = {
 	hasActiveGrant: boolean;
 	grantSource?: EntitlementGrantSource;
 	source: EntitlementSource;
+	sources?: EntitlementSource[];
 };
 
 export type DbUser = InferSelectModel<typeof usersTable>;

@@ -13,9 +13,14 @@ import { executeCutoverWorkflow, type CutoverFailurePoint } from "../../../scrip
 import { AccountLifecycleService, DELETION_RECOVERY_MS, type AccountLifecycleRepository, type AccountLifecycleState, type LifecycleActor } from "@/server/account-lifecycle/service";
 import { buildDeletionNotificationIntents, renderAccountLifecycleNotification, type DeletionNotificationBoundary } from "@/server/notifications/templates/account-lifecycle";
 import { DeterministicMailAdapter } from "../../support/auth-engine-rewrite/mail";
+import { AgencyService, createAgencyState } from "@/server/agencies/service";
+import { AgencyAllocationService, createAllocationState } from "@/server/agencies/allocations";
+import { resolveAgencyAccess } from "@/server/agencies/access";
 import { expect, test } from "../support/auth-engine-rewrite";
 
 const { Given, When, Then } = createBdd(test);
+
+const AGENCY_BDD_NOW = new Date("2026-09-28T12:00:00.000Z");
 
 const twitch = {
 	subject: "twitch-bdd-0001",
@@ -301,6 +306,109 @@ Then("the notice states the erasure date and requires normal sign-in for recover
 	expect(message.body).toContain(BDD_PURGE_AT.toISOString());
 	expect(message.body).toContain("sign in normally");
 	expect(message.body).not.toMatch(/invoice|receipt|payment failed|bearer|token|otp|secret/i);
+});
+
+Given("an agency has active access to a Creator Account", async ({ authWorld }) => {
+	const state = createAgencyState({
+		accounts: [{ organizationId: "agency-bdd", name: "BDD Agency", status: "active", commercialReference: null, provisionedBy: "admin-bdd", createdAt: AGENCY_BDD_NOW, updatedAt: AGENCY_BDD_NOW }],
+		links: [{ id: "link-bdd", agencyOrganizationId: "agency-bdd", creatorOrganizationId: "creator-bdd", status: "accepted", permissionCeiling: ["overlay:read"], proposedBy: "agency-owner-bdd", proposedAt: AGENCY_BDD_NOW, acceptedBy: "creator-owner-bdd", acceptedAt: AGENCY_BDD_NOW, revokedBy: null, revokedAt: null, updatedAt: AGENCY_BDD_NOW }],
+		memberships: [{ organizationId: "creator-bdd", authUserId: "direct-member-bdd", role: "member", createdAt: AGENCY_BDD_NOW }],
+	});
+	authWorld.values.set("agencyBddState", state);
+	authWorld.values.set(
+		"agencyBddService",
+		new AgencyService(
+			state,
+			() => AGENCY_BDD_NOW,
+			() => "unused",
+		),
+	);
+});
+
+When("the creator owner revokes the link", async ({ authWorld }) => {
+	await (authWorld.values.get("agencyBddService") as AgencyService).revokeLink({ actor: { authUserId: "creator-owner-bdd", organizationId: "creator-bdd", role: "owner" }, linkId: "link-bdd" });
+});
+
+Then("agency-derived access ends immediately", async ({ authWorld }) => {
+	const state = authWorld.values.get("agencyBddState") as ReturnType<typeof createAgencyState>;
+	expect(resolveAgencyAccess({ membershipActive: true, linkStatus: state.links[0]?.status ?? null, rolePermissions: ["overlay:read"], permissionCeiling: state.links[0]?.permissionCeiling ?? [] })).toEqual([]);
+});
+
+Then("direct creator-team memberships remain unchanged", async ({ authWorld }) => {
+	const state = authWorld.values.get("agencyBddState") as ReturnType<typeof createAgencyState>;
+	expect(state.memberships).toContainEqual(expect.objectContaining({ organizationId: "creator-bdd", authUserId: "direct-member-bdd" }));
+});
+
+Given("an agency staff role permits overlay deletion but the creator-approved agency permission set does not", async ({ authWorld }) => {
+	authWorld.values.set("agencyDeletionPermissions", resolveAgencyAccess({ membershipActive: true, linkStatus: "accepted", rolePermissions: ["overlay:delete"], permissionCeiling: ["overlay:read"] }));
+	authWorld.values.set("agencyOverlay", { id: "overlay-bdd", ownerId: "creator-bdd" });
+});
+
+When("that staff member attempts to delete the creator's overlay", async ({ authWorld }) => {
+	const decision = authorize({ session: { userId: "agency-staff-bdd", authenticatedAt: AGENCY_BDD_NOW }, creatorId: "creator-bdd", lifecycle: "active", resourceOwnerId: "creator-bdd", permission: "overlay:delete", access: { kind: "agency", permissions: authWorld.values.get("agencyDeletionPermissions") as [], creatorCeiling: ["overlay:read"] }, entitlements: [], now: AGENCY_BDD_NOW });
+	authWorld.values.set("agencyDeletionDecision", decision);
+});
+
+Then("the server rejects the operation", async ({ authWorld }) => {
+	expect(authWorld.values.get("agencyDeletionDecision")).toMatchObject({ allowed: false, code: "PERMISSION_DENIED" });
+});
+
+Then("the overlay remains unchanged", async ({ authWorld }) => {
+	expect(authWorld.values.get("agencyOverlay")).toEqual({ id: "overlay-bdd", ownerId: "creator-bdd" });
+});
+
+Given("a creator has both creator-owned benefits and an agency-funded allocation", async ({ authWorld }) => {
+	const state = createAllocationState({
+		seatLimit: 1,
+		acceptedLinkIds: ["link-bdd"],
+		creatorOwnedBenefits: { "creator-bdd": ["analytics"] },
+		allocations: [{ id: "allocation-bdd", linkId: "link-bdd", creatorId: "creator-bdd", status: "active", effectiveAt: AGENCY_BDD_NOW, removalRequestedAt: null, endsAt: null, sourceReference: "custom-contract", createdAt: AGENCY_BDD_NOW, updatedAt: AGENCY_BDD_NOW }],
+	});
+	let now = AGENCY_BDD_NOW;
+	authWorld.values.set("agencyAllocationClock", { get: () => now, set: (value: Date) => (now = value) });
+	authWorld.values.set("agencyAllocationState", state);
+	authWorld.values.set(
+		"agencyAllocationService",
+		new AgencyAllocationService(
+			state,
+			() => now,
+			() => "unused",
+		),
+	);
+});
+
+When("the agency schedules the allocation for removal", async ({ authWorld }) => {
+	await (authWorld.values.get("agencyAllocationService") as AgencyAllocationService).scheduleRemoval("allocation-bdd");
+});
+
+Then("the creator keeps the agency-funded capabilities for seven days", async ({ authWorld }) => {
+	expect((authWorld.values.get("agencyAllocationService") as AgencyAllocationService).hasAgencyBenefit("creator-bdd")).toBe(true);
+});
+
+Then("the allocation continues consuming its agency seat during that grace period", async ({ authWorld }) => {
+	expect((authWorld.values.get("agencyAllocationService") as AgencyAllocationService).occupiedSeats()).toBe(1);
+});
+
+Then("after grace only the agency-funded capabilities are removed", async ({ authWorld }) => {
+	const clock = authWorld.values.get("agencyAllocationClock") as { set(value: Date): void };
+	clock.set(new Date(AGENCY_BDD_NOW.getTime() + 7 * 24 * 60 * 60 * 1000));
+	const service = authWorld.values.get("agencyAllocationService") as AgencyAllocationService;
+	await service.endDueAllocations();
+	expect(service.hasAgencyBenefit("creator-bdd")).toBe(false);
+});
+
+Then("creator-owned benefits remain active", async ({ authWorld }) => {
+	expect((authWorld.values.get("agencyAllocationService") as AgencyAllocationService).effectiveBenefits("creator-bdd")).toEqual(new Set(["analytics"]));
+});
+
+Then("no creator data is deleted", async ({ authWorld }) => {
+	const state = authWorld.values.get("agencyAllocationState") as ReturnType<typeof createAllocationState>;
+	expect(state.deletedCreatorIds).toEqual([]);
+});
+
+Then("the creator receives notices when removal is scheduled, when 3 and 1 days remain, and when access ends", async ({ authWorld }) => {
+	const state = authWorld.values.get("agencyAllocationState") as ReturnType<typeof createAllocationState>;
+	expect(state.notifications.map((notice) => notice.type)).toEqual(["removal-scheduled", "removal-3d", "removal-1d", "ended"]);
 });
 
 const cutoverCheckpoint: Record<string, CutoverFailurePoint> = {
