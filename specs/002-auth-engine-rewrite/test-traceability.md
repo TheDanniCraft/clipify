@@ -201,20 +201,21 @@ All paths are planned. ATDD artifacts that also prove BDD behavior are owned onl
 
 US3 uses exhaustive TDD over every delegable permission. BDD samples the sensitive overlay-delete denial explicitly, while invitation, membership, role, agency-link, allocation, sensitive-integration, and account-deletion actions each retain explicit positive and negative audit examples; no sensitive-action class relies only on random sampling.
 
-| User Story | Practice | Decision | Scenario Evidence ID(s)           | N/A Rationale | Alternative Evidence                      |
-| ---------- | -------- | -------- | --------------------------------- | ------------- | ----------------------------------------- |
-| US1        | BDD      | Required | ATDD-US1-001–003                  |               | Shared visible release outcomes           |
-| US1        | ATDD     | Required | ATDD-US1-001–003                  |               |                                           |
-| US2        | BDD      | Required | ATDD-US2-001, BDD-US2-001–003     |               |                                           |
-| US2        | ATDD     | Required | ATDD-US2-001                      |               |                                           |
-| US3        | BDD      | Required | ATDD-US3-001, BDD-US3-001–005     |               |                                           |
-| US3        | ATDD     | Required | ATDD-US3-001                      |               |                                           |
-| US4        | BDD      | Required | ATDD-US4-001–003, BDD-US4-001–003 | Green         | 3/3 dedicated business-rule journeys      |
-| US4        | ATDD     | Required | ATDD-US4-001–003                  | Green         | 3/3 stakeholder acceptance journeys       |
-| US5        | BDD      | Required | ATDD-US5-001–004, BDD-US5-001–002 | Green         | 7/7 denial and notice examples            |
-| US5        | ATDD     | Required | ATDD-US5-001–004                  | Green         | 8/8 owner lifecycle journeys              |
-| US6        | BDD      | Required | ATDD-US6-001–002, BDD-US6-001–003 | Green         | 10/10 scenarios; every checkpoint covered |
-| US6        | ATDD     | Required | ATDD-US6-001–002                  | Green         | 2/2 operator journeys passed              |
+| User Story  | Practice   | Decision | Scenario Evidence ID(s)                   | N/A Rationale | Alternative Evidence                                                                                               |
+| ----------- | ---------- | -------- | ----------------------------------------- | ------------- | ------------------------------------------------------------------------------------------------------------------ |
+| US1         | BDD        | Required | ATDD-US1-001–003                          |               | Shared visible release outcomes                                                                                    |
+| US1         | ATDD       | Required | ATDD-US1-001–003                          |               |                                                                                                                    |
+| US2         | BDD        | Required | ATDD-US2-001, BDD-US2-001–003             |               |                                                                                                                    |
+| US2         | ATDD       | Required | ATDD-US2-001                              |               |                                                                                                                    |
+| US3         | BDD        | Required | ATDD-US3-001, BDD-US3-001–005             |               |                                                                                                                    |
+| US3         | ATDD       | Required | ATDD-US3-001                              |               |                                                                                                                    |
+| US4         | BDD        | Required | ATDD-US4-001–003, BDD-US4-001–003         | Green         | 3/3 dedicated business-rule journeys                                                                               |
+| US4         | ATDD       | Required | ATDD-US4-001–003                          | Green         | 3/3 stakeholder acceptance journeys                                                                                |
+| US5         | BDD        | Required | ATDD-US5-001–004, BDD-US5-001–002         | Green         | 7/7 denial and notice examples                                                                                     |
+| US5         | ATDD       | Required | ATDD-US5-001–004                          | Green         | 8/8 owner lifecycle journeys                                                                                       |
+| Cross-story | Acceptance | Required | Sign-in, team, agency, lifecycle, overlay | Green         | 4/4 real Next.js Chromium smoke journeys using a revocable Better Auth database session and dev/CI fixture cleanup |
+| US6         | BDD        | Required | ATDD-US6-001–002, BDD-US6-001–003         | Green         | 10/10 scenarios; every checkpoint covered                                                                          |
+| US6         | ATDD       | Required | ATDD-US6-001–002                          | Green         | 2/2 operator journeys passed                                                                                       |
 
 ## Quality Gate Results
 

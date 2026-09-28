@@ -78,13 +78,17 @@ export default defineConfig({
 		timeout: 120_000,
 		env: {
 			APP_ENV: "test",
-			DATABASE_URL: "postgresql://clipify_e2e:clipify_e2e@127.0.0.1:1/clipify_e2e",
+			// CI supplies an isolated database directly. Local authenticated acceptance
+			// runs may opt into the disposable Infisical dev database; the unreachable
+			// fallback keeps public/browser-only suites from touching any database.
+			DATABASE_URL: process.env.DATABASE_URL ?? "postgresql://clipify_e2e:clipify_e2e@127.0.0.1:1/clipify_e2e",
 			DISABLE_BACKGROUND_JOBS: "true",
 			E2E_TEST_MODE: "true",
 			ENCRYPTION_SECRET: "clipify-e2e-encryption-secret-not-for-production",
 			JWT_SECRET: "clipify-e2e-jwt-secret-not-for-production",
 			NEXT_PUBLIC_BASE_URL: baseURL,
 			NEXT_PUBLIC_PLAUSIBLE_SCRIPT_NAME: "clipify-e2e",
+			NODE_OPTIONS: process.env.NODE_OPTIONS ?? "--max-old-space-size=6144",
 			RUNNER_ARTIFACT_SOURCE: "local",
 			SENTRY_AUTH_TOKEN: "",
 			SENTRY_DSN: "",

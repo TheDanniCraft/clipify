@@ -1,0 +1,89 @@
+/* istanbul ignore file -- exercised only by the real Playwright server against an isolated test database. */
+import { createHmac, randomUUID } from "node:crypto";
+import { NextResponse } from "next/server";
+import { and, eq, inArray, like } from "drizzle-orm";
+import { auth } from "@/auth/config";
+import { db } from "@/db/client";
+import { member, organization, user as authUser } from "@/db/auth-schema";
+import { accountDeletionRequestsTable, agencyAccountsTable, agencyCreatorLinksTable, creatorAccountsTable, creatorIdentityLinksTable, overlaysTable, usersTable } from "@/db/schema";
+import { OverlayType, Plan, Role, StatusOptions } from "@types";
+
+const FIXTURE_AUTHORIZATION = "Bearer clipify-playwright-auth-fixture";
+
+type FixtureContext = "creator" | "agency";
+
+function fixtureRequestAllowed(request: Request) {
+	if (process.env.APP_ENV !== "test" || process.env.E2E_TEST_MODE !== "true") return false;
+	const url = new URL(request.url);
+	return (url.hostname === "127.0.0.1" || url.hostname === "localhost") && request.headers.get("authorization") === FIXTURE_AUTHORIZATION;
+}
+
+function signedCookieValue(value: string, secret: string) {
+	return `${value}.${createHmac("sha256", secret).update(value).digest("base64")}`;
+}
+
+export async function POST(request: Request) {
+	if (!fixtureRequestAllowed(request)) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
+	const body = (await request.json().catch(() => ({}))) as { activeContext?: FixtureContext };
+	const activeContext: FixtureContext = body.activeContext === "agency" ? "agency" : "creator";
+	const fixtureId = randomUUID();
+	const authUserId = `e2e-auth-${fixtureId}`;
+	const creatorId = `e2e-creator-${fixtureId}`;
+	const creatorOrganizationId = `e2e-creator-org-${fixtureId}`;
+	const agencyOrganizationId = `e2e-agency-org-${fixtureId}`;
+	const overlayId = randomUUID();
+	const deletionRequestId = randomUUID();
+	const agencyLinkId = randomUUID();
+	const now = new Date();
+	const purgeEligibleAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+	await db.transaction(async (tx) => {
+		await tx.insert(authUser).values({ id: authUserId, name: "Clipify E2E Owner", email: `e2e-${fixtureId}@example.invalid`, emailVerified: true, createdAt: now, updatedAt: now });
+		await tx.insert(usersTable).values({ id: creatorId, email: `e2e-${fixtureId}@example.invalid`, username: `e2e_${fixtureId.replaceAll("-", "").slice(0, 12)}`, avatar: "https://example.invalid/e2e-avatar.png", role: Role.User, plan: Plan.Pro, createdAt: now, updatedAt: now, lastLogin: now });
+		await tx.insert(organization).values([
+			{ id: creatorOrganizationId, name: "E2E Creator Account", slug: `e2e-creator-${fixtureId}`, createdAt: now, metadata: JSON.stringify({ accountType: "creator" }) },
+			{ id: agencyOrganizationId, name: "E2E Agency Account", slug: `e2e-agency-${fixtureId}`, createdAt: now, metadata: JSON.stringify({ accountType: "agency" }) },
+		]);
+		await tx.insert(member).values([
+			{ id: `e2e-creator-member-${fixtureId}`, organizationId: creatorOrganizationId, userId: authUserId, role: "owner", createdAt: now },
+			{ id: `e2e-agency-member-${fixtureId}`, organizationId: agencyOrganizationId, userId: authUserId, role: "owner", createdAt: now },
+		]);
+		await tx.insert(creatorAccountsTable).values({ organizationId: creatorOrganizationId, creatorId, status: "active", createdAt: now, updatedAt: now });
+		await tx.insert(creatorIdentityLinksTable).values({ creatorId, authUserId, source: "admin_repair", createdAt: now, updatedAt: now });
+		await tx.insert(agencyAccountsTable).values({ organizationId: agencyOrganizationId, status: "active", commercialReference: "e2e-commercial-reference", creatorSeatLimit: 2, provisionedBy: authUserId, createdAt: now, updatedAt: now });
+		await tx.insert(agencyCreatorLinksTable).values({ id: agencyLinkId, agencyOrganizationId, creatorOrganizationId, status: "accepted", permissionCeiling: ["overlay:read", "analytics:read"], proposedBy: authUserId, proposedAt: now, acceptedBy: authUserId, acceptedAt: now, createdAt: now, updatedAt: now });
+		await tx.insert(accountDeletionRequestsTable).values({ id: deletionRequestId, organizationId: creatorOrganizationId, choice: "immediate", status: "suspended", requestedBy: authUserId, requestedAt: now, suspensionAt: now, suspendedAt: now, purgeEligibleAt, stripeSnapshot: {}, version: 1, createdAt: now, updatedAt: now });
+		await tx.insert(overlaysTable).values({ id: overlayId, ownerId: creatorId, secret: `e2e-secret-${fixtureId}`, name: "E2E continuity overlay", status: StatusOptions.Paused, type: OverlayType.All, createdAt: now, updatedAt: now });
+	});
+
+	const context = await auth.$context;
+	if (typeof context.secret !== "string") throw new Error("E2E fixture requires a string Better Auth secret");
+	const activeOrganizationId = activeContext === "agency" ? agencyOrganizationId : creatorOrganizationId;
+	const session = await context.internalAdapter.createSession(authUserId, false, { activeOrganizationId }, true);
+	if (!session) throw new Error("E2E session creation failed");
+
+	return NextResponse.json({
+		fixture: { authUserId, creatorId, creatorOrganizationId, agencyOrganizationId, overlayId, overlaySecret: `e2e-secret-${fixtureId}` },
+		cookie: { name: context.authCookies.sessionToken.name, value: signedCookieValue(session.token, context.secret), domain: "127.0.0.1", path: "/", httpOnly: true, secure: false, sameSite: "Lax" as const },
+	});
+}
+
+export async function DELETE(request: Request) {
+	if (!fixtureRequestAllowed(request)) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
+	const body = (await request.json().catch(() => ({}))) as { authUserId?: string; creatorId?: string; organizationIds?: string[]; cleanupAll?: boolean };
+	if (body.cleanupAll) {
+		await db.transaction(async (tx) => {
+			await tx.delete(organization).where(like(organization.id, "e2e-%"));
+			await tx.delete(usersTable).where(like(usersTable.id, "e2e-creator-%"));
+			await tx.delete(authUser).where(like(authUser.id, "e2e-auth-%"));
+		});
+		return new NextResponse(null, { status: 204 });
+	}
+	if (!body.authUserId?.startsWith("e2e-auth-") || !body.creatorId?.startsWith("e2e-creator-") || !body.organizationIds?.length || !body.organizationIds.every((id) => id.startsWith("e2e-"))) return NextResponse.json({ error: "INVALID_FIXTURE" }, { status: 400 });
+	await db.transaction(async (tx) => {
+		await tx.delete(organization).where(inArray(organization.id, body.organizationIds!));
+		await tx.delete(usersTable).where(eq(usersTable.id, body.creatorId!));
+		await tx.delete(authUser).where(and(eq(authUser.id, body.authUserId!), eq(authUser.emailVerified, true)));
+	});
+	return new NextResponse(null, { status: 204 });
+}

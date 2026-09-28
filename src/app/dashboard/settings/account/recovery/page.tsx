@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import { Button, Card } from "@heroui/react";
 import DashboardNavbar from "@components/dashboardNavbar";
 import { getAuthActorContext } from "@/auth/session";
 import { getAccountDeletionOverview, recoverAccountDeletion } from "@actions/subscription";
@@ -20,12 +19,12 @@ export default async function AccountRecoveryPage() {
 
 	return (
 		<DashboardNavbar user={user} title='Recover account' tagline='Cancel deletion during the 30-day recovery period'>
-			<Card className='mt-4'>
-				<Card.Header>
-					<p className='text-xl font-semibold'>Account suspended pending deletion</p>
+			<section className='mt-4 rounded-xl border border-default bg-surface p-6'>
+				<header>
+					<h2 className='text-xl font-semibold'>Account suspended pending deletion</h2>
 					<p className='text-sm text-muted'>Your resources are retained. Recovery restores dashboard, overlay, and integration access, but does not restart billing or reclaim an agency allocation.</p>
-				</Card.Header>
-				<Card.Content className='space-y-4'>
+				</header>
+				<div className='mt-4 space-y-4'>
 					<div className='rounded-xl border border-default/60 bg-surface-secondary p-4 text-sm'>
 						<p>
 							Deletion choice: <strong>{request.choice === "paid_through" ? "after paid access" : "immediate"}</strong>
@@ -36,12 +35,12 @@ export default async function AccountRecoveryPage() {
 					</div>
 					<p className='text-sm'>For security, recovery requires a normal sign-in and identity confirmation within the last five minutes. The recovery link itself never signs you in.</p>
 					<form action={recover}>
-						<Button type='submit' variant='primary'>
+						<button type='submit' className='rounded-lg bg-accent px-4 py-2 font-medium text-accent-foreground'>
 							Recover my account
-						</Button>
+						</button>
 					</form>
-				</Card.Content>
-			</Card>
+				</div>
+			</section>
 		</DashboardNavbar>
 	);
 }

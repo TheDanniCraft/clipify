@@ -20,6 +20,8 @@
 
 US1 continuity, US3 authorization, US4 agency management, the US5 lifecycle core, and the deterministic performance gate are independently Green. US2 identity, US6 cutover tooling, final production-shaped rehearsal, coverage, and release gates remain open, so the feature is not yet releasable.
 
+The authenticated Chromium smoke harness uses uniquely prefixed, automatically cleaned rows in the disposable Infisical `dev` database for local runs (or the CI-supplied isolated database). It creates real revocable Better Auth sessions and signed HTTP-only cookies; the fixture route is unavailable unless both `APP_ENV=test` and `E2E_TEST_MODE=true` on loopback with the fixture bearer token.
+
 ## US4 Agency Evidence
 
 | Date       | Command                                             | Result  | Evidence summary                                                                                                                                                |

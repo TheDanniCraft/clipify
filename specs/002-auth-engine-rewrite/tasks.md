@@ -344,7 +344,7 @@ description: "Dependency-ordered implementation tasks for the Creator Identity a
 - [x] T170 Migrate the smallest remaining protected-boundary batch to `authorize()` in `src/app/actions/` and `src/app/api/` without changing unrelated behavior
 - [x] T171 [GATE] Re-run `TDD-US3-004` Green and record boundary and sensitive-integration audit coverage in `specs/002-auth-engine-rewrite/test-traceability.md`
 - [x] T172 Refactor shared protected-boundary adapters while the contract file remains Green in `src/auth/authorize.ts`
-- [ ] T173 [P] Add non-duplicative Chromium smoke coverage for sign-in, team, agency, lifecycle, and overlay continuity in `test/acceptance/auth-engine-rewrite.spec.ts`
+- [x] T173 [P] Add non-duplicative Chromium smoke coverage for sign-in, team, agency, lifecycle, and overlay continuity in `test/acceptance/auth-engine-rewrite.spec.ts`
 - [x] T174 [P] Update security/privacy inventory for sessions, OAuth credentials, OTPs, passkeys, notification data, audit retention, and deletion processing in `test/compliance/inventory-audit.spec.ts`
 - [x] T175 [GATE] Run `bunx jest test/auth-engine-rewrite --runInBand` and `bun run test`; require 100% pass with no skipped required test and record results in `specs/002-auth-engine-rewrite/test-traceability.md`
 - [ ] T176 [GATE] Run `bun run test:atdd`, `bun run test:bdd`, `bun run test:acceptance`, and `bun run test:e2e`; require every mapped example and 100% overlay fixture parity and record reports in `specs/002-auth-engine-rewrite/test-traceability.md`

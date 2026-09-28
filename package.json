@@ -28,7 +28,7 @@
 		"test:auth-performance": "bun scripts/auth-performance-check.ts",
 		"test:watch": "jest --watch",
 		"test:coverage": "jest --coverage --runInBand",
-		"test:acceptance": "playwright test --project=acceptance-chromium",
+		"test:acceptance": "playwright test --project=acceptance-chromium --workers=1",
 		"test:atdd": "bddgen && playwright test --project=atdd-chromium",
 		"test:bdd": "bddgen && playwright test --project=bdd-chromium",
 		"test:compliance": "jest --runInBand test/compliance/inventory-audit.test.ts && playwright test --project=compliance-chromium",
