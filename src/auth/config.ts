@@ -96,7 +96,7 @@ export const auth = betterAuth({
 	],
 });
 
-// New Twitch-account provisioning is intentionally not claimed here. Better
-// Auth runs database `after` hooks only after its adapter transaction commits,
-// so atomic creator/organization/owner creation requires the separately
-// reviewed PostgreSQL trigger tracked as AUTH-016 before production cutover.
+// Better Auth runs database `after` hooks only after its adapter transaction
+// commits. The cutover runner therefore installs the reviewed PostgreSQL
+// trigger before backfill; it provisions creator ownership inside the account
+// insert transaction and is verified by TDD-US2-003.

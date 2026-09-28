@@ -29,17 +29,20 @@ command in this workflow; it follows a separately authorized runbook.
 
 1. `preflight`: versions, schema, secrets, Twitch/Stripe/UseSend reachability policy, disk/DB capacity, maintenance capability.
 2. `backup_verified`: validate artifact timestamp, checksum, restore drill reference, and source fingerprint.
-3. `identity`: person/provider/session target mappings and uniqueness.
-4. `creator_accounts`: one organization/owner/link per Creator Profile.
-5. `memberships`: editors to Operations membership or explicit anomaly.
-6. `credentials`: in-memory decrypt/re-encrypt and scope/expiry validation.
-7. `domain_invariants`: resources, secrets, subscriptions, entitlements, counts, ownership.
-8. `switch`: enable Better Auth runtime, disable dashboard JWT/custom refresh/editor authorization.
-9. `smoke`: sign-in, authorization allow/deny, overlay HTTP/WebSocket, credential refresh, subscription/entitlement state, outbox.
-10. `reopen`: only after every blocking invariant and smoke check passes.
-11. `contract`: later removal of legacy structures after zero-dependency scan.
+3. `onboarding_boundary`: idempotently install the reviewed Twitch-account provisioning and verified-profile synchronization functions/triggers in the same transaction as the backfill. Set the transaction-local backfill guard before identity rows are written.
+4. `identity`: person/provider/session target mappings and uniqueness.
+5. `creator_accounts`: one organization/owner/link per Creator Profile.
+6. `memberships`: editors to Operations membership or explicit anomaly.
+7. `credentials`: in-memory decrypt/re-encrypt and scope/expiry validation.
+8. `domain_invariants`: resources, secrets, subscriptions, entitlements, counts, ownership.
+9. `switch`: enable Better Auth runtime, disable dashboard JWT/custom refresh/editor authorization.
+10. `smoke`: sign-in, authorization allow/deny, overlay HTTP/WebSocket, credential refresh, subscription/entitlement state, outbox.
+11. `reopen`: only after every blocking invariant and smoke check passes.
+12. `contract`: later removal of legacy structures after zero-dependency scan.
 
 Each phase uses deterministic idempotency keys and transactional batches. Completed checkpoints replay as no-ops. A blocking error leaves maintenance active and preserves the originating failure in redacted output.
+
+The ordinary schema migration remains owned by the post-merge `master` workflow and must run before this cutover command. The custom onboarding boundary is not a generated `drizzle/` artifact: `auth:migrate apply` installs it transactionally immediately before the legacy backfill, so a failed installation or backfill rolls back both.
 
 ## Mandatory invariants
 

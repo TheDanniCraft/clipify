@@ -5,6 +5,7 @@ import { Pool, type PoolClient } from "pg";
 import { symmetricEncrypt } from "better-auth/crypto";
 import { decryptToken } from "../../src/app/lib/tokenCrypto";
 import { buildManifest, signManifest, verifyManifest, verifyManifestSignature, type CutoverManifest } from "./manifest";
+import { installCreatorOnboardingTriggers } from "./onboarding-trigger";
 import { verifyBackupAttestation, type BackupAttestation } from "./preflight";
 
 export type CutoverCounts = {
@@ -149,6 +150,8 @@ export class PostgresCutoverRepository {
 			await client.query("UPDATE public.migration_runs SET status = 'migrating', updated_at = now() WHERE id = $1", [input.runId]);
 
 			await client.query("BEGIN");
+			await installCreatorOnboardingTriggers(client);
+			await client.query("SELECT set_config('clipify.auth_cutover_backfill', '1', true)");
 			const creators = await client.query<{ id: string; email: string; username: string; avatar: string; created_at: Date }>("SELECT id, email, username, avatar, created_at FROM public.users ORDER BY id");
 			let credentials = 0;
 			for (const creator of creators.rows) {
