@@ -20,13 +20,10 @@ import { forceRefreshOwnClipCache, getOwnClipForceRefreshStatus } from "@actions
 import { useNavigationGuard } from "next-navigation-guard";
 import UpgradeModal from "@components/upgradeModal";
 import BillingPanel from "./billing-panel";
-import TagsInput from "@components/tagsInput";
 import ChatwootData from "@components/chatwootData";
 import ControlledModal from "@components/controlledModal";
 import CreatorAnalyticsCard from "@components/creator/CreatorAnalyticsCard";
 import { getFeatureAccess, getTrialDaysLeft, isReverseTrialActive } from "@lib/featureAccess";
-import { usePlausible } from "next-plausible";
-import { trackPaywallEvent } from "@lib/paywallTracking";
 import type { BillingCycle, PaywallSource } from "@actions/subscription";
 
 type ClipCacheStatusState = {
@@ -89,7 +86,6 @@ export default function SettingsPage() {
 	const [clipForceRefreshStatus, setClipForceRefreshStatus] = useState<ClipForceRefreshStatusState>(null);
 	const [isForceRefreshing, setIsForceRefreshing] = useState(false);
 	const [isRefreshingStats, setIsRefreshingStats] = useState(false);
-	const plausible = usePlausible();
 
 	const router = useRouter();
 	const navGuard = useNavigationGuard({ enabled: isFormDirty() });
@@ -166,7 +162,6 @@ export default function SettingsPage() {
 		};
 	}, []);
 	const effectivePlan = user?.entitlements?.effectivePlan ?? user?.plan ?? Plan.Free;
-	const isEffectivelyFree = effectivePlan === Plan.Free;
 	const canUpgradeFromBilling = user?.plan === Plan.Free;
 	const receivesProductUpdates = Boolean(settings?.marketingOptIn);
 	const creatorPageDiscoverable = settings?.creatorPageVisibility ? settings.creatorPageVisibility === "discoverable" : (settings?.showOnCommunityPage ?? false);
@@ -202,23 +197,12 @@ export default function SettingsPage() {
 		upgradeModalOnOpen();
 	}, [upgradeModalOnOpen, user]);
 
-	const editorsAccess = user ? getFeatureAccess(user, "editors") : { allowed: false as const };
 	const creatorAnalyticsAccess = user ? getFeatureAccess(user, "creator_page_analytics") : { allowed: false as const };
 	const creatorSocialPreviewAccess = user ? getFeatureAccess(user, "creator_page_social_preview") : { allowed: false as const };
 	const inTrial = user ? isReverseTrialActive(user) : false;
 	const trialDaysLeft = user ? getTrialDaysLeft(user) : 0;
 	const trialSummaryLabel = trialDaysLeft <= 1 ? "Ends today" : `${trialDaysLeft} days left`;
 	const effectivePlanLabel = inTrial ? `Pro (trial ${trialSummaryLabel})` : effectivePlan === Plan.Pro ? "Pro" : "Free";
-
-	useEffect(() => {
-		if (!user) return;
-		if (!isEffectivelyFree || editorsAccess.allowed) return;
-		trackPaywallEvent(plausible, "paywall_impression", {
-			source: "paywall_banner",
-			feature: "editors",
-			plan: user.plan,
-		});
-	}, [editorsAccess.allowed, isEffectivelyFree, plausible, user]);
 
 	if (!user) {
 		return <FullscreenLoadingState message='Loading settings' />;
@@ -609,74 +593,19 @@ export default function SettingsPage() {
 											</p>
 										</Card.Content>
 									</Card>
-									{isEffectivelyFree && !editorsAccess.allowed && (
-										<div className='w-full mb-4'>
-											<Alert status='warning'>
-												<Alert.Content>
-													<Alert.Title>Pro Feature Locked</Alert.Title>
-													<Alert.Description>
-														Unlock advanced settings with <span className='font-semibold'>Pro</span>.
-													</Alert.Description>
-													<ul className='list-disc list-inside text-xs mt-2 ml-1'>
-														<li>Grant editors permission to manage your overlays</li>
-														<li>Remote control panel for live playback</li>
-														<li>Priority support</li>
-													</ul>
-													<Button
-														variant='primary'
-														onPress={async () => {
-															if (!user) return;
-															trackPaywallEvent(plausible, "paywall_cta_click", {
-																source: "paywall_banner",
-																feature: "editors",
-																plan: user.plan,
-																cycle: "yearly",
-															});
-
-															upgradeModalOnOpen();
-														}}
-														className='mt-3 w-full font-semibold'
-													>
-														Upgrade to Pro
-													</Button>
-													<p className='text-xs text-center mt-2'>{inTrial ? `Trial active: ${trialDaysLeft <= 1 ? "ends today." : `${trialDaysLeft} days left.`}` : "Start Pro now. Cancel anytime."}</p>
-												</Alert.Content>
-											</Alert>
-										</div>
-									)}
-									<div
-										className='w-full'
-										style={{
-											filter: isEffectivelyFree && !editorsAccess.allowed ? "blur(1.5px)" : "none",
-											pointerEvents: isEffectivelyFree && !editorsAccess.allowed ? "none" : "auto",
-										}}
-									>
-										<TagsInput
-											fullWidth
-											maxInputs={5}
-											label='Edit editors'
-											description='Twitch usernames of users you want to grant permission to manage your overlays. Editors can modify, create and delete overlays on your behalf.'
-											value={settings?.editors}
-											validate={(value) => {
-												for (const name of value) {
-													if (!/^[A-Za-z0-9_]{4,25}$/.test(name)) {
-														return `Invalid Twitch username: '${name}' (use 4-25 chars, only letters/numbers/_)`;
-													}
-
-													if (name.toLowerCase() === user.username.toLowerCase()) {
-														return `You cannot add yourself as an editor.`;
-													}
-												}
-												return null;
-											}}
-											onValueChange={(editors) => {
-												if (!settings) {
-													return;
-												}
-												setSettings({ ...settings, editors });
-											}}
-										/>
-									</div>
+									<Card variant='secondary' className='w-full'>
+										<Card.Content>
+											<div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
+												<div>
+													<p className='text-sm font-semibold'>Team access</p>
+													<p className='text-xs text-muted'>Invite team members and assign standard or custom roles from the Team settings.</p>
+												</div>
+												<Button variant='secondary' onPress={() => router.push("/dashboard/settings/team")}>
+													Manage team
+												</Button>
+											</div>
+										</Card.Content>
+									</Card>
 
 									<Button fullWidth type='submit' isDisabled={!isFormDirty()} aria-label='Save Settings' variant='primary'>
 										{<IconDeviceFloppy />}

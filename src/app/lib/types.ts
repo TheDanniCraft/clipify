@@ -251,7 +251,7 @@ export type EntitlementGrant = InferSelectModel<typeof entitlementGrantsTable>;
 
 export type UserToken = InferSelectModel<typeof tokenTable>;
 
-export type UserSettings = InferSelectModel<typeof settingsTable> & { editors: string[] };
+export type UserSettings = InferSelectModel<typeof settingsTable>;
 export type CreatorPageVisibility = "discoverable" | "unlisted";
 export type PlausibleStatsCache = InferSelectModel<typeof plausibleStatsCacheTable>;
 

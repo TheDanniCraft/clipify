@@ -1,9 +1,9 @@
 "use server";
 
-import { tokenTable, usersTable, overlaysTable, playlistsTable, playlistClipsTable, galleriesTable, queueTable, settingsTable, modQueueTable, editorsTable, twitchCacheTable } from "@/db/schema";
+import { tokenTable, usersTable, overlaysTable, playlistsTable, playlistClipsTable, galleriesTable, queueTable, settingsTable, modQueueTable, twitchCacheTable } from "@/db/schema";
 import { db, QueryClient } from "@/db/client";
 import { AuthenticatedUser, ClipQueueItem, ModQueueItem, Overlay, Playlist, TwitchUserResponse, TwitchTokenApiResponse, UserToken, Plan, Role, UserSettings, TwitchCacheType, StatusOptions, OverlayType, PlaybackMode, MaxDurationMode, TwitchClip } from "@types";
-import { getTwitchClipLookup, getUserDetails, getUsersDetailsBulk, subscribeToReward, syncOwnerClipCache } from "@actions/twitch";
+import { getTwitchClipLookup, getUserDetails, subscribeToReward, syncOwnerClipCache } from "@actions/twitch";
 import { syncProductUpdatesContact, getProductUpdatesSubscriptionStatus } from "@actions/newsletter";
 import { isTitleBlocked } from "@/app/utils/regexFilter";
 import { eq, inArray, and, or, isNull, lt, gt, sql, desc, max, asc } from "drizzle-orm";
@@ -2024,7 +2024,6 @@ export async function getSettingsServer(userId: string, forceSyncExternal = fals
 				creatorPageShowBio: true,
 				creatorPageSocialTitle: null,
 				creatorPageSocialDescription: null,
-				editors: [],
 			};
 
 			const contactId =
@@ -2065,19 +2064,7 @@ export async function getSettingsServer(userId: string, forceSyncExternal = fals
 			return { ...defaultSettings, useSendProductUpdatesContactId: contactId };
 		}
 
-		const settingsEditors = await db.select().from(editorsTable).where(eq(editorsTable.userId, userId)).execute();
-
-		const editorNames = await getUsersDetailsBulk({
-			userIds: settingsEditors.map((editor) => editor.editorId),
-			accessToken: (await getAccessTokenInternal(userId))?.accessToken || "",
-		});
-
-		const settings: UserSettings[] = settingsWithoutEditors.map((setting) => ({
-			...setting,
-			editors: editorNames.map((editor) => editor.login),
-		}));
-
-		const currentSettings = settings[0];
+		const currentSettings = settingsWithoutEditors[0];
 
 		// Sync marketingOptIn from UseSend if it's different and forceSyncExternal is true
 		if (forceSyncExternal) {
@@ -2132,31 +2119,6 @@ export async function saveSettings(settings: UserSettings) {
 	}
 	const prefix = settings.prefix;
 	const marketingOptIn = Boolean(settings.marketingOptIn);
-	const editors = settings.editors ?? [];
-	const editorsAccess = getFeatureAccess(authedUser, "editors");
-	/* istanbul ignore next: feature access guard */
-	const effectiveEditors = editorsAccess.allowed ? editors : [];
-
-	let rows: Array<{ userId: string; editorId: string }> = [];
-
-	// Twitch is only needed when legacy editor usernames must be resolved. Account
-	// settings that do not contain editors remain available without a provider token.
-	if (effectiveEditors.length > 0) {
-		const accessToken = await getAccessToken(userId);
-		if (!accessToken) throw new Error("Could not retrieve access token.");
-		const userDetails = await getUserDetails(accessToken.accessToken);
-		const userLogin = userDetails?.login;
-		const editorNames = Array.from(new Set(effectiveEditors.filter((name) => name && name !== userLogin)));
-		const users = editorNames.length
-			? await getUsersDetailsBulk({
-					userNames: editorNames,
-					accessToken: accessToken.accessToken,
-				})
-			: [];
-
-		/* istanbul ignore next: user batch mapping */
-		rows = (users ?? []).filter((u): u is TwitchUserResponse => !!u?.id).map((u) => ({ userId: settings.id, editorId: u.id }));
-	}
 
 	try {
 		const existingSettingsRows = await db.select().from(settingsTable).where(eq(settingsTable.id, userId)).limit(1).execute();
@@ -2192,24 +2154,14 @@ export async function saveSettings(settings: UserSettings) {
 		const creatorPageSocialTitle = socialPreviewAccess ? settings.creatorPageSocialTitle?.trim().slice(0, 120) || null : null;
 		const creatorPageSocialDescription = socialPreviewAccess ? settings.creatorPageSocialDescription?.trim().slice(0, 240) || null : null;
 
-		await db.transaction(async (tx) => {
-			// Upsert settings
-			await tx
-				.insert(settingsTable)
-				.values({ id: userId, prefix, marketingOptIn, marketingOptInAt, marketingOptInSource, useSendProductUpdatesContactId, showOnCommunityPage, creatorPageEnabled, creatorPageVisibility, creatorPageShowBio, creatorPageSocialTitle, creatorPageSocialDescription })
-				.onConflictDoUpdate({
-					target: settingsTable.id,
-					set: { prefix, marketingOptIn, marketingOptInAt, marketingOptInSource, useSendProductUpdatesContactId, showOnCommunityPage, creatorPageEnabled, creatorPageVisibility, creatorPageShowBio, creatorPageSocialTitle, creatorPageSocialDescription },
-				})
-				.execute();
-
-			// Replace editors
-			await tx.delete(editorsTable).where(eq(editorsTable.userId, userId)).execute();
-
-			if (rows.length > 0) {
-				await tx.insert(editorsTable).values(rows).execute();
-			}
-		});
+		await db
+			.insert(settingsTable)
+			.values({ id: userId, prefix, marketingOptIn, marketingOptInAt, marketingOptInSource, useSendProductUpdatesContactId, showOnCommunityPage, creatorPageEnabled, creatorPageVisibility, creatorPageShowBio, creatorPageSocialTitle, creatorPageSocialDescription })
+			.onConflictDoUpdate({
+				target: settingsTable.id,
+				set: { prefix, marketingOptIn, marketingOptInAt, marketingOptInSource, useSendProductUpdatesContactId, showOnCommunityPage, creatorPageEnabled, creatorPageVisibility, creatorPageShowBio, creatorPageSocialTitle, creatorPageSocialDescription },
+			})
+			.execute();
 
 		const finalSettings: Pick<UserSettings, "marketingOptIn" | "marketingOptInSource"> = {
 			marketingOptIn,

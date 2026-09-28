@@ -200,16 +200,13 @@ describe("actions/database settings logic", () => {
 		getUserDetails.mockResolvedValue({ id: "user-1", login: "user1" });
 	});
 
-	it("gets settings correctly", async () => {
+	it("gets settings without exposing the retired editors field", async () => {
 		const { getSettings } = await loadDatabaseActions();
 		queueSelectResult([{ id: "user-1", prefix: "!" }]); // settings select
-		queueSelectResult([{ editorId: "editor-1" }]); // editors select
-		queueSelectResult([{ disabled: false }]); // usersTable select (getAccessToken)
-		queueSelectResult([{ accessToken: "at", refreshToken: "rt", expiresAt: new Date(Date.now() + 3600000) }]); // tokenTable select (getAccessToken)
-		getUsersDetailsBulk.mockResolvedValue([{ id: "editor-1", login: "editor1" }]);
 
 		const result = await getSettings("user-1");
-		expect(result).toMatchObject({ id: "user-1", prefix: "!", editors: ["editor1"] });
+		expect(result).toMatchObject({ id: "user-1", prefix: "!" });
+		expect(result).not.toHaveProperty("editors");
 	});
 
 	it("creates default settings if none exist", async () => {
@@ -241,16 +238,12 @@ describe("actions/database settings logic", () => {
 
 	it("saves settings correctly", async () => {
 		const { saveSettings } = await loadDatabaseActions();
-		queueSelectResult([{ disabled: false }]); // getAccessToken userRow
-		queueSelectResult([{ accessToken: "at", refreshToken: "rt", expiresAt: new Date(Date.now() + 3600000) }]); // getAccessToken tokenRow
 		queueSelectResult([{ id: "user-1", marketingOptIn: false }]); // existing settings select
-		getUsersDetailsBulk.mockResolvedValue([{ id: "editor-1", login: "editor1" }]);
 
 		await saveSettings({
 			id: "user-1",
 			prefix: "?",
 			marketingOptIn: true,
-			editors: ["editor1"],
 		} as any);
 
 		expect(updateCalls.length > 0 || insertCalls.length > 0).toBe(true);
@@ -262,9 +255,6 @@ describe("actions/database settings logic", () => {
 	it("syncs external marketing status if forced (opt-in)", async () => {
 		const { getSettings } = await loadDatabaseActions();
 		queueSelectResult([{ id: "user-1", marketingOptIn: false, useSendProductUpdatesContactId: "contact-1" }]); // settings select
-		queueSelectResult([]); // editors select
-		queueSelectResult([{ disabled: false }]); // usersTable select (getAccessToken)
-		queueSelectResult([{ accessToken: "at", refreshToken: "rt", expiresAt: new Date(Date.now() + 3600000) }]); // tokenTable select (getAccessToken)
 		queueSelectResult([{ email: "user@test.com" }]); // user email select
 
 		getProductUpdatesSubscriptionStatus.mockResolvedValue(true); // remote is opted-in
@@ -278,9 +268,6 @@ describe("actions/database settings logic", () => {
 	it("syncs external marketing status if forced (opt-out)", async () => {
 		const { getSettings } = await loadDatabaseActions();
 		queueSelectResult([{ id: "user-1", marketingOptIn: true, useSendProductUpdatesContactId: "contact-1" }]); // settings select
-		queueSelectResult([]); // editors select
-		queueSelectResult([{ disabled: false }]); // usersTable select (getAccessToken)
-		queueSelectResult([{ accessToken: "at", refreshToken: "rt", expiresAt: new Date(Date.now() + 3600000) }]); // tokenTable select (getAccessToken)
 		queueSelectResult([{ email: "user@test.com" }]); // user email select
 
 		getProductUpdatesSubscriptionStatus.mockResolvedValue(false); // remote is opted-out

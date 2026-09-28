@@ -136,6 +136,13 @@ jest.mock("@actions/auth", () => ({
 	validateAdminAuth,
 }));
 
+const authorizeCreatorOperation = jest.fn();
+const listAuthorizedCreatorOperations = jest.fn();
+jest.mock("@/auth/authorize-operation", () => ({
+	authorizeCreatorOperation: (...args: unknown[]) => authorizeCreatorOperation(...args),
+	listAuthorizedCreatorOperations: (...args: unknown[]) => listAuthorizedCreatorOperations(...args),
+}));
+
 const twitch = {
 	getTwitchClipLookup: jest.fn(),
 	getUserDetails: jest.fn(),
@@ -196,6 +203,8 @@ describe("database.ts coverage tests", () => {
 		dbUpdate.mockImplementation(() => makeUpdateChain());
 		dbDelete.mockImplementation(() => makeDeleteChain());
 		validateAuth.mockResolvedValue({ id: "user-1", email: "e", username: "u" });
+		authorizeCreatorOperation.mockResolvedValue({ allowed: true, accessPath: "owner", creator: { id: "user-1", plan: "pro" }, creatorOrganizationId: "creator:user-1", authUserId: "auth-user-1", sessionId: "session-1" });
+		listAuthorizedCreatorOperations.mockResolvedValue([{ allowed: true, accessPath: "owner", creator: { id: "user-1", plan: "pro" }, creatorOrganizationId: "creator:user-1", authUserId: "auth-user-1", sessionId: "session-1" }]);
 		twitch.getTwitchClipLookup.mockReset();
 		twitch.getUserDetails.mockReset();
 		twitch.getUsersDetailsBulk.mockReset();
@@ -219,7 +228,7 @@ describe("database.ts coverage tests", () => {
 	it("covers createOverlay unauthorized", async () => {
 		const { createOverlay } = await loadDatabaseActions();
 		validateAuth.mockResolvedValue({ id: "user-2" });
-		queueSelectResult([]); // canEditOwner editors select
+		authorizeCreatorOperation.mockResolvedValueOnce({ allowed: false, code: "PERMISSION_DENIED" });
 		const result = await createOverlay("user-1");
 		expect(result).toBeNull();
 	});
@@ -435,20 +444,7 @@ describe("database.ts coverage tests", () => {
 		const { getSettings } = await loadDatabaseActions();
 		queueSelectResult([]); // 1. getSettings initial settings select (empty)
 
-		// saveSettings calls:
-		queueSelectResult([{ disabled: false }]); // 2. getAccessToken userRow
-		queueSelectResult([{ accessToken: "at", refreshToken: "rt", expiresAt: new Date(Date.now() + 1000000) }]); // 3. getAccessToken tokenRow
-		twitch.getUserDetails.mockResolvedValue({ id: "user-1", login: "u1" });
-		queueSelectResult([]); // 4. saveSettings existing settings select
-
-		// getSettings (called again) calls:
-		queueSelectResult([{ id: "user-1", prefix: "!" }]); // 5. getSettings second settings select
-		queueSelectResult([]); // 6. getSettings editors select
-		// getAccessToken call inside getSettings second call
-		queueSelectResult([{ disabled: false }]); // 7. getAccessToken userRow
-		queueSelectResult([{ accessToken: "at", refreshToken: "rt", expiresAt: new Date(Date.now() + 1000000) }]); // 8. getAccessToken tokenRow
-
-		twitch.getUsersDetailsBulk.mockResolvedValue([]);
+		queueSelectResult([{ createdAt: new Date(), email: "e", username: "u" }]); // user defaults source
 		const result = await getSettings("user-1");
 		expect(result.prefix).toBe("!");
 	});
@@ -458,8 +454,6 @@ describe("database.ts coverage tests", () => {
 		validateAuth.mockResolvedValue({ id: "user-1" });
 		const { getSettings } = await loadDatabaseActions();
 		queueSelectResult([{ id: "user-1", marketingOptIn: false, useSendProductUpdatesContactId: "c1" }]); // settings
-		queueSelectResult([]); // editors
-		twitch.getUsersDetailsBulk.mockResolvedValue([]);
 		queueSelectResult([{ email: "e" }]); // user email select
 		newsletter.getProductUpdatesSubscriptionStatus.mockResolvedValue(true); // remote is opted in
 
@@ -489,10 +483,7 @@ describe("database.ts coverage tests", () => {
 		const { validateAuth } = require("@actions/auth");
 		validateAuth.mockResolvedValue({ id: "user-1" });
 		const { saveSettings } = await loadDatabaseActions();
-		queueSelectResult([{ disabled: false }]); // 1. getAccessToken userRow
-		queueSelectResult([{ accessToken: "at", refreshToken: "rt", expiresAt: new Date(Date.now() + 1000000) }]); // 2. getAccessToken tokenRow
-		twitch.getUserDetails.mockResolvedValue({ id: "user-1", login: "u1" });
-		queueSelectResult([{ marketingOptIn: false }]); // 3. existing settings select
+		queueSelectResult([{ marketingOptIn: false }]); // existing settings select
 
 		await saveSettings({ id: "user-1", marketingOptIn: true, marketingOptInSource: "soft_opt_in_default" } as any);
 		expect(dbInsert).toHaveBeenCalled();
@@ -500,7 +491,6 @@ describe("database.ts coverage tests", () => {
 
 	it("covers getOverlayOwnerPlans", async () => {
 		const { getOverlayOwnerPlans } = await loadDatabaseActions();
-		queueSelectResult([{ userId: "user-1" }]); // editors select
 		queueSelectResult([{ id: "ov1", ownerId: "user-1" }]); // overlays select
 		queueSelectResult([{ id: "user-1", plan: "pro" }]); // owners select
 
@@ -523,7 +513,6 @@ describe("database.ts coverage tests", () => {
 
 	it("covers getOverlayOwnerPlans no overlays found", async () => {
 		const { getOverlayOwnerPlans } = await loadDatabaseActions();
-		queueSelectResult([]); // editors
 		queueSelectResult([]); // overlays
 		const result = await getOverlayOwnerPlans(["ov1"]);
 		expect(result).toEqual({});
@@ -548,7 +537,7 @@ describe("database.ts coverage tests", () => {
 
 	it("covers getOverlayOwnerPlans with editor role", async () => {
 		const { getOverlayOwnerPlans } = await loadDatabaseActions();
-		queueSelectResult([{ userId: "user-owner" }]); // editors select
+		listAuthorizedCreatorOperations.mockResolvedValueOnce([{ allowed: true, accessPath: "direct", creator: { id: "user-owner", plan: "pro" }, creatorOrganizationId: "creator:user-owner", authUserId: "auth-user-1", sessionId: "session-1" }]);
 		queueSelectResult([{ id: "ov1", ownerId: "user-owner" }]); // overlays select
 		queueSelectResult([{ id: "user-owner", plan: "pro" }]); // owners select
 
@@ -568,7 +557,6 @@ describe("database.ts coverage tests", () => {
 	it("covers getOverlay missing secret", async () => {
 		const { getOverlay } = await loadDatabaseActions();
 		queueSelectResult([{ id: "ov1", secret: "", ownerId: "u1" }]); // requireOverlayAccess select
-		queueSelectResult([{ disabled: false }]); // requireOverlayAccess owner select
 		// db.update returning
 		queueSelectResult([{ id: "ov1", secret: "new-secret" }]);
 
@@ -647,7 +635,6 @@ describe("database.ts coverage tests", () => {
 	it("covers getOverlay update returning empty", async () => {
 		const { getOverlay } = loadDatabaseActions();
 		queueSelectResult([{ id: "ov1", secret: "", ownerId: "u1" }]); // access
-		queueSelectResult([{ disabled: false }]); // owner
 		queueSelectResult([]); // update returning empty
 		queueSelectResult([{ id: "ov1", secret: "fallback-secret" }]); // select fallback
 
@@ -741,27 +728,23 @@ describe("database.ts coverage tests", () => {
 	});
 
 	it("covers getAccessToken disabled user", async () => {
-		// We can test this by triggering saveSettings
-		const { saveSettings } = loadDatabaseActions();
+		const { getAccessToken } = loadDatabaseActions();
 		queueSelectResult([{ disabled: true }]); // getAccessToken userRow
-		await expect(saveSettings({ id: "user-1", editors: ["editor1"] } as any)).rejects.toThrow("Could not retrieve access token.");
+		await expect(getAccessToken("user-1")).resolves.toBeNull();
 	});
 
 	it("covers getAccessToken invalid token rows", async () => {
-		const { saveSettings } = loadDatabaseActions();
+		const { getAccessToken } = loadDatabaseActions();
 		queueSelectResult([{ disabled: false }]); // userRow
 		queueSelectResult([]); // no token
-		await expect(saveSettings({ id: "user-1", editors: ["editor1"] } as any)).rejects.toThrow("Could not retrieve access token.");
+		await expect(getAccessToken("user-1")).resolves.toBeNull();
 	});
 
 	it("covers saveSettings catch block", async () => {
 		const { saveSettings } = loadDatabaseActions();
-		queueSelectResult([{ disabled: false }]); // getAccessToken userRow
-		queueSelectResult([{ accessToken: "at", refreshToken: "rt", expiresAt: new Date(Date.now() + 1000000) }]); // tokenRow (valid)
-		twitch.getUserDetails.mockResolvedValue({ login: "u1" });
 		queueSelectResult(new Error("DB Error")); // existingSettingsRows select error
 
-		await expect(saveSettings({ id: "user-1", editors: ["editor1"] } as any)).rejects.toThrow("Failed to save settings");
+		await expect(saveSettings({ id: "user-1" } as any)).rejects.toThrow("Failed to save settings");
 	});
 
 	it("covers getTwitchCacheEntry parse error", async () => {
@@ -915,24 +898,18 @@ describe("database.ts coverage tests", () => {
 
 	it("covers saveSettings opt-out source branch", async () => {
 		const { saveSettings } = loadDatabaseActions();
-		queueSelectResult([{ disabled: false }]); // getAccessToken userRow
-		queueSelectResult([{ accessToken: "at", refreshToken: "rt", expiresAt: new Date(Date.now() + 1000000) }]); // tokenRow
-		twitch.getUserDetails.mockResolvedValue({ id: "user-1", login: "u1" });
 		queueSelectResult([{ marketingOptIn: true, marketingOptInAt: new Date(), marketingOptInSource: "settings_page_explicit_optin" }]); // existing settings
 
-		await saveSettings({ id: "user-1", marketingOptIn: false, editors: [] } as any);
+		await saveSettings({ id: "user-1", marketingOptIn: false } as any);
 		expect(dbInsert).toHaveBeenCalled();
 	});
 
 	it("covers saveSettings contact id update branch", async () => {
 		const { saveSettings } = loadDatabaseActions();
-		queueSelectResult([{ disabled: false }]); // getAccessToken userRow
-		queueSelectResult([{ accessToken: "at", refreshToken: "rt", expiresAt: new Date(Date.now() + 1000000) }]); // tokenRow
-		twitch.getUserDetails.mockResolvedValue({ id: "user-1", login: "u1" });
 		queueSelectResult([{ marketingOptIn: false, marketingOptInAt: null, marketingOptInSource: null, useSendProductUpdatesContactId: null }]); // existing settings
 		newsletter.syncProductUpdatesContact.mockResolvedValue("new-contact");
 
-		await saveSettings({ id: "user-1", marketingOptIn: true, editors: [] } as any);
+		await saveSettings({ id: "user-1", marketingOptIn: true } as any);
 		expect(dbUpdate).toHaveBeenCalled();
 	});
 
@@ -1020,6 +997,7 @@ describe("database.ts coverage tests", () => {
 
 	it("covers getEditorOverlays catch branch", async () => {
 		const { getEditorOverlays } = loadDatabaseActions();
+		listAuthorizedCreatorOperations.mockResolvedValueOnce([{ allowed: true, accessPath: "direct", creator: { id: "user-owner", plan: "pro" }, creatorOrganizationId: "creator:user-owner", authUserId: "auth-user-1", sessionId: "session-1" }]);
 		dbSelect.mockImplementationOnce(() => {
 			throw new Error("DB Error");
 		});
@@ -1042,7 +1020,6 @@ describe("database.ts coverage tests", () => {
 
 	it("covers getAllPlaylists clip count path", async () => {
 		const { getAllPlaylists } = loadDatabaseActions();
-		queueSelectResult([]); // editor rows
 		queueSelectResult([{ id: "pl1", ownerId: "user-1", name: "playlist-1" }]); // playlists query
 		queueSelectResult([{ playlistId: "pl1", count: 2 }]); // grouped counts
 		const result = await getAllPlaylists("user-1");

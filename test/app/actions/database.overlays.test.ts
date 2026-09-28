@@ -147,6 +147,12 @@ jest.mock("@actions/auth", () => ({
 	validateAuth: (...args: any[]) => validateAuth(...args),
 }));
 
+const authorizeCreatorOperation = jest.fn();
+jest.mock("@/auth/authorize-operation", () => ({
+	authorizeCreatorOperation: (...args: unknown[]) => authorizeCreatorOperation(...args),
+	listAuthorizedCreatorOperations: jest.fn(),
+}));
+
 jest.mock("@lib/entitlements", () => ({
 	resolveUserEntitlements: jest.fn(async (user: any) => ({ effectivePlan: user.plan || "free" })),
 	resolveUserEntitlementsForUsers: jest.fn(async (users: any[]) => {
@@ -174,6 +180,7 @@ describe("actions/database overlay logic", () => {
 		dbSelect.mockImplementation(() => makeSelectChain());
 		dbDelete.mockImplementation((table: unknown) => makeDeleteChain(table));
 		validateAuth.mockResolvedValue({ id: "user-1" });
+		authorizeCreatorOperation.mockResolvedValue({ allowed: true, accessPath: "owner", creator: { id: "user-1", plan: "pro" }, creatorOrganizationId: "creator:user-1", authUserId: "auth-user-1", sessionId: "session-1" });
 	});
 
 	it("deletes overlay with access", async () => {
@@ -187,7 +194,7 @@ describe("actions/database overlay logic", () => {
 	it("fails to delete overlay without access", async () => {
 		const { deleteOverlay } = await loadDatabaseActions();
 		queueSelectResult([{ id: "overlay-1", ownerId: "other-user" }]); // requireOverlayAccess select
-		queueSelectResult([]); // canEditOwner select
+		authorizeCreatorOperation.mockResolvedValueOnce({ allowed: false, code: "PERMISSION_DENIED" });
 		const result = await deleteOverlay("overlay-1");
 		expect(result).toBe(false);
 	});
@@ -263,7 +270,7 @@ describe("actions/database overlay logic", () => {
 	it("fails to create overlay if not owner and not editor", async () => {
 		const { createOverlay } = await loadDatabaseActions();
 		validateAuth.mockResolvedValue({ id: "user-2" }); // authenticated as user-2
-		queueSelectResult([]); // canEditOwner editors select (empty)
+		authorizeCreatorOperation.mockResolvedValueOnce({ allowed: false, code: "PERMISSION_DENIED" });
 
 		const result = await createOverlay("user-1"); // trying to create for user-1
 		expect(result).toBeNull();

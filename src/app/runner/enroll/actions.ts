@@ -4,11 +4,10 @@ import { redirect } from "next/navigation";
 import { and, desc, eq, inArray, isNull } from "drizzle-orm";
 
 import { validateAuth } from "@actions/auth";
+import { authorizeCreatorOperation, listAuthorizedCreatorOperations } from "@/auth/authorize-operation";
 import { db } from "@/db/client";
-import { editorsTable, runnerEnrollmentsTable, runnersTable, usersTable } from "@/db/schema";
+import { runnerEnrollmentsTable, runnersTable, usersTable } from "@/db/schema";
 import { isValidUserCode, normalizeUserCode } from "./code";
-import { hasActiveEntitlement } from "@lib/entitlements";
-import { Entitlement } from "@types";
 
 export type RunnerEnrollActionState = { status: "idle" } | { status: "missing-code" } | { status: "invalid-code" } | { status: "expired" } | { status: "unauthorized" } | { status: "entitlement-required" } | { status: "missing-runner" } | { status: "no-pending-runners" } | { status: "runner-unavailable"; code: string } | { status: "approved"; runnerId: string } | { status: "already-approved"; runnerId: string };
 
@@ -21,23 +20,11 @@ export type PendingRunnerOption = {
 	createdAt: string;
 };
 
-async function getAccessibleOwnerIds(userId: string) {
-	const editorRows = await db.query.editorsTable.findMany({
-		where: eq(editorsTable.editorId, userId),
-	});
-	return Array.from(new Set([userId, ...editorRows.map((row) => row.userId)]));
-}
-
-async function canAccessOwner(ownerId: string, userId: string) {
-	if (ownerId === userId) return true;
-	const editor = await db.query.editorsTable.findFirst({
-		where: and(eq(editorsTable.userId, ownerId), eq(editorsTable.editorId, userId)),
-	});
-	return Boolean(editor);
-}
-
 export async function getAccessiblePendingRunners(userId: string): Promise<PendingRunnerOption[]> {
-	const accessibleOwnerIds = await getAccessibleOwnerIds(userId);
+	void userId;
+	const accessibleCreators = await listAuthorizedCreatorOperations({ permission: "runner:read", requiredEntitlement: "runner" });
+	const accessibleOwnerIds = accessibleCreators.map((access) => access.creator.id);
+	if (accessibleOwnerIds.length === 0) return [];
 	const runners = await db.query.runnersTable.findMany({
 		where: and(inArray(runnersTable.ownerId, accessibleOwnerIds), isNull(runnersTable.lastHeartbeatAt)),
 		orderBy: [desc(runnersTable.createdAt)],
@@ -109,8 +96,9 @@ async function approveRunnerEnrollment(code: string, runnerId?: string): Promise
 		}
 	}
 
-	if (!runner || !(await canAccessOwner(runner.ownerId, user.id))) return { status: "unauthorized" };
-	if (!(await hasActiveEntitlement(runner.ownerId, Entitlement.RunnerAccess))) return { status: "entitlement-required" };
+	if (!runner) return { status: "unauthorized" };
+	const access = await authorizeCreatorOperation({ creatorId: runner.ownerId, resourceOwnerId: runner.ownerId, permission: "runner:control", requiredEntitlement: "runner" });
+	if (!access.allowed) return { status: access.code === "ENTITLEMENT_REQUIRED" ? "entitlement-required" : "unauthorized" };
 
 	await db
 		.update(runnersTable)

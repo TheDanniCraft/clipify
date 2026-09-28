@@ -34,13 +34,43 @@ export type BackfillOptions = {
 };
 
 export class BackfillError extends Error {
-	constructor(readonly code: "TWITCH_SUBJECT_CONFLICT" | "EDITOR_IDENTITY_UNVERIFIED" | "EDITOR_ANOMALY_NOT_FOUND") {
+	constructor(readonly code: "TWITCH_SUBJECT_CONFLICT" | "EDITOR_IDENTITY_UNVERIFIED" | "EDITOR_ANOMALY_NOT_FOUND" | "EDITOR_BACKFILL_INCOMPLETE") {
 		super(code);
 	}
 }
 
 const hash = (value: string) => createHash("sha256").update(value, "utf8").digest("hex");
 const authUserId = (subject: string) => `auth:twitch:${hash(subject).slice(0, 24)}`;
+
+export type EditorBackfillValidation = {
+	totalRelationships: number;
+	operationsMemberships: number;
+	pendingSafeAuth: number;
+};
+
+export function validateEditorBackfill(snapshot: LegacyBackfillSnapshot, state: BackfillState, options: { allowPendingSafeAuth?: boolean } = {}): EditorBackfillValidation {
+	let operationsMemberships = 0;
+	let pendingSafeAuth = 0;
+
+	for (const editor of snapshot.editors) {
+		const provider = state.providerAccounts.find((account) => account.twitchSubject === editor.editorTwitchSubject);
+		if (provider) {
+			const hasOperationsMembership = state.memberships.some((membership) => membership.organizationId === `creator:${editor.creatorId}` && membership.authUserId === provider.authUserId && membership.role === "operations");
+			if (!hasOperationsMembership) throw new BackfillError("EDITOR_BACKFILL_INCOMPLETE");
+			operationsMemberships += 1;
+			continue;
+		}
+
+		const subjectHash = hash(editor.editorTwitchSubject);
+		const hasPendingAnomaly = state.anomalies.some((anomaly) => anomaly.creatorId === editor.creatorId && anomaly.subjectHash === subjectHash && anomaly.category === "unresolved-editor" && anomaly.status === "open");
+		if (!hasPendingAnomaly) throw new BackfillError("EDITOR_BACKFILL_INCOMPLETE");
+		pendingSafeAuth += 1;
+	}
+
+	if (operationsMemberships + pendingSafeAuth !== snapshot.editors.length) throw new BackfillError("EDITOR_BACKFILL_INCOMPLETE");
+	if (pendingSafeAuth > 0 && !options.allowPendingSafeAuth) throw new BackfillError("EDITOR_BACKFILL_INCOMPLETE");
+	return { totalRelationships: snapshot.editors.length, operationsMemberships, pendingSafeAuth };
+}
 
 function pushUnique<T>(values: T[], value: T, key: (item: T) => string) {
 	if (!values.some((candidate) => key(candidate) === key(value))) values.push(structuredClone(value));
@@ -89,6 +119,10 @@ export async function backfillLegacySnapshot(snapshot: LegacyBackfillSnapshot, r
 				pushUnique(state.anomalies, { id: `editor:${subjectHash.slice(0, 24)}:${hash(editor.creatorId).slice(0, 8)}`, creatorId: editor.creatorId, subjectHash, category: "unresolved-editor", status: "open" }, (item) => item.id);
 			}
 		});
+		// Backfill may pause with redacted anomalies so identities can be bound
+		// safely. The deployment/removal gate must call the strict default
+		// validator and cannot proceed while any relationship remains pending.
+		validateEditorBackfill(snapshot, state, { allowPendingSafeAuth: true });
 		await checkpoint("membership");
 	});
 }

@@ -230,6 +230,20 @@ Track product, test, environment, and governance issues affecting feature readin
 - **Verification Evidence**: the focused narrow-viewport scenario passes.
 - **Approval / Risk Acceptance**: none; third-party widget accessibility remains owned by its dedicated inventory/consent checks.
 
+### AUTH-015 - Legacy database coverage harness bypassed the central authorization test boundary
+
+- **Status**: Verified
+- **Severity / Priority**: Low / High
+- **Affected Source IDs**: US3, FR-008–FR-010, FR-026
+- **Affected Artifact IDs**: TDD-US3-004, T191–T193
+- **Detected During**: affected database regression execution after retiring the legacy editor path
+- **Expected Result**: database action tests use the central authorization adapter and model Team-only settings behavior.
+- **Actual Result**: 29 focused coverage tests initially failed; the subsequent full run identified 15 failures across three additional database harnesses because they had no central resolver mock, loaded Better Auth ESM through Jest, and retained editor-table query assumptions and editor-field expectations.
+- **Root Cause / Investigation Notes**: the earlier boundary migration updated production actions without fully migrating this broad legacy coverage harness; removed editor reads also changed its mocked query order.
+- **Resolution**: mock the central resolver at the action boundary, replace editor-field expectations with Team-only settings assertions, and update query fixtures to match membership-based authorization.
+- **Verification Evidence**: affected database harnesses pass 192/192, followed by `bun run test` passing 182 suites and 1,660 tests.
+- **Approval / Risk Acceptance**: none.
+
 ## Open Defect Review
 
 The completed US1–US5 story gates introduced no open product defects. US2 focused TDD (10 tests), database-backed ATDD (20/20 aggregate), and BDD (69/69 aggregate) are Green. The two US2 harness regressions are verified fixed. A US1 regression probe found and corrected a duplicate disabled-owner lookup before checkpoint closure. PLAN-001 remains an unrelated planning-tooling issue with no release impact on the implemented authorization slices.
@@ -259,16 +273,17 @@ The completed US1–US5 story gates introduced no open product defects. US2 focu
 | AUTH-012  | Current branch                  | Focused ATDD-US2-001 and acceptance lifecycle  | Pass    | ATDD-US2-001 / T176 | Codex / 2026-09-28 |
 | AUTH-013  | Current branch                  | Segmented aggregate E2E projects               | Pass    | T176                | Codex / 2026-09-28 |
 | AUTH-014  | Current branch                  | Focused narrow-viewport legal BDD              | Pass    | Existing A3         | Codex / 2026-09-28 |
+| AUTH-015  | Current branch                  | Focused database settings and coverage suites  | Pass    | T191–T193           | Codex / 2026-09-28 |
 
 ## Defect Metrics
 
-| Metric                       | Value | Notes                                                                                                                                      |
-| ---------------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| Total defects                | 15    | One open tooling issue, one blocked environment issue, one open coverage issue, and twelve verified implementation/test-integration issues |
-| Open Critical / High defects | 1     | AUTH-006 blocks the changed-code coverage gate                                                                                             |
-| Deferred defects             | 0     | No accepted risks                                                                                                                          |
-| Reopened defects             | 0     |                                                                                                                                            |
-| Escaped defects              | 0     |                                                                                                                                            |
+| Metric                       | Value | Notes                                                                                                                                        |
+| ---------------------------- | ----- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Total defects                | 16    | One open tooling issue, one blocked environment issue, one open coverage issue, and thirteen verified implementation/test-integration issues |
+| Open Critical / High defects | 1     | AUTH-006 blocks the changed-code coverage gate                                                                                               |
+| Deferred defects             | 0     | No accepted risks                                                                                                                            |
+| Reopened defects             | 0     |                                                                                                                                              |
+| Escaped defects              | 0     |                                                                                                                                              |
 
 ## Baseline Evidence
 

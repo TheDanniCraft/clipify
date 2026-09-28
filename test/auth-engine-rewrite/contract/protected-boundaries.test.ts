@@ -4,7 +4,7 @@ import { appendAuditEvent, type AuditEvent } from "@/auth/audit";
 import { authorize, resolveDirectAccessGrant } from "@/auth/authorize";
 
 const gallerySource = readFileSync(path.join(process.cwd(), "src/app/actions/gallery.ts"), "utf8");
-const protectedBoundaryPaths = ["src/app/actions/creatorAnalytics.ts", "src/app/actions/database.ts", "src/app/actions/gallery.ts", "src/app/actions/runner.ts", "src/app/api/runner/preview/route.ts", "src/server/overlays.ts"] as const;
+const protectedBoundaryPaths = ["src/app/actions/creatorAnalytics.ts", "src/app/actions/database.ts", "src/app/actions/gallery.ts", "src/app/actions/runner.ts", "src/app/api/runner/preview/route.ts", "src/app/runner/enroll/actions.ts", "src/server/overlays.ts"] as const;
 
 describe("TDD-US3-004 protected server boundaries", () => {
 	it("routes the migrated gallery read and mutation batch through the central evaluator", () => {
@@ -22,6 +22,12 @@ describe("TDD-US3-004 protected server boundaries", () => {
 		const source = readFileSync(path.join(process.cwd(), relativePath), "utf8");
 		expect(source).toContain('from "@/auth/authorize-operation"');
 		expect(source).not.toMatch(/editorsTable|legacyEditor|hasLegacyEditorAccess/);
+	});
+
+	it("exposes Team as the only settings management path", () => {
+		const settingsSource = readFileSync(path.join(process.cwd(), "src/app/dashboard/settings/page.tsx"), "utf8");
+		expect(settingsSource).not.toMatch(/Edit editors|settings\?\.editors|feature:\s*["']editors["']/);
+		expect(settingsSource).toContain("/dashboard/settings/team");
 	});
 
 	it.each([
