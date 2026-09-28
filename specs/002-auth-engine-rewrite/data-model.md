@@ -21,7 +21,7 @@ Better Auth migrations own identity tables in PostgreSQL schema `auth`. Clipify 
 
 ## Existing records retained
 
-`users` (Creator Profile), overlays, playlists, gallery items, runners, settings, subscriptions, subscription items, webhook claims, entitlement grants, and every current resource ID/FK remain stable. `editors` and custom `tokens` are migration sources only; contract migrations remove them after runtime reads/writes reach zero.
+`users` (Creator Profile), overlays, playlists, gallery items, runners, settings, subscriptions, subscription items, webhook claims, entitlement grants, and every current resource ID/FK remain stable. `editors` and custom `tokens` are migration sources only. A separately approved post-cutover schema pull request removes them after runtime reads/writes reach zero; the normal `master` workflow generates that contraction migration.
 
 ## New Clipify records (`public`)
 

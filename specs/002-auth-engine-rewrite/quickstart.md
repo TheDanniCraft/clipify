@@ -80,3 +80,9 @@ Store setup evidence under `specs/002-auth-engine-rewrite/evidence/setup/` and p
 ## Production cutover outline
 
 Communicate the maintenance window, verify the pre-rehearsed image and migrations, enter maintenance, stop conflicting background workers, create and verify the full backup, run the exact reviewed cutover command, inspect the manifest/invariants/smoke evidence, then explicitly reopen. On failure, remain in maintenance and decide whether to fix-forward or separately authorize restore. Do not improvise a restore inside the migration command.
+
+Legacy table removal is a separate post-cutover operation governed by
+[`contracts/legacy-auth-contraction-runbook.md`](contracts/legacy-auth-contraction-runbook.md).
+Do not create or promote a numbered SQL candidate from the feature branch. The
+later schema-only pull request removes the legacy table definitions and the
+`master` Generate Migrations workflow creates the ordinary contraction migration.

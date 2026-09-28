@@ -1,6 +1,13 @@
 import { createHash } from "node:crypto";
 
-export type ManifestInput = { runId: string; sourceFingerprint: string; versions: Readonly<Record<string, string>>; createdAt: string };
+export type ManifestInput = {
+	runId: string;
+	sourceFingerprint: string;
+	versions: Readonly<Record<string, string>>;
+	createdAt: string;
+	mode?: string;
+	counts?: Readonly<Record<string, number>>;
+};
 export type CutoverManifest = Readonly<ManifestInput & { checksum: string }>;
 
 function canonical(value: unknown): string {
@@ -15,12 +22,13 @@ function canonical(value: unknown): string {
 }
 
 export function buildManifest(input: ManifestInput): CutoverManifest {
-	const payload = { ...input, versions: { ...input.versions } };
+	const payload = { ...input, versions: { ...input.versions }, ...(input.counts ? { counts: { ...input.counts } } : {}) };
 	const checksum = `sha256:${createHash("sha256").update(canonical(payload), "utf8").digest("hex")}`;
 	Object.freeze(payload.versions);
+	if ("counts" in payload && payload.counts) Object.freeze(payload.counts);
 	return Object.freeze({ ...payload, checksum });
 }
 
 export function verifyManifest(manifest: CutoverManifest): boolean {
-	return buildManifest({ runId: manifest.runId, sourceFingerprint: manifest.sourceFingerprint, versions: manifest.versions, createdAt: manifest.createdAt }).checksum === manifest.checksum;
+	return buildManifest({ runId: manifest.runId, sourceFingerprint: manifest.sourceFingerprint, versions: manifest.versions, createdAt: manifest.createdAt, mode: manifest.mode, counts: manifest.counts }).checksum === manifest.checksum;
 }

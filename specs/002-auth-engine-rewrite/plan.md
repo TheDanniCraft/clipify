@@ -158,7 +158,7 @@ scripts/
 ├── auth-cutover/{preflight,backfill,validate,smoke,manifest}.ts
 └── run-migrations.mjs
 
-drizzle/                        # committed expand/contract migrations
+drizzle/                        # workflow-generated migrations committed from master
 
 test/
 ├── auth-engine-rewrite/{unit,integration,contract,property,migration}/
@@ -175,7 +175,7 @@ test/
 1. **Safety foundations**: freeze permission vocabulary; add non-destructive downgrade gating; add maintenance switch, shared limiter, transactional outbox, audit primitives, and migration fixtures.
 2. **Better Auth infrastructure**: pin packages; create `auth` schema; configure Twitch, email OTP, passkeys, organizations, invitations, sessions, hooks, and database rate limits; prove token encryption conversion.
 3. **Domain authorization**: add Creator/Agency classifications, links, allocations, lifecycle tables, roles, central evaluator, and `validateAuth` compatibility facade; migrate each protected operation.
-4. **Cutover tooling construction**: implement dry-run/checkpoint/apply/resume/invariants/smoke/manifest and a quarantined contract-migration candidate; this phase does not authorize reopening or destructive schema removal.
+4. **Cutover tooling construction**: implement dry-run/checkpoint/apply/resume/invariants/smoke/manifest and publish the post-cutover contraction runbook; this phase does not authorize reopening or destructive schema removal.
 5. **Product flows**: creator onboarding, team roles/invitations, agency admin provisioning/link acceptance, allocation grace, account/subscription/deletion/recovery, and notifications.
 6. **Rehearsal, switch, and contract**: after all selected product flows are Green, run production-shaped and 2× synthetic rehearsals, verify timing/headroom and all gates, deploy the switch during maintenance, and only then explicitly promote/remove legacy runtime paths and tables after zero-dependency proof.
 
