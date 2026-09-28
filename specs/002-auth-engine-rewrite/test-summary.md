@@ -9,14 +9,14 @@
 
 ## Executive Summary
 
-| Item                         | Result                                                                    |
-| ---------------------------- | ------------------------------------------------------------------------- |
-| Overall Test Status          | In progress — US1 and US3 Green; US2 and US6 partial; US4/US5 remaining   |
-| Release Recommendation       | No-Go                                                                     |
-| Scope Covered                | Planned coverage for US1–US6, FR-001–FR-031, SC-001–SC-012, EC-001–EC-015 |
-| Primary Evidence Location    | [test-traceability.md](./test-traceability.md) and story evidence below   |
-| Open Critical / High Defects | 0                                                                         |
-| Approved Exceptions          | 0                                                                         |
+| Item                         | Result                                                                                                                   |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Overall Test Status          | In progress — US1, US3, and US5 core Green; US2/US6 partial; US4 domain core Green with production/UI bindings remaining |
+| Release Recommendation       | No-Go                                                                                                                    |
+| Scope Covered                | Planned coverage for US1–US6, FR-001–FR-031, SC-001–SC-012, EC-001–EC-015                                                |
+| Primary Evidence Location    | [test-traceability.md](./test-traceability.md) and story evidence below                                                  |
+| Open Critical / High Defects | 0                                                                                                                        |
+| Approved Exceptions          | 0                                                                                                                        |
 
 US1 continuity and US3 authorization are implemented and independently Green. US2 identity, US6 cutover tooling, and US5 non-destructive downgrade have partial Green evidence; agency, full account lifecycle, final cutover rehearsal, and release gates remain open, so the feature is not releasable. The only open issue is a low-severity SpecKit template-resolution problem with no product impact; two implementation test-integration defects are verified closed.
 

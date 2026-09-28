@@ -33,6 +33,7 @@ import {
 } from "@types";
 import { sql } from "drizzle-orm";
 import { badgeSlugs } from "@lib/badgeCatalog";
+import type { Permission } from "@/auth/permissions";
 import { organization as authOrganizationTable, user as authUserTable } from "./auth-schema";
 
 function enumToPgEnum<T extends Record<string, unknown>>(myEnum: T): [T[keyof T], ...T[keyof T][]] {
@@ -141,6 +142,9 @@ export const editorsTable = pgTable(
 
 export const creatorAccountStatusEnum = pgEnum("creator_account_status", ["active", "suspension_scheduled", "suspended", "purge_eligible"]);
 export const creatorIdentityLinkSourceEnum = pgEnum("creator_identity_link_source", ["migration", "twitch_onboarding", "admin_repair"]);
+export const agencyAccountStatusEnum = pgEnum("agency_account_status", ["provisioned", "owner_invited", "active", "suspended", "closed"]);
+export const agencyCreatorLinkStatusEnum = pgEnum("agency_creator_link_status", ["proposed", "accepted", "revoked"]);
+export const agencyLicenseAllocationStatusEnum = pgEnum("agency_license_allocation_status", ["active", "removal_scheduled", "ended", "released_by_deletion"]);
 export const accountDeletionChoiceEnum = pgEnum("account_deletion_choice", ["paid_through", "immediate"]);
 export const accountDeletionStatusEnum = pgEnum("account_deletion_status", ["scheduled", "suspended", "recovered", "purge_eligible", "purged", "cancelled"]);
 export const auditOutcomeEnum = pgEnum("audit_outcome", ["success", "denied", "error"]);
@@ -182,6 +186,84 @@ export const creatorIdentityLinksTable = pgTable(
 		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 	},
 	(table) => [index("creator_identity_links_auth_user_idx").on(table.authUserId)],
+);
+
+export const agencyAccountsTable = pgTable(
+	"agency_accounts",
+	{
+		organizationId: text("organization_id")
+			.primaryKey()
+			.references(() => authOrganizationTable.id, { onDelete: "cascade" }),
+		status: agencyAccountStatusEnum("status").notNull().default("provisioned"),
+		commercialReference: varchar("commercial_reference", { length: 160 }),
+		creatorSeatLimit: integer("creator_seat_limit").notNull().default(0),
+		provisionedBy: text("provisioned_by").references(() => authUserTable.id, { onDelete: "set null" }),
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+	},
+	(table) => [check("agency_accounts_seat_limit_nonnegative", sql`${table.creatorSeatLimit} >= 0`), check("agency_accounts_commercial_reference_non_secret", sql`${table.commercialReference} IS NULL OR ${table.commercialReference} !~* '(bearer[[:space:]]+|token=|password=|secret=|credential=)'`)],
+);
+
+export const agencyCreatorLinksTable = pgTable(
+	"agency_creator_links",
+	{
+		id: uuid("id").defaultRandom().primaryKey(),
+		agencyOrganizationId: text("agency_organization_id")
+			.notNull()
+			.references(() => authOrganizationTable.id, { onDelete: "cascade" }),
+		creatorOrganizationId: text("creator_organization_id")
+			.notNull()
+			.references(() => authOrganizationTable.id, { onDelete: "cascade" }),
+		status: agencyCreatorLinkStatusEnum("status").notNull().default("proposed"),
+		permissionCeiling: jsonb("permission_ceiling").$type<Permission[]>().notNull().default([]),
+		proposedBy: text("proposed_by").references(() => authUserTable.id, { onDelete: "set null" }),
+		proposedAt: timestamp("proposed_at", { withTimezone: true }).defaultNow().notNull(),
+		acceptedBy: text("accepted_by").references(() => authUserTable.id, { onDelete: "set null" }),
+		acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+		revokedBy: text("revoked_by").references(() => authUserTable.id, { onDelete: "set null" }),
+		revokedAt: timestamp("revoked_at", { withTimezone: true }),
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+	},
+	(table) => [
+		uniqueIndex("agency_creator_links_live_pair_unique")
+			.on(table.agencyOrganizationId, table.creatorOrganizationId)
+			.where(sql`${table.status} <> 'revoked'`),
+		index("agency_creator_links_creator_status_idx").on(table.creatorOrganizationId, table.status),
+		check("agency_creator_links_distinct_accounts", sql`${table.agencyOrganizationId} <> ${table.creatorOrganizationId}`),
+		check("agency_creator_links_ceiling_array", sql`jsonb_typeof(${table.permissionCeiling}) = 'array'`),
+		check("agency_creator_links_acceptance_state", sql`(${table.status} <> 'accepted') OR (${table.acceptedBy} IS NOT NULL AND ${table.acceptedAt} IS NOT NULL)`),
+		check("agency_creator_links_revocation_state", sql`(${table.status} <> 'revoked') OR (${table.revokedBy} IS NOT NULL AND ${table.revokedAt} IS NOT NULL)`),
+	],
+);
+
+export const agencyLicenseAllocationsTable = pgTable(
+	"agency_license_allocations",
+	{
+		id: uuid("id").defaultRandom().primaryKey(),
+		linkId: uuid("link_id")
+			.notNull()
+			.references(() => agencyCreatorLinksTable.id, { onDelete: "cascade" }),
+		creatorId: varchar("creator_id")
+			.notNull()
+			.references(() => usersTable.id, { onDelete: "cascade" }),
+		status: agencyLicenseAllocationStatusEnum("status").notNull().default("active"),
+		effectiveAt: timestamp("effective_at", { withTimezone: true }).notNull(),
+		removalRequestedAt: timestamp("removal_requested_at", { withTimezone: true }),
+		endsAt: timestamp("ends_at", { withTimezone: true }),
+		sourceReference: varchar("source_reference", { length: 160 }).notNull(),
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+	},
+	(table) => [
+		uniqueIndex("agency_license_allocations_live_creator_unique")
+			.on(table.creatorId)
+			.where(sql`${table.status} IN ('active', 'removal_scheduled')`),
+		index("agency_license_allocations_link_status_idx").on(table.linkId, table.status),
+		index("agency_license_allocations_due_idx").on(table.status, table.endsAt),
+		check("agency_license_allocations_grace_state", sql`(${table.status} <> 'removal_scheduled') OR (${table.removalRequestedAt} IS NOT NULL AND ${table.endsAt} IS NOT NULL AND ${table.endsAt} > ${table.removalRequestedAt})`),
+		check("agency_license_allocations_source_non_secret", sql`${table.sourceReference} !~* '(bearer[[:space:]]+|token=|password=|secret=|credential=)'`),
+	],
 );
 
 export const accountDeletionRequestsTable = pgTable(

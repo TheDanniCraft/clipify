@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { redactSecurityValue } from "@/auth/audit";
 
-export type NotificationClass = "welcome" | "invitation" | "security" | "agency-access" | "account-lifecycle";
+export type NotificationClass = "welcome" | "invitation" | "security" | "agency-access" | "agency-allocation" | "account-lifecycle";
 export type NotificationStatus = "pending" | "claimed" | "sent" | "retry" | "dead";
 
 export interface NotificationRecord {
