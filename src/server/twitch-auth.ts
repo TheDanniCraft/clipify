@@ -11,6 +11,9 @@ export type RefreshAccessTokenResult = {
 };
 
 export async function refreshAccessTokenWithContextInternal(refreshToken: string, userId?: string): Promise<RefreshAccessTokenResult> {
+	if (process.env.AUTH_CUTOVER_RUNTIME === "better-auth") {
+		return { token: null, invalidRefreshToken: false, message: "legacy_refresh_disabled" };
+	}
 	const url = "https://id.twitch.tv/oauth2/token";
 	try {
 		const response = await axios.post<TwitchTokenApiResponse>(url, null, {

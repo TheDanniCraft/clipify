@@ -1,0 +1,21 @@
+-- QUARANTINED CANDIDATE: DO NOT APPLY THROUGH NORMAL DRIZZLE MIGRATIONS.
+-- Promotion requires explicit operator approval after auth:legacy-check reports
+-- zero production consumers and the final cutover rehearsal is Green.
+BEGIN;
+
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM information_schema.tables
+    WHERE table_schema = 'public' AND table_name IN ('editors', 'tokens')
+  ) THEN
+    RAISE EXCEPTION 'Legacy auth table contraction requires an operator-reviewed promoted migration';
+  END IF;
+END $$;
+
+-- Reviewed promotion replaces the guard above with:
+-- DROP TABLE public.editors;
+-- DROP TABLE public.tokens;
+
+ROLLBACK;

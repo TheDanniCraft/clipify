@@ -28,10 +28,10 @@ export async function GET(req: NextRequest) {
 		callbackUrl = new URL(process.env.PREVIEW_CALLBACK_URL);
 	}
 
-	const state = jwt.sign({ nonce, returnUrl, date: new Date().toISOString(), ...((await isPreview()) ? { baseUrl } : {}) }, process.env.JWT_SECRET!, {
+	const state = jwt.sign({ nonce, returnUrl, initiator: "bot", date: new Date().toISOString(), ...((await isPreview()) ? { baseUrl } : {}) }, process.env.JWT_SECRET!, {
 		expiresIn: "10m",
 		algorithm: "HS256",
-		issuer: "clipify",
+		issuer: "clipify-bot-oauth",
 	});
 
 	// Bot route intentionally keeps broad scopes for system/bot users.

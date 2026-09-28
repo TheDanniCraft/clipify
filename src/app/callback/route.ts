@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
 		try {
 			decoded = jwt.verify(state, process.env.JWT_SECRET!, {
 				algorithms: ["HS256"],
-				issuer: "clipify",
+				issuer: "clipify-bot-oauth",
 			});
 		} catch (e) {
 			console.error("Invalid state", e);
@@ -85,6 +85,10 @@ export async function GET(request: NextRequest) {
 			return authUser(undefined, "stateError");
 		}
 		const payload = decoded;
+		if (payload.initiator !== "bot") {
+			recordOutcome("legacy_creator_callback_rejected");
+			return authUser(undefined, "legacyCallbackRetired");
+		}
 
 		const cookieNonce = cookieStore.get("auth_nonce")?.value;
 		if (!cookieNonce || payload.nonce !== cookieNonce) {
@@ -105,19 +109,6 @@ export async function GET(request: NextRequest) {
 			return authUser(undefined, "userError");
 		}
 
-		const cookieToken = jwt.sign(user, process.env.JWT_SECRET!, {
-			expiresIn: "1h",
-			algorithm: "HS256",
-			issuer: "clipify",
-		});
-
-		cookieStore.set("token", cookieToken, {
-			httpOnly: true,
-			sameSite: "lax",
-			secure: process.env.NODE_ENV === "production",
-			maxAge: 60 * 60 * 2,
-			path: "/",
-		});
 		await clearAdminViewCookieForAuthFlow();
 
 		const baseUrl = await getBaseUrl();

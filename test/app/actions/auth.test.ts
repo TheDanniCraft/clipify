@@ -10,6 +10,7 @@ const dbInsert = jest.fn();
 const dbUpdate = jest.fn();
 const verifyToken = jest.fn();
 const resolveUserEntitlements = jest.fn();
+const getAuthActorContext = jest.fn();
 
 jest.mock("jsonwebtoken", () => ({
 	__esModule: true,
@@ -62,6 +63,10 @@ jest.mock("@actions/twitch", () => ({
 
 jest.mock("@lib/entitlements", () => ({
 	resolveUserEntitlements: (...args: unknown[]) => resolveUserEntitlements(...args),
+}));
+
+jest.mock("@/auth/session", () => ({
+	getAuthActorContext: (...args: unknown[]) => getAuthActorContext(...args),
 }));
 
 let cookieValues: Record<string, string> = {};
@@ -118,6 +123,20 @@ describe("actions/auth", () => {
 			}),
 		});
 		getBaseUrl.mockResolvedValue(new URL("https://clipify.us"));
+		getAuthActorContext.mockImplementation(async () => {
+			const encoded = cookieValues.token;
+			if (!encoded) return null;
+			let payload: { id?: string };
+			try {
+				payload = verify(encoded) as { id?: string };
+			} catch {
+				return null;
+			}
+			if (!payload.id) return null;
+			const rows = await dbSelect().from().where().limit().execute();
+			const user = rows[0];
+			return user ? { authUserId: "auth-user-1", sessionId: "session-1", creatorId: payload.id, activeOrganizationId: null, user } : null;
+		});
 	});
 
 	it("reads cookie values and returns null for missing cookies", async () => {
@@ -127,15 +146,12 @@ describe("actions/auth", () => {
 		await expect(getCookie("missing")).resolves.toBeNull();
 	});
 
-	it("parses authenticated users from jwt and handles verification failures", async () => {
+	it("never parses legacy dashboard JWT cookies", async () => {
 		verify.mockReturnValue({ id: "user-1", username: "alice" });
 		const { getUserFromCookie } = await loadAuth();
-		await expect(getUserFromCookie("jwt-token")).resolves.toEqual({ id: "user-1", username: "alice" });
-
-		verify.mockImplementation(() => {
-			throw new Error("invalid");
-		});
+		await expect(getUserFromCookie("jwt-token")).resolves.toBeUndefined();
 		await expect(getUserFromCookie("bad-token")).resolves.toBeUndefined();
+		expect(verify).not.toHaveBeenCalled();
 	});
 
 	it("builds login redirect urls with optional error and returnUrl params", async () => {

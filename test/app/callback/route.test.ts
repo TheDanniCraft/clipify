@@ -49,7 +49,7 @@ describe("app/callback/route", () => {
 			get: (name: string) => (name === "auth_nonce" ? { value: "nonce-1" } : undefined),
 			set: jest.fn(),
 		});
-		jwtVerify.mockReturnValue({ nonce: "nonce-1", returnUrl: "/dashboard" });
+		jwtVerify.mockReturnValue({ nonce: "nonce-1", returnUrl: "/dashboard", initiator: "bot" });
 		exchangeAccesToken.mockResolvedValue({ access_token: "at" });
 		setAccessToken.mockResolvedValue({ id: "user-1" });
 		jwtSign.mockReturnValue("token");
@@ -65,5 +65,6 @@ describe("app/callback/route", () => {
 		await GET(request);
 
 		expect(clearAdminViewCookieForAuthFlow).toHaveBeenCalledTimes(1);
+		expect(jwtSign).not.toHaveBeenCalled();
 	});
 });

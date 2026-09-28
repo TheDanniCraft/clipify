@@ -52,5 +52,6 @@ describe("app/auth/bot route", () => {
 		expect(location).toContain("user%3Abot");
 		expect(location).toContain("channel%3Abot");
 		expect(location).toContain("state=signed-state");
+		expect(sign).toHaveBeenCalledWith(expect.objectContaining({ initiator: "bot" }), "secret", expect.objectContaining({ issuer: "clipify-bot-oauth" }));
 	});
 });

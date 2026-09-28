@@ -4,9 +4,19 @@ import { defineBddConfig } from "playwright-bdd";
 const baseURL = "http://127.0.0.1:3107";
 const bddTestDir = defineBddConfig({
 	features: "test/bdd/features/**/*.feature",
-	steps: "test/bdd/steps/**/*.ts",
+	steps: ["test/bdd/steps/**/*.ts", "test/bdd/support/**/*.ts"],
 	featuresRoot: "test/bdd/features",
-	outputDir: ".features-gen",
+	outputDir: ".features-gen/bdd",
+	language: "en",
+	missingSteps: "fail-on-gen",
+	arityCheck: true,
+	quotes: "double",
+});
+const atddTestDir = defineBddConfig({
+	features: "test/atdd/features/**/*.feature",
+	steps: ["test/atdd/steps/**/*.ts", "test/atdd/support/**/*.ts"],
+	featuresRoot: "test/atdd/features",
+	outputDir: ".features-gen/atdd",
 	language: "en",
 	missingSteps: "fail-on-gen",
 	arityCheck: true,
@@ -39,6 +49,11 @@ export default defineConfig({
 			name: "acceptance-chromium",
 			testDir: "./test/acceptance",
 			testMatch: "**/*.spec.ts",
+			use: chromium,
+		},
+		{
+			name: "atdd-chromium",
+			testDir: atddTestDir,
 			use: chromium,
 		},
 		{

@@ -1,52 +1,12 @@
-/* istanbul ignore file */
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import crypto from "crypto";
-import jwt from "jsonwebtoken";
 
-import { getBaseUrl, isPreview, safeReturnUrl } from "@actions/utils";
-import { readCheckoutIntent } from "@/server/checkoutIntent";
+import { safeReturnUrl } from "@actions/utils";
 
-export async function GET(req: NextRequest) {
-	const url = new URL(req.url);
-	const cookieStore = await cookies();
-
-	const checkoutIntent = await readCheckoutIntent();
-	const returnUrl = checkoutIntent ? "/checkout/continue" : (await safeReturnUrl(url.searchParams.get("returnUrl"))) || null;
-
-	const nonce = crypto.randomUUID();
-	cookieStore.set("auth_nonce", nonce, {
-		httpOnly: true,
-		secure: process.env.NODE_ENV === "production",
-		sameSite: "lax",
-		path: "/",
-		maxAge: 10 * 60,
-	});
-
-	const baseUrl = await getBaseUrl();
-	let callbackUrl = new URL("/callback", baseUrl);
-
-	if ((await isPreview()) && process.env.PREVIEW_CALLBACK_URL) {
-		callbackUrl = new URL(process.env.PREVIEW_CALLBACK_URL);
-	}
-
-	const state = jwt.sign({ nonce, returnUrl, date: new Date().toISOString(), ...((await isPreview()) ? { baseUrl } : {}) }, process.env.JWT_SECRET!, {
-		expiresIn: "10m",
-		algorithm: "HS256",
-		issuer: "clipify",
-	});
-
-	const scopes = ["user:read:email", "channel:bot", "channel:read:redemptions", "channel:manage:redemptions", "channel:manage:clips"];
-
-	const authLink = new URL("https://id.twitch.tv/oauth2/authorize");
-	authLink.searchParams.set("client_id", process.env.TWITCH_CLIENT_ID || "");
-	authLink.searchParams.set("redirect_uri", callbackUrl.toString());
-	authLink.searchParams.set("response_type", "code");
-	authLink.searchParams.set("scope", scopes.join(" "));
-	if (process.env.TWITCH_FORCE_VERIFY === "true") {
-		authLink.searchParams.set("force_verify", "true");
-	}
-	authLink.searchParams.set("state", state);
-
-	return NextResponse.redirect(authLink.toString());
+/** Legacy creator OAuth entrypoint: send users to the Better Auth login UI. */
+export async function GET(request: NextRequest) {
+	const requestUrl = new URL(request.url);
+	const login = new URL("/login", requestUrl);
+	const returnUrl = await safeReturnUrl(requestUrl.searchParams.get("returnUrl"));
+	if (returnUrl) login.searchParams.set("returnUrl", returnUrl);
+	return NextResponse.redirect(login);
 }

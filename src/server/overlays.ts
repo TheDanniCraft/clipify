@@ -5,6 +5,7 @@ import { editorsTable, overlaysTable, usersTable } from "@/db/schema";
 import { validateAuth } from "@actions/auth";
 import { AuthenticatedUser, Overlay } from "@types";
 import { and, eq } from "drizzle-orm";
+import { evaluateOverlayRuntimeAccess, type OverlayRuntimeChannel, type OverlayRuntimeDecision } from "@/server/overlay-runtime";
 
 export async function canEditOwnerInternal(editorId: string, ownerId: string): Promise<boolean> {
 	if (editorId === ownerId) return true;
@@ -39,21 +40,27 @@ export async function requireOverlayAccessInternal(overlayId: string): Promise<{
 }
 
 export async function requireOverlaySecretAccessInternal(overlayId: string, secret?: string): Promise<Overlay | null> {
-	if (!secret) {
-		console.warn(`Missing overlay secret for overlay id: ${overlayId}`);
+	const decision = await getOverlayRuntimeAccessInternal(overlayId, "websocket", secret);
+	if (!decision.allowed) {
+		console.warn(`Overlay runtime access denied for overlay id: ${overlayId}; reason: ${decision.reason}`);
 		return null;
 	}
+	return decision.overlay;
+}
 
+export async function getOverlayRuntimeAccessInternal(overlayId: string, channel: OverlayRuntimeChannel, presentedSecret?: string): Promise<OverlayRuntimeDecision<Overlay>> {
 	const overlays = await db.select().from(overlaysTable).where(eq(overlaysTable.id, overlayId)).limit(1).execute();
-	const overlay = overlays[0];
-	if (!overlay || !overlay.secret || overlay.secret !== secret) {
-		console.warn(`Invalid overlay secret for overlay id: ${overlayId}`);
-		return null;
-	}
-	const ownerRows = await db.select({ disabled: usersTable.disabled }).from(usersTable).where(eq(usersTable.id, overlay.ownerId)).limit(1).execute();
-	if (ownerRows[0]?.disabled) return null;
+	const overlay = overlays[0] ?? null;
+	if (!overlay) return { allowed: false, reason: "not-found" };
 
-	return overlay;
+	const ownerRows = await db.select({ disabled: usersTable.disabled, disabledReason: usersTable.disabledReason }).from(usersTable).where(eq(usersTable.id, overlay.ownerId)).limit(1).execute();
+	return evaluateOverlayRuntimeAccess({
+		channel,
+		overlay,
+		presentedSecret,
+		ownerSuspended: ownerRows[0]?.disabled === true,
+		ownerDisabledReason: ownerRows[0]?.disabledReason,
+	});
 }
 
 export async function getAllOverlayIdsByOwnerInternal(ownerId: string): Promise<string[]> {

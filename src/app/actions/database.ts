@@ -13,7 +13,7 @@ import { getFeatureAccess } from "@lib/featureAccess";
 import { ensureReverseTrialGrantForUser, resolveUserEntitlements, resolveUserEntitlementsForUsers } from "@lib/entitlements";
 import { TWITCH_CLIPS_LAUNCH_MS, FREE_PLAYLIST_LIMIT, FREE_PLAYLIST_CLIP_LIMIT } from "@lib/constants";
 import { getAccessTokenInternal, getAccessTokenResultInternal } from "@/server/tokens";
-import { canEditOwnerInternal, requireOverlayAccessInternal, requireOverlaySecretAccessInternal } from "@/server/overlays";
+import { canEditOwnerInternal, getOverlayRuntimeAccessInternal, requireOverlayAccessInternal, requireOverlaySecretAccessInternal } from "@/server/overlays";
 import { invalidateCommunitySnapshotCache } from "@lib/community";
 import { downgradeGalleryPatch } from "@lib/gallery";
 import { allocateMemberNumber } from "@/server/memberNumbers";
@@ -1409,24 +1409,20 @@ export async function getOverlayOwnerPlans(overlayIds: string[]): Promise<Record
 
 export async function getOverlayPublic(overlayId: string) {
 	try {
-		const overlays = await db.select().from(overlaysTable).where(eq(overlaysTable.id, overlayId)).limit(1).execute();
-		const overlay = overlays[0];
-
-		if (!overlay) return null;
-		const ownerRows = await db.select({ disabled: usersTable.disabled, disabledReason: usersTable.disabledReason }).from(usersTable).where(eq(usersTable.id, overlay.ownerId)).limit(1).execute();
-		const owner = ownerRows[0];
-		if (owner?.disabled) {
+		const runtime = await getOverlayRuntimeAccessInternal(overlayId, "http");
+		if (!runtime.allowed) {
+			if (runtime.reason !== "owner-suspended") return null;
 			return {
-				...overlay,
+				...runtime.overlay,
 				rewardId: null,
 				secret: "",
 				ownerDisabled: true,
 				/* istanbul ignore next: disabled reason fallback */
-				ownerDisabledReason: owner.disabledReason ?? "account_disabled",
+				ownerDisabledReason: runtime.ownerDisabledReason ?? "account_disabled",
 			};
 		}
 
-		return { ...overlay, rewardId: null, secret: "" };
+		return { ...runtime.overlay, rewardId: null, secret: "" };
 	} catch (error) {
 		console.error("Error fetching overlay:", error);
 		throw new Error("Failed to fetch overlay");

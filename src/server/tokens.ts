@@ -1,17 +1,45 @@
 import "server-only";
 
 import { db } from "@/db/client";
-import { overlaysTable, tokenTable, usersTable } from "@/db/schema";
+import { creatorIdentityLinksTable, overlaysTable, tokenTable, usersTable } from "@/db/schema";
+import { account as authAccountTable } from "@/db/auth-schema";
 import { refreshAccessTokenWithContextInternal } from "@/server/twitch-auth";
 import { decryptToken, encryptToken } from "@lib/tokenCrypto";
 import { StatusOptions } from "@types";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { UserToken } from "@types";
 
 export type AccessTokenResult = {
 	token: UserToken | null;
 	reason?: "user_disabled" | "token_row_missing" | "token_decrypt_failed" | "refresh_invalid_token" | "refresh_failed";
 };
+
+function activeCredentialAuthority(): "legacy" | "better-auth" {
+	const value = process.env.AUTH_CUTOVER_RUNTIME ?? "legacy";
+	if (value !== "legacy" && value !== "better-auth") throw new Error("AUTH_CUTOVER_RUNTIME_INVALID");
+	return value;
+}
+
+async function getBetterAuthAccessToken(userId: string): Promise<AccessTokenResult> {
+	const links = await db.select({ authUserId: creatorIdentityLinksTable.authUserId }).from(creatorIdentityLinksTable).where(eq(creatorIdentityLinksTable.creatorId, userId)).limit(1).execute();
+	const authUserId = links[0]?.authUserId;
+	if (!authUserId) return { token: null, reason: "token_row_missing" };
+	const accounts = await db
+		.select({ id: authAccountTable.id })
+		.from(authAccountTable)
+		.where(and(eq(authAccountTable.userId, authUserId), eq(authAccountTable.providerId, "twitch")))
+		.limit(1)
+		.execute();
+	const accountId = accounts[0]?.id;
+	if (!accountId) return { token: null, reason: "token_row_missing" };
+	try {
+		const { auth } = await import("@/auth/config");
+		const value = await auth.api.getAccessToken({ body: { accountId, userId: authUserId } });
+		return { token: { id: userId, accessToken: value.accessToken, refreshToken: "", expiresAt: value.accessTokenExpiresAt ?? new Date(Date.now() + 60_000), scope: value.scopes, tokenType: "bearer" } };
+	} catch {
+		return { token: null, reason: "refresh_failed" };
+	}
+}
 
 async function disableUserAccessInternal(userId: string, reason: string) {
 	const now = new Date();
@@ -58,6 +86,7 @@ export async function getAccessTokenResultInternal(userId: string): Promise<Acce
 		const userRows = await db.select({ disabled: usersTable.disabled }).from(usersTable).where(eq(usersTable.id, userId)).limit(1).execute();
 		const userRow = userRows[0];
 		if (userRow?.disabled) return { token: null, reason: "user_disabled" };
+		if (activeCredentialAuthority() === "better-auth") return getBetterAuthAccessToken(userId);
 
 		const rows = await db.select().from(tokenTable).where(eq(tokenTable.id, userId)).limit(1).execute();
 		if (rows.length === 0) return { token: null, reason: "token_row_missing" };
