@@ -4,6 +4,12 @@ const mockRunnerFindFirst = jest.fn();
 const mockSessionFindFirst = jest.fn();
 const mockEditorFindFirst = jest.fn();
 const mockValidateAuth = jest.fn();
+const mockAuthorizeCreatorOperation = jest.fn(async ({ creatorId }: { creatorId: string }) => {
+	const actor = await mockValidateAuth();
+	if (!actor) return { allowed: false, code: "AUTHENTICATION_REQUIRED" };
+	const allowed = actor.id === creatorId || Boolean(await mockEditorFindFirst());
+	return allowed ? { allowed: true, accessPath: actor.id === creatorId ? "owner" : "direct", creator: { id: creatorId }, authUserId: actor.id, sessionId: "test", creatorOrganizationId: `org:${creatorId}` } : { allowed: false, code: "ACCESS_PATH_REQUIRED" };
+});
 
 jest.mock("@/db/client", () => ({
 	db: {
@@ -22,6 +28,7 @@ jest.mock("@actions/auth", () => ({
 jest.mock("@actions/rateLimit", () => ({
 	tryRateLimit: jest.fn().mockResolvedValue({ success: true, remaining: 39 }),
 }));
+jest.mock("@/auth/authorize-operation", () => ({ authorizeCreatorOperation: (input: { creatorId: string }) => mockAuthorizeCreatorOperation(input) }));
 
 describe("runner preview route", () => {
 	beforeEach(() => {

@@ -13,10 +13,12 @@ import { getFeatureAccess } from "@lib/featureAccess";
 import { ensureReverseTrialGrantForUser, resolveUserEntitlements, resolveUserEntitlementsForUsers } from "@lib/entitlements";
 import { TWITCH_CLIPS_LAUNCH_MS, FREE_PLAYLIST_LIMIT, FREE_PLAYLIST_CLIP_LIMIT } from "@lib/constants";
 import { getAccessTokenInternal, getAccessTokenResultInternal } from "@/server/tokens";
-import { canEditOwnerInternal, getOverlayRuntimeAccessInternal, requireOverlayAccessInternal, requireOverlaySecretAccessInternal } from "@/server/overlays";
+import { getOverlayRuntimeAccessInternal, requireOverlayAccessInternal, requireOverlaySecretAccessInternal } from "@/server/overlays";
 import { invalidateCommunitySnapshotCache } from "@lib/community";
 import { downgradeGalleryPatch } from "@lib/gallery";
 import { allocateMemberNumber } from "@/server/memberNumbers";
+import { authorizeCreatorOperation, listAuthorizedCreatorOperations } from "@/auth/authorize-operation";
+import type { Permission } from "@/auth/permissions";
 
 const TWITCH_CACHE_CLEANUP_INTERVAL_MS = 10 * 60 * 1000;
 const FONT_URL_DELIMITER = "||url||";
@@ -363,12 +365,13 @@ async function requireUser(): Promise<AuthenticatedUser | null> {
 	return user;
 }
 
-async function canEditOwner(editorId: string, ownerId: string): Promise<boolean> {
-	return canEditOwnerInternal(editorId, ownerId);
+async function canEditOwner(editorId: string, ownerId: string, permission: Permission): Promise<boolean> {
+	void editorId;
+	return (await authorizeCreatorOperation({ creatorId: ownerId, resourceOwnerId: ownerId, permission })).allowed;
 }
 
-async function requireOverlayAccess(overlayId: string): Promise<{ user: AuthenticatedUser; overlay: Overlay } | null> {
-	return requireOverlayAccessInternal(overlayId);
+async function requireOverlayAccess(overlayId: string, permission: Permission = "overlay:read"): Promise<{ user: AuthenticatedUser; overlay: Overlay } | null> {
+	return requireOverlayAccessInternal(overlayId, permission);
 }
 
 async function requireOverlaySecretAccess(overlayId: string, secret?: string): Promise<Overlay | null> {
@@ -687,9 +690,8 @@ export async function getEditorAccess(userId: string) {
 			console.warn(`Unauthenticated "getEditorAccess" API request for user id: ${userId}`);
 			return null;
 		}
-		const editorRows = await db.select().from(editorsTable).where(eq(editorsTable.editorId, userId)).execute();
-
-		return editorRows;
+		const access = await listAuthorizedCreatorOperations({ permission: "creator:read" });
+		return access.filter((candidate) => candidate.accessPath !== "owner").map((candidate) => ({ editorId: userId, userId: candidate.creator.id }));
 	} catch (error) {
 		console.error("Error checking editor access:", error);
 		throw new Error("Failed to check editor access");
@@ -777,7 +779,7 @@ function parseClipDate(value: string) {
 
 export async function getClipCacheStatus(ownerId: string): Promise<ClipCacheStatus | null> {
 	const user = await requireUser();
-	if (!user || !(await canEditOwner(user.id, ownerId))) {
+	if (!user || !(await canEditOwner(user.id, ownerId, "creator:read"))) {
 		console.warn(`Unauthorized "getClipCacheStatus" API request for owner id: ${ownerId}`);
 		return null;
 	}
@@ -861,9 +863,8 @@ export async function getEditorOverlays(ownerId: string) {
 			return null;
 		}
 
-		const owners = await db.select().from(editorsTable).where(eq(editorsTable.editorId, ownerId)).execute();
-
-		const ownerIds = owners.map((owner) => owner.userId);
+		const access = await listAuthorizedCreatorOperations({ permission: "overlay:read" });
+		const ownerIds = access.filter((candidate) => candidate.accessPath !== "owner").map((candidate) => candidate.creator.id);
 
 		if (ownerIds.length === 0) {
 			return [];
@@ -955,7 +956,7 @@ async function getOwnerPlanContext(ownerId: string, tx: QueryClient = db) {
 	};
 }
 
-async function requirePlaylistAccess(playlistId: string): Promise<{ user: AuthenticatedUser; playlist: Playlist } | null> {
+async function requirePlaylistAccess(playlistId: string, permission: Permission = "playlist:read"): Promise<{ user: AuthenticatedUser; playlist: Playlist } | null> {
 	const user = await requireUser();
 	/* istanbul ignore next: unauthenticated guard */
 	if (!user) return null;
@@ -964,7 +965,7 @@ async function requirePlaylistAccess(playlistId: string): Promise<{ user: Authen
 	const playlist = playlists[0];
 	if (!playlist) return null;
 
-	if (!(await canEditOwner(user.id, playlist.ownerId))) {
+	if (!(await canEditOwner(user.id, playlist.ownerId, permission))) {
 		console.warn(`Unauthorized playlist access for user id: ${user.id} on playlist id: ${playlistId}`);
 		return null;
 	}
@@ -979,8 +980,8 @@ export async function getAllPlaylists(userId: string): Promise<PlaylistWithMeta[
 		return null;
 	}
 
-	const editorRows = await db.select().from(editorsTable).where(eq(editorsTable.editorId, userId)).execute();
-	const ownerIds = Array.from(new Set([userId, ...editorRows.map((row) => row.userId)]));
+	const access = await listAuthorizedCreatorOperations({ permission: "playlist:read" });
+	const ownerIds = Array.from(new Set(access.map((candidate) => candidate.creator.id)));
 	/* istanbul ignore next: empty result guard */
 	const playlists = ownerIds.length > 0 ? await db.select().from(playlistsTable).where(inArray(playlistsTable.ownerId, ownerIds)).execute() : [];
 
@@ -1004,13 +1005,13 @@ export async function getAllPlaylists(userId: string): Promise<PlaylistWithMeta[
 	return playlists.map((playlist) => ({
 		...playlist,
 		clipCount: countByPlaylistId.get(playlist.id) ?? 0,
-		accessType: playlist.ownerId === userId ? "owner" : "editor",
+		accessType: access.find((candidate) => candidate.creator.id === playlist.ownerId)?.accessPath === "owner" ? "owner" : "editor",
 	}));
 }
 
 export async function getPlaylistsForOwner(ownerId: string): Promise<Array<Playlist & { clipCount: number }> | null> {
 	const user = await requireUser();
-	if (!user || !(await canEditOwner(user.id, ownerId))) {
+	if (!user || !(await canEditOwner(user.id, ownerId, "playlist:read"))) {
 		console.warn(`Unauthorized "getPlaylistsForOwner" API request for owner id: ${ownerId}`);
 		return null;
 	}
@@ -1043,7 +1044,7 @@ export async function createPlaylist(ownerId: string, name: string) {
 		console.warn(`Unauthenticated "createPlaylist" API request`);
 		return null;
 	}
-	if (!(await canEditOwner(user.id, ownerId))) {
+	if (!(await canEditOwner(user.id, ownerId, "playlist:create"))) {
 		console.warn(`Unauthorized "createPlaylist" API request for user id: ${user.id} on owner id: ${ownerId}`);
 		return null;
 	}
@@ -1080,7 +1081,7 @@ export async function createPlaylist(ownerId: string, name: string) {
 }
 
 export async function savePlaylist(playlistId: string, patch: Partial<Pick<Playlist, "name">>) {
-	const ctx = await requirePlaylistAccess(playlistId);
+	const ctx = await requirePlaylistAccess(playlistId, "playlist:update");
 	/* istanbul ignore next: access guard */
 	if (!ctx) return null;
 
@@ -1104,7 +1105,7 @@ export async function savePlaylist(playlistId: string, patch: Partial<Pick<Playl
 
 export async function deletePlaylist(playlistId: string) {
 	try {
-		const ctx = await requirePlaylistAccess(playlistId);
+		const ctx = await requirePlaylistAccess(playlistId, "playlist:delete");
 		if (!ctx) return false;
 
 		await db.transaction(async (tx) => {
@@ -1155,7 +1156,7 @@ export async function getPlaylistClipsForOwnerServer(ownerId: string, playlistId
 
 /* istanbul ignore next: upsert operation guard */
 export async function upsertPlaylistClips(playlistId: string, clips: TwitchClip[], mode: "append" | "replace" = "append") {
-	const ctx = await requirePlaylistAccess(playlistId);
+	const ctx = await requirePlaylistAccess(playlistId, "playlist-items:manage");
 	if (!ctx) return [];
 
 	const uniqueIncoming = Array.from(new Map(clips.filter((clip) => !!clip?.id).map((clip) => [clip.id, clip])).values());
@@ -1220,7 +1221,7 @@ export async function upsertPlaylistClips(playlistId: string, clips: TwitchClip[
 }
 
 export async function reorderPlaylistClips(playlistId: string, orderedClipIds: string[]) {
-	const ctx = await requirePlaylistAccess(playlistId);
+	const ctx = await requirePlaylistAccess(playlistId, "playlist-items:manage");
 	if (!ctx) return [];
 
 	return await db.transaction(async (tx) => {
@@ -1331,7 +1332,7 @@ function applyPlaylistImportFilters(clips: TwitchClip[], filters: PlaylistImport
 }
 
 export async function importPlaylistClips(playlistId: string, filters: PlaylistImportFilters, mode: "append" | "replace") {
-	const ctx = await requirePlaylistAccess(playlistId);
+	const ctx = await requirePlaylistAccess(playlistId, "playlist-items:manage");
 	if (!ctx) return [];
 
 	const { isPro } = await getOwnerPlanContext(ctx.playlist.ownerId);
@@ -1371,8 +1372,8 @@ export async function getOverlayOwnerPlans(overlayIds: string[]): Promise<Record
 
 		const uniqueOverlayIds = Array.from(new Set(overlayIds));
 
-		const editorRows = await db.select().from(editorsTable).where(eq(editorsTable.editorId, user.id)).execute();
-		const allowedOwnerIds = Array.from(new Set([user.id, ...editorRows.map((row) => row.userId)]));
+		const access = await listAuthorizedCreatorOperations({ permission: "overlay:read" });
+		const allowedOwnerIds = access.map((candidate) => candidate.creator.id);
 
 		const overlays = await db
 			.select({ id: overlaysTable.id, ownerId: overlaysTable.ownerId })
@@ -1441,7 +1442,7 @@ export async function getOverlayBySecret(overlayId: string, secret?: string) {
 
 export async function getOverlay(overlayId: string) {
 	try {
-		const ctx = await requireOverlayAccess(overlayId);
+		const ctx = await requireOverlayAccess(overlayId, "overlay-secret:read");
 		if (!ctx) return null;
 
 		if (!ctx.overlay.secret) {
@@ -1469,7 +1470,7 @@ export async function getOverlay(overlayId: string) {
 
 export async function getOverlayWithEditAccess(overlayId: string) {
 	try {
-		const ctx = await requireOverlayAccess(overlayId);
+		const ctx = await requireOverlayAccess(overlayId, "overlay:update");
 		return ctx?.overlay ?? null;
 	} catch (error) {
 		console.error("Error fetching overlay with edit access:", error);
@@ -1484,7 +1485,7 @@ export async function createOverlay(userId: string) {
 			console.warn(`Unauthenticated "createOverlay" API request`);
 			return null;
 		}
-		if (!(await canEditOwner(user.id, userId))) {
+		if (!(await canEditOwner(user.id, userId, "overlay:create"))) {
 			console.warn(`Unauthorized "createOverlay" API request for user id: ${user.id} on owner id: ${userId}`);
 			return null;
 		}
@@ -1635,14 +1636,13 @@ export async function downgradeUserPlan(userId: string) {
 			}
 		}
 
-		await tx.delete(editorsTable).where(eq(editorsTable.userId, userId)).execute();
 		await tx.update(usersTable).set({ updatedAt: new Date() }).where(eq(usersTable.id, userId)).execute();
 	});
 }
 
 export async function saveOverlay(overlayId: string, patch: OverlayPatch) {
 	try {
-		const ctx = await requireOverlayAccess(overlayId);
+		const ctx = await requireOverlayAccess(overlayId, "overlay:update");
 		/* istanbul ignore next: access guard */
 		if (!ctx) return null;
 
@@ -1673,7 +1673,7 @@ export async function saveOverlay(overlayId: string, patch: OverlayPatch) {
 
 export async function deleteOverlay(overlayId: string) {
 	try {
-		const ctx = await requireOverlayAccess(overlayId);
+		const ctx = await requireOverlayAccess(overlayId, "overlay:delete");
 		if (!ctx) return false;
 
 		await db.delete(overlaysTable).where(eq(overlaysTable.id, overlayId)).execute();
@@ -1791,7 +1791,7 @@ export async function removeFromClipQueueById(id: string) {
 		const overlay = overlayRows[0];
 		if (!overlay) return;
 
-		if (!(await canEditOwner(authedUser.id, overlay.ownerId))) {
+		if (!(await canEditOwner(authedUser.id, overlay.ownerId, "overlay:control"))) {
 			throw new Error("Unauthorized");
 		}
 
@@ -1934,7 +1934,7 @@ export async function removeFromModQueueById(id: string) {
 		const item = itemRows[0];
 		if (!item) return;
 
-		if (!(await canEditOwner(authedUser.id, item.broadcasterId))) {
+		if (!(await canEditOwner(authedUser.id, item.broadcasterId, "overlay:control"))) {
 			throw new Error("Unauthorized");
 		}
 

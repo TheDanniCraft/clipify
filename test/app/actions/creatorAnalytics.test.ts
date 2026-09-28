@@ -17,11 +17,19 @@ const dbInsert = jest.fn(() => {
 	chain.execute = jest.fn().mockResolvedValue(undefined);
 	return chain;
 });
+const authorizeCreatorOperation = jest.fn(async ({ creatorId }: { creatorId: string }) => {
+	const actor = await validateAuth();
+	if (!actor) return { allowed: false, code: "AUTHENTICATION_REQUIRED" };
+	if (actor.id !== creatorId && !((selectRows.shift() as unknown[]) ?? []).length) return { allowed: false, code: "ACCESS_PATH_REQUIRED" };
+	const creator = ((selectRows.shift() as Array<Record<string, unknown>>) ?? [])[0] ?? { ...actor, id: creatorId, plan: "pro" };
+	return { allowed: true, accessPath: actor.id === creatorId ? "owner" : "direct", creator, authUserId: actor.id, sessionId: "test", creatorOrganizationId: `org:${creatorId}` };
+});
 
 jest.mock("@actions/auth", () => ({ validateAuth: (...args: unknown[]) => validateAuth(...args) }));
 jest.mock("@/db/client", () => ({ db: { select: () => dbSelect(), insert: () => dbInsert(), update: jest.fn() } }));
 jest.mock("@lib/entitlements", () => ({ resolveUserEntitlements: (...args: unknown[]) => resolveUserEntitlements(...args) }));
 jest.mock("@lib/featureAccess", () => ({ getFeatureAccess: (...args: unknown[]) => getFeatureAccess(...args) }));
+jest.mock("@/auth/authorize-operation", () => ({ authorizeCreatorOperation: (input: { creatorId: string }) => authorizeCreatorOperation(input), listAuthorizedCreatorOperations: jest.fn() }));
 
 describe("creator analytics exports", () => {
 	const previousApiKey = process.env.PLAUSIBLE_API_KEY;

@@ -4,17 +4,24 @@ import { appendAuditEvent, type AuditEvent } from "@/auth/audit";
 import { authorize, resolveDirectAccessGrant } from "@/auth/authorize";
 
 const gallerySource = readFileSync(path.join(process.cwd(), "src/app/actions/gallery.ts"), "utf8");
+const protectedBoundaryPaths = ["src/app/actions/creatorAnalytics.ts", "src/app/actions/database.ts", "src/app/actions/gallery.ts", "src/app/actions/runner.ts", "src/app/api/runner/preview/route.ts", "src/server/overlays.ts"] as const;
 
 describe("TDD-US3-004 protected server boundaries", () => {
 	it("routes the migrated gallery read and mutation batch through the central evaluator", () => {
-		expect(gallerySource).toContain('from "@/auth/authorize"');
+		expect(gallerySource).toContain('from "@/auth/authorize-operation"');
 		for (const permission of ["gallery:create", "gallery:read", "gallery:update", "gallery:delete", "gallery:publish"]) expect(gallerySource).toContain(`"${permission}"`);
-		expect(gallerySource).toContain("authorize({");
+		expect(gallerySource).toContain("authorizeCreatorOperation({");
 	});
 
 	it("keeps authorization on the server and out of client state", () => {
 		expect(gallerySource).toMatch(/^"use server";/);
 		expect(gallerySource).not.toMatch(/authClient\.organization\.hasPermission|localStorage|sessionStorage/);
+	});
+
+	it.each(protectedBoundaryPaths)("does not authorize %s through the legacy editor table", (relativePath) => {
+		const source = readFileSync(path.join(process.cwd(), relativePath), "utf8");
+		expect(source).toContain('from "@/auth/authorize-operation"');
+		expect(source).not.toMatch(/editorsTable|legacyEditor|hasLegacyEditorAccess/);
 	});
 
 	it.each([

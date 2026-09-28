@@ -13,6 +13,18 @@ const validateAuth = jest.fn();
 const resolveUserEntitlements = jest.fn();
 const getFeatureAccess = jest.fn(() => ({ allowed: true }));
 const subscribeToReward = jest.fn();
+const authorizeCreatorOperation = jest.fn(async ({ creatorId }: { creatorId: string }) => {
+	const actor = await validateAuth();
+	if (!actor) return { allowed: false, code: "AUTHENTICATION_REQUIRED" };
+	const allowed = actor.id === creatorId || Boolean(((selectQueue.shift() as unknown[]) ?? []).length);
+	return allowed ? { allowed: true, accessPath: actor.id === creatorId ? "owner" : "direct", creator: { ...actor, id: creatorId }, authUserId: actor.id, sessionId: "test", creatorOrganizationId: `org:${creatorId}` } : { allowed: false, code: "ACCESS_PATH_REQUIRED" };
+});
+const listAuthorizedCreatorOperations = jest.fn(async () => {
+	const actor = await validateAuth();
+	if (!actor) return [];
+	const managed = ((selectQueue.shift() as Array<{ userId: string }>) ?? []).map((row) => row.userId);
+	return [actor.id, ...managed.filter((id) => id !== actor.id)].map((id) => ({ allowed: true, accessPath: id === actor.id ? "owner" : "direct", creator: { ...actor, id }, authUserId: actor.id, sessionId: "test", creatorOrganizationId: `org:${id}` }));
+});
 
 const insertCalls: Array<{ table: unknown; values: unknown }> = [];
 const updateCalls: Array<{ table: unknown; set: unknown }> = [];
@@ -184,6 +196,7 @@ jest.mock("@lib/entitlements", () => ({
 	resolveUserEntitlements: (...args: unknown[]) => resolveUserEntitlements(...args),
 	resolveUserEntitlementsForUsers: jest.fn(),
 }));
+jest.mock("@/auth/authorize-operation", () => ({ authorizeCreatorOperation: (input: { creatorId: string }) => authorizeCreatorOperation(input), listAuthorizedCreatorOperations: () => listAuthorizedCreatorOperations() }));
 
 jest.mock("drizzle-orm", () => ({
 	relations: jest.fn(() => ({})),
@@ -264,7 +277,7 @@ describe("actions/database playlist logic", () => {
 	});
 
 	it("returns owner playlists for editor access via getPlaylistsForOwner", async () => {
-		validateAuth.mockResolvedValueOnce({
+		validateAuth.mockResolvedValue({
 			id: "editor-1",
 			plan: "pro",
 		});
@@ -278,7 +291,7 @@ describe("actions/database playlist logic", () => {
 	});
 
 	it("returns null for getPlaylistsForOwner when access is denied", async () => {
-		validateAuth.mockResolvedValueOnce({ id: "viewer-1", plan: "free" });
+		validateAuth.mockResolvedValue({ id: "viewer-1", plan: "free" });
 		queueSelectResult([]);
 		const { getPlaylistsForOwner } = await loadDatabaseActions();
 		await expect(getPlaylistsForOwner("owner-1")).resolves.toBeNull();
@@ -345,7 +358,7 @@ describe("actions/database playlist logic", () => {
 		expect(deleteCalls.some((call) => call.table === playlistsTable)).toBe(true);
 		expect(updateCalls.some((call) => call.table === overlaysTable)).toBe(true);
 
-		validateAuth.mockResolvedValueOnce({ id: "editor-2", plan: "free" });
+		validateAuth.mockResolvedValue({ id: "editor-2", plan: "free" });
 		queueSelectResult([{ id: "playlist-1", ownerId: "owner-1", name: "Main", createdAt: new Date(), updatedAt: new Date() }]);
 		queueSelectResult([]);
 		await expect(deletePlaylist("playlist-1")).resolves.toBe(false);
@@ -757,7 +770,7 @@ describe("actions/database playlist logic", () => {
 	});
 
 	it("returns empty import result when playlist access fails", async () => {
-		validateAuth.mockResolvedValueOnce({ id: "viewer-1", plan: "free" });
+		validateAuth.mockResolvedValue({ id: "viewer-1", plan: "free" });
 		queueSelectResult([{ id: "playlist-1", ownerId: "owner-1", name: "Main", createdAt: new Date(), updatedAt: new Date() }]);
 		queueSelectResult([]);
 		const { importPlaylistClips, previewImportPlaylistClips } = await loadDatabaseActions();
