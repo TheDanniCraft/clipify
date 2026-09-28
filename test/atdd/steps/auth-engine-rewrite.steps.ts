@@ -16,7 +16,7 @@ import { evaluateDeletionBoundary, recoverDeletion } from "@/server/account-life
 import { AgencyService, createAgencyState } from "@/server/agencies/service";
 import { AgencyAllocationService, createAllocationState } from "@/server/agencies/allocations";
 import { resolveAgencyAccess } from "@/server/agencies/access";
-import { expect, test } from "../support/auth-engine-rewrite";
+import { createAuthenticatedFixture, expect, test } from "../support/auth-engine-rewrite";
 
 const { Given, When, Then } = createBdd(test);
 
@@ -209,6 +209,17 @@ Then("Better Auth requests the complete Twitch permission set", async ({ authWor
 Then("the callback targets the Clipify Better Auth Twitch route", async ({ authWorld }) => {
 	const authorizationUrl = new URL(String(authWorld.values.get("twitchAuthorizationUrl")));
 	expect(new URL(authorizationUrl.searchParams.get("redirect_uri") ?? "http://invalid").pathname).toBe("/api/auth/callback/twitch");
+});
+
+Then("a database-backed Better Auth session opens the creator dashboard", async ({ page, request, context }) => {
+	const fixture = await createAuthenticatedFixture(request, context);
+	try {
+		await page.goto(`/dashboard/settings/team?organization=${encodeURIComponent(fixture.fixture.creatorOrganizationId)}`);
+		await expect(page.getByRole("heading", { name: "Team members" })).toBeVisible({ timeout: 30_000 });
+		await expect(page.getByText("E2E Creator Account", { exact: false })).toBeVisible({ timeout: 30_000 });
+	} finally {
+		await page.close();
+	}
 });
 
 class DelegationRepository implements InvitationRepository {

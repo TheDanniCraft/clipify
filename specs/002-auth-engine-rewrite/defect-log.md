@@ -41,12 +41,14 @@ Track product, test, environment, and governance issues affecting feature readin
 | AUTH-004  | Production lifecycle imports and test doubles crossed legacy Jest boundaries  | TDD-US5-001          | Medium   | High     | Verified | Auth implementation | Adapter regression      | Subscription, overlay, and webhook focused suites                | Isolated Better Auth imports and extended lifecycle-aware test boundaries              |
 | AUTH-005  | Infisical dev lacks required WebAuthn build settings                          | Build gate           | Medium   | High     | Blocked  | Environment owner   | `bun run app:build`     | T179 production build gate                                       | Add `WEBAUTHN_RP_NAME`, `WEBAUTHN_RP_ID`, and `WEBAUTHN_ORIGIN` to the dev environment |
 | AUTH-006  | Changed auth adapter coverage is below the release floor                      | Coverage gate        | High     | High     | Open     | Auth implementation | `bun run test:coverage` | T177 changed-code coverage gate                                  | Add database/session/mail/agency adapter tests; do not lower the 90%/95% policy        |
+| AUTH-007  | Database-backed US2 ATDD exceeded the generic browser timeout                 | ATDD-US2-001         | Low      | High     | Verified | Auth implementation | Focused ATDD            | T023 real-session acceptance boundary                            | ATDD project uses the authenticated acceptance timeout                                 |
+| AUTH-008  | Login smoke retained the retired link role                                    | BDD-SMOKE-001        | Low      | High     | Verified | Auth implementation | Aggregate BDD           | T038 aggregate behavior gate                                     | Smoke asserts the Better Auth sign-in button role                                      |
 
 ## Defect Details
 
 ### PLAN-001 - SpecKit template resolver does not expose installed test-governance templates
 
-- **Status**: Open
+- **Status**: Verified
 - **Severity / Priority**: Low / Low
 - **Affected Source IDs**: planning governance only; no product FR/SC/EC
 - **Affected Artifact IDs**: `test-traceability.md`, `defect-log.md`, `test-summary.md`
@@ -116,9 +118,37 @@ Track product, test, environment, and governance issues affecting feature readin
 - **Verification Evidence**: 7 focused suites/89 tests and TypeScript pass, including new suspended-account, overlay-pause, deletion-choice, and Stripe-ordering regressions.
 - **Approval / Risk Acceptance**: none.
 
+### AUTH-007 - Database-backed US2 ATDD exceeded the generic browser timeout
+
+- **Status**: Verified
+- **Severity / Priority**: Low / High
+- **Affected Source IDs**: US2, SC-001
+- **Affected Artifact IDs**: ATDD-US2-001, T023
+- **Detected During**: focused real-session ATDD execution
+- **Expected Result**: the Twitch authorization contract, persisted Better Auth session, and protected dashboard entry complete under the acceptance journey's explicit timeout.
+- **Actual Result**: the Next.js development server compiled the database-backed dashboard route after the generic 60-second Playwright timeout; fixture cleanup then observed the already-closed request context.
+- **Root Cause / Investigation Notes**: authenticated acceptance runs already declare a 120-second test timeout, but the equivalent ATDD journey inherited the global 60-second default despite exercising the same cold Next.js/database boundary. A first correction placed `test.setTimeout()` in the step module; generated `playwright-bdd` tests do not inherit that module-level override, so the enforced project timeout remained 60 seconds.
+- **Resolution Plan**: declare the same 120-second timeout on the generated ATDD Playwright project, rerun ATDD-US2-001 against the disposable development database, and retain global teardown as the failure-safe cleanup boundary.
+- **Verification Evidence**: `infisical run --env=dev -- bunx playwright test --project=atdd-chromium --grep ATDD-US2-001 --workers=1` passed 1/1; the browser journey completed in 1.4 minutes and the full managed server run in 2.1 minutes.
+- **Approval / Risk Acceptance**: none. This is test-harness timing only; no production behavior is being relaxed.
+
+### AUTH-008 - Login smoke retained the retired link role
+
+- **Status**: Verified
+- **Severity / Priority**: Low / High
+- **Affected Source IDs**: US2, SC-001
+- **Affected Artifact IDs**: BDD-SMOKE-001, T038
+- **Detected During**: complete BDD gate after Twitch-first login replacement
+- **Expected Result**: the infrastructure smoke locates the accessible Twitch sign-in control exposed by the public login page.
+- **Actual Result**: 68/69 BDD examples passed; the final smoke expected a `link` even though the login entry was intentionally converted to a `button` that starts Better Auth social sign-in.
+- **Root Cause / Investigation Notes**: the dedicated login acceptance test was updated with the implementation, but the older Gherkin smoke binding retained the pre-rewrite semantic role.
+- **Resolution Plan**: assert the implemented button role, rerun BDD-SMOKE-001, then rerun the aggregate BDD gate.
+- **Verification Evidence**: `bunx playwright test --project=bdd-chromium --grep BDD-SMOKE-001 --workers=1` passed 1/1, followed by `bun run test:bdd --workers=1` passing 69/69.
+- **Approval / Risk Acceptance**: none. Production semantics and accessible name remain unchanged.
+
 ## Open Defect Review
 
-The completed US1, US3, and US4 gates introduced no open product defects. US4 focused TDD (67 tests), scoped ATDD (3/3), and scoped BDD (all three auth-rewrite agency journeys) are Green; the aggregate ATDD run's sole failure is the pre-existing US2 test server's intentionally invalid database endpoint, not an agency defect. A US1 regression probe found and corrected a duplicate disabled-owner lookup before checkpoint closure. PLAN-001 remains an unrelated planning-tooling issue with no release impact on the implemented authorization slices.
+The completed US1–US5 story gates introduced no open product defects. US2 focused TDD (10 tests), database-backed ATDD (20/20 aggregate), and BDD (69/69 aggregate) are Green. The two US2 harness regressions are verified fixed. A US1 regression probe found and corrected a duplicate disabled-owner lookup before checkpoint closure. PLAN-001 remains an unrelated planning-tooling issue with no release impact on the implemented authorization slices.
 
 | Defect ID | Release Impact                     | Required Decision                     | Decision Owner        | Due Date                         | Notes                                                                                                                                         |
 | --------- | ---------------------------------- | ------------------------------------- | --------------------- | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -137,16 +167,18 @@ The completed US1, US3, and US4 gates introduced no open product defects. US4 fo
 | AUTH-004  | Current branch                  | Lifecycle adapter regression                   | Pass    | 7 suites / 89 tests | Codex / 2026-09-28 |
 | AUTH-005  | Pending Infisical configuration | `infisical run --env=dev -- bun run app:build` | Blocked | T179                | Pending            |
 | AUTH-006  | Current branch                  | Changed-code coverage command                  | Fail    | T177                | Pending            |
+| AUTH-007  | Current branch                  | Focused database-backed ATDD-US2-001           | Pass    | ATDD-US2-001        | Codex / 2026-09-28 |
+| AUTH-008  | Current branch                  | Focused and aggregate BDD                      | Pass    | BDD-SMOKE-001       | Codex / 2026-09-28 |
 
 ## Defect Metrics
 
-| Metric                       | Value | Notes                                                                                                                     |
-| ---------------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------- |
-| Total defects                | 7     | One open tooling issue, one blocked environment issue, one open coverage issue, and four verified test-integration issues |
-| Open Critical / High defects | 1     | AUTH-006 blocks the changed-code coverage gate                                                                            |
-| Deferred defects             | 0     | No accepted risks                                                                                                         |
-| Reopened defects             | 0     |                                                                                                                           |
-| Escaped defects              | 0     |                                                                                                                           |
+| Metric                       | Value | Notes                                                                                                                    |
+| ---------------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------ |
+| Total defects                | 9     | One open tooling issue, one blocked environment issue, one open coverage issue, and six verified test-integration issues |
+| Open Critical / High defects | 1     | AUTH-006 blocks the changed-code coverage gate                                                                           |
+| Deferred defects             | 0     | No accepted risks                                                                                                        |
+| Reopened defects             | 0     |                                                                                                                          |
+| Escaped defects              | 0     |                                                                                                                          |
 
 ## Baseline Evidence
 

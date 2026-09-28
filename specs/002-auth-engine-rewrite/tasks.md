@@ -69,7 +69,7 @@ description: "Dependency-ordered implementation tasks for the Creator Identity a
 ### Scenario definitions and bindings
 
 - [x] T022 [US2] [ATDD] Add `ATDD-US2-001` with Twitch-first onboarding and the dual ATDD/BDD equivalence rationale to `test/atdd/features/auth-engine-rewrite.feature`
-- [ ] T023 [US2] [ATDD] Bind `ATDD-US2-001` through the real route/session/dashboard boundary in `test/atdd/steps/auth-engine-rewrite.steps.ts` (the real login/Better Auth/Twitch redirect boundary is Green; database session/dashboard completion remains)
+- [x] T023 [US2] [ATDD] Bind `ATDD-US2-001` through the real route/session/dashboard boundary in `test/atdd/steps/auth-engine-rewrite.steps.ts` (the real login/Better Auth/Twitch redirect boundary is Green; database session/dashboard completion remains)
 - [x] T024 [US2] [BDD] Add `BDD-US2-001` returning identity, `BDD-US2-002` four OAuth failure examples, and `BDD-US2-003` uniqueness conflict to `test/bdd/features/auth-engine-rewrite.feature`
 - [x] T025 [US2] [BDD] Bind every US2 BDD example to observable callback and sign-in outcomes in `test/bdd/steps/auth-engine-rewrite.steps.ts`
 - [x] T026 [US2] [GATE] Register US2 scenario rows, example rows, source relationships, and shared-role rationale as Planned in `specs/002-auth-engine-rewrite/test-traceability.md`
@@ -90,9 +90,9 @@ description: "Dependency-ordered implementation tasks for the Creator Identity a
 - [x] T035 [US2] [GATE] Run `bunx jest test/auth-engine-rewrite/contract/twitch-oauth.test.ts --runInBand`, prove intentional Red, and mark `TDD-US2-002` Red in `specs/002-auth-engine-rewrite/test-traceability.md`
 - [x] T036 [US2] Implement the Twitch provider adapter, required-scope validation, sanitized denial mapping, and retry-safe callback responses in `src/auth/providers/twitch.ts` and `src/app/lib/twitchErrors.ts`
 - [x] T037 [US2] Replace the creator login entry with Twitch-first sign-in, retry messaging, and no email-first partial creator path in `src/app/login/page.tsx` and `src/app/login/LoginClient.tsx`
-- [ ] T038 [US2] [GATE] Re-run `TDD-US2-002`, `bun run test:atdd`, and `bun run test:bdd` Green for US2 and record evidence in `specs/002-auth-engine-rewrite/test-traceability.md`
+- [x] T038 [US2] [GATE] Re-run `TDD-US2-002`, `bun run test:atdd`, and `bun run test:bdd` Green for US2 and record evidence in `specs/002-auth-engine-rewrite/test-traceability.md`
 - [x] T039 [US2] Refactor provider/callback error boundaries while focused TDD and US2 scenario suites remain Green in `src/auth/providers/twitch.ts`
-- [ ] T040 [US2] [GATE] Update US2 artifact statuses, defects, timings against the three-minute outcome, and residual risks in `specs/002-auth-engine-rewrite/test-summary.md` and `specs/002-auth-engine-rewrite/defect-log.md`
+- [x] T040 [US2] [GATE] Update US2 artifact statuses, defects, timings against the three-minute outcome, and residual risks in `specs/002-auth-engine-rewrite/test-summary.md` and `specs/002-auth-engine-rewrite/defect-log.md`
 
 **Checkpoint**: US2 is independently usable and testable; one Twitch subject cannot create duplicate or ambiguous identities.
 

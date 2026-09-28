@@ -30,6 +30,7 @@ Feature: Creator identity and delegated team access
     When the creator starts Twitch sign-in from the public login page
     Then Better Auth requests the complete Twitch permission set
     And the callback targets the Clipify Better Auth Twitch route
+    And a database-backed Better Auth session opens the creator dashboard
 
   # Shared ATDD/BDD ownership: this outer journey proves the complete owner-to-member
   # outcome; lower-level invalid invitation states remain in the BDD feature.

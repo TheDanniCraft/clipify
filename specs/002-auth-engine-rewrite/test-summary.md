@@ -9,28 +9,28 @@
 
 ## Executive Summary
 
-| Item                         | Result                                                                                          |
-| ---------------------------- | ----------------------------------------------------------------------------------------------- |
-| Overall Test Status          | In progress — US1, US3, US4, and US5 core Green; US2/US6 partial and final release gates remain |
-| Release Recommendation       | No-Go                                                                                           |
-| Scope Covered                | Planned coverage for US1–US6, FR-001–FR-031, SC-001–SC-012, EC-001–EC-015                       |
-| Primary Evidence Location    | [test-traceability.md](./test-traceability.md) and story evidence below                         |
-| Open Critical / High Defects | 0                                                                                               |
-| Approved Exceptions          | 0                                                                                               |
+| Item                         | Result                                                                                  |
+| ---------------------------- | --------------------------------------------------------------------------------------- |
+| Overall Test Status          | In progress — US1–US5 core Green; US6 contract/rehearsal and final release gates remain |
+| Release Recommendation       | No-Go                                                                                   |
+| Scope Covered                | Planned coverage for US1–US6, FR-001–FR-031, SC-001–SC-012, EC-001–EC-015               |
+| Primary Evidence Location    | [test-traceability.md](./test-traceability.md) and story evidence below                 |
+| Open Critical / High Defects | 0                                                                                       |
+| Approved Exceptions          | 0                                                                                       |
 
-US1 continuity, US3 authorization, US4 agency management, the US5 lifecycle core, and the deterministic performance gate are independently Green. US2 identity, US6 cutover tooling, final production-shaped rehearsal, coverage, and release gates remain open, so the feature is not yet releasable.
+US1 continuity, US2 identity/onboarding, US3 authorization, US4 agency management, the US5 lifecycle core, and the deterministic performance gate are independently Green. US6 legacy removal/rehearsal, final production-shaped rehearsal, changed-code coverage, and release gates remain open, so the feature is not yet releasable.
 
 The authenticated Chromium smoke harness uses uniquely prefixed, automatically cleaned rows in the disposable Infisical `dev` database for local runs (or the CI-supplied isolated database). It creates real revocable Better Auth sessions and signed HTTP-only cookies; the fixture route is unavailable unless both `APP_ENV=test` and `E2E_TEST_MODE=true` on loopback with the fixture bearer token.
 
 ## US4 Agency Evidence
 
-| Date       | Command                                             | Result  | Evidence summary                                                                                                                                                |
-| ---------- | --------------------------------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 2026-09-28 | Three focused US4 Jest suites                       | Green   | 3 suites, 67 tests; provisioning/link state, all-permission intersection, seat/grace/union/deletion release, and five deduplicated notice boundaries            |
-| 2026-09-28 | `bun run test:atdd -- --grep "@US4"`                | Green   | 3/3 agency acceptance journeys: owner activation, creator-approved access, and paid creator allocation                                                          |
-| 2026-09-28 | `bun run test:bdd -- --grep "@US4"`                 | Green   | 11/11 tagged scenarios; all 3 auth-rewrite agency journeys plus 8 existing legal US4 scenarios                                                                  |
-| 2026-09-28 | `bun run test:atdd`                                 | Partial | 19/20 passed; only the pre-existing US2 Twitch route failed because the test server used its intentional `127.0.0.1:1` database endpoint; every US4 case passed |
-| 2026-09-28 | Typecheck and focused entitlement/agency regression | Green   | Production database/actions/UI/scheduler and agency-funded entitlement integration typecheck; 4 suites/85 tests pass                                            |
+| Date       | Command                                                    | Result | Evidence summary                                                                                                                                     |
+| ---------- | ---------------------------------------------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-09-28 | Three focused US4 Jest suites                              | Green  | 3 suites, 67 tests; provisioning/link state, all-permission intersection, seat/grace/union/deletion release, and five deduplicated notice boundaries |
+| 2026-09-28 | `bun run test:atdd -- --grep "@US4"`                       | Green  | 3/3 agency acceptance journeys: owner activation, creator-approved access, and paid creator allocation                                               |
+| 2026-09-28 | `bun run test:bdd -- --grep "@US4"`                        | Green  | 11/11 tagged scenarios; all 3 auth-rewrite agency journeys plus 8 existing legal US4 scenarios                                                       |
+| 2026-09-28 | `infisical run --env=dev -- bun run test:atdd --workers=1` | Green  | 20/20 passed against the disposable development database, including the persisted-session US2 dashboard boundary                                     |
+| 2026-09-28 | Typecheck and focused entitlement/agency regression        | Green  | Production database/actions/UI/scheduler and agency-funded entitlement integration typecheck; 4 suites/85 tests pass                                 |
 
 ## Foundational Harness Evidence
 
@@ -51,6 +51,8 @@ The authenticated Chromium smoke harness uses uniquely prefixed, automatically c
 | 2026-09-27 | `bunx playwright test --project=bdd-chromium --grep "Twitch identity behavior"`                            | Green                    | 6/6 US2 BDD examples passed; 1.4 minutes including isolated Next server startup                                                                                                                 |
 | 2026-09-27 | `bunx playwright test --project=atdd-chromium --grep "A creator starts onboarding"`                        | Green (partial boundary) | Real login page and Better Auth sign-in route produced the Twitch authorization URL, complete scopes, and `/api/auth/callback/twitch`; database-session/dashboard completion remains under T023 |
 | 2026-09-27 | `bun run app:typecheck`                                                                                    | Pass                     | Better Auth config, generated schema, Next handler, session DAL, domain schema, and migration type-check                                                                                        |
+| 2026-09-28 | `infisical run --env=dev -- bun run test:atdd --workers=1`                                                 | Green                    | 20/20 aggregate ATDD examples; ATDD-US2-001 covers the real login route, Twitch authorization contract, persisted Better Auth session, and protected dashboard in 1.4 minutes                   |
+| 2026-09-28 | `bun run test:bdd --workers=1`                                                                             | Green                    | 69/69 aggregate BDD examples; all six US2 behavior examples and the corrected Twitch-login infrastructure smoke pass                                                                            |
 
 ## US3 Central Authorization Evidence
 

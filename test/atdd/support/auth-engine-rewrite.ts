@@ -1,5 +1,21 @@
 import { test as base } from "playwright-bdd";
+import { expect, type APIRequestContext, type BrowserContext } from "@playwright/test";
 import { ControlledClock, DeterministicMailAdapter, createDeterministicTokenGenerator } from "../../support/auth-engine-rewrite";
+
+const fixtureHeaders = { Authorization: "Bearer clipify-playwright-auth-fixture" };
+
+export type AuthFixture = {
+	cookie: { name: string; value: string; domain: string; path: string; httpOnly: boolean; secure: boolean; sameSite: "Lax" };
+	fixture: { authUserId: string; creatorId: string; creatorOrganizationId: string; agencyOrganizationId: string; overlayId: string; overlaySecret: string };
+};
+
+export async function createAuthenticatedFixture(request: APIRequestContext, context: BrowserContext, activeContext: "creator" | "agency" = "creator") {
+	const response = await request.post("/api/test/auth-fixture", { headers: fixtureHeaders, data: { activeContext } });
+	expect(response.ok(), await response.text()).toBe(true);
+	const fixture = (await response.json()) as AuthFixture;
+	await context.addCookies([fixture.cookie]);
+	return fixture;
+}
 
 interface AuthWorldFixtures {
 	authWorld: {
@@ -21,4 +37,4 @@ export const test = base.extend<AuthWorldFixtures>({
 	},
 });
 
-export { expect } from "@playwright/test";
+export { expect };

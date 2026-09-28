@@ -54,6 +54,7 @@ export default defineConfig({
 		{
 			name: "atdd-chromium",
 			testDir: atddTestDir,
+			timeout: 120_000,
 			use: chromium,
 		},
 		{
