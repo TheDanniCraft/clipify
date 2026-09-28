@@ -198,11 +198,11 @@ description: "Dependency-ordered implementation tasks for the Creator Identity a
 
 ### Scenario definitions and bindings
 
-- [ ] T089 [US6] [ATDD] Add `ATDD-US6-001` idempotent cutover and `ATDD-US6-002` validated legacy removal with shared-role rationales to `test/atdd/features/auth-engine-rewrite.feature`
-- [ ] T090 [US6] [ATDD] Bind the operator command surface, manifest, smoke, and legacy scan to US6 ATDD scenarios in `test/atdd/steps/auth-engine-rewrite.steps.ts`
-- [ ] T091 [US6] [BDD] Add `BDD-US6-001` eight checkpoint examples, `BDD-US6-002` restore denial, and `BDD-US6-003` revoked credential behavior to `test/bdd/features/auth-engine-rewrite.feature`
-- [ ] T092 [US6] [BDD] Bind every US6 failure/example to redacted diagnostics and fail-closed state in `test/bdd/steps/auth-engine-rewrite.steps.ts`
-- [ ] T093 [US6] [GATE] Register US6 rows, checkpoint example coverage, and any pairwise sampling rationale in `specs/002-auth-engine-rewrite/test-traceability.md`
+- [x] T089 [US6] [ATDD] Add `ATDD-US6-001` idempotent cutover and `ATDD-US6-002` validated legacy removal with shared-role rationales to `test/atdd/features/auth-engine-rewrite.feature`
+- [x] T090 [US6] [ATDD] Bind the operator command surface, manifest, smoke, and legacy scan to US6 ATDD scenarios in `test/atdd/steps/auth-engine-rewrite.steps.ts`
+- [x] T091 [US6] [BDD] Add `BDD-US6-001` eight checkpoint examples, `BDD-US6-002` restore denial, and `BDD-US6-003` revoked credential behavior to `test/bdd/features/auth-engine-rewrite.feature`
+- [x] T092 [US6] [BDD] Bind every US6 failure/example to redacted diagnostics and fail-closed state in `test/bdd/steps/auth-engine-rewrite.steps.ts`
+- [x] T093 [US6] [GATE] Register US6 rows, checkpoint example coverage, and any pairwise sampling rationale in `specs/002-auth-engine-rewrite/test-traceability.md`
 
 ### Slice US6-A — Cutover state machine and resumable command
 
@@ -247,11 +247,11 @@ description: "Dependency-ordered implementation tasks for the Creator Identity a
 
 ### Scenario definitions and bindings
 
-- [ ] T116 [US5] [ATDD] Add `ATDD-US5-001` through `ATDD-US5-004` with all owner-operation, recovery-boundary, recovery-flow, and deletion-choice examples to `test/atdd/features/auth-engine-rewrite.feature`
+- [x] T116 [US5] [ATDD] Add `ATDD-US5-001` through `ATDD-US5-004` with all owner-operation, recovery-boundary, recovery-flow, and deletion-choice examples to `test/atdd/features/auth-engine-rewrite.feature`
 - [ ] T117 [US5] [ATDD] Bind US5 account/subscription/deletion/recovery entry points to the real server and UI boundary in `test/atdd/steps/auth-engine-rewrite.steps.ts`
-- [ ] T118 [US5] [BDD] Add `BDD-US5-001` owner-only denial and `BDD-US5-002` request/30/7/3/1/0-day notices to `test/bdd/features/auth-engine-rewrite.feature`
-- [ ] T119 [US5] [BDD] Bind every US5 denial and notice boundary with a controlled clock and captured mail in `test/bdd/steps/auth-engine-rewrite.steps.ts`
-- [ ] T120 [US5] [GATE] Register all US5 scenario/example rows and dual-role rationales as Planned in `specs/002-auth-engine-rewrite/test-traceability.md`
+- [x] T118 [US5] [BDD] Add `BDD-US5-001` owner-only denial and `BDD-US5-002` request/30/7/3/1/0-day notices to `test/bdd/features/auth-engine-rewrite.feature`
+- [x] T119 [US5] [BDD] Bind every US5 denial and notice boundary with a controlled clock and captured mail in `test/bdd/steps/auth-engine-rewrite.steps.ts`
+- [x] T120 [US5] [GATE] Register all US5 scenario/example rows and dual-role rationales as Planned in `specs/002-auth-engine-rewrite/test-traceability.md`
 
 ### Slice US5-A — Non-destructive downgrade foundation
 
@@ -264,9 +264,9 @@ description: "Dependency-ordered implementation tasks for the Creator Identity a
 
 ### Slice US5-B — Owner account/subscription operations and deletion state
 
-- [ ] T127 [US5] [TDD] Implement `TDD-US5-001` first for owner read/update/export, subscription read/manage/cancel, non-owner denial, five-minute recent-auth boundaries, paid-through versus immediate choice, authenticated Stripe event ordering/signature, suspension effects, owner-only transitions, and immutable account-deletion audit outcomes in `test/auth-engine-rewrite/integration/account-lifecycle.test.ts`
-- [ ] T128 [US5] [GATE] Run `bunx jest test/auth-engine-rewrite/integration/account-lifecycle.test.ts --runInBand`, prove intentional Red, and mark `TDD-US5-001` Red in `specs/002-auth-engine-rewrite/test-traceability.md`
-- [ ] T129 [US5] Add `account_deletion_requests` with one nonterminal request, `paid_through|immediate`, `scheduled|suspended|recovered|purge_eligible|purged|cancelled`, actual-suspension-plus-30-days eligibility, actors/times, and redacted Stripe snapshot in `src/db/schema.ts` and `drizzle/`
+- [x] T127 [US5] [TDD] Implement `TDD-US5-001` first for owner read/update/export, subscription read/manage/cancel, non-owner denial, five-minute recent-auth boundaries, paid-through versus immediate choice, authenticated Stripe event ordering/signature, suspension effects, owner-only transitions, and immutable account-deletion audit outcomes in `test/auth-engine-rewrite/integration/account-lifecycle.test.ts`
+- [x] T128 [US5] [GATE] Run `bunx jest test/auth-engine-rewrite/integration/account-lifecycle.test.ts --runInBand`, prove intentional Red, and mark `TDD-US5-001` Red in `specs/002-auth-engine-rewrite/test-traceability.md`
+- [x] T129 [US5] Add `account_deletion_requests` with one nonterminal request, `paid_through|immediate`, `scheduled|suspended|recovered|purge_eligible|purged|cancelled`, actual-suspension-plus-30-days eligibility, actors/times, and redacted Stripe snapshot in `src/db/schema.ts`; defer generated `drizzle/` output to the master-owned migration workflow
 - [ ] T130 [US5] Implement owner/recent-auth account update/export/subscription/deletion transitions, session revocation, overlay/integration pause, agency-allocation release, and authenticated Stripe webhook state in `src/server/account-lifecycle/service.ts`, `src/app/actions/subscription.ts`, and `src/app/payment/webhook/route.ts`
 - [ ] T131 [US5] Implement settings UI that defaults to paid-through, offers explicit delete-now consequences, and never delegates account deletion in `src/app/dashboard/settings/account/page.tsx` and `src/app/dashboard/settings/subscription/page.tsx`
 - [ ] T132 [US5] [GATE] Re-run `TDD-US5-001` and owner/non-owner ATDD/BDD cases Green; record evidence in `specs/002-auth-engine-rewrite/test-traceability.md`
@@ -274,12 +274,12 @@ description: "Dependency-ordered implementation tasks for the Creator Identity a
 
 ### Slice US5-C — Recovery, purge eligibility, and staged notifications
 
-- [ ] T134 [US5] [TDD] Implement `TDD-US5-002` first for before/at/after 30 days, authenticated recovery versus link-only denial, no billing/allocation restart, request/suspension/7/3/1/0/recovery intents, account-deletion audit events, dedupe/retry/redaction, and idempotent eligible purge ordering in `test/auth-engine-rewrite/integration/deletion-notifications.test.ts`
-- [ ] T135 [US5] [GATE] Run `bunx jest test/auth-engine-rewrite/integration/deletion-notifications.test.ts --runInBand`, prove intentional Red, and mark `TDD-US5-002` Red in `specs/002-auth-engine-rewrite/test-traceability.md`
-- [ ] T136 [US5] Implement controlled-clock scheduling, secure recovery navigation that never authenticates, recent-auth recovery, eligible purge ordering, lawful audit tombstone, and no automatic restore in `src/server/account-lifecycle/recovery.ts` and `src/server/account-lifecycle/purge.ts`
-- [ ] T137 [US5] Implement versioned deletion/recovery notification templates that distinguish feature loss from data deletion and contain no credentials in `src/server/notifications/templates/account-lifecycle.ts`
-- [ ] T138 [US5] [GATE] Re-run `TDD-US5-002`, all US5 BDD/ATDD scenarios, and the deletion-timing deliberate mutant check Green; record evidence in `specs/002-auth-engine-rewrite/test-traceability.md`
-- [ ] T139 [US5] Refactor schedulers/templates while boundary, dedupe, and recovery evidence remains Green in `src/server/account-lifecycle/recovery.ts`
+- [x] T134 [US5] [TDD] Implement `TDD-US5-002` first for before/at/after 30 days, authenticated recovery versus link-only denial, no billing/allocation restart, request/suspension/7/3/1/0/recovery intents, account-deletion audit events, dedupe/retry/redaction, and idempotent eligible purge ordering in `test/auth-engine-rewrite/integration/deletion-notifications.test.ts`
+- [x] T135 [US5] [GATE] Run `bunx jest test/auth-engine-rewrite/integration/deletion-notifications.test.ts --runInBand`, prove intentional Red, and mark `TDD-US5-002` Red in `specs/002-auth-engine-rewrite/test-traceability.md`
+- [x] T136 [US5] Implement controlled-clock scheduling, secure recovery navigation that never authenticates, recent-auth recovery, eligible purge ordering, lawful audit tombstone, and no automatic restore in `src/server/account-lifecycle/recovery.ts` and `src/server/account-lifecycle/purge.ts`
+- [x] T137 [US5] Implement versioned deletion/recovery notification templates that distinguish feature loss from data deletion and contain no credentials in `src/server/notifications/templates/account-lifecycle.ts`
+- [x] T138 [US5] [GATE] Re-run `TDD-US5-002`, all US5 BDD/ATDD scenarios, and the deletion-timing deliberate mutant check Green; record evidence in `specs/002-auth-engine-rewrite/test-traceability.md`
+- [x] T139 [US5] Refactor schedulers/templates while boundary, dedupe, and recovery evidence remains Green in `src/server/account-lifecycle/recovery.ts`
 - [ ] T140 [US5] [GATE] Update US5 artifact statuses, execution totals, defects, Stripe-mail ownership, and residual legal-retention risks in `specs/002-auth-engine-rewrite/test-traceability.md`, `specs/002-auth-engine-rewrite/defect-log.md`, and `specs/002-auth-engine-rewrite/test-summary.md`
 
 **Checkpoint**: US5 is independently testable and no paid-access loss deletes creator resources.

@@ -46,3 +46,65 @@ Feature: Creator identity and delegated team access
       | delivery      |
       | copy-link     |
       | optional-email |
+
+  # Shared ATDD/BDD ownership: owner lifecycle journeys exercise the release
+  # boundary; the non-owner denial and mail timing live in the BDD feature.
+  @US5 @ATDD-US5-001
+  Scenario Outline: Owner manages account and subscription
+    Given a recently authenticated creator account owner
+    When the owner <operation>
+    Then <expected_result>
+
+    Examples:
+      | operation                    | expected_result                                      |
+      | updates account information  | the changes are recorded for that account            |
+      | requests an account export   | an export is prepared without support intervention   |
+      | cancels the subscription     | cancellation is recorded for the displayed date     |
+
+  @US5 @ATDD-US5-002
+  Scenario Outline: Account deletion observes the recovery boundary
+    Given deletion suspension has begun for a creator account
+    When <recovery_time> has elapsed
+    Then <deletion_outcome>
+
+    Examples:
+      | recovery_time      | deletion_outcome                                             |
+      | less than 30 days  | the account remains recoverable and cannot be purged          |
+      | at least 30 days   | the account becomes eligible for permanent erasure            |
+
+  @US5 @ATDD-US5-003
+  Scenario: Owner recovers a suspended account through authenticated recovery
+    Given a suspended creator account with a recovery entry point
+    When the owner signs in confirms identity and cancels deletion before 30 days
+    Then account dashboard overlay and integration access are restored
+    And the recovery entry point alone cannot authenticate the owner
+    And billing and agency allocations are not restarted
+
+  @US5 @ATDD-US5-004
+  Scenario Outline: Owner chooses when deletion suspension begins
+    Given a recently authenticated owner with paid access through a future date
+    When the owner chooses <deletion_choice>
+    Then <suspension_result>
+    And Stripe remains responsible for billing lifecycle notices
+
+    Examples:
+      | deletion_choice           | suspension_result                                  |
+      | delete after paid access  | suspension starts on the paid-through date         |
+      | delete now                | suspension starts immediately with data retained   |
+
+  # Shared ATDD/BDD ownership: these scenarios prove release boundaries. The
+  # individual checkpoint failure examples remain owned by the BDD feature.
+  @US6 @ATDD-US6-001
+  Scenario: Automated cutover completes successfully and idempotently
+    Given a verified backup and a valid pre-migration database
+    When the operator completes the cutover workflow twice against the same database state
+    Then all cutover records are migrated exactly once
+    And every required invariant and smoke check passes before maintenance mode is removed
+    And the immutable cutover manifest remains valid
+
+  @US6 @ATDD-US6-002
+  Scenario: Cutover removes the legacy runtime after validation
+    Given migration validation and smoke checks have passed
+    When the new identity runtime is activated
+    Then no request depends on the legacy auth runtime
+    And the legacy structures are eligible for approved removal

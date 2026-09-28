@@ -1,6 +1,6 @@
 /** @jest-environment node */
 import { executeCutoverWorkflow, runCutoverSmoke, type CutoverFailurePoint } from "../../../scripts/auth-cutover/smoke";
-import { scanLegacyConsumers } from "../../../scripts/auth-legacy-check";
+import { scanLegacyConsumers } from "../../../scripts/auth-cutover/legacy-scan";
 
 const phases: CutoverFailurePoint[] = ["preflight", "backup", "identity", "membership", "credential", "invariant", "switch", "smoke"];
 

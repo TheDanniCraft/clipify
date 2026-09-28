@@ -141,6 +141,8 @@ export const editorsTable = pgTable(
 
 export const creatorAccountStatusEnum = pgEnum("creator_account_status", ["active", "suspension_scheduled", "suspended", "purge_eligible"]);
 export const creatorIdentityLinkSourceEnum = pgEnum("creator_identity_link_source", ["migration", "twitch_onboarding", "admin_repair"]);
+export const accountDeletionChoiceEnum = pgEnum("account_deletion_choice", ["paid_through", "immediate"]);
+export const accountDeletionStatusEnum = pgEnum("account_deletion_status", ["scheduled", "suspended", "recovered", "purge_eligible", "purged", "cancelled"]);
 export const auditOutcomeEnum = pgEnum("audit_outcome", ["success", "denied", "error"]);
 export const rateLimitSignalEnum = pgEnum("rate_limit_signal", ["identity", "network"]);
 export const notificationStatusEnum = pgEnum("notification_status", ["pending", "claimed", "sent", "retry", "dead"]);
@@ -180,6 +182,41 @@ export const creatorIdentityLinksTable = pgTable(
 		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 	},
 	(table) => [index("creator_identity_links_auth_user_idx").on(table.authUserId)],
+);
+
+export const accountDeletionRequestsTable = pgTable(
+	"account_deletion_requests",
+	{
+		id: uuid("id").defaultRandom().primaryKey(),
+		organizationId: text("organization_id")
+			.notNull()
+			.references(() => authOrganizationTable.id, { onDelete: "cascade" }),
+		choice: accountDeletionChoiceEnum("choice").notNull(),
+		status: accountDeletionStatusEnum("status").notNull(),
+		requestedBy: text("requested_by").references(() => authUserTable.id, { onDelete: "set null" }),
+		requestedAt: timestamp("requested_at", { withTimezone: true }).defaultNow().notNull(),
+		suspensionAt: timestamp("suspension_at", { withTimezone: true }).notNull(),
+		suspendedAt: timestamp("suspended_at", { withTimezone: true }),
+		purgeEligibleAt: timestamp("purge_eligible_at", { withTimezone: true }),
+		recoveredBy: text("recovered_by").references(() => authUserTable.id, { onDelete: "set null" }),
+		recoveredAt: timestamp("recovered_at", { withTimezone: true }),
+		cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
+		purgedAt: timestamp("purged_at", { withTimezone: true }),
+		stripeSnapshot: jsonb("stripe_snapshot").$type<Record<string, unknown>>().notNull().default({}),
+		version: integer("version").notNull().default(1),
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+	},
+	(table) => [
+		uniqueIndex("account_deletion_requests_nonterminal_unique")
+			.on(table.organizationId)
+			.where(sql`${table.status} IN ('scheduled', 'suspended', 'purge_eligible')`),
+		index("account_deletion_requests_status_time_idx").on(table.status, table.suspensionAt, table.purgeEligibleAt),
+		check("account_deletion_requests_version_positive", sql`${table.version} > 0`),
+		check("account_deletion_requests_purge_after_suspend", sql`${table.purgeEligibleAt} IS NULL OR (${table.suspendedAt} IS NOT NULL AND ${table.purgeEligibleAt} >= ${table.suspendedAt})`),
+		check("account_deletion_requests_snapshot_object", sql`jsonb_typeof(${table.stripeSnapshot}) = 'object'`),
+		check("account_deletion_requests_snapshot_redacted", sql`${table.stripeSnapshot}::text !~* '"[^"]*(secret|token|password|credential|authorization|cookie|otp|code)[^"]*"[[:space:]]*:'`),
+	],
 );
 
 export const auditEventsTable = pgTable(

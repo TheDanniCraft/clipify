@@ -16,8 +16,8 @@ export async function runCutoverSmoke(checks: SmokeChecks) {
 	return { passed: true as const, checks: results as Record<SmokeName, true> };
 }
 
-export async function executeCutoverWorkflow(input: { runId: string; failAt?: CutoverFailurePoint; originatingError?: Error }) {
-	let maintenance = false;
+export async function executeCutoverWorkflow(input: { runId: string; failAt?: CutoverFailurePoint; originatingError?: Error; maintenanceInitially?: boolean }) {
+	let maintenance = input.maintenanceInitially ?? false;
 	for (const phase of ["preflight", "backup", "identity", "membership", "credential", "invariant", "switch", "smoke"] as const) {
 		if (phase === "identity") maintenance = true;
 		if (input.failAt === phase) {

@@ -32,11 +32,12 @@ Track product, test, environment, and governance issues affecting feature readin
 
 ## Defect Summary
 
-| Defect ID | Title                                                                         | Source / Evidence ID | Severity | Priority | Status   | Owner               | Detected By      | Evidence Link                                                  | Target / Resolution                                                                    |
-| --------- | ----------------------------------------------------------------------------- | -------------------- | -------- | -------- | -------- | ------------------- | ---------------- | -------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| PLAN-001  | SpecKit template resolver does not expose installed test-governance templates | Planning gate        | Low      | Low      | Open     | SpecKit tooling     | `/speckit.plan`  | `.specify/presets/test-first-governance/templates/`            | Repair resolver before the next feature plan; exact installed templates used here      |
-| AUTH-001  | Twitch identity test depended on a locally generated migration artifact       | TDD-US2-001          | Low      | High     | Verified | Auth implementation | Checkpoint suite | `test/auth-engine-rewrite/integration/twitch-identity.test.ts` | Replaced trigger-specific evidence with application transaction and stable-ID evidence |
-| AUTH-002  | Legacy Jest boundaries did not support Better Auth schema/session imports     | Pre-push regression  | Medium   | High     | Verified | Auth implementation | `bun run test`   | Legacy database action and proxy suites                        | Extended Drizzle mocks and isolated the proxy session boundary                         |
+| Defect ID | Title                                                                         | Source / Evidence ID | Severity | Priority | Status   | Owner               | Detected By       | Evidence Link                                                    | Target / Resolution                                                                    |
+| --------- | ----------------------------------------------------------------------------- | -------------------- | -------- | -------- | -------- | ------------------- | ----------------- | ---------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| PLAN-001  | SpecKit template resolver does not expose installed test-governance templates | Planning gate        | Low      | Low      | Open     | SpecKit tooling     | `/speckit.plan`   | `.specify/presets/test-first-governance/templates/`              | Repair resolver before the next feature plan; exact installed templates used here      |
+| AUTH-001  | Twitch identity test depended on a locally generated migration artifact       | TDD-US2-001          | Low      | High     | Verified | Auth implementation | Checkpoint suite  | `test/auth-engine-rewrite/integration/twitch-identity.test.ts`   | Replaced trigger-specific evidence with application transaction and stable-ID evidence |
+| AUTH-002  | Legacy Jest boundaries did not support Better Auth schema/session imports     | Pre-push regression  | Medium   | High     | Verified | Auth implementation | `bun run test`    | Legacy database action and proxy suites                          | Extended Drizzle mocks and isolated the proxy session boundary                         |
+| AUTH-003  | US5 test fixture imported an incompatible aggregate harness                   | TDD-US5-001          | Low      | Low      | Verified | Auth implementation | Focused Red/Green | `test/auth-engine-rewrite/integration/account-lifecycle.test.ts` | Imported the isolated clock helper and removed a fixture-name collision                |
 
 ## Defect Details
 
@@ -86,6 +87,19 @@ Track product, test, environment, and governance issues affecting feature readin
 - **Verification Evidence**: focused 10 suites/299 tests and full 176 suites/1,537 tests pass.
 - **Approval / Risk Acceptance**: none.
 
+### AUTH-003 - US5 test fixture imported an incompatible aggregate harness
+
+- **Status**: Verified
+- **Severity / Priority**: Low / Low
+- **Affected Source IDs**: US5 test harness only
+- **Affected Artifact IDs**: TDD-US5-001
+- **Detected During**: focused Green run
+- **Expected Result**: the lifecycle test loads only its controlled recent-auth clock helper.
+- **Actual Result**: the aggregate support barrel initialized an unrelated fixture that expected `structuredClone` in the Jest environment; a constructor parameter also shadowed the fixture factory.
+- **Resolution**: imported the isolated time helper directly and renamed the fixture factory.
+- **Verification Evidence**: all three focused US5 suites pass (29 tests), followed by a clean TypeScript run.
+- **Approval / Risk Acceptance**: none.
+
 ## Open Defect Review
 
 The completed US1 and US3 gates introduced no product defects. A US1 regression probe found and corrected a duplicate disabled-owner lookup before checkpoint closure; the 167-fixture parity rerun is Green. PLAN-001 remains an unrelated planning-tooling issue with no release impact on the implemented authorization slices.
@@ -96,21 +110,22 @@ The completed US1 and US3 gates introduced no product defects. A US1 regression 
 
 ## Verification and Regression Closure
 
-| Defect ID | Fix Artifact / PR | Verification Test or Gate        | Result  | Evidence Link | Verified By / Date |
-| --------- | ----------------- | -------------------------------- | ------- | ------------- | ------------------ |
-| PLAN-001  | Pending           | Three template resolver commands | Blocked | N/A           | Pending            |
-| AUTH-001  | Current branch    | `bun run test:auth`              | Pass    | TDD-US2-001   | Codex / 2026-09-28 |
-| AUTH-002  | Current branch    | `bun run test`                   | Pass    | Full suite    | Codex / 2026-09-28 |
+| Defect ID | Fix Artifact / PR | Verification Test or Gate        | Result  | Evidence Link   | Verified By / Date |
+| --------- | ----------------- | -------------------------------- | ------- | --------------- | ------------------ |
+| PLAN-001  | Pending           | Three template resolver commands | Blocked | N/A             | Pending            |
+| AUTH-001  | Current branch    | `bun run test:auth`              | Pass    | TDD-US2-001     | Codex / 2026-09-28 |
+| AUTH-002  | Current branch    | `bun run test`                   | Pass    | Full suite      | Codex / 2026-09-28 |
+| AUTH-003  | Current branch    | Focused US5 suites               | Pass    | TDD-US5-001–003 | Codex / 2026-09-28 |
 
 ## Defect Metrics
 
-| Metric                       | Value | Notes                                                        |
-| ---------------------------- | ----- | ------------------------------------------------------------ |
-| Total defects                | 3     | One open tooling issue; two verified test-integration issues |
-| Open Critical / High defects | 0     | No product execution has occurred                            |
-| Deferred defects             | 0     | No accepted risks                                            |
-| Reopened defects             | 0     |                                                              |
-| Escaped defects              | 0     |                                                              |
+| Metric                       | Value | Notes                                                          |
+| ---------------------------- | ----- | -------------------------------------------------------------- |
+| Total defects                | 4     | One open tooling issue; three verified test-integration issues |
+| Open Critical / High defects | 0     | No product execution has occurred                              |
+| Deferred defects             | 0     | No accepted risks                                              |
+| Reopened defects             | 0     |                                                                |
+| Escaped defects              | 0     |                                                                |
 
 ## Baseline Evidence
 

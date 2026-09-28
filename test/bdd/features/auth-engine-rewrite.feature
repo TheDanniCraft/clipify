@@ -93,3 +93,59 @@ Feature: Identity and team access behavior
       | sensitive-integration | denied  |
       | account-deletion      | success |
       | account-deletion      | denied  |
+
+  @US5 @BDD-US5-001
+  Scenario: Non-owner cannot delete the account
+    Given a team member has every delegable permission
+    When the team member attempts account deletion
+    Then account deletion is denied with OWNER_REQUIRED
+    And no deletion request is created
+
+  @US5 @BDD-US5-002
+  Scenario Outline: Owner receives staged deletion notices
+    Given an owner has requested account deletion
+    When the <notice_boundary> deletion notice becomes due
+    Then exactly one product lifecycle notice is captured
+    And the notice states the erasure date and requires normal sign-in for recovery
+
+    Examples:
+      | notice_boundary |
+      | request         |
+      | suspension      |
+      | 7d              |
+      | 3d              |
+      | 1d              |
+      | 0d              |
+
+  @US6 @BDD-US6-001
+  Scenario Outline: Failed migration remains closed and resumable
+    Given the cutover workflow is running in maintenance mode
+    When the <checkpoint> checkpoint fails
+    Then maintenance mode remains enabled
+    And the workflow reports the failed checkpoint and safe next action
+    And rerunning the workflow does not duplicate completed records
+
+    Examples:
+      | checkpoint                     |
+      | preflight                      |
+      | backup-verification            |
+      | identity-migration             |
+      | membership-and-role-migration  |
+      | provider-credential-migration  |
+      | invariant-validation           |
+      | runtime-activation             |
+      | smoke-checks                   |
+
+  @US6 @BDD-US6-002
+  Scenario: Restore requires an explicit operator decision
+    Given a cutover failure has produced verified rollback guidance
+    When no operator has authorized restoration
+    Then the workflow does not restore or overwrite the production database automatically
+
+  @US6 @BDD-US6-003
+  Scenario: Revoked provider credential fails without corrupting ownership
+    Given a migrated provider account has a revoked refresh credential
+    When the credential refresh smoke check runs
+    Then the cutover reports the originating provider failure
+    And no creator ownership or credential record is overwritten
+    And service is not reopened while the blocking check fails
