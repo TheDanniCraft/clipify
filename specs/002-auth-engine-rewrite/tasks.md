@@ -339,10 +339,10 @@ description: "Dependency-ordered implementation tasks for the Creator Identity a
 
 **Purpose**: Finish migration of every protected boundary, verify no legacy/runtime gaps, run all mandatory gates, and produce release evidence.
 
-- [ ] T168 [US3] [TDD] Implement `TDD-US3-004` first for every migrated server action/route using `authorize()`, every denial code, denied-mutation immutability, absence of client-only authorization, and sensitive-integration audit outcomes in `test/auth-engine-rewrite/contract/protected-boundaries.test.ts`
-- [ ] T169 [GATE] Run `bunx jest test/auth-engine-rewrite/contract/protected-boundaries.test.ts --runInBand`, prove intentional Red for remaining legacy boundaries, and mark `TDD-US3-004` Red in `specs/002-auth-engine-rewrite/test-traceability.md`
-- [ ] T170 Migrate the smallest remaining protected-boundary batch to `authorize()` in `src/app/actions/` and `src/app/api/` without changing unrelated behavior
-- [ ] T171 [GATE] Re-run `TDD-US3-004` Green and record boundary and sensitive-integration audit coverage in `specs/002-auth-engine-rewrite/test-traceability.md`
+- [x] T168 [US3] [TDD] Implement `TDD-US3-004` first for every migrated server action/route using `authorize()`, every denial code, denied-mutation immutability, absence of client-only authorization, and sensitive-integration audit outcomes in `test/auth-engine-rewrite/contract/protected-boundaries.test.ts`
+- [x] T169 [GATE] Run `bunx jest test/auth-engine-rewrite/contract/protected-boundaries.test.ts --runInBand`, prove intentional Red for remaining legacy boundaries, and mark `TDD-US3-004` Red in `specs/002-auth-engine-rewrite/test-traceability.md`
+- [x] T170 Migrate the smallest remaining protected-boundary batch to `authorize()` in `src/app/actions/` and `src/app/api/` without changing unrelated behavior
+- [x] T171 [GATE] Re-run `TDD-US3-004` Green and record boundary and sensitive-integration audit coverage in `specs/002-auth-engine-rewrite/test-traceability.md`
 - [ ] T172 Refactor shared protected-boundary adapters while the contract file remains Green in `src/auth/authorize.ts`
 - [ ] T173 [P] Add non-duplicative Chromium smoke coverage for sign-in, team, agency, lifecycle, and overlay continuity in `test/acceptance/auth-engine-rewrite.spec.ts`
 - [ ] T174 [P] Update security/privacy inventory for sessions, OAuth credentials, OTPs, passkeys, notification data, audit retention, and deletion processing in `test/compliance/inventory-audit.spec.ts`

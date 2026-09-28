@@ -12,6 +12,8 @@ import { revalidatePath } from "next/cache";
 import type { Gallery, TwitchClip } from "@types";
 import { resolveUserEntitlements } from "@lib/entitlements";
 import { getFeatureAccess } from "@lib/featureAccess";
+import { authorize } from "@/auth/authorize";
+import { STANDARD_ROLES, type Permission } from "@/auth/permissions";
 
 async function canEditOwner(userId: string, ownerId: string) {
 	if (userId === ownerId) return true;
@@ -24,6 +26,22 @@ async function canEditOwner(userId: string, ownerId: string) {
 	return Boolean(rows[0]);
 }
 
+async function authorizeGalleryOperation(userId: string, ownerId: string, permission: Permission) {
+	const isOwner = userId === ownerId;
+	const hasLegacyEditorAccess = isOwner || (await canEditOwner(userId, ownerId));
+	const now = new Date();
+	return authorize({
+		session: { userId, authenticatedAt: now },
+		creatorId: ownerId,
+		lifecycle: "active",
+		resourceOwnerId: ownerId,
+		permission,
+		access: isOwner ? { kind: "owner", permissions: STANDARD_ROLES.owner } : hasLegacyEditorAccess ? { kind: "direct", permissions: STANDARD_ROLES.operations } : { kind: "none", permissions: [] },
+		entitlements: [],
+		now,
+	}).allowed;
+}
+
 async function ownerIsPro(ownerId: string) {
 	const rows = await db.select({ plan: usersTable.plan }).from(usersTable).where(eq(usersTable.id, ownerId)).limit(1).execute();
 	if (!rows[0]) return false;
@@ -32,12 +50,12 @@ async function ownerIsPro(ownerId: string) {
 	return (await resolveUserEntitlements({ id: ownerId, plan: rows[0].plan })).effectivePlan === "pro";
 }
 
-async function requireGalleryAccess(galleryId: string) {
+async function requireGalleryAccess(galleryId: string, permission: Permission = "gallery:read") {
 	const user = await validateAuth();
 	if (!user) return null;
 	const rows = await db.select().from(galleriesTable).where(eq(galleriesTable.id, galleryId)).limit(1).execute();
 	const gallery = rows[0];
-	if (!gallery || !(await canEditOwner(user.id, gallery.ownerId))) return null;
+	if (!gallery || !(await authorizeGalleryOperation(user.id, gallery.ownerId, permission))) return null;
 	return { user, gallery, isPro: user.id === gallery.ownerId ? getFeatureAccess(user, "gallery_advanced").allowed : await ownerIsPro(gallery.ownerId) };
 }
 
@@ -119,7 +137,7 @@ export async function getGalleryPreviewPlayer(galleryId: string, clipId: string)
 
 export async function createGallery(ownerId: string, name = "My clip gallery") {
 	const user = await validateAuth();
-	if (!user || !(await canEditOwner(user.id, ownerId))) return null;
+	if (!user || !(await authorizeGalleryOperation(user.id, ownerId, "gallery:create"))) return null;
 	const isPro = user.id === ownerId ? getFeatureAccess(user, "multi_gallery").allowed : await ownerIsPro(ownerId);
 	return db.transaction(async (tx) => {
 		if (!isPro) {
@@ -137,8 +155,9 @@ export async function createGallery(ownerId: string, name = "My clip gallery") {
 }
 
 export async function saveGallery(galleryId: string, patch: GalleryPatch) {
-	const context = await requireGalleryAccess(galleryId);
+	const context = await requireGalleryAccess(galleryId, "gallery:update");
 	if (!context) return null;
+	if (patch.published !== undefined && patch.published !== context.gallery.published && !(await authorizeGalleryOperation(context.user.id, context.gallery.ownerId, "gallery:publish"))) return null;
 	const normalized = normalizeGalleryPatch(context.gallery, patch, Boolean(context.isPro));
 	if (normalized.source === "curated" && normalized.playlistId && !(await validatePlaylist(context.gallery.ownerId, normalized.playlistId))) {
 		throw new Error("The selected playlist must belong to the gallery owner");
@@ -158,7 +177,7 @@ export async function saveGallery(galleryId: string, patch: GalleryPatch) {
 }
 
 export async function deleteGallery(galleryId: string) {
-	const context = await requireGalleryAccess(galleryId);
+	const context = await requireGalleryAccess(galleryId, "gallery:delete");
 	if (!context) return false;
 	await db.delete(galleriesTable).where(eq(galleriesTable.id, galleryId)).execute();
 	revalidatePath("/dashboard");
