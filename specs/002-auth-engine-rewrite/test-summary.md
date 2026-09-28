@@ -18,7 +18,7 @@
 | Open Critical / High Defects | 0                                                                                               |
 | Approved Exceptions          | 0                                                                                               |
 
-US1 continuity, US3 authorization, US4 agency management, and the US5 lifecycle core are independently Green. US2 identity, US6 cutover tooling, final production-shaped rehearsal, coverage, performance, and release gates remain open, so the feature is not yet releasable.
+US1 continuity, US3 authorization, US4 agency management, the US5 lifecycle core, and the deterministic performance gate are independently Green. US2 identity, US6 cutover tooling, final production-shaped rehearsal, coverage, and release gates remain open, so the feature is not yet releasable.
 
 ## US4 Agency Evidence
 
@@ -141,6 +141,17 @@ US1 continuity, US3 authorization, US4 agency management, and the US5 lifecycle 
 | 2026-09-28 | Focused proxy and database action suites | Green  | 10 suites and 299 tests; legacy Drizzle mocks expose relation metadata and proxy tests isolate the Better Auth ActorContext boundary |
 | 2026-09-28 | `bun run test`                           | Green  | 176 suites and 1,537 tests; full mandatory pre-push repository regression passes                                                     |
 
+## Performance Evidence
+
+| Date       | Environment                | Metric                        | Iterations | p50       | p95       | Max        | Threshold  | Result |
+| ---------- | -------------------------- | ----------------------------- | ---------- | --------- | --------- | ---------- | ---------- | ------ |
+| 2026-09-28 | Bun 1.4.2, Windows x64     | Local authorization           | 2,000      | 0.0002 ms | 0.0013 ms | 0.0266 ms  | 100 ms     | Green  |
+| 2026-09-28 | Isolated in-memory PGlite  | Database session resolution   | 500        | 0.3848 ms | 0.5731 ms | 16.7416 ms | 200 ms     | Green  |
+| 2026-09-28 | Deterministic repositories | Twitch onboarding journey     | 100        | 0.0026 ms | 0.0139 ms | 0.0248 ms  | 180,000 ms | Green  |
+| 2026-09-28 | Deterministic repositories | Invitation acceptance journey | 100        | 0.0065 ms | 0.0177 ms | 0.0339 ms  | 180,000 ms | Green  |
+
+Command: `bun run test:auth-performance`. The database metric performs a real indexed join in a fresh isolated PostgreSQL-compatible PGlite database; journey metrics intentionally exclude external provider/network latency and prove the deterministic application boundary only.
+
 ## Scope and References
 
 | Report / Artifact          | Location                                       | Purpose                                                     |
@@ -161,17 +172,17 @@ US1 continuity, US3 authorization, US4 agency management, and the US5 lifecycle 
 
 ## Execution Summary
 
-| Suite / Gate    | Required? | Command / CI Job                                              | Planned                                  | Passed | Failed | Blocked | Evidence Link |
-| --------------- | --------- | ------------------------------------------------------------- | ---------------------------------------- | ------ | ------ | ------- | ------------- |
-| TDD             | Required  | `bunx jest test/auth-engine-rewrite --runInBand`              | 18 artifacts                             | 0      | 0      | 18      | N/A           |
-| BDD             | Required  | `bun run test:bdd`                                            | 16 base / 38 expanded examples           | 0      | 0      | 38      | N/A           |
-| ATDD            | Required  | `bun run test:atdd`                                           | 14 base / 19 expanded examples           | 0      | 0      | 19      | N/A           |
-| Coverage        | Required  | `bun run test:coverage`                                       | Global baseline + changed-code threshold | 0      | 0      | 1       | N/A           |
-| Lint / Format   | Required  | `bun run app:lint`; `bun run app:prettier:check`              | Both pass                                | 0      | 0      | 2       | N/A           |
-| Static Analysis | Required  | `bun run app:typecheck`                                       | Pass                                     | 0      | 0      | 1       | N/A           |
-| Security        | Required  | `bun audit --audit-level=high` + negative authorization tests | No unaccepted high/critical              | 0      | 0      | 1       | N/A           |
-| Runtime Smoke   | Required  | acceptance/E2E + cutover smoke                                | All pass, 100% overlay parity            | 0      | 0      | 1       | N/A           |
-| Performance     | Required  | `bun run test:auth-performance`                               | p95 thresholds and both journeys <3 min  | 0      | 0      | 1       | N/A           |
+| Suite / Gate    | Required? | Command / CI Job                                              | Planned                                  | Passed | Failed | Blocked | Evidence Link        |
+| --------------- | --------- | ------------------------------------------------------------- | ---------------------------------------- | ------ | ------ | ------- | -------------------- |
+| TDD             | Required  | `bunx jest test/auth-engine-rewrite --runInBand`              | 18 artifacts                             | 0      | 0      | 18      | N/A                  |
+| BDD             | Required  | `bun run test:bdd`                                            | 16 base / 38 expanded examples           | 0      | 0      | 38      | N/A                  |
+| ATDD            | Required  | `bun run test:atdd`                                           | 14 base / 19 expanded examples           | 0      | 0      | 19      | N/A                  |
+| Coverage        | Required  | `bun run test:coverage`                                       | Global baseline + changed-code threshold | 0      | 0      | 1       | N/A                  |
+| Lint / Format   | Required  | `bun run app:lint`; `bun run app:prettier:check`              | Both pass                                | 0      | 0      | 2       | N/A                  |
+| Static Analysis | Required  | `bun run app:typecheck`                                       | Pass                                     | 0      | 0      | 1       | N/A                  |
+| Security        | Required  | `bun audit --audit-level=high` + negative authorization tests | No unaccepted high/critical              | 0      | 0      | 1       | N/A                  |
+| Runtime Smoke   | Required  | acceptance/E2E + cutover smoke                                | All pass, 100% overlay parity            | 0      | 0      | 1       | N/A                  |
+| Performance     | Required  | `bun run test:auth-performance`                               | p95 thresholds and both journeys <3 min  | 4      | 0      | 0       | Performance Evidence |
 
 ## Coverage and Traceability Summary
 
