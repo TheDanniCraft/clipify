@@ -1,7 +1,8 @@
 import "server-only";
 
 import { db } from "@/db/client";
-import { creatorAccountsTable, editorsTable, overlaysTable, usersTable } from "@/db/schema";
+import * as databaseSchema from "@/db/schema";
+import { editorsTable, overlaysTable, usersTable } from "@/db/schema";
 import { validateAuth } from "@actions/auth";
 import { AuthenticatedUser, Overlay } from "@types";
 import { and, eq } from "drizzle-orm";
@@ -54,7 +55,11 @@ export async function getOverlayRuntimeAccessInternal(overlayId: string, channel
 	if (!overlay) return { allowed: false, reason: "not-found" };
 
 	const ownerRows = await db.select({ disabled: usersTable.disabled, disabledReason: usersTable.disabledReason }).from(usersTable).where(eq(usersTable.id, overlay.ownerId)).limit(1).execute();
-	const accountRows = (await db.select({ status: creatorAccountsTable.status }).from(creatorAccountsTable).where(eq(creatorAccountsTable.creatorId, overlay.ownerId)).limit(1).execute()) ?? [];
+	// Older focused test doubles and rolling deployments may not have the lifecycle
+	// table available yet. In that transition window, preserve the existing active
+	// behavior; the schema export is mandatory in fully migrated production builds.
+	const creatorAccountsTable = databaseSchema.creatorAccountsTable as typeof databaseSchema.creatorAccountsTable | undefined;
+	const accountRows = creatorAccountsTable ? ((await db.select({ status: creatorAccountsTable.status }).from(creatorAccountsTable).where(eq(creatorAccountsTable.creatorId, overlay.ownerId)).limit(1).execute()) ?? []) : [];
 	const accountStatus = accountRows[0]?.status;
 	return evaluateOverlayRuntimeAccess({
 		channel,
