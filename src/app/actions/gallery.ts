@@ -12,7 +12,7 @@ import { revalidatePath } from "next/cache";
 import type { Gallery, TwitchClip } from "@types";
 import { resolveUserEntitlements } from "@lib/entitlements";
 import { getFeatureAccess } from "@lib/featureAccess";
-import { authorize } from "@/auth/authorize";
+import { authorize, resolveDirectAccessGrant } from "@/auth/authorize";
 import { STANDARD_ROLES, type Permission } from "@/auth/permissions";
 
 async function canEditOwner(userId: string, ownerId: string) {
@@ -36,7 +36,7 @@ async function authorizeGalleryOperation(userId: string, ownerId: string, permis
 		lifecycle: "active",
 		resourceOwnerId: ownerId,
 		permission,
-		access: isOwner ? { kind: "owner", permissions: STANDARD_ROLES.owner } : hasLegacyEditorAccess ? { kind: "direct", permissions: STANDARD_ROLES.operations } : { kind: "none", permissions: [] },
+		access: resolveDirectAccessGrant({ owner: isOwner, activeMember: hasLegacyEditorAccess, memberPermissions: STANDARD_ROLES.operations, ownerPermissions: STANDARD_ROLES.owner }),
 		entitlements: [],
 		now,
 	}).allowed;

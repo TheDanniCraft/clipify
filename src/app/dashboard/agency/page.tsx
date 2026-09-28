@@ -4,8 +4,10 @@ import { PERMISSIONS } from "@/auth/permissions";
 
 export const dynamic = "force-dynamic";
 
-export default async function AgencyDashboardPage() {
-	const overview = await getAgencyOverviewAction();
+export default async function AgencyDashboardPage({ searchParams }: { searchParams: Promise<{ creator?: string | string[] }> }) {
+	const requestedCreator = (await searchParams).creator;
+	const overview = await getAgencyOverviewAction(typeof requestedCreator === "string" ? requestedCreator : undefined);
+	const creatorContext = overview.creatorContext;
 	return (
 		<main className='mx-auto flex w-full max-w-6xl flex-col gap-6 p-6'>
 			<header>
@@ -14,10 +16,33 @@ export default async function AgencyDashboardPage() {
 				<p className='text-sm text-muted'>
 					{overview.occupiedSeats} of {overview.account.creatorSeatLimit} creator seats occupied. Team members do not consume seats.
 				</p>
-				<Link href='/dashboard/agency/allocations' className='text-accent underline'>
-					Manage allocations
-				</Link>
+				<div className='flex flex-wrap gap-4 text-sm'>
+					<Link href='/dashboard/agency/allocations' className='text-accent underline'>
+						Manage allocations
+					</Link>
+					<Link href={`/dashboard/settings/team?organization=${encodeURIComponent(overview.account.organizationId)}`} className='text-accent underline'>
+						Manage agency staff
+					</Link>
+					<Link href={`/dashboard/settings/roles?organization=${encodeURIComponent(overview.account.organizationId)}`} className='text-accent underline'>
+						Manage agency roles
+					</Link>
+				</div>
 			</header>
+			<section className='rounded-xl border border-default p-5'>
+				<h2 className='font-semibold'>Active creator context</h2>
+				<p className='mt-1 text-sm text-muted'>Choose a linked creator without adding agency staff as direct members of that creator account.</p>
+				{creatorContext.options.length ? (
+					<nav className='mt-3 flex flex-wrap gap-2' aria-label='Linked creator context'>
+						{creatorContext.options.map((link) => (
+							<Link key={link.id} href={`/dashboard/agency?creator=${encodeURIComponent(link.creatorOrganizationId)}`} aria-current={creatorContext.selected?.id === link.id ? "page" : undefined} className={`rounded-lg border px-3 py-2 text-sm ${creatorContext.selected?.id === link.id ? "border-accent text-accent" : "border-default"}`}>
+								{link.creatorOrganizationId}
+							</Link>
+						))}
+					</nav>
+				) : (
+					<p className='mt-3 text-sm text-muted'>No accepted creator links yet.</p>
+				)}
+			</section>
 			<form action={proposeAgencyLinkFormAction} className='rounded-xl border border-default p-5'>
 				<h2 className='font-semibold'>Request creator access</h2>
 				<label className='mt-3 flex flex-col gap-1 text-sm'>

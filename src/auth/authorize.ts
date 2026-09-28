@@ -27,6 +27,13 @@ export type AuthorizationDecision =
 			code: "AUTHENTICATION_REQUIRED" | "ACCOUNT_SUSPENDED" | "RECENT_AUTH_REQUIRED" | "RESOURCE_OWNERSHIP_MISMATCH" | "ACCESS_PATH_REQUIRED" | "PERMISSION_DENIED" | "OWNER_REQUIRED" | "ENTITLEMENT_REQUIRED";
 	  };
 
+/** Maps current owner/member resolution into the evaluator's stable access shape. */
+export function resolveDirectAccessGrant(input: { owner: boolean; activeMember: boolean; memberPermissions: readonly Permission[]; ownerPermissions: readonly Permission[] }): AccessGrant {
+	if (input.owner) return { kind: "owner", permissions: input.ownerPermissions };
+	if (input.activeMember) return { kind: "direct", permissions: input.memberPermissions };
+	return { kind: "none", permissions: [] };
+}
+
 function hasPermission(access: Exclude<AccessGrant, { kind: "none" }>, permission: Permission) {
 	if (access.kind === "owner") return true;
 	if (access.kind === "direct") return access.permissions.includes(permission);

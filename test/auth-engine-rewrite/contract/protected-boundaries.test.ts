@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { appendAuditEvent, type AuditEvent } from "@/auth/audit";
-import { authorize } from "@/auth/authorize";
+import { authorize, resolveDirectAccessGrant } from "@/auth/authorize";
 
 const gallerySource = readFileSync(path.join(process.cwd(), "src/app/actions/gallery.ts"), "utf8");
 
@@ -55,5 +55,11 @@ describe("TDD-US3-004 protected server boundaries", () => {
 		});
 		expect(events).toHaveLength(1);
 		expect(events[0]).toMatchObject({ actionClass: "sensitive-integration", outcome, metadata: { accessToken: "[REDACTED]", provider: "twitch" } });
+	});
+
+	it("adapts owner, active-member, and absent access without widening permissions", () => {
+		expect(resolveDirectAccessGrant({ owner: true, activeMember: false, memberPermissions: [], ownerPermissions: ["gallery:delete"] })).toEqual({ kind: "owner", permissions: ["gallery:delete"] });
+		expect(resolveDirectAccessGrant({ owner: false, activeMember: true, memberPermissions: ["gallery:read"], ownerPermissions: ["gallery:delete"] })).toEqual({ kind: "direct", permissions: ["gallery:read"] });
+		expect(resolveDirectAccessGrant({ owner: false, activeMember: false, memberPermissions: ["gallery:read"], ownerPermissions: ["gallery:delete"] })).toEqual({ kind: "none", permissions: [] });
 	});
 });

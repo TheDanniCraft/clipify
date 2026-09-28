@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { acceptDatabaseAgencyLink, activateDatabaseAgencyOwner, allocateDatabaseAgencyLicense, listDatabaseAdminAgencies, listDatabaseAgencyOverview, listDatabaseCreatorAgencyLinks, proposeDatabaseAgencyLink, provisionDatabaseAgency, reduceDatabaseAgencyLinkCeiling, revokeDatabaseAgencyLink, scheduleDatabaseAgencyLicenseRemoval } from "@/server/agencies/database";
+import { selectAgencyCreatorContext } from "@/server/agencies/access";
 
 function strings(formData: FormData, name: string) {
 	return formData
@@ -67,8 +68,9 @@ export async function removeAgencyLicenseFormAction(formData: FormData) {
 	revalidatePath("/dashboard/agency/allocations");
 }
 
-export async function getAgencyOverviewAction() {
-	return listDatabaseAgencyOverview();
+export async function getAgencyOverviewAction(requestedCreatorOrganizationId?: string) {
+	const overview = await listDatabaseAgencyOverview();
+	return { ...overview, creatorContext: selectAgencyCreatorContext(overview.links, requestedCreatorOrganizationId) };
 }
 
 export async function getCreatorAgencyLinksAction() {

@@ -3,15 +3,21 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button, Card, Input, Label, TextField } from "@heroui/react";
 import { authClient } from "@/auth/client";
+import { useSearchParams } from "next/navigation";
 
 type MemberRow = { id: string; role: string; user: { name: string; email: string } };
 type InvitationRow = { id: string; email: string; role: string | null; status: string; expiresAt: Date | string };
+type RoleRow = { id: string; role: string };
+
+const STANDARD_STAFF_ROLES = ["operations", "content-manager", "analyst", "billing-manager"] as const;
 
 export default function TeamSettingsPage() {
 	const organizations = authClient.useListOrganizations();
-	const organization = organizations.data?.[0];
+	const requestedOrganizationId = useSearchParams().get("organization");
+	const organization = organizations.data?.find((candidate) => candidate.id === requestedOrganizationId) ?? organizations.data?.[0];
 	const [members, setMembers] = useState<MemberRow[]>([]);
 	const [invitations, setInvitations] = useState<InvitationRow[]>([]);
+	const [customRoles, setCustomRoles] = useState<RoleRow[]>([]);
 	const [email, setEmail] = useState("");
 	const [role, setRole] = useState("operations");
 	const [pending, setPending] = useState(false);
@@ -21,9 +27,10 @@ export default function TeamSettingsPage() {
 	const refresh = useMemo(
 		() => async () => {
 			if (!organization) return;
-			const [memberResult, invitationResult] = await Promise.all([authClient.organization.listMembers({ query: { organizationId: organization.id, limit: 100 } }), authClient.organization.listInvitations({ query: { organizationId: organization.id } })]);
+			const [memberResult, invitationResult, roleResult] = await Promise.all([authClient.organization.listMembers({ query: { organizationId: organization.id, limit: 100 } }), authClient.organization.listInvitations({ query: { organizationId: organization.id } }), authClient.organization.listRoles({ query: { organizationId: organization.id } })]);
 			setMembers((memberResult.data?.members ?? []) as MemberRow[]);
 			setInvitations((invitationResult.data ?? []) as InvitationRow[]);
+			setCustomRoles((roleResult.data ?? []) as RoleRow[]);
 		},
 		[organization],
 	);
@@ -31,15 +38,17 @@ export default function TeamSettingsPage() {
 	useEffect(() => {
 		if (!organization) return;
 		let active = true;
-		void Promise.all([authClient.organization.listMembers({ query: { organizationId: organization.id, limit: 100 } }), authClient.organization.listInvitations({ query: { organizationId: organization.id } })]).then(([memberResult, invitationResult]) => {
+		void Promise.all([authClient.organization.listMembers({ query: { organizationId: organization.id, limit: 100 } }), authClient.organization.listInvitations({ query: { organizationId: organization.id } }), authClient.organization.listRoles({ query: { organizationId: organization.id } })]).then(([memberResult, invitationResult, roleResult]) => {
 			if (!active) return;
 			setMembers((memberResult.data?.members ?? []) as MemberRow[]);
 			setInvitations((invitationResult.data ?? []) as InvitationRow[]);
+			setCustomRoles((roleResult.data ?? []) as RoleRow[]);
 		});
 		return () => {
 			active = false;
 		};
 	}, [organization]);
+	const roleOptions = useMemo(() => [...new Set([...STANDARD_STAFF_ROLES, ...customRoles.map((candidate) => candidate.role)])], [customRoles]);
 
 	async function invite(delivery: "copy" | "copy-and-email") {
 		if (!organization || !email.trim()) return;
@@ -64,6 +73,24 @@ export default function TeamSettingsPage() {
 		}
 	}
 
+	async function updateMemberRole(memberId: string, nextRole: string) {
+		if (!organization) return;
+		setPending(true);
+		const result = await authClient.organization.updateMemberRole({ organizationId: organization.id, memberId, role: nextRole });
+		setMessage(result.error ? "The member role could not be updated." : "Member role updated.");
+		if (!result.error) await refresh();
+		setPending(false);
+	}
+
+	async function removeMember(memberId: string) {
+		if (!organization) return;
+		setPending(true);
+		const result = await authClient.organization.removeMember({ organizationId: organization.id, memberIdOrEmail: memberId });
+		setMessage(result.error ? "The member could not be removed." : "Member removed.");
+		if (!result.error) await refresh();
+		setPending(false);
+	}
+
 	if (organizations.isPending) return <main className='p-6'>Loading team settings…</main>;
 	if (!organization) return <main className='p-6'>No account is available for this identity.</main>;
 
@@ -72,7 +99,7 @@ export default function TeamSettingsPage() {
 			<header>
 				<p className='text-sm text-muted'>Settings</p>
 				<h1 className='text-2xl font-semibold'>Team members</h1>
-				<p className='text-sm text-muted'>Invite people without requiring a Twitch account and give them only the access they need.</p>
+				<p className='text-sm text-muted'>Manage {organization.name}. Invite people without requiring a Twitch account and give them only the access they need.</p>
 			</header>
 			<Card>
 				<Card.Header>
@@ -86,10 +113,11 @@ export default function TeamSettingsPage() {
 					<label className='flex flex-col gap-1 text-sm'>
 						Role
 						<select className='rounded-lg border border-default bg-surface px-3 py-2' value={role} onChange={(event) => setRole(event.target.value)}>
-							<option value='operations'>Operations</option>
-							<option value='content-manager'>Content manager</option>
-							<option value='analyst'>Analyst</option>
-							<option value='billing-manager'>Billing manager</option>
+							{roleOptions.map((option) => (
+								<option key={option} value={option}>
+									{option}
+								</option>
+							))}
 						</select>
 					</label>
 					<div className='flex flex-wrap gap-2'>
@@ -116,12 +144,27 @@ export default function TeamSettingsPage() {
 				<Card.Content>
 					<ul className='divide-y divide-default'>
 						{members.map((member) => (
-							<li key={member.id} className='flex justify-between py-3'>
+							<li key={member.id} className='flex flex-wrap items-center justify-between gap-3 py-3'>
 								<span>
 									{member.user.name}
 									<span className='block text-sm text-muted'>{member.user.email}</span>
 								</span>
-								<span className='text-sm'>{member.role}</span>
+								{member.role === "owner" ? (
+									<span className='text-sm'>owner</span>
+								) : (
+									<div className='flex items-center gap-2'>
+										<select aria-label={`Role for ${member.user.email}`} className='rounded-lg border border-default bg-surface px-3 py-2 text-sm' value={member.role} disabled={pending} onChange={(event) => void updateMemberRole(member.id, event.target.value)}>
+											{[...new Set([member.role, ...roleOptions])].map((option) => (
+												<option key={option} value={option}>
+													{option}
+												</option>
+											))}
+										</select>
+										<Button variant='danger-soft' isDisabled={pending} onPress={() => void removeMember(member.id)}>
+											Remove
+										</Button>
+									</div>
+								)}
 							</li>
 						))}
 					</ul>

@@ -315,7 +315,7 @@ description: "Dependency-ordered implementation tasks for the Creator Identity a
 - [x] T153 [US4] [TDD] Implement `TDD-US4-002` first as properties for `activeAgencyRolePermissions ∩ acceptedCreatorLinkCeiling`, absent/revoked membership/link, reduced ceiling, stale sessions, owner/direct independence, every permission class, ownership, entitlement, and denied-mutation immutability in `test/auth-engine-rewrite/property/agency-authorization.test.ts`
 - [x] T154 [US4] [GATE] Run `bunx jest test/auth-engine-rewrite/property/agency-authorization.test.ts --runInBand`, prove intentional Red, and mark `TDD-US4-002` Red in `specs/002-auth-engine-rewrite/test-traceability.md`
 - [x] T155 [US4] Add agency-path resolution to the central evaluator without persisting effective permissions in sessions in `src/auth/authorize.ts`
-- [ ] T156 [US4] Implement agency staff role management and linked-creator context selection without duplicate creator memberships in `src/server/agencies/access.ts` and `src/app/dashboard/agency/page.tsx`
+- [x] T156 [US4] Implement agency staff role management and linked-creator context selection without duplicate creator memberships in `src/server/agencies/access.ts` and `src/app/dashboard/agency/page.tsx`
 - [x] T157 [US4] [GATE] Re-run `TDD-US4-002`, `BDD-US4-001`, and `BDD-US4-003` Green; record matrix evidence in `specs/002-auth-engine-rewrite/test-traceability.md`
 - [x] T158 [US4] Refactor live intersection queries while property suites remain Green in `src/server/agencies/access.ts`
 
@@ -343,7 +343,7 @@ description: "Dependency-ordered implementation tasks for the Creator Identity a
 - [x] T169 [GATE] Run `bunx jest test/auth-engine-rewrite/contract/protected-boundaries.test.ts --runInBand`, prove intentional Red for remaining legacy boundaries, and mark `TDD-US3-004` Red in `specs/002-auth-engine-rewrite/test-traceability.md`
 - [x] T170 Migrate the smallest remaining protected-boundary batch to `authorize()` in `src/app/actions/` and `src/app/api/` without changing unrelated behavior
 - [x] T171 [GATE] Re-run `TDD-US3-004` Green and record boundary and sensitive-integration audit coverage in `specs/002-auth-engine-rewrite/test-traceability.md`
-- [ ] T172 Refactor shared protected-boundary adapters while the contract file remains Green in `src/auth/authorize.ts`
+- [x] T172 Refactor shared protected-boundary adapters while the contract file remains Green in `src/auth/authorize.ts`
 - [ ] T173 [P] Add non-duplicative Chromium smoke coverage for sign-in, team, agency, lifecycle, and overlay continuity in `test/acceptance/auth-engine-rewrite.spec.ts`
 - [ ] T174 [P] Update security/privacy inventory for sessions, OAuth credentials, OTPs, passkeys, notification data, audit retention, and deletion processing in `test/compliance/inventory-audit.spec.ts`
 - [ ] T175 [GATE] Run `bunx jest test/auth-engine-rewrite --runInBand` and `bun run test`; require 100% pass with no skipped required test and record results in `specs/002-auth-engine-rewrite/test-traceability.md`

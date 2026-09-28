@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Button, Card, Input, Label, TextField } from "@heroui/react";
 import { authClient } from "@/auth/client";
 import { PERMISSIONS, type Permission } from "@/auth/permissions";
+import { useSearchParams } from "next/navigation";
 
 type RoleRow = { id: string; role: string; permission: Record<string, string[]> };
 
@@ -18,7 +19,8 @@ function groupPermissions(permissions: readonly Permission[]) {
 
 export default function RoleSettingsPage() {
 	const organizations = authClient.useListOrganizations();
-	const organization = organizations.data?.[0];
+	const requestedOrganizationId = useSearchParams().get("organization");
+	const organization = organizations.data?.find((candidate) => candidate.id === requestedOrganizationId) ?? organizations.data?.[0];
 	const [roles, setRoles] = useState<RoleRow[]>([]);
 	const [name, setName] = useState("");
 	const [selected, setSelected] = useState<Permission[]>([]);
@@ -66,7 +68,7 @@ export default function RoleSettingsPage() {
 			<header>
 				<p className='text-sm text-muted'>Settings</p>
 				<h1 className='text-2xl font-semibold'>Roles and permissions</h1>
-				<p className='text-sm text-muted'>Custom roles are account-wide. Account deletion, ownership transfer, agency provisioning, forced purge, and restore authorization cannot be delegated.</p>
+				<p className='text-sm text-muted'>Custom roles are scoped to {organization?.name ?? "the selected account"}. Account deletion, ownership transfer, agency provisioning, forced purge, and restore authorization cannot be delegated.</p>
 			</header>
 			<Card>
 				<Card.Header>
