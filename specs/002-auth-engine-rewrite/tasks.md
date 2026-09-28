@@ -365,6 +365,24 @@ description: "Dependency-ordered implementation tasks for the Creator Identity a
 
 ---
 
+## Phase 10: Convergence — Production Runtime and Cutover Wiring
+
+**Purpose**: Close implementation gaps discovered after the first complete pass. These tasks are prerequisites for the still-open Phase 6 and Phase 9 gates; they do not authorize a production cutover or contract migration.
+
+- [ ] T191 [US3] [TDD] Extend `TDD-US3-004` and focused integration coverage so every remaining `editorsTable`-backed protected operation fails the contract until live Better Auth membership/role or accepted agency access, permission, ownership, entitlement, lifecycle, and recent-auth checks flow through the central server-side authorization boundary in `test/auth-engine-rewrite/contract/protected-boundaries.test.ts` and focused action tests
+- [ ] T192 [US3] Replace every production editor-authorization read/write in `src/app/actions/`, `src/app/api/`, and `src/server/` with organization membership, custom-role, and live agency-intersection resolution feeding `authorize()`; retain the legacy editor table only as a cutover source until the separately approved contract migration
+- [ ] T193 [US3] [GATE] Re-run the protected-boundary contract, focused action suites, and `bun run auth:legacy-check`; require zero legacy editor-authorization consumers and record the exact boundary inventory in `specs/002-auth-engine-rewrite/test-traceability.md`
+- [ ] T194 [US6] [TDD] Add subprocess and disposable-PostgreSQL integration tests that invoke the real `auth:migrate` CLI and prove preflight/backup blocking, maintenance persistence, checkpoint commits, safe resume, idempotent rerun, originating-error preservation, manifest output, no implicit restore, and fail-closed reopen behavior in `test/auth-engine-rewrite/migration/cutover-cli.test.ts`
+- [ ] T195 [US6] Implement real database-backed cutover repositories and wire `scripts/auth-cutover.ts` to dry-run/apply/resume/validate/smoke modes, verified backup attestation, maintenance state, checkpointed creator/membership/provider-account conversion, invariant comparison, smoke execution, and signed/checksummed manifest output without adding generated `drizzle/` artifacts
+- [ ] T196 [US6] [GATE] Re-run `TDD-US6-001` through `TDD-US6-003`, the real CLI subprocess suite, and US6 BDD/ATDD; require tests to observe persisted database and process outcomes rather than only pure fixture state and update `specs/002-auth-engine-rewrite/test-traceability.md`
+- [ ] T197 [US6] [TDD] Add a database-backed credential-switch test proving legacy AES-GCM conversion, Better Auth account readability, exactly one serialized Twitch refresh, atomic rotation, revoked-token failure preservation, and zero fallback to the custom refresh runtime in `test/auth-engine-rewrite/migration/provider-credential-switch.test.ts`
+- [ ] T198 [US6] After validated credential conversion evidence and explicit operator approval of the runtime switch, make encrypted Better Auth account storage the sole Twitch refresh authority and remove production calls/defaults for the legacy token/custom-refresh runtime in `src/server/tokens.ts`, `src/server/twitch-auth.ts`, and `src/app/actions/twitch.ts`
+- [ ] T199 [US6] [GATE] Re-run the credential-switch suite, provider integration tests, application smoke, and `bun run auth:legacy-check`; require zero custom-refresh consumers before T112, T114, T182, or T190 may complete and record evidence in `specs/002-auth-engine-rewrite/test-traceability.md`
+- [ ] T200 [P] Add focused branch/function/line coverage for the real session, membership, invitation, rate-limit, notification-outbox, agency, lifecycle, and cutover database adapters until the changed-code threshold required by T177 is met without excluding production files
+- [ ] T201 [US6] [GATE] Execute T114 and T182 only after T191–T200 are Green, using both the anonymized and 2× disposable PostgreSQL datasets; retain CLI logs, manifests, invariant counts, rerun duplicate counts, legacy-scan output, and timing headroom as evidence
+
+---
+
 ## Dependencies and Execution Order
 
 ### Phase dependencies
