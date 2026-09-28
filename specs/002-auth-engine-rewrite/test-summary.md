@@ -18,7 +18,7 @@
 | Open Critical / High Defects | 0                                                                         |
 | Approved Exceptions          | 0                                                                         |
 
-US1 continuity and US3 authorization are implemented and independently Green. US2 identity, US6 cutover tooling, and US5 non-destructive downgrade have partial Green evidence; agency, full account lifecycle, final cutover rehearsal, and release gates remain open, so the feature is not releasable. The sole logged issue is a low-severity SpecKit template-resolution problem with no product impact.
+US1 continuity and US3 authorization are implemented and independently Green. US2 identity, US6 cutover tooling, and US5 non-destructive downgrade have partial Green evidence; agency, full account lifecycle, final cutover rehearsal, and release gates remain open, so the feature is not releasable. The only open issue is a low-severity SpecKit template-resolution problem with no product impact; two implementation test-integration defects are verified closed.
 
 ## Foundational Harness Evidence
 
@@ -34,7 +34,7 @@ US1 continuity and US3 authorization are implemented and independently Green. US
 | Date       | Command                                                                                                    | Result                   | Evidence summary                                                                                                                                                                                |
 | ---------- | ---------------------------------------------------------------------------------------------------------- | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 2026-09-27 | `bunx jest test/auth-engine-rewrite/integration/twitch-identity.test.ts --runInBand` before implementation | Expected Red             | Missing `src/auth/creator-onboarding.ts`; proved the production boundary did not exist                                                                                                          |
-| 2026-09-27 | Same focused command after schema/config/onboarding implementation                                         | Green                    | 1 suite, 10 tests; new and returning identity, verified-email sync, email-link rejection, missing/unverified claims, conflicts, retry idempotence, PostgreSQL trigger invariants, and rollback  |
+| 2026-09-27 | Same focused command after schema/config/onboarding implementation                                         | Green                    | 1 suite, 10 tests; new and returning identity, verified-email sync, email-link rejection, missing/unverified claims, conflicts, retry idempotence, stable person/creator IDs, and rollback      |
 | 2026-09-27 | `bunx jest test/auth-engine-rewrite/contract/twitch-oauth.test.ts --runInBand`                             | Green                    | 1 suite, 10 tests; exact provider success/error mapping, required scopes, invalid profiles, and secret redaction                                                                                |
 | 2026-09-27 | `bunx playwright test --project=bdd-chromium --grep "Twitch identity behavior"`                            | Green                    | 6/6 US2 BDD examples passed; 1.4 minutes including isolated Next server startup                                                                                                                 |
 | 2026-09-27 | `bunx playwright test --project=atdd-chromium --grep "A creator starts onboarding"`                        | Green (partial boundary) | Real login page and Better Auth sign-in route produced the Twitch authorization URL, complete scopes, and `/api/auth/callback/twitch`; database-session/dashboard completion remains under T023 |
@@ -113,6 +113,13 @@ US1 continuity and US3 authorization are implemented and independently Green. US
 | 2026-09-28 | `bunx jest test/auth-engine-rewrite/property/non-destructive-downgrade.test.ts --runInBand` before implementation | Expected Red       | Missing downgrade-effects module proved the retained-data capability boundary did not exist                                                                                                |
 | 2026-09-28 | Focused downgrade plus legacy entitlement fixtures                                                                | Green              | 2 suites, 27 tests; resources retained across free/paid sources, unsupported operations become read-only, runner activity pauses without deletion, and the delete adapter is never invoked |
 | 2026-09-28 | Zero-delete deliberate mutant assertion                                                                           | Green mutant guard | Any downgrade implementation that invokes the supplied delete adapter fails the explicit zero-call assertion                                                                               |
+
+## Checkpoint Regression Evidence
+
+| Date       | Command                                  | Result | Evidence summary                                                                                                                     |
+| ---------- | ---------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------ |
+| 2026-09-28 | Focused proxy and database action suites | Green  | 10 suites and 299 tests; legacy Drizzle mocks expose relation metadata and proxy tests isolate the Better Auth ActorContext boundary |
+| 2026-09-28 | `bun run test`                           | Green  | 176 suites and 1,537 tests; full mandatory pre-push repository regression passes                                                     |
 
 ## Scope and References
 

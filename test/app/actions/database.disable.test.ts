@@ -83,6 +83,7 @@ jest.mock("@lib/entitlements", () => ({
 }));
 
 jest.mock("drizzle-orm", () => ({
+	relations: jest.fn(() => ({})),
 	eq: (...args: unknown[]) => eq(...args),
 	inArray: jest.fn(),
 	and: (...args: unknown[]) => and(...args),

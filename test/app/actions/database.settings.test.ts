@@ -135,6 +135,7 @@ jest.mock("@lib/tokenCrypto", () => ({
 }));
 
 jest.mock("drizzle-orm", () => ({
+	relations: jest.fn(() => ({})),
 	eq: jest.fn(() => "eq"),
 	inArray: jest.fn(() => "inArray"),
 	and: jest.fn(() => "and"),

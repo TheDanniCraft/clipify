@@ -51,6 +51,7 @@ jest.mock("@/db/schema", () => ({
 }));
 
 jest.mock("drizzle-orm", () => ({
+	relations: jest.fn(() => ({})),
 	and: (...args: unknown[]) => ({ op: "and", args }),
 	eq: (...args: unknown[]) => ({ op: "eq", args }),
 	isNull: (...args: unknown[]) => ({ op: "isNull", args }),

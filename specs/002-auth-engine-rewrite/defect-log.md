@@ -36,6 +36,7 @@ Track product, test, environment, and governance issues affecting feature readin
 | --------- | ----------------------------------------------------------------------------- | -------------------- | -------- | -------- | -------- | ------------------- | ---------------- | -------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | PLAN-001  | SpecKit template resolver does not expose installed test-governance templates | Planning gate        | Low      | Low      | Open     | SpecKit tooling     | `/speckit.plan`  | `.specify/presets/test-first-governance/templates/`            | Repair resolver before the next feature plan; exact installed templates used here      |
 | AUTH-001  | Twitch identity test depended on a locally generated migration artifact       | TDD-US2-001          | Low      | High     | Verified | Auth implementation | Checkpoint suite | `test/auth-engine-rewrite/integration/twitch-identity.test.ts` | Replaced trigger-specific evidence with application transaction and stable-ID evidence |
+| AUTH-002  | Legacy Jest boundaries did not support Better Auth schema/session imports     | Pre-push regression  | Medium   | High     | Verified | Auth implementation | `bun run test`   | Legacy database action and proxy suites                        | Extended Drizzle mocks and isolated the proxy session boundary                         |
 
 ## Defect Details
 
@@ -72,6 +73,19 @@ Track product, test, environment, and governance issues affecting feature readin
 - **Verification Evidence**: `bun run test:auth` passes after the correction.
 - **Approval / Risk Acceptance**: none. Database-level custom triggers remain unapproved and are not silently recreated.
 
+### AUTH-002 - Legacy Jest boundaries did not support Better Auth schema/session imports
+
+- **Status**: Verified
+- **Severity / Priority**: Medium / High
+- **Affected Source IDs**: FR-003, FR-004, FR-006, FR-007
+- **Affected Artifact IDs**: repository regression gate
+- **Detected During**: mandatory pre-push `bun run test`
+- **Expected Result**: legacy database-action and proxy suites load the new auth schema and session boundary without executing unrelated provider runtime code.
+- **Actual Result**: explicit Drizzle mocks omitted `relations`, and proxy tests imported Better Auth's ESM runtime rather than mocking `getAuthActorContext`.
+- **Resolution**: added the missing Drizzle relation export to affected test doubles and updated proxy tests to exercise the Better Auth ActorContext boundary directly.
+- **Verification Evidence**: focused 10 suites/299 tests and full 176 suites/1,537 tests pass.
+- **Approval / Risk Acceptance**: none.
+
 ## Open Defect Review
 
 The completed US1 and US3 gates introduced no product defects. A US1 regression probe found and corrected a duplicate disabled-owner lookup before checkpoint closure; the 167-fixture parity rerun is Green. PLAN-001 remains an unrelated planning-tooling issue with no release impact on the implemented authorization slices.
@@ -85,16 +99,18 @@ The completed US1 and US3 gates introduced no product defects. A US1 regression 
 | Defect ID | Fix Artifact / PR | Verification Test or Gate        | Result  | Evidence Link | Verified By / Date |
 | --------- | ----------------- | -------------------------------- | ------- | ------------- | ------------------ |
 | PLAN-001  | Pending           | Three template resolver commands | Blocked | N/A           | Pending            |
+| AUTH-001  | Current branch    | `bun run test:auth`              | Pass    | TDD-US2-001   | Codex / 2026-09-28 |
+| AUTH-002  | Current branch    | `bun run test`                   | Pass    | Full suite    | Codex / 2026-09-28 |
 
 ## Defect Metrics
 
-| Metric                       | Value | Notes                                                  |
-| ---------------------------- | ----- | ------------------------------------------------------ |
-| Total defects                | 2     | One open tooling issue; one verified test-design issue |
-| Open Critical / High defects | 0     | No product execution has occurred                      |
-| Deferred defects             | 0     | No accepted risks                                      |
-| Reopened defects             | 0     |                                                        |
-| Escaped defects              | 0     |                                                        |
+| Metric                       | Value | Notes                                                        |
+| ---------------------------- | ----- | ------------------------------------------------------------ |
+| Total defects                | 3     | One open tooling issue; two verified test-integration issues |
+| Open Critical / High defects | 0     | No product execution has occurred                            |
+| Deferred defects             | 0     | No accepted risks                                            |
+| Reopened defects             | 0     |                                                              |
+| Escaped defects              | 0     |                                                              |
 
 ## Baseline Evidence
 
@@ -103,6 +119,7 @@ The completed US1 and US3 gates introduced no product defects. A US1 regression 
 | 2026-09-27 | `bun run test`          | Pass   | 163 suites and 1,254 tests passed in 189.497 seconds                             |
 | 2026-09-27 | `bun run app:typecheck` | Pass   | TypeScript completed with no errors                                              |
 | 2026-09-27 | `bun run app:lint`      | Pass   | Zero errors; four pre-existing `@next/next/no-img-element` optimization warnings |
+| 2026-09-28 | `bun run test`          | Pass   | 176 suites and 1,537 tests passed after Better Auth test-boundary integration    |
 
 ## Required Checks
 

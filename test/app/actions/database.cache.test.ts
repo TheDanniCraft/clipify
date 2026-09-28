@@ -72,6 +72,7 @@ jest.mock("@/db/schema", () => ({
 }));
 
 jest.mock("drizzle-orm", () => ({
+	relations: jest.fn(() => ({})),
 	eq: jest.fn(() => "eq"),
 	inArray: jest.fn(() => "inArray"),
 	and: jest.fn(() => "and"),
