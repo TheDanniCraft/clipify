@@ -39,7 +39,7 @@ Consumption and membership creation are atomic. Replay, wrong email, expiry, rev
 
 ## Legacy editor binding
 
-An editor relationship has only a Twitch subject and may have no Clipify person. Migration creates the Operations membership immediately only if an existing Better Auth Twitch provider account uniquely proves the subject. Otherwise it records a pending binding/anomaly keyed by creator + subject. The first successful matching Twitch authentication may bind it atomically. A creator owner may instead replace it with an email invitation. No unverified username/email creates an active person.
+Migration creates an Operations membership when both sides of a legacy editor relationship still have Creator Profiles and the editor's migrated Twitch provider account uniquely proves the subject. If the editor Creator Profile no longer exists, migration records a redacted, non-blocking accepted stale-relationship disposition and deletes only that `editors` row inside the successful reopen transaction. If the creator/owner profile is missing, or an existing editor profile cannot be safely bound, migration remains blocked. No unverified username/email creates an active person.
 
 ## Agency provisioning/linking
 

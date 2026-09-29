@@ -41,14 +41,16 @@ The first run must fail for the intended missing behavior, the second pass after
 bun run test
 bun run test:coverage
 infisical run --env=dev -- powershell -NoProfile -Command '$env:AUTH_CUTOVER_TEST_DATABASE_URL=$env:DATABASE_URL; $env:AUTH_CUTOVER_ALLOW_DEFAULT_DATABASE="1"; bun run test:auth:coverage'
-bun run test:atdd
-bun run test:bdd
-bun run test:acceptance
+## Database-backed ATDD uses Infisical and one worker to avoid overloading the shared disposable database.
+bunx bddgen
+infisical run --env=dev -- bunx playwright test --project=atdd-chromium --workers=1
+infisical run --env=dev -- bun run test:bdd
+infisical run --env=dev -- bun run test:acceptance
 bun run test:compliance
 bun run app:lint
 bun run app:prettier:check
 bun run app:typecheck
-bun run app:build
+infisical run --env=dev -- bun run app:build
 bun run app:check-action-manifest
 bun audit --audit-level=high
 ```
@@ -61,7 +63,7 @@ Update [test-traceability.md](./test-traceability.md), [defect-log.md](./defect-
    For the guarded real-PostgreSQL 2× dataset, set the process-scoped rehearsal
    URL and creator count, then run `bun run auth:seed-rehearsal`; the target
    database name must contain `auth_rehearsal_synthetic_2x` and must be empty.
-2. Run `bun run auth:migrate -- dry-run`; review blocking anomalies and predicted counts.
+2. Run `bun run auth:migrate -- dry-run`; review blocking anomalies, eligible editor counts, and any deleted-editor relationships proposed for accepted pruning at reopen.
 3. Produce a verified backup attestation for the disposable database.
 4. Enable test maintenance mode and run planned `--apply`.
 5. Run planned `--validate`, `--smoke`, and `auth:legacy-check`.
@@ -75,7 +77,7 @@ Store setup evidence under `specs/002-auth-engine-rewrite/evidence/setup/` and p
 
 - A migrated creator signs in again and sees unchanged resources/subscription/entitlements.
 - A valid pre-cutover overlay still loads and subscribes while dashboard auth is unavailable.
-- An editor becomes an Operations member without gaining billing/team/deletion authority.
+- An eligible editor becomes an Operations member without gaining billing/team/deletion authority; deleted-editor residue is removed only at successful reopen with an accepted redacted disposition.
 - Twitch credential refresh is serialized and writes only Better Auth account storage.
 - Removing Pro never deletes a resource.
 - Agency revocation blocks the next operation even with the same session.

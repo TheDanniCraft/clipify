@@ -161,10 +161,10 @@ description: "Dependency-ordered implementation tasks for the Creator Identity a
 
 ### Slice US1-A — Stable IDs and safe editor migration
 
-- [x] T071 [US1] [TDD] Implement `TDD-US1-001` first for exact creator/resource/owner/subscription/entitlement ID preservation, unique Twitch binding, editor-to-Operations authority parity, exclusion of billing/team/deletion authority, unresolved-editor anomaly, first-safe-auth binding, transaction rollback, and rerun no-duplicates in `test/auth-engine-rewrite/migration/legacy-continuity.test.ts`
+- [x] T071 [US1] [TDD] Implement `TDD-US1-001` first for exact creator/resource/owner/subscription/entitlement ID preservation, unique Twitch binding, eligible editor-to-Operations authority parity, accepted deleted-editor pruning, exclusion of billing/team/deletion authority, blocking unresolved-editor anomaly, transaction rollback, and rerun no-duplicates in `test/auth-engine-rewrite/migration/legacy-continuity.test.ts`
 - [x] T072 [US1] [GATE] Run `bunx jest test/auth-engine-rewrite/migration/legacy-continuity.test.ts --runInBand`, prove intentional Red, and mark `TDD-US1-001` Red in `specs/002-auth-engine-rewrite/test-traceability.md`
 - [x] T073 [US1] Add `migration_runs`, `migration_checkpoints`, and `migration_anomalies` with run/phase/cursor uniqueness, checksums, redacted anomalies, and completed-checkpoint no-op semantics in `src/db/schema.ts` and `drizzle/`
-- [x] T074 [US1] Implement idempotent Creator Account/identity/editor mapping without fabricated email/person records in `scripts/auth-cutover/backfill.ts`
+- [x] T074 [US1] Implement idempotent Creator Account/identity/editor mapping plus accepted deleted-editor pruning at successful reopen without fabricated email/person records in `scripts/auth-cutover/backfill.ts` and `scripts/auth-cutover/postgres.ts`
 - [x] T075 [US1] [GATE] Re-run `TDD-US1-001` Green and record count/parity evidence in `specs/002-auth-engine-rewrite/test-traceability.md`
 - [x] T076 [US1] Refactor batch/cursor boundaries while `TDD-US1-001` remains Green in `scripts/auth-cutover/backfill.ts`
 
@@ -232,8 +232,8 @@ description: "Dependency-ordered implementation tasks for the Creator Identity a
 - [x] T111 [US6] Publish the reviewed legacy `editors`/`tokens` contraction checklist in `contracts/legacy-auth-contraction-runbook.md`; require final zero-dependency evidence, a separate post-cutover schema-only pull request, normal migration generation on `master`, disposable-database rehearsal, and explicit operator approval before production contraction
 - [x] T112 [US6] [GATE] Re-run `TDD-US6-003`, all US6 BDD/ATDD scenarios, `bun run auth:legacy-check`, and tooling smoke suites Green without executing schema contraction; record evidence in `specs/002-auth-engine-rewrite/test-traceability.md`
 - [x] T113 [US6] Refactor smoke/failure reporting while fail-closed and no-auto-restore evidence remains Green in `scripts/auth-cutover/smoke.ts`
-- [ ] T114 [US6] [GATE] Rehearse the US1–US3 cutover tooling on anonymized and 2× disposable PostgreSQL datasets without reopening or schema contraction; retain timing/manifests for the full post-US4/US5 rehearsal in Phase 9
-- [ ] T115 [US6] [GATE] Reconcile US6 defects, anomaly dispositions, residual restore risks, and Go/No-Go state in `specs/002-auth-engine-rewrite/defect-log.md` and `specs/002-auth-engine-rewrite/test-summary.md`
+- [x] T114 [US6] [GATE] Rehearse the US1–US3 cutover tooling on anonymized and 2× disposable PostgreSQL datasets without reopening or schema contraction; retain timing/manifests for the full post-US4/US5 rehearsal in Phase 9
+- [x] T115 [US6] [GATE] Reconcile US6 defects, anomaly dispositions, residual restore risks, and Go/No-Go state in `specs/002-auth-engine-rewrite/defect-log.md` and `specs/002-auth-engine-rewrite/test-summary.md`
 
 **Checkpoint**: US6 cutover tooling is Green but is not operationally releasable until US4/US5 selected-release behavior and the Phase 9 final rehearsal, performance, reopen/switch, and contract gates are Green.
 
@@ -355,13 +355,13 @@ description: "Dependency-ordered implementation tasks for the Creator Identity a
 - [x] T181 [GATE] Run and retain the five deliberate-mutant checks for deny-by-default authorization, invitation replay, migration idempotency, deletion timing, and non-destructive downgrade in `specs/002-auth-engine-rewrite/test-traceability.md`
 - [x] T188 [P] Implement the deterministic performance harness for local authorization, database session resolution, Twitch onboarding, and invitation acceptance in `scripts/auth-performance-check.ts`
 - [x] T189 [GATE] Run `bun run test:auth-performance`; require authorization p95 ≤100 ms, database session p95 ≤200 ms, and both user journeys <3 minutes; record distributions and environment in `specs/002-auth-engine-rewrite/test-summary.md`
-- [ ] T182 [GATE] After US4 and US5 are Green, run the final disposable-PostgreSQL dry-run/apply/validate/smoke/rerun and `bun run auth:legacy-check`; require every invariant Green, zero duplicates/legacy consumers, and ≥25% timing headroom in `specs/002-auth-engine-rewrite/test-summary.md`
-- [ ] T190 [GATE] After T182, review `contracts/legacy-auth-contraction-runbook.md` and prepare the separately operator-approved post-cutover schema-only pull-request plan; forbid handwritten or locally generated `drizzle/` artifacts on this branch, require the `master` Generate Migrations workflow to own the later contraction migration, and require that generated migration to pass disposable-database rehearsal before production approval
-- [ ] T183 [GATE] Reconcile every artifact/source/scenario row, command, status, and evidence link; forbid dangling or duplicated coverage in `specs/002-auth-engine-rewrite/test-traceability.md`
-- [ ] T184 [GATE] Close/verify or explicitly defer every defect with owner, risk, expiry, and compensating evidence in `specs/002-auth-engine-rewrite/defect-log.md`
-- [ ] T185 [GATE] Publish final execution totals, coverage, traceability, defects, risks, approvals, and evidence-based Go/No-Go recommendation in `specs/002-auth-engine-rewrite/test-summary.md`
-- [ ] T186 [GATE] Update the rolling aggregate without duplicating feature evidence in `reports/test-summary.md`
-- [ ] T187 Validate every developer and rehearsal command in `specs/002-auth-engine-rewrite/quickstart.md`
+- [x] T182 [GATE] After US4 and US5 are Green, run the final disposable-PostgreSQL dry-run/apply/validate/smoke/rerun and `bun run auth:legacy-check`; require every invariant Green, zero duplicates/legacy consumers, and ≥25% timing headroom in `specs/002-auth-engine-rewrite/test-summary.md`
+- [x] T190 [GATE] After T182, review `contracts/legacy-auth-contraction-runbook.md` and prepare the separately operator-approved post-cutover schema-only pull-request plan; forbid handwritten or locally generated `drizzle/` artifacts on this branch, require the `master` Generate Migrations workflow to own the later contraction migration, and require that generated migration to pass disposable-database rehearsal before production approval
+- [x] T183 [GATE] Reconcile every artifact/source/scenario row, command, status, and evidence link; forbid dangling or duplicated coverage in `specs/002-auth-engine-rewrite/test-traceability.md`
+- [x] T184 [GATE] Close/verify or explicitly defer every defect with owner, risk, expiry, and compensating evidence in `specs/002-auth-engine-rewrite/defect-log.md`
+- [x] T185 [GATE] Publish final execution totals, coverage, traceability, defects, risks, approvals, and evidence-based Go/No-Go recommendation in `specs/002-auth-engine-rewrite/test-summary.md`
+- [x] T186 [GATE] Update the rolling aggregate without duplicating feature evidence in `reports/test-summary.md`
+- [x] T187 Validate every developer and rehearsal command in `specs/002-auth-engine-rewrite/quickstart.md`
 
 ---
 
@@ -379,7 +379,7 @@ description: "Dependency-ordered implementation tasks for the Creator Identity a
 - [x] T198 [US6] After validated credential conversion evidence and explicit operator approval of the runtime switch, make encrypted Better Auth account storage the sole Twitch refresh authority and remove production calls/defaults for the legacy token/custom-refresh runtime in `src/server/tokens.ts`, `src/server/twitch-auth.ts`, and `src/app/actions/twitch.ts`
 - [x] T199 [US6] [GATE] Re-run the credential-switch suite, provider integration tests, application smoke, and `bun run auth:legacy-check`; require zero custom-refresh consumers before T112, T114, T182, or T190 may complete and record evidence in `specs/002-auth-engine-rewrite/test-traceability.md`
 - [x] T200 [P] Add focused branch/function/line coverage for the real session, membership, invitation, rate-limit, notification-outbox, agency, lifecycle, and cutover database adapters until the changed-code threshold required by T177 is met without excluding production files
-- [ ] T201 [US6] [GATE] Execute T114 and T182 only after T191–T200 are Green, using both the anonymized and 2× disposable PostgreSQL datasets; retain CLI logs, manifests, invariant counts, rerun duplicate counts, legacy-scan output, and timing headroom as evidence
+- [x] T201 [US6] [GATE] Execute T114 and T182 only after T191–T200 are Green, using both the anonymized and 2× disposable PostgreSQL datasets; retain CLI logs, manifests, invariant counts, rerun duplicate counts, legacy-scan output, and timing headroom as evidence
 - [x] T202 [US2] After exact operator approval for the custom migration, add the idempotent PostgreSQL trigger/function that provisions the stable creator record, creator organization, identity link, and owner membership inside a new Twitch Better Auth account transaction; ordinary Drizzle generation cannot express this behavior and no generated `drizzle/` artifact may be added without that approval
 - [x] T203 [US2] [GATE] Prove T202 on disposable PostgreSQL with real Better Auth account insertion, rollback on rejected domain state, retry/idempotence, returning-account no-op, profile synchronization, backfill suppression, and creator/organization/owner invariants before T114 or T182 may run
 

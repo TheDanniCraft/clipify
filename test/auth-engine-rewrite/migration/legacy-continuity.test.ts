@@ -1,10 +1,11 @@
 /** @jest-environment node */
-import { backfillLegacySnapshot, bindEditorAtSafeAuth, validateEditorBackfill, type BackfillRepository, type BackfillState } from "../../../scripts/auth-cutover/backfill";
+import { createHash } from "node:crypto";
+import { backfillLegacySnapshot, bindEditorAtSafeAuth, classifyLegacyEditorForCutover, validateEditorBackfill, type BackfillRepository, type BackfillState } from "../../../scripts/auth-cutover/backfill";
 import { anonymizedLegacySnapshot } from "../../support/auth-engine-rewrite/legacy-snapshot";
 import { STANDARD_ROLES } from "@/auth/permissions";
 
 function emptyState(): BackfillState {
-	return { creators: [], resources: [], subscriptions: [], entitlements: [], authUsers: [], providerAccounts: [], organizations: [], memberships: [], identityLinks: [], anomalies: [] };
+	return { creators: [], resources: [], subscriptions: [], entitlements: [], authUsers: [], providerAccounts: [], organizations: [], memberships: [], identityLinks: [], anomalies: [], prunedEditors: [] };
 }
 
 class MemoryBackfillRepository implements BackfillRepository {
@@ -21,6 +22,13 @@ class MemoryBackfillRepository implements BackfillRepository {
 }
 
 describe("TDD-US1-001 legacy continuity backfill", () => {
+	it("prunes only editor relationships whose editor profile no longer exists", () => {
+		expect(classifyLegacyEditorForCutover({ creatorExists: true, editorExists: true })).toBe("operations");
+		expect(classifyLegacyEditorForCutover({ creatorExists: true, editorExists: false })).toBe("prune-orphan");
+		expect(classifyLegacyEditorForCutover({ creatorExists: false, editorExists: false })).toBe("blocking");
+		expect(classifyLegacyEditorForCutover({ creatorExists: false, editorExists: true })).toBe("blocking");
+	});
+
 	it("preserves creator, resource, subscription, entitlement, owner, URL-secret IDs exactly", async () => {
 		const repository = new MemoryBackfillRepository();
 		await backfillLegacySnapshot(anonymizedLegacySnapshot, repository);
@@ -54,12 +62,13 @@ describe("TDD-US1-001 legacy continuity backfill", () => {
 		expect(STANDARD_ROLES.operations).not.toContain("account:delete");
 	});
 
-	it("records unresolved editors as redacted anomalies without fabricating a person", async () => {
+	it("records orphaned editors for pruning without fabricating a person", async () => {
 		const repository = new MemoryBackfillRepository();
 		await backfillLegacySnapshot(anonymizedLegacySnapshot, repository);
-		expect(repository.state.anomalies).toHaveLength(anonymizedLegacySnapshot.editors.length);
+		expect(repository.state.anomalies).toHaveLength(0);
+		expect(repository.state.prunedEditors).toHaveLength(anonymizedLegacySnapshot.editors.length);
 		expect(repository.state.authUsers).toHaveLength(anonymizedLegacySnapshot.creators.length);
-		expect(JSON.stringify(repository.state.anomalies)).not.toContain("@example.invalid");
+		expect(JSON.stringify(repository.state.prunedEditors)).not.toContain("@example.invalid");
 	});
 
 	it("blocks cutover validation when any legacy editor lacks Operations membership or a tracked anomaly", async () => {
@@ -71,32 +80,31 @@ describe("TDD-US1-001 legacy continuity backfill", () => {
 		expect(validateEditorBackfill(snapshot, repository.state, { allowPendingSafeAuth: true })).toEqual({
 			totalRelationships: snapshot.editors.length,
 			operationsMemberships: 1,
-			pendingSafeAuth: snapshot.editors.length - 1,
+			pendingSafeAuth: 0,
+			prunedRelationships: snapshot.editors.length - 1,
 		});
-		expect(() => validateEditorBackfill(snapshot, repository.state)).toThrow("EDITOR_BACKFILL_INCOMPLETE");
+		expect(validateEditorBackfill(snapshot, repository.state)).toEqual(expect.objectContaining({ pendingSafeAuth: 0 }));
 
 		repository.state.memberships = repository.state.memberships.filter((membership) => membership.role !== "operations");
 		expect(() => validateEditorBackfill(snapshot, repository.state, { allowPendingSafeAuth: true })).toThrow("EDITOR_BACKFILL_INCOMPLETE");
 	});
 
-	it("allows legacy removal only after every editor is an Operations member", async () => {
+	it("allows legacy removal after every relationship is migrated or classified as an orphan", async () => {
 		const repository = new MemoryBackfillRepository();
 		await backfillLegacySnapshot(anonymizedLegacySnapshot, repository);
-		for (const [index, editor] of anonymizedLegacySnapshot.editors.entries()) {
-			await bindEditorAtSafeAuth({ twitchSubject: editor.editorTwitchSubject, email: `editor-${index}@example.invalid`, emailVerified: true, name: `Editor ${index}` }, repository);
-		}
 
 		expect(validateEditorBackfill(anonymizedLegacySnapshot, repository.state)).toEqual({
 			totalRelationships: anonymizedLegacySnapshot.editors.length,
-			operationsMemberships: anonymizedLegacySnapshot.editors.length,
+			operationsMemberships: 0,
 			pendingSafeAuth: 0,
+			prunedRelationships: anonymizedLegacySnapshot.editors.length,
 		});
 	});
 
 	it("binds an unresolved editor only after safe verified Twitch authentication", async () => {
 		const repository = new MemoryBackfillRepository();
-		await backfillLegacySnapshot(anonymizedLegacySnapshot, repository);
 		const editorSubject = anonymizedLegacySnapshot.editors[0]!.editorTwitchSubject;
+		repository.state.anomalies.push({ id: "pending-editor", creatorId: anonymizedLegacySnapshot.editors[0]!.creatorId, subjectHash: createHash("sha256").update(editorSubject).digest("hex"), category: "unresolved-editor", status: "open" });
 		await bindEditorAtSafeAuth({ twitchSubject: editorSubject, email: "editor@example.invalid", emailVerified: true, name: "Editor" }, repository);
 		expect(repository.state.authUsers).toContainEqual(expect.objectContaining({ email: "editor@example.invalid" }));
 		expect(repository.state.memberships).toContainEqual(expect.objectContaining({ organizationId: `creator:${anonymizedLegacySnapshot.editors[0]!.creatorId}`, role: "operations" }));
@@ -105,7 +113,6 @@ describe("TDD-US1-001 legacy continuity backfill", () => {
 
 	it("rejects unverified first-safe-auth binding", async () => {
 		const repository = new MemoryBackfillRepository();
-		await backfillLegacySnapshot(anonymizedLegacySnapshot, repository);
 		await expect(bindEditorAtSafeAuth({ twitchSubject: anonymizedLegacySnapshot.editors[0]!.editorTwitchSubject, email: "editor@example.invalid", emailVerified: false, name: "Editor" }, repository)).rejects.toMatchObject({ code: "EDITOR_IDENTITY_UNVERIFIED" });
 	});
 

@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-27
 
-**Status**: Draft
+**Status**: Implementation verified; production cutover pending operator approval
 
 **Input**: Replace Clipify's custom authentication and broad editor access model with managed identity, sessions, provider accounts, creator-owned teams, agency-to-creator relationships, granular permissions, and an automated zero-legacy cutover that preserves existing creator functionality.
 
@@ -15,6 +15,10 @@ This feature establishes a provider-neutral identity and authorization model for
 The feature includes creator onboarding through Twitch, email one-time-code access for invited team and agency members, optional passkeys as an alternate sign-in method, secure invitations, granular custom roles, session replacement, automated migration, operational validation, and removal of the legacy authentication runtime after a successful cutover.
 
 ## Clarifications
+
+### Session 2026-09-29
+
+- A legacy `editors` relationship whose editor subject no longer has a `users` Creator Profile is stale account residue, not an eligible team member. The cutover MUST record a redacted accepted disposition and delete only that relationship at successful reopen. It MUST NOT fabricate an identity or block the cutover. A missing creator/owner profile remains a blocking integrity failure.
 
 ### Session 2026-09-27
 
@@ -497,7 +501,7 @@ The successful cutover and legacy-removal scenarios are ATDD-owned and also prov
 - **FR-014**: Agency members MUST receive access to linked creators through agency membership and the accepted link without requiring duplicate direct memberships in every Creator Account; their effective creator permission set MUST be the intersection of permissions granted by their active Agency Account roles and the creator-approved permission set on the agency link, recalculated on every protected operation.
 - **FR-015**: Paid agency allocations MUST count creators receiving paid capabilities, not creator team members or agency staff.
 - **FR-016**: Effective creator capabilities MUST combine creator-owned benefits with active agency-funded allocations. Ordinary agency removal MUST schedule the agency-funded portion to end after a seven-day grace period, keep the allocation counted against the agency's paid seats throughout that period, and send the required notices; creator-owned benefits and creator data MUST remain unchanged. Creator Account deletion may release an agency allocation when deletion suspension begins and MUST NOT automatically reclaim that allocation on recovery.
-- **FR-017**: Each existing editor relationship MUST migrate to an operational team membership that preserves current resource-management access without adding billing, ownership-transfer, account-deletion, or team-administration authority.
+- **FR-017**: Each eligible existing editor relationship whose editor still has a Creator Profile MUST migrate to an operational team membership that preserves current resource-management access without adding billing, ownership-transfer, account-deletion, or team-administration authority. A relationship whose editor Creator Profile no longer exists MUST receive a redacted accepted stale-relationship disposition and MUST be deleted only when the validated cutover successfully reopens; a missing creator/owner profile remains blocking.
 - **FR-018**: Owners MUST be able to read, update, export, and request deletion of their account. Deletion MUST require recent identity confirmation. If creator-paid access remains, the default choice MUST schedule renewal cancellation and deletion suspension for the paid-through date; an explicit “delete now” choice MUST begin suspension immediately under the displayed cancellation and refund policy. When suspension begins, the system MUST suspend dashboard sessions, overlays, and integrations, release active agency allocations, retain eligible account data for owner recovery during a 30-day recovery period, and permanently erase eligible data only after that period. A recovery request MUST require an allowed sign-in method and recent identity confirmation; a recovery link alone MUST NOT authenticate the owner, and recovery MUST NOT restart billing or reclaim an agency allocation automatically.
 - **FR-019**: Owners MUST be able to read, manage, and cancel subscriptions, with the effective cancellation date shown before confirmation. Stripe MUST remain the source of billing lifecycle emails, while Clipify MUST avoid duplicating receipts, invoices, failed-payment notices, or subscription cancellation notices and MUST derive effective subscription state from authenticated Stripe lifecycle events.
 - **FR-020**: Authentication, invitation, verification, and account-linking operations MUST enforce abuse controls that limit repeated requests by relevant identity and network signals without blocking normal recovery paths.
@@ -625,7 +629,7 @@ Planning MUST enumerate implementation-level behaviors for every rule above, inc
 
 ### Measurable Outcomes
 
-- **SC-001**: A migration rehearsal accounts for 100% of eligible existing creators, editor relationships, connected provider accounts, subscriptions, entitlement grants, and owned resources, with no unexplained count difference.
+- **SC-001**: A migration rehearsal accounts for 100% of existing creators, editor relationships (Operations memberships plus approved stale-relationship removals), connected provider accounts, subscriptions, entitlement grants, and owned resources, with no unexplained count difference.
 - **SC-002**: 100% of the pre-cutover overlay regression fixture set continues producing its expected runtime response during and after dashboard-session replacement.
 - **SC-003**: A new creator can complete Twitch onboarding and reach the dashboard in under three minutes, excluding time spent on the external provider's own service interruption.
 - **SC-004**: Every authorization case in the permission matrix produces the expected allow or deny result, and denied mutations leave protected data unchanged.

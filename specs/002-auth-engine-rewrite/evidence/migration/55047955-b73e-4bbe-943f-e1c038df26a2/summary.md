@@ -1,5 +1,8 @@
 # Production-shaped rehearsal 55047955-b73e-4bbe-943f-e1c038df26a2
 
+Historical result: superseded by the approved deleted-editor disposition and
+Green rerun `7e075732-4e0a-47a8-8537-2e94dcb08097`.
+
 Date: 2026-09-29
 
 Environment: isolated database on the Infisical `dev` PostgreSQL server
@@ -46,10 +49,12 @@ target schema adds only `latest_stripe_event_created = 0` to each subscription.
 - Legacy runtime consumer scan: Green.
 - Validation: correctly blocked with `CUTOVER_INVARIANT_FAILED`; smoke/reopen was not authorized.
 
-## Blocking disposition
+## Historical blocking disposition
 
 One legacy editor Twitch subject has never created a Clipify user and has no
 legacy credential. Safe migration therefore cannot fabricate a verified email
 identity. The relationship remains present in `editors`, is represented by one
 redacted blocking anomaly, and must be resolved by verified Twitch
-authentication or explicit owner removal before Team-only retirement.
+authentication or explicit owner removal before Team-only retirement. The
+operator subsequently approved treating an editor subject absent from `users`
+as stale account residue; the superseding rehearsal proved its audited removal.

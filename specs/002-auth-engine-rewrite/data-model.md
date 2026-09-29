@@ -63,7 +63,7 @@ Append-only ID/time, actor person/session/account context, target, action, outco
 
 - Runs record version/mode/source fingerprint, backup attestation/checksum, state, app/schema versions, counts, invariants, smoke results, and manifest checksum.
 - Checkpoints use run + phase + cursor uniqueness, counts/checksum/status, and replay completed work as a no-op.
-- Anomalies record redacted source/category, blocking state, and resolution. Unknown editors are explicit anomalies, not fabricated identities.
+- Anomalies record redacted source/category, blocking state, and resolution. An editor with a retained Creator Profile but no safely bindable identity is blocking. An editor relationship whose editor Creator Profile no longer exists receives a non-blocking accepted `orphan-editor-pruned` disposition and is deleted only at successful reopen; identities are never fabricated.
 
 ## Permission catalogue
 
@@ -113,16 +113,16 @@ Transitions use compare-and-set/version checks and create audit/outbox records a
 
 ## Migration mapping
 
-| Legacy source                 | Target/rule                                                                                                         |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `users.id`                    | Preserve as Creator Profile ID exactly                                                                              |
-| Creator Twitch subject        | Unique Better Auth Twitch account; conflict blocks cutover                                                          |
-| Creator                       | Person + Creator organization + owner membership + identity link; rerun duplicates none                             |
-| `editors(user_id, editor_id)` | Operations membership after safe identity binding, or pending/anomaly; never guessed email identity                 |
-| Encrypted `tokens`            | In-memory decrypt/re-encrypt into Better Auth account; no plaintext persistence/log; old refresh disabled at switch |
-| Overlay/resource FKs/secrets  | No change                                                                                                           |
-| Subscription/entitlement rows | No change; validate referential and effective-state parity                                                          |
-| Dashboard JWTs                | No target; intentionally invalid after switch                                                                       |
+| Legacy source                 | Target/rule                                                                                                                                                                                                                    |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `users.id`                    | Preserve as Creator Profile ID exactly                                                                                                                                                                                         |
+| Creator Twitch subject        | Unique Better Auth Twitch account; conflict blocks cutover                                                                                                                                                                     |
+| Creator                       | Person + Creator organization + owner membership + identity link; rerun duplicates none                                                                                                                                        |
+| `editors(user_id, editor_id)` | Operations membership when both Creator Profiles exist; otherwise an accepted stale-editor removal at successful reopen when only the editor profile is absent. Missing owner profiles block; email identity is never guessed. |
+| Encrypted `tokens`            | In-memory decrypt/re-encrypt into Better Auth account; no plaintext persistence/log; old refresh disabled at switch                                                                                                            |
+| Overlay/resource FKs/secrets  | No change                                                                                                                                                                                                                      |
+| Subscription/entitlement rows | No change; validate referential and effective-state parity                                                                                                                                                                     |
+| Dashboard JWTs                | No target; intentionally invalid after switch                                                                                                                                                                                  |
 
 ## Purge ordering
 

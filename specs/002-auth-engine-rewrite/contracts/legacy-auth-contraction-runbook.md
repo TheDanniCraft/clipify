@@ -15,7 +15,7 @@ generated files under `drizzle/`.
 - [ ] Clipify reopened on the Better Auth runtime and completed the agreed live soak period.
 - [ ] The final cutover manifest checksum and source fingerprint are verified.
 - [ ] `bun run auth:legacy-check` reports zero production editor and custom-refresh consumers.
-- [ ] Every legacy editor relationship has a real Operations membership; pending safe-auth anomalies are zero.
+- [ ] Every eligible legacy editor relationship has a real Operations membership, every deleted-editor residue has an accepted prune disposition and was removed at reopen, and pending safe-auth anomalies are zero.
 - [ ] Better Auth account storage is the sole Twitch refresh authority.
 - [ ] Creator/resource IDs, ownership, overlay secrets/URLs, subscriptions, and entitlements retain exact parity.
 - [ ] A fresh production backup has a verified checksum and tested restore reference.

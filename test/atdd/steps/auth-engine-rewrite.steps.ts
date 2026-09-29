@@ -149,7 +149,7 @@ Then("the creator receives one transactional allocation notice", async ({ authWo
 });
 
 class AtddBackfillRepository implements BackfillRepository {
-	state: BackfillState = { creators: [], resources: [], subscriptions: [], entitlements: [], authUsers: [], providerAccounts: [], organizations: [], memberships: [], identityLinks: [], anomalies: [] };
+	state: BackfillState = { creators: [], resources: [], subscriptions: [], entitlements: [], authUsers: [], providerAccounts: [], organizations: [], memberships: [], identityLinks: [], anomalies: [], prunedEditors: [] };
 	async transaction<T>(operation: (draft: BackfillState, checkpoint: (name: "identity" | "membership") => Promise<void>) => Promise<T>) {
 		const draft = structuredClone(this.state);
 		const result = await operation(draft, async () => undefined);

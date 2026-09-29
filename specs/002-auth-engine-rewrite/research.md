@@ -102,7 +102,7 @@
 ## Resolved unknowns
 
 - UI uses “Creator Account”, “Agency Account”, and “team member”; it does not expose “organization” by default.
-- Editors who never logged in are bound safely on provider authentication or invited by verified email. Unresolvable records become blocking or owner-remediation anomalies; no person is fabricated from a username.
+- Editors with retained Creator Profiles migrate to Operations. A legacy relationship whose editor profile was deleted is stale residue: the cutover records a redacted accepted disposition and removes only that relationship at successful reopen. Missing creator/owner profiles remain blocking, and no person is fabricated from a username.
 - Shared PostgreSQL stores rate limits; process memory does not.
 - Dashboard users sign in again after cutover; overlays continue because overlay secrets are separate.
 - The special Twitch bot OAuth and controller/checkout capability JWTs are purpose-specific and reviewed separately; “remove legacy JWT” means the dashboard session JWT.

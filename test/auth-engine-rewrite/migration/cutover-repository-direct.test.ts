@@ -1,6 +1,6 @@
 /** @jest-environment node */
 
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -92,6 +92,33 @@ describePostgres("TDD-US6-006 direct PostgreSQL cutover repository", () => {
 		expect(() => new PostgresCutoverRepository("postgres://localhost", environment({ AUTH_CUTOVER_ENV: "rehearsal" }))).toThrow("DATABASE_NAME_REQUIRED");
 		expect(() => new PostgresCutoverRepository("postgres://localhost/clipify", environment({ AUTH_CUTOVER_ENV: "rehearsal" }))).toThrow("DISPOSABLE_DATABASE_NAME_REQUIRED");
 	});
+
+	it("removes an approved orphan editor relationship only at successful reopen", async () => {
+		const runId = randomUUID();
+		const editorId = `orphan-editor-${runId}`;
+		const pool = new Pool({ connectionString: databaseUrl, max: 1 });
+		const repository = new PostgresCutoverRepository(databaseUrl!, { ...process.env, AUTH_CUTOVER_ENV: "rehearsal", AUTH_CUTOVER_ALLOW_DEFAULT_DATABASE: "1" });
+		try {
+			const owner = await pool.query<{ id: string }>("SELECT id FROM public.users ORDER BY id LIMIT 1");
+			expect(owner.rows[0]?.id).toBeTruthy();
+			const ownerId = owner.rows[0]!.id;
+			const sourceHash = createHash("sha256").update(`${ownerId}\u0000${editorId}`, "utf8").digest("hex");
+			await pool.query("INSERT INTO public.editors (user_id, editor_id) VALUES ($1, $2)", [ownerId, editorId]);
+			await pool.query("INSERT INTO public.migration_runs (id, status, source_fingerprint, manifest_checksum) VALUES ($1, 'validated', 'sha256:orphan-test', 'sha256:orphan-test')", [runId]);
+			await pool.query("INSERT INTO public.migration_anomalies (run_id, source_hash, category, blocking, status, resolution, resolved_at) VALUES ($1, $2, 'orphan-editor-pruned', false, 'accepted', 'test-approved stale relationship', now())", [runId, sourceHash]);
+
+			await repository.reopen(runId);
+
+			const relationship = await pool.query("SELECT 1 FROM public.editors WHERE user_id = $1 AND editor_id = $2", [ownerId, editorId]);
+			expect(relationship.rowCount).toBe(0);
+			await expect(repository.getRunStatus(runId)).resolves.toBe("reopened");
+		} finally {
+			await pool.query("DELETE FROM public.editors WHERE editor_id = $1", [editorId]);
+			await pool.query("DELETE FROM public.migration_runs WHERE id = $1", [runId]);
+			await pool.end();
+			await repository.close();
+		}
+	}, 30_000);
 
 	it("fails closed for invalid invariants, smoke results, reopen state, and run binding", async () => {
 		const environment = { ...process.env, AUTH_CUTOVER_ENV: "rehearsal", AUTH_CUTOVER_ALLOW_DEFAULT_DATABASE: "1" };

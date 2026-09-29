@@ -19,6 +19,7 @@ export interface BackfillState {
 	memberships: Array<{ organizationId: string; authUserId: string; role: "owner" | "operations" }>;
 	identityLinks: Array<{ creatorId: string; authUserId: string; source: "migration" }>;
 	anomalies: Array<{ id: string; creatorId: string; subjectHash: string; category: "unresolved-editor"; status: "open" | "resolved" }>;
+	prunedEditors: Array<{ creatorId: string; subjectHash: string }>;
 }
 
 export interface BackfillRepository {
@@ -46,30 +47,46 @@ export type EditorBackfillValidation = {
 	totalRelationships: number;
 	operationsMemberships: number;
 	pendingSafeAuth: number;
+	prunedRelationships: number;
 };
+
+export function classifyLegacyEditorForCutover(input: { creatorExists: boolean; editorExists: boolean }): "operations" | "prune-orphan" | "blocking" {
+	if (!input.creatorExists) return "blocking";
+	return input.editorExists ? "operations" : "prune-orphan";
+}
 
 export function validateEditorBackfill(snapshot: LegacyBackfillSnapshot, state: BackfillState, options: { allowPendingSafeAuth?: boolean } = {}): EditorBackfillValidation {
 	let operationsMemberships = 0;
 	let pendingSafeAuth = 0;
+	let prunedRelationships = 0;
 
 	for (const editor of snapshot.editors) {
+		const disposition = classifyLegacyEditorForCutover({
+			creatorExists: snapshot.creators.some((creator) => creator.id === editor.creatorId),
+			editorExists: snapshot.creators.some((creator) => creator.twitchSubject === editor.editorTwitchSubject),
+		});
+		const subjectHash = hash(editor.editorTwitchSubject);
+		if (disposition === "prune-orphan") {
+			if (!state.prunedEditors.some((pruned) => pruned.creatorId === editor.creatorId && pruned.subjectHash === subjectHash)) throw new BackfillError("EDITOR_BACKFILL_INCOMPLETE");
+			prunedRelationships += 1;
+			continue;
+		}
 		const provider = state.providerAccounts.find((account) => account.twitchSubject === editor.editorTwitchSubject);
-		if (provider) {
+		if (disposition === "operations" && provider) {
 			const hasOperationsMembership = state.memberships.some((membership) => membership.organizationId === `creator:${editor.creatorId}` && membership.authUserId === provider.authUserId && membership.role === "operations");
 			if (!hasOperationsMembership) throw new BackfillError("EDITOR_BACKFILL_INCOMPLETE");
 			operationsMemberships += 1;
 			continue;
 		}
 
-		const subjectHash = hash(editor.editorTwitchSubject);
 		const hasPendingAnomaly = state.anomalies.some((anomaly) => anomaly.creatorId === editor.creatorId && anomaly.subjectHash === subjectHash && anomaly.category === "unresolved-editor" && anomaly.status === "open");
 		if (!hasPendingAnomaly) throw new BackfillError("EDITOR_BACKFILL_INCOMPLETE");
 		pendingSafeAuth += 1;
 	}
 
-	if (operationsMemberships + pendingSafeAuth !== snapshot.editors.length) throw new BackfillError("EDITOR_BACKFILL_INCOMPLETE");
+	if (operationsMemberships + pendingSafeAuth + prunedRelationships !== snapshot.editors.length) throw new BackfillError("EDITOR_BACKFILL_INCOMPLETE");
 	if (pendingSafeAuth > 0 && !options.allowPendingSafeAuth) throw new BackfillError("EDITOR_BACKFILL_INCOMPLETE");
-	return { totalRelationships: snapshot.editors.length, operationsMemberships, pendingSafeAuth };
+	return { totalRelationships: snapshot.editors.length, operationsMemberships, pendingSafeAuth, prunedRelationships };
 }
 
 function pushUnique<T>(values: T[], value: T, key: (item: T) => string) {
@@ -111,11 +128,19 @@ export async function backfillLegacySnapshot(snapshot: LegacyBackfillSnapshot, r
 		await checkpoint("identity");
 
 		await processBatches("editor", snapshot.editors, options, (editor) => {
+			const disposition = classifyLegacyEditorForCutover({
+				creatorExists: snapshot.creators.some((creator) => creator.id === editor.creatorId),
+				editorExists: snapshot.creators.some((creator) => creator.twitchSubject === editor.editorTwitchSubject),
+			});
+			const subjectHash = hash(editor.editorTwitchSubject);
+			if (disposition === "prune-orphan") {
+				pushUnique(state.prunedEditors, { creatorId: editor.creatorId, subjectHash }, (item) => `${item.creatorId}:${item.subjectHash}`);
+				return;
+			}
 			const provider = state.providerAccounts.find((account) => account.twitchSubject === editor.editorTwitchSubject);
-			if (provider) {
+			if (disposition === "operations" && provider) {
 				pushUnique(state.memberships, { organizationId: `creator:${editor.creatorId}`, authUserId: provider.authUserId, role: "operations" }, (item) => `${item.organizationId}:${item.authUserId}`);
 			} else {
-				const subjectHash = hash(editor.editorTwitchSubject);
 				pushUnique(state.anomalies, { id: `editor:${subjectHash.slice(0, 24)}:${hash(editor.creatorId).slice(0, 8)}`, creatorId: editor.creatorId, subjectHash, category: "unresolved-editor", status: "open" }, (item) => item.id);
 			}
 		});

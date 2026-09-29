@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import { Pool, type PoolClient } from "pg";
 import { symmetricEncrypt } from "better-auth/crypto";
 import { decryptToken } from "../../src/app/lib/tokenCrypto";
+import { classifyLegacyEditorForCutover } from "./backfill";
 import { buildManifest, signManifest, verifyManifest, verifyManifestSignature, type CutoverManifest } from "./manifest";
 import { installCreatorOnboardingTriggers } from "./onboarding-trigger";
 import { verifyBackupAttestation, type BackupAttestation } from "./preflight";
@@ -124,7 +125,7 @@ export class PostgresCutoverRepository {
 		}
 	}
 
-	async applyBackfill(input: { runId: string; sourceFingerprint: string; manifestChecksum: string; betterAuthSecret: string }): Promise<{ creators: number; owners: number; operations: number; credentials: number; anomalies: number }> {
+	async applyBackfill(input: { runId: string; sourceFingerprint: string; manifestChecksum: string; betterAuthSecret: string }): Promise<{ creators: number; owners: number; operations: number; credentials: number; anomalies: number; prunedEditors: number }> {
 		const client = await this.#pool.connect();
 		const id = (prefix: string, value: string) => `${prefix}:${createHash("sha256").update(value, "utf8").digest("hex").slice(0, 24)}`;
 		const checkpoint = async (phase: string, processedCount: number) => {
@@ -202,22 +203,30 @@ export class PostgresCutoverRepository {
 			let operations = 0;
 			let anomalies = 0;
 			for (const editor of editors.rows) {
+				const profiles = await client.query<{ creator_exists: boolean; editor_exists: boolean }>("SELECT EXISTS (SELECT 1 FROM public.users WHERE id = $1) AS creator_exists, EXISTS (SELECT 1 FROM public.users WHERE id = $2) AS editor_exists", [editor.user_id, editor.editor_id]);
+				const disposition = classifyLegacyEditorForCutover({ creatorExists: profiles.rows[0]?.creator_exists === true, editorExists: profiles.rows[0]?.editor_exists === true });
+				const sourceHash = createHash("sha256").update(`${editor.user_id}\u0000${editor.editor_id}`, "utf8").digest("hex");
+				if (disposition === "prune-orphan") {
+					await client.query("INSERT INTO public.migration_anomalies (run_id, source_hash, category, blocking, status, resolution, resolved_at) VALUES ($1, $2, 'orphan-editor-pruned', false, 'accepted', 'stale legacy editor relationship approved for removal at reopen', now()) ON CONFLICT (run_id, source_hash, category) DO UPDATE SET blocking = false, status = 'accepted', resolution = EXCLUDED.resolution, resolved_at = now()", [input.runId, sourceHash]);
+					continue;
+				}
 				const editorUser = await client.query<{ auth_user_id: string }>("SELECT auth_user_id FROM public.creator_identity_links WHERE creator_id = $1", [editor.editor_id]);
 				const creatorAccount = await client.query<{ organization_id: string }>("SELECT organization_id FROM public.creator_accounts WHERE creator_id = $1", [editor.user_id]);
-				if (editorUser.rows[0] && creatorAccount.rows[0]) {
+				if (disposition === "operations" && editorUser.rows[0] && creatorAccount.rows[0]) {
 					const memberId = id("member-operations", `${creatorAccount.rows[0].organization_id}:${editorUser.rows[0].auth_user_id}`);
 					await client.query("INSERT INTO auth.member (id, organization_id, user_id, role, created_at) VALUES ($1, $2, $3, 'operations', now()) ON CONFLICT (organization_id, user_id) DO UPDATE SET role = 'operations'", [memberId, creatorAccount.rows[0].organization_id, editorUser.rows[0].auth_user_id]);
 					operations += 1;
 				} else {
-					const sourceHash = createHash("sha256").update(`${editor.user_id}\u0000${editor.editor_id}`, "utf8").digest("hex");
 					await client.query("INSERT INTO public.migration_anomalies (run_id, source_hash, category, blocking) VALUES ($1, $2, 'unresolved-editor', true) ON CONFLICT (run_id, source_hash, category) DO NOTHING", [input.runId, sourceHash]);
 					anomalies += 1;
 				}
 			}
+			const pruneCount = await client.query<{ count: string }>("SELECT count(*)::text AS count FROM public.migration_anomalies WHERE run_id = $1 AND category = 'orphan-editor-pruned' AND blocking = false AND status = 'accepted'", [input.runId]);
+			const prunedEditors = numeric(pruneCount.rows[0]?.count ?? "0");
 			await checkpoint("membership", editors.rowCount ?? editors.rows.length);
 			await checkpoint("credentials", credentials);
 			await client.query("COMMIT");
-			return { creators: creators.rowCount ?? creators.rows.length, owners: creators.rowCount ?? creators.rows.length, operations, credentials, anomalies };
+			return { creators: creators.rowCount ?? creators.rows.length, owners: creators.rowCount ?? creators.rows.length, operations, credentials, anomalies, prunedEditors };
 		} catch (error) {
 			await client.query("ROLLBACK").catch(() => undefined);
 			await client.query("UPDATE public.migration_runs SET status = 'maintenance_blocked', updated_at = now() WHERE id = $1", [input.runId]).catch(() => undefined);
@@ -227,22 +236,28 @@ export class PostgresCutoverRepository {
 		}
 	}
 
-	async validateBackfill(runId: string, expected: CutoverCounts): Promise<{ creators: number; owners: number; operations: number; credentials: number; anomalies: number; valid: true }> {
-		const result = await this.#pool.query<{ creators: string; owners: string; operations: string; credentials: string; anomalies: string; invalid_credentials: string; broken_links: string }>(
+	async validateBackfill(runId: string, expected: CutoverCounts): Promise<{ creators: number; owners: number; operations: number; credentials: number; anomalies: number; prunedEditors: number; valid: true }> {
+		const result = await this.#pool.query<{ creators: string; owners: string; operations: string; credentials: string; anomalies: string; pruned_editors: string; eligible_editors: string; orphan_editors: string; broken_editor_owners: string; invalid_credentials: string; broken_links: string }>(
 			`SELECT
 				(SELECT count(*) FROM public.creator_accounts)::text AS creators,
 				(SELECT count(*) FROM auth.member WHERE role = 'owner')::text AS owners,
 				(SELECT count(*) FROM auth.member WHERE role = 'operations')::text AS operations,
 				(SELECT count(*) FROM auth.account WHERE provider_id = 'twitch' AND refresh_token IS NOT NULL)::text AS credentials,
 				(SELECT count(*) FROM public.migration_anomalies WHERE run_id = $1 AND blocking = true AND status = 'open')::text AS anomalies,
+				(SELECT count(*) FROM public.migration_anomalies WHERE run_id = $1 AND category = 'orphan-editor-pruned' AND blocking = false AND status = 'accepted')::text AS pruned_editors,
+				(SELECT count(*) FROM public.editors e WHERE EXISTS (SELECT 1 FROM public.users owner_profile WHERE owner_profile.id = e.user_id) AND EXISTS (SELECT 1 FROM public.users editor_profile WHERE editor_profile.id = e.editor_id))::text AS eligible_editors,
+				(SELECT count(*) FROM public.editors e WHERE EXISTS (SELECT 1 FROM public.users owner_profile WHERE owner_profile.id = e.user_id) AND NOT EXISTS (SELECT 1 FROM public.users editor_profile WHERE editor_profile.id = e.editor_id))::text AS orphan_editors,
+				(SELECT count(*) FROM public.editors e WHERE NOT EXISTS (SELECT 1 FROM public.users owner_profile WHERE owner_profile.id = e.user_id))::text AS broken_editor_owners,
 				(SELECT count(*) FROM auth.account WHERE provider_id = 'twitch' AND (access_token IS NULL OR refresh_token IS NULL OR access_token !~ '^[0-9a-f]+$' OR refresh_token !~ '^[0-9a-f]+$'))::text AS invalid_credentials,
 				(SELECT count(*) FROM public.creator_accounts ca LEFT JOIN public.creator_identity_links cil ON cil.creator_id = ca.creator_id LEFT JOIN auth.member m ON m.organization_id = ca.organization_id AND m.user_id = cil.auth_user_id AND m.role = 'owner' WHERE cil.creator_id IS NULL OR m.id IS NULL)::text AS broken_links`,
 			[runId],
 		);
 		const row = result.rows[0];
 		if (!row) throw new Error("VALIDATION_QUERY_EMPTY");
-		const values = { creators: numeric(row.creators), owners: numeric(row.owners), operations: numeric(row.operations), credentials: numeric(row.credentials), anomalies: numeric(row.anomalies) };
-		const valid = values.creators === expected.creators && values.owners === expected.creators && values.operations === expected.legacyEditors && values.credentials === expected.legacyTokens && values.anomalies === 0 && numeric(row.invalid_credentials) === 0 && numeric(row.broken_links) === 0;
+		const values = { creators: numeric(row.creators), owners: numeric(row.owners), operations: numeric(row.operations), credentials: numeric(row.credentials), anomalies: numeric(row.anomalies), prunedEditors: numeric(row.pruned_editors) };
+		const eligibleEditors = numeric(row.eligible_editors);
+		const orphanEditors = numeric(row.orphan_editors);
+		const valid = values.creators === expected.creators && values.owners === expected.creators && values.operations === eligibleEditors && eligibleEditors + orphanEditors === expected.legacyEditors && values.prunedEditors === orphanEditors && values.credentials === expected.legacyTokens && values.anomalies === 0 && numeric(row.broken_editor_owners) === 0 && numeric(row.invalid_credentials) === 0 && numeric(row.broken_links) === 0;
 		if (!valid) {
 			await this.#pool.query("UPDATE public.migration_runs SET status = 'maintenance_blocked', updated_at = now() WHERE id = $1", [runId]);
 			throw new Error("CUTOVER_INVARIANT_FAILED");
@@ -277,6 +292,12 @@ export class PostgresCutoverRepository {
 			await client.query("BEGIN");
 			const result = await client.query<{ status: string }>("SELECT status::text FROM public.migration_runs WHERE id = $1 FOR UPDATE", [runId]);
 			if (result.rows[0]?.status !== "validated") throw new Error("CUTOVER_NOT_VALIDATED");
+			const orphanEditors = await client.query<{ user_id: string; editor_id: string }>("SELECT e.user_id, e.editor_id FROM public.editors e WHERE EXISTS (SELECT 1 FROM public.users owner_profile WHERE owner_profile.id = e.user_id) AND NOT EXISTS (SELECT 1 FROM public.users editor_profile WHERE editor_profile.id = e.editor_id) ORDER BY e.user_id, e.editor_id");
+			const dispositions = await client.query<{ source_hash: string }>("SELECT source_hash FROM public.migration_anomalies WHERE run_id = $1 AND category = 'orphan-editor-pruned' AND blocking = false AND status = 'accepted'", [runId]);
+			const dispositionHashes = new Set(dispositions.rows.map((row) => row.source_hash));
+			const approvedOrphans = orphanEditors.rows.filter((editor) => dispositionHashes.has(createHash("sha256").update(`${editor.user_id}\u0000${editor.editor_id}`, "utf8").digest("hex")));
+			if (approvedOrphans.length !== dispositionHashes.size) throw new Error("ORPHAN_EDITOR_PRUNE_MISMATCH");
+			for (const editor of approvedOrphans) await client.query("DELETE FROM public.editors WHERE user_id = $1 AND editor_id = $2", [editor.user_id, editor.editor_id]);
 			await client.query("UPDATE public.migration_runs SET status = 'switched', updated_at = now() WHERE id = $1", [runId]);
 			await client.query("UPDATE public.migration_runs SET status = 'reopened', updated_at = now(), completed_at = now() WHERE id = $1", [runId]);
 			await client.query("COMMIT");

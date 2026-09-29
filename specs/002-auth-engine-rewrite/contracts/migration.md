@@ -32,7 +32,7 @@ command in this workflow; it follows a separately authorized runbook.
 3. `onboarding_boundary`: idempotently install the reviewed Twitch-account provisioning and verified-profile synchronization functions/triggers in the same transaction as the backfill. Set the transaction-local backfill guard before identity rows are written.
 4. `identity`: person/provider/session target mappings and uniqueness.
 5. `creator_accounts`: one organization/owner/link per Creator Profile.
-6. `memberships`: editors to Operations membership or explicit anomaly.
+6. `memberships`: eligible editors to Operations membership; deleted-editor residue to an accepted, redacted prune disposition; all other unresolved relationships to a blocking anomaly.
 7. `credentials`: in-memory decrypt/re-encrypt and scope/expiry validation.
 8. `domain_invariants`: resources, secrets, subscriptions, entitlements, counts, ownership.
 9. `switch`: enable Better Auth runtime, disable dashboard JWT/custom refresh/editor authorization.
@@ -46,7 +46,7 @@ The ordinary schema migration remains owned by the post-merge `master` workflow 
 
 ## Mandatory invariants
 
-- 100% accounting of eligible creators, editors/pending anomalies, provider accounts, resources, subscriptions, entitlements, and overlay fixtures.
+- 100% accounting of creators, eligible editor Operations memberships, accepted deleted-editor prunes, blocking anomalies, provider accounts, resources, subscriptions, entitlements, and overlay fixtures.
 - Creator/resource IDs, owner IDs, overlay secrets/URLs, Stripe references, and entitlement sources compare byte-for-byte where applicable.
 - Exactly one Creator Account per Creator Profile and one owner membership agreeing with the identity link.
 - No duplicate Twitch provider subject, membership, invitation acceptance, agency link, allocation, or resource.
