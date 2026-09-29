@@ -40,6 +40,7 @@ The first run must fail for the intended missing behavior, the second pass after
 ```powershell
 bun run test
 bun run test:coverage
+infisical run --env=dev -- powershell -NoProfile -Command '$env:AUTH_CUTOVER_TEST_DATABASE_URL=$env:DATABASE_URL; $env:AUTH_CUTOVER_ALLOW_DEFAULT_DATABASE="1"; bun run test:auth:coverage'
 bun run test:atdd
 bun run test:bdd
 bun run test:acceptance

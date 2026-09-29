@@ -9,16 +9,16 @@
 
 ## Executive Summary
 
-| Item                         | Result                                                                                                       |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| Overall Test Status          | In progress — US1–US5 core, atomic onboarding, and US6 runtime switch Green; coverage/rehearsal gates remain |
-| Release Recommendation       | No-Go                                                                                                        |
-| Scope Covered                | Planned coverage for US1–US6, FR-001–FR-031, SC-001–SC-012, EC-001–EC-015                                    |
-| Primary Evidence Location    | [test-traceability.md](./test-traceability.md) and story evidence below                                      |
-| Open Critical / High Defects | 1 — changed-code coverage                                                                                    |
-| Approved Exceptions          | 0                                                                                                            |
+| Item                         | Result                                                                                                        |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Overall Test Status          | In progress — US1–US5 core, atomic onboarding, US6 runtime switch, and coverage Green; rehearsal gates remain |
+| Release Recommendation       | No-Go                                                                                                         |
+| Scope Covered                | Planned coverage for US1–US6, FR-001–FR-031, SC-001–SC-012, EC-001–EC-015                                     |
+| Primary Evidence Location    | [test-traceability.md](./test-traceability.md) and story evidence below                                       |
+| Open Critical / High Defects | 0                                                                                                             |
+| Approved Exceptions          | 0                                                                                                             |
 
-US1 continuity, atomic US2 Twitch onboarding, US3 authorization, US4 agency management, the US5 lifecycle core, the Better Auth credential switch, the real cutover CLI suite, and the deterministic performance gate are independently Green. Production remains No-Go until changed-code coverage reaches the specified threshold and both required production-shaped disposable rehearsals pass.
+US1 continuity, atomic US2 Twitch onboarding, US3 authorization, US4 agency management, the US5 lifecycle core, the Better Auth credential switch, the real cutover CLI suite, deterministic performance gate, and both global and high-risk changed-code coverage gates are independently Green. Production remains No-Go until both required production-shaped disposable rehearsals pass.
 
 The authenticated Chromium smoke harness uses uniquely prefixed, automatically cleaned rows in the disposable Infisical `dev` database for local runs (or the CI-supplied isolated database). It creates real revocable Better Auth sessions and signed HTTP-only cookies; the fixture route is unavailable unless both `APP_ENV=test` and `E2E_TEST_MODE=true` on loopback with the fixture bearer token.
 
@@ -193,7 +193,7 @@ Command: `bun run test:auth-performance`. The database metric performs a real in
 | TDD             | Required  | `bunx jest test/auth-engine-rewrite --runInBand`              | 21 artifacts                             | 21     | 0      | 0       | Migration suite 87/87      |
 | BDD             | Required  | `bun run test:bdd`                                            | 16 base / 38 expanded examples           | 69     | 0      | 0       | T176 aggregate E2E         |
 | ATDD            | Required  | `bun run test:atdd`                                           | 14 base / 19 expanded examples           | 20     | 0      | 0       | T176 aggregate E2E         |
-| Coverage        | Required  | `bun run test:coverage`                                       | Global baseline + changed-code threshold | 1      | 0      | 1       | Global passes; T200 open   |
+| Coverage        | Required  | `bun run test:coverage`; `bun run test:auth:coverage`         | Global baseline + changed-code threshold | 2      | 0      | 0       | T177/T200 Green            |
 | Lint / Format   | Required  | `bun run app:lint`; `bun run app:prettier:check`              | Both pass                                | 2      | 0      | 0       | 4 unchanged image warnings |
 | Static Analysis | Required  | `bun run app:typecheck`                                       | Pass                                     | 1      | 0      | 0       | 2026-09-29                 |
 | Security        | Required  | `bun audit --audit-level=high` + negative authorization tests | No unaccepted high/critical              | 0      | 0      | 1       | N/A                        |
@@ -207,15 +207,15 @@ Command: `bun run test:auth-performance`. The database metric performs a real in
 | TDD inventory completeness       | Pass    | Registry and Source Coverage Map | No required US6 skip      |
 | Requirement-to-test mapping      | Pass    | Source Coverage Map              | Final reconciliation open |
 | BDD/ATDD scenario coverage       | Pass    | 57 expanded Scenario Matrix rows | Focused US6 Green         |
-| Coverage thresholds and baseline | Blocked | Quality Gate Results             | Changed-code T200 open    |
-| Quality gate completeness        | Blocked | Quality Gate Results             | AUTH-006/rehearsal        |
+| Coverage thresholds and baseline | Pass    | Quality Gate Results             | T177/T200 Green           |
+| Quality gate completeness        | Blocked | Quality Gate Results             | Final rehearsals remain   |
 
 ## Defect Summary
 
 | Severity | Open | Fixed Awaiting Verification | Verified | Deferred / Accepted | Release Impact                     |
 | -------- | ---- | --------------------------- | -------- | ------------------- | ---------------------------------- |
 | Critical | 0    | 0                           | 1        | 0                   | AUTH-016 verified                  |
-| High     | 1    | 0                           | 0        | 0                   | AUTH-006 blocks release coverage   |
+| High     | 0    | 0                           | 1        | 0                   | AUTH-006 verified                  |
 | Medium   | 0    | 0                           | 6        | 0                   | Verified implementation/test fixes |
 | Low      | 1    | 0                           | 8        | 0                   | PLAN-001 has no product impact     |
 
@@ -241,7 +241,7 @@ Command: `bun run test:auth-performance`. The database metric performs a real in
 
 ## Release Recommendation
 
-**No-Go.** Core behavior, atomic new-creator onboarding, the Better Auth credential authority, the real cutover CLI, global regression coverage, build, manifest, and compliance gates are Green. Release remains blocked by AUTH-006 changed-code coverage and the required anonymized plus 2× production-shaped cutover rehearsals. No production database operation is authorized by this evidence.
+**No-Go.** Core behavior, atomic new-creator onboarding, the Better Auth credential authority, the real cutover CLI, global and changed-code coverage, build, manifest, and compliance gates are Green. Release remains blocked only by the required anonymized plus 2× production-shaped cutover rehearsals and their final evidence reconciliation. No production database operation is authorized by this evidence.
 
 ## Approvals
 

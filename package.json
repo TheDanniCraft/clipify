@@ -25,6 +25,7 @@
 		"test:auth:contract": "jest test/auth-engine-rewrite/contract --runInBand",
 		"test:auth:migration": "jest test/auth-engine-rewrite/migration --runInBand",
 		"test:auth:property": "jest test/auth-engine-rewrite/property --runInBand",
+		"test:auth:coverage": "bun scripts/run-auth-coverage.ts",
 		"test:auth-performance": "bun scripts/auth-performance-check.ts",
 		"test:watch": "jest --watch",
 		"test:coverage": "jest --coverage --runInBand",

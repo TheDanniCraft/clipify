@@ -40,7 +40,7 @@ Track product, test, environment, and governance issues affecting feature readin
 | AUTH-003  | US5 test fixture imported an incompatible aggregate harness                    | TDD-US5-001          | Low      | Low      | Verified | Auth implementation | Focused Red/Green       | `test/auth-engine-rewrite/integration/account-lifecycle.test.ts` | Imported the isolated clock helper and removed a fixture-name collision                 |
 | AUTH-004  | Production lifecycle imports and test doubles crossed legacy Jest boundaries   | TDD-US5-001          | Medium   | High     | Verified | Auth implementation | Adapter regression      | Subscription, overlay, and webhook focused suites                | Isolated Better Auth imports and extended lifecycle-aware test boundaries               |
 | AUTH-005  | WebAuthn duplicated the shared application-origin configuration                | Build gate           | Medium   | High     | Verified | Auth implementation | `bun run app:build`     | T179 production build gate                                       | Derive RP ID and origin from the reviewed shared `resolveBaseUrl()` policy              |
-| AUTH-006  | Changed auth adapter coverage is below the release floor                       | Coverage gate        | High     | High     | Open     | Auth implementation | `bun run test:coverage` | T177 changed-code coverage gate                                  | Add database/session/mail/agency adapter tests; do not lower the 90%/95% policy         |
+| AUTH-006  | Changed auth adapter coverage is below the release floor                       | Coverage gate        | High     | High     | Verified | Auth implementation | `bun run test:coverage` | T177 changed-code coverage gate                                  | Focused real-adapter gate exceeds the unchanged 90%/95% policy                          |
 | AUTH-007  | Database-backed US2 ATDD exceeded the generic browser timeout                  | ATDD-US2-001         | Low      | High     | Verified | Auth implementation | Focused ATDD            | T023 real-session acceptance boundary                            | ATDD project uses the authenticated acceptance timeout                                  |
 | AUTH-008  | Login smoke retained the retired link role                                     | BDD-SMOKE-001        | Low      | High     | Verified | Auth implementation | Aggregate BDD           | T038 aggregate behavior gate                                     | Smoke asserts the Better Auth sign-in button role                                       |
 | AUTH-009  | Focused ATDD bypassed BDD wrapper regeneration                                 | T142 Red probe       | Low      | Low      | Verified | Auth implementation | Focused ATDD            | T142 real agency boundaries                                      | Regenerate bindings before direct Playwright execution                                  |
@@ -262,11 +262,10 @@ Track product, test, environment, and governance issues affecting feature readin
 
 The completed US1–US5 story gates introduced no open product defects. US2 focused TDD (10 tests), database-backed ATDD (20/20 aggregate), and BDD (69/69 aggregate) are Green. The two US2 harness regressions are verified fixed. A US1 regression probe found and corrected a duplicate disabled-owner lookup before checkpoint closure. PLAN-001 remains an unrelated planning-tooling issue with no release impact on the implemented authorization slices.
 
-| Defect ID | Release Impact               | Required Decision                      | Decision Owner        | Due Date                         | Notes                                                                                                                                         |
-| --------- | ---------------------------- | -------------------------------------- | --------------------- | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| PLAN-001  | No product release impact    | Fix tooling independently              | SpecKit tooling owner | Before next feature planning run | Fallback preserved required report structure                                                                                                  |
-| AUTH-006  | Blocks release coverage gate | Add focused adapter coverage           | Auth implementation   | Before T177 can close            | Global coverage passes, but changed auth/lifecycle/agency aggregate is 51.17% branches, 66.05% functions, 57.48% lines, and 55.74% statements |
-| AUTH-016  | Resolved                     | Preserve the verified trigger contract | Auth implementation   | Closed 2026-09-29                | Transactional trigger boundary passes the real Better Auth adapter, rollback, retry, sync, isolation, and backfill-guard suite                |
+| Defect ID | Release Impact            | Required Decision                      | Decision Owner        | Due Date                         | Notes                                                                                                                          |
+| --------- | ------------------------- | -------------------------------------- | --------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| PLAN-001  | No product release impact | Fix tooling independently              | SpecKit tooling owner | Before next feature planning run | Fallback preserved required report structure                                                                                   |
+| AUTH-016  | Resolved                  | Preserve the verified trigger contract | Auth implementation   | Closed 2026-09-29                | Transactional trigger boundary passes the real Better Auth adapter, rollback, retry, sync, isolation, and backfill-guard suite |
 
 ## Verification and Regression Closure
 
@@ -278,7 +277,7 @@ The completed US1–US5 story gates introduced no open product defects. US2 focu
 | AUTH-003  | Current branch    | Focused US5 suites                               | Pass    | TDD-US5-001–003     | Codex / 2026-09-28 |
 | AUTH-004  | Current branch    | Lifecycle adapter regression                     | Pass    | 7 suites / 89 tests | Codex / 2026-09-28 |
 | AUTH-005  | Current branch    | `infisical run --env=dev -- bun run app:build`   | Pass    | T179                | Codex / 2026-09-28 |
-| AUTH-006  | Current branch    | Changed-code coverage command                    | Fail    | T177                | Pending            |
+| AUTH-006  | Current branch    | `bun run test:auth:coverage`                     | Pass    | T177/T200           | Codex / 2026-09-29 |
 | AUTH-007  | Current branch    | Focused database-backed ATDD-US2-001             | Pass    | ATDD-US2-001        | Codex / 2026-09-28 |
 | AUTH-008  | Current branch    | Focused and aggregate BDD                        | Pass    | BDD-SMOKE-001       | Codex / 2026-09-28 |
 | AUTH-009  | Current branch    | `bunx bddgen` before focused ATDD                | Pass    | T142 Red probe      | Codex / 2026-09-28 |
@@ -292,13 +291,13 @@ The completed US1–US5 story gates introduced no open product defects. US2 focu
 
 ## Defect Metrics
 
-| Metric                       | Value | Notes                                                                                                         |
-| ---------------------------- | ----- | ------------------------------------------------------------------------------------------------------------- |
-| Total defects                | 17    | One open tooling issue, one open release blocker, and fifteen verified implementation/test-integration issues |
-| Open Critical / High defects | 1     | AUTH-006 blocks changed-code coverage                                                                         |
-| Deferred defects             | 0     | No accepted risks                                                                                             |
-| Reopened defects             | 0     |                                                                                                               |
-| Escaped defects              | 0     |                                                                                                               |
+| Metric                       | Value | Notes                                                                                          |
+| ---------------------------- | ----- | ---------------------------------------------------------------------------------------------- |
+| Total defects                | 17    | One open nonblocking tooling issue and sixteen verified implementation/test-integration issues |
+| Open Critical / High defects | 0     |                                                                                                |
+| Deferred defects             | 0     | No accepted risks                                                                              |
+| Reopened defects             | 0     |                                                                                                |
+| Escaped defects              | 0     |                                                                                                |
 
 ## Baseline Evidence
 
@@ -313,7 +312,7 @@ The completed US1–US5 story gates introduced no open product defects. US2 focu
 ## Required Checks
 
 - [x] Every unexpected planning failure has an entry.
-- [ ] No Critical or High defect is open. AUTH-006 remains the release blocker.
+- [x] No Critical or High defect is open.
 - [x] No deferred defect or risk acceptance exists.
 - [ ] Fixed defects link verification evidence. PLAN-001 is still Open.
 - [x] Counts and impact match `test-summary.md`.
