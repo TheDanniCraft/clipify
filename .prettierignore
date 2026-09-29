@@ -1,2 +1,3 @@
 drizzle
 test/__mocks__
+**/graphify-out/graph.json
