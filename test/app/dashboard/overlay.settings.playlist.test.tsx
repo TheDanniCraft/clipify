@@ -15,7 +15,7 @@ jest.mock("next/navigation", () => ({
 	useParams: () => ({ overlayId: "overlay-1" }),
 }));
 
-jest.mock("next-navigation-guard", () => ({
+jest.mock("nextjs-nav-guard", () => ({
 	useNavigationGuard: () => ({
 		active: false,
 		reject: jest.fn(),

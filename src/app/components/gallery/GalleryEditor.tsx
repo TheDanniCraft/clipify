@@ -13,7 +13,7 @@ import { parseDate } from "@internationalized/date";
 import { IconAlertTriangle, IconArrowLeft, IconCrown, IconDeviceFloppy, IconPlayerPauseFilled, IconPlayerPlayFilled, IconRestore } from "@tabler/icons-react";
 import type { Gallery, Playlist, TwitchClip } from "@types";
 import { useRouter } from "next/navigation";
-import { NavigationGuardProvider, useNavigationGuard } from "next-navigation-guard";
+import { NavigationGuardProvider, useNavigationGuard } from "nextjs-nav-guard";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { CLIPIFY_ELEMENTS_HELP_URL, FREE_PLAYLIST_CLIP_LIMIT } from "@lib/constants";
 import type { GalleryPatch } from "@lib/gallery";
