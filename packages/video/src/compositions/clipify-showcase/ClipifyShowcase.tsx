@@ -167,7 +167,7 @@ const ClipVisual = ({ frame, queued = false, alternate = false, live = false }: 
 			) : null}
 			<div className='clip-meta'>
 				<div className='clip-title'>{live ? "One more round" : alternate ? "The impossible comeback" : "The escape nobody expected"}</div>
-				<div className='clip-author'>{live ? "your channel · Live now" : "your channel · Highlight"}</div>
+				<div className='clip-author'>{live ? "TheDanniCraft · Live now" : "TheDanniCraft · Highlight"}</div>
 			</div>
 		</div>
 	);
@@ -358,7 +358,7 @@ const StreamMock = ({ mode, viewerCount, frame, visualFrame = frame, chatFrame =
 						<div className='stream-meta-bar'>
 							<div className='live-pill'>LIVE</div>
 							<div className='stream-name'>
-								<strong>Your channel</strong>
+								<strong>TheDanniCraft</strong>
 								<span>{status}</span>
 							</div>
 							<div className='viewer-count' style={{ transform: `scale(${viewerPulse})` }}>
