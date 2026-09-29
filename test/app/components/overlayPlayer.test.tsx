@@ -347,6 +347,7 @@ describe("components/overlayPlayer", () => {
 		render(<OverlayPlayer overlay={buildOverlay()} isDemoPlayer />);
 
 		await screen.findByText("demo-pool-clip");
+		expect(subscribeToChat).not.toHaveBeenCalled();
 
 		await sendDemoCommand("play", "https://example.com/not-twitch");
 		expect(getDemoClip).not.toHaveBeenCalled();

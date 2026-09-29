@@ -1501,8 +1501,8 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 			}
 		}
 
-		if (!isEmbed) setupChat();
-	}, [isEmbed, overlay.ownerId]);
+		if (!isEmbed && !isDemoPlayer) setupChat();
+	}, [isDemoPlayer, isEmbed, overlay.ownerId]);
 
 	useEffect(() => {
 		let cancelled = false;
