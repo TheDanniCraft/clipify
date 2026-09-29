@@ -32,24 +32,25 @@ Track product, test, environment, and governance issues affecting feature readin
 
 ## Defect Summary
 
-| Defect ID | Title                                                                          | Source / Evidence ID | Severity | Priority | Status   | Owner               | Detected By             | Evidence Link                                                    | Target / Resolution                                                                     |
-| --------- | ------------------------------------------------------------------------------ | -------------------- | -------- | -------- | -------- | ------------------- | ----------------------- | ---------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| PLAN-001  | SpecKit template resolver does not expose installed test-governance templates  | Planning gate        | Low      | Low      | Open     | SpecKit tooling     | `/speckit.plan`         | `.specify/presets/test-first-governance/templates/`              | Repair resolver before the next feature plan; exact installed templates used here       |
-| AUTH-001  | Twitch identity test depended on a locally generated migration artifact        | TDD-US2-001          | Low      | High     | Verified | Auth implementation | Checkpoint suite        | `test/auth-engine-rewrite/integration/twitch-identity.test.ts`   | Replaced trigger-specific evidence with application transaction and stable-ID evidence  |
-| AUTH-002  | Legacy Jest boundaries did not support Better Auth schema/session imports      | Pre-push regression  | Medium   | High     | Verified | Auth implementation | `bun run test`          | Legacy database action and proxy suites                          | Extended Drizzle mocks and isolated the proxy session boundary                          |
-| AUTH-003  | US5 test fixture imported an incompatible aggregate harness                    | TDD-US5-001          | Low      | Low      | Verified | Auth implementation | Focused Red/Green       | `test/auth-engine-rewrite/integration/account-lifecycle.test.ts` | Imported the isolated clock helper and removed a fixture-name collision                 |
-| AUTH-004  | Production lifecycle imports and test doubles crossed legacy Jest boundaries   | TDD-US5-001          | Medium   | High     | Verified | Auth implementation | Adapter regression      | Subscription, overlay, and webhook focused suites                | Isolated Better Auth imports and extended lifecycle-aware test boundaries               |
-| AUTH-005  | WebAuthn duplicated the shared application-origin configuration                | Build gate           | Medium   | High     | Verified | Auth implementation | `bun run app:build`     | T179 production build gate                                       | Derive RP ID and origin from the reviewed shared `resolveBaseUrl()` policy              |
-| AUTH-006  | Changed auth adapter coverage is below the release floor                       | Coverage gate        | High     | High     | Verified | Auth implementation | `bun run test:coverage` | T177 changed-code coverage gate                                  | Focused real-adapter gate exceeds the unchanged 90%/95% policy                          |
-| AUTH-007  | Database-backed US2 ATDD exceeded the generic browser timeout                  | ATDD-US2-001         | Low      | High     | Verified | Auth implementation | Focused ATDD            | T023 real-session acceptance boundary                            | ATDD project uses the authenticated acceptance timeout                                  |
-| AUTH-008  | Login smoke retained the retired link role                                     | BDD-SMOKE-001        | Low      | High     | Verified | Auth implementation | Aggregate BDD           | T038 aggregate behavior gate                                     | Smoke asserts the Better Auth sign-in button role                                       |
-| AUTH-009  | Focused ATDD bypassed BDD wrapper regeneration                                 | T142 Red probe       | Low      | Low      | Verified | Auth implementation | Focused ATDD            | T142 real agency boundaries                                      | Regenerate bindings before direct Playwright execution                                  |
-| AUTH-010  | US4 ATDD interacted before route-specific hydration                            | T142 Green probe     | Low      | High     | Verified | Auth implementation | Focused ATDD            | T142 real agency boundaries                                      | Wait for network idle and use an explicit database-action budget                        |
-| AUTH-011  | Account settings unnecessarily required a Twitch token when no editors existed | ATDD-US5-001         | Medium   | High     | Verified | Auth implementation | Real UI/server US5 ATDD | `test/app/actions/database.settings.test.ts`                     | Resolve Twitch identities only when editor usernames are present                        |
-| AUTH-012  | Authenticated fixture defaulted omitted deletion state to suspended            | Aggregate ATDD       | Medium   | High     | Verified | Test infrastructure | `bun run test:atdd`     | ATDD-US2-001                                                     | Default to active and require suspended state explicitly                                |
-| AUTH-013  | One-process E2E matrix exhausted the Next.js development-server heap           | T176 E2E gate        | Medium   | High     | Verified | Test infrastructure | `bun run test:e2e`      | `scripts/run-e2e-gate.ts`                                        | Restart Playwright and its server between project suites                                |
-| AUTH-014  | Legal-page axe audit included injected support-widget onboarding markup        | T176 BDD gate        | Low      | High     | Verified | Test infrastructure | Aggregate E2E runner    | Narrow-viewport legal accessibility scenario                     | Scope axe to the legal main while retaining page keyboard checks                        |
-| AUTH-016  | Better Auth OAuth onboarding lacks atomic creator/workspace provisioning       | US2 / FR-001–FR-003  | Critical | High     | Verified | Auth implementation | Cutover readiness audit | `scripts/auth-cutover/onboarding-trigger.ts`, `TDD-US2-003`      | Approved trigger installs transactionally before backfill and passes real-adapter tests |
+| Defect ID | Title                                                                          | Source / Evidence ID | Severity | Priority | Status   | Owner               | Detected By             | Evidence Link                                                        | Target / Resolution                                                                     |
+| --------- | ------------------------------------------------------------------------------ | -------------------- | -------- | -------- | -------- | ------------------- | ----------------------- | -------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| PLAN-001  | SpecKit template resolver does not expose installed test-governance templates  | Planning gate        | Low      | Low      | Open     | SpecKit tooling     | `/speckit.plan`         | `.specify/presets/test-first-governance/templates/`                  | Repair resolver before the next feature plan; exact installed templates used here       |
+| AUTH-001  | Twitch identity test depended on a locally generated migration artifact        | TDD-US2-001          | Low      | High     | Verified | Auth implementation | Checkpoint suite        | `test/auth-engine-rewrite/integration/twitch-identity.test.ts`       | Replaced trigger-specific evidence with application transaction and stable-ID evidence  |
+| AUTH-002  | Legacy Jest boundaries did not support Better Auth schema/session imports      | Pre-push regression  | Medium   | High     | Verified | Auth implementation | `bun run test`          | Legacy database action and proxy suites                              | Extended Drizzle mocks and isolated the proxy session boundary                          |
+| AUTH-003  | US5 test fixture imported an incompatible aggregate harness                    | TDD-US5-001          | Low      | Low      | Verified | Auth implementation | Focused Red/Green       | `test/auth-engine-rewrite/integration/account-lifecycle.test.ts`     | Imported the isolated clock helper and removed a fixture-name collision                 |
+| AUTH-004  | Production lifecycle imports and test doubles crossed legacy Jest boundaries   | TDD-US5-001          | Medium   | High     | Verified | Auth implementation | Adapter regression      | Subscription, overlay, and webhook focused suites                    | Isolated Better Auth imports and extended lifecycle-aware test boundaries               |
+| AUTH-005  | WebAuthn duplicated the shared application-origin configuration                | Build gate           | Medium   | High     | Verified | Auth implementation | `bun run app:build`     | T179 production build gate                                           | Derive RP ID and origin from the reviewed shared `resolveBaseUrl()` policy              |
+| AUTH-006  | Changed auth adapter coverage is below the release floor                       | Coverage gate        | High     | High     | Verified | Auth implementation | `bun run test:coverage` | T177 changed-code coverage gate                                      | Focused real-adapter gate exceeds the unchanged 90%/95% policy                          |
+| AUTH-007  | Database-backed US2 ATDD exceeded the generic browser timeout                  | ATDD-US2-001         | Low      | High     | Verified | Auth implementation | Focused ATDD            | T023 real-session acceptance boundary                                | ATDD project uses the authenticated acceptance timeout                                  |
+| AUTH-008  | Login smoke retained the retired link role                                     | BDD-SMOKE-001        | Low      | High     | Verified | Auth implementation | Aggregate BDD           | T038 aggregate behavior gate                                         | Smoke asserts the Better Auth sign-in button role                                       |
+| AUTH-009  | Focused ATDD bypassed BDD wrapper regeneration                                 | T142 Red probe       | Low      | Low      | Verified | Auth implementation | Focused ATDD            | T142 real agency boundaries                                          | Regenerate bindings before direct Playwright execution                                  |
+| AUTH-010  | US4 ATDD interacted before route-specific hydration                            | T142 Green probe     | Low      | High     | Verified | Auth implementation | Focused ATDD            | T142 real agency boundaries                                          | Wait for network idle and use an explicit database-action budget                        |
+| AUTH-011  | Account settings unnecessarily required a Twitch token when no editors existed | ATDD-US5-001         | Medium   | High     | Verified | Auth implementation | Real UI/server US5 ATDD | `test/app/actions/database.settings.test.ts`                         | Resolve Twitch identities only when editor usernames are present                        |
+| AUTH-012  | Authenticated fixture defaulted omitted deletion state to suspended            | Aggregate ATDD       | Medium   | High     | Verified | Test infrastructure | `bun run test:atdd`     | ATDD-US2-001                                                         | Default to active and require suspended state explicitly                                |
+| AUTH-013  | One-process E2E matrix exhausted the Next.js development-server heap           | T176 E2E gate        | Medium   | High     | Verified | Test infrastructure | `bun run test:e2e`      | `scripts/run-e2e-gate.ts`                                            | Restart Playwright and its server between project suites                                |
+| AUTH-014  | Legal-page axe audit included injected support-widget onboarding markup        | T176 BDD gate        | Low      | High     | Verified | Test infrastructure | Aggregate E2E runner    | Narrow-viewport legal accessibility scenario                         | Scope axe to the legal main while retaining page keyboard checks                        |
+| AUTH-016  | Better Auth OAuth onboarding lacks atomic creator/workspace provisioning       | US2 / FR-001–FR-003  | Critical | High     | Verified | Auth implementation | Cutover readiness audit | `scripts/auth-cutover/onboarding-trigger.ts`, `TDD-US2-003`          | Approved trigger installs transactionally before backfill and passes real-adapter tests |
+| AUTH-017  | One production editor subject has no safely bindable Better Auth identity      | T201 rehearsal       | High     | High     | Open     | Migration owner     | Production-shaped run   | `evidence/migration/55047955-b73e-4bbe-943f-e1c038df26a2/summary.md` | Require verified Twitch authentication or explicit owner removal before cutover         |
 
 ## Defect Details
 
@@ -65,6 +66,18 @@ Track product, test, environment, and governance issues affecting feature readin
 - **Resolution**: the reviewed trigger/function is installed in the same cutover transaction as the backfill rather than emitted as a generated Drizzle artifact. Its writes share the Better Auth account transaction and rollback on rejected creator state.
 - **Verification Evidence**: `TDD-US2-003` passes 9/9 on disposable PostgreSQL, including installation rerun, the pinned production Better Auth adapter's `createOAuthUser`, early and late-conflict rollback, retry/no-op, verified profile synchronization, non-Twitch isolation, and backfill suppression.
 - **Approval / Risk Acceptance**: the user explicitly approved this exact custom migration on 2026-09-29. No risk acceptance is required; production remains No-Go for the separate coverage and rehearsal gates.
+
+### AUTH-017 - Production editor subject lacks a safely bindable identity
+
+- **Status**: Open
+- **Severity / Priority**: High / High
+- **Affected Source IDs**: US1, US3, US6, FR-008–FR-010, SC-001
+- **Detected During**: production-shaped disposable PostgreSQL rehearsal
+- **Expected Result**: all three legacy editor relationships become Operations memberships before the legacy editor path is retired.
+- **Actual Result**: two relationships migrated; one editor Twitch subject has no Clipify user, verified email, or legacy credential. The runner retained the source relationship and created a redacted blocking anomaly.
+- **Security Constraint**: Better Auth requires a user name and email, and invitation acceptance is email-bound. Fabricating a verified email/user would bypass the first-safe-auth contract and is forbidden.
+- **Required Resolution**: the editor authenticates through verified Twitch OAuth during the migration period, or the creator explicitly confirms that the stale relationship should be removed. Then rerun the production-shaped restore/cutover and require three Operations memberships, zero anomalies, successful validate, and signed smoke/reopen.
+- **Compensating Evidence**: no legacy row was removed; validation remains fail-closed; the 2× synthetic rehearsal with six resolvable relationships is fully Green.
 
 ### PLAN-001 - SpecKit template resolver does not expose installed test-governance templates
 
@@ -260,44 +273,46 @@ Track product, test, environment, and governance issues affecting feature readin
 
 ## Open Defect Review
 
-The completed US1–US5 story gates introduced no open product defects. US2 focused TDD (10 tests), database-backed ATDD (20/20 aggregate), and BDD (69/69 aggregate) are Green. The two US2 harness regressions are verified fixed. A US1 regression probe found and corrected a duplicate disabled-owner lookup before checkpoint closure. PLAN-001 remains an unrelated planning-tooling issue with no release impact on the implemented authorization slices.
+The completed US1–US5 story gates introduced no open implementation defect. Production-shaped rehearsal discovered AUTH-017, a real data-readiness blocker that cannot be resolved by fabricating an identity. PLAN-001 remains an unrelated planning-tooling issue with no release impact.
 
-| Defect ID | Release Impact            | Required Decision                      | Decision Owner        | Due Date                         | Notes                                                                                                                          |
-| --------- | ------------------------- | -------------------------------------- | --------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| PLAN-001  | No product release impact | Fix tooling independently              | SpecKit tooling owner | Before next feature planning run | Fallback preserved required report structure                                                                                   |
-| AUTH-016  | Resolved                  | Preserve the verified trigger contract | Auth implementation   | Closed 2026-09-29                | Transactional trigger boundary passes the real Better Auth adapter, rollback, retry, sync, isolation, and backfill-guard suite |
+| Defect ID | Release Impact            | Required Decision                      | Decision Owner          | Due Date                         | Notes                                                                                                                          |
+| --------- | ------------------------- | -------------------------------------- | ----------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| PLAN-001  | No product release impact | Fix tooling independently              | SpecKit tooling owner   | Before next feature planning run | Fallback preserved required report structure                                                                                   |
+| AUTH-016  | Resolved                  | Preserve the verified trigger contract | Auth implementation     | Closed 2026-09-29                | Transactional trigger boundary passes the real Better Auth adapter, rollback, retry, sync, isolation, and backfill-guard suite |
+| AUTH-017  | Blocks production cutover | Resolve pending editor at safe auth    | Product/migration owner | Before T114/T182/T201 close      | Source relationship preserved; validation and reopen remain blocked                                                            |
 
 ## Verification and Regression Closure
 
-| Defect ID | Fix Artifact / PR | Verification Test or Gate                        | Result  | Evidence Link       | Verified By / Date |
-| --------- | ----------------- | ------------------------------------------------ | ------- | ------------------- | ------------------ |
-| PLAN-001  | Pending           | Three template resolver commands                 | Blocked | N/A                 | Pending            |
-| AUTH-001  | Current branch    | `bun run test:auth`                              | Pass    | TDD-US2-001         | Codex / 2026-09-28 |
-| AUTH-002  | Current branch    | `bun run test`                                   | Pass    | Full suite          | Codex / 2026-09-28 |
-| AUTH-003  | Current branch    | Focused US5 suites                               | Pass    | TDD-US5-001–003     | Codex / 2026-09-28 |
-| AUTH-004  | Current branch    | Lifecycle adapter regression                     | Pass    | 7 suites / 89 tests | Codex / 2026-09-28 |
-| AUTH-005  | Current branch    | `infisical run --env=dev -- bun run app:build`   | Pass    | T179                | Codex / 2026-09-28 |
-| AUTH-006  | Current branch    | `bun run test:auth:coverage`                     | Pass    | T177/T200           | Codex / 2026-09-29 |
-| AUTH-007  | Current branch    | Focused database-backed ATDD-US2-001             | Pass    | ATDD-US2-001        | Codex / 2026-09-28 |
-| AUTH-008  | Current branch    | Focused and aggregate BDD                        | Pass    | BDD-SMOKE-001       | Codex / 2026-09-28 |
-| AUTH-009  | Current branch    | `bunx bddgen` before focused ATDD                | Pass    | T142 Red probe      | Codex / 2026-09-28 |
-| AUTH-010  | Current branch    | Focused database-backed ATDD-US4-003             | Pass    | ATDD-US4-003        | Codex / 2026-09-28 |
-| AUTH-011  | Current branch    | Focused settings regression and aggregate US5    | Pass    | ATDD-US5-001        | Codex / 2026-09-28 |
-| AUTH-012  | Current branch    | Focused ATDD-US2-001 and acceptance lifecycle    | Pass    | ATDD-US2-001 / T176 | Codex / 2026-09-28 |
-| AUTH-013  | Current branch    | Segmented aggregate E2E projects                 | Pass    | T176                | Codex / 2026-09-28 |
-| AUTH-014  | Current branch    | Focused narrow-viewport legal BDD                | Pass    | Existing A3         | Codex / 2026-09-28 |
-| AUTH-015  | Current branch    | Focused database settings and coverage suites    | Pass    | T191–T193           | Codex / 2026-09-28 |
-| AUTH-016  | Current branch    | Real OAuth-account insertion rollback/retry test | Pass    | TDD-US2-003         | Codex / 2026-09-29 |
+| Defect ID | Fix Artifact / PR       | Verification Test or Gate                        | Result  | Evidence Link       | Verified By / Date             |
+| --------- | ----------------------- | ------------------------------------------------ | ------- | ------------------- | ------------------------------ |
+| PLAN-001  | Pending                 | Three template resolver commands                 | Blocked | N/A                 | Pending                        |
+| AUTH-001  | Current branch          | `bun run test:auth`                              | Pass    | TDD-US2-001         | Codex / 2026-09-28             |
+| AUTH-002  | Current branch          | `bun run test`                                   | Pass    | Full suite          | Codex / 2026-09-28             |
+| AUTH-003  | Current branch          | Focused US5 suites                               | Pass    | TDD-US5-001–003     | Codex / 2026-09-28             |
+| AUTH-004  | Current branch          | Lifecycle adapter regression                     | Pass    | 7 suites / 89 tests | Codex / 2026-09-28             |
+| AUTH-005  | Current branch          | `infisical run --env=dev -- bun run app:build`   | Pass    | T179                | Codex / 2026-09-28             |
+| AUTH-006  | Current branch          | `bun run test:auth:coverage`                     | Pass    | T177/T200           | Codex / 2026-09-29             |
+| AUTH-007  | Current branch          | Focused database-backed ATDD-US2-001             | Pass    | ATDD-US2-001        | Codex / 2026-09-28             |
+| AUTH-008  | Current branch          | Focused and aggregate BDD                        | Pass    | BDD-SMOKE-001       | Codex / 2026-09-28             |
+| AUTH-009  | Current branch          | `bunx bddgen` before focused ATDD                | Pass    | T142 Red probe      | Codex / 2026-09-28             |
+| AUTH-010  | Current branch          | Focused database-backed ATDD-US4-003             | Pass    | ATDD-US4-003        | Codex / 2026-09-28             |
+| AUTH-011  | Current branch          | Focused settings regression and aggregate US5    | Pass    | ATDD-US5-001        | Codex / 2026-09-28             |
+| AUTH-012  | Current branch          | Focused ATDD-US2-001 and acceptance lifecycle    | Pass    | ATDD-US2-001 / T176 | Codex / 2026-09-28             |
+| AUTH-013  | Current branch          | Segmented aggregate E2E projects                 | Pass    | T176                | Codex / 2026-09-28             |
+| AUTH-014  | Current branch          | Focused narrow-viewport legal BDD                | Pass    | Existing A3         | Codex / 2026-09-28             |
+| AUTH-015  | Current branch          | Focused database settings and coverage suites    | Pass    | T191–T193           | Codex / 2026-09-28             |
+| AUTH-016  | Current branch          | Real OAuth-account insertion rollback/retry test | Pass    | TDD-US2-003         | Codex / 2026-09-29             |
+| AUTH-017  | Production-shaped clone | Full apply/rerun/validate and editor accounting  | Blocked | T114/T182/T201      | Pending safe auth / 2026-09-29 |
 
 ## Defect Metrics
 
-| Metric                       | Value | Notes                                                                                          |
-| ---------------------------- | ----- | ---------------------------------------------------------------------------------------------- |
-| Total defects                | 17    | One open nonblocking tooling issue and sixteen verified implementation/test-integration issues |
-| Open Critical / High defects | 0     |                                                                                                |
-| Deferred defects             | 0     | No accepted risks                                                                              |
-| Reopened defects             | 0     |                                                                                                |
-| Escaped defects              | 0     |                                                                                                |
+| Metric                       | Value | Notes                                                                                            |
+| ---------------------------- | ----- | ------------------------------------------------------------------------------------------------ |
+| Total defects                | 18    | One open nonblocking tooling issue, one open data-readiness blocker, and sixteen verified issues |
+| Open Critical / High defects | 1     | AUTH-017 blocks production cutover                                                               |
+| Deferred defects             | 0     | No accepted risks                                                                                |
+| Reopened defects             | 0     |                                                                                                  |
+| Escaped defects              | 0     |                                                                                                  |
 
 ## Baseline Evidence
 
@@ -312,7 +327,7 @@ The completed US1–US5 story gates introduced no open product defects. US2 focu
 ## Required Checks
 
 - [x] Every unexpected planning failure has an entry.
-- [x] No Critical or High defect is open.
+- [ ] No Critical or High defect is open. AUTH-017 remains the release blocker.
 - [x] No deferred defect or risk acceptance exists.
 - [ ] Fixed defects link verification evidence. PLAN-001 is still Open.
 - [x] Counts and impact match `test-summary.md`.

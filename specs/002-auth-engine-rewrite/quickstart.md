@@ -58,6 +58,9 @@ Update [test-traceability.md](./test-traceability.md), [defect-log.md](./defect-
 ## Migration rehearsal
 
 1. Restore the anonymized snapshot into disposable PostgreSQL and record its checksum.
+   For the guarded real-PostgreSQL 2× dataset, set the process-scoped rehearsal
+   URL and creator count, then run `bun run auth:seed-rehearsal`; the target
+   database name must contain `auth_rehearsal_synthetic_2x` and must be empty.
 2. Run `bun run auth:migrate -- dry-run`; review blocking anomalies and predicted counts.
 3. Produce a verified backup attestation for the disposable database.
 4. Enable test maintenance mode and run planned `--apply`.
