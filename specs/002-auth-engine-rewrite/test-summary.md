@@ -157,6 +157,7 @@ The 30-day boundary establishes purge eligibility rather than unconditional eras
 | 2026-09-28 | Focused proxy and database action suites      | Green  | 10 suites and 299 tests; legacy Drizzle mocks expose relation metadata and proxy tests isolate the Better Auth ActorContext boundary                                                                                       |
 | 2026-09-28 | `bun run test`                                | Green  | 176 suites and 1,537 tests; full mandatory pre-push repository regression passes                                                                                                                                           |
 | 2026-09-28 | `infisical run --env=dev -- bun run test:e2e` | Green  | Segmented aggregate completed 95/95 scenarios: acceptance 4/4, ATDD 20/20, BDD 69/69, and compliance 2/2. Each project received a fresh Next.js test server after the original one-process gate exposed heap accumulation. |
+| 2026-09-29 | `bun run test`                                | Green  | Final pre-push regression passed 189 suites and 1,717 tests; 4 suites / 23 real-database tests remained intentionally environment-gated                                                                                    |
 
 ## Performance Evidence
 
