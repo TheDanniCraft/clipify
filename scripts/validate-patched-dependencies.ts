@@ -118,7 +118,9 @@ function verifyCodeTargets(targets: PatchTarget[], specifier: string) {
 
 	let typescriptPath: string;
 	try {
-		typescriptPath = projectRequire.resolve("typescript/bin/tsc");
+		const packageJsonPath = projectRequire.resolve("typescript/package.json");
+		const typescriptPackageDir = dirname(packageJsonPath);
+		typescriptPath = join(typescriptPackageDir, "bin", "tsc");
 	} catch {
 		fail(`TypeScript is required to validate patched code in ${specifier}`);
 	}
