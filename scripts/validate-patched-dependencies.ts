@@ -1,7 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { createRequire } from "node:module";
 import { existsSync, readFileSync } from "node:fs";
-import { isAbsolute, join, relative, resolve, sep } from "node:path";
+import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 
 type PackageJson = {
 	patchedDependencies?: Record<string, string>;
@@ -116,14 +116,15 @@ function verifyCodeTargets(targets: PatchTarget[], specifier: string) {
 	});
 	if (codeTargets.length === 0) return 0;
 
-	let typescriptPath: string;
+	let packageJsonPath: string;
 	try {
-		const packageJsonPath = projectRequire.resolve("typescript/package.json");
-		const typescriptPackageDir = dirname(packageJsonPath);
-		typescriptPath = join(typescriptPackageDir, "bin", "tsc");
+		packageJsonPath = projectRequire.resolve("typescript/package.json");
 	} catch {
 		fail(`TypeScript is required to validate patched code in ${specifier}`);
 	}
+	
+	const typescriptPackageDir = dirname(packageJsonPath);
+	const typescriptPath = join(typescriptPackageDir, "bin", "tsc");
 
 	for (const { targetPath, ranges } of codeTargets) {
 		const result = run(process.execPath, [typescriptPath, "--ignoreConfig", "--allowJs", "--checkJs", "--noEmit", "--skipLibCheck", "--noImplicitAny", "false", "--types", "node", "--module", "node16", "--moduleResolution", "node16", "--target", "es2022", targetPath]);
