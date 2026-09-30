@@ -1,0 +1,3756 @@
+{
+  "directed": true,
+  "multigraph": false,
+  "graph": {
+    "hyperedges": [
+      {
+        "id": "clipify_showcase_aspect_ratio_compositions",
+        "label": "Clipify Showcase Aspect-Ratio Compositions",
+        "nodes": [
+          "video_readme_clipifyshowcase",
+          "video_readme_clipifyshowcasevertical",
+          "video_readme_clipifyshowcasefeed",
+          "clipify_showcase_cue_sheet_45_second_trailer_timeline"
+        ],
+        "relation": "implement",
+        "confidence": "EXTRACTED",
+        "confidence_score": 1.0,
+        "source_file": "packages/video/README.md"
+      },
+      {
+        "id": "clipify_showcase_synchronized_event_cues",
+        "label": "Clipify Showcase Synchronized Event Cues",
+        "nodes": [
+          "clipify_showcase_cue_sheet_viewer_loss_sequence",
+          "clipify_showcase_cue_sheet_bomb_reveal_recovery",
+          "clipify_showcase_cue_sheet_reward_clip_flow",
+          "video_production_guide_visible_event_sound_mapping"
+        ],
+        "relation": "participate_in",
+        "confidence": "EXTRACTED",
+        "confidence_score": 1.0,
+        "source_file": "packages/video/src/compositions/clipify-showcase/CUE_SHEET.md"
+      },
+      {
+        "id": "video_delivery_artifact_tiers",
+        "label": "Video Delivery Artifact Tiers",
+        "nodes": [
+          "video_readme_prores_4444_master",
+          "video_readme_h264_upload_export",
+          "video_readme_preview_export"
+        ],
+        "relation": "form",
+        "confidence": "EXTRACTED",
+        "confidence_score": 1.0,
+        "source_file": "packages/video/README.md"
+      }
+    ]
+  },
+  "nodes": [
+    {
+      "label": "package.json",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L1",
+      "id": "package_json",
+      "community": 4,
+      "norm_label": "package.json"
+    },
+    {
+      "label": "name",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L2",
+      "id": "video_package_name",
+      "community": 4,
+      "norm_label": "name"
+    },
+    {
+      "label": "private",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L3",
+      "id": "video_package_private",
+      "community": 4,
+      "norm_label": "private"
+    },
+    {
+      "label": "version",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L4",
+      "id": "video_package_version",
+      "community": 4,
+      "norm_label": "version"
+    },
+    {
+      "label": "type",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L5",
+      "id": "video_package_type",
+      "community": 4,
+      "norm_label": "type"
+    },
+    {
+      "label": "scripts",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L6",
+      "id": "video_package_scripts",
+      "community": 3,
+      "norm_label": "scripts"
+    },
+    {
+      "label": "audio:generate",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L7",
+      "id": "video_package_scripts_audio_generate",
+      "community": 3,
+      "norm_label": "audio:generate"
+    },
+    {
+      "label": "studio",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L8",
+      "id": "video_package_scripts_studio",
+      "community": 3,
+      "norm_label": "studio"
+    },
+    {
+      "label": "render",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L9",
+      "id": "video_package_scripts_render",
+      "community": 3,
+      "norm_label": "render"
+    },
+    {
+      "label": "render:vertical",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L10",
+      "id": "video_package_scripts_render_vertical",
+      "community": 3,
+      "norm_label": "render:vertical"
+    },
+    {
+      "label": "render:feed",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L11",
+      "id": "video_package_scripts_render_feed",
+      "community": 3,
+      "norm_label": "render:feed"
+    },
+    {
+      "label": "render:upload",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L12",
+      "id": "video_package_scripts_render_upload",
+      "community": 3,
+      "norm_label": "render:upload"
+    },
+    {
+      "label": "render:upload:vertical",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L13",
+      "id": "video_package_scripts_render_upload_vertical",
+      "community": 3,
+      "norm_label": "render:upload:vertical"
+    },
+    {
+      "label": "render:upload:feed",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L14",
+      "id": "video_package_scripts_render_upload_feed",
+      "community": 3,
+      "norm_label": "render:upload:feed"
+    },
+    {
+      "label": "render:preview",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L15",
+      "id": "video_package_scripts_render_preview",
+      "community": 3,
+      "norm_label": "render:preview"
+    },
+    {
+      "label": "render:preview:vertical",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L16",
+      "id": "video_package_scripts_render_preview_vertical",
+      "community": 3,
+      "norm_label": "render:preview:vertical"
+    },
+    {
+      "label": "render:preview:feed",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L17",
+      "id": "video_package_scripts_render_preview_feed",
+      "community": 3,
+      "norm_label": "render:preview:feed"
+    },
+    {
+      "label": "thumbnail",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L18",
+      "id": "video_package_scripts_thumbnail",
+      "community": 3,
+      "norm_label": "thumbnail"
+    },
+    {
+      "label": "thumbnail:vertical",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L19",
+      "id": "video_package_scripts_thumbnail_vertical",
+      "community": 3,
+      "norm_label": "thumbnail:vertical"
+    },
+    {
+      "label": "thumbnail:feed",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L20",
+      "id": "video_package_scripts_thumbnail_feed",
+      "community": 3,
+      "norm_label": "thumbnail:feed"
+    },
+    {
+      "label": "typecheck",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L21",
+      "id": "video_package_scripts_typecheck",
+      "community": 3,
+      "norm_label": "typecheck"
+    },
+    {
+      "label": "dependencies",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L23",
+      "id": "video_package_dependencies",
+      "community": 4,
+      "norm_label": "dependencies"
+    },
+    {
+      "label": "@tabler/icons-react",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L24",
+      "id": "video_package_dependencies_tabler_icons_react",
+      "community": 4,
+      "norm_label": "@tabler/icons-react"
+    },
+    {
+      "label": "react",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L25",
+      "id": "video_package_dependencies_react",
+      "community": 4,
+      "norm_label": "react"
+    },
+    {
+      "label": "react-dom",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L26",
+      "id": "video_package_dependencies_react_dom",
+      "community": 4,
+      "norm_label": "react-dom"
+    },
+    {
+      "label": "remotion",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L27",
+      "id": "video_package_dependencies_remotion",
+      "community": 4,
+      "norm_label": "remotion"
+    },
+    {
+      "label": "devDependencies",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L29",
+      "id": "video_package_devdependencies",
+      "community": 4,
+      "norm_label": "devdependencies"
+    },
+    {
+      "label": "@remotion/cli",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L30",
+      "id": "video_package_devdependencies_remotion_cli",
+      "community": 4,
+      "norm_label": "@remotion/cli"
+    },
+    {
+      "label": "@types/react",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L31",
+      "id": "video_package_devdependencies_types_react",
+      "community": 4,
+      "norm_label": "@types/react"
+    },
+    {
+      "label": "typescript",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L32",
+      "id": "video_package_devdependencies_typescript",
+      "community": 4,
+      "norm_label": "typescript"
+    },
+    {
+      "label": "tsconfig.json",
+      "file_type": "code",
+      "source_file": "tsconfig.json",
+      "source_location": "L1",
+      "id": "tsconfig_json",
+      "community": 6,
+      "norm_label": "tsconfig.json"
+    },
+    {
+      "label": "compilerOptions",
+      "file_type": "code",
+      "source_file": "tsconfig.json",
+      "source_location": "L2",
+      "id": "video_tsconfig_compileroptions",
+      "community": 6,
+      "norm_label": "compileroptions"
+    },
+    {
+      "label": "target",
+      "file_type": "code",
+      "source_file": "tsconfig.json",
+      "source_location": "L3",
+      "id": "video_tsconfig_compileroptions_target",
+      "community": 6,
+      "norm_label": "target"
+    },
+    {
+      "label": "lib",
+      "file_type": "code",
+      "source_file": "tsconfig.json",
+      "source_location": "L4",
+      "id": "video_tsconfig_compileroptions_lib",
+      "community": 6,
+      "norm_label": "lib"
+    },
+    {
+      "label": "module",
+      "file_type": "code",
+      "source_file": "tsconfig.json",
+      "source_location": "L5",
+      "id": "video_tsconfig_compileroptions_module",
+      "community": 6,
+      "norm_label": "module"
+    },
+    {
+      "label": "moduleResolution",
+      "file_type": "code",
+      "source_file": "tsconfig.json",
+      "source_location": "L6",
+      "id": "video_tsconfig_compileroptions_moduleresolution",
+      "community": 6,
+      "norm_label": "moduleresolution"
+    },
+    {
+      "label": "jsx",
+      "file_type": "code",
+      "source_file": "tsconfig.json",
+      "source_location": "L7",
+      "id": "video_tsconfig_compileroptions_jsx",
+      "community": 6,
+      "norm_label": "jsx"
+    },
+    {
+      "label": "strict",
+      "file_type": "code",
+      "source_file": "tsconfig.json",
+      "source_location": "L8",
+      "id": "video_tsconfig_compileroptions_strict",
+      "community": 6,
+      "norm_label": "strict"
+    },
+    {
+      "label": "noEmit",
+      "file_type": "code",
+      "source_file": "tsconfig.json",
+      "source_location": "L9",
+      "id": "video_tsconfig_compileroptions_noemit",
+      "community": 6,
+      "norm_label": "noemit"
+    },
+    {
+      "label": "skipLibCheck",
+      "file_type": "code",
+      "source_file": "tsconfig.json",
+      "source_location": "L10",
+      "id": "video_tsconfig_compileroptions_skiplibcheck",
+      "community": 6,
+      "norm_label": "skiplibcheck"
+    },
+    {
+      "label": "esModuleInterop",
+      "file_type": "code",
+      "source_file": "tsconfig.json",
+      "source_location": "L11",
+      "id": "video_tsconfig_compileroptions_esmoduleinterop",
+      "community": 6,
+      "norm_label": "esmoduleinterop"
+    },
+    {
+      "label": "isolatedModules",
+      "file_type": "code",
+      "source_file": "tsconfig.json",
+      "source_location": "L12",
+      "id": "video_tsconfig_compileroptions_isolatedmodules",
+      "community": 6,
+      "norm_label": "isolatedmodules"
+    },
+    {
+      "label": "include",
+      "file_type": "code",
+      "source_file": "tsconfig.json",
+      "source_location": "L14",
+      "id": "video_tsconfig_include",
+      "community": 6,
+      "norm_label": "include"
+    },
+    {
+      "label": "generate-soundtrack.mjs",
+      "file_type": "code",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L1",
+      "id": "scripts_clipify_showcase_generate_soundtrack_mjs",
+      "community": 1,
+      "norm_label": "generate-soundtrack.mjs"
+    },
+    {
+      "label": "left",
+      "file_type": "code",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L9",
+      "id": "clipify_showcase_generate_soundtrack_left",
+      "community": 1,
+      "norm_label": "left"
+    },
+    {
+      "label": "right",
+      "file_type": "code",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L10",
+      "id": "clipify_showcase_generate_soundtrack_right",
+      "community": 1,
+      "norm_label": "right"
+    },
+    {
+      "label": "clamp()",
+      "file_type": "code",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L14",
+      "id": "clipify_showcase_generate_soundtrack_clamp",
+      "community": 5,
+      "norm_label": "clamp()"
+    },
+    {
+      "label": "random()",
+      "file_type": "code",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L15",
+      "id": "clipify_showcase_generate_soundtrack_random",
+      "community": 1,
+      "norm_label": "random()"
+    },
+    {
+      "label": "note()",
+      "file_type": "code",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L21",
+      "id": "clipify_showcase_generate_soundtrack_note",
+      "community": 5,
+      "norm_label": "note()"
+    },
+    {
+      "label": "frameTime()",
+      "file_type": "code",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L22",
+      "id": "clipify_showcase_generate_soundtrack_frametime",
+      "community": 1,
+      "norm_label": "frametime()"
+    },
+    {
+      "label": "mix()",
+      "file_type": "code",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L24",
+      "id": "clipify_showcase_generate_soundtrack_mix",
+      "community": 1,
+      "norm_label": "mix()"
+    },
+    {
+      "label": "synth()",
+      "file_type": "code",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L31",
+      "id": "clipify_showcase_generate_soundtrack_synth",
+      "community": 5,
+      "norm_label": "synth()"
+    },
+    {
+      "label": "pad()",
+      "file_type": "code",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L45",
+      "id": "clipify_showcase_generate_soundtrack_pad",
+      "community": 5,
+      "norm_label": "pad()"
+    },
+    {
+      "label": "pluck()",
+      "file_type": "code",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L52",
+      "id": "clipify_showcase_generate_soundtrack_pluck",
+      "community": 5,
+      "norm_label": "pluck()"
+    },
+    {
+      "label": "kick()",
+      "file_type": "code",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L66",
+      "id": "clipify_showcase_generate_soundtrack_kick",
+      "community": 1,
+      "norm_label": "kick()"
+    },
+    {
+      "label": "snare()",
+      "file_type": "code",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L76",
+      "id": "clipify_showcase_generate_soundtrack_snare",
+      "community": 1,
+      "norm_label": "snare()"
+    },
+    {
+      "label": "hat()",
+      "file_type": "code",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L87",
+      "id": "clipify_showcase_generate_soundtrack_hat",
+      "community": 1,
+      "norm_label": "hat()"
+    },
+    {
+      "label": "whoosh()",
+      "file_type": "code",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L100",
+      "id": "clipify_showcase_generate_soundtrack_whoosh",
+      "community": 1,
+      "norm_label": "whoosh()"
+    },
+    {
+      "label": "riser()",
+      "file_type": "code",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L111",
+      "id": "clipify_showcase_generate_soundtrack_riser",
+      "community": 1,
+      "norm_label": "riser()"
+    },
+    {
+      "label": "impact()",
+      "file_type": "code",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L123",
+      "id": "clipify_showcase_generate_soundtrack_impact",
+      "community": 1,
+      "norm_label": "impact()"
+    },
+    {
+      "label": "click()",
+      "file_type": "code",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L133",
+      "id": "clipify_showcase_generate_soundtrack_click",
+      "community": 5,
+      "norm_label": "click()"
+    },
+    {
+      "label": "dun()",
+      "file_type": "code",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L134",
+      "id": "clipify_showcase_generate_soundtrack_dun",
+      "community": 5,
+      "norm_label": "dun()"
+    },
+    {
+      "label": "failureTone()",
+      "file_type": "code",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L137",
+      "id": "clipify_showcase_generate_soundtrack_failuretone",
+      "community": 5,
+      "norm_label": "failuretone()"
+    },
+    {
+      "label": "chime()",
+      "file_type": "code",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L141",
+      "id": "clipify_showcase_generate_soundtrack_chime",
+      "community": 5,
+      "norm_label": "chime()"
+    },
+    {
+      "label": "messageTick()",
+      "file_type": "code",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L146",
+      "id": "clipify_showcase_generate_soundtrack_messagetick",
+      "community": 5,
+      "norm_label": "messagetick()"
+    },
+    {
+      "label": "uiPop()",
+      "file_type": "code",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L151",
+      "id": "clipify_showcase_generate_soundtrack_uipop",
+      "community": 5,
+      "norm_label": "uipop()"
+    },
+    {
+      "label": "reactionPop()",
+      "file_type": "code",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L156",
+      "id": "clipify_showcase_generate_soundtrack_reactionpop",
+      "community": 5,
+      "norm_label": "reactionpop()"
+    },
+    {
+      "label": "achievement()",
+      "file_type": "code",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L161",
+      "id": "clipify_showcase_generate_soundtrack_achievement",
+      "community": 5,
+      "norm_label": "achievement()"
+    },
+    {
+      "label": "viewerLossNotes",
+      "file_type": "code",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L181",
+      "id": "clipify_showcase_generate_soundtrack_viewerlossnotes",
+      "community": 1,
+      "norm_label": "viewerlossnotes"
+    },
+    {
+      "label": "progression",
+      "file_type": "code",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L195",
+      "id": "clipify_showcase_generate_soundtrack_progression",
+      "community": 1,
+      "norm_label": "progression"
+    },
+    {
+      "label": "arp",
+      "file_type": "code",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L207",
+      "id": "clipify_showcase_generate_soundtrack_arp",
+      "community": 1,
+      "norm_label": "arp"
+    },
+    {
+      "label": "wav",
+      "file_type": "code",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L242",
+      "id": "clipify_showcase_generate_soundtrack_wav",
+      "community": 1,
+      "norm_label": "wav"
+    },
+    {
+      "label": "output",
+      "file_type": "code",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L260",
+      "id": "clipify_showcase_generate_soundtrack_output",
+      "community": 1,
+      "norm_label": "output"
+    },
+    {
+      "label": "Root.tsx",
+      "file_type": "code",
+      "source_file": "src/Root.tsx",
+      "source_location": "L1",
+      "id": "src_root_tsx",
+      "community": 7,
+      "norm_label": "root.tsx"
+    },
+    {
+      "label": "VideoRoot()",
+      "file_type": "code",
+      "source_file": "src/Root.tsx",
+      "source_location": "L5",
+      "id": "src_root_videoroot",
+      "community": 7,
+      "norm_label": "videoroot()"
+    },
+    {
+      "label": "index.ts",
+      "file_type": "code",
+      "source_file": "src/index.ts",
+      "source_location": "L1",
+      "id": "src_index_ts",
+      "community": 7,
+      "norm_label": "index.ts"
+    },
+    {
+      "label": "ClipifyShowcase.tsx",
+      "file_type": "code",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L1",
+      "id": "src_compositions_clipify_showcase_clipifyshowcase_tsx",
+      "community": 0,
+      "norm_label": "clipifyshowcase.tsx"
+    },
+    {
+      "label": "clamp",
+      "file_type": "code",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L6",
+      "id": "clipify_showcase_clipifyshowcase_clamp",
+      "community": 0,
+      "norm_label": "clamp"
+    },
+    {
+      "label": "ClipifyShowcaseFormat",
+      "file_type": "code",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L11",
+      "id": "clipify_showcase_clipifyshowcase_clipifyshowcaseformat",
+      "community": 0,
+      "norm_label": "clipifyshowcaseformat"
+    },
+    {
+      "label": "LogoMark()",
+      "file_type": "code",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L13",
+      "id": "clipify_showcase_clipifyshowcase_logomark",
+      "community": 0,
+      "norm_label": "logomark()"
+    },
+    {
+      "label": "ChatMessage",
+      "file_type": "code",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L29",
+      "id": "clipify_showcase_clipifyshowcase_chatmessage",
+      "community": 0,
+      "norm_label": "chatmessage"
+    },
+    {
+      "label": "initialMessages",
+      "file_type": "code",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L36",
+      "id": "clipify_showcase_clipifyshowcase_initialmessages",
+      "community": 0,
+      "norm_label": "initialmessages"
+    },
+    {
+      "label": "liveMessages",
+      "file_type": "code",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L41",
+      "id": "clipify_showcase_clipifyshowcase_livemessages",
+      "community": 0,
+      "norm_label": "livemessages"
+    },
+    {
+      "label": "clipMessages",
+      "file_type": "code",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L46",
+      "id": "clipify_showcase_clipifyshowcase_clipmessages",
+      "community": 0,
+      "norm_label": "clipmessages"
+    },
+    {
+      "label": "rewardReactions",
+      "file_type": "code",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L54",
+      "id": "clipify_showcase_clipifyshowcase_rewardreactions",
+      "community": 0,
+      "norm_label": "rewardreactions"
+    },
+    {
+      "label": "ChatPanel()",
+      "file_type": "code",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L62",
+      "id": "clipify_showcase_clipifyshowcase_chatpanel",
+      "community": 0,
+      "norm_label": "chatpanel()"
+    },
+    {
+      "label": "BrbVisual()",
+      "file_type": "code",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L134",
+      "id": "clipify_showcase_clipifyshowcase_brbvisual",
+      "community": 0,
+      "norm_label": "brbvisual()"
+    },
+    {
+      "label": "ClipVisual()",
+      "file_type": "code",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L146",
+      "id": "clipify_showcase_clipifyshowcase_clipvisual",
+      "community": 0,
+      "norm_label": "clipvisual()"
+    },
+    {
+      "label": "ReactionVariant",
+      "file_type": "code",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L176",
+      "id": "clipify_showcase_clipifyshowcase_reactionvariant",
+      "community": 0,
+      "norm_label": "reactionvariant"
+    },
+    {
+      "label": "FloatingReaction",
+      "file_type": "code",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L178",
+      "id": "clipify_showcase_clipifyshowcase_floatingreaction",
+      "community": 0,
+      "norm_label": "floatingreaction"
+    },
+    {
+      "label": "negativeReactionLabels",
+      "file_type": "code",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L186",
+      "id": "clipify_showcase_clipifyshowcase_negativereactionlabels",
+      "community": 0,
+      "norm_label": "negativereactionlabels"
+    },
+    {
+      "label": "negativeReactionPositions",
+      "file_type": "code",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L187",
+      "id": "clipify_showcase_clipifyshowcase_negativereactionpositions",
+      "community": 0,
+      "norm_label": "negativereactionpositions"
+    },
+    {
+      "label": "positiveReactionLabels",
+      "file_type": "code",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L196",
+      "id": "clipify_showcase_clipifyshowcase_positivereactionlabels",
+      "community": 0,
+      "norm_label": "positivereactionlabels"
+    },
+    {
+      "label": "positiveReactionPositions",
+      "file_type": "code",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L197",
+      "id": "clipify_showcase_clipifyshowcase_positivereactionpositions",
+      "community": 0,
+      "norm_label": "positivereactionpositions"
+    },
+    {
+      "label": "recoveryReactionPositions",
+      "file_type": "code",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L214",
+      "id": "clipify_showcase_clipifyshowcase_recoveryreactionpositions",
+      "community": 0,
+      "norm_label": "recoveryreactionpositions"
+    },
+    {
+      "label": "FloatingReactions()",
+      "file_type": "code",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L223",
+      "id": "clipify_showcase_clipifyshowcase_floatingreactions",
+      "community": 0,
+      "norm_label": "floatingreactions()"
+    },
+    {
+      "label": "rewardBurstLabels",
+      "file_type": "code",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L276",
+      "id": "clipify_showcase_clipifyshowcase_rewardburstlabels",
+      "community": 0,
+      "norm_label": "rewardburstlabels"
+    },
+    {
+      "label": "rewardBurstPositions",
+      "file_type": "code",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L277",
+      "id": "clipify_showcase_clipifyshowcase_rewardburstpositions",
+      "community": 0,
+      "norm_label": "rewardburstpositions"
+    },
+    {
+      "label": "RewardReactionStream()",
+      "file_type": "code",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L292",
+      "id": "clipify_showcase_clipifyshowcase_rewardreactionstream",
+      "community": 0,
+      "norm_label": "rewardreactionstream()"
+    },
+    {
+      "label": "StreamMockProps",
+      "file_type": "code",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L319",
+      "id": "clipify_showcase_clipifyshowcase_streammockprops",
+      "community": 0,
+      "norm_label": "streammockprops"
+    },
+    {
+      "label": "StreamMock()",
+      "file_type": "code",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L331",
+      "id": "clipify_showcase_clipifyshowcase_streammock",
+      "community": 0,
+      "norm_label": "streammock()"
+    },
+    {
+      "label": "SceneFrame()",
+      "file_type": "code",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L402",
+      "id": "clipify_showcase_clipifyshowcase_sceneframe",
+      "community": 0,
+      "norm_label": "sceneframe()"
+    },
+    {
+      "label": "Headline()",
+      "file_type": "code",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L408",
+      "id": "clipify_showcase_clipifyshowcase_headline",
+      "community": 0,
+      "norm_label": "headline()"
+    },
+    {
+      "label": "ProblemScene()",
+      "file_type": "code",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L421",
+      "id": "clipify_showcase_clipifyshowcase_problemscene",
+      "community": 0,
+      "norm_label": "problemscene()"
+    },
+    {
+      "label": "WithoutScene()",
+      "file_type": "code",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L436",
+      "id": "clipify_showcase_clipifyshowcase_withoutscene",
+      "community": 0,
+      "norm_label": "withoutscene()"
+    },
+    {
+      "label": "ResetScene()",
+      "file_type": "code",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L450",
+      "id": "clipify_showcase_clipifyshowcase_resetscene",
+      "community": 0,
+      "norm_label": "resetscene()"
+    },
+    {
+      "label": "ClipifyScene()",
+      "file_type": "code",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L506",
+      "id": "clipify_showcase_clipifyshowcase_clipifyscene",
+      "community": 0,
+      "norm_label": "clipifyscene()"
+    },
+    {
+      "label": "Cursor()",
+      "file_type": "code",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L527",
+      "id": "clipify_showcase_clipifyshowcase_cursor",
+      "community": 0,
+      "norm_label": "cursor()"
+    },
+    {
+      "label": "RewardScene()",
+      "file_type": "code",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L546",
+      "id": "clipify_showcase_clipifyshowcase_rewardscene",
+      "community": 0,
+      "norm_label": "rewardscene()"
+    },
+    {
+      "label": "SummaryScene()",
+      "file_type": "code",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L560",
+      "id": "clipify_showcase_clipifyshowcase_summaryscene",
+      "community": 0,
+      "norm_label": "summaryscene()"
+    },
+    {
+      "label": "celebrationEmojis",
+      "file_type": "code",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L607",
+      "id": "clipify_showcase_clipifyshowcase_celebrationemojis",
+      "community": 0,
+      "norm_label": "celebrationemojis"
+    },
+    {
+      "label": "celebrationPositions",
+      "file_type": "code",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L608",
+      "id": "clipify_showcase_clipifyshowcase_celebrationpositions",
+      "community": 0,
+      "norm_label": "celebrationpositions"
+    },
+    {
+      "label": "CelebrationField()",
+      "file_type": "code",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L625",
+      "id": "clipify_showcase_clipifyshowcase_celebrationfield",
+      "community": 0,
+      "norm_label": "celebrationfield()"
+    },
+    {
+      "label": "PersistentStreamReactions()",
+      "file_type": "code",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L658",
+      "id": "clipify_showcase_clipifyshowcase_persistentstreamreactions",
+      "community": 0,
+      "norm_label": "persistentstreamreactions()"
+    },
+    {
+      "label": "EndScene()",
+      "file_type": "code",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L669",
+      "id": "clipify_showcase_clipifyshowcase_endscene",
+      "community": 0,
+      "norm_label": "endscene()"
+    },
+    {
+      "label": "ClipifyShowcase()",
+      "file_type": "code",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L689",
+      "id": "clipify_showcase_clipifyshowcase_clipifyshowcase",
+      "community": 7,
+      "norm_label": "clipifyshowcase()"
+    },
+    {
+      "label": "timeline.ts",
+      "file_type": "code",
+      "source_file": "src/compositions/clipify-showcase/timeline.ts",
+      "source_location": "L1",
+      "id": "src_compositions_clipify_showcase_timeline_ts",
+      "community": 1,
+      "norm_label": "timeline.ts"
+    },
+    {
+      "label": "SCENE_START_FRAMES",
+      "file_type": "code",
+      "source_file": "src/compositions/clipify-showcase/timeline.ts",
+      "source_location": "L4",
+      "id": "clipify_showcase_timeline_scene_start_frames",
+      "community": 1,
+      "norm_label": "scene_start_frames"
+    },
+    {
+      "label": "VIEWER_LOSS_FRAMES",
+      "file_type": "code",
+      "source_file": "src/compositions/clipify-showcase/timeline.ts",
+      "source_location": "L15",
+      "id": "clipify_showcase_timeline_viewer_loss_frames",
+      "community": 1,
+      "norm_label": "viewer_loss_frames"
+    },
+    {
+      "label": "VIEWER_GAIN_FRAMES",
+      "file_type": "code",
+      "source_file": "src/compositions/clipify-showcase/timeline.ts",
+      "source_location": "L19",
+      "id": "clipify_showcase_timeline_viewer_gain_frames",
+      "community": 1,
+      "norm_label": "viewer_gain_frames"
+    },
+    {
+      "label": "RESET_VIEWER_GAIN_FRAMES",
+      "file_type": "code",
+      "source_file": "src/compositions/clipify-showcase/timeline.ts",
+      "source_location": "L20",
+      "id": "clipify_showcase_timeline_reset_viewer_gain_frames",
+      "community": 1,
+      "norm_label": "reset_viewer_gain_frames"
+    },
+    {
+      "label": "POSITIVE_REACTION_FRAMES",
+      "file_type": "code",
+      "source_file": "src/compositions/clipify-showcase/timeline.ts",
+      "source_location": "L21",
+      "id": "clipify_showcase_timeline_positive_reaction_frames",
+      "community": 1,
+      "norm_label": "positive_reaction_frames"
+    },
+    {
+      "label": "CLIP_CHAT_REVEAL_FRAMES",
+      "file_type": "code",
+      "source_file": "src/compositions/clipify-showcase/timeline.ts",
+      "source_location": "L22",
+      "id": "clipify_showcase_timeline_clip_chat_reveal_frames",
+      "community": 1,
+      "norm_label": "clip_chat_reveal_frames"
+    },
+    {
+      "label": "REWARD_REACTION_FRAMES",
+      "file_type": "code",
+      "source_file": "src/compositions/clipify-showcase/timeline.ts",
+      "source_location": "L28",
+      "id": "clipify_showcase_timeline_reward_reaction_frames",
+      "community": 1,
+      "norm_label": "reward_reaction_frames"
+    },
+    {
+      "label": "FEATURE_CARD_FRAMES",
+      "file_type": "code",
+      "source_file": "src/compositions/clipify-showcase/timeline.ts",
+      "source_location": "L29",
+      "id": "clipify_showcase_timeline_feature_card_frames",
+      "community": 1,
+      "norm_label": "feature_card_frames"
+    },
+    {
+      "label": "localFrame()",
+      "file_type": "code",
+      "source_file": "src/compositions/clipify-showcase/timeline.ts",
+      "source_location": "L32",
+      "id": "clipify_showcase_timeline_localframe",
+      "community": 1,
+      "norm_label": "localframe()"
+    },
+    {
+      "label": "Product Video Production Guide",
+      "file_type": "document",
+      "source_file": "packages/video/PRODUCTION_GUIDE.md",
+      "source_location": "# Product video production guide",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "video_production_guide_product_video_production_guide",
+      "community": 2,
+      "norm_label": "product video production guide"
+    },
+    {
+      "label": "Shared Frame-Based Timeline",
+      "file_type": "rationale",
+      "source_file": "packages/video/PRODUCTION_GUIDE.md",
+      "source_location": "## Required composition structure",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Visual code and soundtrack generation import the same frame constants so duplicate timestamps cannot drift apart; timeline.ts is the timing source of truth.",
+      "id": "video_production_guide_shared_frame_timeline",
+      "community": 2,
+      "norm_label": "shared frame-based timeline"
+    },
+    {
+      "label": "Visible Event Sound Mapping",
+      "file_type": "rationale",
+      "source_file": "packages/video/PRODUCTION_GUIDE.md",
+      "source_location": "## Core principles",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Every sound cue must explain a visible event, and the quietest sound design that still communicates the story is preferred.",
+      "id": "video_production_guide_visible_event_sound_mapping",
+      "community": 2,
+      "norm_label": "visible event sound mapping"
+    },
+    {
+      "label": "Continuous Transforming Score",
+      "file_type": "rationale",
+      "source_file": "packages/video/PRODUCTION_GUIDE.md",
+      "source_location": "## Music direction",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Music stays continuous across scene changes and changes harmony, rhythm, texture, and energy so narrative progress feels connected rather than like a restarted track.",
+      "id": "video_production_guide_continuous_score",
+      "community": 2,
+      "norm_label": "continuous transforming score"
+    },
+    {
+      "label": "Persistent UI Spatial Continuity",
+      "file_type": "rationale",
+      "source_file": "packages/video/PRODUCTION_GUIDE.md",
+      "source_location": "## Core principles",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Global animation phase, scale, position, clocks, counters, state, and drift persist across scene boundaries to prevent visible jumps.",
+      "id": "video_production_guide_persistent_ui_continuity",
+      "community": 8,
+      "norm_label": "persistent ui spatial continuity"
+    },
+    {
+      "label": "Composition-Level Reaction Overlays",
+      "file_type": "rationale",
+      "source_file": "packages/video/PRODUCTION_GUIDE.md",
+      "source_location": "### Entrances",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Persistent reactions live above scene-local UI so edits do not truncate their independent hold-and-fade lifecycles.",
+      "id": "video_production_guide_composition_level_reaction_overlays",
+      "community": 8,
+      "norm_label": "composition-level reaction overlays"
+    },
+    {
+      "label": "Deterministic Animation",
+      "file_type": "rationale",
+      "source_file": "packages/video/PRODUCTION_GUIDE.md",
+      "source_location": "## Implementation rules",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "A render must not change because of unseeded randomness, including reaction spacing and procedural motion.",
+      "id": "video_production_guide_deterministic_animation",
+      "community": 2,
+      "norm_label": "deterministic animation"
+    },
+    {
+      "label": "Multi-Aspect Campaign Reuse",
+      "file_type": "rationale",
+      "source_file": "packages/video/PRODUCTION_GUIDE.md",
+      "source_location": "## Implementation rules",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Aspect-ratio variants share timeline, audio, copy, and scene components while format-specific geometry is isolated so social tuning cannot silently alter the landscape master.",
+      "id": "video_production_guide_multi_aspect_campaign_reuse",
+      "community": 2,
+      "norm_label": "multi-aspect campaign reuse"
+    },
+    {
+      "label": "Archival Master Pipeline",
+      "file_type": "rationale",
+      "source_file": "packages/video/PRODUCTION_GUIDE.md",
+      "source_location": "## Delivery quality",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Archival masters use PNG intermediates, high-bit-depth 4:4:4 mezzanine video, explicit BT.709 metadata, and uncompressed audio; compressed deliverables are made from the composition or master rather than another compressed derivative.",
+      "id": "video_production_guide_archival_master_pipeline",
+      "community": 9,
+      "norm_label": "archival master pipeline"
+    },
+    {
+      "label": "Product Video Cue Palette",
+      "file_type": "concept",
+      "source_file": "packages/video/PRODUCTION_GUIDE.md",
+      "source_location": "### Cue palette",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "video_production_guide_cue_palette",
+      "community": 2,
+      "norm_label": "product video cue palette"
+    },
+    {
+      "label": "Clipify Product Videos",
+      "file_type": "document",
+      "source_file": "packages/video/README.md",
+      "source_location": "# Clipify product videos",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "video_readme_clipify_product_videos",
+      "community": 2,
+      "norm_label": "clipify product videos"
+    },
+    {
+      "label": "Remotion Video Package",
+      "file_type": "concept",
+      "source_file": "packages/video/README.md",
+      "source_location": "# Clipify product videos",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "The local product-video package is intentionally separate from the production Next.js application.",
+      "id": "video_readme_remotion_video_package",
+      "community": 2,
+      "norm_label": "remotion video package"
+    },
+    {
+      "label": "ProRes 4444 Archival Master",
+      "file_type": "concept",
+      "source_file": "packages/video/README.md",
+      "source_location": "## Commands",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "video_readme_prores_4444_master",
+      "community": 9,
+      "norm_label": "prores 4444 archival master"
+    },
+    {
+      "label": "H.264 Upload Export",
+      "file_type": "concept",
+      "source_file": "packages/video/README.md",
+      "source_location": "## Commands",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "The upload export is a smaller high-quality derivative for services with upload limits and is recreated from the composition or master.",
+      "id": "video_readme_h264_upload_export",
+      "community": 9,
+      "norm_label": "h.264 upload export"
+    },
+    {
+      "label": "Preview Export",
+      "file_type": "concept",
+      "source_file": "packages/video/README.md",
+      "source_location": "## Commands",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Preview exports optimize review speed and are not delivery masters.",
+      "id": "video_readme_preview_export",
+      "community": 9,
+      "norm_label": "preview export"
+    },
+    {
+      "label": "Original Procedural Soundtrack",
+      "file_type": "concept",
+      "source_file": "packages/video/README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "The build-generated WAV uses mathematical oscillators and deterministic noise only, avoiding stock music, loops, recordings, samples, and third-party audio assets.",
+      "id": "video_readme_procedural_soundtrack",
+      "community": 2,
+      "norm_label": "original procedural soundtrack"
+    },
+    {
+      "label": "ClipifyShowcase",
+      "file_type": "concept",
+      "source_file": "packages/video/README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "video_readme_clipifyshowcase",
+      "community": 2,
+      "norm_label": "clipifyshowcase"
+    },
+    {
+      "label": "ClipifyShowcaseVertical",
+      "file_type": "concept",
+      "source_file": "packages/video/README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "video_readme_clipifyshowcasevertical",
+      "community": 2,
+      "norm_label": "clipifyshowcasevertical"
+    },
+    {
+      "label": "ClipifyShowcaseFeed",
+      "file_type": "concept",
+      "source_file": "packages/video/README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "video_readme_clipifyshowcasefeed",
+      "community": 2,
+      "norm_label": "clipifyshowcasefeed"
+    },
+    {
+      "label": "Thumbnail Frame 1230",
+      "file_type": "rationale",
+      "source_file": "packages/video/README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Exporting the settled celebration state from a real composition frame keeps still-image typography and visual language aligned with the trailer.",
+      "id": "video_readme_thumbnail_frame_1230",
+      "community": 2,
+      "norm_label": "thumbnail frame 1230"
+    },
+    {
+      "label": "Clipify Showcase Cue Sheet",
+      "file_type": "document",
+      "source_file": "packages/video/src/compositions/clipify-showcase/CUE_SHEET.md",
+      "source_location": "# Clipify Showcase cue sheet",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "clipify_showcase_cue_sheet_clipify_showcase_cue_sheet",
+      "community": 2,
+      "norm_label": "clipify showcase cue sheet"
+    },
+    {
+      "label": "45-Second Trailer Timeline",
+      "file_type": "concept",
+      "source_file": "packages/video/src/compositions/clipify-showcase/CUE_SHEET.md",
+      "source_location": "## Delivery",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "clipify_showcase_cue_sheet_45_second_trailer_timeline",
+      "community": 2,
+      "norm_label": "45-second trailer timeline"
+    },
+    {
+      "label": "Viewer Loss Sequence",
+      "file_type": "concept",
+      "source_file": "packages/video/src/compositions/clipify-showcase/CUE_SHEET.md",
+      "source_location": "## Scene timeline",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "The six losses use a deliberate three-loss, pause, three-loss rhythm to communicate setback without lengthening the scene.",
+      "id": "clipify_showcase_cue_sheet_viewer_loss_sequence",
+      "community": 2,
+      "norm_label": "viewer loss sequence"
+    },
+    {
+      "label": "Bomb Reveal Recovery",
+      "file_type": "concept",
+      "source_file": "packages/video/src/compositions/clipify-showcase/CUE_SHEET.md",
+      "source_location": "## Scene timeline",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "The rapid 4-to-10 recovery belongs to the Clipify bomb reveal and uses lighter notes than later viewer-gain chimes.",
+      "id": "clipify_showcase_cue_sheet_bomb_reveal_recovery",
+      "community": 2,
+      "norm_label": "bomb reveal recovery"
+    },
+    {
+      "label": "Reward Clip Flow",
+      "file_type": "concept",
+      "source_file": "packages/video/src/compositions/clipify-showcase/CUE_SHEET.md",
+      "source_location": "## Scene timeline",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "clipify_showcase_cue_sheet_reward_clip_flow",
+      "community": 2,
+      "norm_label": "reward clip flow"
+    },
+    {
+      "label": "Illustrative Stream Activity",
+      "file_type": "rationale",
+      "source_file": "packages/video/src/compositions/clipify-showcase/CUE_SHEET.md",
+      "source_location": "## Composition-specific notes",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Negative and positive reaction bubbles are illustrative stream activity rather than measured product data.",
+      "id": "clipify_showcase_cue_sheet_illustrative_stream_activity",
+      "community": 2,
+      "norm_label": "illustrative stream activity"
+    },
+    {
+      "label": "Cross-Scene Reaction Lifecycles",
+      "file_type": "rationale",
+      "source_file": "packages/video/src/compositions/clipify-showcase/CUE_SHEET.md",
+      "source_location": "## Composition-specific notes",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Recovery, negative, and positive reactions are composition-level overlays whose independent fades survive scene boundaries instead of snapping away.",
+      "id": "clipify_showcase_cue_sheet_cross_scene_reaction_lifecycles",
+      "community": 8,
+      "norm_label": "cross-scene reaction lifecycles"
+    },
+    {
+      "label": "Final Emoji Celebration",
+      "file_type": "concept",
+      "source_file": "packages/video/src/compositions/clipify-showcase/CUE_SHEET.md",
+      "source_location": "## Composition-specific notes",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "The final emoji field is one grouped celebration covered by one achievement chord; subtle breathing, floating, and wiggling keep the long hold alive without fourteen separate sound cues.",
+      "id": "clipify_showcase_cue_sheet_final_emoji_celebration",
+      "community": 2,
+      "norm_label": "final emoji celebration"
+    },
+    {
+      "label": "Global OBS Mock Drift",
+      "file_type": "concept",
+      "source_file": "packages/video/src/compositions/clipify-showcase/CUE_SHEET.md",
+      "source_location": "## Composition-specific notes",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "The OBS mock drift uses the global visual frame so its phase remains continuous across scene boundaries.",
+      "id": "clipify_showcase_cue_sheet_global_obs_drift",
+      "community": 8,
+      "norm_label": "global obs mock drift"
+    }
+  ],
+  "links": [
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L23",
+      "weight": 1.0,
+      "source": "package_json",
+      "target": "video_package_dependencies",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L29",
+      "weight": 1.0,
+      "source": "package_json",
+      "target": "video_package_devdependencies",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "package_json",
+      "target": "video_package_name",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "package_json",
+      "target": "video_package_private",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L6",
+      "weight": 1.0,
+      "source": "package_json",
+      "target": "video_package_scripts",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "package_json",
+      "target": "video_package_type",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "package_json",
+      "target": "video_package_version",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L7",
+      "weight": 1.0,
+      "source": "video_package_scripts",
+      "target": "video_package_scripts_audio_generate",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L9",
+      "weight": 1.0,
+      "source": "video_package_scripts",
+      "target": "video_package_scripts_render",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L11",
+      "weight": 1.0,
+      "source": "video_package_scripts",
+      "target": "video_package_scripts_render_feed",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L15",
+      "weight": 1.0,
+      "source": "video_package_scripts",
+      "target": "video_package_scripts_render_preview",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L17",
+      "weight": 1.0,
+      "source": "video_package_scripts",
+      "target": "video_package_scripts_render_preview_feed",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L16",
+      "weight": 1.0,
+      "source": "video_package_scripts",
+      "target": "video_package_scripts_render_preview_vertical",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L12",
+      "weight": 1.0,
+      "source": "video_package_scripts",
+      "target": "video_package_scripts_render_upload",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L14",
+      "weight": 1.0,
+      "source": "video_package_scripts",
+      "target": "video_package_scripts_render_upload_feed",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L13",
+      "weight": 1.0,
+      "source": "video_package_scripts",
+      "target": "video_package_scripts_render_upload_vertical",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L10",
+      "weight": 1.0,
+      "source": "video_package_scripts",
+      "target": "video_package_scripts_render_vertical",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L8",
+      "weight": 1.0,
+      "source": "video_package_scripts",
+      "target": "video_package_scripts_studio",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L18",
+      "weight": 1.0,
+      "source": "video_package_scripts",
+      "target": "video_package_scripts_thumbnail",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L20",
+      "weight": 1.0,
+      "source": "video_package_scripts",
+      "target": "video_package_scripts_thumbnail_feed",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L19",
+      "weight": 1.0,
+      "source": "video_package_scripts",
+      "target": "video_package_scripts_thumbnail_vertical",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L21",
+      "weight": 1.0,
+      "source": "video_package_scripts",
+      "target": "video_package_scripts_typecheck",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L25",
+      "weight": 1.0,
+      "source": "video_package_dependencies",
+      "target": "video_package_dependencies_react",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L26",
+      "weight": 1.0,
+      "source": "video_package_dependencies",
+      "target": "video_package_dependencies_react_dom",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L27",
+      "weight": 1.0,
+      "source": "video_package_dependencies",
+      "target": "video_package_dependencies_remotion",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L24",
+      "weight": 1.0,
+      "source": "video_package_dependencies",
+      "target": "video_package_dependencies_tabler_icons_react",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L30",
+      "weight": 1.0,
+      "source": "video_package_devdependencies",
+      "target": "video_package_devdependencies_remotion_cli",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L31",
+      "weight": 1.0,
+      "source": "video_package_devdependencies",
+      "target": "video_package_devdependencies_types_react",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L32",
+      "weight": 1.0,
+      "source": "video_package_devdependencies",
+      "target": "video_package_devdependencies_typescript",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tsconfig.json",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "tsconfig_json",
+      "target": "video_tsconfig_compileroptions",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tsconfig.json",
+      "source_location": "L14",
+      "weight": 1.0,
+      "source": "tsconfig_json",
+      "target": "video_tsconfig_include",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tsconfig.json",
+      "source_location": "L11",
+      "weight": 1.0,
+      "source": "video_tsconfig_compileroptions",
+      "target": "video_tsconfig_compileroptions_esmoduleinterop",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tsconfig.json",
+      "source_location": "L12",
+      "weight": 1.0,
+      "source": "video_tsconfig_compileroptions",
+      "target": "video_tsconfig_compileroptions_isolatedmodules",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tsconfig.json",
+      "source_location": "L7",
+      "weight": 1.0,
+      "source": "video_tsconfig_compileroptions",
+      "target": "video_tsconfig_compileroptions_jsx",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tsconfig.json",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "video_tsconfig_compileroptions",
+      "target": "video_tsconfig_compileroptions_lib",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tsconfig.json",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "video_tsconfig_compileroptions",
+      "target": "video_tsconfig_compileroptions_module",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tsconfig.json",
+      "source_location": "L6",
+      "weight": 1.0,
+      "source": "video_tsconfig_compileroptions",
+      "target": "video_tsconfig_compileroptions_moduleresolution",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tsconfig.json",
+      "source_location": "L9",
+      "weight": 1.0,
+      "source": "video_tsconfig_compileroptions",
+      "target": "video_tsconfig_compileroptions_noemit",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tsconfig.json",
+      "source_location": "L10",
+      "weight": 1.0,
+      "source": "video_tsconfig_compileroptions",
+      "target": "video_tsconfig_compileroptions_skiplibcheck",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tsconfig.json",
+      "source_location": "L8",
+      "weight": 1.0,
+      "source": "video_tsconfig_compileroptions",
+      "target": "video_tsconfig_compileroptions_strict",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tsconfig.json",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "video_tsconfig_compileroptions",
+      "target": "video_tsconfig_compileroptions_target",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L161",
+      "weight": 1.0,
+      "source": "scripts_clipify_showcase_generate_soundtrack_mjs",
+      "target": "clipify_showcase_generate_soundtrack_achievement",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L207",
+      "weight": 1.0,
+      "source": "scripts_clipify_showcase_generate_soundtrack_mjs",
+      "target": "clipify_showcase_generate_soundtrack_arp",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L141",
+      "weight": 1.0,
+      "source": "scripts_clipify_showcase_generate_soundtrack_mjs",
+      "target": "clipify_showcase_generate_soundtrack_chime",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L14",
+      "weight": 1.0,
+      "source": "scripts_clipify_showcase_generate_soundtrack_mjs",
+      "target": "clipify_showcase_generate_soundtrack_clamp",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L133",
+      "weight": 1.0,
+      "source": "scripts_clipify_showcase_generate_soundtrack_mjs",
+      "target": "clipify_showcase_generate_soundtrack_click",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L134",
+      "weight": 1.0,
+      "source": "scripts_clipify_showcase_generate_soundtrack_mjs",
+      "target": "clipify_showcase_generate_soundtrack_dun",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L137",
+      "weight": 1.0,
+      "source": "scripts_clipify_showcase_generate_soundtrack_mjs",
+      "target": "clipify_showcase_generate_soundtrack_failuretone",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L22",
+      "weight": 1.0,
+      "source": "scripts_clipify_showcase_generate_soundtrack_mjs",
+      "target": "clipify_showcase_generate_soundtrack_frametime",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L87",
+      "weight": 1.0,
+      "source": "scripts_clipify_showcase_generate_soundtrack_mjs",
+      "target": "clipify_showcase_generate_soundtrack_hat",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L123",
+      "weight": 1.0,
+      "source": "scripts_clipify_showcase_generate_soundtrack_mjs",
+      "target": "clipify_showcase_generate_soundtrack_impact",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L66",
+      "weight": 1.0,
+      "source": "scripts_clipify_showcase_generate_soundtrack_mjs",
+      "target": "clipify_showcase_generate_soundtrack_kick",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L9",
+      "weight": 1.0,
+      "source": "scripts_clipify_showcase_generate_soundtrack_mjs",
+      "target": "clipify_showcase_generate_soundtrack_left",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L146",
+      "weight": 1.0,
+      "source": "scripts_clipify_showcase_generate_soundtrack_mjs",
+      "target": "clipify_showcase_generate_soundtrack_messagetick",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L24",
+      "weight": 1.0,
+      "source": "scripts_clipify_showcase_generate_soundtrack_mjs",
+      "target": "clipify_showcase_generate_soundtrack_mix",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L21",
+      "weight": 1.0,
+      "source": "scripts_clipify_showcase_generate_soundtrack_mjs",
+      "target": "clipify_showcase_generate_soundtrack_note",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L260",
+      "weight": 1.0,
+      "source": "scripts_clipify_showcase_generate_soundtrack_mjs",
+      "target": "clipify_showcase_generate_soundtrack_output",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L45",
+      "weight": 1.0,
+      "source": "scripts_clipify_showcase_generate_soundtrack_mjs",
+      "target": "clipify_showcase_generate_soundtrack_pad",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L52",
+      "weight": 1.0,
+      "source": "scripts_clipify_showcase_generate_soundtrack_mjs",
+      "target": "clipify_showcase_generate_soundtrack_pluck",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L195",
+      "weight": 1.0,
+      "source": "scripts_clipify_showcase_generate_soundtrack_mjs",
+      "target": "clipify_showcase_generate_soundtrack_progression",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L15",
+      "weight": 1.0,
+      "source": "scripts_clipify_showcase_generate_soundtrack_mjs",
+      "target": "clipify_showcase_generate_soundtrack_random",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L156",
+      "weight": 1.0,
+      "source": "scripts_clipify_showcase_generate_soundtrack_mjs",
+      "target": "clipify_showcase_generate_soundtrack_reactionpop",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L10",
+      "weight": 1.0,
+      "source": "scripts_clipify_showcase_generate_soundtrack_mjs",
+      "target": "clipify_showcase_generate_soundtrack_right",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L111",
+      "weight": 1.0,
+      "source": "scripts_clipify_showcase_generate_soundtrack_mjs",
+      "target": "clipify_showcase_generate_soundtrack_riser",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L76",
+      "weight": 1.0,
+      "source": "scripts_clipify_showcase_generate_soundtrack_mjs",
+      "target": "clipify_showcase_generate_soundtrack_snare",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L31",
+      "weight": 1.0,
+      "source": "scripts_clipify_showcase_generate_soundtrack_mjs",
+      "target": "clipify_showcase_generate_soundtrack_synth",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L151",
+      "weight": 1.0,
+      "source": "scripts_clipify_showcase_generate_soundtrack_mjs",
+      "target": "clipify_showcase_generate_soundtrack_uipop",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L181",
+      "weight": 1.0,
+      "source": "scripts_clipify_showcase_generate_soundtrack_mjs",
+      "target": "clipify_showcase_generate_soundtrack_viewerlossnotes",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L242",
+      "weight": 1.0,
+      "source": "scripts_clipify_showcase_generate_soundtrack_mjs",
+      "target": "clipify_showcase_generate_soundtrack_wav",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L100",
+      "weight": 1.0,
+      "source": "scripts_clipify_showcase_generate_soundtrack_mjs",
+      "target": "clipify_showcase_generate_soundtrack_whoosh",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "scripts_clipify_showcase_generate_soundtrack_mjs",
+      "target": "clipify_showcase_timeline_clip_chat_reveal_frames",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "scripts_clipify_showcase_generate_soundtrack_mjs",
+      "target": "clipify_showcase_timeline_feature_card_frames",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "scripts_clipify_showcase_generate_soundtrack_mjs",
+      "target": "clipify_showcase_timeline_positive_reaction_frames",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "scripts_clipify_showcase_generate_soundtrack_mjs",
+      "target": "clipify_showcase_timeline_reset_viewer_gain_frames",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "scripts_clipify_showcase_generate_soundtrack_mjs",
+      "target": "clipify_showcase_timeline_reward_reaction_frames",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "scripts_clipify_showcase_generate_soundtrack_mjs",
+      "target": "clipify_showcase_timeline_viewer_gain_frames",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "scripts_clipify_showcase_generate_soundtrack_mjs",
+      "target": "clipify_showcase_timeline_viewer_loss_frames",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "scripts_clipify_showcase_generate_soundtrack_mjs",
+      "target": "src_compositions_clipify_showcase_timeline_ts",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L37",
+      "weight": 1.0,
+      "source": "clipify_showcase_generate_soundtrack_synth",
+      "target": "clipify_showcase_generate_soundtrack_clamp",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L41",
+      "weight": 1.0,
+      "source": "clipify_showcase_generate_soundtrack_synth",
+      "target": "clipify_showcase_generate_soundtrack_mix",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L47",
+      "weight": 1.0,
+      "source": "clipify_showcase_generate_soundtrack_pad",
+      "target": "clipify_showcase_generate_soundtrack_note",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L47",
+      "weight": 1.0,
+      "source": "clipify_showcase_generate_soundtrack_pad",
+      "target": "clipify_showcase_generate_soundtrack_synth",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L59",
+      "weight": 1.0,
+      "source": "clipify_showcase_generate_soundtrack_pluck",
+      "target": "clipify_showcase_generate_soundtrack_clamp",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L62",
+      "weight": 1.0,
+      "source": "clipify_showcase_generate_soundtrack_pluck",
+      "target": "clipify_showcase_generate_soundtrack_mix",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L56",
+      "weight": 1.0,
+      "source": "clipify_showcase_generate_soundtrack_pluck",
+      "target": "clipify_showcase_generate_soundtrack_note",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L72",
+      "weight": 1.0,
+      "source": "clipify_showcase_generate_soundtrack_kick",
+      "target": "clipify_showcase_generate_soundtrack_mix",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L83",
+      "weight": 1.0,
+      "source": "clipify_showcase_generate_soundtrack_snare",
+      "target": "clipify_showcase_generate_soundtrack_mix",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L81",
+      "weight": 1.0,
+      "source": "clipify_showcase_generate_soundtrack_snare",
+      "target": "clipify_showcase_generate_soundtrack_random",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L96",
+      "weight": 1.0,
+      "source": "clipify_showcase_generate_soundtrack_hat",
+      "target": "clipify_showcase_generate_soundtrack_mix",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L93",
+      "weight": 1.0,
+      "source": "clipify_showcase_generate_soundtrack_hat",
+      "target": "clipify_showcase_generate_soundtrack_random",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L107",
+      "weight": 1.0,
+      "source": "clipify_showcase_generate_soundtrack_whoosh",
+      "target": "clipify_showcase_generate_soundtrack_mix",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L106",
+      "weight": 1.0,
+      "source": "clipify_showcase_generate_soundtrack_whoosh",
+      "target": "clipify_showcase_generate_soundtrack_random",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L119",
+      "weight": 1.0,
+      "source": "clipify_showcase_generate_soundtrack_riser",
+      "target": "clipify_showcase_generate_soundtrack_mix",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L117",
+      "weight": 1.0,
+      "source": "clipify_showcase_generate_soundtrack_riser",
+      "target": "clipify_showcase_generate_soundtrack_random",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L124",
+      "weight": 1.0,
+      "source": "clipify_showcase_generate_soundtrack_impact",
+      "target": "clipify_showcase_generate_soundtrack_kick",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L129",
+      "weight": 1.0,
+      "source": "clipify_showcase_generate_soundtrack_impact",
+      "target": "clipify_showcase_generate_soundtrack_mix",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L129",
+      "weight": 1.0,
+      "source": "clipify_showcase_generate_soundtrack_impact",
+      "target": "clipify_showcase_generate_soundtrack_random",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L125",
+      "weight": 1.0,
+      "source": "clipify_showcase_generate_soundtrack_impact",
+      "target": "clipify_showcase_generate_soundtrack_synth",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L133",
+      "weight": 1.0,
+      "source": "clipify_showcase_generate_soundtrack_click",
+      "target": "clipify_showcase_generate_soundtrack_synth",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L135",
+      "weight": 1.0,
+      "source": "clipify_showcase_generate_soundtrack_dun",
+      "target": "clipify_showcase_generate_soundtrack_note",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L135",
+      "weight": 1.0,
+      "source": "clipify_showcase_generate_soundtrack_dun",
+      "target": "clipify_showcase_generate_soundtrack_synth",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L138",
+      "weight": 1.0,
+      "source": "clipify_showcase_generate_soundtrack_failuretone",
+      "target": "clipify_showcase_generate_soundtrack_note",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L138",
+      "weight": 1.0,
+      "source": "clipify_showcase_generate_soundtrack_failuretone",
+      "target": "clipify_showcase_generate_soundtrack_synth",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L142",
+      "weight": 1.0,
+      "source": "clipify_showcase_generate_soundtrack_chime",
+      "target": "clipify_showcase_generate_soundtrack_note",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L142",
+      "weight": 1.0,
+      "source": "clipify_showcase_generate_soundtrack_chime",
+      "target": "clipify_showcase_generate_soundtrack_synth",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L148",
+      "weight": 1.0,
+      "source": "clipify_showcase_generate_soundtrack_messagetick",
+      "target": "clipify_showcase_generate_soundtrack_note",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L147",
+      "weight": 1.0,
+      "source": "clipify_showcase_generate_soundtrack_messagetick",
+      "target": "clipify_showcase_generate_soundtrack_pluck",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L148",
+      "weight": 1.0,
+      "source": "clipify_showcase_generate_soundtrack_messagetick",
+      "target": "clipify_showcase_generate_soundtrack_synth",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L153",
+      "weight": 1.0,
+      "source": "clipify_showcase_generate_soundtrack_uipop",
+      "target": "clipify_showcase_generate_soundtrack_note",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L152",
+      "weight": 1.0,
+      "source": "clipify_showcase_generate_soundtrack_uipop",
+      "target": "clipify_showcase_generate_soundtrack_pluck",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L153",
+      "weight": 1.0,
+      "source": "clipify_showcase_generate_soundtrack_uipop",
+      "target": "clipify_showcase_generate_soundtrack_synth",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L157",
+      "weight": 1.0,
+      "source": "clipify_showcase_generate_soundtrack_reactionpop",
+      "target": "clipify_showcase_generate_soundtrack_synth",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L162",
+      "weight": 1.0,
+      "source": "clipify_showcase_generate_soundtrack_achievement",
+      "target": "clipify_showcase_generate_soundtrack_impact",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L166",
+      "weight": 1.0,
+      "source": "clipify_showcase_generate_soundtrack_achievement",
+      "target": "clipify_showcase_generate_soundtrack_note",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L166",
+      "weight": 1.0,
+      "source": "clipify_showcase_generate_soundtrack_achievement",
+      "target": "clipify_showcase_generate_soundtrack_synth",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/clipify-showcase/generate-soundtrack.mjs",
+      "source_location": "L167",
+      "weight": 1.0,
+      "source": "clipify_showcase_generate_soundtrack_achievement",
+      "target": "clipify_showcase_generate_soundtrack_uipop",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/Root.tsx",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "src_root_tsx",
+      "target": "clipify_showcase_clipifyshowcase_clipifyshowcase",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/Root.tsx",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "src_root_tsx",
+      "target": "src_compositions_clipify_showcase_clipifyshowcase_tsx",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/Root.tsx",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "src_root_tsx",
+      "target": "src_compositions_clipify_showcase_timeline_ts",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/Root.tsx",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "src_root_tsx",
+      "target": "src_root_videoroot",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/index.ts",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "src_index_ts",
+      "target": "src_root_tsx",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/index.ts",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "src_index_ts",
+      "target": "src_root_videoroot",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L134",
+      "weight": 1.0,
+      "source": "src_compositions_clipify_showcase_clipifyshowcase_tsx",
+      "target": "clipify_showcase_clipifyshowcase_brbvisual",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L607",
+      "weight": 1.0,
+      "source": "src_compositions_clipify_showcase_clipifyshowcase_tsx",
+      "target": "clipify_showcase_clipifyshowcase_celebrationemojis",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L625",
+      "weight": 1.0,
+      "source": "src_compositions_clipify_showcase_clipifyshowcase_tsx",
+      "target": "clipify_showcase_clipifyshowcase_celebrationfield",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L608",
+      "weight": 1.0,
+      "source": "src_compositions_clipify_showcase_clipifyshowcase_tsx",
+      "target": "clipify_showcase_clipifyshowcase_celebrationpositions",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L29",
+      "weight": 1.0,
+      "source": "src_compositions_clipify_showcase_clipifyshowcase_tsx",
+      "target": "clipify_showcase_clipifyshowcase_chatmessage",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L62",
+      "weight": 1.0,
+      "source": "src_compositions_clipify_showcase_clipifyshowcase_tsx",
+      "target": "clipify_showcase_clipifyshowcase_chatpanel",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L6",
+      "weight": 1.0,
+      "source": "src_compositions_clipify_showcase_clipifyshowcase_tsx",
+      "target": "clipify_showcase_clipifyshowcase_clamp",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L506",
+      "weight": 1.0,
+      "source": "src_compositions_clipify_showcase_clipifyshowcase_tsx",
+      "target": "clipify_showcase_clipifyshowcase_clipifyscene",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L689",
+      "weight": 1.0,
+      "source": "src_compositions_clipify_showcase_clipifyshowcase_tsx",
+      "target": "clipify_showcase_clipifyshowcase_clipifyshowcase",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L11",
+      "weight": 1.0,
+      "source": "src_compositions_clipify_showcase_clipifyshowcase_tsx",
+      "target": "clipify_showcase_clipifyshowcase_clipifyshowcaseformat",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L46",
+      "weight": 1.0,
+      "source": "src_compositions_clipify_showcase_clipifyshowcase_tsx",
+      "target": "clipify_showcase_clipifyshowcase_clipmessages",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L146",
+      "weight": 1.0,
+      "source": "src_compositions_clipify_showcase_clipifyshowcase_tsx",
+      "target": "clipify_showcase_clipifyshowcase_clipvisual",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L527",
+      "weight": 1.0,
+      "source": "src_compositions_clipify_showcase_clipifyshowcase_tsx",
+      "target": "clipify_showcase_clipifyshowcase_cursor",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L669",
+      "weight": 1.0,
+      "source": "src_compositions_clipify_showcase_clipifyshowcase_tsx",
+      "target": "clipify_showcase_clipifyshowcase_endscene",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L178",
+      "weight": 1.0,
+      "source": "src_compositions_clipify_showcase_clipifyshowcase_tsx",
+      "target": "clipify_showcase_clipifyshowcase_floatingreaction",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L223",
+      "weight": 1.0,
+      "source": "src_compositions_clipify_showcase_clipifyshowcase_tsx",
+      "target": "clipify_showcase_clipifyshowcase_floatingreactions",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L408",
+      "weight": 1.0,
+      "source": "src_compositions_clipify_showcase_clipifyshowcase_tsx",
+      "target": "clipify_showcase_clipifyshowcase_headline",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L36",
+      "weight": 1.0,
+      "source": "src_compositions_clipify_showcase_clipifyshowcase_tsx",
+      "target": "clipify_showcase_clipifyshowcase_initialmessages",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L41",
+      "weight": 1.0,
+      "source": "src_compositions_clipify_showcase_clipifyshowcase_tsx",
+      "target": "clipify_showcase_clipifyshowcase_livemessages",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L13",
+      "weight": 1.0,
+      "source": "src_compositions_clipify_showcase_clipifyshowcase_tsx",
+      "target": "clipify_showcase_clipifyshowcase_logomark",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L186",
+      "weight": 1.0,
+      "source": "src_compositions_clipify_showcase_clipifyshowcase_tsx",
+      "target": "clipify_showcase_clipifyshowcase_negativereactionlabels",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L187",
+      "weight": 1.0,
+      "source": "src_compositions_clipify_showcase_clipifyshowcase_tsx",
+      "target": "clipify_showcase_clipifyshowcase_negativereactionpositions",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L658",
+      "weight": 1.0,
+      "source": "src_compositions_clipify_showcase_clipifyshowcase_tsx",
+      "target": "clipify_showcase_clipifyshowcase_persistentstreamreactions",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L196",
+      "weight": 1.0,
+      "source": "src_compositions_clipify_showcase_clipifyshowcase_tsx",
+      "target": "clipify_showcase_clipifyshowcase_positivereactionlabels",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L197",
+      "weight": 1.0,
+      "source": "src_compositions_clipify_showcase_clipifyshowcase_tsx",
+      "target": "clipify_showcase_clipifyshowcase_positivereactionpositions",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L421",
+      "weight": 1.0,
+      "source": "src_compositions_clipify_showcase_clipifyshowcase_tsx",
+      "target": "clipify_showcase_clipifyshowcase_problemscene",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L176",
+      "weight": 1.0,
+      "source": "src_compositions_clipify_showcase_clipifyshowcase_tsx",
+      "target": "clipify_showcase_clipifyshowcase_reactionvariant",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L214",
+      "weight": 1.0,
+      "source": "src_compositions_clipify_showcase_clipifyshowcase_tsx",
+      "target": "clipify_showcase_clipifyshowcase_recoveryreactionpositions",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L450",
+      "weight": 1.0,
+      "source": "src_compositions_clipify_showcase_clipifyshowcase_tsx",
+      "target": "clipify_showcase_clipifyshowcase_resetscene",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L276",
+      "weight": 1.0,
+      "source": "src_compositions_clipify_showcase_clipifyshowcase_tsx",
+      "target": "clipify_showcase_clipifyshowcase_rewardburstlabels",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L277",
+      "weight": 1.0,
+      "source": "src_compositions_clipify_showcase_clipifyshowcase_tsx",
+      "target": "clipify_showcase_clipifyshowcase_rewardburstpositions",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L54",
+      "weight": 1.0,
+      "source": "src_compositions_clipify_showcase_clipifyshowcase_tsx",
+      "target": "clipify_showcase_clipifyshowcase_rewardreactions",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L292",
+      "weight": 1.0,
+      "source": "src_compositions_clipify_showcase_clipifyshowcase_tsx",
+      "target": "clipify_showcase_clipifyshowcase_rewardreactionstream",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L546",
+      "weight": 1.0,
+      "source": "src_compositions_clipify_showcase_clipifyshowcase_tsx",
+      "target": "clipify_showcase_clipifyshowcase_rewardscene",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L402",
+      "weight": 1.0,
+      "source": "src_compositions_clipify_showcase_clipifyshowcase_tsx",
+      "target": "clipify_showcase_clipifyshowcase_sceneframe",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L331",
+      "weight": 1.0,
+      "source": "src_compositions_clipify_showcase_clipifyshowcase_tsx",
+      "target": "clipify_showcase_clipifyshowcase_streammock",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L319",
+      "weight": 1.0,
+      "source": "src_compositions_clipify_showcase_clipifyshowcase_tsx",
+      "target": "clipify_showcase_clipifyshowcase_streammockprops",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L560",
+      "weight": 1.0,
+      "source": "src_compositions_clipify_showcase_clipifyshowcase_tsx",
+      "target": "clipify_showcase_clipifyshowcase_summaryscene",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L436",
+      "weight": 1.0,
+      "source": "src_compositions_clipify_showcase_clipifyshowcase_tsx",
+      "target": "clipify_showcase_clipifyshowcase_withoutscene",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "src_compositions_clipify_showcase_clipifyshowcase_tsx",
+      "target": "clipify_showcase_timeline_clip_chat_reveal_frames",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "src_compositions_clipify_showcase_clipifyshowcase_tsx",
+      "target": "clipify_showcase_timeline_localframe",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "src_compositions_clipify_showcase_clipifyshowcase_tsx",
+      "target": "clipify_showcase_timeline_positive_reaction_frames",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "src_compositions_clipify_showcase_clipifyshowcase_tsx",
+      "target": "clipify_showcase_timeline_reset_viewer_gain_frames",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "src_compositions_clipify_showcase_clipifyshowcase_tsx",
+      "target": "clipify_showcase_timeline_scene_start_frames",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "src_compositions_clipify_showcase_clipifyshowcase_tsx",
+      "target": "clipify_showcase_timeline_viewer_gain_frames",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "src_compositions_clipify_showcase_clipifyshowcase_tsx",
+      "target": "clipify_showcase_timeline_viewer_loss_frames",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/compositions/clipify-showcase/ClipifyShowcase.tsx",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "src_compositions_clipify_showcase_clipifyshowcase_tsx",
+      "target": "src_compositions_clipify_showcase_timeline_ts",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/compositions/clipify-showcase/timeline.ts",
+      "source_location": "L22",
+      "weight": 1.0,
+      "source": "src_compositions_clipify_showcase_timeline_ts",
+      "target": "clipify_showcase_timeline_clip_chat_reveal_frames",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/compositions/clipify-showcase/timeline.ts",
+      "source_location": "L29",
+      "weight": 1.0,
+      "source": "src_compositions_clipify_showcase_timeline_ts",
+      "target": "clipify_showcase_timeline_feature_card_frames",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/compositions/clipify-showcase/timeline.ts",
+      "source_location": "L32",
+      "weight": 1.0,
+      "source": "src_compositions_clipify_showcase_timeline_ts",
+      "target": "clipify_showcase_timeline_localframe",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/compositions/clipify-showcase/timeline.ts",
+      "source_location": "L21",
+      "weight": 1.0,
+      "source": "src_compositions_clipify_showcase_timeline_ts",
+      "target": "clipify_showcase_timeline_positive_reaction_frames",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/compositions/clipify-showcase/timeline.ts",
+      "source_location": "L20",
+      "weight": 1.0,
+      "source": "src_compositions_clipify_showcase_timeline_ts",
+      "target": "clipify_showcase_timeline_reset_viewer_gain_frames",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/compositions/clipify-showcase/timeline.ts",
+      "source_location": "L28",
+      "weight": 1.0,
+      "source": "src_compositions_clipify_showcase_timeline_ts",
+      "target": "clipify_showcase_timeline_reward_reaction_frames",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/compositions/clipify-showcase/timeline.ts",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "src_compositions_clipify_showcase_timeline_ts",
+      "target": "clipify_showcase_timeline_scene_start_frames",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/compositions/clipify-showcase/timeline.ts",
+      "source_location": "L19",
+      "weight": 1.0,
+      "source": "src_compositions_clipify_showcase_timeline_ts",
+      "target": "clipify_showcase_timeline_viewer_gain_frames",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/compositions/clipify-showcase/timeline.ts",
+      "source_location": "L15",
+      "weight": 1.0,
+      "source": "src_compositions_clipify_showcase_timeline_ts",
+      "target": "clipify_showcase_timeline_viewer_loss_frames",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "packages/video/PRODUCTION_GUIDE.md",
+      "source_location": "### Cue palette",
+      "weight": 1.0,
+      "source": "video_production_guide_product_video_production_guide",
+      "target": "video_production_guide_cue_palette"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "packages/video/PRODUCTION_GUIDE.md",
+      "source_location": "## Required composition structure",
+      "weight": 1.0,
+      "source": "video_production_guide_product_video_production_guide",
+      "target": "video_production_guide_shared_frame_timeline"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "packages/video/PRODUCTION_GUIDE.md",
+      "source_location": "## Core principles",
+      "weight": 1.0,
+      "source": "video_production_guide_product_video_production_guide",
+      "target": "video_production_guide_visible_event_sound_mapping"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "packages/video/PRODUCTION_GUIDE.md",
+      "source_location": "## Music direction",
+      "weight": 1.0,
+      "source": "video_production_guide_continuous_score",
+      "target": "video_readme_procedural_soundtrack"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "packages/video/PRODUCTION_GUIDE.md",
+      "source_location": "### Entrances",
+      "weight": 1.0,
+      "source": "video_production_guide_composition_level_reaction_overlays",
+      "target": "video_production_guide_persistent_ui_continuity"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "packages/video/PRODUCTION_GUIDE.md",
+      "source_location": "## Implementation rules",
+      "weight": 1.0,
+      "source": "video_production_guide_deterministic_animation",
+      "target": "video_production_guide_shared_frame_timeline"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "packages/video/README.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "video_readme_clipify_product_videos",
+      "target": "clipify_showcase_cue_sheet_clipify_showcase_cue_sheet"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "packages/video/README.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "video_readme_clipify_product_videos",
+      "target": "video_production_guide_product_video_production_guide"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "packages/video/README.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "video_readme_remotion_video_package",
+      "target": "video_readme_procedural_soundtrack"
+    },
+    {
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "packages/video/README.md",
+      "source_location": "## Commands",
+      "weight": 1.0,
+      "source": "video_readme_prores_4444_master",
+      "target": "video_production_guide_archival_master_pipeline"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "packages/video/README.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "video_readme_h264_upload_export",
+      "target": "video_readme_prores_4444_master"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "packages/video/README.md",
+      "source_location": "## Commands",
+      "weight": 1.0,
+      "source": "video_readme_preview_export",
+      "target": "video_readme_prores_4444_master"
+    },
+    {
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "packages/video/README.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "video_readme_procedural_soundtrack",
+      "target": "video_production_guide_deterministic_animation"
+    },
+    {
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "packages/video/src/compositions/clipify-showcase/CUE_SHEET.md",
+      "source_location": "## Composition-specific notes",
+      "weight": 1.0,
+      "source": "video_readme_clipifyshowcase",
+      "target": "clipify_showcase_cue_sheet_45_second_trailer_timeline"
+    },
+    {
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "packages/video/README.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "video_readme_clipifyshowcase",
+      "target": "video_production_guide_multi_aspect_campaign_reuse"
+    },
+    {
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "packages/video/src/compositions/clipify-showcase/CUE_SHEET.md",
+      "source_location": "## Composition-specific notes",
+      "weight": 1.0,
+      "source": "video_readme_clipifyshowcasevertical",
+      "target": "clipify_showcase_cue_sheet_45_second_trailer_timeline"
+    },
+    {
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "packages/video/README.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "video_readme_clipifyshowcasevertical",
+      "target": "video_production_guide_multi_aspect_campaign_reuse"
+    },
+    {
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "packages/video/src/compositions/clipify-showcase/CUE_SHEET.md",
+      "source_location": "## Composition-specific notes",
+      "weight": 1.0,
+      "source": "video_readme_clipifyshowcasefeed",
+      "target": "clipify_showcase_cue_sheet_45_second_trailer_timeline"
+    },
+    {
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "packages/video/README.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "video_readme_clipifyshowcasefeed",
+      "target": "video_production_guide_multi_aspect_campaign_reuse"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "packages/video/README.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "video_readme_thumbnail_frame_1230",
+      "target": "clipify_showcase_cue_sheet_final_emoji_celebration"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "packages/video/src/compositions/clipify-showcase/CUE_SHEET.md",
+      "source_location": "## Delivery",
+      "weight": 1.0,
+      "source": "clipify_showcase_cue_sheet_clipify_showcase_cue_sheet",
+      "target": "clipify_showcase_cue_sheet_45_second_trailer_timeline"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "packages/video/src/compositions/clipify-showcase/CUE_SHEET.md",
+      "source_location": "## Delivery",
+      "weight": 1.0,
+      "source": "clipify_showcase_cue_sheet_clipify_showcase_cue_sheet",
+      "target": "video_readme_procedural_soundtrack"
+    },
+    {
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "packages/video/src/compositions/clipify-showcase/CUE_SHEET.md",
+      "source_location": "## Exact cue table",
+      "weight": 1.0,
+      "source": "clipify_showcase_cue_sheet_viewer_loss_sequence",
+      "target": "video_production_guide_visible_event_sound_mapping"
+    },
+    {
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "packages/video/src/compositions/clipify-showcase/CUE_SHEET.md",
+      "source_location": "## Exact cue table",
+      "weight": 1.0,
+      "source": "clipify_showcase_cue_sheet_bomb_reveal_recovery",
+      "target": "video_production_guide_visible_event_sound_mapping"
+    },
+    {
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "packages/video/src/compositions/clipify-showcase/CUE_SHEET.md",
+      "source_location": "## Exact cue table",
+      "weight": 1.0,
+      "source": "clipify_showcase_cue_sheet_reward_clip_flow",
+      "target": "video_production_guide_visible_event_sound_mapping"
+    },
+    {
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "packages/video/src/compositions/clipify-showcase/CUE_SHEET.md",
+      "source_location": "## Composition-specific notes",
+      "weight": 1.0,
+      "source": "clipify_showcase_cue_sheet_illustrative_stream_activity",
+      "target": "video_production_guide_product_video_production_guide"
+    },
+    {
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "packages/video/src/compositions/clipify-showcase/CUE_SHEET.md",
+      "source_location": "## Composition-specific notes",
+      "weight": 1.0,
+      "source": "clipify_showcase_cue_sheet_cross_scene_reaction_lifecycles",
+      "target": "video_production_guide_composition_level_reaction_overlays"
+    },
+    {
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "packages/video/src/compositions/clipify-showcase/CUE_SHEET.md",
+      "source_location": "## Composition-specific notes",
+      "weight": 1.0,
+      "source": "clipify_showcase_cue_sheet_final_emoji_celebration",
+      "target": "video_production_guide_visible_event_sound_mapping"
+    },
+    {
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "packages/video/src/compositions/clipify-showcase/CUE_SHEET.md",
+      "source_location": "## Composition-specific notes",
+      "weight": 1.0,
+      "source": "clipify_showcase_cue_sheet_global_obs_drift",
+      "target": "video_production_guide_persistent_ui_continuity"
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "clipify_showcase_aspect_ratio_compositions",
+      "label": "Clipify Showcase Aspect-Ratio Compositions",
+      "nodes": [
+        "video_readme_clipifyshowcase",
+        "video_readme_clipifyshowcasevertical",
+        "video_readme_clipifyshowcasefeed",
+        "clipify_showcase_cue_sheet_45_second_trailer_timeline"
+      ],
+      "relation": "implement",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "packages/video/README.md"
+    },
+    {
+      "id": "clipify_showcase_synchronized_event_cues",
+      "label": "Clipify Showcase Synchronized Event Cues",
+      "nodes": [
+        "clipify_showcase_cue_sheet_viewer_loss_sequence",
+        "clipify_showcase_cue_sheet_bomb_reveal_recovery",
+        "clipify_showcase_cue_sheet_reward_clip_flow",
+        "video_production_guide_visible_event_sound_mapping"
+      ],
+      "relation": "participate_in",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "packages/video/src/compositions/clipify-showcase/CUE_SHEET.md"
+    },
+    {
+      "id": "video_delivery_artifact_tiers",
+      "label": "Video Delivery Artifact Tiers",
+      "nodes": [
+        "video_readme_prores_4444_master",
+        "video_readme_h264_upload_export",
+        "video_readme_preview_export"
+      ],
+      "relation": "form",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "packages/video/README.md"
+    }
+  ],
+  "built_at_commit": "a73039b84d7cc7c4548a2814769c7111fd4fb6a9"
+}

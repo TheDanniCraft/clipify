@@ -29,6 +29,9 @@ describe("local legal routes", () => {
 			.map((heading) => heading.textContent);
 		expect(sectionHeadings).toEqual(privacyPolicySections.map(({ title }) => title));
 		for (const { summary } of privacyPolicySections) expect(article).toHaveTextContent(summary);
+		for (const reference of privacyPolicySections.flatMap(({ links = [] }) => links)) {
+			expect(within(article).getByRole("link", { name: reference.label })).toHaveAttribute("href", reference.href);
+		}
 	});
 
 	it("renders cookie route", () => {
@@ -54,6 +57,7 @@ describe("local legal routes", () => {
 				.map((heading) => heading.textContent),
 		).toEqual(termsSections.map(({ title }) => title));
 		for (const { summary } of termsSections) expect(article).toHaveTextContent(summary);
+		expect(within(article).getByRole("link", { name: "Email contact@clipify.us" })).toHaveAttribute("href", "mailto:contact@clipify.us");
 	});
 
 	it("renders privacy-request route", () => {

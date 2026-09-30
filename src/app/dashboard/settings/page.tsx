@@ -17,7 +17,7 @@ import { useRouter } from "next/navigation";
 import { memo, useEffect, useMemo, useState, type Dispatch, type SetStateAction } from "react";
 import { exportAccountData, requestAccountDeletion } from "@actions/subscription";
 import { forceRefreshOwnClipCache, getOwnClipForceRefreshStatus } from "@actions/twitch";
-import { useNavigationGuard } from "next-navigation-guard";
+import { useNavigationGuard } from "nextjs-nav-guard";
 import UpgradeModal from "@components/upgradeModal";
 import BillingPanel from "./billing-panel";
 import ChatwootData from "@components/chatwootData";

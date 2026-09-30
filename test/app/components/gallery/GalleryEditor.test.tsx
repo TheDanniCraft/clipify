@@ -13,7 +13,7 @@ let previewClips = [buildClip("initial")];
 jest.mock("@actions/gallery", () => ({ saveGallery: (...args: unknown[]) => saveGallery(...args), getGalleryDraftPreview: (...args: unknown[]) => getGalleryDraftPreview(...args) }));
 jest.mock("@lib/toast", () => ({ notify: (...args: unknown[]) => notify(...args) }));
 jest.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
-jest.mock("next-navigation-guard", () => ({
+jest.mock("nextjs-nav-guard", () => ({
 	NavigationGuardProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 	useNavigationGuard: () => ({
 		active: false,

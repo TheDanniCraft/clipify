@@ -49,7 +49,9 @@ export const termsSections: readonly LegalDocumentSection[] = [
 			"Do not impersonate another person, manipulate billing or entitlements, or use automation in a way that violates Twitch rules or applicable law.",
 			"Do not resell, sublicense, or provide Clipify itself as a competing hosted service without written permission.",
 		],
-		details: ["Good-faith security research must follow the repository SECURITY.md policy and must not harm users, access unnecessary data, or disrupt the Service."],
+		details: ["Before testing, contact us for the current security-research instructions. Good-faith security research must not harm users, access unnecessary data, or disrupt the Service."],
+		linkHeading: "Security contact",
+		links: [{ label: "Email contact@clipify.us", href: "mailto:contact@clipify.us" }],
 	},
 	{
 		id: "user-content",
