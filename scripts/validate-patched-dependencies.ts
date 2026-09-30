@@ -122,7 +122,7 @@ function verifyCodeTargets(targets: PatchTarget[], specifier: string) {
 	} catch {
 		fail(`TypeScript is required to validate patched code in ${specifier}`);
 	}
-	
+
 	const typescriptPackageDir = dirname(packageJsonPath);
 	const typescriptPath = join(typescriptPackageDir, "bin", "tsc");
 
