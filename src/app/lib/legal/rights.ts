@@ -18,7 +18,7 @@ export const privacyRequestGuidance = {
 	},
 	complaintRoutes: ["Contact Clipify directly at contact@clipify.us", "Contact the data-protection authority responsible for your residence, workplace, or the alleged infringement", "For Clipify's German establishment, contact the State Commissioner for Data Protection and Freedom of Information Baden-Württemberg (LfDI Baden-Württemberg)"],
 	initialRequestDoNotInclude: ["passwords", "authentication secrets", "Twitch access or refresh tokens", "complete payment-card details", "a passport or identity-card copy unless we specifically explain why it is necessary"],
-	verification: "We request only the additional information reasonably needed to confirm identity and authority for the risk of the request. We do not require a passport, an office visit, or unrelated personal information by default.",
+	verification: "We request only the additional information reasonably needed to confirm identity and authority for the risk of the request. We do not require a passport or unrelated personal information by default.",
 	timing: "We normally respond without undue delay and within one month after receiving the request. Where a request is complex or numerous, applicable law may allow up to two additional months; if so, we explain the extension within the first month.",
 	costs: "Requests are normally free. Where permitted by law, we may charge a reasonable fee or refuse to act on a request that is manifestly unfounded or excessive, especially because it is repetitive, and we will explain that decision.",
 	qualifications: [

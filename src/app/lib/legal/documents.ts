@@ -38,6 +38,8 @@ export type LegalDocumentSection = {
 	summary: string;
 	details?: readonly string[];
 	items?: readonly string[];
+	linkHeading?: string;
+	links?: readonly { label: string; href: string }[];
 };
 
 export const privacyPolicySections: readonly LegalDocumentSection[] = [
@@ -132,6 +134,14 @@ export const privacyPolicySections: readonly LegalDocumentSection[] = [
 			"Functional Software, Inc. (Sentry) for error monitoring and, after consent, browser measurement and Session Replay. The Clipify Sentry project uses the EU data region.",
 			"Clipify-operated infrastructure for hosting, PostgreSQL storage, Plausible statistics, Chatwoot support, and UseSend communications.",
 			"Authorities, courts, advisers, or a successor operator where disclosure is legally required or necessary to protect rights and complete a lawful business transfer.",
+		],
+		details: ["For transparency, the provider notices below explain how these providers handle personal data in their own roles. Clipify remains responsible for the processing described in this policy, and these provider notices do not replace Clipify's disclosures."],
+		linkHeading: "Provider privacy notices",
+		links: [
+			{ label: "Twitch Privacy Notice", href: "https://www.twitch.tv/p/en/legal/privacy-notice/" },
+			{ label: "Stripe Privacy Policy", href: "https://stripe.com/privacy" },
+			{ label: "Cloudflare Privacy Policy", href: "https://www.cloudflare.com/privacypolicy/" },
+			{ label: "Sentry Privacy Policy", href: "https://sentry.io/privacy/" },
 		],
 	},
 	{

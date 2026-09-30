@@ -20,6 +20,20 @@ export default function LegalSections({ sections }: { sections: readonly LegalDo
 								))}
 							</ul>
 						) : null}
+						{section.links?.length ? (
+							<div>
+								<p className='font-medium text-foreground'>{section.linkHeading ?? "Related links"}</p>
+								<ul className='mt-1 list-disc space-y-1 pl-6'>
+									{section.links.map((link) => (
+										<li key={link.href}>
+											<a className='font-medium text-primary underline-offset-4 hover:underline' href={link.href}>
+												{link.label}
+											</a>
+										</li>
+									))}
+								</ul>
+							</div>
+						) : null}
 					</div>
 				</section>
 			))}

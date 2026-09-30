@@ -14,6 +14,7 @@ describe("privacy request guidance", () => {
 		expect(privacyRequestGuidance.initialRequestDoNotInclude).toEqual(expect.arrayContaining(["passwords", "authentication secrets", "Twitch access or refresh tokens"]));
 		expect(privacyRequestGuidance.verification).toMatch(/reasonably needed.*identity and authority/i);
 		expect(privacyRequestGuidance.verification).toMatch(/do not require a passport/i);
+		expect(privacyRequestGuidance.verification).not.toMatch(/office visit/i);
 	});
 
 	it("qualifies rights and outcomes", () => {

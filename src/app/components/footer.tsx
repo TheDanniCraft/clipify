@@ -18,7 +18,7 @@ import { usePlausible } from "next-plausible";
 import { isRatelimitError } from "@actions/rateLimit";
 import type { CommunityTeaserStreamer } from "@lib/community-types";
 import { ConsentDialogLink } from "@c15t/nextjs/components/consent-dialog-link";
-import { legalDocumentRoutes } from "@lib/legal/documents";
+import { footerNavigation } from "@lib/footerNavigation";
 
 const isE2ETestMode = process.env.E2E_TEST_MODE === "true";
 
@@ -74,36 +74,6 @@ export default function Footer() {
 	const detailSubmitDisabled = newsletterState === "loading" || !pendingEmail || (mounted && !token);
 
 	const communityStreamers = useMemo(() => footerCommunityPreview ?? [], [footerCommunityPreview]);
-	const footerNavigation = {
-		features: [
-			{ name: "Easy to Use", href: "#features" },
-			{ name: "Plug & Play", href: "#features" },
-			{ name: "Customize your player", href: "#features" },
-			{ name: "Multiple Overlays", href: "#features" },
-			{ name: "Channel Points Integration", href: "#features" },
-		],
-		supportOptions: [
-			{ name: "Pricing", href: "/pricing" },
-			{ name: "FAQs", href: "#faq" },
-			{ name: "Community", href: "/community" },
-			{ name: "Help Center", href: "https://help.clipify.us/" },
-			{ name: "Service Status", href: "https://status.thedannicraft.de/status/clipify" },
-		],
-		aboutUs: [
-			{ name: "Latest News", href: "/changelog" },
-			{ name: "Roadmap", href: "/roadmap" },
-			{ name: "Collaborations", href: "https://help.clipify.us/hc/clipify/articles/1756597294-collaborations" },
-			{ name: "Climate Initiative", href: "https://climate.stripe.com/FaGAVC" },
-		],
-		legal: [
-			{ name: "Imprint", href: legalDocumentRoutes.imprint },
-			{ name: "Privacy Policy", href: legalDocumentRoutes.privacy },
-			{ name: "Cookie Policy", href: legalDocumentRoutes.cookies },
-			{ name: "Terms of Service", href: legalDocumentRoutes.terms },
-			{ name: "Request Data Removal", href: legalDocumentRoutes.privacyRequests },
-		],
-	};
-
 	useEffect(() => {
 		if (isE2ETestMode) return;
 		axios
@@ -253,7 +223,7 @@ export default function Footer() {
 	);
 
 	const renderList = useCallback(
-		({ title, items }: { title: string; items: { name: string; href: string }[] }) => (
+		({ title, items }: { title: string; items: readonly { readonly name: string; readonly href: string }[] }) => (
 			<div>
 				<h3 className='text-sm text-muted font-semibold'>{title}</h3>
 				<ul className='mt-2 space-y-0.5'>
