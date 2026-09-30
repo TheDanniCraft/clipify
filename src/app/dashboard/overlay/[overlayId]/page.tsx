@@ -13,7 +13,7 @@ import { AuthenticatedUser, Game, Overlay, OverlayType, Plan, PlaybackMode, Stat
 import { IconAlertTriangle, IconArrowLeft, IconCrown, IconDeviceFloppy, IconDeviceRemote, IconDownload, IconGripVertical, IconInfoCircle, IconPaint, IconPlayerPauseFilled, IconPlayerPlayFilled, IconPlus, IconSearch, IconTrash } from "@tabler/icons-react";
 import DashboardNavbar from "@components/dashboardNavbar";
 import FullscreenLoadingState from "@components/fullscreenLoadingState";
-import { useNavigationGuard } from "next-navigation-guard";
+import { useNavigationGuard } from "nextjs-nav-guard";
 import { validateAuth } from "@actions/auth";
 import { createChannelReward, getCachedClipsByOwner, getGameDetails, getReward, getTwitchClips, getTwitchGames, removeChannelReward } from "@actions/twitch";
 import { REWARD_NOT_FOUND } from "@lib/twitchErrors";

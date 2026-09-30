@@ -15,7 +15,7 @@ import FullscreenLoadingState from "@components/fullscreenLoadingState";
 import ControlledModal from "@components/controlledModal";
 import AppDateRangePicker from "@components/appDateRangePicker";
 import AppPagination from "@components/appPagination";
-import { useNavigationGuard } from "next-navigation-guard";
+import { useNavigationGuard } from "nextjs-nav-guard";
 import { validateAuth } from "@actions/auth";
 import { getCachedClipsByOwner, getGamesDetailsBulk, getTwitchGames } from "@actions/twitch";
 import { getFeatureAccess } from "@lib/featureAccess";
