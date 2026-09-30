@@ -21,14 +21,14 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
-		"@tabler/icons-react": "3.47.0",
+		"@tabler/icons-react": "3.48.0",
 		"react": "19.3.0",
 		"react-dom": "19.3.0",
 		"remotion": "4.0.529"
 	},
 	"devDependencies": {
 		"@remotion/cli": "4.0.529",
-		"@types/react": "19.2.14",
+		"@types/react": "19.3.0",
 		"typescript": "6.0.3"
 	}
 }
