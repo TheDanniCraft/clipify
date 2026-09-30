@@ -91,8 +91,8 @@ Store setup evidence under `specs/002-auth-engine-rewrite/evidence/setup/` and p
 4. Run `bun run auth:migrate -- dry-run`, inspect every anomaly and count, then attach the verified backup attestation to the exact dry-run fingerprint.
 5. Run `bun run auth:migrate -- apply`. The runner transactionally installs the approved Twitch onboarding/profile triggers before it backfills identity, creator, membership, and credential rows.
 6. Run `bun run auth:migrate -- validate` and `bun run auth:legacy-check`. Any failure keeps maintenance active.
-7. Start the new application image while maintenance is still active, perform the external sign-in/authorization/overlay/refresh smoke checks, and run `bun run auth:migrate -- smoke` for the persisted cutover checks.
-8. Set the separate one-shot reopen approval, run the signed smoke/reopen operation, and only then restore public traffic and workers.
+7. Start the new application image while maintenance is still active and perform the external sign-in, authorization, overlay, and credential-refresh observations without reopening public traffic.
+8. Set the separate one-shot reopen approval and run `bun run auth:migrate -- smoke` exactly once. This command runs the persisted cutover checks, writes the signed final manifest, and marks the run reopened; only then restore public traffic and workers.
 
 On failure, remain in maintenance and decide whether to fix-forward or separately authorize restore. Do not improvise a restore inside the migration command. The runner is idempotent and may be resumed only after the failure is understood; it never restores a backup automatically.
 

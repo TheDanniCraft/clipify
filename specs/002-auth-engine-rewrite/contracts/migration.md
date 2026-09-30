@@ -36,8 +36,8 @@ command in this workflow; it follows a separately authorized runbook.
 7. `credentials`: in-memory decrypt/re-encrypt and scope/expiry validation.
 8. `domain_invariants`: resources, secrets, subscriptions, entitlements, counts, ownership.
 9. `switch`: enable Better Auth runtime, disable dashboard JWT/custom refresh/editor authorization.
-10. `smoke`: sign-in, authorization allow/deny, overlay HTTP/WebSocket, credential refresh, subscription/entitlement state, outbox.
-11. `reopen`: only after every blocking invariant and smoke check passes.
+10. `smoke`: after the separate one-shot reopen approval, verify sign-in, authorization allow/deny, overlay HTTP/WebSocket, credential refresh, subscription/entitlement state, and outbox.
+11. `reopen`: the approved `smoke` command marks the run reopened only after every blocking invariant and persisted smoke check passes.
 12. `contract`: later removal of legacy structures after zero-dependency scan.
 
 Each phase uses deterministic idempotency keys and transactional batches. Completed checkpoints replay as no-ops. A blocking error leaves maintenance active and preserves the originating failure in redacted output.
