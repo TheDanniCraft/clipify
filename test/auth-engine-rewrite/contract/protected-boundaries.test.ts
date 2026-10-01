@@ -30,6 +30,15 @@ describe("TDD-US3-004 protected server boundaries", () => {
 		expect(settingsSource).toContain("/dashboard/settings/team");
 	});
 
+	it("keeps Team management inside the Clipify dashboard design system", () => {
+		const teamSource = readFileSync(path.join(process.cwd(), "src/app/dashboard/settings/team/page.tsx"), "utf8");
+		expect(teamSource).toContain("<DashboardNavbar");
+		expect(teamSource).toContain("<Table");
+		expect(teamSource).toContain("<Select");
+		expect(teamSource).toContain("variant='secondary'");
+		expect(teamSource).not.toMatch(/<select\b/);
+	});
+
 	it.each([
 		["AUTHENTICATION_REQUIRED", { session: null }],
 		["ACCOUNT_SUSPENDED", { lifecycle: "suspended" }],
