@@ -323,7 +323,7 @@ When(/^the owner (updates account information|requests an account export|cancels
 		await page.getByRole("tab", { name: "Billing" }).click();
 		const pro = page.getByRole("checkbox", { name: "Pro" });
 		await expect(pro).toBeVisible({ timeout: DATABASE_ACTION_TIMEOUT_MS });
-		await pro.setChecked(false, { force: true });
+		await pro.press("Space");
 		await expect(pro).not.toBeChecked();
 		const saveChanges = page.getByRole("button", { name: "Save changes", exact: true });
 		await expect(saveChanges).toBeEnabled();
