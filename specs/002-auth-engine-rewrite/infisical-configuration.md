@@ -25,10 +25,13 @@ identifiers are one-shot operator inputs supplied only to the migration process;
 they are not application configuration stored in Infisical.
 
 Better Auth's base URL is resolved through the shared `resolveBaseUrl()`
-policy: the first `COOLIFY_URL` in a Coolify container, localhost during local
-development, and `https://clipify.us` as the non-development fallback. Better
-Auth automatically trusts that resolved base origin, so separate
-`BETTER_AUTH_URL` and `BETTER_AUTH_TRUSTED_ORIGINS` secrets are not required.
+policy: the first `COOLIFY_URL` in an actual Coolify container, the configured
+`NEXT_PUBLIC_BASE_URL` outside Coolify, localhost when no explicit URL exists
+during local development, and `https://clipify.us` as the final fallback.
+Legacy `PREVIEW_CALLBACK_URL` values are not auth origins and cannot override
+this resolution. Better Auth automatically trusts the resolved base origin, so
+separate `BETTER_AUTH_URL` and `BETTER_AUTH_TRUSTED_ORIGINS` secrets are not
+required.
 
 ## Twitch OpenID Connect / OAuth 2.0
 

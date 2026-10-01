@@ -192,7 +192,9 @@ Then("Better Auth requests the complete Twitch permission set", async ({ authWor
 
 Then("the callback targets the Clipify Better Auth Twitch route", async ({ authWorld }) => {
 	const authorizationUrl = new URL(String(authWorld.values.get("twitchAuthorizationUrl")));
-	expect(new URL(authorizationUrl.searchParams.get("redirect_uri") ?? "http://invalid").pathname).toBe("/api/auth/callback/twitch");
+	const callbackUrl = new URL(authorizationUrl.searchParams.get("redirect_uri") ?? "http://invalid");
+	expect(callbackUrl.origin).toBe("http://127.0.0.1:3107");
+	expect(callbackUrl.pathname).toBe("/api/auth/callback/twitch");
 });
 
 Then("a database-backed Better Auth session opens the creator dashboard", async ({ page, request, context }) => {
