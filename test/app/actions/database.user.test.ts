@@ -124,8 +124,6 @@ jest.mock("@/db/schema", () => ({
 	queueTable: { id: "queue.id" },
 	settingsTable: { id: "settings.id" },
 	modQueueTable: { id: "mod_queue.id" },
-	tokenTable: { id: "token.id" },
-	editorsTable: { id: "editors.id" },
 }));
 
 jest.mock("drizzle-orm", () => ({
@@ -162,12 +160,6 @@ const twitchAuth = {
 	refreshAccessTokenWithContextInternal: jest.fn(),
 };
 jest.mock("@/server/twitch-auth", () => twitchAuth);
-
-const tokenCrypto = {
-	encryptToken: jest.fn((val: string) => val),
-	decryptToken: jest.fn((val: string) => val),
-};
-jest.mock("@lib/tokenCrypto", () => tokenCrypto);
 
 jest.mock("@lib/entitlements", () => ({
 	resolveUserEntitlements: jest.fn((user) => ({ effectivePlan: user.plan || "free" })),
@@ -211,8 +203,6 @@ describe("actions/database user logic", () => {
 		dbUpdate.mockImplementation(() => makeUpdateChain());
 		dbDelete.mockImplementation(() => makeDeleteChain());
 		validateAuth.mockResolvedValue({ id: "user-1" });
-		tokenCrypto.decryptToken.mockImplementation((val: string) => val);
-		tokenCrypto.encryptToken.mockImplementation((val: string) => val);
 	});
 
 	it("gets user correctly", async () => {

@@ -60,7 +60,6 @@ jest.mock("@/db/client", () => ({
 jest.mock("@/db/schema", () => ({
 	usersTable: "users",
 	overlaysTable: "overlays",
-	editorsTable: "editors",
 	twitchCacheTable: "twitch_cache",
 }));
 

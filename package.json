@@ -4,9 +4,6 @@
 	"private": true,
 	"scripts": {
 		"auth:schema": "bunx auth@1.7.6 generate --config src/auth/config.ts --output src/db/auth-schema.ts",
-		"auth:migrate": "bun scripts/auth-cutover.ts",
-		"auth:seed-rehearsal": "bun scripts/auth-cutover/seed-synthetic-postgres.ts",
-		"auth:legacy-check": "bun scripts/auth-legacy-check.ts",
 		"app:dev": "RUNNER_ARTIFACT_SOURCE=local infisical run --env=dev --watch -- next dev",
 		"app:webhook": "stripe listen --forward-to localhost:3000/payment/webhook",
 		"app:eventsub": "ngrok http 3000 --url https://well-free-wildcat.ngrok-free.app",
@@ -24,7 +21,6 @@
 		"test:auth:unit": "jest test/auth-engine-rewrite/unit --runInBand",
 		"test:auth:integration": "jest test/auth-engine-rewrite/integration --runInBand",
 		"test:auth:contract": "jest test/auth-engine-rewrite/contract --runInBand",
-		"test:auth:migration": "jest test/auth-engine-rewrite/migration --runInBand",
 		"test:auth:property": "jest test/auth-engine-rewrite/property --runInBand",
 		"test:auth:coverage": "bun scripts/run-auth-coverage.ts",
 		"test:auth-performance": "bun scripts/auth-performance-check.ts",

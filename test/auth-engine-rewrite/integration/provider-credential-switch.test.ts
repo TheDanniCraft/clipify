@@ -6,7 +6,7 @@ import { spawnSync } from "node:child_process";
 import { Pool } from "pg";
 import { withSerializedProviderCredential } from "../../../src/server/provider-credentials";
 
-const databaseUrl = process.env.AUTH_CUTOVER_TEST_DATABASE_URL;
+const databaseUrl = process.env.AUTH_TEST_DATABASE_URL;
 const describePostgres = databaseUrl ? describe : describe.skip;
 
 describePostgres("TDD-US6-005 Better Auth provider credential switch", () => {

@@ -3,9 +3,9 @@
 import { randomUUID } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import { Pool, type PoolClient } from "pg";
-import { installCreatorOnboardingTriggers } from "../../../scripts/auth-cutover/onboarding-trigger";
+import { installCreatorOnboardingTriggers } from "@/auth/onboarding-database-boundary";
 
-const databaseUrl = process.env.AUTH_CUTOVER_TEST_DATABASE_URL;
+const databaseUrl = process.env.AUTH_TEST_DATABASE_URL;
 const describePostgres = databaseUrl ? describe : describe.skip;
 
 type ProvisionedRows = {
@@ -223,19 +223,6 @@ describePostgres("TDD-US2-003 atomic Better Auth creator onboarding", () => {
 			await client.query(`INSERT INTO auth.account (id, account_id, provider_id, user_id, created_at, updated_at) VALUES ($1, $2, 'credential', $3, now(), now())`, [`test-account-${suffix}`, externalId, authUserId]);
 
 			expect(await provisioned(client, externalId)).toEqual({ creator: "0", organization: "0", identity: "0", owner: "0" });
-		});
-	});
-
-	it("does not double-provision Twitch accounts inserted by the legacy backfill session", async () => {
-		await inRollback(async (client) => {
-			const suffix = randomUUID();
-			const authUserId = `test-auth-${suffix}`;
-			const creatorId = `test-creator-${suffix}`;
-			await client.query("SELECT set_config('clipify.auth_cutover_backfill', '1', true)");
-			await client.query(`INSERT INTO auth.user (id, name, email, email_verified, created_at, updated_at) VALUES ($1, 'Migrated Creator', $2, true, now(), now())`, [authUserId, `${suffix}@example.invalid`]);
-			await client.query(`INSERT INTO auth.account (id, account_id, provider_id, user_id, created_at, updated_at) VALUES ($1, $2, 'twitch', $3, now(), now())`, [`test-account-${suffix}`, creatorId, authUserId]);
-
-			expect(await provisioned(client, creatorId)).toEqual({ creator: "0", organization: "0", identity: "0", owner: "0" });
 		});
 	});
 });

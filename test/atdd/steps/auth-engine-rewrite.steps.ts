@@ -4,14 +4,7 @@ import { TWITCH_REQUIRED_SCOPES } from "@/auth/providers/twitch";
 import { acceptInvitation, createInvitation, type InvitationRepository, type InvitationState } from "@/auth/invitations";
 import { authorize } from "@/auth/authorize";
 import { ControlledClock, createDeterministicTokenGenerator } from "../../support/auth-engine-rewrite/time";
-import { anonymizedLegacySnapshot } from "../../support/auth-engine-rewrite/legacy-snapshot";
-import { backfillLegacySnapshot, type BackfillRepository, type BackfillState } from "../../../scripts/auth-cutover/backfill";
-import { classifyDashboardSession, creatorSignInRecoveryPath } from "@/auth/session-boundary";
 import { evaluateOverlayRuntimeAccess, preserveOverlayRuntimeReference } from "@/server/overlay-runtime";
-import { buildManifest, verifyManifest } from "../../../scripts/auth-cutover/manifest";
-import { executeCheckpointBatch, parseCutoverCommand } from "../../../scripts/auth-cutover/state-machine";
-import { executeCutoverWorkflow, runCutoverSmoke, type SmokeChecks } from "../../../scripts/auth-cutover/smoke";
-import { scanLegacyConsumers } from "../../../scripts/auth-cutover/legacy-scan";
 import { AccountLifecycleService, type AccountLifecycleRepository, type AccountLifecycleState, type LifecycleActor } from "@/server/account-lifecycle/service";
 import { evaluateDeletionBoundary, recoverDeletion } from "@/server/account-lifecycle/recovery";
 import { AgencyService, createAgencyState } from "@/server/agencies/service";
@@ -148,64 +141,13 @@ Then("the creator receives one transactional allocation notice", async ({ authWo
 	expect(state.notifications.filter((notice) => notice.type === "granted")).toHaveLength(1);
 });
 
-class AtddBackfillRepository implements BackfillRepository {
-	state: BackfillState = { creators: [], resources: [], subscriptions: [], entitlements: [], authUsers: [], providerAccounts: [], organizations: [], memberships: [], identityLinks: [], anomalies: [], prunedEditors: [] };
-	async transaction<T>(operation: (draft: BackfillState, checkpoint: (name: "identity" | "membership") => Promise<void>) => Promise<T>) {
-		const draft = structuredClone(this.state);
-		const result = await operation(draft, async () => undefined);
-		this.state = draft;
-		return result;
-	}
-}
-
-Given("a representative legacy creator snapshot", async ({ authWorld }) => {
-	const snapshot = structuredClone(anonymizedLegacySnapshot);
-	snapshot.editors[0]!.editorTwitchSubject = snapshot.creators[1]!.twitchSubject;
-	authWorld.values.set("legacySnapshot", snapshot);
-	authWorld.values.set("backfillRepository", new AtddBackfillRepository());
-});
-
-When("the snapshot is migrated to Better Auth identities and memberships", async ({ authWorld }) => {
-	await backfillLegacySnapshot(authWorld.values.get("legacySnapshot") as typeof anonymizedLegacySnapshot, authWorld.values.get("backfillRepository") as AtddBackfillRepository);
-});
-
-Then("all creator resource subscription and entitlement identifiers are unchanged", async ({ authWorld }) => {
-	const snapshot = authWorld.values.get("legacySnapshot") as typeof anonymizedLegacySnapshot;
-	const state = (authWorld.values.get("backfillRepository") as AtddBackfillRepository).state;
-	expect(state.creators).toEqual(snapshot.creators);
-	expect(state.resources).toEqual(snapshot.resources);
-	expect(state.subscriptions).toEqual(snapshot.subscriptions);
-	expect(state.entitlements).toEqual(snapshot.entitlements);
-});
-
-Then("the safely matched legacy editor receives Operations access", async ({ authWorld }) => {
-	const state = (authWorld.values.get("backfillRepository") as AtddBackfillRepository).state;
-	expect(state.memberships).toContainEqual(expect.objectContaining({ role: "operations" }));
-});
-
-Given("an otherwise valid legacy dashboard JWT", async ({ authWorld }) => {
-	authWorld.values.set("legacyJwt", "valid.header.signature");
-});
-
-When("the creator opens a protected dashboard after cutover", async ({ authWorld }) => {
-	authWorld.values.set("sessionDecision", classifyDashboardSession({ legacyDashboardCookie: String(authWorld.values.get("legacyJwt")), betterAuthSession: null }));
-});
-
-Then("the legacy dashboard JWT is rejected", async ({ authWorld }) => {
-	expect(authWorld.values.get("sessionDecision")).toEqual({ authenticated: false, reason: "better-auth-session-required" });
-});
-
-Then("the creator receives a recoverable Better Auth sign-in path", async () => {
-	expect(creatorSignInRecoveryPath("/dashboard")).toBe("/login?returnUrl=%2Fdashboard");
-});
-
 Given("an unchanged live overlay URL and runtime secret", async ({ authWorld }) => {
 	const overlay = { id: "overlay-atdd", ownerId: "creator-atdd", secret: "stable-runtime-secret" };
 	authWorld.values.set("overlay", overlay);
 	authWorld.values.set("overlayReference", { url: `https://clipify.us/embed/${overlay.id}`, secret: overlay.secret });
 });
 
-When("dashboard authentication is unavailable during cutover", async ({ authWorld }) => {
+When("the creator is signed out of the dashboard", async ({ authWorld }) => {
 	const overlay = authWorld.values.get("overlay") as { id: string; ownerId: string; secret: string };
 	authWorld.values.set("httpRuntime", evaluateOverlayRuntimeAccess({ channel: "http", overlay, ownerSuspended: false }));
 	authWorld.values.set("socketRuntime", evaluateOverlayRuntimeAccess({ channel: "websocket", overlay, presentedSecret: overlay.secret, ownerSuspended: false }));
@@ -525,84 +467,4 @@ Then(/^suspension starts (.+)$/, async ({ authWorld }, expected: string) => {
 
 Then("Stripe remains responsible for billing lifecycle notices", async ({ authWorld }) => {
 	expect(authWorld.values.has("clipifyBillingNotice")).toBe(false);
-});
-
-Given("a verified backup and a valid pre-migration database", async ({ authWorld }) => {
-	authWorld.values.set("cutoverRows", [] as number[]);
-	authWorld.values.set("cutoverCommitted", new Set<string>());
-});
-
-When("the operator completes the cutover workflow twice against the same database state", async ({ authWorld }) => {
-	expect(parseCutoverCommand(["dry-run"])).toEqual({ mode: "dry-run" });
-	expect(parseCutoverCommand(["apply"])).toEqual({ mode: "apply" });
-
-	const rows = authWorld.values.get("cutoverRows") as number[];
-	const committed = authWorld.values.get("cutoverCommitted") as Set<string>;
-	const batch = {
-		runId: "atdd-cutover",
-		phase: "identity",
-		cursor: 0,
-		values: [1, 2, 3],
-		transaction: async <T>(operation: (writer: { write: (value: number) => void }) => Promise<T>) => {
-			const draft = [...rows];
-			const result = await operation({ write: (value) => draft.push(value) });
-			rows.splice(0, rows.length, ...draft);
-			return result;
-		},
-		onCommitted: (_cursor: number, key: string) => {
-			committed.add(key);
-		},
-		isCommitted: (key: string) => committed.has(key),
-	};
-	const first = await executeCheckpointBatch(batch);
-	const second = await executeCheckpointBatch(batch);
-	authWorld.values.set("cutoverBatchResults", [first, second]);
-
-	const invoked: string[] = [];
-	const checks = Object.fromEntries(
-		["sign-in", "allow-deny", "overlay", "refresh", "subscription", "entitlement", "outbox"].map((name) => [
-			name,
-			async () => {
-				invoked.push(name);
-				return true;
-			},
-		]),
-	) as SmokeChecks;
-	authWorld.values.set("cutoverSmoke", await runCutoverSmoke(checks));
-	authWorld.values.set("cutoverSmokeInvoked", invoked);
-	authWorld.values.set("cutoverWorkflow", await executeCutoverWorkflow({ runId: "atdd-cutover" }));
-	authWorld.values.set("cutoverManifest", buildManifest({ runId: "atdd-cutover", sourceFingerprint: "sha256:fixture", versions: { app: "fixture" }, createdAt: "2026-09-28T00:00:00.000Z" }));
-});
-
-Then("all cutover records are migrated exactly once", async ({ authWorld }) => {
-	expect(authWorld.values.get("cutoverRows")).toEqual([1, 2, 3]);
-	expect(authWorld.values.get("cutoverBatchResults")).toEqual([expect.objectContaining({ skipped: false }), expect.objectContaining({ skipped: true })]);
-});
-
-Then("every required invariant and smoke check passes before maintenance mode is removed", async ({ authWorld }) => {
-	expect(authWorld.values.get("cutoverSmoke")).toEqual(expect.objectContaining({ passed: true }));
-	expect(authWorld.values.get("cutoverSmokeInvoked")).toHaveLength(7);
-	expect(authWorld.values.get("cutoverWorkflow")).toEqual(expect.objectContaining({ ok: true, maintenance: false, reopened: true }));
-});
-
-Then("the immutable cutover manifest remains valid", async ({ authWorld }) => {
-	expect(verifyManifest(authWorld.values.get("cutoverManifest") as ReturnType<typeof buildManifest>)).toBe(true);
-});
-
-Given("migration validation and smoke checks have passed", async ({ authWorld }) => {
-	authWorld.values.set("legacyRemovalApproved", true);
-});
-
-When("the new identity runtime is activated", async ({ authWorld }) => {
-	authWorld.values.set("runtimeActivation", await executeCutoverWorkflow({ runId: "atdd-switch" }));
-	authWorld.values.set("legacyFindings", scanLegacyConsumers([{ path: "session.ts", content: "getAuthActorContext(); authorize(request); auth.api.getAccessToken();" }]));
-});
-
-Then("no request depends on the legacy auth runtime", async ({ authWorld }) => {
-	expect(authWorld.values.get("runtimeActivation")).toEqual(expect.objectContaining({ ok: true, reopened: true }));
-	expect(authWorld.values.get("legacyFindings")).toEqual([]);
-});
-
-Then("the legacy structures are eligible for approved removal", async ({ authWorld }) => {
-	expect(authWorld.values.get("legacyRemovalApproved")).toBe(true);
 });

@@ -66,11 +66,6 @@ function makeDeleteChain(table: unknown) {
 	};
 }
 
-const editorsTable = {
-	userId: "editors.user_id",
-	editorId: "editors.editor_id",
-};
-
 jest.mock("@/db/client", () => ({
 	db: {
 		select: (..._args: unknown[]) => dbSelect(..._args),
@@ -85,7 +80,6 @@ jest.mock("@/db/schema", () => ({
 	modQueueTable,
 	overlaysTable,
 	usersTable,
-	editorsTable,
 }));
 
 jest.mock("drizzle-orm", () => ({

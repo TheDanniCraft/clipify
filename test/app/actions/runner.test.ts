@@ -5,7 +5,6 @@ import { StreamMode } from "@/app/lib/types";
 const mockValidateAuth = jest.fn();
 const mockHasActiveEntitlement = jest.fn();
 const mockRevalidatePath = jest.fn();
-const mockEditorFindFirst = jest.fn();
 const mockOwnerFindFirst = jest.fn();
 const mockRunnerFindFirst = jest.fn();
 const mockRunnerFindMany = jest.fn();
@@ -14,7 +13,7 @@ const mockUpdateReturning = jest.fn();
 const mockAuthorizeCreatorOperation = jest.fn(async ({ creatorId }: { creatorId: string }) => {
 	const actor = await mockValidateAuth();
 	if (!actor) return { allowed: false, code: "AUTHENTICATION_REQUIRED" };
-	const allowed = actor.id === creatorId || Boolean(await mockEditorFindFirst());
+	const allowed = actor.id === creatorId;
 	return allowed ? { allowed: true, accessPath: actor.id === creatorId ? "owner" : "direct", creator: { id: creatorId }, authUserId: actor.id, sessionId: "test", creatorOrganizationId: `org:${creatorId}` } : { allowed: false, code: "ACCESS_PATH_REQUIRED" };
 });
 
@@ -30,7 +29,6 @@ mockUpdateBuilder.returning.mockImplementation((...args: unknown[]) => mockUpdat
 
 const mockDb = {
 	query: {
-		editorsTable: { findFirst: (...args: unknown[]) => mockEditorFindFirst(...args) },
 		usersTable: { findFirst: (...args: unknown[]) => mockOwnerFindFirst(...args) },
 		runnersTable: { findFirst: (...args: unknown[]) => mockRunnerFindFirst(...args), findMany: (...args: unknown[]) => mockRunnerFindMany(...args) },
 		overlaysTable: { findFirst: (...args: unknown[]) => mockOverlayFindFirst(...args) },

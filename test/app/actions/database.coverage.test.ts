@@ -103,8 +103,6 @@ jest.mock("@/db/schema", () => ({
 	queueTable: { id: "queue.id", overlayId: "queue.overlay_id", queuedAt: "queue.queued_at" },
 	settingsTable: { id: "settings.id" },
 	modQueueTable: { id: "mod_queue.id", broadcasterId: "mod_queue.broadcaster_id", queuedAt: "mod_queue.queued_at" },
-	tokenTable: { id: "token.id" },
-	editorsTable: { id: "editors.id", editorId: "editors.editor_id", userId: "editors.user_id" },
 	twitchCacheTable: { type: "twitch_cache.type", key: "twitch_cache.key", value: "twitch_cache.value", expiresAt: "twitch_cache.expires_at", fetchedAt: "twitch_cache.fetched_at" },
 }));
 

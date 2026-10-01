@@ -86,6 +86,6 @@ export const auth = betterAuth({
 });
 
 // Better Auth runs database `after` hooks only after its adapter transaction
-// commits. The cutover runner therefore installs the reviewed PostgreSQL
-// trigger before backfill; it provisions creator ownership inside the account
-// insert transaction and is verified by TDD-US2-003.
+// commits. The reviewed PostgreSQL boundary in onboarding-database-boundary.ts
+// provisions creator ownership inside the account insert transaction and is
+// verified by TDD-US2-003.

@@ -1,6 +1,11 @@
 # Quickstart: Planning-to-Implementation Handoff
 
-This document describes the developer and rehearsal workflow after `/speckit.tasks` creates implementation tasks. The `auth:*` commands are stable entry points; their implementations are added by the migration tasks and must fail closed until then.
+> **Archived cutover guide:** the production cutover completed successfully on
+> 2026-10-01. The one-time `auth:migrate`, rehearsal, and legacy-scan commands
+> described below were removed in the post-cutover contraction. This document
+> remains historical execution evidence, not a current command reference.
+
+This document describes the developer and rehearsal workflow used after `/speckit.tasks` created implementation tasks.
 
 ## Prerequisites
 

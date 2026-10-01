@@ -18,7 +18,7 @@ DECLARE
 	existing_creator_id varchar;
 	existing_organization_id text;
 BEGIN
-	IF NEW.provider_id <> 'twitch' OR current_setting('clipify.auth_cutover_backfill', true) = '1' THEN
+	IF NEW.provider_id <> 'twitch' THEN
 		RETURN NEW;
 	END IF;
 
@@ -106,7 +106,7 @@ SECURITY INVOKER
 SET search_path = pg_catalog, public, auth
 AS $function$
 BEGIN
-	IF current_setting('clipify.auth_cutover_backfill', true) = '1' OR NEW.email_verified IS NOT TRUE OR btrim(NEW.email) = '' THEN
+	IF NEW.email_verified IS NOT TRUE OR btrim(NEW.email) = '' THEN
 		RETURN NEW;
 	END IF;
 

@@ -41,10 +41,6 @@ const overlaysTable = {
 	playlistId: "overlays.playlist_id",
 	updatedAt: "overlays.updated_at",
 };
-const editorsTable = {
-	editorId: "editors.editor_id",
-	userId: "editors.user_id",
-};
 const playlistsTable = {
 	id: "playlists.id",
 	ownerId: "playlists.owner_id",
@@ -157,7 +153,6 @@ jest.mock("@/db/client", () => ({
 }));
 
 jest.mock("@/db/schema", () => ({
-	tokenTable: {},
 	usersTable,
 	overlaysTable,
 	playlistsTable,
@@ -166,7 +161,6 @@ jest.mock("@/db/schema", () => ({
 	queueTable: {},
 	settingsTable: {},
 	modQueueTable: {},
-	editorsTable,
 	twitchCacheTable: {},
 }));
 
@@ -180,11 +174,6 @@ jest.mock("@actions/twitch", () => ({
 	refreshAccessTokenWithContext: jest.fn(),
 	subscribeToReward,
 	syncOwnerClipCache: jest.fn(),
-}));
-
-jest.mock("@lib/tokenCrypto", () => ({
-	encryptToken: jest.fn((value: string) => value),
-	decryptToken: jest.fn((value: string) => value),
 }));
 
 jest.mock("@lib/featureAccess", () => ({
