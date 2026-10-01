@@ -1,0 +1,268 @@
+# Test Summary Report: Creator Identity and Access Rewrite
+
+**Feature**: [spec.md](./spec.md)  
+**Plan**: [plan.md](./plan.md)  
+**Traceability**: [test-traceability.md](./test-traceability.md)  
+**Defect Log**: [defect-log.md](./defect-log.md)  
+**Created**: 2026-09-27  
+**Last Updated**: 2026-09-29
+
+## Executive Summary
+
+| Item                         | Result                                                                           |
+| ---------------------------- | -------------------------------------------------------------------------------- |
+| Overall Test Status          | Green — 2× and production-shaped rehearsals complete with full editor accounting |
+| Release Recommendation       | Conditional Go for operator review                                               |
+| Scope Covered                | Planned coverage for US1–US6, FR-001–FR-031, SC-001–SC-012, EC-001–EC-015        |
+| Primary Evidence Location    | [test-traceability.md](./test-traceability.md) and story evidence below          |
+| Open Critical / High Defects | 0                                                                                |
+| Approved Exceptions          | 0                                                                                |
+| Deferred Tooling Defects     | 1 — PLAN-001 expires before the next feature plan                                |
+
+US1 continuity, atomic US2 Twitch onboarding, US3 authorization, US4 agency management, the US5 lifecycle core, the Better Auth credential switch, coverage, and both PostgreSQL rehearsals are Green. The production-shaped run accounted for all three legacy editor relationships as two Operations memberships and one approved deleted-account residue removal at successful reopen.
+
+The authenticated Chromium smoke harness uses uniquely prefixed, automatically cleaned rows in the disposable Infisical `dev` database for local runs (or the CI-supplied isolated database). It creates real revocable Better Auth sessions and signed HTTP-only cookies; the fixture route is unavailable unless both `APP_ENV=test` and `E2E_TEST_MODE=true` on loopback with the fixture bearer token.
+
+## US4 Agency Evidence
+
+| Date       | Command                                                                                             | Result | Evidence summary                                                                                                                                     |
+| ---------- | --------------------------------------------------------------------------------------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-09-28 | Three focused US4 Jest suites                                                                       | Green  | 3 suites, 67 tests; provisioning/link state, all-permission intersection, seat/grace/union/deletion release, and five deduplicated notice boundaries |
+| 2026-09-28 | `infisical run --env=dev -- bunx playwright test --project=atdd-chromium --grep "@US4" --workers=1` | Green  | 3/3 real UI/server journeys in 2.4 minutes: admin provisioning, creator approval, and paid allocation with persisted occupied-seat feedback          |
+| 2026-09-28 | `bun run test:bdd -- --grep "@US4"`                                                                 | Green  | 11/11 tagged scenarios; all 3 auth-rewrite agency journeys plus 8 existing legal US4 scenarios                                                       |
+| 2026-09-28 | `infisical run --env=dev -- bun run test:atdd --workers=1`                                          | Green  | 20/20 passed against the disposable development database, including the persisted-session US2 dashboard boundary                                     |
+| 2026-09-28 | Typecheck and focused entitlement/agency regression                                                 | Green  | Production database/actions/UI/scheduler and agency-funded entitlement integration typecheck; 4 suites/85 tests pass                                 |
+
+## Foundational Harness Evidence
+
+| Date       | Command                                                              | Result        | Evidence summary                                                                                                                                |
+| ---------- | -------------------------------------------------------------------- | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-09-27 | `bunx jest test/auth-engine-rewrite/harness.test.ts --runInBand`     | Pass          | 1 suite, 5 tests; PGlite reset, time/token boundaries, mail dedupe/redaction, Stripe signature, permission matrix, and Twitch negative fixtures |
+| 2026-09-27 | `bunx bddgen` with a temporary deliberately unmatched ATDD step      | Expected fail | Exit 1 with exactly one missing-step definition; probe was removed after evidence                                                               |
+| 2026-09-27 | `bunx bddgen`; `bunx playwright test --list --project=atdd-chromium` | Pass          | Generated ATDD output and discovered 1 deterministic harness scenario in 1 file                                                                 |
+| 2026-09-27 | `bun run app:typecheck`                                              | Pass          | New setup, fixture, and world modules type-check cleanly                                                                                        |
+
+## US2 Twitch Identity Evidence
+
+| Date       | Command                                                                                                                                                                                                          | Result                   | Evidence summary                                                                                                                                                                                |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-09-27 | `bunx jest test/auth-engine-rewrite/integration/twitch-identity.test.ts --runInBand` before implementation                                                                                                       | Expected Red             | Missing `src/auth/creator-onboarding.ts`; proved the production boundary did not exist                                                                                                          |
+| 2026-09-27 | Same focused command after schema/config/onboarding implementation                                                                                                                                               | Green                    | 1 suite, 10 tests; new and returning identity, verified-email sync, email-link rejection, missing/unverified claims, conflicts, retry idempotence, stable person/creator IDs, and rollback      |
+| 2026-09-27 | `bunx jest test/auth-engine-rewrite/contract/twitch-oauth.test.ts --runInBand`                                                                                                                                   | Green                    | 1 suite, 10 tests; exact provider success/error mapping, required scopes, invalid profiles, and secret redaction                                                                                |
+| 2026-09-27 | `bunx playwright test --project=bdd-chromium --grep "Twitch identity behavior"`                                                                                                                                  | Green                    | 6/6 US2 BDD examples passed; 1.4 minutes including isolated Next server startup                                                                                                                 |
+| 2026-09-27 | `bunx playwright test --project=atdd-chromium --grep "A creator starts onboarding"`                                                                                                                              | Green (partial boundary) | Real login page and Better Auth sign-in route produced the Twitch authorization URL, complete scopes, and `/api/auth/callback/twitch`; database-session/dashboard completion remains under T023 |
+| 2026-09-27 | `bun run app:typecheck`                                                                                                                                                                                          | Pass                     | Better Auth config, generated schema, Next handler, session DAL, domain schema, and migration type-check                                                                                        |
+| 2026-09-28 | `infisical run --env=dev -- bun run test:atdd --workers=1`                                                                                                                                                       | Green                    | 20/20 aggregate ATDD examples; ATDD-US2-001 covers the real login route, Twitch authorization contract, persisted Better Auth session, and protected dashboard in 1.4 minutes                   |
+| 2026-09-28 | `bun run test:bdd --workers=1`                                                                                                                                                                                   | Green                    | 69/69 aggregate BDD examples; all six US2 behavior examples and the corrected Twitch-login infrastructure smoke pass                                                                            |
+| 2026-09-29 | `infisical run --env=dev -- powershell -NoProfile -Command '$env:AUTH_CUTOVER_TEST_DATABASE_URL=$env:DATABASE_URL; bunx jest test/auth-engine-rewrite/migration/creator-onboarding-trigger.test.ts --runInBand'` | Green                    | 9/9 disposable-PostgreSQL cases; idempotent install, real pinned Better Auth adapter insertion, early/late rollback, retry/no-op, profile sync, non-Twitch isolation, and backfill suppression  |
+
+## US3 Central Authorization Evidence
+
+| Date       | Command                                                                                               | Result        | Evidence summary                                                                                                                                                                                          |
+| ---------- | ----------------------------------------------------------------------------------------------------- | ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-09-28 | `bunx jest test/auth-engine-rewrite/property/authorization.test.ts --runInBand` before implementation | Expected Red  | Missing `src/auth/authorize.ts`; proved the centralized production decision point did not exist                                                                                                           |
+| 2026-09-28 | Same focused command after permission and policy implementation                                       | Green         | 1 suite, 128 tests; every permission through owner/direct paths, agency intersection, ordered denial cases, exact five-minute freshness boundary, non-delegable actions, and denied-mutation immutability |
+| 2026-09-28 | Same focused command with a temporary no-access allow mutant                                          | Expected fail | The missing-membership case rejected the mutant; production deny-by-default behavior was immediately restored and the suite returned Green                                                                |
+| 2026-09-28 | `bunx tsc --noEmit`                                                                                   | Pass          | Permission catalogue, immutable standard roles, access grants, denial codes, and policy composition type-check cleanly                                                                                    |
+| 2026-09-28 | `bunx drizzle-kit check`; `git diff --check`                                                          | Pass          | Dynamic organization-role schema, uniqueness/delegability checks, and append-only secret-redacted audit migrations are internally consistent with no whitespace errors                                    |
+
+## US3 Invitation and Credential Evidence
+
+| Date       | Command                                                                                                           | Result       | Evidence summary                                                                                                                                                                                            |
+| ---------- | ----------------------------------------------------------------------------------------------------------------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-09-28 | `bunx jest test/auth-engine-rewrite/integration/invitation-credentials.test.ts --runInBand` before implementation | Expected Red | Missing `src/auth/invitations.ts`; proves the invitation acceptance boundary is not yet implemented                                                                                                         |
+| 2026-09-28 | Same focused command after domain and Better Auth plugin implementation                                           | Green        | 1 suite, 14 tests; normalized binding, exact seven-day expiry, one-token copy/email delivery, replay/revocation/role checks, atomic membership rollback, hashed ten-minute OTP policy, and passkey fallback |
+| 2026-09-28 | `bunx drizzle-kit check`; focused US3 suites; `bunx tsc --noEmit`                                                 | Pass         | Passkey table and unique credential constraint are migration-consistent; 142 focused authorization/credential tests and static typing pass                                                                  |
+| 2026-09-28 | `bunx playwright test --project=atdd-chromium --grep "owner delegates access"`                                    | Green        | 2/2 copy-link and optional-email acceptance examples; one token, verified-email acceptance, direct authorization, and under-three-minute outcome                                                            |
+
+## US3 Shared Security Control Evidence
+
+| Date       | Command                                                                                                      | Result       | Evidence summary                                                                                                                                                                     |
+| ---------- | ------------------------------------------------------------------------------------------------------------ | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 2026-09-28 | `bunx jest test/auth-engine-rewrite/integration/security-controls.test.ts --runInBand` before implementation | Expected Red | Missing `src/auth/rate-limit.ts`; proves shared abuse-control, durable outbox, and audit boundaries are not yet implemented                                                          |
+| 2026-09-28 | US3 focused Jest files; `bunx drizzle-kit check`; scoped ESLint; `bunx tsc --noEmit`                         | Green        | 3 suites and 160 tests; database schema consistency, changed-file lint, and static typing pass                                                                                       |
+| 2026-09-28 | `bunx playwright test --project=bdd-chromium --grep "@US3"`                                                  | Green        | 28/28 tagged scenarios passed; 24 auth rewrite cases plus four pre-existing legal US3-tagged cases                                                                                   |
+| 2026-09-28 | `bunx playwright test --project=atdd-chromium --grep "@US3"`                                                 | Green        | 2/2 delegation acceptance examples passed                                                                                                                                            |
+| 2026-09-28 | Protected-boundary and Team-only contract before retirement                                                  | Expected Red | 4 failures identified the database settings read/write path, runner enrollment table authorization, legacy settings UI, and missing backfill-completeness validator                  |
+| 2026-09-28 | Protected-boundary contract plus affected database suites after retirement                                   | Green        | Boundary contract 21/21; migration continuity 12/12; affected database harnesses 192/192; full repository 1,660/1,660; TypeScript passes. Legacy scan reports zero editor consumers. |
+
+## US1 Legacy Continuity Evidence
+
+| Date       | Command                                                                                                    | Result       | Evidence summary                                                                                                                                                                                                                           |
+| ---------- | ---------------------------------------------------------------------------------------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 2026-09-28 | `bunx jest test/auth-engine-rewrite/migration/legacy-continuity.test.ts --runInBand` before implementation | Expected Red | Missing `scripts/auth-cutover/backfill.ts`; proved the deterministic migration boundary did not exist                                                                                                                                      |
+| 2026-09-28 | Same focused command after ledger/backfill implementation                                                  | Green        | 1 suite, 10 tests; exact IDs/resources/subscriptions/entitlements, unique Twitch subjects, Operations parity, redacted anomalies, first-safe-auth binding, transaction rollback, rerun idempotence, and deterministic batch resume cursors |
+| 2026-09-28 | Focused editor-accounting guard before implementation                                                      | Expected Red | `validateEditorBackfill` was absent, proving the cutover had no executable completeness check for every legacy editor relationship                                                                                                         |
+| 2026-09-28 | Focused editor-accounting guard after implementation                                                       | Green        | 1 suite, 12 tests; migration may pause with redacted pending-safe-auth anomalies, but the strict removal gate fails until every legacy relationship is a validated Operations membership                                                   |
+| 2026-09-28 | `bunx drizzle-kit check`; `bunx tsc --noEmit`                                                              | Pass         | Migration ledger/checkpoint/anomaly constraints and implementation type-check are consistent                                                                                                                                               |
+
+## US1 Overlay Continuity Evidence
+
+| Date       | Command                                                                                                       | Result       | Evidence summary                                                                                                                                                                       |
+| ---------- | ------------------------------------------------------------------------------------------------------------- | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-09-28 | `bunx jest test/auth-engine-rewrite/integration/overlay-continuity.test.ts --runInBand` before implementation | Expected Red | Missing `src/server/overlay-runtime.ts`; proved the dashboard-independent runtime policy did not exist                                                                                 |
+| 2026-09-28 | Same focused command after runtime-policy implementation                                                      | Green        | 1 suite, 18 tests; HTTP and WebSocket behavior across valid, revoked, expired, absent, and unavailable dashboard-auth states; invalid secrets; suspension; exact URL/secret continuity |
+| 2026-09-28 | Focused continuity plus pre-existing database action fixtures                                                 | Green        | 4 suites, 167 tests; disabled-owner behavior and legacy public/secret lookup contracts retained at 100% fixture parity                                                                 |
+| 2026-09-28 | Scoped ESLint; `bunx tsc --noEmit`                                                                            | Pass         | Overlay runtime policy, shared server boundary, and action integration pass static checks without a Better Auth session dependency                                                     |
+
+## US1 Session Boundary Evidence
+
+| Date       | Command                                                                                            | Result       | Evidence summary                                                                                                                                                                        |
+| ---------- | -------------------------------------------------------------------------------------------------- | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-09-28 | `bunx jest test/auth-engine-rewrite/unit/legacy-session.test.ts --runInBand` before implementation | Expected Red | Missing `src/auth/session-boundary.ts`; proved the Better Auth-only dashboard boundary did not exist                                                                                    |
+| 2026-09-28 | Same focused command after boundary implementation                                                 | Green        | 1 suite, 15 tests; all legacy JWT states denied without parsing, live/revoked/expired database sessions, Twitch recovery, and isolated purpose-token issuers                            |
+| 2026-09-28 | Legacy auth/callback/logout and compatibility-facade regression fixtures                           | Green        | 6 suites, 44 tests; creator entrypoint redirects, bot OAuth state is purpose-bound, callback issues no dashboard JWT, and logout revokes Better Auth while clearing compatibility state |
+| 2026-09-28 | `bunx playwright test --project=atdd-chromium --grep "@US1"`                                       | Green        | 3/3 acceptance journeys passed for migration continuity, forced reauthentication, and overlay runtime continuity                                                                        |
+| 2026-09-28 | Focused US1 TDD suites; `bunx tsc --noEmit`; scoped ESLint                                         | Green        | 3 suites, 43 tests; ActorContext and route guard compile cleanly with no dashboard JWT acceptance or issuance                                                                           |
+
+## US6 Cutover Tooling Evidence
+
+| Date       | Command                                                                                                        | Result             | Evidence summary                                                                                                                                                                                                                                                                                  |
+| ---------- | -------------------------------------------------------------------------------------------------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-09-28 | `bunx jest test/auth-engine-rewrite/migration/cutover-state-machine.test.ts --runInBand` before implementation | Expected Red       | Missing cutover state-machine module proved the operational boundary did not exist                                                                                                                                                                                                                |
+| 2026-09-28 | Same focused command after state-machine implementation                                                        | Green              | 1 suite, 24 tests; CLI modes, credential-argument denial, legal/illegal transitions, fail-closed maintenance, transactional rollback, deterministic resumable cursors, rerun skip, and immutable checksum manifest                                                                                |
+| 2026-09-28 | Rerun-idempotency assertion with committed-key recognition                                                     | Green mutant guard | A rerun that ignored committed keys would write duplicate rows and fail the exact `[1, 2]` write assertion                                                                                                                                                                                        |
+| 2026-09-28 | `bunx jest test/auth-engine-rewrite/migration/invariants-and-tokens.test.ts --runInBand`                       | Green              | 1 suite, 11 tests; backup attestations, exact entity/runtime parity, unique Twitch subjects, legacy-AAD decrypt plus in-memory re-encryption, expiry/revocation, and serialized refresh                                                                                                           |
+| 2026-09-28 | `bunx jest test/auth-engine-rewrite/migration/fault-injection.test.ts --runInBand`                             | Green              | 1 suite, 12 tests; every checkpoint failure, fail-closed maintenance, redacted safe-next-action diagnostics, no auto restore, seven smoke classes, and all legacy-consumer finding classes                                                                                                        |
+| 2026-09-28 | Focused US6 migration suites                                                                                   | Green              | 3 suites, 47 tests; state machine, backup/invariants/token conversion, failure handling, smoke, and legacy scanning pass together                                                                                                                                                                 |
+| 2026-09-28 | `bunx playwright test --project=atdd-chromium --grep "@US6"`                                                   | Green              | 2/2 operator journeys pass: an apply plus idempotent rerun and a validated zero-legacy-runtime switch                                                                                                                                                                                             |
+| 2026-09-28 | `bunx playwright test --project=bdd-chromium --grep "@US6"`                                                    | Green              | 10/10 behavior scenarios pass: all eight checkpoints are exhaustively covered, restore remains explicit, and revoked credentials preserve ownership                                                                                                                                               |
+| 2026-09-29 | Database-backed migration suite against backed-up disposable development PostgreSQL                            | Green              | 9 suites, 94 tests; real CLI modes, guarded PostgreSQL seeding, transactional onboarding triggers, persisted maintenance/checkpoints, accepted orphan-editor pruning at reopen, signed manifest, fail-closed reopen, encrypted Better Auth credentials, serialized refresh, and rerun idempotence |
+| 2026-09-29 | Focused US6 BDD and ATDD                                                                                       | Green              | 10/10 BDD and 2/2 ATDD operator scenarios pass                                                                                                                                                                                                                                                    |
+| 2026-09-29 | `bun run auth:legacy-check`                                                                                    | Green              | Zero production editor-authority and zero custom Twitch-refresh consumers                                                                                                                                                                                                                         |
+| 2026-10-01 | Complete cutover against the actual remote development database                                                | Green              | Verified backup and restore drill; schema alignment; dry-run/apply/resume/validate/legacy scan; approved smoke/reopen; repeated smoke; direct persisted-state verification with 3 creators, 1 Operations membership, 3 credentials, and zero blocking anomalies                                   |
+
+## US5 Lifecycle Evidence
+
+| Date       | Command                                                                                                           | Result             | Evidence summary                                                                                                                                                                                           |
+| ---------- | ----------------------------------------------------------------------------------------------------------------- | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-09-28 | `bunx jest test/auth-engine-rewrite/property/non-destructive-downgrade.test.ts --runInBand` before implementation | Expected Red       | Missing downgrade-effects module proved the retained-data capability boundary did not exist                                                                                                                |
+| 2026-09-28 | Focused downgrade plus legacy entitlement fixtures                                                                | Green              | 2 suites, 27 tests; resources retained across free/paid sources, unsupported operations become read-only, runner activity pauses without deletion, and the delete adapter is never invoked                 |
+| 2026-09-28 | Zero-delete deliberate mutant assertion                                                                           | Green mutant guard | Any downgrade implementation that invokes the supplied delete adapter fails the explicit zero-call assertion                                                                                               |
+| 2026-09-28 | `bunx jest test/auth-engine-rewrite/integration/account-lifecycle.test.ts --runInBand`                            | Green              | 1 suite, 13 tests; owner operations, exact five-minute confirmation, paid-through/immediate choice, Stripe ordering, compare-and-set transitions, immutable audit outcomes, and retention                  |
+| 2026-09-28 | `bunx jest test/auth-engine-rewrite/integration/deletion-notifications.test.ts --runInBand`                       | Green              | 1 suite, 8 tests; exact 30-day boundary, authenticated recovery, staged deduplicated intents, secret-free templates, dependency-ordered idempotent purge, and no auto restore                              |
+| 2026-09-28 | Focused US5 TDD suites                                                                                            | Green              | 3 suites, 30 tests including non-destructive downgrade and stale lifecycle-transition rejection; TypeScript passes                                                                                         |
+| 2026-09-28 | `infisical run --env=dev -- bunx playwright test --project=atdd-chromium --grep "@US5" --workers=1`               | Green              | 8/8 real UI/server owner lifecycle examples passed in 3.8 minutes against the disposable development database: update, export, cancellation, both recovery boundaries, recovery, and both deletion choices |
+| 2026-09-28 | `bunx playwright test --project=bdd-chromium --grep "@US5"`                                                       | Green              | 7/7 owner-only denial and staged notice examples passed                                                                                                                                                    |
+| 2026-09-28 | Deletion-boundary deliberate mutant assertion                                                                     | Green mutant guard | Changing exact-boundary eligibility from `>=` to `>` fails the at-boundary assertion                                                                                                                       |
+| 2026-09-28 | Focused lifecycle production-adapter regression                                                                   | Green              | 7 suites, 89 tests; central suspended-account denial, recovery-only routing, overlay pause, Stripe timestamp propagation, deletion choices, and UI-facing action validation pass                           |
+
+Stripe remains the sole sender for receipts, invoices, payment-failure notices, and subscription-cancellation mail. Clipify records authenticated Stripe lifecycle events and sends only product/access, deletion, and recovery notifications, so cancellation messaging is not duplicated across systems.
+
+The 30-day boundary establishes purge eligibility rather than unconditional erasure. Final purge remains subject to applicable legal retention, a minimal lawful audit tombstone, and retention exceptions recorded in the purge manifest. Those policy exceptions and production-shaped purge rehearsal remain residual release risks covered by T182–T185; the US5 self-service gate does not authorize automatic backup restore or premature deletion.
+
+## Checkpoint Regression Evidence
+
+| Date       | Command                                       | Result | Evidence summary                                                                                                                                                                                                           |
+| ---------- | --------------------------------------------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-09-28 | Focused proxy and database action suites      | Green  | 10 suites and 299 tests; legacy Drizzle mocks expose relation metadata and proxy tests isolate the Better Auth ActorContext boundary                                                                                       |
+| 2026-09-28 | `bun run test`                                | Green  | 176 suites and 1,537 tests; full mandatory pre-push repository regression passes                                                                                                                                           |
+| 2026-09-28 | `infisical run --env=dev -- bun run test:e2e` | Green  | Segmented aggregate completed 95/95 scenarios: acceptance 4/4, ATDD 20/20, BDD 69/69, and compliance 2/2. Each project received a fresh Next.js test server after the original one-process gate exposed heap accumulation. |
+| 2026-09-29 | `bun run test`                                | Green  | Final pre-push regression passed 189 suites and 1,717 tests; 4 suites / 23 real-database tests remained intentionally environment-gated                                                                                    |
+
+## Performance Evidence
+
+| Date       | Environment                | Metric                        | Iterations | p50       | p95       | Max        | Threshold  | Result |
+| ---------- | -------------------------- | ----------------------------- | ---------- | --------- | --------- | ---------- | ---------- | ------ |
+| 2026-09-28 | Bun 1.4.2, Windows x64     | Local authorization           | 2,000      | 0.0002 ms | 0.0013 ms | 0.0266 ms  | 100 ms     | Green  |
+| 2026-09-28 | Isolated in-memory PGlite  | Database session resolution   | 500        | 0.3848 ms | 0.5731 ms | 16.7416 ms | 200 ms     | Green  |
+| 2026-09-28 | Deterministic repositories | Twitch onboarding journey     | 100        | 0.0026 ms | 0.0139 ms | 0.0248 ms  | 180,000 ms | Green  |
+| 2026-09-28 | Deterministic repositories | Invitation acceptance journey | 100        | 0.0065 ms | 0.0177 ms | 0.0339 ms  | 180,000 ms | Green  |
+
+Command: `bun run test:auth-performance`. The database metric performs a real indexed join in a fresh isolated PostgreSQL-compatible PGlite database; journey metrics intentionally exclude external provider/network latency and prove the deterministic application boundary only.
+
+## Scope and References
+
+| Report / Artifact          | Location                                       | Purpose                                                     |
+| -------------------------- | ---------------------------------------------- | ----------------------------------------------------------- |
+| Test Plan                  | [plan.md](./plan.md)                           | Strategy, tools, environments, gates, thresholds, retention |
+| Inventory and Traceability | [test-traceability.md](./test-traceability.md) | Artifacts, source mappings, examples, applicability, gates  |
+| Defect Log                 | [defect-log.md](./defect-log.md)               | Triage, risk, verification closure                          |
+| CI / Raw Evidence          | N/A                                            | Not run at planning stage                                   |
+
+## Test Scope
+
+| Source ID     | Source Type             | Included? | Evidence Summary                                    | Exclusions / N/A Rationale |
+| ------------- | ----------------------- | --------- | --------------------------------------------------- | -------------------------- |
+| US1–US6       | User Stories            | Yes       | 18 TDD artifacts; 14 ATDD and 16 BDD base scenarios | None                       |
+| FR-001–FR-031 | Functional Requirements | Yes       | Complete grouped mapping in Source Coverage Map     | None                       |
+| SC-001–SC-012 | Success Criteria        | Yes       | ATDD/rehearsal/metric mappings                      | None                       |
+| EC-001–EC-015 | Edge Cases              | Yes       | Negative/boundary TDD and scenario mappings         | None                       |
+
+## Execution Summary
+
+| Suite / Gate    | Required? | Command / CI Job                                                                      | Planned                                  | Passed | Failed | Blocked | Evidence Link                |
+| --------------- | --------- | ------------------------------------------------------------------------------------- | ---------------------------------------- | ------ | ------ | ------- | ---------------------------- |
+| TDD             | Required  | `bunx jest test/auth-engine-rewrite --runInBand`                                      | 21 artifacts                             | 21     | 0      | 0       | Migration suite 94/94        |
+| BDD             | Required  | `bun run test:bdd`                                                                    | 16 base / 38 expanded examples           | 69     | 0      | 0       | T176 aggregate E2E           |
+| ATDD            | Required  | `infisical run --env=dev -- bunx playwright test --project=atdd-chromium --workers=1` | 14 base / 19 expanded examples           | 20     | 0      | 0       | 2026-09-29 stable local gate |
+| Coverage        | Required  | `bun run test:coverage`; `bun run test:auth:coverage`                                 | Global baseline + changed-code threshold | 2      | 0      | 0       | T177/T200 Green              |
+| Lint / Format   | Required  | `bun run app:lint`; `bun run app:prettier:check`                                      | Both pass                                | 2      | 0      | 0       | 4 unchanged image warnings   |
+| Static Analysis | Required  | `bun run app:typecheck`                                                               | Pass                                     | 1      | 0      | 0       | 2026-09-29                   |
+| Security        | Required  | `bun audit --audit-level=high` + negative authorization tests                         | No unaccepted high/critical              | 1      | 0      | 0       | AUTH-019 verified            |
+| Runtime Smoke   | Required  | acceptance/E2E + cutover smoke                                                        | All pass, 100% overlay parity            | 95     | 0      | 0       | T176 aggregate E2E           |
+| Performance     | Required  | `bun run test:auth-performance`                                                       | p95 thresholds and both journeys <3 min  | 4      | 0      | 0       | Performance Evidence         |
+
+## Coverage and Traceability Summary
+
+| Coverage Area                    | Result | Evidence                         | Gap / Exception       |
+| -------------------------------- | ------ | -------------------------------- | --------------------- |
+| TDD inventory completeness       | Pass   | Registry and Source Coverage Map | No required US6 skip  |
+| Requirement-to-test mapping      | Pass   | Source Coverage Map              | None                  |
+| BDD/ATDD scenario coverage       | Pass   | 57 expanded Scenario Matrix rows | Focused US6 Green     |
+| Coverage thresholds and baseline | Pass   | Quality Gate Results             | T177/T200 Green       |
+| Quality gate completeness        | Pass   | Quality Gate Results             | Both rehearsals Green |
+
+## Defect Summary
+
+| Severity | Open | Fixed Awaiting Verification | Verified | Deferred / Accepted | Release Impact                            |
+| -------- | ---- | --------------------------- | -------- | ------------------- | ----------------------------------------- |
+| Critical | 0    | 0                           | 1        | 0                   | AUTH-016 verified                         |
+| High     | 0    | 0                           | 3        | 0                   | AUTH-006, AUTH-017, and AUTH-019 verified |
+| Medium   | 0    | 0                           | 6        | 0                   | Verified implementation/test fixes        |
+| Low      | 0    | 0                           | 10       | 1                   | PLAN-001 deferred; AUTH-018 verified      |
+
+## Risks, Exceptions, and Limitations
+
+| ID       | Type                              | Description                                                                            | Impact                                                       | Mitigation / Compensating Evidence                                                           | Owner                     | Expiry / Follow-up       |
+| -------- | --------------------------------- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------ | -------------------------------------------------------------------------------------------- | ------------------------- | ------------------------ |
+| RISK-001 | Resolved implementation risk      | Legacy token ciphertext may not match Better Auth encrypted account storage            | Could force Twitch relinking or block cutover                | Exact-version conversion, encrypted account storage, refresh spike, and both rehearsals pass | Auth implementation owner | Verified 2026-09-29      |
+| RISK-002 | Resolved data-loss risk           | Legacy downgrade reconciliation deleted excess resources                               | Could have destroyed creator data during access changes      | Non-destructive gating plus property and deliberate-mutant checks are Green                  | Entitlement owner         | Verified 2026-09-28      |
+| RISK-003 | Migration identity risk           | Legacy editor IDs may have no retained Clipify Creator Profile                         | Cannot safely create active membership for a deleted account | Migrate retained profiles; audit and prune deleted-profile residue only at successful reopen | Migration owner           | Verified 2026-09-29      |
+| PLAN-001 | Tooling defect                    | Template resolver missed installed preset templates                                    | No product impact                                            | Used exact installed templates; repair resolver separately                                   | SpecKit tooling owner     | Before next feature plan |
+| AUTH-016 | Resolved transaction risk         | New Twitch OAuth account insertion must atomically provision Clipify creator ownership | A regression could create an unusable authenticated creator  | Keep TDD-US2-003 and the transactional trigger installation in every cutover rehearsal       | Auth implementation owner | Verified 2026-09-29      |
+| AUTH-017 | Resolved data-readiness risk      | One legacy editor subject had no retained Clipify Creator Profile                      | Fabricating identity would violate safe binding              | Audited accepted prune at successful reopen; owner-missing rows still block                  | Migration/product owner   | Verified 2026-09-29      |
+| AUTH-018 | Resolved test-infrastructure risk | Parallel local ATDD overloaded the shared disposable database                          | Could create false timeout failures                          | Infisical-backed single-worker command passes 20/20                                          | Test infrastructure owner | Verified 2026-09-29      |
+| AUTH-019 | Resolved dependency risk          | Transitive `fast-uri@3.1.6` gained two High advisories                                 | Blocked the security gate                                    | Compatible lockfile update to 3.1.8; clean High audit                                        | Dependency owner          | Verified 2026-09-29      |
+
+## Environment and Tooling
+
+| Area               | Value                                                                                                                                    |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Runtime / Platform | TypeScript 6, Bun tooling, Node standalone Next.js 16.3.6, PostgreSQL                                                                    |
+| Test Tools         | Jest 30, PGlite, Playwright 1.63, playwright-bdd 9.2, fast-check                                                                         |
+| Test Data          | Verified production-shaped restore plus a fully Green 2× synthetic PostgreSQL restore/cutover; raw data and manifests remain outside Git |
+| External Services  | Mocked for deterministic tests; test-mode Twitch/Stripe/UseSend for contract/smoke only                                                  |
+| Build / Commit     | Production build and 82-file server-action manifest Green on 2026-09-29                                                                  |
+
+## Release Recommendation
+
+**Conditional Go for operator review; production remains unexecuted.** Core behavior, coverage, credential conversion, byte-for-byte protected-data preservation, the full 2× cutover, and the production-shaped cutover are Green. All three source editor relationships are explained: two migrated to Operations and one deleted-account residue was removed only at successful reopen. Final production execution still requires the documented maintenance window, fresh backup/attestation, one-shot operator approvals, and manual observations; this evidence does not itself authorize a production database operation.
+
+## Approvals
+
+| Role          | Decision       | Name / Date        | Notes                                                                                |
+| ------------- | -------------- | ------------------ | ------------------------------------------------------------------------------------ |
+| Product owner | Approved       | User / 2026-09-29  | Approved the stale deleted-editor disposition and implementation scope               |
+| Engineering   | Conditional Go | Codex / 2026-09-29 | Automated implementation and rehearsal gates are Green                               |
+| Operations    | Pending        | N/A                | Review the maintenance, fresh-backup, restore, and cutover runbook before production |
+| Release owner | Pending        | N/A                | Production execution remains a separate operator decision                            |
+
+## Required Checks
+
+- [x] Report reflects verified implementation/rehearsal evidence and does not claim production execution.
+- [x] Scope/counts match `test-traceability.md`.
+- [x] Defect counts match `defect-log.md`.
+- [x] Risks identify owner and closure point.
+- [x] Recommendation follows missing-evidence policy.
+- [x] Required gates have current commands, counts, and retained evidence references.

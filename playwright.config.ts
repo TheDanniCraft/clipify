@@ -4,9 +4,19 @@ import { defineBddConfig } from "playwright-bdd";
 const baseURL = "http://127.0.0.1:3107";
 const bddTestDir = defineBddConfig({
 	features: "test/bdd/features/**/*.feature",
-	steps: "test/bdd/steps/**/*.ts",
+	steps: ["test/bdd/steps/**/*.ts", "test/bdd/support/**/*.ts"],
 	featuresRoot: "test/bdd/features",
-	outputDir: ".features-gen",
+	outputDir: ".features-gen/bdd",
+	language: "en",
+	missingSteps: "fail-on-gen",
+	arityCheck: true,
+	quotes: "double",
+});
+const atddTestDir = defineBddConfig({
+	features: "test/atdd/features/**/*.feature",
+	steps: ["test/atdd/steps/**/*.ts", "test/atdd/support/**/*.ts"],
+	featuresRoot: "test/atdd/features",
+	outputDir: ".features-gen/atdd",
 	language: "en",
 	missingSteps: "fail-on-gen",
 	arityCheck: true,
@@ -42,6 +52,12 @@ export default defineConfig({
 			use: chromium,
 		},
 		{
+			name: "atdd-chromium",
+			testDir: atddTestDir,
+			timeout: 180_000,
+			use: chromium,
+		},
+		{
 			name: "bdd-chromium",
 			testDir: bddTestDir,
 			use: chromium,
@@ -63,13 +79,17 @@ export default defineConfig({
 		timeout: 120_000,
 		env: {
 			APP_ENV: "test",
-			DATABASE_URL: "postgresql://clipify_e2e:clipify_e2e@127.0.0.1:1/clipify_e2e",
+			// CI supplies an isolated database directly. Local authenticated acceptance
+			// runs may opt into the disposable Infisical dev database; the unreachable
+			// fallback keeps public/browser-only suites from touching any database.
+			DATABASE_URL: process.env.DATABASE_URL ?? "postgresql://clipify_e2e:clipify_e2e@127.0.0.1:1/clipify_e2e",
 			DISABLE_BACKGROUND_JOBS: "true",
 			E2E_TEST_MODE: "true",
 			ENCRYPTION_SECRET: "clipify-e2e-encryption-secret-not-for-production",
 			JWT_SECRET: "clipify-e2e-jwt-secret-not-for-production",
 			NEXT_PUBLIC_BASE_URL: baseURL,
 			NEXT_PUBLIC_PLAUSIBLE_SCRIPT_NAME: "clipify-e2e",
+			NODE_OPTIONS: process.env.NODE_OPTIONS ?? "--max-old-space-size=6144",
 			RUNNER_ARTIFACT_SOURCE: "local",
 			SENTRY_AUTH_TOKEN: "",
 			SENTRY_DSN: "",

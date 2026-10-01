@@ -9,6 +9,18 @@ const resolveUserEntitlements = jest.fn();
 const getFeatureAccess = jest.fn();
 const canResolvePublicClipPlayback = jest.fn();
 const revalidatePath = jest.fn();
+const authorizeCreatorOperation = jest.fn(async ({ creatorId }: { creatorId: string }) => {
+	const actor = await validateAuth();
+	if (!actor) return { allowed: false, code: "AUTHENTICATION_REQUIRED" };
+	if (actor.id !== creatorId && !((selectResults.shift() as unknown[]) ?? []).length) return { allowed: false, code: "ACCESS_PATH_REQUIRED" };
+	return { allowed: true, accessPath: actor.id === creatorId ? "owner" : "direct", creator: { ...actor, id: creatorId }, authUserId: actor.id, sessionId: "test", creatorOrganizationId: `org:${creatorId}` };
+});
+const listAuthorizedCreatorOperations = jest.fn(async () => {
+	const actor = await validateAuth();
+	if (!actor) return [];
+	const managed = ((selectResults.shift() as Array<{ ownerId?: string; userId?: string }>) ?? []).map((row) => row.ownerId ?? row.userId).filter((id): id is string => Boolean(id));
+	return [actor.id, ...managed.filter((id) => id !== actor.id)].map((id) => ({ allowed: true, accessPath: id === actor.id ? "owner" : "direct", creator: { ...actor, id }, authUserId: actor.id, sessionId: "test", creatorOrganizationId: `org:${id}` }));
+});
 
 const selectResults: unknown[] = [];
 const insertedRows: unknown[][] = [];
@@ -55,6 +67,7 @@ jest.mock("@lib/entitlements", () => ({ resolveUserEntitlements: (...args: unkno
 jest.mock("@lib/featureAccess", () => ({ getFeatureAccess: (...args: unknown[]) => getFeatureAccess(...args) }));
 jest.mock("@actions/rateLimit", () => ({ canResolvePublicClipPlayback: (...args: unknown[]) => canResolvePublicClipPlayback(...args) }));
 jest.mock("next/cache", () => ({ revalidatePath: (...args: unknown[]) => revalidatePath(...args) }));
+jest.mock("@/auth/authorize-operation", () => ({ authorizeCreatorOperation: (input: { creatorId: string }) => authorizeCreatorOperation(input), listAuthorizedCreatorOperations: () => listAuthorizedCreatorOperations() }));
 
 const gallery = (patch: Partial<Gallery> = {}): Gallery => ({
 	id: "gallery-1",
@@ -144,7 +157,7 @@ describe("gallery actions", () => {
 		const rows = [gallery(), gallery({ id: "gallery-2", ownerId: "managed" })];
 		queueSelect([{ ownerId: "managed" }, { ownerId: "managed" }, { ownerId: "owner" }], rows);
 		await expect(getAllGalleries("owner")).resolves.toEqual(rows);
-		expect(dbSelect).toHaveBeenCalledTimes(2);
+		expect(dbSelect).toHaveBeenCalledTimes(1);
 	});
 
 	it("requires owner or editor access and resolves owner entitlements", async () => {
@@ -157,15 +170,25 @@ describe("gallery actions", () => {
 		await expect(getGallery("gallery-1")).resolves.toBeNull();
 
 		validateAuth.mockResolvedValue({ id: "editor", plan: "free" });
-		queueSelect([gallery()], [{ userId: "owner" }], [{ plan: "pro" }]);
+		authorizeCreatorOperation.mockResolvedValueOnce({ allowed: true, accessPath: "direct", creator: { id: "owner", plan: "pro" }, authUserId: "editor", sessionId: "test", creatorOrganizationId: "org:owner" });
+		selectResults.length = 0;
+		queueSelect([gallery()], [{ plan: "pro" }]);
 		resolveUserEntitlements.mockResolvedValueOnce({ effectivePlan: "pro" });
 		await expect(getGallery("gallery-1")).resolves.toEqual(gallery());
 		expect(resolveUserEntitlements).toHaveBeenCalledWith({ id: "owner", plan: "pro" });
 	});
 
+	it("keeps managed gallery access Free when the owner record disappears", async () => {
+		const { getGallery } = await loadActions();
+		validateAuth.mockResolvedValue({ id: "editor", plan: "free" });
+		queueSelect([gallery()], [{ userId: "owner" }], []);
+		await expect(getGallery("gallery-1")).resolves.toEqual(gallery());
+		expect(resolveUserEntitlements).not.toHaveBeenCalled();
+	});
+
 	it("builds owner previews for live Free galleries with downgrade and attribution", async () => {
 		const { getGalleryPreview } = await loadActions();
-		queueSelect([gallery({ liveResultLimit: 99, liveSort: "stable_random", accentColor: "#123456" })], [{ username: "Alice" }]);
+		queueSelect([gallery({ liveResultLimit: 99, liveSort: "stable_random", accentColor: "#123456" })], [{ plan: "free" }], [{ username: "Alice" }]);
 		const result = await getGalleryPreview("gallery-1");
 		expect(result).toMatchObject({ ownerName: "Alice", showAttribution: true, canUseAdvanced: false });
 		expect(result?.gallery).toMatchObject({ liveResultLimit: 50, liveSort: "newest", accentColor: "#7C3AED" });
@@ -227,6 +250,17 @@ describe("gallery actions", () => {
 		expect(getPlaylistClipsForOwnerServer).toHaveBeenLastCalledWith("owner", "playlist");
 	});
 
+	it("rejects an inaccessible draft playlist and a missing draft clip", async () => {
+		const { getGalleryDraftPreview, getGalleryPreviewPlayer } = await loadActions();
+		queueSelect([gallery({ source: "live" })], []);
+		getFeatureAccess.mockReturnValueOnce({ allowed: true });
+		await expect(getGalleryDraftPreview("gallery-1", { source: "curated", playlistId: "foreign" })).resolves.toBeNull();
+
+		queueSelect([gallery({ source: "curated", playlistId: null })], [{ username: "Alice" }]);
+		getFeatureAccess.mockReturnValueOnce({ allowed: true });
+		await expect(getGalleryPreviewPlayer("gallery-1", "missing")).resolves.toBeNull();
+	});
+
 	it("rejects unauthorized gallery creation", async () => {
 		const { createGallery } = await loadActions();
 		validateAuth.mockResolvedValueOnce(null);
@@ -239,15 +273,16 @@ describe("gallery actions", () => {
 
 	it("enforces the Free creation limit and creates a normalized default gallery", async () => {
 		const { createGallery } = await loadActions();
-		queueSelect([{ id: "existing" }]);
+		authorizeCreatorOperation.mockResolvedValueOnce({ allowed: true, accessPath: "owner", creator: { id: "owner", plan: "free" }, authUserId: "owner", sessionId: "test", creatorOrganizationId: "org:owner" });
+		queueSelect([{ plan: "free" }], [{ id: "existing" }]);
 		await expect(createGallery("owner")).rejects.toThrow("Free plan allows one gallery");
 
-		queueSelect([]);
+		authorizeCreatorOperation.mockResolvedValueOnce({ allowed: true, accessPath: "owner", creator: { id: "owner", plan: "free" }, authUserId: "owner", sessionId: "test", creatorOrganizationId: "org:owner" });
+		queueSelect([{ plan: "free" }], []);
 		insertedRows.push([gallery({ name: "My clip gallery" })]);
 		await expect(createGallery("owner", "   ")).resolves.toMatchObject({ name: "My clip gallery" });
 		expect(dbInsert).toHaveBeenCalled();
 		expect(dbExecute).toHaveBeenCalledTimes(2);
-		expect(dbExecute.mock.invocationCallOrder[0]).toBeLessThan(dbSelect.mock.invocationCallOrder[0]);
 	});
 
 	it("lets direct and managed Pro owners create multiple galleries", async () => {
@@ -294,6 +329,14 @@ describe("gallery actions", () => {
 		getFeatureAccess.mockReturnValueOnce({ allowed: true });
 		updatedRows.push([]);
 		await expect(saveGallery("gallery-1", { source: "curated", playlistId: "playlist", published: true })).resolves.toBeNull();
+	});
+
+	it("authorizes an explicit publication-state change", async () => {
+		const { saveGallery } = await loadActions();
+		const unpublished = gallery({ published: false });
+		queueSelect([gallery()]);
+		updatedRows.push([unpublished]);
+		await expect(saveGallery("gallery-1", { published: false })).resolves.toEqual(unpublished);
 	});
 
 	it("returns null when saving without access", async () => {
@@ -352,6 +395,12 @@ describe("gallery actions", () => {
 		resolveUserEntitlements.mockResolvedValueOnce({ effectivePlan: "pro" });
 		getTwitchClipPlaybackUrl.mockRejectedValueOnce(new Error("failed"));
 		await expect(getPublicGalleryPlayer("gallery-1", "a")).resolves.toMatchObject({ playbackUrl: null });
+	});
+
+	it("returns null when the public gallery bundle is unavailable", async () => {
+		const { getPublicGalleryPlayer } = await loadActions();
+		queueSelect([]);
+		await expect(getPublicGalleryPlayer("gallery-1", "a")).resolves.toBeNull();
 	});
 
 	it("authorizes uncached public playback against the gallery owner's budget", async () => {

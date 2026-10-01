@@ -4,6 +4,7 @@ import { PgDialect } from "drizzle-orm/pg-core";
 
 const selectExecute = jest.fn();
 const deleteExecute = jest.fn();
+const updateExecute = jest.fn();
 
 const queryBuilder = {
 	from: jest.fn(),
@@ -25,12 +26,21 @@ const deleteBuilder = {
 
 deleteBuilder.where.mockImplementation(() => deleteBuilder);
 
+const updateBuilder = {
+	set: jest.fn(),
+	where: jest.fn(),
+	execute: (...args: unknown[]) => updateExecute(...args),
+};
+updateBuilder.set.mockImplementation(() => updateBuilder);
+updateBuilder.where.mockImplementation(() => updateBuilder);
+
 const db = {
 	select: jest.fn(() => queryBuilder),
 	transaction: jest.fn(),
 	execute: jest.fn(),
 	insert: jest.fn(),
 	delete: jest.fn(() => deleteBuilder),
+	update: jest.fn(() => updateBuilder),
 };
 
 jest.mock("@/db/client", () => ({
@@ -48,6 +58,7 @@ describe("lib/entitlements", () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
 		selectExecute.mockResolvedValue([]);
+		updateExecute.mockResolvedValue({ rowCount: 1 });
 		process.env.ENTITLEMENTS_HYBRID_ENABLED = "1";
 	});
 
@@ -307,46 +318,13 @@ describe("lib/entitlements", () => {
 		selectExecute.mockResolvedValue([shorter, longer]);
 		await expect(getActiveEntitlementGrant("u1", "runner_access" as any, now)).resolves.toBe(longer);
 	});
-	it("reconciles free constraints with multiple overlays and playlists", async () => {
-		const { reconcileFreeConstraintsIfNeeded } = await loadEntitlements();
+	it("records a free-plan capability reconciliation without deleting data", async () => {
+		const { recordFreeCapabilityReconciliation } = await loadEntitlements();
 		const user = { id: "u1", plan: Plan.Free };
-		const entitlements = { effectivePlan: "free" } as Parameters<typeof reconcileFreeConstraintsIfNeeded>[1];
-
-		const makeChain = (data: unknown) => ({
-			from: jest.fn(() => ({
-				where: jest.fn(() => ({
-					orderBy: jest.fn(() => ({
-						execute: jest.fn().mockResolvedValue(data),
-					})),
-				})),
-			})),
-		});
-
-		const tx = {
-			select: jest
-				.fn()
-				.mockReturnValueOnce(
-					makeChain([
-						{ id: "o1", createdAt: new Date(1) },
-						{ id: "o2", createdAt: new Date(2) },
-					]),
-				) // overlays select
-				.mockReturnValueOnce(
-					makeChain([
-						{ id: "p1", createdAt: new Date(1) },
-						{ id: "p2", createdAt: new Date(2) },
-					]),
-				) // playlists select
-				.mockReturnValueOnce(makeChain(new Array(60).fill({ clipId: "c" }))), // clips select
-			delete: jest.fn(() => ({ where: jest.fn(() => ({ execute: jest.fn().mockResolvedValue({ rowCount: 1 }) })), execute: jest.fn() })),
-			update: jest.fn(() => ({ set: jest.fn(() => ({ where: jest.fn(() => ({ execute: jest.fn().mockResolvedValue({ rowCount: 1 }) })) })) })),
-			execute: jest.fn(),
-		};
-
-		db.transaction.mockImplementationOnce(async (callback: (tx: unknown) => unknown) => callback(tx));
-
-		await reconcileFreeConstraintsIfNeeded(user as PartialUser as any, entitlements);
-		expect(tx.delete).toHaveBeenCalledTimes(4);
+		const entitlements = { effectivePlan: "free" } as Parameters<typeof recordFreeCapabilityReconciliation>[1];
+		await recordFreeCapabilityReconciliation(user as PartialUser as any, entitlements);
+		expect(db.update).toHaveBeenCalledTimes(1);
+		expect(db.transaction).not.toHaveBeenCalled();
 	});
 
 	it("hasActiveProGrant returns false when hybrid disabled", async () => {

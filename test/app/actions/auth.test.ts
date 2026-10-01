@@ -10,6 +10,8 @@ const dbInsert = jest.fn();
 const dbUpdate = jest.fn();
 const verifyToken = jest.fn();
 const resolveUserEntitlements = jest.fn();
+const getAuthActorContext = jest.fn();
+const isAuthCutoverMaintenanceActive = jest.fn();
 
 jest.mock("jsonwebtoken", () => ({
 	__esModule: true,
@@ -50,6 +52,7 @@ jest.mock("@/db/schema", () => ({
 }));
 
 jest.mock("drizzle-orm", () => ({
+	relations: jest.fn(() => ({})),
 	and: (...args: unknown[]) => ({ op: "and", args }),
 	eq: (...args: unknown[]) => ({ op: "eq", args }),
 	isNull: (...args: unknown[]) => ({ op: "isNull", args }),
@@ -62,6 +65,14 @@ jest.mock("@actions/twitch", () => ({
 
 jest.mock("@lib/entitlements", () => ({
 	resolveUserEntitlements: (...args: unknown[]) => resolveUserEntitlements(...args),
+}));
+
+jest.mock("@/auth/session", () => ({
+	getAuthActorContext: (...args: unknown[]) => getAuthActorContext(...args),
+}));
+
+jest.mock("@/server/maintenance", () => ({
+	isAuthCutoverMaintenanceActive: (...args: unknown[]) => isAuthCutoverMaintenanceActive(...args),
 }));
 
 let cookieValues: Record<string, string> = {};
@@ -92,6 +103,7 @@ async function loadAuth() {
 describe("actions/auth", () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
+		isAuthCutoverMaintenanceActive.mockResolvedValue(false);
 		process.env.JWT_SECRET = "jwt-secret";
 		cookieValues = {};
 		cookieSet = jest.fn();
@@ -118,6 +130,20 @@ describe("actions/auth", () => {
 			}),
 		});
 		getBaseUrl.mockResolvedValue(new URL("https://clipify.us"));
+		getAuthActorContext.mockImplementation(async () => {
+			const encoded = cookieValues.token;
+			if (!encoded) return null;
+			let payload: { id?: string };
+			try {
+				payload = verify(encoded) as { id?: string };
+			} catch {
+				return null;
+			}
+			if (!payload.id) return null;
+			const rows = await dbSelect().from().where().limit().execute();
+			const user = rows[0];
+			return user ? { authUserId: "auth-user-1", sessionId: "session-1", authenticatedAt: new Date(), creatorId: payload.id, activeOrganizationId: null, accountStatus: "active", user } : null;
+		});
 	});
 
 	it("reads cookie values and returns null for missing cookies", async () => {
@@ -127,15 +153,12 @@ describe("actions/auth", () => {
 		await expect(getCookie("missing")).resolves.toBeNull();
 	});
 
-	it("parses authenticated users from jwt and handles verification failures", async () => {
+	it("never parses legacy dashboard JWT cookies", async () => {
 		verify.mockReturnValue({ id: "user-1", username: "alice" });
 		const { getUserFromCookie } = await loadAuth();
-		await expect(getUserFromCookie("jwt-token")).resolves.toEqual({ id: "user-1", username: "alice" });
-
-		verify.mockImplementation(() => {
-			throw new Error("invalid");
-		});
+		await expect(getUserFromCookie("jwt-token")).resolves.toBeUndefined();
 		await expect(getUserFromCookie("bad-token")).resolves.toBeUndefined();
+		expect(verify).not.toHaveBeenCalled();
 	});
 
 	it("builds login redirect urls with optional error and returnUrl params", async () => {
@@ -151,6 +174,22 @@ describe("actions/auth", () => {
 	it("returns false when no auth token exists", async () => {
 		const { validateAuth } = await loadAuth();
 		await expect(validateAuth(false)).resolves.toBe(false);
+	});
+
+	it("denies user and admin actions while auth cutover maintenance is active", async () => {
+		isAuthCutoverMaintenanceActive.mockResolvedValue(true);
+		const { validateAdminAuth, validateAuth } = await loadAuth();
+
+		await expect(validateAuth(false)).resolves.toBe(false);
+		await expect(validateAdminAuth(false)).resolves.toBe(false);
+		expect(getAuthActorContext).not.toHaveBeenCalled();
+	});
+
+	it("denies ordinary server actions while account deletion is suspended", async () => {
+		getAuthActorContext.mockResolvedValue({ authUserId: "auth-user-1", sessionId: "session-1", authenticatedAt: new Date(), creatorId: "user-1", activeOrganizationId: "org-1", accountStatus: "suspended", user: { id: "user-1", role: "user" } });
+		const { validateAuth } = await loadAuth();
+		await expect(validateAuth(false)).resolves.toBe(false);
+		expect(resolveUserEntitlements).not.toHaveBeenCalled();
 	});
 
 	it("resolves admin-view target user when skipUserCheck is enabled", async () => {

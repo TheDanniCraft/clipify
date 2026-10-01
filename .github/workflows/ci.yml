@@ -200,6 +200,26 @@ jobs:
     name: 🌐 Browser tests
     runs-on: ubuntu-latest
     needs: deps
+    concurrency:
+      group: clipify-e2e-database
+      cancel-in-progress: false
+    env:
+      CLIPIFY_E2E_SCHEMA_PUSH: "1"
+      DATABASE_URL: postgresql://clipify_e2e:clipify_e2e@127.0.0.1:5432/clipify_e2e
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: clipify_e2e
+          POSTGRES_PASSWORD: clipify_e2e
+          POSTGRES_USER: clipify_e2e
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U clipify_e2e -d clipify_e2e"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - name: 📥 Check out repository
         uses: actions/checkout@v7
@@ -217,6 +237,9 @@ jobs:
             ~/.bun/install/global
             **/node_modules
           key: ${{ needs.deps.outputs.cache-key }}
+
+      - name: 🗃️ Prepare disposable E2E database
+        run: bun run db:push:e2e
 
       - name: 🌐 Install Playwright Chromium
         run: bunx playwright install --with-deps chromium

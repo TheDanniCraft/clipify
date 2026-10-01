@@ -19,7 +19,7 @@ if (publicationValidation.status !== 0) process.exit(publicationValidation.statu
 
 const result = spawnSync(process.execPath, [nextBin, "build", ...process.argv.slice(2)], {
 	stdio: "inherit",
-	env: { ...process.env, NODE_ENV: "production", PLAUSIBLE_SCRIPT_NAME: plausibleScriptName },
+	env: { ...process.env, NODE_ENV: "production", CLIPIFY_BUILD_PHASE: "1", PLAUSIBLE_SCRIPT_NAME: plausibleScriptName },
 });
 
 if (result.error) throw result.error;

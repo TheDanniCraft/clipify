@@ -141,6 +141,18 @@ export default function TiersComponent({ campaignOffer = null, context = "public
 				})}
 			</div>
 
+			<Card variant='secondary' className='mt-4 w-full border border-accent/30'>
+				<Card.Content className='flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between'>
+					<div>
+						<h2 className='font-semibold'>Agency or enterprise?</h2>
+						<p className='mt-1 text-sm text-muted'>Manage multiple independent creators, team permissions, and centrally assigned Pro seats with custom commercial terms.</p>
+					</div>
+					<Link href='mailto:contact@clipify.us?subject=Clipify%20Agency%20or%20Enterprise' className={buttonVariants({ variant: "outline", className: "shrink-0 no-underline" })}>
+						Contact us for custom pricing
+					</Link>
+				</Card.Content>
+			</Card>
+
 			{showComparisonLink ? (
 				<Link href='/pricing' className={buttonVariants({ variant: "outline", fullWidth: true, className: "mt-4 gap-2 no-underline sm:w-auto sm:min-w-64" })}>
 					Compare all features

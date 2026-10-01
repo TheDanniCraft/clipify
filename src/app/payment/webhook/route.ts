@@ -54,14 +54,16 @@ async function processEvent(stripe: Stripe, event: Stripe.Event) {
 		case "checkout.session.async_payment_succeeded": {
 			const session = await stripe.checkout.sessions.retrieve((event.data.object as Stripe.Checkout.Session).id, { expand: ["subscription"] });
 			const subscription = await getCanonicalSubscription(stripe, session.subscription);
-			await syncStripeSubscription(subscription, session.client_reference_id);
+			if (typeof event.created === "number") await syncStripeSubscription(subscription, session.client_reference_id, event.created);
+			else await syncStripeSubscription(subscription, session.client_reference_id);
 			return;
 		}
 		case "customer.subscription.created":
 		case "customer.subscription.updated":
 		case "customer.subscription.deleted": {
 			const subscription = await getCanonicalSubscription(stripe, event.data.object as Stripe.Subscription);
-			await syncStripeSubscription(subscription);
+			if (typeof event.created === "number") await syncStripeSubscription(subscription, null, event.created);
+			else await syncStripeSubscription(subscription);
 			return;
 		}
 		default:

@@ -66,6 +66,28 @@ Resources
     Gitmoji website: https://gitmoji.dev/
     Gitmoji specification: https://gitmoji.dev/specification
 
+## Drizzle migration ownership (non-negotiable)
+
+- On feature branches, edit `src/db/schema.ts`, `src/db/auth-schema.ts`, and
+  `drizzle.config.ts` as needed, but do **not** run `drizzle-kit generate`, run
+  `bun run db:generate`, or create/edit generated files under `drizzle/`.
+- The `Generate Migrations` workflow owns ordinary migration generation after a
+  completed pull request lands on `master`. It generates one migration from the
+  final schema diff.
+- `bun run db:push` is permitted only against the disposable development
+  database through Infisical. Never use it against production.
+- The sole CI exception is `bun run db:push:e2e`, which is guarded to run only
+  in GitHub Actions job `browser-tests` against PostgreSQL on loopback, database
+  and user `clipify_e2e`, with `CLIPIFY_E2E_SCHEMA_PUSH=1`. It must never accept
+  a remote host or persistent database.
+- A manual/custom migration is allowed only when Drizzle cannot express the
+  required database behavior and the user explicitly authorizes that exact
+  migration. Stop and explain the unsupported behavior before creating it.
+- Never set `CLIPIFY_MANUAL_MIGRATION_APPROVED` or bypass the migration guard on
+  your own. The override is a human approval mechanism, not an agent workaround.
+- Never edit, remove, or bypass `.husky/pre-commit` or
+  `scripts/check-drizzle-migration-policy.mjs` to make a commit pass.
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 # This is NOT the Next.js you know

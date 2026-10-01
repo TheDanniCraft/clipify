@@ -1,10 +1,11 @@
 /* istanbul ignore file */
 "use server";
 
-import { entitlementGrantsTable, editorsTable, overlaysTable, playlistClipsTable, playlistsTable, runnerEnrollmentsTable, runnersTable, streamSessionsTable, usersTable } from "@/db/schema";
+import * as databaseSchema from "@/db/schema";
+import { entitlementGrantsTable, runnersTable, streamSessionsTable, usersTable } from "@/db/schema";
 import { db } from "@/db/client";
 import { and, asc, eq, exists, gt, inArray, isNull, lt, lte, or, sql } from "drizzle-orm";
-import { AuthenticatedUser, Entitlement, EntitlementGrantSource, MaxDurationMode, Plan, PlaybackMode, UserEntitlements } from "@types";
+import { AuthenticatedUser, Entitlement, EntitlementGrantSource, Plan, RunnerStatus, StreamState, UserEntitlements } from "@types";
 import { invalidateCommunitySnapshotCache } from "@lib/community";
 
 const PRO_ACCESS = Entitlement.ProAccess;
@@ -39,6 +40,18 @@ export async function hasActiveEntitlement(userId: string, entitlement: Entitlem
 
 export async function hasActiveProGrant(userId: string, now = new Date()) {
 	return hasActiveEntitlement(userId, PRO_ACCESS, now);
+}
+
+export async function hasActiveAgencyAllocation(userId: string, now = new Date()) {
+	const agencyLicenseAllocationsTable = databaseSchema.agencyLicenseAllocationsTable as typeof databaseSchema.agencyLicenseAllocationsTable | undefined;
+	if (!agencyLicenseAllocationsTable) return false;
+	const rows = await db
+		.select({ id: agencyLicenseAllocationsTable.id })
+		.from(agencyLicenseAllocationsTable)
+		.where(and(eq(agencyLicenseAllocationsTable.creatorId, userId), lte(agencyLicenseAllocationsTable.effectiveAt, now), inArray(agencyLicenseAllocationsTable.status, ["active", "removal_scheduled"]), or(isNull(agencyLicenseAllocationsTable.endsAt), gt(agencyLicenseAllocationsTable.endsAt, now))))
+		.limit(1)
+		.execute();
+	return rows.length > 0;
 }
 
 export async function createProAccessGrant(input: CreateGrantInput) {
@@ -162,6 +175,7 @@ export async function resolveUserEntitlements(user: EntitlementUserRef): Promise
 			trialEndsAt: null,
 			hasActiveGrant: false,
 			source: "billing",
+			sources: ["billing"],
 		};
 	}
 
@@ -191,6 +205,22 @@ export async function resolveUserEntitlements(user: EntitlementUserRef): Promise
 			hasActiveGrant: true,
 			grantSource: grant.source,
 			source: isReverseTrialGrant ? "reverse_trial" : "grant",
+			sources: [isReverseTrialGrant ? "reverse_trial" : "grant"],
+		};
+	}
+
+	const agencyAllocationActive = await hasActiveAgencyAllocation(user.id, now);
+	if (agencyAllocationActive) {
+		return {
+			effectivePlan: "pro",
+			proAccess: true,
+			runnerAccess: await hasActiveEntitlement(user.id, Entitlement.RunnerAccess, now),
+			isBillingPro: false,
+			reverseTrialActive: false,
+			trialEndsAt: null,
+			hasActiveGrant: false,
+			source: "agency",
+			sources: ["agency"],
 		};
 	}
 
@@ -224,6 +254,7 @@ export async function resolveUserEntitlementsForUsers(users: EntitlementUserRef[
 				trialEndsAt: null,
 				hasActiveGrant: false,
 				source: "billing",
+				sources: ["billing"],
 			});
 		}
 	}
@@ -265,6 +296,29 @@ export async function resolveUserEntitlementsForUsers(users: EntitlementUserRef[
 		grantsForUser.push(grant);
 	}
 
+	const globalGrants = grantByUserId.get("__global__") ?? [];
+	const freeUsersWithoutGrant = freeUsers.filter((user) => (grantByUserId.get(user.id)?.length ?? 0) === 0 && globalGrants.length === 0);
+	const agencyLicenseAllocationsTable = databaseSchema.agencyLicenseAllocationsTable as typeof databaseSchema.agencyLicenseAllocationsTable | undefined;
+	const agencyAllocations =
+		agencyLicenseAllocationsTable && freeUsersWithoutGrant.length > 0
+			? await db
+					.select({ creatorId: agencyLicenseAllocationsTable.creatorId })
+					.from(agencyLicenseAllocationsTable)
+					.where(
+						and(
+							inArray(
+								agencyLicenseAllocationsTable.creatorId,
+								freeUsersWithoutGrant.map((user) => user.id),
+							),
+							lte(agencyLicenseAllocationsTable.effectiveAt, now),
+							inArray(agencyLicenseAllocationsTable.status, ["active", "removal_scheduled"]),
+							or(isNull(agencyLicenseAllocationsTable.endsAt), gt(agencyLicenseAllocationsTable.endsAt, now)),
+						),
+					)
+					.execute()
+			: [];
+	const agencyCreatorIds = new Set(agencyAllocations.map((allocation) => allocation.creatorId));
+
 	for (const user of freeUsers) {
 		const grant = pickBestGrant([...(grantByUserId.get(user.id) ?? []), ...(grantByUserId.get("__global__") ?? [])]);
 		if (grant) {
@@ -279,6 +333,22 @@ export async function resolveUserEntitlementsForUsers(users: EntitlementUserRef[
 				hasActiveGrant: true,
 				grantSource: grant.source,
 				source: isReverseTrialGrant ? "reverse_trial" : "grant",
+				sources: [isReverseTrialGrant ? "reverse_trial" : "grant"],
+			});
+			continue;
+		}
+
+		if (agencyCreatorIds.has(user.id)) {
+			result.set(user.id, {
+				effectivePlan: "pro",
+				proAccess: true,
+				runnerAccess: await hasActiveEntitlement(user.id, Entitlement.RunnerAccess, now),
+				isBillingPro: false,
+				reverseTrialActive: false,
+				trialEndsAt: null,
+				hasActiveGrant: false,
+				source: "agency",
+				sources: ["agency"],
 			});
 			continue;
 		}
@@ -298,119 +368,29 @@ export async function resolveUserEntitlementsForUsers(users: EntitlementUserRef[
 	return result;
 }
 
-export async function reconcileFreeConstraintsIfNeeded(user: EntitlementUserRef, entitlements: UserEntitlements) {
+export async function recordFreeCapabilityReconciliation(user: EntitlementUserRef, entitlements: UserEntitlements) {
 	if (!isHybridEntitlementsEnabled()) return;
 	if (user.plan !== Plan.Free || entitlements.effectivePlan !== "free") return;
-
-	await db.transaction(async (tx) => {
-		const overlays = await tx.select().from(overlaysTable).where(eq(overlaysTable.ownerId, user.id)).orderBy(asc(overlaysTable.createdAt)).execute();
-		const removed = overlays.slice(1).map((overlay) => overlay.id);
-
-		if (removed.length > 0) {
-			await tx.delete(overlaysTable).where(inArray(overlaysTable.id, removed)).execute();
-		}
-
-		const keptOverlay = overlays[0];
-		if (keptOverlay) {
-			await tx
-				.update(overlaysTable)
-				.set({
-					updatedAt: new Date(),
-					rewardId: null,
-					playlistId: null,
-					blacklistWords: [],
-					minClipViews: 0,
-					minClipDuration: 0,
-					maxClipDuration: 60,
-					maxDurationMode: MaxDurationMode.Filter,
-					playbackMode: PlaybackMode.Random,
-					preferCurrentCategory: false,
-					clipCreatorsOnly: [],
-					clipCreatorsBlocked: [],
-					clipPackSize: 100,
-					playerVolume: 50,
-					showChannelInfo: true,
-					showClipInfo: true,
-					showTimer: false,
-					showProgressBar: false,
-					overlayInfoFadeOutSeconds: 6,
-					themeFontFamily: "inherit",
-					themeTextColor: "#FFFFFF",
-					themeAccentColor: "#7C3AED",
-					themeBackgroundColor: "rgba(10,10,10,0.65)",
-					progressBarStartColor: "#26018E",
-					progressBarEndColor: "#8D42F9",
-					borderSize: 0,
-					borderRadius: 10,
-					effectScanlines: false,
-					effectStatic: false,
-					effectCrt: false,
-					channelInfoX: 0,
-					channelInfoY: 0,
-					clipInfoX: 100,
-					clipInfoY: 100,
-					timerX: 100,
-					timerY: 0,
-					channelScale: 100,
-					clipScale: 100,
-					timerScale: 100,
-				})
-				.where(eq(overlaysTable.id, keptOverlay.id))
-				.execute();
-		}
-
-		await tx.delete(editorsTable).where(eq(editorsTable.userId, user.id)).execute();
-
-		const playlists = await tx.select().from(playlistsTable).where(eq(playlistsTable.ownerId, user.id)).orderBy(asc(playlistsTable.createdAt)).execute();
-		const removedPlaylists = playlists.slice(1).map((playlist) => playlist.id);
-		if (removedPlaylists.length > 0) {
-			await tx.delete(playlistsTable).where(inArray(playlistsTable.id, removedPlaylists)).execute();
-		}
-		const keptPlaylist = playlists[0];
-		if (keptPlaylist) {
-			const clips = await tx.select().from(playlistClipsTable).where(eq(playlistClipsTable.playlistId, keptPlaylist.id)).orderBy(asc(playlistClipsTable.position)).execute();
-			const removeClipIds = clips.slice(50).map((clip) => clip.clipId);
-			if (removeClipIds.length > 0) {
-				await tx
-					.delete(playlistClipsTable)
-					.where(and(eq(playlistClipsTable.playlistId, keptPlaylist.id), inArray(playlistClipsTable.clipId, removeClipIds)))
-					.execute();
-			}
-		}
-
-		const now = new Date();
-		await tx
-			.update(usersTable)
-			.set({
-				updatedAt: now,
-				lastEntitlementReconciledAt: now,
-			})
-			.where(eq(usersTable.id, user.id))
-			.execute();
-	});
+	const now = new Date();
+	await db.update(usersTable).set({ updatedAt: now, lastEntitlementReconciledAt: now }).where(eq(usersTable.id, user.id)).execute();
 }
 
-/** Permanently remove self-hosted runners after runner_access is no longer active. */
-export async function deleteRunnersForOwner(ownerId: string, reason = "runner_entitlement_lost") {
+/** Pause self-hosted runtime activity while retaining all runner configuration. */
+export async function suspendRunnersForOwner(ownerId: string, reason = "runner_entitlement_lost") {
 	return db.transaction(async (tx) => {
 		const runners = await tx.select({ id: runnersTable.id }).from(runnersTable).where(eq(runnersTable.ownerId, ownerId)).orderBy(runnersTable.id).execute();
 		if (runners.length === 0) return { runners: 0, sessions: 0 };
-
-		const sessionResult = await tx.delete(streamSessionsTable).where(eq(streamSessionsTable.ownerId, ownerId)).execute();
-		await tx.delete(runnersTable).where(eq(runnersTable.ownerId, ownerId)).execute();
-		await tx
-			.delete(runnerEnrollmentsTable)
-			.where(and(eq(runnerEnrollmentsTable.ownerId, ownerId), isNull(runnerEnrollmentsTable.approvedAt)))
-			.execute();
-
-		console.info("[entitlements] runners_deleted", { ownerId, reason, runners: runners.length });
-		return { runners: runners.length, sessions: Number(sessionResult.rowCount ?? 0) };
+		await tx.update(runnersTable).set({ status: RunnerStatus.Offline }).where(eq(runnersTable.ownerId, ownerId)).execute();
+		const sessions = await tx.select({ id: streamSessionsTable.id }).from(streamSessionsTable).where(eq(streamSessionsTable.ownerId, ownerId)).execute();
+		await tx.update(streamSessionsTable).set({ desiredState: StreamState.Stopped, actualState: StreamState.Stopped, updatedAt: new Date() }).where(eq(streamSessionsTable.ownerId, ownerId)).execute();
+		console.info("[entitlements] runners_suspended", { ownerId, reason, runners: runners.length });
+		return { runners: runners.length, sessions: sessions.length };
 	});
 }
 
 async function reconcileResolvedUserEntitlements(user: EntitlementUserRef, entitlements: UserEntitlements) {
-	const runnerResult = entitlements.runnerAccess ? { runners: 0, sessions: 0 } : await deleteRunnersForOwner(user.id);
-	if (entitlements.effectivePlan === "free") await reconcileFreeConstraintsIfNeeded(user, entitlements);
+	const runnerResult = entitlements.runnerAccess ? { runners: 0, sessions: 0 } : await suspendRunnersForOwner(user.id);
+	if (entitlements.effectivePlan === "free") await recordFreeCapabilityReconciliation(user, entitlements);
 	else await db.update(usersTable).set({ updatedAt: new Date(), lastEntitlementReconciledAt: new Date() }).where(eq(usersTable.id, user.id)).execute();
 	return runnerResult;
 }

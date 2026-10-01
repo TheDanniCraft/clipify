@@ -3,20 +3,12 @@ import { createHash } from "crypto";
 import { and, eq } from "drizzle-orm";
 
 import { db } from "@/db/client";
-import { editorsTable, runnersTable, streamSessionsTable } from "@/db/schema";
-import { validateAuth } from "@actions/auth";
+import { runnersTable, streamSessionsTable } from "@/db/schema";
 import { tryRateLimit } from "@actions/rateLimit";
 import { RunnerPreviewCache } from "@lib/runnerPreviewCache";
+import { authorizeCreatorOperation } from "@/auth/authorize-operation";
 
 const previewCache = new RunnerPreviewCache();
-
-async function canAccessOwner(ownerId: string, userId: string) {
-	if (ownerId === userId) return true;
-	const editor = await db.query.editorsTable.findFirst({
-		where: and(eq(editorsTable.userId, ownerId), eq(editorsTable.editorId, userId)),
-	});
-	return Boolean(editor);
-}
 
 export async function POST(req: Request) {
 	try {
@@ -54,12 +46,10 @@ export async function GET(req: Request) {
 	const runnerId = url.searchParams.get("runnerId");
 	if (!runnerId) return NextResponse.json({ error: "Missing runnerId" }, { status: 400 });
 
-	const user = await validateAuth();
-	if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
 	const runner = await db.query.runnersTable.findFirst({ where: eq(runnersTable.id, runnerId) });
 	if (!runner) return NextResponse.json({ error: "Runner not found" }, { status: 404 });
-	if (!(await canAccessOwner(runner.ownerId, user.id))) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+	const access = await authorizeCreatorOperation({ creatorId: runner.ownerId, resourceOwnerId: runner.ownerId, permission: "runner:read" });
+	if (!access.allowed) return NextResponse.json({ error: access.code === "AUTHENTICATION_REQUIRED" ? "Unauthorized" : "Forbidden" }, { status: access.code === "AUTHENTICATION_REQUIRED" ? 401 : 403 });
 
 	return NextResponse.json({ image: previewCache.get(runner.id) });
 }

@@ -40,34 +40,22 @@ describe("app/auth route", () => {
 		sign.mockReturnValue("signed-state");
 	});
 
-	it("redirects to Twitch OAuth with expected params and sets nonce cookie", async () => {
+	it("redirects the retired creator entrypoint to Better Auth login", async () => {
 		const { GET } = await import("@/app/auth/route");
 		const response = await GET({ url: "https://clipify.us/auth?returnUrl=%2Fdashboard" } as never);
 
 		expect(response.status).toBe(307);
 		const location = response.headers.get("location");
-		expect(location).toContain("https://id.twitch.tv/oauth2/authorize");
-		expect(location).toContain("client_id=client_id");
-		expect(location).toContain("state=signed-state");
-		expect(location).not.toContain("force_verify=true");
-		expect(new URL(location ?? "").searchParams.get("scope")?.split(" ")).toContain("channel:manage:clips");
-
-		const cookieStore = await cookiesMock.mock.results[0]?.value;
-		expect(cookieStore.set).toHaveBeenCalledWith(
-			"auth_nonce",
-			"nonce-1",
-			expect.objectContaining({
-				httpOnly: true,
-				sameSite: "lax",
-			}),
-		);
+		expect(location).toBe("https://clipify.us/login?returnUrl=%2Fdashboard");
+		expect(cookiesMock).not.toHaveBeenCalled();
+		expect(sign).not.toHaveBeenCalled();
 	});
 
-	it("adds force_verify when TWITCH_FORCE_VERIFY=true", async () => {
+	it("does not revive legacy OAuth when force verification is configured", async () => {
 		process.env.TWITCH_FORCE_VERIFY = "true";
 		const { GET } = await import("@/app/auth/route");
 		const response = await GET({ url: "https://clipify.us/auth?returnUrl=%2Fdashboard" } as never);
 		const location = response.headers.get("location");
-		expect(location).toContain("force_verify=true");
+		expect(location).toBe("https://clipify.us/login?returnUrl=%2Fdashboard");
 	});
 });

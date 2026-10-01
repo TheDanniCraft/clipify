@@ -7,11 +7,15 @@ on:
       - master
     paths:
       - "src/db/schema.ts"
+      - "src/db/auth-schema.ts"
       - "src/app/lib/types.ts"
+      - "drizzle.config.ts"
 
 jobs:
   generate-migrations:
     runs-on: ubuntu-latest
+    env:
+      CLIPIFY_MIGRATION_WORKFLOW: "true"
     permissions:
       contents: write
     steps:

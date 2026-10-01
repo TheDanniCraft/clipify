@@ -1,24 +1,23 @@
 import { Link } from "@components/heroui-client";
-import { buttonVariants } from "@heroui/styles";
-
-import { IconBrandTwitch } from "@tabler/icons-react";
 import ErrorToast from "@components/errorToast";
 import { validateAuth } from "@actions/auth";
 import { redirect } from "next/navigation";
-import NextLink from "next/link";
 import { readCheckoutIntent } from "@/server/checkoutIntent";
 import { legalDocumentRoutes } from "@lib/legal/documents";
+import LoginClient from "./LoginClient";
+import { getAuthSession } from "@/auth/session";
 
 export default async function Login({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
 	const { error, errorCode, returnUrl } = await searchParams;
 
 	const checkoutIntent = await readCheckoutIntent();
-	const loggedInUser = await validateAuth();
-	if (loggedInUser) {
+	const [session, loggedInUser] = await Promise.all([process.env.E2E_TEST_MODE === "true" ? null : getAuthSession(), validateAuth()]);
+	if (session || loggedInUser) {
 		redirect(checkoutIntent ? "/checkout/continue" : "/dashboard");
 	}
 
-	const ru = typeof returnUrl === "string" ? returnUrl : "";
+	const rawReturnUrl = typeof returnUrl === "string" ? returnUrl : "";
+	const ru = rawReturnUrl.startsWith("/") && !rawReturnUrl.startsWith("//") ? rawReturnUrl : "";
 
 	return (
 		<>
@@ -26,10 +25,7 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
 
 			<div className='min-h-screen min-w-screen flex items-center justify-center bg-gradient-to-br from-brand-800 to-brand-400'>
 				<div className='flex flex-col items-center'>
-					<NextLink href={`/auth${ru ? `?returnUrl=${encodeURIComponent(ru)}` : ""}`} aria-label='Login with Twitch' className={buttonVariants({ variant: "tertiary", size: "lg" })}>
-						<IconBrandTwitch color='#8956FB' />
-						Login with Twitch
-					</NextLink>
+					<LoginClient returnUrl={checkoutIntent ? "/checkout/continue" : ru} />
 
 					<div className='mt-2 flex max-w-[240px] flex-col items-center text-center text-xs text-gray-400'>
 						<p>

@@ -72,6 +72,7 @@ jest.mock("@/db/schema", () => ({
 }));
 
 jest.mock("drizzle-orm", () => ({
+	relations: jest.fn(() => ({})),
 	eq: jest.fn(),
 }));
 
@@ -186,15 +187,6 @@ describe("actions/twitch external API and failure handling", () => {
 				}),
 			}),
 		);
-	});
-
-	it("returns null when refreshing access token fails", async () => {
-		jest.spyOn(axios, "post").mockRejectedValue(new Error("refresh failed"));
-
-		const { refreshAccessToken } = await loadTwitch();
-		const response = await refreshAccessToken("refresh-token");
-
-		expect(response).toBeNull();
 	});
 
 	it("returns cached bulk users without network request when cache fully satisfies IDs", async () => {
@@ -422,15 +414,6 @@ describe("actions/twitch external API and failure handling", () => {
 		const token = await exchangeAccesToken("bad-code");
 
 		expect(token).toBeNull();
-	});
-
-	it("returns refreshed token payload when refresh succeeds", async () => {
-		jest.spyOn(axios, "post").mockResolvedValue({ data: buildTokenResponse() } as never);
-
-		const { refreshAccessToken } = await loadTwitch();
-		const token = await refreshAccessToken("refresh-token");
-
-		expect(token).toEqual(buildTokenResponse());
 	});
 
 	it("fetches app access token successfully", async () => {
@@ -846,7 +829,7 @@ describe("actions/twitch external API and failure handling", () => {
 
 	it("uses preview callback and logs generic subscribe-to-reward failures", async () => {
 		isPreview.mockResolvedValue(true);
-		getBaseUrl.mockResolvedValue("https://preview.clipify.dev");
+		getBaseUrl.mockResolvedValue("https://preview.clipify.us");
 		let eventSubPayload: Record<string, unknown> | null = null;
 		jest.spyOn(axios, "post").mockImplementation((url: string, body?: unknown) => {
 			if (url.includes("/oauth2/token")) {
@@ -863,7 +846,7 @@ describe("actions/twitch external API and failure handling", () => {
 		const { subscribeToReward } = await loadTwitch();
 		await expect(subscribeToReward("owner-1", "reward-1")).resolves.toBeUndefined();
 
-		expect((eventSubPayload as { transport?: { callback?: string } } | null)?.transport?.callback).toBe("https://preview.clipify.dev/eventsub");
+		expect((eventSubPayload as { transport?: { callback?: string } } | null)?.transport?.callback).toBe("https://preview.clipify.us/eventsub");
 		expect(consoleSpy).toHaveBeenCalled();
 	});
 
@@ -945,7 +928,7 @@ describe("actions/twitch external API and failure handling", () => {
 		let oauthCalls = 0;
 		let chatSubscribeAttempts = 0;
 		isPreview.mockResolvedValue(true);
-		getBaseUrl.mockResolvedValue("https://preview.clipify.dev");
+		getBaseUrl.mockResolvedValue("https://preview.clipify.us");
 		jest.spyOn(axios, "post").mockImplementation((url: string, body?: unknown) => {
 			if (url.includes("/oauth2/token")) {
 				oauthCalls += 1;
@@ -955,7 +938,7 @@ describe("actions/twitch external API and failure handling", () => {
 			if (url.includes("/eventsub/subscriptions")) {
 				chatSubscribeAttempts += 1;
 				const callback = (body as { transport?: { callback?: string } })?.transport?.callback;
-				if (callback !== "https://preview.clipify.dev/eventsub") {
+				if (callback !== "https://preview.clipify.us/eventsub") {
 					throw new Error("unexpected callback");
 				}
 				if (chatSubscribeAttempts === 1) return Promise.reject(createAxiosError(429));
@@ -1287,28 +1270,7 @@ describe("actions/twitch external API and failure handling", () => {
 		});
 	});
 
-	describe("refreshAccessTokenWithContext and Rate Limiting", () => {
-		it("handles invalid refresh token error specifically", async () => {
-			const error = createAxiosError(400, { message: "Invalid refresh token" });
-			jest.spyOn(axios, "post").mockRejectedValue(error);
-
-			const { refreshAccessTokenWithContext } = await loadTwitch();
-			const result = await refreshAccessTokenWithContext("token", "user-1");
-
-			expect(result.invalidRefreshToken).toBe(true);
-			expect(result.status).toBe(400);
-		});
-
-		it("handles non-axios errors in refresh", async () => {
-			jest.spyOn(axios, "post").mockRejectedValue(new Error("network error"));
-
-			const { refreshAccessTokenWithContext } = await loadTwitch();
-			const result = await refreshAccessTokenWithContext("token", "user-1");
-
-			expect(result.token).toBeNull();
-			expect(result.invalidRefreshToken).toBe(false);
-		});
-
+	describe("Rate Limiting", () => {
 		it("logs Twitch errors with various formats", async () => {
 			const consoleSpy = jest.spyOn(console, "error");
 			const { logTwitchError } = await loadTwitch();

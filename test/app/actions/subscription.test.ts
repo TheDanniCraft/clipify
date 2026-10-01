@@ -3,6 +3,8 @@ export {};
 
 const stripeCtor = jest.fn();
 const subscriptionsList = jest.fn();
+const subscriptionsUpdate = jest.fn();
+const subscriptionsCancel = jest.fn();
 const customersCreate = jest.fn();
 const checkoutCreate = jest.fn();
 const promotionCodesList = jest.fn();
@@ -14,6 +16,10 @@ const getBaseUrl = jest.fn();
 const cookies = jest.fn();
 const getActiveCampaignOffer = jest.fn();
 const resolveUserEntitlements = jest.fn();
+const requestDatabaseAccountDeletion = jest.fn();
+const recoverDatabaseAccountDeletion = jest.fn();
+const getDatabaseAccountDeletionOverview = jest.fn();
+const exportDatabaseAccountData = jest.fn();
 
 const updateExecute = jest.fn();
 
@@ -63,6 +69,13 @@ jest.mock("@lib/entitlements", () => ({
 	resolveUserEntitlements: (...args: unknown[]) => resolveUserEntitlements(...args),
 }));
 
+jest.mock("@/server/account-lifecycle/database", () => ({
+	requestDatabaseAccountDeletion: (...args: unknown[]) => requestDatabaseAccountDeletion(...args),
+	recoverDatabaseAccountDeletion: (...args: unknown[]) => recoverDatabaseAccountDeletion(...args),
+	getDatabaseAccountDeletionOverview: (...args: unknown[]) => getDatabaseAccountDeletionOverview(...args),
+	exportDatabaseAccountData: (...args: unknown[]) => exportDatabaseAccountData(...args),
+}));
+
 async function loadSubscription() {
 	jest.resetModules();
 	return import("@/app/actions/subscription");
@@ -80,6 +93,10 @@ describe("actions/subscription", () => {
 		});
 		getActiveCampaignOffer.mockResolvedValue(null);
 		resolveUserEntitlements.mockResolvedValue({ proAccess: false, runnerAccess: false, reverseTrialActive: false });
+		requestDatabaseAccountDeletion.mockImplementation(async (input: { choice: string; mutateBilling: (subscription: { id: string; status: string; currentPeriodEnd: Date; cancelAtPeriodEnd: boolean }, choice: string) => Promise<void> }) => {
+			await input.mutateBilling({ id: "sub_lifecycle", status: "active", currentPeriodEnd: new Date("2026-10-28T12:00:00.000Z"), cancelAtPeriodEnd: false }, input.choice);
+			return { id: "delete_lifecycle", choice: input.choice, status: input.choice === "immediate" ? "suspended" : "scheduled", suspensionAt: "2026-10-28T12:00:00.000Z", purgeEligibleAt: null };
+		});
 		pricesList.mockResolvedValue({
 			data: [
 				{ id: "price_current_pro_monthly", lookup_key: "clipify_pro_monthly", unit_amount: 200, currency: "eur", product: "prod_pro" },
@@ -94,7 +111,7 @@ describe("actions/subscription", () => {
 		updateExecute.mockResolvedValue([{ id: "user-1" }]);
 		stripeCtor.mockReturnValue({
 			prices: { list: (...args: unknown[]) => pricesList(...args) },
-			subscriptions: { list: (...args: unknown[]) => subscriptionsList(...args) },
+			subscriptions: { list: (...args: unknown[]) => subscriptionsList(...args), update: (...args: unknown[]) => subscriptionsUpdate(...args), cancel: (...args: unknown[]) => subscriptionsCancel(...args) },
 			customers: { create: (...args: unknown[]) => customersCreate(...args) },
 			checkout: { sessions: { create: (...args: unknown[]) => checkoutCreate(...args) } },
 			promotionCodes: { list: (...args: unknown[]) => promotionCodesList(...args) },
@@ -221,5 +238,23 @@ describe("actions/subscription", () => {
 		});
 		portalCreate.mockResolvedValue({ url: "https://billing.stripe.test/portal" });
 		await expect(getPortalLink()).resolves.toBe("https://billing.stripe.test/portal");
+	});
+
+	it("defaults lifecycle billing to paid-through cancellation and supports explicit immediate cancellation", async () => {
+		subscriptionsUpdate.mockResolvedValue({});
+		subscriptionsCancel.mockResolvedValue({});
+		const { requestAccountDeletion } = await loadSubscription();
+
+		await expect(requestAccountDeletion("paid_through")).resolves.toMatchObject({ status: "scheduled" });
+		expect(subscriptionsUpdate).toHaveBeenCalledWith("sub_lifecycle", { cancel_at_period_end: true });
+
+		await expect(requestAccountDeletion("immediate")).resolves.toMatchObject({ status: "suspended" });
+		expect(subscriptionsCancel).toHaveBeenCalledWith("sub_lifecycle");
+	});
+
+	it("rejects an invalid account deletion choice before loading the database boundary", async () => {
+		const { requestAccountDeletion } = await loadSubscription();
+		await expect(requestAccountDeletion("later" as never)).rejects.toThrow("INVALID_DELETION_CHOICE");
+		expect(requestDatabaseAccountDeletion).not.toHaveBeenCalled();
 	});
 });

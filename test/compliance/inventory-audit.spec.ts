@@ -1,4 +1,6 @@
 import { expect, test, type Browser, type BrowserContext, type Page } from "@playwright/test";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import jwt from "jsonwebtoken";
 import { CHATWOOT_BASE_URL, CHATWOOT_WEBSITE_TOKEN } from "../../src/app/lib/consent/chatwoot";
 import { consentServices, necessaryConsentServices } from "../../src/app/lib/consent/registry";
@@ -25,6 +27,19 @@ const expectedMatrix: ExpectedObservationMatrix = {
 	"authenticated:legal": ["cookie", "script"],
 	"public:consent-enabled": ["cookie", "localStorage", "sessionStorage", "script", "origin"],
 };
+
+const securityInventoryPath = path.join(process.cwd(), "specs/002-auth-engine-rewrite/security-privacy-inventory.md");
+
+test("the auth security and privacy inventory covers every sensitive lifecycle store", () => {
+	const inventory = readFileSync(securityInventoryPath, "utf8");
+	for (const category of ["Sessions", "OAuth credentials", "Email OTPs", "Passkeys", "Notification data", "Audit history", "Deletion processing"]) {
+		expect(inventory).toMatch(new RegExp(`\\|\\s+${category}\\s+\\|`));
+	}
+	for (const control of ["encryptOAuthTokens", "30-day recovery boundary", "minimal lawful tombstone", "Recovery links navigate", "No-Go"]) {
+		expect(inventory).toContain(control);
+	}
+	expect(inventory).not.toMatch(/(?:access|refresh|id)[_-]?token\s*[=:]\s*[A-Za-z0-9_-]{8,}/i);
+});
 
 async function withBrowserContext<T>(browser: Browser, run: (context: BrowserContext) => Promise<T>): Promise<T> {
 	const context = await browser.newContext();

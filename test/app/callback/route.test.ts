@@ -49,7 +49,7 @@ describe("app/callback/route", () => {
 			get: (name: string) => (name === "auth_nonce" ? { value: "nonce-1" } : undefined),
 			set: jest.fn(),
 		});
-		jwtVerify.mockReturnValue({ nonce: "nonce-1", returnUrl: "/dashboard" });
+		jwtVerify.mockReturnValue({ nonce: "nonce-1", returnUrl: "/dashboard", initiator: "bot" });
 		exchangeAccesToken.mockResolvedValue({ access_token: "at" });
 		setAccessToken.mockResolvedValue({ id: "user-1" });
 		jwtSign.mockReturnValue("token");
@@ -58,12 +58,15 @@ describe("app/callback/route", () => {
 		clearAdminViewCookieForAuthFlow.mockResolvedValue(undefined);
 	});
 
-	it("cleans admin-view cookies/sessions on successful callback", async () => {
+	it("retires every legacy callback without exchanging or storing credentials", async () => {
 		const { GET } = await import("@/app/callback/route");
 		const request = { url: "https://clipify.us/callback?code=abc&state=signed-state" } as Parameters<typeof GET>[0];
 
 		await GET(request);
 
-		expect(clearAdminViewCookieForAuthFlow).toHaveBeenCalledTimes(1);
+		expect(authUser).toHaveBeenCalledWith(undefined, "legacyCallbackRetired");
+		expect(exchangeAccesToken).not.toHaveBeenCalled();
+		expect(setAccessToken).not.toHaveBeenCalled();
+		expect(clearAdminViewCookieForAuthFlow).not.toHaveBeenCalled();
 	});
 });

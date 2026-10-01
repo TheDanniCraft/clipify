@@ -89,6 +89,7 @@ jest.mock("@/db/schema", () => ({
 }));
 
 jest.mock("drizzle-orm", () => ({
+	relations: jest.fn(() => ({})),
 	eq: jest.fn(() => "eq"),
 	inArray: jest.fn(() => "inArray"),
 	and: jest.fn(() => "and"),
@@ -115,6 +116,12 @@ jest.mock("@actions/auth", () => ({
 	validateAdminAuth,
 }));
 
+const authorizeCreatorOperation = jest.fn();
+jest.mock("@/auth/authorize-operation", () => ({
+	authorizeCreatorOperation: (...args: unknown[]) => authorizeCreatorOperation(...args),
+	listAuthorizedCreatorOperations: jest.fn(),
+}));
+
 const twitch = {
 	getTwitchClipLookup: jest.fn(),
 };
@@ -135,6 +142,7 @@ describe("actions/database queue logic", () => {
 		dbInsert.mockImplementation((table: unknown) => makeInsertChain(table));
 		dbDelete.mockImplementation((table: unknown) => makeDeleteChain(table));
 		twitch.getTwitchClipLookup.mockResolvedValue({ clip: null, status: "transient_error" });
+		authorizeCreatorOperation.mockResolvedValue({ allowed: true, accessPath: "owner", creator: { id: "user-1" }, creatorOrganizationId: "creator:user-1", authUserId: "auth-user-1", sessionId: "session-1" });
 	});
 
 	it("adds to clip queue", async () => {

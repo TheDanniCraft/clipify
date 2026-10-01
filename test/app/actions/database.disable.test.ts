@@ -4,7 +4,6 @@ export {};
 const dbSelect = jest.fn();
 const dbUpdate = jest.fn();
 const dbInsert = jest.fn();
-const refreshAccessTokenWithContextInternal = jest.fn();
 const getUserDetails = jest.fn();
 const decryptToken = jest.fn();
 const eq = jest.fn();
@@ -56,8 +55,9 @@ jest.mock("@actions/twitch", () => ({
 	subscribeToReward: jest.fn(),
 }));
 
-jest.mock("@/server/twitch-auth", () => ({
-	refreshAccessTokenWithContextInternal: (...args: unknown[]) => refreshAccessTokenWithContextInternal(...args),
+jest.mock("@/server/tokens", () => ({
+	getAccessTokenResultInternal: jest.fn(),
+	getAccessTokenInternal: jest.fn(),
 }));
 
 const validateAuth = jest.fn();
@@ -83,6 +83,7 @@ jest.mock("@lib/entitlements", () => ({
 }));
 
 jest.mock("drizzle-orm", () => ({
+	relations: jest.fn(() => ({})),
 	eq: (...args: unknown[]) => eq(...args),
 	inArray: jest.fn(),
 	and: (...args: unknown[]) => and(...args),
@@ -202,76 +203,6 @@ describe("actions/database disabled user handling", () => {
 		});
 	});
 
-	it("disables user and pauses overlays when refresh token is invalid", async () => {
-		queueSelectResult([{ disabled: false }]);
-		queueSelectResult([
-			{
-				accessToken: "enc-access",
-				refreshToken: "enc-refresh",
-				expiresAt: new Date(Date.now() - 60_000),
-				scope: [],
-				tokenType: "bearer",
-			},
-		]);
-		refreshAccessTokenWithContextInternal.mockResolvedValue({
-			token: null,
-			invalidRefreshToken: true,
-			status: 400,
-			message: "Invalid refresh token",
-		});
-
-		const { getAccessToken } = await loadDatabaseActions();
-		await expect(getAccessToken("owner-1")).resolves.toBeNull();
-
-		expect(refreshAccessTokenWithContextInternal).toHaveBeenCalledWith("enc-refresh", "owner-1");
-		expect(updateCalls).toHaveLength(2);
-		expect(updateCalls[0]?.table).toBe(usersTable);
-		expect(updateCalls[0]?.set).toEqual(
-			expect.objectContaining({
-				disabled: true,
-				disableType: "automatic",
-				disabledReason: "invalid_refresh_token",
-			}),
-		);
-		expect(updateCalls[1]?.table).toBe(overlaysTable);
-		expect(updateCalls[1]?.set).toEqual(
-			expect.objectContaining({
-				status: "paused",
-			}),
-		);
-	});
-
-	it("does not disable user for non-invalid refresh failures", async () => {
-		queueSelectResult([{ disabled: false }]);
-		queueSelectResult([
-			{
-				accessToken: "enc-access",
-				refreshToken: "enc-refresh",
-				expiresAt: new Date(Date.now() - 60_000),
-				scope: [],
-				tokenType: "bearer",
-			},
-		]);
-		refreshAccessTokenWithContextInternal.mockResolvedValue({
-			token: null,
-			invalidRefreshToken: false,
-			status: 503,
-			message: "Service unavailable",
-		});
-
-		const { getAccessToken } = await loadDatabaseActions();
-		await expect(getAccessToken("owner-1")).resolves.toBeNull();
-		expect(updateCalls).toHaveLength(0);
-	});
-
-	it("returns null immediately for disabled users without refreshing tokens", async () => {
-		queueSelectResult([{ disabled: true }]);
-
-		const { getAccessToken } = await loadDatabaseActions();
-		await expect(getAccessToken("owner-1")).resolves.toBeNull();
-		expect(refreshAccessTokenWithContextInternal).not.toHaveBeenCalled();
-	});
-
 	it("filters clip sync owners to enabled accounts only", async () => {
 		queueSelectResult([{ ownerId: "owner-1" }]);
 
@@ -329,14 +260,8 @@ describe("actions/database disabled user handling", () => {
 	it("automatically unlocks automatic-disabled users after successful reauth", async () => {
 		queueSelectResult([{ id: "owner-1", disabled: true, disableType: "automatic" }]);
 
-		const { setAccessToken } = await loadDatabaseActions();
-		await setAccessToken({
-			access_token: "new-access",
-			refresh_token: "new-refresh",
-			expires_in: 3600,
-			scope: [],
-			token_type: "bearer",
-		});
+		const { insertUser } = await loadDatabaseActions();
+		await insertUser({ id: "owner-1", login: "owner", email: "owner@example.com", profile_image_url: "https://avatar" } as never);
 
 		expect(updateCalls).toEqual(
 			expect.arrayContaining([
@@ -355,14 +280,8 @@ describe("actions/database disabled user handling", () => {
 	it("keeps manual-disabled users locked after successful reauth", async () => {
 		queueSelectResult([{ id: "owner-1", disabled: true, disableType: "manual" }]);
 
-		const { setAccessToken } = await loadDatabaseActions();
-		await setAccessToken({
-			access_token: "new-access",
-			refresh_token: "new-refresh",
-			expires_in: 3600,
-			scope: [],
-			token_type: "bearer",
-		});
+		const { insertUser } = await loadDatabaseActions();
+		await insertUser({ id: "owner-1", login: "owner", email: "owner@example.com", profile_image_url: "https://avatar" } as never);
 
 		expect(updateCalls).toHaveLength(0);
 	});
@@ -370,14 +289,8 @@ describe("actions/database disabled user handling", () => {
 	it("automatically unlocks legacy-disabled users with null disableType after successful reauth", async () => {
 		queueSelectResult([{ id: "owner-1", disabled: true, disableType: null }]);
 
-		const { setAccessToken } = await loadDatabaseActions();
-		await setAccessToken({
-			access_token: "new-access",
-			refresh_token: "new-refresh",
-			expires_in: 3600,
-			scope: [],
-			token_type: "bearer",
-		});
+		const { insertUser } = await loadDatabaseActions();
+		await insertUser({ id: "owner-1", login: "owner", email: "owner@example.com", profile_image_url: "https://avatar" } as never);
 
 		expect(updateCalls).toEqual(
 			expect.arrayContaining([

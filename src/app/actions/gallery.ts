@@ -1,10 +1,9 @@
 "use server";
 
-import { validateAuth } from "@actions/auth";
 import { getPlaylistClipsForOwnerServer } from "@actions/database";
 import { getCachedClipByOwner, getCachedClipsByOwner, getTwitchClipPlaybackUrl } from "@actions/twitch";
 import { db } from "@/db/client";
-import { editorsTable, galleriesTable, playlistsTable, usersTable } from "@/db/schema";
+import { galleriesTable, playlistsTable, usersTable } from "@/db/schema";
 import { FREE_GALLERY_LIMIT, downgradeGalleryPatch, normalizeGalleryPatch, resolveLiveGalleryClips, type GalleryPatch } from "@lib/gallery";
 import { canResolvePublicClipPlayback } from "@actions/rateLimit";
 import { and, asc, eq, inArray, sql } from "drizzle-orm";
@@ -12,16 +11,11 @@ import { revalidatePath } from "next/cache";
 import type { Gallery, TwitchClip } from "@types";
 import { resolveUserEntitlements } from "@lib/entitlements";
 import { getFeatureAccess } from "@lib/featureAccess";
+import { authorizeCreatorOperation, listAuthorizedCreatorOperations } from "@/auth/authorize-operation";
+import type { Permission } from "@/auth/permissions";
 
-async function canEditOwner(userId: string, ownerId: string) {
-	if (userId === ownerId) return true;
-	const rows = await db
-		.select({ userId: editorsTable.userId })
-		.from(editorsTable)
-		.where(and(eq(editorsTable.userId, ownerId), eq(editorsTable.editorId, userId)))
-		.limit(1)
-		.execute();
-	return Boolean(rows[0]);
+async function authorizeGalleryOperation(ownerId: string, permission: Permission) {
+	return authorizeCreatorOperation({ creatorId: ownerId, resourceOwnerId: ownerId, permission });
 }
 
 async function ownerIsPro(ownerId: string) {
@@ -32,13 +26,13 @@ async function ownerIsPro(ownerId: string) {
 	return (await resolveUserEntitlements({ id: ownerId, plan: rows[0].plan })).effectivePlan === "pro";
 }
 
-async function requireGalleryAccess(galleryId: string) {
-	const user = await validateAuth();
-	if (!user) return null;
+async function requireGalleryAccess(galleryId: string, permission: Permission = "gallery:read") {
 	const rows = await db.select().from(galleriesTable).where(eq(galleriesTable.id, galleryId)).limit(1).execute();
 	const gallery = rows[0];
-	if (!gallery || !(await canEditOwner(user.id, gallery.ownerId))) return null;
-	return { user, gallery, isPro: user.id === gallery.ownerId ? getFeatureAccess(user, "gallery_advanced").allowed : await ownerIsPro(gallery.ownerId) };
+	if (!gallery) return null;
+	const access = await authorizeGalleryOperation(gallery.ownerId, permission);
+	if (!access.allowed) return null;
+	return { user: access.creator, gallery, isPro: getFeatureAccess(access.creator, "gallery_advanced").allowed || (await ownerIsPro(gallery.ownerId)) };
 }
 
 async function validatePlaylist(ownerId: string, playlistId: string | null) {
@@ -61,10 +55,9 @@ async function resolveClips(gallery: Gallery): Promise<TwitchClip[]> {
 }
 
 export async function getAllGalleries(userId: string) {
-	const user = await validateAuth();
-	if (!user || user.id !== userId) return null;
-	const editorRows = await db.select({ ownerId: editorsTable.userId }).from(editorsTable).where(eq(editorsTable.editorId, userId)).execute();
-	const ownerIds = Array.from(new Set([userId, ...editorRows.map((row) => row.ownerId)]));
+	const access = await listAuthorizedCreatorOperations({ permission: "gallery:read" });
+	if (!access.some((candidate) => candidate.creator.id === userId)) return null;
+	const ownerIds = access.map((candidate) => candidate.creator.id);
 	return db.select().from(galleriesTable).where(inArray(galleriesTable.ownerId, ownerIds)).orderBy(asc(galleriesTable.createdAt)).execute();
 }
 
@@ -118,9 +111,9 @@ export async function getGalleryPreviewPlayer(galleryId: string, clipId: string)
 }
 
 export async function createGallery(ownerId: string, name = "My clip gallery") {
-	const user = await validateAuth();
-	if (!user || !(await canEditOwner(user.id, ownerId))) return null;
-	const isPro = user.id === ownerId ? getFeatureAccess(user, "multi_gallery").allowed : await ownerIsPro(ownerId);
+	const access = await authorizeGalleryOperation(ownerId, "gallery:create");
+	if (!access.allowed) return null;
+	const isPro = getFeatureAccess(access.creator, "multi_gallery").allowed || (await ownerIsPro(ownerId));
 	return db.transaction(async (tx) => {
 		if (!isPro) {
 			await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${`clipify:free-gallery:${ownerId}`}, 0))`);
@@ -137,8 +130,9 @@ export async function createGallery(ownerId: string, name = "My clip gallery") {
 }
 
 export async function saveGallery(galleryId: string, patch: GalleryPatch) {
-	const context = await requireGalleryAccess(galleryId);
+	const context = await requireGalleryAccess(galleryId, "gallery:update");
 	if (!context) return null;
+	if (patch.published !== undefined && patch.published !== context.gallery.published && !(await authorizeGalleryOperation(context.gallery.ownerId, "gallery:publish")).allowed) return null;
 	const normalized = normalizeGalleryPatch(context.gallery, patch, Boolean(context.isPro));
 	if (normalized.source === "curated" && normalized.playlistId && !(await validatePlaylist(context.gallery.ownerId, normalized.playlistId))) {
 		throw new Error("The selected playlist must belong to the gallery owner");
@@ -158,7 +152,7 @@ export async function saveGallery(galleryId: string, patch: GalleryPatch) {
 }
 
 export async function deleteGallery(galleryId: string) {
-	const context = await requireGalleryAccess(galleryId);
+	const context = await requireGalleryAccess(galleryId, "gallery:delete");
 	if (!context) return false;
 	await db.delete(galleriesTable).where(eq(galleriesTable.id, galleryId)).execute();
 	revalidatePath("/dashboard");

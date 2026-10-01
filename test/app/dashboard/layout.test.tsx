@@ -3,6 +3,11 @@ import { render, screen } from "@testing-library/react";
 
 const validateAuth = jest.fn();
 const getPendingDashboardContent = jest.fn();
+const connection = jest.fn();
+
+jest.mock("next/server", () => ({
+	connection: (...args: unknown[]) => connection(...args),
+}));
 
 jest.mock("@actions/auth", () => ({
 	validateAuth: (...args: unknown[]) => validateAuth(...args),
@@ -38,6 +43,7 @@ describe("app/dashboard/layout", () => {
 		expect(screen.getByText("feedback-widget")).toBeInTheDocument();
 		expect(screen.getByText("dashboard-content:1")).toBeInTheDocument();
 		expect(screen.getByText("playlist-page")).toBeInTheDocument();
+		expect(connection).toHaveBeenCalledTimes(1);
 		expect(getPendingDashboardContent).toHaveBeenCalledWith(user);
 	});
 });

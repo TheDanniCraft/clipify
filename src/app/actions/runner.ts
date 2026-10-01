@@ -1,16 +1,17 @@
 "use server";
 
 import { db } from "@/db/client";
-import { editorsTable, overlaysTable, runnersTable, usersTable } from "@/db/schema";
+import { overlaysTable, runnersTable, usersTable } from "@/db/schema";
 import { revalidatePath } from "next/cache";
 import { randomBytes } from "crypto";
 import { eq, and } from "drizzle-orm";
-import { validateAuth } from "./auth";
 import { redirect } from "next/navigation";
 import { hasActiveEntitlement } from "@lib/entitlements";
 import { Entitlement, RunnerStatus, StreamState } from "@types";
 import { getRunnerVersionInfo } from "@lib/runnerArtifacts";
 import { captureUnexpectedError } from "@lib/sentryServer";
+import { authorizeCreatorOperation, listAuthorizedCreatorOperations } from "@/auth/authorize-operation";
+import type { Permission } from "@/auth/permissions";
 
 const publicRunnerColumns = {
 	id: true,
@@ -34,12 +35,8 @@ const publicRunnerSelection = {
 	createdAt: runnersTable.createdAt,
 };
 
-async function hasAccess(ownerId: string, userId: string) {
-	if (ownerId === userId) return true;
-	const editor = await db.query.editorsTable.findFirst({
-		where: and(eq(editorsTable.userId, ownerId), eq(editorsTable.editorId, userId)),
-	});
-	return Boolean(editor);
+async function hasAccess(ownerId: string, permission: Permission) {
+	return (await authorizeCreatorOperation({ creatorId: ownerId, resourceOwnerId: ownerId, permission })).allowed;
 }
 
 function streamKeyRequiredForUrl(rtmpUrl: string) {
@@ -53,8 +50,7 @@ async function ownerHasRunnerAccess(ownerId: string) {
 
 export async function createRunner(ownerId: string, name: string) {
 	try {
-		const user = await validateAuth();
-		if (!user || !(await hasAccess(ownerId, user.id))) return { success: false, error: "Unauthorized" };
+		if (!(await hasAccess(ownerId, "runner:create"))) return { success: false, error: "Unauthorized" };
 		if (!(await ownerHasRunnerAccess(ownerId))) return { success: false, error: "Runner add-on required", code: "ENTITLEMENT_REQUIRED" as const };
 
 		// Generate a secure random token for the runner to authenticate with
@@ -80,12 +76,13 @@ export async function createRunner(ownerId: string, name: string) {
 
 export async function createOwnRunner(name: string) {
 	try {
-		const user = await validateAuth();
-		if (!user) {
+		const candidates = await listAuthorizedCreatorOperations({ permission: "runner:create" });
+		const creator = candidates.find((candidate) => candidate.accessPath === "owner")?.creator;
+		if (!creator) {
 			redirect(`/auth?returnUrl=${encodeURIComponent("/runner/enroll")}`);
 		}
 
-		return await createRunner(user.id, name);
+		return await createRunner(creator.id, name);
 	} catch (error) {
 		console.error("Failed to create own runner:", error);
 		captureUnexpectedError(error, "runner-actions", "create-own-runner");
@@ -95,8 +92,7 @@ export async function createOwnRunner(name: string) {
 
 export async function deleteRunner(runnerId: string, ownerId: string) {
 	try {
-		const user = await validateAuth();
-		if (!user || !(await hasAccess(ownerId, user.id))) return { success: false, error: "Unauthorized" };
+		if (!(await hasAccess(ownerId, "runner:delete"))) return { success: false, error: "Unauthorized" };
 
 		await db
 			.delete(runnersTable)
@@ -114,8 +110,7 @@ export async function deleteRunner(runnerId: string, ownerId: string) {
 
 export async function unlinkRunner(runnerId: string, ownerId: string) {
 	try {
-		const user = await validateAuth();
-		if (!user || !(await hasAccess(ownerId, user.id))) return { success: false, error: "Unauthorized" };
+		if (!(await hasAccess(ownerId, "runner-credential:rotate"))) return { success: false, error: "Unauthorized" };
 
 		const runner = await db.query.runnersTable.findFirst({
 			where: and(eq(runnersTable.id, runnerId), eq(runnersTable.ownerId, ownerId)),
@@ -156,8 +151,7 @@ import type { StreamMode } from "@/app/lib/types";
 
 export async function upsertStreamSession(data: { id?: string; ownerId: string; runnerId: string; overlayId: string; mode: StreamMode; streamKey: string; clearStreamKey?: boolean; rtmpUrl: string; resolution?: string; fps?: number }) {
 	try {
-		const user = await validateAuth();
-		if (!user || !(await hasAccess(data.ownerId, user.id))) return { success: false, error: "Unauthorized" };
+		if (!(await hasAccess(data.ownerId, data.id ? "runner:update" : "runner:create"))) return { success: false, error: "Unauthorized" };
 		if (!(await ownerHasRunnerAccess(data.ownerId))) return { success: false, error: "Runner add-on required", code: "ENTITLEMENT_REQUIRED" as const };
 		const [runner, overlay] = await Promise.all([db.query.runnersTable.findFirst({ where: and(eq(runnersTable.id, data.runnerId), eq(runnersTable.ownerId, data.ownerId)) }), db.query.overlaysTable.findFirst({ where: and(eq(overlaysTable.id, data.overlayId), eq(overlaysTable.ownerId, data.ownerId)) })]);
 		if (!runner || !overlay) return { success: false, error: "Runner or overlay not found", code: "NOT_FOUND" as const };
@@ -211,12 +205,8 @@ export async function upsertStreamSession(data: { id?: string; ownerId: string; 
 
 export async function setStreamDesiredState(sessionId: string, state: StreamState) {
 	try {
-		const user = await validateAuth();
-		if (!user) return { success: false, error: "Unauthorized" };
-
-		// Ensure the session belongs to the user or an editor
 		const session = await db.query.streamSessionsTable.findFirst({ where: eq(streamSessionsTable.id, sessionId) });
-		if (!session || !(await hasAccess(session.ownerId, user.id))) return { success: false, error: "Unauthorized" };
+		if (!session || !(await hasAccess(session.ownerId, "runner:control"))) return { success: false, error: "Unauthorized" };
 		if (!(await ownerHasRunnerAccess(session.ownerId))) return { success: false, error: "Runner add-on required", code: "ENTITLEMENT_REQUIRED" as const };
 		if (state === StreamState.Running && streamKeyRequiredForUrl(session.rtmpUrl) && !session.encryptedStreamKey) return { success: false, error: "A stream key is required for Twitch or YouTube", code: "STREAM_KEY_REQUIRED" as const };
 
@@ -233,8 +223,7 @@ export async function setStreamDesiredState(sessionId: string, state: StreamStat
 
 export async function getAllRunners(ownerId: string) {
 	try {
-		const user = await validateAuth();
-		if (!user || !(await hasAccess(ownerId, user.id))) return [];
+		if (!(await hasAccess(ownerId, "runner:read"))) return [];
 
 		return await db.query.runnersTable.findMany({
 			where: eq(runnersTable.ownerId, ownerId),
@@ -249,8 +238,7 @@ export async function getAllRunners(ownerId: string) {
 
 export async function getAllStreamSessions(ownerId: string) {
 	try {
-		const user = await validateAuth();
-		if (!user || !(await hasAccess(ownerId, user.id))) return [];
+		if (!(await hasAccess(ownerId, "runner:read"))) return [];
 
 		return await db.query.streamSessionsTable.findMany({
 			where: eq(streamSessionsTable.ownerId, ownerId),
@@ -264,8 +252,7 @@ export async function getAllStreamSessions(ownerId: string) {
 
 export async function getRunner(runnerId: string, ownerId: string) {
 	try {
-		const user = await validateAuth();
-		if (!user || !(await hasAccess(ownerId, user.id))) return null;
+		if (!(await hasAccess(ownerId, "runner:read"))) return null;
 
 		return await db.query.runnersTable.findFirst({
 			where: and(eq(runnersTable.id, runnerId), eq(runnersTable.ownerId, ownerId)),
@@ -280,8 +267,7 @@ export async function getRunner(runnerId: string, ownerId: string) {
 
 export async function getRunnerToken(runnerId: string, ownerId: string) {
 	try {
-		const user = await validateAuth();
-		if (!user || !(await hasAccess(ownerId, user.id))) return { success: false, error: "Unauthorized" };
+		if (!(await hasAccess(ownerId, "runner-credential:read"))) return { success: false, error: "Unauthorized" };
 
 		const runner = await db.query.runnersTable.findFirst({
 			where: and(eq(runnersTable.id, runnerId), eq(runnersTable.ownerId, ownerId)),
@@ -303,8 +289,7 @@ export async function getRunnerVersionManifest() {
 
 export async function getStreamSessionsForRunner(runnerId: string, ownerId: string) {
 	try {
-		const user = await validateAuth();
-		if (!user || !(await hasAccess(ownerId, user.id))) return [];
+		if (!(await hasAccess(ownerId, "runner:read"))) return [];
 
 		return await db.query.streamSessionsTable.findMany({
 			where: and(eq(streamSessionsTable.runnerId, runnerId), eq(streamSessionsTable.ownerId, ownerId)),

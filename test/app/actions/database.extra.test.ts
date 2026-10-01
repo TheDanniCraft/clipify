@@ -92,6 +92,13 @@ jest.mock("@actions/auth", () => ({
 	validateAuth: (...args: any[]) => validateAuth(...args),
 }));
 
+const authorizeCreatorOperation = jest.fn();
+const listAuthorizedCreatorOperations = jest.fn();
+jest.mock("@/auth/authorize-operation", () => ({
+	authorizeCreatorOperation: (...args: unknown[]) => authorizeCreatorOperation(...args),
+	listAuthorizedCreatorOperations: (...args: unknown[]) => listAuthorizedCreatorOperations(...args),
+}));
+
 function loadDatabaseActions() {
 	jest.resetModules();
 	return require("@/app/actions/database");
@@ -104,6 +111,8 @@ describe("database.extra.test.ts", () => {
 		updateCalls.length = 0;
 		dbSelect.mockImplementation(() => makeSelectChain());
 		dbUpdate.mockImplementation(() => makeUpdateChain());
+		authorizeCreatorOperation.mockResolvedValue({ allowed: true, accessPath: "owner", creator: { id: "owner-1" }, creatorOrganizationId: "creator:owner-1", authUserId: "auth-user-1", sessionId: "session-1" });
+		listAuthorizedCreatorOperations.mockResolvedValue([]);
 	});
 
 	it("touchUser updates lastLogin", async () => {
@@ -123,7 +132,7 @@ describe("database.extra.test.ts", () => {
 	it("getEditorAccess returns editor rows", async () => {
 		const { getEditorAccess } = loadDatabaseActions();
 		validateAuth.mockResolvedValue({ id: "user-1" });
-		queueTableResult("editors", [{ id: "ed-1", editorId: "user-1", userId: "owner-1" }]);
+		listAuthorizedCreatorOperations.mockResolvedValueOnce([{ allowed: true, accessPath: "direct", creator: { id: "owner-1" }, creatorOrganizationId: "creator:owner-1", authUserId: "auth-user-1", sessionId: "session-1" }]);
 		const result = await getEditorAccess("user-1");
 		expect(result).toHaveLength(1);
 		expect(result[0].userId).toBe("owner-1");
@@ -139,15 +148,7 @@ describe("database.extra.test.ts", () => {
 	it("getEditorAccess handles error", async () => {
 		const { getEditorAccess } = loadDatabaseActions();
 		validateAuth.mockResolvedValue({ id: "user-1" });
-		dbSelect.mockImplementationOnce(() => ({
-			from: () => ({
-				where: () => ({
-					execute: async () => {
-						throw new Error("DB error");
-					},
-				}),
-			}),
-		}));
+		listAuthorizedCreatorOperations.mockRejectedValueOnce(new Error("DB error"));
 		await expect(getEditorAccess("user-1")).rejects.toThrow("Failed to check editor access");
 	});
 
@@ -179,7 +180,7 @@ describe("database.extra.test.ts", () => {
 	it("getEditorOverlays returns overlays for editor", async () => {
 		const { getEditorOverlays } = loadDatabaseActions();
 		validateAuth.mockResolvedValue({ id: "editor-1" });
-		queueTableResult("editors", [{ userId: "owner-1" }]); // owners
+		listAuthorizedCreatorOperations.mockResolvedValueOnce([{ allowed: true, accessPath: "direct", creator: { id: "owner-1" }, creatorOrganizationId: "creator:owner-1", authUserId: "auth-user-1", sessionId: "session-1" }]);
 		queueTableResult("overlays", [{ id: "ov-1", ownerId: "owner-1" }]); // overlays
 		const result = await getEditorOverlays("editor-1");
 		expect(result).toHaveLength(1);
@@ -189,7 +190,6 @@ describe("database.extra.test.ts", () => {
 	it("getEditorOverlays returns empty array if no editorships", async () => {
 		const { getEditorOverlays } = loadDatabaseActions();
 		validateAuth.mockResolvedValue({ id: "editor-1" });
-		queueTableResult("editors", []); // no owners
 		const result = await getEditorOverlays("editor-1");
 		expect(result).toEqual([]);
 	});
@@ -204,9 +204,6 @@ describe("database.extra.test.ts", () => {
 	it("getClipCacheStatus returns status", async () => {
 		const { getClipCacheStatus } = loadDatabaseActions();
 		validateAuth.mockResolvedValue({ id: "owner-1" });
-
-		// canEditOwner check (requireUser + editor check)
-		queueTableResult("editors", []); // editorRows empty
 
 		// getClipCacheStatusForOwnerServer calls:
 		// 1. getTwitchCacheByPrefixEntries (from twitch_cache table)

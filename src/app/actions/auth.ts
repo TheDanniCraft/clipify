@@ -12,7 +12,6 @@ import { db } from "@/db/client";
 import { adminImpersonationSessionsTable, usersTable } from "@/db/schema";
 import { and, eq, isNull, lt } from "drizzle-orm";
 
-const AUTH_COOKIE_NAME = "token";
 const ADMIN_VIEW_COOKIE_NAME = "admin_view";
 const ADMIN_VIEW_SESSION_COOKIE_NAME = "admin_view_session";
 const ADMIN_VIEW_ISSUER = "clipify-admin-view";
@@ -41,16 +40,10 @@ export async function getCookie(name: string) {
 }
 
 export async function getUserFromCookie(cookie: string) {
-	try {
-		const decodedToken = jwt.verify(cookie, process.env.JWT_SECRET!, {
-			algorithms: ["HS256"],
-			issuer: "clipify",
-		});
-
-		return decodedToken as AuthenticatedUser;
-	} catch {
-		return undefined;
-	}
+	// Kept temporarily as a source-compatible export while callers migrate.
+	// Legacy dashboard JWTs are intentionally never parsed or accepted.
+	void cookie;
+	return undefined;
 }
 
 export async function authUser(returnUrl?: string, error?: string, errorCode?: string) {
@@ -71,21 +64,20 @@ export async function authUser(returnUrl?: string, error?: string, errorCode?: s
 
 /* ignore: auth edge case / redirect handling */
 export async function validateAuth(skipUserCheck = false) {
+	const { isAuthCutoverMaintenanceActive } = await import("@/server/maintenance");
+	if (await isAuthCutoverMaintenanceActive()) return false;
 	const cookieStore = await cookies();
-	const token = cookieStore.get(AUTH_COOKIE_NAME);
-
-	const cookieUser = token ? ((await getUserFromCookie(token.value)) as AuthenticatedUser | null) : null;
-
-	if (!cookieUser) {
+	const { getAuthActorContext } = await import("@/auth/session");
+	const actor = await getAuthActorContext();
+	if (!actor) {
 		Sentry.setUser(null);
 		return false;
 	}
-
-	const actorUser = await getUserById(cookieUser.id);
-	if (!actorUser) {
+	if (actor.accountStatus === "suspended" || actor.accountStatus === "purge_eligible") {
 		Sentry.setUser(null);
 		return false;
 	}
+	const actorUser = actor.user;
 
 	const { effectiveUser, adminView } = await resolveEffectiveUser(actorUser, cookieStore);
 	Sentry.setUser({ id: effectiveUser.id });
@@ -103,18 +95,17 @@ export async function validateAuth(skipUserCheck = false) {
 
 /* ignore: auth edge case / redirect handling */
 export async function validateAdminAuth(skipUserCheck = false) {
-	const cookieStore = await cookies();
-	const token = cookieStore.get(AUTH_COOKIE_NAME);
-	/* ignore: auth edge case / redirect handling */
-	const cookieUser = token ? ((await getUserFromCookie(token.value)) as AuthenticatedUser | null) : null;
-
-	/* ignore: auth edge case / redirect handling */
-	if (!cookieUser) {
+	const { isAuthCutoverMaintenanceActive } = await import("@/server/maintenance");
+	if (await isAuthCutoverMaintenanceActive()) return false;
+	const { getAuthActorContext } = await import("@/auth/session");
+	const actor = await getAuthActorContext();
+	if (!actor) {
 		/* ignore: auth edge case / redirect handling */
 		return false;
 	}
+	if (actor.accountStatus === "suspended" || actor.accountStatus === "purge_eligible") return false;
 
-	const adminUser = await getUserById(cookieUser.id);
+	const adminUser = actor.user;
 	if (!adminUser || adminUser.role !== Role.Admin) {
 		Sentry.setUser(null);
 		return false;

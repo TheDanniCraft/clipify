@@ -13,5 +13,5 @@ When("I open the public login page", async ({ page }) => {
 });
 
 Then("I can start Twitch login", async ({ page }) => {
-	await expect(page.getByRole("link", { name: "Login with Twitch" })).toBeVisible();
+	await expect(page.getByRole("button", { name: "Login with Twitch" })).toBeVisible();
 });

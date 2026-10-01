@@ -1,4 +1,4 @@
-import { varchar, pgTable, check, timestamp, uuid, integer, text, uniqueIndex, primaryKey, index, pgEnum, boolean } from "drizzle-orm/pg-core";
+import { varchar, pgTable, check, timestamp, uuid, integer, bigint, text, uniqueIndex, primaryKey, index, pgEnum, boolean, jsonb } from "drizzle-orm/pg-core";
 import {
 	type Role,
 	type Plan,
@@ -33,6 +33,8 @@ import {
 } from "@types";
 import { sql } from "drizzle-orm";
 import { badgeSlugs } from "@lib/badgeCatalog";
+import type { Permission } from "@/auth/permissions";
+import { organization as authOrganizationTable, user as authUserTable } from "./auth-schema";
 
 function enumToPgEnum<T extends Record<string, unknown>>(myEnum: T): [T[keyof T], ...T[keyof T][]] {
 	return Object.values(myEnum).map((value: unknown) => `${value}`) as [T[keyof T], ...T[keyof T][]];
@@ -136,6 +138,290 @@ export const editorsTable = pgTable(
 		editorId: varchar("editor_id").notNull(),
 	},
 	(t) => [primaryKey({ columns: [t.userId, t.editorId] }), check("editors_no_self", sql`${t.userId} <> ${t.editorId}`)],
+);
+
+export const creatorAccountStatusEnum = pgEnum("creator_account_status", ["active", "suspension_scheduled", "suspended", "purge_eligible"]);
+export const creatorIdentityLinkSourceEnum = pgEnum("creator_identity_link_source", ["migration", "twitch_onboarding", "admin_repair"]);
+export const agencyAccountStatusEnum = pgEnum("agency_account_status", ["provisioned", "owner_invited", "active", "suspended", "closed"]);
+export const agencyCreatorLinkStatusEnum = pgEnum("agency_creator_link_status", ["proposed", "accepted", "revoked"]);
+export const agencyLicenseAllocationStatusEnum = pgEnum("agency_license_allocation_status", ["active", "removal_scheduled", "ended", "released_by_deletion"]);
+export const accountDeletionChoiceEnum = pgEnum("account_deletion_choice", ["paid_through", "immediate"]);
+export const accountDeletionStatusEnum = pgEnum("account_deletion_status", ["scheduled", "suspended", "recovered", "purge_eligible", "purged", "cancelled"]);
+export const auditOutcomeEnum = pgEnum("audit_outcome", ["success", "denied", "error"]);
+export const rateLimitSignalEnum = pgEnum("rate_limit_signal", ["identity", "network"]);
+export const notificationStatusEnum = pgEnum("notification_status", ["pending", "claimed", "sent", "retry", "dead"]);
+export const migrationRunStatusEnum = pgEnum("migration_run_status", ["created", "preflighted", "backup_verified", "migrating", "validated", "switched", "reopened", "contracted", "maintenance_blocked"]);
+export const migrationCheckpointStatusEnum = pgEnum("migration_checkpoint_status", ["pending", "completed", "failed"]);
+export const migrationAnomalyStatusEnum = pgEnum("migration_anomaly_status", ["open", "resolved", "accepted"]);
+
+export const creatorAccountsTable = pgTable(
+	"creator_accounts",
+	{
+		organizationId: text("organization_id")
+			.primaryKey()
+			.references(() => authOrganizationTable.id, { onDelete: "cascade" }),
+		creatorId: varchar("creator_id")
+			.notNull()
+			.references(() => usersTable.id, { onDelete: "cascade" }),
+		status: creatorAccountStatusEnum("status").notNull().default("active"),
+		suspensionAt: timestamp("suspension_at", { withTimezone: true }),
+		purgeEligibleAt: timestamp("purge_eligible_at", { withTimezone: true }),
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+	},
+	(table) => [uniqueIndex("creator_accounts_creator_unique").on(table.creatorId)],
+);
+
+export const creatorIdentityLinksTable = pgTable(
+	"creator_identity_links",
+	{
+		creatorId: varchar("creator_id")
+			.primaryKey()
+			.references(() => usersTable.id, { onDelete: "cascade" }),
+		authUserId: text("auth_user_id")
+			.notNull()
+			.references(() => authUserTable.id, { onDelete: "cascade" }),
+		source: creatorIdentityLinkSourceEnum("source").notNull(),
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+	},
+	(table) => [index("creator_identity_links_auth_user_idx").on(table.authUserId)],
+);
+
+export const agencyAccountsTable = pgTable(
+	"agency_accounts",
+	{
+		organizationId: text("organization_id")
+			.primaryKey()
+			.references(() => authOrganizationTable.id, { onDelete: "cascade" }),
+		status: agencyAccountStatusEnum("status").notNull().default("provisioned"),
+		commercialReference: varchar("commercial_reference", { length: 160 }),
+		creatorSeatLimit: integer("creator_seat_limit").notNull().default(0),
+		provisionedBy: text("provisioned_by").references(() => authUserTable.id, { onDelete: "set null" }),
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+	},
+	(table) => [check("agency_accounts_seat_limit_nonnegative", sql`${table.creatorSeatLimit} >= 0`), check("agency_accounts_commercial_reference_non_secret", sql`${table.commercialReference} IS NULL OR ${table.commercialReference} !~* '(bearer[[:space:]]+|token=|password=|secret=|credential=)'`)],
+);
+
+export const agencyCreatorLinksTable = pgTable(
+	"agency_creator_links",
+	{
+		id: uuid("id").defaultRandom().primaryKey(),
+		agencyOrganizationId: text("agency_organization_id")
+			.notNull()
+			.references(() => authOrganizationTable.id, { onDelete: "cascade" }),
+		creatorOrganizationId: text("creator_organization_id")
+			.notNull()
+			.references(() => authOrganizationTable.id, { onDelete: "cascade" }),
+		status: agencyCreatorLinkStatusEnum("status").notNull().default("proposed"),
+		permissionCeiling: jsonb("permission_ceiling").$type<Permission[]>().notNull().default([]),
+		proposedBy: text("proposed_by").references(() => authUserTable.id, { onDelete: "set null" }),
+		proposedAt: timestamp("proposed_at", { withTimezone: true }).defaultNow().notNull(),
+		acceptedBy: text("accepted_by").references(() => authUserTable.id, { onDelete: "set null" }),
+		acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+		revokedBy: text("revoked_by").references(() => authUserTable.id, { onDelete: "set null" }),
+		revokedAt: timestamp("revoked_at", { withTimezone: true }),
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+	},
+	(table) => [
+		uniqueIndex("agency_creator_links_live_pair_unique")
+			.on(table.agencyOrganizationId, table.creatorOrganizationId)
+			.where(sql`${table.status} <> 'revoked'`),
+		index("agency_creator_links_creator_status_idx").on(table.creatorOrganizationId, table.status),
+		check("agency_creator_links_distinct_accounts", sql`${table.agencyOrganizationId} <> ${table.creatorOrganizationId}`),
+		check("agency_creator_links_ceiling_array", sql`jsonb_typeof(${table.permissionCeiling}) = 'array'`),
+		check("agency_creator_links_acceptance_state", sql`(${table.status} <> 'accepted') OR (${table.acceptedBy} IS NOT NULL AND ${table.acceptedAt} IS NOT NULL)`),
+		check("agency_creator_links_revocation_state", sql`(${table.status} <> 'revoked') OR (${table.revokedBy} IS NOT NULL AND ${table.revokedAt} IS NOT NULL)`),
+	],
+);
+
+export const agencyLicenseAllocationsTable = pgTable(
+	"agency_license_allocations",
+	{
+		id: uuid("id").defaultRandom().primaryKey(),
+		linkId: uuid("link_id")
+			.notNull()
+			.references(() => agencyCreatorLinksTable.id, { onDelete: "cascade" }),
+		creatorId: varchar("creator_id")
+			.notNull()
+			.references(() => usersTable.id, { onDelete: "cascade" }),
+		status: agencyLicenseAllocationStatusEnum("status").notNull().default("active"),
+		effectiveAt: timestamp("effective_at", { withTimezone: true }).notNull(),
+		removalRequestedAt: timestamp("removal_requested_at", { withTimezone: true }),
+		endsAt: timestamp("ends_at", { withTimezone: true }),
+		sourceReference: varchar("source_reference", { length: 160 }).notNull(),
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+	},
+	(table) => [
+		uniqueIndex("agency_license_allocations_live_creator_unique")
+			.on(table.creatorId)
+			.where(sql`${table.status} IN ('active', 'removal_scheduled')`),
+		index("agency_license_allocations_link_status_idx").on(table.linkId, table.status),
+		index("agency_license_allocations_due_idx").on(table.status, table.endsAt),
+		check("agency_license_allocations_grace_state", sql`(${table.status} <> 'removal_scheduled') OR (${table.removalRequestedAt} IS NOT NULL AND ${table.endsAt} IS NOT NULL AND ${table.endsAt} > ${table.removalRequestedAt})`),
+		check("agency_license_allocations_source_non_secret", sql`${table.sourceReference} !~* '(bearer[[:space:]]+|token=|password=|secret=|credential=)'`),
+	],
+);
+
+export const accountDeletionRequestsTable = pgTable(
+	"account_deletion_requests",
+	{
+		id: uuid("id").defaultRandom().primaryKey(),
+		organizationId: text("organization_id")
+			.notNull()
+			.references(() => authOrganizationTable.id, { onDelete: "cascade" }),
+		choice: accountDeletionChoiceEnum("choice").notNull(),
+		status: accountDeletionStatusEnum("status").notNull(),
+		requestedBy: text("requested_by").references(() => authUserTable.id, { onDelete: "set null" }),
+		requestedAt: timestamp("requested_at", { withTimezone: true }).defaultNow().notNull(),
+		suspensionAt: timestamp("suspension_at", { withTimezone: true }).notNull(),
+		suspendedAt: timestamp("suspended_at", { withTimezone: true }),
+		purgeEligibleAt: timestamp("purge_eligible_at", { withTimezone: true }),
+		recoveredBy: text("recovered_by").references(() => authUserTable.id, { onDelete: "set null" }),
+		recoveredAt: timestamp("recovered_at", { withTimezone: true }),
+		cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
+		purgedAt: timestamp("purged_at", { withTimezone: true }),
+		stripeSnapshot: jsonb("stripe_snapshot").$type<Record<string, unknown>>().notNull().default({}),
+		version: integer("version").notNull().default(1),
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+	},
+	(table) => [
+		uniqueIndex("account_deletion_requests_nonterminal_unique")
+			.on(table.organizationId)
+			.where(sql`${table.status} IN ('scheduled', 'suspended', 'purge_eligible')`),
+		index("account_deletion_requests_status_time_idx").on(table.status, table.suspensionAt, table.purgeEligibleAt),
+		check("account_deletion_requests_version_positive", sql`${table.version} > 0`),
+		check("account_deletion_requests_purge_after_suspend", sql`${table.purgeEligibleAt} IS NULL OR (${table.suspendedAt} IS NOT NULL AND ${table.purgeEligibleAt} >= ${table.suspendedAt})`),
+		check("account_deletion_requests_snapshot_object", sql`jsonb_typeof(${table.stripeSnapshot}) = 'object'`),
+		check("account_deletion_requests_snapshot_redacted", sql`${table.stripeSnapshot}::text !~* '"[^"]*(secret|token|password|credential|authorization|cookie|otp|code)[^"]*"[[:space:]]*:'`),
+	],
+);
+
+export const auditEventsTable = pgTable(
+	"audit_events",
+	{
+		id: uuid("id").defaultRandom().primaryKey(),
+		occurredAt: timestamp("occurred_at", { withTimezone: true }).defaultNow().notNull(),
+		actorUserId: text("actor_user_id").references(() => authUserTable.id, { onDelete: "set null" }),
+		actorSessionId: text("actor_session_id"),
+		accountOrganizationId: text("account_organization_id").references(() => authOrganizationTable.id, { onDelete: "set null" }),
+		targetType: varchar("target_type", { length: 80 }).notNull(),
+		targetId: text("target_id"),
+		action: varchar("action", { length: 120 }).notNull(),
+		outcome: auditOutcomeEnum("outcome").notNull(),
+		reason: varchar("reason", { length: 160 }),
+		correlationId: varchar("correlation_id", { length: 120 }).notNull(),
+		ipPrefix: varchar("ip_prefix", { length: 80 }),
+		userAgentFamily: varchar("user_agent_family", { length: 120 }),
+		metadata: jsonb("metadata").$type<Record<string, unknown>>().notNull().default({}),
+	},
+	(table) => [
+		index("audit_events_account_time_idx").on(table.accountOrganizationId, table.occurredAt),
+		index("audit_events_actor_time_idx").on(table.actorUserId, table.occurredAt),
+		index("audit_events_correlation_idx").on(table.correlationId),
+		check("audit_events_metadata_object", sql`jsonb_typeof(${table.metadata}) = 'object'`),
+		check("audit_events_metadata_size", sql`octet_length(${table.metadata}::text) <= 16384`),
+		check("audit_events_metadata_secret_redacted", sql`${table.metadata}::text !~* '"[^\"]*(secret|token|password|credential|authorization|cookie|otp|code)[^\"]*"[[:space:]]*:'`),
+	],
+);
+
+export const rateLimitCountersTable = pgTable(
+	"rate_limit_counters",
+	{
+		id: uuid("id").defaultRandom().primaryKey(),
+		action: varchar("action", { length: 120 }).notNull(),
+		signalType: rateLimitSignalEnum("signal_type").notNull(),
+		signalHash: varchar("signal_hash", { length: 64 }).notNull(),
+		count: integer("count").notNull().default(0),
+		windowStartedAt: timestamp("window_started_at", { withTimezone: true }).notNull(),
+		expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+	},
+	(table) => [uniqueIndex("rate_limit_counter_signal_unique").on(table.action, table.signalType, table.signalHash), index("rate_limit_counter_expiry_idx").on(table.expiresAt), check("rate_limit_counter_nonnegative", sql`${table.count} >= 0`)],
+);
+
+export const notificationOutboxTable = pgTable(
+	"notification_outbox",
+	{
+		id: uuid("id").defaultRandom().primaryKey(),
+		eventType: varchar("event_type", { length: 80 }).notNull(),
+		recipient: varchar("recipient", { length: 320 }).notNull(),
+		authorityOrganizationId: text("authority_organization_id").references(() => authOrganizationTable.id, { onDelete: "set null" }),
+		templateVersion: varchar("template_version", { length: 40 }).notNull(),
+		locale: varchar("locale", { length: 20 }).notNull().default("en"),
+		payload: jsonb("payload").$type<Record<string, unknown>>().notNull().default({}),
+		scheduledAt: timestamp("scheduled_at", { withTimezone: true }).notNull(),
+		status: notificationStatusEnum("status").notNull().default("pending"),
+		attempts: integer("attempts").notNull().default(0),
+		claimedBy: varchar("claimed_by", { length: 120 }),
+		claimExpiresAt: timestamp("claim_expires_at", { withTimezone: true }),
+		providerMessageId: varchar("provider_message_id", { length: 200 }),
+		lastError: varchar("last_error", { length: 500 }),
+		dedupeKey: varchar("dedupe_key", { length: 200 }).notNull(),
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+	},
+	(table) => [
+		uniqueIndex("notification_outbox_dedupe_unique").on(table.dedupeKey),
+		index("notification_outbox_claim_idx").on(table.status, table.scheduledAt, table.claimExpiresAt),
+		check("notification_outbox_attempts_nonnegative", sql`${table.attempts} >= 0`),
+		check("notification_outbox_payload_object", sql`jsonb_typeof(${table.payload}) = 'object'`),
+		check("notification_outbox_payload_secret_redacted", sql`${table.payload}::text !~* '"[^\"]*(secret|token|password|credential|authorization|cookie|otp|code)[^\"]*"[[:space:]]*:'`),
+	],
+);
+
+export const migrationRunsTable = pgTable(
+	"migration_runs",
+	{
+		id: uuid("id").defaultRandom().primaryKey(),
+		status: migrationRunStatusEnum("status").notNull().default("created"),
+		sourceFingerprint: varchar("source_fingerprint", { length: 128 }).notNull(),
+		manifestChecksum: varchar("manifest_checksum", { length: 128 }).notNull(),
+		startedAt: timestamp("started_at", { withTimezone: true }).defaultNow().notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+		completedAt: timestamp("completed_at", { withTimezone: true }),
+	},
+	(table) => [uniqueIndex("migration_runs_source_manifest_unique").on(table.sourceFingerprint, table.manifestChecksum)],
+);
+
+export const migrationCheckpointsTable = pgTable(
+	"migration_checkpoints",
+	{
+		id: uuid("id").defaultRandom().primaryKey(),
+		runId: uuid("run_id")
+			.notNull()
+			.references(() => migrationRunsTable.id, { onDelete: "cascade" }),
+		phase: varchar("phase", { length: 80 }).notNull(),
+		cursor: varchar("cursor", { length: 200 }).notNull(),
+		checksum: varchar("checksum", { length: 128 }).notNull(),
+		status: migrationCheckpointStatusEnum("status").notNull().default("pending"),
+		processedCount: integer("processed_count").notNull().default(0),
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+		completedAt: timestamp("completed_at", { withTimezone: true }),
+	},
+	(table) => [uniqueIndex("migration_checkpoints_run_phase_cursor_unique").on(table.runId, table.phase, table.cursor), check("migration_checkpoint_count_nonnegative", sql`${table.processedCount} >= 0`)],
+);
+
+export const migrationAnomaliesTable = pgTable(
+	"migration_anomalies",
+	{
+		id: uuid("id").defaultRandom().primaryKey(),
+		runId: uuid("run_id")
+			.notNull()
+			.references(() => migrationRunsTable.id, { onDelete: "cascade" }),
+		sourceHash: varchar("source_hash", { length: 128 }).notNull(),
+		category: varchar("category", { length: 80 }).notNull(),
+		blocking: boolean("blocking").notNull().default(true),
+		status: migrationAnomalyStatusEnum("status").notNull().default("open"),
+		resolution: varchar("resolution", { length: 240 }),
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+		resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+	},
+	(table) => [uniqueIndex("migration_anomalies_run_source_category_unique").on(table.runId, table.sourceHash, table.category), check("migration_anomaly_source_hash_format", sql`${table.sourceHash} ~ '^[0-9a-f]{64,128}$'`), check("migration_anomaly_resolution_redacted", sql`${table.resolution} IS NULL OR ${table.resolution} !~* '(bearer[[:space:]]+|token=|password=|secret=|credential=)'`)],
 );
 
 export const tokenTable = pgTable("tokens", {
@@ -411,6 +697,7 @@ export const billingSubscriptionsTable = pgTable(
 		currentPeriodEnd: timestamp("current_period_end", { withTimezone: true }),
 		cancelAtPeriodEnd: boolean("cancel_at_period_end").notNull().default(false),
 		canceledAt: timestamp("canceled_at", { withTimezone: true }),
+		latestStripeEventCreated: bigint("latest_stripe_event_created", { mode: "number" }).notNull().default(0),
 		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 	},

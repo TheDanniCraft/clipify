@@ -1,43 +1,32 @@
 /** @jest-environment node */
 export {};
 
-const cookiesMock = jest.fn();
-const authUser = jest.fn();
+const signOut = jest.fn();
 const clearAdminViewCookieForAuthFlow = jest.fn();
 
-jest.mock("next/headers", () => ({
-	cookies: (...args: unknown[]) => cookiesMock(...args),
+jest.mock("@/auth/config", () => ({
+	auth: { api: { signOut: (...args: unknown[]) => signOut(...args) } },
 }));
 
 jest.mock("@actions/auth", () => ({
-	authUser: (...args: unknown[]) => authUser(...args),
 	clearAdminViewCookieForAuthFlow: (...args: unknown[]) => clearAdminViewCookieForAuthFlow(...args),
 }));
 
 describe("app/logout/route", () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
-		authUser.mockResolvedValue({ ok: true });
+		signOut.mockResolvedValue({ headers: { getSetCookie: () => ["better-auth.session_token=; Max-Age=0; Path=/"] } });
 		clearAdminViewCookieForAuthFlow.mockResolvedValue(undefined);
-		cookiesMock.mockResolvedValue({
-			delete: jest.fn(),
-		});
 	});
 
-	it("clears token and admin-view auth flow state", async () => {
+	it("revokes the Better Auth session and clears compatibility state", async () => {
 		const { GET } = await import("@/app/logout/route");
-		const response = await GET({ nextUrl: new URL("https://clipify.us/logout") } as never);
+		const response = await GET({ url: "https://clipify.us/logout", headers: new Headers({ cookie: "better-auth.session_token=session" }) } as never);
+		expect(signOut).toHaveBeenCalledWith(expect.objectContaining({ asResponse: true, body: {} }));
 		expect(clearAdminViewCookieForAuthFlow).toHaveBeenCalledTimes(1);
-		expect(authUser).toHaveBeenCalledTimes(1);
-		expect(authUser).toHaveBeenCalledWith(undefined, undefined);
-		expect(response).toEqual({ ok: true });
-	});
-
-	it("passes through logout error to login redirect", async () => {
-		const { GET } = await import("@/app/logout/route");
-		const response = await GET({ nextUrl: new URL("https://clipify.us/logout?error=accountDisabled") } as never);
-		expect(clearAdminViewCookieForAuthFlow).toHaveBeenCalledTimes(1);
-		expect(authUser).toHaveBeenCalledWith(undefined, "accountDisabled");
-		expect(response).toEqual({ ok: true });
+		expect(response.status).toBe(307);
+		expect(response.headers.get("location")).toBe("https://clipify.us/login");
+		expect(response.headers.getSetCookie().join("; ")).toContain("better-auth.session_token=");
+		expect(response.headers.getSetCookie().join("; ")).toContain("token=");
 	});
 });

@@ -11,6 +11,12 @@ const mockRunnerFindFirst = jest.fn();
 const mockRunnerFindMany = jest.fn();
 const mockOverlayFindFirst = jest.fn();
 const mockUpdateReturning = jest.fn();
+const mockAuthorizeCreatorOperation = jest.fn(async ({ creatorId }: { creatorId: string }) => {
+	const actor = await mockValidateAuth();
+	if (!actor) return { allowed: false, code: "AUTHENTICATION_REQUIRED" };
+	const allowed = actor.id === creatorId || Boolean(await mockEditorFindFirst());
+	return allowed ? { allowed: true, accessPath: actor.id === creatorId ? "owner" : "direct", creator: { id: creatorId }, authUserId: actor.id, sessionId: "test", creatorOrganizationId: `org:${creatorId}` } : { allowed: false, code: "ACCESS_PATH_REQUIRED" };
+});
 
 const mockUpdateBuilder = {
 	set: jest.fn(),
@@ -51,6 +57,7 @@ jest.mock("@lib/runnerArtifacts", () => ({
 jest.mock("next/cache", () => ({
 	revalidatePath: (...args: unknown[]) => mockRevalidatePath(...args),
 }));
+jest.mock("@/auth/authorize-operation", () => ({ authorizeCreatorOperation: (input: { creatorId: string }) => mockAuthorizeCreatorOperation(input), listAuthorizedCreatorOperations: jest.fn() }));
 
 describe("actions/runner", () => {
 	beforeEach(() => {

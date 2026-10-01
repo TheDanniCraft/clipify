@@ -1,14 +1,14 @@
 "use server";
 
-import { validateAuth } from "@actions/auth";
 import { db } from "@/db/client";
-import { editorsTable, plausibleStatsCacheTable, usersTable } from "@/db/schema";
+import { plausibleStatsCacheTable, usersTable } from "@/db/schema";
 import { resolveUserEntitlements } from "@lib/entitlements";
 import { getFeatureAccess } from "@lib/featureAccess";
 import { createCreatorAnalyticsCsv, fillEmptyCreatorAnalyticsRange, parsePlausibleCreatorAnalytics, recordCreatorAnalyticsMetric, type CreatorAnalyticsData, type CreatorAnalyticsExportDataset, type PlausibleCreatorPayload } from "@lib/plausibleCreatorAnalytics";
 import { PLAUSIBLE_BASE_URL, PLAUSIBLE_SITE_ID } from "@lib/plausibleConfig";
 import { PLAUSIBLE_EVENTS } from "@lib/plausibleEvents";
 import { and, eq, inArray } from "drizzle-orm";
+import { authorizeCreatorOperation, listAuthorizedCreatorOperations } from "@/auth/authorize-operation";
 
 const CACHE_TTL_MS = 10 * 60 * 1000;
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -28,20 +28,10 @@ function normalizedRange(range?: CreatorAnalyticsRange | null): CreatorAnalytics
 	return end.getTime() - start.getTime() <= maximumRangeMs ? range : null;
 }
 
-async function ownerForActor(actorId: string, ownerId: string) {
-	if (actorId !== ownerId) {
-		const editor = await db
-			.select({ userId: editorsTable.userId })
-			.from(editorsTable)
-			.where(and(eq(editorsTable.userId, ownerId), eq(editorsTable.editorId, actorId)))
-			.limit(1)
-			.execute();
-		if (!editor[0]) return null;
-	}
-	const owners = await db.select().from(usersTable).where(eq(usersTable.id, ownerId)).limit(1).execute();
-	const owner = owners[0];
-	if (!owner) return null;
-	const ownerWithEntitlements = { ...owner, entitlements: await resolveUserEntitlements(owner) };
+async function ownerForActor(ownerId: string, permission: "analytics:read" | "analytics:export") {
+	const access = await authorizeCreatorOperation({ creatorId: ownerId, resourceOwnerId: ownerId, permission, requiredEntitlement: "pro" });
+	if (!access.allowed) return null;
+	const ownerWithEntitlements = { ...access.creator, entitlements: await resolveUserEntitlements(access.creator) };
 	return getFeatureAccess(ownerWithEntitlements, "creator_page_analytics").allowed ? ownerWithEntitlements : null;
 }
 
@@ -120,37 +110,33 @@ async function loadCreatorAnalytics(owner: typeof usersTable.$inferSelect, range
 }
 
 export async function getOwnCreatorAnalytics(range?: CreatorAnalyticsRange | null) {
-	const user = await validateAuth();
-	if (!user || !getFeatureAccess(user, "creator_page_analytics").allowed) return null;
-	return loadCreatorAnalytics(user, range);
+	const candidates = await listAuthorizedCreatorOperations({ permission: "analytics:read", requiredEntitlement: "pro" });
+	const access = candidates.find((candidate) => candidate.accessPath === "owner") ?? candidates[0];
+	if (!access) return null;
+	const owner = { ...access.creator, entitlements: await resolveUserEntitlements(access.creator) };
+	if (!getFeatureAccess(owner, "creator_page_analytics").allowed) return null;
+	return loadCreatorAnalytics(owner, range);
 }
 
 export async function getCreatorAnalytics(ownerId: string, range?: CreatorAnalyticsRange | null) {
-	const actor = await validateAuth();
-	if (!actor) return null;
-	const owner = await ownerForActor(actor.id, ownerId);
+	const owner = await ownerForActor(ownerId, "analytics:read");
 	return owner ? loadCreatorAnalytics(owner, range) : null;
 }
 
 export async function getCreatorAnalyticsExportTargets(): Promise<CreatorAnalyticsExportTarget[]> {
-	const actor = await validateAuth();
-	if (!actor) return [];
-	const editorRows = await db.select({ userId: editorsTable.userId }).from(editorsTable).where(eq(editorsTable.editorId, actor.id)).execute();
-	const ownerIds = [...new Set(editorRows.map((row) => row.userId))];
-	const managedOwners = ownerIds.length ? await db.select().from(usersTable).where(inArray(usersTable.id, ownerIds)).execute() : [];
-	const eligibleManaged = [];
-	for (const owner of managedOwners) {
-		const entitlements = await resolveUserEntitlements(owner);
-		if (getFeatureAccess({ ...owner, entitlements }, "creator_page_analytics").allowed) eligibleManaged.push({ id: owner.id, username: owner.username, avatar: owner.avatar, isSelf: false });
+	const candidates = await listAuthorizedCreatorOperations({ permission: "analytics:export", requiredEntitlement: "pro" });
+	const eligibleManaged: CreatorAnalyticsExportTarget[] = [];
+	for (const candidate of candidates) {
+		const entitlements = await resolveUserEntitlements(candidate.creator);
+		if (getFeatureAccess({ ...candidate.creator, entitlements }, "creator_page_analytics").allowed) eligibleManaged.push({ id: candidate.creator.id, username: candidate.creator.username, avatar: candidate.creator.avatar, isSelf: candidate.accessPath === "owner" });
 	}
-	return [{ id: actor.id, username: actor.username, avatar: actor.avatar, isSelf: true }, ...eligibleManaged.sort((a, b) => a.username.localeCompare(b.username))];
+	return eligibleManaged.sort((a, b) => Number(b.isSelf) - Number(a.isSelf) || a.username.localeCompare(b.username));
 }
 
 export async function exportCreatorAnalyticsBundle(input: { ownerId: string; range?: CreatorAnalyticsRange | null; datasets: CreatorAnalyticsExportDataset[] }): Promise<CreatorAnalyticsExportResult[] | null> {
-	const actor = await validateAuth();
 	const datasets = [...new Set(input.datasets)];
-	if (!actor || datasets.length === 0 || datasets.some((dataset) => !CREATOR_ANALYTICS_EXPORT_DATASETS.includes(dataset))) return null;
-	const owner = await ownerForActor(actor.id, input.ownerId);
+	if (datasets.length === 0 || datasets.some((dataset) => !CREATOR_ANALYTICS_EXPORT_DATASETS.includes(dataset))) return null;
+	const owner = await ownerForActor(input.ownerId, "analytics:export");
 	if (!owner) return null;
 	const analytics = await loadCreatorAnalytics(owner, input.range);
 	if (!analytics) return null;

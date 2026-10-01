@@ -26,6 +26,10 @@ const editorsTable = {
 	editorId: "editors.editor_id",
 	userId: "editors.user_id",
 };
+const creatorAccountsTable = {
+	creatorId: "creator_accounts.creator_id",
+	status: "creator_accounts.status",
+};
 
 function queueSelectResult(value: unknown) {
 	selectQueue.push(value);
@@ -109,6 +113,7 @@ jest.mock("@/db/schema", () => ({
 	overlaysTable,
 	usersTable,
 	editorsTable,
+	creatorAccountsTable,
 	tokenTable: {},
 	playlistsTable: { ownerId: "playlists.owner_id", id: "playlists.id", createdAt: "playlists.created_at" },
 	playlistClipsTable: { playlistId: "playlist_clips.playlist_id", clipId: "playlist_clips.clip_id", position: "playlist_clips.position" },
@@ -120,6 +125,7 @@ jest.mock("@/db/schema", () => ({
 }));
 
 jest.mock("drizzle-orm", () => ({
+	relations: jest.fn(() => ({})),
 	eq: jest.fn(() => "eq"),
 	and: jest.fn(() => "and"),
 	or: jest.fn(() => "or"),
@@ -139,6 +145,12 @@ jest.mock("drizzle-orm", () => ({
 const validateAuth = jest.fn();
 jest.mock("@actions/auth", () => ({
 	validateAuth: (...args: any[]) => validateAuth(...args),
+}));
+
+const authorizeCreatorOperation = jest.fn();
+jest.mock("@/auth/authorize-operation", () => ({
+	authorizeCreatorOperation: (...args: unknown[]) => authorizeCreatorOperation(...args),
+	listAuthorizedCreatorOperations: jest.fn(),
 }));
 
 jest.mock("@lib/entitlements", () => ({
@@ -168,6 +180,7 @@ describe("actions/database overlay logic", () => {
 		dbSelect.mockImplementation(() => makeSelectChain());
 		dbDelete.mockImplementation((table: unknown) => makeDeleteChain(table));
 		validateAuth.mockResolvedValue({ id: "user-1" });
+		authorizeCreatorOperation.mockResolvedValue({ allowed: true, accessPath: "owner", creator: { id: "user-1", plan: "pro" }, creatorOrganizationId: "creator:user-1", authUserId: "auth-user-1", sessionId: "session-1" });
 	});
 
 	it("deletes overlay with access", async () => {
@@ -181,7 +194,7 @@ describe("actions/database overlay logic", () => {
 	it("fails to delete overlay without access", async () => {
 		const { deleteOverlay } = await loadDatabaseActions();
 		queueSelectResult([{ id: "overlay-1", ownerId: "other-user" }]); // requireOverlayAccess select
-		queueSelectResult([]); // canEditOwner select
+		authorizeCreatorOperation.mockResolvedValueOnce({ allowed: false, code: "PERMISSION_DENIED" });
 		const result = await deleteOverlay("overlay-1");
 		expect(result).toBe(false);
 	});
@@ -206,6 +219,7 @@ describe("actions/database overlay logic", () => {
 		const { getOverlayPublic } = await loadDatabaseActions();
 		queueSelectResult([{ id: "overlay-1", ownerId: "user-1", secret: "secret" }]);
 		queueSelectResult([{ disabled: false }]);
+		queueSelectResult([{ status: "active" }]);
 		const result = await getOverlayPublic("overlay-1");
 		expect(result).toMatchObject({ id: "overlay-1", secret: "" }); // secret should be stripped
 	});
@@ -214,6 +228,7 @@ describe("actions/database overlay logic", () => {
 		const { getOverlayPublic } = await loadDatabaseActions();
 		queueSelectResult([{ id: "overlay-1", ownerId: "user-1", secret: "secret" }]);
 		queueSelectResult([{ disabled: true, disabledReason: "banned" }]);
+		queueSelectResult([{ status: "active" }]);
 		const result = await getOverlayPublic("overlay-1");
 		expect(result).toMatchObject({ id: "overlay-1", ownerDisabled: true, ownerDisabledReason: "banned" });
 	});
@@ -222,8 +237,18 @@ describe("actions/database overlay logic", () => {
 		const { getOverlayBySecret } = await loadDatabaseActions();
 		queueSelectResult([{ id: "overlay-1", ownerId: "user-1", secret: "secret-1" }]); // overlay select
 		queueSelectResult([{ disabled: false }]); // owner select
+		queueSelectResult([{ status: "active" }]); // creator account select
 		const result = await getOverlayBySecret("overlay-1", "secret-1");
 		expect(result).toMatchObject({ id: "overlay-1" });
+	});
+
+	it("denies overlay runtime while creator deletion is suspended", async () => {
+		const { getOverlayBySecret } = await loadDatabaseActions();
+		queueSelectResult([{ id: "overlay-1", ownerId: "user-1", secret: "secret-1" }]);
+		queueSelectResult([{ disabled: false }]);
+		queueSelectResult([{ status: "suspended" }]);
+
+		await expect(getOverlayBySecret("overlay-1", "secret-1")).resolves.toBeNull();
 	});
 
 	it("gets overlay with access", async () => {
@@ -245,7 +270,7 @@ describe("actions/database overlay logic", () => {
 	it("fails to create overlay if not owner and not editor", async () => {
 		const { createOverlay } = await loadDatabaseActions();
 		validateAuth.mockResolvedValue({ id: "user-2" }); // authenticated as user-2
-		queueSelectResult([]); // canEditOwner editors select (empty)
+		authorizeCreatorOperation.mockResolvedValueOnce({ allowed: false, code: "PERMISSION_DENIED" });
 
 		const result = await createOverlay("user-1"); // trying to create for user-1
 		expect(result).toBeNull();
@@ -342,6 +367,7 @@ describe("actions/database overlay logic", () => {
 		const { getOverlayBySecret } = await loadDatabaseActions();
 		queueSelectResult([{ id: "ov-1", secret: "secret", ownerId: "user-1" }]); // overlay select
 		queueSelectResult([{ disabled: true }]); // owner select
+		queueSelectResult([{ status: "active" }]); // creator account select
 		const result = await getOverlayBySecret("ov-1", "secret");
 		expect(result).toBeNull();
 	});
