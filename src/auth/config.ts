@@ -9,18 +9,7 @@ import { betterAuthOrganizationRoles, clipifyAccessControl } from "./organizatio
 import { EMAIL_OTP_POLICY } from "./credential-policy";
 import { sendAuthOtp } from "./transactional-mail";
 import { resolveBaseUrl } from "@/app/lib/baseUrl";
-
-function generationFallback(name: string): string | undefined {
-	if (!process.argv.includes("generate") && process.env.APP_ENV !== "test") return undefined;
-	if (name === "BETTER_AUTH_SECRET") return "schema-generation-only-secret-at-least-32-characters";
-	return `schema-generation-${name.toLowerCase()}`;
-}
-
-function requiredSetting(name: string, legacyName?: string): string {
-	const value = process.env[name] ?? (legacyName ? process.env[legacyName] : undefined) ?? generationFallback(name);
-	if (!value) throw new Error(`${name} must be injected by Infisical`);
-	return value;
-}
+import { requiredAuthSetting } from "./environment";
 
 const resolvedBaseUrl = resolveBaseUrl();
 const baseURL = resolvedBaseUrl.origin;
@@ -28,7 +17,7 @@ const baseURL = resolvedBaseUrl.origin;
 export const auth = betterAuth({
 	appName: "Clipify",
 	baseURL,
-	secret: requiredSetting("BETTER_AUTH_SECRET", "JWT_SECRET"),
+	secret: requiredAuthSetting("BETTER_AUTH_SECRET", "JWT_SECRET"),
 	database: drizzleAdapter(db, {
 		provider: "pg",
 		schemaName: "auth",
@@ -36,8 +25,8 @@ export const auth = betterAuth({
 	}),
 	socialProviders: {
 		twitch: {
-			clientId: requiredSetting("TWITCH_CLIENT_ID"),
-			clientSecret: requiredSetting("TWITCH_CLIENT_SECRET"),
+			clientId: requiredAuthSetting("TWITCH_CLIENT_ID"),
+			clientSecret: requiredAuthSetting("TWITCH_CLIENT_SECRET"),
 			scope: TWITCH_ADDITIONAL_SCOPES,
 			requireEmailVerification: true,
 		},

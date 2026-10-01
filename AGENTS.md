@@ -76,6 +76,10 @@ Resources
   final schema diff.
 - `bun run db:push` is permitted only against the disposable development
   database through Infisical. Never use it against production.
+- The sole CI exception is `bun run db:push:e2e`, which is guarded to run only
+  in GitHub Actions job `browser-tests` against PostgreSQL on loopback, database
+  and user `clipify_e2e`, with `CLIPIFY_E2E_SCHEMA_PUSH=1`. It must never accept
+  a remote host or persistent database.
 - A manual/custom migration is allowed only when Drizzle cannot express the
   required database behavior and the user explicitly authorizes that exact
   migration. Stop and explain the unsupported behavior before creating it.
