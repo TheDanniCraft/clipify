@@ -8,14 +8,14 @@ import DashboardUserAvatar from "@components/dashboardUserAvatar";
 import CodeSnippet from "@components/codeSnippet";
 import FullscreenLoadingState from "@components/fullscreenLoadingState";
 import { AuthenticatedUser, Plan, UserSettings } from "@types";
-import { Alert, Button, Card, Separator, Form, Input, Link, Modal, Spinner, Switch, Tooltip, useOverlayState, TextField, TextArea, Label, Description, FieldError } from "@heroui/react";
+import { Alert, Button, Card, Chip, Separator, Form, Input, Link, Modal, Spinner, Switch, Tooltip, useOverlayState, TextField, TextArea, Label, Description, FieldError } from "@heroui/react";
 import { notify as addToast } from "@lib/toast";
 
-import { IconAlertTriangle, IconDatabase, IconDeviceFloppy, IconInfoCircle, IconRefresh, IconTrash } from "@tabler/icons-react";
+import { IconAlertTriangle, IconClock, IconDatabase, IconDeviceFloppy, IconInfoCircle, IconMail, IconRefresh, IconShieldLock, IconTrash } from "@tabler/icons-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { exportAccountData, requestAccountDeletion } from "@actions/subscription";
+import { requestAccountDataExport, requestAccountDeletion } from "@actions/subscription";
 import { forceRefreshOwnClipCache, getOwnClipForceRefreshStatus } from "@actions/twitch";
 import { useNavigationGuard } from "nextjs-nav-guard";
 import UpgradeModal from "@components/upgradeModal";
@@ -58,6 +58,7 @@ export default function SettingsPage() {
 	});
 	const [sectionTab, setSectionTab] = useState<SettingsSection>("settings");
 	const { isOpen: deleteModalIsOpen, open: deleteModalOnOpen, setOpen: deleteModalOnOpenChange } = useOverlayState();
+	const { isOpen: exportModalIsOpen, open: exportModalOnOpen, setOpen: exportModalOnOpenChange } = useOverlayState();
 	const [deletionChoice, setDeletionChoice] = useState<"paid_through" | "immediate">("paid_through");
 	const [timer, setTimer] = useState<number>(0);
 	const [settings, setSettings] = useState<UserSettings | null>(null);
@@ -68,6 +69,8 @@ export default function SettingsPage() {
 	const [isRefreshingStats, setIsRefreshingStats] = useState(false);
 	const [recentAuthAction, setRecentAuthAction] = useState<"export" | "deletion" | null>(null);
 	const [isReauthenticating, setIsReauthenticating] = useState(false);
+	const [isRequestingExport, setIsRequestingExport] = useState(false);
+	const [recentAuthRemainingMs, setRecentAuthRemainingMs] = useState(0);
 
 	const router = useRouter();
 	const navGuard = useNavigationGuard({ enabled: isFormDirty() });
@@ -94,6 +97,17 @@ export default function SettingsPage() {
 			return () => clearInterval(interval);
 		}
 	}, [timer]);
+
+	useEffect(() => {
+		function updateRecentAuthWindow() {
+			const expiresAt = Number(sessionStorage.getItem("clipify:recent-auth-expires-at") ?? 0);
+			setRecentAuthRemainingMs(Math.max(0, expiresAt - Date.now()));
+			if (expiresAt <= Date.now()) sessionStorage.removeItem("clipify:recent-auth-expires-at");
+		}
+		updateRecentAuthWindow();
+		const interval = window.setInterval(updateRecentAuthWindow, 1000);
+		return () => window.clearInterval(interval);
+	}, []);
 
 	const hasForceRefreshStatus = !!clipForceRefreshStatus;
 	const canRefresh = clipForceRefreshStatus?.canRefresh;
@@ -157,7 +171,11 @@ export default function SettingsPage() {
 			const params = new URLSearchParams(window.location.search);
 			const reauthenticated = params.get("reauthenticated");
 			if (reauthenticated) {
-				addToast({ title: "Identity confirmed", description: reauthenticated === "export" ? "You can export your account data now." : reauthenticated === "deletion" ? "You can schedule account deletion now." : "You can continue with the sensitive account action.", color: "success" });
+				const expiresAt = Date.now() + 5 * 60 * 1000;
+				sessionStorage.setItem("clipify:recent-auth-expires-at", String(expiresAt));
+				setRecentAuthRemainingMs(5 * 60 * 1000);
+				if (reauthenticated === "export") exportModalOnOpen();
+				addToast({ title: "Signed in again", description: reauthenticated === "export" ? "Review and request your data package within five minutes." : reauthenticated === "deletion" ? "You can schedule account deletion for the next five minutes." : "You can continue with the sensitive account action for the next five minutes.", color: "success" });
 				params.delete("reauthenticated");
 				router.replace(params.size ? `/dashboard/settings?${params.toString()}` : "/dashboard/settings");
 			}
@@ -169,7 +187,7 @@ export default function SettingsPage() {
 		return () => {
 			cancelled = true;
 		};
-	}, [router]);
+	}, [exportModalOnOpen, router]);
 
 	useEffect(() => {
 		if (!user || typeof window === "undefined") return;
@@ -216,6 +234,11 @@ export default function SettingsPage() {
 		if (hours > 0) return `${hours}h ${minutes}m`;
 		if (minutes > 0) return `${minutes}m ${seconds}s`;
 		return `${seconds}s`;
+	}
+
+	function formatRecentAuthCountdown(value: number) {
+		const totalSeconds = Math.max(0, Math.ceil(value / 1000));
+		return `${Math.floor(totalSeconds / 60)}:${String(totalSeconds % 60).padStart(2, "0")}`;
 	}
 
 	async function handleForceRefreshCache() {
@@ -625,29 +648,14 @@ export default function SettingsPage() {
 								</Form>
 								<Separator className='my-4' />
 								<div className='flex  flex-col gap-2 justify-end'>
-									<Button
-										fullWidth
-										variant='secondary'
-										onPress={async () => {
-											try {
-												const data = await exportAccountData();
-												const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }));
-												const link = document.createElement("a");
-												link.href = url;
-												link.download = `clipify-account-${user.id}.json`;
-												link.click();
-												URL.revokeObjectURL(url);
-											} catch (error) {
-												if (error instanceof Error && error.message === "RECENT_AUTH_REQUIRED") {
-													setRecentAuthAction("export");
-													return;
-												}
-												addToast({ title: "Export unavailable", description: "Please retry or contact support.", color: "danger" });
-											}
-										}}
-									>
+									{recentAuthRemainingMs > 0 ? (
+										<Chip color='success' variant='soft' className='self-start'>
+											<IconClock aria-hidden='true' size={14} /> Recent sign-in: {formatRecentAuthCountdown(recentAuthRemainingMs)}
+										</Chip>
+									) : null}
+									<Button fullWidth variant='secondary' aria-label='Export Account Data' onPress={exportModalOnOpen}>
 										<IconDatabase />
-										Export Account Data
+										Request Account Data
 									</Button>
 									<Button fullWidth onPress={deleteModalOnOpen} variant='danger'>
 										{<IconTrash />}
@@ -744,12 +752,61 @@ export default function SettingsPage() {
 				}}
 			/>
 
+			<ControlledModal variant='blur' isOpen={exportModalIsOpen} onClose={() => exportModalOnOpenChange(false)}>
+				<Modal.Header>
+					<Modal.Icon className='bg-accent-soft text-accent-soft-foreground'>
+						<IconShieldLock aria-hidden='true' />
+					</Modal.Icon>
+					<Modal.Heading>Request your Clipify data</Modal.Heading>
+				</Modal.Header>
+				<Modal.Body className='space-y-4'>
+					<p className='text-sm text-foreground'>We&apos;ll email a download link to your verified account email. The link expires after three days and only works while you&apos;re signed in to this Clipify account.</p>
+					<Alert status='warning' className='bg-surface-secondary'>
+						<Alert.Content>
+							<Alert.Title>Keep the package private</Alert.Title>
+							<Alert.Description>It contains your profile, content, consent history, team and agency relationships, billing records, and sign-in security metadata. Reusable secrets and credentials are excluded for your protection.</Alert.Description>
+						</Alert.Content>
+					</Alert>
+				</Modal.Body>
+				<Modal.Footer>
+					<Button variant='tertiary' onPress={() => exportModalOnOpenChange(false)} isDisabled={isRequestingExport}>
+						Cancel
+					</Button>
+					<Button
+						variant='primary'
+						isPending={isRequestingExport}
+						onPress={async () => {
+							setIsRequestingExport(true);
+							try {
+								const result = await requestAccountDataExport();
+								exportModalOnOpenChange(false);
+								addToast({ title: "Data export requested", description: `We sent the download link to ${result.email}. It expires ${new Date(result.expiresAt).toLocaleString()}.`, color: "success" });
+							} catch (error) {
+								if (error instanceof Error && error.message === "RECENT_AUTH_REQUIRED") {
+									exportModalOnOpenChange(false);
+									setRecentAuthAction("export");
+									return;
+								}
+								addToast({ title: "Export request failed", description: error instanceof Error && error.message === "EXPORT_RATE_LIMITED" ? "You can request up to three exports per day." : "Please retry or contact support.", color: "danger" });
+							} finally {
+								setIsRequestingExport(false);
+							}
+						}}
+					>
+						<IconMail aria-hidden='true' /> Email download link
+					</Button>
+				</Modal.Footer>
+			</ControlledModal>
+
 			<ControlledModal variant='blur' isOpen={recentAuthAction !== null} onClose={() => setRecentAuthAction(null)}>
 				<Modal.Header>
-					<Modal.Heading>Confirm it&apos;s you</Modal.Heading>
+					<Modal.Heading>Sign in again to continue</Modal.Heading>
 				</Modal.Header>
-				<Modal.Body>
-					<p className='text-sm text-foreground'>For sensitive account actions, Clipify requires a Twitch identity check completed within the last five minutes. You do not need to sign out.</p>
+				<Modal.Body className='space-y-3'>
+					<p className='text-sm text-foreground'>To protect your account, sign in with Twitch again before completing this sensitive action.</p>
+					<Chip color='accent' variant='soft'>
+						<IconClock aria-hidden='true' size={14} /> You&apos;ll have five minutes to finish
+					</Chip>
 				</Modal.Body>
 				<Modal.Footer>
 					<Button variant='tertiary' onPress={() => setRecentAuthAction(null)} isDisabled={isReauthenticating}>
@@ -757,7 +814,7 @@ export default function SettingsPage() {
 					</Button>
 					<Button variant='primary' onPress={() => void reauthenticateWithTwitch()} isPending={isReauthenticating}>
 						<IconBrandTwitch aria-hidden='true' />
-						Verify with Twitch
+						Continue with Twitch
 					</Button>
 				</Modal.Footer>
 			</ControlledModal>

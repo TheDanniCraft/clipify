@@ -17,6 +17,8 @@ import { getActiveEntitlementGrant, resolveUserEntitlements } from "@lib/entitle
 import { Entitlement, EntitlementGrantSource } from "@types";
 import { isProductOwnedByEntitlement } from "@lib/billingOwnership";
 import type { DeletionChoice } from "@/server/account-lifecycle/service";
+import { ACCOUNT_DATA_EXPORT_TTL_MS, createAccountDataExportToken } from "@/auth/account-data-export-token";
+import { sendAccountDataExport } from "@/auth/transactional-mail";
 
 export type BillingCycle = "monthly" | "yearly";
 export type PaywallSource = "pricing_page" | "upgrade_modal" | "paywall_banner";
@@ -97,9 +99,17 @@ export async function getAccountDeletionOverview() {
 	return getDatabaseAccountDeletionOverview();
 }
 
-export async function exportAccountData() {
-	const { exportDatabaseAccountData } = await import("@/server/account-lifecycle/database");
-	return exportDatabaseAccountData();
+export async function requestAccountDataExport() {
+	const { prepareDatabaseAccountDataExport } = await import("@/server/account-lifecycle/database");
+	const identity = await prepareDatabaseAccountDataExport();
+	const limit = await tryRateLimit({ key: "account-data-export", points: 3, duration: 24 * 60 * 60, identifier: identity.authUserId });
+	if (!limit.success) throw new Error("EXPORT_RATE_LIMITED");
+	const now = new Date();
+	const expiresAt = new Date(now.getTime() + ACCOUNT_DATA_EXPORT_TTL_MS);
+	const token = createAccountDataExportToken({ authUserId: identity.authUserId, creatorId: identity.creatorId, organizationId: identity.organizationId, now });
+	const downloadUrl = new URL(`/api/account/export?token=${encodeURIComponent(token)}`, await getBaseUrl()).toString();
+	await sendAccountDataExport({ email: identity.email, downloadUrl, expiresAt });
+	return { email: identity.email, expiresAt: expiresAt.toISOString() };
 }
 
 export async function getBillingProductOptions(primaryProduct: BillingProduct) {

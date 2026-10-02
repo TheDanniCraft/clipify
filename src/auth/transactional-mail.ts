@@ -17,6 +17,10 @@ export async function sendTeamInvitation(input: { email: string; invitationUrl: 
 	await new UseSendTransactionalMailAdapter().send(input.email, renderIdentitySecurityEmail({ type: "invitation", organizationName: input.organizationName, invitationUrl: input.invitationUrl }), `team-invitation:${randomUUID()}`);
 }
 
+export async function sendAccountDataExport(input: { email: string; downloadUrl: string; expiresAt: Date }): Promise<void> {
+	await new UseSendTransactionalMailAdapter().send(input.email, renderIdentitySecurityEmail({ type: "account-data-export", downloadUrl: input.downloadUrl, expiresAt: input.expiresAt }), `account-data-export:${randomUUID()}`);
+}
+
 export class UseSendTransactionalMailAdapter {
 	readonly #client = new UseSend(requiredInfisicalSetting("USESEND_API_KEY"), requiredInfisicalSetting("USESEND_BASE_URL").replace(/\/+$/, ""));
 
