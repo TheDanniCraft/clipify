@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { IconCalendarClock, IconDatabase, IconRefresh, IconShieldLock } from "@tabler/icons-react";
 import DashboardNavbar from "@components/dashboardNavbar";
-import { AlertContent, AlertDescription, AlertRoot, AlertTitle, Button, CardContent, CardDescription, CardFooter, CardHeader, CardRoot, CardTitle, Chip } from "@components/heroui-client";
+import { AlertContent, AlertDescription, AlertRoot, Button, CardContent, CardDescription, CardFooter, CardHeader, CardRoot, CardTitle, Chip } from "@components/heroui-client";
 import { getAuthActorContext } from "@/auth/session";
 import { getAccountDeletionOverview, recoverAccountDeletion } from "@actions/subscription";
 
@@ -27,7 +27,7 @@ export default async function AccountRecoveryPage() {
 				<AlertRoot status={request.recoveryPeriodEnded ? "danger" : "warning"}>
 					<IconCalendarClock aria-hidden='true' />
 					<AlertContent>
-						<AlertTitle>{request.recoveryPeriodEnded ? "Recovery period ended" : "Account suspended pending deletion"}</AlertTitle>
+						<h2 className='font-medium'>{request.recoveryPeriodEnded ? "Recovery period ended" : "Account suspended pending deletion"}</h2>
 						<AlertDescription>{request.recoveryPeriodEnded ? "This account can no longer be restored through self-service recovery." : "Your resources are retained and can still be restored before permanent-erasure eligibility."}</AlertDescription>
 					</AlertContent>
 				</AlertRoot>
