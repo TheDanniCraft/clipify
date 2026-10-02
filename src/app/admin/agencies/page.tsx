@@ -3,6 +3,7 @@ import { IconBuildingBank, IconCheck, IconFileDescription, IconMail, IconPlus, I
 import { validateAdminAuth } from "@actions/auth";
 import { getAdminAgenciesAction, provisionAgencyFormAction } from "@/app/actions/agency";
 import DashboardNavbar from "@components/dashboardNavbar";
+import AdminNavigation from "@components/adminNavigation";
 import { AlertContent, AlertDescription, AlertRoot, AlertTitle, Button, CardContent, CardDescription, CardHeader, CardRoot, CardTitle, Chip, Input, Label, TableBody, TableCell, TableColumn, TableContent, TableHeader, TableRoot, TableRow, TableScrollContainer, TextField } from "@components/heroui-client";
 
 export const dynamic = "force-dynamic";
@@ -22,6 +23,7 @@ export default async function AdminAgenciesPage({ searchParams }: { searchParams
 	return (
 		<DashboardNavbar user={user} title='Agency accounts' tagline='Provision negotiated contracts and creator seat limits'>
 			<div className='mt-6 flex flex-col gap-6 pb-10'>
+				<AdminNavigation active='agencies' />
 				{params.error ? (
 					<AlertRoot status='danger'>
 						<AlertContent>

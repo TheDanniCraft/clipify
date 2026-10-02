@@ -8,13 +8,13 @@ import DashboardUserAvatar from "@components/dashboardUserAvatar";
 import CodeSnippet from "@components/codeSnippet";
 import FullscreenLoadingState from "@components/fullscreenLoadingState";
 import { AuthenticatedUser, Plan, UserSettings } from "@types";
-import { Alert, Button, Card, Separator, Form, Input, Link, Modal, Spinner, Switch, Tabs, Tooltip, useOverlayState, TextField, TextArea, Label, Description, FieldError } from "@heroui/react";
+import { Alert, Button, Card, Separator, Form, Input, Link, Modal, Spinner, Switch, Tooltip, useOverlayState, TextField, TextArea, Label, Description, FieldError } from "@heroui/react";
 import { notify as addToast } from "@lib/toast";
 
 import { IconAlertTriangle, IconDatabase, IconDeviceFloppy, IconInfoCircle, IconRefresh, IconTrash } from "@tabler/icons-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { memo, useEffect, useMemo, useState, type Dispatch, type SetStateAction } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { exportAccountData, requestAccountDeletion } from "@actions/subscription";
 import { forceRefreshOwnClipCache, getOwnClipForceRefreshStatus } from "@actions/twitch";
 import { useNavigationGuard } from "nextjs-nav-guard";
@@ -23,8 +23,11 @@ import BillingPanel from "./billing-panel";
 import ChatwootData from "@components/chatwootData";
 import ControlledModal from "@components/controlledModal";
 import CreatorAnalyticsCard from "@components/creator/CreatorAnalyticsCard";
+import SettingsNavigation from "@components/settingsNavigation";
 import { getFeatureAccess, getTrialDaysLeft, isReverseTrialActive } from "@lib/featureAccess";
 import type { BillingCycle, PaywallSource } from "@actions/subscription";
+import { authClient } from "@/auth/client";
+import { IconBrandTwitch } from "@tabler/icons-react";
 
 type ClipCacheStatusState = {
 	cachedClipCount: number;
@@ -46,29 +49,6 @@ type ClipForceRefreshStatusState = {
 
 type SettingsSection = "settings" | "creator" | "billing";
 
-const SettingsSectionTabs = memo(function SettingsSectionTabs({ selectedKey, setSelectedKey }: { selectedKey: SettingsSection; setSelectedKey: Dispatch<SetStateAction<SettingsSection>> }) {
-	return (
-		<Tabs selectedKey={selectedKey} onSelectionChange={(key) => setSelectedKey(String(key) as SettingsSection)} className='w-full' variant='primary'>
-			<Tabs.ListContainer className='w-full'>
-				<Tabs.List aria-label='Settings sections' className='w-full'>
-					<Tabs.Tab id='settings'>
-						Settings
-						<Tabs.Indicator />
-					</Tabs.Tab>
-					<Tabs.Tab id='creator'>
-						Creator Page
-						<Tabs.Indicator />
-					</Tabs.Tab>
-					<Tabs.Tab id='billing'>
-						Billing
-						<Tabs.Indicator />
-					</Tabs.Tab>
-				</Tabs.List>
-			</Tabs.ListContainer>
-		</Tabs>
-	);
-});
-
 export default function SettingsPage() {
 	const [user, setUser] = useState<AuthenticatedUser | null>(null);
 	const { isOpen: upgradeModalIsOpen, open: upgradeModalOnOpen, setOpen: upgradeModalOnOpenChange } = useOverlayState();
@@ -86,6 +66,8 @@ export default function SettingsPage() {
 	const [clipForceRefreshStatus, setClipForceRefreshStatus] = useState<ClipForceRefreshStatusState>(null);
 	const [isForceRefreshing, setIsForceRefreshing] = useState(false);
 	const [isRefreshingStats, setIsRefreshingStats] = useState(false);
+	const [recentAuthAction, setRecentAuthAction] = useState<"export" | "deletion" | null>(null);
+	const [isReauthenticating, setIsReauthenticating] = useState(false);
 
 	const router = useRouter();
 	const navGuard = useNavigationGuard({ enabled: isFormDirty() });
@@ -173,6 +155,12 @@ export default function SettingsPage() {
 		queueMicrotask(() => {
 			if (cancelled) return;
 			const params = new URLSearchParams(window.location.search);
+			const reauthenticated = params.get("reauthenticated");
+			if (reauthenticated) {
+				addToast({ title: "Identity confirmed", description: reauthenticated === "export" ? "You can export your account data now." : reauthenticated === "deletion" ? "You can schedule account deletion now." : "You can continue with the sensitive account action.", color: "success" });
+				params.delete("reauthenticated");
+				router.replace(params.size ? `/dashboard/settings?${params.toString()}` : "/dashboard/settings");
+			}
 			const requestedTab = params.get("tab");
 			if (requestedTab === "creator" || requestedTab === "billing") setSectionTab(requestedTab);
 			else if (requestedTab === "badges" || requestedTab === "achievements") router.replace("/dashboard/member-card");
@@ -309,13 +297,23 @@ export default function SettingsPage() {
 		}
 	}
 
+	async function reauthenticateWithTwitch() {
+		setIsReauthenticating(true);
+		const callbackURL = `/dashboard/settings?reauthenticated=${recentAuthAction ?? "sensitive-action"}`;
+		const result = await authClient.signIn.social({ provider: "twitch", callbackURL, errorCallbackURL: "/dashboard/settings?reauthentication=failed" });
+		if (result.error) {
+			setIsReauthenticating(false);
+			addToast({ title: "Identity check could not start", description: "Please retry the Twitch verification.", color: "danger" });
+		}
+	}
+
 	return (
 		<>
 			<ChatwootData user={user} />
 
 			<DashboardNavbar user={user} title='Settings' tagline='Manage your settings'>
 				<div className='mt-4 flex w-full flex-col gap-2'>
-					<SettingsSectionTabs selectedKey={sectionTab} setSelectedKey={setSectionTab} />
+					<SettingsNavigation active={sectionTab} onCoreSectionChange={setSectionTab} />
 				</div>
 				{sectionTab === "billing" ? (
 					<BillingPanel />
@@ -627,7 +625,11 @@ export default function SettingsPage() {
 												link.click();
 												URL.revokeObjectURL(url);
 											} catch (error) {
-												addToast({ title: "Export unavailable", description: error instanceof Error && error.message === "RECENT_AUTH_REQUIRED" ? "Sign out and sign back in, then retry within five minutes." : "Please retry or contact support.", color: "danger" });
+												if (error instanceof Error && error.message === "RECENT_AUTH_REQUIRED") {
+													setRecentAuthAction("export");
+													return;
+												}
+												addToast({ title: "Export unavailable", description: "Please retry or contact support.", color: "danger" });
 											}
 										}}
 									>
@@ -638,7 +640,7 @@ export default function SettingsPage() {
 										{<IconTrash />}
 										Schedule Account Deletion
 									</Button>
-									<span className='text-sm text-gray-500'>Your resources are retained during a 30-day recovery period. Losing Pro access never deletes them.</span>
+									<span className='text-sm text-muted'>Account deletion keeps your resources recoverable for 30 days before permanent erasure. Losing Pro is separate: existing resources remain, but paid capabilities and changes beyond Free limits are restricted.</span>
 								</div>
 							</div>
 						</Card.Content>
@@ -719,10 +721,33 @@ export default function SettingsPage() {
 						deleteModalOnOpenChange(false);
 						addToast({ title: "Deletion scheduled", description: `Access remains available until ${new Date(result.suspensionAt).toLocaleString()}.`, color: "success" });
 					} catch (error) {
-						addToast({ title: "Deletion was not scheduled", description: error instanceof Error && error.message === "RECENT_AUTH_REQUIRED" ? "Sign out and sign back in, then retry within five minutes." : "Please retry or contact support.", color: "danger" });
+						if (error instanceof Error && error.message === "RECENT_AUTH_REQUIRED") {
+							deleteModalOnOpenChange(false);
+							setRecentAuthAction("deletion");
+							return;
+						}
+						addToast({ title: "Deletion was not scheduled", description: "Please retry or contact support.", color: "danger" });
 					}
 				}}
 			/>
+
+			<ControlledModal variant='blur' isOpen={recentAuthAction !== null} onClose={() => setRecentAuthAction(null)}>
+				<Modal.Header>
+					<Modal.Heading>Confirm it&apos;s you</Modal.Heading>
+				</Modal.Header>
+				<Modal.Body>
+					<p className='text-sm text-foreground'>For sensitive account actions, Clipify requires a Twitch identity check completed within the last five minutes. You do not need to sign out.</p>
+				</Modal.Body>
+				<Modal.Footer>
+					<Button variant='tertiary' onPress={() => setRecentAuthAction(null)} isDisabled={isReauthenticating}>
+						Cancel
+					</Button>
+					<Button variant='primary' onPress={() => void reauthenticateWithTwitch()} isPending={isReauthenticating}>
+						<IconBrandTwitch aria-hidden='true' />
+						Verify with Twitch
+					</Button>
+				</Modal.Footer>
+			</ControlledModal>
 		</>
 	);
 }

@@ -3,6 +3,7 @@ import { IconBuilding, IconCheck, IconLockAccess, IconShieldCheck, IconTrash } f
 import { validateAuth } from "@actions/auth";
 import { acceptAgencyLinkFormAction, getCreatorAgencyLinksAction, revokeAgencyLinkFormAction } from "@/app/actions/agency";
 import DashboardNavbar from "@components/dashboardNavbar";
+import SettingsNavigation from "@components/settingsNavigation";
 import { AlertContent, AlertDescription, AlertRoot, AlertTitle, Button, CardContent, CardDescription, CardHeader, CardRoot, CardTitle, Checkbox, Chip } from "@components/heroui-client";
 
 export const dynamic = "force-dynamic";
@@ -22,6 +23,7 @@ export default async function CreatorAgencySettingsPage() {
 	return (
 		<DashboardNavbar user={user} title='Agency access' tagline='Approve and control external management of your creator account'>
 			<div className='mt-6 flex flex-col gap-6 pb-10'>
+				<SettingsNavigation active='agencies' />
 				<AlertRoot status='accent'>
 					<IconShieldCheck aria-hidden='true' />
 					<AlertContent>

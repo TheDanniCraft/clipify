@@ -2,11 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Alert, Button, Card, Checkbox, Chip, Input, Label, TextField } from "@heroui/react";
+import { Alert, Button, Card, Checkbox, Chip, Input, Label, Modal, TextField } from "@heroui/react";
 import { IconKey, IconLockAccess, IconPlus, IconShieldCheck } from "@tabler/icons-react";
 import { validateAuth } from "@actions/auth";
 import DashboardNavbar from "@components/dashboardNavbar";
 import FullscreenLoadingState from "@components/fullscreenLoadingState";
+import SettingsNavigation from "@components/settingsNavigation";
 import type { AuthenticatedUser } from "@types";
 import { authClient } from "@/auth/client";
 import { PERMISSIONS, type Permission } from "@/auth/permissions";
@@ -44,6 +45,7 @@ export default function RoleSettingsPage() {
 	const [feedback, setFeedback] = useState<Feedback>(null);
 	const [isLoadingRoles, setIsLoadingRoles] = useState(true);
 	const [isCreating, setIsCreating] = useState(false);
+	const [isCreateRoleOpen, setIsCreateRoleOpen] = useState(false);
 
 	useEffect(() => {
 		let active = true;
@@ -104,6 +106,7 @@ export default function RoleSettingsPage() {
 			setName("");
 			setSelected([]);
 			setFeedback({ status: "success", message: "Custom role created." });
+			setIsCreateRoleOpen(false);
 			await refresh();
 		} catch {
 			setFeedback({ status: "danger", message: "The role could not be created. Check your permissions and try again." });
@@ -117,6 +120,7 @@ export default function RoleSettingsPage() {
 	return (
 		<DashboardNavbar user={user} title='Roles and permissions' tagline='Build precise access profiles for your team'>
 			<div className='mt-6 flex flex-col gap-6 pb-10'>
+				<SettingsNavigation active='roles' />
 				{feedback ? (
 					<Alert status={feedback.status}>
 						<Alert.Content>
@@ -124,18 +128,6 @@ export default function RoleSettingsPage() {
 						</Alert.Content>
 					</Alert>
 				) : null}
-				<Card variant='secondary'>
-					<Card.Header className='gap-3'>
-						<div className='flex size-10 items-center justify-center rounded-xl bg-accent/10 text-accent'>
-							<IconShieldCheck aria-hidden='true' size={21} />
-						</div>
-						<div>
-							<Card.Title>Permission boundaries</Card.Title>
-							<Card.Description>Custom roles apply only inside {organization?.name ?? "the selected account"}. Ownership transfer, account deletion, restore, forced purge, and agency provisioning always stay with the owner or Clipify administration.</Card.Description>
-						</div>
-					</Card.Header>
-				</Card>
-
 				{!organization ? (
 					<Card>
 						<Card.Header>
@@ -144,27 +136,84 @@ export default function RoleSettingsPage() {
 						</Card.Header>
 					</Card>
 				) : (
-					<>
-						<Card>
-							<Card.Header className='gap-3'>
+					<Card>
+						<Card.Header className='flex-col items-stretch gap-4 sm:flex-row sm:items-center sm:justify-between'>
+							<div className='flex items-center gap-3'>
 								<div className='flex size-10 items-center justify-center rounded-xl bg-accent/10 text-accent'>
-									<IconPlus aria-hidden='true' size={20} />
+									<IconKey aria-hidden='true' size={20} />
 								</div>
 								<div>
-									<Card.Title>Create a custom role</Card.Title>
-									<Card.Description>Name the role, then choose exactly which resources and actions it can use.</Card.Description>
+									<Card.Title>Reusable roles</Card.Title>
+									<Card.Description>Custom roles apply inside {organization.name}. Owner-only account, deletion, recovery, and agency-provisioning actions remain protected.</Card.Description>
 								</div>
-							</Card.Header>
-							<Card.Content className='flex flex-col gap-5'>
+							</div>
+							<Button variant='primary' onPress={() => setIsCreateRoleOpen(true)}>
+								<IconPlus aria-hidden='true' size={18} />
+								Create role
+							</Button>
+						</Card.Header>
+						<Card.Content className='grid gap-3 md:grid-cols-2'>
+							{roles.length === 0 ? (
+								<div className='col-span-full rounded-2xl bg-surface-secondary p-6 text-center text-sm text-muted'>{isLoadingRoles ? "Loading roles…" : "No custom roles yet."}</div>
+							) : (
+								roles.map((role) => {
+									const permissions = Object.entries(role.permission).flatMap(([resource, actions]) => actions.map((action) => `${resource}:${action}`));
+									return (
+										<div key={role.id} className='rounded-2xl bg-surface-secondary p-4'>
+											<div className='mb-3 flex items-center justify-between gap-3'>
+												<div className='flex items-center gap-2 font-semibold'>
+													<IconLockAccess aria-hidden='true' size={18} />
+													{title(role.role)}
+												</div>
+												<Chip size='sm' variant='soft'>
+													{permissions.length} permissions
+												</Chip>
+											</div>
+											<div className='flex flex-wrap gap-1.5'>
+												{permissions.slice(0, 8).map((permission) => (
+													<Chip key={permission} size='sm' variant='secondary'>
+														{permission}
+													</Chip>
+												))}
+												{permissions.length > 8 ? (
+													<Chip size='sm' color='accent' variant='soft'>
+														+{permissions.length - 8} more
+													</Chip>
+												) : null}
+											</div>
+										</div>
+									);
+								})
+							)}
+						</Card.Content>
+					</Card>
+				)}
+			</div>
+
+			<Modal>
+				<Modal.Backdrop isOpen={isCreateRoleOpen} onOpenChange={(isOpen) => !isCreating && setIsCreateRoleOpen(isOpen)} variant='blur'>
+					<Modal.Container size='lg' scroll='inside' className='max-w-5xl'>
+						<Modal.Dialog aria-labelledby='create-role-heading'>
+							<Modal.CloseTrigger />
+							<Modal.Header className='items-center gap-3 border-b border-default'>
+								<Modal.Icon className='bg-accent-soft text-accent-soft-foreground'>
+									<IconShieldCheck aria-hidden='true' size={22} />
+								</Modal.Icon>
+								<div>
+									<Modal.Heading id='create-role-heading'>Create a custom role</Modal.Heading>
+									<p className='text-sm text-muted'>Name the role, then choose exactly which resources and actions it can use.</p>
+								</div>
+							</Modal.Header>
+							<Modal.Body className='gap-5 py-5'>
 								<TextField value={name} onChange={setName} isRequired>
 									<Label>Role name</Label>
 									<Input placeholder='Playlist producer' variant='secondary' />
 								</TextField>
-								<div className='grid gap-4 lg:grid-cols-2'>
+								<div className='grid gap-3 md:grid-cols-2 xl:grid-cols-3'>
 									{PERMISSION_GROUPS.map(([resource, actions]) => (
 										<fieldset key={resource} className='rounded-2xl bg-surface-secondary p-4'>
 											<legend className='px-1 text-sm font-semibold'>{title(resource)}</legend>
-											<div className='mt-2 grid gap-2 sm:grid-cols-2'>
+											<div className='mt-2 grid gap-2'>
 												{actions.map((action) => {
 													const permission = `${resource}:${action}` as Permission;
 													return (
@@ -177,66 +226,23 @@ export default function RoleSettingsPage() {
 										</fieldset>
 									))}
 								</div>
-								<div className='flex flex-col gap-3 border-t border-default pt-4 sm:flex-row sm:items-center sm:justify-between'>
-									<p className='text-sm text-muted'>
-										{selected.length} permission{selected.length === 1 ? "" : "s"} selected
-									</p>
-									<Button variant='primary' isPending={isCreating} isDisabled={isCreating || !name.trim() || selected.length === 0} onPress={() => void createRole()}>
-										<IconPlus aria-hidden='true' size={18} />
-										Create role
-									</Button>
-								</div>
-							</Card.Content>
-						</Card>
-
-						<Card>
-							<Card.Header className='gap-3'>
-								<div className='flex size-10 items-center justify-center rounded-xl bg-accent/10 text-accent'>
-									<IconKey aria-hidden='true' size={20} />
-								</div>
-								<div>
-									<Card.Title>Custom roles</Card.Title>
-									<Card.Description>Reusable permission sets available when inviting or updating team members.</Card.Description>
-								</div>
-							</Card.Header>
-							<Card.Content className='grid gap-3 md:grid-cols-2'>
-								{roles.length === 0 ? (
-									<div className='col-span-full rounded-2xl bg-surface-secondary p-6 text-center text-sm text-muted'>{isLoadingRoles ? "Loading roles…" : "No custom roles yet."}</div>
-								) : (
-									roles.map((role) => {
-										const permissions = Object.entries(role.permission).flatMap(([resource, actions]) => actions.map((action) => `${resource}:${action}`));
-										return (
-											<div key={role.id} className='rounded-2xl bg-surface-secondary p-4'>
-												<div className='mb-3 flex items-center justify-between gap-3'>
-													<div className='flex items-center gap-2 font-semibold'>
-														<IconLockAccess aria-hidden='true' size={18} />
-														{title(role.role)}
-													</div>
-													<Chip size='sm' variant='soft'>
-														{permissions.length} permissions
-													</Chip>
-												</div>
-												<div className='flex flex-wrap gap-1.5'>
-													{permissions.slice(0, 8).map((permission) => (
-														<Chip key={permission} size='sm' variant='secondary'>
-															{permission}
-														</Chip>
-													))}
-													{permissions.length > 8 ? (
-														<Chip size='sm' color='accent' variant='soft'>
-															+{permissions.length - 8} more
-														</Chip>
-													) : null}
-												</div>
-											</div>
-										);
-									})
-								)}
-							</Card.Content>
-						</Card>
-					</>
-				)}
-			</div>
+							</Modal.Body>
+							<Modal.Footer className='border-t border-default'>
+								<p className='mr-auto text-sm text-muted'>
+									{selected.length} permission{selected.length === 1 ? "" : "s"} selected
+								</p>
+								<Button variant='tertiary' isDisabled={isCreating} onPress={() => setIsCreateRoleOpen(false)}>
+									Cancel
+								</Button>
+								<Button variant='primary' isPending={isCreating} isDisabled={isCreating || !name.trim() || selected.length === 0} onPress={() => void createRole()}>
+									<IconPlus aria-hidden='true' size={18} />
+									Create role
+								</Button>
+							</Modal.Footer>
+						</Modal.Dialog>
+					</Modal.Container>
+				</Modal.Backdrop>
+			</Modal>
 		</DashboardNavbar>
 	);
 }

@@ -7,6 +7,7 @@ import { IconAt, IconDeviceLaptop, IconKey, IconMailCheck, IconPlus, IconShieldL
 import { validateAuth } from "@actions/auth";
 import DashboardNavbar from "@components/dashboardNavbar";
 import FullscreenLoadingState from "@components/fullscreenLoadingState";
+import SettingsNavigation from "@components/settingsNavigation";
 import type { AuthenticatedUser } from "@types";
 import { authClient } from "@/auth/client";
 
@@ -106,6 +107,7 @@ export default function SecuritySettingsPage() {
 	return (
 		<DashboardNavbar user={user} title='Sign-in security' tagline='Control how you verify and recover your identity'>
 			<div className='mt-6 flex flex-col gap-6 pb-10'>
+				<SettingsNavigation active='security' />
 				{feedback ? (
 					<Alert status={feedback.status}>
 						<Alert.Content>
