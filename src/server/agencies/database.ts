@@ -41,17 +41,34 @@ async function requireSession() {
 
 async function requireAgencyMember(requiredPermission?: Permission) {
 	const session = await requireSession();
-	const organizationId = session.activeOrganizationId;
+	let organizationId = session.activeOrganizationId ?? null;
 	if (!organizationId) throw new Error("AGENCY_CONTEXT_REQUIRED");
-	const [account, membership] = await Promise.all([
-		db.select().from(agencyAccountsTable).where(eq(agencyAccountsTable.organizationId, organizationId)).limit(1),
-		db
-			.select()
+	let account = await db
+		.select()
+		.from(agencyAccountsTable)
+		.where(and(eq(agencyAccountsTable.organizationId, organizationId), eq(agencyAccountsTable.status, "active")))
+		.limit(1);
+	let membership = await db
+		.select()
+		.from(authMemberTable)
+		.where(and(eq(authMemberTable.organizationId, organizationId), eq(authMemberTable.userId, session.userId)))
+		.limit(1);
+	if (account[0] && (account[0].status !== "active" || !membership[0])) throw new Error("ACTIVE_AGENCY_MEMBERSHIP_REQUIRED");
+	if (!account[0] || !membership[0]) {
+		const creatorContext = await db.select({ organizationId: creatorAccountsTable.organizationId }).from(creatorAccountsTable).where(eq(creatorAccountsTable.organizationId, organizationId)).limit(1);
+		if (!creatorContext[0]) throw new Error("ACTIVE_AGENCY_MEMBERSHIP_REQUIRED");
+		const fallback = await db
+			.select({ account: agencyAccountsTable, membership: authMemberTable })
 			.from(authMemberTable)
-			.where(and(eq(authMemberTable.organizationId, organizationId), eq(authMemberTable.userId, session.userId)))
-			.limit(1),
-	]);
-	if (!account[0] || account[0].status !== "active" || !membership[0]) throw new Error("ACTIVE_AGENCY_MEMBERSHIP_REQUIRED");
+			.innerJoin(agencyAccountsTable, eq(agencyAccountsTable.organizationId, authMemberTable.organizationId))
+			.where(and(eq(authMemberTable.userId, session.userId), eq(agencyAccountsTable.status, "active")))
+			.limit(1);
+		if (!fallback[0]) throw new Error("ACTIVE_AGENCY_MEMBERSHIP_REQUIRED");
+		organizationId = fallback[0].account.organizationId;
+		account = [fallback[0].account];
+		membership = [fallback[0].membership];
+	}
+	if (!organizationId) throw new Error("ACTIVE_AGENCY_MEMBERSHIP_REQUIRED");
 	const customRole = await db
 		.select({ permission: authOrganizationRoleTable.permission })
 		.from(authOrganizationRoleTable)

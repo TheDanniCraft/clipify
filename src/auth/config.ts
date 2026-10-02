@@ -78,7 +78,12 @@ export const auth = betterAuth({
 			storeOTP: EMAIL_OTP_POLICY.storage,
 			disableSignUp: false,
 			changeEmail: { enabled: true, verifyCurrentEmail: true },
-			sendVerificationOTP: sendAuthOtp,
+			sendVerificationOTP: async (input) => {
+				// The account-security action sends change-email codes synchronously so
+				// delivery failures reach the UI instead of being swallowed by Better Auth's background runner.
+				if (input.type === "change-email") return;
+				await sendAuthOtp(input);
+			},
 		}),
 		passkey({
 			rpName: "Clipify",

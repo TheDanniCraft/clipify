@@ -1,23 +1,30 @@
-import Link from "next/link";
+"use client";
+
+import { Tabs } from "@heroui/react";
 import { IconBuildingBank, IconLayoutDashboard } from "@tabler/icons-react";
+import { useRouter } from "next/navigation";
 
 const items = [
-	{ href: "/admin", label: "Operations", icon: IconLayoutDashboard },
-	{ href: "/admin/agencies", label: "Agencies", icon: IconBuildingBank },
+	{ id: "operations", href: "/admin", label: "Operations", icon: IconLayoutDashboard },
+	{ id: "agencies", href: "/admin/agencies", label: "Agencies", icon: IconBuildingBank },
 ] as const;
 
 export default function AdminNavigation({ active }: { active: "operations" | "agencies" }) {
+	const router = useRouter();
+
 	return (
-		<nav aria-label='Admin sections' className='flex flex-wrap gap-2 rounded-2xl border border-default bg-surface p-2'>
-			{items.map(({ href, label, icon: Icon }) => {
-				const selected = (active === "operations" && href === "/admin") || (active === "agencies" && href === "/admin/agencies");
-				return (
-					<Link key={href} href={href} aria-current={selected ? "page" : undefined} className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-colors ${selected ? "bg-accent text-accent-foreground" : "text-muted hover:bg-surface-secondary hover:text-foreground"}`}>
-						<Icon aria-hidden='true' size={18} />
-						{label}
-					</Link>
-				);
-			})}
-		</nav>
+		<Tabs selectedKey={active} onSelectionChange={(key) => router.push(items.find((item) => item.id === String(key))?.href ?? "/admin")} className='w-full' variant='primary'>
+			<Tabs.ListContainer className='w-full overflow-x-auto'>
+				<Tabs.List aria-label='Admin sections' className='min-w-max'>
+					{items.map(({ id, label, icon: Icon }) => (
+						<Tabs.Tab key={id} id={id}>
+							<Icon aria-hidden='true' size={17} />
+							{label}
+							<Tabs.Indicator />
+						</Tabs.Tab>
+					))}
+				</Tabs.List>
+			</Tabs.ListContainer>
+		</Tabs>
 	);
 }

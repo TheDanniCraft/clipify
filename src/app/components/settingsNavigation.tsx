@@ -3,13 +3,10 @@
 import { Tabs } from "@heroui/react";
 import { useRouter } from "next/navigation";
 
-export type SettingsNavigationKey = "settings" | "creator" | "billing" | "security" | "team" | "roles" | "agencies";
+export type SettingsNavigationKey = "settings" | "creator" | "billing" | "team";
 
 const ROUTES: Record<Exclude<SettingsNavigationKey, "settings" | "creator" | "billing">, string> = {
-	security: "/dashboard/settings/security",
 	team: "/dashboard/settings/team",
-	roles: "/dashboard/settings/roles",
-	agencies: "/dashboard/settings/agencies",
 };
 
 export default function SettingsNavigation({ active, onCoreSectionChange }: { active: SettingsNavigationKey; onCoreSectionChange?: (section: "settings" | "creator" | "billing") => void }) {
@@ -44,20 +41,8 @@ export default function SettingsNavigation({ active, onCoreSectionChange }: { ac
 						Billing
 						<Tabs.Indicator />
 					</Tabs.Tab>
-					<Tabs.Tab id='security'>
-						Sign-in &amp; security
-						<Tabs.Indicator />
-					</Tabs.Tab>
 					<Tabs.Tab id='team'>
 						Team
-						<Tabs.Indicator />
-					</Tabs.Tab>
-					<Tabs.Tab id='roles'>
-						Roles
-						<Tabs.Indicator />
-					</Tabs.Tab>
-					<Tabs.Tab id='agencies'>
-						Agency access
 						<Tabs.Indicator />
 					</Tabs.Tab>
 				</Tabs.List>

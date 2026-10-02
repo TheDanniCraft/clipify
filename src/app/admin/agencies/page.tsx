@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { IconBuildingBank, IconCheck, IconFileDescription, IconMail, IconPlus, IconUsers } from "@tabler/icons-react";
+import { IconBuildingBank, IconCheck, IconMail, IconPlus, IconUsers } from "@tabler/icons-react";
 import { validateAdminAuth } from "@actions/auth";
 import { getAdminAgenciesAction, provisionAgencyFormAction } from "@/app/actions/agency";
 import DashboardNavbar from "@components/dashboardNavbar";
@@ -41,14 +41,6 @@ export default async function AdminAgenciesPage({ searchParams }: { searchParams
 					</AlertRoot>
 				) : null}
 
-				<AlertRoot status='accent'>
-					<IconFileDescription aria-hidden='true' />
-					<AlertContent>
-						<AlertTitle>Contact-sales provisioning</AlertTitle>
-						<AlertDescription>Create an agency only after custom commercial terms are agreed. Creator seats represent sponsored creator Pro allocations; agency staff never consume them.</AlertDescription>
-					</AlertContent>
-				</AlertRoot>
-
 				<CardRoot>
 					<CardHeader className='gap-3'>
 						<div className='flex size-10 items-center justify-center rounded-xl bg-accent/10 text-accent'>
@@ -56,7 +48,7 @@ export default async function AdminAgenciesPage({ searchParams }: { searchParams
 						</div>
 						<div>
 							<CardTitle>Provision an agency</CardTitle>
-							<CardDescription>Create the organization, contract seat ceiling, and first owner invitation in one operation.</CardDescription>
+							<CardDescription>Create the organization and owner invitation after commercial terms and an initial creator-seat quantity are agreed.</CardDescription>
 						</div>
 					</CardHeader>
 					<CardContent>

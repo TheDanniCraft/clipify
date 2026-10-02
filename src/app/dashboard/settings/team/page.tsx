@@ -6,7 +6,8 @@ import DashboardUserAvatar from "@components/dashboardUserAvatar";
 import FullscreenLoadingState from "@components/fullscreenLoadingState";
 import SettingsNavigation from "@components/settingsNavigation";
 import type { AuthenticatedUser } from "@types";
-import { Alert, Button, Card, Checkbox, Chip, Input, Label, ListBox, Modal, Select, Table, TextField } from "@heroui/react";
+import { Button, Card, Checkbox, Chip, Input, Label, ListBox, Modal, Select, Table, TextField } from "@heroui/react";
+import { notify as addToast } from "@lib/toast";
 import { IconCopy, IconLink, IconMail, IconPencil, IconShieldCheck, IconTrash, IconUserPlus, IconUsersGroup } from "@tabler/icons-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -17,7 +18,6 @@ import { PERMISSIONS, STANDARD_ROLES, type Permission } from "@/auth/permissions
 type MemberRow = { id: string; role: string; user: { name: string; email: string } };
 type InvitationRow = { id: string; email: string; role: string | null; status: string; expiresAt: Date | string };
 type RoleRow = { id: string; role: string; permission: Record<string, string[]> };
-type Feedback = { status: "success" | "danger"; message: string } | null;
 type TeamRow = { kind: "member"; member: MemberRow } | { kind: "invitation"; invitation: InvitationRow };
 
 const STANDARD_STAFF_ROLES = ["operations", "content-manager", "analyst", "billing-manager"] as const;
@@ -45,13 +45,6 @@ function formatExpiration(value: Date | string) {
 	return new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(date);
 }
 
-function title(value: string) {
-	return value
-		.split("-")
-		.map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
-		.join(" ");
-}
-
 function groupPermissions(permissions: readonly Permission[]) {
 	const grouped: Record<string, string[]> = {};
 	for (const permission of permissions) {
@@ -76,8 +69,6 @@ function customRoleName(permissions: readonly Permission[]) {
 	return `custom-access-${(hash >>> 0).toString(36)}`;
 }
 
-const PERMISSION_GROUPS = Object.entries(groupPermissions(PERMISSIONS));
-
 export default function TeamSettingsPage() {
 	const router = useRouter();
 	const searchParams = useSearchParams();
@@ -95,7 +86,6 @@ export default function TeamSettingsPage() {
 	const [isAccessModalOpen, setIsAccessModalOpen] = useState(false);
 	const [pendingAction, setPendingAction] = useState<string | null>(null);
 	const [isLoadingTeam, setIsLoadingTeam] = useState(true);
-	const [feedback, setFeedback] = useState<Feedback>(null);
 	const [invitationUrl, setInvitationUrl] = useState("");
 
 	useEffect(() => {
@@ -133,9 +123,7 @@ export default function TeamSettingsPage() {
 				setInvitations((invitationResult.data ?? []) as InvitationRow[]);
 				setCustomRoles((roleResult.data ?? []) as RoleRow[]);
 			})
-			.catch(() => {
-				if (active) setFeedback({ status: "danger", message: "Team access could not be loaded. Refresh the page and try again." });
-			})
+			.catch(() => active && addToast({ title: "Team could not be loaded", description: "Refresh the page and try again.", color: "danger" }))
 			.finally(() => {
 				if (active) setIsLoadingTeam(false);
 			});
@@ -163,7 +151,6 @@ export default function TeamSettingsPage() {
 
 	function openInvitationEditor() {
 		resetAccessEditor();
-		setFeedback(null);
 		setIsAccessModalOpen(true);
 	}
 
@@ -173,7 +160,6 @@ export default function TeamSettingsPage() {
 		setRole(member.role.startsWith("custom-access-") ? CUSTOM_ROLE : member.role);
 		setSelectedPermissions(permissionsForRole(member.role));
 		setInvitationUrl("");
-		setFeedback(null);
 		setIsAccessModalOpen(true);
 	}
 
@@ -204,7 +190,6 @@ export default function TeamSettingsPage() {
 	async function invite(delivery: "copy" | "copy-and-email") {
 		if (!organization || !email.trim() || selectedPermissions.length === 0) return;
 		setPendingAction(`invite-${delivery}`);
-		setFeedback(null);
 		setInvitationUrl("");
 		let createdRoleId: string | null = null;
 		try {
@@ -218,12 +203,12 @@ export default function TeamSettingsPage() {
 			const result = (await response.json()) as { invitationUrl?: string; error?: string };
 			if (!response.ok || !result.invitationUrl) throw new Error(result.error ?? "INVITATION_NOT_CREATED");
 			setInvitationUrl(result.invitationUrl);
-			setFeedback({ status: "success", message: delivery === "copy-and-email" ? "Invitation created and emailed." : "Invitation created. Copy the link and share it securely." });
+			addToast({ title: "Invitation created", description: delivery === "copy-and-email" ? "The invitation was also sent by email." : "Copy the link and share it securely.", color: "success" });
 			setEmail("");
 			await refresh();
 		} catch {
 			if (createdRoleId) await authClient.organization.deleteRole({ organizationId: organization.id, roleId: createdRoleId });
-			setFeedback({ status: "danger", message: "The invitation could not be created. Check your permission and try again." });
+			addToast({ title: "Invitation could not be created", description: "Check your permission and try again.", color: "danger" });
 		} finally {
 			setPendingAction(null);
 		}
@@ -232,20 +217,19 @@ export default function TeamSettingsPage() {
 	async function saveMemberAccess() {
 		if (!organization || !editingMember || selectedPermissions.length === 0) return;
 		setPendingAction(`role-${editingMember.id}`);
-		setFeedback(null);
 		let createdRoleId: string | null = null;
 		try {
 			const resolved = await resolveRole();
 			createdRoleId = resolved.createdRoleId;
 			const result = await authClient.organization.updateMemberRole({ organizationId: organization.id, memberId: editingMember.id, role: resolved.role });
 			if (result.error) throw new Error("ROLE_NOT_UPDATED");
-			setFeedback({ status: "success", message: "Member access updated." });
+			addToast({ title: "Member access updated", color: "success" });
 			setIsAccessModalOpen(false);
 			resetAccessEditor();
 			await refresh();
 		} catch {
 			if (createdRoleId) await authClient.organization.deleteRole({ organizationId: organization.id, roleId: createdRoleId });
-			setFeedback({ status: "danger", message: "The member access could not be updated." });
+			addToast({ title: "Member access could not be updated", color: "danger" });
 		} finally {
 			setPendingAction(null);
 		}
@@ -254,14 +238,13 @@ export default function TeamSettingsPage() {
 	async function removeMember(memberId: string) {
 		if (!organization) return;
 		setPendingAction(`remove-${memberId}`);
-		setFeedback(null);
 		try {
 			const result = await authClient.organization.removeMember({ organizationId: organization.id, memberIdOrEmail: memberId });
 			if (result.error) throw new Error("MEMBER_NOT_REMOVED");
-			setFeedback({ status: "success", message: "Member removed." });
+			addToast({ title: "Member removed", color: "success" });
 			await refresh();
 		} catch {
-			setFeedback({ status: "danger", message: "The member could not be removed." });
+			addToast({ title: "Member could not be removed", color: "danger" });
 		} finally {
 			setPendingAction(null);
 		}
@@ -269,14 +252,13 @@ export default function TeamSettingsPage() {
 
 	async function revokeInvitation(invitationId: string) {
 		setPendingAction(`revoke-${invitationId}`);
-		setFeedback(null);
 		try {
 			const result = await authClient.organization.cancelInvitation({ invitationId });
 			if (result.error) throw new Error("INVITATION_NOT_REVOKED");
-			setFeedback({ status: "success", message: "Invitation revoked." });
+			addToast({ title: "Invitation revoked", color: "success" });
 			await refresh();
 		} catch {
-			setFeedback({ status: "danger", message: "The invitation could not be revoked." });
+			addToast({ title: "Invitation could not be revoked", color: "danger" });
 		} finally {
 			setPendingAction(null);
 		}
@@ -285,9 +267,9 @@ export default function TeamSettingsPage() {
 	async function copyInvitationLink() {
 		try {
 			await navigator.clipboard.writeText(invitationUrl);
-			setFeedback({ status: "success", message: "Invitation link copied to your clipboard." });
+			addToast({ title: "Invitation link copied", color: "success" });
 		} catch {
-			setFeedback({ status: "danger", message: "The invitation link could not be copied. Select the link and copy it manually." });
+			addToast({ title: "Invitation link could not be copied", description: "Select the link and copy it manually.", color: "danger" });
 		}
 	}
 
@@ -297,14 +279,6 @@ export default function TeamSettingsPage() {
 		<DashboardNavbar user={user} title='Team members' tagline='Invite people and control what they can manage'>
 			<div className='mt-6 flex w-full flex-col gap-6 pb-10'>
 				<SettingsNavigation active='team' />
-				{feedback && !isAccessModalOpen ? (
-					<Alert status={feedback.status}>
-						<Alert.Content>
-							<Alert.Description>{feedback.message}</Alert.Description>
-						</Alert.Content>
-					</Alert>
-				) : null}
-
 				{!organization ? (
 					<Card>
 						<Card.Header>
@@ -432,7 +406,7 @@ export default function TeamSettingsPage() {
 					}}
 					variant='blur'
 				>
-					<Modal.Container size='lg' scroll='inside' className='max-w-6xl'>
+					<Modal.Container size='lg' scroll='inside' className='max-w-3xl'>
 						<Modal.Dialog aria-labelledby='team-access-heading'>
 							<Modal.CloseTrigger />
 							<Modal.Header className='items-center gap-3 border-b border-default'>
@@ -443,13 +417,6 @@ export default function TeamSettingsPage() {
 								</div>
 							</Modal.Header>
 							<Modal.Body className='gap-6 py-5'>
-								{feedback ? (
-									<Alert status={feedback.status}>
-										<Alert.Content>
-											<Alert.Description>{feedback.message}</Alert.Description>
-										</Alert.Content>
-									</Alert>
-								) : null}
 								<div className='flex flex-col gap-4'>
 									<TextField type='email' value={email} onChange={setEmail} isRequired isReadOnly={Boolean(editingMember)}>
 										<Label>Account email</Label>
@@ -488,21 +455,11 @@ export default function TeamSettingsPage() {
 											{selectedPermissions.length} selected
 										</Chip>
 									</div>
-									<div className='grid gap-3 md:grid-cols-2 xl:grid-cols-3'>
-										{PERMISSION_GROUPS.map(([resource, actions]) => (
-											<fieldset key={resource} className='rounded-2xl bg-surface-secondary p-4'>
-												<legend className='px-1 text-sm font-semibold'>{title(resource)}</legend>
-												<div className='mt-2 grid gap-2'>
-													{actions.map((action) => {
-														const permission = `${resource}:${action}` as Permission;
-														return (
-															<Checkbox key={permission} isSelected={selectedPermissions.includes(permission)} onChange={(checked) => togglePermission(permission, checked)}>
-																{title(action)}
-															</Checkbox>
-														);
-													})}
-												</div>
-											</fieldset>
+									<div className='grid gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-3'>
+										{PERMISSIONS.map((permission) => (
+											<Checkbox key={permission} isSelected={selectedPermissions.includes(permission)} onChange={(checked) => togglePermission(permission, checked)}>
+												<span className='font-mono text-xs'>{permission.replace(":", ".")}</span>
+											</Checkbox>
 										))}
 									</div>
 								</div>

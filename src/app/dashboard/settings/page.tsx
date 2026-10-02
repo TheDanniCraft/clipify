@@ -595,8 +595,21 @@ export default function SettingsPage() {
 										<Card.Content>
 											<div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
 												<div>
+													<p className='text-sm font-semibold'>Sign-in &amp; security</p>
+													<p className='text-xs text-muted'>Change your account email and manage passkeys.</p>
+												</div>
+												<Button variant='secondary' onPress={() => router.push("/dashboard/settings/security")}>
+													Manage security
+												</Button>
+											</div>
+										</Card.Content>
+									</Card>
+									<Card variant='secondary' className='w-full'>
+										<Card.Content>
+											<div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
+												<div>
 													<p className='text-sm font-semibold'>Team access</p>
-													<p className='text-xs text-muted'>Invite team members and assign standard or custom roles from the Team settings.</p>
+													<p className='text-xs text-muted'>Invite team members and assign preset or custom permissions.</p>
 												</div>
 												<Button variant='secondary' onPress={() => router.push("/dashboard/settings/team")}>
 													Manage team

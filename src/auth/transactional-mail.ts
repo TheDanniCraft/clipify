@@ -32,7 +32,11 @@ export class UseSendTransactionalMailAdapter {
 			},
 			{ idempotencyKey },
 		);
-		if (result.error) throw new Error("Transactional email delivery failed");
+		if (result.error) {
+			const providerError = result.error as { message?: string; code?: string };
+			console.error("Transactional email delivery rejected", { code: providerError.code, message: providerError.message });
+			throw new Error(`Transactional email delivery failed${providerError.message ? `: ${providerError.message}` : ""}`);
+		}
 		return result.data?.emailId ?? null;
 	}
 }

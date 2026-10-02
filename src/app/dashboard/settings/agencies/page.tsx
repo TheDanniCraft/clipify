@@ -3,7 +3,6 @@ import { IconBuilding, IconCheck, IconLockAccess, IconShieldCheck, IconTrash } f
 import { validateAuth } from "@actions/auth";
 import { acceptAgencyLinkFormAction, getCreatorAgencyLinksAction, revokeAgencyLinkFormAction } from "@/app/actions/agency";
 import DashboardNavbar from "@components/dashboardNavbar";
-import SettingsNavigation from "@components/settingsNavigation";
 import { AlertContent, AlertDescription, AlertRoot, AlertTitle, Button, CardContent, CardDescription, CardHeader, CardRoot, CardTitle, Checkbox, Chip } from "@components/heroui-client";
 
 export const dynamic = "force-dynamic";
@@ -23,7 +22,6 @@ export default async function CreatorAgencySettingsPage() {
 	return (
 		<DashboardNavbar user={user} title='Agency access' tagline='Approve and control external management of your creator account'>
 			<div className='mt-6 flex flex-col gap-6 pb-10'>
-				<SettingsNavigation active='agencies' />
 				<AlertRoot status='accent'>
 					<IconShieldCheck aria-hidden='true' />
 					<AlertContent>
@@ -46,7 +44,6 @@ export default async function CreatorAgencySettingsPage() {
 					links.map(({ link, agencyName }) => {
 						const isProposed = link.status === "proposed";
 						const isRevoked = link.status === "revoked";
-						const grouped = Object.entries(Object.groupBy(link.permissionCeiling, (permission) => permission.split(":")[0]));
 						return (
 							<CardRoot key={link.id}>
 								<CardHeader className='gap-3'>
@@ -69,18 +66,11 @@ export default async function CreatorAgencySettingsPage() {
 												<p className='font-medium'>Choose the permission ceiling</p>
 												<p className='text-sm text-muted'>Uncheck anything the agency should not be allowed to do. It can assign narrower roles to its staff, but never exceed this ceiling.</p>
 											</div>
-											<div className='grid gap-4 md:grid-cols-2'>
-												{grouped.map(([resource, permissions]) => (
-													<fieldset key={resource} className='rounded-2xl bg-surface-secondary p-4'>
-														<legend className='px-1 text-sm font-semibold'>{label(resource)}</legend>
-														<div className='mt-2 grid gap-2'>
-															{permissions?.map((permission) => (
-																<Checkbox key={permission} name='permission' value={permission} defaultSelected>
-																	{label(permission.split(":")[1])}
-																</Checkbox>
-															))}
-														</div>
-													</fieldset>
+											<div className='grid gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-3'>
+												{link.permissionCeiling.map((permission) => (
+													<Checkbox key={permission} name='permission' value={permission} defaultSelected>
+														<span className='font-mono text-xs'>{permission.replace(":", ".")}</span>
+													</Checkbox>
 												))}
 											</div>
 											<div className='flex justify-end'>

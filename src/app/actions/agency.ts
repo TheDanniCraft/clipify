@@ -44,16 +44,19 @@ export async function proposeAgencyLinkFormAction(formData: FormData) {
 export async function acceptAgencyLinkFormAction(formData: FormData) {
 	await acceptDatabaseAgencyLink({ linkId: value(formData, "linkId"), permissionCeiling: strings(formData, "permission") });
 	revalidatePath("/dashboard/settings/agencies");
+	revalidatePath("/dashboard/settings/team");
 }
 
 export async function reduceAgencyLinkFormAction(formData: FormData) {
 	await reduceDatabaseAgencyLinkCeiling({ linkId: value(formData, "linkId"), permissionCeiling: strings(formData, "permission") });
 	revalidatePath("/dashboard/settings/agencies");
+	revalidatePath("/dashboard/settings/team");
 }
 
 export async function revokeAgencyLinkFormAction(formData: FormData) {
 	await revokeDatabaseAgencyLink({ linkId: value(formData, "linkId") });
 	revalidatePath("/dashboard/settings/agencies");
+	revalidatePath("/dashboard/settings/team");
 }
 
 export async function allocateAgencyLicenseFormAction(formData: FormData) {

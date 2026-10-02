@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { IconArrowRight, IconBuildingCommunity, IconCheck, IconExternalLink, IconLicense, IconLink, IconLockAccess, IconUsersGroup } from "@tabler/icons-react";
+import { IconArrowRight, IconBuildingCommunity, IconCheck, IconExternalLink, IconLicense, IconLink, IconUsersGroup } from "@tabler/icons-react";
 import { validateAuth } from "@actions/auth";
 import { allocateAgencyLicenseFormAction, getAgencyOverviewAction, proposeAgencyLinkFormAction } from "@/app/actions/agency";
 import DashboardNavbar from "@components/dashboardNavbar";
@@ -17,12 +17,21 @@ function label(value: string) {
 		.join(" ");
 }
 
+async function loadAgencyOverview(requestedCreatorOrganizationId?: string) {
+	try {
+		return await getAgencyOverviewAction(requestedCreatorOrganizationId);
+	} catch (error) {
+		if (error instanceof Error && ["AGENCY_CONTEXT_REQUIRED", "ACTIVE_AGENCY_MEMBERSHIP_REQUIRED"].includes(error.message)) redirect("/dashboard?agency=unavailable");
+		throw error;
+	}
+}
+
 export default async function AgencyDashboardPage({ searchParams }: { searchParams: Promise<{ creator?: string | string[]; error?: string | string[]; allocated?: string | string[] }> }) {
 	const user = await validateAuth();
 	if (!user) redirect("/login?returnUrl=%2Fdashboard%2Fagency");
 	const params = await searchParams;
 	const requestedCreator = params.creator;
-	const overview = await getAgencyOverviewAction(typeof requestedCreator === "string" ? requestedCreator : undefined);
+	const overview = await loadAgencyOverview(typeof requestedCreator === "string" ? requestedCreator : undefined);
 	const creatorContext = overview.creatorContext;
 	const availableSeats = Math.max(0, overview.account.creatorSeatLimit - overview.occupiedSeats);
 	const utilization = overview.account.creatorSeatLimit === 0 ? 0 : Math.round((overview.occupiedSeats / overview.account.creatorSeatLimit) * 100);
@@ -54,7 +63,7 @@ export default async function AgencyDashboardPage({ searchParams }: { searchPara
 					</Alert>
 				) : null}
 
-				<div className='grid gap-4 md:grid-cols-3'>
+				<div className='grid gap-4 md:grid-cols-2'>
 					<Card variant='secondary'>
 						<Card.Header>
 							<Card.Description>Seat plan</Card.Description>
@@ -114,14 +123,6 @@ export default async function AgencyDashboardPage({ searchParams }: { searchPara
 							<IconArrowRight className='transition-transform group-hover:translate-x-1' size={18} />
 						</div>
 						<p className='mt-1 text-sm text-muted'>Invite staff without using creator seats.</p>
-					</Link>
-					<Link href={`/dashboard/settings/roles?organization=${encodeURIComponent(overview.account.organizationId)}`} className='group rounded-2xl border border-default bg-surface p-5 transition-colors hover:bg-surface-secondary'>
-						<IconLockAccess className='mb-4 text-accent' size={22} />
-						<div className='flex items-center justify-between gap-3 font-semibold'>
-							Agency roles
-							<IconArrowRight className='transition-transform group-hover:translate-x-1' size={18} />
-						</div>
-						<p className='mt-1 text-sm text-muted'>Define what agency staff can manage.</p>
 					</Link>
 				</div>
 
