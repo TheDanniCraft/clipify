@@ -35,6 +35,10 @@ describe("TDD-US3-004 protected server boundaries", () => {
 		expect(teamSource).toContain("<DashboardNavbar");
 		expect(teamSource).toContain("<Table");
 		expect(teamSource).toContain("<Select");
+		expect(teamSource).toContain("<Checkbox.Content>");
+		expect(teamSource).toContain("<Checkbox.Control>");
+		expect(teamSource).toContain("<Checkbox.Indicator />");
+		expect(teamSource).toContain("isIndeterminate={isGroupIndeterminate}");
 		expect(teamSource).toContain("variant='secondary'");
 		expect(teamSource).not.toMatch(/<select\b/);
 	});

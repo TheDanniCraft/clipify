@@ -54,6 +54,24 @@ function groupPermissions(permissions: readonly Permission[]) {
 	return grouped;
 }
 
+function permissionGroups(permissions: readonly Permission[]) {
+	const grouped: Record<string, Permission[]> = {};
+	for (const permission of permissions) {
+		const [resource] = permission.split(":");
+		(grouped[resource] ??= []).push(permission);
+	}
+	return grouped;
+}
+
+const PERMISSION_GROUPS = Object.entries(permissionGroups(PERMISSIONS));
+
+function formatPermissionGroup(resource: string) {
+	return resource
+		.split("-")
+		.map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
+		.join(" ");
+}
+
 function flattenPermissions(permission: Record<string, string[]>) {
 	return Object.entries(permission)
 		.flatMap(([resource, actions]) => actions.map((action) => `${resource}:${action}`))
@@ -170,6 +188,11 @@ export default function TeamSettingsPage() {
 
 	function togglePermission(permission: Permission, isSelected: boolean) {
 		setSelectedPermissions((current) => (isSelected ? [...new Set([...current, permission])] : current.filter((item) => item !== permission)));
+		setRole(CUSTOM_ROLE);
+	}
+
+	function togglePermissionGroup(group: readonly Permission[], isSelected: boolean) {
+		setSelectedPermissions((current) => (isSelected ? [...new Set([...current, ...group])] : current.filter((permission) => !group.includes(permission))));
 		setRole(CUSTOM_ROLE);
 	}
 
@@ -406,7 +429,7 @@ export default function TeamSettingsPage() {
 					}}
 					variant='blur'
 				>
-					<Modal.Container size='lg' scroll='inside' className='max-w-3xl'>
+					<Modal.Container size='lg' scroll='inside' className='max-w-4xl'>
 						<Modal.Dialog aria-labelledby='team-access-heading'>
 							<Modal.CloseTrigger />
 							<Modal.Header className='items-center gap-3 border-b border-default'>
@@ -455,12 +478,37 @@ export default function TeamSettingsPage() {
 											{selectedPermissions.length} selected
 										</Chip>
 									</div>
-									<div className='grid gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-3'>
-										{PERMISSIONS.map((permission) => (
-											<Checkbox key={permission} isSelected={selectedPermissions.includes(permission)} onChange={(checked) => togglePermission(permission, checked)}>
-												<span className='font-mono text-xs'>{permission.replace(":", ".")}</span>
-											</Checkbox>
-										))}
+									<div className='grid gap-x-8 gap-y-6 sm:grid-cols-2 lg:grid-cols-3'>
+										{PERMISSION_GROUPS.map(([resource, resourcePermissions]) => {
+											const selectedCount = resourcePermissions.filter((permission) => selectedPermissions.includes(permission)).length;
+											const isGroupSelected = selectedCount === resourcePermissions.length;
+											const isGroupIndeterminate = selectedCount > 0 && !isGroupSelected;
+
+											return (
+												<div key={resource} className='min-w-0'>
+													<Checkbox isSelected={isGroupSelected} isIndeterminate={isGroupIndeterminate} onChange={(checked) => togglePermissionGroup(resourcePermissions, checked)}>
+														<Checkbox.Content>
+															<Checkbox.Control>
+																<Checkbox.Indicator />
+															</Checkbox.Control>
+															<span className='font-semibold'>{formatPermissionGroup(resource)}</span>
+														</Checkbox.Content>
+													</Checkbox>
+													<div className='mt-2 flex flex-col gap-2 border-l border-default pl-3'>
+														{resourcePermissions.map((permission) => (
+															<Checkbox key={permission} isSelected={selectedPermissions.includes(permission)} onChange={(checked) => togglePermission(permission, checked)}>
+																<Checkbox.Content>
+																	<Checkbox.Control>
+																		<Checkbox.Indicator />
+																	</Checkbox.Control>
+																	<span className='truncate font-mono text-xs'>{permission.replace(":", ".")}</span>
+																</Checkbox.Content>
+															</Checkbox>
+														))}
+													</div>
+												</div>
+											);
+										})}
 									</div>
 								</div>
 
