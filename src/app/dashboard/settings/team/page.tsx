@@ -486,7 +486,7 @@ export default function TeamSettingsPage() {
 
 											return (
 												<div key={resource} className='min-w-0'>
-													<Checkbox isSelected={isGroupSelected} isIndeterminate={isGroupIndeterminate} onChange={(checked) => togglePermissionGroup(resourcePermissions, checked)}>
+													<Checkbox variant='secondary' isSelected={isGroupSelected} isIndeterminate={isGroupIndeterminate} onChange={(checked) => togglePermissionGroup(resourcePermissions, checked)}>
 														<Checkbox.Content>
 															<Checkbox.Control>
 																<Checkbox.Indicator />
@@ -496,7 +496,7 @@ export default function TeamSettingsPage() {
 													</Checkbox>
 													<div className='mt-2 flex flex-col gap-2 border-l border-default pl-3'>
 														{resourcePermissions.map((permission) => (
-															<Checkbox key={permission} isSelected={selectedPermissions.includes(permission)} onChange={(checked) => togglePermission(permission, checked)}>
+															<Checkbox key={permission} variant='secondary' isSelected={selectedPermissions.includes(permission)} onChange={(checked) => togglePermission(permission, checked)}>
 																<Checkbox.Content>
 																	<Checkbox.Control>
 																		<Checkbox.Indicator />
