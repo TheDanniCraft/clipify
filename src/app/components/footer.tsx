@@ -16,7 +16,7 @@ import { getPublicCommunityFooterTeaserAction } from "@actions/community";
 import { getEmailProvider, subscribeToNewsletter } from "@actions/newsletter";
 import { usePlausible } from "next-plausible";
 import { isRatelimitError } from "@actions/rateLimit";
-import type { CommunityTeaserStreamer } from "@lib/community-types";
+import type { CommunityTeaserPayload } from "@lib/community-types";
 import { ConsentDialogLink } from "@c15t/nextjs/components/consent-dialog-link";
 import { footerNavigation } from "@lib/footerNavigation";
 
@@ -26,7 +26,7 @@ export default function Footer() {
 	const { setTheme } = useTheme();
 	const [statusColor, setStatusColor] = useState("#ffffff");
 	const [statusText, setStatusText] = useState(isE2ETestMode ? "Test environment" : "Loading...");
-	const [footerCommunityPreview, setFooterCommunityPreview] = useState<CommunityTeaserStreamer[] | null>(null);
+	const [footerCommunityPreview, setFooterCommunityPreview] = useState<CommunityTeaserPayload | null>(null);
 	const plausible = usePlausible();
 	const [newsletterState, setNewsletterState] = useState("default");
 	const [isDetailsExpanded, setIsDetailsExpanded] = useState(false);
@@ -73,7 +73,8 @@ export default function Footer() {
 	const emailSubmitDisabled = newsletterState === "loading" || newsletterState === "success" || (mounted && !token);
 	const detailSubmitDisabled = newsletterState === "loading" || !pendingEmail || (mounted && !token);
 
-	const communityStreamers = useMemo(() => footerCommunityPreview ?? [], [footerCommunityPreview]);
+	const communityStreamers = useMemo(() => footerCommunityPreview?.streamers ?? [], [footerCommunityPreview]);
+	const communityStreamerCount = footerCommunityPreview?.totalCount ?? 0;
 	useEffect(() => {
 		if (isE2ETestMode) return;
 		axios
@@ -258,10 +259,10 @@ export default function Footer() {
 										<div className='space-y-0.5 text-left'>
 											<p className='text-sm font-semibold text-foreground'>Clipify community</p>
 											<p className='text-[11px] text-muted'>
-												{communityStreamers.length} streamer{communityStreamers.length === 1 ? "" : "s"}
+												{communityStreamerCount} streamer{communityStreamerCount === 1 ? "" : "s"}
 											</p>
 										</div>
-										<CommunityTeaser streamers={communityStreamers} countClassName='ml-2 text-[11px] font-medium text-muted' />
+										<CommunityTeaser streamers={communityStreamers} totalCount={communityStreamerCount} countClassName='ml-2 text-[11px] font-medium text-muted' />
 									</Link>
 								) : null}
 							</div>

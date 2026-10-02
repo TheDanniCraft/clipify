@@ -16,6 +16,11 @@ export type CommunityStreamer = {
 
 export type CommunityTeaserStreamer = Pick<CommunityStreamer, "id" | "avatar" | "displayName" | "status">;
 
+export type CommunityTeaserPayload = {
+	streamers: CommunityTeaserStreamer[];
+	totalCount: number;
+};
+
 export type CommunityPageStreamer = CommunityStreamer & {
 	twitchUrl: string;
 };
