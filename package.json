@@ -57,7 +57,7 @@
 		"@heroui/styles": "^3.2.6",
 		"@number-flow/react": ">=0.6.2",
 		"@react-aria/utils": ">=3.34.1",
-		"@sentry/nextjs": "^10.75.2",
+		"@sentry/nextjs": "^11.0.0",
 		"@sentry/profiling-node": "10.75.3",
 		"@tabler/icons-react": "^3.48.0",
 		"@tiptap/core": ">=3.31.3",
