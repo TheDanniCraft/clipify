@@ -108,7 +108,7 @@ export async function requestAccountDataExport() {
 	const expiresAt = new Date(now.getTime() + ACCOUNT_DATA_EXPORT_TTL_MS);
 	const token = createAccountDataExportToken({ authUserId: identity.authUserId, creatorId: identity.creatorId, organizationId: identity.organizationId, now });
 	const downloadUrl = new URL(`/api/account/export?token=${encodeURIComponent(token)}`, await getBaseUrl()).toString();
-	await sendAccountDataExport({ email: identity.email, downloadUrl, expiresAt });
+	if (!usesE2EBillingAdapter()) await sendAccountDataExport({ email: identity.email, downloadUrl, expiresAt });
 	return { email: identity.email, expiresAt: expiresAt.toISOString() };
 }
 

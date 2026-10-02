@@ -753,7 +753,7 @@ export default function SettingsPage() {
 					<Alert status='warning' className='bg-surface-secondary'>
 						<Alert.Content>
 							<Alert.Title>Keep the package private</Alert.Title>
-							<Alert.Description>It contains your profile, content, consent history, team and agency relationships, billing records, and sign-in security metadata. Reusable secrets and credentials are excluded for your protection.</Alert.Description>
+							<Alert.Description>It contains your profile, content, consent history, team and agency relationships, billing records, sign-in security metadata, overlay secrets, runner tokens, and decrypted stream keys. OAuth, session, passkey, and temporary enrollment credentials remain excluded.</Alert.Description>
 						</Alert.Content>
 					</Alert>
 				</Modal.Body>

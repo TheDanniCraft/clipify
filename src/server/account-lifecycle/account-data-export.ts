@@ -32,6 +32,7 @@ import {
 	usersTable,
 } from "@/db/schema";
 import { account, invitation, member, organization, organizationRole, passkey, session, user } from "@/db/auth-schema";
+import { collectReusableCredentialExport } from "./account-data-export-credentials";
 
 const SECRET_FIELDS = new Set(["accessToken", "refreshToken", "idToken", "password", "token", "secret", "publicKey", "credentialID", "encryptedStreamKey", "deviceCode", "userCode"]);
 
@@ -97,14 +98,16 @@ export async function collectComprehensiveAccountData(input: { authUserId: strin
 		subjectIds.length ? db.select().from(c15t_consent).where(inArray(c15t_consent.subjectId, subjectIds)) : [],
 		subjectIds.length ? db.select().from(c15t_auditLog).where(inArray(c15t_auditLog.subjectId, subjectIds)) : [],
 	]);
+	const reusableCredentials = collectReusableCredentialExport({ overlays, runners, streamSessions });
 
 	return redactSecrets({
 		exportFormat: "clipify-account-data-v2",
 		exportedAt: now.toISOString(),
-		securityNotice: "Reusable credentials are intentionally excluded. This package does not contain OAuth access or refresh tokens, session tokens, passkey key material or credential IDs, runner enrollment codes or tokens, overlay secrets, or stream keys.",
+		securityNotice: "This private package includes Clipify-issued reusable credentials such as overlay secrets, runner tokens, and decrypted stream keys. OAuth access or refresh tokens, session tokens, passkey key material and credential IDs, and temporary runner enrollment codes remain excluded.",
 		identity: { profile: profiles[0] ?? null, settings: settings[0] ?? null, badges, contentStates, creatorAccounts, identityLinks, authUsers, providerAccounts, sessions, passkeys },
 		organization: { organizations, memberships, roles, invitations },
 		content: { overlays, queuedClips, playlists, playlistClips, galleries, runners, enrollments, streamSessions, modQueue },
+		reusableCredentials,
 		billing: { subscriptions, subscriptionItems, entitlements },
 		agency: { links: agencyLinks, licenseAllocations },
 		privacy: { subjects, consents, consentAuditLogs },

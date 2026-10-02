@@ -318,10 +318,11 @@ When(/^the owner (updates account information|requests an account export|cancels
 		await saveCreatorPage.click();
 		await expect(page.getByText("Settings saved", { exact: true })).toBeVisible({ timeout: DATABASE_ACTION_TIMEOUT_MS });
 	} else if (operation === "requests an account export") {
-		const downloadStarted = page.waitForEvent("download");
 		await page.getByRole("button", { name: "Export Account Data" }).click();
-		const download = await downloadStarted;
-		expect(download.suggestedFilename()).toContain("clipify-account-");
+		const dialog = page.getByRole("dialog");
+		await expect(dialog.getByRole("heading", { name: "Request your Clipify data" })).toBeVisible();
+		await dialog.getByRole("button", { name: "Email download link" }).click();
+		await expect(page.getByText("Data export requested", { exact: true })).toBeVisible({ timeout: DATABASE_ACTION_TIMEOUT_MS });
 	} else {
 		await page.getByRole("tab", { name: "Billing" }).click();
 		const pro = page.getByRole("checkbox", { name: "Pro" });

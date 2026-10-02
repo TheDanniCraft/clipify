@@ -68,6 +68,9 @@ describe("TDD-US3-007 UseSend transactional mail adapter", () => {
 
 		process.env.USESEND_TRANSACTIONAL_FROM = "Clipify <auth@clipify.us>";
 		mockSend.mockResolvedValueOnce({ data: null, error: { message: "provider failure" } });
-		await expect(adapter.send("member@example.test", { subject: "Subject", text: "Text", html: "<p>Text</p>", templateVersion: "identity-security-v1" }, "dedupe-2")).rejects.toThrow("Transactional email delivery failed");
+		await expect(adapter.send("member@example.test", { subject: "Subject", text: "Text", html: "<p>Text</p>", templateVersion: "identity-security-v1" }, "dedupe-2")).rejects.toThrow("Transactional email delivery failed: provider failure");
+
+		mockSend.mockResolvedValueOnce({ data: null, error: { error: { code: "DOMAIN_NOT_VERIFIED", message: "Sender domain is not verified" } } });
+		await expect(adapter.send("member@example.test", { subject: "Subject", text: "Text", html: "<p>Text</p>", templateVersion: "identity-security-v1" }, "dedupe-3")).rejects.toThrow("Transactional email delivery failed: Sender domain is not verified");
 	});
 });

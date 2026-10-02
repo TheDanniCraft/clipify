@@ -288,6 +288,19 @@ describe("actions/subscription", () => {
 		expect(new Date(result.expiresAt).getTime()).toBeGreaterThan(Date.now() + 2 * 24 * 60 * 60 * 1000);
 	});
 
+	it("prepares exports without contacting the real mail provider in the E2E environment", async () => {
+		process.env.APP_ENV = "test";
+		process.env.E2E_TEST_MODE = "true";
+		try {
+			const { requestAccountDataExport } = await loadSubscription();
+			await expect(requestAccountDataExport()).resolves.toMatchObject({ email: "alice@example.com" });
+			expect(sendAccountDataExport).not.toHaveBeenCalled();
+		} finally {
+			delete process.env.APP_ENV;
+			delete process.env.E2E_TEST_MODE;
+		}
+	});
+
 	it("rate limits account export emails", async () => {
 		tryRateLimit.mockResolvedValueOnce({ success: false });
 		const { requestAccountDataExport } = await loadSubscription();
