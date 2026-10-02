@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { IconCalendarClock, IconDatabase, IconRefresh, IconShieldLock } from "@tabler/icons-react";
 import DashboardNavbar from "@components/dashboardNavbar";
-import { Alert, Button, Card, Chip } from "@components/heroui-client";
+import { AlertContent, AlertDescription, AlertRoot, AlertTitle, Button, CardContent, CardDescription, CardFooter, CardHeader, CardRoot, CardTitle, Chip } from "@components/heroui-client";
 import { getAuthActorContext } from "@/auth/session";
 import { getAccountDeletionOverview, recoverAccountDeletion } from "@actions/subscription";
 
@@ -24,56 +24,56 @@ export default async function AccountRecoveryPage() {
 	return (
 		<DashboardNavbar user={user} title='Recover account' tagline='Cancel deletion during the protected recovery period'>
 			<div className='mt-6 flex flex-col gap-6 pb-10'>
-				<Alert status={request.recoveryPeriodEnded ? "danger" : "warning"}>
+				<AlertRoot status={request.recoveryPeriodEnded ? "danger" : "warning"}>
 					<IconCalendarClock aria-hidden='true' />
-					<Alert.Content>
-						<Alert.Title>{request.recoveryPeriodEnded ? "Recovery period ended" : "Account suspended pending deletion"}</Alert.Title>
-						<Alert.Description>{request.recoveryPeriodEnded ? "This account can no longer be restored through self-service recovery." : "Your resources are retained and can still be restored before permanent-erasure eligibility."}</Alert.Description>
-					</Alert.Content>
-				</Alert>
+					<AlertContent>
+						<AlertTitle>{request.recoveryPeriodEnded ? "Recovery period ended" : "Account suspended pending deletion"}</AlertTitle>
+						<AlertDescription>{request.recoveryPeriodEnded ? "This account can no longer be restored through self-service recovery." : "Your resources are retained and can still be restored before permanent-erasure eligibility."}</AlertDescription>
+					</AlertContent>
+				</AlertRoot>
 
 				<div className='grid gap-4 md:grid-cols-2'>
-					<Card variant='secondary'>
-						<Card.Header className='gap-3'>
+					<CardRoot variant='secondary'>
+						<CardHeader className='gap-3'>
 							<div className='flex size-10 items-center justify-center rounded-xl bg-warning/10 text-warning'>
 								<IconShieldLock aria-hidden='true' size={20} />
 							</div>
 							<div>
-								<Card.Description>Deletion timing</Card.Description>
-								<Card.Title>{request.choice === "paid_through" ? "After paid access" : "Immediate suspension"}</Card.Title>
+								<CardDescription>Deletion timing</CardDescription>
+								<CardTitle>{request.choice === "paid_through" ? "After paid access" : "Immediate suspension"}</CardTitle>
 							</div>
-						</Card.Header>
-						<Card.Footer>
+						</CardHeader>
+						<CardFooter>
 							<Chip size='sm' color='warning' variant='soft'>
 								Recovery protected
 							</Chip>
-						</Card.Footer>
-					</Card>
-					<Card variant='secondary'>
-						<Card.Header className='gap-3'>
+						</CardFooter>
+					</CardRoot>
+					<CardRoot variant='secondary'>
+						<CardHeader className='gap-3'>
 							<div className='flex size-10 items-center justify-center rounded-xl bg-accent/10 text-accent'>
 								<IconDatabase aria-hidden='true' size={20} />
 							</div>
 							<div>
-								<Card.Description>Permanent-erasure eligibility</Card.Description>
-								<Card.Title>{purgeDate ? purgeDate.toLocaleDateString() : "30 days after suspension"}</Card.Title>
+								<CardDescription>Permanent-erasure eligibility</CardDescription>
+								<CardTitle>{purgeDate ? purgeDate.toLocaleDateString() : "30 days after suspension"}</CardTitle>
 							</div>
-						</Card.Header>
-						<Card.Footer className='text-sm text-muted'>{purgeDate ? purgeDate.toLocaleString() : "The exact date will be set when suspension begins."}</Card.Footer>
-					</Card>
+						</CardHeader>
+						<CardFooter className='text-sm text-muted'>{purgeDate ? purgeDate.toLocaleString() : "The exact date will be set when suspension begins."}</CardFooter>
+					</CardRoot>
 				</div>
 
-				<Card>
-					<Card.Header className='gap-3'>
+				<CardRoot>
+					<CardHeader className='gap-3'>
 						<div className='flex size-10 items-center justify-center rounded-xl bg-accent/10 text-accent'>
 							<IconRefresh aria-hidden='true' size={20} />
 						</div>
 						<div>
-							<Card.Title>Restore Clipify access</Card.Title>
-							<Card.Description>Recovery restores dashboard, overlay, and integration access. It does not restart billing or reclaim an agency-sponsored seat that has already ended.</Card.Description>
+							<CardTitle>Restore Clipify access</CardTitle>
+							<CardDescription>Recovery restores dashboard, overlay, and integration access. It does not restart billing or reclaim an agency-sponsored seat that has already ended.</CardDescription>
 						</div>
-					</Card.Header>
-					<Card.Content className='flex flex-col gap-5'>
+					</CardHeader>
+					<CardContent className='flex flex-col gap-5'>
 						<div className='rounded-2xl bg-surface-secondary p-5'>
 							<p className='font-medium'>Security check required</p>
 							<p className='mt-1 text-sm text-muted'>You must complete a normal sign-in and identity confirmation within the last five minutes. A recovery link never signs you in by itself.</p>
@@ -92,8 +92,8 @@ export default async function AccountRecoveryPage() {
 								</form>
 							)}
 						</div>
-					</Card.Content>
-				</Card>
+					</CardContent>
+				</CardRoot>
 			</div>
 		</DashboardNavbar>
 	);

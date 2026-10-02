@@ -3,7 +3,7 @@ import { IconBuildingBank, IconCheck, IconFileDescription, IconMail, IconPlus, I
 import { validateAdminAuth } from "@actions/auth";
 import { getAdminAgenciesAction, provisionAgencyFormAction } from "@/app/actions/agency";
 import DashboardNavbar from "@components/dashboardNavbar";
-import { Alert, Button, Card, Chip, Input, Label, Table, TextField } from "@components/heroui-client";
+import { AlertContent, AlertDescription, AlertRoot, AlertTitle, Button, CardContent, CardDescription, CardHeader, CardRoot, CardTitle, Chip, Input, Label, TableBody, TableCell, TableColumn, TableContent, TableHeader, TableRoot, TableRow, TableScrollContainer, TextField } from "@components/heroui-client";
 
 export const dynamic = "force-dynamic";
 
@@ -23,41 +23,41 @@ export default async function AdminAgenciesPage({ searchParams }: { searchParams
 		<DashboardNavbar user={user} title='Agency accounts' tagline='Provision negotiated contracts and creator seat limits'>
 			<div className='mt-6 flex flex-col gap-6 pb-10'>
 				{params.error ? (
-					<Alert status='danger'>
-						<Alert.Content>
-							<Alert.Title>Provisioning failed</Alert.Title>
-							<Alert.Description>{label(params.error)}</Alert.Description>
-						</Alert.Content>
-					</Alert>
+					<AlertRoot status='danger'>
+						<AlertContent>
+							<AlertTitle>Provisioning failed</AlertTitle>
+							<AlertDescription>{label(params.error)}</AlertDescription>
+						</AlertContent>
+					</AlertRoot>
 				) : null}
 				{params.created ? (
-					<Alert status='success'>
+					<AlertRoot status='success'>
 						<IconCheck aria-hidden='true' />
-						<Alert.Content>
-							<Alert.Description>Agency account and owner invitation created.</Alert.Description>
-						</Alert.Content>
-					</Alert>
+						<AlertContent>
+							<AlertDescription>Agency account and owner invitation created.</AlertDescription>
+						</AlertContent>
+					</AlertRoot>
 				) : null}
 
-				<Alert status='accent'>
+				<AlertRoot status='accent'>
 					<IconFileDescription aria-hidden='true' />
-					<Alert.Content>
-						<Alert.Title>Contact-sales provisioning</Alert.Title>
-						<Alert.Description>Create an agency only after custom commercial terms are agreed. Creator seats represent sponsored creator Pro allocations; agency staff never consume them.</Alert.Description>
-					</Alert.Content>
-				</Alert>
+					<AlertContent>
+						<AlertTitle>Contact-sales provisioning</AlertTitle>
+						<AlertDescription>Create an agency only after custom commercial terms are agreed. Creator seats represent sponsored creator Pro allocations; agency staff never consume them.</AlertDescription>
+					</AlertContent>
+				</AlertRoot>
 
-				<Card>
-					<Card.Header className='gap-3'>
+				<CardRoot>
+					<CardHeader className='gap-3'>
 						<div className='flex size-10 items-center justify-center rounded-xl bg-accent/10 text-accent'>
 							<IconPlus aria-hidden='true' size={20} />
 						</div>
 						<div>
-							<Card.Title>Provision an agency</Card.Title>
-							<Card.Description>Create the organization, contract seat ceiling, and first owner invitation in one operation.</Card.Description>
+							<CardTitle>Provision an agency</CardTitle>
+							<CardDescription>Create the organization, contract seat ceiling, and first owner invitation in one operation.</CardDescription>
 						</div>
-					</Card.Header>
-					<Card.Content>
+					</CardHeader>
+					<CardContent>
 						<form action={provisionAgencyFormAction} className='grid gap-4 md:grid-cols-2'>
 							<TextField name='name' isRequired>
 								<Label>Agency name</Label>
@@ -82,57 +82,57 @@ export default async function AdminAgenciesPage({ searchParams }: { searchParams
 								</Button>
 							</div>
 						</form>
-					</Card.Content>
-				</Card>
+					</CardContent>
+				</CardRoot>
 
 				<div className='grid gap-4 md:grid-cols-3'>
-					<Card variant='secondary'>
-						<Card.Header>
-							<Card.Description>Provisioned agencies</Card.Description>
-							<Card.Title className='text-3xl'>{agencies.length}</Card.Title>
-						</Card.Header>
-					</Card>
-					<Card variant='secondary'>
-						<Card.Header>
-							<Card.Description>Active agencies</Card.Description>
-							<Card.Title className='text-3xl'>{agencies.filter(({ account }) => account.status === "active").length}</Card.Title>
-						</Card.Header>
-					</Card>
-					<Card variant='secondary'>
-						<Card.Header>
-							<Card.Description>Contracted seats</Card.Description>
-							<Card.Title className='text-3xl'>{agencies.reduce((total, { account }) => total + account.creatorSeatLimit, 0)}</Card.Title>
-						</Card.Header>
-					</Card>
+					<CardRoot variant='secondary'>
+						<CardHeader>
+							<CardDescription>Provisioned agencies</CardDescription>
+							<CardTitle className='text-3xl'>{agencies.length}</CardTitle>
+						</CardHeader>
+					</CardRoot>
+					<CardRoot variant='secondary'>
+						<CardHeader>
+							<CardDescription>Active agencies</CardDescription>
+							<CardTitle className='text-3xl'>{agencies.filter(({ account }) => account.status === "active").length}</CardTitle>
+						</CardHeader>
+					</CardRoot>
+					<CardRoot variant='secondary'>
+						<CardHeader>
+							<CardDescription>Contracted seats</CardDescription>
+							<CardTitle className='text-3xl'>{agencies.reduce((total, { account }) => total + account.creatorSeatLimit, 0)}</CardTitle>
+						</CardHeader>
+					</CardRoot>
 				</div>
 
-				<Card>
-					<Card.Header className='gap-3'>
+				<CardRoot>
+					<CardHeader className='gap-3'>
 						<div className='flex size-10 items-center justify-center rounded-xl bg-accent/10 text-accent'>
 							<IconBuildingBank aria-hidden='true' size={20} />
 						</div>
 						<div>
-							<Card.Title>Provisioned agencies</Card.Title>
-							<Card.Description>Commercial references are operational identifiers only and must never contain credentials.</Card.Description>
+							<CardTitle>Provisioned agencies</CardTitle>
+							<CardDescription>Commercial references are operational identifiers only and must never contain credentials.</CardDescription>
 						</div>
-					</Card.Header>
-					<Card.Content>
+					</CardHeader>
+					<CardContent>
 						{agencies.length === 0 ? (
 							<div className='rounded-2xl bg-surface-secondary p-8 text-center text-sm text-muted'>No agencies provisioned.</div>
 						) : (
-							<Table variant='secondary'>
-								<Table.ScrollContainer>
-									<Table.Content aria-label='Provisioned agencies' className='min-w-[720px]'>
-										<Table.Header>
-											<Table.Column isRowHeader>Agency</Table.Column>
-											<Table.Column>Status</Table.Column>
-											<Table.Column>Creator seats</Table.Column>
-											<Table.Column>Commercial reference</Table.Column>
-										</Table.Header>
-										<Table.Body>
+							<TableRoot variant='secondary'>
+								<TableScrollContainer>
+									<TableContent aria-label='Provisioned agencies' className='min-w-[720px]'>
+										<TableHeader>
+											<TableColumn isRowHeader>Agency</TableColumn>
+											<TableColumn>Status</TableColumn>
+											<TableColumn>Creator seats</TableColumn>
+											<TableColumn>Commercial reference</TableColumn>
+										</TableHeader>
+										<TableBody>
 											{agencies.map(({ account, name, slug }) => (
-												<Table.Row key={account.organizationId} id={account.organizationId} textValue={name}>
-													<Table.Cell>
+												<TableRow key={account.organizationId} id={account.organizationId} textValue={name}>
+													<TableCell>
 														<div className='flex items-center gap-3'>
 															<div className='flex size-9 items-center justify-center rounded-xl bg-surface-secondary text-accent'>
 																<IconUsers aria-hidden='true' size={18} />
@@ -142,27 +142,27 @@ export default async function AdminAgenciesPage({ searchParams }: { searchParams
 																<p className='text-xs text-muted'>{slug}</p>
 															</div>
 														</div>
-													</Table.Cell>
-													<Table.Cell>
+													</TableCell>
+													<TableCell>
 														<Chip size='sm' color={account.status === "active" ? "success" : "warning"} variant='soft'>
 															{label(account.status)}
 														</Chip>
-													</Table.Cell>
-													<Table.Cell>
+													</TableCell>
+													<TableCell>
 														<span className='font-medium tabular-nums'>{account.creatorSeatLimit}</span>
-													</Table.Cell>
-													<Table.Cell>
+													</TableCell>
+													<TableCell>
 														<span className='text-sm text-muted'>{account.commercialReference ?? "Not provided"}</span>
-													</Table.Cell>
-												</Table.Row>
+													</TableCell>
+												</TableRow>
 											))}
-										</Table.Body>
-									</Table.Content>
-								</Table.ScrollContainer>
-							</Table>
+										</TableBody>
+									</TableContent>
+								</TableScrollContainer>
+							</TableRoot>
 						)}
-					</Card.Content>
-				</Card>
+					</CardContent>
+				</CardRoot>
 			</div>
 		</DashboardNavbar>
 	);

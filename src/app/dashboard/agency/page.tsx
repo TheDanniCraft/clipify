@@ -4,7 +4,8 @@ import { IconArrowRight, IconBuildingCommunity, IconCheck, IconExternalLink, Ico
 import { validateAuth } from "@actions/auth";
 import { allocateAgencyLicenseFormAction, getAgencyOverviewAction, proposeAgencyLinkFormAction } from "@/app/actions/agency";
 import DashboardNavbar from "@components/dashboardNavbar";
-import { Alert, Button, Card, Checkbox, Chip, Input, Label, ProgressBar, TextField } from "@components/heroui-client";
+import { Button, Checkbox, Chip, Input, Label, TextField } from "@components/heroui-client";
+import { Alert, Card, ProgressBar } from "@components/heroui-server";
 import { PERMISSIONS } from "@/auth/permissions";
 
 export const dynamic = "force-dynamic";

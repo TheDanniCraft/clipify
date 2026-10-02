@@ -4,7 +4,7 @@ import { IconArrowLeft, IconCalendarClock, IconLicense, IconTrash, IconUserCheck
 import { validateAuth } from "@actions/auth";
 import { getAgencyOverviewAction, removeAgencyLicenseFormAction } from "@/app/actions/agency";
 import DashboardNavbar from "@components/dashboardNavbar";
-import { Alert, Button, Card, Chip, ProgressBar, Table } from "@components/heroui-client";
+import { AlertContent, AlertDescription, AlertRoot, AlertTitle, Button, CardContent, CardDescription, CardHeader, CardRoot, CardTitle, Chip, ProgressBarFill, ProgressBarOutput, ProgressBarRoot, ProgressBarTrack, TableBody, TableCell, TableColumn, TableContent, TableHeader, TableRoot, TableRow, TableScrollContainer } from "@components/heroui-client";
 
 export const dynamic = "force-dynamic";
 
@@ -30,96 +30,96 @@ export default async function AgencyAllocationsPage() {
 						Back to agency dashboard
 					</Link>
 				</div>
-				<Alert status='accent'>
+				<AlertRoot status='accent'>
 					<IconCalendarClock aria-hidden='true' />
-					<Alert.Content>
-						<Alert.Title>Seven-day removal grace</Alert.Title>
-						<Alert.Description>Scheduling removal keeps the creator&apos;s Pro access active and the seat occupied for seven days. Creator data and creator-owned benefits are never deleted.</Alert.Description>
-					</Alert.Content>
-				</Alert>
+					<AlertContent>
+						<AlertTitle>Seven-day removal grace</AlertTitle>
+						<AlertDescription>Scheduling removal keeps the creator&apos;s Pro access active and the seat occupied for seven days. Creator data and creator-owned benefits are never deleted.</AlertDescription>
+					</AlertContent>
+				</AlertRoot>
 
 				<div className='grid gap-4 md:grid-cols-2'>
-					<Card variant='secondary'>
-						<Card.Header className='gap-3'>
+					<CardRoot variant='secondary'>
+						<CardHeader className='gap-3'>
 							<div className='flex size-10 items-center justify-center rounded-xl bg-accent/10 text-accent'>
 								<IconLicense aria-hidden='true' size={20} />
 							</div>
 							<div>
-								<Card.Description>Creator seats</Card.Description>
-								<Card.Title className='text-3xl'>
+								<CardDescription>Creator seats</CardDescription>
+								<CardTitle className='text-3xl'>
 									{overview.occupiedSeats} / {overview.account.creatorSeatLimit}
-								</Card.Title>
+								</CardTitle>
 							</div>
-						</Card.Header>
-					</Card>
-					<Card variant='secondary'>
-						<Card.Header className='gap-3'>
+						</CardHeader>
+					</CardRoot>
+					<CardRoot variant='secondary'>
+						<CardHeader className='gap-3'>
 							<div className='flex size-10 items-center justify-center rounded-xl bg-success/10 text-success'>
 								<IconUserCheck aria-hidden='true' size={20} />
 							</div>
 							<div>
-								<Card.Description>Available now</Card.Description>
-								<Card.Title className='text-3xl'>{Math.max(0, overview.account.creatorSeatLimit - overview.occupiedSeats)}</Card.Title>
+								<CardDescription>Available now</CardDescription>
+								<CardTitle className='text-3xl'>{Math.max(0, overview.account.creatorSeatLimit - overview.occupiedSeats)}</CardTitle>
 							</div>
-						</Card.Header>
-					</Card>
+						</CardHeader>
+					</CardRoot>
 				</div>
 
-				<Card>
-					<Card.Header>
-						<Card.Title>Seat utilization</Card.Title>
-						<Card.Description>Active allocations and allocations in grace count toward the contract limit.</Card.Description>
-					</Card.Header>
-					<Card.Content>
-						<ProgressBar aria-label='Agency creator seat utilization' maxValue={100} value={utilization}>
-							<ProgressBar.Output />
-							<ProgressBar.Track>
-								<ProgressBar.Fill />
-							</ProgressBar.Track>
-						</ProgressBar>
-					</Card.Content>
-				</Card>
+				<CardRoot>
+					<CardHeader>
+						<CardTitle>Seat utilization</CardTitle>
+						<CardDescription>Active allocations and allocations in grace count toward the contract limit.</CardDescription>
+					</CardHeader>
+					<CardContent>
+						<ProgressBarRoot aria-label='Agency creator seat utilization' maxValue={100} value={utilization}>
+							<ProgressBarOutput />
+							<ProgressBarTrack>
+								<ProgressBarFill />
+							</ProgressBarTrack>
+						</ProgressBarRoot>
+					</CardContent>
+				</CardRoot>
 
-				<Card>
-					<Card.Header>
-						<Card.Title>Allocation ledger</Card.Title>
-						<Card.Description>Every creator seat remains visible through its complete allocation lifecycle.</Card.Description>
-					</Card.Header>
-					<Card.Content>
+				<CardRoot>
+					<CardHeader>
+						<CardTitle>Allocation ledger</CardTitle>
+						<CardDescription>Every creator seat remains visible through its complete allocation lifecycle.</CardDescription>
+					</CardHeader>
+					<CardContent>
 						{overview.allocations.length === 0 ? (
 							<div className='rounded-2xl bg-surface-secondary p-8 text-center text-sm text-muted'>No creator seats have been allocated.</div>
 						) : (
-							<Table variant='secondary'>
-								<Table.ScrollContainer>
-									<Table.Content aria-label='Creator seat allocations' className='min-w-[760px]'>
-										<Table.Header>
-											<Table.Column isRowHeader>Creator</Table.Column>
-											<Table.Column>Status</Table.Column>
-											<Table.Column>Effective</Table.Column>
-											<Table.Column>Ends</Table.Column>
-											<Table.Column className='text-end'>Action</Table.Column>
-										</Table.Header>
-										<Table.Body>
+							<TableRoot variant='secondary'>
+								<TableScrollContainer>
+									<TableContent aria-label='Creator seat allocations' className='min-w-[760px]'>
+										<TableHeader>
+											<TableColumn isRowHeader>Creator</TableColumn>
+											<TableColumn>Status</TableColumn>
+											<TableColumn>Effective</TableColumn>
+											<TableColumn>Ends</TableColumn>
+											<TableColumn className='text-end'>Action</TableColumn>
+										</TableHeader>
+										<TableBody>
 											{overview.allocations.map((allocation) => (
-												<Table.Row key={allocation.id} id={allocation.id} textValue={allocation.creatorId}>
-													<Table.Cell>
+												<TableRow key={allocation.id} id={allocation.id} textValue={allocation.creatorId}>
+													<TableCell>
 														<div>
 															<p className='font-medium'>{allocation.creatorId}</p>
 															<p className='text-xs text-muted'>{allocation.sourceReference}</p>
 														</div>
-													</Table.Cell>
-													<Table.Cell>
+													</TableCell>
+													<TableCell>
 														<Chip size='sm' color={allocation.status === "active" ? "success" : allocation.status === "removal_scheduled" ? "warning" : "default"} variant='soft'>
 															{label(allocation.status)}
 														</Chip>
-													</Table.Cell>
-													<Table.Cell>
+													</TableCell>
+													<TableCell>
 														<span className='text-sm'>{allocation.effectiveAt.toLocaleDateString()}</span>
-													</Table.Cell>
-													<Table.Cell>
+													</TableCell>
+													<TableCell>
 														<span className='text-sm text-muted'>{allocation.endsAt ? allocation.endsAt.toLocaleString() : "—"}</span>
-													</Table.Cell>
-													<Table.Cell className='text-right'>
+													</TableCell>
+													<TableCell className='text-right'>
 														{allocation.status === "active" ? (
 															<form action={removeAgencyLicenseFormAction}>
 																<input type='hidden' name='allocationId' value={allocation.id} />
@@ -131,16 +131,16 @@ export default async function AgencyAllocationsPage() {
 														) : (
 															<span className='text-sm text-muted'>No action</span>
 														)}
-													</Table.Cell>
-												</Table.Row>
+													</TableCell>
+												</TableRow>
 											))}
-										</Table.Body>
-									</Table.Content>
-								</Table.ScrollContainer>
-							</Table>
+										</TableBody>
+									</TableContent>
+								</TableScrollContainer>
+							</TableRoot>
 						)}
-					</Card.Content>
-				</Card>
+					</CardContent>
+				</CardRoot>
 			</div>
 		</DashboardNavbar>
 	);
