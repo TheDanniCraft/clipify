@@ -131,7 +131,7 @@ export default async function AgencyDashboardPage({ searchParams }: { searchPara
 							<IconBuildingCommunity aria-hidden='true' size={20} />
 						</div>
 						<div>
-							<Card.Title>Active creator context</Card.Title>
+							<h2 className='font-semibold'>Creator management</h2>
 							<Card.Description>Switch between accepted creator relationships without adding agency staff directly to the creator&apos;s team.</Card.Description>
 						</div>
 					</Card.Header>
