@@ -193,7 +193,7 @@ Then("Better Auth requests the complete Twitch permission set", async ({ authWor
 Then("the callback targets the Clipify Better Auth Twitch route", async ({ authWorld }) => {
 	const authorizationUrl = new URL(String(authWorld.values.get("twitchAuthorizationUrl")));
 	const callbackUrl = new URL(authorizationUrl.searchParams.get("redirect_uri") ?? "http://invalid");
-	expect(callbackUrl.origin).toBe("http://127.0.0.1:3107");
+	expect(callbackUrl.origin).toBe("https://clipify.us");
 	expect(callbackUrl.pathname).toBe("/api/auth/callback/twitch");
 });
 

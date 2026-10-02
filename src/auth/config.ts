@@ -1,6 +1,6 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { emailOTP, organization } from "better-auth/plugins";
+import { emailOTP, oAuthProxy, organization } from "better-auth/plugins";
 import { passkey } from "@better-auth/passkey";
 import { db } from "@/db/client";
 import * as schema from "@/db/auth-schema";
@@ -13,10 +13,12 @@ import { requiredAuthSetting } from "./environment";
 
 const resolvedBaseUrl = resolveBaseUrl();
 const baseURL = resolvedBaseUrl.origin;
+const productionURL = "https://clipify.us";
 
 export const auth = betterAuth({
 	appName: "Clipify",
 	baseURL,
+	trustedOrigins: [baseURL, productionURL, "https://www.clipify.us", "https://es.clipify.us", "http://localhost:3000", "https://*.clipify.cloud.thedannicraft.de"],
 	secret: requiredAuthSetting("BETTER_AUTH_SECRET", "JWT_SECRET"),
 	database: drizzleAdapter(db, {
 		provider: "pg",
@@ -60,6 +62,11 @@ export const auth = betterAuth({
 		},
 	},
 	plugins: [
+		oAuthProxy({
+			productionURL,
+			secret: requiredAuthSetting("OAUTH_PROXY_SECRET"),
+			maxAge: 60,
+		}),
 		emailOTP({
 			expiresIn: EMAIL_OTP_POLICY.expiresInSeconds,
 			allowedAttempts: EMAIL_OTP_POLICY.allowedAttempts,
