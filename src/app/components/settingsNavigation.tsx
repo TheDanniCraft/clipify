@@ -28,20 +28,20 @@ export default function SettingsNavigation({ active, onCoreSectionChange }: { ac
 	return (
 		<Tabs selectedKey={active} onSelectionChange={navigate} className='w-full' variant='primary'>
 			<Tabs.ListContainer className='w-full overflow-x-auto'>
-				<Tabs.List aria-label='Settings sections' className='min-w-max'>
-					<Tabs.Tab id='settings'>
+				<Tabs.List aria-label='Settings sections' className='w-full min-w-[32rem]'>
+					<Tabs.Tab id='settings' className='flex-1'>
 						Settings
 						<Tabs.Indicator />
 					</Tabs.Tab>
-					<Tabs.Tab id='creator'>
+					<Tabs.Tab id='creator' className='flex-1'>
 						Creator Page
 						<Tabs.Indicator />
 					</Tabs.Tab>
-					<Tabs.Tab id='billing'>
+					<Tabs.Tab id='billing' className='flex-1'>
 						Billing
 						<Tabs.Indicator />
 					</Tabs.Tab>
-					<Tabs.Tab id='team'>
+					<Tabs.Tab id='team' className='flex-1'>
 						Team
 						<Tabs.Indicator />
 					</Tabs.Tab>
