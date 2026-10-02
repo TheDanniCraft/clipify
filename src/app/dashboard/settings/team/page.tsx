@@ -8,7 +8,7 @@ import SettingsNavigation from "@components/settingsNavigation";
 import type { AuthenticatedUser } from "@types";
 import { Button, Card, Checkbox, Chip, Input, Label, ListBox, Modal, Select, Table, TextField } from "@heroui/react";
 import { notify as addToast } from "@lib/toast";
-import { IconCopy, IconLink, IconMail, IconPencil, IconShieldCheck, IconTrash, IconUserPlus, IconUsersGroup } from "@tabler/icons-react";
+import { IconArrowLeft, IconCopy, IconLink, IconMail, IconPencil, IconShieldCheck, IconTrash, IconUserPlus, IconUsersGroup } from "@tabler/icons-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -348,6 +348,12 @@ export default function TeamSettingsPage() {
 	return (
 		<DashboardNavbar user={user} title='Team members' tagline='Invite people and control what they can manage'>
 			<div className='mt-6 flex w-full flex-col gap-6 pb-10'>
+				<div>
+					<Button variant='ghost' onPress={() => router.push("/dashboard/settings")}>
+						<IconArrowLeft aria-hidden='true' size={18} />
+						Back to settings
+					</Button>
+				</div>
 				<SettingsNavigation active='team' />
 				{!organization ? (
 					<Card>
