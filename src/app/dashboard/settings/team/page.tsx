@@ -72,6 +72,53 @@ function formatPermissionGroup(resource: string) {
 		.join(" ");
 }
 
+const PERMISSION_TARGETS: Record<string, string> = {
+	account: "account settings",
+	member: "team members",
+	role: "roles and permission sets",
+	creator: "creator connections",
+	overlay: "overlays",
+	"overlay-secret": "overlay secrets",
+	playlist: "playlists",
+	"playlist-items": "playlist items",
+	gallery: "galleries",
+	runner: "runners",
+	"runner-credential": "runner credentials",
+	analytics: "analytics",
+	integration: "integrations",
+	subscription: "subscriptions",
+	billing: "billing details",
+	audit: "audit history",
+	agency: "agency access",
+};
+
+function describePermission(permission: Permission) {
+	const [resource, action] = permission.split(":");
+	const target = PERMISSION_TARGETS[resource] ?? formatPermissionGroup(resource).toLowerCase();
+	const descriptions: Record<string, string> = {
+		create: `Create ${target}.`,
+		read: `View ${target}.`,
+		update: `Change ${target}.`,
+		delete: `Delete ${target}.`,
+		control: `Control ${target}.`,
+		export: `Export ${target}.`,
+		invite: `Invite ${target}.`,
+		remove: `Remove ${target}.`,
+		connect: `Connect ${target}.`,
+		disconnect: `Disconnect ${target}.`,
+		manage: `Manage ${target}.`,
+		publish: `Publish ${target}.`,
+		rotate: `Rotate ${target}.`,
+		reauthorize: `Reauthorize ${target}.`,
+		cancel: `Cancel ${target}.`,
+		"link-creator": "Link creators to the agency.",
+		"unlink-creator": "Remove creators from the agency.",
+		"allocate-license": "Assign Pro seats to creators.",
+		"revoke-license": "Remove assigned Pro seats.",
+	};
+	return descriptions[action] ?? `Manage ${target}.`;
+}
+
 function flattenPermissions(permission: Record<string, string[]>) {
 	return Object.entries(permission)
 		.flatMap(([resource, actions]) => actions.map((action) => `${resource}:${action}`))
@@ -478,35 +525,41 @@ export default function TeamSettingsPage() {
 											{selectedPermissions.length} selected
 										</Chip>
 									</div>
-									<div className='grid gap-x-8 gap-y-6 sm:grid-cols-2 lg:grid-cols-3'>
+									<div className='divide-y divide-default overflow-hidden rounded-xl border border-default'>
 										{PERMISSION_GROUPS.map(([resource, resourcePermissions]) => {
 											const selectedCount = resourcePermissions.filter((permission) => selectedPermissions.includes(permission)).length;
 											const isGroupSelected = selectedCount === resourcePermissions.length;
 											const isGroupIndeterminate = selectedCount > 0 && !isGroupSelected;
 
 											return (
-												<div key={resource} className='min-w-0'>
-													<Checkbox variant='secondary' isSelected={isGroupSelected} isIndeterminate={isGroupIndeterminate} onChange={(checked) => togglePermissionGroup(resourcePermissions, checked)}>
-														<Checkbox.Content>
-															<Checkbox.Control>
-																<Checkbox.Indicator />
-															</Checkbox.Control>
-															<span className='font-semibold'>{formatPermissionGroup(resource)}</span>
-														</Checkbox.Content>
-													</Checkbox>
-													<div className='mt-2 flex flex-col gap-2 border-l border-default pl-3'>
+												<section key={resource} className='px-4 py-4'>
+													<div className='grid gap-1 sm:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] sm:items-start sm:gap-x-6'>
+														<Checkbox variant='secondary' isSelected={isGroupSelected} isIndeterminate={isGroupIndeterminate} onChange={(checked) => togglePermissionGroup(resourcePermissions, checked)}>
+															<Checkbox.Content>
+																<Checkbox.Control>
+																	<Checkbox.Indicator />
+																</Checkbox.Control>
+																<span className='font-semibold'>{formatPermissionGroup(resource)}</span>
+															</Checkbox.Content>
+														</Checkbox>
+														<p className='pl-7 text-xs text-muted sm:pl-0'>Select every {formatPermissionGroup(resource).toLowerCase()} permission.</p>
+													</div>
+													<div className='mt-3 flex flex-col gap-2 border-l border-default pl-4'>
 														{resourcePermissions.map((permission) => (
-															<Checkbox key={permission} variant='secondary' isSelected={selectedPermissions.includes(permission)} onChange={(checked) => togglePermission(permission, checked)}>
-																<Checkbox.Content>
-																	<Checkbox.Control>
-																		<Checkbox.Indicator />
-																	</Checkbox.Control>
-																	<span className='truncate font-mono text-xs'>{permission.replace(":", ".")}</span>
-																</Checkbox.Content>
-															</Checkbox>
+															<div key={permission} className='grid gap-1 sm:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] sm:items-start sm:gap-x-6'>
+																<Checkbox variant='secondary' isSelected={selectedPermissions.includes(permission)} onChange={(checked) => togglePermission(permission, checked)}>
+																	<Checkbox.Content>
+																		<Checkbox.Control>
+																			<Checkbox.Indicator />
+																		</Checkbox.Control>
+																		<span className='break-all font-mono text-xs'>{permission.replace(":", ".")}</span>
+																	</Checkbox.Content>
+																</Checkbox>
+																<p className='pl-7 text-xs text-muted sm:pl-0'>{describePermission(permission)}</p>
+															</div>
 														))}
 													</div>
-												</div>
+												</section>
 											);
 										})}
 									</div>
