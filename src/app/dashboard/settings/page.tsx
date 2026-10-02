@@ -28,6 +28,7 @@ import { getFeatureAccess, getTrialDaysLeft, isReverseTrialActive } from "@lib/f
 import type { BillingCycle, PaywallSource } from "@actions/subscription";
 import { authClient } from "@/auth/client";
 import { IconBrandTwitch } from "@tabler/icons-react";
+import SecuritySettingsPanel from "./security-panel";
 
 type ClipCacheStatusState = {
 	cachedClipCount: number;
@@ -614,19 +615,7 @@ export default function SettingsPage() {
 											</p>
 										</Card.Content>
 									</Card>
-									<Card variant='secondary' className='w-full'>
-										<Card.Content>
-											<div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
-												<div>
-													<p className='text-sm font-semibold'>Sign-in &amp; security</p>
-													<p className='text-xs text-muted'>Change your account email and manage passkeys.</p>
-												</div>
-												<Button variant='secondary' onPress={() => router.push("/dashboard/settings/security")}>
-													Manage security
-												</Button>
-											</div>
-										</Card.Content>
-									</Card>
+									<SecuritySettingsPanel />
 									<Card variant='secondary' className='w-full'>
 										<Card.Content>
 											<div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
