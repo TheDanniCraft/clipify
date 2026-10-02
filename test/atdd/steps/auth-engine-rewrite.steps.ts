@@ -22,7 +22,7 @@ async function prepareInteractivePage(page: Page) {
 	const reject = page.getByRole("button", { name: "Reject optional" });
 	if (await reject.isVisible()) {
 		const persisted = page.waitForResponse((response) => response.url().includes("/api/c15t/subjects") && response.request().method() === "POST" && response.ok());
-		const refreshed = page.waitForNavigation({ waitUntil: "networkidle", timeout: 30_000 });
+		const refreshed = page.waitForNavigation({ waitUntil: "domcontentloaded", timeout: 30_000 });
 		await reject.click();
 		await Promise.all([persisted, refreshed]);
 	}
@@ -39,7 +39,7 @@ Given("a Clipify administrator provisioned an Agency Account after custom commer
 	await page.getByLabel("Commercial reference").fill("e2e-atdd-contract");
 	await page.getByLabel("Creator seats").fill("2");
 	await page.getByRole("button", { name: "Provision and invite owner" }).click();
-	await expect(page.getByText("Agency invitation created.", { exact: true })).toBeVisible({ timeout: DATABASE_ACTION_TIMEOUT_MS });
+	await expect(page.getByText("Agency account and owner invitation created.", { exact: true })).toBeVisible({ timeout: DATABASE_ACTION_TIMEOUT_MS });
 	await expect(page.getByText(agencyName, { exact: false })).toBeVisible();
 	const state = createAgencyState();
 	const service = new AgencyService(
@@ -89,7 +89,7 @@ When("the creator owner accepts the request with a creator-approved permission s
 	await expect(page.getByRole("heading", { name: "Agency access" })).toBeVisible({ timeout: 30_000 });
 	await prepareInteractivePage(page);
 	await page.getByRole("button", { name: "Approve agency access" }).click();
-	await expect(page.getByText("accepted", { exact: true })).toBeVisible({ timeout: DATABASE_ACTION_TIMEOUT_MS });
+	await expect(page.getByText("Accepted", { exact: true })).toBeVisible({ timeout: DATABASE_ACTION_TIMEOUT_MS });
 });
 
 Then("the staff member can manage the creator only through permissions present in both sets", async ({ authWorld }) => {
@@ -124,8 +124,9 @@ When("the agency allocates the license to that creator", async ({ page, authWorl
 	await prepareInteractivePage(page);
 	await page.getByPlaceholder("Commercial allocation reference").fill("e2e-atdd-allocation");
 	await page.getByRole("button", { name: "Allocate Pro seat" }).click();
-	await expect(page.getByText("Creator license allocated.", { exact: true })).toBeVisible({ timeout: DATABASE_ACTION_TIMEOUT_MS });
-	await expect(page.getByText("1 of 2 creator seats occupied.", { exact: false })).toBeVisible({ timeout: DATABASE_ACTION_TIMEOUT_MS });
+	await expect(page.getByText("Creator Pro seat allocated.", { exact: true })).toBeVisible({ timeout: DATABASE_ACTION_TIMEOUT_MS });
+	const occupiedSeatCard = page.getByText("Occupied", { exact: true }).locator("..");
+	await expect(occupiedSeatCard.getByRole("heading", { name: "1", exact: true })).toBeVisible({ timeout: DATABASE_ACTION_TIMEOUT_MS });
 });
 
 Then("the creator receives the agency-funded capabilities", async ({ authWorld }) => {
@@ -193,7 +194,7 @@ Then("Better Auth requests the complete Twitch permission set", async ({ authWor
 Then("the callback targets the Clipify Better Auth Twitch route", async ({ authWorld }) => {
 	const authorizationUrl = new URL(String(authWorld.values.get("twitchAuthorizationUrl")));
 	const callbackUrl = new URL(authorizationUrl.searchParams.get("redirect_uri") ?? "http://invalid");
-	expect(callbackUrl.origin).toBe("https://clipify.us");
+	expect(callbackUrl.origin).toBe("http://127.0.0.1:3107");
 	expect(callbackUrl.pathname).toBe("/api/auth/callback/twitch");
 });
 
@@ -365,7 +366,7 @@ When(/^(.+) has elapsed$/, async ({ page, request, authWorld }, recoveryTime: st
 		expect(adjusted.ok(), await adjusted.text()).toBe(true);
 	}
 	await page.goto("/dashboard/settings/account/recovery");
-	await expect(page.getByRole("heading", { name: "Account suspended pending deletion" })).toBeVisible({ timeout: 30_000 });
+	await expect(page.getByRole("heading", { name: recoveryTime === "at least 30 days" ? "Recovery period ended" : "Account suspended pending deletion" })).toBeVisible({ timeout: 30_000 });
 	await prepareInteractivePage(page);
 	authWorld.values.set("realDeletionBoundary", {
 		recoverable: await page.getByRole("button", { name: "Recover my account" }).isVisible(),

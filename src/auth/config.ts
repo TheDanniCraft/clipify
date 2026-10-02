@@ -14,6 +14,8 @@ import { requiredAuthSetting } from "./environment";
 const resolvedBaseUrl = resolveBaseUrl();
 const baseURL = resolvedBaseUrl.origin;
 const productionURL = "https://clipify.us";
+const isLoopbackOrigin = ["localhost", "127.0.0.1", "::1"].includes(resolvedBaseUrl.hostname);
+const oauthProxySecret = process.env.OAUTH_PROXY_SECRET?.trim() || undefined;
 
 export const auth = betterAuth({
 	appName: "Clipify",
@@ -63,8 +65,10 @@ export const auth = betterAuth({
 	},
 	plugins: [
 		oAuthProxy({
-			productionURL,
-			secret: requiredAuthSetting("OAUTH_PROXY_SECRET"),
+			// Twitch accepts the registered localhost callback directly. Only remote
+			// non-production deployments need to traverse the stable production URL.
+			productionURL: isLoopbackOrigin ? baseURL : productionURL,
+			secret: oauthProxySecret,
 			maxAge: 60,
 		}),
 		emailOTP({
