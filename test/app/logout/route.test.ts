@@ -47,4 +47,19 @@ describe("app/logout/route", () => {
 
 		expect(response.headers.get("location")).toBe("https://clipify.us/login");
 	});
+
+	it("preserves a safe local return URL while clearing the browser session", async () => {
+		const { GET } = await import("@/app/logout/route");
+		const response = await GET({ url: "https://clipify.us/logout?returnUrl=%2Fdashboard%2Fsettings%2Faccount%2Frecovery", headers: new Headers({ cookie: "better-auth.session_token=session" }) } as never);
+
+		expect(response.headers.get("location")).toBe("https://clipify.us/login?returnUrl=%2Fdashboard%2Fsettings%2Faccount%2Frecovery");
+		expect(response.headers.getSetCookie().join("; ")).toContain("better-auth.session_token=");
+	});
+
+	it("rejects an external logout return URL", async () => {
+		const { GET } = await import("@/app/logout/route");
+		const response = await GET({ url: "https://clipify.us/logout?returnUrl=https%3A%2F%2Fevil.example", headers: new Headers() } as never);
+
+		expect(response.headers.get("location")).toBe("https://clipify.us/login");
+	});
 });

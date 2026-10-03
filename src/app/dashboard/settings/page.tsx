@@ -736,7 +736,7 @@ export default function SettingsPage() {
 					try {
 						const result = await requestAccountDeletion(deletionChoice);
 						if (result.status === "suspended") {
-							router.push("/login?returnUrl=%2Fdashboard%2Fsettings%2Faccount%2Frecovery");
+							window.location.replace("/logout?returnUrl=%2Fdashboard%2Fsettings%2Faccount%2Frecovery");
 							return;
 						}
 						deleteModalOnOpenChange(false);
