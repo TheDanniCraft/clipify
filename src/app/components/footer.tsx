@@ -16,9 +16,9 @@ import { getPublicCommunityFooterTeaserAction } from "@actions/community";
 import { getEmailProvider, subscribeToNewsletter } from "@actions/newsletter";
 import { usePlausible } from "next-plausible";
 import { isRatelimitError } from "@actions/rateLimit";
-import type { CommunityTeaserStreamer } from "@lib/community-types";
-import { ConsentDialogLink } from "@c15t/nextjs/components/consent-dialog-link";
+import type { CommunityTeaserPayload } from "@lib/community-types";
 import { footerNavigation } from "@lib/footerNavigation";
+import { OPEN_CONSENT_PREFERENCES_EVENT } from "@lib/consent/events";
 
 const isE2ETestMode = process.env.E2E_TEST_MODE === "true";
 
@@ -26,7 +26,7 @@ export default function Footer() {
 	const { setTheme } = useTheme();
 	const [statusColor, setStatusColor] = useState("#ffffff");
 	const [statusText, setStatusText] = useState(isE2ETestMode ? "Test environment" : "Loading...");
-	const [footerCommunityPreview, setFooterCommunityPreview] = useState<CommunityTeaserStreamer[] | null>(null);
+	const [footerCommunityPreview, setFooterCommunityPreview] = useState<CommunityTeaserPayload | null>(null);
 	const plausible = usePlausible();
 	const [newsletterState, setNewsletterState] = useState("default");
 	const [isDetailsExpanded, setIsDetailsExpanded] = useState(false);
@@ -73,7 +73,8 @@ export default function Footer() {
 	const emailSubmitDisabled = newsletterState === "loading" || newsletterState === "success" || (mounted && !token);
 	const detailSubmitDisabled = newsletterState === "loading" || !pendingEmail || (mounted && !token);
 
-	const communityStreamers = useMemo(() => footerCommunityPreview ?? [], [footerCommunityPreview]);
+	const communityStreamers = useMemo(() => footerCommunityPreview?.streamers ?? [], [footerCommunityPreview]);
+	const communityStreamerCount = footerCommunityPreview?.totalCount ?? 0;
 	useEffect(() => {
 		if (isE2ETestMode) return;
 		axios
@@ -258,10 +259,10 @@ export default function Footer() {
 										<div className='space-y-0.5 text-left'>
 											<p className='text-sm font-semibold text-foreground'>Clipify community</p>
 											<p className='text-[11px] text-muted'>
-												{communityStreamers.length} streamer{communityStreamers.length === 1 ? "" : "s"}
+												{communityStreamerCount} streamer{communityStreamerCount === 1 ? "" : "s"}
 											</p>
 										</div>
-										<CommunityTeaser streamers={communityStreamers} countClassName='ml-2 text-[11px] font-medium text-muted' />
+										<CommunityTeaser streamers={communityStreamers} totalCount={communityStreamerCount} countClassName='ml-2 text-[11px] font-medium text-muted' />
 									</Link>
 								) : null}
 							</div>
@@ -275,7 +276,9 @@ export default function Footer() {
 								<div>{renderList({ title: "About Us", items: footerNavigation.aboutUs })}</div>
 								<div className='mt-10 md:mt-0'>
 									{renderList({ title: "Legal", items: footerNavigation.legal })}
-									<ConsentDialogLink className='link mt-1 text-sm text-muted'>Cookie preferences</ConsentDialogLink>
+									<button type='button' className='link mt-1 text-sm text-muted' onClick={() => window.dispatchEvent(new CustomEvent(OPEN_CONSENT_PREFERENCES_EVENT))}>
+										Cookie preferences
+									</button>
 								</div>
 							</div>
 						</div>
@@ -306,7 +309,7 @@ export default function Footer() {
 											}}
 											transition={{ duration: 0.2, ease: "easeOut" }}
 										>
-											<TextField fullWidth isRequired type='email' className={newsletterState == "success" ? "text-success" : newsletterState == "error" || newsletterState == "rateLimit" ? "text-danger" : "text-foreground"} name='email' isDisabled={newsletterState === "loading" || newsletterState === "success"}>
+											<TextField aria-label='Newsletter email address' fullWidth isRequired type='email' className={newsletterState == "success" ? "text-success" : newsletterState == "error" || newsletterState == "rateLimit" ? "text-danger" : "text-foreground"} name='email' isDisabled={newsletterState === "loading" || newsletterState === "success"}>
 												<InputGroup fullWidth variant='secondary'>
 													<InputGroup.Prefix>
 														{(() => {
@@ -386,24 +389,22 @@ export default function Footer() {
 							</div>
 						</Card.Content>
 					</Card>
-					<Modal>
-						<Modal.Backdrop isOpen={isSuccessOpen} onOpenChange={setIsSuccessOpen}>
-							<Modal.Container>
-								<Modal.Dialog>
-									<Modal.CloseTrigger />
-									<Modal.Body>
-										<div className='p-6'>
-											<div className='text-success mt-2 text-center'>
-												<Image unoptimized alt='Tada Icon' src='https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Activities/Party%20Popper.png' width={50} height={50} className='mx-auto' />
-												<p className='text-lg font-bold'>You&apos;re almost there!</p>
-												<p className='text-xs'>We&apos;ve just sent a confirmation email your way. Check your inbox to finish subscribing-and if you don&apos;t see it, be sure to take a quick look in your spam folder too.</p>
-											</div>
+					<Modal.Backdrop isOpen={isSuccessOpen} onOpenChange={setIsSuccessOpen}>
+						<Modal.Container>
+							<Modal.Dialog>
+								<Modal.CloseTrigger aria-label='Close newsletter confirmation' />
+								<Modal.Body>
+									<div className='p-6'>
+										<div className='text-success mt-2 text-center'>
+											<Image unoptimized alt='Tada Icon' src='https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Activities/Party%20Popper.png' width={50} height={50} className='mx-auto' />
+											<p className='text-lg font-bold'>You&apos;re almost there!</p>
+											<p className='text-xs'>We&apos;ve just sent a confirmation email your way. Check your inbox to finish subscribing-and if you don&apos;t see it, be sure to take a quick look in your spam folder too.</p>
 										</div>
-									</Modal.Body>
-								</Modal.Dialog>
-							</Modal.Container>
-						</Modal.Backdrop>
-					</Modal>
+									</div>
+								</Modal.Body>
+							</Modal.Dialog>
+						</Modal.Container>
+					</Modal.Backdrop>
 
 					<div className='flex flex-wrap justify-between gap-2 pt-8'>
 						<div>

@@ -1,7 +1,8 @@
 # Legacy Auth Contraction Runbook
 
-This runbook governs removal of the legacy `editors` and `tokens` tables. It is
-not a migration and does not authorize production schema changes.
+This runbook governs removal of the legacy `editors`, `tokens`, and completed
+cutover-state tables. It is not a migration and does not authorize production
+schema changes.
 
 The contraction happens in a separate, operator-approved, post-cutover pull
 request. That pull request removes the legacy table definitions from
@@ -23,8 +24,10 @@ generated files under `drizzle/`.
 
 ## Contraction pull request
 
-- [ ] Remove `editorsTable` and `tokenTable` from `src/db/schema.ts`.
-- [ ] Remove migration-only code that is no longer required after the retained evidence period.
+- [x] Remove `editorsTable`, `tokenTable`, and completed cutover-state tables from `src/db/schema.ts`.
+- [x] Remove migration-only code that is no longer required after the retained evidence period.
+- [x] Remove the one-time cutover CLI, rehearsal seed, legacy scan, maintenance gate, package commands, migration fixtures, and cutover-only tests.
+- [x] Preserve the atomic Twitch onboarding database boundary and Better Auth credential coverage as permanent auth infrastructure.
 - [ ] Do not add, edit, or promote a handwritten or locally generated migration under `drizzle/`.
 - [ ] Merge only after the entry criteria and destructive schema diff receive human review.
 - [ ] Confirm the `Generate Migrations` workflow creates exactly one ordinary migration from the final schema diff on `master`.
@@ -34,7 +37,7 @@ generated files under `drizzle/`.
 
 - [ ] Restore the final anonymized snapshot into a newly created disposable PostgreSQL database.
 - [ ] Apply every migration through the generated contraction migration using the normal migration runner.
-- [ ] Run `--validate`, `--smoke`, and `bun run auth:legacy-check` and require all checks Green.
+- [ ] Run the permanent auth integration, authorization, provider credential, and application smoke suites and require all checks Green.
 - [ ] Verify Twitch sign-in/refresh, owner and Operations access, overlay continuity, subscriptions, entitlements, and notification delivery.
 - [ ] Verify the generated migration cannot affect a database whose source fingerprint differs from the reviewed target.
 - [ ] Record timings, invariant counts, migration hash, application/schema versions, and redacted errors in the rehearsal evidence.

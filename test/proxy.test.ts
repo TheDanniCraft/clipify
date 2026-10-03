@@ -5,6 +5,7 @@ const nextMock = jest.fn(() => ({ kind: "next" }));
 const redirectMock = jest.fn((url: URL) => ({ kind: "redirect", url: url.toString() }));
 const authUser = jest.fn();
 const getAuthActorContext = jest.fn();
+const getAuthSession = jest.fn();
 
 jest.mock("next/server", () => ({
 	NextResponse: {
@@ -19,6 +20,7 @@ jest.mock("@actions/auth", () => ({
 
 jest.mock("@/auth/session", () => ({
 	getAuthActorContext: (...args: unknown[]) => getAuthActorContext(...args),
+	getAuthSession: (...args: unknown[]) => getAuthSession(...args),
 }));
 
 describe("proxy", () => {
@@ -26,6 +28,7 @@ describe("proxy", () => {
 		jest.clearAllMocks();
 		authUser.mockResolvedValue({ kind: "auth" });
 		getAuthActorContext.mockResolvedValue(null);
+		getAuthSession.mockResolvedValue(null);
 	});
 
 	it("redirects unauthenticated users to auth flow", async () => {
@@ -51,6 +54,16 @@ describe("proxy", () => {
 
 		await expect(proxy(request)).resolves.toEqual({ kind: "next" });
 		expect(getAuthActorContext).toHaveBeenCalled();
+	});
+
+	it("routes email-only agency identities to their supported dashboard", async () => {
+		getAuthSession.mockResolvedValue({ user: { id: "agency-user" } });
+		const { proxy } = await import("@/proxy");
+		const dashboardRequest = { nextUrl: { pathname: "/dashboard" }, url: "https://clipify.us/dashboard" } as unknown as Parameters<typeof proxy>[0];
+		const agencyRequest = { nextUrl: { pathname: "/dashboard/agency" }, url: "https://clipify.us/dashboard/agency" } as unknown as Parameters<typeof proxy>[0];
+
+		await expect(proxy(dashboardRequest)).resolves.toEqual({ kind: "redirect", url: "https://clipify.us/dashboard/agency" });
+		await expect(proxy(agencyRequest)).resolves.toEqual({ kind: "next" });
 	});
 
 	it("requires valid decoded token for admin routes", async () => {

@@ -60,6 +60,7 @@ jest.mock("@actions/runner", () => ({
 	createRunner: jest.fn(),
 	deleteRunner: jest.fn(),
 	getAllRunners: jest.fn().mockResolvedValue([]),
+	getAllStreamSessions: jest.fn().mockResolvedValue([]),
 	getStreamSessionsForRunner: jest.fn().mockResolvedValue([]),
 	setStreamDesiredState: jest.fn(),
 }));
@@ -293,5 +294,18 @@ describe("components/OverlayTable/index", () => {
 			expect(getAllOverlays).toHaveBeenCalledWith("owner-1");
 		});
 		expect(screen.getAllByText("Overlays").length).toBeGreaterThan(0);
+	});
+
+	it("renders an overlay only once when owned and delegated results overlap", async () => {
+		const overlappingOverlay = buildOverlay({ name: "Shared Overlay" });
+		getAllOverlays.mockResolvedValueOnce([overlappingOverlay]);
+		getEditorOverlays.mockResolvedValueOnce([overlappingOverlay]);
+		const OverlayTable = (await import("@/app/components/OverlayTable")).default;
+
+		render(<OverlayTable userId='owner-1' accessToken='token' />);
+
+		await waitFor(() => {
+			expect(screen.getAllByText("Shared Overlay")).toHaveLength(1);
+		});
 	});
 });

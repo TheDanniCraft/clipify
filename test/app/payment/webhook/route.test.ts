@@ -3,6 +3,7 @@
 const headersMock = jest.fn();
 const getStripe = jest.fn();
 const syncStripeSubscription = jest.fn();
+const syncAgencyStripeSubscription = jest.fn();
 const findEvent = jest.fn();
 const insertValues = jest.fn();
 const insertReturning = jest.fn();
@@ -31,6 +32,7 @@ updateBuilder.set.mockImplementation(() => updateBuilder);
 jest.mock("next/headers", () => ({ headers: () => headersMock() }));
 jest.mock("@actions/subscription", () => ({ getStripe: () => getStripe() }));
 jest.mock("@/server/billing", () => ({ syncStripeSubscription: (...args: unknown[]) => syncStripeSubscription(...args) }));
+jest.mock("@/server/agencies/billing-sync", () => ({ syncAgencyStripeSubscription: (...args: unknown[]) => syncAgencyStripeSubscription(...args) }));
 jest.mock("@/db/client", () => ({
 	db: {
 		query: { billingWebhookEventsTable: { findFirst: (...args: unknown[]) => findEvent(...args) } },
@@ -54,6 +56,7 @@ describe("app/payment/webhook route", () => {
 		insertReturning.mockResolvedValue([{ id: "claimed" }]);
 		updateWhere.mockResolvedValue([{ id: "claimed" }]);
 		syncStripeSubscription.mockResolvedValue(undefined);
+		syncAgencyStripeSubscription.mockResolvedValue({ handled: false });
 	});
 
 	it("rejects invalid Stripe signatures", async () => {

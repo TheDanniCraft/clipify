@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
+import { IconCalendarClock, IconDatabase, IconRefresh, IconShieldLock } from "@tabler/icons-react";
 import DashboardNavbar from "@components/dashboardNavbar";
+import { AlertContent, AlertDescription, AlertRoot, Button, CardContent, CardDescription, CardFooter, CardHeader, CardRoot, CardTitle, Chip } from "@components/heroui-client";
 import { getAuthActorContext } from "@/auth/session";
 import { getAccountDeletionOverview, recoverAccountDeletion } from "@actions/subscription";
 
@@ -17,36 +19,82 @@ export default async function AccountRecoveryPage() {
 		redirect("/dashboard");
 	}
 
+	const purgeDate = request.purgeEligibleAt ? new Date(request.purgeEligibleAt) : null;
+
 	return (
-		<DashboardNavbar user={user} title='Recover account' tagline='Cancel deletion during the 30-day recovery period'>
-			<section className='mt-4 rounded-xl border border-default bg-surface p-6'>
-				<header>
-					<h2 className='text-xl font-semibold'>Account suspended pending deletion</h2>
-					<p className='text-sm text-muted'>Your resources are retained. Recovery restores dashboard, overlay, and integration access, but does not restart billing or reclaim an agency allocation.</p>
-				</header>
-				<div className='mt-4 space-y-4'>
-					<div className='rounded-xl border border-default/60 bg-surface-secondary p-4 text-sm'>
-						<p>
-							Deletion choice: <strong>{request.choice === "paid_through" ? "after paid access" : "immediate"}</strong>
-						</p>
-						<p>
-							Permanent-erasure eligibility: <strong>{request.purgeEligibleAt ? new Date(request.purgeEligibleAt).toLocaleString() : "30 days after suspension"}</strong>
-						</p>
-					</div>
-					{request.recoveryPeriodEnded ? (
-						<p className='text-sm font-medium text-danger'>Recovery period ended. This account can no longer be restored through self-service recovery.</p>
-					) : (
-						<>
-							<p className='text-sm'>For security, recovery requires a normal sign-in and identity confirmation within the last five minutes. The recovery link itself never signs you in.</p>
-							<form action={recover}>
-								<button type='submit' className='rounded-lg bg-accent px-4 py-2 font-medium text-accent-foreground'>
-									Recover my account
-								</button>
-							</form>
-						</>
-					)}
+		<DashboardNavbar user={user} title='Recover account' tagline='Cancel deletion during the protected recovery period'>
+			<div className='mt-6 flex flex-col gap-6 pb-10'>
+				<AlertRoot status={request.recoveryPeriodEnded ? "danger" : "warning"}>
+					<IconCalendarClock aria-hidden='true' />
+					<AlertContent>
+						<h2 className='font-medium'>{request.recoveryPeriodEnded ? "Recovery period ended" : "Account suspended pending deletion"}</h2>
+						<AlertDescription>{request.recoveryPeriodEnded ? "This account can no longer be restored through self-service recovery." : "Your resources are retained and can still be restored before permanent-erasure eligibility."}</AlertDescription>
+					</AlertContent>
+				</AlertRoot>
+
+				<div className='grid gap-4 md:grid-cols-2'>
+					<CardRoot variant='secondary'>
+						<CardHeader className='gap-3'>
+							<div className='flex size-10 items-center justify-center rounded-xl bg-warning/10 text-warning'>
+								<IconShieldLock aria-hidden='true' size={20} />
+							</div>
+							<div>
+								<CardDescription>Deletion timing</CardDescription>
+								<CardTitle>{request.choice === "paid_through" ? "After paid access" : "Immediate suspension"}</CardTitle>
+							</div>
+						</CardHeader>
+						<CardFooter>
+							<Chip size='sm' color='warning' variant='soft'>
+								Recovery protected
+							</Chip>
+						</CardFooter>
+					</CardRoot>
+					<CardRoot variant='secondary'>
+						<CardHeader className='gap-3'>
+							<div className='flex size-10 items-center justify-center rounded-xl bg-accent/10 text-accent'>
+								<IconDatabase aria-hidden='true' size={20} />
+							</div>
+							<div>
+								<CardDescription>Permanent-erasure eligibility</CardDescription>
+								<CardTitle>{purgeDate ? purgeDate.toLocaleDateString() : "30 days after suspension"}</CardTitle>
+							</div>
+						</CardHeader>
+						<CardFooter className='text-sm text-muted'>{purgeDate ? purgeDate.toLocaleString() : "The exact date will be set when suspension begins."}</CardFooter>
+					</CardRoot>
 				</div>
-			</section>
+
+				<CardRoot>
+					<CardHeader className='gap-3'>
+						<div className='flex size-10 items-center justify-center rounded-xl bg-accent/10 text-accent'>
+							<IconRefresh aria-hidden='true' size={20} />
+						</div>
+						<div>
+							<CardTitle>Restore Clipify access</CardTitle>
+							<CardDescription>Recovery restores dashboard, overlay, and integration access. It does not restart billing or reclaim an agency-sponsored seat that has already ended.</CardDescription>
+						</div>
+					</CardHeader>
+					<CardContent className='flex flex-col gap-5'>
+						<div className='rounded-2xl bg-surface-secondary p-5'>
+							<p className='font-medium'>Security check required</p>
+							<p className='mt-1 text-sm text-muted'>You must complete a normal sign-in and identity confirmation within the last five minutes. A recovery link never signs you in by itself.</p>
+						</div>
+						<div className='flex justify-end'>
+							{request.recoveryPeriodEnded ? (
+								<Button isDisabled variant='secondary'>
+									Recovery unavailable
+								</Button>
+							) : (
+								<form action={recover}>
+									<Button type='submit' variant='primary'>
+										<IconRefresh aria-hidden='true' size={18} />
+										Recover my account
+									</Button>
+								</form>
+							)}
+						</div>
+					</CardContent>
+				</CardRoot>
+			</div>
 		</DashboardNavbar>
 	);
 }

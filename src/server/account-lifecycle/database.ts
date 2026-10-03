@@ -230,6 +230,31 @@ export async function suspendDueDatabaseAccountDeletions(input: { now?: Date; li
 export async function exportDatabaseAccountData(input: { now?: Date } = {}) {
 	const now = input.now ?? new Date();
 	const { actor, organizationId } = await requireOwnerActor(now);
+	return collectDatabaseAccountData({ actor, organizationId, now });
+}
+
+export async function prepareDatabaseAccountDataExport(input: { now?: Date } = {}) {
+	const now = input.now ?? new Date();
+	const { actor, organizationId, email } = await requireOwnerActor(now);
+	return { authUserId: actor.authUserId, creatorId: actor.creatorId, organizationId, email };
+}
+
+export async function downloadDatabaseAccountDataExport(input: { authUserId: string; creatorId: string; organizationId: string; now?: Date }) {
+	const actor = await getAuthActorContext();
+	if (!actor) throw new Error("AUTHENTICATION_REQUIRED");
+	if (actor.authUserId !== input.authUserId || actor.creatorId !== input.creatorId) throw new Error("EXPORT_IDENTITY_MISMATCH");
+	const membership = await db
+		.select({ id: authMemberTable.id })
+		.from(authMemberTable)
+		.where(and(eq(authMemberTable.organizationId, input.organizationId), eq(authMemberTable.userId, actor.authUserId)))
+		.limit(1);
+	if (!membership[0]) throw new Error("EXPORT_IDENTITY_MISMATCH");
+	const { collectComprehensiveAccountData } = await import("./account-data-export");
+	return collectComprehensiveAccountData(input);
+}
+
+async function collectDatabaseAccountData(input: { actor: ActorContext; organizationId: string; now: Date }) {
+	const { actor, organizationId, now } = input;
 	const [profile, overlays, playlists, galleries, runners, subscriptions, entitlements, deletionRequests] = await Promise.all([
 		db.select({ id: usersTable.id, email: usersTable.email, username: usersTable.username, plan: usersTable.plan, createdAt: usersTable.createdAt, updatedAt: usersTable.updatedAt }).from(usersTable).where(eq(usersTable.id, actor.creatorId)).limit(1),
 		db.select({ id: overlaysTable.id, name: overlaysTable.name, status: overlaysTable.status, type: overlaysTable.type, createdAt: overlaysTable.createdAt, updatedAt: overlaysTable.updatedAt }).from(overlaysTable).where(eq(overlaysTable.ownerId, actor.creatorId)),
@@ -240,5 +265,18 @@ export async function exportDatabaseAccountData(input: { now?: Date } = {}) {
 		db.select({ entitlement: entitlementGrantsTable.entitlement, source: entitlementGrantsTable.source, startsAt: entitlementGrantsTable.startsAt, endsAt: entitlementGrantsTable.endsAt, revokedAt: entitlementGrantsTable.revokedAt }).from(entitlementGrantsTable).where(eq(entitlementGrantsTable.userId, actor.creatorId)),
 		db.select({ id: accountDeletionRequestsTable.id, choice: accountDeletionRequestsTable.choice, status: accountDeletionRequestsTable.status, requestedAt: accountDeletionRequestsTable.requestedAt, suspensionAt: accountDeletionRequestsTable.suspensionAt, purgeEligibleAt: accountDeletionRequestsTable.purgeEligibleAt, recoveredAt: accountDeletionRequestsTable.recoveredAt }).from(accountDeletionRequestsTable).where(eq(accountDeletionRequestsTable.organizationId, organizationId)),
 	]);
-	return { exportedAt: now.toISOString(), organizationId, profile: profile[0] ?? null, overlays, playlists, galleries, runners, subscriptions, entitlements, deletionRequests };
+	return {
+		exportFormat: "clipify-account-data-v1",
+		exportedAt: now.toISOString(),
+		organizationId,
+		securityNotice: "Reusable credentials are intentionally excluded. This package does not contain OAuth access or refresh tokens, session tokens, passkey key material, runner tokens, overlay secrets, or stream keys.",
+		profile: profile[0] ?? null,
+		overlays,
+		playlists,
+		galleries,
+		runners,
+		subscriptions,
+		entitlements,
+		deletionRequests,
+	};
 }

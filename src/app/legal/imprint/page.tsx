@@ -34,12 +34,12 @@ export default function ImprintPage() {
 					<h2 className='mb-4 text-2xl font-semibold'>Contact</h2>
 					<p>
 						Email:{" "}
-						<Link className='underline-offset-4 hover:underline' href='mailto:contact@clipify.us'>
+						<Link className='text-primary underline decoration-primary/60 underline-offset-4 hover:decoration-primary' href='mailto:contact@clipify.us'>
 							contact@clipify.us
 						</Link>
 						<br />
 						Phone:{" "}
-						<Link className='underline-offset-4 hover:underline' href='tel:+4917666330972'>
+						<Link className='text-primary underline decoration-primary/60 underline-offset-4 hover:decoration-primary' href='tel:+4917666330972'>
 							+49 176 66330972
 						</Link>
 					</p>

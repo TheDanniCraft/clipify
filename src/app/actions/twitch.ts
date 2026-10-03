@@ -2,8 +2,8 @@
 "use server";
 
 import axios from "axios";
-import { AuthenticatedUser, Game, Overlay, OverlayType, PlaybackMode, RewardStatus, TwitchApiResponse, TwitchAppAccessTokenResponse, TwitchCacheType, TwitchClip, TwitchClipDownloadResponse, TwitchClipGqlData, TwitchClipGqlResponse, TwitchClipResponse, TwitchClipVideoQuality, TwitchReward, TwitchRewardResponse, TwitchTokenApiResponse, TwitchUserResponse } from "@types";
-import { deleteTwitchCacheByPrefix, deleteTwitchCacheKeys, getAccessToken, getAccessTokenServer, getOverlayBySecret, getOverlayPublic, getPlaylistClipsForOwnerServer, getTwitchCache, getTwitchCacheBatch, getTwitchCacheByPrefixEntries, getTwitchCacheEntry, getTwitchCacheStale, getTwitchCacheStaleBatch, setTwitchCache, setTwitchCacheBatch } from "@actions/database";
+import { AuthenticatedUser, Game, Overlay, OverlayType, PlaybackMode, RewardStatus, TwitchApiResponse, TwitchAppAccessTokenResponse, TwitchCacheType, TwitchClip, TwitchClipDownloadResponse, TwitchClipGqlData, TwitchClipGqlResponse, TwitchClipResponse, TwitchClipVideoQuality, TwitchReward, TwitchRewardResponse, TwitchUserResponse } from "@types";
+import { deleteTwitchCacheByPrefix, deleteTwitchCacheKeys, getAccessToken, getAccessTokenServer, getOverlayBySecret, getOverlayPublic, getPlaylistRuntimeClipsForOwnerServer, getTwitchCache, getTwitchCacheBatch, getTwitchCacheByPrefixEntries, getTwitchCacheEntry, getTwitchCacheStale, getTwitchCacheStaleBatch, setTwitchCache, setTwitchCacheBatch } from "@actions/database";
 import { type TwitchRateLimitLog, incrementClipFetchFallback, incrementClipFetchRateLimited, incrementClipFetchV1, incrementClipFetchV2, recordTwitchRateLimit } from "@lib/instanceHealth";
 import { promises as fs } from "fs";
 import path from "path";
@@ -746,34 +746,6 @@ async function clearEventSubSubscriptionsByTypeAndCondition({ type, conditionMat
 	return deleted;
 }
 
-export async function exchangeAccesToken(code: string): Promise<TwitchTokenApiResponse | null> {
-	const url = "https://id.twitch.tv/oauth2/token";
-	const baseUrl = await getBaseUrl();
-
-	let callbackUrl = new URL("/callback", baseUrl).toString();
-	if ((await isPreview()) && process.env.PREVIEW_CALLBACK_URL) {
-		callbackUrl = new URL(process.env.PREVIEW_CALLBACK_URL).toString();
-	}
-
-	try {
-		const response = await axios.post<TwitchTokenApiResponse>(url, null, {
-			params: {
-				/* istanbul ignore next */
-				client_id: process.env.TWITCH_CLIENT_ID || "",
-				/* istanbul ignore next */
-				client_secret: process.env.TWITCH_CLIENT_SECRET || "",
-				code: code,
-				grant_type: "authorization_code",
-				redirect_uri: callbackUrl,
-			},
-		});
-		return response.data;
-	} catch (error) {
-		logTwitchError("Error exchanging access token", error);
-		return null;
-	}
-}
-
 export async function getAppAccessToken(): Promise<TwitchAppAccessTokenResponse | null> {
 	const url = "https://id.twitch.tv/oauth2/token";
 	try {
@@ -1400,7 +1372,7 @@ export async function getTwitchClips(overlay: Overlay, type?: OverlayType, skipF
 	if (overlayType === OverlayType.Playlist) {
 		/* istanbul ignore next */
 		if (!overlay.playlistId) return [];
-		clips = await getPlaylistClipsForOwnerServer(overlay.ownerId, overlay.playlistId);
+		clips = await getPlaylistRuntimeClipsForOwnerServer(overlay.ownerId, overlay.playlistId);
 	} else {
 		await syncOwnerClipCache(overlay.ownerId);
 		clips = await getCachedClipsByOwner(overlay.ownerId);

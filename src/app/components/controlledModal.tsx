@@ -22,15 +22,13 @@ export default function ControlledModal({ children, isOpen, onOpenChange, onClos
 	};
 
 	return (
-		<Modal>
-			<Modal.Backdrop isOpen={isOpen} onOpenChange={handleOpenChange} variant={variant}>
-				<Modal.Container size={size} className={containerClassName}>
-					<Modal.Dialog className={dialogClassName}>
-						{showCloseButton ? <Modal.CloseTrigger /> : null}
-						{children}
-					</Modal.Dialog>
-				</Modal.Container>
-			</Modal.Backdrop>
-		</Modal>
+		<Modal.Backdrop isOpen={isOpen} onOpenChange={handleOpenChange} variant={variant}>
+			<Modal.Container size={size} className={containerClassName}>
+				<Modal.Dialog className={dialogClassName}>
+					{showCloseButton ? <Modal.CloseTrigger aria-label='Close dialog' /> : null}
+					{children}
+				</Modal.Dialog>
+			</Modal.Container>
+		</Modal.Backdrop>
 	);
 }

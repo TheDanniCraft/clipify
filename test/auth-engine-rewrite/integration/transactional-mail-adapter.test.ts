@@ -5,7 +5,7 @@ jest.mock("usesend-js", () => {
 	return { UseSend: jest.fn().mockImplementation(() => ({ emails: { send } })), __mockSend: send };
 });
 
-import { sendAuthOtp, sendTeamInvitation, UseSendTransactionalMailAdapter } from "@/auth/transactional-mail";
+import { sendAccountDataExport, sendAuthOtp, sendTeamInvitation, UseSendTransactionalMailAdapter } from "@/auth/transactional-mail";
 
 const { UseSend: mockUseSend, __mockSend: mockSend } = jest.requireMock("usesend-js") as { UseSend: jest.Mock; __mockSend: jest.Mock };
 
@@ -56,6 +56,11 @@ describe("TDD-US3-007 UseSend transactional mail adapter", () => {
 		expect(mockSend).toHaveBeenCalledWith(expect.objectContaining({ to: "member@example.test", subject: expect.stringContaining("Creator Team"), html: expect.stringContaining("accept-invitation") }), expect.objectContaining({ idempotencyKey: expect.stringMatching(/^team-invitation:/) }));
 	});
 
+	it("renders and sends an expiring account-data export link", async () => {
+		await sendAccountDataExport({ email: "creator@example.test", downloadUrl: "https://clipify.us/api/account/export?token=redacted", expiresAt: new Date("2026-10-10T00:00:00.000Z") });
+		expect(mockSend).toHaveBeenCalledWith(expect.objectContaining({ to: "creator@example.test", subject: expect.stringContaining("data export"), html: expect.stringContaining("/api/account/export") }), expect.objectContaining({ idempotencyKey: expect.stringMatching(/^account-data-export:/) }));
+	});
+
 	it("returns null when the provider succeeds without an email identifier", async () => {
 		mockSend.mockResolvedValueOnce({ data: {}, error: null });
 		await expect(new UseSendTransactionalMailAdapter().send("member@example.test", { subject: "Subject", text: "Text", html: "<p>Text</p>", templateVersion: "identity-security-v1" }, "dedupe-1")).resolves.toBeNull();
@@ -68,6 +73,15 @@ describe("TDD-US3-007 UseSend transactional mail adapter", () => {
 
 		process.env.USESEND_TRANSACTIONAL_FROM = "Clipify <auth@clipify.us>";
 		mockSend.mockResolvedValueOnce({ data: null, error: { message: "provider failure" } });
-		await expect(adapter.send("member@example.test", { subject: "Subject", text: "Text", html: "<p>Text</p>", templateVersion: "identity-security-v1" }, "dedupe-2")).rejects.toThrow("Transactional email delivery failed");
+		await expect(adapter.send("member@example.test", { subject: "Subject", text: "Text", html: "<p>Text</p>", templateVersion: "identity-security-v1" }, "dedupe-2")).rejects.toThrow("Transactional email delivery failed: provider failure");
+
+		mockSend.mockResolvedValueOnce({ data: null, error: { error: { code: "DOMAIN_NOT_VERIFIED", message: "Sender domain is not verified" } } });
+		await expect(adapter.send("member@example.test", { subject: "Subject", text: "Text", html: "<p>Text</p>", templateVersion: "identity-security-v1" }, "dedupe-3")).rejects.toThrow("Transactional email delivery failed: Sender domain is not verified");
+
+		mockSend.mockResolvedValueOnce({ data: null, error: "provider unavailable" });
+		await expect(adapter.send("member@example.test", { subject: "Subject", text: "Text", html: "<p>Text</p>", templateVersion: "identity-security-v1" }, "dedupe-4")).rejects.toThrow("Transactional email delivery failed: provider unavailable");
+
+		mockSend.mockResolvedValueOnce({ data: null, error: null });
+		await expect(adapter.send("member@example.test", { subject: "Subject", text: "Text", html: "<p>Text</p>", templateVersion: "identity-security-v1" }, "dedupe-5")).resolves.toBeNull();
 	});
 });

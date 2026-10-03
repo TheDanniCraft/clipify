@@ -20,22 +20,10 @@ const settingsTable = {
 	marketingOptInSource: "settings.marketing_opt_in_source",
 	useSendProductUpdatesContactId: "settings.use_send_product_updates_contact_id",
 };
-const editorsTable = {
-	userId: "editors.user_id",
-	editorId: "editors.editor_id",
-};
 const usersTable = {
 	id: "users.id",
 	email: "users.email",
 	username: "users.username",
-};
-const tokenTable = {
-	id: "token.id",
-	accessToken: "token.access_token",
-	refreshToken: "token.refresh_token",
-	expiresAt: "token.expires_at",
-	scope: "token.scope",
-	tokenType: "token.token_type",
 };
 
 function queueSelectResult(value: unknown) {
@@ -124,14 +112,7 @@ jest.mock("@/db/client", () => ({
 
 jest.mock("@/db/schema", () => ({
 	settingsTable,
-	editorsTable,
 	usersTable,
-	tokenTable,
-}));
-
-jest.mock("@lib/tokenCrypto", () => ({
-	encryptToken: jest.fn((val: string) => val),
-	decryptToken: jest.fn((val: string) => val),
 }));
 
 jest.mock("drizzle-orm", () => ({
@@ -250,6 +231,25 @@ describe("actions/database settings logic", () => {
 		expect(insertCalls.some((call) => call.table === settingsTable)).toBe(true);
 		const call = insertCalls.find((call) => call.table === settingsTable);
 		expect(call?.values).toMatchObject({ prefix: "?" });
+	});
+
+	it("preserves saved Pro social-preview values during Free settings edits", async () => {
+		const { saveSettings } = await loadDatabaseActions();
+		const { getFeatureAccess } = jest.requireMock("@lib/featureAccess") as { getFeatureAccess: jest.Mock };
+		getFeatureAccess.mockReturnValueOnce({ allowed: false, reason: "trial_expired" });
+		queueSelectResult([
+			{
+				id: "user-1",
+				marketingOptIn: false,
+				creatorPageSocialTitle: "Saved Pro title",
+				creatorPageSocialDescription: "Saved Pro description",
+			},
+		]);
+
+		await saveSettings({ id: "user-1", prefix: "?", marketingOptIn: false, creatorPageSocialTitle: "Free overwrite", creatorPageSocialDescription: "Free overwrite" } as any);
+
+		const call = insertCalls.find((candidate) => candidate.table === settingsTable);
+		expect(call?.values).toMatchObject({ creatorPageSocialTitle: "Saved Pro title", creatorPageSocialDescription: "Saved Pro description" });
 	});
 
 	it("syncs external marketing status if forced (opt-in)", async () => {

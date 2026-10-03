@@ -31,7 +31,7 @@ export default function SubscriptionChangeSummary({ additions, removals, reactiv
 					<IconMinus size={18} className='mt-0.5 shrink-0' />
 					<div>
 						<p className='font-medium'>{removal.label}</p>
-						<p className='text-sm text-muted'>Cancels {formatDate(removal.currentPeriodEnd)}. Existing creator data is retained.</p>
+						<p className='text-sm text-muted'>Cancels {formatDate(removal.currentPeriodEnd)}. Saved data is retained, while paid-only runtime behavior pauses when access ends.</p>
 					</div>
 				</div>
 			))}
@@ -52,7 +52,7 @@ const restrictionLabels: Record<string, string> = {
 	"extra-overlays-read-only": "Additional overlays remain available in read-only mode.",
 	"extra-playlists-read-only": "Additional playlists and their items remain available in read-only mode.",
 	"runner-control-disabled": "Runner configuration is retained while runner control is paused.",
-	"advanced-overlay-settings-read-only": "Advanced overlay settings retain their values and become read-only.",
+	"advanced-overlay-settings-read-only": "Advanced overlay settings stay saved but are not applied until Pro access returns.",
 };
 
 export function DowngradeEffectsSummary({ effects }: { effects: { restrictions: string[] } }) {

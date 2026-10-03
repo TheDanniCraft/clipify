@@ -5,7 +5,6 @@ const dbSelect = jest.fn();
 const dbUpdate = jest.fn();
 const dbInsert = jest.fn();
 const getUserDetails = jest.fn();
-const decryptToken = jest.fn();
 const eq = jest.fn();
 const and = jest.fn();
 
@@ -14,10 +13,6 @@ const usersTable = {
 	disabled: "users.disabled",
 	disableType: "users.disable_type",
 	disabledReason: "users.disabled_reason",
-};
-
-const tokenTable = {
-	id: "tokens.id",
 };
 
 const overlaysTable = {
@@ -38,12 +33,10 @@ jest.mock("@/db/client", () => ({
 
 jest.mock("@/db/schema", () => ({
 	usersTable,
-	tokenTable,
 	overlaysTable,
 	queueTable: {},
 	settingsTable: {},
 	modQueueTable: {},
-	editorsTable: {},
 	twitchCacheTable: {
 		expiresAt: "twitch_cache.expires_at",
 	},
@@ -67,11 +60,6 @@ jest.mock("@actions/auth", () => ({
 	validateAdminAuth,
 }));
 
-jest.mock("@lib/tokenCrypto", () => ({
-	encryptToken: jest.fn((value: string) => value),
-	decryptToken: (...args: unknown[]) => decryptToken(...args),
-}));
-
 jest.mock("@lib/featureAccess", () => ({
 	getFeatureAccess: jest.fn(() => ({ allowed: true })),
 }));
@@ -81,6 +69,7 @@ jest.mock("@lib/entitlements", () => ({
 	resolveUserEntitlements: jest.fn(),
 	resolveUserEntitlementsForUsers: jest.fn(),
 }));
+jest.mock("@/server/entitlements/resource-access", () => ({ resolveRetainedResourceAccess: jest.fn(async () => ({ read: true, delete: true, update: true, runtime: true, withinFreeAllowance: true })) }));
 
 jest.mock("drizzle-orm", () => ({
 	relations: jest.fn(() => ({})),
@@ -193,7 +182,6 @@ describe("actions/database disabled user handling", () => {
 		dbSelect.mockImplementation(() => mockSelectChain());
 		dbUpdate.mockImplementation((table: unknown) => mockUpdateChain(table));
 		dbInsert.mockImplementation((table: unknown) => mockInsertChain(table));
-		decryptToken.mockImplementation((value: string) => value);
 		validateAuth.mockResolvedValue({ id: "owner-1" });
 		getUserDetails.mockResolvedValue({
 			id: "owner-1",

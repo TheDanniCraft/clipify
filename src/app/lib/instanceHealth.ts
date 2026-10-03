@@ -1,5 +1,5 @@
 /* istanbul ignore file */
-import { db } from "@/db/client";
+import { db as database, type QueryClient } from "@/db/client";
 import { billingSubscriptionItemsTable, billingSubscriptionsTable, entitlementGrantsTable, galleriesTable, modQueueTable, overlaysTable, plausibleStatsCacheTable, playlistClipsTable, playlistsTable, queueTable, runnersTable, settingsTable, streamSessionsTable, twitchCacheTable, usersTable } from "@/db/schema";
 import { account as authAccountTable } from "@/db/auth-schema";
 import { getTwitchCacheReadMetricsSnapshot } from "@actions/database";
@@ -244,17 +244,17 @@ function emptyDestinationCounts(): Record<RunnerDestination, number> {
 	return { youtube: 0, twitch: 0, custom: 0 };
 }
 
-async function countRows(table: typeof usersTable | typeof overlaysTable | typeof playlistsTable) {
+async function countRows(db: QueryClient, table: typeof usersTable | typeof overlaysTable | typeof playlistsTable) {
 	const result = await db.select({ count: count() }).from(table).execute();
 	return Number(result[0]?.count ?? 0);
 }
 
-async function countWhereOverlays(status: StatusOptions) {
+async function countWhereOverlays(db: QueryClient, status: StatusOptions) {
 	const result = await db.select({ count: count() }).from(overlaysTable).where(eq(overlaysTable.status, status)).execute();
 	return Number(result[0]?.count ?? 0);
 }
 
-export async function getInstanceHealthSnapshot<TExclude extends keyof InstanceHealthSnapshot = never>(options?: { exclude?: TExclude[] }): Promise<Omit<InstanceHealthSnapshot, TExclude>> {
+async function buildInstanceHealthSnapshot<TExclude extends keyof InstanceHealthSnapshot = never>(db: QueryClient, options?: { exclude?: TExclude[] }): Promise<Omit<InstanceHealthSnapshot, TExclude>> {
 	const started = Date.now();
 	const dbPingStarted = Date.now();
 	await db.execute(sql`select 1`);
@@ -266,10 +266,10 @@ export async function getInstanceHealthSnapshot<TExclude extends keyof InstanceH
 	const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
 	const [usersTotal, overlaysTotal, overlaysActive, overlaysPaused, activeUsers24h, activeUsers7d, activeUsers30d, disabledUsers, disabledManual, disabledAutomatic, neverLoggedIn, disabledReasonRows] = await Promise.all([
-		countRows(usersTable),
-		countRows(overlaysTable),
-		countWhereOverlays(StatusOptions.Active),
-		countWhereOverlays(StatusOptions.Paused),
+		countRows(db, usersTable),
+		countRows(db, overlaysTable),
+		countWhereOverlays(db, StatusOptions.Active),
+		countWhereOverlays(db, StatusOptions.Paused),
 		db
 			.select({ count: count() })
 			.from(usersTable)
@@ -380,7 +380,7 @@ export async function getInstanceHealthSnapshot<TExclude extends keyof InstanceH
 	const activeOverlayOwnersPaid = Number(activeOverlayOwnersByPlanRows.find((row) => row.plan === Plan.Pro)?.count ?? 0);
 
 	const [playlistsTotal, playlistClipRows, nonEmptyPlaylistsRows, overlaysWithPlaylistRows, activeOverlaysWithPlaylistRows] = await Promise.all([
-		countRows(playlistsTable),
+		countRows(db, playlistsTable),
 		db.select({ count: count() }).from(playlistClipsTable).execute(),
 		db
 			.select({ count: countDistinct(playlistClipsTable.playlistId) })
@@ -563,12 +563,12 @@ export async function getInstanceHealthSnapshot<TExclude extends keyof InstanceH
 		db
 			.select({ count: count() })
 			.from(twitchCacheTable)
-			.where(and(eq(twitchCacheTable.type, TwitchCacheType.Clip), like(twitchCacheTable.value, '%"unavailable":true%')))
+			.where(and(eq(twitchCacheTable.type, TwitchCacheType.Clip), sql`coalesce((${twitchCacheTable.value}::jsonb ->> 'unavailable')::boolean, false)`))
 			.execute(),
 		db
 			.select({
 				states: countDistinct(overlaysTable.ownerId),
-				complete: sql<number>`count(distinct ${overlaysTable.ownerId}) filter (where ${twitchCacheTable.value} like '%"backfillComplete":true%')`,
+				complete: sql<number>`count(distinct ${overlaysTable.ownerId}) filter (where coalesce((${twitchCacheTable.value}::jsonb ->> 'backfillComplete')::boolean, false))`,
 			})
 			.from(overlaysTable)
 			.innerJoin(usersTable, eq(usersTable.id, overlaysTable.ownerId))
@@ -578,7 +578,7 @@ export async function getInstanceHealthSnapshot<TExclude extends keyof InstanceH
 		db
 			.select({ count: count() })
 			.from(twitchCacheTable)
-			.where(and(eq(twitchCacheTable.type, TwitchCacheType.Clip), like(twitchCacheTable.key, "clip:%"), like(twitchCacheTable.value, '%"lastValidatedAt":%'), lt(twitchCacheTable.fetchedAt, sql`now() - interval '6 hours'`)))
+			.where(and(eq(twitchCacheTable.type, TwitchCacheType.Clip), like(twitchCacheTable.key, "clip:%"), sql`${twitchCacheTable.value}::jsonb ? 'lastValidatedAt'`, lt(twitchCacheTable.fetchedAt, sql`now() - interval '6 hours'`)))
 			.execute(),
 	]);
 
@@ -800,4 +800,8 @@ export async function getInstanceHealthSnapshot<TExclude extends keyof InstanceH
 	}
 
 	return health as Omit<InstanceHealthSnapshot, TExclude>;
+}
+
+export async function getInstanceHealthSnapshot<TExclude extends keyof InstanceHealthSnapshot = never>(options?: { exclude?: TExclude[] }): Promise<Omit<InstanceHealthSnapshot, TExclude>> {
+	return database.transaction((transaction) => buildInstanceHealthSnapshot(transaction, options));
 }

@@ -385,6 +385,24 @@ description: "Dependency-ordered implementation tasks for the Creator Identity a
 
 ---
 
+## Phase 11: Convergence — Agency Billing and Downgrade UX
+
+**Purpose**: Complete the approved negotiated agency-billing expansion and make retained-data downgrade behavior explicit and enforceable.
+
+- [x] T204 [US4] [ATDD] Add `ATDD-US4-004` and `BDD-US4-004` for negotiated checkout, paid immediate increases, failed-payment non-grant, period-end decreases, and contractual/occupied floors in the agency Gherkin suites and traceability registry
+- [x] T205 [US4] [TDD] Add focused policy tests for creator/Runner quantities, negotiated minimums, occupied-seat floors, immediate paid upgrades, and period-end downgrades in `test/auth-engine-rewrite/integration/agency-billing.test.ts`; record an intentional Red result
+- [x] T206 [US4] Add the Clipify-owned agency billing projection and negotiated terms to `src/db/schema.ts` without creating or editing generated `drizzle/` artifacts
+- [x] T207 [US4] Implement Stripe customer discovery/creation, negotiated Checkout or invoice activation, hosted billing management, pending paid upgrades, subscription-schedule downgrades, and webhook-authoritative capacity synchronization in `src/server/agencies/billing.ts`, `src/app/actions/agency.ts`, and `src/app/payment/webhook/route.ts`
+- [x] T208 [US4] Implement administrator billing-term configuration and an agency-owner billing/capacity surface using HeroUI secondary variants for controls nested in surfaces in `src/app/admin/agencies/page.tsx` and `src/app/dashboard/agency/page.tsx`
+- [x] T209 [US4] [GATE] Run the focused agency billing TDD/BDD/ATDD evidence Green, verify duplicate/reordered webhooks and payment failures grant no capacity, and update traceability, defects, and summary evidence
+- [x] T210 [US3] [TDD] Add focused UI behavior evidence that explicitly selecting Custom starts with no permissions while modifying a preset preserves the modified subset; record Red then Green
+- [x] T211 [US3] Implement empty explicit-Custom selection in the Team access editor without changing the preset-to-custom modification behavior in `src/app/dashboard/settings/team/page.tsx`
+- [x] T212 [US5] [TDD] Add focused contract evidence for deletion-only recovery copy, plan-cancellation disclosure, and retained-resource capability enforcement across over-limit overlays, playlists, galleries, and Runners
+- [x] T213 [US5] Remove plan-loss wording from account deletion, add a cancellation FAQ to the billing surface and landing FAQ, and close any authorization/runtime gaps that permit retained over-limit resources to use paid-only capabilities after entitlement loss
+- [x] T214 [GATE] Run scoped Jest, BDD/ATDD, lint, formatting, typecheck, build/action-manifest, and browser acceptance once at the completed checkpoint; update `specs/002-auth-engine-rewrite/test-traceability.md`, `defect-log.md`, `test-summary.md`, and `reports/test-summary.md`
+
+---
+
 ## Dependencies and Execution Order
 
 ### Phase dependencies
@@ -471,3 +489,12 @@ Complete US5 before enabling agency removal/allocation behavior in US4. Finish P
 - All required TDD inventory categories—happy paths, boundaries, invalid inputs, transitions, integration contracts, originating errors, deterministic controls, and every EC-001–EC-015 path—are represented.
 - Every mandatory gate is Green or has an explicitly approved scoped exception with compensating evidence.
 - The final recommendation in `specs/002-auth-engine-rewrite/test-summary.md` is based on reproducible evidence.
+
+---
+
+## Phase 12: Convergence — Release Readiness
+
+- [x] T215 [GATE] Add focused coverage for the remaining auth lifecycle, agency database, and transactional-mail branches until `bun run test:auth:coverage` again satisfies the T177 threshold of at least 90% branches and 95% functions/lines/statements (partial per Constitution TF-6 and T177)
+- [x] T216 [GATE] Refresh `specs/002-auth-engine-rewrite/test-traceability.md`, `specs/002-auth-engine-rewrite/defect-log.md`, `specs/002-auth-engine-rewrite/test-summary.md`, and `reports/test-summary.md` with the final local/CI totals, production configuration presence check, zero-unresolved Sentry result, and aggregate production backfill invariants (partial per Constitution TF-7, TF-8, and T214)
+- [ ] T217 [GATE] After merge triggers the `Generate Migrations` workflow, require exactly one ordinary generated migration, human-review its additive agency-billing and destructive legacy-contraction SQL, and rehearse the normal migration runner plus permanent auth/runtime smoke on a fresh disposable production snapshot before deployment (partial per FR-026 and plan: rehearsal, switch, and contract)
+- [ ] T218 [GATE] Execute the contraction release only with a fresh verified production backup, stopped application/workers, reviewed migration hash, post-apply identity/editor/provider/resource/billing invariants, runtime smoke, and explicit operator approval before reopening (partial per FR-023, FR-024, FR-026, and `contracts/legacy-auth-contraction-runbook.md`)

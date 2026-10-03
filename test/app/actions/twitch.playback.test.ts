@@ -7,7 +7,7 @@ const getAccessToken = jest.fn();
 const getAccessTokenServer = jest.fn();
 const getOverlayBySecret = jest.fn();
 const getOverlayPublic = jest.fn();
-const getPlaylistClipsForOwnerServer = jest.fn();
+const getPlaylistRuntimeClipsForOwnerServer = jest.fn();
 const getTwitchCache = jest.fn();
 const getTwitchCacheByPrefixEntries = jest.fn();
 const setTwitchCache = jest.fn();
@@ -23,7 +23,7 @@ jest.mock("@actions/database", () => ({
 	getAccessTokenResultServer: jest.fn(),
 	getOverlayBySecret: (...args: unknown[]) => getOverlayBySecret(...args),
 	getOverlayPublic: (...args: unknown[]) => getOverlayPublic(...args),
-	getPlaylistClipsForOwnerServer: (...args: unknown[]) => getPlaylistClipsForOwnerServer(...args),
+	getPlaylistRuntimeClipsForOwnerServer: (...args: unknown[]) => getPlaylistRuntimeClipsForOwnerServer(...args),
 	getTwitchCache: (...args: unknown[]) => getTwitchCache(...args),
 	getTwitchCacheBatch: jest.fn(),
 	getTwitchCacheByPrefixEntries: (...args: unknown[]) => getTwitchCacheByPrefixEntries(...args),
@@ -146,7 +146,7 @@ describe("actions/twitch playback and cache behavior", () => {
 		getAccessTokenInternal.mockResolvedValue({ accessToken: "token" });
 		getOverlayBySecret.mockResolvedValue(buildOverlay());
 		getOverlayPublic.mockResolvedValue(buildOverlay());
-		getPlaylistClipsForOwnerServer.mockResolvedValue([]);
+		getPlaylistRuntimeClipsForOwnerServer.mockResolvedValue([]);
 		getTwitchCache.mockResolvedValue({});
 		getTwitchCacheByPrefixEntries.mockResolvedValue([]);
 	});
@@ -189,12 +189,12 @@ describe("actions/twitch playback and cache behavior", () => {
 	});
 
 	it("loads playlist overlays from playlist snapshots instead of cache sync", async () => {
-		getPlaylistClipsForOwnerServer.mockResolvedValue([buildClip("playlist-1"), buildClip("playlist-2")]);
+		getPlaylistRuntimeClipsForOwnerServer.mockResolvedValue([buildClip("playlist-1"), buildClip("playlist-2")]);
 		const { getTwitchClips } = await loadTwitch();
 		const clips = await getTwitchClips(buildOverlay({ type: "Playlist", playlistId: "playlist-1" }));
 
 		expect(clips.map((clip) => clip.id)).toEqual(["playlist-1", "playlist-2"]);
-		expect(getPlaylistClipsForOwnerServer).toHaveBeenCalledWith("owner-1", "playlist-1");
+		expect(getPlaylistRuntimeClipsForOwnerServer).toHaveBeenCalledWith("owner-1", "playlist-1");
 		expect(getTwitchCacheByPrefixEntries).not.toHaveBeenCalled();
 	});
 

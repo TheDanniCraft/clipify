@@ -9,15 +9,14 @@ import { getAuthSession } from "@/auth/session";
 
 export default async function Login({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
 	const { error, errorCode, returnUrl } = await searchParams;
+	const rawReturnUrl = typeof returnUrl === "string" ? returnUrl : "";
+	const ru = rawReturnUrl.startsWith("/") && !rawReturnUrl.startsWith("//") ? rawReturnUrl : "";
 
 	const checkoutIntent = await readCheckoutIntent();
 	const [session, loggedInUser] = await Promise.all([process.env.E2E_TEST_MODE === "true" ? null : getAuthSession(), validateAuth()]);
 	if (session || loggedInUser) {
-		redirect(checkoutIntent ? "/checkout/continue" : "/dashboard");
+		redirect(checkoutIntent ? "/checkout/continue" : ru || "/dashboard");
 	}
-
-	const rawReturnUrl = typeof returnUrl === "string" ? returnUrl : "";
-	const ru = rawReturnUrl.startsWith("/") && !rawReturnUrl.startsWith("//") ? rawReturnUrl : "";
 
 	return (
 		<>

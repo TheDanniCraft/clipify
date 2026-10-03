@@ -184,94 +184,92 @@ function ExportModal({ isOpen, onOpenChange, range }: { isOpen: boolean; onOpenC
 		}
 	}
 	return (
-		<Modal>
-			<Modal.Backdrop isOpen={isOpen} onOpenChange={onOpenChange} variant='blur'>
-				<Modal.Container size='lg'>
-					<Modal.Dialog>
-						<Modal.CloseTrigger />
-						<Modal.Header>
-							<Modal.Heading>Export Creator Analytics</Modal.Heading>
-						</Modal.Header>
-						<Modal.Body className='gap-5'>
-							{targets.length > 1 ? (
-								<Select fullWidth variant='secondary' value={ownerId || null} onChange={(value) => setOwnerId(String(value))}>
-									<Label>Creator</Label>
-									<Select.Trigger>
-										<Select.Value />
-										<Select.Indicator />
-									</Select.Trigger>
-									<Description>Export your analytics or analytics for a creator you manage.</Description>
-									<Select.Popover>
-										<ListBox>
-											{targets.map((target) => (
-												<ListBox.Item key={target.id} id={target.id} textValue={target.username}>
-													<Label>{target.isSelf ? `${target.username} (you)` : target.username}</Label>
-													<ListBox.ItemIndicator />
-												</ListBox.Item>
-											))}
-										</ListBox>
-									</Select.Popover>
-								</Select>
-							) : (
-								<div>
-									<p className='text-sm font-medium'>Creator</p>
-									<p className='text-sm text-muted'>{targets[0]?.username ?? "Your Creator Page"}</p>
-								</div>
-							)}
-							<AppDateRangePicker
-								label='Date range'
-								value={exportRange}
-								onChange={setExportRange}
-								fullWidth
-								variant='secondary'
-								presets={[
-									{ label: "Last 7 days", value: lastDays(7) },
-									{ label: "Last 30 days", value: lastDays(30) },
-									{ label: "Last 90 days", value: lastDays(90) },
-								]}
-							/>
-							<Select fullWidth variant='secondary' selectionMode='multiple' placeholder='Select datasets' value={datasets} onChange={(value) => setDatasets((Array.isArray(value) ? value : []).map(String).filter((item): item is CreatorAnalyticsExportDataset => ["daily", "acquisition", "locations", "technology"].includes(item)))}>
-								<Label>Datasets</Label>
+		<Modal.Backdrop isOpen={isOpen} onOpenChange={onOpenChange} variant='blur'>
+			<Modal.Container size='lg'>
+				<Modal.Dialog>
+					<Modal.CloseTrigger />
+					<Modal.Header>
+						<Modal.Heading>Export Creator Analytics</Modal.Heading>
+					</Modal.Header>
+					<Modal.Body className='gap-5'>
+						{targets.length > 1 ? (
+							<Select fullWidth variant='secondary' value={ownerId || null} onChange={(value) => setOwnerId(String(value))}>
+								<Label>Creator</Label>
 								<Select.Trigger>
 									<Select.Value />
 									<Select.Indicator />
 								</Select.Trigger>
-								<Description>Select one or more datasets. Each selection is downloaded as its own CSV file.</Description>
+								<Description>Export your analytics or analytics for a creator you manage.</Description>
 								<Select.Popover>
 									<ListBox>
-										<ListBox.Item id='daily' textValue='Daily metrics'>
-											<Label>Daily metrics</Label>
-											<ListBox.ItemIndicator />
-										</ListBox.Item>
-										<ListBox.Item id='acquisition' textValue='Acquisition'>
-											<Label>Acquisition</Label>
-											<ListBox.ItemIndicator />
-										</ListBox.Item>
-										<ListBox.Item id='locations' textValue='Locations'>
-											<Label>Locations</Label>
-											<ListBox.ItemIndicator />
-										</ListBox.Item>
-										<ListBox.Item id='technology' textValue='Technology'>
-											<Label>Technology</Label>
-											<ListBox.ItemIndicator />
-										</ListBox.Item>
+										{targets.map((target) => (
+											<ListBox.Item key={target.id} id={target.id} textValue={target.username}>
+												<Label>{target.isSelf ? `${target.username} (you)` : target.username}</Label>
+												<ListBox.ItemIndicator />
+											</ListBox.Item>
+										))}
 									</ListBox>
 								</Select.Popover>
 							</Select>
-						</Modal.Body>
-						<Modal.Footer>
-							<Button slot='close' variant='tertiary'>
-								Cancel
-							</Button>
-							<Button variant='primary' isPending={isExporting} isDisabled={!ownerId || !exportRange || datasets.length === 0} onPress={download}>
-								<IconDownload size={18} />
-								Download CSV
-							</Button>
-						</Modal.Footer>
-					</Modal.Dialog>
-				</Modal.Container>
-			</Modal.Backdrop>
-		</Modal>
+						) : (
+							<div>
+								<p className='text-sm font-medium'>Creator</p>
+								<p className='text-sm text-muted'>{targets[0]?.username ?? "Your Creator Page"}</p>
+							</div>
+						)}
+						<AppDateRangePicker
+							label='Date range'
+							value={exportRange}
+							onChange={setExportRange}
+							fullWidth
+							variant='secondary'
+							presets={[
+								{ label: "Last 7 days", value: lastDays(7) },
+								{ label: "Last 30 days", value: lastDays(30) },
+								{ label: "Last 90 days", value: lastDays(90) },
+							]}
+						/>
+						<Select fullWidth variant='secondary' selectionMode='multiple' placeholder='Select datasets' value={datasets} onChange={(value) => setDatasets((Array.isArray(value) ? value : []).map(String).filter((item): item is CreatorAnalyticsExportDataset => ["daily", "acquisition", "locations", "technology"].includes(item)))}>
+							<Label>Datasets</Label>
+							<Select.Trigger>
+								<Select.Value />
+								<Select.Indicator />
+							</Select.Trigger>
+							<Description>Select one or more datasets. Each selection is downloaded as its own CSV file.</Description>
+							<Select.Popover>
+								<ListBox>
+									<ListBox.Item id='daily' textValue='Daily metrics'>
+										<Label>Daily metrics</Label>
+										<ListBox.ItemIndicator />
+									</ListBox.Item>
+									<ListBox.Item id='acquisition' textValue='Acquisition'>
+										<Label>Acquisition</Label>
+										<ListBox.ItemIndicator />
+									</ListBox.Item>
+									<ListBox.Item id='locations' textValue='Locations'>
+										<Label>Locations</Label>
+										<ListBox.ItemIndicator />
+									</ListBox.Item>
+									<ListBox.Item id='technology' textValue='Technology'>
+										<Label>Technology</Label>
+										<ListBox.ItemIndicator />
+									</ListBox.Item>
+								</ListBox>
+							</Select.Popover>
+						</Select>
+					</Modal.Body>
+					<Modal.Footer>
+						<Button slot='close' variant='tertiary'>
+							Cancel
+						</Button>
+						<Button variant='primary' isPending={isExporting} isDisabled={!ownerId || !exportRange || datasets.length === 0} onPress={download}>
+							<IconDownload size={18} />
+							Download CSV
+						</Button>
+					</Modal.Footer>
+				</Modal.Dialog>
+			</Modal.Container>
+		</Modal.Backdrop>
 	);
 }
 

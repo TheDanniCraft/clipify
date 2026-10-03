@@ -303,11 +303,9 @@ function GalleryEditorContent({ initialGallery, playlists, canUseAdvanced, canUs
 							<span className='text-sm text-muted'>{gallery.published ? "Published" : "Draft"}</span>
 							<div className='flex-1' />
 							<Tooltip delay={0}>
-								<Tooltip.Trigger>
-									<Button type='submit' isIconOnly isPending={saving} isDisabled={saving || !isGalleryDirty} aria-label='Save Gallery Settings' variant='primary'>
-										<IconDeviceFloppy />
-									</Button>
-								</Tooltip.Trigger>
+								<Button type='submit' isIconOnly isPending={saving} isDisabled={saving || !isGalleryDirty} aria-label='Save Gallery Settings' variant='primary'>
+									<IconDeviceFloppy />
+								</Button>
 								<Tooltip.Content>Save Gallery Settings</Tooltip.Content>
 							</Tooltip>
 						</div>

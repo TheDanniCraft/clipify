@@ -26,7 +26,7 @@ jest.mock("@actions/database", () => ({
 	getAccessTokenServer: (...args: unknown[]) => getAccessToken(...args),
 	getOverlayBySecret: jest.fn(),
 	getOverlayPublic: jest.fn(),
-	getPlaylistClipsForOwnerServer: jest.fn(),
+	getPlaylistRuntimeClipsForOwnerServer: jest.fn(),
 	getTwitchCache: (...args: unknown[]) => getTwitchCache(...args),
 	getTwitchCacheBatch: (...args: unknown[]) => getTwitchCacheBatch(...args),
 	getTwitchCacheByPrefixEntries: jest.fn(),
@@ -89,16 +89,6 @@ function createAxiosError(status?: number, data?: unknown): AxiosLikeError {
 	error.isAxiosError = true;
 	error.response = { status, data };
 	return error;
-}
-
-function buildTokenResponse() {
-	return {
-		access_token: "access",
-		refresh_token: "refresh",
-		expires_in: 3600,
-		scope: [],
-		token_type: "bearer",
-	};
 }
 
 function buildClip(id: string, overrides: Partial<Record<string, unknown>> = {}) {
@@ -166,27 +156,6 @@ describe("actions/twitch external API and failure handling", () => {
 			token: { accessToken: "user-access", scope: ["channel:manage:clips"] },
 			reason: undefined,
 		});
-	});
-
-	it("uses preview callback URL when exchanging access token", async () => {
-		isPreview.mockResolvedValue(true);
-		process.env.PREVIEW_CALLBACK_URL = "https://preview.example/callback";
-		const postSpy = jest.spyOn(axios, "post").mockResolvedValue({ data: buildTokenResponse() } as never);
-
-		const { exchangeAccesToken } = await loadTwitch();
-		const response = await exchangeAccesToken("code-123");
-
-		expect(response).toEqual(buildTokenResponse());
-		expect(postSpy).toHaveBeenCalledWith(
-			"https://id.twitch.tv/oauth2/token",
-			null,
-			expect.objectContaining({
-				params: expect.objectContaining({
-					redirect_uri: "https://preview.example/callback",
-					code: "code-123",
-				}),
-			}),
-		);
 	});
 
 	it("returns cached bulk users without network request when cache fully satisfies IDs", async () => {
@@ -405,15 +374,6 @@ describe("actions/twitch external API and failure handling", () => {
 
 		expect(consoleSpy).toHaveBeenCalledWith("%s:", "axios-context", { message: "bad" });
 		expect(consoleSpy).toHaveBeenCalledWith("%s:", "generic-context", expect.any(Error));
-	});
-
-	it("returns null when exchange access token request fails", async () => {
-		jest.spyOn(axios, "post").mockRejectedValue(createAxiosError(500));
-
-		const { exchangeAccesToken } = await loadTwitch();
-		const token = await exchangeAccesToken("bad-code");
-
-		expect(token).toBeNull();
 	});
 
 	it("fetches app access token successfully", async () => {

@@ -9,6 +9,7 @@ import { getStripe } from "@actions/subscription";
 import { db } from "@/db/client";
 import { billingWebhookEventsTable } from "@/db/schema";
 import { syncStripeSubscription } from "@/server/billing";
+import { syncAgencyStripeSubscription } from "@/server/agencies/billing-sync";
 import { captureUnexpectedError } from "@lib/sentryServer";
 import { and, eq, isNull, lt, or } from "drizzle-orm";
 
@@ -54,6 +55,8 @@ async function processEvent(stripe: Stripe, event: Stripe.Event) {
 		case "checkout.session.async_payment_succeeded": {
 			const session = await stripe.checkout.sessions.retrieve((event.data.object as Stripe.Checkout.Session).id, { expand: ["subscription"] });
 			const subscription = await getCanonicalSubscription(stripe, session.subscription);
+			const agency = await syncAgencyStripeSubscription(subscription, event.created, true);
+			if (agency.handled) return;
 			if (typeof event.created === "number") await syncStripeSubscription(subscription, session.client_reference_id, event.created);
 			else await syncStripeSubscription(subscription, session.client_reference_id);
 			return;
@@ -62,8 +65,19 @@ async function processEvent(stripe: Stripe, event: Stripe.Event) {
 		case "customer.subscription.updated":
 		case "customer.subscription.deleted": {
 			const subscription = await getCanonicalSubscription(stripe, event.data.object as Stripe.Subscription);
+			const agency = await syncAgencyStripeSubscription(subscription, event.created, false);
+			if (agency.handled) return;
 			if (typeof event.created === "number") await syncStripeSubscription(subscription, null, event.created);
 			else await syncStripeSubscription(subscription);
+			return;
+		}
+		case "invoice.paid":
+		case "invoice.payment_failed": {
+			const invoice = event.data.object as Stripe.Invoice;
+			const subscription = await getCanonicalSubscription(stripe, invoice.parent?.subscription_details?.subscription ?? null);
+			const agency = await syncAgencyStripeSubscription(subscription, event.created, event.type === "invoice.paid");
+			if (agency.handled) return;
+			await syncStripeSubscription(subscription, null, event.created);
 			return;
 		}
 		default:
@@ -85,7 +99,7 @@ export async function POST(req: Request) {
 		return NextResponse.json({ error: message }, { status: 400 });
 	}
 
-	const handledEvents = new Set(["checkout.session.completed", "checkout.session.async_payment_succeeded", "customer.subscription.created", "customer.subscription.updated", "customer.subscription.deleted"]);
+	const handledEvents = new Set(["checkout.session.completed", "checkout.session.async_payment_succeeded", "customer.subscription.created", "customer.subscription.updated", "customer.subscription.deleted", "invoice.paid", "invoice.payment_failed"]);
 	if (!handledEvents.has(event.type)) return NextResponse.json({});
 
 	const claim = await claimWebhookEvent(event);

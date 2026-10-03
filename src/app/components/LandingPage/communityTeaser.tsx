@@ -10,6 +10,7 @@ type CommunityTeaserProps = {
 	countClassName?: string;
 	maxVisible?: number;
 	streamers: CommunityTeaserStreamer[];
+	totalCount?: number;
 };
 
 function getStatusClass(status: CommunityStreamerStatus): NonNullable<ComponentProps<typeof Avatar>["color"]> {
@@ -23,7 +24,7 @@ function getStatusClass(status: CommunityStreamerStatus): NonNullable<ComponentP
 	}
 }
 
-export default function CommunityTeaser({ className, countClassName, maxVisible = 5, streamers }: CommunityTeaserProps) {
+export default function CommunityTeaser({ className, countClassName, maxVisible = 5, streamers, totalCount = streamers.length }: CommunityTeaserProps) {
 	if (streamers.length === 0) {
 		return null;
 	}
@@ -38,7 +39,7 @@ export default function CommunityTeaser({ className, countClassName, maxVisible 
 					<Avatar.Fallback>{streamer.displayName.slice(0, 2).toUpperCase()}</Avatar.Fallback>
 				</Avatar>
 			))}
-			{streamers.length > maxVisible ? <span className={["ml-2 text-xs font-medium text-muted", countClassName].filter(Boolean).join(" ")}>+{streamers.length - maxVisible} more</span> : null}
+			{totalCount > visibleStreamers.length ? <span className={["ml-2 text-xs font-medium text-muted", countClassName].filter(Boolean).join(" ")}>+{totalCount - visibleStreamers.length} more</span> : null}
 		</div>
 	);
 }

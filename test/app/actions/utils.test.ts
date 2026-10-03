@@ -41,20 +41,36 @@ describe("actions/utils", () => {
 	});
 
 	describe("getBaseUrl", () => {
-		it("uses COOLIFY_URL if provided", async () => {
+		it("uses COOLIFY_URL inside a Coolify runtime", async () => {
 			process.env.COOLIFY_URL = "test.clipify.us";
+			process.env.COOLIFY_RESOURCE_UUID = "resource-id";
 			const url = await getBaseUrl();
 			expect(url.toString()).toBe("https://test.clipify.us/");
 		});
 
 		it("handles comma separated COOLIFY_URL", async () => {
 			process.env.COOLIFY_URL = "primary.us, secondary.us";
+			process.env.COOLIFY_RESOURCE_UUID = "resource-id";
 			const url = await getBaseUrl();
 			expect(url.toString()).toBe("https://primary.us/");
 		});
 
+		it("uses the configured public origin outside Coolify", async () => {
+			process.env.COOLIFY_URL = "https://stale-coolify-origin.example";
+			delete process.env.COOLIFY_RESOURCE_UUID;
+			delete process.env.COOLIFY_CONTAINER_NAME;
+			process.env.PREVIEW_CALLBACK_URL = "https://legacy-relay.example/webhook/twitch";
+			process.env.NEXT_PUBLIC_BASE_URL = "http://localhost:3000";
+			Object.assign(process.env, { NODE_ENV: "production" });
+
+			const url = await getBaseUrl();
+
+			expect(url.toString()).toBe("http://localhost:3000/");
+		});
+
 		it("uses localhost in development", async () => {
 			delete process.env.COOLIFY_URL;
+			delete process.env.NEXT_PUBLIC_BASE_URL;
 			Object.assign(process.env, { NODE_ENV: "development" });
 			const url = await getBaseUrl();
 			expect(url.toString()).toBe("http://localhost:3000/");
@@ -62,14 +78,15 @@ describe("actions/utils", () => {
 
 		it("uses default production url", async () => {
 			delete process.env.COOLIFY_URL;
+			delete process.env.NEXT_PUBLIC_BASE_URL;
 			Object.assign(process.env, { NODE_ENV: "production" });
 			const url = await getBaseUrl();
 			expect(url.toString()).toBe("https://clipify.us/");
 		});
 
-		it("strips port and uses https if isCoolify is true", async () => {
+		it("strips the internal port and uses https in a Coolify runtime", async () => {
 			process.env.COOLIFY_URL = "cool.us:8080";
-			process.env.COOLIFY_something = "true";
+			process.env.COOLIFY_CONTAINER_NAME = "clipify-preview";
 			const url = await getBaseUrl();
 			expect(url.toString()).toBe("https://cool.us/");
 		});

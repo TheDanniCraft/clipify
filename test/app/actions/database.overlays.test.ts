@@ -22,10 +22,6 @@ const usersTable = {
 	plan: "users.plan",
 	createdAt: "users.created_at",
 };
-const editorsTable = {
-	editorId: "editors.editor_id",
-	userId: "editors.user_id",
-};
 const creatorAccountsTable = {
 	creatorId: "creator_accounts.creator_id",
 	status: "creator_accounts.status",
@@ -112,9 +108,7 @@ jest.mock("@/db/client", () => ({
 jest.mock("@/db/schema", () => ({
 	overlaysTable,
 	usersTable,
-	editorsTable,
 	creatorAccountsTable,
-	tokenTable: {},
 	playlistsTable: { ownerId: "playlists.owner_id", id: "playlists.id", createdAt: "playlists.created_at" },
 	playlistClipsTable: { playlistId: "playlist_clips.playlist_id", clipId: "playlist_clips.clip_id", position: "playlist_clips.position" },
 	galleriesTable: { id: "galleries.id", ownerId: "galleries.owner_id", playlistId: "galleries.playlist_id", createdAt: "galleries.created_at" },
@@ -160,11 +154,13 @@ jest.mock("@lib/entitlements", () => ({
 		users.forEach((u: any) => map.set(u.id, { effectivePlan: u.plan || "free" }));
 		return map;
 	}),
+	reconcileUserEntitlements: jest.fn(async () => ({ runners: 0, sessions: 0 })),
 }));
 
 jest.mock("@lib/featureAccess", () => ({
 	getFeatureAccess: jest.fn(() => ({ allowed: true })),
 }));
+jest.mock("@/server/entitlements/resource-access", () => ({ resolveRetainedResourceAccess: jest.fn(async () => ({ read: true, delete: true, update: true, runtime: true, withinFreeAllowance: true })) }));
 
 async function loadDatabaseActions() {
 	jest.resetModules();
@@ -315,20 +311,14 @@ describe("actions/database overlay logic", () => {
 		expect(updateSetCalls.some((payload) => payload.playbackMode === "random")).toBe(true);
 	});
 
-	it("downgrades user plan", async () => {
+	it("reconciles a downgraded user without deleting or resetting resources", async () => {
 		const { downgradeUserPlan } = await loadDatabaseActions();
-		queueSelectResult([{ id: "ov-1" }, { id: "ov-2" }]); // overlays select
-		queueSelectResult([{ id: "pl-1" }, { id: "pl-2" }]); // playlists select
-		queueSelectResult([]); // galleries select
-		queueSelectResult([
-			{ id: "clip-1", clipId: "c1" },
-			{ id: "clip-2", clipId: "c2" },
-		]); // playlist clips select
 
 		await downgradeUserPlan("user-1");
-		expect(deleteCalls.length).toBeGreaterThan(0);
-		expect(updateSetCalls).toContainEqual(expect.objectContaining({ playlistId: null, published: false }));
-		expect(deleteCalls).toContainEqual({ table: expect.objectContaining({ id: "playlists.id" }) });
+		const { reconcileUserEntitlements } = jest.requireMock("@lib/entitlements");
+		expect(reconcileUserEntitlements).toHaveBeenCalledWith("user-1");
+		expect(deleteCalls).toHaveLength(0);
+		expect(updateSetCalls).toHaveLength(0);
 	});
 
 	describe("error cases", () => {

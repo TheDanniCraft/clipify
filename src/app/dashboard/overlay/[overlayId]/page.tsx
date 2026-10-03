@@ -812,20 +812,18 @@ export default function OverlaySettings() {
 											</CodeSnippet>
 										</div>
 										<Tooltip delay={0}>
-											<Tooltip.Trigger>
-												<Button
-													isIconOnly
-													variant='danger-soft'
-													isDisabled={!controllerEnabled}
-													aria-label='Open remote controller'
-													onPress={() => {
-														if (!controllerUrl || ownerPlan !== Plan.Pro) return;
-														window.open(controllerUrl, "_blank", "noopener,noreferrer");
-													}}
-												>
-													<IconDeviceRemote size={18} />
-												</Button>
-											</Tooltip.Trigger>
+											<Button
+												isIconOnly
+												variant='danger-soft'
+												isDisabled={!controllerEnabled}
+												aria-label='Open remote controller'
+												onPress={() => {
+													if (!controllerUrl || ownerPlan !== Plan.Pro) return;
+													window.open(controllerUrl, "_blank", "noopener,noreferrer");
+												}}
+											>
+												<IconDeviceRemote size={18} />
+											</Button>
 											<Tooltip.Content>{ownerPlan === Plan.Pro ? "Open remote controller" : "Remote controller is a Pro feature"}</Tooltip.Content>
 										</Tooltip>
 										<Button type='submit' isIconOnly isDisabled={!isFormDirty()} aria-label='Save Overlay Settings' variant='primary'>
@@ -1008,11 +1006,9 @@ export default function OverlaySettings() {
 												</InputGroup>
 											</TextField>
 											<Tooltip delay={0}>
-												<Tooltip.Trigger>
-													<Button isIconOnly size='sm' variant='ghost' aria-label='Reward information'>
-														<IconInfoCircle size={18} />
-													</Button>
-												</Tooltip.Trigger>
+												<Button isIconOnly size='sm' variant='ghost' aria-label='Reward information'>
+													<IconInfoCircle size={18} />
+												</Button>
 												<Tooltip.Content>
 													<div className='px-1 py-2'>
 														<div className='text-xs'>You can edit the reward through your Twitch dashboard.</div>
@@ -1042,11 +1038,9 @@ export default function OverlaySettings() {
 												</Select.Popover>
 											</Select>
 											<Tooltip delay={0}>
-												<Tooltip.Trigger>
-													<Button isIconOnly size='sm' variant='ghost' aria-label='Playback mode information'>
-														<IconInfoCircle size={18} />
-													</Button>
-												</Tooltip.Trigger>
+												<Button isIconOnly size='sm' variant='ghost' aria-label='Playback mode information'>
+													<IconInfoCircle size={18} />
+												</Button>
 												<Tooltip.Content>{playbackModeHelpText[overlay.playbackMode] ?? playbackModeHelpText[PlaybackMode.Random]}</Tooltip.Content>
 											</Tooltip>
 										</div>

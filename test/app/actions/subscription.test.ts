@@ -19,7 +19,10 @@ const resolveUserEntitlements = jest.fn();
 const requestDatabaseAccountDeletion = jest.fn();
 const recoverDatabaseAccountDeletion = jest.fn();
 const getDatabaseAccountDeletionOverview = jest.fn();
-const exportDatabaseAccountData = jest.fn();
+const prepareDatabaseAccountDataExport = jest.fn();
+const tryRateLimit = jest.fn();
+const sendAccountDataExport = jest.fn();
+const createAccountDataExportToken = jest.fn();
 
 const updateExecute = jest.fn();
 
@@ -73,7 +76,20 @@ jest.mock("@/server/account-lifecycle/database", () => ({
 	requestDatabaseAccountDeletion: (...args: unknown[]) => requestDatabaseAccountDeletion(...args),
 	recoverDatabaseAccountDeletion: (...args: unknown[]) => recoverDatabaseAccountDeletion(...args),
 	getDatabaseAccountDeletionOverview: (...args: unknown[]) => getDatabaseAccountDeletionOverview(...args),
-	exportDatabaseAccountData: (...args: unknown[]) => exportDatabaseAccountData(...args),
+	prepareDatabaseAccountDataExport: (...args: unknown[]) => prepareDatabaseAccountDataExport(...args),
+}));
+
+jest.mock("@actions/rateLimit", () => ({
+	tryRateLimit: (...args: unknown[]) => tryRateLimit(...args),
+}));
+
+jest.mock("@/auth/transactional-mail", () => ({
+	sendAccountDataExport: (...args: unknown[]) => sendAccountDataExport(...args),
+}));
+
+jest.mock("@/auth/account-data-export-token", () => ({
+	ACCOUNT_DATA_EXPORT_TTL_MS: 3 * 24 * 60 * 60 * 1000,
+	createAccountDataExportToken: (...args: unknown[]) => createAccountDataExportToken(...args),
 }));
 
 async function loadSubscription() {
@@ -93,6 +109,10 @@ describe("actions/subscription", () => {
 		});
 		getActiveCampaignOffer.mockResolvedValue(null);
 		resolveUserEntitlements.mockResolvedValue({ proAccess: false, runnerAccess: false, reverseTrialActive: false });
+		tryRateLimit.mockResolvedValue({ success: true });
+		prepareDatabaseAccountDataExport.mockResolvedValue({ authUserId: "auth-1", creatorId: "user-1", organizationId: "org-1", email: "alice@example.com" });
+		createAccountDataExportToken.mockReturnValue("signed-export-token");
+		sendAccountDataExport.mockResolvedValue(undefined);
 		requestDatabaseAccountDeletion.mockImplementation(async (input: { choice: string; mutateBilling: (subscription: { id: string; status: string; currentPeriodEnd: Date; cancelAtPeriodEnd: boolean }, choice: string) => Promise<void> }) => {
 			await input.mutateBilling({ id: "sub_lifecycle", status: "active", currentPeriodEnd: new Date("2026-10-28T12:00:00.000Z"), cancelAtPeriodEnd: false }, input.choice);
 			return { id: "delete_lifecycle", choice: input.choice, status: input.choice === "immediate" ? "suspended" : "scheduled", suspensionAt: "2026-10-28T12:00:00.000Z", purgeEligibleAt: null };
@@ -256,5 +276,36 @@ describe("actions/subscription", () => {
 		const { requestAccountDeletion } = await loadSubscription();
 		await expect(requestAccountDeletion("later" as never)).rejects.toThrow("INVALID_DELETION_CHOICE");
 		expect(requestDatabaseAccountDeletion).not.toHaveBeenCalled();
+	});
+
+	it("emails a three-day account export link after recent authentication", async () => {
+		const { requestAccountDataExport } = await loadSubscription();
+		const result = await requestAccountDataExport();
+
+		expect(tryRateLimit).toHaveBeenCalledWith({ key: "account-data-export", points: 3, duration: 86_400, identifier: "auth-1" });
+		expect(createAccountDataExportToken).toHaveBeenCalledWith(expect.objectContaining({ authUserId: "auth-1", creatorId: "user-1", organizationId: "org-1", now: expect.any(Date) }));
+		expect(sendAccountDataExport).toHaveBeenCalledWith(expect.objectContaining({ email: "alice@example.com", downloadUrl: "https://clipify.us/api/account/export?token=signed-export-token", expiresAt: expect.any(Date) }));
+		expect(new Date(result.expiresAt).getTime()).toBeGreaterThan(Date.now() + 2 * 24 * 60 * 60 * 1000);
+	});
+
+	it("prepares exports without contacting the real mail provider in the E2E environment", async () => {
+		process.env.APP_ENV = "test";
+		process.env.E2E_TEST_MODE = "true";
+		try {
+			const { requestAccountDataExport } = await loadSubscription();
+			await expect(requestAccountDataExport()).resolves.toMatchObject({ email: "alice@example.com" });
+			expect(sendAccountDataExport).not.toHaveBeenCalled();
+		} finally {
+			delete process.env.APP_ENV;
+			delete process.env.E2E_TEST_MODE;
+		}
+	});
+
+	it("rate limits account export emails", async () => {
+		tryRateLimit.mockResolvedValueOnce({ success: false });
+		const { requestAccountDataExport } = await loadSubscription();
+
+		await expect(requestAccountDataExport()).rejects.toThrow("EXPORT_RATE_LIMITED");
+		expect(sendAccountDataExport).not.toHaveBeenCalled();
 	});
 });

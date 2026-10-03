@@ -10,6 +10,11 @@ jest.mock("@/db/client", () => ({
 	db: {
 		select: (...args: unknown[]) => dbSelect(...args),
 		execute: (...args: unknown[]) => dbExecute(...args),
+		transaction: (callback: (transaction: { select: (...args: unknown[]) => unknown; execute: (...args: unknown[]) => unknown }) => unknown) =>
+			callback({
+				select: (...args: unknown[]) => dbSelect(...args),
+				execute: (...args: unknown[]) => dbExecute(...args),
+			}),
 	},
 }));
 

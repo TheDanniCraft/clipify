@@ -25,10 +25,21 @@ identifiers are one-shot operator inputs supplied only to the migration process;
 they are not application configuration stored in Infisical.
 
 Better Auth's base URL is resolved through the shared `resolveBaseUrl()`
-policy: the first `COOLIFY_URL` in a Coolify container, localhost during local
-development, and `https://clipify.us` as the non-development fallback. Better
-Auth automatically trusts that resolved base origin, so separate
-`BETTER_AUTH_URL` and `BETTER_AUTH_TRUSTED_ORIGINS` secrets are not required.
+policy: the first `COOLIFY_URL` in an actual Coolify container, the configured
+`NEXT_PUBLIC_BASE_URL` outside Coolify, localhost when no explicit URL exists
+during local development, and `https://clipify.us` as the final fallback.
+Legacy `PREVIEW_CALLBACK_URL` values and the n8n callback relay are retired.
+Localhost sign-in uses its registered callback directly. Better Auth's OAuth
+Proxy sends trusted remote preview sign-ins through the stable production
+callback and returns an encrypted, short-lived identity package to the
+originating deployment. `OAUTH_PROXY_SECRET` is optional at application startup
+so local development is never gated on the proxy deployment. When remote
+previews are enabled, set it to one dedicated high-entropy value shared by
+production and those trusted previews; otherwise the plugin falls back to each
+environment's Better Auth secret, which works only when those secrets match.
+Never expose either secret to untrusted preview code. Separate `BETTER_AUTH_URL` and
+`BETTER_AUTH_TRUSTED_ORIGINS` secrets are not required; the reviewed application
+origin policy and trusted Clipify origins are configured in code.
 
 ## Twitch OpenID Connect / OAuth 2.0
 
@@ -37,12 +48,15 @@ Auth automatically trusts that resolved base origin, so separate
 | `TWITCH_CLIENT_ID`     | Infisical secret  | Twitch application client ID. |
 | `TWITCH_CLIENT_SECRET` | Infisical secret  | Twitch application secret.    |
 
-The callback is derived from the shared resolved base URL; there is no separate
-callback environment variable. Register these exact redirect URLs in the
-Twitch developer console:
+Register these redirect URLs in the Twitch developer console:
 
-- Development: `http://localhost:3000/api/auth/callback/twitch`
-- Production: `https://clipify.us/api/auth/callback/twitch`
+- `http://localhost:3000/api/auth/callback/twitch`
+- `https://clipify.us/api/auth/callback/twitch`
+
+Local development and production use their respective callbacks directly.
+Trusted remote previews use the production callback through Better Auth's OAuth
+Proxy, which then completes the session on the preview origin. No n8n workflow
+is required.
 
 ## WebAuthn / passkeys
 
