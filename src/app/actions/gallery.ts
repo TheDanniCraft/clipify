@@ -4,7 +4,7 @@ import { getPlaylistRuntimeClipsForOwnerServer } from "@actions/database";
 import { getCachedClipByOwner, getCachedClipsByOwner, getTwitchClipPlaybackUrl } from "@actions/twitch";
 import { db } from "@/db/client";
 import { galleriesTable, playlistsTable, usersTable } from "@/db/schema";
-import { FREE_GALLERY_LIMIT, downgradeGalleryPatch, normalizeGalleryPatch, resolveLiveGalleryClips, type GalleryPatch } from "@lib/gallery";
+import { FREE_GALLERY_LIMIT, downgradeGalleryPatch, normalizeGalleryPatch, normalizeGalleryUpdatePatch, resolveLiveGalleryClips, type GalleryPatch } from "@lib/gallery";
 import { canResolvePublicClipPlayback } from "@actions/rateLimit";
 import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
@@ -135,7 +135,7 @@ export async function saveGallery(galleryId: string, patch: GalleryPatch) {
 	if (!context) return null;
 	if (!(await resolveRetainedResourceAccess({ kind: "gallery", ownerId: context.gallery.ownerId, resourceId: galleryId, effectivePlan: context.isPro ? "pro" : "free" })).update) return null;
 	if (patch.published !== undefined && patch.published !== context.gallery.published && !(await authorizeGalleryOperation(context.gallery.ownerId, "gallery:publish")).allowed) return null;
-	const normalized = normalizeGalleryPatch(context.gallery, patch, Boolean(context.isPro));
+	const normalized = normalizeGalleryUpdatePatch(context.gallery, patch, Boolean(context.isPro));
 	if (normalized.source === "curated" && normalized.playlistId && !(await validatePlaylist(context.gallery.ownerId, normalized.playlistId))) {
 		throw new Error("The selected playlist must belong to the gallery owner");
 	}

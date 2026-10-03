@@ -2017,8 +2017,11 @@ export async function saveSettings(settings: UserSettings) {
 		const creatorPageVisibility = settings.creatorPageVisibility === "unlisted" ? "unlisted" : "discoverable";
 		const creatorPageShowBio = settings.creatorPageShowBio !== false;
 		const socialPreviewAccess = getFeatureAccess(authedUser, "creator_page_social_preview").allowed;
-		const creatorPageSocialTitle = socialPreviewAccess ? settings.creatorPageSocialTitle?.trim().slice(0, 120) || null : null;
-		const creatorPageSocialDescription = socialPreviewAccess ? settings.creatorPageSocialDescription?.trim().slice(0, 240) || null : null;
+		// A downgrade masks paid social-preview customization at read/runtime
+		// boundaries. Ordinary Free-plan settings edits must not destroy values the
+		// creator regains after upgrading again.
+		const creatorPageSocialTitle = socialPreviewAccess ? settings.creatorPageSocialTitle?.trim().slice(0, 120) || null : (existingSettings?.creatorPageSocialTitle ?? null);
+		const creatorPageSocialDescription = socialPreviewAccess ? settings.creatorPageSocialDescription?.trim().slice(0, 240) || null : (existingSettings?.creatorPageSocialDescription ?? null);
 
 		await db
 			.insert(settingsTable)

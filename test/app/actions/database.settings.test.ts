@@ -233,6 +233,25 @@ describe("actions/database settings logic", () => {
 		expect(call?.values).toMatchObject({ prefix: "?" });
 	});
 
+	it("preserves saved Pro social-preview values during Free settings edits", async () => {
+		const { saveSettings } = await loadDatabaseActions();
+		const { getFeatureAccess } = jest.requireMock("@lib/featureAccess") as { getFeatureAccess: jest.Mock };
+		getFeatureAccess.mockReturnValueOnce({ allowed: false, reason: "trial_expired" });
+		queueSelectResult([
+			{
+				id: "user-1",
+				marketingOptIn: false,
+				creatorPageSocialTitle: "Saved Pro title",
+				creatorPageSocialDescription: "Saved Pro description",
+			},
+		]);
+
+		await saveSettings({ id: "user-1", prefix: "?", marketingOptIn: false, creatorPageSocialTitle: "Free overwrite", creatorPageSocialDescription: "Free overwrite" } as any);
+
+		const call = insertCalls.find((candidate) => candidate.table === settingsTable);
+		expect(call?.values).toMatchObject({ creatorPageSocialTitle: "Saved Pro title", creatorPageSocialDescription: "Saved Pro description" });
+	});
+
 	it("syncs external marketing status if forced (opt-in)", async () => {
 		const { getSettings } = await loadDatabaseActions();
 		queueSelectResult([{ id: "user-1", marketingOptIn: false, useSendProductUpdatesContactId: "contact-1" }]); // settings select

@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { createPersistedInvitation } from "@/auth/invitations";
 import { getAuthSession } from "@/auth/session";
 import { consumeDatabaseRateLimit } from "@/auth/rate-limit";
+import { db } from "@/db/client";
+import { creatorAccountsTable, usersTable } from "@/db/schema";
+import { resolveUserEntitlements } from "@lib/entitlements";
+import { eq } from "drizzle-orm";
 
 export async function POST(request: Request) {
 	try {
@@ -18,6 +22,13 @@ export async function POST(request: Request) {
 		const organizations = await auth.api.listOrganizations({ headers: request.headers });
 		const organization = organizations.find((candidate) => candidate.id === body.organizationId);
 		if (!organization) return NextResponse.json({ error: "ACCESS_PATH_REQUIRED" }, { status: 403 });
+		const [creatorAccount] = await db.select({ creatorId: creatorAccountsTable.creatorId }).from(creatorAccountsTable).where(eq(creatorAccountsTable.organizationId, body.organizationId)).limit(1);
+		if (creatorAccount) {
+			const [creator] = await db.select().from(usersTable).where(eq(usersTable.id, creatorAccount.creatorId)).limit(1);
+			if (!creator || (await resolveUserEntitlements(creator)).effectivePlan !== "pro") {
+				return NextResponse.json({ error: "PRO_REQUIRED" }, { status: 403 });
+			}
+		}
 
 		const result = await createPersistedInvitation({
 			headers: request.headers,

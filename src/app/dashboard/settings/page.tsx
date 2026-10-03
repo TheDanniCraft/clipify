@@ -130,18 +130,31 @@ export default function SettingsPage() {
 	}, [canRefresh, hasForceRefreshStatus]);
 
 	useEffect(() => {
+		let cancelled = false;
+
 		async function fetchSettings() {
 			if (!user) return;
-			const fetchedSettings = await getSettings(user.id, true);
-			setSettings(fetchedSettings);
-			setBaseSettings(fetchedSettings);
-			const status = await getClipCacheStatus(user.id);
-			setClipCacheStatus(status);
-			const forceStatus = await getOwnClipForceRefreshStatus();
-			setClipForceRefreshStatus(forceStatus);
+			try {
+				const fetchedSettings = await getSettings(user.id, true);
+				if (cancelled) return;
+				setSettings(fetchedSettings);
+				setBaseSettings(fetchedSettings);
+				const status = await getClipCacheStatus(user.id);
+				if (cancelled) return;
+				setClipCacheStatus(status);
+				const forceStatus = await getOwnClipForceRefreshStatus();
+				if (!cancelled) setClipForceRefreshStatus(forceStatus);
+			} catch {
+				if (!cancelled) {
+					addToast({ title: "Settings could not be loaded", description: "Refresh the page or sign in again.", color: "danger" });
+				}
+			}
 		}
 
-		fetchSettings();
+		void fetchSettings();
+		return () => {
+			cancelled = true;
+		};
 	}, [user]);
 
 	const upgradeIntent = useMemo<{ cycle: BillingCycle; source: PaywallSource; feature: string }>(() => {

@@ -68,12 +68,23 @@ describe("lib/entitlements", () => {
 		expect(result).toEqual(
 			expect.objectContaining({
 				effectivePlan: "pro",
+				runnerAccess: false,
 				isBillingPro: true,
 				source: "billing",
 			}),
 		);
 		// Runner access can be owned by a direct entitlement or an agency allocation.
 		expect(db.select).toHaveBeenCalledTimes(2);
+	});
+
+	it("keeps Runner independent from Pro for Free creators", async () => {
+		selectExecute
+			.mockResolvedValueOnce([])
+			.mockResolvedValueOnce([])
+			.mockResolvedValueOnce([{ id: "runner-grant" }]);
+		const { resolveUserEntitlements } = await loadEntitlements();
+
+		await expect(resolveUserEntitlements({ id: "free-runner-user", plan: Plan.Free } as PartialUser as any)).resolves.toEqual(expect.objectContaining({ effectivePlan: "free", proAccess: false, runnerAccess: true }));
 	});
 
 	it("returns free entitlements when hybrid grants are disabled", async () => {
@@ -327,7 +338,16 @@ describe("lib/entitlements", () => {
 		const { recordFreeCapabilityReconciliation } = await loadEntitlements();
 		const user = { id: "u1", plan: Plan.Free };
 		const entitlements = { effectivePlan: "free" } as Parameters<typeof recordFreeCapabilityReconciliation>[1];
-		await recordFreeCapabilityReconciliation(user as PartialUser as any, entitlements);
+		selectExecute
+			.mockResolvedValueOnce([{ id: "overlay-1" }, { id: "overlay-2" }])
+			.mockResolvedValueOnce([{ id: "playlist-1" }, { id: "playlist-2" }, { id: "playlist-3" }])
+			.mockResolvedValueOnce([{ id: "gallery-1" }]);
+		await expect(recordFreeCapabilityReconciliation(user as PartialUser as any, entitlements)).resolves.toEqual({
+			overlays: { total: 2, active: 1, restricted: 1 },
+			playlists: { total: 3, active: 1, restricted: 2 },
+			galleries: { total: 1, active: 1, restricted: 0 },
+		});
+		expect(db.select).toHaveBeenCalledTimes(3);
 		expect(db.update).toHaveBeenCalledTimes(1);
 		expect(db.transaction).not.toHaveBeenCalled();
 	});
