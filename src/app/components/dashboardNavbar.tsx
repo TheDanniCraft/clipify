@@ -183,11 +183,11 @@ export default function DashboardNavbar({ children, user, title, tagline, organi
 									}}
 								>
 									<Label className='sr-only'>Account</Label>
-									<Autocomplete.Trigger className='h-9 gap-2 rounded-xl border-transparent bg-accent-foreground/10 px-2 text-accent-foreground shadow-none hover:bg-accent-foreground/15'>
-										<span className='flex size-4 shrink-0 items-center justify-center text-accent-foreground/70'>
-											<IconBuildingCommunity aria-hidden='true' size={16} />
+									<Autocomplete.Trigger className='h-9 items-center gap-2 rounded-xl border-transparent bg-accent-foreground/10 px-2 text-accent-foreground shadow-none hover:bg-accent-foreground/15'>
+										<span className='flex h-5 w-4 shrink-0 items-center justify-center text-accent-foreground/70'>
+											<IconBuildingCommunity aria-hidden='true' className='translate-y-px' size={15} />
 										</span>
-										<Autocomplete.Value className='truncate text-sm font-medium'>{displayedOrganization?.name ?? "Select account"}</Autocomplete.Value>
+										<Autocomplete.Value className='flex min-w-0 items-center truncate text-sm font-medium leading-5'>{displayedOrganization?.name ?? "Select account"}</Autocomplete.Value>
 										<Autocomplete.Indicator className='shrink-0 text-accent-foreground/70' />
 									</Autocomplete.Trigger>
 									<Autocomplete.Popover className='min-w-64' placement='bottom end'>
