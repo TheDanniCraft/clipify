@@ -9,7 +9,7 @@ export const sentryRelease = process.env.SENTRY_RELEASE || undefined;
 export const sentryTraceSampleRate = sentryEnvironment === "development" ? 0 : 1;
 export const sentryReplaySessionSampleRate = isE2ETest ? 1 : sentryEnvironment === "preview" ? 0.2 : sentryEnvironment === "production" ? 0.01 : 0;
 // Node profiling has a substantially larger sponsored allowance than browser UI
-// profiling, so keep their sampling controls independent.
+// profiling, so keep their session sampling controls independent.
 export const sentryNodeProfileSampleRate = sentryEnvironment === "production" ? 0.05 : 0;
 export const sentryBrowserProfileSampleRate = sentryEnvironment === "production" ? 0.001 : 0;
 
