@@ -127,7 +127,7 @@ When("the agency allocates the license to that creator", async ({ page, authWorl
 	await page.goto(`/dashboard/agency?creator=${encodeURIComponent(fixture.fixture.creatorOrganizationId)}`);
 	await expect(page.getByRole("heading", { name: "Creator management" })).toBeVisible({ timeout: 30_000 });
 	await prepareInteractivePage(page);
-	await page.getByPlaceholder("Commercial allocation reference").fill("e2e-atdd-allocation");
+	await page.getByRole("textbox", { name: "Allocate Pro seat commercial reference" }).fill("e2e-atdd-allocation");
 	await page.getByRole("button", { name: "Allocate Pro seat" }).click();
 	await expect(page.getByText("Creator Pro seat allocated.", { exact: true })).toBeVisible({ timeout: DATABASE_ACTION_TIMEOUT_MS });
 	const occupiedSeatCard = page.getByText("Occupied", { exact: true }).locator("..");
@@ -337,7 +337,8 @@ When(/^the owner (updates account information|requests an account export|cancels
 		const creatorPageSwitch = page.getByRole("switch", { name: "Enable creator page" });
 		await expect(creatorPageSwitch).toBeVisible({ timeout: DATABASE_ACTION_TIMEOUT_MS });
 		await expect(creatorPageSwitch).toBeEnabled({ timeout: DATABASE_ACTION_TIMEOUT_MS });
-		await creatorPageSwitch.setChecked(false, { force: true });
+		await creatorPageSwitch.focus();
+		await creatorPageSwitch.press("Space");
 		await expect(creatorPageSwitch).not.toBeChecked();
 		const saveCreatorPage = page.getByRole("button", { name: "Save Creator Page Settings" });
 		await expect(saveCreatorPage).toBeEnabled();
