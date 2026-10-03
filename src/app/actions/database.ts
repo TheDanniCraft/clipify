@@ -651,7 +651,7 @@ export async function getEditorAccess(userId: string) {
 			return null;
 		}
 		const access = await listAuthorizedCreatorOperations({ permission: "creator:read" });
-		return access.filter((candidate) => candidate.accessPath !== "owner").map((candidate) => ({ editorId: userId, userId: candidate.creator.id }));
+		return access.filter((candidate) => candidate.accessPath !== "owner" && candidate.creator.id !== userId).map((candidate) => ({ editorId: userId, userId: candidate.creator.id }));
 	} catch (error) {
 		console.error("Error checking editor access:", error);
 		throw new Error("Failed to check editor access");
@@ -824,7 +824,7 @@ export async function getEditorOverlays(ownerId: string) {
 		}
 
 		const access = await listAuthorizedCreatorOperations({ permission: "overlay:read" });
-		const ownerIds = access.filter((candidate) => candidate.accessPath !== "owner").map((candidate) => candidate.creator.id);
+		const ownerIds = access.filter((candidate) => candidate.accessPath !== "owner" && candidate.creator.id !== ownerId).map((candidate) => candidate.creator.id);
 
 		if (ownerIds.length === 0) {
 			return [];

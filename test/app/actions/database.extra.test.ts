@@ -137,6 +137,14 @@ describe("database.extra.test.ts", () => {
 		expect(result[0].userId).toBe("owner-1");
 	});
 
+	it("getEditorAccess excludes the signed-in creator from delegated access", async () => {
+		const { getEditorAccess } = loadDatabaseActions();
+		validateAuth.mockResolvedValue({ id: "user-1" });
+		listAuthorizedCreatorOperations.mockResolvedValueOnce([{ allowed: true, accessPath: "direct", creator: { id: "user-1" }, creatorOrganizationId: "creator:user-1", authUserId: "auth-user-1", sessionId: "session-1" }]);
+
+		await expect(getEditorAccess("user-1")).resolves.toEqual([]);
+	});
+
 	it("getEditorAccess handles unauthenticated", async () => {
 		const { getEditorAccess } = loadDatabaseActions();
 		validateAuth.mockResolvedValue(null);
@@ -191,6 +199,15 @@ describe("database.extra.test.ts", () => {
 		validateAuth.mockResolvedValue({ id: "editor-1" });
 		const result = await getEditorOverlays("editor-1");
 		expect(result).toEqual([]);
+	});
+
+	it("getEditorOverlays does not query the signed-in creator as a delegated owner", async () => {
+		const { getEditorOverlays } = loadDatabaseActions();
+		validateAuth.mockResolvedValue({ id: "editor-1" });
+		listAuthorizedCreatorOperations.mockResolvedValueOnce([{ allowed: true, accessPath: "direct", creator: { id: "editor-1" }, creatorOrganizationId: "creator:editor-1", authUserId: "auth-user-1", sessionId: "session-1" }]);
+
+		await expect(getEditorOverlays("editor-1")).resolves.toEqual([]);
+		expect(dbSelect).not.toHaveBeenCalled();
 	});
 
 	it("getEditorOverlays handles unauthorized", async () => {

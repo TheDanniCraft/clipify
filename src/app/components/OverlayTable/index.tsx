@@ -32,6 +32,21 @@ import { getAvatar, getUsersDetailsBulk } from "@actions/twitch";
 
 type DashboardTab = "overlays" | "playlists" | "galleries" | "runners";
 
+function mergeOverlayAccess<T extends { id: string }>(ownedOverlays: T[], delegatedOverlays: T[]): Array<T & { accessType: "owner" | "editor" }> {
+	const overlaysById = new Map<string, T & { accessType: "owner" | "editor" }>();
+
+	for (const overlay of ownedOverlays) {
+		overlaysById.set(overlay.id, { ...overlay, accessType: "owner" });
+	}
+	for (const overlay of delegatedOverlays) {
+		if (!overlaysById.has(overlay.id)) {
+			overlaysById.set(overlay.id, { ...overlay, accessType: "editor" });
+		}
+	}
+
+	return Array.from(overlaysById.values());
+}
+
 function TableEmptyState({ children }: { children: React.ReactNode }) {
 	return <div className='flex min-h-24 w-full items-center justify-center rounded-b-2xl border-b border-separator-tertiary/50 bg-surface px-4 py-3 text-center'>{children}</div>;
 }
@@ -97,7 +112,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 				const streamSessionsData = await getAllStreamSessions(userId);
 				const editorOverlays = await getEditorOverlays(userId);
 
-				const combinedOverlays: LocalOverlay[] = [...(overlaysData ?? []).map((o) => ({ ...o, accessType: "owner" as const })), ...(editorOverlays ?? []).map((o) => ({ ...o, accessType: "editor" as const }))];
+				const combinedOverlays: LocalOverlay[] = mergeOverlayAccess(overlaysData ?? [], editorOverlays ?? []);
 				const combinedPlaylists: LocalPlaylist[] = (playlistsData ?? []).map((playlist) => ({
 					id: playlist.id,
 					name: playlist.name,
@@ -503,7 +518,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 		const streamSessionsData = await getAllStreamSessions(userId);
 		const editorOverlays = await getEditorOverlays(userId);
 
-		const combinedOverlays: LocalOverlay[] = [...(overlaysData ?? []).map((o) => ({ ...o, accessType: "owner" as const })), ...(editorOverlays ?? []).map((o) => ({ ...o, accessType: "editor" as const }))];
+		const combinedOverlays: LocalOverlay[] = mergeOverlayAccess(overlaysData ?? [], editorOverlays ?? []);
 		const combinedPlaylists: LocalPlaylist[] = (playlistsData ?? []).map((playlist) => ({
 			id: playlist.id,
 			name: playlist.name,
