@@ -36,9 +36,13 @@ Given("a Clipify administrator provisioned an Agency Account after custom commer
 	await expect(page.getByRole("heading", { name: "Agency accounts" })).toBeVisible({ timeout: 30_000 });
 	await prepareInteractivePage(page);
 	await page.getByLabel("Agency name").fill(agencyName);
-	await page.getByLabel("First owner email").fill(`e2e-agency-owner-${fixture.fixture.authUserId.slice(-8)}@example.invalid`);
+	const agencyOwnerEmail = `e2e-agency-owner-${fixture.fixture.authUserId.slice(-8)}@example.invalid`;
+	await page.getByLabel("First owner email").fill(agencyOwnerEmail);
+	await page.getByLabel("Billing email").fill(agencyOwnerEmail);
 	await page.getByLabel("Commercial reference").fill("e2e-atdd-contract");
-	await page.getByLabel("Creator seats").fill("2");
+	await page.getByLabel("Negotiated creator-seat Price ID").fill("price_e2e_creator");
+	await page.getByLabel("Creator-seat minimum").fill("2");
+	await page.getByLabel("Initial creator seats").fill("2");
 	await page.getByRole("button", { name: "Provision and invite owner" }).click();
 	await expect(page.getByText("Agency account and owner invitation created.", { exact: true })).toBeVisible({ timeout: DATABASE_ACTION_TIMEOUT_MS });
 	await expect(page.getByText(agencyName, { exact: false })).toBeVisible();

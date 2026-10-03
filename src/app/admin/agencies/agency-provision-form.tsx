@@ -64,11 +64,11 @@ export default function AgencyProvisionForm() {
 			</TextField>
 			<TextField name='runnerSeatMinimum' type='number'>
 				<Label>Runner-seat minimum</Label>
-				<Input variant='secondary' min={0} defaultValue='0' />
+				<Input variant='secondary' min={0} placeholder='0' />
 			</TextField>
 			<TextField name='runnerSeatQuantity' type='number'>
 				<Label>Initial Runner seats</Label>
-				<Input variant='secondary' min={0} defaultValue='0' />
+				<Input variant='secondary' min={0} placeholder='0' />
 			</TextField>
 			<div className='md:col-span-2 flex justify-end border-t border-default pt-4'>
 				<Button type='submit' variant='primary'>
