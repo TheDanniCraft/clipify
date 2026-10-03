@@ -17,8 +17,8 @@ import { getEmailProvider, subscribeToNewsletter } from "@actions/newsletter";
 import { usePlausible } from "next-plausible";
 import { isRatelimitError } from "@actions/rateLimit";
 import type { CommunityTeaserPayload } from "@lib/community-types";
-import { ConsentDialogLink } from "@c15t/nextjs/components/consent-dialog-link";
 import { footerNavigation } from "@lib/footerNavigation";
+import { OPEN_CONSENT_PREFERENCES_EVENT } from "@lib/consent/events";
 
 const isE2ETestMode = process.env.E2E_TEST_MODE === "true";
 
@@ -276,7 +276,9 @@ export default function Footer() {
 								<div>{renderList({ title: "About Us", items: footerNavigation.aboutUs })}</div>
 								<div className='mt-10 md:mt-0'>
 									{renderList({ title: "Legal", items: footerNavigation.legal })}
-									<ConsentDialogLink className='link mt-1 text-sm text-muted'>Cookie preferences</ConsentDialogLink>
+									<button type='button' className='link mt-1 text-sm text-muted' onClick={() => window.dispatchEvent(new CustomEvent(OPEN_CONSENT_PREFERENCES_EVENT))}>
+										Cookie preferences
+									</button>
 								</div>
 							</div>
 						</div>
@@ -307,7 +309,7 @@ export default function Footer() {
 											}}
 											transition={{ duration: 0.2, ease: "easeOut" }}
 										>
-											<TextField fullWidth isRequired type='email' className={newsletterState == "success" ? "text-success" : newsletterState == "error" || newsletterState == "rateLimit" ? "text-danger" : "text-foreground"} name='email' isDisabled={newsletterState === "loading" || newsletterState === "success"}>
+											<TextField aria-label='Newsletter email address' fullWidth isRequired type='email' className={newsletterState == "success" ? "text-success" : newsletterState == "error" || newsletterState == "rateLimit" ? "text-danger" : "text-foreground"} name='email' isDisabled={newsletterState === "loading" || newsletterState === "success"}>
 												<InputGroup fullWidth variant='secondary'>
 													<InputGroup.Prefix>
 														{(() => {
@@ -391,7 +393,7 @@ export default function Footer() {
 						<Modal.Backdrop isOpen={isSuccessOpen} onOpenChange={setIsSuccessOpen}>
 							<Modal.Container>
 								<Modal.Dialog>
-									<Modal.CloseTrigger />
+									<Modal.CloseTrigger aria-label='Close newsletter confirmation' />
 									<Modal.Body>
 										<div className='p-6'>
 											<div className='text-success mt-2 text-center'>

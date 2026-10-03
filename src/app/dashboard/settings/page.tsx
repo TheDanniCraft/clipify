@@ -463,7 +463,9 @@ export default function SettingsPage() {
 									</div>
 									<Tooltip delay={0}>
 										<Tooltip.Trigger>
-											<IconInfoCircle size={20} className='text-muted' />
+											<Button isIconOnly size='sm' variant='ghost' aria-label='About your user ID'>
+												<IconInfoCircle size={20} className='text-muted' aria-hidden='true' />
+											</Button>
 										</Tooltip.Trigger>
 										<Tooltip.Content>If you contact support, please specify this user ID.</Tooltip.Content>
 									</Tooltip>

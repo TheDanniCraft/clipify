@@ -506,7 +506,7 @@ export default function TeamSettingsPage() {
 				>
 					<Modal.Container size='lg' scroll='inside' className='max-w-4xl'>
 						<Modal.Dialog aria-labelledby='team-access-heading'>
-							<Modal.CloseTrigger />
+							<Modal.CloseTrigger aria-label='Close team member dialog' />
 							<Modal.Header className='items-center gap-3 border-b border-default'>
 								<Modal.Icon className='bg-accent-soft text-accent-soft-foreground'>{editingMember ? <IconShieldCheck aria-hidden='true' size={22} /> : <IconUserPlus aria-hidden='true' size={22} />}</Modal.Icon>
 								<div>
