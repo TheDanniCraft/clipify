@@ -13,6 +13,7 @@ import { resolveUserEntitlements } from "@lib/entitlements";
 import { getFeatureAccess } from "@lib/featureAccess";
 import { authorizeCreatorOperation, listAuthorizedCreatorOperations } from "@/auth/authorize-operation";
 import type { Permission } from "@/auth/permissions";
+import { resolveRetainedResourceAccess } from "@/server/entitlements/resource-access";
 
 async function authorizeGalleryOperation(ownerId: string, permission: Permission) {
 	return authorizeCreatorOperation({ creatorId: ownerId, resourceOwnerId: ownerId, permission });
@@ -132,6 +133,7 @@ export async function createGallery(ownerId: string, name = "My clip gallery") {
 export async function saveGallery(galleryId: string, patch: GalleryPatch) {
 	const context = await requireGalleryAccess(galleryId, "gallery:update");
 	if (!context) return null;
+	if (!(await resolveRetainedResourceAccess({ kind: "gallery", ownerId: context.gallery.ownerId, resourceId: galleryId, effectivePlan: context.isPro ? "pro" : "free" })).update) return null;
 	if (patch.published !== undefined && patch.published !== context.gallery.published && !(await authorizeGalleryOperation(context.gallery.ownerId, "gallery:publish")).allowed) return null;
 	const normalized = normalizeGalleryPatch(context.gallery, patch, Boolean(context.isPro));
 	if (normalized.source === "curated" && normalized.playlistId && !(await validatePlaylist(context.gallery.ownerId, normalized.playlistId))) {
@@ -170,6 +172,7 @@ export async function getPublicGallery(galleryId: string) {
 	const row = rows[0];
 	if (!row || !row.gallery.published || row.owner.disabled) return null;
 	const isPro = (await resolveUserEntitlements({ id: row.owner.id, plan: row.owner.plan })).effectivePlan === "pro";
+	if (!(await resolveRetainedResourceAccess({ kind: "gallery", ownerId: row.owner.id, resourceId: galleryId, effectivePlan: isPro ? "pro" : "free" })).runtime) return null;
 	const effectiveGallery = isPro ? row.gallery : ({ ...row.gallery, ...normalizeGalleryPatch(row.gallery, {}, false), ...downgradeGalleryPatch(row.gallery, true) } as Gallery);
 	return { gallery: effectiveGallery, owner: row.owner, clips: await resolveClips(effectiveGallery), showAttribution: !isPro };
 }

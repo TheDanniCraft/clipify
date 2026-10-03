@@ -115,6 +115,7 @@ jest.mock("@/auth/authorize-operation", () => ({
 	authorizeCreatorOperation: (...args: unknown[]) => authorizeCreatorOperation(...args),
 	listAuthorizedCreatorOperations: jest.fn(),
 }));
+jest.mock("@/server/entitlements/resource-access", () => ({ resolveRetainedResourceAccess: jest.fn(async () => ({ read: true, delete: true, update: true, runtime: true, withinFreeAllowance: true })) }));
 
 const twitch = {
 	getTwitchClipLookup: jest.fn(),

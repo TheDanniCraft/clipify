@@ -8,6 +8,7 @@ import { eq } from "drizzle-orm";
 import { evaluateOverlayRuntimeAccess, type OverlayRuntimeChannel, type OverlayRuntimeDecision } from "@/server/overlay-runtime";
 import { authorizeCreatorOperation } from "@/auth/authorize-operation";
 import type { Permission } from "@/auth/permissions";
+import { resolveRetainedResourceAccess } from "@/server/entitlements/resource-access";
 
 export async function canEditOwnerInternal(editorId: string, ownerId: string): Promise<boolean> {
 	void editorId;
@@ -47,6 +48,7 @@ export async function getOverlayRuntimeAccessInternal(overlayId: string, channel
 	const creatorAccountsTable = databaseSchema.creatorAccountsTable as typeof databaseSchema.creatorAccountsTable | undefined;
 	const accountRows = creatorAccountsTable ? ((await db.select({ status: creatorAccountsTable.status }).from(creatorAccountsTable).where(eq(creatorAccountsTable.creatorId, overlay.ownerId)).limit(1).execute()) ?? []) : [];
 	const accountStatus = accountRows[0]?.status;
+	if (!(await resolveRetainedResourceAccess({ kind: "overlay", ownerId: overlay.ownerId, resourceId: overlay.id })).runtime) return { allowed: false, reason: "plan-restricted" };
 	return evaluateOverlayRuntimeAccess({
 		channel,
 		overlay,

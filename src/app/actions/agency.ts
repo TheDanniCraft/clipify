@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { acceptDatabaseAgencyLink, activateDatabaseAgencyOwner, allocateDatabaseAgencyLicense, listDatabaseAdminAgencies, listDatabaseAgencyOverview, listDatabaseCreatorAgencyLinks, proposeDatabaseAgencyLink, provisionDatabaseAgency, reduceDatabaseAgencyLinkCeiling, revokeDatabaseAgencyLink, scheduleDatabaseAgencyLicenseRemoval } from "@/server/agencies/database";
 import { selectAgencyCreatorContext } from "@/server/agencies/access";
+import { changeAgencySeatQuantity, createAgencyBillingPortal, createAgencyBillingStart, type AgencySeatKind } from "@/server/agencies/billing";
 
 function strings(formData: FormData, name: string) {
 	return formData
@@ -23,7 +24,24 @@ function errorCode(error: unknown) {
 
 export async function provisionAgencyFormAction(formData: FormData) {
 	try {
-		await provisionDatabaseAgency({ name: value(formData, "name"), ownerEmail: value(formData, "ownerEmail"), commercialReference: value(formData, "commercialReference") || undefined, creatorSeatLimit: Number.parseInt(value(formData, "creatorSeatLimit"), 10) });
+		const collectionMethod = value(formData, "collectionMethod") === "send_invoice" ? "send_invoice" : "charge_automatically";
+		await provisionDatabaseAgency({
+			name: value(formData, "name"),
+			ownerEmail: value(formData, "ownerEmail"),
+			commercialReference: value(formData, "commercialReference") || undefined,
+			creatorSeatLimit: 0,
+			billing: {
+				billingEmail: value(formData, "billingEmail"),
+				collectionMethod,
+				daysUntilDue: collectionMethod === "send_invoice" ? Number.parseInt(value(formData, "daysUntilDue"), 10) : null,
+				creatorSeatPriceId: value(formData, "creatorSeatPriceId"),
+				creatorSeatMinimum: Number.parseInt(value(formData, "creatorSeatMinimum"), 10),
+				creatorSeatQuantity: Number.parseInt(value(formData, "creatorSeatQuantity"), 10),
+				runnerSeatPriceId: value(formData, "runnerSeatPriceId") || null,
+				runnerSeatMinimum: Number.parseInt(value(formData, "runnerSeatMinimum") || "0", 10),
+				runnerSeatQuantity: Number.parseInt(value(formData, "runnerSeatQuantity") || "0", 10),
+			},
+		});
 	} catch (error) {
 		redirect(`/admin/agencies?error=${encodeURIComponent(errorCode(error))}`);
 	}
@@ -63,7 +81,7 @@ export async function allocateAgencyLicenseFormAction(formData: FormData) {
 	const creatorOrganizationId = value(formData, "creatorOrganizationId");
 	const destination = creatorOrganizationId ? `/dashboard/agency?creator=${encodeURIComponent(creatorOrganizationId)}` : "/dashboard/agency";
 	try {
-		await allocateDatabaseAgencyLicense({ linkId: value(formData, "linkId"), sourceReference: value(formData, "sourceReference") });
+		await allocateDatabaseAgencyLicense({ linkId: value(formData, "linkId"), sourceReference: value(formData, "sourceReference"), product: value(formData, "product") === "runner" ? "runner" : "creator_pro" });
 	} catch (error) {
 		const separator = destination.includes("?") ? "&" : "?";
 		redirect(`${destination}${separator}error=${encodeURIComponent(errorCode(error))}`);
@@ -72,6 +90,30 @@ export async function allocateAgencyLicenseFormAction(formData: FormData) {
 	revalidatePath("/dashboard/agency/allocations");
 	const separator = destination.includes("?") ? "&" : "?";
 	redirect(`${destination}${separator}allocated=1`);
+}
+
+export async function startAgencyBillingFormAction() {
+	const result = await createAgencyBillingStart();
+	if (result.url) redirect(result.url);
+	revalidatePath("/dashboard/agency");
+	redirect("/dashboard/agency?billing=invoice-sent");
+}
+
+export async function openAgencyBillingPortalFormAction() {
+	const result = await createAgencyBillingPortal();
+	redirect(result.url);
+}
+
+export async function changeAgencySeatQuantityFormAction(formData: FormData) {
+	const kind: AgencySeatKind = value(formData, "kind") === "runner" ? "runner" : "creator";
+	const quantity = Number.parseInt(value(formData, "quantity"), 10);
+	try {
+		const result = await changeAgencySeatQuantity(kind, quantity);
+		revalidatePath("/dashboard/agency");
+		redirect(`/dashboard/agency?billing=${result.kind === "increase" ? "increase-pending" : result.kind === "decrease" ? "decrease-scheduled" : "unchanged"}`);
+	} catch (error) {
+		redirect(`/dashboard/agency?billingError=${encodeURIComponent(errorCode(error))}`);
+	}
 }
 
 export async function removeAgencyLicenseFormAction(formData: FormData) {

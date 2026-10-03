@@ -5,7 +5,7 @@
 **Traceability**: [test-traceability.md](./test-traceability.md)  
 **Test Summary**: [test-summary.md](./test-summary.md)  
 **Created**: 2026-09-27  
-**Last Updated**: 2026-09-29
+**Last Updated**: 2026-10-03
 
 ## Purpose and Scope
 
@@ -53,6 +53,7 @@ Track product, test, environment, and governance issues affecting feature readin
 | AUTH-017  | One production editor subject has no safely bindable Better Auth identity      | T201 rehearsal       | High     | High     | Verified | Migration owner     | Production-shaped run   | `evidence/migration/7e075732-4e0a-47a8-8537-2e94dcb08097/summary.md` | Approved stale relationship is audited and pruned only at successful reopen             |
 | AUTH-018  | Parallel local ATDD overloaded the shared disposable development database      | Final ATDD gate      | Low      | Low      | Verified | Test infrastructure | Aggregate ATDD          | `quickstart.md#local-quality-checks`                                 | Run database-backed ATDD through Infisical with one worker                              |
 | AUTH-019  | Newly published fast-uri advisories blocked the final security audit           | Security gate        | High     | High     | Verified | Dependency owner    | `bun audit`             | `bun.lock`                                                           | Upgrade the compatible transitive dependency and rerun the audit                        |
+| AUTH-020  | Agency Runner allocations were omitted from two runtime entitlement guards     | TDD-US4-004          | High     | High     | Verified | Auth implementation | Final billing review    | `src/app/actions/runner.ts`, `src/app/api/runner/heartbeat/route.ts` | Use the shared direct-or-agency Runner entitlement decision at every runtime boundary   |
 
 ## Defect Details
 

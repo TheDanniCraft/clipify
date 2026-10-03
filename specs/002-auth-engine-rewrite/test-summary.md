@@ -5,7 +5,7 @@
 **Traceability**: [test-traceability.md](./test-traceability.md)  
 **Defect Log**: [defect-log.md](./defect-log.md)  
 **Created**: 2026-09-27  
-**Last Updated**: 2026-09-29
+**Last Updated**: 2026-10-03
 
 ## Executive Summary
 
@@ -25,13 +25,25 @@ The authenticated Chromium smoke harness uses uniquely prefixed, automatically c
 
 ## US4 Agency Evidence
 
-| Date       | Command                                                                                             | Result | Evidence summary                                                                                                                                     |
-| ---------- | --------------------------------------------------------------------------------------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 2026-09-28 | Three focused US4 Jest suites                                                                       | Green  | 3 suites, 67 tests; provisioning/link state, all-permission intersection, seat/grace/union/deletion release, and five deduplicated notice boundaries |
-| 2026-09-28 | `infisical run --env=dev -- bunx playwright test --project=atdd-chromium --grep "@US4" --workers=1` | Green  | 3/3 real UI/server journeys in 2.4 minutes: admin provisioning, creator approval, and paid allocation with persisted occupied-seat feedback          |
-| 2026-09-28 | `bun run test:bdd -- --grep "@US4"`                                                                 | Green  | 11/11 tagged scenarios; all 3 auth-rewrite agency journeys plus 8 existing legal US4 scenarios                                                       |
-| 2026-09-28 | `infisical run --env=dev -- bun run test:atdd --workers=1`                                          | Green  | 20/20 passed against the disposable development database, including the persisted-session US2 dashboard boundary                                     |
-| 2026-09-28 | Typecheck and focused entitlement/agency regression                                                 | Green  | Production database/actions/UI/scheduler and agency-funded entitlement integration typecheck; 4 suites/85 tests pass                                 |
+| Date       | Command                                                                                             | Result | Evidence summary                                                                                                                                                        |
+| ---------- | --------------------------------------------------------------------------------------------------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-09-28 | Three focused US4 Jest suites                                                                       | Green  | 3 suites, 67 tests; provisioning/link state, all-permission intersection, seat/grace/union/deletion release, and five deduplicated notice boundaries                    |
+| 2026-09-28 | `infisical run --env=dev -- bunx playwright test --project=atdd-chromium --grep "@US4" --workers=1` | Green  | 3/3 real UI/server journeys in 2.4 minutes: admin provisioning, creator approval, and paid allocation with persisted occupied-seat feedback                             |
+| 2026-09-28 | `bun run test:bdd -- --grep "@US4"`                                                                 | Green  | 11/11 tagged scenarios; all 3 auth-rewrite agency journeys plus 8 existing legal US4 scenarios                                                                          |
+| 2026-09-28 | `infisical run --env=dev -- bun run test:atdd --workers=1`                                          | Green  | 20/20 passed against the disposable development database, including the persisted-session US2 dashboard boundary                                                        |
+| 2026-09-28 | Typecheck and focused entitlement/agency regression                                                 | Green  | Production database/actions/UI/scheduler and agency-funded entitlement integration typecheck; 4 suites/85 tests pass                                                    |
+| 2026-10-03 | Negotiated agency billing policy, webhook synchronization, and UI                                   | Green  | Creator and Runner products use Stripe-authoritative quantities; contractual/occupied floors, pending payment, ordering, and terminal-state behavior pass focused tests |
+| 2026-10-03 | `bun run test:bdd -- --grep "Agency seat reductions"`                                               | Green  | 2/2 contractual and occupied floor browser examples pass                                                                                                                |
+| 2026-10-03 | `bun run test:atdd -- --grep "Agency owner changes negotiated creator capacity"`                    | Green  | 3/3 immediate paid upgrade, failed-payment non-grant, and period-end reduction browser examples pass                                                                    |
+
+## US5 Retained-resource Evidence
+
+Canceling Pro never starts the account-deletion recovery clock and never deletes resources. The oldest resource within each Free allowance remains mutable and runnable; retained resources beyond that allowance remain readable and deletable but reject updates and runtime use. Existing Runner execution is suspended when its entitlement ends. Account deletion remains a separate, recoverable 30-day lifecycle.
+
+| Date       | Command                                                             | Result | Evidence summary                                                                                            |
+| ---------- | ------------------------------------------------------------------- | ------ | ----------------------------------------------------------------------------------------------------------- |
+| 2026-10-03 | Focused Team, agency billing, and retained-resource Jest checkpoint | Green  | 3 suites, 22 tests; Custom-role reset, commercial billing boundaries, and non-destructive capability gating |
+| 2026-10-03 | `bun run test --silent`                                             | Green  | 194 suites and 1,677 tests passed; 2 suites / 11 tests intentionally skipped by environment gates           |
 
 ## Foundational Harness Evidence
 

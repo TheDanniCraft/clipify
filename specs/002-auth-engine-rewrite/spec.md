@@ -36,7 +36,7 @@ The feature includes creator onboarding through Twitch, email one-time-code acce
 - Allowing third-party applications to use Clipify as their authorization server.
 - Username-and-password authentication or magic-link authentication.
 - Automatically executing a production database restore without operator approval.
-- Changing the commercial definition or price of current plans beyond supporting future agency-funded creator allocations.
+- Public self-service agency registration or public fixed-price agency checkout; agency terms remain negotiated before an account is provisioned.
 - Self-service Agency Account registration or public fixed-price agency checkout.
 
 ## User Scenarios & Testing _(mandatory)_
@@ -305,6 +305,30 @@ Scenario: Removing agency funding provides non-abusable grace and preserves data
   And creator-owned benefits remain active
   And no creator data is deleted
   And the creator receives notices when removal is scheduled, when 3 and 1 days remain, and when access ends
+
+@ATDD @BDD @US4 @FR-032 @SC-013
+@ATDD-US4-004
+Scenario: Agency owner starts negotiated seat billing
+  Given a Clipify administrator provisioned an Agency Account with negotiated creator and Runner seat prices, quantities, and contractual minimums
+  When the agency owner completes the offered payment flow
+  Then the paid subscription becomes the authority for available creator and Runner seats
+  And human team members do not consume either seat type
+
+@BDD @US4 @FR-032 @EC-016 @EC-017
+@BDD-US4-004
+Scenario Outline: Agency changes paid seat capacity safely
+  Given an agency has an active paid seat subscription and currently occupies fewer seats than its purchased capacity
+  When the agency requests <change>
+  Then <billing_outcome>
+  And <capacity_outcome>
+
+  Examples:
+    | change | billing_outcome | capacity_outcome |
+    | an increase | the prorated difference is invoiced and collected immediately | the additional capacity activates only after the paid update succeeds |
+    | a permitted decrease | the lower recurring quantity is scheduled for the next billing period | current capacity remains available until that period ends |
+    | a decrease below the contractual minimum | no billing change is made | the request is rejected with the contractual floor |
+    | a decrease below currently occupied seats | no billing change is made | the request is rejected with the occupied-seat floor |
+    | an increase whose payment fails | the previous paid quantity remains authoritative | no unpaid capacity is granted |
 ```
 
 The accepted agency relationship and paid allocation scenarios are ATDD-owned and also provide BDD evidence. Revocation paths are separate BDD-owned behaviors.
@@ -480,6 +504,8 @@ The successful cutover and legacy-removal scenarios are ATDD-owned and also prov
 - **EC-013**: Multiple simultaneous invitation or sign-in attempts exceed abuse controls.
 - **EC-014**: A provider refresh credential is invalid or revoked during or after migration.
 - **EC-015**: A linked person or creator is already associated with another record that would violate uniqueness.
+- **EC-016**: An agency requests a seat reduction below its negotiated minimum or below the number of currently occupied seats.
+- **EC-017**: Immediate payment for an agency seat increase fails or requires unresolved customer action.
 
 ## Requirements _(mandatory)_
 
@@ -530,6 +556,7 @@ The successful cutover and legacy-removal scenarios are ATDD-owned and also prov
 - **FR-029**: Clipify MUST provide product and security notifications to the person's verified notification email. Account-deletion notices MUST be sent when deletion is requested, when suspension begins with 30 days remaining, when 7, 3, 1, and 0 days remain before permanent-erasure eligibility, and when deletion is recovered. Agency-allocation notices MUST be sent when Pro is granted, when removal is scheduled, when 3 and 1 days remain, and when access ends. Notices MUST state the applicable access or erasure date, MUST distinguish loss of Pro features from deletion of data, and deletion notices MUST provide a secure entry point to the authenticated recovery flow.
 - **FR-030**: For a Twitch-linked creator, the verified email asserted by Twitch MUST be the canonical notification email, MUST be synchronized from Twitch on sign-in and applicable provider updates, and MUST NOT be directly editable in Clipify; the creator changes it through Twitch. A person who uses email-code authentication without Twitch MUST manage changes through a Clipify flow that verifies the replacement address before activation.
 - **FR-031**: Expiration or removal of creator-paid or agency-funded Pro access MUST NOT delete creator resources. Features unavailable on the resulting plan MAY be disabled, made read-only, or blocked from new use, but retained data and the exact downgrade behavior MUST be shown before cancellation or allocation removal.
+- **FR-032**: Agency billing MUST use the negotiated per-seat prices, initial quantities, contractual minimums, and collection method configured by a Clipify administrator. The authenticated billing provider subscription quantity MUST be the capacity authority for creator and Runner seats. A seat increase MUST invoice the prorated remainder immediately and MUST NOT grant unpaid capacity. A seat decrease MUST take effect at the next billing-period boundary and MUST be rejected below either the negotiated minimum or current occupied quantity. Agency owners with billing authority MUST be able to open provider-hosted invoice, payment-method, and subscription management without gaining permission to alter negotiated price identifiers or contractual minimums.
 
 ### Key Entities
 
@@ -637,6 +664,7 @@ Planning MUST enumerate implementation-level behaviors for every rule above, inc
 - **SC-006**: Every account deletion request remains recoverable throughout the documented 30-day recovery period and is ineligible for permanent erasure before that period expires.
 - **SC-011**: In controlled delivery tests, 100% of account-deletion, recovery, scheduled deletion-reminder, and agency-allocation events produce exactly one correctly addressed transactional notification record without embedding authentication credentials or provider secrets.
 - **SC-012**: Across every paid-access expiry and agency-allocation removal fixture, zero creator resources are deleted, and every affected owner sees the effective date and resulting feature restrictions before confirming the change.
+- **SC-013**: Across automated agency billing fixtures, 100% of successful paid increases grant exactly the purchased additional capacity, failed increases grant zero capacity, and scheduled decreases never fall below either negotiated or occupied-seat floors.
 - **SC-007**: An invited team member can accept a valid invitation and reach their authorized creator view in under three minutes after receiving the link or email.
 - **SC-008**: After a successful cutover rehearsal, automated dependency checks report zero runtime reads or writes through the legacy session, editor-authorization, or provider-token paths.
 - **SC-009**: Repeating the migration workflow against an already migrated isolated snapshot produces zero duplicate identities, memberships, provider accounts, creator links, allocations, or resources.

@@ -184,8 +184,10 @@ jest.mock("@lib/entitlements", () => ({
 	ensureReverseTrialGrantForUser: jest.fn(),
 	resolveUserEntitlements: (...args: unknown[]) => resolveUserEntitlements(...args),
 	resolveUserEntitlementsForUsers: jest.fn(),
+	reconcileUserEntitlements: jest.fn(async () => ({ runners: 0, sessions: 0 })),
 }));
 jest.mock("@/auth/authorize-operation", () => ({ authorizeCreatorOperation: (input: { creatorId: string }) => authorizeCreatorOperation(input), listAuthorizedCreatorOperations: () => listAuthorizedCreatorOperations() }));
+jest.mock("@/server/entitlements/resource-access", () => ({ resolveRetainedResourceAccess: jest.fn(async () => ({ read: true, delete: true, update: true, runtime: true, withinFreeAllowance: true })) }));
 
 jest.mock("drizzle-orm", () => ({
 	relations: jest.fn(() => ({})),
@@ -915,31 +917,13 @@ describe("actions/database playlist logic", () => {
 		expect(insertCalls.some((call) => call.table === overlaysTable)).toBe(true);
 	});
 
-	it("downgradeUserPlan trims overlays, removes extra playlists, normalizes galleries, and caps the oldest playlist to 50 clips", async () => {
-		queueSelectResult([
-			{ id: "overlay-1", ownerId: "owner-1" },
-			{ id: "overlay-2", ownerId: "owner-1" },
-		]);
-		queueSelectResult([
-			{ id: "playlist-1", ownerId: "owner-1" },
-			{ id: "playlist-2", ownerId: "owner-1" },
-		]);
-		queueSelectResult([]);
-		queueSelectResult(
-			Array.from({ length: 52 }, (_unused, index) => ({
-				playlistId: "playlist-1",
-				clipId: `clip-${index + 1}`,
-				position: index,
-			})),
-		);
-
+	it("downgradeUserPlan retains every creator resource", async () => {
 		const { downgradeUserPlan } = await loadDatabaseActions();
 		await downgradeUserPlan("owner-1");
 
-		expect(deleteCalls.filter((call) => call.table === overlaysTable).length).toBeGreaterThan(0);
-		expect(deleteCalls.filter((call) => call.table === playlistsTable)).toHaveLength(1);
-		expect(deleteCalls.filter((call) => call.table === playlistClipsTable).length).toBeGreaterThan(0);
-		const overlayReset = updateCalls.find((call) => call.table === overlaysTable);
-		expect(overlayReset?.set).toEqual(expect.objectContaining({ playlistId: null, rewardId: null, minClipViews: 0 }));
+		const { reconcileUserEntitlements } = jest.requireMock("@lib/entitlements");
+		expect(reconcileUserEntitlements).toHaveBeenCalledWith("owner-1");
+		expect(deleteCalls).toHaveLength(0);
+		expect(updateCalls).toHaveLength(0);
 	});
 });

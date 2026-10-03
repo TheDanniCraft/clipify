@@ -69,6 +69,7 @@ jest.mock("@lib/entitlements", () => ({
 	resolveUserEntitlements: jest.fn(),
 	resolveUserEntitlementsForUsers: jest.fn(),
 }));
+jest.mock("@/server/entitlements/resource-access", () => ({ resolveRetainedResourceAccess: jest.fn(async () => ({ read: true, delete: true, update: true, runtime: true, withinFreeAllowance: true })) }));
 
 jest.mock("drizzle-orm", () => ({
 	relations: jest.fn(() => ({})),

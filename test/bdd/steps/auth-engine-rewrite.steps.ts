@@ -13,6 +13,7 @@ import { DeterministicMailAdapter } from "../../support/auth-engine-rewrite/mail
 import { AgencyService, createAgencyState } from "@/server/agencies/service";
 import { AgencyAllocationService, createAllocationState } from "@/server/agencies/allocations";
 import { resolveAgencyAccess } from "@/server/agencies/access";
+import { decideAgencySeatChange } from "@/server/agencies/billing-policy";
 import { expect, test } from "../support/auth-engine-rewrite";
 
 const { Given, When, Then } = createBdd(test);
@@ -406,4 +407,22 @@ Then("no creator data is deleted", async ({ authWorld }) => {
 Then("the creator receives notices when removal is scheduled, when 3 and 1 days remain, and when access ends", async ({ authWorld }) => {
 	const state = authWorld.values.get("agencyAllocationState") as ReturnType<typeof createAllocationState>;
 	expect(state.notifications.map((notice) => notice.type)).toEqual(["removal-scheduled", "removal-3d", "removal-1d", "ended"]);
+});
+
+Given(/^an agency has (\d+) creator seats with minimum (\d+) and (\d+) occupied$/, async ({ authWorld }, current: string, minimum: string, occupied: string) => {
+	authWorld.values.set("agencyBillingFloors", { current: Number(current), minimum: Number(minimum), occupied: Number(occupied) });
+});
+
+When(/^the agency requests a reduction to (\d+) seats$/, async ({ authWorld }, requested: string) => {
+	const floors = authWorld.values.get("agencyBillingFloors") as { current: number; minimum: number; occupied: number };
+	try {
+		decideAgencySeatChange({ currentQuantity: floors.current, requestedQuantity: Number(requested), minimumQuantity: floors.minimum, occupiedQuantity: floors.occupied });
+		authWorld.values.set("agencyBillingFloorError", null);
+	} catch (error) {
+		authWorld.values.set("agencyBillingFloorError", error instanceof Error ? error.message : "UNKNOWN_ERROR");
+	}
+});
+
+Then(/^the change is rejected with (AGENCY_[A-Z_]+)$/, async ({ authWorld }, errorCode: string) => {
+	expect(authWorld.values.get("agencyBillingFloorError")).toBe(errorCode);
 });

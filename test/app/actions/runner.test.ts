@@ -46,6 +46,7 @@ jest.mock("@actions/auth", () => ({
 
 jest.mock("@lib/entitlements", () => ({
 	hasActiveEntitlement: (...args: unknown[]) => mockHasActiveEntitlement(...args),
+	hasActiveRunnerAccess: (...args: unknown[]) => mockHasActiveEntitlement(...args),
 }));
 
 jest.mock("@lib/runnerArtifacts", () => ({

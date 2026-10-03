@@ -24,6 +24,7 @@ jest.mock("@/db/schema", () => {
 	const table = (name: string) => new Proxy({ _name: name }, { get: (target, property) => (property in target ? target[property as keyof typeof target] : `${name}.${String(property)}`) });
 	return {
 		agencyAccountsTable: table("agency_accounts"),
+		agencyBillingAccountsTable: table("agency_billing_accounts"),
 		agencyCreatorLinksTable: table("agency_creator_links"),
 		agencyLicenseAllocationsTable: table("agency_license_allocations"),
 		auditEventsTable: table("audit_events"),
@@ -211,7 +212,7 @@ describe("TDD-US4-004 agency database adapter", () => {
 
 	it("lists agency, creator, and administrator views", async () => {
 		queueAgencyActor();
-		state.selects.push([]);
+		state.selects.push([], []);
 		await expect(listDatabaseAgencyOverview()).resolves.toMatchObject({ links: [], allocations: [], occupiedSeats: 0 });
 		queueAgencyActor();
 		state.selects.push(
@@ -220,6 +221,7 @@ describe("TDD-US4-004 agency database adapter", () => {
 				{ id: "allocation-1", status: "active" },
 				{ id: "allocation-2", status: "removal_scheduled" },
 			],
+			[],
 		);
 		await expect(listDatabaseAgencyOverview()).resolves.toMatchObject({ occupiedSeats: 2 });
 

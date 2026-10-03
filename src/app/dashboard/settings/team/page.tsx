@@ -14,6 +14,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { authClient } from "@/auth/client";
 import { PERMISSIONS, STANDARD_ROLES, type Permission } from "@/auth/permissions";
+import { permissionsAfterRoleSelection } from "./access-editor-policy";
 
 type MemberRow = { id: string; role: string; user: { name: string; email: string } };
 type InvitationRow = { id: string; email: string; role: string | null; status: string; expiresAt: Date | string };
@@ -230,7 +231,7 @@ export default function TeamSettingsPage() {
 
 	function selectRole(nextRole: string) {
 		setRole(nextRole);
-		if (nextRole !== CUSTOM_ROLE) setSelectedPermissions(permissionsForRole(nextRole));
+		setSelectedPermissions((current) => permissionsAfterRoleSelection({ nextRole, currentPermissions: current, rolePermissions: permissionsForRole(nextRole) }));
 	}
 
 	function togglePermission(permission: Permission, isSelected: boolean) {

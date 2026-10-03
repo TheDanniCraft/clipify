@@ -650,7 +650,7 @@ export default function SettingsPage() {
 										{<IconTrash />}
 										Schedule Account Deletion
 									</Button>
-									<span className='text-sm text-muted'>Account deletion keeps your resources recoverable for 30 days before permanent erasure. Losing Pro is separate: existing resources remain, but paid capabilities and changes beyond Free limits are restricted.</span>
+									<span className='text-sm text-muted'>Account deletion keeps your resources recoverable for 30 days before permanent erasure.</span>
 								</div>
 							</div>
 						</Card.Content>

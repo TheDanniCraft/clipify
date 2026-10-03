@@ -119,6 +119,17 @@ Feature: Identity and team access behavior
     And no creator data is deleted
     And the creator receives notices when removal is scheduled, when 3 and 1 days remain, and when access ends
 
+  @US4 @BDD-US4-004
+  Scenario Outline: Agency seat reductions respect commercial and occupied floors
+    Given an agency has 60 creator seats with minimum 50 and 55 occupied
+    When the agency requests a reduction to <requested> seats
+    Then the change is rejected with <error_code>
+
+    Examples:
+      | requested | error_code                    |
+      | 49        | AGENCY_SEAT_MINIMUM_REQUIRED  |
+      | 54        | AGENCY_OCCUPIED_SEATS_REQUIRED |
+
   @US5 @BDD-US5-001
   Scenario: Non-owner cannot delete the account
     Given a team member has every delegable permission

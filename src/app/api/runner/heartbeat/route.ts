@@ -3,9 +3,9 @@ import { createHash } from "crypto";
 import { db } from "@/db/client";
 import { runnersTable, streamSessionsTable, overlaysTable } from "@/db/schema";
 import { eq, inArray, InferSelectModel } from "drizzle-orm";
-import { Entitlement, RunnerStatus, StreamState } from "@types";
+import { RunnerStatus, StreamState } from "@types";
 import { decryptString } from "@/app/lib/encryption";
-import { hasActiveEntitlement } from "@lib/entitlements";
+import { hasActiveRunnerAccess } from "@lib/entitlements";
 import { tryRateLimit } from "@actions/rateLimit";
 
 import { captureUnexpectedError } from "@lib/sentryServer";
@@ -42,7 +42,7 @@ export async function POST(req: Request) {
 			return NextResponse.json({ error: "Invalid runner token" }, { status: 401 });
 		}
 
-		if (!(await hasActiveEntitlement(runner.ownerId, Entitlement.RunnerAccess))) {
+		if (!(await hasActiveRunnerAccess(runner.ownerId))) {
 			await db.update(streamSessionsTable).set({ desiredState: StreamState.Stopped }).where(eq(streamSessionsTable.runnerId, runner.id));
 			recordOutcome("entitlement_required");
 			return NextResponse.json({ error: "Runner add-on required", code: "entitlement_required", jobs: [] }, { status: 403 });

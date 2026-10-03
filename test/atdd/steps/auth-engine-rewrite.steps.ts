@@ -10,6 +10,7 @@ import { evaluateDeletionBoundary, recoverDeletion } from "@/server/account-life
 import { AgencyService, createAgencyState } from "@/server/agencies/service";
 import { AgencyAllocationService, createAllocationState } from "@/server/agencies/allocations";
 import { resolveAgencyAccess } from "@/server/agencies/access";
+import { decideAgencySeatChange, resolveAgencyCapacitySnapshot } from "@/server/agencies/billing-policy";
 import { createAuthenticatedFixture, expect, test, type AuthFixture } from "../support/auth-engine-rewrite";
 
 const { Given, When, Then } = createBdd(test);
@@ -140,6 +141,27 @@ Then("creator and agency team members do not consume additional creator licenses
 Then("the creator receives one transactional allocation notice", async ({ authWorld }) => {
 	const state = authWorld.values.get("allocationState") as ReturnType<typeof createAllocationState>;
 	expect(state.notifications.filter((notice) => notice.type === "granted")).toHaveLength(1);
+});
+
+Given(/^an active agency subscription has (\d+) creator seats with a negotiated minimum of (\d+)$/, async ({ authWorld }, current: string, minimum: string) => {
+	authWorld.values.set("agencyBilling", { current: Number(current), minimum: Number(minimum), occupied: 40 });
+});
+
+When(/^the agency owner requests (\d+) creator seats and Stripe payment is (paid|failed)$/, async ({ authWorld }, requested: string, paymentState: "paid" | "failed") => {
+	const billing = authWorld.values.get("agencyBilling") as { current: number; minimum: number; occupied: number };
+	const decision = decideAgencySeatChange({ currentQuantity: billing.current, requestedQuantity: Number(requested), minimumQuantity: billing.minimum, occupiedQuantity: billing.occupied });
+	const usableCapacity = decision.kind === "increase" ? resolveAgencyCapacitySnapshot({ previousQuantity: billing.current, stripeQuantity: decision.quantity, subscriptionStatus: "active", hasPendingUpdate: paymentState === "failed", collectionMethod: "charge_automatically", invoicePaymentConfirmed: paymentState === "paid" }) : billing.current;
+	authWorld.values.set("agencyBillingResult", { decision, usableCapacity, paymentState });
+});
+
+Then(/^the seat change is applied (immediately|only after payment|next billing period)$/, async ({ authWorld }, timing: string) => {
+	const result = authWorld.values.get("agencyBillingResult") as { decision: ReturnType<typeof decideAgencySeatChange>; paymentState: "paid" | "failed" };
+	if (timing === "next billing period") expect(result.decision).toMatchObject({ kind: "decrease", effective: "next_period" });
+	else expect(result.decision).toMatchObject({ kind: "increase", paymentBehavior: "pending_if_incomplete" });
+});
+
+Then(/^usable creator capacity is (\d+)$/, async ({ authWorld }, expected: string) => {
+	expect((authWorld.values.get("agencyBillingResult") as { usableCapacity: number }).usableCapacity).toBe(Number(expected));
 });
 
 Given("an unchanged live overlay URL and runtime secret", async ({ authWorld }) => {

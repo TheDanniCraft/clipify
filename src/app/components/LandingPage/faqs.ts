@@ -62,6 +62,10 @@ const faqs: Faq[] = [
 		content: "The Pro version includes Theme Studio, advanced playback filters, multiple active overlays, channel points integration, the remote control panel, editor access for teammates, and priority support.",
 	},
 	{
+		title: "What happens if I cancel Pro?",
+		content: "Pro remains available through your paid-through date. After that, Clipify keeps your overlays, playlists, galleries, and settings instead of deleting them. Free-plan limits apply: included resources remain usable, additional retained resources and Pro-only settings become unavailable for runtime use or editing, and you can regain access by subscribing again.",
+	},
+	{
 		title: "Can I use Clipify on multiple channels?",
 		content: "Yes, you can use Clipify on any channel you manage. Just set it up for each channel individually.",
 	},

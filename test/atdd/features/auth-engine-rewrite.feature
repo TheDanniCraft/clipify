@@ -56,6 +56,19 @@ Feature: Creator identity and delegated team access
     And creator and agency team members do not consume additional creator licenses
     And the creator receives one transactional allocation notice
 
+  @US4 @ATDD-US4-004
+  Scenario Outline: Agency owner changes negotiated creator capacity
+    Given an active agency subscription has <current> creator seats with a negotiated minimum of <minimum>
+    When the agency owner requests <requested> creator seats and Stripe payment is <payment_state>
+    Then the seat change is applied <timing>
+    And usable creator capacity is <usable_capacity>
+
+    Examples:
+      | current | minimum | requested | payment_state | timing              | usable_capacity |
+      | 50      | 50      | 60        | paid          | immediately          | 60              |
+      | 50      | 50      | 60        | failed        | only after payment   | 50              |
+      | 60      | 50      | 55        | paid          | next billing period  | 60              |
+
   # Shared ATDD/BDD ownership: owner lifecycle journeys exercise the release
   # boundary; the non-owner denial and mail timing live in the BDD feature.
   @US5 @ATDD-US5-001

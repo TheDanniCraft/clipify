@@ -1,13 +1,13 @@
 "use server";
 
 import { db } from "@/db/client";
-import { overlaysTable, runnersTable, usersTable } from "@/db/schema";
+import { overlaysTable, runnersTable } from "@/db/schema";
 import { revalidatePath } from "next/cache";
 import { randomBytes } from "crypto";
 import { eq, and } from "drizzle-orm";
 import { redirect } from "next/navigation";
-import { hasActiveEntitlement } from "@lib/entitlements";
-import { Entitlement, RunnerStatus, StreamState } from "@types";
+import { hasActiveRunnerAccess } from "@lib/entitlements";
+import { RunnerStatus, StreamState } from "@types";
 import { getRunnerVersionInfo } from "@lib/runnerArtifacts";
 import { captureUnexpectedError } from "@lib/sentryServer";
 import { authorizeCreatorOperation, listAuthorizedCreatorOperations } from "@/auth/authorize-operation";
@@ -44,8 +44,7 @@ function streamKeyRequiredForUrl(rtmpUrl: string) {
 }
 
 async function ownerHasRunnerAccess(ownerId: string) {
-	const owner = await db.query.usersTable.findFirst({ where: eq(usersTable.id, ownerId) });
-	return Boolean(owner && (await hasActiveEntitlement(owner.id, Entitlement.RunnerAccess)));
+	return hasActiveRunnerAccess(ownerId);
 }
 
 export async function createRunner(ownerId: string, name: string) {

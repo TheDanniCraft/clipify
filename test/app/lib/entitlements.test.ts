@@ -72,7 +72,8 @@ describe("lib/entitlements", () => {
 				source: "billing",
 			}),
 		);
-		expect(db.select).toHaveBeenCalledTimes(1);
+		// Runner access can be owned by a direct entitlement or an agency allocation.
+		expect(db.select).toHaveBeenCalledTimes(2);
 	});
 
 	it("returns free entitlements when hybrid grants are disabled", async () => {
@@ -86,7 +87,8 @@ describe("lib/entitlements", () => {
 				source: "reverse_trial",
 			}),
 		);
-		expect(db.select).not.toHaveBeenCalled();
+		// Hybrid Pro grants are disabled, but an agency may still fund Runner access.
+		expect(db.select).toHaveBeenCalledTimes(1);
 	});
 
 	it("resolves active reverse-trial grants for free users", async () => {
@@ -113,6 +115,7 @@ describe("lib/entitlements", () => {
 
 	it("resolves entitlements in bulk for mixed users with global grants", async () => {
 		selectExecute.mockResolvedValueOnce([]); // Runner entitlement for the billing-Pro user.
+		selectExecute.mockResolvedValueOnce([]); // Agency Runner allocation for the billing-Pro user.
 		selectExecute.mockResolvedValueOnce([
 			{
 				userId: null,
@@ -122,6 +125,8 @@ describe("lib/entitlements", () => {
 				entitlement: "pro_access",
 			},
 		]);
+		selectExecute.mockResolvedValueOnce([]); // Runner entitlement for the globally granted user.
+		selectExecute.mockResolvedValueOnce([]); // Agency Runner allocation for the globally granted user.
 		const { resolveUserEntitlementsForUsers } = await loadEntitlements();
 		const result = await resolveUserEntitlementsForUsers([
 			{ id: "pro-user", plan: Plan.Pro },

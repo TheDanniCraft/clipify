@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { IconArrowRight, IconBuildingCommunity, IconCheck, IconExternalLink, IconLicense, IconLink, IconUsersGroup } from "@tabler/icons-react";
+import { IconArrowRight, IconBuildingCommunity, IconCheck, IconCreditCard, IconExternalLink, IconLicense, IconLink, IconUsersGroup } from "@tabler/icons-react";
 import { validateAuth } from "@actions/auth";
-import { allocateAgencyLicenseFormAction, getAgencyOverviewAction, proposeAgencyLinkFormAction } from "@/app/actions/agency";
+import { allocateAgencyLicenseFormAction, changeAgencySeatQuantityFormAction, getAgencyOverviewAction, openAgencyBillingPortalFormAction, proposeAgencyLinkFormAction, startAgencyBillingFormAction } from "@/app/actions/agency";
 import DashboardNavbar from "@components/dashboardNavbar";
 import { Button, Checkbox, Chip, Input, Label, TextField } from "@components/heroui-client";
 import { Alert, Card, ProgressBar } from "@components/heroui-server";
@@ -26,7 +26,7 @@ async function loadAgencyOverview(requestedCreatorOrganizationId?: string) {
 	}
 }
 
-export default async function AgencyDashboardPage({ searchParams }: { searchParams: Promise<{ creator?: string | string[]; error?: string | string[]; allocated?: string | string[] }> }) {
+export default async function AgencyDashboardPage({ searchParams }: { searchParams: Promise<{ creator?: string | string[]; error?: string | string[]; allocated?: string | string[]; billing?: string | string[]; billingError?: string | string[] }> }) {
 	const user = await validateAuth();
 	if (!user) redirect("/login?returnUrl=%2Fdashboard%2Fagency");
 	const params = await searchParams;
@@ -62,6 +62,89 @@ export default async function AgencyDashboardPage({ searchParams }: { searchPara
 						</Alert.Content>
 					</Alert>
 				) : null}
+				{typeof params.billingError === "string" ? (
+					<Alert status='danger'>
+						<Alert.Content>
+							<Alert.Title>Billing change failed</Alert.Title>
+							<Alert.Description>{label(params.billingError)}</Alert.Description>
+						</Alert.Content>
+					</Alert>
+				) : null}
+
+				<Card>
+					<Card.Header className='gap-3'>
+						<div className='flex size-10 items-center justify-center rounded-xl bg-accent/10 text-accent'>
+							<IconCreditCard aria-hidden='true' size={20} />
+						</div>
+						<div className='flex-1'>
+							<Card.Title>Agency billing</Card.Title>
+							<Card.Description>Stripe controls paid capacity. Upgrades are prorated and charged now; permitted reductions start next billing period.</Card.Description>
+						</div>
+					</Card.Header>
+					<Card.Content className='space-y-4'>
+						{overview.billing ? (
+							<>
+								<div className='grid gap-3 sm:grid-cols-3'>
+									<div className='rounded-xl bg-surface-secondary p-4'>
+										<p className='text-xs text-muted'>Billing status</p>
+										<p className='font-semibold capitalize'>{overview.billing.status.replace("_", " ")}</p>
+									</div>
+									<div className='rounded-xl bg-surface-secondary p-4'>
+										<p className='text-xs text-muted'>Creator seats</p>
+										<p className='font-semibold tabular-nums'>
+											{overview.billing.creatorSeatQuantity} <span className='text-xs font-normal text-muted'>(minimum {overview.billing.creatorSeatMinimum})</span>
+										</p>
+									</div>
+									<div className='rounded-xl bg-surface-secondary p-4'>
+										<p className='text-xs text-muted'>Runner seats</p>
+										<p className='font-semibold tabular-nums'>
+											{overview.billing.runnerSeatQuantity} <span className='text-xs font-normal text-muted'>(minimum {overview.billing.runnerSeatMinimum})</span>
+										</p>
+									</div>
+								</div>
+								<div className='grid gap-3 lg:grid-cols-2'>
+									<form action={changeAgencySeatQuantityFormAction} className='flex items-end gap-2 rounded-xl bg-surface-secondary p-4'>
+										<input type='hidden' name='kind' value='creator' />
+										<TextField name='quantity' type='number' className='flex-1'>
+											<Label>Creator-seat quantity</Label>
+											<Input variant='secondary' min={Math.max(overview.billing.creatorSeatMinimum, overview.occupiedSeats)} defaultValue={String(overview.billing.pendingCreatorSeatQuantity ?? overview.billing.creatorSeatQuantity)} />
+										</TextField>
+										<Button type='submit' variant='secondary'>
+											Update
+										</Button>
+									</form>
+									<form action={changeAgencySeatQuantityFormAction} className='flex items-end gap-2 rounded-xl bg-surface-secondary p-4'>
+										<input type='hidden' name='kind' value='runner' />
+										<TextField name='quantity' type='number' className='flex-1'>
+											<Label>Runner-seat quantity</Label>
+											<Input variant='secondary' min={Math.max(overview.billing.runnerSeatMinimum, overview.occupiedRunnerSeats)} defaultValue={String(overview.billing.pendingRunnerSeatQuantity ?? overview.billing.runnerSeatQuantity)} />
+										</TextField>
+										<Button type='submit' variant='secondary'>
+											Update
+										</Button>
+									</form>
+								</div>
+								<div className='flex justify-end'>
+									{overview.billing.stripeSubscriptionId ? (
+										<form action={openAgencyBillingPortalFormAction}>
+											<Button type='submit' variant='secondary'>
+												Manage invoices and payment methods
+											</Button>
+										</form>
+									) : (
+										<form action={startAgencyBillingFormAction}>
+											<Button type='submit' variant='primary'>
+												Start negotiated billing
+											</Button>
+										</form>
+									)}
+								</div>
+							</>
+						) : (
+							<p className='text-sm text-muted'>Billing terms have not been configured. Contact Clipify to complete agency setup.</p>
+						)}
+					</Card.Content>
+				</Card>
 
 				<div className='grid gap-4 md:grid-cols-2'>
 					<Card variant='secondary'>
@@ -204,7 +287,8 @@ export default async function AgencyDashboardPage({ searchParams }: { searchPara
 							<div className='rounded-2xl bg-surface-secondary p-5 text-center text-sm text-muted'>No creator relationships yet.</div>
 						) : (
 							overview.links.map((link) => {
-								const hasAllocation = overview.allocations.some((allocation) => allocation.linkId === link.id && ["active", "removal_scheduled"].includes(allocation.status));
+								const hasCreatorAllocation = overview.allocations.some((allocation) => allocation.linkId === link.id && allocation.product !== "runner" && ["active", "removal_scheduled"].includes(allocation.status));
+								const hasRunnerAllocation = overview.allocations.some((allocation) => allocation.linkId === link.id && allocation.product === "runner" && ["active", "removal_scheduled"].includes(allocation.status));
 								return (
 									<div key={link.id} className='rounded-2xl bg-surface-secondary p-4'>
 										<div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
@@ -214,24 +298,39 @@ export default async function AgencyDashboardPage({ searchParams }: { searchPara
 													<Chip size='sm' color={link.status === "accepted" ? "success" : link.status === "revoked" ? "danger" : "warning"} variant='soft'>
 														{label(link.status)}
 													</Chip>
-													{hasAllocation ? (
+													{hasCreatorAllocation ? (
 														<Chip size='sm' color='accent' variant='soft'>
 															Pro allocated
 														</Chip>
 													) : null}
+													{hasRunnerAllocation ? (
+														<Chip size='sm' color='accent' variant='soft'>
+															Runner allocated
+														</Chip>
+													) : null}
 												</div>
 											</div>
-											{link.status === "accepted" && !hasAllocation ? (
-												<form action={allocateAgencyLicenseFormAction} className='flex w-full flex-col gap-2 sm:max-w-xl sm:flex-row'>
-													<input type='hidden' name='linkId' value={link.id} />
-													<input type='hidden' name='creatorOrganizationId' value={link.creatorOrganizationId} />
-													<TextField className='flex-1' name='sourceReference' isRequired aria-label='Commercial allocation reference'>
-														<Input variant='secondary' placeholder='Commercial allocation reference' />
-													</TextField>
-													<Button type='submit' variant='secondary'>
-														Allocate Pro seat
-													</Button>
-												</form>
+											{link.status === "accepted" && (!hasCreatorAllocation || !hasRunnerAllocation) ? (
+												<div className='flex w-full flex-col gap-2 sm:max-w-xl'>
+													{[
+														{ product: "creator_pro", actionLabel: "Allocate Pro seat", allocated: hasCreatorAllocation },
+														{ product: "runner", actionLabel: "Allocate Runner seat", allocated: hasRunnerAllocation },
+													]
+														.filter((entry) => !entry.allocated)
+														.map(({ product, actionLabel }) => (
+															<form key={product} action={allocateAgencyLicenseFormAction} className='flex flex-col gap-2 sm:flex-row'>
+																<input type='hidden' name='linkId' value={link.id} />
+																<input type='hidden' name='creatorOrganizationId' value={link.creatorOrganizationId} />
+																<input type='hidden' name='product' value={product} />
+																<TextField className='flex-1' name='sourceReference' isRequired aria-label={`${actionLabel} commercial reference`}>
+																	<Input variant='secondary' placeholder='Commercial allocation reference' />
+																</TextField>
+																<Button type='submit' variant='secondary'>
+																	{actionLabel}
+																</Button>
+															</form>
+														))}
+												</div>
 											) : null}
 										</div>
 									</div>
