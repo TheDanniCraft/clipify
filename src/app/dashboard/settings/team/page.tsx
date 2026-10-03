@@ -506,7 +506,7 @@ export default function TeamSettingsPage() {
 				<Modal.Container size='lg' scroll='inside' className='max-w-4xl'>
 					<Modal.Dialog aria-labelledby='team-access-heading'>
 						<Modal.CloseTrigger aria-label='Close team member dialog' />
-						<Modal.Header className='items-center gap-3 border-b border-default'>
+						<Modal.Header className='items-center gap-3 border-b border-default pb-4'>
 							<Modal.Icon className='bg-accent-soft text-accent-soft-foreground'>{editingMember ? <IconShieldCheck aria-hidden='true' size={22} /> : <IconUserPlus aria-hidden='true' size={22} />}</Modal.Icon>
 							<div>
 								<Modal.Heading id='team-access-heading'>{editingMember ? "Edit member access" : "Invite a team member"}</Modal.Heading>
@@ -605,7 +605,7 @@ export default function TeamSettingsPage() {
 								</div>
 							) : null}
 						</Modal.Body>
-						<Modal.Footer className='flex-col gap-2 border-t border-default sm:flex-row sm:justify-end'>
+						<Modal.Footer className='flex-col gap-2 border-t border-default pt-4 sm:flex-row sm:justify-end'>
 							<Button variant='tertiary' isDisabled={pendingAction !== null} onPress={() => setIsAccessModalOpen(false)}>
 								Cancel
 							</Button>
