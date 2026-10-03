@@ -3,6 +3,7 @@ import { render } from "@testing-library/react";
 import ChatwootData from "@/app/components/chatwootData";
 
 describe("components/ChatwootData", () => {
+	const setUser = jest.fn();
 	const setCustomAttributes = jest.fn();
 	const setConversationCustomAttributes = jest.fn();
 
@@ -32,7 +33,7 @@ describe("components/ChatwootData", () => {
 			setCustomAttributes,
 			setLabel: jest.fn(),
 			setLocale: jest.fn(),
-			setUser: jest.fn(),
+			setUser,
 			showPopoutButton: false,
 			showUnreadMessagesDialog: false,
 			toggle: jest.fn(),
@@ -47,19 +48,24 @@ describe("components/ChatwootData", () => {
 	it("applies user attributes once per signature", () => {
 		const user = {
 			id: "user-1",
+			email: "creator@example.com",
 			plan: "free",
 			stripeCustomerId: "cus_1",
 			createdAt: new Date("2026-01-01T00:00:00.000Z"),
 		};
 
 		const { rerender } = render(<ChatwootData user={user as never} />);
+		expect(setUser).toHaveBeenCalledWith("user-1", { email: "creator@example.com" });
+		expect(setUser).toHaveBeenCalledTimes(1);
 		expect(setCustomAttributes).toHaveBeenCalledTimes(1);
 
 		rerender(<ChatwootData user={user as never} />);
+		expect(setUser).toHaveBeenCalledTimes(1);
 		expect(setCustomAttributes).toHaveBeenCalledTimes(1);
 
 		const changedUser = { ...user, plan: "pro" };
 		rerender(<ChatwootData user={changedUser as never} />);
+		expect(setUser).toHaveBeenCalledTimes(2);
 		expect(setCustomAttributes).toHaveBeenCalledTimes(2);
 	});
 

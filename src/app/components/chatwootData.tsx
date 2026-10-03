@@ -11,6 +11,7 @@ export default function ChatwootData({ user, overlay }: { user?: AuthenticatedUs
 	const applyChatwootData = useCallback(() => {
 		const signature = JSON.stringify({
 			user_id: user?.id ?? null,
+			email: user?.email ?? null,
 			plan: user?.plan ?? null,
 			stripe_customer_id: user?.stripeCustomerId ?? null,
 			account_created_at: user?.createdAt ?? null,
@@ -23,6 +24,7 @@ export default function ChatwootData({ user, overlay }: { user?: AuthenticatedUs
 		lastSignatureRef.current = signature;
 
 		if (user) {
+			window.$chatwoot?.setUser?.(user.id, { email: user.email });
 			window.$chatwoot?.setCustomAttributes?.({
 				user_id: user.id,
 				plan: user.plan,

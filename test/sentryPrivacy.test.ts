@@ -1,6 +1,15 @@
 import { beforeSendError, beforeSendSpan, beforeSendTransaction } from "../sentry.privacy";
 
 describe("Sentry privacy hooks", () => {
+	it("drops expected recent-auth control flow", () => {
+		expect(beforeSendError({ type: undefined, message: "RECENT_AUTH_REQUIRED" })).toBeNull();
+		expect(beforeSendError({ type: undefined, exception: { values: [{ type: "Error", value: "RECENT_AUTH_REQUIRED" }] } })).toBeNull();
+	});
+
+	it("keeps other authorization failures", () => {
+		expect(beforeSendError({ type: undefined, exception: { values: [{ type: "Error", value: "PERMISSION_DENIED" }] } })).not.toBeNull();
+	});
+
 	it("drops requests and keeps only scrubbed diagnostic context", () => {
 		const event = beforeSendError({
 			type: undefined,
@@ -11,6 +20,7 @@ describe("Sentry privacy hooks", () => {
 			message: "Failed for viewer@example.com at https://clipify.us/?token=secret",
 			exception: { values: [{ type: "Error", value: "viewer@example.com" }] },
 		});
+		if (!event) throw new Error("Expected diagnostic event");
 		expect(event.user).toBeUndefined();
 		expect(event.request).toBeUndefined();
 		expect(event.extra).toEqual({ token: "[Filtered]" });
