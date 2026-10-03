@@ -1,8 +1,8 @@
 "use client";
 
-import { IconBuildingCommunity, IconCheck, IconDiamondFilled, IconMoonFilled, IconSunFilled } from "@tabler/icons-react";
+import { IconBuildingCommunity, IconDiamondFilled, IconMoonFilled, IconSunFilled } from "@tabler/icons-react";
 import { useTheme } from "next-themes";
-import { Button, ComboBox, Dropdown, Input, Label, Link, ListBox, Spinner } from "@heroui/react";
+import { Autocomplete, Button, ComboBox, Dropdown, EmptyState, Input, Label, Link, ListBox, SearchField, Spinner, useFilter } from "@heroui/react";
 
 import { AuthenticatedUser, CampaignOffer, Role } from "@types";
 import Logo from "@components/logo";
@@ -32,6 +32,7 @@ function accountType(organization: OrganizationOption) {
 
 export default function DashboardNavbar({ children, user, title, tagline, organizationId }: { children?: React.ReactNode; user: DashboardNavbarUser; title: string; tagline: string; organizationId?: string }) {
 	const { theme, setTheme } = useTheme();
+	const { contains } = useFilter({ sensitivity: "base" });
 	const router = useRouter();
 	const session = authClient.useSession();
 	const organizations = authClient.useListOrganizations();
@@ -40,6 +41,7 @@ export default function DashboardNavbar({ children, user, title, tagline, organi
 	const [switchQuery, setSwitchQuery] = useState(user?.username ?? "");
 	const [switchCandidates, setSwitchCandidates] = useState<AdminViewCandidate[]>([]);
 	const [isLoadingSwitchCandidates, setIsLoadingSwitchCandidates] = useState(false);
+	const [isSwitchingOrganization, setIsSwitchingOrganization] = useState(false);
 	const [switchError, setSwitchError] = useState<string | null>(null);
 	const [campaignOffer, setCampaignOffer] = useState<CampaignOffer | null>(null);
 	const effectivePlan = user?.entitlements?.effectivePlan ?? user?.plan;
@@ -50,6 +52,7 @@ export default function DashboardNavbar({ children, user, title, tagline, organi
 	const sessionOrganizationId = session.data?.session.activeOrganizationId ?? null;
 	const activeOrganizationId = organizationId ?? sessionOrganizationId;
 	const activeOrganization = organizationOptions.find((organization) => organization.id === activeOrganizationId);
+	const displayedOrganization = activeOrganization ?? organizationOptions.find((organization) => accountType(organization) === "creator") ?? organizationOptions[0];
 
 	useEffect(() => {
 		if (!organizationId || !session.data || organizations.isPending || sessionOrganizationId === organizationId || !organizationOptions.some((organization) => organization.id === organizationId)) return;
@@ -59,11 +62,16 @@ export default function DashboardNavbar({ children, user, title, tagline, organi
 	}, [organizationId, organizationOptions, organizations.isPending, router, session.data, sessionOrganizationId]);
 
 	async function switchAccount(organization: OrganizationOption) {
-		if (organization.id === sessionOrganizationId) return;
-		const result = await authClient.organization.setActive({ organizationId: organization.id });
-		if (result.error) return;
-		router.push(accountType(organization) === "agency" ? "/dashboard/agency" : "/dashboard");
-		router.refresh();
+		if (organization.id === sessionOrganizationId || isSwitchingOrganization) return;
+		setIsSwitchingOrganization(true);
+		try {
+			const result = await authClient.organization.setActive({ organizationId: organization.id });
+			if (result.error) return;
+			router.push(accountType(organization) === "agency" ? "/dashboard/agency" : "/dashboard");
+			router.refresh();
+		} finally {
+			setIsSwitchingOrganization(false);
+		}
 	}
 
 	useEffect(() => {
@@ -161,28 +169,48 @@ export default function DashboardNavbar({ children, user, title, tagline, organi
 					</Link>
 					<ul className='ml-auto flex h-12 max-w-fit items-center gap-0'>
 						{organizationOptions.length > 1 ? (
-							<li className='mr-1'>
-								<Dropdown>
-									<Dropdown.Trigger aria-label='Switch account' className='button button--md button--ghost max-w-44 text-accent-foreground'>
-										<IconBuildingCommunity aria-hidden='true' size={18} />
-										<span className='truncate'>{activeOrganization?.name ?? "Switch account"}</span>
-									</Dropdown.Trigger>
-									<Dropdown.Popover placement='bottom end'>
-										<Dropdown.Menu aria-label='Account context'>
-											{organizationOptions.map((organization) => (
-												<Dropdown.Item key={organization.id} id={organization.id} textValue={organization.name} onAction={() => void switchAccount(organization)}>
-													<div className='flex min-w-52 items-center justify-between gap-4'>
-														<div>
-															<Label>{organization.name}</Label>
+							<li className='mr-1 w-36 sm:w-48'>
+								<Autocomplete
+									aria-label='Account context'
+									isDisabled={organizations.isPending || isSwitchingOrganization}
+									placeholder='Select account'
+									selectionMode='single'
+									value={displayedOrganization?.id ?? null}
+									variant='secondary'
+									onChange={(key) => {
+										const organization = organizationOptions.find((candidate) => candidate.id === String(key ?? ""));
+										if (organization) void switchAccount(organization);
+									}}
+								>
+									<Label className='sr-only'>Account</Label>
+									<Autocomplete.Trigger className='h-9 rounded-xl border-transparent bg-accent-foreground/10 px-2 text-accent-foreground shadow-none hover:bg-accent-foreground/15'>
+										<IconBuildingCommunity aria-hidden='true' className='shrink-0' size={17} />
+										<Autocomplete.Value className='truncate text-sm font-medium'>{displayedOrganization?.name ?? "Select account"}</Autocomplete.Value>
+										<Autocomplete.Indicator className='shrink-0 text-accent-foreground/70' />
+									</Autocomplete.Trigger>
+									<Autocomplete.Popover className='min-w-64' placement='bottom end'>
+										<Autocomplete.Filter filter={contains}>
+											<SearchField autoFocus aria-label='Search accounts' name='account-search' variant='secondary'>
+												<SearchField.Group>
+													<SearchField.SearchIcon />
+													<SearchField.Input placeholder='Search accounts' />
+													<SearchField.ClearButton />
+												</SearchField.Group>
+											</SearchField>
+											<ListBox renderEmptyState={() => <EmptyState>No accounts found.</EmptyState>}>
+												{organizationOptions.map((organization) => (
+													<ListBox.Item key={organization.id} id={organization.id} textValue={organization.name}>
+														<div className='min-w-0'>
+															<Label className='block truncate'>{organization.name}</Label>
 															<p className='text-xs capitalize text-muted'>{accountType(organization)} account</p>
 														</div>
-														{organization.id === activeOrganizationId ? <IconCheck aria-label='Active account' size={16} /> : null}
-													</div>
-												</Dropdown.Item>
-											))}
-										</Dropdown.Menu>
-									</Dropdown.Popover>
-								</Dropdown>
+														<ListBox.ItemIndicator />
+													</ListBox.Item>
+												))}
+											</ListBox>
+										</Autocomplete.Filter>
+									</Autocomplete.Popover>
+								</Autocomplete>
 							</li>
 						) : null}
 						<li>
