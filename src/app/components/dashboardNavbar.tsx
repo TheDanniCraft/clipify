@@ -163,11 +163,9 @@ export default function DashboardNavbar({ children, user, title, tagline, organi
 						{organizationOptions.length > 1 ? (
 							<li className='mr-1'>
 								<Dropdown>
-									<Dropdown.Trigger aria-label='Switch account'>
-										<Button variant='ghost' className='max-w-44 text-accent-foreground'>
-											<IconBuildingCommunity aria-hidden='true' size={18} />
-											<span className='truncate'>{activeOrganization?.name ?? "Switch account"}</span>
-										</Button>
+									<Dropdown.Trigger aria-label='Switch account' className='button button--md button--ghost max-w-44 text-accent-foreground'>
+										<IconBuildingCommunity aria-hidden='true' size={18} />
+										<span className='truncate'>{activeOrganization?.name ?? "Switch account"}</span>
 									</Dropdown.Trigger>
 									<Dropdown.Popover placement='bottom end'>
 										<Dropdown.Menu aria-label='Account context'>

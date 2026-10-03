@@ -30,7 +30,7 @@ test("authenticated creator can open team and recovery boundaries", async ({ pag
 		fixtures.push(fixture);
 		await page.goto(`/dashboard/settings/team?organization=${encodeURIComponent(fixture.fixture.creatorOrganizationId)}`);
 		await expect(page.getByRole("heading", { name: "Team members" })).toBeVisible({ timeout: 30_000 });
-		await expect(page.getByText("E2E Creator Account", { exact: false })).toBeVisible({ timeout: 30_000 });
+		await expect(page.getByRole("heading", { name: "E2E Creator Account" })).toBeVisible({ timeout: 30_000 });
 
 		const suspendedFixture = await createFixture(request, context, "creator", "suspended");
 		fixtures.push(suspendedFixture);
