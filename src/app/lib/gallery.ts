@@ -121,6 +121,27 @@ export function normalizeGalleryPatch(current: Gallery, patch: GalleryPatch, isP
 	return normalized;
 }
 
+const PRO_ONLY_GALLERY_FIELDS = ["includeCategories", "excludeCategories", "minimumViews", "minimumDuration", "maximumDuration", "titleBlacklist", "creatorAllowlist", "creatorBlocklist"] as const satisfies readonly (keyof GalleryPatch)[];
+
+const CONDITIONAL_GALLERY_FIELDS = ["liveSort", "liveTimeWindow", "liveCustomStart", "liveCustomEnd", "liveResultLimit"] as const satisfies readonly (keyof GalleryPatch)[];
+
+/**
+ * Builds the persisted update without destroying saved Pro configuration while
+ * the creator is on Free. Runtime reads still project the Free policy. Free
+ * creators may intentionally change the Free-compatible live controls, but an
+ * unrelated edit must not silently erase filters they regain after upgrading.
+ */
+export function normalizeGalleryUpdatePatch(current: Gallery, patch: GalleryPatch, isPro: boolean): GalleryPatch {
+	const normalized = normalizeGalleryPatch(current, patch, isPro);
+	if (isPro) return normalized;
+
+	for (const field of PRO_ONLY_GALLERY_FIELDS) delete normalized[field];
+	for (const field of CONDITIONAL_GALLERY_FIELDS) {
+		if (!Object.hasOwn(patch, field)) delete normalized[field];
+	}
+	return normalized;
+}
+
 function stableHash(value: string) {
 	let hash = 2166136261;
 	for (let index = 0; index < value.length; index += 1) {

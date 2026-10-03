@@ -66,11 +66,6 @@ function makeDeleteChain(table: unknown) {
 	};
 }
 
-const editorsTable = {
-	userId: "editors.user_id",
-	editorId: "editors.editor_id",
-};
-
 jest.mock("@/db/client", () => ({
 	db: {
 		select: (..._args: unknown[]) => dbSelect(..._args),
@@ -85,7 +80,6 @@ jest.mock("@/db/schema", () => ({
 	modQueueTable,
 	overlaysTable,
 	usersTable,
-	editorsTable,
 }));
 
 jest.mock("drizzle-orm", () => ({
@@ -121,6 +115,7 @@ jest.mock("@/auth/authorize-operation", () => ({
 	authorizeCreatorOperation: (...args: unknown[]) => authorizeCreatorOperation(...args),
 	listAuthorizedCreatorOperations: jest.fn(),
 }));
+jest.mock("@/server/entitlements/resource-access", () => ({ resolveRetainedResourceAccess: jest.fn(async () => ({ read: true, delete: true, update: true, runtime: true, withinFreeAllowance: true })) }));
 
 const twitch = {
 	getTwitchClipLookup: jest.fn(),

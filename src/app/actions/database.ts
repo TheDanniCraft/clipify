@@ -2,22 +2,22 @@
 
 import { usersTable, overlaysTable, playlistsTable, playlistClipsTable, galleriesTable, queueTable, settingsTable, modQueueTable, twitchCacheTable } from "@/db/schema";
 import { db, QueryClient } from "@/db/client";
-import { AuthenticatedUser, ClipQueueItem, ModQueueItem, Overlay, Playlist, TwitchUserResponse, UserToken, Plan, Role, UserSettings, TwitchCacheType, StatusOptions, OverlayType, PlaybackMode, MaxDurationMode, TwitchClip } from "@types";
+import { AuthenticatedUser, ClipQueueItem, ModQueueItem, Overlay, Playlist, TwitchUserResponse, UserToken, Plan, Role, UserSettings, TwitchCacheType, StatusOptions, OverlayType, PlaybackMode, TwitchClip } from "@types";
 import { getTwitchClipLookup, subscribeToReward, syncOwnerClipCache } from "@actions/twitch";
 import { syncProductUpdatesContact, getProductUpdatesSubscriptionStatus } from "@actions/newsletter";
 import { isTitleBlocked } from "@/app/utils/regexFilter";
 import { eq, inArray, and, or, isNull, lt, gt, sql, desc, max, asc } from "drizzle-orm";
 import { validateAuth, validateAdminAuth } from "@actions/auth";
 import { getFeatureAccess } from "@lib/featureAccess";
-import { ensureReverseTrialGrantForUser, resolveUserEntitlements, resolveUserEntitlementsForUsers } from "@lib/entitlements";
+import { ensureReverseTrialGrantForUser, reconcileUserEntitlements, resolveUserEntitlements, resolveUserEntitlementsForUsers } from "@lib/entitlements";
 import { TWITCH_CLIPS_LAUNCH_MS, FREE_PLAYLIST_LIMIT, FREE_PLAYLIST_CLIP_LIMIT } from "@lib/constants";
 import { getAccessTokenInternal, getAccessTokenResultInternal } from "@/server/tokens";
 import { getOverlayRuntimeAccessInternal, requireOverlayAccessInternal, requireOverlaySecretAccessInternal } from "@/server/overlays";
 import { invalidateCommunitySnapshotCache } from "@lib/community";
-import { downgradeGalleryPatch } from "@lib/gallery";
 import { allocateMemberNumber } from "@/server/memberNumbers";
 import { authorizeCreatorOperation, listAuthorizedCreatorOperations } from "@/auth/authorize-operation";
 import type { Permission } from "@/auth/permissions";
+import { resolveRetainedResourceAccess } from "@/server/entitlements/resource-access";
 
 const TWITCH_CACHE_CLEANUP_INTERVAL_MS = 10 * 60 * 1000;
 const FONT_URL_DELIMITER = "||url||";
@@ -297,61 +297,64 @@ function sanitizeCssColor(value: string | null | undefined, fallback: string) {
 }
 
 function buildOverlayUpdatePayload(next: Overlay, advancedAllowed: boolean) {
-	const rewardId = advancedAllowed ? (next.rewardId ?? null) : null;
 	// Only assign playlistId when the overlay type is set to Playlist to ensure data consistency
 	/* istanbul ignore next: playlist id assignment logic */
 	const playlistId = next.type === OverlayType.Playlist ? (next.playlistId ?? null) : null;
+	const base = {
+		name: next.name,
+		status: next.status,
+		type: next.type,
+		playlistId,
+		updatedAt: new Date(),
+	};
+	if (!advancedAllowed) return base;
+
 	const playbackMode = (() => {
-		if (!advancedAllowed) return PlaybackMode.Random;
 		if (next.type !== OverlayType.Playlist && next.playbackMode === PlaybackMode.Order) return PlaybackMode.Random;
 		return next.playbackMode;
 	})();
 
 	return {
-		name: next.name,
-		status: next.status,
-		type: next.type,
-		playlistId,
-		rewardId,
-		updatedAt: new Date(),
-		minClipDuration: advancedAllowed ? next.minClipDuration : 0,
-		maxClipDuration: advancedAllowed ? next.maxClipDuration : 60,
-		maxDurationMode: advancedAllowed ? next.maxDurationMode : MaxDurationMode.Filter,
-		blacklistWords: advancedAllowed ? next.blacklistWords : [],
-		categoriesOnly: advancedAllowed ? (next.categoriesOnly ?? []) : [],
-		categoriesBlocked: advancedAllowed ? (next.categoriesBlocked ?? []) : [],
-		minClipViews: advancedAllowed ? next.minClipViews : 0,
+		...base,
+		rewardId: next.rewardId ?? null,
+		minClipDuration: next.minClipDuration,
+		maxClipDuration: next.maxClipDuration,
+		maxDurationMode: next.maxDurationMode,
+		blacklistWords: next.blacklistWords,
+		categoriesOnly: next.categoriesOnly ?? [],
+		categoriesBlocked: next.categoriesBlocked ?? [],
+		minClipViews: next.minClipViews,
 		playbackMode,
-		preferCurrentCategory: advancedAllowed ? !!next.preferCurrentCategory : false,
-		clipCreatorsOnly: advancedAllowed ? normalizeCreatorFilters(next.clipCreatorsOnly) : [],
-		clipCreatorsBlocked: advancedAllowed ? normalizeCreatorFilters(next.clipCreatorsBlocked) : [],
-		clipPackSize: advancedAllowed ? Math.max(25, Math.min(500, next.clipPackSize ?? 100)) : 100,
-		playerVolume: advancedAllowed ? Math.max(0, Math.min(100, next.playerVolume ?? 50)) : 50,
-		showChannelInfo: advancedAllowed ? !!next.showChannelInfo : true,
-		showClipInfo: advancedAllowed ? !!next.showClipInfo : true,
-		showTimer: advancedAllowed ? !!next.showTimer : false,
-		showProgressBar: advancedAllowed ? !!next.showProgressBar : false,
-		overlayInfoFadeOutSeconds: advancedAllowed ? Math.max(0, Math.min(30, next.overlayInfoFadeOutSeconds ?? 6)) : 6,
-		themeFontFamily: advancedAllowed ? sanitizeThemeFontSetting(next.themeFontFamily) : "inherit",
-		themeTextColor: advancedAllowed ? sanitizeCssColor(next.themeTextColor, "#FFFFFF") : "#FFFFFF",
-		themeAccentColor: advancedAllowed ? sanitizeCssColor(next.themeAccentColor, "#7C3AED") : "#7C3AED",
-		themeBackgroundColor: advancedAllowed ? sanitizeCssColor(next.themeBackgroundColor, "rgba(10,10,10,0.65)") : "rgba(10,10,10,0.65)",
-		progressBarStartColor: advancedAllowed ? sanitizeCssColor(next.progressBarStartColor, "#26018E") : "#26018E",
-		progressBarEndColor: advancedAllowed ? sanitizeCssColor(next.progressBarEndColor, "#8D42F9") : "#8D42F9",
-		borderSize: advancedAllowed ? Math.max(0, Math.min(32, next.borderSize ?? 0)) : 0,
-		borderRadius: advancedAllowed ? Math.max(0, Math.min(48, next.borderRadius ?? 10)) : 10,
-		effectScanlines: advancedAllowed ? !!next.effectScanlines : false,
-		effectStatic: advancedAllowed ? !!next.effectStatic : false,
-		effectCrt: advancedAllowed ? !!next.effectCrt : false,
-		channelInfoX: advancedAllowed ? clampInteger(next.channelInfoX, 0, 100, 0) : 0,
-		channelInfoY: advancedAllowed ? clampInteger(next.channelInfoY, 0, 100, 0) : 0,
-		clipInfoX: advancedAllowed ? clampInteger(next.clipInfoX, 0, 100, 100) : 100,
-		clipInfoY: advancedAllowed ? clampInteger(next.clipInfoY, 0, 100, 100) : 100,
-		timerX: advancedAllowed ? clampInteger(next.timerX, 0, 100, 100) : 100,
-		timerY: advancedAllowed ? clampInteger(next.timerY, 0, 100, 0) : 0,
-		channelScale: advancedAllowed ? clampInteger(next.channelScale, 50, 250, 100) : 100,
-		clipScale: advancedAllowed ? clampInteger(next.clipScale, 50, 250, 100) : 100,
-		timerScale: advancedAllowed ? clampInteger(next.timerScale, 50, 250, 100) : 100,
+		preferCurrentCategory: !!next.preferCurrentCategory,
+		clipCreatorsOnly: normalizeCreatorFilters(next.clipCreatorsOnly),
+		clipCreatorsBlocked: normalizeCreatorFilters(next.clipCreatorsBlocked),
+		clipPackSize: Math.max(25, Math.min(500, next.clipPackSize ?? 100)),
+		playerVolume: Math.max(0, Math.min(100, next.playerVolume ?? 50)),
+		showChannelInfo: !!next.showChannelInfo,
+		showClipInfo: !!next.showClipInfo,
+		showTimer: !!next.showTimer,
+		showProgressBar: !!next.showProgressBar,
+		overlayInfoFadeOutSeconds: Math.max(0, Math.min(30, next.overlayInfoFadeOutSeconds ?? 6)),
+		themeFontFamily: sanitizeThemeFontSetting(next.themeFontFamily),
+		themeTextColor: sanitizeCssColor(next.themeTextColor, "#FFFFFF"),
+		themeAccentColor: sanitizeCssColor(next.themeAccentColor, "#7C3AED"),
+		themeBackgroundColor: sanitizeCssColor(next.themeBackgroundColor, "rgba(10,10,10,0.65)"),
+		progressBarStartColor: sanitizeCssColor(next.progressBarStartColor, "#26018E"),
+		progressBarEndColor: sanitizeCssColor(next.progressBarEndColor, "#8D42F9"),
+		borderSize: Math.max(0, Math.min(32, next.borderSize ?? 0)),
+		borderRadius: Math.max(0, Math.min(48, next.borderRadius ?? 10)),
+		effectScanlines: !!next.effectScanlines,
+		effectStatic: !!next.effectStatic,
+		effectCrt: !!next.effectCrt,
+		channelInfoX: clampInteger(next.channelInfoX, 0, 100, 0),
+		channelInfoY: clampInteger(next.channelInfoY, 0, 100, 0),
+		clipInfoX: clampInteger(next.clipInfoX, 0, 100, 100),
+		clipInfoY: clampInteger(next.clipInfoY, 0, 100, 100),
+		timerX: clampInteger(next.timerX, 0, 100, 100),
+		timerY: clampInteger(next.timerY, 0, 100, 0),
+		channelScale: clampInteger(next.channelScale, 50, 250, 100),
+		clipScale: clampInteger(next.clipScale, 50, 250, 100),
+		timerScale: clampInteger(next.timerScale, 50, 250, 100),
 	};
 }
 
@@ -648,7 +651,7 @@ export async function getEditorAccess(userId: string) {
 			return null;
 		}
 		const access = await listAuthorizedCreatorOperations({ permission: "creator:read" });
-		return access.filter((candidate) => candidate.accessPath !== "owner").map((candidate) => ({ editorId: userId, userId: candidate.creator.id }));
+		return access.filter((candidate) => candidate.accessPath !== "owner" && candidate.creator.id !== userId).map((candidate) => ({ editorId: userId, userId: candidate.creator.id }));
 	} catch (error) {
 		console.error("Error checking editor access:", error);
 		throw new Error("Failed to check editor access");
@@ -821,7 +824,7 @@ export async function getEditorOverlays(ownerId: string) {
 		}
 
 		const access = await listAuthorizedCreatorOperations({ permission: "overlay:read" });
-		const ownerIds = access.filter((candidate) => candidate.accessPath !== "owner").map((candidate) => candidate.creator.id);
+		const ownerIds = access.filter((candidate) => candidate.accessPath !== "owner" && candidate.creator.id !== ownerId).map((candidate) => candidate.creator.id);
 
 		if (ownerIds.length === 0) {
 			return [];
@@ -1041,6 +1044,7 @@ export async function savePlaylist(playlistId: string, patch: Partial<Pick<Playl
 	const ctx = await requirePlaylistAccess(playlistId, "playlist:update");
 	/* istanbul ignore next: access guard */
 	if (!ctx) return null;
+	if (!(await resolveRetainedResourceAccess({ kind: "playlist", ownerId: ctx.playlist.ownerId, resourceId: playlistId })).update) return null;
 
 	/* istanbul ignore next: fallback value */
 	const nextName = (patch.name ?? ctx.playlist.name).trim();
@@ -1111,10 +1115,18 @@ export async function getPlaylistClipsForOwnerServer(ownerId: string, playlistId
 	return clips;
 }
 
+export async function getPlaylistRuntimeClipsForOwnerServer(ownerId: string, playlistId: string): Promise<TwitchClip[]> {
+	const access = await resolveRetainedResourceAccess({ kind: "playlist", ownerId, resourceId: playlistId });
+	if (!access.runtime) return [];
+	const clips = await getPlaylistClipsForOwnerServer(ownerId, playlistId);
+	return access.effectivePlan === "free" ? clips.slice(0, FREE_PLAYLIST_CLIP_LIMIT) : clips;
+}
+
 /* istanbul ignore next: upsert operation guard */
 export async function upsertPlaylistClips(playlistId: string, clips: TwitchClip[], mode: "append" | "replace" = "append") {
 	const ctx = await requirePlaylistAccess(playlistId, "playlist-items:manage");
 	if (!ctx) return [];
+	if (!(await resolveRetainedResourceAccess({ kind: "playlist", ownerId: ctx.playlist.ownerId, resourceId: playlistId })).update) return [];
 
 	const uniqueIncoming = Array.from(new Map(clips.filter((clip) => !!clip?.id).map((clip) => [clip.id, clip])).values());
 	if (uniqueIncoming.length === 0 && mode === "append") {
@@ -1180,6 +1192,7 @@ export async function upsertPlaylistClips(playlistId: string, clips: TwitchClip[
 export async function reorderPlaylistClips(playlistId: string, orderedClipIds: string[]) {
 	const ctx = await requirePlaylistAccess(playlistId, "playlist-items:manage");
 	if (!ctx) return [];
+	if (!(await resolveRetainedResourceAccess({ kind: "playlist", ownerId: ctx.playlist.ownerId, resourceId: playlistId })).update) return [];
 
 	return await db.transaction(async (tx) => {
 		const existingRows = await tx.select().from(playlistClipsTable).where(eq(playlistClipsTable.playlistId, playlistId)).orderBy(playlistClipsTable.position).execute();
@@ -1291,6 +1304,7 @@ function applyPlaylistImportFilters(clips: TwitchClip[], filters: PlaylistImport
 export async function importPlaylistClips(playlistId: string, filters: PlaylistImportFilters, mode: "append" | "replace") {
 	const ctx = await requirePlaylistAccess(playlistId, "playlist-items:manage");
 	if (!ctx) return [];
+	if (!(await resolveRetainedResourceAccess({ kind: "playlist", ownerId: ctx.playlist.ownerId, resourceId: playlistId })).update) return [];
 
 	const { isPro } = await getOwnerPlanContext(ctx.playlist.ownerId);
 	if (!isPro) {
@@ -1485,116 +1499,7 @@ export async function createOverlay(userId: string) {
 }
 
 export async function downgradeUserPlan(userId: string) {
-	await db.transaction(async (tx) => {
-		const [overlays, playlists, galleries] = await Promise.all([tx.select().from(overlaysTable).where(eq(overlaysTable.ownerId, userId)).execute(), tx.select().from(playlistsTable).where(eq(playlistsTable.ownerId, userId)).orderBy(playlistsTable.createdAt).execute(), tx.select().from(galleriesTable).where(eq(galleriesTable.ownerId, userId)).orderBy(galleriesTable.createdAt).execute()]);
-
-		if (overlays.length === 0 && playlists.length === 0 && galleries.length === 0) {
-			return;
-		}
-
-		if (galleries.length > 0) {
-			const [keptGallery, ...galleriesToDelete] = galleries;
-			if (galleriesToDelete.length > 0) {
-				await tx
-					.delete(galleriesTable)
-					.where(
-						inArray(
-							galleriesTable.id,
-							galleriesToDelete.map((gallery) => gallery.id),
-						),
-					)
-					.execute();
-			}
-			await tx
-				.update(galleriesTable)
-				.set({ ...downgradeGalleryPatch(keptGallery, true), updatedAt: new Date() })
-				.where(eq(galleriesTable.id, keptGallery.id))
-				.execute();
-		}
-
-		if (overlays.length > 0) {
-			const [keptOverlay, ...overlaysToDeactivate] = overlays;
-
-			if (overlaysToDeactivate.length > 0) {
-				await tx
-					.delete(overlaysTable)
-					.where(
-						inArray(
-							overlaysTable.id,
-							overlaysToDeactivate.map((o) => o.id),
-						),
-					)
-					.execute();
-			}
-
-			await tx
-				.update(overlaysTable)
-				.set({
-					rewardId: null,
-					playlistId: null,
-					blacklistWords: [],
-					minClipViews: 0,
-					minClipDuration: 0,
-					maxClipDuration: 60,
-					maxDurationMode: MaxDurationMode.Filter,
-					playbackMode: PlaybackMode.Random,
-					preferCurrentCategory: false,
-					clipCreatorsOnly: [],
-					clipCreatorsBlocked: [],
-					clipPackSize: 100,
-					playerVolume: 50,
-					showChannelInfo: true,
-					showClipInfo: true,
-					showTimer: false,
-					showProgressBar: false,
-					overlayInfoFadeOutSeconds: 6,
-					themeFontFamily: "inherit",
-					themeTextColor: "#FFFFFF",
-					themeAccentColor: "#7C3AED",
-					themeBackgroundColor: "rgba(10,10,10,0.65)",
-					progressBarStartColor: "#26018E",
-					progressBarEndColor: "#8D42F9",
-					borderSize: 0,
-					borderRadius: 10,
-					effectScanlines: false,
-					effectStatic: false,
-					effectCrt: false,
-					channelInfoX: 0,
-					channelInfoY: 0,
-					clipInfoX: 100,
-					clipInfoY: 100,
-					timerX: 100,
-					timerY: 0,
-					channelScale: 100,
-					clipScale: 100,
-					timerScale: 100,
-				})
-				.where(eq(overlaysTable.id, keptOverlay.id))
-				.execute();
-		}
-
-		if (playlists.length > 0) {
-			const [keptPlaylist, ...playlistsToDelete] = playlists;
-
-			if (playlistsToDelete.length > 0) {
-				const playlistIds = playlistsToDelete.map((playlist) => playlist.id);
-				await tx.update(galleriesTable).set({ playlistId: null, published: false, updatedAt: new Date() }).where(inArray(galleriesTable.playlistId, playlistIds)).execute();
-				await tx.delete(playlistsTable).where(inArray(playlistsTable.id, playlistIds)).execute();
-			}
-
-			const keptRows = await tx.select().from(playlistClipsTable).where(eq(playlistClipsTable.playlistId, keptPlaylist.id)).orderBy(playlistClipsTable.position).execute();
-			const removeIds = keptRows.slice(FREE_PLAYLIST_CLIP_LIMIT).map((row) => row.clipId);
-
-			if (removeIds.length > 0) {
-				await tx
-					.delete(playlistClipsTable)
-					.where(and(eq(playlistClipsTable.playlistId, keptPlaylist.id), inArray(playlistClipsTable.clipId, removeIds)))
-					.execute();
-			}
-		}
-
-		await tx.update(usersTable).set({ updatedAt: new Date() }).where(eq(usersTable.id, userId)).execute();
-	});
+	await reconcileUserEntitlements(userId);
 }
 
 export async function saveOverlay(overlayId: string, patch: OverlayPatch) {
@@ -1611,13 +1516,14 @@ export async function saveOverlay(overlayId: string, patch: OverlayPatch) {
 		const owner = ownerRows[0];
 		/* istanbul ignore next: fallback value */
 		const ownerWithEntitlements = owner ? { ...owner, entitlements: await resolveUserEntitlements(owner) } : null;
+		if (ownerWithEntitlements && !(await resolveRetainedResourceAccess({ kind: "overlay", ownerId: ctx.overlay.ownerId, resourceId: overlayId, effectivePlan: ownerWithEntitlements.entitlements.effectivePlan })).update) return null;
 		/* istanbul ignore next: fallback value */
 		const advancedAccess = ownerWithEntitlements ? getFeatureAccess(ownerWithEntitlements, "advanced_filters") : { allowed: false as const };
 		const updatePayload = buildOverlayUpdatePayload(next, advancedAccess.allowed);
 
 		await db.update(overlaysTable).set(updatePayload).where(eq(overlaysTable.id, overlayId)).execute();
 
-		if (updatePayload.rewardId && updatePayload.rewardId !== ctx.overlay.rewardId) {
+		if ("rewardId" in updatePayload && updatePayload.rewardId && updatePayload.rewardId !== ctx.overlay.rewardId) {
 			subscribeToReward(ctx.overlay.ownerId, updatePayload.rewardId);
 		}
 
@@ -1675,7 +1581,10 @@ export async function getOverlayOwnerPlanPublic(overlayId: string): Promise<Plan
 export async function getOverlayByRewardId(rewardId: string) {
 	try {
 		const overlay = await db.select().from(overlaysTable).where(eq(overlaysTable.rewardId, rewardId)).limit(1).execute();
-		return overlay[0];
+		if (!overlay[0]) return undefined;
+		const runtime = await getOverlayRuntimeAccessInternal(overlay[0].id, "http");
+		if (!runtime.allowed || !runtime.overlay.rewardId) return undefined;
+		return runtime.overlay;
 	} catch (error) {
 		console.error("Error validating reward ID:", error);
 		throw new Error("Failed to validate reward ID");
@@ -2108,8 +2017,11 @@ export async function saveSettings(settings: UserSettings) {
 		const creatorPageVisibility = settings.creatorPageVisibility === "unlisted" ? "unlisted" : "discoverable";
 		const creatorPageShowBio = settings.creatorPageShowBio !== false;
 		const socialPreviewAccess = getFeatureAccess(authedUser, "creator_page_social_preview").allowed;
-		const creatorPageSocialTitle = socialPreviewAccess ? settings.creatorPageSocialTitle?.trim().slice(0, 120) || null : null;
-		const creatorPageSocialDescription = socialPreviewAccess ? settings.creatorPageSocialDescription?.trim().slice(0, 240) || null : null;
+		// A downgrade masks paid social-preview customization at read/runtime
+		// boundaries. Ordinary Free-plan settings edits must not destroy values the
+		// creator regains after upgrading again.
+		const creatorPageSocialTitle = socialPreviewAccess ? settings.creatorPageSocialTitle?.trim().slice(0, 120) || null : (existingSettings?.creatorPageSocialTitle ?? null);
+		const creatorPageSocialDescription = socialPreviewAccess ? settings.creatorPageSocialDescription?.trim().slice(0, 240) || null : (existingSettings?.creatorPageSocialDescription ?? null);
 
 		await db
 			.insert(settingsTable)

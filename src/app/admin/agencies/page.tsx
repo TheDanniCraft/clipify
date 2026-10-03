@@ -1,55 +1,150 @@
-import { getAdminAgenciesAction, provisionAgencyFormAction } from "@/app/actions/agency";
+import { redirect } from "next/navigation";
+import Link from "next/link";
+import { IconBuildingBank, IconCheck, IconPlus, IconUsers } from "@tabler/icons-react";
+import { validateAdminAuth } from "@actions/auth";
+import { getAdminAgenciesAction } from "@/app/actions/agency";
+import DashboardNavbar from "@components/dashboardNavbar";
+import AdminNavigation from "@components/adminNavigation";
+import { AlertContent, AlertDescription, AlertRoot, AlertTitle, CardContent, CardDescription, CardHeader, CardRoot, CardTitle, Chip, TableBody, TableCell, TableColumn, TableContent, TableHeader, TableRoot, TableRow, TableScrollContainer } from "@components/heroui-client";
+import AgencyProvisionForm from "./agency-provision-form";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminAgenciesPage({ searchParams }: { searchParams: Promise<{ error?: string; created?: string }> }) {
+function label(value: string) {
+	return value
+		.split("_")
+		.map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
+		.join(" ");
+}
+
+export default async function AdminAgenciesPage({ searchParams }: { searchParams: Promise<{ error?: string; created?: string; invitationId?: string; emailSent?: string }> }) {
+	const user = await validateAdminAuth(true);
+	if (!user) redirect("/dashboard");
 	const [agencies, params] = await Promise.all([getAdminAgenciesAction(), searchParams]);
+	const invitationHref = params.invitationId ? `/accept-invitation?invitationId=${encodeURIComponent(params.invitationId)}` : null;
+
 	return (
-		<main className='mx-auto flex w-full max-w-5xl flex-col gap-6 p-6'>
-			<header>
-				<p className='text-sm text-muted'>Admin</p>
-				<h1 className='text-2xl font-semibold'>Agency accounts</h1>
-				<p className='text-sm text-muted'>Agency accounts are provisioned only after custom commercial terms are agreed. Human team members never consume creator seats.</p>
-			</header>
-			{params.error ? <p className='rounded-lg border border-danger p-3 text-danger'>Provisioning failed: {params.error}</p> : null}
-			{params.created ? <p className='rounded-lg border border-success p-3 text-success'>Agency invitation created.</p> : null}
-			<form action={provisionAgencyFormAction} className='grid gap-4 rounded-xl border border-default p-5 md:grid-cols-2'>
-				<label className='flex flex-col gap-1 text-sm'>
-					Agency name
-					<input required name='name' className='rounded-lg border border-default bg-surface px-3 py-2' />
-				</label>
-				<label className='flex flex-col gap-1 text-sm'>
-					First owner email
-					<input required type='email' name='ownerEmail' className='rounded-lg border border-default bg-surface px-3 py-2' />
-				</label>
-				<label className='flex flex-col gap-1 text-sm'>
-					Commercial reference
-					<input name='commercialReference' className='rounded-lg border border-default bg-surface px-3 py-2' />
-				</label>
-				<label className='flex flex-col gap-1 text-sm'>
-					Creator seats
-					<input required min='0' type='number' name='creatorSeatLimit' className='rounded-lg border border-default bg-surface px-3 py-2' />
-				</label>
-				<button className='rounded-lg bg-accent px-4 py-2 font-medium text-white md:col-span-2' type='submit'>
-					Provision and invite owner
-				</button>
-			</form>
-			<section className='rounded-xl border border-default p-5'>
-				<h2 className='font-semibold'>Provisioned agencies</h2>
-				<ul className='mt-3 divide-y divide-default'>
-					{agencies.map(({ account, name }) => (
-						<li key={account.organizationId} className='flex justify-between gap-4 py-3'>
-							<span>
-								{name}
-								<small className='block text-muted'>{account.commercialReference ?? "No commercial reference"}</small>
-							</span>
-							<span className='text-sm'>
-								{account.status} · {account.creatorSeatLimit} seats
-							</span>
-						</li>
-					))}
-				</ul>
-			</section>
-		</main>
+		<DashboardNavbar user={user} title='Agency accounts' tagline='Provision negotiated terms and Stripe-backed creator or Runner seats'>
+			<div className='mt-6 flex flex-col gap-6 pb-10'>
+				<AdminNavigation active='agencies' />
+				{params.error ? (
+					<AlertRoot status='danger'>
+						<AlertContent>
+							<AlertTitle>Provisioning failed</AlertTitle>
+							<AlertDescription>{label(params.error)}</AlertDescription>
+						</AlertContent>
+					</AlertRoot>
+				) : null}
+				{params.created ? (
+					<AlertRoot status='success'>
+						<IconCheck aria-hidden='true' />
+						<AlertContent>
+							<AlertDescription>
+								<span>Agency account and owner invitation created.</span> {params.emailSent === "1" ? "The invitation email was sent." : "Email delivery failed; share the invitation link manually."}{" "}
+								{invitationHref ? (
+									<Link href={invitationHref} className='font-medium text-accent underline underline-offset-4'>
+										Open invitation
+									</Link>
+								) : null}
+							</AlertDescription>
+						</AlertContent>
+					</AlertRoot>
+				) : null}
+
+				<CardRoot>
+					<CardHeader className='gap-3'>
+						<div className='flex size-10 items-center justify-center rounded-xl bg-accent/10 text-accent'>
+							<IconPlus aria-hidden='true' size={20} />
+						</div>
+						<div>
+							<CardTitle>Provision an agency</CardTitle>
+							<CardDescription>Create the organization and owner invitation after commercial terms and an initial creator-seat quantity are agreed.</CardDescription>
+						</div>
+					</CardHeader>
+					<CardContent>
+						<AgencyProvisionForm />
+					</CardContent>
+				</CardRoot>
+
+				<div className='grid gap-4 md:grid-cols-3'>
+					<CardRoot variant='secondary'>
+						<CardHeader>
+							<CardDescription>Provisioned agencies</CardDescription>
+							<CardTitle className='text-3xl'>{agencies.length}</CardTitle>
+						</CardHeader>
+					</CardRoot>
+					<CardRoot variant='secondary'>
+						<CardHeader>
+							<CardDescription>Active agencies</CardDescription>
+							<CardTitle className='text-3xl'>{agencies.filter(({ account }) => account.status === "active").length}</CardTitle>
+						</CardHeader>
+					</CardRoot>
+					<CardRoot variant='secondary'>
+						<CardHeader>
+							<CardDescription>Contracted seats</CardDescription>
+							<CardTitle className='text-3xl'>{agencies.reduce((total, { account }) => total + account.creatorSeatLimit, 0)}</CardTitle>
+						</CardHeader>
+					</CardRoot>
+				</div>
+
+				<CardRoot>
+					<CardHeader className='gap-3'>
+						<div className='flex size-10 items-center justify-center rounded-xl bg-accent/10 text-accent'>
+							<IconBuildingBank aria-hidden='true' size={20} />
+						</div>
+						<div>
+							<CardTitle>Provisioned agencies</CardTitle>
+							<CardDescription>Commercial references are operational identifiers only and must never contain credentials.</CardDescription>
+						</div>
+					</CardHeader>
+					<CardContent>
+						{agencies.length === 0 ? (
+							<div className='rounded-2xl bg-surface-secondary p-8 text-center text-sm text-muted'>No agencies provisioned.</div>
+						) : (
+							<TableRoot variant='secondary'>
+								<TableScrollContainer>
+									<TableContent aria-label='Provisioned agencies' className='min-w-[720px]'>
+										<TableHeader>
+											<TableColumn isRowHeader>Agency</TableColumn>
+											<TableColumn>Status</TableColumn>
+											<TableColumn>Creator seats</TableColumn>
+											<TableColumn>Commercial reference</TableColumn>
+										</TableHeader>
+										<TableBody>
+											{agencies.map(({ account, name, slug }) => (
+												<TableRow key={account.organizationId} id={account.organizationId} textValue={name}>
+													<TableCell>
+														<div className='flex items-center gap-3'>
+															<div className='flex size-9 items-center justify-center rounded-xl bg-surface-secondary text-accent'>
+																<IconUsers aria-hidden='true' size={18} />
+															</div>
+															<div>
+																<p className='font-medium'>{name}</p>
+																<p className='text-xs text-muted'>{slug}</p>
+															</div>
+														</div>
+													</TableCell>
+													<TableCell>
+														<Chip size='sm' color={account.status === "active" ? "success" : "warning"} variant='soft'>
+															{label(account.status)}
+														</Chip>
+													</TableCell>
+													<TableCell>
+														<span className='font-medium tabular-nums'>{account.creatorSeatLimit}</span>
+													</TableCell>
+													<TableCell>
+														<span className='text-sm text-muted'>{account.commercialReference ?? "Not provided"}</span>
+													</TableCell>
+												</TableRow>
+											))}
+										</TableBody>
+									</TableContent>
+								</TableScrollContainer>
+							</TableRoot>
+						)}
+					</CardContent>
+				</CardRoot>
+			</div>
+		</DashboardNavbar>
 	);
 }

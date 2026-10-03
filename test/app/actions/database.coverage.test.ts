@@ -103,8 +103,6 @@ jest.mock("@/db/schema", () => ({
 	queueTable: { id: "queue.id", overlayId: "queue.overlay_id", queuedAt: "queue.queued_at" },
 	settingsTable: { id: "settings.id" },
 	modQueueTable: { id: "mod_queue.id", broadcasterId: "mod_queue.broadcaster_id", queuedAt: "mod_queue.queued_at" },
-	tokenTable: { id: "token.id" },
-	editorsTable: { id: "editors.id", editorId: "editors.editor_id", userId: "editors.user_id" },
 	twitchCacheTable: { type: "twitch_cache.type", key: "twitch_cache.key", value: "twitch_cache.value", expiresAt: "twitch_cache.expires_at", fetchedAt: "twitch_cache.fetched_at" },
 }));
 
@@ -171,11 +169,13 @@ jest.mock("@lib/entitlements", () => ({
 		return map;
 	}),
 	ensureReverseTrialGrantForUser: jest.fn(),
+	reconcileUserEntitlements: jest.fn(async () => ({ runners: 0, sessions: 0 })),
 }));
 
 jest.mock("@lib/featureAccess", () => ({
 	getFeatureAccess: jest.fn(() => ({ allowed: true })),
 }));
+jest.mock("@/server/entitlements/resource-access", () => ({ resolveRetainedResourceAccess: jest.fn(async () => ({ read: true, delete: true, update: true, runtime: true, withinFreeAllowance: true })) }));
 
 Object.defineProperty(global, "crypto", {
 	value: {
@@ -247,23 +247,12 @@ describe("database.ts coverage tests", () => {
 		expect(result).toBeNull();
 	});
 
-	it("covers downgradeUserPlan with no overlays or playlists", async () => {
+	it("covers non-destructive downgrade reconciliation", async () => {
 		const { downgradeUserPlan } = await loadDatabaseActions();
-		queueSelectResult([]); // overlays
-		queueSelectResult([]); // playlists
-		queueSelectResult([]); // galleries
 		await downgradeUserPlan("user-1");
 		expect(dbDelete).not.toHaveBeenCalled();
-	});
-
-	it("covers downgradeUserPlan with multiple playlists", async () => {
-		const { downgradeUserPlan } = await loadDatabaseActions();
-		queueSelectResult([{ id: "ov1" }]); // overlays
-		queueSelectResult([{ id: "pl1" }, { id: "pl2" }]); // playlists
-		queueSelectResult([]); // galleries
-		queueSelectResult([{ clipId: "c1" }]); // playlist clips
-		await downgradeUserPlan("user-1");
-		expect(dbDelete).toHaveBeenCalled();
+		const { reconcileUserEntitlements } = jest.requireMock("@lib/entitlements");
+		expect(reconcileUserEntitlements).toHaveBeenCalledWith("user-1");
 	});
 
 	it("covers getOverlayOwnerPlanPublic error case", async () => {

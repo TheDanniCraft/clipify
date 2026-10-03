@@ -1,6 +1,11 @@
 # Quickstart: Planning-to-Implementation Handoff
 
-This document describes the developer and rehearsal workflow after `/speckit.tasks` creates implementation tasks. The `auth:*` commands are stable entry points; their implementations are added by the migration tasks and must fail closed until then.
+> **Archived cutover guide:** the production cutover completed successfully on
+> 2026-10-01. The one-time `auth:migrate`, rehearsal, and legacy-scan commands
+> described below were removed in the post-cutover contraction. This document
+> remains historical execution evidence, not a current command reference.
+
+This document describes the developer and rehearsal workflow used after `/speckit.tasks` created implementation tasks.
 
 ## Prerequisites
 
@@ -52,7 +57,7 @@ bun run app:prettier:check
 bun run app:typecheck
 infisical run --env=dev -- bun run app:build
 bun run app:check-action-manifest
-bun audit --audit-level=high
+bun run audit:high
 ```
 
 Update [test-traceability.md](./test-traceability.md), [defect-log.md](./defect-log.md), and [test-summary.md](./test-summary.md) from actual evidence; never change `Planned` to Green without a reproducible result.

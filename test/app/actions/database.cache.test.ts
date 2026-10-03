@@ -68,7 +68,6 @@ jest.mock("@/db/schema", () => ({
 	queueTable: { id: "queue.id" },
 	settingsTable: { id: "settings.id" },
 	modQueueTable: { id: "mod_queue.id" },
-	editorsTable: { id: "editors.id" },
 }));
 
 jest.mock("drizzle-orm", () => ({
@@ -106,11 +105,6 @@ jest.mock("@actions/twitch", () => ({
 jest.mock("@actions/newsletter", () => ({
 	syncProductUpdatesContact: jest.fn(),
 	getProductUpdatesSubscriptionStatus: jest.fn(),
-}));
-
-jest.mock("@lib/tokenCrypto", () => ({
-	encryptToken: jest.fn((val: string) => val),
-	decryptToken: jest.fn((val: string) => val),
 }));
 
 jest.mock("@lib/featureAccess", () => ({

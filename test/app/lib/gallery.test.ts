@@ -1,4 +1,4 @@
-import { FREE_GALLERY_LIVE_LIMIT, closestFreeTimeWindow, downgradeGalleryPatch, normalizeGalleryPatch, resolveLiveGalleryClips } from "@lib/gallery";
+import { FREE_GALLERY_LIVE_LIMIT, closestFreeTimeWindow, downgradeGalleryPatch, normalizeGalleryPatch, normalizeGalleryUpdatePatch, resolveLiveGalleryClips } from "@lib/gallery";
 import type { Gallery, TwitchClip } from "@types";
 
 const gallery = (patch: Partial<Gallery> = {}) =>
@@ -72,6 +72,30 @@ describe("gallery domain rules", () => {
 		expect(normalized.gridMobileColumns).toBe(2);
 		expect(normalized.gridTabletColumns).toBe(2);
 		expect(normalized.gridDesktopColumns).toBe(6);
+	});
+
+	it("preserves saved Pro gallery configuration during unrelated Free edits", () => {
+		const current = gallery({
+			liveSort: "stable_random",
+			liveTimeWindow: "custom",
+			liveCustomStart: new Date("2026-07-01T00:00:00Z"),
+			liveResultLimit: 100,
+			includeCategories: ["Just Chatting"],
+			minimumViews: 500,
+			theme: "dark",
+			accentColor: "#123456",
+		});
+		const update = normalizeGalleryUpdatePatch(current, { name: "Renamed while Free" }, false);
+
+		expect(update).toMatchObject({ name: "Renamed while Free" });
+		for (const paidField of ["liveSort", "liveTimeWindow", "liveCustomStart", "liveResultLimit", "includeCategories", "minimumViews", "theme", "accentColor"]) {
+			expect(update).not.toHaveProperty(paidField);
+		}
+	});
+
+	it("lets Free creators intentionally replace compatible live controls", () => {
+		const update = normalizeGalleryUpdatePatch(gallery({ liveSort: "stable_random", liveResultLimit: 100 }), { liveSort: "most_viewed", liveResultLimit: 40 }, false);
+		expect(update).toMatchObject({ liveSort: "most_viewed", liveResultLimit: 40 });
 	});
 
 	it("resolves newest and most-viewed clips inside the selected time window", () => {

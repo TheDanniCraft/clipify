@@ -5,7 +5,7 @@
 **Traceability**: [test-traceability.md](./test-traceability.md)  
 **Test Summary**: [test-summary.md](./test-summary.md)  
 **Created**: 2026-09-27  
-**Last Updated**: 2026-09-29
+**Last Updated**: 2026-10-03
 
 ## Purpose and Scope
 
@@ -32,29 +32,83 @@ Track product, test, environment, and governance issues affecting feature readin
 
 ## Defect Summary
 
-| Defect ID | Title                                                                          | Source / Evidence ID | Severity | Priority | Status   | Owner               | Detected By             | Evidence Link                                                        | Target / Resolution                                                                     |
-| --------- | ------------------------------------------------------------------------------ | -------------------- | -------- | -------- | -------- | ------------------- | ----------------------- | -------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| PLAN-001  | SpecKit template resolver does not expose installed test-governance templates  | Planning gate        | Low      | Low      | Deferred | SpecKit tooling     | `/speckit.plan`         | `.specify/presets/test-first-governance/templates/`                  | Repair resolver before the next feature plan; exact installed templates used here       |
-| AUTH-001  | Twitch identity test depended on a locally generated migration artifact        | TDD-US2-001          | Low      | High     | Verified | Auth implementation | Checkpoint suite        | `test/auth-engine-rewrite/integration/twitch-identity.test.ts`       | Replaced trigger-specific evidence with application transaction and stable-ID evidence  |
-| AUTH-002  | Legacy Jest boundaries did not support Better Auth schema/session imports      | Pre-push regression  | Medium   | High     | Verified | Auth implementation | `bun run test`          | Legacy database action and proxy suites                              | Extended Drizzle mocks and isolated the proxy session boundary                          |
-| AUTH-003  | US5 test fixture imported an incompatible aggregate harness                    | TDD-US5-001          | Low      | Low      | Verified | Auth implementation | Focused Red/Green       | `test/auth-engine-rewrite/integration/account-lifecycle.test.ts`     | Imported the isolated clock helper and removed a fixture-name collision                 |
-| AUTH-004  | Production lifecycle imports and test doubles crossed legacy Jest boundaries   | TDD-US5-001          | Medium   | High     | Verified | Auth implementation | Adapter regression      | Subscription, overlay, and webhook focused suites                    | Isolated Better Auth imports and extended lifecycle-aware test boundaries               |
-| AUTH-005  | WebAuthn duplicated the shared application-origin configuration                | Build gate           | Medium   | High     | Verified | Auth implementation | `bun run app:build`     | T179 production build gate                                           | Derive RP ID and origin from the reviewed shared `resolveBaseUrl()` policy              |
-| AUTH-006  | Changed auth adapter coverage is below the release floor                       | Coverage gate        | High     | High     | Verified | Auth implementation | `bun run test:coverage` | T177 changed-code coverage gate                                      | Focused real-adapter gate exceeds the unchanged 90%/95% policy                          |
-| AUTH-007  | Database-backed US2 ATDD exceeded the generic browser timeout                  | ATDD-US2-001         | Low      | High     | Verified | Auth implementation | Focused ATDD            | T023 real-session acceptance boundary                                | ATDD project uses the authenticated acceptance timeout                                  |
-| AUTH-008  | Login smoke retained the retired link role                                     | BDD-SMOKE-001        | Low      | High     | Verified | Auth implementation | Aggregate BDD           | T038 aggregate behavior gate                                         | Smoke asserts the Better Auth sign-in button role                                       |
-| AUTH-009  | Focused ATDD bypassed BDD wrapper regeneration                                 | T142 Red probe       | Low      | Low      | Verified | Auth implementation | Focused ATDD            | T142 real agency boundaries                                          | Regenerate bindings before direct Playwright execution                                  |
-| AUTH-010  | US4 ATDD interacted before route-specific hydration                            | T142 Green probe     | Low      | High     | Verified | Auth implementation | Focused ATDD            | T142 real agency boundaries                                          | Wait for network idle and use an explicit database-action budget                        |
-| AUTH-011  | Account settings unnecessarily required a Twitch token when no editors existed | ATDD-US5-001         | Medium   | High     | Verified | Auth implementation | Real UI/server US5 ATDD | `test/app/actions/database.settings.test.ts`                         | Resolve Twitch identities only when editor usernames are present                        |
-| AUTH-012  | Authenticated fixture defaulted omitted deletion state to suspended            | Aggregate ATDD       | Medium   | High     | Verified | Test infrastructure | `bun run test:atdd`     | ATDD-US2-001                                                         | Default to active and require suspended state explicitly                                |
-| AUTH-013  | One-process E2E matrix exhausted the Next.js development-server heap           | T176 E2E gate        | Medium   | High     | Verified | Test infrastructure | `bun run test:e2e`      | `scripts/run-e2e-gate.ts`                                            | Restart Playwright and its server between project suites                                |
-| AUTH-014  | Legal-page axe audit included injected support-widget onboarding markup        | T176 BDD gate        | Low      | High     | Verified | Test infrastructure | Aggregate E2E runner    | Narrow-viewport legal accessibility scenario                         | Scope axe to the legal main while retaining page keyboard checks                        |
-| AUTH-016  | Better Auth OAuth onboarding lacks atomic creator/workspace provisioning       | US2 / FR-001–FR-003  | Critical | High     | Verified | Auth implementation | Cutover readiness audit | `scripts/auth-cutover/onboarding-trigger.ts`, `TDD-US2-003`          | Approved trigger installs transactionally before backfill and passes real-adapter tests |
-| AUTH-017  | One production editor subject has no safely bindable Better Auth identity      | T201 rehearsal       | High     | High     | Verified | Migration owner     | Production-shaped run   | `evidence/migration/7e075732-4e0a-47a8-8537-2e94dcb08097/summary.md` | Approved stale relationship is audited and pruned only at successful reopen             |
-| AUTH-018  | Parallel local ATDD overloaded the shared disposable development database      | Final ATDD gate      | Low      | Low      | Verified | Test infrastructure | Aggregate ATDD          | `quickstart.md#local-quality-checks`                                 | Run database-backed ATDD through Infisical with one worker                              |
-| AUTH-019  | Newly published fast-uri advisories blocked the final security audit           | Security gate        | High     | High     | Verified | Dependency owner    | `bun audit`             | `bun.lock`                                                           | Upgrade the compatible transitive dependency and rerun the audit                        |
+| Defect ID | Title                                                                          | Source / Evidence ID | Severity | Priority | Status   | Owner               | Detected By             | Evidence Link                                                        | Target / Resolution                                                                                                |
+| --------- | ------------------------------------------------------------------------------ | -------------------- | -------- | -------- | -------- | ------------------- | ----------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| PLAN-001  | SpecKit template resolver does not expose installed test-governance templates  | Planning gate        | Low      | Low      | Deferred | SpecKit tooling     | `/speckit.plan`         | `.specify/presets/test-first-governance/templates/`                  | Repair resolver before the next feature plan; exact installed templates used here                                  |
+| AUTH-001  | Twitch identity test depended on a locally generated migration artifact        | TDD-US2-001          | Low      | High     | Verified | Auth implementation | Checkpoint suite        | `test/auth-engine-rewrite/integration/twitch-identity.test.ts`       | Replaced trigger-specific evidence with application transaction and stable-ID evidence                             |
+| AUTH-002  | Legacy Jest boundaries did not support Better Auth schema/session imports      | Pre-push regression  | Medium   | High     | Verified | Auth implementation | `bun run test`          | Legacy database action and proxy suites                              | Extended Drizzle mocks and isolated the proxy session boundary                                                     |
+| AUTH-003  | US5 test fixture imported an incompatible aggregate harness                    | TDD-US5-001          | Low      | Low      | Verified | Auth implementation | Focused Red/Green       | `test/auth-engine-rewrite/integration/account-lifecycle.test.ts`     | Imported the isolated clock helper and removed a fixture-name collision                                            |
+| AUTH-004  | Production lifecycle imports and test doubles crossed legacy Jest boundaries   | TDD-US5-001          | Medium   | High     | Verified | Auth implementation | Adapter regression      | Subscription, overlay, and webhook focused suites                    | Isolated Better Auth imports and extended lifecycle-aware test boundaries                                          |
+| AUTH-005  | WebAuthn duplicated the shared application-origin configuration                | Build gate           | Medium   | High     | Verified | Auth implementation | `bun run app:build`     | T179 production build gate                                           | Derive RP ID and origin from the reviewed shared `resolveBaseUrl()` policy                                         |
+| AUTH-006  | Changed auth adapter coverage is below the release floor                       | Coverage gate        | High     | High     | Verified | Auth implementation | `bun run test:coverage` | T177 changed-code coverage gate                                      | Focused real-adapter gate exceeds the unchanged 90%/95% policy                                                     |
+| AUTH-007  | Database-backed US2 ATDD exceeded the generic browser timeout                  | ATDD-US2-001         | Low      | High     | Verified | Auth implementation | Focused ATDD            | T023 real-session acceptance boundary                                | ATDD project uses the authenticated acceptance timeout                                                             |
+| AUTH-008  | Login smoke retained the retired link role                                     | BDD-SMOKE-001        | Low      | High     | Verified | Auth implementation | Aggregate BDD           | T038 aggregate behavior gate                                         | Smoke asserts the Better Auth sign-in button role                                                                  |
+| AUTH-009  | Focused ATDD bypassed BDD wrapper regeneration                                 | T142 Red probe       | Low      | Low      | Verified | Auth implementation | Focused ATDD            | T142 real agency boundaries                                          | Regenerate bindings before direct Playwright execution                                                             |
+| AUTH-010  | US4 ATDD interacted before route-specific hydration                            | T142 Green probe     | Low      | High     | Verified | Auth implementation | Focused ATDD            | T142 real agency boundaries                                          | Wait for network idle and use an explicit database-action budget                                                   |
+| AUTH-011  | Account settings unnecessarily required a Twitch token when no editors existed | ATDD-US5-001         | Medium   | High     | Verified | Auth implementation | Real UI/server US5 ATDD | `test/app/actions/database.settings.test.ts`                         | Resolve Twitch identities only when editor usernames are present                                                   |
+| AUTH-012  | Authenticated fixture defaulted omitted deletion state to suspended            | Aggregate ATDD       | Medium   | High     | Verified | Test infrastructure | `bun run test:atdd`     | ATDD-US2-001                                                         | Default to active and require suspended state explicitly                                                           |
+| AUTH-013  | One-process E2E matrix exhausted the Next.js development-server heap           | T176 E2E gate        | Medium   | High     | Verified | Test infrastructure | `bun run test:e2e`      | `scripts/run-e2e-gate.ts`                                            | Restart Playwright and its server between project suites                                                           |
+| AUTH-014  | Legal-page axe audit included injected support-widget onboarding markup        | T176 BDD gate        | Low      | High     | Verified | Test infrastructure | Aggregate E2E runner    | Narrow-viewport legal accessibility scenario                         | Scope axe to the legal main while retaining page keyboard checks                                                   |
+| AUTH-016  | Better Auth OAuth onboarding lacks atomic creator/workspace provisioning       | US2 / FR-001–FR-003  | Critical | High     | Verified | Auth implementation | Cutover readiness audit | `scripts/auth-cutover/onboarding-trigger.ts`, `TDD-US2-003`          | Approved trigger installs transactionally before backfill and passes real-adapter tests                            |
+| AUTH-017  | One production editor subject has no safely bindable Better Auth identity      | T201 rehearsal       | High     | High     | Verified | Migration owner     | Production-shaped run   | `evidence/migration/7e075732-4e0a-47a8-8537-2e94dcb08097/summary.md` | Approved stale relationship is audited and pruned only at successful reopen                                        |
+| AUTH-018  | Parallel local ATDD overloaded the shared disposable development database      | Final ATDD gate      | Low      | Low      | Verified | Test infrastructure | Aggregate ATDD          | `quickstart.md#local-quality-checks`                                 | Run database-backed ATDD through Infisical with one worker                                                         |
+| AUTH-019  | Newly published fast-uri advisories blocked the final security audit           | Security gate        | High     | High     | Verified | Dependency owner    | `bun audit`             | `bun.lock`                                                           | Upgrade the compatible transitive dependency and rerun the audit                                                   |
+| AUTH-020  | Agency Runner allocations were omitted from two runtime entitlement guards     | TDD-US4-004          | High     | High     | Verified | Auth implementation | Final billing review    | `src/app/actions/runner.ts`, `src/app/api/runner/heartbeat/route.ts` | Use the shared direct-or-agency Runner entitlement decision at every runtime boundary                              |
+| AUTH-021  | Focused auth coverage fell below the release threshold after final convergence | T177 / T215          | High     | High     | Verified | Test implementation | Release-readiness audit | `test/auth-engine-rewrite/integration/`                              | Add lifecycle, agency billing, and transactional-mail branch coverage and rerun the canonical database-backed gate |
+| AUTH-022  | Upstream ESLint glob dependency has a no-fix recursion advisory                | Security gate        | Low      | Medium   | Deferred | Dependency owner    | `bun audit`             | `eslint-config-next > fast-glob > micromatch > braces`               | Ignore only GHSA-vfj7-8cjw-p6xm in the reproducible audit gate until an upstream fixed release exists              |
+| AUTH-023  | Agency allocation ATDD submitted before client hydration completed             | ATDD-US4-001         | Medium   | High     | Verified | Test infrastructure | Final browser gate      | `test/atdd/steps/auth-engine-rewrite.steps.ts`                       | Wait for the hydrated consent theme and assert the entered capacity before submitting                              |
+| AUTH-024  | Controlled HeroUI dialogs used the trigger-oriented root composition           | Browser diagnostics  | Low      | Medium   | Verified | UI implementation   | Final browser gate      | Controlled modal and tooltip consumers                               | Use direct controlled backdrops and direct pressable tooltip children per HeroUI v3                                |
 
 ## Defect Details
+
+### AUTH-021 - Focused auth coverage fell below the release threshold after final convergence
+
+- **Status**: Verified
+- **Severity / Priority**: High / High
+- **Affected Source IDs**: T177, T215, FR-012–FR-019, FR-029–FR-031
+- **Detected During**: final release-readiness convergence
+- **Expected Result**: the focused production adapters retain at least 90% branch coverage and 95% statement, function, and line coverage.
+- **Actual Result**: the canonical gate initially reported 92.08% statements, 82.83% branches, 95.08% functions, and 93.99% lines after the final agency and account-export implementation.
+- **Resolution**: add focused database-adapter and mail-adapter cases for negotiated billing validation, agency activation and state-change outcomes, account export authorization/download paths, and provider failure shapes.
+- **Verification Evidence**: `infisical run --env=dev -- powershell -NoProfile -Command '$env:AUTH_TEST_DATABASE_URL=$env:DATABASE_URL; bun run test:auth:coverage'` passes 30/30 suites and 451/451 tests at 98.12% statements, 93.50% branches, 99.18% functions, and 99.11% lines on 2026-10-03.
+- **Approval / Risk Acceptance**: none.
+
+### AUTH-022 - Upstream ESLint glob dependency has a no-fix recursion advisory
+
+- **Status**: Deferred
+- **Severity / Priority**: Low / Medium (contextualized from the registry's High package advisory)
+- **Affected Source IDs**: dependency security gate only
+- **Detected During**: final release-readiness convergence
+- **Expected Result**: no unaccepted High or Critical advisory in shipped dependencies.
+- **Actual Result**: `braces@3.0.3` is reachable only through `eslint-config-next > @next/eslint-plugin-next > fast-glob > micromatch`; Bun reports that no published fixed `braces` version exists. It is a development-only lint path and is absent from the standalone production runtime.
+- **Resolution**: apply every available audit fix, pin `figlet@1.11.3`, retain the patched `brace-expansion` releases, and make the release gate ignore only `GHSA-vfj7-8cjw-p6xm`. Do not ignore any other advisory.
+- **Verification Evidence**: `bun run audit:high` passes after checking 1,344 packages with the single scoped no-fix advisory ignored; application lint, build, and regression gates remain mandatory.
+- **Deferral Owner / Expiry**: dependency owner / remove the ignore immediately when a fixed upstream `braces` or consuming dependency release is available.
+- **Approval / Risk Acceptance**: engineering accepts the non-runtime, no-fix exposure for merge; release owner retains final approval.
+
+### AUTH-023 - Agency allocation ATDD submitted before client hydration completed
+
+- **Status**: Verified
+- **Severity / Priority**: Medium / High
+- **Affected Source IDs**: US4, FR-030, browser release gate
+- **Detected During**: final local segmented browser gate
+- **Expected Result**: the negotiated capacity field retains the operator-entered value and submits the matching agency update.
+- **Actual Result**: theme/consent hydration could replace the pre-hydration control after Playwright filled it, restoring the previous value before submission.
+- **Resolution**: wait for the hydrated `c15t-light` or `c15t-dark` document state before interacting and assert the field value immediately before submission.
+- **Verification Evidence**: the focused US4 gate passes 6/6 and the complete segmented browser gate passes 86/86 on 2026-10-03.
+- **Approval / Risk Acceptance**: none.
+
+### AUTH-024 - Controlled HeroUI dialogs used the trigger-oriented root composition
+
+- **Status**: Verified
+- **Severity / Priority**: Low / Medium
+- **Affected Source IDs**: settings, team, billing, creator, runner, gallery, and shared modal surfaces
+- **Detected During**: final browser-console review
+- **Expected Result**: controlled dialogs and tooltips follow the installed HeroUI v3 composition without press-responder warnings.
+- **Actual Result**: controlled modal consumers wrapped `Modal.Backdrop` in the trigger-oriented `Modal` root, and tooltip consumers retained obsolete `Tooltip.Trigger` wrappers.
+- **Resolution**: render controlled `Modal.Backdrop` directly, pass pressable children directly to `Tooltip`, and preserve accessible labels on icon controls.
+- **Verification Evidence**: focused settings acceptance and the complete 86/86 browser gate pass without HeroUI PressResponder warnings on 2026-10-03.
+- **Approval / Risk Acceptance**: none.
 
 ### AUTH-016 - Better Auth OAuth onboarding lacks atomic creator/workspace provisioning
 

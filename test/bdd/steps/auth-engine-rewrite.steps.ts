@@ -7,15 +7,13 @@ import { passkeyFallback, type PasskeyLifecycleState } from "@/auth/credential-p
 import { consumeRateLimit, type RateLimitRepository, type RateLimitState } from "@/auth/rate-limit";
 import { appendAuditEvent, type AuditActionClass, type AuditEvent, type AuditOutcome } from "@/auth/audit";
 import { ControlledClock, createDeterministicTokenGenerator } from "../../support/auth-engine-rewrite/time";
-import { BetterAuthRefreshAuthority } from "../../../scripts/auth-cutover/credentials";
-import { executeCheckpointBatch } from "../../../scripts/auth-cutover/state-machine";
-import { executeCutoverWorkflow, type CutoverFailurePoint } from "../../../scripts/auth-cutover/smoke";
 import { AccountLifecycleService, DELETION_RECOVERY_MS, type AccountLifecycleRepository, type AccountLifecycleState, type LifecycleActor } from "@/server/account-lifecycle/service";
 import { buildDeletionNotificationIntents, renderAccountLifecycleNotification, type DeletionNotificationBoundary } from "@/server/notifications/templates/account-lifecycle";
 import { DeterministicMailAdapter } from "../../support/auth-engine-rewrite/mail";
 import { AgencyService, createAgencyState } from "@/server/agencies/service";
 import { AgencyAllocationService, createAllocationState } from "@/server/agencies/allocations";
 import { resolveAgencyAccess } from "@/server/agencies/access";
+import { decideAgencySeatChange } from "@/server/agencies/billing-policy";
 import { expect, test } from "../support/auth-engine-rewrite";
 
 const { Given, When, Then } = createBdd(test);
@@ -411,104 +409,20 @@ Then("the creator receives notices when removal is scheduled, when 3 and 1 days 
 	expect(state.notifications.map((notice) => notice.type)).toEqual(["removal-scheduled", "removal-3d", "removal-1d", "ended"]);
 });
 
-const cutoverCheckpoint: Record<string, CutoverFailurePoint> = {
-	preflight: "preflight",
-	"backup-verification": "backup",
-	"identity-migration": "identity",
-	"membership-and-role-migration": "membership",
-	"provider-credential-migration": "credential",
-	"invariant-validation": "invariant",
-	"runtime-activation": "switch",
-	"smoke-checks": "smoke",
-};
-
-Given("the cutover workflow is running in maintenance mode", async ({ authWorld }) => {
-	authWorld.values.set("cutoverMaintenanceInitially", true);
+Given(/^an agency has (\d+) creator seats with minimum (\d+) and (\d+) occupied$/, async ({ authWorld }, current: string, minimum: string, occupied: string) => {
+	authWorld.values.set("agencyBillingFloors", { current: Number(current), minimum: Number(minimum), occupied: Number(occupied) });
 });
 
-When("the {word} checkpoint fails", async ({ authWorld }, checkpoint: string) => {
-	const failurePoint = cutoverCheckpoint[checkpoint];
-	if (!failurePoint) throw new Error(`Unknown checkpoint: ${checkpoint}`);
-	authWorld.values.set("cutoverFailurePoint", failurePoint);
-	authWorld.values.set(
-		"cutoverFailure",
-		await executeCutoverWorkflow({
-			runId: "bdd-failure",
-			failAt: failurePoint,
-			maintenanceInitially: true,
-			originatingError: new Error(`provider authorization=private failure at ${failurePoint}`),
-		}),
-	);
-});
-
-Then("maintenance mode remains enabled", async ({ authWorld }) => {
-	expect(authWorld.values.get("cutoverFailure")).toEqual(expect.objectContaining({ ok: false, maintenance: true, reopened: false }));
-});
-
-Then("the workflow reports the failed checkpoint and safe next action", async ({ authWorld }) => {
-	const result = authWorld.values.get("cutoverFailure") as { failedAt: string; safeNextAction: string; error: string };
-	expect(result.failedAt).toBe(authWorld.values.get("cutoverFailurePoint"));
-	expect(result.safeNextAction).toMatch(/fix|resume|verify/i);
-	expect(result.error).toContain("[REDACTED]");
-	expect(result.error).not.toContain("private");
-});
-
-Then("rerunning the workflow does not duplicate completed records", async () => {
-	const rows: number[] = [];
-	const committed = new Set<string>();
-	const input = {
-		runId: "bdd-resume",
-		phase: "identity",
-		cursor: 0,
-		values: [1, 2],
-		transaction: async <T>(operation: (writer: { write: (value: number) => void }) => Promise<T>) => operation({ write: (value) => rows.push(value) }),
-		onCommitted: (_cursor: number, key: string) => {
-			committed.add(key);
-		},
-		isCommitted: (key: string) => committed.has(key),
-	};
-	await executeCheckpointBatch(input);
-	await executeCheckpointBatch(input);
-	expect(rows).toEqual([1, 2]);
-});
-
-Given("a cutover failure has produced verified rollback guidance", async ({ authWorld }) => {
-	authWorld.values.set("restoreDecision", await executeCutoverWorkflow({ runId: "bdd-restore", failAt: "identity", maintenanceInitially: true }));
-});
-
-When("no operator has authorized restoration", async ({ authWorld }) => {
-	authWorld.values.set("restoreAuthorized", false);
-});
-
-Then("the workflow does not restore or overwrite the production database automatically", async ({ authWorld }) => {
-	expect(authWorld.values.get("restoreAuthorized")).toBe(false);
-	expect(authWorld.values.get("restoreDecision")).toEqual(expect.objectContaining({ restoreAttempted: false, reopened: false }));
-});
-
-Given("a migrated provider account has a revoked refresh credential", async ({ authWorld }) => {
-	authWorld.values.set("ownershipBeforeRefresh", { creatorId: "creator-bdd", accountId: "account-bdd", credentialVersion: 1 });
-	authWorld.values.set("refreshAuthority", new BetterAuthRefreshAuthority(async () => ({ accessToken: "replacement", expiresAt: new Date(Date.now() + 60_000) })));
-});
-
-When("the credential refresh smoke check runs", async ({ authWorld }) => {
-	const authority = authWorld.values.get("refreshAuthority") as BetterAuthRefreshAuthority<{ accessToken: string; expiresAt: Date }>;
+When(/^the agency requests a reduction to (\d+) seats$/, async ({ authWorld }, requested: string) => {
+	const floors = authWorld.values.get("agencyBillingFloors") as { current: number; minimum: number; occupied: number };
 	try {
-		await authority.refresh("account-bdd", { expiresAt: new Date(Date.now() + 60_000), revokedAt: new Date() });
+		decideAgencySeatChange({ currentQuantity: floors.current, requestedQuantity: Number(requested), minimumQuantity: floors.minimum, occupiedQuantity: floors.occupied });
+		authWorld.values.set("agencyBillingFloorError", null);
 	} catch (error) {
-		authWorld.values.set("refreshError", error);
+		authWorld.values.set("agencyBillingFloorError", error instanceof Error ? error.message : "UNKNOWN_ERROR");
 	}
-	authWorld.values.set("revokedWorkflow", await executeCutoverWorkflow({ runId: "bdd-revoked", failAt: "smoke", maintenanceInitially: true, originatingError: new Error("CREDENTIAL_REVOKED") }));
 });
 
-Then("the cutover reports the originating provider failure", async ({ authWorld }) => {
-	expect(authWorld.values.get("refreshError")).toEqual(expect.objectContaining({ message: "CREDENTIAL_REVOKED" }));
-	expect(authWorld.values.get("revokedWorkflow")).toEqual(expect.objectContaining({ error: "CREDENTIAL_REVOKED", failedAt: "smoke" }));
-});
-
-Then("no creator ownership or credential record is overwritten", async ({ authWorld }) => {
-	expect(authWorld.values.get("ownershipBeforeRefresh")).toEqual({ creatorId: "creator-bdd", accountId: "account-bdd", credentialVersion: 1 });
-});
-
-Then("service is not reopened while the blocking check fails", async ({ authWorld }) => {
-	expect(authWorld.values.get("revokedWorkflow")).toEqual(expect.objectContaining({ ok: false, maintenance: true, reopened: false }));
+Then(/^the change is rejected with (AGENCY_[A-Z_]+)$/, async ({ authWorld }, errorCode: string) => {
+	expect(authWorld.values.get("agencyBillingFloorError")).toBe(errorCode);
 });

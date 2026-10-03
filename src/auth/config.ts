@@ -1,6 +1,6 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { emailOTP, organization } from "better-auth/plugins";
+import { emailOTP, oAuthProxy, organization } from "better-auth/plugins";
 import { passkey } from "@better-auth/passkey";
 import { db } from "@/db/client";
 import * as schema from "@/db/auth-schema";
@@ -13,10 +13,14 @@ import { requiredAuthSetting } from "./environment";
 
 const resolvedBaseUrl = resolveBaseUrl();
 const baseURL = resolvedBaseUrl.origin;
+const productionURL = "https://clipify.us";
+const isLoopbackOrigin = ["localhost", "127.0.0.1", "::1"].includes(resolvedBaseUrl.hostname);
+const oauthProxySecret = process.env.OAUTH_PROXY_SECRET?.trim() || undefined;
 
 export const auth = betterAuth({
 	appName: "Clipify",
 	baseURL,
+	trustedOrigins: [baseURL, productionURL, "https://www.clipify.us", "https://es.clipify.us", "http://localhost:3000", "https://*.clipify.cloud.thedannicraft.de"],
 	secret: requiredAuthSetting("BETTER_AUTH_SECRET", "JWT_SECRET"),
 	database: drizzleAdapter(db, {
 		provider: "pg",
@@ -60,6 +64,13 @@ export const auth = betterAuth({
 		},
 	},
 	plugins: [
+		oAuthProxy({
+			// Twitch accepts the registered localhost callback directly. Only remote
+			// non-production deployments need to traverse the stable production URL.
+			productionURL: isLoopbackOrigin ? baseURL : productionURL,
+			secret: oauthProxySecret,
+			maxAge: 60,
+		}),
 		emailOTP({
 			expiresIn: EMAIL_OTP_POLICY.expiresInSeconds,
 			allowedAttempts: EMAIL_OTP_POLICY.allowedAttempts,
@@ -67,7 +78,12 @@ export const auth = betterAuth({
 			storeOTP: EMAIL_OTP_POLICY.storage,
 			disableSignUp: false,
 			changeEmail: { enabled: true, verifyCurrentEmail: true },
-			sendVerificationOTP: sendAuthOtp,
+			sendVerificationOTP: async (input) => {
+				// The account-security action sends change-email codes synchronously so
+				// delivery failures reach the UI instead of being swallowed by Better Auth's background runner.
+				if (input.type === "change-email") return;
+				await sendAuthOtp(input);
+			},
 		}),
 		passkey({
 			rpName: "Clipify",
@@ -86,6 +102,6 @@ export const auth = betterAuth({
 });
 
 // Better Auth runs database `after` hooks only after its adapter transaction
-// commits. The cutover runner therefore installs the reviewed PostgreSQL
-// trigger before backfill; it provisions creator ownership inside the account
-// insert transaction and is verified by TDD-US2-003.
+// commits. The reviewed PostgreSQL boundary in onboarding-database-boundary.ts
+// provisions creator ownership inside the account insert transaction and is
+// verified by TDD-US2-003.

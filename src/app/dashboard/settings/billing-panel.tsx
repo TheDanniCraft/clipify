@@ -30,22 +30,25 @@ export default function BillingPanel() {
 	const [selectedProducts, setSelectedProducts] = useState<Map<BillingProduct, BillingCycle>>(new Map());
 	const { isOpen: confirmOpen, open: openConfirm, setOpen: setConfirmOpen } = useOverlayState();
 
-	const reload = async () => {
-		setLoading(true);
-		try {
-			const [nextOverview, nextOptions] = await Promise.all([getBillingOverview(), getBillingProductOptions(BillingProduct.Pro)]);
-			setOverview(nextOverview);
-			setOptions(nextOptions.options);
-			setSelectedProducts(new Map(nextOverview.products.filter((product) => !product.cancelAtPeriodEnd).map((product) => [product.key, product.billingInterval ?? nextOptions.preferredBillingCycle ?? "yearly"] as [BillingProduct, BillingCycle])));
-		} catch {
-			addToast({ title: "Error", description: "Failed to load billing information.", color: "danger" });
-		} finally {
-			setLoading(false);
-		}
-	};
-
 	useEffect(() => {
-		void Promise.resolve().then(() => reload());
+		let cancelled = false;
+		void Promise.resolve().then(async () => {
+			setLoading(true);
+			try {
+				const [nextOverview, nextOptions] = await Promise.all([getBillingOverview(), getBillingProductOptions(BillingProduct.Pro)]);
+				if (cancelled) return;
+				setOverview(nextOverview);
+				setOptions(nextOptions.options);
+				setSelectedProducts(new Map(nextOverview.products.filter((product) => !product.cancelAtPeriodEnd).map((product) => [product.key, product.billingInterval ?? nextOptions.preferredBillingCycle ?? "yearly"] as [BillingProduct, BillingCycle])));
+			} catch {
+				if (!cancelled) addToast({ title: "Error", description: "Failed to load billing information.", color: "danger" });
+			} finally {
+				if (!cancelled) setLoading(false);
+			}
+		});
+		return () => {
+			cancelled = true;
+		};
 	}, []);
 
 	if (loading && !overview)
@@ -165,12 +168,12 @@ export default function BillingPanel() {
 													<Checkbox.Control>
 														<Checkbox.Indicator />
 													</Checkbox.Control>
+													<div>
+														<p className='font-medium'>{option.label}</p>
+														<p className='text-xs text-muted'>{locked ? "Included access" : option.description}</p>
+													</div>
 												</Checkbox.Content>
 											</Checkbox>
-											<div>
-												<p className='font-medium'>{option.label}</p>
-												<p className='text-xs text-muted'>{locked ? "Included access" : option.description}</p>
-											</div>
 										</div>
 										<div className='flex items-center gap-3'>
 											{option.owned ? (

@@ -4,11 +4,13 @@ import { randomUUID } from "node:crypto";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/db/client";
 import { invitation as authInvitationTable, member as authMemberTable, organization as authOrganizationTable, organizationRole as authOrganizationRoleTable } from "@/db/auth-schema";
-import { agencyAccountsTable, agencyCreatorLinksTable, agencyLicenseAllocationsTable, auditEventsTable, creatorAccountsTable, creatorIdentityLinksTable, notificationOutboxTable, usersTable } from "@/db/schema";
+import { agencyAccountsTable, agencyBillingAccountsTable, agencyCreatorLinksTable, agencyLicenseAllocationsTable, auditEventsTable, creatorAccountsTable, creatorIdentityLinksTable, notificationOutboxTable, usersTable } from "@/db/schema";
 import { getAuthSession } from "@/auth/session";
 import { PERMISSIONS, STANDARD_ROLES, type Permission } from "@/auth/permissions";
 import { resolveAgencyAccess } from "./access";
 import { buildAgencyAllocationGrantIntent, buildAgencyAllocationRemovalIntents } from "@/server/notifications/templates/agency-allocation";
+import { resolveBaseUrl } from "@/app/lib/baseUrl";
+import { sendTeamInvitation } from "@/auth/transactional-mail";
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -39,19 +41,40 @@ async function requireSession() {
 	return envelope.session;
 }
 
-async function requireAgencyMember(requiredPermission?: Permission) {
+export async function requireAgencyMember(requiredPermission?: Permission) {
 	const session = await requireSession();
-	const organizationId = session.activeOrganizationId;
+	let organizationId = session.activeOrganizationId ?? null;
 	if (!organizationId) throw new Error("AGENCY_CONTEXT_REQUIRED");
-	const [account, membership] = await Promise.all([
-		db.select().from(agencyAccountsTable).where(eq(agencyAccountsTable.organizationId, organizationId)).limit(1),
-		db
-			.select()
+	let account = await db.select().from(agencyAccountsTable).where(eq(agencyAccountsTable.organizationId, organizationId)).limit(1);
+	let membership = await db
+		.select()
+		.from(authMemberTable)
+		.where(and(eq(authMemberTable.organizationId, organizationId), eq(authMemberTable.userId, session.userId)))
+		.limit(1);
+	if (account[0]?.status === "owner_invited" && membership[0]?.role === "owner") {
+		const [activated] = await db
+			.update(agencyAccountsTable)
+			.set({ status: "active", updatedAt: new Date() })
+			.where(and(eq(agencyAccountsTable.organizationId, organizationId), eq(agencyAccountsTable.status, "owner_invited")))
+			.returning();
+		if (activated) account = [activated];
+	}
+	if (account[0] && (account[0].status !== "active" || !membership[0])) throw new Error("ACTIVE_AGENCY_MEMBERSHIP_REQUIRED");
+	if (!account[0] || !membership[0]) {
+		const creatorContext = await db.select({ organizationId: creatorAccountsTable.organizationId }).from(creatorAccountsTable).where(eq(creatorAccountsTable.organizationId, organizationId)).limit(1);
+		if (!creatorContext[0]) throw new Error("ACTIVE_AGENCY_MEMBERSHIP_REQUIRED");
+		const fallback = await db
+			.select({ account: agencyAccountsTable, membership: authMemberTable })
 			.from(authMemberTable)
-			.where(and(eq(authMemberTable.organizationId, organizationId), eq(authMemberTable.userId, session.userId)))
-			.limit(1),
-	]);
-	if (!account[0] || account[0].status !== "active" || !membership[0]) throw new Error("ACTIVE_AGENCY_MEMBERSHIP_REQUIRED");
+			.innerJoin(agencyAccountsTable, eq(agencyAccountsTable.organizationId, authMemberTable.organizationId))
+			.where(and(eq(authMemberTable.userId, session.userId), eq(agencyAccountsTable.status, "active")))
+			.limit(1);
+		if (!fallback[0]) throw new Error("ACTIVE_AGENCY_MEMBERSHIP_REQUIRED");
+		organizationId = fallback[0].account.organizationId;
+		account = [fallback[0].account];
+		membership = [fallback[0].membership];
+	}
+	if (!organizationId) throw new Error("ACTIVE_AGENCY_MEMBERSHIP_REQUIRED");
 	const customRole = await db
 		.select({ permission: authOrganizationRoleTable.permission })
 		.from(authOrganizationRoleTable)
@@ -75,7 +98,24 @@ async function requireCreatorOwner(creatorOrganizationId: string) {
 	return { session, creator: creator[0] };
 }
 
-export async function provisionDatabaseAgency(input: { name: string; ownerEmail: string; commercialReference?: string; creatorSeatLimit: number; now?: Date }) {
+export async function provisionDatabaseAgency(input: {
+	name: string;
+	ownerEmail: string;
+	commercialReference?: string;
+	creatorSeatLimit: number;
+	billing?: {
+		billingEmail: string;
+		collectionMethod: "charge_automatically" | "send_invoice";
+		daysUntilDue?: number | null;
+		creatorSeatPriceId: string;
+		creatorSeatMinimum: number;
+		creatorSeatQuantity: number;
+		runnerSeatPriceId?: string | null;
+		runnerSeatMinimum: number;
+		runnerSeatQuantity: number;
+	};
+	now?: Date;
+}) {
 	const { validateAuth } = await import("@actions/auth");
 	const administrator = await validateAuth(true);
 	if (!administrator) throw new Error("ADMIN_REQUIRED");
@@ -87,6 +127,20 @@ export async function provisionDatabaseAgency(input: { name: string; ownerEmail:
 	const ownerEmail = input.ownerEmail.trim().toLowerCase();
 	const name = input.name.trim();
 	if (!name || !ownerEmail.includes("@") || !Number.isInteger(input.creatorSeatLimit) || input.creatorSeatLimit < 0) throw new Error("INVALID_AGENCY_PROVISIONING_INPUT");
+	if (input.billing) {
+		const billing = input.billing;
+		const quantities = [billing.creatorSeatMinimum, billing.creatorSeatQuantity, billing.runnerSeatMinimum, billing.runnerSeatQuantity];
+		if (
+			!billing.billingEmail.includes("@") ||
+			!billing.creatorSeatPriceId.startsWith("price_") ||
+			quantities.some((quantity) => !Number.isSafeInteger(quantity) || quantity < 0) ||
+			billing.creatorSeatQuantity < billing.creatorSeatMinimum ||
+			billing.runnerSeatQuantity < billing.runnerSeatMinimum ||
+			(billing.runnerSeatQuantity > 0 && !billing.runnerSeatPriceId?.startsWith("price_")) ||
+			(billing.collectionMethod === "send_invoice" && (!billing.daysUntilDue || billing.daysUntilDue < 1 || billing.daysUntilDue > 90))
+		)
+			throw new Error("INVALID_AGENCY_BILLING_TERMS");
+	}
 	const slug = `${
 		name
 			.toLowerCase()
@@ -98,11 +152,44 @@ export async function provisionDatabaseAgency(input: { name: string; ownerEmail:
 	await db.transaction(async (tx) => {
 		await tx.insert(authOrganizationTable).values({ id: organizationId, name, slug, createdAt: now, metadata: JSON.stringify({ accountType: "agency" }) });
 		await tx.insert(agencyAccountsTable).values({ organizationId, status: "owner_invited", commercialReference: input.commercialReference?.trim() || null, creatorSeatLimit: input.creatorSeatLimit, provisionedBy: identity[0].authUserId, createdAt: now, updatedAt: now });
+		if (input.billing) {
+			await tx.insert(agencyBillingAccountsTable).values({
+				organizationId,
+				billingEmail: input.billing.billingEmail.trim().toLowerCase(),
+				collectionMethod: input.billing.collectionMethod,
+				daysUntilDue: input.billing.collectionMethod === "send_invoice" ? input.billing.daysUntilDue : null,
+				creatorSeatPriceId: input.billing.creatorSeatPriceId,
+				creatorSeatMinimum: input.billing.creatorSeatMinimum,
+				creatorSeatQuantity: 0,
+				pendingCreatorSeatQuantity: input.billing.creatorSeatQuantity,
+				runnerSeatPriceId: input.billing.runnerSeatPriceId || null,
+				runnerSeatMinimum: input.billing.runnerSeatMinimum,
+				runnerSeatQuantity: 0,
+				pendingRunnerSeatQuantity: input.billing.runnerSeatQuantity || null,
+				createdAt: now,
+				updatedAt: now,
+			});
+		}
 		await tx.insert(authInvitationTable).values({ id: invitationId, organizationId, email: ownerEmail, role: "owner", status: "pending", expiresAt: new Date(now.getTime() + SEVEN_DAYS_MS), createdAt: now, inviterId: identity[0].authUserId });
 		await tx.insert(notificationOutboxTable).values({ eventType: "agency-access", recipient: ownerEmail, authorityOrganizationId: organizationId, templateVersion: "agency-owner-invitation-v1", locale: "en", payload: { agencyName: name }, scheduledAt: now, dedupeKey: `agency-owner-invitation:${invitationId}` });
 		await tx.insert(auditEventsTable).values({ actorUserId: identity[0].authUserId, accountOrganizationId: organizationId, targetType: "agency_account", targetId: organizationId, action: "agency.provision", outcome: "success", correlationId: `agency-provision:${organizationId}`, metadata: { creatorSeatLimit: input.creatorSeatLimit } });
 	});
-	return { organizationId, invitationId, status: "owner_invited" as const };
+	const invitationUrl = new URL("/accept-invitation", resolveBaseUrl());
+	invitationUrl.searchParams.set("invitationId", invitationId);
+	let emailSent = false;
+	if (process.env.E2E_TEST_MODE !== "true") {
+		try {
+			await sendTeamInvitation({ email: ownerEmail, invitationUrl: invitationUrl.toString(), organizationName: name });
+			await db
+				.update(notificationOutboxTable)
+				.set({ status: "sent", providerMessageId: "direct-delivery", updatedAt: new Date() })
+				.where(eq(notificationOutboxTable.dedupeKey, `agency-owner-invitation:${invitationId}`));
+			emailSent = true;
+		} catch (error) {
+			console.error("[agency] owner invitation email failed", error);
+		}
+	}
+	return { organizationId, invitationId, invitationUrl: invitationUrl.toString(), emailSent, status: "owner_invited" as const };
 }
 
 export async function activateDatabaseAgencyOwner(input: { organizationId: string; now?: Date }) {
@@ -120,6 +207,27 @@ export async function activateDatabaseAgencyOwner(input: { organizationId: strin
 		.where(and(eq(agencyAccountsTable.organizationId, input.organizationId), eq(agencyAccountsTable.status, "owner_invited")))
 		.returning();
 	return updated ?? (await db.select().from(agencyAccountsTable).where(eq(agencyAccountsTable.organizationId, input.organizationId)).limit(1))[0];
+}
+
+/** Complete first-owner activation after Better Auth has atomically accepted the invitation. */
+export async function activateCurrentInvitedAgency(input: { organizationId: string; now?: Date }) {
+	const session = await requireSession();
+	const account = await db.select().from(agencyAccountsTable).where(eq(agencyAccountsTable.organizationId, input.organizationId)).limit(1);
+	if (!account[0]) return { agency: false as const, activated: false as const };
+	const membership = await db
+		.select({ role: authMemberTable.role })
+		.from(authMemberTable)
+		.where(and(eq(authMemberTable.organizationId, input.organizationId), eq(authMemberTable.userId, session.userId)))
+		.limit(1);
+	if (membership[0]?.role !== "owner") throw new Error("AGENCY_OWNER_REQUIRED");
+	if (account[0].status === "active") return { agency: true as const, activated: false as const };
+	if (account[0].status !== "owner_invited") throw new Error("AGENCY_ACTIVATION_STATE_INVALID");
+	const [updated] = await db
+		.update(agencyAccountsTable)
+		.set({ status: "active", updatedAt: input.now ?? new Date() })
+		.where(and(eq(agencyAccountsTable.organizationId, input.organizationId), eq(agencyAccountsTable.status, "owner_invited")))
+		.returning({ organizationId: agencyAccountsTable.organizationId });
+	return { agency: true as const, activated: Boolean(updated) };
 }
 
 export async function proposeDatabaseAgencyLink(input: { creatorOrganizationId: string; permissionCeiling: string[]; now?: Date }) {
@@ -212,9 +320,10 @@ export async function resolveDatabaseAgencyPermissions(input: { authUserId: stri
 	return resolveAgencyAccess({ membershipActive: true, linkStatus: link[0]?.status ?? null, rolePermissions: parseRolePermissions(membership[0].role, role[0]?.permission), permissionCeiling: link[0]?.permissionCeiling ?? [] });
 }
 
-export async function allocateDatabaseAgencyLicense(input: { linkId: string; sourceReference: string; now?: Date }) {
+export async function allocateDatabaseAgencyLicense(input: { linkId: string; sourceReference: string; product?: "creator_pro" | "runner"; now?: Date }) {
 	const actor = await requireAgencyMember("agency:allocate-license");
 	const now = input.now ?? new Date();
+	const product = input.product ?? "creator_pro";
 	return db.transaction(async (tx) => {
 		await tx.execute(sql`SELECT ${agencyAccountsTable.organizationId} FROM ${agencyAccountsTable} WHERE ${agencyAccountsTable.organizationId} = ${actor.account.organizationId} FOR UPDATE`);
 		const link = await tx
@@ -227,12 +336,13 @@ export async function allocateDatabaseAgencyLicense(input: { linkId: string; sou
 			.select({ id: agencyLicenseAllocationsTable.id })
 			.from(agencyLicenseAllocationsTable)
 			.innerJoin(agencyCreatorLinksTable, eq(agencyLicenseAllocationsTable.linkId, agencyCreatorLinksTable.id))
-			.where(and(eq(agencyCreatorLinksTable.agencyOrganizationId, actor.account.organizationId), inArray(agencyLicenseAllocationsTable.status, ["active", "removal_scheduled"])));
-		if (occupied.length >= actor.account.creatorSeatLimit) throw new Error("NO_AGENCY_SEAT_AVAILABLE");
+			.where(and(eq(agencyCreatorLinksTable.agencyOrganizationId, actor.account.organizationId), eq(agencyLicenseAllocationsTable.product, product), inArray(agencyLicenseAllocationsTable.status, ["active", "removal_scheduled"])));
+		const seatLimit = product === "runner" ? actor.account.runnerSeatLimit : actor.account.creatorSeatLimit;
+		if (occupied.length >= seatLimit) throw new Error(product === "runner" ? "NO_AGENCY_RUNNER_SEAT_AVAILABLE" : "NO_AGENCY_SEAT_AVAILABLE");
 		const creator = await tx.select({ creatorId: creatorAccountsTable.creatorId }).from(creatorAccountsTable).where(eq(creatorAccountsTable.organizationId, link[0].creatorOrganizationId)).limit(1);
 		if (!creator[0]) throw new Error("CREATOR_ACCOUNT_NOT_FOUND");
 		const id = randomUUID();
-		const [allocation] = await tx.insert(agencyLicenseAllocationsTable).values({ id, linkId: input.linkId, creatorId: creator[0].creatorId, status: "active", effectiveAt: now, sourceReference: input.sourceReference, createdAt: now, updatedAt: now }).returning();
+		const [allocation] = await tx.insert(agencyLicenseAllocationsTable).values({ id, linkId: input.linkId, creatorId: creator[0].creatorId, status: "active", product, effectiveAt: now, sourceReference: input.sourceReference, createdAt: now, updatedAt: now }).returning();
 		const recipient = await tx.select({ email: usersTable.email }).from(usersTable).where(eq(usersTable.id, creator[0].creatorId)).limit(1);
 		if (recipient[0]?.email) {
 			const intent = buildAgencyAllocationGrantIntent({ allocationId: id, recipient: recipient[0].email, agencyName: actor.account.organizationId, effectiveAt: now });
@@ -285,7 +395,9 @@ export async function listDatabaseAgencyOverview() {
 					),
 				)
 		: [];
-	return { account: actor.account, links, allocations, occupiedSeats: allocations.filter((allocation) => allocation.status === "active" || allocation.status === "removal_scheduled").length };
+	const billing = await db.select().from(agencyBillingAccountsTable).where(eq(agencyBillingAccountsTable.organizationId, actor.account.organizationId)).limit(1);
+	const occupied = allocations.filter((allocation) => allocation.status === "active" || allocation.status === "removal_scheduled");
+	return { account: actor.account, billing: billing[0] ?? null, links, allocations, occupiedSeats: occupied.filter((allocation) => allocation.product !== "runner").length, occupiedRunnerSeats: occupied.filter((allocation) => allocation.product === "runner").length };
 }
 
 export async function listDatabaseCreatorAgencyLinks() {

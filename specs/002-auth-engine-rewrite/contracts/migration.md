@@ -1,5 +1,9 @@
 # Contract: Auth Cutover Workflow
 
+> **Retired after successful cutover:** this contract records the command
+> surface used for the 2026-10-01 production migration. The executable runner
+> and package scripts were intentionally removed during schema contraction.
+
 ## Command surface
 
 Package commands (all configuration and credentials are injected into the

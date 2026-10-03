@@ -54,11 +54,9 @@ function FeatureTitle({ item }: { item: PricingFeatureItem }) {
 		<div className='flex items-center gap-1.5'>
 			<span>{item.title}</span>
 			<Tooltip delay={0} closeDelay={100} isOpen={isOpen} onOpenChange={setIsHoverOpen}>
-				<Tooltip.Trigger>
-					<Button ref={triggerRef} isIconOnly aria-expanded={isOpen} aria-label={`About ${item.title}`} className='h-6 min-h-6 w-6 min-w-6 shrink-0 text-muted' size='sm' variant='ghost' onBlur={() => setIsPinnedOpen(false)} onPress={() => setIsPinnedOpen((current) => !current)}>
-						<IconInfoCircle aria-hidden width={17} />
-					</Button>
-				</Tooltip.Trigger>
+				<Button ref={triggerRef} isIconOnly aria-expanded={isOpen} aria-label={`About ${item.title}`} className='h-6 min-h-6 w-6 min-w-6 shrink-0 text-muted' size='sm' variant='ghost' onBlur={() => setIsPinnedOpen(false)} onPress={() => setIsPinnedOpen((current) => !current)}>
+					<IconInfoCircle aria-hidden width={17} />
+				</Button>
 				<Tooltip.Content showArrow placement='right' className='w-80 max-w-[calc(100vw-2rem)] break-normal text-sm leading-relaxed'>
 					<Tooltip.Arrow />
 					<p>{item.helpText}</p>

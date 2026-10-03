@@ -4,19 +4,13 @@ import { TWITCH_REQUIRED_SCOPES } from "@/auth/providers/twitch";
 import { acceptInvitation, createInvitation, type InvitationRepository, type InvitationState } from "@/auth/invitations";
 import { authorize } from "@/auth/authorize";
 import { ControlledClock, createDeterministicTokenGenerator } from "../../support/auth-engine-rewrite/time";
-import { anonymizedLegacySnapshot } from "../../support/auth-engine-rewrite/legacy-snapshot";
-import { backfillLegacySnapshot, type BackfillRepository, type BackfillState } from "../../../scripts/auth-cutover/backfill";
-import { classifyDashboardSession, creatorSignInRecoveryPath } from "@/auth/session-boundary";
 import { evaluateOverlayRuntimeAccess, preserveOverlayRuntimeReference } from "@/server/overlay-runtime";
-import { buildManifest, verifyManifest } from "../../../scripts/auth-cutover/manifest";
-import { executeCheckpointBatch, parseCutoverCommand } from "../../../scripts/auth-cutover/state-machine";
-import { executeCutoverWorkflow, runCutoverSmoke, type SmokeChecks } from "../../../scripts/auth-cutover/smoke";
-import { scanLegacyConsumers } from "../../../scripts/auth-cutover/legacy-scan";
 import { AccountLifecycleService, type AccountLifecycleRepository, type AccountLifecycleState, type LifecycleActor } from "@/server/account-lifecycle/service";
 import { evaluateDeletionBoundary, recoverDeletion } from "@/server/account-lifecycle/recovery";
 import { AgencyService, createAgencyState } from "@/server/agencies/service";
 import { AgencyAllocationService, createAllocationState } from "@/server/agencies/allocations";
 import { resolveAgencyAccess } from "@/server/agencies/access";
+import { decideAgencySeatChange, resolveAgencyCapacitySnapshot } from "@/server/agencies/billing-policy";
 import { createAuthenticatedFixture, expect, test, type AuthFixture } from "../support/auth-engine-rewrite";
 
 const { Given, When, Then } = createBdd(test);
@@ -29,10 +23,11 @@ async function prepareInteractivePage(page: Page) {
 	const reject = page.getByRole("button", { name: "Reject optional" });
 	if (await reject.isVisible()) {
 		const persisted = page.waitForResponse((response) => response.url().includes("/api/c15t/subjects") && response.request().method() === "POST" && response.ok());
-		const refreshed = page.waitForNavigation({ waitUntil: "networkidle", timeout: 30_000 });
+		const refreshed = page.waitForNavigation({ waitUntil: "domcontentloaded", timeout: 30_000 });
 		await reject.click();
 		await Promise.all([persisted, refreshed]);
 	}
+	await expect(page.locator("html")).toHaveClass(/c15t-(?:light|dark)/, { timeout: 30_000 });
 }
 
 Given("a Clipify administrator provisioned an Agency Account after custom commercial terms were agreed", async ({ page, request, context, authWorld }) => {
@@ -42,11 +37,15 @@ Given("a Clipify administrator provisioned an Agency Account after custom commer
 	await expect(page.getByRole("heading", { name: "Agency accounts" })).toBeVisible({ timeout: 30_000 });
 	await prepareInteractivePage(page);
 	await page.getByLabel("Agency name").fill(agencyName);
-	await page.getByLabel("First owner email").fill(`e2e-agency-owner-${fixture.fixture.authUserId.slice(-8)}@example.invalid`);
+	const agencyOwnerEmail = `e2e-agency-owner-${fixture.fixture.authUserId.slice(-8)}@example.invalid`;
+	await page.getByLabel("First owner email").fill(agencyOwnerEmail);
+	await page.getByLabel("Billing email").fill(agencyOwnerEmail);
 	await page.getByLabel("Commercial reference").fill("e2e-atdd-contract");
-	await page.getByLabel("Creator seats").fill("2");
+	await page.getByLabel("Negotiated creator-seat Price ID").fill("price_e2e_creator");
+	await page.getByLabel("Creator-seat minimum").fill("2");
+	await page.getByLabel("Initial creator seats").fill("2");
 	await page.getByRole("button", { name: "Provision and invite owner" }).click();
-	await expect(page.getByText("Agency invitation created.", { exact: true })).toBeVisible({ timeout: DATABASE_ACTION_TIMEOUT_MS });
+	await expect(page.getByText("Agency account and owner invitation created.", { exact: true })).toBeVisible({ timeout: DATABASE_ACTION_TIMEOUT_MS });
 	await expect(page.getByText(agencyName, { exact: false })).toBeVisible();
 	const state = createAgencyState();
 	const service = new AgencyService(
@@ -96,7 +95,7 @@ When("the creator owner accepts the request with a creator-approved permission s
 	await expect(page.getByRole("heading", { name: "Agency access" })).toBeVisible({ timeout: 30_000 });
 	await prepareInteractivePage(page);
 	await page.getByRole("button", { name: "Approve agency access" }).click();
-	await expect(page.getByText("accepted", { exact: true })).toBeVisible({ timeout: DATABASE_ACTION_TIMEOUT_MS });
+	await expect(page.getByText("Accepted", { exact: true })).toBeVisible({ timeout: DATABASE_ACTION_TIMEOUT_MS });
 });
 
 Then("the staff member can manage the creator only through permissions present in both sets", async ({ authWorld }) => {
@@ -129,10 +128,13 @@ When("the agency allocates the license to that creator", async ({ page, authWorl
 	await page.goto(`/dashboard/agency?creator=${encodeURIComponent(fixture.fixture.creatorOrganizationId)}`);
 	await expect(page.getByRole("heading", { name: "Creator management" })).toBeVisible({ timeout: 30_000 });
 	await prepareInteractivePage(page);
-	await page.getByPlaceholder("Commercial allocation reference").fill("e2e-atdd-allocation");
+	const commercialReference = page.getByRole("textbox", { name: "Allocate Pro seat commercial reference" });
+	await commercialReference.fill("e2e-atdd-allocation");
+	await expect(commercialReference).toHaveValue("e2e-atdd-allocation");
 	await page.getByRole("button", { name: "Allocate Pro seat" }).click();
-	await expect(page.getByText("Creator license allocated.", { exact: true })).toBeVisible({ timeout: DATABASE_ACTION_TIMEOUT_MS });
-	await expect(page.getByText("1 of 2 creator seats occupied.", { exact: false })).toBeVisible({ timeout: DATABASE_ACTION_TIMEOUT_MS });
+	await expect(page.getByText("Creator Pro seat allocated.", { exact: true })).toBeVisible({ timeout: DATABASE_ACTION_TIMEOUT_MS });
+	const occupiedSeatCard = page.getByText("Occupied", { exact: true }).locator("..");
+	await expect(occupiedSeatCard.getByRole("heading", { name: "1", exact: true })).toBeVisible({ timeout: DATABASE_ACTION_TIMEOUT_MS });
 });
 
 Then("the creator receives the agency-funded capabilities", async ({ authWorld }) => {
@@ -148,55 +150,25 @@ Then("the creator receives one transactional allocation notice", async ({ authWo
 	expect(state.notifications.filter((notice) => notice.type === "granted")).toHaveLength(1);
 });
 
-class AtddBackfillRepository implements BackfillRepository {
-	state: BackfillState = { creators: [], resources: [], subscriptions: [], entitlements: [], authUsers: [], providerAccounts: [], organizations: [], memberships: [], identityLinks: [], anomalies: [], prunedEditors: [] };
-	async transaction<T>(operation: (draft: BackfillState, checkpoint: (name: "identity" | "membership") => Promise<void>) => Promise<T>) {
-		const draft = structuredClone(this.state);
-		const result = await operation(draft, async () => undefined);
-		this.state = draft;
-		return result;
-	}
-}
-
-Given("a representative legacy creator snapshot", async ({ authWorld }) => {
-	const snapshot = structuredClone(anonymizedLegacySnapshot);
-	snapshot.editors[0]!.editorTwitchSubject = snapshot.creators[1]!.twitchSubject;
-	authWorld.values.set("legacySnapshot", snapshot);
-	authWorld.values.set("backfillRepository", new AtddBackfillRepository());
+Given(/^an active agency subscription has (\d+) creator seats with a negotiated minimum of (\d+)$/, async ({ authWorld }, current: string, minimum: string) => {
+	authWorld.values.set("agencyBilling", { current: Number(current), minimum: Number(minimum), occupied: 40 });
 });
 
-When("the snapshot is migrated to Better Auth identities and memberships", async ({ authWorld }) => {
-	await backfillLegacySnapshot(authWorld.values.get("legacySnapshot") as typeof anonymizedLegacySnapshot, authWorld.values.get("backfillRepository") as AtddBackfillRepository);
+When(/^the agency owner requests (\d+) creator seats and Stripe payment is (paid|failed)$/, async ({ authWorld }, requested: string, paymentState: "paid" | "failed") => {
+	const billing = authWorld.values.get("agencyBilling") as { current: number; minimum: number; occupied: number };
+	const decision = decideAgencySeatChange({ currentQuantity: billing.current, requestedQuantity: Number(requested), minimumQuantity: billing.minimum, occupiedQuantity: billing.occupied });
+	const usableCapacity = decision.kind === "increase" ? resolveAgencyCapacitySnapshot({ previousQuantity: billing.current, stripeQuantity: decision.quantity, subscriptionStatus: "active", hasPendingUpdate: paymentState === "failed", collectionMethod: "charge_automatically", invoicePaymentConfirmed: paymentState === "paid" }) : billing.current;
+	authWorld.values.set("agencyBillingResult", { decision, usableCapacity, paymentState });
 });
 
-Then("all creator resource subscription and entitlement identifiers are unchanged", async ({ authWorld }) => {
-	const snapshot = authWorld.values.get("legacySnapshot") as typeof anonymizedLegacySnapshot;
-	const state = (authWorld.values.get("backfillRepository") as AtddBackfillRepository).state;
-	expect(state.creators).toEqual(snapshot.creators);
-	expect(state.resources).toEqual(snapshot.resources);
-	expect(state.subscriptions).toEqual(snapshot.subscriptions);
-	expect(state.entitlements).toEqual(snapshot.entitlements);
+Then(/^the seat change is applied (immediately|only after payment|next billing period)$/, async ({ authWorld }, timing: string) => {
+	const result = authWorld.values.get("agencyBillingResult") as { decision: ReturnType<typeof decideAgencySeatChange>; paymentState: "paid" | "failed" };
+	if (timing === "next billing period") expect(result.decision).toMatchObject({ kind: "decrease", effective: "next_period" });
+	else expect(result.decision).toMatchObject({ kind: "increase", paymentBehavior: "pending_if_incomplete" });
 });
 
-Then("the safely matched legacy editor receives Operations access", async ({ authWorld }) => {
-	const state = (authWorld.values.get("backfillRepository") as AtddBackfillRepository).state;
-	expect(state.memberships).toContainEqual(expect.objectContaining({ role: "operations" }));
-});
-
-Given("an otherwise valid legacy dashboard JWT", async ({ authWorld }) => {
-	authWorld.values.set("legacyJwt", "valid.header.signature");
-});
-
-When("the creator opens a protected dashboard after cutover", async ({ authWorld }) => {
-	authWorld.values.set("sessionDecision", classifyDashboardSession({ legacyDashboardCookie: String(authWorld.values.get("legacyJwt")), betterAuthSession: null }));
-});
-
-Then("the legacy dashboard JWT is rejected", async ({ authWorld }) => {
-	expect(authWorld.values.get("sessionDecision")).toEqual({ authenticated: false, reason: "better-auth-session-required" });
-});
-
-Then("the creator receives a recoverable Better Auth sign-in path", async () => {
-	expect(creatorSignInRecoveryPath("/dashboard")).toBe("/login?returnUrl=%2Fdashboard");
+Then(/^usable creator capacity is (\d+)$/, async ({ authWorld }, expected: string) => {
+	expect((authWorld.values.get("agencyBillingResult") as { usableCapacity: number }).usableCapacity).toBe(Number(expected));
 });
 
 Given("an unchanged live overlay URL and runtime secret", async ({ authWorld }) => {
@@ -205,7 +177,7 @@ Given("an unchanged live overlay URL and runtime secret", async ({ authWorld }) 
 	authWorld.values.set("overlayReference", { url: `https://clipify.us/embed/${overlay.id}`, secret: overlay.secret });
 });
 
-When("dashboard authentication is unavailable during cutover", async ({ authWorld }) => {
+When("the creator is signed out of the dashboard", async ({ authWorld }) => {
 	const overlay = authWorld.values.get("overlay") as { id: string; ownerId: string; secret: string };
 	authWorld.values.set("httpRuntime", evaluateOverlayRuntimeAccess({ channel: "http", overlay, ownerSuspended: false }));
 	authWorld.values.set("socketRuntime", evaluateOverlayRuntimeAccess({ channel: "websocket", overlay, presentedSecret: overlay.secret, ownerSuspended: false }));
@@ -250,7 +222,9 @@ Then("Better Auth requests the complete Twitch permission set", async ({ authWor
 
 Then("the callback targets the Clipify Better Auth Twitch route", async ({ authWorld }) => {
 	const authorizationUrl = new URL(String(authWorld.values.get("twitchAuthorizationUrl")));
-	expect(new URL(authorizationUrl.searchParams.get("redirect_uri") ?? "http://invalid").pathname).toBe("/api/auth/callback/twitch");
+	const callbackUrl = new URL(authorizationUrl.searchParams.get("redirect_uri") ?? "http://invalid");
+	expect(callbackUrl.origin).toBe("http://127.0.0.1:3107");
+	expect(callbackUrl.pathname).toBe("/api/auth/callback/twitch");
 });
 
 Then("a database-backed Better Auth session opens the creator dashboard", async ({ page, request, context }) => {
@@ -258,7 +232,7 @@ Then("a database-backed Better Auth session opens the creator dashboard", async 
 	try {
 		await page.goto(`/dashboard/settings/team?organization=${encodeURIComponent(fixture.fixture.creatorOrganizationId)}`);
 		await expect(page.getByRole("heading", { name: "Team members" })).toBeVisible({ timeout: 30_000 });
-		await expect(page.getByText("E2E Creator Account", { exact: false })).toBeVisible({ timeout: 30_000 });
+		await expect(page.getByRole("heading", { name: "E2E Creator Account" })).toBeVisible({ timeout: 30_000 });
 	} finally {
 		await page.close();
 	}
@@ -366,22 +340,24 @@ When(/^the owner (updates account information|requests an account export|cancels
 		const creatorPageSwitch = page.getByRole("switch", { name: "Enable creator page" });
 		await expect(creatorPageSwitch).toBeVisible({ timeout: DATABASE_ACTION_TIMEOUT_MS });
 		await expect(creatorPageSwitch).toBeEnabled({ timeout: DATABASE_ACTION_TIMEOUT_MS });
-		await creatorPageSwitch.setChecked(false, { force: true });
+		await creatorPageSwitch.focus();
+		await creatorPageSwitch.press("Space");
 		await expect(creatorPageSwitch).not.toBeChecked();
 		const saveCreatorPage = page.getByRole("button", { name: "Save Creator Page Settings" });
 		await expect(saveCreatorPage).toBeEnabled();
 		await saveCreatorPage.click();
 		await expect(page.getByText("Settings saved", { exact: true })).toBeVisible({ timeout: DATABASE_ACTION_TIMEOUT_MS });
 	} else if (operation === "requests an account export") {
-		const downloadStarted = page.waitForEvent("download");
 		await page.getByRole("button", { name: "Export Account Data" }).click();
-		const download = await downloadStarted;
-		expect(download.suggestedFilename()).toContain("clipify-account-");
+		const dialog = page.getByRole("dialog");
+		await expect(dialog.getByRole("heading", { name: "Request your Clipify data" })).toBeVisible();
+		await dialog.getByRole("button", { name: "Email download link" }).click();
+		await expect(page.getByText("Data export requested", { exact: true })).toBeVisible({ timeout: DATABASE_ACTION_TIMEOUT_MS });
 	} else {
 		await page.getByRole("tab", { name: "Billing" }).click();
 		const pro = page.getByRole("checkbox", { name: "Pro" });
 		await expect(pro).toBeVisible({ timeout: DATABASE_ACTION_TIMEOUT_MS });
-		await pro.setChecked(false, { force: true });
+		await pro.press("Space");
 		await expect(pro).not.toBeChecked();
 		const saveChanges = page.getByRole("button", { name: "Save changes", exact: true });
 		await expect(saveChanges).toBeEnabled();
@@ -421,7 +397,7 @@ When(/^(.+) has elapsed$/, async ({ page, request, authWorld }, recoveryTime: st
 		expect(adjusted.ok(), await adjusted.text()).toBe(true);
 	}
 	await page.goto("/dashboard/settings/account/recovery");
-	await expect(page.getByRole("heading", { name: "Account suspended pending deletion" })).toBeVisible({ timeout: 30_000 });
+	await expect(page.getByRole("heading", { name: recoveryTime === "at least 30 days" ? "Recovery period ended" : "Account suspended pending deletion" })).toBeVisible({ timeout: 30_000 });
 	await prepareInteractivePage(page);
 	authWorld.values.set("realDeletionBoundary", {
 		recoverable: await page.getByRole("button", { name: "Recover my account" }).isVisible(),
@@ -525,84 +501,4 @@ Then(/^suspension starts (.+)$/, async ({ authWorld }, expected: string) => {
 
 Then("Stripe remains responsible for billing lifecycle notices", async ({ authWorld }) => {
 	expect(authWorld.values.has("clipifyBillingNotice")).toBe(false);
-});
-
-Given("a verified backup and a valid pre-migration database", async ({ authWorld }) => {
-	authWorld.values.set("cutoverRows", [] as number[]);
-	authWorld.values.set("cutoverCommitted", new Set<string>());
-});
-
-When("the operator completes the cutover workflow twice against the same database state", async ({ authWorld }) => {
-	expect(parseCutoverCommand(["dry-run"])).toEqual({ mode: "dry-run" });
-	expect(parseCutoverCommand(["apply"])).toEqual({ mode: "apply" });
-
-	const rows = authWorld.values.get("cutoverRows") as number[];
-	const committed = authWorld.values.get("cutoverCommitted") as Set<string>;
-	const batch = {
-		runId: "atdd-cutover",
-		phase: "identity",
-		cursor: 0,
-		values: [1, 2, 3],
-		transaction: async <T>(operation: (writer: { write: (value: number) => void }) => Promise<T>) => {
-			const draft = [...rows];
-			const result = await operation({ write: (value) => draft.push(value) });
-			rows.splice(0, rows.length, ...draft);
-			return result;
-		},
-		onCommitted: (_cursor: number, key: string) => {
-			committed.add(key);
-		},
-		isCommitted: (key: string) => committed.has(key),
-	};
-	const first = await executeCheckpointBatch(batch);
-	const second = await executeCheckpointBatch(batch);
-	authWorld.values.set("cutoverBatchResults", [first, second]);
-
-	const invoked: string[] = [];
-	const checks = Object.fromEntries(
-		["sign-in", "allow-deny", "overlay", "refresh", "subscription", "entitlement", "outbox"].map((name) => [
-			name,
-			async () => {
-				invoked.push(name);
-				return true;
-			},
-		]),
-	) as SmokeChecks;
-	authWorld.values.set("cutoverSmoke", await runCutoverSmoke(checks));
-	authWorld.values.set("cutoverSmokeInvoked", invoked);
-	authWorld.values.set("cutoverWorkflow", await executeCutoverWorkflow({ runId: "atdd-cutover" }));
-	authWorld.values.set("cutoverManifest", buildManifest({ runId: "atdd-cutover", sourceFingerprint: "sha256:fixture", versions: { app: "fixture" }, createdAt: "2026-09-28T00:00:00.000Z" }));
-});
-
-Then("all cutover records are migrated exactly once", async ({ authWorld }) => {
-	expect(authWorld.values.get("cutoverRows")).toEqual([1, 2, 3]);
-	expect(authWorld.values.get("cutoverBatchResults")).toEqual([expect.objectContaining({ skipped: false }), expect.objectContaining({ skipped: true })]);
-});
-
-Then("every required invariant and smoke check passes before maintenance mode is removed", async ({ authWorld }) => {
-	expect(authWorld.values.get("cutoverSmoke")).toEqual(expect.objectContaining({ passed: true }));
-	expect(authWorld.values.get("cutoverSmokeInvoked")).toHaveLength(7);
-	expect(authWorld.values.get("cutoverWorkflow")).toEqual(expect.objectContaining({ ok: true, maintenance: false, reopened: true }));
-});
-
-Then("the immutable cutover manifest remains valid", async ({ authWorld }) => {
-	expect(verifyManifest(authWorld.values.get("cutoverManifest") as ReturnType<typeof buildManifest>)).toBe(true);
-});
-
-Given("migration validation and smoke checks have passed", async ({ authWorld }) => {
-	authWorld.values.set("legacyRemovalApproved", true);
-});
-
-When("the new identity runtime is activated", async ({ authWorld }) => {
-	authWorld.values.set("runtimeActivation", await executeCutoverWorkflow({ runId: "atdd-switch" }));
-	authWorld.values.set("legacyFindings", scanLegacyConsumers([{ path: "session.ts", content: "getAuthActorContext(); authorize(request); auth.api.getAccessToken();" }]));
-});
-
-Then("no request depends on the legacy auth runtime", async ({ authWorld }) => {
-	expect(authWorld.values.get("runtimeActivation")).toEqual(expect.objectContaining({ ok: true, reopened: true }));
-	expect(authWorld.values.get("legacyFindings")).toEqual([]);
-});
-
-Then("the legacy structures are eligible for approved removal", async ({ authWorld }) => {
-	expect(authWorld.values.get("legacyRemovalApproved")).toBe(true);
 });

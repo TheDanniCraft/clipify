@@ -2,7 +2,7 @@
 
 import type { Key } from "@heroui/react";
 import type { ReactNode } from "react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import * as Sentry from "@sentry/nextjs";
 import { ConsentManagerProvider, useConsentManager } from "@c15t/nextjs";
 import { useHeadlessConsentUI } from "@c15t/nextjs/headless";
@@ -21,6 +21,10 @@ import { legalDocumentRoutes } from "@lib/legal/documents";
 // c15t hydrates from localStorage before /init finishes. Drop expired local proof
 // before its provider can expose optional categories to integrations.
 if (typeof window !== "undefined") clearExpiredStoredConsent();
+
+const subscribeToHydration = () => () => undefined;
+const getHydratedSnapshot = () => true;
+const getServerHydratedSnapshot = () => false;
 
 function ConsentIntegrations() {
 	const { has, hasConsented, consentInfo } = useConsentManager();
@@ -56,6 +60,7 @@ function ConsentIntegrations() {
 }
 
 function ConsentInterface() {
+	const hydrated = useSyncExternalStore(subscribeToHydration, getHydratedSnapshot, getServerHydratedSnapshot);
 	const pathname = usePathname();
 	const embedded = isEmbeddedRoute(pathname);
 	const { banner, dialog, openBanner, openDialog, closeUI, performBannerAction, performDialogAction, saveCustomPreferences } = useHeadlessConsentUI();
@@ -84,7 +89,7 @@ function ConsentInterface() {
 		window.dispatchEvent(new CustomEvent<ConsentPreferencesVisibilityDetail>(CONSENT_PREFERENCES_VISIBILITY_EVENT, { detail: { visible: preferencesVisible } }));
 	}, [preferencesVisible]);
 
-	if (embedded) return null;
+	if (!hydrated || embedded) return null;
 
 	const visibleCategories = getDisplayedConsents();
 

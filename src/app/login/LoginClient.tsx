@@ -25,7 +25,7 @@ export default function LoginClient({ returnUrl }: { returnUrl: string }) {
 
 	return (
 		<div className='flex flex-col items-center gap-3'>
-			<Button aria-label='Login with Twitch' isDisabled={pending} isPending={pending} onPress={signInWithTwitch} size='lg' variant='primary'>
+			<Button aria-label='Login with Twitch' isDisabled={pending} isPending={pending} onPress={signInWithTwitch} size='lg' variant='tertiary'>
 				<IconBrandTwitch color='#8956FB' />
 				{pending ? "Connecting to Twitch…" : "Login with Twitch"}
 			</Button>

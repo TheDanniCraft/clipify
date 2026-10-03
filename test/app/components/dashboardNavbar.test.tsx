@@ -9,7 +9,18 @@ const getAdminViewCandidates = jest.fn();
 const switchAdminView = jest.fn();
 const stopAdminView = jest.fn();
 const getActiveCampaignOfferAction = jest.fn();
+const setActiveOrganization = jest.fn();
 let currentTheme = "dark";
+let identitySession: { data: { session: { activeOrganizationId: string | null } } | null; isPending: boolean } = { data: { session: { activeOrganizationId: "creator-org" } }, isPending: false };
+let organizationList: { data: Array<{ id: string; name: string; metadata: string }>; isPending: boolean } = { data: [], isPending: false };
+
+jest.mock("@/auth/client", () => ({
+	authClient: {
+		useSession: () => identitySession,
+		useListOrganizations: () => organizationList,
+		organization: { setActive: (...args: unknown[]) => setActiveOrganization(...args) },
+	},
+}));
 
 jest.mock("next-themes", () => ({
 	useTheme: () => ({
@@ -46,7 +57,15 @@ jest.mock("@components/logo", () => ({
 jest.mock("@heroui/react", () => {
 	const ReactLib = jest.requireActual<typeof import("react")>("react");
 	const ComboContext = ReactLib.createContext<{ inputValue?: string; onInputChange?: (value: string) => void; onSelectionChange?: (key: string) => void }>({});
+	const AutocompleteContext = ReactLib.createContext<{ onChange?: (key: string) => void }>({});
 	return {
+		Autocomplete: Object.assign(({ children, onChange }: { children: React.ReactNode; onChange?: (key: string) => void }) => <AutocompleteContext.Provider value={{ onChange }}>{children}</AutocompleteContext.Provider>, {
+			Trigger: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+			Value: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
+			Indicator: () => null,
+			Popover: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+			Filter: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+		}),
 		Avatar: Object.assign(({ children }: { children?: React.ReactNode }) => <div>{children}</div>, {
 			Image: ({ src }: { src?: string }) => <span data-avatar={src ?? ""} />,
 			Fallback: ({ children }: { children?: React.ReactNode }) => <span>{children}</span>,
@@ -78,10 +97,13 @@ jest.mock("@heroui/react", () => {
 			const context = ReactLib.useContext(ComboContext);
 			return <input aria-label='admin-switch-search' value={context.inputValue} onChange={(event) => context.onInputChange?.(event.target.value)} />;
 		},
+		EmptyState: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 		Label: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
 		ListBox: Object.assign(
-			({ children: _children, items = [] }: { children: React.ReactNode | ((item: { id: string; username: string }) => React.ReactNode); items?: Array<{ id: string; username: string }> }) => {
+			({ children, items = [] }: { children: React.ReactNode | ((item: { id: string; username: string }) => React.ReactNode); items?: Array<{ id: string; username: string }> }) => {
 				const context = ReactLib.useContext(ComboContext);
+				const autocomplete = ReactLib.useContext(AutocompleteContext);
+				if (autocomplete.onChange) return <div>{children as React.ReactNode}</div>;
 				return (
 					<select aria-label='admin-switch-select' onChange={(event) => context.onSelectionChange?.(event.target.value)}>
 						<option value=''>Select user</option>
@@ -94,12 +116,22 @@ jest.mock("@heroui/react", () => {
 				);
 			},
 			{
-				Item: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+				Item: ({ children, id }: { children: React.ReactNode; id?: string }) => {
+					const autocomplete = ReactLib.useContext(AutocompleteContext);
+					return autocomplete.onChange ? <button onClick={() => autocomplete.onChange?.(id ?? "")}>{children}</button> : <>{children}</>;
+				},
 				ItemIndicator: () => null,
 			},
 		),
 		Link: ({ children, href }: { children: React.ReactNode; href?: string }) => <a href={href}>{children}</a>,
+		SearchField: Object.assign(({ children }: { children: React.ReactNode }) => <div>{children}</div>, {
+			Group: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+			SearchIcon: () => null,
+			Input: () => <input aria-label='Search accounts' />,
+			ClearButton: () => null,
+		}),
 		Spacer: () => <span />,
+		useFilter: () => ({ contains: () => true }),
 	};
 });
 
@@ -115,6 +147,9 @@ describe("components/dashboardNavbar", () => {
 		]);
 		switchAdminView.mockResolvedValue({ ok: true });
 		stopAdminView.mockResolvedValue(undefined);
+		setActiveOrganization.mockResolvedValue({ data: {}, error: null });
+		identitySession = { data: { session: { activeOrganizationId: "creator-org" } }, isPending: false };
+		organizationList = { data: [], isPending: false };
 	});
 
 	afterEach(() => {
@@ -167,6 +202,25 @@ describe("components/dashboardNavbar", () => {
 		expect(screen.getByText("Upgrade to Pro")).toBeInTheDocument();
 		fireEvent.click(screen.getByText("Upgrade to Pro"));
 		expect(routerPush).toHaveBeenCalledWith(expect.stringContaining("upgrade"));
+	});
+
+	it("shows the active account in a compact context selector and switches organizations", async () => {
+		organizationList = {
+			data: [
+				{ id: "creator-org", name: "alice", metadata: JSON.stringify({ accountType: "creator" }) },
+				{ id: "agency-org", name: "Example Agency", metadata: JSON.stringify({ accountType: "agency" }) },
+			],
+			isPending: false,
+		};
+
+		render(<DashboardNavbar user={mockUser()} title='Dashboard' tagline='Test' />);
+
+		expect(screen.getAllByText("alice").length).toBeGreaterThan(0);
+		fireEvent.click(screen.getByRole("button", { name: /Example Agency/i }));
+
+		await waitFor(() => expect(setActiveOrganization).toHaveBeenCalledWith({ organizationId: "agency-org" }));
+		expect(routerPush).toHaveBeenCalledWith("/dashboard/agency");
+		expect(routerRefresh).toHaveBeenCalled();
 	});
 
 	it("hides upgrade link for pro users", () => {
@@ -300,7 +354,7 @@ describe("components/dashboardNavbar", () => {
 		expect(switchAdminView).not.toHaveBeenCalled();
 	});
 
-	it("shows exit admin view in dropdown when impersonating", () => {
+	it("shows exit admin view in dropdown when impersonating", async () => {
 		render(
 			<DashboardNavbar
 				user={mockUser({
@@ -315,6 +369,6 @@ describe("components/dashboardNavbar", () => {
 
 		expect(screen.getByText("Exit Admin View")).toBeInTheDocument();
 		fireEvent.click(screen.getByText("Exit Admin View"));
-		expect(stopAdminView).toHaveBeenCalled();
+		await waitFor(() => expect(stopAdminView).toHaveBeenCalled());
 	});
 });

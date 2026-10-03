@@ -19,7 +19,7 @@ import FloatingBanner from "@components/floatingBanner";
 import DemoPlayer from "@components/DemoPlayer";
 import CountdownTimer from "@components/countdownTimer";
 import { getPublicCommunityTeaserAction } from "@actions/community";
-import type { CommunityTeaserStreamer } from "@lib/community-types";
+import type { CommunityTeaserPayload } from "@lib/community-types";
 import type { RuntimePricing } from "@components/Pricing/pricing-types";
 
 export function buildCampaignOfferHref(ctaHref: string, utmCampaign?: string | null): string {
@@ -46,14 +46,14 @@ export default function HomePageClient({ campaignOffer, pricing }: HomePageClien
 	const floatingCtaLabel = campaignOffer?.floatingCtaLabel ?? campaignOffer?.ctaLabel;
 	const floatingTitle = campaignOffer?.floatingTitle ?? campaignOffer?.badgeText ?? campaignOffer?.title;
 	const floatingSubtitle = campaignOffer?.floatingSubtitle ?? campaignOffer?.subtitle ?? campaignOffer?.title;
-	const [communityPreview, setCommunityPreview] = useState<CommunityTeaserStreamer[] | null>(null);
-	const communityStreamers = communityPreview ?? [];
+	const [communityPreview, setCommunityPreview] = useState<CommunityTeaserPayload | null>(null);
+	const communityStreamers = communityPreview?.streamers ?? [];
 
 	useEffect(() => {
 		let cancelled = false;
 
 		getPublicCommunityTeaserAction()
-			.then((payload: CommunityTeaserStreamer[]) => {
+			.then((payload: CommunityTeaserPayload) => {
 				if (!cancelled && payload) {
 					setCommunityPreview(payload);
 				}
@@ -172,7 +172,7 @@ export default function HomePageClient({ campaignOffer, pricing }: HomePageClien
 													type: "spring",
 												}}
 											>
-												<CommunityTeaser streamers={communityStreamers} countClassName='ml-2 text-xs font-medium text-white/70' />
+												<CommunityTeaser streamers={communityStreamers} totalCount={communityPreview?.totalCount} countClassName='ml-2 text-xs font-medium text-white/70' />
 											</motion.div>
 										) : null}
 									</AnimatePresence>

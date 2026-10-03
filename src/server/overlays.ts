@@ -8,6 +8,8 @@ import { eq } from "drizzle-orm";
 import { evaluateOverlayRuntimeAccess, type OverlayRuntimeChannel, type OverlayRuntimeDecision } from "@/server/overlay-runtime";
 import { authorizeCreatorOperation } from "@/auth/authorize-operation";
 import type { Permission } from "@/auth/permissions";
+import { resolveRetainedResourceAccess } from "@/server/entitlements/resource-access";
+import { applyFreeOverlayRuntimePolicy } from "@/server/entitlements/overlay-policy";
 
 export async function canEditOwnerInternal(editorId: string, ownerId: string): Promise<boolean> {
 	void editorId;
@@ -47,9 +49,16 @@ export async function getOverlayRuntimeAccessInternal(overlayId: string, channel
 	const creatorAccountsTable = databaseSchema.creatorAccountsTable as typeof databaseSchema.creatorAccountsTable | undefined;
 	const accountRows = creatorAccountsTable ? ((await db.select({ status: creatorAccountsTable.status }).from(creatorAccountsTable).where(eq(creatorAccountsTable.creatorId, overlay.ownerId)).limit(1).execute()) ?? []) : [];
 	const accountStatus = accountRows[0]?.status;
+	const resourceAccess = await resolveRetainedResourceAccess({ kind: "overlay", ownerId: overlay.ownerId, resourceId: overlay.id });
+	if (!resourceAccess.runtime) return { allowed: false, reason: "plan-restricted" };
+	let effectiveOverlay = resourceAccess.effectivePlan === "free" ? applyFreeOverlayRuntimePolicy(overlay) : overlay;
+	if (resourceAccess.effectivePlan === "free" && effectiveOverlay.playlistId) {
+		const playlistAccess = await resolveRetainedResourceAccess({ kind: "playlist", ownerId: overlay.ownerId, resourceId: effectiveOverlay.playlistId, effectivePlan: "free" });
+		if (!playlistAccess.runtime) effectiveOverlay = { ...effectiveOverlay, playlistId: null };
+	}
 	return evaluateOverlayRuntimeAccess({
 		channel,
-		overlay,
+		overlay: effectiveOverlay,
 		presentedSecret,
 		ownerSuspended: ownerRows[0]?.disabled === true || accountStatus === "suspended" || accountStatus === "purge_eligible",
 		ownerDisabledReason: ownerRows[0]?.disabledReason ?? (accountStatus === "suspended" || accountStatus === "purge_eligible" ? "account_deletion" : null),

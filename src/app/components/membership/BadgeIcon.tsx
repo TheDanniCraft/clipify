@@ -15,11 +15,9 @@ export default function BadgeIcon({ badge }: { badge: Pick<MemberBadgeView, "slu
 	const Icon = icons[key];
 	return (
 		<Tooltip delay={150} isOpen={isOpen} onOpenChange={setIsOpen}>
-			<Tooltip.Trigger>
-				<Button isIconOnly variant='ghost' className='size-9 min-w-9 rounded-full text-accent' aria-label={`${badge.name}: ${badge.description}`} onPress={() => setIsOpen(true)}>
-					<Icon size={22} aria-hidden='true' data-badge-icon={key} />
-				</Button>
-			</Tooltip.Trigger>
+			<Button isIconOnly variant='ghost' className='size-9 min-w-9 rounded-full text-accent' aria-label={`${badge.name}: ${badge.description}`} onPress={() => setIsOpen(true)}>
+				<Icon size={22} aria-hidden='true' data-badge-icon={key} />
+			</Button>
 			<Tooltip.Content className='max-w-64'>
 				<Tooltip.Arrow />
 				<div className='space-y-1'>

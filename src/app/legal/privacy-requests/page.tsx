@@ -39,7 +39,7 @@ export default function PrivacyRequestsPage() {
 					</h2>
 					<p className='mt-3 max-w-3xl leading-7 text-foreground/75'>
 						Email{" "}
-						<a className='font-medium text-primary underline-offset-4 hover:underline' href={`mailto:${privacyRequestGuidance.contact.email}`}>
+						<a className='font-medium text-primary underline decoration-primary/60 underline-offset-4 hover:decoration-primary' href={`mailto:${privacyRequestGuidance.contact.email}`}>
 							{privacyRequestGuidance.contact.email}
 						</a>
 						. No Clipify account is required, and a request sent through another clear contact channel will not be rejected solely because you did not use this page.

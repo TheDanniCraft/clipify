@@ -26,42 +26,40 @@ export default function ConfirmModal({ isOpen, onOpenChange, keyword, content, c
 	const effectiveConfirmLabel = keyword && confirmLabel === "Confirm" ? "Delete" : confirmLabel;
 
 	return (
-		<Modal>
-			<Modal.Backdrop isOpen={isOpen} onOpenChange={onOpenChange}>
-				<Modal.Container>
-					<Modal.Dialog>
-						<Modal.CloseTrigger />
-						<Modal.Header>
-							<Modal.Heading>
-								<div className='flex items-center'>
-									<IconAlertTriangle />
-									<p className='ml-2'>{title}</p>
-								</div>
-							</Modal.Heading>
-						</Modal.Header>
-						<Modal.Body className='gap-4'>
-							{content ?? <div className='leading-snug'>{description ?? (keyword ? `Are you sure that you want to delete ${keyword}?` : "Are you sure you want to continue?")}</div>}
-							{requiresKeyword ? (
-								<TextField className='pt-4 mb-2' variant='secondary' isRequired>
-									<Label>
-										Type <strong>{keyword}</strong> to continue
-									</Label>
-									<Input variant='secondary' onChange={(event) => setConfirmed(event.target.value === keyword)} placeholder={keyword} />
-									<FieldError />
-								</TextField>
-							) : null}
-							<div className='mt-3 flex justify-end gap-2'>
-								<Button onPress={() => onOpenChange(false)} variant={cancelVariant}>
-									{cancelLabel}
-								</Button>
-								<Button isDisabled={requiresKeyword && !confirmed} onPress={onConfirm} variant={confirmVariant}>
-									{effectiveConfirmLabel}
-								</Button>
+		<Modal.Backdrop isOpen={isOpen} onOpenChange={onOpenChange}>
+			<Modal.Container>
+				<Modal.Dialog>
+					<Modal.CloseTrigger />
+					<Modal.Header>
+						<Modal.Heading>
+							<div className='flex items-center'>
+								<IconAlertTriangle />
+								<p className='ml-2'>{title}</p>
 							</div>
-						</Modal.Body>
-					</Modal.Dialog>
-				</Modal.Container>
-			</Modal.Backdrop>
-		</Modal>
+						</Modal.Heading>
+					</Modal.Header>
+					<Modal.Body className='gap-4'>
+						{content ?? <div className='leading-snug'>{description ?? (keyword ? `Are you sure that you want to delete ${keyword}?` : "Are you sure you want to continue?")}</div>}
+						{requiresKeyword ? (
+							<TextField className='pt-4 mb-2' variant='secondary' isRequired>
+								<Label>
+									Type <strong>{keyword}</strong> to continue
+								</Label>
+								<Input variant='secondary' onChange={(event) => setConfirmed(event.target.value === keyword)} placeholder={keyword} />
+								<FieldError />
+							</TextField>
+						) : null}
+						<div className='mt-3 flex justify-end gap-2'>
+							<Button onPress={() => onOpenChange(false)} variant={cancelVariant}>
+								{cancelLabel}
+							</Button>
+							<Button isDisabled={requiresKeyword && !confirmed} onPress={onConfirm} variant={confirmVariant}>
+								{effectiveConfirmLabel}
+							</Button>
+						</div>
+					</Modal.Body>
+				</Modal.Dialog>
+			</Modal.Container>
+		</Modal.Backdrop>
 	);
 }

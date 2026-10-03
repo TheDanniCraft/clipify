@@ -1,4 +1,4 @@
-export type IdentitySecurityTemplateInput = { type: "welcome"; name: string } | { type: "invitation"; organizationName: string; invitationUrl: string } | { type: "security"; message: string } | { type: "agency-access"; agencyName: string; creatorName: string; status: "granted" | "removed" };
+export type IdentitySecurityTemplateInput = { type: "welcome"; name: string } | { type: "invitation"; organizationName: string; invitationUrl: string } | { type: "security"; message: string } | { type: "account-data-export"; downloadUrl: string; expiresAt: Date } | { type: "agency-access"; agencyName: string; creatorName: string; status: "granted" | "removed" };
 
 export interface RenderedTransactionalEmail {
 	subject: string;
@@ -16,6 +16,10 @@ export function renderIdentitySecurityEmail(input: IdentitySecurityTemplateInput
 	}
 	if (input.type === "security") {
 		return wrap("Clipify security notice", input.message, `<p>${escapeHtml(input.message)}</p>`);
+	}
+	if (input.type === "account-data-export") {
+		const expiration = input.expiresAt.toUTCString();
+		return wrap("Your Clipify data export is ready", `Download your Clipify data export before ${expiration}: ${input.downloadUrl}\n\nThe link only works while signed in to the account that requested it. Do not share it.`, `<p>Your Clipify data export is ready.</p><p><a href="${escapeHtml(input.downloadUrl)}">Download your data package</a></p><p>This link expires on <strong>${escapeHtml(expiration)}</strong> and only works while signed in to the account that requested it. Do not share it.</p>`);
 	}
 	const verb = input.status === "granted" ? "granted" : "removed";
 	return wrap(`Agency access ${verb} on Clipify`, `${input.agencyName} access to ${input.creatorName} was ${verb}.`, `<p><strong>${escapeHtml(input.agencyName)}</strong> access to <strong>${escapeHtml(input.creatorName)}</strong> was ${verb}.</p>`);

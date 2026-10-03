@@ -113,7 +113,10 @@ export async function authorizeCreatorOperation(input: { creatorId: string; perm
 		permission: input.permission,
 		access,
 		entitlements: entitlementNames,
-		requiredEntitlement: input.requiredEntitlement,
+		// Direct team membership is a creator Pro capability. Owners always retain
+		// access to their own account, while agency access follows the separately
+		// contracted agency/allocation path.
+		requiredEntitlement: input.requiredEntitlement ?? (access.kind === "direct" ? "pro" : undefined),
 		requireRecentAuth: input.requireRecentAuth,
 		ownerOnlyAction: input.ownerOnlyAction,
 		now,

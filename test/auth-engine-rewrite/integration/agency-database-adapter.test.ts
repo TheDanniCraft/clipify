@@ -24,6 +24,7 @@ jest.mock("@/db/schema", () => {
 	const table = (name: string) => new Proxy({ _name: name }, { get: (target, property) => (property in target ? target[property as keyof typeof target] : `${name}.${String(property)}`) });
 	return {
 		agencyAccountsTable: table("agency_accounts"),
+		agencyBillingAccountsTable: table("agency_billing_accounts"),
 		agencyCreatorLinksTable: table("agency_creator_links"),
 		agencyLicenseAllocationsTable: table("agency_license_allocations"),
 		auditEventsTable: table("audit_events"),
@@ -51,7 +52,7 @@ const validateAuth = jest.fn();
 jest.mock("@/auth/session", () => ({ getAuthSession: (...args: unknown[]) => getAuthSession(...args) }));
 jest.mock("@actions/auth", () => ({ validateAuth: (...args: unknown[]) => validateAuth(...args) }));
 
-import { acceptDatabaseAgencyLink, activateDatabaseAgencyOwner, allocateDatabaseAgencyLicense, endDueDatabaseAgencyAllocations, listDatabaseAdminAgencies, listDatabaseAgencyOverview, listDatabaseCreatorAgencyLinks, proposeDatabaseAgencyLink, provisionDatabaseAgency, reduceDatabaseAgencyLinkCeiling, resolveDatabaseAgencyPermissions, revokeDatabaseAgencyLink, scheduleDatabaseAgencyLicenseRemoval } from "@/server/agencies/database";
+import { acceptDatabaseAgencyLink, activateCurrentInvitedAgency, activateDatabaseAgencyOwner, allocateDatabaseAgencyLicense, endDueDatabaseAgencyAllocations, listDatabaseAdminAgencies, listDatabaseAgencyOverview, listDatabaseCreatorAgencyLinks, proposeDatabaseAgencyLink, provisionDatabaseAgency, reduceDatabaseAgencyLinkCeiling, resolveDatabaseAgencyPermissions, revokeDatabaseAgencyLink, scheduleDatabaseAgencyLicenseRemoval } from "@/server/agencies/database";
 import { PERMISSIONS } from "@/auth/permissions";
 
 const { db, __agencyDbState: state } = jest.requireMock("@/db/client") as {
@@ -92,6 +93,30 @@ describe("TDD-US4-004 agency database adapter", () => {
 		await expect(provisionDatabaseAgency({ name: "!!!", ownerEmail: "owner@example.test", creatorSeatLimit: 0 })).resolves.toMatchObject({ status: "owner_invited" });
 	});
 
+	it("persists validated negotiated card and invoice billing terms", async () => {
+		for (const billing of [
+			{ billingEmail: "billing@example.test", collectionMethod: "charge_automatically" as const, creatorSeatPriceId: "price_creator", creatorSeatMinimum: 5, creatorSeatQuantity: 10, runnerSeatPriceId: "price_runner", runnerSeatMinimum: 1, runnerSeatQuantity: 2 },
+			{ billingEmail: "invoice@example.test", collectionMethod: "send_invoice" as const, daysUntilDue: 30, creatorSeatPriceId: "price_creator", creatorSeatMinimum: 5, creatorSeatQuantity: 5, runnerSeatMinimum: 0, runnerSeatQuantity: 0 },
+		]) {
+			state.selects.push([{ authUserId: "admin-auth-user" }]);
+			await expect(provisionDatabaseAgency({ name: "Billed Agency", ownerEmail: "owner@example.test", creatorSeatLimit: 10, billing, now })).resolves.toMatchObject({ status: "owner_invited" });
+		}
+		expect(db.insert).toHaveBeenCalledTimes(12);
+	});
+
+	it.each([
+		{ billingEmail: "invalid", creatorSeatPriceId: "price_creator", creatorSeatMinimum: 1, creatorSeatQuantity: 1, runnerSeatMinimum: 0, runnerSeatQuantity: 0, collectionMethod: "charge_automatically" as const },
+		{ billingEmail: "billing@example.test", creatorSeatPriceId: "invalid", creatorSeatMinimum: 1, creatorSeatQuantity: 1, runnerSeatMinimum: 0, runnerSeatQuantity: 0, collectionMethod: "charge_automatically" as const },
+		{ billingEmail: "billing@example.test", creatorSeatPriceId: "price_creator", creatorSeatMinimum: -1, creatorSeatQuantity: 1, runnerSeatMinimum: 0, runnerSeatQuantity: 0, collectionMethod: "charge_automatically" as const },
+		{ billingEmail: "billing@example.test", creatorSeatPriceId: "price_creator", creatorSeatMinimum: 5, creatorSeatQuantity: 4, runnerSeatMinimum: 0, runnerSeatQuantity: 0, collectionMethod: "charge_automatically" as const },
+		{ billingEmail: "billing@example.test", creatorSeatPriceId: "price_creator", creatorSeatMinimum: 1, creatorSeatQuantity: 1, runnerSeatMinimum: 2, runnerSeatQuantity: 1, collectionMethod: "charge_automatically" as const },
+		{ billingEmail: "billing@example.test", creatorSeatPriceId: "price_creator", creatorSeatMinimum: 1, creatorSeatQuantity: 1, runnerSeatMinimum: 0, runnerSeatQuantity: 1, collectionMethod: "charge_automatically" as const },
+		{ billingEmail: "billing@example.test", creatorSeatPriceId: "price_creator", creatorSeatMinimum: 1, creatorSeatQuantity: 1, runnerSeatMinimum: 0, runnerSeatQuantity: 0, collectionMethod: "send_invoice" as const, daysUntilDue: 0 },
+	])("rejects an invalid negotiated billing boundary", async (billing) => {
+		state.selects.push([{ authUserId: "admin-auth-user" }]);
+		await expect(provisionDatabaseAgency({ name: "Agency", ownerEmail: "owner@example.test", creatorSeatLimit: 1, billing, now })).rejects.toThrow("INVALID_AGENCY_BILLING_TERMS");
+	});
+
 	it.each([
 		{ admin: null, identity: undefined, input: { name: "Agency", ownerEmail: "owner@example.test", creatorSeatLimit: 1 }, error: "ADMIN_REQUIRED" },
 		{ admin: { id: "admin" }, identity: [], input: { name: "Agency", ownerEmail: "owner@example.test", creatorSeatLimit: 1 }, error: "ADMIN_IDENTITY_REQUIRED" },
@@ -114,6 +139,19 @@ describe("TDD-US4-004 agency database adapter", () => {
 		await expect(activateDatabaseAgencyOwner({ organizationId: "agency-org-1", now })).rejects.toThrow("AGENCY_OWNER_REQUIRED");
 	});
 
+	it("finishes first-owner agency activation after invitation acceptance", async () => {
+		state.selects.push([{ ...agency, status: "owner_invited" }], [{ role: "owner" }]);
+		state.updates.push([{ organizationId: "agency-org-1" }]);
+		await expect(activateCurrentInvitedAgency({ organizationId: "agency-org-1", now })).resolves.toEqual({ agency: true, activated: true });
+
+		state.selects.push([]);
+		await expect(activateCurrentInvitedAgency({ organizationId: "creator-org-1", now })).resolves.toEqual({ agency: false, activated: false });
+		state.selects.push([{ ...agency, status: "active" }], [{ role: "owner" }]);
+		await expect(activateCurrentInvitedAgency({ organizationId: "agency-org-1", now })).resolves.toEqual({ agency: true, activated: false });
+		state.selects.push([{ ...agency, status: "suspended" }], [{ role: "owner" }]);
+		await expect(activateCurrentInvitedAgency({ organizationId: "agency-org-1", now })).rejects.toThrow("AGENCY_ACTIVATION_STATE_INVALID");
+	});
+
 	it("requires authentication, agency context, active membership, and permission", async () => {
 		getAuthSession.mockResolvedValueOnce(null);
 		await expect(proposeDatabaseAgencyLink({ creatorOrganizationId: "creator-org-1", permissionCeiling: [], now })).rejects.toThrow("AUTHENTICATION_REQUIRED");
@@ -123,6 +161,18 @@ describe("TDD-US4-004 agency database adapter", () => {
 		await expect(proposeDatabaseAgencyLink({ creatorOrganizationId: "creator-org-1", permissionCeiling: [], now })).rejects.toThrow("ACTIVE_AGENCY_MEMBERSHIP_REQUIRED");
 		queueAgencyActor("analyst", agency, JSON.stringify({ analytics: ["read"] }));
 		await expect(proposeDatabaseAgencyLink({ creatorOrganizationId: "creator-org-1", permissionCeiling: [], now })).rejects.toThrow("PERMISSION_DENIED");
+	});
+
+	it("activates an invited owner and resolves an agency from creator context", async () => {
+		state.selects.push([{ ...agency, status: "owner_invited" }], [{ role: "owner" }], []);
+		state.updates.push([{ ...agency, status: "active" }]);
+		await expect(listDatabaseAgencyOverview()).resolves.toMatchObject({ occupiedSeats: 0 });
+
+		state.selects.push([], [], [{ organizationId: "creator-org-1" }], [{ account: agency, membership: { role: "owner" } }], [], [], []);
+		await expect(listDatabaseAgencyOverview()).resolves.toMatchObject({ occupiedSeats: 0 });
+
+		state.selects.push([], [], [{ organizationId: "creator-org-1" }], []);
+		await expect(listDatabaseAgencyOverview()).rejects.toThrow("ACTIVE_AGENCY_MEMBERSHIP_REQUIRED");
 	});
 
 	it("proposes a validated creator link", async () => {
@@ -176,6 +226,19 @@ describe("TDD-US4-004 agency database adapter", () => {
 		state.selects.push([{ id: "link-1", status: "accepted", creatorOrganizationId: "creator-org-1", permissionCeiling: ["overlay:read"] }]);
 		queueCreatorOwner();
 		await expect(reduceDatabaseAgencyLinkCeiling({ linkId: "link-1", permissionCeiling: ["overlay:update"], now })).rejects.toThrow("PERMISSION_CEILING_EXPANSION_DENIED");
+
+		state.selects.push([{ id: "link-1", status: "proposed", creatorOrganizationId: "creator-org-1", permissionCeiling: ["overlay:read"] }]);
+		queueCreatorOwner();
+		state.updates.push([]);
+		await expect(acceptDatabaseAgencyLink({ linkId: "link-1", permissionCeiling: ["overlay:read"], now })).rejects.toThrow("AGENCY_LINK_STATE_CHANGED");
+		state.selects.push([{ id: "link-1", status: "accepted", creatorOrganizationId: "creator-org-1" }]);
+		queueCreatorOwner();
+		state.updates.push([]);
+		await expect(revokeDatabaseAgencyLink({ linkId: "link-1", now })).rejects.toThrow("AGENCY_LINK_STATE_CHANGED");
+		state.selects.push([{ id: "link-1", status: "accepted", creatorOrganizationId: "creator-org-1", permissionCeiling: ["overlay:read"] }]);
+		queueCreatorOwner();
+		state.updates.push([]);
+		await expect(reduceDatabaseAgencyLinkCeiling({ linkId: "link-1", permissionCeiling: ["overlay:read"], now })).rejects.toThrow("AGENCY_LINK_STATE_CHANGED");
 	});
 
 	it("resolves live role/link permission intersections", async () => {
@@ -207,11 +270,15 @@ describe("TDD-US4-004 agency database adapter", () => {
 		queueAgencyActor();
 		state.selects.push([{ allocation: { status: "ended" }, link: {} }]);
 		await expect(scheduleDatabaseAgencyLicenseRemoval({ allocationId: "allocation-1", now })).rejects.toThrow("ACTIVE_ALLOCATION_REQUIRED");
+		queueAgencyActor();
+		state.selects.push([{ allocation: { id: "allocation-1", status: "active", creatorId: "creator-1" }, link: {} }]);
+		state.updates.push([]);
+		await expect(scheduleDatabaseAgencyLicenseRemoval({ allocationId: "allocation-1", now })).rejects.toThrow("ALLOCATION_STATE_CHANGED");
 	});
 
 	it("lists agency, creator, and administrator views", async () => {
 		queueAgencyActor();
-		state.selects.push([]);
+		state.selects.push([], []);
 		await expect(listDatabaseAgencyOverview()).resolves.toMatchObject({ links: [], allocations: [], occupiedSeats: 0 });
 		queueAgencyActor();
 		state.selects.push(
@@ -220,6 +287,7 @@ describe("TDD-US4-004 agency database adapter", () => {
 				{ id: "allocation-1", status: "active" },
 				{ id: "allocation-2", status: "removal_scheduled" },
 			],
+			[],
 		);
 		await expect(listDatabaseAgencyOverview()).resolves.toMatchObject({ occupiedSeats: 2 });
 

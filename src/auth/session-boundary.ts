@@ -8,9 +8,7 @@ export type DashboardSessionDecision = { authenticated: true; sessionId: string;
 
 const PURPOSE_TOKEN_ISSUERS = new Set(["clipify-controller", "clipify-checkout", "clipify-bot-oauth", "clipify-admin-view"]);
 
-/** Legacy dashboard cookies are deliberately opaque here: they are never parsed. */
-export function classifyDashboardSession(input: { legacyDashboardCookie?: string; betterAuthSession: BetterAuthDatabaseSession | null; now?: Date }): DashboardSessionDecision {
-	void input.legacyDashboardCookie;
+export function classifyDashboardSession(input: { betterAuthSession: BetterAuthDatabaseSession | null; now?: Date }): DashboardSessionDecision {
 	if (!input.betterAuthSession) return { authenticated: false, reason: "better-auth-session-required" };
 	const expiresAt = input.betterAuthSession.expiresAt.getTime();
 	if (!Number.isFinite(expiresAt) || expiresAt <= (input.now ?? new Date()).getTime()) return { authenticated: false, reason: "session-expired" };

@@ -8,7 +8,7 @@ export type OverlayRuntimeRecord = {
 	secret: string | null;
 };
 
-export type OverlayRuntimeDenial = "not-found" | "invalid-secret" | "owner-suspended";
+export type OverlayRuntimeDenial = "not-found" | "invalid-secret" | "owner-suspended" | "plan-restricted";
 
 export type OverlayRuntimeDecision<TOverlay extends OverlayRuntimeRecord> = { allowed: true; overlay: TOverlay } | { allowed: false; reason: "owner-suspended"; overlay: TOverlay; ownerDisabledReason: string | null } | { allowed: false; reason: Exclude<OverlayRuntimeDenial, "owner-suspended"> };
 

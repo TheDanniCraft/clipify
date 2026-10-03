@@ -2,12 +2,11 @@
 
 const mockRunnerFindFirst = jest.fn();
 const mockSessionFindFirst = jest.fn();
-const mockEditorFindFirst = jest.fn();
 const mockValidateAuth = jest.fn();
 const mockAuthorizeCreatorOperation = jest.fn(async ({ creatorId }: { creatorId: string }) => {
 	const actor = await mockValidateAuth();
 	if (!actor) return { allowed: false, code: "AUTHENTICATION_REQUIRED" };
-	const allowed = actor.id === creatorId || Boolean(await mockEditorFindFirst());
+	const allowed = actor.id === creatorId;
 	return allowed ? { allowed: true, accessPath: actor.id === creatorId ? "owner" : "direct", creator: { id: creatorId }, authUserId: actor.id, sessionId: "test", creatorOrganizationId: `org:${creatorId}` } : { allowed: false, code: "ACCESS_PATH_REQUIRED" };
 });
 
@@ -16,7 +15,6 @@ jest.mock("@/db/client", () => ({
 		query: {
 			runnersTable: { findFirst: (...args: unknown[]) => mockRunnerFindFirst(...args) },
 			streamSessionsTable: { findFirst: (...args: unknown[]) => mockSessionFindFirst(...args) },
-			editorsTable: { findFirst: (...args: unknown[]) => mockEditorFindFirst(...args) },
 		},
 	},
 }));
@@ -36,7 +34,6 @@ describe("runner preview route", () => {
 		jest.clearAllMocks();
 		mockRunnerFindFirst.mockResolvedValue({ id: "runner-1", ownerId: "owner-1" });
 		mockSessionFindFirst.mockResolvedValue({ id: "session-1", runnerId: "runner-1", overlayId: "overlay-1" });
-		mockEditorFindFirst.mockResolvedValue(null);
 	});
 
 	it("serves cached preview frames by runner id to the runner owner", async () => {

@@ -9,13 +9,13 @@ import type { MemberBadgeView } from "@lib/membership";
 jest.mock("@heroui/react", () => {
 	const React = jest.requireActual<typeof import("react")>("react");
 	const State = React.createContext<{ open: boolean; setOpen: (open: boolean) => void }>({ open: false, setOpen: () => undefined });
-	const Tooltip = ({ children, isOpen, onOpenChange }: { children: ReactNode; isOpen: boolean; onOpenChange: (open: boolean) => void }) => <State.Provider value={{ open: isOpen, setOpen: onOpenChange }}>{children}</State.Provider>;
-	const Trigger = ({ children }: { children: ReactNode }) => {
-		const { setOpen } = React.useContext(State);
+	const Tooltip = ({ children, isOpen, onOpenChange }: { children: ReactNode; isOpen: boolean; onOpenChange: (open: boolean) => void }) => {
+		const [trigger, ...content] = React.Children.toArray(children);
 		return (
-			<div onMouseEnter={() => setOpen(true)} onFocus={() => setOpen(true)}>
-				{children}
-			</div>
+			<State.Provider value={{ open: isOpen, setOpen: onOpenChange }}>
+				{React.isValidElement(trigger) ? React.cloneElement(trigger as React.ReactElement<React.HTMLAttributes<HTMLElement>>, { onMouseEnter: () => onOpenChange(true), onFocus: () => onOpenChange(true) }) : trigger}
+				{content}
+			</State.Provider>
 		);
 	};
 	const Content = ({ children }: { children: ReactNode }) => {
@@ -23,12 +23,12 @@ jest.mock("@heroui/react", () => {
 		return open ? <div role='tooltip'>{children}</div> : null;
 	};
 	return {
-		Button: ({ children, onPress, "aria-label": label }: { children: ReactNode; onPress?: () => void; "aria-label"?: string }) => (
-			<button aria-label={label} onClick={onPress}>
+		Button: ({ children, onPress, isIconOnly: _isIconOnly, variant: _variant, size: _size, ...props }: { children: ReactNode; onPress?: () => void; isIconOnly?: boolean; variant?: string; size?: string } & Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "size">) => (
+			<button {...props} onClick={onPress}>
 				{children}
 			</button>
 		),
-		Tooltip: Object.assign(Tooltip, { Trigger, Content, Arrow: () => null }),
+		Tooltip: Object.assign(Tooltip, { Content, Arrow: () => null }),
 	};
 });
 
