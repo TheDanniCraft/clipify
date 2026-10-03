@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { IconMail, IconUsersGroup } from "@tabler/icons-react";
-import { Button, Card, Input, Label, TextField } from "@heroui/react";
+import { IconCheck, IconMail, IconUsersGroup } from "@tabler/icons-react";
+import { Button, Card, InputOTP, Label, REGEXP_ONLY_DIGITS } from "@heroui/react";
 import { authClient } from "@/auth/client";
 import { notify as addToast } from "@lib/toast";
 
@@ -84,8 +84,8 @@ export default function InvitationAcceptance({ invitation }: { invitation: Invit
 
 	return (
 		<main className='flex min-h-screen items-center justify-center bg-background px-4 py-10'>
-			<Card className='w-full max-w-md' variant='secondary'>
-				<Card.Header className='gap-3'>
+			<Card className='w-full max-w-md border border-border bg-card' variant='secondary'>
+				<Card.Header className='gap-4 p-6 pb-3'>
 					<div className='flex size-11 items-center justify-center rounded-xl bg-accent/10 text-accent'>
 						<IconUsersGroup aria-hidden='true' size={22} />
 					</div>
@@ -94,16 +94,26 @@ export default function InvitationAcceptance({ invitation }: { invitation: Invit
 						<Card.Description>This invitation is bound to {maskedEmail(activeInvitation.email)}.</Card.Description>
 					</div>
 				</Card.Header>
-				<Card.Content className='space-y-4'>
+				<Card.Content className='space-y-5 px-6'>
 					{session.isPending ? <p className='text-sm text-muted'>Checking your sign-in…</p> : null}
 					{!session.data ? (
 						<>
-							<p className='text-sm text-muted'>Verify the invited email address to continue. No Twitch account is required.</p>
+							<div className='rounded-xl border border-divider bg-surface-secondary p-4'>
+								<p className='text-sm font-medium'>Verify the invited account</p>
+								<p className='mt-1 text-sm text-muted'>If you opened the emailed invitation, verification happens automatically. For a copied link, request a one-time code.</p>
+							</div>
 							{codeSent ? (
-								<TextField value={code} onChange={setCode} isRequired>
+								<div className='flex flex-col gap-2'>
 									<Label>Verification code</Label>
-									<Input variant='secondary' inputMode='numeric' autoComplete='one-time-code' />
-								</TextField>
+									<InputOTP maxLength={6} variant='secondary' value={code} onChange={setCode} pattern={REGEXP_ONLY_DIGITS} inputMode='numeric' autoComplete='one-time-code' autoFocus isDisabled={pending === "verify"}>
+										<InputOTP.Group>
+											{Array.from({ length: 6 }, (_, index) => (
+												<InputOTP.Slot key={index} index={index} />
+											))}
+										</InputOTP.Group>
+									</InputOTP>
+									<p className='text-xs text-muted'>Enter the six-digit code sent to {maskedEmail(activeInvitation.email)}.</p>
+								</div>
 							) : null}
 						</>
 					) : !emailMatches ? (
@@ -111,10 +121,18 @@ export default function InvitationAcceptance({ invitation }: { invitation: Invit
 							You are signed in as {session.data.user.email}. This invitation belongs to {maskedEmail(activeInvitation.email)}.
 						</p>
 					) : (
-						<p className='text-sm text-muted'>You are signed in with the invited email and can now join this account.</p>
+						<div className='flex items-start gap-3 rounded-xl border border-success/30 bg-success/10 p-4 text-sm'>
+							<IconCheck aria-hidden='true' className='mt-0.5 shrink-0 text-success' size={18} />
+							<div>
+								<p className='font-medium'>Invitation verified</p>
+								<p className='mt-1 text-muted'>
+									Continue to join {activeInvitation.organizationName} as {session.data.user.email}.
+								</p>
+							</div>
+						</div>
 					)}
 				</Card.Content>
-				<Card.Footer className='justify-end gap-2'>
+				<Card.Footer className='flex-col-reverse gap-2 p-6 pt-5 sm:flex-row sm:justify-end'>
 					{!session.data && !codeSent ? (
 						<Button variant='primary' isPending={pending === "send"} onPress={() => void sendCode()}>
 							<IconMail aria-hidden='true' size={18} />
@@ -126,7 +144,7 @@ export default function InvitationAcceptance({ invitation }: { invitation: Invit
 							<Button variant='secondary' isPending={pending === "send"} onPress={() => void sendCode()}>
 								Send again
 							</Button>
-							<Button variant='primary' isDisabled={!code.trim()} isPending={pending === "verify"} onPress={() => void verifyCode()}>
+							<Button variant='primary' isDisabled={code.trim().length !== 6} isPending={pending === "verify"} onPress={() => void verifyCode()}>
 								Verify email
 							</Button>
 						</>

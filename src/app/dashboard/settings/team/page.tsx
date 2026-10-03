@@ -8,7 +8,7 @@ import SettingsNavigation from "@components/settingsNavigation";
 import type { DashboardNavbarUser } from "@components/dashboardNavbar";
 import { Button, Card, Checkbox, Chip, Input, Label, ListBox, Modal, Select, Table, TextField } from "@heroui/react";
 import { notify as addToast } from "@lib/toast";
-import { IconArrowLeft, IconCopy, IconLink, IconMail, IconPencil, IconShieldCheck, IconTrash, IconUserPlus, IconUsersGroup } from "@tabler/icons-react";
+import { IconArrowLeft, IconCopy, IconDeviceFloppy, IconLink, IconMail, IconPencil, IconShieldCheck, IconTrash, IconUserPlus, IconUsersGroup } from "@tabler/icons-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -16,7 +16,7 @@ import { authClient } from "@/auth/client";
 import { PERMISSIONS, STANDARD_ROLES, type Permission } from "@/auth/permissions";
 import { permissionsAfterRoleSelection } from "./access-editor-policy";
 
-type MemberRow = { id: string; role: string; user: { name: string; email: string } };
+type MemberRow = { id: string; role: string; user: { id: string; name: string; email: string } };
 type InvitationRow = { id: string; email: string; role: string | null; status: string; expiresAt: Date | string };
 type RoleRow = { id: string; role: string; permission: Record<string, string[]> };
 type TeamRow = { kind: "member"; member: MemberRow } | { kind: "invitation"; invitation: InvitationRow };
@@ -30,6 +30,18 @@ const STANDARD_ROLE_PERMISSIONS: Record<(typeof STANDARD_STAFF_ROLES)[number], r
 	analyst: STANDARD_ROLES.analyst,
 	"billing-manager": STANDARD_ROLES.billingManager,
 };
+
+function permissionsForRole(role: string, customRoles: readonly RoleRow[]) {
+	const permissions = new Set<Permission>();
+	for (const roleName of role
+		.split(",")
+		.map((value) => value.trim())
+		.filter(Boolean)) {
+		const rolePermissions = roleName === "owner" ? PERMISSIONS : roleName === "admin" || roleName === "operations" ? STANDARD_ROLES.operations : roleName === "member" ? [] : roleName in STANDARD_ROLE_PERMISSIONS ? STANDARD_ROLE_PERMISSIONS[roleName as keyof typeof STANDARD_ROLE_PERMISSIONS] : flattenPermissions(customRoles.find((candidate) => candidate.role === roleName)?.permission ?? {});
+		for (const permission of rolePermissions) permissions.add(permission);
+	}
+	return [...permissions];
+}
 
 function formatRole(role: string | null) {
 	if (!role) return "Not assigned";
@@ -75,8 +87,6 @@ function permissionGroups(permissions: readonly Permission[]) {
 	}
 	return grouped;
 }
-
-const PERMISSION_GROUPS = Object.entries(permissionGroups(PERMISSIONS));
 
 function formatPermissionGroup(resource: string) {
 	return resource
@@ -220,19 +230,30 @@ export default function TeamSettingsPage() {
 	}, [organization, organizations.isPending]);
 
 	const visibleCustomRoles = useMemo(() => customRoles.filter((candidate) => candidate.role !== CUSTOM_ROLE && !candidate.role.startsWith("custom-access-")), [customRoles]);
-	const roleOptions = useMemo(() => [...new Set([...STANDARD_STAFF_ROLES, ...visibleCustomRoles.map((candidate) => candidate.role)])], [visibleCustomRoles]);
+	const currentMember = useMemo(() => members.find((member) => member.user.id === identitySession.data?.user.id), [identitySession.data?.user.id, members]);
+	const actorIsOwner = currentMember?.role.split(",").includes("owner") ?? false;
+	const actorPermissions = useMemo(() => permissionsForRole(currentMember?.role ?? "member", customRoles), [currentMember?.role, customRoles]);
+	const actorPermissionSet = useMemo(() => new Set(actorPermissions), [actorPermissions]);
+	const canInviteMembers = actorIsOwner || actorPermissionSet.has("member:invite");
+	const canUpdateMembers = actorIsOwner || actorPermissionSet.has("member:update");
+	const canRemoveMembers = actorIsOwner || actorPermissionSet.has("member:remove");
+	const roleOptions = useMemo(
+		() =>
+			[...new Set([...STANDARD_STAFF_ROLES, ...visibleCustomRoles.map((candidate) => candidate.role)])].filter((candidate) => {
+				if (actorIsOwner) return true;
+				return permissionsForRole(candidate, customRoles).every((permission) => actorPermissionSet.has(permission));
+			}),
+		[actorIsOwner, actorPermissionSet, customRoles, visibleCustomRoles],
+	);
+	const delegablePermissionGroups = useMemo(() => Object.entries(permissionGroups(actorIsOwner ? PERMISSIONS : actorPermissions)), [actorIsOwner, actorPermissions]);
+	const defaultDelegableRole = roleOptions[0] ?? (actorIsOwner ? "operations" : CUSTOM_ROLE);
 	const teamRows = useMemo<TeamRow[]>(() => [...members.map((member) => ({ kind: "member" as const, member })), ...invitations.filter((invitation) => invitation.status === "pending").map((invitation) => ({ kind: "invitation" as const, invitation }))], [invitations, members]);
-
-	function permissionsForRole(nextRole: string) {
-		if (nextRole in STANDARD_ROLE_PERMISSIONS) return [...STANDARD_ROLE_PERMISSIONS[nextRole as keyof typeof STANDARD_ROLE_PERMISSIONS]];
-		return flattenPermissions(customRoles.find((candidate) => candidate.role === nextRole)?.permission ?? {});
-	}
 
 	function resetAccessEditor() {
 		setEditingMember(null);
 		setEmail("");
-		setRole("operations");
-		setSelectedPermissions([...STANDARD_ROLES.operations]);
+		setRole(defaultDelegableRole);
+		setSelectedPermissions(permissionsForRole(defaultDelegableRole, customRoles));
 		setInvitationUrl("");
 	}
 
@@ -245,14 +266,14 @@ export default function TeamSettingsPage() {
 		setEditingMember(member);
 		setEmail(member.user.email);
 		setRole(member.role.startsWith("custom-access-") ? CUSTOM_ROLE : member.role);
-		setSelectedPermissions(permissionsForRole(member.role));
+		setSelectedPermissions(permissionsForRole(member.role, customRoles));
 		setInvitationUrl("");
 		setIsAccessModalOpen(true);
 	}
 
 	function selectRole(nextRole: string) {
 		setRole(nextRole);
-		setSelectedPermissions((current) => permissionsAfterRoleSelection({ nextRole, currentPermissions: current, rolePermissions: permissionsForRole(nextRole) }));
+		setSelectedPermissions((current) => permissionsAfterRoleSelection({ nextRole, currentPermissions: current, rolePermissions: permissionsForRole(nextRole, customRoles) }));
 	}
 
 	function togglePermission(permission: Permission, isSelected: boolean) {
@@ -396,7 +417,7 @@ export default function TeamSettingsPage() {
 									<Card.Description>Manage active members and pending invitations from one place.</Card.Description>
 								</div>
 							</div>
-							<Button variant='primary' onPress={openInvitationEditor}>
+							<Button variant='primary' isDisabled={!canInviteMembers} onPress={openInvitationEditor}>
 								<IconUserPlus aria-hidden='true' size={18} />
 								Invite member
 							</Button>
@@ -449,7 +470,8 @@ export default function TeamSettingsPage() {
 												}
 
 												const { member } = row;
-												const isOwner = member.role === "owner";
+												const isOwner = member.role.split(",").includes("owner");
+												const isCurrentMember = member.user.id === identitySession.data?.user.id;
 												return (
 													<Table.Row key={member.id} id={member.id} textValue={member.user.name || member.user.email}>
 														<Table.Cell>
@@ -474,10 +496,10 @@ export default function TeamSettingsPage() {
 														</Table.Cell>
 														<Table.Cell>
 															<div className='flex justify-end gap-1'>
-																<Button isIconOnly size='sm' variant='secondary' isDisabled={isOwner || pendingAction !== null} aria-label={`Edit access for ${member.user.email}`} onPress={() => openMemberEditor(member)}>
+																<Button isIconOnly size='sm' variant='secondary' isDisabled={isOwner || isCurrentMember || !canUpdateMembers || pendingAction !== null} aria-label={`Edit access for ${member.user.email}`} onPress={() => openMemberEditor(member)}>
 																	<IconPencil aria-hidden='true' size={16} />
 																</Button>
-																<Button isIconOnly size='sm' variant='danger-soft' isPending={pendingAction === `remove-${member.id}`} isDisabled={isOwner || pendingAction !== null} aria-label={`Remove ${member.user.email}`} onPress={() => void removeMember(member.id)}>
+																<Button isIconOnly size='sm' variant='danger-soft' isPending={pendingAction === `remove-${member.id}`} isDisabled={isOwner || isCurrentMember || !canRemoveMembers || pendingAction !== null} aria-label={`Remove ${member.user.email}`} onPress={() => void removeMember(member.id)}>
 																	<IconTrash aria-hidden='true' size={16} />
 																</Button>
 															</div>
@@ -533,10 +555,12 @@ export default function TeamSettingsPage() {
 													<ListBox.ItemIndicator />
 												</ListBox.Item>
 											))}
-											<ListBox.Item id={CUSTOM_ROLE} textValue='Custom'>
-												Custom
-												<ListBox.ItemIndicator />
-											</ListBox.Item>
+											{actorIsOwner ? (
+												<ListBox.Item id={CUSTOM_ROLE} textValue='Custom'>
+													Custom
+													<ListBox.ItemIndicator />
+												</ListBox.Item>
+											) : null}
 										</ListBox>
 									</Select.Popover>
 								</Select>
@@ -546,14 +570,14 @@ export default function TeamSettingsPage() {
 								<div className='mb-3 flex flex-wrap items-end justify-between gap-2'>
 									<div>
 										<p className='font-semibold'>Permissions</p>
-										<p className='text-sm text-muted'>Changing any permission automatically switches the role to Custom.</p>
+										<p className='text-sm text-muted'>{actorIsOwner ? "Changing any permission automatically switches the role to Custom." : "You can only assign existing roles that stay within your own access."}</p>
 									</div>
 									<Chip color={role === CUSTOM_ROLE ? "accent" : "default"} size='sm' variant='soft'>
 										{selectedPermissions.length} selected
 									</Chip>
 								</div>
 								<div className='divide-y divide-default overflow-hidden rounded-xl border border-default'>
-									{PERMISSION_GROUPS.map(([resource, resourcePermissions]) => {
+									{delegablePermissionGroups.map(([resource, resourcePermissions]) => {
 										const selectedCount = resourcePermissions.filter((permission) => selectedPermissions.includes(permission)).length;
 										const isGroupSelected = selectedCount === resourcePermissions.length;
 										const isGroupIndeterminate = selectedCount > 0 && !isGroupSelected;
@@ -561,7 +585,7 @@ export default function TeamSettingsPage() {
 										return (
 											<section key={resource} className='px-4 py-4'>
 												<div className='grid gap-1 sm:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] sm:items-start sm:gap-x-6'>
-													<Checkbox variant='secondary' isSelected={isGroupSelected} isIndeterminate={isGroupIndeterminate} onChange={(checked) => togglePermissionGroup(resourcePermissions, checked)}>
+													<Checkbox variant='secondary' isSelected={isGroupSelected} isIndeterminate={isGroupIndeterminate} isDisabled={!actorIsOwner} onChange={(checked) => togglePermissionGroup(resourcePermissions, checked)}>
 														<Checkbox.Content>
 															<Checkbox.Control>
 																<Checkbox.Indicator />
@@ -574,7 +598,7 @@ export default function TeamSettingsPage() {
 												<div className='mt-3 flex flex-col gap-2 border-l border-default pl-4'>
 													{resourcePermissions.map((permission) => (
 														<div key={permission} className='grid gap-1 sm:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] sm:items-start sm:gap-x-6'>
-															<Checkbox variant='secondary' isSelected={selectedPermissions.includes(permission)} onChange={(checked) => togglePermission(permission, checked)}>
+															<Checkbox variant='secondary' isSelected={selectedPermissions.includes(permission)} isDisabled={!actorIsOwner} onChange={(checked) => togglePermission(permission, checked)}>
 																<Checkbox.Content>
 																	<Checkbox.Control>
 																		<Checkbox.Indicator />
@@ -605,13 +629,13 @@ export default function TeamSettingsPage() {
 								</div>
 							) : null}
 						</Modal.Body>
-						<Modal.Footer className='flex-col gap-2 border-t border-default pt-4 sm:flex-row sm:justify-end'>
+						<Modal.Footer className='flex-row flex-wrap justify-end gap-2 border-t border-default pt-4'>
 							<Button variant='tertiary' isDisabled={pendingAction !== null} onPress={() => setIsAccessModalOpen(false)}>
 								Cancel
 							</Button>
 							{editingMember ? (
 								<Button variant='primary' isPending={pendingAction === `role-${editingMember.id}`} isDisabled={pendingAction !== null || selectedPermissions.length === 0} onPress={() => void saveMemberAccess()}>
-									<IconShieldCheck aria-hidden='true' size={18} />
+									<IconDeviceFloppy aria-hidden='true' size={18} />
 									Save access
 								</Button>
 							) : (

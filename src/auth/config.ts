@@ -1,15 +1,18 @@
 import { betterAuth } from "better-auth";
+import { APIError, createAuthMiddleware, getSessionFromCtx } from "better-auth/api";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { emailOTP, oAuthProxy, organization } from "better-auth/plugins";
+import { emailOTP, magicLink, oAuthProxy, organization } from "better-auth/plugins";
+import { and, eq, gt, inArray } from "drizzle-orm";
 import { passkey } from "@better-auth/passkey";
 import { db } from "@/db/client";
 import * as schema from "@/db/auth-schema";
 import { TWITCH_ADDITIONAL_SCOPES } from "./providers/twitch";
 import { betterAuthOrganizationRoles, clipifyAccessControl } from "./organization-access";
 import { EMAIL_OTP_POLICY } from "./credential-policy";
-import { sendAuthOtp } from "./transactional-mail";
+import { sendAuthOtp, sendTeamInvitation } from "./transactional-mail";
 import { resolveBaseUrl } from "@/app/lib/baseUrl";
 import { requiredAuthSetting } from "./environment";
+import { evaluateRoleAssignment } from "./role-assignment-policy";
 
 const resolvedBaseUrl = resolveBaseUrl();
 const baseURL = resolvedBaseUrl.origin;
@@ -63,7 +66,80 @@ export const auth = betterAuth({
 			"/passkey/*": { window: 60, max: 10 },
 		},
 	},
+	hooks: {
+		before: createAuthMiddleware(async (context) => {
+			if (context.path !== "/organization/update-member-role" && context.path !== "/organization/invite-member") return;
+			const body = context.body as { organizationId?: unknown; memberId?: unknown; role?: unknown };
+			const requestedRole = typeof body.role === "string" ? body.role : Array.isArray(body.role) && body.role.every((role): role is string => typeof role === "string") ? body.role.join(",") : null;
+			if (!requestedRole || (context.path === "/organization/update-member-role" && typeof body.memberId !== "string")) return;
+
+			const session = await getSessionFromCtx(context);
+			const organizationId = typeof body.organizationId === "string" ? body.organizationId : session?.session.activeOrganizationId;
+			if (!session || !organizationId) return;
+
+			const [actorMember] = await db
+				.select({ id: schema.member.id, role: schema.member.role })
+				.from(schema.member)
+				.where(and(eq(schema.member.organizationId, organizationId), eq(schema.member.userId, session.user.id)))
+				.limit(1);
+			if (!actorMember) return;
+
+			const targetMember =
+				context.path === "/organization/update-member-role"
+					? (
+							await db
+								.select({ id: schema.member.id })
+								.from(schema.member)
+								.where(and(eq(schema.member.organizationId, organizationId), eq(schema.member.id, body.memberId as string)))
+								.limit(1)
+						)[0]
+					: undefined;
+			const requestedRoleNames = requestedRole
+				.split(",")
+				.map((role) => role.trim())
+				.filter(Boolean);
+			const actorRoleNames = actorMember.role
+				.split(",")
+				.map((role) => role.trim())
+				.filter(Boolean);
+			const dynamicRoleNames = [...new Set([...actorRoleNames, ...requestedRoleNames])].filter((role) => !Object.prototype.hasOwnProperty.call(betterAuthOrganizationRoles, role));
+			const dynamicRoleRows = dynamicRoleNames.length
+				? await db
+						.select({ role: schema.organizationRole.role, permission: schema.organizationRole.permission })
+						.from(schema.organizationRole)
+						.where(and(eq(schema.organizationRole.organizationId, organizationId), inArray(schema.organizationRole.role, dynamicRoleNames)))
+				: [];
+			const dynamicRoles = new Map(
+				dynamicRoleRows.map((role) => {
+					try {
+						return [role.role, JSON.parse(role.permission) as Record<string, string[]>] as const;
+					} catch {
+						return [role.role, {}] as const;
+					}
+				}),
+			);
+			const decision = evaluateRoleAssignment({ actorMemberId: actorMember.id, targetMemberId: targetMember?.id, actorRole: actorMember.role, requestedRole, dynamicRoles });
+			if (!decision.allowed) throw new APIError("FORBIDDEN", { code: decision.code, message: decision.code });
+		}),
+	},
 	plugins: [
+		magicLink({
+			expiresIn: 7 * 24 * 60 * 60,
+			storeToken: "hashed",
+			sendMagicLink: async ({ email, url, metadata }) => {
+				const invitationId = typeof metadata?.invitationId === "string" ? metadata.invitationId : "";
+				if (!invitationId) return;
+				const rows = await db
+					.select({ invitationEmail: schema.invitation.email, organizationName: schema.organization.name })
+					.from(schema.invitation)
+					.innerJoin(schema.organization, eq(schema.invitation.organizationId, schema.organization.id))
+					.where(and(eq(schema.invitation.id, invitationId), eq(schema.invitation.status, "pending"), gt(schema.invitation.expiresAt, new Date())))
+					.limit(1);
+				const pendingInvitation = rows[0];
+				if (!pendingInvitation || pendingInvitation.invitationEmail.toLowerCase() !== email.toLowerCase()) return;
+				await sendTeamInvitation({ email: pendingInvitation.invitationEmail, invitationUrl: url, organizationName: pendingInvitation.organizationName });
+			},
+		}),
 		oAuthProxy({
 			// Twitch accepts the registered localhost callback directly. Only remote
 			// non-production deployments need to traverse the stable production URL.

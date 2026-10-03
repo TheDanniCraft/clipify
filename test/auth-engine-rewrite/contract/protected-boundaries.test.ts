@@ -51,6 +51,18 @@ describe("TDD-US3-004 protected server boundaries", () => {
 		expect(teamSource).not.toMatch(/<select\b/);
 	});
 
+	it("prevents delegated team managers from escalating their own or another member's access", () => {
+		const authSource = readFileSync(path.join(process.cwd(), "src/auth/config.ts"), "utf8");
+		const teamSource = readFileSync(path.join(process.cwd(), "src/app/dashboard/settings/team/page.tsx"), "utf8");
+		expect(authSource).toContain('context.path !== "/organization/update-member-role"');
+		expect(authSource).toContain('context.path !== "/organization/invite-member"');
+		expect(authSource).toContain("evaluateRoleAssignment({");
+		expect(teamSource).toContain("isCurrentMember || !canUpdateMembers");
+		expect(teamSource).toContain("delegablePermissionGroups.map");
+		expect(teamSource).toContain("IconDeviceFloppy");
+		expect(teamSource).toContain("flex-row flex-wrap justify-end");
+	});
+
 	it.each([
 		["AUTHENTICATION_REQUIRED", { session: null }],
 		["ACCOUNT_SUSPENDED", { lifecycle: "suspended" }],
