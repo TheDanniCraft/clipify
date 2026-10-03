@@ -31,7 +31,23 @@ jobs:
           HEROUI_AUTH_TOKEN: ${{ secrets.HEROUI_AUTH_TOKEN }}
         run: bun install --frozen-lockfile
       - name: 📝 Generate migrations
-        run: bun run db:generate
+        shell: bash
+        run: |
+          set +e
+          migration_output="$(bun run db:generate 2>&1)"
+          migration_status=$?
+          set -e
+
+          printf '%s\n' "$migration_output"
+
+          if [ "$migration_status" -ne 0 ]; then
+            exit "$migration_status"
+          fi
+
+          if grep -Fq "Interactive prompts require a TTY terminal" <<<"$migration_output"; then
+            echo "Drizzle requires an interactive schema-resolution decision; refusing to report a successful no-op." >&2
+            exit 1
+          fi
 
       - name: 🔑 Import GPG key
         id: import-gpg
