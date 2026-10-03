@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { addMembership, type MembershipRecord } from "./memberships";
-import { sendTeamInvitation } from "./transactional-mail";
 import { resolveBaseUrl } from "@/app/lib/baseUrl";
+import { headers as requestHeaders } from "next/headers";
 
 const INVITATION_LIFETIME_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -118,13 +118,26 @@ export async function createPersistedInvitation(input: { headers: Headers; organ
 	const invitationUrl = new URL("/accept-invitation", resolveBaseUrl());
 	invitationUrl.searchParams.set("invitationId", invitation.id);
 	if (input.delivery === "copy-and-email") {
-		await sendTeamInvitation({
-			email: invitation.email,
-			invitationUrl: invitationUrl.toString(),
-			organizationName: input.organizationName,
-		});
+		await sendPersistedInvitationEmail({ headers: input.headers, invitationId: invitation.id, email: invitation.email });
 	}
 	return { invitation, invitationUrl: invitationUrl.toString(), delivery: input.delivery };
+}
+
+export async function sendPersistedInvitationEmail(input: { invitationId: string; email: string; headers?: Headers }) {
+	const { auth } = await import("./config");
+	const callbackUrl = new URL("/accept-invitation", resolveBaseUrl());
+	callbackUrl.searchParams.set("invitationId", input.invitationId);
+	await auth.api.signInMagicLink({
+		headers: input.headers ?? (await requestHeaders()),
+		body: {
+			email: normalizeEmail(input.email),
+			name: normalizeEmail(input.email).split("@")[0],
+			callbackURL: callbackUrl.toString(),
+			newUserCallbackURL: callbackUrl.toString(),
+			errorCallbackURL: callbackUrl.toString(),
+			metadata: { invitationId: input.invitationId },
+		},
+	});
 }
 
 export async function acceptPersistedInvitation(input: { headers: Headers; invitationId: string }) {

@@ -10,7 +10,7 @@ import { PERMISSIONS, STANDARD_ROLES, type Permission } from "@/auth/permissions
 import { resolveAgencyAccess } from "./access";
 import { buildAgencyAllocationGrantIntent, buildAgencyAllocationRemovalIntents } from "@/server/notifications/templates/agency-allocation";
 import { resolveBaseUrl } from "@/app/lib/baseUrl";
-import { sendTeamInvitation } from "@/auth/transactional-mail";
+import { sendPersistedInvitationEmail } from "@/auth/invitations";
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -179,7 +179,7 @@ export async function provisionDatabaseAgency(input: {
 	let emailSent = false;
 	if (process.env.E2E_TEST_MODE !== "true") {
 		try {
-			await sendTeamInvitation({ email: ownerEmail, invitationUrl: invitationUrl.toString(), organizationName: name });
+			await sendPersistedInvitationEmail({ invitationId, email: ownerEmail });
 			await db
 				.update(notificationOutboxTable)
 				.set({ status: "sent", providerMessageId: "direct-delivery", updatedAt: new Date() })

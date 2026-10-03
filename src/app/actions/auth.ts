@@ -199,6 +199,7 @@ async function resolveEffectiveUser(actorUser: AuthenticatedUser, cookieStore: A
 			active: true as const,
 			adminUserId: actorUser.id,
 			adminUsername: actorUser.username,
+			adminAvatar: actorUser.avatar,
 		},
 	};
 }

@@ -236,6 +236,7 @@ export type AdminViewContext = {
 	active: true;
 	adminUserId: string;
 	adminUsername?: string;
+	adminAvatar?: string | null;
 };
 export type AuthenticatedUser = DbUser & { entitlements?: UserEntitlements; adminView?: AdminViewContext };
 export type UserBadge = InferSelectModel<typeof userBadgesTable>;

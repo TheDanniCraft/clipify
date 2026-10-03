@@ -3,7 +3,7 @@
 const createApiInvitation = jest.fn();
 const acceptApiInvitation = jest.fn();
 const cancelApiInvitation = jest.fn();
-const sendTeamInvitation = jest.fn();
+const signInMagicLink = jest.fn();
 
 jest.mock("@/auth/config", () => ({
 	auth: {
@@ -11,10 +11,10 @@ jest.mock("@/auth/config", () => ({
 			createInvitation: (...args: unknown[]) => createApiInvitation(...args),
 			acceptInvitation: (...args: unknown[]) => acceptApiInvitation(...args),
 			cancelInvitation: (...args: unknown[]) => cancelApiInvitation(...args),
+			signInMagicLink: (...args: unknown[]) => signInMagicLink(...args),
 		},
 	},
 }));
-jest.mock("@/auth/transactional-mail", () => ({ sendTeamInvitation: (...args: unknown[]) => sendTeamInvitation(...args) }));
 jest.mock("@/app/lib/baseUrl", () => ({ resolveBaseUrl: () => "https://clipify.us" }));
 
 import { acceptInvitation, acceptPersistedInvitation, createInvitation, createPersistedInvitation, revokeInvitation, revokePersistedInvitation, type InvitationDependencies, type InvitationState } from "@/auth/invitations";
@@ -26,6 +26,7 @@ describe("TDD-US3-008 persisted Better Auth invitation boundary", () => {
 		createApiInvitation.mockResolvedValue({ id: "invitation-1", email: "member@example.test" });
 		acceptApiInvitation.mockResolvedValue({ invitation: { id: "invitation-1", status: "accepted" } });
 		cancelApiInvitation.mockResolvedValue({ invitation: { id: "invitation-1", status: "canceled" } });
+		signInMagicLink.mockResolvedValue({ status: true });
 	});
 
 	it.each(["copy", "copy-and-email"] as const)("creates one normalized invitation for %s delivery", async (delivery) => {
@@ -38,9 +39,19 @@ describe("TDD-US3-008 persisted Better Auth invitation boundary", () => {
 		});
 		expect(result).toEqual({ invitation: { id: "invitation-1", email: "member@example.test" }, invitationUrl: "https://clipify.us/accept-invitation?invitationId=invitation-1", delivery });
 		if (delivery === "copy-and-email") {
-			expect(sendTeamInvitation).toHaveBeenCalledWith({ email: "member@example.test", invitationUrl: result.invitationUrl, organizationName: "Creator Team" });
+			expect(signInMagicLink).toHaveBeenCalledWith({
+				headers,
+				body: {
+					email: "member@example.test",
+					name: "member",
+					callbackURL: result.invitationUrl,
+					newUserCallbackURL: result.invitationUrl,
+					errorCallbackURL: result.invitationUrl,
+					metadata: { invitationId: "invitation-1" },
+				},
+			});
 		} else {
-			expect(sendTeamInvitation).not.toHaveBeenCalled();
+			expect(signInMagicLink).not.toHaveBeenCalled();
 		}
 	});
 
