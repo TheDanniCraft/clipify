@@ -1,6 +1,6 @@
 "use client";
 
-import { IconBuildingCommunity, IconDiamondFilled, IconMoonFilled, IconSunFilled } from "@tabler/icons-react";
+import { IconDiamondFilled, IconMoonFilled, IconSunFilled } from "@tabler/icons-react";
 import { useTheme } from "next-themes";
 import { Autocomplete, Button, ComboBox, Dropdown, EmptyState, Input, Label, Link, ListBox, SearchField, Spinner, useFilter } from "@heroui/react";
 
@@ -184,7 +184,6 @@ export default function DashboardNavbar({ children, user, title, tagline, organi
 								>
 									<Label className='sr-only'>Account</Label>
 									<Autocomplete.Trigger className='h-9 rounded-xl border-transparent bg-accent-foreground/10 px-2 text-accent-foreground shadow-none hover:bg-accent-foreground/15'>
-										<IconBuildingCommunity aria-hidden='true' className='shrink-0' size={17} />
 										<Autocomplete.Value className='truncate text-sm font-medium'>{displayedOrganization?.name ?? "Select account"}</Autocomplete.Value>
 										<Autocomplete.Indicator className='shrink-0 text-accent-foreground/70' />
 									</Autocomplete.Trigger>
