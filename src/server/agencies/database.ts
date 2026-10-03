@@ -9,6 +9,8 @@ import { getAuthSession } from "@/auth/session";
 import { PERMISSIONS, STANDARD_ROLES, type Permission } from "@/auth/permissions";
 import { resolveAgencyAccess } from "./access";
 import { buildAgencyAllocationGrantIntent, buildAgencyAllocationRemovalIntents } from "@/server/notifications/templates/agency-allocation";
+import { resolveBaseUrl } from "@/app/lib/baseUrl";
+import { sendTeamInvitation } from "@/auth/transactional-mail";
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -43,16 +45,20 @@ export async function requireAgencyMember(requiredPermission?: Permission) {
 	const session = await requireSession();
 	let organizationId = session.activeOrganizationId ?? null;
 	if (!organizationId) throw new Error("AGENCY_CONTEXT_REQUIRED");
-	let account = await db
-		.select()
-		.from(agencyAccountsTable)
-		.where(and(eq(agencyAccountsTable.organizationId, organizationId), eq(agencyAccountsTable.status, "active")))
-		.limit(1);
+	let account = await db.select().from(agencyAccountsTable).where(eq(agencyAccountsTable.organizationId, organizationId)).limit(1);
 	let membership = await db
 		.select()
 		.from(authMemberTable)
 		.where(and(eq(authMemberTable.organizationId, organizationId), eq(authMemberTable.userId, session.userId)))
 		.limit(1);
+	if (account[0]?.status === "owner_invited" && membership[0]?.role === "owner") {
+		const [activated] = await db
+			.update(agencyAccountsTable)
+			.set({ status: "active", updatedAt: new Date() })
+			.where(and(eq(agencyAccountsTable.organizationId, organizationId), eq(agencyAccountsTable.status, "owner_invited")))
+			.returning();
+		if (activated) account = [activated];
+	}
 	if (account[0] && (account[0].status !== "active" || !membership[0])) throw new Error("ACTIVE_AGENCY_MEMBERSHIP_REQUIRED");
 	if (!account[0] || !membership[0]) {
 		const creatorContext = await db.select({ organizationId: creatorAccountsTable.organizationId }).from(creatorAccountsTable).where(eq(creatorAccountsTable.organizationId, organizationId)).limit(1);
@@ -168,7 +174,22 @@ export async function provisionDatabaseAgency(input: {
 		await tx.insert(notificationOutboxTable).values({ eventType: "agency-access", recipient: ownerEmail, authorityOrganizationId: organizationId, templateVersion: "agency-owner-invitation-v1", locale: "en", payload: { agencyName: name }, scheduledAt: now, dedupeKey: `agency-owner-invitation:${invitationId}` });
 		await tx.insert(auditEventsTable).values({ actorUserId: identity[0].authUserId, accountOrganizationId: organizationId, targetType: "agency_account", targetId: organizationId, action: "agency.provision", outcome: "success", correlationId: `agency-provision:${organizationId}`, metadata: { creatorSeatLimit: input.creatorSeatLimit } });
 	});
-	return { organizationId, invitationId, status: "owner_invited" as const };
+	const invitationUrl = new URL("/accept-invitation", resolveBaseUrl());
+	invitationUrl.searchParams.set("invitationId", invitationId);
+	let emailSent = false;
+	if (process.env.E2E_TEST_MODE !== "true") {
+		try {
+			await sendTeamInvitation({ email: ownerEmail, invitationUrl: invitationUrl.toString(), organizationName: name });
+			await db
+				.update(notificationOutboxTable)
+				.set({ status: "sent", providerMessageId: "direct-delivery", updatedAt: new Date() })
+				.where(eq(notificationOutboxTable.dedupeKey, `agency-owner-invitation:${invitationId}`));
+			emailSent = true;
+		} catch (error) {
+			console.error("[agency] owner invitation email failed", error);
+		}
+	}
+	return { organizationId, invitationId, invitationUrl: invitationUrl.toString(), emailSent, status: "owner_invited" as const };
 }
 
 export async function activateDatabaseAgencyOwner(input: { organizationId: string; now?: Date }) {
@@ -186,6 +207,27 @@ export async function activateDatabaseAgencyOwner(input: { organizationId: strin
 		.where(and(eq(agencyAccountsTable.organizationId, input.organizationId), eq(agencyAccountsTable.status, "owner_invited")))
 		.returning();
 	return updated ?? (await db.select().from(agencyAccountsTable).where(eq(agencyAccountsTable.organizationId, input.organizationId)).limit(1))[0];
+}
+
+/** Complete first-owner activation after Better Auth has atomically accepted the invitation. */
+export async function activateCurrentInvitedAgency(input: { organizationId: string; now?: Date }) {
+	const session = await requireSession();
+	const account = await db.select().from(agencyAccountsTable).where(eq(agencyAccountsTable.organizationId, input.organizationId)).limit(1);
+	if (!account[0]) return { agency: false as const, activated: false as const };
+	const membership = await db
+		.select({ role: authMemberTable.role })
+		.from(authMemberTable)
+		.where(and(eq(authMemberTable.organizationId, input.organizationId), eq(authMemberTable.userId, session.userId)))
+		.limit(1);
+	if (membership[0]?.role !== "owner") throw new Error("AGENCY_OWNER_REQUIRED");
+	if (account[0].status === "active") return { agency: true as const, activated: false as const };
+	if (account[0].status !== "owner_invited") throw new Error("AGENCY_ACTIVATION_STATE_INVALID");
+	const [updated] = await db
+		.update(agencyAccountsTable)
+		.set({ status: "active", updatedAt: input.now ?? new Date() })
+		.where(and(eq(agencyAccountsTable.organizationId, input.organizationId), eq(agencyAccountsTable.status, "owner_invited")))
+		.returning({ organizationId: agencyAccountsTable.organizationId });
+	return { agency: true as const, activated: Boolean(updated) };
 }
 
 export async function proposeDatabaseAgencyLink(input: { creatorOrganizationId: string; permissionCeiling: string[]; now?: Date }) {

@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { IconArrowLeft, IconCalendarClock, IconLicense, IconTrash, IconUserCheck } from "@tabler/icons-react";
-import { validateAuth } from "@actions/auth";
 import { getAgencyOverviewAction, removeAgencyLicenseFormAction } from "@/app/actions/agency";
 import DashboardNavbar from "@components/dashboardNavbar";
 import { AlertContent, AlertDescription, AlertRoot, AlertTitle, Button, CardContent, CardDescription, CardHeader, CardRoot, CardTitle, Chip, ProgressBarFill, ProgressBarOutput, ProgressBarRoot, ProgressBarTrack, TableBody, TableCell, TableColumn, TableContent, TableHeader, TableRoot, TableRow, TableScrollContainer } from "@components/heroui-client";
+import { getDashboardNavbarUser } from "@/auth/navigation-user";
 
 export const dynamic = "force-dynamic";
 
@@ -16,13 +16,13 @@ function label(value: string) {
 }
 
 export default async function AgencyAllocationsPage() {
-	const user = await validateAuth();
+	const user = await getDashboardNavbarUser();
 	if (!user) redirect("/login?returnUrl=%2Fdashboard%2Fagency%2Fallocations");
 	const overview = await getAgencyOverviewAction();
 	const utilization = overview.account.creatorSeatLimit === 0 ? 0 : Math.round((overview.occupiedSeats / overview.account.creatorSeatLimit) * 100);
 
 	return (
-		<DashboardNavbar user={user} title='Creator seat allocations' tagline='Control which linked creators receive agency-sponsored Pro'>
+		<DashboardNavbar user={user} title='Creator seat allocations' tagline='Control which linked creators receive agency-sponsored Pro' organizationId={overview.account.organizationId}>
 			<div className='mt-6 flex flex-col gap-6 pb-10'>
 				<div>
 					<Link href='/dashboard/agency' className='inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-muted transition-colors hover:bg-surface-secondary hover:text-foreground'>

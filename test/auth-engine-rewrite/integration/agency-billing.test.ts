@@ -1,4 +1,4 @@
-import { decideAgencySeatChange, resolveAgencyCapacitySnapshot, resolveWebhookCapacity, shouldApplyAgencyStripeSnapshot } from "@/server/agencies/billing-policy";
+import { agencyIncreasePaymentBehavior, decideAgencySeatChange, resolveAgencyCapacitySnapshot, resolveWebhookCapacity, shouldApplyAgencyStripeSnapshot } from "@/server/agencies/billing-policy";
 
 describe("TDD-US4-004 agency billing capacity", () => {
 	it("invoices an increase immediately and leaves activation pending payment", () => {
@@ -41,6 +41,11 @@ describe("TDD-US4-004 agency billing capacity", () => {
 	it("holds invoice-billed capacity until the invoice is paid", () => {
 		expect(resolveAgencyCapacitySnapshot({ previousQuantity: 50, stripeQuantity: 60, subscriptionStatus: "active", hasPendingUpdate: false, collectionMethod: "send_invoice", invoicePaymentConfirmed: false })).toBe(50);
 		expect(resolveAgencyCapacitySnapshot({ previousQuantity: 50, stripeQuantity: 60, subscriptionStatus: "active", hasPendingUpdate: false, collectionMethod: "send_invoice", invoicePaymentConfirmed: true })).toBe(60);
+	});
+
+	it("changes seats for both collection methods while only card collection uses pending payment updates", () => {
+		expect(agencyIncreasePaymentBehavior("charge_automatically")).toBe("pending_if_incomplete");
+		expect(agencyIncreasePaymentBehavior("send_invoice")).toBeUndefined();
 	});
 
 	it("does not activate an initial invoice subscription before its first payment", () => {

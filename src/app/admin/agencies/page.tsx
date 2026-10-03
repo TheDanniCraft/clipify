@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { IconBuildingBank, IconCheck, IconPlus, IconUsers } from "@tabler/icons-react";
 import { validateAdminAuth } from "@actions/auth";
 import { getAdminAgenciesAction } from "@/app/actions/agency";
@@ -16,10 +17,11 @@ function label(value: string) {
 		.join(" ");
 }
 
-export default async function AdminAgenciesPage({ searchParams }: { searchParams: Promise<{ error?: string; created?: string }> }) {
+export default async function AdminAgenciesPage({ searchParams }: { searchParams: Promise<{ error?: string; created?: string; invitationId?: string; emailSent?: string }> }) {
 	const user = await validateAdminAuth(true);
 	if (!user) redirect("/dashboard");
 	const [agencies, params] = await Promise.all([getAdminAgenciesAction(), searchParams]);
+	const invitationHref = params.invitationId ? `/accept-invitation?invitationId=${encodeURIComponent(params.invitationId)}` : null;
 
 	return (
 		<DashboardNavbar user={user} title='Agency accounts' tagline='Provision negotiated terms and Stripe-backed creator or Runner seats'>
@@ -37,7 +39,14 @@ export default async function AdminAgenciesPage({ searchParams }: { searchParams
 					<AlertRoot status='success'>
 						<IconCheck aria-hidden='true' />
 						<AlertContent>
-							<AlertDescription>Agency account and owner invitation created.</AlertDescription>
+							<AlertDescription>
+								<span>Agency account and owner invitation created.</span> {params.emailSent === "1" ? "The invitation email was sent." : "Email delivery failed; share the invitation link manually."}{" "}
+								{invitationHref ? (
+									<Link href={invitationHref} className='font-medium text-accent underline underline-offset-4'>
+										Open invitation
+									</Link>
+								) : null}
+							</AlertDescription>
 						</AlertContent>
 					</AlertRoot>
 				) : null}

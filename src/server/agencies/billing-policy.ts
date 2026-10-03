@@ -1,5 +1,9 @@
 export type AgencySeatChange = { kind: "unchanged"; quantity: number } | { kind: "increase"; quantity: number; prorationBehavior: "always_invoice"; paymentBehavior: "pending_if_incomplete" } | { kind: "decrease"; quantity: number; effective: "next_period" };
 
+export function agencyIncreasePaymentBehavior(collectionMethod: "charge_automatically" | "send_invoice") {
+	return collectionMethod === "charge_automatically" ? ("pending_if_incomplete" as const) : undefined;
+}
+
 function assertQuantity(value: number) {
 	if (!Number.isSafeInteger(value) || value < 0) throw new Error("INVALID_AGENCY_SEAT_QUANTITY");
 }

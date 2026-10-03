@@ -5,7 +5,7 @@ import DashboardNavbar from "@components/dashboardNavbar";
 import DashboardUserAvatar from "@components/dashboardUserAvatar";
 import FullscreenLoadingState from "@components/fullscreenLoadingState";
 import SettingsNavigation from "@components/settingsNavigation";
-import type { AuthenticatedUser } from "@types";
+import type { DashboardNavbarUser } from "@components/dashboardNavbar";
 import { Button, Card, Checkbox, Chip, Input, Label, ListBox, Modal, Select, Table, TextField } from "@heroui/react";
 import { notify as addToast } from "@lib/toast";
 import { IconArrowLeft, IconCopy, IconLink, IconMail, IconPencil, IconShieldCheck, IconTrash, IconUserPlus, IconUsersGroup } from "@tabler/icons-react";
@@ -38,6 +38,18 @@ function formatRole(role: string | null) {
 		.split("-")
 		.map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
 		.join(" ");
+}
+
+function organizationAccountType(metadata: unknown) {
+	let value = metadata;
+	if (typeof value === "string") {
+		try {
+			value = JSON.parse(value || "{}");
+		} catch {
+			value = {};
+		}
+	}
+	return value && typeof value === "object" && "accountType" in value && value.accountType === "agency" ? "agency" : "creator";
 }
 
 function formatExpiration(value: Date | string) {
@@ -139,9 +151,12 @@ export default function TeamSettingsPage() {
 	const router = useRouter();
 	const searchParams = useSearchParams();
 	const organizations = authClient.useListOrganizations();
+	const identitySession = authClient.useSession();
 	const requestedOrganizationId = searchParams.get("organization");
-	const organization = organizations.data?.find((candidate) => candidate.id === requestedOrganizationId) ?? organizations.data?.[0];
-	const [user, setUser] = useState<AuthenticatedUser | null>(null);
+	const activeOrganizationId = identitySession.data?.session.activeOrganizationId;
+	const organization = organizations.data?.find((candidate) => candidate.id === requestedOrganizationId) ?? organizations.data?.find((candidate) => candidate.id === activeOrganizationId) ?? organizations.data?.[0];
+	const isAgencyOrganization = organizationAccountType(organization?.metadata) === "agency";
+	const [user, setUser] = useState<DashboardNavbarUser | null>(null);
 	const [members, setMembers] = useState<MemberRow[]>([]);
 	const [invitations, setInvitations] = useState<InvitationRow[]>([]);
 	const [customRoles, setCustomRoles] = useState<RoleRow[]>([]);
@@ -159,11 +174,17 @@ export default function TeamSettingsPage() {
 		async function validateUser() {
 			const authenticatedUser = await validateAuth();
 			if (!active) return;
-			if (!authenticatedUser) {
+			if (authenticatedUser) {
+				setUser(authenticatedUser);
+				return;
+			}
+			const identitySession = await authClient.getSession();
+			if (!active) return;
+			if (!identitySession.data) {
 				router.push("/logout");
 				return;
 			}
-			setUser(authenticatedUser);
+			setUser({ id: identitySession.data.user.id, username: identitySession.data.user.name.trim() || identitySession.data.user.email, avatar: identitySession.data.user.image ?? undefined });
 		}
 		void validateUser();
 		return () => {
@@ -350,12 +371,12 @@ export default function TeamSettingsPage() {
 		<DashboardNavbar user={user} title='Team members' tagline='Invite people and control what they can manage'>
 			<div className='mt-6 flex w-full flex-col gap-6 pb-10'>
 				<div>
-					<Button variant='ghost' onPress={() => router.push("/dashboard/settings")}>
+					<Button variant='ghost' onPress={() => router.push(isAgencyOrganization ? "/dashboard/agency" : "/dashboard/settings")}>
 						<IconArrowLeft aria-hidden='true' size={18} />
-						Back to settings
+						{isAgencyOrganization ? "Back to agency dashboard" : "Back to settings"}
 					</Button>
 				</div>
-				<SettingsNavigation active='team' />
+				{isAgencyOrganization ? null : <SettingsNavigation active='team' />}
 				{!organization ? (
 					<Card>
 						<Card.Header>

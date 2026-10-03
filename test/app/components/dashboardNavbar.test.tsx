@@ -9,7 +9,18 @@ const getAdminViewCandidates = jest.fn();
 const switchAdminView = jest.fn();
 const stopAdminView = jest.fn();
 const getActiveCampaignOfferAction = jest.fn();
+const setActiveOrganization = jest.fn();
 let currentTheme = "dark";
+let identitySession: { data: { session: { activeOrganizationId: string | null } } | null; isPending: boolean } = { data: { session: { activeOrganizationId: "creator-org" } }, isPending: false };
+let organizationList: { data: Array<{ id: string; name: string; metadata: string }>; isPending: boolean } = { data: [], isPending: false };
+
+jest.mock("@/auth/client", () => ({
+	authClient: {
+		useSession: () => identitySession,
+		useListOrganizations: () => organizationList,
+		organization: { setActive: (...args: unknown[]) => setActiveOrganization(...args) },
+	},
+}));
 
 jest.mock("next-themes", () => ({
 	useTheme: () => ({
@@ -115,6 +126,9 @@ describe("components/dashboardNavbar", () => {
 		]);
 		switchAdminView.mockResolvedValue({ ok: true });
 		stopAdminView.mockResolvedValue(undefined);
+		setActiveOrganization.mockResolvedValue({ data: {}, error: null });
+		identitySession = { data: { session: { activeOrganizationId: "creator-org" } }, isPending: false };
+		organizationList = { data: [], isPending: false };
 	});
 
 	afterEach(() => {

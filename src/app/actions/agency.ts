@@ -23,9 +23,11 @@ function errorCode(error: unknown) {
 }
 
 export async function provisionAgencyFormAction(formData: FormData) {
+	let invitationId = "";
+	let emailSent = false;
 	try {
 		const collectionMethod = value(formData, "collectionMethod") === "send_invoice" ? "send_invoice" : "charge_automatically";
-		await provisionDatabaseAgency({
+		const result = await provisionDatabaseAgency({
 			name: value(formData, "name"),
 			ownerEmail: value(formData, "ownerEmail"),
 			commercialReference: value(formData, "commercialReference") || undefined,
@@ -42,11 +44,13 @@ export async function provisionAgencyFormAction(formData: FormData) {
 				runnerSeatQuantity: Number.parseInt(value(formData, "runnerSeatQuantity") || "0", 10),
 			},
 		});
+		invitationId = result.invitationId;
+		emailSent = result.emailSent;
 	} catch (error) {
 		redirect(`/admin/agencies?error=${encodeURIComponent(errorCode(error))}`);
 	}
 	revalidatePath("/admin/agencies");
-	redirect("/admin/agencies?created=1");
+	redirect(`/admin/agencies?created=1&invitationId=${encodeURIComponent(invitationId)}&emailSent=${emailSent ? "1" : "0"}`);
 }
 
 export async function activateAgencyOwnerFormAction(formData: FormData) {

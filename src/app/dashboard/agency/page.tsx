@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { IconArrowRight, IconBuildingCommunity, IconCheck, IconCreditCard, IconExternalLink, IconLicense, IconLink, IconUsersGroup } from "@tabler/icons-react";
-import { validateAuth } from "@actions/auth";
 import { allocateAgencyLicenseFormAction, changeAgencySeatQuantityFormAction, getAgencyOverviewAction, openAgencyBillingPortalFormAction, proposeAgencyLinkFormAction, startAgencyBillingFormAction } from "@/app/actions/agency";
 import DashboardNavbar from "@components/dashboardNavbar";
 import { Button, Checkbox, Chip, Input, Label, TextField } from "@components/heroui-client";
 import { Alert, Card, ProgressBar } from "@components/heroui-server";
 import { PERMISSIONS } from "@/auth/permissions";
+import { getDashboardNavbarUser } from "@/auth/navigation-user";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +27,7 @@ async function loadAgencyOverview(requestedCreatorOrganizationId?: string) {
 }
 
 export default async function AgencyDashboardPage({ searchParams }: { searchParams: Promise<{ creator?: string | string[]; error?: string | string[]; allocated?: string | string[]; billing?: string | string[]; billingError?: string | string[] }> }) {
-	const user = await validateAuth();
+	const user = await getDashboardNavbarUser();
 	if (!user) redirect("/login?returnUrl=%2Fdashboard%2Fagency");
 	const params = await searchParams;
 	const requestedCreator = params.creator;
@@ -44,8 +44,26 @@ export default async function AgencyDashboardPage({ searchParams }: { searchPara
 	);
 
 	return (
-		<DashboardNavbar user={user} title='Agency dashboard' tagline='Manage creator access, staff, and Pro seat allocation'>
+		<DashboardNavbar user={user} title='Agency dashboard' tagline='Manage creator access, staff, and Pro seat allocation' organizationId={overview.account.organizationId}>
 			<div className='mt-6 flex flex-col gap-6 pb-10'>
+				{typeof params.billing === "string" && ["increase-pending", "decrease-scheduled", "unchanged", "invoice-sent", "success"].includes(params.billing) ? (
+					<Alert status='success'>
+						<IconCheck aria-hidden='true' />
+						<Alert.Content>
+							<Alert.Description>
+								{params.billing === "increase-pending"
+									? overview.billing?.collectionMethod === "send_invoice"
+										? "Stripe issued the prorated invoice. The additional seats become available after the invoice is paid."
+										: "Stripe is processing the prorated charge. The additional seats become available after payment succeeds."
+									: params.billing === "decrease-scheduled"
+										? "The seat reduction is scheduled for the next billing period."
+										: params.billing === "unchanged"
+											? "The seat quantity is already up to date."
+											: "Agency billing was started successfully."}
+							</Alert.Description>
+						</Alert.Content>
+					</Alert>
+				) : null}
 				{params.allocated === "1" ? (
 					<Alert status='success'>
 						<IconCheck aria-hidden='true' />
@@ -78,7 +96,7 @@ export default async function AgencyDashboardPage({ searchParams }: { searchPara
 						</div>
 						<div className='flex-1'>
 							<Card.Title>Agency billing</Card.Title>
-							<Card.Description>Stripe controls paid capacity. Upgrades are prorated and charged now; permitted reductions start next billing period.</Card.Description>
+							<Card.Description>Stripe controls paid capacity. Upgrades are prorated immediately and activate after payment; permitted reductions start next billing period.</Card.Description>
 						</div>
 					</Card.Header>
 					<Card.Content className='space-y-4'>

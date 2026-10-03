@@ -52,7 +52,7 @@ const validateAuth = jest.fn();
 jest.mock("@/auth/session", () => ({ getAuthSession: (...args: unknown[]) => getAuthSession(...args) }));
 jest.mock("@actions/auth", () => ({ validateAuth: (...args: unknown[]) => validateAuth(...args) }));
 
-import { acceptDatabaseAgencyLink, activateDatabaseAgencyOwner, allocateDatabaseAgencyLicense, endDueDatabaseAgencyAllocations, listDatabaseAdminAgencies, listDatabaseAgencyOverview, listDatabaseCreatorAgencyLinks, proposeDatabaseAgencyLink, provisionDatabaseAgency, reduceDatabaseAgencyLinkCeiling, resolveDatabaseAgencyPermissions, revokeDatabaseAgencyLink, scheduleDatabaseAgencyLicenseRemoval } from "@/server/agencies/database";
+import { acceptDatabaseAgencyLink, activateCurrentInvitedAgency, activateDatabaseAgencyOwner, allocateDatabaseAgencyLicense, endDueDatabaseAgencyAllocations, listDatabaseAdminAgencies, listDatabaseAgencyOverview, listDatabaseCreatorAgencyLinks, proposeDatabaseAgencyLink, provisionDatabaseAgency, reduceDatabaseAgencyLinkCeiling, resolveDatabaseAgencyPermissions, revokeDatabaseAgencyLink, scheduleDatabaseAgencyLicenseRemoval } from "@/server/agencies/database";
 import { PERMISSIONS } from "@/auth/permissions";
 
 const { db, __agencyDbState: state } = jest.requireMock("@/db/client") as {
@@ -113,6 +113,15 @@ describe("TDD-US4-004 agency database adapter", () => {
 		await expect(activateDatabaseAgencyOwner({ organizationId: "agency-org-1", now })).resolves.toMatchObject({ status: "active" });
 		state.selects.push([{ role: "member" }]);
 		await expect(activateDatabaseAgencyOwner({ organizationId: "agency-org-1", now })).rejects.toThrow("AGENCY_OWNER_REQUIRED");
+	});
+
+	it("finishes first-owner agency activation after invitation acceptance", async () => {
+		state.selects.push([{ ...agency, status: "owner_invited" }], [{ role: "owner" }]);
+		state.updates.push([{ organizationId: "agency-org-1" }]);
+		await expect(activateCurrentInvitedAgency({ organizationId: "agency-org-1", now })).resolves.toEqual({ agency: true, activated: true });
+
+		state.selects.push([]);
+		await expect(activateCurrentInvitedAgency({ organizationId: "creator-org-1", now })).resolves.toEqual({ agency: false, activated: false });
 	});
 
 	it("requires authentication, agency context, active membership, and permission", async () => {

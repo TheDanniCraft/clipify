@@ -1,6 +1,6 @@
 "use client";
 
-import { IconDiamondFilled, IconMoonFilled, IconSunFilled } from "@tabler/icons-react";
+import { IconBuildingCommunity, IconCheck, IconDiamondFilled, IconMoonFilled, IconSunFilled } from "@tabler/icons-react";
 import { useTheme } from "next-themes";
 import { Button, ComboBox, Dropdown, Input, Label, Link, ListBox, Spinner } from "@heroui/react";
 
@@ -12,10 +12,29 @@ import { useRouter } from "next/navigation";
 import { getAdminViewCandidates, stopAdminView, switchAdminView, type AdminViewCandidate } from "@actions/adminView";
 import { getActiveCampaignOfferAction } from "@actions/campaignOffers";
 import { useEffect, useMemo, useState } from "react";
+import { authClient } from "@/auth/client";
 
-export default function DashboardNavbar({ children, user, title, tagline }: { children?: React.ReactNode; user: AuthenticatedUser; title: string; tagline: string }) {
+export type DashboardNavbarUser = Pick<AuthenticatedUser, "id" | "username"> & Partial<Pick<AuthenticatedUser, "avatar" | "role" | "plan" | "entitlements" | "adminView">>;
+
+type OrganizationOption = { id: string; name: string; metadata?: unknown };
+
+function accountType(organization: OrganizationOption) {
+	let metadata = organization.metadata;
+	if (typeof metadata === "string") {
+		try {
+			metadata = JSON.parse(metadata || "{}");
+		} catch {
+			metadata = {};
+		}
+	}
+	return metadata && typeof metadata === "object" && "accountType" in metadata && metadata.accountType === "agency" ? "agency" : "creator";
+}
+
+export default function DashboardNavbar({ children, user, title, tagline, organizationId }: { children?: React.ReactNode; user: DashboardNavbarUser; title: string; tagline: string; organizationId?: string }) {
 	const { theme, setTheme } = useTheme();
 	const router = useRouter();
+	const session = authClient.useSession();
+	const organizations = authClient.useListOrganizations();
 	const [isClearingAdminView, setIsClearingAdminView] = useState(false);
 	const [isSwitchingAdminView, setIsSwitchingAdminView] = useState(false);
 	const [switchQuery, setSwitchQuery] = useState(user?.username ?? "");
@@ -27,6 +46,25 @@ export default function DashboardNavbar({ children, user, title, tagline }: { ch
 	const showUpgradeItem = user?.plan === "free" && (effectivePlan === "free" || Boolean(user?.entitlements?.reverseTrialActive));
 	const isImpersonating = Boolean(user?.adminView?.active);
 	const canOpenAdminView = user?.role === Role.Admin || isImpersonating;
+	const organizationOptions = useMemo(() => (organizations.data ?? []) as OrganizationOption[], [organizations.data]);
+	const sessionOrganizationId = session.data?.session.activeOrganizationId ?? null;
+	const activeOrganizationId = organizationId ?? sessionOrganizationId;
+	const activeOrganization = organizationOptions.find((organization) => organization.id === activeOrganizationId);
+
+	useEffect(() => {
+		if (!organizationId || !session.data || organizations.isPending || sessionOrganizationId === organizationId || !organizationOptions.some((organization) => organization.id === organizationId)) return;
+		void authClient.organization.setActive({ organizationId }).then((result) => {
+			if (!result.error) router.refresh();
+		});
+	}, [organizationId, organizationOptions, organizations.isPending, router, session.data, sessionOrganizationId]);
+
+	async function switchAccount(organization: OrganizationOption) {
+		if (organization.id === sessionOrganizationId) return;
+		const result = await authClient.organization.setActive({ organizationId: organization.id });
+		if (result.error) return;
+		router.push(accountType(organization) === "agency" ? "/dashboard/agency" : "/dashboard");
+		router.refresh();
+	}
 
 	useEffect(() => {
 		if (!isImpersonating) return;
@@ -122,6 +160,33 @@ export default function DashboardNavbar({ children, user, title, tagline }: { ch
 						<p className='ml-2 font-bold text-white'>Clipify</p>
 					</Link>
 					<ul className='ml-auto flex h-12 max-w-fit items-center gap-0'>
+						{organizationOptions.length > 1 ? (
+							<li className='mr-1'>
+								<Dropdown>
+									<Dropdown.Trigger aria-label='Switch account'>
+										<Button variant='ghost' className='max-w-44 text-accent-foreground'>
+											<IconBuildingCommunity aria-hidden='true' size={18} />
+											<span className='truncate'>{activeOrganization?.name ?? "Switch account"}</span>
+										</Button>
+									</Dropdown.Trigger>
+									<Dropdown.Popover placement='bottom end'>
+										<Dropdown.Menu aria-label='Account context'>
+											{organizationOptions.map((organization) => (
+												<Dropdown.Item key={organization.id} id={organization.id} textValue={organization.name} onAction={() => void switchAccount(organization)}>
+													<div className='flex min-w-52 items-center justify-between gap-4'>
+														<div>
+															<Label>{organization.name}</Label>
+															<p className='text-xs capitalize text-muted'>{accountType(organization)} account</p>
+														</div>
+														{organization.id === activeOrganizationId ? <IconCheck aria-label='Active account' size={16} /> : null}
+													</div>
+												</Dropdown.Item>
+											))}
+										</Dropdown.Menu>
+									</Dropdown.Popover>
+								</Dropdown>
+							</li>
+						) : null}
 						<li>
 							<Button isIconOnly variant='ghost' onPress={() => setTheme(theme === "dark" ? "light" : "dark")} aria-label='Toggle Theme'>
 								{(theme ?? "dark") === "dark" ? <IconSunFilled className='text-accent-foreground/60' width={24} /> : <IconMoonFilled className='text-accent-foreground/60' width={24} />}
@@ -146,8 +211,8 @@ export default function DashboardNavbar({ children, user, title, tagline }: { ch
 												<Label>Upgrade to Pro</Label>
 											</Dropdown.Item>
 										) : null}
-										<Dropdown.Item id='settings' textValue='My Settings' onAction={() => router.push("/dashboard/settings")}>
-											<Label>My Settings</Label>
+										<Dropdown.Item id='settings' textValue={user.plan ? "My Settings" : "Agency dashboard"} onAction={() => router.push(user.plan ? "/dashboard/settings" : "/dashboard/agency")}>
+											<Label>{user.plan ? "My Settings" : "Agency dashboard"}</Label>
 										</Dropdown.Item>
 										<Dropdown.Item id='member_card' textValue='Badges' onAction={() => router.push("/dashboard/member-card")}>
 											<Label>Badges</Label>

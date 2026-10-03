@@ -6,7 +6,7 @@ import { db } from "@/db/client";
 import { agencyBillingAccountsTable, agencyCreatorLinksTable, agencyLicenseAllocationsTable } from "@/db/schema";
 import { getStripe } from "@/server/stripe";
 import { resolveBaseUrl } from "@/app/lib/baseUrl";
-import { decideAgencySeatChange } from "./billing-policy";
+import { agencyIncreasePaymentBehavior, decideAgencySeatChange } from "./billing-policy";
 import { syncAgencyStripeSubscription } from "./billing-sync";
 import { requireAgencyMember } from "./database";
 
@@ -119,7 +119,6 @@ async function occupiedSeats(organizationId: string, kind: AgencySeatKind) {
 export async function changeAgencySeatQuantity(kind: AgencySeatKind, requestedQuantity: number) {
 	const { billing } = await requireBillingContext("billing:manage");
 	if (!billing.stripeSubscriptionId) throw new Error("AGENCY_SUBSCRIPTION_REQUIRED");
-	if (billing.collectionMethod !== "charge_automatically") throw new Error("AGENCY_INVOICE_BILLING_CONTACT_REQUIRED");
 	const terms = seatTerms(billing, kind);
 	if (!terms.priceId) throw new Error("AGENCY_SUBSCRIPTION_ITEM_REQUIRED");
 	const decision = decideAgencySeatChange({ currentQuantity: terms.currentQuantity, requestedQuantity, minimumQuantity: terms.minimumQuantity, occupiedQuantity: await occupiedSeats(billing.organizationId, kind) });
@@ -127,10 +126,14 @@ export async function changeAgencySeatQuantity(kind: AgencySeatKind, requestedQu
 	const stripe = getStripe();
 
 	if (decision.kind === "increase") {
+		await db
+			.update(agencyBillingAccountsTable)
+			.set(kind === "creator" ? { pendingCreatorSeatQuantity: decision.quantity, updatedAt: new Date() } : { pendingRunnerSeatQuantity: decision.quantity, updatedAt: new Date() })
+			.where(eq(agencyBillingAccountsTable.organizationId, billing.organizationId));
 		await stripe.subscriptions.update(billing.stripeSubscriptionId, {
 			items: [terms.itemId ? { id: terms.itemId, quantity: decision.quantity } : { price: terms.priceId, quantity: decision.quantity }],
 			proration_behavior: decision.prorationBehavior,
-			payment_behavior: decision.paymentBehavior,
+			payment_behavior: agencyIncreasePaymentBehavior(billing.collectionMethod),
 		});
 		return decision;
 	}
