@@ -46,8 +46,10 @@ jest.mock("drizzle-orm", () => ({ and: jest.fn(() => "and"), eq: jest.fn(() => "
 
 const getAuthActorContext = jest.fn();
 jest.mock("@/auth/session", () => ({ getAuthActorContext: (...args: unknown[]) => getAuthActorContext(...args) }));
+const collectComprehensiveAccountData = jest.fn();
+jest.mock("@/server/account-lifecycle/account-data-export", () => ({ collectComprehensiveAccountData: (...args: unknown[]) => collectComprehensiveAccountData(...args) }));
 
-import { exportDatabaseAccountData, getDatabaseAccountDeletionOverview, recoverDatabaseAccountDeletion, requestDatabaseAccountDeletion, suspendDueDatabaseAccountDeletions } from "@/server/account-lifecycle/database";
+import { downloadDatabaseAccountDataExport, exportDatabaseAccountData, getDatabaseAccountDeletionOverview, prepareDatabaseAccountDataExport, recoverDatabaseAccountDeletion, requestDatabaseAccountDeletion, suspendDueDatabaseAccountDeletions } from "@/server/account-lifecycle/database";
 
 const { db, __lifecycleDbState: state } = jest.requireMock("@/db/client") as {
 	db: Record<string, jest.Mock>;
@@ -77,6 +79,7 @@ describe("TDD-US5-004 account lifecycle database adapter", () => {
 		state.updates.length = 0;
 		state.inserts.length = 0;
 		getAuthActorContext.mockResolvedValue(actor);
+		collectComprehensiveAccountData.mockResolvedValue({ exportFormat: "clipify-account-data-v2" });
 	});
 
 	it("fails closed for missing identity, creator account, owner role, stale authentication, and email", async () => {
@@ -179,5 +182,19 @@ describe("TDD-US5-004 account lifecycle database adapter", () => {
 		queueOwner();
 		state.selects.push([], [], [], [], [], [], [], []);
 		await expect(exportDatabaseAccountData()).resolves.toMatchObject({ profile: null });
+	});
+
+	it("prepares and downloads a comprehensive export only for the bound owner", async () => {
+		queueOwner();
+		await expect(prepareDatabaseAccountDataExport({ now })).resolves.toEqual({ authUserId: "auth-user-1", creatorId: "creator-1", organizationId: "creator-org-1", email: "creator@example.test" });
+
+		getAuthActorContext.mockResolvedValueOnce(null);
+		await expect(downloadDatabaseAccountDataExport({ authUserId: "auth-user-1", creatorId: "creator-1", organizationId: "creator-org-1", now })).rejects.toThrow("AUTHENTICATION_REQUIRED");
+		await expect(downloadDatabaseAccountDataExport({ authUserId: "other", creatorId: "creator-1", organizationId: "creator-org-1", now })).rejects.toThrow("EXPORT_IDENTITY_MISMATCH");
+		state.selects.push([]);
+		await expect(downloadDatabaseAccountDataExport({ authUserId: "auth-user-1", creatorId: "creator-1", organizationId: "creator-org-1", now })).rejects.toThrow("EXPORT_IDENTITY_MISMATCH");
+		state.selects.push([{ id: "membership-1" }]);
+		await expect(downloadDatabaseAccountDataExport({ authUserId: "auth-user-1", creatorId: "creator-1", organizationId: "creator-org-1", now })).resolves.toEqual({ exportFormat: "clipify-account-data-v2" });
+		expect(collectComprehensiveAccountData).toHaveBeenCalledWith(expect.objectContaining({ authUserId: "auth-user-1", creatorId: "creator-1", organizationId: "creator-org-1" }));
 	});
 });

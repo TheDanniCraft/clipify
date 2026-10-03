@@ -489,3 +489,12 @@ Complete US5 before enabling agency removal/allocation behavior in US4. Finish P
 - All required TDD inventory categories—happy paths, boundaries, invalid inputs, transitions, integration contracts, originating errors, deterministic controls, and every EC-001–EC-015 path—are represented.
 - Every mandatory gate is Green or has an explicitly approved scoped exception with compensating evidence.
 - The final recommendation in `specs/002-auth-engine-rewrite/test-summary.md` is based on reproducible evidence.
+
+---
+
+## Phase 12: Convergence — Release Readiness
+
+- [x] T215 [GATE] Add focused coverage for the remaining auth lifecycle, agency database, and transactional-mail branches until `bun run test:auth:coverage` again satisfies the T177 threshold of at least 90% branches and 95% functions/lines/statements (partial per Constitution TF-6 and T177)
+- [x] T216 [GATE] Refresh `specs/002-auth-engine-rewrite/test-traceability.md`, `specs/002-auth-engine-rewrite/defect-log.md`, `specs/002-auth-engine-rewrite/test-summary.md`, and `reports/test-summary.md` with the final local/CI totals, production configuration presence check, zero-unresolved Sentry result, and aggregate production backfill invariants (partial per Constitution TF-7, TF-8, and T214)
+- [ ] T217 [GATE] After merge triggers the `Generate Migrations` workflow, require exactly one ordinary generated migration, human-review its additive agency-billing and destructive legacy-contraction SQL, and rehearse the normal migration runner plus permanent auth/runtime smoke on a fresh disposable production snapshot before deployment (partial per FR-026 and plan: rehearsal, switch, and contract)
+- [ ] T218 [GATE] Execute the contraction release only with a fresh verified production backup, stopped application/workers, reviewed migration hash, post-apply identity/editor/provider/resource/billing invariants, runtime smoke, and explicit operator approval before reopening (partial per FR-023, FR-024, FR-026, and `contracts/legacy-auth-contraction-runbook.md`)

@@ -1319,9 +1319,9 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 										<div className='flex min-w-[108px] items-center justify-between'>
 											{column.name}
 											<Tooltip delay={0}>
-												<Tooltip.Trigger>
-													<IconInfoCircle className='text-muted' height={16} width={16} />
-												</Tooltip.Trigger>
+												<Button isIconOnly size='sm' variant='ghost' className='h-6 min-h-6 w-6 min-w-6 text-muted' aria-label={`About ${column.name}`}>
+													<IconInfoCircle aria-hidden='true' height={16} width={16} />
+												</Button>
 												<Tooltip.Content>{column.info}</Tooltip.Content>
 											</Tooltip>
 										</div>

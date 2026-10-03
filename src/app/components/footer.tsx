@@ -389,24 +389,22 @@ export default function Footer() {
 							</div>
 						</Card.Content>
 					</Card>
-					<Modal>
-						<Modal.Backdrop isOpen={isSuccessOpen} onOpenChange={setIsSuccessOpen}>
-							<Modal.Container>
-								<Modal.Dialog>
-									<Modal.CloseTrigger aria-label='Close newsletter confirmation' />
-									<Modal.Body>
-										<div className='p-6'>
-											<div className='text-success mt-2 text-center'>
-												<Image unoptimized alt='Tada Icon' src='https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Activities/Party%20Popper.png' width={50} height={50} className='mx-auto' />
-												<p className='text-lg font-bold'>You&apos;re almost there!</p>
-												<p className='text-xs'>We&apos;ve just sent a confirmation email your way. Check your inbox to finish subscribing-and if you don&apos;t see it, be sure to take a quick look in your spam folder too.</p>
-											</div>
+					<Modal.Backdrop isOpen={isSuccessOpen} onOpenChange={setIsSuccessOpen}>
+						<Modal.Container>
+							<Modal.Dialog>
+								<Modal.CloseTrigger aria-label='Close newsletter confirmation' />
+								<Modal.Body>
+									<div className='p-6'>
+										<div className='text-success mt-2 text-center'>
+											<Image unoptimized alt='Tada Icon' src='https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Activities/Party%20Popper.png' width={50} height={50} className='mx-auto' />
+											<p className='text-lg font-bold'>You&apos;re almost there!</p>
+											<p className='text-xs'>We&apos;ve just sent a confirmation email your way. Check your inbox to finish subscribing-and if you don&apos;t see it, be sure to take a quick look in your spam folder too.</p>
 										</div>
-									</Modal.Body>
-								</Modal.Dialog>
-							</Modal.Container>
-						</Modal.Backdrop>
-					</Modal>
+									</div>
+								</Modal.Body>
+							</Modal.Dialog>
+						</Modal.Container>
+					</Modal.Backdrop>
 
 					<div className='flex flex-wrap justify-between gap-2 pt-8'>
 						<div>

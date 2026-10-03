@@ -138,258 +138,256 @@ export default function UpgradeModal({ isOpen, onOpenChange, user, title, descri
 	}, [initialBillingCycle, isOpen, primary]);
 
 	return (
-		<Modal>
-			<Modal.Backdrop isOpen={isOpen} onOpenChange={onOpenChange}>
-				<Modal.Container size='lg' className='max-w-3xl'>
-					<Modal.Dialog className='max-h-[90vh] overflow-y-auto'>
-						<Modal.CloseTrigger />
-						<Modal.Header className='flex flex-col gap-3 pr-10'>
-							<Modal.Heading>
-								<div className='flex items-center gap-3'>
-									<span className='inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-500/15 text-brand-400'>
-										<IconSparkles size={20} />
-									</span>
-									<p className='text-xl font-semibold leading-tight'>{title ?? "Upgrade to Pro"}</p>
-								</div>
-							</Modal.Heading>
-						</Modal.Header>
-						<Modal.Body className='gap-5 pb-3'>
-							<p className='text-base text-muted'>{description ?? (runnerAddonOnly ? "Run Clipify overlays from your own computer with the self-hosted Runner add-on." : "Unlock advanced features for professional streamers and support the development of Clipify.")}</p>
-							{campaignOffer?.showPricingTierPromo ? (
-								<div className='rounded-xl border border-brand-secondary/25 bg-brand-secondary/10 px-4 py-3 text-sm text-foreground'>
-									<div className='font-semibold text-brand-secondary'>{campaignOffer.badgeText ?? campaignOffer.title}</div>
-									<div className='mt-1 text-muted'>{campaignOffer.subtitle ?? "Campaign pricing is applied automatically at checkout."}</div>
-								</div>
-							) : null}
-
-							{!runnerAddonOnly && (
-								<div className='flex flex-wrap items-center justify-between gap-3 text-xs text-muted'>
-									<div className='flex items-center gap-2'>
-										<span>Plan:</span>
-										<span className={`${effectivePlan === "free" ? "text-success" : "text-brand-300"} ${effectivePlan === "pro" ? "font-bold" : "font-medium"}`}>{planLabel}</span>
-										{inTrial && (
-											<Chip size='sm' variant='tertiary' className='border border-amber-300/40 bg-amber-400/20 font-medium text-amber-100'>
-												Trial active: {trialDaysLeft <= 1 ? "Ends today" : `${trialDaysLeft} days left`}
-											</Chip>
-										)}
-									</div>
-									{proBillingOption && !proBillingOption.owned ? (
-										<Tabs
-											selectedKey={cycleFor(proBillingOption)}
-											onSelectionChange={(key) => {
-												const cycle = String(key) as BillingCycle;
-												setBillingCycle(cycle);
-												setProductCycles((previous) => new Map(previous).set(proBillingOption.key, cycle));
-											}}
-											className='w-fit'
-										>
-											<Tabs.ListContainer>
-												<Tabs.List aria-label='Pro billing frequency'>
-													<Tabs.Tab id='monthly'>
-														Monthly
-														<Tabs.Indicator />
-													</Tabs.Tab>
-													<Tabs.Tab id='yearly'>
-														Yearly
-														<Tabs.Indicator />
-													</Tabs.Tab>
-												</Tabs.List>
-											</Tabs.ListContainer>
-										</Tabs>
-									) : null}
-								</div>
-							)}
-
-							{!runnerAddonOnly && (monthly || yearly) && (
-								<>
-									<div className='mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2'>
-										<div className='rounded-xl border border-default/60 bg-surface-secondary p-5'>
-											<div className='flex items-center justify-between'>
-												<div className='text-xs text-muted'>Monthly</div>
-												{monthlyHasSale && (
-													<Chip size='sm' color='accent' variant='tertiary'>
-														Offer
-													</Chip>
-												)}
-											</div>
-											<div className='mt-1 flex items-center gap-2'>
-												{monthlyHasSale ? (
-													<>
-														<span className='self-center text-sm leading-none text-muted line-through'>{formatOriginalPrice(monthly)}</span>
-														<span className='text-3xl font-semibold leading-none'>{formatPromoPrice(monthlyDiscount)}</span>
-													</>
-												) : (
-													<span className='text-3xl font-semibold leading-none'>{monthly}</span>
-												)}
-												<span className='self-end text-xs text-muted'>{monthlySuffix}</span>
-											</div>
-											<div className='mt-2 inline-flex items-center gap-1 text-xs text-muted'>
-												<IconBolt size={14} className='text-brand-400' />
-												Best for trying Pro
-											</div>
-										</div>
-										<div className='rounded-xl border border-brand-300/40 bg-brand-500/10 p-5'>
-											<div className='flex items-center justify-between'>
-												<div className='text-xs text-brand-300'>Yearly</div>
-												{yearlyHasSale && (
-													<Chip size='sm' color='accent' variant='tertiary'>
-														Offer
-													</Chip>
-												)}
-											</div>
-											<div className='mt-1 flex items-center gap-2'>
-												{yearlyHasSale ? (
-													<>
-														<span className='self-center text-sm leading-none text-brand-300/80 line-through'>{formatOriginalPrice(yearly)}</span>
-														<span className='text-3xl font-semibold leading-none text-brand-200'>{formatPromoPrice(yearlyDiscount)}</span>
-													</>
-												) : (
-													<span className='text-3xl font-semibold leading-none text-brand-200'>{yearly}</span>
-												)}
-												<span className='self-end text-xs text-brand-300'>{yearlySuffix}</span>
-											</div>
-											<div className='mt-2 inline-flex items-center gap-1 text-xs text-brand-200'>
-												<IconSparkles size={14} />
-												Best value
-											</div>
-										</div>
-									</div>
-								</>
-							)}
-
-							{!runnerAddonOnly && proTier && (
-								<>
-									<p className='mt-3 text-lg text-foreground'>What&apos;s included with Pro</p>
-									<ul className='mt-1 grid grid-cols-1 gap-x-6 gap-y-2 text-sm sm:grid-cols-2'>
-										{uniqueProFeatures.slice(0, 6).map((f) => {
-											const isUnique = uniqueProFeatures.includes(f);
-											return (
-												<li key={f} className='flex items-start gap-2'>
-													<IconCheck size={16} className={isUnique ? "text-accent mt-0.5" : "text-muted mt-0.5"} />
-													<p className={isUnique ? "text-foreground font-medium" : "text-muted"}>{f}</p>
-												</li>
-											);
-										})}
-									</ul>
-									<NextLink href='/pricing' className='mt-3 inline-block text-sm text-brand-400 underline underline-offset-2'>
-										View all Pro features
-									</NextLink>
-								</>
-							)}
-
-							<Separator className='my-3' />
-							<div className='space-y-3'>
-								{billingOptions.length === 0 ? (
-									<p className='text-sm text-muted'>Loading current prices…</p>
-								) : (
-									<>
-										{primaryOption && (
-											<div className='rounded-xl border border-brand-300/50 bg-brand-500/10 p-4'>
-												<div className='flex flex-wrap items-center justify-between gap-4'>
-													<div>
-														<p className='font-semibold text-foreground'>{primaryOption.label}</p>
-														<p className='text-xs text-muted'>{primaryOption.owned ? "Already included on your account" : primaryOption.description}</p>
-													</div>
-													<div className='flex items-center gap-3'>
-														<span className='shrink-0 text-sm font-semibold'>{primaryOption.owned ? "Included" : primaryOption.prices[cycleFor(primaryOption)].formatted}</span>
-													</div>
-												</div>
-											</div>
-										)}
-										{optionalOptions.length > 0 && <p className='pt-2 text-sm font-semibold text-foreground'>You may also be interested in</p>}
-										{optionalOptions.map((option) => {
-											const checked = option.owned || selectedOptionalProducts.has(option.key);
-											return (
-												<div key={option.key} className='rounded-xl border border-default/60 bg-surface-secondary p-4'>
-													<Checkbox
-														isSelected={checked}
-														isDisabled={option.owned}
-														onChange={(selected) =>
-															setSelectedOptionalProducts((previous) => {
-																const next = new Set(previous);
-																if (selected) next.add(option.key);
-																else next.delete(option.key);
-																return next;
-															})
-														}
-													>
-														<Checkbox.Content>
-															<Checkbox.Control>
-																<Checkbox.Indicator />
-															</Checkbox.Control>
-															<div className='ml-2 flex flex-1 flex-wrap items-center justify-between gap-4'>
-																<div>
-																	<p className='font-medium text-foreground'>{option.label}</p>
-																	<p className='text-xs text-muted'>{option.owned ? "Already included on your account" : option.description}</p>
-																</div>
-																<div className='flex items-center gap-3'>
-																	{!option.owned && (
-																		<Tabs selectedKey={cycleFor(option)} onSelectionChange={(key) => setProductCycles((previous) => new Map(previous).set(option.key, String(key) as BillingCycle))} className='w-fit'>
-																			<Tabs.ListContainer>
-																				<Tabs.List aria-label={`${option.label} billing frequency`}>
-																					<Tabs.Tab id='monthly'>
-																						Monthly
-																						<Tabs.Indicator />
-																					</Tabs.Tab>
-																					<Tabs.Tab id='yearly'>
-																						Yearly
-																						<Tabs.Indicator />
-																					</Tabs.Tab>
-																				</Tabs.List>
-																			</Tabs.ListContainer>
-																		</Tabs>
-																	)}
-																	<span className='shrink-0 text-sm font-medium'>{option.owned ? "Included" : option.prices[cycleFor(option)].formatted}</span>
-																</div>
-															</div>
-														</Checkbox.Content>
-													</Checkbox>
-												</div>
-											);
-										})}
-									</>
-								)}
+		<Modal.Backdrop isOpen={isOpen} onOpenChange={onOpenChange}>
+			<Modal.Container size='lg' className='max-w-3xl'>
+				<Modal.Dialog className='max-h-[90vh] overflow-y-auto'>
+					<Modal.CloseTrigger />
+					<Modal.Header className='flex flex-col gap-3 pr-10'>
+						<Modal.Heading>
+							<div className='flex items-center gap-3'>
+								<span className='inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-500/15 text-brand-400'>
+									<IconSparkles size={20} />
+								</span>
+								<p className='text-xl font-semibold leading-tight'>{title ?? "Upgrade to Pro"}</p>
 							</div>
-							<div className='mt-3'>
-								<Button
-									onPress={async () => {
-										trackPaywallEvent(plausible, "paywall_cta_click", {
+						</Modal.Heading>
+					</Modal.Header>
+					<Modal.Body className='gap-5 pb-3'>
+						<p className='text-base text-muted'>{description ?? (runnerAddonOnly ? "Run Clipify overlays from your own computer with the self-hosted Runner add-on." : "Unlock advanced features for professional streamers and support the development of Clipify.")}</p>
+						{campaignOffer?.showPricingTierPromo ? (
+							<div className='rounded-xl border border-brand-secondary/25 bg-brand-secondary/10 px-4 py-3 text-sm text-foreground'>
+								<div className='font-semibold text-brand-secondary'>{campaignOffer.badgeText ?? campaignOffer.title}</div>
+								<div className='mt-1 text-muted'>{campaignOffer.subtitle ?? "Campaign pricing is applied automatically at checkout."}</div>
+							</div>
+						) : null}
+
+						{!runnerAddonOnly && (
+							<div className='flex flex-wrap items-center justify-between gap-3 text-xs text-muted'>
+								<div className='flex items-center gap-2'>
+									<span>Plan:</span>
+									<span className={`${effectivePlan === "free" ? "text-success" : "text-brand-300"} ${effectivePlan === "pro" ? "font-bold" : "font-medium"}`}>{planLabel}</span>
+									{inTrial && (
+										<Chip size='sm' variant='tertiary' className='border border-amber-300/40 bg-amber-400/20 font-medium text-amber-100'>
+											Trial active: {trialDaysLeft <= 1 ? "Ends today" : `${trialDaysLeft} days left`}
+										</Chip>
+									)}
+								</div>
+								{proBillingOption && !proBillingOption.owned ? (
+									<Tabs
+										selectedKey={cycleFor(proBillingOption)}
+										onSelectionChange={(key) => {
+											const cycle = String(key) as BillingCycle;
+											setBillingCycle(cycle);
+											setProductCycles((previous) => new Map(previous).set(proBillingOption.key, cycle));
+										}}
+										className='w-fit'
+									>
+										<Tabs.ListContainer>
+											<Tabs.List aria-label='Pro billing frequency'>
+												<Tabs.Tab id='monthly'>
+													Monthly
+													<Tabs.Indicator />
+												</Tabs.Tab>
+												<Tabs.Tab id='yearly'>
+													Yearly
+													<Tabs.Indicator />
+												</Tabs.Tab>
+											</Tabs.List>
+										</Tabs.ListContainer>
+									</Tabs>
+								) : null}
+							</div>
+						)}
+
+						{!runnerAddonOnly && (monthly || yearly) && (
+							<>
+								<div className='mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2'>
+									<div className='rounded-xl border border-default/60 bg-surface-secondary p-5'>
+										<div className='flex items-center justify-between'>
+											<div className='text-xs text-muted'>Monthly</div>
+											{monthlyHasSale && (
+												<Chip size='sm' color='accent' variant='tertiary'>
+													Offer
+												</Chip>
+											)}
+										</div>
+										<div className='mt-1 flex items-center gap-2'>
+											{monthlyHasSale ? (
+												<>
+													<span className='self-center text-sm leading-none text-muted line-through'>{formatOriginalPrice(monthly)}</span>
+													<span className='text-3xl font-semibold leading-none'>{formatPromoPrice(monthlyDiscount)}</span>
+												</>
+											) : (
+												<span className='text-3xl font-semibold leading-none'>{monthly}</span>
+											)}
+											<span className='self-end text-xs text-muted'>{monthlySuffix}</span>
+										</div>
+										<div className='mt-2 inline-flex items-center gap-1 text-xs text-muted'>
+											<IconBolt size={14} className='text-brand-400' />
+											Best for trying Pro
+										</div>
+									</div>
+									<div className='rounded-xl border border-brand-300/40 bg-brand-500/10 p-5'>
+										<div className='flex items-center justify-between'>
+											<div className='text-xs text-brand-300'>Yearly</div>
+											{yearlyHasSale && (
+												<Chip size='sm' color='accent' variant='tertiary'>
+													Offer
+												</Chip>
+											)}
+										</div>
+										<div className='mt-1 flex items-center gap-2'>
+											{yearlyHasSale ? (
+												<>
+													<span className='self-center text-sm leading-none text-brand-300/80 line-through'>{formatOriginalPrice(yearly)}</span>
+													<span className='text-3xl font-semibold leading-none text-brand-200'>{formatPromoPrice(yearlyDiscount)}</span>
+												</>
+											) : (
+												<span className='text-3xl font-semibold leading-none text-brand-200'>{yearly}</span>
+											)}
+											<span className='self-end text-xs text-brand-300'>{yearlySuffix}</span>
+										</div>
+										<div className='mt-2 inline-flex items-center gap-1 text-xs text-brand-200'>
+											<IconSparkles size={14} />
+											Best value
+										</div>
+									</div>
+								</div>
+							</>
+						)}
+
+						{!runnerAddonOnly && proTier && (
+							<>
+								<p className='mt-3 text-lg text-foreground'>What&apos;s included with Pro</p>
+								<ul className='mt-1 grid grid-cols-1 gap-x-6 gap-y-2 text-sm sm:grid-cols-2'>
+									{uniqueProFeatures.slice(0, 6).map((f) => {
+										const isUnique = uniqueProFeatures.includes(f);
+										return (
+											<li key={f} className='flex items-start gap-2'>
+												<IconCheck size={16} className={isUnique ? "text-accent mt-0.5" : "text-muted mt-0.5"} />
+												<p className={isUnique ? "text-foreground font-medium" : "text-muted"}>{f}</p>
+											</li>
+										);
+									})}
+								</ul>
+								<NextLink href='/pricing' className='mt-3 inline-block text-sm text-brand-400 underline underline-offset-2'>
+									View all Pro features
+								</NextLink>
+							</>
+						)}
+
+						<Separator className='my-3' />
+						<div className='space-y-3'>
+							{billingOptions.length === 0 ? (
+								<p className='text-sm text-muted'>Loading current prices…</p>
+							) : (
+								<>
+									{primaryOption && (
+										<div className='rounded-xl border border-brand-300/50 bg-brand-500/10 p-4'>
+											<div className='flex flex-wrap items-center justify-between gap-4'>
+												<div>
+													<p className='font-semibold text-foreground'>{primaryOption.label}</p>
+													<p className='text-xs text-muted'>{primaryOption.owned ? "Already included on your account" : primaryOption.description}</p>
+												</div>
+												<div className='flex items-center gap-3'>
+													<span className='shrink-0 text-sm font-semibold'>{primaryOption.owned ? "Included" : primaryOption.prices[cycleFor(primaryOption)].formatted}</span>
+												</div>
+											</div>
+										</div>
+									)}
+									{optionalOptions.length > 0 && <p className='pt-2 text-sm font-semibold text-foreground'>You may also be interested in</p>}
+									{optionalOptions.map((option) => {
+										const checked = option.owned || selectedOptionalProducts.has(option.key);
+										return (
+											<div key={option.key} className='rounded-xl border border-default/60 bg-surface-secondary p-4'>
+												<Checkbox
+													isSelected={checked}
+													isDisabled={option.owned}
+													onChange={(selected) =>
+														setSelectedOptionalProducts((previous) => {
+															const next = new Set(previous);
+															if (selected) next.add(option.key);
+															else next.delete(option.key);
+															return next;
+														})
+													}
+												>
+													<Checkbox.Content>
+														<Checkbox.Control>
+															<Checkbox.Indicator />
+														</Checkbox.Control>
+														<div className='ml-2 flex flex-1 flex-wrap items-center justify-between gap-4'>
+															<div>
+																<p className='font-medium text-foreground'>{option.label}</p>
+																<p className='text-xs text-muted'>{option.owned ? "Already included on your account" : option.description}</p>
+															</div>
+															<div className='flex items-center gap-3'>
+																{!option.owned && (
+																	<Tabs selectedKey={cycleFor(option)} onSelectionChange={(key) => setProductCycles((previous) => new Map(previous).set(option.key, String(key) as BillingCycle))} className='w-fit'>
+																		<Tabs.ListContainer>
+																			<Tabs.List aria-label={`${option.label} billing frequency`}>
+																				<Tabs.Tab id='monthly'>
+																					Monthly
+																					<Tabs.Indicator />
+																				</Tabs.Tab>
+																				<Tabs.Tab id='yearly'>
+																					Yearly
+																					<Tabs.Indicator />
+																				</Tabs.Tab>
+																			</Tabs.List>
+																		</Tabs.ListContainer>
+																	</Tabs>
+																)}
+																<span className='shrink-0 text-sm font-medium'>{option.owned ? "Included" : option.prices[cycleFor(option)].formatted}</span>
+															</div>
+														</div>
+													</Checkbox.Content>
+												</Checkbox>
+											</div>
+										);
+									})}
+								</>
+							)}
+						</div>
+						<div className='mt-3'>
+							<Button
+								onPress={async () => {
+									trackPaywallEvent(plausible, "paywall_cta_click", {
+										source,
+										feature,
+										plan: user.plan,
+										cycle: billingCycle,
+									});
+									const products = payableProducts.map((option) => ({ product: option.key, billingCycle: cycleFor(option) }));
+									const link = await generateCheckout(products, billingCycle, returnUrl ?? (typeof window !== "undefined" ? window.location.href : undefined), window.numok?.getStripeMetadata(), source);
+
+									if (link) {
+										trackPaywallEvent(plausible, "checkout_start", {
 											source,
 											feature,
 											plan: user.plan,
 											cycle: billingCycle,
 										});
-										const products = payableProducts.map((option) => ({ product: option.key, billingCycle: cycleFor(option) }));
-										const link = await generateCheckout(products, billingCycle, returnUrl ?? (typeof window !== "undefined" ? window.location.href : undefined), window.numok?.getStripeMetadata(), source);
-
-										if (link) {
-											trackPaywallEvent(plausible, "checkout_start", {
-												source,
-												feature,
-												plan: user.plan,
-												cycle: billingCycle,
-											});
-											window.location.href = link;
-										} else {
-											addToast({
-												title: "Error",
-												description: "Failed to generate payment link. Please try again later.",
-												color: "danger",
-											});
-										}
-									}}
-									isDisabled={!canUpgrade || billingOptions.length === 0 || payableProducts.length === 0}
-									variant='primary'
-								>
-									{<IconDiamondFilled />}
-									{ctaLabel ?? (payableProducts.length === 0 ? "Already included" : `${user.entitlements?.effectivePlan === "pro" ? "Add to subscription" : "Start subscription"} · ${totalLabel}/${billingCycle === "monthly" ? "month" : "year"}`)}
-								</Button>
-							</div>
-							<p className='mt-1 text-xs text-muted'>You can cancel anytime in your billing portal.</p>
-						</Modal.Body>
-					</Modal.Dialog>
-				</Modal.Container>
-			</Modal.Backdrop>
-		</Modal>
+										window.location.href = link;
+									} else {
+										addToast({
+											title: "Error",
+											description: "Failed to generate payment link. Please try again later.",
+											color: "danger",
+										});
+									}
+								}}
+								isDisabled={!canUpgrade || billingOptions.length === 0 || payableProducts.length === 0}
+								variant='primary'
+							>
+								{<IconDiamondFilled />}
+								{ctaLabel ?? (payableProducts.length === 0 ? "Already included" : `${user.entitlements?.effectivePlan === "pro" ? "Add to subscription" : "Start subscription"} · ${totalLabel}/${billingCycle === "monthly" ? "month" : "year"}`)}
+							</Button>
+						</div>
+						<p className='mt-1 text-xs text-muted'>You can cancel anytime in your billing portal.</p>
+					</Modal.Body>
+				</Modal.Dialog>
+			</Modal.Container>
+		</Modal.Backdrop>
 	);
 }

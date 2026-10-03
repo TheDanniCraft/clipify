@@ -475,11 +475,9 @@ export default function SettingsPage() {
 										</CodeSnippet>
 									</div>
 									<Tooltip delay={0}>
-										<Tooltip.Trigger>
-											<Button isIconOnly size='sm' variant='ghost' aria-label='About your user ID'>
-												<IconInfoCircle size={20} className='text-muted' aria-hidden='true' />
-											</Button>
-										</Tooltip.Trigger>
+										<Button isIconOnly size='sm' variant='ghost' aria-label='About your user ID'>
+											<IconInfoCircle size={20} className='text-muted' aria-hidden='true' />
+										</Button>
 										<Tooltip.Content>If you contact support, please specify this user ID.</Tooltip.Content>
 									</Tooltip>
 								</div>
@@ -513,11 +511,9 @@ export default function SettingsPage() {
 										<p className='text-xs text-muted'>Manual refresh: {clipForceRefreshStatus?.canRefresh ? "available now" : `available in ${formatDurationMs(clipForceRefreshStatus?.remainingMs ?? 0)}`}</p>
 										<div className='flex items-center gap-2'>
 											<Tooltip delay={0}>
-												<Tooltip.Trigger>
-													<Button isIconOnly size='sm' variant='tertiary' onPress={handleRefreshStats} isPending={isRefreshingStats} aria-label='Refresh statistics'>
-														{isRefreshingStats ? <Spinner color='current' size='sm' /> : <IconRefresh size={18} />}
-													</Button>
-												</Tooltip.Trigger>
+												<Button isIconOnly size='sm' variant='tertiary' onPress={handleRefreshStats} isPending={isRefreshingStats} aria-label='Refresh statistics'>
+													{isRefreshingStats ? <Spinner color='current' size='sm' /> : <IconRefresh size={18} />}
+												</Button>
 												<Tooltip.Content>Refresh statistics</Tooltip.Content>
 											</Tooltip>
 											<Button size='sm' variant='danger' className='font-semibold' isPending={isForceRefreshing} isDisabled={isForceRefreshing || !clipForceRefreshStatus?.canRefresh} onPress={handleForceRefreshCache}>

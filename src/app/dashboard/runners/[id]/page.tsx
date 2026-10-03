@@ -448,13 +448,9 @@ export default function RunnerPage() {
 										</Chip>
 									)}
 									<Tooltip delay={0}>
-										<Tooltip.Trigger>
-											<span>
-												<Button size='sm' variant='ghost' className='h-6 min-w-6 px-1.5 text-danger' onPress={() => setIsUnlinkConfirmOpen(true)} aria-label='Unlink runner' isDisabled={!canUnlinkRunner}>
-													<IconUnlink size={13} />
-												</Button>
-											</span>
-										</Tooltip.Trigger>
+										<Button size='sm' variant='ghost' className='h-6 min-w-6 px-1.5 text-danger' onPress={() => setIsUnlinkConfirmOpen(true)} aria-label='Unlink runner' isDisabled={!canUnlinkRunner}>
+											<IconUnlink size={13} />
+										</Button>
 										<Tooltip.Content>{canUnlinkRunner ? "Unlink runner and revoke its token" : "Stop this runner to unlink"}</Tooltip.Content>
 									</Tooltip>
 								</div>
@@ -463,13 +459,9 @@ export default function RunnerPage() {
 									<span className='h-2.5 w-2.5 rounded-full bg-warning' />
 									<span className='text-sm font-medium leading-none'>{runnerConnectionLabel}</span>
 									<Tooltip delay={0}>
-										<Tooltip.Trigger>
-											<span>
-												<Button size='sm' variant='ghost' className='h-6 min-w-6 px-1.5 text-danger' onPress={() => setIsUnlinkConfirmOpen(true)} aria-label='Unlink runner' isDisabled={!canUnlinkRunner}>
-													<IconUnlink size={13} />
-												</Button>
-											</span>
-										</Tooltip.Trigger>
+										<Button size='sm' variant='ghost' className='h-6 min-w-6 px-1.5 text-danger' onPress={() => setIsUnlinkConfirmOpen(true)} aria-label='Unlink runner' isDisabled={!canUnlinkRunner}>
+											<IconUnlink size={13} />
+										</Button>
 										<Tooltip.Content>{canUnlinkRunner ? "Unlink runner and revoke its token" : "Stop this runner to unlink"}</Tooltip.Content>
 									</Tooltip>
 								</div>
@@ -567,11 +559,9 @@ export default function RunnerPage() {
 														<div className='flex gap-2'>
 															<Input readOnly value={manualToken ? (isTokenVisible ? manualToken : "••••••••••••••••") : tokenError ? "Token unavailable" : "Loading token…"} placeholder='Loading runner token…' type='text' className='font-mono text-sm flex-1' />
 															<Tooltip delay={0}>
-																<Tooltip.Trigger>
-																	<Button isIconOnly variant='secondary' onPress={revealToken} isDisabled={!manualToken || isLoadingToken} aria-label={isTokenVisible ? "Hide runner token" : "Reveal runner token"}>
-																		<IconEye size={18} />
-																	</Button>
-																</Tooltip.Trigger>
+																<Button isIconOnly variant='secondary' onPress={revealToken} isDisabled={!manualToken || isLoadingToken} aria-label={isTokenVisible ? "Hide runner token" : "Reveal runner token"}>
+																	<IconEye size={18} />
+																</Button>
 																<Tooltip.Content>{isTokenVisible ? "Hide runner token" : "Reveal runner token"}</Tooltip.Content>
 															</Tooltip>
 															<Button isIconOnly variant='secondary' onPress={copyToken} isDisabled={!manualToken || isLoadingToken} aria-label='Copy runner token'>
@@ -740,36 +730,34 @@ export default function RunnerPage() {
 						)}
 					</Card.Content>
 				</Card>
-				<Modal>
-					<Modal.Backdrop
-						isOpen={!!installPlatform}
-						onOpenChange={(isOpen) => {
-							if (!isOpen) {
-								setInstallPlatform(null);
-								setDownloadCountdown(0);
-							}
-						}}
-					>
-						<Modal.Container size='lg'>
-							<Modal.Dialog>
-								<Modal.CloseTrigger />
-								<Modal.Header className='flex flex-col gap-2 pr-10'>
-									<Modal.Heading>Install Clipify Runner for {installPlatform ? runnerPlatformLabels[installPlatform] : ""}</Modal.Heading>
-									<p className='text-sm text-muted-foreground'>Download starting. If it does not start, click the button below.</p>
-								</Modal.Header>
-								<Modal.Body className='flex flex-col gap-5'>
-									{installPlatform && (
-										<Button isDisabled={downloadCountdown > 0} variant='primary' onPress={() => handleRunnerDownload(installPlatform)} className='self-center inline-flex w-fit items-center justify-center gap-2'>
-											<IconDownload size={18} />
-											Download again{downloadCountdown > 0 ? ` (${downloadCountdown})` : ""}
-										</Button>
-									)}
-									{renderInstallSteps()}
-								</Modal.Body>
-							</Modal.Dialog>
-						</Modal.Container>
-					</Modal.Backdrop>
-				</Modal>
+				<Modal.Backdrop
+					isOpen={!!installPlatform}
+					onOpenChange={(isOpen) => {
+						if (!isOpen) {
+							setInstallPlatform(null);
+							setDownloadCountdown(0);
+						}
+					}}
+				>
+					<Modal.Container size='lg'>
+						<Modal.Dialog>
+							<Modal.CloseTrigger />
+							<Modal.Header className='flex flex-col gap-2 pr-10'>
+								<Modal.Heading>Install Clipify Runner for {installPlatform ? runnerPlatformLabels[installPlatform] : ""}</Modal.Heading>
+								<p className='text-sm text-muted-foreground'>Download starting. If it does not start, click the button below.</p>
+							</Modal.Header>
+							<Modal.Body className='flex flex-col gap-5'>
+								{installPlatform && (
+									<Button isDisabled={downloadCountdown > 0} variant='primary' onPress={() => handleRunnerDownload(installPlatform)} className='self-center inline-flex w-fit items-center justify-center gap-2'>
+										<IconDownload size={18} />
+										Download again{downloadCountdown > 0 ? ` (${downloadCountdown})` : ""}
+									</Button>
+								)}
+								{renderInstallSteps()}
+							</Modal.Body>
+						</Modal.Dialog>
+					</Modal.Container>
+				</Modal.Backdrop>
 				<ConfirmModal
 					isOpen={isUnlinkConfirmOpen}
 					onOpenChange={setIsUnlinkConfirmOpen}

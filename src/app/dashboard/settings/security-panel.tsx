@@ -171,11 +171,9 @@ export default function SecuritySettingsPanel() {
 											Pending: {newEmail.trim()}
 										</Chip>
 										<Tooltip>
-											<Tooltip.Trigger>
-												<Button isIconOnly size='sm' variant='ghost' aria-label='About the pending email change'>
-													<IconInfoCircle aria-hidden='true' size={16} />
-												</Button>
-											</Tooltip.Trigger>
+											<Button isIconOnly size='sm' variant='ghost' aria-label='About the pending email change'>
+												<IconInfoCircle aria-hidden='true' size={16} />
+											</Button>
 											<Tooltip.Content className='max-w-72'>Your current email, {currentEmail}, remains active until you confirm the new address.</Tooltip.Content>
 										</Tooltip>
 									</>
@@ -238,11 +236,9 @@ export default function SecuritySettingsPanel() {
 										Pending
 									</Chip>
 									<Tooltip>
-										<Tooltip.Trigger>
-											<Button isIconOnly size='sm' variant='ghost' aria-label='About pending email verification'>
-												<IconInfoCircle aria-hidden='true' size={16} />
-											</Button>
-										</Tooltip.Trigger>
+										<Button isIconOnly size='sm' variant='ghost' aria-label='About pending email verification'>
+											<IconInfoCircle aria-hidden='true' size={16} />
+										</Button>
 										<Tooltip.Content className='max-w-72'>Your current email, {currentEmail}, remains active until you confirm this address.</Tooltip.Content>
 									</Tooltip>
 								</div>

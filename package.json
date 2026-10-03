@@ -16,6 +16,7 @@
 		"patches:validate": "bun scripts/validate-patched-dependencies.ts",
 		"git:staged": "lint-staged",
 		"app:typecheck": "tsc --noEmit",
+		"audit:high": "bun audit --audit-level=high --ignore GHSA-vfj7-8cjw-p6xm",
 		"test": "jest --runInBand",
 		"test:auth": "jest test/auth-engine-rewrite --runInBand",
 		"test:auth:unit": "jest test/auth-engine-rewrite/unit --runInBand",
@@ -142,6 +143,7 @@
 		"next@16.3.6": "patches/next.patch"
 	},
 	"overrides": {
+		"figlet": "1.11.3",
 		"tar": "^7.5.22"
 	},
 	"lint-staged": {

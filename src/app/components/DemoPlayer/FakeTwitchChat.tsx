@@ -307,58 +307,56 @@ export default function FakeTwitchChat({ isLive, variant = "clipify", title = "S
 			{variant === "brb" && <div className='tchat__hint tchat__hint--passive'>The break is getting quiet…</div>}
 			{(cpArmed || cpError) && <div className={`tchat__redeem ${cpError ? "isError" : ""}`}>{cpError ?? `Redeem reward: ${REWARD_NAME}`}</div>}
 
-			<Modal>
-				<Modal.Backdrop isOpen={isOpen} onOpenChange={onOpenChange}>
-					<Modal.Container>
-						<Modal.Dialog>
-							<Modal.CloseTrigger />
-							<Modal.Header className='flex flex-col gap-1'>
-								<Modal.Heading>Available Commands</Modal.Heading>
-							</Modal.Header>
-							<Modal.Body>
-								{(() => {
-									const cmds = [
-										{
-											name: "!play",
-											desc: "Resume playback or play a clip URL",
-											examples: ["!play", "!play https://clips.twitch.tv/ExampleClip"],
-										},
-										{ name: "!pause", desc: "Pause playback", examples: ["!pause"] },
-										{ name: "!skip", desc: "Skip to next clip", examples: ["!skip"] },
-										{ name: "!hide", desc: "Hide the player", examples: ["!hide"] },
-										{ name: "!show", desc: "Show the player", examples: ["!show"] },
-									];
-									return (
-										// force single-column full-width cards so long descriptions don't break layout
-										<div className='grid gap-3 grid-cols-1'>
-											{cmds.map((c) => (
-												<div key={c.name} className='bg-card/60 border border-neutral-200/20 dark:border-neutral-800/60 rounded-md p-3 w-full overflow-hidden'>
-													<div className='flex items-start justify-between gap-3'>
-														<div>
-															<div className='inline-flex items-center gap-2'>
-																<span className='px-2 py-0.5 rounded-md bg-accent/10 text-accent font-semibold text-sm'>{c.name}</span>
-																<span className='text-sm text-muted'>{c.desc}</span>
-															</div>
+			<Modal.Backdrop isOpen={isOpen} onOpenChange={onOpenChange}>
+				<Modal.Container>
+					<Modal.Dialog>
+						<Modal.CloseTrigger />
+						<Modal.Header className='flex flex-col gap-1'>
+							<Modal.Heading>Available Commands</Modal.Heading>
+						</Modal.Header>
+						<Modal.Body>
+							{(() => {
+								const cmds = [
+									{
+										name: "!play",
+										desc: "Resume playback or play a clip URL",
+										examples: ["!play", "!play https://clips.twitch.tv/ExampleClip"],
+									},
+									{ name: "!pause", desc: "Pause playback", examples: ["!pause"] },
+									{ name: "!skip", desc: "Skip to next clip", examples: ["!skip"] },
+									{ name: "!hide", desc: "Hide the player", examples: ["!hide"] },
+									{ name: "!show", desc: "Show the player", examples: ["!show"] },
+								];
+								return (
+									// force single-column full-width cards so long descriptions don't break layout
+									<div className='grid gap-3 grid-cols-1'>
+										{cmds.map((c) => (
+											<div key={c.name} className='bg-card/60 border border-neutral-200/20 dark:border-neutral-800/60 rounded-md p-3 w-full overflow-hidden'>
+												<div className='flex items-start justify-between gap-3'>
+													<div>
+														<div className='inline-flex items-center gap-2'>
+															<span className='px-2 py-0.5 rounded-md bg-accent/10 text-accent font-semibold text-sm'>{c.name}</span>
+															<span className='text-sm text-muted'>{c.desc}</span>
 														</div>
 													</div>
-
-													<div className='mt-2 flex flex-col gap-2'>
-														{c.examples.map((ex, i) => (
-															<div key={i} className='rounded bg-default/40 px-2 py-1 font-mono text-xs text-muted whitespace-normal wrap-break-word'>
-																{ex}
-															</div>
-														))}
-													</div>
 												</div>
-											))}
-										</div>
-									);
-								})()}
-							</Modal.Body>
-						</Modal.Dialog>
-					</Modal.Container>
-				</Modal.Backdrop>
-			</Modal>
+
+												<div className='mt-2 flex flex-col gap-2'>
+													{c.examples.map((ex, i) => (
+														<div key={i} className='rounded bg-default/40 px-2 py-1 font-mono text-xs text-muted whitespace-normal wrap-break-word'>
+															{ex}
+														</div>
+													))}
+												</div>
+											</div>
+										))}
+									</div>
+								);
+							})()}
+						</Modal.Body>
+					</Modal.Dialog>
+				</Modal.Container>
+			</Modal.Backdrop>
 
 			<form
 				className='tchat__inputRow'

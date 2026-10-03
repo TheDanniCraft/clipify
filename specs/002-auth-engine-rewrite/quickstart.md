@@ -57,7 +57,7 @@ bun run app:prettier:check
 bun run app:typecheck
 infisical run --env=dev -- bun run app:build
 bun run app:check-action-manifest
-bun audit --audit-level=high
+bun run audit:high
 ```
 
 Update [test-traceability.md](./test-traceability.md), [defect-log.md](./defect-log.md), and [test-summary.md](./test-summary.md) from actual evidence; never change `Planned` to Green without a reproducible result.

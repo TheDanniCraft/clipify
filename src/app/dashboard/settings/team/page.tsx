@@ -494,144 +494,142 @@ export default function TeamSettingsPage() {
 				)}
 			</div>
 
-			<Modal>
-				<Modal.Backdrop
-					isOpen={isAccessModalOpen}
-					onOpenChange={(isOpen) => {
-						if (pendingAction) return;
-						setIsAccessModalOpen(isOpen);
-						if (!isOpen) resetAccessEditor();
-					}}
-					variant='blur'
-				>
-					<Modal.Container size='lg' scroll='inside' className='max-w-4xl'>
-						<Modal.Dialog aria-labelledby='team-access-heading'>
-							<Modal.CloseTrigger aria-label='Close team member dialog' />
-							<Modal.Header className='items-center gap-3 border-b border-default'>
-								<Modal.Icon className='bg-accent-soft text-accent-soft-foreground'>{editingMember ? <IconShieldCheck aria-hidden='true' size={22} /> : <IconUserPlus aria-hidden='true' size={22} />}</Modal.Icon>
-								<div>
-									<Modal.Heading id='team-access-heading'>{editingMember ? "Edit member access" : "Invite a team member"}</Modal.Heading>
-									<p className='text-sm text-muted'>{editingMember ? "Choose a role or fine-tune this member’s permissions." : `Give someone access to ${organization?.name ?? "this account"}.`}</p>
-								</div>
-							</Modal.Header>
-							<Modal.Body className='gap-6 py-5'>
-								<div className='flex flex-col gap-4'>
-									<TextField type='email' value={email} onChange={setEmail} isRequired isReadOnly={Boolean(editingMember)}>
-										<Label>Account email</Label>
-										<Input placeholder='person@example.com' variant='secondary' />
-									</TextField>
-									<Select fullWidth isRequired value={role} variant='secondary' onChange={(next) => next != null && selectRole(String(next))}>
-										<Label>Role</Label>
-										<Select.Trigger>
-											<Select.Value />
-											<Select.Indicator />
-										</Select.Trigger>
-										<Select.Popover>
-											<ListBox>
-												{roleOptions.map((option) => (
-													<ListBox.Item key={option} id={option} textValue={formatRole(option)}>
-														{formatRole(option)}
-														<ListBox.ItemIndicator />
-													</ListBox.Item>
-												))}
-												<ListBox.Item id={CUSTOM_ROLE} textValue='Custom'>
-													Custom
+			<Modal.Backdrop
+				isOpen={isAccessModalOpen}
+				onOpenChange={(isOpen) => {
+					if (pendingAction) return;
+					setIsAccessModalOpen(isOpen);
+					if (!isOpen) resetAccessEditor();
+				}}
+				variant='blur'
+			>
+				<Modal.Container size='lg' scroll='inside' className='max-w-4xl'>
+					<Modal.Dialog aria-labelledby='team-access-heading'>
+						<Modal.CloseTrigger aria-label='Close team member dialog' />
+						<Modal.Header className='items-center gap-3 border-b border-default'>
+							<Modal.Icon className='bg-accent-soft text-accent-soft-foreground'>{editingMember ? <IconShieldCheck aria-hidden='true' size={22} /> : <IconUserPlus aria-hidden='true' size={22} />}</Modal.Icon>
+							<div>
+								<Modal.Heading id='team-access-heading'>{editingMember ? "Edit member access" : "Invite a team member"}</Modal.Heading>
+								<p className='text-sm text-muted'>{editingMember ? "Choose a role or fine-tune this member’s permissions." : `Give someone access to ${organization?.name ?? "this account"}.`}</p>
+							</div>
+						</Modal.Header>
+						<Modal.Body className='gap-6 py-5'>
+							<div className='flex flex-col gap-4'>
+								<TextField type='email' value={email} onChange={setEmail} isRequired isReadOnly={Boolean(editingMember)}>
+									<Label>Account email</Label>
+									<Input placeholder='person@example.com' variant='secondary' />
+								</TextField>
+								<Select fullWidth isRequired value={role} variant='secondary' onChange={(next) => next != null && selectRole(String(next))}>
+									<Label>Role</Label>
+									<Select.Trigger>
+										<Select.Value />
+										<Select.Indicator />
+									</Select.Trigger>
+									<Select.Popover>
+										<ListBox>
+											{roleOptions.map((option) => (
+												<ListBox.Item key={option} id={option} textValue={formatRole(option)}>
+													{formatRole(option)}
 													<ListBox.ItemIndicator />
 												</ListBox.Item>
-											</ListBox>
-										</Select.Popover>
-									</Select>
+											))}
+											<ListBox.Item id={CUSTOM_ROLE} textValue='Custom'>
+												Custom
+												<ListBox.ItemIndicator />
+											</ListBox.Item>
+										</ListBox>
+									</Select.Popover>
+								</Select>
+							</div>
+
+							<div>
+								<div className='mb-3 flex flex-wrap items-end justify-between gap-2'>
+									<div>
+										<p className='font-semibold'>Permissions</p>
+										<p className='text-sm text-muted'>Changing any permission automatically switches the role to Custom.</p>
+									</div>
+									<Chip color={role === CUSTOM_ROLE ? "accent" : "default"} size='sm' variant='soft'>
+										{selectedPermissions.length} selected
+									</Chip>
 								</div>
+								<div className='divide-y divide-default overflow-hidden rounded-xl border border-default'>
+									{PERMISSION_GROUPS.map(([resource, resourcePermissions]) => {
+										const selectedCount = resourcePermissions.filter((permission) => selectedPermissions.includes(permission)).length;
+										const isGroupSelected = selectedCount === resourcePermissions.length;
+										const isGroupIndeterminate = selectedCount > 0 && !isGroupSelected;
 
-								<div>
-									<div className='mb-3 flex flex-wrap items-end justify-between gap-2'>
-										<div>
-											<p className='font-semibold'>Permissions</p>
-											<p className='text-sm text-muted'>Changing any permission automatically switches the role to Custom.</p>
-										</div>
-										<Chip color={role === CUSTOM_ROLE ? "accent" : "default"} size='sm' variant='soft'>
-											{selectedPermissions.length} selected
-										</Chip>
-									</div>
-									<div className='divide-y divide-default overflow-hidden rounded-xl border border-default'>
-										{PERMISSION_GROUPS.map(([resource, resourcePermissions]) => {
-											const selectedCount = resourcePermissions.filter((permission) => selectedPermissions.includes(permission)).length;
-											const isGroupSelected = selectedCount === resourcePermissions.length;
-											const isGroupIndeterminate = selectedCount > 0 && !isGroupSelected;
+										return (
+											<section key={resource} className='px-4 py-4'>
+												<div className='grid gap-1 sm:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] sm:items-start sm:gap-x-6'>
+													<Checkbox variant='secondary' isSelected={isGroupSelected} isIndeterminate={isGroupIndeterminate} onChange={(checked) => togglePermissionGroup(resourcePermissions, checked)}>
+														<Checkbox.Content>
+															<Checkbox.Control>
+																<Checkbox.Indicator />
+															</Checkbox.Control>
+															<span className='font-semibold'>{formatPermissionGroup(resource)}</span>
+														</Checkbox.Content>
+													</Checkbox>
+													<p className='pl-7 text-xs text-muted sm:pl-0'>Select every {formatPermissionGroup(resource).toLowerCase()} permission.</p>
+												</div>
+												<div className='mt-3 flex flex-col gap-2 border-l border-default pl-4'>
+													{resourcePermissions.map((permission) => (
+														<div key={permission} className='grid gap-1 sm:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] sm:items-start sm:gap-x-6'>
+															<Checkbox variant='secondary' isSelected={selectedPermissions.includes(permission)} onChange={(checked) => togglePermission(permission, checked)}>
+																<Checkbox.Content>
+																	<Checkbox.Control>
+																		<Checkbox.Indicator />
+																	</Checkbox.Control>
+																	<span className='break-all font-mono text-xs'>{permission.replace(":", ".")}</span>
+																</Checkbox.Content>
+															</Checkbox>
+															<p className='pl-7 text-xs text-muted sm:pl-0'>{describePermission(permission)}</p>
+														</div>
+													))}
+												</div>
+											</section>
+										);
+									})}
+								</div>
+							</div>
 
-											return (
-												<section key={resource} className='px-4 py-4'>
-													<div className='grid gap-1 sm:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] sm:items-start sm:gap-x-6'>
-														<Checkbox variant='secondary' isSelected={isGroupSelected} isIndeterminate={isGroupIndeterminate} onChange={(checked) => togglePermissionGroup(resourcePermissions, checked)}>
-															<Checkbox.Content>
-																<Checkbox.Control>
-																	<Checkbox.Indicator />
-																</Checkbox.Control>
-																<span className='font-semibold'>{formatPermissionGroup(resource)}</span>
-															</Checkbox.Content>
-														</Checkbox>
-														<p className='pl-7 text-xs text-muted sm:pl-0'>Select every {formatPermissionGroup(resource).toLowerCase()} permission.</p>
-													</div>
-													<div className='mt-3 flex flex-col gap-2 border-l border-default pl-4'>
-														{resourcePermissions.map((permission) => (
-															<div key={permission} className='grid gap-1 sm:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] sm:items-start sm:gap-x-6'>
-																<Checkbox variant='secondary' isSelected={selectedPermissions.includes(permission)} onChange={(checked) => togglePermission(permission, checked)}>
-																	<Checkbox.Content>
-																		<Checkbox.Control>
-																			<Checkbox.Indicator />
-																		</Checkbox.Control>
-																		<span className='break-all font-mono text-xs'>{permission.replace(":", ".")}</span>
-																	</Checkbox.Content>
-																</Checkbox>
-																<p className='pl-7 text-xs text-muted sm:pl-0'>{describePermission(permission)}</p>
-															</div>
-														))}
-													</div>
-												</section>
-											);
-										})}
+							{invitationUrl ? (
+								<div className='rounded-2xl bg-surface-secondary p-4'>
+									<p className='mb-2 text-sm font-semibold'>Shareable invitation link</p>
+									<div className='flex flex-col gap-2 sm:flex-row'>
+										<Input readOnly value={invitationUrl} aria-label='Invitation link' variant='secondary' className='min-w-0 flex-1' />
+										<Button variant='secondary' onPress={() => void copyInvitationLink()}>
+											<IconCopy aria-hidden='true' size={18} />
+											Copy link
+										</Button>
 									</div>
 								</div>
-
-								{invitationUrl ? (
-									<div className='rounded-2xl bg-surface-secondary p-4'>
-										<p className='mb-2 text-sm font-semibold'>Shareable invitation link</p>
-										<div className='flex flex-col gap-2 sm:flex-row'>
-											<Input readOnly value={invitationUrl} aria-label='Invitation link' variant='secondary' className='min-w-0 flex-1' />
-											<Button variant='secondary' onPress={() => void copyInvitationLink()}>
-												<IconCopy aria-hidden='true' size={18} />
-												Copy link
-											</Button>
-										</div>
-									</div>
-								) : null}
-							</Modal.Body>
-							<Modal.Footer className='flex-col gap-2 border-t border-default sm:flex-row sm:justify-end'>
-								<Button variant='tertiary' isDisabled={pendingAction !== null} onPress={() => setIsAccessModalOpen(false)}>
-									Cancel
+							) : null}
+						</Modal.Body>
+						<Modal.Footer className='flex-col gap-2 border-t border-default sm:flex-row sm:justify-end'>
+							<Button variant='tertiary' isDisabled={pendingAction !== null} onPress={() => setIsAccessModalOpen(false)}>
+								Cancel
+							</Button>
+							{editingMember ? (
+								<Button variant='primary' isPending={pendingAction === `role-${editingMember.id}`} isDisabled={pendingAction !== null || selectedPermissions.length === 0} onPress={() => void saveMemberAccess()}>
+									<IconShieldCheck aria-hidden='true' size={18} />
+									Save access
 								</Button>
-								{editingMember ? (
-									<Button variant='primary' isPending={pendingAction === `role-${editingMember.id}`} isDisabled={pendingAction !== null || selectedPermissions.length === 0} onPress={() => void saveMemberAccess()}>
-										<IconShieldCheck aria-hidden='true' size={18} />
-										Save access
+							) : (
+								<>
+									<Button variant='secondary' isPending={pendingAction === "invite-copy"} isDisabled={pendingAction !== null || !email.trim() || selectedPermissions.length === 0} onPress={() => void invite("copy")}>
+										<IconLink aria-hidden='true' size={18} />
+										Create link
 									</Button>
-								) : (
-									<>
-										<Button variant='secondary' isPending={pendingAction === "invite-copy"} isDisabled={pendingAction !== null || !email.trim() || selectedPermissions.length === 0} onPress={() => void invite("copy")}>
-											<IconLink aria-hidden='true' size={18} />
-											Create link
-										</Button>
-										<Button variant='primary' isPending={pendingAction === "invite-copy-and-email"} isDisabled={pendingAction !== null || !email.trim() || selectedPermissions.length === 0} onPress={() => void invite("copy-and-email")}>
-											<IconMail aria-hidden='true' size={18} />
-											Create and email
-										</Button>
-									</>
-								)}
-							</Modal.Footer>
-						</Modal.Dialog>
-					</Modal.Container>
-				</Modal.Backdrop>
-			</Modal>
+									<Button variant='primary' isPending={pendingAction === "invite-copy-and-email"} isDisabled={pendingAction !== null || !email.trim() || selectedPermissions.length === 0} onPress={() => void invite("copy-and-email")}>
+										<IconMail aria-hidden='true' size={18} />
+										Create and email
+									</Button>
+								</>
+							)}
+						</Modal.Footer>
+					</Modal.Dialog>
+				</Modal.Container>
+			</Modal.Backdrop>
 		</DashboardNavbar>
 	);
 }

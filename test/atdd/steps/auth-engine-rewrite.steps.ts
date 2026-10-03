@@ -27,6 +27,7 @@ async function prepareInteractivePage(page: Page) {
 		await reject.click();
 		await Promise.all([persisted, refreshed]);
 	}
+	await expect(page.locator("html")).toHaveClass(/c15t-(?:light|dark)/, { timeout: 30_000 });
 }
 
 Given("a Clipify administrator provisioned an Agency Account after custom commercial terms were agreed", async ({ page, request, context, authWorld }) => {
@@ -127,7 +128,9 @@ When("the agency allocates the license to that creator", async ({ page, authWorl
 	await page.goto(`/dashboard/agency?creator=${encodeURIComponent(fixture.fixture.creatorOrganizationId)}`);
 	await expect(page.getByRole("heading", { name: "Creator management" })).toBeVisible({ timeout: 30_000 });
 	await prepareInteractivePage(page);
-	await page.getByRole("textbox", { name: "Allocate Pro seat commercial reference" }).fill("e2e-atdd-allocation");
+	const commercialReference = page.getByRole("textbox", { name: "Allocate Pro seat commercial reference" });
+	await commercialReference.fill("e2e-atdd-allocation");
+	await expect(commercialReference).toHaveValue("e2e-atdd-allocation");
 	await page.getByRole("button", { name: "Allocate Pro seat" }).click();
 	await expect(page.getByText("Creator Pro seat allocated.", { exact: true })).toBeVisible({ timeout: DATABASE_ACTION_TIMEOUT_MS });
 	const occupiedSeatCard = page.getByText("Occupied", { exact: true }).locator("..");
