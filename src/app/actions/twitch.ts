@@ -3,7 +3,7 @@
 
 import axios from "axios";
 import { AuthenticatedUser, Game, Overlay, OverlayType, PlaybackMode, RewardStatus, TwitchApiResponse, TwitchAppAccessTokenResponse, TwitchCacheType, TwitchClip, TwitchClipDownloadResponse, TwitchClipGqlData, TwitchClipGqlResponse, TwitchClipResponse, TwitchClipVideoQuality, TwitchReward, TwitchRewardResponse, TwitchUserResponse } from "@types";
-import { deleteTwitchCacheByPrefix, deleteTwitchCacheKeys, getAccessToken, getAccessTokenServer, getOverlayBySecret, getOverlayPublic, getPlaylistClipsForOwnerServer, getTwitchCache, getTwitchCacheBatch, getTwitchCacheByPrefixEntries, getTwitchCacheEntry, getTwitchCacheStale, getTwitchCacheStaleBatch, setTwitchCache, setTwitchCacheBatch } from "@actions/database";
+import { deleteTwitchCacheByPrefix, deleteTwitchCacheKeys, getAccessToken, getAccessTokenServer, getOverlayBySecret, getOverlayPublic, getPlaylistRuntimeClipsForOwnerServer, getTwitchCache, getTwitchCacheBatch, getTwitchCacheByPrefixEntries, getTwitchCacheEntry, getTwitchCacheStale, getTwitchCacheStaleBatch, setTwitchCache, setTwitchCacheBatch } from "@actions/database";
 import { type TwitchRateLimitLog, incrementClipFetchFallback, incrementClipFetchRateLimited, incrementClipFetchV1, incrementClipFetchV2, recordTwitchRateLimit } from "@lib/instanceHealth";
 import { promises as fs } from "fs";
 import path from "path";
@@ -1372,7 +1372,7 @@ export async function getTwitchClips(overlay: Overlay, type?: OverlayType, skipF
 	if (overlayType === OverlayType.Playlist) {
 		/* istanbul ignore next */
 		if (!overlay.playlistId) return [];
-		clips = await getPlaylistClipsForOwnerServer(overlay.ownerId, overlay.playlistId);
+		clips = await getPlaylistRuntimeClipsForOwnerServer(overlay.ownerId, overlay.playlistId);
 	} else {
 		await syncOwnerClipCache(overlay.ownerId);
 		clips = await getCachedClipsByOwner(overlay.ownerId);

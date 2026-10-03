@@ -254,23 +254,6 @@ export default function BillingPanel() {
 					/>
 				</Card.Content>
 			</Card>
-			<Card>
-				<Card.Header>
-					<p className='text-xl font-semibold'>Billing questions</p>
-					<p className='text-sm text-muted'>What changes when paid access ends.</p>
-				</Card.Header>
-				<Card.Content>
-					<Card variant='secondary'>
-						<Card.Header>
-							<p className='font-semibold'>What happens if I cancel Pro?</p>
-							<p className='text-sm text-muted'>
-								Your paid capabilities remain available through the displayed paid-through date. After that, Clipify keeps your overlays, playlists, galleries, and settings instead of deleting them. Free-plan limits apply: the resources included by Free remain usable, additional retained resources become unavailable for runtime use or modification, Pro-only settings become read-only, and Runner control requires an active Runner entitlement. You can delete retained resources yourself or regain
-								access by restoring an eligible paid entitlement.
-							</p>
-						</Card.Header>
-					</Card>
-				</Card.Content>
-			</Card>
 		</div>
 	);
 }

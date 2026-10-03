@@ -2,7 +2,7 @@ import { decideRetainedResourceAccess } from "@/server/entitlements/resource-pol
 
 describe("TDD-US5-013 retained resource capability enforcement", () => {
 	it("keeps every resource readable and deletable without granting paid mutation or runtime access", () => {
-		expect(decideRetainedResourceAccess({ effectivePlan: "free", resourceId: "overlay-2", freeResourceIds: ["overlay-1"] })).toEqual({ read: true, delete: true, update: false, runtime: false, withinFreeAllowance: false });
+		expect(decideRetainedResourceAccess({ effectivePlan: "free", resourceId: "overlay-2", freeResourceIds: ["overlay-1"] })).toEqual({ effectivePlan: "free", read: true, delete: true, update: false, runtime: false, withinFreeAllowance: false });
 	});
 
 	it("keeps the oldest resource inside the Free allowance active", () => {

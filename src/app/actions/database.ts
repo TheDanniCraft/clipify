@@ -2,7 +2,7 @@
 
 import { usersTable, overlaysTable, playlistsTable, playlistClipsTable, galleriesTable, queueTable, settingsTable, modQueueTable, twitchCacheTable } from "@/db/schema";
 import { db, QueryClient } from "@/db/client";
-import { AuthenticatedUser, ClipQueueItem, ModQueueItem, Overlay, Playlist, TwitchUserResponse, UserToken, Plan, Role, UserSettings, TwitchCacheType, StatusOptions, OverlayType, PlaybackMode, MaxDurationMode, TwitchClip } from "@types";
+import { AuthenticatedUser, ClipQueueItem, ModQueueItem, Overlay, Playlist, TwitchUserResponse, UserToken, Plan, Role, UserSettings, TwitchCacheType, StatusOptions, OverlayType, PlaybackMode, TwitchClip } from "@types";
 import { getTwitchClipLookup, subscribeToReward, syncOwnerClipCache } from "@actions/twitch";
 import { syncProductUpdatesContact, getProductUpdatesSubscriptionStatus } from "@actions/newsletter";
 import { isTitleBlocked } from "@/app/utils/regexFilter";
@@ -297,61 +297,64 @@ function sanitizeCssColor(value: string | null | undefined, fallback: string) {
 }
 
 function buildOverlayUpdatePayload(next: Overlay, advancedAllowed: boolean) {
-	const rewardId = advancedAllowed ? (next.rewardId ?? null) : null;
 	// Only assign playlistId when the overlay type is set to Playlist to ensure data consistency
 	/* istanbul ignore next: playlist id assignment logic */
 	const playlistId = next.type === OverlayType.Playlist ? (next.playlistId ?? null) : null;
+	const base = {
+		name: next.name,
+		status: next.status,
+		type: next.type,
+		playlistId,
+		updatedAt: new Date(),
+	};
+	if (!advancedAllowed) return base;
+
 	const playbackMode = (() => {
-		if (!advancedAllowed) return PlaybackMode.Random;
 		if (next.type !== OverlayType.Playlist && next.playbackMode === PlaybackMode.Order) return PlaybackMode.Random;
 		return next.playbackMode;
 	})();
 
 	return {
-		name: next.name,
-		status: next.status,
-		type: next.type,
-		playlistId,
-		rewardId,
-		updatedAt: new Date(),
-		minClipDuration: advancedAllowed ? next.minClipDuration : 0,
-		maxClipDuration: advancedAllowed ? next.maxClipDuration : 60,
-		maxDurationMode: advancedAllowed ? next.maxDurationMode : MaxDurationMode.Filter,
-		blacklistWords: advancedAllowed ? next.blacklistWords : [],
-		categoriesOnly: advancedAllowed ? (next.categoriesOnly ?? []) : [],
-		categoriesBlocked: advancedAllowed ? (next.categoriesBlocked ?? []) : [],
-		minClipViews: advancedAllowed ? next.minClipViews : 0,
+		...base,
+		rewardId: next.rewardId ?? null,
+		minClipDuration: next.minClipDuration,
+		maxClipDuration: next.maxClipDuration,
+		maxDurationMode: next.maxDurationMode,
+		blacklistWords: next.blacklistWords,
+		categoriesOnly: next.categoriesOnly ?? [],
+		categoriesBlocked: next.categoriesBlocked ?? [],
+		minClipViews: next.minClipViews,
 		playbackMode,
-		preferCurrentCategory: advancedAllowed ? !!next.preferCurrentCategory : false,
-		clipCreatorsOnly: advancedAllowed ? normalizeCreatorFilters(next.clipCreatorsOnly) : [],
-		clipCreatorsBlocked: advancedAllowed ? normalizeCreatorFilters(next.clipCreatorsBlocked) : [],
-		clipPackSize: advancedAllowed ? Math.max(25, Math.min(500, next.clipPackSize ?? 100)) : 100,
-		playerVolume: advancedAllowed ? Math.max(0, Math.min(100, next.playerVolume ?? 50)) : 50,
-		showChannelInfo: advancedAllowed ? !!next.showChannelInfo : true,
-		showClipInfo: advancedAllowed ? !!next.showClipInfo : true,
-		showTimer: advancedAllowed ? !!next.showTimer : false,
-		showProgressBar: advancedAllowed ? !!next.showProgressBar : false,
-		overlayInfoFadeOutSeconds: advancedAllowed ? Math.max(0, Math.min(30, next.overlayInfoFadeOutSeconds ?? 6)) : 6,
-		themeFontFamily: advancedAllowed ? sanitizeThemeFontSetting(next.themeFontFamily) : "inherit",
-		themeTextColor: advancedAllowed ? sanitizeCssColor(next.themeTextColor, "#FFFFFF") : "#FFFFFF",
-		themeAccentColor: advancedAllowed ? sanitizeCssColor(next.themeAccentColor, "#7C3AED") : "#7C3AED",
-		themeBackgroundColor: advancedAllowed ? sanitizeCssColor(next.themeBackgroundColor, "rgba(10,10,10,0.65)") : "rgba(10,10,10,0.65)",
-		progressBarStartColor: advancedAllowed ? sanitizeCssColor(next.progressBarStartColor, "#26018E") : "#26018E",
-		progressBarEndColor: advancedAllowed ? sanitizeCssColor(next.progressBarEndColor, "#8D42F9") : "#8D42F9",
-		borderSize: advancedAllowed ? Math.max(0, Math.min(32, next.borderSize ?? 0)) : 0,
-		borderRadius: advancedAllowed ? Math.max(0, Math.min(48, next.borderRadius ?? 10)) : 10,
-		effectScanlines: advancedAllowed ? !!next.effectScanlines : false,
-		effectStatic: advancedAllowed ? !!next.effectStatic : false,
-		effectCrt: advancedAllowed ? !!next.effectCrt : false,
-		channelInfoX: advancedAllowed ? clampInteger(next.channelInfoX, 0, 100, 0) : 0,
-		channelInfoY: advancedAllowed ? clampInteger(next.channelInfoY, 0, 100, 0) : 0,
-		clipInfoX: advancedAllowed ? clampInteger(next.clipInfoX, 0, 100, 100) : 100,
-		clipInfoY: advancedAllowed ? clampInteger(next.clipInfoY, 0, 100, 100) : 100,
-		timerX: advancedAllowed ? clampInteger(next.timerX, 0, 100, 100) : 100,
-		timerY: advancedAllowed ? clampInteger(next.timerY, 0, 100, 0) : 0,
-		channelScale: advancedAllowed ? clampInteger(next.channelScale, 50, 250, 100) : 100,
-		clipScale: advancedAllowed ? clampInteger(next.clipScale, 50, 250, 100) : 100,
-		timerScale: advancedAllowed ? clampInteger(next.timerScale, 50, 250, 100) : 100,
+		preferCurrentCategory: !!next.preferCurrentCategory,
+		clipCreatorsOnly: normalizeCreatorFilters(next.clipCreatorsOnly),
+		clipCreatorsBlocked: normalizeCreatorFilters(next.clipCreatorsBlocked),
+		clipPackSize: Math.max(25, Math.min(500, next.clipPackSize ?? 100)),
+		playerVolume: Math.max(0, Math.min(100, next.playerVolume ?? 50)),
+		showChannelInfo: !!next.showChannelInfo,
+		showClipInfo: !!next.showClipInfo,
+		showTimer: !!next.showTimer,
+		showProgressBar: !!next.showProgressBar,
+		overlayInfoFadeOutSeconds: Math.max(0, Math.min(30, next.overlayInfoFadeOutSeconds ?? 6)),
+		themeFontFamily: sanitizeThemeFontSetting(next.themeFontFamily),
+		themeTextColor: sanitizeCssColor(next.themeTextColor, "#FFFFFF"),
+		themeAccentColor: sanitizeCssColor(next.themeAccentColor, "#7C3AED"),
+		themeBackgroundColor: sanitizeCssColor(next.themeBackgroundColor, "rgba(10,10,10,0.65)"),
+		progressBarStartColor: sanitizeCssColor(next.progressBarStartColor, "#26018E"),
+		progressBarEndColor: sanitizeCssColor(next.progressBarEndColor, "#8D42F9"),
+		borderSize: Math.max(0, Math.min(32, next.borderSize ?? 0)),
+		borderRadius: Math.max(0, Math.min(48, next.borderRadius ?? 10)),
+		effectScanlines: !!next.effectScanlines,
+		effectStatic: !!next.effectStatic,
+		effectCrt: !!next.effectCrt,
+		channelInfoX: clampInteger(next.channelInfoX, 0, 100, 0),
+		channelInfoY: clampInteger(next.channelInfoY, 0, 100, 0),
+		clipInfoX: clampInteger(next.clipInfoX, 0, 100, 100),
+		clipInfoY: clampInteger(next.clipInfoY, 0, 100, 100),
+		timerX: clampInteger(next.timerX, 0, 100, 100),
+		timerY: clampInteger(next.timerY, 0, 100, 0),
+		channelScale: clampInteger(next.channelScale, 50, 250, 100),
+		clipScale: clampInteger(next.clipScale, 50, 250, 100),
+		timerScale: clampInteger(next.timerScale, 50, 250, 100),
 	};
 }
 
@@ -1112,6 +1115,13 @@ export async function getPlaylistClipsForOwnerServer(ownerId: string, playlistId
 	return clips;
 }
 
+export async function getPlaylistRuntimeClipsForOwnerServer(ownerId: string, playlistId: string): Promise<TwitchClip[]> {
+	const access = await resolveRetainedResourceAccess({ kind: "playlist", ownerId, resourceId: playlistId });
+	if (!access.runtime) return [];
+	const clips = await getPlaylistClipsForOwnerServer(ownerId, playlistId);
+	return access.effectivePlan === "free" ? clips.slice(0, FREE_PLAYLIST_CLIP_LIMIT) : clips;
+}
+
 /* istanbul ignore next: upsert operation guard */
 export async function upsertPlaylistClips(playlistId: string, clips: TwitchClip[], mode: "append" | "replace" = "append") {
 	const ctx = await requirePlaylistAccess(playlistId, "playlist-items:manage");
@@ -1513,7 +1523,7 @@ export async function saveOverlay(overlayId: string, patch: OverlayPatch) {
 
 		await db.update(overlaysTable).set(updatePayload).where(eq(overlaysTable.id, overlayId)).execute();
 
-		if (updatePayload.rewardId && updatePayload.rewardId !== ctx.overlay.rewardId) {
+		if ("rewardId" in updatePayload && updatePayload.rewardId && updatePayload.rewardId !== ctx.overlay.rewardId) {
 			subscribeToReward(ctx.overlay.ownerId, updatePayload.rewardId);
 		}
 
@@ -1571,7 +1581,10 @@ export async function getOverlayOwnerPlanPublic(overlayId: string): Promise<Plan
 export async function getOverlayByRewardId(rewardId: string) {
 	try {
 		const overlay = await db.select().from(overlaysTable).where(eq(overlaysTable.rewardId, rewardId)).limit(1).execute();
-		return overlay[0];
+		if (!overlay[0]) return undefined;
+		const runtime = await getOverlayRuntimeAccessInternal(overlay[0].id, "http");
+		if (!runtime.allowed || !runtime.overlay.rewardId) return undefined;
+		return runtime.overlay;
 	} catch (error) {
 		console.error("Error validating reward ID:", error);
 		throw new Error("Failed to validate reward ID");

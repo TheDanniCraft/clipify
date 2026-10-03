@@ -26,7 +26,7 @@ jest.mock("@actions/database", () => ({
 	getAccessTokenServer: (...args: unknown[]) => getAccessToken(...args),
 	getOverlayBySecret: jest.fn(),
 	getOverlayPublic: jest.fn(),
-	getPlaylistClipsForOwnerServer: jest.fn(),
+	getPlaylistRuntimeClipsForOwnerServer: jest.fn(),
 	getTwitchCache: (...args: unknown[]) => getTwitchCache(...args),
 	getTwitchCacheBatch: (...args: unknown[]) => getTwitchCacheBatch(...args),
 	getTwitchCacheByPrefixEntries: jest.fn(),

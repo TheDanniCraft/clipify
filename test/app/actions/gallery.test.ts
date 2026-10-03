@@ -1,7 +1,7 @@
 import type { Gallery, TwitchClip } from "@types";
 
 const validateAuth = jest.fn();
-const getPlaylistClipsForOwnerServer = jest.fn();
+const getPlaylistRuntimeClipsForOwnerServer = jest.fn();
 const getCachedClipsByOwner = jest.fn();
 const getCachedClipByOwner = jest.fn();
 const getTwitchClipPlaybackUrl = jest.fn();
@@ -60,7 +60,7 @@ const dbTransaction = db.transaction;
 dbTransaction.mockImplementation(async (callback: (tx: DbMock) => unknown) => callback(db));
 
 jest.mock("@actions/auth", () => ({ validateAuth: (...args: unknown[]) => validateAuth(...args) }));
-jest.mock("@actions/database", () => ({ getPlaylistClipsForOwnerServer: (...args: unknown[]) => getPlaylistClipsForOwnerServer(...args) }));
+jest.mock("@actions/database", () => ({ getPlaylistRuntimeClipsForOwnerServer: (...args: unknown[]) => getPlaylistRuntimeClipsForOwnerServer(...args) }));
 jest.mock("@actions/twitch", () => ({ getCachedClipsByOwner: (...args: unknown[]) => getCachedClipsByOwner(...args), getCachedClipByOwner: (...args: unknown[]) => getCachedClipByOwner(...args), getTwitchClipPlaybackUrl: (...args: unknown[]) => getTwitchClipPlaybackUrl(...args) }));
 jest.mock("@/db/client", () => ({ db }));
 jest.mock("@lib/entitlements", () => ({ resolveUserEntitlements: (...args: unknown[]) => resolveUserEntitlements(...args) }));
@@ -130,7 +130,7 @@ const loadActions = async () => import("@actions/gallery");
 describe("gallery actions", () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
-		for (const mock of [validateAuth, getPlaylistClipsForOwnerServer, getCachedClipsByOwner, getCachedClipByOwner, getTwitchClipPlaybackUrl, resolveUserEntitlements, getFeatureAccess, canResolvePublicClipPlayback, revalidatePath]) mock.mockReset();
+		for (const mock of [validateAuth, getPlaylistRuntimeClipsForOwnerServer, getCachedClipsByOwner, getCachedClipByOwner, getTwitchClipPlaybackUrl, resolveUserEntitlements, getFeatureAccess, canResolvePublicClipPlayback, revalidatePath]) mock.mockReset();
 		selectResults.length = 0;
 		insertedRows.length = 0;
 		updatedRows.length = 0;
@@ -140,7 +140,7 @@ describe("gallery actions", () => {
 		canResolvePublicClipPlayback.mockResolvedValue(true);
 		getCachedClipsByOwner.mockResolvedValue([clip("a"), clip("b")]);
 		getCachedClipByOwner.mockResolvedValue(null);
-		getPlaylistClipsForOwnerServer.mockResolvedValue([clip("playlist")]);
+		getPlaylistRuntimeClipsForOwnerServer.mockResolvedValue([clip("playlist")]);
 		getTwitchClipPlaybackUrl.mockResolvedValue("https://video.example/clip.mp4");
 	});
 
@@ -204,7 +204,7 @@ describe("gallery actions", () => {
 		getFeatureAccess.mockReturnValueOnce({ allowed: true });
 		const result = await getGalleryPreview("gallery-1");
 		expect(result).toMatchObject({ ownerName: "Clipify creator", showAttribution: false, canUseAdvanced: true, gallery: curated });
-		expect(getPlaylistClipsForOwnerServer).toHaveBeenCalledWith("owner", "playlist");
+		expect(getPlaylistRuntimeClipsForOwnerServer).toHaveBeenCalledWith("owner", "playlist");
 	});
 
 	it("returns null for inaccessible previews and clips outside the resolved sequence", async () => {
@@ -248,7 +248,7 @@ describe("gallery actions", () => {
 		queueSelect([gallery({ source: "live" })], [{ id: "playlist" }]);
 		getFeatureAccess.mockReturnValueOnce({ allowed: true });
 		await expect(getGalleryDraftPreview("gallery-1", { source: "curated", playlistId: "playlist" })).resolves.toMatchObject({ clips: [{ id: "playlist" }] });
-		expect(getPlaylistClipsForOwnerServer).toHaveBeenLastCalledWith("owner", "playlist");
+		expect(getPlaylistRuntimeClipsForOwnerServer).toHaveBeenLastCalledWith("owner", "playlist");
 	});
 
 	it("rejects an inaccessible draft playlist and a missing draft clip", async () => {

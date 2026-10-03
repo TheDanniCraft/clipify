@@ -13,6 +13,8 @@ const validateAuth = jest.fn();
 const resolveUserEntitlements = jest.fn();
 const getFeatureAccess = jest.fn(() => ({ allowed: true }));
 const subscribeToReward = jest.fn();
+type RetainedAccess = { effectivePlan: "free" | "pro"; read: true; delete: true; update: boolean; runtime: boolean; withinFreeAllowance: boolean };
+const resolveRetainedResourceAccess = jest.fn<Promise<RetainedAccess>, [unknown]>(async () => ({ effectivePlan: "pro", read: true, delete: true, update: true, runtime: true, withinFreeAllowance: true }));
 const authorizeCreatorOperation = jest.fn(async ({ creatorId }: { creatorId: string }) => {
 	const actor = await validateAuth();
 	if (!actor) return { allowed: false, code: "AUTHENTICATION_REQUIRED" };
@@ -187,7 +189,7 @@ jest.mock("@lib/entitlements", () => ({
 	reconcileUserEntitlements: jest.fn(async () => ({ runners: 0, sessions: 0 })),
 }));
 jest.mock("@/auth/authorize-operation", () => ({ authorizeCreatorOperation: (input: { creatorId: string }) => authorizeCreatorOperation(input), listAuthorizedCreatorOperations: () => listAuthorizedCreatorOperations() }));
-jest.mock("@/server/entitlements/resource-access", () => ({ resolveRetainedResourceAccess: jest.fn(async () => ({ read: true, delete: true, update: true, runtime: true, withinFreeAllowance: true })) }));
+jest.mock("@/server/entitlements/resource-access", () => ({ resolveRetainedResourceAccess: (input: unknown) => resolveRetainedResourceAccess(input) }));
 
 jest.mock("drizzle-orm", () => ({
 	relations: jest.fn(() => ({})),
@@ -375,6 +377,33 @@ describe("actions/database playlist logic", () => {
 		const { getPlaylistClipsForOwnerServer } = await loadDatabaseActions();
 		const clips = await getPlaylistClipsForOwnerServer("owner-1", "playlist-1");
 		expect(clips.map((clip) => clip.id)).toEqual(["a", "b"]);
+	});
+
+	it("limits a retained Free playlist at runtime without deleting saved clips", async () => {
+		resolveRetainedResourceAccess.mockResolvedValueOnce({ effectivePlan: "free", read: true, delete: true, update: true, runtime: true, withinFreeAllowance: true });
+		queueSelectResult([{ id: "playlist-1", ownerId: "owner-1" }]);
+		queueSelectResult(
+			Array.from({ length: 55 }, (_unused, index) => ({
+				playlistId: "playlist-1",
+				clipId: `clip-${index}`,
+				position: index,
+				clipData: JSON.stringify({ id: `clip-${index}` }),
+			})),
+		);
+
+		const { getPlaylistRuntimeClipsForOwnerServer } = await loadDatabaseActions();
+		const clips = await getPlaylistRuntimeClipsForOwnerServer("owner-1", "playlist-1");
+
+		expect(clips).toHaveLength(50);
+		expect(clips.at(-1)?.id).toBe("clip-49");
+	});
+
+	it("blocks retained playlists outside the Free allowance from runtime use", async () => {
+		resolveRetainedResourceAccess.mockResolvedValueOnce({ effectivePlan: "free", read: true, delete: true, update: false, runtime: false, withinFreeAllowance: false });
+		const { getPlaylistRuntimeClipsForOwnerServer } = await loadDatabaseActions();
+
+		await expect(getPlaylistRuntimeClipsForOwnerServer("owner-1", "playlist-2")).resolves.toEqual([]);
+		expect(dbSelect).not.toHaveBeenCalled();
 	});
 
 	it("returns empty playlist clips when caller has no access", async () => {
@@ -865,7 +894,7 @@ describe("actions/database playlist logic", () => {
 		expect(subscribeToReward).toHaveBeenCalledWith("owner-1", "reward-1");
 	});
 
-	it("saveOverlay strips advanced fields when owner has no advanced access", async () => {
+	it("saveOverlay preserves saved advanced fields when owner has no advanced access", async () => {
 		getFeatureAccess.mockReturnValueOnce({ allowed: false });
 		const currentOverlay = {
 			id: "overlay-1",
@@ -894,7 +923,8 @@ describe("actions/database playlist logic", () => {
 			rewardId: "reward-new",
 		});
 		const overlayUpdate = updateCalls.find((call) => call.table === overlaysTable);
-		expect(overlayUpdate?.set).toEqual(expect.objectContaining({ minClipViews: 0, blacklistWords: [], clipPackSize: 100, rewardId: null }));
+		expect(overlayUpdate?.set).toEqual(expect.objectContaining({ name: "Overlay", type: "Featured" }));
+		expect(overlayUpdate?.set).not.toEqual(expect.objectContaining({ minClipViews: expect.anything(), blacklistWords: expect.anything(), clipPackSize: expect.anything(), rewardId: expect.anything() }));
 	});
 
 	it("createOverlay respects free-plan single-overlay limit", async () => {

@@ -1,6 +1,6 @@
 "use server";
 
-import { getPlaylistClipsForOwnerServer } from "@actions/database";
+import { getPlaylistRuntimeClipsForOwnerServer } from "@actions/database";
 import { getCachedClipByOwner, getCachedClipsByOwner, getTwitchClipPlaybackUrl } from "@actions/twitch";
 import { db } from "@/db/client";
 import { galleriesTable, playlistsTable, usersTable } from "@/db/schema";
@@ -50,7 +50,7 @@ async function validatePlaylist(ownerId: string, playlistId: string | null) {
 async function resolveClips(gallery: Gallery): Promise<TwitchClip[]> {
 	if (gallery.source === "curated") {
 		if (!gallery.playlistId) return [];
-		return getPlaylistClipsForOwnerServer(gallery.ownerId, gallery.playlistId);
+		return getPlaylistRuntimeClipsForOwnerServer(gallery.ownerId, gallery.playlistId);
 	}
 	return resolveLiveGalleryClips(gallery, await getCachedClipsByOwner(gallery.ownerId));
 }
