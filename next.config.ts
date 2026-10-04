@@ -7,6 +7,7 @@ import { nodeFileTrace } from "@vercel/nft";
 
 const drizzle = nodeFileTrace([require.resolve("drizzle-kit"), require.resolve("drizzle-orm"), path.resolve(path.dirname(require.resolve("drizzle-kit")), "bin.cjs")]).then((drizzle) => [...drizzle.fileList, "./node_modules/.bin/drizzle-kit", "./node_modules/drizzle-orm/**", "./node_modules/drizzle-kit/**"]);
 const plausibleScriptName = process.env.NEXT_PUBLIC_PLAUSIBLE_SCRIPT_NAME ?? process.env.PLAUSIBLE_SCRIPT_NAME ?? `${crypto.randomInt(1000, 10000)}-${crypto.randomBytes(8).toString("hex")}`;
+const deploymentId = process.env.SENTRY_RELEASE?.trim() || process.env.SOURCE_COMMIT?.trim();
 const plausibleSrc = "https://analytics.thedannicraft.de/js/pa-plTnxxmoxCSO3VJloWzAG.js";
 const replayContentSecurityPolicy = (frameAncestors: string) => `frame-ancestors ${frameAncestors}; frame-src 'self' https://challenges.cloudflare.com https://chat.cloud.thedannicraft.de; worker-src 'self' blob:; child-src 'self' blob:;`;
 
@@ -14,6 +15,7 @@ const nextConfigPromise = Promise.resolve(drizzle).then(
 	(drizzle) =>
 		({
 			output: "standalone",
+			deploymentId,
 			distDir: process.env.E2E_TEST_MODE === "true" ? ".next-playwright" : ".next",
 			outputFileTracingIncludes: {
 				"**": [...drizzle, "./node_modules/@sentry/profiling-node/**", "./node_modules/@sentry/node-cpu-profiler/**"],

@@ -14,6 +14,7 @@ import { clamp, getSlotOpacity, parseThemeFontSetting, sanitizeFontCssUrl, trimC
 import { usePlausible } from "next-plausible";
 import { PLAUSIBLE_EVENTS } from "@lib/plausibleEvents";
 import { ACTIVE_PLAYBACK_CONFIRM_SECONDS, CROSSFADE_MS, CROSSFADE_SECONDS, HOLD_FRAME_SECONDS, HOLD_TIMEOUT_MS, NEXT_VIDEO_PREPARE_SECONDS, PLAYBACK_BUFFERING_GRACE_MS, PLAYBACK_ISSUE_REPORT_COOLDOWN_MS, PLAYBACK_LOAD_TIMEOUT_MS, PLAYBACK_PROGRESS_EPSILON_SECONDS, PLAYBACK_RECOVERY_RECHECK_MS, PLAYBACK_STALL_THRESHOLD_MS, PLAYBACK_WATCHDOG_INTERVAL_MS, SHOW_FADE_SECONDS } from "./overlayPlayer.constants";
+import { requestDeploymentCheck } from "@lib/deployment";
 
 function isInIframe() {
 	return window.self !== window.top;
@@ -545,6 +546,7 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 			});
 			return next;
 		} catch (error) {
+			requestDeploymentCheck();
 			console.error("Error refreshing clip pool:", error);
 			return clipPoolRef.current;
 		}
@@ -648,7 +650,10 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 				}
 				return url;
 			})
-			.catch(() => undefined)
+			.catch(() => {
+				requestDeploymentCheck();
+				return undefined;
+			})
 			.finally(() => {
 				mediaUrlInFlightRef.current.delete(clipId);
 			});
@@ -672,7 +677,10 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 				trimCache(avatarCacheRef.current);
 				return value;
 			})
-			.catch(() => "")
+			.catch(() => {
+				requestDeploymentCheck();
+				return "";
+			})
 			.finally(() => {
 				avatarInFlightRef.current.delete(broadcasterId);
 			});
@@ -697,7 +705,10 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 				trimCache(gameCacheRef.current);
 				return value;
 			})
-			.catch(() => null)
+			.catch(() => {
+				requestDeploymentCheck();
+				return null;
+			})
 			.finally(() => {
 				gameInFlightRef.current.delete(cacheKey);
 			});
@@ -808,6 +819,7 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 	type ClipCandidate = { clip: TwitchClip; queueItem?: ModQueueItem | ClipQueueItem };
 
 	const getRandomClip = useCallback(async (): Promise<ClipCandidate | null> => {
+		requestDeploymentCheck();
 		if (isDemoPlayer) {
 			const demoClip = await getFirstFromDemoQueue();
 			if (demoClip) return { clip: demoClip };
@@ -946,7 +958,8 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 		async (queueItem: ModQueueItem | ClipQueueItem | null | undefined) => {
 			if (!queueItem) return;
 			nextQueueItemRef.current = null;
-			await Promise.allSettled([removeFromModQueue(queueItem.id, overlay.id, overlaySecret), removeFromClipQueue(queueItem.id, overlay.id, overlaySecret)]);
+			const results = await Promise.allSettled([removeFromModQueue(queueItem.id, overlay.id, overlaySecret), removeFromClipQueue(queueItem.id, overlay.id, overlaySecret)]);
+			if (results.some((result) => result.status === "rejected")) requestDeploymentCheck();
 		},
 		[overlay.id, overlaySecret],
 	);
@@ -1314,6 +1327,7 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 				if (!cancelled) setOwnerAvatar(avatar ?? "");
 			})
 			.catch(() => {
+				requestDeploymentCheck();
 				if (!cancelled) setOwnerAvatar("");
 			});
 		return () => {
@@ -1497,6 +1511,7 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 			try {
 				await subscribeToChat(overlay.ownerId);
 			} catch (error) {
+				requestDeploymentCheck();
 				console.error("Error subscribing to EventSub", error);
 			}
 		}
@@ -1667,9 +1682,11 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 		}
 		if (nextQueueItemRef.current) {
 			removeFromModQueue(nextQueueItemRef.current.id, overlay.id, overlaySecret).catch((error) => {
+				requestDeploymentCheck();
 				console.error("Failed to remove from mod queue:", error);
 			});
 			removeFromClipQueue(nextQueueItemRef.current.id, overlay.id, overlaySecret).catch((error) => {
+				requestDeploymentCheck();
 				console.error("Failed to remove from clip queue:", error);
 			});
 			nextQueueItemRef.current = null;

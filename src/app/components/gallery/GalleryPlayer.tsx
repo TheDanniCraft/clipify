@@ -5,6 +5,7 @@ import { Button } from "@heroui/react";
 import { IconPlayerPauseFilled, IconPlayerPlayFilled, IconRefresh, IconVolume, IconVolumeOff, IconX } from "@tabler/icons-react";
 import type { Gallery, TwitchClip } from "@types";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+import { requestDeploymentCheck } from "@lib/deployment";
 import { usePlausible } from "next-plausible";
 import { PLAUSIBLE_EVENTS } from "@lib/plausibleEvents";
 import { useQualifiedPlayback } from "@/app/hooks/useQualifiedPlayback";
@@ -195,6 +196,7 @@ export default function GalleryPlayer({ gallery, clips, initialIndex, initialPla
 
 	const loadSelected = useCallback(
 		async (force = false) => {
+			requestDeploymentCheck();
 			if (!force && clip.id in playbackUrls) return;
 			setLoading(true);
 			try {
@@ -203,6 +205,7 @@ export default function GalleryPlayer({ gallery, clips, initialIndex, initialPla
 				const data = (await response.json()) as { playbackUrl?: string | null };
 				setPlaybackUrls((current) => ({ ...current, [clip.id]: data.playbackUrl ?? null }));
 			} catch {
+				requestDeploymentCheck();
 				setPlaybackUrls((current) => ({ ...current, [clip.id]: null }));
 			} finally {
 				setLoading(false);

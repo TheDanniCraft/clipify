@@ -5,6 +5,8 @@ import ThemeProvider from "./theme-provider";
 import { getBaseUrl } from "@actions/utils";
 import PlausibleClient from "./PlausibleClient";
 import ConsentManager from "./components/ConsentManager";
+import RuntimeDeploymentReload from "./components/RuntimeDeploymentReload";
+import { getDeploymentId } from "./lib/deployment";
 
 const baseUrl = await getBaseUrl();
 const manifestUrl = new URL("manifest.webmanifest", baseUrl);
@@ -47,6 +49,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
 				<meta name='apple-mobile-web-app-title' content='Clipify' />
 			</head>
 			<body className='min-h-screen bg-background text-foreground' suppressHydrationWarning>
+				<RuntimeDeploymentReload deploymentId={getDeploymentId()} />
 				<ConsentManager>
 					<PlausibleClient>
 						<ThemeProvider>

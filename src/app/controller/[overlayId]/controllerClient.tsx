@@ -6,6 +6,7 @@ import { Button, Chip, Input, ProgressBar, Slider, TextField } from "@heroui/rea
 import Image from "next/image";
 
 import { getControllerQueuesAction, runControllerAction, type ControllerQueueResponse } from "@actions/controller";
+import { requestDeploymentCheck } from "@lib/deployment";
 
 type PlaybackState = {
 	paused: boolean;
@@ -208,9 +209,14 @@ export default function ControllerClient({ overlayId, controllerToken }: { overl
 	}, [playback.volume]);
 
 	const executeControllerAction = async (action: "set_volume" | "clear_mod_queue" | "clear_viewer_queue" | "clear_all_queues" | "add_mod_clip", options?: { volume?: number; clipUrl?: string }) => {
-		const response = await runControllerAction(overlayId, { action, volume: options?.volume, clipUrl: options?.clipUrl });
-		if (response.ok && action !== "set_volume") refreshQueues();
-		return response;
+		try {
+			const response = await runControllerAction(overlayId, { action, volume: options?.volume, clipUrl: options?.clipUrl });
+			if (response.ok && action !== "set_volume") refreshQueues();
+			return response;
+		} catch (error) {
+			requestDeploymentCheck();
+			throw error;
+		}
 	};
 
 	useEffect(() => {
@@ -245,6 +251,8 @@ export default function ControllerClient({ overlayId, controllerToken }: { overl
 						thumbnailUrl: item.thumbnailUrl ?? null,
 					})),
 				);
+			} catch {
+				requestDeploymentCheck();
 			} finally {
 				if (active) timer = setTimeout(loadQueues, 15000);
 			}
