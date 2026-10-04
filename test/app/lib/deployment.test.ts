@@ -1,6 +1,14 @@
 import { getDeploymentId, isLongLivedRuntimePath, isMissingServerActionError } from "@/app/lib/deployment";
+import { toDeploymentId } from "@/app/lib/deploymentId";
 
 describe("deployment recovery", () => {
+	it("converts the production Sentry release into a valid Next.js deployment ID", () => {
+		const deploymentId = toDeploymentId("clipify@v2.3.4+abc123");
+
+		expect(deploymentId).toBe("clipify-v2-3-4-abc123");
+		expect(deploymentId).toMatch(/^[a-zA-Z0-9_-]+$/);
+	});
+
 	it("ignores Next.js' false sentinel when no deployment ID is configured", () => {
 		const original = process.env.NEXT_DEPLOYMENT_ID;
 		try {

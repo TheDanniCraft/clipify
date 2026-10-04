@@ -35,7 +35,7 @@ describe("deployment endpoint", () => {
 		const response = GET();
 
 		expect(response.status).toBe(204);
-		expect(response.headers.get(DEPLOYMENT_ID_HEADER)).toBe("clipify@test");
+		expect(response.headers.get(DEPLOYMENT_ID_HEADER)).toBe("clipify-test");
 		expect(response.headers.get("cache-control")).toBe("no-store, max-age=0");
 	});
 });

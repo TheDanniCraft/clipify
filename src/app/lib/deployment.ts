@@ -1,12 +1,10 @@
+import { toDeploymentId } from "./deploymentId";
+
 export const DEPLOYMENT_ID_HEADER = "x-clipify-deployment-id";
 export const DEPLOYMENT_CHECK_EVENT = "clipify:check-deployment";
 
-function normalizeDeploymentId(value: unknown) {
-	return typeof value === "string" ? value.trim() : "";
-}
-
 export function getDeploymentId() {
-	return normalizeDeploymentId(process.env.NEXT_DEPLOYMENT_ID) || normalizeDeploymentId(process.env.SENTRY_RELEASE) || normalizeDeploymentId(process.env.SOURCE_COMMIT);
+	return toDeploymentId(process.env.NEXT_DEPLOYMENT_ID) || toDeploymentId(process.env.SOURCE_COMMIT) || toDeploymentId(process.env.SENTRY_RELEASE);
 }
 
 export function isLongLivedRuntimePath(pathname: string) {
