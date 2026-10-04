@@ -1,6 +1,11 @@
 import { beforeSendError, beforeSendSpan, beforeSendTransaction } from "../../../../sentry.privacy";
 
 describe("Sentry privacy filters", () => {
+	it("drops expected recent-auth control flow without hiding other failures", () => {
+		expect(beforeSendError({ exception: { values: [{ type: "Error", value: "RECENT_AUTH_REQUIRED" }] } } as never)).toBeNull();
+		expect(beforeSendError({ exception: { values: [{ type: "Error", value: "OWNER_REQUIRED" }] } } as never)).not.toBeNull();
+	});
+
 	it("keeps safe diagnostic context while dropping request payloads and secrets", () => {
 		const event = beforeSendError({
 			message: "Request failed authorization: Bearer secret-value at https://clipify.us/path?token=secret",
@@ -14,6 +19,7 @@ describe("Sentry privacy filters", () => {
 				custom: { accountEmail: "creator@example.com" },
 			},
 		} as never);
+		if (!event) throw new Error("Expected diagnostic event");
 
 		expect(event.user).toEqual({ id: "user-123" });
 		expect(event.request).toBeUndefined();

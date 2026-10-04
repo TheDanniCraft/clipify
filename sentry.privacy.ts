@@ -57,6 +57,8 @@ function scrubEvent<T extends ErrorEvent | TransactionEvent>(event: T): T {
 }
 
 export function beforeSendError(event: ErrorEvent) {
+	const messages = [event.message, ...(event.exception?.values ?? []).map((exception) => exception.value)];
+	if (messages.some((message) => message === "RECENT_AUTH_REQUIRED")) return null;
 	return scrubEvent(event);
 }
 

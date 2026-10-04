@@ -358,7 +358,7 @@ describe("components/dashboardNavbar", () => {
 		render(
 			<DashboardNavbar
 				user={mockUser({
-					adminView: { active: true, adminUserId: "admin-1", adminUsername: "root" },
+					adminView: { active: true, adminUserId: "admin-1", adminUsername: "root", adminAvatar: "root.png" },
 				})}
 				title='T'
 				tagline='T'
@@ -367,8 +367,12 @@ describe("components/dashboardNavbar", () => {
 			</DashboardNavbar>,
 		);
 
-		expect(screen.getByText("Exit Admin View")).toBeInTheDocument();
-		fireEvent.click(screen.getByText("Exit Admin View"));
+		expect(screen.getByText("Signed in as")).toBeInTheDocument();
+		expect(screen.getByText("root")).toBeInTheDocument();
+		expect(screen.getByText("Viewing as alice")).toBeInTheDocument();
+		expect(screen.queryByText("Open Admin View")).not.toBeInTheDocument();
+		expect(screen.getByText("Return to Admin")).toBeInTheDocument();
+		fireEvent.click(screen.getByText("Return to Admin"));
 		await waitFor(() => expect(stopAdminView).toHaveBeenCalled());
 	});
 });

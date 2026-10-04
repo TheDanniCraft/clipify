@@ -49,8 +49,10 @@ jest.mock("drizzle-orm", () => ({
 
 const getAuthSession = jest.fn();
 const validateAuth = jest.fn();
+const sendPersistedInvitationEmail = jest.fn();
 jest.mock("@/auth/session", () => ({ getAuthSession: (...args: unknown[]) => getAuthSession(...args) }));
 jest.mock("@actions/auth", () => ({ validateAuth: (...args: unknown[]) => validateAuth(...args) }));
+jest.mock("@/auth/invitations", () => ({ sendPersistedInvitationEmail: (...args: unknown[]) => sendPersistedInvitationEmail(...args) }));
 
 import { acceptDatabaseAgencyLink, activateCurrentInvitedAgency, activateDatabaseAgencyOwner, allocateDatabaseAgencyLicense, endDueDatabaseAgencyAllocations, listDatabaseAdminAgencies, listDatabaseAgencyOverview, listDatabaseCreatorAgencyLinks, proposeDatabaseAgencyLink, provisionDatabaseAgency, reduceDatabaseAgencyLinkCeiling, resolveDatabaseAgencyPermissions, revokeDatabaseAgencyLink, scheduleDatabaseAgencyLicenseRemoval } from "@/server/agencies/database";
 import { PERMISSIONS } from "@/auth/permissions";
@@ -81,6 +83,7 @@ describe("TDD-US4-004 agency database adapter", () => {
 		state.executes.length = 0;
 		getAuthSession.mockResolvedValue(ownerSession);
 		validateAuth.mockResolvedValue({ id: "admin-creator" });
+		sendPersistedInvitationEmail.mockResolvedValue(undefined);
 	});
 
 	it("provisions an agency, owner invitation, notification, and audit atomically", async () => {
@@ -91,6 +94,8 @@ describe("TDD-US4-004 agency database adapter", () => {
 
 		state.selects.push([{ authUserId: "admin-auth-user" }]);
 		await expect(provisionDatabaseAgency({ name: "!!!", ownerEmail: "owner@example.test", creatorSeatLimit: 0 })).resolves.toMatchObject({ status: "owner_invited" });
+		expect(sendPersistedInvitationEmail).toHaveBeenNthCalledWith(1, expect.objectContaining({ email: "owner@example.test" }));
+		expect(sendPersistedInvitationEmail).toHaveBeenNthCalledWith(2, expect.objectContaining({ email: "owner@example.test" }));
 	});
 
 	it("persists validated negotiated card and invoice billing terms", async () => {

@@ -47,7 +47,9 @@ export default function DashboardNavbar({ children, user, title, tagline, organi
 	const effectivePlan = user?.entitlements?.effectivePlan ?? user?.plan;
 	const showUpgradeItem = user?.plan === "free" && (effectivePlan === "free" || Boolean(user?.entitlements?.reverseTrialActive));
 	const isImpersonating = Boolean(user?.adminView?.active);
-	const canOpenAdminView = user?.role === Role.Admin || isImpersonating;
+	const canOpenAdminView = user?.role === Role.Admin && !isImpersonating;
+	const signedInUsername = isImpersonating ? (user.adminView?.adminUsername ?? "admin") : (user?.username ?? "user");
+	const signedInAvatar = isImpersonating ? (user.adminView?.adminAvatar ?? "") : (user?.avatar ?? "");
 	const organizationOptions = useMemo(() => (organizations.data ?? []) as OrganizationOption[], [organizations.data]);
 	const sessionOrganizationId = session.data?.session.activeOrganizationId ?? null;
 	const activeOrganizationId = organizationId ?? sessionOrganizationId;
@@ -223,14 +225,15 @@ export default function DashboardNavbar({ children, user, title, tagline, organi
 						<li className='px-2'>
 							<Dropdown>
 								<Dropdown.Trigger className='mt-1 h-8 w-8 overflow-visible transition-transform' aria-label='Open profile menu'>
-									<DashboardUserAvatar username={user?.username ?? "User"} avatar={user?.avatar ?? ""} showStatus />
+									<DashboardUserAvatar username={signedInUsername} avatar={signedInAvatar} showStatus />
 								</Dropdown.Trigger>
 								<Dropdown.Popover placement='bottom end'>
 									<Dropdown.Menu aria-label='Profile Actions' disabledKeys={isClearingAdminView ? ["exit_admin_view"] : []}>
-										<Dropdown.Item id='profile' textValue={`Signed in as ${user?.username ?? "user"}`} className='h-14 gap-2'>
+										<Dropdown.Item id='profile' textValue={`Signed in as ${signedInUsername}`} className={isImpersonating ? "h-20 gap-2" : "h-14 gap-2"}>
 											<Label>
 												<span className='block font-semibold'>Signed in as</span>
-												<span className='block font-semibold'>{user?.username}</span>
+												<span className='block font-semibold'>{signedInUsername}</span>
+												{isImpersonating ? <span className='mt-1 block text-xs font-normal text-muted'>Viewing as {user.username}</span> : null}
 											</Label>
 										</Dropdown.Item>
 										{showUpgradeItem ? (
@@ -254,8 +257,8 @@ export default function DashboardNavbar({ children, user, title, tagline, organi
 											</Dropdown.Item>
 										) : null}
 										{isImpersonating ? (
-											<Dropdown.Item id='exit_admin_view' textValue='Exit Admin View' className='text-accent' onAction={handleExitAdminView}>
-												<Label>Exit Admin View</Label>
+											<Dropdown.Item id='exit_admin_view' textValue='Return to Admin' className='text-accent' onAction={handleExitAdminView}>
+												<Label>Return to Admin</Label>
 											</Dropdown.Item>
 										) : null}
 										<Dropdown.Item id='help_and_feedback' textValue='Help' onAction={() => router.push("https://help.clipify.us/")}>
