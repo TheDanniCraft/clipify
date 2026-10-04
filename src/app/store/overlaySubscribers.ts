@@ -34,3 +34,18 @@ export function removeSubscriber(ownerId: string, overlayId: string, ws: WebSock
 	removeFromMap(ownerSubscribers, ownerId, ws);
 	removeFromMap(overlaySubscribers, overlayId, ws);
 }
+
+// Presence shares the existing process-local subscription registry. Closed
+// sockets disappear immediately; the existing ping/pong loop terminates hangs.
+export function getActiveOverlayOwnerIds(): Set<string> {
+	const owners = new Set<string>();
+	for (const [ownerId, clients] of ownerSubscribers) {
+		for (const client of clients) {
+			if (client.role === "overlay" && client.readyState === 1 && client.sourceActive === true) {
+				owners.add(ownerId);
+				break;
+			}
+		}
+	}
+	return owners;
+}

@@ -433,11 +433,6 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 		// eslint-disable-next-line react-hooks/set-state-in-effect
 		setShowPlayer(!isStandby);
 	}, [isStandby]);
-	useEffect(() => {
-		if (isEmbed || isDemoPlayer || !overlaySecret) return;
-		return startOverlayPresence(overlay.id, overlaySecret);
-	}, [isEmbed, isDemoPlayer, overlay.id, overlaySecret]);
-
 	const embedBehaviorEnabled = !!isEmbed && !isDemoPlayer;
 	const [paused, setPaused] = useState<boolean>(initialStandby ? true : embedBehaviorEnabled ? !embedAutoplay : false);
 	const [isMuted, setIsMuted] = useState<boolean>(embedBehaviorEnabled ? !!embedMuted : false);
@@ -1414,6 +1409,7 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 	 */
 	useEffect(() => {
 		let ws: WebSocket | null = null;
+		let stopPresence: (() => void) | undefined;
 		let removeLoadListener: (() => void) | null = null;
 		let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
 		let isUnmounted = false;
@@ -1433,7 +1429,9 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 		function setupWebSocket() {
 			const wsUrl = getWebSocketUrl();
 			if (!wsUrl || isUnmounted) return;
+			stopPresence?.();
 			ws = new WebSocket(wsUrl);
+			stopPresence = startOverlayPresence(ws, overlay.id);
 			setWebsocket(ws);
 
 			ws.addEventListener("open", () => {
@@ -1478,6 +1476,8 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 			});
 
 			ws.addEventListener("close", () => {
+				stopPresence?.();
+				stopPresence = undefined;
 				if (!isUnmounted) {
 					reconnectTimeout = setTimeout(() => {
 						setupWebSocket();
@@ -1501,6 +1501,7 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 			isUnmounted = true;
 			if (reconnectTimeout) clearTimeout(reconnectTimeout);
 			if (removeLoadListener) removeLoadListener();
+			stopPresence?.();
 			ws?.close();
 			setWebsocket(null);
 			window.removeEventListener("message", onWindowMessage);

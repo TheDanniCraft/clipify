@@ -1,4 +1,4 @@
-import { addSubscriber, overlaySubscribers, ownerSubscribers, removeSubscriber } from "@/app/store/overlaySubscribers";
+import { getActiveOverlayOwnerIds, addSubscriber, overlaySubscribers, ownerSubscribers, removeSubscriber } from "@/app/store/overlaySubscribers";
 
 describe("store/overlaySubscribers", () => {
 	beforeEach(() => {
@@ -24,5 +24,33 @@ describe("store/overlaySubscribers", () => {
 	it("is no-op when removing a missing subscriber", () => {
 		const ws = {} as never;
 		expect(() => removeSubscriber("missing-owner", "missing-overlay", ws)).not.toThrow();
+	});
+});
+
+describe("in-memory overlay presence", () => {
+	beforeEach(() => {
+		ownerSubscribers.clear();
+		overlaySubscribers.clear();
+	});
+	it("counts a live owner while any overlay connection is active", () => {
+		const active = { role: "overlay", readyState: 1, sourceActive: true } as never;
+		const preview = { role: "overlay", readyState: 1, sourceActive: false } as never;
+		addSubscriber("owner", "overlay", active);
+		addSubscriber("owner", "overlay", preview);
+		expect(getActiveOverlayOwnerIds()).toEqual(new Set(["owner"]));
+		removeSubscriber("owner", "overlay", preview);
+		expect(getActiveOverlayOwnerIds()).toEqual(new Set(["owner"]));
+		removeSubscriber("owner", "overlay", active);
+		expect(getActiveOverlayOwnerIds()).toEqual(new Set());
+	});
+	it("ignores unknown, controller, closing, and closed connections", () => {
+		for (const client of [
+			{ role: "overlay", readyState: 1 },
+			{ role: "controller", readyState: 1, sourceActive: true },
+			{ role: "overlay", readyState: 2, sourceActive: true },
+			{ role: "overlay", readyState: 3, sourceActive: true },
+		])
+			addSubscriber("owner", "overlay", client as never);
+		expect(getActiveOverlayOwnerIds()).toEqual(new Set());
 	});
 });

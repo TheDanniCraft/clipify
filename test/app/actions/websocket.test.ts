@@ -8,6 +8,7 @@ const getOverlayBySecret = jest.fn();
 const getOverlayPublic = jest.fn();
 const getOverlayOwnerPlanPublic = jest.fn();
 const addSubscriber = jest.fn();
+const removeSubscriber = jest.fn();
 const jwtVerify = jest.fn();
 const ownerSubscribers = new Map<string, Set<unknown>>();
 const overlaySubscribers = new Map<string, Set<unknown>>();
@@ -29,6 +30,7 @@ jest.mock("@store/overlaySubscribers", () => ({
 	ownerSubscribers,
 	overlaySubscribers,
 	addSubscriber: (...args: unknown[]) => addSubscriber(...args),
+	removeSubscriber: (...args: unknown[]) => removeSubscriber(...args),
 }));
 
 jest.mock("@lib/operationalHealth", () => ({
@@ -57,6 +59,7 @@ function createClient(overrides: Partial<Record<string, unknown>> = {}) {
 		ownerId?: string;
 		overlayId?: string;
 		role?: string;
+		sourceActive?: boolean;
 	};
 }
 
@@ -166,5 +169,56 @@ describe("actions/websocket", () => {
 		expect(ownerAOpen.send).toHaveBeenCalledWith(JSON.stringify({ type: "refresh", data: { full: true } }));
 		expect(ownerBOpen.send).toHaveBeenCalledWith(JSON.stringify({ type: "refresh", data: { full: true } }));
 		expect(ownerAClosed.send).not.toHaveBeenCalled();
+	});
+});
+
+describe("WebSocket source activity", () => {
+	beforeEach(() => {
+		jest.clearAllMocks();
+		overlaySubscribers.clear();
+	});
+	it("accepts ordered activity changes only on an authenticated overlay connection without a database lookup", async () => {
+		const { handleMessage } = await loadWebsocketActions();
+		const client = createClient({ overlayId: "ov-1", ownerId: "owner-1", role: "overlay" });
+		overlaySubscribers.set("ov-1", new Set([client]));
+		await handleMessage(Buffer.from(JSON.stringify({ type: "source_activity", data: { active: true } })), client as never);
+		expect(client.sourceActive).toBe(true);
+		await handleMessage(Buffer.from(JSON.stringify({ type: "source_activity", data: { active: false } })), client as never);
+		expect(client.sourceActive).toBe(false);
+		expect(client.close).not.toHaveBeenCalled();
+		expect(getOverlayBySecret).not.toHaveBeenCalled();
+		expect(getOverlayPublic).not.toHaveBeenCalled();
+	});
+	it.each([{}, { overlayId: "ov-1", ownerId: "owner-1", role: "controller" }, { overlayId: "ov-1", ownerId: "owner-1", role: "overlay" }])("rejects activity from unauthorized or unregistered connections %j", async (overrides) => {
+		const { handleMessage } = await loadWebsocketActions();
+		const client = createClient(overrides);
+		await handleMessage(Buffer.from(JSON.stringify({ type: "source_activity", data: { active: true } })), client as never);
+		expect(client.close).toHaveBeenCalledWith(4002);
+		expect(client.sourceActive).toBeUndefined();
+	});
+	it.each([{}, { active: "true" }, null])("rejects malformed activity %j", async (data) => {
+		const { handleMessage } = await loadWebsocketActions();
+		const client = createClient({ overlayId: "ov-1", ownerId: "owner-1", role: "overlay" });
+		overlaySubscribers.set("ov-1", new Set([client]));
+		await handleMessage(Buffer.from(JSON.stringify({ type: "source_activity", data })), client as never);
+		expect(client.close).toHaveBeenCalledWith(4003);
+		expect(client.sourceActive).toBeUndefined();
+	});
+	it("resets activity and removes the previous registry entry when a socket re-subscribes", async () => {
+		getOverlayBySecret.mockResolvedValue({ ownerId: "owner-2", id: "ov-2", status: "active" });
+		const { handleMessage } = await loadWebsocketActions();
+		const client = createClient({ overlayId: "ov-1", ownerId: "owner-1", role: "overlay", sourceActive: true });
+		await handleMessage(Buffer.from(JSON.stringify({ type: "subscribe", data: { overlayId: "ov-2", secret: "secret" } })), client as never);
+		expect(removeSubscriber).toHaveBeenCalledWith("owner-1", "ov-1", client);
+		expect(client.sourceActive).toBeUndefined();
+		expect(client.overlayId).toBe("ov-2");
+	});
+	it("rejects paused overlays at subscription time", async () => {
+		getOverlayBySecret.mockResolvedValue({ ownerId: "owner-1", id: "ov-1", status: "paused" });
+		const { handleMessage } = await loadWebsocketActions();
+		const client = createClient();
+		await handleMessage(Buffer.from(JSON.stringify({ type: "subscribe", data: { overlayId: "ov-1", secret: "secret" } })), client as never);
+		expect(client.close).toHaveBeenCalledWith(4002);
+		expect(addSubscriber).not.toHaveBeenCalled();
 	});
 });

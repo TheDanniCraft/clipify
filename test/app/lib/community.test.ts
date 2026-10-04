@@ -3,7 +3,7 @@
 import { Plan } from "@types";
 import type { CommunitySnapshot } from "@/app/lib/community-types";
 
-const fetchActiveOverlayIds = jest.fn();
+const getActiveOverlayOwnerIds = jest.fn();
 
 const selectExecute = jest.fn();
 const insertExecute = jest.fn();
@@ -63,8 +63,8 @@ jest.mock("@lib/entitlements", () => ({
 	resolveUserEntitlementsForUsers: (...args: unknown[]) => resolveUserEntitlementsForUsers(...args),
 }));
 
-jest.mock("@lib/overlayPresenceServer", () => ({
-	fetchActiveOverlayIds: (...args: unknown[]) => fetchActiveOverlayIds(...args),
+jest.mock("@store/overlaySubscribers", () => ({
+	getActiveOverlayOwnerIds: (...args: unknown[]) => getActiveOverlayOwnerIds(...args),
 }));
 
 async function loadCommunity() {
@@ -75,7 +75,8 @@ async function loadCommunity() {
 describe("lib/community", () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
-		fetchActiveOverlayIds.mockResolvedValue(new Set());
+		selectExecute.mockReset();
+		getActiveOverlayOwnerIds.mockReturnValue(new Set());
 		getAppAccessToken.mockResolvedValue(null);
 		getUsersDetailsBulk.mockResolvedValue([]);
 		resolveUserEntitlementsForUsers.mockResolvedValue(new Map());
@@ -93,7 +94,6 @@ describe("lib/community", () => {
 					updatedAt: new Date("2026-06-29T00:00:00.000Z"),
 				},
 			])
-			.mockResolvedValueOnce([])
 			.mockResolvedValueOnce([]);
 	});
 
@@ -237,27 +237,28 @@ describe("community OBS presence", () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
 		selectExecute.mockReset();
-		fetchActiveOverlayIds.mockResolvedValue(new Set());
+		getActiveOverlayOwnerIds.mockReturnValue(new Set());
 	});
-	it("clears an expired overlay badge even while the Twitch snapshot remains cached", async () => {
-		selectExecute.mockResolvedValueOnce([{ value: JSON.stringify(cachedSnapshot("live_with_overlay")) }]).mockResolvedValueOnce([{ ownerId: "user-1", overlayId: "overlay-1" }]);
+	it("clears a disconnected overlay badge even while the Twitch snapshot remains cached", async () => {
+		selectExecute.mockResolvedValueOnce([{ value: JSON.stringify(cachedSnapshot("live_with_overlay")) }]);
 		const { getCommunitySnapshot } = await loadCommunity();
 		const result = await getCommunitySnapshot();
 		expect(result.streamers[0].status).toBe("live");
 		expect(result.liveCount).toBe(1);
 		expect(result.overlayActiveCount).toBe(0);
+		expect(selectExecute).toHaveBeenCalledTimes(1);
 	});
 	it("recognizes a newly active overlay without waiting for a Twitch refresh", async () => {
-		selectExecute.mockResolvedValueOnce([{ value: JSON.stringify(cachedSnapshot("live")) }]).mockResolvedValueOnce([{ ownerId: "user-1", overlayId: "overlay-1" }]);
-		fetchActiveOverlayIds.mockResolvedValue(new Set(["overlay-1"]));
+		selectExecute.mockResolvedValueOnce([{ value: JSON.stringify(cachedSnapshot("live")) }]);
+		getActiveOverlayOwnerIds.mockReturnValue(new Set(["user-1"]));
 		const { getCommunitySnapshot } = await loadCommunity();
 		const result = await getCommunitySnapshot();
 		expect(result.streamers[0].status).toBe("live_with_overlay");
 		expect(result.overlayActiveCount).toBe(1);
 	});
 	it("does not label an offline Twitch channel live even with active OBS output", async () => {
-		selectExecute.mockResolvedValueOnce([{ value: JSON.stringify(cachedSnapshot("offline")) }]).mockResolvedValueOnce([{ ownerId: "user-1", overlayId: "overlay-1" }]);
-		fetchActiveOverlayIds.mockResolvedValue(new Set(["overlay-1"]));
+		selectExecute.mockResolvedValueOnce([{ value: JSON.stringify(cachedSnapshot("offline")) }]);
+		getActiveOverlayOwnerIds.mockReturnValue(new Set(["user-1"]));
 		const { getCommunitySnapshot } = await loadCommunity();
 		const result = await getCommunitySnapshot();
 		expect(result.streamers[0].status).toBe("offline");
@@ -265,8 +266,8 @@ describe("community OBS presence", () => {
 		expect(result.overlayActiveCount).toBe(0);
 	});
 	it("does not count presence from another owner's overlay", async () => {
-		selectExecute.mockResolvedValueOnce([{ value: JSON.stringify(cachedSnapshot("live")) }]).mockResolvedValueOnce([{ ownerId: "user-1", overlayId: "overlay-1" }]);
-		fetchActiveOverlayIds.mockResolvedValue(new Set(["other-overlay"]));
+		selectExecute.mockResolvedValueOnce([{ value: JSON.stringify(cachedSnapshot("live")) }]);
+		getActiveOverlayOwnerIds.mockReturnValue(new Set(["other-owner"]));
 		const { getCommunitySnapshot } = await loadCommunity();
 		expect((await getCommunitySnapshot()).streamers[0].status).toBe("live");
 	});

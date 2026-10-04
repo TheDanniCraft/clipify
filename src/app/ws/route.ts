@@ -11,6 +11,7 @@ declare module "ws" {
 		ownerId?: string | null;
 		overlayId?: string | null;
 		role?: "overlay" | "controller";
+		sourceActive?: boolean;
 		subscribeDeadline?: NodeJS.Timeout;
 	}
 }

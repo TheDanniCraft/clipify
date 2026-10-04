@@ -4,13 +4,13 @@ import { and, eq, gt, inArray, isNull, lte, or, sql } from "drizzle-orm";
 
 import { db, dbPool } from "@/db/client";
 import { entitlementGrantsTable, overlaysTable, settingsTable, twitchCacheTable, usersTable } from "@/db/schema";
-import { Entitlement, EntitlementGrantSource, Plan, TwitchCacheType, type TwitchApiResponse, type TwitchUserResponse, type UserEntitlements, StatusOptions } from "@types";
+import { Entitlement, EntitlementGrantSource, Plan, TwitchCacheType, type TwitchApiResponse, type TwitchUserResponse, type UserEntitlements } from "@types";
 import { resolveUserEntitlementsForUsers } from "@lib/entitlements";
 import { getAppAccessToken, getUsersDetailsBulk } from "@actions/twitch";
 
 import type { CommunitySnapshot, CommunityStreamer, CommunityStreamerStatus } from "./community-types";
 import { compareCommunityStreamers } from "./communitySort";
-import { fetchActiveOverlayIds } from "./overlayPresenceServer";
+import { getActiveOverlayOwnerIds } from "@store/overlaySubscribers";
 
 const TWITCH_BATCH_LIMIT = 100;
 const COMMUNITY_SNAPSHOT_CACHE_TYPE = TwitchCacheType.User;
@@ -193,27 +193,6 @@ export async function fetchCommunityPageVisibleUserIds(ownerIds: string[]): Prom
 	return visibleUserIds;
 }
 
-async function fetchOverlayIdsByOwner(ownerIds: string[]): Promise<Map<string, Set<string>>> {
-	const overlayIdsByOwner = new Map<string, Set<string>>();
-	if (ownerIds.length === 0) return overlayIdsByOwner;
-
-	const rows = await db
-		.select({ ownerId: overlaysTable.ownerId, overlayId: overlaysTable.id })
-		.from(overlaysTable)
-		.where(and(inArray(overlaysTable.ownerId, ownerIds), eq(overlaysTable.status, StatusOptions.Active)))
-		.execute();
-	for (const row of rows) {
-		let overlayIds = overlayIdsByOwner.get(row.ownerId);
-		if (!overlayIds) {
-			overlayIds = new Set<string>();
-			overlayIdsByOwner.set(row.ownerId, overlayIds);
-		}
-		overlayIds.add(row.overlayId);
-	}
-
-	return overlayIdsByOwner;
-}
-
 async function fetchPartnerOwnerIds(ownerIds: string[]): Promise<Set<string>> {
 	const partnerOwnerIds = new Set<string>();
 	if (ownerIds.length === 0) return partnerOwnerIds;
@@ -285,7 +264,6 @@ async function buildCommunitySnapshot(): Promise<CommunitySnapshot> {
 	}
 
 	const ownerIds = users.map((user) => user.id);
-	const overlayIdsByOwner = await fetchOverlayIdsByOwner(ownerIds);
 	const partnerOwnerIds = await fetchPartnerOwnerIds(ownerIds);
 
 	let entitlementsByUserId = new Map<string, UserEntitlements>();
@@ -300,12 +278,12 @@ async function buildCommunitySnapshot(): Promise<CommunitySnapshot> {
 		return null;
 	});
 
-	const [twitchUsers, liveOwnerIds, activeOverlayIds] = await Promise.all([appToken ? fetchTwitchUsers(ownerIds, appToken.access_token) : Promise.resolve(new Map<string, TwitchUserResponse>()), appToken ? fetchLiveOwnerIds(ownerIds, appToken.access_token) : Promise.resolve(new Set<string>()), fetchActiveOverlayIds()]);
+	const [twitchUsers, liveOwnerIds] = await Promise.all([appToken ? fetchTwitchUsers(ownerIds, appToken.access_token) : Promise.resolve(new Map<string, TwitchUserResponse>()), appToken ? fetchLiveOwnerIds(ownerIds, appToken.access_token) : Promise.resolve(new Set<string>())]);
+	const activeOwnerIds = getActiveOverlayOwnerIds();
 
 	const streamers = users.map((user) => {
 		const twitchUser = twitchUsers.get(user.id);
-		const overlayIds = overlayIdsByOwner.get(user.id);
-		const hasActiveOverlay = Boolean(overlayIds && [...overlayIds].some((overlayId) => activeOverlayIds.has(overlayId)));
+		const hasActiveOverlay = activeOwnerIds.has(user.id);
 		const isLive = liveOwnerIds.has(user.id);
 		const status: CommunityStreamerStatus = isLive && hasActiveOverlay ? "live_with_overlay" : isLive ? "live" : "offline";
 		const entitlements = entitlementsByUserId.get(user.id);
@@ -361,11 +339,11 @@ async function waitForCommunitySnapshot(timeoutMs = 2_000): Promise<CommunitySna
 
 // Twitch metadata stays cached, but source presence must expire even when a
 // snapshot is stale or a refresh fails. Re-evaluate it on every cached read.
-async function withCurrentOverlayPresence(snapshot: CommunitySnapshot): Promise<CommunitySnapshot> {
-	const [overlayIdsByOwner, activeOverlayIds] = await Promise.all([fetchOverlayIdsByOwner(snapshot.streamers.map((streamer) => streamer.id)), fetchActiveOverlayIds()]);
+function withCurrentOverlayPresence(snapshot: CommunitySnapshot): CommunitySnapshot {
+	const activeOwnerIds = getActiveOverlayOwnerIds();
 	const streamers = snapshot.streamers.map((streamer): CommunityStreamer => {
 		if (streamer.status === "offline") return streamer;
-		const hasActiveOverlay = [...(overlayIdsByOwner.get(streamer.id) ?? [])].some((id) => activeOverlayIds.has(id));
+		const hasActiveOverlay = activeOwnerIds.has(streamer.id);
 		return { ...streamer, status: hasActiveOverlay ? "live_with_overlay" : "live" };
 	});
 	streamers.sort(compareCommunityStreamers);

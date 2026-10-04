@@ -1,6 +1,4 @@
-export const OVERLAY_PRESENCE_INTERVAL_MS = 25_000;
-export const OVERLAY_PRESENCE_TTL_MS = 75_000;
-export const OVERLAY_PRESENCE_CACHE_PREFIX = "overlay-presence:";
+import { requestDeploymentCheck } from "./deployment";
 
 // Install before hydration so OBS changes during page startup are not lost.
 // Visibility includes Studio Mode's preview; only active confirms program output.
@@ -23,29 +21,24 @@ type ObsWindow = Window & {
 	__clipifyObsActive?: boolean;
 };
 
-export function startOverlayPresence(overlayId: string, secret: string): () => void {
+export function startOverlayPresence(socket: WebSocket, overlayId: string): () => void {
 	const obsWindow = window as ObsWindow;
 	const obs = obsWindow.obsstudio;
 	if (!obs) return () => {};
 
-	const instanceId = crypto.randomUUID();
 	let active = obsWindow.__clipifyObsActive;
-	let sequence = 0;
+	let subscribed = false;
 	let stopped = false;
 	const report = (isActive: boolean) => {
-		// Sequence numbers keep delayed heartbeats from undoing a later deactivation.
-		void fetch("/api/overlay/presence", {
-			method: "POST",
-			headers: { "Content-Type": "application/json", Authorization: `Bearer ${secret}` },
-			body: JSON.stringify({ overlayId, instanceId, sequence: ++sequence, active: isActive }),
-			keepalive: true,
-			signal: AbortSignal.timeout(8_000),
-		}).catch(() => {}); // Expiry handles failed requests and disconnected sources.
+		if (subscribed && socket.readyState === WebSocket.OPEN) {
+			socket.send(JSON.stringify({ type: "source_activity", data: { active: isActive } }));
+		}
 	};
 	const update = (value: unknown) => {
 		if (stopped || typeof value !== "boolean" || value === active) return;
 		active = value;
 		obsWindow.__clipifyObsActive = value;
+		if (value) requestDeploymentCheck();
 		report(value);
 	};
 	const onActive = (event: Event) => update((event as CustomEvent<{ active?: unknown }>).detail?.active);
@@ -56,11 +49,14 @@ export function startOverlayPresence(overlayId: string, secret: string): () => v
 	};
 	obs.onActiveChange = legacyCallback;
 	window.addEventListener("obsSourceActiveChanged", onActive);
-	// OBS has no initial-active getter. Unknown remains unconfirmed until an event.
-	if (typeof active === "boolean") report(active);
-	const interval = window.setInterval(() => {
-		if (active === true) report(true);
-	}, OVERLAY_PRESENCE_INTERVAL_MS);
+	// Report only after the existing secret-authenticated subscription succeeds.
+	// A new connection re-sends the latest state without waiting for another event.
+	const onMessage = (event: MessageEvent) => {
+		if (event.data !== `subscribed ${overlayId}` || subscribed) return;
+		subscribed = true;
+		if (typeof active === "boolean") report(active);
+	};
+	socket.addEventListener("message", onMessage);
 	const onPageHide = () => {
 		active = undefined;
 		obsWindow.__clipifyObsActive = undefined;
@@ -68,11 +64,11 @@ export function startOverlayPresence(overlayId: string, secret: string): () => v
 	};
 	window.addEventListener("pagehide", onPageHide);
 	return () => {
+		report(false);
 		stopped = true;
-		window.clearInterval(interval);
 		window.removeEventListener("obsSourceActiveChanged", onActive);
 		window.removeEventListener("pagehide", onPageHide);
+		socket.removeEventListener("message", onMessage);
 		if (obs.onActiveChange === legacyCallback) obs.onActiveChange = previous;
-		report(false);
 	};
 }
