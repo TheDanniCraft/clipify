@@ -362,3 +362,61 @@ describe("actions/database overlay logic", () => {
 		expect(result).toBeNull();
 	});
 });
+
+describe("pause clears connected overlay presence", () => {
+	beforeEach(() => {
+		jest.clearAllMocks();
+		selectQueue.length = 0;
+		updateSetCalls.length = 0;
+		dbSelect.mockImplementation(() => makeSelectChain());
+		authorizeCreatorOperation.mockImplementation(async (input: { creatorId: string }) => ({ allowed: true, creator: { id: input.creatorId, plan: "pro" } }));
+	});
+
+	afterEach(async () => {
+		const { ownerSubscribers, overlaySubscribers } = await import("@store/overlaySubscribers");
+		ownerSubscribers.clear();
+		overlaySubscribers.clear();
+	});
+
+	it("removes already-active source connections after saving a pause", async () => {
+		const { saveOverlay } = await loadDatabaseActions();
+		const { addSubscriber, getActiveOverlayOwnerIds, ownerSubscribers, overlaySubscribers } = await import("@store/overlaySubscribers");
+		ownerSubscribers.clear();
+		overlaySubscribers.clear();
+		const source = { ownerId: "user-1", overlayId: "overlay-1", role: "overlay", readyState: 1, sourceActive: true, close: jest.fn() };
+		addSubscriber("user-1", "overlay-1", source as never);
+		expect(getActiveOverlayOwnerIds()).toEqual(new Set(["user-1"]));
+		queueSelectResult([{ id: "overlay-1", ownerId: "user-1", secret: "secret", status: "active" }]);
+		queueSelectResult([{ id: "user-1", plan: "pro" }]);
+		queueSelectResult([{ id: "overlay-1", ownerId: "user-1", secret: "secret", status: "paused" }]);
+		await saveOverlay("overlay-1", { status: "paused" as never });
+		expect(source.close).toHaveBeenCalledWith(4002);
+		expect(source.sourceActive).toBe(false);
+		expect(getActiveOverlayOwnerIds()).toEqual(new Set());
+		expect(overlaySubscribers.has("overlay-1")).toBe(false);
+		ownerSubscribers.clear();
+		overlaySubscribers.clear();
+	});
+	it.each([false, true])("keeps current presence if a pause is not saved (failed write: %s)", async (failedWrite) => {
+		const { saveOverlay } = await loadDatabaseActions();
+		const { addSubscriber, getActiveOverlayOwnerIds, ownerSubscribers, overlaySubscribers } = await import("@store/overlaySubscribers");
+		ownerSubscribers.clear();
+		overlaySubscribers.clear();
+		const source = { ownerId: "user-1", overlayId: "overlay-1", role: "overlay", readyState: 1, sourceActive: true, close: jest.fn() };
+		addSubscriber("user-1", "overlay-1", source as never);
+		queueSelectResult([{ id: "overlay-1", ownerId: "user-1", secret: "secret", status: "active" }]);
+		queueSelectResult([{ id: "user-1", plan: "pro" }]);
+		queueSelectResult([{ id: "overlay-1", ownerId: "user-1", secret: "secret", status: "active" }]);
+		if (failedWrite) {
+			jest.requireMock("@/db/client").db.update.mockImplementationOnce(() => {
+				throw new Error("write failed");
+			});
+			await expect(saveOverlay("overlay-1", { status: "paused" as never })).rejects.toThrow("Failed to save overlay");
+		} else {
+			await saveOverlay("overlay-1", { name: "Updated" });
+		}
+		expect(source.close).not.toHaveBeenCalled();
+		expect(source.sourceActive).toBe(true);
+		expect(getActiveOverlayOwnerIds()).toEqual(new Set(["user-1"]));
+	});
+});

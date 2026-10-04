@@ -10,14 +10,13 @@ import { getAppAccessToken, getUsersDetailsBulk } from "@actions/twitch";
 
 import type { CommunitySnapshot, CommunityStreamer, CommunityStreamerStatus } from "./community-types";
 import { compareCommunityStreamers } from "./communitySort";
-import { PLAUSIBLE_BASE_URL, PLAUSIBLE_SITE_ID } from "./plausibleConfig";
+import { getActiveOverlayOwnerIds } from "@store/overlaySubscribers";
 
 const TWITCH_BATCH_LIMIT = 100;
 const COMMUNITY_SNAPSHOT_CACHE_TYPE = TwitchCacheType.User;
-const COMMUNITY_SNAPSHOT_CACHE_KEY = "community:snapshot";
+const COMMUNITY_SNAPSHOT_CACHE_KEY = "community:snapshot:obs-presence";
 const COMMUNITY_SNAPSHOT_CACHE_TTL_SECONDS = 120;
 const COMMUNITY_REFRESH_LOCK_KEY = "community_snapshot_refresh";
-const PLAUSIBLE_WINDOW_MINUTES = 5;
 
 type CommunityUserRow = {
 	id: string;
@@ -27,13 +26,6 @@ type CommunityUserRow = {
 	lastLogin: Date | null;
 	createdAt: Date;
 	updatedAt: Date;
-};
-
-type PlausibleQueryResponse = {
-	results?: Array<{
-		dimensions?: string[];
-		metrics?: number[];
-	}>;
 };
 
 type TwitchStreamResponse = {
@@ -201,23 +193,6 @@ export async function fetchCommunityPageVisibleUserIds(ownerIds: string[]): Prom
 	return visibleUserIds;
 }
 
-async function fetchOverlayIdsByOwner(ownerIds: string[]): Promise<Map<string, Set<string>>> {
-	const overlayIdsByOwner = new Map<string, Set<string>>();
-	if (ownerIds.length === 0) return overlayIdsByOwner;
-
-	const rows = await db.select({ ownerId: overlaysTable.ownerId, overlayId: overlaysTable.id }).from(overlaysTable).where(inArray(overlaysTable.ownerId, ownerIds)).execute();
-	for (const row of rows) {
-		let overlayIds = overlayIdsByOwner.get(row.ownerId);
-		if (!overlayIds) {
-			overlayIds = new Set<string>();
-			overlayIdsByOwner.set(row.ownerId, overlayIds);
-		}
-		overlayIds.add(row.overlayId);
-	}
-
-	return overlayIdsByOwner;
-}
-
 async function fetchPartnerOwnerIds(ownerIds: string[]): Promise<Set<string>> {
 	const partnerOwnerIds = new Set<string>();
 	if (ownerIds.length === 0) return partnerOwnerIds;
@@ -282,51 +257,6 @@ async function fetchLiveOwnerIds(ownerIds: string[], accessToken: string): Promi
 	return liveOwnerIds;
 }
 
-async function fetchActiveOverlayIdsFromPlausible(): Promise<Set<string>> {
-	const apiKey = process.env.PLAUSIBLE_API_KEY;
-	if (!apiKey) return new Set<string>();
-
-	try {
-		const now = new Date();
-		const since = new Date(now.getTime() - PLAUSIBLE_WINDOW_MINUTES * 60 * 1000);
-		const response = await fetch(`${PLAUSIBLE_BASE_URL}/api/v2/query`, {
-			method: "POST",
-			headers: {
-				Authorization: `Bearer ${apiKey}`,
-				"Content-Type": "application/json",
-			},
-			body: JSON.stringify({
-				site_id: PLAUSIBLE_SITE_ID,
-				metrics: ["visitors"],
-				dimensions: ["event:page"],
-				date_range: [since.toISOString(), now.toISOString()],
-				filters: [["matches", "event:page", ["^/overlay/[^/]+$"]]],
-				order_by: [["visitors", "desc"]],
-			}),
-		});
-
-		if (!response.ok) {
-			console.error("[community] failed to query Plausible", response.status, await response.text());
-			return new Set<string>();
-		}
-
-		const payload = (await response.json()) as PlausibleQueryResponse;
-		const overlayIds = new Set<string>();
-		for (const row of payload.results ?? []) {
-			const pagePath = row.dimensions?.[0] ?? "";
-			const match = pagePath.match(/^\/overlay\/([^/?#]+)/);
-			if (match?.[1]) {
-				overlayIds.add(match[1]);
-			}
-		}
-
-		return overlayIds;
-	} catch (error) {
-		console.error("[community] failed to fetch active overlays from Plausible", error);
-		return new Set<string>();
-	}
-}
-
 async function buildCommunitySnapshot(): Promise<CommunitySnapshot> {
 	const users = await fetchCommunityUsers();
 	if (users.length === 0) {
@@ -334,7 +264,6 @@ async function buildCommunitySnapshot(): Promise<CommunitySnapshot> {
 	}
 
 	const ownerIds = users.map((user) => user.id);
-	const overlayIdsByOwner = await fetchOverlayIdsByOwner(ownerIds);
 	const partnerOwnerIds = await fetchPartnerOwnerIds(ownerIds);
 
 	let entitlementsByUserId = new Map<string, UserEntitlements>();
@@ -349,12 +278,12 @@ async function buildCommunitySnapshot(): Promise<CommunitySnapshot> {
 		return null;
 	});
 
-	const [twitchUsers, liveOwnerIds, activeOverlayIds] = await Promise.all([appToken ? fetchTwitchUsers(ownerIds, appToken.access_token) : Promise.resolve(new Map<string, TwitchUserResponse>()), appToken ? fetchLiveOwnerIds(ownerIds, appToken.access_token) : Promise.resolve(new Set<string>()), fetchActiveOverlayIdsFromPlausible()]);
+	const [twitchUsers, liveOwnerIds] = await Promise.all([appToken ? fetchTwitchUsers(ownerIds, appToken.access_token) : Promise.resolve(new Map<string, TwitchUserResponse>()), appToken ? fetchLiveOwnerIds(ownerIds, appToken.access_token) : Promise.resolve(new Set<string>())]);
+	const activeOwnerIds = getActiveOverlayOwnerIds();
 
 	const streamers = users.map((user) => {
 		const twitchUser = twitchUsers.get(user.id);
-		const overlayIds = overlayIdsByOwner.get(user.id);
-		const hasActiveOverlay = Boolean(overlayIds && [...overlayIds].some((overlayId) => activeOverlayIds.has(overlayId)));
+		const hasActiveOverlay = activeOwnerIds.has(user.id);
 		const isLive = liveOwnerIds.has(user.id);
 		const status: CommunityStreamerStatus = isLive && hasActiveOverlay ? "live_with_overlay" : isLive ? "live" : "offline";
 		const entitlements = entitlementsByUserId.get(user.id);
@@ -408,21 +337,34 @@ async function waitForCommunitySnapshot(timeoutMs = 2_000): Promise<CommunitySna
 	return readCommunitySnapshotFromCache(true);
 }
 
+// Twitch metadata stays cached, but source presence must expire even when a
+// snapshot is stale or a refresh fails. Re-evaluate it on every cached read.
+function withCurrentOverlayPresence(snapshot: CommunitySnapshot): CommunitySnapshot {
+	const activeOwnerIds = getActiveOverlayOwnerIds();
+	const streamers = snapshot.streamers.map((streamer): CommunityStreamer => {
+		if (streamer.status === "offline") return streamer;
+		const hasActiveOverlay = activeOwnerIds.has(streamer.id);
+		return { ...streamer, status: hasActiveOverlay ? "live_with_overlay" : "live" };
+	});
+	streamers.sort(compareCommunityStreamers);
+	return { ...snapshot, streamers, overlayActiveCount: streamers.filter((streamer) => streamer.status === "live_with_overlay").length };
+}
+
 export async function getCommunitySnapshot(): Promise<CommunitySnapshot> {
 	const fresh = await readCommunitySnapshotFromCache(false);
-	if (fresh) return fresh;
+	if (fresh) return withCurrentOverlayPresence(fresh);
 
 	const stale = await readCommunitySnapshotFromCache(true);
 	if (stale) {
 		refreshCommunitySnapshot();
-		return stale;
+		return withCurrentOverlayPresence(stale);
 	}
 
 	const refreshed = await refreshCommunitySnapshot();
 	if (refreshed) return refreshed;
 
 	const waited = await waitForCommunitySnapshot();
-	if (waited) return waited;
+	if (waited) return withCurrentOverlayPresence(waited);
 
 	return emptyCommunitySnapshot();
 }

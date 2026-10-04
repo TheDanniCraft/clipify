@@ -42,6 +42,20 @@ describe("RuntimeDeploymentReload", () => {
 		view.unmount();
 	});
 
+	it("checks on OBS activation and ignores preview visibility and deactivation", async () => {
+		pathname = "/overlay/overlay-1";
+		const view = render(<RuntimeDeploymentReload deploymentId='deployment-1' />);
+		await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+		window.dispatchEvent(new CustomEvent("obsSourceVisibleChanged", { detail: { visible: true } }));
+		window.dispatchEvent(new CustomEvent("obsSourceActiveChanged", { detail: { active: false } }));
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+		window.dispatchEvent(new CustomEvent("obsSourceActiveChanged", { detail: { active: true } }));
+		await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+		view.unmount();
+		window.dispatchEvent(new CustomEvent("obsSourceActiveChanged", { detail: { active: true } }));
+		expect(fetchMock).toHaveBeenCalledTimes(2);
+	});
+
 	it("does not poll ordinary application pages", () => {
 		const view = render(<RuntimeDeploymentReload deploymentId='deployment-1' />);
 

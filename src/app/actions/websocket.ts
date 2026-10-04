@@ -5,7 +5,7 @@ import jwt from "jsonwebtoken";
 import { WebSocket } from "ws";
 import { getOverlayBySecret, getOverlayOwnerPlanPublic, getOverlayPublic } from "@actions/database";
 import { RawData } from "ws";
-import { ownerSubscribers, overlaySubscribers, addSubscriber } from "@store/overlaySubscribers";
+import { ownerSubscribers, overlaySubscribers, addSubscriber, removeSubscriber } from "@store/overlaySubscribers";
 import { Plan } from "@types";
 import { recordOverlayStateUpdate, recordWebSocketRejected, recordWebSocketSubscribed } from "@lib/operationalHealth";
 
@@ -121,6 +121,12 @@ export async function handleMessage(buffer: RawData, client: WebSocket) {
 				}
 			}
 
+			if (role === "overlay" && overlay.status === "paused") {
+				client.close(4002);
+				return;
+			}
+			if (client.ownerId && client.overlayId) removeSubscriber(client.ownerId, client.overlayId, client);
+			client.sourceActive = undefined;
 			client.ownerId = overlay.ownerId;
 			client.overlayId = overlay.id;
 			client.role = role;
@@ -129,6 +135,21 @@ export async function handleMessage(buffer: RawData, client: WebSocket) {
 			recordWebSocketSubscribed(client, overlay.id, overlay.ownerId, role);
 
 			client.send(`subscribed ${overlay.id}`);
+			return;
+		}
+		case "source_activity": {
+			if (!client.overlayId || !client.ownerId || client.role !== "overlay" || !overlaySubscribers.get(client.overlayId)?.has(client)) {
+				client.close(4002);
+				return;
+			}
+			const payload = messageObj.data as { active?: unknown } | undefined;
+			if (typeof payload?.active !== "boolean") {
+				client.close(4003);
+				return;
+			}
+			// WebSocket frames are ordered; activity is scoped to this authenticated
+			// connection and needs no database write or application heartbeat.
+			client.sourceActive = payload.active;
 			return;
 		}
 		case "command": {

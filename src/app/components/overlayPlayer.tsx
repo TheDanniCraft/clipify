@@ -14,6 +14,7 @@ import { clamp, getSlotOpacity, parseThemeFontSetting, sanitizeFontCssUrl, trimC
 import { usePlausible } from "next-plausible";
 import { PLAUSIBLE_EVENTS } from "@lib/plausibleEvents";
 import { ACTIVE_PLAYBACK_CONFIRM_SECONDS, CROSSFADE_MS, CROSSFADE_SECONDS, HOLD_FRAME_SECONDS, HOLD_TIMEOUT_MS, NEXT_VIDEO_PREPARE_SECONDS, PLAYBACK_BUFFERING_GRACE_MS, PLAYBACK_ISSUE_REPORT_COOLDOWN_MS, PLAYBACK_LOAD_TIMEOUT_MS, PLAYBACK_PROGRESS_EPSILON_SECONDS, PLAYBACK_RECOVERY_RECHECK_MS, PLAYBACK_STALL_THRESHOLD_MS, PLAYBACK_WATCHDOG_INTERVAL_MS, SHOW_FADE_SECONDS } from "./overlayPlayer.constants";
+import { startOverlayPresence } from "@lib/overlayPresence";
 import { requestDeploymentCheck } from "@lib/deployment";
 
 function isInIframe() {
@@ -1408,6 +1409,7 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 	 */
 	useEffect(() => {
 		let ws: WebSocket | null = null;
+		let stopPresence: (() => void) | undefined;
 		let removeLoadListener: (() => void) | null = null;
 		let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
 		let isUnmounted = false;
@@ -1427,7 +1429,9 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 		function setupWebSocket() {
 			const wsUrl = getWebSocketUrl();
 			if (!wsUrl || isUnmounted) return;
+			stopPresence?.();
 			ws = new WebSocket(wsUrl);
+			stopPresence = startOverlayPresence(ws, overlay.id);
 			setWebsocket(ws);
 
 			ws.addEventListener("open", () => {
@@ -1472,6 +1476,8 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 			});
 
 			ws.addEventListener("close", () => {
+				stopPresence?.();
+				stopPresence = undefined;
 				if (!isUnmounted) {
 					reconnectTimeout = setTimeout(() => {
 						setupWebSocket();
@@ -1495,6 +1501,7 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 			isUnmounted = true;
 			if (reconnectTimeout) clearTimeout(reconnectTimeout);
 			if (removeLoadListener) removeLoadListener();
+			stopPresence?.();
 			ws?.close();
 			setWebsocket(null);
 			window.removeEventListener("message", onWindowMessage);

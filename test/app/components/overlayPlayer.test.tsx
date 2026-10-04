@@ -170,6 +170,13 @@ class MockWebSocket {
 		this.listeners.set(type, list);
 	}
 
+	removeEventListener(type: string, listener: SocketListener) {
+		this.listeners.set(
+			type,
+			(this.listeners.get(type) ?? []).filter((existing) => existing !== listener),
+		);
+	}
+
 	emit(type: string, event: { data?: string; type?: string }) {
 		const list = this.listeners.get(type) ?? [];
 		for (const listener of list) {

@@ -13,6 +13,7 @@ import { ensureReverseTrialGrantForUser, reconcileUserEntitlements, resolveUserE
 import { TWITCH_CLIPS_LAUNCH_MS, FREE_PLAYLIST_LIMIT, FREE_PLAYLIST_CLIP_LIMIT } from "@lib/constants";
 import { getAccessTokenInternal, getAccessTokenResultInternal } from "@/server/tokens";
 import { getOverlayRuntimeAccessInternal, requireOverlayAccessInternal, requireOverlaySecretAccessInternal } from "@/server/overlays";
+import { disconnectOverlaySources } from "@store/overlaySubscribers";
 import { invalidateCommunitySnapshotCache } from "@lib/community";
 import { allocateMemberNumber } from "@/server/memberNumbers";
 import { authorizeCreatorOperation, listAuthorizedCreatorOperations } from "@/auth/authorize-operation";
@@ -1522,6 +1523,7 @@ export async function saveOverlay(overlayId: string, patch: OverlayPatch) {
 		const updatePayload = buildOverlayUpdatePayload(next, advancedAccess.allowed);
 
 		await db.update(overlaysTable).set(updatePayload).where(eq(overlaysTable.id, overlayId)).execute();
+		if (updatePayload.status === StatusOptions.Paused) disconnectOverlaySources(overlayId);
 
 		if ("rewardId" in updatePayload && updatePayload.rewardId && updatePayload.rewardId !== ctx.overlay.rewardId) {
 			subscribeToReward(ctx.overlay.ownerId, updatePayload.rewardId);

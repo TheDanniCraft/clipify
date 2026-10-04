@@ -3,6 +3,8 @@
 import { Plan } from "@types";
 import type { CommunitySnapshot } from "@/app/lib/community-types";
 
+const getActiveOverlayOwnerIds = jest.fn();
+
 const selectExecute = jest.fn();
 const insertExecute = jest.fn();
 const lockQuery = jest.fn();
@@ -61,6 +63,10 @@ jest.mock("@lib/entitlements", () => ({
 	resolveUserEntitlementsForUsers: (...args: unknown[]) => resolveUserEntitlementsForUsers(...args),
 }));
 
+jest.mock("@store/overlaySubscribers", () => ({
+	getActiveOverlayOwnerIds: (...args: unknown[]) => getActiveOverlayOwnerIds(...args),
+}));
+
 async function loadCommunity() {
 	jest.resetModules();
 	return import("@/app/lib/community");
@@ -69,6 +75,8 @@ async function loadCommunity() {
 describe("lib/community", () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
+		selectExecute.mockReset();
+		getActiveOverlayOwnerIds.mockReturnValue(new Set());
 		getAppAccessToken.mockResolvedValue(null);
 		getUsersDetailsBulk.mockResolvedValue([]);
 		resolveUserEntitlementsForUsers.mockResolvedValue(new Map());
@@ -86,7 +94,6 @@ describe("lib/community", () => {
 					updatedAt: new Date("2026-06-29T00:00:00.000Z"),
 				},
 			])
-			.mockResolvedValueOnce([])
 			.mockResolvedValueOnce([]);
 	});
 
@@ -221,5 +228,47 @@ describe("lib/community", () => {
 		expect(groups[0]?.streamers.map((streamer) => streamer.id)).toEqual(["partner"]);
 		expect(groups[1]?.streamers.map((streamer) => streamer.id)).toEqual(["partner", "offline"]);
 		expect(groups[0]?.streamers[0]).toEqual(expect.objectContaining({ twitchUrl: "https://twitch.tv/partner" }));
+	});
+});
+
+describe("community OBS presence", () => {
+	const streamer = { id: "user-1", username: "user", displayName: "User", avatar: "avatar", plan: Plan.Free, viewCount: 0, partner: false, lastActiveAt: "2026-10-04T00:00:00.000Z" };
+	const cachedSnapshot = (status: "live" | "live_with_overlay" | "offline"): CommunitySnapshot => ({ streamers: [{ ...streamer, status }], totalCount: 1, liveCount: status === "offline" ? 0 : 1, overlayActiveCount: status === "live_with_overlay" ? 1 : 0, updatedAt: streamer.lastActiveAt });
+	beforeEach(() => {
+		jest.clearAllMocks();
+		selectExecute.mockReset();
+		getActiveOverlayOwnerIds.mockReturnValue(new Set());
+	});
+	it("clears a disconnected overlay badge even while the Twitch snapshot remains cached", async () => {
+		selectExecute.mockResolvedValueOnce([{ value: JSON.stringify(cachedSnapshot("live_with_overlay")) }]);
+		const { getCommunitySnapshot } = await loadCommunity();
+		const result = await getCommunitySnapshot();
+		expect(result.streamers[0].status).toBe("live");
+		expect(result.liveCount).toBe(1);
+		expect(result.overlayActiveCount).toBe(0);
+		expect(selectExecute).toHaveBeenCalledTimes(1);
+	});
+	it("recognizes a newly active overlay without waiting for a Twitch refresh", async () => {
+		selectExecute.mockResolvedValueOnce([{ value: JSON.stringify(cachedSnapshot("live")) }]);
+		getActiveOverlayOwnerIds.mockReturnValue(new Set(["user-1"]));
+		const { getCommunitySnapshot } = await loadCommunity();
+		const result = await getCommunitySnapshot();
+		expect(result.streamers[0].status).toBe("live_with_overlay");
+		expect(result.overlayActiveCount).toBe(1);
+	});
+	it("does not label an offline Twitch channel live even with active OBS output", async () => {
+		selectExecute.mockResolvedValueOnce([{ value: JSON.stringify(cachedSnapshot("offline")) }]);
+		getActiveOverlayOwnerIds.mockReturnValue(new Set(["user-1"]));
+		const { getCommunitySnapshot } = await loadCommunity();
+		const result = await getCommunitySnapshot();
+		expect(result.streamers[0].status).toBe("offline");
+		expect(result.liveCount).toBe(0);
+		expect(result.overlayActiveCount).toBe(0);
+	});
+	it("does not count presence from another owner's overlay", async () => {
+		selectExecute.mockResolvedValueOnce([{ value: JSON.stringify(cachedSnapshot("live")) }]);
+		getActiveOverlayOwnerIds.mockReturnValue(new Set(["other-owner"]));
+		const { getCommunitySnapshot } = await loadCommunity();
+		expect((await getCommunitySnapshot()).streamers[0].status).toBe("live");
 	});
 });

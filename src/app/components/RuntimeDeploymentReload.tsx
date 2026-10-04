@@ -59,6 +59,9 @@ export default function RuntimeDeploymentReload({ deploymentId }: { deploymentId
 		const checkWhenVisible = () => {
 			if (document.visibilityState === "visible") void checkDeployment();
 		};
+		const checkWhenSourceActive = (event: Event) => {
+			if ((event as CustomEvent<{ active?: unknown }>).detail?.active === true) void checkDeployment();
+		};
 		const checkAfterActionFailure = (event: ErrorEvent | PromiseRejectionEvent) => {
 			const error = "reason" in event ? event.reason : event.error;
 			if (isMissingServerActionError(error)) void checkDeployment();
@@ -67,6 +70,7 @@ export default function RuntimeDeploymentReload({ deploymentId }: { deploymentId
 		void checkDeployment();
 		const interval = window.setInterval(() => void checkDeployment(), CHECK_INTERVAL_MS);
 		window.addEventListener(DEPLOYMENT_CHECK_EVENT, checkDeployment);
+		window.addEventListener("obsSourceActiveChanged", checkWhenSourceActive);
 		window.addEventListener("online", checkWhenVisible);
 		window.addEventListener("error", checkAfterActionFailure);
 		window.addEventListener("unhandledrejection", checkAfterActionFailure);
@@ -75,6 +79,7 @@ export default function RuntimeDeploymentReload({ deploymentId }: { deploymentId
 		return () => {
 			window.clearInterval(interval);
 			window.removeEventListener(DEPLOYMENT_CHECK_EVENT, checkDeployment);
+			window.removeEventListener("obsSourceActiveChanged", checkWhenSourceActive);
 			window.removeEventListener("online", checkWhenVisible);
 			window.removeEventListener("error", checkAfterActionFailure);
 			window.removeEventListener("unhandledrejection", checkAfterActionFailure);
