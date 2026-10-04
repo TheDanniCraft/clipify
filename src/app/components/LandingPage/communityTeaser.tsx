@@ -1,9 +1,7 @@
 "use client";
 import { Avatar } from "@heroui/react";
-
-import type { ComponentProps } from "react";
-
-import type { CommunityTeaserStreamer, CommunityStreamerStatus } from "@lib/community-types";
+import type { CommunityTeaserStreamer } from "@lib/community-types";
+import { getCommunityAvatarTone } from "@lib/communityAvatarTone";
 
 type CommunityTeaserProps = {
 	className?: string;
@@ -13,17 +11,6 @@ type CommunityTeaserProps = {
 	totalCount?: number;
 };
 
-function getStatusClass(status: CommunityStreamerStatus): NonNullable<ComponentProps<typeof Avatar>["color"]> {
-	switch (status) {
-		case "live_with_overlay":
-			return "success";
-		case "live":
-			return "danger";
-		default:
-			return "default";
-	}
-}
-
 export default function CommunityTeaser({ className, countClassName, maxVisible = 5, streamers, totalCount = streamers.length }: CommunityTeaserProps) {
 	if (streamers.length === 0) {
 		return null;
@@ -32,14 +19,19 @@ export default function CommunityTeaser({ className, countClassName, maxVisible 
 	const visibleStreamers = streamers.slice(0, maxVisible);
 
 	return (
-		<div className={["flex items-center", className].filter(Boolean).join(" ")}>
-			{visibleStreamers.map((streamer, index) => (
-				<Avatar key={streamer.id} className={["relative h-7 w-7 rounded-full text-xs ring-2 ring-background", index > 0 ? "-ms-2" : ""].filter(Boolean).join(" ")} color={getStatusClass(streamer.status)} style={{ zIndex: visibleStreamers.length - index }}>
-					<Avatar.Image alt={streamer.displayName} src={streamer.avatar} />
-					<Avatar.Fallback>{streamer.displayName.slice(0, 2).toUpperCase()}</Avatar.Fallback>
-				</Avatar>
-			))}
-			{totalCount > visibleStreamers.length ? <span className={["ml-2 text-xs font-medium text-muted", countClassName].filter(Boolean).join(" ")}>+{totalCount - visibleStreamers.length} more</span> : null}
+		<div className={["flex max-w-full flex-wrap items-center gap-y-2", className].filter(Boolean).join(" ")}>
+			<div className='flex shrink-0 items-center'>
+				{visibleStreamers.map((streamer, index) => {
+					const tone = getCommunityAvatarTone(streamer);
+					return (
+						<Avatar key={streamer.id} aria-label={`${streamer.displayName}: ${tone.label}`} className={["relative h-7 w-7 rounded-full text-xs ring-2", tone.ringClass, index > 0 ? "-ms-2" : ""].filter(Boolean).join(" ")} color={tone.color} variant='soft' style={{ zIndex: visibleStreamers.length - index }}>
+							<Avatar.Image alt='' src={streamer.avatar} />
+							<Avatar.Fallback>{streamer.displayName.slice(0, 2).toUpperCase()}</Avatar.Fallback>
+						</Avatar>
+					);
+				})}
+			</div>
+			{totalCount > visibleStreamers.length ? <span className={["ml-2 shrink-0 whitespace-nowrap text-xs font-medium text-muted", countClassName].filter(Boolean).join(" ")}>+{totalCount - visibleStreamers.length} more</span> : null}
 		</div>
 	);
 }

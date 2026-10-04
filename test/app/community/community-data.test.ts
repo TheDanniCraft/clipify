@@ -3,7 +3,7 @@
 import { Plan } from "@types";
 
 import type { CommunitySnapshot } from "@/app/lib/community-types";
-import { buildCommunityPageGroups } from "@/app/community/community-data";
+import { buildCommunityPageGroups, buildCommunityTeaserStreamers } from "@/app/community/community-data";
 
 function makeSnapshot(): CommunitySnapshot {
 	return {
@@ -50,6 +50,13 @@ function makeSnapshot(): CommunitySnapshot {
 }
 
 describe("buildCommunityPageGroups", () => {
+	it("keeps plan and partner metadata needed by avatar tones", () => {
+		const streamers = buildCommunityTeaserStreamers(makeSnapshot());
+
+		expect(streamers[0]).toMatchObject({ id: "partner-live", plan: Plan.Pro, partner: true, status: "live_with_overlay" });
+		expect(streamers[1]).toMatchObject({ id: "pro-offline", plan: Plan.Pro, partner: false, status: "offline" });
+	});
+
 	it("filters the community page by visible user ids while keeping the shared snapshot intact", () => {
 		const snapshot = makeSnapshot();
 		const visibleUserIds = new Set(["partner-live", "free-offline"]);

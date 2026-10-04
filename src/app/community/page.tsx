@@ -9,6 +9,7 @@ import Footer from "@components/footer";
 
 import CommunityHeroAvatars from "./community-hero-avatars";
 import type { CommunityPageGroup, CommunityPageStreamer } from "@lib/community-types";
+import { getCommunityAvatarTone } from "@lib/communityAvatarTone";
 
 export const metadata = {
 	title: "Community | Clipify",
@@ -17,17 +18,6 @@ export const metadata = {
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
-
-function getStatusTone(status: CommunityPageStreamer["status"]) {
-	switch (status) {
-		case "live_with_overlay":
-			return { color: "success" as const };
-		case "live":
-			return { color: "danger" as const };
-		default:
-			return { color: "default" as const };
-	}
-}
 
 function getSectionTone(group: CommunityPageGroup) {
 	switch (group.key) {
@@ -45,7 +35,7 @@ function getSectionTone(group: CommunityPageGroup) {
 }
 
 function StreamerRow({ streamer }: { streamer: CommunityPageStreamer }) {
-	const statusTone = getStatusTone(streamer.status);
+	const avatarTone = getCommunityAvatarTone(streamer);
 	const canOpenTwitch = streamer.partner || streamer.plan === "pro";
 	const badgeLabel = streamer.partner ? "Partner" : streamer.plan === "pro" ? "Pro" : "Free";
 	const badgeColor = badgeLabel === "Partner" || badgeLabel === "Pro" ? "accent" : "default";
@@ -54,8 +44,8 @@ function StreamerRow({ streamer }: { streamer: CommunityPageStreamer }) {
 	return (
 		<div className='flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between'>
 			<div className='flex min-w-0 items-center gap-3'>
-				<Avatar color={statusTone.color} variant='soft' className='ring-2 ring-default' size='md'>
-					<AvatarImage alt={streamer.displayName} src={streamer.avatar} />
+				<Avatar aria-label={`${streamer.displayName}: ${avatarTone.label}`} color={avatarTone.color} variant='soft' className={`ring-2 ${avatarTone.ringClass}`} size='md'>
+					<AvatarImage alt='' src={streamer.avatar} />
 					<AvatarFallback>{streamer.displayName.slice(0, 2).toUpperCase()}</AvatarFallback>
 				</Avatar>
 				<div className='min-w-0'>
@@ -107,7 +97,7 @@ function CommunitySection({ group }: { group: CommunityPageGroup }) {
 }
 
 export default async function CommunityPage() {
-	const { featuredStreamers, communityGroups } = await getPublicCommunityPageDataAction();
+	const { featuredStreamers, communityGroups, totalCount } = await getPublicCommunityPageDataAction();
 
 	return (
 		<div className='bg-background text-foreground'>
@@ -139,7 +129,7 @@ export default async function CommunityPage() {
 									</Link>
 								</div>
 								<div className='mt-[-15px]'>
-									<CommunityHeroAvatars streamers={featuredStreamers} />
+									<CommunityHeroAvatars streamers={featuredStreamers} totalCount={totalCount} />
 								</div>
 							</div>
 
