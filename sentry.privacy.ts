@@ -3,7 +3,7 @@ import type * as Sentry from "@sentry/nextjs";
 type InitOptions = Parameters<typeof Sentry.init>[0];
 type ErrorEvent = Parameters<NonNullable<InitOptions["beforeSend"]>>[0];
 type TransactionEvent = Parameters<NonNullable<InitOptions["beforeSendTransaction"]>>[0];
-type SpanJSON = Parameters<NonNullable<InitOptions["beforeSendSpan"]>>[0];
+type SpanJSON = Parameters<Parameters<typeof Sentry.withStaticSpan>[0]>[0];
 type Log = Parameters<NonNullable<InitOptions["beforeSendLog"]>>[0];
 type Metric = Parameters<NonNullable<InitOptions["beforeSendMetric"]>>[0];
 

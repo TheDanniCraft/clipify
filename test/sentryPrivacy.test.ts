@@ -40,6 +40,7 @@ describe("Sentry privacy hooks", () => {
 			span_id: "0000000000000001",
 			trace_id: "00000000000000000000000000000001",
 			start_timestamp: 1,
+			status: "ok",
 			op: "db.query",
 			description: "SELECT * FROM users WHERE email = 'viewer@example.com'",
 			data: { "db.operation": "SELECT", "db.statement": "SELECT private_data", "db.collection.name": "users" },
