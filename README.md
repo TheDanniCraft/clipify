@@ -31,6 +31,10 @@ _❗ **Note:** Clipify is open source, but currently not intended for self-hosti
 
 To get started with Clipify, simply visit [https://clipify.us](https://clipify.us) and log in with your Twitch account. No installation required!
 
+The community's “live with Clipify” status combines Twitch's live status with confirmed browser-source activity in OBS's program output. Studio Mode preview visibility and ordinary browser visits do not qualify. Sources send authenticated heartbeats every 25 seconds; disconnected sources expire after 75 seconds. Each source instance is tracked separately, and current presence is checked independently of cached Twitch metadata. Presence uses the existing expiring database cache, so no schema migration is needed.
+
+OBS's browser API exposes active-state changes but no initial-active getter. After a source reload, its state stays unconfirmed until OBS emits an active-state event (switching the source out of program output and back in confirms it). Modern events and the legacy `obsstudio.onActiveChange` callback are supported. Streaming software that does not expose these bindings stays unconfirmed; Streamlabs compatibility still needs an application-level check. These signals confirm source participation in program output, including an idle Clipify overlay, rather than whether a clip is currently playing or whether pixels are obscured by another source.
+
 ## Pricing
 
 - **Free:** Unlimited clips, one overlay, all core features.

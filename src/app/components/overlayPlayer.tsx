@@ -14,6 +14,7 @@ import { clamp, getSlotOpacity, parseThemeFontSetting, sanitizeFontCssUrl, trimC
 import { usePlausible } from "next-plausible";
 import { PLAUSIBLE_EVENTS } from "@lib/plausibleEvents";
 import { ACTIVE_PLAYBACK_CONFIRM_SECONDS, CROSSFADE_MS, CROSSFADE_SECONDS, HOLD_FRAME_SECONDS, HOLD_TIMEOUT_MS, NEXT_VIDEO_PREPARE_SECONDS, PLAYBACK_BUFFERING_GRACE_MS, PLAYBACK_ISSUE_REPORT_COOLDOWN_MS, PLAYBACK_LOAD_TIMEOUT_MS, PLAYBACK_PROGRESS_EPSILON_SECONDS, PLAYBACK_RECOVERY_RECHECK_MS, PLAYBACK_STALL_THRESHOLD_MS, PLAYBACK_WATCHDOG_INTERVAL_MS, SHOW_FADE_SECONDS } from "./overlayPlayer.constants";
+import { startOverlayPresence } from "@lib/overlayPresence";
 import { requestDeploymentCheck } from "@lib/deployment";
 
 function isInIframe() {
@@ -432,6 +433,11 @@ export default function OverlayPlayer({ overlay, isEmbed, showBanner, showEmbedO
 		// eslint-disable-next-line react-hooks/set-state-in-effect
 		setShowPlayer(!isStandby);
 	}, [isStandby]);
+	useEffect(() => {
+		if (isEmbed || isDemoPlayer || !overlaySecret) return;
+		return startOverlayPresence(overlay.id, overlaySecret);
+	}, [isEmbed, isDemoPlayer, overlay.id, overlaySecret]);
+
 	const embedBehaviorEnabled = !!isEmbed && !isDemoPlayer;
 	const [paused, setPaused] = useState<boolean>(initialStandby ? true : embedBehaviorEnabled ? !embedAutoplay : false);
 	const [isMuted, setIsMuted] = useState<boolean>(embedBehaviorEnabled ? !!embedMuted : false);
