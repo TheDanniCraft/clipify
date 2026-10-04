@@ -27,5 +27,6 @@ export async function getPublicCommunityPageDataAction() {
 	return {
 		featuredStreamers: buildCommunityTeaserStreamers(snapshot, visibleUserIds),
 		communityGroups: buildCommunityPageGroups(snapshot, visibleUserIds),
+		totalCount: visibleUserIds.size,
 	};
 }

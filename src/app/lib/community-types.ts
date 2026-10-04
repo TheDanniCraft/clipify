@@ -14,7 +14,7 @@ export type CommunityStreamer = {
 	lastActiveAt: string | null;
 };
 
-export type CommunityTeaserStreamer = Pick<CommunityStreamer, "id" | "avatar" | "displayName" | "status">;
+export type CommunityTeaserStreamer = Pick<CommunityStreamer, "id" | "avatar" | "displayName" | "plan" | "partner" | "status">;
 
 export type CommunityTeaserPayload = {
 	streamers: CommunityTeaserStreamer[];

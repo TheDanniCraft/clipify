@@ -27,6 +27,8 @@ function toTeaserStreamer(streamer: CommunityStreamer): CommunityTeaserStreamer 
 		id: streamer.id,
 		avatar: streamer.avatar,
 		displayName: streamer.displayName,
+		plan: streamer.plan,
+		partner: streamer.partner,
 		status: streamer.status,
 	};
 }

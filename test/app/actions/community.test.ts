@@ -49,4 +49,16 @@ describe("actions/community", () => {
 		expect(fetchCommunityPageVisibleUserIds).toHaveBeenCalledWith(["public-1", "public-2"]);
 		expect(buildCommunityTeaserStreamers).toHaveBeenCalledWith(snapshot, visibleUserIds);
 	});
+
+	it("returns the uncapped count for the community page hero", async () => {
+		const snapshot = { streamers: [{ id: "public-1" }, { id: "public-2" }, { id: "hidden" }] };
+		const visibleUserIds = new Set(["public-1", "public-2"]);
+		getCommunitySnapshot.mockResolvedValue(snapshot);
+		fetchCommunityPageVisibleUserIds.mockResolvedValue(visibleUserIds);
+		buildCommunityTeaserStreamers.mockReturnValue(["public-1"]);
+		buildCommunityPageGroups.mockReturnValue(["partners"]);
+
+		const { getPublicCommunityPageDataAction } = await import("@/app/actions/community");
+		await expect(getPublicCommunityPageDataAction()).resolves.toEqual({ featuredStreamers: ["public-1"], communityGroups: ["partners"], totalCount: 2 });
+	});
 });

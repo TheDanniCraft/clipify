@@ -164,6 +164,8 @@ describe("lib/community", () => {
 			id: "overlay",
 			avatar: "https://example.com/overlay.png",
 			displayName: "Overlay",
+			plan: Plan.Pro,
+			partner: false,
 			status: "live_with_overlay",
 		});
 	});

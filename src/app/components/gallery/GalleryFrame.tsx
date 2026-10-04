@@ -4,6 +4,7 @@ import { Carousel } from "@heroui-pro/react/carousel";
 import type { Gallery, TwitchClip } from "@types";
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import styles from "./GalleryFrame.module.css";
+import { requestDeploymentCheck } from "@lib/deployment";
 
 type Props = {
 	gallery: Gallery;
@@ -120,6 +121,7 @@ export default function GalleryFrame({ gallery, clips, ownerName, showAttributio
 	}, [gallery.id, isPro]);
 
 	const selectClip = (clip: TwitchClip) => {
+		requestDeploymentCheck();
 		lastFocusedCard.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
 		if (onSelectClip) {
 			onSelectClip(clip);
