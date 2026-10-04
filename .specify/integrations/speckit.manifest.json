@@ -1,6 +1,6 @@
 {
 	"integration": "speckit",
-	"version": "1.0.10",
+	"version": "1.0.13",
 	"installed_at": "2026-09-24T01:28:29.101804+00:00",
 	"files": {
 		".specify/scripts/powershell/check-prerequisites.ps1": "ef7fe740091441e5aeadccb8dc36b08d840f524513d79e2fcf258133ee6568b4",
@@ -14,6 +14,18 @@
 		".specify/templates/plan-template.md": "a828ad6206526574ab3fc99be6d0154588cb1c9774c5919d71b81ab5b2dbffa0",
 		".specify/templates/spec-template.md": "3945437fc35cd30a5b2bf7beea680337c3516826d3efa5a6b92c4a7eca1ba28e",
 		".specify/templates/tasks-template.md": "b0f527d41e546af0c31903e04f9b20965b6b497b573792198f663a64ce128863",
-		".specify/.gitignore": "8c908410d177a1ef3d0dee16d7ad55f2ac3333df3104c4d4adee1c9b82f1dbc1"
+		".specify/.gitignore": "8c908410d177a1ef3d0dee16d7ad55f2ac3333df3104c4d4adee1c9b82f1dbc1",
+		".specify/scripts/python/create_new_feature.py": "4494c7b6eb142331bc9582a5e933952c9256b3790c707c7dfd7fd88f41a8774a",
+		".specify/scripts/python/setup_plan.py": "4371353b509ff352da27846e6e68d495fce2f9eeda87c28a39f8dc9d5354e438",
+		".specify/scripts/python/common.py": "ae2331bc1fd4da497c4e3a36076f7239ae2d2a7766de89bdc2b59711eb9a84b5",
+		".specify/scripts/python/check_prerequisites.py": "368e364d1e08e67ae7c19b46b4e41a35596d6a9468ca7cb391c23e7bf0ae1b88",
+		".specify/scripts/python/setup_tasks.py": "9133333ba0971723d165d5575493404b43ec8d227e96ddbd3a9f63ad2cf174fe",
+		".specify/scripts/python/resolve_template.py": "2e80e872519609b21480e16f1b1ad7620e4469b4faf88af1ecefa8f778c768a0",
+		".specify/scripts/bash/check-prerequisites.sh": "13be175548848bd84e96a90cf9be87665c2e68603b2eaa3e19187e7ca8b4fcb0",
+		".specify/scripts/bash/create-new-feature.sh": "7f85da63527be6464b08e79578b35b33d0b259fa7653a61ae64da626a26207e2",
+		".specify/scripts/bash/common.sh": "c58791cee381f2d92d7f770498f40122335024eb01e9371e06061b58805e6f06",
+		".specify/scripts/bash/setup-tasks.sh": "0350b2def158c4dc333cd888fc5a3b10785b3d5c2cf936f93e910242ea9d507d",
+		".specify/scripts/bash/setup-plan.sh": "d0bd298c026446f3c63167130d65e49e4aa4485de6bef18bcdfd57b19aa0de96",
+		".specify/scripts/bash/resolve-template.sh": "829e227096abc8bf0889889ec9f792f503ca5d395b7836a8a7eb739ee75214e7"
 	}
 }

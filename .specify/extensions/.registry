@@ -15,7 +15,12 @@
           "speckit.tdd.verify"
         ]
       },
-      "registered_skills": [],
+      "registered_skills": [
+        "speckit-tdd-setup",
+        "speckit-tdd-plan",
+        "speckit-tdd-run",
+        "speckit-tdd-verify"
+      ],
       "installed_at": "2026-09-24T01:37:38.200703+00:00"
     }
   }
