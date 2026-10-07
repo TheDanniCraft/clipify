@@ -1,1190 +1,1783 @@
-# Graph Report - . (2026-09-26)
+# Graph Report - clipify (2026-10-07)
 
 ## Corpus Check
 
-- Large corpus: 571 files · ~353,180 words. Semantic extraction will be expensive (many Claude tokens). Consider running on a subfolder.
+- 1205 files · ~832,871 words
+- Verdict: corpus is large enough that graph structure adds value.
+- Unclassified: 154 file(s) not represented in the graph (top: .feature 130, (none) 11, .css 8)
 
 ## Summary
 
-- 3668 nodes · 6883 edges · 227 communities (199 shown, 28 thin omitted)
-- Extraction: 97% EXTRACTED · 3% INFERRED · 0% AMBIGUOUS · INFERRED: 220 edges (avg confidence: 0.8)
+- 7176 nodes · 15868 edges · 322 communities (276 shown, 46 thin omitted)
+- Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 231 edges (avg confidence: 0.86)
 - Token cost: 0 input · 0 output
+
+## Graph Freshness
+
+- Built from commit: `61950342`
+- Run `git rev-parse HEAD` and compare to check if the graph is stale.
+- Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
 
-- [[_COMMUNITY_Clipify Vm01 Overview V1|Clipify Vm01 Overview V1]]
-- [[_COMMUNITY_Clipify Vm01 Overview V2|Clipify Vm01 Overview V2]]
-- [[_COMMUNITY_Clipify Vm01 Overview V3|Clipify Vm01 Overview V3]]
-- [[_COMMUNITY_Clipify Vm01 Overview V4|Clipify Vm01 Overview V4]]
-- [[_COMMUNITY_Database Database Ts|Database Database Ts]]
-- [[_COMMUNITY_Plausible Creator Analytics|Plausible Creator Analytics]]
-- [[_COMMUNITY_Campaign Offers|Campaign Offers]]
-- [[_COMMUNITY_Package Dependencies|Package Dependencies]]
-- [[_COMMUNITY_Validate Patched Dependencies|Validate Patched Dependencies]]
-- [[_COMMUNITY_Database Coverage Test|Database Coverage Test]]
-- [[_COMMUNITY_Twitch Twitch Ts|Twitch Twitch Ts]]
-- [[_COMMUNITY_Runner Artifacts|Runner Artifacts]]
-- [[_COMMUNITY_Types Types Ts|Types Types Ts]]
-- [[_COMMUNITY_Billing Catalog|Billing Catalog]]
-- [[_COMMUNITY_Database Eq|Database Eq]]
-- [[_COMMUNITY_Data Index Tsx|Data Index Tsx]]
-- [[_COMMUNITY_Pricing Types|Pricing Types]]
-- [[_COMMUNITY_Documents Documents Ts|Documents Documents Ts]]
-- [[_COMMUNITY_Runner Runner Ts|Runner Runner Ts]]
-- [[_COMMUNITY_Fake Twitch Chat|Fake Twitch Chat]]
-- [[_COMMUNITY_Badge Catalog|Badge Catalog]]
-- [[_COMMUNITY_Theme Page|Theme Page]]
-- [[_COMMUNITY_Src Index|Src Index]]
-- [[_COMMUNITY_Tags Input|Tags Input]]
-- [[_COMMUNITY_Package Dev Dependencies|Package Dev Dependencies]]
-- [[_COMMUNITY_Dashboard Content|Dashboard Content]]
-- [[_COMMUNITY_Instance Health|Instance Health]]
-- [[_COMMUNITY_Clipify Vm01 Overview V1|Clipify Vm01 Overview V1]]
-- [[_COMMUNITY_Clipify Vm01 Overview V2|Clipify Vm01 Overview V2]]
-- [[_COMMUNITY_Clipify Vm01 Overview V3|Clipify Vm01 Overview V3]]
-- [[_COMMUNITY_Clipify Vm01 Overview V4|Clipify Vm01 Overview V4]]
-- [[_COMMUNITY_Package Scripts|Package Scripts]]
-- [[_COMMUNITY_Runner Package|Runner Package]]
-- [[_COMMUNITY_Database Playlists Test|Database Playlists Test]]
-- [[_COMMUNITY_Registry Local Legal Compliance Steps|Registry Local Legal Compliance Steps]]
-- [[_COMMUNITY_Auth Auth Ts|Auth Auth Ts]]
-- [[_COMMUNITY_Entitlements Entitlements Ts|Entitlements Entitlements Ts]]
-- [[_COMMUNITY_Entitlements Test|Entitlements Test]]
-- [[_COMMUNITY_Controller Controller Ts|Controller Controller Ts]]
-- [[_COMMUNITY_Runner Reachability|Runner Reachability]]
-- [[_COMMUNITY_Subscription Subscription Ts|Subscription Subscription Ts]]
-- [[_COMMUNITY_Gallery Gallery Ts|Gallery Gallery Ts]]
-- [[_COMMUNITY_Consent Manager Test|Consent Manager Test]]
-- [[_COMMUNITY_Tsconfig Compiler Options|Tsconfig Compiler Options]]
-- [[_COMMUNITY_Operational Health|Operational Health]]
-- [[_COMMUNITY_Db Schema|Db Schema]]
-- [[_COMMUNITY_Database Settings Test|Database Settings Test]]
-- [[_COMMUNITY_Chat Widget|Chat Widget]]
-- [[_COMMUNITY_Renovate Renovate Json|Renovate Renovate Json]]
-- [[_COMMUNITY_Admin View|Admin View]]
-- [[_COMMUNITY_Database Commands Ts|Database Commands Ts]]
-- [[_COMMUNITY_Newsletter Newsletter Ts|Newsletter Newsletter Ts]]
-- [[_COMMUNITY_Feature Access|Feature Access]]
-- [[_COMMUNITY_Gallery Editor Test|Gallery Editor Test]]
-- [[_COMMUNITY_Overlay Player|Overlay Player]]
-- [[_COMMUNITY_Community Page|Community Page]]
-- [[_COMMUNITY_Clipify Clipify Gallery Element|Clipify Clipify Gallery Element]]
-- [[_COMMUNITY_Creator Page Client|Creator Page Client]]
-- [[_COMMUNITY_Card Id Page|Card Id Page]]
-- [[_COMMUNITY_Gallery Test|Gallery Test]]
-- [[_COMMUNITY_Overlay Player Test|Overlay Player Test]]
-- [[_COMMUNITY_Database User Test|Database User Test]]
-- [[_COMMUNITY_Actions Actions Ts|Actions Actions Ts]]
-- [[_COMMUNITY_Community Community Ts|Community Community Ts]]
-- [[_COMMUNITY_Inventory Audit Spec|Inventory Audit Spec]]
-- [[_COMMUNITY_Llms Full|Llms Full]]
-- [[_COMMUNITY_Database Queues Test|Database Queues Test]]
-- [[_COMMUNITY_Gallery Gallery Ts|Gallery Gallery Ts]]
-- [[_COMMUNITY_Community Data|Community Data]]
-- [[_COMMUNITY_Database Disable Test|Database Disable Test]]
-- [[_COMMUNITY_Commands Test|Commands Test]]
-- [[_COMMUNITY_Eventsub Route|Eventsub Route]]
-- [[_COMMUNITY_Twitch External Test|Twitch External Test]]
-- [[_COMMUNITY_Index Test|Index Test]]
-- [[_COMMUNITY_Overlay Table Test|Overlay Table Test]]
-- [[_COMMUNITY_Utils Utils Ts|Utils Utils Ts]]
-- [[_COMMUNITY_Twitch Playback Test|Twitch Playback Test]]
-- [[_COMMUNITY_Route Test|Route Test]]
-- [[_COMMUNITY_Creator Page Client Test|Creator Page Client Test]]
-- [[_COMMUNITY_Member Card Image|Member Card Image]]
-- [[_COMMUNITY_Websocket Websocket Ts|Websocket Websocket Ts]]
-- [[_COMMUNITY_Subscription Test|Subscription Test]]
-- [[_COMMUNITY_Gallery Editor|Gallery Editor]]
-- [[_COMMUNITY_Gallery Frame|Gallery Frame]]
-- [[_COMMUNITY_Validation Validation Ts|Validation Validation Ts]]
-- [[_COMMUNITY_Overlay Id Page|Overlay Id Page]]
-- [[_COMMUNITY_Checkout Intent|Checkout Intent]]
-- [[_COMMUNITY_Consent Projection|Consent Projection]]
-- [[_COMMUNITY_Twitch Sync Test|Twitch Sync Test]]
-- [[_COMMUNITY_C15T Schema|C15T Schema]]
-- [[_COMMUNITY_Build Build Mjs|Build Build Mjs]]
-- [[_COMMUNITY_Downloader Engine Ts|Downloader Engine Ts]]
-- [[_COMMUNITY_Engine Start|Engine Start]]
-- [[_COMMUNITY_Twitch Log Twitch Error|Twitch Log Twitch Error]]
-- [[_COMMUNITY_Twitch Sync Owner Clip Cache|Twitch Sync Owner Clip Cache]]
-- [[_COMMUNITY_Plan Legal And Privacy Feature|Plan Legal And Privacy Feature]]
-- [[_COMMUNITY_Creator Page Test|Creator Page Test]]
-- [[_COMMUNITY_Membership Test|Membership Test]]
-- [[_COMMUNITY_Operational Health|Operational Health]]
-- [[_COMMUNITY_Clip Cache Scheduler Test|Clip Cache Scheduler Test]]
-- [[_COMMUNITY_Database Overlays Test|Database Overlays Test]]
-- [[_COMMUNITY_Updater Updater Ts|Updater Updater Ts]]
-- [[_COMMUNITY_Runner Enroll Form|Runner Enroll Form]]
-- [[_COMMUNITY_Auth Test|Auth Test]]
-- [[_COMMUNITY_Controller Client Test|Controller Client Test]]
-- [[_COMMUNITY_Tsconfig Compiler Options|Tsconfig Compiler Options]]
-- [[_COMMUNITY_Runner Test|Runner Test]]
-- [[_COMMUNITY_Storage Storage Ts|Storage Storage Ts]]
-- [[_COMMUNITY_Basic Navbar|Basic Navbar]]
-- [[_COMMUNITY_Controller Test|Controller Test]]
-- [[_COMMUNITY_Settings Search Exclude|Settings Search Exclude]]
-- [[_COMMUNITY_Database Cache Test|Database Cache Test]]
-- [[_COMMUNITY_Next Error Page|Next Error Page]]
-- [[_COMMUNITY_Clipify Vm01 Overview V5|Clipify Vm01 Overview V5]]
-- [[_COMMUNITY_Websocket Test|Websocket Test]]
-- [[_COMMUNITY_Home Page Client|Home Page Client]]
-- [[_COMMUNITY_Community Test|Community Test]]
-- [[_COMMUNITY_Sentry Replay Consent Test|Sentry Replay Consent Test]]
-- [[_COMMUNITY_Package Package Json|Package Package Json]]
-- [[_COMMUNITY_Ci Green Legal Quality Gates|Ci Green Legal Quality Gates]]
-- [[_COMMUNITY_Admin User Explorer|Admin User Explorer]]
-- [[_COMMUNITY_Operational Health Test|Operational Health Test]]
-- [[_COMMUNITY_Runner Preview Cache|Runner Preview Cache]]
-- [[_COMMUNITY_Route Test|Route Test]]
-- [[_COMMUNITY_Fingerprint Runner|Fingerprint Runner]]
-- [[_COMMUNITY_Llms Content|Llms Content]]
-- [[_COMMUNITY_Route Test|Route Test]]
-- [[_COMMUNITY_Database Set Twitch Cache|Database Set Twitch Cache]]
-- [[_COMMUNITY_Overlay Settings Playlist Test|Overlay Settings Playlist Test]]
-- [[_COMMUNITY_Playlist Page Test|Playlist Page Test]]
-- [[_COMMUNITY_Toast Toast Ts|Toast Toast Ts]]
-- [[_COMMUNITY_Cycle Log|Cycle Log]]
-- [[_COMMUNITY_Route Test|Route Test]]
-- [[_COMMUNITY_Twitch Get Cached Clips By|Twitch Get Cached Clips By]]
-- [[_COMMUNITY_App Layout|App Layout]]
-- [[_COMMUNITY_Nixpacks Phases|Nixpacks Phases]]
-- [[_COMMUNITY_Build Clipify|Build Clipify]]
-- [[_COMMUNITY_Dashboard Navbar Test|Dashboard Navbar Test]]
-- [[_COMMUNITY_Origins Backend Ts|Origins Backend Ts]]
-- [[_COMMUNITY_Policy Policy Ts|Policy Policy Ts]]
-- [[_COMMUNITY_Check Server Action Manifest|Check Server Action Manifest]]
-- [[_COMMUNITY_Rate Limit Test|Rate Limit Test]]
-- [[_COMMUNITY_Logger Console Ui|Logger Console Ui]]
-- [[_COMMUNITY_Clipify Elements Test|Clipify Elements Test]]
-- [[_COMMUNITY_Dashboard Pages Test|Dashboard Pages Test]]
-- [[_COMMUNITY_Data Model|Data Model]]
-- [[_COMMUNITY_Runner Native|Runner Native]]
-- [[_COMMUNITY_Consent Boundary|Consent Boundary]]
-- [[_COMMUNITY_Callback Route|Callback Route]]
-- [[_COMMUNITY_Check Prettier|Check Prettier]]
-- [[_COMMUNITY_Create Runner Manifest|Create Runner Manifest]]
-- [[_COMMUNITY_Creator Analytics Test|Creator Analytics Test]]
-- [[_COMMUNITY_Bot Route Test|Bot Route Test]]
-- [[_COMMUNITY_Route Test|Route Test]]
-- [[_COMMUNITY_Security Official Hosted Service Model|Security Official Hosted Service Model]]
-- [[_COMMUNITY_Design Clipify Design System|Design Clipify Design System]]
-- [[_COMMUNITY_Readme Clipify Technology Stack|Readme Clipify Technology Stack]]
-- [[_COMMUNITY_Admin View Test|Admin View Test]]
-- [[_COMMUNITY_Compliance Registry|Compliance Registry]]
-- [[_COMMUNITY_Membership Registry Test|Membership Registry Test]]
-- [[_COMMUNITY_Clip Cache Scheduler|Clip Cache Scheduler]]
-- [[_COMMUNITY_Build Config|Build Config]]
-- [[_COMMUNITY_Runner Package Cleanup|Runner Package Cleanup]]
-- [[_COMMUNITY_Page Test|Page Test]]
-- [[_COMMUNITY_Tools Page Test|Tools Page Test]]
-- [[_COMMUNITY_Page Test|Page Test]]
-- [[_COMMUNITY_Instance Health Test|Instance Health Test]]
-- [[_COMMUNITY_Invalid Policy Release|Invalid Policy Release]]
-- [[_COMMUNITY_Data Model|Data Model]]
-- [[_COMMUNITY_Clear Route|Clear Route]]
-- [[_COMMUNITY_Overlay Disabled State Test|Overlay Disabled State Test]]
-- [[_COMMUNITY_Enroll Test|Enroll Test]]
-- [[_COMMUNITY_Preview Test|Preview Test]]
-- [[_COMMUNITY_Stream Test|Stream Test]]
-- [[_COMMUNITY_Verify Runner Manifest|Verify Runner Manifest]]
-- [[_COMMUNITY_Write Runner Metadata|Write Runner Metadata]]
-- [[_COMMUNITY_Community Test|Community Test]]
-- [[_COMMUNITY_Proxy Test|Proxy Test]]
-- [[_COMMUNITY_Login Page|Login Page]]
-- [[_COMMUNITY_Next Config|Next Config]]
-- [[_COMMUNITY_Prettierrc Prettierrc Json|Prettierrc Prettierrc Json]]
-- [[_COMMUNITY_Playwright Server|Playwright Server]]
-- [[_COMMUNITY_Validate Runner Matrix|Validate Runner Matrix]]
-- [[_COMMUNITY_Scrolling Banner|Scrolling Banner]]
-- [[_COMMUNITY_Reachability Reachability Ts|Reachability Reachability Ts]]
-- [[_COMMUNITY_App Pagination|App Pagination]]
-- [[_COMMUNITY_Frame Page Test|Frame Page Test]]
-- [[_COMMUNITY_Route Test|Route Test]]
-- [[_COMMUNITY_Error Page|Error Page]]
-- [[_COMMUNITY_Robots Robots Ts|Robots Robots Ts]]
-- [[_COMMUNITY_Layout Test|Layout Test]]
-- [[_COMMUNITY_Legal Link Migration Test|Legal Link Migration Test]]
-- [[_COMMUNITY_Llms Txt Route|Llms Txt Route]]
-- [[_COMMUNITY_Run Migrations|Run Migrations]]
-- [[_COMMUNITY_Run Runner Self Test|Run Runner Self Test]]
-- [[_COMMUNITY_Playwright Config|Playwright Config]]
-- [[_COMMUNITY_Husky Husky Sh Script|Husky Husky Sh Script]]
-- [[_COMMUNITY_Api Route Test|Api Route Test]]
-- [[_COMMUNITY_Gallery Player Client Only Test|Gallery Player Client Only Test]]
-- [[_COMMUNITY_Llms Full|Llms Full]]
-- [[_COMMUNITY_Postcss Config|Postcss Config]]
-- [[_COMMUNITY_Bundle Extension|Bundle Extension]]
-- [[_COMMUNITY_Sentry Feedback Widget Test|Sentry Feedback Widget Test]]
-- [[_COMMUNITY_Clip Page Test|Clip Page Test]]
-- [[_COMMUNITY_Public Page Test|Public Page Test]]
-- [[_COMMUNITY_Route Test|Route Test]]
-- [[_COMMUNITY_Login Smoke Steps|Login Smoke Steps]]
-- [[_COMMUNITY_Compliance Registry|Compliance Registry]]
-- [[_COMMUNITY_Llms Full|Llms Full]]
+- resolveTwitchClipPlaybackUrl
+- actions/database.ts
+- community-data.ts
+- resources/overlays.ts
+- package.json
+- runner.ts
+- lib/campaignOffers.ts
+- dashboardNavbar.tsx
+- validate-patched-dependencies.ts
+- check-drizzle-migration-policy.mjs
+- schema.ts
+- types.ts
+- upgradeModal.tsx
+- dependencies
+- galleries.ts
+- playlist.page.test.tsx
+- rateLimit.ts
+- app/layout.tsx
+- agencies/database.ts
+- account-lifecycle/service.ts
+- harness.test.ts
+- backend.ts
+- HomePageClient.tsx
+- @tabler/icons-react
+- operationalHealth.ts
+- runnerArtifacts.ts
+- OverlayTable/index.tsx
+- select/page.tsx
+- scripts
+- auth-engine-rewrite/database.ts
+- database.playlists.test.ts
+- team/page.tsx
+- sentry.privacy.ts
+- react
+- documents.ts
+- theme/page.tsx
+- src/index.ts
+- invitations.ts
+- auth-performance-check.ts
+- devDependencies
+- lib/entitlements.ts
+- overlayPlayer.tsx
+- mcp/rate-limit.ts
+- settings/page.tsx
+- probe.ts
+- agencies/billing.ts
+- roadmapItem.tsx
+- flowProbe
+- getBaseUrl
+- [cardId]/page.tsx
+- Request-owned pool native lifecycle compatibility — Red
+- database.user.test.ts
+- database.settings.test.ts
+- runner/package.json
+- ClipifyGalleryElement
+- @playwright/test
+- admin/page.tsx
+- deployment.ts
+- renovate.json
+- mcp/schemas.ts
+- subscription.ts
+- Test Summary Report: Creator Identity and Access Rewrite
+- security-panel.tsx
+- twitch.playback.test.ts
+- communityScheduler.ts
+- Clipify Product Index
+- plausibleCreatorAnalytics.ts
+- actions/gallery.test.ts
+- websocket.test.ts
+- ConsentManager.tsx
+- GalleryEditor.tsx
+- Test Summary Report: MCP Support
+- ENV108 — Mixed Babel and native V8 maps double-count source functions
+- database.queues.test.ts
+- subscription.test.ts
+- GalleryEditor.test.tsx
+- compilerOptions
+- Clipify Auth Production Cutover Handoff
+- engine.ts
+- settings.page.test.tsx
+- overlayPlayer.test.tsx
+- mcp-test-runner.cjs
+- heroui-react.cjs
+- inventory-audit.spec.ts
+- validation.ts
+- Feature Specification: Creator Identity and Access Rewrite
+- server/membership.ts
+- database.overlays.test.ts
+- websocket.ts
+- Phase 4: User Story 2 — Manage overlays and playlists through chat (P1)
+- MemberCard.tsx
+- account-data-export-token.ts
+- database.extra.test.ts
+- Defect Details
+- twitch.sync.test.ts
+- Legal and Privacy Feature Specification
+- Privacy Request Portal Plan
+- login/page.tsx
+- verify-consent-api.ts
+- dashboardNavbar.test.tsx
+- database.cache.test.ts
+- database.coverage.test.ts
+- OverlayTable/index.test.tsx
+- OverlayTable.test.tsx
+- agency.ts
+- T059/T061 independent SDK contracts and consent presets (2026-10-06)
+- validateAuth
+- database.disable.test.ts
+- playwright-bdd
+- Engine
+- Test-First Specification Addendum _(mandatory)_
+- tokens.ts
+- browser-overlay-boundaries.test.ts
+- eventsub/route.test.ts
+- 003-mcp-support/tdd/cycle-log.md
+- Tasks: Creator Identity and Access Rewrite
+- Tasks: MCP Support
+- outbox.ts
+- dashboard/layout.tsx
+- Continuous Integration Pipeline
+- Release impact
+- sentryReplayConsent.test.ts
+- ConsentInterface
+- GalleryFrame.tsx
+- Implementation Plan: Creator Identity and Access Rewrite
+- notify
+- billing-sync.ts
+- overlay-shared-read.test.ts
+- local-legal-compliance.steps.ts
+- bdd/steps/auth-engine-rewrite.steps.ts
+- clipCacheScheduler.test.ts
+- Final Implementation Checkpoint
+- updater.ts
+- utils.ts
+- Planning Analysis Remediation
+- CreatorPageClient.test.tsx
+- browser-playlist-selection-boundaries.test.ts
+- db/client.ts
+- auth/config.ts
+- runner.test.ts
+- fingerprint-runner.mjs
+- request-scope.ts
+- c15t-schema.ts
+- compilerOptions
+- instrumentation.ts
+- ServiceDeclaration
+- Immutable Runner OCI Artifacts
+- check-mcp-coverage.mjs
+- Research: Creator Identity and Access Rewrite
+- check-prettier.mjs
+- import-selection.ts
+- getAuthSession
+- actions/twitch.ts
+- cookies/page.tsx
+- PolicyRelease
+- Clipify Design System
+- Clipify
+- request-owned-lease-boundaries.test.ts
+- Compliance Registry
+- BillingProduct
+- controllerClient.test.tsx
+- AgencyAllocationService
+- build.mjs
+- webhook/route.ts
+- storage.ts
+- actions/creatorPage.test.ts
+- auth-engine-rewrite.spec.ts
+- Implementation Plan: MCP Support
+- commands.test.ts
+- agencies/service.ts
+- runnerPreviewCache
+- atdd/steps/auth-engine-rewrite.steps.ts
+- Release impact
+- ref_fs
+- overlay.settings.playlist.test.tsx
+- mcp-support.steps.ts
+- ConsentManager.test.tsx
+- run-mcp-mutants.mjs
+- devDependencies
+- memberNumbers.test.ts
+- dashboard/overlay/[overlayId]/page.tsx
+- controller.ts
+- ref_node_fs
+- Public Legal Routes
+- Data Model: Creator Identity and Access Rewrite
+- url
+- Test Traceability: Creator Identity and Access Rewrite
+- Defect Log: MCP Support
+- footerNavigation.ts
+- Research: MCP Support
+- mcp-coverage-reporter.cjs
+- run-runner-self-test.mjs
+- Defect Log: Creator Identity and Access Rewrite
+- actions/gallery.ts
+- account-lifecycle/database.ts
+- New Clipify records (`public`)
+- workflows/README.md
+- server-boundaries.test.ts
+- Data Model: MCP Support
+- Free Pro and Trial
+- Phase 3: User Story 1 — Connect and revoke an AI client (P1)
+- Test Traceability: MCP Support
+- heroui-fixture.tsx
+- account-data-export-credentials.ts
+- membership.test.ts
+- reports/test-summary.md
+- Quickstart: Planning-to-Implementation Handoff
+- Shared Backend Contract
+- Phase 5: User Story 3 — Preserve permissions and plan limits everywhere (P1)
+- server/entitlements.ts
+- community/page.tsx
+- member-card/route.test.ts
+- footer.tsx
+- clipifyElements.test.ts
+- change
+- CreatorAnalyticsCard.tsx
+- ConsoleUI
+- mcp-mutation-scopes.steps.ts
+- Legacy Auth Contraction Runbook
+- playlist-shared-read.test.ts
+- OAuth and Connection Contract
+- consentBoundary.ts
+- operationalHealth.test.ts
+- Material Change Classification
+- Member Cards and Badges
+- User Scenarios & Testing
+- Contract: Lifecycle, Entitlements, and Notifications
+- Contract: Auth Cutover Workflow
+- Production-shaped rehearsal 55047955-b73e-4bbe-943f-e1c038df26a2
+- mutation-authorization.test.ts
+- Tools
+- browser-creation-adapter.test.ts
+- Quickstart Validation: MCP Support
+- Feature Specification: MCP product workflows
+- @heroui/react
+- creator-onboarding-trigger.test.ts
+- Production-shaped orphan-prune rehearsal 7e075732-4e0a-47a8-8537-2e94dcb08097
+- browser-playlist-creation-adapter.test.ts
+- lib/membership.ts
+- MCP product workflow extension
+- Rolling Test Summary
+- browser-playlist-delete-adapter.test.ts
+- @testing-library/react
+- session-principal.test.ts
+- .prettierrc.json
+- Contract: Identity and Membership
+- 2× synthetic rehearsal 8811990d-3e69-43b3-80dc-db5b42fc3c0d
+- connections.test.ts
+- read-authority-catalogue.test.ts
+- Test-first Quality Architecture
+- Schema generation evidence
+- Auth Security and Privacy Inventory
+- postcss.config.mjs
+- dependency-pins.md
+- setup/infisical-configuration.md
+- setup/README.md
+- runtime-versions.md
+- atdd/README.md
+- auth-engine-rewrite/README.md
+- bdd/README.md
+- client-profiles.ts
+- Public get_overlay slice
+- registry.ts
+- resources/errors.ts
+- overrides
+- browser-playlist-update-adapter.test.ts
+- build-app.mjs
+- Phase 6: User Story 4 — Activity and throttling (P2)
+- playwright.config.ts
+- commands.ts
+- actions/creatorPage.ts
+- agency-allocations.test.ts
+- Tasks: MCP workflows
+- pricing/page.tsx
+- server/rate-limit.ts
+- mcp-authorization-intersection.steps.ts
+- overlay.theme.page.test.tsx
+- import-selection.test.ts
+- GalleryPlayer.tsx
+- authorize.ts
+- Test Summary Report: MCP Support
+- eslint.config.mjs
+- resource-operations.test.ts
+- jest.setup.ts
+- lint-staged
+- next
+- preview.test.ts
+- drizzle-kit
+- patchedDependencies
+- Tasks: MCP workflows
+- discovery-filter.test.ts
+- sentry-test/route.ts
+- adminHealthCharts.tsx
+- Tools
+- Test summary: MCP workflows
+- run-auth-coverage.ts
+- Implementation Plan: MCP product workflows
+- providers/twitch.ts
+- role-assignment-policy.ts
+- Implementation Plan: MCP product workflows
+- Red-green-refactor journal
+- Red-green-refactor journal
+- dashboard.pages.test.tsx
+- browser-server-budget.cjs
+- Specification Quality Checklist: MCP Support
+- workflows/test-summary.md
+- Test traceability: MCP workflows
+- Test traceability: MCP workflows
+- access.ts
+- test-system-limits.test.ts
+- workflows/data-model.md
+- workflows/quickstart.md
+- workflows/research.md
+- { setUser, captureException, captureCheckIn, captureRequestError, getClient, withScope, startSpan, logger, metrics, init, flush, close, captureFeedback, Scope }
 
 ## God Nodes (most connected - your core abstractions)
 
-1. `eq` - 129 edges
-2. `and` - 55 edges
-3. `validateAuth()` - 39 edges
-4. `db` - 33 edges
-5. `scripts` - 30 edges
-6. `Plan` - 28 edges
-7. `options` - 26 edges
-8. `options` - 26 edges
-9. `options` - 26 edges
-10. `options` - 26 edges
+1. `react` - 129 edges
+2. `runMcpProbe()` - 123 edges
+3. `next` - 117 edges
+4. `ENV108 — Mixed Babel and native V8 maps double-count source functions` - 117 edges
+5. `Planning Analysis Remediation` - 103 edges
+6. `drizzle-orm` - 95 edges
+7. `createMcpPostgresFixture()` - 92 edges
+8. `playwright-bdd` - 83 edges
+9. `flowProbe()` - 81 edges
+10. `validateAuth()` - 78 edges
 
 ## Surprising Connections (you probably didn't know these)
 
-- `disableUserAccess()` --calls--> `eq` [INFERRED]
-  src/app/actions/database.ts → test/app/actions/database.disable.test.ts
-- `enableUserAccess()` --calls--> `eq` [INFERRED]
-  src/app/actions/database.ts → test/app/actions/database.disable.test.ts
-- `getUser()` --calls--> `eq` [INFERRED]
-  src/app/actions/database.ts → test/app/actions/database.disable.test.ts
-- `getUserByCustomerId()` --calls--> `eq` [INFERRED]
-  src/app/actions/database.ts → test/app/actions/database.disable.test.ts
-- `isUserDisabledByIdServer()` --calls--> `eq` [INFERRED]
-  src/app/actions/database.ts → test/app/actions/database.disable.test.ts
+- `Architecture Decisions` --references--> `validateAuth()` [INFERRED]
+  specs/002-auth-engine-rewrite/plan.md → src/app/actions/auth.ts
+- `Delivery Phases` --references--> `validateAuth()` [INFERRED]
+  specs/002-auth-engine-rewrite/plan.md → src/app/actions/auth.ts
+- `Slice US1-C — Legacy dashboard session rejection and compatibility facade` --references--> `validateAuth()` [INFERRED]
+  specs/002-auth-engine-rewrite/tasks.md → src/app/actions/auth.ts
+- `Defect Summary` --references--> `resolveBaseUrl()` [INFERRED]
+  specs/002-auth-engine-rewrite/defect-log.md → src/app/lib/baseUrl.ts
+- `Slice US3-A — Permission catalogue and central authorization` --references--> `authorize()` [INFERRED]
+  specs/002-auth-engine-rewrite/tasks.md → src/auth/authorize.ts
+
+## Import Cycles
+
+- 3-file cycle: `src/app/actions/database.ts -> src/app/actions/twitch.ts -> src/app/lib/instanceHealth.ts -> src/app/actions/database.ts`
+- 4-file cycle: `src/app/actions/database.ts -> src/app/lib/community.ts -> src/app/actions/twitch.ts -> src/app/lib/instanceHealth.ts -> src/app/actions/database.ts`
 
 ## Hyperedges (group relationships)
 
-- **Runner Supply-chain Delivery** — workflows_runner_native_runner_source_fingerprint, workflows_runner_native_cross_platform_runner_matrix, workflows_runner_native_immutable_runner_oci_artifacts, workflows_build_exact_runner_verification, workflows_build_immutable_runner_manifest [EXTRACTED 1.00]
-- **Legal Policy Release Governance** — 001_local_legal_compliance_data_model_legal_document, 001_local_legal_compliance_data_model_service_declaration, 001_local_legal_compliance_data_model_compliance_scope_review, 001_local_legal_compliance_data_model_compliance_audit_result, 001_local_legal_compliance_data_model_policy_release [EXTRACTED 1.00]
-- **Executable Legal Evidence System** — 001_local_legal_compliance_plan_test_first_quality_architecture, 001_local_legal_compliance_tasks_red_green_refactor_execution, 001_local_legal_compliance_test_traceability_canonical_evidence_registry, 001_local_legal_compliance_test_summary_green_quality_gates [INFERRED 0.95]
-- **Local Legal Publication Flow** — contracts_compliance_registry_compliance_registry, contracts_legal_routes_public_legal_routes, tdd_cycle_log_publication_build_gate, tdd_cycle_log_browser_compliance_audit [INFERRED 0.95]
-- **Outside-in Legal Compliance Testing** — tdd_test_list_acceptance_behaviors_a1_a12, tdd_test_list_unit_behaviors_u1_u37, tdd_cycle_log_outside_in_tdd_cycle_history, tdd_verification_tdd_verification_audit [EXTRACTED 1.00]
-- **Clipify Content Distribution Ecosystem** — llms_full_txt_llms_full_browser_source_overlays, llms_full_txt_llms_full_playlists, llms_full_txt_llms_full_clipify_galleries, llms_full_txt_llms_full_creator_pages [EXTRACTED 1.00]
+- **Clipify Content Distribution Ecosystem** — src_app_llms_full_txt_llms_full_browser_source_overlays, src_app_llms_full_txt_llms_full_playlists, src_app_llms_full_txt_llms_full_clipify_galleries, src_app_llms_full_txt_llms_full_creator_pages [EXTRACTED 1.00]
+- **Legal Policy Release Governance** — specs_001_local_legal_compliance_data_model_legal_document, specs_001_local_legal_compliance_data_model_service_declaration, specs_001_local_legal_compliance_data_model_compliance_scope_review, specs_001_local_legal_compliance_data_model_compliance_audit_result, specs_001_local_legal_compliance_data_model_policy_release [EXTRACTED 1.00]
+- **Outside-in Legal Compliance Testing** — specs_001_local_legal_compliance_tdd_test_list_acceptance_behaviors_a1_a12, specs_001_local_legal_compliance_tdd_test_list_unit_behaviors_u1_u37, specs_001_local_legal_compliance_tdd_cycle_log_outside_in_tdd_cycle_history, specs_001_local_legal_compliance_tdd_verification_tdd_verification_audit [EXTRACTED 1.00]
+- **Runner Supply-chain Delivery** — github_workflows_runner_native_runner_source_fingerprint, github_workflows_runner_native_cross_platform_runner_matrix, github_workflows_runner_native_immutable_runner_oci_artifacts, github_workflows_build_exact_runner_verification, github_workflows_build_immutable_runner_manifest [EXTRACTED 1.00]
+- **Executable Legal Evidence System** — specs_001_local_legal_compliance_plan_test_first_quality_architecture, specs_001_local_legal_compliance_tasks_red_green_refactor_execution, specs_001_local_legal_compliance_test_traceability_canonical_evidence_registry, specs_001_local_legal_compliance_test_summary_green_quality_gates [INFERRED 0.95]
+- **Local Legal Publication Flow** — specs_001_local_legal_compliance_contracts_compliance_registry_compliance_registry, specs_001_local_legal_compliance_contracts_legal_routes_public_legal_routes, specs_001_local_legal_compliance_tdd_cycle_log_publication_build_gate, specs_001_local_legal_compliance_tdd_cycle_log_browser_compliance_audit [INFERRED 0.95]
 
-## Communities (227 total, 28 thin omitted)
+## Communities (322 total, 46 thin omitted)
 
-### Community 0 - "Clipify Vm01 Overview V1"
+### Community 0 - "resolveTwitchClipPlaybackUrl"
 
-Cohesion: 0.06
-Nodes (77): annotations, cursorSync, kind, spec, editable, elements, panel-10, panel-13 (+69 more)
+Cohesion: 0.16
+Nodes (17): buildClipDownloadRateLimitLog(), getHeaderValue(), getTwitchClipPlaybackUrlFromGraphQL(), hasClipDownloadScope(), logClipDownloadRateLimitExhausted(), resolveTwitchClipPlaybackUrl(), shouldLogClipDownloadRateLimit(), getClipFetchMetricsStore() (+9 more)
 
-### Community 1 - "Clipify Vm01 Overview V2"
-
-Cohesion: 0.06
-Nodes (72): annotations, cursorSync, kind, spec, editable, elements, panel-10, panel-13 (+64 more)
-
-### Community 2 - "Clipify Vm01 Overview V3"
-
-Cohesion: 0.06
-Nodes (72): annotations, cursorSync, kind, spec, editable, elements, panel-10, panel-13 (+64 more)
-
-### Community 3 - "Clipify Vm01 Overview V4"
-
-Cohesion: 0.06
-Nodes (72): annotations, cursorSync, kind, spec, editable, elements, panel-10, panel-13 (+64 more)
-
-### Community 4 - "Database Database Ts"
-
-Cohesion: 0.06
-Nodes (64): ALLOWED_FONT_CSS_HOSTS, applyPlaylistImportFilters(), buildOverlayUpdatePayload(), CachedClipValue, CacheReadMetrics, canEditOwner(), clampInteger(), clearClipQueue() (+56 more)
-
-### Community 5 - "Plausible Creator Analytics"
-
-Cohesion: 0.06
-Nodes (54): CREATOR_ANALYTICS_EXPORT_DATASETS, CreatorAnalyticsExportResult, CreatorAnalyticsExportTarget, CreatorAnalyticsRange, exportCreatorAnalytics(), exportCreatorAnalyticsBundle(), getCreatorAnalytics(), getCreatorAnalyticsExportTargets() (+46 more)
-
-### Community 6 - "Campaign Offers"
-
-Cohesion: 0.06
-Nodes (51): buildCampaignOffersRequestUrl(), fetchCampaignOfferRecords(), fetchCampaignOfferRecordsWithFallback(), fetchCampaignOffersFromPocketBase(), FetchCampaignRecordsResult, getCachedActiveCampaignOffer, mapRecordToOffer(), PocketBaseCampaignOfferRecord (+43 more)
-
-### Community 7 - "Package Dependencies"
+### Community 1 - "actions/database.ts"
 
 Cohesion: 0.04
-Nodes (57): dependencies, axios, c15t, @c15t/backend, @c15t/nextjs, dotenv, drizzle-orm, embla-carousel (+49 more)
+Nodes (77): AUTH-011 - Account settings unnecessarily required a Twitch token when no editors existed, CachedClipValue, CacheReadMetrics, canEditOwner(), clearClipQueue(), clearClipQueueByOverlayId(), clearClipQueueByOverlayIdServer(), clearModQueue() (+69 more)
 
-### Community 8 - "Validate Patched Dependencies"
-
-Cohesion: 0.07
-Nodes (43): startConsentRetentionScheduler(), shouldRunScheduler(), startClipCacheScheduler(), parsePositiveInt(), shouldRunScheduler(), startCommunitySnapshotScheduler(), parsePositiveInt(), startEntitlementsScheduler() (+35 more)
-
-### Community 9 - "Database Coverage Test"
-
-Cohesion: 0.05
-Nodes (33): dbDelete, dbExecute, dbInsert, dbSelect, dbUpdate, loadDatabaseActions(), newsletter, selectQueue (+25 more)
-
-### Community 10 - "Twitch Twitch Ts"
-
-Cohesion: 0.07
-Nodes (39): getAccessTokenServer(), buildClipDownloadRateLimitLog(), buildGameSearchQueries(), cacheClipPlaybackUrl(), CachedClipValue, CLIP_DOWNLOAD_SCOPES, CLIP_FORCE_REFRESH_COOLDOWN_MS, CLIP_SYNC_RECENT_MAX_PAGES_PER_RUN (+31 more)
-
-### Community 11 - "Runner Artifacts"
-
-Cohesion: 0.07
-Nodes (35): DOWNLOAD_PLATFORMS, GET(), artifactPromises, artifactReference(), bearerChallenge(), cachePath(), currentFingerprint(), fetchLayerFile() (+27 more)
-
-### Community 12 - "Types Types Ts"
-
-Cohesion: 0.05
-Nodes (39): emojis, FeedbackRatingItemProps, faqs, AccessType, AdminViewContext, CreatorPageVisibility, DbUser, EffectivePlan (+31 more)
-
-### Community 13 - "Billing Catalog"
-
-Cohesion: 0.08
-Nodes (32): getActiveCampaignOfferAction(), getPlans(), Home(), BillingCycle, getAllConfiguredPriceIds(), getBillingCatalog(), getPriceId(), getPriceLookupKey() (+24 more)
-
-### Community 14 - "Database Eq"
+### Community 2 - "community-data.ts"
 
 Cohesion: 0.10
-Nodes (42): deleteOverlay(), deleteTwitchCacheByPrefix(), deleteTwitchCacheKeys(), and, eq, escapeLikePattern(), getActiveOverlayOwnerIdsForClipSync(), getCachedClipPageByOwner() (+34 more)
+Nodes (29): buildCommunityPageGroups(), buildCommunityTeaserStreamers(), CommunityPageGroupDefinition, filterVisible(), groupDefinitions, toPublicPageStreamer(), toTeaserStreamer(), twitchUrl() (+21 more)
 
-### Community 15 - "Data Index Tsx"
-
-Cohesion: 0.08
-Nodes (25): getAllOverlays(), getEditorAccess(), getEditorOverlays(), getAllGalleries(), ConfirmModalProps, StatusOptions, CopyText, CopyTextProps (+17 more)
-
-### Community 16 - "Pricing Types"
-
-Cohesion: 0.12
-Nodes (21): UpgradeModalProps, PaywallEvent, PlausibleFn, trackPaywallEvent(), CampaignOffer, PricingComparison(), TiersComponent(), TiersComponentProps (+13 more)
-
-### Community 17 - "Documents Documents Ts"
-
-Cohesion: 0.10
-Nodes (15): metadata, initialPolicyMetadata, LegalDocumentManifestEntry, legalDocumentRoutes, legalDocuments, LegalDocumentSection, privacyPolicySections, formatLegalDate() (+7 more)
-
-### Community 18 - "Runner Runner Ts"
-
-Cohesion: 0.11
-Nodes (31): revalidatePath, createOwnRunner(), createRunner(), deleteRunner(), getAllRunners(), getAllStreamSessions(), getRunner(), getRunnerToken() (+23 more)
-
-### Community 19 - "Fake Twitch Chat"
-
-Cohesion: 0.07
-Nodes (20): ChatMsg, EMOTES, makeLiveMsg(), makeSeededMsg(), PHRASES, Props, uid(), uidFromRng() (+12 more)
-
-### Community 20 - "Badge Catalog"
-
-Cohesion: 0.11
-Nodes (21): badgeEnum, userBadgesTable, AutomaticBadgeSlug, BadgeCondition, badgeConditionKeys, BadgeDefinition, BadgeIconKey, badgeIconKeys (+13 more)
-
-### Community 21 - "Theme Page"
-
-Cohesion: 0.11
-Nodes (29): clamp(), COLOR_CHANNELS_BY_SPACE, componentToHex(), DragBlockedReason, DragTarget, extractPrimaryFontName(), FontMode, getFontMode() (+21 more)
-
-### Community 22 - "Src Index"
-
-Cohesion: 0.11
-Nodes (28): openBrowser(), activateRtmpProbeNonce(), startTCPProxy(), stopTCPProxy(), activeEngines, actualStates, checkPublicRtmpReachability(), EnrollmentApprovedResponse (+20 more)
-
-### Community 23 - "Tags Input"
-
-Cohesion: 0.07
-Nodes (18): getAllPlaylists(), createChannelReward(), getReward(), removeChannelReward(), ControlledModalProps, ChipColor, ChipSize, ChipVariant (+10 more)
-
-### Community 24 - "Package Dev Dependencies"
+### Community 3 - "resources/overlays.ts"
 
 Cohesion: 0.06
-Nodes (32): devDependencies, axe-core, drizzle-kit, @electric-sql/pglite, eslint, eslint-config-next, fast-check, @fast-check/jest (+24 more)
+Nodes (74): TDD-US3-006 / BDD-US3-006 — structured browser overlay quota feedback, getOwnerPlanContext(), importPlaylistClips(), requirePlaylistAccess(), FREE_PLAYLIST_CLIP_LIMIT, FREE_PLAYLIST_LIMIT, TrustedCreatorPrincipal, getVerifiedSessionPrincipal() (+66 more)
 
-### Community 25 - "Dashboard Content"
+### Community 4 - "package.json"
+
+Cohesion: 0.04
+Nodes (55): esbuild, jest, @types/jest, @types/node, typescript, name, private, trustedDependencies (+47 more)
+
+### Community 5 - "runner.ts"
+
+Cohesion: 0.12
+Nodes (37): createOwnRunner(), createRunner(), deleteRunner(), getAllRunners(), getAllStreamSessions(), getRunner(), getRunnerToken(), getRunnerVersionManifest() (+29 more)
+
+### Community 6 - "lib/campaignOffers.ts"
+
+Cohesion: 0.08
+Nodes (42): normalizeRoadmapColor(), normalizeRoadmapStatus(), buildCampaignOffersRequestUrl(), fetchCampaignOfferRecords(), fetchCampaignOfferRecordsWithFallback(), fetchCampaignOffersFromPocketBase(), FetchCampaignRecordsResult, isRecordActive() (+34 more)
+
+### Community 7 - "dashboardNavbar.tsx"
+
+Cohesion: 0.12
+Nodes (22): AdminExplorerPage, AdminExplorerRow, AdminViewCandidate, getAdminViewCandidates(), stopAdminView(), switchAdminView(), toPositiveInt(), getGallery() (+14 more)
+
+### Community 8 - "validate-patched-dependencies.ts"
+
+Cohesion: 0.15
+Nodes (16): ensureTargetIsInsidePackage(), fail(), getPackageDetails(), getPatchedFiles(), LineRange, nodeModulesRoot, PackageJson, packageJsonPath (+8 more)
+
+### Community 9 - "check-drizzle-migration-policy.mjs"
+
+Cohesion: 0.21
+Nodes (11): generatedMigrationPatterns, gitChangedFiles(), hasMigrationApproval(), isProtectedMigrationArtifact(), migrationPolicyViolations(), reject(), runMigrationPolicy(), pushE2eSchema() (+3 more)
+
+### Community 10 - "schema.ts"
+
+Cohesion: 0.03
+Nodes (138): drizzle-orm, server-only, dynamic, CREATOR_ANALYTICS_EXPORT_DATASETS, CreatorAnalyticsExportResult, CreatorAnalyticsRange, getCreatorAnalytics(), getCreatorAnalyticsExportTargets() (+130 more)
+
+### Community 11 - "types.ts"
+
+Cohesion: 0.03
+Nodes (82): emojis, FeedbackRatingItemProps, AccessType, AdminViewContext, CreatorPageVisibility, DbUser, EffectivePlan, EntitlementGrant (+74 more)
+
+### Community 12 - "upgradeModal.tsx"
 
 Cohesion: 0.10
-Nodes (18): dismissDashboardContent(), DatabaseClient, db, QueryClient, TransactionClient, userContentStatesTable, getDismissedContentKeys(), DashboardContentDefinition (+10 more)
+Nodes (34): next-plausible, getActiveCampaignOfferAction(), BillingTabs(), FeatureTitle(), FeatureValue(), PricingComparison(), TierPrice(), TiersComponent() (+26 more)
 
-### Community 26 - "Instance Health"
+### Community 13 - "dependencies"
 
-Cohesion: 0.09
-Nodes (23): AdminHealthCharts(), formatPercent(), MeasuredChart(), healthSnapshot, MockResizeObserver, galleriesTable, tokenTable, twitchCacheTable (+15 more)
+Cohesion: 0.03
+Nodes (65): dependencies, axios, better-auth, @better-auth/cimd, @better-auth/mcp, @better-auth/oauth-provider, @better-auth/passkey, c15t (+57 more)
 
-### Community 27 - "Clipify Vm01 Overview V1"
+### Community 14 - "galleries.ts"
 
-Cohesion: 0.07
-Nodes (30): defaults, overrides, annotations, barShape, barWidthFactor, colorMode, effects, endpointMarker (+22 more)
+Cohesion: 0.08
+Nodes (80): zod, authorizeTrustedCreatorOperation(), resolveDirectAccessGrant(), DatabaseClient, resolveRetainedResourceAccess(), listMcpActivity(), contextDigest(), CursorOptions (+72 more)
 
-### Community 28 - "Clipify Vm01 Overview V2"
-
-Cohesion: 0.07
-Nodes (30): defaults, overrides, annotations, barShape, barWidthFactor, colorMode, effects, endpointMarker (+22 more)
-
-### Community 29 - "Clipify Vm01 Overview V3"
-
-Cohesion: 0.07
-Nodes (30): defaults, overrides, annotations, barShape, barWidthFactor, colorMode, effects, endpointMarker (+22 more)
-
-### Community 30 - "Clipify Vm01 Overview V4"
-
-Cohesion: 0.07
-Nodes (30): defaults, overrides, annotations, barShape, barWidthFactor, colorMode, effects, endpointMarker (+22 more)
-
-### Community 31 - "Package Scripts"
-
-Cohesion: 0.07
-Nodes (30): scripts, app:build, app:check-action-manifest, app:dev, app:eventsub, app:lint, app:prettier, app:prettier:check (+22 more)
-
-### Community 32 - "Runner Package"
-
-Cohesion: 0.07
-Nodes (28): dependencies, @napi-rs/keyring, @puppeteer/browsers, puppeteer-core, puppeteer-stream, devDependencies, esbuild, jest (+20 more)
-
-### Community 33 - "Database Playlists Test"
-
-Cohesion: 0.07
-Nodes (21): dbDelete, dbInsert, dbSelect, dbTransaction, dbUpdate, deleteCalls, editorsTable, galleriesTable (+13 more)
-
-### Community 34 - "Registry Local Legal Compliance Steps"
-
-Cohesion: 0.13
-Nodes (20): consentCategoryDetails, consentServices, findConsentServicesForOrigin(), isBoundedStoragePattern(), matchesStorageDeclaration(), necessaryConsentServices, OptionalConsentCategory, StorageDeclarationInput (+12 more)
-
-### Community 35 - "Auth Auth Ts"
-
-Cohesion: 0.14
-Nodes (20): AdminViewPayload, authUser(), clearAdminView(), clearAdminViewCookie(), clearAdminViewCookieForAuthFlow(), closeAdminViewSession(), closeAdminViewSessionReadOnly(), getAdminViewPayload() (+12 more)
-
-### Community 36 - "Entitlements Entitlements Ts"
-
-Cohesion: 0.13
-Nodes (25): playlistClipsTable, playlistsTable, POST(), StreamSession, decryptString(), ActiveGrant, CreateGrantInput, createPartnerAccessGrant() (+17 more)
-
-### Community 37 - "Entitlements Test"
+### Community 15 - "playlist.page.test.tsx"
 
 Cohesion: 0.10
-Nodes (25): getStripe(), billingSubscriptionItemsTable, billingSubscriptionsTable, billingWebhookEventsTable, entitlementGrantsTable, db, deleteBuilder, deleteExecute (+17 more)
+Nodes (19): featureAccess, getAllPlaylists, getCachedClipsByOwner, getGamesDetailsBulk, getPlaylistClips, getTwitchGames, mockComboContext, mockRowContext (+11 more)
 
-### Community 38 - "Controller Controller Ts"
+### Community 16 - "rateLimit.ts"
 
-Cohesion: 0.12
-Nodes (19): ControllerActionResult, ControllerQueueResponse, getControllerQueuesAction(), getQueueClip(), parseStoredClip(), QueueItem, requireProOverlay(), resolveQueueItems() (+11 more)
+Cohesion: 0.11
+Nodes (23): getUserIP(), tryRateLimit(), POST(), createDeviceCode(), createUserCode(), POST(), POST(), runtime (+15 more)
 
-### Community 39 - "Runner Reachability"
+### Community 17 - "app/layout.tsx"
 
-Cohesion: 0.14
-Nodes (20): canResolvePublicClipPlayback(), getUserIP(), rateLimiterMap, RateLimiterMemoryInstance, tryRateLimit(), runnerEnrollmentsTable, runnersTable, POST() (+12 more)
+Cohesion: 0.18
+Nodes (10): next-themes, ConsentManager(), manifestUrl, metadata, RootLayout(), EMBEDDED_ROUTE_PREFIXES, isEmbeddedRoute(), PlausibleClient() (+2 more)
 
-### Community 40 - "Subscription Subscription Ts"
-
-Cohesion: 0.13
-Nodes (21): BILLING_PRODUCT_INFO, BillingOverview, BillingProductOption, checkIfSubscriptionExists(), generateCheckout(), generatePaymentLink(), generateRunnerPaymentLink(), getAuthorizedUser() (+13 more)
-
-### Community 41 - "Gallery Gallery Ts"
+### Community 18 - "agencies/database.ts"
 
 Cohesion: 0.14
-Nodes (16): canEditOwner(), createGallery(), deleteGallery(), getGallery(), getGalleryDraftPreview(), getGalleryPreview(), getGalleryPreviewPlayer(), getPublicGallery() (+8 more)
+Nodes (23): POST(), acceptDatabaseAgencyLink(), activateCurrentInvitedAgency(), listDatabaseAgencyOverview(), listDatabaseCreatorAgencyLinks(), parseRolePermissions(), proposeDatabaseAgencyLink(), reduceDatabaseAgencyLinkCeiling() (+15 more)
 
-### Community 42 - "Consent Manager Test"
-
-Cohesion: 0.12
-Nodes (15): ConsentIntegrations(), ConsentInterface(), mockOpenBanner, mockOpenDialog, mockPerformBannerAction, mockReloadAfterConsentSave, browserMeasurementAllowed(), hadMeasurementConsentAtPageLoad() (+7 more)
-
-### Community 43 - "Tsconfig Compiler Options"
+### Community 19 - "account-lifecycle/service.ts"
 
 Cohesion: 0.07
-Nodes (26): compilerOptions, allowJs, esModuleInterop, incremental, isolatedModules, jsx, lib, module (+18 more)
+Nodes (29): purgeEligibleAccount(), DeletionBoundary, evaluateDeletionBoundary(), recoverDeletion(), AccountDeletionRequest, AccountLifecycleRepository, AccountLifecycleService, AccountLifecycleState (+21 more)
 
-### Community 44 - "Operational Health"
+### Community 20 - "harness.test.ts"
 
-Cohesion: 0.11
-Nodes (24): modQueueTable, queueTable, classifyOverlayHealth(), classifyQueue(), collectDatabaseHealth(), collectProcessMemory(), ConnectionRuntime, drainBufferedMetrics() (+16 more)
+Cohesion: 0.05
+Nodes (31): { Given, Then }, AuthFixtureOptions, AuthWorldFixtures, createAuthenticatedFixture(), fixtureHeaders, test, invitationDependencies(), AuthWorldFixtures (+23 more)
 
-### Community 45 - "Db Schema"
+### Community 21 - "backend.ts"
 
-Cohesion: 0.08
-Nodes (23): accountDisableTypeEnum, editorsTable, entitlementEnum, entitlementGrantSourceEnum, galleryLayoutEnum, galleryLiveSortEnum, gallerySourceEnum, galleryThemeEnum (+15 more)
+Cohesion: 0.33
+Nodes (6): dynamic, handler(), runtime, getC15t(), getConsentTrustedOrigins(), normalizeOrigin()
 
-### Community 46 - "Database Settings Test"
+### Community 22 - "HomePageClient.tsx"
 
-Cohesion: 0.08
-Nodes (19): dbDelete, dbInsert, dbSelect, dbTransaction, dbUpdate, editorsTable, getProductUpdatesSubscriptionStatus, getUserDetails (+11 more)
+Cohesion: 0.14
+Nodes (14): CountdownTimer(), CountdownTimerProps, getCountdownParts(), FeatureCard(), FeatureCardProps, FloatingBanner(), faqs, buildCampaignOfferHref() (+6 more)
 
-### Community 47 - "Chat Widget"
-
-Cohesion: 0.12
-Nodes (13): nextThemesProvider, ThemeProvider(), ChatWidget(), ConsentScriptStatus, shouldShowChatConsentFallback(), mockOpenDialog, mockUseConsentScript, SentryFeedbackWidget() (+5 more)
-
-### Community 48 - "Renovate Renovate Json"
+### Community 23 - "@tabler/icons-react"
 
 Cohesion: 0.08
-Nodes (25): additionalBranchPrefix, branchPrefix, commitMessageAction, commitMessageExtra, commitMessagePrefix, commitMessageTopic, customManagers, extends (+17 more)
+Nodes (25): @tabler/icons-react, getAgencyOverviewAction(), getCreatorAgencyLinksAction(), getAccountDeletionOverview(), recoverAccountDeletion(), AgencyProvisionForm(), AdminAgenciesPage(), dynamic (+17 more)
 
-### Community 49 - "Admin View"
-
-Cohesion: 0.12
-Nodes (16): AdminExplorerPage, AdminExplorerRow, AdminViewCandidate, getAdminExplorerPage(), getAdminViewCandidates(), stopAdminView(), switchAdminView(), toPositiveInt() (+8 more)
-
-### Community 50 - "Database Commands Ts"
-
-Cohesion: 0.11
-Nodes (23): canUseChatCommands(), chatCommandAccessCache, commands, getPrefix(), getUpgradeSettingsUrl(), handleCommand(), isCommand(), isMod() (+15 more)
-
-### Community 51 - "Newsletter Newsletter Ts"
+### Community 24 - "operationalHealth.ts"
 
 Cohesion: 0.09
-Nodes (20): getEmailProvider(), getProductUpdatesSubscriptionStatus(), getUseSendClient(), NewsletterContactDetails, ProductUpdatesContactInput, providerPatterns, subscribeToNewsletter(), syncProductUpdatesContact() (+12 more)
+Nodes (43): POST(), CLIP_CACHE_MONITOR_CONFIG, shouldReportMonitorCheckIns(), shouldRunScheduler(), startClipCacheScheduler(), attributesKey(), classifyOverlayHealth(), classifyQueue() (+35 more)
 
-### Community 52 - "Feature Access"
+### Community 25 - "runnerArtifacts.ts"
 
-Cohesion: 0.13
-Nodes (22): deleteUser(), BillingCycle, PaywallSource, formatOriginalPrice(), formatPromoPrice(), UpgradeModal(), AccessContext, FeatureKey (+14 more)
+Cohesion: 0.09
+Nodes (38): DOWNLOAD_PLATFORMS, GET(), artifactPromises, artifactReference(), authHeaders(), bearerChallenge(), cachePath(), currentFingerprint() (+30 more)
 
-### Community 53 - "Gallery Editor Test"
+### Community 26 - "OverlayTable/index.tsx"
+
+Cohesion: 0.07
+Nodes (41): UI168 — Browser overlay list bypasses current membership and read permission, createOverlayWithFeedback(), createPlaylist(), deleteOverlay(), deletePlaylist(), getAllOverlays(), getEditorAccess(), getEditorOverlays() (+33 more)
+
+### Community 27 - "select/page.tsx"
+
+Cohesion: 0.14
+Nodes (21): PendingRunnerOption, submitRunnerEnrollCode(), submitRunnerSelection(), isValidUserCode(), normalizeUserCode(), RunnerEnrollPage(), compactCode(), formatCode() (+13 more)
+
+### Community 28 - "scripts"
+
+Cohesion: 0.05
+Nodes (42): scripts, app:build, app:check-action-manifest, app:dev, app:eventsub, app:lint, app:prettier, app:prettier:check (+34 more)
+
+### Community 29 - "auth-engine-rewrite/database.ts"
+
+Cohesion: 0.10
+Nodes (14): @electric-sql/pglite, { PGlite }, setup(), { TestEnvironment }, AuthTestDatabase, createAuthTestDatabase(), FixtureBuilder, resetAuthTestDatabase() (+6 more)
+
+### Community 30 - "database.playlists.test.ts"
+
+Cohesion: 0.05
+Nodes (38): authorizeCreatorOperation, createBrowserOverlay, createBrowserPlaylist, dbDelete, dbInsert, dbSelect, dbTransaction, dbUpdate (+30 more)
+
+### Community 31 - "team/page.tsx"
+
+Cohesion: 0.08
+Nodes (31): ROUTES, SettingsNavigation(), SettingsNavigationKey, permissionsAfterRoleSelection(), customRoleName(), describePermission(), flattenPermissions(), formatExpiration() (+23 more)
+
+### Community 32 - "sentry.privacy.ts"
+
+Cohesion: 0.18
+Nodes (24): onRouterTransitionStart, @sentry/nextjs, beforeSendError(), beforeSendLog(), beforeSendMetric(), beforeSendSpan(), beforeSendTransaction(), ErrorEvent (+16 more)
+
+### Community 33 - "react"
+
+Cohesion: 0.09
+Nodes (35): react, ChatMsg, clampTail(), emojify(), EMOTES, FakeTwitchChat(), hashSeed(), isTwitchClipUrl() (+27 more)
+
+### Community 34 - "documents.ts"
+
+Cohesion: 0.14
+Nodes (21): formatLegalDate(), LegalDocumentLayout(), LegalDocumentLayoutProps, LegalDocumentTabs(), LegalSections(), linkedText(), ImprintPage(), metadata (+13 more)
+
+### Community 35 - "theme/page.tsx"
+
+Cohesion: 0.08
+Nodes (44): getOverlay(), getOverlayOwnerPlan(), requireOverlayAccess(), saveOverlay(), fetchOverlay(), fetchOwnerPlan(), handleSubmit(), buildGoogleFontUrl() (+36 more)
+
+### Community 36 - "src/index.ts"
+
+Cohesion: 0.10
+Nodes (32): activateRtmpProbeNonce(), stopTCPProxy(), activeEngines, actualStates, checkPublicRtmpReachability(), EnrollmentApprovedResponse, EnrollmentStartResponse, enrollRunner() (+24 more)
+
+### Community 37 - "invitations.ts"
 
 Cohesion: 0.11
-Nodes (14): buildClip(), buildGallery(), getGalleryDraftPreview, notify, previewClips, previewGallery, push, saveGallery (+6 more)
+Nodes (29): EMAIL_OTP_POLICY, passkeyFallback(), PasskeyLifecycleState, acceptInvitation(), acceptPersistedInvitation(), createInvitation(), createPersistedInvitation(), hashToken() (+21 more)
 
-### Community 54 - "Overlay Player"
+### Community 38 - "auth-performance-check.ts"
 
-Cohesion: 0.12
-Nodes (16): CROSSFADE_MS, isInIframe(), OverlayPlayer(), OverlayPlayerProps, OverlayViewport(), OverlayViewportProps, RunnerPlaybackWindow, clamp() (+8 more)
+Cohesion: 0.09
+Nodes (22): emptyOnboardingState(), main(), measure(), Metric, percentile(), CreatorOnboardingError, CreatorOnboardingRepository, CreatorOnboardingResult (+14 more)
 
-### Community 55 - "Community Page"
+### Community 39 - "devDependencies"
 
-Cohesion: 0.13
-Nodes (15): getPublicCommunityFooterTeaserAction(), getPublicCommunityPageDataAction(), getPublicCommunityTeaserAction(), CommunityHeroAvatarsProps, CommunityPage(), CommunitySection(), getSectionTone(), getStatusTone() (+7 more)
+Cohesion: 0.05
+Nodes (37): devDependencies, axe-core, c8, drizzle-kit, @electric-sql/pglite, esbuild, eslint, eslint-config-next (+29 more)
 
-### Community 56 - "Clipify Clipify Gallery Element"
+### Community 40 - "lib/entitlements.ts"
+
+Cohesion: 0.04
+Nodes (71): getOverlayOwnerPlans(), StreamSession, buildCommunitySnapshot(), chunkArray(), CommunityUserRow, emptyCommunitySnapshot(), fetchCommunityUsers(), fetchLiveOwnerIds() (+63 more)
+
+### Community 41 - "overlayPlayer.tsx"
+
+Cohesion: 0.05
+Nodes (57): getOverlayBySecret(), getOverlayOwnerPlanPublic(), getOverlayPublic(), touchOverlay(), ACTIVE_PLAYBACK_CONFIRM_SECONDS, CROSSFADE_MS, CROSSFADE_SECONDS, HOLD_FRAME_SECONDS (+49 more)
+
+### Community 42 - "mcp/rate-limit.ts"
+
+Cohesion: 0.10
+Nodes (17): @better-auth/cimd, @better-auth/passkey, consumeMcpRateLimit(), Decision, defaults, getMcpNetworkSignal(), getMcpRateLimits(), Input (+9 more)
+
+### Community 43 - "settings/page.tsx"
+
+Cohesion: 0.10
+Nodes (22): PaywallSource, ChatwootData(), formatOriginalPrice(), formatPromoPrice(), UpgradeModal(), ClipCacheStatusState, ClipForceRefreshStatusState, SettingsPage() (+14 more)
+
+### Community 44 - "probe.ts"
+
+Cohesion: 0.04
+Nodes (12): { Given, When, Then }, { Given, When, Then }, { Given, When, Then }, { Given, When, Then }, { Given, When, Then }, { When, Then }, probe(), environment (+4 more)
+
+### Community 45 - "agencies/billing.ts"
+
+Cohesion: 0.23
+Nodes (15): openAgencyBillingPortalFormAction(), startAgencyBillingFormAction(), AgencySeatKind, changeAgencySeatQuantity(), createAgencyBillingPortal(), createAgencyBillingStart(), ensureStripeCustomer(), lineItems() (+7 more)
+
+### Community 46 - "roadmapItem.tsx"
+
+Cohesion: 0.20
+Nodes (14): RoadmapColor, roadmapColorOptions, RoadmapItemData, RoadmapStatus, Future, InDevelopment, Planned, Shipped (+6 more)
+
+### Community 47 - "flowProbe"
+
+Cohesion: 0.03
+Nodes (19): { When, Then }, { Given, When, Then }, operations, { When, Then }, { Given, When, Then }, { Given, When, Then }, { Given, When, Then }, { Given, When, Then } (+11 more)
+
+### Community 48 - "getBaseUrl"
+
+Cohesion: 0.16
+Nodes (20): getBaseUrl(), GET(), GET(), cycle(), GET(), GET(), CHECKOUT_INTENT_COOKIE, CheckoutIntent (+12 more)
+
+### Community 49 - "[cardId]/page.tsx"
+
+Cohesion: 0.23
+Nodes (13): MemberCardActions(), copy(), share(), isMemberCardId(), memberCardImagePath(), memberCardPath(), clipifyShareDescription, memberCardShareText() (+5 more)
+
+### Community 50 - "Request-owned pool native lifecycle compatibility — Red"
+
+Cohesion: 0.03
+Nodes (59): Actual quiet-lane scheduling (T400 second slice), Anonymous registration body Red — MCP038, Automatic hardware budgeting — T400 first slice, Bounded serialized provider refresh Red, Cancellation ownership repair — MCP033, Connection panel state controls, Creation authority Green/refactor, Creation authority Red (+51 more)
+
+### Community 51 - "database.user.test.ts"
+
+Cohesion: 0.07
+Nodes (19): TwitchUserResponse, allocateMemberNumber, dbDelete, dbInsert, dbSelect, dbUpdate, getAccessTokenInternal, getAccessTokenResultInternal (+11 more)
+
+### Community 52 - "database.settings.test.ts"
+
+Cohesion: 0.08
+Nodes (23): dbDelete, dbInsert, dbSelect, dbTransaction, dbUpdate, getProductUpdatesSubscriptionStatus, getUserDetails, getUsersDetailsBulk (+15 more)
+
+### Community 53 - "runner/package.json"
+
+Cohesion: 0.07
+Nodes (28): dependencies, @napi-rs/keyring, @puppeteer/browsers, puppeteer-core, puppeteer-stream, esbuild, jest, @types/jest (+20 more)
+
+### Community 54 - "ClipifyGalleryElement"
 
 Cohesion: 0.12
 Nodes (6): ClipifyBaseElement, ClipifyGalleryElement, ClipifyPlayerElement, installDocumentStyles(), MODULE_URL, readRuntimeStyles()
 
-### Community 57 - "Creator Page Client"
+### Community 55 - "@playwright/test"
 
-Cohesion: 0.13
-Nodes (18): getCreator, getCreatorClipPage(), getCreatorClipPlayback(), clipDateFormatter, ClipDialog(), Creator, CreatorPageClient(), numberFormatter (+10 more)
+Cohesion: 0.03
+Nodes (32): @playwright/test, { Given, When, Then }, { Given, When, Then }, { Given, When, Then }, { Given, When, Then }, { Given, When, Then }, { Given, When, Then }, { Given, When, Then } (+24 more)
 
-### Community 58 - "Card Id Page"
-
-Cohesion: 0.18
-Nodes (15): getCreatorPage(), getCreatorPageMetadata(), getCreatorPresentation, generateMetadata(), MemberPageProps, PublicMemberPage(), writeText, isMemberCardId() (+7 more)
-
-### Community 59 - "Gallery Test"
-
-Cohesion: 0.08
-Nodes (20): canResolvePublicClipPlayback, db, dbDelete, dbDeleteExecute, dbExecute, dbInsert, DbMock, dbSelect (+12 more)
-
-### Community 60 - "Overlay Player Test"
-
-Cohesion: 0.08
-Nodes (14): getAvatar, getDemoClip, getFirstValidQueuedClip, getGameDetails, getTwitchClipBatch, getTwitchClipPlaybackUrl, MockWebSocket, pauseMock (+6 more)
-
-### Community 61 - "Database User Test"
-
-Cohesion: 0.09
-Nodes (16): allocateMemberNumber, dbDelete, dbInsert, dbSelect, dbUpdate, insertCalls, loadDatabaseActions(), selectQueue (+8 more)
-
-### Community 62 - "Actions Actions Ts"
-
-Cohesion: 0.21
-Nodes (14): approveRunnerEnrollment(), canAccessOwner(), getAccessibleOwnerIds(), getAccessiblePendingRunners(), getValidEnrollment(), PendingRunnerOption, submitRunnerEnrollCode(), submitRunnerSelection() (+6 more)
-
-### Community 63 - "Community Community Ts"
-
-Cohesion: 0.16
-Nodes (20): buildCommunitySnapshot(), chunkArray(), CommunityUserRow, emptyCommunitySnapshot(), fetchActiveOverlayIdsFromPlausible(), fetchCommunityUsers(), fetchLiveOwnerIds(), fetchOverlayIdsByOwner() (+12 more)
-
-### Community 64 - "Inventory Audit Spec"
-
-Cohesion: 0.16
-Nodes (15): collectAuthenticatedFlow(), collectConsentEnabledFlow(), collectPublicFlow(), declarations, expectedMatrix, withBrowserContext(), writeInventoryEvidence(), auditInventory() (+7 more)
-
-### Community 65 - "Llms Full"
+### Community 56 - "admin/page.tsx"
 
 Cohesion: 0.10
-Nodes (21): GoAdopt Removal, Local Legal Navigation, Public Legal Routes, Server-rendered Legal Content, Privacy Request Process, Proportionate Identity Verification, Browser-source Overlays, Clip Playback (+13 more)
+Nodes (25): getAdminExplorerPage(), startAdminView(), validateAdminAuth(), enableUserAccess(), AdminPage(), AdminPageSearchParams, dynamic, formatDate() (+17 more)
 
-### Community 66 - "Database Queues Test"
-
-Cohesion: 0.10
-Nodes (15): dbDelete, dbInsert, dbSelect, deleteCalls, editorsTable, insertCalls, loadDatabaseActions(), modQueueTable (+7 more)
-
-### Community 67 - "Gallery Gallery Ts"
-
-Cohesion: 0.14
-Nodes (15): clamp(), closestFreeTimeWindow(), color(), contrastRatio(), downgradeGalleryPatch(), FREE_GALLERY_LIVE_LIMIT, FREE_SORTS, FREE_WINDOWS (+7 more)
-
-### Community 68 - "Community Data"
+### Community 57 - "deployment.ts"
 
 Cohesion: 0.15
-Nodes (12): buildCommunityPageGroups(), CommunityPageGroupDefinition, groupDefinitions, toPublicPageStreamer(), twitchUrl(), CommunityPageGroupKey, CommunitySnapshot, CommunityStreamer (+4 more)
+Nodes (17): drizzle, nextConfigPromise, @vercel/nft, dynamic, GET(), recentlyReloadedFor(), ReloadRecord, rememberReload() (+9 more)
 
-### Community 69 - "Database Disable Test"
+### Community 58 - "renovate.json"
 
-Cohesion: 0.11
-Nodes (14): dbInsert, dbSelect, dbUpdate, decryptToken, getUserDetails, loadDatabaseActions(), overlaysTable, refreshAccessTokenWithContextInternal (+6 more)
+Cohesion: 0.07
+Nodes (26): config:recommended, additionalBranchPrefix, branchPrefix, commitMessageAction, commitMessageExtra, commitMessagePrefix, commitMessageTopic, customManagers (+18 more)
 
-### Community 70 - "Commands Test"
+### Community 59 - "mcp/schemas.ts"
 
-Cohesion: 0.11
-Nodes (17): addToModQueue, clearClipQueueByOverlayIdServer, clearModQueueByBroadcasterId, getAllOverlayIdsByOwnerInternal, getAllOverlaysByOwnerInternal, getBaseUrl, getClipQueueByOverlayId, getFeatureAccess (+9 more)
+Cohesion: 0.05
+Nodes (45): mcpOperationLabels, mcpMutationRetriesTable, toolPermissions, boundedNames, clipId, color, creatorId, expectedRevision (+37 more)
 
-### Community 71 - "Eventsub Route"
+### Community 60 - "subscription.ts"
+
+Cohesion: 0.10
+Nodes (40): stripe, BILLING_PRODUCT_INFO, BillingCycle, BillingOverview, BillingProductOption, checkIfSubscriptionExists(), generateCheckout(), generatePaymentLink() (+32 more)
+
+### Community 61 - "Test Summary Report: Creator Identity and Access Rewrite"
+
+Cohesion: 0.07
+Nodes (27): Approvals, Checkpoint Regression Evidence, Coverage and Traceability Summary, Defect Summary, Environment and Tooling, Execution Summary, Executive Summary, Final Release-Readiness Evidence (+19 more)
+
+### Community 62 - "security-panel.tsx"
+
+Cohesion: 0.12
+Nodes (27): requestCurrentEmailChangeCode(), requestNewEmailChangeCode(), sessionIdentity(), EmailChangeStep, formatDate(), PasskeyRow, SecuritySettingsPanel(), addPasskey() (+19 more)
+
+### Community 63 - "twitch.playback.test.ts"
+
+Cohesion: 0.12
+Nodes (12): connect, getAccessToken, getAccessTokenInternal, getAccessTokenServer, getOverlayBySecret, getOverlayPublic, getPlaylistRuntimeClipsForOwnerServer, getTwitchCache (+4 more)
+
+### Community 64 - "communityScheduler.ts"
+
+Cohesion: 0.43
+Nodes (6): refreshCommunitySnapshot(), withRefreshLock(), writeCommunitySnapshotToCache(), parsePositiveInt(), shouldRunScheduler(), startCommunitySnapshotScheduler()
+
+### Community 65 - "Clipify Product Index"
 
 Cohesion: 0.18
-Nodes (14): addToClipQueue(), getOverlayByRewardId(), updateRedemptionStatus(), dbPool, getRequiredHeaders(), handleNotification(), handleRewardRedemption(), isValidSignature() (+6 more)
+Nodes (11): Browser-source Overlays, Clip Playback, Clipify, Clipify Elements, Clipify Galleries, Community Directory, Creator Pages, Clipify Playlists (+3 more)
 
-### Community 72 - "Twitch External Test"
+### Community 66 - "plausibleCreatorAnalytics.ts"
+
+Cohesion: 0.10
+Nodes (38): exportCreatorAnalytics(), exportCreatorAnalyticsBundle(), loadCreatorAnalytics(), normalizedRange(), AnalyticsRuntimeMetrics, breakdown(), createCreatorAnalyticsCsv(), createEmptyCreatorAnalytics() (+30 more)
+
+### Community 67 - "actions/gallery.test.ts"
+
+Cohesion: 0.08
+Nodes (23): authorizeCreatorOperation, canResolvePublicClipPlayback, db, dbDelete, dbDeleteExecute, dbExecute, dbInsert, DbMock (+15 more)
+
+### Community 68 - "websocket.test.ts"
+
+Cohesion: 0.14
+Nodes (12): addSubscriber, getOverlayBySecret, getOverlayOwnerPlanPublic, getOverlayPublic, jwtVerify, overlaySubscribers, ownerSubscribers, recordOverlayStateUpdate (+4 more)
+
+### Community 69 - "ConsentManager.tsx"
+
+Cohesion: 0.13
+Nodes (19): @c15t/nextjs, nextjs-nav-guard, ChatWidget(), syncChatwootVisibility(), updateChatwootState(), ConsentScriptStatus, isChatwootAvailable(), isChatwootWidgetMounted() (+11 more)
+
+### Community 70 - "GalleryEditor.tsx"
+
+Cohesion: 0.10
+Nodes (26): ClipifyElementPreview(), CodeSnippet(), CodeSnippetProps, sizeClasses, ControlledModal(), ControlledModalProps, GalleryCheckbox(), GalleryColorPicker() (+18 more)
+
+### Community 71 - "Test Summary Report: MCP Support"
+
+Cohesion: 0.09
+Nodes (23): Approvals, Automatic machine sizing completed — 2026-10-06, Built standalone checkpoint — 2026-10-06, Coverage and Traceability Summary, Defect Summary, Environment and Tooling, Execution Summary, Executive Summary (+15 more)
+
+### Community 72 - "ENV108 — Mixed Babel and native V8 maps double-count source functions"
+
+Cohesion: 0.02
+Nodes (116): DEP214 — Current audit reports the sharp librsvg advisory, ENV108 — Mixed Babel and native V8 maps double-count source functions, ENV109 — Incorrect scoped test script name, ENV110 — Full CIMD journey lacked required fixture rate-limit secret, ENV111 — Agency revocation fixture omitted required audit fields, ENV112 — Authority catalogue expected Free direct team delegation, ENV113 — Broad registry path replacement and misplaced supplementary matrix rows, ENV115 — Retry-isolation native consent fixture omitted JSON header (+108 more)
+
+### Community 73 - "database.queues.test.ts"
+
+Cohesion: 0.08
+Nodes (17): authorizeCreatorOperation, dbDelete, dbInsert, dbSelect, deleteCalls, insertCalls, loadDatabaseActions(), makeSelectChain() (+9 more)
+
+### Community 74 - "subscription.test.ts"
+
+Cohesion: 0.08
+Nodes (25): checkoutCreate, cookies, createAccountDataExportToken, customersCreate, db, getActiveCampaignOffer, getBaseUrl, getDatabaseAccountDeletionOverview (+17 more)
+
+### Community 75 - "GalleryEditor.test.tsx"
+
+Cohesion: 0.10
+Nodes (14): getGalleryDraftPreview, notify, previewClips, previewGallery, push, saveGallery, disconnect, observe (+6 more)
+
+### Community 76 - "compilerOptions"
+
+Cohesion: 0.08
+Nodes (25): compilerOptions, allowJs, esModuleInterop, incremental, isolatedModules, jsx, lib, module (+17 more)
+
+### Community 77 - "Clipify Auth Production Cutover Handoff"
+
+Cohesion: 0.08
+Nodes (23): 10. Start the new image while traffic stays closed, 11. Perform the one-shot smoke and reopen, 12. Failure and restore boundary, 13. Post-cutover, 1. Prepare the remote maintenance host, 2. Load production secrets without printing them, 3. Enter maintenance, 4. Create and verify the fresh backup (+15 more)
+
+### Community 78 - "engine.ts"
+
+Cohesion: 0.15
+Nodes (14): openBrowser(), CACHE_DIR, ensureChromeDependencies(), ensureDependencies(), ensureFfmpegDependencies(), resolveExistingBrowser(), activeProbeNonces, consumeRtmpProbeNonce() (+6 more)
+
+### Community 79 - "settings.page.test.tsx"
+
+Cohesion: 0.15
+Nodes (12): authClient, betterAuthOrganizationRoles, clipifyAccessControl, clipifyStatements, forceRefreshOwnClipCache, getClipCacheStatus, getOwnClipForceRefreshStatus, getSettings (+4 more)
+
+### Community 80 - "overlayPlayer.test.tsx"
+
+Cohesion: 0.09
+Nodes (17): getAvatar, getDemoClip, getFirstValidQueuedClip, getGameDetails, getTwitchClipBatch, getTwitchClipPlaybackUrl, MockWebSocket, pauseMock (+9 more)
+
+### Community 81 - "mcp-test-runner.cjs"
+
+Cohesion: 0.10
+Nodes (22): { automaticTestWorkers }, createJestConfig, customJestConfig, nextJest, isDatabaseTest(), isQuietTest(), { mkdirSync, mkdtempSync, rmSync }, { readTestSystem, selectTestWorkers } (+14 more)
+
+### Community 82 - "heroui-react.cjs"
+
+Cohesion: 0.15
+Nodes (10): Button, Card, Component, CompoundComponent, Input, InputGroup, React, Table (+2 more)
+
+### Community 83 - "inventory-audit.spec.ts"
+
+Cohesion: 0.17
+Nodes (20): fast-check, collectAuthenticatedFlow(), collectConsentEnabledFlow(), collectInventory(), collectPublicFlow(), declarations, expectedMatrix, observeRequestedOrigins() (+12 more)
+
+### Community 84 - "validation.ts"
+
+Cohesion: 0.16
+Nodes (14): result, canonicalPolicyRelease, services, documentTextFields, hasBoundedPattern(), PolicyDocumentInput, PolicyReleaseInput, PolicyServiceInput (+6 more)
+
+### Community 85 - "Feature Specification: Creator Identity and Access Rewrite"
+
+Cohesion: 0.09
+Nodes (23): Assumptions, Clarifications, Edge Cases, Feature Specification: Creator Identity and Access Rewrite, Functional Requirements, Key Entities, Measurable Outcomes, Out of Scope (+15 more)
+
+### Community 86 - "server/membership.ts"
+
+Cohesion: 0.09
+Nodes (26): AutomaticBadgeSlug, badgeCatalog, BadgeCondition, badgeConditionKeys, BadgeDefinition, badgeIconKeys, BadgeSlug, badgeSlugs (+18 more)
+
+### Community 87 - "database.overlays.test.ts"
+
+Cohesion: 0.07
+Nodes (17): authorizeCreatorOperation, createBrowserOverlay, createBrowserOverlayWithFeedback, creatorAccountsTable, dbDelete, dbSelect, deleteBrowserOverlay, deleteCalls (+9 more)
+
+### Community 88 - "websocket.ts"
+
+Cohesion: 0.09
+Nodes (35): ws, broadcastToClients(), ControllerTokenPayload, handleMessage(), sendMessage(), recordWebSocketRejected(), addSubscriber(), addToMap() (+27 more)
+
+### Community 89 - "Phase 4: User Story 2 — Manage overlays and playlists through chat (P1)"
+
+Cohesion: 0.09
+Nodes (22): add_playlist_items — focused outer Red/Green cycle, create_overlay — focused outer Red/Green cycle, create_playlist — focused outer Red/Green cycle, Creator discovery and capabilities, delete_overlay — focused outer Red/Green cycle, delete_playlist — focused outer Red/Green cycle, get_overlay — focused outer Red/Green cycle, get_playlist — focused outer Red/Green cycle (+14 more)
+
+### Community 90 - "MemberCard.tsx"
+
+Cohesion: 0.20
+Nodes (11): GET(), Logo(), MemberCard(), createMemberCardImage(), loadAvatar(), memberAvatarUrl(), MemberProfile, formatMemberNumber() (+3 more)
+
+### Community 91 - "account-data-export-token.ts"
+
+Cohesion: 0.13
+Nodes (14): ACCOUNT_DATA_EXPORT_TTL_MS, AccountDataExportTokenPayload, createAccountDataExportToken(), secret(), sign(), verifyAccountDataExportToken(), AuthEnvironment, generationFallback() (+6 more)
+
+### Community 92 - "database.extra.test.ts"
+
+Cohesion: 0.09
+Nodes (12): authorizeCreatorOperation, dbDelete, dbInsert, dbSelect, dbUpdate, listAuthorizedCreatorOperations, makeSelectChain(), chain (+4 more)
+
+### Community 93 - "Defect Details"
+
+Cohesion: 0.10
+Nodes (20): AUTH-001 - Twitch identity test depended on a locally generated migration artifact, AUTH-002 - Legacy Jest boundaries did not support Better Auth schema/session imports, AUTH-003 - US5 test fixture imported an incompatible aggregate harness, AUTH-004 - Production lifecycle imports and test doubles crossed legacy Jest boundaries, AUTH-007 - Database-backed US2 ATDD exceeded the generic browser timeout, AUTH-008 - Login smoke retained the retired link role, AUTH-009 - Focused ATDD bypassed BDD wrapper regeneration, AUTH-010 - US4 ATDD interacted before route-specific hydration (+12 more)
+
+### Community 94 - "twitch.sync.test.ts"
 
 Cohesion: 0.11
-Nodes (14): AxiosLikeError, getAccessToken, getAccessTokenInternal, getBaseUrl, getTwitchCache, getTwitchCacheBatch, getTwitchCacheEntry, getTwitchCacheStale (+6 more)
+Nodes (18): TwitchCacheType, Clip, Game, GameQuery, User, buildClip(), connect, createCacheEntry() (+10 more)
 
-### Community 73 - "Index Test"
+### Community 95 - "Legal and Privacy Feature Specification"
+
+Cohesion: 0.17
+Nodes (13): Specification Quality Checklist, Compliance Defect Governance, Windows Test Environment Issues, Local Legal and Privacy Center, Release-blocking Compliance Audit, Existing Consent Preferences Integration, Legal and Privacy Feature Specification, Privacy Rights Channel (+5 more)
+
+### Community 96 - "Privacy Request Portal Plan"
 
 Cohesion: 0.11
-Nodes (17): addToast, createGallery, createOverlay, createPlaylist, deleteGallery, deleteOverlay, deletePlaylist, getAllGalleries (+9 more)
+Nodes (18): Acceptance criteria, Access and portability, Automated actions, Case access and authentication, Case page and states, Chatwoot-backed conversation, Comprehensive data package, Correction (+10 more)
 
-### Community 74 - "Overlay Table Test"
+### Community 97 - "login/page.tsx"
+
+Cohesion: 0.22
+Nodes (7): LoginClient(), Login(), readCheckoutIntent(), getAuthSession, readCheckoutIntent, redirect, validateAuth
+
+### Community 98 - "verify-consent-api.ts"
+
+Cohesion: 0.13
+Nodes (14): c15t, @c15t/backend, database, ConsentIntegrations(), browserMeasurementAllowed(), hadMeasurementConsentAtPageLoad(), setBrowserMeasurementConsent(), CONSENT_LIFETIME_DAYS (+6 more)
+
+### Community 99 - "dashboardNavbar.test.tsx"
+
+Cohesion: 0.18
+Nodes (10): getActiveCampaignOfferAction, getAdminViewCandidates, identitySession, organizationList, routerPush, routerRefresh, setActiveOrganization, setTheme (+2 more)
+
+### Community 100 - "database.cache.test.ts"
+
+Cohesion: 0.11
+Nodes (9): dbDelete, dbInsert, dbSelect, dbUpdate, loadDatabaseActions(), makeSelectChain(), chain, selectQueue (+1 more)
+
+### Community 101 - "database.coverage.test.ts"
+
+Cohesion: 0.06
+Nodes (18): authorizeCreatorOperation, createBrowserOverlay, createBrowserPlaylist, dbDelete, dbExecute, dbInsert, dbSelect, dbUpdate (+10 more)
+
+### Community 102 - "OverlayTable/index.test.tsx"
+
+Cohesion: 0.07
+Nodes (27): addToast, createGallery, createOverlay, createOverlayWithFeedback, createPlaylist, createRunner, deleteGallery, deleteOverlay (+19 more)
+
+### Community 103 - "OverlayTable.test.tsx"
 
 Cohesion: 0.11
 Nodes (18): createGallery, createOverlay, createPlaylist, deleteGallery, deleteOverlay, deletePlaylist, getActiveCampaignOfferAction, getAllGalleries (+10 more)
 
-### Community 75 - "Utils Utils Ts"
+### Community 104 - "agency.ts"
 
-Cohesion: 0.25
-Nodes (7): getBaseUrl(), isCoolify(), isPreview(), safeReturnUrl(), isCoolifyEnv(), isPreviewEnv(), resolveBaseUrl()
+Cohesion: 0.19
+Nodes (18): acceptAgencyLinkFormAction(), activateAgencyOwnerFormAction(), allocateAgencyLicenseFormAction(), changeAgencySeatQuantityFormAction(), errorCode(), getAdminAgenciesAction(), proposeAgencyLinkFormAction(), provisionAgencyFormAction() (+10 more)
 
-### Community 76 - "Twitch Playback Test"
+### Community 105 - "T059/T061 independent SDK contracts and consent presets (2026-10-06)"
 
-Cohesion: 0.12
-Nodes (12): connect, getAccessToken, getAccessTokenInternal, getAccessTokenServer, getOverlayBySecret, getOverlayPublic, getPlaylistClipsForOwnerServer, getTwitchCache (+4 more)
+Cohesion: 0.04
+Nodes (51): Activity/retention regression checkpoint, Actual browser refactor closure — 2026-10-06, Actual Clipify browser + official SDK acceptance, Auth configuration callback coverage — 2026-10-06, Automatic managed browser-server compiler memory budget, Canonical activity catalogue closure — 2026-10-06, Canonical authorization BDD closure — 2026-10-06, Canonical foreign-session activity acceptance — 2026-10-06 (+43 more)
 
-### Community 77 - "Route Test"
+### Community 106 - "validateAuth"
+
+Cohesion: 0.07
+Nodes (33): AdminViewPayload, clearAdminView(), clearAdminViewCookie(), closeAdminViewSession(), closeAdminViewSessionReadOnly(), getAdminViewPayload(), getAdminViewSessionExpiryCutoffDate(), getAdminViewStatus() (+25 more)
+
+### Community 107 - "database.disable.test.ts"
+
+Cohesion: 0.11
+Nodes (13): and, dbInsert, dbSelect, dbUpdate, eq, getUserDetails, loadDatabaseActions(), overlaysTable (+5 more)
+
+### Community 108 - "playwright-bdd"
+
+Cohesion: 0.08
+Nodes (31): playwright-bdd, { Given, When, Then }, { Given, When, Then }, { Given, When, Then }, { Given, When, Then }, { Given, When, Then }, { Given, When, Then }, { Given, When, Then, AfterScenario } (+23 more)
+
+### Community 110 - "Test-First Specification Addendum _(mandatory)_"
+
+Cohesion: 0.08
+Nodes (25): Assumptions, ATDD Acceptance Evidence _(Gherkin, mandatory when ATDD is Required)_, BDD Behavior Evidence _(Gherkin, mandatory when BDD is Required)_, Clarifications, Consolidated workflow expansion, Edge Cases, Feature Specification: MCP Support, Functional Requirements (+17 more)
+
+### Community 111 - "tokens.ts"
+
+Cohesion: 0.17
+Nodes (13): getBetterAuthProviderAccessToken(), takeCredentialCapacity(), withSerializedProviderCredential(), validateOwnedOverlayReward(), AccessTokenResult, getAccessTokenInternal(), getAccessTokenResultInternal(), getBetterAuthAccessToken() (+5 more)
+
+### Community 112 - "browser-overlay-boundaries.test.ts"
+
+Cohesion: 0.22
+Nodes (8): identity, operations, principal, remove, row, rows, update, volume
+
+### Community 113 - "eventsub/route.test.ts"
 
 Cohesion: 0.12
 Nodes (15): addToClipQueue, afterCallbacks, captureUnexpectedError, createSignedRequest(), getOverlayByRewardId, handleClip, handleCommand, loadRoute() (+7 more)
 
-### Community 78 - "Creator Page Client Test"
+### Community 114 - "003-mcp-support/tdd/cycle-log.md"
 
-Cohesion: 0.15
-Nodes (10): getCreatorClipPage, getCreatorClipPlayback, plausible, scrollIntoView, CreatorClipQuery, CreatorClipSort, queryCreatorClips(), resolveCreatorPageMetadata() (+2 more)
+Cohesion: 0.07
+Nodes (29): Account export MCP approvals — Green/refactor complete, Account export MCP approvals — Red, Account export source coverage enforcement — Green/refactor, Account export source coverage enforcement — Red, Activity retention scheduler — Green/refactor, Activity retention scheduler integration — Red, Better Auth 1.7.7 upstream replacement (2026-10-06), Bounded MCP activity retention — Green/refactor complete (+21 more)
 
-### Community 79 - "Member Card Image"
+### Community 115 - "Tasks: Creator Identity and Access Rewrite"
 
-Cohesion: 0.26
-Nodes (10): GET(), profile, createMemberCardImage(), loadAvatar(), memberAvatarUrl(), MemberProfile, formatMemberNumber(), formatMemberSince() (+2 more)
+Cohesion: 0.04
+Nodes (47): Completion Definition, Dependencies and Execution Order, Evidence Coverage Decisions, Format: `[ID] [P?] [Story?] [Suite?] Description`, Full feature delivery, Implementation Strategy, P1 continuity tranche, Parallel example: US3 (+39 more)
 
-### Community 80 - "Websocket Websocket Ts"
+### Community 116 - "Tasks: MCP Support"
 
-Cohesion: 0.20
-Nodes (11): broadcastToClients(), ControllerTokenPayload, handleMessage(), sendMessage(), loadWebsocketActions(), recordWebSocketRejected(), addSubscriber(), addToMap() (+3 more)
+Cohesion: 0.10
+Nodes (20): Artifact-to-Task Coverage, Cross-cutting test-first boundaries and final gates, Dependencies & Execution Order, Durable resource side effects, Environment, dependencies and baseline, External acceptance deferred until prerequisites are supplied, Format and Execution Rules, Implementation Strategy (+12 more)
 
-### Community 81 - "Subscription Test"
+### Community 117 - "outbox.ts"
 
-Cohesion: 0.12
-Nodes (16): checkoutCreate, cookies, customersCreate, db, getActiveCampaignOffer, getBaseUrl, loadSubscription(), portalCreate (+8 more)
+Cohesion: 0.08
+Nodes (36): appendAuditEvent(), AuditActionClass, AuditEvent, AuditOutcome, redactSecurityValue(), writeAuditEvent(), consumeRateLimit(), normalizeRateLimitSignal() (+28 more)
 
-### Community 82 - "Gallery Editor"
-
-Cohesion: 0.12
-Nodes (5): CodeSnippetProps, sizeClasses, SelectOption, TWITCH_CLIPS_LAUNCH_MS, Playlist
-
-### Community 83 - "Gallery Frame"
-
-Cohesion: 0.14
-Nodes (6): ClipCard(), createdAtFormatter, formatDuration(), Props, viewCountFormatter, Gallery
-
-### Community 84 - "Validation Validation Ts"
-
-Cohesion: 0.15
-Nodes (11): services, documentTextFields, PolicyDocumentInput, PolicyReleaseInput, PolicyServiceInput, PolicyStorageDeclarationInput, serviceCollectionFields, serviceTextFields (+3 more)
-
-### Community 85 - "Overlay Id Page"
-
-Cohesion: 0.14
-Nodes (5): getOverlayBySecret(), getOverlayPublic(), Overlay, PublicOverlayWithDisabledState, PublicOverlayWithDisabledState
-
-### Community 86 - "Checkout Intent"
-
-Cohesion: 0.22
-Nodes (11): GET(), CheckoutIntent, CheckoutIntentEntrypoint, CheckoutIntentProduct, consumeCheckoutIntent(), decodeCheckoutIntent(), encodeCheckoutIntent(), isIntent() (+3 more)
-
-### Community 87 - "Consent Projection"
+### Community 118 - "dashboard/layout.tsx"
 
 Cohesion: 0.17
-Nodes (9): categories, CookiesPage(), metadata, categoryIds, ConsentSelections, getAlwaysOnServiceDisclosures(), projectConsentCategories(), mockOpenDialog (+1 more)
+Nodes (14): dismissDashboardContent(), DashboardContentHost(), SentryFeedbackWidget(), DashboardLayout(), getDismissedContentKeys(), DashboardContentDefinition, DashboardContentItem, dashboardContentRegistry (+6 more)
 
-### Community 88 - "Twitch Sync Test"
+### Community 119 - "Continuous Integration Pipeline"
+
+Cohesion: 0.50
+Nodes (4): Continuous Integration Pipeline, Bun Dependency Cache, CI Quality Gate Matrix, Runner Change Validation
+
+### Community 120 - "Release impact"
+
+Cohesion: 0.06
+Nodes (35): DEF-004-001 — Native acceptance harness environment (Medium, resolved), DEF-004-002 — Optional runtime metadata (Medium, verified), DEF-004-003 — Revision schema integration (Medium, verified), DEF-004-004 — Saved gallery dates on Free (High, verified), DEF-004-005 — Queue ordering and cursor precision (Medium, verified), DEF-004-006 — Legacy risk expectation integration (Medium, verified), DEF-004-007 — Native browser gallery entry imports (Medium, verified), DEF-004-008 — Concurrency fixture row lifetime (Low, verified) (+27 more)
+
+### Community 121 - "sentryReplayConsent.test.ts"
+
+Cohesion: 0.12
+Nodes (15): sentryBrowserProfileSampleRate, sentryReplaySessionSampleRate, applySentryReplayConsent(), BrowserConsentOptions, mockAddIntegration, mockBrowserProfilingIntegration, mockGetClient, mockGetIntegrationByName (+7 more)
+
+### Community 122 - "ConsentInterface"
+
+Cohesion: 0.18
+Nodes (9): ConsentInterface(), preferencesAfter(), renderBanner(), save(), getHydratedSnapshot(), getServerHydratedSnapshot(), subscribeToHydration(), clearRevokedConsentStorage() (+1 more)
+
+### Community 123 - "GalleryFrame.tsx"
+
+Cohesion: 0.17
+Nodes (12): getPublicGallery(), ClipCard(), createdAtFormatter, formatDuration(), GalleryFrame(), Props, viewCountFormatter, GalleryInlinePreview() (+4 more)
+
+### Community 124 - "Implementation Plan: Creator Identity and Access Rewrite"
+
+Cohesion: 0.13
+Nodes (15): Architecture Decisions, Complexity Tracking, Constitution Check, Delivery Phases, Documentation (this feature), Evidence and retention, Implementation Plan: Creator Identity and Access Rewrite, Ownership and locations (+7 more)
+
+### Community 125 - "notify"
+
+Cohesion: 0.10
+Nodes (17): InvitationAcceptance(), sendCode(), InvitationPreview, maskedEmail(), AcceptInvitationPage(), ErrorToast(), notify(), NotifyOptions (+9 more)
+
+### Community 126 - "billing-sync.ts"
+
+Cohesion: 0.25
+Nodes (13): agencyBillingAccountsTable, AgencySeatChange, assertQuantity(), CAPACITY_BEARING_STATUSES, decideAgencySeatChange(), resolveAgencyCapacitySnapshot(), resolveWebhookCapacity(), shouldApplyAgencyStripeSnapshot() (+5 more)
+
+### Community 127 - "overlay-shared-read.test.ts"
+
+Cohesion: 0.22
+Nodes (8): chain, mockOAuthAuthority, mockRead, mockSelect, mockSessionAuthority, ownerRecord, principal, sessionPrincipal
+
+### Community 128 - "local-legal-compliance.steps.ts"
+
+Cohesion: 0.16
+Nodes (11): axe-core, privacyRequestGuidance, complianceScope, classifyLegalChange(), editorialChanges, LegalChange, failedConsentRequests, { Given, When, Then } (+3 more)
+
+### Community 129 - "bdd/steps/auth-engine-rewrite.steps.ts"
+
+Cohesion: 0.15
+Nodes (8): AccountLifecycleNotificationIntent, DeletionNotificationBoundary, renderAccountLifecycleNotification(), AGENCY_BDD_NOW, BDD_LIFECYCLE_NOW, BDD_PURGE_AT, { Given, When, Then }, twitch
+
+### Community 130 - "clipCacheScheduler.test.ts"
+
+Cohesion: 0.13
+Nodes (12): connect, getActiveOverlayOwnerIdsForClipSync, loadScheduler(), mockCaptureCheckIn, mockMetricCount, mockMetricDistribution, mockMetricGauge, operationalCount (+4 more)
+
+### Community 131 - "Final Implementation Checkpoint"
+
+Cohesion: 0.25
+Nodes (8): Browser Compliance Audit, Final Implementation Checkpoint, Legal Feature Acceptance Suite, Outside-in TDD Cycle History, Publication Build Gate, Deliberate Mutant Evidence, TDD Remediation Checkpoint, TDD Verification Audit
+
+### Community 132 - "updater.ts"
+
+Cohesion: 0.28
+Nodes (12): applyUpdate(), checkForUpdates(), cleanupOldVersions(), downloadFile(), fetchRemoteHash(), getFileHash(), getUpdateTarget(), launchUpdatedRunner() (+4 more)
+
+### Community 133 - "utils.ts"
+
+Cohesion: 0.07
+Nodes (30): Application and database, Better Auth, Infisical configuration contract, Twitch OpenID Connect / OAuth 2.0, UseSend transactional mail, WebAuthn / passkeys, clearAdminViewCookieForAuthFlow(), isCoolify() (+22 more)
+
+### Community 134 - "Planning Analysis Remediation"
+
+Cohesion: 0.02
+Nodes (103): ENV034 — Coverage collector harness quoting (fixed), ENV035 — Multi-source V8 remap exclusion (verified), ENV036 — Rejected scope response assumption, ENV037 — Native ESM provider probe dynamic alias import (fix in progress), ENV038 — Rate-limit probe local-name collision (fixed), ENV039 — Parent and child coverage mapping provenance (verified), ENV040 — Migration policy CLI mode (fixed), ENV041 — Browser regression cold compilation and privacy banner (verified) (+95 more)
+
+### Community 135 - "CreatorPageClient.test.tsx"
+
+Cohesion: 0.25
+Nodes (4): getCreatorClipPage, getCreatorClipPlayback, plausible, scrollIntoView
+
+### Community 136 - "browser-playlist-selection-boundaries.test.ts"
+
+Cohesion: 0.25
+Nodes (7): operations, principal, principalLookup, reorder, row, rows, selection
+
+### Community 137 - "db/client.ts"
+
+Cohesion: 0.04
+Nodes (89): better-auth, @better-auth/mcp, pg, DELETE, GET, OPTIONS, POST, runtime (+81 more)
+
+### Community 138 - "auth/config.ts"
+
+Cohesion: 0.04
+Nodes (85): @better-auth/oauth-provider, @heroui-pro/react, @modelcontextprotocol/server, getConnectedMcpActivityPage(), getConnectedMcpApps(), getMcpActivityCreators(), revokeConnectedMcpApp(), GET() (+77 more)
+
+### Community 139 - "runner.test.ts"
 
 Cohesion: 0.14
-Nodes (13): buildClip(), connect, createCacheEntry(), deleteTwitchCacheByPrefix, deleteTwitchCacheKeys, getAccessToken, getAccessTokenInternal, getAccessTokenServer (+5 more)
+Nodes (14): StreamMode, AlwaysOn, Failsafe, mockAuthorizeCreatorOperation, mockDb, mockHasActiveEntitlement, mockOverlayFindFirst, mockOwnerFindFirst (+6 more)
 
-### Community 89 - "C15T Schema"
+### Community 140 - "fingerprint-runner.mjs"
+
+Cohesion: 0.08
+Nodes (17): candidateFiles, collectFiles(), forbiddenPatterns, root, serverDir, violations, commit, files (+9 more)
+
+### Community 141 - "request-scope.ts"
+
+Cohesion: 0.13
+Nodes (10): `account_deletion_requests`, cancelled(), ConnectCallback, DatabaseRequestScope, OwnedLease, Release, RequestAwarePool, requests (+2 more)
+
+### Community 142 - "c15t-schema.ts"
 
 Cohesion: 0.13
 Nodes (14): c15t_auditLog, c15t_auditLogRelations, c15t_consent, c15t_consentPolicy, c15t_consentPolicyRelations, c15t_consentPurpose, c15t_consentRelations, c15t_domain (+6 more)
 
-### Community 90 - "Build Build Mjs"
-
-Cohesion: 0.13
-Nodes (11): binaries, buildRoot, downloadsDir, hashes, ldidPath, normalizedApiUrl, pkgEnv, pkgScript (+3 more)
-
-### Community 91 - "Downloader Engine Ts"
-
-Cohesion: 0.20
-Nodes (10): CACHE_DIR, ensureChromeDependencies(), ensureDependencies(), ensureFfmpegDependencies(), resolveExistingBrowser(), activeProbeNonces, proxyEvents, proxySockets (+2 more)
-
-### Community 93 - "Twitch Log Twitch Error"
-
-Cohesion: 0.27
-Nodes (15): clearEventSubSubscriptionsByTypeAndCondition(), deleteEventSubSubscription(), getAppAccessToken(), getAvatar(), getCreatorTwitchDetails(), getDemoClip(), getGameDetails(), getGamesDetailsBulk() (+7 more)
-
-### Community 94 - "Twitch Sync Owner Clip Cache"
-
-Cohesion: 0.20
-Nodes (15): CLIP_FORCE_REFRESH_KEY(), CLIP_SYNC_STATE_KEY(), fetchClipPage(), forceRefreshOwnClipCache(), getClipForceRefreshState(), getClipSyncState(), getCreatorSyncProgress(), getOwnClipForceRefreshStatus() (+7 more)
-
-### Community 95 - "Plan Legal And Privacy Feature"
-
-Cohesion: 0.15
-Nodes (14): c15t Read-only Boundary, Local Legal and Privacy Center, Release-blocking Compliance Audit, Test-first Quality Architecture, Legal Feature Validation Workflow, Independent Legal Authorship, Real-browser Compliance Audit, Verified Email Privacy Requests (+6 more)
-
-### Community 96 - "Creator Page Test"
-
-Cohesion: 0.14
-Nodes (13): canResolvePublicClipPlayback, dbSelect, getCachedClipByOwner, getCachedClipPageByOwner, getCreatorTwitchDetails, getFeatureAccess, getMemberBadges, getTwitchClipPlaybackUrl (+5 more)
-
-### Community 97 - "Membership Test"
-
-Cohesion: 0.19
-Nodes (11): usersTable, cardId, execute, member, mockResolveAutomaticBadgeAwards, select, where, memberCardIdExpression() (+3 more)
-
-### Community 98 - "Operational Health"
-
-Cohesion: 0.25
-Nodes (14): attributesKey(), createOverlayRuntime(), emitOverlayTransition(), getStore(), metricKey(), operationalCount(), operationalDuration(), operationalGauge() (+6 more)
-
-### Community 99 - "Clip Cache Scheduler Test"
-
-Cohesion: 0.14
-Nodes (11): connect, getActiveOverlayOwnerIdsForClipSync, mockCaptureCheckIn, mockMetricCount, mockMetricDistribution, mockMetricGauge, operationalCount, operationalDuration (+3 more)
-
-### Community 100 - "Database Overlays Test"
-
-Cohesion: 0.14
-Nodes (10): dbDelete, dbSelect, deleteCalls, editorsTable, loadDatabaseActions(), overlaysTable, selectQueue, updateSetCalls (+2 more)
-
-### Community 101 - "Updater Updater Ts"
-
-Cohesion: 0.29
-Nodes (11): applyUpdate(), checkForUpdates(), cleanupOldVersions(), downloadFile(), fetchRemoteHash(), getFileHash(), getUpdateTarget(), launchUpdatedRunner() (+3 more)
-
-### Community 102 - "Runner Enroll Form"
-
-Cohesion: 0.18
-Nodes (8): RunnerEnrollActionState, compactCode(), formatCode(), getResultContent(), ResultContent, RunnerEnrollResult(), RunnerEnrollResultProps, mockSubmitRunnerEnrollCode
-
-### Community 103 - "Auth Test"
-
-Cohesion: 0.15
-Nodes (11): cookies, cookieValues, dbInsert, dbSelect, dbUpdate, getBaseUrl, loadAuth(), resolveUserEntitlements (+3 more)
-
-### Community 104 - "Controller Client Test"
-
-Cohesion: 0.15
-Nodes (4): getControllerQueuesAction, MockWebSocket, runControllerAction, SocketListener
-
-### Community 105 - "Tsconfig Compiler Options"
+### Community 143 - "compilerOptions"
 
 Cohesion: 0.15
 Nodes (12): compilerOptions, allowJs, esModuleInterop, lib, module, moduleResolution, noEmit, skipLibCheck (+4 more)
 
-### Community 106 - "Runner Test"
+### Community 144 - "instrumentation.ts"
 
-Cohesion: 0.15
-Nodes (12): mockDb, mockEditorFindFirst, mockHasActiveEntitlement, mockOverlayFindFirst, mockOwnerFindFirst, mockRevalidatePath, mockRunnerFindFirst, mockRunnerFindMany (+4 more)
+Cohesion: 0.19
+Nodes (8): onRequestError, register(), startOverlayEffectScheduler(), readRewardAppToken(), runOverlayRewardEffects(), subscribeOverlayReward(), original, savedEnvironment
 
-### Community 107 - "Storage Storage Ts"
-
-Cohesion: 0.22
-Nodes (11): initializeRunner(), isSourceRunnerExecution(), normalizeApiBase(), resolveApiBase(), CONFIG_DIR, CONFIG_PATH, ensureConfigDir(), loadCredentials() (+3 more)
-
-### Community 108 - "Basic Navbar"
-
-Cohesion: 0.15
-Nodes (5): BasicNavbar, BasicNavbarProps, menuItems, GithubRelease, IconSvgProps
-
-### Community 109 - "Controller Test"
-
-Cohesion: 0.15
-Nodes (12): addToModQueue, clearClipQueueByOverlayIdServer, clearModQueueByBroadcasterId, getClipQueueByOverlayId, getModQueue, getOverlayOwnerPlanPublic, getOverlayWithEditAccess, getTwitchCache (+4 more)
-
-### Community 110 - "Settings Search Exclude"
-
-Cohesion: 0.15
-Nodes (12): files.exclude, **/coverage, **/.next, **/.swc, js/ts.preferences.importModuleSpecifier, search.exclude, **/coverage, **/.next (+4 more)
-
-### Community 111 - "Database Cache Test"
-
-Cohesion: 0.17
-Nodes (7): dbDelete, dbInsert, dbSelect, dbUpdate, loadDatabaseActions(), selectQueue, twitchCacheTable
-
-### Community 112 - "Next Error Page"
-
-Cohesion: 0.30
-Nodes (5): Error(), GlobalError(), NextErrorPageProps, formatErrorReference(), useSentryEventId()
-
-### Community 113 - "Clipify Vm01 Overview V5"
-
-Cohesion: 0.17
-Nodes (11): panels, refresh, schemaVersion, tags, time, from, to, timezone (+3 more)
-
-### Community 114 - "Websocket Test"
-
-Cohesion: 0.17
-Nodes (10): addSubscriber, getOverlayBySecret, getOverlayOwnerPlanPublic, getOverlayPublic, jwtVerify, overlaySubscribers, ownerSubscribers, recordOverlayStateUpdate (+2 more)
-
-### Community 115 - "Home Page Client"
-
-Cohesion: 0.20
-Nodes (4): buildCampaignOfferHref(), HomePageClient(), HomePageClientProps, FeatureCardProps
-
-### Community 116 - "Community Test"
-
-Cohesion: 0.17
-Nodes (11): db, getAppAccessToken, getUsersDetailsBulk, insertBuilder, insertExecute, loadCommunity(), lockQuery, lockRelease (+3 more)
-
-### Community 117 - "Sentry Replay Consent Test"
-
-Cohesion: 0.17
-Nodes (11): mockAddIntegration, mockBrowserProfilingIntegration, mockGetClient, mockGetIntegrationByName, mockGetReplay, mockOptions, mockReplayIntegration, mockReplayStart (+3 more)
-
-### Community 118 - "Package Package Json"
-
-Cohesion: 0.17
-Nodes (11): lint-staged, *.{json,css,md}, *.{ts,tsx,js,jsx}, name, overrides, tar, patchedDependencies, next@16.3.6 (+3 more)
-
-### Community 119 - "Ci Green Legal Quality Gates"
-
-Cohesion: 0.18
-Nodes (11): Compliance Defect Governance, Windows Test Environment Issues, Engineering Go Recommendation, Green Legal Quality Gates, Product Owner Legal Approval, Canonical Evidence Registry, Test-order Honesty, Continuous Integration Pipeline (+3 more)
-
-### Community 120 - "Admin User Explorer"
-
-Cohesion: 0.18
-Nodes (6): AdminExplorerRow, AdminUserExplorerProps, getAdminExplorerPage, routerPush, routerRefresh, startAdminView
-
-### Community 121 - "Operational Health Test"
-
-Cohesion: 0.18
-Nodes (8): captureException, dbSelect, loadOperationalHealth(), loggerInfo, loggerWarn, metricCount, metricDistribution, metricGauge
-
-### Community 123 - "Route Test"
-
-Cohesion: 0.18
-Nodes (10): findEvent, getStripe, headersMock, InsertBuilder, insertReturning, insertValues, loadRoute(), syncStripeSubscription (+2 more)
-
-### Community 124 - "Fingerprint Runner"
-
-Cohesion: 0.20
-Nodes (6): commit, files, hash, result, roots, sortedFiles
-
-### Community 125 - "Llms Content"
-
-Cohesion: 0.40
-Nodes (5): renderBadgeCatalog(), renderLlmsFullText(), renderPlanComparison(), GET(), pricingFeatures
-
-### Community 126 - "Route Test"
-
-Cohesion: 0.20
-Nodes (9): authUser, clearAdminViewCookieForAuthFlow, cookiesMock, exchangeAccesToken, getBaseUrl, jwtSign, jwtVerify, setAccessToken (+1 more)
-
-### Community 127 - "Database Set Twitch Cache"
-
-Cohesion: 0.24
-Nodes (10): cleanupTwitchCacheIfNeeded(), getAccessToken(), getAccessTokenResult(), getOwnAccessTokenResult(), setTwitchCache(), setTwitchCacheBatch(), summarizeError(), getAccessTokenResultInternal (+2 more)
-
-### Community 128 - "Overlay Settings Playlist Test"
-
-Cohesion: 0.20
-Nodes (8): getClipCacheStatus, getOverlay, getOverlayOwnerPlan, getPlaylistsForOwner, getTwitchClips, saveOverlay, savePlaylist, validateAuth
-
-### Community 129 - "Playlist Page Test"
-
-Cohesion: 0.20
-Nodes (9): getAllPlaylists, getCachedClipsByOwner, getGamesDetailsBulk, getPlaylistClips, getTwitchGames, previewImportPlaylistClips, savePlaylist, upsertPlaylistClips (+1 more)
-
-### Community 130 - "Toast Toast Ts"
-
-Cohesion: 0.28
-Nodes (4): addToast, notify(), NotifyOptions, ToastColor
-
-### Community 131 - "Cycle Log"
-
-Cohesion: 0.25
-Nodes (9): Browser Compliance Audit, Final Implementation Checkpoint, Legal Feature Acceptance Suite, Outside-in TDD Cycle History, Publication Build Gate, Deliberate Mutant Evidence, Historical Test-after Verdict, TDD Remediation Checkpoint (+1 more)
-
-### Community 132 - "Route Test"
-
-Cohesion: 0.25
-Nodes (7): constructor(), context, getMemberProfile, getPublicMemberProfile, profile, renderImage, validateAuth
-
-### Community 133 - "Twitch Get Cached Clips By"
-
-Cohesion: 0.28
-Nodes (9): CLIP_CACHE_PREFIX(), getCachedClipByOwner(), getCachedClipsByOwner(), getCurrentCategoryGameId(), getTwitchClipBatch(), getTwitchClips(), parseCachedClipValue(), resolvePlayableClip() (+1 more)
-
-### Community 134 - "App Layout"
-
-Cohesion: 0.25
-Nodes (3): manifestUrl, metadata, Providers()
-
-### Community 135 - "Nixpacks Phases"
-
-Cohesion: 0.22
-Nodes (8): cmds, cmds, phases, build, install, start, cmd, web
-
-### Community 136 - "Build Clipify"
-
-Cohesion: 0.25
-Nodes (8): Clipify, GHCR Docker Distribution, Twitch Clip Automation, Exact Runner Artifact Verification, Immutable Runner Manifest, Multi-platform Application Image, Release Container Pipeline, Grafana Dashboard Sync
-
-### Community 137 - "Dashboard Navbar Test"
-
-Cohesion: 0.25
-Nodes (7): getActiveCampaignOfferAction, getAdminViewCandidates, routerPush, routerRefresh, setTheme, stopAdminView, switchAdminView
-
-### Community 138 - "Origins Backend Ts"
-
-Cohesion: 0.46
-Nodes (4): getC15t(), getConsentTrustedOrigins(), normalizeOrigin(), handler()
-
-### Community 139 - "Policy Policy Ts"
+### Community 145 - "ServiceDeclaration"
 
 Cohesion: 0.29
-Nodes (4): consentPolicyPacks, fallback, worldwideConsent, database
+Nodes (5): ComplianceAuditResult, ServiceDeclaration, StorageDeclaration, Disclosure Drift Prevention, Approved Device Inspector Removal
 
-### Community 140 - "Check Server Action Manifest"
+### Community 146 - "Immutable Runner OCI Artifacts"
 
-Cohesion: 0.25
-Nodes (5): candidateFiles, forbiddenPatterns, root, serverDir, violations
+Cohesion: 0.18
+Nodes (12): Exact Runner Artifact Verification, Immutable Runner Manifest, Multi-platform Application Image, Release Container Pipeline, Cross-platform Runner Matrix, Immutable Runner OCI Artifacts, Native Runner Delivery Pipeline, Preview Runner Alias (+4 more)
 
-### Community 141 - "Rate Limit Test"
+### Community 147 - "check-mcp-coverage.mjs"
 
-Cohesion: 0.25
-Nodes (7): consume, headers, headerValues, isCoolifyMock, loadRateLimit(), RateLimiterMemory, GalleryFramePage()
+Cohesion: 0.16
+Nodes (16): buildMcpCoverageProbes(), require, branchLocation(), count(), evaluateMcpCoverage(), location(), normalize(), object() (+8 more)
 
-### Community 143 - "Clipify Elements Test"
+### Community 148 - "Research: Creator Identity and Access Rewrite"
 
-Cohesion: 0.25
-Nodes (3): channels, moduleSource, TestPort
+Cohesion: 0.15
+Nodes (12): Better Auth boundary, Downgrade safety, Migration and operational model, Provider credential migration, Research: Creator Identity and Access Rewrite, Resolved unknowns, Sessions and freshness, Stable creator identity (+4 more)
 
-### Community 144 - "Dashboard Pages Test"
-
-Cohesion: 0.25
-Nodes (7): getAllPlaylists, getGallery, getGalleryPreview, getGalleryPreviewPlayer, notFound, redirect, validateAuth
-
-### Community 145 - "Data Model"
-
-Cohesion: 0.29
-Nodes (7): ComplianceAuditResult, ServiceDeclaration, StorageDeclaration, Authoritative Reviewed Inventory, Reviewed Prose and Registry Projection, Disclosure Drift Prevention, Approved Device Inspector Removal
-
-### Community 146 - "Runner Native"
-
-Cohesion: 0.33
-Nodes (7): Cross-platform Runner Matrix, Immutable Runner OCI Artifacts, Native Runner Delivery Pipeline, Preview Runner Alias, Runner Source Fingerprint, Superseded Runner Artifact Cleanup, Closed PR Runner Cleanup
-
-### Community 147 - "Consent Boundary"
-
-Cohesion: 0.33
-Nodes (4): ConsentBoundaryViolation, findLegalConsentBoundaryViolations(), forbiddenCapabilities, LegalSource
-
-### Community 148 - "Callback Route"
-
-Cohesion: 0.38
-Nodes (6): touchUser(), exchangeAccesToken(), GET(), getSafeReturnUrl(), isOAuthStatePayload(), OAuthStatePayload
-
-### Community 149 - "Check Prettier"
+### Community 149 - "check-prettier.mjs"
 
 Cohesion: 0.33
 Nodes (5): files, filesToCheck(), gitFiles(), prettier, supportedExtensions
 
-### Community 150 - "Create Runner Manifest"
+### Community 150 - "import-selection.ts"
 
-Cohesion: 0.29
-Nodes (6): args, artifacts, expectedPlatforms, manifest, ociDigests, root
+Cohesion: 0.09
+Nodes (22): args, artifacts, expectedPlatforms, manifest, ociDigests, root, args, manifest (+14 more)
 
-### Community 151 - "Creator Analytics Test"
+### Community 151 - "getAuthSession"
 
-Cohesion: 0.29
-Nodes (6): dbInsert, dbSelect, getFeatureAccess, resolveUserEntitlements, selectRows, validateAuth
+Cohesion: 0.06
+Nodes (34): authUser(), GET(), Role, Admin, User, getAuthSession(), requireAuthSession(), config (+26 more)
 
-### Community 152 - "Bot Route Test"
+### Community 152 - "actions/twitch.ts"
 
-Cohesion: 0.29
-Nodes (6): cookiesMock, getBaseUrl, isPreview, randomUUID, safeReturnUrl, sign
+Cohesion: 0.04
+Nodes (88): cleanupTwitchCacheIfNeeded(), deleteTwitchCacheKeys(), getAccessToken(), getAccessTokenServer(), setTwitchCache(), setTwitchCacheBatch(), summarizeError(), buildGameSearchQueries() (+80 more)
 
-### Community 153 - "Route Test"
+### Community 153 - "cookies/page.tsx"
 
-Cohesion: 0.29
-Nodes (6): cookiesMock, getBaseUrl, isPreview, randomUUID, safeReturnUrl, sign
+Cohesion: 0.27
+Nodes (6): CookiePreferencesLink(), categories, CookiesPage(), metadata, mockOpenDialog, mockUseHeadlessConsentUI
 
-### Community 154 - "Security Official Hosted Service Model"
+### Community 154 - "PolicyRelease"
 
-Cohesion: 0.33
-Nodes (6): ComplianceScopeReview, EU/German Single-document Baseline, Official Hosted Service Model, Latest Production Version Support, Responsible Vulnerability Disclosure, Clipify Security Policy
+Cohesion: 0.18
+Nodes (6): Responsible Vulnerability Disclosure, Clipify Security Policy, ComplianceScopeReview, Legal Change Lifecycle, LegalDocument, PolicyRelease
 
-### Community 155 - "Design Clipify Design System"
+### Community 155 - "Clipify Design System"
 
 Cohesion: 0.40
-Nodes (6): Local Legal Disclosures, Accessible Visual Hierarchy, Clipify Design System, HeroUI Component System, Semantic Color Tokens, Tailwind Layout Rhythm
+Nodes (4): Clipify Design System, HeroUI Component System, Semantic Color Tokens, Local Legal Disclosures
 
-### Community 156 - "Readme Clipify Technology Stack"
+### Community 156 - "Clipify"
 
-Cohesion: 0.33
-Nodes (6): Clipify Technology Stack, Drizzle Database Workflow, Infisical Configuration, Depfu Lockfile Maintenance, Signed Automation Commits, Database Migration Automation
+Cohesion: 0.22
+Nodes (9): Depfu Lockfile Maintenance, Signed Automation Commits, Database Migration Automation, Grafana Dashboard Sync, Clipify, Clipify Technology Stack, Drizzle Database Workflow, Infisical Configuration (+1 more)
 
-### Community 157 - "Admin View Test"
+### Community 157 - "request-owned-lease-boundaries.test.ts"
 
-Cohesion: 0.33
-Nodes (4): clearAdminView, dbSelect, startAdminView, validateAdminAuth
+Cohesion: 0.19
+Nodes (10): connect(), end(), mockCancelQuery, mockConnect, mockEnd, mockPoolErrorCallbacks, mockRaw, mockRawQuery (+2 more)
 
 ### Community 158 - "Compliance Registry"
 
 Cohesion: 0.33
-Nodes (6): Bounded Storage Declarations, Compliance Registry, External Origin Ownership, Read-only Consent Boundary, Value-free Audit Evidence, Authoritative Inventory Without Device Inspection
+Nodes (3): Bounded Storage Declarations, Compliance Registry, External Origin Ownership
 
-### Community 159 - "Membership Registry Test"
+### Community 159 - "BillingProduct"
+
+Cohesion: 0.16
+Nodes (15): BillingCycle, getAllConfiguredPriceIds(), getBillingCatalog(), getPriceId(), getPriceLookupKey(), getPriceLookupKeys(), getProductForPrice(), LOOKUP_KEYS (+7 more)
+
+### Community 160 - "controllerClient.test.tsx"
+
+Cohesion: 0.22
+Nodes (8): emitSocketClose(), emitSocketError(), emitSocketMessage(), emitSocketOpen(), getControllerQueuesAction, MockWebSocket, runControllerAction, SocketListener
+
+### Community 162 - "build.mjs"
+
+Cohesion: 0.13
+Nodes (11): binaries, buildRoot, downloadsDir, hashes, ldidPath, normalizedApiUrl, pkgEnv, pkgScript (+3 more)
+
+### Community 163 - "webhook/route.ts"
+
+Cohesion: 0.11
+Nodes (22): getStripe(), claimWebhookEvent(), getCanonicalSubscription(), POST(), processEvent(), WebhookClaim, billingWebhookEventsTable, stripeId() (+14 more)
+
+### Community 164 - "storage.ts"
+
+Cohesion: 0.26
+Nodes (9): initializeRunner(), CONFIG_DIR, CONFIG_PATH, ensureConfigDir(), loadCredentials(), restrictConfigFile(), RunnerCredentials, saveCredentials() (+1 more)
+
+### Community 165 - "actions/creatorPage.test.ts"
+
+Cohesion: 0.14
+Nodes (13): canResolvePublicClipPlayback, dbSelect, getCachedClipByOwner, getCachedClipPageByOwner, getCreatorTwitchDetails, getFeatureAccess, getMemberBadges, getTwitchClipPlaybackUrl (+5 more)
+
+### Community 167 - "Implementation Plan: MCP Support"
+
+Cohesion: 0.09
+Nodes (22): Architecture and Implementation Sequence, BDD and ATDD Applicability, Complexity Tracking, Consolidated workflow expansion, Constitution Check, Corrected Incremental Execution Boundaries, Documentation (this feature), Evidence Retention (+14 more)
+
+### Community 168 - "commands.test.ts"
+
+Cohesion: 0.11
+Nodes (17): addToModQueue, clearClipQueueByOverlayIdServer, clearModQueueByBroadcasterId, getAllOverlayIdsByOwnerInternal, getAllOverlaysByOwnerInternal, getBaseUrl, getClipQueueByOverlayId, getFeatureAccess (+9 more)
+
+### Community 169 - "agencies/service.ts"
+
+Cohesion: 0.10
+Nodes (18): AgencyAccountRecord, AgencyAccountStatus, AgencyActor, AgencyAudit, AgencyInvitation, AgencyLinkRecord, AgencyLinkStatus, AgencyMembership (+10 more)
+
+### Community 171 - "atdd/steps/auth-engine-rewrite.steps.ts"
+
+Cohesion: 0.10
+Nodes (20): AgencyAllocationRecord, AllocationAudit, AllocationNotification, AllocationState, AllocationStatus, createAllocationState(), evaluateOverlayRuntimeAccess(), OverlayRuntimeChannel (+12 more)
+
+### Community 172 - "Release impact"
+
+Cohesion: 0.07
+Nodes (27): DEF-004-001 — Native acceptance harness environment (Medium, resolved), DEF-004-002 — Optional runtime metadata (Medium, verified), DEF-004-003 — Revision schema integration (Medium, verified), DEF-004-004 — Saved gallery dates on Free (High, verified), DEF-004-005 — Queue ordering and cursor precision (Medium, verified), DEF-004-006 — Legacy risk expectation integration (Medium, verified), DEF-004-007 — Native browser gallery entry imports (Medium, verified), DEF-004-008 — Concurrency fixture row lifetime (Low, verified) (+19 more)
+
+### Community 173 - "ref_fs"
+
+Cohesion: 0.15
+Nodes (8): files, writeExtension(), args, CACHE_DIR, child, ffmpegDest, GET(), GET()
+
+### Community 174 - "overlay.settings.playlist.test.tsx"
+
+Cohesion: 0.06
+Nodes (27): createChannelReward, createPlaylist, getCachedClipsByOwner, getClipCacheStatus, getGameDetails, getOverlay, getOverlayOwnerPlan, getPlaylistsForOwner (+19 more)
+
+### Community 175 - "mcp-support.steps.ts"
+
+Cohesion: 0.11
+Nodes (15): @modelcontextprotocol/client, callTool(), connectBrowserPlaylist(), { Given, When, Then, AfterScenario }, { When, Then }, { When }, { Given, When, Then, AfterScenario }, response() (+7 more)
+
+### Community 176 - "ConsentManager.test.tsx"
+
+Cohesion: 0.40
+Nodes (4): mockOpenBanner, mockOpenDialog, mockPerformBannerAction, mockReloadAfterConsentSave
+
+### Community 177 - "run-mcp-mutants.mjs"
+
+Cohesion: 0.16
+Nodes (13): artifact, cases, digest(), isolated, redact(), report, root, run() (+5 more)
+
+### Community 178 - "devDependencies"
+
+Cohesion: 0.20
+Nodes (10): devDependencies, esbuild, jest, resedit, @swc/core, @swc/jest, @types/jest, @types/node (+2 more)
+
+### Community 179 - "memberNumbers.test.ts"
+
+Cohesion: 0.29
+Nodes (4): memberNumberAllocationQuery, dialect, execute, runbook
+
+### Community 180 - "dashboard/overlay/[overlayId]/page.tsx"
+
+Cohesion: 0.08
+Nodes (36): re2js, applyPlaylistImportFilters(), getAllPlaylists(), getPlaylistClips(), getPlaylistsForOwner(), previewImportPlaylistClips(), savePlaylist(), upsertPlaylistClips() (+28 more)
+
+### Community 181 - "controller.ts"
+
+Cohesion: 0.08
+Nodes (39): jsonwebtoken, ControllerActionResult, ControllerQueueResponse, getControllerQueuesAction(), getQueueClip(), parseStoredClip(), QueueItem, requireProOverlay() (+31 more)
+
+### Community 182 - "ref_node_fs"
+
+Cohesion: 0.07
+Nodes (17): checkGeneratedScenarios(), stages, migrationsFolder, pool, args, keepFingerprint, keepFingerprints, pr (+9 more)
+
+### Community 183 - "Public Legal Routes"
+
+Cohesion: 0.20
+Nodes (8): GoAdopt Removal, Local Legal Navigation, Public Legal Routes, Privacy Request Process, Acceptance Behaviors A1-A12, Legal Compliance Test Plan, Unit Behaviors U1-U37, Local Legal Entry Points
+
+### Community 184 - "Data Model: Creator Identity and Access Rewrite"
+
+Cohesion: 0.20
+Nodes (9): Better Auth-managed records (`auth`), Data Model: Creator Identity and Access Rewrite, Existing records retained, Migration mapping, Ownership boundaries, Permission catalogue, Purge ordering, Standard roles (+1 more)
+
+### Community 185 - "url"
+
+Cohesion: 0.40
+Nodes (3): url(), request, token
+
+### Community 186 - "Test Traceability: Creator Identity and Access Rewrite"
+
+Cohesion: 0.20
+Nodes (10): BDD and ATDD Applicability, Evidence Artifact Registry, Foundational Fixture Registry, Quality Gate Results, Reproducible Setup Contract, Required Checks, Scenario Coverage Matrix, Source Coverage Map (+2 more)
+
+### Community 187 - "Defect Log: MCP Support"
+
+Cohesion: 0.11
+Nodes (19): Consolidated workflow expansion, Defect Details, Defect Log: MCP Support, Defect Metrics, Defect Summary, ENV099 — Final coverage remap crashes before aggregated results, ENV100 — JSON-only calibration output has no preceding newline, ENV101 — Test split preflight used property calls instead of direct describe calls (+11 more)
+
+### Community 189 - "Research: MCP Support"
+
+Cohesion: 0.14
+Nodes (13): Consolidated workflow expansion, Immediate revocation and selected creators, Implementation API verification, OAuth and libraries, Package metadata verification limitation, Protocol and named-host compatibility, Quotas, retries and conflicts, Research decisions (+5 more)
+
+### Community 190 - "mcp-coverage-reporter.cjs"
+
+Cohesion: 0.10
+Nodes (17): c8, istanbul-lib-coverage, istanbul-lib-source-maps, { createHash }, { join, resolve }, suiteCoverageDirectory(), repairMappedCoverage(), { createCoverageMap } (+9 more)
+
+### Community 192 - "Defect Log: Creator Identity and Access Rewrite"
+
+Cohesion: 0.20
+Nodes (10): Baseline Evidence, Defect Log: Creator Identity and Access Rewrite, Defect Metrics, Defect Summary, Open Defect Review, Purpose and Scope, Required Checks, Severity and Priority Policy (+2 more)
+
+### Community 193 - "actions/gallery.ts"
+
+Cohesion: 0.10
+Nodes (35): getPlaylistRuntimeClipsForOwnerServer(), authorizeGalleryOperation(), createGallery(), deleteGallery(), getGalleryDraftPreview(), getGalleryPreview(), ownerIsPro(), requireGalleryAccess() (+27 more)
+
+### Community 194 - "account-lifecycle/database.ts"
+
+Cohesion: 0.11
+Nodes (26): GET(), startAccountLifecycleScheduler(), getAuthActorContext(), BillingMutationInput, collectDatabaseAccountData(), downloadDatabaseAccountDataExport(), exportDatabaseAccountData(), getDatabaseAccountDeletionOverview() (+18 more)
+
+### Community 195 - "New Clipify records (`public`)"
+
+Cohesion: 0.18
+Nodes (11): `agency_accounts`, `agency_creator_links`, `agency_license_allocations`, `audit_events`, `creator_accounts`, `creator_identity_links`, `migration_runs`, `migration_checkpoints`, `migration_anomalies`, New Clipify records (`public`) (+3 more)
+
+### Community 196 - "workflows/README.md"
+
+Cohesion: 0.14
+Nodes (13): Remaining MCP blockers, MCP implementation progress, Specification quality, Historical workflow expansion records, MCP implementation progress, Validation, Current combined status, Evidence history (+5 more)
+
+### Community 197 - "server-boundaries.test.ts"
+
+Cohesion: 0.17
+Nodes (8): activity, challenge, configuration, fetchHandler, rateLimit, ready, registerTools, resolveGrant
+
+### Community 198 - "Data Model: MCP Support"
+
+Cohesion: 0.17
+Nodes (11): Activity, Clipify connection grant, Consolidated workflow expansion, Constraints and migration ownership, Data model, Data Model: MCP Support, Durable overlay provider intents, Mutation retry record (+3 more)
+
+### Community 200 - "Phase 3: User Story 1 — Connect and revoke an AI client (P1)"
+
+Cohesion: 0.22
+Nodes (9): Complete consent, issuance and authenticated read flow, Discovery and dynamic registration, Immediate connection revocation, Phase 3: User Story 1 — Connect and revoke an AI client (P1), Provider schema source — test first, Required client profiles — staged contract cases, Shared creator read pilot — test first, Story specification and evidence registration (+1 more)
+
+### Community 201 - "Test Traceability: MCP Support"
+
+Cohesion: 0.18
+Nodes (11): BDD and ATDD Applicability, Consolidated workflow expansion, Current consolidated quality gates, Evidence Artifact Registry, Foundation quality gate checkpoint, Required Checks, Scenario Coverage Matrix, Source Coverage Map (+3 more)
+
+### Community 202 - "heroui-fixture.tsx"
+
+Cohesion: 0.14
+Nodes (10): Alert, Card, Checkbox, components, ListBox, proComponents, Radio, radioContext (+2 more)
+
+### Community 203 - "account-data-export-credentials.ts"
+
+Cohesion: 0.27
+Nodes (8): decryptString(), encryptString(), collectComprehensiveAccountData(), collectReusableCredentialExport(), OverlayCredential, RunnerCredential, StreamCredential, redactSecrets()
+
+### Community 204 - "membership.test.ts"
+
+Cohesion: 0.22
+Nodes (10): memberCardIdExpression(), memberCardIdForUser(), cardId, execute, member, mockResolveAutomaticBadgeAwards, select, where (+2 more)
+
+### Community 205 - "reports/test-summary.md"
+
+Cohesion: 0.25
+Nodes (6): Content Quality, Feature Readiness, Notes, Requirement Completeness, Specification Quality Checklist: Creator Identity and Access Rewrite, Test-First Governance
+
+### Community 206 - "Quickstart: Planning-to-Implementation Handoff"
+
+Cohesion: 0.25
+Nodes (8): Local quality checks, Migration rehearsal, Prerequisites, Production cutover outline, Quickstart: Planning-to-Implementation Handoff, Rehearsal isolation rules, Required manual observations, TDD loop
+
+### Community 207 - "Shared Backend Contract"
+
+Cohesion: 0.25
+Nodes (7): Browser adaptation, CI database and rollout, Existing effects, Implementation writer inventory (T004), Mutation linearization, Shared Backend Contract, Verified principal
+
+### Community 208 - "Phase 5: User Story 3 — Preserve permissions and plan limits everywhere (P1)"
+
+Cohesion: 0.25
+Nodes (8): Current authorization intersection, Independent PostgreSQL quota races, Live entitlement and membership transitions, Phase 5: User Story 3 — Preserve permissions and plan limits everywhere (P1), Safe errors and rollback boundaries, Shared backend commercial rules, Story specification and registry, US3 quality/report review
+
+### Community 209 - "server/entitlements.ts"
 
 Cohesion: 0.33
-Nodes (5): awardBadgeInternal(), execute, inserts, mockGetActivePartnerAccessGrant, values
+Nodes (7): AUTH-012 - Authenticated fixture defaulted omitted deletion state to suspended, applyDowngradeEffects(), CreatorResourceInventory, deriveDowngradeEffects(), DowngradeEffects, none(), inventories
 
-### Community 160 - "Clip Cache Scheduler"
+### Community 210 - "community/page.tsx"
 
-Cohesion: 0.40
-Nodes (5): CLIP_CACHE_MONITOR_CONFIG, getClipCacheSchedulerStats(), shouldReportMonitorCheckIns(), loadScheduler(), getOperationalEnvironment()
+Cohesion: 0.09
+Nodes (23): getPublicCommunityFooterTeaserAction(), getPublicCommunityPageDataAction(), getPublicCommunityTeaserAction(), CommunityHeroAvatars(), CommunityHeroAvatarsProps, CommunityPage(), CommunitySection(), dynamic (+15 more)
 
-### Community 161 - "Build Config"
+### Community 211 - "member-card/route.test.ts"
+
+Cohesion: 0.25
+Nodes (7): constructor(), context, getMemberProfile, getPublicMemberProfile, profile, renderImage, validateAuth
+
+### Community 212 - "footer.tsx"
+
+Cohesion: 0.07
+Nodes (36): axios, motion, nextjs-turnstile, usesend-js, xss, getEmailProvider(), getUseSendClient(), NewsletterContactDetails (+28 more)
+
+### Community 213 - "clipifyElements.test.ts"
+
+Cohesion: 0.25
+Nodes (3): channels, moduleSource, TestPort
+
+### Community 215 - "CreatorAnalyticsCard.tsx"
+
+Cohesion: 0.14
+Nodes (20): CreatorAnalyticsExportTarget, AppDateRange, AppDateRangePicker(), AppDateRangePickerProps, BreakdownExplorer(), compactNumber, CreatorAnalyticsCard(), Data (+12 more)
+
+### Community 220 - "Legacy Auth Contraction Runbook"
+
+Cohesion: 0.29
+Nodes (6): Completion evidence, Contraction pull request, Entry criteria, Legacy Auth Contraction Runbook, Production execution, Rehearsal after generation
+
+### Community 221 - "playlist-shared-read.test.ts"
+
+Cohesion: 0.11
+Nodes (18): findPlaylistRecord(), listPlaylistRecords(), readPlaylistItemRecords(), readPlaylistRecord(), chain, decision, mockDiscovery, mockOAuthAuthority (+10 more)
+
+### Community 222 - "OAuth and Connection Contract"
+
+Cohesion: 0.25
+Nodes (7): Client registration, Consent and permissions, External boundaries, Native provider and application ownership, OAuth and Connection Contract, Release interoperability, Revocation and connected clients
+
+### Community 223 - "consentBoundary.ts"
 
 Cohesion: 0.33
-Nodes (5): bunVersion, nodeTarget, pkgVersion, runnerArtifactSchema, targets
+Nodes (5): ConsentBoundaryViolation, findLegalConsentBoundaryViolations(), forbiddenCapabilities, LegalSource, readSources()
 
-### Community 162 - "Runner Package Cleanup"
+### Community 224 - "operationalHealth.test.ts"
 
-Cohesion: 0.33
-Nodes (4): args, keepFingerprint, keepFingerprints, pr
+Cohesion: 0.20
+Nodes (10): captureException, dbSelect, loadOperationalHealth(), loggerInfo, loggerWarn, makeQuery(), metricCount, metricDistribution (+2 more)
 
-### Community 163 - "Page Test"
+### Community 227 - "User Scenarios & Testing"
 
-Cohesion: 0.33
-Nodes (4): getAccessTokenResult, getActiveCampaignOffer, redirect, validateAuth
+Cohesion: 0.11
+Nodes (18): Assumptions, Edge Cases, Feature Specification: MCP product workflows, Functional Requirements, Key Entities, Measurable Outcomes, Requirements, Scenario Coverage Matrix (+10 more)
 
-### Community 164 - "Tools Page Test"
-
-Cohesion: 0.33
-Nodes (5): getAllGalleries, getAllOverlays, getBaseUrl, getEditorOverlays, validateAuth
-
-### Community 165 - "Page Test"
+### Community 228 - "Contract: Lifecycle, Entitlements, and Notifications"
 
 Cohesion: 0.33
-Nodes (5): getOverlayOwnerPlanPublic, getOverlayWithEditAccess, jwtSign, redirect, validateAuth
+Nodes (5): Account deletion, Contract: Lifecycle, Entitlements, and Notifications, Delivery contract, Paid access, Required notification intents
 
-### Community 166 - "Instance Health Test"
-
-Cohesion: 0.33
-Nodes (4): dbExecute, dbSelect, getClipCacheSchedulerStats, getTwitchCacheReadMetricsSnapshot
-
-### Community 167 - "Invalid Policy Release"
+### Community 229 - "Contract: Auth Cutover Workflow"
 
 Cohesion: 0.33
-Nodes (5): auditResult, documents, operatorFactsConfirmed, references, services
+Nodes (5): Command surface, Contract: Auth Cutover Workflow, Mandatory invariants, Manifest, Phases and checkpoints
 
-### Community 168 - "Data Model"
+### Community 230 - "Production-shaped rehearsal 55047955-b73e-4bbe-943f-e1c038df26a2"
 
-Cohesion: 0.40
-Nodes (5): Legal Change Lifecycle, LegalDocument, PolicyRelease, Release-controlled Policy Changes, Structured TypeScript Legal Content
+Cohesion: 0.33
+Nodes (5): Baseline and preservation, Cutover result, Historical blocking disposition, Production-shaped rehearsal 55047955-b73e-4bbe-943f-e1c038df26a2, Source and restore
 
-### Community 169 - "Clear Route"
+### Community 231 - "mutation-authorization.test.ts"
 
-Cohesion: 0.60
-Nodes (3): GET(), clearCheckoutIntent(), GET()
+Cohesion: 0.33
+Nodes (4): authorize, grant, now, principal
 
-### Community 170 - "Overlay Disabled State Test"
+### Community 232 - "Tools"
 
-Cohesion: 0.40
-Nodes (4): getOverlayBySecret, getOverlayOwnerPlanPublic, getOverlayPublic, touchOverlay
+Cohesion: 0.12
+Nodes (15): Common request and result rules, Consent permissions, Consolidated workflow expansion, Creator Pages, Errors, Find and import clips, Galleries and website embeds, MCP Tool Contracts (+7 more)
 
-### Community 171 - "Enroll Test"
+### Community 233 - "browser-creation-adapter.test.ts"
 
-Cohesion: 0.40
-Nodes (4): insertMock, queryEnrollmentMock, queryRunnerMock, validateAuthMock
+Cohesion: 0.50
+Nodes (3): create, getPrincipal, principal
 
-### Community 172 - "Preview Test"
+### Community 234 - "Quickstart Validation: MCP Support"
 
-Cohesion: 0.40
-Nodes (4): mockEditorFindFirst, mockRunnerFindFirst, mockSessionFindFirst, mockValidateAuth
+Cohesion: 0.14
+Nodes (14): Automatic machine and database sizing, Completion gates, Consolidated workflow expansion, Current connection configuration, Development verification cadence, End-to-end outcomes, Four real-client acceptance profiles, Implemented tool surface (+6 more)
 
-### Community 173 - "Stream Test"
+### Community 236 - "Feature Specification: MCP product workflows"
 
-Cohesion: 0.40
-Nodes (4): args, CACHE_DIR, child, ffmpegDest
+Cohesion: 0.10
+Nodes (20): Assumptions, Edge Cases, Feature Specification: MCP product workflows, Feedback submission within MCP support, Functional Requirements, Key Entities, Measurable Outcomes, Requirements (+12 more)
 
-### Community 174 - "Verify Runner Manifest"
+### Community 237 - "@heroui/react"
 
-Cohesion: 0.40
-Nodes (4): args, manifest, platforms, repository
+Cohesion: 0.26
+Nodes (10): @heroui/react, @heroui/styles, ErrorPageProps, NextErrorPage(), NextErrorPageProps, Error(), GlobalError(), formatErrorReference() (+2 more)
 
-### Community 175 - "Write Runner Metadata"
-
-Cohesion: 0.40
-Nodes (4): args, binary, content, metadata
-
-### Community 176 - "Community Test"
+### Community 238 - "creator-onboarding-trigger.test.ts"
 
 Cohesion: 0.40
-Nodes (4): buildCommunityPageGroups, buildCommunityTeaserStreamers, fetchCommunityPageVisibleUserIds, getCommunitySnapshot
+Nodes (3): installCreatorOnboardingTriggers(), SqlClient, ProvisionedRows
 
-### Community 177 - "Proxy Test"
+### Community 239 - "Production-shaped orphan-prune rehearsal 7e075732-4e0a-47a8-8537-2e94dcb08097"
 
 Cohesion: 0.40
-Nodes (4): authUser, getUserFromCookie, nextMock, redirectMock
+Nodes (4): Cutover result, Preservation evidence, Production-shaped orphan-prune rehearsal 7e075732-4e0a-47a8-8537-2e94dcb08097, Source and backup
 
-### Community 178 - "Login Page"
+### Community 240 - "browser-playlist-creation-adapter.test.ts"
 
-Cohesion: 0.67
-Nodes (3): GET(), Login(), readCheckoutIntent()
+Cohesion: 0.50
+Nodes (3): create, getPrincipal, principal
 
-### Community 180 - "Prettierrc Prettierrc Json"
+### Community 241 - "lib/membership.ts"
+
+Cohesion: 0.31
+Nodes (9): getOwnMemberProfile(), BadgeGrid(), BadgeIcon(), icons, MemberCardPage(), BadgeIconKey, getMemberProfile(), MemberBadgeView (+1 more)
+
+### Community 243 - "MCP product workflow extension"
+
+Cohesion: 0.25
+Nodes (7): Consolidation, Cross-cutting requirements, Deferred scope, Existing baseline, MCP product workflow extension, Next workflow, Requested scope and implementation order
+
+### Community 244 - "Rolling Test Summary"
+
+Cohesion: 0.25
+Nodes (8): Aggregate Decision, Consolidated MCP workflows (003), Current Aggregate Snapshot, Included Feature Reports, MCP Current Local Snapshot, MCP feedback addition, Rolling Test Summary, SpecKit consolidation
+
+### Community 246 - "browser-playlist-delete-adapter.test.ts"
+
+Cohesion: 0.29
+Nodes (6): browser, mockDelete, mockPrincipal, mockRows, principal, row
+
+### Community 247 - "@testing-library/react"
+
+Cohesion: 0.07
+Nodes (20): @testing-library/react, dynamic, getMemberProfile, notFound, redirect, validateAuth, getAccessTokenResult, getActiveCampaignOffer (+12 more)
+
+### Community 249 - ".prettierrc.json"
 
 Cohesion: 0.50
 Nodes (3): jsxSingleQuote, printWidth, useTabs
 
-### Community 182 - "Validate Runner Matrix"
+### Community 250 - "Contract: Identity and Membership"
+
+Cohesion: 0.29
+Nodes (6): Agency provisioning/linking, Authentication routes, Contract: Identity and Membership, Creator onboarding transaction, Invitation API, Legacy editor binding
+
+### Community 251 - "2× synthetic rehearsal 8811990d-3e69-43b3-80dc-db5b42fc3c0d"
 
 Cohesion: 0.50
-Nodes (3): expected, records, [root, expectedFingerprint]
+Nodes (3): 2× synthetic rehearsal 8811990d-3e69-43b3-80dc-db5b42fc3c0d, Cutover evidence, Dataset and backup
 
-### Community 185 - "App Pagination"
+### Community 253 - "read-authority-catalogue.test.ts"
+
+Cohesion: 0.40
+Nodes (4): cases, deniedPhases, readAuthorityPhases, readAuthorityTools
+
+### Community 254 - "Test-first Quality Architecture"
 
 Cohesion: 0.67
-Nodes (3): AppPagination(), AppPaginationProps, pageItems()
+Nodes (3): Test-first Quality Architecture, Legal Feature Validation Workflow, Red-Green-Refactor Execution
 
-### Community 186 - "Frame Page Test"
+### Community 269 - "Public get_overlay slice"
+
+Cohesion: 0.13
+Nodes (15): Auth route strict source coverage manifest Green, Browser playlist creation adapter — Red, Direct provider authorization discovery Red, Direct provider discovery Green, ENV081 full affected compiled regression Green, Final source mapped ranges Green/refactor, Final source-range pipeline Red, Inverted TypeScript mapped range Red (+7 more)
+
+### Community 273 - "registry.ts"
+
+Cohesion: 0.18
+Nodes (15): consentCategoryDetails, consentServices, findConsentServicesForOrigin(), isBoundedStoragePattern(), matchesStorageDeclaration(), necessaryConsentServices, OptionalConsentCategory, StorageDeclarationInput (+7 more)
+
+### Community 274 - "resources/errors.ts"
+
+Cohesion: 0.43
+Nodes (4): toolFailure(), Code, messages, toPublicResourceError()
+
+### Community 275 - "overrides"
+
+Cohesion: 0.33
+Nodes (6): overrides, @better-auth/oauth-provider, figlet, prosemirror-view, source-map-js, tar
+
+### Community 276 - "browser-playlist-update-adapter.test.ts"
+
+Cohesion: 0.33
+Nodes (5): mockPrincipal, mockRows, mockUpdate, principal, row
+
+### Community 277 - "build-app.mjs"
+
+Cohesion: 0.40
+Nodes (4): publicationValidation, require, result, verification
+
+### Community 278 - "Phase 6: User Story 4 — Activity and throttling (P2)"
+
+Cohesion: 0.40
+Nodes (5): Distributed throttling and cleanup, Durable redacted activity, Phase 6: User Story 4 — Activity and throttling (P2), Story specification and registry, US4 quality/report review
+
+### Community 279 - "playwright.config.ts"
+
+Cohesion: 0.17
+Nodes (11): atddTestDir, bddTestDir, { browserProviderEnvironment }, { browserServerNodeOptions }, chromium, { browserDatabaseUrl, browserProviderEnvironment }, environment, browserDatabaseUrl() (+3 more)
+
+### Community 280 - "commands.ts"
+
+Cohesion: 0.11
+Nodes (27): canUseChatCommands(), chatCommandAccessCache, commands, getPrefix(), getUpgradeSettingsUrl(), handleCommand(), isCommand(), isMod() (+19 more)
+
+### Community 281 - "actions/creatorPage.ts"
+
+Cohesion: 0.14
+Nodes (23): getCreator, getCreatorClipPage(), getCreatorClipPlayback(), getCreatorPage(), getCreatorPageMetadata(), getCreatorPresentation, getCachedClipPageByOwner(), canResolvePublicClipPlayback() (+15 more)
+
+### Community 282 - "agency-allocations.test.ts"
+
+Cohesion: 0.36
+Nodes (6): AgencyAllocationNotice, AgencyAllocationNotificationIntent, buildAgencyAllocationGrantIntent(), buildAgencyAllocationRemovalIntents(), renderAgencyAllocationNotification(), NOW
+
+### Community 283 - "Tasks: MCP workflows"
+
+Cohesion: 0.12
+Nodes (15): Additional WF-US3 completeness: public player integration, Blocked external release acceptance, Blocked historical prerequisites — current behavior implemented and tested, Browser and workflow integration discovered during execution, Dependencies and parallelism, Feedback submission tasks, Phase 1: Setup, Phase 2: Foundation (+7 more)
+
+### Community 284 - "pricing/page.tsx"
+
+Cohesion: 0.27
+Nodes (8): PricingFaq(), dynamic, metadata, pricingFaq, PricingPage(), comparisonProps, getActiveCampaignOffer, resolveBillingCatalog
+
+### Community 285 - "server/rate-limit.ts"
+
+Cohesion: 0.14
+Nodes (14): rate-limiter-flexible, AppRateLimitInput, consumeAppRateLimit(), Limiter, limiterFor(), limiters, refundAppRateLimit(), Feedback (+6 more)
+
+### Community 287 - "overlay.theme.page.test.tsx"
+
+Cohesion: 0.14
+Nodes (11): box(), getOverlay, getOverlayOwnerPlan, labelOf(), notify, push, router, saved (+3 more)
+
+### Community 288 - "import-selection.test.ts"
 
 Cohesion: 0.50
-Nodes (3): getHeader, getPublicGallery, notFound
+Nodes (3): options, principal, selection
 
-### Community 187 - "Route Test"
+### Community 291 - "GalleryPlayer.tsx"
 
-Cohesion: 0.50
-Nodes (3): authUser, clearAdminViewCookieForAuthFlow, cookiesMock
+Cohesion: 0.21
+Nodes (10): CarouselApi, GalleryPlayer(), PlayerBootstrapInit, PlayerBootstrapState, Props, initialState(), PlaybackState, QUALIFIED_PLAYBACK_MS (+2 more)
+
+### Community 292 - "authorize.ts"
+
+Cohesion: 0.10
+Nodes (18): Agency invariant, Compatibility facade, Contract: Authorization, Denial codes, Evaluation order, Server API, Server authorization, Phase 10: Convergence — Production Runtime and Cutover Wiring (+10 more)
+
+### Community 293 - "Test Summary Report: MCP Support"
+
+Cohesion: 0.15
+Nodes (12): Approvals, Coverage and Traceability Summary, Defect Summary, Environment and Tooling, Execution Summary, Executive Summary, Quality Gates, Release Recommendation (+4 more)
+
+### Community 297 - "lint-staged"
+
+Cohesion: 0.67
+Nodes (3): lint-staged, *.{json,css,md}, *.{ts,tsx,js,jsx}
+
+### Community 298 - "next"
+
+Cohesion: 0.09
+Nodes (10): next, app, server, shutdown(), RunnerEnrollActionState, RunnerCreateCta(), getResultContent(), ResultContent (+2 more)
+
+### Community 301 - "preview.test.ts"
+
+Cohesion: 0.40
+Nodes (5): POST(), mockAuthorizeCreatorOperation, mockRunnerFindFirst, mockSessionFindFirst, mockValidateAuth
+
+### Community 304 - "Tasks: MCP workflows"
+
+Cohesion: 0.17
+Nodes (11): Additional US3 completeness: public player integration, Browser and workflow integration discovered during execution, Dependencies and parallelism, Phase 1: Setup, Phase 2: Foundation, Phase 3: Remote control, Phase 4: Find and import clips, Phase 5: Galleries and website embeds (+3 more)
+
+### Community 306 - "sentry-test/route.ts"
+
+Cohesion: 0.26
+Nodes (9): dynamic, GET(), revalidate, dynamic, POST(), revalidate, getInstanceHealthSnapshot(), hasInstanceHealthAuthorization() (+1 more)
+
+### Community 308 - "adminHealthCharts.tsx"
+
+Cohesion: 0.31
+Nodes (8): recharts, AdminHealthCharts(), ChartPanel(), formatPercent(), MeasuredChart(), InstanceHealthSnapshot, healthSnapshot, MockResizeObserver
+
+### Community 312 - "Tools"
+
+Cohesion: 0.22
+Nodes (8): Consent permissions, Creator Pages, Find and import clips, Galleries and website embeds, Remote control, Runner setup and streaming, Tools, Workflow constraints
+
+### Community 313 - "Test summary: MCP workflows"
+
+Cohesion: 0.22
+Nodes (9): Current verified checkpoint, Execution, Expanded acceptance checkpoint, External validation deferred, Final local verification, Recommendation, References, Strengthened acceptance and build checkpoint (+1 more)
+
+### Community 316 - "Implementation Plan: MCP product workflows"
+
+Cohesion: 0.22
+Nodes (9): Architecture and project structure, Constitution Check, Evidence retention, Execution phases, Feedback tool implementation, Implementation Plan: MCP product workflows, Summary, Technical Context (+1 more)
+
+### Community 319 - "providers/twitch.ts"
+
+Cohesion: 0.29
+Nodes (6): mapTwitchOAuthError(), TWITCH_ADDITIONAL_SCOPES, TWITCH_REQUIRED_SCOPES, TwitchProviderContractError, validateTwitchProfile(), validProfile
+
+### Community 320 - "role-assignment-policy.ts"
+
+Cohesion: 0.39
+Nodes (7): evaluateRoleAssignment(), flattenStatements(), permissionsForOrganizationRoles(), PermissionStatements, RoleAssignmentDecision, roleNames(), STATIC_ROLE_PERMISSIONS
+
+### Community 321 - "Implementation Plan: MCP product workflows"
+
+Cohesion: 0.25
+Nodes (8): Architecture and project structure, Constitution Check, Evidence retention, Execution phases, Implementation Plan: MCP product workflows, Summary, Technical Context, Test Plan and required gates
+
+### Community 322 - "Red-green-refactor journal"
+
+Cohesion: 0.25
+Nodes (7): Additional verification checkpoint, Duplicate provider clips, Foundation catalogue, Red-green-refactor journal, Runtime store and read tool, Stream configuration audit identity, Workflow database scheduler
+
+### Community 323 - "Red-green-refactor journal"
+
+Cohesion: 0.22
+Nodes (9): Additional verification checkpoint, Duplicate provider clips, Feedback tool, Foundation catalogue, Red-green-refactor journal, Runtime store and read tool, Shared application limiter refinement, Stream configuration audit identity (+1 more)
+
+### Community 328 - "dashboard.pages.test.tsx"
+
+Cohesion: 0.14
+Nodes (14): getGalleryPreviewPlayer(), getPublicGalleryPlayer(), GET(), GalleryPlayerClientOnly, GalleryPreviewPlayerPage(), GalleryClipPage(), getPublicGalleryPlayer, getAllPlaylists (+6 more)
+
+### Community 329 - "browser-server-budget.cjs"
+
+Cohesion: 0.43
+Nodes (4): browserServerNodeOptions(), { readTestSystem }, selectBrowserServerHeapMiB(), { selectBrowserServerHeapMiB, browserServerNodeOptions }
+
+### Community 330 - "Specification Quality Checklist: MCP Support"
+
+Cohesion: 0.29
+Nodes (6): Content Quality, Feature Readiness, Notes, Requirement Completeness, Specification Quality Checklist: MCP Support, Test-First Validation
+
+### Community 331 - "workflows/test-summary.md"
+
+Cohesion: 0.29
+Nodes (3): Defect log: MCP workflows, Defects, Policy
+
+### Community 332 - "Test traceability: MCP workflows"
+
+Cohesion: 0.29
+Nodes (7): Applicability Decisions, Evidence Artifact Registry, Quality Gate Results, Scenario Coverage Matrix, Source Coverage Map, Test traceability: MCP workflows, Verified execution checkpoint
+
+### Community 333 - "Test traceability: MCP workflows"
+
+Cohesion: 0.22
+Nodes (9): Applicability Decisions, Evidence Artifact Registry, Feedback evidence registry and quality gates, Feedback executable scenario inventory, Quality Gate Results, Scenario Coverage Matrix, Source Coverage Map, Test traceability: MCP workflows (+1 more)
+
+### Community 339 - "access.ts"
+
+Cohesion: 0.60
+Nodes (3): AgencyCreatorContext, resolveAgencyAccess(), selectAgencyCreatorContext()
 
 ## Knowledge Gaps
 
-- **1483 isolated node(s):** `useTabs`, `jsxSingleQuote`, `printWidth`, `drizzle`, `nextConfigPromise` (+1478 more)
-  These have ≤1 connection - possible missing edges or undocumented components.
-- **28 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **3138 isolated node(s):** `useTabs`, `jsxSingleQuote`, `printWidth`, `onRouterTransitionStart`, `nextJest` (+3133 more)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 3571 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **46 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `loadDatabaseActions()` connect `Database Settings Test` to `Database Database Ts`?**
-  _High betweenness centrality (0.024) - this node is a cross-community bridge._
-- **Why does `validateAuth()` connect `Auth Auth Ts` to `Database Database Ts`, `Plausible Creator Analytics`, `Database Coverage Test`, `Twitch Twitch Ts`, `Data Index Tsx`, `Runner Runner Ts`, `Badge Catalog`, `Theme Page`, `Tags Input`, `Dashboard Content`, `Controller Controller Ts`, `Subscription Subscription Ts`, `Gallery Gallery Ts`, `Db Schema`, `Login Page`, `Database Commands Ts`, `Feature Access`, `Actions Actions Ts`, `Database Queues Test`, `Member Card Image`, `Overlay Id Page`, `Checkout Intent`?**
-  _High betweenness centrality (0.021) - this node is a cross-community bridge._
-- **Why does `run()` connect `Validate Patched Dependencies` to `Inventory Audit Spec`?**
-  _High betweenness centrality (0.013) - this node is a cross-community bridge._
-- **Are the 128 inferred relationships involving `eq` (e.g. with `getAdminExplorerPage()` and `getAdminViewCandidates()`) actually correct?**
-  _`eq` has 128 INFERRED edges - model-reasoned connections that need verification._
-- **Are the 54 inferred relationships involving `and` (e.g. with `closeAdminViewSessionReadOnly()` and `startAdminViewSession()`) actually correct?**
-  _`and` has 54 INFERRED edges - model-reasoned connections that need verification._
+- **Why does `ENV108 — Mixed Babel and native V8 maps double-count source functions` connect `ENV108 — Mixed Babel and native V8 maps double-count source functions` to `OverlayTable/index.tsx`, `Defect Log: MCP Support`?**
+  _High betweenness centrality (0.083) - this node is a cross-community bridge._
 - **What connects `useTabs`, `jsxSingleQuote`, `printWidth` to the rest of the system?**
-  _1496 weakly-connected nodes found - possible documentation gaps or missing edges._
-- **Should `Clipify Vm01 Overview V1` be split into smaller, more focused modules?**
-  _Cohesion score 0.06160506160506161 - nodes in this community are weakly interconnected._
+  _3138 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **Should `actions/database.ts` be split into smaller, more focused modules?**
+  _Cohesion score 0.044372612400822804 - nodes in this community are weakly interconnected._
+- **Why does `getAllOverlays()` connect `OverlayTable/index.tsx` to `actions/database.ts`, `schema.ts`, `resources/overlays.ts`, `runner.ts`?**
+  _High betweenness centrality (0.080) - this node is a cross-community bridge._
+- **Should `community-data.ts` be split into smaller, more focused modules?**
+  _Cohesion score 0.09841269841269841 - nodes in this community are weakly interconnected._
+- **Why does `UI168 — Browser overlay list bypasses current membership and read permission` connect `OverlayTable/index.tsx` to `ENV108 — Mixed Babel and native V8 maps double-count source functions`?**
+  _High betweenness centrality (0.080) - this node is a cross-community bridge._
+- **Should `resources/overlays.ts` be split into smaller, more focused modules?**
+  _Cohesion score 0.061156235069278544 - nodes in this community are weakly interconnected._
