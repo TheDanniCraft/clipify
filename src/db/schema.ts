@@ -142,23 +142,20 @@ export const auditOutcomeEnum = pgEnum("audit_outcome", ["success", "denied", "e
 export const rateLimitSignalEnum = pgEnum("rate_limit_signal", ["identity", "network"]);
 export const notificationStatusEnum = pgEnum("notification_status", ["pending", "claimed", "sent", "retry", "dead"]);
 
-export const creatorAccountsTable = pgTable(
-	"creator_accounts",
-	{
-		organizationId: text("organization_id")
-			.primaryKey()
-			.references(() => authOrganizationTable.id, { onDelete: "cascade" }),
-		creatorId: varchar("creator_id")
-			.notNull()
-			.references(() => usersTable.id, { onDelete: "cascade" }),
-		status: creatorAccountStatusEnum("status").notNull().default("active"),
-		suspensionAt: timestamp("suspension_at", { withTimezone: true }),
-		purgeEligibleAt: timestamp("purge_eligible_at", { withTimezone: true }),
-		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
-	},
-	(table) => [uniqueIndex("creator_accounts_creator_unique").on(table.creatorId)],
-);
+export const creatorAccountsTable = pgTable("creator_accounts", {
+	organizationId: text("organization_id")
+		.primaryKey()
+		.references(() => authOrganizationTable.id, { onDelete: "cascade" }),
+	creatorId: varchar("creator_id")
+		.unique("creator_accounts_creator_unique")
+		.notNull()
+		.references(() => usersTable.id, { onDelete: "cascade" }),
+	status: creatorAccountStatusEnum("status").notNull().default("active"),
+	suspensionAt: timestamp("suspension_at", { withTimezone: true }),
+	purgeEligibleAt: timestamp("purge_eligible_at", { withTimezone: true }),
+	createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+	updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
 
 export const creatorIdentityLinksTable = pgTable(
 	"creator_identity_links",
