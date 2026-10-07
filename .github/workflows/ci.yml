@@ -173,7 +173,7 @@ jobs:
       MCP_TEST_DATABASE_URL: postgresql://clipify_e2e:clipify_e2e@127.0.0.1:5432/clipify_e2e
     services:
       postgres:
-        image: postgres:16
+        image: postgres:18
         env:
           POSTGRES_DB: clipify_e2e
           POSTGRES_PASSWORD: clipify_e2e
