@@ -13,7 +13,7 @@ Use the PR preview HTTPS origin, never the production origin, and a dedicated Cl
 
 ## Public readiness checks
 
-Check GET /.well-known/oauth-protected-resource, GET /.well-known/oauth-authorization-server/api/auth and an unauthenticated POST /mcp. Metadata must describe this preview origin; the protected endpoint must return an OAuth challenge, not a login HTML page. A disabled MCP endpoint returns 404 and requires deployment configuration, not client authorization.
+Check GET /.well-known/oauth-protected-resource, GET /.well-known/oauth-authorization-server/api/auth and an unauthenticated POST /mcp. Metadata must describe this preview origin; the protected endpoint must return an OAuth challenge, not a login HTML page. Disabled/invalid MCP configuration returns 404 for discovery and 503 for /mcp; that requires deployment configuration before client authorization.
 
 ## Connect Codex
 
@@ -39,3 +39,19 @@ Official connection instructions: https://learn.chatgpt.com/docs/extend/mcp?surf
 5. Record host/version/date, deployment revision, registration method and actual confirmation UI in the feature client matrix. One Codex journey does not close ChatGPT, Claude or custom-host acceptance.
 
 Physical runner control and live-overlay playback require a dedicated online test player/runner. Feedback acceptance remains covered locally with an actual SDK and captured local envelopes; deployed Sentry submissions are opt-in.
+
+## PR 496 preview observation
+
+Preview: https://beta-496.clipify.cloud.thedannicraft.de
+
+On 2026-10-07, both public discovery URLs returned 404 and an unauthenticated POST /mcp returned 503 with service_unavailable. The deployed configuration therefore does not enable MCP; no OAuth challenge or authorization link can be obtained yet. Coolify deployment credentials are unavailable in this workspace. Check MCP_ENABLED=true, the exact preview NEXT_PUBLIC_BASE_URL, the auth/rate-hash secrets and any MCP_ISSUER/MCP_RESOURCE overrides; redeploy, then repeat readiness checks. Database identity and final schema must also be verified before mutations.
+
+The final pre-push regression passed 416 suites / 4495 tests, with 2 suites / 11 existing tests skipped (2484 seconds). GitHub CI was still running when the preview readiness check was recorded. CodeFactor reports 34 annotations, predominantly method complexity, plus a pre-existing SpecKit Python exception-handling finding; those remain review findings rather than a claimed Green quality gate.
+
+With deployment configuration fixed, use the configured clipify-preview server and run:
+
+```sh
+codex mcp login clipify-preview --no-browser --oauth-client-registration dcr --scopes creator:read,overlay:read,playlist:read,gallery:read,runner:read,offline_access
+```
+
+This produces the fresh authorization URL. It cannot be generated while discovery is unavailable.
