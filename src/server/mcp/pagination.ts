@@ -6,7 +6,7 @@ const positionSchema = z.string().min(1).max(255);
 const cursorSchema = z.object({ v: z.literal(1), position: positionSchema, context: z.string().length(64), expiresAt: z.number().int().positive() }).strict();
 type CursorOptions = { secret?: string; now?: Date };
 function signingKey(options: CursorOptions): string {
-	const secret = options.secret ?? process.env.MCP_CURSOR_SECRET ?? process.env.BETTER_AUTH_SECRET ?? process.env.JWT_SECRET;
+	const secret = options.secret ?? process.env.BETTER_AUTH_SECRET ?? process.env.JWT_SECRET;
 	if (!secret) throw new Error("SERVICE_UNAVAILABLE");
 	return createHmac("sha256", secret).update("clipify:mcp:cursor:v1").digest("hex");
 }

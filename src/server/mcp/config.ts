@@ -26,17 +26,7 @@ export function getMcpConfiguration(environment: NodeJS.ProcessEnv = process.env
 	const resource = `${origin}/mcp`,
 		issuer = `${origin}/api/auth`;
 	const allowedOrigins = [origin];
-	for (const value of (environment.MCP_ALLOWED_ORIGINS ?? "")
-		.split(",")
-		.map((value) => value.trim())
-		.filter(Boolean)) {
-		const approved = approvedOrigin(value);
-		if (!approved) valid = false;
-		else if (!allowedOrigins.includes(approved.origin)) allowedOrigins.push(approved.origin);
-	}
 	const authSecret = environment.BETTER_AUTH_SECRET ?? environment.JWT_SECRET;
 	if (!authSecret || authSecret.trim().length < 32 || !environment.RATE_LIMIT_HASH_SECRET || environment.RATE_LIMIT_HASH_SECRET.trim().length < 32) valid = false;
-	if (environment.MCP_ISSUER !== undefined && environment.MCP_ISSUER !== issuer) valid = false;
-	if (environment.MCP_RESOURCE !== undefined && environment.MCP_RESOURCE !== resource) valid = false;
 	return { valid, origin, resource, issuer, allowedOrigins };
 }

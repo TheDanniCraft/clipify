@@ -23,7 +23,6 @@ async function main() {
 	if (commercialSource) process.env.ENTITLEMENTS_HYBRID_ENABLED = "true";
 	let benchmarkTargets: Awaited<ReturnType<(typeof import("./load-benchmark"))["seedBenchmarkCreators"]>> = [];
 	if (mode.includes("policy-grant") || mode.includes("policy-global-grant") || mode.includes("policy-allocation")) process.env.ENTITLEMENTS_HYBRID_ENABLED = "true";
-	if (mode.endsWith(":rate-limit")) process.env.MCP_CALLS_PER_MINUTE = "1";
 	process.env.RATE_LIMIT_HASH_SECRET = "isolated-mcp-provider-ratelimit-32chars";
 	const origin = "http://127.0.0.1:3107";
 	const pauseMode = mode.includes("overlay-update:pause");
@@ -725,6 +724,8 @@ async function main() {
 						protocolErrorCode = value?.error?.code;
 						resourceResult = value?.result?.structuredContent;
 						if (mode.startsWith("resources:overlay-create") || mode.startsWith("resources:playlist-create")) {
+							// Prior calls fill the fixed actor budget before the replay request.
+							if (mode.endsWith(":rate-limit")) await fixture.pool.query("UPDATE rate_limit_counters SET count=120 WHERE action='mcp:call:actor-client'");
 							const repeat = await route!.POST(new Request(`${origin}/mcp`, { method: "POST", headers: request.headers, body: JSON.stringify({ ...message, id: 2 }) }));
 							toolReplayStatus = repeat.status;
 							replayRetryAfter = repeat.headers.get("retry-after");

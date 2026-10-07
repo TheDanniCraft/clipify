@@ -4,12 +4,9 @@ async function main() {
 	process.env.DATABASE_URL = fixture.url;
 	const mode = process.argv[2];
 	const now = new Date("2026-10-05T00:00:00Z");
-	delete process.env.MCP_ACTIVITY_RETENTION_DAYS;
-	if (mode === "configured") process.env.MCP_ACTIVITY_RETENTION_DAYS = "1";
-	if (mode === "invalid-config") process.env.MCP_ACTIVITY_RETENTION_DAYS = "unbounded";
 	try {
 		await fixture.pool.query(`INSERT INTO auth."user" (id,name,email,email_verified,created_at,updated_at) VALUES ('retention-owner','Owner','retention@example.invalid',true,$1,$1)`, [now]);
-		const cutoff = now.getTime() - (mode === "configured" ? 1 : 90) * 86400000;
+		const cutoff = now.getTime() - 90 * 86400000;
 		for (const [index, action, time] of [
 			[1, "sensitive-integration:mcp.get_overlay", cutoff - 1],
 			[2, "sensitive-integration:mcp.unavailable_tool", cutoff],
@@ -25,7 +22,7 @@ async function main() {
 		let result: unknown = null;
 		let error: string | null = null;
 		try {
-			if (prune) result = mode === "concurrent" ? await Promise.all([prune({ now, batchSize: 1 }, fixture.db), prune({ now, batchSize: 1 }, fixture.db)]) : await prune({ now, batchSize: mode === "bounded" ? 1 : 100 }, fixture.db);
+			if (prune) result = mode === "concurrent" ? await Promise.all([prune({ now, batchSize: 1 }, fixture.db), prune({ now, batchSize: 1 }, fixture.db)]) : await prune({ now: mode === "invalid-time" ? new Date(NaN) : now, batchSize: mode === "bounded" ? 1 : 100 }, fixture.db);
 		} catch (cause) {
 			error = cause instanceof Error ? cause.message : "unknown";
 		}

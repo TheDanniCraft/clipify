@@ -44,7 +44,7 @@ Physical runner control and live-overlay playback require a dedicated online tes
 
 Preview: https://beta-496.clipify.cloud.thedannicraft.de
 
-On 2026-10-07, both public discovery URLs returned 404 and an unauthenticated POST /mcp returned 503 with service_unavailable. This observation preceded removal of the former activation flag; no OAuth challenge or authorization link was available at that checkpoint. Coolify deployment credentials are unavailable in this workspace. With the current code there is no activation flag. Check the exact preview NEXT_PUBLIC_BASE_URL, the auth/rate-hash secrets and any MCP_ISSUER/MCP_RESOURCE overrides; redeploy, then repeat readiness checks. Database identity and final schema must also be verified before mutations.
+On 2026-10-07, both public discovery URLs returned 404 and an unauthenticated POST /mcp returned 503 with service_unavailable. This observation preceded removal of the former activation flag; no OAuth challenge or authorization link was available at that checkpoint. Coolify deployment credentials are unavailable in this workspace. With the current code there is no activation flag. Check the exact preview NEXT_PUBLIC_BASE_URL, the auth/rate-hash secrets; redeploy, then repeat readiness checks. Database identity and final schema must also be verified before mutations.
 
 The final pre-push regression passed 416 suites / 4495 tests, with 2 suites / 11 existing tests skipped (2484 seconds). GitHub CI was still running when the preview readiness check was recorded. CodeFactor reports 34 annotations, predominantly method complexity, plus a pre-existing SpecKit Python exception-handling finding; those remain review findings rather than a claimed Green quality gate.
 

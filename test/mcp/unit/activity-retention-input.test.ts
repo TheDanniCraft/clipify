@@ -9,21 +9,8 @@ try {
 	operational = cleanup.pruneMcpOperationalRecords;
 	revoked = cleanup.pruneRevokedMcpCredentials;
 } catch {}
-const saved = process.env.MCP_ACTIVITY_RETENTION_DAYS;
 describe("TDD-PRIVACY-003 retention input boundaries", () => {
-	afterEach(() => {
-		if (saved === undefined) delete process.env.MCP_ACTIVITY_RETENTION_DAYS;
-		else process.env.MCP_ACTIVITY_RETENTION_DAYS = saved;
-	});
-	test.each(["0", "-1", "366", "1.5", "", "unbounded"])("invalid retention %s cannot enter a transaction", async (days) => {
-		process.env.MCP_ACTIVITY_RETENTION_DAYS = days;
-		expect(prune).toEqual(expect.any(Function));
-		const transaction = jest.fn();
-		await expect(prune!({}, { transaction })).rejects.toThrow("INVALID_INPUT");
-		expect(transaction).not.toHaveBeenCalled();
-	});
 	test.each([{ batchSize: 0 }, { batchSize: 501 }, { batchSize: 1.5 }, { now: new Date(NaN) }, { now: new Date(-8640000000000000) }])("invalid input %j cannot enter a transaction", async (input) => {
-		delete process.env.MCP_ACTIVITY_RETENTION_DAYS;
 		expect(prune).toEqual(expect.any(Function));
 		const transaction = jest.fn();
 		await expect(prune!(input, { transaction })).rejects.toThrow("INVALID_INPUT");

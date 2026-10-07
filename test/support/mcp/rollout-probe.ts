@@ -15,7 +15,7 @@ async function main() {
 			delete process.env.JWT_SECRET;
 		}
 		if (mode === "missing-rate") delete process.env.RATE_LIMIT_HASH_SECRET;
-		if (mode === "bad-origins") process.env.MCP_ALLOWED_ORIGINS = "https://partner.example/unsafe-path";
+		if (mode === "bad-origin") process.env.NEXT_PUBLIC_BASE_URL = "https://clipify.example/unsafe-path";
 		if (mode === "missing-revision") await fixture.pool.query("ALTER TABLE overlays DROP COLUMN configuration_revision");
 		if (mode === "missing-default") await fixture.pool.query("ALTER TABLE playlists ALTER COLUMN configuration_revision DROP DEFAULT");
 		if (mode === "nullable-revision") await fixture.pool.query("ALTER TABLE overlays ALTER COLUMN configuration_revision DROP NOT NULL");

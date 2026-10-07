@@ -69,10 +69,9 @@ export async function pruneRevokedMcpCredentials(input: { batchSize?: number } =
 export async function pruneMcpActivity(input: { now?: Date; batchSize?: number } = {}, client: DatabaseClient = db) {
 	const now = input.now ?? new Date();
 	const batchSize = input.batchSize ?? 100;
-	const configuredDays = process.env.MCP_ACTIVITY_RETENTION_DAYS;
-	const days = configuredDays === undefined ? 90 : Number(configuredDays);
+	const days = 90;
 	const cutoff = new Date(now.getTime() - days * 86400000);
-	if (!Number.isFinite(now.getTime()) || !Number.isFinite(cutoff.getTime()) || !Number.isSafeInteger(days) || days < 1 || days > 365 || !Number.isSafeInteger(batchSize) || batchSize < 1 || batchSize > 500) throw new Error("INVALID_INPUT");
+	if (!Number.isFinite(now.getTime()) || !Number.isFinite(cutoff.getTime()) || !Number.isSafeInteger(batchSize) || batchSize < 1 || batchSize > 500) throw new Error("INVALID_INPUT");
 	return client.transaction(async (tx) => {
 		const deleted = await tx.execute(sql`
 			WITH candidates AS (

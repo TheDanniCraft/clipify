@@ -2,7 +2,7 @@
 
 ## Corpus Check
 
-- 1208 files · ~835,667 words
+- 1208 files · ~835,342 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 154 file(s) not represented in the graph (top: .feature 130, (none) 11, .css 8)
 
@@ -14,7 +14,7 @@
 
 ## Graph Freshness
 
-- Built from commit: `565d8c0a`
+- Built from commit: `29765c6e`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -426,8 +426,8 @@ Nodes (56): esbuild, jest, @types/jest, @types/node, typescript, name, private, 
 
 ### Community 5 - "db/client.ts"
 
-Cohesion: 0.12
-Nodes (20): schema, main(), main(), main(), main(), main(), main(), main() (+12 more)
+Cohesion: 0.09
+Nodes (23): schema, main(), main(), main(), main(), main(), main(), main() (+15 more)
 
 ### Community 6 - "lib/campaignOffers.ts"
 
@@ -486,8 +486,8 @@ Nodes (42): addToClipQueue(), getOverlayByRewardId(), updateRedemptionStatus(), 
 
 ### Community 17 - "app/mcp/route.ts"
 
-Cohesion: 0.07
-Nodes (23): DELETE, GET, OPTIONS, POST, runtime, connectMcpClient(), runCreateRetryCatalogue(), runCreatorSelectionCatalogue() (+15 more)
+Cohesion: 0.08
+Nodes (20): DELETE, GET, OPTIONS, POST, runtime, runCreateRetryCatalogue(), runCreatorSelectionCatalogue(), runLoadBenchmark() (+12 more)
 
 ### Community 18 - "agencies/database.ts"
 

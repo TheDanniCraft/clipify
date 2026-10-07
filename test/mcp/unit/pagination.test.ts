@@ -42,7 +42,6 @@ describe("TDD-US2-032 cursor signing configuration", () => {
 		process.env = { ...original };
 	});
 	function clearKeys() {
-		delete process.env.MCP_CURSOR_SECRET;
 		delete process.env.BETTER_AUTH_SECRET;
 		delete process.env.JWT_SECRET;
 	}
@@ -57,11 +56,10 @@ describe("TDD-US2-032 cursor signing configuration", () => {
 		expect(() => pagination.encodePageCursor("resource-1", context, { now })).toThrow("SERVICE_UNAVAILABLE");
 		expect(() => pagination.decodePageCursor("a.b", context, { now })).toThrow("SERVICE_UNAVAILABLE");
 	});
-	test("explicit and cursor-specific keys override auth secret fallbacks", () => {
+	test("auth key precedes legacy fallback and explicit test key remains supported", () => {
 		clearKeys();
 		process.env.JWT_SECRET = "legacy";
-		process.env.BETTER_AUTH_SECRET = "auth";
-		process.env.MCP_CURSOR_SECRET = secret;
+		process.env.BETTER_AUTH_SECRET = secret;
 		const cursor = pagination.encodePageCursor("resource-1", context, { now });
 		expect(pagination.decodePageCursor(cursor, context, { secret, now })).toBe("resource-1");
 		const explicit = pagination.encodePageCursor("resource-1", context, { secret: "explicit", now });

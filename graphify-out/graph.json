@@ -792,7 +792,7 @@
       "file_type": "code",
       "norm_label": "decision",
       "source_file": "src/server/mcp/rate-limit.ts",
-      "source_location": "L10"
+      "source_location": "L9"
     },
     {
       "id": "src_server_mcp_rate_limit_input",
@@ -805,7 +805,7 @@
       "file_type": "code",
       "norm_label": "input",
       "source_file": "src/server/mcp/rate-limit.ts",
-      "source_location": "L9"
+      "source_location": "L8"
     },
     {
       "id": "src_server_mcp_rate_limit_limits",
@@ -818,7 +818,7 @@
       "file_type": "code",
       "norm_label": "limits",
       "source_file": "src/server/mcp/rate-limit.ts",
-      "source_location": "L8"
+      "source_location": "L7"
     },
     {
       "id": "src_auth_audit_auditactionclass",
@@ -9374,7 +9374,7 @@
       "file_type": "code",
       "norm_label": "consumemcpratelimit()",
       "source_file": "src/server/mcp/rate-limit.ts",
-      "source_location": "L36"
+      "source_location": "L22"
     },
     {
       "id": "src_server_mcp_rate_limit_getmcpnetworksignal",
@@ -9386,7 +9386,7 @@
       "file_type": "code",
       "norm_label": "getmcpnetworksignal()",
       "source_file": "src/server/mcp/rate-limit.ts",
-      "source_location": "L26"
+      "source_location": "L17"
     },
     {
       "id": "src_server_mcp_rate_limit_getmcpratelimits",
@@ -11405,28 +11405,16 @@
       "source_location": "L5"
     },
     {
-      "id": "test_support_mcp_cimd_deadline_probe_main",
-      "label": "main()",
+      "id": "test_support_mcp_client_connectmcpclient",
+      "label": "connectMcpClient()",
       "_callable": true,
       "_origin": "ast",
       "community": 137,
       "community_name": "ref_node_crypto",
       "file_type": "code",
-      "norm_label": "main()",
-      "source_file": "test/support/mcp/cimd-deadline-probe.ts",
-      "source_location": "L8"
-    },
-    {
-      "id": "test_support_mcp_cimd_https_probe_main",
-      "label": "main()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 137,
-      "community_name": "ref_node_crypto",
-      "file_type": "code",
-      "norm_label": "main()",
-      "source_file": "test/support/mcp/cimd-https-probe.ts",
-      "source_location": "L15"
+      "norm_label": "connectmcpclient()",
+      "source_file": "test/support/mcp/client.ts",
+      "source_location": "L2"
     },
     {
       "id": "test_support_mcp_connected_transition_observeconnectedtransition",
@@ -11522,7 +11510,7 @@
       "file_type": "code",
       "norm_label": "main()",
       "source_file": "test/support/mcp/registration-rate-probe.ts",
-      "source_location": "L6"
+      "source_location": "L7"
     },
     {
       "id": "test_support_mcp_retry_isolation_catalogue_runretryisolationcatalogue",
@@ -11535,6 +11523,18 @@
       "norm_label": "runretryisolationcatalogue()",
       "source_file": "test/support/mcp/retry-isolation-catalogue.ts",
       "source_location": "L4"
+    },
+    {
+      "id": "test_support_mcp_sdk_client_probe_main",
+      "label": "main()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 137,
+      "community_name": "ref_node_crypto",
+      "file_type": "code",
+      "norm_label": "main()",
+      "source_file": "test/support/mcp/sdk-client-probe.ts",
+      "source_location": "L11"
     },
     {
       "id": "src_app_api_auth_all_route_get",
@@ -14813,18 +14813,6 @@
       "source_location": "L93"
     },
     {
-      "id": "test_support_mcp_client_connectmcpclient",
-      "label": "connectMcpClient()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 17,
-      "community_name": "app/mcp/route.ts",
-      "file_type": "code",
-      "norm_label": "connectmcpclient()",
-      "source_file": "test/support/mcp/client.ts",
-      "source_location": "L2"
-    },
-    {
       "id": "test_support_mcp_create_retry_catalogue_runcreateretrycatalogue",
       "label": "runCreateRetryCatalogue()",
       "_callable": true,
@@ -14859,18 +14847,6 @@
       "norm_label": "call()",
       "source_file": "test/support/mcp/creator-selection-catalogue.ts",
       "source_location": "L19"
-    },
-    {
-      "id": "test_support_mcp_database_deadline_probe_main",
-      "label": "main()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 17,
-      "community_name": "app/mcp/route.ts",
-      "file_type": "code",
-      "norm_label": "main()",
-      "source_file": "test/support/mcp/database-deadline-probe.ts",
-      "source_location": "L4"
     },
     {
       "id": "test_support_mcp_load_benchmark_runloadbenchmark",
@@ -14979,18 +14955,6 @@
       "norm_label": "runrevisioncatalogue()",
       "source_file": "test/support/mcp/revision-catalogue.ts",
       "source_location": "L4"
-    },
-    {
-      "id": "test_support_mcp_sdk_client_probe_main",
-      "label": "main()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 17,
-      "community_name": "app/mcp/route.ts",
-      "file_type": "code",
-      "norm_label": "main()",
-      "source_file": "test/support/mcp/sdk-client-probe.ts",
-      "source_location": "L11"
     },
     {
       "id": "test_support_mcp_token_catalogue_runtokencatalogue",
@@ -25469,6 +25433,30 @@
       "source_location": "L2"
     },
     {
+      "id": "test_support_mcp_cimd_deadline_probe_main",
+      "label": "main()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 5,
+      "community_name": "db/client.ts",
+      "file_type": "code",
+      "norm_label": "main()",
+      "source_file": "test/support/mcp/cimd-deadline-probe.ts",
+      "source_location": "L8"
+    },
+    {
+      "id": "test_support_mcp_cimd_https_probe_main",
+      "label": "main()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 5,
+      "community_name": "db/client.ts",
+      "file_type": "code",
+      "norm_label": "main()",
+      "source_file": "test/support/mcp/cimd-https-probe.ts",
+      "source_location": "L15"
+    },
+    {
       "id": "test_support_mcp_cleanup_disabled_probe_main",
       "label": "main()",
       "_callable": true,
@@ -25503,6 +25491,18 @@
       "norm_label": "main()",
       "source_file": "test/support/mcp/database-abort-probe.ts",
       "source_location": "L3"
+    },
+    {
+      "id": "test_support_mcp_database_deadline_probe_main",
+      "label": "main()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 5,
+      "community_name": "db/client.ts",
+      "file_type": "code",
+      "norm_label": "main()",
+      "source_file": "test/support/mcp/database-deadline-probe.ts",
+      "source_location": "L4"
     },
     {
       "id": "test_support_mcp_overlay_effect_lease_catalogue_runeffectleasecatalogue",
@@ -35715,7 +35715,7 @@
       "file_type": "code",
       "norm_label": "defaults",
       "source_file": "src/server/mcp/rate-limit.ts",
-      "source_location": "L7"
+      "source_location": "L6"
     },
     {
       "id": "test_mcp_unit_rate_limit_inputs_test",
@@ -41508,25 +41508,14 @@
       "source_location": "L1"
     },
     {
-      "id": "test_support_mcp_cimd_deadline_probe",
-      "label": "cimd-deadline-probe.ts",
+      "id": "test_support_mcp_client",
+      "label": "mcp/client.ts",
       "_origin": "ast",
       "community": 137,
       "community_name": "ref_node_crypto",
       "file_type": "code",
-      "norm_label": "cimd-deadline-probe.ts",
-      "source_file": "test/support/mcp/cimd-deadline-probe.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "test_support_mcp_cimd_https_probe",
-      "label": "cimd-https-probe.ts",
-      "_origin": "ast",
-      "community": 137,
-      "community_name": "ref_node_crypto",
-      "file_type": "code",
-      "norm_label": "cimd-https-probe.ts",
-      "source_file": "test/support/mcp/cimd-https-probe.ts",
+      "norm_label": "mcp/client.ts",
+      "source_file": "test/support/mcp/client.ts",
       "source_location": "L1"
     },
     {
@@ -41769,6 +41758,17 @@
       "file_type": "code",
       "norm_label": "revocation-catalogue.ts",
       "source_file": "test/support/mcp/revocation-catalogue.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "test_support_mcp_sdk_client_probe",
+      "label": "sdk-client-probe.ts",
+      "_origin": "ast",
+      "community": 137,
+      "community_name": "ref_node_crypto",
+      "file_type": "code",
+      "norm_label": "sdk-client-probe.ts",
+      "source_file": "test/support/mcp/sdk-client-probe.ts",
       "source_location": "L1"
     },
     {
@@ -45910,17 +45910,6 @@
       "source_location": "L2"
     },
     {
-      "id": "test_support_mcp_client",
-      "label": "mcp/client.ts",
-      "_origin": "ast",
-      "community": 17,
-      "community_name": "app/mcp/route.ts",
-      "file_type": "code",
-      "norm_label": "mcp/client.ts",
-      "source_file": "test/support/mcp/client.ts",
-      "source_location": "L1"
-    },
-    {
       "id": "test_support_mcp_create_retry_catalogue",
       "label": "create-retry-catalogue.ts",
       "_origin": "ast",
@@ -45929,17 +45918,6 @@
       "file_type": "code",
       "norm_label": "create-retry-catalogue.ts",
       "source_file": "test/support/mcp/create-retry-catalogue.ts",
-      "source_location": "L1"
-    },
-    {
-      "id": "test_support_mcp_database_deadline_probe",
-      "label": "database-deadline-probe.ts",
-      "_origin": "ast",
-      "community": 17,
-      "community_name": "app/mcp/route.ts",
-      "file_type": "code",
-      "norm_label": "database-deadline-probe.ts",
-      "source_file": "test/support/mcp/database-deadline-probe.ts",
       "source_location": "L1"
     },
     {
@@ -45996,17 +45974,6 @@
       "norm_label": "mutationvalidationtools",
       "source_file": "test/support/mcp/mutation-validation-catalogue.ts",
       "source_location": "L3"
-    },
-    {
-      "id": "test_support_mcp_sdk_client_probe",
-      "label": "sdk-client-probe.ts",
-      "_origin": "ast",
-      "community": 17,
-      "community_name": "app/mcp/route.ts",
-      "file_type": "code",
-      "norm_label": "sdk-client-probe.ts",
-      "source_file": "test/support/mcp/sdk-client-probe.ts",
-      "source_location": "L1"
     },
     {
       "id": "test_support_mcp_token_catalogue",
@@ -68806,6 +68773,28 @@
       "source_location": "L1"
     },
     {
+      "id": "test_support_mcp_cimd_deadline_probe",
+      "label": "cimd-deadline-probe.ts",
+      "_origin": "ast",
+      "community": 5,
+      "community_name": "db/client.ts",
+      "file_type": "code",
+      "norm_label": "cimd-deadline-probe.ts",
+      "source_file": "test/support/mcp/cimd-deadline-probe.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "test_support_mcp_cimd_https_probe",
+      "label": "cimd-https-probe.ts",
+      "_origin": "ast",
+      "community": 5,
+      "community_name": "db/client.ts",
+      "file_type": "code",
+      "norm_label": "cimd-https-probe.ts",
+      "source_file": "test/support/mcp/cimd-https-probe.ts",
+      "source_location": "L1"
+    },
+    {
       "id": "test_support_mcp_cleanup_disabled_probe",
       "label": "cleanup-disabled-probe.ts",
       "_origin": "ast",
@@ -68836,6 +68825,17 @@
       "file_type": "code",
       "norm_label": "database-abort-probe.ts",
       "source_file": "test/support/mcp/database-abort-probe.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "test_support_mcp_database_deadline_probe",
+      "label": "database-deadline-probe.ts",
+      "_origin": "ast",
+      "community": 5,
+      "community_name": "db/client.ts",
+      "file_type": "code",
+      "norm_label": "database-deadline-probe.ts",
+      "source_file": "test/support/mcp/database-deadline-probe.ts",
       "source_location": "L1"
     },
     {
@@ -83158,42 +83158,6 @@
       "type": "external"
     },
     {
-      "id": "ref_node_dns",
-      "label": "ref_node_dns",
-      "_origin": "semantic",
-      "community": 137,
-      "community_name": "ref_node_crypto",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "ref_node_dns",
-      "source_file": "",
-      "type": "external"
-    },
-    {
-      "id": "ref_node_https",
-      "label": "ref_node_https",
-      "_origin": "semantic",
-      "community": 137,
-      "community_name": "ref_node_crypto",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "ref_node_https",
-      "source_file": "",
-      "type": "external"
-    },
-    {
-      "id": "ref_node_tls",
-      "label": "ref_node_tls",
-      "_origin": "semantic",
-      "community": 137,
-      "community_name": "ref_node_crypto",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "ref_node_tls",
-      "source_file": "",
-      "type": "external"
-    },
-    {
       "id": "src_app_components_gallery_galleryframe_module",
       "label": "src_app_components_gallery_galleryframe_module",
       "_origin": "semantic",
@@ -83238,18 +83202,6 @@
       "external": true,
       "file_type": "concept",
       "norm_label": "ref_jose",
-      "source_file": "",
-      "type": "external"
-    },
-    {
-      "id": "ref_node_net",
-      "label": "ref_node_net",
-      "_origin": "semantic",
-      "community": 17,
-      "community_name": "app/mcp/route.ts",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "ref_node_net",
       "source_file": "",
       "type": "external"
     },
@@ -83994,6 +83946,54 @@
       "external": true,
       "file_type": "concept",
       "norm_label": "src_app_components_heroui_client_avatarimage",
+      "source_file": "",
+      "type": "external"
+    },
+    {
+      "id": "ref_node_dns",
+      "label": "ref_node_dns",
+      "_origin": "semantic",
+      "community": 5,
+      "community_name": "db/client.ts",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "ref_node_dns",
+      "source_file": "",
+      "type": "external"
+    },
+    {
+      "id": "ref_node_https",
+      "label": "ref_node_https",
+      "_origin": "semantic",
+      "community": 5,
+      "community_name": "db/client.ts",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "ref_node_https",
+      "source_file": "",
+      "type": "external"
+    },
+    {
+      "id": "ref_node_net",
+      "label": "ref_node_net",
+      "_origin": "semantic",
+      "community": 5,
+      "community_name": "db/client.ts",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "ref_node_net",
+      "source_file": "",
+      "type": "external"
+    },
+    {
+      "id": "ref_node_tls",
+      "label": "ref_node_tls",
+      "_origin": "semantic",
+      "community": 5,
+      "community_name": "db/client.ts",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "ref_node_tls",
       "source_file": "",
       "type": "external"
     },
@@ -114728,7 +114728,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "test/support/mcp/flow-probe.ts",
-      "source_location": "L46",
+      "source_location": "L45",
       "weight": 1.0
     },
     {
@@ -115040,7 +115040,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "test/support/mcp/registration-rate-probe.ts",
-      "source_location": "L14",
+      "source_location": "L13",
       "weight": 1.0
     },
     {
@@ -115052,7 +115052,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "test/support/mcp/registration-rate-probe.ts",
-      "source_location": "L7",
+      "source_location": "L8",
       "weight": 1.0
     },
     {
@@ -128069,7 +128069,7 @@
       "context": "import",
       "deferred": true,
       "source_file": "test/support/mcp/activity-retention-probe.ts",
-      "source_location": "L23",
+      "source_location": "L20",
       "weight": 1.0
     },
     {
@@ -128082,7 +128082,7 @@
       "context": "import",
       "deferred": true,
       "source_file": "test/support/mcp/activity-retention-probe.ts",
-      "source_location": "L35",
+      "source_location": "L32",
       "weight": 1.0
     },
     {
@@ -128771,7 +128771,7 @@
       "context": "import",
       "deferred": true,
       "source_file": "test/support/mcp/flow-probe.ts",
-      "source_location": "L135",
+      "source_location": "L134",
       "weight": 1.0
     },
     {
@@ -128784,7 +128784,7 @@
       "context": "import",
       "deferred": true,
       "source_file": "test/support/mcp/flow-probe.ts",
-      "source_location": "L142",
+      "source_location": "L141",
       "weight": 1.0
     },
     {
@@ -128797,7 +128797,7 @@
       "context": "import",
       "deferred": true,
       "source_file": "test/support/mcp/flow-probe.ts",
-      "source_location": "L143",
+      "source_location": "L142",
       "weight": 1.0
     },
     {
@@ -128810,7 +128810,7 @@
       "context": "import",
       "deferred": true,
       "source_file": "test/support/mcp/flow-probe.ts",
-      "source_location": "L145",
+      "source_location": "L144",
       "weight": 1.0
     },
     {
@@ -128823,7 +128823,7 @@
       "context": "import",
       "deferred": true,
       "source_file": "test/support/mcp/flow-probe.ts",
-      "source_location": "L169",
+      "source_location": "L168",
       "weight": 1.0
     },
     {
@@ -128836,7 +128836,7 @@
       "context": "import",
       "deferred": true,
       "source_file": "test/support/mcp/flow-probe.ts",
-      "source_location": "L219",
+      "source_location": "L218",
       "weight": 1.0
     },
     {
@@ -128849,7 +128849,7 @@
       "context": "import",
       "deferred": true,
       "source_file": "test/support/mcp/flow-probe.ts",
-      "source_location": "L231",
+      "source_location": "L230",
       "weight": 1.0
     },
     {
@@ -128875,7 +128875,7 @@
       "context": "import",
       "deferred": true,
       "source_file": "test/support/mcp/flow-probe.ts",
-      "source_location": "L298",
+      "source_location": "L297",
       "weight": 1.0
     },
     {
@@ -128888,7 +128888,7 @@
       "context": "import",
       "deferred": true,
       "source_file": "test/support/mcp/flow-probe.ts",
-      "source_location": "L303",
+      "source_location": "L302",
       "weight": 1.0
     },
     {
@@ -128901,7 +128901,7 @@
       "context": "import",
       "deferred": true,
       "source_file": "test/support/mcp/flow-probe.ts",
-      "source_location": "L309",
+      "source_location": "L308",
       "weight": 1.0
     },
     {
@@ -128914,7 +128914,7 @@
       "context": "import",
       "deferred": true,
       "source_file": "test/support/mcp/flow-probe.ts",
-      "source_location": "L315",
+      "source_location": "L314",
       "weight": 1.0
     },
     {
@@ -128927,7 +128927,7 @@
       "context": "import",
       "deferred": true,
       "source_file": "test/support/mcp/flow-probe.ts",
-      "source_location": "L320",
+      "source_location": "L319",
       "weight": 1.0
     },
     {
@@ -128940,7 +128940,7 @@
       "context": "import",
       "deferred": true,
       "source_file": "test/support/mcp/flow-probe.ts",
-      "source_location": "L324",
+      "source_location": "L323",
       "weight": 1.0
     },
     {
@@ -128953,7 +128953,7 @@
       "context": "import",
       "deferred": true,
       "source_file": "test/support/mcp/flow-probe.ts",
-      "source_location": "L329",
+      "source_location": "L328",
       "weight": 1.0
     },
     {
@@ -128966,7 +128966,7 @@
       "context": "import",
       "deferred": true,
       "source_file": "test/support/mcp/flow-probe.ts",
-      "source_location": "L334",
+      "source_location": "L333",
       "weight": 1.0
     },
     {
@@ -128979,7 +128979,7 @@
       "context": "import",
       "deferred": true,
       "source_file": "test/support/mcp/flow-probe.ts",
-      "source_location": "L339",
+      "source_location": "L338",
       "weight": 1.0
     },
     {
@@ -128992,7 +128992,7 @@
       "context": "import",
       "deferred": true,
       "source_file": "test/support/mcp/flow-probe.ts",
-      "source_location": "L344",
+      "source_location": "L343",
       "weight": 1.0
     },
     {
@@ -129005,7 +129005,7 @@
       "context": "import",
       "deferred": true,
       "source_file": "test/support/mcp/flow-probe.ts",
-      "source_location": "L349",
+      "source_location": "L348",
       "weight": 1.0
     },
     {
@@ -129018,7 +129018,7 @@
       "context": "import",
       "deferred": true,
       "source_file": "test/support/mcp/flow-probe.ts",
-      "source_location": "L354",
+      "source_location": "L353",
       "weight": 1.0
     },
     {
@@ -129031,7 +129031,7 @@
       "context": "import",
       "deferred": true,
       "source_file": "test/support/mcp/flow-probe.ts",
-      "source_location": "L364",
+      "source_location": "L363",
       "weight": 1.0
     },
     {
@@ -129044,7 +129044,7 @@
       "context": "import",
       "deferred": true,
       "source_file": "test/support/mcp/flow-probe.ts",
-      "source_location": "L369",
+      "source_location": "L368",
       "weight": 1.0
     },
     {
@@ -129057,20 +129057,7 @@
       "context": "import",
       "deferred": true,
       "source_file": "test/support/mcp/flow-probe.ts",
-      "source_location": "L374",
-      "weight": 1.0
-    },
-    {
-      "source": "test_support_mcp_flow_probe_main",
-      "target": "src_server_mcp_connections",
-      "relation": "imports_from",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "import",
-      "deferred": true,
-      "source_file": "test/support/mcp/flow-probe.ts",
-      "source_location": "L403",
+      "source_location": "L373",
       "weight": 1.0
     },
     {
@@ -129083,7 +129070,20 @@
       "context": "import",
       "deferred": true,
       "source_file": "test/support/mcp/flow-probe.ts",
-      "source_location": "L41",
+      "source_location": "L40",
+      "weight": 1.0
+    },
+    {
+      "source": "test_support_mcp_flow_probe_main",
+      "target": "src_server_mcp_connections",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "deferred": true,
+      "source_file": "test/support/mcp/flow-probe.ts",
+      "source_location": "L402",
       "weight": 1.0
     },
     {
@@ -129096,20 +129096,7 @@
       "context": "import",
       "deferred": true,
       "source_file": "test/support/mcp/flow-probe.ts",
-      "source_location": "L419",
-      "weight": 1.0
-    },
-    {
-      "source": "test_support_mcp_flow_probe_main",
-      "target": "test_support_mcp_refresh_overlap",
-      "relation": "imports_from",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "import",
-      "deferred": true,
-      "source_file": "test/support/mcp/flow-probe.ts",
-      "source_location": "L442",
+      "source_location": "L418",
       "weight": 1.0
     },
     {
@@ -129122,7 +129109,20 @@
       "context": "import",
       "deferred": true,
       "source_file": "test/support/mcp/flow-probe.ts",
-      "source_location": "L45",
+      "source_location": "L44",
+      "weight": 1.0
+    },
+    {
+      "source": "test_support_mcp_flow_probe_main",
+      "target": "test_support_mcp_refresh_overlap",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "deferred": true,
+      "source_file": "test/support/mcp/flow-probe.ts",
+      "source_location": "L441",
       "weight": 1.0
     },
     {
@@ -129135,7 +129135,7 @@
       "context": "import",
       "deferred": true,
       "source_file": "test/support/mcp/flow-probe.ts",
-      "source_location": "L492",
+      "source_location": "L491",
       "weight": 1.0
     },
     {
@@ -129148,7 +129148,7 @@
       "context": "import",
       "deferred": true,
       "source_file": "test/support/mcp/flow-probe.ts",
-      "source_location": "L493",
+      "source_location": "L492",
       "weight": 1.0
     },
     {
@@ -129161,7 +129161,7 @@
       "context": "import",
       "deferred": true,
       "source_file": "test/support/mcp/flow-probe.ts",
-      "source_location": "L509",
+      "source_location": "L508",
       "weight": 1.0
     },
     {
@@ -129174,7 +129174,7 @@
       "context": "import",
       "deferred": true,
       "source_file": "test/support/mcp/flow-probe.ts",
-      "source_location": "L669",
+      "source_location": "L668",
       "weight": 1.0
     },
     {
@@ -129187,7 +129187,7 @@
       "context": "import",
       "deferred": true,
       "source_file": "test/support/mcp/flow-probe.ts",
-      "source_location": "L676",
+      "source_location": "L675",
       "weight": 1.0
     },
     {
@@ -129200,7 +129200,7 @@
       "context": "import",
       "deferred": true,
       "source_file": "test/support/mcp/flow-probe.ts",
-      "source_location": "L692",
+      "source_location": "L691",
       "weight": 1.0
     },
     {
@@ -129213,7 +129213,7 @@
       "context": "import",
       "deferred": true,
       "source_file": "test/support/mcp/flow-probe.ts",
-      "source_location": "L761",
+      "source_location": "L762",
       "weight": 1.0
     },
     {
@@ -129226,7 +129226,7 @@
       "context": "import",
       "deferred": true,
       "source_file": "test/support/mcp/flow-probe.ts",
-      "source_location": "L766",
+      "source_location": "L767",
       "weight": 1.0
     },
     {
@@ -129239,7 +129239,7 @@
       "context": "import",
       "deferred": true,
       "source_file": "test/support/mcp/flow-probe.ts",
-      "source_location": "L839",
+      "source_location": "L840",
       "weight": 1.0
     },
     {
@@ -129941,7 +129941,7 @@
       "context": "import",
       "deferred": true,
       "source_file": "test/support/mcp/registration-rate-probe.ts",
-      "source_location": "L24",
+      "source_location": "L26",
       "weight": 1.0
     },
     {
@@ -153600,7 +153600,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "src/server/mcp/rate-limit.ts",
-      "source_location": "L5",
+      "source_location": "L4",
       "weight": 1.0
     },
     {
@@ -153612,7 +153612,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "src/server/mcp/rate-limit.ts",
-      "source_location": "L5",
+      "source_location": "L4",
       "weight": 1.0
     },
     {
@@ -169392,7 +169392,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "test/support/mcp/registration-rate-probe.ts",
-      "source_location": "L4",
+      "source_location": "L5",
       "weight": 1.0
     },
     {
@@ -169404,7 +169404,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "test/support/mcp/registration-rate-probe.ts",
-      "source_location": "L5",
+      "source_location": "L6",
       "weight": 1.0
     },
     {
@@ -190292,7 +190292,7 @@
     },
     {
       "source": "src_server_mcp_rate_limit",
-      "target": "ref_node_net",
+      "target": "ref_drizzle_orm",
       "relation": "imports_from",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -190304,18 +190304,6 @@
     },
     {
       "source": "src_server_mcp_rate_limit",
-      "target": "ref_drizzle_orm",
-      "relation": "imports_from",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "import",
-      "source_file": "src/server/mcp/rate-limit.ts",
-      "source_location": "L4",
-      "weight": 1.0
-    },
-    {
-      "source": "src_server_mcp_rate_limit",
       "target": "src_db_client",
       "relation": "imports_from",
       "_origin": "ast",
@@ -190323,7 +190311,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "src/server/mcp/rate-limit.ts",
-      "source_location": "L5",
+      "source_location": "L4",
       "weight": 1.0
     },
     {
@@ -207980,19 +207968,19 @@
     },
     {
       "source": "test_support_mcp_registration_rate_probe",
-      "target": "ref_better_auth",
+      "target": "ref_node_crypto",
       "relation": "imports_from",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "test/support/mcp/registration-rate-probe.ts",
-      "source_location": "L2",
+      "source_location": "L1",
       "weight": 1.0
     },
     {
       "source": "test_support_mcp_registration_rate_probe",
-      "target": "src_db_auth_schema",
+      "target": "ref_better_auth",
       "relation": "imports_from",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -208004,7 +207992,7 @@
     },
     {
       "source": "test_support_mcp_registration_rate_probe",
-      "target": "src_auth_mcp_options",
+      "target": "src_db_auth_schema",
       "relation": "imports_from",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -208016,7 +208004,7 @@
     },
     {
       "source": "test_support_mcp_registration_rate_probe",
-      "target": "test_support_mcp_postgres",
+      "target": "src_auth_mcp_options",
       "relation": "imports_from",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -208024,6 +208012,18 @@
       "context": "import",
       "source_file": "test/support/mcp/registration-rate-probe.ts",
       "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "test_support_mcp_registration_rate_probe",
+      "target": "test_support_mcp_postgres",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "test/support/mcp/registration-rate-probe.ts",
+      "source_location": "L6",
       "weight": 1.0
     },
     {
@@ -249342,17 +249342,6 @@
     },
     {
       "source": "src_server_mcp_rate_limit",
-      "target": "src_server_mcp_rate_limit_decision",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "src/server/mcp/rate-limit.ts",
-      "source_location": "L10",
-      "weight": 1.0
-    },
-    {
-      "source": "src_server_mcp_rate_limit",
       "target": "src_server_mcp_rate_limit_getmcpratelimits",
       "relation": "contains",
       "_origin": "ast",
@@ -249370,7 +249359,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/server/mcp/rate-limit.ts",
-      "source_location": "L26",
+      "source_location": "L17",
       "weight": 1.0
     },
     {
@@ -249381,7 +249370,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/server/mcp/rate-limit.ts",
-      "source_location": "L36",
+      "source_location": "L22",
       "weight": 1.0
     },
     {
@@ -249392,7 +249381,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/server/mcp/rate-limit.ts",
-      "source_location": "L7",
+      "source_location": "L6",
       "weight": 1.0
     },
     {
@@ -249403,12 +249392,23 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "src/server/mcp/rate-limit.ts",
-      "source_location": "L8",
+      "source_location": "L7",
       "weight": 1.0
     },
     {
       "source": "src_server_mcp_rate_limit",
       "target": "src_server_mcp_rate_limit_input",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "src/server/mcp/rate-limit.ts",
+      "source_location": "L8",
+      "weight": 1.0
+    },
+    {
+      "source": "src_server_mcp_rate_limit",
+      "target": "src_server_mcp_rate_limit_decision",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -259765,7 +259765,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "test/support/mcp/registration-rate-probe.ts",
-      "source_location": "L6",
+      "source_location": "L7",
       "weight": 1.0
     },
     {
@@ -269791,5 +269791,5 @@
       "source_file": "specs/001-local-legal-compliance/tdd/cycle-log.md"
     }
   ],
-  "built_at_commit": "565d8c0a68425b349a8808bd2fc0317fdebf8145"
+  "built_at_commit": "29765c6eb4490c62825ecda7af60d43854e25c04"
 }

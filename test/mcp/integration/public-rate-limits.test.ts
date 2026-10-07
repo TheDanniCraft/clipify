@@ -1,14 +1,14 @@
 /** @jest-environment node */
 import { runMcpProbe, flowProbe } from "../../support/mcp/probe";
 describe("TDD-US4-001/002 real public registration and mutation budgets", () => {
-	test("registration stops at the configured budget despite spoofed forwarding headers and persists no rejected client", () => {
+	test("registration stops at the fixed budget after prior registrations despite spoofed forwarding headers and persists no rejected client", () => {
 		const result = runMcpProbe("registration-rate-probe", []);
 		expect(result.results.map((value: any) => value.status)).toEqual([201, 201, 429]);
 		expect(result.results[2]).toMatchObject({ error: "rate_limited", registered: false });
 		expect(Number(result.results[2].retryAfter)).toBeGreaterThan(0);
 		expect(result.clients).toBe(2);
 	});
-	test("the second public creation call is throttled before any additional mutation", () => {
+	test("the public creation replay after exhausting the fixed budget is throttled before any additional mutation", () => {
 		const result = flowProbe("resources:overlay-create:rate-limit");
 		expect(result.protocolStatus).toBe(200);
 		expect(result.toolReplayStatus).toBe(429);

@@ -1,6 +1,5 @@
 import "server-only";
 import { createHmac } from "node:crypto";
-import { isIP } from "node:net";
 import { sql } from "drizzle-orm";
 import { db, type DatabaseClient } from "@/db/client";
 
@@ -9,27 +8,14 @@ type Limits = typeof defaults;
 type Input = { kind: "registration" | "call"; network: string; authUserId?: string; clientId?: string; now?: Date; limits?: Partial<Limits> };
 type Decision = { allowed: true; remaining: number } | { allowed: false; code: "RATE_LIMITED"; retryAfterSeconds: number };
 
-export function getMcpRateLimits(): Partial<Limits> {
-	const settings = { registrationsPerMinute: "MCP_REGISTRATIONS_PER_MINUTE", registrationsPerDay: "MCP_REGISTRATIONS_PER_DAY", callsPerMinute: "MCP_CALLS_PER_MINUTE", callsPerNetworkMinute: "MCP_CALLS_PER_NETWORK_MINUTE" };
-	const result: Partial<Limits> = {};
-	for (const [key, name] of Object.entries(settings)) {
-		const value = process.env[name];
-		if (value !== undefined) {
-			if (!/^[1-9]\d*$/.test(value)) throw new Error("SERVICE_UNAVAILABLE");
-			result[key as keyof Limits] = Number(value);
-		}
-	}
-	return result;
+/** Fixed application budgets; caller limits may only tighten them. */
+export function getMcpRateLimits(): Limits {
+	return { ...defaults };
 }
 
-/** Only trust a configured proxy header when ingress strips client-supplied copies. */
-export function getMcpNetworkSignal(request: Request): string {
-	const header = process.env.MCP_TRUSTED_IP_HEADER;
-	if (!header) return "unknown-network";
-	if (!/^[a-z0-9-]{1,80}$/i.test(header)) throw new Error("SERVICE_UNAVAILABLE");
-	const address = request.headers.get(header)?.trim();
-	if (!address || !isIP(address)) throw new Error("SERVICE_UNAVAILABLE");
-	return address;
+/** Client forwarding headers are untrusted; all ingress shares a bounded network budget. */
+export function getMcpNetworkSignal(_request: Request): string {
+	return "unknown-network";
 }
 
 /** Shared counters serialize callers across replicas; denied calls consume no budget. */
