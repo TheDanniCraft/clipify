@@ -74,7 +74,8 @@ async function handleRequest(request: Request, configuration: ReturnType<typeof 
 			request.signal.removeEventListener("abort", onAbort);
 			reader.releaseLock();
 		}
-		request = new Request(request, { body: Buffer.concat(chunks, size) });
+		// Next.js proxies incoming requests; Node 24 cannot copy their private Request state.
+		request = new Request(request.url, { method: request.method, headers: request.headers, signal: request.signal, body: Buffer.concat(chunks, size) });
 	}
 
 	const { isMcpSchemaReady } = await import("./schema-readiness");

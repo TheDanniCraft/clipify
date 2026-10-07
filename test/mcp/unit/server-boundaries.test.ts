@@ -54,6 +54,21 @@ describe("MCP request adapter boundaries (native OAuth and SDK covered by owning
 		ready.mockReset().mockResolvedValue(true);
 		challenge.mockReset().mockReturnValue(null);
 	});
+	test("accepts a framework-proxied request and preserves its bounded body and credentials", async () => {
+		const body = JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list" });
+		const original = request(body, { Authorization: "Bearer fixture-token", "MCP-Protocol-Version": "2025-11-25" });
+		const proxied = new Proxy(original, { get: (target, property) => Reflect.get(target, property, target) });
+		const result = await handleMcpRequest(proxied);
+		expect(result.status).toBe(200);
+		const forwarded = fetchHandler.mock.calls[0][0] as Request;
+		expect(forwarded.url).toBe(original.url);
+		expect(forwarded.method).toBe("POST");
+		expect(forwarded.headers.get("Authorization")).toBe("Bearer fixture-token");
+		expect(forwarded.headers.get("MCP-Protocol-Version")).toBe("2025-11-25");
+		expect(await forwarded.text()).toBe(body);
+		expect(forwarded.signal.aborted).toBe(false);
+	});
+
 	test("rejects a declared oversized body even when cancellation rejects", async () => {
 		const stream = new ReadableStream({ cancel: () => Promise.reject(new Error("closed stream")) });
 		const result = await handleMcpRequest(request(stream, { "Content-Length": "262145" }));

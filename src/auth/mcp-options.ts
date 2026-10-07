@@ -108,7 +108,8 @@ const registrationBoundary: BetterAuthPlugin = {
 		if (!body || typeof body !== "object" || Array.isArray(body)) return { response: Response.json({ error: "invalid_client_metadata" }, { status: 400 }) };
 		const valid = Array.isArray(body.redirect_uris) && body.redirect_uris.length > 0 && body.redirect_uris.length <= 10 && body.redirect_uris.every(validCallback) && (!body.grant_types || (Array.isArray(body.grant_types) && body.grant_types.every((value) => ["authorization_code", "refresh_token"].includes(value)))) && (!body.scope || (typeof body.scope === "string" && body.scope.split(" ").every((scope) => [...MCP_SCOPES, "offline_access"].includes(scope as (typeof MCP_SCOPES)[number]))));
 		if (!valid) return { response: Response.json({ error: "invalid_client_metadata" }, { status: 400 }) };
-		return { request: new Request(request, { body: Buffer.from(bytes) }) };
+		// Avoid copying private Request state from Next.js proxies on Node 24.
+		return { request: new Request(request.url, { method: request.method, headers: request.headers, signal: request.signal, body: Buffer.from(bytes) }) };
 	},
 };
 

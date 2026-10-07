@@ -19,6 +19,15 @@ beforeEach(() => {
 	(consumeMcpRateLimit as jest.Mock).mockReset().mockResolvedValue({ allowed: true });
 	(fetchClientMetadataResource as jest.Mock).mockReset().mockResolvedValue(Response.json({ client_name: "Fixture client" }));
 });
+test("accepts framework-proxied registration and preserves metadata and headers", async () => {
+	const input = registration(valid, { headers: { "Content-Type": "application/json", "X-Request-Id": "fixture-registration" } });
+	const proxied = new Proxy(input, { get: (target, property) => Reflect.get(target, property, target) });
+	const result = await boundary(proxied);
+	expect(result.request.url).toBe(input.url);
+	expect(result.request.method).toBe("POST");
+	expect(result.request.headers.get("X-Request-Id")).toBe("fixture-registration");
+	expect(await result.request.json()).toEqual(valid);
+});
 test.each(["GET", "DELETE"])("%s registration request does not consume a budget", async (method) => {
 	expect(await boundary(new Request("https://clipify.example/api/auth/oauth2/register", { method }))).toBeUndefined();
 	expect(consumeMcpRateLimit).not.toHaveBeenCalled();

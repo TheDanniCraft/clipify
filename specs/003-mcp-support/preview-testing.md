@@ -55,3 +55,5 @@ codex mcp login clipify-preview --no-browser --oauth-client-registration dcr --s
 ```
 
 This produces the fresh authorization URL. It cannot be generated while discovery is unavailable.
+
+Latest preview checkpoint: commit 36cea8a deployed successfully with both public metadata endpoints returning 200. GET/DELETE MCP returned the correct 401 challenge, but POST returned 500. This was reproduced locally on deployment Node 24 as a private-state copy of Next's proxied Request; the correction has passing Node-24 unit and actual production-Next HTTP checks. The following pushed preview must be rechecked before claiming authenticated client readiness.

@@ -4,7 +4,7 @@ Updated: 2026-10-07. Branch: `feature/mcp-support`. Canonical SpecKit feature: `
 
 ## Current combined status
 
-**542/556 tasks complete (97.5%, unweighted task count, not shipping readiness).** The 136 workflow expansion tasks are included as T406–T541. The original 14 historical/external tasks remain unchecked with their exact blockers in [blockers.md](blockers.md); consolidation neither closes nor waives them.
+**543/557 tasks complete (97.5%, unweighted task count, not shipping readiness).** The 136 workflow expansion tasks are included as T406–T541. The original 14 historical/external tasks remain unchecked with their exact blockers in [blockers.md](blockers.md); consolidation neither closes nor waives them.
 
 All **50 MCP tools** are implemented: the original 15 overlay/playlist/capability tools plus 34 remote-control, discovery/import, gallery/embed, Creator Page and runner tools and one user-requested feedback tool. Native Better Auth/MCP/OAuth 1.7.7 and official MCP SDK 2.3.0 remain the underlying stack.
 
@@ -50,3 +50,5 @@ The user rejected activation environment flags. MCP configuration has no enabled
 156 affected unit checks pass. 81 configuration/OAuth/discovery contract checks plus 3 additional invalid-configuration discovery checks pass (84 checks in this scope). Types, changed-file lint/format, production build, 91-file action manifest and Graphify refresh pass. Strict coverage passes all 91 required files and unchanged global/gallery thresholds (no-toggle-coverage-complete.log, coverage/mcp-no-toggle-complete/strict-gate.json). Changed source counters from the previous checkpoint are excluded. Genuine two-test Red is retained in no-toggle-red.log; additional route checks characterize the final boundary.
 
 The former full pre-push run (4495 passed, 11 skipped) remains historical evidence. This small initialization/configuration refinement uses focused verification rather than rerunning that 41-minute full suite; GitHub CI checks the updated PR separately. Original external/historical blockers remain unchanged.
+
+Node 24 preview correction: discovery 200 revealed a POST-only runtime failure in framework-proxied Request reconstruction. Genuine Red and Green evidence plus 21 passing Node-24 adapter checks, actual production-Next POST 401, build and 91-file strict/global coverage are retained under node24-* logs. The prior full run on activation-toggle removal passed 416 suites / 4488 tests with 11 existing skips; the correction's normal pre-push run is recorded separately after completion.
