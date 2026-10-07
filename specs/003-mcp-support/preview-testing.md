@@ -13,7 +13,7 @@ Use the PR preview HTTPS origin, never the production origin, and a dedicated Cl
 
 ## Public readiness checks
 
-Check GET /.well-known/oauth-protected-resource, GET /.well-known/oauth-authorization-server and an unauthenticated POST /mcp. Metadata must describe this preview origin; the protected endpoint must return an OAuth challenge, not a login HTML page. A disabled MCP endpoint returns 404 and requires deployment configuration, not client authorization.
+Check GET /.well-known/oauth-protected-resource, GET /.well-known/oauth-authorization-server/api/auth and an unauthenticated POST /mcp. Metadata must describe this preview origin; the protected endpoint must return an OAuth challenge, not a login HTML page. A disabled MCP endpoint returns 404 and requires deployment configuration, not client authorization.
 
 ## Connect Codex
 
