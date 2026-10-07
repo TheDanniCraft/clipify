@@ -1,11 +1,16 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 const nextJest = require("next/jest");
+const { automaticTestWorkers } = require("./scripts/test-worker-budget.cjs");
 
 const createJestConfig = nextJest({
 	dir: "./",
 });
 
 const customJestConfig = {
+	maxWorkers: automaticTestWorkers(),
+	runner: "<rootDir>/scripts/mcp-test-runner.cjs",
+	workerIdleMemoryLimit: "512MB",
+	...(process.env.MCP_V8_COVERAGE_DIR ? { reporters: ["default", "<rootDir>/scripts/mcp-coverage-reporter.cjs"] } : {}),
 	testEnvironment: "jsdom",
 	setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
 	// Keep the checkout path out of globs: Windows escapes a dot-prefixed
@@ -27,6 +32,29 @@ const customJestConfig = {
 	testPathIgnorePatterns: ["<rootDir>/.next/", "<rootDir>/node_modules/"],
 	modulePathIgnorePatterns: ["<rootDir>/.next/"],
 	collectCoverageFrom: [
+		"src/instrumentation.ts",
+		"src/db/client.ts",
+		"src/db/request-scope.ts",
+		"src/server/provider-credentials.ts",
+		"src/server/rate-limit.ts",
+		"src/auth/providers/twitch-refresh.ts",
+		"src/server/account-lifecycle/account-data-export.ts",
+		"src/auth/{mcp-options,mcp-principal,session-principal,authorize-operation,config}.ts",
+		"src/server/mcp/**/*.{ts,tsx}",
+		"src/server/resources/**/*.{ts,tsx}",
+		"src/server/entitlements/resource-access.ts",
+		"src/app/dashboard/settings/connected-apps-panel.tsx",
+		"src/app/dashboard/settings/mcp-activity-panel.tsx",
+		"src/app/components/OverlayTable/index.tsx",
+		"src/app/dashboard/playlist/[[]playlistId]/page.tsx",
+		"src/app/dashboard/overlay/[[]overlayId]/page.tsx",
+		"src/app/dashboard/overlay/[[]overlayId]/theme/page.tsx",
+		"src/app/dashboard/settings/page.tsx",
+		"src/app/pricing/page.tsx",
+		"src/app/dashboard/member-card/page.tsx",
+		"src/app/.well-known/**/*.{ts,tsx}",
+		"src/app/api/auth/**/*.{ts,tsx}",
+		"src/app/mcp/**/*.{ts,tsx}",
 		"src/app/actions/**/*.{ts,tsx}",
 		"src/app/lib/**/*.{ts,tsx}",
 		"src/app/utils/**/*.{ts,tsx}",
@@ -39,6 +67,7 @@ const customJestConfig = {
 		"src/app/llms.txt/**/*.{ts,tsx}",
 		"src/app/payment/**/*.{ts,tsx}",
 		"src/app/store/**/*.{ts,tsx}",
+		"src/app/ws/**/*.{ts,tsx}",
 		"!src/app/components/DemoPlayer/**",
 		"!src/app/components/LandingPage/**",
 		"!src/app/components/chatWidget.tsx",
@@ -49,7 +78,6 @@ const customJestConfig = {
 		"!src/app/components/playerOverlay.tsx",
 		"!src/app/components/tagsInput.tsx",
 		"!src/app/components/upgradeModal.tsx",
-		"!src/app/components/OverlayTable/index.tsx",
 		"!src/app/components/Pricing/index.tsx",
 		"!src/app/components/feedbackWidget/**",
 		"!src/app/lib/entitlementsScheduler.ts",
