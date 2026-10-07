@@ -1195,3 +1195,11 @@ These tasks require unavailable original evidence or explicit review of a workfl
 - [ ] T249 [GATE] Execute every required command/threshold from specs/003-mcp-support/plan.md and Quality Gate Results, including full regressions, real PostgreSQL races, coverage, lint/format/types, audit/security contracts, migration policy, build and action manifest. Record actual statuses and immutable evidence once in specs/003-mcp-support/test-traceability.md; unavailable evidence blocks release.
 
 **Blocker for T249:** All local testing/thresholds and final formatting/report verification pass. Whole release evidence remains unavailable until T247 and the twelve historical before-production obligations are resolved. No full release Green is claimed.
+
+### Approved consent refinement
+
+- [x] T250 Replace flat consent with HeroUI creator, permissions and review steps using English copy.
+- [x] T251 Persist and enforce independent creator scopes beneath the token scope ceiling.
+- [x] T252 Add explicit feedback:create consent so Read cannot submit reports.
+- [x] T253 Add provider-result handoff and remote callback recovery controls.
+- [x] T254 Verify real HeroUI browser behavior, callback recovery and native OAuth regressions; resolve failures before publishing.

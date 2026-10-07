@@ -24,7 +24,7 @@ test("starts with creator selection and preserves independent write/read choices
 	const { container } = render(<ConsentForm {...props} />);
 	expect(screen.getByRole("button", { name: "Continue" })).toBeDisabled();
 	choose("Creator one");
-	fireEvent.click(within(screen.getByRole("group", { name: "General permissions" })).getByRole("button", { name: "Write" }));
+	fireEvent.click(within(screen.getByRole("radiogroup", { name: "General permissions" })).getByRole("radio", { name: "Write" }));
 	review();
 	fireEvent.click(screen.getByRole("button", { name: "Add another creator" }));
 	choose("Creator two");
@@ -38,9 +38,9 @@ test("starts with creator selection and preserves independent write/read choices
 test("custom preserves the preset, allows narrowing, and disables unsupported levels", () => {
 	const { container } = render(<ConsentForm {...props} />);
 	choose("Creator one");
-	fireEvent.click(within(screen.getByRole("group", { name: "General permissions" })).getByRole("button", { name: "Custom" }));
-	expect(within(screen.getByRole("group", { name: "Creator information access" })).getByRole("button", { name: "Write" })).toBeDisabled();
-	fireEvent.click(within(screen.getByRole("group", { name: "Overlays access" })).getByRole("button", { name: "None" }));
+	fireEvent.click(within(screen.getByRole("radiogroup", { name: "General permissions" })).getByRole("radio", { name: "Custom" }));
+	expect(within(screen.getByRole("radiogroup", { name: "Creator information access" })).getByRole("radio", { name: "Write" })).toBeDisabled();
+	fireEvent.click(within(screen.getByRole("radiogroup", { name: "Overlays access" })).getByRole("radio", { name: "None" }));
 	review();
 	expect(JSON.parse(container.querySelector<HTMLInputElement>('input[name="creators"]')!.value).scopes).not.toContain("overlay:read");
 });
@@ -65,7 +65,7 @@ test("edit and back retain settings; removal does not affect another creator", (
 test("read-only requests disable Write and cannot gain unrequested permissions", () => {
 	render(<ConsentForm {...props} requestedScopes={["creator:read"]} />);
 	choose("Creator one");
-	expect(within(screen.getByRole("group", { name: "General permissions" })).getByRole("button", { name: "Write" })).toBeDisabled();
+	expect(within(screen.getByRole("radiogroup", { name: "General permissions" })).getByRole("radio", { name: "Write" })).toBeDisabled();
 	expect(screen.getByText("This app requested read-only access.")).toBeVisible();
 });
 test("submission failures retain review and hide internal details", async () => {

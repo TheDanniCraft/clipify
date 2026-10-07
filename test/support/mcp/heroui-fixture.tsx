@@ -68,7 +68,7 @@ const ListBox = Object.assign(Slot, {
 const toggleContext = createContext<any>({});
 const ToggleButtonGroup = ({ children, selectedKeys, onSelectionChange, "aria-label": label }: any) => (
 	<toggleContext.Provider value={{ selectedKeys, onSelectionChange }}>
-		<div role='group' aria-label={label}>
+		<div role='radiogroup' aria-label={label}>
 			{children}
 		</div>
 	</toggleContext.Provider>
@@ -76,7 +76,7 @@ const ToggleButtonGroup = ({ children, selectedKeys, onSelectionChange, "aria-la
 const ToggleButton = ({ children, id, isDisabled }: any) => {
 	const group = useContext(toggleContext);
 	return (
-		<button type='button' disabled={isDisabled} aria-pressed={group.selectedKeys?.has(id)} onClick={() => group.onSelectionChange?.(new Set([id]))}>
+		<button type='button' disabled={isDisabled} role='radio' aria-checked={group.selectedKeys?.has(id)} onClick={() => group.onSelectionChange?.(new Set([id]))}>
 			{children}
 		</button>
 	);

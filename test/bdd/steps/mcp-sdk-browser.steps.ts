@@ -38,9 +38,10 @@ When("the official SDK completes {word} approval edit denial and revoke through 
 		await page.getByRole("button", { name: "Enable support chat", exact: true }).press("Enter");
 		await Promise.all([page.waitForEvent("domcontentloaded", { timeout: 60000 }), page.getByRole("dialog").getByRole("button", { name: "Reject optional", exact: true }).click()]);
 		await page.waitForLoadState("load");
-		await page.getByRole("radio", { name: owner.fixture.username, exact: true }).check();
+		await page.getByRole("radio", { name: owner.fixture.username, exact: true }).focus();
+		await page.getByRole("radio", { name: owner.fixture.username, exact: true }).press("Space");
 		await page.getByRole("button", { name: "Continue", exact: true }).click();
-		await page.getByRole("group", { name: "General permissions" }).getByRole("button", { name: "Write", exact: true }).click();
+		await page.getByRole("radiogroup", { name: "General permissions" }).getByRole("radio", { name: "Write", exact: true }).click();
 		await page.getByRole("button", { name: "Review", exact: true }).click();
 		await page.getByRole("button", { name: "Authorize", exact: true }).click();
 		await expect(page.getByRole("heading", { name: "Authorization successful" })).toBeVisible();
@@ -52,7 +53,7 @@ When("the official SDK completes {word} approval edit denial and revoke through 
 		const tokens = await exchange.json();
 		connected = await connectMcpClient(new URL(`${origin}/mcp`), tokens.access_token, "auto");
 		const tools = await connected.client.listTools();
-		expect(tools.tools.length).toBe(15);
+		expect(tools.tools.length).toBe(50);
 		expect(tools.tools.find((tool) => tool.name === "delete_overlay")?.annotations?.destructiveHint).toBe(true);
 		const args = { creatorId: owner.fixture.creatorId, overlayId: owner.fixture.overlayId };
 		const creators = await connected.client.callTool({ name: "list_creators", arguments: {} });

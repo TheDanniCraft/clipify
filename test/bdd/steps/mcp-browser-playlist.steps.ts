@@ -46,9 +46,10 @@ async function connectBrowserPlaylist({ page, request, mcpWorld, withProviderCre
 	await expect(reject).toBeVisible();
 	await Promise.all([page.waitForEvent("load"), reject.click()]);
 	await expect(page.getByRole("heading", { name: "Connect Browser playlist revision" })).toBeVisible();
-	await page.getByRole("radio", { name: owner.fixture.username, exact: true }).check();
+	await page.getByRole("radio", { name: owner.fixture.username, exact: true }).focus();
+	await page.getByRole("radio", { name: owner.fixture.username, exact: true }).press("Space");
 	await page.getByRole("button", { name: "Continue", exact: true }).click();
-	await page.getByRole("group", { name: "General permissions" }).getByRole("button", { name: "Write", exact: true }).click();
+	await page.getByRole("radiogroup", { name: "General permissions" }).getByRole("radio", { name: "Write", exact: true }).click();
 	await page.getByRole("button", { name: "Review", exact: true }).click();
 	await page.getByRole("button", { name: "Authorize", exact: true }).click();
 	await page.waitForURL("http://127.0.0.1:49999/callback**");

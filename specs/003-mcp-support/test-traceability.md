@@ -2002,3 +2002,17 @@ Shared-limiter final verification: shared-feedback-unit-coverage-final.log (30 t
 ## No activation toggle
 
 Current accepted behavior supersedes disabled-rollout checks: MCP and native provider plugins are always installed. Required configuration/schema checks still return 503. Evidence: no-toggle-red.log; no-toggle-unit-coverage-final.log (156); no-toggle-native-final.log (81); no-toggle-discovery-invalid.log (3); no-toggle-coverage-complete.log (91 files, original thresholds); no-toggle-types-final.log; no-toggle-lint.log; no-toggle-build-final.log; no-toggle-action-manifest.log; no-toggle-graphify.log. Logs resolve under test-results/mcp-workflows. Original before-production/external blockers are not waived.
+
+### Consent refinement verification (October 7, 2026)
+
+- Scoped MCP regression: 73 suites, 805 tests passed.
+- Native creator consent: OAuth token with write scope cannot update a Read-only creator; persisted overlay revision remains 1.
+- Native feedback consent: Read grant cannot submit feedback; mocked Sentry transport records no event.
+- Feedback memory/shared limiter: 12 tests passed.
+- Final focused delta: 11 tests passed.
+- Actual production Next/HeroUI browser (three journeys passed, including official SDK overlay/playlist edits, denial and revocation): creator selection, permissions, review, provider approval, recovery tabs and four-second callback redirect passed; authorization code exchanged successfully.
+- TypeScript and scoped ESLint passed. Final production build and action-manifest verification passed, including layout refinements.
+- Per-creator schema scopes are source-only; generated migrations remain owned by the master workflow.
+- External-host acceptance still requires the user's MCP authorization after the preview is deployed.
+
+Preview schema application is blocked: Infisical has no valid login session; `bun run db:push` cannot obtain development credentials. No production database or generated migration was used. Restore `infisical login` before preview OAuth acceptance.

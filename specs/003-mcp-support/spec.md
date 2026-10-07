@@ -1704,7 +1704,7 @@ Scenario IDs, source relationships and enumerated examples are authoritative in 
 
 ## Feedback submission within MCP support
 
-**FB-FR-001:** Expose `submit_feedback` for authenticated agents with existing `creator:read` access to the selected creator, including Free users. No new OAuth permission is required. The tool submits feedback about Clipify on explicit user instruction; it does not edit creator resources.
+**FB-FR-001:** Expose `submit_feedback` for authenticated agents with existing `creator:read` access and explicit `feedback:create` OAuth consent for the selected creator, including Free users. The Read preset never authorizes feedback submission. The tool submits feedback about Clipify on explicit user instruction; it does not edit creator resources.
 
 **FB-FR-002:** Accept a strict object containing creatorId, kind (`bug` or `suggestion`), message (trimmed, 1–2000 characters), confirmed (literal true), and retryKey (1–128 characters). Agents must present/obtain the user's requested submission approval; confirmed=true expresses host intent and is not independent evidence of human confirmation. Do not automatically report every tool failure.
 
@@ -1725,3 +1725,11 @@ User requested that feedback reuse the existing application rate-limiter infrast
 ## Always-available MCP refinement (2026-10-07)
 
 The user explicitly rejected activation/rollout environment toggles. MCP, its native Better Auth plugins and discovery routes are always installed. Configuration has no enabled property or activation environment flag. Existing credential, canonical identity, origin, schema-readiness, scope and plan checks remain required. Invalid required configuration/schema yields SERVICE_UNAVAILABLE/503, rather than hiding discovery with 404. This decision supersedes historical disabled-rollout acceptance evidence.
+
+### Consent flow refinement (approved October 7, 2026)
+
+Use a reduced Clipify header and small legal/help footer, with English copy throughout. Select one creator, configure Read/Write/Custom permissions, then review. Each creator has independent permissions; review allows editing, removal and adding another creator. Permission areas start collapsed and explain their scope. Custom offers None/Read/Write, disabling unavailable or unrequested access. Write includes requested destructive operations; tool destructive annotations remain in force.
+
+The backend intersects token scopes with each creator's consent and current role/plan access. Legacy grants with NULL creator scopes retain their original global scope ceiling. New consent persists explicit creator scopes. Feedback submission additionally requires feedback:create.
+
+After successful provider authorization, show a four-second redirect countdown, manual return link and cURL/wget/callback-URL recovery tabs with copy actions. Authorization success does not assert that the client connected. Callback credentials stay out of logs and public artifacts.
