@@ -70,7 +70,7 @@ export type TrustedCreatorPrincipal = {
 	resource?: string;
 	issuer?: string;
 	scopes?: readonly string[];
-	creators?: readonly { creatorId: string; agencyOrganizationId: string | null }[];
+	creators?: readonly { creatorId: string; agencyOrganizationId: string | null; scopes?: readonly string[] }[];
 };
 
 export async function authorizeCreatorOperation(input: { creatorId: string; permission: Permission; resourceOwnerId?: string; requiredEntitlement?: "pro" | "runner"; requireRecentAuth?: boolean; ownerOnlyAction?: NonDelegableAction; now?: Date; requestHeaders?: Headers }): Promise<CreatorOperationResult> {
@@ -87,7 +87,7 @@ export async function authorizeTrustedCreatorOperation(input: { creatorId: strin
 	if (principal.kind === "oauth") {
 		const target = principal.creators?.find((creator) => creator.creatorId === input.creatorId);
 		if (!target) return { allowed: false, code: "ACCESS_PATH_REQUIRED" };
-		if (!principal.scopes?.includes(input.permission)) return { allowed: false, code: "PERMISSION_DENIED" };
+		if (!principal.scopes?.includes(input.permission) || (target.scopes && !target.scopes.includes(input.permission))) return { allowed: false, code: "PERMISSION_DENIED" };
 		organizationId = target.agencyOrganizationId;
 	}
 

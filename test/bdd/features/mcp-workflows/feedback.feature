@@ -13,7 +13,6 @@ Feature: Agents submit user-requested Clipify feedback
       | suggestion |
       | free |
       | replay |
-      | read_only |
 
   @BDD-FEEDBACK-002 @FB-EC-001
   Scenario Outline: Unapproved or invalid feedback cannot reach Sentry
@@ -25,6 +24,7 @@ Feature: Agents submit user-requested Clipify feedback
       | case |
       | unconfirmed |
       | missing_scope |
+      | read_only |
       | revoked |
       | wrong_creator |
       | sentry_unavailable |

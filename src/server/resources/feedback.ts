@@ -14,6 +14,8 @@ export function submitFeedback(principal: TrustedCreatorPrincipal, input: unknow
 		"submit_feedback",
 		input,
 		async (input, context) => {
+			const target = principal.creators?.find((creator) => creator.creatorId === input.creatorId);
+			if (principal.kind === "oauth" && (!principal.scopes?.includes("feedback:create") || (target?.scopes && !target.scopes.includes("feedback:create")))) throw new Error("PERMISSION_DENIED");
 			const sentry = Sentry.getClient();
 			if (!sentry?.getDsn() || sentry.getOptions().enabled === false) throw new Error("SERVICE_UNAVAILABLE");
 			context.assertCurrent();

@@ -1,188 +1,302 @@
 "use client";
 import { useState } from "react";
-import { Alert, Button, Card, Checkbox, Chip, Description, Separator } from "@heroui/react";
-import { RadioButtonGroup } from "@heroui-pro/react";
-import { IconPlugConnected, IconShieldCheck } from "@tabler/icons-react";
-import { consentPreset } from "@/server/mcp/scopes";
-
-export type ConsentCreatorChoice = { creatorId: string; agencyOrganizationId: string | null; name: string };
-const LABELS: Record<string, string> = {
-	"creator:read": "Read creator details and capabilities",
-	"overlay:read": "Read overlays",
-	"overlay:create": "Create overlays",
-	"overlay:update": "Edit overlays",
-	"overlay:delete": "Delete overlays",
-	"playlist:read": "Read playlists",
-	"playlist:create": "Create playlists",
-	"playlist:update": "Edit playlists",
-	"playlist:delete": "Delete playlists",
-	"playlist-items:manage": "Manage playlist items",
-	"gallery:read": "Read galleries",
-	"gallery:create": "Create galleries",
-	"gallery:update": "Edit galleries",
-	"gallery:delete": "Delete galleries",
-	"gallery:publish": "Publish or unpublish galleries",
-	"creator:update": "Edit and publish Creator Pages",
-	"runner:read": "Read runners and stream sessions",
-	"runner:create": "Create runners and stream sessions (Runner access)",
-	"runner:update": "Edit runners and stream configuration",
-	"runner:delete": "Delete runners",
-	"runner:control": "Start or stop streams (Runner access)",
-	"runner-credential:rotate": "Disconnect enrolled runner devices",
-	"overlay:control": "Control live overlays (Pro)",
-	"overlay-secret:read": "Read private OBS overlay URLs",
-	offline_access: "Stay connected until access expires or is revoked",
-};
-export function ConsentForm({ clientName, requestedScopes, creators, oauthQuery, action }: { clientName: string; requestedScopes: string[]; creators: ConsentCreatorChoice[]; oauthQuery: string; action: (data: FormData) => Promise<{ error?: string } | void> }) {
-	const [preset, setPreset] = useState<"read" | "edit">("read");
-	const [selected, setSelected] = useState(() => new Set([...consentPreset("read"), "offline_access"].filter((scope) => requestedScopes.includes(scope))));
-	const [creatorIds, setCreatorIds] = useState(new Set<string>());
+import { Accordion, Alert, Avatar, Button, Card, Checkbox, Chip, Link, Radio, RadioGroup, Separator, ToggleButton, ToggleButtonGroup } from "@heroui/react";
+import { IconArrowLeft, IconCheck, IconPencil, IconPlugConnected, IconPlus, IconShieldCheck, IconTrash } from "@tabler/icons-react";
+import { availableGroups, groupLevel, groupScopes, presetScopes, type AccessLevel, type ConsentMode } from "@/server/mcp/consent-permissions";
+import { CallbackHandoff } from "./CallbackHandoff";
+export type ConsentCreatorChoice = { creatorId: string; agencyOrganizationId: string | null; name: string; avatarUrl?: string | null };
+type Selection = { creatorId: string; mode: ConsentMode; scopes: string[] };
+type ConsentResult = { error?: string; callbackUrl?: string; authorized?: boolean };
+const LEVEL_LABELS = { none: "None", read: "Read", write: "Write" };
+export function ConsentForm({ clientName, requestedScopes, creators, oauthQuery, action }: { clientName: string; requestedScopes: string[]; creators: ConsentCreatorChoice[]; oauthQuery: string; action: (data: FormData) => Promise<ConsentResult | void> }) {
+	const [step, setStep] = useState<"creator" | "permissions" | "review">("creator");
+	const [entries, setEntries] = useState<Selection[]>([]);
+	const [draft, setDraft] = useState<Selection>({ creatorId: "", mode: "read", scopes: presetScopes("read", requestedScopes) });
+	const [editing, setEditing] = useState<string>();
+	const [offline, setOffline] = useState(requestedScopes.includes("offline_access"));
 	const [error, setError] = useState<string>();
 	const [pending, setPending] = useState(false);
-	const selectPreset = (value: "read" | "edit") => {
-		setPreset(value);
-		setSelected(new Set([...consentPreset(value), "offline_access"].filter((scope) => requestedScopes.includes(scope))));
+	const [handoff, setHandoff] = useState<{ callbackUrl: string; authorized: boolean }>();
+	const groups = availableGroups(requestedScopes);
+	const writable = groups.some((group) => group.write.some((scope) => requestedScopes.includes(scope)));
+	const creator = creators.find((item) => item.creatorId === draft.creatorId);
+	const begin = (entry?: Selection) => {
+		setEditing(entry?.creatorId);
+		setDraft(entry ? { ...entry, scopes: [...entry.scopes] } : { creatorId: "", mode: "read", scopes: presetScopes("read", requestedScopes) });
+		setError(undefined);
+		setStep("creator");
 	};
-	const toggle = (values: Set<string>, value: string, setter: (values: Set<string>) => void) => {
-		const next = new Set(values);
-		if (next.has(value)) next.delete(value);
-		else next.add(value);
-		setter(next);
+	const save = () => {
+		setEntries((current) => [...current.filter((entry) => entry.creatorId !== editing && entry.creatorId !== draft.creatorId), { ...draft, scopes: [...draft.scopes] }]);
+		setStep("review");
+		setEditing(undefined);
 	};
+	const changeGroup = (group: (typeof groups)[number], level: AccessLevel) => {
+		const affected = [...group.read, ...group.write] as readonly string[];
+		let scopes = [...draft.scopes.filter((scope) => !affected.includes(scope)), ...groupScopes(group, level, requestedScopes)];
+		// Feedback requires creator access in addition to its explicit write consent.
+		if (scopes.includes("feedback:create") && !scopes.includes("creator:read")) scopes = scopes.filter((scope) => scope !== "feedback:create");
+		setDraft({ ...draft, mode: "custom", scopes: [...new Set(scopes)] });
+	};
+	const identity = (choice: ConsentCreatorChoice) => (
+		<span className='flex min-w-0 items-center gap-3'>
+			<Avatar size='sm'>
+				<Avatar.Image src={choice.avatarUrl ?? undefined} alt='' />
+				<Avatar.Fallback>{choice.name.slice(0, 2).toUpperCase()}</Avatar.Fallback>
+			</Avatar>
+			<span className='min-w-0'>
+				<span className='block truncate font-medium'>{choice.name}</span>
+				{choice.agencyOrganizationId && <span className='block text-xs text-muted'>Agency access</span>}
+			</span>
+		</span>
+	);
+	const permissionList = (scopes: string[], custom = false) => (
+		<Accordion allowsMultipleExpanded>
+			{groups.map((group) => (
+				<Accordion.Item key={group.id} id={group.id}>
+					<div className='flex flex-wrap items-center justify-between gap-3'>
+						<Accordion.Heading className='min-w-0 flex-1'>
+							<Accordion.Trigger className='justify-start gap-2 px-0 py-4 text-sm'>
+								<Accordion.Indicator className='ms-0' />
+								<span>{group.title}</span>
+							</Accordion.Trigger>
+						</Accordion.Heading>
+						{custom ? (
+							<ToggleButtonGroup aria-label={`${group.title} access`} selectionMode='single' disallowEmptySelection selectedKeys={new Set([groupLevel(group, scopes)])} onSelectionChange={(keys) => changeGroup(group, [...keys][0] as AccessLevel)} size='sm'>
+								{(["none", "read", "write"] as const).map((level) => (
+									<ToggleButton key={level} id={level} isDisabled={(level !== "none" && !(level === "read" ? group.read : group.write).some((scope) => requestedScopes.includes(scope))) || (level === "write" && group.id === "feedback" && !scopes.includes("creator:read"))}>
+										{LEVEL_LABELS[level]}
+									</ToggleButton>
+								))}
+							</ToggleButtonGroup>
+						) : (
+							<Chip size='sm' variant='soft'>
+								{LEVEL_LABELS[groupLevel(group, scopes)]}
+							</Chip>
+						)}
+					</div>
+					<Accordion.Panel>
+						<Accordion.Body className='pb-4 text-sm text-muted'>
+							<p>{group.description}</p>
+							{custom && <p className='mt-2'>Unavailable levels were not requested by this app or are not supported.{group.id === "feedback" && " Requires Creator information: Read."}</p>}
+						</Accordion.Body>
+					</Accordion.Panel>
+				</Accordion.Item>
+			))}
+		</Accordion>
+	);
 	return (
-		<main className='min-h-screen bg-background px-4 py-10 sm:py-16'>
-			<div className='mx-auto flex max-w-2xl flex-col gap-6'>
-				<div className='flex items-center gap-3 text-accent'>
-					<span className='flex size-11 items-center justify-center rounded-2xl bg-accent-soft'>
-						<IconPlugConnected size={24} aria-hidden='true' />
+		<main className='min-h-screen bg-background px-4 py-8 sm:py-12'>
+			<div className='mx-auto flex w-full max-w-2xl flex-col gap-6'>
+				<header className='flex items-center gap-3 text-accent'>
+					<span className='flex size-10 items-center justify-center rounded-xl bg-accent-soft'>
+						<IconPlugConnected size={22} aria-hidden='true' />
 					</span>
 					<span className='font-semibold'>Clipify · App connection</span>
-				</div>
-				<Card className='p-0'>
-					<Card.Header className='gap-2 p-6 sm:p-8'>
-						<Chip size='sm' variant='soft' color='accent'>
-							You control access
-						</Chip>
-						<h1 className='text-2xl font-semibold tracking-tight'>Connect {clientName}</h1>
-						<Card.Description>Choose the creators and permissions this app can use. Your current roles and plan limits continue to apply.</Card.Description>
-					</Card.Header>
-					<form
-						action={async (data) => {
-							setPending(true);
-							setError(undefined);
-							try {
-								const result = await action(data);
-								if (result?.error) setError(result.error);
-							} catch {
-								setError("Clipify could not complete this connection. Try again.");
-							} finally {
-								setPending(false);
-							}
-						}}
-					>
-						<Card.Content className='flex flex-col gap-7 px-6 pb-6 sm:px-8'>
-							<input type='hidden' name='oauthQuery' value={oauthQuery} />
-							<fieldset className='flex flex-col gap-3'>
-								<legend className='mb-3 text-sm font-semibold'>Creators</legend>
-								{!creators.length && (
-									<Alert status='warning'>
-										<Alert.Indicator />
-										<Alert.Content>
-											<Alert.Title>No accessible creators</Alert.Title>
-											<Alert.Description>Ask a creator owner for access before connecting this app.</Alert.Description>
-										</Alert.Content>
-									</Alert>
-								)}
-								{creators.map((creator) => (
-									<Checkbox key={creator.creatorId} name='creators' value={JSON.stringify({ creatorId: creator.creatorId, agencyOrganizationId: creator.agencyOrganizationId })} isSelected={creatorIds.has(creator.creatorId)} onChange={() => toggle(creatorIds, creator.creatorId, setCreatorIds)} className='rounded-xl border border-border p-3' variant='secondary'>
-										<Checkbox.Content>
-											<Checkbox.Control>
-												<Checkbox.Indicator />
-											</Checkbox.Control>
-											{creator.name}
-										</Checkbox.Content>
-									</Checkbox>
+				</header>
+				{handoff ? (
+					<CallbackHandoff clientName={clientName} {...handoff} />
+				) : (
+					<Card className='p-0'>
+						<Card.Header className='gap-3 p-6 sm:p-8'>
+							<nav aria-label='Connection steps' className='flex flex-wrap gap-3 text-xs text-muted'>
+								{(["creator", "permissions", "review"] as const).map((item, index) => (
+									<span key={item} aria-current={step === item ? "step" : undefined} className={step === item ? "font-semibold text-accent" : ""}>
+										{index + 1}. {item === "creator" ? "Creator" : item === "permissions" ? "Permissions" : "Review"}
+									</span>
 								))}
-							</fieldset>
-							<Separator />
-							<RadioButtonGroup name='preset' value={preset} onChange={(value) => selectPreset(value as "read" | "edit")} className='gap-3' aria-label='What should this app do?'>
-								<p className='text-sm font-semibold'>What should this app do?</p>
-								<div className='grid gap-3 sm:grid-cols-2'>
-									<RadioButtonGroup.Item aria-label='Read' value='read' className='min-w-0 p-4'>
-										<RadioButtonGroup.ItemContent>
-											<RadioButtonGroup.Indicator />
-											Read
-										</RadioButtonGroup.ItemContent>
-										<Description>View creator details, overlays and playlists.</Description>
-									</RadioButtonGroup.Item>
-									<RadioButtonGroup.Item aria-label='Read & edit' value='edit' className='min-w-0 p-4'>
-										<RadioButtonGroup.ItemContent>
-											<RadioButtonGroup.Indicator />
-											Read &amp; edit
-										</RadioButtonGroup.ItemContent>
-										<Description>Create and edit content. Deletion stays off.</Description>
-									</RadioButtonGroup.Item>
-								</div>
-							</RadioButtonGroup>
-							<fieldset className='flex flex-col gap-3'>
-								<legend className='mb-1 text-sm font-semibold'>Individual permissions</legend>
-								<p className='text-sm text-muted'>Adjust the preset to give this app only the access it needs.</p>
-								{requestedScopes
-									.filter((scope) => LABELS[scope] && !scope.endsWith(":delete"))
-									.map((scope) => (
-										<Checkbox key={scope} name='scopes' value={scope} isSelected={selected.has(scope)} onChange={() => toggle(selected, scope, setSelected)} variant='secondary'>
-											<Checkbox.Content>
+							</nav>
+							<h1 className='text-2xl font-semibold tracking-tight'>{step === "creator" ? `Connect ${clientName}` : step === "permissions" ? "Set permissions" : "Review and authorize"}</h1>
+							<Card.Description>{step === "creator" ? "Choose a creator to connect to this app." : step === "permissions" ? `Choose the access ${clientName} can have to ${creator?.name ?? "this creator"}. Your roles and plan limits still apply.` : "Review each creator and their permissions before authorizing this connection."}</Card.Description>
+						</Card.Header>
+						<form
+							action={async (data) => {
+								setPending(true);
+								setError(undefined);
+								try {
+									const result = await action(data);
+									if (result?.error) setError(result.error);
+									else if (result?.callbackUrl) setHandoff({ callbackUrl: result.callbackUrl, authorized: result.authorized ?? data.get("accept") === "true" });
+								} catch {
+									setError("Clipify could not complete this connection. Try again.");
+								} finally {
+									setPending(false);
+								}
+							}}
+						>
+							<input type='hidden' name='oauthQuery' value={oauthQuery} />
+							{entries.map((entry) => {
+								const choice = creators.find((item) => item.creatorId === entry.creatorId)!;
+								return <input key={entry.creatorId} type='hidden' name='creators' value={JSON.stringify({ creatorId: entry.creatorId, agencyOrganizationId: choice.agencyOrganizationId, scopes: entry.scopes })} />;
+							})}
+							{[...new Set([...entries.flatMap((entry) => entry.scopes), ...(offline ? ["offline_access"] : [])])].map((scope) => (
+								<input key={scope} type='hidden' name='scopes' value={scope} />
+							))}
+							<Card.Content className='flex flex-col gap-5 px-6 pb-6 sm:px-8'>
+								{step === "creator" && (
+									<>
+										{!creators.length && (
+											<Alert status='warning'>
+												<Alert.Indicator />
+												<Alert.Content>
+													<Alert.Title>No accessible creators</Alert.Title>
+													<Alert.Description>Ask a creator owner for access before connecting this app.</Alert.Description>
+												</Alert.Content>
+											</Alert>
+										)}
+										<RadioGroup aria-label='Choose a creator' value={draft.creatorId} onChange={(value) => setDraft({ ...draft, creatorId: value })}>
+											{creators.map((choice) => (
+												<Radio key={choice.creatorId} value={choice.creatorId} aria-label={choice.name} isDisabled={entries.some((entry) => entry.creatorId === choice.creatorId) && choice.creatorId !== editing} className='rounded-xl border border-border p-4'>
+													<Radio.Control>
+														<Radio.Indicator />
+													</Radio.Control>
+													<Radio.Content>
+														{identity(choice)}
+														{entries.some((entry) => entry.creatorId === choice.creatorId) && choice.creatorId !== editing && <span className='text-xs text-muted'>Already added — edit from Review</span>}
+													</Radio.Content>
+												</Radio>
+											))}
+										</RadioGroup>
+									</>
+								)}
+								{step === "permissions" && (
+									<>
+										{creator && <div className='rounded-xl bg-surface-secondary p-3'>{identity(creator)}</div>}
+										<ToggleButtonGroup
+											aria-label='General permissions'
+											selectionMode='single'
+											disallowEmptySelection
+											selectedKeys={new Set([draft.mode])}
+											onSelectionChange={(keys) => {
+												const mode = [...keys][0] as ConsentMode;
+												setDraft({ ...draft, mode, scopes: mode === "custom" ? draft.scopes : presetScopes(mode, requestedScopes) });
+											}}
+											fullWidth
+										>
+											<ToggleButton id='read'>Read</ToggleButton>
+											<ToggleButton id='write' isDisabled={!writable}>
+												Write
+											</ToggleButton>
+											<ToggleButton id='custom'>Custom</ToggleButton>
+										</ToggleButtonGroup>
+										<p className='text-sm text-muted'>{!writable ? "This app requested read-only access." : draft.mode === "read" ? "View information without changing it." : draft.mode === "write" ? "Allow requested changes, including deletion where requested. Read-only areas remain Read." : "Choose access for each area. Expand a row to see what it allows."}</p>
+										{permissionList(draft.scopes, draft.mode === "custom")}
+									</>
+								)}
+								{step === "review" && (
+									<>
+										{!entries.length && <p className='text-sm text-muted'>Add a creator before authorizing this connection.</p>}
+										{entries.map((entry) => {
+											const choice = creators.find((item) => item.creatorId === entry.creatorId)!;
+											return (
+												<div key={entry.creatorId} className='rounded-xl border border-border p-4'>
+													<div className='flex flex-wrap items-center justify-between gap-3'>
+														{identity(choice)}
+														<div className='flex items-center gap-2'>
+															<Chip size='sm' variant='soft'>
+																{entry.mode === "custom" ? "Custom" : LEVEL_LABELS[entry.mode]}
+															</Chip>
+															<Button type='button' variant='tertiary' size='sm' isIconOnly aria-label={`Edit ${choice.name}`} onPress={() => begin(entry)}>
+																<IconPencil size={17} />
+															</Button>
+															<Button type='button' variant='tertiary' size='sm' isIconOnly aria-label={`Remove ${choice.name} from connection`} onPress={() => setEntries((current) => current.filter((item) => item.creatorId !== entry.creatorId))}>
+																<IconTrash size={17} />
+															</Button>
+														</div>
+													</div>
+													<Accordion>
+														<Accordion.Item>
+															<Accordion.Heading>
+																<Accordion.Trigger className='text-sm'>
+																	View permissions
+																	<Accordion.Indicator />
+																</Accordion.Trigger>
+															</Accordion.Heading>
+															<Accordion.Panel>
+																<Accordion.Body>{permissionList(entry.scopes)}</Accordion.Body>
+															</Accordion.Panel>
+														</Accordion.Item>
+													</Accordion>
+												</div>
+											);
+										})}
+										{requestedScopes.includes("offline_access") && (
+											<Checkbox isSelected={offline} onChange={setOffline}>
 												<Checkbox.Control>
 													<Checkbox.Indicator />
 												</Checkbox.Control>
-												{LABELS[scope]}
-											</Checkbox.Content>
-										</Checkbox>
-									))}
-							</fieldset>
-							{requestedScopes.some((scope) => scope.endsWith(":delete")) && (
-								<fieldset className='flex flex-col gap-3 rounded-xl bg-danger-soft p-4'>
-									<legend className='sr-only'>Deletion permissions</legend>
-									<p className='text-sm font-semibold text-danger-soft-foreground'>Allow deletion separately</p>
-									<p className='text-sm text-muted'>These permissions let the app permanently delete content.</p>
-									{requestedScopes
-										.filter((scope) => scope.endsWith(":delete") && LABELS[scope])
-										.map((scope) => (
-											<Checkbox key={scope} name='scopes' value={scope} isSelected={selected.has(scope)} onChange={() => toggle(selected, scope, setSelected)} variant='secondary'>
-												<Checkbox.Content>
-													<Checkbox.Control>
-														<Checkbox.Indicator />
-													</Checkbox.Control>
-													{LABELS[scope]}
+												<Checkbox.Content className='flex-col items-start gap-1'>
+													<span>Stay connected between sessions</span>
+													<span className='block text-xs text-muted'>Allow refresh until access expires or you revoke this connection.</span>
 												</Checkbox.Content>
 											</Checkbox>
-										))}
-								</fieldset>
-							)}
-							<p className='flex items-start gap-2 text-sm text-muted'>
-								<IconShieldCheck size={18} className='mt-0.5 shrink-0' aria-hidden='true' />
-								You can revoke this connection anytime in account settings.
-							</p>
-							{error && (
-								<Alert status='danger' role='alert'>
-									<Alert.Indicator />
-									<Alert.Content>
-										<Alert.Title>Connection could not be approved</Alert.Title>
-										<Alert.Description>{error}</Alert.Description>
-									</Alert.Content>
-								</Alert>
-							)}
-						</Card.Content>
-						<Card.Footer className='flex flex-col-reverse gap-3 border-t border-border px-6 py-5 sm:flex-row sm:justify-end sm:px-8'>
-							<Button type='submit' name='accept' value='false' formNoValidate isDisabled={pending} variant='tertiary'>
-								Deny
-							</Button>
-							<Button type='submit' name='accept' value='true' isPending={pending} isDisabled={pending || !creatorIds.size || !selected.size} variant='primary'>
-								Approve connection
-							</Button>
-						</Card.Footer>
-					</form>
-				</Card>
+										)}
+										<p className='flex items-start gap-2 text-sm text-muted'>
+											<IconShieldCheck size={18} className='shrink-0' aria-hidden='true' />
+											You can revoke this connection in Settings → Connected apps.
+										</p>
+									</>
+								)}
+								{error && (
+									<Alert status='danger' role='alert'>
+										<Alert.Indicator />
+										<Alert.Content>
+											<Alert.Title>Connection could not be approved</Alert.Title>
+											<Alert.Description>{error}</Alert.Description>
+										</Alert.Content>
+									</Alert>
+								)}
+							</Card.Content>
+							<Separator />
+							<Card.Footer className='flex flex-wrap justify-between gap-3 px-6 py-5 sm:px-8'>
+								<div className='flex flex-wrap gap-2'>
+									<Button type='submit' name='accept' value='false' formNoValidate variant='tertiary' isDisabled={pending}>
+										Deny
+									</Button>
+									{step !== "review" && (step !== "creator" || entries.length > 0) && (
+										<Button type='button' variant='tertiary' onPress={() => setStep(step === "permissions" ? "creator" : "review")}>
+											<IconArrowLeft size={16} />
+											Back
+										</Button>
+									)}
+								</div>
+								{step === "creator" && (
+									<Button type='button' isDisabled={!draft.creatorId} onPress={() => setStep("permissions")}>
+										Continue
+									</Button>
+								)}
+								{step === "permissions" && (
+									<Button type='button' isDisabled={!draft.scopes.length} onPress={save}>
+										Review
+										<IconCheck size={16} />
+									</Button>
+								)}
+								{step === "review" && (
+									<div className='flex flex-wrap gap-3'>
+										<Button type='button' variant='secondary' onPress={() => begin()}>
+											<IconPlus size={16} />
+											Add another creator
+										</Button>
+										<Button type='submit' name='accept' value='true' isPending={pending} isDisabled={pending || !entries.length || entries.some((entry) => !entry.scopes.length)}>
+											Authorize
+										</Button>
+									</div>
+								)}
+							</Card.Footer>
+						</form>
+					</Card>
+				)}
+				<footer className='flex flex-wrap justify-center gap-x-5 gap-y-2 text-xs text-muted'>
+					<Link href='/legal/privacy' className='text-xs'>
+						Privacy
+					</Link>
+					<Link href='/legal/terms' className='text-xs'>
+						Terms
+					</Link>
+					<Link href='https://docs.clipify.us' className='text-xs' target='_blank' rel='noreferrer'>
+						Help
+					</Link>
+				</footer>
 			</div>
 		</main>
 	);

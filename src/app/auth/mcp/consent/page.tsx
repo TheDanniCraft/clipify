@@ -12,7 +12,7 @@ import { getMcpConfiguration } from "@/server/mcp/config";
 import { MCP_SCOPES } from "@/server/mcp/scopes";
 import { ConsentForm } from "./ConsentForm";
 
-const creatorChoice = z.object({ creatorId: z.string().min(1).max(255), agencyOrganizationId: z.string().min(1).max(255).nullable() }).strict();
+const creatorChoice = z.object({ creatorId: z.string().min(1).max(255), agencyOrganizationId: z.string().min(1).max(255).nullable(), scopes: z.array(z.string()).min(1).max(100) }).strict();
 
 export default async function McpConsentPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
 	const parameters = await searchParams;
@@ -42,7 +42,7 @@ export default async function McpConsentPage({ searchParams }: { searchParams: P
 		listAuthorizedCreatorOperations({ permission: "creator:read", requestHeaders }),
 	]);
 	const creators = decisions.map((decision) => ({ creatorId: decision.creator.id, name: decision.creator.username, agencyOrganizationId: decision.accessPath === "agency" ? ((session.session as typeof session.session & { activeOrganizationId?: string | null }).activeOrganizationId ?? null) : null }));
-	async function submitConsent(data: FormData): Promise<{ error?: string } | void> {
+	async function submitConsent(data: FormData): Promise<{ error?: string; callbackUrl?: string; authorized?: boolean } | void> {
 		"use server";
 		const incomingHeaders = new Headers(await headers());
 		incomingHeaders.set("Content-Type", "application/json");
@@ -57,7 +57,7 @@ export default async function McpConsentPage({ searchParams }: { searchParams: P
 		const result = await response.json().catch(() => null);
 		if (!response.ok || typeof result?.url !== "string") return { error: "The connection could not be approved. Restart the connection from your app." };
 		// The provider validates the signed state and registered callback before returning this URL.
-		redirect(result.url);
+		return { callbackUrl: result.url, authorized: accept };
 	}
 	return <ConsentForm clientName={clients[0]?.name || "this app"} requestedScopes={requestedScopes} creators={creators} oauthQuery={oauthQuery} action={submitConsent} />;
 }

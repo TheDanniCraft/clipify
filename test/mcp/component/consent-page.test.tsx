@@ -76,17 +76,17 @@ describe("consent server action forwards only validated choices", () => {
 		const page = await Page({ searchParams: Promise.resolve(query) });
 		const data = new FormData();
 		data.set("accept", "true");
-		data.append("creators", JSON.stringify({ creatorId: "creator", agencyOrganizationId: "agency-context" }));
+		data.append("creators", JSON.stringify({ creatorId: "creator", agencyOrganizationId: "agency-context", scopes: ["creator:read"] }));
 		data.append("scopes", "creator:read");
-		await expect(page.props.action(data)).rejects.toThrow("REDIRECT:https://client.example/callback?code=fixture");
-		expect(approveMcpConsent).toHaveBeenCalledWith(expect.objectContaining({ accept: true, scopes: ["creator:read"], creators: [{ creatorId: "creator", agencyOrganizationId: "agency-context" }] }));
+		await expect(page.props.action(data)).resolves.toMatchObject({ callbackUrl: "https://client.example/callback?code=fixture", authorized: data.get("accept") === "true" });
+		expect(approveMcpConsent).toHaveBeenCalledWith(expect.objectContaining({ accept: true, scopes: ["creator:read"], creators: [{ creatorId: "creator", agencyOrganizationId: "agency-context", scopes: ["creator:read"] }] }));
 		expect((approveMcpConsent as jest.Mock).mock.calls[0][0].headers.get("content-type")).toBe("application/json");
 	});
 	test("denial ignores malformed creator selections and delegates provider callback validation", async () => {
 		const page = await Page({ searchParams: Promise.resolve(query) });
 		const data = new FormData();
 		data.append("creators", "malformed-choice");
-		await expect(page.props.action(data)).rejects.toThrow("REDIRECT:https://client.example/callback?code=fixture");
+		await expect(page.props.action(data)).resolves.toMatchObject({ callbackUrl: "https://client.example/callback?code=fixture", authorized: data.get("accept") === "true" });
 		expect(approveMcpConsent).toHaveBeenCalledWith(expect.objectContaining({ accept: false, creators: [] }));
 	});
 	test.each([() => Response.json({ url: "https://client.example/callback" }, { status: 400 }), () => Response.json({}), () => new Response("not-json")])("failed approval yields safe feedback without redirect", async (response) => {

@@ -19,6 +19,6 @@ export async function resolveMcpGrant(verifiedClaims: unknown, client: QueryClie
 	// Resource/issuer verification belongs to the provider wrapper; the grant must
 	// also retain its token's exact resource (no adoption of another service).
 	if (!audience.includes(grant.resource) || claims.iss !== grant.issuer) throw new Error("AUTHENTICATION_REQUIRED");
-	const creators = await client.select({ creatorId: mcpGrantCreatorsTable.creatorId, agencyOrganizationId: mcpGrantCreatorsTable.agencyOrganizationId }).from(mcpGrantCreatorsTable).where(eq(mcpGrantCreatorsTable.grantId, grant.id));
-	return { kind: "oauth", authUserId: grant.authUserId, authenticatedAt: new Date((claims.iat ?? 0) * 1000), clientId: grant.clientId, grantId: grant.id, generation: grant.generation, tokenExpiresAt: new Date(claims.exp * 1000), resource: grant.resource, issuer: grant.issuer, scopes: claims.scope.split(" "), creators };
+	const creators = await client.select({ creatorId: mcpGrantCreatorsTable.creatorId, agencyOrganizationId: mcpGrantCreatorsTable.agencyOrganizationId, scopes: mcpGrantCreatorsTable.scopes }).from(mcpGrantCreatorsTable).where(eq(mcpGrantCreatorsTable.grantId, grant.id));
+	return { kind: "oauth", authUserId: grant.authUserId, authenticatedAt: new Date((claims.iat ?? 0) * 1000), clientId: grant.clientId, grantId: grant.id, generation: grant.generation, tokenExpiresAt: new Date(claims.exp * 1000), resource: grant.resource, issuer: grant.issuer, scopes: claims.scope.split(" "), creators: creators.map((creator) => ({ ...creator, scopes: creator.scopes ?? grant.scopes })) };
 }

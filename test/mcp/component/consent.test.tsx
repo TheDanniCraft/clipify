@@ -1,63 +1,78 @@
-jest.mock("@heroui-pro/react", () => require("../../support/mcp/heroui-fixture").proComponents, { virtual: true });
 jest.mock("@heroui/react", () => require("../../support/mcp/heroui-fixture").components);
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-let ConsentForm: any;
-try {
-	ConsentForm = require("@/app/auth/mcp/consent/ConsentForm").ConsentForm;
-} catch {}
-const requested = ["creator:read", "overlay:read", "playlist:read", "overlay:create", "overlay:update", "playlist:create", "playlist:update", "playlist-items:manage", "overlay:delete", "playlist:delete"];
+jest.mock("@/app/auth/mcp/consent/CallbackHandoff", () => ({ CallbackHandoff: () => <h1>Authorization successful</h1> }));
+import { render, screen, fireEvent, within, waitFor } from "@testing-library/react";
+import { ConsentForm } from "@/app/auth/mcp/consent/ConsentForm";
+const requested = ["creator:read", "overlay:read", "overlay:create", "overlay:update", "overlay:delete", "playlist:read", "playlist:update", "offline_access"];
 const props = {
-	clientName: "Custom AI client",
+	clientName: "Custom AI",
 	requestedScopes: requested,
 	creators: [
-		{ creatorId: "creator-1", agencyOrganizationId: null, name: "Creator one" },
-		{ creatorId: "creator-2", agencyOrganizationId: "agency", name: "Creator two" },
+		{ creatorId: "one", agencyOrganizationId: null, name: "Creator one" },
+		{ creatorId: "two", agencyOrganizationId: "agency", name: "Creator two" },
 	],
-	oauthQuery: "fixture-signed-query",
+	oauthQuery: "signed-query",
 	action: jest.fn(),
 };
-describe("TDD-US1-027 consent UI", () => {
-	test("shows client, explicit creators, presets and separate unchecked deletions", () => {
-		expect(ConsentForm).toEqual(expect.any(Function));
-		render(<ConsentForm {...props} />);
-		expect(screen.getByRole("heading", { name: "Connect Custom AI client" })).toBeVisible();
-		expect(screen.getByRole("radio", { name: "Read" })).toBeChecked();
-		expect(screen.getByRole("checkbox", { name: "Creator one" })).not.toBeChecked();
-		expect(screen.getByRole("checkbox", { name: "Delete overlays" })).not.toBeChecked();
-		expect(screen.getByRole("checkbox", { name: "Delete playlists" })).not.toBeChecked();
-	});
-	test("edit preset is customizable and never automatically opts into deletion", () => {
-		expect(ConsentForm).toEqual(expect.any(Function));
-		render(<ConsentForm {...props} />);
-		fireEvent.click(screen.getByRole("radio", { name: "Read & edit" }));
-		expect(screen.getByRole("checkbox", { name: "Create overlays" })).toBeChecked();
-		fireEvent.click(screen.getByRole("checkbox", { name: "Create overlays" }));
-		expect(screen.getByRole("checkbox", { name: "Create overlays" })).not.toBeChecked();
-		expect(screen.getByRole("checkbox", { name: "Delete overlays" })).not.toBeChecked();
-		fireEvent.click(screen.getByRole("checkbox", { name: "Delete playlists" }));
-		expect(screen.getByRole("checkbox", { name: "Delete playlists" })).toBeChecked();
-	});
-	test("only renders permissions actually requested by this client", () => {
-		expect(ConsentForm).toEqual(expect.any(Function));
-		render(<ConsentForm {...props} requestedScopes={["creator:read"]} />);
-		expect(screen.queryByRole("checkbox", { name: "Delete playlists" })).not.toBeInTheDocument();
-	});
-	test("submission failure leaves a safe retry message instead of exposing internal errors", async () => {
-		expect(ConsentForm).toEqual(expect.any(Function));
-		const action = jest.fn().mockRejectedValue(new Error("private-database-host"));
-		const { container } = render(<ConsentForm {...props} action={action} />);
-		fireEvent.click(screen.getByRole("checkbox", { name: "Creator one" }));
-		fireEvent.submit(container.querySelector("form")!);
-		await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Try again"));
-		expect(screen.queryByText(/private-database-host/)).not.toBeInTheDocument();
-	});
+function choose(name: string) {
+	fireEvent.click(screen.getByRole("radio", { name }));
+	fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+}
+function review() {
+	fireEvent.click(screen.getByRole("button", { name: "Review" }));
+}
+test("starts with creator selection and preserves independent write/read choices", () => {
+	const { container } = render(<ConsentForm {...props} />);
+	expect(screen.getByRole("button", { name: "Continue" })).toBeDisabled();
+	choose("Creator one");
+	fireEvent.click(within(screen.getByRole("group", { name: "General permissions" })).getByRole("button", { name: "Write" }));
+	review();
+	fireEvent.click(screen.getByRole("button", { name: "Add another creator" }));
+	choose("Creator two");
+	review();
+	const entries = [...container.querySelectorAll<HTMLInputElement>('input[name="creators"]')].map((input) => JSON.parse(input.value));
+	expect(entries[0].scopes).toContain("overlay:delete");
+	expect(entries[1].scopes).not.toContain("overlay:update");
+	expect(entries[1].agencyOrganizationId).toBe("agency");
+	expect(screen.getByRole("button", { name: "Authorize" })).toBeEnabled();
 });
-
-test("workflow permissions use readable labels and keep sensitive operations unchecked", () => {
-	render(<ConsentForm {...props} requestedScopes={["gallery:read", "runner:read", "overlay:control", "overlay-secret:read", "runner-credential:rotate"]} />);
-	expect(screen.getByRole("checkbox", { name: "Read galleries" })).toBeChecked();
-	expect(screen.getByRole("checkbox", { name: "Read runners and stream sessions" })).toBeChecked();
-	expect(screen.getByRole("checkbox", { name: "Control live overlays (Pro)" })).not.toBeChecked();
-	expect(screen.getByRole("checkbox", { name: "Read private OBS overlay URLs" })).not.toBeChecked();
-	expect(screen.getByRole("checkbox", { name: "Disconnect enrolled runner devices" })).not.toBeChecked();
+test("custom preserves the preset, allows narrowing, and disables unsupported levels", () => {
+	const { container } = render(<ConsentForm {...props} />);
+	choose("Creator one");
+	fireEvent.click(within(screen.getByRole("group", { name: "General permissions" })).getByRole("button", { name: "Custom" }));
+	expect(within(screen.getByRole("group", { name: "Creator information access" })).getByRole("button", { name: "Write" })).toBeDisabled();
+	fireEvent.click(within(screen.getByRole("group", { name: "Overlays access" })).getByRole("button", { name: "None" }));
+	review();
+	expect(JSON.parse(container.querySelector<HTMLInputElement>('input[name="creators"]')!.value).scopes).not.toContain("overlay:read");
+});
+test("edit and back retain settings; removal does not affect another creator", () => {
+	render(<ConsentForm {...props} />);
+	choose("Creator one");
+	review();
+	fireEvent.click(screen.getByRole("button", { name: "Add another creator" }));
+	choose("Creator two");
+	review();
+	fireEvent.click(screen.getByRole("button", { name: "Edit Creator one" }));
+	expect(screen.getByRole("radio", { name: "Creator one" })).toBeChecked();
+	fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+	fireEvent.click(screen.getByRole("button", { name: "Back" }));
+	expect(screen.getByRole("radio", { name: "Creator one" })).toBeChecked();
+	fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+	review();
+	fireEvent.click(screen.getByRole("button", { name: "Remove Creator one from connection" }));
+	expect(screen.getByText("Creator two")).toBeVisible();
+	expect(screen.getByRole("button", { name: "Authorize" })).toBeEnabled();
+});
+test("read-only requests disable Write and cannot gain unrequested permissions", () => {
+	render(<ConsentForm {...props} requestedScopes={["creator:read"]} />);
+	choose("Creator one");
+	expect(within(screen.getByRole("group", { name: "General permissions" })).getByRole("button", { name: "Write" })).toBeDisabled();
+	expect(screen.getByText("This app requested read-only access.")).toBeVisible();
+});
+test("submission failures retain review and hide internal details", async () => {
+	const { container } = render(<ConsentForm {...props} action={jest.fn().mockRejectedValue(new Error("private-host"))} />);
+	choose("Creator one");
+	review();
+	fireEvent.submit(container.querySelector("form")!);
+	await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Try again"));
+	expect(screen.queryByText(/private-host/)).not.toBeInTheDocument();
 });

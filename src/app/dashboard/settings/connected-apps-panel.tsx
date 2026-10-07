@@ -117,7 +117,15 @@ export default function ConnectedAppsPanel() {
 						</div>
 						<div className='flex flex-col gap-2 text-sm text-muted'>
 							<p>Creators: {connection.creatorIds.join(", ")}</p>
-							<p>Permissions: {connection.scopes.join(", ")}</p>
+							{connection.creatorPermissions ? (
+								connection.creatorPermissions.map((creator) => (
+									<p key={creator.creatorId}>
+										Permissions for {creator.creatorId}: {creator.scopes.join(", ")}
+									</p>
+								))
+							) : (
+								<p>Permissions: {connection.scopes.join(", ")}</p>
+							)}
 							<p>Expires: {new Date(connection.expiresAt).toLocaleDateString()}</p>
 						</div>
 						{confirmation === connection.id ? (

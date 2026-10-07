@@ -16,8 +16,19 @@ export async function listMcpConnections(input: { auth: SessionAuth; headers: He
 	const grants = await client.select().from(mcpConnectionGrantsTable).where(eq(mcpConnectionGrantsTable.authUserId, session.user.id)).orderBy(mcpConnectionGrantsTable.createdAt);
 	return Promise.all(
 		grants.map(async (grant) => {
-			const [clients, creators] = await Promise.all([client.select({ name: oauthClient.name }).from(oauthClient).where(eq(oauthClient.clientId, grant.clientId)).limit(1), client.select({ creatorId: mcpGrantCreatorsTable.creatorId }).from(mcpGrantCreatorsTable).where(eq(mcpGrantCreatorsTable.grantId, grant.id))]);
-			return { id: grant.id, clientId: grant.clientId, clientName: clients[0]?.name ?? grant.clientId, scopes: grant.scopes, creatorIds: creators.map((creator) => creator.creatorId), createdAt: grant.createdAt.toISOString(), expiresAt: grant.expiresAt.toISOString(), revokedAt: grant.revokedAt?.toISOString() ?? null, active: grant.active && !grant.revokedAt && grant.expiresAt > new Date() };
+			const [clients, creators] = await Promise.all([client.select({ name: oauthClient.name }).from(oauthClient).where(eq(oauthClient.clientId, grant.clientId)).limit(1), client.select({ creatorId: mcpGrantCreatorsTable.creatorId, scopes: mcpGrantCreatorsTable.scopes }).from(mcpGrantCreatorsTable).where(eq(mcpGrantCreatorsTable.grantId, grant.id))]);
+			return {
+				id: grant.id,
+				clientId: grant.clientId,
+				clientName: clients[0]?.name ?? grant.clientId,
+				scopes: grant.scopes,
+				creatorIds: creators.map((creator) => creator.creatorId),
+				creatorPermissions: creators.map((creator) => ({ creatorId: creator.creatorId, scopes: creator.scopes ?? grant.scopes.filter((scope) => scope !== "offline_access") })),
+				createdAt: grant.createdAt.toISOString(),
+				expiresAt: grant.expiresAt.toISOString(),
+				revokedAt: grant.revokedAt?.toISOString() ?? null,
+				active: grant.active && !grant.revokedAt && grant.expiresAt > new Date(),
+			};
 		}),
 	);
 }

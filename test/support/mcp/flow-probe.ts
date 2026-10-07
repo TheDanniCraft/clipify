@@ -238,7 +238,7 @@ async function main() {
 			}
 			if (mode.endsWith(":no-scope")) finalScopes = finalScopes.filter((scope) => scope !== (mode.startsWith("resources:playlist-remove") || mode.startsWith("resources:playlist-reorder") || mode.startsWith("resources:playlist-add") ? "playlist-items:manage" : mode.startsWith("resources:playlist-delete") ? "playlist:delete" : "overlay:delete"));
 			if (mode.endsWith(":no-read")) finalScopes = finalScopes.filter((scope) => scope !== "playlist:read");
-			const selectedCreators =
+			const selectedCreators: { creatorId: string; agencyOrganizationId: string | null; scopes?: string[] }[] =
 				mode === "benchmark:20"
 					? benchmarkTargets.map((target) => ({ creatorId: target.creatorId, agencyOrganizationId: null }))
 					: mode.startsWith("resources:creators")
@@ -248,6 +248,7 @@ async function main() {
 								{ creatorId: "agency-creator", agencyOrganizationId: "agency-org" },
 							]
 						: [{ creatorId: mode === "inaccessible" ? "other" : "fixture-creator", agencyOrganizationId: mode.includes("policy-agency") || transitionAgency ? "policy-agency-org" : null }];
+			if (mode === "resources:overlay-update:creator-read-only") selectedCreators[0].scopes = ["creator:read", "overlay:read"];
 			if (mode === "consent:request-catalogue") {
 				if (!grants?.approveMcpConsent) throw new Error("Consent catalogue requires the actual approval bridge");
 				const cases = ["missing-origin", "foreign-origin", "missing-cookie", "invalid-cookie", "missing-signature", "changed-signature", "changed-client", "changed-scope"];

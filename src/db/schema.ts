@@ -836,6 +836,8 @@ export const mcpGrantCreatorsTable = pgTable(
 		creatorId: varchar("creator_id")
 			.notNull()
 			.references(() => creatorAccountsTable.creatorId, { onDelete: "cascade" }),
+		// NULL preserves pre-existing grants; new consent always stores explicit per-creator scopes.
+		scopes: text("scopes").array(),
 		agencyOrganizationId: text("agency_organization_id").references(() => authOrganizationTable.id, { onDelete: "cascade" }),
 	},
 	(table) => [primaryKey({ columns: [table.grantId, table.creatorId] })],

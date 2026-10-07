@@ -37,7 +37,7 @@ type ConsentAuth = {
 	handler(request: Request): Promise<Response>;
 	api: { getSession(input: { headers: Headers }): Promise<{ user: { id: string }; session: { id: string; createdAt: Date; activeOrganizationId?: string | null } } | null> };
 };
-export async function approveMcpConsent(input: { auth: ConsentAuth; origin: string; headers: Headers; oauthQuery: string; accept: boolean; scopes: string[]; creators: { creatorId: string; agencyOrganizationId: string | null }[] }): Promise<Response> {
+export async function approveMcpConsent(input: { auth: ConsentAuth; origin: string; headers: Headers; oauthQuery: string; accept: boolean; scopes: string[]; creators: { creatorId: string; agencyOrganizationId: string | null; scopes?: string[] }[] }): Promise<Response> {
 	const deny = (status: number, error: string) => Response.json({ error }, { status });
 	if (input.headers.get("origin") !== new URL(input.origin).origin) return deny(403, "access_denied");
 	const session = await input.auth.api.getSession({ headers: input.headers });
@@ -49,6 +49,17 @@ export async function approveMcpConsent(input: { auth: ConsentAuth; origin: stri
 	} catch {
 		return deny(400, "invalid_scope");
 	}
+	if (input.accept) {
+		try {
+			for (const target of input.creators)
+				validateSelectedScopes(
+					target.scopes ?? scopes.filter((scope) => scope !== "offline_access"),
+					scopes.filter((scope) => scope !== "offline_access"),
+				);
+		} catch {
+			return deny(400, "invalid_scope");
+		}
+	}
 	const clientId = query.get("client_id");
 	if (!clientId || !query.has("sig")) return deny(400, "invalid_request");
 	let id: string | undefined;
@@ -58,12 +69,15 @@ export async function approveMcpConsent(input: { auth: ConsentAuth; origin: stri
 			id = randomUUID();
 			await db.transaction(async (tx) => {
 				for (const target of input.creators)
-					for (const scope of scopes.some((scope) => scope !== "offline_access") ? scopes.filter((scope) => scope !== "offline_access") : ["creator:read"]) {
-						const decision = await authorizeTrustedCreatorOperation({ principal: { kind: "session", authUserId: session.user.id, authenticatedAt: session.session.createdAt, sessionId: session.session.id, organizationId: target.agencyOrganizationId }, creatorId: target.creatorId, permission: scope as Permission, client: tx });
+					for (const scope of validateSelectedScopes(
+						target.scopes ?? scopes.filter((scope) => scope !== "offline_access"),
+						scopes.filter((scope) => scope !== "offline_access"),
+					)) {
+						const decision = await authorizeTrustedCreatorOperation({ principal: { kind: "session", authUserId: session.user.id, authenticatedAt: session.session.createdAt, sessionId: session.session.id, organizationId: target.agencyOrganizationId }, creatorId: target.creatorId, permission: (scope === "feedback:create" ? "creator:read" : scope) as Permission, client: tx });
 						if (!decision.allowed) throw new Error("ACCESS_DENIED");
 					}
 				await tx.insert(mcpConnectionGrantsTable).values({ id, authUserId: session.user.id, clientId, resource: `${new URL(input.origin).origin}/mcp`, issuer: `${new URL(input.origin).origin}/api/auth`, scopes, expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) });
-				await tx.insert(mcpGrantCreatorsTable).values(input.creators.map((target) => ({ grantId: id!, ...target })));
+				await tx.insert(mcpGrantCreatorsTable).values(input.creators.map((target) => ({ ...target, grantId: id!, scopes: target.scopes ?? scopes.filter((scope) => scope !== "offline_access") })));
 			});
 		}
 		const request = new Request(`${new URL(input.origin).origin}/api/auth/oauth2/consent`, { method: "POST", headers: input.headers, body: JSON.stringify({ accept: input.accept, ...(input.accept ? { scope: scopes.join(" ") } : {}), oauth_query: input.oauthQuery }) });

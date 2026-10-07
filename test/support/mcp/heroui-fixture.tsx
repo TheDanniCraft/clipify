@@ -17,11 +17,11 @@ const RadioGroup = ({ children, value, onChange, name, className }: any) => (
 	</radioContext.Provider>
 );
 const Radio = Object.assign(
-	({ children, value, className, "aria-label": ariaLabel }: any) => {
+	({ children, value, className, isDisabled, "aria-label": ariaLabel }: any) => {
 		const group = useContext(radioContext);
 		return (
 			<label className={className}>
-				<input type='radio' aria-label={ariaLabel} name={group.name} value={value} checked={group.value === value} onChange={() => group.onChange?.(value)} />
+				<input type='radio' aria-label={ariaLabel} name={group.name} value={value} disabled={isDisabled} checked={group.value === value} onChange={() => group.onChange?.(value)} />
 				{children}
 			</label>
 		);
@@ -65,6 +65,36 @@ const ListBox = Object.assign(Slot, {
 	},
 	ItemIndicator: () => null,
 });
-export const components = { Select, ListBox, Checkbox, Radio, RadioGroup, Button, Card, Alert, Chip: Slot, Separator: () => <hr />, Spinner: () => <span>Loading…</span>, Description: Slot, Label: Slot };
+const toggleContext = createContext<any>({});
+const ToggleButtonGroup = ({ children, selectedKeys, onSelectionChange, "aria-label": label }: any) => (
+	<toggleContext.Provider value={{ selectedKeys, onSelectionChange }}>
+		<div role='group' aria-label={label}>
+			{children}
+		</div>
+	</toggleContext.Provider>
+);
+const ToggleButton = ({ children, id, isDisabled }: any) => {
+	const group = useContext(toggleContext);
+	return (
+		<button type='button' disabled={isDisabled} aria-pressed={group.selectedKeys?.has(id)} onClick={() => group.onSelectionChange?.(new Set([id]))}>
+			{children}
+		</button>
+	);
+};
+const Accordion = Object.assign(({ children, ...props }: any) => <Slot {...props}>{children}</Slot>, {
+	Item: Slot,
+	Heading: Slot,
+	Trigger: ({ children, ...props }: any) => (
+		<button type='button' {...props}>
+			{children}
+		</button>
+	),
+	Indicator: () => null,
+	Panel: Slot,
+	Body: Slot,
+});
+const Avatar = Object.assign(({ children, ...props }: any) => <Slot {...props}>{children}</Slot>, { Image: () => null, Fallback: ({ children }: any) => <span aria-hidden='true'>{children}</span> });
+const Tabs = Object.assign(({ children, ...props }: any) => <Slot {...props}>{children}</Slot>, { ListContainer: Slot, List: Slot, Tab: Slot, Indicator: () => null, Panel: Slot });
+export const components = { Accordion, Avatar, ToggleButtonGroup, ToggleButton, Tabs, Link: ({ children, ...props }: any) => <a {...props}>{children}</a>, Select, ListBox, Checkbox, Radio, RadioGroup, Button, Card, Alert, Chip: Slot, Separator: () => <hr />, Spinner: () => <span>Loading…</span>, Description: Slot, Label: Slot };
 
 export const proComponents = { RadioButtonGroup: Object.assign(RadioGroup, { Item: Radio, ItemContent: Slot, ItemIcon: Slot, Indicator: () => null }), EmptyState: Object.assign(Slot, { Header: Slot, Media: Slot, Title: Slot, Description: Slot, Content: Slot }) };
