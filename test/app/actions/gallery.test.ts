@@ -73,6 +73,7 @@ jest.mock("@/server/entitlements/resource-access", () => ({ resolveRetainedResou
 const gallery = (patch: Partial<Gallery> = {}): Gallery => ({
 	id: "gallery-1",
 	ownerId: "owner",
+	configurationRevision: 1,
 	name: "Highlights",
 	published: true,
 	source: "live",

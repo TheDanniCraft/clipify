@@ -1,12 +1,10 @@
-/* istanbul ignore file */
 "use server";
 
 import * as databaseSchema from "@/db/schema";
 import { entitlementGrantsTable, galleriesTable, overlaysTable, playlistsTable, runnersTable, streamSessionsTable, usersTable } from "@/db/schema";
-import { db } from "@/db/client";
+import { db, type QueryClient } from "@/db/client";
 import { and, asc, eq, exists, gt, inArray, isNull, lt, lte, or, sql } from "drizzle-orm";
 import { AuthenticatedUser, Entitlement, EntitlementGrantSource, Plan, RunnerStatus, StreamState, UserEntitlements } from "@types";
-import { invalidateCommunitySnapshotCache } from "@lib/community";
 
 const PRO_ACCESS = Entitlement.ProAccess;
 type CreateGrantInput = {
@@ -26,9 +24,9 @@ function isHybridEntitlementsEnabled() {
 	return ["1", "true", "yes", "on"].includes(raw.toLowerCase());
 }
 
-export async function hasActiveEntitlement(userId: string, entitlement: Entitlement, now = new Date()) {
+export async function hasActiveEntitlement(userId: string, entitlement: Entitlement, now = new Date(), client: QueryClient = db) {
 	if (!isHybridEntitlementsEnabled()) return false;
-	const rows = await db
+	const rows = await client
 		.select()
 		.from(entitlementGrantsTable)
 		.where(and(eq(entitlementGrantsTable.entitlement, entitlement), isNull(entitlementGrantsTable.revokedAt), lte(entitlementGrantsTable.startsAt, now), or(isNull(entitlementGrantsTable.endsAt), gt(entitlementGrantsTable.endsAt, now)), or(eq(entitlementGrantsTable.userId, userId), isNull(entitlementGrantsTable.userId))))
@@ -42,10 +40,10 @@ export async function hasActiveProGrant(userId: string, now = new Date()) {
 	return hasActiveEntitlement(userId, PRO_ACCESS, now);
 }
 
-export async function hasActiveAgencyAllocation(userId: string, now = new Date()) {
+export async function hasActiveAgencyAllocation(userId: string, now = new Date(), client: QueryClient = db) {
 	const agencyLicenseAllocationsTable = databaseSchema.agencyLicenseAllocationsTable as typeof databaseSchema.agencyLicenseAllocationsTable | undefined;
 	if (!agencyLicenseAllocationsTable) return false;
-	const rows = await db
+	const rows = await client
 		.select({ id: agencyLicenseAllocationsTable.id })
 		.from(agencyLicenseAllocationsTable)
 		.where(and(eq(agencyLicenseAllocationsTable.creatorId, userId), eq(agencyLicenseAllocationsTable.product, "creator_pro"), lte(agencyLicenseAllocationsTable.effectiveAt, now), inArray(agencyLicenseAllocationsTable.status, ["active", "removal_scheduled"]), or(isNull(agencyLicenseAllocationsTable.endsAt), gt(agencyLicenseAllocationsTable.endsAt, now))))
@@ -54,10 +52,10 @@ export async function hasActiveAgencyAllocation(userId: string, now = new Date()
 	return rows.length > 0;
 }
 
-export async function hasActiveAgencyRunnerAllocation(userId: string, now = new Date()) {
+export async function hasActiveAgencyRunnerAllocation(userId: string, now = new Date(), client: QueryClient = db) {
 	const agencyLicenseAllocationsTable = databaseSchema.agencyLicenseAllocationsTable as typeof databaseSchema.agencyLicenseAllocationsTable | undefined;
 	if (!agencyLicenseAllocationsTable) return false;
-	const rows = await db
+	const rows = await client
 		.select({ id: agencyLicenseAllocationsTable.id })
 		.from(agencyLicenseAllocationsTable)
 		.where(and(eq(agencyLicenseAllocationsTable.creatorId, userId), eq(agencyLicenseAllocationsTable.product, "runner"), lte(agencyLicenseAllocationsTable.effectiveAt, now), inArray(agencyLicenseAllocationsTable.status, ["active", "removal_scheduled"]), or(isNull(agencyLicenseAllocationsTable.endsAt), gt(agencyLicenseAllocationsTable.endsAt, now))))
@@ -66,8 +64,8 @@ export async function hasActiveAgencyRunnerAllocation(userId: string, now = new 
 	return rows.length > 0;
 }
 
-export async function hasActiveRunnerAccess(userId: string, now = new Date()) {
-	return (await hasActiveEntitlement(userId, Entitlement.RunnerAccess, now)) || (await hasActiveAgencyRunnerAllocation(userId, now));
+export async function hasActiveRunnerAccess(userId: string, now = new Date(), client: QueryClient = db) {
+	return (await hasActiveEntitlement(userId, Entitlement.RunnerAccess, now, client)) || (await hasActiveAgencyRunnerAllocation(userId, now, client));
 }
 
 export async function createProAccessGrant(input: CreateGrantInput) {
@@ -86,7 +84,7 @@ export async function createProAccessGrant(input: CreateGrantInput) {
 		})
 		.returning()
 		.execute();
-	void invalidateCommunitySnapshotCache();
+	void import("@lib/community").then(({ invalidateCommunitySnapshotCache }) => invalidateCommunitySnapshotCache());
 	return grant ?? null;
 }
 
@@ -166,9 +164,9 @@ function pickBestGrant(grants: ActiveGrant[]) {
 	});
 }
 
-export async function getActiveEntitlementGrant(userId: string, entitlement: Entitlement, now = new Date()) {
+export async function getActiveEntitlementGrant(userId: string, entitlement: Entitlement, now = new Date(), client: QueryClient = db) {
 	if (!isHybridEntitlementsEnabled()) return null;
-	const grants = await db
+	const grants = await client
 		.select()
 		.from(entitlementGrantsTable)
 		.where(and(eq(entitlementGrantsTable.entitlement, entitlement), isNull(entitlementGrantsTable.revokedAt), lte(entitlementGrantsTable.startsAt, now), or(isNull(entitlementGrantsTable.endsAt), gt(entitlementGrantsTable.endsAt, now)), or(eq(entitlementGrantsTable.userId, userId), isNull(entitlementGrantsTable.userId))))
@@ -177,7 +175,7 @@ export async function getActiveEntitlementGrant(userId: string, entitlement: Ent
 	return pickBestGrant(grants);
 }
 
-export async function resolveUserEntitlements(user: EntitlementUserRef): Promise<UserEntitlements> {
+export async function resolveUserEntitlements(user: EntitlementUserRef, client: QueryClient = db): Promise<UserEntitlements> {
 	const now = new Date();
 	const isBillingPro = user.plan === Plan.Pro;
 
@@ -185,7 +183,7 @@ export async function resolveUserEntitlements(user: EntitlementUserRef): Promise
 		return {
 			effectivePlan: "pro",
 			proAccess: true,
-			runnerAccess: await hasActiveRunnerAccess(user.id, now),
+			runnerAccess: await hasActiveRunnerAccess(user.id, now, client),
 			isBillingPro: true,
 			reverseTrialActive: false,
 			trialEndsAt: null,
@@ -199,7 +197,7 @@ export async function resolveUserEntitlements(user: EntitlementUserRef): Promise
 		return {
 			effectivePlan: "free",
 			proAccess: false,
-			runnerAccess: await hasActiveRunnerAccess(user.id, now),
+			runnerAccess: await hasActiveRunnerAccess(user.id, now, client),
 			isBillingPro: false,
 			reverseTrialActive: false,
 			trialEndsAt: null,
@@ -208,13 +206,13 @@ export async function resolveUserEntitlements(user: EntitlementUserRef): Promise
 		};
 	}
 
-	const grant = await getActiveEntitlementGrant(user.id, PRO_ACCESS, now);
+	const grant = await getActiveEntitlementGrant(user.id, PRO_ACCESS, now, client);
 	if (grant) {
 		const isReverseTrialGrant = grant.source === EntitlementGrantSource.ReverseTrial;
 		return {
 			effectivePlan: "pro",
 			proAccess: true,
-			runnerAccess: await hasActiveRunnerAccess(user.id, now),
+			runnerAccess: await hasActiveRunnerAccess(user.id, now, client),
 			isBillingPro: false,
 			reverseTrialActive: isReverseTrialGrant,
 			trialEndsAt: grant.endsAt ?? null,
@@ -225,12 +223,12 @@ export async function resolveUserEntitlements(user: EntitlementUserRef): Promise
 		};
 	}
 
-	const agencyAllocationActive = await hasActiveAgencyAllocation(user.id, now);
+	const agencyAllocationActive = await hasActiveAgencyAllocation(user.id, now, client);
 	if (agencyAllocationActive) {
 		return {
 			effectivePlan: "pro",
 			proAccess: true,
-			runnerAccess: await hasActiveRunnerAccess(user.id, now),
+			runnerAccess: await hasActiveRunnerAccess(user.id, now, client),
 			isBillingPro: false,
 			reverseTrialActive: false,
 			trialEndsAt: null,
@@ -243,7 +241,7 @@ export async function resolveUserEntitlements(user: EntitlementUserRef): Promise
 	return {
 		effectivePlan: "free",
 		proAccess: false,
-		runnerAccess: await hasActiveRunnerAccess(user.id, now),
+		runnerAccess: await hasActiveRunnerAccess(user.id, now, client),
 		isBillingPro: false,
 		reverseTrialActive: false,
 		trialEndsAt: null,
@@ -401,14 +399,18 @@ export async function recordFreeCapabilityReconciliation(user: EntitlementUserRe
 	return resources;
 }
 
-/** Pause self-hosted runtime activity while retaining all runner configuration. */
+/** Request runtime shutdown while retaining configuration and the last device-reported state. */
 export async function suspendRunnersForOwner(ownerId: string, reason = "runner_entitlement_lost") {
 	return db.transaction(async (tx) => {
 		const runners = await tx.select({ id: runnersTable.id }).from(runnersTable).where(eq(runnersTable.ownerId, ownerId)).orderBy(runnersTable.id).execute();
 		if (runners.length === 0) return { runners: 0, sessions: 0 };
 		await tx.update(runnersTable).set({ status: RunnerStatus.Offline }).where(eq(runnersTable.ownerId, ownerId)).execute();
 		const sessions = await tx.select({ id: streamSessionsTable.id }).from(streamSessionsTable).where(eq(streamSessionsTable.ownerId, ownerId)).execute();
-		await tx.update(streamSessionsTable).set({ desiredState: StreamState.Stopped, actualState: StreamState.Stopped, updatedAt: new Date() }).where(eq(streamSessionsTable.ownerId, ownerId)).execute();
+		await tx
+			.update(streamSessionsTable)
+			.set({ desiredState: StreamState.Stopped, configurationRevision: sql`case when ${streamSessionsTable.desiredState} <> ${StreamState.Stopped} then ${streamSessionsTable.configurationRevision} + 1 else ${streamSessionsTable.configurationRevision} end`, updatedAt: new Date() })
+			.where(eq(streamSessionsTable.ownerId, ownerId))
+			.execute();
 		console.info("[entitlements] runners_suspended", { ownerId, reason, runners: runners.length });
 		return { runners: runners.length, sessions: sessions.length };
 	});

@@ -85,9 +85,9 @@ module.exports = new Proxy(
 		Label: React.forwardRef(function HeroUILabel(props, ref) {
 			return React.createElement("label", { ...props, ref });
 		}),
-		Link: React.forwardRef(function HeroUILink({ children, onPress, ...props }, ref) {
+		Link: Object.assign(React.forwardRef(function HeroUILink({ children, onPress, ...props }, ref) {
 			return React.createElement("a", { ...props, ref, onClick: onPress }, children);
-		}),
+		}), { Icon: Component }),
 		Table,
 		TextArea,
 		TextField: Component,

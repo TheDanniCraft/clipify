@@ -197,6 +197,7 @@ describe("actions/database settings logic", () => {
 		queueSelectResult([{ createdAt }]); // user createdAt select for soft opt-in timestamp
 
 		const result = await getSettings("user-1");
+		expect(result?.configurationRevision).toBe(1);
 		expect(result).toMatchObject({
 			id: "user-1",
 			prefix: "!",

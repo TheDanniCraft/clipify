@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Accordion } from "@heroui/react";
+import PricingFaq from "@components/Pricing/pricing-faq";
 
 import BasicNavbar from "@components/LandingPage/basicNavbar";
 import Footer from "@components/footer";
@@ -62,21 +62,7 @@ export default async function PricingPage() {
 							<h2 className='text-3xl font-bold'>Pricing questions</h2>
 							<p className='mt-3 text-muted'>The details people usually want before choosing a plan.</p>
 						</div>
-						<Accordion variant='surface'>
-							{pricingFaq.map((item) => (
-								<Accordion.Item key={item.title} id={item.title}>
-									<Accordion.Heading>
-										<Accordion.Trigger>
-											{item.title}
-											<Accordion.Indicator />
-										</Accordion.Trigger>
-									</Accordion.Heading>
-									<Accordion.Panel>
-										<Accordion.Body>{item.content}</Accordion.Body>
-									</Accordion.Panel>
-								</Accordion.Item>
-							))}
-						</Accordion>
+						<PricingFaq items={pricingFaq} />
 					</div>
 				</section>
 			</main>

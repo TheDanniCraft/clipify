@@ -239,7 +239,7 @@ function GalleryEditorContent({ initialGallery, playlists, canUseAdvanced, canUs
 	const save = async () => {
 		setSaving(true);
 		try {
-			const saved = await saveGallery(gallery.id, gallery);
+			const saved = await saveGallery(gallery.id, gallery, gallery.configurationRevision);
 			if (!saved) throw new Error("Gallery could not be saved");
 			setSavedGallery(saved);
 			setGallery(saved);

@@ -1,13 +1,14 @@
-/* istanbul ignore file */
-"use server";
+import "server-only";
 
 import { TwitchBadge, TwitchMessage } from "@types";
 import { sendMessage } from "@actions/websocket";
 import { getTwitchClip, handleClip, sendChatMessage } from "@actions/twitch";
-import { addToModQueue, clearClipQueueByOverlayIdServer, clearModQueueByBroadcasterId, getClipQueueByOverlayId, getModQueue, getSettingsServer, getUserByIdServer, setPlayerVolumeForOwner } from "@actions/database";
+import { addToModQueue, clearClipQueueByOverlayIdServer, clearModQueueByBroadcasterId, getClipQueueByOverlayId, getModQueue, getSettingsServer, getUserByIdServer } from "@actions/database";
 import { getAllOverlayIdsByOwnerInternal, getAllOverlaysByOwnerInternal } from "@/server/overlays";
 import { getFeatureAccess } from "@lib/featureAccess";
 import { getBaseUrl } from "@actions/utils";
+
+import { updateTrustedChatOverlayVolume } from "@/server/resources/overlays";
 
 const CHAT_COMMAND_ACCESS_TTL_MS = 60_000;
 const CHAT_COMMAND_ACCESS_MAX_ENTRIES = 1000;
@@ -387,7 +388,12 @@ const commands: Record<string, { description: string; usage: string; execute: (m
 			const requestedVolume = Number.parseInt(rawVolume, 10);
 
 			const clampedVolume = Math.max(0, Math.min(100, requestedVolume));
-			await setPlayerVolumeForOwner(message.broadcaster_user_id, clampedVolume);
+			try {
+				await updateTrustedChatOverlayVolume(message.broadcaster_user_id, clampedVolume, message.chatter_user_id);
+			} catch {
+				await sendChatMessage(message.broadcaster_user_id, `@${message.chatter_user_name} volume could not be changed. Check current Clipify access.`);
+				return;
+			}
 			await sendMessage("command", { name: "volume", data: String(clampedVolume) }, message.broadcaster_user_id);
 			await sendChatMessage(message.broadcaster_user_id, `@${message.chatter_user_name} player volume set to ${clampedVolume}% for all overlays.`);
 		},

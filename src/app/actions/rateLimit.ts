@@ -1,8 +1,6 @@
 "use server";
 
-// @ts-expect-error - package does not expose typings for this internal deep import, but it is the runtime-safe narrow path.
-import RateLimiterMemory from "rate-limiter-flexible/lib/RateLimiterMemory";
-import type { RateLimiterRes } from "rate-limiter-flexible";
+import { consumeAppRateLimit } from "@/server/rate-limit";
 
 import { isCoolify } from "@actions/utils";
 
@@ -70,32 +68,9 @@ export async function getUserIP() {
 	return ip || xRealIp || "127.0.0.1";
 }
 
-type RateLimiterMemoryInstance = {
-	consume: (key: string | number, pointsToConsume?: number, options?: Record<string, unknown>) => Promise<RateLimiterRes>;
-};
-
-const rateLimiterMap = new Map<string, RateLimiterMemoryInstance>();
-
 export async function tryRateLimit({ points, duration, key, identifier }: { points: number; duration: number; key: string; identifier?: string }) {
 	const id = identifier || (await getUserIP());
-	let rateLimiter = rateLimiterMap.get(key);
-
-	if (!rateLimiter) {
-		rateLimiter = new RateLimiterMemory({
-			points,
-			duration,
-		}) as RateLimiterMemoryInstance;
-		rateLimiterMap.set(key, rateLimiter);
-	}
-
-	return rateLimiter
-		.consume(id, 1)
-		.then((rateLimiterRes: RateLimiterRes) => {
-			return { success: true, rateLimiterRes };
-		})
-		.catch((rateLimiterRes: RateLimiterRes) => {
-			return { success: false, rateLimiterRes };
-		});
+	return consumeAppRateLimit({ points, duration, key: `application:${key}`, identifier: id });
 }
 
 export async function canResolvePublicClipPlayback(ownerId: string) {

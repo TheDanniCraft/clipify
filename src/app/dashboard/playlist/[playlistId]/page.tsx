@@ -37,7 +37,7 @@ export default function PlaylistPage() {
 	const { playlistId } = useParams() as { playlistId: string };
 
 	const [user, setUser] = useState<AuthenticatedUser>();
-	const [playlist, setPlaylist] = useState<{ id: string; ownerId: string; name: string; clipCount: number } | null>(null);
+	const [playlist, setPlaylist] = useState<{ id: string; ownerId: string; name: string; clipCount: number; configurationRevision: number } | null>(null);
 	const [isPlaylistResolved, setIsPlaylistResolved] = useState(false);
 	const [playlistNameDraft, setPlaylistNameDraft] = useState("");
 	const [playlistClips, setPlaylistClips] = useState<TwitchClip[]>([]);
@@ -129,7 +129,7 @@ export default function PlaylistPage() {
 			const playlists = await getAllPlaylists(user.id);
 			const found = playlists?.find((p) => p.id === playlistId);
 			if (active && found) {
-				setPlaylist({ id: found.id, ownerId: found.ownerId, name: found.name, clipCount: found.clipCount });
+				setPlaylist({ id: found.id, ownerId: found.ownerId, name: found.name, clipCount: found.clipCount, configurationRevision: found.configurationRevision });
 				setPlaylistNameDraft(found.name);
 				const clips = await getPlaylistClips(found.id);
 				if (!active) return;
@@ -258,19 +258,6 @@ export default function PlaylistPage() {
 		const [moved] = next.splice(fromIndex, 1);
 		next.splice(toIndex, 0, moved);
 		return next;
-	}
-
-	async function refreshPlaylist() {
-		if (!user || !playlistId) return;
-		const playlists = await getAllPlaylists(user.id);
-		const found = playlists?.find((p) => p.id === playlistId);
-		if (found) {
-			setPlaylist({ id: found.id, ownerId: found.ownerId, name: found.name, clipCount: found.clipCount });
-			setPlaylistNameDraft(found.name);
-			const clips = await getPlaylistClips(found.id);
-			setPlaylistClips(clips);
-			setSavedPlaylistClipIds(clips.map((clip) => clip.id));
-		}
 	}
 
 	async function handleOpenAddClips() {
@@ -429,21 +416,29 @@ export default function PlaylistPage() {
 										return;
 									}
 
-									if (isPlaylistNameDirty) {
-										const updated = await savePlaylist(playlistId, { name: nextName });
-										if (!updated) {
-											addToast({ title: "Failed to save playlist", color: "danger" });
-											return;
+									try {
+										if (isPlaylistDirty) {
+											const saved = await upsertPlaylistClips(playlistId, playlistClips, "replace", playlist?.configurationRevision, isPlaylistNameDirty ? nextName : undefined);
+											if (!saved) {
+												addToast({ title: "Playlist changed or access was updated. Reload and try again.", color: "danger" });
+												return;
+											}
+											setPlaylistClips(saved.clips);
+											setSavedPlaylistClipIds(saved.clips.map((clip) => clip.id));
+											setPlaylist((prev) => (prev ? { ...prev, name: saved.name, configurationRevision: saved.configurationRevision, clipCount: saved.clips.length } : prev));
+											setPlaylistNameDraft(saved.name);
+										} else if (isPlaylistNameDirty) {
+											const updated = await savePlaylist(playlistId, { name: nextName }, playlist?.configurationRevision);
+											if (!updated) {
+												addToast({ title: "Playlist changed or access was updated. Reload and try again.", color: "danger" });
+												return;
+											}
+											setPlaylist((prev) => (prev ? { ...prev, name: updated.name, configurationRevision: updated.configurationRevision } : prev));
+											setPlaylistNameDraft(updated.name);
 										}
-										setPlaylist((prev) => (prev ? { ...prev, name: updated.name } : prev));
-										setPlaylistNameDraft(updated.name);
-									}
-
-									if (isPlaylistDirty) {
-										const saved = await upsertPlaylistClips(playlistId, playlistClips, "replace");
-										setPlaylistClips(saved);
-										setSavedPlaylistClipIds(saved.map((clip) => clip.id));
-										await refreshPlaylist();
+									} catch {
+										addToast({ title: "Playlist could not be saved. Try again.", color: "danger" });
+										return;
 									}
 
 									addToast({ title: "Playlist saved", color: "success" });
@@ -511,14 +506,13 @@ export default function PlaylistPage() {
 									}}
 									onDragOver={(event) => {
 										event.preventDefault();
-										if (!draggedClipId || draggedClipId === clip.id) return;
+										if (!draggedClipId || draggedClipId === clip.id || dragOverClipId === clip.id) return;
 										setDragOverClipId(clip.id);
 										setPlaylistClips((prev) => reorderClips(prev, draggedClipId, clip.id));
 									}}
 									onDrop={async () => {
 										if (!draggedClipId) return;
-										const next = reorderClips(playlistClips, draggedClipId, clip.id);
-										setPlaylistClips(next);
+										if (dragOverClipId !== clip.id) setPlaylistClips((prev) => reorderClips(prev, draggedClipId, clip.id));
 										setDraggedClipId(null);
 										setDragOverClipId(null);
 									}}

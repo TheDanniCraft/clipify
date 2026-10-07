@@ -34,3 +34,19 @@ describe("RunnerPreviewCache", () => {
 		expect(cache.sizeBytes).toBe(3);
 	});
 });
+describe("TDD-US5-CACHE shared snapshot metadata", () => {
+	it("keeps capture time, overlay identity and runner revision with the frame", () => {
+		const cache = new RunnerPreviewCache(15_000, 100, () => 1_000);
+		expect((cache as any).getEntry).toEqual(expect.any(Function));
+		(cache.set as any)("runner-1", "frame", { overlayId: "overlay-1", runnerRevision: 2 });
+		expect((cache as any).getEntry("runner-1")).toMatchObject({ image: "frame", timestamp: 1000, overlayId: "overlay-1", runnerRevision: 2 });
+	});
+	it("releases bytes when an enrolled runner is removed", () => {
+		const cache = new RunnerPreviewCache(15_000, 100);
+		cache.set("runner-1", "frame");
+		expect((cache as any).delete).toEqual(expect.any(Function));
+		(cache as any).delete("runner-1");
+		expect(cache.sizeBytes).toBe(0);
+		expect(cache.get("runner-1")).toBeNull();
+	});
+});

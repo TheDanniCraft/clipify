@@ -1,9 +1,11 @@
+import { revalidateOverlaySource } from "@/server/resources/overlay-source-runtime";
 import { WebSocket, WebSocketServer } from "ws";
 import { removeSubscriber } from "@store/overlaySubscribers";
 import { handleMessage } from "@actions/websocket";
 import { recordWebSocketDisconnected, recordWebSocketRejected } from "@lib/operationalHealth";
 
 let heartbeatInterval: NodeJS.Timeout | null = null;
+let checkingRuntime = false;
 
 declare module "ws" {
 	interface WebSocket {
@@ -12,6 +14,7 @@ declare module "ws" {
 		overlayId?: string | null;
 		role?: "overlay" | "controller";
 		sourceActive?: boolean;
+		sourceSecret?: string;
 		subscribeDeadline?: NodeJS.Timeout;
 	}
 }
@@ -23,7 +26,7 @@ export function UPGRADE(client: WebSocket, server: WebSocketServer) {
 	});
 
 	if (!heartbeatInterval) {
-		heartbeatInterval = setInterval(() => {
+		heartbeatInterval = setInterval(async () => {
 			for (const ws of server.clients) {
 				if (!ws.isAlive) {
 					ws.terminate();
@@ -32,6 +35,16 @@ export function UPGRADE(client: WebSocket, server: WebSocketServer) {
 
 				ws.isAlive = false;
 				ws.ping();
+			}
+			if (checkingRuntime) return;
+			checkingRuntime = true;
+			try {
+				const sources = [...server.clients].filter((ws) => ws.readyState === WebSocket.OPEN && ws.role === "overlay" && ws.ownerId && ws.overlayId);
+				for (let offset = 0; offset < sources.length; offset += 4) {
+					await Promise.allSettled(sources.slice(offset, offset + 4).map(revalidateOverlaySource));
+				}
+			} finally {
+				checkingRuntime = false;
 			}
 		}, 30 * 1000);
 	}

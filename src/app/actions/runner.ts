@@ -4,7 +4,7 @@ import { db } from "@/db/client";
 import { overlaysTable, runnersTable } from "@/db/schema";
 import { revalidatePath } from "next/cache";
 import { randomBytes } from "crypto";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { hasActiveRunnerAccess } from "@lib/entitlements";
 import { RunnerStatus, StreamState } from "@types";
@@ -122,6 +122,7 @@ export async function unlinkRunner(runnerId: string, ownerId: string) {
 			.update(runnersTable)
 			.set({
 				token: revokedToken,
+				configurationRevision: sql`${runnersTable.configurationRevision} + 1`,
 				status: RunnerStatus.Offline,
 				lastHeartbeatAt: null,
 			})
@@ -131,6 +132,7 @@ export async function unlinkRunner(runnerId: string, ownerId: string) {
 			.update(streamSessionsTable)
 			.set({
 				desiredState: StreamState.Stopped,
+				configurationRevision: sql`${streamSessionsTable.configurationRevision} + 1`,
 			})
 			.where(and(eq(streamSessionsTable.runnerId, runnerId), eq(streamSessionsTable.ownerId, ownerId)));
 
@@ -148,7 +150,7 @@ import { streamSessionsTable } from "@/db/schema";
 import { encryptString } from "@/app/lib/encryption";
 import type { StreamMode } from "@/app/lib/types";
 
-export async function upsertStreamSession(data: { id?: string; ownerId: string; runnerId: string; overlayId: string; mode: StreamMode; streamKey: string; clearStreamKey?: boolean; rtmpUrl: string; resolution?: string; fps?: number }) {
+export async function upsertStreamSession(data: { id?: string; expectedRevision?: number; ownerId: string; runnerId: string; overlayId: string; mode: StreamMode; streamKey: string; clearStreamKey?: boolean; rtmpUrl: string; resolution?: string; fps?: number }) {
 	try {
 		if (!(await hasAccess(data.ownerId, data.id ? "runner:update" : "runner:create"))) return { success: false, error: "Unauthorized" };
 		if (!(await ownerHasRunnerAccess(data.ownerId))) return { success: false, error: "Runner add-on required", code: "ENTITLEMENT_REQUIRED" as const };
@@ -158,8 +160,10 @@ export async function upsertStreamSession(data: { id?: string; ownerId: string; 
 
 		if (streamKeyRequiredForUrl(data.rtmpUrl) && !data.streamKey && (!data.id || data.clearStreamKey)) return { success: false, error: "A stream key is required for Twitch or YouTube", code: "STREAM_KEY_REQUIRED" as const };
 		if (data.id) {
+			if (data.expectedRevision !== undefined && (!Number.isInteger(data.expectedRevision) || data.expectedRevision < 1 || data.expectedRevision >= 2_147_483_647)) return { success: false, error: "Invalid configuration revision", code: "INVALID_INPUT" as const };
 			// Update existing
 			const updatePayload: Record<string, unknown> = {
+				configurationRevision: sql`${streamSessionsTable.configurationRevision} + 1`,
 				runnerId: data.runnerId,
 				overlayId: data.overlayId,
 				mode: data.mode,
@@ -176,9 +180,9 @@ export async function upsertStreamSession(data: { id?: string; ownerId: string; 
 			const [updatedSession] = await db
 				.update(streamSessionsTable)
 				.set(updatePayload)
-				.where(and(eq(streamSessionsTable.id, data.id), eq(streamSessionsTable.ownerId, data.ownerId)))
+				.where(and(eq(streamSessionsTable.id, data.id), eq(streamSessionsTable.ownerId, data.ownerId), data.expectedRevision !== undefined ? eq(streamSessionsTable.configurationRevision, data.expectedRevision) : undefined))
 				.returning({ id: streamSessionsTable.id });
-			if (!updatedSession) return { success: false, error: "Stream session not found", code: "NOT_FOUND" as const };
+			if (!updatedSession) return data.expectedRevision !== undefined ? { success: false, error: "Stream configuration changed. Refresh and try again.", code: "REVISION_CONFLICT" as const } : { success: false, error: "Stream session not found", code: "NOT_FOUND" as const };
 		} else {
 			// Insert new
 			await db.insert(streamSessionsTable).values({
@@ -202,14 +206,20 @@ export async function upsertStreamSession(data: { id?: string; ownerId: string; 
 	}
 }
 
-export async function setStreamDesiredState(sessionId: string, state: StreamState) {
+export async function setStreamDesiredState(sessionId: string, state: StreamState, expectedRevision?: number) {
 	try {
 		const session = await db.query.streamSessionsTable.findFirst({ where: eq(streamSessionsTable.id, sessionId) });
 		if (!session || !(await hasAccess(session.ownerId, "runner:control"))) return { success: false, error: "Unauthorized" };
 		if (!(await ownerHasRunnerAccess(session.ownerId))) return { success: false, error: "Runner add-on required", code: "ENTITLEMENT_REQUIRED" as const };
 		if (state === StreamState.Running && streamKeyRequiredForUrl(session.rtmpUrl) && !session.encryptedStreamKey) return { success: false, error: "A stream key is required for Twitch or YouTube", code: "STREAM_KEY_REQUIRED" as const };
 
-		await db.update(streamSessionsTable).set({ desiredState: state }).where(eq(streamSessionsTable.id, sessionId));
+		const revision = expectedRevision ?? session.configurationRevision;
+		if (!Number.isInteger(revision) || revision < 1 || revision !== session.configurationRevision || revision >= 2_147_483_647) return { success: false, error: "Stream configuration changed. Refresh and try again.", code: "REVISION_CONFLICT" as const };
+		const changed = await db
+			.update(streamSessionsTable)
+			.set({ desiredState: state, configurationRevision: sql`${streamSessionsTable.configurationRevision} + 1` })
+			.where(and(eq(streamSessionsTable.id, sessionId), eq(streamSessionsTable.ownerId, session.ownerId), eq(streamSessionsTable.configurationRevision, revision)));
+		if (changed && changed.rowCount === 0) return { success: false, error: "Stream configuration changed. Refresh and try again.", code: "REVISION_CONFLICT" as const };
 
 		revalidatePath("/dashboard/runners");
 		return { success: true };

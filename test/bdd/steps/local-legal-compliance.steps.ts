@@ -99,6 +99,9 @@ When("they inspect its semantic and keyboard navigation", async ({ page }) => {
 });
 
 Then("the legal document remains readable and every legal destination is keyboard reachable", async ({ page }) => {
+	// HeroUI collections become tabbable after client hydration. Audit the ready
+	// page without focusing a tab first, so keyboard barriers remain observable.
+	await expect(page.getByRole("tablist", { name: "Legal documents" }).getByRole("tab", { name: "Privacy Policy", exact: true })).toHaveAttribute("tabindex", "0", { timeout: 15000 });
 	expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 	await page.addScriptTag({ content: axe.source });
 	const seriousViolations = await page.evaluate(async () => {
@@ -132,7 +135,10 @@ Then("every declared category and service is disclosed with its operating detail
 });
 
 When("they activate cookie preferences from the legal document", async ({ page }) => {
-	await page.getByRole("main").getByRole("button", { name: "Cookie preferences", exact: true }).click();
+	await expect(page.getByRole("button", { name: "Enable support chat", exact: true })).toBeVisible({ timeout: 15000 });
+	const preferences = page.getByRole("main").getByRole("button", { name: "Cookie preferences", exact: true });
+	await preferences.focus();
+	await preferences.press("Enter");
 });
 
 Then("the existing privacy preferences dialog opens without leaving the cookie policy", async ({ page }) => {

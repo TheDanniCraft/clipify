@@ -1,4 +1,4 @@
-import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import { act, render, screen, waitFor, fireEvent } from "@testing-library/react";
 import OverlayTable from "@/app/components/OverlayTable";
 import { StatusOptions, Plan } from "@types";
 
@@ -225,11 +225,7 @@ jest.mock("@heroui/react", () => {
 jest.mock("@tabler/icons-react", () => ({
 	IconAlertTriangle: () => <span>warning</span>,
 	IconPencil: () => <button aria-label='Edit'>Pencil</button>,
-	IconTrash: ({ onClick }: any) => (
-		<button aria-label='Delete' onClick={onClick}>
-			Trash
-		</button>
-	),
+	IconTrash: () => <span>Trash</span>,
 	IconSearch: () => <span>Search</span>,
 	IconAdjustmentsHorizontal: () => <span>Filter</span>,
 	IconMenuDeep: () => <span>Sort</span>,
@@ -265,7 +261,8 @@ describe("OverlayTable", () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
 		getActiveCampaignOfferAction.mockResolvedValue(null);
-		getAllOverlays.mockResolvedValue([{ id: "ov-1", name: "Overlay 1", status: StatusOptions.Active, ownerId: userId }]);
+		getAvatar.mockResolvedValue(null);
+		getAllOverlays.mockResolvedValue([{ id: "ov-1", name: "Overlay 1", status: StatusOptions.Active, ownerId: userId, configurationRevision: 7 }]);
 		getAllPlaylists.mockResolvedValue([{ id: "pl-1", name: "Playlist 1", ownerId: userId, clipCount: 5 }]);
 		getAllGalleries.mockResolvedValue([{ id: "gallery-1", name: "Best clips", ownerId: userId, source: "curated", published: true, layout: "grid" }]);
 		getEditorOverlays.mockResolvedValue([]);
@@ -274,10 +271,14 @@ describe("OverlayTable", () => {
 	});
 
 	it("renders galleries in the shared management table", async () => {
-		render(<OverlayTable userId={userId} accessToken={accessToken} />);
+		await act(async () => {
+			render(<OverlayTable userId={userId} accessToken={accessToken} />);
+		});
 
 		await waitFor(() => expect(screen.getByText("Overlay 1")).toBeInTheDocument());
-		fireEvent.click(screen.getByText("Galleries"));
+		await act(async () => {
+			fireEvent.click(screen.getByText("Galleries"));
+		});
 
 		await waitFor(() => expect(screen.getByText("Best clips")).toBeInTheDocument());
 		expect(screen.getByText("Published")).toBeInTheDocument();
@@ -288,12 +289,15 @@ describe("OverlayTable", () => {
 		render(<OverlayTable userId={userId} accessToken={accessToken} />);
 
 		expect(screen.getByText("Loading overlays")).toBeInTheDocument();
+		await act(async () => {});
 
 		await waitFor(() => expect(screen.getByText("Overlay 1")).toBeInTheDocument());
 		expect(screen.queryByText("Playlist 1")).not.toBeInTheDocument();
 
 		const playlistTab = screen.getByText("Playlists");
-		fireEvent.click(playlistTab);
+		await act(async () => {
+			fireEvent.click(playlistTab);
+		});
 
 		await waitFor(() => expect(screen.getByText("Playlist 1")).toBeInTheDocument());
 		expect(screen.queryByText("Overlay 1")).not.toBeInTheDocument();
@@ -305,13 +309,17 @@ describe("OverlayTable", () => {
 			{ id: "ov-2", name: "Banana", status: StatusOptions.Active, ownerId: userId },
 		]);
 
-		render(<OverlayTable userId={userId} accessToken={accessToken} />);
+		await act(async () => {
+			render(<OverlayTable userId={userId} accessToken={accessToken} />);
+		});
 
 		await waitFor(() => expect(screen.getByText("Apple")).toBeInTheDocument());
 		expect(screen.getByText("Banana")).toBeInTheDocument();
 
 		const searchInput = screen.getByPlaceholderText("Search");
-		fireEvent.change(searchInput, { target: { value: "app" } });
+		await act(async () => {
+			fireEvent.change(searchInput, { target: { value: "app" } });
+		});
 
 		expect(screen.getByText("Apple")).toBeInTheDocument();
 		expect(screen.queryByText("Banana")).not.toBeInTheDocument();
@@ -319,14 +327,19 @@ describe("OverlayTable", () => {
 
 	it("handles overlay deletion", async () => {
 		deleteOverlay.mockResolvedValue(true);
-		render(<OverlayTable userId={userId} accessToken={accessToken} />);
+		await act(async () => {
+			render(<OverlayTable userId={userId} accessToken={accessToken} />);
+		});
 
 		await waitFor(() => expect(screen.getByText("Overlay 1")).toBeInTheDocument());
 
-		fireEvent.click(screen.getAllByRole("button", { name: "Delete" })[0]);
-		await waitFor(() => expect(screen.getAllByRole("button", { name: "Delete" })).toHaveLength(2));
-		fireEvent.click(screen.getAllByRole("button", { name: "Delete" })[1]);
+		await act(async () => {
+			fireEvent.click(screen.getByRole("button", { name: "Delete Overlay 1" }));
+		});
+		await act(async () => {
+			fireEvent.click(await screen.findByRole("button", { name: "Delete" }));
+		});
 
-		await waitFor(() => expect(deleteOverlay).toHaveBeenCalledWith("ov-1"));
+		await waitFor(() => expect(deleteOverlay).toHaveBeenCalledWith("ov-1", 7));
 	});
 });

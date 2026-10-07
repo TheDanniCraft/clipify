@@ -1,31 +1,29 @@
 "use server";
 
-import { usersTable, overlaysTable, playlistsTable, playlistClipsTable, galleriesTable, queueTable, settingsTable, modQueueTable, twitchCacheTable } from "@/db/schema";
+import { usersTable, overlaysTable, playlistClipsTable, queueTable, settingsTable, modQueueTable, twitchCacheTable } from "@/db/schema";
 import { db, QueryClient } from "@/db/client";
-import { AuthenticatedUser, ClipQueueItem, ModQueueItem, Overlay, Playlist, TwitchUserResponse, UserToken, Plan, Role, UserSettings, TwitchCacheType, StatusOptions, OverlayType, PlaybackMode, TwitchClip } from "@types";
-import { getTwitchClipLookup, subscribeToReward, syncOwnerClipCache } from "@actions/twitch";
+import { AuthenticatedUser, ClipQueueItem, ModQueueItem, Overlay, Playlist, TwitchUserResponse, UserToken, Plan, Role, UserSettings, TwitchCacheType, StatusOptions, OverlayType, TwitchClip } from "@types";
+import { getTwitchClipLookup, syncOwnerClipCache } from "@actions/twitch";
 import { syncProductUpdatesContact, getProductUpdatesSubscriptionStatus } from "@actions/newsletter";
 import { isTitleBlocked } from "@/app/utils/regexFilter";
 import { eq, inArray, and, or, isNull, lt, gt, sql, desc, max, asc } from "drizzle-orm";
 import { validateAuth, validateAdminAuth } from "@actions/auth";
 import { getFeatureAccess } from "@lib/featureAccess";
 import { ensureReverseTrialGrantForUser, reconcileUserEntitlements, resolveUserEntitlements, resolveUserEntitlementsForUsers } from "@lib/entitlements";
-import { TWITCH_CLIPS_LAUNCH_MS, FREE_PLAYLIST_LIMIT, FREE_PLAYLIST_CLIP_LIMIT } from "@lib/constants";
+import { TWITCH_CLIPS_LAUNCH_MS, FREE_PLAYLIST_CLIP_LIMIT } from "@lib/constants";
 import { getAccessTokenInternal, getAccessTokenResultInternal } from "@/server/tokens";
 import { getOverlayRuntimeAccessInternal, requireOverlayAccessInternal, requireOverlaySecretAccessInternal } from "@/server/overlays";
 import { disconnectOverlaySources } from "@store/overlaySubscribers";
 import { invalidateCommunitySnapshotCache } from "@lib/community";
 import { allocateMemberNumber } from "@/server/memberNumbers";
 import { authorizeCreatorOperation, listAuthorizedCreatorOperations } from "@/auth/authorize-operation";
+import { getVerifiedSessionPrincipal } from "@/auth/session-principal";
 import type { Permission } from "@/auth/permissions";
 import { resolveRetainedResourceAccess } from "@/server/entitlements/resource-access";
 
+import { normalizeCreatorFilters } from "@/server/resources/overlay-configuration";
+
 const TWITCH_CACHE_CLEANUP_INTERVAL_MS = 10 * 60 * 1000;
-const FONT_URL_DELIMITER = "||url||";
-const ALLOWED_FONT_CSS_HOSTS = new Set(["fonts.googleapis.com"]);
-const HEX_COLOR_PATTERN = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
-const RGB_COLOR_PATTERN = /^rgba?\(\s*(?:25[0-5]|2[0-4]\d|1?\d?\d)\s*,\s*(?:25[0-5]|2[0-4]\d|1?\d?\d)\s*,\s*(?:25[0-5]|2[0-4]\d|1?\d?\d)(?:\s*,\s*(?:0|1|0?\.\d+))?\s*\)$/i;
-const HSL_COLOR_PATTERN = /^hsla?\(\s*(?:360|3[0-5]\d|[12]?\d?\d)(?:\.\d+)?\s*,\s*(?:100|[1-9]?\d)(?:\.\d+)?%\s*,\s*(?:100|[1-9]?\d)(?:\.\d+)?%(?:\s*,\s*(?:0|1|0?\.\d+))?\s*\)$/i;
 
 function escapeLikePattern(value: string) {
 	return value.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
@@ -235,129 +233,6 @@ type OverlayPatch = Partial<
 		| "timerScale"
 	>
 >;
-
-function clampInteger(value: number | null | undefined, min: number, max: number, fallback: number) {
-	return Math.round(Math.max(min, Math.min(max, value ?? fallback)));
-}
-
-function normalizeCreatorFilters(values: string[] | null | undefined) {
-	return Array.from(new Set((values ?? []).map((name) => name.trim().toLowerCase()).filter(Boolean)));
-}
-
-function sanitizeThemeFontFamilyValue(value: string | null | undefined) {
-	if (value === null || value === undefined) return "inherit";
-	const trimmed = value.trim();
-	if (!trimmed) return "inherit";
-	/* istanbul ignore next: font family length limit */
-	if (trimmed.length > 200) return "inherit";
-	/* istanbul ignore next: font url delimiter protection */
-	if (trimmed.includes(FONT_URL_DELIMITER)) return "inherit";
-	/* istanbul ignore next: font family character allowlist */
-	if (!/^[-,./\s"'0-9A-Za-z]+$/.test(trimmed)) return "inherit";
-	return trimmed;
-}
-
-function sanitizeThemeFontUrl(value: string | null | undefined) {
-	if (value === null || value === undefined) return "";
-	const trimmed = value.trim();
-	if (!trimmed) return "";
-
-	try {
-		const parsed = new URL(trimmed);
-		/* istanbul ignore next: secure protocol check */
-		if (parsed.protocol !== "https:") return "";
-		/* istanbul ignore next: allowed font host allowlist */
-		if (!ALLOWED_FONT_CSS_HOSTS.has(parsed.hostname.toLowerCase())) return "";
-		return parsed.toString();
-	} catch {
-		return "";
-	}
-}
-
-function sanitizeThemeFontSetting(value: string | null | undefined) {
-	const raw = (value ?? "").trim();
-	if (!raw) return "inherit";
-
-	if (!raw.includes(FONT_URL_DELIMITER)) {
-		return sanitizeThemeFontFamilyValue(raw);
-	}
-
-	const [rawFamily, rawUrl] = raw.split(FONT_URL_DELIMITER);
-	const family = sanitizeThemeFontFamilyValue(rawFamily);
-	const safeUrl = sanitizeThemeFontUrl(rawUrl);
-	if (!safeUrl) return family;
-	return `${family}${FONT_URL_DELIMITER}${safeUrl}`;
-}
-
-function sanitizeCssColor(value: string | null | undefined, fallback: string) {
-	const trimmed = (value ?? "").trim();
-	if (!trimmed) return fallback;
-	if (trimmed.toLowerCase() === "transparent") return "transparent";
-	if (HEX_COLOR_PATTERN.test(trimmed) || RGB_COLOR_PATTERN.test(trimmed) || HSL_COLOR_PATTERN.test(trimmed)) return trimmed;
-	return fallback;
-}
-
-function buildOverlayUpdatePayload(next: Overlay, advancedAllowed: boolean) {
-	// Only assign playlistId when the overlay type is set to Playlist to ensure data consistency
-	/* istanbul ignore next: playlist id assignment logic */
-	const playlistId = next.type === OverlayType.Playlist ? (next.playlistId ?? null) : null;
-	const base = {
-		name: next.name,
-		status: next.status,
-		type: next.type,
-		playlistId,
-		updatedAt: new Date(),
-	};
-	if (!advancedAllowed) return base;
-
-	const playbackMode = (() => {
-		if (next.type !== OverlayType.Playlist && next.playbackMode === PlaybackMode.Order) return PlaybackMode.Random;
-		return next.playbackMode;
-	})();
-
-	return {
-		...base,
-		rewardId: next.rewardId ?? null,
-		minClipDuration: next.minClipDuration,
-		maxClipDuration: next.maxClipDuration,
-		maxDurationMode: next.maxDurationMode,
-		blacklistWords: next.blacklistWords,
-		categoriesOnly: next.categoriesOnly ?? [],
-		categoriesBlocked: next.categoriesBlocked ?? [],
-		minClipViews: next.minClipViews,
-		playbackMode,
-		preferCurrentCategory: !!next.preferCurrentCategory,
-		clipCreatorsOnly: normalizeCreatorFilters(next.clipCreatorsOnly),
-		clipCreatorsBlocked: normalizeCreatorFilters(next.clipCreatorsBlocked),
-		clipPackSize: Math.max(25, Math.min(500, next.clipPackSize ?? 100)),
-		playerVolume: Math.max(0, Math.min(100, next.playerVolume ?? 50)),
-		showChannelInfo: !!next.showChannelInfo,
-		showClipInfo: !!next.showClipInfo,
-		showTimer: !!next.showTimer,
-		showProgressBar: !!next.showProgressBar,
-		overlayInfoFadeOutSeconds: Math.max(0, Math.min(30, next.overlayInfoFadeOutSeconds ?? 6)),
-		themeFontFamily: sanitizeThemeFontSetting(next.themeFontFamily),
-		themeTextColor: sanitizeCssColor(next.themeTextColor, "#FFFFFF"),
-		themeAccentColor: sanitizeCssColor(next.themeAccentColor, "#7C3AED"),
-		themeBackgroundColor: sanitizeCssColor(next.themeBackgroundColor, "rgba(10,10,10,0.65)"),
-		progressBarStartColor: sanitizeCssColor(next.progressBarStartColor, "#26018E"),
-		progressBarEndColor: sanitizeCssColor(next.progressBarEndColor, "#8D42F9"),
-		borderSize: Math.max(0, Math.min(32, next.borderSize ?? 0)),
-		borderRadius: Math.max(0, Math.min(48, next.borderRadius ?? 10)),
-		effectScanlines: !!next.effectScanlines,
-		effectStatic: !!next.effectStatic,
-		effectCrt: !!next.effectCrt,
-		channelInfoX: clampInteger(next.channelInfoX, 0, 100, 0),
-		channelInfoY: clampInteger(next.channelInfoY, 0, 100, 0),
-		clipInfoX: clampInteger(next.clipInfoX, 0, 100, 100),
-		clipInfoY: clampInteger(next.clipInfoY, 0, 100, 100),
-		timerX: clampInteger(next.timerX, 0, 100, 100),
-		timerY: clampInteger(next.timerY, 0, 100, 0),
-		channelScale: clampInteger(next.channelScale, 50, 250, 100),
-		clipScale: clampInteger(next.clipScale, 50, 250, 100),
-		timerScale: clampInteger(next.timerScale, 50, 250, 100),
-	};
-}
 
 async function requireUser(): Promise<AuthenticatedUser | null> {
 	const user = await validateAuth(false);
@@ -619,10 +494,14 @@ export async function getAllOverlays(userId: string) {
 			console.warn(`Unauthorized "getAllOverlays" API request for user id: ${userId}`);
 			return null;
 		}
-		const overlays = await db.select().from(overlaysTable).where(eq(overlaysTable.ownerId, userId)).execute();
+		const { listOverlayRecords } = await import("@/server/resources/overlay-reads");
+		const principal = await getVerifiedSessionPrincipal();
+		if (!principal) return null;
+		const overlays = await listOverlayRecords(userId, { principal, permission: "overlay-secret:read" });
 
 		return overlays;
 	} catch (error) {
+		if (error instanceof Error && error.message === "ACCESS_DENIED") return null;
 		console.error("Error fetching overlays:", error);
 		throw new Error("Failed to fetch overlays");
 	}
@@ -806,14 +685,8 @@ export async function getClipCacheStatusForOwnerServer(ownerId: string): Promise
 }
 
 export async function setPlayerVolumeForOwner(ownerId: string, volume: number) {
-	try {
-		const clampedVolume = Math.max(0, Math.min(100, volume));
-		await db.update(overlaysTable).set({ playerVolume: clampedVolume, updatedAt: new Date() }).where(eq(overlaysTable.ownerId, ownerId)).execute();
-		return clampedVolume;
-	} catch (error) {
-		console.error("Error updating player volume for owner:", error);
-		throw new Error("Failed to update player volume");
-	}
+	const { setBrowserOverlayVolume } = await import("@/server/resources/browser-overlays");
+	return setBrowserOverlayVolume(ownerId, volume);
 }
 
 export async function getEditorOverlays(ownerId: string) {
@@ -824,15 +697,18 @@ export async function getEditorOverlays(ownerId: string) {
 			return null;
 		}
 
-		const access = await listAuthorizedCreatorOperations({ permission: "overlay:read" });
+		const principal = await getVerifiedSessionPrincipal();
+		if (!principal) return null;
+		const access = await listAuthorizedCreatorOperations({ permission: "overlay-secret:read" });
 		const ownerIds = access.filter((candidate) => candidate.accessPath !== "owner" && candidate.creator.id !== ownerId).map((candidate) => candidate.creator.id);
 
 		if (ownerIds.length === 0) {
 			return [];
 		}
 
-		const overlays = await db.select().from(overlaysTable).where(inArray(overlaysTable.ownerId, ownerIds)).execute();
-		return overlays;
+		const { listOverlayRecords } = await import("@/server/resources/overlay-reads");
+		const records = await Promise.all(ownerIds.map((creatorId) => listOverlayRecords(creatorId, { principal, permission: "overlay-secret:read" })));
+		return records.flat();
 	} catch (error) {
 		console.error("Error fetching editor overlays:", error);
 		throw new Error("Failed to fetch editor overlays");
@@ -922,16 +798,16 @@ async function requirePlaylistAccess(playlistId: string, permission: Permission 
 	/* istanbul ignore next: unauthenticated guard */
 	if (!user) return null;
 
-	const playlists = await db.select().from(playlistsTable).where(eq(playlistsTable.id, playlistId)).limit(1).execute();
-	const playlist = playlists[0];
-	if (!playlist) return null;
-
-	if (!(await canEditOwner(user.id, playlist.ownerId, permission))) {
-		console.warn(`Unauthorized playlist access for user id: ${user.id} on playlist id: ${playlistId}`);
-		return null;
+	try {
+		const { readPlaylistRecord } = await import("@/server/resources/playlist-reads");
+		const principal = await getVerifiedSessionPrincipal();
+		if (!principal) return null;
+		const playlist = await readPlaylistRecord(playlistId, { permission, principal });
+		return { user, playlist };
+	} catch (error) {
+		if (error instanceof Error && ["ACCESS_DENIED", "RESOURCE_UNAVAILABLE"].includes(error.message)) return null;
+		throw error;
 	}
-
-	return { user, playlist };
 }
 
 export async function getAllPlaylists(userId: string): Promise<PlaylistWithMeta[] | null> {
@@ -941,10 +817,11 @@ export async function getAllPlaylists(userId: string): Promise<PlaylistWithMeta[
 		return null;
 	}
 
-	const access = await listAuthorizedCreatorOperations({ permission: "playlist:read" });
-	const ownerIds = Array.from(new Set(access.map((candidate) => candidate.creator.id)));
-	/* istanbul ignore next: empty result guard */
-	const playlists = ownerIds.length > 0 ? await db.select().from(playlistsTable).where(inArray(playlistsTable.ownerId, ownerIds)).execute() : [];
+	const { listPlaylistRecords } = await import("@/server/resources/playlist-reads");
+	const principal = await getVerifiedSessionPrincipal();
+	if (!principal) return null;
+	const discovered = await listAuthorizedCreatorOperations({ permission: "playlist:read" });
+	const { records: playlists, access } = await listPlaylistRecords({ principal, creatorIds: discovered.map((candidate) => candidate.creator.id) });
 
 	/* istanbul ignore next: empty result guard */
 	if (playlists.length === 0) return [];
@@ -972,12 +849,21 @@ export async function getAllPlaylists(userId: string): Promise<PlaylistWithMeta[
 
 export async function getPlaylistsForOwner(ownerId: string): Promise<Array<Playlist & { clipCount: number }> | null> {
 	const user = await requireUser();
-	if (!user || !(await canEditOwner(user.id, ownerId, "playlist:read"))) {
+	if (!user) {
 		console.warn(`Unauthorized "getPlaylistsForOwner" API request for owner id: ${ownerId}`);
 		return null;
 	}
 
-	const playlists = await db.select().from(playlistsTable).where(eq(playlistsTable.ownerId, ownerId)).execute();
+	const { listPlaylistRecords } = await import("@/server/resources/playlist-reads");
+	const principal = await getVerifiedSessionPrincipal();
+	if (!principal) return null;
+	let playlists: Playlist[];
+	try {
+		({ records: playlists } = await listPlaylistRecords({ creatorId: ownerId, principal }));
+	} catch (error) {
+		if (error instanceof Error && error.message === "ACCESS_DENIED") return null;
+		throw error;
+	}
 	/* istanbul ignore next: empty result guard */
 	if (playlists.length === 0) return [];
 
@@ -1000,89 +886,18 @@ export async function getPlaylistsForOwner(ownerId: string): Promise<Array<Playl
 }
 
 export async function createPlaylist(ownerId: string, name: string) {
-	const user = await requireUser();
-	if (!user) {
-		console.warn(`Unauthenticated "createPlaylist" API request`);
-		return null;
-	}
-	if (!(await canEditOwner(user.id, ownerId, "playlist:create"))) {
-		console.warn(`Unauthorized "createPlaylist" API request for user id: ${user.id} on owner id: ${ownerId}`);
-		return null;
-	}
-
-	const trimmedName = name.trim();
-	if (!trimmedName) {
-		throw new Error("Playlist name is required");
-	}
-
-	return await db.transaction(async (tx) => {
-		const { owner, isPro } = await getOwnerPlanContext(ownerId, tx);
-		/* istanbul ignore next: access guard */
-		if (!owner) return null;
-		if (!isPro) {
-			const existing = await tx.select().from(playlistsTable).where(eq(playlistsTable.ownerId, ownerId)).execute();
-			/* istanbul ignore next: empty result guard */
-			if (existing.length >= FREE_PLAYLIST_LIMIT) {
-				throw new Error("Free plan allows only one playlist");
-			}
-		}
-
-		const rows = await tx
-			.insert(playlistsTable)
-			.values({
-				ownerId,
-				name: trimmedName.slice(0, 120),
-				updatedAt: new Date(),
-			})
-			.returning()
-			.execute();
-		/* istanbul ignore next: fallback value */
-		return rows[0] ?? null;
-	});
+	const { createBrowserPlaylist } = await import("@/server/resources/browser-playlists");
+	return createBrowserPlaylist(ownerId, name);
 }
 
-export async function savePlaylist(playlistId: string, patch: Partial<Pick<Playlist, "name">>) {
-	const ctx = await requirePlaylistAccess(playlistId, "playlist:update");
-	/* istanbul ignore next: access guard */
-	if (!ctx) return null;
-	if (!(await resolveRetainedResourceAccess({ kind: "playlist", ownerId: ctx.playlist.ownerId, resourceId: playlistId })).update) return null;
-
-	/* istanbul ignore next: fallback value */
-	const nextName = (patch.name ?? ctx.playlist.name).trim();
-	if (!nextName) throw new Error("Playlist name is required");
-
-	await db
-		.update(playlistsTable)
-		.set({
-			name: nextName.slice(0, 120),
-			updatedAt: new Date(),
-		})
-		.where(eq(playlistsTable.id, playlistId))
-		.execute();
-
-	const rows = await db.select().from(playlistsTable).where(eq(playlistsTable.id, playlistId)).limit(1).execute();
-	/* istanbul ignore next: fallback value */
-	return rows[0] ?? null;
+export async function savePlaylist(playlistId: string, patch: Partial<Pick<Playlist, "name">>, expectedRevision?: number) {
+	const { saveBrowserPlaylist } = await import("@/server/resources/browser-playlists");
+	return saveBrowserPlaylist(playlistId, patch, expectedRevision);
 }
 
-export async function deletePlaylist(playlistId: string) {
-	try {
-		const ctx = await requirePlaylistAccess(playlistId, "playlist:delete");
-		if (!ctx) return false;
-
-		await db.transaction(async (tx) => {
-			// Clear overlay references first to avoid FK delete failures in environments
-			// where the constraint might not be ON DELETE SET NULL yet.
-			await tx.update(overlaysTable).set({ playlistId: null, updatedAt: new Date() }).where(eq(overlaysTable.playlistId, playlistId)).execute();
-			await tx.update(galleriesTable).set({ playlistId: null, published: false, updatedAt: new Date() }).where(eq(galleriesTable.playlistId, playlistId)).execute();
-			await tx.delete(playlistsTable).where(eq(playlistsTable.id, playlistId)).execute();
-		});
-
-		return true;
-	} catch (error) {
-		console.error("Error deleting playlist:", error);
-		return false;
-	}
+export async function deletePlaylist(playlistId: string, expectedRevision?: number) {
+	const { deleteBrowserPlaylist } = await import("@/server/resources/browser-playlists");
+	return deleteBrowserPlaylist(playlistId, expectedRevision);
 }
 
 export async function getPlaylistClips(playlistId: string): Promise<TwitchClip[]> {
@@ -1093,16 +908,12 @@ export async function getPlaylistClips(playlistId: string): Promise<TwitchClip[]
 
 export async function getPlaylistClipsForOwnerServer(ownerId: string, playlistId: string, tx?: QueryClient): Promise<TwitchClip[]> {
 	const client = tx ?? db;
-	const playlistRows = await client
-		.select()
-		.from(playlistsTable)
-		.where(and(eq(playlistsTable.id, playlistId), eq(playlistsTable.ownerId, ownerId)))
-		.limit(1)
-		.execute();
+	const { findPlaylistRecord, readPlaylistItemRecords } = await import("@/server/resources/playlist-reads");
+	const playlist = await findPlaylistRecord(playlistId, ownerId, client);
 	/* istanbul ignore next: fallback value */
-	if (!playlistRows[0]) return [];
+	if (!playlist) return [];
 
-	const rows = await client.select().from(playlistClipsTable).where(eq(playlistClipsTable.playlistId, playlistId)).orderBy(playlistClipsTable.position).execute();
+	const rows = await readPlaylistItemRecords(playlistId, client);
 	const clips: TwitchClip[] = [];
 	for (const row of rows) {
 		try {
@@ -1123,99 +934,21 @@ export async function getPlaylistRuntimeClipsForOwnerServer(ownerId: string, pla
 	return access.effectivePlan === "free" ? clips.slice(0, FREE_PLAYLIST_CLIP_LIMIT) : clips;
 }
 
-/* istanbul ignore next: upsert operation guard */
-export async function upsertPlaylistClips(playlistId: string, clips: TwitchClip[], mode: "append" | "replace" = "append") {
-	const ctx = await requirePlaylistAccess(playlistId, "playlist-items:manage");
-	if (!ctx) return [];
-	if (!(await resolveRetainedResourceAccess({ kind: "playlist", ownerId: ctx.playlist.ownerId, resourceId: playlistId })).update) return [];
-
-	const uniqueIncoming = Array.from(new Map(clips.filter((clip) => !!clip?.id).map((clip) => [clip.id, clip])).values());
-	if (uniqueIncoming.length === 0 && mode === "append") {
-		return getPlaylistClipsForOwnerServer(ctx.playlist.ownerId, playlistId);
-	}
-
-	const { isPro } = await getOwnerPlanContext(ctx.playlist.ownerId);
-	if (mode === "replace") {
-		if (!isPro && uniqueIncoming.length > FREE_PLAYLIST_CLIP_LIMIT) {
-			throw new Error(`Free plan playlists are limited to ${FREE_PLAYLIST_CLIP_LIMIT} clips`);
-		}
-		return await db.transaction(async (tx) => {
-			await tx.delete(playlistClipsTable).where(eq(playlistClipsTable.playlistId, playlistId)).execute();
-			/* istanbul ignore next: empty result guard */
-			if (uniqueIncoming.length > 0) {
-				await tx
-					.insert(playlistClipsTable)
-					.values(
-						uniqueIncoming.map((clip, index) => ({
-							playlistId,
-							clipId: clip.id,
-							position: index,
-							clipData: JSON.stringify(clip),
-						})),
-					)
-					.execute();
-			}
-			await tx.update(playlistsTable).set({ updatedAt: new Date() }).where(eq(playlistsTable.id, playlistId)).execute();
-			return getPlaylistClipsForOwnerServer(ctx.playlist.ownerId, playlistId, tx);
-		});
-	}
-
-	return await db.transaction(async (tx) => {
-		const existingRows = await tx.select().from(playlistClipsTable).where(eq(playlistClipsTable.playlistId, playlistId)).orderBy(playlistClipsTable.position).execute();
-		const existingClipIds = new Set(existingRows.map((row) => row.clipId));
-		const clipsToAppend = uniqueIncoming.filter((clip) => !existingClipIds.has(clip.id));
-		const finalCount = existingRows.length + clipsToAppend.length;
-
-		if (!isPro && finalCount > FREE_PLAYLIST_CLIP_LIMIT) {
-			throw new Error(`Free plan playlists are limited to ${FREE_PLAYLIST_CLIP_LIMIT} clips`);
-		}
-
-		if (clipsToAppend.length > 0) {
-			const basePosition = existingRows.length;
-			await tx
-				.insert(playlistClipsTable)
-				.values(
-					clipsToAppend.map((clip, index) => ({
-						playlistId,
-						clipId: clip.id,
-						position: basePosition + index,
-						clipData: JSON.stringify(clip),
-					})),
-				)
-				.execute();
-			await tx.update(playlistsTable).set({ updatedAt: new Date() }).where(eq(playlistsTable.id, playlistId)).execute();
-		}
-
-		return getPlaylistClipsForOwnerServer(ctx.playlist.ownerId, playlistId, tx);
-	});
+export async function upsertPlaylistClips(playlistId: string, clips: TwitchClip[], mode: "append" | "replace" = "append", expectedRevision?: number, name?: string) {
+	if (!Array.isArray(clips) || clips.some((clip) => !clip || typeof clip.id !== "string")) return null;
+	const { saveBrowserPlaylistItems } = await import("@/server/resources/browser-playlists");
+	return saveBrowserPlaylistItems(
+		playlistId,
+		clips.map((clip) => clip.id),
+		mode,
+		expectedRevision,
+		name,
+	);
 }
 
-export async function reorderPlaylistClips(playlistId: string, orderedClipIds: string[]) {
-	const ctx = await requirePlaylistAccess(playlistId, "playlist-items:manage");
-	if (!ctx) return [];
-	if (!(await resolveRetainedResourceAccess({ kind: "playlist", ownerId: ctx.playlist.ownerId, resourceId: playlistId })).update) return [];
-
-	return await db.transaction(async (tx) => {
-		const existingRows = await tx.select().from(playlistClipsTable).where(eq(playlistClipsTable.playlistId, playlistId)).orderBy(playlistClipsTable.position).execute();
-		const existingById = new Map(existingRows.map((row) => [row.clipId, row]));
-		const dedupedRequested = Array.from(new Set(orderedClipIds)).filter((clipId) => existingById.has(clipId));
-		const remaining = existingRows.map((row) => row.clipId).filter((clipId) => !dedupedRequested.includes(clipId));
-		const nextOrder = [...dedupedRequested, ...remaining];
-
-		/* istanbul ignore next: empty result guard */
-		if (nextOrder.length > 0) {
-			const cases = nextOrder.map((clipId, index) => sql`WHEN ${playlistClipsTable.clipId} = ${clipId} THEN ${index}`);
-			await tx
-				.update(playlistClipsTable)
-				.set({
-					position: sql`(CASE ${sql.join(cases)} ELSE ${playlistClipsTable.position} END)`,
-				})
-				.where(eq(playlistClipsTable.playlistId, playlistId))
-				.execute();
-		}
-		await tx.update(playlistsTable).set({ updatedAt: new Date() }).where(eq(playlistsTable.id, playlistId)).execute();
-		return getPlaylistClipsForOwnerServer(ctx.playlist.ownerId, playlistId, tx);
-	});
+export async function reorderPlaylistClips(playlistId: string, orderedClipIds: string[], expectedRevision?: number) {
+	const { reorderBrowserPlaylist } = await import("@/server/resources/browser-playlists");
+	return reorderBrowserPlaylist(playlistId, orderedClipIds, expectedRevision);
 }
 
 function applyPlaylistImportFilters(clips: TwitchClip[], filters: PlaylistImportFilters): TwitchClip[] {
@@ -1302,10 +1035,11 @@ function applyPlaylistImportFilters(clips: TwitchClip[], filters: PlaylistImport
 	return result.sort((a, b) => b.view_count - a.view_count || b.created_at.localeCompare(a.created_at));
 }
 
-export async function importPlaylistClips(playlistId: string, filters: PlaylistImportFilters, mode: "append" | "replace") {
+export async function importPlaylistClips(playlistId: string, filters: PlaylistImportFilters, mode: "append" | "replace", expectedRevision?: number) {
+	if (!Number.isSafeInteger(expectedRevision) || (expectedRevision ?? 0) < 1) return null;
 	const ctx = await requirePlaylistAccess(playlistId, "playlist-items:manage");
-	if (!ctx) return [];
-	if (!(await resolveRetainedResourceAccess({ kind: "playlist", ownerId: ctx.playlist.ownerId, resourceId: playlistId })).update) return [];
+	if (!ctx) return null;
+	if (!(await resolveRetainedResourceAccess({ kind: "playlist", ownerId: ctx.playlist.ownerId, resourceId: playlistId })).update) return null;
 
 	const { isPro } = await getOwnerPlanContext(ctx.playlist.ownerId);
 	if (!isPro) {
@@ -1314,7 +1048,16 @@ export async function importPlaylistClips(playlistId: string, filters: PlaylistI
 
 	const source = await getPlaylistImportSourceClips(ctx.playlist.ownerId, filters);
 	const imported = applyPlaylistImportFilters(source, filters);
-	return upsertPlaylistClips(playlistId, imported, mode);
+	const { saveBrowserPlaylistItems } = await import("@/server/resources/browser-playlists");
+	return saveBrowserPlaylistItems(
+		playlistId,
+		imported.map((clip) => clip.id),
+		mode,
+		expectedRevision,
+		undefined,
+		undefined,
+		true,
+	);
 }
 
 export async function previewImportPlaylistClips(playlistId: string, filters: PlaylistImportFilters): Promise<TwitchClip[]> {
@@ -1452,101 +1195,35 @@ export async function getOverlayWithEditAccess(overlayId: string) {
 
 export async function createOverlay(userId: string) {
 	try {
-		const user = await requireUser();
-		if (!user) {
-			console.warn(`Unauthenticated "createOverlay" API request`);
-			return null;
-		}
-		if (!(await canEditOwner(user.id, userId, "overlay:create"))) {
-			console.warn(`Unauthorized "createOverlay" API request for user id: ${user.id} on owner id: ${userId}`);
-			return null;
-		}
-		const ownerRows = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1).execute();
-		const owner = ownerRows[0];
-		if (!owner) {
-			return null;
-		}
-		const ownerWithEntitlements = { ...owner, entitlements: await resolveUserEntitlements(owner) };
-		const multiOverlayAccess = getFeatureAccess(ownerWithEntitlements, "multi_overlay");
-		if (!multiOverlayAccess.allowed) {
-			const existing = await db.select().from(overlaysTable).where(eq(overlaysTable.ownerId, userId)).execute();
-			/* istanbul ignore next: empty result guard */
-			if (existing.length >= 1) {
-				console.warn(`Free plan overlay limit reached for owner id: ${userId}`);
-				return null;
-			}
-		}
-		const secret = crypto.randomUUID();
-		const overlayRows = await db
-			.insert(overlaysTable)
-			.values({
-				id: crypto.randomUUID(),
-				ownerId: userId,
-				secret,
-				name: "New Overlay",
-				status: StatusOptions.Active,
-				type: OverlayType.Featured,
-				playlistId: null,
-			})
-			.returning()
-			.execute();
-		const overlay = overlayRows[0];
-
-		return overlay;
+		const { createBrowserOverlay } = await import("@/server/resources/browser-overlays");
+		return await createBrowserOverlay(userId);
 	} catch (error) {
 		console.error("Error creating overlay:", error);
 		throw new Error("Failed to create overlay");
 	}
 }
 
+/** Structured creation feedback derives identity and quota from the shared backend. */
+export async function createOverlayWithFeedback(userId: string) {
+	const { createBrowserOverlayWithFeedback } = await import("@/server/resources/browser-overlays");
+	return createBrowserOverlayWithFeedback(userId);
+}
+
 export async function downgradeUserPlan(userId: string) {
 	await reconcileUserEntitlements(userId);
 }
 
-export async function saveOverlay(overlayId: string, patch: OverlayPatch) {
-	try {
-		const ctx = await requireOverlayAccess(overlayId, "overlay:update");
-		/* istanbul ignore next: access guard */
-		if (!ctx) return null;
-
-		const sanitizedPatch = Object.fromEntries(Object.entries(patch).filter(([, value]) => value !== undefined)) as OverlayPatch;
-		const next = { ...ctx.overlay, ...sanitizedPatch };
-
-		// Use the owner's access context to determine whether advanced settings are allowed
-		const ownerRows = await db.select().from(usersTable).where(eq(usersTable.id, ctx.overlay.ownerId)).limit(1).execute();
-		const owner = ownerRows[0];
-		/* istanbul ignore next: fallback value */
-		const ownerWithEntitlements = owner ? { ...owner, entitlements: await resolveUserEntitlements(owner) } : null;
-		if (ownerWithEntitlements && !(await resolveRetainedResourceAccess({ kind: "overlay", ownerId: ctx.overlay.ownerId, resourceId: overlayId, effectivePlan: ownerWithEntitlements.entitlements.effectivePlan })).update) return null;
-		/* istanbul ignore next: fallback value */
-		const advancedAccess = ownerWithEntitlements ? getFeatureAccess(ownerWithEntitlements, "advanced_filters") : { allowed: false as const };
-		const updatePayload = buildOverlayUpdatePayload(next, advancedAccess.allowed);
-
-		await db.update(overlaysTable).set(updatePayload).where(eq(overlaysTable.id, overlayId)).execute();
-		if (updatePayload.status === StatusOptions.Paused) disconnectOverlaySources(overlayId);
-
-		if ("rewardId" in updatePayload && updatePayload.rewardId && updatePayload.rewardId !== ctx.overlay.rewardId) {
-			subscribeToReward(ctx.overlay.ownerId, updatePayload.rewardId);
-		}
-
-		return getOverlay(overlayId);
-	} catch (error) {
-		console.error("Error saving overlay:", error);
-		throw new Error("Failed to save overlay");
-	}
+export async function saveOverlay(overlayId: string, patch: OverlayPatch, expectedRevision?: number) {
+	const { saveBrowserOverlay } = await import("@/server/resources/browser-overlays");
+	const saved = await saveBrowserOverlay(overlayId, patch, expectedRevision);
+	if (!saved) return null;
+	if (saved.status === StatusOptions.Paused) disconnectOverlaySources(overlayId);
+	return saved;
 }
 
-export async function deleteOverlay(overlayId: string) {
-	try {
-		const ctx = await requireOverlayAccess(overlayId, "overlay:delete");
-		if (!ctx) return false;
-
-		await db.delete(overlaysTable).where(eq(overlaysTable.id, overlayId)).execute();
-		return true;
-	} catch (error) {
-		console.error("Error deleting overlay:", error);
-		throw new Error("Failed to delete overlay");
-	}
+export async function deleteOverlay(overlayId: string, expectedRevision?: number) {
+	const { deleteBrowserOverlay } = await import("@/server/resources/browser-overlays");
+	return deleteBrowserOverlay(overlayId, expectedRevision);
 }
 
 export async function getOverlayOwnerPlan(overlayId: string): Promise<Plan | null> {
@@ -1881,6 +1558,7 @@ export async function getSettingsServer(userId: string, forceSyncExternal = fals
 			// Save default settings
 			const defaultSettings: UserSettings = {
 				id: userId,
+				configurationRevision: 1,
 				prefix: "!",
 				marketingOptIn: true,
 				marketingOptInAt: consentRecordedAt,
@@ -1991,6 +1669,9 @@ export async function saveSettings(settings: UserSettings) {
 	try {
 		const existingSettingsRows = await db.select().from(settingsTable).where(eq(settingsTable.id, userId)).limit(1).execute();
 		const existingSettings = existingSettingsRows[0];
+		const expectedRevision = settings.configurationRevision ?? existingSettings?.configurationRevision ?? 1;
+		if (!Number.isInteger(expectedRevision) || expectedRevision < 1 || expectedRevision >= 2_147_483_647) throw new Error("INVALID_INPUT");
+		if (existingSettings?.configurationRevision !== undefined && existingSettings.configurationRevision !== expectedRevision) throw new Error("REVISION_CONFLICT");
 		const wasOptedIn = Boolean(existingSettings?.marketingOptIn);
 		const requestedSource = settings.marketingOptInSource ?? null;
 
@@ -2025,14 +1706,16 @@ export async function saveSettings(settings: UserSettings) {
 		const creatorPageSocialTitle = socialPreviewAccess ? settings.creatorPageSocialTitle?.trim().slice(0, 120) || null : (existingSettings?.creatorPageSocialTitle ?? null);
 		const creatorPageSocialDescription = socialPreviewAccess ? settings.creatorPageSocialDescription?.trim().slice(0, 240) || null : (existingSettings?.creatorPageSocialDescription ?? null);
 
-		await db
+		const savedResult = await db
 			.insert(settingsTable)
 			.values({ id: userId, prefix, marketingOptIn, marketingOptInAt, marketingOptInSource, useSendProductUpdatesContactId, showOnCommunityPage, creatorPageEnabled, creatorPageVisibility, creatorPageShowBio, creatorPageSocialTitle, creatorPageSocialDescription })
 			.onConflictDoUpdate({
 				target: settingsTable.id,
-				set: { prefix, marketingOptIn, marketingOptInAt, marketingOptInSource, useSendProductUpdatesContactId, showOnCommunityPage, creatorPageEnabled, creatorPageVisibility, creatorPageShowBio, creatorPageSocialTitle, creatorPageSocialDescription },
+				setWhere: eq(settingsTable.configurationRevision, expectedRevision),
+				set: { configurationRevision: sql`${settingsTable.configurationRevision} + 1`, prefix, marketingOptIn, marketingOptInAt, marketingOptInSource, useSendProductUpdatesContactId, showOnCommunityPage, creatorPageEnabled, creatorPageVisibility, creatorPageShowBio, creatorPageSocialTitle, creatorPageSocialDescription },
 			})
 			.execute();
+		if (savedResult && savedResult.rowCount === 0) throw new Error("REVISION_CONFLICT");
 
 		const finalSettings: Pick<UserSettings, "marketingOptIn" | "marketingOptInSource"> = {
 			marketingOptIn,
@@ -2062,6 +1745,7 @@ export async function saveSettings(settings: UserSettings) {
 			}
 		}
 		void invalidateCommunitySnapshotCache();
+		return { configurationRevision: existingSettings ? expectedRevision + 1 : 1 };
 	} catch (error) {
 		console.error("Error saving settings:", error);
 		throw new Error("Failed to save settings");

@@ -154,6 +154,24 @@ The feature comparison below is generated from the same TypeScript catalog used 
 
 Once configured, Clipify operates automatically during the selected stream scenes.
 
+## AI assistant access (MCP)
+
+Clipify provides an authenticated MCP endpoint at `https://clipify.us/mcp` for compatible AI assistants and independently registered custom clients. MCP access is included on Free and Pro; it does not add overlays, playlists, playlist clips, or paid capabilities beyond the creator’s existing plan. Every operation uses the same backend authorization and plan limits as the browser.
+
+Clients discover OAuth metadata from the endpoint’s authentication challenge and connect through OAuth authorization code flow with PKCE. Public clients may dynamically register their own callbacks; registration alone grants no creator access. Consent identifies the app, lets the user select accessible creators, offers Read or Read & edit presets, and permits customizing individual scopes. Deletion, publication, live controls, runner disconnection and private OBS URL access require deliberate permission selection. The AI client never receives the user’s browser session, Twitch tokens, runner credentials or stream keys. Private OBS browser-source URLs are returned only through explicitly approved `overlay-secret:read` access and must not be published on a website.
+
+Users can inspect approved creators and permissions in account settings and revoke a connection immediately. Revoked access and refresh credentials cannot continue operating. Client-provided destructive-action warnings are informational; the backend always enforces authority, ownership, plan limits and revision checks. Named AI-host compatibility depends on that host’s support for remote MCP and OAuth.
+
+The server exposes 50 tools across creator capabilities, overlay configuration and themes, playlists, clip discovery/import, live remote control, galleries, public website embeds, Creator Pages, runner setup/stream sessions, and user-requested feedback. Availability depends on the approved scopes, current creator/team permissions and current entitlements.
+
+- Discover clips by title, game/category and explicit date/timezone filters, or resolve a Twitch clip link. Preview imports before committing the exact selected clips; incomplete searches require narrower filters. Free clip and playlist limits still apply; filtered bulk imports require Pro.
+- Pro remote control can inspect reported current playback, read queues, enqueue a creator clip, and send play/pause/skip/show/hide/volume/mute commands. Reports and command delivery can be stale or unavailable; accepted commands do not prove the player applied them.
+- Create and edit galleries within plan limits, publish with explicit authority, and generate supported Clipify Elements gallery snippets. Public player embeds use Elements or `/embed/` iframes; private OBS sources use a separate permission and are unsuitable for public websites.
+- Read and edit supported Creator Page settings and publication state. Social-preview customization requires Pro.
+- Runner setup and stream creation/control require separate Runner access. Get official download/enrollment instructions, manage runner records and stream assignments, request start/stop, and inspect a fresh JPEG snapshot when available. Device installation/enrollment and missing stream credentials are completed through the normal user/dashboard flow. Read and cleanup access to existing records remains available after Runner access expires.
+
+Team administration, billing changes, account-security settings, and AI marketplace submissions are outside this tool set.
+
 ## Technical characteristics
 
 - Web-based service using Twitch OAuth.
@@ -202,3 +220,7 @@ Once configured, Clipify operates automatically during the selected stream scene
 - [Cookie policy](https://clipify.us/legal/cookies): Cookie and comparable storage information.
 - [Terms of service](https://clipify.us/legal/terms): Terms governing Clipify.
 - [Privacy requests](https://clipify.us/legal/privacy-requests): How to exercise privacy rights.
+
+### User-requested MCP feedback
+
+The submit_feedback tool submits a Clipify bug report or suggestion to the existing Sentry feedback product on explicit user request. Available on Free using existing creator:read authorization; no separate feedback scope. Requires confirmed=true, a bounded message and retryKey. Five distinct reports per verified user per fixed 24-hour window starting with the first accepted report, using the shared application rate-limiter-flexible engine in process-local RAM shared across clients/creators. Deduplication and limits reset on server restart and are independent per replica. No automatic transcript, replay, screenshot or email is attached. The result is a queued receipt, not delivery confirmation.

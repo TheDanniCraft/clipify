@@ -1,4 +1,6 @@
 import "server-only";
+import { readOverlayRecord } from "./resources/overlay-reads";
+import { getVerifiedSessionPrincipal } from "@/auth/session-principal";
 
 import { db } from "@/db/client";
 import * as databaseSchema from "@/db/schema";
@@ -17,15 +19,15 @@ export async function canEditOwnerInternal(editorId: string, ownerId: string): P
 }
 
 export async function requireOverlayAccessInternal(overlayId: string, permission: Permission = "overlay:read"): Promise<{ user: AuthenticatedUser; overlay: Overlay } | null> {
-	const overlays = await db.select().from(overlaysTable).where(eq(overlaysTable.id, overlayId)).limit(1).execute();
-	const overlay = overlays[0];
-	if (!overlay) return null;
-	const access = await authorizeCreatorOperation({ creatorId: overlay.ownerId, resourceOwnerId: overlay.ownerId, permission });
-	if (!access.allowed) {
-		console.warn(`Unauthorized overlay access on overlay id: ${overlayId}; reason: ${access.code}`);
-		return null;
+	try {
+		const principal = await getVerifiedSessionPrincipal();
+		if (!principal) return null;
+		const { overlay, decision } = await readOverlayRecord(overlayId, { permission, principal });
+		return { user: decision.creator as AuthenticatedUser, overlay };
+	} catch (error) {
+		if (error instanceof Error && ["ACCESS_DENIED", "RESOURCE_UNAVAILABLE"].includes(error.message)) return null;
+		throw error;
 	}
-	return { user: access.creator as AuthenticatedUser, overlay };
 }
 
 export async function requireOverlaySecretAccessInternal(overlayId: string, secret?: string): Promise<Overlay | null> {

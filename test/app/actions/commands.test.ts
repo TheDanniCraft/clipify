@@ -14,7 +14,7 @@ const getClipQueueByOverlayId = jest.fn();
 const getModQueue = jest.fn();
 const getSettings = jest.fn();
 const getUserByIdServer = jest.fn();
-const setPlayerVolumeForOwner = jest.fn();
+const updateTrustedChatOverlayVolume = jest.fn();
 const getFeatureAccess = jest.fn();
 const getBaseUrl = jest.fn();
 
@@ -37,8 +37,9 @@ jest.mock("@actions/database", () => ({
 	getSettings: (...args: unknown[]) => getSettings(...args),
 	getSettingsServer: (...args: unknown[]) => getSettings(...args),
 	getUserByIdServer: (...args: unknown[]) => getUserByIdServer(...args),
-	setPlayerVolumeForOwner: (...args: unknown[]) => setPlayerVolumeForOwner(...args),
 }));
+
+jest.mock("@/server/resources/overlays", () => ({ updateTrustedChatOverlayVolume: (...args: unknown[]) => updateTrustedChatOverlayVolume(...args) }));
 
 jest.mock("@/server/overlays", () => ({
 	getAllOverlayIdsByOwnerInternal: (...args: unknown[]) => getAllOverlayIdsByOwnerInternal(...args),
@@ -77,6 +78,54 @@ async function loadCommands() {
 }
 
 describe("actions/commands", () => {
+	it.each(["mod", "reward"])("reports a %s-only queue when the other queue is empty", async (mode) => {
+		getModQueue.mockResolvedValue(mode === "mod" ? [{ clipId: "known" }] : []);
+		getAllOverlayIdsByOwnerInternal.mockResolvedValue(mode === "reward" ? ["overlay"] : null);
+		getClipQueueByOverlayId.mockResolvedValue([{ clipId: "known" }]);
+		getTwitchClip.mockResolvedValue({ title: "Available clip" });
+		const { handleCommand } = await loadCommands();
+		await handleCommand(buildMessage("!queue"));
+		expect(sendChatMessage).toHaveBeenCalledWith("owner-1", expect.stringContaining(mode === "mod" ? "Mod Queue [Available clip] | Reward Queue [empty]" : "Mod Queue [empty] | Reward Queue [Available clip]"));
+	});
+
+	it("bounds cached channel permissions and reloads an evicted channel", async () => {
+		const clock = jest.spyOn(Date, "now").mockReturnValue(1000);
+		try {
+			const { handleCommand } = await loadCommands();
+			for (let index = 0; index < 1002; index++) {
+				await handleCommand(buildMessage("!play", { broadcaster_user_id: `channel-${index}`, chatter_user_id: `channel-${index}` }));
+			}
+			getUserByIdServer.mockClear();
+			await handleCommand(buildMessage("!play", { broadcaster_user_id: "channel-1001", chatter_user_id: "channel-1001" }));
+			expect(getUserByIdServer).not.toHaveBeenCalled();
+			await handleCommand(buildMessage("!play", { broadcaster_user_id: "channel-0", chatter_user_id: "channel-0" }));
+			expect(getUserByIdServer).toHaveBeenCalledWith("channel-0");
+		} finally {
+			clock.mockRestore();
+		}
+	});
+
+	it("rechecks permissions expiring between scheduled cache cleanup intervals", async () => {
+		const clock = jest.spyOn(Date, "now").mockReturnValue(1000);
+		try {
+			const { handleCommand } = await loadCommands();
+			await handleCommand(buildMessage("!play"));
+			clock.mockReturnValue(61000);
+			await handleCommand(buildMessage("!play"));
+			clock.mockReturnValue(62000);
+			await handleCommand(buildMessage("!play", { broadcaster_user_id: "later", chatter_user_id: "later" }));
+			clock.mockReturnValue(121000);
+			await handleCommand(buildMessage("!play"));
+			getFeatureAccess.mockReturnValue({ allowed: false });
+			clock.mockReturnValue(122000);
+			await handleCommand(buildMessage("!play", { broadcaster_user_id: "later", chatter_user_id: "later" }));
+			expect(getUserByIdServer.mock.calls.filter(([id]) => id === "later")).toHaveLength(2);
+			expect(sendChatMessage).toHaveBeenLastCalledWith("later", expect.stringContaining("chat commands require Pro"));
+		} finally {
+			clock.mockRestore();
+		}
+	});
+
 	beforeEach(() => {
 		jest.clearAllMocks();
 		getSettings.mockResolvedValue({ prefix: "!" });
@@ -271,8 +320,85 @@ describe("actions/commands", () => {
 		getAllOverlaysByOwnerInternal.mockResolvedValue([{ playerVolume: 40 }]);
 		const { handleCommand } = await loadCommands();
 		await handleCommand(buildMessage("!volume 130"));
-		expect(setPlayerVolumeForOwner).toHaveBeenCalledWith("owner-1", 100);
+		expect(updateTrustedChatOverlayVolume).toHaveBeenCalledWith("owner-1", 100, "owner-1");
 		expect(sendMessage).toHaveBeenCalledWith("command", { name: "volume", data: "100" }, "owner-1");
 		expect(sendChatMessage).toHaveBeenCalledWith("owner-1", expect.stringContaining("100%"));
+	});
+
+	it.each(["pause", "skip", "hide", "show"])("privileged %s reaches only the current channel", async (name) => {
+		const { handleCommand } = await loadCommands();
+		await handleCommand(buildMessage(`!${name}`));
+		expect(sendMessage).toHaveBeenCalledWith("command", { name, data: null }, "owner-1");
+		expect(sendChatMessage).toHaveBeenCalledTimes(1);
+	});
+	it.each(["pause", "skip", "hide", "show", "queue"])("%s with unsupported arguments has no effects", async (name) => {
+		const { handleCommand } = await loadCommands();
+		await handleCommand(buildMessage(`!${name} unsupported`));
+		expect(sendMessage).not.toHaveBeenCalled();
+		expect(sendChatMessage).not.toHaveBeenCalled();
+	});
+	it("help uses the configured prefix for every command", async () => {
+		getSettings.mockResolvedValue({ prefix: "?" });
+		const { handleCommand } = await loadCommands();
+		await handleCommand(buildMessage("?help"));
+		expect(sendChatMessage).toHaveBeenCalledWith("owner-1", expect.stringContaining("?volume"));
+		expect(sendMessage).not.toHaveBeenCalled();
+	});
+	it("volume lookup reports a single current volume", async () => {
+		getAllOverlaysByOwnerInternal.mockResolvedValue([{ playerVolume: 40 }, { playerVolume: 40 }]);
+		const { handleCommand } = await loadCommands();
+		await handleCommand(buildMessage("!volume"));
+		expect(sendChatMessage).toHaveBeenCalledWith("owner-1", expect.stringContaining("current player volume is 40%"));
+	});
+	it("changed backend authority blocks volume before broadcast", async () => {
+		getAllOverlaysByOwnerInternal.mockResolvedValue([{ playerVolume: 40 }]);
+		updateTrustedChatOverlayVolume.mockRejectedValueOnce(new Error("ACCESS_DENIED"));
+		const { handleCommand } = await loadCommands();
+		await handleCommand(buildMessage("!volume 20"));
+		expect(sendMessage).not.toHaveBeenCalled();
+		expect(sendChatMessage).toHaveBeenCalledWith("owner-1", expect.stringContaining("volume could not be changed"));
+	});
+	it("clearing mod queue preserves reward queues", async () => {
+		const { handleCommand } = await loadCommands();
+		await handleCommand(buildMessage("!clearqueue mod"));
+		expect(clearModQueueByBroadcasterId).toHaveBeenCalledWith("owner-1");
+		expect(clearClipQueueByOverlayIdServer).not.toHaveBeenCalled();
+	});
+	it("missing current creator remains silent", async () => {
+		getUserByIdServer.mockResolvedValueOnce(null);
+		const { handleCommand } = await loadCommands();
+		await handleCommand(buildMessage("!play"));
+		expect(sendMessage).not.toHaveBeenCalled();
+		expect(sendChatMessage).not.toHaveBeenCalled();
+	});
+	it("prefix mismatch remains silent", async () => {
+		const { handleCommand } = await loadCommands();
+		await handleCommand(buildMessage("hello"));
+		expect(sendMessage).not.toHaveBeenCalled();
+		expect(sendChatMessage).not.toHaveBeenCalled();
+	});
+
+	it("expired cached Pro access is rechecked before the next command", async () => {
+		const clock = jest.spyOn(Date, "now").mockReturnValue(1000);
+		try {
+			const { handleCommand } = await loadCommands();
+			await handleCommand(buildMessage("!play"));
+			expect(getUserByIdServer).toHaveBeenCalledTimes(1);
+			clock.mockReturnValue(61001);
+			getFeatureAccess.mockReturnValue({ allowed: false });
+			await handleCommand(buildMessage("!play"));
+			expect(getUserByIdServer).toHaveBeenCalledTimes(2);
+			expect(sendMessage).toHaveBeenCalledTimes(1);
+			expect(sendChatMessage).toHaveBeenLastCalledWith("owner-1", expect.stringContaining("require Pro"));
+		} finally {
+			clock.mockRestore();
+		}
+	});
+	it("null overlay lookup avoids volume writes", async () => {
+		getAllOverlaysByOwnerInternal.mockResolvedValue(null);
+		const { handleCommand } = await loadCommands();
+		await handleCommand(buildMessage("!volume 50"));
+		expect(updateTrustedChatOverlayVolume).not.toHaveBeenCalled();
+		expect(sendMessage).not.toHaveBeenCalled();
 	});
 });

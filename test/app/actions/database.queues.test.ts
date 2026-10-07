@@ -1,3 +1,4 @@
+jest.mock("@/auth/session-principal", () => ({ getVerifiedSessionPrincipal: async () => ({ kind: "session", authUserId: "auth-user-1", sessionId: "session-1", authenticatedAt: new Date() }) }));
 /** @jest-environment node */
 export {};
 
@@ -113,6 +114,7 @@ jest.mock("@actions/auth", () => ({
 const authorizeCreatorOperation = jest.fn();
 jest.mock("@/auth/authorize-operation", () => ({
 	authorizeCreatorOperation: (...args: unknown[]) => authorizeCreatorOperation(...args),
+	authorizeTrustedCreatorOperation: ({ principal: _principal, client: _client, ...input }: Record<string, unknown>) => authorizeCreatorOperation(input),
 	listAuthorizedCreatorOperations: jest.fn(),
 }));
 jest.mock("@/server/entitlements/resource-access", () => ({ resolveRetainedResourceAccess: jest.fn(async () => ({ read: true, delete: true, update: true, runtime: true, withinFreeAllowance: true })) }));

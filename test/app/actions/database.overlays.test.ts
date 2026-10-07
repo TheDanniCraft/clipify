@@ -1,9 +1,11 @@
+jest.mock("@/auth/session-principal", () => ({ getVerifiedSessionPrincipal: async () => ({ kind: "session", authUserId: "auth-user-1", sessionId: "session-1", authenticatedAt: new Date() }) }));
 /** @jest-environment node */
 export {};
 
 const selectQueue: unknown[] = [];
 const dbSelect = jest.fn();
 const dbDelete = jest.fn();
+const deleteBrowserOverlay = jest.fn();
 const updateSetCalls: Array<Record<string, unknown>> = [];
 
 const deleteCalls: Array<{ table: unknown }> = [];
@@ -137,6 +139,10 @@ jest.mock("drizzle-orm", () => ({
 }));
 
 const validateAuth = jest.fn();
+const createBrowserOverlay = jest.fn();
+const createBrowserOverlayWithFeedback = jest.fn();
+const saveBrowserOverlay = jest.fn();
+jest.mock("@/server/resources/browser-overlays", () => ({ createBrowserOverlayWithFeedback: (...args: unknown[]) => createBrowserOverlayWithFeedback(...args), saveBrowserOverlay: (...args: unknown[]) => saveBrowserOverlay(...args), deleteBrowserOverlay: (...args: unknown[]) => deleteBrowserOverlay(...args), createBrowserOverlay: (...args: unknown[]) => createBrowserOverlay(...args) }));
 jest.mock("@actions/auth", () => ({
 	validateAuth: (...args: any[]) => validateAuth(...args),
 }));
@@ -144,6 +150,7 @@ jest.mock("@actions/auth", () => ({
 const authorizeCreatorOperation = jest.fn();
 jest.mock("@/auth/authorize-operation", () => ({
 	authorizeCreatorOperation: (...args: unknown[]) => authorizeCreatorOperation(...args),
+	authorizeTrustedCreatorOperation: ({ principal: _principal, client: _client, ...input }: Record<string, unknown>) => authorizeCreatorOperation(input),
 	listAuthorizedCreatorOperations: jest.fn(),
 }));
 
@@ -169,32 +176,30 @@ async function loadDatabaseActions() {
 
 describe("actions/database overlay logic", () => {
 	beforeEach(() => {
+		createBrowserOverlay.mockReset().mockResolvedValue(null);
+		saveBrowserOverlay.mockReset().mockResolvedValue(null);
 		jest.clearAllMocks();
 		selectQueue.length = 0;
 		deleteCalls.length = 0;
 		updateSetCalls.length = 0;
-		dbSelect.mockImplementation(() => makeSelectChain());
+		dbSelect.mockReset().mockImplementation(() => makeSelectChain());
 		dbDelete.mockImplementation((table: unknown) => makeDeleteChain(table));
 		validateAuth.mockResolvedValue({ id: "user-1" });
 		authorizeCreatorOperation.mockResolvedValue({ allowed: true, accessPath: "owner", creator: { id: "user-1", plan: "pro" }, creatorOrganizationId: "creator:user-1", authUserId: "auth-user-1", sessionId: "session-1" });
 	});
 
-	it("deletes overlay with access", async () => {
+	it("TDD-BROWSER-OVERLAY-DELETE-002 public action forwards cached revision without direct DB deletion", async () => {
 		const { deleteOverlay } = await loadDatabaseActions();
-		queueSelectResult([{ id: "overlay-1", ownerId: "user-1" }]); // requireOverlayAccess select
-		const result = await deleteOverlay("overlay-1");
-		expect(result).toBe(true);
-		expect(deleteCalls.some((call) => call.table === overlaysTable)).toBe(true);
+		deleteBrowserOverlay.mockResolvedValueOnce(true);
+		expect(await deleteOverlay("overlay-1", 4)).toBe(true);
+		expect(deleteBrowserOverlay).toHaveBeenCalledWith("overlay-1", 4);
+		expect(dbDelete).not.toHaveBeenCalled();
 	});
-
-	it("fails to delete overlay without access", async () => {
+	it("TDD-BROWSER-OVERLAY-DELETE-002 rejected shared deletion stays false", async () => {
 		const { deleteOverlay } = await loadDatabaseActions();
-		queueSelectResult([{ id: "overlay-1", ownerId: "other-user" }]); // requireOverlayAccess select
-		authorizeCreatorOperation.mockResolvedValueOnce({ allowed: false, code: "PERMISSION_DENIED" });
-		const result = await deleteOverlay("overlay-1");
-		expect(result).toBe(false);
+		deleteBrowserOverlay.mockResolvedValueOnce(false);
+		expect(await deleteOverlay("overlay-1", 4)).toBe(false);
 	});
-
 	it("gets overlay owner plan", async () => {
 		const { getOverlayOwnerPlan } = await loadDatabaseActions();
 		queueSelectResult([{ id: "overlay-1", ownerId: "user-1" }]); // requireOverlayAccess select
@@ -253,62 +258,51 @@ describe("actions/database overlay logic", () => {
 		const result = await getOverlay("overlay-1");
 		expect(result).toMatchObject({ id: "overlay-1", secret: "secret-1" });
 	});
-
 	it("creates overlay", async () => {
+		const overlay = { id: "overlay-new", ownerId: "user-1", configurationRevision: 1 };
+		createBrowserOverlay.mockResolvedValueOnce(overlay);
 		const { createOverlay } = await loadDatabaseActions();
-		queueSelectResult([{ id: "user-1", plan: "pro" }]); // owner select
-		dbSelect.mockImplementationOnce(() => makeSelectChain()); // resolveUserEntitlements getUserById select (empty)
-
-		const overlay = await createOverlay("user-1");
-		expect(overlay).toBeDefined();
+		expect(await createOverlay("user-1")).toBe(overlay);
+		expect(createBrowserOverlay).toHaveBeenCalledWith("user-1");
+	});
+	it("structured overlay creation action forwards authoritative usage and limit unchanged", async () => {
+		const feedback = { overlay: null, error: { code: "PLAN_LIMIT_REACHED", usage: 1, limit: 1 } };
+		createBrowserOverlayWithFeedback.mockResolvedValueOnce(feedback);
+		const { createOverlayWithFeedback } = await loadDatabaseActions();
+		expect(await createOverlayWithFeedback("user-1")).toBe(feedback);
+		expect(createBrowserOverlayWithFeedback).toHaveBeenCalledWith("user-1");
 	});
 
 	it("fails to create overlay if not owner and not editor", async () => {
 		const { createOverlay } = await loadDatabaseActions();
-		validateAuth.mockResolvedValue({ id: "user-2" }); // authenticated as user-2
-		authorizeCreatorOperation.mockResolvedValueOnce({ allowed: false, code: "PERMISSION_DENIED" });
-
-		const result = await createOverlay("user-1"); // trying to create for user-1
-		expect(result).toBeNull();
+		expect(await createOverlay("user-1")).toBeNull();
+		expect(createBrowserOverlay).toHaveBeenCalledWith("user-1");
 	});
-
 	it("fails to create overlay if free limit reached", async () => {
 		const { createOverlay } = await loadDatabaseActions();
-		const { getFeatureAccess } = require("@lib/featureAccess");
-		getFeatureAccess.mockReturnValueOnce({ allowed: false }); // multi_overlay not allowed
-
-		queueSelectResult([{ id: "user-1", plan: "free" }]); // owner select
-		dbSelect.mockImplementationOnce(() => makeSelectChain()); // resolveUserEntitlements getUserById select (empty)
-		queueSelectResult([{ id: "ov-existing" }]); // existing overlays select
-
-		const result = await createOverlay("user-1");
-		expect(result).toBeNull();
+		expect(await createOverlay("user-1")).toBeNull();
+		expect(createBrowserOverlay).toHaveBeenCalledWith("user-1");
 	});
 
-	it("saves overlay", async () => {
+	it("TDD-BROWSER-OVERLAY-SAVE-002 public save delegates revision without a direct write", async () => {
 		const { saveOverlay } = await loadDatabaseActions();
-		queueSelectResult([{ id: "overlay-1", ownerId: "user-1" }]); // requireOverlayAccess select
-		queueSelectResult([{ id: "user-1", plan: "pro" }]); // owner select
-		dbSelect.mockImplementationOnce(() => makeSelectChain()); // resolveUserEntitlements getUserById select (empty)
-
-		queueSelectResult([{ id: "overlay-1", ownerId: "user-1" }]); // getOverlay -> requireOverlayAccess select
-		queueSelectResult([{ id: "overlay-1", name: "Updated", ownerId: "user-1" }]); // getOverlay return
-
-		const result = await saveOverlay("overlay-1", { name: "Updated" });
-		expect(result).toBeDefined();
+		const result = { id: "overlay-1", configurationRevision: 5 };
+		saveBrowserOverlay.mockResolvedValueOnce(result);
+		expect(await (saveOverlay as any)("overlay-1", { name: "Saved" }, 4)).toBe(result);
+		expect(saveBrowserOverlay).toHaveBeenCalledWith("overlay-1", { name: "Saved" }, 4);
+		expect(updateSetCalls).toEqual([]);
 	});
-
-	it("normalizes order playback mode to random for non-playlist overlays", async () => {
+	it("saves overlay using the committed adapter response", async () => {
 		const { saveOverlay } = await loadDatabaseActions();
-		queueSelectResult([{ id: "overlay-1", ownerId: "user-1", type: "All", playbackMode: "random" }]); // requireOverlayAccess select
-		queueSelectResult([{ id: "user-1", plan: "pro" }]); // owner select
-		dbSelect.mockImplementationOnce(() => makeSelectChain()); // resolveUserEntitlements getUserById select (empty)
-		queueSelectResult([{ id: "overlay-1", ownerId: "user-1", type: "All", playbackMode: "random" }]); // getOverlay -> requireOverlayAccess select
-		queueSelectResult([{ id: "overlay-1", ownerId: "user-1", type: "All", playbackMode: "random" }]); // getOverlay return
-
-		await saveOverlay("overlay-1", { type: "All" as never, playbackMode: "order" as never });
-
-		expect(updateSetCalls.some((payload) => payload.playbackMode === "random")).toBe(true);
+		const committed = { id: "overlay-1", name: "Updated", ownerId: "user-1", configurationRevision: 2 };
+		saveBrowserOverlay.mockResolvedValueOnce(committed);
+		expect(await saveOverlay("overlay-1", { name: "Updated" }, 1)).toBe(committed);
+		expect(updateSetCalls).toEqual([]);
+	});
+	it("normalizes order playback mode in the shared configuration helper", async () => {
+		const { buildOverlayUpdatePayload } = await import("@/server/resources/overlay-configuration");
+		const result = buildOverlayUpdatePayload({ type: "All", playbackMode: "order" } as any, true);
+		expect(result).toHaveProperty("playbackMode", "random");
 	});
 
 	it("reconciles a downgraded user without deleting or resetting resources", async () => {
@@ -323,25 +317,23 @@ describe("actions/database overlay logic", () => {
 
 	describe("error cases", () => {
 		it("handles error in createOverlay", async () => {
+			createBrowserOverlay.mockRejectedValueOnce(new Error("Failed to create overlay"));
 			const { createOverlay } = await loadDatabaseActions();
-			validateAuth.mockRejectedValue(new Error("Auth Error"));
 			await expect(createOverlay("user-1")).rejects.toThrow("Failed to create overlay");
 		});
 
-		it("handles error in saveOverlay", async () => {
+		it("handles shared save rejection without a direct fallback write", async () => {
 			const { saveOverlay } = await loadDatabaseActions();
-			dbSelect.mockImplementationOnce(() => {
-				throw new Error("DB Error");
-			});
-			await expect(saveOverlay("overlay-1", { name: "X" })).rejects.toThrow("Failed to save overlay");
+			saveBrowserOverlay.mockResolvedValueOnce(null);
+			expect(await saveOverlay("overlay-1", { name: "X" }, 1)).toBeNull();
+			expect(updateSetCalls).toEqual([]);
 		});
 
-		it("handles error in deleteOverlay", async () => {
+		it("handles missing-revision deletion safely at shared boundary", async () => {
 			const { deleteOverlay } = await loadDatabaseActions();
-			dbSelect.mockImplementationOnce(() => {
-				throw new Error("DB Error");
-			});
-			await expect(deleteOverlay("overlay-1")).rejects.toThrow("Failed to delete overlay");
+			deleteBrowserOverlay.mockResolvedValueOnce(false);
+			expect(await deleteOverlay("overlay-1")).toBe(false);
+			expect(deleteBrowserOverlay).toHaveBeenCalledWith("overlay-1", undefined);
 		});
 	});
 
@@ -366,9 +358,10 @@ describe("actions/database overlay logic", () => {
 describe("pause clears connected overlay presence", () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
+		saveBrowserOverlay.mockReset().mockResolvedValue(null);
 		selectQueue.length = 0;
 		updateSetCalls.length = 0;
-		dbSelect.mockImplementation(() => makeSelectChain());
+		dbSelect.mockReset().mockImplementation(() => makeSelectChain());
 		authorizeCreatorOperation.mockImplementation(async (input: { creatorId: string }) => ({ allowed: true, creator: { id: input.creatorId, plan: "pro" } }));
 	});
 
@@ -386,10 +379,8 @@ describe("pause clears connected overlay presence", () => {
 		const source = { ownerId: "user-1", overlayId: "overlay-1", role: "overlay", readyState: 1, sourceActive: true, close: jest.fn() };
 		addSubscriber("user-1", "overlay-1", source as never);
 		expect(getActiveOverlayOwnerIds()).toEqual(new Set(["user-1"]));
-		queueSelectResult([{ id: "overlay-1", ownerId: "user-1", secret: "secret", status: "active" }]);
-		queueSelectResult([{ id: "user-1", plan: "pro" }]);
-		queueSelectResult([{ id: "overlay-1", ownerId: "user-1", secret: "secret", status: "paused" }]);
-		await saveOverlay("overlay-1", { status: "paused" as never });
+		saveBrowserOverlay.mockResolvedValueOnce({ id: "overlay-1", ownerId: "user-1", status: "paused", configurationRevision: 2 });
+		await saveOverlay("overlay-1", { status: "paused" as never }, 1);
 		expect(source.close).toHaveBeenCalledWith(4002);
 		expect(source.sourceActive).toBe(false);
 		expect(getActiveOverlayOwnerIds()).toEqual(new Set());
@@ -404,16 +395,12 @@ describe("pause clears connected overlay presence", () => {
 		overlaySubscribers.clear();
 		const source = { ownerId: "user-1", overlayId: "overlay-1", role: "overlay", readyState: 1, sourceActive: true, close: jest.fn() };
 		addSubscriber("user-1", "overlay-1", source as never);
-		queueSelectResult([{ id: "overlay-1", ownerId: "user-1", secret: "secret", status: "active" }]);
-		queueSelectResult([{ id: "user-1", plan: "pro" }]);
-		queueSelectResult([{ id: "overlay-1", ownerId: "user-1", secret: "secret", status: "active" }]);
 		if (failedWrite) {
-			jest.requireMock("@/db/client").db.update.mockImplementationOnce(() => {
-				throw new Error("write failed");
-			});
-			await expect(saveOverlay("overlay-1", { status: "paused" as never })).rejects.toThrow("Failed to save overlay");
+			saveBrowserOverlay.mockResolvedValueOnce(null);
+			expect(await saveOverlay("overlay-1", { status: "paused" as never }, 1)).toBeNull();
 		} else {
-			await saveOverlay("overlay-1", { name: "Updated" });
+			saveBrowserOverlay.mockResolvedValueOnce({ id: "overlay-1", ownerId: "user-1", status: "active", configurationRevision: 2 });
+			await saveOverlay("overlay-1", { name: "Updated" }, 1);
 		}
 		expect(source.close).not.toHaveBeenCalled();
 		expect(source.sourceActive).toBe(true);

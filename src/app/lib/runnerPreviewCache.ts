@@ -2,6 +2,8 @@ type PreviewEntry = {
 	image: string;
 	timestamp: number;
 	size: number;
+	overlayId?: string;
+	runnerRevision?: number;
 };
 
 export class RunnerPreviewCache {
@@ -14,7 +16,7 @@ export class RunnerPreviewCache {
 		private readonly now: () => number = Date.now,
 	) {}
 
-	set(runnerId: string, image: string) {
+	set(runnerId: string, image: string, metadata: { overlayId?: string; runnerRevision?: number } = {}) {
 		const timestamp = this.now();
 		this.pruneExpired(timestamp);
 		const existing = this.entries.get(runnerId);
@@ -26,16 +28,28 @@ export class RunnerPreviewCache {
 		// Preview frames are validated data URLs containing ASCII-only base64 data.
 		const size = image.length;
 		if (size > this.maxBytes) return false;
-		this.entries.set(runnerId, { image, timestamp, size });
+		this.entries.set(runnerId, { image, timestamp, size, ...metadata });
 		this.totalBytes += size;
 		this.evictOldest();
 		return true;
 	}
 
 	get(runnerId: string) {
+		return this.getEntry(runnerId)?.image ?? null;
+	}
+
+	getEntry(runnerId: string) {
 		const timestamp = this.now();
 		this.pruneExpired(timestamp);
-		return this.entries.get(runnerId)?.image ?? null;
+		const entry = this.entries.get(runnerId);
+		return entry ? { image: entry.image, timestamp: entry.timestamp, overlayId: entry.overlayId, runnerRevision: entry.runnerRevision } : null;
+	}
+
+	delete(runnerId: string) {
+		const entry = this.entries.get(runnerId);
+		if (!entry) return;
+		this.entries.delete(runnerId);
+		this.totalBytes -= entry.size;
 	}
 
 	get entryCount() {
@@ -63,3 +77,9 @@ export class RunnerPreviewCache {
 		}
 	}
 }
+
+// Route modules and the MCP handler share the same bounded process-local store.
+declare global {
+	var __clipifyRunnerPreviewCache: RunnerPreviewCache | undefined;
+}
+export const runnerPreviewCache = globalThis.__clipifyRunnerPreviewCache ?? (globalThis.__clipifyRunnerPreviewCache = new RunnerPreviewCache());

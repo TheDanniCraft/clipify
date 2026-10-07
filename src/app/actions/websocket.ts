@@ -1,5 +1,6 @@
-/* istanbul ignore file */
-"use server";
+import { recordPlayerRuntime } from "@/server/resources/player-runtime";
+import "server-only";
+import { revalidateOverlaySource } from "@/server/resources/overlay-source-runtime";
 
 import jwt from "jsonwebtoken";
 import { WebSocket } from "ws";
@@ -130,6 +131,7 @@ export async function handleMessage(buffer: RawData, client: WebSocket) {
 			client.ownerId = overlay.ownerId;
 			client.overlayId = overlay.id;
 			client.role = role;
+			client.sourceSecret = role === "overlay" ? secret : undefined;
 			clearTimeout(client.subscribeDeadline);
 			addSubscriber(overlay.ownerId, overlay.id, client);
 			recordWebSocketSubscribed(client, overlay.id, overlay.ownerId, role);
@@ -147,8 +149,8 @@ export async function handleMessage(buffer: RawData, client: WebSocket) {
 				client.close(4003);
 				return;
 			}
-			// WebSocket frames are ordered; activity is scoped to this authenticated
-			// connection and needs no database write or application heartbeat.
+			// Revalidate before restoring presence after independently committed policy changes.
+			if (!(await revalidateOverlaySource(client))) return;
 			client.sourceActive = payload.active;
 			return;
 		}
@@ -177,8 +179,10 @@ export async function handleMessage(buffer: RawData, client: WebSocket) {
 				client.close(4003);
 				return;
 			}
+			if (!(await revalidateOverlaySource(client))) return;
 			const statePayload = payload as Record<string, unknown>;
 			recordOverlayStateUpdate(client, statePayload);
+			recordPlayerRuntime(client.overlayId, statePayload);
 			if (statePayload.kind === "playback_issue") {
 				console.warn("Overlay playback issue", {
 					...statePayload,

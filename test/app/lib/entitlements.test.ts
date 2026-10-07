@@ -1,10 +1,11 @@
 /** @jest-environment node */
-import { Plan, EntitlementGrantSource } from "@types";
+import { Plan, Entitlement, EntitlementGrantSource, RunnerStatus, StreamState } from "@types";
 import { PgDialect } from "drizzle-orm/pg-core";
 
 const selectExecute = jest.fn();
 const deleteExecute = jest.fn();
 const updateExecute = jest.fn();
+const findUser = jest.fn();
 
 const queryBuilder = {
 	from: jest.fn(),
@@ -35,6 +36,7 @@ updateBuilder.set.mockImplementation(() => updateBuilder);
 updateBuilder.where.mockImplementation(() => updateBuilder);
 
 const db = {
+	query: { usersTable: { findFirst: (...args: unknown[]) => findUser(...args) } },
 	select: jest.fn(() => queryBuilder),
 	transaction: jest.fn(),
 	execute: jest.fn(),
@@ -370,5 +372,137 @@ describe("lib/entitlements", () => {
 		const { reconcileRevokedUsersBatch } = await loadEntitlements();
 		const result = await reconcileRevokedUsersBatch();
 		expect(result).toEqual({ candidates: 0, reconciled: 0 });
+	});
+	it("defaults owner grants on when the rollout setting is absent", async () => {
+		delete process.env.ENTITLEMENTS_HYBRID_ENABLED;
+		selectExecute.mockResolvedValue([{ id: "active-owner-grant" }]);
+		const { hasActiveEntitlement } = await loadEntitlements();
+		await expect(hasActiveEntitlement("owner", Entitlement.ProAccess)).resolves.toBe(true);
+	});
+	it("disabled direct grants do not read the database", async () => {
+		process.env.ENTITLEMENTS_HYBRID_ENABLED = "0";
+		const { hasActiveEntitlement } = await loadEntitlements();
+		await expect(hasActiveEntitlement("owner", Entitlement.ProAccess)).resolves.toBe(false);
+		expect(db.select).not.toHaveBeenCalled();
+	});
+	it.each(["hasActiveAgencyAllocation", "hasActiveAgencyRunnerAllocation"] as const)("%s recognizes the current owner allocation", async (name) => {
+		const policy = await loadEntitlements();
+		selectExecute.mockResolvedValueOnce([]).mockResolvedValueOnce([{ id: "current-allocation" }]);
+		await expect(policy[name]("owner")).resolves.toBe(false);
+		await expect(policy[name]("owner")).resolves.toBe(true);
+	});
+	it("Runner access falls back to its own allocation without granting Pro", async () => {
+		selectExecute.mockResolvedValueOnce([]).mockResolvedValueOnce([{ id: "runner-allocation" }]);
+		const { hasActiveRunnerAccess } = await loadEntitlements();
+		await expect(hasActiveRunnerAccess("owner")).resolves.toBe(true);
+		expect(db.select).toHaveBeenCalledTimes(2);
+	});
+	it.each([
+		[null, null, "later"],
+		[null, "finite", "earlier"],
+		["finite", null, "later"],
+		["finite", "finite", "later"],
+	] as const)("chooses stable effective access for %s and %s grant expiries", async (firstEnd, secondEnd, winner) => {
+		const now = Date.now();
+		const expiry = new Date(now + 86400000);
+		const earlier = { id: "earlier", source: EntitlementGrantSource.Support, startsAt: new Date(now - 2000), endsAt: firstEnd ? expiry : null };
+		const later = { id: "later", source: EntitlementGrantSource.Partner, startsAt: new Date(now - 1000), endsAt: secondEnd ? expiry : null };
+		const { getActiveEntitlementGrant } = await loadEntitlements();
+		selectExecute.mockResolvedValueOnce([earlier, later]).mockResolvedValueOnce([later, earlier]);
+		for (let order = 0; order < 2; order++) await expect(getActiveEntitlementGrant("owner", Entitlement.ProAccess)).resolves.toMatchObject({ id: winner });
+	});
+	it("empty bulk ownership input performs no policy reads", async () => {
+		const { resolveUserEntitlementsForUsers } = await loadEntitlements();
+		await expect(resolveUserEntitlementsForUsers([])).resolves.toEqual(new Map());
+		expect(db.select).not.toHaveBeenCalled();
+	});
+	it("bulk resolution preserves billing access and runner independence when rollout is off", async () => {
+		process.env.ENTITLEMENTS_HYBRID_ENABLED = "0";
+		const { resolveUserEntitlementsForUsers } = await loadEntitlements();
+		const results = await resolveUserEntitlementsForUsers([
+			{ id: "free-owner", plan: Plan.Free },
+			{ id: "pro-owner", plan: Plan.Pro },
+		]);
+		expect(results.get("free-owner")).toMatchObject({ effectivePlan: "free", proAccess: false, runnerAccess: false });
+		expect(results.get("pro-owner")).toMatchObject({ effectivePlan: "pro", isBillingPro: true, runnerAccess: false });
+	});
+	it("bulk resolution recognizes Pro-only owners without reading grant candidates", async () => {
+		const { resolveUserEntitlementsForUsers } = await loadEntitlements();
+		const results = await resolveUserEntitlementsForUsers([{ id: "pro-owner", plan: Plan.Pro }]);
+		expect(results.get("pro-owner")).toMatchObject({ effectivePlan: "pro", isBillingPro: true });
+		expect(db.select).toHaveBeenCalledTimes(2);
+	});
+	it("suspends owned runner runtime while retaining configuration", async () => {
+		db.transaction.mockImplementation(async (callback) => callback(db));
+		selectExecute.mockResolvedValueOnce([{ id: "runner-one" }, { id: "runner-two" }]).mockResolvedValueOnce([{ id: "session-one" }]);
+		const { suspendRunnersForOwner } = await loadEntitlements();
+		await expect(suspendRunnersForOwner("owner")).resolves.toEqual({ runners: 2, sessions: 1 });
+		expect(updateBuilder.set).toHaveBeenCalledWith({ status: RunnerStatus.Offline });
+		expect(updateBuilder.set).toHaveBeenCalledWith(expect.objectContaining({ desiredState: StreamState.Stopped }));
+		expect(updateBuilder.set.mock.calls.at(-1)?.[0]).not.toHaveProperty("actualState");
+		expect(db.delete).not.toHaveBeenCalled();
+	});
+	it("empty owned runner runtime needs no destructive writes", async () => {
+		db.transaction.mockImplementation(async (callback) => callback(db));
+		const { suspendRunnersForOwner } = await loadEntitlements();
+		await expect(suspendRunnersForOwner("owner")).resolves.toEqual({ runners: 0, sessions: 0 });
+		expect(db.update).not.toHaveBeenCalled();
+		expect(db.delete).not.toHaveBeenCalled();
+	});
+	it("disabled reconciliation does not load or mutate an owner", async () => {
+		process.env.ENTITLEMENTS_HYBRID_ENABLED = "0";
+		const { reconcileUserEntitlements, reconcileRevokedUsersBatch } = await loadEntitlements();
+		await expect(reconcileUserEntitlements("owner")).resolves.toEqual({ runners: 0, sessions: 0, resources: null });
+		await expect(reconcileRevokedUsersBatch()).resolves.toEqual({ candidates: 0, reconciled: 0 });
+		expect(findUser).not.toHaveBeenCalled();
+	});
+	it("missing reconciliation owner performs no updates", async () => {
+		findUser.mockResolvedValueOnce(undefined);
+		const { reconcileUserEntitlements } = await loadEntitlements();
+		await expect(reconcileUserEntitlements("owner")).resolves.toEqual({ runners: 0, sessions: 0, resources: null });
+		expect(db.update).not.toHaveBeenCalled();
+	});
+	it("billing Pro reconciliation with runner access preserves runtime and stamps the owner", async () => {
+		findUser.mockResolvedValueOnce({ id: "owner", plan: Plan.Pro });
+		selectExecute.mockResolvedValueOnce([{ id: "runner-grant" }]);
+		const { reconcileUserEntitlements } = await loadEntitlements();
+		await expect(reconcileUserEntitlements("owner")).resolves.toEqual({ runners: 0, sessions: 0, resources: null });
+		expect(db.transaction).not.toHaveBeenCalled();
+		expect(updateBuilder.set).toHaveBeenCalledWith(expect.objectContaining({ lastEntitlementReconciledAt: expect.any(Date) }));
+		expect(db.delete).not.toHaveBeenCalled();
+	});
+	it("owner agency Pro access remains independent of billing and Runner", async () => {
+		selectExecute.mockResolvedValueOnce([]).mockResolvedValueOnce([{ id: "pro-allocation" }]);
+		const { resolveUserEntitlements } = await loadEntitlements();
+		await expect(resolveUserEntitlements({ id: "owner", plan: Plan.Free })).resolves.toMatchObject({ effectivePlan: "pro", source: "agency", isBillingPro: false, runnerAccess: false, hasActiveGrant: false });
+	});
+	it("bulk agency allocations elevate only their own creator", async () => {
+		selectExecute.mockResolvedValueOnce([]).mockResolvedValueOnce([{ creatorId: "agency-owner" }]);
+		const { resolveUserEntitlementsForUsers } = await loadEntitlements();
+		const results = await resolveUserEntitlementsForUsers([
+			{ id: "agency-owner", plan: Plan.Free },
+			{ id: "other-owner", plan: Plan.Free },
+		]);
+		expect(results.get("agency-owner")).toMatchObject({ effectivePlan: "pro", source: "agency", isBillingPro: false, runnerAccess: false });
+		expect(results.get("other-owner")).toMatchObject({ effectivePlan: "free", proAccess: false });
+	});
+	it("disabled grant selection returns no effective grant without a query", async () => {
+		process.env.ENTITLEMENTS_HYBRID_ENABLED = "0";
+		const { getActiveEntitlementGrant } = await loadEntitlements();
+		await expect(getActiveEntitlementGrant("owner", Entitlement.ProAccess)).resolves.toBeNull();
+		expect(db.select).not.toHaveBeenCalled();
+	});
+	it.each([Plan.Free, Plan.Pro])("effective Pro access prevents free reconciliation for %s billing", async (plan) => {
+		const { recordFreeCapabilityReconciliation } = await loadEntitlements();
+		await expect(recordFreeCapabilityReconciliation({ id: "owner", plan }, { effectivePlan: "pro" } as Parameters<typeof recordFreeCapabilityReconciliation>[1])).resolves.toBeNull();
+		expect(db.select).not.toHaveBeenCalled();
+		expect(db.update).not.toHaveBeenCalled();
+	});
+	it("disabled capability reconciliation preserves all resources", async () => {
+		process.env.ENTITLEMENTS_HYBRID_ENABLED = "0";
+		const { recordFreeCapabilityReconciliation } = await loadEntitlements();
+		await expect(recordFreeCapabilityReconciliation({ id: "owner", plan: Plan.Free }, { effectivePlan: "free" } as Parameters<typeof recordFreeCapabilityReconciliation>[1])).resolves.toBeNull();
+		expect(db.select).not.toHaveBeenCalled();
+		expect(db.update).not.toHaveBeenCalled();
 	});
 });

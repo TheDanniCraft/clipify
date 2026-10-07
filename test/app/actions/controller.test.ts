@@ -43,6 +43,7 @@ describe("actions/controller", () => {
 		getModQueue.mockResolvedValue([]);
 		getTwitchCache.mockResolvedValue(null);
 		getTwitchClip.mockResolvedValue(null);
+		setPlayerVolumeForOwner.mockReset().mockResolvedValue(34);
 	});
 
 	it("returns unauthorized when overlay edit access is missing", async () => {
@@ -80,6 +81,28 @@ describe("actions/controller", () => {
 			modQueue: [{ id: "mod-1", clipId: "clip-mod", title: "Mod Clip", creatorName: "bob", duration: 22, thumbnailUrl: "https://mod" }],
 		});
 	});
+	it.each(["malformed", 42, { clip: "malformed" }, { clip: {} }, { id: 42 }])("unusable cached clip %p falls back to provider lookup", async (cached) => {
+		getClipQueueByOverlayId.mockResolvedValue([{ id: "queued", clipId: "clip" }]);
+		getTwitchCache.mockResolvedValue(cached);
+		getTwitchClip.mockResolvedValue(null);
+		const { getControllerQueuesAction } = await import("@/app/actions/controller");
+		expect(await getControllerQueuesAction("ov-1")).toMatchObject({ viewerQueue: [{ id: "queued", clipId: "clip", title: "clip", creatorName: "unknown", duration: 0, thumbnailUrl: null }] });
+		expect(getTwitchClip).toHaveBeenCalledWith("clip", "owner-1");
+	});
+	it("direct cached clip bypasses provider and respects missing thumbnail", async () => {
+		getClipQueueByOverlayId.mockResolvedValue([{ id: "queued", clipId: "clip" }]);
+		getTwitchCache.mockResolvedValue({ id: "clip", title: "Stored", creator_name: "Creator", duration: 12 });
+		const { getControllerQueuesAction } = await import("@/app/actions/controller");
+		expect(await getControllerQueuesAction("ov-1")).toMatchObject({ viewerQueue: [{ title: "Stored", thumbnailUrl: null }] });
+		expect(getTwitchClip).not.toHaveBeenCalled();
+	});
+	it("only fifteen queued clips trigger resolution", async () => {
+		getClipQueueByOverlayId.mockResolvedValue(Array.from({ length: 20 }, (_, index) => ({ id: `row-${index}`, clipId: `clip-${index}` })));
+		const { getControllerQueuesAction } = await import("@/app/actions/controller");
+		const result = await getControllerQueuesAction("ov-1");
+		expect("viewerQueue" in result && result.viewerQueue).toHaveLength(15);
+		expect(getTwitchCache).toHaveBeenCalledTimes(15);
+	});
 
 	it("sets volume and broadcasts the command", async () => {
 		const { runControllerAction } = await import("@/app/actions/controller");
@@ -92,6 +115,12 @@ describe("actions/controller", () => {
 		expect(sendMessage).toHaveBeenCalledWith("command", { name: "volume", data: "34" }, "owner-1");
 	});
 
+	it("TDD-OVERLAY-VOLUME-003 committed policy rejection prevents success broadcast", async () => {
+		setPlayerVolumeForOwner.mockResolvedValueOnce(null);
+		const { runControllerAction } = await import("@/app/actions/controller");
+		expect(await runControllerAction("ov-1", { action: "set_volume", volume: 73 })).toMatchObject({ ok: false, status: 403 });
+		expect(sendMessage).not.toHaveBeenCalled();
+	});
 	it("rejects invalid volume", async () => {
 		const { runControllerAction } = await import("@/app/actions/controller");
 

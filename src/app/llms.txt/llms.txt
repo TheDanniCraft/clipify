@@ -17,6 +17,10 @@ Clipify uses browser-source overlays, so streamers can add it to OBS Studio, Str
 - [Interactive demo](https://clipify.us/#demo): Preview Clipify playback in a simulated streaming setup.
 - [Get started](https://clipify.us/login): Sign in with Twitch and create a browser-source overlay.
 
+## AI assistant access (MCP)
+
+MCP access is included in Free and Pro. Compatible AI assistants and custom clients connect to `https://clipify.us/mcp` through OAuth with PKCE and dynamic client registration. Users explicitly choose creators and permissions, can grant read-only or editing access, and opt into deletion separately. Existing creator permissions and plan limits apply equally to MCP and browser requests. Revoke app access in account settings.
+
 ## Product updates
 
 - [Changelog](https://clipify.us/changelog): Released features and product changes.

@@ -94,9 +94,10 @@ export async function runControllerAction(overlayId: string, body: { action?: st
 			const rawVolume = Number(body?.volume);
 			if (!Number.isFinite(rawVolume)) return { ok: false, error: "Invalid volume", status: 400 };
 			const volume = Math.max(0, Math.min(100, Math.round(rawVolume)));
-			await setPlayerVolumeForOwner(overlay.ownerId, volume);
-			await sendMessage("command", { name: "volume", data: String(volume) }, overlay.ownerId);
-			return { ok: true, volume };
+			const committedVolume = await setPlayerVolumeForOwner(overlay.ownerId, volume);
+			if (typeof committedVolume !== "number") return { ok: false, error: "Volume could not be changed. Reload and check current access.", status: 403 };
+			await sendMessage("command", { name: "volume", data: String(committedVolume) }, overlay.ownerId);
+			return { ok: true, volume: committedVolume };
 		}
 		case "clear_mod_queue": {
 			await clearModQueueByBroadcasterId(overlay.ownerId);
