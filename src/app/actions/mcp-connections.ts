@@ -5,7 +5,7 @@ import { listMcpConnections, revokeMcpConnection } from "@/server/mcp/connection
 import { getMcpConfiguration } from "@/server/mcp/config";
 
 export async function getConnectedMcpApps() {
-	if (!getMcpConfiguration().enabled) return { connections: [] };
+	if (!getMcpConfiguration().valid) return { connections: [] };
 	try {
 		return { connections: await listMcpConnections({ auth, headers: new Headers(await headers()) }) };
 	} catch {
@@ -14,7 +14,7 @@ export async function getConnectedMcpApps() {
 }
 export async function revokeConnectedMcpApp(grantId: string): Promise<{ revoked?: boolean; cleanupPending?: boolean; error?: string }> {
 	const configuration = getMcpConfiguration();
-	if (!configuration.enabled) return { error: "Connected apps are unavailable." };
+	if (!configuration.valid) return { error: "Connected apps are unavailable." };
 	try {
 		const response = await revokeMcpConnection({ auth, headers: new Headers(await headers()), origin: configuration.origin, grantId });
 		if (!response.ok) return { error: "Access could not be revoked. Try again." };
@@ -25,7 +25,7 @@ export async function revokeConnectedMcpApp(grantId: string): Promise<{ revoked?
 }
 
 export async function getMcpActivityCreators(): Promise<{ available: boolean; creators: { id: string; name: string }[]; error?: string }> {
-	if (!getMcpConfiguration().enabled) return { available: false, creators: [] };
+	if (!getMcpConfiguration().valid) return { available: false, creators: [] };
 	try {
 		const requestHeaders = new Headers(await headers());
 		const { getVerifiedSessionPrincipal } = await import("@/auth/session-principal");
@@ -40,7 +40,7 @@ export async function getMcpActivityCreators(): Promise<{ available: boolean; cr
 }
 
 export async function getConnectedMcpActivityPage(input: unknown): Promise<import("@lib/mcpConnection").McpActivityPage & { error?: string }> {
-	if (!getMcpConfiguration().enabled) return { items: [], nextCursor: null, error: "AI app activity is unavailable." };
+	if (!getMcpConfiguration().valid) return { items: [], nextCursor: null, error: "AI app activity is unavailable." };
 	try {
 		const { getVerifiedSessionPrincipal } = await import("@/auth/session-principal");
 		const principal = await getVerifiedSessionPrincipal(new Headers(await headers()));

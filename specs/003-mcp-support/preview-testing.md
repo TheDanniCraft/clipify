@@ -4,7 +4,7 @@ Use the PR preview HTTPS origin, never the production origin, and a dedicated Cl
 
 ## Deployment prerequisites
 
-- Set MCP_ENABLED=true and NEXT_PUBLIC_BASE_URL to the exact preview HTTPS origin.
+- Set NEXT_PUBLIC_BASE_URL to the exact preview HTTPS origin.
 - Provide BETTER_AUTH_SECRET and an independent RATE_LIMIT_HASH_SECRET (at least 32 characters) through the deployment secret store.
 - Verify DATABASE_URL points to the disposable development/test database. An HTTPS preview alone does not prove database isolation.
 - Apply the final schema only to that disposable development database through the permitted Infisical db:push workflow if the preview lacks the new tables. Feature branches must not generate Drizzle migrations; master migration generation remains workflow-owned.
@@ -13,7 +13,7 @@ Use the PR preview HTTPS origin, never the production origin, and a dedicated Cl
 
 ## Public readiness checks
 
-Check GET /.well-known/oauth-protected-resource, GET /.well-known/oauth-authorization-server/api/auth and an unauthenticated POST /mcp. Metadata must describe this preview origin; the protected endpoint must return an OAuth challenge, not a login HTML page. Disabled/invalid MCP configuration returns 404 for discovery and 503 for /mcp; that requires deployment configuration before client authorization.
+Check GET /.well-known/oauth-protected-resource, GET /.well-known/oauth-authorization-server/api/auth and an unauthenticated POST /mcp. Metadata must describe this preview origin; the protected endpoint must return an OAuth challenge, not a login HTML page. Invalid credentials/configuration or an unavailable required schema return 503; MCP has no feature toggle and discovery is not hidden behind a 404.
 
 ## Connect Codex
 
@@ -44,7 +44,7 @@ Physical runner control and live-overlay playback require a dedicated online tes
 
 Preview: https://beta-496.clipify.cloud.thedannicraft.de
 
-On 2026-10-07, both public discovery URLs returned 404 and an unauthenticated POST /mcp returned 503 with service_unavailable. The deployed configuration therefore does not enable MCP; no OAuth challenge or authorization link can be obtained yet. Coolify deployment credentials are unavailable in this workspace. Check MCP_ENABLED=true, the exact preview NEXT_PUBLIC_BASE_URL, the auth/rate-hash secrets and any MCP_ISSUER/MCP_RESOURCE overrides; redeploy, then repeat readiness checks. Database identity and final schema must also be verified before mutations.
+On 2026-10-07, both public discovery URLs returned 404 and an unauthenticated POST /mcp returned 503 with service_unavailable. This observation preceded removal of the former activation flag; no OAuth challenge or authorization link was available at that checkpoint. Coolify deployment credentials are unavailable in this workspace. With the current code there is no activation flag. Check the exact preview NEXT_PUBLIC_BASE_URL, the auth/rate-hash secrets and any MCP_ISSUER/MCP_RESOURCE overrides; redeploy, then repeat readiness checks. Database identity and final schema must also be verified before mutations.
 
 The final pre-push regression passed 416 suites / 4495 tests, with 2 suites / 11 existing tests skipped (2484 seconds). GitHub CI was still running when the preview readiness check was recorded. CodeFactor reports 34 annotations, predominantly method complexity, plus a pre-existing SpecKit Python exception-handling finding; those remain review findings rather than a claimed Green quality gate.
 

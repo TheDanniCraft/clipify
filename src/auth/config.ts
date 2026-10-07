@@ -15,7 +15,6 @@ import { resolveBaseUrl } from "@/app/lib/baseUrl";
 import { requiredAuthSetting } from "./environment";
 import { evaluateRoleAssignment } from "./role-assignment-policy";
 import { createMcpPlugins } from "./mcp-options";
-import { getMcpConfiguration } from "@/server/mcp/config";
 import { providerGrantOptions } from "@/server/mcp/grants";
 
 const resolvedBaseUrl = resolveBaseUrl();
@@ -128,7 +127,7 @@ export const auth = betterAuth({
 		}),
 	},
 	plugins: [
-		...createMcpPlugins({ origin: baseURL, enabled: getMcpConfiguration().enabled, options: providerGrantOptions }),
+		...createMcpPlugins({ origin: baseURL, options: providerGrantOptions }),
 		magicLink({
 			expiresIn: 7 * 24 * 60 * 60,
 			storeToken: "hashed",

@@ -12,7 +12,7 @@ async function main() {
 	process.env.DATABASE_URL = fixture.url;
 	process.env.APP_ENV = "test";
 	process.env.DISABLE_BACKGROUND_JOBS = "true";
-	process.env.MCP_ENABLED = "true";
+
 	process.env.BASE_URL = "http://127.0.0.1:3107";
 	process.env.NEXT_PUBLIC_BASE_URL = "http://127.0.0.1:3107";
 	process.env.BETTER_AUTH_SECRET = "isolated-dependency-auth-secret-32characters";

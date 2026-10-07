@@ -4,7 +4,7 @@ Updated: 2026-10-07. Branch: `feature/mcp-support`. Canonical SpecKit feature: `
 
 ## Current combined status
 
-**539/553 tasks complete (97.5%, unweighted task count, not shipping readiness).** The 136 workflow expansion tasks are included as T406–T541. The original 14 historical/external tasks remain unchecked with their exact blockers in [blockers.md](blockers.md); consolidation neither closes nor waives them.
+**542/556 tasks complete (97.5%, unweighted task count, not shipping readiness).** The 136 workflow expansion tasks are included as T406–T541. The original 14 historical/external tasks remain unchecked with their exact blockers in [blockers.md](blockers.md); consolidation neither closes nor waives them.
 
 All **50 MCP tools** are implemented: the original 15 overlay/playlist/capability tools plus 34 remote-control, discovery/import, gallery/embed, Creator Page and runner tools and one user-requested feedback tool. Native Better Auth/MCP/OAuth 1.7.7 and official MCP SDK 2.3.0 remain the underlying stack.
 
@@ -42,3 +42,11 @@ Feedback quota uses the existing application rate-limiter-flexible infrastructur
 Current evidence: 30 focused app/replay/contract tests pass; 17 actual OAuth/MCP feedback scenarios pass (shared-feedback-bdd-verified.log). This makes 337 unique workflow/feedback examples, replacing the earlier 336 checkpoint. Current types, scoped lint/format, production build and 91-file action manifest pass. Sentry SDK envelopes use the local fixture transport; no real account feedback is created. Strict coverage is refreshed against 91 required source files, excluding stale changed/deleted source counters and preserving global/gallery thresholds. Final gate result is recorded in shared-feedback-coverage-complete.log. Graphify refresh completed (7176 nodes, 15868 edges, 322 communities).
 
 Correction evidence remains visible: the first type/build attempt exposed a test-script global Cache collision, corrected by making the test a module. A misnamed probe-directory environment variable selected an uncompiled test path; the corrected instrumented actual-handler run passed all 17 cases. The initial coverage aggregate missed the new shared core in Jest collection; its collection entry was added before final verification. These were addressed locally; no new external blocker was introduced. Earlier evidence rows are historical checkpoints. The original 14 blocked tasks remain unresolved.
+
+## MCP without an activation toggle — current checkpoint
+
+The user rejected activation environment flags. MCP configuration has no enabled property, native Better Auth plugins are always registered and discovery is no longer hidden with 404. Credentials, canonical origins, authorization and schema-readiness remain enforced; invalid required configuration/schema returns 503. The OAuth route imports Auth after readiness validation, avoiding eager resource seeding before a guarded rejection.
+
+156 affected unit checks pass. 81 configuration/OAuth/discovery contract checks plus 3 additional invalid-configuration discovery checks pass (84 checks in this scope). Types, changed-file lint/format, production build, 91-file action manifest and Graphify refresh pass. Strict coverage passes all 91 required files and unchanged global/gallery thresholds (no-toggle-coverage-complete.log, coverage/mcp-no-toggle-complete/strict-gate.json). Changed source counters from the previous checkpoint are excluded. Genuine two-test Red is retained in no-toggle-red.log; additional route checks characterize the final boundary.
+
+The former full pre-push run (4495 passed, 11 skipped) remains historical evidence. This small initialization/configuration refinement uses focused verification rather than rerunning that 41-minute full suite; GitHub CI checks the updated PR separately. Original external/historical blockers remain unchanged.

@@ -22,9 +22,9 @@ beforeEach(() => {
 afterEach(() => {
 	process.env = { ...original };
 });
-test("TDD-OVERLAY-EFFECT-009 Node bootstrap starts private effects even with public MCP disabled", async () => {
+test("TDD-OVERLAY-EFFECT-009 Node bootstrap starts private effects even without an activation toggle", async () => {
 	process.env.NEXT_RUNTIME = "nodejs";
-	process.env.MCP_ENABLED = "false";
+
 	delete process.env.DISABLE_BACKGROUND_JOBS;
 	await register();
 	expect(startOverlayEffectScheduler).toHaveBeenCalledTimes(1);

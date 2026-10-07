@@ -8,13 +8,13 @@ async function main() {
 	const origin = "http://127.0.0.1:3107";
 	process.env.DATABASE_URL = fixture.url;
 	process.env.APP_ENV = "test";
-	process.env.MCP_ENABLED = "true";
+
 	process.env.RATE_LIMIT_HASH_SECRET = "isolated-registration-body-budget-32chars";
 	const mode = process.argv[2];
 	const abort = new AbortController();
 	let timer: ReturnType<typeof setTimeout> | undefined;
 	try {
-		const auth = betterAuth({ baseURL: origin, secret: "isolated-registration-body-secret-32chars", database: drizzleAdapter(fixture.db, { provider: "pg", schema }), plugins: createMcpPlugins({ origin, enabled: true }) });
+		const auth = betterAuth({ baseURL: origin, secret: "isolated-registration-body-secret-32chars", database: drizzleAdapter(fixture.db, { provider: "pg", schema }), plugins: createMcpPlugins({ origin }) });
 		const metadata = { application_type: "native", redirect_uris: ["http://127.0.0.1:49999/callback"], token_endpoint_auth_method: "none", grant_types: ["authorization_code", "refresh_token"], client_name: mode.startsWith("oversized") ? "x".repeat(262144) : "Body boundary fixture" };
 		const bytes = new TextEncoder().encode(JSON.stringify(metadata));
 		const headers: Record<string, string> = { "content-type": "application/json" };

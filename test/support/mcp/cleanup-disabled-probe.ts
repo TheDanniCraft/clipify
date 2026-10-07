@@ -4,7 +4,7 @@ async function main() {
 	process.env.DATABASE_URL = fixture.url;
 	Object.assign(process.env, { NODE_ENV: "production" });
 	process.env.APP_ENV = "test";
-	process.env.MCP_ENABLED = "false";
+
 	process.env.DISABLE_BACKGROUND_JOBS = "false";
 	process.env.NEXT_PUBLIC_BASE_URL = "http://127.0.0.1:3107";
 	delete process.env.NEXT_PHASE;

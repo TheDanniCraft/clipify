@@ -8,7 +8,7 @@ const activity = jest.fn();
 const rateLimit = jest.fn();
 const challenge = jest.fn();
 const ready = jest.fn();
-const configuration = { enabled: true, origin: "http://127.0.0.1:3107", issuer: "http://127.0.0.1:3107/api/auth", resource: "http://127.0.0.1:3107/mcp", allowedOrigins: ["http://127.0.0.1:3107"] };
+const configuration = { valid: true, origin: "http://127.0.0.1:3107", issuer: "http://127.0.0.1:3107/api/auth", resource: "http://127.0.0.1:3107/mcp", allowedOrigins: ["http://127.0.0.1:3107"] };
 jest.mock("@/db/request-scope", () => ({ withDatabaseRequest: (_signal: unknown, run: () => unknown) => run() }));
 jest.mock("@/auth/config", () => ({ auth: {} }));
 jest.mock("@/auth/mcp-principal", () => ({ resolveMcpGrant: (...args: unknown[]) => resolveGrant(...args) }));
@@ -47,7 +47,7 @@ function request(body: BodyInit = "{}", headers: HeadersInit = {}) {
 describe("MCP request adapter boundaries (native OAuth and SDK covered by owning contracts)", () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
-		configuration.enabled = true;
+		configuration.valid = true;
 		resolveGrant.mockReset().mockResolvedValue({ authUserId: "actor", clientId: "client", scopes: ["creator:read"] });
 		fetchHandler.mockReset().mockImplementation(() => new Response(null, { status: 200 }));
 		rateLimit.mockReset().mockResolvedValue({ allowed: true });
@@ -167,10 +167,10 @@ describe("MCP request adapter boundaries (native OAuth and SDK covered by owning
 			jest.useRealTimers();
 		}
 	});
-	test("fails closed when MCP is disabled or its schema is unavailable", async () => {
-		configuration.enabled = false;
+	test("fails closed when MCP is invalid configuration or its schema is unavailable", async () => {
+		configuration.valid = false;
 		expect((await handleMcpRequest(request())).status).toBe(503);
-		configuration.enabled = true;
+		configuration.valid = true;
 		ready.mockResolvedValue(false);
 		expect((await handleMcpRequest(request())).status).toBe(503);
 		expect(resolveGrant).not.toHaveBeenCalled();

@@ -11,7 +11,7 @@ function approvedOrigin(value: string): URL | null {
 	}
 }
 
-/** Enabled MCP fails closed on unusable identities, keys or browser origin settings. */
+/** MCP is always installed; unusable identities, keys or origins fail closed. */
 export function getMcpConfiguration(environment: NodeJS.ProcessEnv = process.env) {
 	let origin = "https://clipify.us",
 		valid = true;
@@ -25,8 +25,6 @@ export function getMcpConfiguration(environment: NodeJS.ProcessEnv = process.env
 	}
 	const resource = `${origin}/mcp`,
 		issuer = `${origin}/api/auth`;
-	const flag = environment.MCP_ENABLED;
-	if (flag !== undefined && flag !== "true" && flag !== "false") valid = false;
 	const allowedOrigins = [origin];
 	for (const value of (environment.MCP_ALLOWED_ORIGINS ?? "")
 		.split(",")
@@ -36,11 +34,9 @@ export function getMcpConfiguration(environment: NodeJS.ProcessEnv = process.env
 		if (!approved) valid = false;
 		else if (!allowedOrigins.includes(approved.origin)) allowedOrigins.push(approved.origin);
 	}
-	if (flag === "true") {
-		const authSecret = environment.BETTER_AUTH_SECRET ?? environment.JWT_SECRET;
-		if (!authSecret || authSecret.trim().length < 32 || !environment.RATE_LIMIT_HASH_SECRET || environment.RATE_LIMIT_HASH_SECRET.trim().length < 32) valid = false;
-		if (environment.MCP_ISSUER !== undefined && environment.MCP_ISSUER !== issuer) valid = false;
-		if (environment.MCP_RESOURCE !== undefined && environment.MCP_RESOURCE !== resource) valid = false;
-	}
-	return { enabled: flag === "true" && valid, valid, origin, resource, issuer, allowedOrigins };
+	const authSecret = environment.BETTER_AUTH_SECRET ?? environment.JWT_SECRET;
+	if (!authSecret || authSecret.trim().length < 32 || !environment.RATE_LIMIT_HASH_SECRET || environment.RATE_LIMIT_HASH_SECRET.trim().length < 32) valid = false;
+	if (environment.MCP_ISSUER !== undefined && environment.MCP_ISSUER !== issuer) valid = false;
+	if (environment.MCP_RESOURCE !== undefined && environment.MCP_RESOURCE !== resource) valid = false;
+	return { valid, origin, resource, issuer, allowedOrigins };
 }

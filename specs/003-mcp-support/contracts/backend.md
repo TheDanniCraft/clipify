@@ -20,7 +20,7 @@ Preserve pause/disconnect and Twitch reward subscription behavior. Move effects 
 
 ## CI database and rollout
 
-PostgreSQL race scenarios run in the existing browser-tests job after guarded db:push:e2e on loopback clipify_e2e. No local invocation bypasses that guard. Code rollout must wait for post-merge generated migration deployment before enabling MCP and revision-required browser calls against persistent databases; use a feature flag to keep MCP unavailable until schema-ready. Browser revision changes and schema deployment must be coordinated to avoid breaking old tabs or rolling instances. New schema columns have defaults; old tabs missing revision receive a reload instruction after enablement, never an unconditional write exemption.
+PostgreSQL race scenarios run in the existing browser-tests job after guarded db:push:e2e on loopback clipify_e2e. No local invocation bypasses that guard. Code rollout must wait for post-merge generated migration deployment before deploying MCP and revision-required browser calls against persistent databases; the public OAuth/MCP routes automatically reject requests with 503 until the required schema is ready; no environment feature toggle exists. Browser revision changes and schema deployment must be coordinated to avoid breaking old tabs or rolling instances. New schema columns have defaults; old tabs missing revision receive a reload instruction after enablement, never an unconditional write exemption.
 
 ## Implementation writer inventory (T004)
 

@@ -17,7 +17,7 @@ describe("TDD-CLEANUP-002 operational cleanup job lifecycle", () => {
 		jest.useFakeTimers();
 		jest.clearAllMocks();
 		(isMcpSchemaReady as jest.Mock).mockReset().mockResolvedValue(true);
-		process.env = { ...savedEnvironment, NODE_ENV: "production", MCP_ENABLED: "true" };
+		process.env = { ...savedEnvironment, NODE_ENV: "production" };
 		delete process.env.NEXT_PHASE;
 		delete process.env.DISABLE_BACKGROUND_JOBS;
 		delete state.__mcpCleanupSchedulerStarted;
@@ -124,8 +124,7 @@ describe("TDD-CLEANUP-002 operational cleanup job lifecycle", () => {
 		expect(pruneMcpActivity).toHaveBeenCalledTimes(2);
 		expect(pruneMcpOperationalRecords).toHaveBeenCalledTimes(2);
 	});
-	test("continues cleanup with public MCP disabled", async () => {
-		process.env.MCP_ENABLED = "false";
+	test("continues cleanup without an activation toggle", async () => {
 		scheduler.startMcpCleanupScheduler();
 		await jest.advanceTimersByTimeAsync(0);
 		expect(pruneMcpOperationalRecords).toHaveBeenCalledTimes(1);

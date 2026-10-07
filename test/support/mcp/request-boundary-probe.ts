@@ -3,7 +3,7 @@ async function main() {
 	const fixture = await createMcpPostgresFixture();
 	process.env.DATABASE_URL = fixture.url;
 	process.env.APP_ENV = "test";
-	process.env.MCP_ENABLED = "true";
+
 	process.env.NEXT_PUBLIC_BASE_URL = "http://127.0.0.1:3107";
 	process.env.BETTER_AUTH_SECRET = "isolated-request-boundary-secret-32chars";
 	process.env.RATE_LIMIT_HASH_SECRET = "isolated-request-budget-secret-32chars";

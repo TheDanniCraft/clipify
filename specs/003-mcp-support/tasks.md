@@ -1126,6 +1126,12 @@ Foundation precedes stories. Run one behavior slice at a time, with tests before
 - [x] T552 Replace the custom feedback quota with the shared facade and keep bounded replay/concurrent-retry protection; verify real-library boundaries.
 - [x] T553 Run affected tests, final types/lint/build/coverage and reconcile evidence/docs/Graphify.
 
+## Always-available MCP refinement
+
+- [x] T554 Remove activation-toggle configuration and conditional plugin installation; keep credential/schema validation.
+- [x] T555 Update affected fixtures and tests; verify always-available native discovery/OAuth and failure boundaries, types/lint/build/coverage.
+- [x] T556 Update the PR and preview handoff; retain actual deployment readiness evidence without a feature toggle.
+
 ## Blocked historical prerequisites — current behavior implemented and tested
 
 These tasks require unavailable original evidence or explicit review of a workflow exception. Recreating failure by withholding already written code does not establish original chronology. They are moved here after locally executable work, as requested.

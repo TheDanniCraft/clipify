@@ -1,7 +1,7 @@
 /** @jest-environment node */
 jest.mock("next/headers", () => ({ headers: jest.fn(async () => new Headers({ origin: "https://clipify.example" })) }));
 jest.mock("@/auth/config", () => ({ auth: { api: { getSession: jest.fn() } } }));
-jest.mock("@/server/mcp/config", () => ({ getMcpConfiguration: jest.fn(() => ({ enabled: true, origin: "https://clipify.example" })) }));
+jest.mock("@/server/mcp/config", () => ({ getMcpConfiguration: jest.fn(() => ({ valid: true, origin: "https://clipify.example" })) }));
 jest.mock("@/server/mcp/connections", () => ({ listMcpConnections: jest.fn(), revokeMcpConnection: jest.fn() }));
 import { getConnectedMcpApps, revokeConnectedMcpApp } from "@/app/actions/mcp-connections";
 import { getMcpConfiguration } from "@/server/mcp/config";
@@ -9,7 +9,7 @@ import { listMcpConnections, revokeMcpConnection } from "@/server/mcp/connection
 describe("connected app server-action boundary", () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
-		(getMcpConfiguration as jest.Mock).mockReturnValue({ enabled: true, origin: "https://clipify.example" });
+		(getMcpConfiguration as jest.Mock).mockReturnValue({ valid: true, origin: "https://clipify.example" });
 	});
 	test("failed connection listing exposes a safe message", async () => {
 		(listMcpConnections as jest.Mock).mockRejectedValue(new Error("private database credential"));
@@ -23,8 +23,8 @@ describe("connected app server-action boundary", () => {
 		(revokeMcpConnection as jest.Mock).mockResolvedValue(Response.json({ revoked: true, cleanupPending: true }));
 		expect(await revokeConnectedMcpApp("id")).toEqual({ revoked: true, cleanupPending: true });
 	});
-	test("disabled feature does not list or revoke private connections", async () => {
-		(getMcpConfiguration as jest.Mock).mockReturnValue({ enabled: false });
+	test("invalid configuration feature does not list or revoke private connections", async () => {
+		(getMcpConfiguration as jest.Mock).mockReturnValue({ valid: false });
 		expect(await getConnectedMcpApps()).toEqual({ connections: [] });
 		expect(await revokeConnectedMcpApp("grant")).toEqual({ error: "Connected apps are unavailable." });
 		expect(listMcpConnections).not.toHaveBeenCalled();

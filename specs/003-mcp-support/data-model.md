@@ -44,7 +44,7 @@ Foreign keys, uniqueness, indexes, positive revision checks and retry expiry ind
 
 `overlay_effect_jobs`: UUID ID; overlay and creator foreign keys with cascade deletion; reward ID (same255character maximum as browser input); committed configuration revision; pending/claimed/retry/done/obsolete status; attempt count; scheduled/created/updated times; opaque UUID claim owner and lease expiry; fixed nonsecret error code. Unique(overlay,revision). Changed nonempty Pro browser rewards enqueue inside the existing resource/audit transaction; unchanged/cleared/stale/rolled-back edits create no job.
 
-Claims commit before provider I/O. Each queued operation renews only its still-owned unexpired lease; acknowledgements compare claim owner. Expired orphan claims are recoverable. Provider failures schedule exponential retry capped at1hour without recreating the resource. Changed/cleared current rewards make earlier intents obsolete; unrelated name/revision changes do not lose a still-required subscription. The private30second scheduler reads schema readiness before work and continues with public MCP disabled. Source-schema migrations remain master-workflow generated.
+Claims commit before provider I/O. Each queued operation renews only its still-owned unexpired lease; acknowledgements compare claim owner. Expired orphan claims are recoverable. Provider failures schedule exponential retry capped at1hour without recreating the resource. Changed/cleared current rewards make earlier intents obsolete; unrelated name/revision changes do not lose a still-required subscription. The private30second scheduler reads schema readiness before work and remains independent of public request availability. Source-schema migrations remain master-workflow generated.
 
 ---
 

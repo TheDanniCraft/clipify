@@ -7,7 +7,7 @@ jest.mock("@/server/mcp/rate-limit", () => ({ consumeMcpRateLimit: jest.fn(), ge
 import { createMcpPlugins } from "@/auth/mcp-options";
 import { consumeMcpRateLimit } from "@/server/mcp/rate-limit";
 import { fetchClientMetadataResource } from "@better-auth/cimd/node";
-const plugins = createMcpPlugins({ origin: "https://clipify.example", enabled: true });
+const plugins = createMcpPlugins({ origin: "https://clipify.example" });
 const boundary = plugins.find((item) => item.id === "clipify-mcp-registration")!.onRequest as any;
 const metadata = (plugins.find((item) => item.id === "cimd") as any).options.fetchClientMetadataResource;
 const valid = { redirect_uris: ["https://client.example/callback"] };
@@ -18,9 +18,6 @@ beforeEach(() => {
 	jest.clearAllMocks();
 	(consumeMcpRateLimit as jest.Mock).mockReset().mockResolvedValue({ allowed: true });
 	(fetchClientMetadataResource as jest.Mock).mockReset().mockResolvedValue(Response.json({ client_name: "Fixture client" }));
-});
-test("disabled rollout registers no identity endpoints", () => {
-	expect(createMcpPlugins({ origin: "https://clipify.example", enabled: false })).toEqual([]);
 });
 test.each(["GET", "DELETE"])("%s registration request does not consume a budget", async (method) => {
 	expect(await boundary(new Request("https://clipify.example/api/auth/oauth2/register", { method }))).toBeUndefined();
@@ -134,4 +131,8 @@ test("registration abort remains safely rejected when reader cancellation itself
 	controller.abort();
 	expect((await pending).response.status).toBe(400);
 	await Promise.resolve();
+});
+
+test("registers identity plugins without a feature toggle", () => {
+	expect(createMcpPlugins({ origin: "https://clipify.example" }).map((item) => item.id)).toEqual(expect.arrayContaining(["mcp", "jwt", "cimd"]));
 });

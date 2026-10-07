@@ -29,7 +29,6 @@ function browserProviderEnvironment(environment = process.env, nodeOptions = "")
 	return {
 		DATABASE_URL: databaseUrl,
 		MCP_BROWSER_DATABASE_URL: databaseUrl,
-		MCP_ENABLED: "true",
 		BETTER_AUTH_SECRET: "clipify-e2e-better-auth-secret-not-for-production",
 		RATE_LIMIT_HASH_SECRET: "clipify-e2e-rate-limit-secret-not-for-production",
 		TWITCH_CLIENT_ID: "isolated-browser-client",

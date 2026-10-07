@@ -9,7 +9,7 @@ async function main() {
 	const fixture = await createMcpPostgresFixture();
 	process.env.DATABASE_URL = fixture.url;
 	process.env.APP_ENV = "test";
-	process.env.MCP_ENABLED = "true";
+
 	process.env.DISABLE_BACKGROUND_JOBS = "true";
 	const mode = process.argv[2];
 	const originalLookup = dns.lookup;
@@ -45,7 +45,7 @@ async function main() {
 		syncBuiltinESMExports();
 		const { createMcpPlugins } = await import("@/auth/mcp-options");
 		const origin = "http://127.0.0.1:3107";
-		const auth = betterAuth({ baseURL: origin, secret: "isolated-cimd-dns-deadline-secret-32chars", database: drizzleAdapter(fixture.db, { provider: "pg", schema }), plugins: createMcpPlugins({ origin, enabled: true }) });
+		const auth = betterAuth({ baseURL: origin, secret: "isolated-cimd-dns-deadline-secret-32chars", database: drizzleAdapter(fixture.db, { provider: "pg", schema }), plugins: createMcpPlugins({ origin }) });
 		const params = new URLSearchParams({ client_id: "https://metadata.example.invalid/client.json", redirect_uri: "https://custom.example.invalid/callback", response_type: "code", scope: "creator:read", code_challenge: "a".repeat(43), code_challenge_method: "S256", resource: origin + "/mcp" });
 		const started = performance.now();
 		const response = await auth.handler(new Request(origin + "/api/auth/oauth2/authorize?" + params));

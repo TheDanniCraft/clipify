@@ -13,10 +13,10 @@ async function main() {
 	process.env.BETTER_AUTH_SECRET = "isolated-consent-target-secret-32chars";
 	const origin = "http://127.0.0.1:3107";
 	process.env.NEXT_PUBLIC_BASE_URL = origin;
-	process.env.MCP_ENABLED = "true";
+
 	try {
 		const { approveMcpConsent, providerGrantOptions } = await import("@/server/mcp/grants");
-		const auth = betterAuth({ baseURL: origin, secret: process.env.BETTER_AUTH_SECRET, database: drizzleAdapter(fixture.db, { provider: "pg", schema }), emailAndPassword: { enabled: true }, plugins: createMcpPlugins({ origin, enabled: true, options: providerGrantOptions }) });
+		const auth = betterAuth({ baseURL: origin, secret: process.env.BETTER_AUTH_SECRET, database: drizzleAdapter(fixture.db, { provider: "pg", schema }), emailAndPassword: { enabled: true }, plugins: createMcpPlugins({ origin, options: providerGrantOptions }) });
 		const signup = await auth.api.signUpEmail({ body: { name: "Consent actor", email: "actor@example.invalid", password: "controlled-consent-password-123" }, asResponse: true });
 		const actor = await signup.json();
 		const cookie = signup.headers

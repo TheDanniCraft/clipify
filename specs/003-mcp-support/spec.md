@@ -1721,3 +1721,7 @@ Feedback replay aliases are bounded to five key hashes per receipt. Further fres
 ## Shared limiter refinement
 
 User requested that feedback reuse the existing application rate-limiter infrastructure rather than adding a custom quota implementation. Use the installed rate-limiter-flexible RateLimiterMemory through one shared server core, with a dedicated feedback policy keyed by verified user. The policy uses five points and duration 86400 seconds (a fixed window beginning at first accepted report). Retain only bounded feedback replay/deduplication state; serialize pending submissions per user and refund accepted points if submission fails. App callers retain their wrapper/API. Better Auth and existing distributed MCP transport limits remain unchanged.
+
+## Always-available MCP refinement (2026-10-07)
+
+The user explicitly rejected activation/rollout environment toggles. MCP, its native Better Auth plugins and discovery routes are always installed. Configuration has no enabled property or activation environment flag. Existing credential, canonical identity, origin, schema-readiness, scope and plan checks remain required. Invalid required configuration/schema yields SERVICE_UNAVAILABLE/503, rather than hiding discovery with 404. This decision supersedes historical disabled-rollout acceptance evidence.

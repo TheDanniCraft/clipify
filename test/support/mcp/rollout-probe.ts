@@ -5,12 +5,11 @@ async function main() {
 	process.env.APP_ENV = "test";
 	process.env.DISABLE_BACKGROUND_JOBS = "true";
 	process.env.NEXT_PUBLIC_BASE_URL = "http://127.0.0.1:3107";
-	process.env.MCP_ENABLED = "true";
+
 	process.env.BETTER_AUTH_SECRET = "isolated-rollout-provider-secret-32chars";
 	process.env.RATE_LIMIT_HASH_SECRET = "isolated-rollout-ratelimit-secret-32chars";
 	const [mode, surface = "mcp"] = process.argv[2].split(":");
 	try {
-		if (mode === "disabled") process.env.MCP_ENABLED = "false";
 		if (mode === "missing-auth") {
 			delete process.env.BETTER_AUTH_SECRET;
 			delete process.env.JWT_SECRET;

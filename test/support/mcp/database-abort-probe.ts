@@ -6,7 +6,7 @@ async function main() {
 	process.env.DATABASE_URL = fixture.url;
 	process.env.APP_ENV = "test";
 	process.env.DISABLE_BACKGROUND_JOBS = "true";
-	process.env.MCP_ENABLED = "true";
+
 	process.env.NEXT_PUBLIC_BASE_URL = "http://127.0.0.1:3107";
 	process.env.BETTER_AUTH_SECRET = "isolated-abort-auth-secret-32characters";
 	process.env.RATE_LIMIT_HASH_SECRET = "isolated-abort-rate-secret-32characters";

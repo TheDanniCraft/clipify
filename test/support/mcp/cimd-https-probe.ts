@@ -25,7 +25,7 @@ async function main() {
 	process.env.DATABASE_URL = fixture.url;
 	process.env.APP_ENV = "test";
 	process.env.DISABLE_BACKGROUND_JOBS = "true";
-	process.env.MCP_ENABLED = "true";
+
 	const originalLookup = dns.lookup;
 	const originalRequest = https.request;
 	const sockets = new Set<Socket>();
@@ -124,7 +124,7 @@ async function main() {
 		process.env.BETTER_AUTH_SECRET = "isolated-cimd-https-provider-secret-32chars";
 		if (mode === "complete") process.env.RATE_LIMIT_HASH_SECRET = "isolated-cimd-complete-rate-secret-32chars";
 		const grants = mode === "complete" ? await import("@/server/mcp/grants") : null;
-		const auth = betterAuth({ baseURL: origin, secret: process.env.BETTER_AUTH_SECRET, database: drizzleAdapter(fixture.db, { provider: "pg", schema }), emailAndPassword: { enabled: true }, plugins: createMcpPlugins({ origin, enabled: true, options: grants?.providerGrantOptions }) });
+		const auth = betterAuth({ baseURL: origin, secret: process.env.BETTER_AUTH_SECRET, database: drizzleAdapter(fixture.db, { provider: "pg", schema }), emailAndPassword: { enabled: true }, plugins: createMcpPlugins({ origin, options: grants?.providerGrantOptions }) });
 		const params = new URLSearchParams({ client_id: clientId, redirect_uri: mode === "wrong-callback" ? "https://foreign.example.invalid/callback" : "https://custom.example.invalid/callback", response_type: "code", scope: "creator:read", code_challenge: "a".repeat(43), code_challenge_method: "S256", resource: origin + "/mcp" });
 		const response = await auth.handler(new Request(origin + "/api/auth/oauth2/authorize?" + params));
 		const body = await response.json().catch(() => null);

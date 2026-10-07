@@ -9,7 +9,7 @@ async function main() {
 	process.env.DISABLE_BACKGROUND_JOBS = "true";
 	process.env.NEXT_PUBLIC_BASE_URL = "http://127.0.0.1:3107";
 	process.env.BETTER_AUTH_SECRET = "isolated-browser-delete-secret-32chars";
-	process.env.MCP_ENABLED = "true";
+
 	const mode = process.argv[2],
 		playlistId = "a1dca8b8-089a-47ce-b649-1c32bb3842c1",
 		overlayId = randomUUID();

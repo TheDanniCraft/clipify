@@ -17,7 +17,7 @@ jest.mock("@/auth/organization-access", () => ({ clipifyAccessControl: {}, bette
 jest.mock("@/auth/transactional-mail", () => ({ sendAuthOtp: jest.fn(), sendTeamInvitation: jest.fn() }));
 jest.mock("@/auth/providers/twitch-refresh", () => ({ refreshTwitchAccessToken: jest.fn() }));
 jest.mock("@/auth/mcp-options", () => ({ createMcpPlugins: jest.fn((options: unknown) => [{ id: "native-mcp", options }]) }));
-jest.mock("@/server/mcp/config", () => ({ getMcpConfiguration: () => ({ enabled: true }) }));
+jest.mock("@/server/mcp/config", () => ({ getMcpConfiguration: () => ({ valid: true }) }));
 jest.mock("@/server/mcp/grants", () => ({ providerGrantOptions: {} }));
 import { getSessionFromCtx } from "better-auth/api";
 import { db } from "@/db/client";
@@ -52,7 +52,7 @@ test("provider configuration uses native MCP grant options", () => {
 	expect(options.session.cookieCache.enabled).toBe(false);
 	expect(plugin("oauth-proxy").productionURL).toBe("http://localhost:3000");
 	expect(plugin("passkey")).toMatchObject({ rpID: "localhost", origin: "http://localhost:3000" });
-	expect(plugin("native-mcp")).toEqual({ origin: "http://localhost:3000", enabled: true, options: providerGrantOptions });
+	expect(plugin("native-mcp")).toEqual({ origin: "http://localhost:3000", options: providerGrantOptions });
 });
 test("unrelated auth endpoints do not run role-assignment reads", async () => {
 	await options.hooks.before(context({}, "/sign-in/social"));

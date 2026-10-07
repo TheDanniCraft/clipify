@@ -11,7 +11,7 @@ async function main() {
 	process.env.MCP_REGISTRATIONS_PER_DAY = "3";
 	const origin = "http://127.0.0.1:3107";
 	try {
-		const auth = betterAuth({ baseURL: origin, secret: "isolated-mcp-provider-secret-32chars", database: drizzleAdapter(fixture.db, { provider: "pg", schema }), plugins: createMcpPlugins({ origin, enabled: true }) });
+		const auth = betterAuth({ baseURL: origin, secret: "isolated-mcp-provider-secret-32chars", database: drizzleAdapter(fixture.db, { provider: "pg", schema }), plugins: createMcpPlugins({ origin }) });
 		const results = [];
 		for (let index = 0; index < 3; index++) {
 			const response = await auth.handler(new Request(`${origin}/api/auth/oauth2/register`, { method: "POST", headers: { "Content-Type": "application/json", "X-Forwarded-For": `192.0.2.${index + 1}` }, body: JSON.stringify({ client_name: `Budget client ${index}`, application_type: "native", redirect_uris: ["http://127.0.0.1:49999/callback"], token_endpoint_auth_method: "none", grant_types: ["authorization_code", "refresh_token"], response_types: ["code"] }) }));

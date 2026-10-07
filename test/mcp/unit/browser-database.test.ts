@@ -28,7 +28,7 @@ test("ordinary browser runs do not opt into controlled provider behavior", () =>
 test("opted-in isolated browser runs keep their compiler budget and load the guarded fixture", () => {
 	const result = browserProviderEnvironment({ ...environment, MCP_BROWSER_PROVIDER_FIXTURE: "true" }, "--max-old-space-size=2048");
 	expect(result.DATABASE_URL).toBe(disposable);
-	expect(result.MCP_ENABLED).toBe("true");
+	expect(result).not.toHaveProperty("MCP_ENABLED");
 	expect(result.NODE_OPTIONS).toMatch(/^--max-old-space-size=2048 --import=file:.*browser-provider-preload\.mjs$/);
 });
 test("opting into provider fixtures never accepts a persistent database", () => {

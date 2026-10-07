@@ -48,12 +48,12 @@ async function main() {
 	const address = server.address();
 	if (!address || typeof address === "string") throw new Error("SDK fixture listen failed");
 	origin = `http://127.0.0.1:${address.port}`;
-	Object.assign(process.env, { DATABASE_URL: fixture.url, APP_ENV: "test", DISABLE_BACKGROUND_JOBS: "true", MCP_ENABLED: "true", NEXT_PUBLIC_BASE_URL: origin, BETTER_AUTH_SECRET: "isolated-sdk-provider-secret-32chars", RATE_LIMIT_HASH_SECRET: "isolated-sdk-budget-secret-32chars" });
+	Object.assign(process.env, { DATABASE_URL: fixture.url, APP_ENV: "test", DISABLE_BACKGROUND_JOBS: "true", NEXT_PUBLIC_BASE_URL: origin, BETTER_AUTH_SECRET: "isolated-sdk-provider-secret-32chars", RATE_LIMIT_HASH_SECRET: "isolated-sdk-budget-secret-32chars" });
 	const originalFetch = globalThis.fetch;
 	let connected: Awaited<ReturnType<typeof connectMcpClient>> | undefined;
 	try {
 		const { approveMcpConsent, providerGrantOptions } = await import("@/server/mcp/grants");
-		const auth = betterAuth({ baseURL: origin, secret: process.env.BETTER_AUTH_SECRET, database: drizzleAdapter(fixture.db, { provider: "pg", schema }), emailAndPassword: { enabled: true }, plugins: createMcpPlugins({ origin, enabled: true, options: providerGrantOptions }) });
+		const auth = betterAuth({ baseURL: origin, secret: process.env.BETTER_AUTH_SECRET, database: drizzleAdapter(fixture.db, { provider: "pg", schema }), emailAndPassword: { enabled: true }, plugins: createMcpPlugins({ origin, options: providerGrantOptions }) });
 		const route = await import("@/app/mcp/route");
 		const { revokeMcpConnection } = await import("@/server/mcp/connections");
 		dispatch = async (request) => {

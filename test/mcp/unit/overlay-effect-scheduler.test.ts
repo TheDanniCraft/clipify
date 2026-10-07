@@ -18,7 +18,7 @@ describe("TDD-OVERLAY-EFFECT-007 private reward scheduler", () => {
 		jest.clearAllMocks();
 		(db.execute as jest.Mock).mockReset().mockResolvedValue({ rows: [{ present: true }] });
 		(runOverlayRewardEffects as jest.Mock).mockReset().mockResolvedValue(0);
-		process.env = { ...savedEnvironment, NODE_ENV: "production", MCP_ENABLED: "false" };
+		process.env = { ...savedEnvironment, NODE_ENV: "production" };
 		delete process.env.DISABLE_BACKGROUND_JOBS;
 		delete process.env.NEXT_PHASE;
 		delete state.__overlayEffectSchedulerStarted;

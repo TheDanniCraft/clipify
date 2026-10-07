@@ -3,7 +3,7 @@
 Updated: 2026-10-07. Branch: `feature/mcp-support`.
 
 - Canonical feature: `003-mcp-support`; workflow expansion consolidated into this scope.
-- Tasks: **539/553 complete (97.5%, unweighted)**; all 136 workflow expansion, 8 feedback and 4 shared-limiter refinement tasks complete.
+- Tasks: **542/556 complete (97.5%, unweighted)**; all 136 workflow expansion, 8 feedback and 4 shared-limiter refinement tasks complete.
 - Tools: **50 implemented**.
 - Final local quality gates pass; external/historical release obligations remain **14 blocked tasks**.
 - Physical runner validation also requires real hardware/credentials.

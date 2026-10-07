@@ -2,7 +2,7 @@
 jest.mock("server-only", () => ({}));
 jest.mock("next/headers", () => ({ headers: jest.fn(async () => new Headers({ cookie: "verified-fixture-cookie" })) }));
 jest.mock("@/auth/config", () => ({ auth: { api: { getSession: jest.fn() } } }));
-jest.mock("@/server/mcp/config", () => ({ getMcpConfiguration: jest.fn(() => ({ enabled: true })) }));
+jest.mock("@/server/mcp/config", () => ({ getMcpConfiguration: jest.fn(() => ({ valid: true })) }));
 jest.mock("@/server/mcp/connections", () => ({ listMcpConnections: jest.fn(), revokeMcpConnection: jest.fn() }));
 jest.mock("@/auth/session-principal", () => ({ getVerifiedSessionPrincipal: jest.fn() }));
 jest.mock("@/auth/authorize-operation", () => ({ listAuthorizedCreatorOperations: jest.fn() }));
@@ -16,7 +16,7 @@ const principal = { kind: "session", authUserId: "verified-owner", sessionId: "v
 describe("TDD-ACTIVITY-004 activity server-action trust boundary", () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
-		(getMcpConfiguration as jest.Mock).mockReturnValue({ enabled: true });
+		(getMcpConfiguration as jest.Mock).mockReturnValue({ valid: true });
 		(getVerifiedSessionPrincipal as jest.Mock).mockResolvedValue(principal);
 		(listAuthorizedCreatorOperations as jest.Mock).mockResolvedValue([{ creator: { id: "creator", username: "Creator", email: "private@example.invalid" }, sessionId: "private-session", creatorOrganizationId: "private-org" }]);
 		(listMcpActivity as jest.Mock).mockResolvedValue({ items: [], nextCursor: null });
@@ -33,10 +33,10 @@ describe("TDD-ACTIVITY-004 activity server-action trust boundary", () => {
 		expect(listMcpActivity).toHaveBeenCalledWith(principal, input);
 		expect(getVerifiedSessionPrincipal).toHaveBeenCalledWith(expect.any(Headers));
 	});
-	test("disabled feature performs no session or private activity query", async () => {
+	test("invalid configuration feature performs no session or private activity query", async () => {
 		expect(actions.getMcpActivityCreators).toEqual(expect.any(Function));
 		expect(actions.getConnectedMcpActivityPage).toEqual(expect.any(Function));
-		(getMcpConfiguration as jest.Mock).mockReturnValue({ enabled: false });
+		(getMcpConfiguration as jest.Mock).mockReturnValue({ valid: false });
 		expect(await actions.getMcpActivityCreators()).toEqual({ available: false, creators: [] });
 		expect(await actions.getConnectedMcpActivityPage({ creatorId: "creator" })).toMatchObject({ items: [], nextCursor: null, error: expect.any(String) });
 		expect(getVerifiedSessionPrincipal).not.toHaveBeenCalled();
@@ -69,7 +69,7 @@ describe("TDD-ACTIVITY-004 activity server-action trust boundary", () => {
 });
 
 test("non-Error private activity rejection exposes only safe feedback", async () => {
-	(getMcpConfiguration as jest.Mock).mockReturnValue({ enabled: true });
+	(getMcpConfiguration as jest.Mock).mockReturnValue({ valid: true });
 	(getVerifiedSessionPrincipal as jest.Mock).mockResolvedValue(principal);
 	(listMcpActivity as jest.Mock).mockRejectedValue("private activity credentials");
 	expect(await actions.getConnectedMcpActivityPage({ creatorId: "creator" })).toEqual({ items: [], nextCursor: null, error: "Activity could not be loaded. Refresh and try again." });

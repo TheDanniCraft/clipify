@@ -112,8 +112,7 @@ const registrationBoundary: BetterAuthPlugin = {
 	},
 };
 
-export function createMcpPlugins(input: { origin: string; enabled: boolean; options?: Partial<McpOptions> }): BetterAuthPlugin[] {
-	if (!input.enabled) return [];
+export function createMcpPlugins(input: { origin: string; options?: Partial<McpOptions> }): BetterAuthPlugin[] {
 	const origin = new URL(input.origin).origin;
 	return [
 		registrationBoundary,

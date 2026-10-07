@@ -27,7 +27,7 @@ export async function handleMcpRequest(request: Request): Promise<Response> {
 }
 
 async function handleRequest(request: Request, configuration: ReturnType<typeof getMcpConfiguration>): Promise<Response> {
-	if (!configuration.enabled) return Response.json({ error: "service_unavailable" }, { status: 503 });
+	if (!configuration.valid) return Response.json({ error: "service_unavailable" }, { status: 503 });
 	const origin = request.headers.get("origin");
 	if (origin && !configuration.allowedOrigins.includes(origin)) return Response.json({ error: "access_denied" }, { status: 403 });
 	const expectedHost = new URL(configuration.origin).host.toLowerCase();

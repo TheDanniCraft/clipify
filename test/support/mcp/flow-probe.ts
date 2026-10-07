@@ -11,7 +11,7 @@ async function main() {
 	process.env.APP_ENV = "test";
 	process.env.DISABLE_BACKGROUND_JOBS = "true";
 	process.env.NEXT_PUBLIC_BASE_URL = "http://127.0.0.1:3107";
-	process.env.MCP_ENABLED = "true";
+
 	process.env.BETTER_AUTH_SECRET = "isolated-mcp-provider-secret-32chars";
 	const mode = process.argv[2] ?? "approve";
 	const transition = mode.startsWith("resources:overlay-update:transition-") ? mode.split(":transition-")[1] : undefined;
@@ -43,7 +43,7 @@ async function main() {
 	}
 	try {
 		const grants = existsSync("src/server/mcp/grants.ts") ? await import("@/server/mcp/grants") : null;
-		const auth = betterAuth({ baseURL: origin, secret: "isolated-mcp-provider-secret-32chars", database: drizzleAdapter(fixture.db, { provider: "pg", schema }), emailAndPassword: { enabled: true }, plugins: createMcpPlugins({ origin, enabled: true, options: grants?.providerGrantOptions }) });
+		const auth = betterAuth({ baseURL: origin, secret: "isolated-mcp-provider-secret-32chars", database: drizzleAdapter(fixture.db, { provider: "pg", schema }), emailAndPassword: { enabled: true }, plugins: createMcpPlugins({ origin, options: grants?.providerGrantOptions }) });
 		const signUp = await auth.api.signUpEmail({ body: { name: "MCP actor", email: "actor@example.invalid", password: "fixture-password-isolated-123" }, asResponse: true });
 		const cookie = signUp.headers
 			.getSetCookie()

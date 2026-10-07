@@ -61,3 +61,7 @@ Canonical feature 003 now has 50 tools and 535/549 tasks complete; the original 
 ## MCP shared application limiter checkpoint
 
 539/553 tasks complete (97.5% unweighted); 14 original historical/external blockers remain. Feedback uses the existing app rate-limiter-flexible core, with separate business replay state only. 30 focused tests and 17 actual OAuth/MCP feedback examples pass. Final strict/global coverage, types/lint/format/build/action-manifest and Graphify evidence is in specs/003-mcp-support/test-summary.md and test-results/mcp-workflows/shared-feedback-*.log. This is local implementation readiness, not a waiver of release blockers. No test feedback is sent to the real Sentry account.
+
+## MCP activation flag removal
+
+542/556 tasks complete; 14 original blocked obligations remain. MCP/native OAuth/discovery are always installed. 156 unit and 84 affected OAuth/configuration/discovery checks pass, as do strict/global coverage (91 files), types/lint/format/build/action manifest. No activation environment toggle remains. See the canonical feature test summary for current evidence; the previous full 4495-test checkpoint is historical after this refinement.
