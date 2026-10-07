@@ -25,7 +25,7 @@ const result = spawnSync(process.execPath, [nextBin, "build", ...process.argv.sl
 if (result.error) throw result.error;
 if (result.status !== 0) process.exit(result.status ?? 1);
 
-const verification = spawnSync("bun", [require.resolve("./validate-patched-dependencies.ts"), "--node-modules", ".next/standalone/node_modules"], {
+const verification = spawnSync("bun", [require.resolve("./validate-patched-dependencies.ts"), "--node-modules", process.env.E2E_TEST_MODE === "true" ? "node_modules" : ".next/standalone/node_modules"], {
 	stdio: "inherit",
 	env: { ...process.env, NODE_ENV: "production" },
 });

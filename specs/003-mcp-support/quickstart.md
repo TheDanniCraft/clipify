@@ -135,3 +135,5 @@ Managed Playwright test servers now also size their default V8 heap from availab
 # Validation
 
 Use the commands and disposable-loopback fixture rules in plan.md. Run scoped tests first. Then verify actual SDK discovery and one positive/negative call per advertised tool. Connect an installed runner through the normal device flow for manual deployment verification; no production credentials or enrollment bypass.
+
+Browser checks use a separate production E2E build to avoid development-compiler heap growth. `bun run test:e2e` builds once for all stages; standalone scoped commands (`test:acceptance`, `test:atdd`, `test:bdd`, `test:compliance`, `test:e2e:ui`) also build their test artifact before execution. The test build stays in `.next-playwright`, and its custom server is loopback-only with the existing E2E route guards. Compiled native probes and each canonical stage's artifacts remain outside that stage's cleaned output directory.

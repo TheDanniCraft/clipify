@@ -49,7 +49,8 @@ export default defineConfig({
 		screenshot: "only-on-failure",
 		video: "retain-on-failure",
 	},
-	outputDir: "test-results",
+	// Preserve compiled native probes and evidence from other test stages.
+	outputDir: "test-results/browser",
 	projects: [
 		{
 			name: "acceptance-chromium",
@@ -85,6 +86,7 @@ export default defineConfig({
 		timeout: 120_000,
 		env: {
 			APP_ENV: "test",
+			NODE_ENV: "production",
 			// CI supplies an isolated database directly. Local authenticated acceptance
 			// runs may opt into the disposable Infisical dev database; the unreachable
 			// fallback keeps public/browser-only suites from touching any database.

@@ -1,20 +1,14 @@
 import { spawnSync } from "node:child_process";
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const { readTestSystem } = require("./test-worker-budget.cjs");
-const { availableMemoryBytes } = readTestSystem();
-// Keep compiled development routes bounded on smaller runners. Every shard runs;
-// each has a fresh server and executes its normal teardown.
-const journeyShards = availableMemoryBytes < 16 * 1024 ** 3 ? 4 : 2;
-const stages: string[][] = [
-	["bddgen"],
-	["playwright", "test", "--project=acceptance-chromium", "--workers=1"],
-	...Array.from({ length: journeyShards }, (_, index) => ["playwright", "test", "--project=atdd-chromium", "--workers=1", `--shard=${index + 1}/${journeyShards}`]),
-	...Array.from({ length: journeyShards }, (_, index) => ["playwright", "test", "--project=bdd-chromium", "--workers=1", `--shard=${index + 1}/${journeyShards}`]),
-	["playwright", "test", "--project=compliance-chromium", "--workers=1"],
-];
+// Build once instead of retaining an expanding development compiler for every journey.
+const build = spawnSync(process.execPath, ["run", "test:e2e:build"], { cwd: process.cwd(), env: process.env, stdio: "inherit" });
+if (build.error) throw build.error;
+if (build.status !== 0) process.exit(build.status ?? 1);
+const stages: string[][] = [["bddgen"], ["playwright", "test", "--project=acceptance-chromium", "--workers=1"], ["playwright", "test", "--project=atdd-chromium", "--workers=1"], ["playwright", "test", "--project=bdd-chromium", "--workers=1"], ["playwright", "test", "--project=compliance-chromium", "--workers=1"]];
 for (const args of stages) {
-	const result = spawnSync(process.execPath, ["x", ...args], {
+	const project = args.find((argument) => argument.startsWith("--project="))?.slice("--project=".length);
+	const stageArguments = project ? [...args, `--output=test-results/browser-${project}`] : args;
+	const result = spawnSync(process.execPath, ["x", ...stageArguments], {
 		cwd: process.cwd(),
 		env: process.env,
 		stdio: "inherit",
