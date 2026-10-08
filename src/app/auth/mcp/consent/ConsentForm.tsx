@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
-import { Accordion, Alert, Avatar, Button, Card, Checkbox, Chip, Link, Radio, RadioGroup, Separator, ToggleButton, ToggleButtonGroup } from "@heroui/react";
-import { IconArrowLeft, IconCheck, IconPencil, IconPlugConnected, IconPlus, IconShieldCheck, IconTrash } from "@tabler/icons-react";
+import { Accordion, Alert, Avatar, Button, Card, Checkbox, Chip, Description, Label, Link, Separator, ToggleButton, ToggleButtonGroup } from "@heroui/react";
+import { IconArrowLeft, IconCheck, IconChevronRight, IconPencil, IconPlugConnected, IconPlus, IconShieldCheck, IconTrash } from "@tabler/icons-react";
 import { availableGroups, groupLevel, groupScopes, presetScopes, type AccessLevel, type ConsentMode } from "@/server/mcp/consent-permissions";
 import { CallbackHandoff } from "./CallbackHandoff";
 export type ConsentCreatorChoice = { creatorId: string; agencyOrganizationId: string | null; name: string; avatarUrl?: string | null };
@@ -144,19 +144,28 @@ export function ConsentForm({ clientName, requestedScopes, creators, oauthQuery,
 												</Alert.Content>
 											</Alert>
 										)}
-										<RadioGroup aria-label='Choose a creator' value={draft.creatorId} onChange={(value) => setDraft({ ...draft, creatorId: value })}>
-											{creators.map((choice) => (
-												<Radio key={choice.creatorId} value={choice.creatorId} aria-label={choice.name} isDisabled={entries.some((entry) => entry.creatorId === choice.creatorId) && choice.creatorId !== editing} className='rounded-xl border border-border p-4'>
-													<Radio.Control>
-														<Radio.Indicator />
-													</Radio.Control>
-													<Radio.Content>
+										<div aria-label='Choose a creator' className='flex flex-col gap-3'>
+											{creators.map((choice) => {
+												const added = entries.some((entry) => entry.creatorId === choice.creatorId) && choice.creatorId !== editing;
+												return (
+													<Button
+														key={choice.creatorId}
+														type='button'
+														variant='secondary'
+														aria-label={choice.name}
+														isDisabled={added}
+														className='h-auto w-full justify-between rounded-xl border border-border bg-transparent px-4 py-4 text-start'
+														onPress={() => {
+															setDraft({ ...draft, creatorId: choice.creatorId });
+															setStep("permissions");
+														}}
+													>
 														{identity(choice)}
-														{entries.some((entry) => entry.creatorId === choice.creatorId) && choice.creatorId !== editing && <span className='text-xs text-muted'>Already added — edit from Review</span>}
-													</Radio.Content>
-												</Radio>
-											))}
-										</RadioGroup>
+														{added ? <span className='text-xs text-muted'>Already added — edit from Review</span> : <IconChevronRight size={18} className='shrink-0 text-muted' aria-hidden='true' />}
+													</Button>
+												);
+											})}
+										</div>
 									</>
 								)}
 								{step === "permissions" && (
@@ -222,13 +231,13 @@ export function ConsentForm({ clientName, requestedScopes, creators, oauthQuery,
 										})}
 										{requestedScopes.includes("offline_access") && (
 											<Checkbox isSelected={offline} onChange={setOffline}>
-												<Checkbox.Control>
-													<Checkbox.Indicator />
-												</Checkbox.Control>
-												<Checkbox.Content className='flex-col items-start gap-1'>
-													<span>Stay connected between sessions</span>
-													<span className='block text-xs text-muted'>Allow refresh until access expires or you revoke this connection.</span>
+												<Checkbox.Content className='items-start'>
+													<Checkbox.Control className='mt-0.5 shrink-0'>
+														<Checkbox.Indicator />
+													</Checkbox.Control>
+													<Label>Stay connected between sessions</Label>
 												</Checkbox.Content>
+												<Description>Allow refresh until access expires or you revoke this connection.</Description>
 											</Checkbox>
 										)}
 										<p className='flex items-start gap-2 text-sm text-muted'>
@@ -250,9 +259,6 @@ export function ConsentForm({ clientName, requestedScopes, creators, oauthQuery,
 							<Separator />
 							<Card.Footer className='flex flex-wrap justify-between gap-3 px-6 py-5 sm:px-8'>
 								<div className='flex flex-wrap gap-2'>
-									<Button type='submit' name='accept' value='false' formNoValidate variant='tertiary' isDisabled={pending}>
-										Deny
-									</Button>
 									{step !== "review" && (step !== "creator" || entries.length > 0) && (
 										<Button type='button' variant='tertiary' onPress={() => setStep(step === "permissions" ? "creator" : "review")}>
 											<IconArrowLeft size={16} />
@@ -260,11 +266,7 @@ export function ConsentForm({ clientName, requestedScopes, creators, oauthQuery,
 										</Button>
 									)}
 								</div>
-								{step === "creator" && (
-									<Button type='button' isDisabled={!draft.creatorId} onPress={() => setStep("permissions")}>
-										Continue
-									</Button>
-								)}
+
 								{step === "permissions" && (
 									<Button type='button' isDisabled={!draft.scopes.length} onPress={save}>
 										Review
@@ -283,6 +285,11 @@ export function ConsentForm({ clientName, requestedScopes, creators, oauthQuery,
 									</div>
 								)}
 							</Card.Footer>
+							<div className='flex justify-center pb-5'>
+								<Button type='submit' name='accept' value='false' formNoValidate variant='tertiary' size='sm' isDisabled={pending} className='h-auto bg-transparent text-xs text-muted'>
+									Cancel connection
+								</Button>
+							</div>
 						</form>
 					</Card>
 				)}

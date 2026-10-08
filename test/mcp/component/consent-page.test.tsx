@@ -1,4 +1,5 @@
 /** @jest-environment node */
+jest.mock("@/app/actions/twitch", () => ({ getAvatar: jest.fn(async () => "https://example.test/avatar.png") }));
 jest.mock("@better-auth/oauth-provider", () => ({ verifyOAuthQueryParams: jest.fn(async () => true) }));
 jest.mock("@/app/auth/mcp/consent/ConsentForm", () => ({ ConsentForm: jest.fn(() => null) }));
 jest.mock("server-only", () => ({}));
@@ -35,7 +36,7 @@ describe("TDD-US1-027 consent route", () => {
 	test("renders only currently authorized creators and actual requested permissions", async () => {
 		expect(Page).toEqual(expect.any(Function));
 		const result = await Page({ searchParams: Promise.resolve(query) });
-		expect(result.props).toMatchObject({ clientName: "My AI", requestedScopes: ["creator:read", "overlay:delete"], creators: [{ creatorId: "creator", name: "Creator", agencyOrganizationId: null }] });
+		expect(result.props).toMatchObject({ clientName: "My AI", requestedScopes: ["creator:read", "overlay:delete"], creators: [{ creatorId: "creator", name: "Creator", avatarUrl: "https://example.test/avatar.png", agencyOrganizationId: null }] });
 		expect(new URLSearchParams(result.props.oauthQuery).get("sig")).toBe("signed");
 	});
 	test("requires a login and preserves the signed authorization return path", async () => {

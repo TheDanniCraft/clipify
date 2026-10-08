@@ -14,15 +14,15 @@ const props = {
 	action: jest.fn(),
 };
 function choose(name: string) {
-	fireEvent.click(screen.getByRole("radio", { name }));
-	fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+	fireEvent.click(screen.getByRole("button", { name }));
 }
 function review() {
 	fireEvent.click(screen.getByRole("button", { name: "Review" }));
 }
 test("starts with creator selection and preserves independent write/read choices", () => {
 	const { container } = render(<ConsentForm {...props} />);
-	expect(screen.getByRole("button", { name: "Continue" })).toBeDisabled();
+	expect(screen.queryByRole("button", { name: "Continue" })).not.toBeInTheDocument();
+	expect(screen.queryByRole("button", { name: "Deny" })).not.toBeInTheDocument();
 	choose("Creator one");
 	fireEvent.click(within(screen.getByRole("radiogroup", { name: "General permissions" })).getByRole("radio", { name: "Write" }));
 	review();
@@ -52,11 +52,11 @@ test("edit and back retain settings; removal does not affect another creator", (
 	choose("Creator two");
 	review();
 	fireEvent.click(screen.getByRole("button", { name: "Edit Creator one" }));
-	expect(screen.getByRole("radio", { name: "Creator one" })).toBeChecked();
-	fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+	expect(screen.getByRole("button", { name: "Creator one" })).toBeEnabled();
+	choose("Creator one");
 	fireEvent.click(screen.getByRole("button", { name: "Back" }));
-	expect(screen.getByRole("radio", { name: "Creator one" })).toBeChecked();
-	fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+	expect(screen.getByRole("button", { name: "Creator one" })).toBeEnabled();
+	choose("Creator one");
 	review();
 	fireEvent.click(screen.getByRole("button", { name: "Remove Creator one from connection" }));
 	expect(screen.getByText("Creator two")).toBeVisible();

@@ -314,17 +314,23 @@ Given("a real browser has an authenticated creator and registered MCP client", a
 When("the browser approves the provider’s signed consent request", async ({ page, mcpWorld }) => {
 	const state = mcpWorld.result?.body;
 	await page.route("http://127.0.0.1:49999/callback**", (route) => route.fulfill({ status: 200, contentType: "text/html", body: "<p>Local OAuth callback received</p>" }));
+	await page.setViewportSize({ width: 390, height: 844 });
 	await page.goto(state.authorization, { timeout: 60000 });
 	await expect(page.getByRole("heading", { name: "Connect Browser consent regression" })).toBeVisible();
 	await Promise.all([page.waitForEvent("load"), page.getByRole("button", { name: "Reject optional", exact: true }).click()]);
 	await expect(page.getByRole("heading", { name: "Connect Browser consent regression" })).toBeVisible();
-	const creator = page.getByRole("radio", { name: state.owner.fixture.username, exact: true });
+	const creator = page.getByRole("button", { name: state.owner.fixture.username, exact: true });
 	await creator.focus();
 	await creator.press("Space");
-	await expect(creator).toBeChecked();
-	await page.getByRole("button", { name: "Continue", exact: true }).click();
 	await page.screenshot({ path: "test-results/browser/consent-permissions.png" });
 	await page.getByRole("button", { name: "Review", exact: true }).click();
+	const stayConnected = page.getByRole("checkbox", { name: "Stay connected between sessions" });
+	await expect(stayConnected).toBeVisible();
+	const control = await page.locator('[data-slot="checkbox"] [data-slot="checkbox-control"]').boundingBox();
+	const label = await page.getByText("Stay connected between sessions", { exact: true }).boundingBox();
+	expect(control).not.toBeNull();
+	expect(label).not.toBeNull();
+	expect(Math.abs(control!.y - label!.y)).toBeLessThan(8);
 	await page.screenshot({ path: "test-results/browser/consent-review.png" });
 	await page.clock.install();
 	await page.clock.pauseAt(new Date());

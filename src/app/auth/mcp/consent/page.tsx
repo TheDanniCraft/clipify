@@ -10,6 +10,7 @@ import { listAuthorizedCreatorOperations } from "@/auth/authorize-operation";
 import { approveMcpConsent } from "@/server/mcp/grants";
 import { getMcpConfiguration } from "@/server/mcp/config";
 import { MCP_SCOPES } from "@/server/mcp/scopes";
+import { getAvatar } from "@/app/actions/twitch";
 import { ConsentForm } from "./ConsentForm";
 
 const creatorChoice = z.object({ creatorId: z.string().min(1).max(255), agencyOrganizationId: z.string().min(1).max(255).nullable(), scopes: z.array(z.string()).min(1).max(100) }).strict();
@@ -41,7 +42,7 @@ export default async function McpConsentPage({ searchParams }: { searchParams: P
 			.limit(1),
 		listAuthorizedCreatorOperations({ permission: "creator:read", requestHeaders }),
 	]);
-	const creators = decisions.map((decision) => ({ creatorId: decision.creator.id, name: decision.creator.username, agencyOrganizationId: decision.accessPath === "agency" ? ((session.session as typeof session.session & { activeOrganizationId?: string | null }).activeOrganizationId ?? null) : null }));
+	const creators = await Promise.all(decisions.map(async (decision) => ({ creatorId: decision.creator.id, name: decision.creator.username, avatarUrl: await getAvatar(decision.creator.id, session.user.id).catch(() => undefined), agencyOrganizationId: decision.accessPath === "agency" ? ((session.session as typeof session.session & { activeOrganizationId?: string | null }).activeOrganizationId ?? null) : null })));
 	async function submitConsent(data: FormData): Promise<{ error?: string; callbackUrl?: string; authorized?: boolean } | void> {
 		"use server";
 		const incomingHeaders = new Headers(await headers());

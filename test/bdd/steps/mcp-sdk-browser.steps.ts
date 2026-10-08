@@ -38,9 +38,8 @@ When("the official SDK completes {word} approval edit denial and revoke through 
 		await page.getByRole("button", { name: "Enable support chat", exact: true }).press("Enter");
 		await Promise.all([page.waitForEvent("domcontentloaded", { timeout: 60000 }), page.getByRole("dialog").getByRole("button", { name: "Reject optional", exact: true }).click()]);
 		await page.waitForLoadState("load");
-		await page.getByRole("radio", { name: owner.fixture.username, exact: true }).focus();
-		await page.getByRole("radio", { name: owner.fixture.username, exact: true }).press("Space");
-		await page.getByRole("button", { name: "Continue", exact: true }).click();
+		await page.getByRole("button", { name: owner.fixture.username, exact: true }).focus();
+		await page.getByRole("button", { name: owner.fixture.username, exact: true }).press("Space");
 		await page.getByRole("radiogroup", { name: "General permissions" }).getByRole("radio", { name: "Write", exact: true }).click();
 		await page.getByRole("button", { name: "Review", exact: true }).click();
 		await page.getByRole("button", { name: "Authorize", exact: true }).click();
@@ -142,7 +141,7 @@ When("the official SDK completes {word} approval edit denial and revoke through 
 		}
 		await page.goto(authorization);
 		await expect(page.getByRole("heading", { name: "Connect Official SDK browser acceptance" })).toBeVisible();
-		await page.getByRole("button", { name: "Deny", exact: true }).click();
+		await page.getByRole("button", { name: "Cancel connection", exact: true }).click();
 		await page.waitForURL("http://127.0.0.1:49999/callback**");
 		expect(new URL(page.url()).searchParams.get("error")).toBe("access_denied");
 		expect(new URL(page.url()).searchParams.has("code")).toBe(false);
