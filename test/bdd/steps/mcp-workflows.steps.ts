@@ -84,6 +84,11 @@ Then("the workflow result is {string} and has a safe projection", async ({ mcpWo
 		if (variant === "free_clear_absent") expect(value.settings).toMatchObject({ creatorPageSocialTitle: null, creatorPageSocialDescription: null });
 		if (variant === "page_bio") expect(value.settings.creatorPageShowBio).toBe(false);
 		if (variant === "publish_on") expectedShapes.publish_creator_page.published = true;
+		if (tool === "update_gallery_settings" && (variant?.startsWith("layout_") || ["paid_fields_pro", "live_source", "free_unchanged_style", "custom_dates", "clear_custom_dates"].includes(variant ?? ""))) {
+			expectedShapes.update_gallery_settings.name = "Workflow gallery";
+			expect(row.storedGallery.name).toBe("Workflow gallery");
+		}
+		if (tool === "update_gallery_settings" && variant === "custom_dates") expectedShapes.update_gallery_settings.configurationRevision = 3;
 		if (variant?.startsWith("layout_")) expect(value.layout).toBe(variant.slice(7));
 		if (variant === "live_source") expect(value).toMatchObject({ source: "live", playlistId: null });
 		if (variant === "custom_dates") expect(value).toMatchObject({ source: "live", liveTimeWindow: "custom", liveCustomStart: "2026-10-01T00:00:00.000Z", liveCustomEnd: "2026-10-06T00:00:00.000Z" });
