@@ -1371,3 +1371,5 @@ Retained red/green command evidence and artifact registry: ../test-traceability.
 - Evidence logs: test-results/mcp/operational-metrics/. Hooks and CI gates remain enabled; final whole-regression/CI evidence is recorded separately when completed.
 
 Final extension checks: ESLint, TypeScript, production E2E build/action manifest and diff whitespace pass. Both revised all-app table/totals queries also execute successfully through the real Grafana connector, returning no data before collector deployment. Graphify refreshed after final source changes.
+
+CI ATDD follow-up: completed job 113269382852 failed account recovery on all three attempts because its fixture omitted provider credentials needed by the destination dashboard (redirected to /login). Add the existing isolated provider credential option only to that recovery fixture; preserve production token/session checks. The exact real-browser recovery scenario now passes (one test, 12.5 seconds) using the controlled Twitch responder.

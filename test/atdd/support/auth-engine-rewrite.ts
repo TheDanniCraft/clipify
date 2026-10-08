@@ -11,6 +11,7 @@ export type AuthFixture = {
 
 export type AuthFixtureOptions = {
 	activeContext?: "creator" | "agency";
+	withProviderCredentials?: boolean;
 	actorRole?: "user" | "admin";
 	deletionState?: "none" | "suspended";
 	agencyLinkStatus?: "proposed" | "accepted";
