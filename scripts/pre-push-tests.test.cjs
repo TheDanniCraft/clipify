@@ -38,3 +38,15 @@ test("deleted refs need no tests and invalid input fails closed", () => {
 });
 
 test("Gherkin changes use scoped local checks while browser acceptance stays in CI", () => assert.equal(selectPushChecks(["src/app/auth/mcp/consent/ConsentForm.tsx", "test/bdd/features/mcp-support/sdk_browser.feature"]).full, false));
+
+const migrationWorkflow = { GITHUB_ACTIONS: "true", GITHUB_REF: "refs/heads/master", GITHUB_WORKFLOW: "🗃️ Generate Migrations", CLIPIFY_MIGRATION_WORKFLOW: "true" };
+const generatedMigrations = ["drizzle/0025_new_schema.sql", "drizzle/meta/0025_snapshot.json", "drizzle/meta/_journal.json"];
+test("migration automation does not require an unrelated application database for generated artifacts", () => {
+	assert.deepEqual(selectPushChecks(generatedMigrations, migrationWorkflow), { full: false, paths: [] });
+});
+test("migration automation still tests source changes and unexpected artifacts", () => {
+	for (const path of ["src/db/schema.ts", "src/auth/mcp-options.ts", "drizzle/custom.ts", "drizzle/meta/unexpected.json"]) assert.equal(selectPushChecks([...generatedMigrations, path], migrationWorkflow).full, true, path);
+});
+test("generated migrations outside their owning workflow retain full push checks", () => {
+	for (const environment of [{}, { ...migrationWorkflow, GITHUB_ACTIONS: "false" }, { ...migrationWorkflow, GITHUB_REF: "refs/heads/feature/example" }, { ...migrationWorkflow, GITHUB_WORKFLOW: "🧪 CI" }, { ...migrationWorkflow, CLIPIFY_MIGRATION_WORKFLOW: "false" }]) assert.equal(selectPushChecks(generatedMigrations, environment).full, true);
+});
