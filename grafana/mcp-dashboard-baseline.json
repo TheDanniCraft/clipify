@@ -1,0 +1,10 @@
+{
+	"sourceUid": "clipify-vm01-overview",
+	"sourceTitle": "Clipify VM01 Overview v5",
+	"sourceVersion": 17,
+	"sourceSchemaVersion": 42,
+	"panelCount": 68,
+	"panelIds": [205, 3, 4, 9, 10, 5, 6, 7, 8, 42, 45, 43, 44, 206, 13, 14, 15, 16, 46, 59, 207, 19, 20, 21, 22, 47, 48, 208, 25, 26, 27, 49, 209, 30, 31, 32, 33, 210, 50, 51, 52, 53, 54, 55, 211, 60, 61, 62, 63, 212, 56, 57, 58, 213, 36, 37, 38, 39, 40, 41, 214, 101, 102, 215, 201, 202, 203, 204],
+	"panelContentSha256": "071f2f07ceee723d7c091d20dbb99a2db45ef593c805ce450ac631eea79e40ff",
+	"capturedAt": "2026-10-08T12:02:24.003888+00:00"
+}

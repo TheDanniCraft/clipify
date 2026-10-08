@@ -1,0 +1,2079 @@
+{
+	"mcp": {
+		"processInstanceId": "sample-process",
+		"processStartedAt": "2026-10-08T00:00:00.000Z",
+		"sampledAt": "2026-10-08T00:01:00.000Z",
+		"calls": {
+			"started_total": 0,
+			"completed_total": 0,
+			"success_total": 0,
+			"denied_total": 0,
+			"error_total": 0,
+			"cancelled_total": 0,
+			"inFlight": 0
+		},
+		"requests": {
+			"total": 0,
+			"GET_total": 0,
+			"POST_total": 0,
+			"DELETE_total": 0,
+			"OPTIONS_total": 0,
+			"other_total": 0,
+			"status_2xx_total": 0,
+			"status_3xx_total": 0,
+			"status_4xx_total": 0,
+			"status_5xx_total": 0,
+			"other_status_total": 0
+		},
+		"operations": {
+			"initialize_total": 0,
+			"tools_list_total": 0,
+			"prompts_list_total": 0,
+			"prompts_get_total": 0,
+			"other_total": 0
+		},
+		"reasons": {
+			"INVALID_INPUT_total": 0,
+			"ACCESS_DENIED_total": 0,
+			"RESOURCE_UNAVAILABLE_total": 0,
+			"FEATURE_RESTRICTED_total": 0,
+			"PLAN_LIMIT_REACHED_total": 0,
+			"CONFLICT_total": 0,
+			"RETRY_CONFLICT_total": 0,
+			"RATE_LIMITED_total": 0,
+			"SERVICE_UNAVAILABLE_total": 0,
+			"MISSING_SCOPE_total": 0,
+			"AUTHENTICATION_REQUIRED_total": 0,
+			"CANCELLED_total": 0,
+			"other_total": 0
+		},
+		"categories": {
+			"read": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0
+			},
+			"write": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0
+			},
+			"destructive": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0
+			},
+			"unknown": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0
+			}
+		},
+		"duration": {
+			"count": 0,
+			"seconds_sum": 0,
+			"buckets": {
+				"le_0_01_total": 0,
+				"le_0_025_total": 0,
+				"le_0_05_total": 0,
+				"le_0_1_total": 0,
+				"le_0_25_total": 0,
+				"le_0_5_total": 0,
+				"le_1_total": 0,
+				"le_2_5_total": 0,
+				"le_5_total": 0,
+				"le_10_total": 0,
+				"le_30_total": 0,
+				"le_60_total": 0,
+				"le_inf_total": 0
+			}
+		},
+		"tools": {
+			"get_overlay_runtime": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"get_overlay_queues": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"control_overlay": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"enqueue_overlay_clip": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"clear_overlay_queue": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"search_clips": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"resolve_clip": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"preview_playlist_import": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"commit_playlist_import": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"list_galleries": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"get_gallery": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"create_gallery": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"update_gallery": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"delete_gallery": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"publish_gallery": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"get_gallery_embed": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"get_gallery_preview": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"get_overlay_embed": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"get_player_embed": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"get_creator_page": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"update_creator_page": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"publish_creator_page": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"get_runner_setup": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"list_runners": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"get_runner": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"create_runner": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"update_runner": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"delete_runner": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"unlink_runner": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"list_stream_sessions": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"get_stream_session": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"configure_stream_session": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"control_stream_session": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"get_runner_snapshot": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"submit_feedback": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"get_overlay_link": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"get_gallery_source": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"get_gallery_filters": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"get_gallery_layout": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"get_gallery_theme": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"update_gallery_settings": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"update_gallery_source": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"update_gallery_filters": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"update_gallery_layout": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"update_gallery_theme": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"get_overlay_source": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"get_overlay_filters": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"get_overlay_playback": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"get_overlay_theme": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"update_overlay_settings": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"update_overlay_source": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"update_overlay_filters": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"update_overlay_playback": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"update_overlay_theme": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"list_creators": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"get_capabilities": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"list_overlays": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"get_overlay": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"create_overlay": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"update_overlay": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"delete_overlay": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"list_playlists": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"get_playlist": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"create_playlist": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"update_playlist": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"delete_playlist": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"add_playlist_items": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"remove_playlist_items": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"reorder_playlist_items": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			},
+			"unknown": {
+				"started_total": 0,
+				"completed_total": 0,
+				"success_total": 0,
+				"denied_total": 0,
+				"error_total": 0,
+				"cancelled_total": 0,
+				"duration": {
+					"count": 0,
+					"seconds_sum": 0,
+					"buckets": {
+						"le_0_01_total": 0,
+						"le_0_025_total": 0,
+						"le_0_05_total": 0,
+						"le_0_1_total": 0,
+						"le_0_25_total": 0,
+						"le_0_5_total": 0,
+						"le_1_total": 0,
+						"le_2_5_total": 0,
+						"le_5_total": 0,
+						"le_10_total": 0,
+						"le_30_total": 0,
+						"le_60_total": 0,
+						"le_inf_total": 0
+					}
+				},
+				"lastUsedAt": null
+			}
+		}
+	},
+	"mcpClients": {
+		"summary": {
+			"registeredClients": 0,
+			"authorizedClients": 0,
+			"activeClients30d": 0,
+			"calls30d": 0,
+			"applicationNames": 0
+		},
+		"items": [],
+		"page": 1,
+		"pageSize": 20,
+		"sampledAt": "2026-10-08T00:01:00.000Z"
+	}
+}

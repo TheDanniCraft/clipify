@@ -18,7 +18,7 @@
 	"editable": true,
 	"fiscalYearStartMonth": 0,
 	"graphTooltip": 1,
-	"id": 2053745770229760,
+	"id": null,
 	"liveNow": false,
 	"panels": [
 		{
@@ -7246,12 +7246,485 @@
 			],
 			"title": "Creator Analytics Cache Health",
 			"type": "timeseries"
+		},
+		{
+			"id": 299,
+			"title": "MCP",
+			"type": "row",
+			"collapsed": false,
+			"gridPos": {
+				"h": 1,
+				"w": 24,
+				"x": 0,
+				"y": 199
+			},
+			"panels": []
+		},
+		{
+			"id": 300,
+			"title": "MCP calls per minute",
+			"type": "timeseries",
+			"gridPos": {
+				"h": 8,
+				"w": 12,
+				"x": 0,
+				"y": 200
+			},
+			"datasource": {
+				"type": "influxdb",
+				"uid": "efg3es37pgh6ob"
+			},
+			"description": "Cumulative RAM counters: normalize resets per stable instance before summing replicas. First scrape is a baseline; calls since the final scrape before restart may be lost. Missing scrapes stay gaps.",
+			"targets": [
+				{
+					"refId": "A",
+					"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"clipify_vm01\")\n  |> filter(fn: (r) => r._field == \"mcp_calls_started_total\")\n  |> increase()\n  |> difference(nonNegative: true)\n  |> aggregateWindow(every: v.windowPeriod, fn: sum, createEmpty: false)\n  |> group(columns: [\"_field\", \"_time\"])\n  |> sum()\n  |> map(fn: (r) => ({r with _value: r._value * 60.0 / (float(v: int(v: v.windowPeriod)) / 1000000000.0)}))\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])"
+				}
+			],
+			"fieldConfig": {
+				"defaults": {
+					"unit": "cpm",
+					"color": {
+						"mode": "palette-classic"
+					}
+				},
+				"overrides": []
+			},
+			"options": {
+				"legend": {
+					"displayMode": "table",
+					"placement": "bottom"
+				},
+				"tooltip": {
+					"mode": "multi"
+				}
+			}
+		},
+		{
+			"id": 301,
+			"title": "MCP outcomes per minute",
+			"type": "timeseries",
+			"gridPos": {
+				"h": 8,
+				"w": 12,
+				"x": 12,
+				"y": 200
+			},
+			"datasource": {
+				"type": "influxdb",
+				"uid": "efg3es37pgh6ob"
+			},
+			"description": "Cumulative RAM counters: normalize resets per stable instance before summing replicas. First scrape is a baseline; calls since the final scrape before restart may be lost. Missing scrapes stay gaps.",
+			"targets": [
+				{
+					"refId": "A",
+					"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"clipify_vm01\")\n  |> filter(fn: (r) => r._field == \"mcp_calls_success_total\" or r._field == \"mcp_calls_denied_total\" or r._field == \"mcp_calls_error_total\" or r._field == \"mcp_calls_cancelled_total\")\n  |> increase()\n  |> difference(nonNegative: true)\n  |> aggregateWindow(every: v.windowPeriod, fn: sum, createEmpty: false)\n  |> group(columns: [\"_field\", \"_time\"])\n  |> sum()\n  |> map(fn: (r) => ({r with _value: r._value * 60.0 / (float(v: int(v: v.windowPeriod)) / 1000000000.0)}))\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])"
+				}
+			],
+			"fieldConfig": {
+				"defaults": {
+					"unit": "cpm",
+					"color": {
+						"mode": "palette-classic"
+					}
+				},
+				"overrides": []
+			},
+			"options": {
+				"legend": {
+					"displayMode": "table",
+					"placement": "bottom"
+				},
+				"tooltip": {
+					"mode": "multi"
+				}
+			}
+		},
+		{
+			"id": 302,
+			"title": "MCP calls by tool",
+			"type": "timeseries",
+			"gridPos": {
+				"h": 8,
+				"w": 12,
+				"x": 0,
+				"y": 208
+			},
+			"datasource": {
+				"type": "influxdb",
+				"uid": "efg3es37pgh6ob"
+			},
+			"description": "Cumulative RAM counters: normalize resets per stable instance before summing replicas. First scrape is a baseline; calls since the final scrape before restart may be lost. Missing scrapes stay gaps.",
+			"targets": [
+				{
+					"refId": "A",
+					"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"clipify_vm01\")\n  |> filter(fn: (r) => r._field =~ /^mcp_tools_.*_started_total$/)\n  |> increase()\n  |> difference(nonNegative: true)\n  |> aggregateWindow(every: v.windowPeriod, fn: sum, createEmpty: false)\n  |> group(columns: [\"_field\", \"_time\"])\n  |> sum()\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])"
+				}
+			],
+			"fieldConfig": {
+				"defaults": {
+					"unit": "short",
+					"color": {
+						"mode": "palette-classic"
+					}
+				},
+				"overrides": []
+			},
+			"options": {
+				"legend": {
+					"displayMode": "table",
+					"placement": "bottom"
+				},
+				"tooltip": {
+					"mode": "multi"
+				}
+			}
+		},
+		{
+			"id": 303,
+			"title": "MCP rejection reasons",
+			"type": "timeseries",
+			"gridPos": {
+				"h": 8,
+				"w": 12,
+				"x": 12,
+				"y": 208
+			},
+			"datasource": {
+				"type": "influxdb",
+				"uid": "efg3es37pgh6ob"
+			},
+			"description": "Cumulative RAM counters: normalize resets per stable instance before summing replicas. First scrape is a baseline; calls since the final scrape before restart may be lost. Missing scrapes stay gaps.",
+			"targets": [
+				{
+					"refId": "A",
+					"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"clipify_vm01\")\n  |> filter(fn: (r) => r._field =~ /^mcp_reasons_.*_total$/)\n  |> increase()\n  |> difference(nonNegative: true)\n  |> aggregateWindow(every: v.windowPeriod, fn: sum, createEmpty: false)\n  |> group(columns: [\"_field\", \"_time\"])\n  |> sum()\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])"
+				}
+			],
+			"fieldConfig": {
+				"defaults": {
+					"unit": "short",
+					"color": {
+						"mode": "palette-classic"
+					}
+				},
+				"overrides": []
+			},
+			"options": {
+				"legend": {
+					"displayMode": "table",
+					"placement": "bottom"
+				},
+				"tooltip": {
+					"mode": "multi"
+				}
+			}
+		},
+		{
+			"id": 304,
+			"title": "MCP error ratio",
+			"type": "timeseries",
+			"gridPos": {
+				"h": 8,
+				"w": 12,
+				"x": 0,
+				"y": 216
+			},
+			"datasource": {
+				"type": "influxdb",
+				"uid": "efg3es37pgh6ob"
+			},
+			"description": "Cumulative RAM counters: normalize resets per stable instance before summing replicas. First scrape is a baseline; calls since the final scrape before restart may be lost. Missing scrapes stay gaps.",
+			"targets": [
+				{
+					"refId": "A",
+					"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"clipify_vm01\")\n  |> filter(fn: (r) => r._field == \"mcp_calls_completed_total\" or r._field == \"mcp_calls_error_total\")\n  |> increase()\n  |> difference(nonNegative: true)\n  |> aggregateWindow(every: v.windowPeriod, fn: sum, createEmpty: false)\n  |> group(columns: [\"_field\", \"_time\"])\n  |> sum()\n  |> group(columns: [])\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> filter(fn: (r) => exists r.mcp_calls_completed_total and r.mcp_calls_completed_total > 0.0)\n  |> map(fn: (r) => ({_time: r._time, _field: \"Error ratio\", _value: r.mcp_calls_error_total / r.mcp_calls_completed_total}))"
+				}
+			],
+			"fieldConfig": {
+				"defaults": {
+					"unit": "percentunit",
+					"color": {
+						"mode": "palette-classic"
+					}
+				},
+				"overrides": []
+			},
+			"options": {
+				"legend": {
+					"displayMode": "table",
+					"placement": "bottom"
+				},
+				"tooltip": {
+					"mode": "multi"
+				}
+			}
+		},
+		{
+			"id": 305,
+			"title": "MCP in-flight calls",
+			"type": "timeseries",
+			"gridPos": {
+				"h": 8,
+				"w": 12,
+				"x": 12,
+				"y": 216
+			},
+			"datasource": {
+				"type": "influxdb",
+				"uid": "efg3es37pgh6ob"
+			},
+			"description": "Latest in-flight work per instance, then summed. A missing scrape remains absent.",
+			"targets": [
+				{
+					"refId": "A",
+					"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"clipify_vm01\")\n  |> filter(fn: (r) => r._field == \"mcp_calls_inFlight\")\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)\n  |> group(columns: [\"_field\", \"_time\"])\n  |> sum()\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])"
+				}
+			],
+			"fieldConfig": {
+				"defaults": {
+					"unit": "short",
+					"color": {
+						"mode": "palette-classic"
+					}
+				},
+				"overrides": []
+			},
+			"options": {
+				"legend": {
+					"displayMode": "table",
+					"placement": "bottom"
+				},
+				"tooltip": {
+					"mode": "multi"
+				}
+			}
+		},
+		{
+			"id": 306,
+			"title": "MCP average duration",
+			"type": "timeseries",
+			"gridPos": {
+				"h": 8,
+				"w": 12,
+				"x": 0,
+				"y": 224
+			},
+			"datasource": {
+				"type": "influxdb",
+				"uid": "efg3es37pgh6ob"
+			},
+			"description": "Cumulative RAM counters: normalize resets per stable instance before summing replicas. First scrape is a baseline; calls since the final scrape before restart may be lost. Missing scrapes stay gaps.",
+			"targets": [
+				{
+					"refId": "A",
+					"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"clipify_vm01\")\n  |> filter(fn: (r) => r._field == \"mcp_duration_count\" or r._field == \"mcp_duration_seconds_sum\")\n  |> increase()\n  |> difference(nonNegative: true)\n  |> aggregateWindow(every: v.windowPeriod, fn: sum, createEmpty: false)\n  |> group(columns: [\"_field\", \"_time\"])\n  |> sum()\n  |> group(columns: [])\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> filter(fn: (r) => exists r.mcp_duration_count and r.mcp_duration_count > 0.0)\n  |> map(fn: (r) => ({_time: r._time, _field: \"Average duration\", _value: r.mcp_duration_seconds_sum / r.mcp_duration_count}))"
+				}
+			],
+			"fieldConfig": {
+				"defaults": {
+					"unit": "s",
+					"color": {
+						"mode": "palette-classic"
+					}
+				},
+				"overrides": []
+			},
+			"options": {
+				"legend": {
+					"displayMode": "table",
+					"placement": "bottom"
+				},
+				"tooltip": {
+					"mode": "multi"
+				}
+			}
+		},
+		{
+			"id": 307,
+			"title": "MCP p95 duration (histogram)",
+			"type": "timeseries",
+			"gridPos": {
+				"h": 8,
+				"w": 12,
+				"x": 12,
+				"y": 224
+			},
+			"datasource": {
+				"type": "influxdb",
+				"uid": "efg3es37pgh6ob"
+			},
+			"description": "Cumulative RAM counters: normalize resets per stable instance before summing replicas. First scrape is a baseline; calls since the final scrape before restart may be lost. Missing scrapes stay gaps. Approximate p95 from summed cumulative bucket deltas, never averaged per-instance percentiles. No observations produce no sample.",
+			"targets": [
+				{
+					"refId": "A",
+					"query": "import \"math\"\nfrom(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"clipify_vm01\")\n  |> filter(fn: (r) => r._field =~ /^mcp_duration_buckets_le_.*_total$/)\n  |> increase()\n  |> difference(nonNegative: true)\n  |> aggregateWindow(every: v.windowPeriod, fn: sum, createEmpty: false)\n  |> group(columns: [\"_field\", \"_time\"])\n  |> sum()\n  |> map(fn: (r) => ({r with le: if r._field == \"mcp_duration_buckets_le_inf_total\" then float(v: \"+Inf\") else if r._field == \"mcp_duration_buckets_le_0_01_total\" then 0.01 else if r._field == \"mcp_duration_buckets_le_0_025_total\" then 0.025 else if r._field == \"mcp_duration_buckets_le_0_05_total\" then 0.05 else if r._field == \"mcp_duration_buckets_le_0_1_total\" then 0.1 else if r._field == \"mcp_duration_buckets_le_0_25_total\" then 0.25 else if r._field == \"mcp_duration_buckets_le_0_5_total\" then 0.5 else if r._field == \"mcp_duration_buckets_le_1_total\" then 1.0 else if r._field == \"mcp_duration_buckets_le_2_5_total\" then 2.5 else if r._field == \"mcp_duration_buckets_le_5_total\" then 5.0 else if r._field == \"mcp_duration_buckets_le_10_total\" then 10.0 else if r._field == \"mcp_duration_buckets_le_30_total\" then 30.0 else if r._field == \"mcp_duration_buckets_le_60_total\" then 60.0 else 0.0}))\n  |> group(columns: [\"_time\"])\n  |> sort(columns: [\"le\"])\n  |> histogramQuantile(quantile: 0.95, countColumn: \"_value\", upperBoundColumn: \"le\", onNonmonotonic: \"error\")\n  |> group(columns: [])\n  |> filter(fn: (r) => not math.isNaN(f: r._value))\n  |> sort(columns: [\"_time\"])"
+				}
+			],
+			"fieldConfig": {
+				"defaults": {
+					"unit": "s",
+					"color": {
+						"mode": "palette-classic"
+					}
+				},
+				"overrides": []
+			},
+			"options": {
+				"legend": {
+					"displayMode": "table",
+					"placement": "bottom"
+				},
+				"tooltip": {
+					"mode": "multi"
+				}
+			}
+		},
+		{
+			"id": 308,
+			"title": "MCP process start / restart",
+			"type": "timeseries",
+			"gridPos": {
+				"h": 8,
+				"w": 12,
+				"x": 0,
+				"y": 232
+			},
+			"datasource": {
+				"type": "influxdb",
+				"uid": "efg3es37pgh6ob"
+			},
+			"description": "Process start as Unix seconds. A changed value marks a restart; keep stable instance tags and scrape each process directly.",
+			"targets": [
+				{
+					"refId": "A",
+					"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"clipify_vm01\")\n  |> filter(fn: (r) => r._field == \"mcp_processStartedAtUnixSeconds\")\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)\n  |> map(fn: (r) => ({r with _value: r._value * 1000.0}))"
+				}
+			],
+			"fieldConfig": {
+				"defaults": {
+					"unit": "dateTimeAsIso",
+					"color": {
+						"mode": "palette-classic"
+					}
+				},
+				"overrides": []
+			},
+			"options": {
+				"legend": {
+					"displayMode": "table",
+					"placement": "bottom"
+				},
+				"tooltip": {
+					"mode": "multi"
+				}
+			}
+		},
+		{
+			"id": 309,
+			"title": "MCP scrape age",
+			"type": "timeseries",
+			"gridPos": {
+				"h": 8,
+				"w": 12,
+				"x": 12,
+				"y": 232
+			},
+			"datasource": {
+				"type": "influxdb",
+				"uid": "efg3es37pgh6ob"
+			},
+			"description": "Time since the last collected MCP snapshot, per stable instance. Configure missing-data alerts in Grafana; absent telemetry is not zero.",
+			"targets": [
+				{
+					"refId": "A",
+					"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"clipify_vm01\")\n  |> filter(fn: (r) => r._field == \"mcp_sampledAtUnixSeconds\")\n  |> last()\n  |> map(fn: (r) => ({r with _value: float(v: uint(v: now())) / 1000000000.0 - r._value}))"
+				}
+			],
+			"fieldConfig": {
+				"defaults": {
+					"unit": "s",
+					"color": {
+						"mode": "palette-classic"
+					}
+				},
+				"overrides": []
+			},
+			"options": {
+				"legend": {
+					"displayMode": "table",
+					"placement": "bottom"
+				},
+				"tooltip": {
+					"mode": "multi"
+				}
+			}
+		},
+		{
+			"id": 310,
+			"title": "MCP applications (self-reported)",
+			"type": "table",
+			"gridPos": {
+				"h": 10,
+				"w": 24,
+				"x": 0,
+				"y": 240
+			},
+			"datasource": {
+				"type": "influxdb",
+				"uid": "efg3es37pgh6ob"
+			},
+			"description": "Top 20 self-reported app names, including Custom. Client-ID changes remain grouped by app name. Database-wide retained 30-day audit usage; do not sum replicas. Names are fixed-slot string field values, never tags. See admin for the complete paginated list.",
+			"targets": [
+				{
+					"refId": "A",
+					"query": "import \"strings\"\nsource = from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"clipify_vm01\")\nlatest = source\n  |> filter(fn: (r) => r._field == \"mcp_clients_sampledAtUnixSeconds\")\n  |> group(columns: [])\n  |> sort(columns: [\"_time\"], desc: true)\n  |> limit(n: 1)\n  |> findRecord(fn: (key) => true, idx: 0)\nsource\n  |> filter(fn: (r) => r._time == latest._time)\n  |> filter(fn: (r) => r._field =~ /^mcp_clients_app_[0-9]+_(name|registeredClients|authorizedClients|activeConnections|activeClients30d|calls30d)$/)\n  |> map(fn: (r) => ({Slot: strings.split(v: r._field, t: \"_\")[3], Metric: strings.split(v: r._field, t: \"_\")[4], _value: string(v: r._value)}))\n  |> group(columns: [])\n  |> pivot(rowKey: [\"Slot\"], columnKey: [\"Metric\"], valueColumn: \"_value\")\n  |> map(fn: (r) => ({Rank: int(v: r.Slot), App: r.name, Registered: float(v: r.registeredClients), Authorized: float(v: r.authorizedClients), Connections: float(v: r.activeConnections), ActiveClients30d: float(v: r.activeClients30d), Calls30d: float(v: r.calls30d)}))\n  |> sort(columns: [\"Rank\"])\n",
+					"format": "table"
+				}
+			],
+			"fieldConfig": {
+				"defaults": {},
+				"overrides": []
+			},
+			"options": {
+				"showHeader": true
+			}
+		},
+		{
+			"id": 311,
+			"title": "MCP adoption totals",
+			"type": "table",
+			"gridPos": {
+				"h": 5,
+				"w": 24,
+				"x": 0,
+				"y": 250
+			},
+			"datasource": {
+				"type": "influxdb",
+				"uid": "efg3es37pgh6ob"
+			},
+			"description": "Latest database-wide summary. Other applications means groups beyond the exported top 20; admin pagination covers all. Counts unavailable during a database/schema failure are omitted. Unconsented registrations are separate from active grants and actual retained tool usage.",
+			"targets": [
+				{
+					"refId": "A",
+					"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"clipify_vm01\")\n  |> filter(fn: (r) => r._field =~ /^mcp_clients_(available|registeredClients|authorizedClients|activeClients30d|calls30d|applicationNames)$/)\n  |> last()\n  |> group(columns: [\"_field\"])\n  |> last()\n  |> group(columns: [])\n  |> pivot(rowKey: [], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> filter(fn: (r) => r.mcp_clients_available == 1.0)\n  |> drop(columns: [\"mcp_clients_available\"])",
+					"format": "table"
+				}
+			],
+			"fieldConfig": {
+				"defaults": {},
+				"overrides": []
+			},
+			"options": {
+				"showHeader": true
+			}
 		}
 	],
 	"preload": false,
 	"refresh": "30s",
 	"schemaVersion": 42,
-	"tags": ["clipify", "vm01", "monitoring", "draft-v2", "galleries", "creator-pages"],
+	"tags": ["clipify", "vm01", "monitoring", "draft-v2", "galleries", "creator-pages", "mcp"],
 	"time": {
 		"from": "now-30d",
 		"to": "now"
@@ -7260,7 +7733,7 @@
 		"refresh_intervals": ["5s", "10s", "30s", "1m", "5m", "15m", "30m", "1h", "2h", "1d"]
 	},
 	"timezone": "browser",
-	"title": "Clipify VM01 Overview v5",
-	"uid": "clipify-vm01-overview",
-	"version": 17
+	"title": "Clipify VM01 Overview v6",
+	"uid": "clipify-vm01-v6",
+	"version": 1
 }
