@@ -12,6 +12,14 @@ import { toolInputSchemas, type ToolName } from "./schemas";
 import { toolAnnotations } from "./risk";
 import { listOverlays, getOverlay, createOverlayForPrincipal, deleteOverlay } from "@/server/resources/overlays";
 
+import { reportMcpToolOutcome } from "./metrics-dispatch";
+
+function measuredFailure(cause: unknown) {
+	const failure = toolFailure(cause);
+	reportMcpToolOutcome(failure.structuredContent.error.code === "SERVICE_UNAVAILABLE" ? "error" : "denied", failure.structuredContent.error.code);
+	return failure;
+}
+
 async function readResult(operation: () => Promise<Record<string, unknown>>, principal: TrustedCreatorPrincipal, name: ToolName, input: unknown) {
 	let result: Record<string, unknown>;
 	try {
@@ -21,9 +29,9 @@ async function readResult(operation: () => Promise<Record<string, unknown>>, pri
 		try {
 			await recordMcpCallActivity(principal, { tool: name, outcome: failure.structuredContent.error.code === "SERVICE_UNAVAILABLE" ? "error" : "denied", reason: failure.structuredContent.error.code });
 		} catch (error) {
-			return toolFailure(error);
+			return measuredFailure(error);
 		}
-		return failure;
+		return measuredFailure(cause);
 	}
 	if (toolAnnotations(name).readOnlyHint) {
 		const selectors = input as { creatorId?: string; overlayId?: string; playlistId?: string; galleryId?: string; runnerId?: string; sessionId?: string } | undefined;
@@ -36,10 +44,11 @@ async function readResult(operation: () => Promise<Record<string, unknown>>, pri
 				targetId: selectors?.overlayId ?? selectors?.playlistId ?? selectors?.galleryId ?? selectors?.runnerId ?? selectors?.sessionId ?? selectors?.creatorId,
 			});
 		} catch (error) {
-			return toolFailure(error);
+			return measuredFailure(error);
 		}
 	}
 
+	reportMcpToolOutcome("success");
 	const { imageData, ...snapshotMetadata } = result;
 	const metadata = name === "get_runner_snapshot" ? snapshotMetadata : result;
 	const images = name === "get_runner_snapshot" && typeof imageData === "string" ? [{ type: "image" as const, data: imageData, mimeType: "image/jpeg" }] : [];
@@ -73,6 +82,7 @@ export function registerMcpTools(server: McpServer, principal: TrustedCreatorPri
 		const tool = tools.find((tool) => tool.name === request.params.name);
 		if (!tool) {
 			await recordMcpCallActivity(principal, { outcome: "denied", reason: "INVALID_INPUT" });
+			reportMcpToolOutcome("denied", "INVALID_INPUT");
 			throw new ProtocolError(ProtocolErrorCode.InvalidParams, "This tool is unavailable");
 		}
 		const input = tool.schema.safeParse(request.params.arguments ?? {});

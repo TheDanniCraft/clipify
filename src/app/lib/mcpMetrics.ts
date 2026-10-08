@@ -1,0 +1,6 @@
+/** Serializable operational DTOs; safe to import as types in client views. */
+export type McpMetricCounts = { started_total: number; completed_total: number; success_total: number; denied_total: number; error_total: number; cancelled_total: number };
+export type McpDurationHistogram = { count: number; seconds_sum: number; buckets: Record<string, number> };
+export type McpMetricsSnapshot = { processInstanceId: string; processStartedAt: string; sampledAt: string; calls: McpMetricCounts & { inFlight: number }; requests: Record<string, number>; operations: Record<string, number>; reasons: Record<string, number>; categories: Record<string, McpMetricCounts>; duration: McpDurationHistogram; tools: Record<string, McpMetricCounts & { duration: McpDurationHistogram; lastUsedAt: string | null }> };
+export type McpClientGroup = { name: string; registeredClients: number; authorizedClients: number; activeConnections: number; activeClients30d: number; calls30d: number; lastUsedAt: string | null };
+export type McpClientStats = { summary: { registeredClients: number; authorizedClients: number; activeClients30d: number; calls30d: number; applicationNames: number }; items: McpClientGroup[]; page: number; pageSize: number; sampledAt: string };

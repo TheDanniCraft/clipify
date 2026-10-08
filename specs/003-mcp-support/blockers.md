@@ -33,9 +33,10 @@ See preview-testing.md for the current live results.
 
 Remaining live acceptance prerequisites:
 
-- Successful disposable create/edit/retry workflows: the approved creator is
-  Free and already at all three resource limits. Existing resources are
-  preserved. A second approved disposable creator with capacity is requested.
+- Successful disposable create/edit/retry workflows are now verified after
+  explicit user authorization to manipulate disposable development data.
+  Originals were backed up, temporarily parked under a development-only
+  fixture creator, then restored exactly; no plan or grant was elevated.
 - Delete/credential/remote-control scopes are absent from this grant. No delete
   attempt is made against existing resources. Automatic review rejected a
   proposed negative mutation/delete batch against the existing overlay; the
@@ -47,6 +48,7 @@ Remaining live acceptance prerequisites:
 - ChatGPT, Claude and another real custom-host profile remain unverified; Codex
   preview results do not replace those profiles.
 
-MCP operational statistics/Grafana v6 are approved planned work (T570–T577),
-not part of the completed live-validation claim. Historical chronology issues
+MCP operational statistics, all-client adoption export and Grafana v6 are implemented and validated locally. The real Grafana connector accepted the new queries, but the current Influx bucket has no MCP fields. T577 still needs deployment and external collector configuration/ingestion validation. Historical chronology issues
 above remain distinct from current runtime correctness; no exception is implied.
+
+The user has explicitly approved positive MCP deletion testing. The stored preview grant still lacks overlay:delete, playlist:delete and gallery:delete; a fresh user-completed OAuth consent grant is needed. Earlier automatic approval review rejected requesting expanded scopes before that approval. No additional secret-link scope is needed for deletion acceptance.

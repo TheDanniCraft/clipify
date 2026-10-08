@@ -1,6 +1,7 @@
 import React from "react";
 import { act, render, screen } from "@testing-library/react";
 import AdminHealthCharts from "@/app/components/adminHealthCharts";
+import sample from "../../../grafana/mcp-health-sample.json";
 import type { InstanceHealthSnapshot } from "@/app/lib/instanceHealth";
 
 jest.mock("@heroui/react", () => ({
@@ -39,6 +40,8 @@ jest.mock("recharts", () => ({
 }));
 
 const healthSnapshot: InstanceHealthSnapshot = {
+	mcp: sample.mcp,
+	mcpClients: null,
 	status: "ok",
 	time: "2026-03-09T00:00:00.000Z",
 	uptimeSec: 1200,

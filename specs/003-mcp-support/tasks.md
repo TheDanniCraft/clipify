@@ -1216,13 +1216,28 @@ These tasks require unavailable original evidence or explicit review of a workfl
 
 ## MCP operational statistics and Grafana v6
 
-Approved plan addition; all tasks below are pending implementation.
+Approved plan addition; implementation and local validation evidence is recorded in tdd/cycle-log.md. External ingestion remains separately tracked.
 
-- [ ] T570 Define additive MCP health DTO, fixed counter/outcome/reason catalogue, duration histogram and sample/flattened Influx mappings; inspect external collector rules if accessible and document any exact external blocker.
-- [ ] T571 Implement bounded process-local cumulative counters, duration sum/count/buckets, in-flight gauges and process/start/sample metadata; test concurrency, cardinality, snapshot isolation and restart semantics.
-- [ ] T572 Instrument MCP HTTP, discovery/prompt and tool-call boundaries exactly once, including pre-execution rejection, invalid input, cancellation and audit failures; preserve existing authorization/audit behavior and verify both SDK dispatch paths.
-- [ ] T573 Add MCP metrics to protected instance-health snapshots without changing existing fields/access/cache rules; verify numeric field types, redaction, deterministic mappings and non-resetting reads.
-- [ ] T574 Add HeroUI admin MCP overview and per-tool table; distinguish live process statistics from existing durable audit history and verify admin authorization/rendering.
-- [ ] T575 Create grafana/clipify-vm01-overview-v6.json with existing Flux/datasource conventions and applicable v5 panels plus MCP traffic/outcomes/tools/rejections/in-flight/latency/restart/freshness panels; include collector mapping and reset/replica/gap-aware query guidance.
-- [ ] T576 Verify Grafana artifact and Flux fixture semantics (restart, replicas, zero traffic, missing scrape, bucket-derived p95); run scoped regressions, coverage/static/build checks as applicable and update feature evidence.
+- [x] T570 Define additive MCP health DTO, fixed counter/outcome/reason catalogue, duration histogram and sample/flattened Influx mappings; inspect external collector rules if accessible and document any exact external blocker.
+- [x] T571 Implement bounded process-local cumulative counters, duration sum/count/buckets, in-flight gauges and process/start/sample metadata; test concurrency, cardinality, snapshot isolation and restart semantics.
+- [x] T572 Instrument MCP HTTP, discovery/prompt and tool-call boundaries exactly once, including pre-execution rejection, invalid input, cancellation and audit failures; preserve existing authorization/audit behavior and verify both SDK dispatch paths.
+- [x] T573 Add MCP metrics to protected instance-health snapshots without changing existing fields/access/cache rules; verify numeric field types, redaction, deterministic mappings and non-resetting reads.
+- [x] T574 Add HeroUI admin MCP overview and per-tool table; distinguish live process statistics from existing durable audit history and verify admin authorization/rendering.
+- [x] T575 Create grafana/clipify-vm01-overview-v6.json with existing Flux/datasource conventions and applicable v5 panels plus MCP traffic/outcomes/tools/rejections/in-flight/latency/restart/freshness panels; include collector mapping and reset/replica/gap-aware query guidance.
+- [x] T576 Verify Grafana artifact and Flux fixture semantics (restart, replicas, zero traffic, missing scrape, bucket-derived p95); run scoped regressions, coverage/static/build checks as applicable and update feature evidence.
 - [ ] T577 Validate actual health-to-Influx ingestion and v6 queries against external monitoring if access exists; otherwise record the precise external blocker without preventing completion of local tasks.
+
+## URL-only consent onboarding
+
+- [x] T578 Verify initial challenge has no read-only ceiling and resource metadata advertises the supported scope set; retain targeted insufficient-scope challenges and signed consent scope ceilings. Implement after focused Red.
+- [x] T579 Verify generic SDK automatic scope discovery offers consent Write without manually configuring scopes; verify per-creator Read/Write choices and least-grant behavior; update normal connection guidance and evidence.
+
+## MCP client adoption overview — approved refinement
+
+- [x] T580 Group existing OAuth registrations, active grants and retained 30-day MCP audit usage by self-reported app name, without a fixed client-ID allowlist; validate real PostgreSQL aggregation, ID changes, Custom names, deleted registrations and pagination.
+- [x] T581 Add admin-authorized paginated client list and complete health adoption summary; document name provenance, registration/authorization/usage distinctions and limited audit retention.
+- [x] T582 Export a complete client-name table as Influx string field values (never dynamic tags), dynamic numeric slot fields and total gauges; validate v6 table queries with actual Grafana/Influx ingestion fixtures.
+
+Client export refinement (2026-10-08): Export every application-name group in each one-minute health scrape, without a Top-X cap. Names remain field values. Influx retention is 30 days. Dashboard files must contain the complete importable dashboard, preserving existing panels.
+
+T577 external checkpoint: Real Grafana datasource accepts all 12 new MCP queries (including uncapped app table). Actual bucket still has no MCP fields. Deploy the app and configure/verify the external health collector mapping before claiming ingestion Green. No external dashboard changes were made.

@@ -95,6 +95,40 @@ const Accordion = Object.assign(({ children, ...props }: any) => <Slot {...props
 });
 const Avatar = Object.assign(({ children, ...props }: any) => <Slot {...props}>{children}</Slot>, { Image: () => null, Fallback: ({ children }: any) => <span aria-hidden='true'>{children}</span> });
 const Tabs = Object.assign(({ children, ...props }: any) => <Slot {...props}>{children}</Slot>, { ListContainer: Slot, List: Slot, Tab: Slot, Indicator: () => null, Panel: Slot });
-export const components = { Accordion, Avatar, ToggleButtonGroup, ToggleButton, Tabs, Link: ({ children, ...props }: any) => <a {...props}>{children}</a>, Select, ListBox, Checkbox, Radio, RadioGroup, Button, Card, Alert, Chip: Slot, Separator: () => <hr />, Spinner: () => <span>Loading…</span>, Description: Slot, Label: Slot };
+const tableContext = createContext<any>({});
+const Table = Object.assign(({ children }: any) => <>{children}</>, {
+	ScrollContainer: ({ children }: any) => <>{children}</>,
+	Content: ({ children, sortDescriptor, onSortChange, ...props }: any) => (
+		<tableContext.Provider value={{ sortDescriptor, onSortChange }}>
+			<table role='grid' {...props}>
+				{children}
+			</table>
+		</tableContext.Provider>
+	),
+	Header: ({ children }: any) => (
+		<thead>
+			<tr>{children}</tr>
+		</thead>
+	),
+	Column: ({ children, id, allowsSorting }: any) => {
+		const context = useContext(tableContext);
+		return <th onClick={allowsSorting ? () => context.onSortChange({ column: id, direction: context.sortDescriptor.column === id && context.sortDescriptor.direction === "ascending" ? "descending" : "ascending" }) : undefined}>{children}</th>;
+	},
+	Body: ({ children, renderEmptyState }: any) => (
+		<tbody>
+			{React.Children.count(children) ? (
+				children
+			) : (
+				<tr>
+					<td>{renderEmptyState()}</td>
+				</tr>
+			)}
+		</tbody>
+	),
+	Row: ({ children }: any) => <tr>{children}</tr>,
+	Cell: ({ children }: any) => <td>{children}</td>,
+});
+
+export const components = { Table, Accordion, Avatar, ToggleButtonGroup, ToggleButton, Tabs, Link: ({ children, ...props }: any) => <a {...props}>{children}</a>, Select, ListBox, Checkbox, Radio, RadioGroup, Button, Card, Alert, Chip: Slot, Separator: () => <hr />, Spinner: () => <span>Loading…</span>, Description: Slot, Label: Slot };
 
 export const proComponents = { RadioButtonGroup: Object.assign(RadioGroup, { Item: Radio, ItemContent: Slot, ItemIcon: Slot, Indicator: () => null }), EmptyState: Object.assign(Slot, { Header: Slot, Media: Slot, Title: Slot, Description: Slot, Content: Slot }) };

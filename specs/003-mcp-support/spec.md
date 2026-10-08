@@ -1746,3 +1746,38 @@ AC-FE-001: Theme editing changes the requested visual field while preserving nam
 AC-FE-002: Cross-area/empty/unknown-field patches and stale revisions do not modify the resource. Missing scope and creator authorization cannot be bypassed by a focused tool.
 AC-FE-003: The official SDK discovers 66 described tools and six prompts; the three obsolete public names are absent and cannot execute.
 AC-FE-004: Saved player volume and ephemeral live volume remain distinct. Import stays an explicit batch preview/commit workflow, not a new scheduled importer.
+
+## Approved URL-only consent and observability refinement (2026-10-08)
+
+Normal MCP onboarding requires only the Clipify MCP URL. The generic client
+learns available resource scopes from protected-resource metadata rather than
+an initial read-only challenge. Users choose Read / Write / Custom independently
+for each creator on Clipify's consent UI; approval grants only those choices.
+Do not silently expand deliberately restricted OAuth requests or signed query
+parameters: protocol scope ceilings remain enforced and narrow requests explain
+why particular choices are unavailable. Remove manual scope flags from the
+normal connection instructions and verify actual SDK discovery-based onboarding.
+
+Add bounded process-local MCP operational counters/gauges/histograms, protected
+health snapshot export and an admin-only overview. Export cumulative metrics
+for the existing InfluxDB pipeline, with documented reset/replica semantics;
+do not export overlapping rolling counts as traffic totals. Provide an importable
+Grafana v6 dashboard, ingestion field mapping and executable artifact/schema
+validation. No identities, payloads, credentials or arbitrary metric labels.
+Historical activity continues to use existing audit records. External monitoring
+validation without available access is a separately recorded blocker.
+
+### Client adoption insight (approved 2026-10-08)
+
+Operations should show actual self-reported application names, including Custom
+clients. Changing DCR client IDs must not make an application disappear from
+name-grouped usage. Distinguish registered clients, clients with current active
+grants, and clients with retained MCP tool-call audit activity in the last 30
+days. Names are unverified client metadata, not proof of vendor identity. The
+admin list is paginated across all groups. Grafana receives a complete
+name/count table plus totals, with names as values rather than
+unbounded time-series tags. Read existing provider/grant/audit tables; no new
+identity maps or schema are required. Audit retention bounds usage history;
+deleted client metadata can only be shown as unavailable, not reconstructed.
+
+Client export refinement (2026-10-08): Export every application-name group in each one-minute health scrape, without a Top-X cap. Names remain field values. Influx retention is 30 days. Dashboard files must contain the complete importable dashboard, preserving existing panels.

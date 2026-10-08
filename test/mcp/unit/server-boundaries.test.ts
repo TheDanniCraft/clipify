@@ -8,6 +8,7 @@ const activity = jest.fn();
 const rateLimit = jest.fn();
 const challenge = jest.fn();
 const ready = jest.fn();
+const authOptions = jest.fn();
 const configuration = { valid: true, origin: "http://127.0.0.1:3107", issuer: "http://127.0.0.1:3107/api/auth", resource: "http://127.0.0.1:3107/mcp", allowedOrigins: ["http://127.0.0.1:3107"] };
 jest.mock("@/db/request-scope", () => ({ withDatabaseRequest: (_signal: unknown, run: () => unknown) => run() }));
 jest.mock("@/auth/config", () => ({ auth: {} }));
@@ -17,7 +18,12 @@ jest.mock("@/server/mcp/schema-readiness", () => ({ isMcpSchemaReady: () => read
 jest.mock("@/server/mcp/tools", () => ({ registerMcpTools: (...args: unknown[]) => registerTools(...args) }));
 jest.mock("@/server/mcp/activity", () => ({ recordMcpCallActivity: (...args: unknown[]) => activity(...args) }));
 jest.mock("@/server/mcp/rate-limit", () => ({ consumeMcpRateLimit: (...args: unknown[]) => rateLimit(...args), getMcpNetworkSignal: () => "isolated", getMcpRateLimits: () => ({}) }));
-jest.mock("@better-auth/mcp", () => ({ requireMcpAuth: (_auth: unknown, callback: (request: Request, claims: unknown) => unknown) => (request: Request) => callback(request, { sub: "actor" }) }));
+jest.mock("@better-auth/mcp", () => ({
+	requireMcpAuth: (_auth: unknown, callback: (request: Request, claims: unknown) => unknown, options: unknown) => {
+		authOptions(options);
+		return (request: Request) => callback(request, { sub: "actor" });
+	},
+}));
 jest.mock("@better-auth/oauth-provider", () => ({ createResourceServerChallenge: (...args: unknown[]) => challenge(...args) }));
 jest.mock("better-auth/api", () => ({
 	APIError: class extends Error {
@@ -200,4 +206,26 @@ describe("MCP request adapter boundaries (native OAuth and SDK covered by owning
 		expect(result.headers.get("Access-Control-Allow-Origin")).toBe(configuration.origin);
 		expect(resolveGrant).not.toHaveBeenCalled();
 	});
+});
+
+test("URL-only onboarding does not impose a read-only initial scope ceiling", async () => {
+	configuration.valid = true;
+	ready.mockResolvedValue(true);
+	resolveGrant.mockResolvedValue({ kind: "oauth", scopes: ["creator:read"] });
+	fetchHandler.mockResolvedValue(new Response(null, { status: 200 }));
+	await handleMcpRequest(request(JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list" })));
+	expect(authOptions.mock.calls.at(-1)[0]).not.toHaveProperty("challengeScopes");
+});
+
+test("actual server boundary counts rate-limited tools once before SDK dispatch", async () => {
+	globalThis.__clipifyMcpMetrics = undefined;
+	configuration.valid = true;
+	ready.mockResolvedValue(true);
+	resolveGrant.mockResolvedValue({ authUserId: "actor", clientId: "client", scopes: ["creator:read"] });
+	rateLimit.mockResolvedValueOnce({ allowed: false, retryAfterSeconds: 2 });
+	activity.mockResolvedValue(undefined);
+	await handleMcpRequest(request(JSON.stringify({ method: "tools/call", params: { name: "list_creators" } })));
+	const { getMcpMetricsSnapshot } = await import("@/server/mcp/metrics");
+	expect(getMcpMetricsSnapshot().calls).toMatchObject({ started_total: 1, completed_total: 1, denied_total: 1, inFlight: 0 });
+	expect(getMcpMetricsSnapshot().reasons.RATE_LIMITED_total).toBe(1);
 });

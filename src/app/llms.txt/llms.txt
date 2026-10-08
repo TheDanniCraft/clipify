@@ -19,7 +19,7 @@ Clipify uses browser-source overlays, so streamers can add it to OBS Studio, Str
 
 ## AI assistant access (MCP)
 
-MCP access is included in Free and Pro. Compatible AI assistants and custom clients connect to `https://clipify.us/mcp` through OAuth with PKCE and dynamic client registration. Users explicitly choose creators and permissions, can grant read-only or editing access, and opt into deletion separately. Existing creator permissions and plan limits apply equally to MCP and browser requests. Revoke app access in account settings.
+MCP access is included in Free and Pro. Compatible AI assistants and custom clients connect to `https://clipify.us/mcp` through OAuth with PKCE and dynamic client registration. Supported scopes are discovered automatically; no manual scope configuration is needed for normal setup. Users choose creators and Read, Write or Custom permissions on Clipify’s consent page. Write includes supported deletion; secret links and credential rotation require explicit Custom permissions. Existing creator permissions and plan limits apply equally to MCP and browser requests. Revoke app access in account settings.
 
 ## Product updates
 

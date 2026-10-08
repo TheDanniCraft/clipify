@@ -1359,3 +1359,15 @@ Codex DCR preparation exposed the same private-state copy in the registration bo
 - Focused BDD/ATDD: 6 examples Green using the established compiled Node probe route; real-browser consent/SDK/English example section: 3 journeys Green against the frozen production build.
 
 Retained red/green command evidence and artifact registry: ../test-traceability.md. Environment-only BDD invocation mistakes and migrated fixture defects are recorded in ../defect-log.md rather than counted as product red evidence.
+
+## Operational metrics, URL-only onboarding and complete client adoption (2026-10-08)
+
+- Focused Red preceded new metric storage, HTTP/tool dispatch, streaming completion, health DTO, admin UI and Influx export behavior. The initial challenge incorrectly narrowed consent to creator:read; the real SDK now discovers supported scopes without manual configuration.
+- Real SDK regression exposed premature SSE completion: five calls were incorrectly counted as five successes. Stream observation now records three successes and two denials at completion and propagates cancellation.
+- 89 scoped suites / 934 tests passed, including unit/component/native SDK/health boundaries. Five real Chromium journeys passed: consent, SDK workflow/revoke, admin telemetry and non-admin denial. Scoped coverage diagnostics reached 99.04% statements and 96.26% branches across the five new runtime modules; unrelated whole-project file thresholds are not claimed by that scoped command.
+- User removed the Top-X limit. The new 25-application export assertion failed before removing the cap, then passed. Native PostgreSQL verifies all 29 fixture groups appear in the health snapshot, while admin pagination remains independent. Affected export/cache/dashboard/native contracts: 11 passed; expanded native/admin checks: four passed.
+- Deployed Grafana v5 has 68 panels; the old repository file only contained four additions. Restored the full v5 export and preserved every panel in v6 (81 panels including rows). Actual local Grafana 12.2.0 / InfluxDB OSS 2.9.1 accepted the full import, 360 Flux target queries across normal/reset/replica/gap/zero scenarios, and all Grafana query panels. Average/p95 and complete custom-name export were verified. A CSV column-selection defect in the validator was corrected; actual latency query values were already correct.
+- Read-only external Grafana access confirms the datasource and 12 new MCP queries are compatible. Current field keys contain no MCP fields: deployment/collector ingestion remains T577, not an unavailable-Grafana-access claim. No external dashboard was published.
+- Evidence logs: test-results/mcp/operational-metrics/. Hooks and CI gates remain enabled; final whole-regression/CI evidence is recorded separately when completed.
+
+Final extension checks: ESLint, TypeScript, production E2E build/action manifest and diff whitespace pass. Both revised all-app table/totals queries also execute successfully through the real Grafana connector, returning no data before collector deployment. Graphify refreshed after final source changes.

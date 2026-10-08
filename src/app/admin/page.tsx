@@ -1,5 +1,8 @@
 import { validateAdminAuth } from "@actions/auth";
 import { getAdminExplorerPage } from "@actions/adminView";
+import AdminMcpClients from "@components/adminMcpClients";
+import { getMcpClientStats } from "@/server/mcp/client-stats";
+import AdminMcpMetrics from "@components/adminMcpMetrics";
 import AdminHealthCharts from "@components/adminHealthCharts";
 import AdminUserExplorer from "@components/adminUserExplorer";
 import DashboardNavbar from "@components/dashboardNavbar";
@@ -16,6 +19,7 @@ type AdminPageSearchParams = {
 	error?: string | string[];
 	page?: string | string[];
 	q?: string | string[];
+	mcpClientsPage?: string | string[];
 };
 
 function toSingle(value: string | string[] | undefined) {
@@ -53,10 +57,14 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 	const initialPage = toPositiveInt(toSingle(params.page), 1);
 	const [health, explorer] = await Promise.all([getInstanceHealthSnapshot(), getAdminExplorerPage(initialQuery, initialPage, 25)]);
 
+	const clientPage = Math.min(1000000, toPositiveInt(toSingle(params.mcpClientsPage), 1));
+	const clientStats = clientPage === 1 ? (health.mcpClients ? { ...health.mcpClients, items: health.mcpClients.items.slice(0, 20), pageSize: 20 } : null) : await getMcpClientStats(clientPage).catch(() => null);
 	return (
 		<DashboardNavbar user={adminUser} title='Admin' tagline='Operational telemetry and account entry points'>
 			<div className='mt-5 flex flex-col gap-4'>
 				<AdminNavigation active='operations' />
+				<AdminMcpMetrics metrics={health.mcp} />
+				<AdminMcpClients stats={clientStats} />
 				<Card>
 					<CardHeader className='flex w-full flex-row items-start justify-between pb-1'>
 						<div>

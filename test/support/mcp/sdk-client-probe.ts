@@ -6,6 +6,7 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import * as schema from "@/db/auth-schema";
 import { createMcpPostgresFixture } from "./postgres";
 import { createMcpPlugins } from "@/auth/mcp-options";
+import { discoverAutomaticConsent } from "./automatic-scope-discovery";
 import { connectMcpClient } from "./client";
 
 async function main() {
@@ -82,6 +83,7 @@ async function main() {
 		await fixture.pool.query("INSERT INTO auth.member(id,organization_id,user_id,role,created_at) VALUES($1,'sdk-org',$2,'owner',now())", [randomUUID(), actor.user.id]);
 		const metadata = await (await fetch(origin + "/.well-known/oauth-protected-resource/mcp")).json();
 		const authorizationMetadata = await (await fetch(origin + "/.well-known/oauth-authorization-server/api/auth")).json();
+		const urlOnlyConsentWrite = await discoverAutomaticConsent(origin, cookie);
 		const registered = await fetch(origin + "/api/auth/oauth2/register", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ client_name: "Independent official SDK client", application_type: "native", redirect_uris: ["http://127.0.0.1:49999/callback"], token_endpoint_auth_method: "none", grant_types: ["authorization_code", "refresh_token"], response_types: ["code"] }) });
 		const client = await registered.json();
 		if (registered.status !== 201) throw new Error("SDK native DCR failed");
@@ -121,6 +123,8 @@ async function main() {
 		if (!dto?.id) throw new Error("SDK create did not return safe DTO");
 		const edited = await connected.client.callTool({ name: "update_overlay_settings", arguments: { creatorId: "sdk-creator", overlayId: dto.id, expectedRevision: 1, patch: { name: "Edited by official SDK" } } });
 		const limited = await connected.client.callTool({ name: "create_overlay", arguments: { creatorId: "sdk-creator", retryKey: "independent-sdk-over-limit", name: "Must be denied" } });
+		const { getMcpMetricsSnapshot } = await import("@/server/mcp/metrics");
+		const measuredCalls = getMcpMetricsSnapshot();
 		const grantsBeforeDenial = Number((await fixture.pool.query("SELECT count(*) FROM mcp_connection_grants")).rows[0].count);
 		const deny = await fetch(origin + "/test/consent", { method: "POST", headers: { Cookie: cookie, Origin: origin, "Content-Type": "application/json" }, body: JSON.stringify({ oauthQuery: await authorize(), accept: false, scopes: [], creators: [] }) });
 		const denied = await deny.json();
@@ -159,6 +163,8 @@ async function main() {
 		);
 		console.log(
 			JSON.stringify({
+				urlOnlyConsentWrite,
+				measuredCalls,
 				metadataValid: metadata.resource === origin + "/mcp" && metadata.authorization_servers?.includes(origin + "/api/auth") && authorizationMetadata.registration_endpoint === origin + "/api/auth/oauth2/register",
 				registrationStatus: registered.status,
 				issuerBound: claims.iss === origin + "/api/auth",

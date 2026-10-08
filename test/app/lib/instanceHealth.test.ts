@@ -255,6 +255,8 @@ describe("lib/instanceHealth", () => {
 		const { getInstanceHealthSnapshot } = await import("@/app/lib/instanceHealth");
 		const snapshot = await getInstanceHealthSnapshot();
 
+		expect(snapshot.mcp.calls.started_total).toBeGreaterThanOrEqual(0);
+		expect(snapshot.mcp.processStartedAt).toEqual(expect.any(String));
 		expect(snapshot.counts.users).toBe(10);
 		expect(snapshot.counts.overlaysTotal).toBe(20);
 		expect(snapshot.entitlements.activeGrantUsers).toBe(2);

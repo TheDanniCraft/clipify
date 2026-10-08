@@ -21,19 +21,19 @@ Replace PREVIEW_ORIGIN with the verified HTTPS origin:
 
 ```sh
 codex mcp add clipify-preview --url "PREVIEW_ORIGIN/mcp"
-codex mcp login clipify-preview --oauth-client-registration dcr --scopes creator:read,overlay:read,playlist:read,gallery:read,runner:read,offline_access
+codex mcp login clipify-preview --oauth-client-registration dcr
 ```
 
 For this remote development environment, add --no-browser to login: it prints a fresh authorization URL and accepts the resulting callback URL. Authenticate with the preview test account and approve only its test creator. The login command owns OAuth state/PKCE and credential storage; do not construct a static authorization link or paste tokens into the repository. Callback codes are credentials and must not enter retained logs or public PR comments.
 
-The first login is read-only. After verified read tests, a second login can request the required write/delete/remote-control scopes for disposable test resources. Consent offers read/read-and-edit presets and individual scopes; deletion permissions require explicit selection. Reconnect/reload Codex if needed so the authenticated server is available in the agent tool list.
+The normal connection needs only the MCP URL. The client discovers supported scopes automatically; choose Read, Write or Custom separately for each creator in Clipify consent. Write includes available destructive permissions; dedicated credential/secret permissions remain explicit Custom choices. A deliberately scope-limited client cannot exceed its signed OAuth request. Reconnect/reload Codex if needed so the authenticated server is available in the agent tool list.
 
 Official connection instructions: https://learn.chatgpt.com/docs/extend/mcp?surface=cli
 
 ## Acceptance sequence
 
 1. Discover tools and list only the approved creator's overlays/playlists/galleries/runners. Verify an unapproved creator is denied.
-2. Reauthorize the required mutation scopes; create/update/delete uniquely prefixed disposable resources, respecting current-plan limits and revision/retry contracts. Preserve existing creator resources.
+2. Select the required mutation permissions in consent; create/update/delete uniquely prefixed disposable resources, respecting current-plan limits and revision/retry contracts. Preserve existing creator resources.
 3. Check that Free cannot bypass overlay/playlist limits or use Pro-only runner operations.
 4. Verify consent denial and revoke the connection in Settings > Connected apps; the existing token must stop working.
 5. Record host/version/date, deployment revision, registration method and actual confirmation UI in the feature client matrix. One Codex journey does not close ChatGPT, Claude or custom-host acceptance.
@@ -51,7 +51,7 @@ The final pre-push regression passed 416 suites / 4495 tests, with 2 suites / 11
 With deployment configuration fixed, use the configured clipify-preview server and run:
 
 ```sh
-codex mcp login clipify-preview --no-browser --oauth-client-registration dcr --scopes creator:read,overlay:read,playlist:read,gallery:read,runner:read,offline_access
+codex mcp login clipify-preview --no-browser --oauth-client-registration dcr
 ```
 
 This produces the fresh authorization URL. It cannot be generated while discovery is unavailable.
@@ -108,3 +108,21 @@ both an exiting Select dialog and the editor modal. The selector now targets
 the named Manage Playlist dialog. All four affected actual browser scenarios
 pass against disposable fixtures in 23.4 seconds; no assertions or production
 behavior were removed. Full CI verification of the new commit remains pending.
+
+### Live disposable mutations — subsequent 2026-10-08 checkpoint
+
+The user explicitly authorized disposable development-data changes and backup.
+The live grant was verified in the Infisical development DB. All three original
+resource rows were backed up privately. A temporary fixture creator held the
+original rows while the approved creator's ordinary Free counts had room for
+test resources. Plan limits, entitlements and OAuth scopes were not changed.
+
+Create overlay/playlist/gallery and identical-key retry pass with the same IDs.
+Overlay rename/pause, playlist rename and gallery rename succeed. Stale
+revisions return CONFLICT; invalid patch returns INVALID_INPUT; Free theme edit
+returns FEATURE_RESTRICTED. A second resource of each kind returns
+PLAN_LIMIT_REACHED. All 20 SDK calls and three retry-ID assertions pass.
+Cleanup removes disposable rows and the fixture creator. Subsequent DB checks
+confirm every original row exactly matches its JSON-serialized backup and each
+original resource count is one. Cleanup uses explicit development fixture DB
+cleanup, not MCP delete; positive MCP deletion requires a newly approved grant.

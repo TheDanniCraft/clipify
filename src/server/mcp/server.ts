@@ -12,11 +12,13 @@ import { toolPermissions } from "./permissions";
 import type { ToolName } from "./schemas";
 import { getMcpConfiguration } from "./config";
 
+import { trackMcpRequest, trackMcpDispatch, reportMcpToolOutcome } from "./metrics-dispatch";
+
 const MAX_REQUEST_BYTES = 256 * 1024;
 
 export async function handleMcpRequest(request: Request): Promise<Response> {
 	const configuration = getMcpConfiguration();
-	const response = await withDatabaseRequest(request.signal, () => handleRequest(request, configuration));
+	const response = await trackMcpRequest(request, () => withDatabaseRequest(request.signal, () => handleRequest(request, configuration)));
 	const origin = request.headers.get("origin");
 	if (origin && configuration.allowedOrigins.includes(origin)) {
 		response.headers.set("Access-Control-Allow-Origin", origin);
@@ -79,6 +81,17 @@ async function handleRequest(request: Request, configuration: ReturnType<typeof 
 		request = new Request(request.url, { method: request.method, headers: request.headers, signal: request.signal, body: Buffer.concat(chunks, size) });
 	}
 
+	const body =
+		request.method === "POST"
+			? await request
+					.clone()
+					.json()
+					.catch(() => null)
+			: null;
+	return trackMcpDispatch(request, body, () => handleAuthenticatedRequest(request, configuration, origin));
+}
+
+async function handleAuthenticatedRequest(request: Request, configuration: ReturnType<typeof getMcpConfiguration>, origin: string | null): Promise<Response> {
 	const { isMcpSchemaReady } = await import("./schema-readiness");
 	if (!(await isMcpSchemaReady())) return Response.json({ error: "service_unavailable" }, { status: 503 });
 
@@ -114,6 +127,7 @@ async function handleRequest(request: Request, configuration: ReturnType<typeof 
 					if (permission && !principal.scopes?.includes(permission)) {
 						const { recordMcpCallActivity } = await import("./activity");
 						await recordMcpCallActivity(principal, { tool: name as ToolName, outcome: "denied", reason: "MISSING_SCOPE" });
+						reportMcpToolOutcome("denied", "MISSING_SCOPE");
 						throw createInsufficientScopeError([permission]);
 					}
 				}
@@ -132,11 +146,11 @@ async function handleRequest(request: Request, configuration: ReturnType<typeof 
 				}
 				return response;
 			},
-			{ resource: configuration.resource, issuer: configuration.issuer, challengeScopes: ["creator:read"] },
+			{ resource: configuration.resource, issuer: configuration.issuer },
 		);
 		return await protectedHandler(request);
 	} catch (error) {
-		const challenge = createResourceServerChallenge(error, configuration.resource, { challengeScopes: ["creator:read"] });
+		const challenge = createResourceServerChallenge(error, configuration.resource);
 		if (challenge) return Response.json({ error: "invalid_token" }, { status: challenge.statusCode, headers: challenge.headers });
 		return Response.json({ error: "service_unavailable" }, { status: 503 });
 	}

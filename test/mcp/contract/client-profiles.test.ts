@@ -9,6 +9,14 @@ describe.each(["legacy", "auto"])("independent official SDK %s transport", (mode
 		expect(result).toMatchObject({ metadataValid: true, registrationStatus: 201, issuerBound: true, audienceBound: true, clientVersion: "2.3.0", registrationPath: "native-dynamic-registration" });
 		expect(result.protocols).toContain(mode === "auto" ? "2026-07-28" : "2025-11-25");
 	});
+	test("URL-only automatic SDK discovery reaches signed consent with Write available", () => {
+		expect(result.urlOnlyConsentWrite).toBe(true);
+	});
+	test("real transport counts each tool once, including protocol and domain denials", () => {
+		expect(result.measuredCalls.calls).toMatchObject({ started_total: 5, completed_total: 5, success_total: 3, denied_total: 2, inFlight: 0 });
+		expect(result.measuredCalls.tools.create_overlay).toMatchObject({ started_total: 2, success_total: 1, denied_total: 1 });
+		expect(result.measuredCalls.reasons).toMatchObject({ INVALID_INPUT_total: 1, PLAN_LIMIT_REACHED_total: 1 });
+	});
 	test("official SDK reads and mutates while backend Free limits remain enforced", () => {
 		expect(result).toMatchObject({ toolCount: 66, readAllowed: true, createAllowed: true, editAllowed: true, count: 1, limitError: "PLAN_LIMIT_REACHED", stored: { name: "Edited by official SDK", configuration_revision: 2 }, secretFree: true });
 	});

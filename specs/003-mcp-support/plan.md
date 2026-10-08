@@ -370,3 +370,27 @@ run scoped regression, types/lint/format and applicable existing coverage gates.
 Live collector ingestion/Grafana query execution is a separate validation task;
 if external access is unavailable, record that specific blocker and complete
 all local implementation and fixture checks.
+
+### URL-only onboarding alignment
+
+Remove the hard-coded creator:read scope hint from the initial authentication
+challenge; Better Auth protected-resource metadata already advertises all
+resource scopes (excluding offline_access). Generic clients then request that
+advertised set automatically, leaving per-creator Read/Write/Custom choices to
+Clipify consent. Keep tool-specific insufficient-scope challenges and signed
+OAuth scope-subset validation. A client intentionally requesting a smaller set
+is a compatibility case, not the normal setup. Add discovery/consent regression
+proof and replace normal CLI examples with URL plus login, without --scopes.
+
+### Client adoption refinement
+
+Read existing OAuth registrations, active unexpired grants and retained 30-day
+MCP audit events. Group by normalized, self-reported app name instead of fixed
+client IDs. Keep Custom applications and report unavailable deleted metadata.
+The admin list paginates all groups; a one-minute coalesced health cache exports
+all groups plus totals, without a Top-X limit. Export names as dynamic-slot string field
+values, never tags, and serialize counters/gauges as floats. Adoption gauges are
+database-wide and must not be summed across process scrapes. Preserve complete
+admin session/role/Twitch verification and internal health authentication.
+
+Client export refinement (2026-10-08): Export every application-name group in each one-minute health scrape, without a Top-X cap. Names remain field values. Influx retention is 30 days. Dashboard files must contain the complete importable dashboard, preserving existing panels.

@@ -1,3 +1,4 @@
+import "./browser-admin-provider-preload.mjs";
 // Controlled provider metadata for the isolated actual-Next browser acceptance.
 // Native OAuth, SDK transport and application authorization remain real.
 import { Pool } from "pg";
