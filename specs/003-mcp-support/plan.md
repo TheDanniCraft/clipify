@@ -257,3 +257,116 @@ Extend the existing workflow schema/catalogue/dispatcher and activity label with
 Use narrow MCP façades over existing resource services, with shared field-group definitions and Zod-derived schemas. Preserve the internal broad backend contracts for browser and service callers while removing broad names from MCP registration. Reads and results project only the selected area. Audit mutations under the actual focused tool name in the same transaction. No new dependency, database table, OAuth scope, plan rule or environment switch is needed.
 
 Register static prompts through the official SDK registerPrompt API and server instructions through McpServer options. Share the static examples with an initially collapsed HeroUI Accordion in connected-app settings. Keep account data and credentials out of prompt templates. Jest native OAuth entry-point checks and focused Playwright BDD cases cover the refinement; the SDK probe verifies prompt discovery on legacy and modern transports. Existing historical external acceptance blockers remain unchanged.
+
+## MCP operational statistics and Grafana v6 (approved design, implementation pending)
+
+The protected instance-health endpoint feeds InfluxDB and Grafana. Extend its
+existing JSON snapshot additively with `mcp`; preserve authentication, no-store
+headers and existing fields. `v6` means the next Grafana dashboard artifact,
+`grafana/clipify-vm01-overview-v6.json`, following the repository's v5 dashboard.
+It does not mean a new HTTP endpoint or breaking health schema version.
+
+### Collection and bounded RAM storage
+
+Use one process-local store shared by MCP entry points, retaining cumulative
+counters since process startup and gauges. No new dependency, database table,
+environment toggle, per-call network request or timer is required. Export an
+immutable snapshot without resetting counters on read. Initialize the fixed
+catalogue with zeroes; arbitrary tool names become `unknown`, and arbitrary
+reasons become `other`. Use monotonic time for durations and UTC timestamps for
+sample/process start times. Bound cardinality by the registered tool catalogue,
+fixed operation categories, reason codes and histogram buckets.
+
+Collect:
+
+- Tool call attempts and completions, with successful, denied, failed and
+  cancelled outcomes; known tool and read/write/destructive classification.
+  Count each attempt once, including missing-scope/rate-limit denials before
+  tool execution, invalid arguments and unknown tools. Request-level failures
+  before a trustworthy tools/call can be identified remain request counters.
+- HTTP request totals by fixed method/status class and authentication,
+  validation, rate-limit and service-unavailable rejection reasons. Keep these
+  separate from tool outcomes: HTTP 200 does not establish tool success.
+- `tools/list`, prompt-list and prompt-get operations as separate counters;
+  discovery is not a tool call.
+- In-flight calls as a gauge, and last-used UTC timestamps per known tool.
+- Call-duration sum in seconds, observation count and cumulative histogram
+  buckets with fixed upper bounds 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5,
+  5, 10, 30, 60 and an unbounded total bucket. Finish every observation once,
+  including errors/cancellation, and define duration as arrival at the tool
+  boundary through final outcome, including boundary checks and audit work.
+
+Never collect arguments, results, tokens, callback URLs, raw errors, snapshots,
+IP addresses or per-user/client/creator labels in RAM telemetry. Existing audit
+records remain the durable, authorized source for historical activity. Metrics
+collection must not change authorization, audit guarantees or tool behavior.
+
+### InfluxDB ingestion contract and query semantics
+
+Provide numeric counters/gauges in deterministic nested objects compatible
+with the existing flattened JSON field convention. Define and document exact
+field mappings, for example `mcp_calls_started_total`,
+`mcp_calls_success_total`, `mcp_tools_<tool>_success_total`,
+`mcp_duration_seconds_sum`, `mcp_duration_count` and
+`mcp_duration_buckets_le_0_1_total`. Bucket identifiers must be fixed and safe;
+use `le_inf` for the unbounded bucket instead of non-JSON Infinity.
+
+Expose `sampledAt`, `processStartedAt` and a generated process instance ID.
+Collector-supplied host/service/replica tags identify the target; process
+identity distinguishes restarts. Do not tag by every deployment SHA, arbitrary
+client name or request ID. Document the tradeoff if process ID is mapped to a
+series tag: one additional series generation per restart, subject to retention.
+The collector must poll each replica consistently; a load-balanced endpoint
+that alternates independent RAM stores cannot yield valid counter rates.
+
+Prefer cumulative counters over rolling 5-minute/1-hour values. In Flux,
+normalize resets per source series with `increase()` before deriving rates or
+aggregating replicas. Calculate calls/minute and selected-range totals from
+counter increments; average latency is duration-sum increments divided by
+observation-count increments. Aggregate bucket increments across the selected
+window/replicas to estimate p95; never average independently computed p95s or
+apply quantile to scrape samples of average latency. Zero completed calls has
+no latency/error-rate sample, rather than a misleading zero or NaN. Preserve
+missing scrape periods as gaps; do not manufacture traffic with fill-zero.
+RAM measurements are best effort: calls between the final scrape and restart
+can be lost. Use audit history for durable historical tool usage when needed.
+
+The current repository dashboard uses Flux, bucket `clipify_monitor`,
+measurement `clipify_vm01`, and datasource UID `efg3es37pgh6ob`. The external
+collector configuration is not present in this repository: inspect its actual
+flattening/tag/type rules before finalizing exported field mappings. Commit a
+sample JSON snapshot, flattened mapping and collector integration guidance so
+the external change is reviewable even if deployment access is unavailable.
+
+References: https://docs.influxdata.com/flux/v0/prometheus/metric-types/counter/
+and https://docs.influxdata.com/flux/v0/prometheus/metric-types/ .
+
+### Admin interface and dashboard artifact
+
+Add an admin-only MCP overview with calls, outcomes, in-flight calls, latency,
+known rejection reasons, top tools and a sortable per-tool table. Label live
+RAM data as this process since startup. Durable client/creator activity uses
+the existing audit records and their access rules, not new RAM identity maps.
+
+Create Grafana v6 with a distinct title/UID, following existing datasource,
+bucket and measurement conventions. Preserve applicable v5 gallery/creator
+panels and add MCP traffic, outcomes/error ratio, per-tool usage, denial
+reasons, in-flight work, average/p95 duration and restart/scrape freshness
+panels. Explain reset handling, histogram approximation and RAM loss in panel
+descriptions. Do not overwrite v5 or publish to external Grafana automatically.
+
+### Focused verification
+
+Test exactly-once accounting across success, domain failures, permission and
+rate-limit denials, invalid input, unknown tools, cancellation and audit failure;
+ensure both SDK-supported call dispatch paths cannot count twice. Verify
+concurrency, immutable/non-resetting snapshots, bounded unknown labels, bucket
+monotonicity and sum/count consistency. Check additive health serialization,
+internal authentication, admin authorization and redaction. Validate v6 JSON,
+unique panel IDs/UID, exported field references and Flux fixture calculations
+for normal traffic, process restart, replica aggregation, missing scrapes and
+zero-call periods. Verify browser admin rendering with HeroUI components and
+run scoped regression, types/lint/format and applicable existing coverage gates.
+Live collector ingestion/Grafana query execution is a separate validation task;
+if external access is unavailable, record that specific blocker and complete
+all local implementation and fixture checks.

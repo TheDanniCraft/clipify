@@ -1213,3 +1213,16 @@ These tasks require unavailable original evidence or explicit review of a workfl
 - [x] T567 Migrate the public catalogue, descriptions, activity labels, documentation and existing native test callers.
 - [x] T568 Verify field preservation, invalid/cross-area patches, revisions, permission/plan boundaries and SDK prompt discovery; run scoped regression and focused BDD/ATDD evidence.
 - [x] T569 Complete static/build checks, update Graphify and publish this refinement to the existing draft PR.
+
+## MCP operational statistics and Grafana v6
+
+Approved plan addition; all tasks below are pending implementation.
+
+- [ ] T570 Define additive MCP health DTO, fixed counter/outcome/reason catalogue, duration histogram and sample/flattened Influx mappings; inspect external collector rules if accessible and document any exact external blocker.
+- [ ] T571 Implement bounded process-local cumulative counters, duration sum/count/buckets, in-flight gauges and process/start/sample metadata; test concurrency, cardinality, snapshot isolation and restart semantics.
+- [ ] T572 Instrument MCP HTTP, discovery/prompt and tool-call boundaries exactly once, including pre-execution rejection, invalid input, cancellation and audit failures; preserve existing authorization/audit behavior and verify both SDK dispatch paths.
+- [ ] T573 Add MCP metrics to protected instance-health snapshots without changing existing fields/access/cache rules; verify numeric field types, redaction, deterministic mappings and non-resetting reads.
+- [ ] T574 Add HeroUI admin MCP overview and per-tool table; distinguish live process statistics from existing durable audit history and verify admin authorization/rendering.
+- [ ] T575 Create grafana/clipify-vm01-overview-v6.json with existing Flux/datasource conventions and applicable v5 panels plus MCP traffic/outcomes/tools/rejections/in-flight/latency/restart/freshness panels; include collector mapping and reset/replica/gap-aware query guidance.
+- [ ] T576 Verify Grafana artifact and Flux fixture semantics (restart, replicas, zero traffic, missing scrape, bucket-derived p95); run scoped regressions, coverage/static/build checks as applicable and update feature evidence.
+- [ ] T577 Validate actual health-to-Influx ingestion and v6 queries against external monitoring if access exists; otherwise record the precise external blocker without preventing completion of local tasks.

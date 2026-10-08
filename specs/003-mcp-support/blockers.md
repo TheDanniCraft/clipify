@@ -23,6 +23,30 @@ ENV-011 remains separately disclosed in defect-log.md; current connected-app UI 
 
 The invoked [speckit-implement skill](../../.agents/skills/speckit-implement/SKILL.md) requires: “Do not write production code for a behavior slice until its required TDD and applicable ATDD/BDD executable evidence exists.” It requires recording expected failure before production and marking tasks only after evidence exists. Missing original chronology cannot be repaired with code changes now. Current Green and genuine deliberate mutation failures verify current behavior; they do not reconstruct original test-first history.
 
-## Preview authorization prerequisites
+## Preview live-validation checkpoint — 2026-10-08
 
-The workspace Infisical CLI has no valid login session. The previous consent schema change needs a disposable development database push through Infisical before preview OAuth can be validated. No schema change or generated migration was introduced by the focused-editing refinement. Live MCP authorization has not been granted; after database readiness and preview deployment, create a fresh OAuth login request rather than reusing an expired callback.
+The earlier Infisical login/schema and live OAuth prerequisites are resolved.
+Infisical development access works; the consent scopes column is present; the
+preview grant is found in that development database. Coolify reported the
+preview ready after f5cace5. A fresh Codex DCR/PKCE login completed successfully.
+See preview-testing.md for the current live results.
+
+Remaining live acceptance prerequisites:
+
+- Successful disposable create/edit/retry workflows: the approved creator is
+  Free and already at all three resource limits. Existing resources are
+  preserved. A second approved disposable creator with capacity is requested.
+- Delete/credential/remote-control scopes are absent from this grant. No delete
+  attempt is made against existing resources. Automatic review rejected a
+  proposed negative mutation/delete batch against the existing overlay; the
+  safer completed batch uses reads and non-destructive limit checks instead.
+- Physical playback and runner control/snapshot need dedicated online targets;
+  the two visible runners are offline. Live Sentry feedback remains opt-in.
+- Actual user revocation and token rejection remain to be exercised after the
+  live session tests; current connection stays available for continued tests.
+- ChatGPT, Claude and another real custom-host profile remain unverified; Codex
+  preview results do not replace those profiles.
+
+MCP operational statistics/Grafana v6 are approved planned work (T570–T577),
+not part of the completed live-validation claim. Historical chronology issues
+above remain distinct from current runtime correctness; no exception is implied.

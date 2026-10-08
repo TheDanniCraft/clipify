@@ -57,3 +57,54 @@ codex mcp login clipify-preview --no-browser --oauth-client-registration dcr --s
 This produces the fresh authorization URL. It cannot be generated while discovery is unavailable.
 
 Latest preview checkpoint: commit 36cea8a deployed successfully with both public metadata endpoints returning 200. GET/DELETE MCP returned the correct 401 challenge, but POST returned 500. This was reproduced locally on deployment Node 24 as a private-state copy of Next's proxied Request; the correction has passing Node-24 unit and actual production-Next HTTP checks. The following pushed preview must be rechecked before claiming authenticated client readiness.
+
+## Current live preview checkpoint — 2026-10-08
+
+Coolify reported the f5cace5 preview deployment ready. Codex CLI registered a
+client with DCR, completed user consent with PKCE/state and stored OAuth
+credentials. The preview grant is also present in the Infisical development
+database, confirming the live request path uses that database. No production
+origin was used. Callback codes and credentials are omitted from evidence.
+
+Verified with installed official MCP client SDK 2.3.0:
+
+- Both correctly located metadata endpoints return 200 and advertise the
+  preview resource/issuer. Unauthenticated POST /mcp returns 401 with challenge.
+- Discovery returns 66 tools and six prompts. list_creators returns exactly the
+  one approved creator; an unapproved creator returns ACCESS_DENIED.
+- Capabilities and overlay/playlist/gallery/runner/creator-page lists read
+  successfully. Free usage equals its one-overlay/playlist/gallery limits.
+- Twenty-four focused live checks all pass: overlay and source/filter/playback/
+  theme reads; gallery and source/filter/layout/theme reads; gallery embed and
+  preview; playlist/player embed; runner details and Linux setup; stream-session
+  listing; all three create calls denied with PLAN_LIMIT_REACHED; ungranted
+  overlay-secret read rejected at the protocol boundary; missing resource,
+  invalid UUID and unknown-tool rejection.
+- Refresh returns 200 with rotated refresh token. Reusing the old refresh token
+  returns 400. A subsequent read with the new access token succeeds. Updated
+  credentials remain in Codex's credential store, never repository evidence.
+
+The initial ad-hoc probe mistakenly requested a nonexistent get_overlay_settings
+read tool and omitted the runner setup platform. Both probe errors were
+corrected using actual discovered schemas; the current 24-check batch is Green.
+No production repair was required for these two probe mistakes.
+
+Existing resources were read, not edited/deleted. Successful disposable writes
+are blocked by the approved Free creator's full capacity; another disposable
+creator with capacity and OAuth approval is requested. Physical runner/playback
+requires an online test target; delete/control/secret scopes are ungranted;
+revocation remains pending. Named-host acceptance beyond Codex remains open.
+These results establish deployed discovery/read/limit enforcement/refresh,
+not complete live acceptance or release readiness.
+
+Additional auto-negotiation SDK check: all six published prompts retrieve
+nonempty messages, and the Free creator's remote overlay runtime read returns
+FEATURE_RESTRICTED. Both legacy-mode and auto-negotiation clients have thus
+completed deployed read/discovery traffic; this is still distinct from actual
+ChatGPT/Claude-host acceptance.
+
+The earlier CI BDD playlist quick-editor failure was a strict selector matching
+both an exiting Select dialog and the editor modal. The selector now targets
+the named Manage Playlist dialog. All four affected actual browser scenarios
+pass against disposable fixtures in 23.4 seconds; no assertions or production
+behavior were removed. Full CI verification of the new commit remains pending.
