@@ -261,35 +261,39 @@ export function ConsentForm({ clientName, requestedScopes, creators, oauthQuery,
 									</Alert>
 								)}
 							</Card.Content>
-							<Separator />
-							<Card.Footer className='flex flex-wrap justify-between gap-3 px-6 py-5 sm:px-8'>
-								<div className='flex flex-wrap gap-2'>
-									{step !== "review" && (step !== "creator" || entries.length > 0) && (
-										<Button type='button' variant='tertiary' onPress={() => setStep(step === "permissions" ? "creator" : "review")}>
-											<IconArrowLeft size={16} />
-											Back
-										</Button>
-									)}
-								</div>
+							{(step !== "creator" || entries.length > 0) && (
+								<>
+									<Separator />
+									<Card.Footer className='flex flex-wrap justify-between gap-3 px-6 py-5 sm:px-8'>
+										<div className='flex flex-wrap gap-2'>
+											{step !== "review" && (step !== "creator" || entries.length > 0) && (
+												<Button type='button' variant='tertiary' onPress={() => setStep(step === "permissions" ? "creator" : "review")}>
+													<IconArrowLeft size={16} />
+													Back
+												</Button>
+											)}
+										</div>
 
-								{step === "permissions" && (
-									<Button type='button' isDisabled={!draft.scopes.length} onPress={save}>
-										Review
-										<IconCheck size={16} />
-									</Button>
-								)}
-								{step === "review" && (
-									<div className='flex w-full items-center justify-between gap-2'>
-										<Button type='button' variant='secondary' onPress={() => begin()}>
-											<IconPlus size={16} />
-											Add another creator
-										</Button>
-										<Button type='submit' name='accept' value='true' isPending={pending} isDisabled={pending || !entries.length || entries.some((entry) => !entry.scopes.length)}>
-											Authorize
-										</Button>
-									</div>
-								)}
-							</Card.Footer>
+										{step === "permissions" && (
+											<Button type='button' isDisabled={!draft.scopes.length} onPress={save}>
+												Review
+												<IconCheck size={16} />
+											</Button>
+										)}
+										{step === "review" && (
+											<div className='flex w-full items-center justify-between gap-2'>
+												<Button type='button' variant='secondary' onPress={() => begin()}>
+													<IconPlus size={16} />
+													Add another creator
+												</Button>
+												<Button type='submit' name='accept' value='true' isPending={pending} isDisabled={pending || !entries.length || entries.some((entry) => !entry.scopes.length)}>
+													Authorize
+												</Button>
+											</div>
+										)}
+									</Card.Footer>
+								</>
+							)}
 						</form>
 					</Card>
 				)}
