@@ -203,7 +203,7 @@ When("the browser confirms deletion of its cached overlay", async ({ page }) => 
 When("the MCP client renames the cached overlay first", async ({ request, mcpWorld }) => {
 	const state = mcpWorld.input?.browserRevisionState as any;
 	const result = await callTool(request, state, "update_overlay_settings", { creatorId: state.owner.fixture.creatorId, overlayId: state.owner.fixture.overlayId, expectedRevision: 1, patch: { name: "Remote overlay edit" } });
-	expect(result.overlay).toMatchObject({ name: "Remote overlay edit", configurationRevision: 2 });
+	expect(result).toMatchObject({ overlayId: state.owner.fixture.overlayId, configurationRevision: 2, settings: { name: "Remote overlay edit" } });
 });
 Then("the deleted overlay is unavailable through MCP", async ({ page, request, mcpWorld }) => {
 	await expect(page.getByText("Successfully deleted", { exact: true })).toBeVisible();

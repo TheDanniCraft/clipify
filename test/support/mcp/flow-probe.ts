@@ -194,11 +194,12 @@ async function main() {
 			mode.startsWith("retries:") ||
 			mode.startsWith("creation:") ||
 			/^resources:(overlay|playlist)-(create|update|delete|add|remove|reorder)/.test(mode);
+		const selectionScopes = MCP_SCOPES.filter((scope) => /^(creator|overlay|playlist|playlist-items):/.test(scope));
 		const query = new URLSearchParams({
 			client_id: client.client_id,
 			redirect_uri: client.redirect_uris[0],
 			response_type: "code",
-			scope: needsFullScopes || mode.startsWith("selection:") ? [...MCP_SCOPES, "offline_access"].join(" ") : "creator:read overlay:read playlist:read offline_access",
+			scope: needsFullScopes ? [...MCP_SCOPES, "offline_access"].join(" ") : mode.startsWith("selection:") ? [...selectionScopes, "offline_access"].join(" ") : "creator:read overlay:read playlist:read offline_access",
 			code_challenge: challenge,
 			code_challenge_method: "S256",
 			state: "fixture-state",
@@ -217,7 +218,7 @@ async function main() {
 			if (mode.startsWith("selection:") && existsSync("src/server/mcp/scopes.ts")) {
 				const { consentPreset } = await import("@/server/mcp/scopes");
 				const selection = mode.slice(10);
-				finalScopes = consentPreset(selection === "Read" ? "read" : "edit");
+				finalScopes = consentPreset(selection === "Read" ? "read" : "edit").filter((scope) => selectionScopes.some((approved) => approved === scope));
 				if (selection.includes("overlay deletion")) finalScopes.push("overlay:delete");
 				if (selection.includes("playlist deletion")) finalScopes.push("playlist:delete");
 				if (selection.includes("both delete")) finalScopes.push("overlay:delete", "playlist:delete");

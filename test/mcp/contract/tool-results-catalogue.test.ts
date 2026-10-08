@@ -1,43 +1,7 @@
 /** @jest-environment node */
 import { flowProbe } from "../../support/mcp/probe";
-const names = ["list_creators", "get_capabilities", "list_overlays", "get_overlay", "create_overlay", "update_overlay_settings", "delete_overlay", "list_playlists", "get_playlist", "create_playlist", "update_playlist", "delete_playlist", "add_playlist_items", "remove_playlist_items", "reorder_playlist_items"];
-const workflowNames = [
-	"get_overlay_runtime",
-	"get_overlay_queues",
-	"control_overlay",
-	"enqueue_overlay_clip",
-	"clear_overlay_queue",
-	"search_clips",
-	"resolve_clip",
-	"preview_playlist_import",
-	"commit_playlist_import",
-	"list_galleries",
-	"get_gallery",
-	"create_gallery",
-	"update_gallery_settings",
-	"delete_gallery",
-	"publish_gallery",
-	"get_gallery_embed",
-	"get_gallery_preview",
-	"get_overlay_link",
-	"get_player_embed",
-	"get_creator_page",
-	"update_creator_page",
-	"publish_creator_page",
-	"get_runner_setup",
-	"list_runners",
-	"get_runner",
-	"create_runner",
-	"update_runner",
-	"delete_runner",
-	"unlink_runner",
-	"list_stream_sessions",
-	"get_stream_session",
-	"configure_stream_session",
-	"control_stream_session",
-	"get_runner_snapshot",
-	"submit_feedback",
-];
+import { CORE_TOOL_NAMES as names, PUBLIC_TOOL_NAMES } from "../../support/mcp/public-tool-expectations";
+
 describe("TDD-US2-022 every public tool result excludes seeded credentials", () => {
 	let result: any;
 	beforeAll(() => {
@@ -46,8 +10,8 @@ describe("TDD-US2-022 every public tool result excludes seeded credentials", () 
 	test("actual discovery exposes exactly the 66 supported tool definitions without seeded credentials", () => {
 		expect(result.discovery.status).toBe(200);
 		expect(result.discovery.secretFree).toBe(true);
-		const focused = ["get_overlay_source", "update_overlay_source", "get_overlay_filters", "update_overlay_filters", "get_overlay_playback", "update_overlay_playback", "get_overlay_theme", "update_overlay_theme", "get_gallery_source", "update_gallery_source", "get_gallery_filters", "update_gallery_filters", "get_gallery_layout", "update_gallery_layout", "get_gallery_theme", "update_gallery_theme"];
-		expect([...result.discovery.names].sort()).toEqual([...names, ...workflowNames, ...focused].sort());
+
+		expect([...result.discovery.names].sort()).toEqual([...PUBLIC_TOOL_NAMES].sort());
 	});
 	test.each(names)("%s exposes truthful risk hints on native discovery", (name) => {
 		const read = name.startsWith("list_") || name.startsWith("get_");

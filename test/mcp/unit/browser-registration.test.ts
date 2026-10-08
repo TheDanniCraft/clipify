@@ -39,3 +39,13 @@ test("does not retry invalid client metadata", async () => {
 	expect(post).toHaveBeenCalledTimes(1);
 	expect(pause).not.toHaveBeenCalled();
 });
+
+test("honors Better Auth's X-Retry-After header without bypassing its budget", async () => {
+	const denied = { status: () => 429, headers: () => ({ "x-retry-after": "9" }), dispose: jest.fn().mockResolvedValue(undefined) } as unknown as APIResponse;
+	const accepted = response(201);
+	const post = jest.fn().mockResolvedValueOnce(denied).mockResolvedValueOnce(accepted);
+	const pause = jest.fn().mockResolvedValue(undefined);
+	expect(await registerBrowserClient({ post } as unknown as APIRequestContext, "http://127.0.0.1:3107", {}, pause)).toBe(accepted);
+	expect(pause).toHaveBeenCalledWith(9000);
+	expect(denied.dispose).toHaveBeenCalledTimes(1);
+});
