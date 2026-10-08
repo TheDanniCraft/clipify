@@ -86,7 +86,7 @@ export function ConsentForm({ clientName, requestedScopes, creators, oauthQuery,
 		</Accordion>
 	);
 	return (
-		<main className='min-h-screen bg-background px-4 py-8 sm:py-12'>
+		<main className='flex min-h-dvh items-center justify-center bg-background px-4 py-8 sm:py-12'>
 			<div className='mx-auto flex w-full max-w-2xl flex-col gap-6'>
 				<header className='flex items-center gap-3 text-accent'>
 					<span className='flex size-10 items-center justify-center rounded-xl bg-accent-soft'>
