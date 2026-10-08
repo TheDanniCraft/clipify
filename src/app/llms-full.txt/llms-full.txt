@@ -162,7 +162,7 @@ Clients discover OAuth metadata from the endpoint’s authentication challenge a
 
 Users can inspect approved creators and permissions in account settings and revoke a connection immediately. Revoked access and refresh credentials cannot continue operating. Client-provided destructive-action warnings are informational; the backend always enforces authority, ownership, plan limits and revision checks. Named AI-host compatibility depends on that host’s support for remote MCP and OAuth.
 
-The server exposes 50 tools across creator capabilities, overlay configuration and themes, playlists, clip discovery/import, live remote control, galleries, public website embeds, Creator Pages, runner setup/stream sessions, and user-requested feedback. Availability depends on the approved scopes, current creator/team permissions and current entitlements.
+The server exposes 66 tools across creator capabilities, overlay configuration and themes, playlists, clip discovery/import, live remote control, galleries, public website embeds, Creator Pages, runner setup/stream sessions, and user-requested feedback. Availability depends on the approved scopes, current creator/team permissions and current entitlements.
 
 - Discover clips by title, game/category and explicit date/timezone filters, or resolve a Twitch clip link. Preview imports before committing the exact selected clips; incomplete searches require narrower filters. Free clip and playlist limits still apply; filtered bulk imports require Pro.
 - Pro remote control can inspect reported current playback, read queues, enqueue a creator clip, and send play/pause/skip/show/hide/volume/mute commands. Reports and command delivery can be stale or unavailable; accepted commands do not prove the player applied them.
