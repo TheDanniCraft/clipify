@@ -1,7 +1,7 @@
 /** @jest-environment node */
 
 import { randomUUID } from "node:crypto";
-import { spawnSync } from "node:child_process";
+import { runMcpProbe } from "../../support/mcp/probe";
 import { Pool, type PoolClient } from "pg";
 import { installCreatorOnboardingTriggers } from "@/auth/onboarding-database-boundary";
 
@@ -90,29 +90,8 @@ describePostgres("TDD-US2-003 atomic Better Auth creator onboarding", () => {
 		const suffix = randomUUID();
 		const creatorId = `test-creator-${suffix}`;
 		const email = `${suffix}@example.invalid`;
-		const invocation = spawnSync(
-			"bun",
-			[
-				"-e",
-				`import { auth } from "./src/auth/config.ts";
-				 const context = await auth.$context;
-				 const result = await context.internalAdapter.createOAuthUser(
-				   { name: "OAuth Creator", email: process.env.TEST_AUTH_EMAIL, emailVerified: true, image: null },
-				   { accountId: process.env.TEST_CREATOR_ID, providerId: "twitch" }
-				 );
-				 process.stdout.write(JSON.stringify({ authUserId: result.user.id, accountId: result.account.accountId }));
-				 process.exit(0);`,
-			],
-			{
-				cwd: process.cwd(),
-				encoding: "utf8",
-				env: { ...process.env, APP_ENV: "test", TEST_AUTH_EMAIL: email, TEST_CREATOR_ID: creatorId },
-			},
-		);
+		const created = runMcpProbe("auth-onboarding-probe", [email, creatorId]) as { authUserId: string; accountId: string };
 
-		expect(invocation.stderr).toBe("");
-		expect(invocation.status).toBe(0);
-		const created = JSON.parse(invocation.stdout) as { authUserId: string; accountId: string };
 		try {
 			expect(created.accountId).toBe(creatorId);
 			const client = await pool.connect();

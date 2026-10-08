@@ -1,6 +1,12 @@
 import { defineConfig, devices } from "@playwright/test";
 import { defineBddConfig } from "playwright-bdd";
 
+// Resource detection also respects Linux cgroup memory limits.
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { browserServerNodeOptions } = require("./scripts/browser-server-budget.cjs");
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { browserProviderEnvironment } = require("./test/support/mcp/browser-database.cjs");
+
 const baseURL = "http://127.0.0.1:3107";
 const bddTestDir = defineBddConfig({
 	features: "test/bdd/features/**/*.feature",
@@ -43,7 +49,8 @@ export default defineConfig({
 		screenshot: "only-on-failure",
 		video: "retain-on-failure",
 	},
-	outputDir: "test-results",
+	// Preserve compiled native probes and evidence from other test stages.
+	outputDir: "test-results/browser",
 	projects: [
 		{
 			name: "acceptance-chromium",
@@ -55,12 +62,12 @@ export default defineConfig({
 			name: "atdd-chromium",
 			testDir: atddTestDir,
 			timeout: 180_000,
-			use: chromium,
+			use: { ...chromium, trace: "off" },
 		},
 		{
 			name: "bdd-chromium",
 			testDir: bddTestDir,
-			use: chromium,
+			use: { ...chromium, trace: "off" },
 		},
 		{
 			name: "compliance-chromium",
@@ -79,6 +86,7 @@ export default defineConfig({
 		timeout: 120_000,
 		env: {
 			APP_ENV: "test",
+			NODE_ENV: "production",
 			// CI supplies an isolated database directly. Local authenticated acceptance
 			// runs may opt into the disposable Infisical dev database; the unreachable
 			// fallback keeps public/browser-only suites from touching any database.
@@ -89,11 +97,12 @@ export default defineConfig({
 			JWT_SECRET: "clipify-e2e-jwt-secret-not-for-production",
 			NEXT_PUBLIC_BASE_URL: baseURL,
 			NEXT_PUBLIC_PLAUSIBLE_SCRIPT_NAME: "clipify-e2e",
-			NODE_OPTIONS: process.env.NODE_OPTIONS ?? "--max-old-space-size=6144",
+			NODE_OPTIONS: browserServerNodeOptions(process.env.NODE_OPTIONS),
 			RUNNER_ARTIFACT_SOURCE: "local",
 			SENTRY_AUTH_TOKEN: "",
 			SENTRY_DSN: "",
 			SENTRY_RELEASE: "",
+			...browserProviderEnvironment(process.env, browserServerNodeOptions(process.env.NODE_OPTIONS)),
 		},
 	},
 });

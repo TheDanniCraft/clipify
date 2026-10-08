@@ -1,18 +1,14 @@
 import { spawnSync } from "node:child_process";
 
-const stages = [
-	["bddgen"],
-	["playwright", "test", "--project=acceptance-chromium", "--workers=1"],
-	// Restart the development server between ATDD shards. Compiled route modules
-	// remain resident in Next.js, and the complete journey suite can otherwise
-	// exhaust the CI runner heap before global teardown gets a chance to run.
-	["playwright", "test", "--project=atdd-chromium", "--workers=1", "--shard=1/2"],
-	["playwright", "test", "--project=atdd-chromium", "--workers=1", "--shard=2/2"],
-	["playwright", "test", "--project=bdd-chromium", "--workers=1"],
-	["playwright", "test", "--project=compliance-chromium", "--workers=1"],
-] as const;
+// Build once instead of retaining an expanding development compiler for every journey.
+const build = spawnSync(process.execPath, ["run", "test:e2e:build"], { cwd: process.cwd(), env: process.env, stdio: "inherit" });
+if (build.error) throw build.error;
+if (build.status !== 0) process.exit(build.status ?? 1);
+const stages: string[][] = [["bddgen"], ["playwright", "test", "--project=acceptance-chromium", "--workers=1"], ["playwright", "test", "--project=atdd-chromium", "--workers=1"], ["playwright", "test", "--project=bdd-chromium", "--workers=1"], ["playwright", "test", "--project=compliance-chromium", "--workers=1"]];
 for (const args of stages) {
-	const result = spawnSync(process.execPath, ["x", ...args], {
+	const project = args.find((argument) => argument.startsWith("--project="))?.slice("--project=".length);
+	const stageArguments = project ? [...args, `--output=test-results/browser-${project}`] : args;
+	const result = spawnSync(process.execPath, ["x", ...stageArguments], {
 		cwd: process.cwd(),
 		env: process.env,
 		stdio: "inherit",

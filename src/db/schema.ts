@@ -142,23 +142,20 @@ export const auditOutcomeEnum = pgEnum("audit_outcome", ["success", "denied", "e
 export const rateLimitSignalEnum = pgEnum("rate_limit_signal", ["identity", "network"]);
 export const notificationStatusEnum = pgEnum("notification_status", ["pending", "claimed", "sent", "retry", "dead"]);
 
-export const creatorAccountsTable = pgTable(
-	"creator_accounts",
-	{
-		organizationId: text("organization_id")
-			.primaryKey()
-			.references(() => authOrganizationTable.id, { onDelete: "cascade" }),
-		creatorId: varchar("creator_id")
-			.notNull()
-			.references(() => usersTable.id, { onDelete: "cascade" }),
-		status: creatorAccountStatusEnum("status").notNull().default("active"),
-		suspensionAt: timestamp("suspension_at", { withTimezone: true }),
-		purgeEligibleAt: timestamp("purge_eligible_at", { withTimezone: true }),
-		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
-	},
-	(table) => [uniqueIndex("creator_accounts_creator_unique").on(table.creatorId)],
-);
+export const creatorAccountsTable = pgTable("creator_accounts", {
+	organizationId: text("organization_id")
+		.primaryKey()
+		.references(() => authOrganizationTable.id, { onDelete: "cascade" }),
+	creatorId: varchar("creator_id")
+		.unique("creator_accounts_creator_unique")
+		.notNull()
+		.references(() => usersTable.id, { onDelete: "cascade" }),
+	status: creatorAccountStatusEnum("status").notNull().default("active"),
+	suspensionAt: timestamp("suspension_at", { withTimezone: true }),
+	purgeEligibleAt: timestamp("purge_eligible_at", { withTimezone: true }),
+	createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+	updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
 
 export const creatorIdentityLinksTable = pgTable(
 	"creator_identity_links",
@@ -403,69 +400,104 @@ export const notificationOutboxTable = pgTable(
 	],
 );
 
-export const overlaysTable = pgTable("overlays", {
-	id: uuid("id").notNull().defaultRandom().primaryKey(),
-	ownerId: varchar("owner_id")
-		.notNull()
-		.references(() => usersTable.id, { onDelete: "cascade" }),
-	secret: varchar("secret").notNull().default(""),
-	name: varchar("name").notNull(),
-	status: statusOptionsEnum("status").$type<StatusOptions>().notNull(),
-	type: overlayTypeEnum("type").$type<OverlayType>().notNull(),
-	playlistId: uuid("playlist_id").references(() => playlistsTable.id, { onDelete: "set null" }),
-	rewardId: varchar("reward_id"),
-	createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-	updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
-	lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
-	minClipDuration: integer("min_clip_duration").notNull().default(0),
-	maxClipDuration: integer("max_clip_duration").notNull().default(60),
-	maxDurationMode: maxDurationModeEnum("max_duration_mode").$type<MaxDurationMode>().notNull().default(MaxDurationModeEnumValues.Filter),
-	minClipViews: integer("min_clip_views").notNull().default(0),
-	blacklistWords: varchar("blacklist_words").array().notNull().default([]),
-	categoriesOnly: varchar("categories_only").array().notNull().default([]),
-	categoriesBlocked: varchar("categories_blocked").array().notNull().default([]),
-	playbackMode: playbackModeEnum("playback_mode").$type<PlaybackMode>().notNull().default(PlaybackModeEnumValues.Random),
-	preferCurrentCategory: boolean("prefer_current_category").notNull().default(false),
-	clipCreatorsOnly: varchar("clip_creators_only").array().notNull().default([]),
-	clipCreatorsBlocked: varchar("clip_creators_blocked").array().notNull().default([]),
-	clipPackSize: integer("clip_pack_size").notNull().default(100),
-	playerVolume: integer("player_volume").notNull().default(50),
-	showChannelInfo: boolean("show_channel_info").notNull().default(true),
-	showClipInfo: boolean("show_clip_info").notNull().default(true),
-	showTimer: boolean("show_timer").notNull().default(false),
-	showProgressBar: boolean("show_progress_bar").notNull().default(false),
-	overlayInfoFadeOutSeconds: integer("overlay_info_fade_out_seconds").notNull().default(6),
-	themeFontFamily: varchar("theme_font_family").notNull().default("inherit"),
-	themeTextColor: varchar("theme_text_color").notNull().default("#FFFFFF"),
-	themeAccentColor: varchar("theme_accent_color").notNull().default("#7C3AED"),
-	themeBackgroundColor: varchar("theme_background_color").notNull().default("rgba(10,10,10,0.65)"),
-	progressBarStartColor: varchar("progress_bar_start_color").notNull().default("#26018E"),
-	progressBarEndColor: varchar("progress_bar_end_color").notNull().default("#8D42F9"),
-	borderSize: integer("border_size").notNull().default(0),
-	borderRadius: integer("border_radius").notNull().default(10),
-	effectScanlines: boolean("effect_scanlines").notNull().default(false),
-	effectStatic: boolean("effect_static").notNull().default(false),
-	effectCrt: boolean("effect_crt").notNull().default(false),
-	channelInfoX: integer("channel_info_x").notNull().default(0),
-	channelInfoY: integer("channel_info_y").notNull().default(0),
-	clipInfoX: integer("clip_info_x").notNull().default(100),
-	clipInfoY: integer("clip_info_y").notNull().default(100),
-	timerX: integer("timer_x").notNull().default(100),
-	timerY: integer("timer_y").notNull().default(0),
-	channelScale: integer("channel_scale").notNull().default(100),
-	clipScale: integer("clip_scale").notNull().default(100),
-	timerScale: integer("timer_scale").notNull().default(100),
-});
+export const overlaysTable = pgTable(
+	"overlays",
+	{
+		id: uuid("id").notNull().defaultRandom().primaryKey(),
+		ownerId: varchar("owner_id")
+			.notNull()
+			.references(() => usersTable.id, { onDelete: "cascade" }),
+		secret: varchar("secret").notNull().default(""),
+		name: varchar("name").notNull(),
+		configurationRevision: integer("configuration_revision").notNull().default(1),
+		status: statusOptionsEnum("status").$type<StatusOptions>().notNull(),
+		type: overlayTypeEnum("type").$type<OverlayType>().notNull(),
+		playlistId: uuid("playlist_id").references(() => playlistsTable.id, { onDelete: "set null" }),
+		rewardId: varchar("reward_id"),
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+		lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+		minClipDuration: integer("min_clip_duration").notNull().default(0),
+		maxClipDuration: integer("max_clip_duration").notNull().default(60),
+		maxDurationMode: maxDurationModeEnum("max_duration_mode").$type<MaxDurationMode>().notNull().default(MaxDurationModeEnumValues.Filter),
+		minClipViews: integer("min_clip_views").notNull().default(0),
+		blacklistWords: varchar("blacklist_words").array().notNull().default([]),
+		categoriesOnly: varchar("categories_only").array().notNull().default([]),
+		categoriesBlocked: varchar("categories_blocked").array().notNull().default([]),
+		playbackMode: playbackModeEnum("playback_mode").$type<PlaybackMode>().notNull().default(PlaybackModeEnumValues.Random),
+		preferCurrentCategory: boolean("prefer_current_category").notNull().default(false),
+		clipCreatorsOnly: varchar("clip_creators_only").array().notNull().default([]),
+		clipCreatorsBlocked: varchar("clip_creators_blocked").array().notNull().default([]),
+		clipPackSize: integer("clip_pack_size").notNull().default(100),
+		playerVolume: integer("player_volume").notNull().default(50),
+		showChannelInfo: boolean("show_channel_info").notNull().default(true),
+		showClipInfo: boolean("show_clip_info").notNull().default(true),
+		showTimer: boolean("show_timer").notNull().default(false),
+		showProgressBar: boolean("show_progress_bar").notNull().default(false),
+		overlayInfoFadeOutSeconds: integer("overlay_info_fade_out_seconds").notNull().default(6),
+		themeFontFamily: varchar("theme_font_family").notNull().default("inherit"),
+		themeTextColor: varchar("theme_text_color").notNull().default("#FFFFFF"),
+		themeAccentColor: varchar("theme_accent_color").notNull().default("#7C3AED"),
+		themeBackgroundColor: varchar("theme_background_color").notNull().default("rgba(10,10,10,0.65)"),
+		progressBarStartColor: varchar("progress_bar_start_color").notNull().default("#26018E"),
+		progressBarEndColor: varchar("progress_bar_end_color").notNull().default("#8D42F9"),
+		borderSize: integer("border_size").notNull().default(0),
+		borderRadius: integer("border_radius").notNull().default(10),
+		effectScanlines: boolean("effect_scanlines").notNull().default(false),
+		effectStatic: boolean("effect_static").notNull().default(false),
+		effectCrt: boolean("effect_crt").notNull().default(false),
+		channelInfoX: integer("channel_info_x").notNull().default(0),
+		channelInfoY: integer("channel_info_y").notNull().default(0),
+		clipInfoX: integer("clip_info_x").notNull().default(100),
+		clipInfoY: integer("clip_info_y").notNull().default(100),
+		timerX: integer("timer_x").notNull().default(100),
+		timerY: integer("timer_y").notNull().default(0),
+		channelScale: integer("channel_scale").notNull().default(100),
+		clipScale: integer("clip_scale").notNull().default(100),
+		timerScale: integer("timer_scale").notNull().default(100),
+	},
+	(table) => [check("overlays_revision_positive", sql`${table.configurationRevision} > 0`)],
+);
 
-export const playlistsTable = pgTable("playlists", {
-	id: uuid("id").notNull().defaultRandom().primaryKey(),
-	ownerId: varchar("owner_id")
-		.notNull()
-		.references(() => usersTable.id, { onDelete: "cascade" }),
-	name: varchar("name").notNull(),
-	createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-	updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
-});
+/** Durable provider intents committed with the overlay configuration. */
+export const overlayEffectJobsTable = pgTable(
+	"overlay_effect_jobs",
+	{
+		id: uuid("id").defaultRandom().primaryKey(),
+		overlayId: uuid("overlay_id")
+			.notNull()
+			.references(() => overlaysTable.id, { onDelete: "cascade" }),
+		creatorId: varchar("creator_id")
+			.notNull()
+			.references(() => usersTable.id, { onDelete: "cascade" }),
+		rewardId: varchar("reward_id", { length: 255 }).notNull(),
+		configurationRevision: integer("configuration_revision").notNull(),
+		status: varchar("status", { length: 20 }).notNull().default("pending"),
+		attempts: integer("attempts").notNull().default(0),
+		scheduledAt: timestamp("scheduled_at", { withTimezone: true }).defaultNow().notNull(),
+		claimedBy: uuid("claimed_by"),
+		claimExpiresAt: timestamp("claim_expires_at", { withTimezone: true }),
+		lastError: varchar("last_error", { length: 80 }),
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+	},
+	(table) => [uniqueIndex("overlay_effect_revision_unique").on(table.overlayId, table.configurationRevision), index("overlay_effect_due_idx").on(table.status, table.scheduledAt, table.claimExpiresAt), check("overlay_effect_revision_positive", sql`${table.configurationRevision} > 0`), check("overlay_effect_attempts_nonnegative", sql`${table.attempts} >= 0`), check("overlay_effect_status_valid", sql`${table.status} IN ('pending','claimed','retry','done','obsolete')`)],
+);
+
+export const playlistsTable = pgTable(
+	"playlists",
+	{
+		id: uuid("id").notNull().defaultRandom().primaryKey(),
+		ownerId: varchar("owner_id")
+			.notNull()
+			.references(() => usersTable.id, { onDelete: "cascade" }),
+		name: varchar("name").notNull(),
+		configurationRevision: integer("configuration_revision").notNull().default(1),
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+	},
+	(table) => [check("playlists_revision_positive", sql`${table.configurationRevision} > 0`)],
+);
 
 export const playlistClipsTable = pgTable(
 	"playlist_clips",
@@ -489,6 +521,7 @@ export const galleriesTable = pgTable(
 			.notNull()
 			.references(() => usersTable.id, { onDelete: "cascade" }),
 		name: varchar("name").notNull(),
+		configurationRevision: integer("configuration_revision").notNull().default(1),
 		published: boolean("published").notNull().default(false),
 		source: gallerySourceEnum("source").$type<GallerySource>().notNull().default("curated"),
 		playlistId: uuid("playlist_id").references(() => playlistsTable.id, { onDelete: "set null" }),
@@ -539,7 +572,7 @@ export const galleriesTable = pgTable(
 		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 	},
-	(t) => [index("galleries_owner_created_at_idx").on(t.ownerId, t.createdAt), index("galleries_playlist_idx").on(t.playlistId)],
+	(t) => [index("galleries_owner_created_at_idx").on(t.ownerId, t.createdAt), index("galleries_playlist_idx").on(t.playlistId), check("galleries_revision_positive", sql`${t.configurationRevision} > 0`)],
 );
 
 export const queueTable = pgTable(
@@ -566,26 +599,31 @@ export const modQueueTable = pgTable(
 	(t) => [index("mod_queue_broadcaster_queued_at_idx").on(t.broadcasterId, t.queuedAt)],
 );
 
-export const settingsTable = pgTable("userSettings", {
-	id: varchar("id")
-		.notNull()
-		.primaryKey()
-		.references(() => usersTable.id, { onDelete: "cascade" }),
-	prefix: varchar("prefix").notNull().default("!"),
-	marketingOptIn: boolean("marketing_opt_in").notNull().default(true),
-	marketingOptInAt: timestamp("marketing_opt_in_at", { withTimezone: true }),
-	marketingOptInSource: varchar("marketing_opt_in_source"),
-	useSendProductUpdatesContactId: varchar("usesend_product_updates_contact_id"),
-	showOnCommunityPage: boolean("show_in_community").notNull().default(false),
-	creatorPageEnabled: boolean("creator_page_enabled").notNull().default(true),
-	// Null preserves the old Community Page choice during rollout: true maps to
-	// discoverable and false maps to unlisted. Newly-created settings explicitly
-	// store "discoverable".
-	creatorPageVisibility: varchar("creator_page_visibility"),
-	creatorPageShowBio: boolean("creator_page_show_bio").notNull().default(true),
-	creatorPageSocialTitle: varchar("creator_page_social_title"),
-	creatorPageSocialDescription: varchar("creator_page_social_description"),
-});
+export const settingsTable = pgTable(
+	"userSettings",
+	{
+		id: varchar("id")
+			.notNull()
+			.primaryKey()
+			.references(() => usersTable.id, { onDelete: "cascade" }),
+		prefix: varchar("prefix").notNull().default("!"),
+		configurationRevision: integer("configuration_revision").notNull().default(1),
+		marketingOptIn: boolean("marketing_opt_in").notNull().default(true),
+		marketingOptInAt: timestamp("marketing_opt_in_at", { withTimezone: true }),
+		marketingOptInSource: varchar("marketing_opt_in_source"),
+		useSendProductUpdatesContactId: varchar("usesend_product_updates_contact_id"),
+		showOnCommunityPage: boolean("show_in_community").notNull().default(false),
+		creatorPageEnabled: boolean("creator_page_enabled").notNull().default(true),
+		// Null preserves the old Community Page choice during rollout: true maps to
+		// discoverable and false maps to unlisted. Newly-created settings explicitly
+		// store "discoverable".
+		creatorPageVisibility: varchar("creator_page_visibility"),
+		creatorPageShowBio: boolean("creator_page_show_bio").notNull().default(true),
+		creatorPageSocialTitle: varchar("creator_page_social_title"),
+		creatorPageSocialDescription: varchar("creator_page_social_description"),
+	},
+	(table) => [check("creator_page_revision_positive", sql`${table.configurationRevision} > 0`)],
+);
 
 export const plausibleStatsCacheTable = pgTable(
 	"plausible_stats_cache",
@@ -702,19 +740,24 @@ export const billingWebhookEventsTable = pgTable("billing_webhook_events", {
 	processedAt: timestamp("processed_at", { withTimezone: true }),
 });
 
-export const runnersTable = pgTable("runners", {
-	id: uuid("id").notNull().defaultRandom().primaryKey(),
-	ownerId: varchar("owner_id")
-		.notNull()
-		.references(() => usersTable.id, { onDelete: "cascade" }),
-	name: varchar("name").notNull(),
-	token: varchar("token").notNull().unique(),
-	status: runnerStatusEnum("status").$type<RunnerStatus>().notNull().default(RunnerStatusEnumValues.Offline),
-	lastHeartbeatAt: timestamp("last_heartbeat_at", { withTimezone: true }),
-	osInfo: varchar("os_info"),
-	version: varchar("version"),
-	createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-});
+export const runnersTable = pgTable(
+	"runners",
+	{
+		id: uuid("id").notNull().defaultRandom().primaryKey(),
+		ownerId: varchar("owner_id")
+			.notNull()
+			.references(() => usersTable.id, { onDelete: "cascade" }),
+		name: varchar("name").notNull(),
+		configurationRevision: integer("configuration_revision").notNull().default(1),
+		token: varchar("token").notNull().unique(),
+		status: runnerStatusEnum("status").$type<RunnerStatus>().notNull().default(RunnerStatusEnumValues.Offline),
+		lastHeartbeatAt: timestamp("last_heartbeat_at", { withTimezone: true }),
+		osInfo: varchar("os_info"),
+		version: varchar("version"),
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+	},
+	(table) => [check("runners_revision_positive", sql`${table.configurationRevision} > 0`)],
+);
 
 export const runnerEnrollmentsTable = pgTable(
 	"runner_enrollments",
@@ -735,25 +778,101 @@ export const runnerEnrollmentsTable = pgTable(
 	(t) => [index("runner_enrollments_device_code_idx").on(t.deviceCode), index("runner_enrollments_user_code_idx").on(t.userCode), index("runner_enrollments_expires_at_idx").on(t.expiresAt)],
 );
 
-export const streamSessionsTable = pgTable("stream_sessions", {
-	id: uuid("id").notNull().defaultRandom().primaryKey(),
-	ownerId: varchar("owner_id")
-		.notNull()
-		.references(() => usersTable.id, { onDelete: "cascade" }),
-	runnerId: uuid("runner_id").references(() => runnersTable.id, { onDelete: "set null" }),
-	overlayId: uuid("overlay_id")
-		.notNull()
-		.references(() => overlaysTable.id, { onDelete: "cascade" }),
-	mode: streamModeEnum("mode").$type<StreamMode>().notNull(),
-	encryptedStreamKey: text("encrypted_stream_key"),
-	rtmpUrl: varchar("rtmp_url").notNull().default("rtmp://live.twitch.tv/app"),
-	desiredState: streamStateEnum("desired_state").$type<StreamState>().notNull().default(StreamStateEnumValues.Stopped),
-	actualState: streamStateEnum("actual_state").$type<StreamState>().notNull().default(StreamStateEnumValues.Stopped),
-	resolution: varchar("resolution").notNull().default("1080p"),
-	fps: integer("fps").notNull().default(60),
-	lastError: text("last_error"),
-	updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
-});
+export const streamSessionsTable = pgTable(
+	"stream_sessions",
+	{
+		id: uuid("id").notNull().defaultRandom().primaryKey(),
+		ownerId: varchar("owner_id")
+			.notNull()
+			.references(() => usersTable.id, { onDelete: "cascade" }),
+		runnerId: uuid("runner_id").references(() => runnersTable.id, { onDelete: "set null" }),
+		overlayId: uuid("overlay_id")
+			.notNull()
+			.references(() => overlaysTable.id, { onDelete: "cascade" }),
+		mode: streamModeEnum("mode").$type<StreamMode>().notNull(),
+		configurationRevision: integer("configuration_revision").notNull().default(1),
+		encryptedStreamKey: text("encrypted_stream_key"),
+		rtmpUrl: varchar("rtmp_url").notNull().default("rtmp://live.twitch.tv/app"),
+		desiredState: streamStateEnum("desired_state").$type<StreamState>().notNull().default(StreamStateEnumValues.Stopped),
+		actualState: streamStateEnum("actual_state").$type<StreamState>().notNull().default(StreamStateEnumValues.Stopped),
+		resolution: varchar("resolution").notNull().default("1080p"),
+		fps: integer("fps").notNull().default(60),
+		lastError: text("last_error"),
+		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+	},
+	(table) => [check("stream_sessions_revision_positive", sql`${table.configurationRevision} > 0`)],
+);
 
 // Generated from @c15t/backend's current FumaDB schema.
 export * from "./c15t-schema";
+
+// Clipify authority is separate from provider credentials; exact immutable IDs
+// prevent previously issued tokens from adopting a later consent grant.
+export const mcpConnectionGrantsTable = pgTable(
+	"mcp_connection_grants",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		authUserId: text("auth_user_id")
+			.notNull()
+			.references(() => authUserTable.id, { onDelete: "cascade" }),
+		clientId: text("client_id").notNull(),
+		resource: text("resource").notNull(),
+		issuer: text("issuer").notNull(),
+		generation: integer("generation").notNull().default(1),
+		scopes: text("scopes").array().notNull(),
+		active: boolean("active").notNull().default(false),
+		createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+		expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+		revokedAt: timestamp("revoked_at", { withTimezone: true }),
+	},
+	(table) => [index("mcp_grants_actor_client_idx").on(table.authUserId, table.clientId), check("mcp_grant_generation_positive", sql`${table.generation} > 0`)],
+);
+export const mcpGrantCreatorsTable = pgTable(
+	"mcp_grant_creators",
+	{
+		grantId: uuid("grant_id")
+			.notNull()
+			.references(() => mcpConnectionGrantsTable.id, { onDelete: "cascade" }),
+		creatorId: varchar("creator_id")
+			.notNull()
+			.references(() => creatorAccountsTable.creatorId, { onDelete: "cascade" }),
+		// NULL preserves pre-existing grants; new consent always stores explicit per-creator scopes.
+		scopes: text("scopes").array(),
+		agencyOrganizationId: text("agency_organization_id").references(() => authOrganizationTable.id, { onDelete: "cascade" }),
+	},
+	(table) => [primaryKey({ columns: [table.grantId, table.creatorId] })],
+);
+
+export const mcpMutationRetriesTable = pgTable(
+	"mcp_mutation_retries",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		grantId: uuid("grant_id")
+			.notNull()
+			.references(() => mcpConnectionGrantsTable.id, { onDelete: "cascade" }),
+		grantGeneration: integer("grant_generation").notNull(),
+		authUserId: text("auth_user_id")
+			.notNull()
+			.references(() => authUserTable.id, { onDelete: "cascade" }),
+		clientId: text("client_id").notNull(),
+		creatorId: varchar("creator_id")
+			.notNull()
+			.references(() => creatorAccountsTable.creatorId, { onDelete: "cascade" }),
+		toolName: varchar("tool_name", { length: 128 }).notNull(),
+		retryKey: varchar("retry_key", { length: 128 }).notNull(),
+		inputDigest: varchar("input_digest", { length: 64 }).notNull(),
+		safeResponse: jsonb("safe_response").$type<Record<string, unknown>>().notNull(),
+		resourceId: uuid("resource_id").notNull(),
+		createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+		expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+	},
+	(table) => [
+		uniqueIndex("mcp_retries_context_key_unique").on(table.grantId, table.grantGeneration, table.authUserId, table.clientId, table.creatorId, table.toolName, table.retryKey),
+		index("mcp_retries_expiry_idx").on(table.expiresAt),
+		check("mcp_retry_generation_positive", sql`${table.grantGeneration} > 0`),
+		check("mcp_retry_key_bounds", sql`length(${table.retryKey}) BETWEEN 1 AND 128`),
+		check("mcp_retry_digest_format", sql`${table.inputDigest} ~ '^[a-f0-9]{64}$'`),
+		check("mcp_retry_minimum_retention", sql`${table.expiresAt} >= ${table.createdAt} + interval '24 hours'`),
+		check("mcp_retry_safe_response_object", sql`jsonb_typeof(${table.safeResponse}) = 'object'`),
+	],
+);

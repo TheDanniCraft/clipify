@@ -1,7 +1,8 @@
 import { drizzle } from "drizzle-orm/node-postgres";
 import * as domainSchema from "./schema";
 import * as authSchema from "./auth-schema";
-import { Pool } from "pg";
+import type { Pool } from "pg";
+import { RequestAwarePool } from "./request-scope";
 
 declare global {
 	var __dbPool: Pool | undefined;
@@ -9,8 +10,11 @@ declare global {
 
 const pool =
 	globalThis.__dbPool ??
-	new Pool({
+	new RequestAwarePool({
 		connectionString: process.env.DATABASE_URL,
+		// Bound connection acquisition and cancel slow SQL in PostgreSQL itself.
+		connectionTimeoutMillis: 10_000,
+		statement_timeout: 10_000,
 	});
 
 globalThis.__dbPool = pool;

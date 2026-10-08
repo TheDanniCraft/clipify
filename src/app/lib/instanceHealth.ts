@@ -8,6 +8,10 @@ import { and, count, countDistinct, eq, gt, isNotNull, isNull, like, lt, lte, or
 import { BillingProduct, Entitlement, EntitlementGrantSource, OverlayType, PlaybackMode, Plan, RunnerStatus, StatusOptions, StreamMode, StreamState, TwitchCacheType } from "@types";
 import { getCreatorAnalyticsRuntimeMetrics } from "@lib/plausibleCreatorAnalytics";
 
+import { getMcpMetricsSnapshot, type McpMetricsSnapshot } from "@/server/mcp/metrics";
+
+import { getMcpClientHealthStats, type McpClientStats } from "@/server/mcp/client-stats";
+
 type HealthStatus = "ok" | "degraded" | "down";
 
 type ClipFetchMetrics = {
@@ -66,6 +70,8 @@ export function recordTwitchRateLimit(log: TwitchRateLimitLog) {
 }
 
 export type InstanceHealthSnapshot = {
+	mcp: McpMetricsSnapshot;
+	mcpClients: McpClientStats | null;
 	status: HealthStatus;
 	time: string;
 	uptimeSec: number;
@@ -622,6 +628,8 @@ async function buildInstanceHealthSnapshot<TExclude extends keyof InstanceHealth
 	if (dbPingMs > 5000 || healthAggregationMs > 5000) status = "down";
 
 	const health = {
+		mcp: getMcpMetricsSnapshot(),
+		mcpClients: await getMcpClientHealthStats(db).catch(() => null),
 		status,
 		time: now.toISOString(),
 		uptimeSec: Math.floor(process.uptime()),

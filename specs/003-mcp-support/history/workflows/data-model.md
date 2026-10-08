@@ -1,0 +1,3 @@
+# Data model
+
+Existing ownership remains creator ID based. Gallery and Creator Page settings receive positive configurationRevision integers maintained by both interfaces. Runner/session writes use stored state concurrency tokens without leaking tokens/keys. Runtime state is bounded, fresh process-local reporting and must identify unavailable state across processes. Import selections are cryptographically authenticated bounded payloads with exact IDs, creator/playlist/revision/grant/generation/actor/client, creation time and expiry; commit results use existing retained mutation-retry storage and shared locked playlist mutation. Foreign-resource assignments are rejected.

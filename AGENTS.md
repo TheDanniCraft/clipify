@@ -66,6 +66,29 @@ Resources
     Gitmoji website: https://gitmoji.dev/
     Gitmoji specification: https://gitmoji.dev/specification
 
+## Release notes
+
+Release notes appear on the Clipify website and are written for end users.
+
+- Use plain lines of Gitmoji commit subjects, matching previous releases. Keep
+  the emoji and concise imperative wording; do not add Markdown bullets, section
+  headings, PR numbers, test results, deployment instructions, or explanatory
+  paragraphs.
+- Start from commits since the previous release. Combine related subjects into
+  one clear line when helpful, remove duplicates and merge-only commits, and
+  omit changes that are irrelevant to end users.
+- Keep only changes included in the release target. Describe user-visible fixes
+  or features clearly rather than exposing internal implementation details.
+- Review recent published releases before writing notes. Do not use GitHub's
+  generated release-note template.
+
+Example:
+
+```text
+🐛 Fix OAuth sign-in across production and preview
+💄 Refine team and authorization management
+```
+
 ## Drizzle migration ownership (non-negotiable)
 
 - On feature branches, edit `src/db/schema.ts`, `src/db/auth-schema.ts`, and

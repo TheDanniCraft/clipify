@@ -1,0 +1,195 @@
+"use client";
+import { useEffect, useRef, useState } from "react";
+import { Alert, Button, Card, Chip, Label, ListBox, Select, Spinner } from "@heroui/react";
+import { EmptyState } from "@heroui-pro/react";
+import { IconActivity, IconHistory, IconRefresh } from "@tabler/icons-react";
+import { getConnectedMcpActivityPage, getMcpActivityCreators } from "@/app/actions/mcp-connections";
+import { mcpOperationLabels as operationLabels } from "@lib/mcpOperationLabels";
+import type { McpActivityItem } from "@lib/mcpConnection";
+
+export default function McpActivityPanel() {
+	const [available, setAvailable] = useState<boolean | null>(null);
+	const [creators, setCreators] = useState<{ id: string; name: string }[]>([]);
+	const [creatorId, setCreatorId] = useState("");
+	const [items, setItems] = useState<McpActivityItem[]>([]);
+	const [cursor, setCursor] = useState<string | null>(null);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState<string>();
+	const [refresh, setRefresh] = useState(0);
+	const generation = useRef(0);
+	useEffect(() => {
+		let active = true;
+		const requests = generation;
+		void getMcpActivityCreators()
+			.then((result) => {
+				if (!active) return;
+				setAvailable(result.available);
+				setCreators(result.creators);
+				setError(result.error);
+				setCreatorId(result.creators[0]?.id ?? "");
+				if (!result.creators.length) setLoading(false);
+			})
+			.catch(() => {
+				if (!active) return;
+				setAvailable(true);
+				setError("Creator activity access could not be loaded. Refresh and try again.");
+				setLoading(false);
+			});
+		return () => {
+			active = false;
+			requests.current++;
+		};
+	}, []);
+	useEffect(() => {
+		if (!creatorId) return;
+		const requests = generation;
+		const current = ++requests.current;
+		void getConnectedMcpActivityPage({ creatorId, limit: 25 })
+			.then((result) => {
+				if (generation.current !== current) return;
+				setItems(result.error ? [] : result.items);
+				setCursor(result.error ? null : result.nextCursor);
+				setError(result.error);
+				setLoading(false);
+			})
+			.catch(() => {
+				if (generation.current !== current) return;
+				setError("Activity could not be loaded. Refresh and try again.");
+				setLoading(false);
+			});
+		return () => {
+			requests.current++;
+		};
+	}, [creatorId, refresh]);
+	function resetHistory() {
+		generation.current++;
+		setItems([]);
+		setCursor(null);
+		setError(undefined);
+		setLoading(true);
+	}
+	async function loadOlder() {
+		if (!cursor || loading) return;
+		const current = generation.current;
+		setLoading(true);
+		try {
+			const result = await getConnectedMcpActivityPage({ creatorId, limit: 25, cursor });
+			if (generation.current !== current) return;
+			if (result.error) {
+				setItems([]);
+				setCursor(null);
+				setError(result.error);
+			} else {
+				setItems((previous) => [...previous, ...result.items.filter((item) => !previous.some((existing) => existing.id === item.id))]);
+				setCursor(result.nextCursor);
+			}
+		} catch {
+			if (generation.current !== current) return;
+			setItems([]);
+			setCursor(null);
+			setError("Activity could not be loaded. Refresh and try again.");
+		} finally {
+			if (generation.current === current) setLoading(false);
+		}
+	}
+	if (available === false) return null;
+	return (
+		<Card className='p-0' role='region' aria-labelledby='mcp-activity-title'>
+			<Card.Header className='gap-2 p-6'>
+				<div className='flex items-center gap-3'>
+					<span className='flex size-10 items-center justify-center rounded-xl bg-accent-soft text-accent'>
+						<IconActivity size={22} aria-hidden='true' />
+					</span>
+					<h2 id='mcp-activity-title' className='text-xl font-semibold'>
+						AI app activity
+					</h2>
+				</div>
+				<Card.Description>Review what connected apps did and which requests were blocked. Activity follows your current creator access.</Card.Description>
+			</Card.Header>
+			<Card.Content className='flex flex-col gap-4 px-6 pb-6'>
+				{!!creators.length && (
+					<div className='flex flex-col items-stretch gap-3 sm:flex-row sm:items-end'>
+						<Select aria-label='Creator' fullWidth variant='secondary' value={creatorId || null} onChange={(next) => setCreatorId(String(next ?? ""))}>
+							<Label>Creator</Label>
+							<Select.Trigger>
+								<Select.Value />
+								<Select.Indicator />
+							</Select.Trigger>
+							<Select.Popover>
+								<ListBox>
+									{creators.map((creator) => (
+										<ListBox.Item key={creator.id} id={creator.id} textValue={creator.name}>
+											{creator.name}
+											<ListBox.ItemIndicator />
+										</ListBox.Item>
+									))}
+								</ListBox>
+							</Select.Popover>
+						</Select>
+						<Button
+							variant='secondary'
+							aria-label='Refresh activity'
+							isDisabled={loading}
+							onPress={() => {
+								resetHistory();
+								setRefresh((value) => value + 1);
+							}}
+						>
+							<IconRefresh size={18} aria-hidden='true' />
+							Refresh
+						</Button>
+					</div>
+				)}
+				{error && (
+					<Alert status='danger' role='alert'>
+						<Alert.Indicator />
+						<Alert.Content>
+							<Alert.Title>Activity unavailable</Alert.Title>
+							<Alert.Description>{error}</Alert.Description>
+						</Alert.Content>
+					</Alert>
+				)}
+				{loading && (
+					<div className='flex items-center gap-2 py-4 text-muted' role='status'>
+						<Spinner size='sm' />
+						<p>Loading activity…</p>
+					</div>
+				)}
+				{!loading && !error && !items.length && (
+					<EmptyState className='rounded-xl bg-surface-secondary py-8'>
+						<EmptyState.Header>
+							<EmptyState.Media variant='icon'>
+								<IconHistory size={28} aria-hidden='true' />
+							</EmptyState.Media>
+							<EmptyState.Title>{creators.length ? "No activity yet" : "No creator activity access"}</EmptyState.Title>
+							<EmptyState.Description>{creators.length ? "Activity will appear when an approved app uses Clipify tools." : "You need activity permission for a creator to inspect their app history."}</EmptyState.Description>
+						</EmptyState.Header>
+					</EmptyState>
+				)}
+				{items.map((item) => (
+					<article key={item.id} className='flex flex-col gap-3 rounded-xl border border-border p-4 sm:p-5'>
+						<div className='flex flex-wrap items-center justify-between gap-2'>
+							<h3 className='font-semibold'>{operationLabels[item.tool] ?? "Unavailable tool"}</h3>
+							<Chip size='sm' variant='soft' color={item.outcome === "success" ? "success" : item.outcome === "denied" ? "warning" : "danger"}>
+								{item.outcome === "success" ? "Completed" : item.outcome === "denied" ? "Blocked" : "Failed"}
+							</Chip>
+						</div>
+						<div className='flex flex-col gap-1 text-sm text-muted sm:flex-row sm:flex-wrap sm:gap-x-5'>
+							<span>{item.actor.name}</span>
+							<span>{item.client.name}</span>
+							<span>Creator: {item.creator.name}</span>
+						</div>
+						<time className='text-xs text-muted' dateTime={item.occurredAt}>
+							{new Date(item.occurredAt).toLocaleString()}
+						</time>
+					</article>
+				))}
+				{cursor && (
+					<Button variant='secondary' isPending={loading} onPress={loadOlder}>
+						Load older activity
+					</Button>
+				)}
+			</Card.Content>
+		</Card>
+	);
+}

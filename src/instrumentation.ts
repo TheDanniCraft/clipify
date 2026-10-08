@@ -20,6 +20,10 @@ export async function register() {
 			startConsentRetentionScheduler();
 			startOperationalHealthPublisher();
 			startAccountLifecycleScheduler();
+			const { startMcpCleanupScheduler } = await import("@/server/mcp/cleanup-scheduler");
+			startMcpCleanupScheduler();
+			const { startOverlayEffectScheduler } = await import("@/server/resources/overlay-effect-scheduler");
+			startOverlayEffectScheduler();
 		}
 	}
 	if (process.env.NEXT_RUNTIME === "edge") {

@@ -1,3 +1,4 @@
+jest.mock("@/auth/session-principal", () => ({ getVerifiedSessionPrincipal: async () => ({ kind: "session", authUserId: "auth-user-1", sessionId: "session-1", authenticatedAt: new Date() }) }));
 /** @jest-environment node */
 export {};
 jest.mock("@/server/memberNumbers", () => ({ allocateMemberNumber: async () => 101 }));
@@ -128,6 +129,11 @@ jest.mock("drizzle-orm", () => ({
 }));
 
 const validateAuth = jest.fn();
+const createBrowserOverlay = jest.fn();
+const createBrowserPlaylist = jest.fn();
+const saveBrowserPlaylistItems = jest.fn();
+jest.mock("@/server/resources/browser-playlists", () => ({ saveBrowserPlaylistItems: (...args: unknown[]) => saveBrowserPlaylistItems(...args), createBrowserPlaylist: (...args: unknown[]) => createBrowserPlaylist(...args) }));
+jest.mock("@/server/resources/browser-overlays", () => ({ createBrowserOverlay: (...args: unknown[]) => createBrowserOverlay(...args) }));
 const validateAdminAuth = jest.fn();
 jest.mock("@actions/auth", () => ({
 	validateAuth,
@@ -138,6 +144,7 @@ const authorizeCreatorOperation = jest.fn();
 const listAuthorizedCreatorOperations = jest.fn();
 jest.mock("@/auth/authorize-operation", () => ({
 	authorizeCreatorOperation: (...args: unknown[]) => authorizeCreatorOperation(...args),
+	authorizeTrustedCreatorOperation: ({ principal: _principal, client: _client, ...input }: Record<string, unknown>) => authorizeCreatorOperation(input),
 	listAuthorizedCreatorOperations: (...args: unknown[]) => listAuthorizedCreatorOperations(...args),
 }));
 
@@ -190,7 +197,47 @@ function loadDatabaseActions() {
 }
 
 describe("database.ts coverage tests", () => {
+	it.each([
+		[{ message: "database diagnostic" }, "database diagnostic"],
+		[{ name: "DriverFailure" }, "DriverFailure"],
+		[{ stack: "DriverFailure\nprivate stack" }, "DriverFailure"],
+		[{ stack: "" }, "Unknown error (stack available)"],
+		[{}, "[object Object]"],
+		[null, "null"],
+	])("cache write failure %p is contained and summarized", async (cause, summary) => {
+		const errorLog = jest.spyOn(console, "error").mockImplementation(() => undefined);
+		try {
+			const { setTwitchCacheBatch } = loadDatabaseActions();
+			dbInsert.mockImplementationOnce(() => {
+				throw cause;
+			});
+			await expect(setTwitchCacheBatch(0 as never, [{ key: "k", value: "v" }])).resolves.toBeUndefined();
+			expect(errorLog).toHaveBeenCalledWith("Error writing twitch cache batch:", summary);
+		} finally {
+			errorLog.mockRestore();
+		}
+	});
+	it.each([
+		[{ minDuration: 10 }, ["medium", "long"]],
+		[{ maxDuration: 10 }, ["short", "medium"]],
+		[{ minDuration: 8, maxDuration: 12 }, ["medium"]],
+	])("playlist import preview applies duration bounds %p", async (filters, expected) => {
+		const { previewImportPlaylistClips } = loadDatabaseActions();
+		queueSelectResult([{ id: "pl1", ownerId: "user-1" }]);
+		queueSelectResult([{ id: "user-1", plan: "pro" }]);
+		queueSelectResult([5, 10, 15].map((duration, index) => ({ key: `duration-${index}`, value: JSON.stringify({ id: ["short", "medium", "long"][index], duration, created_at: "2026-03-20T12:00:00Z", view_count: 1, game_id: "g" }) })));
+		const result = await previewImportPlaylistClips("pl1", { overlayType: "All", ...filters });
+		expect(result.map((clip: { id: string }) => clip.id).sort()).toEqual([...expected].sort());
+	});
+	it.each([null, [null], [{ id: 42 }]])("invalid browser clip selection %p cannot reach the shared writer", async (clips) => {
+		const { upsertPlaylistClips } = loadDatabaseActions();
+		await expect(upsertPlaylistClips("playlist", clips, "replace", 1)).resolves.toBeNull();
+		expect(dbInsert).not.toHaveBeenCalled();
+	});
+
 	beforeEach(() => {
+		createBrowserOverlay.mockReset().mockResolvedValue(null);
+		createBrowserPlaylist.mockReset().mockResolvedValue(null);
 		jest.clearAllMocks();
 		selectQueue.length = 0;
 		dbSelect.mockImplementation(() => makeSelectChain());
@@ -211,40 +258,27 @@ describe("database.ts coverage tests", () => {
 		queueSelectResult([{ id: "pl1", ownerId: "user-1" }]); // playlist access
 		queueSelectResult([{ id: "user-1", plan: "free" }]); // owner plan (Free)
 
-		await expect(importPlaylistClips("pl1", {} as any, "append")).rejects.toThrow("Auto import is a Pro feature");
+		await expect(importPlaylistClips("pl1", {} as any, "append", 1)).rejects.toThrow("Auto import is a Pro feature");
 	});
-
 	it("covers createOverlay unauthenticated", async () => {
 		const { createOverlay } = await loadDatabaseActions();
-		validateAuth.mockResolvedValue(null);
-		const result = await createOverlay("user-1");
-		expect(result).toBeNull();
+		expect(await createOverlay("user-1")).toBeNull();
+		expect(createBrowserOverlay).toHaveBeenCalledWith("user-1");
 	});
-
 	it("covers createOverlay unauthorized", async () => {
 		const { createOverlay } = await loadDatabaseActions();
-		validateAuth.mockResolvedValue({ id: "user-2" });
-		authorizeCreatorOperation.mockResolvedValueOnce({ allowed: false, code: "PERMISSION_DENIED" });
-		const result = await createOverlay("user-1");
-		expect(result).toBeNull();
+		expect(await createOverlay("user-1")).toBeNull();
+		expect(createBrowserOverlay).toHaveBeenCalledWith("user-1");
 	});
-
 	it("covers createOverlay owner not found", async () => {
 		const { createOverlay } = await loadDatabaseActions();
-		queueSelectResult([]); // owner select
-		const result = await createOverlay("user-1");
-		expect(result).toBeNull();
+		expect(await createOverlay("user-1")).toBeNull();
+		expect(createBrowserOverlay).toHaveBeenCalledWith("user-1");
 	});
-
 	it("covers createOverlay free limit reached", async () => {
 		const { createOverlay } = await loadDatabaseActions();
-		const { getFeatureAccess } = require("@lib/featureAccess");
-		getFeatureAccess.mockReturnValue({ allowed: false });
-		queueSelectResult([{ id: "user-1" }]); // owner select
-		dbSelect.mockImplementationOnce(() => makeSelectChain()); // resolveUserEntitlements
-		queueSelectResult([{ id: "ov1" }]); // existing overlays
-		const result = await createOverlay("user-1");
-		expect(result).toBeNull();
+		expect(await createOverlay("user-1")).toBeNull();
+		expect(createBrowserOverlay).toHaveBeenCalledWith("user-1");
 	});
 
 	it("covers non-destructive downgrade reconciliation", async () => {
@@ -517,7 +551,7 @@ describe("database.ts coverage tests", () => {
 		dbSelect.mockImplementationOnce(() => makeSelectChain()); // owner plan
 		queueSelectResult([{ id: "user-1", plan: "free" }]);
 
-		await expect(importPlaylistClips("pl1", {} as any, "append")).rejects.toThrow("Auto import is a Pro feature");
+		await expect(importPlaylistClips("pl1", {} as any, "append", 1)).rejects.toThrow("Auto import is a Pro feature");
 	});
 
 	it("covers getOverlayOwnerPlans with editor role", async () => {
@@ -679,21 +713,12 @@ describe("database.ts coverage tests", () => {
 		result = await getOverlayBySecret("ov1", "secret1");
 		expect(result).toBeNull();
 	});
-
 	it("covers createOverlay free owner without active grant still allowed", async () => {
+		const overlay = { id: "free-created", ownerId: "no-grant-user", name: "New Overlay", configurationRevision: 1 };
+		createBrowserOverlay.mockResolvedValueOnce(overlay);
 		const { createOverlay } = loadDatabaseActions();
-		const { getFeatureAccess } = require("@lib/featureAccess");
-		getFeatureAccess.mockReturnValue({ allowed: true });
-
-		validateAuth.mockResolvedValueOnce({ id: "no-grant-user", email: "e", username: "u" });
-		queueSelectResult([{ id: "no-grant-user", plan: "free" }]); // owner
-		queueSelectResult([{ id: "existing-ov" }]); // existing overlays
-
-		const result = await createOverlay("no-grant-user");
-		expect(result).toMatchObject({
-			ownerId: "no-grant-user",
-			name: "New Overlay",
-		});
+		expect(await createOverlay("no-grant-user")).toBe(overlay);
+		expect(createBrowserOverlay).toHaveBeenCalledWith("no-grant-user");
 	});
 
 	it("covers getOverlayByRewardId empty result", async () => {
@@ -1055,29 +1080,26 @@ describe("database.ts coverage tests", () => {
 		expect(result.map((c: { id: string }) => c.id)).not.toContain("out");
 	});
 
-	it("covers saveOverlay sanitizers and payload branch combinations", async () => {
-		const { saveOverlay } = loadDatabaseActions();
-		let capturedPayload: any = null;
-		dbUpdate.mockImplementationOnce(() => ({
-			set: (payload: any) => {
-				capturedPayload = payload;
-				return { where: () => ({ execute: async () => undefined }) };
-			},
-		}));
-
-		queueSelectResult([{ id: "ov1", ownerId: "user-1", secret: "secret", type: "Featured", name: "old", status: "active" }]); // access overlay
-		queueSelectResult([{ id: "user-1", plan: "pro" }]); // owner
-		queueSelectResult([{ id: "ov1", ownerId: "user-1", secret: "secret", type: "Featured", name: "new", status: "active" }]); // getOverlay return
-
-		await saveOverlay("ov1", {
-			name: "new",
-			themeFontFamily: "My Font||url||https://fonts.googleapis.com/css2?family=Inter",
-			themeTextColor: "transparent",
-			themeAccentColor: "invalid",
-			themeBackgroundColor: "rgba(1, 2, 3, 0.5)",
-			progressBarStartColor: "hsl(20, 50%, 50%)",
-			progressBarEndColor: "",
-		} as any);
+	it("covers shared overlay configuration sanitizers and payload branch combinations", async () => {
+		const { buildOverlayUpdatePayload } = await import("@/server/resources/overlay-configuration");
+		const capturedPayload: any = buildOverlayUpdatePayload(
+			{
+				id: "ov1",
+				ownerId: "user-1",
+				type: "Featured",
+				status: "active",
+				...{
+					name: "new",
+					themeFontFamily: "My Font||url||https://fonts.googleapis.com/css2?family=Inter",
+					themeTextColor: "transparent",
+					themeAccentColor: "invalid",
+					themeBackgroundColor: "rgba(1, 2, 3, 0.5)",
+					progressBarStartColor: "hsl(20, 50%, 50%)",
+					progressBarEndColor: "",
+				},
+			} as any,
+			true,
+		);
 
 		expect(capturedPayload.themeFontFamily).toContain("||url||");
 		expect(capturedPayload.themeTextColor).toBe("transparent");
@@ -1087,46 +1109,40 @@ describe("database.ts coverage tests", () => {
 		expect(capturedPayload.progressBarEndColor).toBe("#8D42F9");
 	});
 
-	it("covers saveOverlay font sanitizer no-delimiter and URL parse catch branches", async () => {
-		const { saveOverlay } = loadDatabaseActions();
-		let capturedPayload: any = null;
-		dbUpdate.mockImplementationOnce(() => ({
-			set: (payload: any) => {
-				capturedPayload = payload;
-				return { where: () => ({ execute: async () => undefined }) };
-			},
-		}));
-
-		queueSelectResult([{ id: "ov1", ownerId: "user-1", secret: "secret", type: "Featured", name: "old", status: "active" }]); // access overlay
-		queueSelectResult([{ id: "user-1", plan: "pro" }]); // owner
-		queueSelectResult([{ id: "ov1", ownerId: "user-1", secret: "secret", type: "Featured", name: "new", status: "active" }]); // getOverlay return
-
-		await saveOverlay("ov1", {
-			name: "new",
-			themeFontFamily: "FamilyOne||url||://not-a-valid-url",
-		} as any);
+	it("covers shared overlay configuration font sanitizer no-delimiter and URL parse catch branches", async () => {
+		const { buildOverlayUpdatePayload } = await import("@/server/resources/overlay-configuration");
+		const capturedPayload: any = buildOverlayUpdatePayload(
+			{
+				id: "ov1",
+				ownerId: "user-1",
+				type: "Featured",
+				status: "active",
+				...{
+					name: "new",
+					themeFontFamily: "FamilyOne||url||://not-a-valid-url",
+				},
+			} as any,
+			true,
+		);
 
 		expect(capturedPayload.themeFontFamily).toBe("FamilyOne");
 	});
 
-	it("covers saveOverlay font sanitizer without URL delimiter", async () => {
-		const { saveOverlay } = loadDatabaseActions();
-		let capturedPayload: any = null;
-		dbUpdate.mockImplementationOnce(() => ({
-			set: (payload: any) => {
-				capturedPayload = payload;
-				return { where: () => ({ execute: async () => undefined }) };
-			},
-		}));
-
-		queueSelectResult([{ id: "ov1", ownerId: "user-1", secret: "secret", type: "Featured", name: "old", status: "active" }]); // access overlay
-		queueSelectResult([{ id: "user-1", plan: "pro" }]); // owner
-		queueSelectResult([{ id: "ov1", ownerId: "user-1", secret: "secret", type: "Featured", name: "new", status: "active" }]); // getOverlay return
-
-		await saveOverlay("ov1", {
-			name: "new",
-			themeFontFamily: "Simple Family",
-		} as any);
+	it("covers shared overlay configuration font sanitizer without URL delimiter", async () => {
+		const { buildOverlayUpdatePayload } = await import("@/server/resources/overlay-configuration");
+		const capturedPayload: any = buildOverlayUpdatePayload(
+			{
+				id: "ov1",
+				ownerId: "user-1",
+				type: "Featured",
+				status: "active",
+				...{
+					name: "new",
+					themeFontFamily: "Simple Family",
+				},
+			} as any,
+			true,
+		);
 
 		expect(capturedPayload.themeFontFamily).toBe("Simple Family");
 	});
@@ -1142,35 +1158,23 @@ describe("database.ts coverage tests", () => {
 
 	it("covers createPlaylist success path", async () => {
 		const { createPlaylist } = loadDatabaseActions();
-		queueSelectResult([{ id: "user-1", plan: "pro" }]); // owner in getOwnerPlanContext
+		createBrowserPlaylist.mockResolvedValueOnce({ id: "playlist-new", ownerId: "user-1", name: "My Playlist" });
 		const result = await createPlaylist("user-1", "  My Playlist  ");
 		expect(result).toMatchObject({ ownerId: "user-1" });
 	});
 
-	it("covers upsertPlaylistClips append path", async () => {
+	it("covers shared clip selection and exact read revision", async () => {
 		const { upsertPlaylistClips } = loadDatabaseActions();
-		queueSelectResult([{ id: "pl1", ownerId: "user-1" }]); // requirePlaylistAccess
-		queueSelectResult([{ id: "user-1", plan: "pro" }]); // getOwnerPlanContext
-		queueSelectResult([]); // existing playlist rows
-		queueSelectResult([{ id: "pl1", ownerId: "user-1" }]); // getPlaylistClipsForOwnerServer ownership check
-		queueSelectResult([{ clipId: "c1", position: 0, clipData: JSON.stringify({ id: "c1", created_at: "2025-01-01T00:00:00Z" }) }]); // read back clips
-
-		const result = await upsertPlaylistClips("pl1", [{ id: "c1", created_at: "2025-01-01T00:00:00Z" } as any], "append");
-		expect(result).toHaveLength(1);
+		saveBrowserPlaylistItems.mockResolvedValueOnce({ clips: [{ id: "c1" }], configurationRevision: 2, name: "Saved" });
+		expect(await upsertPlaylistClips("pl1", [{ id: "c1" } as any], "append", 1)).toMatchObject({ configurationRevision: 2 });
+		expect(saveBrowserPlaylistItems).toHaveBeenCalledWith("pl1", ["c1"], "append", 1, undefined);
 	});
-
-	it("covers upsertPlaylistClips default mode branch", async () => {
+	it("covers default append and unavailable shared result", async () => {
 		const { upsertPlaylistClips } = loadDatabaseActions();
-		queueSelectResult([{ id: "pl1", ownerId: "user-1" }]); // requirePlaylistAccess
-		queueSelectResult([{ id: "user-1", plan: "pro" }]); // getOwnerPlanContext
-		queueSelectResult([]); // existing playlist rows
-		queueSelectResult([{ id: "pl1", ownerId: "user-1" }]); // getPlaylistClipsForOwnerServer ownership check
-		queueSelectResult([]); // playlist rows after write
-
-		const result = await upsertPlaylistClips("pl1", [{ id: "c1" } as any]);
-		expect(result).toEqual([]);
+		saveBrowserPlaylistItems.mockResolvedValueOnce(null);
+		expect(await upsertPlaylistClips("pl1", [{ id: "c1" } as any])).toBeNull();
+		expect(saveBrowserPlaylistItems).toHaveBeenCalledWith("pl1", ["c1"], "append", undefined, undefined);
 	});
-
 	it("covers getOverlayPublic disabled owner default reason fallback", async () => {
 		const { getOverlayPublic } = loadDatabaseActions();
 		queueSelectResult([{ id: "ov1", ownerId: "u1" }]); // overlay

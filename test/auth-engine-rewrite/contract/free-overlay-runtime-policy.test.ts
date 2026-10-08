@@ -7,6 +7,7 @@ function overlay(overrides: Partial<Overlay> = {}): Overlay {
 		ownerId: "creator-1",
 		secret: "secret",
 		name: "Main overlay",
+		configurationRevision: 1,
 		status: StatusOptions.Active,
 		type: OverlayType.Playlist,
 		playlistId: "playlist-1",

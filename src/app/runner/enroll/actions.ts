@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { and, desc, eq, inArray, isNull } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 
 import { validateAuth } from "@actions/auth";
 import { authorizeCreatorOperation, listAuthorizedCreatorOperations } from "@/auth/authorize-operation";
@@ -104,6 +104,7 @@ async function approveRunnerEnrollment(code: string, runnerId?: string): Promise
 		.update(runnersTable)
 		.set({
 			name: enrollmentResult.enrollment.hostname || runner.name,
+			configurationRevision: sql`${runnersTable.configurationRevision} + 1`,
 			osInfo: enrollmentResult.enrollment.osInfo,
 			version: enrollmentResult.enrollment.version,
 		})

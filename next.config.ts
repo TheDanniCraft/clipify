@@ -15,7 +15,8 @@ const replayContentSecurityPolicy = (frameAncestors: string) => `frame-ancestors
 const nextConfigPromise = Promise.resolve(drizzle).then(
 	(drizzle) =>
 		({
-			output: "standalone",
+			// E2E uses the full checkout with a custom server; standalone remains the deployment artifact.
+			output: process.env.E2E_TEST_MODE === "true" ? undefined : "standalone",
 			deploymentId,
 			distDir: process.env.E2E_TEST_MODE === "true" ? ".next-playwright" : ".next",
 			outputFileTracingIncludes: {

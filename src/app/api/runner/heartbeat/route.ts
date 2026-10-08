@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createHash } from "crypto";
 import { db } from "@/db/client";
 import { runnersTable, streamSessionsTable, overlaysTable } from "@/db/schema";
-import { eq, inArray, InferSelectModel } from "drizzle-orm";
+import { eq, inArray, InferSelectModel, sql } from "drizzle-orm";
 import { RunnerStatus, StreamState } from "@types";
 import { decryptString } from "@/app/lib/encryption";
 import { hasActiveRunnerAccess } from "@lib/entitlements";
@@ -43,7 +43,10 @@ export async function POST(req: Request) {
 		}
 
 		if (!(await hasActiveRunnerAccess(runner.ownerId))) {
-			await db.update(streamSessionsTable).set({ desiredState: StreamState.Stopped }).where(eq(streamSessionsTable.runnerId, runner.id));
+			await db
+				.update(streamSessionsTable)
+				.set({ desiredState: StreamState.Stopped, configurationRevision: sql`case when ${streamSessionsTable.desiredState} <> ${StreamState.Stopped} then ${streamSessionsTable.configurationRevision} + 1 else ${streamSessionsTable.configurationRevision} end` })
+				.where(eq(streamSessionsTable.runnerId, runner.id));
 			recordOutcome("entitlement_required");
 			return NextResponse.json({ error: "Runner add-on required", code: "entitlement_required", jobs: [] }, { status: 403 });
 		}
@@ -60,7 +63,7 @@ export async function POST(req: Request) {
 				status: RunnerStatus.Online,
 				osInfo: os,
 				version: version,
-				...(runner.name === "New Hardware Node" && hostname ? { name: hostname } : {}),
+				...(runner.name === "New Hardware Node" && hostname && hostname !== runner.name ? { name: hostname, configurationRevision: sql`${runnersTable.configurationRevision} + 1` } : {}),
 			})
 			.where(eq(runnersTable.id, runner.id));
 

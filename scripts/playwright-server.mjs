@@ -35,7 +35,7 @@ const server = createServer(async (request, response) => {
 // next-ws resolves the custom server through its documented process-global
 // bridge when Next's wrapper has not yet exposed serverOptions.httpServer.
 Reflect.set(globalThis, Symbol.for("next-ws.http-server"), server);
-const app = next({ dev: true, dir: process.cwd(), hostname, port, httpServer: server, webpack: true });
+const app = next({ dev: false, dir: process.cwd(), hostname, port, httpServer: server, webpack: true });
 await app.prepare();
 handle = app.getRequestHandler();
 

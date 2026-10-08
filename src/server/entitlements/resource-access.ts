@@ -25,7 +25,7 @@ export async function resolveRetainedResourceAccess(input: { kind: RetainedResou
 	if (!effectivePlan) {
 		const [owner] = await client.select({ id: usersTable.id, plan: usersTable.plan }).from(usersTable).where(eq(usersTable.id, input.ownerId)).limit(1).execute();
 		if (!owner) return decideRetainedResourceAccess({ effectivePlan: "free", resourceId: input.resourceId, freeResourceIds: [] });
-		effectivePlan = (await resolveUserEntitlements(owner)).effectivePlan;
+		effectivePlan = (await resolveUserEntitlements(owner, client)).effectivePlan;
 	}
 	if (effectivePlan === "pro") return decideRetainedResourceAccess({ effectivePlan, resourceId: input.resourceId, freeResourceIds: [] });
 	return decideRetainedResourceAccess({ effectivePlan, resourceId: input.resourceId, freeResourceIds: await firstFreeResourceIds(input.kind, input.ownerId, client) });

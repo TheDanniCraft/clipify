@@ -1,11 +1,16 @@
 ---
 name: speckit-tdd-run
-description: "Drive the red-green-refactor loop one behavior at a time from the test list: write one failing test, prove it fails for the right reason, make it pass with the smallest change, refactor while green, record the evidence in the feature's tdd/cycle-log.md, and tick the tasks.md tasks the completed behaviors cover"
+description: "Drive the red-green-refactor loop one behavior at a time from the test
+  list: write one failing test, prove it fails for the right reason, make it pass
+  with the smallest change, refactor while green, record the evidence in the feature's
+  tdd/cycle-log.md, and tick the tasks.md tasks the completed behaviors cover"
 compatibility: Requires spec-kit project structure with .specify/ directory
 metadata:
   author: d0whc3r
-  source: tdd:commands/speckit.tdd.run.md
+  source: extension:tdd
 ---
+
+# Tdd Run Skill
 
 # TDD Run
 

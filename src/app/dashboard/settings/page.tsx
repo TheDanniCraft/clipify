@@ -29,6 +29,8 @@ import type { BillingCycle, PaywallSource } from "@actions/subscription";
 import { authClient } from "@/auth/client";
 import { IconBrandTwitch } from "@tabler/icons-react";
 import SecuritySettingsPanel from "./security-panel";
+import ConnectedAppsPanel from "./connected-apps-panel";
+import McpActivityPanel from "./mcp-activity-panel";
 
 type ClipCacheStatusState = {
 	cachedClipCount: number;
@@ -318,8 +320,10 @@ export default function SettingsPage() {
 			});
 
 			if (!settings) return;
-			await saveSettings(settings);
-			setBaseSettings(settings);
+			const saved = await saveSettings(settings);
+			const savedSettings = { ...settings, configurationRevision: saved.configurationRevision };
+			setSettings(savedSettings);
+			setBaseSettings(savedSettings);
 			addToast({
 				title: "Settings saved",
 				description: "Your settings have been saved successfully.",
@@ -627,6 +631,8 @@ export default function SettingsPage() {
 										</Card.Content>
 									</Card>
 									<SecuritySettingsPanel />
+									<ConnectedAppsPanel />
+									<McpActivityPanel />
 									<Card variant='secondary' className='w-full'>
 										<Card.Content>
 											<div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>

@@ -3,6 +3,7 @@ import type { Gallery, TwitchClip } from "@types";
 export const buildGallery = (patch: Partial<Gallery> = {}): Gallery => ({
 	id: "gallery-1",
 	ownerId: "owner",
+	configurationRevision: 1,
 	name: "Highlights",
 	published: true,
 	source: "live",

@@ -7,12 +7,15 @@ import { passkey } from "@better-auth/passkey";
 import { db } from "@/db/client";
 import * as schema from "@/db/auth-schema";
 import { TWITCH_ADDITIONAL_SCOPES } from "./providers/twitch";
+import { refreshTwitchAccessToken } from "./providers/twitch-refresh";
 import { betterAuthOrganizationRoles, clipifyAccessControl } from "./organization-access";
 import { EMAIL_OTP_POLICY } from "./credential-policy";
 import { sendAuthOtp, sendTeamInvitation } from "./transactional-mail";
 import { resolveBaseUrl } from "@/app/lib/baseUrl";
 import { requiredAuthSetting } from "./environment";
 import { evaluateRoleAssignment } from "./role-assignment-policy";
+import { createMcpPlugins } from "./mcp-options";
+import { providerGrantOptions } from "@/server/mcp/grants";
 
 const resolvedBaseUrl = resolveBaseUrl();
 const baseURL = resolvedBaseUrl.origin;
@@ -35,6 +38,7 @@ export const auth = betterAuth({
 			clientId: requiredAuthSetting("TWITCH_CLIENT_ID"),
 			clientSecret: requiredAuthSetting("TWITCH_CLIENT_SECRET"),
 			scope: TWITCH_ADDITIONAL_SCOPES,
+			refreshAccessToken: refreshTwitchAccessToken,
 			requireEmailVerification: true,
 		},
 	},
@@ -123,6 +127,7 @@ export const auth = betterAuth({
 		}),
 	},
 	plugins: [
+		...createMcpPlugins({ origin: baseURL, options: providerGrantOptions }),
 		magicLink({
 			expiresIn: 7 * 24 * 60 * 60,
 			storeToken: "hashed",

@@ -245,6 +245,7 @@ export default function RunnerPage() {
 		setIsSaving(true);
 		const res = await upsertStreamSession({
 			id: streamSessions[0]?.id,
+			expectedRevision: streamSessions[0]?.configurationRevision,
 			ownerId: runner.ownerId,
 			runnerId: runner.id,
 			overlayId,
@@ -270,7 +271,7 @@ export default function RunnerPage() {
 			return;
 		}
 		if (!streamSessions[0]?.id) return;
-		const res = await setStreamDesiredState(streamSessions[0].id, state === "started" ? StreamState.Running : StreamState.Stopped);
+		const res = await setStreamDesiredState(streamSessions[0].id, state === "started" ? StreamState.Running : StreamState.Stopped, streamSessions[0].configurationRevision);
 		if (res.success) {
 			notify({ title: "Action sent", description: `Stream state set to ${state}.`, color: "success" });
 			const fetchedSessions = await getStreamSessionsForRunner(params.id, user.id);

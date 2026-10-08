@@ -78,7 +78,7 @@ export default function OverlaySettings() {
 	const [ownerPlan, setOwnerPlan] = useState<Plan | null>(null);
 	const [previewClips, setPreviewClips] = useState<TwitchClip[]>([]);
 	const [previewReviewMode, setPreviewReviewMode] = useState(true);
-	const [playlists, setPlaylists] = useState<Array<{ id: string; name: string; clipCount: number }>>([]);
+	const [playlists, setPlaylists] = useState<Array<{ id: string; name: string; clipCount: number; configurationRevision: number }>>([]);
 	const [playlistClips, setPlaylistClips] = useState<TwitchClip[]>([]);
 	const [savedPlaylistClipIds, setSavedPlaylistClipIds] = useState<string[]>([]);
 	const [selectedPlaylistClipIds, setSelectedPlaylistClipIds] = useState<Set<string>>(new Set());
@@ -391,16 +391,17 @@ export default function OverlaySettings() {
 					const isNotFound = error instanceof Error && error.message === REWARD_NOT_FOUND;
 					if (isNotFound) {
 						try {
-							await saveOverlay(overlayId, { rewardId: null });
+							const saved = await saveOverlay(overlayId, { rewardId: null }, overlay.configurationRevision);
+							if (!saved) throw new Error("RELOAD_REQUIRED");
+							setOverlay(saved);
+							setBaseOverlay(saved);
 						} catch {
 							addToast({
 								title: "Failed to update reward",
-								description: "The overlay was updated locally, but saving the change failed.",
+								description: "Overlay changed or access was updated. Reload and try again.",
 								color: "danger",
 							});
 						}
-						setOverlay((prev) => (prev ? { ...prev, rewardId: null } : prev));
-						setBaseOverlay((prev) => (prev ? { ...prev, rewardId: null } : prev));
 					}
 					setReward(null);
 				}
@@ -409,17 +410,21 @@ export default function OverlaySettings() {
 			}
 		}
 		fetchRewardTitle();
-	}, [overlay?.id, overlay?.ownerId, overlay?.rewardId]);
+	}, [overlay?.id, overlay?.ownerId, overlay?.rewardId, overlay?.configurationRevision]);
 
 	useEffect(() => {
+		let active = true;
 		async function fetchOverlay() {
 			const fetchedOverlay = await getOverlay(overlayId);
-			if (!fetchedOverlay) return;
+			if (!active || !fetchedOverlay) return;
 
 			setOverlay(fetchedOverlay);
 			setBaseOverlay(fetchedOverlay);
 		}
 		fetchOverlay();
+		return () => {
+			active = false;
+		};
 	}, [overlayId]);
 
 	useEffect(() => {
@@ -435,7 +440,7 @@ export default function OverlaySettings() {
 		async function fetchPlaylists() {
 			if (!overlay?.ownerId) return;
 			const rows = await getPlaylistsForOwner(overlay.ownerId);
-			setPlaylists((rows ?? []).map((row) => ({ id: row.id, name: row.name, clipCount: row.clipCount })));
+			setPlaylists((rows ?? []).map((row) => ({ id: row.id, name: row.name, clipCount: row.clipCount, configurationRevision: row.configurationRevision })));
 		}
 		fetchPlaylists();
 	}, [overlay?.ownerId]);
@@ -537,7 +542,7 @@ export default function OverlaySettings() {
 
 	async function refreshPlaylists() {
 		const rows = await getPlaylistsForOwner(currentOverlay.ownerId);
-		setPlaylists((rows ?? []).map((row) => ({ id: row.id, name: row.name, clipCount: row.clipCount })));
+		setPlaylists((rows ?? []).map((row) => ({ id: row.id, name: row.name, clipCount: row.clipCount, configurationRevision: row.configurationRevision })));
 	}
 
 	async function runImport(mode: "append" | "replace") {
@@ -720,48 +725,61 @@ export default function OverlaySettings() {
 		});
 
 		if (!overlay) return;
-		await saveOverlay(overlay.id, {
-			name: overlay.name,
-			status: overlay.status,
-			type: overlay.type,
-			playlistId: overlay.playlistId,
-			rewardId: overlay.rewardId,
-			minClipDuration: overlay.minClipDuration,
-			maxClipDuration: overlay.maxClipDuration,
-			maxDurationMode: overlay.maxDurationMode,
-			blacklistWords: overlay.blacklistWords,
-			categoriesOnly: overlay.categoriesOnly,
-			categoriesBlocked: overlay.categoriesBlocked,
-			minClipViews: overlay.minClipViews,
-			playbackMode: overlay.playbackMode,
-			preferCurrentCategory: overlay.preferCurrentCategory,
-			clipCreatorsOnly: overlay.clipCreatorsOnly,
-			clipCreatorsBlocked: overlay.clipCreatorsBlocked,
-			clipPackSize: overlay.clipPackSize,
-			playerVolume: overlay.playerVolume,
-			showChannelInfo: overlay.showChannelInfo,
-			showClipInfo: overlay.showClipInfo,
-			showTimer: overlay.showTimer,
-			showProgressBar: overlay.showProgressBar,
-			themeFontFamily: overlay.themeFontFamily,
-			themeTextColor: overlay.themeTextColor,
-			themeAccentColor: overlay.themeAccentColor,
-			themeBackgroundColor: overlay.themeBackgroundColor,
-			borderSize: overlay.borderSize,
-			borderRadius: overlay.borderRadius,
-			effectScanlines: overlay.effectScanlines,
-			effectStatic: overlay.effectStatic,
-			channelInfoX: overlay.channelInfoX,
-			channelInfoY: overlay.channelInfoY,
-			clipInfoX: overlay.clipInfoX,
-			clipInfoY: overlay.clipInfoY,
-		});
-		setBaseOverlay(overlay);
-		addToast({
-			title: "Overlay settings saved",
-			description: "Your overlay settings have been saved successfully.",
-			color: "success",
-		});
+		try {
+			const saved = await saveOverlay(
+				overlay.id,
+				{
+					name: overlay.name,
+					status: overlay.status,
+					type: overlay.type,
+					playlistId: overlay.playlistId,
+					rewardId: overlay.rewardId !== baseOverlay?.rewardId ? overlay.rewardId : undefined,
+					minClipDuration: overlay.minClipDuration,
+					maxClipDuration: overlay.maxClipDuration,
+					maxDurationMode: overlay.maxDurationMode,
+					blacklistWords: overlay.blacklistWords,
+					categoriesOnly: overlay.categoriesOnly,
+					categoriesBlocked: overlay.categoriesBlocked,
+					minClipViews: overlay.minClipViews,
+					playbackMode: overlay.playbackMode,
+					preferCurrentCategory: overlay.preferCurrentCategory,
+					clipCreatorsOnly: overlay.clipCreatorsOnly,
+					clipCreatorsBlocked: overlay.clipCreatorsBlocked,
+					clipPackSize: overlay.clipPackSize,
+					playerVolume: overlay.playerVolume,
+					showChannelInfo: overlay.showChannelInfo,
+					showClipInfo: overlay.showClipInfo,
+					showTimer: overlay.showTimer,
+					showProgressBar: overlay.showProgressBar,
+					themeFontFamily: overlay.themeFontFamily,
+					themeTextColor: overlay.themeTextColor,
+					themeAccentColor: overlay.themeAccentColor,
+					themeBackgroundColor: overlay.themeBackgroundColor,
+					borderSize: overlay.borderSize,
+					borderRadius: overlay.borderRadius,
+					effectScanlines: overlay.effectScanlines,
+					effectStatic: overlay.effectStatic,
+					channelInfoX: overlay.channelInfoX,
+					channelInfoY: overlay.channelInfoY,
+					clipInfoX: overlay.clipInfoX,
+					clipInfoY: overlay.clipInfoY,
+				},
+				baseOverlay?.configurationRevision ?? overlay.configurationRevision,
+			);
+			if (!saved) {
+				addToast({ title: "Could not save overlay", description: "Overlay changed or access was updated. Reload and try again.", color: "danger" });
+				return;
+			}
+			setOverlay(saved);
+			setBaseOverlay(saved);
+			addToast({
+				title: "Overlay settings saved",
+				description: "Your overlay settings have been saved successfully.",
+				color: "success",
+			});
+		} catch {
+			addToast({ title: "Could not save overlay", description: "Overlay changed or access was updated. Reload and try again.", color: "danger" });
+		}
 	}
 
 	return (
@@ -1091,6 +1109,9 @@ export default function OverlaySettings() {
 															</ListBox>
 														</Select.Popover>
 													</Select>
+													<Button variant='tertiary' aria-label='Quick edit playlist' isDisabled={!overlay.playlistId} onPress={() => onPlaylistOpenChange(true)}>
+														Quick edit
+													</Button>
 													<Button
 														onPress={() => {
 															if (!overlay.playlistId) return;
@@ -1419,14 +1440,13 @@ export default function OverlaySettings() {
 									}}
 									onDragOver={(event) => {
 										event.preventDefault();
-										if (!draggedClipId || draggedClipId === clip.id) return;
+										if (!draggedClipId || draggedClipId === clip.id || dragOverClipId === clip.id) return;
 										setDragOverClipId(clip.id);
 										setPlaylistClips((prev) => reorderClips(prev, draggedClipId, clip.id));
 									}}
 									onDrop={() => {
 										if (!draggedClipId) return;
-										const next = reorderClips(playlistClips, draggedClipId, clip.id);
-										setPlaylistClips(next);
+										if (dragOverClipId !== clip.id) setPlaylistClips((prev) => reorderClips(prev, draggedClipId, clip.id));
 										setDraggedClipId(null);
 										setDragOverClipId(null);
 									}}
@@ -1495,21 +1515,29 @@ export default function OverlaySettings() {
 									return;
 								}
 
-								if (selectedPlaylist && isSelectedPlaylistNameDirty) {
-									const updated = await savePlaylist(selectedPlaylist.id, { name: nextName });
-									if (!updated) {
-										addToast({ title: "Failed to save playlist", color: "danger" });
-										return;
+								try {
+									if (isPlaylistDraftDirty) {
+										const saved = await upsertPlaylistClips(overlay.playlistId, playlistClips, "replace", selectedPlaylist?.configurationRevision, isSelectedPlaylistNameDirty ? nextName : undefined);
+										if (!saved) {
+											addToast({ title: "Playlist changed or access was updated. Reload and try again.", color: "danger" });
+											return;
+										}
+										setPlaylistClips(saved.clips);
+										setSavedPlaylistClipIds(saved.clips.map((clip) => clip.id));
+										setPlaylists((current) => current.map((entry) => (entry.id === overlay.playlistId ? { ...entry, name: saved.name, configurationRevision: saved.configurationRevision, clipCount: saved.clips.length } : entry)));
+										setPlaylistNameDraft(saved.name);
+									} else if (selectedPlaylist && isSelectedPlaylistNameDirty) {
+										const updated = await savePlaylist(selectedPlaylist.id, { name: nextName }, selectedPlaylist.configurationRevision);
+										if (!updated) {
+											addToast({ title: "Playlist changed or access was updated. Reload and try again.", color: "danger" });
+											return;
+										}
+										setPlaylists((current) => current.map((entry) => (entry.id === selectedPlaylist.id ? { ...entry, name: updated.name, configurationRevision: updated.configurationRevision } : entry)));
+										setPlaylistNameDraft(updated.name);
 									}
-									await refreshPlaylists();
-									setPlaylistNameDraft(updated.name);
-								}
-
-								if (isPlaylistDraftDirty) {
-									const saved = await upsertPlaylistClips(overlay.playlistId, playlistClips, "replace");
-									setPlaylistClips(saved);
-									setSavedPlaylistClipIds(saved.map((clip) => clip.id));
-									await refreshPlaylists();
+								} catch {
+									addToast({ title: "Playlist could not be saved. Try again.", color: "danger" });
+									return;
 								}
 
 								addToast({ title: "Playlist saved", color: "success" });

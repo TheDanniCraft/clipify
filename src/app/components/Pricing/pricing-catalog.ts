@@ -15,7 +15,7 @@ export const tiers: Tier[] = [
 		mostPopular: false,
 		description: "Everything you need to get your clips on stream and online.",
 		summaryFeatures: ["Unlimited Twitch clips", "One overlay and one 50-clip playlist", "One branded website gallery", "A shareable Creator Page", "Basic website Clip Player", "Essential playback and filtering"],
-		features: ["Unlimited clips", "One overlay", "One playlist (up to 50 clips)", "One branded clip gallery (up to 50 live clips)", "Shareable Creator Page for your Twitch clips", "Playlist overlay type", "Manual playlist curation", "Plug & Play setup", "Random playback mode", "Basic clip filtering", "Keeps your stream entertained", "Basic clip player for embedding in websites"],
+		features: ["Unlimited clips", "One overlay", "One playlist (up to 50 clips)", "One branded clip gallery (up to 50 live clips)", "Shareable Creator Page for your Twitch clips", "Playlist overlay type", "Manual playlist curation", "Plug & Play setup", "Random playback mode", "Basic clip filtering", "Keeps your stream entertained", "Basic clip player for embedding in websites", "AI assistant access (MCP)"],
 		buttonText: "Start for Free",
 	},
 	{
@@ -124,6 +124,7 @@ export const pricingFeatures: PricingFeatures = [
 	{
 		title: "Collaboration and live control",
 		items: [
+			{ title: "AI assistant access (MCP)", tiers: { free: true, pro: true }, helpText: "Connect compatible AI assistants or custom clients to manage approved creators, overlays and playlists. Your existing permissions and creator plan limits apply to every request." },
 			{ title: "Remote Control Panel", tiers: { free: false, pro: true }, helpText: "Control live playback from a phone, tablet, or second monitor without switching OBS scenes." },
 			{ title: "Chat commands", tiers: { free: false, pro: true }, helpText: "Use configured Twitch chat commands to control playback while live." },
 			{ title: "Editors and managers", tiers: { free: false, pro: true }, helpText: "Grant trusted collaborators access to help manage your Clipify setup without sharing your account." },

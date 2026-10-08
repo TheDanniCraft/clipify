@@ -17,6 +17,10 @@ Clipify uses browser-source overlays, so streamers can add it to OBS Studio, Str
 - [Interactive demo](https://clipify.us/#demo): Preview Clipify playback in a simulated streaming setup.
 - [Get started](https://clipify.us/login): Sign in with Twitch and create a browser-source overlay.
 
+## AI assistant access (MCP)
+
+MCP access is included in Free and Pro. Compatible AI assistants and custom clients connect to `https://clipify.us/mcp` through OAuth with PKCE and dynamic client registration. Supported scopes are discovered automatically; no manual scope configuration is needed for normal setup. Users choose creators and Read, Write or Custom permissions on Clipify’s consent page. Write includes supported deletion; secret links and credential rotation require explicit Custom permissions. Existing creator permissions and plan limits apply equally to MCP and browser requests. Revoke app access in account settings.
+
 ## Product updates
 
 - [Changelog](https://clipify.us/changelog): Released features and product changes.
@@ -29,3 +33,7 @@ Clipify uses browser-source overlays, so streamers can add it to OBS Studio, Str
 - [Cookie policy](https://clipify.us/legal/cookies): Cookie and comparable storage information.
 - [Terms of service](https://clipify.us/legal/terms): Terms governing Clipify.
 - [Privacy requests](https://clipify.us/legal/privacy-requests): How to exercise privacy rights.
+
+### Focused AI editing and suggestions
+
+MCP exposes 66 tools with focused overlay settings, source, filters, playback and Theme Studio editing, plus gallery settings, source, filters, layout and theme tools. Partial updates preserve omitted fields and require the current configuration revision. Use get_overlay_theme/update_overlay_theme for appearance, get_overlay_filters/update_overlay_filters for clip rules, and control_overlay for temporary live playback changes. get_overlay_link returns a private streaming browser-source URL only with explicit secret-read permission; get_player_embed returns a public website embed. Bulk clip imports use preview_playlist_import and commit_playlist_import after reviewing the selection. Six optional MCP prompts describe common workflows, with English examples also available in connected-app settings. Prompt picker availability depends on the connected client.

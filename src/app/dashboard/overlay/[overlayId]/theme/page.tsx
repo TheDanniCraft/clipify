@@ -6,7 +6,7 @@ import ChatwootData from "@components/chatwootData";
 import DashboardNavbar from "@components/dashboardNavbar";
 import FullscreenLoadingState from "@components/fullscreenLoadingState";
 import UpgradeModal from "@components/upgradeModal";
-import { getFeatureAccess, getTrialDaysLeft, isReverseTrialActive } from "@lib/featureAccess";
+import { getTrialDaysLeft, isReverseTrialActive } from "@lib/featureAccess";
 import { AuthenticatedUser, Overlay, Plan } from "@types";
 import type { ColorChannel, ColorSpace } from "@heroui/react";
 import { Alert, Avatar, Button, Card, ColorArea, ColorField, ColorPicker, ColorSlider, ColorSwatch, ColorSwatchPicker, Separator, Input, ListBox, Select, Slider, Tabs, useOverlayState, TextField, Label, Description, parseColor } from "@heroui/react";
@@ -186,12 +186,12 @@ function componentToHex(value: number) {
 }
 
 function hslaToCss(value: HSLA, allowAlpha: boolean) {
-	const h = Math.round(normalizeHue(value.h));
-	const s = Math.round(clamp(value.s, 0, 100));
-	const l = Math.round(clamp(value.l, 0, 100));
+	const h = normalizeHue(value.h);
+	const s = clamp(value.s, 0, 100);
+	const l = clamp(value.l, 0, 100);
 	const a = clamp(value.a, 0, 1);
 	const rgb = hslToRgb(h, s, l);
-	if (allowAlpha && a < 1) return `hsla(${h}, ${s}%, ${l}%, ${a.toFixed(2)})`;
+	if (allowAlpha && a < 1) return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${a})`;
 	return `#${componentToHex(rgb.r)}${componentToHex(rgb.g)}${componentToHex(rgb.b)}`;
 }
 
@@ -369,7 +369,7 @@ function ThemeColorInput({ label, value, onChange, defaultValue, allowAlpha }: {
 			<ColorField fullWidth>
 				<Label>{label}</Label>
 				<ColorField.Group fullWidth variant='secondary'>
-					<ColorField.Input />
+					<ColorField.Input onBlur={() => queueMicrotask(() => rememberColor(latestColorRef.current))} />
 					<ColorField.Suffix className='pe-1'>
 						<ColorPicker.Trigger className='p-1' aria-label={`Pick ${label}`}>
 							<ColorSwatch size='xs' />
@@ -377,17 +377,11 @@ function ThemeColorInput({ label, value, onChange, defaultValue, allowAlpha }: {
 					</ColorField.Suffix>
 				</ColorField.Group>
 			</ColorField>
-			<ColorPicker.Popover
-				className='max-w-62 gap-2'
-				placement='bottom end'
-				onOpenChange={(isOpen) => {
-					if (!isOpen) rememberColor(latestColorRef.current);
-				}}
-			>
-				<ColorArea aria-label={`${label} color area`} className='max-w-full' colorSpace='hsb' xChannel='saturation' yChannel='brightness'>
+			<ColorPicker.Popover className='max-w-62 gap-2' placement='bottom end'>
+				<ColorArea aria-label={`${label} color area`} className='max-w-full' colorSpace='hsb' xChannel='saturation' yChannel='brightness' onChangeEnd={(nextColor) => rememberColor(nextColor.toString("rgba"))}>
 					<ColorArea.Thumb />
 				</ColorArea>
-				<ColorSlider aria-label={`${label} hue`} channel='hue' className='gap-1 px-1' colorSpace='hsb'>
+				<ColorSlider aria-label={`${label} hue`} channel='hue' className='gap-1 px-1' colorSpace='hsb' onChangeEnd={(nextColor) => rememberColor(nextColor.toString("rgba"))}>
 					<Label>Hue</Label>
 					<ColorSlider.Output className='text-muted' />
 					<ColorSlider.Track>
@@ -414,13 +408,13 @@ function ThemeColorInput({ label, value, onChange, defaultValue, allowAlpha }: {
 					{COLOR_CHANNELS_BY_SPACE[colorSpace].map((channel) => (
 						<ColorField key={channel} aria-label={channel} channel={channel} colorSpace={colorSpace}>
 							<ColorField.Group variant='secondary'>
-								<ColorField.Input />
+								<ColorField.Input onBlur={() => queueMicrotask(() => rememberColor(latestColorRef.current))} />
 							</ColorField.Group>
 						</ColorField>
 					))}
 				</div>
 				{allowAlpha ? (
-					<ColorSlider aria-label={`${label} opacity`} channel='alpha' className='gap-1 px-1' colorSpace='rgb'>
+					<ColorSlider aria-label={`${label} opacity`} channel='alpha' className='gap-1 px-1' colorSpace='rgb' onChangeEnd={(nextColor) => rememberColor(nextColor.toString("rgba"))}>
 						<Label>Opacity</Label>
 						<ColorSlider.Output className='text-muted' />
 						<ColorSlider.Track>
@@ -428,7 +422,14 @@ function ThemeColorInput({ label, value, onChange, defaultValue, allowAlpha }: {
 						</ColorSlider.Track>
 					</ColorSlider>
 				) : null}
-				<ColorSwatchPicker className='justify-center px-1' size='xs'>
+				<ColorSwatchPicker
+					className='justify-center px-1'
+					size='xs'
+					onChange={(nextColor) => {
+						handleColorChange(nextColor);
+						rememberColor(nextColor.toString("rgba"));
+					}}
+				>
 					{swatches.map((swatch) => (
 						<ColorSwatchPicker.Item key={swatch} color={swatch}>
 							<ColorSwatchPicker.Swatch />
@@ -892,17 +893,21 @@ export default function OverlayStylePage() {
 	}, [router]);
 
 	useEffect(() => {
+		let active = true;
 		async function fetchOverlayData() {
 			if (!overlayId) return;
 			const fetchedOverlay = await getOverlay(overlayId);
-			if (!fetchedOverlay) return;
+			if (!active || !fetchedOverlay) return;
 			setOverlay(fetchedOverlay);
 			setBaseOverlay(fetchedOverlay);
 			const plan = await getOverlayOwnerPlan(fetchedOverlay.id);
-			setOwnerPlan(plan);
+			if (active) setOwnerPlan(plan);
 		}
 
 		fetchOverlayData();
+		return () => {
+			active = false;
+		};
 	}, [overlayId]);
 
 	useEffect(() => {
@@ -968,7 +973,7 @@ export default function OverlayStylePage() {
 		return <FullscreenLoadingState message='Loading overlay style editor' />;
 	}
 
-	const ownerHasAdvancedAccess = getFeatureAccess(user, "advanced_filters").allowed;
+	const ownerHasAdvancedAccess = ownerPlan === Plan.Pro;
 	const inTrial = isReverseTrialActive(user);
 	const trialDaysLeft = getTrialDaysLeft(user);
 
@@ -988,36 +993,49 @@ export default function OverlayStylePage() {
 	async function handleSave() {
 		if (!overlay) return;
 		addToast({ title: "Saving...", color: "default" });
-		await saveOverlay(overlay.id, {
-			playerVolume: overlay.playerVolume,
-			overlayInfoFadeOutSeconds: overlay.overlayInfoFadeOutSeconds,
-			showChannelInfo: overlay.showChannelInfo,
-			showClipInfo: overlay.showClipInfo,
-			showTimer: overlay.showTimer,
-			showProgressBar: overlay.showProgressBar,
-			themeFontFamily: overlay.themeFontFamily,
-			themeTextColor: overlay.themeTextColor,
-			themeAccentColor: overlay.themeAccentColor,
-			themeBackgroundColor: overlay.themeBackgroundColor,
-			progressBarStartColor: overlay.progressBarStartColor,
-			progressBarEndColor: overlay.progressBarEndColor,
-			borderSize: overlay.borderSize,
-			borderRadius: overlay.borderRadius,
-			effectScanlines: overlay.effectScanlines,
-			effectStatic: overlay.effectStatic,
-			effectCrt: overlay.effectCrt,
-			channelInfoX: overlay.channelInfoX,
-			channelInfoY: overlay.channelInfoY,
-			clipInfoX: overlay.clipInfoX,
-			clipInfoY: overlay.clipInfoY,
-			timerX: overlay.timerX,
-			timerY: overlay.timerY,
-			channelScale: overlay.channelScale,
-			clipScale: overlay.clipScale,
-			timerScale: overlay.timerScale,
-		});
-		setBaseOverlay(overlay);
-		addToast({ title: "Style saved", description: "Overlay style has been updated.", color: "success" });
+		try {
+			const saved = await saveOverlay(
+				overlay.id,
+				{
+					playerVolume: overlay.playerVolume,
+					overlayInfoFadeOutSeconds: overlay.overlayInfoFadeOutSeconds,
+					showChannelInfo: overlay.showChannelInfo,
+					showClipInfo: overlay.showClipInfo,
+					showTimer: overlay.showTimer,
+					showProgressBar: overlay.showProgressBar,
+					themeFontFamily: overlay.themeFontFamily,
+					themeTextColor: overlay.themeTextColor,
+					themeAccentColor: overlay.themeAccentColor,
+					themeBackgroundColor: overlay.themeBackgroundColor,
+					progressBarStartColor: overlay.progressBarStartColor,
+					progressBarEndColor: overlay.progressBarEndColor,
+					borderSize: overlay.borderSize,
+					borderRadius: overlay.borderRadius,
+					effectScanlines: overlay.effectScanlines,
+					effectStatic: overlay.effectStatic,
+					effectCrt: overlay.effectCrt,
+					channelInfoX: overlay.channelInfoX,
+					channelInfoY: overlay.channelInfoY,
+					clipInfoX: overlay.clipInfoX,
+					clipInfoY: overlay.clipInfoY,
+					timerX: overlay.timerX,
+					timerY: overlay.timerY,
+					channelScale: overlay.channelScale,
+					clipScale: overlay.clipScale,
+					timerScale: overlay.timerScale,
+				},
+				baseOverlay?.configurationRevision ?? overlay.configurationRevision,
+			);
+			if (!saved) {
+				addToast({ title: "Could not save style", description: "Overlay changed or access was updated. Reload and try again.", color: "danger" });
+				return;
+			}
+			setOverlay(saved);
+			setBaseOverlay(saved);
+			addToast({ title: "Style saved", description: "Overlay style has been updated.", color: "success" });
+		} catch {
+			addToast({ title: "Could not save style", description: "Overlay changed or access was updated. Reload and try again.", color: "danger" });
+		}
 	}
 
 	return (

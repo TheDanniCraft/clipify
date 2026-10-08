@@ -1,7 +1,9 @@
+jest.mock("@/auth/session-principal", () => ({ getVerifiedSessionPrincipal: async () => ({ kind: "session", authUserId: "auth-user-1", sessionId: "session-1", authenticatedAt: new Date() }) }));
 /** @jest-environment node */
 export {};
 
 const selectQueue: unknown[] = [];
+const discoveredCreatorIds = new Set<string>();
 const insertQueue: unknown[] = [];
 const dbSelect = jest.fn();
 const dbInsert = jest.fn();
@@ -10,6 +12,15 @@ const dbDelete = jest.fn();
 const dbTransaction = jest.fn();
 
 const validateAuth = jest.fn();
+const createBrowserOverlay = jest.fn();
+const saveBrowserOverlay = jest.fn();
+const createBrowserPlaylist = jest.fn();
+const saveBrowserPlaylist = jest.fn();
+const deleteBrowserPlaylist = jest.fn();
+const saveBrowserPlaylistItems = jest.fn();
+const reorderBrowserPlaylist = jest.fn();
+jest.mock("@/server/resources/browser-playlists", () => ({ saveBrowserPlaylistItems: (...args: unknown[]) => saveBrowserPlaylistItems(...args), reorderBrowserPlaylist: (...args: unknown[]) => reorderBrowserPlaylist(...args), createBrowserPlaylist: (...args: unknown[]) => createBrowserPlaylist(...args), saveBrowserPlaylist: (...args: unknown[]) => saveBrowserPlaylist(...args), deleteBrowserPlaylist: (...args: unknown[]) => deleteBrowserPlaylist(...args) }));
+jest.mock("@/server/resources/browser-overlays", () => ({ saveBrowserOverlay: (...args: unknown[]) => saveBrowserOverlay(...args), createBrowserOverlay: (...args: unknown[]) => createBrowserOverlay(...args) }));
 const resolveUserEntitlements = jest.fn();
 const getFeatureAccess = jest.fn(() => ({ allowed: true }));
 const subscribeToReward = jest.fn();
@@ -25,6 +36,7 @@ const listAuthorizedCreatorOperations = jest.fn(async () => {
 	const actor = await validateAuth();
 	if (!actor) return [];
 	const managed = ((selectQueue.shift() as Array<{ userId: string }>) ?? []).map((row) => row.userId);
+	for (const id of [actor.id, ...managed]) discoveredCreatorIds.add(id);
 	return [actor.id, ...managed.filter((id) => id !== actor.id)].map((id) => ({ allowed: true, accessPath: id === actor.id ? "owner" : "direct", creator: { ...actor, id }, authUserId: actor.id, sessionId: "test", creatorOrganizationId: `org:${id}` }));
 });
 
@@ -63,10 +75,6 @@ const galleriesTable = {
 
 function queueSelectResult(value: unknown) {
 	selectQueue.push(value);
-}
-
-function queueInsertResult(value: unknown) {
-	insertQueue.push(value);
 }
 
 function makeSelectChain() {
@@ -188,10 +196,21 @@ jest.mock("@lib/entitlements", () => ({
 	resolveUserEntitlementsForUsers: jest.fn(),
 	reconcileUserEntitlements: jest.fn(async () => ({ runners: 0, sessions: 0 })),
 }));
-jest.mock("@/auth/authorize-operation", () => ({ authorizeCreatorOperation: (input: { creatorId: string }) => authorizeCreatorOperation(input), listAuthorizedCreatorOperations: () => listAuthorizedCreatorOperations() }));
+jest.mock("@/auth/authorize-operation", () => ({
+	authorizeCreatorOperation: (input: { creatorId: string }) => authorizeCreatorOperation(input),
+	authorizeTrustedCreatorOperation: async ({ creatorId, resourceOwnerId, permission }: { creatorId: string; resourceOwnerId: string; permission: string }) => {
+		if (discoveredCreatorIds.has(creatorId)) {
+			const actor = await validateAuth();
+			return { allowed: true, creator: { ...actor, id: creatorId }, accessPath: actor.id === creatorId ? "owner" : "direct" };
+		}
+		return authorizeCreatorOperation({ creatorId, resourceOwnerId, permission } as { creatorId: string });
+	},
+	listAuthorizedCreatorOperations: () => listAuthorizedCreatorOperations(),
+}));
 jest.mock("@/server/entitlements/resource-access", () => ({ resolveRetainedResourceAccess: (input: unknown) => resolveRetainedResourceAccess(input) }));
 
 jest.mock("drizzle-orm", () => ({
+	asc: jest.fn((value: unknown) => value),
 	relations: jest.fn(() => ({})),
 	eq: jest.fn(() => "eq"),
 	inArray: jest.fn(() => "inArray"),
@@ -218,8 +237,13 @@ async function loadDatabaseActions() {
 
 describe("actions/database playlist logic", () => {
 	beforeEach(() => {
+		createBrowserOverlay.mockReset().mockResolvedValue(null);
+		createBrowserPlaylist.mockReset().mockResolvedValue(null);
+		saveBrowserPlaylist.mockReset().mockResolvedValue(null);
+		deleteBrowserPlaylist.mockReset().mockResolvedValue(false);
 		jest.clearAllMocks();
 		selectQueue.length = 0;
+		discoveredCreatorIds.clear();
 		insertQueue.length = 0;
 		insertCalls.length = 0;
 		updateCalls.length = 0;
@@ -290,81 +314,58 @@ describe("actions/database playlist logic", () => {
 		await expect(getPlaylistsForOwner("owner-1")).resolves.toBeNull();
 	});
 
-	it("blocks createPlaylist for free users at the 1-playlist limit", async () => {
-		queueSelectResult([{ id: "owner-1", plan: "free", createdAt: new Date("2026-01-01T00:00:00.000Z") }]);
-		queueSelectResult([{ id: "existing-playlist" }]);
-
+	it("delegates playlist creation to the verified shared backend adapter", async () => {
+		const result = { id: "playlist-new", ownerId: "owner-1", name: "My Playlist" };
+		createBrowserPlaylist.mockResolvedValueOnce(result);
 		const { createPlaylist } = await loadDatabaseActions();
-		await expect(createPlaylist("owner-1", "Roadmap Picks")).rejects.toThrow("Free plan allows only one playlist");
+		expect(await createPlaylist("owner-1", "  My Playlist  ")).toBe(result);
+		expect(createBrowserPlaylist).toHaveBeenCalledWith("owner-1", "  My Playlist  ");
+		expect(dbTransaction).not.toHaveBeenCalled();
+	});
+	it.each(["Free plan allows only one playlist", "Playlist name is required"])("preserves verified adapter error: %s", async (message) => {
+		createBrowserPlaylist.mockRejectedValueOnce(new Error(message));
+		const { createPlaylist } = await loadDatabaseActions();
+		await expect(createPlaylist("owner-1", "name")).rejects.toThrow(message);
+	});
+	it("preserves current access denial from the verified adapter", async () => {
+		createBrowserPlaylist.mockResolvedValueOnce(null);
+		const { createPlaylist } = await loadDatabaseActions();
+		expect(await createPlaylist("owner-1", "name")).toBeNull();
+		expect(createBrowserPlaylist).toHaveBeenCalled();
 	});
 
-	it("creates playlist for pro users with trimmed name", async () => {
-		resolveUserEntitlements.mockResolvedValueOnce({
-			effectivePlan: "pro",
-			isBillingPro: false,
-			reverseTrialActive: false,
-			trialEndsAt: null,
-			hasActiveGrant: true,
-			source: "grant",
-		});
-		queueSelectResult([{ id: "owner-1", plan: "pro", createdAt: new Date("2026-01-01T00:00:00.000Z") }]);
-		queueInsertResult([{ id: "playlist-new", ownerId: "owner-1", name: "My Playlist", createdAt: new Date(), updatedAt: new Date() }]);
-
-		const { createPlaylist } = await loadDatabaseActions();
-		const created = await createPlaylist("owner-1", "  My Playlist  ");
-
-		expect(created).toEqual(expect.objectContaining({ id: "playlist-new", name: "My Playlist" }));
-		expect(insertCalls.some((call) => call.table === playlistsTable)).toBe(true);
-	});
-
-	it("returns null from createPlaylist for unauthorized editor", async () => {
-		validateAuth.mockResolvedValueOnce({
-			id: "viewer-1",
-			plan: "free",
-		});
-		queueSelectResult([]);
-		const { createPlaylist } = await loadDatabaseActions();
-		await expect(createPlaylist("owner-1", "Nope")).resolves.toBeNull();
-	});
-
-	it("throws for empty playlist names", async () => {
-		const { createPlaylist } = await loadDatabaseActions();
-		await expect(createPlaylist("owner-1", "   ")).rejects.toThrow("Playlist name is required");
-	});
-
-	it("saves playlist name with trimming and validates non-empty", async () => {
-		queueSelectResult([{ id: "playlist-1", ownerId: "owner-1", name: "Old", createdAt: new Date(), updatedAt: new Date() }]);
-		queueSelectResult([{ id: "playlist-1", ownerId: "owner-1", name: "New Name", createdAt: new Date(), updatedAt: new Date() }]);
+	it("TDD-US2-038 browser rename forwards its last-read revision to the verified shared service", async () => {
+		const current = { id: "playlist-1", ownerId: "owner-1", name: "Old", configurationRevision: 1 };
+		const updated = { ...current, name: "Browser name", configurationRevision: 2 };
+		queueSelectResult([current]);
+		queueSelectResult([updated]);
+		saveBrowserPlaylist.mockResolvedValueOnce(updated);
 		const { savePlaylist } = await loadDatabaseActions();
-		const saved = await savePlaylist("playlist-1", { name: "  New Name  " });
-		expect(saved).toEqual(expect.objectContaining({ name: "New Name" }));
-		expect(updateCalls.some((call) => call.table === playlistsTable)).toBe(true);
-
-		queueSelectResult([{ id: "playlist-1", ownerId: "owner-1", name: "Old", createdAt: new Date(), updatedAt: new Date() }]);
-		await expect(savePlaylist("playlist-1", { name: "   " })).rejects.toThrow("Playlist name is required");
+		const result = await (savePlaylist as any)("playlist-1", { name: "  Browser name  " }, 1);
+		expect(saveBrowserPlaylist).toHaveBeenCalledWith("playlist-1", { name: "  Browser name  " }, 1);
+		expect(result).toBe(updated);
 	});
 
-	it("deletes playlist with access and blocks unauthorized deletion", async () => {
-		queueSelectResult([{ id: "playlist-1", ownerId: "owner-1", name: "Main", createdAt: new Date(), updatedAt: new Date() }]);
-		const { deletePlaylist } = await loadDatabaseActions();
-		await expect(deletePlaylist("playlist-1")).resolves.toBe(true);
-		expect(deleteCalls.some((call) => call.table === playlistsTable)).toBe(true);
-		expect(updateCalls.some((call) => call.table === overlaysTable)).toBe(true);
-
-		validateAuth.mockResolvedValue({ id: "editor-2", plan: "free" });
-		queueSelectResult([{ id: "playlist-1", ownerId: "owner-1", name: "Main", createdAt: new Date(), updatedAt: new Date() }]);
-		queueSelectResult([]);
-		await expect(deletePlaylist("playlist-1")).resolves.toBe(false);
+	it("preserves the shared browser writer unavailable result without direct persistence", async () => {
+		const { savePlaylist } = await loadDatabaseActions();
+		expect(await savePlaylist("playlist-1", { name: "New name" }, 1)).toBeNull();
+		expect(saveBrowserPlaylist).toHaveBeenCalledWith("playlist-1", { name: "New name" }, 1);
+		expect(dbUpdate).not.toHaveBeenCalled();
 	});
 
-	it("returns false when playlist deletion transaction fails", async () => {
-		queueSelectResult([{ id: "playlist-1", ownerId: "owner-1", name: "Main", createdAt: new Date(), updatedAt: new Date() }]);
-		dbTransaction.mockImplementationOnce(async () => {
-			throw new Error("constraint failure");
-		});
-
+	it("delegates deletion with the last-read revision without direct persistence", async () => {
 		const { deletePlaylist } = await loadDatabaseActions();
-		await expect(deletePlaylist("playlist-1")).resolves.toBe(false);
+		deleteBrowserPlaylist.mockResolvedValueOnce(true);
+		expect(await (deletePlaylist as any)("playlist-1", 7)).toBe(true);
+		expect(deleteBrowserPlaylist).toHaveBeenCalledWith("playlist-1", 7);
+		expect(dbTransaction).not.toHaveBeenCalled();
+		expect(dbDelete).not.toHaveBeenCalled();
+	});
+	it("preserves a shared deletion denial without bypassing its policy", async () => {
+		const { deletePlaylist } = await loadDatabaseActions();
+		expect(await (deletePlaylist as any)("playlist-1", 7)).toBe(false);
+		expect(deleteBrowserPlaylist).toHaveBeenCalledWith("playlist-1", 7);
+		expect(dbDelete).not.toHaveBeenCalled();
 	});
 
 	it("parses playlist clips from mixed stored shapes and skips invalid payloads", async () => {
@@ -414,249 +415,39 @@ describe("actions/database playlist logic", () => {
 		await expect(getPlaylistClips("playlist-1")).resolves.toEqual([]);
 	});
 
-	it("enforces free playlist clip limit when appending", async () => {
-		queueSelectResult([{ id: "playlist-1", ownerId: "owner-1", name: "Main", createdAt: new Date(), updatedAt: new Date() }]);
-		queueSelectResult([{ id: "owner-1", plan: "free", createdAt: new Date("2026-01-01T00:00:00.000Z") }]);
-		queueSelectResult(
-			Array.from({ length: 50 }, (_unused, index) => ({
-				playlistId: "playlist-1",
-				clipId: `clip-${index}`,
-				position: index,
-				clipData: JSON.stringify({ id: `clip-${index}` }),
-			})),
-		);
-
+	it("TDD-BROWSER-ITEMS-003 forwards only IDs, exact revision and optional name to the shared save", async () => {
 		const { upsertPlaylistClips } = await loadDatabaseActions();
-		await expect(
-			upsertPlaylistClips(
-				"playlist-1",
-				[
-					{
-						id: "clip-over-limit",
-						url: "https://clips.twitch.tv/clip-over-limit",
-						embed_url: "",
-						broadcaster_id: "owner-1",
-						broadcaster_name: "owner",
-						creator_id: "creator-1",
-						creator_name: "creator",
-						video_id: "video",
-						game_id: "game",
-						language: "en",
-						title: "clip",
-						view_count: 10,
-						created_at: "2026-03-10T00:00:00.000Z",
-						thumbnail_url: "https://thumb",
-						duration: 20,
-					},
-				],
-				"append",
-			),
-		).rejects.toThrow("Free plan playlists are limited to 50 clips");
+		const saved = { clips: [{ id: "ClipFirst", title: "Trusted" }], configurationRevision: 2, name: "New" };
+		saveBrowserPlaylistItems.mockResolvedValueOnce(saved);
+		expect(await upsertPlaylistClips("playlist-1", [{ id: "ClipFirst", title: "Forged", secret: "private" }] as never, "replace", 1, "New")).toEqual(saved);
+		expect(saveBrowserPlaylistItems).toHaveBeenCalledWith("playlist-1", ["ClipFirst"], "replace", 1, "New");
+		expect(dbTransaction).not.toHaveBeenCalled();
 	});
-
-	it("replaces playlist clips in replace mode and refreshes updatedAt", async () => {
-		resolveUserEntitlements.mockResolvedValueOnce({
-			effectivePlan: "pro",
-			isBillingPro: false,
-			reverseTrialActive: false,
-			trialEndsAt: null,
-			hasActiveGrant: true,
-			source: "grant",
-		});
-		queueSelectResult([{ id: "playlist-1", ownerId: "owner-1", name: "Main", createdAt: new Date(), updatedAt: new Date() }]);
-		queueSelectResult([{ id: "owner-1", plan: "pro", createdAt: new Date("2026-01-01T00:00:00.000Z") }]);
-		queueSelectResult([{ id: "playlist-1", ownerId: "owner-1" }]);
-		queueSelectResult([
-			{ playlistId: "playlist-1", clipId: "new-1", position: 0, clipData: JSON.stringify({ id: "new-1", title: "New 1" }) },
-			{ playlistId: "playlist-1", clipId: "new-2", position: 1, clipData: JSON.stringify({ id: "new-2", title: "New 2" }) },
-		]);
-
+	it("TDD-BROWSER-ITEMS-003 failed shared save is not a successful empty playlist", async () => {
 		const { upsertPlaylistClips } = await loadDatabaseActions();
-		const result = await upsertPlaylistClips(
-			"playlist-1",
-			[
-				{
-					id: "new-1",
-					url: "https://clips.twitch.tv/new-1",
-					embed_url: "",
-					broadcaster_id: "owner-1",
-					broadcaster_name: "owner",
-					creator_id: "creator-1",
-					creator_name: "creator-1",
-					video_id: "video",
-					game_id: "game",
-					language: "en",
-					title: "New 1",
-					view_count: 10,
-					created_at: "2026-03-10T00:00:00.000Z",
-					thumbnail_url: "https://thumb",
-					duration: 12,
-				},
-				{
-					id: "new-2",
-					url: "https://clips.twitch.tv/new-2",
-					embed_url: "",
-					broadcaster_id: "owner-1",
-					broadcaster_name: "owner",
-					creator_id: "creator-2",
-					creator_name: "creator-2",
-					video_id: "video",
-					game_id: "game",
-					language: "en",
-					title: "New 2",
-					view_count: 8,
-					created_at: "2026-03-09T00:00:00.000Z",
-					thumbnail_url: "https://thumb",
-					duration: 14,
-				},
-			],
-			"replace",
-		);
-		expect(result.map((clip) => clip.id)).toEqual(["new-1", "new-2"]);
-		expect(updateCalls.some((call) => call.table === playlistsTable)).toBe(true);
+		saveBrowserPlaylistItems.mockResolvedValueOnce(null);
+		expect(await upsertPlaylistClips("playlist-1", [] as never, "replace", 1)).toBeNull();
 	});
-
-	it("rejects replace mode for free users when replacing with >50 clips", async () => {
-		queueSelectResult([{ id: "playlist-1", ownerId: "owner-1", name: "Main", createdAt: new Date(), updatedAt: new Date() }]);
-		queueSelectResult([{ id: "owner-1", plan: "free", createdAt: new Date("2026-01-01T00:00:00.000Z") }]);
-		queueSelectResult([]);
-		const clips = Array.from({ length: 51 }, (_unused, index) => ({
-			id: `clip-${index}`,
-			url: `https://clips.twitch.tv/clip-${index}`,
-			embed_url: "",
-			broadcaster_id: "owner-1",
-			broadcaster_name: "owner",
-			creator_id: `creator-${index}`,
-			creator_name: `creator-${index}`,
-			video_id: "video",
-			game_id: "game",
-			language: "en",
-			title: `Clip ${index}`,
-			view_count: index + 1,
-			created_at: "2026-03-10T00:00:00.000Z",
-			thumbnail_url: "https://thumb",
-			duration: 10,
-		}));
-		const { upsertPlaylistClips } = await loadDatabaseActions();
-		await expect(upsertPlaylistClips("playlist-1", clips as never, "replace")).rejects.toThrow("Free plan playlists are limited to 50 clips");
-	});
-
-	it("append mode inserts new clips and returns updated snapshot", async () => {
-		queueSelectResult([{ id: "playlist-1", ownerId: "owner-1", name: "Main", createdAt: new Date(), updatedAt: new Date() }]);
-		queueSelectResult([{ id: "owner-1", plan: "pro", createdAt: new Date("2026-01-01T00:00:00.000Z") }]);
-		resolveUserEntitlements.mockResolvedValueOnce({
-			effectivePlan: "pro",
-			isBillingPro: false,
-			reverseTrialActive: false,
-			trialEndsAt: null,
-			hasActiveGrant: true,
-			source: "grant",
-		});
-		queueSelectResult([]);
-		queueSelectResult([{ id: "playlist-1", ownerId: "owner-1" }]);
-		queueSelectResult([{ playlistId: "playlist-1", clipId: "clip-a", position: 0, clipData: JSON.stringify({ id: "clip-a" }) }]);
-
-		const { upsertPlaylistClips } = await loadDatabaseActions();
-		const result = await upsertPlaylistClips(
-			"playlist-1",
-			[
-				{
-					id: "clip-a",
-					url: "https://clips.twitch.tv/clip-a",
-					embed_url: "",
-					broadcaster_id: "owner-1",
-					broadcaster_name: "owner",
-					creator_id: "creator",
-					creator_name: "creator",
-					video_id: "video",
-					game_id: "game",
-					language: "en",
-					title: "Clip A",
-					view_count: 30,
-					created_at: "2026-03-10T00:00:00.000Z",
-					thumbnail_url: "https://thumb",
-					duration: 18,
-				},
-			],
-			"append",
-		);
-		expect(result.map((clip) => clip.id)).toEqual(["clip-a"]);
-		expect(insertCalls.some((call) => call.table === playlistClipsTable)).toBe(true);
-	});
-
-	it("append mode dedupes existing clips and avoids inserts when nothing new arrives", async () => {
-		queueSelectResult([{ id: "playlist-1", ownerId: "owner-1", name: "Main", createdAt: new Date(), updatedAt: new Date() }]);
-		queueSelectResult([{ id: "owner-1", plan: "free", createdAt: new Date("2026-01-01T00:00:00.000Z") }]);
-		queueSelectResult([{ playlistId: "playlist-1", clipId: "clip-1", position: 0, clipData: JSON.stringify({ id: "clip-1", title: "Clip 1" }) }]);
-		queueSelectResult([{ id: "playlist-1", ownerId: "owner-1" }]);
-		queueSelectResult([{ playlistId: "playlist-1", clipId: "clip-1", position: 0, clipData: JSON.stringify({ id: "clip-1", title: "Clip 1" }) }]);
-
-		const { upsertPlaylistClips } = await loadDatabaseActions();
-		const result = await upsertPlaylistClips(
-			"playlist-1",
-			[
-				{
-					id: "clip-1",
-					url: "https://clips.twitch.tv/clip-1",
-					embed_url: "",
-					broadcaster_id: "owner-1",
-					broadcaster_name: "owner",
-					creator_id: "creator",
-					creator_name: "creator",
-					video_id: "video",
-					game_id: "game",
-					language: "en",
-					title: "Clip 1",
-					view_count: 1,
-					created_at: "2026-03-10T00:00:00.000Z",
-					thumbnail_url: "https://thumb",
-					duration: 20,
-				},
-			],
-			"append",
-		);
-		expect(result.map((clip) => clip.id)).toEqual(["clip-1"]);
-		const clipInserts = insertCalls.filter((call) => call.table === playlistClipsTable);
-		expect(clipInserts).toHaveLength(0);
-	});
-
-	it("reorders playlist clips and keeps unspecified clips at the end", async () => {
-		queueSelectResult([{ id: "playlist-1", ownerId: "owner-1", name: "Main", createdAt: new Date(), updatedAt: new Date() }]);
-		queueSelectResult([
-			{ playlistId: "playlist-1", clipId: "clip-a", position: 0, clipData: JSON.stringify({ id: "clip-a", title: "A" }) },
-			{ playlistId: "playlist-1", clipId: "clip-b", position: 1, clipData: JSON.stringify({ id: "clip-b", title: "B" }) },
-			{ playlistId: "playlist-1", clipId: "clip-c", position: 2, clipData: JSON.stringify({ id: "clip-c", title: "C" }) },
-		]);
-		queueSelectResult([{ id: "playlist-1", ownerId: "owner-1" }]);
-		queueSelectResult([
-			{ playlistId: "playlist-1", clipId: "clip-b", position: 0, clipData: JSON.stringify({ id: "clip-b", title: "B" }) },
-			{ playlistId: "playlist-1", clipId: "clip-a", position: 1, clipData: JSON.stringify({ id: "clip-a", title: "A" }) },
-			{ playlistId: "playlist-1", clipId: "clip-c", position: 2, clipData: JSON.stringify({ id: "clip-c", title: "C" }) },
-		]);
-
+	it("TDD-BROWSER-ITEMS-003 exact browser reorder delegates to shared revision transaction", async () => {
 		const { reorderPlaylistClips } = await loadDatabaseActions();
-		const ordered = await reorderPlaylistClips("playlist-1", ["clip-b", "clip-a"]);
-
-		expect(ordered.map((clip) => clip.id)).toEqual(["clip-b", "clip-a", "clip-c"]);
-		expect(updateCalls.filter((call) => call.table === playlistClipsTable)).toHaveLength(1);
-		expect(deleteCalls.filter((call) => call.table === playlistClipsTable)).toHaveLength(0);
-		expect(insertCalls.filter((call) => call.table === playlistClipsTable)).toHaveLength(0);
+		const result = {
+			playlist: { configurationRevision: 2 },
+			items: [
+				{ id: "clip-b", position: 0 },
+				{ id: "clip-a", position: 1 },
+			],
+		};
+		reorderBrowserPlaylist.mockResolvedValueOnce(result);
+		expect(await reorderPlaylistClips("playlist-1", ["clip-b", "clip-a"], 1)).toEqual(result);
+		expect(reorderBrowserPlaylist).toHaveBeenCalledWith("playlist-1", ["clip-b", "clip-a"], 1);
+		expect(dbTransaction).not.toHaveBeenCalled();
 	});
-
-	it("returns empty list for reorder when playlist access is denied", async () => {
-		validateAuth.mockResolvedValueOnce({ id: "editor-2", plan: "free" });
-		queueSelectResult([{ id: "playlist-1", ownerId: "owner-1", name: "Main", createdAt: new Date(), updatedAt: new Date() }]);
-		queueSelectResult([]);
-		const { reorderPlaylistClips } = await loadDatabaseActions();
-		await expect(reorderPlaylistClips("playlist-1", ["clip-a"])).resolves.toEqual([]);
-	});
-
 	it("blocks auto import for non-pro users", async () => {
 		queueSelectResult([{ id: "playlist-1", ownerId: "owner-1", name: "Main", createdAt: new Date(), updatedAt: new Date() }]);
 		queueSelectResult([{ id: "owner-1", plan: "free", createdAt: new Date("2026-01-01T00:00:00.000Z") }]);
 
 		const { importPlaylistClips } = await loadDatabaseActions();
-		await expect(importPlaylistClips("playlist-1", { overlayType: "All" as never }, "append")).rejects.toThrow("Auto import is a Pro feature");
+		await expect(importPlaylistClips("playlist-1", { overlayType: "All" as never }, "append", 1)).rejects.toThrow("Auto import is a Pro feature");
 	});
 
 	it("imports playlist clips for pro users with filters and mod queue inclusion", async () => {
@@ -747,6 +538,7 @@ describe("actions/database playlist logic", () => {
 		]); // returned playlist rows
 
 		const { importPlaylistClips } = await loadDatabaseActions();
+		saveBrowserPlaylistItems.mockResolvedValueOnce({ clips: [{ id: "featured-keep" }, { id: "mod-extra" }], configurationRevision: 5, name: "Main" });
 		const imported = await importPlaylistClips(
 			"playlist-1",
 			{
@@ -757,11 +549,12 @@ describe("actions/database playlist logic", () => {
 				includeModQueue: true,
 			},
 			"append",
+			4,
 		);
 
-		expect(imported.map((clip) => clip.id)).toEqual(["featured-keep", "mod-extra"]);
-		const insertedPlaylistClips = insertCalls.find((call) => call.table === playlistClipsTable);
-		expect(insertedPlaylistClips).toBeTruthy();
+		expect(imported?.clips.map((clip) => clip.id)).toEqual(["featured-keep", "mod-extra"]);
+		expect(saveBrowserPlaylistItems).toHaveBeenCalledWith("playlist-1", ["featured-keep", "mod-extra"], "append", 4, undefined, undefined, true);
+		expect(dbTransaction).not.toHaveBeenCalled();
 	});
 
 	it("filters by categoryId in importPlaylistClips", async () => {
@@ -784,9 +577,11 @@ describe("actions/database playlist logic", () => {
 		queueSelectResult([{ playlistId: "playlist-1", clipId: "cat-match", position: 0, clipData: JSON.stringify({ id: "cat-match" }) }]); // final return select
 
 		const { importPlaylistClips } = await loadDatabaseActions();
-		const imported = await importPlaylistClips("playlist-1", { overlayType: "All" as never, categoryId: "game-123" }, "replace");
+		saveBrowserPlaylistItems.mockResolvedValueOnce({ clips: [{ id: "cat-match" }], configurationRevision: 5, name: "Main" });
+		const imported = await importPlaylistClips("playlist-1", { overlayType: "All" as never, categoryId: "game-123" }, "replace", 4);
 
-		expect(imported.every((clip) => clip.id !== "cat-miss")).toBe(true);
+		expect(imported?.clips.every((clip) => clip.id !== "cat-miss")).toBe(true);
+		expect(saveBrowserPlaylistItems).toHaveBeenCalledWith("playlist-1", ["cat-match"], "replace", 4, undefined, undefined, true);
 	});
 
 	it("returns empty import result when playlist access fails", async () => {
@@ -794,7 +589,7 @@ describe("actions/database playlist logic", () => {
 		queueSelectResult([{ id: "playlist-1", ownerId: "owner-1", name: "Main", createdAt: new Date(), updatedAt: new Date() }]);
 		queueSelectResult([]);
 		const { importPlaylistClips, previewImportPlaylistClips } = await loadDatabaseActions();
-		await expect(importPlaylistClips("playlist-1", { overlayType: "All" as never }, "append")).resolves.toEqual([]);
+		await expect(importPlaylistClips("playlist-1", { overlayType: "All" as never }, "append", 1)).resolves.toBeNull();
 		await expect(previewImportPlaylistClips("playlist-1", { overlayType: "All" as never })).resolves.toEqual([]);
 	});
 
@@ -849,102 +644,39 @@ describe("actions/database playlist logic", () => {
 		expect(result[0].id).toBe("c1");
 	});
 
-	it("saveOverlay clears playlistId when type is not Playlist", async () => {
-		const currentOverlay = {
-			id: "overlay-1",
-			ownerId: "owner-1",
-			name: "Overlay",
-			status: "active",
-			type: "Playlist",
-			playlistId: "playlist-1",
-			rewardId: null,
-			secret: "secret-1",
-		};
-		queueSelectResult([currentOverlay]);
-		queueSelectResult([{ id: "owner-1", plan: "pro", createdAt: new Date("2026-01-01T00:00:00.000Z") }]);
-		queueSelectResult([{ ...currentOverlay, type: "Featured", playlistId: null }]);
-
-		const { saveOverlay } = await loadDatabaseActions();
-		const saved = await saveOverlay("overlay-1", { type: "Featured" as never, playlistId: "playlist-2" });
-		expect(saved).toEqual(expect.objectContaining({ id: "overlay-1" }));
-		const overlayUpdate = updateCalls.find((call) => call.table === overlaysTable);
-		expect(overlayUpdate).toBeTruthy();
-		expect(overlayUpdate?.set).toEqual(expect.objectContaining({ type: "Featured", playlistId: null }));
+	it("shared overlay configuration clears playlistId when type is not Playlist", async () => {
+		const { buildOverlayUpdatePayload } = await import("@/server/resources/overlay-configuration");
+		expect(buildOverlayUpdatePayload({ name: "Overlay", status: "active", type: "Featured", playlistId: "playlist-2" } as any, true)).toMatchObject({ type: "Featured", playlistId: null });
 	});
-
-	it("saveOverlay preserves playlistId in playlist mode and subscribes reward changes", async () => {
-		const currentOverlay = {
-			id: "overlay-1",
-			ownerId: "owner-1",
-			name: "Overlay",
-			status: "active",
-			type: "Featured",
-			playlistId: null,
-			rewardId: null,
-			secret: "secret-1",
-		};
-		queueSelectResult([currentOverlay]);
-		queueSelectResult([{ id: "owner-1", plan: "pro", createdAt: new Date("2026-01-01T00:00:00.000Z") }]);
-		queueSelectResult([{ ...currentOverlay, type: "Playlist", playlistId: "playlist-2", rewardId: "reward-1" }]);
-
+	it("saveOverlay preserves playlist mode and leaves reward delivery to the durable worker", async () => {
+		const { buildOverlayUpdatePayload } = await import("@/server/resources/overlay-configuration");
+		expect(buildOverlayUpdatePayload({ type: "Playlist", playlistId: "playlist-2", rewardId: "reward-1" } as any, true)).toMatchObject({ type: "Playlist", playlistId: "playlist-2", rewardId: "reward-1" });
 		const { saveOverlay } = await loadDatabaseActions();
-		await saveOverlay("overlay-1", { type: "Playlist" as never, playlistId: "playlist-2", rewardId: "reward-1" });
-		const overlayUpdate = updateCalls.find((call) => call.table === overlaysTable);
-		expect(overlayUpdate?.set).toEqual(expect.objectContaining({ type: "Playlist", playlistId: "playlist-2", rewardId: "reward-1" }));
-		expect(subscribeToReward).toHaveBeenCalledWith("owner-1", "reward-1");
+		saveBrowserOverlay.mockResolvedValueOnce({ id: "overlay-1", ownerId: "owner-1", type: "Playlist", playlistId: "playlist-2", rewardId: "reward-1", configurationRevision: 2 });
+		subscribeToReward.mockResolvedValueOnce(undefined);
+		await saveOverlay("overlay-1", { type: "Playlist" as never, playlistId: "playlist-2", rewardId: "reward-1" }, 1);
+		expect(subscribeToReward).not.toHaveBeenCalled();
+		expect(updateCalls).toEqual([]);
 	});
-
-	it("saveOverlay preserves saved advanced fields when owner has no advanced access", async () => {
-		getFeatureAccess.mockReturnValueOnce({ allowed: false });
-		const currentOverlay = {
-			id: "overlay-1",
-			ownerId: "owner-1",
-			name: "Overlay",
-			status: "active",
-			type: "Featured",
-			playlistId: null,
-			rewardId: "reward-old",
-			secret: "secret-1",
-			minClipViews: 0,
-			minClipDuration: 0,
-			maxClipDuration: 60,
-			blacklistWords: [],
-			clipPackSize: 100,
-		};
-		queueSelectResult([currentOverlay]);
-		queueSelectResult([{ id: "owner-1", plan: "free", createdAt: new Date("2026-01-01T00:00:00.000Z") }]);
-		queueSelectResult([currentOverlay]);
-
-		const { saveOverlay } = await loadDatabaseActions();
-		await saveOverlay("overlay-1", {
-			minClipViews: 999,
-			blacklistWords: ["bad"],
-			clipPackSize: 500,
-			rewardId: "reward-new",
-		});
-		const overlayUpdate = updateCalls.find((call) => call.table === overlaysTable);
-		expect(overlayUpdate?.set).toEqual(expect.objectContaining({ name: "Overlay", type: "Featured" }));
-		expect(overlayUpdate?.set).not.toEqual(expect.objectContaining({ minClipViews: expect.anything(), blacklistWords: expect.anything(), clipPackSize: expect.anything(), rewardId: expect.anything() }));
+	it("shared Free configuration payload leaves retained advanced fields untouched", async () => {
+		const { buildOverlayUpdatePayload } = await import("@/server/resources/overlay-configuration");
+		const payload = buildOverlayUpdatePayload({ name: "Overlay", type: "Featured", minClipViews: 999, blacklistWords: ["bad"], clipPackSize: 500, rewardId: "reward-new" } as any, false);
+		expect(payload).toMatchObject({ name: "Overlay", type: "Featured" });
+		for (const key of ["minClipViews", "blacklistWords", "clipPackSize", "rewardId"]) expect(payload).not.toHaveProperty(key);
 	});
-
 	it("createOverlay respects free-plan single-overlay limit", async () => {
-		getFeatureAccess.mockReturnValueOnce({ allowed: false });
-		queueSelectResult([{ id: "owner-1", plan: "free", createdAt: new Date("2026-01-01T00:00:00.000Z") }]);
-		queueSelectResult([{ id: "existing-overlay", ownerId: "owner-1" }]);
-
+		// Policy and races execute against real PG in creation-quotas.test.ts.
+		createBrowserOverlay.mockResolvedValueOnce(null);
 		const { createOverlay } = await loadDatabaseActions();
-		await expect(createOverlay("owner-1")).resolves.toBeNull();
+		expect(await createOverlay("owner-1")).toBeNull();
+		expect(createBrowserOverlay).toHaveBeenCalledWith("owner-1");
 	});
-
 	it("createOverlay inserts default overlay when owner can create", async () => {
-		getFeatureAccess.mockReturnValueOnce({ allowed: true });
-		queueSelectResult([{ id: "owner-1", plan: "pro", createdAt: new Date("2026-01-01T00:00:00.000Z") }]);
-		queueInsertResult([{ id: "overlay-new", ownerId: "owner-1", type: "Featured", playlistId: null }]);
-
+		const overlay = { id: "overlay-new", ownerId: "owner-1", type: "Featured", playlistId: null, configurationRevision: 1 };
+		createBrowserOverlay.mockResolvedValueOnce(overlay);
 		const { createOverlay } = await loadDatabaseActions();
-		const created = await createOverlay("owner-1");
-		expect(created).toEqual(expect.objectContaining({ id: "overlay-new", type: "Featured", playlistId: null }));
-		expect(insertCalls.some((call) => call.table === overlaysTable)).toBe(true);
+		expect(await createOverlay("owner-1")).toBe(overlay);
+		expect(createBrowserOverlay).toHaveBeenCalledWith("owner-1");
 	});
 
 	it("downgradeUserPlan retains every creator resource", async () => {
@@ -955,5 +687,17 @@ describe("actions/database playlist logic", () => {
 		expect(reconcileUserEntitlements).toHaveBeenCalledWith("owner-1");
 		expect(deleteCalls).toHaveLength(0);
 		expect(updateCalls).toHaveLength(0);
+	});
+	it("routes browser overlay creation through the shared locked backend adapter", async () => {
+		const overlay = { id: "backend-created", ownerId: "owner-1", configurationRevision: 1, secret: "browser-secret" };
+		createBrowserOverlay.mockResolvedValueOnce(overlay);
+		const { createOverlay } = await loadDatabaseActions();
+		expect(await createOverlay("owner-1")).toBe(overlay);
+		expect(createBrowserOverlay).toHaveBeenCalledWith("owner-1");
+	});
+	it("TDD-BROWSER-ITEMS-003 import without last-read revision fails before authorization or source lookup", async () => {
+		const { importPlaylistClips } = await loadDatabaseActions();
+		expect(await importPlaylistClips("playlist-1", {}, "append")).toBeNull();
+		expect(dbSelect).not.toHaveBeenCalled();
 	});
 });

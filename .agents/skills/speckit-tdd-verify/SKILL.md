@@ -1,11 +1,16 @@
 ---
 name: speckit-tdd-verify
-description: "Audit the feature's TDD discipline and test strength from cold context: test-first evidence in git history, red-phase evidence, test-smell rubric, mutation testing on the changed files, and acceptance-criteria coverage, then write specs/<feature>/tdd/verification.md with a verdict and remediation tasks"
+description: "Audit the feature's TDD discipline and test strength from cold context:
+  test-first evidence in git history, red-phase evidence, test-smell rubric, mutation
+  testing on the changed files, and acceptance-criteria coverage, then write specs/<feature>/tdd/verification.md
+  with a verdict and remediation tasks"
 compatibility: Requires spec-kit project structure with .specify/ directory
 metadata:
   author: d0whc3r
-  source: tdd:commands/speckit.tdd.verify.md
+  source: extension:tdd
 ---
+
+# Tdd Verify Skill
 
 # TDD Verify
 

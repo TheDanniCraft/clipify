@@ -6,12 +6,13 @@ import { db } from "@/db/client";
 import { galleriesTable, playlistsTable, usersTable } from "@/db/schema";
 import { FREE_GALLERY_LIMIT, downgradeGalleryPatch, normalizeGalleryPatch, normalizeGalleryUpdatePatch, resolveLiveGalleryClips, type GalleryPatch } from "@lib/gallery";
 import { canResolvePublicClipPlayback } from "@actions/rateLimit";
-import { and, asc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import type { Gallery, TwitchClip } from "@types";
 import { resolveUserEntitlements } from "@lib/entitlements";
 import { getFeatureAccess } from "@lib/featureAccess";
 import { authorizeCreatorOperation, listAuthorizedCreatorOperations } from "@/auth/authorize-operation";
+import { lockGalleryCreationQuota } from "@/server/resources/gallery-quota-lock";
 import type { Permission } from "@/auth/permissions";
 import { resolveRetainedResourceAccess } from "@/server/entitlements/resource-access";
 
@@ -117,7 +118,7 @@ export async function createGallery(ownerId: string, name = "My clip gallery") {
 	const isPro = getFeatureAccess(access.creator, "multi_gallery").allowed || (await ownerIsPro(ownerId));
 	return db.transaction(async (tx) => {
 		if (!isPro) {
-			await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${`clipify:free-gallery:${ownerId}`}, 0))`);
+			await lockGalleryCreationQuota(tx, ownerId);
 			const existing = await tx.select({ id: galleriesTable.id }).from(galleriesTable).where(eq(galleriesTable.ownerId, ownerId)).execute();
 			if (existing.length >= FREE_GALLERY_LIMIT) throw new Error("Free plan allows one gallery");
 		}
@@ -130,10 +131,12 @@ export async function createGallery(ownerId: string, name = "My clip gallery") {
 	});
 }
 
-export async function saveGallery(galleryId: string, patch: GalleryPatch) {
+export async function saveGallery(galleryId: string, patch: GalleryPatch, expectedRevision?: number) {
 	const context = await requireGalleryAccess(galleryId, "gallery:update");
 	if (!context) return null;
 	if (!(await resolveRetainedResourceAccess({ kind: "gallery", ownerId: context.gallery.ownerId, resourceId: galleryId, effectivePlan: context.isPro ? "pro" : "free" })).update) return null;
+	const revision = expectedRevision ?? (patch as Partial<Gallery>).configurationRevision ?? context.gallery.configurationRevision;
+	if (!Number.isInteger(revision) || revision < 1 || revision !== context.gallery.configurationRevision || revision >= 2_147_483_647) return null;
 	if (patch.published !== undefined && patch.published !== context.gallery.published && !(await authorizeGalleryOperation(context.gallery.ownerId, "gallery:publish")).allowed) return null;
 	const normalized = normalizeGalleryUpdatePatch(context.gallery, patch, Boolean(context.isPro));
 	if (normalized.source === "curated" && normalized.playlistId && !(await validatePlaylist(context.gallery.ownerId, normalized.playlistId))) {
@@ -144,8 +147,8 @@ export async function saveGallery(galleryId: string, patch: GalleryPatch) {
 	}
 	const rows = await db
 		.update(galleriesTable)
-		.set({ ...normalized, updatedAt: new Date() })
-		.where(eq(galleriesTable.id, galleryId))
+		.set({ ...normalized, configurationRevision: revision + 1, updatedAt: new Date() })
+		.where(and(eq(galleriesTable.id, galleryId), eq(galleriesTable.ownerId, context.gallery.ownerId), eq(galleriesTable.configurationRevision, revision)))
 		.returning()
 		.execute();
 	revalidatePath(`/dashboard/galleries/${galleryId}`);

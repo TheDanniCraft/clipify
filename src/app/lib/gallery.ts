@@ -12,7 +12,7 @@ const COLOR_PATTERN = /^(?:#[0-9a-f]{6}|#[0-9a-f]{8}|rgba?\(\s*\d{1,3}\s*,\s*\d{
 const FREE_SORTS = new Set<GalleryLiveSort>(["newest", "most_viewed"]);
 const FREE_WINDOWS = new Set<GalleryTimeWindow>(["today", "7d", "30d", "all"]);
 
-export type GalleryPatch = Partial<Omit<Gallery, "id" | "ownerId" | "createdAt" | "updatedAt">>;
+export type GalleryPatch = Partial<Omit<Gallery, "id" | "ownerId" | "createdAt" | "updatedAt" | "configurationRevision">>;
 
 const clamp = (value: number | null | undefined, minimum: number, maximum: number, fallback: number) => {
 	const parsed = Number(value);

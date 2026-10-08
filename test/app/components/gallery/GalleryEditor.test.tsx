@@ -210,7 +210,7 @@ describe("GalleryEditor", () => {
 		fireEvent.change(selectWith("none"), { target: { value: "playlist-owner" } });
 
 		fireEvent.click(screen.getByRole("button", { name: "Save Gallery Settings" }));
-		await waitFor(() => expect(saveGallery).toHaveBeenCalledWith("gallery-1", expect.objectContaining({ name: "Updated gallery", published: true, source: "curated", playlistId: "playlist-owner" })));
+		await waitFor(() => expect(saveGallery).toHaveBeenCalledWith("gallery-1", expect.objectContaining({ name: "Updated gallery", published: true, source: "curated", playlistId: "playlist-owner" }), 1));
 		expect(notify).toHaveBeenCalledWith(expect.objectContaining({ title: "Gallery settings saved", color: "success" }));
 	});
 

@@ -3,6 +3,12 @@ import { tiers, frequencies } from "@/app/components/Pricing/pricing-tiers";
 import { resolveRuntimePricing } from "@/app/components/Pricing/pricing-types";
 
 describe("components/Pricing/pricing-tiers", () => {
+	it("includes MCP access on Free and Pro under the same backend plan limits", () => {
+		const feature = pricingFeatures.flatMap((section) => section.items).find((item) => item.title === "AI assistant access (MCP)");
+		expect(feature?.tiers).toEqual({ free: true, pro: true });
+		expect(feature?.helpText).toMatch(/plan limits/i);
+		expect(tiers.find((tier) => tier.key === "free")?.features).toContain("AI assistant access (MCP)");
+	});
 	it("includes playlist limits on free and unlimited playlist features on pro", () => {
 		const free = tiers.find((tier) => tier.key === "free");
 		const pro = tiers.find((tier) => tier.key === "pro");

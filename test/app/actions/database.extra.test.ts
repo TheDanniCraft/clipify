@@ -1,3 +1,4 @@
+jest.mock("@/auth/session-principal", () => ({ getVerifiedSessionPrincipal: async () => ({ kind: "session", authUserId: "auth-user-1", sessionId: "session-1", authenticatedAt: new Date() }) }));
 /** @jest-environment node */
 export {};
 
@@ -86,6 +87,8 @@ jest.mock("drizzle-orm", () => {
 	};
 });
 
+const setBrowserOverlayVolume = jest.fn();
+jest.mock("@/server/resources/browser-overlays", () => ({ setBrowserOverlayVolume: (...args: unknown[]) => setBrowserOverlayVolume(...args) }));
 const validateAuth = jest.fn();
 jest.mock("@actions/auth", () => ({
 	validateAuth: (...args: any[]) => validateAuth(...args),
@@ -95,6 +98,7 @@ const authorizeCreatorOperation = jest.fn();
 const listAuthorizedCreatorOperations = jest.fn();
 jest.mock("@/auth/authorize-operation", () => ({
 	authorizeCreatorOperation: (...args: unknown[]) => authorizeCreatorOperation(...args),
+	authorizeTrustedCreatorOperation: ({ principal: _principal, client: _client, ...input }: Record<string, unknown>) => authorizeCreatorOperation(input),
 	listAuthorizedCreatorOperations: (...args: unknown[]) => listAuthorizedCreatorOperations(...args),
 }));
 
@@ -159,31 +163,29 @@ describe("database.extra.test.ts", () => {
 		await expect(getEditorAccess("user-1")).rejects.toThrow("Failed to check editor access");
 	});
 
-	it("setPlayerVolumeForOwner updates volume", async () => {
+	it("setPlayerVolumeForOwner delegates owner and raw volume to verified backend", async () => {
+		setBrowserOverlayVolume.mockResolvedValueOnce(50);
 		const { setPlayerVolumeForOwner } = loadDatabaseActions();
-		const result = await setPlayerVolumeForOwner("owner-1", 50);
-		expect(result).toBe(50);
-		expect(dbUpdate).toHaveBeenCalled();
-		expect(updateCalls[0].playerVolume).toBe(50);
+		expect(await setPlayerVolumeForOwner("owner-1", 50)).toBe(50);
+		expect(setBrowserOverlayVolume).toHaveBeenCalledWith("owner-1", 50);
+		expect(dbUpdate).not.toHaveBeenCalled();
 	});
-
-	it("setPlayerVolumeForOwner clamps volume", async () => {
+	it("setPlayerVolumeForOwner leaves normalization at backend boundary", async () => {
 		const { setPlayerVolumeForOwner } = loadDatabaseActions();
-		await setPlayerVolumeForOwner("owner-1", 150);
-		expect(updateCalls[0].playerVolume).toBe(100);
-		updateCalls.length = 0;
-		await setPlayerVolumeForOwner("owner-1", -10);
-		expect(updateCalls[0].playerVolume).toBe(0);
+		setBrowserOverlayVolume.mockResolvedValueOnce(100);
+		expect(await setPlayerVolumeForOwner("owner-1", 150)).toBe(100);
+		expect(setBrowserOverlayVolume).toHaveBeenCalledWith("owner-1", 150);
+		setBrowserOverlayVolume.mockResolvedValueOnce(0);
+		expect(await setPlayerVolumeForOwner("owner-1", -10)).toBe(0);
+		expect(setBrowserOverlayVolume).toHaveBeenCalledWith("owner-1", -10);
+		expect(dbUpdate).not.toHaveBeenCalled();
 	});
-
-	it("setPlayerVolumeForOwner handles error", async () => {
+	it("setPlayerVolumeForOwner refuses a denied backend commit without fallback", async () => {
+		setBrowserOverlayVolume.mockResolvedValueOnce(null);
 		const { setPlayerVolumeForOwner } = loadDatabaseActions();
-		dbUpdate.mockImplementationOnce(() => {
-			throw new Error("DB error");
-		});
-		await expect(setPlayerVolumeForOwner("owner-1", 50)).rejects.toThrow("Failed to update player volume");
+		expect(await setPlayerVolumeForOwner("owner-1", 50)).toBeNull();
+		expect(dbUpdate).not.toHaveBeenCalled();
 	});
-
 	it("getEditorOverlays returns overlays for editor", async () => {
 		const { getEditorOverlays } = loadDatabaseActions();
 		validateAuth.mockResolvedValue({ id: "editor-1" });

@@ -1,11 +1,11 @@
 /* istanbul ignore file -- exercised only by the real Playwright server against an isolated test database. */
 import { createHmac, randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
-import { and, eq, inArray, like, or } from "drizzle-orm";
+import { and, eq, inArray, like, or, sql } from "drizzle-orm";
 import { auth } from "@/auth/config";
 import { db } from "@/db/client";
-import { member, organization, user as authUser } from "@/db/auth-schema";
-import { accountDeletionRequestsTable, agencyAccountsTable, agencyCreatorLinksTable, auditEventsTable, billingSubscriptionItemsTable, billingSubscriptionsTable, creatorAccountsTable, creatorIdentityLinksTable, notificationOutboxTable, overlaysTable, usersTable } from "@/db/schema";
+import { account, member, organization, user as authUser } from "@/db/auth-schema";
+import { accountDeletionRequestsTable, agencyAccountsTable, agencyCreatorLinksTable, auditEventsTable, billingSubscriptionItemsTable, billingSubscriptionsTable, creatorAccountsTable, creatorIdentityLinksTable, notificationOutboxTable, overlaysTable, playlistClipsTable, playlistsTable, usersTable } from "@/db/schema";
 import { BillingProduct, OverlayType, Plan, Role, StatusOptions } from "@types";
 
 const FIXTURE_AUTHORIZATION = "Bearer clipify-playwright-auth-fixture";
@@ -28,7 +28,7 @@ function signedCookieValue(value: string, secret: string) {
 
 export async function POST(request: Request) {
 	if (!fixtureRequestAllowed(request)) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
-	const body = (await request.json().catch(() => ({}))) as { activeContext?: FixtureContext; actorRole?: FixtureActorRole; deletionState?: FixtureDeletionState; agencyLinkStatus?: FixtureAgencyLinkStatus; billingState?: FixtureBillingState };
+	const body = (await request.json().catch(() => ({}))) as { activeContext?: FixtureContext; actorRole?: FixtureActorRole; deletionState?: FixtureDeletionState; agencyLinkStatus?: FixtureAgencyLinkStatus; billingState?: FixtureBillingState; withPlaylist?: boolean; withProviderCredentials?: boolean; withPlaylistItems?: boolean; withSecondOverlay?: boolean };
 	const activeContext: FixtureContext = body.activeContext === "agency" ? "agency" : "creator";
 	const actorRole: FixtureActorRole = body.actorRole === "admin" ? "admin" : "user";
 	const deletionState: FixtureDeletionState = body.deletionState === "suspended" ? "suspended" : "none";
@@ -40,6 +40,8 @@ export async function POST(request: Request) {
 	const creatorOrganizationId = `e2e-creator-org-${fixtureId}`;
 	const agencyOrganizationId = `e2e-agency-org-${fixtureId}`;
 	const overlayId = randomUUID();
+	const secondOverlayId = body.withSecondOverlay === true ? randomUUID() : null;
+	const playlistId = body.withPlaylist === true ? randomUUID() : null;
 	const deletionRequestId = randomUUID();
 	const agencyLinkId = randomUUID();
 	const billingSubscriptionId = `e2e-sub-${fixtureId}`;
@@ -60,6 +62,10 @@ export async function POST(request: Request) {
 			{ id: `e2e-agency-member-${fixtureId}`, organizationId: agencyOrganizationId, userId: authUserId, role: "owner", createdAt: now },
 		]);
 		await tx.insert(creatorAccountsTable).values({ organizationId: creatorOrganizationId, creatorId, status: deletionState === "suspended" ? "suspended" : "active", suspensionAt: deletionState === "suspended" ? now : null, purgeEligibleAt: deletionState === "suspended" ? purgeEligibleAt : null, createdAt: now, updatedAt: now });
+		if (playlistId) {
+			await tx.insert(playlistsTable).values({ id: playlistId, ownerId: creatorId, name: "Browser playlist" });
+			if (body.withPlaylistItems === true) await tx.insert(playlistClipsTable).values(["ClipFirst", "ClipSecond"].map((id, position) => ({ playlistId, clipId: id, position, clipData: JSON.stringify({ id, title: id, duration: 10, thumbnail_url: "https://example.invalid/clip.png", broadcaster_id: creatorId, created_at: now.toISOString() }) })));
+		}
 		await tx.insert(creatorIdentityLinksTable).values({ creatorId, authUserId, source: "admin_repair", createdAt: now, updatedAt: now });
 		await tx.insert(agencyAccountsTable).values({ organizationId: agencyOrganizationId, status: "active", commercialReference: "e2e-commercial-reference", creatorSeatLimit: 2, provisionedBy: authUserId, createdAt: now, updatedAt: now });
 		await tx.insert(agencyCreatorLinksTable).values({ id: agencyLinkId, agencyOrganizationId, creatorOrganizationId, status: agencyLinkStatus, permissionCeiling: ["overlay:read", "analytics:read"], proposedBy: authUserId, proposedAt: now, acceptedBy: agencyLinkStatus === "accepted" ? authUserId : null, acceptedAt: agencyLinkStatus === "accepted" ? now : null, createdAt: now, updatedAt: now });
@@ -69,23 +75,38 @@ export async function POST(request: Request) {
 			await tx.insert(billingSubscriptionItemsTable).values({ id: `e2e-item-${fixtureId}`, subscriptionId: billingSubscriptionId, productKey: BillingProduct.Pro, stripeProductId: "e2e-product-pro", stripePriceId: "e2e-price-pro-monthly", unitAmount: 900, currency: "eur", billingInterval: "month", quantity: 1, createdAt: now, updatedAt: now });
 		}
 		await tx.insert(overlaysTable).values({ id: overlayId, ownerId: creatorId, secret: `e2e-secret-${fixtureId}`, name: "E2E continuity overlay", status: deletionState === "suspended" ? StatusOptions.Paused : StatusOptions.Active, type: OverlayType.All, createdAt: now, updatedAt: now });
+		if (secondOverlayId) await tx.insert(overlaysTable).values({ id: secondOverlayId, ownerId: creatorId, secret: `e2e-second-secret-${fixtureId}`, name: "Second continuity overlay", status: StatusOptions.Active, type: OverlayType.All, createdAt: now, updatedAt: now });
 	});
 
 	const context = await auth.$context;
 	if (typeof context.secret !== "string") throw new Error("E2E fixture requires a string Better Auth secret");
+	if (body.withProviderCredentials === true) {
+		const { symmetricEncrypt } = await import("better-auth/crypto");
+		await db.insert(account).values({ id: randomUUID(), accountId: creatorId, providerId: "twitch", userId: authUserId, accessToken: await symmetricEncrypt({ key: context.secret, data: "isolated-dashboard-fixture-token" }), accessTokenExpiresAt: new Date(now.getTime() + 60 * 60 * 1000), scope: "user:read:email", createdAt: now, updatedAt: now });
+	}
 	const activeOrganizationId = activeContext === "agency" ? agencyOrganizationId : creatorOrganizationId;
 	const session = await context.internalAdapter.createSession(authUserId, false, { activeOrganizationId }, true);
 	if (!session) throw new Error("E2E session creation failed");
 
 	return NextResponse.json({
-		fixture: { authUserId, creatorId, creatorOrganizationId, agencyOrganizationId, overlayId, overlaySecret: `e2e-secret-${fixtureId}`, deletionRequestId: deletionState === "suspended" ? deletionRequestId : null, username, billingCurrentPeriodEnd: billingState === "active" ? billingCurrentPeriodEnd.toISOString() : null },
+		fixture: { authUserId, creatorId, creatorOrganizationId, agencyOrganizationId, overlayId, ...(secondOverlayId ? { secondOverlayId } : {}), ...(playlistId ? { playlistId } : {}), overlaySecret: `e2e-secret-${fixtureId}`, deletionRequestId: deletionState === "suspended" ? deletionRequestId : null, username, billingCurrentPeriodEnd: billingState === "active" ? billingCurrentPeriodEnd.toISOString() : null },
 		cookie: { name: context.authCookies.sessionToken.name, value: signedCookieValue(session.token, context.secret), domain: "127.0.0.1", path: "/", httpOnly: true, secure: false, sameSite: "Lax" as const },
 	});
 }
 
 export async function PATCH(request: Request) {
 	if (!fixtureRequestAllowed(request)) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
-	const body = (await request.json().catch(() => ({}))) as { deletionRequestId?: string; deletionBoundary?: "expired" };
+	const body = (await request.json().catch(() => ({}))) as { deletionRequestId?: string; deletionBoundary?: "expired"; creatorId?: string; overlayId?: string; bumpOverlayRevision?: boolean };
+	if (body.bumpOverlayRevision === true) {
+		if (!body.creatorId?.startsWith("e2e-creator-") || !body.overlayId || !/^[0-9a-f-]{36}$/i.test(body.overlayId)) return NextResponse.json({ error: "INVALID_FIXTURE" }, { status: 400 });
+		const updated = await db
+			.update(overlaysTable)
+			.set({ configurationRevision: sql`${overlaysTable.configurationRevision} + 1` })
+			.where(and(eq(overlaysTable.id, body.overlayId), eq(overlaysTable.ownerId, body.creatorId)))
+			.returning({ id: overlaysTable.id });
+		return NextResponse.json({ updated: updated.length === 1 });
+	}
+
 	if (!body.deletionRequestId || !/^[0-9a-f-]{36}$/i.test(body.deletionRequestId) || body.deletionBoundary !== "expired") return NextResponse.json({ error: "INVALID_FIXTURE" }, { status: 400 });
 	const fixtureRequest = await db
 		.select({ organizationId: accountDeletionRequestsTable.organizationId })

@@ -413,7 +413,7 @@ Then(/^the account (.+)$/, async ({ authWorld }, outcome: string) => {
 });
 
 Given("a suspended creator account with a recovery entry point", async ({ request, context, authWorld }) => {
-	const fixture = await createAuthenticatedFixture(request, context, { deletionState: "suspended" });
+	const fixture = await createAuthenticatedFixture(request, context, { deletionState: "suspended", withProviderCredentials: true });
 	authWorld.values.set("realLifecycleFixture", fixture);
 	const repository = new LifecycleScenarioRepository();
 	const service = new AccountLifecycleService(repository, { now: () => LIFECYCLE_NOW });

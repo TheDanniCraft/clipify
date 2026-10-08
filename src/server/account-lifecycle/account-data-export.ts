@@ -17,6 +17,8 @@ import {
 	entitlementGrantsTable,
 	galleriesTable,
 	modQueueTable,
+	mcpConnectionGrantsTable,
+	mcpGrantCreatorsTable,
 	notificationOutboxTable,
 	overlaysTable,
 	plausibleStatsCacheTable,
@@ -31,7 +33,7 @@ import {
 	userContentStatesTable,
 	usersTable,
 } from "@/db/schema";
-import { account, invitation, member, organization, organizationRole, passkey, session, user } from "@/db/auth-schema";
+import { account, invitation, member, organization, organizationRole, passkey, session, user, oauthClient } from "@/db/auth-schema";
 import { collectReusableCredentialExport } from "./account-data-export-credentials";
 
 const SECRET_FIELDS = new Set(["accessToken", "refreshToken", "idToken", "password", "token", "secret", "publicKey", "credentialID", "encryptedStreamKey", "deviceCode", "userCode"]);
@@ -98,6 +100,25 @@ export async function collectComprehensiveAccountData(input: { authUserId: strin
 		subjectIds.length ? db.select().from(c15t_consent).where(inArray(c15t_consent.subjectId, subjectIds)) : [],
 		subjectIds.length ? db.select().from(c15t_auditLog).where(inArray(c15t_auditLog.subjectId, subjectIds)) : [],
 	]);
+	// Only approvals owned by the exporting actor; client secrets and arbitrary metadata are excluded.
+	const grants = await db.select({ grant: mcpConnectionGrantsTable, clientName: oauthClient.name }).from(mcpConnectionGrantsTable).leftJoin(oauthClient, eq(oauthClient.clientId, mcpConnectionGrantsTable.clientId)).where(eq(mcpConnectionGrantsTable.authUserId, input.authUserId));
+	const grantIds = grants.map(({ grant }) => grant.id);
+	const approvals = grantIds.length ? await db.select().from(mcpGrantCreatorsTable).where(inArray(mcpGrantCreatorsTable.grantId, grantIds)) : [];
+	const mcp = {
+		connections: grants.map(({ grant, clientName }) => ({
+			id: grant.id,
+			clientId: grant.clientId,
+			clientName: clientName ?? grant.clientId,
+			resource: grant.resource,
+			issuer: grant.issuer,
+			scopes: grant.scopes,
+			active: grant.active && !grant.revokedAt && grant.expiresAt > now,
+			createdAt: grant.createdAt.toISOString(),
+			expiresAt: grant.expiresAt.toISOString(),
+			revokedAt: grant.revokedAt?.toISOString() ?? null,
+			creators: approvals.filter((approval) => approval.grantId === grant.id).map(({ creatorId, agencyOrganizationId }) => ({ creatorId, agencyOrganizationId })),
+		})),
+	};
 	const reusableCredentials = collectReusableCredentialExport({ overlays, runners, streamSessions });
 
 	return redactSecrets({
@@ -111,6 +132,7 @@ export async function collectComprehensiveAccountData(input: { authUserId: strin
 		billing: { subscriptions, subscriptionItems, entitlements },
 		agency: { links: agencyLinks, licenseAllocations },
 		privacy: { subjects, consents, consentAuditLogs },
+		mcp,
 		accountLifecycle: { deletionRequests, auditEvents, notifications },
 		analytics: { cache: analyticsCache },
 	});
