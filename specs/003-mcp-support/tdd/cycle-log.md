@@ -1373,3 +1373,37 @@ Retained red/green command evidence and artifact registry: ../test-traceability.
 Final extension checks: ESLint, TypeScript, production E2E build/action manifest and diff whitespace pass. Both revised all-app table/totals queries also execute successfully through the real Grafana connector, returning no data before collector deployment. Graphify refreshed after final source changes.
 
 CI ATDD follow-up: completed job 113269382852 failed account recovery on all three attempts because its fixture omitted provider credentials needed by the destination dashboard (redirected to /login). Add the existing isolated provider credential option only to that recovery fixture; preserve production token/session checks. The exact real-browser recovery scenario now passes (one test, 12.5 seconds) using the controlled Twitch responder.
+
+## Authorization recovery presentation — 2026-10-08
+
+User-requested UX refinement after preview review: center the branded authorization
+layout using the dynamic viewport height, and present invalid requests in a
+HeroUI card with a danger-colored circle-X icon and English recovery guidance.
+The shared AuthorizationLayout is used for consent, handoff and invalid requests;
+unsafe callbacks use the same error card inside the existing layout. OAuth
+verification, creator lookup ordering, scope checks and redirect handling are
+unchanged.
+
+Genuine focused Red: the added consent-page recovery test renders the actual
+invalid-signature result and expects an accessible heading and branding. On the
+plain-text implementation it fails at the missing `<h1>` (one failure, nineteen
+existing passing cases). Evidence: test-results/mcp/authorization-ux/error-card-red.log.
+Green: `node node_modules/jest/bin/jest.js test/mcp/component/consent-page.test.tsx test/mcp/component/consent.test.tsx test/mcp/component/callback-handoff.test.tsx --runInBand --silent`
+passes all 34 cases, including the new rendered alert and the existing no-session/
+no-creator-lookup guards. Evidence: error-card-green.log in the same directory.
+
+An actual Chromium fixture renders the real HeroUI components with compiled app
+CSS at 390×844, 360×640, 844×390 and 1440×900. All 28 stage/viewport checks pass
+for creator, permissions, Custom, review, handoff, invalid request and unsafe
+callback: horizontal centering, vertical centering when content fits, reachable
+tall content without horizontal overflow, actual danger-color rendering and no
+unsafe callback navigation. Evidence: responsive-28-checks.log; screenshots are
+under test-results/mcp/consent-centering. These component/layout checks are not
+claimed as live OAuth or complete browser acceptance. The full local baseline
+run started on centering commit 84ab6ec before the additional error-card request;
+final-head full CI remains required for the combined refinement. Actual final
+results are recorded in PR #496 without further source changes.
+
+Graphify was refreshed with one extraction worker: 7,553 nodes, 16,574 edges and
+348 communities. Existing SQL-parser/data-file extraction limitations remain;
+no LLM labeling or dependency installation was performed.

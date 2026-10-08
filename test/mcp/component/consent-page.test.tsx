@@ -1,4 +1,5 @@
 /** @jest-environment node */
+jest.mock("@heroui/react", () => require("../../support/mcp/heroui-fixture").components);
 jest.mock("@/app/actions/twitch", () => ({ getAvatar: jest.fn(async () => "https://example.test/avatar.png") }));
 jest.mock("@better-auth/oauth-provider", () => ({ verifyOAuthQueryParams: jest.fn(async () => true) }));
 jest.mock("@/app/auth/mcp/consent/ConsentForm", () => ({ ConsentForm: jest.fn(() => null) }));
@@ -14,6 +15,7 @@ jest.mock("@/auth/authorize-operation", () => ({ listAuthorizedCreatorOperations
 jest.mock("@/server/mcp/grants", () => ({ approveMcpConsent: jest.fn() }));
 jest.mock("@/db/client", () => ({ db: { select: jest.fn() } }));
 jest.mock("@/db/auth-schema", () => ({ oauthClient: { clientId: "id", name: "name" } }));
+import { renderToStaticMarkup } from "react-dom/server";
 import { auth } from "@/auth/config";
 import { verifyOAuthQueryParams } from "@better-auth/oauth-provider";
 import { listAuthorizedCreatorOperations } from "@/auth/authorize-operation";
@@ -32,6 +34,19 @@ describe("TDD-US1-027 consent route", () => {
 		(auth.api.getSession as unknown as jest.Mock).mockResolvedValue({ user: { id: "actor" }, session: { activeOrganizationId: null } });
 		(listAuthorizedCreatorOperations as jest.Mock).mockResolvedValue([{ creator: { id: "creator", username: "Creator" }, accessPath: "owner" }]);
 		(db.select as jest.Mock).mockReturnValue({ from: () => ({ where: () => ({ limit: async () => [{ name: "My AI" }] }) }) });
+	});
+	test("invalid requests show a branded accessible recovery card before login", async () => {
+		(verifyOAuthQueryParams as jest.Mock).mockResolvedValue(false);
+		const result = await Page({ searchParams: Promise.resolve(query) });
+		const markup = renderToStaticMarkup(result);
+		expect(markup).toContain("<h1");
+		expect(markup).toContain("Invalid authorization request");
+		expect(markup).toContain("Restart the connection from your app.");
+		expect(markup).toContain("Clipify · App connection");
+		expect(markup).toContain('role="alert"');
+		expect(markup).toContain("text-danger");
+		expect(auth.api.getSession).not.toHaveBeenCalled();
+		expect(db.select).not.toHaveBeenCalled();
 	});
 	test("renders only currently authorized creators and actual requested permissions", async () => {
 		expect(Page).toEqual(expect.any(Function));

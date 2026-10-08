@@ -3,6 +3,7 @@ import { Accordion, Card, Link, Separator, Tabs } from "@heroui/react";
 import { CodeBlock } from "@heroui-pro/react/code-block";
 import { IconCircleCheck, IconCircleX } from "@tabler/icons-react";
 import { callbackCommand } from "@/server/mcp/consent-permissions";
+import { AuthorizationErrorCard } from "./AuthorizationError";
 export function CallbackHandoff({ clientName, callbackUrl, authorized }: { clientName: string; callbackUrl: string; authorized: boolean }) {
 	let safe = false;
 	try {
@@ -11,7 +12,7 @@ export function CallbackHandoff({ clientName, callbackUrl, authorized }: { clien
 	} catch {
 		// An invalid callback must never expose a navigation link.
 	}
-	if (!safe) return <p role='alert'>The callback is unavailable. Restart the connection from your app.</p>;
+	if (!safe) return <AuthorizationErrorCard role='alert' title='Callback unavailable' />;
 	return (
 		<Card className='p-6 sm:p-8'>
 			<Card.Header className='items-center gap-3 py-7 text-center'>

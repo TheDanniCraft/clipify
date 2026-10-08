@@ -12,6 +12,7 @@ import { getMcpConfiguration } from "@/server/mcp/config";
 import { MCP_SCOPES } from "@/server/mcp/scopes";
 import { getAvatar } from "@/app/actions/twitch";
 import { ConsentForm } from "./ConsentForm";
+import { AuthorizationError } from "./AuthorizationError";
 
 const creatorChoice = z.object({ creatorId: z.string().min(1).max(255), agencyOrganizationId: z.string().min(1).max(255).nullable(), scopes: z.array(z.string()).min(1).max(100) }).strict();
 
@@ -20,7 +21,7 @@ export default async function McpConsentPage({ searchParams }: { searchParams: P
 	const query = new URLSearchParams();
 	for (const [key, value] of Object.entries(parameters)) {
 		if (Array.isArray(value)) {
-			if (key !== "ba_param") return <p role='alert'>Invalid authorization request. Restart the connection from your app.</p>;
+			if (key !== "ba_param") return <AuthorizationError role='alert' />;
 			for (const item of value) query.append(key, item);
 			continue;
 		}
@@ -28,9 +29,9 @@ export default async function McpConsentPage({ searchParams }: { searchParams: P
 	}
 	const oauthQuery = query.toString();
 	const requestedScopes = (query.get("scope") ?? "").split(" ").filter(Boolean);
-	if (!query.get("client_id") || !query.get("sig") || !requestedScopes.length || requestedScopes.some((scope) => ![...MCP_SCOPES, "offline_access"].includes(scope as (typeof MCP_SCOPES)[number]))) return <p role='alert'>Invalid authorization request. Restart the connection from your app.</p>;
+	if (!query.get("client_id") || !query.get("sig") || !requestedScopes.length || requestedScopes.some((scope) => ![...MCP_SCOPES, "offline_access"].includes(scope as (typeof MCP_SCOPES)[number]))) return <AuthorizationError role='alert' />;
 	const secret = process.env.BETTER_AUTH_SECRET;
-	if (!secret || !(await verifyOAuthQueryParams(oauthQuery, secret))) return <p role='alert'>Invalid authorization request. Restart the connection from your app.</p>;
+	if (!secret || !(await verifyOAuthQueryParams(oauthQuery, secret))) return <AuthorizationError role='alert' />;
 	const requestHeaders = await headers();
 	const session = await auth.api.getSession({ headers: requestHeaders });
 	if (!session) redirect(`/login?returnUrl=${encodeURIComponent(`/auth/mcp/consent?${oauthQuery}`)}`);
