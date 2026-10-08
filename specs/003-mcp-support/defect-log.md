@@ -1544,3 +1544,7 @@ Final closure: focused-push-verified.log proves the normal hook passed all 426 s
 ## CF-DEF-001 — Preserve asynchronous rate-limit errors
 
 The complexity cleanup accidentally removed `async` from `consumeMcpRateLimit`, causing invalid inputs to throw synchronously instead of returning rejected promises. The focused negative-boundary suite caught eleven failures. Restored the existing public async contract and audited the changed TypeScript declarations for other removed async functions. All 16 rate-limit input tests now pass; assertions and limits remain unchanged. Evidence: `/tmp/clipify-refactor-final-focused.log` and `/tmp/clipify-refactor-rate-limit-fixed.log`.
+
+## CF-ENV-001 — Overlapping verification runs timed out a dependency probe
+
+The intermediate MCP regression reported `spawnSync ETIMEDOUT` for the provider deadline `headers` probe while the final full push-hook regression was also running. Contention is suspected, not established. Stopped the publication regression before transfer to restore isolation; no deadline, assertion, worker policy or hook was changed. The isolated rerun passed all three unchanged deadline cases in 37.816 seconds (`/tmp/clipify-refactor-provider-isolated.log`), consistent with a transient contention failure. The broader intermediate batch passed 142 of 143 suites and 1,446 of 1,447 tests. A fresh normal push-hook result remains required; no product change was needed for this rerun.

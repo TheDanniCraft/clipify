@@ -21,3 +21,5 @@ Production source hashes remain unchanged from the successful build. Canonical t
 ## Current checkpoint — preview mutation acceptance complete
 
 The user-approved acceptance scope is now Codex-driven preview testing. Native Codex login, 66-tool/six-prompt discovery, approved/unapproved creator access, all 35 disposable overlay/playlist/gallery mutation checks and actual refresh rotation passed. Existing resources were restored. CodeFactor refactoring and its final publication checks are in progress; earlier task counts above describe their historical checkpoint.
+
+Final refactor verification checkpoint: changed TypeScript lint/complexity and typechecking pass; 27 Python baseline comparisons pass; intermediate native regression passes 142/143 suites (1,446/1,447 tests), with its sole timeout passing all three cases on an isolated unchanged rerun. Refactor commit 1232e5e is local. The first publication run was stopped before transfer to restore timing-test isolation; a fresh normal push and provider CI verification remain pending.
