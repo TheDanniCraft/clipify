@@ -1,3 +1,4 @@
+import type { ToolName } from "@/server/mcp/schemas";
 import { Entitlement } from "@types";
 import "server-only";
 import { randomUUID, createHash } from "node:crypto";
@@ -10,7 +11,7 @@ import { authorizeLockedMutation } from "./mutation";
 import { workflowInputSchemas, type WorkflowToolName } from "@/server/mcp/workflows/schemas";
 import { workflowPermissions, workflowAnnotations } from "@/server/mcp/workflows/catalogue";
 export type WorkflowContext = { tx: TransactionClient; principal: TrustedCreatorPrincipal; creatorId: string; pro: boolean; runnerAccess: boolean; assertCurrent: () => void };
-export async function workflowOperation<T extends WorkflowToolName>(principal: TrustedCreatorPrincipal, tool: T, rawInput: unknown, operation: (input: ReturnType<(typeof workflowInputSchemas)[T]["parse"]>, context: WorkflowContext) => Promise<Record<string, unknown>>, client: DatabaseClient = db) {
+export async function workflowOperation<T extends WorkflowToolName>(principal: TrustedCreatorPrincipal, tool: T, rawInput: unknown, operation: (input: ReturnType<(typeof workflowInputSchemas)[T]["parse"]>, context: WorkflowContext) => Promise<Record<string, unknown>>, client: DatabaseClient = db, auditTool: ToolName = tool) {
 	const parsed = workflowInputSchemas[tool].safeParse(rawInput);
 	if (!parsed.success) throw new Error("INVALID_INPUT");
 	const input = parsed.data;
@@ -46,11 +47,11 @@ export async function workflowOperation<T extends WorkflowToolName>(principal: T
 				...(principal.kind === "session" ? { actorSessionId: principal.sessionId } : {}),
 				targetType: tool.includes("gallery") ? "gallery" : tool.includes("playlist") ? "playlist" : tool.includes("overlay") ? "overlay" : tool.includes("runner") ? "runner" : tool.includes("stream_session") ? "stream_session" : "creator",
 				targetId,
-				action: principal.kind === "oauth" ? `sensitive-integration:mcp.${tool}` : `workflow.${tool}`,
+				action: principal.kind === "oauth" ? `sensitive-integration:mcp.${auditTool}` : `workflow.${tool}`,
 				outcome: "success",
 				correlationId: randomUUID(),
 				occurredAt: new Date(),
-				metadata: { creatorId: input.creatorId, tool, ...(principal.kind === "oauth" ? { clientId: principal.clientId, grantId: principal.grantId, generation: principal.generation } : {}) },
+				metadata: { creatorId: input.creatorId, tool: auditTool, ...(principal.kind === "oauth" ? { clientId: principal.clientId, grantId: principal.grantId, generation: principal.generation } : {}) },
 			});
 		}
 		authority.assertAuthorityCurrent();

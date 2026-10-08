@@ -1,9 +1,10 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Alert, Button, Card, Chip, Spinner } from "@heroui/react";
+import { Accordion, Alert, Button, Card, Chip, Spinner } from "@heroui/react";
 import { EmptyState } from "@heroui-pro/react";
 import { IconPlugConnected, IconShieldCheck } from "@tabler/icons-react";
 import { getConnectedMcpApps, revokeConnectedMcpApp } from "@/app/actions/mcp-connections";
+import { MCP_EXAMPLE_PROMPTS } from "@lib/mcpPrompts";
 import type { McpConnection } from "@lib/mcpConnection";
 
 export default function ConnectedAppsPanel() {
@@ -104,6 +105,29 @@ export default function ConnectedAppsPanel() {
 						</Alert.Content>
 					</Alert>
 				)}
+				<Accordion className='rounded-xl border border-border px-4'>
+					<Accordion.Item id='ai-example-prompts'>
+						<Accordion.Heading>
+							<Accordion.Trigger>
+								Ideas to try with your AI app
+								<Accordion.Indicator />
+							</Accordion.Trigger>
+						</Accordion.Heading>
+						<Accordion.Panel>
+							<Accordion.Body className='space-y-4 pb-4'>
+								<p className='text-sm text-muted'>Try one of these prompts in your connected AI app. Available actions depend on the permissions you approved and your creator’s plan.</p>
+								<ul className='space-y-3'>
+									{MCP_EXAMPLE_PROMPTS.map((prompt) => (
+										<li key={prompt.name} className='rounded-lg bg-surface-secondary p-3'>
+											<p className='text-sm font-medium'>{prompt.title}</p>
+											<p className='mt-1 select-text text-sm text-muted'>{prompt.example}</p>
+										</li>
+									))}
+								</ul>
+							</Accordion.Body>
+						</Accordion.Panel>
+					</Accordion.Item>
+				</Accordion>
 				{connections.map((connection) => (
 					<article key={connection.id} className='flex flex-col gap-4 rounded-xl border border-border p-4 sm:p-5'>
 						<div className='flex items-start justify-between gap-3'>

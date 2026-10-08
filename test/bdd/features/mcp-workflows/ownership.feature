@@ -17,12 +17,12 @@ Feature: Approved creator scopes cannot access foreign-owned workflow resources
       | preview_playlist_import | foreign_owned |
       | commit_playlist_import | foreign_owned |
       | get_gallery | foreign_owned |
-      | update_gallery | foreign_owned |
+      | update_gallery_settings | foreign_owned |
       | delete_gallery | foreign_owned |
       | publish_gallery | foreign_owned |
       | get_gallery_embed | foreign_owned |
       | get_gallery_preview | foreign_owned |
-      | get_overlay_embed | foreign_owned |
+      | get_overlay_link | foreign_owned |
       | get_player_embed | foreign_owned |
       | get_runner | foreign_owned |
       | update_runner | foreign_owned |

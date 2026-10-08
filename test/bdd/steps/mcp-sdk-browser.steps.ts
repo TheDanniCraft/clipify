@@ -53,7 +53,9 @@ When("the official SDK completes {word} approval edit denial and revoke through 
 		const tokens = await exchange.json();
 		connected = await connectMcpClient(new URL(`${origin}/mcp`), tokens.access_token, "auto");
 		const tools = await connected.client.listTools();
-		expect(tools.tools.length).toBe(50);
+		expect(tools.tools.length).toBe(66);
+		const prompts = await connected.client.listPrompts();
+		expect(prompts.prompts).toHaveLength(6);
 		expect(tools.tools.find((tool) => tool.name === "delete_overlay")?.annotations?.destructiveHint).toBe(true);
 		const args = { creatorId: owner.fixture.creatorId, overlayId: owner.fixture.overlayId };
 		const creators = await connected.client.callTool({ name: "list_creators", arguments: {} });
@@ -63,8 +65,8 @@ When("the official SDK completes {word} approval edit denial and revoke through 
 		if (area === "overlays") {
 			const read = await connected.client.callTool({ name: "get_overlay", arguments: args });
 			expect((read.structuredContent as any)?.overlay?.configurationRevision).toBe(1);
-			const edited = await connected.client.callTool({ name: "update_overlay", arguments: { ...args, expectedRevision: 1, patch: { name: "Official SDK browser edit" } } });
-			expect((edited.structuredContent as any)?.overlay?.configurationRevision).toBe(2);
+			const edited = await connected.client.callTool({ name: "update_overlay_settings", arguments: { ...args, expectedRevision: 1, patch: { name: "Official SDK browser edit" } } });
+			expect((edited.structuredContent as any)?.configurationRevision).toBe(2);
 			await page.goto(`${origin}/dashboard/overlay/${owner.fixture.overlayId}`);
 			await expect(page.getByRole("textbox", { name: /^Overlay Name\*?$/ })).toHaveValue("Official SDK browser edit", { timeout: 30000 });
 			const listed = await connected.client.callTool({ name: "list_overlays", arguments: { creatorId: args.creatorId } });
@@ -145,6 +147,12 @@ When("the official SDK completes {word} approval edit denial and revoke through 
 		expect(new URL(page.url()).searchParams.get("error")).toBe("access_denied");
 		expect(new URL(page.url()).searchParams.has("code")).toBe(false);
 		await page.goto(`${origin}/dashboard/settings`);
+		const suggestions = page.getByRole("button", { name: "Ideas to try with your AI app" });
+		await expect(suggestions).toBeVisible();
+		await suggestions.click();
+		await expect(page.getByText("Give my overlay a purple theme with rounded corners and a visible progress bar.", { exact: true })).toBeVisible();
+		await page.screenshot({ path: `test-results/browser/focused-prompts-${area}.png`, fullPage: true });
+
 		const row = page.locator("article").filter({ has: page.getByRole("heading", { name: "Official SDK browser acceptance", exact: true }) });
 		await expect(row).toHaveCount(1, { timeout: 30000 });
 		await row.getByRole("button", { name: "Revoke Official SDK browser acceptance", exact: true }).click();

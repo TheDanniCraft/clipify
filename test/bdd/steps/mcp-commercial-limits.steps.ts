@@ -177,8 +177,8 @@ Then("the mutation follows current authority for {string} and preserves denied s
 	expect(mcpWorld.result?.status).toBe(200);
 	expect(result.transitionObservation).toEqual({ baselineStatus: 200, baselineOverlayCount: 1, changeCommitted: true, reusedOriginalToken: true });
 	if (transition === "upgrade") {
-		expect(result.resourceResult.overlay).toMatchObject({ name: "Edited by agent", playerVolume: 70, configurationRevision: 2 });
-		expect(result.persistedOverlay).toEqual({ name: "Edited by agent", player_volume: 70, configuration_revision: 2 });
+		expect(result.resourceResult.overlay).toMatchObject({ playerVolume: 70, configurationRevision: 2 });
+		expect(result.persistedOverlay).toEqual({ name: "Existing overlay", player_volume: 70, configuration_revision: 2 });
 	} else {
 		expect(result.resourceResult.error.code).toBe(["downgrade", "trial-expiry", "grant-expiry"].includes(transition) ? "FEATURE_RESTRICTED" : "ACCESS_DENIED");
 		expect(result.persistedOverlay).toEqual({ name: "Existing overlay", player_volume: 50, configuration_revision: 1 });

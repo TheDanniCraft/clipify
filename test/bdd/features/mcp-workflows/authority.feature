@@ -13,8 +13,8 @@ Feature: Current authorization applies to every new workflow family
       | control_overlay | suspended_creator |
       | commit_playlist_import | expired_grant |
       | commit_playlist_import | suspended_creator |
-      | update_gallery | expired_grant |
-      | update_gallery | suspended_creator |
+      | update_gallery_settings | expired_grant |
+      | update_gallery_settings | suspended_creator |
       | update_creator_page | expired_grant |
       | update_creator_page | suspended_creator |
       | control_stream_session | expired_grant |

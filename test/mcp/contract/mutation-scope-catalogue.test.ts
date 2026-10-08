@@ -7,7 +7,7 @@ describe("each mutation requires its independently approved OAuth scope", () => 
 	});
 	test.each([
 		["create_overlay", "overlay:create"],
-		["update_overlay", "overlay:update"],
+		["update_overlay_settings", "overlay:update"],
 		["delete_overlay", "overlay:delete"],
 		["create_playlist", "playlist:create"],
 		["update_playlist", "playlist:update"],

@@ -10,7 +10,7 @@ When("the client reads every supported tool result", async () => {
 	result = flowProbe("catalogue:tool-results");
 });
 Then("no secret or credential appears and excluded operations are unavailable", async () => {
-	const names = ["list_creators", "get_capabilities", "list_overlays", "get_overlay", "create_overlay", "update_overlay", "delete_overlay", "list_playlists", "get_playlist", "create_playlist", "update_playlist", "delete_playlist", "add_playlist_items", "remove_playlist_items", "reorder_playlist_items"];
+	const names = ["list_creators", "get_capabilities", "list_overlays", "get_overlay", "create_overlay", "update_overlay_settings", "delete_overlay", "list_playlists", "get_playlist", "create_playlist", "update_playlist", "delete_playlist", "add_playlist_items", "remove_playlist_items", "reorder_playlist_items"];
 	expect(result.discovery.status).toBe(200);
 	expect(result.discovery.secretFree).toBe(true);
 	expect([...result.discovery.names].sort()).toEqual([...names].sort());

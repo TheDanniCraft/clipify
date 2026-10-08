@@ -105,11 +105,21 @@ async function main() {
 		const mode = process.argv[2] === "auto" ? "auto" : "legacy";
 		connected = await connectMcpClient(new URL(origin + "/mcp"), tokens.access_token, mode);
 		const tools = await connected.client.listTools();
+		const prompts = await connected.client.listPrompts();
+		const themePrompt = await connected.client.getPrompt({ name: "style-overlay" });
+		const focusedDiscoveryValid = ["get_overlay_theme", "update_overlay_theme", "update_overlay_filters", "update_gallery_layout", "get_overlay_link"].every((name) => tools.tools.some((tool) => tool.name === name && (tool.description?.length ?? 0) > 50)) && !tools.tools.some((tool) => ["update_overlay", "update_gallery", "get_overlay_embed"].includes(tool.name));
+		let obsoleteToolDenied = false;
+		try {
+			await connected.client.callTool({ name: "update_overlay", arguments: {} });
+		} catch {
+			obsoleteToolDenied = true;
+		}
+
 		const read = await connected.client.callTool({ name: "list_creators", arguments: {} });
 		const created = await connected.client.callTool({ name: "create_overlay", arguments: { creatorId: "sdk-creator", retryKey: "independent-sdk-create", name: "Created by official SDK" } });
 		const dto: any = created.structuredContent;
 		if (!dto?.id) throw new Error("SDK create did not return safe DTO");
-		const edited = await connected.client.callTool({ name: "update_overlay", arguments: { creatorId: "sdk-creator", overlayId: dto.id, expectedRevision: 1, patch: { name: "Edited by official SDK" } } });
+		const edited = await connected.client.callTool({ name: "update_overlay_settings", arguments: { creatorId: "sdk-creator", overlayId: dto.id, expectedRevision: 1, patch: { name: "Edited by official SDK" } } });
 		const limited = await connected.client.callTool({ name: "create_overlay", arguments: { creatorId: "sdk-creator", retryKey: "independent-sdk-over-limit", name: "Must be denied" } });
 		const grantsBeforeDenial = Number((await fixture.pool.query("SELECT count(*) FROM mcp_connection_grants")).rows[0].count);
 		const deny = await fetch(origin + "/test/consent", { method: "POST", headers: { Cookie: cookie, Origin: origin, "Content-Type": "application/json" }, body: JSON.stringify({ oauthQuery: await authorize(), accept: false, scopes: [], creators: [] }) });
@@ -132,7 +142,20 @@ async function main() {
 		mkdirSync("test-results/mcp/client-matrix", { recursive: true });
 		writeFileSync(
 			`test-results/mcp/client-matrix/custom-sdk-${mode}.json`,
-			JSON.stringify({ product: "Official SDK independent client", clientVersion: "2.3.0", transportMode: mode, observedProtocols: [...protocols].sort(), registrationPath: "native-dynamic-registration", environment: "Disposable native PostgreSQL and real loopback HTTP; test-only consent/revoke adapters; no named-vendor UI acceptance", checkedAt: new Date().toISOString(), riskHints: tools.tools.map((tool) => ({ name: tool.name, annotations: tool.annotations })) }, null, 2) + "\n",
+			JSON.stringify(
+				{
+					product: "Official SDK independent client",
+					clientVersion: "2.3.0",
+					transportMode: mode,
+					observedProtocols: [...protocols].sort(),
+					registrationPath: "native-dynamic-registration",
+					environment: "Disposable native PostgreSQL and real loopback HTTP; test-only consent/revoke adapters; no named-vendor UI acceptance",
+					checkedAt: new Date().toISOString(),
+					riskHints: tools.tools.map((tool) => ({ name: tool.name, description: tool.description, inputSchema: tool.inputSchema, annotations: tool.annotations })),
+				},
+				null,
+				2,
+			) + "\n",
 		);
 		console.log(
 			JSON.stringify({
@@ -141,6 +164,10 @@ async function main() {
 				issuerBound: claims.iss === origin + "/api/auth",
 				audienceBound: claims.aud === origin + "/mcp" || (Array.isArray(claims.aud) && claims.aud.includes(origin + "/mcp")),
 				toolCount: tools.tools.length,
+				promptCount: prompts.prompts.length,
+				promptWorkflowValid: JSON.stringify(themePrompt.messages).includes("update_overlay_theme"),
+				focusedDiscoveryValid,
+				obsoleteToolDenied,
 				readAllowed: !read.isError,
 				createAllowed: !created.isError,
 				editAllowed: !edited.isError,

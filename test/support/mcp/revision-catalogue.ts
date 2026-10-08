@@ -38,7 +38,7 @@ export async function runRevisionCatalogue(input: { fixture: Awaited<ReturnType<
 			const result = resource === "overlay" ? await saveBrowserOverlay(overlayId, { name: value }, revision, headers) : resource === "playlist" ? await saveBrowserPlaylist(playlistId, { name: value }, revision, headers) : await reorderBrowserPlaylist(playlistId, value === "First" ? ["ClipB", "ClipA"] : ["ClipA", "ClipB"], revision, headers);
 			return { success: !!result, error: result ? null : "BROWSER_REJECTED" };
 		}
-		const name = resource === "overlay" ? "update_overlay" : resource === "playlist" ? "update_playlist" : "reorder_playlist_items";
+		const name = resource === "overlay" ? "update_overlay_settings" : resource === "playlist" ? "update_playlist" : "reorder_playlist_items";
 		const args = resource === "overlay" ? { creatorId: "fixture-creator", overlayId, expectedRevision: revision, patch: { name: value } } : resource === "playlist" ? { creatorId: "fixture-creator", playlistId, expectedRevision: revision, name: value } : { creatorId: "fixture-creator", playlistId, expectedRevision: revision, itemIds: value === "First" ? ["ClipB", "ClipA"] : ["ClipA", "ClipB"] };
 		const response = await route.POST(new Request(origin + "/mcp", { method: "POST", headers: { Authorization: `Bearer ${input.token}`, "Content-Type": "application/json", Accept: "application/json, text/event-stream", "MCP-Protocol-Version": "2025-06-18" }, body: JSON.stringify({ jsonrpc: "2.0", id: ++sequence, method: "tools/call", params: { name, arguments: args } }) }));
 		const wire = await response.text();

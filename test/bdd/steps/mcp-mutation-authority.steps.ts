@@ -17,7 +17,7 @@ Then("each result and persisted state agree with that authority boundary", async
 	expect(rows).toHaveLength(phase === "foreign-resource" ? 7 : phase === "paid-boundary" ? 4 : 9);
 	for (const row of rows) {
 		const positive = phase === "direct-pro" || phase === "owner-free" || phase.startsWith("agency-");
-		const code = positive ? null : phase === "foreign-resource" ? "RESOURCE_UNAVAILABLE" : phase === "failed-audit" ? "SERVICE_UNAVAILABLE" : phase === "paid-boundary" ? (row.name === "update_overlay" ? "FEATURE_RESTRICTED" : "PLAN_LIMIT_REACHED") : "ACCESS_DENIED";
+		const code = positive ? null : phase === "foreign-resource" ? "RESOURCE_UNAVAILABLE" : phase === "failed-audit" ? "SERVICE_UNAVAILABLE" : phase === "paid-boundary" ? (row.name === "update_overlay_playback" ? "FEATURE_RESTRICTED" : "PLAN_LIMIT_REACHED") : "ACCESS_DENIED";
 		expect(row).toEqual({ name: row.name, phase, status: 200, code, success: positive, changed: positive, leakedData: false });
 	}
 });

@@ -1,6 +1,6 @@
 /** @jest-environment node */
 import { flowProbe } from "../../support/mcp/probe";
-const verbs = ["create_overlay", "update_overlay", "delete_overlay", "create_playlist", "update_playlist", "delete_playlist", "add_playlist_items", "remove_playlist_items", "reorder_playlist_items"];
+const verbs = ["create_overlay", "update_overlay_settings", "delete_overlay", "create_playlist", "update_playlist", "delete_playlist", "add_playlist_items", "remove_playlist_items", "reorder_playlist_items"];
 const classes = ["unknown-field", "invalid-identifier", "wrong-type", "out-of-range"];
 
 describe("all mutation validation catalogue through the authenticated public route", () => {

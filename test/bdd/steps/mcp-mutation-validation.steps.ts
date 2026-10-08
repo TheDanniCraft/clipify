@@ -4,7 +4,7 @@ import { flowProbe } from "../../support/mcp/probe";
 const { Given, When, Then } = createBdd();
 let result: any;
 let selected: { name: string; boundary: string };
-const operations: Record<string, string> = { "create overlay": "create_overlay", "update overlay": "update_overlay", "delete overlay": "delete_overlay", "create playlist": "create_playlist", "update playlist": "update_playlist", "delete playlist": "delete_playlist", "add playlist items": "add_playlist_items", "remove playlist items": "remove_playlist_items", "reorder playlist items": "reorder_playlist_items" };
+const operations: Record<string, string> = { "create overlay": "create_overlay", "update overlay": "update_overlay_settings", "delete overlay": "delete_overlay", "create playlist": "create_playlist", "update playlist": "update_playlist", "delete playlist": "delete_playlist", "add playlist items": "add_playlist_items", "remove playlist items": "remove_playlist_items", "reorder playlist items": "reorder_playlist_items" };
 for (const [phrase, boundary] of [
 	["an unknown input field", "unknown-field"],
 	["an invalid identifier", "invalid-identifier"],

@@ -51,7 +51,7 @@ export async function runToolResultsCatalogue(input: { fixture: Awaited<ReturnTy
 			["list_overlays", { creatorId: "fixture-creator" }],
 			["get_overlay", { creatorId: "fixture-creator", overlayId }],
 			["create_overlay", { creatorId: "fixture-creator", retryKey: "catalogue-overlay", name: "Created catalogue overlay" }],
-			["update_overlay", { creatorId: "fixture-creator", overlayId, expectedRevision: 1, patch: { name: "Updated catalogue overlay" } }],
+			["update_overlay_settings", { creatorId: "fixture-creator", overlayId, expectedRevision: 1, patch: { name: "Updated catalogue overlay" } }],
 			["list_playlists", { creatorId: "fixture-creator" }],
 			["get_playlist", { creatorId: "fixture-creator", playlistId }],
 			["create_playlist", { creatorId: "fixture-creator", retryKey: "catalogue-playlist", name: "Created catalogue playlist" }],

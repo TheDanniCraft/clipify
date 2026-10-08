@@ -227,8 +227,8 @@ async function main() {
 			if (needsFullScopes) finalScopes = [...MCP_SCOPES, "offline_access"];
 			if (mode === "catalogue:workflow:submit_feedback:read_only") finalScopes = ["creator:read"];
 			if (mode.startsWith("catalogue:workflow:") && mode.endsWith(":missing_scope")) {
-				const { workflowPermissions } = await import("@/server/mcp/workflows/catalogue");
-				const permission = workflowPermissions[mode.split(":")[2] as keyof typeof workflowPermissions];
+				const { toolPermissions } = await import("@/server/mcp/permissions");
+				const permission = toolPermissions[mode.split(":")[2] as keyof typeof toolPermissions];
 				finalScopes = finalScopes.filter((scope) => scope !== permission);
 			}
 			if (mode.startsWith("catalogue:workflow:") && mode.endsWith(":missing_secondary_scope")) {
@@ -645,7 +645,7 @@ async function main() {
 																							creatorId: "fixture-creator",
 																							overlayId: mode.endsWith(":missing") || mode.endsWith(":retained") || mode.endsWith(":retained-run") ? "13903b5b-ce6a-4a98-9c8c-f8ead02ec8c6" : "79e6c5a3-5368-4813-9780-49d22d99175f",
 																							expectedRevision: mode.endsWith(":stale") ? 2 : 1,
-																							patch: mode.endsWith(":retained-run") ? { status: "active" } : mode.endsWith(":retained-playlist-run") ? { type: "Playlist", playlistId: "13903b5b-ce6a-4a98-9c8c-f8ead02ec8c6" } : pauseMode ? { status: "paused" } : mode.endsWith(":free-basic") ? { name: "Free name edit" } : mode.endsWith(":free-filter") ? { minClipViews: 100 } : mode.endsWith(":free-styling") ? { themeAccentColor: "#123456" } : { name: "Edited by agent", playerVolume: 70 },
+																							patch: mode.endsWith(":retained-run") ? { status: "active" } : mode.endsWith(":retained-playlist-run") ? { type: "Playlist", playlistId: "13903b5b-ce6a-4a98-9c8c-f8ead02ec8c6" } : pauseMode ? { status: "paused" } : mode.endsWith(":free-basic") ? { name: "Free name edit" } : mode.endsWith(":free-filter") ? { minClipViews: 100 } : mode.endsWith(":free-styling") ? { themeAccentColor: "#123456" } : { playerVolume: 70 },
 																						}
 																					: mode.startsWith("resources:overlay-create")
 																						? { creatorId: "fixture-creator", retryKey: "public-create-key", name: "Agent overlay" }
@@ -658,6 +658,12 @@ async function main() {
 																									: {},
 										},
 									};
+						if (mode.startsWith("resources:overlay-update") && "arguments" in message.params) {
+							const patch = (message.params.arguments as { patch: Record<string, unknown> }).patch;
+							const { overlayFieldGroups } = await import("@/server/mcp/focused-fields");
+							const group = Object.entries(overlayFieldGroups).find(([, fields]) => Object.keys(patch).every((field) => (fields as readonly string[]).includes(field)))?.[0];
+							message.params.name = `update_overlay_${group}`;
+						}
 						if (mode.startsWith("protocol:unknown-tool:") && "name" in message.params) message.params.name = mode.slice("protocol:unknown-tool:".length);
 						if (mode.includes(":unknown:audit-storage-failure") && "arguments" in message.params) (message.params.arguments as Record<string, unknown>).secret = "private-input-value";
 						const request = new Request(`${origin}/mcp`, {
@@ -724,6 +730,11 @@ async function main() {
 						const value = data ? JSON.parse(data) : null;
 						protocolErrorCode = value?.error?.code;
 						resourceResult = value?.result?.structuredContent;
+						const focusedResult = resourceResult as Record<string, unknown> | undefined;
+						if (mode.startsWith("resources:overlay-update") && focusedResult && !focusedResult.error) {
+							const group = String((message.params as { name?: string }).name).replace("update_overlay_", "");
+							resourceResult = { overlay: { id: focusedResult.overlayId, creatorId: focusedResult.creatorId, configurationRevision: focusedResult.configurationRevision, ...(focusedResult[group] as object) } };
+						}
 						if (mode.startsWith("resources:overlay-create") || mode.startsWith("resources:playlist-create")) {
 							// Prior calls fill the fixed actor budget before the replay request.
 							if (mode.endsWith(":rate-limit")) await fixture.pool.query("UPDATE rate_limit_counters SET count=120 WHERE action='mcp:call:actor-client'");

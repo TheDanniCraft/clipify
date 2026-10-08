@@ -9,7 +9,7 @@ export async function runMutationScopeCatalogue(input: { pool: Pool; auth: any; 
 	const privateKey = await importJWK(JSON.parse(decrypted), algorithm);
 	const mutations = [
 		["create_overlay", "overlay:create"],
-		["update_overlay", "overlay:update"],
+		["update_overlay_settings", "overlay:update"],
 		["delete_overlay", "overlay:delete"],
 		["create_playlist", "playlist:create"],
 		["update_playlist", "playlist:update"],

@@ -112,3 +112,14 @@ describe("TDD-US1-020/024 connected apps UI", () => {
 		expect(screen.queryByText("My custom AI")).not.toBeInTheDocument();
 	});
 });
+
+test("connected app settings provide optional English example prompts without running actions", async () => {
+	jest.clearAllMocks();
+	(getConnectedMcpApps as jest.Mock).mockResolvedValue({ connections: [] });
+	render(<Panel />);
+	await screen.findByText("No connected apps.");
+	expect(screen.getByText("Ideas to try with your AI app")).toBeInTheDocument();
+	expect(screen.getByText("Give my overlay a purple theme with rounded corners and a visible progress bar.")).toBeInTheDocument();
+	expect(screen.getByText("Show me which Minecraft clips from yesterday you would add to my playlist.")).toBeInTheDocument();
+	expect(revokeConnectedMcpApp).not.toHaveBeenCalled();
+});

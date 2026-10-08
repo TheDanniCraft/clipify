@@ -18,8 +18,8 @@ describe("already connected clients resolve committed authority on their next mu
 			expect(result.resourceResult.error.code).toBe(code);
 			expect(result.persistedOverlay).toEqual({ name: "Existing overlay", player_volume: 50, configuration_revision: 1 });
 		} else {
-			expect(result.resourceResult.overlay).toMatchObject({ name: "Edited by agent", playerVolume: 70, configurationRevision: 2 });
-			expect(result.persistedOverlay).toEqual({ name: "Edited by agent", player_volume: 70, configuration_revision: 2 });
+			expect(result.resourceResult.overlay).toMatchObject({ playerVolume: 70, configurationRevision: 2 });
+			expect(result.persistedOverlay).toEqual({ name: "Existing overlay", player_volume: 70, configuration_revision: 2 });
 		}
 		expect(JSON.stringify(result.resourceResult)).not.toMatch(/private-overlay-secret|secret|token|rewardId/);
 	});
@@ -33,7 +33,9 @@ describe("TDD-US3-019 MCP paid overlay settings", () => {
 	});
 	test("allows a Free creator to edit basic metadata", () => {
 		const result = flowProbe("resources:overlay-update:free-basic");
-		expect(result.resourceResult?.overlay).toMatchObject({ name: "Free name edit", playerVolume: 50, configurationRevision: 2 });
+		expect(result.resourceResult?.overlay).toMatchObject({ name: "Free name edit", configurationRevision: 2 });
+		expect(result.resourceResult?.overlay).not.toHaveProperty("playerVolume");
+		expect(result.persistedOverlay).toMatchObject({ name: "Free name edit", player_volume: 50, configuration_revision: 2 });
 	});
 });
 

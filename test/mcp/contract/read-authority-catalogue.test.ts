@@ -14,7 +14,7 @@ for (const phase of ["unapproved-creator", "missing-context", "malformed-context
 }
 for (const name of ["get_overlay", "get_playlist"]) cases.push([name, "foreign-resource", "RESOURCE_UNAVAILABLE", false]);
 for (const name of readAuthorityTools) cases.push([name, "empty-selection", name === "list_creators" ? null : "ACCESS_DENIED", name === "list_creators"]);
-for (const name of ["create_overlay", "update_overlay", "delete_overlay", "create_playlist", "update_playlist", "delete_playlist", "add_playlist_items", "remove_playlist_items", "reorder_playlist_items"]) cases.push([name, "agency-ceiling-write", "ACCESS_DENIED", false]);
+for (const name of ["create_overlay", "update_overlay_settings", "delete_overlay", "create_playlist", "update_playlist", "delete_playlist", "add_playlist_items", "remove_playlist_items", "reorder_playlist_items"]) cases.push([name, "agency-ceiling-write", "ACCESS_DENIED", false]);
 describe("TDD-READ-AUTHORITY-001 current read permission, path and creator boundaries", () => {
 	let result: any;
 	beforeAll(() => {

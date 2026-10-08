@@ -28,23 +28,23 @@ describe("TDD-US3-003 gallery creation and limits", () => {
 });
 describe("TDD-US3-004 revision-aware gallery editing", () => {
 	test("changes the requested configuration and advances the revision", () => {
-		const row = flowProbe("catalogue:workflow:update_gallery:success");
+		const row = flowProbe("catalogue:workflow:update_gallery_settings:success");
 		expect(row.result?.structuredContent).toMatchObject({ id: row.ids.galleryId, name: "Edited gallery", configurationRevision: 2 });
 		expect(row.safe).toBe(true);
 	});
 	test("rejects stale revisions", () => {
-		const row = flowProbe("catalogue:workflow:update_gallery:stale_revision");
+		const row = flowProbe("catalogue:workflow:update_gallery_settings:stale_revision");
 		expect(row.result?.structuredContent?.error?.code).toBe("CONFLICT");
 		expect(row.writes).toBe(0);
 	});
 });
 describe("TDD-US3-PAID preserved paid configuration", () => {
 	test("Free name edits preserve saved custom dates", () => {
-		const row = flowProbe("catalogue:workflow:update_gallery:free_preserve");
+		const row = flowProbe("catalogue:workflow:update_gallery_settings:free_preserve");
 		expect(row.result?.structuredContent).toMatchObject({ name: "Edited gallery", liveCustomStart: "2026-10-01T00:00:00.000Z", liveCustomEnd: "2026-10-06T00:00:00.000Z" });
 	});
 	test("Free agents cannot change paid gallery themes", () => {
-		const row = flowProbe("catalogue:workflow:update_gallery:paid_theme");
+		const row = flowProbe("catalogue:workflow:update_gallery_settings:paid_theme");
 		expect(row.result?.structuredContent?.error?.code).toBe("FEATURE_RESTRICTED");
 		expect(row.writes).toBe(0);
 	});
@@ -84,7 +84,7 @@ describe("TDD-US3-008 effective gallery preview", () => {
 
 describe("TDD-US3-009 explicit private OBS source", () => {
 	test("returns the private browser-source URL only through the secret-read tool", () => {
-		const row = flowProbe("catalogue:workflow:get_overlay_embed:success");
+		const row = flowProbe("catalogue:workflow:get_overlay_link:success");
 		expect(row.result?.structuredContent).toMatchObject({ overlayId: row.ids.overlayId, purpose: "obs_browser_source", containsCredential: true, public: false });
 		expect(row.result?.structuredContent.url).toContain("secret=private-workflow-overlay");
 		expect(row.safe).toBe(true);

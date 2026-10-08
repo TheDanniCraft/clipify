@@ -1,6 +1,6 @@
 /** @jest-environment node */
 import { flowProbe } from "../../support/mcp/probe";
-const names = ["list_creators", "get_capabilities", "list_overlays", "get_overlay", "create_overlay", "update_overlay", "delete_overlay", "list_playlists", "get_playlist", "create_playlist", "update_playlist", "delete_playlist", "add_playlist_items", "remove_playlist_items", "reorder_playlist_items"];
+const names = ["list_creators", "get_capabilities", "list_overlays", "get_overlay", "create_overlay", "update_overlay_settings", "delete_overlay", "list_playlists", "get_playlist", "create_playlist", "update_playlist", "delete_playlist", "add_playlist_items", "remove_playlist_items", "reorder_playlist_items"];
 const workflowNames = [
 	"get_overlay_runtime",
 	"get_overlay_queues",
@@ -14,12 +14,12 @@ const workflowNames = [
 	"list_galleries",
 	"get_gallery",
 	"create_gallery",
-	"update_gallery",
+	"update_gallery_settings",
 	"delete_gallery",
 	"publish_gallery",
 	"get_gallery_embed",
 	"get_gallery_preview",
-	"get_overlay_embed",
+	"get_overlay_link",
 	"get_player_embed",
 	"get_creator_page",
 	"update_creator_page",
@@ -43,14 +43,15 @@ describe("TDD-US2-022 every public tool result excludes seeded credentials", () 
 	beforeAll(() => {
 		result = flowProbe("catalogue:tool-results");
 	});
-	test("actual discovery exposes exactly the 50 supported tool definitions without seeded credentials", () => {
+	test("actual discovery exposes exactly the 66 supported tool definitions without seeded credentials", () => {
 		expect(result.discovery.status).toBe(200);
 		expect(result.discovery.secretFree).toBe(true);
-		expect([...result.discovery.names].sort()).toEqual([...names, ...workflowNames].sort());
+		const focused = ["get_overlay_source", "update_overlay_source", "get_overlay_filters", "update_overlay_filters", "get_overlay_playback", "update_overlay_playback", "get_overlay_theme", "update_overlay_theme", "get_gallery_source", "update_gallery_source", "get_gallery_filters", "update_gallery_filters", "get_gallery_layout", "update_gallery_layout", "get_gallery_theme", "update_gallery_theme"];
+		expect([...result.discovery.names].sort()).toEqual([...names, ...workflowNames, ...focused].sort());
 	});
 	test.each(names)("%s exposes truthful risk hints on native discovery", (name) => {
 		const read = name.startsWith("list_") || name.startsWith("get_");
-		const destructive = ["update_overlay", "delete_overlay", "update_playlist", "delete_playlist", "remove_playlist_items", "reorder_playlist_items"].includes(name);
+		const destructive = ["update_overlay_settings", "delete_overlay", "update_playlist", "delete_playlist", "remove_playlist_items", "reorder_playlist_items"].includes(name);
 		expect(result.discovery.annotations.find((row: any) => row.name === name).annotations).toEqual({ readOnlyHint: read, destructiveHint: destructive, idempotentHint: true, openWorldHint: name === "add_playlist_items" });
 	});
 	test.each(names)("%s succeeds without provider, OAuth, clip or overlay credentials", (name) => {

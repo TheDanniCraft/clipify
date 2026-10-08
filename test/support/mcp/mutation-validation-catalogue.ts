@@ -1,6 +1,6 @@
 import type { createMcpPostgresFixture } from "./postgres";
 
-export const mutationValidationTools = ["create_overlay", "update_overlay", "delete_overlay", "create_playlist", "update_playlist", "delete_playlist", "add_playlist_items", "remove_playlist_items", "reorder_playlist_items"] as const;
+export const mutationValidationTools = ["create_overlay", "update_overlay_settings", "delete_overlay", "create_playlist", "update_playlist", "delete_playlist", "add_playlist_items", "remove_playlist_items", "reorder_playlist_items"] as const;
 export const mutationValidationClasses = ["unknown-field", "invalid-identifier", "wrong-type", "out-of-range"] as const;
 
 export async function runMutationValidationCatalogue(input: { fixture: Awaited<ReturnType<typeof createMcpPostgresFixture>>; auth: any; origin: string; token: string }) {
@@ -44,7 +44,7 @@ export async function runMutationValidationCatalogue(input: { fixture: Awaited<R
 			const base: Record<string, unknown> = { creatorId: "fixture-creator" };
 			if (name.startsWith("create_")) Object.assign(base, { retryKey: "validation-key", name: "Valid name" });
 			else Object.assign(base, { expectedRevision: 1, ...(name.includes("overlay") ? { overlayId } : { playlistId }) });
-			if (name === "update_overlay") base.patch = { name: "Valid edited name" };
+			if (name === "update_overlay_settings") base.patch = { name: "Valid edited name" };
 			if (name === "update_playlist") base.name = "Valid edited name";
 			if (name === "add_playlist_items") base.clipIds = ["NewValidClip"];
 			if (name === "remove_playlist_items" || name === "reorder_playlist_items") base.itemIds = ["ValidationClip"];

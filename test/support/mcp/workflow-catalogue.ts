@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { symmetricEncrypt } from "better-auth/crypto";
 import type { createMcpPostgresFixture } from "./postgres";
-import { workflowInputSchemas } from "@/server/mcp/workflows/schemas";
+import { toolInputSchemas } from "@/server/mcp/schemas";
 export async function runWorkflowCatalogue(input: { fixture: Awaited<ReturnType<typeof createMcpPostgresFixture>>; auth: any; origin: string; token: string; actorId: string; mode: string }) {
 	const { fixture, auth, origin, token, actorId, mode } = input;
 	const [, , name, variant = "success"] = mode.split(":");
@@ -92,6 +92,25 @@ export async function runWorkflowCatalogue(input: { fixture: Awaited<ReturnType<
 		])
 			await handleMessage(Buffer.from(JSON.stringify({ type: "state_update", data: { ...report, token: "private-state-token" } })), source as any);
 		const defaults: Record<string, Record<string, unknown>> = {
+			get_overlay_theme: { overlayId },
+			get_overlay_filters: { overlayId },
+			get_overlay_source: { overlayId },
+			get_overlay_playback: { overlayId },
+			update_overlay_theme: { overlayId, expectedRevision: 1, patch: { themeTextColor: "#abcdef" } },
+			update_overlay_settings: { overlayId, expectedRevision: 1, patch: { name: "Edited overlay" } },
+			update_overlay_source: { overlayId, expectedRevision: 1, patch: { type: "Playlist", playlistId } },
+			update_overlay_filters: { overlayId, expectedRevision: 1, patch: { minClipViews: 100 } },
+			update_overlay_playback: { overlayId, expectedRevision: 1, patch: { playerVolume: 70 } },
+			get_gallery_theme: { galleryId },
+			get_gallery_filters: { galleryId },
+			get_gallery_source: { galleryId },
+			get_gallery_layout: { galleryId },
+			update_gallery_theme: { galleryId, expectedRevision: 1, patch: { accentColor: "#abcdef" } },
+			update_gallery_settings: { galleryId, expectedRevision: 1, patch: { name: "Edited gallery" } },
+			update_gallery_source: { galleryId, expectedRevision: 1, patch: { source: "live" } },
+			update_gallery_filters: { galleryId, expectedRevision: 1, patch: { minimumViews: 100 } },
+			update_gallery_layout: { galleryId, expectedRevision: 1, patch: { layout: "list" } },
+			get_overlay_link: { overlayId },
 			submit_feedback: { kind: "bug", message: "The queue did not advance.", confirmed: true, retryKey: "feedback-one" },
 			get_capabilities: {},
 			get_overlay_runtime: { overlayId },
@@ -106,12 +125,10 @@ export async function runWorkflowCatalogue(input: { fixture: Awaited<ReturnType<
 			list_galleries: {},
 			get_gallery: { galleryId },
 			create_gallery: { name: "New gallery", retryKey: "gallery-one" },
-			update_gallery: { galleryId, expectedRevision: 1, patch: { name: "Edited gallery" } },
 			delete_gallery: { galleryId, expectedRevision: 1 },
 			publish_gallery: { galleryId, expectedRevision: 1, published: false },
 			get_gallery_embed: { galleryId },
 			get_gallery_preview: { galleryId },
-			get_overlay_embed: { overlayId, purpose: "obs_browser_source" },
 			get_player_embed: { overlayId, muted: true, autoplay: true },
 			get_creator_page: {},
 			update_creator_page: { expectedRevision: 1, patch: { creatorPageVisibility: "unlisted" } },
@@ -321,14 +338,36 @@ export async function runWorkflowCatalogue(input: { fixture: Awaited<ReturnType<
 			const [field, value] = Object.entries(paidOptions)[0];
 			args.patch = { name: "Edited gallery", [field]: value };
 		}
-		let result = await call(name, args);
+		if (name === "update_gallery_settings" && args.patch && Object.keys(args.patch as object).length > 1) {
+			const patch = { ...(args.patch as Record<string, unknown>) };
+			delete patch.name;
+			args.patch = patch;
+		}
+		if (variant === "cross_area") args.patch = { ...(args.patch as object), name: "Unwanted overwrite" };
+		const updateGalleryAreas = async (input: Record<string, unknown>) => {
+			const { galleryFieldGroups } = await import("@/server/mcp/focused-fields");
+			let expectedRevision = input.expectedRevision;
+			let response;
+			for (const [group, fields] of Object.entries(galleryFieldGroups)) {
+				const patch = Object.fromEntries(Object.entries(input.patch as Record<string, unknown>).filter(([field]) => (fields as readonly string[]).includes(field)));
+				if (!Object.keys(patch).length) continue;
+				response = await call(`update_gallery_${group}`, { ...input, expectedRevision, patch });
+				if (response.body?.result?.isError || response.body?.error) return response;
+				expectedRevision = response.body?.result?.structuredContent?.configurationRevision;
+			}
+			if (!response) throw new Error("EMPTY_GALLERY_FIXTURE_PATCH");
+			const full = await call("get_gallery", { creatorId: input.creatorId, galleryId });
+			response.body.result.structuredContent = full.body?.result?.structuredContent?.gallery;
+			return response;
+		};
+		let result = name === "update_gallery_settings" && args.patch ? await updateGalleryAreas(args) : await call(name, args);
 		if (name === "submit_feedback" && variant === "limit") for (let index = 1; index <= 5; index++) result = await call(name, { ...args, message: `User report ${index}`, retryKey: `feedback-${index}` });
 		const series: { field: string; value: unknown; result: any }[] = [];
 		if (["paid_fields_free", "paid_fields_pro"].includes(variant)) {
 			const options = Object.entries(paidOptions);
 			series.push({ field: options[0][0], value: options[0][1], result: result.body?.result });
 			for (const [index, [field, value]] of options.slice(1).entries()) {
-				const next = await call(name, { ...args, expectedRevision: variant === "paid_fields_pro" ? index + 2 : 1, patch: { name: "Edited gallery", [field]: value } });
+				const next = await updateGalleryAreas({ ...args, expectedRevision: variant === "paid_fields_pro" ? index + 2 : 1, patch: { [field]: value } });
 				series.push({ field, value, result: next.body?.result });
 			}
 		}
@@ -347,15 +386,17 @@ export async function runWorkflowCatalogue(input: { fixture: Awaited<ReturnType<
 			await call(name, { ...args, retryKey: "feedback-alias" });
 			replay = await call(name, { ...args, retryKey: "feedback-alias", message: "Changed feedback" });
 		}
-		const mayShowOverlaySecret = name === "get_overlay_embed" && result.status === 200 && !result.body?.error && !result.body?.result?.isError && args.creatorId === "fixture-creator";
+		const mayShowOverlaySecret = name === "get_overlay_link" && result.status === 200 && !result.body?.error && !result.body?.result?.isError && args.creatorId === "fixture-creator";
 		const safe = ![...(mayShowOverlaySecret ? [] : ["private-workflow-overlay"]), "private-workflow-runner", "private-second-runner", "private-workflow-key", "private-stream-error", "private-stream-key", "private-workflow-provider", "private-provider-payload", "private-state-token", encrypted, token].some((value) => responseTexts.join("\n").includes(value));
-		const writes = (await fixture.pool.query("SELECT count(*)::int AS count FROM audit_events WHERE action=$1 AND outcome='success'", [`sensitive-integration:mcp.${name}`])).rows[0].count;
+		const writes = (await fixture.pool.query("SELECT count(*)::int AS count FROM audit_events WHERE action LIKE $1 AND outcome='success'", [name === "update_gallery_settings" ? "sensitive-integration:mcp.update_gallery_%" : `sensitive-integration:mcp.${name}`])).rows[0].count;
 		const playlistItemCount = Number((await fixture.pool.query("SELECT count(*)::int AS count FROM playlist_clips WHERE playlist_id=$1", [playlistId])).rows[0].count);
 		const playlistRevision = Number((await fixture.pool.query("SELECT configuration_revision FROM playlists WHERE id=$1", [playlistId])).rows[0]?.configuration_revision ?? 0);
 		const activity = (await fixture.pool.query("SELECT target_type,target_id FROM audit_events WHERE action=$1 AND outcome='success' ORDER BY occurred_at DESC LIMIT 1", [`sensitive-integration:mcp.${name}`])).rows[0];
 		const auditMessageFree = !(await fixture.pool.query("SELECT metadata FROM audit_events WHERE action=$1", [`sensitive-integration:mcp.${name}`])).rows.some((row) => JSON.stringify(row).includes(String(args.message ?? "The queue did not advance.")));
 		if (feedbackSdk) await feedbackSdk.flush(2000);
-		return { feedbackEvents, auditMessageFree, activity, series, nextPage: nextPage?.body?.result, replay: replay?.body?.result, playlistItemCount, playlistRevision, status: result.status, result: result.body?.result, error: result.body?.error, safe, commands, providerCalls, writes, ids: { overlayId, playlistId, galleryId, runnerId, sessionId }, schemaValid: workflowInputSchemas[name as keyof typeof workflowInputSchemas]?.safeParse(args).success };
+		const storedOverlay = (await fixture.pool.query("SELECT name,player_volume,min_clip_views,theme_text_color,configuration_revision FROM overlays WHERE id=$1", [overlayId])).rows[0];
+		const storedGallery = (await fixture.pool.query("SELECT name,layout,accent_color,configuration_revision FROM galleries WHERE id=$1", [galleryId])).rows[0];
+		return { storedOverlay, storedGallery, feedbackEvents, auditMessageFree, activity, series, nextPage: nextPage?.body?.result, replay: replay?.body?.result, playlistItemCount, playlistRevision, status: result.status, result: result.body?.result, error: result.body?.error, safe, commands, providerCalls, writes, ids: { overlayId, playlistId, galleryId, runnerId, sessionId }, schemaValid: toolInputSchemas[name as keyof typeof toolInputSchemas]?.safeParse(args).success };
 	} finally {
 		globalThis.fetch = originalFetch;
 		removeSubscriber("fixture-creator", overlayId, source as any);

@@ -1,5 +1,6 @@
 /** @jest-environment node */
-import { discoveryFilters, workflowInputSchemas as schemas } from "@/server/mcp/workflows/schemas";
+import { discoveryFilters } from "@/server/mcp/workflows/schemas";
+import { toolInputSchemas as schemas } from "@/server/mcp/schemas";
 const creatorId = "creator";
 const overlayId = "11111111-1111-4111-8111-111111111111";
 const playlistId = overlayId;
@@ -35,6 +36,6 @@ test("stream creation requires a retry key and existing configuration requires a
 	expect(schemas.configure_stream_session.safeParse({ ...input, sessionId, retryKey: "new" }).success).toBe(false);
 	expect(schemas.configure_stream_session.safeParse({ ...input, sessionId, expectedRevision: 1 }).success).toBe(true);
 });
-test.each(["update_gallery", "update_creator_page"] as const)("%s rejects empty edits", (tool) => {
-	expect(schemas[tool].safeParse({ creatorId, ...(tool === "update_gallery" ? { galleryId: overlayId } : {}), expectedRevision: 1, patch: {} }).success).toBe(false);
+test.each(["update_gallery_settings", "update_creator_page"] as const)("%s rejects empty edits", (tool) => {
+	expect(schemas[tool].safeParse({ creatorId, ...(tool === "update_gallery_settings" ? { galleryId: overlayId } : {}), expectedRevision: 1, patch: {} }).success).toBe(false);
 });

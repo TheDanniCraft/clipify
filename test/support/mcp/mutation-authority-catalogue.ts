@@ -28,12 +28,12 @@ export async function runMutationAuthorityCatalogue(input: { fixture: Awaited<Re
 		await fixture.pool.query("INSERT INTO playlist_clips(playlist_id,clip_id,position,clip_data) VALUES($1,'FirstAuthorityClip',0,$2),($1,'SecondAuthorityClip',1,$3)", [playlistId, JSON.stringify({ id: "FirstAuthorityClip", title: "First", duration: 10 }), JSON.stringify({ id: "SecondAuthorityClip", title: "Second", duration: 12 })]);
 	};
 	const snapshot = async () => JSON.stringify((await fixture.pool.query("SELECT jsonb_build_object('overlays',(SELECT jsonb_agg(to_jsonb(o) ORDER BY o.id) FROM overlays o),'playlists',(SELECT jsonb_agg(to_jsonb(p) ORDER BY p.id) FROM playlists p),'items',(SELECT jsonb_agg(to_jsonb(i) ORDER BY i.playlist_id,i.clip_id) FROM playlist_clips i),'retries',(SELECT count(*) FROM mcp_mutation_retries),'effects',(SELECT count(*) FROM overlay_effect_jobs)) AS state")).rows[0].state);
-	const names = ["create_overlay", "update_overlay", "delete_overlay", "create_playlist", "update_playlist", "delete_playlist", "add_playlist_items", "remove_playlist_items", "reorder_playlist_items"];
+	const names = ["create_overlay", "update_overlay_settings", "delete_overlay", "create_playlist", "update_playlist", "delete_playlist", "add_playlist_items", "remove_playlist_items", "reorder_playlist_items"];
 	const argsFor = (name: string, phase: string): Record<string, unknown> => {
 		const args: Record<string, unknown> = { creatorId: "fixture-creator" };
 		if (name.startsWith("create_")) Object.assign(args, { retryKey: `${phase}:${name}`, name: "Created authority resource" });
 		else Object.assign(args, { expectedRevision: 1, ...(name.includes("overlay") ? { overlayId } : { playlistId }) });
-		if (name === "update_overlay") args.patch = { name: "Updated authority overlay" };
+		if (name === "update_overlay_settings") args.patch = { name: "Updated authority overlay" };
 		if (name === "update_playlist") args.name = "Updated authority playlist";
 		if (name === "add_playlist_items") args.clipIds = ["NewAuthorityClip"];
 		if (name === "remove_playlist_items") args.itemIds = ["FirstAuthorityClip"];
@@ -91,12 +91,12 @@ export async function runMutationAuthorityCatalogue(input: { fixture: Awaited<Re
 			if (phase === "failed-audit") await fixture.pool.query("DROP TRIGGER reject_authority_audit ON audit_events");
 		}
 		await fixture.pool.query("UPDATE users SET plan='free' WHERE id='fixture-creator'");
-		for (const name of ["create_overlay", "create_playlist", "update_overlay", "add_playlist_items"]) {
+		for (const name of ["create_overlay", "create_playlist", "update_overlay_settings", "add_playlist_items"]) {
 			await reset();
 			const args = argsFor(name, "paid-boundary");
-			if (name === "update_overlay") args.patch = { playerVolume: 70 };
+			if (name === "update_overlay_settings") args.patch = { playerVolume: 70 };
 			if (name === "add_playlist_items") args.clipIds = Array.from({ length: 49 }, (_, index) => `OverLimitClip${index}`);
-			outcomes.push(await call(name, "paid-boundary", args));
+			outcomes.push(await call(name === "update_overlay_settings" ? "update_overlay_playback" : name, "paid-boundary", args));
 		}
 		return { outcomes, providerCalls };
 	} finally {

@@ -14,7 +14,7 @@ Feature: Enforce current authorization at the public MCP boundary
       | list_playlists | denied-role | read |
       | get_playlist | denied-role | read |
       | create_overlay | denied-role | mutation |
-      | update_overlay | denied-role | mutation |
+      | update_overlay_settings | denied-role | mutation |
       | delete_overlay | denied-role | mutation |
       | create_playlist | denied-role | mutation |
       | update_playlist | denied-role | mutation |
@@ -36,7 +36,7 @@ Feature: Enforce current authorization at the public MCP boundary
       | list_playlists | unapproved-creator | read |
       | get_playlist | unapproved-creator | read |
       | create_overlay | unapproved-creator | mutation |
-      | update_overlay | unapproved-creator | mutation |
+      | update_overlay_settings | unapproved-creator | mutation |
       | delete_overlay | unapproved-creator | mutation |
       | create_playlist | unapproved-creator | mutation |
       | update_playlist | unapproved-creator | mutation |
@@ -55,7 +55,7 @@ Feature: Enforce current authorization at the public MCP boundary
       | list_playlists | agency-ceiling | read |
       | get_playlist | agency-ceiling | read |
       | create_overlay | agency-ceiling-write | read |
-      | update_overlay | agency-ceiling-write | read |
+      | update_overlay_settings | agency-ceiling-write | read |
       | delete_overlay | agency-ceiling-write | read |
       | create_playlist | agency-ceiling-write | read |
       | update_playlist | agency-ceiling-write | read |
@@ -77,7 +77,7 @@ Feature: Enforce current authorization at the public MCP boundary
       | list_playlists | unapproved-creator | read |
       | get_playlist | unapproved-creator | read |
       | create_overlay | unapproved-creator | mutation |
-      | update_overlay | unapproved-creator | mutation |
+      | update_overlay_settings | unapproved-creator | mutation |
       | delete_overlay | unapproved-creator | mutation |
       | create_playlist | unapproved-creator | mutation |
       | update_playlist | unapproved-creator | mutation |

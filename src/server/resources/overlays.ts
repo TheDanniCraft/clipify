@@ -21,7 +21,7 @@ import { authorizeTrustedCreatorOperation, type TrustedCreatorPrincipal } from "
 import { db, type QueryClient } from "@/db/client";
 import { overlaysTable } from "@/db/schema";
 import { decodePageCursor, encodePageCursor } from "@/server/mcp/pagination";
-import { overlayDto, toolInputSchemas } from "@/server/mcp/schemas";
+import { overlayDto, toolInputSchemas, type ToolName } from "@/server/mcp/schemas";
 
 /** Current backend membership is checked before querying even an empty page. */
 export async function listOverlays(principal: TrustedCreatorPrincipal, rawInput: unknown, client: QueryClient = db) {
@@ -69,7 +69,7 @@ export async function getOverlay(principal: TrustedCreatorPrincipal, rawInput: u
 }
 
 /** Current authorization, retained-plan policy and optimistic revision share one transaction. */
-export async function updateOverlayRecord(principal: TrustedCreatorPrincipal, rawInput: unknown, client: DatabaseClient = db) {
+export async function updateOverlayRecord(principal: TrustedCreatorPrincipal, rawInput: unknown, client: DatabaseClient = db, auditTool: ToolName = "update_overlay") {
 	const parsed = (principal.kind === "session" ? toolInputSchemas.update_overlay.extend({ patch: browserOverlayPatchSchema }) : toolInputSchemas.update_overlay).safeParse(rawInput);
 	if (!parsed.success) throw new Error("INVALID_INPUT");
 	const input = parsed.data;
@@ -122,11 +122,11 @@ export async function updateOverlayRecord(principal: TrustedCreatorPrincipal, ra
 			...(principal.kind === "session" ? { actorSessionId: principal.sessionId } : {}),
 			targetType: "overlay",
 			targetId: current.id,
-			action: principal.kind === "oauth" ? "sensitive-integration:mcp.update_overlay" : "overlay.update",
+			action: principal.kind === "oauth" ? `sensitive-integration:mcp.${auditTool}` : "overlay.update",
 			outcome: "success",
 			correlationId: randomUUID(),
 			occurredAt: new Date(),
-			metadata: { creatorId: input.creatorId, tool: "update_overlay", ...(principal.kind === "oauth" ? { clientId: principal.clientId, grantId: principal.grantId, generation: principal.generation } : {}), revision },
+			metadata: { creatorId: input.creatorId, tool: auditTool, ...(principal.kind === "oauth" ? { clientId: principal.clientId, grantId: principal.grantId, generation: principal.generation } : {}), revision },
 		});
 		authorization.assertAuthorityCurrent();
 		return updated;
@@ -136,8 +136,8 @@ export async function updateOverlayRecord(principal: TrustedCreatorPrincipal, ra
 }
 
 /** MCP only exposes the explicit safe configuration DTO. */
-export async function updateOverlay(principal: TrustedCreatorPrincipal, rawInput: unknown, client: DatabaseClient = db) {
-	return { overlay: overlayDto(await updateOverlayRecord(principal, rawInput, client)) };
+export async function updateOverlay(principal: TrustedCreatorPrincipal, rawInput: unknown, client: DatabaseClient = db, auditTool: ToolName = "update_overlay") {
+	return { overlay: overlayDto(await updateOverlayRecord(principal, rawInput, client, auditTool)) };
 }
 
 export async function deleteOverlay(principal: TrustedCreatorPrincipal, rawInput: unknown, client: DatabaseClient = db) {

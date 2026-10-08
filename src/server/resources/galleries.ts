@@ -1,3 +1,4 @@
+import type { ToolName } from "@/server/mcp/schemas";
 import "server-only";
 import { z } from "zod";
 import { and, eq, asc, gt } from "drizzle-orm";
@@ -113,7 +114,7 @@ async function persistGalleryPatch(context: WorkflowContext, galleryId: string, 
 		.returning();
 	return galleryDto(saved);
 }
-export function updateGalleryForPrincipal(principal: TrustedCreatorPrincipal, input: unknown, client?: DatabaseClient) {
+export function updateGalleryForPrincipal(principal: TrustedCreatorPrincipal, input: unknown, client?: DatabaseClient, auditTool: ToolName = "update_gallery") {
 	return workflowOperation(
 		principal,
 		"update_gallery",
@@ -124,6 +125,7 @@ export function updateGalleryForPrincipal(principal: TrustedCreatorPrincipal, in
 			return persistGalleryPatch(context, input.galleryId, input.expectedRevision, patch);
 		},
 		client,
+		auditTool,
 	);
 }
 
@@ -220,7 +222,7 @@ export function getOverlayEmbed(principal: TrustedCreatorPrincipal, input: unkno
 			if (!overlay) throw new Error("RESOURCE_UNAVAILABLE");
 			const url = new URL(`/overlay/${overlay.id}`, getMcpConfiguration().origin);
 			url.searchParams.set("secret", overlay.secret);
-			return { overlayId: overlay.id, purpose: input.purpose, url: url.href, status: overlay.status, containsCredential: true, public: false, instructions: "Use this private URL as an OBS browser source. For public websites use get_player_embed; never publish the OBS secret." };
+			return { overlayId: overlay.id, purpose: input.purpose, url: url.href, status: overlay.status, containsCredential: true, public: false, instructions: "Use this private URL as a browser source in your streaming application. For public websites use get_player_embed; never publish the private credential." };
 		},
 		client,
 	);

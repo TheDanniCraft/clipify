@@ -229,8 +229,8 @@ When("the agent edits that overlay with its current revision", async ({ mcpWorld
 	mcpWorld.result = { status: 200, body: flowProbe("resources:overlay-update") };
 });
 Then("the safe edited configuration has a new revision", async ({ mcpWorld }) => {
-	expect(mcpWorld.result?.body.resourceResult?.overlay).toMatchObject({ name: "Edited by agent", playerVolume: 70, configurationRevision: 2 });
-	expect(mcpWorld.result?.body.persistedOverlay).toMatchObject({ name: "Edited by agent", configuration_revision: 2 });
+	expect(mcpWorld.result?.body.resourceResult?.overlay).toMatchObject({ playerVolume: 70, configurationRevision: 2 });
+	expect(mcpWorld.result?.body.persistedOverlay).toMatchObject({ name: "Existing overlay", configuration_revision: 2 });
 	expect(JSON.stringify(mcpWorld.result?.body.resourceResult)).not.toContain("private-overlay-secret");
 });
 

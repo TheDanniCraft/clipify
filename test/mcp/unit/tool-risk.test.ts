@@ -61,9 +61,9 @@ describe("TDD-US2-039 truthful tool risk annotations", () => {
 	test.each(Object.entries(workflowRisk))("%s has explicit workflow risk metadata", (name, profile) => {
 		expect(risk.toolAnnotations(name)).toEqual(expectedHints[profile]);
 	});
-	test("workflow risk table covers all added tools alongside the original fifteen", () => {
+	test("risk table covers workflows, focused tools and internal compatibility schemas", () => {
 		expect(Object.keys(workflowRisk)).toHaveLength(35);
-		expect(Object.keys(toolInputSchemas).filter((name) => !(name in workflowRisk))).toHaveLength(15);
+		expect(Object.keys(toolInputSchemas).filter((name) => !(name in workflowRisk))).toHaveLength(34);
 		for (const name of Object.keys(workflowRisk)) expect(toolInputSchemas).toHaveProperty(name);
 	});
 	test("unknown tools cannot acquire safe-looking defaults", () => {

@@ -6,6 +6,7 @@ import { createResourceServerChallenge } from "@better-auth/oauth-provider";
 import { APIError } from "better-auth/api";
 import { createInsufficientScopeError } from "better-auth/oauth2";
 import { resolveMcpGrant } from "@/auth/mcp-principal";
+import { MCP_INSTRUCTIONS } from "./prompts";
 import { registerMcpTools } from "./tools";
 import { toolPermissions } from "./permissions";
 import type { ToolName } from "./schemas";
@@ -118,7 +119,7 @@ async function handleRequest(request: Request, configuration: ReturnType<typeof 
 				}
 				const handler = createMcpHandler(
 					() => {
-						const server = new McpServer({ name: "Clipify", version: "1.0.0" });
+						const server = new McpServer({ name: "Clipify", version: "1.0.0" }, { instructions: MCP_INSTRUCTIONS });
 						registerMcpTools(server, principal);
 						return server;
 					},

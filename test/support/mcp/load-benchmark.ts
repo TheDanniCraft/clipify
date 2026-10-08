@@ -38,7 +38,7 @@ export async function runLoadBenchmark(pool: Pool, targets: Target[], token: str
 		const invoke = async (target: Target, mutation: boolean, revision: number) => {
 			const started = performance.now();
 			const response = await POST(
-				new Request(origin + "/mcp", { method: "POST", headers: { Authorization: `Bearer ${token}`, Accept: "application/json, text/event-stream", "Content-Type": "application/json", "MCP-Protocol-Version": "2025-06-18" }, body: JSON.stringify({ jsonrpc: "2.0", id: ++id, method: "tools/call", params: { name: mutation ? "update_overlay" : "get_overlay", arguments: mutation ? { ...target, expectedRevision: revision, patch: { name: `Benchmark revision ${revision + 1}` } } : target } }) }),
+				new Request(origin + "/mcp", { method: "POST", headers: { Authorization: `Bearer ${token}`, Accept: "application/json, text/event-stream", "Content-Type": "application/json", "MCP-Protocol-Version": "2025-06-18" }, body: JSON.stringify({ jsonrpc: "2.0", id: ++id, method: "tools/call", params: { name: mutation ? "update_overlay_settings" : "get_overlay", arguments: mutation ? { ...target, expectedRevision: revision, patch: { name: `Benchmark revision ${revision + 1}` } } : target } }) }),
 			);
 			const raw = await response.text();
 			const data =
@@ -50,9 +50,10 @@ export async function runLoadBenchmark(pool: Pool, targets: Target[], token: str
 							.trim()
 					: raw;
 			const result = data ? JSON.parse(data) : null;
-			if (response.status !== 200 || result?.result?.isError || !result?.result?.structuredContent?.overlay) throw new Error(`BENCHMARK_CALL_FAILED:${response.status}:${result?.result?.structuredContent?.error?.code ?? result?.error?.code ?? "missing-overlay"}`);
-			const overlay = result.result.structuredContent.overlay;
-			if (overlay.id !== target.overlayId || overlay.creatorId !== target.creatorId || overlay.configurationRevision !== (mutation ? revision + 1 : revision)) throw new Error("BENCHMARK_RESULT_MISMATCH");
+			const content = result?.result?.structuredContent;
+			if (response.status !== 200 || result?.result?.isError || !(mutation ? content?.settings : content?.overlay)) throw new Error(`BENCHMARK_CALL_FAILED:${response.status}:${content?.error?.code ?? result?.error?.code ?? "missing-overlay"}`);
+			const overlay = mutation ? content : content.overlay;
+			if ((mutation ? overlay.overlayId : overlay.id) !== target.overlayId || overlay.creatorId !== target.creatorId || overlay.configurationRevision !== (mutation ? revision + 1 : revision)) throw new Error("BENCHMARK_RESULT_MISMATCH");
 			if (raw.includes("isolated-benchmark-secret")) throw new Error("BENCHMARK_PRIVATE_DATA_DISCLOSED");
 			return performance.now() - started;
 		};

@@ -1,6 +1,6 @@
 import { getRunnerSetup, listRunnersForPrincipal, getRunnerForPrincipal, createRunnerForPrincipal, updateRunnerForPrincipal, deleteRunnerForPrincipal, unlinkRunnerForPrincipal, listStreamSessionsForPrincipal, getStreamSessionForPrincipal, configureStreamSession, controlStreamSession, getRunnerSnapshot } from "@/server/resources/runners";
 import { getCreatorPageSettings, updateCreatorPageSettings, publishCreatorPage } from "@/server/resources/creator-pages";
-import { listGalleries, getGalleryForPrincipal, createGalleryForPrincipal, updateGalleryForPrincipal, deleteGalleryForPrincipal, publishGalleryForPrincipal, getGalleryEmbed, getGalleryPreviewForPrincipal, getOverlayEmbed, getPlayerEmbed } from "@/server/resources/galleries";
+import { listGalleries, getGalleryForPrincipal, createGalleryForPrincipal, deleteGalleryForPrincipal, publishGalleryForPrincipal, getGalleryEmbed, getGalleryPreviewForPrincipal, getPlayerEmbed } from "@/server/resources/galleries";
 import { searchClips, resolveClip, previewPlaylistImport, commitPlaylistImport } from "@/server/resources/discovery";
 import type { TrustedCreatorPrincipal } from "@/auth/authorize-operation";
 import { getOverlayRuntime, getOverlayQueues, controlOverlay, enqueueOverlayClip, clearOverlayQueue } from "@/server/resources/remote";
@@ -24,13 +24,11 @@ const handlers: Partial<Record<WorkflowToolName, (principal: TrustedCreatorPrinc
 	update_creator_page: updateCreatorPageSettings,
 	get_creator_page: getCreatorPageSettings,
 	get_player_embed: getPlayerEmbed,
-	get_overlay_embed: getOverlayEmbed,
 	get_gallery_preview: getGalleryPreviewForPrincipal,
 	get_gallery_embed: getGalleryEmbed,
 	list_galleries: listGalleries,
 	get_gallery: getGalleryForPrincipal,
 	create_gallery: createGalleryForPrincipal,
-	update_gallery: updateGalleryForPrincipal,
 	delete_gallery: deleteGalleryForPrincipal,
 	publish_gallery: publishGalleryForPrincipal,
 	search_clips: searchClips,

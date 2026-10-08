@@ -12,12 +12,12 @@ Feature: MCP galleries workflows
       | list_galleries |
       | get_gallery |
       | create_gallery |
-      | update_gallery |
+      | update_gallery_settings |
       | delete_gallery |
       | publish_gallery |
       | get_gallery_embed |
       | get_gallery_preview |
-      | get_overlay_embed |
+      | get_overlay_link |
 
       | get_player_embed |
 
@@ -41,10 +41,10 @@ Feature: MCP galleries workflows
       | create_gallery | invalid_input |
       | create_gallery | missing_scope |
       | create_gallery | revoked |
-      | update_gallery | wrong_creator |
-      | update_gallery | invalid_input |
-      | update_gallery | missing_scope |
-      | update_gallery | revoked |
+      | update_gallery_settings | wrong_creator |
+      | update_gallery_settings | invalid_input |
+      | update_gallery_settings | missing_scope |
+      | update_gallery_settings | revoked |
       | delete_gallery | wrong_creator |
       | delete_gallery | invalid_input |
       | delete_gallery | missing_scope |
@@ -61,10 +61,10 @@ Feature: MCP galleries workflows
       | get_gallery_preview | invalid_input |
       | get_gallery_preview | missing_scope |
       | get_gallery_preview | revoked |
-      | get_overlay_embed | wrong_creator |
-      | get_overlay_embed | invalid_input |
-      | get_overlay_embed | missing_scope |
-      | get_overlay_embed | revoked |
+      | get_overlay_link | wrong_creator |
+      | get_overlay_link | invalid_input |
+      | get_overlay_link | missing_scope |
+      | get_overlay_link | revoked |
 
   @BDD-US3-003 @EC-002
   Scenario Outline: Free galleries preserve commercial policy
@@ -75,8 +75,8 @@ Feature: MCP galleries workflows
     Examples:
       | tool | case | result |
       | create_gallery | free | denied |
-      | update_gallery | paid_theme | denied |
-      | update_gallery | free_preserve | success |
+      | update_gallery_settings | paid_theme | denied |
+      | update_gallery_settings | free_preserve | success |
 
   @BDD-US3-004 @EC-001 @EC-003
   Scenario Outline: Public player embeds require current authority

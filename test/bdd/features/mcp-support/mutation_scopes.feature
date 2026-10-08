@@ -8,7 +8,7 @@ Feature: Require each operation's approved OAuth permission
     Examples:
       | tool                   | permission            |
       | create_overlay         | overlay:create        |
-      | update_overlay         | overlay:update        |
+      | update_overlay_settings         | overlay:update        |
       | delete_overlay         | overlay:delete        |
       | create_playlist        | playlist:create       |
       | update_playlist        | playlist:update       |

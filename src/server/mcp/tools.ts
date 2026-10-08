@@ -1,3 +1,5 @@
+import { registerMcpPrompts } from "./prompts";
+import { focusedTools } from "./focused-tools";
 import { workflowTools } from "./workflows/tools";
 import "server-only";
 import { listPlaylists, getPlaylist, createPlaylistForPrincipal, updatePlaylist, deletePlaylist, removePlaylistItems, reorderPlaylistItems, addPlaylistItems } from "@/server/resources/playlists";
@@ -8,7 +10,7 @@ import type { TrustedCreatorPrincipal } from "@/auth/authorize-operation";
 import { listCreators, getCapabilities } from "./creators";
 import { toolInputSchemas, type ToolName } from "./schemas";
 import { toolAnnotations } from "./risk";
-import { listOverlays, getOverlay, createOverlayForPrincipal, updateOverlay, deleteOverlay } from "@/server/resources/overlays";
+import { listOverlays, getOverlay, createOverlayForPrincipal, deleteOverlay } from "@/server/resources/overlays";
 
 async function readResult(operation: () => Promise<Record<string, unknown>>, principal: TrustedCreatorPrincipal, name: ToolName, input: unknown) {
 	let result: Record<string, unknown>;
@@ -45,14 +47,15 @@ async function readResult(operation: () => Promise<Record<string, unknown>>, pri
 }
 
 export function registerMcpTools(server: McpServer, principal: TrustedCreatorPrincipal) {
+	registerMcpPrompts(server);
 	const tools = [
 		...workflowTools(principal),
+		...focusedTools(principal),
 		{ name: "list_creators", description: "List approved creators you can currently access", schema: toolInputSchemas.list_creators, run: (input: unknown) => listCreators(principal, toolInputSchemas.list_creators.parse(input)) },
 		{ name: "get_capabilities", description: "Read a creator’s current plan limits, usage and permitted operations", schema: toolInputSchemas.get_capabilities, run: (input: unknown) => getCapabilities(principal, toolInputSchemas.get_capabilities.parse(input).creatorId) },
 		{ name: "list_overlays", description: "Read approved creator overlays without private credentials", schema: toolInputSchemas.list_overlays, run: (input: unknown) => listOverlays(principal, input) },
 		{ name: "get_overlay", description: "Read one approved creator overlay without private credentials", schema: toolInputSchemas.get_overlay, run: (input: unknown) => getOverlay(principal, input) },
 		{ name: "create_overlay", description: "Create an overlay within the creator’s plan limits. Reuse the same retry key for retries of this request.", schema: toolInputSchemas.create_overlay, run: (input: unknown) => createOverlayForPrincipal(principal, input) },
-		{ name: "update_overlay", description: "Edit overlay configuration using the revision returned by its latest read", schema: toolInputSchemas.update_overlay, run: (input: unknown) => updateOverlay(principal, input) },
 		{ name: "list_playlists", description: "List approved creator playlists and their configuration revisions", schema: toolInputSchemas.list_playlists, run: (input: unknown) => listPlaylists(principal, input) },
 		{ name: "get_playlist", description: "Read approved playlist metadata and ordered safe clip references", schema: toolInputSchemas.get_playlist, run: (input: unknown) => getPlaylist(principal, input) },
 		{ name: "delete_overlay", description: "Delete an overlay with explicit delete permission and its current revision", schema: toolInputSchemas.delete_overlay, run: (input: unknown) => deleteOverlay(principal, input) },

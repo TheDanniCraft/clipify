@@ -108,7 +108,7 @@ Feature: Read access follows current backend authority
       | empty-selection | list_playlists | ACCESS_DENIED | false |
       | empty-selection | get_playlist | ACCESS_DENIED | false |
       | agency-ceiling-write | create_overlay | ACCESS_DENIED | false |
-      | agency-ceiling-write | update_overlay | ACCESS_DENIED | false |
+      | agency-ceiling-write | update_overlay_settings | ACCESS_DENIED | false |
       | agency-ceiling-write | delete_overlay | ACCESS_DENIED | false |
       | agency-ceiling-write | create_playlist | ACCESS_DENIED | false |
       | agency-ceiling-write | update_playlist | ACCESS_DENIED | false |
