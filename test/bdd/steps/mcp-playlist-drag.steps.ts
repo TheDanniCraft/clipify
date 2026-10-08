@@ -72,12 +72,12 @@ When("the owner opens quick editing from the linked overlay settings", async ({ 
 Then("the owned playlist opens in an inline dialog without leaving overlay settings", async ({ page, mcpWorld }) => {
 	const owner = mcpWorld.input?.dragOwner as { fixture: { overlayId: string } };
 	await expect(page).toHaveURL(`${origin}/dashboard/overlay/${owner.fixture.overlayId}`);
-	await expect(page.getByRole("dialog")).toContainText("Manage Playlist: Browser playlist");
-	await expect(page.getByRole("dialog").getByPlaceholder("Playlist name")).toHaveValue("Browser playlist");
-	await expect(page.getByRole("dialog").locator("li[draggable=true]")).toHaveCount(2);
+	await expect(page.getByRole("dialog", { name: /^Manage Playlist:/ })).toContainText("Manage Playlist: Browser playlist");
+	await expect(page.getByRole("dialog", { name: /^Manage Playlist:/ }).getByPlaceholder("Playlist name")).toHaveValue("Browser playlist");
+	await expect(page.getByRole("dialog", { name: /^Manage Playlist:/ }).locator("li[draggable=true]")).toHaveCount(2);
 });
 Then("the quick-edited order saves and appears in the full playlist editor", async ({ page }) => {
-	const dialog = page.getByRole("dialog");
+	const dialog = page.getByRole("dialog", { name: /^Manage Playlist:/ });
 	await expect(dialog.getByRole("button", { name: "Save Playlist", exact: true })).toBeEnabled();
 	await expect(dialog.locator("li[draggable=true]").nth(0)).toContainText("ClipSecond");
 	await dialog.getByRole("button", { name: "Save Playlist", exact: true }).click();
