@@ -1212,4 +1212,4 @@ These tasks require unavailable original evidence or explicit review of a workfl
 - [x] T566 Register six optional MCP prompts, server guidance and user-facing English examples using HeroUI.
 - [x] T567 Migrate the public catalogue, descriptions, activity labels, documentation and existing native test callers.
 - [x] T568 Verify field preservation, invalid/cross-area patches, revisions, permission/plan boundaries and SDK prompt discovery; run scoped regression and focused BDD/ATDD evidence.
-- [ ] T569 Complete static/build checks, update Graphify and publish this refinement to the existing draft PR.
+- [x] T569 Complete static/build checks, update Graphify and publish this refinement to the existing draft PR.
