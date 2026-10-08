@@ -62,3 +62,18 @@ describe("TDD-US1-024 revoke authority and failures", () => {
 		expect(f.client.transaction).not.toHaveBeenCalled();
 	});
 });
+
+test("connection listing rejects an absent session before querying data", async () => {
+	const f = fixture();
+	f.auth.api.getSession.mockResolvedValue(null as any);
+	await expect(connections.listMcpConnections({ ...f, headers })).rejects.toThrow("AUTHENTICATION_REQUIRED");
+});
+test("legacy creator permissions inherit operation scopes but exclude refresh permission", async () => {
+	const { mcpConnectionGrantsTable, mcpGrantCreatorsTable } = require("@/db/schema");
+	const { oauthClient } = require("@/db/auth-schema");
+	const row = { ...grant, scopes: ["creator:read", "offline_access"], createdAt: new Date(), revokedAt: null };
+	const client = { select: () => ({ from: (table: unknown) => ({ where: () => (table === mcpConnectionGrantsTable ? { orderBy: async () => [row] } : table === oauthClient ? { limit: async () => [] } : table === mcpGrantCreatorsTable ? Promise.resolve([{ creatorId: "creator", scopes: null }]) : Promise.reject(new Error("Unexpected table"))) }) }) };
+	const f = fixture();
+	const result = await connections.listMcpConnections({ auth: f.auth, headers, client });
+	expect(result).toMatchObject([{ clientName: "client", active: true, creatorPermissions: [{ creatorId: "creator", scopes: ["creator:read"] }] }]);
+});

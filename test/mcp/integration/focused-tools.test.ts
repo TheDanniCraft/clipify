@@ -12,6 +12,12 @@ test("gallery layout editing preserves name and theme", () => {
 	expect(row.storedGallery).toMatchObject({ name: "Workflow gallery", layout: "list", accent_color: "#7C3AED", configuration_revision: 2 });
 	expect(row.result?.structuredContent).not.toHaveProperty("accentColor");
 });
+test("gallery source cannot reference a nonexistent playlist or advance its revision", () => {
+	const row = flowProbe("catalogue:workflow:update_gallery_source:missing_linked_playlist");
+	expect(row.result?.structuredContent?.error?.code).toBe("RESOURCE_UNAVAILABLE");
+	expect(row.storedGallery).toMatchObject({ name: "Workflow gallery", configuration_revision: 1 });
+	expect(row.writes).toBe(0);
+});
 test.each(["update_overlay_theme", "update_overlay_filters", "update_overlay_playback", "update_gallery_theme", "update_gallery_layout"])("%s rejects cross-area patches before writes", (name) => {
 	const row = flowProbe(`catalogue:workflow:${name}:cross_area`);
 	expect(row.result?.structuredContent?.error?.code).toBe("INVALID_INPUT");

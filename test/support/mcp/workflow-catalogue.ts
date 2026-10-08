@@ -343,6 +343,7 @@ export async function runWorkflowCatalogue(input: { fixture: Awaited<ReturnType<
 			delete patch.name;
 			args.patch = patch;
 		}
+		if (name === "update_gallery_source" && variant === "missing_linked_playlist") args.patch = { source: "curated", playlistId: randomUUID() };
 		if (variant === "cross_area") args.patch = { ...(args.patch as object), name: "Unwanted overwrite" };
 		const updateGalleryAreas = async (input: Record<string, unknown>) => {
 			const { galleryFieldGroups } = await import("@/server/mcp/focused-fields");

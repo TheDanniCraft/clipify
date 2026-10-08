@@ -1,4 +1,8 @@
 /** @jest-environment node */
+jest.mock("@/app/lib/baseUrl", () => ({
+	...jest.requireActual("@/app/lib/baseUrl"),
+	resolveBaseUrl: jest.fn((...args: unknown[]) => jest.requireActual("@/app/lib/baseUrl").resolveBaseUrl(...args)),
+}));
 let config: any;
 try {
 	config = require("@/server/mcp/config");
@@ -38,4 +42,14 @@ test("MCP is available without an activation variable", () => {
 	const result = config.getMcpConfiguration({ NEXT_PUBLIC_BASE_URL: "https://clipify.example", BETTER_AUTH_SECRET: "isolated-config-provider-secret-32chars", RATE_LIMIT_HASH_SECRET: "isolated-config-ratelimit-secret-32chars" });
 	expect(result.valid).toBe(true);
 	expect(result).not.toHaveProperty("enabled");
+});
+
+test.each(["throws", "malformed"])("origin resolution %s fails closed without exposing a broken identity", (mode) => {
+	const resolver = require("@/app/lib/baseUrl").resolveBaseUrl as jest.Mock;
+	if (mode === "throws")
+		resolver.mockImplementationOnce(() => {
+			throw new Error("unavailable origin");
+		});
+	else resolver.mockReturnValueOnce({ href: "not-a-url" });
+	expect(config.getMcpConfiguration(trustedEnvironment)).toMatchObject({ valid: false, origin: "https://clipify.us" });
 });

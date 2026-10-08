@@ -76,3 +76,13 @@ test("submission failures retain review and hide internal details", async () => 
 	await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Try again"));
 	expect(screen.queryByText(/private-host/)).not.toBeInTheDocument();
 });
+
+test("removing creator information also removes explicit feedback access", () => {
+	const { container } = render(<ConsentForm {...props} requestedScopes={["creator:read", "feedback:create"]} />);
+	choose("Creator one");
+	fireEvent.click(within(screen.getByRole("radiogroup", { name: "General permissions" })).getByRole("radio", { name: "Write" }));
+	fireEvent.click(within(screen.getByRole("radiogroup", { name: "General permissions" })).getByRole("radio", { name: "Custom" }));
+	fireEvent.click(within(screen.getByRole("radiogroup", { name: "Creator information access" })).getByRole("radio", { name: "None" }));
+	expect(screen.getByRole("button", { name: "Review" })).toBeDisabled();
+	expect(container.querySelector('input[name="creators"]')).toBeNull();
+});
