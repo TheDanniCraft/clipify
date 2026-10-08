@@ -1245,5 +1245,9 @@ T577 external checkpoint: Real Grafana datasource accepts all 12 new MCP queries
 ### Preview acceptance and CodeFactor refinement
 
 - [x] T583 Record the approved Codex-only preview acceptance scope and live 35-check disposable create/edit/delete validation, including actual refresh rotation.
-- [ ] T584 Refactor reported CodeFactor methods into named phases, preserve assertions and permission/transaction behavior, verify changed TypeScript/Python checks and affected native/browser regressions, and record results.
+- [x] T584 Refactor reported CodeFactor methods into named phases, preserve assertions and permission/transaction behavior, verify changed TypeScript/Python checks and affected native/browser regressions, and record results.
 - [ ] T585 Publish the refactor through normal hooks, verify the new CI/CodeFactor result and smoke-test the updated preview once deployment is ready.
+
+T584 verification: normal publication hook passed 436 suites / 4,603 tests (11 existing skips), unchanged isolated deadline rerun passed, changed TypeScript lint/types/format and 27 Python parity checks pass. CodeFactor is Green on acb3b3e; 15 minor complexity notices remain, with no blocking findings. Graphify refreshed.
+
+- [ ] T586 Correct the shared real-browser OAuth helper for the approved manual success-page continuation, rerun all 15 affected journeys, publish through normal scoped hooks, and verify fresh browser CI.
