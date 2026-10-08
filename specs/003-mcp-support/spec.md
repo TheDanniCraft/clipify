@@ -1,6 +1,6 @@
 # Feature Specification: MCP Support
 
-> Consolidated MCP server scope: 50 tools on `feature/mcp-support`. The original 15-tool foundation, 34-tool workflow expansion and feedback tool belong to this one feature/PR. Marketplace submission remains out of scope. Expansion task IDs are T406–T541; original IDs and blockers are preserved. Historical workflow records are in [history/workflows/README.md](history/workflows/README.md). Workflow requirement/scenario identities use the `WF-` documentation namespace to distinguish them from the original IDs; executable Gherkin IDs and retained logs are unchanged.
+> Consolidated MCP server scope: 66 tools on `feature/mcp-support`. The original foundation, workflow expansion, feedback and focused editing tools belong to this one feature/PR. Marketplace submission remains out of scope. Expansion task IDs are T406–T541; original IDs and blockers are preserved. Historical workflow records are in [history/workflows/README.md](history/workflows/README.md). Workflow requirement/scenario identities use the `WF-` documentation namespace to distinguish them from the original IDs; executable Gherkin IDs and retained logs are unchanged.
 
 **Feature Branch**: `feature/mcp-support`
 
@@ -1733,3 +1733,16 @@ Use a reduced Clipify header and small legal/help footer, with English copy thro
 The backend intersects token scopes with each creator's consent and current role/plan access. Legacy grants with NULL creator scopes retain their original global scope ceiling. New consent persists explicit creator scopes. Feedback submission additionally requires feedback:create.
 
 After successful provider authorization, show a four-second redirect countdown, manual return link and cURL/wget/callback-URL recovery tabs with copy actions. Authorization success does not assert that the client connected. Callback credentials stay out of logs and public artifacts.
+
+## Approved refinement: focused editing (2026-10-08)
+
+FR-FE-001: Expose 66 public tools. Replace broad overlay and gallery updates with settings/source/filters/playback-or-layout/theme editing areas. Read tools return only the selected area, creator/resource identity and shared configuration revision. Updates accept only a strict nonempty partial patch for that area; omitted fields remain unchanged. Arrays explicitly replace that field's list. Every change retains the shared backend's current role, per-creator scope, plan, ownership and optimistic revision enforcement.
+
+FR-FE-002: get_overlay_link replaces get_overlay_embed in public discovery and calls. It returns a private browser-source URL for streaming applications, requires overlay-secret:read, and explains credential handling and the public get_player_embed alternative. The legacy broad schemas remain internal backend contracts; they are not callable public aliases.
+
+FR-FE-003: Provide six static, optional MCP prompts and English user-facing examples. Prompts explain creator selection, capability checks, focused editing and revision sequencing, explicit import previews and confirmation, and private-link handling. Retrieving a prompt performs no mutation and grants no permission. Host support determines whether a prompt picker is visible.
+
+AC-FE-001: Theme editing changes the requested visual field while preserving name, filters and playback. Gallery layout edits preserve its name and theme.
+AC-FE-002: Cross-area/empty/unknown-field patches and stale revisions do not modify the resource. Missing scope and creator authorization cannot be bypassed by a focused tool.
+AC-FE-003: The official SDK discovers 66 described tools and six prompts; the three obsolete public names are absent and cannot execute.
+AC-FE-004: Saved player volume and ephemeral live volume remain distinct. Import stays an explicit batch preview/commit workflow, not a new scheduled importer.

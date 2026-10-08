@@ -1,6 +1,6 @@
 # Quickstart Validation: MCP Support
 
-> Consolidated MCP server scope: 50 tools on `feature/mcp-support`. The original 15-tool foundation, 34-tool workflow expansion and feedback tool belong to this one feature/PR. Marketplace submission remains out of scope. Expansion task IDs are T406–T541; original IDs and blockers are preserved. Historical workflow records are in [history/workflows/README.md](history/workflows/README.md). Workflow requirement/scenario identities use the `WF-` documentation namespace to distinguish them from the original IDs; executable Gherkin IDs and retained logs are unchanged.
+> Consolidated MCP server scope: 66 tools on `feature/mcp-support`. The original foundation, workflow expansion, feedback and focused editing tools belong to this one feature/PR. Marketplace submission remains out of scope. Expansion task IDs are T406–T541; original IDs and blockers are preserved. Historical workflow records are in [history/workflows/README.md](history/workflows/README.md). Workflow requirement/scenario identities use the `WF-` documentation namespace to distinguish them from the original IDs; executable Gherkin IDs and retained logs are unchanged.
 
 This guide separates runnable incremental checks from the required release journeys. Implementation remains in progress; an incremental passing check does not establish release readiness.
 
@@ -137,3 +137,13 @@ Managed Playwright test servers now also size their default V8 heap from availab
 Use the commands and disposable-loopback fixture rules in plan.md. Run scoped tests first. Then verify actual SDK discovery and one positive/negative call per advertised tool. Connect an installed runner through the normal device flow for manual deployment verification; no production credentials or enrollment bypass.
 
 Browser checks use a separate production E2E build to avoid development-compiler heap growth. `bun run test:e2e` builds once for all stages; standalone scoped commands (`test:acceptance`, `test:atdd`, `test:bdd`, `test:compliance`, `test:e2e:ui`) also build their test artifact before execution. The test build stays in `.next-playwright`, and its custom server is loopback-only with the existing E2E route guards. Compiled native probes and each canonical stage's artifacts remain outside that stage's cleaned output directory.
+
+## Focused edits and example prompts
+
+Ask “Give my overlay a purple theme with rounded corners and a visible progress bar.” The agent selects a creator/overlay, checks get_capabilities, reads get_overlay_theme, and submits only requested theme fields to update_overlay_theme with the latest revision. For filters use get_overlay_filters/update_overlay_filters. To change multiple areas, use the revision returned by each update; reread and reassess on CONFLICT.
+
+Ask “Show me which Minecraft clips from yesterday you would add to my playlist.” preview_playlist_import can take explicit date/category filters directly; present its exact selection and quota result before committing. search_clips and resolve_clip remain available for finding/disambiguating specific clips. No scheduled importer is introduced.
+
+Ask “Give me the browser-source link for my streaming application.” get_overlay_link requires separately approved overlay-secret:read. Use the result privately in the streaming application; use get_player_embed for public websites.
+
+Compatible hosts can discover six examples through prompts/list and retrieve a template with prompts/get. Retrieving a prompt does not execute it. Connected-app settings also show the English examples in a collapsed HeroUI section.

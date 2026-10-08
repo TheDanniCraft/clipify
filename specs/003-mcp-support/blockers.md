@@ -1,6 +1,6 @@
 # Remaining MCP blockers
 
-All locally implementable code, tests and quality verification is complete. Current 15 tools, 709 MCP examples and 86 existing browser regression cases are Green, with full regression plus exact repairs, strict coverage and normal build. These blockers concern external evidence or unavailable original chronology, not missing tools or failing current behavior.
+The original core checkpoint recorded 15 tools, 709 MCP examples and 86 browser regression cases. The current catalogue has 66 public tools and six optional prompts; see test-summary.md and progress.md for current verification. The historical blockers below concern external evidence or unavailable original chronology. They do not indicate missing focused-editing tools.
 
 | Task | Exact blocker                                                                                                                                                                                                                                                                                                                                                                                                  | Required next action                                                                                                     |
 | ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
@@ -22,3 +22,7 @@ All locally implementable code, tests and quality verification is complete. Curr
 ENV-011 remains separately disclosed in defect-log.md; current connected-app UI is covered by component and actual browser tests. No exception is silently accepted.
 
 The invoked [speckit-implement skill](../../.agents/skills/speckit-implement/SKILL.md) requires: “Do not write production code for a behavior slice until its required TDD and applicable ATDD/BDD executable evidence exists.” It requires recording expected failure before production and marking tasks only after evidence exists. Missing original chronology cannot be repaired with code changes now. Current Green and genuine deliberate mutation failures verify current behavior; they do not reconstruct original test-first history.
+
+## Preview authorization prerequisites
+
+The workspace Infisical CLI has no valid login session. The previous consent schema change needs a disposable development database push through Infisical before preview OAuth can be validated. No schema change or generated migration was introduced by the focused-editing refinement. Live MCP authorization has not been granted; after database readiness and preview deployment, create a fresh OAuth login request rather than reusing an expired callback.

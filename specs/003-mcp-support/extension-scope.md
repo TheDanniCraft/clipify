@@ -1,12 +1,12 @@
 # MCP product workflow extension
 
-> Consolidated MCP server scope: 50 tools on `feature/mcp-support`. The original 15-tool foundation, 34-tool workflow expansion and feedback tool belong to this one feature/PR. Marketplace submission remains out of scope. Expansion task IDs are T406–T541; original IDs and blockers are preserved. Historical workflow records are in [history/workflows/README.md](history/workflows/README.md). Workflow requirement/scenario identities use the `WF-` documentation namespace to distinguish them from the original IDs; executable Gherkin IDs and retained logs are unchanged.
+> Consolidated MCP server scope: 66 tools on `feature/mcp-support`. The original foundation, workflow expansion, feedback and focused editing tools belong to this one feature/PR. Marketplace submission remains out of scope. Expansion task IDs are T406–T541; original IDs and blockers are preserved. Historical workflow records are in [history/workflows/README.md](history/workflows/README.md). Workflow requirement/scenario identities use the `WF-` documentation namespace to distinguish them from the original IDs; executable Gherkin IDs and retained logs are unchanged.
 
 User-requested extension recorded 2026-10-07. This document defines upcoming work; it does not claim that the extension is implemented or tested and does not change the original implementation evidence.
 
 ## Existing baseline
 
-The current 15-tool catalogue supports creators/capabilities, overlay configuration including theme fields, playlist CRUD and playlist item management. Adding playlist items currently requires clip IDs. Themes are configurable through `update_overlay`; there is no separate theme catalogue tool.
+At initial expansion planning, the 15-tool catalogue supported creators/capabilities, overlay configuration including theme fields, playlist CRUD and playlist item management. Adding playlist items currently requires clip IDs. That foundation used broad overlay updates. The approved focused refinement now exposes 66 tools, including dedicated theme reads/updates; see contracts/tool-index.md.
 
 ## Requested scope and implementation order
 

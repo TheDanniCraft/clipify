@@ -1,6 +1,6 @@
 # Defect Log: MCP Support
 
-> Consolidated MCP server scope: 50 tools on `feature/mcp-support`. The original 15-tool foundation, 34-tool workflow expansion and feedback tool belong to this one feature/PR. Marketplace submission remains out of scope. Expansion task IDs are T406–T541; original IDs and blockers are preserved. Historical workflow records are in [history/workflows/README.md](history/workflows/README.md). Workflow requirement/scenario identities use the `WF-` documentation namespace to distinguish them from the original IDs; executable Gherkin IDs and retained logs are unchanged.
+> Consolidated MCP server scope: 66 tools on `feature/mcp-support`. The original foundation, workflow expansion, feedback and focused editing tools belong to this one feature/PR. Marketplace submission remains out of scope. Expansion task IDs are T406–T541; original IDs and blockers are preserved. Historical workflow records are in [history/workflows/README.md](history/workflows/README.md). Workflow requirement/scenario identities use the `WF-` documentation namespace to distinguish them from the original IDs; executable Gherkin IDs and retained logs are unchanged.
 
 **Feature**: [spec.md](spec.md)  
 **Plan**: [plan.md](plan.md)  
@@ -1513,3 +1513,23 @@ feedback-alias-red.log proves a new retry key accepted for identical content cou
 - Initial aggregate omitted shared-core refund counters because Jest collectCoverageFrom lacked the new file. Added src/server/rate-limit.ts to collection and recaptured affected tests. Strict coverage passes all 91 required files and unchanged global/gallery thresholds.
 
 Retained logs use the shared-feedback prefix under test-results/mcp-workflows; final successful evidence uses final/verified/complete suffixes. All corrections are closed locally.
+
+## Focused editing migration defects
+
+- FE-DEF-001: Existing risk-table count assumed 15 non-workflow schemas. Focused tools add 19 schemas while three legacy contracts stay internal; public discovery has 66 tools. Corrected the count and exact public discovery assertions without skipping tests. Scoped native checks and the complete execution plus exact assertion repairs verified. Normal final publication regression is pending.
+- FE-DEF-002: Native fixture callers and composite gallery option cases used removed broad public names. Migrated metadata cases to focused tools; multi-area cases sequence updates using returned revisions. Preserved existing plan, role and revision assertions. Scoped native checks and the complete execution plus exact assertion repairs verified. Normal final publication regression is pending.
+
+- FE-DEF-003: Initial direct BDD invocation used Bun react-server conditions, which cannot load the existing mixed React/Next probe imports. Rerun with the established compiled Node probe route; no production behavior change or test-worker patch is required.
+- FE-DEF-004: Client settings initially imported static examples through the server module, violating the repository boundary lint rule. Moved static example data to src/app/lib/mcpPrompts.ts and retained SDK registration/server instructions in the server module. Scoped lint and both production build variants verified.
+
+- FE-DEF-005: Capability reporting still included three internal legacy names and advertised Pro-only overlay editing as available on Free. Added a failing native capability test, restricted reporting to the 66 public names and flagged theme/filter/playback updates with the existing Pro restriction. No backend policy change.
+
+- FE-ENV-001: The standalone action-manifest checker initially had no .next/server because only .next-playwright existed. Built the ordinary standalone artifact and reran the checker: 91 files passed. A migration-policy invocation omitted the required staged mode; reran with staged mode against the prepared index and passed. No product code or migration guard changes were needed.
+
+- FE-DEF-006: Full regression found a metadata-only result assertion still expecting playback volume. Updated it to require the narrow metadata response and separately verify unchanged stored volume. The targeted native case passes in focused-entitlement-green.log.
+- FE-DEF-007: The load benchmark still read a full overlay from focused metadata mutations. Updated only its response projection; identity, revision, private-data, persisted-row and timing checks remain. Fresh compiled-probe benchmark passes in focused-benchmark-green.log: 20 independent creators, unchanged private-data/revision checks, p95 reads 329 ms and mutations 925 ms.
+
+- FE-DEF-008: Eight workflow option assertions expected incidental gallery renames, and the custom source/filter case expected one revision for two focused writes. Require preservation of the saved gallery name and revision 3 for that two-write case. The full 37-option rerun supplies the repair evidence; no production behavior changed.
+
+- FE-DEF-009: Full coverage exposed earlier callback-handoff component coverage absence and near-threshold consent/configuration/connection/gallery paths. Added current-behavior tests without production changes. Four suites/40 tests and the native missing-playlist case pass. All 96 strict files and original global/gallery thresholds pass after combining fresh counters. Scoped reports alone still fail global thresholds because unrelated tests were not run; they are never advertised as complete coverage.
+- FE-ENV-002: The temporary aggregation helper initially omitted the canonical JSON roundtrip that normalizes non-finite source-map columns. It duplicated counter locations. Matched the existing collector serialization, preserved all counters, then reran the strict gate; no application instrumentation or thresholds were changed.

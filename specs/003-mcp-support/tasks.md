@@ -1,6 +1,6 @@
 # Tasks: MCP Support
 
-> Consolidated MCP server scope: 50 tools on `feature/mcp-support`. The original 15-tool foundation, 34-tool workflow expansion and feedback tool belong to this one feature/PR. Marketplace submission remains out of scope. Expansion task IDs are T406–T541; original IDs and blockers are preserved. Historical workflow records are in [history/workflows/README.md](history/workflows/README.md). Workflow requirement/scenario identities use the `WF-` documentation namespace to distinguish them from the original IDs; executable Gherkin IDs and retained logs are unchanged.
+> Consolidated MCP server scope: 66 tools on `feature/mcp-support`. The original foundation, workflow expansion, feedback and focused editing tools belong to this one feature/PR. Marketplace submission remains out of scope. Expansion task IDs are T406–T541; original IDs and blockers are preserved. Historical workflow records are in [history/workflows/README.md](history/workflows/README.md). Workflow requirement/scenario identities use the `WF-` documentation namespace to distinguish them from the original IDs; executable Gherkin IDs and retained logs are unchanged.
 
 **Branch**: `feature/mcp-support`. **Input**: `specs/003-mcp-support/` design artifacts.
 
@@ -1198,8 +1198,18 @@ These tasks require unavailable original evidence or explicit review of a workfl
 
 ### Approved consent refinement
 
-- [x] T250 Replace flat consent with HeroUI creator, permissions and review steps using English copy.
-- [x] T251 Persist and enforce independent creator scopes beneath the token scope ceiling.
-- [x] T252 Add explicit feedback:create consent so Read cannot submit reports.
-- [x] T253 Add provider-result handoff and remote callback recovery controls.
-- [x] T254 Verify real HeroUI browser behavior, callback recovery and native OAuth regressions; resolve failures before publishing.
+- [x] T558 Replace flat consent with HeroUI creator, permissions and review steps using English copy.
+- [x] T559 Persist and enforce independent creator scopes beneath the token scope ceiling.
+- [x] T560 Add explicit feedback:create consent so Read cannot submit reports.
+- [x] T561 Add provider-result handoff and remote callback recovery controls.
+- [x] T562 Verify real HeroUI browser behavior, callback recovery and native OAuth regressions; resolve failures before publishing.
+
+### Approved focused editing and prompt discovery
+
+- [x] T563 Add strict overlay editing areas and narrow read/update façades using shared backend policy.
+- [x] T564 Add strict gallery editing areas and narrow read/update façades using shared backend policy.
+- [x] T565 Replace private source discovery with streaming-neutral get_overlay_link; preserve explicit secret scope.
+- [x] T566 Register six optional MCP prompts, server guidance and user-facing English examples using HeroUI.
+- [x] T567 Migrate the public catalogue, descriptions, activity labels, documentation and existing native test callers.
+- [x] T568 Verify field preservation, invalid/cross-area patches, revisions, permission/plan boundaries and SDK prompt discovery; run scoped regression and focused BDD/ATDD evidence.
+- [ ] T569 Complete static/build checks, update Graphify and publish this refinement to the existing draft PR.

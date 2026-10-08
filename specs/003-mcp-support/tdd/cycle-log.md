@@ -1345,3 +1345,17 @@ Codex DCR preparation exposed the same private-state copy in the registration bo
 2026-10-07 optional runtime configuration removal: user requested fixed MCP behavior without optional deployment values. Issuer/resource/browser origin derive only from the canonical base URL; cursor signing uses the existing auth secret. Rate ceilings and 90-day activity retention are application constants; forwarding headers remain untrusted. Fixtures seed prior persistent counter consumption rather than changing runtime ceilings. Eight affected suites / 88 checks passed, including actual OAuth registration and HTTP mutation throttling; typecheck passed. Historical configuration evidence above describes the earlier implementation. Better Auth master version alignment is isolated in PR #497 because direct master pushes are protected.
 
 2026-10-07 CI empty-schema correction: actual GitHub browser log shows Drizzle push stops on an MCP FK before creator_accounts_creator_unique is created, then returns success with incomplete schema. Represent existing creator identity uniqueness as an inline named constraint so PostgreSQL can resolve MCP FK targets before indexes. Four affected account/schema suites / 28 tests passed. The exact installed Drizzle empty-schema SQL export successfully applies in a fresh random loopback PostgreSQL database; creator uniqueness and notification deduplication are present. No generated migrations or persistent database changes.
+
+## Focused editing and prompt extension (2026-10-08)
+
+- Overlay contracts: 9 intended missing-tool failures before schemas; 9 Green after strict area schemas/permissions.
+- Gallery contracts: 9 intended missing-tool failures before schemas; Green after strict area schemas/permissions.
+- Resource façades: missing focused-tools module before production routing; 22 total area/routing checks Green afterwards. Added malformed-resource projection cases before final regression.
+- Static prompts: missing prompts module before SDK registration; Green after six read-only suggestions and server instructions.
+- SDK prompt discovery: 2 expected missing-output assertions failed before the SDK probe checked prompts/obsolete names; 243 migrated SDK/catalogue/authorization tests Green afterwards.
+- Connected-app examples: expected missing UI text before HeroUI Accordion; 11 component checks Green after implementation.
+- Capability catalogue: expected 66 vs actual 69 failed before filtering internal names; 21 native/area checks Green after the public catalogue and Pro editing restrictions were corrected.
+- Category guidance: missing category-ID wording failed before updating the filter prompt; 12 prompt/UI checks Green afterwards.
+- Focused BDD/ATDD: 6 examples Green using the established compiled Node probe route; real-browser consent/SDK/English example section: 3 journeys Green against the frozen production build.
+
+Retained red/green command evidence and artifact registry: ../test-traceability.md. Environment-only BDD invocation mistakes and migrated fixture defects are recorded in ../defect-log.md rather than counted as product red evidence.

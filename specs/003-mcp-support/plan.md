@@ -1,6 +1,6 @@
 # Implementation Plan: MCP Support
 
-> Consolidated MCP server scope: 50 tools on `feature/mcp-support`. The original 15-tool foundation, 34-tool workflow expansion and feedback tool belong to this one feature/PR. Marketplace submission remains out of scope. Expansion task IDs are T406–T541; original IDs and blockers are preserved. Historical workflow records are in [history/workflows/README.md](history/workflows/README.md). Workflow requirement/scenario identities use the `WF-` documentation namespace to distinguish them from the original IDs; executable Gherkin IDs and retained logs are unchanged.
+> Consolidated MCP server scope: 66 tools on `feature/mcp-support`. The original foundation, workflow expansion, feedback and focused editing tools belong to this one feature/PR. Marketplace submission remains out of scope. Expansion task IDs are T406–T541; original IDs and blockers are preserved. Historical workflow records are in [history/workflows/README.md](history/workflows/README.md). Workflow requirement/scenario identities use the `WF-` documentation namespace to distinguish them from the original IDs; executable Gherkin IDs and retained logs are unchanged.
 
 **Branch**: `feature/mcp-support` | **Date**: 2026-10-04 | **Spec**: [spec.md](spec.md)
 
@@ -251,3 +251,9 @@ WF-US1 remote -> WF-US2 discovery/import -> WF-US3 galleries/embed -> WF-US4 Cre
 ## Feedback tool implementation
 
 Extend the existing workflow schema/catalogue/dispatcher and activity label with submit_feedback. Use creator:read for authorization, non-read-only/non-destructive/open-world annotations, and the shared application rate-limiter-flexible RAM engine with separate bounded feedback replay state. Better Auth rate limiting governs authentication routes, not this MCP business operation; its supported auth configuration remains unchanged. Use the existing Sentry SDK, with a controlled real SDK transport in actual MCP acceptance fixtures. No new dependencies, endpoint outside MCP, migrations, tables or feedback scope. Run targeted feedback/unit/schema/risk/catalogue compatibility, types, lint and build checks; retain Red before production changes.
+
+## Focused editing refinement
+
+Use narrow MCP façades over existing resource services, with shared field-group definitions and Zod-derived schemas. Preserve the internal broad backend contracts for browser and service callers while removing broad names from MCP registration. Reads and results project only the selected area. Audit mutations under the actual focused tool name in the same transaction. No new dependency, database table, OAuth scope, plan rule or environment switch is needed.
+
+Register static prompts through the official SDK registerPrompt API and server instructions through McpServer options. Share the static examples with an initially collapsed HeroUI Accordion in connected-app settings. Keep account data and credentials out of prompt templates. Jest native OAuth entry-point checks and focused Playwright BDD cases cover the refinement; the SDK probe verifies prompt discovery on legacy and modern transports. Existing historical external acceptance blockers remain unchanged.
