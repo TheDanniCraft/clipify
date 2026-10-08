@@ -1781,3 +1781,9 @@ identity maps or schema are required. Audit retention bounds usage history;
 deleted client metadata can only be shown as unavailable, not reconstructed.
 
 Client export refinement (2026-10-08): Export every application-name group in each one-minute health scrape, without a Top-X cap. Names remain field values. Influx retention is 30 days. Dashboard files must contain the complete importable dashboard, preserving existing panels.
+
+## Acceptance scope amendment — 2026-10-08
+
+The user explicitly replaced the original four-host release matrix with Codex-driven testing against the PR preview MCP server. ChatGPT web, Claude web and another custom host are deferred to follow-up compatibility work and are no longer merge prerequisites for this PR. Existing independent SDK denial/revocation contracts remain required automated coverage; this amendment does not claim those other products were tested. Historical test-first evidence exceptions and production migration/monitoring rollout requirements remain separate.
+
+The real Codex CLI completed native dynamic registration, user consent and PKCE token exchange against `https://beta-496.clipify.cloud.thedannicraft.de/mcp`. The official SDK then used that grant for preview validation: 66 tools, six prompts, approved-creator reads and unapproved-creator denial; **35/35 disposable mutation checks passed** across overlays, playlists and galleries, including create retry identity, focused editing, stale-revision rejection, invalid input, Free quotas, paid-feature rejection and deletion with persisted absence. Existing development resources were backed up and restored. A subsequent real refresh returned HTTP 200, rotated the refresh token and successfully read the approved creator. No credentials or callback codes are retained in these documents.

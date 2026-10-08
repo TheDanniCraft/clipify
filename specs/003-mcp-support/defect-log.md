@@ -1540,3 +1540,7 @@ Retained logs use the shared-feedback prefix under test-results/mcp-workflows; f
 - FE-ENV-003: Pre-commit rejected a test fixture comparison between general strings and the literal scope union. Changed membership comparison to typed equality; runtime scope selection is unchanged. The normal hook is rerun, never bypassed.
 
 Final closure: focused-push-verified.log proves the normal hook passed all 426 suites / 4,553 tests on the corrected committed source. FE-DEF-001 through FE-DEF-012 and the documented local verification environment corrections are closed. External development login/schema and live-host acceptance prerequisites remain unchanged.
+
+## CF-DEF-001 — Preserve asynchronous rate-limit errors
+
+The complexity cleanup accidentally removed `async` from `consumeMcpRateLimit`, causing invalid inputs to throw synchronously instead of returning rejected promises. The focused negative-boundary suite caught eleven failures. Restored the existing public async contract and audited the changed TypeScript declarations for other removed async functions. All 16 rate-limit input tests now pass; assertions and limits remain unchanged. Evidence: `/tmp/clipify-refactor-final-focused.log` and `/tmp/clipify-refactor-rate-limit-fixed.log`.

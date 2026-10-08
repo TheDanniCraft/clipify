@@ -10,18 +10,21 @@ async function main() {
 	process.env.RATE_LIMIT_HASH_SECRET = "isolated-rollout-ratelimit-secret-32chars";
 	const [mode, surface = "mcp"] = process.argv[2].split(":");
 	try {
-		if (mode === "missing-auth") {
-			delete process.env.BETTER_AUTH_SECRET;
-			delete process.env.JWT_SECRET;
+		async function prepareRolloutFailure() {
+			if (mode === "missing-auth") {
+				delete process.env.BETTER_AUTH_SECRET;
+				delete process.env.JWT_SECRET;
+			}
+			if (mode === "missing-rate") delete process.env.RATE_LIMIT_HASH_SECRET;
+			if (mode === "bad-origin") process.env.NEXT_PUBLIC_BASE_URL = "https://clipify.example/unsafe-path";
+			if (mode === "missing-revision") await fixture.pool.query("ALTER TABLE overlays DROP COLUMN configuration_revision");
+			if (mode === "missing-default") await fixture.pool.query("ALTER TABLE playlists ALTER COLUMN configuration_revision DROP DEFAULT");
+			if (mode === "nullable-revision") await fixture.pool.query("ALTER TABLE overlays ALTER COLUMN configuration_revision DROP NOT NULL");
+			if (mode === "missing-provider") await fixture.pool.query("DROP TABLE auth.oauth_client CASCADE");
+			if (mode === "missing-grants") await fixture.pool.query("DROP TABLE mcp_connection_grants CASCADE");
+			if (mode === "unavailable") process.env.DATABASE_URL = fixture.url.replace(/\/mcp_[a-z0-9]+$/, "/mcp_rollout_missing_database");
 		}
-		if (mode === "missing-rate") delete process.env.RATE_LIMIT_HASH_SECRET;
-		if (mode === "bad-origin") process.env.NEXT_PUBLIC_BASE_URL = "https://clipify.example/unsafe-path";
-		if (mode === "missing-revision") await fixture.pool.query("ALTER TABLE overlays DROP COLUMN configuration_revision");
-		if (mode === "missing-default") await fixture.pool.query("ALTER TABLE playlists ALTER COLUMN configuration_revision DROP DEFAULT");
-		if (mode === "nullable-revision") await fixture.pool.query("ALTER TABLE overlays ALTER COLUMN configuration_revision DROP NOT NULL");
-		if (mode === "missing-provider") await fixture.pool.query("DROP TABLE auth.oauth_client CASCADE");
-		if (mode === "missing-grants") await fixture.pool.query("DROP TABLE mcp_connection_grants CASCADE");
-		if (mode === "unavailable") process.env.DATABASE_URL = fixture.url.replace(/\/mcp_[a-z0-9]+$/, "/mcp_rollout_missing_database");
+		await prepareRolloutFailure();
 
 		let response: Response;
 		if (surface === "mcp") {

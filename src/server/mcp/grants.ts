@@ -51,26 +51,35 @@ export async function approveMcpConsent(input: { auth: ConsentAuth; origin: stri
 	}
 	if (input.accept) {
 		try {
-			for (const target of input.creators) {
-				const creatorScopes = target.scopes ?? scopes.filter((scope) => scope !== "offline_access");
-				// Legacy refresh-only approvals still verify creator access below.
-				// Explicit creator consent must select at least one operation scope.
-				if (creatorScopes.length || target.scopes !== undefined)
-					validateSelectedScopes(
-						creatorScopes,
-						scopes.filter((scope) => scope !== "offline_access"),
-					);
+			function validateCreatorConsentScopes() {
+				for (const target of input.creators) {
+					const creatorScopes = target.scopes ?? scopes.filter((scope) => scope !== "offline_access");
+					// Legacy refresh-only approvals still verify creator access below.
+					// Explicit creator consent must select at least one operation scope.
+					if (creatorScopes.length || target.scopes !== undefined)
+						validateSelectedScopes(
+							creatorScopes,
+							scopes.filter((scope) => scope !== "offline_access"),
+						);
+				}
 			}
+			validateCreatorConsentScopes();
 		} catch {
 			return deny(400, "invalid_scope");
 		}
+	}
+	function invalidCreatorSelection() {
+		return !input.creators.length || input.creators.length > 100 || new Set(input.creators.map((creator) => creator.creatorId)).size !== input.creators.length;
+	}
+	function consentFailure(error: unknown) {
+		return deny(error instanceof Error && error.message === "ACCESS_DENIED" ? 403 : 503, error instanceof Error && error.message === "ACCESS_DENIED" ? "access_denied" : "temporarily_unavailable");
 	}
 	const clientId = query.get("client_id");
 	if (!clientId || !query.has("sig")) return deny(400, "invalid_request");
 	let id: string | undefined;
 	try {
 		if (input.accept) {
-			if (!input.creators.length || input.creators.length > 100 || new Set(input.creators.map((creator) => creator.creatorId)).size !== input.creators.length) return deny(400, "invalid_request");
+			if (invalidCreatorSelection()) return deny(400, "invalid_request");
 			id = randomUUID();
 			await db.transaction(async (tx) => {
 				for (const target of input.creators)
@@ -82,12 +91,16 @@ export async function approveMcpConsent(input: { auth: ConsentAuth; origin: stri
 				await tx.insert(mcpGrantCreatorsTable).values(input.creators.map((target) => ({ ...target, grantId: id!, scopes: target.scopes ?? scopes.filter((scope) => scope !== "offline_access") })));
 			});
 		}
-		const request = new Request(`${new URL(input.origin).origin}/api/auth/oauth2/consent`, { method: "POST", headers: input.headers, body: JSON.stringify({ accept: input.accept, ...(input.accept ? { scope: scopes.join(" ") } : {}), oauth_query: input.oauthQuery }) });
-		const response = id ? await consentContext.run({ id, authUserId: session.user.id, scopes }, () => input.auth.handler(request)) : await input.auth.handler(request);
-		const result = await response
-			.clone()
-			.json()
-			.catch(() => null);
+		async function forwardProviderConsent(session: NonNullable<Awaited<ReturnType<ConsentAuth["api"]["getSession"]>>>) {
+			const request = new Request(`${new URL(input.origin).origin}/api/auth/oauth2/consent`, { method: "POST", headers: input.headers, body: JSON.stringify({ accept: input.accept, ...(input.accept ? { scope: scopes.join(" ") } : {}), oauth_query: input.oauthQuery }) });
+			const response = id ? await consentContext.run({ id, authUserId: session.user.id, scopes }, () => input.auth.handler(request)) : await input.auth.handler(request);
+			const result = await response
+				.clone()
+				.json()
+				.catch(() => null);
+			return { response, result };
+		}
+		const { response, result } = await forwardProviderConsent(session);
 		if (id && response.ok && result?.url && new URL(result.url).searchParams.has("code")) {
 			await db.transaction(async (tx) => {
 				// Lock all existing grants consistently before replacing consent authority.
@@ -104,7 +117,7 @@ export async function approveMcpConsent(input: { auth: ConsentAuth; origin: stri
 		return response;
 	} catch (error) {
 		if (id) await db.delete(mcpConnectionGrantsTable).where(eq(mcpConnectionGrantsTable.id, id));
-		return deny(error instanceof Error && error.message === "ACCESS_DENIED" ? 403 : 503, error instanceof Error && error.message === "ACCESS_DENIED" ? "access_denied" : "temporarily_unavailable");
+		return consentFailure(error);
 	}
 }
 

@@ -15,8 +15,8 @@ export async function runPaginationCatalogue(input: { fixture: Awaited<ReturnTyp
 		await fixture.pool.query("INSERT INTO auth.member(id,organization_id,user_id,role,created_at) VALUES($1,$2,$3,'owner',now())", [randomUUID(), org, input.actorId]);
 		await fixture.pool.query("INSERT INTO mcp_grant_creators(grant_id,creator_id) VALUES($1,$2)", [input.grantId, creatorId]);
 	}
-	const overlayIds = [],
-		playlistIds = [];
+	const overlayIds: string[] = [],
+		playlistIds: string[] = [];
 	for (let index = 0; index < 101; index++) {
 		const overlayId = randomUUID(),
 			playlistId = randomUUID();
@@ -50,49 +50,55 @@ export async function runPaginationCatalogue(input: { fixture: Awaited<ReturnTyp
 	try {
 		const { encodePageCursor } = await import("@/server/mcp/pagination");
 		const grant = (await fixture.pool.query("SELECT generation FROM mcp_connection_grants WHERE id=$1", [input.grantId])).rows[0];
-		const outcomes = [],
+		const outcomes: Record<string, unknown>[] = [],
 			invalid = [],
 			boundaries = [];
 		const cursors = new Map<string, string>();
-		for (const name of ["list_creators", "list_overlays", "list_playlists"]) {
-			const base = name === "list_creators" ? {} : { creatorId: "fixture-creator" };
-			const expected = name === "list_creators" ? ["fixture-creator", ...Array.from({ length: 99 }, (_, index) => `page-${String(index).padStart(3, "0")}`)].sort() : [...(name === "list_overlays" ? overlayIds : playlistIds)].sort();
-			const pages = [];
-			let cursor: string | undefined;
-			do {
-				const response = await call(name, { ...base, ...(cursor ? { cursor } : {}) });
-				if (!response.result?.items) throw new Error("Pagination catalogue lost valid page");
-				pages.push({ ids: response.result.items.map((item: any) => item.id), cursor: response.result.nextCursor, safe: response.safe });
-				cursor = response.result.nextCursor ?? undefined;
-				if (cursor && !cursors.has(name)) cursors.set(name, cursor);
-			} while (cursor && pages.length < 10);
-			outcomes.push({ name, expected, pages });
-			for (const limit of [1, 100]) {
-				const first = await call(name, { ...base, limit });
-				const second = first.result?.nextCursor ? await call(name, { ...base, limit, cursor: first.result.nextCursor }) : null;
-				boundaries.push({ name, limit, first, second });
-			}
-			const context = name === "list_creators" ? `${input.grantId}:${grant.generation}:list_creators` : `${input.grantId}:${grant.generation}:${input.actorId}:${name}:fixture-creator`;
-			for (const [mode, cursor] of [
-				["expired", encodePageCursor(expected[0], context, { now: new Date(Date.now() - 1800000) })],
-				["other-grant", encodePageCursor(expected[0], context.replace(input.grantId, randomUUID()))],
-			] as const) {
-				const response = await call(name, { ...base, cursor });
-				invalid.push({ name, mode, error: response.result?.error?.code, safe: response.safe });
-			}
-			for (const [mode, patch] of [
-				["zero", { limit: 0 }],
-				["oversized", { limit: 101 }],
-				["fractional", { limit: 1.5 }],
-				["typed-limit", { limit: "25" }],
-				["malformed", { cursor: "invalid" }],
-				["tampered", { cursor: cursors.get(name)!.slice(0, -5) + "XXXXX" }],
-				["unknown", { privateAuthority: "never disclose" }],
-			] as const) {
-				const response = await call(name, { ...base, ...patch });
-				invalid.push({ name, mode, error: response.result?.error?.code, safe: response.safe });
+		async function exercisePagedResourceLists() {
+			for (const name of ["list_creators", "list_overlays", "list_playlists"]) {
+				const base = name === "list_creators" ? {} : { creatorId: "fixture-creator" };
+				const expected = name === "list_creators" ? ["fixture-creator", ...Array.from({ length: 99 }, (_, index) => `page-${String(index).padStart(3, "0")}`)].sort() : [...(name === "list_overlays" ? overlayIds : playlistIds)].sort();
+				const pages = [];
+				let cursor: string | undefined;
+				do {
+					const response = await call(name, { ...base, ...(cursor ? { cursor } : {}) });
+					if (!response.result?.items) throw new Error("Pagination catalogue lost valid page");
+					pages.push({ ids: response.result.items.map((item: any) => item.id), cursor: response.result.nextCursor, safe: response.safe });
+					cursor = response.result.nextCursor ?? undefined;
+					if (cursor && !cursors.has(name)) cursors.set(name, cursor);
+				} while (cursor && pages.length < 10);
+				outcomes.push({ name, expected, pages });
+				for (const limit of [1, 100]) {
+					const first = await call(name, { ...base, limit });
+					const second = first.result?.nextCursor ? await call(name, { ...base, limit, cursor: first.result.nextCursor }) : null;
+					boundaries.push({ name, limit, first, second });
+				}
+				const context = name === "list_creators" ? `${input.grantId}:${grant.generation}:list_creators` : `${input.grantId}:${grant.generation}:${input.actorId}:${name}:fixture-creator`;
+				async function exerciseInvalidPageCursors() {
+					for (const [mode, cursor] of [
+						["expired", encodePageCursor(expected[0], context, { now: new Date(Date.now() - 1800000) })],
+						["other-grant", encodePageCursor(expected[0], context.replace(input.grantId, randomUUID()))],
+					] as const) {
+						const response = await call(name, { ...base, cursor });
+						invalid.push({ name, mode, error: response.result?.error?.code, safe: response.safe });
+					}
+					for (const [mode, patch] of [
+						["zero", { limit: 0 }],
+						["oversized", { limit: 101 }],
+						["fractional", { limit: 1.5 }],
+						["typed-limit", { limit: "25" }],
+						["malformed", { cursor: "invalid" }],
+						["tampered", { cursor: cursors.get(name)!.slice(0, -5) + "XXXXX" }],
+						["unknown", { privateAuthority: "never disclose" }],
+					] as const) {
+						const response = await call(name, { ...base, ...patch });
+						invalid.push({ name, mode, error: response.result?.error?.code, safe: response.safe });
+					}
+				}
+				await exerciseInvalidPageCursors();
 			}
 		}
+		await exercisePagedResourceLists();
 		for (const name of ["list_overlays", "list_playlists"]) {
 			const other = name === "list_overlays" ? "list_playlists" : "list_overlays";
 			const response = await call(name, { creatorId: "fixture-creator", cursor: cursors.get(other) });

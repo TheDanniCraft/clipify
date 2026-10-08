@@ -49,17 +49,20 @@ export async function runTokenCatalogue(pool: Pool, auth: { handler: (request: R
 		valid: `Bearer ${accessToken}`,
 		"lowercase-bearer": `bearer ${accessToken}`,
 	};
-	if (bindingOnly) {
-		for (const name of Object.keys(headers)) if (name !== "valid") delete headers[name];
-		headers["revoked-grant"] = `Bearer ${accessToken}`;
-		headers["expired-grant"] = `Bearer ${accessToken}`;
-		headers["restored-grant"] = `Bearer ${accessToken}`;
+	async function buildTokenHeaders() {
+		if (bindingOnly) {
+			for (const name of Object.keys(headers)) if (name !== "valid") delete headers[name];
+			headers["revoked-grant"] = `Bearer ${accessToken}`;
+			headers["expired-grant"] = `Bearer ${accessToken}`;
+			headers["restored-grant"] = `Bearer ${accessToken}`;
+		}
+		for (const [name, patch] of Object.entries(claimCases)) {
+			const claims = { ...payload, ...patch };
+			const token = await new SignJWT(claims).setProtectedHeader({ alg: algorithm, kid: key.id }).sign(privateKey);
+			headers[name] = `Bearer ${token}`;
+		}
 	}
-	for (const [name, patch] of Object.entries(claimCases)) {
-		const claims = { ...payload, ...patch };
-		const token = await new SignJWT(claims).setProtectedHeader({ alg: algorithm, kid: key.id }).sign(privateKey);
-		headers[name] = `Bearer ${token}`;
-	}
+	await buildTokenHeaders();
 	const originalFetch = globalThis.fetch;
 	const outcomes: { name: string; status: number; challenge: boolean; read: boolean }[] = [];
 	try {

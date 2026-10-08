@@ -35,9 +35,12 @@ async function main() {
 			await independent.query("ROLLBACK");
 			independent.release();
 		}
-		if (mode === "plan-change") await fixture.pool.query("UPDATE users SET plan='free' WHERE id='reward-creator'");
-		if (mode === "membership-change") await fixture.pool.query("DELETE FROM auth.member WHERE user_id='reward-owner'");
-		if (mode === "revision-change") await fixture.pool.query("UPDATE overlays SET configuration_revision=2 WHERE id=$1", [overlayId]);
+		async function mutateProviderRaceAuthority() {
+			if (mode === "plan-change") await fixture.pool.query("UPDATE users SET plan='free' WHERE id='reward-creator'");
+			if (mode === "membership-change") await fixture.pool.query("DELETE FROM auth.member WHERE user_id='reward-owner'");
+			if (mode === "revision-change") await fixture.pool.query("UPDATE overlays SET configuration_revision=2 WHERE id=$1", [overlayId]);
+		}
+		await mutateProviderRaceAuthority();
 		if (mode === "headers") return;
 		response.setHeader("Content-Type", "application/json");
 		if (mode === "body") {
@@ -45,7 +48,7 @@ async function main() {
 			response.write('{"data":[');
 			return;
 		}
-		if (mode === "not-found" || mode === "rate" || mode === "provider-error") {
+		if (["not-found", "rate", "provider-error"].includes(mode)) {
 			response.statusCode = mode === "not-found" ? 404 : mode === "rate" ? 429 : 503;
 			response.end("{}");
 			return;
@@ -79,11 +82,14 @@ async function main() {
 		if (!session || typeof context.secret !== "string") throw new Error("REWARD_OWNERSHIP_SESSION_UNAVAILABLE");
 		const signed = session.token + "." + createHmac("sha256", context.secret).update(session.token).digest("base64");
 		const headers = new Headers({ cookie: context.authCookies.sessionToken.name + "=" + encodeURIComponent(signed) });
-		if (mode === "unauthenticated") headers.delete("cookie");
-		if (mode === "free" || mode === "unchanged-free") await fixture.pool.query("UPDATE users SET plan='free'");
-		if (mode === "removed-member") await fixture.pool.query("DELETE FROM auth.member");
-		if (mode === "unchanged" || mode === "unchanged-free" || mode === "clear") await fixture.pool.query("UPDATE overlays SET reward_id='RewardOne'");
-		if (mode === "rollback") await fixture.pool.query("CREATE FUNCTION reject_reward_ownership_audit() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'controlled reward audit failure'; END $$; CREATE TRIGGER reject_reward_ownership_audit BEFORE INSERT ON audit_events FOR EACH ROW EXECUTE FUNCTION reject_reward_ownership_audit()");
+		async function prepareRewardAuthority() {
+			if (mode === "unauthenticated") headers.delete("cookie");
+			if (["free", "unchanged-free"].includes(mode)) await fixture.pool.query("UPDATE users SET plan='free'");
+			if (mode === "removed-member") await fixture.pool.query("DELETE FROM auth.member");
+			if (["unchanged", "unchanged-free", "clear"].includes(mode)) await fixture.pool.query("UPDATE overlays SET reward_id='RewardOne'");
+			if (mode === "rollback") await fixture.pool.query("CREATE FUNCTION reject_reward_ownership_audit() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'controlled reward audit failure'; END $$; CREATE TRIGGER reject_reward_ownership_audit BEFORE INSERT ON audit_events FOR EACH ROW EXECUTE FUNCTION reject_reward_ownership_audit()");
+		}
+		await prepareRewardAuthority();
 		await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
 		const address = server.address();
 		if (!address || typeof address === "string") throw new Error("REWARD_OWNERSHIP_HTTP_UNAVAILABLE");

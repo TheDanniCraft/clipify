@@ -100,7 +100,7 @@ async function handleAuthenticatedRequest(request: Request, configuration: Retur
 		const protectedHandler = requireMcpAuth(
 			auth,
 			async (authenticatedRequest, claims) => {
-				let principal;
+				let principal: Awaited<ReturnType<typeof resolveMcpGrant>>;
 				try {
 					principal = await resolveMcpGrant(claims);
 				} catch (error) {
@@ -112,16 +112,20 @@ async function handleAuthenticatedRequest(request: Request, configuration: Retur
 						.clone()
 						.json()
 						.catch(() => null);
-					if (body?.method === "tools/call") {
-						const { consumeMcpRateLimit, getMcpNetworkSignal, getMcpRateLimits } = await import("./rate-limit");
-						const decision = await consumeMcpRateLimit({ kind: "call", authUserId: principal.authUserId, clientId: principal.clientId, network: getMcpNetworkSignal(authenticatedRequest), limits: getMcpRateLimits() });
-						if (!decision.allowed) {
-							const { recordMcpCallActivity } = await import("./activity");
-							const requestedTool = body?.params?.name;
-							await recordMcpCallActivity(principal, { ...(typeof requestedTool === "string" && Object.hasOwn(toolPermissions, requestedTool) ? { tool: requestedTool as ToolName } : {}), outcome: "denied", reason: "RATE_LIMITED" });
-							return Response.json({ jsonrpc: "2.0", id: body.id ?? null, error: { code: -32000, message: "Rate limit exceeded; retry after the specified delay" } }, { status: 429, headers: { "Retry-After": String(decision.retryAfterSeconds) } });
+					async function enforceToolCallBudget() {
+						if (body?.method === "tools/call") {
+							const { consumeMcpRateLimit, getMcpNetworkSignal, getMcpRateLimits } = await import("./rate-limit");
+							const decision = await consumeMcpRateLimit({ kind: "call", authUserId: principal.authUserId, clientId: principal.clientId, network: getMcpNetworkSignal(authenticatedRequest), limits: getMcpRateLimits() });
+							if (!decision.allowed) {
+								const { recordMcpCallActivity } = await import("./activity");
+								const requestedTool = body?.params?.name;
+								await recordMcpCallActivity(principal, { ...(typeof requestedTool === "string" && Object.hasOwn(toolPermissions, requestedTool) ? { tool: requestedTool as ToolName } : {}), outcome: "denied", reason: "RATE_LIMITED" });
+								return Response.json({ jsonrpc: "2.0", id: body.id ?? null, error: { code: -32000, message: "Rate limit exceeded; retry after the specified delay" } }, { status: 429, headers: { "Retry-After": String(decision.retryAfterSeconds) } });
+							}
 						}
 					}
+					const rejection = await enforceToolCallBudget();
+					if (rejection) return rejection;
 					const name = body?.params?.name;
 					const permission = body?.method === "tools/call" && typeof name === "string" && Object.hasOwn(toolPermissions, name) ? toolPermissions[name as ToolName] : undefined;
 					if (permission && !principal.scopes?.includes(permission)) {

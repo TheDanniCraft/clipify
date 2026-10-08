@@ -106,92 +106,103 @@ async function main() {
 		if (!tokensResponse.ok || !tokens.access_token) throw new Error("SDK token exchange failed");
 		const mode = process.argv[2] === "auto" ? "auto" : "legacy";
 		connected = await connectMcpClient(new URL(origin + "/mcp"), tokens.access_token, mode);
-		const tools = await connected.client.listTools();
-		const prompts = await connected.client.listPrompts();
-		const themePrompt = await connected.client.getPrompt({ name: "style-overlay" });
-		const focusedDiscoveryValid = ["get_overlay_theme", "update_overlay_theme", "update_overlay_filters", "update_gallery_layout", "get_overlay_link"].every((name) => tools.tools.some((tool) => tool.name === name && (tool.description?.length ?? 0) > 50)) && !tools.tools.some((tool) => ["update_overlay", "update_gallery", "get_overlay_embed"].includes(tool.name));
-		let obsoleteToolDenied = false;
-		try {
-			await connected.client.callTool({ name: "update_overlay", arguments: {} });
-		} catch {
-			obsoleteToolDenied = true;
-		}
+		async function exerciseSdkResourceWorkflow(connected: Awaited<ReturnType<typeof connectMcpClient>>) {
+			const tools = await connected.client.listTools();
+			const prompts = await connected.client.listPrompts();
+			const themePrompt = await connected.client.getPrompt({ name: "style-overlay" });
+			const focusedDiscoveryValid = ["get_overlay_theme", "update_overlay_theme", "update_overlay_filters", "update_gallery_layout", "get_overlay_link"].every((name) => tools.tools.some((tool) => tool.name === name && (tool.description?.length ?? 0) > 50)) && !tools.tools.some((tool) => ["update_overlay", "update_gallery", "get_overlay_embed"].includes(tool.name));
+			let obsoleteToolDenied = false;
+			try {
+				await connected.client.callTool({ name: "update_overlay", arguments: {} });
+			} catch {
+				obsoleteToolDenied = true;
+			}
 
-		const read = await connected.client.callTool({ name: "list_creators", arguments: {} });
-		const created = await connected.client.callTool({ name: "create_overlay", arguments: { creatorId: "sdk-creator", retryKey: "independent-sdk-create", name: "Created by official SDK" } });
-		const dto: any = created.structuredContent;
-		if (!dto?.id) throw new Error("SDK create did not return safe DTO");
-		const edited = await connected.client.callTool({ name: "update_overlay_settings", arguments: { creatorId: "sdk-creator", overlayId: dto.id, expectedRevision: 1, patch: { name: "Edited by official SDK" } } });
-		const limited = await connected.client.callTool({ name: "create_overlay", arguments: { creatorId: "sdk-creator", retryKey: "independent-sdk-over-limit", name: "Must be denied" } });
+			const read = await connected.client.callTool({ name: "list_creators", arguments: {} });
+			const created = await connected.client.callTool({ name: "create_overlay", arguments: { creatorId: "sdk-creator", retryKey: "independent-sdk-create", name: "Created by official SDK" } });
+			const dto: any = created.structuredContent;
+			if (!dto?.id) throw new Error("SDK create did not return safe DTO");
+			const edited = await connected.client.callTool({ name: "update_overlay_settings", arguments: { creatorId: "sdk-creator", overlayId: dto.id, expectedRevision: 1, patch: { name: "Edited by official SDK" } } });
+			const limited = await connected.client.callTool({ name: "create_overlay", arguments: { creatorId: "sdk-creator", retryKey: "independent-sdk-over-limit", name: "Must be denied" } });
+			return { tools, prompts, themePrompt, focusedDiscoveryValid, obsoleteToolDenied, read, created, dto, edited, limited };
+		}
+		const { tools, prompts, themePrompt, focusedDiscoveryValid, obsoleteToolDenied, read, created, dto, edited, limited } = await exerciseSdkResourceWorkflow(connected);
 		const { getMcpMetricsSnapshot } = await import("@/server/mcp/metrics");
 		const measuredCalls = getMcpMetricsSnapshot();
-		const grantsBeforeDenial = Number((await fixture.pool.query("SELECT count(*) FROM mcp_connection_grants")).rows[0].count);
-		const deny = await fetch(origin + "/test/consent", { method: "POST", headers: { Cookie: cookie, Origin: origin, "Content-Type": "application/json" }, body: JSON.stringify({ oauthQuery: await authorize(), accept: false, scopes: [], creators: [] }) });
-		const denied = await deny.json();
-		const grantsAfterDenial = Number((await fixture.pool.query("SELECT count(*) FROM mcp_connection_grants")).rows[0].count);
-		const claims = JSON.parse(Buffer.from(tokens.access_token.split(".")[1], "base64url").toString());
-		const revoked = await fetch(origin + "/test/revoke", { method: "POST", headers: { Cookie: cookie, Origin: origin, "Content-Type": "application/json" }, body: JSON.stringify({ grantId: claims.clipify_grant_id }) });
-		let revokedSdkDenied = false;
-		try {
-			await connected.client.callTool({ name: "list_creators", arguments: {} });
-		} catch {
-			revokedSdkDenied = true;
+		async function exerciseSdkDenialAndRevocation(connected: Awaited<ReturnType<typeof connectMcpClient>>) {
+			const grantsBeforeDenial = Number((await fixture.pool.query("SELECT count(*) FROM mcp_connection_grants")).rows[0].count);
+			const deny = await fetch(origin + "/test/consent", { method: "POST", headers: { Cookie: cookie, Origin: origin, "Content-Type": "application/json" }, body: JSON.stringify({ oauthQuery: await authorize(), accept: false, scopes: [], creators: [] }) });
+			const denied = await deny.json();
+			const grantsAfterDenial = Number((await fixture.pool.query("SELECT count(*) FROM mcp_connection_grants")).rows[0].count);
+			const claims = JSON.parse(Buffer.from(tokens.access_token.split(".")[1], "base64url").toString());
+			const revoked = await fetch(origin + "/test/revoke", { method: "POST", headers: { Cookie: cookie, Origin: origin, "Content-Type": "application/json" }, body: JSON.stringify({ grantId: claims.clipify_grant_id }) });
+			let revokedSdkDenied = false;
+			try {
+				await connected.client.callTool({ name: "list_creators", arguments: {} });
+			} catch {
+				revokedSdkDenied = true;
+			}
+			const old = await fetch(origin + "/mcp", { method: "POST", headers: { Authorization: `Bearer ${tokens.access_token}`, "Content-Type": "application/json", Accept: "application/json, text/event-stream" }, body: JSON.stringify({ jsonrpc: "2.0", id: 99, method: "tools/call", params: { name: "list_creators", arguments: {} } }) });
+			const refresh = await fetch(origin + "/api/auth/oauth2/token", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ grant_type: "refresh_token", client_id: client.client_id, refresh_token: tokens.refresh_token, resource: origin + "/mcp" }) });
+			const stored = (await fixture.pool.query("SELECT name,configuration_revision FROM overlays WHERE id=$1", [dto.id])).rows[0];
+			const count = Number((await fixture.pool.query("SELECT count(*) FROM overlays")).rows[0].count);
+			const wire = JSON.stringify([tools, read, created, edited, limited]);
+			const privateValues = [tokens.access_token, tokens.refresh_token, (await fixture.pool.query("SELECT secret FROM overlays WHERE id=$1", [dto.id])).rows[0].secret];
+			return { grantsBeforeDenial, deny, denied, grantsAfterDenial, claims, revoked, revokedSdkDenied, old, refresh, stored, count, wire, privateValues };
 		}
-		const old = await fetch(origin + "/mcp", { method: "POST", headers: { Authorization: `Bearer ${tokens.access_token}`, "Content-Type": "application/json", Accept: "application/json, text/event-stream" }, body: JSON.stringify({ jsonrpc: "2.0", id: 99, method: "tools/call", params: { name: "list_creators", arguments: {} } }) });
-		const refresh = await fetch(origin + "/api/auth/oauth2/token", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ grant_type: "refresh_token", client_id: client.client_id, refresh_token: tokens.refresh_token, resource: origin + "/mcp" }) });
-		const stored = (await fixture.pool.query("SELECT name,configuration_revision FROM overlays WHERE id=$1", [dto.id])).rows[0];
-		const count = Number((await fixture.pool.query("SELECT count(*) FROM overlays")).rows[0].count);
-		const wire = JSON.stringify([tools, read, created, edited, limited]);
-		const privateValues = [tokens.access_token, tokens.refresh_token, (await fixture.pool.query("SELECT secret FROM overlays WHERE id=$1", [dto.id])).rows[0].secret];
-		mkdirSync("test-results/mcp/client-matrix", { recursive: true });
-		writeFileSync(
-			`test-results/mcp/client-matrix/custom-sdk-${mode}.json`,
-			JSON.stringify(
-				{
-					product: "Official SDK independent client",
+		const { grantsBeforeDenial, deny, denied, grantsAfterDenial, claims, revoked, revokedSdkDenied, old, refresh, stored, count, wire, privateValues } = await exerciseSdkDenialAndRevocation(connected);
+		function recordSdkJourneyEvidence() {
+			mkdirSync("test-results/mcp/client-matrix", { recursive: true });
+			writeFileSync(
+				`test-results/mcp/client-matrix/custom-sdk-${mode}.json`,
+				JSON.stringify(
+					{
+						product: "Official SDK independent client",
+						clientVersion: "2.3.0",
+						transportMode: mode,
+						observedProtocols: [...protocols].sort(),
+						registrationPath: "native-dynamic-registration",
+						environment: "Disposable native PostgreSQL and real loopback HTTP; test-only consent/revoke adapters; no named-vendor UI acceptance",
+						checkedAt: new Date().toISOString(),
+						riskHints: tools.tools.map((tool) => ({ name: tool.name, description: tool.description, inputSchema: tool.inputSchema, annotations: tool.annotations })),
+					},
+					null,
+					2,
+				) + "\n",
+			);
+			console.log(
+				JSON.stringify({
+					urlOnlyConsentWrite,
+					measuredCalls,
+					metadataValid: metadata.resource === origin + "/mcp" && metadata.authorization_servers?.includes(origin + "/api/auth") && authorizationMetadata.registration_endpoint === origin + "/api/auth/oauth2/register",
+					registrationStatus: registered.status,
+					issuerBound: claims.iss === origin + "/api/auth",
+					audienceBound: claims.aud === origin + "/mcp" || (Array.isArray(claims.aud) && claims.aud.includes(origin + "/mcp")),
+					toolCount: tools.tools.length,
+					promptCount: prompts.prompts.length,
+					promptWorkflowValid: JSON.stringify(themePrompt.messages).includes("update_overlay_theme"),
+					focusedDiscoveryValid,
+					obsoleteToolDenied,
+					readAllowed: !read.isError,
+					createAllowed: !created.isError,
+					editAllowed: !edited.isError,
+					stored,
+					count,
+					limitError: (limited.structuredContent as any)?.error?.code,
+					deniedConsent: deny.ok && new URL(denied.url).searchParams.get("error") === "access_denied" && !new URL(denied.url).searchParams.has("code") && grantsBeforeDenial === grantsAfterDenial,
+					revocationStatus: revoked.status,
+					revokedSdkDenied,
+					oldBearerStatus: old.status,
+					oldBearerChallenge: old.headers.get("www-authenticate")?.includes("resource_metadata=") ?? false,
+					refreshStatus: refresh.status,
+					secretFree: !privateValues.some((value) => wire.includes(value)),
+					protocols: [...protocols].sort(),
 					clientVersion: "2.3.0",
-					transportMode: mode,
-					observedProtocols: [...protocols].sort(),
 					registrationPath: "native-dynamic-registration",
-					environment: "Disposable native PostgreSQL and real loopback HTTP; test-only consent/revoke adapters; no named-vendor UI acceptance",
-					checkedAt: new Date().toISOString(),
-					riskHints: tools.tools.map((tool) => ({ name: tool.name, description: tool.description, inputSchema: tool.inputSchema, annotations: tool.annotations })),
-				},
-				null,
-				2,
-			) + "\n",
-		);
-		console.log(
-			JSON.stringify({
-				urlOnlyConsentWrite,
-				measuredCalls,
-				metadataValid: metadata.resource === origin + "/mcp" && metadata.authorization_servers?.includes(origin + "/api/auth") && authorizationMetadata.registration_endpoint === origin + "/api/auth/oauth2/register",
-				registrationStatus: registered.status,
-				issuerBound: claims.iss === origin + "/api/auth",
-				audienceBound: claims.aud === origin + "/mcp" || (Array.isArray(claims.aud) && claims.aud.includes(origin + "/mcp")),
-				toolCount: tools.tools.length,
-				promptCount: prompts.prompts.length,
-				promptWorkflowValid: JSON.stringify(themePrompt.messages).includes("update_overlay_theme"),
-				focusedDiscoveryValid,
-				obsoleteToolDenied,
-				readAllowed: !read.isError,
-				createAllowed: !created.isError,
-				editAllowed: !edited.isError,
-				stored,
-				count,
-				limitError: (limited.structuredContent as any)?.error?.code,
-				deniedConsent: deny.ok && new URL(denied.url).searchParams.get("error") === "access_denied" && !new URL(denied.url).searchParams.has("code") && grantsBeforeDenial === grantsAfterDenial,
-				revocationStatus: revoked.status,
-				revokedSdkDenied,
-				oldBearerStatus: old.status,
-				oldBearerChallenge: old.headers.get("www-authenticate")?.includes("resource_metadata=") ?? false,
-				refreshStatus: refresh.status,
-				secretFree: !privateValues.some((value) => wire.includes(value)),
-				protocols: [...protocols].sort(),
-				clientVersion: "2.3.0",
-				registrationPath: "native-dynamic-registration",
-			}),
-		);
+				}),
+			);
+		}
+		recordSdkJourneyEvidence();
 	} finally {
 		await connected?.close();
 		globalThis.fetch = originalFetch;

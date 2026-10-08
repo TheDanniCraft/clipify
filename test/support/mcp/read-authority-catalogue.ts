@@ -56,18 +56,21 @@ export async function runReadAuthorityCatalogue(input: { fixture: Awaited<Return
 			// actual agency consent is exercised separately by its native/browser catalogue.
 			await fixture.pool.query("UPDATE mcp_grant_creators SET agency_organization_id=$1 WHERE grant_id=$2 AND creator_id='fixture-creator'", [agency ? "read-agency" : null, input.grantId]);
 			for (const name of readAuthorityTools) await call(name, phase);
-			if (phase === "agency-ceiling") {
-				for (const name of ["create_overlay", "update_overlay_settings", "delete_overlay", "create_playlist", "update_playlist", "delete_playlist", "add_playlist_items", "remove_playlist_items", "reorder_playlist_items"]) {
-					const args: Record<string, unknown> = { creatorId: "fixture-creator" };
-					if (name.startsWith("create_")) Object.assign(args, { retryKey: `read-ceiling:${name}`, name: "Forbidden creation" });
-					else Object.assign(args, { expectedRevision: 1, ...(name.includes("overlay") ? { overlayId } : { playlistId }) });
-					if (name === "update_overlay_settings") args.patch = { name: "Forbidden overlay edit" };
-					if (name === "update_playlist") args.name = "Forbidden playlist edit";
-					if (name === "add_playlist_items") args.clipIds = ["NeverFetchedClip"];
-					if (name === "remove_playlist_items" || name === "reorder_playlist_items") args.itemIds = ["ReadAuthorityClip"];
-					await call(name, "agency-ceiling-write", args);
+			async function exerciseAgencyWriteCeiling() {
+				if (phase === "agency-ceiling") {
+					for (const name of ["create_overlay", "update_overlay_settings", "delete_overlay", "create_playlist", "update_playlist", "delete_playlist", "add_playlist_items", "remove_playlist_items", "reorder_playlist_items"]) {
+						const args: Record<string, unknown> = { creatorId: "fixture-creator" };
+						if (name.startsWith("create_")) Object.assign(args, { retryKey: `read-ceiling:${name}`, name: "Forbidden creation" });
+						else Object.assign(args, { expectedRevision: 1, ...(name.includes("overlay") ? { overlayId } : { playlistId }) });
+						if (name === "update_overlay_settings") args.patch = { name: "Forbidden overlay edit" };
+						if (name === "update_playlist") args.name = "Forbidden playlist edit";
+						if (name === "add_playlist_items") args.clipIds = ["NeverFetchedClip"];
+						if (["remove_playlist_items", "reorder_playlist_items"].includes(name)) args.itemIds = ["ReadAuthorityClip"];
+						await call(name, "agency-ceiling-write", args);
+					}
 				}
 			}
+			await exerciseAgencyWriteCeiling();
 		}
 		await fixture.pool.query("UPDATE users SET plan='pro',disabled=false WHERE id='fixture-creator'; UPDATE creator_accounts SET status='active' WHERE creator_id='fixture-creator'");
 		await fixture.pool.query("UPDATE auth.member SET role='owner' WHERE id=$1", [member.id]);

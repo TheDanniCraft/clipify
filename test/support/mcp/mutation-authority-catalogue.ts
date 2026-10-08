@@ -70,12 +70,15 @@ export async function runMutationAuthorityCatalogue(input: { fixture: Awaited<Re
 	try {
 		const outcomes = [];
 		for (const phase of ["unapproved-creator", "denied-role", "foreign-resource", "failed-audit", "direct-pro", "direct-free", "owner-free", "agency-pro", "agency-free"]) {
-			const agency = phase.startsWith("agency-");
-			await fixture.pool.query("UPDATE users SET plan=$1 WHERE id='fixture-creator'", [phase.endsWith("free") ? "free" : "pro"]);
-			await fixture.pool.query("DELETE FROM auth.member WHERE id=$1", [member.id]);
-			if (!agency) await fixture.pool.query("INSERT INTO auth.member(id,organization_id,user_id,role,created_at) VALUES($1,'creator-org',$2,$3,now())", [member.id, actorId, phase === "denied-role" ? "analyst" : phase === "owner-free" ? "owner" : "operations"]);
-			await fixture.pool.query("UPDATE mcp_grant_creators SET agency_organization_id=$1 WHERE grant_id=$2 AND creator_id='fixture-creator'", [agency ? "authority-agency" : null, input.grantId]);
-			if (phase === "failed-audit") await fixture.pool.query("CREATE FUNCTION reject_authority_audit() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'controlled authority audit failure'; END $$; CREATE TRIGGER reject_authority_audit BEFORE INSERT ON audit_events FOR EACH ROW EXECUTE FUNCTION reject_authority_audit()");
+			async function prepareAuthorityPhase() {
+				const agency = phase.startsWith("agency-");
+				await fixture.pool.query("UPDATE users SET plan=$1 WHERE id='fixture-creator'", [phase.endsWith("free") ? "free" : "pro"]);
+				await fixture.pool.query("DELETE FROM auth.member WHERE id=$1", [member.id]);
+				if (!agency) await fixture.pool.query("INSERT INTO auth.member(id,organization_id,user_id,role,created_at) VALUES($1,'creator-org',$2,$3,now())", [member.id, actorId, phase === "denied-role" ? "analyst" : phase === "owner-free" ? "owner" : "operations"]);
+				await fixture.pool.query("UPDATE mcp_grant_creators SET agency_organization_id=$1 WHERE grant_id=$2 AND creator_id='fixture-creator'", [agency ? "authority-agency" : null, input.grantId]);
+				if (phase === "failed-audit") await fixture.pool.query("CREATE FUNCTION reject_authority_audit() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'controlled authority audit failure'; END $$; CREATE TRIGGER reject_authority_audit BEFORE INSERT ON audit_events FOR EACH ROW EXECUTE FUNCTION reject_authority_audit()");
+			}
+			await prepareAuthorityPhase();
 			for (const name of names) {
 				if (phase === "foreign-resource" && name.startsWith("create_")) continue;
 				await reset();

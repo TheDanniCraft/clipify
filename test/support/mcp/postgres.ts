@@ -56,9 +56,13 @@ export async function initializeMcpFixtureSchema(pool: Pick<Pool, "query">) {
 		.filter((table) => is(table, Table))
 		.map((table) => getTableConfig(table as any));
 	await pool.query('CREATE SCHEMA IF NOT EXISTS "auth"');
-	const enums = new Map<string, readonly string[]>();
-	for (const table of tables) for (const column of table.columns) if (column.enumValues?.length && column.getSQLType() !== "text" && !column.getSQLType().startsWith("varchar")) enums.set(column.getSQLType(), column.enumValues);
-	for (const [name, values] of enums) await pool.query(`CREATE TYPE ${quote(name)} AS ENUM (${values.map(literal).join(",")})`);
+	async function createFixtureEnums() {
+		const enums = new Map<string, readonly string[]>();
+		for (const table of tables) for (const column of table.columns) if (column.enumValues?.length && column.getSQLType() !== "text" && !column.getSQLType().startsWith("varchar")) enums.set(column.getSQLType(), column.enumValues);
+		for (const [name, values] of enums) await pool.query(`CREATE TYPE ${quote(name)} AS ENUM (${values.map(literal).join(",")})`);
+		return { enums };
+	}
+	const { enums } = await createFixtureEnums();
 	for (const table of tables) {
 		const fields = table.columns.map((column) => {
 			const type = column.getSQLType();
@@ -80,17 +84,20 @@ export async function initializeMcpFixtureSchema(pool: Pick<Pool, "query">) {
 			throw error;
 		}
 	}
-	for (const table of tables)
-		for (const index of table.indexes) {
-			const config = index.config;
-			const expression = config.columns.map((column) => (is(column, SQL) ? dialect.sqlToQuery(column).sql : quote((column as { name: string }).name))).join(",");
-			await pool.query(`CREATE ${config.unique ? "UNIQUE " : ""}INDEX ${quote(config.name ?? `${table.name}_fixture_index`)} ON ${quote(table.schema ?? "public")}.${quote(table.name)} (${expression})${config.where ? ` WHERE ${dialect.sqlToQuery(config.where).sql}` : ""}`);
-		}
-	// Foreign keys added after every table exists; preserves schema-owned invariants.
-	for (const table of tables)
-		for (const fk of table.foreignKeys) {
-			const reference = fk.reference();
-			const target = getTableConfig(reference.foreignTable);
-			await pool.query(`ALTER TABLE ${quote(table.schema ?? "public")}.${quote(table.name)} ADD CONSTRAINT ${quote(fk.getName())} FOREIGN KEY (${reference.columns.map((c) => quote(c.name)).join(",")}) REFERENCES ${quote(target.schema ?? "public")}.${quote(target.name)} (${reference.foreignColumns.map((c) => quote(c.name)).join(",")}) ON DELETE ${fk.onDelete ?? "no action"}`);
-		}
+	async function createFixtureIndexesAndForeignKeys() {
+		for (const table of tables)
+			for (const index of table.indexes) {
+				const config = index.config;
+				const expression = config.columns.map((column) => (is(column, SQL) ? dialect.sqlToQuery(column).sql : quote((column as { name: string }).name))).join(",");
+				await pool.query(`CREATE ${config.unique ? "UNIQUE " : ""}INDEX ${quote(config.name ?? `${table.name}_fixture_index`)} ON ${quote(table.schema ?? "public")}.${quote(table.name)} (${expression})${config.where ? ` WHERE ${dialect.sqlToQuery(config.where).sql}` : ""}`);
+			}
+		// Foreign keys added after every table exists; preserves schema-owned invariants.
+		for (const table of tables)
+			for (const fk of table.foreignKeys) {
+				const reference = fk.reference();
+				const target = getTableConfig(reference.foreignTable);
+				await pool.query(`ALTER TABLE ${quote(table.schema ?? "public")}.${quote(table.name)} ADD CONSTRAINT ${quote(fk.getName())} FOREIGN KEY (${reference.columns.map((c) => quote(c.name)).join(",")}) REFERENCES ${quote(target.schema ?? "public")}.${quote(target.name)} (${reference.foreignColumns.map((c) => quote(c.name)).join(",")}) ON DELETE ${fk.onDelete ?? "no action"}`);
+			}
+	}
+	await createFixtureIndexesAndForeignKeys();
 }

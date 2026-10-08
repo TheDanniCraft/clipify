@@ -45,18 +45,22 @@ export async function fetchClipDiscovery(creatorId: string, filters: ClipFilters
 			throw new Error("SERVICE_UNAVAILABLE");
 		}
 	};
-	let categoryId: string | undefined;
-	if (filters.category) {
-		if (/^\d+$/.test(filters.category)) categoryId = filters.category;
-		else {
-			const url = new URL("https://api.twitch.tv/helix/games");
-			url.searchParams.set("name", filters.category);
-			const result = schema.object({ data: schema.array(schema.object({ id: schema.string().min(1).max(200), name: schema.string().max(200) })).max(100) }).safeParse(await request(url));
-			if (!result.success) throw new Error("SERVICE_UNAVAILABLE");
-			categoryId = result.data.data.find((game) => game.name.toLocaleLowerCase("en") === filters.category!.toLocaleLowerCase("en"))?.id;
-			if (!categoryId) return { clips: [], providerAfter: undefined, scanned: 0, complete: true };
+	async function resolveDiscoveryCategory() {
+		let categoryId: string | undefined;
+		if (filters.category) {
+			if (/^\d+$/.test(filters.category)) categoryId = filters.category;
+			else {
+				const url = new URL("https://api.twitch.tv/helix/games");
+				url.searchParams.set("name", filters.category);
+				const result = schema.object({ data: schema.array(schema.object({ id: schema.string().min(1).max(200), name: schema.string().max(200) })).max(100) }).safeParse(await request(url));
+				if (!result.success) throw new Error("SERVICE_UNAVAILABLE");
+				categoryId = result.data.data.find((game) => game.name.toLocaleLowerCase("en") === filters.category!.toLocaleLowerCase("en"))?.id;
+			}
 		}
+		return categoryId;
 	}
+	const categoryId = await resolveDiscoveryCategory();
+	if (filters.category && !categoryId) return { clips: [], providerAfter: undefined, scanned: 0, complete: true };
 	const clips: schema.infer<typeof providerClipSchema>[] = [];
 	const seen = new Set<string>();
 	let cursor = after;

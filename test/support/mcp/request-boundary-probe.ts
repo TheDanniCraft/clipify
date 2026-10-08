@@ -11,24 +11,29 @@ async function main() {
 	try {
 		const route = await import("@/app/mcp/route");
 		const mode = process.argv[2];
-		const method = mode === "preflight" ? "OPTIONS" : mode === "get" ? "GET" : mode === "delete" ? "DELETE" : "POST";
-		const headers = new Headers({ "Content-Type": "application/json", Origin: "http://127.0.0.1:3107", Host: mode === "bad-host" ? "evil.example.invalid" : "127.0.0.1:3107" });
-		if (mode === "preflight") headers.set("Access-Control-Request-Headers", "authorization,content-type,mcp-protocol-version,mcp-method,mcp-name");
-		let body: BodyInit | undefined = method === "POST" ? JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "list_creators", arguments: {} } }) : undefined;
-		if (mode === "oversized") body = " ".repeat(256 * 1024 + 1);
-		if (mode === "exact-limit") body = " ".repeat(256 * 1024);
-		if (mode === "stream-overflow")
-			body = new ReadableStream({
-				start(controller) {
-					controller.enqueue(new Uint8Array(256 * 1024));
-					controller.enqueue(new Uint8Array(1));
-				},
-				cancel() {},
-			});
+		function buildBoundaryRequestBody() {
+			const method = mode === "preflight" ? "OPTIONS" : mode === "get" ? "GET" : mode === "delete" ? "DELETE" : "POST";
+			const headers = new Headers({ "Content-Type": "application/json", Origin: "http://127.0.0.1:3107", Host: mode === "bad-host" ? "evil.example.invalid" : "127.0.0.1:3107" });
+			if (mode === "preflight") headers.set("Access-Control-Request-Headers", "authorization,content-type,mcp-protocol-version,mcp-method,mcp-name");
+			let body: BodyInit | undefined = method === "POST" ? JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "list_creators", arguments: {} } }) : undefined;
+			if (mode === "oversized") body = " ".repeat(256 * 1024 + 1);
+			if (mode === "exact-limit") body = " ".repeat(256 * 1024);
+			if (mode === "stream-overflow")
+				body = new ReadableStream({
+					start(controller) {
+						controller.enqueue(new Uint8Array(256 * 1024));
+						controller.enqueue(new Uint8Array(1));
+					},
+					cancel() {},
+				});
+			return { method, headers, body };
+		}
+		const { method, headers, body: initialBody } = buildBoundaryRequestBody();
+		let body = initialBody;
 		const abort = new AbortController();
 		let cancelled = false;
 		let streamController: ReadableStreamDefaultController | undefined;
-		const stalled = mode === "aborted-body" || mode === "stalled-body";
+		const stalled = ["aborted-body", "stalled-body"].includes(mode);
 		if (stalled)
 			body = new ReadableStream({
 				start(controller) {

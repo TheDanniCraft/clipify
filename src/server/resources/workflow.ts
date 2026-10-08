@@ -39,21 +39,24 @@ export async function workflowOperation<T extends WorkflowToolName>(principal: T
 		authority.assertAuthorityCurrent();
 		const result = await operation(input as ReturnType<(typeof workflowInputSchemas)[T]["parse"]>, context);
 		authority.assertAuthorityCurrent();
-		if (!workflowAnnotations(tool).readOnlyHint) {
-			const selectors = input as { overlayId?: string; playlistId?: string; galleryId?: string; runnerId?: string; sessionId?: string };
-			const targetId = tool.includes("stream_session") ? (selectors.sessionId ?? (typeof result.id === "string" ? result.id : input.creatorId)) : (selectors.overlayId ?? selectors.playlistId ?? selectors.galleryId ?? selectors.runnerId ?? (typeof result.id === "string" ? result.id : input.creatorId));
-			await tx.insert(auditEventsTable).values({
-				actorUserId: principal.authUserId,
-				...(principal.kind === "session" ? { actorSessionId: principal.sessionId } : {}),
-				targetType: tool.includes("gallery") ? "gallery" : tool.includes("playlist") ? "playlist" : tool.includes("overlay") ? "overlay" : tool.includes("runner") ? "runner" : tool.includes("stream_session") ? "stream_session" : "creator",
-				targetId,
-				action: principal.kind === "oauth" ? `sensitive-integration:mcp.${auditTool}` : `workflow.${tool}`,
-				outcome: "success",
-				correlationId: randomUUID(),
-				occurredAt: new Date(),
-				metadata: { creatorId: input.creatorId, tool: auditTool, ...(principal.kind === "oauth" ? { clientId: principal.clientId, grantId: principal.grantId, generation: principal.generation } : {}) },
-			});
+		async function recordWorkflowMutation() {
+			if (!workflowAnnotations(tool).readOnlyHint) {
+				const selectors = input as { overlayId?: string; playlistId?: string; galleryId?: string; runnerId?: string; sessionId?: string };
+				const targetId = tool.includes("stream_session") ? (selectors.sessionId ?? (typeof result.id === "string" ? result.id : input.creatorId)) : (selectors.overlayId ?? selectors.playlistId ?? selectors.galleryId ?? selectors.runnerId ?? (typeof result.id === "string" ? result.id : input.creatorId));
+				await tx.insert(auditEventsTable).values({
+					actorUserId: principal.authUserId,
+					...(principal.kind === "session" ? { actorSessionId: principal.sessionId } : {}),
+					targetType: tool.includes("gallery") ? "gallery" : tool.includes("playlist") ? "playlist" : tool.includes("overlay") ? "overlay" : tool.includes("runner") ? "runner" : tool.includes("stream_session") ? "stream_session" : "creator",
+					targetId,
+					action: principal.kind === "oauth" ? `sensitive-integration:mcp.${auditTool}` : `workflow.${tool}`,
+					outcome: "success",
+					correlationId: randomUUID(),
+					occurredAt: new Date(),
+					metadata: { creatorId: input.creatorId, tool: auditTool, ...(principal.kind === "oauth" ? { clientId: principal.clientId, grantId: principal.grantId, generation: principal.generation } : {}) },
+				});
+			}
 		}
+		await recordWorkflowMutation();
 		authority.assertAuthorityCurrent();
 		return result;
 	});
@@ -88,8 +91,12 @@ export async function workflowRetry(context: WorkflowContext, tool: WorkflowTool
 	}
 	if (previous) await tx.delete(mcpMutationRetriesTable).where(eq(mcpMutationRetriesTable.id, previous.id));
 	const result = JSON.parse(JSON.stringify(await operation())) as Record<string, unknown>;
-	const resourceId = typeof result.id === "string" ? result.id : typeof input.playlistId === "string" ? input.playlistId : typeof input.overlayId === "string" ? input.overlayId : undefined;
-	if (!resourceId) throw new Error("SERVICE_UNAVAILABLE");
+	function resolveRetryResourceId() {
+		const resourceId = typeof result.id === "string" ? result.id : typeof input.playlistId === "string" ? input.playlistId : typeof input.overlayId === "string" ? input.overlayId : undefined;
+		if (!resourceId) throw new Error("SERVICE_UNAVAILABLE");
+		return { resourceId };
+	}
+	const { resourceId } = resolveRetryResourceId();
 	await tx.insert(mcpMutationRetriesTable).values({ ...identity, inputDigest: digest, resourceId, safeResponse: result, createdAt: new Date(), expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) });
 	return result;
 }

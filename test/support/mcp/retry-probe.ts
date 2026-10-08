@@ -27,10 +27,13 @@ export async function runRetryFixture(fixture: Awaited<ReturnType<typeof createM
 		} catch (error) {
 			failure = error instanceof Error ? error.message : "failure";
 		}
-		if (mode === "retries:audit-failure") await fixture.pool.query("ALTER TABLE audit_events DROP CONSTRAINT fixture_audit_failure");
-		if (mode === "retries:deleted") await fixture.pool.query(playlist ? "DELETE FROM playlists" : "DELETE FROM overlays");
-		if (mode === "retries:expired") await fixture.pool.query("UPDATE mcp_mutation_retries SET created_at=now()-interval '25 hours',expires_at=now()-interval '1 hour'");
-		if (mode === "retries:revoked") await fixture.pool.query("UPDATE mcp_connection_grants SET active=false,revoked_at=now() WHERE id=$1", [principal.grantId]);
+		async function changeRetryPersistence() {
+			if (mode === "retries:audit-failure") await fixture.pool.query("ALTER TABLE audit_events DROP CONSTRAINT fixture_audit_failure");
+			if (mode === "retries:deleted") await fixture.pool.query(playlist ? "DELETE FROM playlists" : "DELETE FROM overlays");
+			if (mode === "retries:expired") await fixture.pool.query("UPDATE mcp_mutation_retries SET created_at=now()-interval '25 hours',expires_at=now()-interval '1 hour'");
+			if (mode === "retries:revoked") await fixture.pool.query("UPDATE mcp_connection_grants SET active=false,revoked_at=now() WHERE id=$1", [principal.grantId]);
+		}
+		await changeRetryPersistence();
 		try {
 			results.push(await call(mode === "retries:conflict" ? { ...input, name: "Changed intent" } : input));
 		} catch (error) {

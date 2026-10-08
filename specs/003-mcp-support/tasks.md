@@ -1188,13 +1188,13 @@ These tasks require unavailable original evidence or explicit review of a workfl
 
 ## Blocked external release acceptance
 
-- [ ] T247 [BDD] Materialize BDD-US1-021 with all four real-host examples in test/bdd/features/mcp-support/client-release.feature and bind test/support/mcp/client-profiles.ts through test/bdd/steps/mcp-support.steps.ts after all resource/policy/activity cycles. Run ChatGPT web, Claude web, Codex CLI and custom client read+mutation, denied consent and immediate revoke journeys; record product/date/version/protocol/registration path and actual hint UI in test-results/mcp/client-matrix/. Missing prerequisites remain Blocked, not mocked Green.
+- [x] T247 [BDD] Apply the user-approved 2026-10-08 acceptance amendment: complete the real Codex CLI preview login and Codex-driven official SDK discovery/read/create/edit/delete/limit/refresh validation. Retain independent SDK approval/denial/revocation automated contracts. ChatGPT web, Claude web and another custom host are explicitly deferred by the user; never claim those hosts were tested. Evidence: preview-testing.md acceptance amendment and the redacted operational-metrics preview checkpoint.
 
-**Blocker for T247:** ChatGPT web and Claude web need purpose-created connected test accounts and an isolated publicly reachable HTTPS deployment. Codex CLI needs authenticated MCP configuration targeting it; the custom AI host needs its actual connection profile. Those prerequisites are unavailable. Local official SDK/Chromium proofs do not replace four real-host journeys.
+**T247 scope resolution:** The user explicitly accepted preview-server testing as the replacement for the original named-host matrix. Native Codex login and all 35 disposable mutation checks passed; refresh rotation and subsequent reads passed. This does not waive the distinct historical evidence obligations.
 
 - [ ] T249 [GATE] Execute every required command/threshold from specs/003-mcp-support/plan.md and Quality Gate Results, including full regressions, real PostgreSQL races, coverage, lint/format/types, audit/security contracts, migration policy, build and action manifest. Record actual statuses and immutable evidence once in specs/003-mcp-support/test-traceability.md; unavailable evidence blocks release.
 
-**Blocker for T249:** All local testing/thresholds and final formatting/report verification pass. Whole release evidence remains unavailable until T247 and the twelve historical before-production obligations are resolved. No full release Green is claimed.
+**Blocker for T249:** All local testing/thresholds and final formatting/report verification pass. Whole release evidence remains unavailable until the twelve historical before-production obligations are reviewed. No full release Green is claimed.
 
 ### Approved consent refinement
 
@@ -1241,3 +1241,9 @@ Approved plan addition; implementation and local validation evidence is recorded
 Client export refinement (2026-10-08): Export every application-name group in each one-minute health scrape, without a Top-X cap. Names remain field values. Influx retention is 30 days. Dashboard files must contain the complete importable dashboard, preserving existing panels.
 
 T577 external checkpoint: Real Grafana datasource accepts all 12 new MCP queries (including uncapped app table). Actual bucket still has no MCP fields. Deploy the app and configure/verify the external health collector mapping before claiming ingestion Green. No external dashboard changes were made.
+
+### Preview acceptance and CodeFactor refinement
+
+- [x] T583 Record the approved Codex-only preview acceptance scope and live 35-check disposable create/edit/delete validation, including actual refresh rotation.
+- [ ] T584 Refactor reported CodeFactor methods into named phases, preserve assertions and permission/transaction behavior, verify changed TypeScript/Python checks and affected native/browser regressions, and record results.
+- [ ] T585 Publish the refactor through normal hooks, verify the new CI/CodeFactor result and smoke-test the updated preview once deployment is ready.

@@ -39,7 +39,7 @@ async function main() {
 	let authorizationHeader = false;
 	const metadata: Record<string, unknown> = { client_id: clientId, client_name: "Isolated metadata client", redirect_uris: ["https://custom.example.invalid/callback"], token_endpoint_auth_method: "none", grant_types: ["authorization_code", "refresh_token"], response_types: ["code"] };
 	if (mode === "wrong-identity") metadata.client_id = "https://foreign.example.invalid/client.json";
-	if (mode === "oversized" || mode === "oversized-chunked") metadata.padding = "x".repeat(6144);
+	if (["oversized", "oversized-chunked"].includes(mode)) metadata.padding = "x".repeat(6144);
 	const server = https.createServer({ key: readFileSync(key), cert: readFileSync(certificate) }, (request, response) => {
 		requests++;
 		headerHost = request.headers.host ?? "";
@@ -51,7 +51,7 @@ async function main() {
 			response.end();
 			return;
 		}
-		if (mode === "redirect-open" || mode === "non-json-open") {
+		if (["redirect-open", "non-json-open"].includes(mode)) {
 			response.writeHead(mode === "redirect-open" ? 302 : 200, { "content-type": "text/plain", ...(mode === "redirect-open" ? { location: "https://127.0.0.1/forbidden" } : {}) });
 			response.write("fixture incomplete body");
 			timers.add(setTimeout(() => response.end(), 12000));
@@ -134,10 +134,13 @@ async function main() {
 			console.log(JSON.stringify(await (await import("./cimd-consent-journey")).runCimdConsentJourney({ fixture, auth, origin, clientId })));
 			return;
 		}
-		const closeDeadline = performance.now() + 500;
-		while (sockets.size && performance.now() < closeDeadline) await new Promise((resolve) => setTimeout(resolve, 5));
-		const clients = Number((await fixture.pool.query("SELECT count(*) FROM auth.oauth_client")).rows[0].count);
-		console.log(JSON.stringify({ status: response.status, error: target?.searchParams.get("error") ?? body?.error ?? null, loginPath: target?.pathname ?? null, requests, dnsCalls, pinned, lookupForms, serverName, headerHost, authorizationHeader, clients, closed: sockets.size === 0 }));
+		async function collectCimdMetadataObservations() {
+			const closeDeadline = performance.now() + 500;
+			while (sockets.size && performance.now() < closeDeadline) await new Promise((resolve) => setTimeout(resolve, 5));
+			const clients = Number((await fixture.pool.query("SELECT count(*) FROM auth.oauth_client")).rows[0].count);
+			console.log(JSON.stringify({ status: response.status, error: target?.searchParams.get("error") ?? body?.error ?? null, loginPath: target?.pathname ?? null, requests, dnsCalls, pinned, lookupForms, serverName, headerHost, authorizationHeader, clients, closed: sockets.size === 0 }));
+		}
+		await collectCimdMetadataObservations();
 	} finally {
 		Object.defineProperty(dns, "lookup", { configurable: true, value: originalLookup });
 		Object.defineProperty(https, "request", { configurable: true, value: originalRequest });

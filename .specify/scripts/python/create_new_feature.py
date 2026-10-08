@@ -251,27 +251,7 @@ def _has_spec_prefix_conflict(
     return _spec_prefix_exists(specs_dir, feature_num)
 
 
-def main(argv: list[str] | None = None) -> int:
-    argv0 = sys.argv[0]
-    args = _parse_args(list(argv if argv is not None else sys.argv[1:]), argv0)
-
-    repo_root = get_repo_root(Path(__file__))
-    specs_dir = repo_root / "specs"
-    if not args.dry_run:
-        specs_dir.mkdir(parents=True, exist_ok=True)
-
-    if args.short_name:
-        branch_suffix = _clean_branch_name(args.short_name)
-    else:
-        branch_suffix = _generate_branch_name(args.description)
-
-    if not branch_suffix:
-        print(
-            "[specify] Warning: Feature name is empty after removing unsupported characters. "
-            "Use --short-name with ASCII letters or digits (for example, user-auth).",
-            file=sys.stderr,
-        )
-
+def _resolve_feature_number(args, specs_dir: Path, branch_suffix: str) -> str | None:
     branch_number = args.branch_number
     if args.use_timestamp and branch_number:
         print(
@@ -293,7 +273,7 @@ def main(argv: list[str] | None = None) -> int:
                     f"got '{branch_number}'",
                     file=sys.stderr,
                 )
-                return 1
+                return None
             number = _int64_from_digits(branch_number)
             if number is None:
                 print(
@@ -301,7 +281,7 @@ def main(argv: list[str] | None = None) -> int:
                     f"{_MAX_FEATURE_NUMBER}, got '{branch_number}'",
                     file=sys.stderr,
                 )
-                return 1
+                return None
         else:
             number = _get_highest_from_specs(specs_dir) + 1
         if number > _MAX_FEATURE_NUMBER:
@@ -312,7 +292,7 @@ def main(argv: list[str] | None = None) -> int:
                 f"{_MAX_FEATURE_NUMBER}, got '{rejected_number}'",
                 file=sys.stderr,
             )
-            return 1
+            return None
         feature_num = f"{number:03d}"
 
         # Treat an explicit number as a preference when its prefix is already used
@@ -337,7 +317,7 @@ def main(argv: list[str] | None = None) -> int:
                             f"{_MAX_FEATURE_NUMBER}, got '{number}'",
                             file=sys.stderr,
                         )
-                        return 1
+                        return None
                     feature_num = f"{number:03d}"
                     if not _spec_prefix_exists(specs_dir, feature_num):
                         break
@@ -346,6 +326,34 @@ def main(argv: list[str] | None = None) -> int:
                     f"an existing spec directory; using {feature_num} instead",
                     file=sys.stderr,
                 )
+
+    return feature_num
+
+
+def main(argv: list[str] | None = None) -> int:
+    argv0 = sys.argv[0]
+    args = _parse_args(list(argv if argv is not None else sys.argv[1:]), argv0)
+
+    repo_root = get_repo_root(Path(__file__))
+    specs_dir = repo_root / "specs"
+    if not args.dry_run:
+        specs_dir.mkdir(parents=True, exist_ok=True)
+
+    if args.short_name:
+        branch_suffix = _clean_branch_name(args.short_name)
+    else:
+        branch_suffix = _generate_branch_name(args.description)
+
+    if not branch_suffix:
+        print(
+            "[specify] Warning: Feature name is empty after removing unsupported characters. "
+            "Use --short-name with ASCII letters or digits (for example, user-auth).",
+            file=sys.stderr,
+        )
+
+    feature_num = _resolve_feature_number(args, specs_dir, branch_suffix)
+    if feature_num is None:
+        return 1
 
     max_suffix_length = _MAX_BRANCH_LENGTH - (len(feature_num) + 1)
     if max_suffix_length <= 0:

@@ -78,21 +78,25 @@ export async function savePlaylistItemSelection(principal: TrustedCreatorPrincip
 			if (clipData === undefined) throw new Error("INVALID_INPUT");
 			return { playlistId: current.id, clipId: id, position, clipData };
 		});
-		const clips = projection
-			? []
-			: nextRows.map((row) => {
-					let value: unknown;
-					try {
-						value = JSON.parse(row.clipData);
-					} catch {
-						throw new Error("INVALID_INPUT");
-					}
-					if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("INVALID_INPUT");
-					const raw = value as { clip?: unknown; id?: unknown };
-					const clip = raw.clip && typeof raw.clip === "object" ? raw.clip : raw;
-					if ((clip as { id?: unknown }).id !== row.clipId) throw new Error("INVALID_INPUT");
-					return clip as TwitchClip;
-				});
+		function projectStoredClips() {
+			const clips = projection
+				? []
+				: nextRows.map((row) => {
+						let value: unknown;
+						try {
+							value = JSON.parse(row.clipData);
+						} catch {
+							throw new Error("INVALID_INPUT");
+						}
+						if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("INVALID_INPUT");
+						const raw = value as { clip?: unknown; id?: unknown };
+						const clip = raw.clip && typeof raw.clip === "object" ? raw.clip : raw;
+						if ((clip as { id?: unknown }).id !== row.clipId) throw new Error("INVALID_INPUT");
+						return clip as TwitchClip;
+					});
+			return { clips };
+		}
+		const { clips } = projectStoredClips();
 		authorization.assertAuthorityCurrent();
 		await tx.delete(playlistClipsTable).where(eq(playlistClipsTable.playlistId, current.id));
 		if (nextRows.length) await tx.insert(playlistClipsTable).values(nextRows);
@@ -100,18 +104,21 @@ export async function savePlaylistItemSelection(principal: TrustedCreatorPrincip
 			.update(playlistsTable)
 			.set({ configurationRevision: revision, updatedAt: new Date(), ...(input.name !== undefined ? { name: input.name } : {}) })
 			.where(eq(playlistsTable.id, current.id));
-		if (!projection?.skipAudit)
-			await tx.insert(auditEventsTable).values({
-				actorUserId: principal.authUserId,
-				...(principal.kind === "session" ? { actorSessionId: principal.sessionId } : {}),
-				targetType: "playlist",
-				targetId: current.id,
-				action: principal.kind === "oauth" ? `sensitive-integration:mcp.${projection?.tool ?? "save_playlist_items"}` : input.requirePro ? "playlist.items.import" : "playlist.items.save",
-				outcome: "success",
-				correlationId: randomUUID(),
-				occurredAt: new Date(),
-				metadata: { creatorId: input.creatorId, revision, ...(projection ? { tool: projection.tool } : {}), ...(principal.kind === "oauth" ? { clientId: principal.clientId, grantId: principal.grantId, generation: principal.generation } : {}) },
-			});
+		async function recordPlaylistItemMutation() {
+			if (!projection?.skipAudit)
+				await tx.insert(auditEventsTable).values({
+					actorUserId: principal.authUserId,
+					...(principal.kind === "session" ? { actorSessionId: principal.sessionId } : {}),
+					targetType: "playlist",
+					targetId: current.id,
+					action: principal.kind === "oauth" ? `sensitive-integration:mcp.${projection?.tool ?? "save_playlist_items"}` : input.requirePro ? "playlist.items.import" : "playlist.items.save",
+					outcome: "success",
+					correlationId: randomUUID(),
+					occurredAt: new Date(),
+					metadata: { creatorId: input.creatorId, revision, ...(projection ? { tool: projection.tool } : {}), ...(principal.kind === "oauth" ? { clientId: principal.clientId, grantId: principal.grantId, generation: principal.generation } : {}) },
+				});
+		}
+		await recordPlaylistItemMutation();
 		const result = projection ? await projection.projectResult({ ...current, name: input.name ?? current.name, configurationRevision: revision }, tx) : { clips, configurationRevision: revision, name: input.name ?? current.name };
 		authorization.assertAuthorityCurrent();
 		return result;

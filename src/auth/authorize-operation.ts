@@ -102,34 +102,38 @@ export async function authorizeTrustedCreatorOperation(input: { creatorId: strin
 		.where(and(eq(authMemberTable.organizationId, account.organizationId), eq(authMemberTable.userId, principal.authUserId)))
 		.limit(1);
 
-	let access = resolveDirectAccessGrant({ owner: false, activeMember: false, memberPermissions: [], ownerPermissions: STANDARD_ROLES.owner });
-	const directRole = directMembership[0]?.role;
-	if (directRole) {
-		access = resolveDirectAccessGrant({ owner: directRole === "owner", activeMember: true, memberPermissions: await rolePermissions(account.organizationId, directRole, client), ownerPermissions: STANDARD_ROLES.owner });
-	} else if (organizationId && organizationId !== account.organizationId) {
-		const agencyOrganizationId = organizationId;
-		const [agencyMembership, agencyLink] = await Promise.all([
-			client
-				.select({ role: authMemberTable.role })
-				.from(authMemberTable)
-				.where(and(eq(authMemberTable.organizationId, agencyOrganizationId), eq(authMemberTable.userId, principal.authUserId)))
-				.limit(1),
-			client
-				.select({ status: agencyCreatorLinksTable.status, permissionCeiling: agencyCreatorLinksTable.permissionCeiling })
-				.from(agencyCreatorLinksTable)
-				.where(and(eq(agencyCreatorLinksTable.agencyOrganizationId, agencyOrganizationId), eq(agencyCreatorLinksTable.creatorOrganizationId, account.organizationId)))
-				.limit(1),
-		]);
-		if (agencyMembership[0]) {
-			const permissions = resolveAgencyAccess({
-				membershipActive: true,
-				linkStatus: agencyLink[0]?.status ?? null,
-				rolePermissions: await rolePermissions(agencyOrganizationId, agencyMembership[0].role, client),
-				permissionCeiling: agencyLink[0]?.permissionCeiling ?? [],
-			});
-			if (permissions.length > 0) access = { kind: "agency", permissions, creatorCeiling: agencyLink[0]?.permissionCeiling ?? [] };
+	async function resolveCreatorAccessPath() {
+		let access = resolveDirectAccessGrant({ owner: false, activeMember: false, memberPermissions: [], ownerPermissions: STANDARD_ROLES.owner });
+		const directRole = directMembership[0]?.role;
+		if (directRole) {
+			access = resolveDirectAccessGrant({ owner: directRole === "owner", activeMember: true, memberPermissions: await rolePermissions(account.organizationId, directRole, client), ownerPermissions: STANDARD_ROLES.owner });
+		} else if (organizationId && organizationId !== account.organizationId) {
+			const agencyOrganizationId = organizationId;
+			const [agencyMembership, agencyLink] = await Promise.all([
+				client
+					.select({ role: authMemberTable.role })
+					.from(authMemberTable)
+					.where(and(eq(authMemberTable.organizationId, agencyOrganizationId), eq(authMemberTable.userId, principal.authUserId)))
+					.limit(1),
+				client
+					.select({ status: agencyCreatorLinksTable.status, permissionCeiling: agencyCreatorLinksTable.permissionCeiling })
+					.from(agencyCreatorLinksTable)
+					.where(and(eq(agencyCreatorLinksTable.agencyOrganizationId, agencyOrganizationId), eq(agencyCreatorLinksTable.creatorOrganizationId, account.organizationId)))
+					.limit(1),
+			]);
+			if (agencyMembership[0]) {
+				const permissions = resolveAgencyAccess({
+					membershipActive: true,
+					linkStatus: agencyLink[0]?.status ?? null,
+					rolePermissions: await rolePermissions(agencyOrganizationId, agencyMembership[0].role, client),
+					permissionCeiling: agencyLink[0]?.permissionCeiling ?? [],
+				});
+				if (permissions.length > 0) access = { kind: "agency", permissions, creatorCeiling: agencyLink[0]?.permissionCeiling ?? [] };
+			}
 		}
+		return { access };
 	}
+	const { access } = await resolveCreatorAccessPath();
 
 	const entitlements = await resolveUserEntitlements(creator, client);
 	const entitlementNames = [entitlements.proAccess ? "pro" : null, entitlements.runnerAccess ? "runner" : null].filter((value): value is string => value !== null);

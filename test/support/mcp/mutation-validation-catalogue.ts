@@ -41,22 +41,30 @@ export async function runMutationValidationCatalogue(input: { fixture: Awaited<R
 		const control = await call("get_overlay", { creatorId: "fixture-creator", overlayId });
 		const outcomes = [];
 		for (const name of mutationValidationTools) {
-			const base: Record<string, unknown> = { creatorId: "fixture-creator" };
-			if (name.startsWith("create_")) Object.assign(base, { retryKey: "validation-key", name: "Valid name" });
-			else Object.assign(base, { expectedRevision: 1, ...(name.includes("overlay") ? { overlayId } : { playlistId }) });
-			if (name === "update_overlay_settings") base.patch = { name: "Valid edited name" };
-			if (name === "update_playlist") base.name = "Valid edited name";
-			if (name === "add_playlist_items") base.clipIds = ["NewValidClip"];
-			if (name === "remove_playlist_items" || name === "reorder_playlist_items") base.itemIds = ["ValidationClip"];
+			function buildValidMutationArguments() {
+				const base: Record<string, unknown> = { creatorId: "fixture-creator" };
+				if (name.startsWith("create_")) Object.assign(base, { retryKey: "validation-key", name: "Valid name" });
+				else Object.assign(base, { expectedRevision: 1, ...(name.includes("overlay") ? { overlayId } : { playlistId }) });
+				if (name === "update_overlay_settings") base.patch = { name: "Valid edited name" };
+				if (name === "update_playlist") base.name = "Valid edited name";
+				if (name === "add_playlist_items") base.clipIds = ["NewValidClip"];
+				if (["remove_playlist_items", "reorder_playlist_items"].includes(name)) base.itemIds = ["ValidationClip"];
+				return { base };
+			}
+			const { base } = buildValidMutationArguments();
 			for (const boundary of mutationValidationClasses) {
-				const args = structuredClone(base);
-				if (boundary === "unknown-field") args.unapprovedSetting = true;
-				if (boundary === "invalid-identifier") args.creatorId = "invalid creator!";
-				if (boundary === "wrong-type") args.creatorId = 42;
-				if (boundary === "out-of-range") {
-					if (name.startsWith("create_")) args.retryKey = "x".repeat(129);
-					else args.expectedRevision = 0;
+				function buildInvalidMutationArguments() {
+					const args = structuredClone(base);
+					if (boundary === "unknown-field") args.unapprovedSetting = true;
+					if (boundary === "invalid-identifier") args.creatorId = "invalid creator!";
+					if (boundary === "wrong-type") args.creatorId = 42;
+					if (boundary === "out-of-range") {
+						if (name.startsWith("create_")) args.retryKey = "x".repeat(129);
+						else args.expectedRevision = 0;
+					}
+					return { args };
 				}
+				const { args } = buildInvalidMutationArguments();
 				const result = await call(name, args);
 				outcomes.push({ name, boundary, status: result.status, code: result.body?.result?.structuredContent?.error?.code, isError: result.body?.result?.isError, unchanged: (await snapshot()) === baseline });
 			}
