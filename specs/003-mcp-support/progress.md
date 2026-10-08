@@ -3,9 +3,9 @@
 Updated: 2026-10-08. Branch: `feature/mcp-support`.
 
 - Canonical feature: `003-mcp-support`; workflow expansion consolidated into this scope.
-- Tasks: **555/569 complete (97.5%, unweighted)**; all 136 workflow expansion, 8 feedback and 4 shared-limiter refinement tasks complete.
+- Tasks: **572/586 complete (97.6%, unweighted)**; all 136 workflow expansion, 8 feedback and 4 shared-limiter refinement tasks complete.
 - Tools: **66 implemented**, with six optional MCP prompt templates.
-- Earlier local quality gates passed; the focused-editing final local coverage and normal publication regression pass. External/historical release obligations remain **14 blocked tasks**.
+- Current code and all CI quality gates pass on 66e0ed7; deployed preview mutation and final read/discovery checks pass. All implementable work is complete. External/historical release obligations remain **14 blocked tasks**.
 - Physical runner validation also requires real hardware/credentials.
 
 Use [test-summary.md](test-summary.md) and [blockers.md](blockers.md) for authoritative status. Earlier progress is preserved in [history/core/progress.md](history/core/progress.md).
@@ -25,3 +25,7 @@ The user-approved acceptance scope is now Codex-driven preview testing. Native C
 Final refactor verification checkpoint: changed TypeScript lint/complexity and typechecking pass; 27 Python baseline comparisons pass; intermediate native regression passes 142/143 suites (1,446/1,447 tests), with its sole timeout passing all three cases on an isolated unchanged rerun. Refactor commit 1232e5e is local. The first publication run was stopped before transfer to restore timing-test isolation; a fresh normal push and provider CI verification remain pending.
 
 Publication checkpoint: acb3b3e reached the preview after normal commit/push hooks; all 436 suites / 4,603 tests pass with 11 unchanged skips (2,406.372 seconds). CodeFactor and CodeQL are Green; CodeFactor retains 15 nonblocking complexity notices. Preview refresh rotation and subsequent authenticated reads pass. The old BDD shard's 15 callback-navigation timeouts were traced to a shared test helper that expected an automatic redirect; the corrected manual-continuation helper passes all 15 affected real-browser journeys in three minutes. Fresh browser CI remains pending.
+
+## Final current checkpoint — code and preview verified
+
+CI run [37808034227](https://github.com/TheDanniCraft/clipify/actions/runs/37808034227) passes every applicable job on 66e0ed7. Jest passes 436 suites / 4,603 tests with 11 unchanged skips; unchanged strict coverage gates pass. The test job completes in 27m38s, including coverage; Jest execution is 1,184.046 seconds. All browser projects pass; BDD shard 2 passes 372 examples in 13.0 minutes after the manual-handoff helper correction (previously 15 failures and 2.5 hours). Local focused browser verification passes all 15 affected journeys in three minutes. CodeFactor is Green with 15 nonblocking notices. Preview discovery, six approved-creator reads and unapproved-creator denial pass after deployment. Normal commits and pushes were used; no hooks, deadlines or assertions were bypassed. Final closeout changes only evidence documents, with application/test source identical to verified commit 66e0ed7.
