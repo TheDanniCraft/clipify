@@ -8,7 +8,7 @@ jest.mock(
 	() => {
 		const React = require("react");
 		const Slot = ({ children }: any) => React.createElement("div", null, children);
-		return { CodeBlock: Object.assign(Slot, { Header: Slot, CopyButton: ({ code, "aria-label": label }: any) => React.createElement("button", { "aria-label": label, "data-code": code }) }) };
+		return { CodeBlock: Object.assign(Slot, { Header: Slot, Code: ({ code, ...props }: any) => React.createElement("pre", props, code), CopyButton: ({ code, "aria-label": label }: any) => React.createElement("button", { "aria-label": label, "data-code": code }) }) };
 	},
 	{ virtual: true },
 );
@@ -26,7 +26,7 @@ test.each(["not-a-url", "javascript:alert(1)", "http://remote.example/callback"]
 	expect(screen.getByRole("alert")).toHaveTextContent("Restart the connection");
 	expect(jest.getTimerCount()).toBe(0);
 });
-test.each(["https://client.example/callback?code=fixture&state=fixture", "http://127.0.0.1:4242/callback", "http://localhost:4242/callback", "http://[::1]:4242/callback"])("safe callback %s exposes recoverable commands and cancels timers on unmount", (callbackUrl) => {
+test.each(["https://client.example/callback?code=fixture&state=fixture", "http://127.0.0.1:4242/callback", "http://localhost:4242/callback", "http://[::1]:4242/callback"])("safe callback %s exposes recoverable commands without starting timers", (callbackUrl) => {
 	const { unmount, container } = render(<CallbackHandoff clientName='Custom AI' callbackUrl={callbackUrl} authorized={false} />);
 	expect(screen.getByRole("heading", { name: "Authorization declined" })).toBeVisible();
 	expect(screen.getByRole("button", { name: "Copy callback URL" })).toHaveAttribute("data-code", callbackUrl);
@@ -36,16 +36,16 @@ test.each(["https://client.example/callback?code=fixture&state=fixture", "http:/
 	unmount();
 	expect(jest.getTimerCount()).toBe(0);
 });
-test("successful handoff counts down, redirects once and keeps a manual recovery link", () => {
+test("successful handoff stays on the page and offers a same-tab continuation", () => {
 	window.history.replaceState(null, "", "/");
-	const callbackUrl = new URL("#authorization-complete", window.location.href).href;
+	const callbackUrl = "http://127.0.0.1:4242/callback?code=fixture&state=fixture";
 	render(<CallbackHandoff clientName='Custom AI' callbackUrl={callbackUrl} authorized={true} />);
 	expect(screen.getByRole("heading", { name: "Authorization successful" })).toBeVisible();
-	expect(screen.getByText("Redirecting you back to Custom AI in 4…")).toBeVisible();
-	act(() => jest.advanceTimersByTime(3000));
-	expect(window.location.hash).toBe("");
-	expect(screen.getByText("Redirecting you back to Custom AI in 1…")).toBeVisible();
-	act(() => jest.advanceTimersByTime(2000));
-	expect(window.location.hash).toBe("#authorization-complete");
-	expect(screen.getByRole("link", { name: "return to Custom AI" })).toHaveAttribute("href", callbackUrl);
+	act(() => jest.advanceTimersByTime(10000));
+	expect(window.location.pathname).toBe("/");
+	expect(jest.getTimerCount()).toBe(0);
+	const link = screen.getByRole("link", { name: "Continue to Custom AI" });
+	expect(link).toHaveAttribute("href", callbackUrl);
+	expect(link).not.toHaveAttribute("target");
+	expect(screen.getByText("Connecting from another device or remote environment?")).toBeVisible();
 });

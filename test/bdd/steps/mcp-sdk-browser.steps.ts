@@ -44,6 +44,7 @@ When("the official SDK completes {word} approval edit abandoned consent and revo
 		await page.getByRole("button", { name: "Review", exact: true }).click();
 		await page.getByRole("button", { name: "Authorize", exact: true }).click();
 		await expect(page.getByRole("heading", { name: "Authorization successful" })).toBeVisible();
+		await page.getByRole("link", { name: "Continue to Official SDK browser acceptance" }).click();
 		await page.waitForURL("http://127.0.0.1:49999/callback**");
 		const code = new URL(page.url()).searchParams.get("code");
 		expect(Boolean(code)).toBe(true);
