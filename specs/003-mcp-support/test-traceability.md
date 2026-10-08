@@ -2016,3 +2016,5 @@ Current accepted behavior supersedes disabled-rollout checks: MCP and native pro
 - External-host acceptance still requires the user's MCP authorization after the preview is deployed.
 
 Preview schema application is blocked: Infisical has no valid login session; `bun run db:push` cannot obtain development credentials. No production database or generated migration was used. Restore `infisical login` before preview OAuth acceptance.
+
+Full regression exposed refresh-only consent compatibility failures. Preserve legacy offline_access-only approvals with explicit creator access verification and zero creator operation scopes; explicit empty creator scopes remain invalid. All 13 targeted native consent/agency/new creator-boundary/feedback tests pass after the fix. The failed full run was stopped; a fresh full hook is required on the corrected commits.

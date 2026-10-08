@@ -51,11 +51,16 @@ export async function approveMcpConsent(input: { auth: ConsentAuth; origin: stri
 	}
 	if (input.accept) {
 		try {
-			for (const target of input.creators)
-				validateSelectedScopes(
-					target.scopes ?? scopes.filter((scope) => scope !== "offline_access"),
-					scopes.filter((scope) => scope !== "offline_access"),
-				);
+			for (const target of input.creators) {
+				const creatorScopes = target.scopes ?? scopes.filter((scope) => scope !== "offline_access");
+				// Legacy refresh-only approvals still verify creator access below.
+				// Explicit creator consent must select at least one operation scope.
+				if (creatorScopes.length || target.scopes !== undefined)
+					validateSelectedScopes(
+						creatorScopes,
+						scopes.filter((scope) => scope !== "offline_access"),
+					);
+			}
 		} catch {
 			return deny(400, "invalid_scope");
 		}
@@ -69,10 +74,7 @@ export async function approveMcpConsent(input: { auth: ConsentAuth; origin: stri
 			id = randomUUID();
 			await db.transaction(async (tx) => {
 				for (const target of input.creators)
-					for (const scope of validateSelectedScopes(
-						target.scopes ?? scopes.filter((scope) => scope !== "offline_access"),
-						scopes.filter((scope) => scope !== "offline_access"),
-					)) {
+					for (const scope of target.scopes ?? (scopes.some((scope) => scope !== "offline_access") ? scopes.filter((scope) => scope !== "offline_access") : ["creator:read"])) {
 						const decision = await authorizeTrustedCreatorOperation({ principal: { kind: "session", authUserId: session.user.id, authenticatedAt: session.session.createdAt, sessionId: session.session.id, organizationId: target.agencyOrganizationId }, creatorId: target.creatorId, permission: (scope === "feedback:create" ? "creator:read" : scope) as Permission, client: tx });
 						if (!decision.allowed) throw new Error("ACCESS_DENIED");
 					}

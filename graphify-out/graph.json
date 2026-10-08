@@ -63875,7 +63875,7 @@
       "node_kind": "heading",
       "norm_label": "consent refinement verification (october 7, 2026)",
       "source_file": "specs/003-mcp-support/test-traceability.md",
-      "source_location": "L2005"
+      "source_location": "L2006"
     },
     {
       "id": "specs_003_mcp_support_test_traceability_evidence_artifact_registry_1554",
@@ -109092,7 +109092,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "src/server/mcp/grants.ts",
-      "source_location": "L76",
+      "source_location": "L78",
       "weight": 1.0
     },
     {
@@ -114420,7 +114420,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "test/bdd/steps/mcp-browser-playlist.steps.ts",
-      "source_location": "L60",
+      "source_location": "L61",
       "weight": 1.0
     },
     {
@@ -125894,7 +125894,7 @@
       "confidence_score": 1.0,
       "context": "export",
       "source_file": "src/server/mcp/grants.ts",
-      "source_location": "L110",
+      "source_location": "L112",
       "weight": 1.0
     },
     {
@@ -209684,7 +209684,7 @@
       "confidence_score": 1.0,
       "context": "re-export",
       "source_file": "src/server/mcp/grants.ts",
-      "source_location": "L110",
+      "source_location": "L112",
       "weight": 1.0
     },
     {
@@ -228718,7 +228718,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "specs/003-mcp-support/test-traceability.md",
-      "source_location": "L2005",
+      "source_location": "L2006",
       "weight": 1.0
     },
     {
@@ -270854,5 +270854,5 @@
       "source_file": "specs/001-local-legal-compliance/tdd/cycle-log.md"
     }
   ],
-  "built_at_commit": "c7993ba892551bfb3f7cc38349ba5b019c0c4b22"
+  "built_at_commit": "39edfb3099d75d2ca94350ed6db1100c1e365e96"
 }

@@ -1,8 +1,8 @@
-# Graph Report - clipify (2026-10-07)
+# Graph Report - clipify (2026-10-08)
 
 ## Corpus Check
 
-- 1214 files · ~838,116 words
+- 1214 files · ~838,260 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 154 file(s) not represented in the graph (top: .feature 130, (none) 11, .css 8)
 
@@ -14,7 +14,7 @@
 
 ## Graph Freshness
 
-- Built from commit: `c7993ba8`
+- Built from commit: `39edfb30`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
