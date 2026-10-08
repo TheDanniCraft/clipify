@@ -10,6 +10,10 @@ permissions:
   contents: read
   pull-requests: write
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   changes:
     name: 🔎 Detect changed areas
@@ -232,12 +236,31 @@ jobs:
           retention-days: 30
 
   browser-tests:
-    name: 🌐 Browser tests
+    name: 🌐 Browser tests (${{ matrix.label }})
     runs-on: ubuntu-latest
     needs: deps
-    concurrency:
-      group: clipify-e2e-database
-      cancel-in-progress: false
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - project: acceptance-chromium
+            shard: 1/1
+            label: acceptance
+          - project: atdd-chromium
+            shard: 1/1
+            label: atdd
+          - project: bdd-chromium
+            shard: 1/3
+            label: bdd-1
+          - project: bdd-chromium
+            shard: 2/3
+            label: bdd-2
+          - project: bdd-chromium
+            shard: 3/3
+            label: bdd-3
+          - project: compliance-chromium
+            shard: 1/1
+            label: compliance
     env:
       CLIPIFY_E2E_SCHEMA_PUSH: "1"
       APP_ENV: "test"
@@ -300,17 +323,23 @@ jobs:
           bunx bddgen
           node scripts/check-generated-scenarios.mjs
 
-      - name: 🧪 Run acceptance and BDD browser tests
-        run: bun run test:e2e
+      # Each matrix job owns its loopback PostgreSQL service and browser server.
+      # Keep one browser worker per job so native provider timing checks stay isolated.
+      - name: 🔎 Run compliance inventory audit
+        if: matrix.project == 'compliance-chromium'
+        run: bunx jest --runInBand test/compliance/inventory-audit.test.ts
 
-      - name: 🔎 Run browser compliance audit
-        run: bun run test:compliance
+      - name: 🏗️ Build browser application once
+        run: bun run test:e2e:build
+
+      - name: 🧪 Run complete browser project shard
+        run: bunx playwright test --project=${{ matrix.project }} --shard=${{ matrix.shard }} --workers=1
 
       - name: 📦 Upload Playwright report
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.label }}
           path: playwright-report/
           if-no-files-found: ignore
           retention-days: 30
@@ -319,7 +348,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: playwright-test-results
+          name: playwright-test-results-${{ matrix.label }}
           path: test-results/
           if-no-files-found: ignore
           retention-days: 30
