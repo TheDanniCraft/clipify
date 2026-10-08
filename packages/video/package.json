@@ -24,10 +24,10 @@
 		"@tabler/icons-react": "3.48.0",
 		"react": "19.3.0",
 		"react-dom": "19.3.0",
-		"remotion": "4.0.529"
+		"remotion": "4.0.531"
 	},
 	"devDependencies": {
-		"@remotion/cli": "4.0.529",
+		"@remotion/cli": "4.0.531",
 		"@types/react": "19.3.0",
 		"typescript": "6.0.3"
 	}

@@ -10,18 +10,18 @@
 	},
 	"dependencies": {
 		"@napi-rs/keyring": "^2.1.0",
-		"@puppeteer/browsers": "^3.2.2",
-		"puppeteer-core": "^25.11.0",
+		"@puppeteer/browsers": "^3.2.3",
+		"puppeteer-core": "^25.12.0",
 		"puppeteer-stream": "^3.0.23"
 	},
 	"devDependencies": {
-		"@yao-pkg/pkg": "6.22.0",
+		"@yao-pkg/pkg": "6.23.0",
 		"esbuild": "^0.28.2",
 		"resedit": "^3.1.0",
-		"@swc/core": "^1.16.2",
+		"@swc/core": "^1.16.13",
 		"@swc/jest": "^0.2.39",
 		"@types/jest": "^30.0.0",
-		"@types/node": "^26.6.2",
+		"@types/node": "^26.6.3",
 		"jest": "^30.5.2",
 		"typescript": "^6.0.3"
 	},
@@ -32,6 +32,6 @@
 	},
 	"patchedDependencies": {
 		"puppeteer-stream@3.0.23": "patches/puppeteer-stream.patch",
-		"@yao-pkg/pkg@6.22.0": "patches/yao-pkg-qemu.patch"
+		"@yao-pkg/pkg@6.23.0": "patches/yao-pkg-qemu.patch"
 	}
 }
