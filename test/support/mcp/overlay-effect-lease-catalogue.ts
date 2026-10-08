@@ -8,7 +8,9 @@ export async function runEffectLeaseCatalogue(fixture: Awaited<ReturnType<typeof
 	if (mode === "lease-replaced") {
 		const second = randomUUID();
 		await fixture.pool.query("INSERT INTO overlays(id,owner_id,secret,name,status,type,reward_id) VALUES($1,'creator','second-private-secret','Second','active','Featured','RewardTwo')", [second]);
-		await fixture.pool.query("INSERT INTO overlay_effect_jobs(overlay_id,creator_id,reward_id,configuration_revision) VALUES($1,'creator','RewardTwo',1)", [second]);
+		// Keep both jobs due and RewardOne first: PostgreSQL timestamps have finer precision than the worker clock.
+		await fixture.pool.query("UPDATE overlay_effect_jobs SET scheduled_at=now()-interval '2 seconds' WHERE reward_id='RewardOne'");
+		await fixture.pool.query("INSERT INTO overlay_effect_jobs(overlay_id,creator_id,reward_id,configuration_revision,scheduled_at) VALUES($1,'creator','RewardTwo',1,now()-interval '1 second')", [second]);
 		await run({
 			client: fixture.db,
 			batchSize: 2,
