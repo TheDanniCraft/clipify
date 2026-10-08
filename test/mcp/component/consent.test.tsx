@@ -18,11 +18,13 @@ function choose(name: string) {
 }
 function review() {
 	fireEvent.click(screen.getByRole("button", { name: "Review" }));
+	expect(screen.queryByRole("button", { name: /Deny|Cancel connection/ })).not.toBeInTheDocument();
 }
 test("starts with creator selection and preserves independent write/read choices", () => {
 	const { container } = render(<ConsentForm {...props} />);
 	expect(screen.queryByRole("button", { name: "Continue" })).not.toBeInTheDocument();
 	expect(screen.queryByRole("button", { name: "Deny" })).not.toBeInTheDocument();
+	expect(screen.queryByRole("button", { name: "Cancel connection" })).not.toBeInTheDocument();
 	choose("Creator one");
 	fireEvent.click(within(screen.getByRole("radiogroup", { name: "General permissions" })).getByRole("radio", { name: "Write" }));
 	review();

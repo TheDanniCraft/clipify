@@ -8,7 +8,7 @@ import { registerBrowserClient } from "../../support/mcp/browser-registration";
 const { When } = createBdd(test);
 const origin = "http://127.0.0.1:3107";
 
-When("the official SDK completes {word} approval edit denial and revoke through Clipify pages", async ({ page, request }, area: string) => {
+When("the official SDK completes {word} approval edit abandoned consent and revoke through Clipify pages", async ({ page, request }, area: string) => {
 	test.setTimeout(300000);
 	page.setDefaultTimeout(15000);
 	page.setDefaultNavigationTimeout(60000);
@@ -141,9 +141,8 @@ When("the official SDK completes {word} approval edit denial and revoke through 
 		}
 		await page.goto(authorization);
 		await expect(page.getByRole("heading", { name: "Connect Official SDK browser acceptance" })).toBeVisible();
-		await page.getByRole("button", { name: "Cancel connection", exact: true }).click();
-		await page.waitForURL("http://127.0.0.1:49999/callback**");
-		expect(new URL(page.url()).searchParams.get("error")).toBe("access_denied");
+		await expect(page.getByRole("button", { name: /Deny|Cancel connection/ })).toHaveCount(0);
+		// Leaving the consent page does not submit an approval or callback code.
 		expect(new URL(page.url()).searchParams.has("code")).toBe(false);
 		await page.goto(`${origin}/dashboard/settings`);
 		const suggestions = page.getByRole("button", { name: "Ideas to try with your AI app" });

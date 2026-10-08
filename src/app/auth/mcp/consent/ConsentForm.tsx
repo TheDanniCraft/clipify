@@ -39,8 +39,8 @@ export function ConsentForm({ clientName, requestedScopes, creators, oauthQuery,
 		setDraft({ ...draft, mode: "custom", scopes: [...new Set(scopes)] });
 	};
 	const identity = (choice: ConsentCreatorChoice) => (
-		<span className='flex min-w-0 items-center gap-3'>
-			<Avatar size='sm'>
+		<span className='flex min-w-0 flex-1 items-center gap-3'>
+			<Avatar size='sm' className='shrink-0'>
 				<Avatar.Image src={choice.avatarUrl ?? undefined} alt='' />
 				<Avatar.Fallback>{choice.name.slice(0, 2).toUpperCase()}</Avatar.Fallback>
 			</Avatar>
@@ -54,9 +54,9 @@ export function ConsentForm({ clientName, requestedScopes, creators, oauthQuery,
 		<Accordion allowsMultipleExpanded>
 			{groups.map((group) => (
 				<Accordion.Item key={group.id} id={group.id}>
-					<div className='flex flex-wrap items-center justify-between gap-3'>
+					<div className='flex items-center justify-between gap-2'>
 						<Accordion.Heading className='min-w-0 flex-1'>
-							<Accordion.Trigger className='justify-start gap-2 px-0 py-4 text-sm'>
+							<Accordion.Trigger className='justify-start gap-2 px-0 py-3 text-sm'>
 								<Accordion.Indicator className='ms-0' />
 								<span>{group.title}</span>
 							</Accordion.Trigger>
@@ -154,7 +154,7 @@ export function ConsentForm({ clientName, requestedScopes, creators, oauthQuery,
 														variant='secondary'
 														aria-label={choice.name}
 														isDisabled={added}
-														className='h-auto w-full justify-between rounded-xl border border-border bg-transparent px-4 py-4 text-start'
+														className='h-auto w-full justify-between rounded-lg border border-border bg-transparent px-4 py-3 text-start'
 														onPress={() => {
 															setDraft({ ...draft, creatorId: choice.creatorId });
 															setStep("permissions");
@@ -180,13 +180,18 @@ export function ConsentForm({ clientName, requestedScopes, creators, oauthQuery,
 												const mode = [...keys][0] as ConsentMode;
 												setDraft({ ...draft, mode, scopes: mode === "custom" ? draft.scopes : presetScopes(mode, requestedScopes) });
 											}}
+											className='gap-2 rounded-none bg-transparent p-0'
 											fullWidth
 										>
-											<ToggleButton id='read'>Read</ToggleButton>
-											<ToggleButton id='write' isDisabled={!writable}>
+											<ToggleButton id='read' className='rounded-lg border border-border bg-transparent data-[selected=true]:border-accent data-[selected=true]:bg-accent-soft'>
+												Read
+											</ToggleButton>
+											<ToggleButton id='write' isDisabled={!writable} className='rounded-lg border border-border bg-transparent data-[selected=true]:border-accent data-[selected=true]:bg-accent-soft'>
 												Write
 											</ToggleButton>
-											<ToggleButton id='custom'>Custom</ToggleButton>
+											<ToggleButton id='custom' className='rounded-lg border border-border bg-transparent data-[selected=true]:border-accent data-[selected=true]:bg-accent-soft'>
+												Custom
+											</ToggleButton>
 										</ToggleButtonGroup>
 										<p className='text-sm text-muted'>{!writable ? "This app requested read-only access." : draft.mode === "read" ? "View information without changing it." : draft.mode === "write" ? "Allow requested changes, including deletion where requested. Read-only areas remain Read." : "Choose access for each area. Expand a row to see what it allows."}</p>
 										{permissionList(draft.scopes, draft.mode === "custom")}
@@ -199,9 +204,9 @@ export function ConsentForm({ clientName, requestedScopes, creators, oauthQuery,
 											const choice = creators.find((item) => item.creatorId === entry.creatorId)!;
 											return (
 												<div key={entry.creatorId} className='rounded-xl border border-border p-4'>
-													<div className='flex flex-wrap items-center justify-between gap-3'>
+													<div className='flex items-center justify-between gap-2'>
 														{identity(choice)}
-														<div className='flex items-center gap-2'>
+														<div className='flex shrink-0 items-center gap-1'>
 															<Chip size='sm' variant='soft'>
 																{entry.mode === "custom" ? "Custom" : LEVEL_LABELS[entry.mode]}
 															</Chip>
@@ -274,7 +279,7 @@ export function ConsentForm({ clientName, requestedScopes, creators, oauthQuery,
 									</Button>
 								)}
 								{step === "review" && (
-									<div className='flex flex-wrap gap-3'>
+									<div className='flex w-full items-center justify-between gap-2'>
 										<Button type='button' variant='secondary' onPress={() => begin()}>
 											<IconPlus size={16} />
 											Add another creator
@@ -285,11 +290,6 @@ export function ConsentForm({ clientName, requestedScopes, creators, oauthQuery,
 									</div>
 								)}
 							</Card.Footer>
-							<div className='flex justify-center pb-5'>
-								<Button type='submit' name='accept' value='false' formNoValidate variant='tertiary' size='sm' isDisabled={pending} className='h-auto bg-transparent text-xs text-muted'>
-									Cancel connection
-								</Button>
-							</div>
 						</form>
 					</Card>
 				)}
