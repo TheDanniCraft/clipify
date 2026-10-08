@@ -1,20 +1,41 @@
 # Test Summary Report: MCP Support
 
-Updated: 2026-10-07. Branch: `feature/mcp-support`. Canonical SpecKit feature: `003-mcp-support`.
+Updated: 2026-10-08. Branch: `feature/mcp-support`. Canonical feature: `003-mcp-support`.
 
 ## Current combined status
 
-**543/557 tasks complete (97.5%, unweighted task count, not shipping readiness).** The 136 workflow expansion tasks are included as T406–T541. The original 14 historical/external tasks remain unchecked with their exact blockers in [blockers.md](blockers.md); consolidation neither closes nor waives them.
+**585/586 tasks closed (99.8%, unweighted; not a shipping-readiness percentage).**
+All 66 MCP tools and six optional prompts are implemented. The user explicitly
+approved the twelve historical evidence exceptions and dependent T249
+release-review disposition; see [merge-readiness-review.md](merge-readiness-review.md).
+Original chronology remains unproven and is not relabeled as genuine Red.
+T577 is an approved nonblocking production collector follow-up.
 
-All **50 MCP tools** are implemented: the original 15 overlay/playlist/capability tools plus 34 remote-control, discovery/import, gallery/embed, Creator Page and runner tools and one user-requested feedback tool. Native Better Auth/MCP/OAuth 1.7.7 and official MCP SDK 2.3.0 remain the underlying stack.
+Full CI run 37812676896 passed 436 suites / 4,603 tests, with 11 unchanged skips,
+all strict coverage thresholds, browser projects, static checks and builds.
+The actual preview passed native Codex DCR/PKCE login, discovery, creator
+isolation, refresh rotation and 35 disposable mutation/limit/retry/revision
+checks; original resources were restored. Actual Grafana/Influx validation
+accepted the complete 81-panel v6 import and 360 fixture queries.
 
-The original scope has 709 local MCP and 86 existing browser acceptance cases with retained evidence. The expansion has 320 unique workflow Gherkin examples with passing evidence. These inventories are reported separately; reruns and overlapping native checks are not added as unique cases. Final strict coverage passes for all 91 required MCP source files, and unchanged Jest global/gallery thresholds pass (`test-results/mcp-workflows/shared-feedback-coverage-complete.log`, `coverage/mcp-shared-feedback-complete/strict-gate.json`). Types, scoped lint, formatting, production build, 91-file action manifest, migration-policy checks, scheduler checks and Graphify refresh pass.
+The CodeQL generated-test-path finding was fixed in ecae530. Both affected test
+lanes and normal hooks pass; independent review finds no surviving interpolation
+or path regression. GitHub confirms alert #9 fixed and its thread is resolved.
+Fresh final-head CI is pending; successful completion is still required before
+GitHub merge readiness. The PR is no longer draft.
 
-The final broad regression invocation retained 4,435 passes, five failures in four outdated expectations, and 11 auth skips. All four suites have passing focused compatibility reruns; all 11 auth cases passed on a disposable loopback PostgreSQL fixture. The original invocation is not relabeled green. Two expansion product defects—session audit target identity and within-page duplicate provider clips—have retained Red and Green evidence.
+## Remaining follow-up and recommendation
 
-## Remaining blockers and recommendation
+No known implementation or historical merge blocker remains. Production
+migration/deployment follow normal repository workflows. The external collector
+operator must verify real MCP ingestion at first production monitoring rollout
+(T577); ingestion is not claimed. Physical runner operation, live UI revocation
+and additional named-host compatibility are not claimed as preview-tested.
+Automated contracts remain applicable. Marketplace submissions are a later PR.
 
-Local implementation is ready for review. The user-approved Codex preview acceptance amendment below resolves the original named-host/public-HTTPS requirement. Release still requires review of the distinct historical test-first evidence obligations recorded individually in [blockers.md](blockers.md). Physical runner installation/enrollment, real broadcasting and device snapshots additionally require supported hardware and streaming credentials; local API/control/upload paths pass, but actual hardware operation is not claimed. Repository migration/deployment prerequisites also remain applicable. Marketplace/directory submission belongs to a later PR.
+The following sections preserve earlier verification checkpoints. Their old
+counts, pending prerequisites and blockers are superseded by this current
+status and the approved merge-readiness review.
 
 ## Evidence history
 

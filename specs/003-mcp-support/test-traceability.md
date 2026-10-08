@@ -7,11 +7,23 @@
 **Defect Log**: [defect-log.md](defect-log.md)  
 **Test Summary**: [test-summary.md](test-summary.md)  
 **Created**: 2026-10-04  
-**Last Updated**: 2026-10-06
+**Last Updated**: 2026-10-08
 
 ## Current consolidated quality gates
 
-Historical 50-tool checkpoint: all tools had local implementation evidence. Its source-frozen report passed strict coverage for all 91 required MCP files and unchanged Jest global/gallery thresholds (`test-results/mcp-workflows/shared-feedback-coverage-complete.log`). Final build, action manifest (91 files), types, scoped lint/format, migration policy and scheduler checks pass. Expansion acceptance consists of 320 unique executable examples; foundation and workflow inventories retain separate namespaces and execution counts. Earlier foundation checkpoints below are historical; the workflow Quality Gate Results section records the latest scoped evidence. Release remains blocked as documented in [blockers.md](blockers.md); task/ID consolidation does not waive missing historical or external evidence.
+Full CI run 37812676896 on 0d98124 passed all applicable quality gates,
+436 suites / 4,603 tests, 11 unchanged skips and strict coverage. Preview
+validation passed the approved Codex scope, including 35 disposable mutations
+and refresh. CodeQL confirms alert #9 fixed on ecae530; both database-budget
+lanes and normal hooks pass. Final documentation-head CI remains required.
+
+The user approved the feature-specific historical exception on 2026-10-08:
+T026, T243, T270, T275, T280, T295, T297, T300, T305, T310, T315 and T320
+close by accepted exception, and dependent T249 closes with retained gates.
+[merge-readiness-review.md](merge-readiness-review.md) owns the disposition,
+risk, evidence, owner and expiry. Registry historical Red/Blocked states below
+remain factual historical records; none is manufactured or silently relabeled.
+T577 is an approved nonblocking production ingestion follow-up, still unverified.
 
 ## Evidence Artifact Registry
 

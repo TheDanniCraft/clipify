@@ -1,11 +1,11 @@
 # MCP merge-readiness review — 2026-10-08
 
 PR #496 is ready for review. The current code has no known unresolved failing
-test or preview defect. This review proposes a feature-specific evidence
-exception; approval is pending, and historical tasks remain unchecked until
-approval is recorded.
+test or preview defect. The user explicitly approved this feature-specific evidence
+exception and deployment-follow-up classification with “Approve” on 2026-10-08.
+Historical tasks are closed by accepted exception, not reconstructed history.
 
-## Proposed historical evidence exception
+## Approved historical evidence exception
 
 - Scope: T026, T243, T270, T275, T280, T295, T297, T300, T305, T310,
   T315 and T320 in feature 003 only; their dependent release-review task T249
@@ -36,7 +36,7 @@ approval is recorded.
 - Follow-up: retain any recovered contemporaneous logs if available; no
   manufactured historical Red is required or permitted.
 
-## Proposed deployment follow-up
+## Approved deployment follow-up
 
 T577 remains an external rollout check rather than a code merge prerequisite.
 Its task already permits recording unavailable external access without blocking
@@ -66,12 +66,13 @@ PR #496 was marked ready for review on 2026-10-08. GitHub reports the branch as
 mergeable (no conflicts); all applicable reported checks pass at `0d98124`.
 Inspection of the actual ruleset and review threads found one open CodeQL
 `js/bad-code-sanitization` alert (#9), despite the successful CodeQL check.
-The candidate fix removes filesystem-path interpolation from generated test
+The committed fix (`ecae530`) removes filesystem-path interpolation from generated test
 JavaScript, resolving the sibling output path statically through `import.meta.url`.
 Both database-budget lanes pass (two tests, each running three fixture tests),
 focused ESLint and diff checks pass, and ordinary/special-character path
-resolution is preserved. GitHub must confirm the alert is fixed on the next
-analysis before this security blocker can close; no alert dismissal is proposed.
+resolution is preserved. GitHub CodeQL analysis on `ecae530` confirms alert #9 is fixed. The related
+review thread is resolved. The alert was not dismissed. Fresh full CI remains
+required on the final documentation head.
 
-Approval status: **pending explicit user approval** of the historical exception
-and the monitoring rollout classification above.
+Approval status: **approved by TheDanniCraft on 2026-10-08**, by the explicit
+reply “Approve” to the scoped proposal. No further exception approval is needed.

@@ -3,9 +3,9 @@
 Updated: 2026-10-08. Branch: `feature/mcp-support`.
 
 - Canonical feature: `003-mcp-support`; workflow expansion consolidated into this scope.
-- Tasks: **572/586 complete (97.6%, unweighted)**; all 136 workflow expansion, 8 feedback and 4 shared-limiter refinement tasks complete.
+- Tasks: **585/586 closed (99.8%, unweighted)**; all 136 workflow expansion, 8 feedback and 4 shared-limiter refinement tasks complete.
 - Tools: **66 implemented**, with six optional MCP prompt templates.
-- Current code and all CI quality gates pass on 66e0ed7; deployed preview mutation and final read/discovery checks pass. All implementable work is complete. External/historical release obligations remain **14 blocked tasks**.
+- Current code and all CI quality gates pass on 66e0ed7; deployed preview mutation and final read/discovery checks pass. All implementable work is complete. Historical obligations are closed by the explicitly approved exception. T577 is an approved nonblocking production collector follow-up; final-head CI remains pending.
 - Physical runner validation also requires real hardware/credentials.
 
 Use [test-summary.md](test-summary.md) and [blockers.md](blockers.md) for authoritative status. Earlier progress is preserved in [history/core/progress.md](history/core/progress.md).
@@ -29,3 +29,7 @@ Publication checkpoint: acb3b3e reached the preview after normal commit/push hoo
 ## Final current checkpoint — code and preview verified
 
 CI run [37808034227](https://github.com/TheDanniCraft/clipify/actions/runs/37808034227) passes every applicable job on 66e0ed7. Jest passes 436 suites / 4,603 tests with 11 unchanged skips; unchanged strict coverage gates pass. The test job completes in 27m38s, including coverage; Jest execution is 1,184.046 seconds. All browser projects pass; BDD shard 2 passes 372 examples in 13.0 minutes after the manual-handoff helper correction (previously 15 failures and 2.5 hours). Local focused browser verification passes all 15 affected journeys in three minutes. CodeFactor is Green with 15 nonblocking notices. Preview discovery, six approved-creator reads and unapproved-creator denial pass after deployment. Normal commits and pushes were used; no hooks, deadlines or assertions were bypassed. Final closeout changes only evidence documents, with application/test source identical to verified commit 66e0ed7.
+
+## Approved merge-readiness checkpoint — 2026-10-08
+
+The user explicitly replied “Approve” to merge-readiness-review.md. Thirteen historical/dependent markers close by approved disposition; no retrospective Red is claimed. T577 remains an unchecked, nonblocking deployment follow-up. PR #496 is ready for review. GitHub CodeQL confirms alert #9 fixed on ecae530; its review thread is resolved. Fresh full CI must finish successfully on the final pushed head. Earlier publication/dependency statements above are historical checkpoints.

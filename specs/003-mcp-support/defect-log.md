@@ -1552,3 +1552,25 @@ The intermediate MCP regression reported `spawnSync ETIMEDOUT` for the provider 
 ## CF-DEF-002 — Browser OAuth helper expected the removed automatic redirect
 
 The completed prior CI BDD shard failed 15 real browser journeys and took 2.5 hours because their shared `connectBrowserPlaylist` helper waited for callback navigation after authorization. Retained CI page snapshots show successful authorization and the approved manual `Continue to Browser playlist revision` link. Update the helper to assert that success page and click the continuation link before observing callback navigation and exchanging the code. Product UX, OAuth validation, timeouts and retries remain unchanged. All 15 affected real-browser journeys pass in three minutes against the existing success-page flow (`/tmp/clipify-browser-handoff-repair.log`). CI failure evidence: run 37783995209, job 113334139596. The repair is published in 66e0ed7; CI run 37808034227 passes all 372 owning BDD shard examples in 13.0 minutes. The defect is closed.
+
+## Approved historical evidence disposition — 2026-10-08
+
+The user explicitly approved the scoped review in merge-readiness-review.md.
+The twelve historical evidence obligations and dependent T249 are closed by
+accepted exception. Original limitations (including ENV-023) remain retained;
+no historical test-first proof is invented. T577 remains a nonblocking
+production collector follow-up with an explicit owner and rollout deadline.
+
+## CQ-DEF-001 — Generated test path CodeQL finding (closed)
+
+GitHub CodeQL alert #9 identified filesystem-derived `JSON.stringify(plans)`
+interpolated into executable preload source in
+`test/mcp/unit/test-runner-database-budget.test.ts`. There is no demonstrated
+remote input; the generated-code boundary nevertheless warranted a narrow fix.
+Commit ecae530 uses a static sibling URL resolved through `import.meta.url` and
+`fileURLToPath`, eliminating data interpolation. Both actual runner lanes pass
+(two tests, each exercising three fixture tests); ordinary and special-character
+path controls, focused ESLint, formatting, typecheck and normal hooks pass.
+Independent read-only investigation and candidate review found no surviving
+route or legitimate regression. GitHub analysis run 37822095362 confirms alert
+#9 fixed; its required review thread was resolved. The alert was not dismissed.
