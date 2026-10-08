@@ -80,3 +80,5 @@ The Flux table casts value columns to strings before pivot, then casts numeric
 columns back to floats; this avoids Influx string/float schema collisions.
 
 Both v5 and v6 are full dashboard JSON exports. The v5 baseline was read from the deployed dashboard (68 panels, version 17); v6 preserves all 68 and adds an MCP row and 12 panels.
+
+The actual external `clipify_monitor` bucket retention was verified read-only through Grafana on 2026-10-08: 2,592,000,000,000,000 nanoseconds (30 days).

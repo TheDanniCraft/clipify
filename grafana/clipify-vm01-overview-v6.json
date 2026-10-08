@@ -7704,7 +7704,7 @@
 				"type": "influxdb",
 				"uid": "efg3es37pgh6ob"
 			},
-			"description": "Latest database-wide summary. Other applications means groups beyond the exported top 20; admin pagination covers all. Counts unavailable during a database/schema failure are omitted. Unconsented registrations are separate from active grants and actual retained tool usage.",
+			"description": "Latest database-wide summary across every application-name group. Counts unavailable during a database/schema failure are omitted. Unconsented registrations are separate from active grants and actual retained tool usage.",
 			"targets": [
 				{
 					"refId": "A",
