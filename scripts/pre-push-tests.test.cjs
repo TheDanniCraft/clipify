@@ -36,3 +36,5 @@ test("deleted refs need no tests and invalid input fails closed", () => {
 	assert.throws(() => changedPaths(""));
 	assert.throws(() => changedPaths("invalid"));
 });
+
+test("Gherkin changes use scoped local checks while browser acceptance stays in CI", () => assert.equal(selectPushChecks(["src/app/auth/mcp/consent/ConsentForm.tsx", "test/bdd/features/mcp-support/sdk_browser.feature"]).full, false));

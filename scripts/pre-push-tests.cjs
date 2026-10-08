@@ -9,7 +9,7 @@ function selectPushChecks(paths) {
 	const broad = /^(?:package\.json|bun\.lockb?|(?:jest|next|tsconfig|drizzle)\.|\.husky\/|\.github\/|scripts\/|test\/support\/|test\/__mocks__\/|src\/db\/|src\/auth\/|src\/server\/mcp\/)/;
 	const relevant = [...new Set(paths.filter((path) => !documentation.test(path) && !hookFiles.has(path)))];
 	if (!relevant.length) return { full: false, paths: [] };
-	if (relevant.some((path) => broad.test(path) || !/\.[cm]?[jt]sx?$/.test(path))) return { full: true, paths: [] };
+	if (relevant.some((path) => broad.test(path) || !(/\.[cm]?[jt]sx?$/.test(path) || /^test\/(bdd|atdd)\/.*\.feature$/.test(path)))) return { full: true, paths: [] };
 	return { full: false, paths: relevant };
 }
 
