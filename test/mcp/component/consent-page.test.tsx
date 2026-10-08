@@ -68,7 +68,7 @@ describe("TDD-US1-027 consent route", () => {
 	test("malformed state cannot reach the consent form", async () => {
 		expect(Page).toEqual(expect.any(Function));
 		const result = await Page({ searchParams: Promise.resolve({ client_id: "client" }) });
-		expect(result.props.role).toBe("alert");
+		expect(renderToStaticMarkup(result)).toContain('role="alert"');
 	});
 });
 
@@ -131,7 +131,7 @@ describe("TDD-US1-032 provider signed query compatibility", () => {
 	});
 	test.each(["client_id", "scope", "sig", "redirect_uri"])("continues rejecting duplicate %s", async (key) => {
 		const result = await Page({ searchParams: Promise.resolve({ ...query, [key]: [query[key as keyof typeof query], "other"] }) });
-		expect(result.props.role).toBe("alert");
+		expect(renderToStaticMarkup(result)).toContain('role="alert"');
 	});
 });
 
@@ -143,7 +143,7 @@ describe("TDD-CONSENT-NATIVE-QUERY-001 native query verification before consent 
 	});
 	test("invalid native signature cannot reach session or creator lookup", async () => {
 		const result = await Page({ searchParams: Promise.resolve(query) });
-		expect(result.props.role).toBe("alert");
+		expect(renderToStaticMarkup(result)).toContain('role="alert"');
 		expect(verifyOAuthQueryParams).toHaveBeenCalledWith(new URLSearchParams(query).toString(), process.env.BETTER_AUTH_SECRET);
 		expect(auth.api.getSession).not.toHaveBeenCalled();
 		expect(listAuthorizedCreatorOperations).not.toHaveBeenCalled();
@@ -152,7 +152,7 @@ describe("TDD-CONSENT-NATIVE-QUERY-001 native query verification before consent 
 	test("missing server secret cannot render consent", async () => {
 		delete process.env.BETTER_AUTH_SECRET;
 		const result = await Page({ searchParams: Promise.resolve(query) });
-		expect(result.props.role).toBe("alert");
+		expect(renderToStaticMarkup(result)).toContain('role="alert"');
 		expect(auth.api.getSession).not.toHaveBeenCalled();
 	});
 });

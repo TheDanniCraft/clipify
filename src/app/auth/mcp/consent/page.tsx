@@ -21,7 +21,7 @@ export default async function McpConsentPage({ searchParams }: { searchParams: P
 	const query = new URLSearchParams();
 	for (const [key, value] of Object.entries(parameters)) {
 		if (Array.isArray(value)) {
-			if (key !== "ba_param") return <AuthorizationError role='alert' />;
+			if (key !== "ba_param") return <AuthorizationError />;
 			for (const item of value) query.append(key, item);
 			continue;
 		}
@@ -29,9 +29,9 @@ export default async function McpConsentPage({ searchParams }: { searchParams: P
 	}
 	const oauthQuery = query.toString();
 	const requestedScopes = (query.get("scope") ?? "").split(" ").filter(Boolean);
-	if (!query.get("client_id") || !query.get("sig") || !requestedScopes.length || requestedScopes.some((scope) => ![...MCP_SCOPES, "offline_access"].includes(scope as (typeof MCP_SCOPES)[number]))) return <AuthorizationError role='alert' />;
+	if (!query.get("client_id") || !query.get("sig") || !requestedScopes.length || requestedScopes.some((scope) => ![...MCP_SCOPES, "offline_access"].includes(scope as (typeof MCP_SCOPES)[number]))) return <AuthorizationError />;
 	const secret = process.env.BETTER_AUTH_SECRET;
-	if (!secret || !(await verifyOAuthQueryParams(oauthQuery, secret))) return <AuthorizationError role='alert' />;
+	if (!secret || !(await verifyOAuthQueryParams(oauthQuery, secret))) return <AuthorizationError />;
 	const requestHeaders = await headers();
 	const session = await auth.api.getSession({ headers: requestHeaders });
 	if (!session) redirect(`/login?returnUrl=${encodeURIComponent(`/auth/mcp/consent?${oauthQuery}`)}`);

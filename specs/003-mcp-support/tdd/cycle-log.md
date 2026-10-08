@@ -1407,3 +1407,13 @@ results are recorded in PR #496 without further source changes.
 Graphify was refreshed with one extraction worker: 7,553 nodes, 16,574 edges and
 348 communities. Existing SQL-parser/data-file extraction limitations remain;
 no LLM labeling or dependency installation was performed.
+
+Recovery guard assertions now render the actual returned element and assert its
+alert markup instead of inspecting component props. This also exercises the
+shared error card's default alert role. All 34 affected tests pass. Focused
+coverage reports 100% statements/branches/functions/lines for AuthorizationError,
+AuthorizationLayout and CallbackHandoff. The scoped coverage invocation exits
+nonzero because unrelated gallery coverage is absent from this deliberately
+limited collection; this is measurement evidence, not a full coverage-gate pass.
+No threshold was overridden. Full CI retains the unchanged gallery/global and
+strict MCP source gates. Evidence: authorization-ux/scoped-ui-coverage.log.
