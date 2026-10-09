@@ -59,11 +59,13 @@ describe("creator page actions", () => {
 		getMemberBadges.mockResolvedValue([]);
 	});
 
-	it("shares creator presentation data between metadata and the page without loading clips for metadata", async () => {
+	it("loads metadata without Twitch or badge calls and shares stored creator data with the page", async () => {
 		selectRows.push([{ user, settings }]);
 		const { getCreatorPageMetadata, getCreatorPage } = await loadActions();
-		await expect(getCreatorPageMetadata("Alice")).resolves.toMatchObject({ username: "Alice", avatar: "profile.png", twitchBadge: "Twitch Partner" });
+		await expect(getCreatorPageMetadata("Alice")).resolves.toMatchObject({ username: "Alice", socialTitle: "Alice clips", socialDescription: "Highlights" });
 		expect(getCachedClipPageByOwner).not.toHaveBeenCalled();
+		expect(getCreatorTwitchDetails).not.toHaveBeenCalled();
+		expect(getMemberBadges).not.toHaveBeenCalled();
 		await expect(getCreatorPage("Alice", { pageSize: 24 })).resolves.toMatchObject({ items: [{ id: "clip-1" }], total: 1 });
 		expect(dbSelect).toHaveBeenCalledTimes(1);
 		expect(getCreatorTwitchDetails).toHaveBeenCalledTimes(1);
