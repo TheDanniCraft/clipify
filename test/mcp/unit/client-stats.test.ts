@@ -3,18 +3,14 @@ jest.mock("@/db/client", () => ({ db: { execute: jest.fn() } }));
 import { db } from "@/db/client";
 import { getMcpClientHealthStats, getMcpClientStats } from "@/server/mcp/client-stats";
 const stats = { summary: { registeredClients: 0, authorizedClients: 0, activeClients30d: 0, calls30d: 0, applicationNames: 0 }, items: [] };
-test("bounded health cache coalesces reads, isolates snapshots and refreshes after a minute", async () => {
-	jest.spyOn(Date, "now").mockReturnValue(0);
-	(db.execute as jest.Mock).mockResolvedValue({ rows: [{ data: stats }] });
-	const [first, second] = await Promise.all([getMcpClientHealthStats(), getMcpClientHealthStats()]);
-	expect(db.execute).toHaveBeenCalledTimes(1);
+test("each health poll reads fresh client statistics without a time cache", async () => {
+	(db.execute as jest.Mock).mockClear().mockImplementation(async () => ({ rows: [{ data: structuredClone(stats) }] }));
+	const first = await getMcpClientHealthStats();
 	first.summary.calls30d = 100;
-	expect(second.summary.calls30d).toBe(0);
-	expect((await getMcpClientHealthStats()).summary.calls30d).toBe(0);
-	(Date.now as jest.Mock).mockReturnValue(60001);
-	await getMcpClientHealthStats();
+	(db.execute as jest.Mock).mockResolvedValueOnce({ rows: [{ data: { ...stats, summary: { ...stats.summary, calls30d: 7 } } }] });
+	const second = await getMcpClientHealthStats();
 	expect(db.execute).toHaveBeenCalledTimes(2);
-	jest.restoreAllMocks();
+	expect(second.summary.calls30d).toBe(7);
 });
 test.each([
 	[0, 20],

@@ -76,7 +76,7 @@ scenarios, and every query-bearing Grafana panel passed. The full dashboard has
 queries, but live collector ingestion remains pending.
 
 Client adoption uses existing OAuth clients, current grants and retained MCP
-audit events, cached for one minute. These are database-wide gauges; do not sum
+audit events, freshly queried on every health request without a TTL cache. These are database-wide gauges; do not sum
 replica snapshots. Admin pagination covers every currently known app-name group.
 The health endpoint and Grafana export every group, without a Top-X cap. Names
 are bounded to 200 characters and case-normalized for grouping, are not verified

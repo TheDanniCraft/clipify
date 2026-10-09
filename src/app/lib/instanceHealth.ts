@@ -1,11 +1,12 @@
 /* istanbul ignore file */
+import { userHealthCounts, overlayHealthCounts, settingsHealthCounts, tokenHealthCounts, runnerHealthCounts, streamHealthCounts } from "./health-counts";
 import { db as database, type QueryClient } from "@/db/client";
 import { billingSubscriptionItemsTable, billingSubscriptionsTable, entitlementGrantsTable, galleriesTable, modQueueTable, overlaysTable, plausibleStatsCacheTable, playlistClipsTable, playlistsTable, queueTable, runnersTable, settingsTable, streamSessionsTable, twitchCacheTable, usersTable } from "@/db/schema";
 import { account as authAccountTable } from "@/db/auth-schema";
 import { getTwitchCacheReadMetricsSnapshot } from "@actions/database";
 import { getClipCacheSchedulerStats } from "@lib/clipCacheScheduler";
 import { and, count, countDistinct, eq, gt, isNotNull, isNull, like, lt, lte, or, sql } from "drizzle-orm";
-import { BillingProduct, Entitlement, EntitlementGrantSource, OverlayType, PlaybackMode, Plan, RunnerStatus, StatusOptions, StreamMode, StreamState, TwitchCacheType } from "@types";
+import { BillingProduct, Entitlement, EntitlementGrantSource, OverlayType, PlaybackMode, Plan, StatusOptions, StreamMode, TwitchCacheType } from "@types";
 import { getCreatorAnalyticsRuntimeMetrics } from "@lib/plausibleCreatorAnalytics";
 
 import { getMcpMetricsSnapshot, type McpMetricsSnapshot } from "@/server/mcp/metrics";
@@ -255,11 +256,6 @@ async function countRows(db: QueryClient, table: typeof usersTable | typeof over
 	return Number(result[0]?.count ?? 0);
 }
 
-async function countWhereOverlays(db: QueryClient, status: StatusOptions) {
-	const result = await db.select({ count: count() }).from(overlaysTable).where(eq(overlaysTable.status, status)).execute();
-	return Number(result[0]?.count ?? 0);
-}
-
 async function buildInstanceHealthSnapshot<TExclude extends keyof InstanceHealthSnapshot = never>(db: QueryClient, options?: { exclude?: TExclude[] }): Promise<Omit<InstanceHealthSnapshot, TExclude>> {
 	const started = Date.now();
 	const dbPingStarted = Date.now();
@@ -271,63 +267,23 @@ async function buildInstanceHealthSnapshot<TExclude extends keyof InstanceHealth
 	const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 	const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-	const [usersTotal, overlaysTotal, overlaysActive, overlaysPaused, activeUsers24h, activeUsers7d, activeUsers30d, disabledUsers, disabledManual, disabledAutomatic, neverLoggedIn, disabledReasonRows] = await Promise.all([
-		countRows(db, usersTable),
-		countRows(db, overlaysTable),
-		countWhereOverlays(db, StatusOptions.Active),
-		countWhereOverlays(db, StatusOptions.Paused),
-		db
-			.select({ count: count() })
-			.from(usersTable)
-			.where(and(isNotNull(usersTable.lastLogin), gt(usersTable.lastLogin, dayAgo)))
-			.execute()
-			.then((rows) => Number(rows[0]?.count ?? 0)),
-		db
-			.select({ count: count() })
-			.from(usersTable)
-			.where(and(isNotNull(usersTable.lastLogin), gt(usersTable.lastLogin, weekAgo)))
-			.execute()
-			.then((rows) => Number(rows[0]?.count ?? 0)),
-		db
-			.select({ count: count() })
-			.from(usersTable)
-			.where(and(isNotNull(usersTable.lastLogin), gt(usersTable.lastLogin, monthAgo)))
-			.execute()
-			.then((rows) => Number(rows[0]?.count ?? 0)),
-		db
-			.select({ count: count() })
-			.from(usersTable)
-			.where(eq(usersTable.disabled, true))
-			.execute()
-			.then((rows) => Number(rows[0]?.count ?? 0)),
-		db
-			.select({ count: count() })
-			.from(usersTable)
-			.where(and(eq(usersTable.disabled, true), eq(usersTable.disableType, "manual")))
-			.execute()
-			.then((rows) => Number(rows[0]?.count ?? 0)),
-		db
-			.select({ count: count() })
-			.from(usersTable)
-			.where(and(eq(usersTable.disabled, true), eq(usersTable.disableType, "automatic")))
-			.execute()
-			.then((rows) => Number(rows[0]?.count ?? 0)),
-		db
-			.select({ count: count() })
-			.from(usersTable)
-			.where(isNull(usersTable.lastLogin))
-			.execute()
-			.then((rows) => Number(rows[0]?.count ?? 0)),
-		db
-			.select({
-				reason: usersTable.disabledReason,
-				count: count(),
-			})
-			.from(usersTable)
-			.where(eq(usersTable.disabled, true))
-			.groupBy(usersTable.disabledReason)
-			.execute(),
-	]);
+	const [userCounts] = await db
+		.select(userHealthCounts(dayAgo, weekAgo, monthAgo))
+		.from(usersTable)
+		.execute();
+	const usersTotal = Number(userCounts?.total ?? 0);
+	const activeUsers24h = Number(userCounts?.active24h ?? 0);
+	const activeUsers7d = Number(userCounts?.active7d ?? 0);
+	const activeUsers30d = Number(userCounts?.active30d ?? 0);
+	const disabledUsers = Number(userCounts?.disabled ?? 0);
+	const disabledManual = Number(userCounts?.manual ?? 0);
+	const disabledAutomatic = Number(userCounts?.automatic ?? 0);
+	const neverLoggedIn = Number(userCounts?.neverLoggedIn ?? 0);
+	const [overlayCounts] = await db.select(overlayHealthCounts()).from(overlaysTable).execute();
+	const overlaysTotal = Number(overlayCounts?.total ?? 0);
+	const overlaysActive = Number(overlayCounts?.active ?? 0);
+	const overlaysPaused = Number(overlayCounts?.paused ?? 0);
+	const disabledReasonRows = await db.select({ reason: usersTable.disabledReason, count: count() }).from(usersTable).where(eq(usersTable.disabled, true)).groupBy(usersTable.disabledReason).execute();
 	const disabledReasonCounts = disabledReasonRows.reduce<Record<string, number>>((acc, row) => {
 		acc[(row.reason ?? "unknown").trim() || "unknown"] = Number(row.count ?? 0);
 		return acc;
@@ -385,20 +341,15 @@ async function buildInstanceHealthSnapshot<TExclude extends keyof InstanceHealth
 	const activeOverlayOwnersFree = Number(activeOverlayOwnersByPlanRows.find((row) => row.plan === Plan.Free)?.count ?? 0);
 	const activeOverlayOwnersPaid = Number(activeOverlayOwnersByPlanRows.find((row) => row.plan === Plan.Pro)?.count ?? 0);
 
-	const [playlistsTotal, playlistClipRows, nonEmptyPlaylistsRows, overlaysWithPlaylistRows, activeOverlaysWithPlaylistRows] = await Promise.all([
-		countRows(db, playlistsTable),
-		db.select({ count: count() }).from(playlistClipsTable).execute(),
-		db
-			.select({ count: countDistinct(playlistClipsTable.playlistId) })
-			.from(playlistClipsTable)
-			.execute(),
-		db.select({ count: count() }).from(overlaysTable).where(isNotNull(overlaysTable.playlistId)).execute(),
-		db
-			.select({ count: count() })
-			.from(overlaysTable)
-			.where(and(eq(overlaysTable.status, StatusOptions.Active), isNotNull(overlaysTable.playlistId)))
-			.execute(),
-	]);
+	const playlistsTotal = await countRows(db, playlistsTable);
+	const [playlistCounts] = await db
+		.select({ total: count(), nonEmpty: countDistinct(playlistClipsTable.playlistId) })
+		.from(playlistClipsTable)
+		.execute();
+	const playlistClipRows = [{ count: Number(playlistCounts?.total ?? 0) }];
+	const nonEmptyPlaylistsRows = [{ count: Number(playlistCounts?.nonEmpty ?? 0) }];
+	const overlaysWithPlaylistRows = [{ count: Number(overlayCounts?.withPlaylist ?? 0) }];
+	const activeOverlaysWithPlaylistRows = [{ count: Number(overlayCounts?.activeWithPlaylist ?? 0) }];
 	const playlistClipCount = Number(playlistClipRows[0]?.count ?? 0);
 	const nonEmptyPlaylists = Number(nonEmptyPlaylistsRows[0]?.count ?? 0);
 	const emptyPlaylists = Math.max(0, playlistsTotal - nonEmptyPlaylists);
@@ -406,23 +357,11 @@ async function buildInstanceHealthSnapshot<TExclude extends keyof InstanceHealth
 	const activeOverlaysWithPlaylist = Number(activeOverlaysWithPlaylistRows[0]?.count ?? 0);
 	const avgClipsPerPlaylist = playlistsTotal > 0 ? playlistClipCount / playlistsTotal : 0;
 
-	const [overlaysWithRewardRows, activeOverlaysWithRewardRows, uniqueRewardIdsRows, ownersWithRewardRows, overlaysByTypeRows, overlaysByPlaybackModeRows] = await Promise.all([
-		db.select({ count: count() }).from(overlaysTable).where(isNotNull(overlaysTable.rewardId)).execute(),
-		db
-			.select({ count: count() })
-			.from(overlaysTable)
-			.where(and(eq(overlaysTable.status, StatusOptions.Active), isNotNull(overlaysTable.rewardId)))
-			.execute(),
-		db
-			.select({ count: countDistinct(overlaysTable.rewardId) })
-			.from(overlaysTable)
-			.where(isNotNull(overlaysTable.rewardId))
-			.execute(),
-		db
-			.select({ count: countDistinct(overlaysTable.ownerId) })
-			.from(overlaysTable)
-			.where(isNotNull(overlaysTable.rewardId))
-			.execute(),
+	const overlaysWithRewardRows = [{ count: Number(overlayCounts?.withReward ?? 0) }];
+	const activeOverlaysWithRewardRows = [{ count: Number(overlayCounts?.activeWithReward ?? 0) }];
+	const uniqueRewardIdsRows = [{ count: Number(overlayCounts?.uniqueRewards ?? 0) }];
+	const ownersWithRewardRows = [{ count: Number(overlayCounts?.rewardOwners ?? 0) }];
+	const [overlaysByTypeRows, overlaysByPlaybackModeRows] = await Promise.all([
 		db
 			.select({
 				type: overlaysTable.type,
@@ -450,11 +389,12 @@ async function buildInstanceHealthSnapshot<TExclude extends keyof InstanceHealth
 		return acc;
 	}, {});
 
-	const [settingsRows, optedInRows, optedOutRows, communityOptedInRows, newsletterConsentSourceRows, optedOutSourceRows] = await Promise.all([
-		db.select({ count: count() }).from(settingsTable).execute(),
-		db.select({ count: count() }).from(settingsTable).where(eq(settingsTable.marketingOptIn, true)).execute(),
-		db.select({ count: count() }).from(settingsTable).where(eq(settingsTable.marketingOptIn, false)).execute(),
-		db.select({ count: count() }).from(settingsTable).where(eq(settingsTable.showOnCommunityPage, true)).execute(),
+	const [settingsCounts] = await db.select(settingsHealthCounts()).from(settingsTable).execute();
+	const settingsRows = [{ count: Number(settingsCounts?.total ?? 0) }];
+	const optedInRows = [{ count: Number(settingsCounts?.optedIn ?? 0) }];
+	const optedOutRows = [{ count: Number(settingsCounts?.optedOut ?? 0) }];
+	const communityOptedInRows = [{ count: Number(settingsCounts?.community ?? 0) }];
+	const [newsletterConsentSourceRows, optedOutSourceRows] = await Promise.all([
 		db
 			.select({
 				source: settingsTable.marketingOptInSource,
@@ -487,24 +427,11 @@ async function buildInstanceHealthSnapshot<TExclude extends keyof InstanceHealth
 
 	const [clipQueueRows, modQueueRows] = await Promise.all([db.select({ count: count() }).from(queueTable).execute(), db.select({ count: count() }).from(modQueueTable).execute()]);
 
-	const [tokenRows, expiredTokensRows, expiringIn24hRows, readyForTwitchApiUsersRows] = await Promise.all([
-		db.select({ count: count() }).from(authAccountTable).where(eq(authAccountTable.providerId, "twitch")).execute(),
-		db
-			.select({ count: count() })
-			.from(authAccountTable)
-			.where(and(eq(authAccountTable.providerId, "twitch"), lt(authAccountTable.accessTokenExpiresAt, now)))
-			.execute(),
-		db
-			.select({ count: count() })
-			.from(authAccountTable)
-			.where(and(eq(authAccountTable.providerId, "twitch"), gt(authAccountTable.accessTokenExpiresAt, now), lte(authAccountTable.accessTokenExpiresAt, in24h)))
-			.execute(),
-		db
-			.select({ count: count() })
-			.from(authAccountTable)
-			.where(and(eq(authAccountTable.providerId, "twitch"), sql`${authAccountTable.scope} ~ '(^| )(channel:manage:clips|editor:manage:clips)( |$)'`))
-			.execute(),
-	]);
+	const [tokenCounts] = await db.select(tokenHealthCounts(now, in24h)).from(authAccountTable).where(eq(authAccountTable.providerId, "twitch")).execute();
+	const tokenRows = [{ count: Number(tokenCounts?.total ?? 0) }];
+	const expiredTokensRows = [{ count: Number(tokenCounts?.expired ?? 0) }];
+	const expiringIn24hRows = [{ count: Number(tokenCounts?.expiring ?? 0) }];
+	const readyForTwitchApiUsersRows = [{ count: Number(tokenCounts?.ready ?? 0) }];
 
 	const grantsBySource = Object.values(EntitlementGrantSource).reduce<Record<string, number>>((acc, source) => {
 		acc[source] = Number(activeGrants.filter((row) => row.source === source).reduce((sum, row) => sum + Number(row.count ?? 0), 0));
@@ -520,15 +447,17 @@ async function buildInstanceHealthSnapshot<TExclude extends keyof InstanceHealth
 		when lower(${streamSessionsTable.rtmpUrl}) ~ '^rtmps?://(?:[^/@]+@)?(?:[^/:@]+\.)*twitch\.tv(?::[0-9]+)?(?:/|$)' then 'twitch'
 		else 'custom'
 	end`;
-	const [billingItems, runnerCountRows, onlineRunnerRows, runnerOwnerRows, streamCountRows, desiredRunningRows, actualRunningRows, streamErrorRows, runnersByOsRows, runnersByVersionRows, streamsByModeAndDestinationRows] = await Promise.all([
+	const [runnerCounts] = await db.select(runnerHealthCounts()).from(runnersTable).execute();
+	const [streamCounts] = await db.select(streamHealthCounts()).from(streamSessionsTable).execute();
+	const runnerCountRows = [{ count: Number(runnerCounts?.total ?? 0) }];
+	const onlineRunnerRows = [{ count: Number(runnerCounts?.online ?? 0) }];
+	const runnerOwnerRows = [{ count: Number(runnerCounts?.owners ?? 0) }];
+	const streamCountRows = [{ count: Number(streamCounts?.total ?? 0) }];
+	const desiredRunningRows = [{ count: Number(streamCounts?.desiredRunning ?? 0) }];
+	const actualRunningRows = [{ count: Number(streamCounts?.actualRunning ?? 0) }];
+	const streamErrorRows = [{ count: Number(streamCounts?.errors ?? 0) }];
+	const [billingItems, runnersByOsRows, runnersByVersionRows, streamsByModeAndDestinationRows] = await Promise.all([
 		db.select({ subscriptionId: billingSubscriptionsTable.id, productKey: billingSubscriptionItemsTable.productKey, status: billingSubscriptionsTable.status, cancelAtPeriodEnd: billingSubscriptionsTable.cancelAtPeriodEnd, unitAmount: billingSubscriptionItemsTable.unitAmount, interval: billingSubscriptionItemsTable.billingInterval }).from(billingSubscriptionItemsTable).innerJoin(billingSubscriptionsTable, eq(billingSubscriptionItemsTable.subscriptionId, billingSubscriptionsTable.id)),
-		db.select({ count: count() }).from(runnersTable),
-		db.select({ count: count() }).from(runnersTable).where(eq(runnersTable.status, RunnerStatus.Online)),
-		db.select({ count: countDistinct(runnersTable.ownerId) }).from(runnersTable),
-		db.select({ count: count() }).from(streamSessionsTable),
-		db.select({ count: count() }).from(streamSessionsTable).where(eq(streamSessionsTable.desiredState, StreamState.Running)),
-		db.select({ count: count() }).from(streamSessionsTable).where(eq(streamSessionsTable.actualState, StreamState.Running)),
-		db.select({ count: count() }).from(streamSessionsTable).where(eq(streamSessionsTable.actualState, StreamState.Error)),
 		db.select({ value: runnersTable.osInfo, count: count() }).from(runnersTable).groupBy(runnersTable.osInfo),
 		db.select({ value: runnersTable.version, count: count() }).from(runnersTable).groupBy(runnersTable.version),
 		db.select({ mode: streamSessionsTable.mode, destination: streamDestination, count: count() }).from(streamSessionsTable).groupBy(streamSessionsTable.mode, streamDestination),
@@ -621,6 +550,7 @@ async function buildInstanceHealthSnapshot<TExclude extends keyof InstanceHealth
 	const creatorAggregate = creatorPageRows[0];
 	const analyticsAggregate = analyticsCacheRows[0];
 	const analyticsRuntime = getCreatorAnalyticsRuntimeMetrics();
+	const mcpClients = await getMcpClientHealthStats(db).catch(() => null);
 	const healthAggregationMs = Date.now() - started;
 
 	let status: HealthStatus = "ok";
@@ -629,7 +559,7 @@ async function buildInstanceHealthSnapshot<TExclude extends keyof InstanceHealth
 
 	const health = {
 		mcp: getMcpMetricsSnapshot(),
-		mcpClients: await getMcpClientHealthStats(db).catch(() => null),
+		mcpClients,
 		status,
 		time: now.toISOString(),
 		uptimeSec: Math.floor(process.uptime()),

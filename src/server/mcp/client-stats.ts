@@ -37,18 +37,7 @@ export async function getMcpClientStats(page = 1, pageSize: number | null = 20, 
 	if (!data) throw Error("SERVICE_UNAVAILABLE");
 	return { ...data, page, pageSize: pageSize ?? data.items.length, sampledAt: new Date().toISOString() };
 }
-let cache: { value: McpClientStats; expires: number } | undefined;
-let pending: Promise<McpClientStats> | undefined;
-/** All application groups, coalesced and cached for one minute; audit queries never run per tool call. */
+/** Every health poll reads all application groups freshly, without a TTL cache. */
 export async function getMcpClientHealthStats(client: QueryClient = db): Promise<McpClientStats> {
-	if (cache && cache.expires > Date.now()) return structuredClone(cache.value);
-	pending ??= getMcpClientStats(1, null, client)
-		.then((value) => {
-			cache = { value, expires: Date.now() + 60000 };
-			return value;
-		})
-		.finally(() => {
-			pending = undefined;
-		});
-	return structuredClone(await pending);
+	return getMcpClientStats(1, null, client);
 }
