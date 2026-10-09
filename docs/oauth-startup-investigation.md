@@ -37,7 +37,7 @@ containers; an in-process singleton alone would not solve that race.
 With Sentry server instrumentation enabled in the production build, requests to
 the Plausible script proxy reach 11 `close` listeners on each `ServerResponse`:
 
-- Two Sentry request session/span hooks.
+- Two Sentry request-session/response-context hooks.
 - Two Next router/request-abort hooks.
 - Two httpxy request/proxy hooks.
 - Three Next proxy cancellation/cleanup hooks.
@@ -52,6 +52,13 @@ transport, weak references to responses, and explicit garbage collection. All
 the 60 response objects remained alive. Heap usage settled around 83.4 MB.
 This establishes bounded retention for the reproduced path, not the absence of
 every possible application memory leak.
+
+The browser test build explicitly clears `SENTRY_DSN`, disabling the production
+Sentry request hooks. That test environment therefore does not reproduce this
+11-listener combination. A full browser suite without production instrumentation
+is not evidence that the production proxy will remain below Node's warning
+threshold; the separate instrumented production-build experiment covers that
+boundary.
 
 The cancellation hooks protect against disconnected clients leaving upstream
 requests running. They have not been removed. No global listener limit has been
@@ -70,6 +77,9 @@ full V2 `spec`. Grafana 13.2.3's converter preserved all 69 panels, their titles
 and Flux queries, and 12 rows. The resource passed API create/update and an actual
 browser paste followed by **Apply changes** in the JSON editor. The existing
 dashboard UID is preserved. No live Cloud dashboard was modified during testing.
+The corrected validator also passed on disposable Grafana 13.2.3 and InfluxDB
+2.9.1: 360 Flux queries across normal, reset, replica, zero, and gap scenarios,
+plus execution of every query-bearing panel through Grafana.
 
 See [monitoring instructions](../grafana/mcp-monitoring.md) for the full file and
 the editor API-version compatibility requirement.

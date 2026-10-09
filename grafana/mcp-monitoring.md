@@ -69,8 +69,11 @@ The validator refuses non-loopback addresses. It sets up a test bucket and
 datasource, imports the complete V2 resource through Grafana's resource API, executes all query-bearing panels
 through both InfluxDB and Grafana, and asserts fixture values for normal traffic,
 reset, replicas, missing scrapes, zero traffic, average and histogram p95.
-Validation was run locally with Grafana 12.2.0 and InfluxDB OSS 2.9.1. This proves
-those real parsers accept the artifact; the external connector also accepted the new MCP queries, but live collector ingestion remains pending. The full 81-panel dashboard imported successfully; 360 Flux target queries across five scenarios and every query-bearing Grafana panel were accepted.
+The corrected V2 resource was validated locally on 2026-10-09 with Grafana
+13.2.3 and InfluxDB OSS 2.9.1. Resource import, 360 Flux target queries across five
+scenarios, and every query-bearing Grafana panel passed. The full dashboard has
+69 panels and 12 rows. The external connector previously accepted the MCP
+queries, but live collector ingestion remains pending.
 
 Client adoption uses existing OAuth clients, current grants and retained MCP
 audit events, cached for one minute. These are database-wide gauges; do not sum
@@ -83,7 +86,9 @@ Usage is limited by retained audits, not durable all-time analytics. The table s
 The Flux table casts value columns to strings before pivot, then casts numeric
 columns back to floats; this avoids Influx string/float schema collisions.
 
-Both v5 and v6 are full dashboard JSON exports. The v5 baseline was read from the deployed dashboard (68 panels, version 17); v6 preserves all 68 and adds an MCP row and 12 panels.
+Both v5 and v6 are full dashboard JSON exports. The v5 baseline was read from the
+deployed dashboard (57 panels and 11 rows, version 17); v6 preserves those panels
+and rows and adds an MCP row and 12 panels.
 
 The actual external `clipify_monitor` bucket retention was verified read-only through Grafana on 2026-10-08: 2,592,000,000,000,000 nanoseconds (30 days).
 
