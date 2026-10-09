@@ -1,7 +1,11 @@
 # MCP monitoring contract (v6)
 
-Import `clipify-vm01-overview-v6.json` as a new dashboard. It preserves v5 and uses
-its existing InfluxDB datasource UID `efg3es37pgh6ob`, Flux bucket
+Paste the complete `clipify-vm01-overview-v6.json` into Grafana Cloud's **Edit as JSON** editor, then apply and save. This is a V2 dashboard resource
+with `apiVersion`, `kind`, `metadata`, and `spec`, not a Classic import document.
+It updates the existing dashboard `clipify-vm01-overview`; if editing a different
+dashboard, keep that dashboard's `metadata.name`. The API version must match
+the version displayed by your editor. It preserves the v5 panels and uses
+the existing InfluxDB datasource UID `efg3es37pgh6ob`, Flux bucket
 `clipify_monitor`, and measurement `clipify_vm01`.
 
 ## Collector integration
@@ -53,7 +57,7 @@ stable instances. No user-specific RAM maps or sensitive content are collected.
 
 ## Reproducible acceptance
 
-Start **fresh disposable** Grafana and InfluxDB 2.x services on loopback (Grafana
+Start **fresh disposable** Grafana 13.2.x and InfluxDB 2.x services on loopback (Grafana
 admin credentials `admin:admin`; InfluxDB setup not completed). Then run:
 
 ```sh
@@ -62,7 +66,7 @@ node test/support/monitoring/validate-mcp-grafana.mjs \
 ```
 
 The validator refuses non-loopback addresses. It sets up a test bucket and
-datasource, imports v6 through Grafana's dashboard API, executes all query-bearing panels
+datasource, imports the complete V2 resource through Grafana's resource API, executes all query-bearing panels
 through both InfluxDB and Grafana, and asserts fixture values for normal traffic,
 reset, replicas, missing scrapes, zero traffic, average and histogram p95.
 Validation was run locally with Grafana 12.2.0 and InfluxDB OSS 2.9.1. This proves
@@ -82,3 +86,11 @@ columns back to floats; this avoids Influx string/float schema collisions.
 Both v5 and v6 are full dashboard JSON exports. The v5 baseline was read from the deployed dashboard (68 panels, version 17); v6 preserves all 68 and adds an MCP row and 12 panels.
 
 The actual external `clipify_monitor` bucket retention was verified read-only through Grafana on 2026-10-08: 2,592,000,000,000,000 nanoseconds (30 days).
+
+The previous validation used Grafana 12.2's Classic import API. It did not test
+the Cloud JSON editor and therefore missed the missing `spec` envelope. The
+corrected resource was converted by Grafana 13.2.3: all 69 panel titles and Flux
+queries were preserved across 12 rows, and resource creation and update were
+accepted locally. No live Cloud dashboard was changed by this validation.
+The complete resource was also pasted into Grafana 13.2.3's browser JSON editor
+and applied successfully, exercising the same editor workflow as Grafana Cloud.
