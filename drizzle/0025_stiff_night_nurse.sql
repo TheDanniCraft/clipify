@@ -197,6 +197,7 @@ CREATE TABLE "auth"."oauth_resource" (
 );
 --> statement-breakpoint
 DROP INDEX "creator_accounts_creator_unique";--> statement-breakpoint
+ALTER TABLE "creator_accounts" ADD CONSTRAINT "creator_accounts_creator_unique" UNIQUE("creator_id");--> statement-breakpoint
 ALTER TABLE "galleries" ADD COLUMN "configuration_revision" integer DEFAULT 1 NOT NULL;--> statement-breakpoint
 ALTER TABLE "overlays" ADD COLUMN "configuration_revision" integer DEFAULT 1 NOT NULL;--> statement-breakpoint
 ALTER TABLE "playlists" ADD COLUMN "configuration_revision" integer DEFAULT 1 NOT NULL;--> statement-breakpoint
@@ -244,7 +245,6 @@ CREATE INDEX "oauthRefreshToken_clientId_idx" ON "auth"."oauth_refresh_token" US
 CREATE INDEX "oauthRefreshToken_sessionId_idx" ON "auth"."oauth_refresh_token" USING btree ("session_id");--> statement-breakpoint
 CREATE INDEX "oauthRefreshToken_userId_idx" ON "auth"."oauth_refresh_token" USING btree ("user_id");--> statement-breakpoint
 CREATE INDEX "oauthRefreshToken_authorizationCodeId_idx" ON "auth"."oauth_refresh_token" USING btree ("authorization_code_id");--> statement-breakpoint
-ALTER TABLE "creator_accounts" ADD CONSTRAINT "creator_accounts_creator_unique" UNIQUE("creator_id");--> statement-breakpoint
 ALTER TABLE "galleries" ADD CONSTRAINT "galleries_revision_positive" CHECK ("galleries"."configuration_revision" > 0);--> statement-breakpoint
 ALTER TABLE "overlays" ADD CONSTRAINT "overlays_revision_positive" CHECK ("overlays"."configuration_revision" > 0);--> statement-breakpoint
 ALTER TABLE "playlists" ADD CONSTRAINT "playlists_revision_positive" CHECK ("playlists"."configuration_revision" > 0);--> statement-breakpoint
