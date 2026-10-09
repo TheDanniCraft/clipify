@@ -86,6 +86,15 @@ the same Twitch client and reauthorize the missing grant before retesting.
 Do not add bot permissions to every creator's login or treat a client-credentials
 token refresh as a replacement for user consent.
 
+A read-only check using production's configured Twitch application on 2026-10-09
+confirmed that the bot currently has `user:read:chat` and `user:bot`. The two
+checked owner accounts also currently grant `channel:bot`. These results rule out
+missing grants for those checked identities at inspection time, but the sanitized
+historical log does not identify the broadcaster that failed. They do not justify
+claiming that every creator's grants are valid or that this historical 403 is
+fixed. The check used Twitch's `/helix/authorization/users` endpoint; it did not
+create a subscription or change permissions.
+
 Reference: [Twitch chat subscription authorization](https://dev.twitch.tv/docs/eventsub/eventsub-subscription-types/#channelchatmessage).
 
 The missing Server Action message means the requested ID is absent from the
@@ -104,7 +113,8 @@ Reference: [Next's Server Action diagnostic](https://nextjs.org/docs/messages/fa
 
 The OAuth PostgreSQL race and Grafana editor failures are repaired and reproduced.
 The proxy warning's source and response retention are established, but its noise
-is not removed. Twitch's missing external authorization cannot be repaired by a
-local code change alone. Deployment-skew attribution remains provisional. These
+is not removed. Twitch authorization is valid for the checked production
+identities; the historical failing broadcaster remains unidentified.
+Deployment-skew attribution remains provisional. These
 limits must remain visible in the PR rather than being described as all errors
 fixed.
