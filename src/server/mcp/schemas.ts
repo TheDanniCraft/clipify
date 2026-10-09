@@ -1,3 +1,4 @@
+import { mcpToolCatalogue } from "./catalogue";
 import { overlayFieldGroups, galleryFieldGroups } from "./focused-fields";
 import { workflowInputSchemas, galleryFields } from "./workflows/schemas";
 import { z } from "zod";
@@ -144,8 +145,7 @@ export const toolInputSchemas = {
 };
 export type ToolName = keyof typeof toolInputSchemas;
 /** Broad schemas serve browser/backend callers, never public MCP aliases. */
-const internalToolNames = new Set(["update_overlay", "update_gallery", "get_overlay_embed"]);
-export const publicToolNames = (Object.keys(toolInputSchemas) as ToolName[]).filter((name) => !internalToolNames.has(name));
+export const publicToolNames = (Object.keys(mcpToolCatalogue) as ToolName[]).filter((name) => mcpToolCatalogue[name].public);
 const safeOverlay = z.object({ ...overlayFields, id: resourceId, ownerId: creatorId, name, status: z.enum(StatusOptions), type: z.enum(OverlayType), playlistId: resourceId.nullable(), configurationRevision: expectedRevision });
 /** Explicit schema projection prevents credentials and later ORM fields escaping. */
 export function overlayDto(value: unknown) {

@@ -71,7 +71,7 @@ export async function runToolResultsCatalogue(input: { fixture: Awaited<ReturnTy
 			const result = await request("tools/call", { name, arguments: { creatorId: "fixture-creator" } });
 			excluded.push({ name, denied: result.body?.error?.code === -32602, secretFree: result.secretFree });
 		}
-		return { discovery: { status: discovery.status, names: discovery.body?.result?.tools?.map((tool: any) => tool.name), annotations: discovery.body?.result?.tools?.map((tool: any) => ({ name: tool.name, annotations: tool.annotations })), secretFree: discovery.secretFree }, outcomes, excluded, providerCalls };
+		return { discovery: { status: discovery.status, names: discovery.body?.result?.tools?.map((tool: any) => tool.name), annotations: discovery.body?.result?.tools?.map((tool: any) => ({ name: tool.name, title: tool.title, annotations: tool.annotations })), secretFree: discovery.secretFree }, outcomes, excluded, providerCalls };
 	} finally {
 		globalThis.fetch = originalFetch;
 	}

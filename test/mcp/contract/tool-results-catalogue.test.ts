@@ -7,6 +7,14 @@ describe("TDD-US2-022 every public tool result excludes seeded credentials", () 
 	beforeAll(() => {
 		result = flowProbe("catalogue:tool-results");
 	});
+	test("every public tool advertises a readable English title on native discovery", () => {
+		for (const tool of result.discovery.annotations) {
+			expect(tool.title).toEqual(expect.any(String));
+			expect(tool.title).toMatch(/^[A-Z]/);
+			expect(tool.title).not.toContain("_");
+			expect(tool.name.length).toBeLessThanOrEqual(64);
+		}
+	});
 	test("actual discovery exposes exactly the 66 supported tool definitions without seeded credentials", () => {
 		expect(result.discovery.status).toBe(200);
 		expect(result.discovery.secretFree).toBe(true);
@@ -15,7 +23,7 @@ describe("TDD-US2-022 every public tool result excludes seeded credentials", () 
 	});
 	test.each(names)("%s exposes truthful risk hints on native discovery", (name) => {
 		const read = name.startsWith("list_") || name.startsWith("get_");
-		const destructive = ["update_overlay_settings", "delete_overlay", "update_playlist", "delete_playlist", "remove_playlist_items", "reorder_playlist_items"].includes(name);
+		const destructive = !read;
 		expect(result.discovery.annotations.find((row: any) => row.name === name).annotations).toEqual({ readOnlyHint: read, destructiveHint: destructive, idempotentHint: true, openWorldHint: name === "add_playlist_items" });
 	});
 	test.each(names)("%s succeeds without provider, OAuth, clip or overlay credentials", (name) => {

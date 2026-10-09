@@ -60,6 +60,7 @@ describe("TDD-FOUNDATION-001 workflow tool contracts", () => {
 		expect(hints.readOnlyHint).toBe(false);
 		expect(hints.destructiveHint).toBe(true);
 		expect(hints.idempotentHint).toBe(false);
+		if (name === "control_stream_session") expect(hints.openWorldHint).toBe(true);
 	});
 	test("discovery and preview are read-only but inspect the external world", () => {
 		for (const name of ["search_clips", "resolve_clip", "preview_playlist_import"]) {

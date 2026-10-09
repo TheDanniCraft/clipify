@@ -5,7 +5,7 @@ import { searchClips, resolveClip, previewPlaylistImport, commitPlaylistImport }
 import type { TrustedCreatorPrincipal } from "@/auth/authorize-operation";
 import { getOverlayRuntime, getOverlayQueues, controlOverlay, enqueueOverlayClip, clearOverlayQueue } from "@/server/resources/remote";
 import { workflowInputSchemas, type WorkflowToolName } from "./schemas";
-import { workflowDescriptions } from "./catalogue";
+import { mcpToolCatalogue } from "../catalogue";
 import { submitFeedback } from "@/server/resources/feedback";
 const handlers: Partial<Record<WorkflowToolName, (principal: TrustedCreatorPrincipal, input: unknown) => Promise<Record<string, unknown>>>> = {
 	get_runner_snapshot: getRunnerSnapshot,
@@ -43,5 +43,5 @@ const handlers: Partial<Record<WorkflowToolName, (principal: TrustedCreatorPrinc
 	submit_feedback: submitFeedback,
 };
 export function workflowTools(principal: TrustedCreatorPrincipal) {
-	return (Object.keys(handlers) as WorkflowToolName[]).map((name) => ({ name, description: workflowDescriptions[name], schema: workflowInputSchemas[name], run: (input: unknown) => handlers[name]!(principal, input) }));
+	return (Object.keys(handlers) as WorkflowToolName[]).map((name) => ({ name, description: mcpToolCatalogue[name].description, schema: workflowInputSchemas[name], run: (input: unknown) => handlers[name]!(principal, input) }));
 }

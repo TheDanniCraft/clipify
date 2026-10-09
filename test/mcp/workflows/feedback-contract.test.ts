@@ -6,7 +6,7 @@ import { toolAnnotations } from "@/server/mcp/risk";
 
 test("feedback is an explicit external write using the existing creator read permission", () => {
 	expect((toolPermissions as Record<string, string>).submit_feedback).toBe("creator:read");
-	expect(toolAnnotations("submit_feedback" as any)).toEqual({ readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true });
+	expect(toolAnnotations("submit_feedback" as any)).toEqual({ readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: true });
 });
 test("feedback requires user intent and bounded content, without accepting credentials or transcripts", () => {
 	const schema = (toolInputSchemas as Record<string, any>).submit_feedback;

@@ -1,40 +1,5 @@
-import { workflowPermissions } from "./workflows/catalogue";
+import { mcpToolCatalogue } from "./catalogue";
 import type { Permission } from "@/auth/permissions";
 import type { ToolName } from "./schemas";
-export const toolPermissions = {
-	...workflowPermissions,
-	get_overlay_link: "overlay-secret:read",
-	get_gallery_source: "gallery:read",
-	get_gallery_filters: "gallery:read",
-	get_gallery_layout: "gallery:read",
-	get_gallery_theme: "gallery:read",
-	update_gallery_settings: "gallery:update",
-	update_gallery_source: "gallery:update",
-	update_gallery_filters: "gallery:update",
-	update_gallery_layout: "gallery:update",
-	update_gallery_theme: "gallery:update",
-	get_overlay_source: "overlay:read",
-	get_overlay_filters: "overlay:read",
-	get_overlay_playback: "overlay:read",
-	get_overlay_theme: "overlay:read",
-	update_overlay_settings: "overlay:update",
-	update_overlay_source: "overlay:update",
-	update_overlay_filters: "overlay:update",
-	update_overlay_playback: "overlay:update",
-	update_overlay_theme: "overlay:update",
-	list_creators: "creator:read",
-	get_capabilities: "creator:read",
-	list_overlays: "overlay:read",
-	get_overlay: "overlay:read",
-	create_overlay: "overlay:create",
-	update_overlay: "overlay:update",
-	delete_overlay: "overlay:delete",
-	list_playlists: "playlist:read",
-	get_playlist: "playlist:read",
-	create_playlist: "playlist:create",
-	update_playlist: "playlist:update",
-	delete_playlist: "playlist:delete",
-	add_playlist_items: "playlist-items:manage",
-	remove_playlist_items: "playlist-items:manage",
-	reorder_playlist_items: "playlist-items:manage",
-} as const satisfies Record<ToolName, Permission>;
+
+export const toolPermissions = Object.fromEntries(Object.entries(mcpToolCatalogue).map(([name, tool]) => [name, tool.permission])) as Record<ToolName, Permission>;

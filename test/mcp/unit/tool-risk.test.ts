@@ -19,14 +19,14 @@ const workflowRisk = {
 	create_gallery: "create",
 	update_gallery: "mutation",
 	delete_gallery: "mutation",
-	publish_gallery: "mutation",
+	publish_gallery: "externalMutation",
 	get_gallery_embed: "read",
 	get_gallery_preview: "read",
 	get_overlay_embed: "read",
 	get_player_embed: "read",
 	get_creator_page: "read",
 	update_creator_page: "mutation",
-	publish_creator_page: "mutation",
+	publish_creator_page: "externalMutation",
 	get_runner_setup: "read",
 	list_runners: "read",
 	get_runner: "read",
@@ -37,15 +37,15 @@ const workflowRisk = {
 	list_stream_sessions: "read",
 	get_stream_session: "read",
 	configure_stream_session: "mutation",
-	control_stream_session: "control",
+	control_stream_session: "externalControl",
 	get_runner_snapshot: "read",
 	submit_feedback: "externalFeedback",
 } as const;
 const expectedHints = {
-	externalFeedback: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+	externalFeedback: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: true },
 	read: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
 	externalRead: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
-	create: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+	create: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
 	mutation: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
 	externalMutation: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: true },
 	control: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
@@ -55,7 +55,7 @@ describe("TDD-US2-039 truthful tool risk annotations", () => {
 	test.each(Object.keys(toolInputSchemas).filter((name) => !(name in workflowRisk)))("%s has accurate permissions-independent risk metadata", (name) => {
 		expect(risk?.toolAnnotations).toEqual(expect.any(Function));
 		const read = name.startsWith("list_") || name.startsWith("get_");
-		const destructive = name.startsWith("delete_") || name.startsWith("update_") || name === "remove_playlist_items" || name === "reorder_playlist_items";
+		const destructive = !read;
 		expect(risk.toolAnnotations(name)).toEqual({ readOnlyHint: read, destructiveHint: destructive, idempotentHint: true, openWorldHint: name === "add_playlist_items" });
 	});
 	test.each(Object.entries(workflowRisk))("%s has explicit workflow risk metadata", (name, profile) => {
