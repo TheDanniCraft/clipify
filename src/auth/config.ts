@@ -16,6 +16,7 @@ import { requiredAuthSetting } from "./environment";
 import { evaluateRoleAssignment } from "./role-assignment-policy";
 import { createMcpPlugins } from "./mcp-options";
 import { providerGrantOptions } from "@/server/mcp/grants";
+import { withResourceSeedErrorCompatibility } from "./resource-seed-adapter";
 
 const resolvedBaseUrl = resolveBaseUrl();
 const baseURL = resolvedBaseUrl.origin;
@@ -28,11 +29,13 @@ export const auth = betterAuth({
 	baseURL,
 	trustedOrigins: [baseURL, productionURL, "https://www.clipify.us", "https://es.clipify.us", "http://localhost:3000", "https://*.clipify.cloud.thedannicraft.de"],
 	secret: requiredAuthSetting("BETTER_AUTH_SECRET", "JWT_SECRET"),
-	database: drizzleAdapter(db, {
-		provider: "pg",
-		schemaName: "auth",
-		schema,
-	}),
+	database: withResourceSeedErrorCompatibility(
+		drizzleAdapter(db, {
+			provider: "pg",
+			schemaName: "auth",
+			schema,
+		}),
+	),
 	socialProviders: {
 		twitch: {
 			clientId: requiredAuthSetting("TWITCH_CLIENT_ID"),
