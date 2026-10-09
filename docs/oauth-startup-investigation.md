@@ -61,10 +61,12 @@ threshold; the separate instrumented production-build experiment covers that
 boundary.
 
 The cancellation hooks protect against disconnected clients leaving upstream
-requests running. They have not been removed. No global listener limit has been
-raised, and warnings have not been filtered out. The threshold warning can still
-occur on this upstream proxy path; eliminating it requires a separately validated
-change to proxy/instrumentation lifecycle behavior, not hiding errors.
+requests running. They have not been removed. Real installed Next proxy tests
+cover successful stream completion, client disconnect cancellation, upstream
+socket failure, and preservation of custom budgets. Four additional lifecycle
+hooks model the two router and two Sentry hooks. No new Next.js patch or listener
+threshold adjustment is retained: the existing default threshold warning remains.
+The tests validate cancellation behavior, not the absence of every possible leak.
 
 ## Grafana Cloud editor
 
