@@ -4,10 +4,14 @@ const { readFileSync } = require("node:fs");
 
 const hookFiles = new Set([".husky/pre-push", "scripts/pre-push-tests.cjs", "scripts/pre-push-tests.test.cjs"]);
 
-function selectPushChecks(paths) {
+function selectPushChecks(paths, environment = process.env) {
+	const migrationAutomation = environment.GITHUB_ACTIONS === "true" && environment.GITHUB_REF === "refs/heads/master" && environment.GITHUB_WORKFLOW === "🗃️ Generate Migrations" && environment.CLIPIFY_MIGRATION_WORKFLOW === "true";
+	const generatedMigration = /^drizzle\/(?:\d{4}_[^/]+\.sql|meta\/(?:\d{4}_snapshot|_journal)\.json)$/;
+	// Generation and the commit migration guard own these artifacts; this job has no application test database.
+
 	const documentation = /(^|\/)(?:[^/]+\.md|[^/]+\.txt)$|^graphify-out\//;
-	const broad = /^(?:package\.json|bun\.lockb?|(?:jest|next|tsconfig|drizzle)\.|\.husky\/|\.github\/|scripts\/|test\/support\/|test\/__mocks__\/|src\/db\/|src\/auth\/|src\/server\/mcp\/)/;
-	const relevant = [...new Set(paths.filter((path) => !documentation.test(path) && !hookFiles.has(path)))];
+	const broad = /^(?:package\.json|bun\.lockb?|(?:jest|next|tsconfig|drizzle)\.|\.husky\/|\.github\/|scripts\/|test\/support\/|test\/__mocks__\/|drizzle\/|src\/db\/|src\/auth\/|src\/server\/mcp\/)/;
+	const relevant = [...new Set(paths.filter((path) => !documentation.test(path) && !hookFiles.has(path) && !(migrationAutomation && generatedMigration.test(path))))];
 	if (!relevant.length) return { full: false, paths: [] };
 	if (relevant.some((path) => broad.test(path) || !(/\.[cm]?[jt]sx?$/.test(path) || /^test\/(bdd|atdd)\/.*\.feature$/.test(path)))) return { full: true, paths: [] };
 	return { full: false, paths: relevant };
