@@ -13,9 +13,12 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
 	const ru = rawReturnUrl.startsWith("/") && !rawReturnUrl.startsWith("//") ? rawReturnUrl : "";
 
 	const checkoutIntent = await readCheckoutIntent();
+	// A pending purchase must not replace an explicitly initiated MCP authorization.
+	const isMcpConsent = ru === "/auth/mcp/consent" || ru.startsWith("/auth/mcp/consent?");
+	const returnDestination = isMcpConsent ? ru : checkoutIntent ? "/checkout/continue" : ru;
 	const [session, loggedInUser] = await Promise.all([process.env.E2E_TEST_MODE === "true" ? null : getAuthSession(), validateAuth()]);
 	if (session || loggedInUser) {
-		redirect(checkoutIntent ? "/checkout/continue" : ru || "/dashboard");
+		redirect(returnDestination || "/dashboard");
 	}
 
 	return (
@@ -24,7 +27,7 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
 
 			<div className='min-h-screen min-w-screen flex items-center justify-center bg-gradient-to-br from-brand-800 to-brand-400'>
 				<div className='flex flex-col items-center'>
-					<LoginClient returnUrl={checkoutIntent ? "/checkout/continue" : ru} />
+					<LoginClient returnUrl={returnDestination} />
 
 					<div className='mt-2 flex max-w-[240px] flex-col items-center text-center text-xs text-gray-400'>
 						<p>

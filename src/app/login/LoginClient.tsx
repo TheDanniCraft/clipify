@@ -15,7 +15,7 @@ export default function LoginClient({ returnUrl }: { returnUrl: string }) {
 		const result = await authClient.signIn.social({
 			provider: "twitch",
 			callbackURL: returnUrl || "/dashboard",
-			errorCallbackURL: "/login",
+			errorCallbackURL: returnUrl ? `/login?returnUrl=${encodeURIComponent(returnUrl)}` : "/login",
 		});
 		if (result.error) {
 			setLocalError("Twitch sign-in could not be started. Please try again.");
