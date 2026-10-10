@@ -119,14 +119,16 @@ Then("the activity shows safe actor app creator operation time and outcome", asy
 	await expect(panel.getByText("Blocked", { exact: true })).toBeVisible();
 	await expect(panel.getByText("Clipify E2E Owner", { exact: true }).first()).toBeVisible();
 	await expect(panel.getByText("Browser playlist revision", { exact: true }).first()).toBeVisible();
-	await expect(panel.getByText(`Creator: ${state.owner.fixture.username}`, { exact: true }).first()).toBeVisible();
+	await expect(panel.getByRole("grid", { name: "AI app activity log" }).getByText(state.owner.fixture.username, { exact: true }).first()).toBeVisible();
 	expect(await panel.locator("time").count()).toBe(2);
 	expect(await panel.textContent()).not.toContain("Uncommitted private edit");
 	await panel.scrollIntoViewIfNeeded();
 	await panel.screenshot({ path: "test-results/mcp/activity-settings-desktop.png" });
 	await page.setViewportSize({ width: 390, height: 844 });
 	await panel.scrollIntoViewIfNeeded();
+	expect(await panel.evaluate((element) => element.getBoundingClientRect().width <= window.innerWidth)).toBe(true);
 	await panel.screenshot({ path: "test-results/mcp/activity-settings-mobile.png" });
+	await page.locator("[aria-labelledby=connected-apps-title]").screenshot({ path: "test-results/mcp/connections-settings-mobile.png" });
 });
 Given("the browser dashboard has read a playlist deletion revision", async ({ page, request, mcpWorld }) => {
 	await connectBrowserPlaylist({ page, request, mcpWorld, withProviderCredentials: true });

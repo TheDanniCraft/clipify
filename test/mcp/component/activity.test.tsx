@@ -30,7 +30,8 @@ describe("TDD-ACTIVITY-005 accessible activity controls", () => {
 		expect(await screen.findByText("Read playlist")).toBeVisible();
 		expect(screen.getByText("Creator owner")).toBeVisible();
 		expect(screen.getByText("Custom AI")).toBeVisible();
-		expect(screen.getByText("Creator: Creator")).toBeVisible();
+		expect(screen.getByRole("grid", { name: "AI app activity log" })).toBeVisible();
+		expect(screen.getAllByText("Creator").length).toBeGreaterThan(0);
 		expect(screen.getByText("Completed")).toBeVisible();
 		expect(document.querySelector("time")?.getAttribute("dateTime")).toBe(event.occurredAt);
 	});

@@ -1,14 +1,25 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Accordion, Alert, Button, Card, Chip, Spinner } from "@heroui/react";
+import { Accordion, Alert, Button, Card, Chip, Spinner, Table } from "@heroui/react";
 import { EmptyState } from "@heroui-pro/react";
 import { IconPlugConnected, IconShieldCheck } from "@tabler/icons-react";
 import { getConnectedMcpApps, revokeConnectedMcpApp } from "@/app/actions/mcp-connections";
 import { MCP_EXAMPLE_PROMPTS } from "@lib/mcpPrompts";
 import type { McpConnection } from "@lib/mcpConnection";
 
+function connectionStatus(connection: McpConnection) {
+	if (connection.active) return "Active";
+	if (connection.revokedAt) return "Revoked";
+	return new Date(connection.expiresAt) <= new Date() ? "Expired" : "Inactive";
+}
+function connectionAccessLabel(scopes: string[]) {
+	if (scopes.some((scope) => scope.endsWith(":delete"))) return "Read, edit and delete";
+	return scopes.some((scope) => /:(create|update|manage|control|publish|rotate)$/.test(scope)) ? "Read and edit" : "Read only";
+}
 export default function ConnectedAppsPanel() {
 	const [connections, setConnections] = useState<McpConnection[]>([]);
+	const [showInactive, setShowInactive] = useState(false);
+	const [detailsId, setDetailsId] = useState<string | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [pending, setPending] = useState<string | null>(null);
 	const [confirmation, setConfirmation] = useState<string | null>(null);
@@ -46,6 +57,7 @@ export default function ConnectedAppsPanel() {
 			}
 			setConnections((current) => current.map((connection) => (connection.id === id ? { ...connection, active: false, revokedAt: new Date().toISOString() } : connection)));
 			setConfirmation(null);
+			setShowInactive(true);
 			if (result.cleanupPending) setNotice("Access is revoked. App cleanup will retry automatically. You can also retry cleanup now.");
 			const refreshed = await getConnectedMcpApps();
 			if (!refreshed.error) setConnections(refreshed.connections);
@@ -55,20 +67,23 @@ export default function ConnectedAppsPanel() {
 			setPending(null);
 		}
 	}
+	const inactiveConnections = connections.filter((connection) => !connection.active);
+	const visibleConnections = connections.filter((connection) => connection.active || showInactive);
+	const selectedConnection = connections.find((connection) => connection.id === detailsId);
 	return (
 		<Card className='p-0' aria-labelledby='connected-apps-title'>
-			<Card.Header className='gap-2 p-6'>
+			<Card.Header className='gap-2 p-4'>
 				<div className='flex items-center gap-3'>
-					<span className='flex size-10 items-center justify-center rounded-xl bg-accent-soft text-accent'>
+					<span className='flex size-8 items-center justify-center rounded-xl bg-accent-soft text-accent'>
 						<IconPlugConnected size={22} aria-hidden='true' />
 					</span>
-					<h2 id='connected-apps-title' className='text-xl font-semibold'>
+					<h2 id='connected-apps-title' className='text-lg font-semibold'>
 						Connected AI apps
 					</h2>
 				</div>
 				<Card.Description>Manage which apps can access your creators. Revoking a connection stops its access immediately.</Card.Description>
 			</Card.Header>
-			<Card.Content className='flex flex-col gap-4 px-6 pb-6'>
+			<Card.Content className='flex flex-col gap-3 px-4 pb-4'>
 				{loading ? (
 					<div className='flex items-center gap-2 py-4 text-muted'>
 						<Spinner size='sm' />
@@ -76,7 +91,7 @@ export default function ConnectedAppsPanel() {
 					</div>
 				) : (
 					!connections.length && (
-						<EmptyState className='rounded-xl bg-surface-secondary py-8'>
+						<EmptyState className='rounded-xl bg-surface-secondary py-4'>
 							<EmptyState.Header>
 								<EmptyState.Media variant='icon'>
 									<IconShieldCheck size={28} aria-hidden='true' />
@@ -128,55 +143,100 @@ export default function ConnectedAppsPanel() {
 						</Accordion.Panel>
 					</Accordion.Item>
 				</Accordion>
-				{connections.map((connection) => (
-					<article key={connection.id} className='flex flex-col gap-4 rounded-xl border border-border p-4 sm:p-5'>
-						<div className='flex items-start justify-between gap-3'>
-							<div>
-								<h3 className='font-semibold'>{connection.clientName}</h3>
-								<p className='mt-1 break-all text-xs text-muted'>{connection.clientId}</p>
-							</div>
-							<Chip size='sm' variant='soft' color={connection.active ? "success" : "default"}>
-								{connection.active ? "Active" : connection.revokedAt ? "Revoked" : "Expired"}
-							</Chip>
+				{inactiveConnections.length > 0 && (
+					<Button size='sm' variant='tertiary' className='self-start' aria-expanded={showInactive} onPress={() => setShowInactive((value) => !value)}>
+						{showInactive ? "Hide inactive connections" : `Show inactive connections (${inactiveConnections.length})`}
+					</Button>
+				)}
+				{visibleConnections.length > 0 && (
+					<Table className='min-w-0 w-full'>
+						<Table.ScrollContainer className='max-h-80 overflow-auto'>
+							<Table.Content aria-label='Connected AI apps' className='w-full min-w-[640px] table-fixed'>
+								<Table.Header>
+									<Table.Column id='app' isRowHeader className='w-[24%]'>
+										App
+									</Table.Column>
+									<Table.Column id='access' className='w-[24%]'>
+										Access
+									</Table.Column>
+									<Table.Column id='status' className='w-[15%]'>
+										Status
+									</Table.Column>
+									<Table.Column id='expires' className='w-[15%]'>
+										Expires
+									</Table.Column>
+									<Table.Column id='actions' className='w-[22%]'>
+										Actions
+									</Table.Column>
+								</Table.Header>
+								<Table.Body>
+									{visibleConnections.map((connection) => (
+										<Table.Row key={connection.id} id={connection.id} textValue={connection.clientName}>
+											<Table.Cell className='break-words font-medium'>{connection.clientName}</Table.Cell>
+											<Table.Cell>
+												<span className='block text-sm'>{connectionAccessLabel(connection.scopes)}</span>
+												<span className='text-xs text-muted'>
+													{connection.creatorIds.length} {connection.creatorIds.length === 1 ? "creator" : "creators"}
+												</span>
+											</Table.Cell>
+											<Table.Cell>
+												<Chip size='sm' variant='soft' color={connection.active ? "success" : "default"}>
+													{connectionStatus(connection)}
+												</Chip>
+											</Table.Cell>
+											<Table.Cell className='text-xs text-muted'>{new Date(connection.expiresAt).toLocaleDateString()}</Table.Cell>
+											<Table.Cell>
+												<div className='flex flex-wrap gap-1'>
+													<Button size='sm' variant='tertiary' aria-label={`Details for ${connection.clientName}`} aria-expanded={detailsId === connection.id} onPress={() => setDetailsId(detailsId === connection.id ? null : connection.id)}>
+														Details
+													</Button>
+													<Button size='sm' variant={connection.active ? "danger-soft" : "tertiary"} isDisabled={pending !== null} aria-label={`${connection.active ? "Revoke" : "Retry cleanup for"} ${connection.clientName}`} onPress={() => setConfirmation(connection.id)}>
+														{connection.active ? "Revoke" : "Retry cleanup"}
+													</Button>
+												</div>
+											</Table.Cell>
+										</Table.Row>
+									))}
+								</Table.Body>
+							</Table.Content>
+						</Table.ScrollContainer>
+					</Table>
+				)}
+				{!loading && connections.length > 0 && !visibleConnections.length && <p className='text-sm text-muted'>No active connections.</p>}
+				{selectedConnection && (
+					<section aria-label={`Connection details for ${selectedConnection.clientName}`} className='space-y-2 rounded-lg bg-surface-secondary p-3 text-sm'>
+						<div className='flex items-center justify-between gap-2'>
+							<h3 className='font-medium'>{selectedConnection.clientName} details</h3>
+							<Button size='sm' variant='tertiary' onPress={() => setDetailsId(null)}>
+								Close details
+							</Button>
 						</div>
-						<div className='flex flex-col gap-2 text-sm text-muted'>
-							<p>Creators: {connection.creatorIds.join(", ")}</p>
-							{connection.creatorPermissions ? (
-								connection.creatorPermissions.map((creator) => (
-									<p key={creator.creatorId}>
-										Permissions for {creator.creatorId}: {creator.scopes.join(", ")}
-									</p>
-								))
-							) : (
-								<p>Permissions: {connection.scopes.join(", ")}</p>
-							)}
-							<p>Expires: {new Date(connection.expiresAt).toLocaleDateString()}</p>
-						</div>
-						{confirmation === connection.id ? (
-							<Alert status='warning'>
-								<Alert.Indicator />
-								<Alert.Content>
-									<Alert.Title>Revoke this app’s access?</Alert.Title>
-									<Alert.Description>It will need your approval to connect again.</Alert.Description>
-									<div className='mt-3 flex flex-wrap gap-2'>
-										<Button size='sm' variant='danger' isPending={pending === connection.id} isDisabled={pending !== null} onPress={() => void revoke(connection.id)}>
-											Confirm revoke
-										</Button>
-										<Button size='sm' variant='tertiary' isDisabled={pending !== null} onPress={() => setConfirmation(null)}>
-											Cancel
-										</Button>
-									</div>
-								</Alert.Content>
-							</Alert>
-						) : (
-							<div className='flex justify-end'>
-								<Button size='sm' variant={connection.active ? "danger-soft" : "tertiary"} isDisabled={pending !== null} aria-label={`${connection.active ? "Revoke" : "Retry cleanup for"} ${connection.clientName}`} onPress={() => setConfirmation(connection.id)}>
-									{connection.active ? "Revoke access" : "Retry cleanup"}
+						<p className='break-all text-xs text-muted'>Client ID: {selectedConnection.clientId}</p>
+						<p className='text-muted'>Creators: {selectedConnection.creatorIds.join(", ")}</p>
+						{(selectedConnection.creatorPermissions ?? selectedConnection.creatorIds.map((creatorId) => ({ creatorId, scopes: selectedConnection.scopes }))).map((creator) => (
+							<p key={creator.creatorId} className='break-words text-xs text-muted'>
+								Permissions for {creator.creatorId}: {creator.scopes.join(", ")}
+							</p>
+						))}
+					</section>
+				)}
+				{confirmation && (
+					<Alert status='warning'>
+						<Alert.Indicator />
+						<Alert.Content>
+							<Alert.Title>Revoke this app&apos;s access?</Alert.Title>
+							<Alert.Description>It will need your approval to connect again.</Alert.Description>
+							<div className='mt-3 flex flex-wrap gap-2'>
+								<Button size='sm' variant='danger' isPending={pending === confirmation} isDisabled={pending !== null} onPress={() => void revoke(confirmation)}>
+									Confirm revoke
+								</Button>
+								<Button size='sm' variant='tertiary' isDisabled={pending !== null} onPress={() => setConfirmation(null)}>
+									Cancel
 								</Button>
 							</div>
-						)}
-					</article>
-				))}
+						</Alert.Content>
+					</Alert>
+				)}
 			</Card.Content>
 		</Card>
 	);

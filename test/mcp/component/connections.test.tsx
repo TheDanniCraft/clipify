@@ -17,6 +17,8 @@ describe("TDD-US1-020/024 connected apps UI", () => {
 		expect(Panel).toEqual(expect.any(Function));
 		render(<Panel />);
 		expect(await screen.findByText("My custom AI")).toBeVisible();
+		expect(screen.queryByText(/creator:read/)).not.toBeInTheDocument();
+		fireEvent.click(screen.getByRole("button", { name: "Details for My custom AI" }));
 		expect(screen.getByText(/creator:read/)).toBeVisible();
 		expect(screen.getByText("Creators: creator")).toBeTruthy();
 		fireEvent.click(screen.getByRole("button", { name: "Revoke My custom AI" }));
@@ -82,8 +84,9 @@ describe("TDD-US1-020/024 connected apps UI", () => {
 		expect(screen.queryByText("private network details")).not.toBeInTheDocument();
 	});
 	test("expired connections have a distinct status and explicit cleanup action", async () => {
-		(getConnectedMcpApps as jest.Mock).mockResolvedValue({ connections: [{ ...connection, active: false, revokedAt: null }] });
+		(getConnectedMcpApps as jest.Mock).mockResolvedValue({ connections: [{ ...connection, active: false, revokedAt: null, expiresAt: "2000-01-01T00:00:00Z" }] });
 		render(<Panel />);
+		fireEvent.click(await screen.findByRole("button", { name: "Show inactive connections (1)" }));
 		expect(await screen.findByText("Expired")).toBeVisible();
 		expect(screen.getByRole("button", { name: "Retry cleanup for My custom AI" })).toBeEnabled();
 		expect(revokeConnectedMcpApp).not.toHaveBeenCalled();
@@ -122,4 +125,17 @@ test("connected app settings provide optional English example prompts without ru
 	expect(screen.getByText("Give my overlay a purple theme with rounded corners and a visible progress bar.")).toBeInTheDocument();
 	expect(screen.getByText("Show me which Minecraft clips from yesterday you would add to my playlist.")).toBeInTheDocument();
 	expect(revokeConnectedMcpApp).not.toHaveBeenCalled();
+});
+
+test("future inactive connections are hidden initially and are not mislabeled expired", async () => {
+	(getConnectedMcpApps as jest.Mock).mockResolvedValue({ connections: [{ ...connection, active: false, revokedAt: null, expiresAt: "2099-01-01T00:00:00Z" }] });
+	render(<Panel />);
+	expect(await screen.findByText("No active connections.")).toBeVisible();
+	expect(screen.queryByText("My custom AI")).not.toBeInTheDocument();
+	fireEvent.click(screen.getByRole("button", { name: "Show inactive connections (1)" }));
+	expect(screen.getByRole("grid", { name: "Connected AI apps" })).toBeVisible();
+	expect(screen.getByText("Inactive")).toBeVisible();
+	expect(screen.queryByText("Expired")).not.toBeInTheDocument();
+	fireEvent.click(screen.getByRole("button", { name: "Hide inactive connections" }));
+	expect(screen.queryByText("My custom AI")).not.toBeInTheDocument();
 });
