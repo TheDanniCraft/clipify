@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Accordion, Alert, Button, Card, Chip, Spinner, Table } from "@heroui/react";
+import { Accordion, Alert, Button, Card, Chip, Modal, Spinner, Table } from "@heroui/react";
 import { EmptyState } from "@heroui-pro/react";
 import { IconPlugConnected, IconShieldCheck } from "@tabler/icons-react";
 import { getConnectedMcpApps, revokeConnectedMcpApp } from "@/app/actions/mcp-connections";
@@ -102,7 +102,7 @@ export default function ConnectedAppsPanel() {
 						</EmptyState>
 					)
 				)}
-				{error && (
+				{error && !confirmation && (
 					<Alert status='danger' role='alert'>
 						<Alert.Indicator />
 						<Alert.Content>
@@ -187,7 +187,7 @@ export default function ConnectedAppsPanel() {
 											<Table.Cell className='text-xs text-muted'>{new Date(connection.expiresAt).toLocaleDateString()}</Table.Cell>
 											<Table.Cell>
 												<div className='flex flex-wrap gap-1'>
-													<Button size='sm' variant='tertiary' aria-label={`Details for ${connection.clientName}`} aria-expanded={detailsId === connection.id} onPress={() => setDetailsId(detailsId === connection.id ? null : connection.id)}>
+													<Button size='sm' variant='tertiary' aria-label={`Details for ${connection.clientName}`} aria-haspopup='dialog' onPress={() => setDetailsId(detailsId === connection.id ? null : connection.id)}>
 														Details
 													</Button>
 													<Button size='sm' variant={connection.active ? "danger-soft" : "tertiary"} isDisabled={pending !== null} aria-label={`${connection.active ? "Revoke" : "Retry cleanup for"} ${connection.clientName}`} onPress={() => setConfirmation(connection.id)}>
@@ -204,38 +204,74 @@ export default function ConnectedAppsPanel() {
 				)}
 				{!loading && connections.length > 0 && !visibleConnections.length && <p className='text-sm text-muted'>No active connections.</p>}
 				{selectedConnection && (
-					<section aria-label={`Connection details for ${selectedConnection.clientName}`} className='space-y-2 rounded-lg bg-surface-secondary p-3 text-sm'>
-						<div className='flex items-center justify-between gap-2'>
-							<h3 className='font-medium'>{selectedConnection.clientName} details</h3>
-							<Button size='sm' variant='tertiary' onPress={() => setDetailsId(null)}>
-								Close details
-							</Button>
-						</div>
-						<p className='break-all text-xs text-muted'>Client ID: {selectedConnection.clientId}</p>
-						<p className='text-muted'>Creators: {selectedConnection.creatorIds.join(", ")}</p>
-						{(selectedConnection.creatorPermissions ?? selectedConnection.creatorIds.map((creatorId) => ({ creatorId, scopes: selectedConnection.scopes }))).map((creator) => (
-							<p key={creator.creatorId} className='break-words text-xs text-muted'>
-								Permissions for {creator.creatorId}: {creator.scopes.join(", ")}
-							</p>
-						))}
-					</section>
+					<Modal.Backdrop
+						isOpen
+						onOpenChange={(open) => {
+							if (!open) setDetailsId(null);
+						}}
+						variant='blur'
+					>
+						<Modal.Container size='lg' scroll='inside'>
+							<Modal.Dialog aria-label={`Connection details for ${selectedConnection.clientName}`}>
+								<Modal.CloseTrigger aria-label='Close connection details' />
+								<Modal.Header>
+									<Modal.Heading>{selectedConnection.clientName} details</Modal.Heading>
+								</Modal.Header>
+								<Modal.Body>
+									<p className='break-all text-sm text-muted'>Client ID: {selectedConnection.clientId}</p>
+									<p>Creators: {selectedConnection.creatorIds.join(", ")}</p>
+									{(selectedConnection.creatorPermissions ?? selectedConnection.creatorIds.map((creatorId) => ({ creatorId, scopes: selectedConnection.scopes }))).map((creator) => (
+										<p key={creator.creatorId} className='break-words text-sm text-muted'>
+											Permissions for {creator.creatorId}: {creator.scopes.join(", ")}
+										</p>
+									))}
+								</Modal.Body>
+								<Modal.Footer>
+									<Button variant='secondary' onPress={() => setDetailsId(null)}>
+										Close details
+									</Button>
+								</Modal.Footer>
+							</Modal.Dialog>
+						</Modal.Container>
+					</Modal.Backdrop>
 				)}
 				{confirmation && (
-					<Alert status='warning'>
-						<Alert.Indicator />
-						<Alert.Content>
-							<Alert.Title>Revoke this app&apos;s access?</Alert.Title>
-							<Alert.Description>It will need your approval to connect again.</Alert.Description>
-							<div className='mt-3 flex flex-wrap gap-2'>
-								<Button size='sm' variant='danger' isPending={pending === confirmation} isDisabled={pending !== null} onPress={() => void revoke(confirmation)}>
-									Confirm revoke
-								</Button>
-								<Button size='sm' variant='tertiary' isDisabled={pending !== null} onPress={() => setConfirmation(null)}>
-									Cancel
-								</Button>
-							</div>
-						</Alert.Content>
-					</Alert>
+					<Modal.Backdrop
+						isOpen
+						onOpenChange={(open) => {
+							if (!open && !pending) setConfirmation(null);
+						}}
+						variant='blur'
+					>
+						<Modal.Container size='sm'>
+							<Modal.Dialog aria-label='Revoke app access'>
+								<Modal.CloseTrigger isDisabled={pending !== null} aria-label='Cancel revoke' />
+								<Modal.Header>
+									<Modal.Heading>Revoke this app&apos;s access?</Modal.Heading>
+								</Modal.Header>
+								<Modal.Body>
+									<p>It will need your approval to connect again.</p>
+									{error && (
+										<Alert status='danger' role='alert'>
+											<Alert.Indicator />
+											<Alert.Content>
+												<Alert.Title>Connection update failed</Alert.Title>
+												<Alert.Description>{error}</Alert.Description>
+											</Alert.Content>
+										</Alert>
+									)}
+								</Modal.Body>
+								<Modal.Footer>
+									<Button variant='secondary' isDisabled={pending !== null} onPress={() => setConfirmation(null)}>
+										Cancel
+									</Button>
+									<Button variant='danger' isPending={pending === confirmation} isDisabled={pending !== null} onPress={() => void revoke(confirmation)}>
+										Confirm revoke
+									</Button>
+								</Modal.Footer>
+							</Modal.Dialog>
+						</Modal.Container>
+					</Modal.Backdrop>
 				)}
 			</Card.Content>
 		</Card>

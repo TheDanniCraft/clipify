@@ -54,6 +54,8 @@ export default function McpActivityPanel() {
 			})
 			.catch(() => {
 				if (generation.current !== current) return;
+				setItems([]);
+				setCursor(null);
 				setError("Activity could not be loaded. Refresh and try again.");
 				setLoading(false);
 			});
@@ -109,7 +111,16 @@ export default function McpActivityPanel() {
 			<Card.Content className='flex flex-col gap-3 px-4 pb-4'>
 				{!!creators.length && (
 					<div className='flex flex-col items-stretch gap-3 sm:flex-row sm:items-end'>
-						<Select aria-label='Creator' fullWidth variant='secondary' value={creatorId || null} onChange={(next) => setCreatorId(String(next ?? ""))}>
+						<Select
+							aria-label='Creator'
+							fullWidth
+							variant='secondary'
+							value={creatorId || null}
+							onChange={(next) => {
+								resetHistory();
+								setCreatorId(String(next ?? ""));
+							}}
+						>
 							<Label>Creator</Label>
 							<Select.Trigger>
 								<Select.Value />
@@ -130,12 +141,16 @@ export default function McpActivityPanel() {
 							variant='secondary'
 							aria-label='Refresh activity'
 							isDisabled={loading}
+							isPending={loading}
 							onPress={() => {
-								resetHistory();
+								generation.current++;
+								setCursor(null);
+								setError(undefined);
+								setLoading(true);
 								setRefresh((value) => value + 1);
 							}}
 						>
-							<IconRefresh size={18} aria-hidden='true' />
+							{loading ? <Spinner size='sm' /> : <IconRefresh size={18} aria-hidden='true' />}
 							Refresh
 						</Button>
 					</div>
@@ -149,7 +164,7 @@ export default function McpActivityPanel() {
 						</Alert.Content>
 					</Alert>
 				)}
-				{loading && (
+				{loading && !items.length && (
 					<div className='flex items-center gap-2 py-4 text-muted' role='status'>
 						<Spinner size='sm' />
 						<p>Loading activity…</p>
@@ -208,16 +223,17 @@ export default function McpActivityPanel() {
 											</Table.Cell>
 										</Table.Row>
 									))}
+									{cursor && (
+										<Table.LoadMore onLoadMore={loadOlder} isLoading={loading}>
+											<Table.LoadMoreContent>
+												<Spinner size='sm' aria-label='Loading older activity' />
+											</Table.LoadMoreContent>
+										</Table.LoadMore>
+									)}
 								</Table.Body>
 							</Table.Content>
 						</Table.ScrollContainer>
 					</Table>
-				)}
-
-				{cursor && (
-					<Button variant='secondary' isPending={loading} onPress={loadOlder}>
-						Load older activity
-					</Button>
 				)}
 			</Card.Content>
 		</Card>

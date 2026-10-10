@@ -123,9 +123,9 @@ Then("the activity shows safe actor app creator operation time and outcome", asy
 	expect(await panel.locator("time").count()).toBe(2);
 	expect(await panel.textContent()).not.toContain("Uncommitted private edit");
 	await panel.scrollIntoViewIfNeeded();
-	for (let index = 0; index < 10; index++) await callTool(page.request, state, "get_playlist", { creatorId: state.owner.fixture.creatorId, playlistId: state.owner.fixture.playlistId });
+	for (let index = 0; index < 30; index++) await callTool(page.request, state, "get_playlist", { creatorId: state.owner.fixture.creatorId, playlistId: state.owner.fixture.playlistId });
 	await panel.getByRole("button", { name: "Refresh activity", exact: true }).click();
-	await expect(panel.locator("time")).toHaveCount(12);
+	await expect(panel.locator("time")).toHaveCount(25);
 	const scrollContainer = panel.locator('[data-slot="table-scroll-container"]');
 	const header = panel.locator('[data-slot="table-header"]');
 	const headerTop = (await header.boundingBox())!.y;
@@ -134,6 +134,18 @@ Then("the activity shows safe actor app creator operation time and outcome", asy
 	});
 	expect(await scrollContainer.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
 	await expect.poll(async () => Math.abs((await header.boundingBox())!.y - headerTop)).toBeLessThan(2);
+	await scrollContainer.evaluate((element) => {
+		element.scrollTop = element.scrollHeight;
+	});
+	await expect(panel.locator("time")).toHaveCount(32);
+	const connections = page.locator("[aria-labelledby=connected-apps-title]");
+	await connections.getByRole("button", { name: "Details for Browser playlist revision", exact: true }).click();
+	await expect(page.getByRole("dialog", { name: "Connection details for Browser playlist revision" })).toBeVisible();
+	await page.getByRole("button", { name: "Close details", exact: true }).click();
+	await connections.getByRole("button", { name: "Revoke Browser playlist revision", exact: true }).click();
+	await expect(page.getByRole("dialog", { name: "Revoke app access", exact: true })).toBeVisible();
+	await page.getByRole("button", { name: "Cancel", exact: true }).click();
+	await expect(page.getByRole("dialog", { name: "Revoke app access", exact: true })).not.toBeVisible();
 	await panel.screenshot({ path: "test-results/mcp/activity-settings-desktop.png" });
 	await page.setViewportSize({ width: 390, height: 844 });
 	await panel.scrollIntoViewIfNeeded();

@@ -1,5 +1,5 @@
 jest.mock("@heroui-pro/react", () => require("../../support/mcp/heroui-fixture").proComponents, { virtual: true });
-jest.mock("@heroui/react", () => require("../../support/mcp/heroui-fixture").components);
+jest.mock("@heroui/react", () => require("./ai-apps-heroui-fixture").components);
 import { act, render, screen, fireEvent, waitFor } from "@testing-library/react";
 jest.mock("@/app/actions/mcp-connections", () => ({ getConnectedMcpApps: jest.fn(), revokeConnectedMcpApp: jest.fn() }));
 import { getConnectedMcpApps, revokeConnectedMcpApp } from "@/app/actions/mcp-connections";
@@ -21,7 +21,10 @@ describe("TDD-US1-020/024 connected apps UI", () => {
 		fireEvent.click(screen.getByRole("button", { name: "Details for My custom AI" }));
 		expect(screen.getByText(/creator:read/)).toBeVisible();
 		expect(screen.getByText("Creators: creator")).toBeTruthy();
+		expect(screen.getByRole("dialog", { name: "Connection details for My custom AI" })).toBeVisible();
+		fireEvent.click(screen.getByRole("button", { name: "Close details" }));
 		fireEvent.click(screen.getByRole("button", { name: "Revoke My custom AI" }));
+		expect(screen.getByRole("dialog", { name: "Revoke app access" })).toBeVisible();
 		expect(revokeConnectedMcpApp).not.toHaveBeenCalled();
 		(revokeConnectedMcpApp as jest.Mock).mockResolvedValue({ revoked: true, cleanupPending: false });
 		(getConnectedMcpApps as jest.Mock).mockResolvedValue({ connections: [{ ...connection, active: false, revokedAt: "2026-10-04T01:00:00Z" }] });
