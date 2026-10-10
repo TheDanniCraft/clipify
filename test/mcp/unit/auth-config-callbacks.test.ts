@@ -1,4 +1,11 @@
 /** @jest-environment node */
+import { execFileSync } from "node:child_process";
+import { resolve } from "node:path";
+
+test("installed OAuth proxy preserves production state behind container origins", () => {
+	execFileSync(process.execPath, ["--test", resolve("scripts/oauth-proxy-origin.test.mjs")], { stdio: "pipe" });
+});
+
 jest.mock("better-auth", () => ({ betterAuth: (options: unknown) => ({ options }) }));
 jest.mock("better-auth/api", () => ({
 	createAuthMiddleware: (callback: unknown) => callback,
@@ -55,6 +62,7 @@ test("provider configuration uses native MCP grant options", () => {
 	expect(options.account.encryptOAuthTokens).toBe(true);
 	expect(options.session.cookieCache.enabled).toBe(false);
 	expect(plugin("oauth-proxy").productionURL).toBe("http://localhost:3000");
+	expect(plugin("oauth-proxy").currentURL).toBe("http://localhost:3000");
 	expect(plugin("passkey")).toMatchObject({ rpID: "localhost", origin: "http://localhost:3000" });
 	expect(plugin("native-mcp")).toEqual({ origin: "http://localhost:3000", options: providerGrantOptions });
 });
@@ -116,16 +124,16 @@ test("ordinary OTP delegates to transactional delivery while change-email remain
 	expect(sendAuthOtp).not.toHaveBeenCalled();
 });
 
-test("remote preview configuration uses production OAuth proxy with trimmed dedicated secret", () => {
+test.each(["https://preview.example.invalid", "https://clipify.us"])("configuration pins OAuth proxy current origin to %s", (origin) => {
 	const previousBase = process.env.NEXT_PUBLIC_BASE_URL;
 	const previousProxy = process.env.OAUTH_PROXY_SECRET;
 	try {
-		process.env.NEXT_PUBLIC_BASE_URL = "https://preview.example.invalid";
+		process.env.NEXT_PUBLIC_BASE_URL = origin;
 		process.env.OAUTH_PROXY_SECRET = " isolated-preview-proxy-secret ";
 		jest.isolateModules(() => {
 			const preview = require("@/auth/config").auth.options;
-			expect(preview.plugins.find((item: any) => item.id === "oauth-proxy").options).toMatchObject({ productionURL: "https://clipify.us", secret: "isolated-preview-proxy-secret" });
-			expect(preview.plugins.find((item: any) => item.id === "passkey").options).toMatchObject({ rpID: "preview.example.invalid", origin: "https://preview.example.invalid" });
+			expect(preview.plugins.find((item: any) => item.id === "oauth-proxy").options).toMatchObject({ currentURL: origin, productionURL: "https://clipify.us", secret: "isolated-preview-proxy-secret" });
+			expect(preview.plugins.find((item: any) => item.id === "passkey").options).toMatchObject({ rpID: new URL(origin).hostname, origin });
 		});
 	} finally {
 		if (previousBase === undefined) delete process.env.NEXT_PUBLIC_BASE_URL;
