@@ -321,3 +321,18 @@ test("Runner continuation does not infer Runner access from Pro", async () => {
 	assert.equal(await hasContinuingRunner("notification-user", startsAt, null, fixture.db), true);
 	assert.equal(await hasContinuingRunner("notification-user", endsAt, null, fixture.db), false);
 });
+
+test("each distinct revoke-and-restore cycle sends a restoration once", async () => {
+	const row = await grant();
+	for (const date of ["2040-01-02T12:00:00Z", "2040-01-03T12:00:00Z"]) {
+		await fixture.db
+			.update(entitlementGrantsTable)
+			.set({ revokedAt: new Date(date) })
+			.where(eq(entitlementGrantsTable.id, row.id));
+		await fixture.db.update(entitlementGrantsTable).set({ revokedAt: null }).where(eq(entitlementGrantsTable.id, row.id));
+		await fixture.db.update(entitlementGrantsTable).set({ revokedAt: null }).where(eq(entitlementGrantsTable.id, row.id));
+	}
+	const restored = (await notices()).filter((notice) => notice.payload.event === "restored");
+	assert.equal(restored.length, 2);
+	assert.notEqual(restored[0].dedupeKey, restored[1].dedupeKey);
+});

@@ -27,7 +27,7 @@ BEGIN
   event := 'revoked'; event_key := 'benefit:'||NEW.id::text||':revoked:'||floor(extract(epoch FROM NEW.revoked_at)*1000)::text;
  ELSIF NEW.revoked_at IS NOT NULL THEN RETURN NEW;
  ELSIF OLD.revoked_at IS NOT NULL THEN
-  event := 'restored'; event_key := 'benefit:'||NEW.id::text||':restored:'||md5(payload::text);
+  event := 'restored'; event_key := 'benefit:'||NEW.id::text||':restored:'||floor(extract(epoch FROM OLD.revoked_at)*1000)::text||':'||md5(payload::text);
  ELSIF (OLD.starts_at,OLD.ends_at,OLD.entitlement,OLD.source) IS DISTINCT FROM (NEW.starts_at,NEW.ends_at,NEW.entitlement,NEW.source) THEN
   event := CASE WHEN NEW.source='partner' AND NEW.entitlement='pro_access' AND NEW.ends_at IS NOT NULL AND OLD.ends_at IS DISTINCT FROM NEW.ends_at THEN 'partner-scheduled' ELSE 'updated' END; event_key := 'benefit:'||NEW.id::text||':'||event||':'||md5(payload::text);
  ELSE RETURN NEW;
