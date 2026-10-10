@@ -153,3 +153,11 @@ test("Runner countdowns and expiry honor other Runner access without referring t
 	expect(await notificationStillApplies(ended, now)).toBe(true);
 	expect(ended.payload.runnerContinues).toBe(true);
 });
+
+test.each([true, false])("account-access notices only describe the current disabled state (%s)", async (disabled) => {
+	row = { id: "alex", disabled };
+	const notice: DeliveryRecord = { ...record("request"), event_type: "account-access", payload: { userId: "alex", disabled } };
+	expect(await notificationStillApplies(notice, now)).toBe(true);
+	row.disabled = !disabled;
+	expect(await notificationStillApplies(notice, now)).toBe(false);
+});

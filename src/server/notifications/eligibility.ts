@@ -9,11 +9,11 @@ import type { DeliveryRecord } from "./delivery";
 export async function notificationStillApplies(record: DeliveryRecord, now: Date): Promise<boolean> {
 	if (record.event_type === "badge" || record.event_type === "account-access") {
 		const [user] = await db
-			.select({ id: usersTable.id })
+			.select({ id: usersTable.id, disabled: usersTable.disabled })
 			.from(usersTable)
 			.where(eq(usersTable.id, String(record.payload.userId)))
 			.limit(1);
-		return !!user;
+		return !!user && (record.event_type !== "account-access" || user.disabled === record.payload.disabled);
 	}
 	if (record.event_type === "pro-membership") {
 		const [user] = await db
