@@ -70,17 +70,18 @@ export async function revokeMcpConnection(input: { auth: SessionAuth; headers: H
 	}
 }
 
-export async function purgeInactiveMcpConnections(input: { auth: SessionAuth; headers: Headers; origin: string; client?: DatabaseClient }): Promise<Response> {
+export async function purgeInactiveMcpConnections(input: { auth: SessionAuth; headers: Headers; origin: string; grantId?: string; client?: DatabaseClient }): Promise<Response> {
 	if (input.headers.get("origin") !== new URL(input.origin).origin) return Response.json({ error: "access_denied" }, { status: 403 });
 	const session = await input.auth.api.getSession({ headers: input.headers });
 	if (!session) return Response.json({ error: "login_required" }, { status: 401 });
+	if (input.grantId !== undefined && !z.uuid().safeParse(input.grantId).success) return Response.json({ error: "invalid_request" }, { status: 400 });
 	const client = input.client ?? db;
 	try {
 		const purgedIds = await client.transaction(async (tx) => {
 			const grants = await tx
 				.select({ id: mcpConnectionGrantsTable.id })
 				.from(mcpConnectionGrantsTable)
-				.where(and(eq(mcpConnectionGrantsTable.authUserId, session.user.id), or(eq(mcpConnectionGrantsTable.active, false), isNotNull(mcpConnectionGrantsTable.revokedAt), lte(mcpConnectionGrantsTable.expiresAt, new Date()))))
+				.where(and(eq(mcpConnectionGrantsTable.authUserId, session.user.id), input.grantId === undefined ? undefined : eq(mcpConnectionGrantsTable.id, input.grantId), or(eq(mcpConnectionGrantsTable.active, false), isNotNull(mcpConnectionGrantsTable.revokedAt), lte(mcpConnectionGrantsTable.expiresAt, new Date()))))
 				.orderBy(mcpConnectionGrantsTable.id)
 				.for("update");
 			const ids = grants.map((grant) => grant.id);

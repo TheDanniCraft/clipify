@@ -21,6 +21,7 @@ export default function ConnectedAppsPanel() {
 	const [connections, setConnections] = useState<McpConnection[]>([]);
 	const [showInactive, setShowInactive] = useState(false);
 	const [purgeOpen, setPurgeOpen] = useState(false);
+	const [purgeTargetId, setPurgeTargetId] = useState<string | undefined>(undefined);
 	const [detailsId, setDetailsId] = useState<string | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [pending, setPending] = useState<string | null>(null);
@@ -73,7 +74,7 @@ export default function ConnectedAppsPanel() {
 		setError(undefined);
 		setNotice(undefined);
 		try {
-			const result = await purgeInactiveConnectedMcpApps();
+			const result = await (purgeTargetId === undefined ? purgeInactiveConnectedMcpApps() : purgeInactiveConnectedMcpApps(purgeTargetId));
 			if (result.error || !result.purgedIds) {
 				setError(result.error ?? "Inactive connections could not be purged. Try again.");
 				return;
@@ -175,6 +176,7 @@ export default function ConnectedAppsPanel() {
 							isDisabled={pending !== null}
 							onPress={() => {
 								setError(undefined);
+								setPurgeTargetId(undefined);
 								setPurgeOpen(true);
 							}}
 						>
@@ -236,6 +238,21 @@ export default function ConnectedAppsPanel() {
 															}}
 														>
 															Disconnect
+														</Button>
+													)}
+													{!connection.active && (
+														<Button
+															size='sm'
+															variant='danger-soft'
+															isDisabled={pending !== null}
+															aria-label={`Remove ${connection.clientName}`}
+															onPress={() => {
+																setError(undefined);
+																setPurgeTargetId(connection.id);
+																setPurgeOpen(true);
+															}}
+														>
+															Remove
 														</Button>
 													)}
 												</div>
@@ -314,13 +331,13 @@ export default function ConnectedAppsPanel() {
 					variant='blur'
 				>
 					<Modal.Container size='sm'>
-						<Modal.Dialog aria-label='Purge inactive connections'>
+						<Modal.Dialog aria-label={purgeTargetId ? "Remove inactive connection" : "Purge inactive connections"}>
 							<Modal.CloseTrigger isDisabled={pending !== null} aria-label='Cancel purge' />
 							<Modal.Header>
-								<Modal.Heading>Purge inactive connections?</Modal.Heading>
+								<Modal.Heading>{purgeTargetId ? "Remove this connection?" : "Purge inactive connections?"}</Modal.Heading>
 							</Modal.Header>
 							<Modal.Body>
-								<p>Permanently remove expired, revoked and inactive connections. Active connections and your activity history will be kept.</p>
+								<p>{purgeTargetId ? "Permanently remove this inactive connection. Your activity history will be kept." : "Permanently remove expired, revoked and inactive connections. Active connections and your activity history will be kept."}</p>
 								{error && (
 									<Alert status='danger' role='alert'>
 										<Alert.Indicator />
@@ -336,7 +353,7 @@ export default function ConnectedAppsPanel() {
 									Cancel
 								</Button>
 								<Button variant='danger' isPending={pending === "purge"} isDisabled={pending !== null} onPress={() => void purgeInactive()}>
-									Confirm purge
+									{purgeTargetId ? "Confirm removal" : "Confirm purge"}
 								</Button>
 							</Modal.Footer>
 						</Modal.Dialog>

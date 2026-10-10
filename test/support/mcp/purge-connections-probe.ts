@@ -57,3 +57,16 @@ test("failed token cleanup rolls back the entire purge", async () => {
 		await fixture.pool.query("DROP TRIGGER reject_purge ON auth.oauth_consent; DROP FUNCTION auth.reject_purge();");
 	}
 });
+
+test("individual removal retains other inactive connections and audit history", async () => {
+	const response = await purge({ grantId: ids[1] });
+	assert.deepEqual(await response.json(), { purgedIds: [ids[1]] });
+	for (const table of [mcpConnectionGrantsTable, oauthAccessToken, oauthRefreshToken, oauthConsent]) assert.deepEqual((await fixture.db.select().from(table)).map((row) => row.id).sort(), [ids[0], ...ids.slice(2)].sort());
+	assert.equal((await fixture.db.select().from(auditEventsTable)).length, 5);
+});
+test("individual removal cannot delete active, foreign, missing or invalid connections", async () => {
+	await fixture.pool.query("UPDATE mcp_connection_grants SET active = false WHERE id = $1", [ids[4]]);
+	for (const grantId of [ids[0], ids[4], randomUUID()]) assert.deepEqual(await (await purge({ grantId })).json(), { purgedIds: [] });
+	for (const grantId of ["", "invalid", null]) assert.equal((await purge({ grantId })).status, 400);
+	assert.equal((await fixture.db.select().from(mcpConnectionGrantsTable)).length, 5);
+});

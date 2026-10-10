@@ -52,11 +52,11 @@ export async function getConnectedMcpActivityPage(input: unknown): Promise<impor
 	}
 }
 
-export async function purgeInactiveConnectedMcpApps(): Promise<{ purgedIds?: string[]; error?: string }> {
+export async function purgeInactiveConnectedMcpApps(grantId?: string): Promise<{ purgedIds?: string[]; error?: string }> {
 	const configuration = getMcpConfiguration();
 	if (!configuration.valid) return { error: "Connected apps are unavailable." };
 	try {
-		const response = await purgeInactiveMcpConnections({ auth, headers: new Headers(await headers()), origin: configuration.origin });
+		const response = await purgeInactiveMcpConnections({ auth, headers: new Headers(await headers()), origin: configuration.origin, grantId });
 		if (!response.ok) return { error: "Inactive connections could not be purged. Try again." };
 		return await response.json();
 	} catch {

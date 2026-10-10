@@ -217,3 +217,25 @@ test("purge confirmation can be dismissed without deleting records", async () =>
 	fireEvent.click(screen.getByRole("button", { name: "Cancel purge" }));
 	expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 });
+
+test("removes one inactive connection only after confirmation", async () => {
+	jest.clearAllMocks();
+	(getConnectedMcpApps as jest.Mock).mockResolvedValue({
+		connections: [
+			{ ...connection, active: false },
+			{ ...connection, id: "second", clientName: "Another app", active: false },
+		],
+	});
+	(purgeInactiveConnectedMcpApps as jest.Mock).mockResolvedValue({ purgedIds: ["first"] });
+	render(<Panel />);
+	fireEvent.click(await screen.findByRole("button", { name: "Show inactive (2)" }));
+	fireEvent.click(screen.getByRole("button", { name: "Remove My custom AI" }));
+	expect(screen.getByRole("dialog", { name: "Remove inactive connection" })).toBeVisible();
+	fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+	expect(purgeInactiveConnectedMcpApps).not.toHaveBeenCalled();
+	fireEvent.click(screen.getByRole("button", { name: "Remove My custom AI" }));
+	fireEvent.click(screen.getByRole("button", { name: "Confirm removal" }));
+	await waitFor(() => expect(screen.queryByText("My custom AI")).not.toBeInTheDocument());
+	expect(purgeInactiveConnectedMcpApps).toHaveBeenCalledWith("first");
+	expect(screen.getByText("Another app")).toBeVisible();
+});
