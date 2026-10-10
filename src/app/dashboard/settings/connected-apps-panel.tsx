@@ -59,8 +59,7 @@ export default function ConnectedAppsPanel() {
 			}
 			setConnections((current) => current.map((connection) => (connection.id === id ? { ...connection, active: false, revokedAt: new Date().toISOString() } : connection)));
 			setConfirmation(null);
-			setShowInactive(true);
-			if (result.cleanupPending) setNotice("The app is disconnected. App cleanup will retry automatically. You can also retry cleanup now.");
+			setNotice("The app is disconnected. It no longer has access to your creators.");
 			const refreshed = await getConnectedMcpApps();
 			if (!refreshed.error) setConnections(refreshed.connections);
 		} catch {
@@ -134,7 +133,7 @@ export default function ConnectedAppsPanel() {
 					</Alert>
 				)}
 				{notice && (
-					<Alert status='warning' role='status'>
+					<Alert status='success' role='status'>
 						<Alert.Indicator />
 						<Alert.Content>
 							<Alert.Title>App disconnected</Alert.Title>
@@ -225,9 +224,20 @@ export default function ConnectedAppsPanel() {
 													<Button size='sm' variant='tertiary' aria-label={`Details for ${connection.clientName}`} aria-haspopup='dialog' onPress={() => setDetailsId(detailsId === connection.id ? null : connection.id)}>
 														Details
 													</Button>
-													<Button size='sm' variant={connection.active ? "danger-soft" : "tertiary"} isDisabled={pending !== null} aria-label={`${connection.active ? "Disconnect" : "Retry cleanup for"} ${connection.clientName}`} onPress={() => setConfirmation(connection.id)}>
-														{connection.active ? "Disconnect" : "Retry cleanup"}
-													</Button>
+													{connection.active && (
+														<Button
+															size='sm'
+															variant='danger-soft'
+															isDisabled={pending !== null}
+															aria-label={`Disconnect ${connection.clientName}`}
+															onPress={() => {
+																setError(undefined);
+																setConfirmation(connection.id);
+															}}
+														>
+															Disconnect
+														</Button>
+													)}
 												</div>
 											</Table.Cell>
 										</Table.Row>

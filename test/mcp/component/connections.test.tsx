@@ -30,7 +30,10 @@ describe("TDD-US1-020/024 connected apps UI", () => {
 		(getConnectedMcpApps as jest.Mock).mockResolvedValue({ connections: [{ ...connection, active: false, revokedAt: "2026-10-04T01:00:00Z" }] });
 		fireEvent.click(screen.getByRole("button", { name: "Disconnect" }));
 		await waitFor(() => expect(revokeConnectedMcpApp).toHaveBeenCalledWith("first"));
-		expect(await screen.findByText("Disconnected")).toBeVisible();
+		expect(await screen.findByRole("status")).toHaveTextContent("The app is disconnected");
+		expect(screen.queryByText("My custom AI")).not.toBeInTheDocument();
+		fireEvent.click(screen.getByRole("button", { name: "Show inactive (1)" }));
+		expect(screen.getByText("Disconnected")).toBeVisible();
 	});
 	test("failed durable revoke retains active connection and reports failure", async () => {
 		expect(Panel).toEqual(expect.any(Function));
@@ -58,10 +61,13 @@ describe("TDD-US1-020/024 connected apps UI", () => {
 		(getConnectedMcpApps as jest.Mock).mockResolvedValue({ connections: [], error: "Refresh failed" });
 		fireEvent.click(screen.getByRole("button", { name: "Disconnect My custom AI" }));
 		fireEvent.click(screen.getByRole("button", { name: "Disconnect" }));
-		expect(await screen.findByText("Disconnected")).toBeVisible();
+		expect(await screen.findByRole("status")).toHaveTextContent("The app is disconnected");
+		expect(screen.queryByText("My custom AI")).not.toBeInTheDocument();
+		fireEvent.click(screen.getByRole("button", { name: "Show inactive (1)" }));
+		expect(screen.getByText("Disconnected")).toBeVisible();
 		expect(screen.getByRole("status")).toHaveTextContent("The app is disconnected");
 		expect(screen.queryByText("Active")).not.toBeInTheDocument();
-		expect(screen.getByRole("button", { name: "Retry cleanup for My custom AI" })).toBeEnabled();
+		expect(screen.queryByRole("button", { name: "Retry cleanup for My custom AI" })).not.toBeInTheDocument();
 	});
 	test("rejected durable revoke reports failure and preserves active authority", async () => {
 		render(<Panel />);
@@ -91,7 +97,7 @@ describe("TDD-US1-020/024 connected apps UI", () => {
 		render(<Panel />);
 		fireEvent.click(await screen.findByRole("button", { name: "Show inactive (1)" }));
 		expect(await screen.findByText("Expired")).toBeVisible();
-		expect(screen.getByRole("button", { name: "Retry cleanup for My custom AI" })).toBeEnabled();
+		expect(screen.queryByRole("button", { name: "Retry cleanup for My custom AI" })).not.toBeInTheDocument();
 		expect(revokeConnectedMcpApp).not.toHaveBeenCalled();
 	});
 	test("missing successful revoke acknowledgement preserves active status", async () => {

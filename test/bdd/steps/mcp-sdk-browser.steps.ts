@@ -156,6 +156,9 @@ When("the official SDK completes {word} approval edit abandoned consent and revo
 		await expect(row).toHaveCount(1, { timeout: 30000 });
 		await row.getByRole("button", { name: "Disconnect Official SDK browser acceptance", exact: true }).click();
 		await page.getByRole("dialog", { name: "Disconnect this app?", exact: true }).getByRole("button", { name: "Disconnect", exact: true }).click();
+		await expect(page.getByRole("status").filter({ hasText: "The app is disconnected" })).toBeVisible({ timeout: 30000 });
+		await expect(row).toHaveCount(0);
+		await page.getByRole("button", { name: /^Show inactive/ }).click();
 		await expect(page.getByRole("row").filter({ hasText: "Official SDK browser acceptance" }).getByText("Disconnected", { exact: true })).toBeVisible({ timeout: 30000 });
 		let denied = false;
 		try {
