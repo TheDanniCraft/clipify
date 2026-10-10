@@ -19,10 +19,11 @@ Then("only valid metadata reaches consent and transport connections are closed w
 	expect(result.dnsCalls).toBe(1);
 	const valid = mode === "valid" || mode === "rebind";
 	if (valid) {
-		expect(result.loginPath).toBe("/auth/mcp/consent");
+		expect(result.loginPath).toBe("/login");
 		expect(result.error).toBeNull();
 		expect(result.clients).toBe(1);
 	} else {
+		expect(result.loginPath).not.toBe("/login");
 		expect(result.loginPath).not.toBe("/auth/mcp/consent");
 		expect(typeof result.error).toBe("string");
 		if (mode !== "wrong-callback") expect(result.clients).toBe(0);
