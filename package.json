@@ -59,6 +59,7 @@
 		"@modelcontextprotocol/server": "2.3.0",
 		"@number-flow/react": ">=0.6.2",
 		"@react-aria/utils": ">=3.34.1",
+		"@react-email/components": "1.0.12",
 		"@sentry/nextjs": "^11.1.0",
 		"@sentry/profiling-node": "^11.1.0",
 		"@tabler/icons-react": "^3.48.0",

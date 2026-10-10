@@ -1,5 +1,12 @@
 /** @jest-environment node */
 
+// Jest's VM cannot run the renderer's dynamic import. Native render coverage lives
+// in email-rendering.test.ts; this adapter test isolates provider delivery.
+jest.mock("@react-email/render", () => ({
+	...jest.requireActual("@react-email/render"),
+	render: async (element: import("react").ReactNode) => jest.requireActual("react-dom/server").renderToStaticMarkup(element),
+}));
+
 jest.mock("usesend-js", () => {
 	const send = jest.fn();
 	return { UseSend: jest.fn().mockImplementation(() => ({ emails: { send } })), __mockSend: send };
