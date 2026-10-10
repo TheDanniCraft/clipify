@@ -54,7 +54,8 @@ export const auth = betterAuth({
 	account: {
 		encryptOAuthTokens: true,
 		updateAccountOnSignIn: true,
-		storeStateStrategy: "cookie",
+		// MCP callbacks can exceed the browser's 4 KB cookie limit.
+		storeStateStrategy: "database",
 		accountLinking: {
 			enabled: true,
 			disableImplicitLinking: true,

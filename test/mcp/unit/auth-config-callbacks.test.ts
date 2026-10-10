@@ -60,6 +60,7 @@ const context = (body: unknown = { memberId: "target", role: "operations" }, pat
 
 test("provider configuration uses native MCP grant options", () => {
 	expect(options.account.encryptOAuthTokens).toBe(true);
+	expect(options.account.storeStateStrategy).toBe("database");
 	expect(options.session.cookieCache.enabled).toBe(false);
 	expect(plugin("oauth-proxy").productionURL).toBe("http://localhost:3000");
 	expect(plugin("oauth-proxy").currentURL).toBe("http://localhost:3000");
