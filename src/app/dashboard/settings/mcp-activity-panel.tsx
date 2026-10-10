@@ -170,7 +170,7 @@ export default function McpActivityPanel() {
 					<Table className='min-w-0 w-full'>
 						<Table.ScrollContainer className='max-h-72 overflow-auto'>
 							<Table.Content aria-label='AI app activity log' className='w-full min-w-[720px] table-fixed'>
-								<Table.Header>
+								<Table.Header className='sticky top-0 z-10 bg-surface-secondary'>
 									<Table.Column id='action' isRowHeader className='w-[26%]'>
 										Action
 									</Table.Column>

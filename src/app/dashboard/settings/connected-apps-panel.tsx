@@ -152,7 +152,7 @@ export default function ConnectedAppsPanel() {
 					<Table className='min-w-0 w-full'>
 						<Table.ScrollContainer className='max-h-80 overflow-auto'>
 							<Table.Content aria-label='Connected AI apps' className='w-full min-w-[640px] table-fixed'>
-								<Table.Header>
+								<Table.Header className='sticky top-0 z-10 bg-surface-secondary'>
 									<Table.Column id='app' isRowHeader className='w-[24%]'>
 										App
 									</Table.Column>
