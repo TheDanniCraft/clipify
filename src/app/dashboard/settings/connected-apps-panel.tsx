@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Accordion, Alert, Button, Card, Chip, Modal, Spinner, Table } from "@heroui/react";
 import { EmptyState } from "@heroui-pro/react";
 import { IconPlugConnected, IconShieldCheck } from "@tabler/icons-react";
-import { getConnectedMcpApps, revokeConnectedMcpApp } from "@/app/actions/mcp-connections";
+import { getConnectedMcpApps, revokeConnectedMcpApp, purgeInactiveConnectedMcpApps } from "@/app/actions/mcp-connections";
 import { MCP_EXAMPLE_PROMPTS } from "@lib/mcpPrompts";
 import type { McpConnection } from "@lib/mcpConnection";
 
@@ -19,6 +19,7 @@ function connectionAccessLabel(scopes: string[]) {
 export default function ConnectedAppsPanel() {
 	const [connections, setConnections] = useState<McpConnection[]>([]);
 	const [showInactive, setShowInactive] = useState(false);
+	const [purgeOpen, setPurgeOpen] = useState(false);
 	const [detailsId, setDetailsId] = useState<string | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [pending, setPending] = useState<string | null>(null);
@@ -67,6 +68,26 @@ export default function ConnectedAppsPanel() {
 			setPending(null);
 		}
 	}
+	async function purgeInactive() {
+		setPending("purge");
+		setError(undefined);
+		setNotice(undefined);
+		try {
+			const result = await purgeInactiveConnectedMcpApps();
+			if (result.error || !result.purgedIds) {
+				setError(result.error ?? "Inactive connections could not be purged. Try again.");
+				return;
+			}
+			const removed = new Set(result.purgedIds);
+			setConnections((current) => current.filter((connection) => !removed.has(connection.id)));
+			if (detailsId && removed.has(detailsId)) setDetailsId(null);
+			setPurgeOpen(false);
+		} catch {
+			setError("Inactive connections could not be purged. Try again.");
+		} finally {
+			setPending(null);
+		}
+	}
 	const inactiveConnections = connections.filter((connection) => !connection.active);
 	const visibleConnections = connections.filter((connection) => connection.active || showInactive);
 	const selectedConnection = connections.find((connection) => connection.id === detailsId);
@@ -102,7 +123,7 @@ export default function ConnectedAppsPanel() {
 						</EmptyState>
 					)
 				)}
-				{error && !confirmation && (
+				{error && !confirmation && !purgeOpen && (
 					<Alert status='danger' role='alert'>
 						<Alert.Indicator />
 						<Alert.Content>
@@ -144,9 +165,22 @@ export default function ConnectedAppsPanel() {
 					</Accordion.Item>
 				</Accordion>
 				{inactiveConnections.length > 0 && (
-					<Button size='sm' variant='tertiary' className='self-start' aria-expanded={showInactive} onPress={() => setShowInactive((value) => !value)}>
-						{showInactive ? "Hide inactive connections" : `Show inactive connections (${inactiveConnections.length})`}
-					</Button>
+					<div className='flex flex-wrap gap-2'>
+						<Button size='sm' variant='secondary' aria-expanded={showInactive} onPress={() => setShowInactive((value) => !value)}>
+							{showInactive ? "Hide inactive" : `Show inactive (${inactiveConnections.length})`}
+						</Button>
+						<Button
+							size='sm'
+							variant='danger-soft'
+							isDisabled={pending !== null}
+							onPress={() => {
+								setError(undefined);
+								setPurgeOpen(true);
+							}}
+						>
+							Purge inactive
+						</Button>
+					</div>
 				)}
 				{visibleConnections.length > 0 && (
 					<Table variant='secondary'>
@@ -273,6 +307,42 @@ export default function ConnectedAppsPanel() {
 						</Modal.Container>
 					</Modal.Backdrop>
 				)}
+				<Modal.Backdrop
+					isOpen={purgeOpen}
+					onOpenChange={(open) => {
+						if (!pending) setPurgeOpen(open);
+					}}
+					variant='blur'
+				>
+					<Modal.Container size='sm'>
+						<Modal.Dialog aria-label='Purge inactive connections'>
+							<Modal.CloseTrigger isDisabled={pending !== null} aria-label='Cancel purge' />
+							<Modal.Header>
+								<Modal.Heading>Purge inactive connections?</Modal.Heading>
+							</Modal.Header>
+							<Modal.Body>
+								<p>Permanently remove expired, revoked and inactive connections. Active connections and your activity history will be kept.</p>
+								{error && (
+									<Alert status='danger' role='alert'>
+										<Alert.Indicator />
+										<Alert.Content>
+											<Alert.Title>Purge failed</Alert.Title>
+											<Alert.Description>{error}</Alert.Description>
+										</Alert.Content>
+									</Alert>
+								)}
+							</Modal.Body>
+							<Modal.Footer>
+								<Button variant='secondary' isDisabled={pending !== null} onPress={() => setPurgeOpen(false)}>
+									Cancel
+								</Button>
+								<Button variant='danger' isPending={pending === "purge"} isDisabled={pending !== null} onPress={() => void purgeInactive()}>
+									Confirm purge
+								</Button>
+							</Modal.Footer>
+						</Modal.Dialog>
+					</Modal.Container>
+				</Modal.Backdrop>
 			</Card.Content>
 		</Card>
 	);

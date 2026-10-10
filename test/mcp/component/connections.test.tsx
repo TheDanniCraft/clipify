@@ -1,8 +1,8 @@
 jest.mock("@heroui-pro/react", () => require("../../support/mcp/heroui-fixture").proComponents, { virtual: true });
 jest.mock("@heroui/react", () => require("./ai-apps-heroui-fixture").components);
 import { act, render, screen, fireEvent, waitFor } from "@testing-library/react";
-jest.mock("@/app/actions/mcp-connections", () => ({ getConnectedMcpApps: jest.fn(), revokeConnectedMcpApp: jest.fn() }));
-import { getConnectedMcpApps, revokeConnectedMcpApp } from "@/app/actions/mcp-connections";
+jest.mock("@/app/actions/mcp-connections", () => ({ getConnectedMcpApps: jest.fn(), revokeConnectedMcpApp: jest.fn(), purgeInactiveConnectedMcpApps: jest.fn() }));
+import { getConnectedMcpApps, revokeConnectedMcpApp, purgeInactiveConnectedMcpApps } from "@/app/actions/mcp-connections";
 let Panel: any;
 try {
 	Panel = require("@/app/dashboard/settings/connected-apps-panel").default;
@@ -89,7 +89,7 @@ describe("TDD-US1-020/024 connected apps UI", () => {
 	test("expired connections have a distinct status and explicit cleanup action", async () => {
 		(getConnectedMcpApps as jest.Mock).mockResolvedValue({ connections: [{ ...connection, active: false, revokedAt: null, expiresAt: "2000-01-01T00:00:00Z" }] });
 		render(<Panel />);
-		fireEvent.click(await screen.findByRole("button", { name: "Show inactive connections (1)" }));
+		fireEvent.click(await screen.findByRole("button", { name: "Show inactive (1)" }));
 		expect(await screen.findByText("Expired")).toBeVisible();
 		expect(screen.getByRole("button", { name: "Retry cleanup for My custom AI" })).toBeEnabled();
 		expect(revokeConnectedMcpApp).not.toHaveBeenCalled();
@@ -135,10 +135,39 @@ test("future inactive connections are hidden initially and are not mislabeled ex
 	render(<Panel />);
 	expect(await screen.findByText("No active connections.")).toBeVisible();
 	expect(screen.queryByText("My custom AI")).not.toBeInTheDocument();
-	fireEvent.click(screen.getByRole("button", { name: "Show inactive connections (1)" }));
+	fireEvent.click(screen.getByRole("button", { name: "Show inactive (1)" }));
 	expect(screen.getByRole("grid", { name: "Connected AI apps" })).toBeVisible();
 	expect(screen.getByText("Inactive")).toBeVisible();
 	expect(screen.queryByText("Expired")).not.toBeInTheDocument();
-	fireEvent.click(screen.getByRole("button", { name: "Hide inactive connections" }));
+	fireEvent.click(screen.getByRole("button", { name: "Hide inactive" }));
 	expect(screen.queryByText("My custom AI")).not.toBeInTheDocument();
+});
+
+test("inactive purge requires confirmation and preserves active rows", async () => {
+	jest.clearAllMocks();
+	(getConnectedMcpApps as jest.Mock).mockResolvedValue({ connections: [connection, { ...connection, id: "old", active: false, revokedAt: "2026-01-01T00:00:00Z" }] });
+	(purgeInactiveConnectedMcpApps as jest.Mock).mockResolvedValue({ purgedIds: ["old"] });
+	render(<Panel />);
+	await screen.findByRole("button", { name: "Purge inactive" });
+	fireEvent.click(screen.getByRole("button", { name: "Purge inactive" }));
+	expect(screen.getByRole("dialog", { name: "Purge inactive connections" })).toBeVisible();
+	expect(purgeInactiveConnectedMcpApps).not.toHaveBeenCalled();
+	fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+	expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+	fireEvent.click(screen.getByRole("button", { name: "Purge inactive" }));
+	fireEvent.click(screen.getByRole("button", { name: "Confirm purge" }));
+	await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+	expect(screen.queryByRole("button", { name: "Purge inactive" })).not.toBeInTheDocument();
+	expect(screen.getByText("Active")).toBeVisible();
+});
+test("failed purge keeps its modal and connection records available", async () => {
+	jest.clearAllMocks();
+	(getConnectedMcpApps as jest.Mock).mockResolvedValue({ connections: [{ ...connection, active: false }] });
+	(purgeInactiveConnectedMcpApps as jest.Mock).mockRejectedValue(new Error("private database details"));
+	render(<Panel />);
+	fireEvent.click(await screen.findByRole("button", { name: "Purge inactive" }));
+	fireEvent.click(screen.getByRole("button", { name: "Confirm purge" }));
+	expect(await screen.findByRole("alert")).toHaveTextContent("Inactive connections could not be purged");
+	expect(screen.getByRole("dialog")).toBeVisible();
+	expect(screen.getByRole("button", { name: "Show inactive (1)" })).toBeInTheDocument();
 });

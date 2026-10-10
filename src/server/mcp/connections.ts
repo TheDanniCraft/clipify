@@ -1,5 +1,5 @@
 import "server-only";
-import { and, eq } from "drizzle-orm";
+import { and, eq, or, isNotNull, lte, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { db, type DatabaseClient } from "@/db/client";
 import { mcpConnectionGrantsTable, mcpGrantCreatorsTable } from "@/db/schema";
@@ -67,5 +67,32 @@ export async function revokeMcpConnection(input: { auth: SessionAuth; headers: H
 		return Response.json({ revoked: true, cleanupPending: false });
 	} catch {
 		return Response.json({ revoked: true, cleanupPending: true });
+	}
+}
+
+export async function purgeInactiveMcpConnections(input: { auth: SessionAuth; headers: Headers; origin: string; client?: DatabaseClient }): Promise<Response> {
+	if (input.headers.get("origin") !== new URL(input.origin).origin) return Response.json({ error: "access_denied" }, { status: 403 });
+	const session = await input.auth.api.getSession({ headers: input.headers });
+	if (!session) return Response.json({ error: "login_required" }, { status: 401 });
+	const client = input.client ?? db;
+	try {
+		const purgedIds = await client.transaction(async (tx) => {
+			const grants = await tx
+				.select({ id: mcpConnectionGrantsTable.id })
+				.from(mcpConnectionGrantsTable)
+				.where(and(eq(mcpConnectionGrantsTable.authUserId, session.user.id), or(eq(mcpConnectionGrantsTable.active, false), isNotNull(mcpConnectionGrantsTable.revokedAt), lte(mcpConnectionGrantsTable.expiresAt, new Date()))))
+				.orderBy(mcpConnectionGrantsTable.id)
+				.for("update");
+			const ids = grants.map((grant) => grant.id);
+			if (!ids.length) return ids;
+			await tx.delete(oauthAccessToken).where(inArray(oauthAccessToken.referenceId, ids));
+			await tx.delete(oauthRefreshToken).where(inArray(oauthRefreshToken.referenceId, ids));
+			await tx.delete(oauthConsent).where(inArray(oauthConsent.referenceId, ids));
+			await tx.delete(mcpConnectionGrantsTable).where(inArray(mcpConnectionGrantsTable.id, ids));
+			return ids;
+		});
+		return Response.json({ purgedIds });
+	} catch {
+		return Response.json({ error: "temporarily_unavailable" }, { status: 503 });
 	}
 }
