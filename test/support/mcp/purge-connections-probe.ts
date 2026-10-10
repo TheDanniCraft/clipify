@@ -1,7 +1,7 @@
 import { before, beforeEach, after, test } from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { createMcpPostgresFixture } from "../../support/mcp/postgres";
+import { createMcpPostgresFixture } from "./postgres";
 import { user, oauthClient, oauthAccessToken, oauthRefreshToken, oauthConsent } from "@/db/auth-schema";
 import { mcpConnectionGrantsTable, auditEventsTable } from "@/db/schema";
 import { purgeInactiveMcpConnections } from "@/server/mcp/connections";

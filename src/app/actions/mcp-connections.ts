@@ -17,10 +17,10 @@ export async function revokeConnectedMcpApp(grantId: string): Promise<{ revoked?
 	if (!configuration.valid) return { error: "Connected apps are unavailable." };
 	try {
 		const response = await revokeMcpConnection({ auth, headers: new Headers(await headers()), origin: configuration.origin, grantId });
-		if (!response.ok) return { error: "Access could not be revoked. Try again." };
+		if (!response.ok) return { error: "The app could not be disconnected. Try again." };
 		return await response.json();
 	} catch {
-		return { error: "Access could not be revoked. Try again." };
+		return { error: "The app could not be disconnected. Try again." };
 	}
 }
 

@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { Accordion, Alert, Button, Card, Chip, Modal, Spinner, Table } from "@heroui/react";
+import ConfirmModal from "@components/confirmModal";
 import { EmptyState } from "@heroui-pro/react";
 import { IconPlugConnected, IconShieldCheck } from "@tabler/icons-react";
 import { getConnectedMcpApps, revokeConnectedMcpApp, purgeInactiveConnectedMcpApps } from "@/app/actions/mcp-connections";
@@ -9,7 +10,7 @@ import type { McpConnection } from "@lib/mcpConnection";
 
 function connectionStatus(connection: McpConnection) {
 	if (connection.active) return "Active";
-	if (connection.revokedAt) return "Revoked";
+	if (connection.revokedAt) return "Disconnected";
 	return new Date(connection.expiresAt) <= new Date() ? "Expired" : "Inactive";
 }
 function connectionAccessLabel(scopes: string[]) {
@@ -53,17 +54,17 @@ export default function ConnectedAppsPanel() {
 		try {
 			const result = await revokeConnectedMcpApp(id);
 			if (result.error || !result.revoked) {
-				setError(result.error ?? "Access could not be revoked. Try again.");
+				setError(result.error ?? "The app could not be disconnected. Try again.");
 				return;
 			}
 			setConnections((current) => current.map((connection) => (connection.id === id ? { ...connection, active: false, revokedAt: new Date().toISOString() } : connection)));
 			setConfirmation(null);
 			setShowInactive(true);
-			if (result.cleanupPending) setNotice("Access is revoked. App cleanup will retry automatically. You can also retry cleanup now.");
+			if (result.cleanupPending) setNotice("The app is disconnected. App cleanup will retry automatically. You can also retry cleanup now.");
 			const refreshed = await getConnectedMcpApps();
 			if (!refreshed.error) setConnections(refreshed.connections);
 		} catch {
-			setError("Access could not be revoked. Try again.");
+			setError("The app could not be disconnected. Try again.");
 		} finally {
 			setPending(null);
 		}
@@ -102,7 +103,7 @@ export default function ConnectedAppsPanel() {
 						Connected AI apps
 					</h2>
 				</div>
-				<Card.Description>Manage which apps can access your creators. Revoking a connection stops its access immediately.</Card.Description>
+				<Card.Description>Manage which apps can access your creators. Disconnecting an app stops its access immediately.</Card.Description>
 			</Card.Header>
 			<Card.Content className='flex flex-col gap-3 px-4 pb-4'>
 				{loading ? (
@@ -136,7 +137,7 @@ export default function ConnectedAppsPanel() {
 					<Alert status='warning' role='status'>
 						<Alert.Indicator />
 						<Alert.Content>
-							<Alert.Title>Access revoked</Alert.Title>
+							<Alert.Title>App disconnected</Alert.Title>
 							<Alert.Description>{notice}</Alert.Description>
 						</Alert.Content>
 					</Alert>
@@ -178,7 +179,7 @@ export default function ConnectedAppsPanel() {
 								setPurgeOpen(true);
 							}}
 						>
-							Purge inactive
+							Purge all inactive
 						</Button>
 					</div>
 				)}
@@ -224,8 +225,8 @@ export default function ConnectedAppsPanel() {
 													<Button size='sm' variant='tertiary' aria-label={`Details for ${connection.clientName}`} aria-haspopup='dialog' onPress={() => setDetailsId(detailsId === connection.id ? null : connection.id)}>
 														Details
 													</Button>
-													<Button size='sm' variant={connection.active ? "danger-soft" : "tertiary"} isDisabled={pending !== null} aria-label={`${connection.active ? "Revoke" : "Retry cleanup for"} ${connection.clientName}`} onPress={() => setConfirmation(connection.id)}>
-														{connection.active ? "Revoke" : "Retry cleanup"}
+													<Button size='sm' variant={connection.active ? "danger-soft" : "tertiary"} isDisabled={pending !== null} aria-label={`${connection.active ? "Disconnect" : "Retry cleanup for"} ${connection.clientName}`} onPress={() => setConfirmation(connection.id)}>
+														{connection.active ? "Disconnect" : "Retry cleanup"}
 													</Button>
 												</div>
 											</Table.Cell>
@@ -269,44 +270,32 @@ export default function ConnectedAppsPanel() {
 						</Modal.Container>
 					</Modal.Backdrop>
 				)}
-				{confirmation && (
-					<Modal.Backdrop
-						isOpen
-						onOpenChange={(open) => {
-							if (!open && !pending) setConfirmation(null);
-						}}
-						variant='blur'
-					>
-						<Modal.Container size='sm'>
-							<Modal.Dialog aria-label='Revoke app access'>
-								<Modal.CloseTrigger isDisabled={pending !== null} aria-label='Cancel revoke' />
-								<Modal.Header>
-									<Modal.Heading>Revoke this app&apos;s access?</Modal.Heading>
-								</Modal.Header>
-								<Modal.Body>
-									<p>It will need your approval to connect again.</p>
-									{error && (
-										<Alert status='danger' role='alert'>
-											<Alert.Indicator />
-											<Alert.Content>
-												<Alert.Title>Connection update failed</Alert.Title>
-												<Alert.Description>{error}</Alert.Description>
-											</Alert.Content>
-										</Alert>
-									)}
-								</Modal.Body>
-								<Modal.Footer>
-									<Button variant='secondary' isDisabled={pending !== null} onPress={() => setConfirmation(null)}>
-										Cancel
-									</Button>
-									<Button variant='danger' isPending={pending === confirmation} isDisabled={pending !== null} onPress={() => void revoke(confirmation)}>
-										Confirm revoke
-									</Button>
-								</Modal.Footer>
-							</Modal.Dialog>
-						</Modal.Container>
-					</Modal.Backdrop>
-				)}
+				<ConfirmModal
+					isOpen={confirmation !== null}
+					onOpenChange={(open) => {
+						if (!open && !pending) setConfirmation(null);
+					}}
+					title='Disconnect this app?'
+					confirmLabel='Disconnect'
+					isPending={pending !== null}
+					onConfirm={() => {
+						if (confirmation) return revoke(confirmation);
+					}}
+					content={
+						<>
+							<p>This app will lose access to your creators. You can connect it again at any time.</p>
+							{error && (
+								<Alert status='danger' role='alert'>
+									<Alert.Indicator />
+									<Alert.Content>
+										<Alert.Title>Could not disconnect</Alert.Title>
+										<Alert.Description>{error}</Alert.Description>
+									</Alert.Content>
+								</Alert>
+							)}
+						</>
+					}
+				/>
 				<Modal.Backdrop
 					isOpen={purgeOpen}
 					onOpenChange={(open) => {

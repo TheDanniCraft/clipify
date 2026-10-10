@@ -7,6 +7,7 @@ import type { ReactNode } from "react";
 
 type ConfirmModalProps = {
 	isOpen: boolean;
+	isPending?: boolean;
 	onOpenChange: (isOpen: boolean) => void;
 	title?: string;
 	description?: ReactNode;
@@ -19,17 +20,22 @@ type ConfirmModalProps = {
 	onConfirm: () => void | Promise<void>;
 };
 
-export default function ConfirmModal({ isOpen, onOpenChange, keyword, content, confirmVariant = "danger", cancelVariant = "secondary", onConfirm, title = "Confirm Action", description, confirmLabel = "Confirm", cancelLabel = "Cancel" }: ConfirmModalProps) {
+export default function ConfirmModal({ isOpen, isPending = false, onOpenChange, keyword, content, confirmVariant = "danger", cancelVariant = "secondary", onConfirm, title = "Confirm Action", description, confirmLabel = "Confirm", cancelLabel = "Cancel" }: ConfirmModalProps) {
 	const [confirmed, setConfirmed] = useState(false);
 	const requiresKeyword = Boolean(keyword);
 	if (!isOpen) return null;
 	const effectiveConfirmLabel = keyword && confirmLabel === "Confirm" ? "Delete" : confirmLabel;
 
 	return (
-		<Modal.Backdrop isOpen={isOpen} onOpenChange={onOpenChange}>
+		<Modal.Backdrop
+			isOpen={isOpen}
+			onOpenChange={(open) => {
+				if (!isPending) onOpenChange(open);
+			}}
+		>
 			<Modal.Container>
-				<Modal.Dialog>
-					<Modal.CloseTrigger />
+				<Modal.Dialog aria-label={title}>
+					<Modal.CloseTrigger isDisabled={isPending} aria-label='Close confirmation' />
 					<Modal.Header>
 						<Modal.Heading>
 							<div className='flex items-center'>
@@ -50,10 +56,10 @@ export default function ConfirmModal({ isOpen, onOpenChange, keyword, content, c
 							</TextField>
 						) : null}
 						<div className='mt-3 flex justify-end gap-2'>
-							<Button onPress={() => onOpenChange(false)} variant={cancelVariant}>
+							<Button isDisabled={isPending} onPress={() => onOpenChange(false)} variant={cancelVariant}>
 								{cancelLabel}
 							</Button>
-							<Button isDisabled={requiresKeyword && !confirmed} onPress={onConfirm} variant={confirmVariant}>
+							<Button isPending={isPending} isDisabled={isPending || (requiresKeyword && !confirmed)} onPress={onConfirm} variant={confirmVariant}>
 								{effectiveConfirmLabel}
 							</Button>
 						</div>

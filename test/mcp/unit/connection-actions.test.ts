@@ -17,7 +17,7 @@ describe("connected app server-action boundary", () => {
 	});
 	test("failed revocation does not leak errors or report success", async () => {
 		(revokeMcpConnection as jest.Mock).mockRejectedValue(new Error("private database credential"));
-		expect(await revokeConnectedMcpApp("id")).toEqual({ error: "Access could not be revoked. Try again." });
+		expect(await revokeConnectedMcpApp("id")).toEqual({ error: "The app could not be disconnected. Try again." });
 	});
 	test("pending cleanup is preserved for a durably revoked grant", async () => {
 		(revokeMcpConnection as jest.Mock).mockResolvedValue(Response.json({ revoked: true, cleanupPending: true }));
@@ -37,7 +37,7 @@ describe("connected app server-action boundary", () => {
 	});
 	test("provider HTTP failure does not falsely report revocation", async () => {
 		(revokeMcpConnection as jest.Mock).mockResolvedValue(new Response(null, { status: 403 }));
-		expect(await revokeConnectedMcpApp("grant")).toEqual({ error: "Access could not be revoked. Try again." });
+		expect(await revokeConnectedMcpApp("grant")).toEqual({ error: "The app could not be disconnected. Try again." });
 	});
 });
 

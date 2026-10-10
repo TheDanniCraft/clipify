@@ -142,10 +142,10 @@ Then("the activity shows safe actor app creator operation time and outcome", asy
 	await connections.getByRole("button", { name: "Details for Browser playlist revision", exact: true }).click();
 	await expect(page.getByRole("dialog", { name: "Connection details for Browser playlist revision" })).toBeVisible();
 	await page.getByRole("button", { name: "Close details", exact: true }).click();
-	await connections.getByRole("button", { name: "Revoke Browser playlist revision", exact: true }).click();
-	await expect(page.getByRole("dialog", { name: "Revoke app access", exact: true })).toBeVisible();
+	await connections.getByRole("button", { name: "Disconnect Browser playlist revision", exact: true }).click();
+	await expect(page.getByRole("dialog", { name: "Disconnect this app?", exact: true })).toBeVisible();
 	await page.getByRole("button", { name: "Cancel", exact: true }).click();
-	await expect(page.getByRole("dialog", { name: "Revoke app access", exact: true })).not.toBeVisible();
+	await expect(page.getByRole("dialog", { name: "Disconnect this app?", exact: true })).not.toBeVisible();
 	await panel.screenshot({ path: "test-results/mcp/activity-settings-desktop.png" });
 	await page.setViewportSize({ width: 390, height: 844 });
 	await panel.scrollIntoViewIfNeeded();
