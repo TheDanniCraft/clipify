@@ -54,3 +54,19 @@ describe("Twitch authorization return links", () => {
 		await waitFor(() => expect(authClient.signIn.social).toHaveBeenCalledWith(expect.objectContaining({ callbackURL: "/dashboard", errorCallbackURL: "/login" })));
 	});
 });
+
+describe("native MCP sign-in", () => {
+	it("keeps the signed query on the login page for retry without nesting it in the callback", async () => {
+		jest.clearAllMocks();
+		(authClient.signIn.social as jest.Mock).mockResolvedValue({ error: null });
+		const query = "client_id=client&state=relay&sig=signed&ba_param=client_id&ba_param=state&ba_param=ba_param";
+		window.history.replaceState({}, "", `/login?${query}`);
+		try {
+			render(<LoginClient returnUrl='' oauthAuthorization />);
+			fireEvent.click(screen.getByRole("button", { name: "Login with Twitch" }));
+			await waitFor(() => expect(authClient.signIn.social).toHaveBeenCalledWith({ provider: "twitch", callbackURL: "/dashboard", errorCallbackURL: `/login?${query}` }));
+		} finally {
+			window.history.replaceState({}, "", "/");
+		}
+	});
+});

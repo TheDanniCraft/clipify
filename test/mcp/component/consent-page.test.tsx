@@ -63,7 +63,7 @@ describe("TDD-US1-027 consent route", () => {
 	test("requires a login and preserves the signed authorization return path", async () => {
 		expect(Page).toEqual(expect.any(Function));
 		(auth.api.getSession as unknown as jest.Mock).mockResolvedValue(null);
-		await expect(Page({ searchParams: Promise.resolve(query) })).rejects.toThrow("REDIRECT:/login?returnUrl=");
+		await expect(Page({ searchParams: Promise.resolve(query) })).rejects.toThrow("REDIRECT:/login?client_id=");
 	});
 	test("malformed state cannot reach the consent form", async () => {
 		expect(Page).toEqual(expect.any(Function));

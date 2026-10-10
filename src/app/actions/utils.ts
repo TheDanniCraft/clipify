@@ -1,6 +1,8 @@
 /* istanbul ignore file */
 "use server";
 
+import { safeReturnPath } from "@/auth/return-url";
+
 import { isCoolifyEnv, isPreviewEnv, resolveBaseUrl } from "@/app/lib/baseUrl";
 
 export async function isPreview() {
@@ -17,8 +19,5 @@ export async function getBaseUrl(): Promise<URL> {
 
 export async function safeReturnUrl(input?: string | string[] | null) {
 	const v = Array.isArray(input) ? input[0] : input;
-	if (!v) return null;
-	if (!v.startsWith("/")) return null;
-	if (v.startsWith("//")) return null;
-	return v;
+	return safeReturnPath(v);
 }

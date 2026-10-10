@@ -118,7 +118,7 @@ export function createMcpPlugins(input: { origin: string; options?: Partial<McpO
 	return [
 		registrationBoundary,
 		jwt({ jwt: { issuer: `${origin}/api/auth` } }),
-		mcp({ ...input.options, loginPage: "/auth/mcp/consent", consentPage: "/auth/mcp/consent", resource: `${origin}/mcp`, scopes: [...MCP_SCOPES, "offline_access"], grantTypes: ["authorization_code", "refresh_token"], refreshTokenReuseInterval: 0, allowDynamicClientRegistration: true, allowUnauthenticatedClientRegistration: true }),
+		mcp({ ...input.options, loginPage: "/login", consentPage: "/auth/mcp/consent", resource: `${origin}/mcp`, scopes: [...MCP_SCOPES, "offline_access"], grantTypes: ["authorization_code", "refresh_token"], refreshTokenReuseInterval: 0, allowDynamicClientRegistration: true, allowUnauthenticatedClientRegistration: true }),
 		cimd({ fetchClientMetadataResource: boundedClientMetadataFetch, metadataProfile: "mcp-2026-07-28" }),
 	];
 }

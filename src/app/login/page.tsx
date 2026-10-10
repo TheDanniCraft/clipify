@@ -6,18 +6,21 @@ import { readCheckoutIntent } from "@/server/checkoutIntent";
 import { legalDocumentRoutes } from "@lib/legal/documents";
 import LoginClient from "./LoginClient";
 import { getAuthSession } from "@/auth/session";
+import { safeReturnPath } from "@/auth/return-url";
 
 export default async function Login({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
-	const { error, errorCode, returnUrl } = await searchParams;
+	const parameters = await searchParams;
+	const { error, errorCode, returnUrl } = parameters;
+	const oauthAuthorization = typeof parameters.client_id === "string" && typeof parameters.sig === "string";
 	const rawReturnUrl = typeof returnUrl === "string" ? returnUrl : "";
-	const ru = rawReturnUrl.startsWith("/") && !rawReturnUrl.startsWith("//") ? rawReturnUrl : "";
+	const ru = safeReturnPath(rawReturnUrl) ?? "";
 
 	const checkoutIntent = await readCheckoutIntent();
-	// A pending purchase must not replace an explicitly initiated MCP authorization.
-	const isMcpConsent = ru === "/auth/mcp/consent" || ru.startsWith("/auth/mcp/consent?");
-	const returnDestination = isMcpConsent ? ru : checkoutIntent ? "/checkout/continue" : ru;
+	// The OAuth provider resumes its signed request after sign-in. A login prompt
+	// can deliberately require reauthentication even when a session exists.
+	const returnDestination = oauthAuthorization ? "" : checkoutIntent ? "/checkout/continue" : ru;
 	const [session, loggedInUser] = await Promise.all([process.env.E2E_TEST_MODE === "true" ? null : getAuthSession(), validateAuth()]);
-	if (session || loggedInUser) {
+	if (!oauthAuthorization && (session || loggedInUser)) {
 		redirect(returnDestination || "/dashboard");
 	}
 
@@ -27,7 +30,7 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
 
 			<div className='min-h-screen min-w-screen flex items-center justify-center bg-gradient-to-br from-brand-800 to-brand-400'>
 				<div className='flex flex-col items-center'>
-					<LoginClient returnUrl={returnDestination} />
+					<LoginClient returnUrl={returnDestination} oauthAuthorization={oauthAuthorization} />
 
 					<div className='mt-2 flex max-w-[240px] flex-col items-center text-center text-xs text-gray-400'>
 						<p>

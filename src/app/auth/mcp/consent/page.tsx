@@ -34,7 +34,7 @@ export default async function McpConsentPage({ searchParams }: { searchParams: P
 	if (!secret || !(await verifyOAuthQueryParams(oauthQuery, secret))) return <AuthorizationError />;
 	const requestHeaders = await headers();
 	const session = await auth.api.getSession({ headers: requestHeaders });
-	if (!session) redirect(`/login?returnUrl=${encodeURIComponent(`/auth/mcp/consent?${oauthQuery}`)}`);
+	if (!session) redirect(`/login?${oauthQuery}`);
 	const [clients, decisions] = await Promise.all([
 		db
 			.select({ name: oauthClient.name })
