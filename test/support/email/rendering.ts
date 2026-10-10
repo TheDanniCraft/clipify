@@ -1,3 +1,4 @@
+import { JSDOM } from "jsdom";
 import { renderAccountDeletedEmail, renderAccountLifecycleEmail } from "@/server/notifications/templates/account-lifecycle";
 import { renderAgencyAllocationEmail } from "@/server/notifications/templates/agency-allocation";
 import { renderAccountAccessEmail } from "@/server/notifications/templates/account-access";
@@ -40,7 +41,8 @@ for (const input of inputs) {
 test("OTP and HTML-sensitive content remain escaped and complete in plain text", async () => {
 	const mail = await renderBrandedEmail({ subject: "Verify\r\nClipify", paragraphs: ['<script>alert("example")</script>'], code: "123456" });
 	assert.equal(mail.subject, "Verify Clipify");
-	assert.doesNotMatch(mail.html, /<script>/);
+	const document = new JSDOM(mail.html).window.document;
+	assert.equal(document.querySelector("script"), null);
 	assert.match(mail.html, /&lt;script&gt;/);
 	assert.match(mail.text, /123456/);
 	assert.match(mail.text, /<script>alert\("example"\)<\/script>/);
@@ -155,7 +157,9 @@ test("support references in welcome, deletion and badge emails are clickable and
 	const messages = [await renderIdentitySecurityEmail({ type: "welcome", name: "Alex" }), await renderAccountLifecycleEmail("request", { effectiveAt: new Date("2030-01-01T12:00:00Z"), recoveryPath: "/dashboard/settings/account/recovery" }), await renderAccountDeletedEmail(), await renderBadgeEmail({ name: "Contributor", description: "Community contribution", event: "removed" })];
 	for (const mail of messages) {
 		assert.match(mail.html, /<a\b[^>]*href="mailto:contact@clipify\.us"[^>]*>contact@clipify\.us<\/a>/);
-		const textOutsideLinks = mail.html.replace(/<a\b[^>]*>[\s\S]*?<\/a>/g, "").replace(/<[^>]*>/g, "");
+		const document = new JSDOM(mail.html).window.document;
+		for (const link of document.querySelectorAll("a")) link.remove();
+		const textOutsideLinks = document.body.textContent ?? "";
 		assert.doesNotMatch(textOutsideLinks, /https?:\/\/|contact@clipify\.us/);
 		assert.match(mail.text, /https:\/\/help\.clipify\.us\//);
 		assert.doesNotMatch(mail.text, /\[object Object\]/);
