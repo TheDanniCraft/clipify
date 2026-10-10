@@ -1,40 +1,29 @@
 jest.mock("next/headers", () => ({ headers: async () => new Headers({ cookie: "session=test" }) }));
-jest.mock("@/auth/config", () => ({ auth: { api: { getSession: jest.fn(), createVerificationOTP: jest.fn(), requestEmailChangeEmailOTP: jest.fn(), getVerificationOTP: jest.fn() } } }));
-jest.mock("@/auth/transactional-mail", () => ({ sendAuthOtp: jest.fn() }));
+jest.mock("@/auth/config", () => ({ auth: { api: { getSession: jest.fn(), sendVerificationOTP: jest.fn(), requestEmailChangeEmailOTP: jest.fn() } } }));
 
 import { requestCurrentEmailChangeCode, requestNewEmailChangeCode } from "@/app/actions/account-security";
-
-const { auth } = jest.requireMock("@/auth/config") as { auth: { api: { getSession: jest.Mock; createVerificationOTP: jest.Mock; requestEmailChangeEmailOTP: jest.Mock; getVerificationOTP: jest.Mock } } };
-const { sendAuthOtp } = jest.requireMock("@/auth/transactional-mail") as { sendAuthOtp: jest.Mock };
-const { getSession, createVerificationOTP, requestEmailChangeEmailOTP, getVerificationOTP } = auth.api;
+const { auth } = jest.requireMock("@/auth/config") as { auth: { api: { getSession: jest.Mock; sendVerificationOTP: jest.Mock; requestEmailChangeEmailOTP: jest.Mock } } };
 
 describe("account security actions", () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
-		getSession.mockResolvedValue({ user: { email: "Current@Example.com" } });
-		createVerificationOTP.mockResolvedValue("123456");
-		requestEmailChangeEmailOTP.mockResolvedValue({ success: true });
-		getVerificationOTP.mockResolvedValue({ otp: "654321" });
-		sendAuthOtp.mockResolvedValue(undefined);
+		auth.api.getSession.mockResolvedValue({ user: { email: "Current@Example.com" } });
+		auth.api.sendVerificationOTP.mockResolvedValue({ success: true });
+		auth.api.requestEmailChangeEmailOTP.mockResolvedValue({ success: true });
 	});
-
-	it("sends the current-address code synchronously", async () => {
+	it("uses Better Auth to generate, store and deliver the current-address code", async () => {
 		await requestCurrentEmailChangeCode();
-
-		expect(sendAuthOtp).toHaveBeenCalledWith({ email: "current@example.com", otp: "123456", type: "email-verification" });
+		expect(auth.api.sendVerificationOTP).toHaveBeenCalledWith(expect.objectContaining({ headers: expect.any(Headers), body: { email: "current@example.com", type: "email-verification" } }));
 	});
-
-	it("propagates provider delivery failures to the caller", async () => {
-		sendAuthOtp.mockRejectedValueOnce(new Error("provider rejected sender"));
-
-		await expect(requestCurrentEmailChangeCode()).rejects.toThrow("provider rejected sender");
-	});
-
-	it("verifies the current address and sends the new-address code", async () => {
+	it("uses the native email-change endpoint to verify the old address and deliver the new code", async () => {
 		await requestNewEmailChangeCode(" New@Example.com ", " 123456 ");
-
-		expect(requestEmailChangeEmailOTP).toHaveBeenCalledWith(expect.objectContaining({ body: { newEmail: "new@example.com", otp: "123456" } }));
-		expect(getVerificationOTP).toHaveBeenCalledWith({ query: { email: "current@example.com-new@example.com", type: "change-email" } });
-		expect(sendAuthOtp).toHaveBeenCalledWith({ email: "new@example.com", otp: "654321", type: "change-email" });
+		expect(auth.api.requestEmailChangeEmailOTP).toHaveBeenCalledWith(expect.objectContaining({ headers: expect.any(Headers), body: { newEmail: "new@example.com", otp: "123456" } }));
+	});
+	it("requires a signed-in identity before requesting codes", async () => {
+		auth.api.getSession.mockResolvedValue(null);
+		await expect(requestCurrentEmailChangeCode()).rejects.toThrow("AUTHENTICATION_REQUIRED");
+		await expect(requestNewEmailChangeCode("new@example.com", "123456")).rejects.toThrow("AUTHENTICATION_REQUIRED");
+		expect(auth.api.sendVerificationOTP).not.toHaveBeenCalled();
+		expect(auth.api.requestEmailChangeEmailOTP).not.toHaveBeenCalled();
 	});
 });

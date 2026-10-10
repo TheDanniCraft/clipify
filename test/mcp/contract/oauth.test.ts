@@ -29,8 +29,8 @@ describe("MCP provider HTTP discovery and registration", () => {
 
 import { flowProbe } from "../../support/mcp/probe";
 describe("OAuth consent and issuance binding", () => {
-	test("TDD-US1-004 logged-out authorization reaches the real consent/login bridge with signed state", () => {
-		expect(flowProbe("logged-out")).toMatchObject({ loginPath: "/auth/mcp/consent", signedState: true, clientPreserved: true });
+	test("TDD-US1-004 logged-out authorization reaches native login with signed state", () => {
+		expect(flowProbe("logged-out")).toMatchObject({ loginPath: "/login", signedState: true, clientPreserved: true });
 	});
 	test("TDD-US1-004 TDD-US1-006 exact approved creator grant is audience bound", () => {
 		const result = flowProbe("approve");

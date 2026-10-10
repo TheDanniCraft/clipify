@@ -5,7 +5,7 @@ import { Button } from "@components/heroui-client";
 import { IconBrandTwitch } from "@tabler/icons-react";
 import { authClient } from "@/auth/client";
 
-export default function LoginClient({ returnUrl }: { returnUrl: string }) {
+export default function LoginClient({ returnUrl, oauthAuthorization = false }: { returnUrl: string; oauthAuthorization?: boolean }) {
 	const [pending, setPending] = useState(false);
 	const [localError, setLocalError] = useState<string | null>(null);
 
@@ -15,7 +15,8 @@ export default function LoginClient({ returnUrl }: { returnUrl: string }) {
 		const result = await authClient.signIn.social({
 			provider: "twitch",
 			callbackURL: returnUrl || "/dashboard",
-			errorCallbackURL: returnUrl ? `/login?returnUrl=${encodeURIComponent(returnUrl)}` : "/login",
+			// Keep the provider-signed query on the login page for cancellation/retry.
+			errorCallbackURL: oauthAuthorization ? `${window.location.pathname}${window.location.search}` : returnUrl ? `/login?returnUrl=${encodeURIComponent(returnUrl)}` : "/login",
 		});
 		if (result.error) {
 			setLocalError("Twitch sign-in could not be started. Please try again.");

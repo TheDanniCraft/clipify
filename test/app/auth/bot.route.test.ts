@@ -40,4 +40,18 @@ describe("app/auth/bot route", () => {
 			asResponse: true,
 		});
 	});
+	it("turns Better Auth's JSON sign-in response into a browser redirect and retains its state cookie", async () => {
+		signInSocial.mockResolvedValue(Response.json({ url: "https://id.twitch.tv/oauth2/authorize?state=fixture", redirect: true }, { headers: { Location: "https://id.twitch.tv/oauth2/authorize?state=fixture", "Set-Cookie": "__Secure-better-auth.state=fixture; HttpOnly; Secure; SameSite=Lax" } }));
+		const { GET } = await import("@/app/auth/bot/route");
+		const response = await GET(new Request("https://clipify.us/auth/bot") as never);
+		expect(response.status).toBe(302);
+		expect(response.headers.get("location")).toBe("https://id.twitch.tv/oauth2/authorize?state=fixture");
+		expect(response.headers.get("set-cookie")).toContain("__Secure-better-auth.state=fixture");
+	});
+	it("preserves a failed sign-in response instead of redirecting", async () => {
+		const failure = Response.json({ error: "provider_unavailable" }, { status: 503 });
+		signInSocial.mockResolvedValue(failure);
+		const { GET } = await import("@/app/auth/bot/route");
+		expect(await GET(new Request("https://clipify.us/auth/bot") as never)).toBe(failure);
+	});
 });

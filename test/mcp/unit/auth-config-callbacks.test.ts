@@ -6,6 +6,10 @@ test("installed OAuth proxy preserves production state behind container origins"
 	execFileSync(process.execPath, ["--test", resolve("scripts/oauth-proxy-origin.test.mjs")], { stdio: "pipe" });
 });
 
+test("installed MCP provider resumes signed authorization through login and token exchange", () => {
+	execFileSync(process.execPath, ["--test", resolve("scripts/mcp-login-continuation.test.mjs")], { stdio: "pipe" });
+});
+
 jest.mock("better-auth", () => ({ betterAuth: (options: unknown) => ({ options }) }));
 jest.mock("better-auth/api", () => ({
 	createAuthMiddleware: (callback: unknown) => callback,
@@ -60,6 +64,7 @@ const context = (body: unknown = { memberId: "target", role: "operations" }, pat
 
 test("provider configuration uses native MCP grant options", () => {
 	expect(options.account.encryptOAuthTokens).toBe(true);
+	expect(options.account.storeStateStrategy).toBe("database");
 	expect(options.session.cookieCache.enabled).toBe(false);
 	expect(plugin("oauth-proxy").productionURL).toBe("http://localhost:3000");
 	expect(plugin("oauth-proxy").currentURL).toBe("http://localhost:3000");
@@ -115,13 +120,13 @@ test("invitation delivery uses the stored case-insensitive recipient and organiz
 	await plugin("magic-link").sendMagicLink({ email: "target@example.invalid", url: "https://clipify.example/accept", metadata: { invitationId: "invite" } });
 	expect(sendTeamInvitation).toHaveBeenCalledWith({ email: "Target@example.invalid", invitationUrl: "https://clipify.example/accept", organizationName: "Creator team" });
 });
-test("ordinary OTP delegates to transactional delivery while change-email remains synchronous elsewhere", async () => {
+test("all OTP types use the provider delivery callback", async () => {
 	const ordinary = { email: "actor@example.invalid", otp: "fixture-otp", type: "sign-in" };
 	await plugin("email-otp").sendVerificationOTP(ordinary);
 	expect(sendAuthOtp).toHaveBeenCalledWith(ordinary);
 	(sendAuthOtp as jest.Mock).mockClear();
 	await plugin("email-otp").sendVerificationOTP({ ...ordinary, type: "change-email" });
-	expect(sendAuthOtp).not.toHaveBeenCalled();
+	expect(sendAuthOtp).toHaveBeenCalledWith({ ...ordinary, type: "change-email" });
 });
 
 test.each(["https://preview.example.invalid", "https://clipify.us"])("configuration pins OAuth proxy current origin to %s", (origin) => {

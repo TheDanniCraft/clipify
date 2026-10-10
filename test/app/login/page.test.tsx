@@ -30,17 +30,17 @@ describe("app/login/page", () => {
 		expect(redirect).toHaveBeenCalledWith("/dashboard/agency");
 	});
 
-	it("rejects a protocol-relative return URL", async () => {
+	it.each(["//example.com", "/\\example.com", "/\t/example.com"])("rejects an external return URL %p", async (returnUrl) => {
 		const LoginPage = (await import("@/app/login/page")).default;
 
-		await expect(LoginPage({ searchParams: Promise.resolve({ returnUrl: "//example.com" }) })).rejects.toThrow("NEXT_REDIRECT");
+		await expect(LoginPage({ searchParams: Promise.resolve({ returnUrl }) })).rejects.toThrow("NEXT_REDIRECT");
 
 		expect(redirect).toHaveBeenCalledWith("/dashboard");
 	});
 });
 
-const mcpReturnUrl = "/auth/mcp/consent?client_id=client&scope=creator%3Aread+overlay%3Awrite&state=state&sig=signed&ba_param=one&ba_param=two";
-describe("MCP login with an existing checkout intent", () => {
+const oauthParameters = { client_id: "https://chatgpt.com/oauth/client.json", state: "relay-state", sig: "signed", ba_param: ["client_id", "state", "ba_param"], prompt: "login" };
+describe("native MCP login continuation", () => {
 	beforeEach(() => {
 		jest.clearAllMocks();
 		readCheckoutIntent.mockResolvedValue({ products: [{ product: "pro", billingCycle: "monthly" }] });
@@ -48,22 +48,15 @@ describe("MCP login with an existing checkout intent", () => {
 			throw new Error("NEXT_REDIRECT");
 		});
 	});
-	it("returns an authenticated user to the complete MCP request instead of checkout", async () => {
-		getAuthSession.mockResolvedValue({ session: { id: "session-1" } });
-		validateAuth.mockResolvedValue({ id: "creator-1" });
+	it.each([null, { session: { id: "session-1" } }])("lets Better Auth resume authorization after login even with session %p", async (session) => {
+		getAuthSession.mockResolvedValue(session);
+		validateAuth.mockResolvedValue(session ? { id: "creator-1" } : null);
 		const LoginPage = (await import("@/app/login/page")).default;
-		await expect(LoginPage({ searchParams: Promise.resolve({ returnUrl: mcpReturnUrl }) })).rejects.toThrow("NEXT_REDIRECT");
-		expect(redirect).toHaveBeenCalledWith(mcpReturnUrl);
-	});
-	it("preserves the MCP destination when a new user needs Twitch sign-in", async () => {
-		getAuthSession.mockResolvedValue(null);
-		validateAuth.mockResolvedValue(null);
-		const LoginPage = (await import("@/app/login/page")).default;
-		renderToStaticMarkup(await LoginPage({ searchParams: Promise.resolve({ returnUrl: mcpReturnUrl }) }));
-		expect(loginClient).toHaveBeenCalledWith({ returnUrl: mcpReturnUrl });
+		renderToStaticMarkup(await LoginPage({ searchParams: Promise.resolve(oauthParameters) }));
+		expect(loginClient).toHaveBeenCalledWith({ returnUrl: "", oauthAuthorization: true });
 		expect(redirect).not.toHaveBeenCalled();
 	});
-	it.each([undefined, "/dashboard", "//external.example", "/auth/mcp/consent-unrelated"])("retains checkout priority for non-MCP destination %s", async (returnUrl) => {
+	it.each([undefined, "/dashboard", "//external.example"])("retains checkout priority for ordinary destination %s", async (returnUrl) => {
 		getAuthSession.mockResolvedValue({ session: { id: "session-1" } });
 		validateAuth.mockResolvedValue({ id: "creator-1" });
 		const LoginPage = (await import("@/app/login/page")).default;
