@@ -1,5 +1,7 @@
+import { queuePaymentRecoveryEnded } from "@/server/notifications/pro-events";
 import "server-only";
 
+import { queueCancellationEmail, queueSubscriptionCancellationReminders } from "@/server/notifications/benefit-events";
 import Stripe from "stripe";
 import { and, eq, inArray, sql } from "drizzle-orm";
 
@@ -60,6 +62,7 @@ export async function syncStripeSubscription(subscription: Stripe.Subscription, 
 	).filter((item): item is NonNullable<typeof item> => item !== null);
 
 	const applied = await db.transaction(async (tx) => {
+		const [previous] = await tx.select().from(billingSubscriptionsTable).where(eq(billingSubscriptionsTable.id, subscription.id)).limit(1).for("update");
 		const [updated] = await tx
 			.insert(billingSubscriptionsTable)
 			.values({
@@ -92,6 +95,18 @@ export async function syncStripeSubscription(subscription: Stripe.Subscription, 
 
 		await tx.delete(billingSubscriptionItemsTable).where(eq(billingSubscriptionItemsTable.subscriptionId, subscription.id));
 		if (items.length > 0) await tx.insert(billingSubscriptionItemsTable).values(items);
+		const cancellationReason = subscription.cancellation_details?.reason;
+		const recoveryFailed = subscription.status === "unpaid" || subscription.cancellation_details?.reason === "payment_failed" || (subscription.status === "canceled" && !cancellationReason && ["past_due", "unpaid"].includes(previous?.status ?? ""));
+		if (previous && recoveryFailed && ["active", "trialing", "past_due"].includes(previous.status) && ["unpaid", "canceled"].includes(subscription.status) && items.some((item) => item.productKey === BillingProduct.Pro)) await queuePaymentRecoveryEnded({ userId, subscriptionId: subscription.id, eventCreated: stripeEventCreated }, tx);
+		const newlyCanceled = (!previous?.cancelAtPeriodEnd && subscription.cancel_at_period_end) || (previous && previous.status !== "canceled" && subscription.status === "canceled" && !previous.cancelAtPeriodEnd);
+		if (newlyCanceled) for (const product of new Set(items.map((item) => item.productKey))) if (!recoveryFailed || product !== BillingProduct.Pro) await queueCancellationEmail({ subscriptionId: subscription.id, userId, eventCreated: stripeEventCreated, benefit: product === BillingProduct.RunnerSelfHosted ? "runner" : "pro", endsAt: subscription.status === "canceled" ? null : period.end }, tx);
+		for (const product of new Set(items.map((item) => item.productKey))) {
+			if (![BillingProduct.Pro, BillingProduct.RunnerSelfHosted].includes(product)) continue;
+			const benefit = product === BillingProduct.RunnerSelfHosted ? "runner" : "pro";
+			if (subscription.cancel_at_period_end && period.end && ["active", "trialing", "past_due"].includes(subscription.status)) await queueSubscriptionCancellationReminders({ subscriptionId: subscription.id, userId, endsAt: period.end, ...(benefit === "runner" ? { benefit } : {}) }, tx);
+			if (subscription.status === "canceled" && previous?.cancelAtPeriodEnd && !recoveryFailed && period.end) await queueSubscriptionCancellationReminders({ subscriptionId: subscription.id, userId, endsAt: period.end, ended: true, ...(benefit === "runner" ? { benefit } : {}) }, tx);
+		}
+
 		return true;
 	});
 	if (!applied) return { userId, items: [], ignoredAsStale: true };

@@ -1,3 +1,4 @@
+import { queueBadgeEmail } from "@/server/notifications/badge-events";
 import "server-only";
 
 import { db } from "@/db/client";
@@ -30,6 +31,7 @@ export async function awardBadgeInternal({ userId, badge, source, awardedBy }: {
 		.onConflictDoNothing({ target: [userBadgesTable.userId, userBadgesTable.badge] })
 		.returning()
 		.execute();
+	if (award) await queueBadgeEmail(award, "awarded");
 	return award ?? null;
 }
 
@@ -39,5 +41,6 @@ export async function revokeBadgeInternal(userId: string, badge: ManualBadgeSlug
 		.where(and(eq(userBadgesTable.userId, userId), eq(userBadgesTable.badge, badge)))
 		.returning()
 		.execute();
+	if (revoked) await queueBadgeEmail(revoked, "removed");
 	return revoked ?? null;
 }

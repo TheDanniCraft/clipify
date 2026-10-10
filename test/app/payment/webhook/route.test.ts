@@ -1,5 +1,8 @@
 /** @jest-environment node */
 
+const queueProPayment = jest.fn();
+jest.mock("@/server/notifications/pro-events", () => ({ queueProPaymentEmail: (...args: unknown[]) => queueProPayment(...args) }));
+jest.mock("@/server/billingCatalog", () => ({ resolveBillingProductForPrice: async (price: any) => price.metadata.key }));
 const headersMock = jest.fn();
 const getStripe = jest.fn();
 const syncStripeSubscription = jest.fn();
@@ -35,6 +38,7 @@ jest.mock("@/server/billing", () => ({ syncStripeSubscription: (...args: unknown
 jest.mock("@/server/agencies/billing-sync", () => ({ syncAgencyStripeSubscription: (...args: unknown[]) => syncAgencyStripeSubscription(...args) }));
 jest.mock("@/db/client", () => ({
 	db: {
+		transaction: async (operation: any) => operation({}),
 		query: { billingWebhookEventsTable: { findFirst: (...args: unknown[]) => findEvent(...args) } },
 		insert: jest.fn(() => insertBuilder),
 		update: jest.fn(() => updateBuilder),
@@ -55,7 +59,7 @@ describe("app/payment/webhook route", () => {
 		insertValues.mockResolvedValue(undefined);
 		insertReturning.mockResolvedValue([{ id: "claimed" }]);
 		updateWhere.mockResolvedValue([{ id: "claimed" }]);
-		syncStripeSubscription.mockResolvedValue(undefined);
+		syncStripeSubscription.mockResolvedValue({ userId: "user_1" });
 		syncAgencyStripeSubscription.mockResolvedValue({ handled: false });
 	});
 
@@ -157,5 +161,15 @@ describe("app/payment/webhook route", () => {
 		expect(response.status).toBe(200);
 		expect(updateWhere).toHaveBeenCalled();
 		expect(syncStripeSubscription).toHaveBeenCalledWith(subscription);
+	});
+	it.each(["invoice.paid", "invoice.payment_failed"])("%s only queues a personal thank-you for a paid Pro invoice", async (type) => {
+		const subscription = { id: "sub-1", items: { data: [{ price: { metadata: { key: "pro" } } }] } };
+		const invoice = { id: "in-1", status: type === "invoice.paid" ? "paid" : "open", amount_paid: 100, billing_reason: "subscription_cycle", parent: { subscription_details: { subscription: "sub-1" } } };
+		getStripe.mockResolvedValue({ webhooks: { constructEvent: () => ({ id: "evt_paid", created: 1900000000, type, data: { object: invoice } }) }, subscriptions: { retrieve: async () => subscription } });
+		const { POST } = await loadRoute();
+		const response = await POST(new Request("http://localhost/payment/webhook", { method: "POST", body: "payload" }));
+		expect(response.status).toBe(200);
+		if (type === "invoice.paid") expect(queueProPayment).toHaveBeenCalledWith(expect.objectContaining({ invoiceId: "in-1", userId: "user_1", amountPaid: 100 }), expect.anything());
+		else expect(queueProPayment).not.toHaveBeenCalled();
 	});
 });

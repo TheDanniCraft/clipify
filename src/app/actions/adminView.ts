@@ -20,6 +20,8 @@ export type AdminExplorerRow = {
 	role: string;
 	plan: string;
 	lastLogin: Date | string | null;
+	disabled: boolean;
+	disabledReason: string | null;
 };
 
 export type AdminExplorerPage = {
@@ -106,6 +108,8 @@ export async function getAdminExplorerPage(query: string, requestedPage = 1, pag
 					role: usersTable.role,
 					plan: usersTable.plan,
 					lastLogin: usersTable.lastLogin,
+					disabled: usersTable.disabled,
+					disabledReason: usersTable.disabledReason,
 				})
 				.from(usersTable)
 				.where(filter)
@@ -121,6 +125,8 @@ export async function getAdminExplorerPage(query: string, requestedPage = 1, pag
 					role: usersTable.role,
 					plan: usersTable.plan,
 					lastLogin: usersTable.lastLogin,
+					disabled: usersTable.disabled,
+					disabledReason: usersTable.disabledReason,
 				})
 				.from(usersTable)
 				.orderBy(desc(usersTable.lastLogin), desc(usersTable.createdAt))

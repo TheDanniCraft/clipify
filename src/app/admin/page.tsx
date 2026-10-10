@@ -188,6 +188,8 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 						role: row.role,
 						plan: row.plan,
 						lastLoginLabel: formatDate(row.lastLogin),
+						disabled: row.disabled,
+						disabledReason: row.disabledReason,
 					}))}
 					initialPage={explorer.page}
 					initialTotalPages={explorer.totalPages}

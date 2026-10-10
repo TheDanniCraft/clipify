@@ -1,4 +1,5 @@
 /** @jest-environment node */
+jest.mock("@/server/notifications/benefit-events", () => ({ queueGrantEmails: jest.fn() }));
 import { Plan, Entitlement, EntitlementGrantSource, RunnerStatus, StreamState } from "@types";
 import { PgDialect } from "drizzle-orm/pg-core";
 
@@ -188,6 +189,7 @@ describe("lib/entitlements", () => {
 	});
 
 	it("creates partner access grants with the partner source", async () => {
+		db.transaction.mockImplementationOnce(async (operation) => operation(db));
 		const insertExecute = jest.fn().mockResolvedValue([{ id: "partner-grant" }]);
 		const values = jest.fn(() => ({
 			returning: jest.fn(() => ({

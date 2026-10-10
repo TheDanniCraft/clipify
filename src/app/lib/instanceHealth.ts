@@ -1,3 +1,4 @@
+import { grantAccessNotExpired } from "@/server/entitlements/grant-period";
 /* istanbul ignore file */
 import { userHealthCounts, overlayHealthCounts, settingsHealthCounts, tokenHealthCounts, runnerHealthCounts, streamHealthCounts } from "./health-counts";
 import { db as database, type QueryClient } from "@/db/client";
@@ -5,7 +6,7 @@ import { billingSubscriptionItemsTable, billingSubscriptionsTable, entitlementGr
 import { account as authAccountTable } from "@/db/auth-schema";
 import { getTwitchCacheReadMetricsSnapshot } from "@actions/database";
 import { getClipCacheSchedulerStats } from "@lib/clipCacheScheduler";
-import { and, count, countDistinct, eq, gt, isNotNull, isNull, like, lt, lte, or, sql } from "drizzle-orm";
+import { and, count, countDistinct, eq, isNotNull, isNull, like, lt, lte, sql } from "drizzle-orm";
 import { BillingProduct, Entitlement, EntitlementGrantSource, OverlayType, PlaybackMode, Plan, StatusOptions, StreamMode, TwitchCacheType } from "@types";
 import { getCreatorAnalyticsRuntimeMetrics } from "@lib/plausibleCreatorAnalytics";
 
@@ -307,14 +308,14 @@ async function buildInstanceHealthSnapshot<TExclude extends keyof InstanceHealth
 			count: count(),
 		})
 		.from(entitlementGrantsTable)
-		.where(and(isNull(entitlementGrantsTable.revokedAt), lte(entitlementGrantsTable.startsAt, sql`now()`), or(isNull(entitlementGrantsTable.endsAt), gt(entitlementGrantsTable.endsAt, sql`now()`))))
+		.where(and(isNull(entitlementGrantsTable.revokedAt), lte(entitlementGrantsTable.startsAt, sql`now()`), grantAccessNotExpired(sql`now()`)))
 		.groupBy(entitlementGrantsTable.source, entitlementGrantsTable.entitlement)
 		.execute();
 
 	const activeGrantUsersResult = await db
 		.select({ count: countDistinct(entitlementGrantsTable.userId) })
 		.from(entitlementGrantsTable)
-		.where(and(isNull(entitlementGrantsTable.revokedAt), lte(entitlementGrantsTable.startsAt, sql`now()`), or(isNull(entitlementGrantsTable.endsAt), gt(entitlementGrantsTable.endsAt, sql`now()`)), isNotNull(entitlementGrantsTable.userId)))
+		.where(and(isNull(entitlementGrantsTable.revokedAt), lte(entitlementGrantsTable.startsAt, sql`now()`), grantAccessNotExpired(sql`now()`), isNotNull(entitlementGrantsTable.userId)))
 		.execute();
 	const activeGrantUsers = Number(activeGrantUsersResult[0]?.count ?? 0);
 
@@ -322,7 +323,7 @@ async function buildInstanceHealthSnapshot<TExclude extends keyof InstanceHealth
 		.select({ count: countDistinct(entitlementGrantsTable.userId) })
 		.from(entitlementGrantsTable)
 		.innerJoin(usersTable, eq(entitlementGrantsTable.userId, usersTable.id))
-		.where(and(isNull(entitlementGrantsTable.revokedAt), lte(entitlementGrantsTable.startsAt, sql`now()`), or(isNull(entitlementGrantsTable.endsAt), gt(entitlementGrantsTable.endsAt, sql`now()`)), isNotNull(entitlementGrantsTable.userId), eq(usersTable.plan, Plan.Free)))
+		.where(and(isNull(entitlementGrantsTable.revokedAt), lte(entitlementGrantsTable.startsAt, sql`now()`), grantAccessNotExpired(sql`now()`), isNotNull(entitlementGrantsTable.userId), eq(usersTable.plan, Plan.Free)))
 		.execute();
 	const activeGrantUsersOnFree = Number(activeGrantUsersOnFreeResult[0]?.count ?? 0);
 	const activeGrantCount = activeGrants.reduce((sum, row) => sum + Number(row.count ?? 0), 0);

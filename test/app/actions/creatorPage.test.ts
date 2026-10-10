@@ -81,4 +81,11 @@ describe("creator page actions", () => {
 		await expect(getCreatorClipPlayback("Bob", "clip-1")).resolves.toMatchObject({ playbackUrl: "https://video.example/clip.mp4" });
 		expect(getCachedClipByOwner).toHaveBeenCalledWith("owner", "clip-1");
 	});
+	it("shows Pro rather than Partner during the post-partnership grace period", async () => {
+		selectRows.push([{ user, settings }]);
+		resolveUserEntitlements.mockResolvedValue({ effectivePlan: "pro", grantSource: "partner" });
+		getMemberBadges.mockResolvedValue([]);
+		const { getCreatorPage } = await loadActions();
+		await expect(getCreatorPage("Alice", { pageSize: 24 })).resolves.toMatchObject({ creator: { clipifyBadge: "Clipify Pro" } });
+	});
 });

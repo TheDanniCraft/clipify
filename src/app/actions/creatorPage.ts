@@ -32,7 +32,7 @@ const getCreatorPresentation = cache(async (username: string) => {
 	if (!creator) return null;
 	const [twitch, badges] = await Promise.all([getCreatorTwitchDetails(creator.user.username, creator.user.id), getMemberBadges(creator.user.id)]);
 	const twitchBadge = twitch.profile?.broadcaster_type === "partner" ? "Twitch Partner" : twitch.profile?.broadcaster_type === "affiliate" ? "Twitch Affiliate" : null;
-	const clipifyBadge = creator.entitlements.grantSource === "partner" ? "Clipify Partner" : creator.entitlements.effectivePlan === "pro" ? "Clipify Pro" : "Clipify Creator";
+	const clipifyBadge = badges.some((badge) => badge.slug === "partner") ? "Clipify Partner" : creator.entitlements.effectivePlan === "pro" ? "Clipify Pro" : "Clipify Creator";
 	const socialPreviewAccess = getFeatureAccess({ ...creator.user, entitlements: creator.entitlements }, "creator_page_social_preview").allowed;
 	return {
 		ownerId: creator.user.id,

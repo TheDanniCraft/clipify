@@ -1,4 +1,5 @@
 import "server-only";
+import { observeTwitchRefresh } from "./notifications/twitch-account-access";
 import { withoutDatabaseRequest } from "@/db/request-scope";
 
 import { db, dbPool } from "@/db/client";
@@ -89,6 +90,6 @@ export async function getBetterAuthProviderAccessToken(creatorId: string) {
 
 	return withSerializedProviderCredential(dbPool, accountId, async () => {
 		const { auth } = await import("@/auth/config");
-		return auth.api.getAccessToken({ body: { accountId, userId: authUserId } });
+		return observeTwitchRefresh(creatorId, () => auth.api.getAccessToken({ body: { accountId, userId: authUserId } }));
 	});
 }

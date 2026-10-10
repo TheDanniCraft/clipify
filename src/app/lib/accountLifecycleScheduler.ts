@@ -1,3 +1,6 @@
+import { purgeDueDatabaseAccounts } from "@/server/account-lifecycle/database-purge";
+import { queueRevokedGrantEmails, queueExistingGrantReminders, queueExistingSubscriptionCancellationReminders } from "@/server/notifications/benefit-events";
+import { deliverDueNotifications } from "@/server/notifications/delivery";
 import { suspendDueDatabaseAccountDeletions } from "@/server/account-lifecycle/database";
 import { endDueDatabaseAgencyAllocations } from "@/server/agencies/database";
 import { captureUnexpectedError } from "@lib/sentryServer";
@@ -18,6 +21,11 @@ export function startAccountLifecycleScheduler() {
 		globalThis.__accountLifecycleSchedulerRunning = true;
 		try {
 			await Promise.all([suspendDueDatabaseAccountDeletions(), endDueDatabaseAgencyAllocations()]);
+			if (process.env.E2E_TEST_MODE !== "true") {
+				await purgeDueDatabaseAccounts();
+				await Promise.all([queueRevokedGrantEmails(), queueExistingGrantReminders(), queueExistingSubscriptionCancellationReminders()]);
+				await deliverDueNotifications();
+			}
 		} catch (error) {
 			captureUnexpectedError(error, "account-lifecycle-scheduler", "suspend-due-deletions");
 			console.error("[account-lifecycle] scheduler_run_failed", error);

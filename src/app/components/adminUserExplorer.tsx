@@ -1,8 +1,10 @@
 "use client";
 
+import AdminAwardsControl from "./adminAwardsControl";
+import AdminAccountAccessControl from "./adminAccountAccessControl";
 import { getAdminExplorerPage } from "@actions/adminView";
 import { startAdminView } from "@actions/auth";
-import { Button, Card, Chip, Spinner, Table, TextField, Label, InputGroup } from "@heroui/react";
+import { Button, Card, Chip, Spinner, Table, TextField, Label, InputGroup, Checkbox } from "@heroui/react";
 
 import { IconSearch } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
@@ -15,6 +17,8 @@ type AdminExplorerRow = {
 	role: string;
 	plan: string;
 	lastLoginLabel: string;
+	disabled?: boolean;
+	disabledReason?: string | null;
 };
 
 type AdminUserExplorerProps = {
@@ -34,6 +38,7 @@ function formatLastLoginLabel(value: Date | string | null) {
 
 export default function AdminUserExplorer({ users, initialPage, initialTotalPages, initialTotalRows, initialQuery }: AdminUserExplorerProps) {
 	const router = useRouter();
+	const [selected, setSelected] = useState<Record<string, string>>({});
 	const [switchingUserId, setSwitchingUserId] = useState<string | null>(null);
 	const [inputValue, setInputValue] = useState(initialQuery);
 	const [searchQuery, setSearchQuery] = useState(initialQuery);
@@ -73,6 +78,8 @@ export default function AdminUserExplorer({ users, initialPage, initialTotalPage
 					role: row.role,
 					plan: row.plan,
 					lastLoginLabel: formatLastLoginLabel(row.lastLogin),
+					disabled: row.disabled,
+					disabledReason: row.disabledReason,
 				})),
 			);
 			setPage(result.page);
@@ -146,10 +153,17 @@ export default function AdminUserExplorer({ users, initialPage, initialTotalPage
 					</div>
 				</div>
 
+				<div className='flex items-center gap-2'>
+					<AdminAwardsControl label={`Grant to ${Object.keys(selected).length} selected`} recipients={Object.entries(selected).map(([id, username]) => ({ id, username }))} onChanged={() => loadPage(searchQuery, page)} />
+					<Button variant='tertiary' size='sm' onPress={() => setSelected({})} isDisabled={!Object.keys(selected).length}>
+						Clear selection
+					</Button>
+				</div>
 				<Table className='rounded-lg border border-default'>
 					<Table.ScrollContainer>
 						<Table.Content aria-label='Admin user explorer table' className='min-w-[900px]'>
 							<Table.Header>
+								<Table.Column id='selection'>Select</Table.Column>
 								<Table.Column id='username' isRowHeader>
 									Username
 								</Table.Column>
@@ -166,7 +180,31 @@ export default function AdminUserExplorer({ users, initialPage, initialTotalPage
 								{visibleUsers.map((row) => (
 									<Table.Row key={row.id} id={row.id}>
 										<Table.Cell>
+											<Checkbox
+												aria-label={`Select ${row.username}`}
+												isSelected={!!selected[row.id]}
+												isDisabled={!selected[row.id] && Object.keys(selected).length >= 100}
+												onChange={(checked) =>
+													setSelected((current) => {
+														const next = { ...current };
+														if (checked && Object.keys(current).length < 100) next[row.id] = row.username;
+														else delete next[row.id];
+														return next;
+													})
+												}
+											>
+												<Checkbox.Control>
+													<Checkbox.Indicator />
+												</Checkbox.Control>
+											</Checkbox>
+										</Table.Cell>
+										<Table.Cell>
 											<span className='font-medium'>@{row.username}</span>
+											{row.disabled && (
+												<Chip size='sm' className='ml-2 text-danger'>
+													Disabled
+												</Chip>
+											)}
 										</Table.Cell>
 										<Table.Cell>
 											<span className='text-muted'>{row.id}</span>
@@ -188,6 +226,8 @@ export default function AdminUserExplorer({ users, initialPage, initialTotalPage
 											<span className='text-muted'>{row.lastLoginLabel}</span>
 										</Table.Cell>
 										<Table.Cell className='text-right'>
+											<AdminAwardsControl recipients={[row]} onChanged={() => loadPage(searchQuery, page)} />
+											<AdminAccountAccessControl user={row} onChanged={() => loadPage(searchQuery, page)} />
 											<Button size='sm' variant='primary' onPress={() => void handleViewAsUser(row.id)} isPending={switchingUserId === row.id} isDisabled={switchingUserId != null}>
 												View as User
 											</Button>

@@ -86,16 +86,18 @@ export async function requestDatabaseAccountDeletion(input: { choice: DeletionCh
 			.where(eq(creatorAccountsTable.organizationId, organizationId));
 		if (billing) await tx.update(billingSubscriptionsTable).set({ cancelAtPeriodEnd: true, updatedAt: now }).where(eq(billingSubscriptionsTable.id, billing.id));
 		await tx.insert(notificationOutboxTable).values(
-			notificationIntents.map((intent) => ({
-				eventType: "account-lifecycle",
-				recipient: intent.recipient,
-				authorityOrganizationId: organizationId,
-				templateVersion: intent.templateVersion,
-				locale: "en",
-				payload: { ...intent.payload, boundary: intent.boundary },
-				scheduledAt: intent.scheduledAt,
-				dedupeKey: intent.dedupeKey,
-			})),
+			notificationIntents
+				.filter((intent) => !suspended || intent.boundary !== "suspension")
+				.map((intent) => ({
+					eventType: "account-lifecycle",
+					recipient: intent.recipient,
+					authorityOrganizationId: organizationId,
+					templateVersion: intent.templateVersion,
+					locale: "en",
+					payload: { ...intent.payload, boundary: intent.boundary },
+					scheduledAt: intent.scheduledAt,
+					dedupeKey: intent.dedupeKey,
+				})),
 		);
 		await tx.insert(auditEventsTable).values({
 			actorUserId: lifecycleActor.authUserId,

@@ -1,5 +1,7 @@
 /** @jest-environment node */
 
+const mockQueueBadgeEmail = jest.fn();
+jest.mock("@/server/notifications/badge-events", () => ({ queueBadgeEmail: (...args: unknown[]) => mockQueueBadgeEmail(...args) }));
 const mockGetActivePartnerAccessGrant = jest.fn();
 jest.mock("@lib/entitlements", () => ({ getActivePartnerAccessGrant: (...args: unknown[]) => mockGetActivePartnerAccessGrant(...args) }));
 
