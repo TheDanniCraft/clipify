@@ -1,5 +1,6 @@
+import { Button, Link } from "./email-links";
 import { EMAIL_SUPPORT_ADDRESS, EMAIL_SUPPORT_URL, EMAIL_HELP_CENTER_URL } from "./formatting";
-import { Body, Button, Column, Container, Head, Heading, Hr, Html, Img, Link, Preview, Row, Section, Text, render, toPlainText } from "@react-email/components";
+import { Body, Column, Container, Head, Heading, Hr, Html, Img, Preview, Row, Section, Text, render, toPlainText } from "@react-email/components";
 import type { CSSProperties, ReactNode } from "react";
 import { resolveBaseUrl } from "@/app/lib/baseUrl";
 

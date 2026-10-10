@@ -1,5 +1,5 @@
 import { EMAIL_SUPPORT_ADDRESS, EMAIL_SUPPORT_URL } from "./formatting";
-import { Link } from "@react-email/components";
+import { Link } from "./email-links";
 import { createElement } from "react";
 import { EmailNotice, renderBrandedEmail } from "./layout";
 import { emailUrl } from "./formatting";

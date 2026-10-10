@@ -19,6 +19,12 @@ for (const input of inputs) {
 	test(`${input.type} has the shared brand, readable HTML and complete text alternative`, async () => {
 		const mail = await renderIdentitySecurityEmail(input);
 		assert.match(mail.html, /<!DOCTYPE/);
+		const anchors = [...new JSDOM(mail.html).window.document.querySelectorAll("a")];
+		assert.ok(anchors.length > 0);
+		for (const anchor of anchors) {
+			assert.ok(anchor.hasAttribute("ses:no-track"), `Click tracking must be disabled for ${anchor.href}`);
+			assert.ok(!anchor.href.includes("awstrack"));
+		}
 		assert.match(mail.html, /https?:\/\/[^\"]+\/web-app-manifest-192x192\.png/);
 		assert.match(mail.html, /alt="Clipify logo"/);
 		assert.ok(mail.html.includes(EMAIL_BRAND_ACCENT));
