@@ -4,37 +4,39 @@ import { db, type QueryClient } from "@/db/client";
 import { notificationOutboxTable, usersTable } from "@/db/schema";
 import type { BenefitEmail } from "./templates/benefits";
 
-export async function queueGrantEmails(grant: { id: string; userId: string | null; entitlement: string; source: string; reason: string | null; startsAt: Date; endsAt: Date | null }, client: QueryClient = db, includeStart = true) {
-	if (!grant.userId || grant.source === "billing" || !["pro_access", "runner_access"].includes(grant.entitlement)) return;
-	const [user] = await client.select({ email: usersTable.email }).from(usersTable).where(eq(usersTable.id, grant.userId)).limit(1).execute();
-	if (!user?.email) return;
+type GrantEmailInput = { id: string; userId: string | null; entitlement: string; source: string; reason: string | null; startsAt: Date; endsAt: Date | null };
+type GrantNotice = { payload: BenefitEmail; at: Date };
+function grantPayload(grant: GrantEmailInput): BenefitEmail {
 	const partner = grant.source === "partner" && grant.entitlement === "pro_access";
 	const trial = grant.source === "reverse_trial";
 	const payload: BenefitEmail = { type: "benefit", benefit: grant.entitlement === "runner_access" ? "runner" : "pro", event: "granted", partner, complimentary: grant.source !== "managed_contract", trial, startsAt: grant.startsAt.toISOString(), endsAt: grant.endsAt?.toISOString() ?? null, reason: trial ? null : grant.reason };
-	const notices: Array<{ payload: BenefitEmail; at: Date }> = includeStart ? [{ payload, at: grant.startsAt }] : [];
-	if (grant.endsAt) {
-		if (!partner)
-			for (const days of EXPIRY_REMINDER_DAYS) {
-				const at = new Date(grant.endsAt.getTime() - days * DAY_MS);
-				if (at > grant.startsAt) notices.push({ payload: { ...payload, event: `${trial ? "trial" : "access"}-${days}d` }, at });
-			}
-		if (partner) {
-			for (const days of EXPIRY_REMINDER_DAYS) {
-				const at = new Date(grant.endsAt.getTime() - days * 86400000);
-				if (at > grant.startsAt) notices.push({ payload: { ...payload, event: `partner-ending-${days}d` }, at });
-			}
-			notices.push({ payload: { ...payload, event: "partner-ended" }, at: grant.endsAt });
-			for (const days of EXPIRY_REMINDER_DAYS) {
-				const at = new Date(grant.endsAt.getTime() + (7 - days) * DAY_MS);
-				if (at > grant.endsAt) notices.push({ payload: { ...payload, event: `partner-${days}d` }, at });
-			}
-		}
-		notices.push({ payload: { ...payload, event: "ended" }, at: new Date(grant.endsAt.getTime() + (partner ? 7 * 86400000 : 0)) });
-	}
+	return payload;
+}
+function countdownNotices(payload: BenefitEmail, boundary: Date, after: Date, prefix: "trial" | "access" | "partner-ending" | "partner", offset = 0): GrantNotice[] {
+	return EXPIRY_REMINDER_DAYS.flatMap((days) => {
+		const at = new Date(boundary.getTime() + (offset - days) * DAY_MS);
+		return at > after ? [{ payload: { ...payload, event: `${prefix}-${days}d` }, at }] : [];
+	});
+}
+function expiryNotices(grant: GrantEmailInput, payload: BenefitEmail): GrantNotice[] {
+	if (!grant.endsAt) return [];
+	const notices: GrantNotice[] = payload.partner ? [...countdownNotices(payload, grant.endsAt, grant.startsAt, "partner-ending"), { payload: { ...payload, event: "partner-ended" }, at: grant.endsAt }, ...countdownNotices(payload, grant.endsAt, grant.endsAt, "partner", 7)] : countdownNotices(payload, grant.endsAt, grant.startsAt, payload.trial ? "trial" : "access");
+	notices.push({ payload: { ...payload, event: "ended" }, at: new Date(grant.endsAt.getTime() + (payload.partner ? 7 * DAY_MS : 0)) });
+	return notices;
+}
+function grantNoticeKey(grant: GrantEmailInput, notice: GrantNotice) {
+	return `benefit:${grant.id}:${notice.payload.event}${notice.payload.event === "granted" ? "" : `:${grant.endsAt!.getTime()}`}`;
+}
+export async function queueGrantEmails(grant: GrantEmailInput, client: QueryClient = db, includeStart = true) {
+	if (!grant.userId || grant.source === "billing" || !["pro_access", "runner_access"].includes(grant.entitlement)) return;
+	const [user] = await client.select({ email: usersTable.email }).from(usersTable).where(eq(usersTable.id, grant.userId)).limit(1).execute();
+	if (!user?.email) return;
+	const payload = grantPayload(grant);
+	const notices: GrantNotice[] = [...(includeStart ? [{ payload, at: grant.startsAt }] : []), ...expiryNotices(grant, payload)];
 	for (const notice of notices)
 		await client
 			.insert(notificationOutboxTable)
-			.values({ eventType: "entitlement", recipient: user.email, templateVersion: "benefit-v1", locale: "en", payload: { ...notice.payload, grantId: grant.id }, scheduledAt: notice.at, dedupeKey: `benefit:${grant.id}:${notice.payload.event}${notice.payload.event === "granted" ? "" : `:${grant.endsAt!.getTime()}`}` })
+			.values({ eventType: "entitlement", recipient: user.email, templateVersion: "benefit-v1", locale: "en", payload: { ...notice.payload, grantId: grant.id }, scheduledAt: notice.at, dedupeKey: grantNoticeKey(grant, notice) })
 			.onConflictDoNothing({ target: notificationOutboxTable.dedupeKey });
 }
 
@@ -92,6 +94,7 @@ export async function queueGrantRevocation(grant: { id: string; userId: string |
 export async function queueSubscriptionCancellationReminders(input: { subscriptionId: string; userId: string; endsAt: Date; ended?: boolean; benefit?: "pro" | "runner" }, client: QueryClient = db) {
 	const [user] = await client.select({ email: usersTable.email }).from(usersTable).where(eq(usersTable.id, input.userId)).limit(1).execute();
 	if (!user?.email) return;
+	const benefit = input.benefit ?? "pro";
 	for (const days of input.ended ? [0] : EXPIRY_REMINDER_DAYS) {
 		const scheduledAt = input.ended ? new Date() : new Date(input.endsAt.getTime() - days * DAY_MS);
 		if (!input.ended && scheduledAt <= new Date()) continue;
@@ -102,9 +105,9 @@ export async function queueSubscriptionCancellationReminders(input: { subscripti
 				recipient: user.email,
 				templateVersion: "benefit-v1",
 				locale: "en",
-				payload: { type: "benefit", event: `cancellation-${days}d`, benefit: input.benefit ?? "pro", subscriptionId: input.subscriptionId, endsAt: input.endsAt.toISOString() },
+				payload: { type: "benefit", event: `cancellation-${days}d`, benefit, subscriptionId: input.subscriptionId, endsAt: input.endsAt.toISOString() },
 				scheduledAt,
-				dedupeKey: `${input.benefit === "runner" ? "runner" : "pro"}-cancellation:${input.subscriptionId}:${input.endsAt.getTime()}:${days}d`,
+				dedupeKey: `${benefit}-cancellation:${input.subscriptionId}:${input.endsAt.getTime()}:${days}d`,
 			})
 			.onConflictDoNothing({ target: notificationOutboxTable.dedupeKey });
 	}
