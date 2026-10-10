@@ -195,6 +195,9 @@ export const auth = betterAuth({
 			},
 		}),
 		oAuthProxy({
+			// Next.js can expose the container's HTTP origin behind the reverse proxy.
+			// Use the configured public origin so production sign-ins skip proxying.
+			currentURL: baseURL,
 			// Twitch accepts the registered localhost callback directly. Only remote
 			// non-production deployments need to traverse the stable production URL.
 			productionURL: isLoopbackOrigin ? baseURL : productionURL,
