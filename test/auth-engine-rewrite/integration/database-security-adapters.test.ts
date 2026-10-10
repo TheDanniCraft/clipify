@@ -84,6 +84,16 @@ describe("TDD-US3-006 database security adapters", () => {
 		expect(onDeadLetter).toHaveBeenCalledWith(expect.objectContaining({ id: "notification-2" }));
 	});
 
+	it("casts failure scheduling timestamps so Postgres does not infer the CASE as text", async () => {
+		execute.mockResolvedValueOnce({ rows: [{ id: "notification-1", status: "retry" }] });
+		await failDatabaseNotification({ id: "00000000-0000-0000-0000-000000000001", workerId: "worker-1", permanent: false, error: "transient", now });
+		const query = execute.mock.calls[0][0] as { strings: string[]; parameters: unknown[] };
+		const nowIndexes = query.parameters.flatMap((parameter, index) => (parameter instanceof Date ? [index] : []));
+		expect(nowIndexes).toHaveLength(3);
+		for (const index of nowIndexes) expect(query.strings[index + 1].startsWith("::timestamptz")).toBe(true);
+		expect(query.parameters[nowIndexes[1]]).toEqual(new Date(now.getTime() + 2 * 60_000));
+	});
+
 	it("rejects a lost failure claim without calling dead-letter handling", async () => {
 		const onDeadLetter = jest.fn();
 		execute.mockResolvedValueOnce({ rows: [] });

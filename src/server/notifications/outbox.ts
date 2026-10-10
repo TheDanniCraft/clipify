@@ -147,10 +147,10 @@ export async function failDatabaseNotification(input: { id: string; workerId: st
 		SET
 			"status" = CASE WHEN ${input.permanent} OR "attempts" >= ${maxAttempts} THEN 'dead'::"notification_status" ELSE 'retry'::"notification_status" END,
 			"last_error" = ${lastError},
-			"scheduled_at" = CASE WHEN ${input.permanent} OR "attempts" >= ${maxAttempts} THEN ${input.now} ELSE ${new Date(input.now.getTime() + 2 * 60_000)} END,
+			"scheduled_at" = CASE WHEN ${input.permanent} OR "attempts" >= ${maxAttempts} THEN ${input.now}::timestamptz ELSE ${new Date(input.now.getTime() + 2 * 60_000)}::timestamptz END,
 			"claimed_by" = NULL,
 			"claim_expires_at" = NULL,
-			"updated_at" = ${input.now}
+			"updated_at" = ${input.now}::timestamptz
 		WHERE "id" = ${input.id}::uuid AND "status" = 'claimed' AND "claimed_by" = ${input.workerId}
 		RETURNING *
 	`);
