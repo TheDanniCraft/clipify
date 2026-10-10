@@ -3,7 +3,7 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/db/client";
-import { invitation as authInvitationTable, member as authMemberTable, organization as authOrganizationTable, organizationRole as authOrganizationRoleTable } from "@/db/auth-schema";
+import { invitation as authInvitationTable, member as authMemberTable, organization as authOrganizationTable, organizationRole as authOrganizationRoleTable, user as authUserTable } from "@/db/auth-schema";
 import { agencyAccountsTable, agencyBillingAccountsTable, agencyCreatorLinksTable, agencyLicenseAllocationsTable, auditEventsTable, creatorAccountsTable, creatorIdentityLinksTable, notificationOutboxTable, usersTable } from "@/db/schema";
 import { getAuthSession } from "@/auth/session";
 import { PERMISSIONS, STANDARD_ROLES, type Permission } from "@/auth/permissions";
@@ -244,6 +244,15 @@ export async function proposeDatabaseAgencyLink(input: { creatorOrganizationId: 
 	return { id, status: "proposed" as const };
 }
 
+async function enqueueAgencyManagementEmail(tx: Parameters<Parameters<typeof db.transaction>[0]>[0], input: { linkId: string; agencyOrganizationId: string; creatorOrganizationId: string; authUserId: string; status: "granted" | "removed"; now: Date }) {
+	const [identity, agency, creator] = await Promise.all([tx.select({ email: authUserTable.email }).from(authUserTable).where(eq(authUserTable.id, input.authUserId)).limit(1), tx.select({ name: authOrganizationTable.name }).from(authOrganizationTable).where(eq(authOrganizationTable.id, input.agencyOrganizationId)).limit(1), tx.select({ name: authOrganizationTable.name }).from(authOrganizationTable).where(eq(authOrganizationTable.id, input.creatorOrganizationId)).limit(1)]);
+	if (!identity[0]?.email || !agency[0]?.name || !creator[0]?.name) throw new Error("AGENCY_NOTIFICATION_RECIPIENT_NOT_FOUND");
+	await tx
+		.insert(notificationOutboxTable)
+		.values({ eventType: "agency-access", recipient: identity[0].email, authorityOrganizationId: input.creatorOrganizationId, templateVersion: "identity-security-v1", locale: "en", payload: { type: "agency-access", agencyName: agency[0].name, creatorName: creator[0].name, status: input.status }, scheduledAt: input.now, dedupeKey: `agency-management:${input.linkId}:${input.status}` })
+		.onConflictDoNothing({ target: notificationOutboxTable.dedupeKey });
+}
+
 export async function acceptDatabaseAgencyLink(input: { linkId: string; permissionCeiling: string[]; now?: Date }) {
 	const link = await db.select().from(agencyCreatorLinksTable).where(eq(agencyCreatorLinksTable.id, input.linkId)).limit(1);
 	if (!link[0] || link[0].status !== "proposed") throw new Error("AGENCY_LINK_NOT_PROPOSED");
@@ -259,6 +268,7 @@ export async function acceptDatabaseAgencyLink(input: { linkId: string; permissi
 			.returning();
 		if (!updated) throw new Error("AGENCY_LINK_STATE_CHANGED");
 		await tx.insert(auditEventsTable).values({ actorUserId: actor.session.userId, actorSessionId: actor.session.id, accountOrganizationId: link[0].creatorOrganizationId, targetType: "agency_creator_link", targetId: input.linkId, action: "agency-link.accept", outcome: "success", correlationId: `agency-link:${input.linkId}:accept`, metadata: { permissionCeiling } });
+		await enqueueAgencyManagementEmail(tx, { linkId: input.linkId, agencyOrganizationId: link[0].agencyOrganizationId, creatorOrganizationId: link[0].creatorOrganizationId, authUserId: actor.session.userId, status: "granted", now });
 		return updated;
 	});
 }
@@ -277,6 +287,7 @@ export async function revokeDatabaseAgencyLink(input: { linkId: string; now?: Da
 			.returning();
 		if (!updated) throw new Error("AGENCY_LINK_STATE_CHANGED");
 		await tx.insert(auditEventsTable).values({ actorUserId: actor.session.userId, actorSessionId: actor.session.id, accountOrganizationId: link[0].creatorOrganizationId, targetType: "agency_creator_link", targetId: input.linkId, action: "agency-link.revoke", outcome: "success", correlationId: `agency-link:${input.linkId}:revoke`, metadata: {} });
+		if (link[0].status === "accepted") await enqueueAgencyManagementEmail(tx, { linkId: input.linkId, agencyOrganizationId: link[0].agencyOrganizationId, creatorOrganizationId: link[0].creatorOrganizationId, authUserId: actor.session.userId, status: "removed", now });
 		return updated;
 	});
 }
@@ -345,7 +356,8 @@ export async function allocateDatabaseAgencyLicense(input: { linkId: string; sou
 		const [allocation] = await tx.insert(agencyLicenseAllocationsTable).values({ id, linkId: input.linkId, creatorId: creator[0].creatorId, status: "active", product, effectiveAt: now, sourceReference: input.sourceReference, createdAt: now, updatedAt: now }).returning();
 		const recipient = await tx.select({ email: usersTable.email }).from(usersTable).where(eq(usersTable.id, creator[0].creatorId)).limit(1);
 		if (recipient[0]?.email) {
-			const intent = buildAgencyAllocationGrantIntent({ allocationId: id, recipient: recipient[0].email, agencyName: actor.account.organizationId, effectiveAt: now });
+			const [agency] = await tx.select({ name: authOrganizationTable.name }).from(authOrganizationTable).where(eq(authOrganizationTable.id, actor.account.organizationId)).limit(1);
+			const intent = buildAgencyAllocationGrantIntent({ allocationId: id, recipient: recipient[0].email, agencyName: agency?.name ?? "your agency", product, effectiveAt: now });
 			await tx.insert(notificationOutboxTable).values({ eventType: "agency-allocation", recipient: intent.recipient, authorityOrganizationId: actor.account.organizationId, templateVersion: intent.templateVersion, locale: "en", payload: { ...intent.payload, boundary: intent.boundary }, scheduledAt: intent.scheduledAt, dedupeKey: intent.dedupeKey });
 		}
 		await tx.insert(auditEventsTable).values({ actorUserId: actor.session.userId, actorSessionId: actor.session.id, accountOrganizationId: actor.account.organizationId, targetType: "agency_license_allocation", targetId: id, action: "allocation.grant", outcome: "success", correlationId: `allocation:${id}:grant`, metadata: { creatorId: creator[0].creatorId } });
@@ -373,7 +385,8 @@ export async function scheduleDatabaseAgencyLicenseRemoval(input: { allocationId
 		if (!updated) throw new Error("ALLOCATION_STATE_CHANGED");
 		const recipient = await tx.select({ email: usersTable.email }).from(usersTable).where(eq(usersTable.id, rows[0].allocation.creatorId)).limit(1);
 		if (recipient[0]?.email) {
-			const intents = buildAgencyAllocationRemovalIntents({ allocationId: input.allocationId, recipient: recipient[0].email, agencyName: actor.account.organizationId, requestedAt: now, endsAt });
+			const [agency] = await tx.select({ name: authOrganizationTable.name }).from(authOrganizationTable).where(eq(authOrganizationTable.id, actor.account.organizationId)).limit(1);
+			const intents = buildAgencyAllocationRemovalIntents({ allocationId: input.allocationId, recipient: recipient[0].email, agencyName: agency?.name ?? "your agency", product: rows[0].allocation.product, requestedAt: now, endsAt });
 			await tx.insert(notificationOutboxTable).values(intents.map((intent) => ({ eventType: "agency-allocation", recipient: intent.recipient, authorityOrganizationId: actor.account.organizationId, templateVersion: intent.templateVersion, locale: "en", payload: { ...intent.payload, boundary: intent.boundary }, scheduledAt: intent.scheduledAt, dedupeKey: intent.dedupeKey })));
 		}
 		await tx.insert(auditEventsTable).values({ actorUserId: actor.session.userId, actorSessionId: actor.session.id, accountOrganizationId: actor.account.organizationId, targetType: "agency_license_allocation", targetId: input.allocationId, action: "allocation.schedule-removal", outcome: "success", correlationId: `allocation:${input.allocationId}:removal`, metadata: { endsAt: endsAt.toISOString() } });

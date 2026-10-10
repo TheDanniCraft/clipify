@@ -19,6 +19,10 @@ jest.mock("@/auth/providers/twitch-refresh", () => ({ refreshTwitchAccessToken: 
 jest.mock("@/auth/mcp-options", () => ({ createMcpPlugins: jest.fn((options: unknown) => [{ id: "native-mcp", options }]) }));
 jest.mock("@/server/mcp/config", () => ({ getMcpConfiguration: () => ({ valid: true }) }));
 jest.mock("@/server/mcp/grants", () => ({ providerGrantOptions: {} }));
+jest.mock("@/server/notifications/twitch-account-access", () => ({ restoreTwitchAccountAccess: jest.fn() }));
+import { restoreTwitchAccountAccess } from "@/server/notifications/twitch-account-access";
+jest.mock("@/server/notifications/identity-events", () => ({ queueIdentityEmail: jest.fn() }));
+import { queueIdentityEmail } from "@/server/notifications/identity-events";
 import { getSessionFromCtx } from "better-auth/api";
 import { db } from "@/db/client";
 import { sendAuthOtp, sendTeamInvitation } from "@/auth/transactional-mail";
@@ -129,4 +133,53 @@ test("remote preview configuration uses production OAuth proxy with trimmed dedi
 		if (previousProxy === undefined) delete process.env.OAUTH_PROXY_SECRET;
 		else process.env.OAUTH_PROXY_SECRET = previousProxy;
 	}
+});
+
+test("welcome is queued on account creation even before email verification, not profile updates", async () => {
+	const user = { id: "new-user", email: "alex@example.test", name: "Alex", emailVerified: false };
+	await options.databaseHooks.user.create.after(user);
+	expect(queueIdentityEmail).toHaveBeenNthCalledWith(1, user.email, { type: "welcome", name: "Alex" }, "welcome:new-user");
+	expect(queueIdentityEmail).toHaveBeenCalledTimes(1);
+	(queueIdentityEmail as jest.Mock).mockClear();
+	await options.databaseHooks.user.update.after(user, undefined);
+	expect(queueIdentityEmail).not.toHaveBeenCalled();
+});
+test("passkey success queues a specific notice and unsuccessful deletion sends nothing", async () => {
+	(getSessionFromCtx as jest.Mock).mockResolvedValue({ user: { id: "actor", email: "alex@example.test" } });
+	await options.hooks.after({ path: "/passkey/verify-registration", context: { returned: { id: "passkey-1" } } });
+	expect(queueIdentityEmail).toHaveBeenCalledWith("alex@example.test", { type: "security", change: "passkey-added" }, expect.any(String));
+	(queueIdentityEmail as jest.Mock).mockClear();
+	await options.hooks.after({ path: "/passkey/delete-passkey", context: { returned: { status: false } } });
+	expect(queueIdentityEmail).not.toHaveBeenCalled();
+	await options.hooks.after({ path: "/passkey/delete-passkey", context: { returned: { status: true } } });
+	expect(queueIdentityEmail).toHaveBeenCalledWith("alex@example.test", { type: "security", change: "passkey-removed" }, expect.any(String));
+});
+test("membership hooks notify the affected member, not the administrator", async () => {
+	await plugin("organization").organizationHooks.afterAcceptInvitation({ user: { email: "member@example.test" }, organization: { name: "Creator Agency" }, invitation: { id: "invite-1" } });
+	await plugin("organization").organizationHooks.afterRemoveMember({ user: { email: "member@example.test" }, organization: { name: "Creator Agency" }, member: { id: "member-1" } });
+	expect(queueIdentityEmail).toHaveBeenCalledWith("member@example.test", { type: "organization-membership", organizationName: "Creator Agency", status: "joined" }, "organization-joined:invite-1");
+	expect(queueIdentityEmail).toHaveBeenCalledWith("member@example.test", { type: "organization-membership", organizationName: "Creator Agency", status: "removed" }, "organization-removed:member-1");
+});
+
+test("email changes notify both the old and new addresses; unchanged addresses do not send a notice", async () => {
+	const user = { id: "actor", email: "new@example.test", name: "Alex", emailVerified: true };
+	await options.databaseHooks.user.update.after(user, { context: { session: { user: { email: "old@example.test" } } } });
+	expect(queueIdentityEmail).toHaveBeenCalledWith("old@example.test", { type: "security", change: "email-changed" }, expect.stringMatching(/:old$/));
+	expect(queueIdentityEmail).toHaveBeenCalledWith("new@example.test", { type: "security", change: "email-changed" }, expect.stringMatching(/:new$/));
+	(queueIdentityEmail as jest.Mock).mockClear();
+	await options.databaseHooks.user.update.after(user, { context: { session: { user: { email: user.email } } } });
+	expect(queueIdentityEmail).not.toHaveBeenCalled();
+});
+
+test("only the successful Twitch OAuth callback restores automatically disabled creator access", async () => {
+	await options.databaseHooks.account.update.after({ providerId: "twitch", userId: "identity" }, { path: "/callback/twitch" });
+	expect(restoreTwitchAccountAccess).toHaveBeenCalledWith("identity");
+	(restoreTwitchAccountAccess as jest.Mock).mockClear();
+	await options.databaseHooks.account.update.after({ providerId: "twitch", userId: "identity" }, { path: "/get-access-token" });
+	expect(restoreTwitchAccountAccess).not.toHaveBeenCalled();
+});
+
+test("native parameterized Twitch callbacks also restore access on account creation", async () => {
+	await options.databaseHooks.account.create.after({ providerId: "twitch", userId: "identity" }, { path: "/callback/:id", params: { id: "twitch" } });
+	expect(restoreTwitchAccountAccess).toHaveBeenCalledWith("identity");
 });

@@ -22,8 +22,10 @@ export async function observeConnectedTransition(input: { route: { POST(request:
 		case "downgrade":
 			await input.pool.query("UPDATE users SET plan='free' WHERE id='fixture-creator'");
 			break;
-		case "trial-expiry":
 		case "grant-expiry":
+			await input.pool.query("UPDATE entitlement_grants SET starts_at=now()-interval '10 days',ends_at=now()-interval '8 days' WHERE user_id='fixture-creator'");
+			break;
+		case "trial-expiry":
 			await input.pool.query("UPDATE entitlement_grants SET ends_at=now()-interval '1 second' WHERE user_id='fixture-creator'");
 			break;
 		case "team-removal":

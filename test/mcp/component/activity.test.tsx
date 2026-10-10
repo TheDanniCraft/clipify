@@ -1,5 +1,5 @@
 jest.mock("@heroui-pro/react", () => require("../../support/mcp/heroui-fixture").proComponents, { virtual: true });
-jest.mock("@heroui/react", () => require("../../support/mcp/heroui-fixture").components);
+jest.mock("@heroui/react", () => require("./ai-apps-heroui-fixture").components);
 jest.mock("@/app/actions/mcp-connections", () => ({ getMcpActivityCreators: jest.fn(), getConnectedMcpActivityPage: jest.fn() }));
 import { act, render, screen, fireEvent, waitFor } from "@testing-library/react";
 import * as actions from "@/app/actions/mcp-connections";
@@ -30,7 +30,8 @@ describe("TDD-ACTIVITY-005 accessible activity controls", () => {
 		expect(await screen.findByText("Read playlist")).toBeVisible();
 		expect(screen.getByText("Creator owner")).toBeVisible();
 		expect(screen.getByText("Custom AI")).toBeVisible();
-		expect(screen.getByText("Creator: Creator")).toBeVisible();
+		expect(screen.getByRole("grid", { name: "AI app activity log" })).toBeVisible();
+		expect(screen.getAllByText("Creator").length).toBeGreaterThan(0);
 		expect(screen.getByText("Completed")).toBeVisible();
 		expect(document.querySelector("time")?.getAttribute("dateTime")).toBe(event.occurredAt);
 	});
@@ -60,7 +61,7 @@ describe("TDD-ACTIVITY-005 accessible activity controls", () => {
 		api.getConnectedMcpActivityPage.mockResolvedValueOnce({ items: [event], nextCursor: "next-page" }).mockResolvedValueOnce({ items: [{ ...event, id: "event-2", tool: "update_playlist", outcome: "denied", reason: "CONFLICT" }], nextCursor: null });
 		render(<Panel />);
 		await screen.findByText("Read playlist");
-		fireEvent.click(screen.getByRole("button", { name: "Load older activity" }));
+		fireEvent.scroll(screen.getByTestId("activity-load-more"));
 		expect(await screen.findByText("Rename playlist")).toBeVisible();
 		expect(screen.getByText("Read playlist")).toBeVisible();
 		expect(api.getConnectedMcpActivityPage).toHaveBeenLastCalledWith({ creatorId: "creator", limit: 25, cursor: "next-page" });
@@ -94,16 +95,16 @@ describe("TDD-ACTIVITY-005 accessible activity controls", () => {
 		else api.getConnectedMcpActivityPage.mockRejectedValueOnce(new Error("private query"));
 		render(<Panel />);
 		await screen.findByText("Read playlist");
-		fireEvent.click(screen.getByRole("button", { name: "Load older activity" }));
+		fireEvent.scroll(screen.getByTestId("activity-load-more"));
 		expect(await screen.findByRole("alert")).toHaveTextContent(mode === "returned" ? "Access changed" : "Activity could not be loaded");
 		expect(screen.queryByText("Creator owner")).not.toBeInTheDocument();
-		expect(screen.queryByRole("button", { name: "Load older activity" })).not.toBeInTheDocument();
+		expect(screen.queryByTestId("activity-load-more")).not.toBeInTheDocument();
 	});
 	test("overlapping pages render an event once", async () => {
 		api.getConnectedMcpActivityPage.mockResolvedValueOnce({ items: [event], nextCursor: "next-page" }).mockResolvedValueOnce({ items: [event, { ...event, id: "event-2", tool: "create_overlay" }], nextCursor: null });
 		render(<Panel />);
 		await screen.findByText("Read playlist");
-		fireEvent.click(screen.getByRole("button", { name: "Load older activity" }));
+		fireEvent.scroll(screen.getByTestId("activity-load-more"));
 		expect(await screen.findByText("Create overlay")).toBeVisible();
 		expect(screen.getAllByText("Read playlist")).toHaveLength(1);
 	});
@@ -175,7 +176,7 @@ describe("TDD-ACTIVITY-005 accessible activity controls", () => {
 			.mockResolvedValueOnce({ items: [{ ...event, creator: { id: "second", name: "Second creator" }, tool: "create_playlist" }], nextCursor: null });
 		render(<Panel />);
 		await screen.findByText("Read playlist");
-		fireEvent.click(screen.getByRole("button", { name: "Load older activity" }));
+		fireEvent.scroll(screen.getByTestId("activity-load-more"));
 		fireEvent.click(screen.getByRole("option", { name: "Second creator" }));
 		expect(await screen.findByText("Create playlist")).toBeVisible();
 		await act(async () => {
@@ -186,4 +187,23 @@ describe("TDD-ACTIVITY-005 accessible activity controls", () => {
 		expect(screen.queryByText("Read playlist")).not.toBeInTheDocument();
 		expect(screen.queryByRole("alert")).not.toBeInTheDocument();
 	});
+});
+
+test("refresh preserves visible rows without inserting a loading row", async () => {
+	let resolve!: (value: unknown) => void;
+	api.getMcpActivityCreators.mockResolvedValue({ available: true, creators: [{ id: "creator", name: "Creator" }] });
+	api.getConnectedMcpActivityPage.mockResolvedValueOnce({ items: [event], nextCursor: null }).mockImplementationOnce(
+		() =>
+			new Promise((done) => {
+				resolve = done;
+			}),
+	);
+	render(<Panel />);
+	await screen.findByText("Read playlist");
+	fireEvent.click(screen.getByRole("button", { name: "Refresh activity" }));
+	expect(screen.getByText("Read playlist")).toBeVisible();
+	expect(screen.queryByText("Loading activity…")).not.toBeInTheDocument();
+	expect(screen.getByRole("button", { name: "Refresh activity" })).toBeDisabled();
+	await act(async () => resolve({ items: [event], nextCursor: null }));
+	expect(screen.getByRole("button", { name: "Refresh activity" })).toBeEnabled();
 });

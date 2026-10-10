@@ -1,3 +1,5 @@
+import { renderAccountAccessEmail } from "@/server/notifications/templates/account-access";
+import { renderBrandedEmail } from "@/server/notifications/templates/layout";
 import { UseSend } from "usesend-js";
 import { randomUUID } from "node:crypto";
 import { renderIdentitySecurityEmail, type RenderedTransactionalEmail } from "@/server/notifications/templates/identity-security";
@@ -18,17 +20,21 @@ function normalizeProviderError(error: unknown): { code: string; message: string
 	return { code, message };
 }
 
-export async function sendAuthOtp(input: { email: string; otp: string; type: string }): Promise<void> {
+export async function renderAuthOtpEmail(input: { otp: string; type: string }): Promise<RenderedTransactionalEmail> {
 	const subject = input.type === "sign-in" ? "Your Clipify sign-in code" : "Verify your Clipify email";
-	await new UseSendTransactionalMailAdapter().send(input.email, { subject, text: `Your Clipify verification code is ${input.otp}. It expires in 10 minutes.`, html: `<p>Your Clipify verification code is <strong>${input.otp}</strong>.</p><p>It expires in 10 minutes.</p>`, templateVersion: "identity-security-v1" }, `auth-otp:${randomUUID()}`);
+	return { ...(await renderBrandedEmail({ subject, paragraphs: ["Use this code to continue with Clipify.", "It expires in 10 minutes. If you did not request this code, you can ignore this email."], code: input.otp })), templateVersion: "identity-security-v1" };
+}
+
+export async function sendAuthOtp(input: { email: string; otp: string; type: string }): Promise<void> {
+	await new UseSendTransactionalMailAdapter().send(input.email, await renderAuthOtpEmail(input), `auth-otp:${randomUUID()}`);
 }
 
 export async function sendTeamInvitation(input: { email: string; invitationUrl: string; organizationName: string }): Promise<void> {
-	await new UseSendTransactionalMailAdapter().send(input.email, renderIdentitySecurityEmail({ type: "invitation", organizationName: input.organizationName, invitationUrl: input.invitationUrl }), `team-invitation:${randomUUID()}`);
+	await new UseSendTransactionalMailAdapter().send(input.email, await renderIdentitySecurityEmail({ type: "invitation", organizationName: input.organizationName, invitationUrl: input.invitationUrl }), `team-invitation:${randomUUID()}`);
 }
 
 export async function sendAccountDataExport(input: { email: string; downloadUrl: string; expiresAt: Date }): Promise<void> {
-	await new UseSendTransactionalMailAdapter().send(input.email, renderIdentitySecurityEmail({ type: "account-data-export", downloadUrl: input.downloadUrl, expiresAt: input.expiresAt }), `account-data-export:${randomUUID()}`);
+	await new UseSendTransactionalMailAdapter().send(input.email, await renderIdentitySecurityEmail({ type: "account-data-export", downloadUrl: input.downloadUrl, expiresAt: input.expiresAt }), `account-data-export:${randomUUID()}`);
 }
 
 export class UseSendTransactionalMailAdapter {
@@ -39,7 +45,7 @@ export class UseSendTransactionalMailAdapter {
 			{
 				to: recipient,
 				from: requiredInfisicalSetting("USESEND_TRANSACTIONAL_FROM"),
-				replyTo: process.env.USESEND_TRANSACTIONAL_REPLY_TO,
+				replyTo: process.env.USESEND_TRANSACTIONAL_REPLY_TO || "contact@clipify.us",
 				subject: email.subject,
 				text: email.text,
 				html: email.html,
@@ -53,4 +59,8 @@ export class UseSendTransactionalMailAdapter {
 		}
 		return result.data?.emailId ?? null;
 	}
+}
+
+export async function sendAccountAccessNotification(input: { email: string; name: string; disabled: boolean; reason: string; correlationId: string }) {
+	await new UseSendTransactionalMailAdapter().send(input.email, await renderAccountAccessEmail(input), `account-access:${input.correlationId}`);
 }

@@ -30,11 +30,10 @@ const getCreator = cache(async (username: string) => {
 const getCreatorPresentation = cache(async (username: string) => {
 	const creator = await getCreator(username);
 	if (!creator) return null;
-	const twitch = await getCreatorTwitchDetails(creator.user.username, creator.user.id);
+	const [twitch, badges] = await Promise.all([getCreatorTwitchDetails(creator.user.username, creator.user.id), getMemberBadges(creator.user.id)]);
 	const twitchBadge = twitch.profile?.broadcaster_type === "partner" ? "Twitch Partner" : twitch.profile?.broadcaster_type === "affiliate" ? "Twitch Affiliate" : null;
-	const clipifyBadge = creator.entitlements.grantSource === "partner" ? "Clipify Partner" : creator.entitlements.effectivePlan === "pro" ? "Clipify Pro" : "Clipify Creator";
+	const clipifyBadge = badges.some((badge) => badge.slug === "partner") ? "Clipify Partner" : creator.entitlements.effectivePlan === "pro" ? "Clipify Pro" : "Clipify Creator";
 	const socialPreviewAccess = getFeatureAccess({ ...creator.user, entitlements: creator.entitlements }, "creator_page_social_preview").allowed;
-	const badges = await getMemberBadges(creator.user.id);
 	return {
 		ownerId: creator.user.id,
 		creator: {
@@ -57,8 +56,16 @@ const getCreatorPresentation = cache(async (username: string) => {
 });
 
 export async function getCreatorPageMetadata(username: string) {
-	const presentation = await getCreatorPresentation(username);
-	return presentation?.creator ?? null;
+	const creator = await getCreator(username);
+	if (!creator) return null;
+	const socialPreviewAccess = getFeatureAccess({ ...creator.user, entitlements: creator.entitlements }, "creator_page_social_preview").allowed;
+	return {
+		username: creator.user.username,
+		visibility: creator.visibility,
+		memberCardId: memberCardIdForUser(creator.user.id),
+		socialTitle: socialPreviewAccess ? (creator.settings?.creatorPageSocialTitle ?? null) : null,
+		socialDescription: socialPreviewAccess ? (creator.settings?.creatorPageSocialDescription ?? null) : null,
+	};
 }
 
 export async function getCreatorPage(username: string, query: CreatorClipQuery = {}) {

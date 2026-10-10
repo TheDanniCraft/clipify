@@ -116,3 +116,12 @@ describe("TDD-US5-002 deletion recovery, notifications, and purge", () => {
 		expect(new AccountLifecycleService(new MemoryRepository(), { now: () => SUSPENDED_AT })).toBeInstanceOf(AccountLifecycleService);
 	});
 });
+
+test("deletion has the full countdown catalog but does not duplicate the request at day thirty", () => {
+	const requestedAt = new Date("2030-01-01T12:00:00Z");
+	const base = { requestId: "schedule", recipient: "alex@example.test", requestedAt, suspensionAt: requestedAt };
+	const standard = buildDeletionNotificationIntents({ ...base, purgeEligibleAt: new Date(requestedAt.getTime() + 30 * 86400000) });
+	expect(standard.some((i) => i.boundary === "30d")).toBe(false);
+	const long = buildDeletionNotificationIntents({ ...base, purgeEligibleAt: new Date(requestedAt.getTime() + 60 * 86400000) });
+	expect(long.map((i) => i.boundary)).toEqual(["request", "suspension", "30d", "7d", "3d", "1d", "0d"]);
+});

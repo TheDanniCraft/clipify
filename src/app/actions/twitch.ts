@@ -746,6 +746,28 @@ async function clearEventSubSubscriptionsByTypeAndCondition({ type, conditionMat
 	return deleted;
 }
 
+let appTokenCache: { value: TwitchAppAccessTokenResponse; expiresAt: number } | undefined;
+let appTokenPending: Promise<TwitchAppAccessTokenResponse | null> | undefined;
+
+async function getCreatorAppAccessToken(): Promise<TwitchAppAccessTokenResponse | null> {
+	if (appTokenCache && appTokenCache.expiresAt > Date.now()) return { ...appTokenCache.value };
+	if (!appTokenPending) {
+		appTokenPending = getAppAccessToken()
+			.then((value) => {
+				const lifetime = Number(value?.expires_in) * 1000;
+				if (value && Number.isFinite(lifetime) && lifetime > 0) {
+					appTokenCache = { value: { ...value }, expiresAt: Date.now() + lifetime - Math.min(60000, lifetime / 10) };
+				}
+				return value;
+			})
+			.finally(() => {
+				appTokenPending = undefined;
+			});
+	}
+	const value = await appTokenPending;
+	return value ? { ...value } : null;
+}
+
 export async function getAppAccessToken(): Promise<TwitchAppAccessTokenResponse | null> {
 	const url = "https://id.twitch.tv/oauth2/token";
 	try {
@@ -765,21 +787,24 @@ export async function getAppAccessToken(): Promise<TwitchAppAccessTokenResponse 
 	}
 }
 
-export async function getCreatorTwitchDetails(username: string, ownerId: string) {
-	const token = await getAppAccessToken();
+export async function getCreatorTwitchDetails(_username: string, ownerId: string) {
+	const token = await getCreatorAppAccessToken();
 	if (!token) return { profile: null, live: null };
-	const profiles = await getUsersDetailsBulk({ userNames: [username], accessToken: token.access_token });
-	const profile = profiles.find((entry) => entry.id === ownerId) ?? profiles[0] ?? null;
-	try {
-		const response = await axios.get<TwitchApiResponse<{ id: string; user_id: string; user_name: string; game_name: string; title: string; viewer_count: number; started_at: string; thumbnail_url: string }>>("https://api.twitch.tv/helix/streams", {
+	const profilePromise = getUsersDetailsBulk({ userIds: [ownerId], accessToken: token.access_token });
+	const livePromise = axios
+		.get<TwitchApiResponse<{ id: string; user_id: string; user_name: string; game_name: string; title: string; viewer_count: number; started_at: string; thumbnail_url: string }>>("https://api.twitch.tv/helix/streams", {
 			headers: { Authorization: `Bearer ${token.access_token}`, "Client-Id": process.env.TWITCH_CLIENT_ID || "" },
 			params: { user_id: ownerId, first: 1 },
+		})
+		.then((response) => response.data.data[0] ?? null)
+		.catch((error) => {
+			if (axios.isAxiosError(error) && error.response?.status === 401 && appTokenCache?.value.access_token === token.access_token) appTokenCache = undefined;
+			logTwitchError("Error fetching creator live status", error);
+			return null;
 		});
-		return { profile, live: response.data.data[0] ?? null };
-	} catch (error) {
-		logTwitchError("Error fetching creator live status", error);
-		return { profile, live: null };
-	}
+	const [profiles, live] = await Promise.all([profilePromise, livePromise]);
+	const profile = profiles.find((entry) => entry.id === ownerId) ?? null;
+	return { profile, live };
 }
 
 export async function getUserDetails(accessToken: string): Promise<TwitchUserResponse | null> {
@@ -861,6 +886,7 @@ export async function getUsersDetailsBulk({ userIds, userNames, accessToken }: {
 			const staleUsers = await getTwitchCacheStaleBatch<TwitchUserResponse>(TwitchCacheType.User, ids);
 			if (staleUsers.length > 0) return staleUsers;
 		}
+		if (axios.isAxiosError(error) && error.response?.status === 401 && appTokenCache?.value.access_token === accessToken) appTokenCache = undefined;
 		logTwitchError("Error fetching bulk user details", error);
 		return [];
 	}

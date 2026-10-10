@@ -37,7 +37,7 @@ jest.mock("@/db/schema", () => {
 
 jest.mock("@/db/auth-schema", () => {
 	const table = (name: string) => new Proxy({ _name: name }, { get: (target, property) => (property in target ? target[property as keyof typeof target] : `${name}.${String(property)}`) });
-	return { invitation: table("invitation"), member: table("member"), organization: table("organization"), organizationRole: table("organization_role") };
+	return { user: table("user"), invitation: table("invitation"), member: table("member"), organization: table("organization"), organizationRole: table("organization_role") };
 });
 
 jest.mock("drizzle-orm", () => ({
@@ -199,12 +199,14 @@ describe("TDD-US4-004 agency database adapter", () => {
 		state.selects.push([proposed]);
 		queueCreatorOwner();
 		state.updates.push([{ ...proposed, status: "accepted", permissionCeiling: ["overlay:read"] }]);
+		state.selects.push([{ email: "creator@example.test" }], [{ name: "Creator Agency" }], [{ name: "Alex" }]);
 		await expect(acceptDatabaseAgencyLink({ linkId: "link-1", permissionCeiling: ["overlay:read"] })).resolves.toMatchObject({ status: "accepted" });
 
 		const accepted = { ...proposed, status: "accepted" };
 		state.selects.push([accepted]);
 		queueCreatorOwner();
 		state.updates.push([{ ...accepted, status: "revoked" }]);
+		state.selects.push([{ email: "creator@example.test" }], [{ name: "Creator Agency" }], [{ name: "Alex" }]);
 		await expect(revokeDatabaseAgencyLink({ linkId: "link-1" })).resolves.toMatchObject({ status: "revoked" });
 
 		state.selects.push([accepted]);

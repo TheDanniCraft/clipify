@@ -44,6 +44,7 @@ describe("creator effective entitlement overrides the actor personal Free plan",
 		["TDD-US3-020", "subscription", "billing"],
 		["TDD-US3-021", "trial", "reverse_trial"],
 		["TDD-US3-022", "grant", "grant"],
+		["Partner seven-day transition", "partner-grace", "grant"],
 		["TDD-US3-023", "allocation", "agency"],
 	])("%s allows a second overlay through %s", (_id, source, entitlementSource) => {
 		const result = flowProbe(`resources:overlay-create:entitlement-${source}`);

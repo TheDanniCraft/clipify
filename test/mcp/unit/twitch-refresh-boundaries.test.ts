@@ -1,15 +1,19 @@
 /** @jest-environment node */
 jest.mock("server-only", () => ({}));
+jest.mock("@/server/notifications/twitch-account-access", () => ({ markInvalidTwitchRefresh: jest.fn() }));
+import { markInvalidTwitchRefresh } from "@/server/notifications/twitch-account-access";
 jest.mock("@better-auth/core/oauth2", () => ({ refreshAccessTokenRequest: jest.fn(async () => ({ body: "fixture-request", headers: {} })), getOAuth2Tokens: jest.fn((tokens) => tokens) }));
 jest.mock("@/auth/environment", () => ({ requiredAuthSetting: () => "fixture-setting" }));
 import { refreshTwitchAccessToken } from "@/auth/providers/twitch-refresh";
 const originalFetch = global.fetch;
 beforeEach(() => {
 	jest.useRealTimers();
+	jest.clearAllMocks();
 	global.fetch = jest.fn();
 });
 afterEach(() => {
 	jest.useRealTimers();
+	jest.clearAllMocks();
 	global.fetch = originalFetch;
 });
 const valid = { access_token: "fixture-access", refresh_token: "fixture-refresh", expires_in: 3600 };
@@ -62,4 +66,15 @@ test("bounded deadline aborts stalled transport without real waiting", async () 
 	await assertion;
 	expect(signal?.aborted).toBe(true);
 	expect(jest.getTimerCount()).toBe(0);
+});
+
+test.each([400, 401])("only explicit invalid refresh responses (%s) mark the account for disablement", async (status) => {
+	(fetch as jest.Mock).mockResolvedValue(Response.json({ message: "Invalid refresh token", status }, { status }));
+	await expect(refreshTwitchAccessToken("fixture")).rejects.toThrow("PROVIDER_REFRESH_UNAVAILABLE");
+	expect(markInvalidTwitchRefresh).toHaveBeenCalledTimes(1);
+});
+test.each([429, 500, 503])("provider failure %s does not disable the account", async (status) => {
+	(fetch as jest.Mock).mockResolvedValue(Response.json({ message: "Unavailable" }, { status }));
+	await expect(refreshTwitchAccessToken("fixture")).rejects.toThrow("PROVIDER_REFRESH_UNAVAILABLE");
+	expect(markInvalidTwitchRefresh).not.toHaveBeenCalled();
 });

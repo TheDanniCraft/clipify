@@ -141,8 +141,14 @@ async function main() {
 				await fixture.pool.query("INSERT INTO creator_identity_links(creator_id,auth_user_id,source) VALUES('actor-personal',$1,'twitch_onboarding')", [actor.user.id]);
 				if (commercialSource === "subscription") await fixture.pool.query("UPDATE users SET plan='pro' WHERE id='fixture-creator'");
 				else if (commercialSource === "trial" || commercialSource === "grant") await fixture.pool.query("INSERT INTO entitlement_grants(user_id,entitlement,source,starts_at,ends_at) VALUES('fixture-creator','pro_access',$1,now()-interval '1 day',now()+interval '1 day')", [commercialSource === "trial" ? "reverse_trial" : "partner"]);
+				else if (commercialSource === "partner-grace") await fixture.pool.query("INSERT INTO entitlement_grants(user_id,entitlement,source,starts_at,ends_at) VALUES('fixture-creator','pro_access','partner',now()-interval '10 days',now()-interval '6 days')");
 				else if (["trial-expired", "grant-expired", "grant-future", "grant-revoked"].includes(commercialSource)) {
-					await fixture.pool.query("INSERT INTO entitlement_grants(user_id,entitlement,source,starts_at,ends_at,revoked_at) VALUES('fixture-creator','pro_access',$1,$2,$3,$4)", [commercialSource.startsWith("trial") ? "reverse_trial" : "partner", new Date(Date.now() + (commercialSource === "grant-future" ? 86400000 : -172800000)), new Date(Date.now() + (commercialSource.endsWith("expired") ? -86400000 : 172800000)), commercialSource === "grant-revoked" ? new Date() : null]);
+					await fixture.pool.query("INSERT INTO entitlement_grants(user_id,entitlement,source,starts_at,ends_at,revoked_at) VALUES('fixture-creator','pro_access',$1,$2,$3,$4)", [
+						commercialSource.startsWith("trial") ? "reverse_trial" : "partner",
+						new Date(Date.now() + (commercialSource === "grant-future" ? 86400000 : commercialSource === "grant-expired" ? -10 * 86400000 : -172800000)),
+						new Date(Date.now() + (commercialSource === "grant-expired" ? -8 * 86400000 : commercialSource.endsWith("expired") ? -86400000 : 172800000)),
+						commercialSource === "grant-revoked" ? new Date() : null,
+					]);
 				} else if (["allocation-expired", "allocation-future", "allocation-removal-active"].includes(commercialSource)) {
 					await (await import("./seed-pro-allocation")).seedCreatorProAllocation(fixture.pool, "fixture-creator", "creator-org", actor.user.id);
 					if (commercialSource === "allocation-expired") await fixture.pool.query("UPDATE agency_license_allocations SET ends_at=now()-interval '1 second'");

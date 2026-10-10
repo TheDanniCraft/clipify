@@ -15,6 +15,9 @@ const init = await setup.json(),
 const ih = { Authorization: "Token " + token };
 const headers = { Authorization: "Basic " + Buffer.from("admin:admin").toString("base64"), "Content-Type": "application/json" };
 const dashboard = JSON.parse(await fs.readFile("grafana/clipify-vm01-overview-v6.json", "utf8"));
+assert.equal(dashboard.apiVersion, "dashboard.grafana.app/v2");
+assert.equal(dashboard.kind, "Dashboard");
+const panels = Object.values(dashboard.spec.elements).map(({ spec }) => ({ id: spec.id, title: spec.title, targets: spec.data.spec.queries.map(({ spec: target }) => ({ ...target.query.spec, refId: target.refId, hide: target.hidden, datasource: { type: target.query.group, uid: target.query.datasource.name } })) }));
 const fields = { ...JSON.parse(await fs.readFile("grafana/mcp-influx-fields.json", "utf8")), ...JSON.parse(await fs.readFile("grafana/mcp-client-influx-fields.json", "utf8")) };
 const end = Math.floor(Date.now() / 1000) - 10,
 	start = end - 120;
@@ -63,12 +66,12 @@ const write = await fetch(influx + "/api/v2/write?org=clipify-validation&bucket=
 if (!write.ok) throw Error(await write.text());
 const ds = await fetch(grafana + "/api/datasources", { method: "POST", headers, body: JSON.stringify({ name: "Clipify validation", uid: "efg3es37pgh6ob", type: "influxdb", access: "proxy", url: influx, jsonData: { version: "Flux", organization: "clipify-validation", defaultBucket: "clipify_monitor" }, secureJsonData: { token } }) });
 if (!ds.ok) throw Error("Datasource " + (await ds.text()));
-const imported = await fetch(grafana + "/api/dashboards/db", { method: "POST", headers, body: JSON.stringify({ dashboard, overwrite: false }) });
+const imported = await fetch(grafana + "/apis/dashboard.grafana.app/v2/namespaces/default/dashboards", { method: "POST", headers, body: JSON.stringify(dashboard) });
 if (!imported.ok) throw Error("Import " + (await imported.text()));
 console.log("Grafana import:", await imported.json());
 let results = [];
 for (const scenario of scenarios)
-	for (const panel of dashboard.panels)
+	for (const panel of panels)
 		for (const target of panel.targets ?? []) {
 			if (!target.query) continue;
 			const q = target.query
@@ -107,7 +110,7 @@ for (const scenario of ["normal", "replicas", "gap"]) {
 	assert(values(scenario, "MCP p95 duration (histogram)").every((v) => Math.abs(v - 0.0975) < 1e-10));
 }
 
-for (const panel of dashboard.panels) {
+for (const panel of panels) {
 	const targets = (panel.targets ?? []).filter((target) => target.query);
 	if (!targets.length) continue;
 	const res = await fetch(grafana + "/api/ds/query", { method: "POST", headers, body: JSON.stringify({ from: String(start * 1000), to: String((end + 1) * 1000), queries: targets.map((target) => ({ ...target, datasource: { uid: "efg3es37pgh6ob", type: "influxdb" }, intervalMs: 20000, maxDataPoints: 1000 })) }) });
@@ -117,5 +120,5 @@ for (const panel of dashboard.panels) {
 const adoption = results.find((r) => r.scenario === "normal" && r.panel === "MCP applications (self-reported)");
 assert(adoption.csv.includes("Meta MCP"));
 assert(adoption.csv.includes("Custom 25"), "Every application is exported, including groups beyond rank 20");
-console.log("Flux queries:", results.length, "Grafana panels:", dashboard.panels.length);
-await fs.writeFile("/tmp/clipify-monitoring-validation.json", JSON.stringify({ grafana: "12.2.0", influx: "2.9.1", imported: true, panels: dashboard.panels.length, fluxQueries: results.length, scenarios, validatedAt: new Date().toISOString() }, null, 2));
+console.log("Flux queries:", results.length, "Grafana panels:", panels.length);
+await fs.writeFile("/tmp/clipify-monitoring-validation.json", JSON.stringify({ grafana: (await (await fetch(grafana + "/api/health")).json()).version, influx: "2.9.1", imported: true, panels: panels.length, fluxQueries: results.length, scenarios, validatedAt: new Date().toISOString() }, null, 2));

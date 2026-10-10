@@ -1,5 +1,8 @@
 "use server";
 
+import { grantAccessEndsAt, grantAccessNotExpired } from "@/server/entitlements/grant-period";
+import { queueGrantEmails } from "@/server/notifications/benefit-events";
+import { randomUUID } from "node:crypto";
 import * as databaseSchema from "@/db/schema";
 import { entitlementGrantsTable, galleriesTable, overlaysTable, playlistsTable, runnersTable, streamSessionsTable, usersTable } from "@/db/schema";
 import { db, type QueryClient } from "@/db/client";
@@ -29,7 +32,7 @@ export async function hasActiveEntitlement(userId: string, entitlement: Entitlem
 	const rows = await client
 		.select()
 		.from(entitlementGrantsTable)
-		.where(and(eq(entitlementGrantsTable.entitlement, entitlement), isNull(entitlementGrantsTable.revokedAt), lte(entitlementGrantsTable.startsAt, now), or(isNull(entitlementGrantsTable.endsAt), gt(entitlementGrantsTable.endsAt, now)), or(eq(entitlementGrantsTable.userId, userId), isNull(entitlementGrantsTable.userId))))
+		.where(and(eq(entitlementGrantsTable.entitlement, entitlement), isNull(entitlementGrantsTable.revokedAt), lte(entitlementGrantsTable.startsAt, now), grantAccessNotExpired(now), or(eq(entitlementGrantsTable.userId, userId), isNull(entitlementGrantsTable.userId))))
 		.limit(1)
 		.execute();
 
@@ -70,20 +73,25 @@ export async function hasActiveRunnerAccess(userId: string, now = new Date(), cl
 
 export async function createProAccessGrant(input: CreateGrantInput) {
 	const now = new Date();
-	const [grant] = await db
-		.insert(entitlementGrantsTable)
-		.values({
-			userId: input.userId ?? null,
-			entitlement: PRO_ACCESS,
-			source: input.source,
-			reason: input.reason ?? null,
-			startsAt: input.startsAt ?? now,
-			endsAt: input.endsAt ?? null,
-			createdAt: now,
-			updatedAt: now,
-		})
-		.returning()
-		.execute();
+	const persist = async (client: QueryClient) => {
+		const [grant] = await client
+			.insert(entitlementGrantsTable)
+			.values({
+				userId: input.userId ?? null,
+				entitlement: PRO_ACCESS,
+				source: input.source,
+				reason: input.reason ?? null,
+				startsAt: input.startsAt ?? now,
+				endsAt: input.endsAt ?? null,
+				createdAt: now,
+				updatedAt: now,
+			})
+			.returning()
+			.execute();
+		if (grant) await queueGrantEmails(grant, client);
+		return grant ?? null;
+	};
+	const grant = input.userId ? await db.transaction(persist) : await persist(db);
 	void import("@lib/community").then(({ invalidateCommunitySnapshotCache }) => invalidateCommunitySnapshotCache());
 	return grant ?? null;
 }
@@ -122,11 +130,13 @@ export async function ensureReverseTrialGrantForUser(user: Pick<AuthenticatedUse
 
 		if (existing.length > 0) return { created: false as const };
 
+		const id = randomUUID();
 		const startsAt = new Date();
 		const endsAt = new Date(startsAt.getTime() + REVERSE_TRIAL_DAYS * 24 * 60 * 60 * 1000);
 		await tx
 			.insert(entitlementGrantsTable)
 			.values({
+				id,
 				userId: user.id,
 				entitlement: PRO_ACCESS,
 				source: EntitlementGrantSource.ReverseTrial,
@@ -138,6 +148,7 @@ export async function ensureReverseTrialGrantForUser(user: Pick<AuthenticatedUse
 			})
 			.execute();
 
+		await queueGrantEmails({ id, userId: user.id, entitlement: PRO_ACCESS, source: EntitlementGrantSource.ReverseTrial, reason: null, startsAt, endsAt }, tx);
 		return { created: true as const };
 	});
 }
@@ -145,8 +156,8 @@ export async function ensureReverseTrialGrantForUser(user: Pick<AuthenticatedUse
 function pickBestGrant(grants: ActiveGrant[]) {
 	if (grants.length === 0) return null;
 	return grants.reduce((best, current) => {
-		const bestEndsAt = best.endsAt;
-		const currentEndsAt = current.endsAt;
+		const bestEndsAt = grantAccessEndsAt(best);
+		const currentEndsAt = grantAccessEndsAt(current);
 
 		if (bestEndsAt == null && currentEndsAt == null) {
 			return current.startsAt > best.startsAt ? current : best;
@@ -169,7 +180,7 @@ export async function getActiveEntitlementGrant(userId: string, entitlement: Ent
 	const grants = await client
 		.select()
 		.from(entitlementGrantsTable)
-		.where(and(eq(entitlementGrantsTable.entitlement, entitlement), isNull(entitlementGrantsTable.revokedAt), lte(entitlementGrantsTable.startsAt, now), or(isNull(entitlementGrantsTable.endsAt), gt(entitlementGrantsTable.endsAt, now)), or(eq(entitlementGrantsTable.userId, userId), isNull(entitlementGrantsTable.userId))))
+		.where(and(eq(entitlementGrantsTable.entitlement, entitlement), isNull(entitlementGrantsTable.revokedAt), lte(entitlementGrantsTable.startsAt, now), grantAccessNotExpired(now), or(eq(entitlementGrantsTable.userId, userId), isNull(entitlementGrantsTable.userId))))
 		.orderBy(asc(entitlementGrantsTable.userId), asc(entitlementGrantsTable.startsAt))
 		.execute();
 	return pickBestGrant(grants);
@@ -215,7 +226,7 @@ export async function resolveUserEntitlements(user: EntitlementUserRef, client: 
 			runnerAccess: await hasActiveRunnerAccess(user.id, now, client),
 			isBillingPro: false,
 			reverseTrialActive: isReverseTrialGrant,
-			trialEndsAt: grant.endsAt ?? null,
+			trialEndsAt: grantAccessEndsAt(grant),
 			hasActiveGrant: true,
 			grantSource: grant.source,
 			source: isReverseTrialGrant ? "reverse_trial" : "grant",
@@ -295,7 +306,7 @@ export async function resolveUserEntitlementsForUsers(users: EntitlementUserRef[
 	const grants = await db
 		.select()
 		.from(entitlementGrantsTable)
-		.where(and(eq(entitlementGrantsTable.entitlement, PRO_ACCESS), isNull(entitlementGrantsTable.revokedAt), lte(entitlementGrantsTable.startsAt, now), or(isNull(entitlementGrantsTable.endsAt), gt(entitlementGrantsTable.endsAt, now)), or(inArray(entitlementGrantsTable.userId, freeUserIds), isNull(entitlementGrantsTable.userId))))
+		.where(and(eq(entitlementGrantsTable.entitlement, PRO_ACCESS), isNull(entitlementGrantsTable.revokedAt), lte(entitlementGrantsTable.startsAt, now), grantAccessNotExpired(now), or(inArray(entitlementGrantsTable.userId, freeUserIds), isNull(entitlementGrantsTable.userId))))
 		.orderBy(asc(entitlementGrantsTable.userId), asc(entitlementGrantsTable.startsAt))
 		.execute();
 
@@ -344,7 +355,7 @@ export async function resolveUserEntitlementsForUsers(users: EntitlementUserRef[
 				runnerAccess: await hasActiveRunnerAccess(user.id, now),
 				isBillingPro: false,
 				reverseTrialActive: isReverseTrialGrant,
-				trialEndsAt: grant.endsAt ?? null,
+				trialEndsAt: grantAccessEndsAt(grant),
 				hasActiveGrant: true,
 				grantSource: grant.source,
 				source: isReverseTrialGrant ? "reverse_trial" : "grant",

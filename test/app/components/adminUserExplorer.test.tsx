@@ -1,3 +1,4 @@
+jest.mock("@/app/actions/admin-account-access", () => ({ setAdminAccountAccess: jest.fn() }));
 import React from "react";
 import { render, screen } from "@testing-library/react";
 import AdminUserExplorer from "@/app/components/adminUserExplorer";

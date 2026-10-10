@@ -1,3 +1,5 @@
+import { queueIdentityEmail } from "@/server/notifications/identity-events";
+import { randomUUID } from "node:crypto";
 import { betterAuth } from "better-auth";
 import { APIError, createAuthMiddleware, getSessionFromCtx } from "better-auth/api";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
@@ -16,6 +18,7 @@ import { requiredAuthSetting } from "./environment";
 import { evaluateRoleAssignment } from "./role-assignment-policy";
 import { createMcpPlugins } from "./mcp-options";
 import { providerGrantOptions } from "@/server/mcp/grants";
+import { withResourceSeedErrorCompatibility } from "./resource-seed-adapter";
 
 const resolvedBaseUrl = resolveBaseUrl();
 const baseURL = resolvedBaseUrl.origin;
@@ -28,11 +31,13 @@ export const auth = betterAuth({
 	baseURL,
 	trustedOrigins: [baseURL, productionURL, "https://www.clipify.us", "https://es.clipify.us", "http://localhost:3000", "https://*.clipify.cloud.thedannicraft.de"],
 	secret: requiredAuthSetting("BETTER_AUTH_SECRET", "JWT_SECRET"),
-	database: drizzleAdapter(db, {
-		provider: "pg",
-		schemaName: "auth",
-		schema,
-	}),
+	database: withResourceSeedErrorCompatibility(
+		drizzleAdapter(db, {
+			provider: "pg",
+			schemaName: "auth",
+			schema,
+		}),
+	),
 	socialProviders: {
 		twitch: {
 			clientId: requiredAuthSetting("TWITCH_CLIENT_ID"),
@@ -57,6 +62,42 @@ export const auth = betterAuth({
 			allowUnlinkingAll: false,
 		},
 	},
+	databaseHooks: {
+		account: {
+			create: {
+				after: async (account, context) => {
+					if (account.providerId === "twitch" && (context?.path === "/callback/twitch" || (context?.path === "/callback/:id" && context.params?.id === "twitch"))) {
+						const { restoreTwitchAccountAccess } = await import("@/server/notifications/twitch-account-access");
+						await restoreTwitchAccountAccess(account.userId);
+					}
+				},
+			},
+			update: {
+				after: async (account, context) => {
+					if (account.providerId === "twitch" && (context?.path === "/callback/twitch" || (context?.path === "/callback/:id" && context.params?.id === "twitch"))) {
+						const { restoreTwitchAccountAccess } = await import("@/server/notifications/twitch-account-access");
+						await restoreTwitchAccountAccess(account.userId);
+					}
+				},
+			},
+		},
+		user: {
+			create: {
+				after: async (user) => {
+					await queueIdentityEmail(user.email, { type: "welcome", name: user.name }, `welcome:${user.id}`);
+				},
+			},
+			update: {
+				after: async (user, context) => {
+					const previousEmail = context?.context.session?.user.email;
+					if (previousEmail && previousEmail !== user.email) {
+						const key = randomUUID();
+						await Promise.all([previousEmail, user.email].map((email) => queueIdentityEmail(email, { type: "security", change: "email-changed" }, `email-change:${key}:${email === previousEmail ? "old" : "new"}`)));
+					}
+				},
+			},
+		},
+	},
 	rateLimit: {
 		enabled: true,
 		storage: "database",
@@ -71,6 +112,14 @@ export const auth = betterAuth({
 		},
 	},
 	hooks: {
+		after: createAuthMiddleware(async (context) => {
+			const change = context.path === "/passkey/verify-registration" ? "passkey-added" : context.path === "/passkey/delete-passkey" ? "passkey-removed" : null;
+			if (!change || context.context.returned instanceof APIError) return;
+			const result = context.context.returned as { status?: boolean; id?: string } | null;
+			if (!result || (change === "passkey-removed" ? result.status !== true : !result.id)) return;
+			const session = await getSessionFromCtx(context);
+			if (session) await queueIdentityEmail(session.user.email, { type: "security", change }, `security:${randomUUID()}`);
+		}),
 		before: createAuthMiddleware(async (context) => {
 			if (context.path !== "/organization/update-member-role" && context.path !== "/organization/invite-member") return;
 			const body = context.body as { organizationId?: unknown; memberId?: unknown; role?: unknown };
@@ -178,6 +227,10 @@ export const auth = betterAuth({
 			invitationExpiresIn: 7 * 24 * 60 * 60,
 			cancelPendingInvitationsOnReInvite: true,
 			requireEmailVerificationOnInvitation: true,
+			organizationHooks: {
+				afterAcceptInvitation: async ({ user, organization, invitation }) => queueIdentityEmail(user.email, { type: "organization-membership", organizationName: organization.name, status: "joined" }, `organization-joined:${invitation.id}`),
+				afterRemoveMember: async ({ user, organization, member }) => queueIdentityEmail(user.email, { type: "organization-membership", organizationName: organization.name, status: "removed" }, `organization-removed:${member.id}`),
+			},
 		}),
 	],
 });

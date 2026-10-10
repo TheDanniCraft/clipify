@@ -50,3 +50,21 @@ test("migration automation still tests source changes and unexpected artifacts",
 test("generated migrations outside their owning workflow retain full push checks", () => {
 	for (const environment of [{}, { ...migrationWorkflow, GITHUB_ACTIONS: "false" }, { ...migrationWorkflow, GITHUB_REF: "refs/heads/feature/example" }, { ...migrationWorkflow, GITHUB_WORKFLOW: "🧪 CI" }, { ...migrationWorkflow, CLIPIFY_MIGRATION_WORKFLOW: "false" }]) assert.equal(selectPushChecks(generatedMigrations, environment).full, true);
 });
+
+test("self-test children cannot consume the ref input needed for scoped checks", () => {
+	const { mkdtempSync, writeFileSync, rmSync } = require("node:fs");
+	const { tmpdir } = require("node:os");
+	const { join } = require("node:path");
+	const { spawnSync } = require("node:child_process");
+	const directory = mkdtempSync(join(tmpdir(), "clipify-push-stdin-"));
+	try {
+		const preload = join(directory, "child-boundary.cjs");
+		writeFileSync(preload, `const fs=require('node:fs'),child=require('node:child_process');child.execFileSync=()=> 'README.md';child.spawnSync=(command)=>{if(command!==process.execPath)throw Error('Unexpected application suite');fs.readFileSync(0,'utf8');return {status:0};};`);
+		const result = spawnSync(process.execPath, ["--require", preload, join(__dirname, "pre-push-tests.cjs")], { input: "refs/heads/a abc refs/heads/a def\n", encoding: "utf8" });
+		assert.equal(result.status, 0, result.stderr);
+		assert.match(result.stdout, /No application files changed/);
+		assert.doesNotMatch(result.stdout, /Cannot determine changed files/);
+	} finally {
+		rmSync(directory, { recursive: true, force: true });
+	}
+});

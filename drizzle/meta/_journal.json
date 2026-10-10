@@ -183,6 +183,13 @@
       "when": 1791504913868,
       "tag": "0025_stiff_night_nurse",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1791583078406,
+      "tag": "0026_notification_event_triggers",
+      "breakpoints": true
     }
   ]
 }

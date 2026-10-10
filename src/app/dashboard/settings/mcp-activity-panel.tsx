@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { Alert, Button, Card, Chip, Label, ListBox, Select, Spinner } from "@heroui/react";
+import { Alert, Button, Card, Chip, Label, ListBox, Select, Spinner, Table } from "@heroui/react";
 import { EmptyState } from "@heroui-pro/react";
 import { IconActivity, IconHistory, IconRefresh } from "@tabler/icons-react";
 import { getConnectedMcpActivityPage, getMcpActivityCreators } from "@/app/actions/mcp-connections";
@@ -54,6 +54,8 @@ export default function McpActivityPanel() {
 			})
 			.catch(() => {
 				if (generation.current !== current) return;
+				setItems([]);
+				setCursor(null);
 				setError("Activity could not be loaded. Refresh and try again.");
 				setLoading(false);
 			});
@@ -95,21 +97,30 @@ export default function McpActivityPanel() {
 	if (available === false) return null;
 	return (
 		<Card className='p-0' role='region' aria-labelledby='mcp-activity-title'>
-			<Card.Header className='gap-2 p-6'>
+			<Card.Header className='gap-2 p-4'>
 				<div className='flex items-center gap-3'>
-					<span className='flex size-10 items-center justify-center rounded-xl bg-accent-soft text-accent'>
+					<span className='flex size-8 items-center justify-center rounded-xl bg-accent-soft text-accent'>
 						<IconActivity size={22} aria-hidden='true' />
 					</span>
-					<h2 id='mcp-activity-title' className='text-xl font-semibold'>
+					<h2 id='mcp-activity-title' className='text-lg font-semibold'>
 						AI app activity
 					</h2>
 				</div>
 				<Card.Description>Review what connected apps did and which requests were blocked. Activity follows your current creator access.</Card.Description>
 			</Card.Header>
-			<Card.Content className='flex flex-col gap-4 px-6 pb-6'>
+			<Card.Content className='flex flex-col gap-3 px-4 pb-4'>
 				{!!creators.length && (
 					<div className='flex flex-col items-stretch gap-3 sm:flex-row sm:items-end'>
-						<Select aria-label='Creator' fullWidth variant='secondary' value={creatorId || null} onChange={(next) => setCreatorId(String(next ?? ""))}>
+						<Select
+							aria-label='Creator'
+							fullWidth
+							variant='secondary'
+							value={creatorId || null}
+							onChange={(next) => {
+								resetHistory();
+								setCreatorId(String(next ?? ""));
+							}}
+						>
 							<Label>Creator</Label>
 							<Select.Trigger>
 								<Select.Value />
@@ -130,12 +141,16 @@ export default function McpActivityPanel() {
 							variant='secondary'
 							aria-label='Refresh activity'
 							isDisabled={loading}
+							isPending={loading}
 							onPress={() => {
-								resetHistory();
+								generation.current++;
+								setCursor(null);
+								setError(undefined);
+								setLoading(true);
 								setRefresh((value) => value + 1);
 							}}
 						>
-							<IconRefresh size={18} aria-hidden='true' />
+							{loading ? <Spinner size='sm' /> : <IconRefresh size={18} aria-hidden='true' />}
 							Refresh
 						</Button>
 					</div>
@@ -149,14 +164,14 @@ export default function McpActivityPanel() {
 						</Alert.Content>
 					</Alert>
 				)}
-				{loading && (
+				{loading && !items.length && (
 					<div className='flex items-center gap-2 py-4 text-muted' role='status'>
 						<Spinner size='sm' />
 						<p>Loading activity…</p>
 					</div>
 				)}
 				{!loading && !error && !items.length && (
-					<EmptyState className='rounded-xl bg-surface-secondary py-8'>
+					<EmptyState className='rounded-xl bg-surface-secondary py-4'>
 						<EmptyState.Header>
 							<EmptyState.Media variant='icon'>
 								<IconHistory size={28} aria-hidden='true' />
@@ -166,28 +181,59 @@ export default function McpActivityPanel() {
 						</EmptyState.Header>
 					</EmptyState>
 				)}
-				{items.map((item) => (
-					<article key={item.id} className='flex flex-col gap-3 rounded-xl border border-border p-4 sm:p-5'>
-						<div className='flex flex-wrap items-center justify-between gap-2'>
-							<h3 className='font-semibold'>{operationLabels[item.tool] ?? "Unavailable tool"}</h3>
-							<Chip size='sm' variant='soft' color={item.outcome === "success" ? "success" : item.outcome === "denied" ? "warning" : "danger"}>
-								{item.outcome === "success" ? "Completed" : item.outcome === "denied" ? "Blocked" : "Failed"}
-							</Chip>
-						</div>
-						<div className='flex flex-col gap-1 text-sm text-muted sm:flex-row sm:flex-wrap sm:gap-x-5'>
-							<span>{item.actor.name}</span>
-							<span>{item.client.name}</span>
-							<span>Creator: {item.creator.name}</span>
-						</div>
-						<time className='text-xs text-muted' dateTime={item.occurredAt}>
-							{new Date(item.occurredAt).toLocaleString()}
-						</time>
-					</article>
-				))}
-				{cursor && (
-					<Button variant='secondary' isPending={loading} onPress={loadOlder}>
-						Load older activity
-					</Button>
+				{items.length > 0 && (
+					<Table variant='secondary'>
+						<Table.ScrollContainer className='max-h-72 overflow-auto'>
+							<Table.Content aria-label='AI app activity log' className='w-full min-w-[720px] table-fixed'>
+								<Table.Header className='sticky top-0 z-10'>
+									<Table.Column id='action' isRowHeader className='w-[26%]'>
+										Action
+									</Table.Column>
+									<Table.Column id='app' className='w-[18%]'>
+										App
+									</Table.Column>
+									<Table.Column id='creator' className='w-[18%]'>
+										Creator
+									</Table.Column>
+									<Table.Column id='result' className='w-[15%]'>
+										Result
+									</Table.Column>
+									<Table.Column id='time' className='w-[23%]'>
+										Time
+									</Table.Column>
+								</Table.Header>
+								<Table.Body>
+									{items.map((item) => (
+										<Table.Row key={item.id} id={item.id} textValue={operationLabels[item.tool] ?? "Unavailable tool"}>
+											<Table.Cell className='break-words'>
+												<span className='block text-sm font-medium'>{operationLabels[item.tool] ?? "Unavailable tool"}</span>
+												<span className='text-xs text-muted'>{item.actor.name}</span>
+											</Table.Cell>
+											<Table.Cell className='break-words text-sm'>{item.client.name}</Table.Cell>
+											<Table.Cell className='break-words text-sm'>{item.creator.name}</Table.Cell>
+											<Table.Cell>
+												<Chip size='sm' variant='soft' color={item.outcome === "success" ? "success" : item.outcome === "denied" ? "warning" : "danger"}>
+													{item.outcome === "success" ? "Completed" : item.outcome === "denied" ? "Blocked" : "Failed"}
+												</Chip>
+											</Table.Cell>
+											<Table.Cell>
+												<time className='text-xs text-muted' dateTime={item.occurredAt}>
+													{new Date(item.occurredAt).toLocaleString()}
+												</time>
+											</Table.Cell>
+										</Table.Row>
+									))}
+									{cursor && (
+										<Table.LoadMore onLoadMore={loadOlder} isLoading={loading}>
+											<Table.LoadMoreContent>
+												<Spinner size='sm' aria-label='Loading older activity' />
+											</Table.LoadMoreContent>
+										</Table.LoadMore>
+									)}
+								</Table.Body>
+							</Table.Content>
+						</Table.ScrollContainer>
+					</Table>
 				)}
 			</Card.Content>
 		</Card>

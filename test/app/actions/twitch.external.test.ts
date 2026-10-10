@@ -1246,4 +1246,42 @@ describe("actions/twitch external API and failure handling", () => {
 			// Most 429 logic is in twitch.sync.ts which we will handle separately or it's already covered.
 		});
 	});
+	it("shares creator app tokens, starts live loading alongside cached profiles, renews expiry and discards rejected tokens", async () => {
+		let clock = Date.parse("2030-01-01T00:00:00Z");
+		const now = jest.spyOn(Date, "now").mockImplementation(() => clock);
+		const post = jest.spyOn(axios, "post").mockResolvedValue({ data: { access_token: "creator-app-token", expires_in: 3600, token_type: "bearer" } } as never);
+		const get = jest.spyOn(axios, "get").mockResolvedValue({ data: { data: [] } } as never);
+		let releaseProfile!: (profiles: unknown[]) => void;
+		getTwitchCacheBatch.mockImplementation(
+			() =>
+				new Promise((resolve) => {
+					releaseProfile = resolve;
+				}),
+		);
+		const { getCreatorTwitchDetails } = await loadTwitch();
+		const first = getCreatorTwitchDetails("alice", "owner-1");
+		await new Promise((resolve) => setImmediate(resolve));
+		expect(get).toHaveBeenCalledWith("https://api.twitch.tv/helix/streams", expect.anything());
+		getTwitchCacheBatch.mockResolvedValue([{ id: "owner-1", profile_image_url: "cached.png" }]);
+		const second = getCreatorTwitchDetails("alice", "owner-1");
+		releaseProfile([{ id: "owner-1", profile_image_url: "cached.png" }]);
+		await expect(first).resolves.toMatchObject({ profile: { profile_image_url: "cached.png" } });
+		await second;
+		expect(post).toHaveBeenCalledTimes(1);
+		expect(getTwitchCacheBatch).toHaveBeenCalledWith("user", ["owner-1"]);
+		expect(get.mock.calls.every((call) => call[0] === "https://api.twitch.tv/helix/streams")).toBe(true);
+		clock += 3600000;
+		await getCreatorTwitchDetails("alice", "owner-1");
+		expect(post).toHaveBeenCalledTimes(2);
+		get.mockRejectedValueOnce(createAxiosError(401));
+		await getCreatorTwitchDetails("alice", "owner-1");
+		await getCreatorTwitchDetails("alice", "owner-1");
+		expect(post).toHaveBeenCalledTimes(3);
+		clock += 3600000;
+		post.mockRejectedValueOnce(new Error("token service unavailable"));
+		await expect(getCreatorTwitchDetails("alice", "owner-1")).resolves.toEqual({ profile: null, live: null });
+		await getCreatorTwitchDetails("alice", "owner-1");
+		expect(post).toHaveBeenCalledTimes(5);
+		now.mockRestore();
+	});
 });

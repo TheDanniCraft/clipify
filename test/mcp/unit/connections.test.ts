@@ -77,3 +77,27 @@ test("legacy creator permissions inherit operation scopes but exclude refresh pe
 	const result = await connections.listMcpConnections({ auth: f.auth, headers, client });
 	expect(result).toMatchObject([{ clientName: "client", active: true, creatorPermissions: [{ creatorId: "creator", scopes: ["creator:read"] }] }]);
 });
+
+test("invalid connection identifiers never enter a transaction", async () => {
+	const f = fixture();
+	expect((await connections.revokeMcpConnection({ ...f, headers, origin: "https://clipify.example", grantId: "invalid" })).status).toBe(400);
+	expect(f.client.transaction).not.toHaveBeenCalled();
+});
+test("already disconnected connections retry cleanup without changing revocation", async () => {
+	const f = fixture([{ ...grant, revokedAt: new Date(), active: false }]);
+	expect(await (await connections.revokeMcpConnection({ ...f, headers, origin: "https://clipify.example", grantId: id })).json()).toEqual({ revoked: true, cleanupPending: false });
+	expect(f.update).not.toHaveBeenCalled();
+});
+test("missing connections cannot trigger provider cleanup", async () => {
+	const f = fixture([]);
+	expect((await connections.revokeMcpConnection({ ...f, headers, origin: "https://clipify.example", grantId: id })).status).toBe(404);
+	expect(f.client.transaction).toHaveBeenCalledTimes(1);
+});
+test("purge uses the application database when no client override is supplied", async () => {
+	const { db } = require("@/db/client");
+	db.transaction = jest.fn(async () => []);
+	const f = fixture();
+	expect(await (await connections.purgeInactiveMcpConnections({ auth: f.auth, headers, origin: "https://clipify.example" })).json()).toEqual({ purgedIds: [] });
+	expect(db.transaction).toHaveBeenCalledTimes(1);
+	delete db.transaction;
+});

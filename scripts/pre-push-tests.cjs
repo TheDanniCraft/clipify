@@ -33,6 +33,13 @@ function changedPaths(input, git = (...args) => execFileSync("git", args, { enco
 }
 
 function main() {
+	// Child test runners may drain inherited stdin. Preserve Git's refs first.
+	let refInput = "";
+	try {
+		refInput = readFileSync(0, "utf8");
+	} catch {
+		// Invalid/missing input retains the conservative full-suite fallback.
+	}
 	const selfTest = spawnSync(process.execPath, [require("node:path").join(__dirname, "pre-push-tests.test.cjs")], { stdio: "inherit" });
 	if (selfTest.status !== 0) {
 		process.exitCode = selfTest.status ?? 1;
@@ -40,7 +47,7 @@ function main() {
 	}
 	let check;
 	try {
-		check = selectPushChecks(changedPaths(readFileSync(0, "utf8")));
+		check = selectPushChecks(changedPaths(refInput));
 	} catch {
 		console.log("[pre-push] Cannot determine changed files; running the full suite.");
 		check = { full: true, paths: [] };

@@ -1,7 +1,7 @@
 "use server";
 import { headers } from "next/headers";
 import { auth } from "@/auth/config";
-import { listMcpConnections, revokeMcpConnection } from "@/server/mcp/connections";
+import { listMcpConnections, revokeMcpConnection, purgeInactiveMcpConnections } from "@/server/mcp/connections";
 import { getMcpConfiguration } from "@/server/mcp/config";
 
 export async function getConnectedMcpApps() {
@@ -17,10 +17,10 @@ export async function revokeConnectedMcpApp(grantId: string): Promise<{ revoked?
 	if (!configuration.valid) return { error: "Connected apps are unavailable." };
 	try {
 		const response = await revokeMcpConnection({ auth, headers: new Headers(await headers()), origin: configuration.origin, grantId });
-		if (!response.ok) return { error: "Access could not be revoked. Try again." };
+		if (!response.ok) return { error: "The app could not be disconnected. Try again." };
 		return await response.json();
 	} catch {
-		return { error: "Access could not be revoked. Try again." };
+		return { error: "The app could not be disconnected. Try again." };
 	}
 }
 
@@ -49,5 +49,17 @@ export async function getConnectedMcpActivityPage(input: unknown): Promise<impor
 		return await listMcpActivity(principal, input);
 	} catch (error) {
 		return { items: [], nextCursor: null, error: error instanceof Error && error.message === "ACCESS_DENIED" ? "Activity is unavailable for this creator. Your access may have changed." : "Activity could not be loaded. Refresh and try again." };
+	}
+}
+
+export async function purgeInactiveConnectedMcpApps(grantId?: string): Promise<{ purgedIds?: string[]; error?: string }> {
+	const configuration = getMcpConfiguration();
+	if (!configuration.valid) return { error: "Connected apps are unavailable." };
+	try {
+		const response = await purgeInactiveMcpConnections({ auth, headers: new Headers(await headers()), origin: configuration.origin, grantId });
+		if (!response.ok) return { error: "Inactive connections could not be purged. Try again." };
+		return await response.json();
+	} catch {
+		return { error: "Inactive connections could not be purged. Try again." };
 	}
 }

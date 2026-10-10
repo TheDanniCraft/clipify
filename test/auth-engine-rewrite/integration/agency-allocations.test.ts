@@ -75,3 +75,14 @@ describe("TDD-US4-003 agency creator-seat allocation", () => {
 		expect(renderAgencyAllocationNotification("ended", { agencyName: "Clip Agency", effectiveAt: endsAt }).body).toContain("data remain unchanged");
 	});
 });
+
+test("long agency Pro and Runner removal schedules expose every countdown without replaying past points", () => {
+	const start = new Date("2030-01-01T12:00:00Z"),
+		end = new Date("2030-03-01T12:00:00Z");
+	for (const product of ["creator_pro", "runner"] as const) {
+		const intents = buildAgencyAllocationRemovalIntents({ allocationId: "long", recipient: "alex@example.test", agencyName: "Agency", product, requestedAt: start, endsAt: end });
+		expect(intents.map((i) => i.boundary)).toEqual(["removal-scheduled", "removal-30d", "removal-7d", "removal-3d", "removal-1d", "ended"]);
+	}
+	const short = buildAgencyAllocationRemovalIntents({ allocationId: "short", recipient: "alex@example.test", agencyName: "Agency", requestedAt: new Date(end.getTime() - 2 * 86400000), endsAt: end });
+	expect(short.map((i) => i.boundary)).toEqual(["removal-scheduled", "removal-1d", "ended"]);
+});

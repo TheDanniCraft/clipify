@@ -1,3 +1,4 @@
+jest.mock("@/app/actions/admin-account-access", () => ({ setAdminAccountAccess: jest.fn() }));
 import React from "react";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import AdminUserExplorer from "@/app/components/adminUserExplorer";
@@ -22,7 +23,17 @@ jest.mock("@actions/adminView", () => ({
 	getAdminExplorerPage: (...args: unknown[]) => getAdminExplorerPage(...args),
 }));
 
+jest.mock("@/app/components/adminAwardsControl", () => ({ __esModule: true, default: () => null }));
 jest.mock("@heroui/react", () => ({
+	Checkbox: Object.assign(
+		({ children, isSelected, onChange, ...props }: any) => (
+			<label>
+				<input type='checkbox' checked={isSelected} onChange={(event) => onChange(event.target.checked)} aria-label={props["aria-label"]} />
+				{children}
+			</label>
+		),
+		{ Control: ({ children }: any) => <>{children}</>, Indicator: () => null },
+	),
 	Button: ({ children, onPress, isDisabled }: { children: React.ReactNode; onPress?: () => void; isDisabled?: boolean }) => (
 		<button onClick={onPress} disabled={isDisabled}>
 			{children}

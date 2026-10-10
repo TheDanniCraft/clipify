@@ -148,17 +148,8 @@ describe("lib/instanceHealth", () => {
 		globalThis.__clipFetchMetrics = undefined;
 
 		const selectQueue: unknown[][] = [
-			[{ count: 10 }], // usersTotal
-			[{ count: 20 }], // overlaysTotal
-			[{ count: 12 }], // overlaysActive
-			[{ count: 8 }], // overlaysPaused
-			[{ count: 5 }], // activeUsers24h
-			[{ count: 7 }], // activeUsers7d
-			[{ count: 9 }], // activeUsers30d
-			[{ count: 1 }], // disabledUsers
-			[{ count: 1 }], // disabledManual
-			[{ count: 0 }], // disabledAutomatic
-			[{ count: 1 }], // neverLoggedIn
+			[{ total: 10, active24h: 5, active7d: 7, active30d: 9, disabled: 1, manual: 1, automatic: 0, neverLoggedIn: 1 }], // combined usersTotal
+			[{ total: 20, active: 12, paused: 8, withPlaylist: 6, activeWithPlaylist: 4, withReward: 3, activeWithReward: 2, uniqueRewards: 3, rewardOwners: 2 }], // combined overlaysTotal
 			[{ reason: "abuse", count: 1 }], // disabledReasonRows
 			[
 				{ plan: "free", count: 7 },
@@ -172,36 +163,18 @@ describe("lib/instanceHealth", () => {
 				{ plan: "pro", count: 2 },
 			], // activeOverlayOwnersByPlanRows
 			[{ count: 4 }], // playlistsTotal
-			[{ count: 12 }], // playlistClipRows
-			[{ count: 3 }], // nonEmptyPlaylistsRows
-			[{ count: 6 }], // overlaysWithPlaylistRows
-			[{ count: 4 }], // activeOverlaysWithPlaylistRows
-			[{ count: 3 }], // overlaysWithRewardRows
-			[{ count: 2 }], // activeOverlaysWithRewardRows
-			[{ count: 3 }], // uniqueRewardIdsRows
-			[{ count: 2 }], // ownersWithRewardRows
+			[{ total: 12, nonEmpty: 3 }], // playlistCounts
 			[{ type: "last_month", count: 2 }], // overlaysByTypeRows
 			[{ mode: "random", count: 2 }], // overlaysByPlaybackModeRows
-			[{ count: 10 }], // settingsRows
-			[{ count: 8 }], // optedInRows
-			[{ count: 2 }], // optedOutRows
-			[{ count: 3 }], // communityOptedInRows
+			[{ total: 10, optedIn: 8, optedOut: 2, community: 3 }], // combined settingsRows
 			[{ source: "soft_opt_in_default", count: 6 }], // newsletterConsentSourceRows
 			[{ source: "settings_page_optout", count: 2 }], // optedOutReasonRows
 			[{ count: 3 }], // clipQueueRows
 			[{ count: 1 }], // modQueueRows
-			[{ count: 10 }], // tokenRows
-			[{ count: 0 }], // expiredTokensRows
-			[{ count: 2 }], // expiringIn24hRows
-			[{ count: 5 }], // readyForTwitchApiUsersRows
+			[{ total: 10, expired: 0, expiring: 2, ready: 5 }], // combined tokenRows
+			[{ total: 0, online: 0, owners: 0 }],
+			[{ total: 0, desiredRunning: 0, actualRunning: 0, errors: 0 }],
 			[], // billingItems
-			[{ count: 0 }], // runnerCountRows
-			[{ count: 0 }], // onlineRunnerRows
-			[{ count: 0 }], // runnerOwnerRows
-			[{ count: 0 }], // streamCountRows
-			[{ count: 0 }], // desiredRunningRows
-			[{ count: 0 }], // actualRunningRows
-			[{ count: 0 }], // streamErrorRows
 			[], // runnersByOsRows
 			[], // runnersByVersionRows
 			[
@@ -257,6 +230,7 @@ describe("lib/instanceHealth", () => {
 
 		expect(snapshot.mcp.calls.started_total).toBeGreaterThanOrEqual(0);
 		expect(snapshot.mcp.processStartedAt).toEqual(expect.any(String));
+		expect(dbSelect).toHaveBeenCalledTimes(32);
 		expect(snapshot.counts.users).toBe(10);
 		expect(snapshot.counts.overlaysTotal).toBe(20);
 		expect(snapshot.entitlements.activeGrantUsers).toBe(2);
@@ -328,17 +302,8 @@ describe("lib/instanceHealth", () => {
 
 	it("returns down status for very high db latency and handles zero sync ratio", async () => {
 		const selectQueue: unknown[][] = [
-			[{ count: 10 }], // usersTotal
-			[{ count: 20 }], // overlaysTotal
-			[{ count: 12 }], // overlaysActive
-			[{ count: 8 }], // overlaysPaused
-			[{ count: 5 }], // activeUsers24h
-			[{ count: 7 }], // activeUsers7d
-			[{ count: 9 }], // activeUsers30d
-			[{ count: 1 }], // disabledUsers
-			[{ count: 1 }], // disabledManual
-			[{ count: 0 }], // disabledAutomatic
-			[{ count: 1 }], // neverLoggedIn
+			[{ total: 10, active24h: 5, active7d: 7, active30d: 9, disabled: 1, manual: 1, automatic: 0, neverLoggedIn: 1 }], // combined usersTotal
+			[{ total: 20, active: 12, paused: 8, withPlaylist: 6, activeWithPlaylist: 4, withReward: 3, activeWithReward: 2, uniqueRewards: 3, rewardOwners: 2 }], // combined overlaysTotal
 			[{ reason: "abuse", count: 1 }], // disabledReasonRows
 			[
 				{ plan: "free", count: 7 },
@@ -352,27 +317,15 @@ describe("lib/instanceHealth", () => {
 				{ plan: "pro", count: 2 },
 			], // activeOverlayOwnersByPlanRows
 			[{ count: 4 }], // playlistsTotal
-			[{ count: 12 }], // playlistClipRows
-			[{ count: 3 }], // nonEmptyPlaylistsRows
-			[{ count: 6 }], // overlaysWithPlaylistRows
-			[{ count: 4 }], // activeOverlaysWithPlaylistRows
-			[{ count: 3 }], // overlaysWithRewardRows
-			[{ count: 2 }], // activeOverlaysWithRewardRows
-			[{ count: 3 }], // uniqueRewardIdsRows
-			[{ count: 2 }], // ownersWithRewardRows
+			[{ total: 12, nonEmpty: 3 }], // playlistCounts
 			[{ type: "last_month", count: 2 }], // overlaysByTypeRows
 			[{ mode: "random", count: 2 }], // overlaysByPlaybackModeRows
-			[{ count: 10 }], // settingsRows
-			[{ count: 8 }], // optedInRows
-			[{ count: 2 }], // optedOutRows
-			[{ count: 3 }], // communityOptedInRows
+			[{ total: 10, optedIn: 8, optedOut: 2, community: 3 }], // combined settingsRows
 			[{ source: "soft_opt_in_default", count: 6 }], // newsletterConsentSourceRows
 			[{ source: "settings_page_optout", count: 2 }], // optedOutReasonRows
 			[{ count: 3 }], // clipQueueRows
 			[{ count: 1 }], // modQueueRows
-			[{ count: 10 }], // tokenRows
-			[{ count: 0 }], // expiredTokensRows
-			[{ count: 2 }], // expiringIn24hRows
+			[{ total: 10, expired: 0, expiring: 2 }], // combined tokenRows
 			[
 				{ type: "clip", count: 100 },
 				{ type: "avatar", count: 20 },
@@ -451,17 +404,8 @@ describe("lib/instanceHealth", () => {
 
 	it("handles empty or missing data in various plan and cache searches", async () => {
 		const selectQueue: unknown[][] = [
-			[{ count: 0 }], // usersTotal
-			[{ count: 0 }], // overlaysTotal
-			[{ count: 0 }], // overlaysActive
-			[{ count: 0 }], // overlaysPaused
-			[{ count: 0 }], // activeUsers24h
-			[{ count: 0 }], // activeUsers7d
-			[{ count: 0 }], // activeUsers30d
-			[{ count: 0 }], // disabledUsers
-			[{ count: 0 }], // disabledManual
-			[{ count: 0 }], // disabledAutomatic
-			[{ count: 0 }], // neverLoggedIn
+			[{ total: 0, active24h: 0, active7d: 0, active30d: 0, disabled: 0, manual: 0, automatic: 0, neverLoggedIn: 0 }], // combined usersTotal
+			[{ total: 0, active: 0, paused: 0, withPlaylist: 0, activeWithPlaylist: 0, withReward: 0, activeWithReward: 0, uniqueRewards: 0, rewardOwners: 0 }], // combined overlaysTotal
 			[], // disabledReasonRows
 			[], // usersByPlan (empty)
 			[], // activeGrants (empty)
@@ -469,27 +413,15 @@ describe("lib/instanceHealth", () => {
 			[{ count: 0 }], // activeGrantUsersOnFree
 			[], // activeOverlayOwnersByPlanRows (empty)
 			[{ count: 0 }], // playlistsTotal
-			[{ count: 0 }], // playlistClipRows
-			[{ count: 0 }], // nonEmptyPlaylistsRows
-			[{ count: 0 }], // overlaysWithPlaylistRows
-			[{ count: 0 }], // activeOverlaysWithPlaylistRows
-			[{ count: 0 }], // overlaysWithRewardRows
-			[{ count: 0 }], // activeOverlaysWithRewardRows
-			[{ count: 0 }], // uniqueRewardIdsRows
-			[{ count: 0 }], // ownersWithRewardRows
+			[{ total: 0, nonEmpty: 0 }], // playlistCounts
 			[], // overlaysByTypeRows
 			[], // overlaysByPlaybackModeRows
-			[{ count: 0 }], // settingsRows
-			[{ count: 0 }], // optedInRows
-			[{ count: 0 }], // optedOutRows
-			[{ count: 0 }], // communityOptedInRows
+			[{ total: 0, optedIn: 0, optedOut: 0, community: 0 }], // combined settingsRows
 			[], // newsletterConsentSourceRows
 			[], // optedOutReasonRows
 			[{ count: 0 }], // clipQueueRows
 			[{ count: 0 }], // modQueueRows
-			[{ count: 0 }], // tokenRows
-			[{ count: 0 }], // expiredTokensRows
-			[{ count: 0 }], // expiringIn24hRows
+			[{ total: 0, expired: 0, expiring: 0 }], // combined tokenRows
 			[], // cacheTotals (empty)
 			[{ count: 0 }], // unavailableClipsRows
 			[{ states: 0, complete: 0 }], // clipSyncProgressRows

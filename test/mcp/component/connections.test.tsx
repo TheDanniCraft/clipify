@@ -1,8 +1,8 @@
 jest.mock("@heroui-pro/react", () => require("../../support/mcp/heroui-fixture").proComponents, { virtual: true });
-jest.mock("@heroui/react", () => require("../../support/mcp/heroui-fixture").components);
+jest.mock("@heroui/react", () => require("./ai-apps-heroui-fixture").components);
 import { act, render, screen, fireEvent, waitFor } from "@testing-library/react";
-jest.mock("@/app/actions/mcp-connections", () => ({ getConnectedMcpApps: jest.fn(), revokeConnectedMcpApp: jest.fn() }));
-import { getConnectedMcpApps, revokeConnectedMcpApp } from "@/app/actions/mcp-connections";
+jest.mock("@/app/actions/mcp-connections", () => ({ getConnectedMcpApps: jest.fn(), revokeConnectedMcpApp: jest.fn(), purgeInactiveConnectedMcpApps: jest.fn() }));
+import { getConnectedMcpApps, revokeConnectedMcpApp, purgeInactiveConnectedMcpApps } from "@/app/actions/mcp-connections";
 let Panel: any;
 try {
 	Panel = require("@/app/dashboard/settings/connected-apps-panel").default;
@@ -17,32 +17,40 @@ describe("TDD-US1-020/024 connected apps UI", () => {
 		expect(Panel).toEqual(expect.any(Function));
 		render(<Panel />);
 		expect(await screen.findByText("My custom AI")).toBeVisible();
+		expect(screen.queryByText(/creator:read/)).not.toBeInTheDocument();
+		fireEvent.click(screen.getByRole("button", { name: "Details for My custom AI" }));
 		expect(screen.getByText(/creator:read/)).toBeVisible();
 		expect(screen.getByText("Creators: creator")).toBeTruthy();
-		fireEvent.click(screen.getByRole("button", { name: "Revoke My custom AI" }));
+		expect(screen.getByRole("dialog", { name: "Connection details for My custom AI" })).toBeVisible();
+		fireEvent.click(screen.getByRole("button", { name: "Close details" }));
+		fireEvent.click(screen.getByRole("button", { name: "Disconnect My custom AI" }));
+		expect(screen.getByRole("dialog", { name: "Disconnect this app?" })).toBeVisible();
 		expect(revokeConnectedMcpApp).not.toHaveBeenCalled();
 		(revokeConnectedMcpApp as jest.Mock).mockResolvedValue({ revoked: true, cleanupPending: false });
 		(getConnectedMcpApps as jest.Mock).mockResolvedValue({ connections: [{ ...connection, active: false, revokedAt: "2026-10-04T01:00:00Z" }] });
-		fireEvent.click(screen.getByRole("button", { name: "Confirm revoke" }));
+		fireEvent.click(screen.getByRole("button", { name: "Disconnect" }));
 		await waitFor(() => expect(revokeConnectedMcpApp).toHaveBeenCalledWith("first"));
-		expect(await screen.findByText("Revoked")).toBeVisible();
+		expect(await screen.findByRole("status")).toHaveTextContent("The app is disconnected");
+		expect(screen.queryByText("My custom AI")).not.toBeInTheDocument();
+		fireEvent.click(screen.getByRole("button", { name: "Show inactive (1)" }));
+		expect(screen.getByText("Disconnected")).toBeVisible();
 	});
 	test("failed durable revoke retains active connection and reports failure", async () => {
 		expect(Panel).toEqual(expect.any(Function));
 		render(<Panel />);
 		await screen.findByText("My custom AI");
-		(revokeConnectedMcpApp as jest.Mock).mockResolvedValue({ error: "Access could not be revoked. Try again." });
-		fireEvent.click(screen.getByRole("button", { name: "Revoke My custom AI" }));
-		fireEvent.click(screen.getByRole("button", { name: "Confirm revoke" }));
-		expect(await screen.findByRole("alert")).toHaveTextContent("Access could not be revoked");
+		(revokeConnectedMcpApp as jest.Mock).mockResolvedValue({ error: "The app could not be disconnected. Try again." });
+		fireEvent.click(screen.getByRole("button", { name: "Disconnect My custom AI" }));
+		fireEvent.click(screen.getByRole("button", { name: "Disconnect" }));
+		expect(await screen.findByRole("alert")).toHaveTextContent("The app could not be disconnected");
 		expect(screen.getByText("Active")).toBeVisible();
 	});
 	test("cancel leaves authority unchanged and never calls revoke", async () => {
 		render(<Panel />);
 		await screen.findByText("My custom AI");
-		fireEvent.click(screen.getByRole("button", { name: "Revoke My custom AI" }));
+		fireEvent.click(screen.getByRole("button", { name: "Disconnect My custom AI" }));
 		fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
-		expect(screen.queryByRole("button", { name: "Confirm revoke" })).not.toBeInTheDocument();
+		expect(screen.queryByRole("button", { name: "Disconnect" })).not.toBeInTheDocument();
 		expect(screen.getByText("Active")).toBeVisible();
 		expect(revokeConnectedMcpApp).not.toHaveBeenCalled();
 	});
@@ -51,20 +59,23 @@ describe("TDD-US1-020/024 connected apps UI", () => {
 		await screen.findByText("My custom AI");
 		(revokeConnectedMcpApp as jest.Mock).mockResolvedValue({ revoked: true, cleanupPending: true });
 		(getConnectedMcpApps as jest.Mock).mockResolvedValue({ connections: [], error: "Refresh failed" });
-		fireEvent.click(screen.getByRole("button", { name: "Revoke My custom AI" }));
-		fireEvent.click(screen.getByRole("button", { name: "Confirm revoke" }));
-		expect(await screen.findByText("Revoked")).toBeVisible();
-		expect(screen.getByRole("status")).toHaveTextContent("Access is revoked");
+		fireEvent.click(screen.getByRole("button", { name: "Disconnect My custom AI" }));
+		fireEvent.click(screen.getByRole("button", { name: "Disconnect" }));
+		expect(await screen.findByRole("status")).toHaveTextContent("The app is disconnected");
+		expect(screen.queryByText("My custom AI")).not.toBeInTheDocument();
+		fireEvent.click(screen.getByRole("button", { name: "Show inactive (1)" }));
+		expect(screen.getByText("Disconnected")).toBeVisible();
+		expect(screen.getByRole("status")).toHaveTextContent("The app is disconnected");
 		expect(screen.queryByText("Active")).not.toBeInTheDocument();
-		expect(screen.getByRole("button", { name: "Retry cleanup for My custom AI" })).toBeEnabled();
+		expect(screen.queryByRole("button", { name: "Retry cleanup for My custom AI" })).not.toBeInTheDocument();
 	});
 	test("rejected durable revoke reports failure and preserves active authority", async () => {
 		render(<Panel />);
 		await screen.findByText("My custom AI");
 		(revokeConnectedMcpApp as jest.Mock).mockRejectedValue(new Error("network unavailable"));
-		fireEvent.click(screen.getByRole("button", { name: "Revoke My custom AI" }));
-		fireEvent.click(screen.getByRole("button", { name: "Confirm revoke" }));
-		expect(await screen.findByRole("alert")).toHaveTextContent("Access could not be revoked");
+		fireEvent.click(screen.getByRole("button", { name: "Disconnect My custom AI" }));
+		fireEvent.click(screen.getByRole("button", { name: "Disconnect" }));
+		expect(await screen.findByRole("alert")).toHaveTextContent("The app could not be disconnected");
 		expect(screen.getByText("Active")).toBeVisible();
 	});
 	test("empty connected-app response shows the onboarding empty state", async () => {
@@ -82,19 +93,20 @@ describe("TDD-US1-020/024 connected apps UI", () => {
 		expect(screen.queryByText("private network details")).not.toBeInTheDocument();
 	});
 	test("expired connections have a distinct status and explicit cleanup action", async () => {
-		(getConnectedMcpApps as jest.Mock).mockResolvedValue({ connections: [{ ...connection, active: false, revokedAt: null }] });
+		(getConnectedMcpApps as jest.Mock).mockResolvedValue({ connections: [{ ...connection, active: false, revokedAt: null, expiresAt: "2000-01-01T00:00:00Z" }] });
 		render(<Panel />);
+		fireEvent.click(await screen.findByRole("button", { name: "Show inactive (1)" }));
 		expect(await screen.findByText("Expired")).toBeVisible();
-		expect(screen.getByRole("button", { name: "Retry cleanup for My custom AI" })).toBeEnabled();
+		expect(screen.queryByRole("button", { name: "Retry cleanup for My custom AI" })).not.toBeInTheDocument();
 		expect(revokeConnectedMcpApp).not.toHaveBeenCalled();
 	});
 	test("missing successful revoke acknowledgement preserves active status", async () => {
 		(revokeConnectedMcpApp as jest.Mock).mockResolvedValue({ revoked: false });
 		render(<Panel />);
 		await screen.findByText("My custom AI");
-		fireEvent.click(screen.getByRole("button", { name: "Revoke My custom AI" }));
-		fireEvent.click(screen.getByRole("button", { name: "Confirm revoke" }));
-		expect(await screen.findByRole("alert")).toHaveTextContent("Access could not be revoked. Try again.");
+		fireEvent.click(screen.getByRole("button", { name: "Disconnect My custom AI" }));
+		fireEvent.click(screen.getByRole("button", { name: "Disconnect" }));
+		expect(await screen.findByRole("alert")).toHaveTextContent("The app could not be disconnected. Try again.");
 		expect(screen.getByText("Active")).toBeVisible();
 	});
 	test("a load resolving after unmount does not render stale app data", async () => {
@@ -122,4 +134,108 @@ test("connected app settings provide optional English example prompts without ru
 	expect(screen.getByText("Give my overlay a purple theme with rounded corners and a visible progress bar.")).toBeInTheDocument();
 	expect(screen.getByText("Show me which Minecraft clips from yesterday you would add to my playlist.")).toBeInTheDocument();
 	expect(revokeConnectedMcpApp).not.toHaveBeenCalled();
+});
+
+test("future inactive connections are hidden initially and are not mislabeled expired", async () => {
+	(getConnectedMcpApps as jest.Mock).mockResolvedValue({ connections: [{ ...connection, active: false, revokedAt: null, expiresAt: "2099-01-01T00:00:00Z" }] });
+	render(<Panel />);
+	expect(await screen.findByText("No active connections.")).toBeVisible();
+	expect(screen.queryByText("My custom AI")).not.toBeInTheDocument();
+	fireEvent.click(screen.getByRole("button", { name: "Show inactive (1)" }));
+	expect(screen.getByRole("grid", { name: "Connected AI apps" })).toBeVisible();
+	expect(screen.getByText("Inactive")).toBeVisible();
+	expect(screen.queryByText("Expired")).not.toBeInTheDocument();
+	fireEvent.click(screen.getByRole("button", { name: "Hide inactive" }));
+	expect(screen.queryByText("My custom AI")).not.toBeInTheDocument();
+});
+
+test("inactive purge requires confirmation and preserves active rows", async () => {
+	jest.clearAllMocks();
+	(getConnectedMcpApps as jest.Mock).mockResolvedValue({ connections: [connection, { ...connection, id: "old", active: false, revokedAt: "2026-01-01T00:00:00Z" }] });
+	(purgeInactiveConnectedMcpApps as jest.Mock).mockResolvedValue({ purgedIds: ["old"] });
+	render(<Panel />);
+	await screen.findByRole("button", { name: "Purge all inactive" });
+	fireEvent.click(screen.getByRole("button", { name: "Purge all inactive" }));
+	expect(screen.getByRole("dialog", { name: "Purge inactive connections" })).toBeVisible();
+	expect(purgeInactiveConnectedMcpApps).not.toHaveBeenCalled();
+	fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+	expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+	fireEvent.click(screen.getByRole("button", { name: "Purge all inactive" }));
+	fireEvent.click(screen.getByRole("button", { name: "Confirm purge" }));
+	await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+	expect(screen.queryByRole("button", { name: "Purge all inactive" })).not.toBeInTheDocument();
+	expect(screen.getByText("Active")).toBeVisible();
+});
+test("failed purge keeps its modal and connection records available", async () => {
+	jest.clearAllMocks();
+	(getConnectedMcpApps as jest.Mock).mockResolvedValue({ connections: [{ ...connection, active: false }] });
+	(purgeInactiveConnectedMcpApps as jest.Mock).mockRejectedValue(new Error("private database details"));
+	render(<Panel />);
+	fireEvent.click(await screen.findByRole("button", { name: "Purge all inactive" }));
+	fireEvent.click(screen.getByRole("button", { name: "Confirm purge" }));
+	expect(await screen.findByRole("alert")).toHaveTextContent("Inactive connections could not be purged");
+	expect(screen.getByRole("dialog")).toBeVisible();
+	expect(screen.getByRole("button", { name: "Show inactive (1)" })).toBeInTheDocument();
+});
+
+test.each([
+	["overlay:delete", "Read, edit and delete"],
+	["overlay:update", "Read and edit"],
+])("summarizes %s access without exposing technical scopes", async (scope, label) => {
+	(getConnectedMcpApps as jest.Mock).mockResolvedValue({ connections: [{ ...connection, scopes: [scope], creatorIds: [] }] });
+	render(<Panel />);
+	expect(await screen.findByText(label)).toBeVisible();
+	fireEvent.click(screen.getByRole("button", { name: "Details for My custom AI" }));
+	fireEvent.click(screen.getByRole("button", { name: "Close connection details" }));
+	expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+});
+test.each([{ error: "Cleanup unavailable" }, {}])("unsuccessful purge acknowledgement retains records: %j", async (result) => {
+	(getConnectedMcpApps as jest.Mock).mockResolvedValue({ connections: [{ ...connection, active: false }] });
+	(purgeInactiveConnectedMcpApps as jest.Mock).mockResolvedValue(result);
+	render(<Panel />);
+	fireEvent.click(await screen.findByRole("button", { name: "Purge all inactive" }));
+	fireEvent.click(screen.getByRole("button", { name: "Confirm purge" }));
+	expect(await screen.findByRole("alert")).toHaveTextContent(result.error ?? "Inactive connections could not be purged");
+	expect(screen.getByRole("dialog")).toBeVisible();
+});
+test("purging an inspected inactive connection closes its details while preserving another connection", async () => {
+	(getConnectedMcpApps as jest.Mock).mockResolvedValue({ connections: [connection, { ...connection, id: "old", clientName: "Old app", active: false }] });
+	(purgeInactiveConnectedMcpApps as jest.Mock).mockResolvedValue({ purgedIds: ["old"] });
+	render(<Panel />);
+	fireEvent.click(await screen.findByRole("button", { name: "Show inactive (1)" }));
+	fireEvent.click(screen.getByRole("button", { name: "Details for Old app" }));
+	fireEvent.click(screen.getByRole("button", { name: "Purge all inactive" }));
+	fireEvent.click(screen.getByRole("button", { name: "Confirm purge" }));
+	await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+	expect(screen.getByText("My custom AI")).toBeVisible();
+	expect(screen.queryByText("Old app")).not.toBeInTheDocument();
+});
+test("purge confirmation can be dismissed without deleting records", async () => {
+	(getConnectedMcpApps as jest.Mock).mockResolvedValue({ connections: [{ ...connection, active: false }] });
+	render(<Panel />);
+	fireEvent.click(await screen.findByRole("button", { name: "Purge all inactive" }));
+	fireEvent.click(screen.getByRole("button", { name: "Cancel purge" }));
+	expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+});
+
+test("removes one inactive connection only after confirmation", async () => {
+	jest.clearAllMocks();
+	(getConnectedMcpApps as jest.Mock).mockResolvedValue({
+		connections: [
+			{ ...connection, active: false },
+			{ ...connection, id: "second", clientName: "Another app", active: false },
+		],
+	});
+	(purgeInactiveConnectedMcpApps as jest.Mock).mockResolvedValue({ purgedIds: ["first"] });
+	render(<Panel />);
+	fireEvent.click(await screen.findByRole("button", { name: "Show inactive (2)" }));
+	fireEvent.click(screen.getByRole("button", { name: "Remove My custom AI" }));
+	expect(screen.getByRole("dialog", { name: "Remove inactive connection" })).toBeVisible();
+	fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+	expect(purgeInactiveConnectedMcpApps).not.toHaveBeenCalled();
+	fireEvent.click(screen.getByRole("button", { name: "Remove My custom AI" }));
+	fireEvent.click(screen.getByRole("button", { name: "Confirm removal" }));
+	await waitFor(() => expect(screen.queryByText("My custom AI")).not.toBeInTheDocument());
+	expect(purgeInactiveConnectedMcpApps).toHaveBeenCalledWith("first");
+	expect(screen.getByText("Another app")).toBeVisible();
 });

@@ -152,11 +152,14 @@ When("the official SDK completes {word} approval edit abandoned consent and revo
 		await expect(page.getByText("Give my overlay a purple theme with rounded corners and a visible progress bar.", { exact: true })).toBeVisible();
 		await page.screenshot({ path: `test-results/browser/focused-prompts-${area}.png`, fullPage: true });
 
-		const row = page.locator("article").filter({ has: page.getByRole("heading", { name: "Official SDK browser acceptance", exact: true }) });
+		const row = page.getByRole("row").filter({ has: page.getByRole("button", { name: "Disconnect Official SDK browser acceptance", exact: true }) });
 		await expect(row).toHaveCount(1, { timeout: 30000 });
-		await row.getByRole("button", { name: "Revoke Official SDK browser acceptance", exact: true }).click();
-		await row.getByRole("button", { name: "Confirm revoke", exact: true }).click();
-		await expect(row.getByText("Revoked", { exact: true })).toBeVisible({ timeout: 30000 });
+		await row.getByRole("button", { name: "Disconnect Official SDK browser acceptance", exact: true }).click();
+		await page.getByRole("dialog", { name: "Disconnect this app?", exact: true }).getByRole("button", { name: "Disconnect", exact: true }).click();
+		await expect(page.getByRole("status").filter({ hasText: "The app is disconnected" })).toBeVisible({ timeout: 30000 });
+		await expect(row).toHaveCount(0);
+		await page.getByRole("button", { name: /^Show inactive/ }).click();
+		await expect(page.getByRole("row").filter({ hasText: "Official SDK browser acceptance" }).getByText("Disconnected", { exact: true })).toBeVisible({ timeout: 30000 });
 		let denied = false;
 		try {
 			await connected.client.callTool({ name: "get_overlay", arguments: args });

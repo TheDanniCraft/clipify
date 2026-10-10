@@ -628,11 +628,11 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 	const topContent = useMemo(() => {
 		return (
 			<div className='flex flex-wrap items-center gap-2 py-3'>
-				<div className='flex min-w-0 flex-wrap items-center gap-2'>
-					<div className='flex min-w-0 flex-wrap items-center gap-2'>
-						<TextField className='min-w-0 flex-1 sm:min-w-[200px] sm:max-w-xs'>
-							<InputGroup variant='secondary'>
-								<InputGroup.Input placeholder='Search' value={filterValue} onChange={(event) => onSearchChange(event.target.value)} />
+				<div className='flex w-full min-w-0 flex-wrap items-center gap-2 sm:w-auto'>
+					<div className='flex w-full min-w-0 flex-wrap items-center gap-2 sm:w-auto'>
+						<TextField className='w-full min-w-0 basis-full sm:w-auto sm:basis-auto sm:flex-1 sm:min-w-[200px] sm:max-w-xs'>
+							<InputGroup variant='secondary' className='w-full min-w-0'>
+								<InputGroup.Input className='min-w-0' aria-label='Search resources' placeholder='Search' value={filterValue} onChange={(event) => onSearchChange(event.target.value)} />
 								<InputGroup.Suffix>{<IconSearch className='text-muted' width={16} />}</InputGroup.Suffix>
 							</InputGroup>
 						</TextField>
