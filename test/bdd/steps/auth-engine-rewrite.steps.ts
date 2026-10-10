@@ -301,8 +301,9 @@ Then("exactly one product lifecycle notice is captured", async ({ authWorld }) =
 
 Then("the notice states the erasure date and requires normal sign-in for recovery", async ({ authWorld }) => {
 	const message = authWorld.values.get("deletionMessage") as { body: string };
-	expect(message.body).toContain(BDD_PURGE_AT.toISOString());
-	expect(message.body).toContain("sign in normally");
+	expect(message.body).toContain("October 28, 2026 at 12:00 PM UTC");
+	expect(message.body).not.toContain(BDD_PURGE_AT.toISOString());
+	expect(message.body).toContain("sign in and restore your account before that date");
 	expect(message.body).not.toMatch(/invoice|receipt|payment failed|bearer|token|otp|secret/i);
 });
 
