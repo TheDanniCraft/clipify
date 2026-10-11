@@ -6,6 +6,8 @@ export const workflowPermissions = {
 	control_overlay: "overlay:control",
 	enqueue_overlay_clip: "overlay:control",
 	clear_overlay_queue: "overlay:control",
+	get_clip_crawler_status: "creator:read",
+	refresh_clips: "creator:update",
 	search_clips: "creator:read",
 	resolve_clip: "creator:read",
 	preview_playlist_import: "playlist:read",
@@ -43,7 +45,10 @@ export const workflowDescriptions: Record<WorkflowToolName, string> = {
 	control_overlay: "Send play/pause/skip/show/hide/volume/mute/unmute/toggle_mute to ONE overlay. Command acceptance is not proof of playback. Requires Pro; volume is ephemeral for this overlay.",
 	enqueue_overlay_clip: "Add a validated Twitch clip from this creator to the CREATOR-WIDE moderator queue. Reuse retryKey for retries. Requires Pro.",
 	clear_overlay_queue: "Clear this overlay's viewer queue and/or the CREATOR-WIDE moderator queue. This discards queued clips. Requires Pro.",
-	search_clips: "Discover this creator's Twitch clips by absolute dates, category name/ID, title and view/duration filters. Pass explicit timezone for interpreting user dates; bounds are absolute. Bounded searches report incomplete results.",
+	get_clip_crawler_status: "Read this creator's clip cache count, crawler backfill progress, last synchronization timestamps, rate-limit deadline and refresh cooldown. Does not contact Twitch or start a crawl.",
+	refresh_clips: "Request a background refresh of this creator's clip cache using the existing crawler. Preserves cached playback content, restarts backfill, and shares the dashboard cooldown. Returns in_progress without restarting an active crawler. Acceptance does not mean synchronization is complete; check get_clip_crawler_status afterward. Requires creator:update.",
+	search_clips:
+		"Discover this creator's cached Twitch clips by absolute dates, category name/ID, title and view/duration filters. Pass explicit timezone for interpreting user dates; bounds are absolute. Searches the stored collection without Twitch clip requests. Category names use cached game metadata; IDs are exact. Missing category metadata can also make results incomplete. Incomplete crawler backfills are reported explicitly. Restart pagination on CONFLICT if the stored collection changes.",
 	resolve_clip: "Resolve a Twitch clip ID or Twitch clip URL belonging to this creator. For a clip title, use search_clips and disambiguate candidates.",
 	preview_playlist_import: "Preview exact discovered or linked clips before changing the playlist. Shows duplicate references and remaining quota; incomplete discovery cannot produce an all-clips import.",
 	commit_playlist_import: "Add ONLY the exact expiring preview selection after presenting it and obtaining user confirmation. confirmed=true expresses the host's intent, not independent proof of human consent. Reuse retryKey.",
@@ -75,7 +80,8 @@ export const workflowDescriptions: Record<WorkflowToolName, string> = {
 	submit_feedback: "Submit a Clipify bug report or suggestion ONLY when the user requests it and approves the message. Available on Free with existing creator read access. Do not submit automatically on tool failures or include transcripts, credentials or screenshots. Five distinct reports per user per 24 hours on this server process. Reuse retryKey; RAM limits and deduplication reset on restart. A queued receipt is not proof of delivery.",
 };
 export function workflowAnnotations(name: WorkflowToolName) {
+	if (name === "refresh_clips") return { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true };
 	if (name === "submit_feedback") return { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true };
 	const read = name.startsWith("get_") || name.startsWith("list_") || ["search_clips", "resolve_clip", "preview_playlist_import"].includes(name);
-	return { readOnlyHint: read, destructiveHint: !read && !name.startsWith("create_"), idempotentHint: !["control_overlay", "enqueue_overlay_clip", "clear_overlay_queue", "control_stream_session", "unlink_runner"].includes(name), openWorldHint: ["search_clips", "resolve_clip", "preview_playlist_import", "commit_playlist_import", "enqueue_overlay_clip"].includes(name) };
+	return { readOnlyHint: read, destructiveHint: !read && !name.startsWith("create_"), idempotentHint: !["control_overlay", "enqueue_overlay_clip", "clear_overlay_queue", "control_stream_session", "unlink_runner", "refresh_clips"].includes(name), openWorldHint: ["search_clips", "resolve_clip", "preview_playlist_import", "commit_playlist_import", "enqueue_overlay_clip"].includes(name) };
 }

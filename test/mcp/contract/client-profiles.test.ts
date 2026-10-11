@@ -18,10 +18,10 @@ describe.each(["legacy", "auto"])("independent official SDK %s transport", (mode
 		expect(result.measuredCalls.reasons).toMatchObject({ INVALID_INPUT_total: 1, PLAN_LIMIT_REACHED_total: 1 });
 	});
 	test("official SDK reads and mutates while backend Free limits remain enforced", () => {
-		expect(result).toMatchObject({ toolCount: 66, readAllowed: true, createAllowed: true, editAllowed: true, count: 1, limitError: "PLAN_LIMIT_REACHED", stored: { name: "Edited by official SDK", configuration_revision: 2 }, secretFree: true });
+		expect(result).toMatchObject({ toolCount: 68, readAllowed: true, createAllowed: true, editAllowed: true, count: 1, limitError: "PLAN_LIMIT_REACHED", stored: { name: "Edited by official SDK", configuration_revision: 2 }, secretFree: true });
 	});
-	test("native SDK discovers six optional prompts and only focused editing tools", () => {
-		expect(result).toMatchObject({ promptCount: 6, promptWorkflowValid: true, focusedDiscoveryValid: true, obsoleteToolDenied: true });
+	test("native SDK discovers seven optional prompts and only focused editing tools", () => {
+		expect(result).toMatchObject({ promptCount: 7, promptWorkflowValid: true, focusedDiscoveryValid: true, obsoleteToolDenied: true });
 	});
 	test("denial creates no authority and immediate revoke rejects the SDK, old bearer and refresh", () => {
 		expect(result).toMatchObject({ deniedConsent: true, revocationStatus: 200, revokedSdkDenied: true, oldBearerStatus: 401, oldBearerChallenge: true, refreshStatus: 400 });

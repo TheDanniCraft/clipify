@@ -18,7 +18,7 @@ test("expired Runner access denies setup and streaming but preserves cleanup", (
 test("capabilities expose only the current public tools and accurately flag Pro overlay editing", () => {
 	const row = flowProbe("catalogue:workflow:get_capabilities:free");
 	const operations = row.result?.structuredContent.operations;
-	expect(Object.keys(operations)).toHaveLength(66);
+	expect(Object.keys(operations)).toHaveLength(68);
 	for (const name of ["update_overlay", "update_gallery", "get_overlay_embed"]) expect(operations).not.toHaveProperty(name);
 	for (const name of ["update_overlay_theme", "update_overlay_filters", "update_overlay_playback"]) expect(operations[name]).toEqual({ allowed: false, reason: "FEATURE_RESTRICTED" });
 	expect(operations.update_overlay_settings).toEqual({ allowed: true });

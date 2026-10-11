@@ -3,6 +3,8 @@ export {};
 const token = jest.fn(),
 	request = jest.fn();
 jest.mock("@/server/tokens", () => ({ getAccessTokenInternal: (...args: unknown[]) => token(...args) }));
+const cachedClips = jest.fn();
+jest.mock("@/app/actions/twitch", () => ({ getCachedClipsByOwner: (...args: unknown[]) => cachedClips(...args) }));
 let clipValidation: any;
 try {
 	clipValidation = require("@/server/resources/clip-validation");
@@ -12,6 +14,7 @@ describe("trusted provider clip validation", () => {
 	const originalFetch = global.fetch;
 	beforeEach(() => {
 		jest.clearAllMocks();
+		cachedClips.mockResolvedValue([]);
 		global.fetch = request;
 		process.env.TWITCH_CLIENT_ID = "fixture-client";
 		token.mockResolvedValue({ accessToken: "fixture-provider-token" });
@@ -32,6 +35,21 @@ describe("trusted provider clip validation", () => {
 		expect(options.headers.Authorization).toBe("Bearer fixture-provider-token");
 		expect(options.signal).toBeInstanceOf(AbortSignal);
 		expect(options.redirect).toBe("error");
+	});
+	test("cached creator clips resolve without token lookup or Twitch requests", async () => {
+		cachedClips.mockResolvedValue([clip("ClipSecond"), clip("ClipFirst")]);
+		const result = await clipValidation.resolveValidatedPlaylistClips("123", ["ClipFirst", "ClipSecond"]);
+		expect(result.map((item: any) => item.id)).toEqual(["ClipFirst", "ClipSecond"]);
+		expect(JSON.stringify(result)).not.toContain("private-provider-secret");
+		expect(token).not.toHaveBeenCalled();
+		expect(request).not.toHaveBeenCalled();
+	});
+	test("only uncached explicit IDs require provider validation", async () => {
+		cachedClips.mockResolvedValue([clip("ClipFirst")]);
+		request.mockResolvedValue(new Response(JSON.stringify({ data: [clip("ClipSecond")] }), { status: 200 }));
+		const result = await clipValidation.resolveValidatedPlaylistClips("123", ["ClipFirst", "ClipSecond"]);
+		expect(result.map((item: any) => item.id)).toEqual(["ClipFirst", "ClipSecond"]);
+		expect(new URL(request.mock.calls[0][0]).searchParams.getAll("id")).toEqual(["ClipSecond"]);
 	});
 	test("missing creator credentials do not call the provider", async () => {
 		expect(clipValidation?.resolveValidatedPlaylistClips).toEqual(expect.any(Function));

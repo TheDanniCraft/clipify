@@ -38,6 +38,8 @@ export const mcpOperationLabels: Record<string, string> = {
 	control_overlay: "Control live overlay",
 	enqueue_overlay_clip: "Queue a creator clip",
 	clear_overlay_queue: "Clear overlay queue",
+	get_clip_crawler_status: "View clip crawler status",
+	refresh_clips: "Refresh clips",
 	search_clips: "Find creator clips",
 	resolve_clip: "Resolve a Twitch clip",
 	preview_playlist_import: "Preview clip import",
