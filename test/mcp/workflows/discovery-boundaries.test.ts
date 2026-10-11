@@ -1,6 +1,6 @@
 /** @jest-environment node */
 import { flowProbe } from "../../support/mcp/probe";
-test.each(["provider_rate_limit", "provider_malformed", "provider_foreign", "provider_repeated_cursor"])("discovery %s fails without exposing provider payloads or writing", (variant) => {
+test.each(["provider_malformed", "provider_foreign"])("discovery rejects invalid cached collection %s without writing", (variant) => {
 	const row = flowProbe(`catalogue:workflow:search_clips:${variant}`);
 	expect(row.result?.structuredContent.error.code).toBe("SERVICE_UNAVAILABLE");
 	expect(row.writes).toBe(0);

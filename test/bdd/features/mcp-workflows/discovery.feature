@@ -51,13 +51,13 @@ Feature: MCP discovery workflows
       | stale_revision |
 
   @BDD-US2-004 @EC-007
-  Scenario Outline: Provider failures never create an import
+  Scenario Outline: Cached discovery stays available during provider failures
     Given a workflow tool "<tool>" under case "provider_failure"
     When the approved client executes the workflow through MCP
-    Then the workflow result is "denied" and has a safe projection
+    Then the workflow result is "<result>" and has a safe projection
 
     Examples:
-      | tool |
-      | search_clips |
-      | resolve_clip |
-      | preview_playlist_import |
+      | tool | result |
+      | search_clips | success |
+      | resolve_clip | denied |
+      | preview_playlist_import | success |

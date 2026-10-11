@@ -3,7 +3,7 @@
 
 import axios from "axios";
 import { AuthenticatedUser, Game, Overlay, OverlayType, PlaybackMode, RewardStatus, TwitchApiResponse, TwitchAppAccessTokenResponse, TwitchCacheType, TwitchClip, TwitchClipDownloadResponse, TwitchClipGqlData, TwitchClipGqlResponse, TwitchClipResponse, TwitchClipVideoQuality, TwitchReward, TwitchRewardResponse, TwitchUserResponse } from "@types";
-import { deleteTwitchCacheByPrefix, deleteTwitchCacheKeys, getAccessToken, getAccessTokenServer, getOverlayBySecret, getOverlayPublic, getPlaylistRuntimeClipsForOwnerServer, getTwitchCache, getTwitchCacheBatch, getTwitchCacheByPrefixEntries, getTwitchCacheEntry, getTwitchCacheStale, getTwitchCacheStaleBatch, setTwitchCache, setTwitchCacheBatch } from "@actions/database";
+import { getAccessToken, getAccessTokenServer, getOverlayBySecret, getOverlayPublic, getPlaylistRuntimeClipsForOwnerServer, getTwitchCache, getTwitchCacheBatch, getTwitchCacheByPrefixEntries, getTwitchCacheEntry, getTwitchCacheStale, getTwitchCacheStaleBatch, setTwitchCache, setTwitchCacheBatch } from "@actions/database";
 import { type TwitchRateLimitLog, incrementClipFetchFallback, incrementClipFetchRateLimited, incrementClipFetchV1, incrementClipFetchV2, recordTwitchRateLimit } from "@lib/instanceHealth";
 import { promises as fs } from "fs";
 import path from "path";
@@ -52,10 +52,6 @@ type CachedClipValue = {
 	lastValidatedAt?: string;
 };
 
-type ClipForceRefreshState = {
-	lastForcedAt?: string;
-};
-
 type VideoQualityWithNumeric = TwitchClipVideoQuality & { numericQuality: number };
 
 const CLIP_SYNC_INCREMENTAL_INTERVAL_MS = 60 * 1000;
@@ -69,10 +65,8 @@ function parsePositiveInt(value: string | undefined, fallback: number) {
 	return Math.floor(parsed);
 }
 const CLIP_VALIDATION_STALE_MS = Math.max(5 * 60 * 1000, parsePositiveInt(process.env.CLIP_VALIDATION_STALE_MS, 6 * 60 * 60 * 1000));
-const CLIP_FORCE_REFRESH_COOLDOWN_MS = Math.max(60 * 60 * 1000, parsePositiveInt(process.env.CLIP_FORCE_REFRESH_COOLDOWN_MS, 6 * 60 * 60 * 1000));
 const CLIP_CACHE_PREFIX = (ownerId: string) => `clip:${ownerId}:`;
 const CLIP_SYNC_STATE_KEY = (ownerId: string) => `clip-sync:${ownerId}`;
-const CLIP_FORCE_REFRESH_KEY = (ownerId: string) => `clip-sync-force:${ownerId}`;
 const CLIP_DOWNLOAD_SCOPES = new Set(["channel:manage:clips", "editor:manage:clips"]);
 
 function toClipCacheKey(ownerId: string, clipId: string) {
@@ -423,16 +417,6 @@ async function getClipSyncState(ownerId: string): Promise<ClipSyncState> {
 
 async function setClipSyncState(ownerId: string, state: ClipSyncState) {
 	await setTwitchCache(TwitchCacheType.Clip, CLIP_SYNC_STATE_KEY(ownerId), state);
-}
-
-async function getClipForceRefreshState(ownerId: string): Promise<ClipForceRefreshState> {
-	const state = await getTwitchCache<ClipForceRefreshState>(TwitchCacheType.Clip, CLIP_FORCE_REFRESH_KEY(ownerId));
-	/* istanbul ignore next */
-	return state ?? {};
-}
-
-async function setClipForceRefreshState(ownerId: string, state: ClipForceRefreshState) {
-	await setTwitchCache(TwitchCacheType.Clip, CLIP_FORCE_REFRESH_KEY(ownerId), state);
 }
 
 /* istanbul ignore next */
@@ -1334,57 +1318,14 @@ export async function getCreatorSyncProgress(ownerId: string) {
 export async function getOwnClipForceRefreshStatus() {
 	const user = await validateAuth(false);
 	if (!user) return null;
-
-	const [refreshState, progressState] = await Promise.all([getClipForceRefreshState(user.id), getCreatorSyncProgress(user.id)]);
-
-	const lastForcedAt = refreshState.lastForcedAt ?? null;
-	const lastForcedTs = lastForcedAt ? new Date(lastForcedAt).getTime() : 0;
-	const now = Date.now();
-	const nextAllowedTs = lastForcedTs > 0 ? lastForcedTs + CLIP_FORCE_REFRESH_COOLDOWN_MS : now;
-
-	return {
-		lastForcedAt,
-		cooldownMs: CLIP_FORCE_REFRESH_COOLDOWN_MS,
-		nextAllowedAt: new Date(nextAllowedTs).toISOString(),
-		remainingMs: Math.max(0, nextAllowedTs - now),
-		canRefresh: now >= nextAllowedTs,
-		syncProgress: progressState.syncProgress,
-		isSyncComplete: progressState.isSyncComplete,
-		backfillWindowEnd: progressState.backfillWindowEnd,
-	};
+	const { clipCrawlerStatus } = await import("@/server/clip-cache");
+	return clipCrawlerStatus(user.id);
 }
-
-/* istanbul ignore next */
 export async function forceRefreshOwnClipCache(ensurePackSize = 0) {
 	const user = await validateAuth(false);
 	if (!user) throw new Error("Not authenticated");
-
-	const status = await getOwnClipForceRefreshStatus();
-	if (!status) throw new Error("Not authenticated");
-	if (!status.canRefresh) {
-		return {
-			ok: false as const,
-			reason: "cooldown",
-			nextAllowedAt: status.nextAllowedAt,
-			remainingMs: status.remainingMs,
-		};
-	}
-
-	await deleteTwitchCacheByPrefix(TwitchCacheType.Clip, CLIP_CACHE_PREFIX(user.id));
-	await deleteTwitchCacheKeys(TwitchCacheType.Clip, [CLIP_SYNC_STATE_KEY(user.id)]);
-	const nowIso = new Date().toISOString();
-	await setClipForceRefreshState(user.id, { lastForcedAt: nowIso });
-	void syncOwnerClipCache(user.id, ensurePackSize).catch((error) => {
-		logTwitchError("forceRefreshOwnClipCache/syncOwnerClipCache", error);
-	});
-
-	return {
-		ok: true as const,
-		lastForcedAt: nowIso,
-		cooldownMs: CLIP_FORCE_REFRESH_COOLDOWN_MS,
-		nextAllowedAt: new Date(Date.now() + CLIP_FORCE_REFRESH_COOLDOWN_MS).toISOString(),
-		remainingMs: CLIP_FORCE_REFRESH_COOLDOWN_MS,
-	};
+	const { refreshCreatorClips } = await import("@/server/clip-cache");
+	return refreshCreatorClips(user.id, ensurePackSize);
 }
 
 export async function getTwitchClips(overlay: Overlay, type?: OverlayType, skipFilter?: boolean): Promise<TwitchClip[]> {

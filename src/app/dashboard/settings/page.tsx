@@ -264,7 +264,7 @@ export default function SettingsPage() {
 			const result = await forceRefreshOwnClipCache();
 			if (!result.ok) {
 				addToast({
-					title: "Refresh cooldown active",
+					title: result.reason === "in_progress" ? "Clip refresh is already running" : "Refresh cooldown active",
 					description: `Try again in ${formatDurationMs(result.remainingMs)}.`,
 					color: "warning",
 				});

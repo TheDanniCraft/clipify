@@ -29,7 +29,7 @@ jest.mock("@actions/database", () => ({
 	getPlaylistRuntimeClipsForOwnerServer: jest.fn(),
 	getTwitchCache: (...args: unknown[]) => getTwitchCache(...args),
 	getTwitchCacheBatch: (...args: unknown[]) => getTwitchCacheBatch(...args),
-	getTwitchCacheByPrefixEntries: jest.fn(),
+	getTwitchCacheByPrefixEntries: jest.fn(async () => []),
 	getTwitchCacheEntry: (...args: unknown[]) => getTwitchCacheEntry(...args),
 	getTwitchCacheStale: (...args: unknown[]) => getTwitchCacheStale(...args),
 	getTwitchCacheStaleBatch: (...args: unknown[]) => getTwitchCacheStaleBatch(...args),
@@ -660,11 +660,12 @@ describe("actions/twitch external API and failure handling", () => {
 		await expect(forceRefreshOwnClipCache(25)).rejects.toThrow("Not authenticated");
 	});
 
-	it("throws force-refresh when status lookup returns null after initial auth", async () => {
-		validateAuth.mockResolvedValueOnce({ id: "owner-1" }).mockResolvedValueOnce(null);
-
+	it("does not accept a refresh when its database lock cannot be acquired", async () => {
+		validateAuth.mockResolvedValue({ id: "owner-1" });
+		const { dbPool } = await import("@/db/client");
+		jest.mocked(dbPool.connect).mockRejectedValueOnce(new Error("db unavailable") as never);
 		const { forceRefreshOwnClipCache } = await loadTwitch();
-		await expect(forceRefreshOwnClipCache(25)).rejects.toThrow("Not authenticated");
+		await expect(forceRefreshOwnClipCache(25)).rejects.toThrow("db unavailable");
 	});
 
 	it("returns no clips for Queue overlays without hitting sync", async () => {

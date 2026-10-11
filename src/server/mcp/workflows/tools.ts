@@ -1,3 +1,4 @@
+import { getClipCrawlerStatus, refreshClips } from "@/server/resources/clip-cache";
 import { getRunnerSetup, listRunnersForPrincipal, getRunnerForPrincipal, createRunnerForPrincipal, updateRunnerForPrincipal, deleteRunnerForPrincipal, unlinkRunnerForPrincipal, listStreamSessionsForPrincipal, getStreamSessionForPrincipal, configureStreamSession, controlStreamSession, getRunnerSnapshot } from "@/server/resources/runners";
 import { getCreatorPageSettings, updateCreatorPageSettings, publishCreatorPage } from "@/server/resources/creator-pages";
 import { listGalleries, getGalleryForPrincipal, createGalleryForPrincipal, deleteGalleryForPrincipal, publishGalleryForPrincipal, getGalleryEmbed, getGalleryPreviewForPrincipal, getPlayerEmbed } from "@/server/resources/galleries";
@@ -8,6 +9,8 @@ import { workflowInputSchemas, type WorkflowToolName } from "./schemas";
 import { workflowDescriptions } from "./catalogue";
 import { submitFeedback } from "@/server/resources/feedback";
 const handlers: Partial<Record<WorkflowToolName, (principal: TrustedCreatorPrincipal, input: unknown) => Promise<Record<string, unknown>>>> = {
+	get_clip_crawler_status: getClipCrawlerStatus,
+	refresh_clips: refreshClips,
 	get_runner_snapshot: getRunnerSnapshot,
 	control_stream_session: controlStreamSession,
 	configure_stream_session: configureStreamSession,

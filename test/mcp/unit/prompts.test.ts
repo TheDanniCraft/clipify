@@ -3,8 +3,8 @@ import { registerMcpPrompts, MCP_INSTRUCTIONS, MCP_EXAMPLE_PROMPTS } from "@/ser
 test("discoverable prompts describe focused workflows without performing operations", () => {
 	const prompts = new Map<string, { config: any; callback: any }>();
 	registerMcpPrompts({ registerPrompt: (name: string, config: any, callback: any) => prompts.set(name, { config, callback }) } as any);
-	expect(prompts.size).toBe(6);
-	expect(MCP_EXAMPLE_PROMPTS).toHaveLength(6);
+	expect(prompts.size).toBe(7);
+	expect(MCP_EXAMPLE_PROMPTS).toHaveLength(7);
 	for (const { config, callback } of prompts.values()) {
 		expect(config.description.length).toBeGreaterThan(30);
 		const messages = callback().messages;

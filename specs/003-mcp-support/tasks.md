@@ -1257,3 +1257,10 @@ Final verification: CI run 37808034227 is entirely Green on code commit 66e0ed7.
 ## Approved merge-readiness disposition — 2026-10-08
 
 The user explicitly approved merge-readiness-review.md. Tasks T026, T243, T270, T275, T280, T295, T297, T300, T305, T310, T315 and T320 close by accepted historical exception; T249 closes with retained passing gates and that approved disposition. **585/586 tasks are closed; zero outstanding implementation or historical merge blockers.** T577 stays unchecked as an approved nonblocking production deployment follow-up. Real ingestion is not claimed. The PR is no longer draft. CodeQL alert #9 is fixed on ecae530 and its review thread is resolved. GitHub still requires final-head CI to finish successfully. Earlier checkpoint statements describe their recorded time and are superseded by this disposition.
+
+## Clip-cache amendment — 2026-10-11
+
+- [x] T587 Replace provider-paged MCP discovery with the existing cached collection; verify global filtering, incomplete backfill/category metadata, 1,200 clips and stale pagination.
+- [x] T588 Reuse cached explicit clips for resolution and playlist additions while preserving validation of uncached IDs.
+- [x] T589 Add creator-authorized crawler status and refresh tools, shared dashboard cooldown/locks, atomic persistence and background request independence; preserve stored playback clips.
+- [x] T590 Update agent descriptions, example prompts, activity labels and catalogue contracts; run focused workflow, SDK, dashboard, request lifecycle, lint, formatting and type checks. Retain results in clip-cache-workflows.md; do not claim live-host acceptance or production deployment.

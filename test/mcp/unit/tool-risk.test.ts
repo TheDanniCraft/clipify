@@ -5,6 +5,8 @@ try {
 	risk = require("@/server/mcp/risk");
 } catch {}
 const workflowRisk = {
+	get_clip_crawler_status: "read",
+	refresh_clips: "refresh",
 	get_overlay_runtime: "read",
 	get_overlay_queues: "read",
 	control_overlay: "control",
@@ -42,6 +44,7 @@ const workflowRisk = {
 	submit_feedback: "externalFeedback",
 } as const;
 const expectedHints = {
+	refresh: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
 	externalFeedback: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true },
 	read: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
 	externalRead: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
@@ -62,7 +65,7 @@ describe("TDD-US2-039 truthful tool risk annotations", () => {
 		expect(risk.toolAnnotations(name)).toEqual(expectedHints[profile]);
 	});
 	test("risk table covers workflows, focused tools and internal compatibility schemas", () => {
-		expect(Object.keys(workflowRisk)).toHaveLength(35);
+		expect(Object.keys(workflowRisk)).toHaveLength(37);
 		expect(Object.keys(toolInputSchemas).filter((name) => !(name in workflowRisk))).toHaveLength(34);
 		for (const name of Object.keys(workflowRisk)) expect(toolInputSchemas).toHaveProperty(name);
 	});

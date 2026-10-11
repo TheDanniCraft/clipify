@@ -1,5 +1,11 @@
 /** Static suggestions contain no account data or credentials and never execute tools. */
 export const MCP_EXAMPLE_PROMPTS = [
+	{
+		name: "refresh-clips",
+		title: "Refresh my Twitch clips",
+		example: "Refresh my clips and tell me how far the crawler has progressed.",
+		workflow: "Read get_clip_crawler_status for the selected creator. Explain the current cached count, backfill completeness and cooldown. If requested and permitted, call refresh_clips; explain that acceptance means background work was requested, not that it has finished. Check get_clip_crawler_status afterward and use search_clips to inspect the cached collection.",
+	},
 	{ name: "style-overlay", title: "Style an overlay", example: "Give my overlay a purple theme with rounded corners and a visible progress bar.", workflow: "Use list_overlays to select the intended overlay, get_overlay_theme to inspect Theme Studio settings, then update_overlay_theme with only requested fields and the latest expectedRevision. Preserve its filters, playback and name." },
 	{
 		name: "filter-overlay",

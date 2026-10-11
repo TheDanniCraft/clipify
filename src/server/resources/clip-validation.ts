@@ -22,15 +22,25 @@ export const providerClipSchema = z.object({
 	is_featured: z.boolean().optional(),
 });
 
-/** Resolve server-owned credentials and validate provider data before acquiring mutation locks. */
+/** Reuse validated creator cache entries; resolve only uncached explicit IDs through Twitch. */
 export async function resolveValidatedPlaylistClips(creatorId: string, clipIds: string[]) {
+	const { getCachedClipsByOwner } = await import("@/app/actions/twitch");
+	const requestedIds = new Set(clipIds);
+	const resolved = new Map<string, z.infer<typeof providerClipSchema>>();
+	for (const clip of await getCachedClipsByOwner(creatorId)) {
+		if (!requestedIds.has(clip.id)) continue;
+		const parsed = providerClipSchema.safeParse(clip);
+		if (!parsed.success || parsed.data.broadcaster_id !== creatorId) throw new Error("INVALID_INPUT");
+		resolved.set(parsed.data.id, parsed.data);
+	}
+	const missingIds = clipIds.filter((id) => !resolved.has(id));
+	if (!missingIds.length) return clipIds.map((id) => resolved.get(id)!);
 	const token = await getAccessTokenInternal(creatorId);
 	const clientId = process.env.TWITCH_CLIENT_ID;
 	if (!token || !clientId) throw new Error("SERVICE_UNAVAILABLE");
-	const resolved = new Map<string, z.infer<typeof providerClipSchema>>();
 	const signal = AbortSignal.timeout(5000);
-	for (let offset = 0; offset < clipIds.length; offset += 100) {
-		const requested = clipIds.slice(offset, offset + 100);
+	for (let offset = 0; offset < missingIds.length; offset += 100) {
+		const requested = missingIds.slice(offset, offset + 100);
 		const url = new URL("https://api.twitch.tv/helix/clips");
 		for (const id of requested) url.searchParams.append("id", id);
 		let payload: unknown;

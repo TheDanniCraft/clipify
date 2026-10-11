@@ -5,7 +5,7 @@ describe("TDD-US2-001 bounded creator clip search", () => {
 		const row = flowProbe("catalogue:workflow:search_clips:success");
 		expect(row.result?.structuredContent).toMatchObject({ creatorId: "fixture-creator", complete: true, items: [{ id: "MinecraftClip", title: "Minecraft adventure", url: "https://clips.twitch.tv/MinecraftClip" }] });
 		expect(row.safe).toBe(true);
-		expect(row.providerCalls).toBe(2);
+		expect(row.providerCalls).toBe(0);
 	});
 });
 describe("TDD-US2-002 Twitch clip link resolution", () => {

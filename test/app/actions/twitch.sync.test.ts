@@ -426,6 +426,17 @@ describe("actions/twitch syncOwnerClipCache", () => {
 		expect(deleteTwitchCacheKeys).not.toHaveBeenCalled();
 	});
 
+	it("does not reset state while the crawler holds its owner lock", async () => {
+		validateAuth.mockResolvedValue({ id: "owner-1" } as never);
+		getTwitchCache.mockResolvedValue({});
+		connect.mockResolvedValue(createLockClient(false));
+		const { forceRefreshOwnClipCache } = await import("@/app/actions/twitch");
+		expect(await forceRefreshOwnClipCache()).toMatchObject({ ok: false, reason: "in_progress" });
+		expect(deleteTwitchCacheKeys).not.toHaveBeenCalled();
+		expect(deleteTwitchCacheByPrefix).not.toHaveBeenCalled();
+		expect(setTwitchCache).not.toHaveBeenCalled();
+	});
+
 	it("forces clip cache refresh and records cooldown timestamp", async () => {
 		validateAuth.mockResolvedValue({ id: "owner-1" } as never);
 		getTwitchCache.mockImplementation((cacheType: TwitchCacheType, key: string) => {
@@ -437,7 +448,8 @@ describe("actions/twitch syncOwnerClipCache", () => {
 			}
 			return Promise.resolve({});
 		});
-		connect.mockResolvedValue(createLockClient(false));
+		const refreshLock = createLockClient(true);
+		connect.mockResolvedValueOnce(refreshLock).mockResolvedValueOnce(createLockClient(false));
 
 		const { forceRefreshOwnClipCache } = await import("@/app/actions/twitch");
 		const result = await forceRefreshOwnClipCache(80);
@@ -449,22 +461,35 @@ describe("actions/twitch syncOwnerClipCache", () => {
 				cooldownMs: expect.any(Number),
 			}),
 		);
-		expect(deleteTwitchCacheByPrefix).toHaveBeenCalledWith("clip", "clip:owner-1:");
-		expect(deleteTwitchCacheKeys).toHaveBeenCalledWith("clip", ["clip-sync:owner-1"]);
-		expect(setTwitchCache).toHaveBeenCalledWith(
-			"clip",
-			"clip-sync-force:owner-1",
-			expect.objectContaining({
-				lastForcedAt: expect.any(String),
-			}),
-		);
+		expect(deleteTwitchCacheByPrefix).not.toHaveBeenCalled();
+		expect(deleteTwitchCacheKeys).not.toHaveBeenCalled();
+		expect(refreshLock.query).toHaveBeenCalledWith(expect.stringContaining('DELETE FROM "twitchCache"'), ["clip-sync:owner-1"]);
+		expect(refreshLock.query).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO "twitchCache"'), ["clip-sync-force:owner-1", expect.stringContaining("lastForcedAt")]);
+		expect(refreshLock.query).toHaveBeenCalledWith("COMMIT");
+	});
+
+	it("rejects acceptance and rolls back if cooldown persistence fails", async () => {
+		validateAuth.mockResolvedValue({ id: "owner-1" } as never);
+		getTwitchCache.mockResolvedValue({});
+		const client = createLockClient(true);
+		const query = client.query.getMockImplementation()!;
+		client.query.mockImplementation(async (sql: string, ...args: unknown[]) => {
+			if (sql.startsWith('INSERT INTO "twitchCache"')) throw new Error("cache write failed");
+			return query(sql, ...args);
+		});
+		connect.mockResolvedValue(client);
+		const { forceRefreshOwnClipCache } = await import("@/app/actions/twitch");
+		await expect(forceRefreshOwnClipCache()).rejects.toThrow("cache write failed");
+		expect(client.query).toHaveBeenCalledWith("ROLLBACK");
+		expect(client.query).not.toHaveBeenCalledWith("COMMIT");
+		expect(connect).toHaveBeenCalledTimes(1);
 	});
 
 	it("returns success on force refresh even when background sync fails", async () => {
 		const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => undefined);
 		validateAuth.mockResolvedValue({ id: "owner-1" } as never);
 		getTwitchCache.mockResolvedValue({});
-		connect.mockRejectedValue(new Error("db unavailable"));
+		connect.mockResolvedValueOnce(createLockClient(true)).mockRejectedValueOnce(new Error("db unavailable"));
 
 		const { forceRefreshOwnClipCache } = await import("@/app/actions/twitch");
 		const result = await forceRefreshOwnClipCache(30);

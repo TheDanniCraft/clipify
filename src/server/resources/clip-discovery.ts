@@ -1,4 +1,5 @@
 import "server-only";
+import { createHash } from "node:crypto";
 import type { z } from "zod";
 import type { discoveryFilters } from "@/server/mcp/workflows/schemas";
 export type ClipFilters = Partial<z.infer<typeof discoveryFilters>>;
@@ -30,60 +31,27 @@ export function publicClip(clip: schema.infer<typeof providerClipSchema>) {
 	}
 	return { id: clip.id, title: clip.title, url: `https://clips.twitch.tv/${encodeURIComponent(clip.id)}`, categoryId: clip.game_id ?? null, createdAt: clip.created_at, views: clip.view_count ?? 0, duration: clip.duration, thumbnailUrl };
 }
-export async function fetchClipDiscovery(creatorId: string, filters: ClipFilters, after?: string) {
-	const { getAccessTokenInternal } = await import("@/server/tokens");
-	const token = await getAccessTokenInternal(creatorId);
-	const clientId = process.env.TWITCH_CLIENT_ID;
-	if (!token || !clientId) throw new Error("SERVICE_UNAVAILABLE");
-	const signal = AbortSignal.timeout(5000);
-	const request = async (url: URL) => {
-		try {
-			const response = await fetch(url, { headers: { Authorization: `Bearer ${token.accessToken}`, "Client-Id": clientId }, signal, redirect: "error" });
-			if (!response.ok) throw new Error();
-			return await response.json();
-		} catch {
-			throw new Error("SERVICE_UNAVAILABLE");
+export async function fetchClipDiscovery(creatorId: string, filters: ClipFilters) {
+	const { getCachedClipsByOwner, getCreatorSyncProgress } = await import("@/app/actions/twitch");
+	const { getTwitchCacheBatch } = await import("@/app/actions/database");
+	const { TwitchCacheType } = await import("@/app/lib/types");
+	try {
+		const [cached, progress] = await Promise.all([getCachedClipsByOwner(creatorId), getCreatorSyncProgress(creatorId)]);
+		const parsed = schema.array(providerClipSchema).safeParse(cached);
+		if (!parsed.success || parsed.data.some((clip) => clip.broadcaster_id !== creatorId)) throw new Error("SERVICE_UNAVAILABLE");
+		const clips = Array.from(new Map(parsed.data.map((clip) => [clip.id, clip])).values());
+		const snapshot = createHash("sha256")
+			.update(JSON.stringify([...clips].sort((a, b) => a.id.localeCompare(b.id))))
+			.digest("hex");
+		let categoryId = filters.category;
+		if (categoryId && !/^\d+$/.test(categoryId)) {
+			const categoryIds = [...new Set(clips.map((clip) => clip.game_id).filter((id): id is string => Boolean(id)))];
+			const games = await getTwitchCacheBatch<{ id: string; name: string }>(TwitchCacheType.Game, categoryIds);
+			categoryId = games.find((game) => game?.name?.toLocaleLowerCase("en") === filters.category!.toLocaleLowerCase("en"))?.id;
+			if (!categoryId) return { clips: [], snapshot, providerAfter: undefined, scanned: clips.length, complete: progress.isSyncComplete && categoryIds.every((id) => games.some((game) => game?.id === id)) };
 		}
-	};
-	async function resolveDiscoveryCategory() {
-		let categoryId: string | undefined;
-		if (filters.category) {
-			if (/^\d+$/.test(filters.category)) categoryId = filters.category;
-			else {
-				const url = new URL("https://api.twitch.tv/helix/games");
-				url.searchParams.set("name", filters.category);
-				const result = schema.object({ data: schema.array(schema.object({ id: schema.string().min(1).max(200), name: schema.string().max(200) })).max(100) }).safeParse(await request(url));
-				if (!result.success) throw new Error("SERVICE_UNAVAILABLE");
-				categoryId = result.data.data.find((game) => game.name.toLocaleLowerCase("en") === filters.category!.toLocaleLowerCase("en"))?.id;
-			}
-		}
-		return categoryId;
+		return { clips: filterDiscoveredClips(clips, filters, categoryId), snapshot, providerAfter: undefined, scanned: clips.length, complete: progress.isSyncComplete };
+	} catch {
+		throw new Error("SERVICE_UNAVAILABLE");
 	}
-	const categoryId = await resolveDiscoveryCategory();
-	if (filters.category && !categoryId) return { clips: [], providerAfter: undefined, scanned: 0, complete: true };
-	const clips: schema.infer<typeof providerClipSchema>[] = [];
-	const seen = new Set<string>();
-	let cursor = after;
-	const seenCursors = new Set<string>();
-	if (after) seenCursors.add(after);
-	for (let page = 0; page < 5; page++) {
-		const url = new URL("https://api.twitch.tv/helix/clips");
-		url.searchParams.set("broadcaster_id", creatorId);
-		url.searchParams.set("first", "100");
-		if (cursor) url.searchParams.set("after", cursor);
-		if (filters.startedAt) url.searchParams.set("started_at", filters.startedAt);
-		if (filters.endedAt) url.searchParams.set("ended_at", filters.endedAt);
-		const result = schema.object({ data: schema.array(providerClipSchema).max(100), pagination: schema.object({ cursor: schema.string().min(1).max(128).optional() }).optional() }).safeParse(await request(url));
-		if (!result.success || result.data.data.some((clip) => clip.broadcaster_id !== creatorId || seen.has(clip.id))) throw new Error("SERVICE_UNAVAILABLE");
-		for (const clip of result.data.data) {
-			if (seen.has(clip.id)) throw new Error("SERVICE_UNAVAILABLE");
-			seen.add(clip.id);
-			clips.push(clip);
-		}
-		cursor = result.data.pagination?.cursor;
-		if (!cursor) break;
-		if (seenCursors.has(cursor)) throw new Error("SERVICE_UNAVAILABLE");
-		seenCursors.add(cursor);
-	}
-	return { clips: filterDiscoveredClips(clips, filters, categoryId), providerAfter: cursor, scanned: clips.length, complete: !cursor };
 }

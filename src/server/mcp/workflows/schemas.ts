@@ -100,6 +100,8 @@ export const workflowInputSchemas = {
 		.refine((v) => (v.command === "volume" ? v.volume !== undefined : v.volume === undefined), "Volume is only valid for the volume command"),
 	enqueue_overlay_clip: z.object({ ...overlay, clip: z.string().trim().min(1).max(2048), retryKey: z.string().min(1).max(128) }).strict(),
 	clear_overlay_queue: z.object({ ...overlay, queue: z.enum(["moderator", "viewer", "all"]) }).strict(),
+	get_clip_crawler_status: z.object(target).strict(),
+	refresh_clips: z.object(target).strict(),
 	search_clips: z.object({ ...target, filters: discoveryFilters.default(() => discoveryFilters.parse({})), ...page }).strict(),
 	resolve_clip: z.object({ ...target, reference: z.string().trim().min(1).max(2048) }).strict(),
 	preview_playlist_import: z

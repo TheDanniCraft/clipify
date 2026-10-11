@@ -1,6 +1,8 @@
 /** Approved public catalogue, shared by contract and BDD checks; independent of production registration. */
 export const CORE_TOOL_NAMES = ["list_creators", "get_capabilities", "list_overlays", "get_overlay", "create_overlay", "update_overlay_settings", "delete_overlay", "list_playlists", "get_playlist", "create_playlist", "update_playlist", "delete_playlist", "add_playlist_items", "remove_playlist_items", "reorder_playlist_items"];
 const workflowNames = [
+	"get_clip_crawler_status",
+	"refresh_clips",
 	"get_overlay_runtime",
 	"get_overlay_queues",
 	"control_overlay",
