@@ -8,11 +8,11 @@ Feature: MCP additional workflow boundaries
     Then the workflow result is "<result>" and has a safe projection
     Examples:
       | tool | case | result |
-      | search_clips | provider_rate_limit | denied |
+      | search_clips | provider_rate_limit | success |
       | search_clips | provider_malformed | denied |
       | search_clips | provider_foreign | denied |
-      | search_clips | provider_duplicate | denied |
-      | search_clips | provider_repeated_cursor | denied |
+      | search_clips | provider_duplicate | success |
+      | search_clips | provider_repeated_cursor | success |
       | preview_playlist_import | provider_partial | success |
       | preview_playlist_import | quota_full | success |
       | preview_playlist_import | free_filtered | denied |

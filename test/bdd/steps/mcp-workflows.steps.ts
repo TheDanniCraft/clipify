@@ -143,6 +143,7 @@ Then("the workflow result is {string} and has a safe projection", async ({ mcpWo
 		}
 		assertRunnerAndPaginationVariants();
 		function assertToolSpecificProjection() {
+			if (["search_clips", "preview_playlist_import"].includes(tool ?? "") && ["provider_failure", "provider_rate_limit", "provider_duplicate", "provider_repeated_cursor"].includes(variant ?? "")) expect(row.providerCalls).toBe(0);
 			expect(expectedShapes[tool ?? ""]).toBeDefined();
 			expect(value).toMatchObject(expectedShapes[tool ?? ""] as Record<string, unknown>);
 			if (tool === "control_overlay") expect(row.commands.filter((item: any) => item.type === "command")).toHaveLength(variant === "offline" ? 0 : 1);
