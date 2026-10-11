@@ -32,7 +32,7 @@ export async function workflowOperation<T extends WorkflowToolName>(principal: T
 				.for("share");
 		}
 		const entitlements = await resolveUserEntitlements(authority.creator, tx);
-		const remote = ["get_overlay_runtime", "get_overlay_queues", "control_overlay", "enqueue_overlay_clip", "clear_overlay_queue"].includes(tool);
+		const remote = ["get_overlay_runtime", "get_overlay_queues", "control_overlay", "play_overlay", "pause_overlay", "skip_overlay", "hide_overlay", "show_overlay", "set_overlay_volume", "mute_overlay", "unmute_overlay", "toggle_overlay_mute", "enqueue_overlay_clip", "clear_overlay_queue"].includes(tool);
 		if (remote && !entitlements.proAccess) throw new Error("FEATURE_RESTRICTED");
 		if (["get_runner_setup", "create_runner", "configure_stream_session", "control_stream_session"].includes(tool) && !entitlements.runnerAccess) throw new Error("FEATURE_RESTRICTED");
 		const context: WorkflowContext = { tx, principal, creatorId: input.creatorId, pro: entitlements.proAccess, runnerAccess: entitlements.runnerAccess, assertCurrent: authority.assertAuthorityCurrent };
