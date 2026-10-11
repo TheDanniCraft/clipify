@@ -79,7 +79,7 @@ export function getOverlayQueues(principal: TrustedCreatorPrincipal, input: unkn
 }
 
 import { sendMessage } from "@actions/websocket";
-export function controlOverlay(principal: TrustedCreatorPrincipal, input: unknown, client?: DatabaseClient) {
+export function controlOverlay(principal: TrustedCreatorPrincipal, input: unknown, client?: DatabaseClient, auditTool: ToolName = "control_overlay") {
 	return workflowOperation(
 		principal,
 		"control_overlay",
@@ -100,6 +100,7 @@ export function controlOverlay(principal: TrustedCreatorPrincipal, input: unknow
 			return { ...response, status: "sent", observedState: runtime };
 		},
 		client,
+		auditTool,
 	);
 }
 
@@ -150,4 +151,13 @@ export function clearOverlayQueue(principal: TrustedCreatorPrincipal, input: unk
 		},
 		client,
 	);
+}
+
+import type { ToolName } from "@/server/mcp/schemas";
+import { workflowInputSchemas } from "@/server/mcp/workflows/schemas";
+const overlayCommands = { play_overlay: "play", pause_overlay: "pause", skip_overlay: "skip", hide_overlay: "hide", show_overlay: "show", set_overlay_volume: "volume", mute_overlay: "mute", unmute_overlay: "unmute", toggle_overlay_mute: "toggle_mute" } as const;
+export function controlOverlayAction(principal: TrustedCreatorPrincipal, tool: keyof typeof overlayCommands, input: unknown, client?: DatabaseClient) {
+	const parsed = workflowInputSchemas[tool].safeParse(input);
+	if (!parsed.success) throw new Error("INVALID_INPUT");
+	return controlOverlay(principal, { ...parsed.data, command: overlayCommands[tool] }, client, tool);
 }

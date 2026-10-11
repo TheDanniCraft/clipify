@@ -144,7 +144,7 @@ export const toolInputSchemas = {
 };
 export type ToolName = keyof typeof toolInputSchemas;
 /** Broad schemas serve browser/backend callers, never public MCP aliases. */
-const internalToolNames = new Set(["update_overlay", "update_gallery", "get_overlay_embed"]);
+const internalToolNames = new Set(["update_overlay", "update_gallery", "get_overlay_embed", "control_overlay"]);
 export const publicToolNames = (Object.keys(toolInputSchemas) as ToolName[]).filter((name) => !internalToolNames.has(name));
 const safeOverlay = z.object({ ...overlayFields, id: resourceId, ownerId: creatorId, name, status: z.enum(StatusOptions), type: z.enum(OverlayType), playlistId: resourceId.nullable(), configurationRevision: expectedRevision });
 /** Explicit schema projection prevents credentials and later ORM fields escaping. */

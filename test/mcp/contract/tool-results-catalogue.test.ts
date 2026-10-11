@@ -7,7 +7,7 @@ describe("TDD-US2-022 every public tool result excludes seeded credentials", () 
 	beforeAll(() => {
 		result = flowProbe("catalogue:tool-results");
 	});
-	test("actual discovery exposes exactly the 68 supported tool definitions without seeded credentials", () => {
+	test("actual discovery exposes exactly the 76 supported tool definitions without seeded credentials", () => {
 		expect(result.discovery.status).toBe(200);
 		expect(result.discovery.secretFree).toBe(true);
 

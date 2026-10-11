@@ -4,7 +4,7 @@ import { getCreatorPageSettings, updateCreatorPageSettings, publishCreatorPage }
 import { listGalleries, getGalleryForPrincipal, createGalleryForPrincipal, deleteGalleryForPrincipal, publishGalleryForPrincipal, getGalleryEmbed, getGalleryPreviewForPrincipal, getPlayerEmbed } from "@/server/resources/galleries";
 import { searchClips, resolveClip, previewPlaylistImport, commitPlaylistImport } from "@/server/resources/discovery";
 import type { TrustedCreatorPrincipal } from "@/auth/authorize-operation";
-import { getOverlayRuntime, getOverlayQueues, controlOverlay, enqueueOverlayClip, clearOverlayQueue } from "@/server/resources/remote";
+import { getOverlayRuntime, getOverlayQueues, controlOverlayAction, enqueueOverlayClip, clearOverlayQueue } from "@/server/resources/remote";
 import { workflowInputSchemas, type WorkflowToolName } from "./schemas";
 import { workflowDescriptions } from "./catalogue";
 import { submitFeedback } from "@/server/resources/feedback";
@@ -40,7 +40,16 @@ const handlers: Partial<Record<WorkflowToolName, (principal: TrustedCreatorPrinc
 	commit_playlist_import: commitPlaylistImport,
 	get_overlay_runtime: getOverlayRuntime,
 	get_overlay_queues: getOverlayQueues,
-	control_overlay: controlOverlay,
+	play_overlay: (principal, input) => controlOverlayAction(principal, "play_overlay", input),
+	pause_overlay: (principal, input) => controlOverlayAction(principal, "pause_overlay", input),
+	skip_overlay: (principal, input) => controlOverlayAction(principal, "skip_overlay", input),
+	hide_overlay: (principal, input) => controlOverlayAction(principal, "hide_overlay", input),
+	show_overlay: (principal, input) => controlOverlayAction(principal, "show_overlay", input),
+	set_overlay_volume: (principal, input) => controlOverlayAction(principal, "set_overlay_volume", input),
+	mute_overlay: (principal, input) => controlOverlayAction(principal, "mute_overlay", input),
+	unmute_overlay: (principal, input) => controlOverlayAction(principal, "unmute_overlay", input),
+	toggle_overlay_mute: (principal, input) => controlOverlayAction(principal, "toggle_overlay_mute", input),
+
 	enqueue_overlay_clip: enqueueOverlayClip,
 	clear_overlay_queue: clearOverlayQueue,
 	submit_feedback: submitFeedback,

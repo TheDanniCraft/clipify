@@ -4,6 +4,16 @@ export const workflowPermissions = {
 	get_overlay_runtime: "overlay:read",
 	get_overlay_queues: "overlay:read",
 	control_overlay: "overlay:control",
+	play_overlay: "overlay:control",
+	pause_overlay: "overlay:control",
+	skip_overlay: "overlay:control",
+	hide_overlay: "overlay:control",
+	show_overlay: "overlay:control",
+	set_overlay_volume: "overlay:control",
+	mute_overlay: "overlay:control",
+	unmute_overlay: "overlay:control",
+	toggle_overlay_mute: "overlay:control",
+
 	enqueue_overlay_clip: "overlay:control",
 	clear_overlay_queue: "overlay:control",
 	get_clip_crawler_status: "creator:read",
@@ -42,6 +52,15 @@ export const workflowPermissions = {
 export const workflowDescriptions: Record<WorkflowToolName, string> = {
 	get_overlay_runtime: "Read the latest connected player report, current clip and playback progress. Reports may be stale or unavailable on this server instance. Requires remote-control Pro access.",
 	get_overlay_queues: "Read viewer queue for this overlay and the creator-wide moderator queue. Requires Pro.",
+	play_overlay: "Resume playback on one connected Clipify overlay player. Requires overlay:control and Pro. Changes are temporary; acceptance does not prove the player applied the command.",
+	pause_overlay: "Pause playback on one connected Clipify overlay player. Requires overlay:control and Pro. Changes are temporary; acceptance does not prove the player applied the command.",
+	skip_overlay: "Skip the current clip on one connected Clipify overlay player. Requires overlay:control and Pro. Changes are temporary; acceptance does not prove the player applied the command.",
+	hide_overlay: "Hide the player on one connected Clipify overlay player. Requires overlay:control and Pro. Changes are temporary; acceptance does not prove the player applied the command.",
+	show_overlay: "Show the player on one connected Clipify overlay player. Requires overlay:control and Pro. Changes are temporary; acceptance does not prove the player applied the command.",
+	set_overlay_volume: "Set playback volume from 0 to 100 on one connected Clipify overlay player. Requires overlay:control and Pro. Changes are temporary; acceptance does not prove the player applied the command.",
+	mute_overlay: "Mute playback on one connected Clipify overlay player. Requires overlay:control and Pro. Changes are temporary; acceptance does not prove the player applied the command.",
+	unmute_overlay: "Unmute playback on one connected Clipify overlay player. Requires overlay:control and Pro. Changes are temporary; acceptance does not prove the player applied the command.",
+	toggle_overlay_mute: "Toggle playback mute state on one connected Clipify overlay player. Requires overlay:control and Pro. Changes are temporary; acceptance does not prove the player applied the command.",
 	control_overlay: "Send play/pause/skip/show/hide/volume/mute/unmute/toggle_mute to ONE overlay. Command acceptance is not proof of playback. Requires Pro; volume is ephemeral for this overlay.",
 	enqueue_overlay_clip: "Add a validated Twitch clip from this creator to the CREATOR-WIDE moderator queue. Reuse retryKey for retries. Requires Pro.",
 	clear_overlay_queue: "Clear this overlay's viewer queue and/or the CREATOR-WIDE moderator queue. This discards queued clips. Requires Pro.",
@@ -82,6 +101,7 @@ export const workflowDescriptions: Record<WorkflowToolName, string> = {
 export function workflowAnnotations(name: WorkflowToolName) {
 	if (name === "refresh_clips") return { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true };
 	if (name === "submit_feedback") return { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true };
+	if (["play_overlay", "pause_overlay", "skip_overlay", "hide_overlay", "show_overlay", "set_overlay_volume", "mute_overlay", "unmute_overlay", "toggle_overlay_mute"].includes(name)) return { readOnlyHint: false, destructiveHint: true, idempotentHint: !["skip_overlay", "toggle_overlay_mute"].includes(name), openWorldHint: true };
 	const read = name.startsWith("get_") || name.startsWith("list_") || ["search_clips", "resolve_clip", "preview_playlist_import"].includes(name);
-	return { readOnlyHint: read, destructiveHint: !read && !name.startsWith("create_"), idempotentHint: !["control_overlay", "enqueue_overlay_clip", "clear_overlay_queue", "control_stream_session", "unlink_runner", "refresh_clips"].includes(name), openWorldHint: ["search_clips", "resolve_clip", "preview_playlist_import", "commit_playlist_import", "enqueue_overlay_clip"].includes(name) };
+	return { readOnlyHint: read, destructiveHint: !read && !name.startsWith("create_"), idempotentHint: !["control_overlay", "enqueue_overlay_clip", "clear_overlay_queue", "control_stream_session", "unlink_runner", "refresh_clips"].includes(name), openWorldHint: ["control_stream_session", "configure_stream_session", "publish_gallery", "publish_creator_page", "search_clips", "resolve_clip", "preview_playlist_import", "commit_playlist_import", "enqueue_overlay_clip"].includes(name) };
 }

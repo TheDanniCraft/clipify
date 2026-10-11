@@ -8,6 +8,16 @@ const workflowRisk = {
 	get_clip_crawler_status: "read",
 	refresh_clips: "refresh",
 	get_overlay_runtime: "read",
+	play_overlay: "externalMutation",
+	pause_overlay: "externalMutation",
+	skip_overlay: "externalControl",
+	hide_overlay: "externalMutation",
+	show_overlay: "externalMutation",
+	set_overlay_volume: "externalMutation",
+	mute_overlay: "externalMutation",
+	unmute_overlay: "externalMutation",
+	toggle_overlay_mute: "externalControl",
+
 	get_overlay_queues: "read",
 	control_overlay: "control",
 	enqueue_overlay_clip: "externalControl",
@@ -21,14 +31,14 @@ const workflowRisk = {
 	create_gallery: "create",
 	update_gallery: "mutation",
 	delete_gallery: "mutation",
-	publish_gallery: "mutation",
+	publish_gallery: "externalMutation",
 	get_gallery_embed: "read",
 	get_gallery_preview: "read",
 	get_overlay_embed: "read",
 	get_player_embed: "read",
 	get_creator_page: "read",
 	update_creator_page: "mutation",
-	publish_creator_page: "mutation",
+	publish_creator_page: "externalMutation",
 	get_runner_setup: "read",
 	list_runners: "read",
 	get_runner: "read",
@@ -38,8 +48,8 @@ const workflowRisk = {
 	unlink_runner: "control",
 	list_stream_sessions: "read",
 	get_stream_session: "read",
-	configure_stream_session: "mutation",
-	control_stream_session: "control",
+	configure_stream_session: "externalMutation",
+	control_stream_session: "externalControl",
 	get_runner_snapshot: "read",
 	submit_feedback: "externalFeedback",
 } as const;
@@ -65,7 +75,7 @@ describe("TDD-US2-039 truthful tool risk annotations", () => {
 		expect(risk.toolAnnotations(name)).toEqual(expectedHints[profile]);
 	});
 	test("risk table covers workflows, focused tools and internal compatibility schemas", () => {
-		expect(Object.keys(workflowRisk)).toHaveLength(37);
+		expect(Object.keys(workflowRisk)).toHaveLength(46);
 		expect(Object.keys(toolInputSchemas).filter((name) => !(name in workflowRisk))).toHaveLength(34);
 		for (const name of Object.keys(workflowRisk)) expect(toolInputSchemas).toHaveProperty(name);
 	});

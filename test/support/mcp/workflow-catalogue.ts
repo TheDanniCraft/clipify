@@ -84,6 +84,13 @@ export async function runWorkflowCatalogue(input: { fixture: Awaited<ReturnType<
 	let seq = 0;
 	const responseTexts: string[] = [];
 	const call = async (tool: string, args: Record<string, unknown>) => {
+		// Historical scenarios exercise the individually exposed public actions.
+		if (tool === "control_overlay") {
+			const { command, ...target } = args;
+			const commands: Record<string, string> = { play: "play_overlay", pause: "pause_overlay", skip: "skip_overlay", hide: "hide_overlay", show: "show_overlay", volume: "set_overlay_volume", mute: "mute_overlay", unmute: "unmute_overlay", toggle_mute: "toggle_overlay_mute" };
+			tool = commands[String(command)];
+			args = target;
+		}
 		const response = await route.POST(new Request(origin + "/mcp", { method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json", Accept: "application/json, text/event-stream", "MCP-Protocol-Version": "2025-06-18" }, body: JSON.stringify({ jsonrpc: "2.0", id: ++seq, method: "tools/call", params: { name: tool, arguments: args } }) }));
 		const text = await response.text();
 		responseTexts.push(text);

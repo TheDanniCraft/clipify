@@ -94,6 +94,15 @@ export const creatorPageFields = { creatorPageVisibility: z.enum(["discoverable"
 export const workflowInputSchemas = {
 	get_overlay_runtime: z.object(overlay).strict(),
 	get_overlay_queues: z.object({ ...overlay, ...page }).strict(),
+	play_overlay: z.object({ ...overlay }).strict(),
+	pause_overlay: z.object({ ...overlay }).strict(),
+	skip_overlay: z.object({ ...overlay }).strict(),
+	hide_overlay: z.object({ ...overlay }).strict(),
+	show_overlay: z.object({ ...overlay }).strict(),
+	set_overlay_volume: z.object({ ...overlay, volume: int(0, 100) }).strict(),
+	mute_overlay: z.object({ ...overlay }).strict(),
+	unmute_overlay: z.object({ ...overlay }).strict(),
+	toggle_overlay_mute: z.object({ ...overlay }).strict(),
 	control_overlay: z
 		.object({ ...overlay, command: z.enum(["play", "pause", "skip", "hide", "show", "volume", "mute", "unmute", "toggle_mute"]), volume: int(0, 100).optional() })
 		.strict()

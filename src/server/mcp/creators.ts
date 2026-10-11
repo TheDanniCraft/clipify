@@ -56,7 +56,11 @@ export async function getCapabilities(principal: TrustedCreatorPrincipal, creato
 			const allowed = await authorizeTrustedCreatorOperation({ principal, creatorId, permission, client });
 			if (!allowed.allowed) operations[name] = { allowed: false, reason: "ACCESS_DENIED" };
 			else if ((name === "create_overlay" && limits.overlays !== null && usage.overlays >= limits.overlays) || (name === "create_playlist" && limits.playlists !== null && usage.playlists >= limits.playlists) || (name === "create_gallery" && limits.galleries !== null && usage.galleries >= limits.galleries)) operations[name] = { allowed: false, reason: "PLAN_LIMIT_REACHED" };
-			else if ((!pro && ["get_overlay_runtime", "get_overlay_queues", "control_overlay", "enqueue_overlay_clip", "clear_overlay_queue", "update_overlay_theme", "update_overlay_filters", "update_overlay_playback"].includes(name)) || (!entitlements.runnerAccess && ["get_runner_setup", "create_runner", "configure_stream_session", "control_stream_session"].includes(name))) operations[name] = { allowed: false, reason: "FEATURE_RESTRICTED" };
+			else if (
+				(!pro && ["get_overlay_runtime", "get_overlay_queues", "control_overlay", "play_overlay", "pause_overlay", "skip_overlay", "hide_overlay", "show_overlay", "set_overlay_volume", "mute_overlay", "unmute_overlay", "toggle_overlay_mute", "enqueue_overlay_clip", "clear_overlay_queue", "update_overlay_theme", "update_overlay_filters", "update_overlay_playback"].includes(name)) ||
+				(!entitlements.runnerAccess && ["get_runner_setup", "create_runner", "configure_stream_session", "control_stream_session"].includes(name))
+			)
+				operations[name] = { allowed: false, reason: "FEATURE_RESTRICTED" };
 			else operations[name] = { allowed: true };
 		}
 	}
