@@ -1,5 +1,5 @@
 import React from "react";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import EditorSignIn from "@/app/login/editor/EditorSignIn";
 import EditorLogin from "@/app/login/editor/page";
 import { authClient } from "@/auth/client";
@@ -50,8 +50,10 @@ async function requestCode() {
 }
 
 async function enterCode() {
-	fireEvent.change(screen.getByLabelText("Sign-in code"), { target: { value: "123456" } });
-	fireEvent.click(screen.getByRole("button", { name: /^Sign in$/ }));
+	await act(async () => {
+		fireEvent.change(screen.getByLabelText("Sign-in code"), { target: { value: "123456" } });
+		fireEvent.click(screen.getByRole("button", { name: /^Sign in$/ }));
+	});
 }
 
 test("native OTP login activates an existing workspace and preserves the complete MCP return path", async () => {
