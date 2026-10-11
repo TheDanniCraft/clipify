@@ -1,0 +1,37 @@
+name: 📦 Package OpenAI Plugin
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "plugins/clipify/**"
+      - "scripts/package-openai-plugin.py"
+      - "scripts/package-openai-plugin.test.py"
+      - "scripts/plugin-schemas/**"
+      - ".github/workflows/openai-plugin.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - name: Install schema validator
+        run: python -m pip install jsonschema==4.26.0
+      - name: Test upload validation
+        run: python scripts/package-openai-plugin.test.py
+      - name: Validate and package
+        run: python scripts/package-openai-plugin.py
+      - uses: actions/upload-artifact@v7
+        with:
+          name: clipify-openai-plugin
+          path: dist/clipify-openai-plugin.zip
+          if-no-files-found: error
