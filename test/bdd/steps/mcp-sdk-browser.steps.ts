@@ -53,9 +53,9 @@ When("the official SDK completes {word} approval edit abandoned consent and revo
 		const tokens = await exchange.json();
 		connected = await connectMcpClient(new URL(`${origin}/mcp`), tokens.access_token, "auto");
 		const tools = await connected.client.listTools();
-		expect(tools.tools.length).toBe(66);
+		expect(tools.tools.length).toBe(68);
 		const prompts = await connected.client.listPrompts();
-		expect(prompts.prompts).toHaveLength(6);
+		expect(prompts.prompts).toHaveLength(7);
 		expect(tools.tools.find((tool) => tool.name === "delete_overlay")?.annotations?.destructiveHint).toBe(true);
 		const args = { creatorId: owner.fixture.creatorId, overlayId: owner.fixture.overlayId };
 		const creators = await connected.client.callTool({ name: "list_creators", arguments: {} });
