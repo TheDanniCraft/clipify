@@ -65,5 +65,5 @@ test("TDD-US1-031 creator pilot returns an allowlisted DTO", async () => {
 	rows.length = 0;
 	rows.push([account], [{ ...creator, email: "private@example.invalid", accessToken: "private-token", plan: "free" }], [{ role: "owner" }], []);
 	expect(creatorService?.getCreatorSummary).toEqual(expect.any(Function));
-	expect(await creatorService.getCreatorSummary(principal, "creator")).toEqual({ id: "creator", name: "Safe creator" });
+	expect(await creatorService.getCreatorSummary(principal, "creator")).toEqual({ id: "creator", name: "Safe creator", avatarUrl: null });
 });
