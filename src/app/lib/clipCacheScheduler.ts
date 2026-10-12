@@ -3,9 +3,10 @@ import * as Sentry from "@sentry/nextjs";
 import { captureUnexpectedError } from "@lib/sentryServer";
 import { getOperationalEnvironment, operationalCount, operationalDuration, operationalGauge } from "@lib/operationalHealth";
 
+import { clipCrawlBatchSize, runClipCrawlerBatch } from "@/server/clip-crawler/worker";
+import { seedClipCrawlJobs } from "@/server/clip-crawler/queue";
+
 const CLIP_CACHE_SYNC_INTERVAL_MS = 60_000;
-const CLIP_CACHE_SYNC_BATCH_SIZE = 25;
-const CLIP_CACHE_SYNC_LOCK_KEY = "clip_cache_scheduler";
 const CLIP_CACHE_MONITOR_CONFIG = {
 	schedule: { type: "interval" as const, value: 1, unit: "minute" as const },
 	checkinMargin: 2,
@@ -51,7 +52,7 @@ export function startClipCacheScheduler() {
 	if (!shouldRunScheduler()) return;
 	if (globalThis.__clipCacheSchedulerStarted) return;
 
-	const batchSize = CLIP_CACHE_SYNC_BATCH_SIZE;
+	const batchSize = clipCrawlBatchSize;
 	const scheduledIntervalMs = CLIP_CACHE_SYNC_INTERVAL_MS;
 	globalThis.__clipCacheSchedulerStats = {
 		startedAt: new Date().toISOString(),
@@ -69,32 +70,18 @@ export function startClipCacheScheduler() {
 		if (globalThis.__clipCacheSchedulerRunning) return;
 		const started = Date.now();
 		globalThis.__clipCacheSchedulerRunning = true;
-		let lockAcquired = false;
-		let outcome: "pending" | "skipped" | "succeeded" | "failed" = "pending";
+		let outcome: "pending" | "succeeded" | "failed" = "pending";
 		let ownerCount = 0;
 		let checkInId: string | undefined;
-		let lockClient: { query: (text: string, values?: unknown[]) => Promise<unknown>; release: () => void } | null = null;
 		try {
-			const [{ getActiveOverlayOwnerIdsForClipSync }, { syncOwnerClipCache }, { dbPool }] = await Promise.all([import("@actions/database"), import("@actions/twitch"), import("@/db/client")]);
-			lockClient = await dbPool.connect();
-			const lockResult = (await lockClient.query("select pg_try_advisory_lock(hashtext($1)) as locked", [CLIP_CACHE_SYNC_LOCK_KEY])) as { rows?: Array<{ locked?: boolean }> };
-			lockAcquired = Boolean(lockResult.rows?.[0]?.locked);
-			if (!lockAcquired) {
-				outcome = "skipped";
-				operationalCount("clipify.clip_cache.scheduler.runs", 1, { status: "skipped" });
-				return;
-			}
 			if (shouldReportMonitorCheckIns()) {
 				checkInId = Sentry.captureCheckIn({ monitorSlug: "clip-cache-scheduler", status: "in_progress" }, CLIP_CACHE_MONITOR_CONFIG);
 			}
 			operationalCount("clipify.clip_cache.scheduler.runs", 1, { status: "attempted" });
-			const ownerIds = await getActiveOverlayOwnerIdsForClipSync(batchSize);
-			ownerCount = ownerIds.length;
-			for (const ownerId of ownerIds) {
-				await Sentry.startSpan({ name: "Sync owner clip cache", op: "task" }, () => syncOwnerClipCache(ownerId));
-			}
+			await seedClipCrawlJobs();
+			ownerCount = await runClipCrawlerBatch();
 			if (globalThis.__clipCacheSchedulerStats) {
-				globalThis.__clipCacheSchedulerStats.lastRunOwnerCount = ownerIds.length;
+				globalThis.__clipCacheSchedulerStats.lastRunOwnerCount = ownerCount;
 				globalThis.__clipCacheSchedulerStats.lastError = null;
 			}
 			outcome = "succeeded";
@@ -108,26 +95,18 @@ export function startClipCacheScheduler() {
 				globalThis.__clipCacheSchedulerStats.lastError = error instanceof Error ? error.message : String(error);
 			}
 		} finally {
-			if (lockClient && lockAcquired) {
-				try {
-					await lockClient.query("select pg_advisory_unlock(hashtext($1))", [CLIP_CACHE_SYNC_LOCK_KEY]);
-				} catch {
-					// Best-effort unlock.
-				}
-			}
-			lockClient?.release();
 			globalThis.__clipCacheSchedulerRunning = false;
 			const durationMs = Date.now() - started;
 			if (outcome === "succeeded") {
 				operationalCount("clipify.clip_cache.scheduler.runs", 1, { status: "succeeded" });
 				Sentry.logger.info("Clip cache scheduler completed", { component: "clip-cache-scheduler", owner_count: ownerCount, duration_ms: durationMs });
 			}
-			if (outcome !== "skipped") {
+			{
 				operationalDuration("clipify.clip_cache.scheduler.duration", durationMs);
 				operationalGauge("clipify.clip_cache.scheduler.owner_count", ownerCount);
 				if (checkInId) Sentry.captureCheckIn({ monitorSlug: "clip-cache-scheduler", status: outcome === "failed" ? "error" : "ok", checkInId, duration: durationMs / 1000 });
 			}
-			if (globalThis.__clipCacheSchedulerStats && outcome !== "skipped") {
+			if (globalThis.__clipCacheSchedulerStats) {
 				globalThis.__clipCacheSchedulerStats.totalRuns += 1;
 				globalThis.__clipCacheSchedulerStats.lastRunAt = new Date().toISOString();
 				globalThis.__clipCacheSchedulerStats.lastRunDurationMs = durationMs;

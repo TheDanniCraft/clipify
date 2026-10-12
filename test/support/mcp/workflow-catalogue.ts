@@ -44,6 +44,7 @@ export async function runWorkflowCatalogue(input: { fixture: Awaited<ReturnType<
 	addSubscriber("fixture-creator", overlayId, source as any);
 	const originalFetch = globalThis.fetch;
 	let providerCalls = 0;
+	const crawlRequests: Array<{ start: string; end: string; cursor: string | null }> = [];
 	const clips = [
 		{ id: "MinecraftClip", title: "Minecraft adventure", duration: 12, broadcaster_id: "fixture-creator", created_at: "2026-10-06T12:00:00Z", game_id: "27471", view_count: 100, url: "https://clips.twitch.tv/MinecraftClip", thumbnail_url: "https://static-cdn.jtvnw.net/test.jpg", secret: "private-provider-payload" },
 		{ id: "OtherClip", title: "Other game", duration: 10, broadcaster_id: "fixture-creator", created_at: "2026-10-06T10:00:00Z", game_id: "123", view_count: 20, url: "https://clips.twitch.tv/OtherClip" },
@@ -52,7 +53,7 @@ export async function runWorkflowCatalogue(input: { fixture: Awaited<ReturnType<
 	const cachedClips = variant === "cached_large" ? Array.from({ length: 1200 }, (_, n) => ({ ...clips[0], id: `LargeClip${n}` })) : variant === "provider_partial" ? Array.from({ length: 5 }, (_, n) => ({ ...clips[0], id: `PageClip${n}` })) : variant === "provider_foreign" ? [{ ...clips[0], broadcaster_id: "foreign-creator" }] : variant === "provider_malformed" ? [{ id: "Broken" }] : clips;
 	if (["search_clips", "preview_playlist_import", "commit_playlist_import", "get_clip_crawler_status", "refresh_clips"].includes(name)) {
 		for (const clip of cachedClips) await fixture.pool.query("INSERT INTO \"twitchCache\"(type,key,value) VALUES('clip',$1,$2)", [`clip:fixture-creator:${clip.id}`, JSON.stringify(clip)]);
-		await fixture.pool.query("INSERT INTO \"twitchCache\"(type,key,value) VALUES('clip','clip-sync:fixture-creator',$1),('game','27471',$2)", [JSON.stringify({ backfillComplete: variant !== "provider_partial" }), JSON.stringify({ id: "27471", name: "Minecraft" })]);
+		await fixture.pool.query("INSERT INTO \"twitchCache\"(type,key,value) VALUES('clip','clip-sync:fixture-creator',$1),('game','27471',$2)", [JSON.stringify({ backfillComplete: !["provider_partial", "history_incomplete", "backfill_resume"].includes(variant), ...(["history_incomplete", "backfill_resume"].includes(variant) ? { backfillWindowEnd: "2020-01-01T00:00:00.000Z", backfillCursor: "history-cursor", backfillWindowPages: 2 } : {}) }), JSON.stringify({ id: "27471", name: "Minecraft" })]);
 	}
 	const axios = (await import("axios")).default;
 	const originalAdapter = axios.defaults.adapter;
@@ -60,7 +61,8 @@ export async function runWorkflowCatalogue(input: { fixture: Awaited<ReturnType<
 		axios.defaults.adapter = async (config) => {
 			if (config.url !== "https://api.twitch.tv/helix/clips") throw new Error("WORKFLOW_EXTERNAL_IO_FORBIDDEN");
 			providerCalls++;
-			return { data: { data: clips, pagination: {} }, status: 200, statusText: "OK", headers: {}, config };
+			crawlRequests.push({ start: config.params.started_at, end: config.params.ended_at, cursor: config.params.after ?? null });
+			return { data: { data: clips, pagination: (variant === "bounded_recent" && providerCalls < 7) || (variant === "backfill_resume" && providerCalls > 1 && providerCalls < 7) ? { cursor: `page-${providerCalls}` } : {} }, status: 200, statusText: "OK", headers: {}, config };
 		};
 	globalThis.fetch = ((v: RequestInfo | URL, init?: RequestInit) => {
 		const req = v instanceof Request ? v : new Request(v, init);
@@ -104,6 +106,8 @@ export async function runWorkflowCatalogue(input: { fixture: Awaited<ReturnType<
 				: text;
 		return { status: response.status, body: raw ? JSON.parse(raw) : null, text };
 	};
+	const busyWorker = name === "refresh_clips" && variant === "busy" ? await fixture.pool.connect() : null;
+	if (busyWorker) await busyWorker.query("SELECT pg_advisory_lock(hashtext($1))", ["clip_sync_owner:fixture-creator"]);
 	try {
 		const { handleMessage } = await import("@/app/actions/websocket");
 		for (const report of [
@@ -259,6 +263,7 @@ export async function runWorkflowCatalogue(input: { fixture: Awaited<ReturnType<
 			args.limit = 100;
 		}
 		if (variant === "read_only") await fixture.pool.query("UPDATE mcp_grant_creators SET scopes=ARRAY['creator:read']");
+		if (name === "refresh_clips" && variant === "authorization_rollback") await fixture.pool.query("ALTER TABLE audit_events ADD CONSTRAINT reject_refresh_audit CHECK(action<>'sensitive-integration:mcp.refresh_clips')");
 		if (variant === "cooldown") await fixture.pool.query("INSERT INTO \"twitchCache\"(type,key,value) VALUES('clip','clip-sync-force:fixture-creator',$1)", [JSON.stringify({ lastForcedAt: new Date().toISOString() })]);
 		async function prepareOwnershipAndSnapshotCases() {
 			if (["free_filtered", "downgrade_filtered"].includes(variant)) await fixture.pool.query("UPDATE users SET plan='free' WHERE id='fixture-creator'");
@@ -477,11 +482,35 @@ export async function runWorkflowCatalogue(input: { fixture: Awaited<ReturnType<
 			}
 
 			if (name === "refresh_clips") await (await import("@/server/clip-cache")).drainClipRefreshes();
+			const firstRefreshCalls = providerCalls;
+			let firstBackfillCalls = 0,
+				firstBackfillState: unknown;
+			if (variant === "backfill_resume") {
+				const worker = await import("@/server/clip-crawler/worker");
+				await worker.runClipCrawlerBatch({ creatorId: "fixture-creator", maxJobs: 1 });
+				firstBackfillCalls = providerCalls - firstRefreshCalls;
+				firstBackfillState = JSON.parse((await fixture.pool.query("SELECT value FROM \"twitchCache\" WHERE type='clip' AND key='clip-sync:fixture-creator'")).rows[0].value);
+				await fixture.pool.query("UPDATE clip_crawl_jobs SET next_run_at=now() WHERE creator_id='fixture-creator' AND kind='backfill'");
+				await worker.runClipCrawlerBatch({ creatorId: "fixture-creator", maxJobs: 1 });
+			}
+
+			if (variant === "bounded_recent") {
+				await fixture.pool.query("UPDATE clip_crawl_jobs SET next_run_at=now() WHERE creator_id='fixture-creator' AND kind='recent'");
+				await (await import("@/server/clip-crawler/worker")).runClipCrawlerBatch({ creatorId: "fixture-creator", maxJobs: 1 });
+			}
 			const cachedClipCount = Number((await fixture.pool.query("SELECT count(*) FROM \"twitchCache\" WHERE type='clip' AND key LIKE 'clip:fixture-creator:%'")).rows[0].count);
 			const crawlerStateRow = name === "refresh_clips" ? (await fixture.pool.query("SELECT value FROM \"twitchCache\" WHERE type='clip' AND key='clip-sync:fixture-creator'")).rows[0] : null;
 			const crawlerState = crawlerStateRow ? JSON.parse(crawlerStateRow.value) : null;
+			const forcedRefreshRecorded = name === "refresh_clips" ? (await fixture.pool.query("SELECT EXISTS(SELECT 1 FROM \"twitchCache\" WHERE type='clip' AND key='clip-sync-force:fixture-creator') AS present")).rows[0].present : false;
+			const crawlJobs = name === "refresh_clips" ? (await fixture.pool.query("SELECT kind,requested_at IS NOT NULL AS requested,lease_id IS NOT NULL AS leased,next_run_at IS NOT NULL AS scheduled FROM clip_crawl_jobs WHERE creator_id='fixture-creator' ORDER BY kind")).rows : [];
 			return {
 				crawlerState,
+				crawlJobs,
+				forcedRefreshRecorded,
+				firstRefreshCalls,
+				firstBackfillCalls,
+				firstBackfillState,
+				crawlRequests,
 				cachedClipCount,
 				allClipIds,
 				storedOverlay,
@@ -508,6 +537,10 @@ export async function runWorkflowCatalogue(input: { fixture: Awaited<ReturnType<
 		return await collectWorkflowObservations();
 	} finally {
 		if (name === "refresh_clips") await (await import("@/server/clip-cache")).drainClipRefreshes();
+		if (busyWorker) {
+			await busyWorker.query("SELECT pg_advisory_unlock(hashtext($1))", ["clip_sync_owner:fixture-creator"]);
+			busyWorker.release();
+		}
 		axios.defaults.adapter = originalAdapter;
 		globalThis.fetch = originalFetch;
 		removeSubscriber("fixture-creator", overlayId, source as any);

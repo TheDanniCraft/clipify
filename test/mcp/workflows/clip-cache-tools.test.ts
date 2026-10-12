@@ -61,3 +61,50 @@ test("an accepted MCP refresh preserves existing clips and records its cooldown"
 	expect(row.providerCalls).toBeGreaterThan(0);
 	expect(row.result?.structuredContent.nextAllowedAt).toEqual(expect.any(String));
 });
+
+test("a priority MCP refresh keeps the existing historical checkpoint intact", () => {
+	const row = flowProbe("catalogue:workflow:refresh_clips:history_incomplete");
+	expect(row.result?.structuredContent).toMatchObject({ ok: true, accepted: true });
+	expect(row.crawlerState).toMatchObject({ backfillWindowEnd: "2020-01-01T00:00:00.000Z", backfillCursor: "history-cursor", backfillWindowPages: 2, lastIncrementalSyncAt: expect.any(String) });
+	expect(row.crawlJobs).toEqual([
+		{ kind: "backfill", requested: false, leased: false, scheduled: true },
+		{ kind: "recent", requested: false, leased: false, scheduled: true },
+	]);
+});
+
+test("a busy creator accepts a durable priority refresh without duplicate Twitch work", () => {
+	const row = flowProbe("catalogue:workflow:refresh_clips:busy");
+	expect(row.result?.structuredContent).toMatchObject({ ok: true, accepted: true });
+	expect(row.providerCalls).toBe(0);
+	expect(row.crawlJobs).toContainEqual({ kind: "recent", requested: true, leased: false, scheduled: true });
+});
+
+test("a bounded priority refresh resumes its persisted cursor without restarting the scan", () => {
+	const row = flowProbe("catalogue:workflow:refresh_clips:bounded_recent");
+	expect(row.result?.structuredContent).toMatchObject({ ok: true, accepted: true });
+	expect(row.firstRefreshCalls).toBe(5);
+	expect(row.providerCalls).toBe(7);
+	expect(row.crawlRequests[5]).toMatchObject({ start: row.crawlRequests[0].start, end: row.crawlRequests[0].end, cursor: "page-5" });
+	expect(row.crawlerState.lastIncrementalSyncAt).toEqual(expect.any(String));
+	expect(row.crawlJobs).toContainEqual({ kind: "recent", requested: false, leased: false, scheduled: true });
+});
+
+test("an authorization transaction rollback leaves neither a queued refresh nor a cooldown", () => {
+	const row = flowProbe("catalogue:workflow:refresh_clips:authorization_rollback");
+	expect(row.result?.structuredContent?.error.code).toBe("SERVICE_UNAVAILABLE");
+	expect(row.crawlJobs).toEqual([]);
+	expect(row.forcedRefreshRecorded).toBe(false);
+	expect(row.providerCalls).toBe(0);
+});
+
+test("bounded historical jobs persist their cursor and resume the same date window", () => {
+	const row = flowProbe("catalogue:workflow:refresh_clips:backfill_resume");
+	expect(row.result?.structuredContent).toMatchObject({ ok: true, accepted: true });
+	expect(row.firstRefreshCalls).toBe(1);
+	expect(row.firstBackfillCalls).toBe(5);
+	expect(row.firstBackfillState).toMatchObject({ backfillComplete: false, backfillWindowEnd: "2020-01-01T00:00:00.000Z", backfillCursor: "page-6" });
+	expect(row.crawlRequests[1].cursor).toBe("history-cursor");
+	expect(row.crawlRequests[6]).toMatchObject({ start: row.crawlRequests[1].start, end: row.crawlRequests[1].end, cursor: "page-6" });
+	expect(row.providerCalls).toBeLessThanOrEqual(11);
+	expect(row.cachedClipCount).toBe(2);
+});

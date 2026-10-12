@@ -53,6 +53,7 @@ jest.mock("@actions/auth", () => ({
 
 jest.mock("@/db/client", () => ({
 	dbPool: {
+		query: jest.fn().mockResolvedValue({ rows: [] }),
 		connect: jest.fn(),
 	},
 	db: {
@@ -657,7 +658,7 @@ describe("actions/twitch external API and failure handling", () => {
 		validateAuth.mockResolvedValueOnce(null);
 
 		const { forceRefreshOwnClipCache } = await loadTwitch();
-		await expect(forceRefreshOwnClipCache(25)).rejects.toThrow("Not authenticated");
+		await expect(forceRefreshOwnClipCache()).rejects.toThrow("Not authenticated");
 	});
 
 	it("does not accept a refresh when its database lock cannot be acquired", async () => {
@@ -665,7 +666,7 @@ describe("actions/twitch external API and failure handling", () => {
 		const { dbPool } = await import("@/db/client");
 		jest.mocked(dbPool.connect).mockRejectedValueOnce(new Error("db unavailable") as never);
 		const { forceRefreshOwnClipCache } = await loadTwitch();
-		await expect(forceRefreshOwnClipCache(25)).rejects.toThrow("db unavailable");
+		await expect(forceRefreshOwnClipCache()).rejects.toThrow("db unavailable");
 	});
 
 	it("returns no clips for Queue overlays without hitting sync", async () => {
