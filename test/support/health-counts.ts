@@ -2,10 +2,10 @@ import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { PGlite } from "@electric-sql/pglite";
 import { drizzle } from "drizzle-orm/pglite";
-import { eq } from "drizzle-orm";
-import { usersTable, overlaysTable, settingsTable, runnersTable, streamSessionsTable } from "@/db/schema";
+import { eq, inArray } from "drizzle-orm";
+import { usersTable, overlaysTable, settingsTable, runnersTable, streamSessionsTable, clipCrawlJobsTable, notificationOutboxTable } from "@/db/schema";
 import { account } from "@/db/auth-schema";
-import { userHealthCounts, overlayHealthCounts, settingsHealthCounts, tokenHealthCounts, runnerHealthCounts, streamHealthCounts } from "@lib/health-counts";
+import { userHealthCounts, overlayHealthCounts, settingsHealthCounts, tokenHealthCounts, runnerHealthCounts, streamHealthCounts, crawlerHealthCounts, notificationHealthCounts } from "@lib/health-counts";
 
 let postgres: PGlite;
 const now = new Date("2026-10-09T12:00:00Z");
@@ -24,6 +24,7 @@ before(async () => {
 	CREATE TABLE auth.account (provider_id text, access_token_expires_at timestamp, scope text);
 	`);
 });
+
 after(async () => {
 	await postgres.close();
 });
@@ -81,4 +82,61 @@ test("combined queries preserve null, boolean and exact time-boundary semantics"
 	const [streams] = await db.select(streamHealthCounts()).from(streamSessionsTable);
 	assert.deepEqual(numeric(runners), { total: 3, online: 1, owners: 2 });
 	assert.deepEqual(numeric(streams), { total: 3, desiredRunning: 2, actualRunning: 1, errors: 1 });
+});
+
+test("download permission coverage accepts native comma and migrated whitespace lists with exact token boundaries", async () => {
+	await postgres.exec(`TRUNCATE auth.account;
+	 INSERT INTO auth.account VALUES
+	 ('twitch',NULL,'openid,user:read:email,channel:manage:clips'),
+	 ('twitch',NULL,'openid, editor:manage:clips ,user:read:email'),
+	 ('twitch',NULL,E'user:read:email\\tchannel:manage:clips'),
+	 ('twitch',NULL,'notchannel:manage:clips'),
+	 ('twitch',NULL,'channel:manage:clips:extra'),
+	 ('twitch',NULL,NULL);`);
+	const [counts] = await drizzle(postgres).select(tokenHealthCounts(now, in24h)).from(account).where(eq(account.providerId, "twitch"));
+	assert.equal(Number(counts.ready), 3);
+});
+
+test("queue health excludes disabled creators and sent history, distinguishes retries, skips and exact lease boundaries, and stays fresh", async () => {
+	await postgres.exec(`
+	 ALTER TABLE users ADD COLUMN id text;
+	 TRUNCATE users;
+	 INSERT INTO users(id,disabled) VALUES ('a',false),('b',true),('c',false),('d',false);
+	 CREATE TABLE clip_crawl_jobs (creator_id text,kind text,next_run_at timestamptz,requested_at timestamptz,lease_expires_at timestamptz,failures integer);
+	 INSERT INTO clip_crawl_jobs VALUES
+	 ('a','recent','2026-10-09T11:50:00Z','2026-10-09T11:52:00Z',NULL,0),
+	 ('a','backfill','2026-10-09T11:40:00Z',NULL,'2026-10-09T12:00:00Z',1),
+	 ('b','recent','2026-10-09T11:00:00Z','2026-10-09T11:00:00Z',NULL,0),
+	 ('c','recent','2026-10-09T11:59:00Z',NULL,'2026-10-09T12:02:00Z',0),
+	 ('c','backfill','2026-10-09T12:03:00Z',NULL,NULL,2),
+	 ('d','recent','2026-10-09T12:05:00Z',NULL,NULL,0),
+	 ('d','backfill',NULL,NULL,NULL,0);
+	 CREATE TABLE notification_outbox (status text,scheduled_at timestamptz,claim_expires_at timestamptz,last_error text);
+	 INSERT INTO notification_outbox VALUES
+	 ('pending','2026-10-09T11:59:00Z',NULL,NULL),
+	 ('pending','2026-10-09T11:55:00Z',NULL,NULL),
+	 ('retry','2026-10-09T11:58:00Z',NULL,'temporary'),
+	 ('pending','2026-10-09T12:01:00Z',NULL,NULL),
+	 ('retry','2026-10-09T12:02:00Z',NULL,'temporary'),
+	 ('claimed','2026-10-09T11:59:00Z','2026-10-09T12:01:00Z',NULL),
+	 ('claimed','2026-10-09T11:59:00Z','2026-10-09T12:00:00Z',NULL),
+	 ('dead','2026-10-09T11:59:00Z',NULL,'NOTIFICATION_NO_LONGER_APPLIES'),
+	 ('dead','2026-10-09T11:59:00Z',NULL,'provider rejected'),
+	 ('sent','2026-10-09T11:00:00Z',NULL,NULL);
+	`);
+	const db = drizzle(postgres);
+	const [crawler] = await db.select(crawlerHealthCounts(now)).from(clipCrawlJobsTable).innerJoin(usersTable, eq(usersTable.id, clipCrawlJobsTable.creatorId)).where(eq(usersTable.disabled, false));
+	const numeric = (row: Record<string, unknown>) => Object.fromEntries(Object.entries(row).map(([key, value]) => [key, Number(value)]));
+	assert.deepEqual(numeric(crawler), { dueRecent: 1, dueBackfill: 1, runningRecent: 1, runningBackfill: 0, manualPending: 1, scheduled: 1, retrying: 2, expiredLeases: 1, oldestDueAgeSeconds: 1200, oldestManualWaitSeconds: 480 });
+	const readOutbox = async () => {
+		const [row] = await db
+			.select(notificationHealthCounts(now))
+			.from(notificationOutboxTable)
+			.where(inArray(notificationOutboxTable.status, ["pending", "retry", "claimed", "dead"]));
+		return numeric(row);
+	};
+	assert.deepEqual(await readOutbox(), { duePending: 2, dueRetry: 1, scheduledPending: 1, scheduledRetry: 1, claimed: 1, expiredClaims: 1, failed: 1, skipped: 1, oldestDueAgeSeconds: 300 });
+	await postgres.exec("UPDATE notification_outbox SET scheduled_at='2026-10-09T12:01:00Z' WHERE scheduled_at='2026-10-09T11:55:00Z'");
+	assert.equal((await readOutbox()).duePending, 1);
+	assert.equal((await readOutbox()).oldestDueAgeSeconds, 120);
 });

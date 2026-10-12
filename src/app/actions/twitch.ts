@@ -6,7 +6,7 @@ import { crawlRecentClips, type RecentCrawlState } from "@/server/clip-crawler/r
 import type { ClipCrawlOptions, ClipCrawlResult } from "@/server/clip-crawler/types";
 import { AuthenticatedUser, Game, Overlay, OverlayType, PlaybackMode, RewardStatus, TwitchApiResponse, TwitchAppAccessTokenResponse, TwitchCacheType, TwitchClip, TwitchClipDownloadResponse, TwitchClipGqlData, TwitchClipGqlResponse, TwitchClipResponse, TwitchClipVideoQuality, TwitchReward, TwitchRewardResponse, TwitchUserResponse } from "@types";
 import { getAccessToken, getAccessTokenServer, getOverlayBySecret, getOverlayPublic, getPlaylistRuntimeClipsForOwnerServer, getTwitchCache, getTwitchCacheBatch, getTwitchCacheByPrefixEntries, getTwitchCacheEntry, getTwitchCacheStale, getTwitchCacheStaleBatch, setTwitchCache, setTwitchCacheBatch } from "@actions/database";
-import { type TwitchRateLimitLog, incrementClipFetchFallback, incrementClipFetchRateLimited, incrementClipFetchV1, incrementClipFetchV2, recordTwitchRateLimit } from "@lib/instanceHealth";
+import { type TwitchRateLimitLog, incrementClipFetchFallback, incrementClipFetchFallbackReason, incrementClipFetchRateLimited, incrementClipFetchV1, incrementClipFetchV2, recordTwitchRateLimit } from "@lib/instanceHealth";
 import { promises as fs } from "fs";
 import path from "path";
 import { getAccessTokenInternal, getAccessTokenResultInternal } from "@/server/tokens";
@@ -261,7 +261,9 @@ async function resolveTwitchClipPlaybackUrl(clipId: string, broadcasterId: strin
 
 	if (!token || !hasClipDownloadScope(token.scope)) {
 		incrementClipFetchV1();
-		operationalCount("clipify.clip_fetch.sources", 1, { source: "graphql", reason: "missing_download_scope" });
+		const reason = token ? "missingScope" : tokenResult.reason === "user_disabled" ? "disabledAccount" : tokenResult.reason === "refresh_failed" ? "refreshFailed" : "missingCredentials";
+		incrementClipFetchFallbackReason(reason);
+		operationalCount("clipify.clip_fetch.sources", 1, { source: "graphql", reason });
 		return getTwitchClipPlaybackUrlFromGraphQL(clipId);
 	}
 
@@ -310,6 +312,8 @@ async function resolveTwitchClipPlaybackUrl(clipId: string, broadcasterId: strin
 			return url;
 		}
 		operationalCount("clipify.clip_fetch.sources", 1, { source: "twitch_api", outcome: "empty" });
+		incrementClipFetchFallback();
+		incrementClipFetchFallbackReason("emptyResponse");
 	} catch (error) {
 		if (axios.isAxiosError(error)) {
 			const headers = (error.response?.headers ?? undefined) as Record<string, unknown> | undefined;
@@ -338,13 +342,16 @@ async function resolveTwitchClipPlaybackUrl(clipId: string, broadcasterId: strin
 
 			if (error.response?.status === 429) {
 				incrementClipFetchRateLimited();
+				incrementClipFetchFallbackReason("rateLimited");
 				operationalCount("clipify.clip_fetch.sources", 1, { source: "twitch_api", outcome: "rate_limited" });
 			} else {
 				incrementClipFetchFallback();
+				incrementClipFetchFallbackReason(error.response?.status === 401 || error.response?.status === 403 ? "apiRejected" : "apiError");
 				operationalCount("clipify.clip_fetch.sources", 1, { source: "twitch_api", outcome: "fallback" });
 			}
 		} else {
 			incrementClipFetchFallback();
+			incrementClipFetchFallbackReason("apiError");
 			operationalCount("clipify.clip_fetch.sources", 1, { source: "twitch_api", outcome: "fallback" });
 		}
 	}

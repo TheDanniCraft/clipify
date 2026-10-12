@@ -1,101 +1,103 @@
-# MCP monitoring contract (v6)
+# Health and MCP monitoring contract (v6)
 
-Paste the complete `clipify-vm01-overview-v6.json` into Grafana Cloud's **Edit as JSON** editor, then apply and save. This is a V2 dashboard resource
-with `apiVersion`, `kind`, `metadata`, and `spec`, not a Classic import document.
-It updates the existing dashboard `clipify-vm01-overview`; if editing a different
-dashboard, keep that dashboard's `metadata.name`. The API version must match
-the version displayed by your editor. It preserves the v5 panels and uses
-the existing InfluxDB datasource UID `efg3es37pgh6ob`, Flux bucket
-`clipify_monitor`, and measurement `clipify_vm01`.
+`clipify-vm01-overview-v6.json` is the complete Grafana Cloud **Edit as JSON**
+resource, including `apiVersion`, `kind`, `metadata` and `spec`. Keep the existing
+dashboard identity `clipify-vm01-overview` and the API version used by your editor.
+The revised dashboard has 78 panels in 14 rows.
 
-## Collector integration
+## Data sources
 
-The authenticated `/internal/health/instance` response gains an additive `mcp`
-object. Existing fields, internal authentication and `no-store` remain unchanged.
-`mcp-health-sample.json` is a deterministic zero-traffic example, not live data.
-`mcp-influx-fields.json` is the exact numeric runtime field catalogue from that example. `mcp-client-influx-fields.json` is a 25-application fixture illustrating the dynamic adoption slots: counters/gauges are floats and `_name` fields are strings. There is no application-count limit; emit one slot per returned group.
-`src/server/mcp/metrics-export.ts` supplies the mapping: recursively flatten
-numeric paths using underscores, exclude strings/nulls, and convert the two ISO
-start/sample timestamps to Unix seconds. Every numeric field must be written as
-an Influx **float**, including counters and zero values, to avoid field-type
-conflicts and integer/float Flux arithmetic conflicts. Do not write the sample
-values into production.
+Historical charts use the existing InfluxDB datasource `efg3es37pgh6ob`, bucket
+`clipify_monitor`, measurement `clipify_vm01`. The collector recursively flattens
+numeric health paths with underscores, including zero values, as Influx floats.
+For example, `crawler.dueRecent` becomes `crawler_dueRecent`. No collector-side
+string mapping is needed for the new numeric metrics.
 
-Scrape each app process directly. Use a stable `instance` tag identifying its
-scrape target; do not alternate replicas behind a load balancer under the same
-tag. Keep the existing collector's host tags. Process UUIDs, timestamps, client
-IDs, creator IDs and payloads must not become tags. Tool/reason labels are a fixed
-catalogue, including one bounded `unknown`/`other` entry. Never reset counters on
-read. Export timestamp gauges too; a changed start gauge marks a restart.
+The current MCP applications table uses the existing authenticated Infinity
+health datasource `dffanq7dkba4gb` at
+`https://clipify.us/internal/health/instance`. It reads `mcpClients.items` with the
+backend parser, including every self-reported application name. Configure the
+bearer token in the datasource's secure settings, never in dashboard JSON.
+This table shows current groups and retained 30-day audit usage independently of
+the chart time range. Names are metadata, not verified vendor identities. No
+numbered-slot identities or Top-X limit are used.
 
-The collector configuration is external to this repository. Its operator must
-add the numeric mapping, check stable per-process targeting, and verify points
-in the actual bucket before importing v6. App deployment alone cannot establish
-that the collector ingests newly added nested fields.
+Client adoption totals use the actual numeric collector fields
+`mcpClients_summary_*`, taking all columns from the same latest sample. They are
+database-wide gauges and must not be summed across replicas. Names need not be
+stored in Influx for the current applications table to work.
+
+`mcp-health-sample.json` is a deterministic monitoring fixture, not production
+values. The two `*-influx-fields.json` files provide counter/client fixtures for
+local acceptance testing; their legacy client mapping is converted to the
+collector's `mcpClients_*` paths by the validator. Do not ingest fixture values.
+
+## New health fields
+
+Every authenticated health request reads fresh values; it remains `no-store`.
+There is no aggregate TTL cache and no schema migration.
+
+- `crawler`: due and running recent/history jobs, pending manual refreshes,
+  future scheduled jobs, retrying jobs, expired leases, oldest due-job age and
+  oldest manual-refresh wait. Counts exclude disabled creators and follow the
+  workers' due/lease boundaries. Retry counts are gauges, not lifetime failures.
+- `notifications`: due first attempts/retries, future scheduled notices/retries,
+  active claims, expired claims, failed notices, deliberately skipped notices and
+  oldest overdue unclaimed notice. Sent history is excluded from the aggregate
+  query. `NOTIFICATION_NO_LONGER_APPLIES` is a skip, not a delivery failure.
+- `clips.fallbackReasons`: fixed process counters for missing credentials,
+  disabled accounts, refresh failures, missing download scopes, rejected API
+  requests, API/network errors, rate limits and empty download responses. They
+  contain no user IDs, clip IDs, credentials or arbitrary error text.
+
+Age gauges are seconds, clamped to zero when no matching backlog exists. Future
+scheduled work is distinct from overdue work. These are observed queue ages,
+not promises about the next start time.
+
+Download permission coverage accepts comma-separated native Better Auth scopes
+and whitespace-separated migrated scopes with exact token boundaries. It
+measures permission coverage, not token validity or active users. Expired access
+tokens may still refresh successfully. Recent sign-ins are labelled as sign-ins,
+rather than treating them as every form of application activity.
 
 ## Chart semantics
 
-Counter queries call `increase()` separately for each source series before
-`difference()` and replica aggregation. First samples provide baselines. Counts
-are window deltas; rates divide those deltas by window duration. Missing scrapes
-remain gaps; activity accumulated across a gap appears at the next observation,
-so these rates are observed window rates, not instantaneous rates. No fill-zero
-invented traffic is used. Calls after the final scrape and before restart can be
-lost. Use the existing durable audit history for retained connection activity.
+Normalize process counters with `increase()` per source series before calculating
+deltas and combining replicas. First samples are baselines; missing scrapes stay
+gaps, and work between the last scrape and a restart can be lost. Use stable
+per-process scrape targets and tags rather than alternating replicas behind a
+load balancer. Never put client names, IDs or payloads in metric tags.
 
-Latency average uses summed duration/count deltas. p95 uses histogram bucket
-deltas summed across instances, with linear interpolation; it never averages
-per-instance percentiles. Empty duration/error-ratio windows produce no sample,
-not NaN or a misleading zero. The highest finite duration bucket is 60 seconds;
-observations above it saturate the histogram estimate at that bound. Runtime
-calls and HTTP requests are different counts: OAuth challenges/discovery/prompt
-requests are not executed tools, and a domain denial can have HTTP status 200.
+Rates divide deltas by window length. The tool-usage table shows every used tool
+sorted by total calls in the selected period. Reason charts retain zero
+intervals for each series that has activity in that period.
+Average latency and histogram p95 combine observations, never per-instance
+percentiles. No-call windows have no latency or error-ratio sample. HTTP responses
+and executed tools are separate: a 4xx OAuth challenge can be expected.
 
-The admin view displays this process's totals since startup. Health snapshots
-are process-local too. Grafana combines externally collected history across
-stable instances. No user-specific RAM maps or sensitive content are collected.
+Scrape age uses the Influx sample timestamp. Uptime already describes the host
+process; no separate estimated MCP process-start panel is needed. Missing
+telemetry stays missing rather than appearing as healthy zero traffic.
 
 ## Reproducible acceptance
 
-Start **fresh disposable** Grafana 13.2.x and InfluxDB 2.x services on loopback (Grafana
-admin credentials `admin:admin`; InfluxDB setup not completed). Then run:
+Start fresh disposable Grafana 13.2.x with Infinity 4.1.1 installed and InfluxDB
+2.x on loopback (Grafana `admin:admin`, Influx setup not yet completed). Run:
 
 ```sh
 node test/support/monitoring/validate-mcp-grafana.mjs \
   http://127.0.0.1:18086 http://127.0.0.1:13030
 ```
 
-The validator refuses non-loopback addresses. It sets up a test bucket and
-datasource, imports the complete V2 resource through Grafana's resource API, executes all query-bearing panels
-through both InfluxDB and Grafana, and asserts fixture values for normal traffic,
-reset, replicas, missing scrapes, zero traffic, average and histogram p95.
-The corrected V2 resource was validated locally on 2026-10-09 with Grafana
-13.2.3 and InfluxDB OSS 2.9.1. Resource import, 360 Flux target queries across five
-scenarios, and every query-bearing Grafana panel passed. The full dashboard has
-69 panels and 12 rows. The external connector previously accepted the MCP
-queries, but live collector ingestion remains pending.
+The validator rejects non-loopback services, imports the full V2 resource and
+executes charts through both Influx and Grafana. It exercises normal traffic,
+resets, replicas, zero traffic and missing scrapes, plus an authenticated,
+uncached health fixture containing 25 named applications. Real production data
+and credentials are not used. The current revision passed on Grafana 13.2.3,
+Infinity 4.1.1 and InfluxDB 2.9.1: 78 panels and 400 Flux scenario queries.
 
-Client adoption uses existing OAuth clients, current grants and retained MCP
-audit events, freshly queried on every health request without a TTL cache. These are database-wide gauges; do not sum
-replica snapshots. Admin pagination covers every currently known app-name group.
-The health endpoint and Grafana export every group, without a Top-X cap. Names
-are bounded to 200 characters and case-normalized for grouping, are not verified
-vendor identities, and never become tags. Expired unconsented registrations can
-be removed by existing cleanup; deleted metadata is shown as `Unavailable app`.
-Usage is limited by retained audits, not durable all-time analytics. The table selects fields from the latest snapshot timestamp, so removed slots do not remain visible. Influx retains points for 30 days; this limits history duration, while point volume still scales with application count.
-The Flux table casts value columns to strings before pivot, then casts numeric
-columns back to floats; this avoids Influx string/float schema collisions.
-
-Both v5 and v6 are full dashboard JSON exports. The v5 baseline was read from the
-deployed dashboard (57 panels and 11 rows, version 17); v6 preserves those panels
-and rows and adds an MCP row and 12 panels.
-
-The actual external `clipify_monitor` bucket retention was verified read-only through Grafana on 2026-10-08: 2,592,000,000,000,000 nanoseconds (30 days).
-
-The previous validation used Grafana 12.2's Classic import API. It did not test
-the Cloud JSON editor and therefore missed the missing `spec` envelope. The
-corrected resource was converted by Grafana 13.2.3: all 69 panel titles and Flux
-queries were preserved across 12 rows, and resource creation and update were
-accepted locally. No live Cloud dashboard was changed by this validation.
-The complete resource was also pasted into Grafana 13.2.3's browser JSON editor
-and applied successfully, exercising the same editor workflow as Grafana Cloud.
+The production bucket has a 30-day retention policy. History duration is bounded
+by retention, while stored point volume scales with the fields/application groups
+exported by the collector. Cloud import/deployment is separate from local
+acceptance; new crawler/outbox/fallback fields appear after the app is released
+and the existing collector scrapes that version.
