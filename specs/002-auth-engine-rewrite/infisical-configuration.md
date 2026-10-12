@@ -80,9 +80,10 @@ Existing newsletter contact-book configuration remains separate from these
 transactional-mail settings.
 
 Sign-in and verification codes, invitations, and data exports use
-`USESEND_TRANSACTIONAL_FROM` without a Reply-To header. Welcome and Pro thank-you emails use
-`Daniel from Clipify <hello@clipify.us>`. Other account notifications use
-`Clipify <notifications@clipify.us>`. Both replyable categories use
+`USESEND_TRANSACTIONAL_FROM` without a Reply-To header, preserving the configured mailbox and displaying
+`Clipify.us` as its sender name. Welcome and Pro thank-you emails use
+`Daniel from Clipify.us <hello@clipify.us>`. Other account notifications use
+`Clipify.us <notifications@clipify.us>`. Both replyable categories use
 `USESEND_TRANSACTIONAL_REPLY_TO` (default `contact@clipify.us`) for replies.
 All sender addresses must belong to a verified UseSend domain.
 
