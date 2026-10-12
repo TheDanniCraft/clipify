@@ -2,11 +2,23 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button, Card, Input, InputOTP, Label, Link, REGEXP_ONLY_DIGITS, TextField } from "@heroui/react";
+import { Avatar, Button, Card, Input, InputOTP, Label, Link, ListBox, REGEXP_ONLY_DIGITS, Select, TextField } from "@heroui/react";
 import { IconArrowRight, IconMail } from "@tabler/icons-react";
 import { authClient } from "@/auth/client";
 
-type Workspace = { id: string; name: string; metadata?: unknown };
+type Workspace = { id: string; name: string; logo?: string | null; metadata?: unknown };
+
+function WorkspaceLabel({ workspace }: { workspace: Workspace }) {
+	return (
+		<div className='flex min-w-0 items-center gap-2'>
+			<Avatar size='sm' className='shrink-0'>
+				<Avatar.Image src={workspace.logo ?? undefined} alt='' />
+				<Avatar.Fallback>{workspace.name.slice(0, 2).toUpperCase()}</Avatar.Fallback>
+			</Avatar>
+			<span className='truncate'>{workspace.name}</span>
+		</div>
+	);
+}
 
 function workspaceDestination(workspace: Workspace, returnUrl: string) {
 	if (returnUrl !== "/dashboard") return returnUrl;
@@ -28,8 +40,10 @@ export default function EditorSignIn({ returnUrl, signedInEmail }: { returnUrl: 
 	const [codeSent, setCodeSent] = useState(false);
 	const [signedIn, setSignedIn] = useState(!!signedInEmail);
 	const [workspaces, setWorkspaces] = useState<Workspace[] | null>(null);
+	const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(null);
 	const [pending, setPending] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const selectedWorkspace = workspaces?.find((workspace) => workspace.id === selectedWorkspaceId);
 
 	async function openWorkspace(workspace: Workspace) {
 		const result = await authClient.organization.setActive({ organizationId: workspace.id });
@@ -43,6 +57,7 @@ export default function EditorSignIn({ returnUrl, signedInEmail }: { returnUrl: 
 		if (result.error) throw new Error("We could not load your workspaces. Please try again.");
 		const available = result.data ?? [];
 		setWorkspaces(available);
+		setSelectedWorkspaceId(available.length === 1 ? available[0].id : null);
 		if (available.length === 1) await openWorkspace(available[0]);
 		if (!available.length) setError("Your account does not have workspace access yet. Ask the creator to invite you.");
 	}
@@ -51,7 +66,11 @@ export default function EditorSignIn({ returnUrl, signedInEmail }: { returnUrl: 
 		setPending(true);
 		setError(null);
 		try {
-			await loadWorkspaces();
+			if (workspaces === null) await loadWorkspaces();
+			else {
+				const selected = workspaces.find((workspace) => workspace.id === selectedWorkspaceId);
+				if (selected) await openWorkspace(selected);
+			}
 		} catch {
 			setError("We could not open your workspace. Please try again.");
 		} finally {
@@ -83,18 +102,6 @@ export default function EditorSignIn({ returnUrl, signedInEmail }: { returnUrl: 
 		}
 	}
 
-	async function selectWorkspace(workspace: Workspace) {
-		setPending(true);
-		setError(null);
-		try {
-			await openWorkspace(workspace);
-		} catch {
-			setError("We could not open this workspace. Please try again.");
-		} finally {
-			setPending(false);
-		}
-	}
-
 	async function changeAccount() {
 		setPending(true);
 		try {
@@ -104,6 +111,7 @@ export default function EditorSignIn({ returnUrl, signedInEmail }: { returnUrl: 
 			setCodeSent(false);
 			setCode("");
 			setWorkspaces(null);
+			setSelectedWorkspaceId(null);
 			setError(null);
 		} catch {
 			setError("We could not sign out. Please try again.");
@@ -159,17 +167,30 @@ export default function EditorSignIn({ returnUrl, signedInEmail }: { returnUrl: 
 						</form>
 					) : (
 						<div className='flex w-full flex-col gap-3'>
-							{pending ? <p className='text-sm text-muted'>Opening your workspace...</p> : null}
-							{workspaces === null ? (
-								<Button variant='primary' className='w-full' isPending={pending} isDisabled={pending} onPress={() => void continueSignedIn()}>
+							{workspaces && workspaces.length > 0 ? (
+								<Select fullWidth variant='secondary' placeholder='Select a workspace' value={selectedWorkspaceId} onChange={(value) => setSelectedWorkspaceId(typeof value === "string" ? value : null)} isDisabled={pending}>
+									<Label>Workspace</Label>
+									<Select.Trigger>
+										<Select.Value>{selectedWorkspace ? <WorkspaceLabel workspace={selectedWorkspace} /> : undefined}</Select.Value>
+										<Select.Indicator />
+									</Select.Trigger>
+									<Select.Popover>
+										<ListBox>
+											{workspaces.map((workspace) => (
+												<ListBox.Item key={workspace.id} id={workspace.id} textValue={workspace.name}>
+													<WorkspaceLabel workspace={workspace} />
+													<ListBox.ItemIndicator />
+												</ListBox.Item>
+											))}
+										</ListBox>
+									</Select.Popover>
+								</Select>
+							) : null}
+							{workspaces === null || workspaces.length > 0 ? (
+								<Button variant='primary' className='w-full' isPending={pending} isDisabled={pending || (workspaces !== null && !selectedWorkspace)} onPress={() => void continueSignedIn()}>
 									Continue
 								</Button>
 							) : null}
-							{workspaces?.map((workspace) => (
-								<Button key={workspace.id} variant='secondary' className='w-full min-w-0' isDisabled={pending} onPress={() => void selectWorkspace(workspace)}>
-									<span className='truncate'>{workspace.name}</span>
-								</Button>
-							))}
 							<Button variant='tertiary' className='w-full' isDisabled={pending} onPress={() => void changeAccount()}>
 								Use another account
 							</Button>

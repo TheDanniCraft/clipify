@@ -1,0 +1,32 @@
+{
+	"$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+	"name": "clipify",
+	"version": "1.0.0",
+	"description": "Manage your clips, overlays, playlists, and themes.",
+	"author": {
+		"name": "TheDanniCraft",
+		"email": "contact@clipify.us",
+		"url": "https://clipify.us"
+	},
+	"homepage": "https://clipify.us",
+	"extensions": {
+		"com.openai": {
+			"interface": {
+				"displayName": "Clipify",
+				"shortDescription": "Keep your stream alive",
+				"longDescription": "Manage your Clipify creators, overlays, playlists, galleries, and appearance through your AI assistant. Choose which creators to connect and the permissions each connection can use.",
+				"developerName": "TheDanniCraft",
+				"category": "Creativity",
+				"capabilities": ["Read", "Write"],
+				"websiteURL": "https://clipify.us",
+				"supportURL": "https://help.clipify.us/",
+				"privacyPolicyURL": "https://clipify.us/legal/privacy",
+				"termsOfServiceURL": "https://clipify.us/legal/terms",
+				"defaultPrompt": ["Show my Clipify overlays and playlists.", "Change my overlay theme to purple.", "Create a playlist using my most popular clips."],
+				"brandColor": "#6200FF",
+				"composerIcon": "./assets/logo.png",
+				"logo": "./assets/logo.png"
+			}
+		}
+	}
+}

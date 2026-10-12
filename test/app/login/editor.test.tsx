@@ -18,7 +18,25 @@ jest.mock("@/auth/client", () => ({
 }));
 jest.mock("@heroui/react", () => {
 	const Container = ({ children }: React.PropsWithChildren) => <div>{children}</div>;
+	const Option = ({ id, textValue }: { id: string; textValue: string }) => <option value={id}>{textValue}</option>;
+	function options(children: React.ReactNode): React.ReactNode[] {
+		return React.Children.toArray(children).flatMap((child) => {
+			if (!React.isValidElement<{ children?: React.ReactNode }>(child)) return [];
+			return child.type === Option ? [child] : options(child.props.children);
+		});
+	}
 	return {
+		Avatar: Object.assign(Container, { Image: () => null, Fallback: Container }),
+		ListBox: Object.assign(Container, { Item: Option, ItemIndicator: () => null }),
+		Select: Object.assign(
+			({ children, value, onChange, isDisabled }: React.PropsWithChildren<{ value: string | null; onChange: (value: string) => void; isDisabled?: boolean }>) => (
+				<select aria-label='Workspace' value={value ?? ""} disabled={isDisabled} onChange={(event) => onChange(event.target.value)}>
+					<option value=''>Select a workspace</option>
+					{options(children)}
+				</select>
+			),
+			{ Trigger: Container, Value: () => null, Indicator: () => null, Popover: Container },
+		),
 		Card: Object.assign(Container, { Header: Container, Title: Container, Description: Container, Content: Container, Footer: Container }),
 		Button: ({ children, onPress, isDisabled, type }: React.PropsWithChildren<{ onPress?: () => void; isDisabled?: boolean; type?: "button" | "submit" }>) => (
 			<button type={type ?? "button"} disabled={isDisabled} onClick={onPress}>
@@ -97,11 +115,15 @@ test("multiple memberships require choosing a workspace rather than silently sel
 	});
 	render(<EditorSignIn signedInEmail='editor@example.com' returnUrl='/dashboard' />);
 	fireEvent.click(screen.getByRole("button", { name: "Continue" }));
-	await screen.findByRole("button", { name: "Second Creator" });
+	const picker = await screen.findByRole("combobox", { name: "Workspace" });
+	expect(screen.getByRole("button", { name: "Continue" })).toBeDisabled();
 	expect(authClient.organization.setActive).not.toHaveBeenCalled();
-	await waitFor(() => expect(screen.getByRole("button", { name: "Second Creator" })).toBeEnabled());
-	fireEvent.click(screen.getByRole("button", { name: "Second Creator" }));
+	await waitFor(() => expect(picker).toBeEnabled());
+	fireEvent.change(picker, { target: { value: "two" } });
+	expect(authClient.organization.setActive).not.toHaveBeenCalled();
+	fireEvent.click(screen.getByRole("button", { name: "Continue" }));
 	await waitFor(() => expect(authClient.organization.setActive).toHaveBeenCalledWith({ organizationId: "two" }));
+	await waitFor(() => expect(mockRouter.replace).toHaveBeenCalledWith("/dashboard"));
 });
 
 test("failed membership activation does not navigate", async () => {
