@@ -131,7 +131,7 @@ export default function EditorSignIn({ returnUrl, signedInEmail }: { returnUrl: 
 							) : (
 								<div className='flex flex-col items-center gap-2 text-center'>
 									<Label>Sign-in code</Label>
-									<InputOTP aria-label='Sign-in code' maxLength={6} value={code} onChange={setCode} pattern={REGEXP_ONLY_DIGITS} inputMode='numeric' autoComplete='one-time-code' isDisabled={pending}>
+									<InputOTP className='justify-center' aria-label='Sign-in code' maxLength={6} value={code} onChange={setCode} pattern={REGEXP_ONLY_DIGITS} inputMode='numeric' autoComplete='one-time-code' isDisabled={pending}>
 										<InputOTP.Group>
 											{Array.from({ length: 6 }, (_, index) => (
 												<InputOTP.Slot key={index} index={index} />
