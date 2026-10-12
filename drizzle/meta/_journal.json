@@ -190,6 +190,13 @@
       "when": 1791583078406,
       "tag": "0026_notification_event_triggers",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1791769741107,
+      "tag": "0027_boring_chamber",
+      "breakpoints": true
     }
   ]
 }
