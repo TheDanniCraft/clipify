@@ -653,6 +653,37 @@ export const twitchCacheTable = pgTable(
 	(t) => [uniqueIndex("twitch_cache_type_key_unique").on(t.type, t.key), index("twitch_cache_expires_at_idx").on(t.expiresAt)],
 );
 
+export const clipCrawlJobsTable = pgTable(
+	"clip_crawl_jobs",
+	{
+		creatorId: varchar("creator_id")
+			.notNull()
+			.references(() => usersTable.id, { onDelete: "cascade" }),
+		kind: varchar("kind").$type<"recent" | "backfill">().notNull(),
+		nextRunAt: timestamp("next_run_at", { withTimezone: true }),
+		requestedAt: timestamp("requested_at", { withTimezone: true }),
+		leaseId: uuid("lease_id"),
+		leaseExpiresAt: timestamp("lease_expires_at", { withTimezone: true }),
+		attempts: integer("attempts").notNull().default(0),
+		failures: integer("failures").notNull().default(0),
+		lastError: text("last_error"),
+		lastCompletedAt: timestamp("last_completed_at", { withTimezone: true }),
+		createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+	},
+	(table) => [
+		primaryKey({ columns: [table.creatorId, table.kind] }),
+		check("clip_crawl_job_kind", sql`${table.kind} IN ('recent', 'backfill')`),
+		check("clip_crawl_job_attempts", sql`${table.attempts} >= 0 AND ${table.failures} >= 0`),
+		check("clip_crawl_job_lease_pair", sql`(${table.leaseId} IS NULL) = (${table.leaseExpiresAt} IS NULL)`),
+		index("clip_crawl_jobs_due_idx")
+			.on(table.nextRunAt, table.creatorId, table.kind)
+			.where(sql`${table.nextRunAt} IS NOT NULL`),
+		index("clip_crawl_jobs_manual_idx")
+			.on(table.nextRunAt, table.creatorId, table.kind)
+			.where(sql`${table.requestedAt} IS NOT NULL`),
+	],
+);
+
 export const entitlementGrantsTable = pgTable(
 	"entitlement_grants",
 	{

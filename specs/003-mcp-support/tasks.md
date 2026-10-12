@@ -1264,3 +1264,14 @@ The user explicitly approved merge-readiness-review.md. Tasks T026, T243, T270, 
 - [x] T588 Reuse cached explicit clips for resolution and playlist additions while preserving validation of uncached IDs.
 - [x] T589 Add creator-authorized crawler status and refresh tools, shared dashboard cooldown/locks, atomic persistence and background request independence; preserve stored playback clips.
 - [x] T590 Update agent descriptions, example prompts, activity labels and catalogue contracts; run focused workflow, SDK, dashboard, request lifecycle, lint, formatting and type checks. Retain results in clip-cache-workflows.md; do not claim live-host acceptance or production deployment.
+
+## Fair crawler amendment — 2026-10-12
+
+- [x] T591 Replace the repeated top-25 scheduler with durable per-creator recent/history jobs, indexed oldest-due claims and incremental queue seeding.
+- [x] T592 Bound batches and concurrency, renew expiring leases, fence stale workers and preserve the existing per-creator crawl lock.
+- [x] T593 Queue manual priority refreshes atomically with cooldowns; join MCP authorization transactions and wake workers after commit without resetting history.
+- [x] T594 Persist bounded recent/history pagination and dense-window counters; preserve priority across recent continuations and retry provider/storage failures.
+- [x] T595 Expose safe queue state through existing crawler status and update tool descriptions.
+- [x] T596 Verify real PostgreSQL concurrency, lease recovery, fairness, cooldown/history retention and native MCP continuations; pass focused regressions and lint/typecheck, and retain full local/CI gates as release requirements.
+
+Release operations are tracked in PR #509: merge the combined editor/crawler change only after CI, wait for master-owned migration generation and all final-head master CI, then publish the combined patch release.

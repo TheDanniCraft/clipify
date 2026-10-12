@@ -10,12 +10,13 @@ import { resolveUserEntitlements } from "@lib/entitlements";
 import { authorizeLockedMutation } from "./mutation";
 import { workflowInputSchemas, type WorkflowToolName } from "@/server/mcp/workflows/schemas";
 import { workflowPermissions, workflowAnnotations } from "@/server/mcp/workflows/catalogue";
-export type WorkflowContext = { tx: TransactionClient; principal: TrustedCreatorPrincipal; creatorId: string; pro: boolean; runnerAccess: boolean; assertCurrent: () => void };
+export type WorkflowContext = { tx: TransactionClient; principal: TrustedCreatorPrincipal; creatorId: string; pro: boolean; runnerAccess: boolean; assertCurrent: () => void; afterCommit: (callback: () => void) => void };
 export async function workflowOperation<T extends WorkflowToolName>(principal: TrustedCreatorPrincipal, tool: T, rawInput: unknown, operation: (input: ReturnType<(typeof workflowInputSchemas)[T]["parse"]>, context: WorkflowContext) => Promise<Record<string, unknown>>, client: DatabaseClient = db, auditTool: ToolName = tool) {
 	const parsed = workflowInputSchemas[tool].safeParse(rawInput);
 	if (!parsed.success) throw new Error("INVALID_INPUT");
 	const input = parsed.data;
-	return client.transaction(async (tx) => {
+	const afterCommit: Array<() => void> = [];
+	const result = await client.transaction(async (tx) => {
 		const authority = await authorizeLockedMutation(principal, input.creatorId, workflowPermissions[tool], tx);
 		if (tool.includes("runner") || tool.includes("stream_session")) {
 			await tx
@@ -35,7 +36,7 @@ export async function workflowOperation<T extends WorkflowToolName>(principal: T
 		const remote = ["get_overlay_runtime", "get_overlay_queues", "control_overlay", "play_overlay", "pause_overlay", "skip_overlay", "hide_overlay", "show_overlay", "set_overlay_volume", "mute_overlay", "unmute_overlay", "toggle_overlay_mute", "enqueue_overlay_clip", "clear_overlay_queue"].includes(tool);
 		if (remote && !entitlements.proAccess) throw new Error("FEATURE_RESTRICTED");
 		if (["get_runner_setup", "create_runner", "configure_stream_session", "control_stream_session"].includes(tool) && !entitlements.runnerAccess) throw new Error("FEATURE_RESTRICTED");
-		const context: WorkflowContext = { tx, principal, creatorId: input.creatorId, pro: entitlements.proAccess, runnerAccess: entitlements.runnerAccess, assertCurrent: authority.assertAuthorityCurrent };
+		const context: WorkflowContext = { tx, principal, creatorId: input.creatorId, pro: entitlements.proAccess, runnerAccess: entitlements.runnerAccess, assertCurrent: authority.assertAuthorityCurrent, afterCommit: (callback) => afterCommit.push(callback) };
 		authority.assertAuthorityCurrent();
 		const result = await operation(input as ReturnType<(typeof workflowInputSchemas)[T]["parse"]>, context);
 		authority.assertAuthorityCurrent();
@@ -60,6 +61,8 @@ export async function workflowOperation<T extends WorkflowToolName>(principal: T
 		authority.assertAuthorityCurrent();
 		return result;
 	});
+	for (const callback of afterCommit) callback();
+	return result;
 }
 /** Replay identity includes the original grant, generation, actor and client. Caller holds policy locks. */
 export async function workflowRetry(context: WorkflowContext, tool: WorkflowToolName, input: Record<string, unknown>, operation: () => Promise<Record<string, unknown>>) {

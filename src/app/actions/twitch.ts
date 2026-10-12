@@ -2,6 +2,8 @@
 "use server";
 
 import axios from "axios";
+import { crawlRecentClips, type RecentCrawlState } from "@/server/clip-crawler/recent";
+import type { ClipCrawlOptions, ClipCrawlResult } from "@/server/clip-crawler/types";
 import { AuthenticatedUser, Game, Overlay, OverlayType, PlaybackMode, RewardStatus, TwitchApiResponse, TwitchAppAccessTokenResponse, TwitchCacheType, TwitchClip, TwitchClipDownloadResponse, TwitchClipGqlData, TwitchClipGqlResponse, TwitchClipResponse, TwitchClipVideoQuality, TwitchReward, TwitchRewardResponse, TwitchUserResponse } from "@types";
 import { getAccessToken, getAccessTokenServer, getOverlayBySecret, getOverlayPublic, getPlaylistRuntimeClipsForOwnerServer, getTwitchCache, getTwitchCacheBatch, getTwitchCacheByPrefixEntries, getTwitchCacheEntry, getTwitchCacheStale, getTwitchCacheStaleBatch, setTwitchCache, setTwitchCacheBatch } from "@actions/database";
 import { type TwitchRateLimitLog, incrementClipFetchFallback, incrementClipFetchRateLimited, incrementClipFetchV1, incrementClipFetchV2, recordTwitchRateLimit } from "@lib/instanceHealth";
@@ -17,8 +19,9 @@ import { TWITCH_CLIPS_LAUNCH_MS } from "@lib/constants";
 import { operationalCount, operationalDuration } from "@lib/operationalHealth";
 
 export async function logTwitchError(context: string, error: unknown) {
-	if (axios.isAxiosError(error) && error.response) {
-		console.error("%s:", context, error.response.data);
+	if (axios.isAxiosError(error)) {
+		if (error.response) console.error("%s:", context, error.response.data);
+		else console.error("%s:", context, { message: error.message, code: error.code });
 	} else {
 		console.error("%s:", context, error);
 	}
@@ -35,13 +38,14 @@ type EventSubSubscription = {
 	};
 };
 
-type ClipSyncState = {
+type ClipSyncState = RecentCrawlState & {
 	lastIncrementalSyncAt?: string;
 	lastBackfillSyncAt?: string;
 	backfillCursor?: string;
 	backfillWindowEnd?: string;
 	backfillWindowSizeMs?: number;
 	backfillComplete?: boolean;
+	backfillWindowPages?: number;
 	rateLimitedUntil?: string;
 };
 
@@ -559,9 +563,19 @@ export async function getTwitchGames(query: string, authUserId: string): Promise
 	return internalSearchTwitchGames(query, authUserId);
 }
 
-async function upsertClipsByOwner(ownerId: string, clips: TwitchClip[]) {
+async function upsertClipsByOwner(ownerId: string, clips: TwitchClip[], durable = false) {
 	if (clips.length === 0) return;
 	const nowIso = new Date().toISOString();
+	if (durable) {
+		const rows = clips.map((clip) => ({ key: toClipCacheKey(ownerId, clip.id), value: JSON.stringify({ clip, lastSeenAt: nowIso, lastValidatedAt: nowIso }) }));
+		await dbPool.query(
+			`INSERT INTO "twitchCache"(type,key,value,fetched_at,expires_at)
+   SELECT 'clip',key,value,now(),NULL FROM jsonb_to_recordset($1::jsonb) AS items(key text,value text)
+   ON CONFLICT(type,key) DO UPDATE SET value=excluded.value,fetched_at=excluded.fetched_at,expires_at=NULL`,
+			[JSON.stringify(rows)],
+		);
+		return;
+	}
 	await setTwitchCacheBatch(
 		TwitchCacheType.Clip,
 		clips.map((clip) => ({
@@ -625,6 +639,7 @@ export async function resolvePlayableClip(ownerId: string, clip: TwitchClip): Pr
 async function fetchClipPage(ownerId: string, accessToken: string, first: number, after?: string, startedAt?: string, endedAt?: string) {
 	const url = "https://api.twitch.tv/helix/clips";
 	const response = await axios.get<TwitchApiResponse<TwitchClipResponse>>(url, {
+		timeout: 15_000,
 		headers: {
 			Authorization: `Bearer ${accessToken}`,
 			"Client-Id": process.env.TWITCH_CLIENT_ID || "",
@@ -1049,26 +1064,27 @@ async function runIncrementalSync(ownerId: string, accessToken: string, nextStat
 	}
 }
 
-async function runBackfillSync(ownerId: string, accessToken: string, nextState: ClipSyncState, ownerBackfillLowerBoundMs: number, nowMs: number, initialRequestsUsed: number): Promise<void> {
+async function runBackfillSync(ownerId: string, accessToken: string, nextState: ClipSyncState, ownerBackfillLowerBoundMs: number, nowMs: number, initialRequestsUsed: number, requestBudget = CLIP_SYNC_REQUEST_BUDGET_PER_RUN, durable = false): Promise<boolean> {
 	// Legacy cursor check: if we have a cursor but no window state, it's from the old sync logic.
 	// Twitch cursors are query-specific, so we must reset it to avoid 400 errors.
-	if (nextState.backfillCursor && !nextState.backfillWindowEnd) {
+	if (nextState.backfillCursor && (!nextState.backfillWindowEnd || (durable && nextState.backfillWindowPages === undefined))) {
 		nextState.backfillCursor = undefined;
 	}
 
 	let recentRequestsUsed = initialRequestsUsed;
+	let failed = false;
 	try {
 		// Process multiple windows in one run if budget allows.
 		// We always allow at least ONE window to ensure backfill progress isn't starved by high-volume recent clips.
 		let forceFirstIteration = true;
-		while ((recentRequestsUsed < CLIP_SYNC_REQUEST_BUDGET_PER_RUN || forceFirstIteration) && !nextState.backfillComplete) {
-			const remainingBudget = Math.max(1, CLIP_SYNC_REQUEST_BUDGET_PER_RUN - recentRequestsUsed);
+		while ((recentRequestsUsed < requestBudget || forceFirstIteration) && !nextState.backfillComplete) {
+			const remainingBudget = Math.max(1, requestBudget - recentRequestsUsed);
 			forceFirstIteration = false;
 
 			const currentEndMs = nextState.backfillWindowEnd ? new Date(nextState.backfillWindowEnd).getTime() : nowMs - CLIP_SYNC_RECENT_WINDOW_DAYS * 24 * 60 * 60 * 1000;
 
 			const MAX_WINDOW_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
-			const MIN_WINDOW_MS = 10 * 60 * 1000; // 10 minutes
+			const MIN_WINDOW_MS = durable ? 1000 : 10 * 60 * 1000; // Queued jobs can subdivide dense history to one second.
 			const DEFAULT_WINDOW_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 			const rawWindowSizeMs = Number(nextState.backfillWindowSizeMs);
@@ -1077,6 +1093,7 @@ async function runBackfillSync(ownerId: string, accessToken: string, nextState: 
 
 			let cursor: string | undefined = nextState.backfillCursor;
 			let pagesFetchedInWindow = 0;
+			let totalWindowPages = nextState.backfillWindowPages ?? 0;
 			let clipsFetchedInWindow = 0;
 			let hitLimitInWindow = false;
 
@@ -1095,13 +1112,15 @@ async function runBackfillSync(ownerId: string, accessToken: string, nextState: 
 			while (pagesFetchedInWindow < remainingBudget && currentEndMs > ownerBackfillLowerBoundMs) {
 				try {
 					const page = await fetchClipPage(ownerId, accessToken, 100, cursor, startedAtIso, endedAtIso);
-					await upsertClipsByOwner(ownerId, page.clips);
+					await upsertClipsByOwner(ownerId, page.clips, durable);
 					clipsFetchedInWindow += page.clips.length;
 					recentRequestsUsed += 1;
 					pagesFetchedInWindow += 1;
+					totalWindowPages += 1;
+					nextState.backfillWindowPages = totalWindowPages;
 					cursor = page.cursor;
 
-					if (cursor && (clipsFetchedInWindow >= 1000 || pagesFetchedInWindow >= 10)) {
+					if ((cursor || (durable && page.clips.length === 100)) && (clipsFetchedInWindow >= 1000 || totalWindowPages >= 10)) {
 						hitLimitInWindow = true;
 						break;
 					}
@@ -1121,6 +1140,7 @@ async function runBackfillSync(ownerId: string, accessToken: string, nextState: 
 					logTwitchError("Error fetching backfill clip sync page", error);
 					// Stop processing this window but allow saving what we have
 					windowFailed = true;
+					failed = true;
 					break;
 				}
 			}
@@ -1134,7 +1154,14 @@ async function runBackfillSync(ownerId: string, accessToken: string, nextState: 
 				nextState.backfillWindowEnd = endedAtIso;
 				// Reset cursor because the next request will have different date bounds, making the current cursor invalid.
 				nextState.backfillCursor = undefined;
+				nextState.backfillWindowPages = 0;
 				break; // Stop this run's loop to avoid getting stuck if remainingBudget is low
+			} else if (durable && hitLimitInWindow) {
+				failed = true;
+				nextState.backfillWindowEnd = endedAtIso;
+				nextState.backfillCursor = undefined;
+				nextState.backfillWindowPages = 0;
+				break;
 			} else if (windowFailed && pagesFetchedInWindow > 0) {
 				// Persist partial progress in the SAME window and retry later from the saved cursor.
 				nextState.backfillWindowEnd = endedAtIso;
@@ -1154,6 +1181,7 @@ async function runBackfillSync(ownerId: string, accessToken: string, nextState: 
 					// Move to next window
 					nextState.backfillWindowEnd = new Date(currentStartMs).toISOString();
 					nextState.backfillCursor = undefined;
+					nextState.backfillWindowPages = 0;
 
 					/* istanbul ignore next */
 					if (hitLimitInWindow) {
@@ -1185,8 +1213,9 @@ async function runBackfillSync(ownerId: string, accessToken: string, nextState: 
 			}
 		}
 
-		nextState.lastBackfillSyncAt = new Date(nowMs).toISOString();
+		if (!failed) nextState.lastBackfillSyncAt = new Date(nowMs).toISOString();
 	} catch (error) {
+		failed = true;
 		// Only log if it's NOT a 429, because 429s are expected and handled via rateLimitedUntil
 		/* istanbul ignore next */
 		if (!axios.isAxiosError(error) || error.response?.status !== 429) {
@@ -1200,19 +1229,21 @@ async function runBackfillSync(ownerId: string, accessToken: string, nextState: 
 			nextState.rateLimitedUntil = resumeAt;
 		}
 	}
+	return !failed;
 }
 
-export async function syncOwnerClipCache(ownerId: string, ensurePackSize = 0): Promise<void> {
+export async function syncOwnerClipCache(ownerId: string, ensurePackSize = 0, options?: ClipCrawlOptions): Promise<ClipCrawlResult | void> {
+	if (options && (!["recent", "backfill"].includes(options.kind) || !Number.isSafeInteger(options.requestBudget) || options.requestBudget < 1 || options.requestBudget > 50)) throw new Error("INVALID_CRAWL_OPTIONS");
 	const lockClient = await dbPool.connect();
 	const lockKey = `clip_sync_owner:${ownerId}`;
 	let lockAcquired = false;
 	try {
 		const lockResult = (await lockClient.query("select pg_try_advisory_lock(hashtext($1)) as locked", [lockKey])) as { rows?: Array<{ locked?: boolean }> };
 		lockAcquired = Boolean(lockResult.rows?.[0]?.locked);
-		if (!lockAcquired) return;
+		if (!lockAcquired) return options ? { status: "busy" } : undefined;
 
 		const token = await getAccessTokenInternal(ownerId);
-		if (!token) return;
+		if (!token) return options ? { status: "unavailable" } : undefined;
 
 		let ownerBackfillLowerBoundMs = TWITCH_CLIPS_LAUNCH_MS;
 		try {
@@ -1232,13 +1263,14 @@ export async function syncOwnerClipCache(ownerId: string, ensurePackSize = 0): P
 			cachedClips = await getCachedClipsByOwner(ownerId, ensurePackSize);
 		}
 
-		const syncState = await getClipSyncState(ownerId);
+		const stateRow = options ? (await lockClient.query(`SELECT value FROM "twitchCache" WHERE type='clip' AND key=$1`, [CLIP_SYNC_STATE_KEY(ownerId)])).rows[0] : null;
+		const syncState: ClipSyncState = options ? (stateRow ? JSON.parse(stateRow.value) : {}) : await getClipSyncState(ownerId);
 		const now = Date.now();
 		const nextState: ClipSyncState = { ...syncState };
 		const rateLimitedUntilMs = nextState.rateLimitedUntil ? Date.parse(nextState.rateLimitedUntil) : Number.NaN;
 		if (Number.isFinite(rateLimitedUntilMs)) {
 			if (now < rateLimitedUntilMs) {
-				return;
+				return options ? { status: "retry", retryAt: nextState.rateLimitedUntil } : undefined;
 			}
 			nextState.rateLimitedUntil = undefined;
 		}
@@ -1253,30 +1285,51 @@ export async function syncOwnerClipCache(ownerId: string, ensurePackSize = 0): P
 		let recentRequestsUsed = 0;
 		let rateLimited = false;
 
-		if (incrementalDue) {
+		let succeeded = true;
+		let recentPending = false;
+		if (options?.kind === "recent") {
+			try {
+				const force = Boolean(options.forceRecent) && (!options.requestMarker || options.requestMarker !== nextState.recentRequestMarker);
+				if (options.requestMarker) nextState.recentRequestMarker = options.requestMarker;
+				const result = await crawlRecentClips(nextState, { now, budget: options.requestBudget, force, fetch: (start, end, cursor) => fetchClipPage(ownerId, token.accessToken, 100, cursor, start, end), store: (clips) => upsertClipsByOwner(ownerId, clips, true) });
+				recentPending = result.pending;
+			} catch (error) {
+				logTwitchError("Queued recent clip crawl failed", error);
+				nextState.rateLimitedUntil = getRateLimitResumeAt(error, now) ?? undefined;
+				succeeded = false;
+			}
+		} else if (!options && incrementalDue) {
 			const result = await runIncrementalSync(ownerId, token.accessToken, nextState, ensurePackSize, cachedClips.length, now);
 			recentRequestsUsed = result.requestsUsed;
 			rateLimited = result.rateLimited;
 		}
 
-		const backfillDue = !nextState.backfillComplete && isSyncDue(nextState.lastBackfillSyncAt, CLIP_SYNC_BACKFILL_INTERVAL_MS);
+		const backfillDue = !nextState.backfillComplete && (options?.kind === "backfill" || isSyncDue(nextState.lastBackfillSyncAt, CLIP_SYNC_BACKFILL_INTERVAL_MS));
 
-		if (!rateLimited && backfillDue) {
-			await runBackfillSync(ownerId, token.accessToken, nextState, ownerBackfillLowerBoundMs, now, recentRequestsUsed);
+		if (!rateLimited && backfillDue && options?.kind !== "recent") {
+			succeeded = await runBackfillSync(ownerId, token.accessToken, nextState, ownerBackfillLowerBoundMs, now, recentRequestsUsed, options?.requestBudget, Boolean(options));
 		}
 
 		if (JSON.stringify(syncState) !== JSON.stringify(nextState)) {
-			await setClipSyncState(ownerId, nextState);
+			if (options) {
+				await lockClient.query(
+					`INSERT INTO "twitchCache"(type,key,value,fetched_at,expires_at) VALUES('clip',$1,$2,now(),NULL)
+ ON CONFLICT(type,key) DO UPDATE SET value=excluded.value,fetched_at=excluded.fetched_at,expires_at=NULL`,
+					[CLIP_SYNC_STATE_KEY(ownerId), JSON.stringify(nextState)],
+				);
+			} else await setClipSyncState(ownerId, nextState);
 		}
+		if (options) return { status: succeeded ? "completed" : "retry", backfillComplete: Boolean(nextState.backfillComplete), recentPending, retryAt: nextState.rateLimitedUntil };
 	} finally {
+		let discard = false;
 		if (lockAcquired) {
 			try {
 				await lockClient.query("select pg_advisory_unlock(hashtext($1))", [lockKey]);
 			} catch {
-				// Best-effort unlock.
+				discard = true;
 			}
 		}
-		lockClient.release();
+		lockClient.release(discard);
 	}
 }
 
@@ -1321,11 +1374,11 @@ export async function getOwnClipForceRefreshStatus() {
 	const { clipCrawlerStatus } = await import("@/server/clip-cache");
 	return clipCrawlerStatus(user.id);
 }
-export async function forceRefreshOwnClipCache(ensurePackSize = 0) {
+export async function forceRefreshOwnClipCache() {
 	const user = await validateAuth(false);
 	if (!user) throw new Error("Not authenticated");
 	const { refreshCreatorClips } = await import("@/server/clip-cache");
-	return refreshCreatorClips(user.id, ensurePackSize);
+	return refreshCreatorClips(user.id);
 }
 
 export async function getTwitchClips(overlay: Overlay, type?: OverlayType, skipFilter?: boolean): Promise<TwitchClip[]> {

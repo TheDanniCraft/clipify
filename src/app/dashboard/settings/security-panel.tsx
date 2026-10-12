@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Button, Card, Chip, Input, Label, Modal, TextField, Tooltip } from "@heroui/react";
+import { Button, Card, Chip, Input, InputOTP, Label, Modal, REGEXP_ONLY_DIGITS, TextField, Tooltip } from "@heroui/react";
 import { IconAt, IconDeviceLaptop, IconInfoCircle, IconKey, IconMailCheck, IconPlus, IconTrash } from "@tabler/icons-react";
 import ControlledModal from "@components/controlledModal";
 import { notify as addToast } from "@lib/toast";
@@ -222,10 +222,16 @@ export default function SecuritySettingsPanel() {
 						</TextField>
 					) : null}
 					{emailChangeStep === "verify-current" ? (
-						<TextField value={currentEmailCode} onChange={setCurrentEmailCode} isRequired variant='secondary'>
+						<div className='space-y-2'>
 							<Label>Code from your current email</Label>
-							<Input inputMode='numeric' autoComplete='one-time-code' />
-						</TextField>
+							<InputOTP aria-label='Code from your current email' maxLength={6} value={currentEmailCode} onChange={setCurrentEmailCode} pattern={REGEXP_ONLY_DIGITS} inputMode='numeric' autoComplete='one-time-code' variant='secondary' isDisabled={pendingAction !== null}>
+								<InputOTP.Group>
+									{Array.from({ length: 6 }, (_, index) => (
+										<InputOTP.Slot key={index} index={index} />
+									))}
+								</InputOTP.Group>
+							</InputOTP>
+						</div>
 					) : null}
 					{emailChangePending ? (
 						<div className='space-y-4'>
@@ -244,10 +250,16 @@ export default function SecuritySettingsPanel() {
 								</div>
 								<p className='mt-1 text-sm text-muted'>Enter the code we sent to the new address.</p>
 							</div>
-							<TextField value={newEmailCode} onChange={setNewEmailCode} isRequired variant='secondary'>
+							<div className='space-y-2'>
 								<Label>Code from your new email</Label>
-								<Input inputMode='numeric' autoComplete='one-time-code' />
-							</TextField>
+								<InputOTP aria-label='Code from your new email' maxLength={6} value={newEmailCode} onChange={setNewEmailCode} pattern={REGEXP_ONLY_DIGITS} inputMode='numeric' autoComplete='one-time-code' variant='secondary' isDisabled={pendingAction !== null}>
+									<InputOTP.Group>
+										{Array.from({ length: 6 }, (_, index) => (
+											<InputOTP.Slot key={index} index={index} />
+										))}
+									</InputOTP.Group>
+								</InputOTP>
+							</div>
 						</div>
 					) : null}
 				</Modal.Body>

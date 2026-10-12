@@ -13,7 +13,7 @@ export function refreshClips(principal: TrustedCreatorPrincipal, input: unknown,
 		input,
 		async (input, context) => {
 			context.assertCurrent();
-			return refreshCreatorClips(input.creatorId);
+			return refreshCreatorClips(input.creatorId, context);
 		},
 		client,
 	);
