@@ -15,7 +15,9 @@ async function getBetterAuthAccessToken(userId: string): Promise<AccessTokenResu
 	try {
 		const value = await getBetterAuthProviderAccessToken(userId);
 		if (!value) return { token: null, reason: "token_row_missing" };
-		return { token: { id: userId, accessToken: value.accessToken, refreshToken: "", expiresAt: value.accessTokenExpiresAt ?? new Date(Date.now() + 60_000), scope: value.scopes, tokenType: "bearer" } };
+		// Native accounts use commas; migrated provider scope lists can still contain spaces.
+		const scopes = [...new Set((value.scopes ?? []).flatMap((scope) => scope.split(/[,\s]+/)).filter(Boolean))];
+		return { token: { id: userId, accessToken: value.accessToken, refreshToken: "", expiresAt: value.accessTokenExpiresAt ?? new Date(Date.now() + 60_000), scope: scopes, tokenType: "bearer" } };
 	} catch {
 		return { token: null, reason: "refresh_failed" };
 	}

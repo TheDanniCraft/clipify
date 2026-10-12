@@ -40,6 +40,8 @@ jest.mock("recharts", () => ({
 }));
 
 const healthSnapshot: InstanceHealthSnapshot = {
+	crawler: sample.crawler,
+	notifications: sample.notifications,
 	mcp: sample.mcp,
 	mcpClients: null,
 	status: "ok",
@@ -117,6 +119,7 @@ const healthSnapshot: InstanceHealthSnapshot = {
 		modQueueDepth: 1,
 	},
 	clips: {
+		fallbackReasons: { missingCredentials: 0, disabledAccount: 0, refreshFailed: 0, missingScope: 0, apiRejected: 0, apiError: 0, rateLimited: 0, emptyResponse: 0 },
 		fetches: {
 			v1GraphQL: 50,
 			v2TwitchApi: 200,

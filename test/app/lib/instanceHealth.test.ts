@@ -19,6 +19,8 @@ jest.mock("@/db/client", () => ({
 }));
 
 jest.mock("@/db/schema", () => ({
+	clipCrawlJobsTable: { creatorId: "creatorId", kind: "kind", nextRunAt: "nextRunAt", requestedAt: "requestedAt", leaseExpiresAt: "leaseExpiresAt", failures: "failures" },
+	notificationOutboxTable: { status: "status", scheduledAt: "scheduledAt", claimExpiresAt: "claimExpiresAt", lastError: "lastError" },
 	usersTable: {
 		id: "id",
 		createdAt: "createdAt",
@@ -198,6 +200,8 @@ describe("lib/instanceHealth", () => {
 			], // galleryLayoutRows
 			[{ discoverable: 6, unlisted: 2, disabled: 1, showBio: 7 }], // creatorPageRows
 			[{ entries: 3, valid: 2, expired: 1, errors: 0 }], // analyticsCacheRows
+			[{ dueRecent: "2", dueBackfill: "3", manualPending: "1", oldestDueAgeSeconds: "15.5" }],
+			[{ duePending: "4", expiredClaims: "1", failed: "1", skipped: "2" }],
 		];
 		dbSelect.mockImplementation(() => makeQuery(selectQueue.shift() ?? []));
 
@@ -230,7 +234,9 @@ describe("lib/instanceHealth", () => {
 
 		expect(snapshot.mcp.calls.started_total).toBeGreaterThanOrEqual(0);
 		expect(snapshot.mcp.processStartedAt).toEqual(expect.any(String));
-		expect(dbSelect).toHaveBeenCalledTimes(32);
+		expect(dbSelect).toHaveBeenCalledTimes(34);
+		expect(snapshot.crawler).toMatchObject({ dueRecent: 2, dueBackfill: 3, manualPending: 1, expiredLeases: 0, oldestDueAgeSeconds: 15.5 });
+		expect(snapshot.notifications).toMatchObject({ duePending: 4, expiredClaims: 1, failed: 1, skipped: 2 });
 		expect(snapshot.counts.users).toBe(10);
 		expect(snapshot.counts.overlaysTotal).toBe(20);
 		expect(snapshot.entitlements.activeGrantUsers).toBe(2);
@@ -255,12 +261,14 @@ describe("lib/instanceHealth", () => {
 	});
 
 	it("shares clip fetch metrics with the health snapshot through globalThis", async () => {
-		const { getInstanceHealthSnapshot, incrementClipFetchFallback, incrementClipFetchRateLimited, incrementClipFetchV1, incrementClipFetchV2, recordTwitchRateLimit } = await import("@/app/lib/instanceHealth");
+		const { getInstanceHealthSnapshot, incrementClipFetchFallback, incrementClipFetchFallbackReason, incrementClipFetchRateLimited, incrementClipFetchV1, incrementClipFetchV2, recordTwitchRateLimit } = await import("@/app/lib/instanceHealth");
 		incrementClipFetchV1();
 		incrementClipFetchV2();
 		incrementClipFetchV2();
 		incrementClipFetchFallback();
 		incrementClipFetchRateLimited();
+		incrementClipFetchFallbackReason("missingScope");
+		incrementClipFetchFallbackReason("refreshFailed");
 		recordTwitchRateLimit({
 			broadcasterId: "owner-1",
 			clipId: "clip-1",
@@ -279,6 +287,8 @@ describe("lib/instanceHealth", () => {
 			v2RateLimited: 1,
 		});
 		expect(snapshot.twitchRateLimit.history).toHaveLength(1);
+		expect(snapshot.clips.fallbackReasons).toMatchObject({ missingScope: 1, refreshFailed: 1, apiError: 0 });
+		expect((await getInstanceHealthSnapshot()).clips.fallbackReasons).toEqual(snapshot.clips.fallbackReasons);
 	});
 
 	it("returns degraded status when scheduler failure ratio is high", async () => {

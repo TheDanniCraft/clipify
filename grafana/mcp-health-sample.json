@@ -2075,5 +2075,40 @@
 		"page": 1,
 		"pageSize": 20,
 		"sampledAt": "2026-10-08T00:01:00.000Z"
+	},
+	"crawler": {
+		"dueRecent": 0,
+		"dueBackfill": 0,
+		"runningRecent": 0,
+		"runningBackfill": 0,
+		"manualPending": 0,
+		"scheduled": 0,
+		"retrying": 0,
+		"expiredLeases": 0,
+		"oldestDueAgeSeconds": 0,
+		"oldestManualWaitSeconds": 0
+	},
+	"notifications": {
+		"duePending": 0,
+		"dueRetry": 0,
+		"scheduledPending": 0,
+		"scheduledRetry": 0,
+		"claimed": 0,
+		"expiredClaims": 0,
+		"failed": 0,
+		"skipped": 0,
+		"oldestDueAgeSeconds": 0
+	},
+	"clips": {
+		"fallbackReasons": {
+			"missingCredentials": 0,
+			"disabledAccount": 0,
+			"refreshFailed": 0,
+			"missingScope": 0,
+			"apiRejected": 0,
+			"apiError": 0,
+			"rateLimited": 0,
+			"emptyResponse": 0
+		}
 	}
 }

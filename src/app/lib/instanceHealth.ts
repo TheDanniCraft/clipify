@@ -1,12 +1,12 @@
 import { grantAccessNotExpired } from "@/server/entitlements/grant-period";
 /* istanbul ignore file */
-import { userHealthCounts, overlayHealthCounts, settingsHealthCounts, tokenHealthCounts, runnerHealthCounts, streamHealthCounts } from "./health-counts";
+import { userHealthCounts, overlayHealthCounts, settingsHealthCounts, tokenHealthCounts, runnerHealthCounts, streamHealthCounts, crawlerHealthCounts, notificationHealthCounts } from "./health-counts";
 import { db as database, type QueryClient } from "@/db/client";
-import { billingSubscriptionItemsTable, billingSubscriptionsTable, entitlementGrantsTable, galleriesTable, modQueueTable, overlaysTable, plausibleStatsCacheTable, playlistClipsTable, playlistsTable, queueTable, runnersTable, settingsTable, streamSessionsTable, twitchCacheTable, usersTable } from "@/db/schema";
+import { billingSubscriptionItemsTable, billingSubscriptionsTable, entitlementGrantsTable, galleriesTable, modQueueTable, overlaysTable, plausibleStatsCacheTable, playlistClipsTable, playlistsTable, queueTable, runnersTable, settingsTable, streamSessionsTable, twitchCacheTable, usersTable, clipCrawlJobsTable, notificationOutboxTable } from "@/db/schema";
 import { account as authAccountTable } from "@/db/auth-schema";
 import { getTwitchCacheReadMetricsSnapshot } from "@actions/database";
 import { getClipCacheSchedulerStats } from "@lib/clipCacheScheduler";
-import { and, count, countDistinct, eq, isNotNull, isNull, like, lt, lte, sql } from "drizzle-orm";
+import { and, count, countDistinct, eq, isNotNull, isNull, like, lt, lte, sql, inArray } from "drizzle-orm";
 import { BillingProduct, Entitlement, EntitlementGrantSource, OverlayType, PlaybackMode, Plan, StatusOptions, StreamMode, TwitchCacheType } from "@types";
 import { getCreatorAnalyticsRuntimeMetrics } from "@lib/plausibleCreatorAnalytics";
 
@@ -22,7 +22,12 @@ type ClipFetchMetrics = {
 	v2FallbackGraphQL: number;
 	v2RateLimited: number;
 	twitchRateLimitHistory: TwitchRateLimitLog[];
+	fallbackReasons: Record<ClipFetchFallbackReason, number>;
 };
+
+export type ClipFetchFallbackReason = "missingCredentials" | "disabledAccount" | "refreshFailed" | "missingScope" | "apiRejected" | "apiError" | "rateLimited" | "emptyResponse";
+
+const emptyFallbackReasons = (): Record<ClipFetchFallbackReason, number> => ({ missingCredentials: 0, disabledAccount: 0, refreshFailed: 0, missingScope: 0, apiRejected: 0, apiError: 0, rateLimited: 0, emptyResponse: 0 });
 
 declare global {
 	var __clipFetchMetrics: ClipFetchMetrics | undefined;
@@ -45,8 +50,10 @@ function getClipFetchMetricsStore(): ClipFetchMetrics {
 			v2FallbackGraphQL: 0,
 			v2RateLimited: 0,
 			twitchRateLimitHistory: [],
+			fallbackReasons: emptyFallbackReasons(),
 		};
 	}
+	globalThis.__clipFetchMetrics.fallbackReasons ??= emptyFallbackReasons();
 	return globalThis.__clipFetchMetrics;
 }
 
@@ -63,6 +70,10 @@ export function incrementClipFetchRateLimited() {
 	getClipFetchMetricsStore().v2RateLimited += 1;
 }
 
+export function incrementClipFetchFallbackReason(reason: ClipFetchFallbackReason) {
+	getClipFetchMetricsStore().fallbackReasons[reason] += 1;
+}
+
 export function recordTwitchRateLimit(log: TwitchRateLimitLog) {
 	const history = getClipFetchMetricsStore().twitchRateLimitHistory;
 	history.unshift(log);
@@ -72,6 +83,8 @@ export function recordTwitchRateLimit(log: TwitchRateLimitLog) {
 }
 
 export type InstanceHealthSnapshot = {
+	crawler: Record<keyof ReturnType<typeof crawlerHealthCounts>, number>;
+	notifications: Record<keyof ReturnType<typeof notificationHealthCounts>, number>;
 	mcp: McpMetricsSnapshot;
 	mcpClients: McpClientStats | null;
 	status: HealthStatus;
@@ -169,6 +182,7 @@ export type InstanceHealthSnapshot = {
 		modQueueDepth: number;
 	};
 	clips: {
+		fallbackReasons: Record<ClipFetchFallbackReason, number>;
 		fetches: {
 			v1GraphQL: number;
 			v2TwitchApi: number;
@@ -551,6 +565,17 @@ async function buildInstanceHealthSnapshot<TExclude extends keyof InstanceHealth
 	const creatorAggregate = creatorPageRows[0];
 	const analyticsAggregate = analyticsCacheRows[0];
 	const analyticsRuntime = getCreatorAnalyticsRuntimeMetrics();
+	const crawlerFields = crawlerHealthCounts(now);
+	const notificationFields = notificationHealthCounts(now);
+	const [[crawlerCounts], [notificationCounts]] = await Promise.all([
+		db.select(crawlerFields).from(clipCrawlJobsTable).innerJoin(usersTable, eq(usersTable.id, clipCrawlJobsTable.creatorId)).where(eq(usersTable.disabled, false)).execute(),
+		db
+			.select(notificationFields)
+			.from(notificationOutboxTable)
+			.where(inArray(notificationOutboxTable.status, ["pending", "retry", "claimed", "dead"]))
+			.execute(),
+	]);
+	const numericCounts = <T extends Record<string, unknown>>(fields: T, row: Record<string, unknown> | undefined): Record<keyof T, number> => Object.fromEntries(Object.keys(fields).map((key) => [key, Number(row?.[key] ?? 0)])) as Record<keyof T, number>;
 	const mcpClients = await getMcpClientHealthStats(db).catch(() => null);
 	const healthAggregationMs = Date.now() - started;
 
@@ -559,6 +584,8 @@ async function buildInstanceHealthSnapshot<TExclude extends keyof InstanceHealth
 	if (dbPingMs > 5000 || healthAggregationMs > 5000) status = "down";
 
 	const health = {
+		crawler: numericCounts(crawlerFields, crawlerCounts),
+		notifications: numericCounts(notificationFields, notificationCounts),
 		mcp: getMcpMetricsSnapshot(),
 		mcpClients,
 		status,
@@ -656,6 +683,7 @@ async function buildInstanceHealthSnapshot<TExclude extends keyof InstanceHealth
 			modQueueDepth: Number(modQueueRows[0]?.count ?? 0),
 		},
 		clips: {
+			fallbackReasons: { ...clipFetchMetrics.fallbackReasons },
 			fetches: {
 				v1GraphQL: clipFetchMetrics.v1GraphQL,
 				v2TwitchApi: clipFetchMetrics.v2TwitchApi,

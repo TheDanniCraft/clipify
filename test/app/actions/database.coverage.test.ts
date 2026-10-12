@@ -1228,6 +1228,14 @@ describe("database.ts coverage tests", () => {
 			expect(getBetterAuthProviderAccessToken).toHaveBeenCalledWith("user-1");
 		});
 
+		it("getAccessTokenResult recognizes native and migrated scope delimiters without accepting partial scope names", async () => {
+			const { getAccessTokenResult } = loadDatabaseActions();
+			queueSelectResult([{ disabled: false }]);
+			getBetterAuthProviderAccessToken.mockResolvedValueOnce({ accessToken: "at", scopes: ["user:read:email channel:manage:clips", "editor:manage:clips,user:read:email", "notchannel:manage:clips"] });
+			const result = await getAccessTokenResult("user-1");
+			expect(result.token?.scope).toEqual(["user:read:email", "channel:manage:clips", "editor:manage:clips", "notchannel:manage:clips"]);
+		});
+
 		it("getAccessTokenResult reports a missing Better Auth Twitch account", async () => {
 			const { getAccessTokenResult } = loadDatabaseActions();
 			queueSelectResult([{ disabled: false }]); // user check

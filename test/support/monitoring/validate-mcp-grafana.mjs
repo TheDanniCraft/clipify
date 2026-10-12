@@ -1,5 +1,6 @@
 import fs from "node:fs/promises";
 import assert from "node:assert/strict";
+import { createServer } from "node:http";
 const [influx, grafana] = process.argv.slice(2);
 for (const address of [influx, grafana]) {
 	const url = new URL(address);
@@ -18,7 +19,35 @@ const dashboard = JSON.parse(await fs.readFile("grafana/clipify-vm01-overview-v6
 assert.equal(dashboard.apiVersion, "dashboard.grafana.app/v2");
 assert.equal(dashboard.kind, "Dashboard");
 const panels = Object.values(dashboard.spec.elements).map(({ spec }) => ({ id: spec.id, title: spec.title, targets: spec.data.spec.queries.map(({ spec: target }) => ({ ...target.query.spec, refId: target.refId, hide: target.hidden, datasource: { type: target.query.group, uid: target.query.datasource.name } })) }));
-const fields = { ...JSON.parse(await fs.readFile("grafana/mcp-influx-fields.json", "utf8")), ...JSON.parse(await fs.readFile("grafana/mcp-client-influx-fields.json", "utf8")) };
+const clientFields = JSON.parse(await fs.readFile("grafana/mcp-client-influx-fields.json", "utf8"));
+const collectorClientFields = {};
+for (const [key, value] of Object.entries(clientFields)) {
+	const application = key.match(/^mcp_clients_app_(\d+)_(.+)$/);
+	if (application) collectorClientFields[`mcpClients_items_${Number(application[1]) - 1}_${application[2]}`] = value;
+	else if (/^mcp_clients_(registeredClients|authorizedClients|activeClients30d|calls30d|applicationNames)$/.test(key)) collectorClientFields[key.replace("mcp_clients_", "mcpClients_summary_")] = value;
+}
+const fields = { ...JSON.parse(await fs.readFile("grafana/mcp-influx-fields.json", "utf8")), ...collectorClientFields };
+const sample = JSON.parse(await fs.readFile("grafana/mcp-health-sample.json", "utf8"));
+function flattenNumbers(value, path) {
+	if (typeof value === "number") fields[path] = value;
+	else if (value && typeof value === "object") for (const [key, child] of Object.entries(value)) flattenNumbers(child, `${path}_${key}`);
+}
+for (const key of ["crawler", "notifications", "clips"]) flattenNumbers(sample[key], key);
+const healthFixture = { ...sample, mcpClients: { ...sample.mcpClients, items: Array.from({ length: 25 }, (_, index) => ({ name: index === 0 ? "Meta MCP" : `Custom ${index + 1}`, registeredClients: 1, authorizedClients: 1, activeConnections: 1, activeClients30d: 1, calls30d: 4 })) } };
+let healthReads = 0;
+const fixture = createServer((request, response) => {
+	if (request.headers.authorization !== "Bearer monitoring-fixture-only") {
+		response.writeHead(401);
+		response.end();
+		return;
+	}
+	healthReads++;
+	response.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" });
+	response.end(JSON.stringify(healthFixture));
+});
+await new Promise((resolve) => fixture.listen(0, "127.0.0.1", resolve));
+fixture.unref();
+const healthUrl = `http://127.0.0.1:${fixture.address().port}/internal/health/instance`;
 const end = Math.floor(Date.now() / 1000) - 10,
 	start = end - 120;
 const scenarios = ["normal", "reset", "replicas", "zero", "gap"];
@@ -41,12 +70,21 @@ for (const scenario of scenarios)
 				mcp_tools_get_overlay_started_total: total,
 				mcp_processStartedAtUnixSeconds: start - 5,
 				mcp_sampledAtUnixSeconds: start + i * 20,
-				mcp_clients_available: 1,
-				mcp_clients_registeredClients: 23,
-				mcp_clients_applicationNames: 23,
+				mcpClients_summary_registeredClients: 23,
+				mcpClients_summary_applicationNames: 23,
 
-				mcp_clients_app_1_name: "Meta MCP",
-				mcp_clients_app_1_calls30d: 4,
+				mcpClients_items_0_name: "Meta MCP",
+				mcpClients_items_0_calls30d: 4,
+				crawler_dueRecent: 3,
+				crawler_dueBackfill: 2,
+				crawler_runningRecent: 1,
+				crawler_oldestManualWaitSeconds: 45,
+				notifications_duePending: 2,
+				notifications_failed: 1,
+				notifications_skipped: 4,
+				notifications_oldestDueAgeSeconds: 30,
+				clips_fallbackReasons_missingScope: total,
+				clips_fetches_v1GraphQL: total,
 			});
 			for (const old of ["galleries_total", "galleries_published", "galleries_draft", "galleries_orphanedCurated", "galleries_curated", "galleries_live", "creatorPages_discoverable", "creatorPages_unlisted", "creatorPages_disabled", "creatorPages_showBio", "analyticsCache_valid", "analyticsCache_expired", "analyticsCache_apiFailures", "analyticsCache_rateLimited", "analyticsCache_staleFallbacks"]) values[old] = 1;
 			lines.push(
@@ -66,6 +104,8 @@ const write = await fetch(influx + "/api/v2/write?org=clipify-validation&bucket=
 if (!write.ok) throw Error(await write.text());
 const ds = await fetch(grafana + "/api/datasources", { method: "POST", headers, body: JSON.stringify({ name: "Clipify validation", uid: "efg3es37pgh6ob", type: "influxdb", access: "proxy", url: influx, jsonData: { version: "Flux", organization: "clipify-validation", defaultBucket: "clipify_monitor" }, secureJsonData: { token } }) });
 if (!ds.ok) throw Error("Datasource " + (await ds.text()));
+const healthDs = await fetch(grafana + "/api/datasources", { method: "POST", headers, body: JSON.stringify({ name: "Health fixture", uid: "dffanq7dkba4gb", type: "yesoreyeram-infinity-datasource", access: "proxy", url: healthUrl, jsonData: { auth_method: "bearerToken", allowedHosts: [healthUrl] }, secureJsonData: { bearerToken: "monitoring-fixture-only" } }) });
+if (!healthDs.ok) throw Error("Health datasource " + (await healthDs.text()));
 const imported = await fetch(grafana + "/apis/dashboard.grafana.app/v2/namespaces/default/dashboards", { method: "POST", headers, body: JSON.stringify(dashboard) });
 if (!imported.ok) throw Error("Import " + (await imported.text()));
 console.log("Grafana import:", await imported.json());
@@ -110,15 +150,20 @@ for (const scenario of ["normal", "replicas", "gap"]) {
 	assert(values(scenario, "MCP p95 duration (histogram)").every((v) => Math.abs(v - 0.0975) < 1e-10));
 }
 
+let namedApplications;
 for (const panel of panels) {
-	const targets = (panel.targets ?? []).filter((target) => target.query);
+	const targets = (panel.targets ?? []).filter((target) => target.query || target.type === "json");
 	if (!targets.length) continue;
-	const res = await fetch(grafana + "/api/ds/query", { method: "POST", headers, body: JSON.stringify({ from: String(start * 1000), to: String((end + 1) * 1000), queries: targets.map((target) => ({ ...target, datasource: { uid: "efg3es37pgh6ob", type: "influxdb" }, intervalMs: 20000, maxDataPoints: 1000 })) }) });
+	const res = await fetch(grafana + "/api/ds/query", { method: "POST", headers, body: JSON.stringify({ from: String(start * 1000), to: String((end + 1) * 1000), queries: targets.map((target) => ({ ...target, ...(target.type === "json" ? { url: healthUrl } : {}), intervalMs: 20000, maxDataPoints: 1000 })) }) });
 	const data = await res.json();
 	if (!res.ok || Object.values(data.results ?? {}).some((result) => result.error)) throw Error("Grafana query " + panel.title + " " + JSON.stringify(data));
+	if (panel.title === "MCP applications (current)") namedApplications = data;
 }
-const adoption = results.find((r) => r.scenario === "normal" && r.panel === "MCP applications (self-reported)");
-assert(adoption.csv.includes("Meta MCP"));
-assert(adoption.csv.includes("Custom 25"), "Every application is exported, including groups beyond rank 20");
+assert(JSON.stringify(namedApplications).includes("Meta MCP"));
+assert(JSON.stringify(namedApplications).includes("Custom 25"), "Every application is returned, including groups beyond rank 20");
+assert(healthReads > 0, "Named applications are read through the authenticated health datasource");
+assert(values("normal", "Oldest overdue email").every((value) => value === 30));
+assert(values("normal", "Crawler wait time").includes(45));
+fixture.close();
 console.log("Flux queries:", results.length, "Grafana panels:", panels.length);
 await fs.writeFile("/tmp/clipify-monitoring-validation.json", JSON.stringify({ grafana: (await (await fetch(grafana + "/api/health")).json()).version, influx: "2.9.1", imported: true, panels: panels.length, fluxQueries: results.length, scenarios, validatedAt: new Date().toISOString() }, null, 2));

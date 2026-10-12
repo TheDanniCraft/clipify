@@ -147,8 +147,8 @@
 				"kind": "Panel",
 				"spec": {
 					"id": 101,
-					"title": "V2 Migration Progress",
-					"description": "Percentage of users ready for V2 API",
+					"title": "Clip download permission coverage",
+					"description": "Linked Twitch account rows containing the clip-download permission. This measures scope coverage, not active users, token validity or actual Helix usage.",
 					"links": [],
 					"data": {
 						"kind": "QueryGroup",
@@ -165,7 +165,7 @@
 												"name": "efg3es37pgh6ob"
 											},
 											"spec": {
-												"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"clipify_vm01\")\n  |> filter(fn: (r) => r[\"_field\"] == \"auth_tokenRows\" or r[\"_field\"] == \"auth_readyForTwitchApiUsers\")\n  |> last()\n  |> pivot(rowKey:[\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> map(fn: (r) => ({ r with _value: float(v: r.auth_readyForTwitchApiUsers) / float(v: r.auth_tokenRows) * 100.0 }))\n  |> keep(columns: [\"_time\", \"_value\"])"
+												"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"clipify_vm01\")\n  |> filter(fn: (r) => r[\"_field\"] == \"auth_tokenRows\" or r[\"_field\"] == \"auth_readyForTwitchApiUsers\")\n  |> last()\n  |> pivot(rowKey:[\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> filter(fn: (r) => exists r.auth_tokenRows and r.auth_tokenRows > 0.0 and exists r.auth_readyForTwitchApiUsers)\n  |> map(fn: (r) => ({ r with _value: float(v: r.auth_readyForTwitchApiUsers) / float(v: r.auth_tokenRows) * 100.0 }))\n  |> keep(columns: [\"_time\", \"_value\"])"
 											}
 										},
 										"refId": "A",
@@ -259,7 +259,7 @@
 				"spec": {
 					"id": 102,
 					"title": "API Fetch Health & Rate Limits",
-					"description": "Clip playback URL fetches per dashboard interval, split by API path.",
+					"description": "Clip playback URL resolution attempts/results per chart interval. Process counters are reset-normalized before aggregation. GraphQL counts are fetches, not users; fallback reasons are shown separately.",
 					"links": [],
 					"data": {
 						"kind": "QueryGroup",
@@ -276,7 +276,7 @@
 												"name": "efg3es37pgh6ob"
 											},
 											"spec": {
-												"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"clipify_vm01\")\n  |> filter(fn: (r) => r[\"_field\"] == \"clips_fetches_v2TwitchApi\")\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)\n  |> difference(nonNegative: true)\n  |> yield(name: \"clips_fetches_v2TwitchApi\")"
+												"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"clipify_vm01\")\n  |> filter(fn: (r) => r._field == \"clips_fetches_v2TwitchApi\")\n  |> increase()\n  |> difference(nonNegative: true)\n  |> aggregateWindow(every: v.windowPeriod, fn: sum, createEmpty: false)\n  |> group(columns: [\"_field\", \"_time\"])\n  |> sum()\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])"
 											}
 										},
 										"refId": "A",
@@ -294,7 +294,7 @@
 												"name": "efg3es37pgh6ob"
 											},
 											"spec": {
-												"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"clipify_vm01\")\n  |> filter(fn: (r) => r[\"_field\"] == \"clips_fetches_v1GraphQL\")\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)\n  |> difference(nonNegative: true)\n  |> yield(name: \"clips_fetches_v1GraphQL\")"
+												"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"clipify_vm01\")\n  |> filter(fn: (r) => r._field == \"clips_fetches_v1GraphQL\")\n  |> increase()\n  |> difference(nonNegative: true)\n  |> aggregateWindow(every: v.windowPeriod, fn: sum, createEmpty: false)\n  |> group(columns: [\"_field\", \"_time\"])\n  |> sum()\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])"
 											}
 										},
 										"refId": "B",
@@ -312,7 +312,7 @@
 												"name": "efg3es37pgh6ob"
 											},
 											"spec": {
-												"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"clipify_vm01\")\n  |> filter(fn: (r) => r[\"_field\"] == \"clips_fetches_v2FallbackGraphQL\")\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)\n  |> difference(nonNegative: true)\n  |> yield(name: \"clips_fetches_v2FallbackGraphQL\")"
+												"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"clipify_vm01\")\n  |> filter(fn: (r) => r._field == \"clips_fetches_v2FallbackGraphQL\")\n  |> increase()\n  |> difference(nonNegative: true)\n  |> aggregateWindow(every: v.windowPeriod, fn: sum, createEmpty: false)\n  |> group(columns: [\"_field\", \"_time\"])\n  |> sum()\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])"
 											}
 										},
 										"refId": "C",
@@ -330,7 +330,7 @@
 												"name": "efg3es37pgh6ob"
 											},
 											"spec": {
-												"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"clipify_vm01\")\n  |> filter(fn: (r) => r[\"_field\"] == \"clips_fetches_v2RateLimited\")\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)\n  |> difference(nonNegative: true)\n  |> yield(name: \"clips_fetches_v2RateLimited\")"
+												"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"clipify_vm01\")\n  |> filter(fn: (r) => r._field == \"clips_fetches_v2RateLimited\")\n  |> increase()\n  |> difference(nonNegative: true)\n  |> aggregateWindow(every: v.windowPeriod, fn: sum, createEmpty: false)\n  |> group(columns: [\"_field\", \"_time\"])\n  |> sum()\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])"
 											}
 										},
 										"refId": "D",
@@ -961,8 +961,8 @@
 				"kind": "Panel",
 				"spec": {
 					"id": 16,
-					"title": "Cache Read Health",
-					"description": "Hit rate and read counters together for quick health checks.",
+					"title": "Cache hit rate over time",
+					"description": "Cache read hit ratio per collected snapshot, displayed as a percentage.",
 					"links": [],
 					"data": {
 						"kind": "QueryGroup",
@@ -979,7 +979,7 @@
 												"name": "efg3es37pgh6ob"
 											},
 											"spec": {
-												"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"clipify_vm01\")\n  |> filter(fn: (r) =>\n      r[\"_field\"] == \"cache_globalReadHitRate\" or\n      r[\"_field\"] == \"cache_globalReadHits\" or\n      r[\"_field\"] == \"cache_globalReadMisses\"\n    )\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)"
+												"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"clipify_vm01\")\n  |> filter(fn: (r) => r._field == \"cache_globalReadHitRate\")\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)"
 											}
 										},
 										"refId": "A",
@@ -1015,7 +1015,7 @@
 							},
 							"fieldConfig": {
 								"defaults": {
-									"unit": "short",
+									"unit": "percentunit",
 									"decimals": 1,
 									"thresholds": {
 										"mode": "absolute",
@@ -1062,7 +1062,9 @@
 										"thresholdsStyle": {
 											"mode": "off"
 										}
-									}
+									},
+									"min": 0,
+									"max": 1
 								},
 								"overrides": [
 									{
@@ -1073,31 +1075,7 @@
 										"properties": [
 											{
 												"id": "displayName",
-												"value": "Hit Rate"
-											}
-										]
-									},
-									{
-										"matcher": {
-											"id": "byName",
-											"options": "cache_globalReadHits"
-										},
-										"properties": [
-											{
-												"id": "displayName",
-												"value": "Read Hits"
-											}
-										]
-									},
-									{
-										"matcher": {
-											"id": "byName",
-											"options": "cache_globalReadMisses"
-										},
-										"properties": [
-											{
-												"id": "displayName",
-												"value": "Read Misses"
+												"value": "Cache hit rate"
 											}
 										]
 									}
@@ -1261,8 +1239,8 @@
 				"kind": "Panel",
 				"spec": {
 					"id": 20,
-					"title": "Active Users",
-					"description": "Rolling active-user windows.",
+					"title": "Recent sign-ins",
+					"description": "Unique accounts whose last sign-in falls within 24 hours, 7 days or 30 days. Overlay playback without signing in is not counted.",
 					"links": [],
 					"data": {
 						"kind": "QueryGroup",
@@ -2947,8 +2925,8 @@
 				"kind": "Panel",
 				"spec": {
 					"id": 30,
-					"title": "Read Traffic",
-					"description": "Cache read volume and misses over time.",
+					"title": "Cache reads per minute",
+					"description": "Observed read rates derived from process-local counters, normalized for resets before aggregating instances.",
 					"links": [],
 					"data": {
 						"kind": "QueryGroup",
@@ -2965,7 +2943,7 @@
 												"name": "efg3es37pgh6ob"
 											},
 											"spec": {
-												"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"clipify_vm01\")\n  |> filter(fn: (r) =>\n      r[\"_field\"] == \"cache_globalReadHits\" or\n      r[\"_field\"] == \"cache_globalReadMisses\" or\n      r[\"_field\"] == \"cache_globalReadTotal\" or\n      r[\"_field\"] == \"cache_globalStaleHits\"\n    )\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)"
+												"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"clipify_vm01\")\n  |> filter(fn: (r) => r._field == \"cache_globalReadHits\" or r._field == \"cache_globalReadMisses\" or r._field == \"cache_globalReadTotal\" or r._field == \"cache_globalStaleHits\")\n  |> increase()\n  |> difference(nonNegative: true)\n  |> aggregateWindow(every: v.windowPeriod, fn: sum, createEmpty: false)\n  |> group(columns: [\"_field\", \"_time\"])\n  |> sum()\n  |> map(fn: (r) => ({r with _value: r._value * 60.0 / (float(v: int(v: v.windowPeriod)) / 1000000000.0)}))\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])"
 											}
 										},
 										"refId": "A",
@@ -3001,7 +2979,7 @@
 							},
 							"fieldConfig": {
 								"defaults": {
-									"unit": "short",
+									"unit": "cpm",
 									"decimals": 0,
 									"thresholds": {
 										"mode": "absolute",
@@ -3059,7 +3037,7 @@
 										"properties": [
 											{
 												"id": "displayName",
-												"value": "Read Hits"
+												"value": "Hits"
 											}
 										]
 									},
@@ -3071,7 +3049,7 @@
 										"properties": [
 											{
 												"id": "displayName",
-												"value": "Read Misses"
+												"value": "Misses"
 											}
 										]
 									},
@@ -3083,7 +3061,7 @@
 										"properties": [
 											{
 												"id": "displayName",
-												"value": "Read Total"
+												"value": "Reads"
 											}
 										]
 									},
@@ -3095,7 +3073,7 @@
 										"properties": [
 											{
 												"id": "displayName",
-												"value": "Stale Hits"
+												"value": "Stale hits"
 											}
 										]
 									}
@@ -3158,7 +3136,8 @@
 									"unit": "cpm",
 									"color": {
 										"mode": "palette-classic"
-									}
+									},
+									"displayName": "Calls per minute"
 								},
 								"overrides": []
 							}
@@ -3221,7 +3200,56 @@
 										"mode": "palette-classic"
 									}
 								},
-								"overrides": []
+								"overrides": [
+									{
+										"matcher": {
+											"id": "byName",
+											"options": "mcp_calls_success_total"
+										},
+										"properties": [
+											{
+												"id": "displayName",
+												"value": "Succeeded"
+											}
+										]
+									},
+									{
+										"matcher": {
+											"id": "byName",
+											"options": "mcp_calls_denied_total"
+										},
+										"properties": [
+											{
+												"id": "displayName",
+												"value": "Denied"
+											}
+										]
+									},
+									{
+										"matcher": {
+											"id": "byName",
+											"options": "mcp_calls_error_total"
+										},
+										"properties": [
+											{
+												"id": "displayName",
+												"value": "Failed"
+											}
+										]
+									},
+									{
+										"matcher": {
+											"id": "byName",
+											"options": "mcp_calls_cancelled_total"
+										},
+										"properties": [
+											{
+												"id": "displayName",
+												"value": "Cancelled"
+											}
+										]
+									}
+								]
 							}
 						}
 					}
@@ -3231,8 +3259,8 @@
 				"kind": "Panel",
 				"spec": {
 					"id": 302,
-					"title": "MCP calls by tool",
-					"description": "Cumulative RAM counters: normalize resets per stable instance before summing replicas. First scrape is a baseline; calls since the final scrape before restart may be lost. Missing scrapes stay gaps.",
+					"title": "MCP tool usage",
+					"description": "Total observed calls per tool in the selected chart period, normalized for counter resets before aggregation. Every used tool is shown, sorted by calls; there is no Top-X cutoff. First samples are baselines.",
 					"links": [],
 					"data": {
 						"kind": "QueryGroup",
@@ -3249,7 +3277,8 @@
 												"name": "efg3es37pgh6ob"
 											},
 											"spec": {
-												"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"clipify_vm01\")\n  |> filter(fn: (r) => r._field =~ /^mcp_tools_.*_started_total$/)\n  |> increase()\n  |> difference(nonNegative: true)\n  |> aggregateWindow(every: v.windowPeriod, fn: sum, createEmpty: false)\n  |> group(columns: [\"_field\", \"_time\"])\n  |> sum()\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])"
+												"format": "table",
+												"query": "import \"strings\"\nfrom(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"clipify_vm01\")\n  |> filter(fn: (r) => r._field =~ /^mcp_tools_.*_started_total$/)\n  |> increase()\n  |> difference(nonNegative: true)\n  |> group(columns: [\"_field\"])\n  |> sum()\n  |> filter(fn: (r) => r._value > 0.0)\n  |> map(fn: (r) => ({Tool: strings.title(v: strings.replaceAll(v: strings.trimSuffix(v: strings.trimPrefix(v: r._field, prefix: \"mcp_tools_\"), suffix: \"_started_total\"), t: \"_\", u: \" \")), Calls: r._value}))\n  |> group(columns: [])\n  |> sort(columns: [\"Calls\", \"Tool\"], desc: true)\n"
 											}
 										},
 										"refId": "A",
@@ -3257,30 +3286,41 @@
 									}
 								}
 							],
-							"transformations": [],
+							"transformations": [
+								{
+									"kind": "Transformation",
+									"group": "organize",
+									"spec": {
+										"options": {
+											"excludeByName": {
+												"Rank": true
+											},
+											"indexByName": {
+												"Tool": 0,
+												"Calls": 1
+											},
+											"renameByName": {
+												"Calls": "Calls in selected period"
+											}
+										}
+									}
+								}
+							],
 							"queryOptions": {}
 						}
 					},
 					"vizConfig": {
 						"kind": "VizConfig",
-						"group": "timeseries",
+						"group": "table",
 						"version": "",
 						"spec": {
 							"options": {
-								"legend": {
-									"displayMode": "table",
-									"placement": "bottom"
-								},
-								"tooltip": {
-									"mode": "multi"
-								}
+								"showHeader": true
 							},
 							"fieldConfig": {
 								"defaults": {
 									"unit": "short",
-									"color": {
-										"mode": "palette-classic"
-									}
+									"decimals": 0
 								},
 								"overrides": []
 							}
@@ -3293,7 +3333,7 @@
 				"spec": {
 					"id": 303,
 					"title": "MCP rejection reasons",
-					"description": "Cumulative RAM counters: normalize resets per stable instance before summing replicas. First scrape is a baseline; calls since the final scrape before restart may be lost. Missing scrapes stay gaps.",
+					"description": "Cumulative RAM counters: normalize resets per stable instance before summing replicas. First scrape is a baseline; calls since the final scrape before restart may be lost. Missing scrapes stay gaps. Only series with activity in the selected time range are shown; zero intervals for those series are retained. No Top-X limit is applied.",
 					"links": [],
 					"data": {
 						"kind": "QueryGroup",
@@ -3310,7 +3350,7 @@
 												"name": "efg3es37pgh6ob"
 											},
 											"spec": {
-												"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"clipify_vm01\")\n  |> filter(fn: (r) => r._field =~ /^mcp_reasons_.*_total$/)\n  |> increase()\n  |> difference(nonNegative: true)\n  |> aggregateWindow(every: v.windowPeriod, fn: sum, createEmpty: false)\n  |> group(columns: [\"_field\", \"_time\"])\n  |> sum()\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])"
+												"query": "import \"strings\"\ndata = from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"clipify_vm01\")\n  |> filter(fn: (r) => r._field =~ /^mcp_reasons_.*_total$/)\n  |> increase()\n  |> difference(nonNegative: true)\n  |> aggregateWindow(every: v.windowPeriod, fn: sum, createEmpty: false)\n  |> group(columns: [\"_field\", \"_time\"])\n  |> sum()\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])\nactiveFields = data\n  |> group(columns: [\"_field\"])\n  |> sum()\n  |> filter(fn: (r) => r._value > 0.0)\n  |> keep(columns: [\"_field\"])\n  |> group(columns: [])\n  |> findColumn(fn: (key) => true, column: \"_field\")\ndata\n  |> filter(fn: (r) => contains(value: r._field, set: activeFields))\n  |> map(fn: (r) => ({r with _field: strings.title(v: strings.replaceAll(v: strings.trimSuffix(v: strings.trimPrefix(v: r._field, prefix: \"mcp_reasons_\"), suffix: \"_total\"), t: \"_\", u: \" \"))}))\n"
 											}
 										},
 										"refId": "A",
@@ -3343,7 +3383,20 @@
 										"mode": "palette-classic"
 									}
 								},
-								"overrides": []
+								"overrides": [
+									{
+										"matcher": {
+											"id": "byRegexp",
+											"options": ".*"
+										},
+										"properties": [
+											{
+												"id": "displayName",
+												"value": "${__field.name}"
+											}
+										]
+									}
+								]
 							}
 						}
 					}
@@ -3402,7 +3455,8 @@
 									"unit": "percentunit",
 									"color": {
 										"mode": "palette-classic"
-									}
+									},
+									"displayName": "Error ratio"
 								},
 								"overrides": []
 							}
@@ -3463,7 +3517,8 @@
 									"unit": "short",
 									"color": {
 										"mode": "palette-classic"
-									}
+									},
+									"displayName": "Calls in progress"
 								},
 								"overrides": []
 							}
@@ -3524,7 +3579,8 @@
 									"unit": "s",
 									"color": {
 										"mode": "palette-classic"
-									}
+									},
+									"displayName": "Average duration"
 								},
 								"overrides": []
 							}
@@ -3585,68 +3641,8 @@
 									"unit": "s",
 									"color": {
 										"mode": "palette-classic"
-									}
-								},
-								"overrides": []
-							}
-						}
-					}
-				}
-			},
-			"panel-308": {
-				"kind": "Panel",
-				"spec": {
-					"id": 308,
-					"title": "MCP process start / restart",
-					"description": "Process start as Unix seconds. A changed value marks a restart; keep stable instance tags and scrape each process directly.",
-					"links": [],
-					"data": {
-						"kind": "QueryGroup",
-						"spec": {
-							"queries": [
-								{
-									"kind": "PanelQuery",
-									"spec": {
-										"query": {
-											"kind": "DataQuery",
-											"group": "influxdb",
-											"version": "v0",
-											"datasource": {
-												"name": "efg3es37pgh6ob"
-											},
-											"spec": {
-												"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"clipify_vm01\")\n  |> filter(fn: (r) => r._field == \"mcp_processStartedAtUnixSeconds\")\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)\n  |> map(fn: (r) => ({r with _value: r._value * 1000.0}))"
-											}
-										},
-										"refId": "A",
-										"hidden": false
-									}
-								}
-							],
-							"transformations": [],
-							"queryOptions": {}
-						}
-					},
-					"vizConfig": {
-						"kind": "VizConfig",
-						"group": "timeseries",
-						"version": "",
-						"spec": {
-							"options": {
-								"legend": {
-									"displayMode": "table",
-									"placement": "bottom"
-								},
-								"tooltip": {
-									"mode": "multi"
-								}
-							},
-							"fieldConfig": {
-								"defaults": {
-									"unit": "dateTimeAsIso",
-									"color": {
-										"mode": "palette-classic"
-									}
+									},
+									"displayName": "95th percentile duration"
 								},
 								"overrides": []
 							}
@@ -3659,7 +3655,7 @@
 				"spec": {
 					"id": 309,
 					"title": "MCP scrape age",
-					"description": "Time since the last collected MCP snapshot, per stable instance. Configure missing-data alerts in Grafana; absent telemetry is not zero.",
+					"description": "Seconds since the last collected instance-health sample, using its Influx timestamp. Indicates collector freshness, not the age of an individual MCP call. Missing samples remain missing; configure missing-data alerts separately.",
 					"links": [],
 					"data": {
 						"kind": "QueryGroup",
@@ -3676,7 +3672,7 @@
 												"name": "efg3es37pgh6ob"
 											},
 											"spec": {
-												"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"clipify_vm01\")\n  |> filter(fn: (r) => r._field == \"mcp_sampledAtUnixSeconds\")\n  |> last()\n  |> map(fn: (r) => ({r with _value: float(v: uint(v: now())) / 1000000000.0 - r._value}))"
+												"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"clipify_vm01\")\n  |> filter(fn: (r) => r._field == \"mcp_calls_started_total\")\n  |> last()\n  |> map(fn: (r) => ({r with _field: \"Scrape age\", _value: float(v: uint(v: now())) / 1000000000.0 - float(v: uint(v: r._time)) / 1000000000.0}))"
 											}
 										},
 										"refId": "A",
@@ -3707,7 +3703,8 @@
 									"unit": "s",
 									"color": {
 										"mode": "palette-classic"
-									}
+									},
+									"displayName": "Scrape age"
 								},
 								"overrides": []
 							}
@@ -3881,8 +3878,8 @@
 				"kind": "Panel",
 				"spec": {
 					"id": 310,
-					"title": "MCP applications (self-reported)",
-					"description": "Top 20 self-reported app names, including Custom. Client-ID changes remain grouped by app name. Database-wide retained 30-day audit usage; do not sum replicas. Names are fixed-slot string field values, never tags. See admin for the complete paginated list.",
+					"title": "MCP applications (current)",
+					"description": "All current self-reported application names and retained 30-day usage, read freshly through the authenticated instance-health datasource. This table is current state, independent of the selected chart period. Names are metadata, not verified vendor identities. No Top-X cap or replica summation.",
 					"links": [],
 					"data": {
 						"kind": "QueryGroup",
@@ -3893,14 +3890,53 @@
 									"spec": {
 										"query": {
 											"kind": "DataQuery",
-											"group": "influxdb",
+											"group": "yesoreyeram-infinity-datasource",
 											"version": "v0",
 											"datasource": {
-												"name": "efg3es37pgh6ob"
+												"name": "dffanq7dkba4gb"
 											},
 											"spec": {
+												"type": "json",
+												"source": "url",
+												"parser": "backend",
+												"url": "https://clipify.us/internal/health/instance",
+												"url_options": {
+													"method": "GET"
+												},
 												"format": "table",
-												"query": "import \"strings\"\nsource = from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"clipify_vm01\")\nlatest = source\n  |> filter(fn: (r) => r._field == \"mcp_clients_sampledAtUnixSeconds\")\n  |> group(columns: [])\n  |> sort(columns: [\"_time\"], desc: true)\n  |> limit(n: 1)\n  |> findRecord(fn: (key) => true, idx: 0)\nsource\n  |> filter(fn: (r) => r._time == latest._time)\n  |> filter(fn: (r) => r._field =~ /^mcp_clients_app_[0-9]+_(name|registeredClients|authorizedClients|activeConnections|activeClients30d|calls30d)$/)\n  |> map(fn: (r) => ({Slot: strings.split(v: r._field, t: \"_\")[3], Metric: strings.split(v: r._field, t: \"_\")[4], _value: string(v: r._value)}))\n  |> group(columns: [])\n  |> pivot(rowKey: [\"Slot\"], columnKey: [\"Metric\"], valueColumn: \"_value\")\n  |> map(fn: (r) => ({Rank: int(v: r.Slot), App: r.name, Registered: float(v: r.registeredClients), Authorized: float(v: r.authorizedClients), Connections: float(v: r.activeConnections), ActiveClients30d: float(v: r.activeClients30d), Calls30d: float(v: r.calls30d)}))\n  |> sort(columns: [\"Rank\"])\n"
+												"root_selector": "mcpClients.items",
+												"columns": [
+													{
+														"selector": "name",
+														"text": "App",
+														"type": "string"
+													},
+													{
+														"selector": "registeredClients",
+														"text": "Registered",
+														"type": "number"
+													},
+													{
+														"selector": "authorizedClients",
+														"text": "Authorized",
+														"type": "number"
+													},
+													{
+														"selector": "activeConnections",
+														"text": "Connections",
+														"type": "number"
+													},
+													{
+														"selector": "activeClients30d",
+														"text": "ActiveClients30d",
+														"type": "number"
+													},
+													{
+														"selector": "calls30d",
+														"text": "Calls30d",
+														"type": "number"
+													}
+												]
 											}
 										},
 										"refId": "A",
@@ -3908,7 +3944,35 @@
 									}
 								}
 							],
-							"transformations": [],
+							"transformations": [
+								{
+									"kind": "Transformation",
+									"spec": {
+										"options": {
+											"excludeByName": {
+												"Rank": true
+											},
+											"indexByName": {
+												"App": 0,
+												"Registered": 1,
+												"Authorized": 2,
+												"Connections": 3,
+												"ActiveClients30d": 4,
+												"Calls30d": 5
+											},
+											"renameByName": {
+												"App": "Application",
+												"Registered": "Registered",
+												"Authorized": "Authorized",
+												"Connections": "Connections",
+												"ActiveClients30d": "Active (30d)",
+												"Calls30d": "Calls (30d)"
+											}
+										}
+									},
+									"group": "organize"
+								}
+							],
 							"queryOptions": {}
 						}
 					},
@@ -3921,7 +3985,10 @@
 								"showHeader": true
 							},
 							"fieldConfig": {
-								"defaults": {},
+								"defaults": {
+									"unit": "short",
+									"decimals": 0
+								},
 								"overrides": []
 							}
 						}
@@ -3933,7 +4000,7 @@
 				"spec": {
 					"id": 311,
 					"title": "MCP adoption totals",
-					"description": "Latest database-wide summary across every application-name group. Counts unavailable during a database/schema failure are omitted. Unconsented registrations are separate from active grants and actual retained tool usage.",
+					"description": "Database-wide client summary from the latest instance-health sample in the selected period. Every value comes from that same sample. Missing summaries remain missing rather than reusing older values. Unconsented registrations are separate from active connections and retained tool usage.",
 					"links": [],
 					"data": {
 						"kind": "QueryGroup",
@@ -3951,7 +4018,7 @@
 											},
 											"spec": {
 												"format": "table",
-												"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"clipify_vm01\")\n  |> filter(fn: (r) => r._field =~ /^mcp_clients_(available|registeredClients|authorizedClients|activeClients30d|calls30d|applicationNames)$/)\n  |> last()\n  |> group(columns: [\"_field\"])\n  |> last()\n  |> group(columns: [])\n  |> pivot(rowKey: [], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> filter(fn: (r) => r.mcp_clients_available == 1.0)\n  |> drop(columns: [\"mcp_clients_available\"])"
+												"query": "source = from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"clipify_vm01\")\nlatest = source\n  |> filter(fn: (r) => r._field == \"mcp_calls_started_total\")\n  |> group(columns: [])\n  |> sort(columns: [\"_time\"], desc: true)\n  |> limit(n: 1)\n  |> findRecord(fn: (key) => true, idx: 0)\nsource\n  |> filter(fn: (r) => r._time == latest._time)\n  |> filter(fn: (r) => r._field =~ /^mcpClients_summary_(registeredClients|authorizedClients|activeClients30d|calls30d|applicationNames)$/)\n  |> group(columns: [])\n  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> map(fn: (r) => ({Registered: r.mcpClients_summary_registeredClients, Authorized: r.mcpClients_summary_authorizedClients, ActiveClients30d: r.mcpClients_summary_activeClients30d, Calls30d: r.mcpClients_summary_calls30d, Applications: r.mcpClients_summary_applicationNames}))"
 											}
 										},
 										"refId": "A",
@@ -3959,7 +4026,34 @@
 									}
 								}
 							],
-							"transformations": [],
+							"transformations": [
+								{
+									"kind": "Transformation",
+									"spec": {
+										"options": {
+											"excludeByName": {
+												"Rank": true
+											},
+											"indexByName": {
+												"Applications": 0,
+												"Registered": 1,
+												"Authorized": 2,
+												"ActiveClients30d": 3,
+												"Calls30d": 4
+											},
+											"renameByName": {
+												"App": "Application",
+												"Registered": "Registered",
+												"Authorized": "Authorized",
+												"Connections": "Connections",
+												"ActiveClients30d": "Active (30d)",
+												"Calls30d": "Calls (30d)"
+											}
+										}
+									},
+									"group": "organize"
+								}
+							],
 							"queryOptions": {}
 						}
 					},
@@ -3972,7 +4066,10 @@
 								"showHeader": true
 							},
 							"fieldConfig": {
-								"defaults": {},
+								"defaults": {
+									"unit": "short",
+									"decimals": 0
+								},
 								"overrides": []
 							}
 						}
@@ -4679,7 +4776,7 @@
 												"name": "efg3es37pgh6ob"
 											},
 											"spec": {
-												"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"clipify_vm01\")\n  |> filter(fn: (r) =>\n      r[\"_field\"] == \"scheduler_clipCache_totalFailures\"\n    )\n  |> keep(columns: [\"_time\", \"_value\", \"_field\"])\n  |> group(columns: [\"_field\"])\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)\n  |> difference(nonNegative: true)"
+												"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"clipify_vm01\")\n  |> filter(fn: (r) => r._field == \"scheduler_clipCache_totalFailures\")\n  |> increase()\n  |> difference(nonNegative: true)\n  |> aggregateWindow(every: v.windowPeriod, fn: sum, createEmpty: false)\n  |> group(columns: [\"_field\", \"_time\"])\n  |> sum()\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])"
 											}
 										},
 										"refId": "A",
@@ -4773,7 +4870,7 @@
 										"properties": [
 											{
 												"id": "displayName",
-												"value": "Total Failures"
+												"value": "Scheduler failures"
 											}
 										]
 									}
@@ -5417,8 +5514,8 @@
 				"kind": "Panel",
 				"spec": {
 					"id": 46,
-					"title": "Auth Token Health",
-					"description": "Token inventory, expired tokens, and tokens expiring within 24 hours.",
+					"title": "Twitch access-token expiry",
+					"description": "Linked Twitch accounts and access-token expiry. An expired access token can still be refreshed and does not itself mean access was revoked.",
 					"links": [],
 					"data": {
 						"kind": "QueryGroup",
@@ -5529,7 +5626,7 @@
 										"properties": [
 											{
 												"id": "displayName",
-												"value": "Token Rows"
+												"value": "Linked accounts"
 											}
 										]
 									},
@@ -5541,7 +5638,7 @@
 										"properties": [
 											{
 												"id": "displayName",
-												"value": "Expired Tokens"
+												"value": "Expired access tokens"
 											}
 										]
 									},
@@ -5553,7 +5650,7 @@
 										"properties": [
 											{
 												"id": "displayName",
-												"value": "Expiring in 24h"
+												"value": "Expiring within 24 hours"
 											}
 										]
 									}
@@ -7715,8 +7812,8 @@
 				"kind": "Panel",
 				"spec": {
 					"id": 6,
-					"title": "Users Paid",
-					"description": "Current paid users.",
+					"title": "Users on Pro",
+					"description": "Users whose stored plan is Pro; this is not a count of Stripe-paying subscribers.",
 					"links": [],
 					"data": {
 						"kind": "QueryGroup",
@@ -8489,7 +8586,7 @@
 				"kind": "Panel",
 				"spec": {
 					"id": 7,
-					"title": "Users Free",
+					"title": "Users on Free",
 					"description": "Current free users.",
 					"links": [],
 					"data": {
@@ -8771,6 +8868,996 @@
 											{
 												"id": "displayName",
 												"value": "Hit Rate"
+											}
+										]
+									}
+								]
+							}
+						}
+					}
+				}
+			},
+			"panel-103": {
+				"kind": "Panel",
+				"spec": {
+					"id": 103,
+					"title": "GraphQL fallback reasons",
+					"description": "Observed fallbacks by bounded reason. Refresh failure does not prove revocation; no user, clip or token identifiers are exported.",
+					"links": [],
+					"data": {
+						"kind": "QueryGroup",
+						"spec": {
+							"queries": [
+								{
+									"kind": "PanelQuery",
+									"spec": {
+										"query": {
+											"kind": "DataQuery",
+											"group": "influxdb",
+											"version": "v0",
+											"datasource": {
+												"name": "efg3es37pgh6ob"
+											},
+											"spec": {
+												"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"clipify_vm01\")\n  |> filter(fn: (r) => r._field == \"clips_fallbackReasons_missingCredentials\" or r._field == \"clips_fallbackReasons_disabledAccount\" or r._field == \"clips_fallbackReasons_refreshFailed\" or r._field == \"clips_fallbackReasons_missingScope\" or r._field == \"clips_fallbackReasons_apiRejected\" or r._field == \"clips_fallbackReasons_apiError\" or r._field == \"clips_fallbackReasons_rateLimited\" or r._field == \"clips_fallbackReasons_emptyResponse\")\n  |> increase()\n  |> difference(nonNegative: true)\n  |> aggregateWindow(every: v.windowPeriod, fn: sum, createEmpty: false)\n  |> group(columns: [\"_field\", \"_time\"])\n  |> sum()\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])"
+											}
+										},
+										"refId": "A",
+										"hidden": false
+									}
+								}
+							],
+							"transformations": [],
+							"queryOptions": {}
+						}
+					},
+					"vizConfig": {
+						"kind": "VizConfig",
+						"group": "timeseries",
+						"version": "",
+						"spec": {
+							"options": {
+								"legend": {
+									"displayMode": "table",
+									"placement": "bottom"
+								},
+								"tooltip": {
+									"mode": "multi"
+								}
+							},
+							"fieldConfig": {
+								"defaults": {
+									"unit": "short",
+									"decimals": 0,
+									"color": {
+										"mode": "palette-classic"
+									}
+								},
+								"overrides": [
+									{
+										"matcher": {
+											"id": "byName",
+											"options": "clips_fallbackReasons_missingCredentials"
+										},
+										"properties": [
+											{
+												"id": "displayName",
+												"value": "No linked credentials"
+											}
+										]
+									},
+									{
+										"matcher": {
+											"id": "byName",
+											"options": "clips_fallbackReasons_disabledAccount"
+										},
+										"properties": [
+											{
+												"id": "displayName",
+												"value": "Account disabled"
+											}
+										]
+									},
+									{
+										"matcher": {
+											"id": "byName",
+											"options": "clips_fallbackReasons_refreshFailed"
+										},
+										"properties": [
+											{
+												"id": "displayName",
+												"value": "Token refresh failed"
+											}
+										]
+									},
+									{
+										"matcher": {
+											"id": "byName",
+											"options": "clips_fallbackReasons_missingScope"
+										},
+										"properties": [
+											{
+												"id": "displayName",
+												"value": "Download permission missing"
+											}
+										]
+									},
+									{
+										"matcher": {
+											"id": "byName",
+											"options": "clips_fallbackReasons_apiRejected"
+										},
+										"properties": [
+											{
+												"id": "displayName",
+												"value": "Twitch rejected the API request"
+											}
+										]
+									},
+									{
+										"matcher": {
+											"id": "byName",
+											"options": "clips_fallbackReasons_apiError"
+										},
+										"properties": [
+											{
+												"id": "displayName",
+												"value": "API/network error"
+											}
+										]
+									},
+									{
+										"matcher": {
+											"id": "byName",
+											"options": "clips_fallbackReasons_rateLimited"
+										},
+										"properties": [
+											{
+												"id": "displayName",
+												"value": "Twitch rate limit"
+											}
+										]
+									},
+									{
+										"matcher": {
+											"id": "byName",
+											"options": "clips_fallbackReasons_emptyResponse"
+										},
+										"properties": [
+											{
+												"id": "displayName",
+												"value": "No download URL returned"
+											}
+										]
+									}
+								]
+							}
+						}
+					}
+				}
+			},
+			"panel-312": {
+				"kind": "Panel",
+				"spec": {
+					"id": 312,
+					"title": "MCP HTTP responses per minute",
+					"description": "Transport-level responses, separate from executed tools. 4xx includes expected OAuth challenges; it does not necessarily mean a tool failed.",
+					"links": [],
+					"data": {
+						"kind": "QueryGroup",
+						"spec": {
+							"queries": [
+								{
+									"kind": "PanelQuery",
+									"spec": {
+										"query": {
+											"kind": "DataQuery",
+											"group": "influxdb",
+											"version": "v0",
+											"datasource": {
+												"name": "efg3es37pgh6ob"
+											},
+											"spec": {
+												"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"clipify_vm01\")\n  |> filter(fn: (r) => r._field == \"mcp_requests_status_2xx_total\" or r._field == \"mcp_requests_status_3xx_total\" or r._field == \"mcp_requests_status_4xx_total\" or r._field == \"mcp_requests_status_5xx_total\")\n  |> increase()\n  |> difference(nonNegative: true)\n  |> aggregateWindow(every: v.windowPeriod, fn: sum, createEmpty: false)\n  |> group(columns: [\"_field\", \"_time\"])\n  |> sum()\n  |> map(fn: (r) => ({r with _value: r._value * 60.0 / (float(v: int(v: v.windowPeriod)) / 1000000000.0)}))\n  |> group(columns: [\"_field\"])\n  |> sort(columns: [\"_time\"])"
+											}
+										},
+										"refId": "A",
+										"hidden": false
+									}
+								}
+							],
+							"transformations": [],
+							"queryOptions": {}
+						}
+					},
+					"vizConfig": {
+						"kind": "VizConfig",
+						"group": "timeseries",
+						"version": "",
+						"spec": {
+							"options": {
+								"legend": {
+									"displayMode": "table",
+									"placement": "bottom"
+								},
+								"tooltip": {
+									"mode": "multi"
+								}
+							},
+							"fieldConfig": {
+								"defaults": {
+									"unit": "cpm",
+									"decimals": 1,
+									"color": {
+										"mode": "palette-classic"
+									}
+								},
+								"overrides": [
+									{
+										"matcher": {
+											"id": "byName",
+											"options": "mcp_requests_status_2xx_total"
+										},
+										"properties": [
+											{
+												"id": "displayName",
+												"value": "Successful responses"
+											}
+										]
+									},
+									{
+										"matcher": {
+											"id": "byName",
+											"options": "mcp_requests_status_3xx_total"
+										},
+										"properties": [
+											{
+												"id": "displayName",
+												"value": "Redirects"
+											}
+										]
+									},
+									{
+										"matcher": {
+											"id": "byName",
+											"options": "mcp_requests_status_4xx_total"
+										},
+										"properties": [
+											{
+												"id": "displayName",
+												"value": "Auth challenges / client errors"
+											}
+										]
+									},
+									{
+										"matcher": {
+											"id": "byName",
+											"options": "mcp_requests_status_5xx_total"
+										},
+										"properties": [
+											{
+												"id": "displayName",
+												"value": "Server errors"
+											}
+										]
+									}
+								]
+							}
+						}
+					}
+				}
+			},
+			"panel-400": {
+				"kind": "Panel",
+				"spec": {
+					"id": 400,
+					"title": "Crawler jobs waiting to run",
+					"description": "Due jobs available to workers, excluding disabled creators, future schedules and actively leased jobs.",
+					"links": [],
+					"data": {
+						"kind": "QueryGroup",
+						"spec": {
+							"queries": [
+								{
+									"kind": "PanelQuery",
+									"spec": {
+										"query": {
+											"kind": "DataQuery",
+											"group": "influxdb",
+											"version": "v0",
+											"datasource": {
+												"name": "efg3es37pgh6ob"
+											},
+											"spec": {
+												"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"clipify_vm01\")\n  |> filter(fn: (r) => r._field == \"crawler_dueRecent\" or r._field == \"crawler_dueBackfill\")\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)"
+											}
+										},
+										"refId": "A",
+										"hidden": false
+									}
+								}
+							],
+							"transformations": [],
+							"queryOptions": {}
+						}
+					},
+					"vizConfig": {
+						"kind": "VizConfig",
+						"group": "timeseries",
+						"version": "",
+						"spec": {
+							"options": {
+								"legend": {
+									"displayMode": "table",
+									"placement": "bottom"
+								},
+								"tooltip": {
+									"mode": "multi"
+								}
+							},
+							"fieldConfig": {
+								"defaults": {
+									"unit": "short",
+									"decimals": 0,
+									"color": {
+										"mode": "palette-classic"
+									}
+								},
+								"overrides": [
+									{
+										"matcher": {
+											"id": "byName",
+											"options": "crawler_dueRecent"
+										},
+										"properties": [
+											{
+												"id": "displayName",
+												"value": "Recent clips"
+											}
+										]
+									},
+									{
+										"matcher": {
+											"id": "byName",
+											"options": "crawler_dueBackfill"
+										},
+										"properties": [
+											{
+												"id": "displayName",
+												"value": "Clip history"
+											}
+										]
+									}
+								]
+							}
+						}
+					}
+				}
+			},
+			"panel-401": {
+				"kind": "Panel",
+				"spec": {
+					"id": 401,
+					"title": "Crawler jobs running",
+					"description": "Jobs with an unexpired worker lease, excluding disabled creators.",
+					"links": [],
+					"data": {
+						"kind": "QueryGroup",
+						"spec": {
+							"queries": [
+								{
+									"kind": "PanelQuery",
+									"spec": {
+										"query": {
+											"kind": "DataQuery",
+											"group": "influxdb",
+											"version": "v0",
+											"datasource": {
+												"name": "efg3es37pgh6ob"
+											},
+											"spec": {
+												"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"clipify_vm01\")\n  |> filter(fn: (r) => r._field == \"crawler_runningRecent\" or r._field == \"crawler_runningBackfill\")\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)"
+											}
+										},
+										"refId": "A",
+										"hidden": false
+									}
+								}
+							],
+							"transformations": [],
+							"queryOptions": {}
+						}
+					},
+					"vizConfig": {
+						"kind": "VizConfig",
+						"group": "timeseries",
+						"version": "",
+						"spec": {
+							"options": {
+								"legend": {
+									"displayMode": "table",
+									"placement": "bottom"
+								},
+								"tooltip": {
+									"mode": "multi"
+								}
+							},
+							"fieldConfig": {
+								"defaults": {
+									"unit": "short",
+									"decimals": 0,
+									"color": {
+										"mode": "palette-classic"
+									}
+								},
+								"overrides": [
+									{
+										"matcher": {
+											"id": "byName",
+											"options": "crawler_runningRecent"
+										},
+										"properties": [
+											{
+												"id": "displayName",
+												"value": "Recent clips"
+											}
+										]
+									},
+									{
+										"matcher": {
+											"id": "byName",
+											"options": "crawler_runningBackfill"
+										},
+										"properties": [
+											{
+												"id": "displayName",
+												"value": "Clip history"
+											}
+										]
+									}
+								]
+							}
+						}
+					}
+				}
+			},
+			"panel-402": {
+				"kind": "Panel",
+				"spec": {
+					"id": 402,
+					"title": "Crawler wait time",
+					"description": "Age of the oldest available due job and pending manual-refresh request. These are observed wait times, not promised start times. Zero means no matching pending work.",
+					"links": [],
+					"data": {
+						"kind": "QueryGroup",
+						"spec": {
+							"queries": [
+								{
+									"kind": "PanelQuery",
+									"spec": {
+										"query": {
+											"kind": "DataQuery",
+											"group": "influxdb",
+											"version": "v0",
+											"datasource": {
+												"name": "efg3es37pgh6ob"
+											},
+											"spec": {
+												"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"clipify_vm01\")\n  |> filter(fn: (r) => r._field == \"crawler_oldestDueAgeSeconds\" or r._field == \"crawler_oldestManualWaitSeconds\")\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)"
+											}
+										},
+										"refId": "A",
+										"hidden": false
+									}
+								}
+							],
+							"transformations": [],
+							"queryOptions": {}
+						}
+					},
+					"vizConfig": {
+						"kind": "VizConfig",
+						"group": "timeseries",
+						"version": "",
+						"spec": {
+							"options": {
+								"legend": {
+									"displayMode": "table",
+									"placement": "bottom"
+								},
+								"tooltip": {
+									"mode": "multi"
+								}
+							},
+							"fieldConfig": {
+								"defaults": {
+									"unit": "s",
+									"decimals": 1,
+									"color": {
+										"mode": "palette-classic"
+									}
+								},
+								"overrides": [
+									{
+										"matcher": {
+											"id": "byName",
+											"options": "crawler_oldestDueAgeSeconds"
+										},
+										"properties": [
+											{
+												"id": "displayName",
+												"value": "Oldest due job"
+											}
+										]
+									},
+									{
+										"matcher": {
+											"id": "byName",
+											"options": "crawler_oldestManualWaitSeconds"
+										},
+										"properties": [
+											{
+												"id": "displayName",
+												"value": "Oldest manual refresh"
+											}
+										]
+									}
+								]
+							}
+						}
+					}
+				}
+			},
+			"panel-403": {
+				"kind": "Panel",
+				"spec": {
+					"id": 403,
+					"title": "Crawler retries and expired leases",
+					"description": "Retrying jobs and expired worker leases awaiting recovery. Gauges, not lifetime failure counters. Disabled creators are excluded.",
+					"links": [],
+					"data": {
+						"kind": "QueryGroup",
+						"spec": {
+							"queries": [
+								{
+									"kind": "PanelQuery",
+									"spec": {
+										"query": {
+											"kind": "DataQuery",
+											"group": "influxdb",
+											"version": "v0",
+											"datasource": {
+												"name": "efg3es37pgh6ob"
+											},
+											"spec": {
+												"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"clipify_vm01\")\n  |> filter(fn: (r) => r._field == \"crawler_retrying\" or r._field == \"crawler_expiredLeases\" or r._field == \"crawler_manualPending\")\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)"
+											}
+										},
+										"refId": "A",
+										"hidden": false
+									}
+								}
+							],
+							"transformations": [],
+							"queryOptions": {}
+						}
+					},
+					"vizConfig": {
+						"kind": "VizConfig",
+						"group": "timeseries",
+						"version": "",
+						"spec": {
+							"options": {
+								"legend": {
+									"displayMode": "table",
+									"placement": "bottom"
+								},
+								"tooltip": {
+									"mode": "multi"
+								}
+							},
+							"fieldConfig": {
+								"defaults": {
+									"unit": "short",
+									"decimals": 0,
+									"color": {
+										"mode": "palette-classic"
+									}
+								},
+								"overrides": [
+									{
+										"matcher": {
+											"id": "byName",
+											"options": "crawler_retrying"
+										},
+										"properties": [
+											{
+												"id": "displayName",
+												"value": "Retrying jobs"
+											}
+										]
+									},
+									{
+										"matcher": {
+											"id": "byName",
+											"options": "crawler_expiredLeases"
+										},
+										"properties": [
+											{
+												"id": "displayName",
+												"value": "Expired worker leases"
+											}
+										]
+									},
+									{
+										"matcher": {
+											"id": "byName",
+											"options": "crawler_manualPending"
+										},
+										"properties": [
+											{
+												"id": "displayName",
+												"value": "Pending manual refreshes"
+											}
+										]
+									}
+								]
+							}
+						}
+					}
+				}
+			},
+			"panel-410": {
+				"kind": "Panel",
+				"spec": {
+					"id": 410,
+					"title": "Emails ready to send",
+					"description": "Outbox notices due now, separated into first attempts and retries. Future scheduled reminders are shown separately.",
+					"links": [],
+					"data": {
+						"kind": "QueryGroup",
+						"spec": {
+							"queries": [
+								{
+									"kind": "PanelQuery",
+									"spec": {
+										"query": {
+											"kind": "DataQuery",
+											"group": "influxdb",
+											"version": "v0",
+											"datasource": {
+												"name": "efg3es37pgh6ob"
+											},
+											"spec": {
+												"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"clipify_vm01\")\n  |> filter(fn: (r) => r._field == \"notifications_duePending\" or r._field == \"notifications_dueRetry\")\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)"
+											}
+										},
+										"refId": "A",
+										"hidden": false
+									}
+								}
+							],
+							"transformations": [],
+							"queryOptions": {}
+						}
+					},
+					"vizConfig": {
+						"kind": "VizConfig",
+						"group": "timeseries",
+						"version": "",
+						"spec": {
+							"options": {
+								"legend": {
+									"displayMode": "table",
+									"placement": "bottom"
+								},
+								"tooltip": {
+									"mode": "multi"
+								}
+							},
+							"fieldConfig": {
+								"defaults": {
+									"unit": "short",
+									"decimals": 0,
+									"color": {
+										"mode": "palette-classic"
+									}
+								},
+								"overrides": [
+									{
+										"matcher": {
+											"id": "byName",
+											"options": "notifications_duePending"
+										},
+										"properties": [
+											{
+												"id": "displayName",
+												"value": "Ready for first attempt"
+											}
+										]
+									},
+									{
+										"matcher": {
+											"id": "byName",
+											"options": "notifications_dueRetry"
+										},
+										"properties": [
+											{
+												"id": "displayName",
+												"value": "Ready to retry"
+											}
+										]
+									}
+								]
+							}
+						}
+					}
+				}
+			},
+			"panel-411": {
+				"kind": "Panel",
+				"spec": {
+					"id": 411,
+					"title": "Email delivery state",
+					"description": "Unexpired delivery claims, expired claims, failed notices and intentionally discarded notices. No-longer-applicable notices are skips, not provider failures. Sent history is excluded from the aggregate scan.",
+					"links": [],
+					"data": {
+						"kind": "QueryGroup",
+						"spec": {
+							"queries": [
+								{
+									"kind": "PanelQuery",
+									"spec": {
+										"query": {
+											"kind": "DataQuery",
+											"group": "influxdb",
+											"version": "v0",
+											"datasource": {
+												"name": "efg3es37pgh6ob"
+											},
+											"spec": {
+												"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"clipify_vm01\")\n  |> filter(fn: (r) => r._field == \"notifications_claimed\" or r._field == \"notifications_expiredClaims\" or r._field == \"notifications_failed\" or r._field == \"notifications_skipped\")\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)"
+											}
+										},
+										"refId": "A",
+										"hidden": false
+									}
+								}
+							],
+							"transformations": [],
+							"queryOptions": {}
+						}
+					},
+					"vizConfig": {
+						"kind": "VizConfig",
+						"group": "timeseries",
+						"version": "",
+						"spec": {
+							"options": {
+								"legend": {
+									"displayMode": "table",
+									"placement": "bottom"
+								},
+								"tooltip": {
+									"mode": "multi"
+								}
+							},
+							"fieldConfig": {
+								"defaults": {
+									"unit": "short",
+									"decimals": 0,
+									"color": {
+										"mode": "palette-classic"
+									}
+								},
+								"overrides": [
+									{
+										"matcher": {
+											"id": "byName",
+											"options": "notifications_claimed"
+										},
+										"properties": [
+											{
+												"id": "displayName",
+												"value": "Being delivered"
+											}
+										]
+									},
+									{
+										"matcher": {
+											"id": "byName",
+											"options": "notifications_expiredClaims"
+										},
+										"properties": [
+											{
+												"id": "displayName",
+												"value": "Expired delivery claims"
+											}
+										]
+									},
+									{
+										"matcher": {
+											"id": "byName",
+											"options": "notifications_failed"
+										},
+										"properties": [
+											{
+												"id": "displayName",
+												"value": "Failed notices"
+											}
+										]
+									},
+									{
+										"matcher": {
+											"id": "byName",
+											"options": "notifications_skipped"
+										},
+										"properties": [
+											{
+												"id": "displayName",
+												"value": "No longer applicable"
+											}
+										]
+									}
+								]
+							}
+						}
+					}
+				}
+			},
+			"panel-412": {
+				"kind": "Panel",
+				"spec": {
+					"id": 412,
+					"title": "Oldest overdue email",
+					"description": "Age of the oldest pending/retry notice whose scheduled delivery time has passed. Zero means no due unclaimed notices. Expired claims are shown separately.",
+					"links": [],
+					"data": {
+						"kind": "QueryGroup",
+						"spec": {
+							"queries": [
+								{
+									"kind": "PanelQuery",
+									"spec": {
+										"query": {
+											"kind": "DataQuery",
+											"group": "influxdb",
+											"version": "v0",
+											"datasource": {
+												"name": "efg3es37pgh6ob"
+											},
+											"spec": {
+												"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"clipify_vm01\")\n  |> filter(fn: (r) => r._field == \"notifications_oldestDueAgeSeconds\")\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)"
+											}
+										},
+										"refId": "A",
+										"hidden": false
+									}
+								}
+							],
+							"transformations": [],
+							"queryOptions": {}
+						}
+					},
+					"vizConfig": {
+						"kind": "VizConfig",
+						"group": "timeseries",
+						"version": "",
+						"spec": {
+							"options": {
+								"legend": {
+									"displayMode": "table",
+									"placement": "bottom"
+								},
+								"tooltip": {
+									"mode": "multi"
+								}
+							},
+							"fieldConfig": {
+								"defaults": {
+									"unit": "s",
+									"decimals": 1,
+									"color": {
+										"mode": "palette-classic"
+									}
+								},
+								"overrides": [
+									{
+										"matcher": {
+											"id": "byName",
+											"options": "notifications_oldestDueAgeSeconds"
+										},
+										"properties": [
+											{
+												"id": "displayName",
+												"value": "Oldest overdue notice"
+											}
+										]
+									}
+								]
+							}
+						}
+					}
+				}
+			},
+			"panel-413": {
+				"kind": "Panel",
+				"spec": {
+					"id": 413,
+					"title": "Scheduled emails",
+					"description": "Future pending notices and retries; these are not overdue delivery backlog.",
+					"links": [],
+					"data": {
+						"kind": "QueryGroup",
+						"spec": {
+							"queries": [
+								{
+									"kind": "PanelQuery",
+									"spec": {
+										"query": {
+											"kind": "DataQuery",
+											"group": "influxdb",
+											"version": "v0",
+											"datasource": {
+												"name": "efg3es37pgh6ob"
+											},
+											"spec": {
+												"query": "from(bucket: \"clipify_monitor\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"clipify_vm01\")\n  |> filter(fn: (r) => r._field == \"notifications_scheduledPending\" or r._field == \"notifications_scheduledRetry\")\n  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)"
+											}
+										},
+										"refId": "A",
+										"hidden": false
+									}
+								}
+							],
+							"transformations": [],
+							"queryOptions": {}
+						}
+					},
+					"vizConfig": {
+						"kind": "VizConfig",
+						"group": "timeseries",
+						"version": "",
+						"spec": {
+							"options": {
+								"legend": {
+									"displayMode": "table",
+									"placement": "bottom"
+								},
+								"tooltip": {
+									"mode": "multi"
+								}
+							},
+							"fieldConfig": {
+								"defaults": {
+									"unit": "short",
+									"decimals": 0,
+									"color": {
+										"mode": "palette-classic"
+									}
+								},
+								"overrides": [
+									{
+										"matcher": {
+											"id": "byName",
+											"options": "notifications_scheduledPending"
+										},
+										"properties": [
+											{
+												"id": "displayName",
+												"value": "Future notices"
+											}
+										]
+									},
+									{
+										"matcher": {
+											"id": "byName",
+											"options": "notifications_scheduledRetry"
+										},
+										"properties": [
+											{
+												"id": "displayName",
+												"value": "Future retries"
 											}
 										]
 									}
@@ -9608,6 +10695,19 @@
 													"name": "panel-102"
 												}
 											}
+										},
+										{
+											"kind": "GridLayoutItem",
+											"spec": {
+												"x": 0,
+												"y": 8,
+												"width": 24,
+												"height": 8,
+												"element": {
+													"kind": "ElementReference",
+													"name": "panel-103"
+												}
+											}
 										}
 									]
 								}
@@ -9798,21 +10898,8 @@
 											"spec": {
 												"x": 0,
 												"y": 32,
-												"width": 12,
-												"height": 8,
-												"element": {
-													"kind": "ElementReference",
-													"name": "panel-308"
-												}
-											}
-										},
-										{
-											"kind": "GridLayoutItem",
-											"spec": {
-												"x": 12,
-												"y": 32,
-												"width": 12,
-												"height": 8,
+												"width": 24,
+												"height": 5,
 												"element": {
 													"kind": "ElementReference",
 													"name": "panel-309"
@@ -9823,7 +10910,7 @@
 											"kind": "GridLayoutItem",
 											"spec": {
 												"x": 0,
-												"y": 40,
+												"y": 37,
 												"width": 24,
 												"height": 10,
 												"element": {
@@ -9836,12 +10923,157 @@
 											"kind": "GridLayoutItem",
 											"spec": {
 												"x": 0,
-												"y": 50,
+												"y": 47,
 												"width": 24,
 												"height": 5,
 												"element": {
 													"kind": "ElementReference",
 													"name": "panel-311"
+												}
+											}
+										},
+										{
+											"kind": "GridLayoutItem",
+											"spec": {
+												"x": 0,
+												"y": 52,
+												"width": 24,
+												"height": 8,
+												"element": {
+													"kind": "ElementReference",
+													"name": "panel-312"
+												}
+											}
+										}
+									]
+								}
+							}
+						}
+					},
+					{
+						"kind": "RowsLayoutRow",
+						"spec": {
+							"title": "Clip crawling",
+							"collapse": false,
+							"layout": {
+								"kind": "GridLayout",
+								"spec": {
+									"items": [
+										{
+											"kind": "GridLayoutItem",
+											"spec": {
+												"x": 0,
+												"y": 0,
+												"width": 12,
+												"height": 8,
+												"element": {
+													"kind": "ElementReference",
+													"name": "panel-400"
+												}
+											}
+										},
+										{
+											"kind": "GridLayoutItem",
+											"spec": {
+												"x": 12,
+												"y": 0,
+												"width": 12,
+												"height": 8,
+												"element": {
+													"kind": "ElementReference",
+													"name": "panel-401"
+												}
+											}
+										},
+										{
+											"kind": "GridLayoutItem",
+											"spec": {
+												"x": 0,
+												"y": 8,
+												"width": 12,
+												"height": 8,
+												"element": {
+													"kind": "ElementReference",
+													"name": "panel-402"
+												}
+											}
+										},
+										{
+											"kind": "GridLayoutItem",
+											"spec": {
+												"x": 12,
+												"y": 8,
+												"width": 12,
+												"height": 8,
+												"element": {
+													"kind": "ElementReference",
+													"name": "panel-403"
+												}
+											}
+										}
+									]
+								}
+							}
+						}
+					},
+					{
+						"kind": "RowsLayoutRow",
+						"spec": {
+							"title": "Transactional emails",
+							"collapse": false,
+							"layout": {
+								"kind": "GridLayout",
+								"spec": {
+									"items": [
+										{
+											"kind": "GridLayoutItem",
+											"spec": {
+												"x": 0,
+												"y": 0,
+												"width": 12,
+												"height": 8,
+												"element": {
+													"kind": "ElementReference",
+													"name": "panel-410"
+												}
+											}
+										},
+										{
+											"kind": "GridLayoutItem",
+											"spec": {
+												"x": 12,
+												"y": 0,
+												"width": 12,
+												"height": 8,
+												"element": {
+													"kind": "ElementReference",
+													"name": "panel-411"
+												}
+											}
+										},
+										{
+											"kind": "GridLayoutItem",
+											"spec": {
+												"x": 0,
+												"y": 8,
+												"width": 12,
+												"height": 8,
+												"element": {
+													"kind": "ElementReference",
+													"name": "panel-412"
+												}
+											}
+										},
+										{
+											"kind": "GridLayoutItem",
+											"spec": {
+												"x": 12,
+												"y": 8,
+												"width": 12,
+												"height": 8,
+												"element": {
+													"kind": "ElementReference",
+													"name": "panel-413"
 												}
 											}
 										}

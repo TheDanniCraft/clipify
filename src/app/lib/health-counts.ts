@@ -1,5 +1,5 @@
 import { count, countDistinct, sql } from "drizzle-orm";
-import { usersTable, overlaysTable, settingsTable, runnersTable, streamSessionsTable } from "@/db/schema";
+import { usersTable, overlaysTable, settingsTable, runnersTable, streamSessionsTable, clipCrawlJobsTable, notificationOutboxTable } from "@/db/schema";
 import { account as authAccountTable } from "@/db/auth-schema";
 import { StatusOptions, RunnerStatus, StreamState } from "@types";
 
@@ -45,7 +45,47 @@ export function tokenHealthCounts(now: Date, in24h: Date) {
 		total: count(),
 		expired: sql<number>`count(*) filter (where ${authAccountTable.accessTokenExpiresAt} < ${now})`,
 		expiring: sql<number>`count(*) filter (where ${authAccountTable.accessTokenExpiresAt} > ${now} and ${authAccountTable.accessTokenExpiresAt} <= ${in24h})`,
-		ready: sql<number>`count(*) filter (where ${authAccountTable.scope} ~ '(^| )(channel:manage:clips|editor:manage:clips)( |$)')`,
+		ready: sql<number>`count(*) filter (where ${authAccountTable.scope} ~ '(^|[[:space:],])(channel:manage:clips|editor:manage:clips)([[:space:],]|$)')`,
+	};
+}
+
+/** One fresh aggregate over the same enabled-creator queue the workers claim. */
+export function crawlerHealthCounts(now: Date) {
+	const jobs = clipCrawlJobsTable;
+	const sampledAt = sql`${now.toISOString()}::timestamptz`;
+	const running = sql`${jobs.leaseExpiresAt} > ${sampledAt}`;
+	const available = sql`(${jobs.leaseExpiresAt} IS NULL OR ${jobs.leaseExpiresAt} <= ${sampledAt})`;
+	const due = sql`${jobs.nextRunAt} <= ${sampledAt} AND ${available}`;
+	const manual = sql`${jobs.requestedAt} IS NOT NULL AND ${jobs.nextRunAt} IS NOT NULL AND ${available}`;
+	return {
+		dueRecent: sql<number>`count(*) filter (where ${due} AND ${jobs.kind} = 'recent')`,
+		dueBackfill: sql<number>`count(*) filter (where ${due} AND ${jobs.kind} = 'backfill')`,
+		runningRecent: sql<number>`count(*) filter (where ${running} AND ${jobs.kind} = 'recent')`,
+		runningBackfill: sql<number>`count(*) filter (where ${running} AND ${jobs.kind} = 'backfill')`,
+		manualPending: sql<number>`count(*) filter (where ${manual})`,
+		scheduled: sql<number>`count(*) filter (where ${jobs.nextRunAt} > ${sampledAt} AND ${available} AND ${jobs.failures} = 0)`,
+		retrying: sql<number>`count(*) filter (where ${jobs.failures} > 0 AND ${jobs.nextRunAt} IS NOT NULL AND ${available})`,
+		expiredLeases: sql<number>`count(*) filter (where ${jobs.leaseExpiresAt} <= ${sampledAt})`,
+		oldestDueAgeSeconds: sql<number>`coalesce(greatest(extract(epoch FROM (${sampledAt} - min(${jobs.nextRunAt}) filter (where ${due}))), 0), 0)`,
+		oldestManualWaitSeconds: sql<number>`coalesce(greatest(extract(epoch FROM (${sampledAt} - min(${jobs.requestedAt}) filter (where ${manual}))), 0), 0)`,
+	};
+}
+
+/** Caller excludes sent history; deliberately discarded notices are not delivery failures. */
+export function notificationHealthCounts(now: Date) {
+	const outbox = notificationOutboxTable;
+	const sampledAt = sql`${now.toISOString()}::timestamptz`;
+	const due = sql`${outbox.scheduledAt} <= ${sampledAt}`;
+	return {
+		duePending: sql<number>`count(*) filter (where ${outbox.status} = 'pending' AND ${due})`,
+		dueRetry: sql<number>`count(*) filter (where ${outbox.status} = 'retry' AND ${due})`,
+		scheduledPending: sql<number>`count(*) filter (where ${outbox.status} = 'pending' AND ${outbox.scheduledAt} > ${sampledAt})`,
+		scheduledRetry: sql<number>`count(*) filter (where ${outbox.status} = 'retry' AND ${outbox.scheduledAt} > ${sampledAt})`,
+		claimed: sql<number>`count(*) filter (where ${outbox.status} = 'claimed' AND ${outbox.claimExpiresAt} > ${sampledAt})`,
+		expiredClaims: sql<number>`count(*) filter (where ${outbox.status} = 'claimed' AND (${outbox.claimExpiresAt} IS NULL OR ${outbox.claimExpiresAt} <= ${sampledAt}))`,
+		failed: sql<number>`count(*) filter (where ${outbox.status} = 'dead' AND ${outbox.lastError} IS DISTINCT FROM 'NOTIFICATION_NO_LONGER_APPLIES')`,
+		skipped: sql<number>`count(*) filter (where ${outbox.status} = 'dead' AND ${outbox.lastError} = 'NOTIFICATION_NO_LONGER_APPLIES')`,
+		oldestDueAgeSeconds: sql<number>`coalesce(greatest(extract(epoch FROM (${sampledAt} - min(${outbox.scheduledAt}) filter (where ${outbox.status} IN ('pending', 'retry') AND ${due}))), 0), 0)`,
 	};
 }
 
