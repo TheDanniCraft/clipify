@@ -31,6 +31,7 @@ import { IconBrandTwitch } from "@tabler/icons-react";
 import SecuritySettingsPanel from "./security-panel";
 import ConnectedAppsPanel from "./connected-apps-panel";
 import McpActivityPanel from "./mcp-activity-panel";
+import ClipCrawlSchedule, { type ClipCrawlScheduleJob } from "./clip-crawl-schedule";
 
 type ClipCacheStatusState = {
 	cachedClipCount: number;
@@ -43,6 +44,7 @@ type ClipCacheStatusState = {
 };
 
 type ClipForceRefreshStatusState = {
+	jobs?: ClipCrawlScheduleJob[];
 	lastForcedAt: string | null;
 	cooldownMs: number;
 	nextAllowedAt: string;
@@ -159,6 +161,28 @@ export default function SettingsPage() {
 		};
 	}, [user]);
 
+	useEffect(() => {
+		if (!user || sectionTab !== "settings") return;
+		let cancelled = false;
+		let running = false;
+		const interval = setInterval(async () => {
+			if (document.visibilityState === "hidden" || running) return;
+			running = true;
+			try {
+				const status = await getOwnClipForceRefreshStatus();
+				if (!cancelled) setClipForceRefreshStatus(status);
+			} catch {
+				// Keep the last successful snapshot; the statistics button allows a retry.
+			} finally {
+				running = false;
+			}
+		}, 60_000);
+		return () => {
+			cancelled = true;
+			clearInterval(interval);
+		};
+	}, [user, sectionTab]);
+
 	const upgradeIntent = useMemo<{ cycle: BillingCycle; source: PaywallSource; feature: string }>(() => {
 		if (typeof window === "undefined") {
 			return { cycle: "yearly", source: "upgrade_modal", feature: "account" };
@@ -274,8 +298,8 @@ export default function SettingsPage() {
 			}
 
 			addToast({
-				title: "Cache refresh started",
-				description: "Triggered clip cache refresh successfully.",
+				title: "Clip refresh queued",
+				description: "Your latest clips will be checked as soon as a worker is available.",
 				color: "success",
 			});
 
@@ -530,6 +554,7 @@ export default function SettingsPage() {
 										<div className='h-full bg-gradient-to-r from-brand-700 to-brand-400' style={{ width: `${clipCacheStatus?.estimatedCoveragePercent ?? 0}%` }} />
 									</div>
 									<p className='text-xs text-muted'>Cached clips are stored clip records used by the player so playback works quickly without refetching everything from Twitch on each request.</p>
+									<ClipCrawlSchedule jobs={clipForceRefreshStatus?.jobs} />
 									<div className='grid grid-cols-1 gap-2 text-xs text-muted md:grid-cols-2'>
 										<p>
 											<span className='font-semibold'>Backfill progress (estimate):</span> {clipCacheStatus?.estimatedCoveragePercent ?? 0}%
