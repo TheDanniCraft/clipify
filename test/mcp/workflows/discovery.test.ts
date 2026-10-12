@@ -3,7 +3,7 @@ import { flowProbe } from "../../support/mcp/probe";
 describe("TDD-US2-001 bounded creator clip search", () => {
 	test("discovers yesterday's Minecraft clips without clip IDs and returns safe titles/links", () => {
 		const row = flowProbe("catalogue:workflow:search_clips:success");
-		expect(row.result?.structuredContent).toMatchObject({ creatorId: "fixture-creator", complete: true, items: [{ id: "MinecraftClip", title: "Minecraft adventure", url: "https://clips.twitch.tv/MinecraftClip", thumbnailUrl: "https://static-cdn.jtvnw.net/test.jpg" }] });
+		expect(row.result?.structuredContent).toMatchObject({ creatorId: "fixture-creator", complete: true, items: [{ id: "MinecraftClip", title: "Minecraft adventure", url: "https://clips.twitch.tv/MinecraftClip", thumbnailUrl: "https://static-cdn.jtvnw.net/test.jpg", broadcasterId: "fixture-creator", broadcasterName: "Fixture creator", clipCreatorId: "clipper-id", clipCreatorName: "Fixture clipper", videoId: "123456789", vodOffsetSeconds: 42, language: "en", isFeatured: true }] });
 		expect(row.safe).toBe(true);
 		expect(row.providerCalls).toBe(0);
 	});
@@ -11,7 +11,7 @@ describe("TDD-US2-001 bounded creator clip search", () => {
 describe("TDD-US2-002 Twitch clip link resolution", () => {
 	test("resolves an authorized creator clip link without provider secrets", () => {
 		const row = flowProbe("catalogue:workflow:resolve_clip:success");
-		expect(row.result?.structuredContent).toMatchObject({ creatorId: "fixture-creator", clip: { id: "MinecraftClip", title: "Minecraft adventure", url: "https://clips.twitch.tv/MinecraftClip", thumbnailUrl: "https://static-cdn.jtvnw.net/test.jpg" } });
+		expect(row.result?.structuredContent).toMatchObject({ creatorId: "fixture-creator", clip: { id: "MinecraftClip", title: "Minecraft adventure", url: "https://clips.twitch.tv/MinecraftClip", thumbnailUrl: "https://static-cdn.jtvnw.net/test.jpg", broadcasterId: "fixture-creator", broadcasterName: "Fixture creator", clipCreatorId: "clipper-id", clipCreatorName: "Fixture clipper", videoId: "123456789", vodOffsetSeconds: 42, language: "en", isFeatured: true } });
 		expect(row.safe).toBe(true);
 		expect(row.providerCalls).toBe(1);
 	});
