@@ -18,6 +18,7 @@ export interface RenderedTransactionalEmail {
 	text: string;
 	html: string;
 	templateVersion: "identity-security-v1";
+	replyable?: boolean;
 }
 
 function welcomeContent(input: Extract<IdentitySecurityTemplateInput, { type: "welcome" }>): Parameters<typeof renderBrandedEmail>[0] {
@@ -37,7 +38,7 @@ function welcomeContent(input: Extract<IdentitySecurityTemplateInput, { type: "w
 }
 
 function invitationContent(input: Extract<IdentitySecurityTemplateInput, { type: "invitation" }>): Parameters<typeof renderBrandedEmail>[0] {
-	return { subject: `You were invited to ${input.organizationName} on Clipify`, receivingReason: "You are receiving this email because you were invited to a team on Clipify.", paragraphs: [`You were invited to join ${input.organizationName} on Clipify.`], action: { label: "Accept invitation", url: input.invitationUrl } };
+	return { subject: `You were invited to ${input.organizationName} on Clipify`, replyable: false, receivingReason: "You are receiving this email because you were invited to a team on Clipify.", paragraphs: [`You were invited to join ${input.organizationName} on Clipify.`], action: { label: "Accept invitation", url: input.invitationUrl } };
 }
 
 function securityContent(input: Extract<IdentitySecurityTemplateInput, { type: "security" }>): Parameters<typeof renderBrandedEmail>[0] {
@@ -46,7 +47,15 @@ function securityContent(input: Extract<IdentitySecurityTemplateInput, { type: "
 }
 
 function exportContent(input: Extract<IdentitySecurityTemplateInput, { type: "account-data-export" }>): Parameters<typeof renderBrandedEmail>[0] {
-	return { subject: "Your Clipify data export is ready", title: "Your data export is ready", paragraphs: ["Your Clipify data package is ready to download."], children: createElement(EmailNotice, { type: "error", title: "Keep this link private" }, `This link expires on ${formatEmailDate(input.expiresAt)} and only works while signed in to the account that requested it. Do not share it.`), action: { label: "Download your data package", url: input.downloadUrl } };
+	return {
+		subject: "Your Clipify data export is ready",
+		title: "Your data export is ready",
+		replyable: false,
+		receivingReason: "You are receiving this email because you requested a copy of your Clipify data.",
+		paragraphs: ["Your Clipify data package is ready to download."],
+		children: createElement(EmailNotice, { type: "error", title: "Keep this link private" }, `This link expires on ${formatEmailDate(input.expiresAt)} and only works while signed in to the account that requested it. Do not share it.`),
+		action: { label: "Download your data package", url: input.downloadUrl },
+	};
 }
 
 function organizationContent(input: Extract<IdentitySecurityTemplateInput, { type: "organization-membership" }>): Parameters<typeof renderBrandedEmail>[0] {

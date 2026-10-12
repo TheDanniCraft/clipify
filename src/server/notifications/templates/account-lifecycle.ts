@@ -86,6 +86,7 @@ export async function renderAccountLifecycleEmail(boundary: DeletionNotification
 export async function renderAccountDeletedEmail() {
 	return renderBrandedEmail({
 		subject: "Your Clipify account has been deleted",
+		receivingReason: "You are receiving this email because you requested deletion of your Clipify account.",
 		paragraphs: [
 			"I'm sorry to see you leave the Clipify family. Thank you for trusting us with part of your creator journey.",
 			"Your Clipify creator account and its content have been permanently deleted.",

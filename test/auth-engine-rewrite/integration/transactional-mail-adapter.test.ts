@@ -45,27 +45,37 @@ describe("TDD-US3-007 UseSend transactional mail adapter", () => {
 			expect.objectContaining({
 				to: "creator@example.test",
 				from: "Clipify <auth@clipify.us>",
-				replyTo: "contact@clipify.us",
 				subject: "Your Clipify sign-in code",
 				text: expect.stringContaining("123456"),
 			}),
 			expect.objectContaining({ idempotencyKey: expect.stringMatching(/^auth-otp:/) }),
 		);
+		expect(mockSend.mock.calls[0][0]).not.toHaveProperty("replyTo");
+		expect(mockSend.mock.calls[0][0].text).toContain("because you requested a Clipify sign-in code");
 	});
 
 	it("uses the verification subject for non-sign-in OTP purposes", async () => {
 		await sendAuthOtp({ email: "member@example.test", otp: "654321", type: "email-verification" });
 		expect(mockSend).toHaveBeenCalledWith(expect.objectContaining({ subject: "Verify your Clipify email" }), expect.any(Object));
+		expect(mockSend.mock.calls[0][0]).not.toHaveProperty("replyTo");
 	});
 
 	it("renders and sends a team invitation", async () => {
 		await sendTeamInvitation({ email: "member@example.test", invitationUrl: "https://clipify.us/accept-invitation?id=1", organizationName: "Creator Team" });
+		expect(mockSend.mock.calls[0][0]).not.toHaveProperty("replyTo");
 		expect(mockSend).toHaveBeenCalledWith(expect.objectContaining({ to: "member@example.test", subject: expect.stringContaining("Creator Team"), html: expect.stringContaining("accept-invitation") }), expect.objectContaining({ idempotencyKey: expect.stringMatching(/^team-invitation:/) }));
 	});
 
 	it("renders and sends an expiring account-data export link", async () => {
 		await sendAccountDataExport({ email: "creator@example.test", downloadUrl: "https://clipify.us/api/account/export?token=redacted", expiresAt: new Date("2026-10-10T00:00:00.000Z") });
+		expect(mockSend.mock.calls[0][0]).not.toHaveProperty("replyTo");
+		expect(mockSend.mock.calls[0][0].text).toContain("because you requested a copy of your Clipify data");
 		expect(mockSend).toHaveBeenCalledWith(expect.objectContaining({ to: "creator@example.test", subject: expect.stringContaining("data export"), html: expect.stringContaining("/api/account/export") }), expect.objectContaining({ idempotencyKey: expect.stringMatching(/^account-data-export:/) }));
+	});
+
+	it("uses the support sender and reply address for notifications", async () => {
+		await new UseSendTransactionalMailAdapter().send("member@example.test", { subject: "Notification", text: "Text", html: "<p>Text</p>", templateVersion: "identity-security-v1", replyable: true }, "notification-1");
+		expect(mockSend).toHaveBeenCalledWith(expect.objectContaining({ from: "Clipify <contact@clipify.us>", replyTo: "contact@clipify.us" }), expect.any(Object));
 	});
 
 	it("returns null when the provider succeeds without an email identifier", async () => {

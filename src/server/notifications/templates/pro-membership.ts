@@ -27,13 +27,18 @@ export async function renderProMembershipEmail(input: ProMembershipEmail) {
 		subject: returning ? "Welcome back to Clipify Pro 💜" : renewal ? "Thanks for your continued support 💜" : "Thank you for supporting Clipify 💜",
 		paragraphs: [
 			hi,
+			returning ? "Welcome back! Your Clipify Pro subscription is active again, and your Pro features are ready to use." : renewal ? "Your Clipify Pro subscription has renewed. I wanted to take a moment to say thank you for sticking with Clipify." : input.existing ? "You've been supporting Clipify with Pro, and I wanted to say a personal thank you." : "Your Clipify Pro subscription is active. A huge thank you for choosing Pro.",
 			returning
-				? "Welcome back to Pro! Your subscription is active again, and your Pro features are ready to use. Thank you for choosing to support Clipify again and for trusting me with a part of your content creation journey."
+				? "I'm happy you've decided to come back. Thank you for giving Clipify another place in your content creation and for supporting my work as an independent developer."
 				: renewal
-					? "Your Clipify Pro subscription has renewed. Thank you for your continued support and for continuing to trust Clipify with a part of your content creation workflow."
-					: `${input.existing ? "You've been supporting Clipify with Pro, and I wanted to say a personal thank you." : "A huge thank you for choosing Pro and supporting Clipify."} Thank you for trusting me and the tool I'm building. It means a lot that you've chosen Clipify to be part of your content creation journey.`,
-			"If you ever need help, something doesn't work as expected, or you have an idea for a new feature, just reply to this email. I'm always happy to hear from you.",
-			"Thanks for being part of the Clipify family.",
+					? "As an independent developer, having people continue to support my work means a lot. I'm grateful that you've chosen to keep Clipify as part of your content creation, and I'll keep working to make it useful for you."
+					: "I'm building Clipify as an independent developer, so your support means a lot to me. Thank you for trusting something I've built to be part of your content creation. It helps me keep working on Clipify and making it better.",
+			returning
+				? "If something made you leave last time, or there's anything you'd like to see improved, I'd appreciate hearing about it. Just reply to this email, whether it's feedback, a feature idea, or something you need help with."
+				: renewal
+					? "How has it been working for you? If there's something you're missing, something that's frustrating, or anything you need help with, just reply to this email. I'm happy to listen."
+					: "If you need help, something doesn't work as expected, or you have an idea for a feature, just reply to this email. I'd love to hear from you.",
+			returning ? "It's good to have you back in the Clipify family." : renewal ? "Thank you for your continued trust and support." : "Thanks for being part of the Clipify family.",
 			"Daniel / TheDanniCraft, founder of Clipify.us",
 		],
 		action: { label: "Open Clipify", url: emailUrl("/dashboard") },

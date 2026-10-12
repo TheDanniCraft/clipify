@@ -12,6 +12,7 @@ export interface BrandedEmailContent {
 	preview?: string;
 	title?: string;
 	receivingReason?: string;
+	replyable?: boolean;
 	/** Trusted, server-authored React Email components; never user-supplied markup. */
 	children?: ReactNode;
 	paragraphs?: ReactNode[];
@@ -128,15 +129,7 @@ export function BrandedEmail({ content, baseUrl }: { content: BrandedEmailConten
 					<Hr className='email-rule' style={{ borderColor: "#ededf3", margin: "0" }} />
 					<Section style={{ padding: "20px 24px" }}>
 						<Text className='email-muted' style={{ color: "#666674", fontSize: "12px", lineHeight: "20px", margin: "0 0 12px" }}>
-							{content.receivingReason ?? (
-								<>
-									You are receiving this email because you have a Clipify account or requested it on{" "}
-									<Link className='email-link' href={url("/")} style={footerLinkStyle}>
-										clipify.us
-									</Link>
-									.
-								</>
-							)}
+							{content.receivingReason ?? "You are receiving this email because you have a Clipify account."}
 						</Text>
 						<Text className='email-muted' style={{ color: "#666674", fontSize: "12px", lineHeight: "20px", margin: "0" }}>
 							{"Clipify · Let your clips talk. Even when you can't."}
@@ -172,5 +165,5 @@ export async function renderBrandedEmail(content: BrandedEmailContent) {
 		.slice(0, 160);
 	if (content.action && content.action.url !== EMAIL_SUPPORT_URL && !["https:", "http:"].includes(new URL(content.action.url).protocol)) throw new Error("INVALID_EMAIL_ACTION_URL");
 	const html = await render(<BrandedEmail content={{ ...content, subject }} baseUrl={resolveBaseUrl().origin} />);
-	return { subject, html, text: toPlainText(html) };
+	return { subject, html, text: toPlainText(html), replyable: content.replyable ?? true };
 }
