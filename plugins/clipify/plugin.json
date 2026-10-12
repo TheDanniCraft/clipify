@@ -13,7 +13,7 @@
 		"com.openai": {
 			"interface": {
 				"displayName": "Clipify",
-				"shortDescription": "Manage Clipify with AI",
+				"shortDescription": "Keep your stream alive",
 				"longDescription": "Manage your Clipify creators, overlays, playlists, galleries, and appearance through your AI assistant. Choose which creators to connect and the permissions each connection can use.",
 				"developerName": "TheDanniCraft",
 				"category": "Creativity",

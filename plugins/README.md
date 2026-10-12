@@ -16,6 +16,8 @@ and run `python scripts/package-openai-plugin.py /tmp/clipify-openai-plugin.zip`
 Before submission, complete publisher verification, domain verification,
 reviewer access, a walkthrough video, and five positive plus three negative
 review test cases in the portal. Credentials must never be included in the ZIP.
+The [OpenAI review guide](openai-review-guide.md) contains the agreed test cases,
+recording steps, reviewer sign-in instructions, and package release notes.
 The automated checks validate package structure, not OpenAI review approval or
 the live server's OAuth behavior.
 
