@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Card, Input, InputOTP, Label, Link, REGEXP_ONLY_DIGITS, TextField } from "@heroui/react";
-import { IconMail } from "@tabler/icons-react";
+import { IconArrowRight, IconMail } from "@tabler/icons-react";
 import { authClient } from "@/auth/client";
 
 type Workspace = { id: string; name: string; metadata?: unknown };
@@ -115,7 +115,7 @@ export default function EditorSignIn({ returnUrl, signedInEmail }: { returnUrl: 
 	return (
 		<main className='flex min-h-dvh items-center justify-center bg-background px-4 py-8'>
 			<Card className='w-full max-w-md' variant='secondary'>
-				<Card.Header>
+				<Card.Header className='items-center text-center'>
 					<IconMail aria-hidden='true' className='text-accent' size={28} />
 					<Card.Title>{signedIn ? "Choose your workspace" : "Sign in as an editor"}</Card.Title>
 					<Card.Description>{signedIn ? `Signed in as ${email}.` : "Use the email address invited to a Clipify workspace."}</Card.Description>
@@ -129,7 +129,7 @@ export default function EditorSignIn({ returnUrl, signedInEmail }: { returnUrl: 
 									<Input type='email' autoComplete='email' value={email} onChange={(event) => setEmail(event.target.value)} />
 								</TextField>
 							) : (
-								<div className='space-y-2'>
+								<div className='flex flex-col items-center gap-2 text-center'>
 									<Label>Sign-in code</Label>
 									<InputOTP aria-label='Sign-in code' maxLength={6} value={code} onChange={setCode} pattern={REGEXP_ONLY_DIGITS} inputMode='numeric' autoComplete='one-time-code' isDisabled={pending}>
 										<InputOTP.Group>
@@ -180,8 +180,11 @@ export default function EditorSignIn({ returnUrl, signedInEmail }: { returnUrl: 
 						</p>
 					) : null}
 				</Card.Content>
-				<Card.Footer>
-					<Link href='/login'>Creator? Sign in with Twitch</Link>
+				<Card.Footer className='justify-center'>
+					<Link href='/login' className='gap-1 text-sm text-muted'>
+						Creator? Sign in with Twitch
+						<IconArrowRight aria-hidden='true' size={14} />
+					</Link>
 				</Card.Footer>
 			</Card>
 		</main>
