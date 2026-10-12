@@ -213,7 +213,7 @@ test.each(["success", "cooldown", "failure"])("manual clip refresh handles %s sa
 	const refresh = await screen.findByRole("button", { name: "Force Refresh Cache" });
 	await waitFor(() => expect(refresh).toBeEnabled());
 	fireEvent.click(refresh);
-	await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.objectContaining({ title: mode === "success" ? "Cache refresh started" : mode === "cooldown" ? "Refresh cooldown active" : "Error" })));
+	await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.objectContaining({ title: mode === "success" ? "Clip refresh queued" : mode === "cooldown" ? "Refresh cooldown active" : "Error" })));
 	expect(JSON.stringify(notify.mock.calls)).not.toContain("private provider failure");
 });
 test.each(["success", "failure"])("statistics refresh handles %s", async (mode) => {
@@ -224,6 +224,24 @@ test.each(["success", "failure"])("statistics refresh handles %s", async (mode) 
 	fireEvent.click(screen.getByRole("button", { name: "Refresh statistics" }));
 	if (mode === "success") expect(await screen.findByText("Complete")).toBeVisible();
 	else await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.objectContaining({ description: "Failed to refresh clip cache statistics." })));
+});
+
+test("clip schedule shows an estimate and completed history, then a queued refresh", async () => {
+	getOwnClipForceRefreshStatus.mockResolvedValue({
+		canRefresh: true,
+		remainingMs: 0,
+		jobs: [
+			{ kind: "recent", status: "scheduled", nextRunAt: new Date(Date.now() + 10 * 60_000).toISOString() },
+			{ kind: "backfill", status: "complete", nextRunAt: null },
+		],
+	});
+	render(<SettingsPage />);
+	expect(await screen.findByText(/Next check in about 10 minutes/)).toBeVisible();
+	expect(screen.getByText(/Clip history:/).closest("p")).toHaveTextContent("Complete");
+	getOwnClipForceRefreshStatus.mockResolvedValue({ canRefresh: false, remainingMs: 0, jobs: [{ kind: "recent", status: "queued", nextRunAt: new Date().toISOString() }] });
+	fireEvent.click(screen.getByRole("button", { name: "Refresh statistics" }));
+	expect(await screen.findByText(/Waiting to start/)).toBeVisible();
+	expect(screen.queryByText(/Next check in about/)).not.toBeInTheDocument();
 });
 test.each(["success", "rate-limited", "failure", "recent-auth"])("account export handles %s without exposing internal errors", async (mode) => {
 	if (mode === "success") (requestAccountDataExport as jest.Mock).mockResolvedValue({ email: "owner@example.invalid", expiresAt: "2026-10-09T00:00:00Z" });
