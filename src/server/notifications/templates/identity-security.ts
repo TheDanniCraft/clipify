@@ -1,3 +1,4 @@
+import type { EmailType } from "../email-registry";
 import { EMAIL_SUPPORT_ADDRESS, EMAIL_SUPPORT_URL } from "./formatting";
 import { createElement } from "react";
 import { Link } from "./email-links";
@@ -18,12 +19,13 @@ export interface RenderedTransactionalEmail {
 	text: string;
 	html: string;
 	templateVersion: "identity-security-v1";
-	replyable?: boolean;
+	emailType?: EmailType;
 }
 
 function welcomeContent(input: Extract<IdentitySecurityTemplateInput, { type: "welcome" }>): Parameters<typeof renderBrandedEmail>[0] {
 	return {
 		subject: "Welcome to the Clipify family",
+		emailType: "welcome",
 		paragraphs: [
 			`Hi ${input.name},`,
 			"I'm Daniel, also known as TheDanniCraft, the founder of Clipify. I'm happy to have you on board and excited to be part of your creator journey.",
@@ -38,7 +40,7 @@ function welcomeContent(input: Extract<IdentitySecurityTemplateInput, { type: "w
 }
 
 function invitationContent(input: Extract<IdentitySecurityTemplateInput, { type: "invitation" }>): Parameters<typeof renderBrandedEmail>[0] {
-	return { subject: `You were invited to ${input.organizationName} on Clipify`, replyable: false, receivingReason: "You are receiving this email because you were invited to a team on Clipify.", paragraphs: [`You were invited to join ${input.organizationName} on Clipify.`], action: { label: "Accept invitation", url: input.invitationUrl } };
+	return { subject: `You were invited to ${input.organizationName} on Clipify`, emailType: "invitation", paragraphs: [`You were invited to join ${input.organizationName} on Clipify.`], action: { label: "Accept invitation", url: input.invitationUrl } };
 }
 
 function securityContent(input: Extract<IdentitySecurityTemplateInput, { type: "security" }>): Parameters<typeof renderBrandedEmail>[0] {
@@ -50,8 +52,7 @@ function exportContent(input: Extract<IdentitySecurityTemplateInput, { type: "ac
 	return {
 		subject: "Your Clipify data export is ready",
 		title: "Your data export is ready",
-		replyable: false,
-		receivingReason: "You are receiving this email because you requested a copy of your Clipify data.",
+		emailType: "account-data-export",
 		paragraphs: ["Your Clipify data package is ready to download."],
 		children: createElement(EmailNotice, { type: "error", title: "Keep this link private" }, `This link expires on ${formatEmailDate(input.expiresAt)} and only works while signed in to the account that requested it. Do not share it.`),
 		action: { label: "Download your data package", url: input.downloadUrl },

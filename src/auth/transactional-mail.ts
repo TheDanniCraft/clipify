@@ -1,3 +1,4 @@
+import { authCodeEmail, emailDeliveryHeaders } from "@/server/notifications/email-registry";
 import { renderAccountAccessEmail } from "@/server/notifications/templates/account-access";
 import { renderBrandedEmail } from "@/server/notifications/templates/layout";
 import { UseSend } from "usesend-js";
@@ -21,8 +22,8 @@ function normalizeProviderError(error: unknown): { code: string; message: string
 }
 
 export async function renderAuthOtpEmail(input: { otp: string; type: string }): Promise<RenderedTransactionalEmail> {
-	const subject = input.type === "sign-in" ? "Your Clipify sign-in code" : "Verify your Clipify email";
-	return { ...(await renderBrandedEmail({ subject, replyable: false, receivingReason: input.type === "sign-in" ? "You are receiving this email because you requested a Clipify sign-in code." : "You are receiving this email because you requested a Clipify email verification code.", paragraphs: ["Use this code to continue with Clipify.", "It expires in 10 minutes. If you did not request this code, you can ignore this email."], code: input.otp })), templateVersion: "identity-security-v1" };
+	const { subject, emailType } = authCodeEmail(input.type);
+	return { ...(await renderBrandedEmail({ subject, emailType, paragraphs: ["Use this code to continue with Clipify.", "It expires in 10 minutes. If you did not request this code, you can ignore this email."], code: input.otp })), templateVersion: "identity-security-v1" };
 }
 
 export async function sendAuthOtp(input: { email: string; otp: string; type: string }): Promise<void> {
@@ -43,12 +44,11 @@ export class UseSendTransactionalMailAdapter {
 	async send(recipient: string, email: RenderedTransactionalEmail, idempotencyKey: string) {
 		const noReplySender = requiredInfisicalSetting("USESEND_TRANSACTIONAL_FROM");
 		const replyTo = process.env.USESEND_TRANSACTIONAL_REPLY_TO || "contact@clipify.us";
-		const replyable = email.replyable !== false;
+		const deliveryHeaders = emailDeliveryHeaders(email.emailType ?? "account-notification", { noReplySender, replyTo });
 		const result = await this.#client.emails.send(
 			{
 				to: recipient,
-				from: replyable ? `Clipify <${replyTo}>` : noReplySender,
-				...(replyable ? { replyTo } : {}),
+				...deliveryHeaders,
 				subject: email.subject,
 				text: email.text,
 				html: email.html,

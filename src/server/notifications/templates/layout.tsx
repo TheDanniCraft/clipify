@@ -1,3 +1,4 @@
+import { emailRegistry, type EmailType } from "../email-registry";
 import { Button, Link } from "./email-links";
 import { EMAIL_SUPPORT_ADDRESS, EMAIL_SUPPORT_URL, EMAIL_HELP_CENTER_URL } from "./formatting";
 import { Body, Column, Container, Head, Heading, Hr, Html, Img, Preview, Row, Section, Text, render, toPlainText } from "@react-email/components";
@@ -11,8 +12,7 @@ export interface BrandedEmailContent {
 	subject: string;
 	preview?: string;
 	title?: string;
-	receivingReason?: string;
-	replyable?: boolean;
+	emailType?: EmailType;
 	/** Trusted, server-authored React Email components; never user-supplied markup. */
 	children?: ReactNode;
 	paragraphs?: ReactNode[];
@@ -129,7 +129,7 @@ export function BrandedEmail({ content, baseUrl }: { content: BrandedEmailConten
 					<Hr className='email-rule' style={{ borderColor: "#ededf3", margin: "0" }} />
 					<Section style={{ padding: "20px 24px" }}>
 						<Text className='email-muted' style={{ color: "#666674", fontSize: "12px", lineHeight: "20px", margin: "0 0 12px" }}>
-							{content.receivingReason ?? "You are receiving this email because you have a Clipify account."}
+							{emailRegistry[content.emailType ?? "account-notification"].receivingReason}
 						</Text>
 						<Text className='email-muted' style={{ color: "#666674", fontSize: "12px", lineHeight: "20px", margin: "0" }}>
 							{"Clipify · Let your clips talk. Even when you can't."}
@@ -165,5 +165,5 @@ export async function renderBrandedEmail(content: BrandedEmailContent) {
 		.slice(0, 160);
 	if (content.action && content.action.url !== EMAIL_SUPPORT_URL && !["https:", "http:"].includes(new URL(content.action.url).protocol)) throw new Error("INVALID_EMAIL_ACTION_URL");
 	const html = await render(<BrandedEmail content={{ ...content, subject }} baseUrl={resolveBaseUrl().origin} />);
-	return { subject, html, text: toPlainText(html), replyable: content.replyable ?? true };
+	return { subject, html, text: toPlainText(html), emailType: content.emailType ?? "account-notification" };
 }

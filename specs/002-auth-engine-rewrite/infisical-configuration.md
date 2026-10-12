@@ -80,10 +80,15 @@ Existing newsletter contact-book configuration remains separate from these
 transactional-mail settings.
 
 Sign-in and verification codes, invitations, and data exports use
-`USESEND_TRANSACTIONAL_FROM` without a Reply-To header. Other account
-notifications use `Clipify <USESEND_TRANSACTIONAL_REPLY_TO>` as the sender and
-the same monitored address for replies (default `contact@clipify.us`). Both
-sender addresses must belong to a verified UseSend domain.
+`USESEND_TRANSACTIONAL_FROM` without a Reply-To header. Welcome and Pro thank-you emails use
+`Daniel from Clipify <hello@clipify.us>`. Other account notifications use
+`Clipify <notifications@clipify.us>`. Both replyable categories use
+`USESEND_TRANSACTIONAL_REPLY_TO` (default `contact@clipify.us`) for replies.
+All sender addresses must belong to a verified UseSend domain.
+
+`src/server/notifications/email-registry.ts` owns email categories, sender
+identities, and footer reasons. Templates select an email type; the shared
+renderer and delivery adapter look up the same registry policy.
 
 ## Stripe payment notifications
 

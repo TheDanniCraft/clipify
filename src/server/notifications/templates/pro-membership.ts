@@ -10,6 +10,7 @@ export async function renderProMembershipEmail(input: ProMembershipEmail) {
 	if (input.event === "payment-ended")
 		return renderBrandedEmail({
 			subject: "Your Clipify Pro subscription has ended",
+			emailType: input.event,
 			paragraphs: [hi, "Your Clipify Pro subscription has ended.", "You can keep using Clipify on the Free plan, but Pro features are no longer available. Your saved setup and content are still here."],
 			children: createElement(
 				Fragment,
@@ -24,6 +25,7 @@ export async function renderProMembershipEmail(input: ProMembershipEmail) {
 	const renewal = input.event === "renewal";
 	const returning = input.event === "welcome-back";
 	return renderBrandedEmail({
+		emailType: input.event,
 		subject: returning ? "Welcome back to Clipify Pro 💜" : renewal ? "Thanks for your continued support 💜" : "Thank you for supporting Clipify 💜",
 		paragraphs: [
 			hi,

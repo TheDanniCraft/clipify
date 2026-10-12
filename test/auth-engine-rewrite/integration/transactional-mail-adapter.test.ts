@@ -13,6 +13,8 @@ jest.mock("usesend-js", () => {
 });
 
 import { sendAccountDataExport, sendAuthOtp, sendTeamInvitation, UseSendTransactionalMailAdapter } from "@/auth/transactional-mail";
+import { renderIdentitySecurityEmail } from "@/server/notifications/templates/identity-security";
+import { renderProMembershipEmail } from "@/server/notifications/templates/pro-membership";
 
 const { UseSend: mockUseSend, __mockSend: mockSend } = jest.requireMock("usesend-js") as { UseSend: jest.Mock; __mockSend: jest.Mock };
 
@@ -73,9 +75,15 @@ describe("TDD-US3-007 UseSend transactional mail adapter", () => {
 		expect(mockSend).toHaveBeenCalledWith(expect.objectContaining({ to: "creator@example.test", subject: expect.stringContaining("data export"), html: expect.stringContaining("/api/account/export") }), expect.objectContaining({ idempotencyKey: expect.stringMatching(/^account-data-export:/) }));
 	});
 
-	it("uses the support sender and reply address for notifications", async () => {
-		await new UseSendTransactionalMailAdapter().send("member@example.test", { subject: "Notification", text: "Text", html: "<p>Text</p>", templateVersion: "identity-security-v1", replyable: true }, "notification-1");
-		expect(mockSend).toHaveBeenCalledWith(expect.objectContaining({ from: "Clipify <contact@clipify.us>", replyTo: "contact@clipify.us" }), expect.any(Object));
+	it("uses the account notification sender and support reply address", async () => {
+		await new UseSendTransactionalMailAdapter().send("member@example.test", { subject: "Notification", text: "Text", html: "<p>Text</p>", templateVersion: "identity-security-v1", emailType: "account-notification" }, "notification-1");
+		expect(mockSend).toHaveBeenCalledWith(expect.objectContaining({ from: "Clipify <notifications@clipify.us>", replyTo: "contact@clipify.us" }), expect.any(Object));
+	});
+
+	it.each(["welcome", "first-pro", "renewal", "welcome-back"] as const)("sends %s with the founder identity and support reply address", async (event) => {
+		const rendered = event === "welcome" ? await renderIdentitySecurityEmail({ type: "welcome", name: "Alex" }) : { ...(await renderProMembershipEmail({ type: "pro-membership", event, name: "Alex" })), templateVersion: "identity-security-v1" as const };
+		await new UseSendTransactionalMailAdapter().send("member@example.test", rendered, `personal:${event}`);
+		expect(mockSend).toHaveBeenCalledWith(expect.objectContaining({ from: "Daniel from Clipify <hello@clipify.us>", replyTo: "contact@clipify.us" }), expect.any(Object));
 	});
 
 	it("returns null when the provider succeeds without an email identifier", async () => {
