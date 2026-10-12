@@ -114,13 +114,13 @@ export default function EditorSignIn({ returnUrl, signedInEmail }: { returnUrl: 
 
 	return (
 		<main className='flex min-h-dvh items-center justify-center bg-background px-4 py-8'>
-			<Card className='w-full max-w-md' variant='secondary'>
-				<Card.Header className='items-center text-center'>
+			<Card className='w-full max-w-md gap-6 p-6 sm:p-8' variant='secondary'>
+				<Card.Header className='items-center gap-2 text-center'>
 					<IconMail aria-hidden='true' className='text-accent' size={28} />
-					<Card.Title>{signedIn ? "Choose your workspace" : "Sign in as an editor"}</Card.Title>
-					<Card.Description>{signedIn ? `Signed in as ${email}.` : "Use the email address invited to a Clipify workspace."}</Card.Description>
+					<Card.Title className='text-xl font-semibold'>{signedIn ? (workspaces && workspaces.length > 1 ? "Choose your workspace" : "Continue to Clipify") : "Sign in as an editor"}</Card.Title>
+					<Card.Description className='max-w-full break-words'>{signedIn ? `Signed in as ${email}.` : "Use the email address invited to a Clipify workspace."}</Card.Description>
 				</Card.Header>
-				<Card.Content className='space-y-4'>
+				<Card.Content className='gap-4'>
 					{!signedIn ? (
 						<form onSubmit={submit} className='space-y-4'>
 							{!codeSent ? (
@@ -141,6 +141,7 @@ export default function EditorSignIn({ returnUrl, signedInEmail }: { returnUrl: 
 									<p className='text-sm text-muted'>Enter the code sent to {email.trim()}.</p>
 									<Button
 										variant='tertiary'
+										className='w-full'
 										isDisabled={pending}
 										onPress={() => {
 											setCodeSent(false);
@@ -148,7 +149,7 @@ export default function EditorSignIn({ returnUrl, signedInEmail }: { returnUrl: 
 											setError(null);
 										}}
 									>
-										Use another email or request a new code
+										Use another email or resend
 									</Button>
 								</div>
 							)}
@@ -157,22 +158,22 @@ export default function EditorSignIn({ returnUrl, signedInEmail }: { returnUrl: 
 							</Button>
 						</form>
 					) : (
-						<>
+						<div className='flex w-full flex-col gap-3'>
 							{pending ? <p className='text-sm text-muted'>Opening your workspace...</p> : null}
 							{workspaces === null ? (
-								<Button variant='primary' isPending={pending} isDisabled={pending} onPress={() => void continueSignedIn()}>
+								<Button variant='primary' className='w-full' isPending={pending} isDisabled={pending} onPress={() => void continueSignedIn()}>
 									Continue
 								</Button>
 							) : null}
 							{workspaces?.map((workspace) => (
-								<Button key={workspace.id} variant='secondary' className='w-full' isDisabled={pending} onPress={() => void selectWorkspace(workspace)}>
-									{workspace.name}
+								<Button key={workspace.id} variant='secondary' className='w-full min-w-0' isDisabled={pending} onPress={() => void selectWorkspace(workspace)}>
+									<span className='truncate'>{workspace.name}</span>
 								</Button>
 							))}
-							<Button variant='tertiary' isDisabled={pending} onPress={() => void changeAccount()}>
+							<Button variant='tertiary' className='w-full' isDisabled={pending} onPress={() => void changeAccount()}>
 								Use another account
 							</Button>
-						</>
+						</div>
 					)}
 					{error ? (
 						<p role='alert' className='text-sm text-danger'>
