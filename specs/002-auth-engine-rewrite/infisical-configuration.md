@@ -78,3 +78,25 @@ WebAuthn, so credentials registered on localhost, a preview hostname, and
 
 Existing newsletter contact-book configuration remains separate from these
 transactional-mail settings.
+
+Sign-in and verification codes, invitations, and data exports use
+`USESEND_TRANSACTIONAL_FROM` without a Reply-To header, preserving the configured mailbox and displaying
+`Clipify.us` as its sender name. Welcome and Pro thank-you emails use
+`Daniel from Clipify.us <hello@clipify.us>`. Other account notifications use
+`Clipify.us <notifications@clipify.us>`. Both replyable categories use
+`USESEND_TRANSACTIONAL_REPLY_TO` (default `contact@clipify.us`) for replies.
+All sender addresses must belong to a verified UseSend domain.
+
+`src/server/notifications/email-registry.ts` owns email categories, sender
+identities, and footer reasons. Templates select an email type; the shared
+renderer and delivery adapter look up the same registry policy.
+
+## Stripe payment notifications
+
+The Clipify `/payment/webhook` endpoint must subscribe to `invoice.paid` and
+`invoice.payment_failed` alongside checkout and subscription events. An active
+subscription alone does not trigger a payment thank-you email. A positive paid
+subscription invoice triggers the first-payment, renewal, or returning-subscriber
+email; zero-value invoices are excluded. Failed-payment events refresh billing
+state during recovery, and do not immediately remove Pro or send an access-ended
+email. Replaying the same invoice event is deduplicated.

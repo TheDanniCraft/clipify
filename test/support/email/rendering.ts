@@ -35,6 +35,8 @@ for (const input of inputs) {
 		assert.match(mail.text, /You are receiving this email because/);
 		assert.doesNotMatch(mail.text, /not a newsletter/);
 		assert.doesNotMatch(mail.text, /<table|<img|<script/);
+		assert.equal(mail.emailType, ({ welcome: "welcome", invitation: "invitation", "account-data-export": "account-data-export" } as Record<string, string>)[input.type] ?? "account-notification");
+		assert.doesNotMatch(mail.text, /or requested it on/);
 		if (input.type === "invitation") assert.ok(mail.text.includes(input.invitationUrl));
 		if (input.type === "account-data-export") {
 			assert.ok(mail.text.includes(input.downloadUrl));
@@ -185,8 +187,9 @@ test("Pro thank-you emails are personal, with distinct first-time and renewal wo
 	const { renderProMembershipEmail } = await import("@/server/notifications/templates/pro-membership");
 	for (const event of ["first-pro", "renewal", "welcome-back"] as const) {
 		const mail = await renderProMembershipEmail({ type: "pro-membership", event, name: "Alex" });
+		assert.equal(mail.emailType, event);
 		assert.match(mail.text, /Hi Alex/);
-		assert.match(mail.text, /trust/);
+		assert.match(mail.text, /independent developer/);
 		assert.match(mail.text, /content creation/);
 		assert.match(mail.text, /reply to this email/);
 		assert.match(mail.text, /Daniel/);
