@@ -1,10 +1,11 @@
 import "server-only";
+import { publicTwitchImageUrl } from "@/server/resources/twitch-image";
 import { authorizeTrustedCreatorOperation, type TrustedCreatorPrincipal } from "@/auth/authorize-operation";
 import type { QueryClient } from "@/db/client";
 export async function getCreatorSummary(principal: TrustedCreatorPrincipal, creatorId: string, client?: QueryClient) {
 	const decision = await authorizeTrustedCreatorOperation({ principal, creatorId, permission: "creator:read", client });
 	if (!decision.allowed) throw new Error("ACCESS_DENIED");
-	return { id: decision.creator.id, name: decision.creator.username };
+	return { id: decision.creator.id, name: decision.creator.username, avatarUrl: publicTwitchImageUrl(decision.creator.avatar) };
 }
 
 import { count, eq } from "drizzle-orm";

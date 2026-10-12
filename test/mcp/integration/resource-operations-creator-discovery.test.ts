@@ -5,6 +5,12 @@ describe("TDD-US2-001/002 creator discovery through MCP", () => {
 	test("owned, directly shared and ceiling-approved agency creators appear while inaccessible creators do not", () => {
 		const result = flowProbe("resources:creators");
 		expect(result.protocolStatus).toBe(200);
+		expect(result.resourceResult.items).toEqual(
+			expect.arrayContaining([
+				{ id: "fixture-creator", name: "Fixture creator", avatarUrl: "https://static-cdn.jtvnw.net/user-default-pictures-uv/reviewer-profile_image-300x300.png" },
+				{ id: "direct-creator", name: "Direct creator", avatarUrl: null },
+			]),
+		);
 		expect(result.resourceResult.items.map((creator: any) => creator.id)).toEqual(["agency-creator", "direct-creator", "fixture-creator"]);
 	});
 	test("current team removal shrinks visible creators without expanding consent", () => {

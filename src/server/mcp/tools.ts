@@ -60,7 +60,7 @@ export function registerMcpTools(server: McpServer, principal: TrustedCreatorPri
 	const tools = [
 		...workflowTools(principal),
 		...focusedTools(principal),
-		{ name: "list_creators", description: "List approved creators you can currently access", schema: toolInputSchemas.list_creators, run: (input: unknown) => listCreators(principal, toolInputSchemas.list_creators.parse(input)) },
+		{ name: "list_creators", description: "List approved creators you can currently access, with their stored Twitch avatarUrl (including default avatars) or null when unavailable. If displaying an avatar, use only that creator's returned avatarUrl; never guess or substitute an image.", schema: toolInputSchemas.list_creators, run: (input: unknown) => listCreators(principal, toolInputSchemas.list_creators.parse(input)) },
 		{ name: "get_capabilities", description: "Read a creator’s current plan limits, usage and permitted operations", schema: toolInputSchemas.get_capabilities, run: (input: unknown) => getCapabilities(principal, toolInputSchemas.get_capabilities.parse(input).creatorId) },
 		{ name: "list_overlays", description: "Read approved creator overlays without private credentials", schema: toolInputSchemas.list_overlays, run: (input: unknown) => listOverlays(principal, input) },
 		{ name: "get_overlay", description: "Read one approved creator overlay without private credentials", schema: toolInputSchemas.get_overlay, run: (input: unknown) => getOverlay(principal, input) },

@@ -67,6 +67,7 @@ async function main() {
 		}
 
 		if (mode.startsWith("resources:creators")) {
+			await fixture.pool.query("UPDATE users SET avatar=$1 WHERE id='fixture-creator'", ["https://static-cdn.jtvnw.net/user-default-pictures-uv/reviewer-profile_image-300x300.png"]);
 			await fixture.pool.query(
 				`INSERT INTO auth.organization (id,name,slug,created_at) VALUES ('direct-org','Direct','direct-fixture',now()),('agency-org','Agency','agency-fixture',now()),('agency-creator-org','Agency creator','agency-creator-fixture',now()),('inaccessible-org','Private','private-fixture',now()); INSERT INTO users (id,email,username,avatar,role,plan) VALUES ('direct-creator','direct@example.invalid','Direct creator','','user','pro'),('agency-creator','agency@example.invalid','Agency creator','','user','free'),('inaccessible-creator','private@example.invalid','Private creator','','user','free'); INSERT INTO creator_accounts (creator_id,organization_id,status) VALUES ('direct-creator','direct-org','active'),('agency-creator','agency-creator-org','active'),('inaccessible-creator','inaccessible-org','active');`,
 			);

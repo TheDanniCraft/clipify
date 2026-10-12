@@ -21,14 +21,9 @@ export function filterDiscoveredClips<T extends DiscoverableClip>(clips: T[], fi
 
 import { z as schema } from "zod";
 import { providerClipSchema } from "./clip-validation";
+import { publicTwitchImageUrl } from "./twitch-image";
 export function publicClip(clip: schema.infer<typeof providerClipSchema>) {
-	let thumbnailUrl: string | null = null;
-	if (clip.thumbnail_url) {
-		try {
-			const url = new URL(clip.thumbnail_url);
-			if (url.protocol === "https:" && !url.username && !url.password && (url.hostname.endsWith(".jtvnw.net") || url.hostname.endsWith(".twitchcdn.net"))) thumbnailUrl = url.href;
-		} catch {}
-	}
+	const thumbnailUrl = publicTwitchImageUrl(clip.thumbnail_url);
 	return { id: clip.id, title: clip.title, url: `https://clips.twitch.tv/${encodeURIComponent(clip.id)}`, categoryId: clip.game_id ?? null, createdAt: clip.created_at, views: clip.view_count ?? 0, duration: clip.duration, thumbnailUrl };
 }
 export async function fetchClipDiscovery(creatorId: string, filters: ClipFilters) {
