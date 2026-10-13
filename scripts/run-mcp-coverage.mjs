@@ -6,7 +6,10 @@ import coverageRanges from "./mcp-coverage-ranges.cjs";
 import workerBudget from "./test-worker-budget.cjs";
 
 const args = process.argv.slice(2);
-const partial = process.env.CLIPIFY_COVERAGE_PARTIAL === "1";
+// A command flag keeps producer mode out of nested calibration processes.
+const partialIndex = args.indexOf("--partial-lane");
+const partial = partialIndex !== -1;
+if (partial) args.splice(partialIndex, 1);
 const explicitExecution = args.some((argument) => argument === "--runInBand" || argument === "--maxWorkers" || argument.startsWith("--maxWorkers="));
 const automaticArguments = explicitExecution ? [] : [`--maxWorkers=${workerBudget.automaticTestWorkers()}`];
 // Configuration inspection does not execute tests or need instrumented probes.

@@ -32,7 +32,7 @@ if (lane === "workflows") {
 	if (!Object.hasOwn(partitions, lane) || !partitions[lane].length) throw new Error(`Empty or unknown lane: ${lane}`);
 	tests = partitions[lane].map((path) => relative(process.cwd(), path));
 	const results = join(outputDirectory, "jest-results.json");
-	run(["scripts/run-mcp-coverage.mjs", "--filter=./scripts/test-lane-filter.cjs", `--coverageDirectory=${outputDirectory}`, "--json", `--outputFile=${results}`], { ...process.env, CLIPIFY_TEST_LANE: lane, CLIPIFY_COVERAGE_PARTIAL: "1" });
+	run(["scripts/run-mcp-coverage.mjs", "--partial-lane", "--filter=./scripts/test-lane-filter.cjs", `--coverageDirectory=${outputDirectory}`, "--json", `--outputFile=${results}`], { ...process.env, CLIPIFY_TEST_LANE: lane });
 	const executed = JSON.parse(readFileSync(results, "utf8"))
 		.testResults.map((result) => relative(process.cwd(), result.name))
 		.sort();
