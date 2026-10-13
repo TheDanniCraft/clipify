@@ -10,6 +10,17 @@ test("every suite has one owner and timing proofs stay isolated", () => {
 	assert.deepEqual(lanes.quiet, [paths[4]]);
 	assert.deepEqual(lanes.unit, [paths[0]]);
 });
+test("Jest filter returns the exact string-path contract rather than wrapping paths", async () => {
+	const previous = process.env.CLIPIFY_TEST_LANE;
+	process.env.CLIPIFY_TEST_LANE = "quiet";
+	try {
+		const paths = ["test/app/page.test.tsx", "test/mcp/unit/runtime-boundaries.test.ts"];
+		assert.deepEqual(await require("./test-lane-filter.cjs")(paths), { filtered: [paths[1]] });
+	} finally {
+		if (previous === undefined) delete process.env.CLIPIFY_TEST_LANE;
+		else process.env.CLIPIFY_TEST_LANE = previous;
+	}
+});
 test("ready PRs, master and unknown events require complete validation", () => {
 	assert.equal(fullValidationRequired({ pull_request: { draft: true } }, "pull_request"), false);
 	assert.equal(fullValidationRequired({ pull_request: { draft: false } }, "pull_request"), true);
