@@ -116,10 +116,10 @@ export default function OverlayTable({ userId }: { userId: string }) {
 					return { ...r, streamState: session?.actualState, streamError: session?.lastError };
 				});
 
-				setOverlays(combinedOverlays ?? undefined);
-				setPlaylists(combinedPlaylists ?? undefined);
-				setGalleries(combinedGalleries ?? undefined);
-				setRunners(combinedRunners ?? undefined);
+				setOverlays(combinedOverlays);
+				setPlaylists(combinedPlaylists);
+				setGalleries(combinedGalleries);
+				setRunners(combinedRunners);
 			} catch (error) {
 				console.error("Failed to fetch overlays:", error);
 			}
@@ -500,10 +500,10 @@ export default function OverlayTable({ userId }: { userId: string }) {
 			return { ...r, streamState: session?.actualState, streamError: session?.lastError };
 		});
 
-		setOverlays(combinedOverlays ?? undefined);
-		setPlaylists(combinedPlaylists ?? undefined);
-		setGalleries(combinedGalleries ?? undefined);
-		setRunners(combinedRunners ?? undefined);
+		setOverlays(combinedOverlays);
+		setPlaylists(combinedPlaylists);
+		setGalleries(combinedGalleries);
+		setRunners(combinedRunners);
 	});
 
 	const confirmDelete = useMemoizedCallback(async () => {
@@ -1033,6 +1033,11 @@ export default function OverlayTable({ userId }: { userId: string }) {
 
 							createPlaylist(userId, `Playlist ${ownerPlaylistsCount + 1}`)
 								.then(async (playlist) => {
+									if (playlist && "error" in playlist) {
+										addToast({ title: "Playlist could not be created", description: playlist.error.message, color: playlist.error.code === "PLAN_LIMIT_REACHED" ? "warning" : "danger" });
+										setIsLoading(false);
+										return;
+									}
 									if (!playlist) {
 										addToast({
 											title: "Error",

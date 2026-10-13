@@ -11,14 +11,14 @@ export async function createBrowserPlaylist(creatorId: string, name: string) {
 	const principal = await getVerifiedSessionPrincipal();
 	if (!principal) return null;
 	const normalizedName = name.trim().slice(0, 120);
-	if (!normalizedName) throw new Error("Playlist name is required");
+	if (!normalizedName) return { error: { code: "INVALID_INPUT" as const, message: "Enter a name for your playlist." } };
 	try {
 		const playlist = await createPlaylistForPrincipal(principal, { creatorId, name: normalizedName, retryKey: randomUUID() });
 		if (!("ownerId" in playlist)) throw new Error("SERVICE_UNAVAILABLE");
 		return playlist;
 	} catch (error) {
 		if (error instanceof Error && error.message === "ACCESS_DENIED") return null;
-		if (error instanceof Error && error.message === "PLAN_LIMIT_REACHED") throw new Error("Free plan allows only one playlist");
+		if (error instanceof Error && error.message === "PLAN_LIMIT_REACHED") return { error: { code: "PLAN_LIMIT_REACHED" as const, message: "Your Free plan supports one playlist. Upgrade to Pro to create more." } };
 		throw new Error("Failed to create playlist");
 	}
 }

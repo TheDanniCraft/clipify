@@ -29,7 +29,7 @@ describe("browser playlist creation shares backend enforcement", () => {
 	});
 	test("empty name is rejected before creation", async () => {
 		expect(browser?.createBrowserPlaylist).toEqual(expect.any(Function));
-		await expect(browser.createBrowserPlaylist("owner", "   ")).rejects.toThrow("Playlist name is required");
+		await expect(browser.createBrowserPlaylist("owner", "   ")).resolves.toEqual({ error: { code: "INVALID_INPUT", message: "Enter a name for your playlist." } });
 		expect(create).not.toHaveBeenCalled();
 	});
 	test("current backend denial preserves null outcome", async () => {
@@ -37,10 +37,10 @@ describe("browser playlist creation shares backend enforcement", () => {
 		create.mockRejectedValue(new Error("ACCESS_DENIED"));
 		expect(await browser.createBrowserPlaylist("owner", "name")).toBeNull();
 	});
-	test("Free quota denial preserves browser message", async () => {
+	test("Free quota denial returns useful validation data without throwing", async () => {
 		expect(browser?.createBrowserPlaylist).toEqual(expect.any(Function));
 		create.mockRejectedValue(new Error("PLAN_LIMIT_REACHED"));
-		await expect(browser.createBrowserPlaylist("owner", "name")).rejects.toThrow("Free plan allows only one playlist");
+		await expect(browser.createBrowserPlaylist("owner", "name")).resolves.toEqual({ error: { code: "PLAN_LIMIT_REACHED", message: "Your Free plan supports one playlist. Upgrade to Pro to create more." } });
 	});
 	test("unexpected backend errors do not disclose secrets", async () => {
 		expect(browser?.createBrowserPlaylist).toEqual(expect.any(Function));

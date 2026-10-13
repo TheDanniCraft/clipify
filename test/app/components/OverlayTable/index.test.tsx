@@ -421,6 +421,22 @@ describe("components/OverlayTable/index", () => {
 		await waitFor(() => expect(addToast).toHaveBeenCalledWith(expect.objectContaining({ description: "Overlay changed or access was updated. Reload and try again." })));
 		expect(screen.getByText("Main Overlay")).toBeTruthy();
 	});
+	it.each([1, 2])("successful bulk status changes retain revisions for %s overlays", async (count) => {
+		getAllOverlays.mockResolvedValue(Array.from({ length: count }, (_, index) => buildOverlay({ id: `overlay-${index + 1}`, name: index ? "Second Overlay" : "Main Overlay" })));
+		saveOverlay.mockImplementation((_id: string, _patch: unknown, revision: number) => Promise.resolve({ configurationRevision: revision + 1 }));
+		const Table = (await import("@/app/components/OverlayTable")).default;
+		await act(async () => {
+			render(<Table userId='owner-1' />);
+		});
+		await screen.findByText("Main Overlay");
+		fireEvent.click(screen.getByRole("button", { name: "Select fixture items" }));
+		fireEvent.click(screen.getByRole("button", { name: "Toggle status" }));
+		await waitFor(() => expect(addToast).toHaveBeenCalledWith(expect.objectContaining({ description: `${count} Overlay${count > 1 ? "s" : ""} status have been updated.`, color: "success" })));
+		saveOverlay.mockClear();
+		fireEvent.click(screen.getByRole("button", { name: "Toggle status" }));
+		await waitFor(() => expect(saveOverlay).toHaveBeenCalledWith("overlay-1", { status: "active" }, 5));
+		if (count === 2) expect(saveOverlay).toHaveBeenCalledWith("overlay-2", { status: "active" }, 5);
+	});
 	it.each(["denied", "rejected"])("TDD-BULK-UI-001 retains committed status/revision when another update is %s", async (failure) => {
 		getAllOverlays.mockResolvedValue([buildOverlay(), buildOverlay({ id: "overlay-2", name: "Second Overlay" })]);
 		saveOverlay.mockImplementation((id: string, _patch: unknown, revision: number) => (id === "overlay-1" ? Promise.resolve({ configurationRevision: revision + 1 }) : failure === "rejected" ? Promise.reject(new Error("Unavailable")) : Promise.resolve(undefined)));
@@ -496,6 +512,21 @@ describe("components/OverlayTable/index", () => {
 		expect(screen.getByRole("button", { name: "Add Overlay" })).toBeEnabled();
 	});
 
+	it("returned playlist quota feedback stays actionable without navigating", async () => {
+		createPlaylist.mockResolvedValue({ error: { code: "PLAN_LIMIT_REACHED", message: "Your Free plan supports one playlist. Upgrade to Pro to create more." } });
+		const Table = (await import("@/app/components/OverlayTable")).default;
+		await act(async () => {
+			render(<Table userId='owner-1' />);
+		});
+		await screen.findByText("Main Overlay");
+		await act(async () => {
+			fireEvent.click(screen.getByRole("button", { name: "Playlists" }));
+		});
+		fireEvent.click(screen.getByRole("button", { name: "Add Playlist" }));
+		await waitFor(() => expect(addToast).toHaveBeenCalledWith(expect.objectContaining({ description: "Your Free plan supports one playlist. Upgrade to Pro to create more.", color: "warning" })));
+		expect(push).not.toHaveBeenCalled();
+		expect(screen.getByRole("button", { name: "Add Playlist" })).not.toBeDisabled();
+	});
 	it.each(["Playlists", "Galleries"])("failed owned %s creation gives actionable feedback", async (tab) => {
 		createPlaylist.mockResolvedValue(null);
 		createGallery.mockResolvedValue(null);
