@@ -1,7 +1,5 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
-import { fileURLToPath } from "node:url";
 import { Pool } from "pg";
 const quote = (name) => `"${name.replaceAll('"', '""')}"`;
 function templateName(id) {
@@ -55,8 +53,3 @@ async function cleanupTemplate() {
 	}
 }
 export { ensureTemplate, cleanupTemplate, templateName };
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url))
-	cleanupTemplate().catch((error) => {
-		console.error(error);
-		process.exitCode = 1;
-	});

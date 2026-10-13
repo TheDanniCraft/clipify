@@ -371,7 +371,7 @@ jobs:
 
       - name: 🧹 Remove job-owned schema template
         if: always()
-        run: node scripts/mcp-fixture-template.mjs
+        run: node scripts/cleanup-mcp-fixture-template.mjs
 
       - name: 📦 Upload MCP native evidence
         if: always()
@@ -489,7 +489,7 @@ jobs:
 
       - name: 🧹 Remove job-owned schema template
         if: always()
-        run: node scripts/mcp-fixture-template.mjs
+        run: node scripts/cleanup-mcp-fixture-template.mjs
 
       - name: 📦 Upload Playwright report
         if: always()
