@@ -256,7 +256,6 @@ jest.mock("@/app/components/OverlayTable/copy-text", () => ({
 
 describe("OverlayTable", () => {
 	const userId = "user-123";
-	const accessToken = "token-123";
 
 	beforeEach(() => {
 		jest.clearAllMocks();
@@ -272,7 +271,7 @@ describe("OverlayTable", () => {
 
 	it("renders galleries in the shared management table", async () => {
 		await act(async () => {
-			render(<OverlayTable userId={userId} accessToken={accessToken} />);
+			render(<OverlayTable userId={userId} />);
 		});
 
 		await waitFor(() => expect(screen.getByText("Overlay 1")).toBeInTheDocument());
@@ -286,7 +285,7 @@ describe("OverlayTable", () => {
 	});
 
 	it("renders overlays by default and can switch to playlists", async () => {
-		render(<OverlayTable userId={userId} accessToken={accessToken} />);
+		render(<OverlayTable userId={userId} />);
 
 		expect(screen.getByText("Loading overlays")).toBeInTheDocument();
 		await act(async () => {});
@@ -310,7 +309,7 @@ describe("OverlayTable", () => {
 		]);
 
 		await act(async () => {
-			render(<OverlayTable userId={userId} accessToken={accessToken} />);
+			render(<OverlayTable userId={userId} />);
 		});
 
 		await waitFor(() => expect(screen.getByText("Apple")).toBeInTheDocument());
@@ -328,7 +327,7 @@ describe("OverlayTable", () => {
 	it("handles overlay deletion", async () => {
 		deleteOverlay.mockResolvedValue(true);
 		await act(async () => {
-			render(<OverlayTable userId={userId} accessToken={accessToken} />);
+			render(<OverlayTable userId={userId} />);
 		});
 
 		await waitFor(() => expect(screen.getByText("Overlay 1")).toBeInTheDocument());
