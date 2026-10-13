@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { member as authMemberTable, organizationRole as authOrganizationRoleTable } from "@/db/auth-schema";
 import { db, type QueryClient } from "@/db/client";
 import { agencyCreatorLinksTable, creatorAccountsTable, usersTable } from "@/db/schema";
@@ -8,15 +8,6 @@ import { resolveUserEntitlements } from "@lib/entitlements";
 import { resolveAgencyAccess } from "@/server/agencies/access";
 import { authorize, resolveDirectAccessGrant, type AuthorizationDecision } from "./authorize";
 import { PERMISSIONS, STANDARD_ROLES, type NonDelegableAction, type Permission } from "./permissions";
-
-type SessionEnvelope = {
-	session: {
-		id: string;
-		userId: string;
-		createdAt: Date | string;
-		activeOrganizationId?: string | null;
-	};
-};
 
 function validatedPermissions(values: readonly string[]): Permission[] {
 	return [...new Set(values)].filter((permission): permission is Permission => PERMISSIONS.includes(permission as Permission));
@@ -38,6 +29,8 @@ export function parseOrganizationRolePermissions(role: string, serialized?: stri
 }
 
 async function rolePermissions(organizationId: string, role: string, client: QueryClient = db) {
+	const standard = parseOrganizationRolePermissions(role);
+	if (standard.length) return standard;
 	const customRole = await client
 		.select({ permission: authOrganizationRoleTable.permission })
 		.from(authOrganizationRoleTable)
@@ -80,14 +73,16 @@ export async function authorizeCreatorOperation(input: { creatorId: string; perm
 	return authorizeTrustedCreatorOperation({ ...input, principal });
 }
 
-export async function authorizeTrustedCreatorOperation(input: { creatorId: string; permission: Permission; resourceOwnerId?: string; requiredEntitlement?: "pro" | "runner"; requireRecentAuth?: boolean; ownerOnlyAction?: NonDelegableAction; now?: Date; requestHeaders?: Headers } & { principal: TrustedCreatorPrincipal; client?: QueryClient }): Promise<CreatorOperationResult> {
+export async function authorizeTrustedCreatorOperation(input: { creatorId: string; permission: Permission; permissions?: readonly Permission[]; resourceOwnerId?: string; requiredEntitlement?: "pro" | "runner"; requireRecentAuth?: boolean; ownerOnlyAction?: NonDelegableAction; now?: Date; requestHeaders?: Headers } & { principal: TrustedCreatorPrincipal; client?: QueryClient }): Promise<CreatorOperationResult> {
 	const { principal } = input;
+	// One request-local authority snapshot can check every selected consent scope.
+	const permissions = [...new Set([input.permission, ...(input.permissions ?? [])])];
 	const client = input.client ?? db;
 	let organizationId = principal.organizationId;
 	if (principal.kind === "oauth") {
 		const target = principal.creators?.find((creator) => creator.creatorId === input.creatorId);
 		if (!target) return { allowed: false, code: "ACCESS_PATH_REQUIRED" };
-		if (!principal.scopes?.includes(input.permission) || (target.scopes && !target.scopes.includes(input.permission))) return { allowed: false, code: "PERMISSION_DENIED" };
+		if (permissions.some((permission) => !principal.scopes?.includes(permission) || (target.scopes && !target.scopes.includes(permission)))) return { allowed: false, code: "PERMISSION_DENIED" };
 		organizationId = target.agencyOrganizationId;
 	}
 
@@ -138,41 +133,51 @@ export async function authorizeTrustedCreatorOperation(input: { creatorId: strin
 	const entitlements = await resolveUserEntitlements(creator, client);
 	const entitlementNames = [entitlements.proAccess ? "pro" : null, entitlements.runnerAccess ? "runner" : null].filter((value): value is string => value !== null);
 	const now = input.now ?? new Date();
-	const decision = authorize({
-		session: { userId: principal.authUserId, authenticatedAt: principal.authenticatedAt },
-		creatorId: account.creatorId,
-		lifecycle: account.status,
-		resourceOwnerId: input.resourceOwnerId,
-		permission: input.permission,
-		access,
-		entitlements: entitlementNames,
-		// Direct team membership is a creator Pro capability. Owners always retain
-		// access to their own account, while agency access follows the separately
-		// contracted agency/allocation path.
-		requiredEntitlement: input.requiredEntitlement ?? (access.kind === "direct" ? "pro" : undefined),
-		requireRecentAuth: input.requireRecentAuth,
-		ownerOnlyAction: input.ownerOnlyAction,
-		now,
-	});
+	const decisions = permissions.map((permission) =>
+		authorize({
+			session: { userId: principal.authUserId, authenticatedAt: principal.authenticatedAt },
+			creatorId: account.creatorId,
+			lifecycle: account.status,
+			resourceOwnerId: input.resourceOwnerId,
+			permission,
+			access,
+			entitlements: entitlementNames,
+			// Direct team membership is a creator Pro capability. Owners always retain
+			// access to their own account, while agency access follows the separately
+			// contracted agency/allocation path.
+			requiredEntitlement: input.requiredEntitlement ?? (access.kind === "direct" ? "pro" : undefined),
+			requireRecentAuth: input.requireRecentAuth,
+			ownerOnlyAction: input.ownerOnlyAction,
+			now,
+		}),
+	);
+	const denied = decisions.find((decision) => !decision.allowed);
+	if (denied) return denied;
+	const decision = decisions[0];
 	if (!decision.allowed) return decision;
 	return { allowed: true, accessPath: decision.accessPath, authUserId: principal.authUserId, sessionId: principal.sessionId ?? "", creator, creatorOrganizationId: account.organizationId };
 }
 
-export async function listAuthorizedCreatorOperations(input: { permission: Permission; requiredEntitlement?: "pro" | "runner"; requestHeaders?: Headers }): Promise<Array<Extract<CreatorOperationResult, { allowed: true }>>> {
-	const { getAuthSession } = await import("./session");
-	const envelope = (await getAuthSession(input.requestHeaders)) as SessionEnvelope | null;
-	if (!envelope?.session) return [];
-	const directMemberships = await db.select({ organizationId: authMemberTable.organizationId }).from(authMemberTable).where(eq(authMemberTable.userId, envelope.session.userId));
+export async function listAuthorizedCreatorOperations(input: { permission: Permission; requiredEntitlement?: "pro" | "runner"; requestHeaders?: Headers; principal?: TrustedCreatorPrincipal & { kind: "session" } }): Promise<Array<Extract<CreatorOperationResult, { allowed: true }>>> {
+	const { getVerifiedSessionPrincipal } = await import("./session-principal");
+	const principal = input.principal ?? (await getVerifiedSessionPrincipal(input.requestHeaders));
+	if (!principal || !Number.isFinite(principal.authenticatedAt.getTime())) return [];
+	const directMemberships = await db.select({ organizationId: authMemberTable.organizationId }).from(authMemberTable).where(eq(authMemberTable.userId, principal.authUserId));
 	const organizationIds = new Set(directMemberships.map((membership) => membership.organizationId));
-	if (envelope.session.activeOrganizationId) {
+	if (principal.organizationId) {
 		const linkedCreators = await db
 			.select({ creatorOrganizationId: agencyCreatorLinksTable.creatorOrganizationId })
 			.from(agencyCreatorLinksTable)
-			.where(and(eq(agencyCreatorLinksTable.agencyOrganizationId, envelope.session.activeOrganizationId), eq(agencyCreatorLinksTable.status, "accepted")));
+			.where(and(eq(agencyCreatorLinksTable.agencyOrganizationId, principal.organizationId), eq(agencyCreatorLinksTable.status, "accepted")));
 		for (const link of linkedCreators) organizationIds.add(link.creatorOrganizationId);
 	}
 	if (organizationIds.size === 0) return [];
-	const accounts = await Promise.all([...organizationIds].map((organizationId) => db.select({ creatorId: creatorAccountsTable.creatorId }).from(creatorAccountsTable).where(eq(creatorAccountsTable.organizationId, organizationId)).limit(1)));
-	const decisions = await Promise.all(accounts.flatMap((rows) => (rows[0] ? [authorizeCreatorOperation({ creatorId: rows[0].creatorId, permission: input.permission, requiredEntitlement: input.requiredEntitlement, requestHeaders: input.requestHeaders })] : [])));
+	const accounts = await db
+		.select({ creatorId: creatorAccountsTable.creatorId, organizationId: creatorAccountsTable.organizationId })
+		.from(creatorAccountsTable)
+		.where(inArray(creatorAccountsTable.organizationId, [...organizationIds]));
+	const byOrganization = new Map(accounts.map((account) => [account.organizationId, account.creatorId]));
+	const creatorIds = [...organizationIds].map((organizationId) => byOrganization.get(organizationId)).filter((id): id is string => Boolean(id));
+	const decisions = await Promise.all(creatorIds.map((creatorId) => authorizeTrustedCreatorOperation({ principal, creatorId, permission: input.permission, requiredEntitlement: input.requiredEntitlement })));
 	return decisions.filter((decision): decision is Extract<CreatorOperationResult, { allowed: true }> => decision.allowed);
 }

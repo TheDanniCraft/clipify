@@ -41,7 +41,7 @@ export default async function McpConsentPage({ searchParams }: { searchParams: P
 			.from(oauthClient)
 			.where(eq(oauthClient.clientId, query.get("client_id")!))
 			.limit(1),
-		listAuthorizedCreatorOperations({ permission: "creator:read", requestHeaders }),
+		listAuthorizedCreatorOperations({ permission: "creator:read", requestHeaders, principal: { kind: "session", authUserId: session.user.id, sessionId: session.session.id, authenticatedAt: new Date(session.session.createdAt), organizationId: (session.session as typeof session.session & { activeOrganizationId?: string | null }).activeOrganizationId ?? null } }),
 	]);
 	const creators = await Promise.all(decisions.map(async (decision) => ({ creatorId: decision.creator.id, name: decision.creator.username, avatarUrl: await getAvatar(decision.creator.id, session.user.id).catch(() => undefined), agencyOrganizationId: decision.accessPath === "agency" ? ((session.session as typeof session.session & { activeOrganizationId?: string | null }).activeOrganizationId ?? null) : null })));
 	async function submitConsent(data: FormData): Promise<{ error?: string; callbackUrl?: string; authorized?: boolean } | void> {

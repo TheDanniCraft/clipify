@@ -82,11 +82,11 @@ export async function approveMcpConsent(input: { auth: ConsentAuth; origin: stri
 			if (invalidCreatorSelection()) return deny(400, "invalid_request");
 			id = randomUUID();
 			await db.transaction(async (tx) => {
-				for (const target of input.creators)
-					for (const scope of target.scopes ?? (scopes.some((scope) => scope !== "offline_access") ? scopes.filter((scope) => scope !== "offline_access") : ["creator:read"])) {
-						const decision = await authorizeTrustedCreatorOperation({ principal: { kind: "session", authUserId: session.user.id, authenticatedAt: session.session.createdAt, sessionId: session.session.id, organizationId: target.agencyOrganizationId }, creatorId: target.creatorId, permission: (scope === "feedback:create" ? "creator:read" : scope) as Permission, client: tx });
-						if (!decision.allowed) throw new Error("ACCESS_DENIED");
-					}
+				for (const target of input.creators) {
+					const permissions = [...new Set((target.scopes ?? (scopes.some((scope) => scope !== "offline_access") ? scopes.filter((scope) => scope !== "offline_access") : ["creator:read"])).map((scope) => (scope === "feedback:create" ? "creator:read" : scope) as Permission))];
+					const decision = await authorizeTrustedCreatorOperation({ principal: { kind: "session", authUserId: session.user.id, authenticatedAt: session.session.createdAt, sessionId: session.session.id, organizationId: target.agencyOrganizationId }, creatorId: target.creatorId, permission: permissions[0], permissions, client: tx });
+					if (!decision.allowed) throw new Error("ACCESS_DENIED");
+				}
 				await tx.insert(mcpConnectionGrantsTable).values({ id, authUserId: session.user.id, clientId, resource: `${new URL(input.origin).origin}/mcp`, issuer: `${new URL(input.origin).origin}/api/auth`, scopes, expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) });
 				await tx.insert(mcpGrantCreatorsTable).values(input.creators.map((target) => ({ ...target, grantId: id!, scopes: target.scopes ?? scopes.filter((scope) => scope !== "offline_access") })));
 			});

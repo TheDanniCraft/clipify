@@ -2092,3 +2092,8 @@ All referenced log paths are under test-results/mcp/. Source mappings refer to c
 | PERF-AUTOMATION | Node infrastructure              | `node --test scripts/*.test.cjs scripts/*.test.mjs`                                | 39 green before CI-policy assertion added; rerun pending | `/tmp/clipify-test-perf-node.log`                                                  |
 
 Scheduling owns all discovered Jest paths exactly once; native workflows own their generated scenario inventory and supply both BDD and coverage evidence. Browser file assignment excludes only those workflow-owned files. Final Test checks same source tree, exact lane inventory, installed Jest thresholds, MCP source coverage and successful browser jobs. No existing coverage threshold was reduced.
+
+| PERF-AUTHORITY | PostgreSQL consent / TDD + boundary regression | `bun run test --runInBand test/mcp/integration/consent-authority-queries.test.ts` | Red: 4 reads instead of 1; Green with mixed-scope, revoked-member, expired-Pro, suspended and agency-ceiling denials | `/tmp/clipify-consent-queries-red.log`, `/tmp/clipify-consent-final.log` |
+| PERF-AUTH-MUTANT | Permission strength spot check | Ignore additional permissions in batch evaluator | Mutant rejected: mixed direct/agency scopes issued grants incorrectly; source restored | `/tmp/clipify-consent-mutant.log` |
+
+The combined consent checkpoint passes 5 suites / 50 tests, including existing agency catalogue and transaction-entitlement proofs. Every protected operation still resolves current authority on its next request.
