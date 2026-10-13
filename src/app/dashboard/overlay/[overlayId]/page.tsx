@@ -1074,6 +1074,10 @@ export default function OverlaySettings() {
 															if (selected === "create_new") {
 																try {
 																	const playlist = await createPlaylist(currentOverlay.ownerId, "New Playlist");
+																	if (playlist && "error" in playlist) {
+																		addToast({ title: "Playlist could not be created", description: playlist.error.message, color: playlist.error.code === "PLAN_LIMIT_REACHED" ? "warning" : "danger" });
+																		return;
+																	}
 																	if (playlist) {
 																		await refreshPlaylists();
 																		setOverlay((prev) => (prev ? { ...prev, playlistId: playlist.id, type: OverlayType.Playlist } : prev));

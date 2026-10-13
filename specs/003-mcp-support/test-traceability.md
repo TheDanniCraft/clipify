@@ -2081,3 +2081,25 @@ All focused-editing tasks T563–T569 are complete; publication supersedes the e
 | OPS-LIVE-INGESTION | External acceptance     | T577; real Grafana queries accepted and 30-day retention verified, but no MCP points exist before collector/app deployment                                                                                     | operational-metrics/external-retention.json; collector deployment/access remains external                      | Blocked |
 
 All referenced log paths are under test-results/mcp/. Source mappings refer to committed executable tests; historical test-first exceptions elsewhere remain disclosed. Complete push/CI outcomes are separate from scoped Green claims.
+
+## 2026-10-13 execution optimization evidence
+
+| Artifact        | Owner / role                     | Command                                                                            | Current result                                           | Evidence                                                                           |
+| --------------- | -------------------------------- | ---------------------------------------------------------------------------------- | -------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| PERF-EXECUTION  | Node infrastructure / TDD        | `node --test scripts/test-execution.test.cjs scripts/merge-test-coverage.test.cjs` | Focused green; final CI pending                          | Scheduling/aggregation red logs and `/tmp/clipify-scheduling-tests.log`            |
+| PERF-FIXTURE    | PostgreSQL integration / TDD     | `bun run test --runInBand test/mcp/integration/fixture-template.test.ts`           | Red without template, green with isolated clones         | `/tmp/clipify-fixture-template-red.log`, `/tmp/clipify-fixture-template-green.log` |
+| PERF-REGRESSION | Existing runner/native contracts | Five affected suite checkpoint                                                     | 5 suites / 7 tests green                                 | `/tmp/clipify-test-perf-regression.log`                                            |
+| PERF-AUTOMATION | Node infrastructure              | `node --test scripts/*.test.cjs scripts/*.test.mjs`                                | 39 green before CI-policy assertion added; rerun pending | `/tmp/clipify-test-perf-node.log`                                                  |
+
+Scheduling owns all discovered Jest paths exactly once; native workflows own their generated scenario inventory and supply both BDD and coverage evidence. Browser file assignment excludes only those workflow-owned files. Final Test checks same source tree, exact lane inventory, installed Jest thresholds, MCP source coverage and successful browser jobs. No existing coverage threshold was reduced.
+
+| Artifact         | Owner / role                                   | Command                                                                           | Current result                                                                                                       | Evidence                                                                 |
+| ---------------- | ---------------------------------------------- | --------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| PERF-AUTHORITY   | PostgreSQL consent / TDD + boundary regression | `bun run test --runInBand test/mcp/integration/consent-authority-queries.test.ts` | Red: 4 reads instead of 1; Green with mixed-scope, revoked-member, expired-Pro, suspended and agency-ceiling denials | `/tmp/clipify-consent-queries-red.log`, `/tmp/clipify-consent-final.log` |
+| PERF-AUTH-MUTANT | Permission strength spot check                 | Ignore additional permissions in batch evaluator                                  | Mutant rejected: mixed direct/agency scopes issued grants incorrectly; source restored                               | `/tmp/clipify-consent-mutant.log`                                        |
+
+The combined consent checkpoint passes 5 suites / 50 tests, including existing agency catalogue and transaction-entitlement proofs. Every protected operation still resolves current authority on its next request.
+
+| PERF-PLAYLIST-ERROR | Browser adapter + both callers / TDD | Three affected suites | Red: quota/name rejection and unwanted navigation; Green: 190 tests | `/tmp/clipify-playlist-feedback-red.log`, `/tmp/clipify-playlist-feedback-green.log` |
+
+Dashboard table source coverage was diagnosed separately: 83.96% branches before cleanup of unreachable fallbacks on arrays that are already constructed. Removing those fallbacks and covering successful bulk updates yields 85.99% branches, above the unchanged 85% gate (91 tests / 2 owning suites). Full CI validation remains pending.

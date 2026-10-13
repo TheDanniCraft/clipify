@@ -4,13 +4,13 @@ import { notify as addToast } from "@lib/toast";
 import type { Selection, SortDescriptor } from "@heroui/react";
 
 import type { ColumnsKey } from "./data";
-import type { AuthenticatedUser, Gallery, Overlay, TwitchUserResponse } from "@types";
+import type { AuthenticatedUser, Gallery, Overlay } from "@types";
 import { StatusOptions } from "@types";
 import type { Key } from "@react-types/shared";
 
 import React, { useMemo, useCallback, useState, useEffect } from "react";
 import { IconAdjustmentsHorizontal, IconArrowsLeftRight, IconChevronDown, IconCirclePlus, IconCircuitChangeover, IconCrown, IconInfoCircle, IconMenuDeep, IconPencil, IconReload, IconSearch, IconTrash, IconUnlink } from "@tabler/icons-react";
-import { createOverlayWithFeedback, createPlaylist, deleteOverlay, deletePlaylist, saveOverlay, getAllOverlays, getAllPlaylists, getEditorOverlays, getEditorAccess } from "@actions/database";
+import { createOverlayWithFeedback, createPlaylist, deleteOverlay, deletePlaylist, saveOverlay, getAllOverlays, getAllPlaylists } from "@actions/database";
 import { createRunner, deleteRunner, getAllRunners, getAllStreamSessions, unlinkRunner } from "@actions/runner";
 import { createGallery, deleteGallery, getAllGalleries } from "@actions/gallery";
 import { validateAuth } from "@actions/auth";
@@ -28,30 +28,15 @@ import { useMemoizedCallback } from "./use-memoized-callback";
 import { columns, galleryColumns, INITIAL_VISIBLE_COLUMNS, INITIAL_VISIBLE_GALLERY_COLUMNS, INITIAL_VISIBLE_PLAYLIST_COLUMNS, INITIAL_VISIBLE_RUNNER_COLUMNS, playlistColumns, runnerColumns } from "./data";
 import { Status } from "./Status";
 import { useRouter } from "next/navigation";
-import { getAvatar, getUsersDetailsBulk } from "@actions/twitch";
+import { getAvatar } from "@actions/twitch";
 
 type DashboardTab = "overlays" | "playlists" | "galleries" | "runners";
-
-function mergeOverlayAccess<T extends { id: string }>(ownedOverlays: T[], delegatedOverlays: T[]): Array<T & { accessType: "owner" | "editor" }> {
-	const overlaysById = new Map<string, T & { accessType: "owner" | "editor" }>();
-
-	for (const overlay of ownedOverlays) {
-		overlaysById.set(overlay.id, { ...overlay, accessType: "owner" });
-	}
-	for (const overlay of delegatedOverlays) {
-		if (!overlaysById.has(overlay.id)) {
-			overlaysById.set(overlay.id, { ...overlay, accessType: "editor" });
-		}
-	}
-
-	return Array.from(overlaysById.values());
-}
 
 function TableEmptyState({ children }: { children: React.ReactNode }) {
 	return <div className='flex min-h-24 w-full items-center justify-center rounded-b-2xl border-b border-separator-tertiary/50 bg-surface px-4 py-3 text-center'>{children}</div>;
 }
 
-export default function OverlayTable({ userId, accessToken }: { userId: string; accessToken: string }) {
+export default function OverlayTable({ userId }: { userId: string }) {
 	const router = useRouter();
 	type LocalOverlay = Overlay & { accessType?: "owner" | "editor" };
 	type LocalPlaylist = { id: string; ownerId: string; name: string; clipCount: number; configurationRevision: number; accessType?: "owner" | "editor" };
@@ -72,9 +57,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 	const [rowsPerPage] = useState(10);
 	const [page, setPage] = useState(1);
 	const [isLoading, setIsLoading] = useState(false);
-	const [hasAccess, setHasAccess] = useState<boolean>(false);
 	const [currentUser, setCurrentUser] = useState<AuthenticatedUser | null>(null);
-	const [editorAccessList, setEditorAccessList] = useState<Set<TwitchUserResponse>>(new Set());
 	const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
 		column: "name",
 		direction: "ascending",
@@ -110,51 +93,40 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 				const galleriesData = await getAllGalleries(userId);
 				const runnersData = await getAllRunners(userId);
 				const streamSessionsData = await getAllStreamSessions(userId);
-				const editorOverlays = await getEditorOverlays(userId);
 
-				const combinedOverlays: LocalOverlay[] = mergeOverlayAccess(overlaysData ?? [], editorOverlays ?? []);
-				const combinedPlaylists: LocalPlaylist[] = (playlistsData ?? []).map((playlist) => ({
-					id: playlist.id,
-					name: playlist.name,
-					ownerId: playlist.ownerId,
-					clipCount: playlist.clipCount,
-					configurationRevision: playlist.configurationRevision,
-					accessType: playlist.accessType,
-				}));
-				const combinedGalleries: LocalGallery[] = (galleriesData ?? []).map((gallery) => ({
-					...gallery,
-					accessType: gallery.ownerId === userId ? "owner" : "editor",
-				}));
+				const combinedOverlays: LocalOverlay[] = (overlaysData ?? []).filter((overlay) => overlay.ownerId === userId);
+				const combinedPlaylists: LocalPlaylist[] = (playlistsData ?? [])
+					.filter((playlist) => playlist.ownerId === userId)
+					.map((playlist) => ({
+						id: playlist.id,
+						name: playlist.name,
+						ownerId: playlist.ownerId,
+						clipCount: playlist.clipCount,
+						configurationRevision: playlist.configurationRevision,
+						accessType: playlist.accessType,
+					}));
+				const combinedGalleries: LocalGallery[] = (galleriesData ?? [])
+					.filter((gallery) => gallery.ownerId === userId)
+					.map((gallery) => ({
+						...gallery,
+						accessType: gallery.ownerId === userId ? "owner" : "editor",
+					}));
 				const combinedRunners: LocalRunner[] = (runnersData ?? []).map((r) => {
 					const session = streamSessionsData?.find((s) => s.runnerId === r.id);
 					return { ...r, streamState: session?.actualState, streamError: session?.lastError };
 				});
 
-				setOverlays(combinedOverlays ?? undefined);
-				setPlaylists(combinedPlaylists ?? undefined);
-				setGalleries(combinedGalleries ?? undefined);
-				setRunners(combinedRunners ?? undefined);
+				setOverlays(combinedOverlays);
+				setPlaylists(combinedPlaylists);
+				setGalleries(combinedGalleries);
+				setRunners(combinedRunners);
 			} catch (error) {
 				console.error("Failed to fetch overlays:", error);
 			}
 		}
 
-		async function fetchEditorAccess() {
-			const editors = await getEditorAccess(userId);
-			if (editors && editors.length > 0) {
-				setHasAccess(true);
-
-				const editorDetails = await getUsersDetailsBulk({ userIds: [userId, ...editors.map((e) => e.userId)], accessToken });
-
-				setEditorAccessList(new Set(editorDetails));
-			} else {
-				setHasAccess(false);
-			}
-		}
-
 		fetchOverlays();
-		fetchEditorAccess();
-	}, [accessToken, userId]);
+	}, [userId]);
 
 	useEffect(() => {
 		async function fetchUser() {
@@ -505,30 +477,33 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 		const galleriesData = await getAllGalleries(userId);
 		const runnersData = await getAllRunners(userId);
 		const streamSessionsData = await getAllStreamSessions(userId);
-		const editorOverlays = await getEditorOverlays(userId);
 
-		const combinedOverlays: LocalOverlay[] = mergeOverlayAccess(overlaysData ?? [], editorOverlays ?? []);
-		const combinedPlaylists: LocalPlaylist[] = (playlistsData ?? []).map((playlist) => ({
-			id: playlist.id,
-			name: playlist.name,
-			ownerId: playlist.ownerId,
-			clipCount: playlist.clipCount,
-			configurationRevision: playlist.configurationRevision,
-			accessType: playlist.accessType,
-		}));
-		const combinedGalleries: LocalGallery[] = (galleriesData ?? []).map((gallery) => ({
-			...gallery,
-			accessType: gallery.ownerId === userId ? "owner" : "editor",
-		}));
+		const combinedOverlays: LocalOverlay[] = (overlaysData ?? []).filter((overlay) => overlay.ownerId === userId);
+		const combinedPlaylists: LocalPlaylist[] = (playlistsData ?? [])
+			.filter((playlist) => playlist.ownerId === userId)
+			.map((playlist) => ({
+				id: playlist.id,
+				name: playlist.name,
+				ownerId: playlist.ownerId,
+				clipCount: playlist.clipCount,
+				configurationRevision: playlist.configurationRevision,
+				accessType: playlist.accessType,
+			}));
+		const combinedGalleries: LocalGallery[] = (galleriesData ?? [])
+			.filter((gallery) => gallery.ownerId === userId)
+			.map((gallery) => ({
+				...gallery,
+				accessType: gallery.ownerId === userId ? "owner" : "editor",
+			}));
 		const combinedRunners: LocalRunner[] = (runnersData ?? []).map((r) => {
 			const session = streamSessionsData?.find((s) => s.runnerId === r.id);
 			return { ...r, streamState: session?.actualState, streamError: session?.lastError };
 		});
 
-		setOverlays(combinedOverlays ?? undefined);
-		setPlaylists(combinedPlaylists ?? undefined);
-		setGalleries(combinedGalleries ?? undefined);
-		setRunners(combinedRunners ?? undefined);
+		setOverlays(combinedOverlays);
+		setPlaylists(combinedPlaylists);
+		setGalleries(combinedGalleries);
+		setRunners(combinedRunners);
 	});
 
 	const confirmDelete = useMemoizedCallback(async () => {
@@ -926,258 +901,169 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 							{<IconReload className='text-muted' width={16} />}
 						</Button>
 					</div>
-					{hasAccess ? (
-						<Dropdown>
-							<Button variant='primary' isDisabled={overlays === undefined} isPending={isLoading}>
-								{isLoading ? <Spinner color='current' size='sm' /> : null}
-								{addLabel}
-								<IconCirclePlus width={20} />
-							</Button>
 
-							<Dropdown.Popover>
-								<Dropdown.Menu aria-label='Actions' items={editorAccessList}>
-									{(item) => (
-										<Dropdown.Item
-											key={item.id}
-											id={item.id}
-											textValue={`Add new ${activeTab === "galleries" ? "gallery" : activeTab.slice(0, -1)} for ${item.display_name}`}
-											onAction={async () => {
-												setIsLoading(true);
-												try {
-													if (activeTab === "overlays") {
-														const { overlay, error } = await createOverlayWithFeedback(item.id);
-														if (!overlay) {
-															addToast({
-																title: "Error",
-																description: error?.code === "PLAN_LIMIT_REACHED" ? `This creator is using ${error.usage} of ${error.limit} overlays. Upgrade to Pro to create more.` : "Failed to create overlay. Check current creator access and try again.",
-																color: "danger",
-															});
-															if (error?.code === "PLAN_LIMIT_REACHED" && currentUser?.id === item.id) {
-																onUpgradeOpen();
-															}
-															return;
-														}
-														router.push(`/dashboard/overlay/${overlay.id}`);
-														return;
-													}
-
-													if (activeTab === "runners") {
-														if (currentUser?.id === item.id && !currentUser.entitlements?.runnerAccess) {
-															onUpgradeOpen();
-															return;
-														}
-														const newRunner = await createRunner(item.id, "New Hardware Node");
-														if (!newRunner.success) {
-															addToast({
-																title: "Error",
-																description: "Failed to create runner.",
-																color: "danger",
-															});
-															return;
-														}
-														router.push(`/dashboard/runners/${newRunner.runner?.id}`);
-														return;
-													}
-
-													if (activeTab === "galleries") {
-														const gallery = await createGallery(item.id, `Gallery ${ownerGalleriesCount + 1}`);
-														if (!gallery) throw new Error("Failed to create gallery");
-														router.push(`/dashboard/galleries/${gallery.id}`);
-														return;
-													}
-
-													const playlist = await createPlaylist(item.id, `Playlist ${ownerPlaylistsCount + 1}`);
-													if (!playlist) {
-														addToast({
-															title: "Error",
-															description: "Failed to create playlist.",
-															color: "danger",
-														});
-														return;
-													}
-													router.push(`/dashboard/playlist/${playlist.id}`);
-												} catch {
-													addToast({
-														title: "Error",
-														description: `Failed to create ${activeTab === "galleries" ? "gallery" : activeTab.slice(0, -1)}. Please try again.`,
-														color: "danger",
-													});
-												} finally {
-													setIsLoading(false);
-												}
-											}}
-										>
-											<Label className='flex items-center'>
-												<Avatar className='mr-2 h-6 w-6'>
-													<Avatar.Image alt={item.display_name} src={item.profile_image_url} />
-													<Avatar.Fallback>{item.display_name.slice(0, 2).toUpperCase()}</Avatar.Fallback>
-												</Avatar>
-												{`Add new ${activeTab === "galleries" ? "gallery" : activeTab.slice(0, -1)} for ${item.display_name}`}
-											</Label>
-										</Dropdown.Item>
-									)}
-								</Dropdown.Menu>
-							</Dropdown.Popover>
-						</Dropdown>
-					) : (
-						<Button
-							isPending={isLoading}
-							isDisabled={overlays === undefined}
-							onPress={async () => {
-								if (activeTab === "runners") {
-									if (!currentUser?.entitlements?.runnerAccess) {
-										onUpgradeOpen();
-										return;
-									}
-									setIsLoading(true);
-									try {
-										const newRunner = await createRunner(userId, "New Hardware Node");
-										if (!newRunner.success) {
-											addToast({
-												title: "Error",
-												description: "Failed to create runner.",
-												color: "danger",
-											});
-											return;
-										}
-										router.push(`/dashboard/runners/${newRunner.runner?.id}`);
-									} catch {
-										addToast({
-											title: "Error",
-											description: "Failed to create runner. Please try again.",
-											color: "danger",
-										});
-									} finally {
-										setIsLoading(false);
-									}
+					<Button
+						isPending={isLoading}
+						isDisabled={overlays === undefined}
+						onPress={async () => {
+							if (activeTab === "runners") {
+								if (!currentUser?.entitlements?.runnerAccess) {
+									onUpgradeOpen();
 									return;
 								}
 								setIsLoading(true);
-
-								if (activeTab === "overlays" && effectivePlan === "free" && ownerOverlaysCount >= 1 && !multiOverlayAccess.allowed) {
-									trackPaywallEvent(plausible, "paywall_cta_click", {
-										source: "paywall_banner",
-										feature: "multi_overlay",
-										plan: currentUser?.plan ?? "free",
-									});
-									addToast({
-										title: "Upgrade Required",
-										description: (
-											<p>
-												To add an additional overlay, please{" "}
-												<Link className='text-warning underline underline-offset-2' href='/dashboard/settings'>
-													upgrade
-												</Link>{" "}
-												to <strong>Pro</strong>.
-											</p>
-										),
-										color: "warning",
-									});
-									onUpgradeOpen();
-									setIsLoading(false);
-									return;
-								}
-
-								if (activeTab === "playlists" && effectivePlan === "free" && ownerPlaylistsCount >= 1 && !multiPlaylistAccess.allowed) {
-									trackPaywallEvent(plausible, "paywall_cta_click", {
-										source: "paywall_banner",
-										feature: "multi_playlist",
-										plan: currentUser?.plan ?? "free",
-									});
-									addToast({
-										title: "Upgrade Required",
-										description: (
-											<p>
-												To add an additional playlist, please{" "}
-												<Link className='text-warning underline underline-offset-2' href='/dashboard/settings'>
-													upgrade
-												</Link>{" "}
-												to <strong>Pro</strong>.
-											</p>
-										),
-										color: "warning",
-									});
-									onUpgradeOpen();
-									setIsLoading(false);
-									return;
-								}
-
-								if (activeTab === "galleries" && effectivePlan === "free" && ownerGalleriesCount >= 1 && !multiGalleryAccess.allowed) {
-									trackPaywallEvent(plausible, "paywall_cta_click", {
-										source: "paywall_banner",
-										feature: "multi_gallery",
-										plan: currentUser?.plan ?? "free",
-									});
-									addToast({
-										title: "Upgrade Required",
-										description: "Free includes one gallery. Upgrade to Pro to create additional galleries.",
-										color: "warning",
-									});
-									onUpgradeOpen();
-									setIsLoading(false);
-									return;
-								}
-
-								if (activeTab === "overlays") {
-									try {
-										const { overlay, error } = await createOverlayWithFeedback(userId);
-										if (!overlay) {
-											addToast({ title: error?.code === "PLAN_LIMIT_REACHED" ? "Overlay limit reached" : "Error", description: error?.code === "PLAN_LIMIT_REACHED" ? `This creator is using ${error.usage} of ${error.limit} overlays. Upgrade to Pro to create more.` : "Failed to create overlay. Check current creator access and try again.", color: error?.code === "PLAN_LIMIT_REACHED" ? "warning" : "danger" });
-											if (error?.code === "PLAN_LIMIT_REACHED") onUpgradeOpen();
-											return;
-										}
-										router.push(`/dashboard/overlay/${overlay.id}`);
-									} catch {
-										addToast({ title: "Error", description: "Failed to create overlay. Please try again.", color: "danger" });
-									} finally {
-										setIsLoading(false);
-									}
-
-									return;
-								}
-
-								if (activeTab === "galleries") {
-									createGallery(userId, `Gallery ${ownerGalleriesCount + 1}`)
-										.then((gallery) => {
-											if (!gallery) throw new Error("Failed to create gallery");
-											router.push(`/dashboard/galleries/${gallery.id}`);
-										})
-										.catch(() => {
-											addToast({ title: "Error", description: "Failed to create gallery. Please try again.", color: "danger" });
-											setIsLoading(false);
+								try {
+									const newRunner = await createRunner(userId, "New Hardware Node");
+									if (!newRunner.success) {
+										addToast({
+											title: "Error",
+											description: "Failed to create runner.",
+											color: "danger",
 										});
-									return;
+										return;
+									}
+									router.push(`/dashboard/runners/${newRunner.runner?.id}`);
+								} catch {
+									addToast({
+										title: "Error",
+										description: "Failed to create runner. Please try again.",
+										color: "danger",
+									});
+								} finally {
+									setIsLoading(false);
+								}
+								return;
+							}
+							setIsLoading(true);
+
+							if (activeTab === "overlays" && effectivePlan === "free" && ownerOverlaysCount >= 1 && !multiOverlayAccess.allowed) {
+								trackPaywallEvent(plausible, "paywall_cta_click", {
+									source: "paywall_banner",
+									feature: "multi_overlay",
+									plan: currentUser?.plan ?? "free",
+								});
+								addToast({
+									title: "Upgrade Required",
+									description: (
+										<p>
+											To add an additional overlay, please{" "}
+											<Link className='text-warning underline underline-offset-2' href='/dashboard/settings'>
+												upgrade
+											</Link>{" "}
+											to <strong>Pro</strong>.
+										</p>
+									),
+									color: "warning",
+								});
+								onUpgradeOpen();
+								setIsLoading(false);
+								return;
+							}
+
+							if (activeTab === "playlists" && effectivePlan === "free" && ownerPlaylistsCount >= 1 && !multiPlaylistAccess.allowed) {
+								trackPaywallEvent(plausible, "paywall_cta_click", {
+									source: "paywall_banner",
+									feature: "multi_playlist",
+									plan: currentUser?.plan ?? "free",
+								});
+								addToast({
+									title: "Upgrade Required",
+									description: (
+										<p>
+											To add an additional playlist, please{" "}
+											<Link className='text-warning underline underline-offset-2' href='/dashboard/settings'>
+												upgrade
+											</Link>{" "}
+											to <strong>Pro</strong>.
+										</p>
+									),
+									color: "warning",
+								});
+								onUpgradeOpen();
+								setIsLoading(false);
+								return;
+							}
+
+							if (activeTab === "galleries" && effectivePlan === "free" && ownerGalleriesCount >= 1 && !multiGalleryAccess.allowed) {
+								trackPaywallEvent(plausible, "paywall_cta_click", {
+									source: "paywall_banner",
+									feature: "multi_gallery",
+									plan: currentUser?.plan ?? "free",
+								});
+								addToast({
+									title: "Upgrade Required",
+									description: "Free includes one gallery. Upgrade to Pro to create additional galleries.",
+									color: "warning",
+								});
+								onUpgradeOpen();
+								setIsLoading(false);
+								return;
+							}
+
+							if (activeTab === "overlays") {
+								try {
+									const { overlay, error } = await createOverlayWithFeedback(userId);
+									if (!overlay) {
+										addToast({ title: error?.code === "PLAN_LIMIT_REACHED" ? "Overlay limit reached" : "Error", description: error?.code === "PLAN_LIMIT_REACHED" ? `This creator is using ${error.usage} of ${error.limit} overlays. Upgrade to Pro to create more.` : "Failed to create overlay. Check current creator access and try again.", color: error?.code === "PLAN_LIMIT_REACHED" ? "warning" : "danger" });
+										if (error?.code === "PLAN_LIMIT_REACHED") onUpgradeOpen();
+										return;
+									}
+									router.push(`/dashboard/overlay/${overlay.id}`);
+								} catch {
+									addToast({ title: "Error", description: "Failed to create overlay. Please try again.", color: "danger" });
+								} finally {
+									setIsLoading(false);
 								}
 
-								createPlaylist(userId, `Playlist ${ownerPlaylistsCount + 1}`)
-									.then(async (playlist) => {
-										if (!playlist) {
-											addToast({
-												title: "Error",
-												description: "Failed to create playlist. Please try again.",
-												color: "danger",
-											});
-											setIsLoading(false);
-											return;
-										}
-										router.push(`/dashboard/playlist/${playlist.id}`);
+								return;
+							}
+
+							if (activeTab === "galleries") {
+								createGallery(userId, `Gallery ${ownerGalleriesCount + 1}`)
+									.then((gallery) => {
+										if (!gallery) throw new Error("Failed to create gallery");
+										router.push(`/dashboard/galleries/${gallery.id}`);
 									})
 									.catch(() => {
+										addToast({ title: "Error", description: "Failed to create gallery. Please try again.", color: "danger" });
+										setIsLoading(false);
+									});
+								return;
+							}
+
+							createPlaylist(userId, `Playlist ${ownerPlaylistsCount + 1}`)
+								.then(async (playlist) => {
+									if (playlist && "error" in playlist) {
+										addToast({ title: "Playlist could not be created", description: playlist.error.message, color: playlist.error.code === "PLAN_LIMIT_REACHED" ? "warning" : "danger" });
+										setIsLoading(false);
+										return;
+									}
+									if (!playlist) {
 										addToast({
 											title: "Error",
 											description: "Failed to create playlist. Please try again.",
 											color: "danger",
 										});
 										setIsLoading(false);
+										return;
+									}
+									router.push(`/dashboard/playlist/${playlist.id}`);
+								})
+								.catch(() => {
+									addToast({
+										title: "Error",
+										description: "Failed to create playlist. Please try again.",
+										color: "danger",
 									});
-							}}
-							variant='primary'
-						>
-							{isLoading ? <Spinner color='current' size='sm' /> : null}
-							{addLabel}
-							{<IconCirclePlus width={20} />}
-						</Button>
-					)}
+									setIsLoading(false);
+								});
+						}}
+						variant='primary'
+					>
+						{isLoading ? <Spinner color='current' size='sm' /> : null}
+						{addLabel}
+						{<IconCirclePlus width={20} />}
+					</Button>
 				</div>
 				{currentUser?.plan === "free" && inTrial && (
 					<div className='mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-300/45 bg-gradient-to-r from-amber-500/20 to-orange-500/15 px-4 py-3 text-sm text-amber-50 shadow-sm'>
@@ -1206,7 +1092,7 @@ export default function OverlayTable({ userId, accessToken }: { userId: string; 
 				)}
 			</div>
 		);
-	}, [activeTab, overlays, playlists, galleries, runners, userId, currentUser, reloadOverlays, isLoading, hasAccess, editorAccessList, plausible, onUpgradeOpen, router]);
+	}, [activeTab, overlays, playlists, galleries, runners, userId, currentUser, reloadOverlays, isLoading, plausible, onUpgradeOpen, router]);
 
 	const bottomContent = useMemo(() => {
 		return (

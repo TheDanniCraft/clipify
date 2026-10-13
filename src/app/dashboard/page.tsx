@@ -18,7 +18,7 @@ export default async function Dashboard() {
 		<>
 			<ChatwootData user={user} />
 			<DashboardNavbar user={user} title='Dashboard' tagline='Manage your overlays'>
-				<OverlayTable userId={user.id} accessToken={tokenResult.token.accessToken} />
+				<OverlayTable key={user.id} userId={user.id} />
 			</DashboardNavbar>
 		</>
 	);

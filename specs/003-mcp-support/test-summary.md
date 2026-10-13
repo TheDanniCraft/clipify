@@ -107,3 +107,7 @@ Publication checkpoint: acb3b3e reached the preview after normal commit/push hoo
 ## Final CI and deployed-preview verification — 2026-10-08
 
 Code commit 66e0ed7 passes all applicable checks in [CI run 37808034227](https://github.com/TheDanniCraft/clipify/actions/runs/37808034227). Full Jest: 436 suites / 4,603 tests, 11 unchanged skips; strict coverage passes. Every browser project passes; the repaired BDD shard reports 372 passed in 13.0 minutes. CodeFactor and CodeQL are Green. The final deployed preview passes 66-tool/six-prompt discovery, six approved-creator reads and unapproved-creator denial. Earlier 35/35 disposable mutation and refresh-rotation evidence remains valid; original resources were restored. Final evidence-only closeout leaves application and test code identical to that verified revision. Historical chronology/retention review and actual external collector ingestion remain unverified; other-host acceptance was explicitly deferred by the user.
+
+## 2026-10-13 follow-up — validation pending
+
+PR #515 is held for test-pipeline optimization and Sentry #12/#11 repairs. Focused scheduling/aggregation and fixture isolation checks are green; existing runner/database/coverage regression checkpoint passes 5 suites / 7 tests. Full new CI, product fixes and final review remain pending. This is not a release Go. Next-ws waits for upstream PR #223/release; listener warning is unchanged and is not claimed fixed.

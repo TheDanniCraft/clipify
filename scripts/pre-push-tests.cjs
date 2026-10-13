@@ -46,8 +46,10 @@ function main() {
 		return;
 	}
 	let check;
+	let paths;
 	try {
-		check = selectPushChecks(changedPaths(refInput));
+		paths = changedPaths(refInput);
+		check = selectPushChecks(paths);
 	} catch {
 		console.log("[pre-push] Cannot determine changed files; running the full suite.");
 		check = { full: true, paths: [] };
@@ -56,9 +58,8 @@ function main() {
 		console.log("[pre-push] No application files changed; hook checks passed. Full application checks run in CI.");
 		return;
 	}
-	console.log(check.full ? "[pre-push] Shared infrastructure changed; running the full suite." : `[pre-push] Running tests related to ${check.paths.length} changed files. Full checks remain in CI.`);
-	const args = ["run", "test", ...(check.full ? [] : ["--findRelatedTests", ...check.paths, "--passWithNoTests"])];
-	const result = spawnSync("bun", args, { stdio: "inherit" });
+	console.log(paths ? `[pre-push] Running scoped feedback for ${paths.length} changed files. Complete coverage and browser checks remain mandatory in CI.` : "[pre-push] Running the full fallback suite.");
+	const result = paths ? spawnSync(process.execPath, [require("node:path").join(__dirname, "run-scoped-tests.mjs"), "--paths", JSON.stringify(paths)], { stdio: "inherit" }) : spawnSync("bun", ["run", "test"], { stdio: "inherit" });
 	if (result.error) console.error(result.error.message);
 	process.exitCode = result.status ?? 1;
 }

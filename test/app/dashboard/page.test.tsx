@@ -24,7 +24,7 @@ jest.mock("@lib/campaignOffers", () => ({
 
 jest.mock("@components/OverlayTable", () => ({
 	__esModule: true,
-	default: ({ userId, accessToken }: { userId: string; accessToken: string }) => <div>{`overlay-table:${userId}:${accessToken}`}</div>,
+	default: ({ userId }: { userId: string }) => <div>{`overlay-table:${userId}`}</div>,
 }));
 
 jest.mock("@components/dashboardNavbar", () => ({
@@ -83,7 +83,7 @@ describe("app/dashboard/page", () => {
 		expect(redirect).not.toHaveBeenCalled();
 		expect(getAccessTokenResult).toHaveBeenCalledWith("user-1");
 		expect(screen.getByText("dashboard-navbar:user-1")).toBeInTheDocument();
-		expect(screen.getByText("overlay-table:user-1:access-token")).toBeInTheDocument();
+		expect(screen.getByText("overlay-table:user-1")).toBeInTheDocument();
 		expect(screen.getByText("chatwoot:user-1")).toBeInTheDocument();
 	});
 
@@ -106,7 +106,7 @@ describe("app/dashboard/page", () => {
 		expect(redirect).not.toHaveBeenCalled();
 		expect(getAccessTokenResult).toHaveBeenCalledWith("admin-1");
 		expect(screen.getByText("dashboard-navbar:admin-1")).toBeInTheDocument();
-		expect(screen.getByText("overlay-table:admin-1:admin-token")).toBeInTheDocument();
+		expect(screen.getByText("overlay-table:admin-1")).toBeInTheDocument();
 		expect(screen.getByText("chatwoot:admin-1")).toBeInTheDocument();
 	});
 

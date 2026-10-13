@@ -53,6 +53,7 @@ describe("TDD-US1-027 consent route", () => {
 		const result = await Page({ searchParams: Promise.resolve(query) });
 		expect(result.props).toMatchObject({ clientName: "My AI", requestedScopes: ["creator:read", "overlay:delete"], creators: [{ creatorId: "creator", name: "Creator", avatarUrl: "https://example.test/avatar.png", agencyOrganizationId: null }] });
 		expect(new URLSearchParams(result.props.oauthQuery).get("sig")).toBe("signed");
+		expect(listAuthorizedCreatorOperations).toHaveBeenCalledWith(expect.objectContaining({ principal: expect.objectContaining({ kind: "session", authUserId: "actor" }) }));
 	});
 	test("avatar provider failures retain the authorized creator with an initials fallback", async () => {
 		jest.requireMock("@/app/actions/twitch").getAvatar.mockRejectedValueOnce(new Error("provider unavailable"));

@@ -18,6 +18,7 @@
 		"app:typecheck": "tsc --noEmit",
 		"audit:high": "bun audit --audit-level=high --ignore GHSA-vfj7-8cjw-p6xm",
 		"test": "jest",
+		"test:affected": "node scripts/run-scoped-tests.mjs",
 		"test:auth": "jest test/auth-engine-rewrite",
 		"test:auth:unit": "jest test/auth-engine-rewrite/unit",
 		"test:auth:integration": "jest test/auth-engine-rewrite/integration",

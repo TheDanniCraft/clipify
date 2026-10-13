@@ -329,7 +329,7 @@ describe("components/OverlayTable/index", () => {
 	it("shows playlists tab content", async () => {
 		const OverlayTable = (await import("@/app/components/OverlayTable")).default;
 		await act(async () => {
-			render(<OverlayTable userId='owner-1' accessToken='token' />);
+			render(<OverlayTable userId='owner-1' />);
 		});
 
 		await waitFor(() => {
@@ -345,7 +345,7 @@ describe("components/OverlayTable/index", () => {
 	it("confirms playlist deletion with the revision loaded in the dashboard", async () => {
 		const OverlayTable = (await import("@/app/components/OverlayTable")).default;
 		await act(async () => {
-			render(<OverlayTable userId='owner-1' accessToken='token' />);
+			render(<OverlayTable userId='owner-1' />);
 		});
 		await waitFor(() => expect(getAllPlaylists).toHaveBeenCalled());
 		await act(async () => {
@@ -361,7 +361,7 @@ describe("components/OverlayTable/index", () => {
 		deletePlaylist.mockResolvedValue(false);
 		const OverlayTable = (await import("@/app/components/OverlayTable")).default;
 		await act(async () => {
-			render(<OverlayTable userId='owner-1' accessToken='token' />);
+			render(<OverlayTable userId='owner-1' />);
 		});
 		await waitFor(() => expect(getAllPlaylists).toHaveBeenCalled());
 		await act(async () => {
@@ -376,7 +376,7 @@ describe("components/OverlayTable/index", () => {
 	it("renders overlay tab by default", async () => {
 		const OverlayTable = (await import("@/app/components/OverlayTable")).default;
 		await act(async () => {
-			render(<OverlayTable userId='owner-1' accessToken='token' />);
+			render(<OverlayTable userId='owner-1' />);
 		});
 
 		await waitFor(() => {
@@ -392,7 +392,7 @@ describe("components/OverlayTable/index", () => {
 		const OverlayTable = (await import("@/app/components/OverlayTable")).default;
 
 		await act(async () => {
-			render(<OverlayTable userId='owner-1' accessToken='token' />);
+			render(<OverlayTable userId='owner-1' />);
 		});
 
 		await waitFor(() => {
@@ -403,7 +403,7 @@ describe("components/OverlayTable/index", () => {
 		deleteOverlay.mockResolvedValueOnce(true);
 		const Table = (await import("@/app/components/OverlayTable")).default;
 		await act(async () => {
-			render(<Table userId='owner-1' accessToken='token' />);
+			render(<Table userId='owner-1' />);
 		});
 		fireEvent.click(await screen.findByRole("button", { name: "Delete Main Overlay" }));
 		expect(deleteOverlay).not.toHaveBeenCalled();
@@ -414,19 +414,35 @@ describe("components/OverlayTable/index", () => {
 		deleteOverlay.mockResolvedValueOnce(false);
 		const Table = (await import("@/app/components/OverlayTable")).default;
 		await act(async () => {
-			render(<Table userId='owner-1' accessToken='token' />);
+			render(<Table userId='owner-1' />);
 		});
 		fireEvent.click(await screen.findByRole("button", { name: "Delete Main Overlay" }));
 		fireEvent.click(screen.getByRole("button", { name: "Delete" }));
 		await waitFor(() => expect(addToast).toHaveBeenCalledWith(expect.objectContaining({ description: "Overlay changed or access was updated. Reload and try again." })));
 		expect(screen.getByText("Main Overlay")).toBeTruthy();
 	});
+	it.each([1, 2])("successful bulk status changes retain revisions for %s overlays", async (count) => {
+		getAllOverlays.mockResolvedValue(Array.from({ length: count }, (_, index) => buildOverlay({ id: `overlay-${index + 1}`, name: index ? "Second Overlay" : "Main Overlay" })));
+		saveOverlay.mockImplementation((_id: string, _patch: unknown, revision: number) => Promise.resolve({ configurationRevision: revision + 1 }));
+		const Table = (await import("@/app/components/OverlayTable")).default;
+		await act(async () => {
+			render(<Table userId='owner-1' />);
+		});
+		await screen.findByText("Main Overlay");
+		fireEvent.click(screen.getByRole("button", { name: "Select fixture items" }));
+		fireEvent.click(screen.getByRole("button", { name: "Toggle status" }));
+		await waitFor(() => expect(addToast).toHaveBeenCalledWith(expect.objectContaining({ description: `${count} Overlay${count > 1 ? "s" : ""} status have been updated.`, color: "success" })));
+		saveOverlay.mockClear();
+		fireEvent.click(screen.getByRole("button", { name: "Toggle status" }));
+		await waitFor(() => expect(saveOverlay).toHaveBeenCalledWith("overlay-1", { status: "active" }, 5));
+		if (count === 2) expect(saveOverlay).toHaveBeenCalledWith("overlay-2", { status: "active" }, 5);
+	});
 	it.each(["denied", "rejected"])("TDD-BULK-UI-001 retains committed status/revision when another update is %s", async (failure) => {
 		getAllOverlays.mockResolvedValue([buildOverlay(), buildOverlay({ id: "overlay-2", name: "Second Overlay" })]);
 		saveOverlay.mockImplementation((id: string, _patch: unknown, revision: number) => (id === "overlay-1" ? Promise.resolve({ configurationRevision: revision + 1 }) : failure === "rejected" ? Promise.reject(new Error("Unavailable")) : Promise.resolve(undefined)));
 		const Table = (await import("@/app/components/OverlayTable")).default;
 		await act(async () => {
-			render(<Table userId='owner-1' accessToken='token' />);
+			render(<Table userId='owner-1' />);
 		});
 		await screen.findByText("Second Overlay");
 		fireEvent.click(screen.getByRole("button", { name: "Select fixture items" }));
@@ -442,7 +458,7 @@ describe("components/OverlayTable/index", () => {
 		deleteOverlay.mockImplementation((id: string) => (id === "overlay-1" ? Promise.resolve(true) : failure === "rejected" ? Promise.reject(new Error("Unavailable")) : Promise.resolve(false)));
 		const Table = (await import("@/app/components/OverlayTable")).default;
 		await act(async () => {
-			render(<Table userId='owner-1' accessToken='token' />);
+			render(<Table userId='owner-1' />);
 		});
 		await screen.findByText("Second Overlay");
 		fireEvent.click(screen.getByRole("button", { name: "Select fixture items" }));
@@ -457,7 +473,7 @@ describe("components/OverlayTable/index", () => {
 		createOverlayWithFeedback.mockResolvedValue({ overlay: null, error: { code: "PLAN_LIMIT_REACHED", usage: 1, limit: 1 } });
 		const Table = (await import("@/app/components/OverlayTable")).default;
 		await act(async () => {
-			render(<Table userId='owner-1' accessToken='token' />);
+			render(<Table userId='owner-1' />);
 		});
 		await screen.findByText("Main Overlay");
 		fireEvent.click(screen.getByRole("button", { name: "Add Overlay" }));
@@ -474,7 +490,7 @@ describe("components/OverlayTable/index", () => {
 		createGallery.mockResolvedValue({ id: "created" });
 		const Table = (await import("@/app/components/OverlayTable")).default;
 		await act(async () => {
-			render(<Table userId='owner-1' accessToken='token' />);
+			render(<Table userId='owner-1' />);
 		});
 		await screen.findByText("Main Overlay");
 		if (tab !== "Overlays") fireEvent.click(screen.getByRole("button", { name: tab }));
@@ -487,7 +503,7 @@ describe("components/OverlayTable/index", () => {
 		else createOverlayWithFeedback.mockResolvedValue({ overlay: null, error: { code: mode === "denied" ? "ACCESS_DENIED" : "SERVICE_UNAVAILABLE" } });
 		const Table = (await import("@/app/components/OverlayTable")).default;
 		await act(async () => {
-			render(<Table userId='owner-1' accessToken='token' />);
+			render(<Table userId='owner-1' />);
 		});
 		await screen.findByText("Main Overlay");
 		fireEvent.click(screen.getByRole("button", { name: "Add Overlay" }));
@@ -496,12 +512,27 @@ describe("components/OverlayTable/index", () => {
 		expect(screen.getByRole("button", { name: "Add Overlay" })).toBeEnabled();
 	});
 
+	it("returned playlist quota feedback stays actionable without navigating", async () => {
+		createPlaylist.mockResolvedValue({ error: { code: "PLAN_LIMIT_REACHED", message: "Your Free plan supports one playlist. Upgrade to Pro to create more." } });
+		const Table = (await import("@/app/components/OverlayTable")).default;
+		await act(async () => {
+			render(<Table userId='owner-1' />);
+		});
+		await screen.findByText("Main Overlay");
+		await act(async () => {
+			fireEvent.click(screen.getByRole("button", { name: "Playlists" }));
+		});
+		fireEvent.click(screen.getByRole("button", { name: "Add Playlist" }));
+		await waitFor(() => expect(addToast).toHaveBeenCalledWith(expect.objectContaining({ description: "Your Free plan supports one playlist. Upgrade to Pro to create more.", color: "warning" })));
+		expect(push).not.toHaveBeenCalled();
+		expect(screen.getByRole("button", { name: "Add Playlist" })).not.toBeDisabled();
+	});
 	it.each(["Playlists", "Galleries"])("failed owned %s creation gives actionable feedback", async (tab) => {
 		createPlaylist.mockResolvedValue(null);
 		createGallery.mockResolvedValue(null);
 		const Table = (await import("@/app/components/OverlayTable")).default;
 		await act(async () => {
-			render(<Table userId='owner-1' accessToken='token' />);
+			render(<Table userId='owner-1' />);
 		});
 		await screen.findByText("Main Overlay");
 		await act(async () => {
@@ -520,7 +551,7 @@ describe("components/OverlayTable/index", () => {
 		if (mode === "rejected") createRunner.mockRejectedValue(new Error("private runner failure"));
 		const Table = (await import("@/app/components/OverlayTable")).default;
 		await act(async () => {
-			render(<Table userId='owner-1' accessToken='token' />);
+			render(<Table userId='owner-1' />);
 		});
 		await screen.findByText("Main Overlay");
 		await act(async () => {
@@ -543,7 +574,7 @@ describe("components/OverlayTable/index", () => {
 		getAllGalleries.mockResolvedValue([{ id: "gallery-1", ownerId: "owner-1", name: "Gallery" }]);
 		const Table = (await import("@/app/components/OverlayTable")).default;
 		await act(async () => {
-			render(<Table userId='owner-1' accessToken='token' />);
+			render(<Table userId='owner-1' />);
 		});
 		await screen.findByText("Main Overlay");
 		if (tab !== "Overlays") fireEvent.click(screen.getByRole("button", { name: tab }));
@@ -561,7 +592,7 @@ describe("components/OverlayTable/index", () => {
 		deleteOverlay.mockResolvedValue(true);
 		const Table = (await import("@/app/components/OverlayTable")).default;
 		await act(async () => {
-			render(<Table userId='owner-1' accessToken='token' />);
+			render(<Table userId='owner-1' />);
 		});
 		await screen.findByText("Main Overlay");
 		await act(async () => {
@@ -572,19 +603,20 @@ describe("components/OverlayTable/index", () => {
 		fireEvent.click(screen.getByRole("button", { name: "Delete" }));
 		await waitFor(() => expect(deleteOverlay).toHaveBeenCalledWith("overlay-1", 9));
 	});
-	it.each(["overlay", "playlist", "gallery", "runner"])("delegated %s creation uses the selected creator", async (kind) => {
-		getEditorAccess.mockResolvedValue([{ userId: "delegated" }]);
-		getUsersDetailsBulk.mockResolvedValue([{ id: "delegated", display_name: "Delegated", profile_image_url: "https://example.invalid/avatar.png" }]);
+	it.each(["overlay", "playlist", "gallery", "runner"])("creation of a %s uses the active delegated workspace", async (kind) => {
+		getAllOverlays.mockResolvedValue([buildOverlay({ ownerId: "delegated" })]);
+		getAllPlaylists.mockResolvedValue([{ id: "playlist-1", ownerId: "delegated", name: "Roadmap", clipCount: 2, configurationRevision: 7 }]);
+		validateAuth.mockResolvedValue({ id: "delegated", plan: "pro", entitlements: { effectivePlan: "pro", runnerAccess: true } });
 		createOverlayWithFeedback.mockResolvedValue({ overlay: buildOverlay({ id: "created", ownerId: "delegated" }), error: null });
 		createPlaylist.mockResolvedValue({ id: "created" });
 		createGallery.mockResolvedValue({ id: "created" });
 		const Table = (await import("@/app/components/OverlayTable")).default;
 		await act(async () => {
-			render(<Table userId='owner-1' accessToken='token' />);
+			render(<Table userId='delegated' />);
 		});
 		await screen.findByText("Main Overlay");
 		if (kind !== "overlay") fireEvent.click(screen.getByRole("button", { name: kind === "playlist" ? "Playlists" : kind === "gallery" ? "Galleries" : "Runners" }));
-		fireEvent.click(await screen.findByRole("button", { name: new RegExp(`Add new ${kind} for Delegated$`) }));
+		fireEvent.click(await screen.findByRole("button", { name: `Add ${kind.charAt(0).toUpperCase()}${kind.slice(1)}` }));
 		await waitFor(() => expect(push).toHaveBeenCalledWith(`/dashboard/${kind === "gallery" ? "galleries" : kind === "runner" ? "runners" : kind}/${kind === "runner" ? "created-runner" : "created"}`));
 		if (kind === "overlay") expect(createOverlayWithFeedback).toHaveBeenCalledWith("delegated");
 		if (kind === "playlist") expect(createPlaylist).toHaveBeenCalledWith("delegated", "Playlist 2");
@@ -592,20 +624,21 @@ describe("components/OverlayTable/index", () => {
 		if (kind === "runner") expect(createRunner).toHaveBeenCalledWith("delegated", "New Hardware Node");
 	});
 
-	it.each(["overlay", "playlist", "gallery", "runner"])("failed delegated %s creation retains the dashboard", async (kind) => {
-		getEditorAccess.mockResolvedValue([{ userId: "delegated" }]);
-		getUsersDetailsBulk.mockResolvedValue([{ id: "delegated", display_name: "Delegated", profile_image_url: "https://example.invalid/avatar.png" }]);
+	it.each(["overlay", "playlist", "gallery", "runner"])("failed %s creation in the active delegated workspace retains the dashboard", async (kind) => {
+		getAllOverlays.mockResolvedValue([buildOverlay({ ownerId: "delegated" })]);
+		getAllPlaylists.mockResolvedValue([{ id: "playlist-1", ownerId: "delegated", name: "Roadmap", clipCount: 2, configurationRevision: 7 }]);
+		validateAuth.mockResolvedValue({ id: "delegated", plan: "pro", entitlements: { effectivePlan: "pro", runnerAccess: true } });
 		createOverlayWithFeedback.mockResolvedValue({ overlay: null, error: { code: "ACCESS_DENIED" } });
 		createPlaylist.mockResolvedValue(null);
 		createGallery.mockResolvedValue(null);
 		createRunner.mockResolvedValue({ success: false });
 		const Table = (await import("@/app/components/OverlayTable")).default;
 		await act(async () => {
-			render(<Table userId='owner-1' accessToken='token' />);
+			render(<Table userId='delegated' />);
 		});
 		await screen.findByText("Main Overlay");
 		if (kind !== "overlay") fireEvent.click(screen.getByRole("button", { name: kind === "playlist" ? "Playlists" : kind === "gallery" ? "Galleries" : "Runners" }));
-		fireEvent.click(await screen.findByRole("button", { name: new RegExp(`Add new ${kind} for Delegated$`) }));
+		fireEvent.click(await screen.findByRole("button", { name: `Add ${kind.charAt(0).toUpperCase()}${kind.slice(1)}` }));
 		await waitFor(() => expect(addToast).toHaveBeenCalledWith(expect.objectContaining({ color: "danger" })));
 		expect(push).not.toHaveBeenCalled();
 	});
@@ -613,7 +646,7 @@ describe("components/OverlayTable/index", () => {
 		getAllOverlays.mockResolvedValue(Array.from({ length: 12 }, (_, index) => buildOverlay({ id: `overlay-${index}`, name: `Overlay ${String(index).padStart(2, "0")}` })));
 		const Table = (await import("@/app/components/OverlayTable")).default;
 		await act(async () => {
-			render(<Table userId='owner-1' accessToken='token' />);
+			render(<Table userId='owner-1' />);
 		});
 		await screen.findByText("Overlay 00");
 		expect(screen.queryByText("Overlay 11")).not.toBeInTheDocument();
@@ -641,7 +674,7 @@ describe("components/OverlayTable/index", () => {
 		deleteOverlay.mockResolvedValue(true);
 		const Table = (await import("@/app/components/OverlayTable")).default;
 		await act(async () => {
-			render(<Table userId='owner-1' accessToken='token' />);
+			render(<Table userId='owner-1' />);
 		});
 		await screen.findByText("Main Overlay");
 		fireEvent.click(screen.getByRole("radio", { name: "Paused" }));
@@ -660,7 +693,7 @@ describe("components/OverlayTable/index", () => {
 		getAllStreamSessions.mockResolvedValue([{ runnerId: "runner-one", actualState: state === "running" ? "running" : "stopped", lastError: state === "running" ? "stream failed" : null }]);
 		const Table = (await import("@/app/components/OverlayTable")).default;
 		await act(async () => {
-			render(<Table userId='owner-1' accessToken='token' />);
+			render(<Table userId='owner-1' />);
 		});
 		await screen.findByText("Main Overlay");
 		await act(async () => {
@@ -678,7 +711,7 @@ describe("components/OverlayTable/index", () => {
 		getAllGalleries.mockResolvedValue([]);
 		const Table = (await import("@/app/components/OverlayTable")).default;
 		await act(async () => {
-			render(<Table userId='owner-1' accessToken='token' />);
+			render(<Table userId='owner-1' />);
 		});
 		await screen.findByText("No overlays found");
 		if (tab !== "Overlays") fireEvent.click(screen.getByRole("button", { name: tab }));
@@ -693,7 +726,7 @@ describe("components/OverlayTable/index", () => {
 		remove.mockImplementation(async (id: string) => (tab === "Runners" ? { success: id === "first" } : id === "first"));
 		const Table = (await import("@/app/components/OverlayTable")).default;
 		await act(async () => {
-			render(<Table userId='owner-1' accessToken='token' />);
+			render(<Table userId='owner-1' />);
 		});
 		await screen.findByText("Main Overlay");
 		await act(async () => {
@@ -721,7 +754,7 @@ describe("components/OverlayTable/index", () => {
 		remove.mockResolvedValue(tab === "Runners" ? { success: true } : true);
 		const Table = (await import("@/app/components/OverlayTable")).default;
 		await act(async () => {
-			render(<Table userId='owner-1' accessToken='token' />);
+			render(<Table userId='owner-1' />);
 		});
 		await screen.findByText("Main Overlay");
 		await act(async () => {
@@ -746,7 +779,7 @@ describe("components/OverlayTable/index", () => {
 		if (mode === "rejected") unlinkRunner.mockRejectedValue(new Error("Temporary failure"));
 		const Table = (await import("@/app/components/OverlayTable")).default;
 		await act(async () => {
-			render(<Table userId='owner-1' accessToken='token' />);
+			render(<Table userId='owner-1' />);
 		});
 		await screen.findByText("Main Overlay");
 		await act(async () => {
@@ -777,7 +810,7 @@ describe("components/OverlayTable/index", () => {
 		getAllRunners.mockResolvedValue([{ id: "disconnected", ownerId: "owner-1", name: "Disconnected Hardware", status: "offline", createdAt: new Date(), lastHeartbeatAt: null }]);
 		const Table = (await import("@/app/components/OverlayTable")).default;
 		await act(async () => {
-			render(<Table userId='owner-1' accessToken='token' />);
+			render(<Table userId='owner-1' />);
 		});
 		await screen.findByText("Main Overlay");
 		await act(async () => {
@@ -795,7 +828,7 @@ describe("components/OverlayTable/index", () => {
 		deleteOverlay.mockResolvedValue(true);
 		const Table = (await import("@/app/components/OverlayTable")).default;
 		await act(async () => {
-			render(<Table userId='owner-1' accessToken='token' />);
+			render(<Table userId='owner-1' />);
 		});
 		await screen.findByText("Main Overlay");
 		fireEvent.click(screen.getByRole("button", { name: "Select first fixture overlay" }));
@@ -812,7 +845,7 @@ describe("components/OverlayTable/index", () => {
 	it("clearing selection removes bulk actions without deleting resources", async () => {
 		const Table = (await import("@/app/components/OverlayTable")).default;
 		await act(async () => {
-			render(<Table userId='owner-1' accessToken='token' />);
+			render(<Table userId='owner-1' />);
 		});
 		await screen.findByText("Main Overlay");
 		fireEvent.click(screen.getByRole("button", { name: "Select fixture items" }));
@@ -828,7 +861,7 @@ describe("components/OverlayTable/index", () => {
 		deleteOverlay.mockResolvedValue(true);
 		const Table = (await import("@/app/components/OverlayTable")).default;
 		await act(async () => {
-			render(<Table userId='owner-1' accessToken='token' />);
+			render(<Table userId='owner-1' />);
 		});
 		await screen.findByText("Main Overlay");
 		await act(async () => {
@@ -852,7 +885,7 @@ describe("components/OverlayTable/index", () => {
 		validateAuth.mockResolvedValue({ id: "owner-1", plan: "free", entitlements: { effectivePlan: "pro" } });
 		const Table = (await import("@/app/components/OverlayTable")).default;
 		await act(async () => {
-			render(<Table userId='owner-1' accessToken='token' />);
+			render(<Table userId='owner-1' />);
 		});
 		await screen.findByText(days === 1 ? "Ends today" : "4 days left");
 		fireEvent.click(screen.getByRole("button", { name: "Upgrade now" }));
@@ -863,7 +896,7 @@ describe("components/OverlayTable/index", () => {
 		createPlaylist.mockRejectedValue(new Error("private upstream details"));
 		const Table = (await import("@/app/components/OverlayTable")).default;
 		await act(async () => {
-			render(<Table userId='owner-1' accessToken='token' />);
+			render(<Table userId='owner-1' />);
 		});
 		await screen.findByText("Main Overlay");
 		await act(async () => {
@@ -886,7 +919,7 @@ describe("components/OverlayTable/index", () => {
 		getAllRunners.mockResolvedValue([{ id: "runner-one", ownerId: "owner-1", name: "Hardware Node", status: "offline", createdAt: new Date(), lastHeartbeatAt: null }]);
 		const Table = (await import("@/app/components/OverlayTable")).default;
 		await act(async () => {
-			render(<Table userId='owner-1' accessToken='token' />);
+			render(<Table userId='owner-1' />);
 		});
 		await screen.findByText("Main Overlay");
 		if (tab !== "Overlays") fireEvent.click(screen.getByRole("button", { name: tab }));
@@ -902,7 +935,7 @@ describe("components/OverlayTable/index", () => {
 		deleteRunner.mockResolvedValue({ success: true });
 		const Table = (await import("@/app/components/OverlayTable")).default;
 		await act(async () => {
-			render(<Table userId='owner-1' accessToken='token' />);
+			render(<Table userId='owner-1' />);
 		});
 		await screen.findByText("Main Overlay");
 		await act(async () => {
@@ -929,7 +962,7 @@ describe("components/OverlayTable/index", () => {
 		deleteRunner.mockResolvedValue({ success: false });
 		const Table = (await import("@/app/components/OverlayTable")).default;
 		await act(async () => {
-			render(<Table userId='owner-1' accessToken='token' />);
+			render(<Table userId='owner-1' />);
 		});
 		await screen.findByText("Main Overlay");
 		await act(async () => {
@@ -948,7 +981,7 @@ describe("components/OverlayTable/index", () => {
 	it("cancelling overlay deletion closes confirmation without requesting deletion", async () => {
 		const Table = (await import("@/app/components/OverlayTable")).default;
 		await act(async () => {
-			render(<Table userId='owner-1' accessToken='token' />);
+			render(<Table userId='owner-1' />);
 		});
 		await screen.findByText("Main Overlay");
 		fireEvent.click(screen.getByRole("button", { name: "Delete Main Overlay" }));
@@ -962,7 +995,7 @@ describe("components/OverlayTable/index", () => {
 		getAllRunners.mockResolvedValue([{ id: "connected", ownerId: "owner-1", name: "Connected Hardware", status: "online", createdAt: new Date(), lastHeartbeatAt: new Date() }]);
 		const Table = (await import("@/app/components/OverlayTable")).default;
 		await act(async () => {
-			render(<Table userId='owner-1' accessToken='token' />);
+			render(<Table userId='owner-1' />);
 		});
 		await screen.findByText("Main Overlay");
 		await act(async () => {
@@ -981,7 +1014,7 @@ describe("components/OverlayTable/index", () => {
 		getAllOverlays.mockResolvedValue([buildOverlay({ name: "Alpha" }), buildOverlay({ id: "other", name: "Zulu" })]);
 		const Table = (await import("@/app/components/OverlayTable")).default;
 		await act(async () => {
-			render(<Table userId='owner-1' accessToken='token' />);
+			render(<Table userId='owner-1' />);
 		});
 		await screen.findByText("Alpha");
 		const order = () => screen.getAllByRole("row").map((row) => within(row).getByRole("button", { name: /^Open / }).textContent);
@@ -992,15 +1025,29 @@ describe("components/OverlayTable/index", () => {
 		expect(order()).toEqual(["Open Alpha", "Open Zulu"]);
 	});
 
-	it("delegated overlays remain visible alongside owned overlays without changing owner identity", async () => {
+	it("selected workspace hides other creators on initial load and reload", async () => {
 		getEditorOverlays.mockResolvedValue([buildOverlay({ id: "delegated", name: "Delegated Overlay", ownerId: "another-owner" })]);
+		getAllPlaylists.mockResolvedValue([{ id: "shared-playlist", ownerId: "another-owner", name: "Other Playlist", clipCount: 1 }]);
+		getAllGalleries.mockResolvedValue([{ id: "shared-gallery", ownerId: "another-owner", name: "Other Gallery", source: "playlist" }]);
+		getEditorAccess.mockResolvedValue([{ userId: "another-owner" }]);
 		const Table = (await import("@/app/components/OverlayTable")).default;
 		await act(async () => {
-			render(<Table userId='owner-1' accessToken='token' />);
+			render(<Table userId='owner-1' />);
 		});
-		await screen.findByText("Delegated Overlay");
-		expect(screen.getByText("Main Overlay")).toBeInTheDocument();
-		await waitFor(() => expect(getAvatar).toHaveBeenCalledWith("another-owner", "owner-1"));
+		await screen.findByText("Main Overlay");
+		expect(screen.queryByText("Delegated Overlay")).not.toBeInTheDocument();
+		expect(getEditorOverlays).not.toHaveBeenCalled();
+		expect(getEditorAccess).not.toHaveBeenCalled();
+		expect(getUsersDetailsBulk).not.toHaveBeenCalled();
+		fireEvent.click(screen.getByRole("button", { name: "Playlists" }));
+		expect(screen.queryByText("Other Playlist")).not.toBeInTheDocument();
+		fireEvent.click(screen.getByRole("button", { name: "Galleries" }));
+		expect(screen.queryByText("Other Gallery")).not.toBeInTheDocument();
+		fireEvent.click(screen.getByRole("button", { name: "Reload" }));
+		await waitFor(() => expect(getAllGalleries).toHaveBeenCalledTimes(2));
+		expect(screen.queryByText("Other Gallery")).not.toBeInTheDocument();
+		fireEvent.click(screen.getByRole("button", { name: "Overlays" }));
+		expect(screen.queryByText("Delegated Overlay")).not.toBeInTheDocument();
 	});
 
 	it("unavailable resource lists resolve to empty views without revealing stale resources", async () => {
@@ -1008,7 +1055,7 @@ describe("components/OverlayTable/index", () => {
 		validateAuth.mockResolvedValue(null);
 		const Table = (await import("@/app/components/OverlayTable")).default;
 		await act(async () => {
-			render(<Table userId='owner-1' accessToken='token' />);
+			render(<Table userId='owner-1' />);
 		});
 		await screen.findByText("No overlays found");
 		await act(async () => {
@@ -1028,7 +1075,7 @@ describe("components/OverlayTable/index", () => {
 		featureAccess.mockReturnValue({ allowed: false });
 		const Table = (await import("@/app/components/OverlayTable")).default;
 		await act(async () => {
-			render(<Table userId='owner-1' accessToken='token' />);
+			render(<Table userId='owner-1' />);
 		});
 		await screen.findByText("You're on the Free plan and have reached the overlay limit. Upgrade to add more overlays.");
 		fireEvent.click(screen.getByRole("button", { name: "Add Overlay" }));
@@ -1040,7 +1087,7 @@ describe("components/OverlayTable/index", () => {
 		deleteOverlay.mockResolvedValue(true);
 		const Table = (await import("@/app/components/OverlayTable")).default;
 		await act(async () => {
-			render(<Table userId='owner-1' accessToken='token' />);
+			render(<Table userId='owner-1' />);
 		});
 		await screen.findByText("Overlay 00");
 		fireEvent.click(screen.getByRole("button", { name: mode === "all" ? "Select fixture items" : "Select first fixture overlay" }));
@@ -1061,7 +1108,7 @@ describe("components/OverlayTable/index", () => {
 	it("reload clears previously visible resources when current backend access returns no lists", async () => {
 		const Table = (await import("@/app/components/OverlayTable")).default;
 		await act(async () => {
-			render(<Table userId='owner-1' accessToken='token' />);
+			render(<Table userId='owner-1' />);
 		});
 		await screen.findByText("Main Overlay");
 		for (const load of [getAllOverlays, getEditorOverlays, getAllPlaylists, getAllGalleries, getAllRunners, getAllStreamSessions]) load.mockResolvedValue(null);
@@ -1079,36 +1126,34 @@ describe("components/OverlayTable/index", () => {
 		expect(screen.queryByText("Main Overlay")).not.toBeInTheDocument();
 	});
 
-	it.each(["owner-1", "delegated"])("server quota feedback for %s in the creator menu preserves its exact usage", async (creatorId) => {
-		getEditorAccess.mockResolvedValue([{ userId: "delegated" }]);
-		getUsersDetailsBulk.mockResolvedValue([{ id: creatorId, display_name: "Chosen Creator", profile_image_url: "https://example.invalid/avatar.png" }]);
+	it.each(["owner-1", "delegated"])("server quota feedback in workspace %s preserves its exact usage", async (creatorId) => {
+		getAllOverlays.mockResolvedValue([buildOverlay({ ownerId: creatorId })]);
+		validateAuth.mockResolvedValue({ id: creatorId, plan: "pro", entitlements: { effectivePlan: "pro" } });
 		createOverlayWithFeedback.mockResolvedValue({ overlay: null, error: { code: "PLAN_LIMIT_REACHED", usage: 1, limit: 1 } });
 		const Table = (await import("@/app/components/OverlayTable")).default;
 		await act(async () => {
-			render(<Table userId='owner-1' accessToken='token' />);
+			render(<Table userId={creatorId} />);
 		});
 		await screen.findByText("Main Overlay");
 		await act(async () => {
-			fireEvent.click(await screen.findByRole("button", { name: /Add new overlay for Chosen Creator$/ }));
+			fireEvent.click(await screen.findByRole("button", { name: "Add Overlay" }));
 		});
 		expect(createOverlayWithFeedback).toHaveBeenCalledWith(creatorId);
 		expect(push).not.toHaveBeenCalled();
-		expect(addToast).toHaveBeenCalledWith(expect.objectContaining({ description: "This creator is using 1 of 1 overlays. Upgrade to Pro to create more.", color: "danger" }));
+		expect(addToast).toHaveBeenCalledWith(expect.objectContaining({ description: "This creator is using 1 of 1 overlays. Upgrade to Pro to create more.", color: "warning" }));
 	});
 
-	it("own runner creation from the creator menu requires the Runner entitlement", async () => {
-		getEditorAccess.mockResolvedValue([{ userId: "delegated" }]);
-		getUsersDetailsBulk.mockResolvedValue([{ id: "owner-1", display_name: "Chosen Creator", profile_image_url: "https://example.invalid/avatar.png" }]);
+	it("active workspace runner creation requires the Runner entitlement", async () => {
 		const Table = (await import("@/app/components/OverlayTable")).default;
 		await act(async () => {
-			render(<Table userId='owner-1' accessToken='token' />);
+			render(<Table userId='owner-1' />);
 		});
 		await screen.findByText("Main Overlay");
 		await act(async () => {
 			fireEvent.click(screen.getByRole("button", { name: "Runners" }));
 		});
 		await act(async () => {
-			fireEvent.click(await screen.findByRole("button", { name: /Add new runner for Chosen Creator$/ }));
+			fireEvent.click(await screen.findByRole("button", { name: "Add Runner" }));
 		});
 		expect(createRunner).not.toHaveBeenCalled();
 		expect(push).not.toHaveBeenCalled();
@@ -1116,7 +1161,7 @@ describe("components/OverlayTable/index", () => {
 	it("reload adopts current runner stream states and keeps unknown sessions offline", async () => {
 		const Table = (await import("@/app/components/OverlayTable")).default;
 		await act(async () => {
-			render(<Table userId='owner-1' accessToken='token' />);
+			render(<Table userId='owner-1' />);
 		});
 		await screen.findByText("Main Overlay");
 		getAllRunners.mockResolvedValue([
@@ -1137,24 +1182,25 @@ describe("components/OverlayTable/index", () => {
 		expect(screen.getByText("Streaming", { exact: true })).toBeInTheDocument();
 		expect(screen.getByText("Offline", { exact: true })).toBeInTheDocument();
 	});
-	it("authorized delegated galleries display the creator avatar rather than the acting user", async () => {
+	it("selected delegated workspace galleries display their creator avatar", async () => {
+		getAllOverlays.mockResolvedValue([buildOverlay({ ownerId: "another-owner" })]);
 		getAllGalleries.mockResolvedValue([{ id: "shared-gallery", ownerId: "another-owner", name: "Shared Gallery", source: "playlist", published: true }]);
 		const Table = (await import("@/app/components/OverlayTable")).default;
 		await act(async () => {
-			render(<Table userId='owner-1' accessToken='token' />);
+			render(<Table userId='another-owner' />);
 		});
 		await screen.findByText("Main Overlay");
 		await act(async () => {
 			fireEvent.click(screen.getByRole("button", { name: "Galleries" }));
 		});
 		expect(screen.getByText("Shared Gallery")).toBeInTheDocument();
-		expect(getAvatar).toHaveBeenCalledWith("another-owner", "owner-1");
+		expect(getAvatar).toHaveBeenCalledWith("another-owner", "another-owner");
 	});
 	it("Free runner empty state explains the add-on requirement and does not create hardware", async () => {
 		validateAuth.mockResolvedValue({ id: "owner-1", plan: "free", entitlements: { effectivePlan: "free", runnerAccess: false } });
 		const Table = (await import("@/app/components/OverlayTable")).default;
 		await act(async () => {
-			render(<Table userId='owner-1' accessToken='token' />);
+			render(<Table userId='owner-1' />);
 		});
 		await act(async () => {
 			fireEvent.click(screen.getByRole("button", { name: "Runners" }));
@@ -1168,7 +1214,7 @@ describe("components/OverlayTable/index", () => {
 		validateAuth.mockResolvedValue({ id: "owner-1", plan: "pro", entitlements: { effectivePlan: "pro", runnerAccess: true } });
 		const Table = (await import("@/app/components/OverlayTable")).default;
 		await act(async () => {
-			render(<Table userId='owner-1' accessToken='token' />);
+			render(<Table userId='owner-1' />);
 		});
 		await act(async () => {
 			fireEvent.click(screen.getByRole("button", { name: "Runners" }));

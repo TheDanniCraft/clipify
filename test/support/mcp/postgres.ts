@@ -5,6 +5,7 @@ import { getTableConfig, PgDialect } from "drizzle-orm/pg-core";
 import { is, Table, SQL } from "drizzle-orm";
 import * as domain from "@/db/schema";
 import * as auth from "@/db/auth-schema";
+import { ensureTemplate } from "../../../scripts/mcp-fixture-template.mjs";
 const quote = (value: string) => `"${value.replaceAll('"', '""')}"`;
 const literal = (value: unknown): string => (value === null ? "NULL" : Array.isArray(value) ? `ARRAY[${value.map(literal).join(",")}]` : typeof value === "number" || typeof value === "boolean" ? String(value) : value && typeof value === "object" ? literal(JSON.stringify(value)) : `'${String(value).replaceAll("'", "''")}'`);
 
@@ -14,11 +15,18 @@ export async function createMcpPostgresFixture() {
 	if (!["127.0.0.1", "localhost", "[::1]"].includes(url.hostname) || !/^\/clipify_(mcp_fixture|e2e)$/.test(url.pathname)) throw new Error("MCP tests require a disposable loopback fixture database");
 	const admin = new Pool({ connectionString: url.href });
 	const name = `mcp_${randomUUID().replaceAll("-", "")}`;
-	await admin.query(`CREATE DATABASE ${quote(name)}`);
+	let template: string | undefined;
+	try {
+		if (process.env.MCP_TEST_TEMPLATE_ID) template = await ensureTemplate(admin, process.env.MCP_TEST_TEMPLATE_ID, url.href, initializeMcpFixtureSchema);
+		await admin.query(`CREATE DATABASE ${quote(name)}${template ? ` TEMPLATE ${quote(template)}` : ""}`);
+	} catch (error) {
+		await admin.end();
+		throw error;
+	}
 	url.pathname = `/${name}`;
 	const pool = new Pool({ connectionString: url.href, max: 30 });
 	try {
-		await initializeMcpFixtureSchema(pool);
+		if (!template) await initializeMcpFixtureSchema(pool);
 		return {
 			pool,
 			url: url.href,

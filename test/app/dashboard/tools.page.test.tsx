@@ -20,7 +20,14 @@ jest.mock("@components/dashboardNavbar", () => ({
 }));
 jest.mock("@components/tools/ToolsClient", () => ({
 	__esModule: true,
-	default: ({ origin }: { origin: string }) => <div>{`tools-origin:${origin}`}</div>,
+	default: ({ origin, overlays, galleries }: { origin: string; overlays: { name: string }[]; galleries: { name: string }[] }) => (
+		<div>
+			{`tools-origin:${origin}`}{" "}
+			{[...overlays, ...galleries].map((item) => (
+				<span key={item.name}>{item.name}</span>
+			))}
+		</div>
+	),
 }));
 
 describe("dashboard tools page", () => {
@@ -40,5 +47,20 @@ describe("dashboard tools page", () => {
 
 		expect(screen.getByText("tools-origin:https://preview.clipify.us")).toBeInTheDocument();
 		expect(getBaseUrl).toHaveBeenCalledTimes(1);
+	});
+	it("only offers website resources from the selected workspace", async () => {
+		getAllOverlays.mockResolvedValue([{ id: "selected", ownerId: "user-1", name: "Selected overlay" }]);
+		getEditorOverlays.mockResolvedValue([{ id: "other", ownerId: "other-creator", name: "Other overlay" }]);
+		getAllGalleries.mockResolvedValue([
+			{ ownerId: "user-1", name: "Selected gallery" },
+			{ ownerId: "other-creator", name: "Other gallery" },
+		]);
+		const Page = (await import("@/app/dashboard/tools/page")).default;
+		render(await Page({ searchParams: Promise.resolve({}) }));
+		expect(screen.getByText("Selected overlay")).toBeInTheDocument();
+		expect(screen.getByText("Selected gallery")).toBeInTheDocument();
+		expect(screen.queryByText("Other overlay")).not.toBeInTheDocument();
+		expect(screen.queryByText("Other gallery")).not.toBeInTheDocument();
+		expect(getEditorOverlays).not.toHaveBeenCalled();
 	});
 });

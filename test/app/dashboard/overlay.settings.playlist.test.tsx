@@ -759,6 +759,17 @@ describe("dashboard overlay settings playlist mode", () => {
 		expect(saveOverlay).toHaveBeenLastCalledWith("overlay-1", expect.objectContaining({ [field]: [] }), expect.anything());
 	});
 
+	it("shows returned playlist quota feedback without changing the overlay selection", async () => {
+		createPlaylist.mockResolvedValue({ error: { code: "PLAN_LIMIT_REACHED", message: "Your Free plan supports one playlist. Upgrade to Pro to create more." } });
+		await openPage();
+		await press("Playlist");
+		await act(async () => {
+			fireEvent.click(screen.getByRole("option", { name: "Create new playlist..." }));
+		});
+		expect(jest.requireMock("@lib/toast").notify).toHaveBeenCalledWith(expect.objectContaining({ description: "Your Free plan supports one playlist. Upgrade to Pro to create more.", color: "warning" }));
+		expect(router.push).not.toHaveBeenCalled();
+		expect(saveOverlay).not.toHaveBeenCalled();
+	});
 	it.each(["success", "null", "error"])("creates a playlist from the selector: %s", async (outcome) => {
 		if (outcome === "success") createPlaylist.mockResolvedValue({ id: "new-playlist", name: "New Playlist" });
 		else if (outcome === "null") createPlaylist.mockResolvedValue(null);

@@ -2,11 +2,9 @@
 jest.mock("server-only", () => ({}));
 jest.mock("@/db/client", () => ({ db: { select: jest.fn() } }));
 jest.mock("@/auth/session-principal", () => ({ getVerifiedSessionPrincipal: jest.fn() }));
-jest.mock("@/auth/session", () => ({ getAuthSession: jest.fn() }));
 jest.mock("@lib/entitlements", () => ({ resolveUserEntitlements: jest.fn() }));
 import { db } from "@/db/client";
 import { getVerifiedSessionPrincipal } from "@/auth/session-principal";
-import { getAuthSession } from "@/auth/session";
 import { resolveUserEntitlements } from "@lib/entitlements";
 import { authorizeCreatorOperation, authorizeTrustedCreatorOperation, listAuthorizedCreatorOperations, parseOrganizationRolePermissions } from "@/auth/authorize-operation";
 import { PERMISSIONS } from "@/auth/permissions";
@@ -19,7 +17,7 @@ function enqueue(...values: unknown[][]) {
 	rows.push(...values);
 }
 function ownerRows() {
-	return [[account], [creator], [{ role: "owner" }], []];
+	return [[account], [creator], [{ role: "owner" }]];
 }
 beforeEach(() => {
 	jest.clearAllMocks();
@@ -30,7 +28,6 @@ beforeEach(() => {
 		return query;
 	});
 	(getVerifiedSessionPrincipal as jest.Mock).mockResolvedValue(principal);
-	(getAuthSession as jest.Mock).mockResolvedValue({ session: { id: "session", userId: "actor", createdAt: new Date(), activeOrganizationId: null } });
 	(resolveUserEntitlements as jest.Mock).mockResolvedValue({ proAccess: true, runnerAccess: true });
 });
 
@@ -92,8 +89,8 @@ test.each(["accepted", "revoked", "missing-member", "missing-link", "empty-ceili
 	expect(decision.allowed).toBe(mode === "accepted");
 	if (mode === "accepted") expect(decision).toMatchObject({ accessPath: "agency" });
 });
-test.each([null, {}])("creator selector with missing session %p does no database reads", async (envelope) => {
-	(getAuthSession as jest.Mock).mockResolvedValue(envelope);
+test.each([null, undefined])("creator selector with missing verified principal %p does no database reads", async (value) => {
+	(getVerifiedSessionPrincipal as jest.Mock).mockResolvedValue(value);
 	expect(await listAuthorizedCreatorOperations({ permission: "creator:read" })).toEqual([]);
 	expect(db.select).not.toHaveBeenCalled();
 });
@@ -103,18 +100,19 @@ test("creator selector without current organizations returns no creators", async
 	expect(db.select).toHaveBeenCalledTimes(1);
 });
 test("creator selector deduplicates organizations and omits unavailable creator accounts", async () => {
-	enqueue([{ organizationId: "creator-org" }, { organizationId: "creator-org" }, { organizationId: "missing-org" }], [{ creatorId: "creator" }], [], ...ownerRows());
+	enqueue([{ organizationId: "creator-org" }, { organizationId: "creator-org" }, { organizationId: "missing-org" }], [{ creatorId: "creator", organizationId: "creator-org" }], ...ownerRows());
 	expect(await listAuthorizedCreatorOperations({ permission: "creator:read" })).toEqual([expect.objectContaining({ allowed: true, accessPath: "owner", creator })]);
-	expect(db.select).toHaveBeenCalledTimes(7);
+	expect(db.select).toHaveBeenCalledTimes(5);
+	expect(getVerifiedSessionPrincipal).toHaveBeenCalledTimes(1);
 });
 test("active agency links contribute selectors only after current authorization", async () => {
-	(getAuthSession as jest.Mock).mockResolvedValue({ session: { id: "session", userId: "actor", createdAt: new Date(), activeOrganizationId: "agency" } });
-	enqueue([], [{ creatorOrganizationId: "creator-org" }], [{ creatorId: "creator" }], ...ownerRows());
+	(getVerifiedSessionPrincipal as jest.Mock).mockResolvedValue({ ...principal, organizationId: "agency" });
+	enqueue([], [{ creatorOrganizationId: "creator-org" }], [{ creatorId: "creator", organizationId: "creator-org" }], ...ownerRows());
 	expect(await listAuthorizedCreatorOperations({ permission: "creator:read" })).toEqual([expect.objectContaining({ creator })]);
 });
 
 test("creator selector omits a current member without audit permission", async () => {
-	enqueue([{ organizationId: "creator-org" }], [{ creatorId: "creator" }], [account], [creator], [{ role: "overlay-only" }], [{ permission: JSON.stringify({ overlay: ["read"] }) }]);
+	enqueue([{ organizationId: "creator-org" }], [{ creatorId: "creator", organizationId: "creator-org" }], [account], [creator], [{ role: "overlay-only" }], [{ permission: JSON.stringify({ overlay: ["read"] }) }]);
 	expect(await listAuthorizedCreatorOperations({ permission: "audit:read" })).toEqual([]);
 });
 test("OAuth agency context comes from stored target approval rather than session organization", async () => {
@@ -127,4 +125,14 @@ test("an explicit required Runner entitlement remains authoritative for owner ac
 	enqueue(...ownerRows());
 	(resolveUserEntitlements as jest.Mock).mockResolvedValue({ proAccess: true, runnerAccess: false });
 	expect(await authorizeTrustedCreatorOperation({ principal, creatorId: "creator", permission: "overlay:read", requiredEntitlement: "runner" })).toEqual({ allowed: false, code: "ENTITLEMENT_REQUIRED" });
+});
+
+test("already verified request principal does not repeat session verification", async () => {
+	enqueue([{ organizationId: "creator-org" }], [{ creatorId: "creator", organizationId: "creator-org" }], ...ownerRows());
+	expect(await listAuthorizedCreatorOperations({ permission: "creator:read", principal })).toEqual([expect.objectContaining({ creator })]);
+	expect(getVerifiedSessionPrincipal).not.toHaveBeenCalled();
+});
+test("invalid authentication timestamp cannot reach creator lookup", async () => {
+	expect(await listAuthorizedCreatorOperations({ permission: "creator:read", principal: { ...principal, authenticatedAt: new Date(NaN) } })).toEqual([]);
+	expect(db.select).not.toHaveBeenCalled();
 });

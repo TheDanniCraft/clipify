@@ -21,3 +21,6 @@ test("per-creator consent cannot exceed the token scope ceiling", async () => {
 test("an unselected creator remains inaccessible", async () => {
 	await expect(authorizeTrustedCreatorOperation({ principal, creatorId: "other", permission: "overlay:read" })).resolves.toEqual({ allowed: false, code: "ACCESS_PATH_REQUIRED" });
 });
+test("batch evaluation cannot bypass a creator's read-only ceiling through its first permission", async () => {
+	await expect(authorizeTrustedCreatorOperation({ principal, creatorId: "readonly", permission: "overlay:read", permissions: ["overlay:read", "overlay:update"] })).resolves.toEqual({ allowed: false, code: "PERMISSION_DENIED" });
+});

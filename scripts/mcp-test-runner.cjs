@@ -2,6 +2,7 @@
 const DefaultRunner = require("jest-runner").default;
 const { mkdirSync, mkdtempSync, rmSync } = require("node:fs");
 const { resolve } = require("node:path");
+const { randomUUID } = require("node:crypto");
 const { readTestSystem, selectTestWorkers } = require("./test-worker-budget.cjs");
 const { selectDatabaseWorkers, readFixtureDatabaseCapacity } = require("./test-database-budget.cjs");
 
@@ -28,7 +29,12 @@ module.exports = class McpTestRunner extends DefaultRunner {
 		let compiledDirectory;
 		const previousRuntime = process.env.MCP_PROBE_RUNTIME;
 		const previousDirectory = process.env.MCP_COVERAGE_PROBE_DIRECTORY;
+		let ownsTemplate = false;
 		try {
+			if (!process.env.MCP_TEST_TEMPLATE_ID && tests.some((test) => isDatabaseTest(test.path)) && (await readFixtureDatabaseCapacity())) {
+				process.env.MCP_TEST_TEMPLATE_ID = randomUUID();
+				ownsTemplate = true;
+			}
 			if (!previousDirectory && tests.some((test) => isDatabaseTest(test.path) || (isQuietTest(test.path) && test.path.replaceAll("\\", "/").includes("/test/mcp/")))) {
 				mkdirSync("test-results/mcp", { recursive: true });
 				compiledDirectory = mkdtempSync(resolve("test-results/mcp/compiled-tests-"));
@@ -48,6 +54,13 @@ module.exports = class McpTestRunner extends DefaultRunner {
 				await super.runTests(phase.tests, watcher, { ...options, serial: phase.serial || workers === 1 });
 			}
 		} finally {
+			if (ownsTemplate) {
+				try {
+					await (await import("./mcp-fixture-template.mjs")).cleanupTemplate();
+				} finally {
+					delete process.env.MCP_TEST_TEMPLATE_ID;
+				}
+			}
 			this._globalConfig = original;
 			if (compiledDirectory) {
 				rmSync(compiledDirectory, { recursive: true, force: true });
