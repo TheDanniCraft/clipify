@@ -104,7 +104,7 @@ export default function ConnectedAppsPanel() {
 					</h2>
 				</div>
 				<Card.Description>Manage which apps can access your creators. Disconnecting an app stops its access immediately.</Card.Description>
-				<Link className='text-sm' href='https://help.clipify.us/hc/clipify/articles/connect-clipify-to-ai-apps' target='_blank' rel='noopener noreferrer'>
+				<Link className='text-sm text-muted hover:text-foreground hover:underline' href='https://help.clipify.us/hc/clipify/articles/connect-clipify-to-ai-apps' target='_blank' rel='noopener noreferrer'>
 					Connect your AI tools
 					<IconExternalLink size={16} aria-hidden='true' />
 				</Link>
