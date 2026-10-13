@@ -51,6 +51,7 @@ async function readPlaylistResult(playlist: typeof playlistsTable.$inferSelect, 
 			const value = JSON.parse(row.clipData);
 			if (value && typeof value === "object" && !Array.isArray(value)) metadata = value.clip && typeof value.clip === "object" ? value.clip : value;
 		} catch {}
+		if (metadata.id !== undefined && metadata.id !== row.clipId) return playlistItemDto({ id: row.clipId, position: row.position });
 		const item = playlistItemDto({ id: row.clipId, position: row.position, ...(typeof metadata.title === "string" ? { title: metadata.title } : {}), ...(typeof metadata.duration === "number" ? { duration: metadata.duration } : {}) });
 		const parsed = providerClipSchema.safeParse({ ...metadata, id: row.clipId });
 		return parsed.success ? { ...publicClip(parsed.data), position: item.position } : item;
