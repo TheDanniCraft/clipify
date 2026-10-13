@@ -46,7 +46,7 @@ export async function runWorkflowCatalogue(input: { fixture: Awaited<ReturnType<
 	let providerCalls = 0;
 	const crawlRequests: Array<{ start: string; end: string; cursor: string | null }> = [];
 	const clips = [
-		{ id: "MinecraftClip", title: "Minecraft adventure", duration: 12, broadcaster_id: "fixture-creator", created_at: "2026-10-06T12:00:00Z", game_id: "27471", view_count: 100, url: "https://clips.twitch.tv/MinecraftClip", thumbnail_url: "https://static-cdn.jtvnw.net/test.jpg", secret: "private-provider-payload" },
+		{ id: "MinecraftClip", title: "Minecraft adventure", duration: 12, broadcaster_id: "fixture-creator", broadcaster_name: "Fixture creator", creator_id: "clipper-id", creator_name: "Fixture clipper", video_id: "123456789", vod_offset: 42, language: "en", is_featured: true, created_at: "2026-10-06T12:00:00Z", game_id: "27471", view_count: 100, url: "https://clips.twitch.tv/MinecraftClip", thumbnail_url: "https://static-cdn.jtvnw.net/test.jpg", secret: "private-provider-payload" },
 		{ id: "OtherClip", title: "Other game", duration: 10, broadcaster_id: "fixture-creator", created_at: "2026-10-06T10:00:00Z", game_id: "123", view_count: 20, url: "https://clips.twitch.tv/OtherClip" },
 	];
 	// Discovery must use the persisted crawler collection, independently of Twitch responses.

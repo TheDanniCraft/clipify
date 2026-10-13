@@ -16,6 +16,18 @@ describe("TDD-US2-009 get_playlist through authenticated MCP", () => {
 		expect(JSON.stringify(result.resourceResult)).not.toContain("private-metadata-token");
 	});
 
+	test("returns stored clip attribution and thumbnails without losing playlist identity", () => {
+		const result = flowProbe("resources:playlist-get:clip-metadata");
+		expect(result.resourceResult?.items[0]).toMatchObject({ id: "ClipFirst", position: 0, title: "First clip", duration: 10, url: "https://clips.twitch.tv/ClipFirst", thumbnailUrl: "https://static-cdn.jtvnw.net/first.jpg", broadcasterId: "fixture-creator", broadcasterName: "Fixture creator", clipCreatorId: "clipper-id", clipCreatorName: "Fixture clipper", categoryId: "27471", views: 100, createdAt: "2026-10-06T12:00:00Z" });
+		expect(JSON.stringify(result.resourceResult)).not.toMatch(/WrongStoredId|private-clip-token/);
+	});
+
+	test("omits metadata that explicitly belongs to a different clip", () => {
+		const result = flowProbe("resources:playlist-get:mismatched-metadata");
+		expect(result.resourceResult?.items[0]).toEqual({ id: "ClipFirst", position: 0 });
+		expect(JSON.stringify(result.resourceResult)).not.toMatch(/WrongStoredId|first.jpg|Fixture clipper/);
+	});
+
 	test("parent revision and item metadata belong to one snapshot during an atomic writer", () => {
 		const result = flowProbe("resources:playlist-get:snapshot");
 		expect(result.snapshotInterleaved).toBe(true);

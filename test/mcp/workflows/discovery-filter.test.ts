@@ -45,5 +45,16 @@ test.each([undefined, "not a URL", "http://static-cdn.jtvnw.net/clip.jpg", "http
 });
 test("public clip projection retains approved HTTPS CDN thumbnails and safe defaults", () => {
 	const result = discovery.publicClip({ id: "Clip", title: "Title", duration: 12, created_at: "2026-10-06T00:00:00Z", thumbnail_url: "https://clips.twitchcdn.net/clip.jpg" });
-	expect(result).toMatchObject({ categoryId: null, views: 0, thumbnailUrl: "https://clips.twitchcdn.net/clip.jpg", url: "https://clips.twitch.tv/Clip" });
+	expect(result).toMatchObject({ categoryId: null, views: 0, thumbnailUrl: "https://clips.twitchcdn.net/clip.jpg", url: "https://clips.twitch.tv/Clip", broadcasterName: null, clipCreatorId: null, clipCreatorName: null, videoId: null, vodOffsetSeconds: null, language: null, isFeatured: null });
+});
+
+test("clip thumbnails remain paired with their own titles and IDs", () => {
+	const first = { ...clips[0], thumbnail_url: "https://static-cdn.jtvnw.net/clips/early-480x272.jpg" };
+	const second = { ...clips[1], thumbnail_url: "https://static-cdn.jtvnw.net/clips/late-480x272.jpg" };
+	const projected = discovery.filterDiscoveredClips([first, second, clips[2]], { sort: "most_viewed" }).map(discovery.publicClip);
+	expect(projected.map(({ id, title, thumbnailUrl }: any) => ({ id, title, thumbnailUrl }))).toEqual([
+		{ id: "Late", title: "Minecraft farms", thumbnailUrl: second.thumbnail_url },
+		{ id: "Other", title: "Other game", thumbnailUrl: null },
+		{ id: "Early", title: "Minecraft caves", thumbnailUrl: first.thumbnail_url },
+	]);
 });

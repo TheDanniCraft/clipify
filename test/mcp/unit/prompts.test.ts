@@ -14,6 +14,10 @@ test("discoverable prompts describe focused workflows without performing operati
 	}
 	expect(MCP_INSTRUCTIONS).toContain("expectedRevision");
 	expect(MCP_INSTRUCTIONS).toContain("get_overlay_link");
+	expect(MCP_INSTRUCTIONS).toContain("thumbnailUrl");
+	expect(MCP_INSTRUCTIONS).toContain("avatarUrl");
+	expect(MCP_INSTRUCTIONS).toContain("Never guess image URLs");
+	expect(MCP_INSTRUCTIONS).toContain("For clip thumbnails and creator profile pictures");
 	expect(prompts.get("filter-overlay")!.callback().messages[0].content.text).toContain("category IDs");
 	expect(prompts.get("style-overlay")!.callback().messages[0].content.text).toContain("update_overlay_theme");
 	expect(prompts.get("import-clips")!.callback().messages[0].content.text).toContain("commit_playlist_import");

@@ -1,4 +1,6 @@
 import "server-only";
+import { publicClip } from "./clip-discovery";
+import { providerClipSchema } from "./clip-validation";
 import { savePlaylistItemSelection } from "./playlist-items";
 import { listPlaylistRecords, readPlaylistRecord, readPlaylistItemRecords } from "./playlist-reads";
 import { randomUUID } from "node:crypto";
@@ -49,7 +51,10 @@ async function readPlaylistResult(playlist: typeof playlistsTable.$inferSelect, 
 			const value = JSON.parse(row.clipData);
 			if (value && typeof value === "object" && !Array.isArray(value)) metadata = value.clip && typeof value.clip === "object" ? value.clip : value;
 		} catch {}
-		return playlistItemDto({ id: row.clipId, position: row.position, ...(typeof metadata.title === "string" ? { title: metadata.title } : {}), ...(typeof metadata.duration === "number" ? { duration: metadata.duration } : {}) });
+		if (metadata.id !== undefined && metadata.id !== row.clipId) return playlistItemDto({ id: row.clipId, position: row.position });
+		const item = playlistItemDto({ id: row.clipId, position: row.position, ...(typeof metadata.title === "string" ? { title: metadata.title } : {}), ...(typeof metadata.duration === "number" ? { duration: metadata.duration } : {}) });
+		const parsed = providerClipSchema.safeParse({ ...metadata, id: row.clipId });
+		return parsed.success ? { ...publicClip(parsed.data), position: item.position } : item;
 	});
 	return { playlist: playlistDto(playlist), items };
 }

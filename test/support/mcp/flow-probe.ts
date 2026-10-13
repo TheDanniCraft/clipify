@@ -67,6 +67,7 @@ async function main() {
 		}
 
 		if (mode.startsWith("resources:creators")) {
+			await fixture.pool.query("UPDATE users SET avatar=$1 WHERE id='fixture-creator'", ["https://static-cdn.jtvnw.net/user-default-pictures-uv/reviewer-profile_image-300x300.png"]);
 			await fixture.pool.query(
 				`INSERT INTO auth.organization (id,name,slug,created_at) VALUES ('direct-org','Direct','direct-fixture',now()),('agency-org','Agency','agency-fixture',now()),('agency-creator-org','Agency creator','agency-creator-fixture',now()),('inaccessible-org','Private','private-fixture',now()); INSERT INTO users (id,email,username,avatar,role,plan) VALUES ('direct-creator','direct@example.invalid','Direct creator','','user','pro'),('agency-creator','agency@example.invalid','Agency creator','','user','free'),('inaccessible-creator','private@example.invalid','Private creator','','user','free'); INSERT INTO creator_accounts (creator_id,organization_id,status) VALUES ('direct-creator','direct-org','active'),('agency-creator','agency-creator-org','active'),('inaccessible-creator','inaccessible-org','active');`,
 			);
@@ -171,6 +172,11 @@ async function main() {
 			if (mode === "resources:overlay-get:foreign") await fixture.pool.query("INSERT INTO users (id,email,username,avatar,role,plan) VALUES ('foreign-owner','foreign@example.invalid','Foreign owner','','user','free'); INSERT INTO overlays (id,owner_id,secret,name,status,type) VALUES ('13903b5b-ce6a-4a98-9c8c-f8ead02ec8c6','foreign-owner','private-foreign-secret','Private overlay','active','Featured')");
 			if (["resources:playlist-get", "resources:playlist-delete", "resources:playlist-remove", "resources:playlist-reorder", "resources:playlist-add"].some((value) => mode.startsWith(value))) {
 				await fixture.pool.query("INSERT INTO playlist_clips (playlist_id,clip_id,position,clip_data) VALUES ('a1dca8b8-089a-47ce-b649-1c32bb3842c1','ClipSecond',1,$1),('a1dca8b8-089a-47ce-b649-1c32bb3842c1','ClipFirst',0,$2)", [JSON.stringify({ id: "ClipSecond", title: "Second clip", duration: 12, secret: "private-clip-secret" }), JSON.stringify({ id: "ClipFirst", title: "First clip", duration: 10, token: "private-clip-token" })]);
+			}
+			if (["resources:playlist-get:clip-metadata", "resources:playlist-get:mismatched-metadata"].includes(mode)) {
+				await fixture.pool.query("UPDATE playlist_clips SET clip_data=$1 WHERE clip_id='ClipFirst'", [
+					JSON.stringify({ id: mode === "resources:playlist-get:mismatched-metadata" ? "WrongStoredId" : "ClipFirst", title: "First clip", duration: 10, broadcaster_id: "fixture-creator", broadcaster_name: "Fixture creator", creator_id: "clipper-id", creator_name: "Fixture clipper", created_at: "2026-10-06T12:00:00Z", game_id: "27471", view_count: 100, thumbnail_url: "https://static-cdn.jtvnw.net/first.jpg", token: "private-clip-token" }),
+				]);
 			}
 			if (mode === "resources:playlist-add:invalid-result") await fixture.pool.query("UPDATE playlist_clips SET clip_data=$1 WHERE clip_id='ClipFirst'", [JSON.stringify({ id: "ClipFirst", title: "private-result-" + "x".repeat(1001), duration: 12 })]);
 			if (mode === "resources:playlist-get:legacy-metadata") {

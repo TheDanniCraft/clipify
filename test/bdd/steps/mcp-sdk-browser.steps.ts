@@ -59,7 +59,7 @@ When("the official SDK completes {word} approval edit abandoned consent and revo
 		expect(tools.tools.find((tool) => tool.name === "delete_overlay")?.annotations?.destructiveHint).toBe(true);
 		const args = { creatorId: owner.fixture.creatorId, overlayId: owner.fixture.overlayId };
 		const creators = await connected.client.callTool({ name: "list_creators", arguments: {} });
-		expect((creators.structuredContent as any)?.items).toEqual([{ id: args.creatorId, name: owner.fixture.username }]);
+		expect((creators.structuredContent as any)?.items).toEqual([{ id: args.creatorId, name: owner.fixture.username, avatarUrl: null }]);
 		const capabilities = await connected.client.callTool({ name: "get_capabilities", arguments: { creatorId: args.creatorId } });
 		expect(capabilities.structuredContent).toMatchObject({ creatorId: args.creatorId, effectivePlan: "free", usage: { overlays: 1, playlists: 1, playlistItems: 2 }, limits: { overlays: 1, playlists: 1 }, operations: { create_overlay: { allowed: false, reason: "PLAN_LIMIT_REACHED" }, create_playlist: { allowed: false, reason: "PLAN_LIMIT_REACHED" } } });
 		if (area === "overlays") {
