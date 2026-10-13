@@ -1574,3 +1574,10 @@ path controls, focused ESLint, formatting, typecheck and normal hooks pass.
 Independent read-only investigation and candidate review found no surviving
 route or legitimate regression. GitHub analysis run 37822095362 confirms alert
 #9 fixed; its required review thread was resolved. The alert was not dismissed.
+
+## Follow-up defects — 2026-10-13
+
+- PERF-AUTH-12: consent reloads current authority for each selected scope; confirmed from source and zero-error production trace. Repair approved, verification pending.
+- PERF-UX-11: expected playlist quota denial throws a server exception and becomes a generic browser error. Return expected failure data; repair approved, verification pending.
+- UPSTREAM-WS-3: next-ws 2.2.16 reads lazy userland before initialization. Exact upstream issue #222 and open PR #223 match. User explicitly requires waiting for the upstream release; no patch.
+- OBS-LISTENERS-10: 11 response close listeners trigger default warning. Fresh proxy completion/disconnect/upstream-failure proofs pass (5 tests); past bounded retention experiment collected responses. No complete production leak proof or warning removal is claimed. No implementation requested.

@@ -1275,3 +1275,15 @@ The user explicitly approved merge-readiness-review.md. Tasks T026, T243, T270, 
 - [x] T596 Verify real PostgreSQL concurrency, lease recovery, fairness, cooldown/history retention and native MCP continuations; pass focused regressions and lint/typecheck, and retain full local/CI gates as release requirements.
 
 Release operations are tracked in PR #509: merge the combined editor/crawler change only after CI, wait for master-owned migration generation and all final-head master CI, then publish the combined patch release.
+
+## Follow-up: test execution and Sentry findings (2026-10-13)
+
+User approved the complete test optimization plan, then consent-query and expected playlist-error fixes. PR #515 and release remain held. No Next/next-ws patches, listener changes or migrations are authorized in this slice.
+
+- [ ] PERF-TEST-01 Prove exhaustive lane assignment, draft/ready policy and strict coverage aggregation; then implement parallel coverage and single workflow ownership.
+- [ ] PERF-TEST-02 Prove isolated schema-template reuse; accelerate fixture setup and clean job-owned templates.
+- [ ] PERF-TEST-03 Balance browser files using measured durations, share the exact test build, and validate generated scenario inventories.
+- [ ] PERF-TEST-04 Reconcile developer/SpecKit cadence, default draft PRs and full ready checks; retain or safely reuse master validation only with identical evidence.
+- [ ] PERF-AUTH-01 Add a failing consent query-count regression and denied mixed-scope checks; resolve current authority once per creator inside the transaction.
+- [ ] PERF-UX-01 Add a failing browser playlist quota-response regression; return expected errors and show useful feedback in both callers.
+- [ ] PERF-GATE-01 Run affected suites, full merged coverage, browser checks, lint/type/format/workflow validation. Update PR #515; do not merge or release without a new go.

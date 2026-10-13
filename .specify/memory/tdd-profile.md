@@ -1,67 +1,86 @@
+# Current execution policy — approved 2026-10-13
+
+This section supersedes the historical baseline and proposed-principle notes below.
+The constitution is active; its fast inner-loop and completed-slice gates apply.
+
+- Inner loop: `bun run test --runInBand <whole-test-file>` without coverage.
+- Broader feedback: `bun run test:affected <verified-base-commit>`; unknown or
+  uncovered application boundaries require a broader explicit check.
+- Final full gate: independent unit, database and quiet/race coverage lanes, plus
+  the single native-workflow owner; merge all reports and enforce existing Jest
+  and MCP thresholds. Browser acceptance/ATDD/compliance and balanced BDD shards
+  must pass. The full local command `bun run test:coverage` remains available.
+- Draft PRs provide scoped checks. Ready PRs trigger the complete required gate.
+- Historical v4.1.8 CI: 459 passing Jest suites / 4,828 passing tests, 24m37s Jest
+  plus 8.4m workflow coverage; combined coverage 33m31s. These are measurements of
+  the old pipeline, not promises about the optimized pipeline.
+- Keep red evidence and one owning scenario per behavior. Do not reduce thresholds
+  or skip scenarios for speed. Test catalogs and fingerprints protect aggregation.
+
 ---
+
+---
+
 detected_at: 218692f6
 ecosystems: [typescript-app, typescript-browser, typescript-runner]
 default: typescript-app
 stacks:
-  typescript-app:
-    cwd: .
-    runner: jest
-    single: null
-    file: "bunx jest {file} --runInBand"
-    suite: "bun run test:coverage"
-    watch: null
-    coverage: "bun run test:coverage"
-    mutation: null
-    acceptance: null
-    property: "fast-check with @fast-check/jest"
-    approval: null
-    contract: null
-    test_glob: "test/**/*.test.{ts,tsx}"
-    exemplar:
-      unit: test/app/lib/consentOrigins.test.ts
-      component: test/app/components/chatWidget.test.tsx
-      database-integration: test/server/memberNumbers.test.ts
-    helpers:
-      - jest.setup.ts
-      - test/helpers/pgliteEnvironment.cjs
-      - test/app/gallery/fixtures.ts
-  typescript-browser:
-    cwd: .
-    runner: "playwright with playwright-bdd"
-    single: 'bunx playwright test {file} --project=acceptance-chromium -g "{name}"'
-    file: "bunx playwright test {file} --project=acceptance-chromium"
-    suite: "bun run test:e2e"
-    watch: null
-    coverage: null
-    mutation: null
-    acceptance: "bun run test:acceptance"
-    property: null
-    approval: null
-    contract: null
-    test_glob: "{test/acceptance/**/*.spec.ts,test/bdd/features/**/*.feature}"
-    exemplar:
-      acceptance: test/acceptance/login.spec.ts
-      bdd-feature: test/bdd/features/login-smoke.feature
-      bdd-steps: test/bdd/steps/login-smoke.steps.ts
-    helpers: []
-  typescript-runner:
-    cwd: packages/runner
-    runner: jest
-    single: null
-    file: "bunx jest {file} --runInBand --forceExit"
-    suite: "bun run test"
-    watch: null
-    coverage: "bunx jest --coverage --runInBand --forceExit"
-    mutation: null
-    acceptance: null
-    property: null
-    approval: null
-    contract: null
-    test_glob: "{src/**/__tests__/**/*.test.ts,test/**/*.test.ts}"
-    exemplar:
-      unit: src/__tests__/engine.test.ts
-      storage-boundary: test/storage.test.ts
-    helpers: []
+typescript-app:
+cwd: .
+runner: jest
+single: null
+file: "bunx jest {file} --runInBand"
+suite: "bun run test:coverage"
+watch: null
+coverage: "bun run test:coverage"
+mutation: null
+acceptance: null
+property: "fast-check with @fast-check/jest"
+approval: null
+contract: null
+test_glob: "test/**/\*.test.{ts,tsx}"
+exemplar:
+unit: test/app/lib/consentOrigins.test.ts
+component: test/app/components/chatWidget.test.tsx
+database-integration: test/server/memberNumbers.test.ts
+helpers: - jest.setup.ts - test/helpers/pgliteEnvironment.cjs - test/app/gallery/fixtures.ts
+typescript-browser:
+cwd: .
+runner: "playwright with playwright-bdd"
+single: 'bunx playwright test {file} --project=acceptance-chromium -g "{name}"'
+file: "bunx playwright test {file} --project=acceptance-chromium"
+suite: "bun run test:e2e"
+watch: null
+coverage: null
+mutation: null
+acceptance: "bun run test:acceptance"
+property: null
+approval: null
+contract: null
+test_glob: "{test/acceptance/**/_.spec.ts,test/bdd/features/\**/_.feature}"
+exemplar:
+acceptance: test/acceptance/login.spec.ts
+bdd-feature: test/bdd/features/login-smoke.feature
+bdd-steps: test/bdd/steps/login-smoke.steps.ts
+helpers: []
+typescript-runner:
+cwd: packages/runner
+runner: jest
+single: null
+file: "bunx jest {file} --runInBand --forceExit"
+suite: "bun run test"
+watch: null
+coverage: "bunx jest --coverage --runInBand --forceExit"
+mutation: null
+acceptance: null
+property: null
+approval: null
+contract: null
+test_glob: "{src/**/**tests**/**/_.test.ts,test/\**/_.test.ts}"
+exemplar:
+unit: src/**tests**/engine.test.ts
+storage-boundary: test/storage.test.ts
+helpers: []
 verified: [single, file, suite, coverage, acceptance]
 suite_baseline: green
 suite_seconds: 153.489

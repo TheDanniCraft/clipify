@@ -156,7 +156,7 @@ presets sit above extensions precisely so a preset can override this text.
   approach, same double library, reusing the recorded factories and matchers
   rather than building equivalents. An acceptance test imitates the acceptance
   exemplar, not the unit one; they usually have different runners.
-- Run the full suite. It **must be green** before the first cycle. A red baseline
+- Run the complete affected fast suite. It **must be green** before the first cycle. Full repository validation remains mandatory at the final gate. A red baseline
   is an escape hatch: report the failing tests and stop, because no red you produce
   afterwards can be attributed to your own change.
 - Check the working tree is clean, or that the user knows what is uncommitted.
@@ -226,7 +226,7 @@ Make that test pass and change nothing else. Choose the smallest sufficient move
 from the playbook's "Step 4": obvious implementation, fake it, or triangulate.
 Prefer the transformation that adds the least behavior.
 
-Then run the **full suite**. Green means the new test passes and nothing else
+Then run the **complete affected fast suite**. Run the full repository gate at the final validation checkpoint. Green means the new test passes and nothing else
 broke. A failure elsewhere is:
 
 - a real regression, which you fix now as part of this cycle; or

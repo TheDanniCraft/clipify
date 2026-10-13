@@ -89,6 +89,26 @@ Example:
 💄 Refine team and authorization management
 ```
 
+## Test execution and pull requests
+
+- Open new pull requests as drafts by default. Draft CI provides scoped feedback;
+  it does not satisfy the required full Test gate. Mark ready only at the final
+  review checkpoint; `ready_for_review` triggers complete validation.
+- During development, run the changed behavior's whole-file tests without
+  coverage. At a completed slice, run complete affected suites and the relevant
+  browser scenarios. Do not repeat unchanged successful checks without a reason.
+- Full coverage, all owning scenarios, lint, formatting, type checks and build
+  remain mandatory before merge. Independent coverage lanes produce one merged
+  report with unchanged thresholds; missing or foreign evidence fails the gate.
+- MCP workflow scenarios have one execution owner for both BDD and coverage.
+  Genuine browser journeys remain browser-owned; do not duplicate evidence merely
+  to attach another practice label.
+- Tests use disposable loopback databases. Schema-template cloning may accelerate
+  setup, but every case retains its own database and job-owned templates are
+  removed. Production and shared development data are never test fixtures.
+- Master keeps complete validation unless identical tested source and execution
+  inputs are verified. A prior successful head SHA alone is insufficient evidence.
+
 ## Drizzle migration ownership (non-negotiable)
 
 - On feature branches, edit `src/db/schema.ts`, `src/db/auth-schema.ts`, and

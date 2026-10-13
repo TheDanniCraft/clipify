@@ -142,7 +142,7 @@ variable, a variable before a conditional, a conditional before a loop, a loop
 before recursion. Reaching for the general solution before the tests demand it is
 how a loop turns into speculative design.
 
-Then run the full suite with the profile's suite command. Green means the new
+Then run the complete affected fast suite with the profile's verified command. Run the full repository gate at the final validation checkpoint, not after each inner-loop change. Green means the new
 test passes **and** nothing else broke. A red elsewhere is either a real
 regression to fix now or a genuine specification conflict to raise, never a test
 to weaken.
