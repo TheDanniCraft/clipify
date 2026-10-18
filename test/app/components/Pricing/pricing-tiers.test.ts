@@ -39,6 +39,6 @@ describe("components/Pricing/pricing-tiers", () => {
 	it("keeps pricing renderable when the runtime catalog is missing", () => {
 		const pricing = resolveRuntimePricing(undefined);
 		expect(pricing.pro.yearly).toEqual({ amount: null, currency: "EUR", formatted: "Unavailable" });
-		expect(pricing.runner.monthly).toEqual({ amount: null, currency: "EUR", formatted: "Unavailable" });
+		expect(pricing).not.toHaveProperty("runner");
 	});
 });

@@ -42,10 +42,6 @@ export default async function PricingPage() {
 			[FrequencyEnum.Monthly]: catalog[BillingProduct.Pro].monthly,
 			[FrequencyEnum.Yearly]: catalog[BillingProduct.Pro].yearly,
 		},
-		runner: {
-			[FrequencyEnum.Monthly]: catalog[BillingProduct.RunnerSelfHosted].monthly,
-			[FrequencyEnum.Yearly]: catalog[BillingProduct.RunnerSelfHosted].yearly,
-		},
 	};
 
 	return (

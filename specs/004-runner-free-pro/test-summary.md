@@ -1,5 +1,7 @@
 # Test Summary Report: Free Runner and Pro Broadcasting
 
+> Current correction checkpoint (2026-10-18): the Runner UX and standalone-entitlement hard cut reopen validation. The historical totals below qualify their recorded frozen inputs, not this changed worktree. Current corrective execution and visual evidence must pass before this branch is release-ready.
+
 **Updated:** 2026-10-18 · **Branch:** `plan/free-runner-branding`  
 **Specification:** [spec.md](spec.md) · **Plan:** [plan.md](plan.md) · **Registry:** [test-traceability.md](test-traceability.md) · **Defects:** [defect-log.md](defect-log.md)
 

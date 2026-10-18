@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Button, Card, Chip, Input, Label, ListBox, Modal, Select, TextField } from "@heroui/react";
+import { Button, Chip, Input, Label, ListBox, Modal, Select, TextField } from "@heroui/react";
 import { IconPlus, IconPencil, IconTrash } from "@tabler/icons-react";
 import { deleteRunnerDestination, listRunnerDestinations, saveRunnerDestination } from "@/app/actions/runner";
 import ConfirmModal from "@/app/components/confirmModal";
@@ -111,8 +111,8 @@ export default function RunnerDestinations({ ownerId, runnerId, onChange }: { ow
 
 	return (
 		<>
-			<Card>
-				<Card.Header className='flex flex-row flex-wrap items-center justify-between gap-3'>
+			<section className='space-y-4'>
+				<div className='flex flex-wrap items-center justify-between gap-3'>
 					<div>
 						<h2 className='text-lg font-semibold'>Destinations</h2>
 						<p className='text-sm text-muted'>Save your streaming destinations and manage their protected keys.</p>
@@ -121,8 +121,8 @@ export default function RunnerDestinations({ ownerId, runnerId, onChange }: { ow
 						<IconPlus size={16} />
 						Add destination
 					</Button>
-				</Card.Header>
-				<Card.Content className='space-y-3'>
+				</div>
+				<div className='space-y-3'>
 					{error && !open && !deleting && (
 						<p role='alert' className='text-sm text-danger'>
 							{error}
@@ -133,7 +133,7 @@ export default function RunnerDestinations({ ownerId, runnerId, onChange }: { ow
 					) : (
 						<ul className='grid grid-cols-1 gap-3 md:grid-cols-2'>
 							{destinations.map((destination) => (
-								<li key={destination.id} className='flex items-center justify-between gap-3 rounded-xl border border-divider p-4'>
+								<li key={destination.id} className='flex items-center justify-between gap-3 rounded-xl border border-separator p-4'>
 									<div className='min-w-0'>
 										<p className='truncate font-medium'>{destination.name}</p>
 										<p className='truncate text-sm text-muted'>
@@ -167,8 +167,8 @@ export default function RunnerDestinations({ ownerId, runnerId, onChange }: { ow
 							))}
 						</ul>
 					)}
-				</Card.Content>
-			</Card>
+				</div>
+			</section>
 			<ConfirmModal
 				isOpen={deleting !== null}
 				isPending={saving}
@@ -210,10 +210,11 @@ export default function RunnerDestinations({ ownerId, runnerId, onChange }: { ow
 						<Modal.Body className='space-y-4'>
 							<TextField>
 								<Label>Destination name</Label>
-								<Input value={name} onChange={(event) => setName(event.target.value)} />
+								<Input variant='secondary' value={name} onChange={(event) => setName(event.target.value)} />
 								{!nameValid && <p className='text-sm text-danger'>Use 1–80 characters.</p>}
 							</TextField>
 							<Select
+								variant='secondary'
 								value={provider}
 								onChange={(value) => {
 									const next = String(value) as Provider;
@@ -241,11 +242,12 @@ export default function RunnerDestinations({ ownerId, runnerId, onChange }: { ow
 							</Select>
 							<TextField>
 								<Label>RTMP URL</Label>
-								<Input value={url} onChange={(event) => setUrl(event.target.value)} placeholder={editing ? `Keep current destination (${editing.host})` : "rtmp://your-server/live"} />
+								<Input variant='secondary' value={url} onChange={(event) => setUrl(event.target.value)} placeholder={editing ? `Keep current destination (${editing.host})` : "rtmp://your-server/live"} />
 								<p className='text-xs text-muted'>Connections originate from your Runner. Local and private servers are supported.</p>
 							</TextField>
 							{editing && (
 								<Select
+									variant='secondary'
 									value={credentialAction}
 									onChange={(value) => {
 										setCredentialAction(String(value) as typeof credentialAction);
@@ -276,7 +278,7 @@ export default function RunnerDestinations({ ownerId, runnerId, onChange }: { ow
 							{credentialAction === "replace" && (
 								<TextField>
 									<Label>Destination stream key</Label>
-									<Input type='password' autoComplete='new-password' value={key} onChange={(event) => setKey(event.target.value)} />
+									<Input variant='secondary' type='password' autoComplete='new-password' value={key} onChange={(event) => setKey(event.target.value)} />
 									<p className='text-xs text-muted'>{provider === "custom" ? "Optional for custom RTMP servers." : "Required for this provider."}</p>
 								</TextField>
 							)}

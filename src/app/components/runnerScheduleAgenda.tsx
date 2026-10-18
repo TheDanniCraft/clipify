@@ -1,10 +1,11 @@
 "use client";
 
 import { useMemo, useState, useSyncExternalStore } from "react";
-import { Agenda, useAgenda } from "@heroui-pro/react";
 import { Button } from "@heroui/react";
+import { Agenda, useAgenda, type AgendaView } from "@heroui-pro/react";
+import { ScheduleDateField } from "./runner/ScheduleFields";
 import { useLocale } from "react-aria-components/I18nProvider";
-import { parseDate, today, startOfWeek } from "@internationalized/date";
+import { parseDate, today, startOfWeek, startOfMonth, getLocalTimeZone } from "@internationalized/date";
 import styles from "./runnerScheduleAgenda.module.css";
 import { projectScheduleViewport, plannerCreateWindow, plannerMoveWindow, plannerResizeWindow, type PlannerEvent } from "./runnerSchedulePlanner";
 
@@ -14,19 +15,21 @@ function subscribeViewport(listener: () => void) {
 	query.addEventListener("change", listener);
 	return () => query.removeEventListener("change", listener);
 }
-export default function RunnerScheduleAgenda({ events, canEdit, onEdit, onCreate }: { events: PlannerEvent[]; canEdit: boolean; onEdit: (id: string, window?: ReturnType<typeof plannerCreateWindow>, notice?: string) => void; onCreate: (window: ReturnType<typeof plannerCreateWindow>) => void }) {
+export default function RunnerScheduleAgenda({ events, canEdit, onEdit, onCreate, timezone = getLocalTimeZone() }: { events: PlannerEvent[]; timezone?: string; canEdit: boolean; onEdit: (id: string, window?: ReturnType<typeof plannerCreateWindow>, notice?: string) => void; onCreate: (window: ReturnType<typeof plannerCreateWindow>) => void }) {
 	const { locale } = useLocale();
 	const mobile = useSyncExternalStore(
 		subscribeViewport,
 		() => window.matchMedia(mobileQuery).matches,
 		() => false,
 	);
-	const [date, setDate] = useState(() => today("UTC"));
-	const [timezone, setTimezone] = useState("UTC");
-	const segments = useMemo(() => projectScheduleViewport(events, mobile ? date : startOfWeek(date, locale), mobile ? 1 : 7, timezone), [events, date, mobile, timezone, locale]);
+	const [date, setDate] = useState(() => today(timezone));
+	const [selectedView, setView] = useState<AgendaView | null>(null);
+	const view = selectedView ?? (mobile ? "day" : "week");
+	const segments = useMemo(() => projectScheduleViewport(events, view === "day" ? date : startOfWeek(view === "month" ? startOfMonth(date) : date, locale), view === "day" ? 1 : view === "month" ? 42 : 7, timezone), [events, date, view, timezone, locale]);
 	const agenda = useAgenda({
 		events: segments.map((segment) => ({ ...segment, isReadOnly: !canEdit || Boolean(events.find((event) => event.id === segment.eventId)?.lockedUntil) })),
-		view: mobile ? "day" : "week",
+		view,
+		onViewChange: setView,
 		date,
 		onDateChange: setDate,
 		selectedEventId: null,
@@ -61,74 +64,71 @@ export default function RunnerScheduleAgenda({ events, canEdit, onEdit, onCreate
 			: undefined,
 	});
 	return (
-		<section role='region' aria-label='Broadcast calendar' className='min-w-0 overflow-hidden rounded-xl border border-divider'>
-			<div className='flex flex-wrap items-end gap-3 border-b border-divider p-3'>
-				<div className='mr-auto'>
-					<h3 className='font-semibold'>Broadcast calendar</h3>
-					<p className='text-xs text-muted'>
-						{mobile ? "Day" : "Week"} view ({timezone})
-					</p>
-				</div>
-				<label className='min-w-0 text-xs text-muted'>
-					Displayed date
-					<input
-						aria-label='Displayed date'
-						type='date'
-						value={date.toString()}
-						onChange={(event) => {
-							if (/^\d{4}-\d{2}-\d{2}$/.test(event.target.value)) setDate(parseDate(event.target.value));
-						}}
-						className='mt-1 block max-w-full rounded-lg border border-divider bg-surface px-2 py-1.5 text-sm text-foreground'
-					/>
-				</label>
-				<label className='min-w-0 text-xs text-muted'>
-					Calendar timezone
-					<select aria-label='Calendar timezone' value={timezone} onChange={(event) => setTimezone(event.target.value)} className='mt-1 block max-w-44 rounded-lg border border-divider bg-surface px-2 py-1.5 text-sm text-foreground'>
-						{[...new Set(["UTC", ...events.map((event) => event.timezone)])].map((zone) => (
-							<option key={zone}>{zone}</option>
-						))}
-					</select>
-				</label>
-				<div className='flex gap-1'>
-					<Button size='sm' variant='tertiary' aria-label={mobile ? "Previous day" : "Previous week"} onPress={agenda.goToPrevious}>
-						Previous
-					</Button>
-					<Button size='sm' variant='tertiary' onPress={agenda.goToToday}>
-						Today
-					</Button>
-					<Button size='sm' variant='tertiary' aria-label={mobile ? "Next day" : "Next week"} onPress={agenda.goToNext}>
-						Next
-					</Button>
-				</div>
-			</div>
+		<section aria-label='Broadcast calendar' className='min-w-0'>
 			<Agenda {...agenda} timeZone={timezone} className='w-full min-w-0'>
+				<Agenda.Header className='flex-wrap gap-3'>
+					<Agenda.Heading />
+					<Agenda.ViewSelector />
+					<Agenda.Navigation>
+						<Agenda.NavButton slot='previous' />
+						<Agenda.TodayButton />
+						<Agenda.NavButton slot='next' />
+					</Agenda.Navigation>
+				</Agenda.Header>
+				<div className='max-w-64 px-3 pb-4'>
+					<ScheduleDateField
+						label='Displayed date'
+						value={date.toString()}
+						onChange={(value) => {
+							if (value) setDate(parseDate(value));
+						}}
+					/>
+				</div>
 				<Agenda.Body>
-					<Agenda.WeekHeader>
-						{agenda.visibleDays.map((day) => (
-							<Agenda.DayHeader key={day.toString()} date={day} />
-						))}
-					</Agenda.WeekHeader>
-					<div className='max-h-[32rem] overflow-auto'>
-						<Agenda.TimeGrid>
-							{agenda.visibleDays.map((day) => (
-								<Agenda.DayColumn key={day.toString()} date={day}>
-									{agenda.getEventsForDay(day).map((event) => (
-										<Agenda.Event key={event.id} event={event} className={segments.find((segment) => segment.id === event.id)?.canResizeEnd && event.end.millisecond === 0 ? undefined : styles.continues}>
-											<button
-												type='button'
-												disabled={event.isReadOnly}
-
-												className='flex h-full w-full flex-col items-start gap-1 overflow-hidden p-1 text-left'
-											>
-												<Agenda.EventTitle>{event.title}</Agenda.EventTitle>
-												<span className='text-xs'>Open event details</span>
-											</button>
-										</Agenda.Event>
-									))}
-								</Agenda.DayColumn>
-							))}
-						</Agenda.TimeGrid>
-					</div>
+					{agenda.view === "month" ? (
+						<Agenda.MonthGrid>
+							{agenda.visibleWeeks.map((week, index) => {
+								const layout = agenda.getMonthRowLayout(week);
+								return (
+									<Agenda.MonthRow key={index} spanningRowCount={layout.rowCount}>
+										{layout.items.map((item) => (
+											<Agenda.MonthSpanningEvent key={item.event.id} event={item.event} colStart={item.colStart} colSpan={item.colSpan} row={item.row} />
+										))}
+										{week.map((day, column) => (
+											<Agenda.MonthCell key={day.toString()} date={day} spanningRowCount={layout.rowCountPerCol[column] ?? 0}>
+												{agenda.getPerCellEvents(day, week).map((event) => (
+													<Agenda.MonthEvent key={event.id} event={event} />
+												))}
+											</Agenda.MonthCell>
+										))}
+									</Agenda.MonthRow>
+								);
+							})}
+						</Agenda.MonthGrid>
+					) : (
+						<>
+							<Agenda.WeekHeader>
+								{agenda.visibleDays.map((day) => (
+									<Agenda.DayHeader key={day.toString()} date={day} />
+								))}
+							</Agenda.WeekHeader>
+							<Agenda.TimeGrid className='max-h-[60vh]'>
+								<Agenda.CurrentTimeIndicator />
+								{agenda.visibleDays.map((day) => (
+									<Agenda.DayColumn key={day.toString()} date={day}>
+										{agenda.getEventsForDay(day).map((event) => (
+											<Agenda.Event key={event.id} event={event} className={segments.find((segment) => segment.id === event.id)?.canResizeEnd && event.end.millisecond === 0 ? undefined : styles.continues}>
+												<Button variant='ghost' size='sm' className='h-auto min-h-0 w-full min-w-0 justify-start rounded-none p-0 text-left text-inherit' isDisabled={!canEdit || event.isReadOnly} onPressStart={(press) => press.continuePropagation()} onPress={() => agenda.selectEvent(event.id)} onClick={(click) => click.stopPropagation()}>
+													<Agenda.EventTitle>{event.title}</Agenda.EventTitle>
+												</Button>
+												<Agenda.EventTime event={event} />
+											</Agenda.Event>
+										))}
+									</Agenda.DayColumn>
+								))}
+							</Agenda.TimeGrid>
+						</>
+					)}
 				</Agenda.Body>
 			</Agenda>
 		</section>

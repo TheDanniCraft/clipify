@@ -39,9 +39,6 @@ export async function provisionAgencyFormAction(formData: FormData) {
 				creatorSeatPriceId: value(formData, "creatorSeatPriceId"),
 				creatorSeatMinimum: Number.parseInt(value(formData, "creatorSeatMinimum"), 10),
 				creatorSeatQuantity: Number.parseInt(value(formData, "creatorSeatQuantity"), 10),
-				runnerSeatPriceId: value(formData, "runnerSeatPriceId") || null,
-				runnerSeatMinimum: Number.parseInt(value(formData, "runnerSeatMinimum") || "0", 10),
-				runnerSeatQuantity: Number.parseInt(value(formData, "runnerSeatQuantity") || "0", 10),
 			},
 		});
 		invitationId = result.invitationId;
@@ -85,7 +82,8 @@ export async function allocateAgencyLicenseFormAction(formData: FormData) {
 	const creatorOrganizationId = value(formData, "creatorOrganizationId");
 	const destination = creatorOrganizationId ? `/dashboard/agency?creator=${encodeURIComponent(creatorOrganizationId)}` : "/dashboard/agency";
 	try {
-		await allocateDatabaseAgencyLicense({ linkId: value(formData, "linkId"), sourceReference: value(formData, "sourceReference"), product: value(formData, "product") === "runner" ? "runner" : "creator_pro" });
+		if (value(formData, "product") && value(formData, "product") !== "creator_pro") throw new Error("INVALID_AGENCY_PRODUCT");
+		await allocateDatabaseAgencyLicense({ linkId: value(formData, "linkId"), sourceReference: value(formData, "sourceReference"), product: "creator_pro" });
 	} catch (error) {
 		const separator = destination.includes("?") ? "&" : "?";
 		redirect(`${destination}${separator}error=${encodeURIComponent(errorCode(error))}`);
@@ -98,7 +96,6 @@ export async function allocateAgencyLicenseFormAction(formData: FormData) {
 
 export async function startAgencyBillingFormAction() {
 	const result = await createAgencyBillingStart();
-	if (result.kind === "included") redirect(`/dashboard/agency?billingError=${encodeURIComponent(result.error)}`);
 	if (result.url) redirect(result.url);
 	revalidatePath("/dashboard/agency");
 	redirect("/dashboard/agency?billing=invoice-sent");
@@ -110,7 +107,8 @@ export async function openAgencyBillingPortalFormAction() {
 }
 
 export async function changeAgencySeatQuantityFormAction(formData: FormData) {
-	const kind: AgencySeatKind = value(formData, "kind") === "runner" ? "runner" : "creator";
+	if (value(formData, "kind") !== "creator") redirect("/dashboard/agency?billingError=INVALID_AGENCY_SEAT_KIND");
+	const kind: AgencySeatKind = "creator";
 	const quantity = Number.parseInt(value(formData, "quantity"), 10);
 	let result: Awaited<ReturnType<typeof changeAgencySeatQuantity>>;
 	try {
@@ -118,7 +116,7 @@ export async function changeAgencySeatQuantityFormAction(formData: FormData) {
 	} catch (error) {
 		redirect(`/dashboard/agency?billingError=${encodeURIComponent(errorCode(error))}`);
 	}
-	if (result.kind === "included") redirect(`/dashboard/agency?billingError=${encodeURIComponent(result.error)}`);
+	if (result.kind === "invalid") redirect(`/dashboard/agency?billingError=${result.error}`);
 	revalidatePath("/dashboard/agency");
 	redirect(`/dashboard/agency?billing=${result.kind === "increase" ? "increase-pending" : result.kind === "decrease" ? "decrease-scheduled" : "unchanged"}`);
 }

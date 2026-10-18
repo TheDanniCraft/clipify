@@ -2,7 +2,7 @@ import { BillingProduct, type UserEntitlements } from "@types";
 import { isProductOwnedByEntitlement } from "../billingOwnership";
 
 function entitlements(overrides: Partial<UserEntitlements>): UserEntitlements {
-	return { effectivePlan: "free", proAccess: false, runnerAccess: false, isBillingPro: false, reverseTrialActive: false, trialEndsAt: null, hasActiveGrant: false, source: "reverse_trial", ...overrides };
+	return { effectivePlan: "free", proAccess: false, isBillingPro: false, reverseTrialActive: false, trialEndsAt: null, hasActiveGrant: false, source: "reverse_trial", ...overrides };
 }
 
 describe("billing ownership", () => {

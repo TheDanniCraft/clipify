@@ -17,13 +17,13 @@ jest.mock("sharp", () => ({ __esModule: true, default: (...args: unknown[]) => m
 jest.mock("@sentry/nextjs", () => ({ captureException: jest.fn() }));
 beforeEach(() => {
 	jest.clearAllMocks();
-	mockBenefits.mockResolvedValue({ proAccess: true, runnerAccess: false });
+	mockBenefits.mockResolvedValue({ proAccess: true });
 	mockPrincipal.mockResolvedValue(principal);
 	mockSharp.mockReturnValue({ metadata: async () => ({ format: "svg", width: 16, height: 16 }) });
 });
 
 test("TDD-US4-CON013 U149 strength: fresh Free policy rejects image upload before decode even with a stale raw Pro plan", async () => {
-	mockBenefits.mockResolvedValue({ proAccess: false, runnerAccess: false });
+	mockBenefits.mockResolvedValue({ proAccess: false });
 	const { POST } = await import("@/app/api/runner/branding-assets/route");
 	const { captureException } = await import("@sentry/nextjs");
 	const response = await POST(new Request(`http://localhost/api/runner/branding-assets?ownerId=${ownerId}&runnerId=${runnerId}&kind=background`, { method: "POST", body: Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]) }));

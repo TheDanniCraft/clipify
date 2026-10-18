@@ -27,7 +27,7 @@ export async function runRunnerFreeBoundaryProbe(input: Input) {
 		const registrations = await Promise.all([0, 1].map((index) => call("create_runner", { name: `Acceptance device ${index + 1}`, retryKey: `free-acceptance-device-${index}` })));
 		const responses = [...registrations];
 		const runners = registrations.map((row) => row.result?.structuredContent?.id).filter((id): id is string => typeof id === "string");
-		const summary: Record<string, unknown> = { ownerFree: !benefits.proAccess && !benefits.runnerAccess, registered: runners.length, monthlyUsageLimit: policy.monthlyUsageLimit };
+		const summary: Record<string, unknown> = { ownerFree: !benefits.proAccess, registered: runners.length, monthlyUsageLimit: policy.monthlyUsageLimit };
 		if (runners.length !== 2) return summary;
 		const overlayId = randomUUID();
 		await input.fixture.pool.query("INSERT INTO overlays(id,owner_id,secret,name,status,type) VALUES($1,'fixture-creator','private-free-acceptance-overlay','Acceptance source','active','Featured')", [overlayId]);
@@ -138,7 +138,7 @@ async function runExtendedAdmissionContract(input: Input) {
 		admissionId = randomUUID();
 	const historicalStart = new Date(Date.now() - 45 * 24 * 60 * 60 * 1000);
 	const { deriveRunnerCapabilities } = await import("@/server/runner/capabilities");
-	const benefits = { proAccess: false, runnerAccess: false };
+	const benefits = { proAccess: false };
 	const policy = deriveRunnerCapabilities(benefits);
 	await input.fixture.pool.query("INSERT INTO overlays(id,owner_id,secret,name,status,type) VALUES($1,'fixture-creator','private-long-history-source','Long history','active','Featured')", [overlayId]);
 	for (const [index, id] of runners.entries()) {

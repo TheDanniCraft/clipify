@@ -35,7 +35,7 @@ When("they follow an old Runner purchase link", async ({ page }) => {
 });
 
 Then("they return to pricing without a Runner checkout intent", async ({ page, context }) => {
-	await expect(page).toHaveURL("http://127.0.0.1:3107/pricing?runner=included");
+	await expect(page).toHaveURL("http://127.0.0.1:3107/pricing");
 	await expect(page.getByRole("heading", { name: "Compare plans & features.", exact: true })).toBeVisible();
 	expect((await context.cookies()).some((cookie) => cookie.name === "clipify_checkout_intent")).toBe(false);
 });

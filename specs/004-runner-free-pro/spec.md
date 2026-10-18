@@ -94,7 +94,7 @@ Creators see Runner included in Free and the additional Pro benefits, with exist
 **Acceptance Scenarios**:
 
 - **FR-020**: Given a creator viewing pricing and checkout, when they choose Runner, then Runner is described as included and no standalone Runner purchase is offered.
-- **FR-021**: Given a Free creator with a valid legacy Runner grant, when they schedule a broadcast, then Runner Pro functionality works without unrelated Pro access.
+- **FR-021**: Given a creator with effective Pro through a valid Pro grant, when they schedule a broadcast, then advanced Runner functionality is available. Retired Runner-only grants never confer Pro capabilities.
 - **FR-022**: Given a scheduled Pro broadcast active at entitlement expiry, when the entitlement expires, then it completes its current window gracefully and future paid starts are disabled.
 
 ### Edge Cases
@@ -134,11 +134,11 @@ Creators see Runner included in Free and the additional Pro benefits, with exist
 - **FR-015**: System MUST after restart resume an event whose window is still active, never replay an ended event, and avoid duplicate starts. Provide pause automation and manual override; manual stop suppresses automatic restart for the current occurrence without changing Scheduled mode. Explicit Resume within that window clears suppression and retains its scheduled end; after the end it is denied. Manual mode requires an explicit user choice.
 - **FR-016**: System MUST show logo and two-line Livestream powered / by Clipify.us branding only on Free Runner-generated playback, fallback clips and standby; do not brand incoming live video or ordinary non-Runner overlays.
 - **FR-017**: System MUST default attribution to bottom-right; allow all four corners at a fixed 56-pixel two-line text size and 112-pixel logo at 1920x1080, scaled proportionally for output resolution, with fixed translucent styling and collision-aware placement. Free has no hide, size or opacity controls. Preview the actual branded output.
-- **FR-018**: System MUST remove required attribution for effective Pro access and legacy Runner grants; optionally allow Pro creators to keep it visible.
+- **FR-018**: System MUST remove required attribution for effective Pro access; optionally allow Pro creators to keep it visible.
 - **FR-019**: System MUST allow Pro creators to customize standby logo, background image or color, message and optional next-broadcast time with preview. Show standby only during an active broadcast, never outside scheduled windows.
-- **FR-020**: System MUST remove the standalone Runner product from new purchase flows, pricing, checkout, billing controls and onboarding while retaining historical records. Keep Free + Pro names and current prices; update public pricing/features, onboarding/billing copy, llms.txt and llms-full.txt consistently, grouping Runner and broadcasting benefits in the existing comparison.
-- **FR-021**: System MUST honor the two existing Runner entitlement recipients with Pro Runner benefits only for the existing grant scope and lifetime, without granting unrelated Pro benefits. Preserve agency Runner allocation scope and lifetime equivalently.
-- **FR-022**: System MUST on Pro or legacy grant expiry retain settings, disable future scheduled starts, and restore Free branding for generated content. Allow active broadcasts to finish their scheduled window or manual stop without adding targets or new broadcasts. After completion enforce one active broadcast and one destination.
+- **FR-020**: System MUST remove the standalone Runner product from new purchase flows, pricing, checkout, billing controls and onboarding and retire unreleased Runner-only grants, billing configuration and agency Runner seats. Keep Free + Pro names and current prices; update public pricing/features, onboarding/billing copy, llms.txt and llms-full.txt consistently, grouping Runner and broadcasting benefits in the existing comparison.
+- **FR-021**: System MUST derive advanced Runner access exclusively from effective Pro, including valid Pro grants, trials and agency creator seats. Remove the standalone Runner entitlement enum and agency Runner seats without converting them into Pro.
+- **FR-022**: System MUST on Pro expiry retain settings, disable future scheduled starts, and restore Free branding for generated content. Allow active broadcasts to finish their scheduled window or manual stop without adding targets or new broadcasts. After completion enforce one active broadcast and one destination.
 
 - **FR-023**: System MUST permit unlimited monthly Free broadcast hours; impose no monthly streaming quota or fallback usage multiplier. Free remains limited to one active broadcast and one destination.
 
@@ -159,7 +159,7 @@ Creators see Runner included in Free and the additional Pro benefits, with exist
 - **SC-002**: A Pro broadcast delivers the same content to YouTube, Twitch and a custom RTMP receiver simultaneously in the acceptance environment; losing one receiver does not interrupt the others.
 - **SC-003**: A cached scheduled event starts within 30 seconds of its start on an awake connected-output Runner; end occurs at the current clip boundary with no next clip queued.
 - **SC-004**: All four watermark corners are previewable; live input and ordinary overlays remain unwatermarked; Pro custom standby matches its preview.
-- **SC-005**: No new standalone Runner purchase is available; legacy grants and expiry follow the specified scope without deleting saved configuration.
+- **SC-005**: No new standalone Runner purchase is available; retired Runner-only grants do not confer paid access, while Pro expiry preserves saved configuration.
 
 - **SC-006**: A Free broadcast can continue across month boundaries without a usage-quota warning, forced upgrade or quota-driven stop.
 
@@ -169,7 +169,7 @@ Creators see Runner included in Free and the additional Pro benefits, with exist
 - Self-hosted means capture, encoding, scheduling and destination uploads run on the end user's PC. Clipify does not host the Runner or wake a sleeping PC.
 - Planning default: Pro has no commercial device, concurrent-broadcast or destination count cap; practical hardware, bandwidth and ordinary service protection still apply. Free limits active broadcasts rather than registered devices.
 - The two existing Runner recipients have entitlement grants, not paid Runner subscriptions, as reported by the user. Confirm actual grant/allocation records read-only during technical planning. Do not invent a subscriber migration.
-- Existing effective Pro benefits, including valid grants/trials/agency allocations, determine Pro Runner access consistently with other Pro features. A legacy Runner benefit remains Runner-only.
+- Existing effective Pro benefits, including valid grants/trials/agency allocations, determine Pro Runner access consistently with other Pro features. Retired Runner-only benefits confer no access beyond Free.
 - Watermark removal is branding removal, not a promise to white-label the entire dashboard.
 - Adjacent event transition, DST handling, stalled-clip timeout and expiry behavior are proposed defaults for approval. Normal clips always finish; Stop now remains an intentional emergency action.
 - Primary measurable goal is adoption and recognition. No unverified promise of adoption uplift or gaming-PC capacity is made.
@@ -357,7 +357,7 @@ Feature: Free Runner and Pro broadcasting
 
   @BDD @US4 @FR-018
   @BDD-US4-FR018
-  Scenario: FR-018 Remove required attribution for effective Pro access and legacy Runner grants; optionally allow Pro creators to keep it visible.
+  Scenario: FR-018 Remove required attribution for effective Pro access; optionally allow Pro creators to keep it visible.
     Given a Pro creator previewing playback
     When they choose branding off
     Then preview and generated content omit attribution
@@ -371,21 +371,21 @@ Feature: Free Runner and Pro broadcasting
 
   @BDD @US5 @FR-020
   @BDD-US5-FR020
-  Scenario: FR-020 Remove the standalone Runner product from new purchase flows, pricing, checkout, billing controls and onboarding while retaining historical records.
+  Scenario: FR-020 Remove the standalone Runner product from new purchase flows, pricing, checkout, billing controls and onboarding and retire unreleased Runner-only grants, billing configuration and agency Runner seats.
     Given a creator viewing pricing and checkout
     When they choose Runner
     Then Runner is described as included and no standalone Runner purchase is offered
 
   @BDD @US5 @FR-021
   @BDD-US5-FR021
-  Scenario: FR-021 Honor the two existing Runner entitlement recipients with Pro Runner benefits only for the existing grant scope and lifetime, without granting unrelated Pro benefits. Preserve agency Runner allocation scope and lifetime equivalently.
-    Given a Free creator with a valid legacy Runner grant
+  Scenario: FR-021 Derive advanced Runner access exclusively from effective Pro; retire standalone Runner-only grants and agency Runner seats without converting them into Pro.
+    Given a creator with an active Pro grant
     When they schedule a broadcast
-    Then Runner Pro functionality works without unrelated Pro access
+    Then advanced Runner functionality is available through effective Pro
 
   @BDD @US5 @FR-022
   @BDD-US5-FR022
-  Scenario: FR-022 On Pro or legacy grant expiry retain settings, disable future scheduled starts, and restore Free branding for generated content. Allow active broadcasts to finish their scheduled window or manual stop without adding targets or new broadcasts. After completion enforce one active broadcast and one destination.
+  Scenario: FR-022 On Pro expiry retain settings, disable future scheduled starts, and restore Free branding for generated content. Allow active broadcasts to finish their scheduled window or manual stop without adding targets or new broadcasts. After completion enforce one active broadcast and one destination.
     Given a scheduled Pro broadcast active at entitlement expiry
     When the entitlement expires
     Then it completes its current window gracefully and future paid starts are disabled
@@ -511,10 +511,10 @@ Feature: Free Runner and Pro broadcasting
 
   @ATDD @US5 @SC-005
   @ATDD-US5-SC005
-  Scenario: SC-005 No new standalone Runner purchase is available; legacy grants and expiry follow the specified scope without deleting saved configuration.
+  Scenario: SC-005 No new standalone Runner purchase is available; retired Runner-only grants do not confer paid access, while Pro expiry preserves saved configuration.
     Given the acceptance setup for US5
     When the complete referenced story scenarios are exercised
-    Then no new standalone Runner purchase is available; legacy grants and expiry follow the specified scope without deleting saved configuration.
+    Then no new standalone Runner purchase is available; retired Runner-only grants do not confer paid access, while Pro expiry preserves saved configuration.
 ```
 
 ### TDD Test Inventory _(mandatory)_
@@ -541,7 +541,7 @@ Feature: Free Runner and Pro broadcasting
 | TDD-US4-FR018 | US4, FR-018  | Integration/component | TDD: app Runner/entitlement tests, runner package runtime tests as appropriate | Given a Pro creator previewing playback; when they choose branding off; assert preview and generated content omit attribution                                                                                                                                                                   | Current paid gate, missing capability or incorrect transition |
 | TDD-US4-FR019 | US4, FR-019  | Integration/component | TDD: app Runner/entitlement tests, runner package runtime tests as appropriate | Given a Pro creator with a customized standby screen; when an active broadcast has no playable clips; assert their configured standby is shown                                                                                                                                                  | Current paid gate, missing capability or incorrect transition |
 | TDD-US5-FR020 | US5, FR-020  | Integration/component | TDD: app Runner/entitlement tests, runner package runtime tests as appropriate | Given a creator viewing pricing and checkout; when they choose Runner; assert Runner is described as included and no standalone Runner purchase is offered                                                                                                                                      | Current paid gate, missing capability or incorrect transition |
-| TDD-US5-FR021 | US5, FR-021  | Integration/component | TDD: app Runner/entitlement tests, runner package runtime tests as appropriate | Given a Free creator with a valid legacy Runner grant; when they schedule a broadcast; assert Runner Pro functionality works without unrelated Pro access                                                                                                                                       | Current paid gate, missing capability or incorrect transition |
+| TDD-US5-FR021 | US5, FR-021  | Integration/component | TDD: app Runner/entitlement tests, runner package runtime tests as appropriate | Given a creator with an active Pro grant; when they schedule a broadcast; assert advanced Runner functionality is available through effective Pro                                                                                                                                               | Current paid gate, missing capability or incorrect transition |
 | TDD-US5-FR022 | US5, FR-022  | Integration/component | TDD: app Runner/entitlement tests, runner package runtime tests as appropriate | Given a scheduled Pro broadcast active at entitlement expiry; when the entitlement expires; assert it completes its current window gracefully and future paid starts are disabled                                                                                                               | Current paid gate, missing capability or incorrect transition |
 | TDD-US1-EC001 | US1, EC-001  | Negative/boundary     | TDD: app Runner/entitlement tests, runner package runtime tests as appropriate | Given two devices belonging to one Free owner; when both request start concurrently; assert exactly one broadcast starts and the other receives the limit error                                                                                                                                 | Current paid gate, missing capability or incorrect transition |
 | TDD-US1-EC002 | US1, EC-002  | Negative/boundary     | TDD: app Runner/entitlement tests, runner package runtime tests as appropriate | Given a Free broadcast whose Runner loses its control connection but continues sending video; when another device requests start; assert the active slot is not silently released and the user sees recovery guidance                                                                           | Current paid gate, missing capability or incorrect transition |
@@ -560,9 +560,9 @@ Feature: Free Runner and Pro broadcasting
 | TDD-US2-SC002 | US2, SC-002  | Integration/component | TDD: app Runner/entitlement tests, runner package runtime tests as appropriate | Given the acceptance setup for US2; when the complete referenced story scenarios are exercised; assert a Pro broadcast delivers the same content to YouTube, Twitch and a custom RTMP receiver simultaneously in the acceptance environment; losing one receiver does not interrupt the others. | Current paid gate, missing capability or incorrect transition |
 | TDD-US3-SC003 | US3, SC-003  | Integration/component | TDD: app Runner/entitlement tests, runner package runtime tests as appropriate | Given the acceptance setup for US3; when the complete referenced story scenarios are exercised; assert a cached scheduled event starts within 30 seconds of its start on an awake connected-output Runner; end occurs at the current clip boundary with no next clip queued.                    | Current paid gate, missing capability or incorrect transition |
 | TDD-US4-SC004 | US4, SC-004  | Integration/component | TDD: app Runner/entitlement tests, runner package runtime tests as appropriate | Given the acceptance setup for US4; when the complete referenced story scenarios are exercised; assert all four watermark corners are previewable; live input and ordinary overlays remain unwatermarked; Pro custom standby matches its preview.                                               | Current paid gate, missing capability or incorrect transition |
-| TDD-US5-SC005 | US5, SC-005  | Integration/component | TDD: app Runner/entitlement tests, runner package runtime tests as appropriate | Given the acceptance setup for US5; when the complete referenced story scenarios are exercised; assert no new standalone Runner purchase is available; legacy grants and expiry follow the specified scope without deleting saved configuration.                                                | Current paid gate, missing capability or incorrect transition |
+| TDD-US5-SC005 | US5, SC-005  | Integration/component | TDD: app Runner/entitlement tests, runner package runtime tests as appropriate | Given the acceptance setup for US5; when the complete referenced story scenarios are exercised; assert no new standalone Runner purchase is available; retired Runner-only grants do not confer paid access, while Pro expiry preserves saved configuration.                                    | Current paid gate, missing capability or incorrect transition |
 
-Additional implementation-level inventory before task execution MUST separately cover: owner/operator authorization; Free absent/one-active slot and concurrent reservation; reservation rollback on failed start; disconnected active-runner reconciliation; effective Free/Pro/trial/legacy/agency benefits and expired/revoked grants; manual start/stop/immediate stop; clip/live/standby transitions; all destination types individually and together; credential keep/replace/clear and response/log redaction; per-output connect/failure/retry/stop cleanup; event create/move/resize/edit/delete and persistence failure; recurrence, midnight crossing, timezone changes, DST gap/repetition; local clock evaluation, cache replacement, stale schedule update and restart idempotency; offline-before-start, outage-during-event and ended-window skip; overlap/adjacency and delayed-event expiry; clip-end-before/at/after event end, missing/stalled clip and timeout; manual override reset on next recurrence; attribution in each corner and each generated state; absent attribution on live/non-Runner output; valid/invalid standby assets; entitlement expiry with zero/one/many active sessions; removal of every Runner purchase entry point and historical record preservation. The enumerated option evidence below adds stable inventory rows; technical planning refines paths and contracts in tdd/test-list.md before production changes.
+Additional implementation-level inventory before task execution MUST separately cover: owner/operator authorization; Free absent/one-active slot and concurrent reservation; reservation rollback on failed start; disconnected active-runner reconciliation; effective Free/Pro/trial/agency benefits and rejected retired Runner-only access and expired/revoked grants; manual start/stop/immediate stop; clip/live/standby transitions; all destination types individually and together; credential keep/replace/clear and response/log redaction; per-output connect/failure/retry/stop cleanup; event create/move/resize/edit/delete and persistence failure; recurrence, midnight crossing, timezone changes, DST gap/repetition; local clock evaluation, cache replacement, stale schedule update and restart idempotency; offline-before-start, outage-during-event and ended-window skip; overlap/adjacency and delayed-event expiry; clip-end-before/at/after event end, missing/stalled clip and timeout; manual override reset on next recurrence; attribution in each corner and each generated state; absent attribution on live/non-Runner output; valid/invalid standby assets; entitlement expiry with zero/one/many active sessions; removal of every Runner purchase entry point and removal of unreleased Runner-only commercial configuration. The enumerated option evidence below adds stable inventory rows; technical planning refines paths and contracts in tdd/test-list.md before production changes.
 
 ### Scenario Coverage Matrix _(mandatory for BDD/ATDD Required decisions)_
 
@@ -588,7 +588,7 @@ Additional implementation-level inventory before task execution MUST separately 
 | BDD-US4-FR018  | BDD          | BDD, ATDD      | FR-018         | a Pro creator previewing playback; they choose branding off                                                                                     | Positive          | Browser journey         | The stated observable result is both the behavior example and stakeholder acceptance boundary. |
 | BDD-US4-FR019  | BDD          | BDD, ATDD      | FR-019         | a Pro creator with a customized standby screen; an active broadcast has no playable clips                                                       | Positive          | Browser journey         | The stated observable result is both the behavior example and stakeholder acceptance boundary. |
 | BDD-US5-FR020  | BDD          | BDD, ATDD      | FR-020         | a creator viewing pricing and checkout; they choose Runner                                                                                      | Positive          | Browser journey         | The stated observable result is both the behavior example and stakeholder acceptance boundary. |
-| BDD-US5-FR021  | BDD          | BDD, ATDD      | FR-021         | a Free creator with a valid legacy Runner grant; they schedule a broadcast                                                                      | Positive          | Browser journey         | The stated observable result is both the behavior example and stakeholder acceptance boundary. |
+| BDD-US5-FR021  | BDD          | BDD, ATDD      | FR-021         | a creator with an active Pro grant; they schedule a broadcast                                                                                   | Positive          | Browser journey         | The stated observable result is both the behavior example and stakeholder acceptance boundary. |
 | BDD-US5-FR022  | BDD          | BDD, ATDD      | FR-022         | a scheduled Pro broadcast active at entitlement expiry; the entitlement expires                                                                 | Positive          | Browser journey         | The stated observable result is both the behavior example and stakeholder acceptance boundary. |
 | BDD-US1-EC001  | BDD          | BDD, ATDD      | EC-001         | two devices belonging to one Free owner; both request start concurrently                                                                        | Negative/boundary | Runner workflow/runtime | The stated observable result is both the behavior example and stakeholder acceptance boundary. |
 | BDD-US1-EC002  | BDD          | BDD, ATDD      | EC-002         | a Free broadcast whose Runner loses its control connection but continues sending video; another device requests start                           | Negative/boundary | Runner workflow/runtime | The stated observable result is both the behavior example and stakeholder acceptance boundary. |
@@ -639,14 +639,14 @@ Feature: Runner supported options and boundaries
   @BDD @US1 @FR-001
   @BDD-US1-OPT003
   Scenario: Required option 003
-    Given an owner with active legacy Runner grant access
+    Given an owner with an active Pro grant
     When they register a Runner
     Then registration succeeds without a Runner purchase
 
   @BDD @US1 @FR-001
   @BDD-US1-OPT004
   Scenario: Required option 004
-    Given an owner with active agency Runner allocation access
+    Given an owner with an active agency creator Pro allocation
     When they register a Runner
     Then registration succeeds without a Runner purchase
 
@@ -1094,35 +1094,35 @@ Feature: Runner supported options and boundaries
   @BDD @US5 @FR-021
   @BDD-US5-OPT068
   Scenario: Required option 068
-    Given a Free owner with active Runner grant
+    Given an owner with an active Pro grant
     When they request a Pro Runner capability
-    Then the capability is available without unrelated Pro access
+    Then the capability is available through effective Pro
 
   @BDD @US5 @FR-021
   @BDD-US5-OPT069
   Scenario: Required option 069
-    Given a Free owner with expired Runner grant
+    Given an owner with an expired Pro grant
     When they request a Pro Runner capability
     Then the capability is denied without unrelated Pro access
 
   @BDD @US5 @FR-021
   @BDD-US5-OPT070
   Scenario: Required option 070
-    Given a Free owner with revoked Runner grant
+    Given an owner with a revoked Pro grant
     When they request a Pro Runner capability
     Then the capability is denied without unrelated Pro access
 
   @BDD @US5 @FR-021
   @BDD-US5-OPT071
   Scenario: Required option 071
-    Given a Free owner with active agency Runner allocation
+    Given an owner with an active agency creator Pro allocation
     When they request a Pro Runner capability
-    Then the capability is available without unrelated Pro access
+    Then the capability is available through effective Pro
 
   @BDD @US5 @FR-021
   @BDD-US5-OPT072
   Scenario: Required option 072
-    Given a Free owner with ended agency Runner allocation
+    Given an owner with an ended agency creator Pro allocation
     When they request a Pro Runner capability
     Then the capability is denied without unrelated Pro access
 
@@ -1382,8 +1382,8 @@ Feature: Runner supported options and boundaries
 | -------------- | ----------- | -------- | ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
 | TDD-US1-OPT001 | US1, FR-001 | Positive | TDD / Runner access, runtime or component tests | an owner with Free access; they register a Runner; assert registration succeeds without a Runner purchase                                                                                                            | Missing behavior or wrong state transition |
 | TDD-US1-OPT002 | US1, FR-001 | Positive | TDD / Runner access, runtime or component tests | an owner with Pro access; they register a Runner; assert registration succeeds without a Runner purchase                                                                                                             | Missing behavior or wrong state transition |
-| TDD-US1-OPT003 | US1, FR-001 | Positive | TDD / Runner access, runtime or component tests | an owner with active legacy Runner grant access; they register a Runner; assert registration succeeds without a Runner purchase                                                                                      | Missing behavior or wrong state transition |
-| TDD-US1-OPT004 | US1, FR-001 | Positive | TDD / Runner access, runtime or component tests | an owner with active agency Runner allocation access; they register a Runner; assert registration succeeds without a Runner purchase                                                                                 | Missing behavior or wrong state transition |
+| TDD-US1-OPT003 | US1, FR-001 | Positive | TDD / Runner access, runtime or component tests | an owner with an active Pro grant; they register a Runner; assert registration succeeds without a Runner purchase                                                                                                    | Missing behavior or wrong state transition |
+| TDD-US1-OPT004 | US1, FR-001 | Positive | TDD / Runner access, runtime or component tests | an owner with an active agency creator Pro allocation; they register a Runner; assert registration succeeds without a Runner purchase                                                                                | Missing behavior or wrong state transition |
 | TDD-US1-OPT005 | US1, FR-001 | Positive | TDD / Runner access, runtime or component tests | an owner with active Pro trial access; they register a Runner; assert registration succeeds without a Runner purchase                                                                                                | Missing behavior or wrong state transition |
 | TDD-US1-OPT006 | US1, FR-002 | Negative | TDD / Runner access, runtime or component tests | a Free owner already broadcasting in Clip playback; a second device requests start; assert the request is rejected and the existing output continues                                                                 | Missing behavior or wrong state transition |
 | TDD-US1-OPT007 | US1, FR-002 | Negative | TDD / Runner access, runtime or component tests | a Free owner already broadcasting in Live fallback forwarding live input; a second device requests start; assert the request is rejected and the existing output continues                                           | Missing behavior or wrong state transition |
@@ -1447,11 +1447,11 @@ Feature: Runner supported options and boundaries
 | TDD-US5-OPT065 | US5, FR-020 | Positive | TDD / Runner access, runtime or component tests | a creator at checkout entry point; they inspect or attempt the standalone Runner purchase; assert no new Runner product can be purchased and included Free access is clear                                           | Missing behavior or wrong state transition |
 | TDD-US5-OPT066 | US5, FR-020 | Positive | TDD / Runner access, runtime or component tests | a creator at billing controls; they inspect or attempt the standalone Runner purchase; assert no new Runner product can be purchased and included Free access is clear                                               | Missing behavior or wrong state transition |
 | TDD-US5-OPT067 | US5, FR-020 | Positive | TDD / Runner access, runtime or component tests | a creator at Runner onboarding; they inspect or attempt the standalone Runner purchase; assert no new Runner product can be purchased and included Free access is clear                                              | Missing behavior or wrong state transition |
-| TDD-US5-OPT068 | US5, FR-021 | Positive | TDD / Runner access, runtime or component tests | a Free owner with active Runner grant; they request a Pro Runner capability; assert the capability is available without unrelated Pro access                                                                         | Missing behavior or wrong state transition |
-| TDD-US5-OPT069 | US5, FR-021 | Positive | TDD / Runner access, runtime or component tests | a Free owner with expired Runner grant; they request a Pro Runner capability; assert the capability is denied without unrelated Pro access                                                                           | Missing behavior or wrong state transition |
-| TDD-US5-OPT070 | US5, FR-021 | Positive | TDD / Runner access, runtime or component tests | a Free owner with revoked Runner grant; they request a Pro Runner capability; assert the capability is denied without unrelated Pro access                                                                           | Missing behavior or wrong state transition |
-| TDD-US5-OPT071 | US5, FR-021 | Positive | TDD / Runner access, runtime or component tests | a Free owner with active agency Runner allocation; they request a Pro Runner capability; assert the capability is available without unrelated Pro access                                                             | Missing behavior or wrong state transition |
-| TDD-US5-OPT072 | US5, FR-021 | Positive | TDD / Runner access, runtime or component tests | a Free owner with ended agency Runner allocation; they request a Pro Runner capability; assert the capability is denied without unrelated Pro access                                                                 | Missing behavior or wrong state transition |
+| TDD-US5-OPT068 | US5, FR-021 | Positive | TDD / Runner access, runtime or component tests | an owner with an active Pro grant; they request a Pro Runner capability; assert the capability is available through effective Pro                                                                                    | Missing behavior or wrong state transition |
+| TDD-US5-OPT069 | US5, FR-021 | Positive | TDD / Runner access, runtime or component tests | an owner with an expired Pro grant; they request a Pro Runner capability; assert the capability is denied without unrelated Pro access                                                                               | Missing behavior or wrong state transition |
+| TDD-US5-OPT070 | US5, FR-021 | Positive | TDD / Runner access, runtime or component tests | an owner with a revoked Pro grant; they request a Pro Runner capability; assert the capability is denied without unrelated Pro access                                                                                | Missing behavior or wrong state transition |
+| TDD-US5-OPT071 | US5, FR-021 | Positive | TDD / Runner access, runtime or component tests | an owner with an active agency creator Pro allocation; they request a Pro Runner capability; assert the capability is available through effective Pro                                                                | Missing behavior or wrong state transition |
+| TDD-US5-OPT072 | US5, FR-021 | Positive | TDD / Runner access, runtime or component tests | an owner with an ended agency creator Pro allocation; they request a Pro Runner capability; assert the capability is denied without unrelated Pro access                                                             | Missing behavior or wrong state transition |
 | TDD-US5-OPT073 | US5, FR-022 | Boundary | TDD / Runner access, runtime or component tests | a Pro owner with 0 active broadcasts and saved paid settings; their Pro entitlement expires; assert configuration remains saved and new paid starts are disabled; existing sessions finish under the transition rule | Missing behavior or wrong state transition |
 | TDD-US5-OPT074 | US5, FR-022 | Boundary | TDD / Runner access, runtime or component tests | a Pro owner with 1 active broadcasts and saved paid settings; their Pro entitlement expires; assert configuration remains saved and new paid starts are disabled; existing sessions finish under the transition rule | Missing behavior or wrong state transition |
 | TDD-US5-OPT075 | US5, FR-022 | Boundary | TDD / Runner access, runtime or component tests | a Pro owner with 2 active broadcasts and saved paid settings; their Pro entitlement expires; assert configuration remains saved and new paid starts are disabled; existing sessions finish under the transition rule | Missing behavior or wrong state transition |
@@ -1832,3 +1832,9 @@ Feature: Runner decision reconciliation
     When they compare Free and Pro after the Runner release
     Then all surfaces retain current two-plan prices and describe unlimited hours and grouped included Runner benefits without a new add-on, Plus or Lite offer
 ```
+
+## Superseding UX correction decisions (2026-10-18)
+
+The user's explicit hard-cut authorization supersedes all earlier references to preserving standalone Runner grants, billing products, agency Runner seats and historical Runner-only configuration. Only effective Pro access (including existing Pro grant/trial/creator-seat mechanisms) unlocks advanced Runner functionality. Retire `runner_access`, the standalone Runner product and agency Runner seat configuration. The unreleased Runner records need not be preserved or migrated into Pro. Preserve unrelated Pro entitlements and agency creator functionality. Edit schema sources only; generated migrations remain workflow-owned.
+
+The editor must follow the Product UI and UX rules in AGENTS.md. A fresh Free creator must be able to configure a destination beside the broadcast controls, save Manual configuration and start. Paid locks open the existing upgrade dialog. Appearance and schedule use coherent editor modes/dialogs, shared overlay color/preview foundations, secondary fields, Pro DropZone and the installed Agenda controls. Calendar and event editing share the chosen local timezone. Typing in appearance must not navigate/recreate the preview iframe. Real-browser acceptance and inspected desktop/mobile screenshots are required for completion.

@@ -38,7 +38,7 @@ test("TDD-US5-CON015: official polling learns device identity only after verifie
 	global.fetch = jest.fn(async (_input: unknown, init?: RequestInit) => {
 		const request = JSON.parse(String(init?.body)),
 			issuedAt = 1000000;
-		const capabilities = { basicAccess: true, runnerPro: true, maxRegisteredDevices: null, maxActiveBroadcasts: null, maxTargets: null, scheduling: true, customStandby: true, attributionRequired: false, monthlyUsageLimit: null, validUntil: new Date(issuedAt + 60000).toISOString(), source: "legacy", evaluatedAt: new Date(issuedAt).toISOString(), capabilityRevision: "a".repeat(64) };
+		const capabilities = { basicAccess: true, runnerPro: true, maxRegisteredDevices: null, maxActiveBroadcasts: null, maxTargets: null, scheduling: true, customStandby: true, attributionRequired: false, monthlyUsageLimit: null, validUntil: new Date(issuedAt + 60000).toISOString(), source: "grant", evaluatedAt: new Date(issuedAt).toISOString(), capabilityRevision: "a".repeat(64) };
 		const claims = { issuer: "clipify.us", kind: "benefits", ownerId: mode === "foreign" ? "operator" : "creator", runnerId: mode === "foreign" ? foreignRunner : runnerId, requestId: request.requestId, configurationRevision: 1, issuedAt, expiresAt: issuedAt + 60000, capabilities };
 		const payload = Buffer.from(JSON.stringify(claims)).toString("base64url");
 		const snapshot = { keyId, payload, signature: mode === "invalid" ? "invalid" : sign(null, Buffer.from(payload), keys.privateKey).toString("base64url") };

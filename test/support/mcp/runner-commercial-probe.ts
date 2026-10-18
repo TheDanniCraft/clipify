@@ -18,11 +18,11 @@ async function seedCommercialState(input: Parameters<typeof runRunnerFreeProProb
 		await input.fixture.pool.query("INSERT INTO entitlement_grants(user_id,entitlement,source,starts_at,ends_at) VALUES('fixture-creator','pro_access',$1,now()-interval '1 hour',now()+interval '1 day')", [state === "trial" ? "reverse_trial" : "partner"]);
 	} else if (state.startsWith("agency_")) {
 		await (await import("./seed-pro-allocation")).seedCreatorProAllocation(input.fixture.pool, "fixture-creator", "creator-org", input.actorId);
-		if (state === "agency_ended") await input.fixture.pool.query("UPDATE agency_license_allocations SET product='runner',status='removal_scheduled',effective_at=now()-interval '3 days',removal_requested_at=now()-interval '2 days',ends_at=now()-interval '1 day' WHERE creator_id='fixture-creator'");
-		else if (state === "agency_ended_status") await input.fixture.pool.query("UPDATE agency_license_allocations SET product='runner',status='ended',ends_at=now()+interval '1 day' WHERE creator_id='fixture-creator'");
-		else if (state !== "agency_creator") await input.fixture.pool.query("UPDATE agency_license_allocations SET product='runner',ends_at=now()+interval '1 day' WHERE creator_id='fixture-creator'");
+		if (state === "agency_ended") await input.fixture.pool.query("UPDATE agency_license_allocations SET product='creator_pro',status='removal_scheduled',effective_at=now()-interval '3 days',removal_requested_at=now()-interval '2 days',ends_at=now()-interval '1 day' WHERE creator_id='fixture-creator'");
+		else if (state === "agency_ended_status") await input.fixture.pool.query("UPDATE agency_license_allocations SET product='creator_pro',status='ended',ends_at=now()+interval '1 day' WHERE creator_id='fixture-creator'");
+		else if (state !== "agency_creator") await input.fixture.pool.query("UPDATE agency_license_allocations SET product='creator_pro',ends_at=now()+interval '1 day' WHERE creator_id='fixture-creator'");
 	} else {
-		await input.fixture.pool.query("INSERT INTO entitlement_grants(user_id,entitlement,source,starts_at,ends_at,revoked_at) VALUES('fixture-creator','runner_access','partner',now()-interval '1 hour',CASE WHEN $1 IN ('active','revoked') THEN now()+interval '1 day' WHEN $1='expired' THEN now()-interval '1 day' ELSE NULL END,CASE WHEN $1='revoked' THEN now()-interval '1 minute' ELSE NULL END)", [state]);
+		await input.fixture.pool.query("INSERT INTO entitlement_grants(user_id,entitlement,source,starts_at,ends_at,revoked_at) VALUES('fixture-creator','pro_access','support',now()-interval '1 hour',CASE WHEN $1 IN ('active','revoked') THEN now()+interval '1 day' WHEN $1='expired' THEN now()-interval '1 day' ELSE NULL END,CASE WHEN $1='revoked' THEN now()-interval '1 minute' ELSE NULL END)", [state]);
 	}
 	return billingEnd;
 }
@@ -58,7 +58,7 @@ export async function runRunnerCommercialProbe(input: Parameters<typeof runRunne
 				otherOwner = batch.get("ungranted-commercial-owner");
 			if (!batchOwner || !otherOwner) return { available: true, ownerResultsPresent: false, individual, batch: batchOwner };
 			const after = await entitlements.resolveUserEntitlements(owner, input.fixture.db);
-			const grantEnd = (await input.fixture.pool.query("SELECT ends_at FROM entitlement_grants WHERE user_id=$1 AND entitlement='runner_access'", [owner.id])).rows[0]?.ends_at;
+			const grantEnd = (await input.fixture.pool.query("SELECT ends_at FROM entitlement_grants WHERE user_id=$1 AND entitlement='pro_access'", [owner.id])).rows[0]?.ends_at;
 			const agencyEnd = (await input.fixture.pool.query("SELECT ends_at FROM agency_license_allocations WHERE creator_id=$1", [owner.id])).rows[0]?.ends_at;
 			const scopedEndByState: Record<string, unknown> = { active: grantEnd, trial: before.trialEndsAt, pro_grant: before.trialEndsAt, agency_active: agencyEnd, agency_creator: agencyEnd };
 			const expectedEnd = state.startsWith("billing_") ? (["billing_expired", "billing_canceled"].includes(state) ? null : billingEnd) : (scopedEndByState[state] ?? null);
@@ -84,8 +84,8 @@ export async function runRunnerCommercialProbe(input: Parameters<typeof runRunne
 		if (input.variant.startsWith("commercial_service_")) {
 			const individual = await entitlements.resolveUserEntitlements(owner, input.fixture.db);
 			const batch = await entitlements.resolveUserEntitlementsForUsers([owner, { id: "ungranted-commercial-owner", plan: Plan.Free }]);
-			const agencyLifetime = (await input.fixture.pool.query("SELECT status,effective_at,ends_at FROM agency_license_allocations WHERE creator_id='fixture-creator' AND product='runner'")).rows;
-			return { agencyLifetime, individual, batch: batch.get(owner.id), ungranted: batch.get("ungranted-commercial-owner"), capabilities: deriveRunnerCapabilities(individual), grantLifetime: (await input.fixture.pool.query("SELECT ends_at,revoked_at FROM entitlement_grants WHERE user_id='fixture-creator' AND entitlement='runner_access'")).rows };
+			const agencyLifetime = (await input.fixture.pool.query("SELECT status,effective_at,ends_at FROM agency_license_allocations WHERE creator_id='fixture-creator' AND product='creator_pro'")).rows;
+			return { agencyLifetime, individual, batch: batch.get(owner.id), ungranted: batch.get("ungranted-commercial-owner"), capabilities: deriveRunnerCapabilities(individual), grantLifetime: (await input.fixture.pool.query("SELECT ends_at,revoked_at FROM entitlement_grants WHERE user_id='fixture-creator' AND entitlement='pro_access'")).rows };
 		}
 		const runnerId = randomUUID(),
 			overlayId = randomUUID();

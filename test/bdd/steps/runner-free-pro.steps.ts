@@ -1,3 +1,4 @@
+import { openRunnerAppearance, openRunnerDestinations } from "../../support/runner/editor";
 import type { Page } from "@playwright/test";
 import { createBdd } from "playwright-bdd";
 import { randomUUID } from "node:crypto";
@@ -50,16 +51,19 @@ When("they choose Live fallback with Manual control and save its destination", a
 	await control.click();
 	await expect(page.getByRole("option", { name: /Scheduled/ })).toBeDisabled();
 	await page.keyboard.press("Escape");
-	await page.getByRole("button", { name: "Add destination", exact: true }).click();
-	const editor = page.getByRole("dialog");
+	const manager = await openRunnerDestinations(page);
+	await manager.getByRole("button", { name: "Add destination", exact: true }).click();
+	const editor = page.getByRole("dialog", { name: "Add destination", exact: true });
 	await editor.getByLabel("Destination name", { exact: true }).fill("Twitch");
 	await editor.getByLabel("Destination stream key", { exact: true }).fill("fixture-runner-stream-key");
 	await editor.getByRole("button", { name: "Save destination", exact: true }).click();
 	await expect(editor).toHaveCount(0);
-	const selected = page.getByRole("group", { name: "Broadcast destinations" }).getByRole("button", { name: /Twitch/ });
-	await expect(selected).toHaveAttribute("aria-pressed", "true");
+	await page.keyboard.press("Escape");
+	await expect(manager).not.toBeVisible();
+	const selected = page.getByRole("group", { name: "Broadcast destinations" }).getByRole("button", { name: /Broadcast destinations$/ });
+	await expect(selected).toContainText("Twitch");
 	await page.getByRole("button", { name: "Save Configuration", exact: true }).click();
-	await expect(selected).toHaveAttribute("aria-pressed", "true");
+	await expect(selected).toContainText("Twitch");
 	await expect(page.getByRole("textbox", { name: /Stream Key/ })).toHaveCount(0);
 	await expect(page.getByRole("button", { name: "Start", exact: true })).toBeVisible();
 });
@@ -185,6 +189,7 @@ async function verifySavedAttribution(page: Page, mcpWorld: { input?: Record<str
 	await page.getByRole("button", { name: "Save appearance", exact: true }).click();
 	await expect(page.getByRole("status").filter({ hasText: "Appearance saved" })).toBeVisible();
 	await page.reload();
+	await openRunnerAppearance(page);
 	await expect(attribution).toBeChecked({ checked: enabled });
 	await verifyPreviewAttribution(page, enabled);
 	const world = presentationState(mcpWorld.input);
@@ -291,12 +296,14 @@ Then("their standby background color matches draft preview and saved generated s
 	const color = page.getByLabel("Standby background color", { exact: true });
 	await expect(color).toBeVisible();
 	await color.fill("#16324f");
+	await color.press("Tab");
 	const standby = page.frameLocator('iframe[title="Runner appearance preview"]').locator("[data-runner-standby]");
 	await expect(standby).toHaveCSS("background-color", "rgb(22, 50, 79)");
 	await page.getByRole("button", { name: "Save appearance", exact: true }).click();
 	await expect(page.getByRole("status").filter({ hasText: "Appearance saved" })).toBeVisible();
 	await page.reload();
-	await expect(color).toHaveValue("#16324f");
+	await openRunnerAppearance(page);
+	await expect(color).toHaveValue(/^#16324f$/i);
 	await expect(standby).toHaveCSS("background-color", "rgb(22, 50, 79)");
 	const world = presentationState(mcpWorld.input);
 	const response = await page.request.post("http://127.0.0.1:3107/api/runner/presentation", { headers: { Authorization: `Bearer ${world.token}` }, data: { sessionId: world.sessionId, executionGeneration: world.generation } });
@@ -319,6 +326,7 @@ Then("their uploaded background image matches preview and saved generated standb
 	await page.getByRole("button", { name: "Save appearance", exact: true }).click();
 	await expect(page.getByRole("status").filter({ hasText: "Appearance saved" })).toBeVisible();
 	await page.reload();
+	await openRunnerAppearance(page);
 	await expect(preview).toBeVisible();
 	await expect(preview).toHaveJSProperty("naturalWidth", 16);
 	const world = presentationState(mcpWorld.input);
@@ -347,6 +355,7 @@ Then("their uploaded logo matches preview and saved generated standby", async ({
 	await page.getByRole("button", { name: "Save appearance", exact: true }).click();
 	await expect(page.getByRole("status").filter({ hasText: "Appearance saved" })).toBeVisible();
 	await page.reload();
+	await openRunnerAppearance(page);
 	await expect(preview).toBeVisible();
 	await expect(preview).toHaveJSProperty("naturalWidth", 16);
 	const world = presentationState(mcpWorld.input);
@@ -390,6 +399,7 @@ Then("their standby message matches draft preview and the already active present
 		await page.getByRole("button", { name: "Save appearance", exact: true }).click();
 		await expect(page.getByRole("status").filter({ hasText: "Appearance saved" })).toBeVisible();
 		await page.reload();
+		await openRunnerAppearance(page);
 		await expect(editor).toHaveValue(message);
 		await expect(preview).toBeVisible();
 		await output.clock.fastForward(30001);
@@ -443,6 +453,7 @@ Then("the optional next broadcast time matches preview and generated standby", a
 	await page.getByRole("button", { name: "Save appearance", exact: true }).click();
 	await expect(page.getByRole("status").filter({ hasText: "Appearance saved" })).toBeVisible();
 	await page.reload();
+	await openRunnerAppearance(page);
 	await expect(choice).toBeChecked();
 	await expect(preview).toHaveAttribute("datetime", expected.expected);
 	const world = presentationState(mcpWorld.input);

@@ -30,17 +30,14 @@ export async function syncAgencyStripeSubscription(subscription: Stripe.Subscrip
 	const [billing] = organizationId ? await db.select().from(agencyBillingAccountsTable).where(eq(agencyBillingAccountsTable.organizationId, organizationId)).limit(1) : await db.select().from(agencyBillingAccountsTable).where(eq(agencyBillingAccountsTable.stripeSubscriptionId, subscription.id)).limit(1);
 	if (!billing) return { handled: false as const };
 	if (!shouldApplyAgencyStripeSnapshot(billing.latestStripeEventCreated, stripeEventCreated)) return { handled: true as const, ignoredAsStale: true as const };
-	const [account] = await db.select({ creatorSeatLimit: agencyAccountsTable.creatorSeatLimit, runnerSeatLimit: agencyAccountsTable.runnerSeatLimit }).from(agencyAccountsTable).where(eq(agencyAccountsTable.organizationId, billing.organizationId)).limit(1);
+	const [account] = await db.select({ creatorSeatLimit: agencyAccountsTable.creatorSeatLimit }).from(agencyAccountsTable).where(eq(agencyAccountsTable.organizationId, billing.organizationId)).limit(1);
 	if (!account) return { handled: false as const };
 
 	const creatorItem = subscription.items.data.find((item) => item.price.id === billing.creatorSeatPriceId);
-	const runnerItem = billing.runnerSeatPriceId ? subscription.items.data.find((item) => item.price.id === billing.runnerSeatPriceId) : undefined;
 	if (!creatorItem) throw new Error("AGENCY_CREATOR_SEAT_ITEM_MISSING");
 	const hasPendingUpdate = Boolean(subscription.pending_update);
 	const stripeCreatorQuantity = creatorItem.quantity ?? 0;
-	const stripeRunnerQuantity = runnerItem?.quantity ?? 0;
 	const creatorQuantity = resolveAgencyCapacitySnapshot({ previousQuantity: account.creatorSeatLimit, stripeQuantity: stripeCreatorQuantity, subscriptionStatus: subscription.status, hasPendingUpdate, collectionMethod: billing.collectionMethod, invoicePaymentConfirmed });
-	const runnerQuantity = resolveAgencyCapacitySnapshot({ previousQuantity: account.runnerSeatLimit, stripeQuantity: stripeRunnerQuantity, subscriptionStatus: subscription.status, hasPendingUpdate, collectionMethod: billing.collectionMethod, invoicePaymentConfirmed });
 	const period = subscriptionPeriod(subscription);
 
 	await db.transaction(async (tx) => {
@@ -54,9 +51,6 @@ export async function syncAgencyStripeSubscription(subscription: Stripe.Subscrip
 				creatorSeatItemId: creatorItem.id,
 				creatorSeatQuantity: creatorQuantity,
 				pendingCreatorSeatQuantity: creatorQuantity === stripeCreatorQuantity ? null : billing.pendingCreatorSeatQuantity,
-				runnerSeatItemId: runnerItem?.id ?? null,
-				runnerSeatQuantity: runnerQuantity,
-				pendingRunnerSeatQuantity: runnerQuantity === stripeRunnerQuantity ? null : billing.pendingRunnerSeatQuantity,
 				currentPeriodStart: period.start,
 				currentPeriodEnd: period.end,
 				latestStripeEventCreated: stripeEventCreated,
@@ -65,7 +59,7 @@ export async function syncAgencyStripeSubscription(subscription: Stripe.Subscrip
 			.where(and(eq(agencyBillingAccountsTable.organizationId, billing.organizationId), sql`${agencyBillingAccountsTable.latestStripeEventCreated} <= ${stripeEventCreated}`))
 			.returning({ organizationId: agencyBillingAccountsTable.organizationId });
 		if (!applied) return;
-		await tx.update(agencyAccountsTable).set({ creatorSeatLimit: creatorQuantity, runnerSeatLimit: runnerQuantity, updatedAt: new Date() }).where(eq(agencyAccountsTable.organizationId, billing.organizationId));
+		await tx.update(agencyAccountsTable).set({ creatorSeatLimit: creatorQuantity, updatedAt: new Date() }).where(eq(agencyAccountsTable.organizationId, billing.organizationId));
 	});
-	return { handled: true as const, ignoredAsStale: false as const, creatorQuantity, runnerQuantity };
+	return { handled: true as const, ignoredAsStale: false as const, creatorQuantity };
 }

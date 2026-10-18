@@ -26,7 +26,7 @@ type UpgradeModalProps = {
 	source?: PaywallSource;
 	feature?: string;
 	initialBillingCycle?: BillingCycle;
-	mode?: "plan" | "runner_addon";
+	mode?: "plan";
 	primaryProduct?: BillingProduct;
 };
 
@@ -69,7 +69,7 @@ export default function UpgradeModal({ isOpen, onOpenChange, user, title, descri
 	const yearlySuffix = frequencies.find((f) => f.key === FrequencyEnum.Yearly)?.priceSuffix ?? "per year";
 	const monthlySuffix = frequencies.find((f) => f.key === FrequencyEnum.Monthly)?.priceSuffix ?? "per month";
 	const inTrial = isReverseTrialActive(user);
-	const primary = primaryProduct === BillingProduct.RunnerSelfHosted ? BillingProduct.Pro : (primaryProduct ?? BillingProduct.Pro);
+	const primary = primaryProduct ?? BillingProduct.Pro;
 	const canUpgrade = effectivePlan === "free" || inTrial || selectedOptionalProducts.size > 0;
 	const selectedProducts = billingOptions.filter((option) => option.owned || option.required || selectedOptionalProducts.has(option.key));
 	const payableProducts = selectedProducts.filter((option) => !option.owned);

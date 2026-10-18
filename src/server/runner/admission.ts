@@ -31,7 +31,7 @@ export async function recognizeLegacyBroadcasts(tx: TransactionClient, ownerId: 
 	let recognized = 0;
 	for (const session of sessions) {
 		if (existing.some((admission) => admission.sessionId === session.id)) continue;
-		await tx.insert(runnerBroadcastAdmissionsTable).values({ ownerId, runnerId: session.runnerId, sessionId: session.id, executionGeneration: randomUUID(), state: "uncertain", configurationRevision: session.configurationRevision, benefitsAtStart: { ...deriveRunnerCapabilities({ proAccess: false, runnerAccess: true, runnerSource: "legacy" }), provenance: "pre_admission_protocol", ingestModeAtStart: session.mode } });
+		await tx.insert(runnerBroadcastAdmissionsTable).values({ ownerId, runnerId: session.runnerId, sessionId: session.id, executionGeneration: randomUUID(), state: "uncertain", configurationRevision: session.configurationRevision, benefitsAtStart: { ...deriveRunnerCapabilities({ proAccess: false }), provenance: "pre_admission_protocol", ingestModeAtStart: session.mode } });
 		recognized++;
 	}
 	return recognized;

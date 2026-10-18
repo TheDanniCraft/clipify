@@ -4,7 +4,7 @@ Date: 2026-10-14. Scope: confirmed Free manual one-broadcast/one-target access w
 
 ## 1. Access and owner-wide concurrency
 
-**Decision:** Add a Runner capability resolver that gives all authenticated eligible owners basic Runner access. Effective Pro or valid legacy `runner_access` grants/agency Runner allocations give Runner Pro capabilities. Keep legacy Runner benefits separate from unrelated Pro. Resolve using the resource owner inside the mutation transaction.
+**Decision:** Add a Runner capability resolver that gives all authenticated eligible owners basic Runner access. Effective Pro alone gives Runner Pro capabilities, including valid Pro grants, trials and agency creator seats. Retire the unreleased Runner-only entitlement and agency Runner seats. Resolve using the resource owner inside the mutation transaction.
 
 **Rationale:** `src/app/lib/entitlements.ts` currently makes Runner access independent of Pro, including batch resolution and reconciliation. `src/app/actions/runner.ts`, enrollment/heartbeat and `src/server/resources/workflow.ts` all contain paid gates. Changing only UI or dashboard actions leaves inconsistent access and bypasses. Lock owner then applicable entitlement/allocation and resource rows in a consistent order; every start uses the same admission service.
 
@@ -74,13 +74,13 @@ Date: 2026-10-14. Scope: confirmed Free manual one-broadcast/one-target access w
 
 **Alternatives considered:** Unbounded base64 in every heartbeat (wasteful); external URL fetch or SVG/HTML uploads (unneeded attack surface); provisioning an object store (outside agreed scope).
 
-## 10. Purchase retirement and grant continuity
+## 10. Standalone Runner hard cut
 
-**Decision:** Block new standalone Runner checkout, plan-builder selections and agency Runner-seat increases. Remove their sales UI but keep product/price enum decoding, historical billing/webhooks, grant records and existing allocation scope/lifetime. No Stripe API or SDK version upgrade. No live Stripe changes in planning.
+**Decision:** Remove standalone Runner checkout, billing product and entitlement enum, agency Runner seats and their sales/configuration surfaces. Existing Pro, Pro grants/trials and agency creator seats remain the sole paid capability source. Never convert a retired Runner-only grant into Pro. Reject old signed checkout intents and discard retired commercial notices. No Stripe API/SDK version upgrade or live Stripe changes.
 
-**Rationale:** `src/app/lib/billingCatalog.ts`, `src/server/billing.ts`, subscription actions and agency billing still depend on legacy identifiers. The user reports two granted recipients and no paying individual Runner subscribers. That report is an assumption, not a claim of production database verification; release preflight checks for unexpected recurring items before any commercial action. Preserve billing reconciliation instead of deleting data.
+**Rationale:** The user explicitly authorized deleting unreleased Runner-only configuration and accepted loss of those records. The previous historical-compatibility decision is superseded. Edit schema sources only; generated migrations remain owned by the post-merge workflow.
 
-**Alternatives considered:** Delete the product enum/prices (breaks historical webhooks); grant full Pro to legacy Runner recipients (unrelated benefits); silently cancel billing/subscriptions (unauthorized external change).
+**Alternatives considered:** Preserve a second Runner-only commercial path (rejected by the user); grant full Pro to Runner-only recipients (unrelated benefits); change live Stripe subscriptions (outside this work).
 
 ## 11. Native tests and gates
 
@@ -98,7 +98,7 @@ All technical unknowns above are resolved into bounded design choices. Product q
 
 Ship Free + Pro at current names and current prices. No Plus/Lite tier, price increase, annual-only product, subscriber price-transition policy or release email is part of this feature. Pro includes all existing paid benefits and the planned advanced Runner benefits. Free hours remain unlimited, with one active broadcast and one destination across multiple registered devices. Local execution still runs on the user's PC.
 
-Update src/app/components/Pricing/pricing-catalog.ts, comparison.tsx and existing pricing cards/setup copy; group Runner and broadcasting alongside existing feature categories rather than adding a tier or an oversized undifferentiated list. Produce a reviewable responsive UI using existing HeroUI styling; a gated HeroUI v2 example is design inspiration, not unavailable source assumed installed. Add feature copy and onboarding/billing consistency, remove new Runner add-on offers, preserve historical IDs/grants. Update src/app/llms.txt/llms.txt and src/app/llms-full.txt/llms-full.txt, verifying served routes/src/app/lib/llmsContent.ts reflect the same plan limits, unlimited hours, local scheduling/connectivity and legacy scope. No email is sent by these tasks.
+Update src/app/components/Pricing/pricing-catalog.ts, comparison.tsx and existing pricing cards/setup copy; group Runner and broadcasting alongside existing feature categories rather than adding a tier or an oversized undifferentiated list. Produce a reviewable responsive UI using existing HeroUI styling; a gated HeroUI v2 example is design inspiration, not unavailable source assumed installed. Add feature copy and onboarding/billing consistency, remove new Runner add-on offers, retire standalone Runner commercial configuration. Update src/app/llms.txt/llms.txt and src/app/llms-full.txt/llms-full.txt, verifying served routes/src/app/lib/llmsContent.ts reflect the same plan limits, unlimited hours, local scheduling/connectivity and effective Pro scope. No email is sent by these tasks.
 
 I1: stable identity, captured active occurrence and server-enforced edit/delete locks; Stop/Resume retains Scheduled mode and original end. U1: renewable Free lease with bounded local drain and terminal-only tombstone ACK. I2: focused native workflow Red/Green without coverage; full workflows coverage only at completion gates under the same owner. A1: measurable fixed translucent watermark and overlay collision handling. A2: multi-day/week schedules, DST-local boundaries and mobile day/editor support. These are planning resolutions; all product evidence remains Planned/Not Run.
 

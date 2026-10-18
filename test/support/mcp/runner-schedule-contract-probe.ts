@@ -620,7 +620,7 @@ export async function runRunnerScheduleContractProbe(input: Input) {
 					.set({ leaseExpiresAt: new Date("2000-01-01T00:00:00Z"), scheduledEnd: new Date("2000-01-02T00:00:00Z") })
 					.where(eq(runnerBroadcastAdmissionsTable.id, future.id));
 				const [session] = await tx.select().from(streamSessionsTable).where(eq(streamSessionsTable.id, sessionId));
-				await reserveBroadcastAdmission(tx, session, { proAccess: true, runnerAccess: true, proSource: "pro" }, session.configurationRevision);
+				await reserveBroadcastAdmission(tx, session, { proAccess: true, proSource: "pro" }, session.configurationRevision);
 				const [recovered] = await tx.select().from(runnerBroadcastAdmissionsTable).where(eq(runnerBroadcastAdmissionsTable.id, future.id));
 				const [retainedSession] = await tx.select().from(streamSessionsTable).where(eq(streamSessionsTable.id, sessionId));
 				cacheRecovery = { state: recovered.state, reason: recovered.terminalReason, recovered: recovered.recoveredAt !== null, desired: retainedSession.desiredState, actual: retainedSession.actualState };
@@ -653,7 +653,7 @@ export async function runRunnerScheduleContractProbe(input: Input) {
 					.limit(1);
 				if (!future) throw new Error("UNKNOWN_CACHE_FIXTURE_MISSING");
 				const [session] = await tx.select().from(streamSessionsTable).where(eq(streamSessionsTable.id, sessionId));
-				unknownCachedOutput = await Reflect.apply(reserveBroadcastAdmission, undefined, [tx, session, { proAccess: true, runnerAccess: true, proSource: "pro" }, session.configurationRevision + 1, undefined, () => Number(future.benefitsAtStart.scheduledStart)]);
+				unknownCachedOutput = await Reflect.apply(reserveBroadcastAdmission, undefined, [tx, session, { proAccess: true, proSource: "pro" }, session.configurationRevision + 1, undefined, () => Number(future.benefitsAtStart.scheduledStart)]);
 				throw rollbackUnknown;
 			});
 		} catch (cause) {

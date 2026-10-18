@@ -9,7 +9,7 @@ function ownerSnapshotFixture() {
 	const keys = generateKeyPairSync("ed25519"),
 		issuedAt = 1000000;
 	const identity = { ownerId: "owner", runnerId: randomUUID(), requestId: randomUUID(), configurationRevision: 1 };
-	const capabilities = deriveRunnerCapabilities({ proAccess: true, runnerAccess: false, validUntil: new Date(issuedAt + 60000) }, new Date(issuedAt));
+	const capabilities = deriveRunnerCapabilities({ proAccess: true, validUntil: new Date(issuedAt + 60000) }, new Date(issuedAt));
 	const claims = { ...identity, issuer: "clipify.us", kind: "benefits", issuedAt, expiresAt: issuedAt + 60000, capabilities };
 	const payload = Buffer.from(JSON.stringify(claims)).toString("base64url");
 	const bundle = { keyId: "test-key", payload, signature: sign(null, Buffer.from(payload), keys.privateKey).toString("base64url") };
@@ -103,7 +103,7 @@ test.each(["revision", "issuance", "same-time"])("TDD-US5-CON015 U276: stale sig
 	const guard = new Guard({ ownerId: fixture.identity.ownerId, runnerId: fixture.identity.runnerId, keys: fixture.trusted, clock: () => monotonic });
 	const firstTime = fixture.issuedAt + (stale === "revision" ? 0 : 10000);
 	const firstRevision = stale === "revision" ? 2 : 1;
-	const baseline = deriveRunnerCapabilities({ proAccess: false, runnerAccess: false }, new Date(firstTime));
+	const baseline = deriveRunnerCapabilities({ proAccess: false }, new Date(firstTime));
 	expect(guard.accept(fixture.encode({ issuedAt: firstTime, configurationRevision: firstRevision, capabilities: baseline }), { requestId: fixture.identity.requestId, sentAt: 0 })).toBe(true);
 	expect(guard.runnerPro).toBe(false);
 	monotonic = 1000;
@@ -161,8 +161,8 @@ test("TDD-US5-CON015 U277: a server clock rollback during renewal cannot extend 
 
 describe("TDD-US5-CON015 U276: known paid validity is a boundary for new paid starts", () => {
 	const end = new Date("2026-10-20T12:00:00.000Z");
-	test.each(["pro", "legacy"] as const)("%s benefits expire exactly at the known deadline", (source) => {
-		const benefits = { proAccess: source === "pro", runnerAccess: source === "legacy", validUntil: end };
+	test.each(["pro", "grant"] as const)("%s benefits expire exactly at the known deadline", (source) => {
+		const benefits = { proAccess: true, proSource: source, validUntil: end };
 		expect(deriveRunnerCapabilities(benefits, new Date(end.getTime() - 1))).toMatchObject({ runnerPro: true, scheduling: true });
 		for (const now of [end, new Date(end.getTime() + 1)]) {
 			expect(deriveRunnerCapabilities(benefits, now)).toMatchObject({ basicAccess: true, runnerPro: false, scheduling: false, customStandby: false, attributionRequired: true, maxTargets: 1, maxActiveBroadcasts: 1, source: "free" });
@@ -259,4 +259,10 @@ test("TDD-US5-CON015 U276: healthy refresh extends snapshot freshness without ex
 	expect(guard.runnerPro).toBe(true);
 	elapsed = 60000;
 	expect(guard.runnerPro).toBe(false);
+});
+
+test("UX-C2 protocol: a signed retired Runner-only source cannot restore paid capabilities", () => {
+	const fixture = ownerSnapshotFixture();
+	const retired = fixture.encode({ capabilities: { ...fixture.capabilities, source: "legacy" } });
+	expect(executionProtocol.verifyRunnerBenefitSnapshot(retired, fixture.trusted, fixture.identity, fixture.issuedAt + 1)).toBeNull();
 });

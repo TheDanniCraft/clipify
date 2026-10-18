@@ -39,15 +39,10 @@ export type Tier = {
 export type RuntimePrice = { amount: number | null; currency: string; formatted: string };
 export type RuntimePricing = {
 	pro: Record<FrequencyEnum, RuntimePrice>;
-	runner: Record<FrequencyEnum, RuntimePrice>;
 };
 
 export const unavailableRuntimePricing: RuntimePricing = {
 	pro: {
-		[FrequencyEnum.Monthly]: { amount: null, currency: "EUR", formatted: "Unavailable" },
-		[FrequencyEnum.Yearly]: { amount: null, currency: "EUR", formatted: "Unavailable" },
-	},
-	runner: {
 		[FrequencyEnum.Monthly]: { amount: null, currency: "EUR", formatted: "Unavailable" },
 		[FrequencyEnum.Yearly]: { amount: null, currency: "EUR", formatted: "Unavailable" },
 	},

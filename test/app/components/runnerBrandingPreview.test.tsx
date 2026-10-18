@@ -4,6 +4,31 @@ import { getRunnerBrandingProfile, saveRunnerBrandingProfile } from "@/app/actio
 
 jest.mock("@/app/actions/runner", () => ({ getRunnerBrandingProfile: jest.fn(), saveRunnerBrandingProfile: jest.fn() }));
 
+// Unit owner checks draft transport and upload/save handling; real widgets are browser-owned.
+jest.mock("@/app/components/runner/ImageDropZone", () => ({ __esModule: true, default: ({ label, disabled, onSelect }: { label: string; disabled: boolean; onSelect: (file: File) => void }) => <input type='file' aria-label={label} disabled={disabled} onChange={(event) => onSelect(event.target.files![0])} /> }));
+jest.mock("@/app/components/theme/ThemeColorInput", () => ({ __esModule: true, default: ({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) => <input type='color' aria-label={label} value={value} onChange={(event) => onChange(event.target.value)} /> }));
+const previewMessages = new WeakMap<HTMLIFrameElement, jest.SpyInstance>();
+async function observeDraftPreview() {
+	const frame = (await screen.findByTitle("Runner appearance preview")) as HTMLIFrameElement;
+	if (!previewMessages.has(frame)) previewMessages.set(frame, jest.spyOn(frame.contentWindow!, "postMessage"));
+	fireEvent.load(frame);
+	return frame;
+}
+function acknowledgePreview(frame: HTMLIFrameElement) {
+	const stamp = frame.contentDocument!.createElement("div");
+	stamp.setAttribute("data-runner-preview-revision", previewMessages.get(frame)?.mock.calls.at(-1)?.[0]?.revision ?? "");
+	frame.contentDocument!.body.append(stamp);
+}
+function draftQuery(frame: HTMLIFrameElement) {
+	const message = previewMessages.get(frame)?.mock.calls.at(-1)?.[0];
+	return {
+		get: (key: string) => {
+			const value = message?.draft?.[key];
+			return value == null ? "" : String(value);
+		},
+	};
+}
+
 let originalResize: PropertyDescriptor | undefined;
 beforeAll(() => {
 	originalResize = Object.getOwnPropertyDescriptor(globalThis, "ResizeObserver");
@@ -31,11 +56,12 @@ test("TDD-US4-DEC012: an unfinished preview refuses persistence and gives a norm
 	jest.mocked(getRunnerBrandingProfile).mockResolvedValue({ success: true, profile, runnerPro: false });
 	jest.mocked(saveRunnerBrandingProfile).mockResolvedValue({ success: true, profile: { ...profile, id: "33333333-3333-4333-8333-333333333333", revision: 1 } });
 	render(<RunnerBrandingPreview ownerId='fixture-owner' runnerId='11111111-1111-4111-8111-111111111111' overlayId='22222222-2222-4222-8222-222222222222' />);
-	const frame = (await screen.findByTitle("Runner appearance preview")) as HTMLIFrameElement;
+	const frame = (await observeDraftPreview()) as HTMLIFrameElement;
 	const document = frame.contentDocument!;
 	document.open();
 	document.write('<html><body><div data-runner-presentation-generation="preview-11111111-1111-4111-8111-111111111111" data-runner-layout-status="pending"></div></body></html>');
 	document.close();
+	acknowledgePreview(frame);
 	const save = screen.getByRole("button", { name: "Save appearance" });
 	await waitFor(() => expect(save).toBeEnabled());
 	jest.useFakeTimers();
@@ -58,11 +84,12 @@ beforeEach(() => jest.clearAllMocks());
 async function previewWithLayout(status: "placed" | "clean" | "blocked") {
 	jest.mocked(getRunnerBrandingProfile).mockResolvedValue({ success: true, profile, runnerPro: false });
 	render(<RunnerBrandingPreview ownerId='fixture-owner' runnerId='11111111-1111-4111-8111-111111111111' overlayId='22222222-2222-4222-8222-222222222222' />);
-	const frame = (await screen.findByTitle("Runner appearance preview")) as HTMLIFrameElement;
+	const frame = (await observeDraftPreview()) as HTMLIFrameElement;
 	const document = frame.contentDocument!;
 	document.open();
 	document.write(`<html><body><div data-runner-presentation-generation="preview-11111111-1111-4111-8111-111111111111" data-runner-layout-status="${status}"></div></body></html>`);
 	document.close();
+	acknowledgePreview(frame);
 	expect(document.URL).toBe(frame.src);
 	const save = screen.getByRole("button", { name: "Save appearance" });
 	await waitFor(() => expect(save).toBeEnabled());
@@ -118,7 +145,7 @@ test.each([
 ] as const)("TDD-US4-DEC012: resizing a %s preview preserves its broadcast canvas at mobile width", async (resolution, width, height) => {
 	jest.mocked(getRunnerBrandingProfile).mockResolvedValue({ success: true, profile, runnerPro: false });
 	render(<RunnerBrandingPreview ownerId='fixture-owner' runnerId='11111111-1111-4111-8111-111111111111' overlayId='22222222-2222-4222-8222-222222222222' resolution={resolution} />);
-	const frame = await screen.findByTitle("Runner appearance preview");
+	const frame = await observeDraftPreview();
 	await waitFor(() => expect(frame).toHaveStyle({ width: `${width}px`, height: `${height}px`, transform: `scale(${360 / width})`, "transform-origin": "top left" }));
 });
 
@@ -129,32 +156,32 @@ test("TDD-US4-OPT093 U133: a draft Pro attribution choice refreshes the real pre
 	expect(choice).not.toBeChecked();
 	fireEvent.click(choice);
 	expect(choice).toBeChecked();
-	const frame = (await screen.findByTitle("Runner appearance preview")) as HTMLIFrameElement;
-	expect(new URL(frame.src).searchParams.get("proShowAttribution")).toBe("true");
+	const frame = (await observeDraftPreview()) as HTMLIFrameElement;
+	expect(draftQuery(frame).get("proShowAttribution")).toBe("true");
 	expect(saveRunnerBrandingProfile).not.toHaveBeenCalled();
 });
 
 test("TDD-US4-SC004 U39: real preview controls switch only the owner iframe without saving broadcast configuration", async () => {
 	jest.mocked(getRunnerBrandingProfile).mockResolvedValue({ success: true, profile, runnerPro: true });
 	render(<RunnerBrandingPreview ownerId='fixture-owner' runnerId='11111111-1111-4111-8111-111111111111' overlayId='22222222-2222-4222-8222-222222222222' />);
-	await screen.findByTitle("Runner appearance preview");
+	await observeDraftPreview();
 	fireEvent.click(screen.getByRole("button", { name: "Preview clips" }));
 	let frame = screen.getByTitle("Runner appearance preview") as HTMLIFrameElement;
-	expect(new URL(frame.src).searchParams.get("previewMode")).toBe("playback");
+	expect(draftQuery(frame).get("previewMode")).toBe("playback");
 	fireEvent.click(screen.getByRole("button", { name: "Preview standby" }));
 	frame = screen.getByTitle("Runner appearance preview") as HTMLIFrameElement;
-	expect(new URL(frame.src).searchParams.get("previewMode")).toBe("standby");
+	expect(draftQuery(frame).get("previewMode")).toBe("standby");
 	expect(saveRunnerBrandingProfile).not.toHaveBeenCalled();
 });
 test("TDD-US4-SC004 U39: clearing optional images changes draft preview references while retaining saved text and color until Apply", async () => {
 	const saved = { ...profile, id: "33333333-3333-4333-8333-333333333333", revision: 1, backgroundAssetId: "44444444-4444-4444-8444-444444444444", logoAssetId: "55555555-5555-4555-8555-555555555555", message: "Keep this message", standbyBackgroundColor: "#16324f" };
 	jest.mocked(getRunnerBrandingProfile).mockResolvedValue({ success: true, profile: saved, runnerPro: true });
 	render(<RunnerBrandingPreview ownerId='fixture-owner' runnerId='11111111-1111-4111-8111-111111111111' overlayId='22222222-2222-4222-8222-222222222222' />);
-	await screen.findByTitle("Runner appearance preview");
+	await observeDraftPreview();
 	fireEvent.click(screen.getByRole("button", { name: "Remove logo" }));
 	fireEvent.click(screen.getByRole("button", { name: "Remove background image" }));
 	const frame = screen.getByTitle("Runner appearance preview") as HTMLIFrameElement;
-	const query = new URL(frame.src).searchParams;
+	const query = draftQuery(frame);
 	expect(query.get("logoAssetId")).toBe("");
 	expect(query.get("backgroundAssetId")).toBe("");
 	expect(query.get("message")).toBe(saved.message);
@@ -176,17 +203,17 @@ test("TDD-US4-FR019 strength: Pro edits and staged images reach preview before o
 	Reflect.set(globalThis, "fetch", upload);
 	try {
 		render(<RunnerBrandingPreview ownerId='fixture-owner' runnerId='11111111-1111-4111-8111-111111111111' overlayId='22222222-2222-4222-8222-222222222222' />);
-		await screen.findByTitle("Runner appearance preview");
+		await observeDraftPreview();
 		fireEvent.change(screen.getByLabelText("Standby background color"), { target: { value: updated.standbyBackgroundColor } });
 		fireEvent.change(screen.getByLabelText("Standby message"), { target: { value: updated.message } });
 		fireEvent.click(screen.getByRole("switch", { name: "Show next broadcast time" }));
 		const file = new File(["controlled-upload"], "standby.png", { type: "image/png" });
 		fireEvent.change(screen.getByLabelText("Standby background image"), { target: { files: [file] } });
-		await waitFor(() => expect(new URL((screen.getByTitle("Runner appearance preview") as HTMLIFrameElement).src).searchParams.get("backgroundAssetId")).toBe(backgroundAssetId));
+		await waitFor(() => expect(draftQuery(screen.getByTitle("Runner appearance preview") as HTMLIFrameElement).get("backgroundAssetId")).toBe(backgroundAssetId));
 		fireEvent.change(screen.getByLabelText("Standby logo"), { target: { files: [file] } });
-		await waitFor(() => expect(new URL((screen.getByTitle("Runner appearance preview") as HTMLIFrameElement).src).searchParams.get("logoAssetId")).toBe(logoAssetId));
+		await waitFor(() => expect(draftQuery(screen.getByTitle("Runner appearance preview") as HTMLIFrameElement).get("logoAssetId")).toBe(logoAssetId));
 		const frame = screen.getByTitle("Runner appearance preview") as HTMLIFrameElement;
-		const query = new URL(frame.src).searchParams;
+		const query = draftQuery(frame);
 		expect(query.get("message")).toBe(updated.message);
 		expect(query.get("standbyBackgroundColor")).toBe(updated.standbyBackgroundColor);
 		expect(query.get("showNextBroadcastTime")).toBe("true");
@@ -196,6 +223,7 @@ test("TDD-US4-FR019 strength: Pro edits and staged images reach preview before o
 		frame.contentDocument!.open();
 		frame.contentDocument!.write('<html><body><div data-runner-presentation-generation="preview-11111111-1111-4111-8111-111111111111" data-runner-layout-status="clean"></div></body></html>');
 		frame.contentDocument!.close();
+		acknowledgePreview(frame);
 		fireEvent.click(screen.getByRole("button", { name: "Save appearance" }));
 		expect(await screen.findByRole("status")).toHaveTextContent("Appearance saved");
 		expect(saveRunnerBrandingProfile).toHaveBeenCalledTimes(1);
@@ -216,7 +244,7 @@ test.each(["validation", "missing error text", "malformed success", "transport"]
 	Reflect.set(globalThis, "fetch", upload);
 	try {
 		render(<RunnerBrandingPreview ownerId='fixture-owner' runnerId='11111111-1111-4111-8111-111111111111' overlayId='22222222-2222-4222-8222-222222222222' />);
-		const frame = (await screen.findByTitle("Runner appearance preview")) as HTMLIFrameElement;
+		const frame = (await observeDraftPreview()) as HTMLIFrameElement;
 		const originalUrl = frame.src;
 		fireEvent.change(screen.getByLabelText("Standby background image"), { target: { files: [new File(["fixture"], "standby.png", { type: "image/png" })] } });
 		const error = await screen.findByRole("alert");
@@ -228,6 +256,7 @@ test.each(["validation", "missing error text", "malformed success", "transport"]
 		frame.contentDocument!.open();
 		frame.contentDocument!.write('<html><body><div data-runner-presentation-generation="preview-11111111-1111-4111-8111-111111111111" data-runner-layout-status="clean"></div></body></html>');
 		frame.contentDocument!.close();
+		acknowledgePreview(frame);
 		fireEvent.click(screen.getByRole("button", { name: "Save appearance" }));
 		expect(await screen.findByRole("status")).toHaveTextContent("Appearance saved");
 		expect(saveRunnerBrandingProfile).toHaveBeenCalledWith(expect.objectContaining({ expectedRevision: 3, backgroundAssetId: saved.backgroundAssetId, message: saved.message, standbyBackgroundColor: saved.standbyBackgroundColor }));
@@ -243,7 +272,7 @@ test.each(["cancelled", "oversized"])("TDD-US4-EC012 strength: a %s file selecti
 	Reflect.set(globalThis, "fetch", upload);
 	try {
 		render(<RunnerBrandingPreview ownerId='fixture-owner' runnerId='11111111-1111-4111-8111-111111111111' overlayId='22222222-2222-4222-8222-222222222222' />);
-		const frame = (await screen.findByTitle("Runner appearance preview")) as HTMLIFrameElement;
+		const frame = (await observeDraftPreview()) as HTMLIFrameElement;
 		const originalUrl = frame.src;
 		fireEvent.change(screen.getByLabelText("Standby logo"), { target: { files: selection === "cancelled" ? [] : [new File([new Uint8Array(2097153)], "large.png", { type: "image/png" })] } });
 		if (selection === "oversized") expect(await screen.findByRole("alert")).toHaveTextContent("Images must be no larger than 2 MiB.");
@@ -254,4 +283,14 @@ test.each(["cancelled", "oversized"])("TDD-US4-EC012 strength: a %s file selecti
 	} finally {
 		Reflect.set(globalThis, "fetch", previousFetch);
 	}
+});
+
+test("UX-C4: editing the standby message keeps the same preview document", async () => {
+	jest.mocked(getRunnerBrandingProfile).mockResolvedValue({ success: true, profile, runnerPro: true });
+	render(<RunnerBrandingPreview ownerId='fixture-owner' runnerId='11111111-1111-4111-8111-111111111111' overlayId='22222222-2222-4222-8222-222222222222' />);
+	const frame = await observeDraftPreview();
+	const src = frame.getAttribute("src");
+	fireEvent.change(screen.getByRole("textbox", { name: "Standby message" }), { target: { value: "Back soon" } });
+	expect(screen.getByTitle("Runner appearance preview")).toBe(frame);
+	expect(frame).toHaveAttribute("src", src);
 });

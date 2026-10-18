@@ -298,7 +298,7 @@ export function configureStreamSession(principal: TrustedCreatorPrincipal, input
 
 import { resolveRetainedResourceAccess } from "@/server/entitlements/resource-access";
 function effectiveRunnerBenefits(context: WorkflowContext) {
-	return context.runnerBenefits ?? { proAccess: context.pro, runnerAccess: context.runnerAccess };
+	return context.runnerBenefits ?? { proAccess: context.pro };
 }
 function scheduledStartIsAllowed(context: WorkflowContext, current: typeof streamSessionsTable.$inferSelect) {
 	return current.controlMode !== "scheduled" || current.desiredState === StreamState.Running || deriveRunnerCapabilities(effectiveRunnerBenefits(context)).runnerPro;

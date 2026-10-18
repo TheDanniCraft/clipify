@@ -1,4 +1,5 @@
 import { act, render } from "@testing-library/react";
+jest.mock("@/app/components/runner/ScheduleFields", () => ({ ScheduleDateField: () => null, ScheduleTimeField: () => null, TimezonePicker: () => null }));
 import RunnerSchedule from "@/app/components/runnerSchedule";
 import { listRunnerScheduleEvents } from "@/app/actions/runner";
 

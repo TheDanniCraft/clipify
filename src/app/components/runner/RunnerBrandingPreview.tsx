@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { Button, Card, Label, ListBox, Select, Switch } from "@heroui/react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Button, Label, ListBox, Select, Switch } from "@heroui/react";
 import StandbyEditor from "./StandbyEditor";
 import { getRunnerBrandingProfile, saveRunnerBrandingProfile } from "@/app/actions/runner";
 
@@ -13,7 +13,7 @@ const corners = [
 	{ id: "bottom_right", name: "Bottom right" },
 ] as const;
 
-export default function RunnerBrandingPreview({ ownerId, runnerId, overlayId, resolution = "720p" }: { ownerId: string; runnerId: string; overlayId: string; resolution?: "720p" | "1080p" }) {
+export default function RunnerBrandingPreview({ ownerId, runnerId, overlayId, resolution = "720p", runnerPro: sharedRunnerPro, onPolicyInvalidated }: { ownerId: string; runnerId: string; overlayId: string; resolution?: "720p" | "1080p"; runnerPro?: boolean; onPolicyInvalidated?: () => void }) {
 	const previewCanvas = resolution === "1080p" ? { width: 1920, height: 1080 } : { width: 1280, height: 720 };
 	const previewRef = useRef<HTMLIFrameElement>(null);
 	const previewContainerRef = useRef<HTMLDivElement>(null);
@@ -27,7 +27,8 @@ export default function RunnerBrandingPreview({ ownerId, runnerId, overlayId, re
 	const [backgroundAssetId, setBackgroundAssetId] = useState<string | null>(null);
 	const [uploading, setUploading] = useState(false);
 	const [standbyBackgroundColor, setStandbyBackgroundColor] = useState("#000000");
-	const [runnerPro, setRunnerPro] = useState(false);
+	const [loadedRunnerPro, setRunnerPro] = useState(false);
+	const runnerPro = loadedRunnerPro && (sharedRunnerPro ?? true);
 	const [showAttribution, setShowAttribution] = useState(false);
 	const [saving, setSaving] = useState(false);
 	const [error, setError] = useState<string | null>(null);
@@ -56,6 +57,18 @@ export default function RunnerBrandingPreview({ ownerId, runnerId, overlayId, re
 			current = false;
 		};
 	}, [ownerId, runnerId]);
+	const draft = { watermarkCorner: corner, proShowAttribution: showAttribution, standbyBackgroundColor, backgroundAssetId, logoAssetId, message, showNextBroadcastTime, previewMode };
+	const draftRevision = JSON.stringify(draft);
+	const sendPreviewDraft = useCallback(() => previewRef.current?.contentWindow?.postMessage({ type: "clipify:runner-preview", runnerId, draft: JSON.parse(draftRevision), revision: draftRevision }, window.location.origin), [runnerId, draftRevision]);
+	useEffect(() => {
+		sendPreviewDraft();
+		const ready = (event: MessageEvent) => {
+			if (event.origin === location.origin && event.source === previewRef.current?.contentWindow && event.data?.type === "clipify:runner-preview-ready" && event.data.runnerId === runnerId) sendPreviewDraft();
+		};
+		window.addEventListener("message", ready);
+		return () => window.removeEventListener("message", ready);
+	}, [sendPreviewDraft, runnerId]);
+
 	const previewAvailable = Boolean(profile && overlayId);
 	useEffect(() => {
 		const container = previewContainerRef.current;
@@ -104,7 +117,8 @@ export default function RunnerBrandingPreview({ ownerId, runnerId, overlayId, re
 				const frame = previewRef.current;
 				const document = frame?.contentDocument;
 				const surface = document?.querySelector("[data-runner-presentation-generation]");
-				const status = frame && document?.URL === frame.src && surface?.getAttribute("data-runner-presentation-generation") === `preview-${runnerId}` ? surface.getAttribute("data-runner-layout-status") : null;
+				const draftApplied = document?.querySelector("[data-runner-preview-revision]")?.getAttribute("data-runner-preview-revision") === draftRevision;
+				const status = draftApplied && frame && document?.URL === frame.src && surface?.getAttribute("data-runner-presentation-generation") === `preview-${runnerId}` ? surface.getAttribute("data-runner-layout-status") : null;
 				if (status === "blocked") {
 					setError("Adjust your overlay layout to leave room for Clipify attribution before saving.");
 					return;
@@ -122,6 +136,9 @@ export default function RunnerBrandingPreview({ ownerId, runnerId, overlayId, re
 			const result = await saveRunnerBrandingProfile({ ownerId, runnerId, expectedRevision: profile.revision, watermarkCorner: corner, ...(runnerPro ? { proShowAttribution: showAttribution, standbyBackgroundColor, backgroundAssetId, logoAssetId, message, showNextBroadcastTime } : {}) });
 			if (!result.success) {
 				setError(result.error);
+				const current = await getRunnerBrandingProfile(ownerId, runnerId);
+				if (current.success) setRunnerPro(current.runnerPro);
+				onPolicyInvalidated?.();
 				return;
 			}
 			setProfile(result.profile);
@@ -133,12 +150,11 @@ export default function RunnerBrandingPreview({ ownerId, runnerId, overlayId, re
 		}
 	}
 	return (
-		<Card className='w-full max-w-5xl'>
-			<Card.Header>
-				<h2 className='text-lg font-semibold'>Appearance</h2>
+		<div className='grid gap-6 xl:grid-cols-[minmax(18rem,1fr)_minmax(0,2fr)]'>
+			<div className='space-y-5'>
+				<h3 className='text-lg font-semibold'>Standby and branding</h3>
 				<p className='text-sm text-muted'>Choose where Clipify attribution appears on generated content.</p>
-			</Card.Header>
-			<Card.Content className='space-y-4'>
+
 				{error && (
 					<p role='alert' className='text-sm text-danger'>
 						{error}
@@ -195,7 +211,7 @@ export default function RunnerBrandingPreview({ ownerId, runnerId, overlayId, re
 						</ListBox>
 					</Select.Popover>
 				</Select>
-				<Button onPress={() => void save()} isDisabled={!profile || saving || uploading}>
+				<Button onPress={() => void save()} isDisabled={!profile || !overlayId || saving || uploading}>
 					Save appearance
 				</Button>
 				{notice && (
@@ -203,6 +219,8 @@ export default function RunnerBrandingPreview({ ownerId, runnerId, overlayId, re
 						{notice}
 					</p>
 				)}
+			</div>
+			<div className='space-y-4 xl:sticky xl:top-0 xl:self-start'>
 				{profile && overlayId && (
 					<div role='group' aria-label='Appearance preview mode' className='flex flex-wrap gap-2'>
 						<Button variant={previewMode === "standby" ? "primary" : "secondary"} aria-pressed={previewMode === "standby"} onPress={() => setPreviewMode("standby")} isDisabled={saving || uploading}>
@@ -214,18 +232,11 @@ export default function RunnerBrandingPreview({ ownerId, runnerId, overlayId, re
 					</div>
 				)}
 				{profile && overlayId && (
-					<div ref={previewContainerRef} className='relative left-1/2 aspect-video w-screen max-w-none -translate-x-1/2 overflow-hidden sm:left-auto sm:w-full sm:translate-x-0 sm:rounded-lg sm:ring-1 sm:ring-default'>
-						<iframe
-							ref={previewRef}
-							key={`${runnerId}:${profile.revision}:${overlayId}:${resolution}:${corner}:${showAttribution}:${standbyBackgroundColor}:${backgroundAssetId ?? ""}:${logoAssetId ?? ""}:${message}:${showNextBroadcastTime}:${previewMode}`}
-							title='Runner appearance preview'
-							src={`/runner/preview/${runnerId}?overlayId=${encodeURIComponent(overlayId)}&watermarkCorner=${corner}&previewMode=${previewMode}${runnerPro ? `&proShowAttribution=${showAttribution}&standbyBackgroundColor=${encodeURIComponent(standbyBackgroundColor)}&backgroundAssetId=${backgroundAssetId ?? ""}&logoAssetId=${logoAssetId ?? ""}&message=${encodeURIComponent(message)}&showNextBroadcastTime=${showNextBroadcastTime}` : ""}`}
-							className='absolute left-0 top-0 max-w-none border-0'
-							style={{ width: previewCanvas.width, height: previewCanvas.height, transform: `scale(${previewWidth / previewCanvas.width})`, transformOrigin: "top left" }}
-						/>
+					<div ref={previewContainerRef} className='relative aspect-video w-full overflow-hidden rounded-xl bg-black ring-1 ring-separator'>
+						<iframe ref={previewRef} key={`${runnerId}:${overlayId}:${resolution}`} onLoad={sendPreviewDraft} title='Runner appearance preview' src={`/runner/preview/${runnerId}?overlayId=${encodeURIComponent(overlayId)}`} className='absolute left-0 top-0 max-w-none border-0' style={{ width: previewCanvas.width, height: previewCanvas.height, transform: `scale(${previewWidth / previewCanvas.width})`, transformOrigin: "top left" }} />
 					</div>
 				)}
-			</Card.Content>
-		</Card>
+			</div>
+		</div>
 	);
 }
