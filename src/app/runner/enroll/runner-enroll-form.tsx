@@ -61,7 +61,7 @@ function RunnerEnrollFormContent({ onReset, initialCode }: { onReset: () => void
 		<>
 			<div className='space-y-2'>
 				<h1 className='text-2xl font-semibold'>Clipify Runner</h1>
-				<p className='text-sm text-muted-foreground'>Enter the device code shown in your runner terminal.</p>
+				<p className='text-sm text-muted'>Enter the device code shown in your runner terminal.</p>
 			</div>
 			<form
 				ref={formRef}
@@ -103,18 +103,18 @@ function RunnerEnrollFormContent({ onReset, initialCode }: { onReset: () => void
 						</InputOTP.Group>
 					</InputOTP>
 				</div>
-				{isPending ? <p className='text-sm text-muted-foreground'>Checking code...</p> : null}
+				{isPending ? <p className='text-sm text-muted'>Checking code...</p> : null}
 				<Button type='submit' variant='primary' className='w-full' isDisabled={value.length !== 8 || isPending} isPending={isPending}>
 					Continue
 				</Button>
 			</form>
-			<div className='border-t border-divider pt-4 text-center'>
-				<p className='text-sm text-muted-foreground'>Don&apos;t have a runner code yet?</p>
+			<div className='border-t border-separator pt-4 text-center'>
+				<p className='text-sm text-muted'>Don&apos;t have a runner code yet?</p>
 				<Button type='button' variant='secondary' className='mt-2' onPress={handleCreateRunner} isPending={isCreatingRunner} isDisabled={isPending || isCreatingRunner}>
 					<IconPlus size={16} />
 					Create a new runner
 				</Button>
-				<p className='mt-2 text-xs text-muted-foreground'>Already started a runner? Enter the code shown in its terminal above.</p>
+				<p className='mt-2 text-xs text-muted'>Already started a runner? Enter the code shown in its terminal above.</p>
 				{createError ? <p className='mt-2 text-sm text-danger'>{createError}</p> : null}
 			</div>
 		</>

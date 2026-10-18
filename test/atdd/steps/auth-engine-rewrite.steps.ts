@@ -19,15 +19,18 @@ const AGENCY_ATDD_NOW = new Date("2026-09-28T12:00:00.000Z");
 const DATABASE_ACTION_TIMEOUT_MS = 90_000;
 
 async function prepareInteractivePage(page: Page) {
-	await page.waitForLoadState("networkidle", { timeout: 30_000 });
-	const reject = page.getByRole("button", { name: "Reject optional" });
-	if (await reject.isVisible()) {
-		const persisted = page.waitForResponse((response) => response.url().includes("/api/c15t/subjects") && response.request().method() === "POST" && response.ok());
-		const refreshed = page.waitForNavigation({ waitUntil: "domcontentloaded", timeout: 30_000 });
-		await reject.click();
-		await Promise.all([persisted, refreshed]);
-	}
+	const returnUrl = page.url();
+	await page.goto("/legal/cookies");
+	await expect(page.getByRole("button", { name: "Enable support chat", exact: true })).toBeVisible();
 	await expect(page.locator("html")).toHaveClass(/c15t-(?:light|dark)/, { timeout: 30_000 });
+	const preferences = page.getByRole("main").getByRole("button", { name: "Cookie preferences", exact: true });
+	await preferences.focus();
+	await preferences.press("Enter");
+	const dialog = page.getByRole("dialog", { name: "Privacy preferences", exact: true });
+	await expect(dialog).toBeVisible();
+	await Promise.all([page.waitForNavigation({ waitUntil: "domcontentloaded", timeout: 30_000 }), dialog.getByRole("button", { name: "Reject optional", exact: true }).click()]);
+	await expect(dialog).not.toBeVisible();
+	await page.goto(returnUrl);
 }
 
 Given("a Clipify administrator provisioned an Agency Account after custom commercial terms were agreed", async ({ page, request, context, authWorld }) => {

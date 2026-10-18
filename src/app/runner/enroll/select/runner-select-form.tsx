@@ -18,7 +18,7 @@ function RunnerSelectFormContent({ code, runners, onReset }: { code: string; run
 		<>
 			<div className='space-y-2'>
 				<h1 className='text-2xl font-semibold'>Choose runner</h1>
-				<p className='text-sm text-muted-foreground'>Select the pending runner this device should connect to.</p>
+				<p className='text-sm text-muted'>Select the pending runner this device should connect to.</p>
 			</div>
 			<form action={formAction} className='flex flex-col gap-4'>
 				<input type='hidden' name='code' value={code} />
@@ -40,7 +40,7 @@ function RunnerSelectFormContent({ code, runners, onReset }: { code: string; run
 										</Avatar>
 										<span className='flex min-w-0 flex-col'>
 											<span className='truncate'>{runner.name}</span>
-											<span className='truncate text-xs text-muted-foreground'>{runner.ownerName}</span>
+											<span className='truncate text-xs text-muted'>{runner.ownerName}</span>
 										</span>
 									</Label>
 									<ListBox.ItemIndicator />
