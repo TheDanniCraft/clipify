@@ -5,7 +5,7 @@ import { resolve } from "node:path";
 
 // Generated evidence and disposable databases are not execution inputs. Git's
 // ignore rules also exclude dependency installs, compiled output and reports.
-const roots = ["src", "test", "scripts", "packages/runner", ".github", "patches", "public", "docs", "package.json", "bun.lock", "jest.config.cjs", "jest.setup.ts", "next.config.ts", "tsconfig.json", "drizzle.config.ts", "playwright.config.ts", "playwright.mcp.config.ts"];
+const roots = ["src", "test", "scripts", "packages/runner", ".github", "patches", "public", "docs", "drizzle", "package.json", "bun.lock", "jest.config.cjs", "jest.setup.ts", "next.config.ts", "tsconfig.json", "drizzle.config.ts", "playwright.config.ts", "playwright.mcp.config.ts"];
 
 export function coverageSourceFingerprint(root = process.cwd()) {
 	const paths = execFileSync("git", ["ls-files", "-z", "--cached", "--others", "--exclude-standard", "--", ...roots], { cwd: root, encoding: "utf8" })

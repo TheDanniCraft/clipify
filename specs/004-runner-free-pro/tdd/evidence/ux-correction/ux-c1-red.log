@@ -1,0 +1,41 @@
+$ jest --runInBand "--coverage=false" --runTestsByPath test/server/runner/retired-access.test.ts
+[tests] Native application probes compiled once for this run
+[tests] database: 1 suites, 1 worker(s)
+FAIL test/server/runner/retired-access.test.ts
+  ● UX-C1: retired Runner-only access cannot unlock paid broadcasting or watermark removal
+
+    expect(received).toMatchObject(expected)
+
+    - Expected  - 6
+    + Received  + 6
+
+      Object {
+    -   "attributionRequired": true,
+    -   "customStandby": false,
+    -   "maxActiveBroadcasts": 1,
+    -   "maxTargets": 1,
+    -   "runnerPro": false,
+    -   "scheduling": false,
+    +   "attributionRequired": false,
+    +   "customStandby": true,
+    +   "maxActiveBroadcasts": null,
+    +   "maxTargets": null,
+    +   "runnerPro": true,
+    +   "scheduling": true,
+      }
+
+      3 | test("UX-C1: retired Runner-only access cannot unlock paid broadcasting or watermark removal", () => {
+      4 | 	const retiredInput = { proAccess: false, runnerAccess: true, runnerSource: "legacy" as const };
+    > 5 | 	expect(deriveRunnerCapabilities(retiredInput)).toMatchObject({ runnerPro: false, scheduling: false, customStandby: false, attributionRequired: true, maxTargets: 1, maxActiveBroadcasts: 1 });
+        | 	                                               ^
+      6 | });
+      7 |
+
+      at Object.toMatchObject (test/server/runner/retired-access.test.ts:5:49)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 1 total
+Snapshots:   0 total
+Time:        1.069 s
+Ran all test suites within paths "test/server/runner/retired-access.test.ts".
+error: script "test" exited with code 1

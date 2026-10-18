@@ -2406,3 +2406,5 @@ The user superseded legacy Runner preservation: hard cut the unreleased Runner e
 - [x] UXR-04 Use native HeroUI Agenda controls, shared local timezone, accessible date/time editing and coherent multi-day scheduling.
 - [x] UXR-05 Add durable UX rules to AGENTS.md and real-component browser acceptance for setup, locks, appearance, schedule and responsive design.
 - [ ] UXR-06 Verify all audit findings with corrective checks, affected suites and release gates; push the complete correction.
+
+- [ ] UXR-07 (blocks UXR-06; exact exception approved, local Green, final CI pending) Apply the exact Pro-only notification-trigger custom migration described in `migration-approval.md` only after explicit authorization for that migration/journal entry and its one-commit approval marker. Preserve historical0026. Update the real trigger owner to load historical0026 then the approved replacement; retain all23 original behavior assertions. Verify its whole-file Red/Green and complete final CI. Drizzle cannot express this function-body update; do not keep the retired enum or patch the fixture to hide the production defect.

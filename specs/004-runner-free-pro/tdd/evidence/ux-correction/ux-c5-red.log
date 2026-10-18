@@ -1,0 +1,112 @@
+$ jest --runInBand "--coverage=false" --runTestsByPath test/app/components/runnerScheduleAgenda.test.tsx
+[tests] ordinary: 1 suites, 1 worker(s)
+  console.error
+    childContextTypes cannot be defined on a function component.
+      ({ children })=>/*#__PURE__*/ (0, _jsxruntime.jsx)(_jsxruntime.Fragment, {
+                children: children
+            }).childContextTypes = ...
+
+      11 | beforeEach(()=>{Object.defineProperty(window,'matchMedia',{configurable:true,value:()=>({matches:false,addEventListener:jest.fn(),removeEventListener:jest.fn()})});});
+      12 | test('UX-C5: the calendar honors the selected event timezone rather than resetting to UTC',()=>{
+    > 13 |  render(<RunnerScheduleAgenda events={[]} canEdit onCreate={jest.fn()} onEdit={jest.fn()} timezone='Europe/Berlin' />);
+         |        ^
+      14 |  expect(mockAgendaProps.mock.calls.at(-1)?.[0].timeZone).toBe('Europe/Berlin');
+      15 | });
+      16 |
+
+      at validateFunctionComponentInDev (node_modules/react-dom/cjs/react-dom-client.development.js:11180:17)
+      at updateFunctionComponent (node_modules/react-dom/cjs/react-dom-client.development.js:10559:10)
+      at beginWork (node_modules/react-dom/cjs/react-dom-client.development.js:12205:18)
+      at runWithFiberInDEV (node_modules/react-dom/cjs/react-dom-client.development.js:1048:13)
+      at performUnitOfWork (node_modules/react-dom/cjs/react-dom-client.development.js:19176:22)
+      at workLoopSync (node_modules/react-dom/cjs/react-dom-client.development.js:19004:41)
+      at renderRootSync (node_modules/react-dom/cjs/react-dom-client.development.js:18985:11)
+      at performWorkOnRoot (node_modules/react-dom/cjs/react-dom-client.development.js:18015:11)
+      at performWorkOnRootViaSchedulerTask (node_modules/react-dom/cjs/react-dom-client.development.js:20665:7)
+      at flushActQueue (node_modules/react/cjs/react.development.js:664:34)
+      at process.env.NODE_ENV.exports.act (node_modules/react/cjs/react.development.js:960:10)
+      at node_modules/@testing-library/react/dist/act-compat.js:46:25
+      at renderRoot (node_modules/@testing-library/react/dist/pure.js:198:26)
+      at render (node_modules/@testing-library/react/dist/pure.js:300:10)
+      at Object.<anonymous> (test/app/components/runnerScheduleAgenda.test.tsx:13:8)
+
+  console.error
+    ({ children })=>/*#__PURE__*/ (0, _jsxruntime.jsx)(_jsxruntime.Fragment, {
+                children: children
+            }): Function components do not support getDerivedStateFromProps.
+
+      11 | beforeEach(()=>{Object.defineProperty(window,'matchMedia',{configurable:true,value:()=>({matches:false,addEventListener:jest.fn(),removeEventListener:jest.fn()})});});
+      12 | test('UX-C5: the calendar honors the selected event timezone rather than resetting to UTC',()=>{
+    > 13 |  render(<RunnerScheduleAgenda events={[]} canEdit onCreate={jest.fn()} onEdit={jest.fn()} timezone='Europe/Berlin' />);
+         |        ^
+      14 |  expect(mockAgendaProps.mock.calls.at(-1)?.[0].timeZone).toBe('Europe/Berlin');
+      15 | });
+      16 |
+
+      at validateFunctionComponentInDev (node_modules/react-dom/cjs/react-dom-client.development.js:11187:20)
+      at updateFunctionComponent (node_modules/react-dom/cjs/react-dom-client.development.js:10559:10)
+      at beginWork (node_modules/react-dom/cjs/react-dom-client.development.js:12205:18)
+      at runWithFiberInDEV (node_modules/react-dom/cjs/react-dom-client.development.js:1048:13)
+      at performUnitOfWork (node_modules/react-dom/cjs/react-dom-client.development.js:19176:22)
+      at workLoopSync (node_modules/react-dom/cjs/react-dom-client.development.js:19004:41)
+      at renderRootSync (node_modules/react-dom/cjs/react-dom-client.development.js:18985:11)
+      at performWorkOnRoot (node_modules/react-dom/cjs/react-dom-client.development.js:18015:11)
+      at performWorkOnRootViaSchedulerTask (node_modules/react-dom/cjs/react-dom-client.development.js:20665:7)
+      at flushActQueue (node_modules/react/cjs/react.development.js:664:34)
+      at process.env.NODE_ENV.exports.act (node_modules/react/cjs/react.development.js:960:10)
+      at node_modules/@testing-library/react/dist/act-compat.js:46:25
+      at renderRoot (node_modules/@testing-library/react/dist/pure.js:198:26)
+      at render (node_modules/@testing-library/react/dist/pure.js:300:10)
+      at Object.<anonymous> (test/app/components/runnerScheduleAgenda.test.tsx:13:8)
+
+  console.error
+    ({ children })=>/*#__PURE__*/ (0, _jsxruntime.jsx)(_jsxruntime.Fragment, {
+                children: children
+            }) uses the legacy contextTypes API which was removed in React 19. Use React.createContext() with React.useContext() instead. (https://react.dev/link/legacy-context)
+
+      11 | beforeEach(()=>{Object.defineProperty(window,'matchMedia',{configurable:true,value:()=>({matches:false,addEventListener:jest.fn(),removeEventListener:jest.fn()})});});
+      12 | test('UX-C5: the calendar honors the selected event timezone rather than resetting to UTC',()=>{
+    > 13 |  render(<RunnerScheduleAgenda events={[]} canEdit onCreate={jest.fn()} onEdit={jest.fn()} timezone='Europe/Berlin' />);
+         |        ^
+      14 |  expect(mockAgendaProps.mock.calls.at(-1)?.[0].timeZone).toBe('Europe/Berlin');
+      15 | });
+      16 |
+
+      at updateFunctionComponent (node_modules/react-dom/cjs/react-dom-client.development.js:10564:21)
+      at beginWork (node_modules/react-dom/cjs/react-dom-client.development.js:12205:18)
+      at runWithFiberInDEV (node_modules/react-dom/cjs/react-dom-client.development.js:1048:13)
+      at performUnitOfWork (node_modules/react-dom/cjs/react-dom-client.development.js:19176:22)
+      at workLoopSync (node_modules/react-dom/cjs/react-dom-client.development.js:19004:41)
+      at renderRootSync (node_modules/react-dom/cjs/react-dom-client.development.js:18985:11)
+      at performWorkOnRoot (node_modules/react-dom/cjs/react-dom-client.development.js:18015:11)
+      at performWorkOnRootViaSchedulerTask (node_modules/react-dom/cjs/react-dom-client.development.js:20665:7)
+      at flushActQueue (node_modules/react/cjs/react.development.js:664:34)
+      at process.env.NODE_ENV.exports.act (node_modules/react/cjs/react.development.js:960:10)
+      at node_modules/@testing-library/react/dist/act-compat.js:46:25
+      at renderRoot (node_modules/@testing-library/react/dist/pure.js:198:26)
+      at render (node_modules/@testing-library/react/dist/pure.js:300:10)
+      at Object.<anonymous> (test/app/components/runnerScheduleAgenda.test.tsx:13:8)
+
+FAIL test/app/components/runnerScheduleAgenda.test.tsx
+  ● UX-C5: the calendar honors the selected event timezone rather than resetting to UTC
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "Europe/Berlin"
+    Received: "UTC"
+
+      12 | test('UX-C5: the calendar honors the selected event timezone rather than resetting to UTC',()=>{
+      13 |  render(<RunnerScheduleAgenda events={[]} canEdit onCreate={jest.fn()} onEdit={jest.fn()} timezone='Europe/Berlin' />);
+    > 14 |  expect(mockAgendaProps.mock.calls.at(-1)?.[0].timeZone).toBe('Europe/Berlin');
+         |                                                          ^
+      15 | });
+      16 |
+
+      at Object.toBe (test/app/components/runnerScheduleAgenda.test.tsx:14:58)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 1 total
+Snapshots:   0 total
+Time:        0.955 s, estimated 1 s
+Ran all test suites within paths "test/app/components/runnerScheduleAgenda.test.tsx".
+error: script "test" exited with code 1

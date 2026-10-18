@@ -1,0 +1,6 @@
+[tests] ordinary: 1 suites, 1 worker(s)
+Test Suites: 1 passed, 1 total
+Tests:       1 passed, 1 total
+Snapshots:   0 total
+Time:        0.416 s, estimated 1 s
+Ran all test suites matching test/mcp/unit/coverage-sql-inputs.test.ts.

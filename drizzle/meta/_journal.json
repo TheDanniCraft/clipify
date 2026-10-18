@@ -197,6 +197,13 @@
       "when": 1791769741107,
       "tag": "0027_boring_chamber",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1792360602524,
+      "tag": "0028_retire_runner_notification_branch",
+      "breakpoints": true
     }
   ]
 }
