@@ -5,7 +5,7 @@
 
 ## Outcome
 
-All23 delivery slices and376 primary artifacts are implemented and locally qualified. The complete current-source test inventory passes **7,574 physical cases**. The sole inherited native updater TODO is explicitly retained and is not counted as a pass. The final changed-file formatting check passes810 files.
+All23 delivery slices and376 primary artifacts are implemented and locally qualified. The pre-restart frozen-input checkpoint passes **7,574 physical cases**; post-restart fixture/schema corrections have separate scoped evidence and await fresh complete CI. The sole inherited native updater TODO is explicitly retained and is not counted as a pass. The final changed-file formatting check passes810 files.
 
 Release recommendation remains **No-Go** until required full CI and the official five-platform native workflow qualify the published source. Six tasks remain blocked on that evidence after local formatting: T149, T235, T316, T521, T639 and T651. These are release/story quality gates, not unbuilt feature work. This is the completed local checkpoint before CI publication; it claims no official CI pass, merge, deployment or release email.
 
@@ -98,3 +98,9 @@ The versioned [evidence archive](tdd/evidence.tar.gz) and [manifest](tdd/evidenc
 ## Post-restart qualification
 
 The implementation commit survived shutdown unchanged across all1657 recorded inputs. Restored PostgreSQL18 and Chromium prerequisites resolve DEF-US5-243 (five harness/fixture suites, eight tests). Post-restart broader feedback exposed DEF-US5-244: wall-clock resume examples overlapped an earlier recurring event. The test fixture now disables earlier examples and explicitly creates its future recovery event; the complete schedule owner passes106/106 (`tdd/evidence/F1-restart-schedule-v2.log`). Both findings are Verified. The earlier7574-pass full qualification belongs to its recorded input manifest; it is not relabeled as execution of the revised fixture. Complete CI and the native matrix remain pending, and the six gate tasks remain open.
+
+## Official native matrix and first full CI
+
+Official native workflow39109206765 passes all five platform builds/executable self-tests, matrix validation and artifact manifest publication. Current native source fingerprint3838cbac9f93dd9b5bb5e00d5a4a98bad6402aa2372a573975e0481796b8307c matches the published manifest despite later CI/schema-only changes; evidence is `tdd/evidence/F1-official-native-matrix.json`. T651 is complete;1041/1046 tasks are complete. Five story gates still require full CI. The configured public trust mapping is empty; production signing setup remains deployment-owned as documented in `docs/runner-signing.md`.
+
+Full CI39109433179 verifies the shared native dependency fix (DEF-US5-245), including complete native coverage/media tests. Its workflow coverage lacks FFmpeg (DEF-US5-246), and browser schema initialization exposes composite foreign-key/index ordering (DEF-US5-247). Both fixes require a fresh owning CI run. Revised schema owners pass178 tests across three whole files; CI/schema-wrapper checks pass25 cases. A reported SQL error now fails the restricted schema-push wrapper even if Drizzle exits0. No generated migration, guard bypass or assertion weakening is introduced.

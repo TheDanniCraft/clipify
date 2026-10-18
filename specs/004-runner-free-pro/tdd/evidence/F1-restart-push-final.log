@@ -1,0 +1,592 @@
+TAP version 13
+# Subtest: documentation avoids duplicate application tests
+ok 1 - documentation avoids duplicate application tests
+  ---
+  duration_ms: 2.504705
+  type: 'test'
+  ...
+# Subtest: hook changes run their dedicated checks without application changes
+ok 2 - hook changes run their dedicated checks without application changes
+  ---
+  duration_ms: 0.232171
+  type: 'test'
+  ...
+# Subtest: UI and its regression tests select related suites
+ok 3 - UI and its regression tests select related suites
+  ---
+  duration_ms: 0.520122
+  type: 'test'
+  ...
+# Subtest: shared infrastructure and unknown files require the full suite
+ok 4 - shared infrastructure and unknown files require the full suite
+  ---
+  duration_ms: 0.371936
+  type: 'test'
+  ...
+# Subtest: all commits and refs being pushed contribute paths
+ok 5 - all commits and refs being pushed contribute paths
+  ---
+  duration_ms: 1.338764
+  type: 'test'
+  ...
+# Subtest: new branches compare to the master merge base
+ok 6 - new branches compare to the master merge base
+  ---
+  duration_ms: 0.369007
+  type: 'test'
+  ...
+# Subtest: deleted refs need no tests and invalid input fails closed
+ok 7 - deleted refs need no tests and invalid input fails closed
+  ---
+  duration_ms: 0.445231
+  type: 'test'
+  ...
+# Subtest: Gherkin changes use scoped local checks while browser acceptance stays in CI
+ok 8 - Gherkin changes use scoped local checks while browser acceptance stays in CI
+  ---
+  duration_ms: 0.269884
+  type: 'test'
+  ...
+# Subtest: migration automation does not require an unrelated application database for generated artifacts
+ok 9 - migration automation does not require an unrelated application database for generated artifacts
+  ---
+  duration_ms: 0.476934
+  type: 'test'
+  ...
+# Subtest: migration automation still tests source changes and unexpected artifacts
+ok 10 - migration automation still tests source changes and unexpected artifacts
+  ---
+  duration_ms: 0.541856
+  type: 'test'
+  ...
+# Subtest: generated migrations outside their owning workflow retain full push checks
+ok 11 - generated migrations outside their owning workflow retain full push checks
+  ---
+  duration_ms: 0.318106
+  type: 'test'
+  ...
+# Subtest: self-test children cannot consume the ref input needed for scoped checks
+ok 12 - self-test children cannot consume the ref input needed for scoped checks
+  ---
+  duration_ms: 44.030697
+  type: 'test'
+  ...
+1..12
+# tests 12
+# suites 0
+# pass 12
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 67.919276
+[pre-push] Running scoped feedback for 409 changed files. Complete coverage and browser checks remain mandatory in CI.
+TAP version 13
+# Subtest: recognizes generated Drizzle artifacts but not schema sources
+ok 1 - recognizes generated Drizzle artifacts but not schema sources
+  ---
+  duration_ms: 1.668029
+  type: 'test'
+  ...
+# Subtest: rejects migration artifacts on an ordinary feature branch
+ok 2 - rejects migration artifacts on an ordinary feature branch
+  ---
+  duration_ms: 1.376018
+  type: 'test'
+  ...
+# Subtest: allows only the authenticated master workflow for ordinary generation
+ok 3 - allows only the authenticated master workflow for ordinary generation
+  ---
+  duration_ms: 0.261424
+  type: 'test'
+  ...
+# Subtest: accepts the explicit human approval escape hatch
+ok 4 - accepts the explicit human approval escape hatch
+  ---
+  duration_ms: 0.219823
+  type: 'test'
+  ...
+# Subtest: owning coverage lane records changed worktree inputs without requiring a new commit
+ok 5 - owning coverage lane records changed worktree inputs without requiring a new commit
+  ---
+  duration_ms: 1000.019886
+  type: 'test'
+  ...
+# Subtest: native provider completes long MCP login, consent and PKCE token exchange
+ok 6 - native provider completes long MCP login, consent and PKCE token exchange
+  ---
+  duration_ms: 216.248543
+  type: 'test'
+  ...
+# Subtest: Twitch cancellation returns to the native signed login query for retry
+ok 7 - Twitch cancellation returns to the native signed login query for retry
+  ---
+  duration_ms: 28.071036
+  type: 'test'
+  ...
+# Subtest: the provider rejects tampered authorization before starting Twitch sign-in
+ok 8 - the provider rejects tampered authorization before starting Twitch sign-in
+  ---
+  duration_ms: 16.148928
+  type: 'test'
+  ...
+# Subtest: the provider rejects expired authorization instead of falling back to ordinary login
+ok 9 - the provider rejects expired authorization instead of falling back to ordinary login
+  ---
+  duration_ms: 34.913082
+  type: 'test'
+  ...
+# Subtest: native email change delivers both codes with hashed storage and updates the verified address
+ok 10 - native email change delivers both codes with hashed storage and updates the verified address
+  ---
+  duration_ms: 22.247422
+  type: 'test'
+  ...
+# Subtest: ordinary Twitch sign-in retains its app callback and creates a revocable native session
+ok 11 - ordinary Twitch sign-in retains its app callback and creates a revocable native session
+  ---
+  duration_ms: 18.451518
+  type: 'test'
+  ...
+# =============================== Coverage summary ===============================
+# Statements   : 50% ( 1/2 )
+# Branches     : 100% ( 0/0 )
+# Functions    : 100% ( 0/0 )
+# Lines        : 50% ( 1/2 )
+# ================================================================================
+# Jest: Coverage for statements (50%) does not meet "global" threshold (100%)
+# =============================== Coverage summary ===============================
+# Statements   : 100% ( 2/2 )
+# Branches     : 100% ( 0/0 )
+# Functions    : 100% ( 0/0 )
+# Lines        : 100% ( 2/2 )
+# ================================================================================
+# Subtest: coverage aggregation rejects missing, repeated and foreign evidence
+ok 12 - coverage aggregation rejects missing, repeated and foreign evidence
+  ---
+  duration_ms: 34.186937
+  type: 'test'
+  ...
+# Subtest: installed Jest thresholds fail incomplete counters and pass their complete union
+ok 13 - installed Jest thresholds fail incomplete counters and pass their complete union
+  ---
+  duration_ms: 46.287492
+  type: 'test'
+  ...
+# Subtest: coverage aggregation rejects different worktree bytes even at the same commit tree
+ok 14 - coverage aggregation rejects different worktree bytes even at the same commit tree
+  ---
+  duration_ms: 0.851606
+  type: 'test'
+  ...
+# Subtest: production behind a reverse proxy keeps a short state for long MCP return URLs
+ok 15 - production behind a reverse proxy keeps a short state for long MCP return URLs
+  ---
+  duration_ms: 20.923417
+  type: 'test'
+  ...
+# Subtest: request-origin inference reproduces unnecessarily expanded production state
+ok 16 - request-origin inference reproduces unnecessarily expanded production state
+  ---
+  duration_ms: 19.035981
+  type: 'test'
+  ...
+# Subtest: explicit preview origin still proxies Twitch through production
+ok 17 - explicit preview origin still proxies Twitch through production
+  ---
+  duration_ms: 3.224239
+  type: 'test'
+  ...
+# Subtest: database state preserves long MCP callbacks without exceeding browser cookie limits
+ok 18 - database state preserves long MCP callbacks without exceeding browser cookie limits
+  ---
+  duration_ms: 142.808643
+  type: 'test'
+  ...
+# Subtest: real social sign-in stores OpenAI-sized state on the server and sets a small signed cookie
+ok 19 - real social sign-in stores OpenAI-sized state on the server and sets a small signed cookie
+  ---
+  duration_ms: 51.535827
+  type: 'test'
+  ...
+# Subtest: documentation avoids duplicate application tests
+ok 20 - documentation avoids duplicate application tests
+  ---
+  duration_ms: 2.72293
+  type: 'test'
+  ...
+# Subtest: hook changes run their dedicated checks without application changes
+ok 21 - hook changes run their dedicated checks without application changes
+  ---
+  duration_ms: 0.35391
+  type: 'test'
+  ...
+# Subtest: UI and its regression tests select related suites
+ok 22 - UI and its regression tests select related suites
+  ---
+  duration_ms: 0.503378
+  type: 'test'
+  ...
+# Subtest: shared infrastructure and unknown files require the full suite
+ok 23 - shared infrastructure and unknown files require the full suite
+  ---
+  duration_ms: 0.488757
+  type: 'test'
+  ...
+# Subtest: all commits and refs being pushed contribute paths
+ok 24 - all commits and refs being pushed contribute paths
+  ---
+  duration_ms: 2.168955
+  type: 'test'
+  ...
+# Subtest: new branches compare to the master merge base
+ok 25 - new branches compare to the master merge base
+  ---
+  duration_ms: 0.375763
+  type: 'test'
+  ...
+# Subtest: deleted refs need no tests and invalid input fails closed
+ok 26 - deleted refs need no tests and invalid input fails closed
+  ---
+  duration_ms: 0.50743
+  type: 'test'
+  ...
+# Subtest: Gherkin changes use scoped local checks while browser acceptance stays in CI
+ok 27 - Gherkin changes use scoped local checks while browser acceptance stays in CI
+  ---
+  duration_ms: 0.254711
+  type: 'test'
+  ...
+# Subtest: migration automation does not require an unrelated application database for generated artifacts
+ok 28 - migration automation does not require an unrelated application database for generated artifacts
+  ---
+  duration_ms: 0.653068
+  type: 'test'
+  ...
+# Subtest: migration automation still tests source changes and unexpected artifacts
+ok 29 - migration automation still tests source changes and unexpected artifacts
+  ---
+  duration_ms: 0.849893
+  type: 'test'
+  ...
+# Subtest: generated migrations outside their owning workflow retain full push checks
+ok 30 - generated migrations outside their owning workflow retain full push checks
+  ---
+  duration_ms: 0.303551
+  type: 'test'
+  ...
+# Subtest: self-test children cannot consume the ref input needed for scoped checks
+ok 31 - self-test children cannot consume the ref input needed for scoped checks
+  ---
+  duration_ms: 53.958029
+  type: 'test'
+  ...
+# Subtest: allows only the approved loopback GitHub Actions target
+ok 32 - allows only the approved loopback GitHub Actions target
+  ---
+  duration_ms: 1.003837
+  type: 'test'
+  ...
+# Subtest: rejects schema push outside GitHub Actions
+ok 33 - rejects schema push outside GitHub Actions
+  ---
+  duration_ms: 1.967505
+  type: 'test'
+  ...
+# Subtest: rejects schema push outside the browser job
+ok 34 - rejects schema push outside the browser job
+  ---
+  duration_ms: 0.17501
+  type: 'test'
+  ...
+# Subtest: rejects schema push without explicit CI approval
+ok 35 - rejects schema push without explicit CI approval
+  ---
+  duration_ms: 0.169296
+  type: 'test'
+  ...
+# Subtest: rejects schema push against a remote host
+ok 36 - rejects schema push against a remote host
+  ---
+  duration_ms: 0.219448
+  type: 'test'
+  ...
+# Subtest: rejects schema push against a differently named database
+ok 37 - rejects schema push against a differently named database
+  ---
+  duration_ms: 0.189178
+  type: 'test'
+  ...
+# Subtest: rejects schema push as a different database user
+ok 38 - rejects schema push as a different database user
+  ---
+  duration_ms: 0.132118
+  type: 'test'
+  ...
+# Subtest: mandatory Test gate retains its existing FULL refusal
+ok 39 - mandatory Test gate retains its existing FULL refusal
+  ---
+  duration_ms: 5.037849
+  type: 'test'
+  ...
+# Subtest: mandatory Test gate retains its existing COVERAGE refusal
+ok 40 - mandatory Test gate retains its existing COVERAGE refusal
+  ---
+  duration_ms: 2.925796
+  type: 'test'
+  ...
+# Subtest: mandatory Test gate retains its existing BROWSER refusal
+ok 41 - mandatory Test gate retains its existing BROWSER refusal
+  ---
+  duration_ms: 3.219723
+  type: 'test'
+  ...
+# Subtest: mandatory Test gate rejects a required native result of failure
+ok 42 - mandatory Test gate rejects a required native result of failure
+  ---
+  duration_ms: 2.825128
+  type: 'test'
+  ...
+# Subtest: mandatory Test gate rejects a required native result of cancelled
+ok 43 - mandatory Test gate rejects a required native result of cancelled
+  ---
+  duration_ms: 2.692884
+  type: 'test'
+  ...
+# Subtest: mandatory Test gate rejects a required native result of skipped
+ok 44 - mandatory Test gate rejects a required native result of skipped
+  ---
+  duration_ms: 2.683886
+  type: 'test'
+  ...
+# Subtest: mandatory Test gate permits unchanged Runner scope and requires the actual native job
+ok 45 - mandatory Test gate permits unchanged Runner scope and requires the actual native job
+  ---
+  duration_ms: 5.750911
+  type: 'test'
+  ...
+# Subtest: coverage merger uses the same pinned Node as the owning lanes
+ok 46 - coverage merger uses the same pinned Node as the owning lanes
+  ---
+  duration_ms: 0.279849
+  type: 'test'
+  ...
+# Subtest: every official native platform checks out identical LF source before fingerprinting
+ok 47 - every official native platform checks out identical LF source before fingerprinting
+  ---
+  duration_ms: 0.652636
+  type: 'test'
+  ...
+# Subtest: native coverage collects all thirteen modules and keeps critical95/90 and ordinary90/85 floors
+ok 48 - native coverage collects all thirteen modules and keeps critical95/90 and ordinary90/85 floors
+  ---
+  duration_ms: 2.350698
+  type: 'test'
+  ...
+# Subtest: retained player and new Runner counter floors preserve the approved baseline
+ok 49 - retained player and new Runner counter floors preserve the approved baseline
+  ---
+  duration_ms: 2.137205
+  type: 'test'
+  ...
+# Subtest: default CI source audit includes new Runner delivery, normalization and standby editor paths
+ok 50 - default CI source audit includes new Runner delivery, normalization and standby editor paths
+  ---
+  duration_ms: 5.171212
+  type: 'test'
+  ...
+# Subtest: normal Jest collection includes the Runner decoration source
+ok 51 - normal Jest collection includes the Runner decoration source
+  ---
+  duration_ms: 12473.453149
+  type: 'test'
+  ...
+# Subtest: native evidence accepts the complete owned source and case inventory
+ok 52 - native evidence accepts the complete owned source and case inventory
+  ---
+  duration_ms: 7.126985
+  type: 'test'
+  ...
+# Subtest: native evidence refuses an empty inventory
+ok 53 - native evidence refuses an empty inventory
+  ---
+  duration_ms: 0.848704
+  type: 'test'
+  ...
+# Subtest: native evidence refuses inconsistent case totals
+ok 54 - native evidence refuses inconsistent case totals
+  ---
+  duration_ms: 0.849462
+  type: 'test'
+  ...
+# Subtest: native evidence rejects missing, foreign and malformed source counters
+ok 55 - native evidence rejects missing, foreign and malformed source counters
+  ---
+  duration_ms: 2.960685
+  type: 'test'
+  ...
+# Subtest: native evidence rejects missing owners, duplicate owners and skipped assertions
+ok 56 - native evidence rejects missing owners, duplicate owners and skipped assertions
+  ---
+  duration_ms: 1.856926
+  type: 'test'
+  ...
+# Subtest: native evidence retains only the exact inherited updater TODO
+ok 57 - native evidence retains only the exact inherited updater TODO
+  ---
+  duration_ms: 5.186593
+  type: 'test'
+  ...
+# =============================== Coverage summary ===============================
+# Statements   : 100% ( 102/102 )
+# Branches     : 100% ( 102/102 )
+# Functions    : 100% ( 102/102 )
+# Lines        : 100% ( 102/102 )
+# ================================================================================
+# =============================== Coverage summary ===============================
+# Statements   : 99.01% ( 101/102 )
+# Branches     : 100% ( 102/102 )
+# Functions    : 100% ( 102/102 )
+# Lines        : 99.01% ( 101/102 )
+# ================================================================================
+# =============================== Coverage summary ===============================
+# Statements   : 100% ( 102/102 )
+# Branches     : 100% ( 102/102 )
+# Functions    : 99.01% ( 101/102 )
+# Lines        : 100% ( 102/102 )
+# ================================================================================
+# =============================== Coverage summary ===============================
+# Statements   : 100% ( 102/102 )
+# Branches     : 99.01% ( 101/102 )
+# Functions    : 100% ( 102/102 )
+# Lines        : 100% ( 102/102 )
+# ================================================================================
+# =============================== Coverage summary ===============================
+# Statements   : Unknown% ( 0/0 )
+# Branches     : Unknown% ( 0/0 )
+# Functions    : Unknown% ( 0/0 )
+# Lines        : Unknown% ( 0/0 )
+# ================================================================================
+# =============================== Coverage summary ===============================
+# Statements   : 100% ( 102/102 )
+# Branches     : 100% ( 102/102 )
+# Functions    : 1.96% ( 2/102 )
+# Lines        : 100% ( 102/102 )
+# ================================================================================
+# Subtest: Runner player gate accepts complete retained and changed counters
+ok 58 - Runner player gate accepts complete retained and changed counters
+  ---
+  duration_ms: 51.791586
+  type: 'test'
+  ...
+# Subtest: Runner statements cannot hide behind the much larger retained player
+ok 59 - Runner statements cannot hide behind the much larger retained player
+  ---
+  duration_ms: 3.970956
+  type: 'test'
+  ...
+# Subtest: Runner functions cannot hide behind the much larger retained player
+ok 60 - Runner functions cannot hide behind the much larger retained player
+  ---
+  duration_ms: 2.457001
+  type: 'test'
+  ...
+# Subtest: Runner branches cannot hide behind the much larger retained player
+ok 61 - Runner branches cannot hide behind the much larger retained player
+  ---
+  duration_ms: 2.665218
+  type: 'test'
+  ...
+# Subtest: Runner player source is required even when global coverage would pass
+ok 62 - Runner player source is required even when global coverage would pass
+  ---
+  duration_ms: 1.005218
+  type: 'test'
+  ...
+# Subtest: retained player floors cannot regress while every new Runner counter passes
+ok 63 - retained player floors cannot regress while every new Runner counter passes
+  ---
+  duration_ms: 2.488392
+  type: 'test'
+  ...
+# Subtest: every suite has one owner and timing proofs stay isolated
+ok 64 - every suite has one owner and timing proofs stay isolated
+  ---
+  duration_ms: 17.296258
+  type: 'test'
+  ...
+# Subtest: Jest filter returns the exact string-path contract rather than wrapping paths
+ok 65 - Jest filter returns the exact string-path contract rather than wrapping paths
+  ---
+  duration_ms: 1.451818
+  type: 'test'
+  ...
+# Subtest: ready PRs, master and unknown events require complete validation
+ok 66 - ready PRs, master and unknown events require complete validation
+  ---
+  duration_ms: 0.263813
+  type: 'test'
+  ...
+# Subtest: native workflow scenarios have one owner; browser shards remain exhaustive
+ok 67 - native workflow scenarios have one owner; browser shards remain exhaustive
+  ---
+  duration_ms: 0.838476
+  type: 'test'
+  ...
+# Subtest: CI keeps a mandatory complete gate and triggers when a draft becomes ready
+ok 68 - CI keeps a mandatory complete gate and triggers when a draft becomes ready
+  ---
+  duration_ms: 75.43432
+  type: 'test'
+  ...
+# Subtest: Runner database-backed contracts and health sweeps use a database coverage lane
+ok 69 - Runner database-backed contracts and health sweeps use a database coverage lane
+  ---
+  duration_ms: 0.31548
+  type: 'test'
+  ...
+1..69
+# tests 69
+# suites 0
+# pass 69
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 12619.256554
+{
+  "ok": true,
+  "counts": {
+    "bdd": 1317,
+    "atdd": 24,
+    "bdd/mcp-support": 711
+  },
+  "errors": []
+}
+[tests] Native application probes compiled once for this run
+[tests] ordinary: 2 suites, 1 worker(s)
+[tests] database: 3 suites, 1 worker(s)
+
+Test Suites: 5 passed, 5 total
+Tests:       8 passed, 8 total
+Snapshots:   0 total
+Time:        51.528 s, estimated 57 s
+Ran all test suites matching test/mcp/unit/test-runner-lanes.test.ts|test/mcp/unit/test-runner-database-budget.test.ts|test/mcp/unit/coverage-parallel.test.ts|test/mcp/integration/fixture-template.test.ts|test/mcp/integration/notification-outbox-failures.test.ts.
+[tests] Native application probes compiled once for this run
+[tests] ordinary: 235 suites, 2 worker(s)
+[tests] database: 39 suites, 2 worker(s)
+[tests] quiet timing/races: 1 suites, 1 worker(s)
+
+Test Suites: 1 skipped, 274 passed, 274 of 275 total
+Tests:       3 skipped, 3692 passed, 3695 total
+Snapshots:   0 total
+Time:        487.682 s
+Ran all test suites related to files matching eslint.config.mjs|jest.config.cjs|next.config.ts|packages/runner/build-inputs.mjs|packages/runner/build.mjs|packages/runner/jest.config.cjs|packages/runner/run-coverage.mjs|packages/runner/src/__tests__/capture-startup.test.ts|packages/runner/src/__tests__/cli-configuration.test.ts|packages/runner/src/__tests__/cli-coverage-adapter.test.ts|packages/runner/src/__tests__/cli-enrollment.test.ts|packages/runner/src/__tests__/cli-errors.test.ts|packages/runner/src/__tests__/cli-free-factory.test.ts|packages/runner/src/__tests__/cli-job-lifecycle.test.ts|packages/runner/src/__tests__/cli-main.test.ts|packages/runner/src/__tests__/cli-reachability.test.ts|packages/runner/src/__tests__/cli-watchdog.test.ts|packages/runner/src/__tests__/controller-drain.test.ts|packages/runner/src/__tests__/drain.test.ts|packages/runner/src/__tests__/engine.test.ts|packages/runner/src/__tests__/execution-clock-binding.test.ts|packages/runner/src/__tests__/execution-journal.test.ts|packages/runner/src/__tests__/execution-key-packaging.test.ts|packages/runner/src/__tests__/execution-keys.test.ts|packages/runner/src/__tests__/execution-runtime.test.ts|packages/runner/src/__tests__/heartbeat-protocol.test.ts|packages/runner/src/__tests__/multistream-controller.test.ts|packages/runner/src/__tests__/output.test.ts|packages/runner/src/__tests__/presentation-bootstrap.test.ts|packages/runner/src/__tests__/presentation.test.ts|packages/runner/src/__tests__/proxy.test.ts|packages/runner/src/__tests__/schedule-cache-validation.test.ts|packages/runner/src/__tests__/schedule-recovery.test.ts|packages/runner/src/__tests__/schedule.test.ts|packages/runner/src/__tests__/terminal-credentials.test.ts|packages/runner/src/__tests__/terminal-delivery.test.ts|packages/runner/src/__tests__/terminal-keyring.test.ts|packages/runner/src/engine.ts|packages/runner/src/execution-clock.ts|packages/runner/src/execution-journal.ts|packages/runner/src/execution-keys.ts|packages/runner/src/execution-runtime.ts|packages/runner/src/index.ts|packages/runner/src/output.ts|packages/runner/src/presentation-bootstrap.ts|packages/runner/src/presentation.ts|packages/runner/src/protocol.ts|packages/runner/src/schedule-cache.ts|packages/runner/src/schedule-calendar.ts|packages/runner/src/schedule.ts|packages/runner/src/storage.ts|packages/runner/src/terminal-credentials.ts|packages/runner/src/terminal-delivery.ts|packages/runner/test/atdd/runner-free-pro.test.ts|packages/runner/test/bdd/runner-cached-schedule.test.ts|packages/runner/test/bdd/runner-drain-regression.test.ts|packages/runner/test/bdd/runner-free-lease-expiry.test.ts|packages/runner/test/bdd/runner-free-lease-replay.test.ts|packages/runner/test/bdd/runner-free-leases.test.ts|packages/runner/test/bdd/runner-free-pro.test.ts|packages/runner/test/bdd/runner-lease-startup.test.ts|packages/runner/test/bdd/runner-outside-standby.test.ts|packages/runner/test/bdd/runner-schedule-connection.test.ts|packages/runner/test/bdd/runner-schedule-late-continuity.test.ts|packages/runner/test/bdd/runner-schedule-owner-resume.test.ts|packages/runner/test/bdd/runner-schedule-recovery.test.ts|packages/runner/test/bdd/runner-schedule-recurrence.test.ts|packages/runner/test/bdd/runner-schedule-same-session.test.ts|packages/runner/test/bdd/runner-schedule-transitions.test.ts|packages/runner/test/bdd/runner-schedule-window-boundaries.test.ts|packages/runner/test/output.integration.test.ts|packages/runner/test/storage.test.ts|packages/runner/test/support/capture-probe.mjs|packages/runner/test/support/cli-adapter.ts|packages/runner/test/support/drain-probe.mjs|packages/runner/test/support/fallback-presentation-probe.mjs|packages/runner/test/support/multistream-cli-probe.mjs|packages/runner/test/support/native-media.mjs|packages/runner/test/support/observe-cold-restart.mjs|packages/runner/test/support/output-recovery-probe.mjs|packages/runner/test/support/outside-standby-probe.mjs|packages/runner/test/support/prepare-media.mjs|packages/runner/test/support/receivers.ts|packages/runner/test/support/replay-probe.mjs|packages/runner/test/support/scenario-inventory.ts|packages/runner/test/support/schedule-calendar-probe.mjs|packages/runner/test/support/schedule-fixture.ts|packages/runner/test/support/schedule-restart-probe.mjs|playwright.config.ts|playwright.mcp.config.ts|src/app/HomePageClient.tsx|src/app/actions/agency.ts|src/app/actions/runner.ts|src/app/actions/subscription.ts|src/app/api/runner/branding-assets/route.ts|src/app/api/runner/heartbeat/route.ts|src/app/api/runner/presentation/route.ts|src/app/api/runner/terminal/route.ts|src/app/checkout/continue/route.ts|src/app/checkout/start/route.ts|src/app/components/LandingPage/faqs.ts|src/app/components/OverlayTable/index.tsx|src/app/components/Pricing/ProSetupModal.tsx|src/app/components/Pricing/index.tsx|src/app/components/Pricing/pricing-catalog.ts|src/app/components/footer.tsx|src/app/components/overlayPlayer.tsx|src/app/components/playerOverlay.tsx|src/app/components/runner/RunnerBrandingPreview.tsx|src/app/components/runner/StandbyEditor.tsx|src/app/components/runnerBroadcastControls.tsx|src/app/components/runnerDestinationSelection.tsx|src/app/components/runnerDestinations.tsx|src/app/components/runnerGeneratedPresentation.tsx|src/app/components/runnerOutputStatus.tsx|src/app/components/runnerSchedule.tsx|src/app/components/runnerScheduleAgenda.tsx|src/app/components/runnerSchedulePlanner.ts|src/app/components/upgradeModal.tsx|src/app/dashboard/runners/[id]/page.tsx|src/app/dashboard/settings/billing-panel.tsx|src/app/dashboard/settings/page.tsx|src/app/lib/deployment.ts|src/app/lib/embeddedRoutes.ts|src/app/lib/entitlements.ts|src/app/lib/runnerBrandingLayout.ts|src/app/lib/runnerStandby.ts|src/app/lib/sentryServer.ts|src/app/lib/types.ts|src/app/pricing/page.tsx|src/app/runner/enroll/actions.ts|src/app/runner/enroll/runner-create-cta.tsx|src/app/runner/enroll/runner-enroll-form.tsx|src/app/runner/enroll/runner-enroll-result.tsx|src/app/runner/presentation/[sessionId]/assets/[assetId]/route.ts|src/app/runner/presentation/[sessionId]/page.tsx|src/app/runner/presentation/[sessionId]/policy/route.ts|src/app/runner/preview/[runnerId]/assets/[assetId]/route.ts|src/app/runner/preview/[runnerId]/page.tsx|src/db/schema.ts|src/server/agencies/billing.ts|src/server/entitlements.ts|src/server/mcp/creators.ts|src/server/mcp/tools.ts|src/server/mcp/workflows/catalogue.ts|src/server/mcp/workflows/schemas.ts|src/server/resources/errors.ts|src/server/resources/runners.ts|src/server/resources/workflow.ts|src/server/runner/admission.ts|src/server/runner/benefits.ts|src/server/runner/branding-assets.ts|src/server/runner/branding-profiles.ts|src/server/runner/branding.ts|src/server/runner/capabilities.ts|src/server/runner/destinations.ts|src/server/runner/lease.ts|src/server/runner/presentation.ts|src/server/runner/schedule-time.ts|src/server/runner/schedules.ts|src/server/runner/signing.ts|src/server/runner/standby-next-broadcast.ts|src/server/runner/terminal.ts|test/__mocks__/heroui-react.cjs|test/app/actions/runner.test.ts|test/app/api/runner/branding-assets.test.ts|test/app/api/runner/heartbeat.test.ts|test/app/api/runner/presentation-policy.test.ts|test/app/api/runner/presentation.test.ts|test/app/api/runner/terminal.test.ts|test/app/components/OverlayTable/index.test.tsx|test/app/components/Pricing/comparison.test.tsx|test/app/components/Pricing/pricing-page.test.tsx|test/app/components/Pricing/pricing-tiers.test.ts|test/app/components/overlayPlayer.test.tsx|test/app/components/playerOverlay.test.tsx|test/app/components/runnerBrandingPreview.test.tsx|test/app/components/runnerBroadcastControls.test.tsx|test/app/components/runnerDestinationSelection.test.tsx|test/app/components/runnerGeneratedPresentation.client.test.tsx|test/app/components/runnerGeneratedPresentation.test.tsx|test/app/components/runnerOutputStatus.test.tsx|test/app/components/runnerSchedule.test.tsx|test/app/components/runnerSchedulePlanner.test.ts|test/app/dashboard/runner.polling.test.tsx|test/app/dashboard/settings.page.test.tsx|test/app/lib/deployment.server.test.ts|test/app/lib/deployment.test.ts|test/app/lib/embeddedRoutes.test.ts|test/app/lib/runnerBusinessErrors.test.ts|test/app/lib/runnerExecutionClock.test.ts|test/app/lib/runnerExecutionClockLease.test.ts|test/app/lib/runnerExecutionLease.test.ts|test/app/lib/runnerLeaseService.test.ts|test/app/lib/runnerScheduleCacheProtocol.test.ts|test/app/lib/runnerScheduler.test.ts|test/app/lib/runnerStandby.test.ts|test/app/lib/runnerTerminalService.test.ts|test/app/runner/appearance-preview.test.tsx|test/app/runner/branding-presentation-assets.test.ts|test/app/runner/branding-preview-assets.test.ts|test/app/runner/enroll-actions.test.ts|test/app/runner/runner-enroll-form.test.tsx|test/atdd/steps/runner-free-pro-workflows.steps.ts|test/atdd/steps/runner-free-pro.steps.ts|test/atdd/steps/runner-standby.steps.ts|test/atdd/support/runner-free-pro.ts|test/auth-engine-rewrite/property/non-destructive-downgrade.test.ts|test/bdd/steps/runner-boundaries.steps.ts|test/bdd/steps/runner-branding.steps.ts|test/bdd/steps/runner-collision.steps.ts|test/bdd/steps/runner-commercial-access.steps.ts|test/bdd/steps/runner-commercial-transitions.steps.ts|test/bdd/steps/runner-commercial.steps.ts|test/bdd/steps/runner-decoration.steps.ts|test/bdd/steps/runner-destinations-workflows.steps.ts|test/bdd/steps/runner-free-pro-workflows.steps.ts|test/bdd/steps/runner-free-pro.steps.ts|test/bdd/steps/runner-multistream-workflows.steps.ts|test/bdd/steps/runner-presentation.steps.ts|test/bdd/steps/runner-readability.steps.ts|test/bdd/steps/runner-schedule-contracts.steps.ts|test/bdd/steps/runner-standby-boundaries.steps.ts|test/bdd/support/runner-free-pro.ts|test/bdd/support/runner-presentation.ts|test/bdd/support/runner-readability.ts|test/mcp/unit/browser-database.test.ts|test/mcp/unit/coverage-gate.test.ts|test/mcp/unit/coverage-next-entries.test.ts|test/mcp/unit/next-ws-lazy-route.test.ts|test/mcp/unit/patched-dependency-resolver.test.ts|test/mcp/unit/runner-fingerprint.test.ts|test/mcp/unit/runner-native-routing.test.ts|test/mcp/unit/test-runner-database-budget.test.ts|test/mcp/unit/workflow-coverage-reset.test.ts|test/mcp/workflows/browser-runner-revisions.test.ts|test/mcp/workflows/browser-runner-stop.test.ts|test/mcp/workflows/capabilities.test.ts|test/mcp/workflows/input-boundaries.test.ts|test/mcp/workflows/plan-boundaries.test.ts|test/mcp/workflows/workflow-commit-boundary.test.ts|test/mcp/workflows/workflow-input-guards.test.ts|test/server/runner/admission-acceptance.test.ts|test/server/runner/admission.test.ts|test/server/runner/automation.test.ts|test/server/runner/branding-asset-references.test.ts|test/server/runner/branding-profile.test.ts|test/server/runner/branding.test.ts|test/server/runner/capabilities.test.ts|test/server/runner/capability-policy.test.ts|test/server/runner/commercial-transitions.test.ts|test/server/runner/commercial.test.ts|test/server/runner/destination-editor.test.ts|test/server/runner/destinations.test.ts|test/server/runner/manual-configuration.test.ts|test/server/runner/output-status.test.ts|test/server/runner/schedule-continuity.test.ts|test/server/runner/schedule-time.test.ts|test/server/runner/schedules.test.ts|test/server/runner/standby-next-broadcast.test.ts|test/support/mcp/browser-database.cjs|test/support/mcp/browser-playlist-delete-probe.ts|test/support/mcp/flow-probe.ts|test/support/mcp/native-workflow-setup.mjs|test/support/mcp/runner-branding-assets-probe.ts|test/support/mcp/runner-branding-probe.ts|test/support/mcp/runner-commercial-probe.ts|test/support/mcp/runner-commercial-transitions-probe.ts|test/support/mcp/runner-destinations-probe.ts|test/support/mcp/runner-free-boundary-probe.ts|test/support/mcp/runner-free-pro-probe.ts|test/support/mcp/runner-manual-configuration-probe.ts|test/support/mcp/runner-multistream-media.ts|test/support/mcp/runner-multistream-probe.ts|test/support/mcp/runner-presentation-provider-preload.mjs|test/support/mcp/runner-schedule-automation-probe.ts|test/support/mcp/runner-schedule-continuity-probe.ts|test/support/mcp/runner-schedule-contract-probe.ts|test/support/mcp/runner-schedule-probe.ts|test/support/mcp/runner-standby-probe.ts|test/support/mcp/runner-terminal-probe.ts|test/support/mcp/workflow-catalogue.ts|test/support/runner-next-ws-lazy-probe.cjs|test/support/runner/clock.ts|test/support/runner/fixtures.ts|test/support/runner/receivers.ts|test/support/runner/scenario-inventory.ts|test/support/runner/standby-image-boundary.ts.
+Scoped feedback complete. Full merge validation remains required.
+remote: 
+remote: Create a pull request for 'plan/free-runner-branding' on GitHub by visiting:        
+remote:      https://github.com/TheDanniCraft/clipify/pull/new/plan/free-runner-branding        
+remote: 
+To https://github.com/TheDanniCraft/clipify
+ * [new branch]        plan/free-runner-branding -> plan/free-runner-branding
+branch 'plan/free-runner-branding' set up to track 'origin/plan/free-runner-branding'.
