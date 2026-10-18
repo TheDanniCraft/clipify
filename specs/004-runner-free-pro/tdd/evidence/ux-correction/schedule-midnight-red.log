@@ -1,0 +1,31 @@
+[tests] Native application probes compiled once for this run
+[tests] database: 1 suites, 1 worker(s)
+FAIL test/server/runner/schedules.test.ts (15.231 s)
+  ● TDD-US3-DEC007 U189: active event move, resize and configuration edits are rejected atomically through service and action
+
+    expect(received).toMatchObject(expected)
+
+    - Expected  - 1
+    + Received  + 1
+
+      Object {
+    -   "code": "ACTIVE_OCCURRENCE_LOCKED",
+    +   "code": "INVALID_INPUT",
+        "success": false,
+      }
+
+      335 | 	expect(Object.keys(result.activeEdits)).toHaveLength(6);
+      336 | 	for (const observation of Object.values(result.activeEdits) as { result: { success: boolean; code: string }; unchanged: boolean }[]) {
+    > 337 | 		expect(observation.result).toMatchObject({ success: false, code: "ACTIVE_OCCURRENCE_LOCKED" });
+          | 		                           ^
+      338 | 		expect(observation.unchanged).toBe(true);
+      339 | 	}
+      340 | });
+
+      at Object.toMatchObject (test/server/runner/schedules.test.ts:337:30)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 105 passed, 106 total
+Snapshots:   0 total
+Time:        15.795 s
+Ran all test suites matching test/server/runner/schedules.test.ts.
