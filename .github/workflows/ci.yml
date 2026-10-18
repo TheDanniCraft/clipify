@@ -372,11 +372,23 @@ jobs:
         if: matrix.lane == 'unit'
         run: node --test scripts/*.test.cjs scripts/*.test.mjs
 
+      - name: 📦 Install workflow Runner dependencies
+        if: matrix.lane == 'workflows'
+        working-directory: packages/runner
+        run: |
+          bun install --frozen-lockfile
+          bun run patches:validate
+          node check-native.mjs
+      - name: 🌐 Prepare workflow media browser
+        if: matrix.lane == 'workflows'
+        working-directory: packages/runner
+        run: node test/support/prepare-media.mjs
       - name: 🎞️ Install workflow media dependencies
         if: matrix.lane == 'workflows'
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends ffmpeg
+          sudo apt-get satisfy -y --no-install-recommends "$(paste -sd, "$(dirname "$RUNNER_CHROME_PATH")/deb.deps")"
           ffmpeg -version
       - name: 🧪 Run owning coverage lane
         run: node scripts/run-coverage-lane.mjs ${{ matrix.lane }}
