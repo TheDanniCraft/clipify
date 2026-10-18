@@ -5,7 +5,19 @@
 **Updated:** 2026-10-18 · **Branch:** `plan/free-runner-branding`  
 **Specification:** [spec.md](spec.md) · **Plan:** [plan.md](plan.md) · **Registry:** [test-traceability.md](test-traceability.md) · **Defects:** [defect-log.md](defect-log.md)
 
-## Outcome
+## Current corrective implementation
+
+The Runner editor and standalone-entitlement hard cut are implemented in `6f87bd3b`/`9433536e`, with enrollment cleanup in `ec95eae8`, pushed to PR #519. The PR remains a draft while completion validation runs. The complete Runner browser regression owner passes 42/42 scenarios on the corrected production build. Required push feedback passes 201 suites and 3,043 cases (one existing conditional suite and three conditional cases skipped); this is scoped feedback, not the full coverage gate.
+
+The correction uses inline destination creation, recoverable configuration saves, modal appearance/scheduling, the shared overlay color picker, HeroUI Pro DropZone and Agenda, local timezone/date controls, stable message-driven previews and effective-Pro-only advanced access. AGENTS.md now requires real-component UX acceptance and visual review. Historical standalone Runner benefits are removed; unrelated Pro grants/trials/creator seats remain supported.
+
+Real-component editor acceptance passes 3/3 with inspected desktop/mobile and light/dark captures. Complete acceptance passes22/22. The mobile-padding correction additionally passes35 complete collision/readability/upload-boundary/pause cases without weakening width, canvas or readability checks. These overlapping owners are not summed. A final redundant destination heading/paragraph is removed; fresh final editor acceptance passes3/3 and the complete destination-boundary/custom-standby owners pass20/20. Full CI must qualify frozen fingerprint `a97b20fa9b7ba1dc8322ecfcc0b57f255fc27be83fca77f8f1727b4bb1bb7b2e`.
+
+The unfinished local completion attempts are excluded: coverage passed341 ordinary owners before stopping during database owners, and the broad browser run passed68 before one interruption/44 unrun. They are not full gates. Final qualification will use complete CI for the final frozen inputs, with all existing coverage floors and inventories. No release readiness claim is made for these changed inputs. See the current closure evidence in [UX audit](tdd/ux-audit.md).
+
+## Historical prior-candidate outcome
+
+The following statements describe the previously qualified candidate, superseded by the corrective implementation above.
 
 All 23 delivery slices and 376 primary artifacts are implemented. The published source is `4be68ca38f0057eb783685894ad7f02e0ae2c091`. Implementation recommendation is **Go for final review**. All implementation/runtime qualification and the user-approved security dispositions are complete. No merge or deployment is authorized.
 

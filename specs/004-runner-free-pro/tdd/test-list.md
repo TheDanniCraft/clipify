@@ -1246,16 +1246,18 @@ T1046 is an E4 remediation of the existing E3 U294/EXP001 owner for long-lived p
 
 ## UX correction behaviors (2026-10-18)
 
-- [ ] UX-C1 Retired Runner access cannot grant advanced Runner capabilities; only effective Pro can.
-- [ ] UX-C2 Billing, schema and entitlement surfaces contain no standalone Runner product or allocation.
-- [ ] UX-C3 Fresh setup offers inline destination creation and a valid Manual save with retryable failures.
-- [ ] UX-C4 Appearance edits keep one stable preview and use the shared color editor/DropZone with secondary fields.
-- [ ] UX-C5 Scheduling uses the installed Agenda navigation/views and selected local timezone; users can save across days.
-- [ ] UX-C6 Real-browser desktop/mobile and keyboard flows match Clipify conventions and enforce Free/Pro gating.
+- [x] UX-C1 Retired Runner access cannot grant advanced Runner capabilities; only effective Pro can.
+- [x] UX-C2 Billing, schema and entitlement surfaces contain no standalone Runner product or allocation.
+- [x] UX-C3 Fresh setup offers inline destination creation and a valid Manual save with retryable failures.
+- [x] UX-C4 Appearance edits keep one stable preview and use the shared color editor/DropZone with secondary fields.
+- [x] UX-C5 Scheduling uses the installed Agenda navigation/views and selected local timezone; users can save across days.
+- [x] UX-C6 Real-browser desktop/mobile and keyboard flows match Clipify conventions and enforce Free/Pro gating.
 
 The correction's outer browser UX journeys are added after the first implementation changes; do not claim historical ATDD Red for them. The recorded unit Reds above establish the specific entitlement, inline-action, stable-preview and timezone regressions. Full browser acceptance is still mandatory for completion.
 
-- [ ] UX-C7 Invalid/uncommitted timezone search blocks saving and preserves the stored event until a valid list selection is committed (BDD-US3-OPT036).
-- [ ] UX-C8 Timed Agenda events expose accessible keyboard actions while preserving pointer move/resize and multi-day identities.
+- [x] UX-C7 Invalid/uncommitted timezone search blocks saving and preserves the stored event until a valid list selection is committed (BDD-US3-OPT036).
+- [x] UX-C8 Timed Agenda events expose accessible keyboard actions while preserving pointer move/resize and multi-day identities.
 
-- [ ] UX-C9 Expired Pro multi-destination configuration remains visible and can be reduced to one without deleting saved targets; Save/Start require a valid Free count.
+- [x] UX-C9 Expired Pro multi-destination configuration remains visible and can be reduced to one without deleting saved targets; Save/Start require a valid Free count.
+
+- [x] UX-C10 Appearance modal retains a full-width 360px mobile preview, the configured broadcast canvas and the existing physical text readability/edge exposure minimum on light, dark and busy frames; desktop styling remains coherent.

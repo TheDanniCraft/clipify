@@ -2,7 +2,32 @@
 
 Source: `78025d38`, reviewed against the feature diff from `origin/master`, the existing overlay theme editor, installed HeroUI 3.2.6 and HeroUI Pro beta.10, and the user's review. This is an audit, not implementation completion evidence. No production accounts or data were inspected or changed.
 
-## Verdict
+## Corrective implementation checkpoint (2026-10-18)
+
+The audit below records the rejected original implementation. Corrections are now implemented in `6f87bd3b`/`9433536e`; final validation is ongoing. Do not read the historical verdict as the state of the corrected editor or mark release gates passed from scoped feedback.
+
+| Finding | Implemented correction                                                                     | Corrective verification                                                                                |
+| ------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------ |
+| UX-01   | Inline destination creation/selection; actionable missing source; Save distinct from Start | Real first-run Free/Pro acceptance and no-source flow; final captures inspected                        |
+| UX-02   | Remove standalone Runner product/entitlement/agency allocations; effective Pro only        | Retired-access, commercial, entitlement, billing and notification owners pass; no live records changed |
+| UX-03   | Stable iframe URL/key, revisioned same-origin draft messages and acknowledgments           | Preview route/message owners pass; browser counts document requests during edits                       |
+| UX-04   | Catch/finally lifecycle, preserved draft, retryable feedback; independent refresh recovery | Recovery owner passes; injected failed-save browser acceptance passes                                  |
+| UX-05   | Missing-source action and matching preview readiness/placement prerequisite                | Preview owners and no-source browser acceptance pass                                                   |
+| UX-06   | One setup shell, adjacent destinations and focused Appearance/Schedule modals              | Real desktop/mobile acceptance implemented; final captures inspected                                   |
+| UX-07   | Pro DropZone, shared color picker, HeroUI date/time/timezone controls                      | Installed component browser flows plus widget owners pass                                              |
+| UX-08   | Secondary fields and shared picker composition                                             | Component checks pass; final light/dark captures inspected                                             |
+| UX-09   | Installed Agenda navigation, Today and day/week/month views; native grid scrolling         | Complete 42-case Runner browser regression owner passes                                                |
+| UX-10   | Shared selected local timezone and searchable validated timezone input                     | Browser non-UTC, invalid-zone, DST and local-boundary cases pass                                       |
+| UX-11   | Separate human-readable start/end dates and weekly end days; stable IDs                    | Browser multi-day/week, move/resize, locked-event and continuation cases pass                          |
+| UX-12   | Extract exact theme color editor and retain constrained authentic overlay preview          | Shared picker, asset and preview contract owners pass; final captures inspected                        |
+| UX-13   | Shared owner policy, known-expiry refresh and authoritative denial invalidation            | Expiry/renewal browser cases pass; expanded downgrade acceptance passes                                |
+| UX-14   | Named actions, HeroUI event buttons, keyboard/focus and upload feedback                    | Complete Runner keyboard/pointer regression passes; real acceptance 3/3 passes                         |
+| UX-15   | Current configured theme tokens, including enrollment follow-through                       | Source sweep and enrollment owner pass; final captures inspected                                       |
+| UX-16   | Real-component acceptance and inspected visual evidence required by AGENTS.md              | Runner browser 42/42; push feedback 201 suites/3,043 cases; full gates still pending                   |
+
+The earlier browser freeze is not conclusively reproduced. The correction removes observed per-keystroke document navigation; that result does not prove every possible performance issue is resolved. Ordinary migration generation remains workflow-owned after merge. No production cleanup or generated migration is performed here.
+
+## Historical audit verdict
 
 Do not release the current Runner UX. Passing scoped tests established individual behaviors, but did not establish a coherent setup flow, design-system consistency, or visual quality. The earlier readiness claim was too strong.
 
@@ -147,3 +172,11 @@ Evidence: [browser observations](evidence/ux-audit/browser-observations.json), [
 Library cross-check: installed `@heroui-pro/react/dist/components/agenda/index.d.ts` exports the native Agenda Header/Heading/Navigation/NavButton/TodayButton/ViewSelector and month components; `components/drop-zone/index.d.ts` exports DropZone. The official [HeroUI Pro Agenda release documentation](https://docs.heroui.pro/docs/react/releases/beta-4) describes the same view/navigation and drag support. Existing application reuse references are `ThemeColorInput` and `OverlayStylePreview` in `src/app/dashboard/overlay/[overlayId]/theme/page.tsx`.
 
 Probe limitations: the first probe completed the Runner observations above. Its `free.locked` count was an immediate, non-waiting query before the option-selection locator waited for the menu; do not interpret that value as proof that the lock is absent. A follow-up attempt to wait explicitly stopped at the cookie-preference dialog setup before reaching Runner, so it contributes no additional Runner result. That test-setup timeout is not classified as a product regression. Final acceptance still needs the hardened browser fixture and the complete intended journeys.
+
+## Corrected visual review
+
+Final production-build real-component acceptance passes 3/3. Inspected [Free appearance](evidence/ux-correction/free-appearance-desktop.png), [Pro appearance](evidence/ux-correction/pro-appearance-desktop.png), [light desktop setup](evidence/ux-correction/free-setup-light-desktop.png), [mobile setup](evidence/ux-correction/pro-setup-mobile.png) and [mobile calendar](evidence/ux-correction/pro-schedule-mobile.png). These show the shared controls, consistent surfaces and spacing, readable generated attribution, stable authentic preview and native Agenda navigation. The Pro appearance capture is scrolled to its saved color/message controls; upload controls remain above in the same modal, not a separate card. Browser acceptance also exercises actual file upload and the shared color popover. The focus-restoration assertion waits for the library transition before Escape closes the parent destination dialog.
+
+The broader browser sweep additionally caught the modal-padding regression in the 360px preview. The correction retains full-width mobile preview and the original physical text/edge/canvas assertions; complete collision/readability/upload-boundary/pause owners pass 35/35. This supersedes the initial narrow-screen capture as readability qualification. See [mobile regression Red](evidence/ux-correction/mobile-regression-red.log), [whole-owner Green](evidence/ux-correction/mobile-readability-upload-owners-35.log) and [busy-frame 360px preview](evidence/ux-correction/E2-readable-busy-360-preview.png). No readability threshold or output assertion was lowered.
+
+Inspected the complete final mobile Appearance composition as well: [controls](evidence/ux-correction/pro-appearance-mobile-controls.png), [preview](evidence/ux-correction/pro-appearance-mobile-preview.png) and [measured geometry](evidence/ux-correction/mobile-appearance-observations.json). The390px viewport, document and preview agree, with preview x0. This separate observation uses its own disposable fixture and cleans it up; it is not added to acceptance totals.

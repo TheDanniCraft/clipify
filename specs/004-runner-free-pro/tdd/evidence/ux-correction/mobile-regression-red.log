@@ -1,0 +1,795 @@
+[WebServer] (node:565868) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:565868) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 113 tests using 1 worker
+
+(node:565942) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] Unauthenticated request
+[WebServer] Unauthorized "getAllOverlays" API request for user id: e2e-creator-14321874-3cf8-44b6-943f-20cfe945b06b
+  ✓    1 [bdd-chromium] › .features-gen/bdd/runner-boundaries.feature.spec.js:6:7 › Runner destination input boundaries › Deleting a saved destination requires confirmation @BDD @US2 @FR-009 @BDD-US2-FR009 @runner-manual-browser (7.2s)
+  ✓    2 [bdd-chromium] › .features-gen/bdd/runner-boundaries.feature.spec.js:16:9 › Runner destination input boundaries › Destination names have explicit length boundaries › Example #1 @BDD @US2 @FR-009 @runner-manual-browser @BDD-US2-BND001 (3.2s)
+  ✓    3 [bdd-chromium] › .features-gen/bdd/runner-boundaries.feature.spec.js:22:9 › Runner destination input boundaries › Destination names have explicit length boundaries › Example #2 @BDD @US2 @FR-009 @runner-manual-browser @BDD-US2-BND002 (4.5s)
+  ✓    4 [bdd-chromium] › .features-gen/bdd/runner-boundaries.feature.spec.js:28:9 › Runner destination input boundaries › Destination names have explicit length boundaries › Example #3 @BDD @US2 @FR-009 @runner-manual-browser @BDD-US2-BND003 (5.0s)
+  ✓    5 [bdd-chromium] › .features-gen/bdd/runner-boundaries.feature.spec.js:34:9 › Runner destination input boundaries › Destination names have explicit length boundaries › Example #4 @BDD @US2 @FR-009 @runner-manual-browser @BDD-US2-BND004 (3.1s)
+  ✓    6 [bdd-chromium] › .features-gen/bdd/runner-boundaries.feature.spec.js:42:7 › Runner destination input boundaries › Existing broadcasts gain one reusable destination when saved @BDD @US2 @FR-009 @BDD-US2-FR009 @runner-manual-browser (8.5s)
+  ✓    7 [bdd-chromium] › .features-gen/bdd/runner-boundaries.feature.spec.js:49:7 › Runner destination input boundaries › Schedule title length 0 is rejected @BDD @US3 @FR-011 @BDD-US3-BND005 @runner-schedule-browser (6.8s)
+  ✓    8 [bdd-chromium] › .features-gen/bdd/runner-boundaries.feature.spec.js:55:7 › Runner destination input boundaries › Schedule title length 1 is accepted @BDD @US3 @FR-011 @BDD-US3-BND006 @runner-schedule-browser (8.1s)
+  ✓    9 [bdd-chromium] › .features-gen/bdd/runner-boundaries.feature.spec.js:61:7 › Runner destination input boundaries › Schedule title length 80 is accepted @BDD @US3 @FR-011 @BDD-US3-BND007 @runner-schedule-browser (8.2s)
+  ✓   10 [bdd-chromium] › .features-gen/bdd/runner-boundaries.feature.spec.js:67:7 › Runner destination input boundaries › Schedule title length 81 is rejected @BDD @US3 @FR-011 @BDD-US3-BND008 @runner-schedule-browser (6.9s)
+  ✓   11 [bdd-chromium] › .features-gen/bdd/runner-boundaries.feature.spec.js:73:7 › Runner destination input boundaries › Schedule duration 0 minutes is rejected @BDD @US3 @FR-011 @BDD-US3-BND009 @runner-schedule-browser (7.7s)
+  ✓   12 [bdd-chromium] › .features-gen/bdd/runner-boundaries.feature.spec.js:79:7 › Runner destination input boundaries › Schedule duration 1440 minutes is accepted @BDD @US3 @FR-011 @BDD-US3-BND010 @runner-schedule-browser (8.1s)
+  ✓   13 [bdd-chromium] › .features-gen/bdd/runner-boundaries.feature.spec.js:85:7 › Runner destination input boundaries › Schedule duration 1441 minutes is accepted @BDD @US3 @FR-011 @BDD-US3-BND011 @runner-schedule-browser (8.1s)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✓   14 [bdd-chromium] › .features-gen/bdd/runner-branding.feature.spec.js:6:7 › Runner attribution placement › A Free owner saves a preferred top-left attribution position @BDD @US4 @FR-017 @BDD-US4-FR017 @BDD-US4-OPT050 @runner-branding-browser (3.9s)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✓   15 [bdd-chromium] › .features-gen/bdd/runner-branding.feature.spec.js:12:7 › Runner attribution placement › A Free owner saves a preferred top-right attribution position @BDD @US4 @FR-017 @BDD-US4-OPT051 @runner-branding-browser (4.2s)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✓   16 [bdd-chromium] › .features-gen/bdd/runner-branding.feature.spec.js:18:7 › Runner attribution placement › A Free owner saves a preferred bottom-left attribution position @BDD @US4 @FR-017 @BDD-US4-OPT052 @runner-branding-browser (3.8s)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✓   17 [bdd-chromium] › .features-gen/bdd/runner-branding.feature.spec.js:24:7 › Runner attribution placement › A Free owner saves a preferred bottom-right attribution position @BDD @US4 @FR-017 @BDD-US4-OPT053 @runner-branding-browser (3.8s)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No app access token found
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✓   18 [bdd-chromium] › .features-gen/bdd/runner-collision.feature.spec.js:8:9 › Runner attribution avoids overlay content › A <corner> preference avoids visible overlay panels › A bottom-right preference avoids visible overlay panels @BDD @US4 @FR-017 @BDD-US4-DEC012 @runner-collision-browser (6.0s)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No app access token found
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✓   19 [bdd-chromium] › .features-gen/bdd/runner-collision.feature.spec.js:14:9 › Runner attribution avoids overlay content › A <corner> preference avoids visible overlay panels › A top-left preference avoids visible overlay panels @BDD @US4 @FR-017 @BDD-US4-DEC012 @runner-collision-browser (6.0s)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No app access token found
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✓   20 [bdd-chromium] › .features-gen/bdd/runner-collision.feature.spec.js:20:9 › Runner attribution avoids overlay content › A <corner> preference avoids visible overlay panels › A top-right preference avoids visible overlay panels @BDD @US4 @FR-017 @BDD-US4-DEC012 @runner-collision-browser (6.0s)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No app access token found
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✓   21 [bdd-chromium] › .features-gen/bdd/runner-collision.feature.spec.js:26:9 › Runner attribution avoids overlay content › A <corner> preference avoids visible overlay panels › A bottom-left preference avoids visible overlay panels @BDD @US4 @FR-017 @BDD-US4-DEC012 @runner-collision-browser (7.2s)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No app access token found
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✓   22 [bdd-chromium] › .features-gen/bdd/runner-collision.feature.spec.js:34:7 › Runner attribution avoids overlay content › Attribution returns to its preferred corner after panels fade @BDD @US4 @FR-017 @BDD-US4-DEC012 @runner-collision-browser (17.2s)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✓   23 [bdd-chromium] › .features-gen/bdd/runner-collision.feature.spec.js:40:7 › Runner attribution avoids overlay content › A fully occupied mobile preview reports a configuration error @BDD @US4 @FR-017 @BDD-US4-DEC012 @runner-collision-browser (3.9s)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✘   24 [bdd-chromium] › .features-gen/bdd/runner-collision.feature.spec.js:50:9 › Runner attribution avoids overlay content › Mobile preview keeps the configured <resolution> broadcast canvas › Mobile preview keeps the configured 720p broadcast canvas @BDD @US4 @FR-017 @BDD-US4-DEC012 @runner-collision-browser (2.2s)
+(node:568316) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✘   25 [bdd-chromium] › .features-gen/bdd/runner-collision.feature.spec.js:56:9 › Runner attribution avoids overlay content › Mobile preview keeps the configured <resolution> broadcast canvas › Mobile preview keeps the configured 1080p broadcast canvas @BDD @US4 @FR-017 @BDD-US4-DEC012 @runner-collision-browser (2.2s)
+(node:568546) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No access token found for authUserId: e2e-creator-56b414d4-966b-43a9-bfc0-ff62b0de5084
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No app access token found
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No access token found for authUserId: e2e-creator-56b414d4-966b-43a9-bfc0-ff62b0de5084
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No access token found for authUserId: e2e-creator-56b414d4-966b-43a9-bfc0-ff62b0de5084
+  ✓   26 [bdd-chromium] › .features-gen/bdd/runner-collision.feature.spec.js:64:7 › Runner attribution avoids overlay content › A blocked playing layout prevents native output startup @BDD @US4 @FR-017 @BDD-US4-DEC012 @runner-collision-browser @runner-presentation-browser @runner-blocked-startup-browser (4.7s)
+  ✓   27 [bdd-chromium] › .features-gen/bdd/runner-commercial.feature.spec.js:6:7 › Runner is included in the existing plans › Pro setup includes Runner without another purchase @BDD @US5 @runner-commercial-browser @FR-020 @BDD-US5-FR020 (2.2s)
+  ✓   28 [bdd-chromium] › .features-gen/bdd/runner-commercial.feature.spec.js:12:7 › Runner is included in the existing plans › Retired Runner checkout links return to included access @BDD @US5 @runner-commercial-browser @FR-020 @BDD-US5-OPT065 (1.9s)
+  ✓   29 [bdd-chromium] › .features-gen/bdd/runner-commercial.feature.spec.js:18:7 › Runner is included in the existing plans › Public pricing groups included Runner benefits @BDD @US5 @runner-commercial-browser @FR-020 @BDD-US5-OPT064 (1.9s)
+  ✓   30 [bdd-chromium] › .features-gen/bdd/runner-commercial.feature.spec.js:23:7 › Runner is included in the existing plans › Billing controls include Runner without selling an add-on @BDD @US5 @runner-commercial-browser @FR-020 @BDD-US5-OPT066 (2.7s)
+  ✓   31 [bdd-chromium] › .features-gen/bdd/runner-commercial.feature.spec.js:29:7 › Runner is included in the existing plans › A Free creator can create a Runner without a purchase @BDD @US5 @runner-commercial-browser @FR-020 @BDD-US5-OPT067 (2.8s)
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+  ✓   32 [bdd-chromium] › .features-gen/bdd/runner-commercial.feature.spec.js:35:7 › Runner is included in the existing plans › Public and machine-readable guidance agree on included Runner @BDD @US5 @runner-commercial-browser @FR-020 @FR-023 @BDD-US5-DEC013 (3.0s)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No app access token found
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✓   33 [bdd-chromium] › .features-gen/bdd/runner-decoration.feature.spec.js:6:7 › Runner attribution avoids theme decorations › A clip panel shadow keeps its required attribution clearance @BDD @US4 @FR-017 @BDD-US4-DEC012 @runner-decoration-browser (5.9s)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No app access token found
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✓   34 [bdd-chromium] › .features-gen/bdd/runner-decoration.feature.spec.js:12:7 › Runner attribution avoids theme decorations › Progress and corner panels leave a safe attribution edge @BDD @US4 @FR-017 @BDD-US4-DEC012 @runner-decoration-browser (7.0s)
+  ✓   35 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:6:7 › Manual Runner configuration › A Free creator configures manual live fallback without scheduling @BDD @US1 @runner-manual-browser @FR-005 @BDD-US1-FR005 (4.4s)
+  ✓   36 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:12:7 › Manual Runner configuration › A denied second Start explains the occupied Free slot @BDD @US1 @runner-manual-browser @FR-002 @BDD-US1-FR002 (4.4s)
+  ✓   37 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:20:7 › Manual Runner configuration › Destination status remains independent in the browser @BDD @US1 @runner-manual-browser @US2 @FR-008 @BDD-US2-FR008 (5.8s)
+  ✓   38 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:27:7 › Manual Runner configuration › A moved one-time event keeps its logical occurrence identity @BDD @US1 @runner-manual-browser @US3 @FR-011 @BDD-US3-DEC004 @runner-schedule-browser (5.9s)
+  ✓   39 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:33:7 › Manual Runner configuration › A vacation event spans weeks without clipping its saved end @BDD @US1 @runner-manual-browser @US3 @FR-011 @BDD-US3-DEC005 @runner-schedule-browser (5.2s)
+  ✓   40 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:41:9 › Manual Runner configuration › All-day events respect actual local calendar-day duration › Example #1 @BDD @US1 @runner-manual-browser @US3 @FR-011 @BDD-US3-DEC006 @runner-schedule-browser (5.0s)
+  ✓   41 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:47:9 › Manual Runner configuration › All-day events respect actual local calendar-day duration › Example #2 @BDD @US1 @runner-manual-browser @US3 @FR-011 @BDD-US3-DEC006 @runner-schedule-browser (5.0s)
+  ✓   42 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:57:9 › Manual Runner configuration › Schedule choices persist at the browser boundary › Example #1 @BDD @US1 @runner-manual-browser @US3 @FR-011 @BDD-US3-FR011 @runner-schedule-browser @BDD-US3-OPT030 (5.3s)
+  ✓   43 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:63:9 › Manual Runner configuration › Schedule choices persist at the browser boundary › Example #2 @BDD @US1 @runner-manual-browser @US3 @FR-011 @BDD-US3-FR011 @runner-schedule-browser @BDD-US3-OPT031 (5.9s)
+  ✓   44 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:73:9 › Manual Runner configuration › Invalid edits preserve the saved schedule › Example #1 @BDD @US1 @runner-manual-browser @US3 @FR-011 @EC-006 @BDD-US3-EC006 @runner-schedule-browser @BDD-US3-OPT032 (6.7s)
+  ✓   45 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:79:9 › Manual Runner configuration › Invalid edits preserve the saved schedule › Example #2 @BDD @US1 @runner-manual-browser @US3 @FR-011 @EC-006 @BDD-US3-EC006 @runner-schedule-browser @BDD-US3-OPT033 (6.6s)
+  ✓   46 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:85:9 › Manual Runner configuration › Invalid edits preserve the saved schedule › Example #3 @BDD @US1 @runner-manual-browser @US3 @FR-011 @EC-006 @BDD-US3-EC006 @runner-schedule-browser @BDD-US3-OPT034 (6.7s)
+  ✓   47 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:91:9 › Manual Runner configuration › Invalid edits preserve the saved schedule › Example #4 @BDD @US1 @runner-manual-browser @US3 @FR-011 @EC-006 @BDD-US3-EC006 @runner-schedule-browser @BDD-US3-OPT035 (6.8s)
+  ✓   48 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:97:9 › Manual Runner configuration › Invalid edits preserve the saved schedule › Example #5 @BDD @US1 @runner-manual-browser @US3 @FR-011 @EC-006 @BDD-US3-EC006 @runner-schedule-browser @BDD-US3-OPT036 (5.9s)
+  ✓   49 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:105:7 › Manual Runner configuration › A saved timed event crosses midnight in its declared timezone @BDD @US1 @runner-manual-browser @US3 @FR-011 @BDD-US3-OPT090 @runner-schedule-browser (5.5s)
+  ✓   50 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:111:7 › Manual Runner configuration › A future weekly event can change timezone without changing logical identity @BDD @US1 @runner-manual-browser @US3 @FR-011 @BDD-US3-OPT091 @runner-schedule-browser (7.1s)
+  ✓   51 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:117:7 › Manual Runner configuration › A failed database save keeps the previously saved schedule authoritative @BDD @US1 @runner-manual-browser @US3 @FR-011 @EC-011 @BDD-US3-EC011 @runner-schedule-browser (5.8s)
+  ✓   52 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:123:7 › Manual Runner configuration › Mobile day navigation preserves a multi-week event's true dates @BDD @US1 @runner-manual-browser @US3 @FR-010 @FR-011 @BDD-US3-DEC009 @runner-agenda-browser (5.3s)
+  ✓   53 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:129:7 › Manual Runner configuration › Desktop week segments follow the installed calendar locale @BDD @US1 @runner-manual-browser @US3 @FR-010 @FR-011 @BDD-US3-DEC009 @runner-agenda-browser (4.7s)
+  ✓   54 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:135:7 › Manual Runner configuration › Pointer creation opens equivalent explicit schedule controls @BDD @US1 @runner-manual-browser @US3 @FR-010 @BDD-US3-FR010 @BDD-US3-OPT020 @runner-agenda-browser (3.0s)
+  ✓   55 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:141:7 › Manual Runner configuration › An active scheduled occurrence is visibly locked for editing @BDD @US1 @runner-manual-browser @US3 @FR-010 @FR-011 @FR-015 @BDD-US3-DEC007 @runner-agenda-browser (2.6s)
+  ✓   56 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:147:7 › Manual Runner configuration › Output drain keeps an ended occurrence locked @BDD @US1 @runner-manual-browser @US3 @FR-010 @FR-011 @FR-015 @BDD-US3-DEC007 @runner-agenda-browser (3.9s)
+  ✓   57 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:156:9 › Manual Runner configuration › A future schedule can be deleted with an explicit confirmation › Example #1 @BDD @US1 @runner-manual-browser @US3 @FR-010 @runner-agenda-browser @BDD-US3-OPT028 (6.1s)
+  ✓   58 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:162:9 › Manual Runner configuration › A future schedule can be deleted with an explicit confirmation › Example #2 @BDD @US1 @runner-manual-browser @US3 @FR-010 @runner-agenda-browser @BDD-US3-OPT029 (5.1s)
+  ✓   59 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:172:9 › Manual Runner configuration › Moving a schedule retains its logical identity › Example #1 @BDD @US1 @runner-manual-browser @US3 @FR-010 @runner-agenda-browser @BDD-US3-OPT022 (5.7s)
+  ✓   60 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:178:9 › Manual Runner configuration › Moving a schedule retains its logical identity › Example #2 @BDD @US1 @runner-manual-browser @US3 @FR-010 @runner-agenda-browser @BDD-US3-OPT023 (5.3s)
+  ✓   61 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:188:9 › Manual Runner configuration › Resizing a schedule preserves its real start › Example #1 @BDD @US1 @runner-manual-browser @US3 @FR-010 @runner-agenda-browser @BDD-US3-OPT024 (5.7s)
+  ✓   62 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:194:9 › Manual Runner configuration › Resizing a schedule preserves its real start › Example #2 @BDD @US1 @runner-manual-browser @US3 @FR-010 @runner-agenda-browser @BDD-US3-OPT025 (4.8s)
+  ✓   63 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:202:7 › Manual Runner configuration › A continuation segment exposes full dates instead of a clipped resize end @BDD @US1 @runner-manual-browser @US3 @FR-010 @FR-011 @BDD-US3-DEC009 @runner-agenda-browser (5.7s)
+  ✓   64 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:208:7 › Manual Runner configuration › A schedule can be created with keyboard activation of the explicit editor @BDD @US1 @runner-manual-browser @US3 @FR-010 @BDD-US3-OPT021 @runner-agenda-browser (4.4s)
+  ✓   65 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:216:9 › Manual Runner configuration › Metadata editing retains the event interval › Example #1 @BDD @US1 @runner-manual-browser @US3 @FR-010 @runner-agenda-browser @BDD-US3-OPT026 (5.4s)
+  ✓   66 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:222:9 › Manual Runner configuration › Metadata editing retains the event interval › Example #2 @BDD @US1 @runner-manual-browser @US3 @FR-010 @runner-agenda-browser @BDD-US3-OPT027 (4.9s)
+  ✓   67 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:232:9 › Manual Runner configuration › An ambiguous gesture explains the explicit full-event editor › Example #1 @BDD @US1 @runner-manual-browser @US3 @FR-010 @BDD-US3-DEC009 @runner-agenda-browser (5.9s)
+  ✓   68 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:238:9 › Manual Runner configuration › An ambiguous gesture explains the explicit full-event editor › Example #2 @BDD @US1 @runner-manual-browser @US3 @FR-010 @BDD-US3-DEC009 @runner-agenda-browser (5.3s)
+  ✓   69 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:246:7 › Manual Runner configuration › A stopped occurrence can explicitly resume within its original window @BDD @US1 @runner-manual-browser @US3 @FR-010 @FR-011 @FR-015 @BDD-US3-DEC008 @runner-agenda-browser (3.4s)
+  ✓   70 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:256:9 › Manual Runner configuration › Stop suppresses the captured occurrence while preserving Scheduled control › Example #1 @BDD @US1 @runner-manual-browser @US3 @FR-010 @FR-011 @FR-015 @BDD-US3-DEC008 @runner-agenda-browser @runner-schedule-stop-browser (5.2s)
+  ✓   71 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:265:9 › Manual Runner configuration › Stop suppresses the captured occurrence while preserving Scheduled control › Example #2 @BDD @US1 @runner-manual-browser @US3 @FR-010 @FR-011 @FR-015 @BDD-US3-DEC008 @runner-agenda-browser @runner-schedule-stop-browser (4.5s)
+  ✓   72 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:276:7 › Manual Runner configuration › Overlapping schedule changes preserve the existing event @BDD @US1 @runner-manual-browser @US3 @FR-014 @BDD-US3-OPT037 @runner-schedule-browser (7.4s)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No app access token found
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✓   73 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:282:7 › Manual Runner configuration › A Pro owner chooses a clean generated presentation @BDD @US1 @runner-manual-browser @US4 @FR-018 @BDD-US4-FR018 @runner-presentation-browser @runner-pro-appearance-browser (5.8s)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No app access token found
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✓   74 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:288:7 › Manual Runner configuration › A Pro owner voluntarily shows Clipify branding @BDD @US1 @runner-manual-browser @US4 @FR-018 @BDD-US4-OPT093 @runner-presentation-browser @runner-pro-appearance-browser (6.0s)
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No access token found for authUserId: e2e-creator-97dc2ccd-0fef-4c60-a0ca-08890666103d
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No app access token found
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No access token found for authUserId: e2e-creator-97dc2ccd-0fef-4c60-a0ca-08890666103d
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No access token found for authUserId: e2e-creator-97dc2ccd-0fef-4c60-a0ca-08890666103d
+  ✓   75 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:294:7 › Manual Runner configuration › Known Pro expiry restores branding without interrupting the playing clip @BDD @US1 @runner-manual-browser @US4 @FR-018 @FR-022 @BDD-US4-EXP001 @runner-presentation-browser @runner-pro-appearance-expiry-browser (20.8s)
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No access token found for authUserId: e2e-creator-680d9e21-d2df-462d-a275-cf57a3cf0043
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No app access token found
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No access token found for authUserId: e2e-creator-680d9e21-d2df-462d-a275-cf57a3cf0043
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No access token found for authUserId: e2e-creator-680d9e21-d2df-462d-a275-cf57a3cf0043
+  ✓   76 [bdd-chromium] › .features-gen/bdd/runner-free-pro.feature.spec.js:300:7 › Manual Runner configuration › Renewed Pro stays clean beyond its former appearance deadline @BDD @US1 @runner-manual-browser @US4 @FR-018 @FR-022 @BDD-US4-EXP001 @runner-presentation-browser @runner-pro-appearance-expiry-browser (20.8s)
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No access token found for authUserId: e2e-creator-aaf29784-511a-46ab-a0c0-fff5f005b772
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No app access token found
+  ✓   77 [bdd-chromium] › .features-gen/bdd/runner-presentation.feature.spec.js:6:7 › Runner-generated presentation › Free generated standby retains Clipify attribution @BDD @US4 @runner-presentation-browser @FR-016 @BDD-US4-OPT056 (757ms)
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No access token found for authUserId: e2e-creator-aaf29784-511a-46ab-a0c0-fff5f005b772
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No access token found for authUserId: e2e-creator-efab60b0-3774-45a9-9e7f-efe3cd6930eb
+  ✓   78 [bdd-chromium] › .features-gen/bdd/runner-presentation.feature.spec.js:12:7 › Runner-generated presentation › Ordinary overlay remains free of Runner attribution @BDD @US4 @runner-presentation-browser @FR-016 @BDD-US4-OPT058 (519ms)
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No app access token found
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No access token found for authUserId: e2e-creator-117c7efb-4bff-4c75-b816-96a838ada2c5
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No app access token found
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No access token found for authUserId: e2e-creator-117c7efb-4bff-4c75-b816-96a838ada2c5
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No access token found for authUserId: e2e-creator-117c7efb-4bff-4c75-b816-96a838ada2c5
+  ✓   79 [bdd-chromium] › .features-gen/bdd/runner-presentation.feature.spec.js:18:7 › Runner-generated presentation › Free generated clip playback retains Clipify attribution @BDD @US4 @runner-presentation-browser @FR-016 @BDD-US4-OPT054 (2.6s)
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No access token found for authUserId: e2e-creator-382083a2-e975-4818-a2a4-ef1930f4d316
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No app access token found
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No access token found for authUserId: e2e-creator-382083a2-e975-4818-a2a4-ef1930f4d316
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No access token found for authUserId: e2e-creator-382083a2-e975-4818-a2a4-ef1930f4d316
+  ✓   80 [bdd-chromium] › .features-gen/bdd/runner-presentation.feature.spec.js:24:7 › Runner-generated presentation › Live forwarding bypasses attribution across generated fallback and return @BDD @US4 @runner-presentation-browser @FR-016 @BDD-US4-FR016 @BDD-US4-OPT055 @BDD-US4-OPT057 (22.0s)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No app access token found
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✓   81 [bdd-chromium] › .features-gen/bdd/runner-readability.feature.spec.js:8:9 › Runner attribution readability › Fixed attribution remains readable on <background> frames at <width> pixels › Fixed attribution remains readable on light frames at 1920 pixels @BDD @US4 @FR-017 @BDD-US4-DEC011 @runner-readability-browser (5.5s)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No app access token found
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✓   82 [bdd-chromium] › .features-gen/bdd/runner-readability.feature.spec.js:14:9 › Runner attribution readability › Fixed attribution remains readable on <background> frames at <width> pixels › Fixed attribution remains readable on dark frames at 1920 pixels @BDD @US4 @FR-017 @BDD-US4-DEC011 @runner-readability-browser (5.8s)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching app access token: { status: 400, message: 'invalid client' }
+[WebServer] No app access token found
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Error fetching game details: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✓   83 [bdd-chromium] › .features-gen/bdd/runner-readability.feature.spec.js:20:9 › Runner attribution readability › Fixed attribution remains readable on <background> frames at <width> pixels › Fixed attribution remains readable on busy frames at 1920 pixels @BDD @US4 @FR-017 @BDD-US4-DEC011 @runner-readability-browser (6.0s)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✘   84 [bdd-chromium] › .features-gen/bdd/runner-readability.feature.spec.js:26:9 › Runner attribution readability › Fixed attribution remains readable on <background> frames at <width> pixels › Fixed attribution remains readable on light frames at 360 pixels @BDD @US4 @FR-017 @BDD-US4-DEC011 @runner-readability-browser (2.1s)
+(node:576236) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✘   85 [bdd-chromium] › .features-gen/bdd/runner-readability.feature.spec.js:32:9 › Runner attribution readability › Fixed attribution remains readable on <background> frames at <width> pixels › Fixed attribution remains readable on dark frames at 360 pixels @BDD @US4 @FR-017 @BDD-US4-DEC011 @runner-readability-browser (2.6s)
+(node:576448) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✘   86 [bdd-chromium] › .features-gen/bdd/runner-readability.feature.spec.js:38:9 › Runner attribution readability › Fixed attribution remains readable on <background> frames at <width> pixels › Fixed attribution remains readable on busy frames at 360 pixels @BDD @US4 @FR-017 @BDD-US4-DEC011 @runner-readability-browser (2.4s)
+(node:576728) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   87 [bdd-chromium] › .features-gen/bdd/runner-schedule-control.feature.spec.js:6:7 › Explicit schedule automation control › Pausing automation keeps the current broadcast and its original end visible @BDD @US3 @runner-schedule-control-browser @FR-015 @BDD-US3-OPT088 (19.4s)
+(node:577030) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✘   88 [bdd-chromium] › .features-gen/bdd/runner-standby-bytes-boundaries.feature.spec.js:6:7 › Standby image file byte boundaries › A 2097151-byte image file is accepted @BDD @ATDD @US4 @FR-019 @runner-presentation-browser @runner-standby-boundaries @BDD-US4-BND015 (2.8s)
+(node:577187) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+[WebServer] Overlay runtime access denied for overlay id: 0ef8bdb9-a99b-4c07-a655-57862d50207b; reason: not-found
+  ✘   89 [bdd-chromium] › .features-gen/bdd/runner-standby-bytes-boundaries.feature.spec.js:14:7 › Standby image file byte boundaries › A 2097152-byte image file is accepted @BDD @ATDD @US4 @FR-019 @runner-presentation-browser @runner-standby-boundaries @BDD-US4-BND016 (2.5s)
+(node:577322) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✘   90 [bdd-chromium] › .features-gen/bdd/runner-standby-bytes-boundaries.feature.spec.js:22:7 › Standby image file byte boundaries › A 2097153-byte image file is rejected @BDD @ATDD @US4 @FR-019 @runner-presentation-browser @runner-standby-boundaries @BDD-US4-BND017 @BDD-US4-OPT079 @BDD-US4-EC012 (2.5s)
+(node:577435) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✘   91 [bdd-chromium] › .features-gen/bdd/runner-standby-dimensions-boundaries.feature.spec.js:6:7 › Standby image dimensions boundaries › A 4096 by 1 raster image is accepted @BDD @ATDD @US4 @FR-019 @runner-presentation-browser @runner-standby-boundaries @BDD-US4-BND018 (2.5s)
+(node:577620) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✘   92 [bdd-chromium] › .features-gen/bdd/runner-standby-dimensions-boundaries.feature.spec.js:14:7 › Standby image dimensions boundaries › A 4097 by 1 raster image is rejected @BDD @ATDD @US4 @FR-019 @runner-presentation-browser @runner-standby-boundaries @BDD-US4-BND019 (2.4s)
+(node:577748) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✘   93 [bdd-chromium] › .features-gen/bdd/runner-standby-dimensions-boundaries.feature.spec.js:22:7 › Standby image dimensions boundaries › A 1 by 4096 raster image is accepted @BDD @ATDD @US4 @FR-019 @runner-presentation-browser @runner-standby-boundaries @BDD-US4-BND020 (2.9s)
+(node:577911) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] Error fetching avatar: { error: 'Unauthorized', status: 401, message: 'Invalid OAuth token' }
+  ✘   94 [bdd-chromium] › .features-gen/bdd/runner-standby-dimensions-boundaries.feature.spec.js:30:7 › Standby image dimensions boundaries › A 1 by 4097 raster image is rejected @BDD @ATDD @US4 @FR-019 @runner-presentation-browser @runner-standby-boundaries @BDD-US4-BND021 (3.6s)
+(node:578073) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   95 [bdd-chromium] › .features-gen/bdd/runner-standby-formats-boundaries.feature.spec.js:6:7 › Standby image format boundaries › A png standby file is accepted @BDD @ATDD @US4 @FR-019 @runner-presentation-browser @runner-standby-boundaries @BDD-US4-BND025 (451ms)
+
+
+  1) [bdd-chromium] › .features-gen/bdd/runner-collision.feature.spec.js:50:9 › Runner attribution avoids overlay content › Mobile preview keeps the configured <resolution> broadcast canvas › Mobile preview keeps the configured 720p broadcast canvas @BDD @US4 @FR-017 @BDD-US4-DEC012 @runner-collision-browser › Then its mobile preview uses the configured broadcast resolution 
+
+    Error: expect(received).toBeCloseTo(expected, precision)
+
+    Expected: 360
+    Received: 280
+
+    Expected precision:    0
+    Expected difference: < 0.5
+    Received difference:   80
+
+       at test/bdd/steps/runner-collision.steps.ts:187
+
+      185 | 	const frame = page.locator('iframe[title="Runner appearance preview"]');
+      186 | 	await frame.scrollIntoViewIfNeeded();
+    > 187 | 	expect((await frame.boundingBox())!.width).toBeCloseTo(360, 0);
+          | 	                                           ^
+      188 | 	await expect.poll(() => frame.evaluate((element) => (element as HTMLIFrameElement).contentWindow!.innerWidth)).toBe(expected.width);
+      189 | 	await expect.poll(() => frame.evaluate((element) => (element as HTMLIFrameElement).contentWindow!.innerHeight)).toBe(expected.height);
+      190 | 	expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
+        at Object.<anonymous> (/home/coder/clipify/test/bdd/steps/runner-collision.steps.ts:187:45)
+        at /home/coder/clipify/.features-gen/bdd/runner-collision.feature.spec.js:53:7
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/ux-all-runner-browser/runner-collision.feature-R-48cc6-gured-720p-broadcast-canvas-bdd-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/ux-all-runner-browser/runner-collision.feature-R-48cc6-gured-720p-broadcast-canvas-bdd-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/ux-all-runner-browser/runner-collision.feature-R-48cc6-gured-720p-broadcast-canvas-bdd-chromium/error-context.md
+
+  2) [bdd-chromium] › .features-gen/bdd/runner-collision.feature.spec.js:56:9 › Runner attribution avoids overlay content › Mobile preview keeps the configured <resolution> broadcast canvas › Mobile preview keeps the configured 1080p broadcast canvas @BDD @US4 @FR-017 @BDD-US4-DEC012 @runner-collision-browser › Then its mobile preview uses the configured broadcast resolution 
+
+    Error: expect(received).toBeCloseTo(expected, precision)
+
+    Expected: 360
+    Received: 281.18590927124023
+
+    Expected precision:    0
+    Expected difference: < 0.5
+    Received difference:   78.81409072875977
+
+       at test/bdd/steps/runner-collision.steps.ts:187
+
+      185 | 	const frame = page.locator('iframe[title="Runner appearance preview"]');
+      186 | 	await frame.scrollIntoViewIfNeeded();
+    > 187 | 	expect((await frame.boundingBox())!.width).toBeCloseTo(360, 0);
+          | 	                                           ^
+      188 | 	await expect.poll(() => frame.evaluate((element) => (element as HTMLIFrameElement).contentWindow!.innerWidth)).toBe(expected.width);
+      189 | 	await expect.poll(() => frame.evaluate((element) => (element as HTMLIFrameElement).contentWindow!.innerHeight)).toBe(expected.height);
+      190 | 	expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
+        at Object.<anonymous> (/home/coder/clipify/test/bdd/steps/runner-collision.steps.ts:187:45)
+        at /home/coder/clipify/.features-gen/bdd/runner-collision.feature.spec.js:59:7
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/ux-all-runner-browser/runner-collision.feature-R-5566f-ured-1080p-broadcast-canvas-bdd-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/ux-all-runner-browser/runner-collision.feature-R-5566f-ured-1080p-broadcast-canvas-bdd-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/ux-all-runner-browser/runner-collision.feature-R-5566f-ured-1080p-broadcast-canvas-bdd-chromium/error-context.md
+
+  3) [bdd-chromium] › .features-gen/bdd/runner-readability.feature.spec.js:26:9 › Runner attribution readability › Fixed attribution remains readable on <background> frames at <width> pixels › Fixed attribution remains readable on light frames at 360 pixels @BDD @US4 @FR-017 @BDD-US4-DEC011 @runner-readability-browser › Then its actual attribution is readable on light frames at 360 pixels 
+
+    Error: The mobile preview must actually use the complete 360px viewport
+
+    expect(received).toBeCloseTo(expected, precision)
+
+    Expected: 360
+    Received: 281.10852813720703
+
+    Expected precision:    0
+    Expected difference: < 0.5
+    Received difference:   78.89147186279297
+
+       at test/bdd/steps/runner-readability.steps.ts:74
+
+      72 | 		const box = await frame.boundingBox();
+      73 | 		expect(box).not.toBeNull();
+    > 74 | 		expect(box!.width, "The mobile preview must actually use the complete 360px viewport").toBeCloseTo(360, 0);
+         | 		                                                                                       ^
+      75 | 		expect(box!.x).toBeGreaterThanOrEqual(-0.5);
+      76 | 		expect(box!.x + box!.width).toBeLessThanOrEqual(360.5);
+      77 | 		expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
+        at Object.<anonymous> (/home/coder/clipify/test/bdd/steps/runner-readability.steps.ts:74:90)
+        at /home/coder/clipify/.features-gen/bdd/runner-readability.feature.spec.js:29:7
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/ux-all-runner-browser/runner-readability.feature-a97fe--light-frames-at-360-pixels-bdd-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/ux-all-runner-browser/runner-readability.feature-a97fe--light-frames-at-360-pixels-bdd-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/ux-all-runner-browser/runner-readability.feature-a97fe--light-frames-at-360-pixels-bdd-chromium/error-context.md
+
+  4) [bdd-chromium] › .features-gen/bdd/runner-readability.feature.spec.js:32:9 › Runner attribution readability › Fixed attribution remains readable on <background> frames at <width> pixels › Fixed attribution remains readable on dark frames at 360 pixels @BDD @US4 @FR-017 @BDD-US4-DEC011 @runner-readability-browser › Then its actual attribution is readable on dark frames at 360 pixels 
+
+    Error: The mobile preview must actually use the complete 360px viewport
+
+    expect(received).toBeCloseTo(expected, precision)
+
+    Expected: 360
+    Received: 280
+
+    Expected precision:    0
+    Expected difference: < 0.5
+    Received difference:   80
+
+       at test/bdd/steps/runner-readability.steps.ts:74
+
+      72 | 		const box = await frame.boundingBox();
+      73 | 		expect(box).not.toBeNull();
+    > 74 | 		expect(box!.width, "The mobile preview must actually use the complete 360px viewport").toBeCloseTo(360, 0);
+         | 		                                                                                       ^
+      75 | 		expect(box!.x).toBeGreaterThanOrEqual(-0.5);
+      76 | 		expect(box!.x + box!.width).toBeLessThanOrEqual(360.5);
+      77 | 		expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
+        at Object.<anonymous> (/home/coder/clipify/test/bdd/steps/runner-readability.steps.ts:74:90)
+        at /home/coder/clipify/.features-gen/bdd/runner-readability.feature.spec.js:35:7
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/ux-all-runner-browser/runner-readability.feature-53f77-n-dark-frames-at-360-pixels-bdd-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/ux-all-runner-browser/runner-readability.feature-53f77-n-dark-frames-at-360-pixels-bdd-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/ux-all-runner-browser/runner-readability.feature-53f77-n-dark-frames-at-360-pixels-bdd-chromium/error-context.md
+
+  5) [bdd-chromium] › .features-gen/bdd/runner-readability.feature.spec.js:38:9 › Runner attribution readability › Fixed attribution remains readable on <background> frames at <width> pixels › Fixed attribution remains readable on busy frames at 360 pixels @BDD @US4 @FR-017 @BDD-US4-DEC011 @runner-readability-browser › Then its actual attribution is readable on busy frames at 360 pixels 
+
+    Error: The mobile preview must actually use the complete 360px viewport
+
+    expect(received).toBeCloseTo(expected, precision)
+
+    Expected: 360
+    Received: 280
+
+    Expected precision:    0
+    Expected difference: < 0.5
+    Received difference:   80
+
+       at test/bdd/steps/runner-readability.steps.ts:74
+
+      72 | 		const box = await frame.boundingBox();
+      73 | 		expect(box).not.toBeNull();
+    > 74 | 		expect(box!.width, "The mobile preview must actually use the complete 360px viewport").toBeCloseTo(360, 0);
+         | 		                                                                                       ^
+      75 | 		expect(box!.x).toBeGreaterThanOrEqual(-0.5);
+      76 | 		expect(box!.x + box!.width).toBeLessThanOrEqual(360.5);
+      77 | 		expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
+        at Object.<anonymous> (/home/coder/clipify/test/bdd/steps/runner-readability.steps.ts:74:90)
+        at /home/coder/clipify/.features-gen/bdd/runner-readability.feature.spec.js:41:7
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/ux-all-runner-browser/runner-readability.feature-6ba21-n-busy-frames-at-360-pixels-bdd-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/ux-all-runner-browser/runner-readability.feature-6ba21-n-busy-frames-at-360-pixels-bdd-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/ux-all-runner-browser/runner-readability.feature-6ba21-n-busy-frames-at-360-pixels-bdd-chromium/error-context.md
+
+  6) [bdd-chromium] › .features-gen/bdd/runner-schedule-control.feature.spec.js:6:7 › Explicit schedule automation control › Pausing automation keeps the current broadcast and its original end visible @BDD @US3 @runner-schedule-control-browser @FR-015 @BDD-US3-OPT088 › When they pause schedule automation 
+
+    Error: expect(locator).toBeEnabled() failed
+
+    Locator: getByRole('button', { name: 'Pause automation', exact: true })
+    Expected: enabled
+    Timeout: 15000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeEnabled" getByRole('button', { name: 'Pause automation', exact: true }) with timeout 15000ms
+      - waiting for getByRole('button', { name: 'Pause automation', exact: true })
+
+
+       at test/bdd/steps/runner-schedule-contracts.steps.ts:806
+
+      804 | 	await openRunnerSchedule(page);
+      805 | 	const button = page.getByRole("button", { name: "Pause automation", exact: true });
+    > 806 | 	await expect(button).toBeEnabled();
+          | 	                     ^
+      807 | 	const response = page.waitForResponse((r) => r.request().method() === "POST" && r.url().includes("/dashboard/runners/"));
+      808 | 	await button.click();
+      809 | 	await response;
+        at Object.<anonymous> (/home/coder/clipify/test/bdd/steps/runner-schedule-contracts.steps.ts:806:23)
+        at /home/coder/clipify/.features-gen/bdd/runner-schedule-control.feature.spec.js:10:5
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/ux-all-runner-browser/runner-schedule-control.fe-5427a-nd-its-original-end-visible-bdd-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/ux-all-runner-browser/runner-schedule-control.fe-5427a-nd-its-original-end-visible-bdd-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/ux-all-runner-browser/runner-schedule-control.fe-5427a-nd-its-original-end-visible-bdd-chromium/error-context.md
+
+  7) [bdd-chromium] › .features-gen/bdd/runner-standby-bytes-boundaries.feature.spec.js:6:7 › Standby image file byte boundaries › A 2097151-byte image file is accepted @BDD @ATDD @US4 @FR-019 @runner-presentation-browser @runner-standby-boundaries @BDD-US4-BND015 › And they upload a standby image containing 2097151 file bytes 
+
+    Error: locator.setInputFiles: Error: strict mode violation: getByLabel('Standby background image', { exact: true }) resolved to 2 elements:
+        1) <button tabindex="0" type="button" data-react-aria-pressable="true" id="react-aria3067978528-_r_45_" aria-label="Upload Standby background image" aria-labelledby="react-aria3067978528-_r_45_ react-aria3067978528-_r_44_"></button> aka getByRole('button', { name: 'Upload Standby background' })
+        2) <input type="file" tabindex="-1" class="drop-zone__input" data-slot="drop-zone-input" aria-label="Standby background image" accept="image/png,image/jpeg,image/webp"/> aka getByRole('button', { name: 'Standby background image', exact: true })
+
+    Call log:
+      - waiting for getByLabel('Standby background image', { exact: true })
+
+
+       at test/bdd/steps/runner-standby-boundaries.steps.ts:113
+
+      111 | 	const boundary = mcpWorld.input?.standbyBoundary as Boundary;
+      112 | 	boundary.image = { width: 16, height: 16, mimeType: file.mimeType };
+    > 113 | 	await page.getByLabel("Standby background image", { exact: true }).setInputFiles(file);
+          | 	^
+      114 | });
+      115 |
+      116 | Then("the standby image is {string} and the saved appearance is consistent", async ({ page, mcpWorld }, outcome: string) => {
+        at Object.<anonymous> (/home/coder/clipify/test/bdd/steps/runner-standby-boundaries.steps.ts:113:2)
+        at /home/coder/clipify/.features-gen/bdd/runner-standby-bytes-boundaries.feature.spec.js:10:5
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/ux-all-runner-browser/runner-standby-bytes-bound-687a7-byte-image-file-is-accepted-bdd-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/ux-all-runner-browser/runner-standby-bytes-bound-687a7-byte-image-file-is-accepted-bdd-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/ux-all-runner-browser/runner-standby-bytes-bound-687a7-byte-image-file-is-accepted-bdd-chromium/error-context.md
+
+  8) [bdd-chromium] › .features-gen/bdd/runner-standby-bytes-boundaries.feature.spec.js:14:7 › Standby image file byte boundaries › A 2097152-byte image file is accepted @BDD @ATDD @US4 @FR-019 @runner-presentation-browser @runner-standby-boundaries @BDD-US4-BND016 › And they upload a standby image containing 2097152 file bytes 
+
+    Error: locator.setInputFiles: Error: strict mode violation: getByLabel('Standby background image', { exact: true }) resolved to 2 elements:
+        1) <button tabindex="0" type="button" data-react-aria-pressable="true" id="react-aria8451752653-_r_45_" aria-label="Upload Standby background image" aria-labelledby="react-aria8451752653-_r_45_ react-aria8451752653-_r_44_"></button> aka getByRole('button', { name: 'Upload Standby background' })
+        2) <input type="file" tabindex="-1" class="drop-zone__input" data-slot="drop-zone-input" aria-label="Standby background image" accept="image/png,image/jpeg,image/webp"/> aka getByRole('button', { name: 'Standby background image', exact: true })
+
+    Call log:
+      - waiting for getByLabel('Standby background image', { exact: true })
+
+
+       at test/bdd/steps/runner-standby-boundaries.steps.ts:113
+
+      111 | 	const boundary = mcpWorld.input?.standbyBoundary as Boundary;
+      112 | 	boundary.image = { width: 16, height: 16, mimeType: file.mimeType };
+    > 113 | 	await page.getByLabel("Standby background image", { exact: true }).setInputFiles(file);
+          | 	^
+      114 | });
+      115 |
+      116 | Then("the standby image is {string} and the saved appearance is consistent", async ({ page, mcpWorld }, outcome: string) => {
+        at Object.<anonymous> (/home/coder/clipify/test/bdd/steps/runner-standby-boundaries.steps.ts:113:2)
+        at /home/coder/clipify/.features-gen/bdd/runner-standby-bytes-boundaries.feature.spec.js:18:5
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/ux-all-runner-browser/runner-standby-bytes-bound-98474-byte-image-file-is-accepted-bdd-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/ux-all-runner-browser/runner-standby-bytes-bound-98474-byte-image-file-is-accepted-bdd-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/ux-all-runner-browser/runner-standby-bytes-bound-98474-byte-image-file-is-accepted-bdd-chromium/error-context.md
+
+  9) [bdd-chromium] › .features-gen/bdd/runner-standby-bytes-boundaries.feature.spec.js:22:7 › Standby image file byte boundaries › A 2097153-byte image file is rejected @BDD @ATDD @US4 @FR-019 @runner-presentation-browser @runner-standby-boundaries @BDD-US4-BND017 @BDD-US4-OPT079 @BDD-US4-EC012 › And they upload a standby image containing 2097153 file bytes 
+
+    Error: locator.setInputFiles: Error: strict mode violation: getByLabel('Standby background image', { exact: true }) resolved to 2 elements:
+        1) <button tabindex="0" type="button" data-react-aria-pressable="true" id="react-aria9844907963-_r_45_" aria-label="Upload Standby background image" aria-labelledby="react-aria9844907963-_r_45_ react-aria9844907963-_r_44_"></button> aka getByRole('button', { name: 'Upload Standby background' })
+        2) <input type="file" tabindex="-1" class="drop-zone__input" data-slot="drop-zone-input" aria-label="Standby background image" accept="image/png,image/jpeg,image/webp"/> aka getByRole('button', { name: 'Standby background image', exact: true })
+
+    Call log:
+      - waiting for getByLabel('Standby background image', { exact: true })
+
+
+       at test/bdd/steps/runner-standby-boundaries.steps.ts:113
+
+      111 | 	const boundary = mcpWorld.input?.standbyBoundary as Boundary;
+      112 | 	boundary.image = { width: 16, height: 16, mimeType: file.mimeType };
+    > 113 | 	await page.getByLabel("Standby background image", { exact: true }).setInputFiles(file);
+          | 	^
+      114 | });
+      115 |
+      116 | Then("the standby image is {string} and the saved appearance is consistent", async ({ page, mcpWorld }, outcome: string) => {
+        at Object.<anonymous> (/home/coder/clipify/test/bdd/steps/runner-standby-boundaries.steps.ts:113:2)
+        at /home/coder/clipify/.features-gen/bdd/runner-standby-bytes-boundaries.feature.spec.js:26:5
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/ux-all-runner-browser/runner-standby-bytes-bound-872a6-byte-image-file-is-rejected-bdd-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/ux-all-runner-browser/runner-standby-bytes-bound-872a6-byte-image-file-is-rejected-bdd-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/ux-all-runner-browser/runner-standby-bytes-bound-872a6-byte-image-file-is-rejected-bdd-chromium/error-context.md
+
+  10) [bdd-chromium] › .features-gen/bdd/runner-standby-dimensions-boundaries.feature.spec.js:6:7 › Standby image dimensions boundaries › A 4096 by 1 raster image is accepted @BDD @ATDD @US4 @FR-019 @runner-presentation-browser @runner-standby-boundaries @BDD-US4-BND018 › And they upload a 4096 by 1 standby raster image 
+
+    Error: locator.setInputFiles: Error: strict mode violation: getByLabel('Standby background image', { exact: true }) resolved to 2 elements:
+        1) <button tabindex="0" type="button" data-react-aria-pressable="true" id="react-aria5181996058-_r_45_" aria-label="Upload Standby background image" aria-labelledby="react-aria5181996058-_r_45_ react-aria5181996058-_r_44_"></button> aka getByRole('button', { name: 'Upload Standby background' })
+        2) <input type="file" tabindex="-1" class="drop-zone__input" data-slot="drop-zone-input" aria-label="Standby background image" accept="image/png,image/jpeg,image/webp"/> aka getByRole('button', { name: 'Standby background image', exact: true })
+
+    Call log:
+      - waiting for getByLabel('Standby background image', { exact: true })
+
+
+       at test/bdd/steps/runner-standby-boundaries.steps.ts:157
+
+      155 | 	const boundary = mcpWorld.input?.standbyBoundary as Boundary;
+      156 | 	boundary.image = { width, height, mimeType: file.mimeType };
+    > 157 | 	await page.getByLabel("Standby background image", { exact: true }).setInputFiles(file);
+          | 	^
+      158 | });
+      159 |
+      160 | When("they upload a standby file in {string} format", async ({ page, mcpWorld }, format: string) => {
+        at Object.<anonymous> (/home/coder/clipify/test/bdd/steps/runner-standby-boundaries.steps.ts:157:2)
+        at /home/coder/clipify/.features-gen/bdd/runner-standby-dimensions-boundaries.feature.spec.js:10:5
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/ux-all-runner-browser/runner-standby-dimensions--b1cf5--1-raster-image-is-accepted-bdd-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/ux-all-runner-browser/runner-standby-dimensions--b1cf5--1-raster-image-is-accepted-bdd-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/ux-all-runner-browser/runner-standby-dimensions--b1cf5--1-raster-image-is-accepted-bdd-chromium/error-context.md
+
+  11) [bdd-chromium] › .features-gen/bdd/runner-standby-dimensions-boundaries.feature.spec.js:14:7 › Standby image dimensions boundaries › A 4097 by 1 raster image is rejected @BDD @ATDD @US4 @FR-019 @runner-presentation-browser @runner-standby-boundaries @BDD-US4-BND019 › And they upload a 4097 by 1 standby raster image 
+
+    Error: locator.setInputFiles: Error: strict mode violation: getByLabel('Standby background image', { exact: true }) resolved to 2 elements:
+        1) <button tabindex="0" type="button" data-react-aria-pressable="true" id="react-aria1342468630-_r_45_" aria-label="Upload Standby background image" aria-labelledby="react-aria1342468630-_r_45_ react-aria1342468630-_r_44_"></button> aka getByRole('button', { name: 'Upload Standby background' })
+        2) <input type="file" tabindex="-1" class="drop-zone__input" data-slot="drop-zone-input" aria-label="Standby background image" accept="image/png,image/jpeg,image/webp"/> aka getByRole('button', { name: 'Standby background image', exact: true })
+
+    Call log:
+      - waiting for getByLabel('Standby background image', { exact: true })
+
+
+       at test/bdd/steps/runner-standby-boundaries.steps.ts:157
+
+      155 | 	const boundary = mcpWorld.input?.standbyBoundary as Boundary;
+      156 | 	boundary.image = { width, height, mimeType: file.mimeType };
+    > 157 | 	await page.getByLabel("Standby background image", { exact: true }).setInputFiles(file);
+          | 	^
+      158 | });
+      159 |
+      160 | When("they upload a standby file in {string} format", async ({ page, mcpWorld }, format: string) => {
+        at Object.<anonymous> (/home/coder/clipify/test/bdd/steps/runner-standby-boundaries.steps.ts:157:2)
+        at /home/coder/clipify/.features-gen/bdd/runner-standby-dimensions-boundaries.feature.spec.js:18:5
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/ux-all-runner-browser/runner-standby-dimensions--86094--1-raster-image-is-rejected-bdd-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/ux-all-runner-browser/runner-standby-dimensions--86094--1-raster-image-is-rejected-bdd-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/ux-all-runner-browser/runner-standby-dimensions--86094--1-raster-image-is-rejected-bdd-chromium/error-context.md
+
+  12) [bdd-chromium] › .features-gen/bdd/runner-standby-dimensions-boundaries.feature.spec.js:22:7 › Standby image dimensions boundaries › A 1 by 4096 raster image is accepted @BDD @ATDD @US4 @FR-019 @runner-presentation-browser @runner-standby-boundaries @BDD-US4-BND020 › And they upload a 1 by 4096 standby raster image 
+
+    Error: locator.setInputFiles: Error: strict mode violation: getByLabel('Standby background image', { exact: true }) resolved to 2 elements:
+        1) <button tabindex="0" type="button" id="react-aria817302897-_r_45_" data-react-aria-pressable="true" aria-label="Upload Standby background image" aria-labelledby="react-aria817302897-_r_45_ react-aria817302897-_r_44_"></button> aka getByRole('button', { name: 'Upload Standby background' })
+        2) <input type="file" tabindex="-1" class="drop-zone__input" data-slot="drop-zone-input" aria-label="Standby background image" accept="image/png,image/jpeg,image/webp"/> aka getByRole('button', { name: 'Standby background image', exact: true })
+
+    Call log:
+      - waiting for getByLabel('Standby background image', { exact: true })
+
+
+       at test/bdd/steps/runner-standby-boundaries.steps.ts:157
+
+      155 | 	const boundary = mcpWorld.input?.standbyBoundary as Boundary;
+      156 | 	boundary.image = { width, height, mimeType: file.mimeType };
+    > 157 | 	await page.getByLabel("Standby background image", { exact: true }).setInputFiles(file);
+          | 	^
+      158 | });
+      159 |
+      160 | When("they upload a standby file in {string} format", async ({ page, mcpWorld }, format: string) => {
+        at Object.<anonymous> (/home/coder/clipify/test/bdd/steps/runner-standby-boundaries.steps.ts:157:2)
+        at /home/coder/clipify/.features-gen/bdd/runner-standby-dimensions-boundaries.feature.spec.js:26:5
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/ux-all-runner-browser/runner-standby-dimensions--60780-96-raster-image-is-accepted-bdd-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/ux-all-runner-browser/runner-standby-dimensions--60780-96-raster-image-is-accepted-bdd-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/ux-all-runner-browser/runner-standby-dimensions--60780-96-raster-image-is-accepted-bdd-chromium/error-context.md
+
+  13) [bdd-chromium] › .features-gen/bdd/runner-standby-dimensions-boundaries.feature.spec.js:30:7 › Standby image dimensions boundaries › A 1 by 4097 raster image is rejected @BDD @ATDD @US4 @FR-019 @runner-presentation-browser @runner-standby-boundaries @BDD-US4-BND021 › And they upload a 1 by 4097 standby raster image 
+
+    Error: locator.setInputFiles: Error: strict mode violation: getByLabel('Standby background image', { exact: true }) resolved to 2 elements:
+        1) <button tabindex="0" type="button" data-react-aria-pressable="true" id="react-aria1841013569-_r_45_" aria-label="Upload Standby background image" aria-labelledby="react-aria1841013569-_r_45_ react-aria1841013569-_r_44_"></button> aka getByRole('button', { name: 'Upload Standby background' })
+        2) <input type="file" tabindex="-1" class="drop-zone__input" data-slot="drop-zone-input" aria-label="Standby background image" accept="image/png,image/jpeg,image/webp"/> aka getByRole('button', { name: 'Standby background image', exact: true })
+
+    Call log:
+      - waiting for getByLabel('Standby background image', { exact: true })
+
+
+       at test/bdd/steps/runner-standby-boundaries.steps.ts:157
+
+      155 | 	const boundary = mcpWorld.input?.standbyBoundary as Boundary;
+      156 | 	boundary.image = { width, height, mimeType: file.mimeType };
+    > 157 | 	await page.getByLabel("Standby background image", { exact: true }).setInputFiles(file);
+          | 	^
+      158 | });
+      159 |
+      160 | When("they upload a standby file in {string} format", async ({ page, mcpWorld }, format: string) => {
+        at Object.<anonymous> (/home/coder/clipify/test/bdd/steps/runner-standby-boundaries.steps.ts:157:2)
+        at /home/coder/clipify/.features-gen/bdd/runner-standby-dimensions-boundaries.feature.spec.js:34:5
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/ux-all-runner-browser/runner-standby-dimensions--bb718-97-raster-image-is-rejected-bdd-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/ux-all-runner-browser/runner-standby-dimensions--bb718-97-raster-image-is-rejected-bdd-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/ux-all-runner-browser/runner-standby-dimensions--bb718-97-raster-image-is-rejected-bdd-chromium/error-context.md
+
+  14) [bdd-chromium] › .features-gen/bdd/runner-standby-formats-boundaries.feature.spec.js:6:7 › Standby image format boundaries › A png standby file is accepted @BDD @ATDD @US4 @FR-019 @runner-presentation-browser @runner-standby-boundaries @BDD-US4-BND025 
+
+    Test was interrupted.
+
+    Error: page.goto: Test ended.
+    Call log:
+      - navigating to "http://127.0.0.1:3107/legal/cookies", waiting until "load"
+
+
+       at test/bdd/steps/runner-branding.steps.ts:12
+
+      10 | 	const world = state(mcpWorld.input);
+      11 | 	await page.context().addCookies([world.owner.cookie]);
+    > 12 | 	await page.goto("http://127.0.0.1:3107/legal/cookies");
+         | 	           ^
+      13 | 	await expect(page.getByRole("button", { name: "Enable support chat", exact: true })).toBeVisible();
+      14 | 	const preferences = page.getByRole("main").getByRole("button", { name: "Cookie preferences", exact: true });
+      15 | 	await preferences.focus();
+        at Object.<anonymous> (/home/coder/clipify/test/bdd/steps/runner-branding.steps.ts:12:13)
+        at /home/coder/clipify/.features-gen/bdd/runner-standby-formats-boundaries.feature.spec.js:9:5
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/ux-all-runner-browser/runner-standby-formats-bou-a5270-ng-standby-file-is-accepted-bdd-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/ux-all-runner-browser/runner-standby-formats-bou-a5270-ng-standby-file-is-accepted-bdd-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/ux-all-runner-browser/runner-standby-formats-bou-a5270-ng-standby-file-is-accepted-bdd-chromium/error-context.md
+
+  13 failed
+    [bdd-chromium] › .features-gen/bdd/runner-collision.feature.spec.js:50:9 › Runner attribution avoids overlay content › Mobile preview keeps the configured <resolution> broadcast canvas › Mobile preview keeps the configured 720p broadcast canvas @BDD @US4 @FR-017 @BDD-US4-DEC012 @runner-collision-browser 
+    [bdd-chromium] › .features-gen/bdd/runner-collision.feature.spec.js:56:9 › Runner attribution avoids overlay content › Mobile preview keeps the configured <resolution> broadcast canvas › Mobile preview keeps the configured 1080p broadcast canvas @BDD @US4 @FR-017 @BDD-US4-DEC012 @runner-collision-browser 
+    [bdd-chromium] › .features-gen/bdd/runner-readability.feature.spec.js:26:9 › Runner attribution readability › Fixed attribution remains readable on <background> frames at <width> pixels › Fixed attribution remains readable on light frames at 360 pixels @BDD @US4 @FR-017 @BDD-US4-DEC011 @runner-readability-browser 
+    [bdd-chromium] › .features-gen/bdd/runner-readability.feature.spec.js:32:9 › Runner attribution readability › Fixed attribution remains readable on <background> frames at <width> pixels › Fixed attribution remains readable on dark frames at 360 pixels @BDD @US4 @FR-017 @BDD-US4-DEC011 @runner-readability-browser 
+    [bdd-chromium] › .features-gen/bdd/runner-readability.feature.spec.js:38:9 › Runner attribution readability › Fixed attribution remains readable on <background> frames at <width> pixels › Fixed attribution remains readable on busy frames at 360 pixels @BDD @US4 @FR-017 @BDD-US4-DEC011 @runner-readability-browser 
+    [bdd-chromium] › .features-gen/bdd/runner-schedule-control.feature.spec.js:6:7 › Explicit schedule automation control › Pausing automation keeps the current broadcast and its original end visible @BDD @US3 @runner-schedule-control-browser @FR-015 @BDD-US3-OPT088 
+    [bdd-chromium] › .features-gen/bdd/runner-standby-bytes-boundaries.feature.spec.js:6:7 › Standby image file byte boundaries › A 2097151-byte image file is accepted @BDD @ATDD @US4 @FR-019 @runner-presentation-browser @runner-standby-boundaries @BDD-US4-BND015 
+    [bdd-chromium] › .features-gen/bdd/runner-standby-bytes-boundaries.feature.spec.js:14:7 › Standby image file byte boundaries › A 2097152-byte image file is accepted @BDD @ATDD @US4 @FR-019 @runner-presentation-browser @runner-standby-boundaries @BDD-US4-BND016 
+    [bdd-chromium] › .features-gen/bdd/runner-standby-bytes-boundaries.feature.spec.js:22:7 › Standby image file byte boundaries › A 2097153-byte image file is rejected @BDD @ATDD @US4 @FR-019 @runner-presentation-browser @runner-standby-boundaries @BDD-US4-BND017 @BDD-US4-OPT079 @BDD-US4-EC012 
+    [bdd-chromium] › .features-gen/bdd/runner-standby-dimensions-boundaries.feature.spec.js:6:7 › Standby image dimensions boundaries › A 4096 by 1 raster image is accepted @BDD @ATDD @US4 @FR-019 @runner-presentation-browser @runner-standby-boundaries @BDD-US4-BND018 
+    [bdd-chromium] › .features-gen/bdd/runner-standby-dimensions-boundaries.feature.spec.js:14:7 › Standby image dimensions boundaries › A 4097 by 1 raster image is rejected @BDD @ATDD @US4 @FR-019 @runner-presentation-browser @runner-standby-boundaries @BDD-US4-BND019 
+    [bdd-chromium] › .features-gen/bdd/runner-standby-dimensions-boundaries.feature.spec.js:22:7 › Standby image dimensions boundaries › A 1 by 4096 raster image is accepted @BDD @ATDD @US4 @FR-019 @runner-presentation-browser @runner-standby-boundaries @BDD-US4-BND020 
+    [bdd-chromium] › .features-gen/bdd/runner-standby-dimensions-boundaries.feature.spec.js:30:7 › Standby image dimensions boundaries › A 1 by 4097 raster image is rejected @BDD @ATDD @US4 @FR-019 @runner-presentation-browser @runner-standby-boundaries @BDD-US4-BND021 
+  1 interrupted
+    [bdd-chromium] › .features-gen/bdd/runner-standby-formats-boundaries.feature.spec.js:6:7 › Standby image format boundaries › A png standby file is accepted @BDD @ATDD @US4 @FR-019 @runner-presentation-browser @runner-standby-boundaries @BDD-US4-BND025 
+  18 did not run
+  81 passed (9.3m)
